@@ -41,11 +41,11 @@ jest.mock("@/shared/data", () => ({
   downloadAdminSkillFile: jest.fn(),
   fetchAdminSkillIcon: jest.fn(),
   getAdminSkillDetail: jest.fn(),
-  getAdminSkillFile: jest.fn(),
+  getAdminSource: jest.fn(),
   getAdminSkills: jest.fn(),
   mkdirAdminSkillFile: jest.fn(),
   renameAdminSkillFile: jest.fn(),
-  saveAdminSkillFile: jest.fn(),
+  updateAdminSource: jest.fn(),
   uploadAdminSkillFile: jest.fn(),
   validateAdminSkill: jest.fn(),
 }));

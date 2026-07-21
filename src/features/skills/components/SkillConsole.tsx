@@ -10,11 +10,11 @@ import {
   downloadAdminSkillFile,
   fetchAdminSkillIcon,
   getAdminSkillDetail,
-  getAdminSkillFile,
+  getAdminSource,
   getAdminSkills,
   mkdirAdminSkillFile,
   renameAdminSkillFile,
-  saveAdminSkillFile,
+  updateAdminSource,
   uploadAdminSkillFile,
   validateAdminSkill,
 } from "@/shared/data";
@@ -25,6 +25,7 @@ import type {
   AdminSkillMutationResponse,
   AdminSkillSummary,
   AdminSkillTextFile,
+  AdminSourceResponse,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -34,6 +35,19 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 
 type StatusFilter = "all" | AdminSkillStatus;
+
+function adminSourceToSkillTextFile(source: AdminSourceResponse): AdminSkillTextFile {
+  return {
+    key: source.target.key || "",
+    path: source.target.path || "",
+    content: source.content,
+    encoding: source.encoding,
+    sha256: source.sha256,
+    size: source.size,
+    updatedAt: source.updatedAt,
+    editable: true,
+  };
+}
 
 function translateWithFallback(
   t: (key: string) => string,
@@ -719,9 +733,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       if (!skillKey || !normalizedPath) return null;
       setError("");
       try {
-        const response = await getAdminSkillFile(skillKey, normalizedPath);
-        applyOpenedFile(response.data);
-        return response.data;
+        const response = await getAdminSource({
+          type: "skill",
+          key: skillKey,
+          path: normalizedPath,
+        });
+        const opened = adminSourceToSkillTextFile(response.data);
+        applyOpenedFile(opened);
+        return opened;
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
         return null;
@@ -895,13 +914,17 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setSaving(true);
     setError("");
     try {
-      const response = await saveAdminSkillFile({
-        key: detail.skill.key,
-        path: selectedFilePath,
+      const response = await updateAdminSource({
+        target: {
+          type: "skill",
+          key: detail.skill.key,
+          path: selectedFilePath,
+        },
         content: fileContent,
         baseSha256: fileSha256 || undefined,
       });
-      await applyMutation(response.data);
+      applyOpenedFile(adminSourceToSkillTextFile(response.data));
+      await loadDetail(detail.skill.key, selectedFilePath);
       setMessage(t("skillConsole.message.saveSuccess"));
     } catch (err) {
       setMessage(t("skillConsole.message.saveFailed"));

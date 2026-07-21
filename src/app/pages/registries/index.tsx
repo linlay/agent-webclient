@@ -3,8 +3,8 @@ import { Input, Spin } from "antd";
 import type { MenuProps } from "antd";
 import {
   getAdminRegistries,
-  getAdminRegistryDetail,
-  saveAdminRegistryDetail,
+  getAdminSource,
+  updateAdminSource,
   validateAdminRegistry,
   getAdminTools,
 } from "@/shared/data";
@@ -15,6 +15,7 @@ import type {
   AdminRegistryListItem,
   AdminRegistryStatus,
   AdminRegistrySummary,
+  AdminSourceResponse,
   AdminToolSummary,
   RegistryConsoleTab,
 } from "@/shared/data";
@@ -443,6 +444,27 @@ export function registryDetailToListItem(detail: AdminRegistrySummary): AdminReg
   };
 }
 
+function registryDetailFromSource(
+  source: AdminSourceResponse,
+  fallback: Partial<AdminRegistryDetailResponse> = {},
+): AdminRegistryDetailResponse {
+  return {
+    category: source.target.category as AdminRegistryCategory,
+    file: source.target.file || "",
+    key: fallback.key,
+    name: fallback.name,
+    status: fallback.status || "ready",
+    summary: fallback.summary || {},
+    diagnostics: fallback.diagnostics,
+    source: source.source,
+    content: source.content,
+    encoding: source.encoding,
+    sha256: source.sha256,
+    updatedAt: source.updatedAt,
+    size: source.size,
+  };
+}
+
 export const RegistriesPage = () => {
   const { t, locale } = useI18n();
   const [items, setItems] = useState<AdminRegistryListItem[]>([]);
@@ -560,9 +582,14 @@ export const RegistriesPage = () => {
       setDetailLoading(true);
       setError("");
       try {
-        const response = await getAdminRegistryDetail(item.category, item.file);
-        setDetail(response.data);
-        setDraft(response.data.content || "");
+        const response = await getAdminSource({
+          type: "registry",
+          category: item.category,
+          file: item.file,
+        });
+        const nextDetail = registryDetailFromSource(response.data, item);
+        setDetail(nextDetail);
+        setDraft(nextDetail.content || "");
         setDirty(false);
         setNewDraft(false);
       } catch (err) {
@@ -744,26 +771,32 @@ export const RegistriesPage = () => {
     setSaving(true);
     setError("");
     try {
-      const response = await saveAdminRegistryDetail({
-        category: detail.category,
-        file: detail.file,
+      const response = await updateAdminSource({
+        target: {
+          type: "registry",
+          category: detail.category,
+          file: detail.file,
+        },
         content: draft,
+        baseSha256: detail.sha256,
       });
-      setDetail(response.data);
-      setDraft(response.data.content || draft);
+      const refreshedResponse = await getAdminRegistries();
+      const refreshedItems = (refreshedResponse.data.items || []).filter(
+        (item) => item.category !== "mcp-servers",
+      );
+      const refreshed = refreshedItems.find(
+        (item) => item.category === detail.category && item.file === detail.file,
+      );
+      const nextDetail = registryDetailFromSource(response.data, {
+        ...detail,
+        ...refreshed,
+      });
+      setDetail(nextDetail);
+      setDraft(nextDetail.content || draft);
       setDirty(false);
       setNewDraft(false);
-      setSelectedKey(registryItemKey(response.data));
-      setItems((current) => {
-        const listItem = registryDetailToListItem(response.data);
-        const key = registryItemKey(listItem);
-        const without = current.filter((item) => registryItemKey(item) !== key);
-        return [...without, listItem].sort((a, b) =>
-          a.category === b.category
-            ? a.file.localeCompare(b.file)
-            : a.category.localeCompare(b.category),
-        );
-      });
+      setSelectedKey(registryItemKey(nextDetail));
+      setItems(refreshedItems);
       setMessage(t("registryConsole.message.savedWaiting"));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

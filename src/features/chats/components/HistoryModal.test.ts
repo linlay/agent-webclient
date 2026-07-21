@@ -16,7 +16,7 @@ jest.mock("antd", () => {
         prefix,
         React.createElement("input", props),
       ),
-    Tag: ({ children }: any) => React.createElement("span", null, children),
+    Tag: ({ children, ...props }: any) => React.createElement("span", props, children),
     Tooltip: ({ children }: any) =>
       React.createElement(React.Fragment, null, children),
   };
@@ -112,6 +112,24 @@ describe("HistoryModal", () => {
     expect(html).toContain("command-list-preview");
     expect(html).toContain("sidebar-static-icon");
     expect((html.match(/ui-icon-hover-24/g) || []).length).toBe(3);
+  });
+
+  it("shows unread, running, and awaiting statuses together when all are present", () => {
+    const html = renderHistoryModal({
+      historyRows: [
+        createHistoryRow({
+          isRead: false,
+          hasActiveRun: true,
+          hasPendingAwaiting: true,
+          awaitingMode: "question",
+        }),
+      ],
+    });
+
+    expect(html).toContain("未读");
+    expect(html).toContain("运行中");
+    expect(html).toContain("等待回答");
+    expect(html).toContain("history-list-status");
   });
 
   it("uses readable preview text instead of chatId when chatName is missing", () => {

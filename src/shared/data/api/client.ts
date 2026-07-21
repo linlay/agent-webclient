@@ -310,6 +310,8 @@ export interface AdminRegistryListResponse {
 export interface AdminRegistryDetailResponse extends AdminRegistrySummary {
   content: string;
   parsed?: Record<string, unknown>;
+  encoding?: string;
+  sha256?: string;
 }
 
 export interface AdminRegistryDetailRequest {
@@ -554,6 +556,47 @@ export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "mod
   meta?: Record<string, unknown>;
   status: "ready" | "invalid" | string;
   diagnostics?: AdminAgentDiagnostic[];
+}
+
+export type AdminSourceType = "agent" | "skill" | "automation" | "registry";
+
+export type AdminSourceTarget =
+  | {
+      type: "agent" | "automation";
+      key: string;
+      path?: never;
+      category?: never;
+      file?: never;
+    }
+  | {
+      type: "skill";
+      key: string;
+      path: string;
+      category?: never;
+      file?: never;
+    }
+  | {
+      type: "registry";
+      key?: never;
+      path?: never;
+      category: AdminRegistryCategory;
+      file: string;
+    };
+
+export interface AdminSourceResponse {
+  target: AdminSourceTarget;
+  source: AgentSource;
+  content: string;
+  encoding: "utf-8" | string;
+  sha256: string;
+  size: number;
+  updatedAt?: number;
+}
+
+export interface UpdateAdminSourceRequest {
+  target: AdminSourceTarget;
+  content: string;
+  baseSha256?: string;
 }
 
 export interface CreateAgentRequest {
@@ -848,6 +891,10 @@ export interface ChatSummaryResponse {
     readAt?: number;
     readRunId?: string;
   };
+  activeRun?: Record<string, unknown> | null;
+  hasActiveRun?: boolean;
+  awaiting?: Record<string, unknown> | null;
+  hasPendingAwaiting?: boolean;
   usage?: ChatUsageData;
 }
 
@@ -1029,9 +1076,26 @@ export function normalizeChatSummariesPayload(data: unknown): unknown[] {
       return item;
     }
 
+    const hasExplicitActiveRun = Object.prototype.hasOwnProperty.call(
+      item,
+      'hasActiveRun',
+    );
+    const hasActiveRunSummary = Object.prototype.hasOwnProperty.call(
+      item,
+      'activeRun',
+    );
     return {
       ...item,
-      hasPendingAwaiting: Boolean(item.awaiting),
+      hasPendingAwaiting: Object.prototype.hasOwnProperty.call(item, 'hasPendingAwaiting')
+        ? Boolean(item.hasPendingAwaiting)
+        : Boolean(item.awaiting),
+      ...(hasExplicitActiveRun || hasActiveRunSummary
+        ? {
+            hasActiveRun: hasExplicitActiveRun
+              ? Boolean(item.hasActiveRun)
+              : Boolean(item.activeRun),
+          }
+        : {}),
     };
   });
 }
@@ -1626,6 +1690,22 @@ export function getAgentFile(
 export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<AdminAgentDetailResponse>> {
   const query = endpointQuery(dataEndpoints.adminAgentDetail, agentKey);
   return requestJson<AdminAgentDetailResponse>(withQuery(dataEndpoints.adminAgentDetail.path, query));
+}
+
+export function getAdminSource(target: AdminSourceTarget): Promise<ApiResponse<AdminSourceResponse>> {
+  const query = endpointQuery(dataEndpoints.adminSource, target);
+  return requestJson<AdminSourceResponse>(
+    withQuery(dataEndpoints.adminSource.path, query),
+  );
+}
+
+export function updateAdminSource(
+  params: UpdateAdminSourceRequest,
+): Promise<ApiResponse<AdminSourceResponse>> {
+  return requestJson<AdminSourceResponse>(dataEndpoints.adminSourceUpdate.path, {
+    method: "PUT",
+    body: JSON.stringify(params),
+  });
 }
 
 export function createAgent(

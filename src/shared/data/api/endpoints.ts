@@ -13,6 +13,7 @@ import type {
   ChatSystemPromptRequest,
   GetMemoryRecordsParams,
   AccessLevelUpdateParams,
+  AdminSourceTarget,
   QueryLikeParams,
   QueryModelOverride,
   QueryReasoningEffort,
@@ -174,6 +175,25 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
     payload: (agentKey: string) => ({ agentKey }),
+  }),
+  adminSource: defineEndpoint({
+    key: "admin.source",
+    path: "/api/admin/source",
+    method: "GET",
+    transport: "http",
+    payload: (target: AdminSourceTarget) => ({
+      type: target.type,
+      ...(target.key ? { key: target.key } : {}),
+      ...(target.path ? { path: target.path } : {}),
+      ...(target.category ? { category: target.category } : {}),
+      ...(target.file ? { file: target.file } : {}),
+    }),
+  }),
+  adminSourceUpdate: defineEndpoint({
+    key: "admin.source.update",
+    path: "/api/admin/source",
+    method: "PUT",
+    transport: "http",
   }),
   adminAgentEditorOptions: defineEndpoint({
     key: "admin.agents.editorOptions",

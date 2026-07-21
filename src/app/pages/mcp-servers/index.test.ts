@@ -38,9 +38,9 @@ jest.mock("antd", () => {
 
 jest.mock("@/shared/data", () => ({
   getAdminRegistries: jest.fn(),
-  getAdminRegistryDetail: jest.fn(),
+  getAdminSource: jest.fn(),
   getAdminTools: jest.fn(),
-  saveAdminRegistryDetail: jest.fn(),
+  updateAdminSource: jest.fn(),
   validateAdminRegistry: jest.fn(),
 }));
 

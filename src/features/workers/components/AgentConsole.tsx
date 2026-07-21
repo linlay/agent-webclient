@@ -25,10 +25,12 @@ import {
   getAdminAgentDetail,
   getAdminAgentEditorOptions,
   getAdminAgents,
+  getAdminSource,
   getAdminSkills,
   getAdminTools,
   putAdminAgentOrder,
   updateAgent,
+  updateAdminSource,
 } from "@/shared/data";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import type {
@@ -38,6 +40,7 @@ import type {
   AgentDetailResponse,
   AgentEditorModelOption,
   AgentEditorOptionsResponse,
+  AdminSourceResponse,
 } from "@/shared/data";
 import {
   agentOrderPayload,
@@ -50,6 +53,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n, type I18nContextValue } from "@/shared/i18n";
 
 type AgentFormMode = "create" | "edit";
+type AgentEditorMode = "structured" | "source";
 type IconKind = "none" | "builtin" | "image";
 type Translate = I18nContextValue["t"];
 type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse;
@@ -654,6 +658,12 @@ const AGENT_MONO_TEXTAREA_CLASS_NAME =
   "settings-textarea agent-mono-textarea tw:font-code";
 const AGENT_PROMPT_TEXTAREA_CLASS_NAME =
   "settings-textarea agent-prompt-textarea tw:min-h-[120px]";
+const AGENT_SOURCE_EDITOR_CLASS_NAME =
+  "settings-textarea agent-source-editor tw:min-h-[420px] tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80";
+const AGENT_SOURCE_META_CLASS_NAME =
+  "agent-source-meta tw:mb-2 tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:text-[11px] tw:text-ink-muted tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
+const AGENT_DIRTY_CLASS_NAME =
+  "agent-source-dirty tw:text-[11px] tw:text-ink-muted";
 const AGENT_UNEDITABLE_CLASS_NAME =
   "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
 const AGENT_SAVE_ACTIONS_CLASS_NAME =
@@ -809,10 +819,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const effectiveSelectedKey = selectedAgentKey || internalSelectedKey;
   const [searchText, setSearchText] = useState("");
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
+  const [editorMode, setEditorMode] = useState<AgentEditorMode>("structured");
   const [form, setForm] = useState<AgentFormState>(EMPTY_FORM);
   const [detail, setDetail] = useState<EditableAgentDetail | null>(null);
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingSource, setLoadingSource] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [editorOptions, setEditorOptions] = useState<AgentEditorOptionsResponse | null>(null);
   const [toolOptions, setToolOptions] = useState<AgentToolOption[]>([]);
@@ -823,11 +835,17 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [formError, setFormError] = useState("");
   const [pendingDeleteKey, setPendingDeleteKey] = useState("");
   const [draggingAgentKey, setDraggingAgentKey] = useState("");
+  const [sourceDraft, setSourceDraft] = useState("");
+  const [sourceSha256, setSourceSha256] = useState("");
+  const [sourcePath, setSourcePath] = useState("");
+  const [sourceLoadedKey, setSourceLoadedKey] = useState("");
+  const [sourceDirty, setSourceDirty] = useState(false);
   const didInitialSelectRef = useRef(false);
   const didBootstrapAgentsRef = useRef(false);
   const didBootstrapOptionsRef = useRef(false);
   const listLoadSeqRef = useRef(0);
   const optionsLoadSeqRef = useRef(0);
+  const sourceLoadSeqRef = useRef(0);
   const selectedAgentKeyRef = useRef(selectedAgentKey);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -902,11 +920,15 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     return undefined;
   }, [form.iconImage, form.iconKind, form.iconName]);
   const detailDiagnostics = useMemo(() => readAdminAgentDiagnostics(detail), [detail]);
-  const detailSourcePath = useMemo(() => resolveAdminAgentSourcePath(detail), [detail]);
+  const detailSourcePath = useMemo(
+    () => sourcePath || resolveAdminAgentSourcePath(detail),
+    [detail, sourcePath],
+  );
   const detailSubtitle = formMode === "create"
     ? t("agentConsole.detail.createSubtitle")
     : detailSourcePath || form.key;
   const canEditStructuredAgent = formMode === "create" || hasEditableAdminDefinition(detail);
+  const canEditSourceAgent = formMode === "edit" && Boolean(detailSourcePath);
 
   useEffect(() => {
     selectedAgentKeyRef.current = selectedAgentKey;
@@ -915,6 +937,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const selectAgent = useCallback(
     (agentKey: string) => {
       const key = agentKey.trim();
+      sourceLoadSeqRef.current += 1;
       setInternalSelectedKey(key);
       if (key) onSelectAgentKey?.(key);
     },
@@ -922,9 +945,16 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const startCreate = useCallback(() => {
+    sourceLoadSeqRef.current += 1;
     setFormMode("create");
+    setEditorMode("structured");
     setForm(EMPTY_FORM);
     setDetail(null);
+    setSourceDraft("");
+    setSourceSha256("");
+    setSourcePath("");
+    setSourceLoadedKey("");
+    setSourceDirty(false);
     setInternalSelectedKey("");
     setFormError("");
     setError("");
@@ -1035,7 +1065,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const loadDetail = useCallback(async (agentKey: string) => {
     const key = agentKey.trim();
     if (!key) return;
+    sourceLoadSeqRef.current += 1;
     setLoadingDetail(true);
+    setEditorMode("structured");
+    setSourceDraft("");
+    setSourceSha256("");
+    setSourcePath("");
+    setSourceLoadedKey("");
+    setSourceDirty(false);
     setError("");
     setFormError("");
     setPendingDeleteKey("");
@@ -1144,6 +1181,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setDetail(saved);
       setForm(formFromDetail(saved));
       setFormMode("edit");
+      setEditorMode("structured");
+      setSourceDraft("");
+      setSourceSha256("");
+      setSourcePath("");
+      setSourceLoadedKey("");
+      setSourceDirty(false);
       await loadAgents(savedKey);
       selectAgent(savedKey);
     } catch (error) {
@@ -1186,6 +1229,74 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       return;
     }
     updateForm({ mode });
+  };
+
+  const applySourceResponse = (response: AdminSourceResponse) => {
+    setSourceDraft(response.content);
+    setSourceSha256(response.sha256);
+    setSourcePath(response.source?.path || "");
+    setSourceLoadedKey(response.target.key || "");
+    setSourceDirty(false);
+  };
+
+  const toggleEditorMode = async () => {
+    if (!canEditSourceAgent) return;
+    if (editorMode === "source") {
+      setEditorMode("structured");
+      return;
+    }
+
+    setEditorMode("source");
+    const key = form.key.trim();
+    if (!key || sourceLoadedKey === key) return;
+    const requestSeq = sourceLoadSeqRef.current + 1;
+    sourceLoadSeqRef.current = requestSeq;
+    setLoadingSource(true);
+    setFormError("");
+    try {
+      const response = await getAdminSource({ type: "agent", key });
+      if (sourceLoadSeqRef.current !== requestSeq) return;
+      applySourceResponse(response.data);
+    } catch (error) {
+      if (sourceLoadSeqRef.current !== requestSeq) return;
+      setFormError((error as Error).message);
+    } finally {
+      if (sourceLoadSeqRef.current === requestSeq) {
+        setLoadingSource(false);
+      }
+    }
+  };
+
+  const saveSource = async () => {
+    const key = form.key.trim();
+    if (!key || sourceLoadedKey !== key) return;
+    const requestSeq = sourceLoadSeqRef.current + 1;
+    sourceLoadSeqRef.current = requestSeq;
+    setSaving(true);
+    setError("");
+    setFormError("");
+    try {
+      const response = await updateAdminSource({
+        target: { type: "agent", key },
+        content: sourceDraft,
+        baseSha256: sourceSha256 || undefined,
+      });
+      if (sourceLoadSeqRef.current === requestSeq) {
+        applySourceResponse(response.data);
+      }
+      await loadAgents(key);
+      const detailResponse = await getAdminAgentDetail(key);
+      if (sourceLoadSeqRef.current === requestSeq) {
+        const nextDetail = detailResponse.data as EditableAgentDetail;
+        setDetail(nextDetail);
+        setForm(formFromDetail(nextDetail));
+        setFormMode("edit");
+      }
+    } catch (error) {
+      setFormError((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -1277,7 +1388,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         </div>
 
         <div className={AGENT_DETAIL_CLASS_NAME}>
-          <Spin spinning={loadingDetail}>
+          <Spin spinning={loadingDetail || loadingSource}>
             <div className={AGENT_DETAIL_HEAD_CLASS_NAME}>
               <div>
                 <strong>{formMode === "create" ? t("agentConsole.detail.titleCreate") : selectedSummary?.name || form.name || form.key || t("agentConsole.detail.titleEdit")}</strong>
@@ -1285,6 +1396,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
               {formMode === "edit" && (
                 <div className={AGENT_DETAIL_ACTIONS_CLASS_NAME}>
+                  {canEditSourceAgent && (
+                    <UiButton size="sm" variant="ghost" onClick={() => { void toggleEditorMode(); }} disabled={saving || loadingSource}>
+                      <MaterialIcon name={editorMode === "source" ? "tune" : "code"} />
+                      <span>{editorMode === "source" ? t("agentConsole.action.structuredEdit") : t("agentConsole.action.sourceEdit")}</span>
+                    </UiButton>
+                  )}
                   <UiButton size="sm" variant="danger" onClick={confirmDelete} disabled={saving}>
                     <MaterialIcon name="delete" />
                     <span>{pendingDeleteKey === form.key ? t("agentConsole.action.confirmDelete") : t("agentConsole.action.delete")}</span>
@@ -1309,7 +1426,29 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
             )}
 
-            {canEditStructuredAgent ? (
+            {editorMode === "source" ? (
+              sourceLoadedKey === form.key ? (
+                <>
+                  <div className={AGENT_SOURCE_META_CLASS_NAME}>
+                    <MaterialIcon name="description" />
+                    <span>{detailSourcePath}</span>
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="agent-source-editor">{t("agentConsole.field.sourceFile")}</label>
+                    <Input.TextArea
+                      id="agent-source-editor"
+                      className={AGENT_SOURCE_EDITOR_CLASS_NAME}
+                      value={sourceDraft}
+                      onChange={(event) => {
+                        setSourceDraft(event.target.value);
+                        setSourceDirty(true);
+                        setFormError("");
+                      }}
+                    />
+                  </div>
+                </>
+              ) : null
+            ) : canEditStructuredAgent ? (
               <>
                 <div className={AGENT_FORM_GRID_CLASS_NAME}>
               <div className="field-group">
@@ -1504,17 +1643,27 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
             {formError && <div className="settings-error">{formError}</div>}
 
-            <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
-              <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving || !canEditStructuredAgent}>
-                <MaterialIcon name="save" />
-                <span>{formMode === "create" ? t("agentConsole.action.create") : t("agentConsole.action.saveChanges")}</span>
-              </UiButton>
-              {formMode === "edit" && (
-                <UiButton size="sm" variant="ghost" onClick={startCreate} disabled={saving}>
-                  {t("agentConsole.action.cancelEdit")}
+            {editorMode === "source" ? (
+              <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
+                <UiButton size="sm" variant="primary" onClick={saveSource} disabled={saving || loadingSource || sourceLoadedKey !== form.key || !sourceDirty}>
+                  <MaterialIcon name="save" />
+                  <span>{t("agentConsole.action.saveSource")}</span>
                 </UiButton>
-              )}
-            </div>
+                {sourceDirty && <span className={AGENT_DIRTY_CLASS_NAME}>{t("agentConsole.message.unsaved")}</span>}
+              </div>
+            ) : (
+              <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
+                <UiButton size="sm" variant="primary" onClick={saveForm} disabled={saving || !canEditStructuredAgent}>
+                  <MaterialIcon name="save" />
+                  <span>{formMode === "create" ? t("agentConsole.action.create") : t("agentConsole.action.saveChanges")}</span>
+                </UiButton>
+                {formMode === "edit" && (
+                  <UiButton size="sm" variant="ghost" onClick={startCreate} disabled={saving}>
+                    {t("agentConsole.action.cancelEdit")}
+                  </UiButton>
+                )}
+              </div>
+            )}
           </Spin>
         </div>
       </div>

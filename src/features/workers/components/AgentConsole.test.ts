@@ -49,10 +49,12 @@ jest.mock("@/shared/data", () => ({
   getAdminAgentDetail: jest.fn(),
   getAdminAgentEditorOptions: jest.fn(),
   getAdminAgents: jest.fn(),
+  getAdminSource: jest.fn(),
   getAdminSkills: jest.fn(),
   getAdminTools: jest.fn(),
   putAdminAgentOrder: jest.fn(),
   updateAgent: jest.fn(),
+  updateAdminSource: jest.fn(),
 }));
 
 jest.mock("@/shared/icons/agent", () => ({

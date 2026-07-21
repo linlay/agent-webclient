@@ -233,6 +233,11 @@
     line-height: 1.35;
 }
 
+.layout-copilot .history-worker-selector.ant-select {
+    min-width: min(230px, 52vw);
+    max-width: min(320px, 62vw);
+}
+
 .layout-copilot .history-list-action-time {
     font-size: 12px;
 }

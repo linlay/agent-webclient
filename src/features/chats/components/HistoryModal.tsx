@@ -18,6 +18,22 @@ import {
 } from "@/shared/data";
 import { useAppContext } from "@/app/state/provider";
 
+function getAwaitingStatusKey(mode?: string): string {
+  switch (mode) {
+    case "plan":
+    case "planning":
+      return "leftSidebar.awaitingStatus.plan";
+    case "question":
+      return "leftSidebar.awaitingStatus.question";
+    case "approval":
+      return "leftSidebar.awaitingStatus.approval";
+    case "form":
+      return "leftSidebar.awaitingStatus.form";
+    default:
+      return "leftSidebar.awaitingApproval";
+  }
+}
+
 export const HistoryModal: React.FC<{
   historyRows: WorkerConversationRow[];
   historyIndex: number;
@@ -207,9 +223,23 @@ export const HistoryModal: React.FC<{
                   gap={10}
                   style={{ height: 28 }}
                 >
-                  <Flex align="center" gap={6} style={{ overflow: "hidden" }}>
+                  <Flex
+                    align="center"
+                    gap={6}
+                    className="history-list-summary"
+                  >
                     <span className="history-list-title">{historyTitle}</span>
                     {isChatUnread(chat) ? <Tag color="blue">{t("history.unread")}</Tag> : null}
+                    {chat.hasActiveRun ? (
+                      <Tag color="processing" className="history-list-status">
+                        {t("history.running")}
+                      </Tag>
+                    ) : null}
+                    {chat.hasPendingAwaiting ? (
+                      <Tag color="gold" className="history-list-status">
+                        {t(getAwaitingStatusKey(chat.awaitingMode))}
+                      </Tag>
+                    ) : null}
                   </Flex>
                   <Flex align="center" className="history-list-actions">
                     <span className="history-list-action-time">

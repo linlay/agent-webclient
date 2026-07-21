@@ -289,7 +289,7 @@ export const AgentChatShell: React.FC = () => {
     (state.timelineOrder.length > 0 || state.streaming || Boolean(state.runId));
   const routeChatReady =
     !chatId || currentStateChatId === chatId || routeHasVisibleConversation;
-  const { filteredHistoryRows, workerChatsByKey } = useLeftSidebarData({
+  const { filteredHistoryRows, workerChatsByKey, workerIconsByKey } = useLeftSidebarData({
     agents: state.agents,
     chatFilter: state.chatFilter,
     chats: state.chats,
@@ -650,6 +650,13 @@ export const AgentChatShell: React.FC = () => {
     setRemoteHistoryRows(null);
   };
 
+  const handleHistoryWorkerChange = (workerKey: string) => {
+    const normalizedWorkerKey = String(workerKey || "").trim();
+    if (!normalizedWorkerKey || normalizedWorkerKey === historyWorkerKey) return;
+    openRouteHistoryForWorker(normalizedWorkerKey);
+    setHistoryIndex(0);
+  };
+
   const handleSelectHistoryChat = (selectedChatId: string) => {
     window.dispatchEvent(
       new CustomEvent("agent:load-chat", {
@@ -715,6 +722,8 @@ export const AgentChatShell: React.FC = () => {
           <SidebarHistorySection
             open={Boolean(historyWorkerKey)}
             historyWorker={historyWorker}
+            workerRows={state.workerRows}
+            workerIconsByKey={workerIconsByKey}
             historyRows={remoteHistoryRows ?? filteredHistoryRows}
             historyIndex={historyIndex}
             historySearch={historySearch}
@@ -722,6 +731,7 @@ export const AgentChatShell: React.FC = () => {
             historyListRef={historyListRef}
             historyItemRefs={historyItemRefs}
             onClose={handleCloseHistory}
+            onHistoryWorkerChange={handleHistoryWorkerChange}
             onHistorySearchChange={(value) => {
               setHistorySearch(value);
               setHistoryIndex(0);

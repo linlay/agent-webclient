@@ -3,15 +3,16 @@ import { Input, Spin } from "antd";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   getAdminRegistries,
-  getAdminRegistryDetail,
+  getAdminSource,
   getAdminTools,
-  saveAdminRegistryDetail,
+  updateAdminSource,
   validateAdminRegistry,
 } from "@/shared/data";
 import type {
   AdminRegistryDetailResponse,
   AdminRegistryListItem,
   AdminRegistryStatus,
+  AdminSourceResponse,
   AdminToolSummary,
 } from "@/shared/data";
 import {
@@ -190,6 +191,27 @@ function detailToListItem(detail: AdminRegistryDetailResponse): AdminRegistryLis
   };
 }
 
+function mcpDetailFromSource(
+  source: AdminSourceResponse,
+  fallback: Partial<AdminRegistryDetailResponse> = {},
+): AdminRegistryDetailResponse {
+  return {
+    category: "mcp-servers",
+    file: source.target.file || "",
+    key: fallback.key,
+    name: fallback.name,
+    status: fallback.status || "ready",
+    summary: fallback.summary || {},
+    diagnostics: fallback.diagnostics,
+    source: source.source,
+    content: source.content,
+    encoding: source.encoding,
+    sha256: source.sha256,
+    updatedAt: source.updatedAt,
+    size: source.size,
+  };
+}
+
 export const McpServersPage = () => {
   const { t, locale } = useI18n();
   const navigate = useNavigate();
@@ -263,10 +285,15 @@ export const McpServersPage = () => {
     setDetailLoading(true);
     setError("");
     try {
-      const response = await getAdminRegistryDetail("mcp-servers", item.file);
+      const response = await getAdminSource({
+        type: "registry",
+        category: "mcp-servers",
+        file: item.file,
+      });
+      const nextDetail = mcpDetailFromSource(response.data, item);
       setSelectedItemKey(mcpServerItemKey(item));
-      setDetail(response.data);
-      setDraft(response.data.content || "");
+      setDetail(nextDetail);
+      setDraft(nextDetail.content || "");
       setDirty(false);
       setNewDraft(false);
       setRouteNotFound(false);
@@ -453,12 +480,24 @@ export const McpServersPage = () => {
     setSaving(true);
     setError("");
     try {
-      const response = await saveAdminRegistryDetail({
-        category: "mcp-servers",
-        file: detail.file,
+      const response = await updateAdminSource({
+        target: {
+          type: "registry",
+          category: "mcp-servers",
+          file: detail.file,
+        },
         content: draft,
+        baseSha256: detail.sha256,
       });
-      const nextDetail = response.data;
+      const refreshed = await getAdminRegistries();
+      const nextItems = (refreshed.data.items || []).filter(
+        (item) => item.category === "mcp-servers",
+      );
+      const refreshedItem = nextItems.find((item) => item.file === detail.file);
+      const nextDetail = mcpDetailFromSource(response.data, {
+        ...detail,
+        ...refreshedItem,
+      });
       const nextItem = detailToListItem(nextDetail);
       const nextRouteKey = mcpServerKey(nextDetail);
       setDetail(nextDetail);
@@ -466,11 +505,7 @@ export const McpServersPage = () => {
       setDirty(false);
       setNewDraft(false);
       setSelectedItemKey(mcpServerItemKey(nextItem));
-      setItems((current) => {
-        const key = mcpServerItemKey(nextItem);
-        return [...current.filter((item) => mcpServerItemKey(item) !== key), nextItem]
-          .sort((a, b) => a.file.localeCompare(b.file));
-      });
+      setItems(nextItems);
       setMessage(t("mcpServers.message.saved"));
       navigate(mcpServersRoutePath(nextRouteKey, routeSearch));
     } catch (saveError) {

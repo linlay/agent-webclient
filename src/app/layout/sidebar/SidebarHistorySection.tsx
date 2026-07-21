@@ -1,8 +1,9 @@
 import React from "react";
 import { Flex, Modal } from "antd";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
+import { HistoryWorkerSelector } from "@/features/chats/components/HistoryWorkerSelector";
 import { useI18n } from "@/shared/i18n";
-import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { Agent, Team, WorkerConversationRow, WorkerRow } from "@/app/state/types";
 
 const HISTORY_MODAL_TITLE_TAG_CLASS =
   "history-modal-title-tag tw:rounded-[10px] tw:bg-accent-soft tw:px-1.5 tw:py-0.5 tw:text-xs tw:font-normal tw:text-accent";
@@ -10,6 +11,8 @@ const HISTORY_MODAL_TITLE_TAG_CLASS =
 export const SidebarHistorySection: React.FC<{
   open: boolean;
   historyWorker: WorkerRow | null;
+  workerRows: WorkerRow[];
+  workerIconsByKey?: ReadonlyMap<string, Agent["icon"] | Team["icon"]>;
   historyRows: WorkerConversationRow[];
   historyIndex: number;
   historySearch: string;
@@ -17,6 +20,7 @@ export const SidebarHistorySection: React.FC<{
   historyListRef: React.RefObject<HTMLDivElement>;
   historyItemRefs: React.MutableRefObject<Array<HTMLButtonElement | null>>;
   onClose: () => void;
+  onHistoryWorkerChange: (workerKey: string) => void;
   onHistorySearchChange: (value: string) => void;
   onActivateIndex: (index: number) => void;
   onSelectChat: (chatId: string) => void;
@@ -25,6 +29,8 @@ export const SidebarHistorySection: React.FC<{
 }> = ({
   open,
   historyWorker,
+  workerRows,
+  workerIconsByKey,
   historyRows,
   historyIndex,
   historySearch,
@@ -32,6 +38,7 @@ export const SidebarHistorySection: React.FC<{
   historyListRef,
   historyItemRefs,
   onClose,
+  onHistoryWorkerChange,
   onHistorySearchChange,
   onActivateIndex,
   onSelectChat,
@@ -49,18 +56,14 @@ export const SidebarHistorySection: React.FC<{
       width="min(780px, calc(100vw - 32px))"
       className="worker-history-modal"
       title={
-        <Flex align="center" gap={6}>
-          <span>
-            {historyWorker
-              ? t("leftSidebar.historyTitleWithWorker", {
-                  workerTypeLabel:
-                    historyWorker.type === "team"
-                      ? t("switch.workerType.team")
-                      : t("switch.workerType.agent"),
-                  displayName: historyWorker.displayName,
-                })
-              : t("leftSidebar.historyTitle")}
-          </span>
+        <Flex align="center" gap={6} className="history-modal-title">
+          <span>{t("leftSidebar.historyTitle")}</span>
+          <HistoryWorkerSelector
+            worker={historyWorker}
+            workerRows={workerRows}
+            workerIconsByKey={workerIconsByKey}
+            onChange={onHistoryWorkerChange}
+          />
           <div className={HISTORY_MODAL_TITLE_TAG_CLASS}>
             {t("leftSidebar.historyCount", { count: historyRows.length })}
           </div>

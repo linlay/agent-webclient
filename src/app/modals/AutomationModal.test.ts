@@ -7,6 +7,7 @@ import {
   buildCreateAutomationPayloadForSubmit,
   buildUpdateAutomationPayloadForSubmit,
   fetchAutomationAgentsForSelect,
+  isCurrentAutomationSourceRequest,
   shouldLoadAutomationAgents,
   shouldStartAutomationConsoleBootstrap,
 } from "@/app/modals/AutomationModal";
@@ -62,7 +63,9 @@ jest.mock("@/shared/data", () => ({
   getAutomation: jest.fn(),
   getAutomationExecutions: jest.fn(),
   getAutomations: jest.fn(),
+  getAdminSource: jest.fn(),
   toggleAutomation: jest.fn(),
+  updateAdminSource: jest.fn(),
   updateAutomation: jest.fn(),
 }));
 
@@ -261,6 +264,12 @@ describe("AutomationModal", () => {
 
     expect(automationSourcePath(automation)).toBe("sync_workspace_20260429_2146.yml");
     expect(automationSourcePath({ ...automation, sourceFile: "" })).toBe("sync_workspace_20260429_2146");
+  });
+
+  it("ignores a source response once the user has selected another automation", () => {
+    expect(isCurrentAutomationSourceRequest(3, 3, "daily-report", "daily-report")).toBe(true);
+    expect(isCurrentAutomationSourceRequest(3, 4, "daily-report", "daily-report")).toBe(false);
+    expect(isCurrentAutomationSourceRequest(3, 3, "daily-report", "weekly-report")).toBe(false);
   });
 
   it("keeps platform readable automation times in their source timezone", () => {

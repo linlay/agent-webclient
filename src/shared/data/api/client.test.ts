@@ -32,13 +32,13 @@ import {
   extractUploadChatId,
   extractUploadReferences,
   getAdminAgentDetail,
+  getAdminSource,
   getAdminAgentEditorOptions,
   getAdminAgentOrder,
   getAdminAgents,
   getAdminSkills,
   getAdminTools,
   getAdminRegistries,
-  getAdminRegistryDetail,
   getArchive,
   getAgent,
 	getAgentFile,
@@ -70,6 +70,7 @@ import {
   interruptChat,
   learnChat,
   markChatRead,
+  normalizeChatSummariesPayload,
   openAgentWorkspace,
   rememberChat,
   renameChat,
@@ -77,7 +78,6 @@ import {
   searchArchives,
   searchGlobal,
   setAccessToken,
-  saveAdminRegistryDetail,
   createAdminSkillFile,
   createAdminSkill,
   deleteAdminSkillFile,
@@ -85,10 +85,8 @@ import {
   downloadAdminSkillFile,
   fetchAdminSkillIcon,
   getAdminSkillDetail,
-  getAdminSkillFile,
   mkdirAdminSkillFile,
   renameAdminSkillFile,
-  saveAdminSkillFile,
   uploadAdminSkillFile,
   validateAdminSkill,
   steerChat,
@@ -97,6 +95,7 @@ import {
   submitTool,
   toggleAutomation,
   updateAgent,
+  updateAdminSource,
   updateAgentName,
   updateAccessLevel,
   updateAgentModelConfig,
@@ -653,13 +652,12 @@ describe('data client query payloads', () => {
     );
   });
 
-  it('uses canonical skills admin manifest and file endpoints', async () => {
+  it('uses canonical skills admin manifest and generic source endpoints', async () => {
     await getAdminSkills();
     await getAdminSkillDetail('demo-skill', 'SKILL.md');
-    await getAdminSkillFile('demo-skill', 'SKILL.md');
-    await saveAdminSkillFile({
-      key: 'demo-skill',
-      path: 'SKILL.md',
+    await getAdminSource({ type: 'skill', key: 'demo-skill', path: 'SKILL.md' });
+    await updateAdminSource({
+      target: { type: 'skill', key: 'demo-skill', path: 'SKILL.md' },
       content: '# My Skill',
       baseSha256: 'abc123',
     });
@@ -702,16 +700,15 @@ describe('data client query payloads', () => {
         body: {},
       },
       {
-        url: '/api/admin/skills/file?key=demo-skill&path=SKILL.md',
+        url: '/api/admin/source?type=skill&key=demo-skill&path=SKILL.md',
         method: 'GET',
         body: {},
       },
       {
-        url: '/api/admin/skills/file',
+        url: '/api/admin/source',
         method: 'PUT',
         body: {
-          key: 'demo-skill',
-          path: 'SKILL.md',
+          target: { type: 'skill', key: 'demo-skill', path: 'SKILL.md' },
           content: '# My Skill',
           baseSha256: 'abc123',
         },
@@ -771,6 +768,18 @@ describe('data client query payloads', () => {
     );
     expect(buildAdminSkillDownloadUrl('demo-skill')).toBe(
       '/api/admin/skills/download?key=demo-skill',
+    );
+  });
+
+  it('encodes logical source target query values', async () => {
+    await getAdminSource({
+      type: 'skill',
+      key: 'demo skill',
+      path: 'references/a & b.md',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/admin/source?type=skill&key=demo+skill&path=references%2Fa+%26+b.md',
     );
   });
 
@@ -1242,6 +1251,38 @@ describe('data client query payloads', () => {
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
   });
 
+  it('reads and updates an admin source file through the typed management endpoint', async () => {
+    await getAdminSource({ type: 'agent', key: 'editable-agent' });
+    await updateAdminSource({
+      target: { type: 'agent', key: 'editable-agent' },
+      content: '# keep this comment\nkey: editable-agent\n',
+      baseSha256: 'source-sha',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/admin/source?type=agent&key=editable-agent',
+    );
+    expect(fetchMock.mock.calls[1]).toEqual([
+      '/api/admin/source',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({
+          target: { type: 'agent', key: 'editable-agent' },
+          content: '# keep this comment\nkey: editable-agent\n',
+          baseSha256: 'source-sha',
+        }),
+      }),
+    ]);
+  });
+
+  it('serializes automation source targets by logical key', async () => {
+    await getAdminSource({ type: 'automation', key: 'daily-report' });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/admin/source?type=automation&key=daily-report',
+    );
+  });
+
   it('requests an agent workspace file with the typed file endpoint', async () => {
     await getAgentFile({
       agentKey: 'coder-agent',
@@ -1440,12 +1481,11 @@ describe('data client query payloads', () => {
     });
   });
 
-  it('uses admin endpoints for registry list, detail, save, and validate', async () => {
+  it('uses generic source endpoints for registry text and the registry validation endpoint', async () => {
     await getAdminRegistries();
-    await getAdminRegistryDetail('models', 'openai.yml');
-    await saveAdminRegistryDetail({
-      category: 'models',
-      file: 'openai.yml',
+    await getAdminSource({ type: 'registry', category: 'models', file: 'openai.yml' });
+    await updateAdminSource({
+      target: { type: 'registry', category: 'models', file: 'openai.yml' },
       content: 'key: openai\n',
     });
     await validateAdminRegistry({
@@ -1456,16 +1496,15 @@ describe('data client query payloads', () => {
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/registries');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      '/api/admin/registries/detail?category=models&file=openai.yml',
+      '/api/admin/source?type=registry&category=models&file=openai.yml',
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
-      '/api/admin/registries/detail',
+      '/api/admin/source',
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[1]).toMatchObject({
       method: 'PUT',
       body: JSON.stringify({
-        category: 'models',
-        file: 'openai.yml',
+        target: { type: 'registry', category: 'models', file: 'openai.yml' },
         content: 'key: openai\n',
       }),
     });
@@ -1486,6 +1525,36 @@ describe('data client query payloads', () => {
     await getChats({ agentKey: 'agent-a' });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chats?agentKey=agent-a');
+  });
+
+  it('normalizes chat runtime summaries while respecting explicit status flags', () => {
+    expect(normalizeChatSummariesPayload([
+      {
+        chatId: 'active-awaiting',
+        activeRun: { runId: 'run_1' },
+        awaiting: { awaitingId: 'await_1', mode: 'question' },
+      },
+      {
+        chatId: 'completed',
+        activeRun: { runId: 'stale_run' },
+        awaiting: { awaitingId: 'stale_await' },
+        hasActiveRun: false,
+        hasPendingAwaiting: false,
+      },
+      { chatId: 'legacy' },
+    ])).toEqual([
+      expect.objectContaining({
+        chatId: 'active-awaiting',
+        hasActiveRun: true,
+        hasPendingAwaiting: true,
+      }),
+      expect.objectContaining({
+        chatId: 'completed',
+        hasActiveRun: false,
+        hasPendingAwaiting: false,
+      }),
+      { chatId: 'legacy', hasPendingAwaiting: false },
+    ]);
   });
 
   it('requests a bridge token when app mode starts without one', async () => {

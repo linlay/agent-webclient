@@ -453,6 +453,7 @@ export const LeftSidebar: React.FC = () => {
       const currentChatIndex = findChatIndex(workerChats, state.chatId);
       setHistoryWorkerKey(normalizedWorkerKey);
       setHistorySearch("");
+      setRemoteHistoryRows(null);
       setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
 
       const worker =
@@ -491,6 +492,13 @@ export const LeftSidebar: React.FC = () => {
   ) => {
     event.stopPropagation();
     openHistoryForWorker(workerKey);
+  };
+
+  const handleHistoryWorkerChange = (workerKey: string) => {
+    const normalizedWorkerKey = String(workerKey || "").trim();
+    if (!normalizedWorkerKey || normalizedWorkerKey === historyWorkerKey) return;
+    openHistoryForWorker(normalizedWorkerKey);
+    setHistoryIndex(0);
   };
 
   useEffect(() => {
@@ -1271,6 +1279,8 @@ export const LeftSidebar: React.FC = () => {
       <SidebarHistorySection
         open={Boolean(historyWorkerKey)}
         historyWorker={historyWorker}
+        workerRows={state.workerRows}
+        workerIconsByKey={workerIconsByKey}
         historyRows={remoteHistoryRows ?? filteredHistoryRows}
         historyIndex={historyIndex}
         historySearch={historySearch}
@@ -1278,6 +1288,7 @@ export const LeftSidebar: React.FC = () => {
         historyListRef={historyListRef}
         historyItemRefs={historyItemRefs}
         onClose={handleCloseHistory}
+        onHistoryWorkerChange={handleHistoryWorkerChange}
         onHistorySearchChange={(value) => {
           setHistorySearch(value);
           setHistoryIndex(0);

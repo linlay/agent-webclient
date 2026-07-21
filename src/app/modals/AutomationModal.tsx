@@ -16,8 +16,10 @@ import {
   getAutomation,
   getAutomationExecutions,
   getAutomations,
+  getAdminSource,
   toggleAutomation,
   updateAutomation,
+  updateAdminSource,
 } from "@/shared/data";
 import { getAgents as getAgentsHttp } from "@/shared/data";
 import type {
@@ -27,6 +29,7 @@ import type {
   AutomationQueryRequest,
   AutomationSummaryResponse,
   UpdateAutomationRequest,
+  AdminSourceResponse,
 } from "@/shared/data";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
@@ -37,6 +40,7 @@ import { formatPlatformReadableTimeWithFallback } from "@/shared/utils/platformT
 
 type AutomationStatusFilter = "all" | "enabled" | "disabled";
 type AutomationFormMode = "create" | "edit";
+type AutomationEditorMode = "structured" | "source";
 type Translate = I18nContextValue["t"];
 
 interface AutomationFormState {
@@ -280,6 +284,15 @@ export function automationSourcePath(
   return filename || automation.id;
 }
 
+export function isCurrentAutomationSourceRequest(
+  requestSeq: number,
+  currentSeq: number,
+  targetId: string,
+  selectedId: string,
+): boolean {
+  return requestSeq === currentSeq && targetId === selectedId;
+}
+
 function automationListMeta(
   automation: AutomationSummaryResponse,
   resolveWorkerName: (automation: AutomationSummaryResponse) => string,
@@ -411,10 +424,12 @@ export const AutomationModal: React.FC<{
     useState<AutomationStatusFilter>("all");
   const [workerFilter, setWorkerFilter] = useState("");
   const [formMode, setFormMode] = useState<AutomationFormMode>("create");
+  const [editorMode, setEditorMode] = useState<AutomationEditorMode>("structured");
   const [form, setForm] = useState<AutomationFormState>(() =>
     createInitialForm(currentWorker),
   );
   const [loading, setLoading] = useState(false);
+  const [loadingSource, setLoadingSource] = useState(false);
   const [executionsLoading, setExecutionsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -422,9 +437,16 @@ export const AutomationModal: React.FC<{
   const [pendingDeleteId, setPendingDeleteId] = useState("");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [workerDropdownOpen, setWorkerDropdownOpen] = useState(false);
+  const [sourceDraft, setSourceDraft] = useState("");
+  const [sourceSha256, setSourceSha256] = useState("");
+  const [sourcePath, setSourcePath] = useState("");
+  const [sourceLoadedId, setSourceLoadedId] = useState("");
+  const [sourceDirty, setSourceDirty] = useState(false);
   const didBootstrapAutomationsRef = useRef(false);
   const didBootstrapAgentsRef = useRef(false);
   const didAutoSelectInitialAutomationRef = useRef(false);
+  const sourceLoadSeqRef = useRef(0);
+  const selectedAutomationIdRef = useRef(selectedId);
 
   const workerOptions = useMemo(() => {
     const values = new Map<string, string>();
@@ -583,10 +605,18 @@ export const AutomationModal: React.FC<{
   }, []);
 
   const startCreate = useCallback(() => {
+    sourceLoadSeqRef.current += 1;
+    selectedAutomationIdRef.current = "";
     didAutoSelectInitialAutomationRef.current = true;
     setSelectedId("");
     setFormMode("create");
+    setEditorMode("structured");
     setForm(createInitialForm(currentWorker));
+    setSourceDraft("");
+    setSourceSha256("");
+    setSourcePath("");
+    setSourceLoadedId("");
+    setSourceDirty(false);
     setExecutions([]);
     setFormError("");
     setPendingDeleteId("");
@@ -599,8 +629,16 @@ export const AutomationModal: React.FC<{
         startCreate();
         return;
       }
+      sourceLoadSeqRef.current += 1;
+      selectedAutomationIdRef.current = normalizedId;
       setSelectedId(normalizedId);
       setFormMode("edit");
+      setEditorMode("structured");
+      setSourceDraft("");
+      setSourceSha256("");
+      setSourcePath("");
+      setSourceLoadedId("");
+      setSourceDirty(false);
       setFormError("");
       setPendingDeleteId("");
       try {
@@ -639,6 +677,10 @@ export const AutomationModal: React.FC<{
     },
     [dispatch, selectAutomation, startCreate],
   );
+
+  useEffect(() => {
+    selectedAutomationIdRef.current = selectedId;
+  }, [selectedId]);
 
   useEffect(() => {
     if (!shouldStartAutomationConsoleBootstrap(didBootstrapAutomationsRef))
@@ -686,6 +728,97 @@ export const AutomationModal: React.FC<{
       await loadAutomations(response.data.id);
     } catch (error) {
       setFormError((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const applySourceResponse = (response: AdminSourceResponse) => {
+    setSourceDraft(response.content);
+    setSourceSha256(response.sha256);
+    setSourcePath(response.source?.path || "");
+    setSourceLoadedId(response.target.key || "");
+    setSourceDirty(false);
+  };
+
+  const toggleEditorMode = async () => {
+    if (formMode !== "edit" || !selectedId) return;
+    if (editorMode === "source") {
+      setEditorMode("structured");
+      return;
+    }
+    const id = selectedId;
+    setEditorMode("source");
+    if (sourceLoadedId === id) return;
+    const requestSeq = sourceLoadSeqRef.current + 1;
+    sourceLoadSeqRef.current = requestSeq;
+    setLoadingSource(true);
+    setFormError("");
+    try {
+      const response = await getAdminSource({ type: "automation", key: id });
+      if (!isCurrentAutomationSourceRequest(
+        requestSeq,
+        sourceLoadSeqRef.current,
+        id,
+        selectedAutomationIdRef.current,
+      )) {
+        return;
+      }
+      applySourceResponse(response.data);
+    } catch (sourceError) {
+      if (!isCurrentAutomationSourceRequest(
+        requestSeq,
+        sourceLoadSeqRef.current,
+        id,
+        selectedAutomationIdRef.current,
+      )) {
+        return;
+      }
+      setFormError(sourceError instanceof Error ? sourceError.message : String(sourceError));
+    } finally {
+      if (sourceLoadSeqRef.current === requestSeq) {
+        setLoadingSource(false);
+      }
+    }
+  };
+
+  const saveSource = async () => {
+    if (!selectedId || sourceLoadedId !== selectedId || !sourceDirty) return;
+    const id = selectedId;
+    const requestSeq = sourceLoadSeqRef.current + 1;
+    sourceLoadSeqRef.current = requestSeq;
+    setSaving(true);
+    setError("");
+    setFormError("");
+    try {
+      const response = await updateAdminSource({
+        target: { type: "automation", key: id },
+        content: sourceDraft,
+        baseSha256: sourceSha256 || undefined,
+      });
+      if (isCurrentAutomationSourceRequest(
+        requestSeq,
+        sourceLoadSeqRef.current,
+        id,
+        selectedAutomationIdRef.current,
+      )) {
+        applySourceResponse(response.data);
+      }
+      const [detailResponse, listResponse] = await Promise.all([
+        getAutomation(id),
+        getAutomations(),
+      ]);
+      dispatch({ type: "SET_AUTOMATIONS", automations: listResponse.data.items || [] });
+      if (isCurrentAutomationSourceRequest(
+        requestSeq,
+        sourceLoadSeqRef.current,
+        id,
+        selectedAutomationIdRef.current,
+      )) {
+        setForm(formFromAutomation(detailResponse.data));
+      }
+    } catch (sourceError) {
+      setFormError(sourceError instanceof Error ? sourceError.message : String(sourceError));
     } finally {
       setSaving(false);
     }
@@ -919,12 +1052,25 @@ export const AutomationModal: React.FC<{
                 {formMode === "create"
                   ? t("automationConsole.detail.createSubtitle")
                   : selectedSummary
-                    ? automationSourcePath(selectedSummary)
+                    ? sourcePath || automationSourcePath(selectedSummary)
                     : selectedId}
               </span>
             </div>
             {selectedSummary && (
               <div className={AUTOMATION_ACTIONS_CLASS_NAME}>
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { void toggleEditorMode(); }}
+                  disabled={saving || loadingSource}
+                >
+                  <MaterialIcon name={editorMode === "source" ? "tune" : "code"} />
+                  <span>
+                    {editorMode === "source"
+                      ? t("automationConsole.action.structuredEdit")
+                      : t("automationConsole.action.sourceEdit")}
+                  </span>
+                </UiButton>
                 <UiButton
                   size="sm"
                   variant="ghost"
@@ -959,6 +1105,43 @@ export const AutomationModal: React.FC<{
             )}
           </div>
 
+          {editorMode === "source" ? (
+            <>
+              <div className="field-group">
+                <label htmlFor="automation-source-editor">
+                  {t("automationConsole.field.sourceFile")}
+                </label>
+                <Input.TextArea
+                  id="automation-source-editor"
+                  className="settings-textarea automation-source-editor tw:min-h-[420px] tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2]"
+                  value={sourceDraft}
+                  onChange={(event) => {
+                    setSourceDraft(event.target.value);
+                    setSourceDirty(true);
+                    setFormError("");
+                  }}
+                />
+              </div>
+              {formError && <div className="settings-error">{formError}</div>}
+              <div className={AUTOMATION_SAVE_ACTIONS_CLASS_NAME}>
+                <UiButton
+                  size="sm"
+                  variant="primary"
+                  onClick={saveSource}
+                  disabled={saving || loadingSource || !sourceDirty || sourceLoadedId !== selectedId}
+                >
+                  <MaterialIcon name="save" />
+                  <span>{t("automationConsole.action.saveSource")}</span>
+                </UiButton>
+                {sourceDirty && (
+                  <span className="automation-source-dirty tw:text-[11px] tw:text-ink-muted">
+                    {t("automationConsole.message.unsaved")}
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
           <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
             <div className="field-group">
               <label htmlFor="automation-name-input">
@@ -1201,6 +1384,8 @@ export const AutomationModal: React.FC<{
               </UiButton>
             )}
           </div>
+            </>
+          )}
 
           <div className={AUTOMATION_EXECUTIONS_CLASS_NAME}>
             <div className={AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME}>
