@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Dropdown, Input, Modal, message, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -143,35 +143,32 @@ export const ChatActionsMenu: React.FC<{
 		});
 	};
 
+	const runArchive = useCallback(async () => {
+		if (!normalizedChatId || pending) return;
+		setPending(true);
+		try {
+			const response = await archiveChats({ chatIds: [normalizedChatId] });
+			const result = response.data?.results?.[0];
+			if (!result?.success) {
+				throw new Error(result?.error || t("chatActions.archive.failed"));
+			}
+			dispatch({ type: "CHAT_ARCHIVED", chatId: normalizedChatId });
+			onArchived?.(normalizedChatId);
+			clearActiveChatIfNeeded();
+		} catch (error) {
+			dispatch({
+				type: "APPEND_DEBUG",
+				line: `[archive chat error] ${(error as Error).message}`,
+			});
+			message.error(t("chatActions.archive.failed"));
+		} finally {
+			setPending(false);
+		}
+	}, [clearActiveChatIfNeeded, dispatch, normalizedChatId, onArchived, pending, t]);
+
 	const handleArchive = () => {
 		if (!normalizedChatId || pending) return;
-		Modal.confirm({
-			title: t("chatActions.archive.title"),
-			content: chatName || normalizedChatId,
-			okText: t("chatActions.archive.ok"),
-			cancelText: t("chatActions.cancel"),
-			onOk: async () => {
-				setPending(true);
-				try {
-					const response = await archiveChats({ chatIds: [normalizedChatId] });
-					const result = response.data?.results?.[0];
-					if (!result?.success) {
-						throw new Error(result?.error || t("chatActions.archive.failed"));
-					}
-					dispatch({ type: "CHAT_ARCHIVED", chatId: normalizedChatId });
-					onArchived?.(normalizedChatId);
-					clearActiveChatIfNeeded();
-				} catch (error) {
-					dispatch({
-						type: "APPEND_DEBUG",
-						line: `[archive chat error] ${(error as Error).message}`,
-					});
-					throw error;
-				} finally {
-					setPending(false);
-				}
-			},
-		});
+		void runArchive();
 	};
 
 	const handleExport = async () => {

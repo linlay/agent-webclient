@@ -5,7 +5,9 @@ import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 const mockDispatch = jest.fn();
 const mockRenameChat = jest.fn();
 const mockGetChat = jest.fn();
+const mockArchiveChats = jest.fn();
 const mockModalConfirm = jest.fn();
+const mockMessageError = jest.fn();
 let mockMenuItems: Array<Record<string, any>> = [];
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -16,7 +18,7 @@ jest.mock("@/app/state/AppContext", () => ({
 }));
 
 jest.mock("@/shared/data", () => ({
-	archiveChats: jest.fn(),
+	archiveChats: (...args: unknown[]) => mockArchiveChats(...args),
 	deleteChat: jest.fn(),
 	downloadChatExport: jest.fn(),
 	getChat: (...args: unknown[]) => mockGetChat(...args),
@@ -50,6 +52,12 @@ jest.mock("antd", () => {
 		Modal: {
 			confirm: (...args: unknown[]) => mockModalConfirm(...args),
 		},
+		message: {
+			error: (...args: unknown[]) => mockMessageError(...args),
+			success: jest.fn(),
+			warning: jest.fn(),
+			info: jest.fn(),
+		},
 	};
 });
 
@@ -58,13 +66,21 @@ describe("ChatActionsMenu", () => {
 		mockDispatch.mockClear();
 		mockRenameChat.mockReset();
 		mockGetChat.mockReset();
+		mockArchiveChats.mockReset();
 		mockModalConfirm.mockClear();
+		mockMessageError.mockClear();
 		mockMenuItems = [];
 		mockRenameChat.mockResolvedValue({
 			status: 200,
 			code: 0,
 			msg: "ok",
 			data: { chatId: "chat_1", chatName: "Renamed chat", updated: true },
+		});
+		mockArchiveChats.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { results: [{ chatId: "chat_1", success: true }] },
 		});
 	});
 
@@ -102,6 +118,62 @@ describe("ChatActionsMenu", () => {
 			chatId: "chat_1",
 			chatName: "Renamed chat",
 		});
+	});
+
+	it("archives without confirmation when clicking the archive menu item", async () => {
+		const onArchived = jest.fn();
+		renderToStaticMarkup(
+			React.createElement(ChatActionsMenu, {
+				chatId: "chat_1",
+				chatName: "Demo chat",
+				onArchived,
+			}),
+		);
+
+		const archiveItem = mockMenuItems.find((item) => item.key === "archive");
+		expect(archiveItem).toBeTruthy();
+
+		await archiveItem?.onClick();
+
+		expect(mockModalConfirm).not.toHaveBeenCalled();
+		expect(mockArchiveChats).toHaveBeenCalledTimes(1);
+		expect(mockArchiveChats).toHaveBeenCalledWith({ chatIds: ["chat_1"] });
+		expect(mockDispatch).toHaveBeenCalledWith({
+			type: "CHAT_ARCHIVED",
+			chatId: "chat_1",
+		});
+		expect(onArchived).toHaveBeenCalledWith("chat_1");
+	});
+
+	it("toasts a failure and skips dispatch when archive reports failure", async () => {
+		mockArchiveChats.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { results: [{ chatId: "chat_1", success: false, error: "nope" }] },
+		});
+		const onArchived = jest.fn();
+		renderToStaticMarkup(
+			React.createElement(ChatActionsMenu, {
+				chatId: "chat_1",
+				chatName: "Demo chat",
+				onArchived,
+			}),
+		);
+
+		const archiveItem = mockMenuItems.find((item) => item.key === "archive");
+		expect(archiveItem).toBeTruthy();
+
+		await archiveItem?.onClick();
+		// 让异步链 settle
+		await Promise.resolve();
+
+		expect(mockArchiveChats).toHaveBeenCalledTimes(1);
+		expect(mockDispatch).not.toHaveBeenCalledWith(
+			expect.objectContaining({ type: "CHAT_ARCHIVED" }),
+		);
+		expect(onArchived).not.toHaveBeenCalled();
+		expect(mockMessageError).toHaveBeenCalled();
 	});
 
 	it("adds 16/24 classes for left sidebar triggers and menu icons only when requested", () => {
@@ -148,3 +220,4 @@ describe("ChatActionsMenu", () => {
 		expect(mockGetChat).toHaveBeenCalledWith("chat_1", false);
 	});
 });
+
