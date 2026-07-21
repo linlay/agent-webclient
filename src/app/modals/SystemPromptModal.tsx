@@ -1,7 +1,12 @@
-import React from "react";
-import { Modal } from "antd";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import React, { useEffect, useRef, useState } from "react";
+import { message, Modal } from "antd";
+import {
+	MaterialIcon,
+	type MaterialIconName,
+} from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
+import { UiButton } from "@/shared/ui/UiButton";
+import { copyText } from "@/shared/utils/copy";
 import type { SystemPromptLoadState } from "@/app/modals/lib/systemPromptTrace";
 
 interface SystemPromptModalProps {
@@ -32,15 +37,77 @@ const SYSTEM_PROMPT_ERROR_STATUS_CLASS_NAME = [
 const SYSTEM_PROMPT_TEXT_CLASS_NAME =
 	"event-popover-system-text tw:m-0 tw:overflow-auto tw:whitespace-pre-wrap tw:break-words tw:rounded-[var(--radius-md)] tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_88%,var(--bg-input))] tw:p-3 tw:font-code tw:text-[11px] tw:font-normal tw:leading-[1.5]";
 
+const SYSTEM_PROMPT_TITLE_CLASS_NAME =
+	"event-popover-system-title tw:flex tw:items-center tw:gap-1.5";
+
+const SYSTEM_PROMPT_COPY_BUTTON_CLASS_NAME =
+	"event-popover-system-copy-action tw:!h-5 tw:!min-h-5 tw:!min-w-5 tw:!w-5 tw:!px-0 tw:!py-0 tw:text-ink-muted tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:hover:shadow-none tw:[&_.material-icon]:!text-base";
+
+type SystemPromptCopyFeedback = "idle" | "copied" | "error";
+
+interface SystemPromptCopyControl {
+	disabled: boolean;
+	feedbackMessage: string;
+	icon: MaterialIconName;
+	text: string;
+}
+
 export const SystemPromptModal: React.FC<SystemPromptModalProps> = ({
 	loadState,
 	open,
 	onClose,
 }) => {
 	const { t } = useI18n();
+	const copyTimerRef = useRef<number | null>(null);
+	const [copyFeedback, setCopyFeedback] =
+		useState<SystemPromptCopyFeedback>("idle");
+	const copyControl = resolveSystemPromptCopyControl(loadState, copyFeedback, t);
+
+	const clearCopyFeedbackTimer = () => {
+		if (copyTimerRef.current !== null) {
+			window.clearTimeout(copyTimerRef.current);
+			copyTimerRef.current = null;
+		}
+	};
+
+	const flashCopyFeedback = (
+		feedback: Exclude<SystemPromptCopyFeedback, "idle">,
+	) => {
+		clearCopyFeedbackTimer();
+		setCopyFeedback(feedback);
+		copyTimerRef.current = window.setTimeout(() => {
+			setCopyFeedback("idle");
+			copyTimerRef.current = null;
+		}, 1600);
+	};
+
+	useEffect(() => {
+		setCopyFeedback("idle");
+		clearCopyFeedbackTimer();
+	}, [open, loadState]);
+
+	useEffect(() => {
+		return () => clearCopyFeedbackTimer();
+	}, []);
+
 	if (!open) {
 		return null;
 	}
+
+	const handleCopy = () => {
+		if (copyControl.disabled) {
+			return;
+		}
+		void copyText(copyControl.text)
+			.then(() => {
+				flashCopyFeedback("copied");
+				message.success(t("eventPopover.systemPromptModal.copySuccess"));
+			})
+			.catch(() => {
+				flashCopyFeedback("error");
+				message.error(t("eventPopover.systemPromptModal.copyFailed"));
+			});
+	};
 
 	return (
 		<Modal
@@ -51,7 +118,31 @@ export const SystemPromptModal: React.FC<SystemPromptModalProps> = ({
 			getContainer={false}
 			width="min(78vw, 980px)"
 			className={SYSTEM_PROMPT_MODAL_CLASS_NAME}
-			title={t("eventPopover.systemPromptModal.title")}
+			title={
+				<div className={SYSTEM_PROMPT_TITLE_CLASS_NAME}>
+					<span>{t("eventPopover.systemPromptModal.title")}</span>
+					<UiButton
+						className={SYSTEM_PROMPT_COPY_BUTTON_CLASS_NAME}
+						variant="ghost"
+						size="sm"
+						iconOnly
+						disabled={copyControl.disabled}
+						aria-label={t("eventPopover.systemPromptModal.copy")}
+						aria-describedby="system-prompt-copy-feedback"
+						title={copyControl.feedbackMessage}
+						onClick={handleCopy}
+					>
+						<MaterialIcon name={copyControl.icon} />
+					</UiButton>
+					<span
+						id="system-prompt-copy-feedback"
+						className="tw:sr-only"
+						role="status"
+					>
+						{copyFeedback === "idle" ? "" : copyControl.feedbackMessage}
+					</span>
+				</div>
+			}
 		>
 			<div className={SYSTEM_PROMPT_CARD_CLASS_NAME}>
 				<div className={SYSTEM_PROMPT_BODY_CLASS_NAME}>
@@ -61,6 +152,37 @@ export const SystemPromptModal: React.FC<SystemPromptModalProps> = ({
 		</Modal>
 	);
 };
+
+function resolveSystemPromptCopyControl(
+	loadState: SystemPromptLoadState,
+	feedback: SystemPromptCopyFeedback,
+	t: (key: string, params?: Record<string, unknown>) => string,
+): SystemPromptCopyControl {
+	const text = loadState.status === "ready" ? loadState.text : "";
+	const disabled = !text.trim();
+	if (feedback === "copied") {
+		return {
+			disabled,
+			feedbackMessage: t("eventPopover.systemPromptModal.copySuccess"),
+			icon: "check",
+			text,
+		};
+	}
+	if (feedback === "error") {
+		return {
+			disabled,
+			feedbackMessage: t("eventPopover.systemPromptModal.copyFailed"),
+			icon: "content_copy",
+			text,
+		};
+	}
+	return {
+		disabled,
+		feedbackMessage: t("eventPopover.systemPromptModal.copy"),
+		icon: "content_copy",
+		text,
+	};
+}
 
 function renderSystemPromptContent(
 	state: SystemPromptLoadState,
@@ -94,3 +216,7 @@ function renderSystemPromptContent(
 		</div>
 	);
 }
+
+export const __TEST_ONLY__ = {
+	resolveSystemPromptCopyControl,
+};
