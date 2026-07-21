@@ -38,6 +38,7 @@ import {
   Input,
   message,
   Popover,
+  Spin,
   Tooltip,
 } from "antd";
 import type { InputRef } from "antd";
@@ -1201,7 +1202,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           {!state.chatId ? (
             showEmptyState ? (
               isMainChatRunning || state.streaming ? (
-                <LogoLoading size={40} />
+                <LogoLoading text={t("logoLoading.text")} />
               ) : (
                 <div className={TIMELINE_EMPTY_CLASS_NAME}>
                   {currentWorker?.displayName ? (
@@ -1515,7 +1516,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
               </div>
               {(isMainChatRunning || state.streaming) && (
                 <Flex justify="center" className="tw:mt-20">
-                  <LogoLoading />
+                  <Spin />
                 </Flex>
               )}
             </>
