@@ -146,10 +146,10 @@ const PLANNING_ITEM_TEXT_CLASS_NAME =
   "right-sidebar-planning-item-text tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[12px] tw:leading-[1.35] tw:text-ink-1";
 
 const TASK_LIST_CLASS_NAME =
-  "right-sidebar-task-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-1 tw:px-[10px]";
+  "right-sidebar-task-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:px-0";
 
 const TASK_ITEM_CLASS_NAME =
-  "right-sidebar-task-item tw:flex tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-input)_78%,white)] tw:px-2.5 tw:py-2 tw:text-[11px] tw:leading-[1.45] tw:text-ink-2";
+  "right-sidebar-task-item tw:flex tw:items-center tw:gap-2 tw:px-4 tw:py-2 tw:text-[11px] tw:leading-[1.45] tw:text-ink-2 tw:hover:bg-[var(--bg-hover)]";
 
 const TASK_ITEM_TEXT_CLASS_NAME =
   "right-sidebar-task-item-text tw:min-w-0 tw:flex-1";
