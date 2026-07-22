@@ -28,7 +28,7 @@ const ARCHIVE_CONSOLE_CLASS_BY_SURFACE = {
 	modal:
 		"archive-console archive-console-modal tw:grid tw:min-h-[520px] tw:max-h-[min(72vh,720px)] tw:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] tw:gap-4",
 	page:
-		"archive-console archive-console-page tw:grid tw:h-full tw:min-h-0 tw:max-h-none tw:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] tw:gap-4 tw:[&_.archive-detail-content]:max-h-none tw:[&_.archive-list]:max-h-none",
+		"archive-console archive-console-page tw:grid tw:h-full tw:min-h-0 tw:max-h-none tw:grid-cols-[280px_minmax(0,1fr)] tw:gap-4 tw:[&_.archive-detail-content]:max-h-none tw:[&_.archive-list]:max-h-none",
 } as const;
 const ARCHIVE_LIST_PANE_CLASS_NAME =
 	"archive-modal-list-pane tw:flex tw:min-h-0 tw:flex-col tw:gap-3";
