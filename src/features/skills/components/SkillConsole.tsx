@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Input, Modal, Spin } from "antd";
+import { Alert, Input, Modal, Spin } from "antd";
 import type { MenuProps } from "antd";
 import {
   createAdminSkillFile,
@@ -36,7 +36,9 @@ import { UiTag } from "@/shared/ui/UiTag";
 
 type StatusFilter = "all" | AdminSkillStatus;
 
-function adminSourceToSkillTextFile(source: AdminSourceResponse): AdminSkillTextFile {
+function adminSourceToSkillTextFile(
+  source: AdminSourceResponse,
+): AdminSkillTextFile {
   return {
     key: source.target.key || "",
     path: source.target.path || "",
@@ -76,7 +78,11 @@ const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => {
     let active = true;
     let objectURL = "";
     setSrc(DEFAULT_SKILL_ICON_URL);
-    if (!iconURL || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
+    if (
+      !iconURL ||
+      typeof URL === "undefined" ||
+      typeof URL.createObjectURL !== "function"
+    ) {
       return () => controller.abort();
     }
     void fetchAdminSkillIcon(iconURL, { signal: controller.signal })
@@ -162,10 +168,8 @@ const SKILL_BINARY_GRID_CLASS_NAME =
   "skill-console-binary-grid tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:gap-x-3 tw:gap-y-2 tw:text-xs tw:[&>span:nth-child(odd)]:text-ink-muted tw:[&>span:nth-child(even)]:min-w-0 tw:[&>span:nth-child(even)]:overflow-hidden tw:[&>span:nth-child(even)]:text-ellipsis tw:[&>span:nth-child(even)]:whitespace-nowrap";
 const SKILL_DIRTY_CLASS_NAME =
   "skill-console-dirty tw:text-xs tw:text-ink-muted";
-const SKILL_ERROR_CLASS_NAME =
-  "skill-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
 const SKILL_MESSAGE_CLASS_NAME =
-  "skill-console-message tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-ink-1 tw:[border-color:color-mix(in_srgb,var(--accent-electric)_28%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-electric)_7%,transparent)]";
+  "skill-console-message tw:absolute tw:left-[2px] tw:top-[2px] tw:right-[2px] tw:z-[100]";
 
 /* ---- helpers ---- */
 
@@ -185,15 +189,24 @@ function languageLabel(entry: AdminSkillFileEntry | undefined): string {
   if (!entry) return "Plain Text";
   if (entry.language) {
     switch (entry.language) {
-      case "markdown": return "Markdown";
-      case "python": return "Python";
-      case "typescript": return "TypeScript";
-      case "javascript": return "JavaScript";
-      case "json": return "JSON";
-      case "yaml": return "YAML";
-      case "shell": return "Shell";
-      case "plain": return "Plain Text";
-      default: return entry.language.toUpperCase();
+      case "markdown":
+        return "Markdown";
+      case "python":
+        return "Python";
+      case "typescript":
+        return "TypeScript";
+      case "javascript":
+        return "JavaScript";
+      case "json":
+        return "JSON";
+      case "yaml":
+        return "YAML";
+      case "shell":
+        return "Shell";
+      case "plain":
+        return "Plain Text";
+      default:
+        return entry.language.toUpperCase();
     }
   }
   const ext = entry.path.split(".").pop()?.toLowerCase() || "";
@@ -218,8 +231,12 @@ function findEntryByPath(
   return entries.find((entry) => entry.path === normalizedPath);
 }
 
-function findFirstTextEntry(entries: AdminSkillFileEntry[]): AdminSkillFileEntry | undefined {
-  return entries.find((entry) => entry.kind === "file" && entry.contentKind === "text");
+function findFirstTextEntry(
+  entries: AdminSkillFileEntry[],
+): AdminSkillFileEntry | undefined {
+  return entries.find(
+    (entry) => entry.kind === "file" && entry.contentKind === "text",
+  );
 }
 
 export function findPreferredSkillFileEntry(
@@ -250,7 +267,10 @@ export function updateSkillDirtyFiles(
   return next;
 }
 
-export function toggleSkillExpandedDir(current: Set<string>, path: string): Set<string> {
+export function toggleSkillExpandedDir(
+  current: Set<string>,
+  path: string,
+): Set<string> {
   const normalizedPath = path.trim();
   const next = new Set(current);
   if (!normalizedPath) return next;
@@ -310,11 +330,12 @@ function mergeDetailWithMutation(
   mutation: AdminSkillMutationResponse,
 ): AdminSkillDetailResponse {
   const fileManifest = mutation.fileManifest || detail.fileManifest;
-  const entries = mutation.entry && !mutation.fileManifest
-    ? fileManifest.entries.map((entry) =>
-        entry.path === mutation.entry?.path ? mutation.entry : entry,
-      )
-    : fileManifest.entries;
+  const entries =
+    mutation.entry && !mutation.fileManifest
+      ? fileManifest.entries.map((entry) =>
+          entry.path === mutation.entry?.path ? mutation.entry : entry,
+        )
+      : fileManifest.entries;
   return {
     ...detail,
     skill: mutation.skill || detail.skill,
@@ -327,7 +348,10 @@ function mergeDetailWithMutation(
   };
 }
 
-type SkillConsoleTranslate = (key: string, params?: Record<string, unknown>) => string;
+type SkillConsoleTranslate = (
+  key: string,
+  params?: Record<string, unknown>,
+) => string;
 
 interface SkillFileWorkspaceProps {
   detail: AdminSkillDetailResponse;
@@ -387,7 +411,9 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const entries = detail.fileManifest.entries || [];
   const selectedEntry = findEntryByPath(entries, selectedFilePath);
-  const visibleEntries = entries.filter((entry) => isSkillEntryVisible(entry, expandedDirs));
+  const visibleEntries = entries.filter((entry) =>
+    isSkillEntryVisible(entry, expandedDirs),
+  );
   const isTextSelected = selectedEntry?.contentKind === "text";
   const isBinarySelected = selectedEntry?.contentKind === "binary";
   const canDownloadSkill = detail.capabilities.canDownload;
@@ -434,10 +460,16 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               onClick={onDownloadSkill}
               disabled={downloadingSkill || !canDownloadSkill}
               loading={downloadingSkill}
-              aria-label={downloadingSkill ? t("skillConsole.action.downloadingSkill") : t("skillConsole.action.downloadSkill")}
+              aria-label={
+                downloadingSkill
+                  ? t("skillConsole.action.downloadingSkill")
+                  : t("skillConsole.action.downloadSkill")
+              }
             >
               <MaterialIcon name="download" />
-              {downloadingSkill ? t("skillConsole.action.downloadingSkill") : t("skillConsole.action.downloadSkill")}
+              {downloadingSkill
+                ? t("skillConsole.action.downloadingSkill")
+                : t("skillConsole.action.downloadSkill")}
             </UiButton>
           </div>
         </div>
@@ -458,9 +490,13 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     style={{
                       paddingLeft,
                       paddingRight: 8,
-                      ...(isSelected ? { backgroundColor: "var(--bg-selected)" } : null),
+                      ...(isSelected
+                        ? { backgroundColor: "var(--bg-selected)" }
+                        : null),
                     }}
-                    onClick={() => { void onSelectFileEntry(entry); }}
+                    onClick={() => {
+                      void onSelectFileEntry(entry);
+                    }}
                   >
                     <MaterialIcon name={iconForEntry(entry)} />
                     <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
@@ -469,7 +505,9 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     {isDirty && (
                       <span
                         className="tw:inline-block tw:h-2 tw:w-2 tw:flex-none tw:rounded-full"
-                        style={{ backgroundColor: "var(--accent-warning, #ff7d00)" }}
+                        style={{
+                          backgroundColor: "var(--accent-warning, #ff7d00)",
+                        }}
                         title={t("skillConsole.message.unsaved")}
                       />
                     )}
@@ -494,7 +532,11 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                 <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
                   {selectedEntry.path}
                 </span>
-                <span>{isTextSelected ? languageLabel(selectedEntry) : selectedEntry.mimeType || "Binary"}</span>
+                <span>
+                  {isTextSelected
+                    ? languageLabel(selectedEntry)
+                    : selectedEntry.mimeType || "Binary"}
+                </span>
                 {fileSize !== undefined && <span>{formatSize(fileSize)}</span>}
               </div>
               <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
@@ -644,7 +686,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const [originalFileContent, setOriginalFileContent] = useState("");
   const [fileSha256, setFileSha256] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | undefined>(undefined);
-  const [fileUpdatedAt, setFileUpdatedAt] = useState<number | undefined>(undefined);
+  const [fileUpdatedAt, setFileUpdatedAt] = useState<number | undefined>(
+    undefined,
+  );
   const [dirtyFiles, setDirtyFiles] = useState<Set<string>>(new Set());
 
   const [saving, setSaving] = useState(false);
@@ -654,7 +698,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["references", "scripts", "assets"]));
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
+    new Set(["references", "scripts", "assets"]),
+  );
 
   const detailRef = useRef<AdminSkillDetailResponse | null>(null);
   detailRef.current = detail;
@@ -757,7 +803,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       setError("");
       try {
         const requestedOpenPath = preferredFilePath || "SKILL.md";
-        const response = await getAdminSkillDetail(normalizedSkillKey, requestedOpenPath);
+        const response = await getAdminSkillDetail(
+          normalizedSkillKey,
+          requestedOpenPath,
+        );
         const d = response.data;
         setDetail(d);
         detailRef.current = d;
@@ -768,7 +817,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           preferredFilePath || d.openedFile?.path || requestedOpenPath,
           d.fileManifest.defaultOpenPath,
         );
-        if (d.openedFile && (!targetEntry || d.openedFile.path === targetEntry.path)) {
+        if (
+          d.openedFile &&
+          (!targetEntry || d.openedFile.path === targetEntry.path)
+        ) {
           applyOpenedFile(d.openedFile);
         } else if (targetEntry?.contentKind === "text") {
           await loadFileByPath(d.skill.key, targetEntry.path);
@@ -862,7 +914,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       detailRef.current = nextDetail;
       if (mutation.skill) {
         setSkills((prev) =>
-          prev.map((item) => (item.key === mutation.skill?.key ? mutation.skill : item)),
+          prev.map((item) =>
+            item.key === mutation.skill?.key ? mutation.skill : item,
+          ),
         );
       }
       if (mutation.openedFile) {
@@ -882,7 +936,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         clearFileState();
       }
     },
-    [applyBinaryEntry, applyOpenedFile, clearFileState, loadFileByPath, selectedFilePath],
+    [
+      applyBinaryEntry,
+      applyOpenedFile,
+      clearFileState,
+      loadFileByPath,
+      selectedFilePath,
+    ],
   );
 
   const handleRefreshFile = async () => {
@@ -910,7 +970,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   };
 
   const handleSave = async () => {
-    if (!detail || !selectedFilePath || !isFileDirty || selectedEntry?.contentKind !== "text") return;
+    if (
+      !detail ||
+      !selectedFilePath ||
+      !isFileDirty ||
+      selectedEntry?.contentKind !== "text"
+    )
+      return;
     setSaving(true);
     setError("");
     try {
@@ -950,7 +1016,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             status: result.status,
             updatedAt: result.updatedAt ?? prev.skill.updatedAt,
             size: result.size ?? prev.skill.size,
-            diagnosticCount: result.diagnostics?.length ?? prev.skill.diagnosticCount,
+            diagnosticCount:
+              result.diagnostics?.length ?? prev.skill.diagnosticCount,
           },
           diagnostics: result.diagnostics,
         };
@@ -958,7 +1025,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         return next;
       });
       if (result.status === "invalid") {
-        setMessage(t("skillConsole.message.validateInvalid", { count: result.diagnostics?.length || 0 }));
+        setMessage(
+          t("skillConsole.message.validateInvalid", {
+            count: result.diagnostics?.length || 0,
+          }),
+        );
       } else {
         setMessage(t("skillConsole.message.validateSuccess"));
       }
@@ -978,7 +1049,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         <Input
           autoFocus
           placeholder={t("skillConsole.create.fileNamePlaceholder")}
-          onChange={(e) => { inputValue = e.target.value; }}
+          onChange={(e) => {
+            inputValue = e.target.value;
+          }}
         />
       ),
       onOk: async () => {
@@ -1003,7 +1076,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         <Input
           autoFocus
           placeholder={t("skillConsole.create.fileNamePlaceholder")}
-          onChange={(e) => { inputValue = e.target.value; }}
+          onChange={(e) => {
+            inputValue = e.target.value;
+          }}
         />
       ),
       onOk: async () => {
@@ -1032,12 +1107,19 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         <Input
           autoFocus
           defaultValue={selectedFilePath}
-          onChange={(e) => { inputValue = e.target.value; }}
+          onChange={(e) => {
+            inputValue = e.target.value;
+          }}
         />
       ),
       onOk: async () => {
         const newPath = inputValue.trim();
-        if (!newPath || !isFilePathSafe(newPath) || newPath === selectedFilePath) return;
+        if (
+          !newPath ||
+          !isFilePathSafe(newPath) ||
+          newPath === selectedFilePath
+        )
+          return;
         const response = await renameAdminSkillFile({
           key: detail.skill.key,
           fromPath: selectedFilePath,
@@ -1051,14 +1133,20 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleDeleteFile = () => {
     if (!detail || !selectedEntry || !selectedEntry.deletable) return;
     Modal.confirm({
-      title: t("skillConsole.fileOp.deleteConfirm", { type: t("skillConsole.fileTree.root"), name: selectedFilePath }),
+      title: t("skillConsole.fileOp.deleteConfirm", {
+        type: t("skillConsole.fileTree.root"),
+        name: selectedFilePath,
+      }),
       okButtonProps: { danger: true },
       onOk: async () => {
         const response = await deleteAdminSkillFile({
           key: detail.skill.key,
           path: selectedFilePath,
           recursive: selectedEntry.kind === "directory",
-          baseSha256: selectedEntry.contentKind === "text" ? fileSha256 || undefined : undefined,
+          baseSha256:
+            selectedEntry.contentKind === "text"
+              ? fileSha256 || undefined
+              : undefined,
         });
         await applyMutation(response.data);
       },
@@ -1117,14 +1205,25 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     Modal.confirm({
       title: t("skillConsole.create.title"),
       content: (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            paddingTop: 8,
+          }}
+        >
           <Input
             placeholder="skill-key"
-            onChange={(e) => { inputKey = e.target.value; }}
+            onChange={(e) => {
+              inputKey = e.target.value;
+            }}
           />
           <Input
             placeholder={t("skillConsole.field.name")}
-            onChange={(e) => { inputName = e.target.value; }}
+            onChange={(e) => {
+              inputName = e.target.value;
+            }}
           />
           <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>
             {t("skillConsole.create.description")}
@@ -1140,8 +1239,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
           const response = await createAdminSkill({ key, skillMd });
           setSkills((prev) =>
-            [...prev.filter((item) => item.key !== key), response.data.skill]
-              .sort((a, b) => a.key.localeCompare(b.key)),
+            [
+              ...prev.filter((item) => item.key !== key),
+              response.data.skill,
+            ].sort((a, b) => a.key.localeCompare(b.key)),
           );
           onSelectSkillKey(key);
         } catch (err) {
@@ -1167,7 +1268,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       selectedKeys: [statusFilter],
       items: STATUS_FILTERS.map((status) => ({
         key: status,
-        label: translateWithFallback(t, `skillConsole.statusFilter.${status}`, status),
+        label: translateWithFallback(
+          t,
+          `skillConsole.statusFilter.${status}`,
+          status,
+        ),
       })),
     }),
     [t, statusFilter],
@@ -1176,16 +1281,28 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   return (
     <div className={SKILL_CONSOLE_CLASS_NAME}>
       {error && (
-        <div className={SKILL_ERROR_CLASS_NAME}>
-          <span>{error}</span>
-          <UiButton size="sm" variant="ghost" onClick={loadSkills}>
-            {t("skillConsole.action.retry")}
-          </UiButton>
-        </div>
+        <Alert
+          message={error}
+          className={SKILL_MESSAGE_CLASS_NAME}
+          type="error"
+          showIcon
+          action={
+            <UiButton size="sm" variant="ghost" onClick={loadSkills}>
+              {t("skillConsole.action.retry")}
+            </UiButton>
+          }
+          closable
+        />
       )}
 
       {message && !error && (
-        <div className={SKILL_MESSAGE_CLASS_NAME}>{message}</div>
+        <Alert
+          message={message}
+          className={SKILL_MESSAGE_CLASS_NAME}
+          type="info"
+          showIcon
+          closable
+        />
       )}
 
       <div className={SKILL_BODY_CLASS_NAME}>
@@ -1237,9 +1354,16 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             <Spin spinning={listLoading}>
               {filteredSkills.length === 0 ? (
                 <div className="command-empty-state">
-                  {searchText ? t("skillConsole.message.noMatch") : t("skillConsole.empty")}
+                  {searchText
+                    ? t("skillConsole.message.noMatch")
+                    : t("skillConsole.empty")}
                   {!searchText && (
-                    <UiButton size="sm" variant="primary" onClick={handleCreateSkill} disabled={creating}>
+                    <UiButton
+                      size="sm"
+                      variant="primary"
+                      onClick={handleCreateSkill}
+                      disabled={creating}
+                    >
                       {t("skillConsole.action.createSkill")}
                     </UiButton>
                   )}
@@ -1261,7 +1385,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                           <strong>{item.name || item.key}</strong>
                         </span>
                         <UiTag tone={statusTone(item.status)}>
-                          {translateWithFallback(t, `skillConsole.status.${item.status}`, item.status)}
+                          {translateWithFallback(
+                            t,
+                            `skillConsole.status.${item.status}`,
+                            item.status,
+                          )}
                         </UiTag>
                       </span>
                       <span className={SKILL_LIST_ITEM_META_CLASS_NAME}>
@@ -1283,7 +1411,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             wrapperClassName="tw:h-full tw:min-h-0 tw:[&_.ant-spin-container]:h-full tw:[&_.ant-spin-container]:min-h-0"
           >
             {!detail ? (
-              <div className="command-empty-state">{t("skillConsole.detail.empty")}</div>
+              <div className="command-empty-state">
+                {t("skillConsole.detail.empty")}
+              </div>
             ) : (
               <SkillFileWorkspace
                 detail={detail}
