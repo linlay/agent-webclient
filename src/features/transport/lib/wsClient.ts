@@ -9,6 +9,11 @@ import {
 	readEpochMillis,
 	STRUCTURED_PLATFORM_TIME_FIELDS,
 } from "@/shared/utils/platformTime";
+import { isGatewayBackendMode } from "@/shared/config/backendMode";
+import {
+	handleFinalUnauthorized,
+	isWsAuthenticationRequired,
+} from "@/shared/data/auth/authCoordinator";
 
 export type WsConnectionStatus =
 	| "disconnected"
@@ -307,6 +312,9 @@ function buildWsUrl(accessToken = ""): string {
 	const protocol =
 		window.location.protocol === "https:" ? "wss:" : "ws:";
 	const url = new URL(`${protocol}//${window.location.host}/ws`);
+	if (isGatewayBackendMode()) {
+		return url.toString();
+	}
 	const normalizedToken = String(accessToken || "").trim();
 	if (normalizedToken) {
 		url.searchParams.set("token", normalizedToken);
@@ -903,6 +911,14 @@ export class WsClient {
 						resolve();
 						return;
 					}
+					if (isGatewayBackendMode() && Number(event?.code) === 4401) {
+						handleFinalUnauthorized("ws");
+						this.socket = null;
+						this.connectPromise = null;
+						this.setStatus("error");
+						reject(createDisconnectErrorFromClose(event));
+						return;
+					}
 					if (!this.expectedClose && (await retryHandshakeWithFreshToken())) {
 						resolve();
 						return;
@@ -989,6 +1005,13 @@ export class WsClient {
 			return;
 		}
 
+		if (
+			(frame.frame === "error" || frame.frame === "response") &&
+			isWsAuthenticationRequired(frame)
+		) {
+			handleFinalUnauthorized("ws");
+		}
+
 		if (frame.frame === "response") {
 			const pending = frame.id ? this.pendingRequests.get(frame.id) : null;
 			if (!pending || !frame.id) {
@@ -1063,6 +1086,12 @@ export class WsClient {
 			this.setStatus("disconnected");
 			return;
 		}
+		if (isGatewayBackendMode() && Number(event?.code) === 4401) {
+			handleFinalUnauthorized("ws");
+			this.setStatus("error");
+			this.cleanupPending(createDisconnectErrorFromClose(event));
+			return;
+		}
 
 		this.setStatus("error");
 		this.cleanupPending(createDisconnectErrorFromClose(event));
@@ -1130,6 +1159,9 @@ export class WsClient {
 	private shouldRefreshTokenForClose(
 		event?: Pick<CloseEvent, "code" | "reason">,
 	): boolean {
+		if (isGatewayBackendMode()) {
+			return false;
+		}
 		if (isHeartbeatTimeoutClose(event)) {
 			return false;
 		}

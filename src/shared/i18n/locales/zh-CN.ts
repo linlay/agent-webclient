@@ -1,6 +1,19 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "auth.action.retry": "重试",
+  "auth.login.defaultTenant": "Agent Gateway",
+  "auth.login.invalidCredentials": "用户名或密码错误。",
+  "auth.login.password": "密码",
+  "auth.login.passwordRequired": "请输入密码。",
+  "auth.login.sso": "使用企业 SSO 登录",
+  "auth.login.submit": "登录",
+  "auth.login.subtitle": "登录后继续访问智能体",
+  "auth.login.username": "用户名",
+  "auth.login.usernameRequired": "请输入用户名。",
+  "auth.session.failed": "无法连接 Agent Gateway",
+  "auth.session.loading": "正在连接 Agent Gateway…",
+  "route.title.login": "登录",
   "agents.page.count": "{count} 个可用 Agent",
   "agents.page.title": "智能体",
   "agentConsole.action.add": "添加",

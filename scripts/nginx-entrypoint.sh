@@ -49,6 +49,7 @@ if [ -n "${VOICE_BASE_URL:-}" ]; then
 fi
 cat > /usr/share/nginx/html/runtime-config.js <<EOF
 globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+  "BACKEND_MODE": "${BACKEND_MODE:-platform}",
   "DESKTOP_APP": "${DESKTOP_APP:-}",
   "DEBUG_PANEL_ENABLED": "${DEBUG_PANEL_ENABLED:-}",
   "DEBUG_RUN_OBSERVATION_ENABLED": "${DEBUG_RUN_OBSERVATION_ENABLED:-}",

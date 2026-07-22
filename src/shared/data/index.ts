@@ -1,5 +1,7 @@
 export * from "@/shared/data/auth/accessTokenStorage";
 export * from "@/shared/data/auth/appAuth";
+export * from "@/shared/data/auth/gatewaySession";
+export * from "@/shared/data/auth/authCoordinator";
 export * from "@/shared/data/api/client";
 export * from "@/shared/data/desktop/desktopFileSystem";
 export * from "@/shared/data/desktop/desktopHostBridge";

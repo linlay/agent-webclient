@@ -1,0 +1,33 @@
+.page {
+	min-height: 100vh;
+	display: grid;
+	place-items: center;
+	padding: 24px;
+	background:
+		radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--color-primary, #2663eb) 16%, transparent), transparent 38%),
+		var(--color-bg-layout, #f2f3f5);
+}
+
+.card {
+	width: min(420px, 100%);
+	box-shadow: 0 18px 54px rgba(15, 23, 42, 0.12);
+}
+
+.brand {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 24px;
+	text-align: center;
+}
+
+.logo {
+	width: 52px;
+	height: 52px;
+	object-fit: contain;
+}
+
+.title {
+	margin: 0 !important;
+}

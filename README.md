@@ -94,10 +94,12 @@ cp .env.example .env
 
 ```bash
 BASE_URL=http://localhost:11949
+BACKEND_MODE=platform
 ```
 
 - `PORT`：可选。本地开发端口和 Docker Compose 暴露到宿主机的端口，未设置时默认使用 `11948`；也可由 CLI args、环境变量或宿主配置注入。
 - `BASE_URL`：AGW / AGENT 后端地址，前端会把 `/api/*` 和 `/ws` 代理到这里。
+- `BACKEND_MODE`：默认 `platform`，保留 Bearer Token；设置为 `gateway` 时使用同源 Session Cookie，并在最终 401 后进入 Gateway 配置的登录流程。
 
 ### 2. 安装依赖并启动
 
@@ -112,6 +114,7 @@ make dev
 
 - `/api/*` 到 `BASE_URL`
 - `/ws` 到 `BASE_URL`
+- `/auth/*` 到 `BASE_URL`，供 Gateway OIDC/SSO 使用
 
 ### 3. 测试和构建
 
@@ -267,6 +270,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | --- | --- | --- |
 | `PORT` | 否 | 本地开发端口，Docker Compose 中也是宿主机暴露端口；未设置时默认 `11948`，也可由 CLI args、环境变量或宿主配置注入 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
+| `BACKEND_MODE` | 否 | `platform`（默认）保留 Token 认证；`gateway` 使用 Session Cookie、CSRF 与登录回跳 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |
 | `MEMORY_ENABLED` | 否 | 是否显示 memory 相关入口 |

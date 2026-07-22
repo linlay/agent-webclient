@@ -11,6 +11,7 @@ import {
 } from "@/features/transport/lib/wsClientSingleton";
 import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 import { isAppMode } from "@/shared/utils/routing";
+import { isGatewayBackendMode } from "@/shared/config/backendMode";
 
 type WsRequestClient = NonNullable<ReturnType<typeof getWsClient>>;
 type TokenRefreshReason = Parameters<typeof ensureAccessToken>[0];
@@ -41,6 +42,7 @@ export function createTransportClient(input: {
 async function resolveWsAccessToken(
 	reason: TokenRefreshReason = "missing",
 ): Promise<string> {
+	if (isGatewayBackendMode()) return "";
 	let accessToken = String(getCurrentAccessToken() || "").trim();
 	if (!accessToken || reason === "unauthorized") {
 		accessToken = String(await ensureAccessToken(reason)).trim();
@@ -51,12 +53,13 @@ async function resolveWsAccessToken(
 function resolveWsClient(accessToken: string): WsRequestClient {
 	const currentClient = getWsClient();
 	const appMode = isAppMode();
+	const gatewayMode = isGatewayBackendMode();
 	const wsClient =
 		currentClient == null || getWsClientAccessToken() !== accessToken
 			? initWsClient({
 				accessToken,
-				allowAnonymous: !appMode,
-				resolveAccessToken: resolveWsAccessToken,
+				allowAnonymous: gatewayMode || !appMode,
+				resolveAccessToken: gatewayMode ? undefined : resolveWsAccessToken,
 			})
 			: currentClient;
 
@@ -67,8 +70,8 @@ function resolveWsClient(accessToken: string): WsRequestClient {
 	) {
 		wsClient.updateOptions({
 			accessToken,
-			allowAnonymous: !appMode,
-			resolveAccessToken: resolveWsAccessToken,
+			allowAnonymous: gatewayMode || !appMode,
+			resolveAccessToken: gatewayMode ? undefined : resolveWsAccessToken,
 		});
 	}
 

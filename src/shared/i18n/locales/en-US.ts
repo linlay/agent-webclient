@@ -1,6 +1,19 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "auth.action.retry": "Retry",
+  "auth.login.defaultTenant": "Agent Gateway",
+  "auth.login.invalidCredentials": "Invalid username or password.",
+  "auth.login.password": "Password",
+  "auth.login.passwordRequired": "Enter your password.",
+  "auth.login.sso": "Continue with enterprise SSO",
+  "auth.login.submit": "Sign in",
+  "auth.login.subtitle": "Sign in to continue to your agents",
+  "auth.login.username": "Username",
+  "auth.login.usernameRequired": "Enter your username.",
+  "auth.session.failed": "Could not connect to Agent Gateway",
+  "auth.session.loading": "Connecting to Agent Gateway…",
+  "route.title.login": "Sign in",
   "agents.page.count": "{count} available agents",
   "agents.page.title": "Agents",
   "agentConsole.action.add": "Add",

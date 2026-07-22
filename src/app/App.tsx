@@ -41,6 +41,8 @@ import { resolveRouteDataTransportMode } from "./routeDataTransport";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
 import { BtwProvider } from "@/features/btw/components/BtwProvider";
+import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
+import { LoginPage } from "./pages/login";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
@@ -173,6 +175,14 @@ const router = createBrowserRouter(
       path: "/",
       element: <BaseShell />,
       children: [
+        {
+          path: "/login",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.login">
+              <LoginPage />
+            </DocumentTitleRoute>
+          ),
+        },
         {
           path: "/",
           element: (
@@ -320,7 +330,9 @@ const App: React.FC<AppProps> = ({ i18n }) => {
       <AppProvider>
         <BtwProvider>
           <ThemedShell>
-            <RouterProvider router={router} />
+            <GatewayAuthBoundary>
+              <RouterProvider router={router} />
+            </GatewayAuthBoundary>
           </ThemedShell>
         </BtwProvider>
       </AppProvider>

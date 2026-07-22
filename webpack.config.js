@@ -15,6 +15,7 @@ const allowedHosts = allowedHostsEnv === 'all'
     .filter(Boolean);
 
 const runtimeConfigEnvKeys = [
+  'BACKEND_MODE',
   'DESKTOP_APP',
   'DEBUG_PANEL_ENABLED',
   'DEBUG_RUN_OBSERVATION_ENABLED',
@@ -232,6 +233,12 @@ module.exports = (env, argv) => {
         },
       },
       proxy: [
+        {
+          context: ['/auth'],
+          target: apiTarget,
+          changeOrigin: true,
+          ws: false,
+        },
         {
           context: ['/ws'],
           target: apiTarget,

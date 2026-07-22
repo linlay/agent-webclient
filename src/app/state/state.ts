@@ -11,6 +11,8 @@ import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrPro
 import { resolveInitialThemeMode } from "@/shared/styles/theme";
 import { readStoredTransportMode } from "@/features/transport/lib/transportMode";
 import { restoreTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
+import { isGatewayBackendMode } from "@/shared/config/backendMode";
+import { restoreComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
 
 function createInitialVoiceChatState(): VoiceChatState {
 	return {
@@ -41,9 +43,13 @@ function createInitialVoiceChatState(): VoiceChatState {
 
 export function createInitialState(): AppState {
 	const appMode = isAppMode();
-	const storedToken = appMode
+	const gatewayMode = isGatewayBackendMode();
+	const storedToken = gatewayMode
+		? ""
+		: appMode
 		? getAppAccessToken() || ""
 		: readStoredAccessToken();
+	const restoredDrafts = gatewayMode ? restoreComposerDrafts() : null;
 	const themeMode = resolveInitialThemeMode();
 	const transportMode = appMode ? "ws" : readStoredTransportMode() || "ws";
 
@@ -171,8 +177,8 @@ export function createInitialState(): AppState {
 		usagePopoverOpen: false,
 		inputMode: "text",
 		voiceChat: createInitialVoiceChatState(),
-		composerDraft: "",
-		composerDraftByChatId: {},
+		composerDraft: restoredDrafts?.composerDraft || "",
+		composerDraftByChatId: restoredDrafts?.composerDraftByChatId || {},
 		pendingSteers: {},
 		downvotedRunKeys: new Set(),
 		eventPopoverIndex: -1,

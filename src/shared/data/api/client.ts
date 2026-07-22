@@ -8,6 +8,12 @@ import {
   type AppAccessTokenRefreshReason,
 } from '@/shared/data/auth/appAuth';
 import { readStoredAccessToken } from '@/shared/data/auth/accessTokenStorage';
+import {
+  handleFinalUnauthorized,
+  type AuthFailureSource,
+} from '@/shared/data/auth/authCoordinator';
+import { getGatewaySession } from '@/shared/data/auth/gatewaySession';
+import { isGatewayBackendMode } from '@/shared/config/backendMode';
 import type {
   MemoryScopeDetail,
   MemoryContextPreviewResponse,
@@ -1016,7 +1022,11 @@ function endpointQuery<TInput>(
 
 function buildAuthHeaders(
   headers: Record<string, string> = {},
-  options: { includeJsonContentType?: boolean } = {},
+  options: {
+    includeJsonContentType?: boolean;
+    method?: string;
+    sameOrigin?: boolean;
+  } = {},
 ): Record<string, string> {
   const includeJsonContentType = options.includeJsonContentType ?? true;
   const merged: Record<string, string> = {
@@ -1024,6 +1034,21 @@ function buildAuthHeaders(
   };
   if (includeJsonContentType && !hasHeader(merged, "Content-Type")) {
     merged["Content-Type"] = "application/json";
+  }
+  if (isGatewayBackendMode()) {
+    for (const key of Object.keys(merged)) {
+      if (key.toLowerCase() === "authorization" || key.toLowerCase() === "x-csrf-token") {
+        delete merged[key];
+      }
+    }
+    const method = String(options.method || "GET").trim().toUpperCase();
+    if (options.sameOrigin !== false && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+      const csrfToken = getGatewaySession()?.csrfToken || "";
+      if (csrfToken) {
+        merged["X-CSRF-Token"] = csrfToken;
+      }
+    }
+    return merged;
   }
   const token = getCurrentAccessToken();
   if (token) {
@@ -1039,6 +1064,9 @@ export function setAccessToken(token = ""): void {
 }
 
 export function getCurrentAccessToken(): string {
+  if (isGatewayBackendMode()) {
+    return "";
+  }
   if (!isAppMode()) {
     if (!authToken) {
       authToken = readStoredAccessToken();
@@ -1053,6 +1081,10 @@ export function getCurrentAccessToken(): string {
 export async function ensureAccessToken(
   reason: AppAccessTokenRefreshReason = 'missing',
 ): Promise<string> {
+  if (isGatewayBackendMode()) {
+    setAccessToken("");
+    return "";
+  }
   if (!isAppMode()) {
     return getCurrentAccessToken();
   }
@@ -1312,33 +1344,54 @@ async function requestWithAuth(
     headers?: Record<string, string>;
     jsonContentType?: boolean;
     retryUnauthorized?: boolean;
+    authFailureSource?: AuthFailureSource;
+    suppressAuthRedirect?: boolean;
   } = {},
 ): Promise<Response> {
   const {
     jsonContentType = true,
     retryUnauthorized = true,
+    authFailureSource = "json",
+    suppressAuthRedirect = false,
     ...requestOptions
   } = options;
 
-  if (isAppMode()) {
+  const gatewayMode = isGatewayBackendMode();
+  if (!gatewayMode && isAppMode()) {
     await ensureAccessToken('missing');
   }
 
+  const method = String(requestOptions.method || "GET").toUpperCase();
+  const sameOrigin = (() => {
+    if (typeof window === "undefined") return path.startsWith("/");
+    try {
+      return new URL(path, window.location.href).origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  })();
   const buildRequestOptions = (): RequestInit => ({
     ...requestOptions,
-    method: requestOptions.method || "GET",
+    method,
+    ...(gatewayMode ? { credentials: "same-origin" as RequestCredentials } : {}),
     headers: buildAuthHeaders(requestOptions.headers || {}, {
       includeJsonContentType: jsonContentType,
+      method,
+      sameOrigin,
     }),
   });
 
   let response = await fetch(path, buildRequestOptions());
 
-  if (retryUnauthorized && isAppMode() && response.status === 401) {
+  if (retryUnauthorized && !gatewayMode && isAppMode() && response.status === 401) {
     const refreshedToken = await ensureAccessToken('unauthorized');
     if (refreshedToken) {
       response = await fetch(path, buildRequestOptions());
     }
+  }
+
+  if (gatewayMode && !suppressAuthRedirect && response.status === 401) {
+    handleFinalUnauthorized(authFailureSource);
   }
 
   return response;
@@ -1466,10 +1519,11 @@ export async function downloadResource(
   path: string,
   options: { filename?: string; signal?: AbortSignal } = {},
 ): Promise<void> {
-  const response = await fetch(path, {
+  const response = await requestWithAuth(path, {
     method: "GET",
     signal: options.signal,
-    headers: buildAuthHeaders({}, { includeJsonContentType: false }),
+    jsonContentType: false,
+    authFailureSource: "download",
   });
 
   if (!response.ok) {
@@ -1498,10 +1552,11 @@ export async function getResourceText(
   path: string,
   options: { signal?: AbortSignal } = {},
 ): Promise<string> {
-  const response = await fetch(path, {
+  const response = await requestWithAuth(path, {
     method: "GET",
     signal: options.signal,
-    headers: buildAuthHeaders({}, { includeJsonContentType: false }),
+    jsonContentType: false,
+    authFailureSource: "download",
   });
 
   if (!response.ok) {
@@ -2469,9 +2524,10 @@ function filenameFromContentDisposition(value: string | null): string {
 
 export async function downloadChatExport(chatId: string): Promise<void> {
   const path = `${dataEndpoints.chatExport.path}?chatId=${encodeURIComponent(chatId)}`;
-  const response = await fetch(path, {
+  const response = await requestWithAuth(path, {
     method: "GET",
-    headers: buildAuthHeaders({}, { includeJsonContentType: false }),
+    jsonContentType: false,
+    authFailureSource: "download",
   });
   if (!response.ok) {
     const fallbackMessage = t("api.downloadFailedWithStatus", {
@@ -2643,6 +2699,7 @@ export function createQueryStream(
     },
     body: JSON.stringify(buildQueryPayload(options)),
     signal: options.signal,
+    authFailureSource: "sse",
   });
 }
 
@@ -2657,6 +2714,7 @@ export function createBTWStream(
     },
     body: JSON.stringify(buildBTWPayload(options)),
     signal: options.signal,
+    authFailureSource: "sse",
   });
 }
 
@@ -2675,5 +2733,6 @@ export function createAttachStream(
     },
     jsonContentType: false,
     signal: options.signal,
+    authFailureSource: "sse",
   });
 }

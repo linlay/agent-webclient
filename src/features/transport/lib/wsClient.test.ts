@@ -7,6 +7,10 @@ import {
 	WsClientRequestTimeoutError,
 	type WsConnectionStatus,
 } from "@/features/transport/lib/wsClient";
+import {
+	resetAuthCoordinatorForTests,
+	setAuthCoordinatorNavigationForTests,
+} from "@/shared/data/auth/authCoordinator";
 
 jest.mock("@/features/transport/lib/clientDeviceId", () => ({
 	getClientDeviceId: () => "device-test",
@@ -129,13 +133,22 @@ describe("WsClient", () => {
 			location: {
 				protocol: "http:",
 				host: "localhost:3000",
+				origin: "http://localhost:3000",
+				pathname: "/agent/public-agent",
+				search: "",
+				hash: "",
 			},
+			dispatchEvent: jest.fn(),
 		};
 		(globalThis as Record<string, unknown>).WebSocket =
 			MockWebSocket as unknown as typeof WebSocket;
 	});
 
 	afterEach(() => {
+		delete (globalThis as typeof globalThis & {
+			__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+		}).__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+		resetAuthCoordinatorForTests();
 		for (const client of clients) {
 			if (client.getStatus() !== "connecting") {
 				client.disconnect();
@@ -153,6 +166,54 @@ describe("WsClient", () => {
 		} else {
 			delete (globalThis as Record<string, unknown>).WebSocket;
 		}
+	});
+
+	it("uses a cookie-only same-origin URL and coordinates auth.required in gateway mode", async () => {
+		(globalThis as typeof globalThis & {
+			__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+		}).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { BACKEND_MODE: "gateway" };
+		const navigate = jest.fn();
+		setAuthCoordinatorNavigationForTests(navigate);
+		const client = createClient({ accessToken: "must-not-leak", allowAnonymous: true });
+		const promise = client.request({ type: "/api/agents" });
+		const socket = MockWebSocket.instances[0];
+		const url = new URL(socket.url);
+		expect(url.pathname).toBe("/ws");
+		expect(url.search).toBe("");
+		socket.open();
+		const sent = JSON.parse(await waitForSentFrame(socket)) as { id: string };
+		socket.message(
+			JSON.stringify({
+				frame: "error",
+				id: sent.id,
+				type: "auth.required",
+				code: 401,
+				msg: "Authentication is required",
+			}),
+		);
+
+		await expect(promise).rejects.toMatchObject({ status: 401 });
+		expect(navigate).toHaveBeenCalledTimes(1);
+	});
+
+	it("treats gateway close code 4401 as auth required without reconnecting", async () => {
+		jest.useFakeTimers();
+		(globalThis as typeof globalThis & {
+			__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+		}).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { BACKEND_MODE: "gateway" };
+		const navigate = jest.fn();
+		setAuthCoordinatorNavigationForTests(navigate);
+		const client = createClient({ accessToken: "", allowAnonymous: true });
+		const connected = client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await connected;
+
+		socket.close(4401, "authentication required");
+		jest.advanceTimersByTime(60_000);
+
+		expect(navigate).toHaveBeenCalledTimes(1);
+		expect(MockWebSocket.instances).toHaveLength(1);
 	});
 
 	it("creates compact websocket frame ids from second-plus-counter", () => {

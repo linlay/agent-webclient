@@ -19,6 +19,10 @@ import { isAppMode } from "@/shared/utils/routing";
 import { syncThemeMode } from "@/shared/styles/theme";
 import { writeStoredTransportMode } from "@/features/transport/lib/transportMode";
 import { setTransportModeProvider } from "@/shared/data";
+import { isGatewayBackendMode } from "@/shared/config/backendMode";
+import { persistComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
+import { dataQueryCache } from "@/shared/data/query/serverState";
+import { destroyWsClient } from "@/features/transport/lib/wsClientSingleton";
 
 export interface AppContextValue {
 	state: AppState;
@@ -45,7 +49,7 @@ export function syncTransportModeProvider(
 }
 
 export function syncApiAccessToken(state: AppState): void {
-	setAccessToken(state.accessToken);
+	setAccessToken(isGatewayBackendMode() ? "" : state.accessToken);
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -141,7 +145,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	}, [state.accessToken]);
 
 	useEffect(() => {
-		if (!isAppMode()) {
+		if (isGatewayBackendMode() || !isAppMode()) {
 			return;
 		}
 
@@ -169,6 +173,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
 		return () => {
 			cancelled = true;
+		};
+	}, [dispatch]);
+
+	useEffect(() => {
+		if (!isGatewayBackendMode()) return;
+		persistComposerDrafts({
+			chatId: state.chatId,
+			composerDraft: state.composerDraft,
+			composerDraftByChatId: state.composerDraftByChatId,
+		});
+	}, [state.chatId, state.composerDraft, state.composerDraftByChatId]);
+
+	useEffect(() => {
+		if (!isGatewayBackendMode() || typeof window === "undefined") return;
+		const persistCurrentDraft = () => {
+			persistComposerDrafts({
+				chatId: stateRef.current.chatId,
+				composerDraft: stateRef.current.composerDraft,
+				composerDraftByChatId: stateRef.current.composerDraftByChatId,
+			});
+		};
+		const clearIdentityState = () => {
+			persistCurrentDraft();
+			dataQueryCache.clear();
+			destroyWsClient();
+			window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+			window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			dispatch({
+				type: "BATCH_UPDATE",
+				updates: {
+					agents: [],
+					teams: [],
+					chats: [],
+					automations: [],
+				},
+			});
+		};
+		window.addEventListener("agent:auth-required", persistCurrentDraft);
+		window.addEventListener(
+			"agent:gateway-identity-transition",
+			clearIdentityState,
+		);
+		return () => {
+			window.removeEventListener("agent:auth-required", persistCurrentDraft);
+			window.removeEventListener(
+				"agent:gateway-identity-transition",
+				clearIdentityState,
+			);
 		};
 	}, [dispatch]);
 

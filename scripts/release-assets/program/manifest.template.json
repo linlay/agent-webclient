@@ -58,6 +58,7 @@
       "runtimeConfig": {
         "path": "/runtime-config.js",
         "envKeys": [
+          "BACKEND_MODE",
           "DESKTOP_APP",
           "DEBUG_PANEL_ENABLED",
           "DEBUG_RUN_OBSERVATION_ENABLED",
@@ -73,6 +74,7 @@
         ]
       },
       "spaRoutes": [
+        "/login",
         "/agent/",
         "/agents/",
         "/automations",
@@ -81,12 +83,18 @@
       ],
       "proxyRoutes": [
         {
+          "match": "prefix",
+          "path": "/auth",
+          "targetEnv": "BASE_URL",
+          "websocket": false,
+          "disableProxyBuffering": true
+        },
+        {
           "match": "exact",
           "path": "/ws",
           "targetEnv": "BASE_URL",
           "http": false,
           "websocket": true,
-          "auth": "agent-platform-access-token",
           "stripRequestHeaders": ["sec-websocket-extensions"]
         },
         {
@@ -133,4 +141,3 @@
     }
   }
 }
-
