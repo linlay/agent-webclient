@@ -258,4 +258,85 @@ describe('buildWorkerRows', () => {
     expect(rows[0].workspaceDir).toBeUndefined();
     expect(rows[0].searchText).toContain('browser-coder');
   });
+
+  it('projects top-level agentConfigDir onto worker rows and exposes it in search text', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'agent-cfg',
+          name: 'Configurable Agent',
+          agentConfigDir: '/agents/agent-cfg',
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows[0]).toMatchObject({
+      key: 'agent:agent-cfg',
+      agentConfigDir: '/agents/agent-cfg',
+    });
+    expect(rows[0].searchText).toContain('/agents/agent-cfg');
+  });
+
+  it('does not treat source.agentDir as agentConfigDir', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'agent-cfg-src',
+          name: 'Legacy Source Agent',
+          source: { agentDir: '/agents/agent-cfg-src' },
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows[0].agentConfigDir).toBeUndefined();
+    expect(rows[0].searchText).not.toContain('/agents/agent-cfg-src');
+  });
+
+  it('ignores @ prefixed agentConfigDir placeholders', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'agent-cfg-placeholder',
+          name: 'Placeholder Agent',
+          agentConfigDir: ' @runtime ',
+        } as Agent,
+      ],
+      teams: [],
+      chats: [],
+    });
+
+    expect(rows[0]).toMatchObject({
+      key: 'agent:agent-cfg-placeholder',
+    });
+    expect(rows[0].agentConfigDir).toBeUndefined();
+    expect(rows[0].searchText).not.toContain('@runtime');
+  });
+
+  it('does not project agentConfigDir onto team rows', () => {
+    const rows = buildWorkerRows({
+      agents: [
+        {
+          key: 'agent-cfg-team-mate',
+          name: 'Team Member',
+          agentConfigDir: '/agents/team-mate',
+        } as Agent,
+      ],
+      teams: [
+        {
+          teamId: 'team-cfg',
+          name: 'Team With Config',
+          agentConfigDir: '/agents/team-cfg',
+        } as unknown as Team,
+      ],
+      chats: [],
+    });
+
+    const teamRow = rows.find((row) => row.key === 'team:team-cfg');
+    expect(teamRow).toBeDefined();
+    expect(teamRow?.agentConfigDir).toBeUndefined();
+  });
 });

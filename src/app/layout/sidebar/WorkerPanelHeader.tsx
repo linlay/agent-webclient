@@ -71,6 +71,7 @@ export const WorkerPanelHeader: React.FC<{
   ) => void;
   onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
   onOpenWorkspace?: (workerKey: string) => void;
+  onOpenConfigDirectory?: (workerKey: string) => void;
   onRenameAgent?: (
     workerKey: string,
     agentKey: string,
@@ -91,6 +92,7 @@ export const WorkerPanelHeader: React.FC<{
   onStartNewConversation,
   onMarkAllRead,
   onOpenWorkspace,
+  onOpenConfigDirectory,
   onRenameAgent,
   onEditAgent,
   onCopyAgent,
@@ -98,7 +100,9 @@ export const WorkerPanelHeader: React.FC<{
 }) => {
   const { t } = useI18n();
   const subtitle = row.agentType === "coder" ? "" : row.role;
+  const isAgent = row.type === "agent";
   const canOpenWorkspace = Boolean(row.workspaceDir);
+  const canOpenConfigDirectory = isAgent && Boolean(row.agentConfigDir);
   const workspaceUnavailableTitle =
     row.workspaceSourceKind === "browser-folder"
       ? t("leftSidebar.browserWorkspaceOpenUnavailable")
@@ -119,7 +123,6 @@ export const WorkerPanelHeader: React.FC<{
   const terminalTitle = terminalBusy
     ? t("leftSidebar.terminalBusy")
     : t("leftSidebar.terminalActive");
-  const isAgent = row.type === "agent";
   const isCoder = row.agentType === "coder";
   const isKbase = row.agentType === "kbase";
   const actionMenuItems: MenuProps["items"] = [
@@ -132,6 +135,22 @@ export const WorkerPanelHeader: React.FC<{
       label: t("leftSidebar.openWorkspace"),
       disabled: !canOpenWorkspace,
     },
+    ...(isAgent
+      ? [
+          {
+            key: "openConfigDirectory",
+            className: SIDEBAR_MENU_ITEM_CLASS,
+            icon: (
+              <MaterialIcon
+                name="data_object"
+                className={SIDEBAR_MENU_ICON_CLASS}
+              />
+            ),
+            label: t("leftSidebar.openConfigDirectory"),
+            disabled: !canOpenConfigDirectory,
+          },
+        ]
+      : []),
     ...(isAgent && onRenameAgent
       ? [
           {
@@ -265,6 +284,8 @@ export const WorkerPanelHeader: React.FC<{
                   domEvent.stopPropagation();
                   if (key === "openWorkspace" && row.workspaceDir) {
                     onOpenWorkspace?.(row.key);
+                  } else if (key === "openConfigDirectory" && row.agentConfigDir) {
+                    onOpenConfigDirectory?.(row.key);
                   } else if (key === "renameAgent") {
                     onRenameAgent?.(row.key, row.sourceId, row.displayName);
                   } else if (key === "editAgent") {

@@ -53,6 +53,7 @@ export interface Agent {
 	mode?: string;
 	workspaceDir?: string;
 	workspaceName?: string;
+	agentConfigDir?: string;
 	source?: {
 		kind?: string;
 		path?: string;
@@ -127,6 +128,7 @@ export interface WorkerRow {
 	workspaceDir?: string;
 	workspaceName?: string;
 	workspaceSourceKind?: string;
+	agentConfigDir?: string;
 	teamAgentLabels: string[];
 	latestChatId: string;
 	latestRunId: string;

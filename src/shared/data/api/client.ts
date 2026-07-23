@@ -647,15 +647,17 @@ export interface DeleteAgentResponse {
   deleted: boolean;
 }
 
-export interface OpenAgentWorkspaceRequest {
-  key?: string;
-  agentKey?: string;
-  workspaceDir?: string;
+export type AgentDirectoryType = "workspace" | "config";
+
+export interface OpenAgentDirectoryRequest {
+  agentKey: string;
+  directoryType: AgentDirectoryType;
 }
 
-export interface OpenAgentWorkspaceResponse {
-  agentKey?: string;
-  workspaceDir: string;
+export interface OpenAgentDirectoryResponse {
+  agentKey: string;
+  directoryType: AgentDirectoryType;
+  directoryPath: string;
   opened: boolean;
 }
 
@@ -1793,10 +1795,10 @@ export function deleteAgent(
   return postJson<DeleteAgentResponse>(dataEndpoints.adminAgentDelete.path, params);
 }
 
-export function openAgentWorkspace(
-  params: OpenAgentWorkspaceRequest,
-): Promise<ApiResponse<OpenAgentWorkspaceResponse>> {
-  return postJson<OpenAgentWorkspaceResponse>(dataEndpoints.agentOpenWorkspace.path, params);
+export function openAgentDirectory(
+  params: OpenAgentDirectoryRequest,
+): Promise<ApiResponse<OpenAgentDirectoryResponse>> {
+  return postJson<OpenAgentDirectoryResponse>(dataEndpoints.agentOpenDirectory.path, params);
 }
 
 export function getAdminAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {

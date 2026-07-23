@@ -54,7 +54,7 @@ export {
   interruptChat,
   learnChat,
   markChatRead,
-  openAgentWorkspace,
+  openAgentDirectory,
   previewMemoryContext,
   putAgentOrder,
   rememberChat,

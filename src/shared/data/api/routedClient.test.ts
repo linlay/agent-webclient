@@ -79,7 +79,7 @@ jest.mock("@/shared/data/api/client", () => {
 		interruptChat: jest.fn(),
 		learnChat: jest.fn(),
 		markChatRead: jest.fn(),
-		openAgentWorkspace: jest.fn(),
+		openAgentDirectory: jest.fn(),
 		rememberChat: jest.fn(),
 		renameChat: jest.fn(),
 		restoreArchives: jest.fn(),
@@ -156,7 +156,7 @@ let mockApiClient: {
 	interruptChat: jest.Mock;
 	learnChat: jest.Mock;
 	markChatRead: jest.Mock;
-	openAgentWorkspace: jest.Mock;
+	openAgentDirectory: jest.Mock;
 	rememberChat: jest.Mock;
 	renameChat: jest.Mock;
 	restoreArchives: jest.Mock;
@@ -598,6 +598,41 @@ describe("routedClient", () => {
 			code: 0,
 			msg: "ok",
 			data: { key: "editable-agent" },
+		});
+	});
+
+	it("forwards openAgentDirectory to http with the registered directory identity", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		mockApiClient.openAgentDirectory.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: {
+				agentKey: "editable-agent",
+				directoryType: "config",
+				directoryPath: "/agents/editable-agent",
+				opened: true,
+			},
+		});
+
+		await expect(
+			proxy.openAgentDirectory({
+				agentKey: "editable-agent",
+				directoryType: "config",
+			}),
+		).resolves.toMatchObject({
+			data: {
+				agentKey: "editable-agent",
+				directoryType: "config",
+				opened: true,
+			},
+		});
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.openAgentDirectory).toHaveBeenCalledWith({
+			agentKey: "editable-agent",
+			directoryType: "config",
 		});
 	});
 

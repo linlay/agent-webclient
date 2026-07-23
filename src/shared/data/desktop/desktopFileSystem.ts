@@ -2,7 +2,10 @@ import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
 } from "@/shared/data/desktop/desktopHostBridge";
-import { openAgentWorkspace } from "@/shared/data/api/client";
+import {
+  openAgentDirectory,
+  type AgentDirectoryType,
+} from "@/shared/data/api/client";
 import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
@@ -24,6 +27,12 @@ export type ProjectFolderSelection =
       kind: "browser-directory-path";
       workspaceDir: string;
     };
+
+export interface OpenRegisteredAgentDirectoryOptions {
+  agentKey: string;
+  directoryType: AgentDirectoryType;
+  desktopPath?: string;
+}
 
 export class ProjectFolderSelectionError extends Error {
   code: "unsupported" | "empty";
@@ -163,18 +172,29 @@ export async function selectProjectFolder(): Promise<ProjectFolderSelection | nu
   return selectBrowserProjectFolder();
 }
 
-export async function openWorkspaceDirectory(path: string, agentKey?: string): Promise<boolean> {
-  const normalizedPath = normalizePath(path);
+export async function openRegisteredAgentDirectory({
+  agentKey,
+  directoryType,
+  desktopPath,
+}: OpenRegisteredAgentDirectoryOptions): Promise<boolean> {
   const normalizedAgentKey = normalizePath(agentKey);
-  if (!normalizedPath && !normalizedAgentKey) {
+  if (
+    !normalizedAgentKey ||
+    (directoryType !== "workspace" && directoryType !== "config")
+  ) {
     return false;
   }
   if (!canUseDesktopFileSystemBridge()) {
-    const response = await openAgentWorkspace({
-      agentKey: normalizedAgentKey || undefined,
-      workspaceDir: normalizedAgentKey ? undefined : normalizedPath,
+    const response = await openAgentDirectory({
+      agentKey: normalizedAgentKey,
+      directoryType,
     });
     return Boolean(response.data?.opened);
+  }
+
+  const normalizedPath = normalizePath(desktopPath);
+  if (!normalizedPath) {
+    return false;
   }
 
   return new Promise<boolean>((resolve, reject) => {

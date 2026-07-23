@@ -620,6 +620,8 @@ export const zhCNMessages = {
   "leftSidebar.noRelatedConversations": "暂无相关会话",
   "leftSidebar.noWorkers": "暂无{agentPluralLabel}/{teamPluralLabel}",
   "leftSidebar.openWorkspace": "打开工作目录",
+  "leftSidebar.openConfigDirectory": "打开配置目录",
+  "leftSidebar.configDirectoryUnavailable": "当前环境无法访问智能体配置目录",
   "leftSidebar.openSettingsMenu": "打开设置菜单",
   "leftSidebar.projectFolderSelectionCanceled": "已取消选择项目文件夹",
   "leftSidebar.settings": "设置",

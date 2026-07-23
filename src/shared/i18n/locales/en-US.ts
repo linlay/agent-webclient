@@ -620,6 +620,8 @@ export const enUSMessages = {
   "leftSidebar.noRelatedConversations": "No related conversations",
   "leftSidebar.noWorkers": "No {agentPluralLabel}/{teamPluralLabel}",
   "leftSidebar.openWorkspace": "Open workspace",
+  "leftSidebar.openConfigDirectory": "Open config directory",
+  "leftSidebar.configDirectoryUnavailable": "Config directory is unavailable in this environment",
   "leftSidebar.openSettingsMenu": "Open settings menu",
   "leftSidebar.projectFolderSelectionCanceled": "Project folder selection canceled",
   "leftSidebar.settings": "Settings",

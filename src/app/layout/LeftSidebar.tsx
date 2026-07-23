@@ -67,7 +67,7 @@ import {
 } from "@/features/chats/lib/chatRunState";
 import { resolveSidebarChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import type { AppState, Chat, WorkerConversationRow, WorkerListItem } from "@/app/state/types";
-import { openWorkspaceDirectory } from "@/shared/data/desktop/desktopFileSystem";
+import { openRegisteredAgentDirectory } from "@/shared/data/desktop/desktopFileSystem";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import { splitWorkerListItems } from "@/features/workers/lib/workerDataCoordinator";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
@@ -558,7 +558,11 @@ export const LeftSidebar: React.FC = () => {
       return;
     }
     const agentKey = String(row?.sourceId || "").trim();
-    void openWorkspaceDirectory(workspaceDir, agentKey)
+    void openRegisteredAgentDirectory({
+      agentKey,
+      directoryType: "workspace",
+      desktopPath: workspaceDir,
+    })
       .then((opened) => {
         if (!opened) {
           dispatch({
@@ -571,6 +575,40 @@ export const LeftSidebar: React.FC = () => {
         dispatch({
           type: "APPEND_DEBUG",
           line: `[workspace open error] ${(error as Error).message}`,
+        });
+      });
+  };
+
+  const handleOpenConfigDirectory = (workerKey: string) => {
+    const row =
+      state.workerIndexByKey.get(workerKey) ||
+      state.workerRows.find((item) => item.key === workerKey);
+    const agentConfigDir = String(row?.agentConfigDir || "").trim();
+    const agentKey = String(row?.sourceId || "").trim();
+    if (!agentConfigDir || !agentKey) {
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[config directory] ${t("leftSidebar.configDirectoryUnavailable")}`,
+      });
+      return;
+    }
+    void openRegisteredAgentDirectory({
+      agentKey,
+      directoryType: "config",
+      desktopPath: agentConfigDir,
+    })
+      .then((opened) => {
+        if (!opened) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[config directory] ${t("leftSidebar.configDirectoryUnavailable")}: ${agentConfigDir}`,
+          });
+        }
+      })
+      .catch((error) => {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[config directory open error] ${(error as Error).message}`,
         });
       });
   };
@@ -791,6 +829,7 @@ export const LeftSidebar: React.FC = () => {
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
             onOpenWorkspace={handleOpenWorkspace}
+            onOpenConfigDirectory={handleOpenConfigDirectory}
             onRenameAgent={handleRenameAgent}
             onEditAgent={handleEditAgent}
             onCopyAgent={handleCopyAgent}
@@ -810,6 +849,7 @@ export const LeftSidebar: React.FC = () => {
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
             onOpenWorkspace={handleOpenWorkspace}
+            onOpenConfigDirectory={handleOpenConfigDirectory}
             onRenameAgent={handleRenameAgent}
             onEditAgent={handleEditAgent}
             onCopyAgent={handleCopyAgent}
@@ -1162,6 +1202,7 @@ export const LeftSidebar: React.FC = () => {
                             }
                             onMarkAllRead={handleMarkWorkerAllRead}
                             onOpenWorkspace={handleOpenWorkspace}
+                            onOpenConfigDirectory={handleOpenConfigDirectory}
                             onRenameAgent={handleRenameAgent}
                             onEditAgent={handleEditAgent}
                             onCopyAgent={handleCopyAgent}

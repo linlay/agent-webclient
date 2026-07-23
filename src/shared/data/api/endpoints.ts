@@ -378,9 +378,9 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
   }),
-  agentOpenWorkspace: defineEndpoint({
-    key: "agent.openWorkspace",
-    path: "/api/agent/open-workspace",
+  agentOpenDirectory: defineEndpoint({
+    key: "agent.openDirectory",
+    path: "/api/agent/open-directory",
     method: "POST",
     transport: "http",
   }),

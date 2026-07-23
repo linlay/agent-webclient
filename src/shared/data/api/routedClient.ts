@@ -46,7 +46,7 @@ import {
 	interruptChat as interruptChatHttp,
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
-	openAgentWorkspace as openAgentWorkspaceHttp,
+	openAgentDirectory as openAgentDirectoryHttp,
 	rememberChat as rememberChatHttp,
 	renameChat as renameChatHttp,
 	restoreArchives as restoreArchivesHttp,
@@ -100,8 +100,8 @@ import {
 	type GlobalSearchParams,
 	type GlobalSearchResponse,
 	type MarkChatReadParams,
-	type OpenAgentWorkspaceRequest,
-	type OpenAgentWorkspaceResponse,
+	type OpenAgentDirectoryRequest,
+	type OpenAgentDirectoryResponse,
 	type QueryLikeParams,
 	type RenameChatRequest,
 	type RenameChatResponse,
@@ -332,10 +332,10 @@ export function deleteAgent(
 	});
 }
 
-export function openAgentWorkspace(
-	params: OpenAgentWorkspaceRequest,
-): Promise<ApiResponse<OpenAgentWorkspaceResponse>> {
-	return openAgentWorkspaceHttp(params);
+export function openAgentDirectory(
+	params: OpenAgentDirectoryRequest,
+): Promise<ApiResponse<OpenAgentDirectoryResponse>> {
+	return openAgentDirectoryHttp(params);
 }
 
 export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderModelOptionsResponse>> {

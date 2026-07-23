@@ -300,7 +300,7 @@ jest.mock("@/shared/icons/agent", () => ({
 
 jest.mock("@/shared/data/desktop/desktopFileSystem", () => ({
   selectProjectFolder: jest.fn(),
-  openWorkspaceDirectory: jest.fn(),
+  openRegisteredAgentDirectory: jest.fn(),
 }));
 
 jest.mock("@/shared/data", () => ({
@@ -324,10 +324,10 @@ const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
 };
 const {
   selectProjectFolder,
-  openWorkspaceDirectory,
+  openRegisteredAgentDirectory,
 } = jest.requireMock("@/shared/data/desktop/desktopFileSystem") as {
   selectProjectFolder: jest.Mock;
-  openWorkspaceDirectory: jest.Mock;
+  openRegisteredAgentDirectory: jest.Mock;
 };
 const {
   createAgent,
@@ -389,6 +389,7 @@ describe("LeftSidebar", () => {
       displayName: "Alpha Agent",
       role: "Builder",
       teamAgentLabels: [],
+      agentConfigDir: "/agents/agent_a",
       latestChatId: "chat_6",
       latestRunId: "run_6",
       latestUpdatedAt: 6000,
@@ -534,7 +535,7 @@ describe("LeftSidebar", () => {
     uiButtonProps.length = 0;
     dropdownMenuProps.length = 0;
     selectProjectFolder.mockReset();
-    openWorkspaceDirectory.mockReset();
+    openRegisteredAgentDirectory.mockReset();
     createAgent.mockReset();
     deleteAgent.mockReset();
     getAgent.mockReset();
@@ -1202,7 +1203,7 @@ describe("LeftSidebar", () => {
     state.agents[0].type = "coder";
     state.agents[0].role = "Code worker";
     state.agents[0].workspaceDir = "/Users/demo/Project/agent-coder";
-    openWorkspaceDirectory.mockResolvedValue(true);
+    openRegisteredAgentDirectory.mockResolvedValue(true);
     mockState(state);
 
     const html = renderSidebar();
@@ -1221,10 +1222,107 @@ describe("LeftSidebar", () => {
     });
     await Promise.resolve();
 
-    expect(openWorkspaceDirectory).toHaveBeenCalledWith(
-      "/Users/demo/Project/agent-coder",
-      "worker_a",
+    expect(openRegisteredAgentDirectory).toHaveBeenCalledWith({
+      agentKey: "worker_a",
+      directoryType: "workspace",
+      desktopPath: "/Users/demo/Project/agent-coder",
+    });
+  });
+
+  it("renders and opens a worker config directory action when agentConfigDir is available", async () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentConfigDir = "/agents/worker_a";
+    mockState(state);
+    openRegisteredAgentDirectory.mockResolvedValue(true);
+
+    const html = renderSidebar();
+
+    expect(html).toContain("打开配置目录");
+    const menu = dropdownMenuProps.find((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openConfigDirectory"),
+    ) as { onClick?: (event: { key: string; domEvent: { stopPropagation: jest.Mock } }) => void } | undefined;
+    expect(menu?.onClick).toBeTruthy();
+
+    menu?.onClick?.({
+      key: "openConfigDirectory",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+    await Promise.resolve();
+
+    expect(openRegisteredAgentDirectory).toHaveBeenCalledWith({
+      agentKey: "worker_a",
+      directoryType: "config",
+      desktopPath: "/agents/worker_a",
+    });
+  });
+
+  it("disables the config directory action and skips the bridge when agentConfigDir is missing", async () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentConfigDir = undefined;
+    mockState(state);
+
+    renderSidebar();
+
+    const menu = dropdownMenuProps.find((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openConfigDirectory"),
+    ) as { items?: Array<{ key?: string; disabled?: boolean }> } | undefined;
+
+    expect(menu?.items?.find((item) => item.key === "openConfigDirectory")?.disabled).toBe(true);
+
+    const targetMenu = menu as
+      | { onClick?: (event: { key: string; domEvent: { stopPropagation: jest.Mock } }) => void }
+      | undefined;
+    targetMenu?.onClick?.({
+      key: "openConfigDirectory",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+    await Promise.resolve();
+
+    expect(openRegisteredAgentDirectory).not.toHaveBeenCalled();
+  });
+
+  it("hides the config directory action for non-agent workers", () => {
+    const state = createInitialState();
+    state.conversationMode = "worker";
+    state.leftDrawerOpen = true;
+    const teamRow = {
+      key: "team:team_ops",
+      type: "team" as const,
+      sourceId: "team_ops",
+      displayName: "Ops",
+      role: "Operations",
+      teamAgentLabels: [],
+      latestChatId: "",
+      latestRunId: "",
+      latestUpdatedAt: 0,
+      latestChatName: "",
+      latestRunContent: "",
+      hasHistory: false,
+      latestRunSortValue: -1,
+      searchText: "ops team_ops",
+    } as WorkerRow;
+    state.teams = [
+      {
+        teamId: "team_ops",
+        name: "Ops",
+        role: "Operations",
+      },
+    ];
+    state.workerRows = [teamRow];
+    state.workerIndexByKey = new Map([[teamRow.key, teamRow]]);
+    mockState(state);
+
+    renderSidebar();
+
+    const menu = dropdownMenuProps.find((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openWorkspace"),
     );
+    expect(menu?.items?.some((item: any) => item?.key === "openConfigDirectory")).toBeFalsy();
   });
 
   it("renders agent action menu items without delete for non-coder agents", () => {
@@ -1239,6 +1337,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("打开工作目录");
     expect(menu?.items?.map((item) => item.key)).toEqual([
       "openWorkspace",
+      "openConfigDirectory",
       "renameAgent",
       "editAgent",
       "copyAgent",
@@ -1246,6 +1345,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("修改名称");
     expect(html).toContain("编辑智能体");
     expect(html).toContain("复制信息");
+    expect(html).toContain("打开配置目录");
     expect(html).not.toContain("删除智能体");
   });
 
@@ -1261,6 +1361,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("删除智能体");
     expect(menu?.items?.map((item) => item.key)).toEqual([
       "openWorkspace",
+      "openConfigDirectory",
       "renameAgent",
       "editAgent",
       "copyAgent",
@@ -1286,6 +1387,7 @@ describe("LeftSidebar", () => {
     expandedMenus.forEach((menu) => {
       expect(menu.items.map((item: any) => item.key)).toEqual([
         "openWorkspace",
+        "openConfigDirectory",
         "renameAgent",
         "editAgent",
         "copyAgent",
@@ -1304,6 +1406,7 @@ describe("LeftSidebar", () => {
     expect(collapsedMenus).toHaveLength(1);
     expect(collapsedMenus[0].items.map((item: any) => item.key)).toEqual([
       "openWorkspace",
+      "openConfigDirectory",
       "renameAgent",
       "editAgent",
       "copyAgent",

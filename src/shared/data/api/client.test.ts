@@ -71,7 +71,7 @@ import {
   learnChat,
   markChatRead,
   normalizeChatSummariesPayload,
-  openAgentWorkspace,
+  openAgentDirectory,
   rememberChat,
   renameChat,
   restoreArchives,
@@ -588,7 +588,10 @@ describe('data client query payloads', () => {
       reasoningEffort: 'HIGH',
     });
     await deleteAgent({ key: 'editable-agent' });
-    await openAgentWorkspace({ agentKey: 'editable-agent' });
+    await openAgentDirectory({
+      agentKey: 'editable-agent',
+      directoryType: 'config',
+    });
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
@@ -637,8 +640,11 @@ describe('data client query payloads', () => {
       },
       { url: '/api/admin/agents/delete', body: { key: 'editable-agent' } },
       {
-        url: '/api/agent/open-workspace',
-        body: { agentKey: 'editable-agent' },
+        url: '/api/agent/open-directory',
+        body: {
+          agentKey: 'editable-agent',
+          directoryType: 'config',
+        },
       },
     ]);
   });

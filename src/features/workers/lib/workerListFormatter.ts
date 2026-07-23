@@ -34,6 +34,10 @@ function normalizeWorkspaceDir(workspaceDir: unknown): string | undefined {
   return normalized;
 }
 
+function normalizeAgentConfigDir(agentConfigDir: unknown): string | undefined {
+  return normalizeWorkspaceDir(agentConfigDir);
+}
+
 function createAgentNameMap(agents: Agent[]): Map<string, string> {
   const nameByKey = new Map<string, string>();
   for (const agent of Array.isArray(agents) ? agents : []) {
@@ -100,6 +104,7 @@ function createBaseWorkerMap(agents: Agent[], teams: Team[]): Map<string, Omit<W
       workspaceDir: normalizeWorkspaceDir(agent?.workspaceDir),
       workspaceName: toText(agent?.workspaceName) || undefined,
       workspaceSourceKind: normalizeSourceKind(agent?.source) || undefined,
+      agentConfigDir: normalizeAgentConfigDir(agent?.agentConfigDir),
       teamAgentLabels: [],
     });
   }
@@ -115,6 +120,7 @@ function buildSearchText(row: WorkerRow): string {
     row.workspaceDir,
     row.workspaceName,
     row.workspaceSourceKind,
+    row.agentConfigDir,
     row.sourceId,
     row.latestChatId,
     row.latestChatName,
