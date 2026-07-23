@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
+import { isMemoryEnabled } from "@/shared/config/featureFlags";
 import { getMemoryRecords } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { resolveMemoryAgentContext } from "@/features/settings/lib/memoryInfo";
@@ -10,6 +11,7 @@ export function useMemoryRecordsInitialization(): void {
   const { state, dispatch, stateRef } = useAppContext();
   const { t } = useI18n();
   const initialRecordsLoadStartedRef = useRef(false);
+  const memoryEnabled = isMemoryEnabled();
 
   const agentContext = useMemo(
     () =>
@@ -38,6 +40,9 @@ export function useMemoryRecordsInitialization(): void {
   );
 
   useEffect(() => {
+    if (!memoryEnabled) {
+      return;
+    }
     if (initialRecordsLoadStartedRef.current) {
       return;
     }
@@ -116,5 +121,12 @@ export function useMemoryRecordsInitialization(): void {
       .finally(() => {
         dispatch({ type: "SET_MEMORY_INFO_LOADING", loading: false });
       });
-  }, [agentContext.agentKey, dispatch, state.accessToken, stateRef, t]);
+  }, [
+    agentContext.agentKey,
+    dispatch,
+    memoryEnabled,
+    state.accessToken,
+    stateRef,
+    t,
+  ]);
 }
