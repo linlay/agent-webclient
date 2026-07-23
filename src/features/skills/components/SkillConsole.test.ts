@@ -86,12 +86,16 @@ jest.mock("antd", () => {
   Input.TextArea = (props: Record<string, unknown>) =>
     ReactMod.createElement("textarea", props);
   return {
+    App: {
+      useApp: () => ({
+        modal: {
+          confirm: jest.fn(),
+        },
+      }),
+    },
     Input,
     Spin: ({ children }: { children: React.ReactNode }) =>
       ReactMod.createElement(React.Fragment, null, children),
-    Modal: {
-      confirm: jest.fn(),
-    },
     Dropdown: ({ children }: { children: React.ReactNode }) =>
       ReactMod.createElement(React.Fragment, null, children),
   };

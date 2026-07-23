@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Alert, Input, Modal, Spin } from "antd";
+import { Alert, App as AntdApp, Input, Spin } from "antd";
 import type { MenuProps } from "antd";
 import {
   createAdminSkillFile,
@@ -672,6 +672,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   onSelectSkillKey,
 }) => {
   const { t } = useI18n();
+  const { modal } = AntdApp.useApp();
 
   const [skills, setSkills] = useState<AdminSkillSummary[]>([]);
   const [listLoading, setListLoading] = useState(false);
@@ -850,7 +851,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
       if (isFileDirty && selectedFilePath !== entry.path) {
         const ok = await new Promise<boolean>((resolve) => {
-          Modal.confirm({
+          modal.confirm({
             title: t("skillConsole.confirm.switchFile"),
             onOk: () => resolve(true),
             onCancel: () => resolve(false),
@@ -870,7 +871,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         applyBinaryEntry(entry);
       }
     },
-    [applyBinaryEntry, isFileDirty, loadFileByPath, selectedFilePath, t],
+    [applyBinaryEntry, isFileDirty, loadFileByPath, modal, selectedFilePath, t],
   );
 
   useEffect(() => {
@@ -894,7 +895,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleSelectSkill = (item: AdminSkillSummary) => {
     if (dirtyFiles.size > 0) {
-      Modal.confirm({
+      modal.confirm({
         title: t("skillConsole.confirm.switchSkill"),
         onOk: () => {
           onSelectSkillKey(item.key);
@@ -949,7 +950,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (!detail || !selectedFilePath || !selectedEntry) return;
     if (isFileDirty) {
       const ok = await new Promise<boolean>((resolve) => {
-        Modal.confirm({
+        modal.confirm({
           title: t("skillConsole.confirm.switchFile"),
           onOk: () => resolve(true),
           onCancel: () => resolve(false),
@@ -1043,7 +1044,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleCreateFile = () => {
     if (!detail) return;
     let inputValue = "";
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.createFile"),
       content: (
         <Input
@@ -1070,7 +1071,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleCreateDir = () => {
     if (!detail) return;
     let inputValue = "";
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.createDir"),
       content: (
         <Input
@@ -1101,7 +1102,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleRenameFile = () => {
     if (!detail || !selectedEntry || !selectedEntry.renamable) return;
     let inputValue = selectedFilePath;
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.rename"),
       content: (
         <Input
@@ -1132,7 +1133,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleDeleteFile = () => {
     if (!detail || !selectedEntry || !selectedEntry.deletable) return;
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.deleteConfirm", {
         type: t("skillConsole.fileTree.root"),
         name: selectedFilePath,
@@ -1202,7 +1203,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleCreateSkill = () => {
     let inputKey = "";
     let inputName = "";
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.create.title"),
       content: (
         <div

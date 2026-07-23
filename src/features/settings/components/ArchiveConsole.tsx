@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Flex, Input, InputNumber, Modal, Popover, Select, Spin } from "antd";
+import { App as AntdApp, Button, Flex, Input, InputNumber, Popover, Select, Spin } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Chat, WorkerConversationRow } from "@/app/state/types";
 import {
@@ -257,6 +257,7 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 	showAgentFilter = false,
 }) => {
 	const { state, dispatch } = useAppContext();
+	const { modal } = AntdApp.useApp();
 	const [query, setQuery] = useState("");
 	const [agentFilter, setAgentFilter] = useState("");
 	const [items, setItems] = useState<ArchivedSummaryResponse[]>([]);
@@ -411,7 +412,7 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 	const handleDeleteArchive = (chatId: string) => {
 		const normalizedChatId = String(chatId || "").trim();
 		if (!normalizedChatId) return;
-		Modal.confirm({
+		modal.confirm({
 			title: t("archive.deleteConfirm.title"),
 			content: normalizedChatId,
 			okText: t("archive.action.delete"),
@@ -428,7 +429,7 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 		const normalizedChatId = String(chatId || "").trim();
 		if (!normalizedChatId) return;
 		const selectedItem = items.find((item) => item.chatId === normalizedChatId);
-		Modal.confirm({
+		modal.confirm({
 			title: t("archive.restoreConfirm.title"),
 			content: selectedItem?.chatName || normalizedChatId,
 			okText: openAfterRestore
@@ -457,7 +458,7 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 
 	const handleBulkArchive = () => {
 		if (bulkCandidates.length === 0) return;
-		Modal.confirm({
+		modal.confirm({
 			title: t("archive.bulk.confirmTitle"),
 			content: t("archive.bulk.confirmContent", {
 				count: bulkCandidates.length,
