@@ -105,4 +105,34 @@ describe("ContentBlock", () => {
 			}),
 		});
 	});
+
+	it("opens bare HTML file links with an HTML preview kind", () => {
+		const node: TimelineNode = {
+			id: "content_html",
+			kind: "content",
+			role: "assistant",
+			text: "[report](china-gdp-2010-2024.html)",
+			ts: 100,
+		};
+
+		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
+		mockMarkdownContentProps[0].onWorkspaceFileLinkClick?.({
+			href: "china-gdp-2010-2024.html",
+			filePath: "china-gdp-2010-2024.html",
+		});
+
+		expect(mockDispatch).toHaveBeenCalledWith({
+			type: "OPEN_RIGHT_SIDEBAR",
+			tab: "preview",
+			preview: expect.objectContaining({
+				name: "china-gdp-2010-2024.html",
+				kind: "html",
+				sourcePath: "china-gdp-2010-2024.html",
+				workspaceFile: {
+					agentKey: "coder-agent",
+					path: "china-gdp-2010-2024.html",
+				},
+			}),
+		});
+	});
 });

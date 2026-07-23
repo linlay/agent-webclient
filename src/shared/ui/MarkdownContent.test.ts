@@ -53,6 +53,18 @@ describe("parseWorkspaceFileHref", () => {
   });
 
   it.each([
+    "china-gdp-2010-2024.html",
+    "outputs/china-gdp-2010-2024.html",
+    "/workspace/chat_123/china-gdp-2010-2024.html",
+    "reports/季度 报表.xhtml",
+  ])("parses previewable workspace file paths: %s", (href) => {
+    expect(parseWorkspaceFileHref(href)).toEqual({
+      href,
+      filePath: href,
+    });
+  });
+
+  it.each([
     "./Dockerfile",
     "./.env.example",
     "./nginx.conf",
@@ -75,5 +87,12 @@ describe("parseWorkspaceFileHref", () => {
 
   it("does not intercept external links", () => {
     expect(parseWorkspaceFileHref("https://example.com/src/a.ts:12")).toBeNull();
+    expect(parseWorkspaceFileHref("ftp://example.com/report.html")).toBeNull();
+    expect(parseWorkspaceFileHref("//example.com/report.html")).toBeNull();
+  });
+
+  it("does not intercept unknown relative routes without file extensions", () => {
+    expect(parseWorkspaceFileHref("reports/dashboard")).toBeNull();
+    expect(parseWorkspaceFileHref("example.com")).toBeNull();
   });
 });

@@ -16,6 +16,81 @@ const ignoredHrefPrefixes = [
   "javascript:",
 ];
 
+const knownWorkspaceFileExtensions = new Set([
+  "aac",
+  "avif",
+  "bmp",
+  "c",
+  "cjs",
+  "cpp",
+  "css",
+  "csv",
+  "cts",
+  "doc",
+  "docm",
+  "docx",
+  "gif",
+  "go",
+  "htm",
+  "html",
+  "ico",
+  "ini",
+  "java",
+  "jpeg",
+  "jpg",
+  "js",
+  "json",
+  "jsx",
+  "log",
+  "m4a",
+  "m4v",
+  "md",
+  "mjs",
+  "mov",
+  "mp3",
+  "mp4",
+  "mpeg",
+  "mpg",
+  "mts",
+  "oga",
+  "ogg",
+  "ogv",
+  "opus",
+  "pdf",
+  "png",
+  "pot",
+  "potm",
+  "potx",
+  "pps",
+  "ppsm",
+  "ppsx",
+  "ppt",
+  "pptm",
+  "pptx",
+  "py",
+  "rb",
+  "rs",
+  "sh",
+  "sql",
+  "svg",
+  "toml",
+  "ts",
+  "tsx",
+  "txt",
+  "wav",
+  "weba",
+  "webm",
+  "webp",
+  "xhtml",
+  "xls",
+  "xlsb",
+  "xlsm",
+  "xlsx",
+  "xml",
+  "yaml",
+  "yml",
+]);
+
 function safeDecodeHref(href: string): string {
   try {
     return decodeURIComponent(href);
@@ -49,6 +124,18 @@ function looksLikeRelativeWorkspacePath(path: string): boolean {
   );
 }
 
+function hasKnownWorkspaceFileExtension(path: string): boolean {
+  const normalizedPath = path.replace(/\\/g, "/");
+  const filename = normalizedPath.split("/").pop() || "";
+  const extensionIndex = filename.lastIndexOf(".");
+  if (extensionIndex <= 0 || extensionIndex === filename.length - 1) {
+    return false;
+  }
+  return knownWorkspaceFileExtensions.has(
+    filename.slice(extensionIndex + 1).toLowerCase(),
+  );
+}
+
 function isResourceUrl(href: string): boolean {
   if (!href) return false;
   try {
@@ -71,6 +158,9 @@ export function parseWorkspaceFileHref(
   if (ignoredHrefPrefixes.some((prefix) => lowerHref.startsWith(prefix))) {
     return null;
   }
+  if (/^[a-z][a-z\d+.-]*:/i.test(rawHref) || rawHref.startsWith("//")) {
+    return null;
+  }
   if (isResourceUrl(rawHref)) {
     return null;
   }
@@ -84,7 +174,9 @@ export function parseWorkspaceFileHref(
 
   const isAbsolutePosixPath = filePath.startsWith("/") && !filePath.startsWith("//");
   const isRelativeWorkspacePath =
-    !filePath.startsWith("/") && looksLikeRelativeWorkspacePath(filePath);
+    !filePath.startsWith("/") &&
+    (looksLikeRelativeWorkspacePath(filePath) ||
+      hasKnownWorkspaceFileExtension(filePath));
   if (!isAbsolutePosixPath && !isRelativeWorkspacePath) {
     return null;
   }

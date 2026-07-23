@@ -100,13 +100,30 @@ export function resolveWorkspaceFilePreviewKind(
   if (!response) {
     return fallbackKind;
   }
-  if (response.contentKind === "text") {
-    return "text";
-  }
-  return getAttachmentPreviewKind({
+  const detectedKind = getAttachmentPreviewKind({
     name: response.name,
     mimeType: response.mimeType,
   });
+  if (detectedKind === "html") {
+    return "html";
+  }
+  if (response.contentKind === "text") {
+    return "text";
+  }
+  return detectedKind;
+}
+
+export function resolveWorkspaceHtmlSrcDoc(
+  response: AgentFileResponse | null,
+): string | null {
+  if (
+    !response ||
+    response.contentKind !== "text" ||
+    response.truncated
+  ) {
+    return null;
+  }
+  return response.content || "";
 }
 
 export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
@@ -142,6 +159,9 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const previewMimeType = workspaceFileResponse?.mimeType || preview.mimeType;
   const previewSizeBytes = workspaceFileResponse?.sizeBytes ?? preview.sizeBytes;
   const previewSourcePath = workspaceFileResponse?.path || preview.sourcePath;
+  const workspaceHtmlSrcDoc = resolveWorkspaceHtmlSrcDoc(
+    workspaceFileResponse,
+  );
 
   React.useEffect(() => {
     setMediaError("");
@@ -327,12 +347,39 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
         ) : null}
 
         {previewKind === "html" ? (
-          <iframe
-            className={ATTACHMENT_PREVIEW_FRAME_CLASS_NAME}
-            src={previewUrl}
-            title={previewName}
-            sandbox="allow-forms allow-modals allow-popups allow-scripts"
-          />
+          workspaceFileRequest ? (
+            textLoading ? (
+              <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+                {t("rightSidebar.preview.text.loading")}
+              </div>
+            ) : textError ? (
+              <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+                {textError}
+              </div>
+            ) : workspaceFileResponse?.truncated ? (
+              <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+                {t("rightSidebar.preview.text.truncated")}
+              </div>
+            ) : workspaceHtmlSrcDoc !== null ? (
+              <iframe
+                className={ATTACHMENT_PREVIEW_FRAME_CLASS_NAME}
+                srcDoc={workspaceHtmlSrcDoc}
+                title={previewName}
+                sandbox="allow-forms allow-modals allow-popups allow-scripts"
+              />
+            ) : (
+              <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
+                {t("rightSidebar.preview.error.loadText")}
+              </div>
+            )
+          ) : (
+            <iframe
+              className={ATTACHMENT_PREVIEW_FRAME_CLASS_NAME}
+              src={previewUrl}
+              title={previewName}
+              sandbox="allow-forms allow-modals allow-popups allow-scripts"
+            />
+          )
         ) : null}
 
         {previewKind === "text" ? (
@@ -421,7 +468,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
         ) : null}
       </div>
 
-      {workspaceFileResponse?.truncated ? (
+      {workspaceFileResponse?.truncated && previewKind !== "html" ? (
         <div className={ATTACHMENT_PREVIEW_NOTE_CLASS_NAME}>
           {t("rightSidebar.preview.text.truncated")}
         </div>

@@ -1,6 +1,9 @@
 import React from "react";
 import type { TimelineNode } from "@/app/state/types";
-import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import {
+	getAttachmentPreviewKind,
+	type AttachmentPreviewState,
+} from "@/features/artifacts/lib/attachmentPreview";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { stripPendingSpecialFenceTail } from "@/features/events/lib/contentSegments";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
@@ -53,6 +56,9 @@ export function buildWorkspaceFilePreview(
 	link: WorkspaceFileLink,
 	agentKey: string,
 ): AttachmentPreviewState {
+	const name = displayFileName(link.filePath);
+	const detectedKind = getAttachmentPreviewKind({ name });
+	const kind = detectedKind === "unsupported" ? "text" : detectedKind;
 	const previewKey = [
 		"workspace-file",
 		encodeURIComponent(agentKey),
@@ -60,11 +66,10 @@ export function buildWorkspaceFilePreview(
 		link.line || "",
 	].join(":");
 	return {
-		name: displayFileName(link.filePath),
+		name,
 		url: previewKey,
 		downloadUrl: "",
-		kind: "text",
-		mimeType: "text/plain",
+		kind,
 		sourcePath: link.filePath,
 		line: link.line,
 		workspaceFile: {

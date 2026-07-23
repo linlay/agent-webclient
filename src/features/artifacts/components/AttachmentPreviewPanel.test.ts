@@ -1,5 +1,6 @@
 import {
 	buildTextPreviewLines,
+	resolveWorkspaceHtmlSrcDoc,
 	resolveWorkspaceFilePreviewKind,
 } from "@/features/artifacts/components/AttachmentPreviewPanel";
 
@@ -55,5 +56,55 @@ describe("buildTextPreviewLines", () => {
 				"text",
 			),
 		).toBe("pdf");
+	});
+
+	it.each([
+		["report.html", "text/plain"],
+		["report.txt", "text/html; charset=utf-8"],
+	])(
+		"prioritizes HTML name or MIME detection for %s",
+		(name, mimeType) => {
+			expect(
+				resolveWorkspaceFilePreviewKind(
+					{
+					agentKey: "coder",
+					workspaceRoot: "/workspace",
+					requestedPath: name,
+					path: name,
+					absolutePath: `/workspace/${name}`,
+					name,
+					kind: "file",
+					contentKind: "text",
+					mimeType,
+					content: "<html></html>",
+					sizeBytes: 13,
+					truncated: false,
+				},
+				"text",
+				),
+			).toBe("html");
+		},
+	);
+
+	it("uses complete workspace HTML content as srcDoc", () => {
+		const response = {
+			agentKey: "coder",
+			workspaceRoot: "/workspace",
+			requestedPath: "report.html",
+			path: "report.html",
+			absolutePath: "/workspace/report.html",
+			name: "report.html",
+			kind: "file",
+			contentKind: "text" as const,
+			mimeType: "text/html",
+			content: "<script>window.chartReady = true</script>",
+			sizeBytes: 47,
+			truncated: false,
+		};
+
+		expect(resolveWorkspaceHtmlSrcDoc(response)).toBe(response.content);
+		expect(
+			resolveWorkspaceHtmlSrcDoc({ ...response, truncated: true }),
+		).toBeNull();
 	});
 });
