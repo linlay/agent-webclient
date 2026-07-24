@@ -1,6 +1,7 @@
 export const materialIconSymbolIds = {
   add: "material-symbol-add",
   archive: "material-symbol-archive",
+  arrow_downward: "material-symbol-arrow-downward",
   arrow_upward: "material-symbol-arrow-upward",
   article: "material-symbol-article",
   assignment: "material-symbol-assignment",
