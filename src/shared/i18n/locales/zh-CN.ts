@@ -1303,6 +1303,7 @@ export const zhCNMessages = {
   "contentBlock.ttsVoice": "语音回复",
   "contentBlock.replayVoice": "重新朗读",
   "conversationStage.queryAnchor": "定位到第 {index} 个提问",
+  "conversationStage.scrollToBottom": "滚动到底部",
   "viewport.loading": "加载视图中...",
   "viewport.loadFailed": "视图加载失败：{detail}",
   "frontendTool.loadFailed": "前端工具加载失败：{detail}",

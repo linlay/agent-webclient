@@ -1304,6 +1304,7 @@ export const enUSMessages = {
   "contentBlock.ttsVoice": "TTS voice",
   "contentBlock.replayVoice": "Replay voice",
   "conversationStage.queryAnchor": "Go to question {index}",
+  "conversationStage.scrollToBottom": "Scroll to bottom",
   "viewport.loading": "Loading view...",
   "viewport.loadFailed": "Failed to load view: {detail}",
   "frontendTool.loadFailed": "Failed to load frontend tool: {detail}",

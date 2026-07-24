@@ -83,6 +83,8 @@ const TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME =
   "tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted";
 const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
+const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
+  "conversation-stage-scroll-to-bottom";
 const MESSAGES_SCROLL_CLASS_NAME = [
   "messages-scroll tw:h-full tw:overflow-y-auto tw:bg-transparent tw:px-5 tw:pb-[26px] tw:pt-5 tw:scroll-smooth",
   SCROLLBAR_THIN_CLASS_NAME,
@@ -662,6 +664,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const [expandedTaskGroups, setExpandedTaskGroups] = useState<
     Record<string, boolean>
   >({});
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const currentWorker = resolveCurrentWorkerSummary(state);
   const isMainChatRunning = appContext
     ? resolveMainChatRuntime(
@@ -692,8 +695,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
     const el = scrollRef.current;
     if (!el) return;
+    autoScrollEnabledRef.current = true;
     el.scrollTo({ top: el.scrollHeight, behavior });
   };
+
+  const handleScrollToBottomClick = useCallback(() => {
+    scrollToBottom("smooth");
+  }, []);
 
   const updateActiveQueryAnchor = useCallback(() => {
     const el = scrollRef.current;
@@ -1070,7 +1078,12 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     if (!el) return;
 
     const handleScroll = () => {
-      autoScrollEnabledRef.current = isNearBottom(el);
+      const nearBottom = isNearBottom(el);
+      autoScrollEnabledRef.current = nearBottom;
+      setShowScrollToBottom((current) => {
+        if (current === !nearBottom) return current;
+        return !nearBottom;
+      });
       updateActiveQueryAnchor();
     };
 
@@ -1514,11 +1527,30 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   return renderEntry(item.renderEntry);
                 })}
               </div>
-              {(isMainChatRunning || state.streaming) && (
-                <Flex justify="center" className="tw:mt-20">
-                  <Spin />
-                </Flex>
-              )}
+              <div className="tw:sticky tw:bottom-0 tw:h-[35px] tw:z-10 tw:text-center">
+                {(showScrollToBottom ||
+                  isMainChatRunning ||
+                  state.streaming) && (
+                  <Tooltip
+                    title={t("conversationStage.scrollToBottom")}
+                    placement="top"
+                  >
+                    <UiButton
+                      className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
+                      iconOnly
+                      variant="ghost"
+                      onClick={handleScrollToBottomClick}
+                      style={{ borderRadius: "50%" }}
+                    >
+                      {isMainChatRunning || state.streaming ? (
+                        <Spin />
+                      ) : (
+                        <MaterialIcon name="arrow_downward" />
+                      )}
+                    </UiButton>
+                  </Tooltip>
+                )}
+              </div>
             </>
           )}
         </div>

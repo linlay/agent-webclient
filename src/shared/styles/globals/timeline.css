@@ -1301,3 +1301,17 @@ html[data-theme="dark"] .xterm .composition-view {
     background: #181818;
     color: #f2f3f5;
 }
+
+.conversation-stage-scroll-to-bottom {
+    .material-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--bg-base);
+        border: 1px solid var(--border);
+
+        &:hover {
+            background: var(--bg-elev-2);
+        }
+    }
+}
