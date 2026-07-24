@@ -324,6 +324,7 @@ function renderFileChangeStats(
 }
 
 function renderFileHistoryPanel(
+  filePath: string,
   entry: FileHistoryCacheEntry | undefined,
   t: (key: string) => string,
 ) {
@@ -342,7 +343,7 @@ function renderFileHistoryPanel(
       </div>
     );
   }
-  return <FileDiffView original={entry.original} current={entry.current} />;
+  return <FileDiffView filePath={filePath} original={entry.original} current={entry.current} />;
 }
 
 const OverviewSection: React.FC<{
@@ -591,7 +592,7 @@ export const OverviewTab: React.FC = () => {
                 ),
                 children: (
                   <div onClick={(e) => e.stopPropagation()}>
-                    {renderFileHistoryPanel(fileHistoryCache[cacheKey], t)}
+                    {renderFileHistoryPanel(item.filePath, fileHistoryCache[cacheKey], t)}
                   </div>
                 ),
               };

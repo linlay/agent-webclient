@@ -270,6 +270,7 @@
     background-color: var(--bg-elev-1);
     padding: 4px 10px;
     border-radius: 0 !important;
+    z-index: 100;
 
     &:hover {
         background: var(--bg-hover);
