@@ -51,6 +51,7 @@ import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n, type I18nContextValue } from "@/shared/i18n";
+import { openRegisteredAgentDirectory } from "@/shared/data/desktop/desktopFileSystem";
 
 type AgentFormMode = "create" | "edit";
 type AgentEditorMode = "structured" | "source";
@@ -925,6 +926,23 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const detailSubtitle = formMode === "create"
     ? t("agentConsole.detail.createSubtitle")
     : detailSourcePath || form.key;
+  const canOpenDetailDirectory = formMode === "edit" && Boolean(detailSourcePath);
+
+  const handleOpenDetailDirectory = useCallback(() => {
+    const path = detailSourcePath;
+    const key = form.key.trim();
+    if (!path || !key) return;
+    void openRegisteredAgentDirectory({
+      agentKey: key,
+      directoryType: "workspace",
+      desktopPath: path,
+    }).catch((error) => {
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[open directory error] ${(error as Error).message}`,
+      });
+    });
+  }, [detailSourcePath, dispatch, form.key]);
   const canEditStructuredAgent = formMode === "create" || hasEditableAdminDefinition(detail);
   const canEditSourceAgent = formMode === "edit" && Boolean(detailSourcePath);
 
@@ -1390,7 +1408,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             <div className={AGENT_DETAIL_HEAD_CLASS_NAME}>
               <div>
                 <strong>{formMode === "create" ? t("agentConsole.detail.titleCreate") : selectedSummary?.name || form.name || form.key || t("agentConsole.detail.titleEdit")}</strong>
-                <span>{detailSubtitle}</span>
+                <span
+                  className={canOpenDetailDirectory ? "tw:cursor-pointer tw:hover:underline tw:hover:text-ink-1 tw:transition-colors" : ""}
+                  onClick={canOpenDetailDirectory ? handleOpenDetailDirectory : undefined}
+                  title={canOpenDetailDirectory ? t("agentConsole.detail.openDirectory") : undefined}
+                >
+                  {detailSubtitle}
+                </span>
               </div>
               {formMode === "edit" && (
                 <div className={AGENT_DETAIL_ACTIONS_CLASS_NAME}>

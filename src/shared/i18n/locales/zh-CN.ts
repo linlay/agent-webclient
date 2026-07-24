@@ -29,6 +29,7 @@ export const zhCNMessages = {
   "agentConsole.action.sourceEdit": "源文件编辑",
   "agentConsole.action.structuredEdit": "结构化编辑",
   "agentConsole.detail.createSubtitle": "保存后写入后端 agent 配置",
+  "agentConsole.detail.openDirectory": "在访达中打开目录",
   "agentConsole.detail.titleCreate": "新建智能体",
   "agentConsole.detail.titleEdit": "编辑智能体",
   "agentConsole.diagnostics.title": "配置诊断",

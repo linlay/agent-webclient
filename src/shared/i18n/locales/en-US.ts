@@ -29,6 +29,7 @@ export const enUSMessages = {
   "agentConsole.action.sourceEdit": "Source editor",
   "agentConsole.action.structuredEdit": "Structured editor",
   "agentConsole.detail.createSubtitle": "Saved changes are written to the backend agent config",
+  "agentConsole.detail.openDirectory": "Open directory in Finder",
   "agentConsole.detail.titleCreate": "New agent",
   "agentConsole.detail.titleEdit": "Edit agent",
   "agentConsole.diagnostics.title": "Diagnostics",
