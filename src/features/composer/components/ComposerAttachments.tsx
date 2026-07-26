@@ -1,5 +1,6 @@
 import React from "react";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { ReferenceCard } from "@/features/artifacts/components/ReferenceCard";
 import type { ComposerAttachment } from "@/features/composer/lib/composerAttachments";
 import { getComposerAttachmentSubtitle } from "@/features/composer/lib/composerAttachments";
 import { useI18n } from "@/shared/i18n";
@@ -55,32 +56,47 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
       >
         <div className={COMPOSER_ATTACHMENTS_CLASS}>
           {attachments.map((attachment) => (
-            <AttachmentCard
-              key={attachment.id}
-              attachment={{
-                name: attachment.name,
-                size: attachment.size,
-                type: attachment.type,
-                mimeType: attachment.mimeType,
-                url: attachment.resourceUrl,
-                previewUrl: attachment.previewUrl,
-              }}
-              variant="composer"
-              status={attachment.status}
-              displayMode={useUnifiedComposerAttachmentRow ? "file" : "auto"}
-              thumbnailMode={
-                useUnifiedComposerAttachmentRow ? "inline" : "auto"
-              }
-              subtitle={getComposerAttachmentSubtitle(
-                attachment,
-                useUnifiedComposerAttachmentRow,
-                t,
-              )}
-              onRemove={() => onRemoveAttachment(attachment.id)}
-              removeLabel={t("composer.attachments.removeFile", {
-                name: attachment.name,
-              })}
-            />
+            attachment.type === "chat" || attachment.type === "site" ? (
+              <ReferenceCard
+                key={attachment.id}
+                reference={{
+                  id: attachment.id.split(":").slice(1).join(":"),
+                  name: attachment.name,
+                  type: attachment.type,
+                  url: attachment.resourceUrl,
+                }}
+                variant="composer"
+                density={useUnifiedComposerAttachmentRow ? "compact" : "default"}
+                onRemove={() => onRemoveAttachment(attachment.id)}
+              />
+            ) : (
+              <AttachmentCard
+                key={attachment.id}
+                attachment={{
+                  name: attachment.name,
+                  size: attachment.size,
+                  type: attachment.type,
+                  mimeType: attachment.mimeType,
+                  url: attachment.resourceUrl,
+                  previewUrl: attachment.previewUrl,
+                }}
+                variant="composer"
+                status={attachment.status}
+                displayMode={useUnifiedComposerAttachmentRow ? "file" : "auto"}
+                thumbnailMode={
+                  useUnifiedComposerAttachmentRow ? "inline" : "auto"
+                }
+                subtitle={getComposerAttachmentSubtitle(
+                  attachment,
+                  useUnifiedComposerAttachmentRow,
+                  t,
+                )}
+                onRemove={() => onRemoveAttachment(attachment.id)}
+                removeLabel={t("composer.attachments.removeFile", {
+                  name: attachment.name,
+                })}
+              />
+            )
           ))}
         </div>
       </div>

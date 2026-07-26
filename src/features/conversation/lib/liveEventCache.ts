@@ -34,6 +34,7 @@ export interface LocalCache {
 	runId: string;
 	agentKey: string;
 	teamId: string;
+	editingMode?: boolean;
 }
 
 export function createLocalCache(): LocalCache {
@@ -54,6 +55,7 @@ export function createLocalCache(): LocalCache {
 		runId: "",
 		agentKey: "",
 		teamId: "",
+		editingMode: undefined,
 	};
 }
 
@@ -83,6 +85,10 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
 			|| toText(state.currentRunAgentKey)
 			|| (chatId ? toText(state.chatAgentById.get(chatId)) : ""),
 		teamId: "",
+		editingMode:
+			state.currentChatActiveRun?.chatId === chatId
+				? state.currentChatActiveRun.editingMode
+				: undefined,
 	};
 }
 

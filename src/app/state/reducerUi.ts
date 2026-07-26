@@ -219,6 +219,8 @@ export function reduceUiState(
 			}
 			return next;
 		}
+		case "SET_EDITING_MODE":
+			return { ...state, editingMode: action.enabled };
 		case "SET_USAGE_SNAPSHOT":
 			return { ...state, usageSnapshot: action.snapshot };
 		case "SET_USAGE_POPOVER_OPEN":

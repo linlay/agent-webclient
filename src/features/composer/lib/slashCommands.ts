@@ -13,6 +13,7 @@ export type SlashCommandId =
   | 'voice'
   | 'settings'
   | 'plan'
+  | 'editing'
   | 'automation'
   | 'detail'
   | 'history'
@@ -38,6 +39,7 @@ export interface SlashCommandAvailability {
   hasLatestQuery: boolean;
   isFrontendActive: boolean;
   canUsePlanningMode: boolean;
+  canUseEditingMode?: boolean;
   canUseVoiceMode: boolean;
   hasActiveChat: boolean;
   hasCurrentWorker: boolean;
@@ -49,6 +51,7 @@ export interface SlashCommandAvailability {
 
 export interface SlashCommandFilterOptions {
   canUsePlanningMode?: boolean;
+  canUseEditingMode?: boolean;
 }
 
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
@@ -164,6 +167,14 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     descriptionKey: 'slash.command.plan.description',
     keywords: ['plan'],
   },
+  {
+    id: 'editing',
+    icon: 'edit_square',
+    command: '/editing',
+    labelKey: 'slash.command.editing.label',
+    descriptionKey: 'slash.command.editing.description',
+    keywords: ['editing', 'edit', 'kbase', 'knowledge base'],
+  },
 ];
 
 function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashCommandDefinition {
@@ -205,6 +216,7 @@ export function getFilteredSlashCommands(
   const commands = SLASH_COMMANDS
     .filter((command) => isSlashCommandFeatureEnabled(command.id))
     .filter((command) => command.id !== 'plan' || options.canUsePlanningMode === true)
+    .filter((command) => command.id !== 'editing' || options.canUseEditingMode === true)
     .map(resolveSlashCommand);
   if (!query) return commands;
 
@@ -234,6 +246,9 @@ export function isSlashCommandDisabled(
   }
   if (commandId === 'plan') {
     return !availability.canUsePlanningMode;
+  }
+  if (commandId === 'editing') {
+    return availability.streaming || availability.canUseEditingMode !== true;
   }
   if (commandId === 'automation' || commandId === 'detail') {
     return !availability.hasCurrentWorker || availability.commandOverlayOpen;

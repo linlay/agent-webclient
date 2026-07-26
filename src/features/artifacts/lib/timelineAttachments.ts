@@ -20,6 +20,10 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
     }
 
     const rawSize = Number(item.size ?? item.sizeBytes);
+    const id =
+      typeof item.id === 'string' && item.id.trim()
+        ? item.id.trim()
+        : undefined;
     const type =
       typeof item.type === 'string' && item.type.trim()
         ? item.type.trim()
@@ -34,10 +38,12 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
         : undefined;
     acc.push({
       name,
-      size: Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : undefined,
-      type,
-      mimeType,
-      url,
+      ...((type === 'chat' || type === 'site') && id ? { id } : {}),
+      ...(Number.isFinite(rawSize) && rawSize >= 0 ? { size: rawSize } : {}),
+      ...(type ? { type } : {}),
+      ...(mimeType ? { mimeType } : {}),
+      ...(url ? { url } : {}),
+      ...(isObjectRecord(item.meta) ? { meta: { ...item.meta } } : {}),
     });
     return acc;
   }, []);
@@ -46,10 +52,11 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
   const latestAttachments: TimelineAttachment[] = [];
   for (let index = attachments.length - 1; index >= 0; index -= 1) {
     const attachment = attachments[index];
-    if (seenNames.has(attachment.name)) {
+    const identity = `${attachment.type || ''}\u0000${attachment.id || attachment.name}`;
+    if (seenNames.has(identity)) {
       continue;
     }
-    seenNames.add(attachment.name);
+    seenNames.add(identity);
     latestAttachments.push(attachment);
   }
 

@@ -30,6 +30,8 @@ import {
 } from "@/features/composer/lib/steerSubmission";
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 import { useI18n } from "@/shared/i18n";
+import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
+import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import {
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
@@ -41,17 +43,20 @@ export {
 } from "@/features/composer/hooks/useBackgroundCommandActions";
 
 type ComposerSendAttachmentMeta = {
+  id?: string;
   name: string;
   size: number;
   type?: string;
   mimeType?: string;
   url?: string;
+  meta?: Record<string, unknown>;
 };
 
 interface UseComposerSendInput {
   attachmentChatId: string;
   accessLevel: QueryAccessLevel;
   clearComposerAttachments: () => void;
+  clearRequiredSkill: () => void;
   closeMention: () => void;
   controlParams: Record<string, unknown>;
   dispatch: Dispatch<AppAction>;
@@ -61,7 +66,7 @@ interface UseComposerSendInput {
     setInputValue: (value: string) => void;
     setSlashDismissed: (dismissed: boolean) => void;
     slashAvailability: SlashCommandAvailability;
-    state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen">;
+    state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "editingMode" | "chatId" | "usagePopoverOpen">;
     toggleVoiceMode: () => void;
   };
   backgroundCommandText: {
@@ -78,6 +83,8 @@ interface UseComposerSendInput {
   isVoiceMode: boolean;
   mainChatRunning: boolean;
   modelOverride: QueryModelOverride;
+  requiredSkillAgentKey: string;
+  requiredSkillKeys: string[];
   selectSlashCommand: () => { id: SlashCommandId } | null;
   showSlashPalette: boolean;
   sendAttachmentMeta: ComposerSendAttachmentMeta[];
@@ -97,6 +104,7 @@ interface UseComposerSendInput {
     | "events"
     | "pendingNewChatAgentKey"
     | "planningMode"
+    | "editingMode"
     | "runAgentById"
     | "runId"
     | "usageSnapshot"
@@ -118,6 +126,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     attachmentChatId,
     accessLevel,
     clearComposerAttachments,
+    clearRequiredSkill,
     closeMention,
     controlParams,
     dispatch,
@@ -129,6 +138,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     isVoiceMode,
     mainChatRunning,
     modelOverride,
+    requiredSkillAgentKey,
+    requiredSkillKeys,
     selectSlashCommand,
     showSlashPalette,
     sendAttachmentMeta,
@@ -342,6 +353,10 @@ export function useComposerSend(input: UseComposerSendInput) {
     const activeChatId = String(currentState.chatId || "").trim();
     const btwMessage = parseBTWSlashInput(message);
     if (btwMessage !== null) {
+      if (requiredSkillKeys.length > 0) {
+        void messageApi.warning(t("composer.addMenu.skill.btwUnsupported"));
+        return;
+      }
       if (!activeChatId) {
         void messageApi.warning(t("btw.noChat"));
         return;
@@ -379,10 +394,10 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
-        if (sendReferences.length > 0) {
+        if (sendReferences.length > 0 || requiredSkillKeys.length > 0) {
           dispatch({
             type: "APPEND_DEBUG",
-            line: "[upload] attachments are not supported while steering an active run",
+            line: "[send] references and required skills are not supported while steering an active run",
           });
           return;
         }
@@ -422,9 +437,31 @@ export function useComposerSend(input: UseComposerSendInput) {
       });
       return;
     }
+    if (requiredSkillKeys.length > 0) {
+      const mention = parseLeadingAgentMention(
+        message,
+        resolveMentionCandidatesFromState(currentState),
+      );
+      const finalAgentKey =
+        owner?.kind === "agent"
+          ? mention.mentionAgentKey || owner.agentKey
+          : "";
+      if (
+        !requiredSkillAgentKey ||
+        finalAgentKey !== requiredSkillAgentKey
+      ) {
+        pendingSendRef.current = false;
+        pendingSentMessageRef.current = "";
+        void messageApi.warning(
+          t("composer.addMenu.skill.routeMismatch"),
+        );
+        return;
+      }
+    }
 
     setInputValue("");
     clearComposerAttachments();
+    clearRequiredSkill();
     setSlashDismissed(false);
     closeMention();
     window.dispatchEvent(
@@ -439,6 +476,9 @@ export function useComposerSend(input: UseComposerSendInput) {
           accessLevel,
           model: modelOverride,
           params: controlParams,
+          editingMode: currentState.editingMode === true,
+          requiredSkillAgentKey,
+          requiredSkillKeys,
         },
       }),
     );
@@ -446,6 +486,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     attachmentChatId,
     accessLevel,
     clearComposerAttachments,
+    clearRequiredSkill,
     closeMention,
     controlParams,
     dispatch,
@@ -455,6 +496,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     isAwaitingActive,
     isVoiceMode,
     modelOverride,
+    requiredSkillAgentKey,
+    requiredSkillKeys,
     messageApi,
     openBTW,
     activeQuerySessionRequestIdRef,
@@ -471,6 +514,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.chatId,
     state.chats,
     state.currentChatActiveRun,
+    state.editingMode,
     state.pendingNewChatAgentKey,
     state.workerIndexByKey,
     state.workerSelectionKey,

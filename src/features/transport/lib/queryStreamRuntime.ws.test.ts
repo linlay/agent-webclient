@@ -46,6 +46,14 @@ jest.mock("@/shared/data", () => ({
 			...(String(params.agentMode || "").trim().toUpperCase() === "CODER"
 				? { planningMode: params.planningMode === true }
 				: {}),
+			...(String(params.agentMode || "").trim().toUpperCase() === "KBASE" &&
+			params.editingMode === true
+				? { editingMode: true }
+				: {}),
+			...(Array.isArray(params.requiredSkillKeys) &&
+			params.requiredSkillKeys.length > 0
+				? { requiredSkillKeys: params.requiredSkillKeys }
+				: {}),
 			message: params.message,
 			...(params.agentKey ? { agentKey: params.agentKey } : {}),
 			...(params.teamId ? { teamId: params.teamId } : {}),
@@ -54,7 +62,15 @@ jest.mock("@/shared/data", () => ({
 			...(model ? { model } : {}),
 			...(params.role ? { role: params.role } : {}),
 			...(params.references !== undefined ? { references: params.references } : {}),
-			...(params.params !== undefined ? { params: params.params } : {}),
+			...(params.params !== undefined
+				? {
+						params: Object.fromEntries(
+							Object.entries(params.params as Record<string, unknown>).filter(
+								([key]) => key !== "editingMode",
+							),
+						),
+					}
+				: {}),
 			...(params.scene ? { scene: params.scene } : {}),
 			...(params.stream !== undefined ? { stream: params.stream } : {}),
 		};
@@ -248,6 +264,41 @@ describe("executeQueryStreamWs", () => {
 		expect(call.payload).not.toHaveProperty("agentMode");
 	});
 
+	it("serializes required skills and context references for websocket payloads", async () => {
+		const streamMock = jest.fn((options: {
+			onDone?: (reason: string, lastSeq: number) => void;
+		}) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+		getWsClientMock.mockReturnValue({ stream: streamMock } as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_context_ws",
+				message: "use context",
+				requiredSkillKeys: ["product-design"],
+				references: [
+					{ type: "chat", id: "chat_2", name: "Previous design" },
+					{ type: "site", id: "website:docs", name: "Docs" },
+				],
+			},
+			dispatch: jest.fn(),
+			handleEvent: jest.fn(),
+		});
+
+		const call = streamMock.mock.calls[0][0] as {
+			payload: Record<string, unknown>;
+		};
+		expect(call.payload).toMatchObject({
+			requiredSkillKeys: ["product-design"],
+			references: [
+				{ type: "chat", id: "chat_2", name: "Previous design" },
+				{ type: "site", id: "website:docs", name: "Docs" },
+			],
+		});
+	});
+
 	it("serializes planningMode=false for CODER websocket payloads", async () => {
 		const dispatch = jest.fn();
 		const handleEvent = jest.fn();
@@ -314,6 +365,100 @@ describe("executeQueryStreamWs", () => {
 		);
 		expect(call.payload).not.toHaveProperty("planningMode");
 		expect(call.payload).not.toHaveProperty("agentMode");
+	});
+
+	it("serializes top-level editingMode only for KBASE websocket payloads", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: { onDone?: (reason: string, lastSeq: number) => void }) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+		getWsClientMock.mockReturnValue({ stream: streamMock } as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_kbase_edit_ws",
+				message: "edit",
+				editingMode: true,
+				agentMode: "KBASE",
+				params: { editingMode: true, topic: "guide" },
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		const call = streamMock.mock.calls[0][0] as { payload: Record<string, unknown> };
+		expect(call.payload).toEqual(
+			expect.objectContaining({
+				requestId: "req_kbase_edit_ws",
+				message: "edit",
+				editingMode: true,
+				params: { topic: "guide" },
+			}),
+		);
+		expect((call.payload.params as Record<string, unknown>)).not.toHaveProperty(
+			"editingMode",
+		);
+	});
+
+	it("omits editingMode for non-KBASE websocket payloads", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const streamMock = jest.fn((options: { onDone?: (reason: string, lastSeq: number) => void }) => {
+			options.onDone?.("done", 1);
+			return { abort: jest.fn() };
+		});
+		getWsClientMock.mockReturnValue({ stream: streamMock } as never);
+
+		await executeQueryStreamWs({
+			params: {
+				requestId: "req_react_edit_ws",
+				message: "read",
+				editingMode: true,
+				agentMode: "REACT",
+			},
+			dispatch,
+			handleEvent,
+		});
+
+		const call = streamMock.mock.calls[0][0] as { payload: Record<string, unknown> };
+		expect(call.payload).not.toHaveProperty("editingMode");
+	});
+
+	it("does not retry editing_mode_unsupported websocket errors", async () => {
+		const dispatch = jest.fn();
+		const handleEvent = jest.fn();
+		const unsupported = Object.assign(new Error("unsupported"), {
+			platformError: {
+				code: "editing_mode_unsupported",
+				status: 400,
+				retryable: false,
+				message: "unsupported",
+			},
+		});
+		const streamMock = jest.fn(
+			(options: { onError?: (error: Error) => void }) => {
+				options.onError?.(unsupported);
+				return { abort: jest.fn() };
+			},
+		);
+		getWsClientMock.mockReturnValue({ stream: streamMock } as never);
+
+		await expect(
+			executeQueryStreamWs({
+				params: {
+					requestId: "req_kbase_unsupported_ws",
+					message: "edit",
+					editingMode: true,
+					agentMode: "KBASE",
+				},
+				dispatch,
+				handleEvent,
+			}),
+		).rejects.toBe(unsupported);
+
+		expect(streamMock).toHaveBeenCalledTimes(1);
 	});
 
 	it("passes business params unchanged through websocket payloads", async () => {

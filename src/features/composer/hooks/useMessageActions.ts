@@ -28,6 +28,7 @@ import {
   type LiveQuerySession,
 } from "@/features/conversation/lib/conversationSession";
 import { readRunAgentKeyFromEvent } from "@/features/runs/lib/runAgentIdentity";
+import { readExplicitEditingMode } from "@/features/runs/lib/editingMode";
 import {
   resolvePreferredRunOwner,
   resolveRunOwner,
@@ -50,6 +51,9 @@ interface SendMessageEventDetail {
   params?: unknown;
   accessLevel?: unknown;
   model?: unknown;
+  editingMode?: unknown;
+  requiredSkillAgentKey?: unknown;
+  requiredSkillKeys?: unknown;
 }
 
 function notifyNewChatCreated(input: { chatId: string; agentKey: string }): void {
@@ -239,11 +243,21 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       preferredChatId = "",
       preferredAgentKey = "",
       preferredTeamId = "",
+      editingMode = false,
+      requiredSkillKeys: string[] = [],
+      requiredSkillAgentKey = "",
     ) => {
       const rawMessage = String(inputMessage ?? "").trim();
       const normalizedReferences = Array.isArray(references)
         ? references.filter((reference) => reference != null)
         : [];
+      const normalizedRequiredSkillKeys = Array.from(
+        new Set(
+          requiredSkillKeys
+            .map((key) => String(key || "").trim())
+            .filter(Boolean),
+        ),
+      );
       if (!rawMessage && normalizedReferences.length === 0) return;
 
       /* ── Parallel-query guard ── */
@@ -361,6 +375,17 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         });
         return;
       }
+      if (
+        normalizedRequiredSkillKeys.length > 0 &&
+        requiredSkillAgentKey &&
+        selectedAgentKey !== requiredSkillAgentKey
+      ) {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[send] skipped: required skill agent mismatch (expected=${requiredSkillAgentKey || "-"}, resolved=${selectedAgentKey || "-"})`,
+        });
+        return;
+      }
 
       if (
         selectedAgentKey &&
@@ -425,6 +450,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         agentKey: selectedAgentKey,
         teamId: selectedTeamId,
         owner: selectedOwner || undefined,
+        editingMode: editingMode === true,
       });
       querySessionsRef.current.set(requestId, session);
       if (chatId) {
@@ -488,6 +514,15 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             session.owner = { kind: "orchestrated-team", teamId: nextTeamId };
           }
         }
+        if (toText(event.type) === "request.query") {
+          const eventEditingMode = readExplicitEditingMode(event);
+          if (
+            session.observationSource === "attach" &&
+            eventEditingMode !== undefined
+          ) {
+            session.editingMode = eventEditingMode;
+          }
+        }
       };
       const upsertBackgroundChatSummary = (
         event: AgentEvent,
@@ -500,6 +535,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             runId: session.runId,
             agentKey: session.agentKey,
             teamId: session.teamId,
+            editingMode: session.editingMode,
           },
           state: stateRef.current,
           selectedContext: {
@@ -516,6 +552,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         session.runId = next.resolved.runId;
         session.agentKey = session.owner?.kind === "orchestrated-team" ? "" : next.resolved.agentKey;
         session.teamId = next.resolved.teamId;
+        session.editingMode = next.resolved.editingMode;
         chatQuerySessionIndexRef.current.set(
           next.resolved.chatId,
           session.requestId,
@@ -611,6 +648,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             model,
             params: Object.keys(params).length > 0 ? params : undefined,
             planningMode: Boolean(stateRef.current.planningMode),
+            editingMode: session.editingMode === true,
+            requiredSkillKeys:
+              normalizedRequiredSkillKeys.length > 0
+                ? normalizedRequiredSkillKeys
+                : undefined,
             agentMode: selectedAgentMode || undefined,
             signal: abortController.signal,
           },
@@ -621,6 +663,12 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         const err = error as Error;
         if (err.name !== "AbortError") {
           const display = formatPlatformErrorForDisplay(err);
+          if (display.code === "editing_mode_unsupported") {
+            session.editingMode = false;
+            if (isSessionActive()) {
+              dispatch({ type: "SET_EDITING_MODE", enabled: false });
+            }
+          }
           if (isSessionActive()) {
             dispatch({
               type: "APPEND_DEBUG",
@@ -694,6 +742,15 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const chatId = String(detail.chatId || "").trim();
       const agentKey = String(detail.agentKey || "").trim();
       const teamId = String(detail.teamId || "").trim();
+      const editingMode = detail.editingMode === true;
+      const requiredSkillAgentKey = String(
+        detail.requiredSkillAgentKey || "",
+      ).trim();
+      const requiredSkillKeys = Array.isArray(detail.requiredSkillKeys)
+        ? detail.requiredSkillKeys
+            .map((key) => String(key || "").trim())
+            .filter(Boolean)
+        : [];
       if (message) {
         void sendMessage(
           message,
@@ -705,6 +762,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           chatId,
           agentKey,
           teamId,
+          editingMode,
+          requiredSkillKeys,
+          requiredSkillAgentKey,
         );
       }
     };

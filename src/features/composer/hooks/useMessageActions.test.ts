@@ -162,6 +162,85 @@ describe("useMessageActions temporary pin", () => {
       expect.objectContaining({ type: "SET_TIMELINE_NODE" }),
     );
   });
+
+  it("sends the KBASE editing snapshot and clears it on unsupported without retrying", async () => {
+    const state = createInitialState();
+    const worker: WorkerRow = {
+      key: "agent:knowledge",
+      type: "agent",
+      agentType: "kbase",
+      sourceId: "knowledge",
+      displayName: "Knowledge",
+      role: "",
+      teamAgentLabels: [],
+      latestChatId: "",
+      latestRunId: "",
+      latestUpdatedAt: 0,
+      latestChatName: "",
+      latestRunContent: "",
+      hasHistory: false,
+      latestRunSortValue: -1,
+      searchText: "knowledge",
+    };
+    state.agents = [{ key: "knowledge", name: "Knowledge", mode: "KBASE" }];
+    state.workerSelectionKey = worker.key;
+    state.workerRows = [worker];
+    state.workerIndexByKey = new Map([[worker.key, worker]]);
+    state.editingMode = true;
+    state.transportMode = "ws";
+    const dispatch = jest.fn();
+    const activeRequest = { current: "" };
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: activeRequest,
+    });
+    (executeQueryStreamWs as jest.Mock).mockRejectedValue(
+      Object.assign(new Error("unsupported"), {
+        platformError: {
+          code: "editing_mode_unsupported",
+          message: "unsupported",
+        },
+      }),
+    );
+
+    let actions: ReturnType<typeof useMessageActions> | null = null;
+    const Harness = () => {
+      actions = useMessageActions({ onAgentEvent: jest.fn() });
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.sendMessage(
+      "edit",
+      [],
+      [],
+      {},
+      undefined,
+      undefined,
+      "",
+      "",
+      "",
+      true,
+    );
+
+    expect(executeQueryStreamWs).toHaveBeenCalledTimes(1);
+    expect(executeQueryStreamWs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          agentMode: "KBASE",
+          editingMode: true,
+        }),
+      }),
+    );
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_EDITING_MODE",
+      enabled: false,
+    });
+  });
 });
 
 describe("syncLiveSessionTerminalState", () => {

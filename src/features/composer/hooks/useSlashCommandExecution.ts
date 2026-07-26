@@ -26,7 +26,8 @@ export function useSlashCommandExecution(input: {
 	state: Pick<
 		AppState,
 		"rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen"
-	>;
+	> &
+		Partial<Pick<AppState, "editingMode">>;
 }) {
 	const {
 		slashAvailability,
@@ -106,6 +107,12 @@ export function useSlashCommandExecution(input: {
 						chatId: state.chatId,
 						enabled: !state.planningMode,
 						persist: true,
+					});
+					return;
+				case "editing":
+					dispatch({
+						type: "SET_EDITING_MODE",
+						enabled: state.editingMode !== true,
 					});
 					return;
 				case "usage":

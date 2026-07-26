@@ -26,7 +26,12 @@ import { ComposerAttachments } from "@/features/composer/components/ComposerAtta
 import { ComposerInput } from "@/features/composer/components/ComposerInput";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import {
+  buildCurrentWorkerDetailView,
+  isDedicatedKbaseWorker,
+  resolveCurrentWorkerSummary,
+} from "@/features/workers/lib/currentWorker";
+import type { ComposerRequiredSkill } from "@/features/composer/lib/composerAttachments";
 import { getLatestQueryText } from "@/features/composer/lib/slashCommands";
 import { useSpeechInput } from "@/features/composer/components/useSpeechInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
@@ -121,6 +126,18 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     () => resolveCurrentWorkerSummary(state),
     [state],
   );
+  const currentSkillKeys = useMemo(
+    () =>
+      currentWorker?.type === "agent"
+        ? buildCurrentWorkerDetailView(currentWorker, t).skills
+        : [],
+    [currentWorker, t],
+  );
+  const [selectedSkill, setSelectedSkill] =
+    useState<ComposerRequiredSkill | null>(null);
+  useEffect(() => {
+    setSelectedSkill(null);
+  }, [currentWorker?.key]);
   const currentAgentKey = useMemo(() => {
     if (currentWorker?.type !== "agent") {
       return "";
@@ -140,6 +157,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     String(currentWorker.raw?.mode || "")
       .trim()
       .toUpperCase() === "CODER";
+  const editingModeAvailable = isDedicatedKbaseWorker(currentWorker);
 
   useEffect(() => {
     if (state.planningMode && !planningModeAvailable) {
@@ -151,6 +169,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       });
     }
   }, [dispatch, planningModeAvailable, state.planningMode, state.chatId]);
+  useEffect(() => {
+    if (state.editingMode && !editingModeAvailable) {
+      dispatch({ type: "SET_EDITING_MODE", enabled: false });
+    }
+  }, [dispatch, editingModeAvailable, state.editingMode]);
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -181,6 +204,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   });
 
   const {
+    addContextReference,
     attachmentChatId,
     attachmentScrollState,
     attachmentViewportRef,
@@ -232,6 +256,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isFrontendActive,
     isVoiceMode,
     canUsePlanningMode: planningModeAvailable,
+    canUseEditingMode: editingModeAvailable,
   });
 
   const { closeMention, selectMentionByIndex, updateMentionSuggestions } =
@@ -278,6 +303,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       persist: true,
     });
   }, [dispatch, planningModeAvailable, state.planningMode, state.chatId]);
+  const handleEditingModeChange = useCallback(
+    (enabled: boolean) => {
+      dispatch({
+        type: "SET_EDITING_MODE",
+        enabled: editingModeAvailable && enabled === true,
+      });
+    },
+    [dispatch, editingModeAvailable],
+  );
 
   const {
     speechSupported,
@@ -308,6 +342,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       hasLatestQuery: Boolean(latestQueryText),
       isFrontendActive,
       canUsePlanningMode: planningModeAvailable,
+      canUseEditingMode: editingModeAvailable,
       canUseVoiceMode: Boolean(voiceModeAvailable),
       hasActiveChat: Boolean(String(state.chatId || "").trim()),
       hasCurrentWorker: Boolean(currentWorker),
@@ -331,6 +366,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       isAnyOverlayOpen,
       voiceModeAvailable,
       planningModeAvailable,
+      editingModeAvailable,
     ],
   );
 
@@ -354,6 +390,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       compactError: t("composer.background.compact.error"),
     },
     clearComposerAttachments,
+    clearRequiredSkill: () => setSelectedSkill(null),
     closeMention,
     controlParams,
     dispatch,
@@ -366,6 +403,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       state: {
         rightSidebarOpen: state.rightSidebarOpen,
         planningMode: state.planningMode,
+        editingMode: state.editingMode,
         chatId: state.chatId,
         usagePopoverOpen: state.usagePopoverOpen,
       },
@@ -377,6 +415,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isVoiceMode,
     mainChatRunning: isMainChatRunning,
     modelOverride,
+    requiredSkillAgentKey: selectedSkill ? currentAgentKey : "",
+    requiredSkillKeys: selectedSkill ? [selectedSkill.key] : [],
     selectSlashCommand,
     sendAttachmentMeta,
     sendReferences,
@@ -590,6 +630,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             activeSlashIndex={activeSlashIndex}
             slashAvailability={slashAvailability}
             planningMode={state.planningMode}
+            editingMode={state.editingMode}
             slashPopoverWidth={slashPopoverWidth}
             getPopupContainer={() => document.body}
             onSelect={(commandId) => void executeSlashCommand(commandId)}
@@ -659,6 +700,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   modelOverride={modelOverride}
                   planningMode={state.planningMode}
                   canUsePlanningMode={planningModeAvailable}
+                  editingMode={state.editingMode}
+                  canUseEditingMode={editingModeAvailable}
+                  currentChatId={state.chatId}
+                  currentSkillKeys={currentSkillKeys}
+                  selectedSkill={selectedSkill}
                   voiceEnabled={voiceEnabled}
                   hasUploadingAttachments={hasUploadingAttachments}
                   speechListening={speechListening}
@@ -669,6 +715,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onControlParamsChange={setControlParams}
                   onModelOverrideChange={setModelOverride}
                   onTogglePlanningMode={togglePlanningMode}
+                  onEditingModeChange={handleEditingModeChange}
+                  onAddReference={addContextReference}
+                  onSelectedSkillChange={setSelectedSkill}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>

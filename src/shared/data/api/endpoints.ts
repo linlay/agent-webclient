@@ -98,6 +98,24 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   if (String(options.agentMode || "").trim().toUpperCase() === "CODER") {
     body.planningMode = options.planningMode === true;
   }
+  if (
+    String(options.agentMode || "").trim().toUpperCase() === "KBASE" &&
+    options.editingMode === true
+  ) {
+    body.editingMode = true;
+  }
+  if (Array.isArray(options.requiredSkillKeys)) {
+    const requiredSkillKeys = Array.from(
+      new Set(
+        options.requiredSkillKeys
+          .map((key) => String(key || "").trim())
+          .filter(Boolean),
+      ),
+    );
+    if (requiredSkillKeys.length > 0) {
+      body.requiredSkillKeys = requiredSkillKeys;
+    }
+  }
 
   Object.assign(body, runOwnerPayload(options.owner));
   if (options.chatId) body.chatId = options.chatId;
@@ -106,7 +124,12 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   if (model) body.model = model;
   if (options.role) body.role = options.role;
   if (options.references !== undefined) body.references = options.references;
-  if (options.params !== undefined) body.params = options.params;
+  if (options.params !== undefined) {
+    const { editingMode: _editingMode, ...params } = options.params;
+    if (Object.keys(params).length > 0) {
+      body.params = params;
+    }
+  }
   if (options.scene) body.scene = options.scene;
   if (options.stream !== undefined) body.stream = options.stream;
 

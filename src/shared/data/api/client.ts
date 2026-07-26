@@ -884,6 +884,16 @@ export interface ArchiveDeleteResponse {
   deleted: boolean;
 }
 
+export interface ActiveRunInfo {
+  runId?: string;
+  agentKey?: string;
+  teamId?: string;
+  lastSeq?: number | string;
+  planningMode?: boolean;
+  editingMode?: boolean;
+  [key: string]: unknown;
+}
+
 export interface ChatSummaryResponse {
   chatId: string;
   chatName?: string;
@@ -899,7 +909,7 @@ export interface ChatSummaryResponse {
     readAt?: number;
     readRunId?: string;
   };
-  activeRun?: Record<string, unknown> | null;
+  activeRun?: ActiveRunInfo | null;
   hasActiveRun?: boolean;
   awaiting?: Record<string, unknown> | null;
   hasPendingAwaiting?: boolean;
@@ -909,7 +919,7 @@ export interface ChatSummaryResponse {
 export interface ChatDetailResponse extends ChatSummaryResponse {
   firstAgentKey?: string;
   firstAgentName?: string;
-  activeRun?: Record<string, unknown> | null;
+  activeRun?: ActiveRunInfo | null;
   awaiting?: Record<string, unknown> | null;
   events?: unknown[];
   runs?: unknown[];
@@ -2653,6 +2663,8 @@ export interface QueryStreamParams {
   requestId: string;
   message: string;
   planningMode?: boolean;
+  editingMode?: boolean;
+  requiredSkillKeys?: string[];
   agentMode?: string;
   accessLevel?: QueryAccessLevel;
   model?: QueryModelOverride;

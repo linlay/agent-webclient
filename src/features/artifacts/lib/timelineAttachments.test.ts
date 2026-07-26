@@ -61,4 +61,42 @@ describe('normalizeTimelineAttachments', () => {
       },
     ]);
   });
+
+  it('keeps chat and site references distinct by type and id', () => {
+    expect(
+      normalizeTimelineAttachments([
+        {
+          type: 'chat',
+          id: 'chat_1',
+          name: 'Architecture discussion',
+          meta: { agentKey: 'coder' },
+        },
+        {
+          type: 'site',
+          id: 'chat_1',
+          name: 'Architecture preview',
+          url: 'https://example.com',
+          meta: { kind: 'website' },
+        },
+        {
+          type: 'chat',
+          id: 'chat_1',
+          name: 'Latest architecture discussion',
+        },
+      ]),
+    ).toEqual([
+      {
+        id: 'chat_1',
+        type: 'site',
+        name: 'Architecture preview',
+        url: 'https://example.com',
+        meta: { kind: 'website' },
+      },
+      {
+        id: 'chat_1',
+        type: 'chat',
+        name: 'Latest architecture discussion',
+      },
+    ]);
+  });
 });

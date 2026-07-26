@@ -34,6 +34,7 @@ const SlashPaletteContent: React.FC<{
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
   planningMode: boolean;
+  editingMode?: boolean;
   onSelect: (commandId: ResolvedSlashCommandDefinition["id"]) => void;
 }> = ({
   slashPaletteRef,
@@ -41,6 +42,7 @@ const SlashPaletteContent: React.FC<{
   activeSlashIndex,
   slashAvailability,
   planningMode,
+  editingMode = false,
   onSelect,
 }) => {
   const { t } = useI18n();
@@ -86,6 +88,11 @@ const SlashPaletteContent: React.FC<{
                   <MaterialIcon name="check" />
                 </span>
               )}
+              {command.id === "editing" && editingMode && (
+                <span className={SLASH_COMMAND_CHECK_CLASS} aria-hidden="true">
+                  <MaterialIcon name="check" />
+                </span>
+              )}
               <span className={SLASH_COMMAND_DESCRIPTION_CLASS}>
                 {command.description}
               </span>
@@ -104,6 +111,7 @@ export const SlashPalette: React.FC<{
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
   planningMode: boolean;
+  editingMode?: boolean;
   slashPopoverWidth?: number;
   getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   onSelect: (commandId: ResolvedSlashCommandDefinition["id"]) => void;
@@ -115,6 +123,7 @@ export const SlashPalette: React.FC<{
   activeSlashIndex,
   slashAvailability,
   planningMode,
+  editingMode = false,
   slashPopoverWidth,
   getPopupContainer,
   onSelect,
@@ -145,6 +154,7 @@ export const SlashPalette: React.FC<{
           activeSlashIndex={activeSlashIndex}
           slashAvailability={slashAvailability}
           planningMode={planningMode}
+          editingMode={editingMode}
           onSelect={onSelect}
         />
       }

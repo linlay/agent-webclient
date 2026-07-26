@@ -296,6 +296,105 @@
     width: 200px;
 }
 
+.context-reference-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: min(100%, 250px);
+    min-width: 0;
+    padding: 9px 12px 9px 10px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 94%, transparent);
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--bg-elev-2) 95%, var(--accent-soft));
+}
+
+.context-reference-card-compact {
+    width: min(100%, 220px);
+    border-radius: 12px;
+}
+
+.context-reference-card-icon {
+    display: grid;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 10px;
+    color: #fff;
+    background: var(--accent-electric);
+}
+
+.context-reference-card.is-site .context-reference-card-icon {
+    background: color-mix(in srgb, var(--accent-electric) 62%, #6b57df);
+}
+
+.context-reference-card-icon .material-icon {
+    font-size: 19px;
+}
+
+.context-reference-card-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.context-reference-card-title,
+.context-reference-card-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.context-reference-card-title {
+    color: var(--ink-1);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.context-reference-card-subtitle {
+    color: var(--ink-muted);
+    font-size: 10px;
+}
+
+.context-reference-card-remove {
+    display: grid;
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    padding: 0;
+    color: var(--ink-muted);
+    background: transparent;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.context-reference-card-composer .context-reference-card-remove {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.context-reference-card:hover .context-reference-card-remove,
+.context-reference-card:focus-within .context-reference-card-remove {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.context-reference-card-remove:hover {
+    color: var(--ink-1);
+    background: var(--bg-hover);
+}
+
+.context-reference-card-remove .material-icon {
+    font-size: 15px;
+}
+
 .attachment-card.is-interactive {
     cursor: pointer;
 }

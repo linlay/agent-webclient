@@ -5,6 +5,7 @@ import {
   buildCurrentWorkerDetailView,
   buildAutomationDraft,
   buildWorkerSwitchRows,
+  isDedicatedKbaseWorker,
   resolveCurrentWorkerSummary,
 } from '@/features/workers/lib/currentWorker';
 
@@ -135,6 +136,41 @@ describe('currentWorker helpers', () => {
 
     expect(buildWorkerSwitchRows(rows, 'agent', '')).toHaveLength(1);
     expect(buildWorkerSwitchRows(rows, 'all', 'ops')[0]?.key).toBe('team:ops');
+  });
+
+  it('enables editing only for a dedicated KBASE Agent', () => {
+    const row = createWorkerRow({
+      key: 'agent:knowledge',
+      type: 'agent',
+      sourceId: 'knowledge',
+      displayName: 'Knowledge',
+      role: 'Editor',
+    });
+    const kbase = resolveCurrentWorkerSummary(
+      createState({
+        workerSelectionKey: row.key,
+        workerRows: [row],
+        workerIndexByKey: new Map([[row.key, row]]),
+        agents: [{ key: 'knowledge', name: 'Knowledge', mode: 'KBASE' }],
+      }),
+    );
+    const coderWithCapability = resolveCurrentWorkerSummary(
+      createState({
+        workerSelectionKey: row.key,
+        workerRows: [row],
+        workerIndexByKey: new Map([[row.key, row]]),
+        agents: [{
+          key: 'knowledge',
+          name: 'Knowledge',
+          mode: 'CODER',
+          capabilities: ['KBASE'],
+        }],
+      }),
+    );
+
+    expect(isDedicatedKbaseWorker(kbase)).toBe(true);
+    expect(isDedicatedKbaseWorker(coderWithCapability)).toBe(false);
+    expect(isDedicatedKbaseWorker(null)).toBe(false);
   });
 
   it('builds an automation draft with worker context baked in', () => {

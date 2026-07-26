@@ -168,6 +168,15 @@ export interface CurrentWorkerDetailView {
   rawJson: string;
 }
 
+export function isDedicatedKbaseWorker(
+  worker: CurrentWorkerSummary | null | undefined,
+): boolean {
+  return (
+    worker?.type === "agent" &&
+    toText(worker.raw?.mode).toUpperCase() === "KBASE"
+  );
+}
+
 export function resolveCurrentWorkerSummary(
   state: Pick<
     AppState,

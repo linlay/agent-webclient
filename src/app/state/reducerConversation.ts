@@ -65,6 +65,7 @@ export function reduceConversationState(
 					: state.pendingNewChatAgentKey,
 				planningMode: nextPlanningMode,
 				planningModeByChatId: nextByChatId,
+				editingMode: isNewChatId ? false : state.editingMode,
 				composerDraft: nextComposerDraft,
 				composerDraftByChatId: nextDraftByChatId,
 			};

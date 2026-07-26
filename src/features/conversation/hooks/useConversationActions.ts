@@ -19,6 +19,7 @@ import {
   resolveMainChatRuntime,
 } from '@/features/runs/lib/runRuntimeState';
 import { resolveRunOwner } from '@/features/runs/lib/runOwner';
+import { resolveRunEditingMode } from '@/features/runs/lib/editingMode';
 import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
 import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/conversation/lib/conversationReplay';
 import {
@@ -404,7 +405,7 @@ export function useConversationActions() {
           },
         }) || toRunOwner(chatData);
         const activeRunAgentKey = loadedOwner?.kind === 'agent' ? loadedOwner.agentKey : '';
-        const currentChatActiveRun = normalizeCurrentChatActiveRun(
+        let currentChatActiveRun = normalizeCurrentChatActiveRun(
           chatId,
           activeRun,
           loadedOwner,
@@ -424,6 +425,19 @@ export function useConversationActions() {
         /* Replay events into a LOCAL MUTABLE state to avoid React batching issues */
         const rawEvents = Array.isArray(chatData?.events) ? chatData.events : [];
         const events = normalizeLoadedChatEvents(rawEvents);
+        if (currentChatActiveRun) {
+          const restoredEditingMode = resolveRunEditingMode({
+            runId: String(currentChatActiveRun.runId || '').trim(),
+            activeRun: currentChatActiveRun,
+            events,
+          });
+          if (restoredEditingMode !== undefined) {
+            currentChatActiveRun = {
+              ...currentChatActiveRun,
+              editingMode: restoredEditingMode,
+            };
+          }
+        }
         if (events.length !== rawEvents.length) {
           dispatch({
             type: 'APPEND_DEBUG',

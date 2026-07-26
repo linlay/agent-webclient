@@ -163,6 +163,9 @@ function activateMainChatRun(
 			...(decision.owner.kind === "orchestrated-team" ? { teamId: decision.owner.teamId } : {}),
 			owner: decision.owner,
 			lastSeq: decision.lastSeq,
+			...(typeof decision.editingMode === "boolean"
+				? { editingMode: decision.editingMode }
+				: {}),
 		},
 	});
 	options.dispatch({ type: "SET_RUN_ID", runId: decision.runId });

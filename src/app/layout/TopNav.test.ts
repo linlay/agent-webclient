@@ -145,6 +145,32 @@ describe("TopNav", () => {
 		expect(html).toContain("is-running");
 	});
 
+	it("renders the KBASE editing badge from activeRun only", () => {
+		const state = createInitialState();
+		state.chatId = "chat_1";
+		state.currentChatActiveRun = {
+			chatId: "chat_1",
+			runId: "run_1",
+			agentKey: "knowledge",
+			editingMode: true,
+		};
+		state.editingMode = false;
+		useAppState.mockReturnValue(state);
+		useOptionalAppContext.mockReturnValue({
+			state,
+			dispatch: jest.fn(),
+			stateRef: { current: state },
+			querySessionsRef: { current: new Map() },
+			chatQuerySessionIndexRef: { current: new Map() },
+			activeQuerySessionRequestIdRef: { current: "" },
+		});
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain("kbase-editing-badge");
+		expect(html).toContain("editing knowledge base");
+	});
+
 	it("does not render usage stats when there is no usage snapshot and not streaming", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 

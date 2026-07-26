@@ -10,6 +10,8 @@ export interface RunSession<TSnapshot = unknown> {
 	agentKey: string;
 	teamId: string;
 	owner?: RunOwner;
+	/** One-shot KBASE editing intent. Undefined for attach/recovery observers. */
+	editingMode?: boolean;
 	streaming: boolean;
 	abortController: AbortController | null;
 	snapshot: TSnapshot | null;

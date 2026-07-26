@@ -8,6 +8,7 @@ export function buildConversationResetState(
 	return {
 		...state,
 		currentChatActiveRun: null,
+		editingMode: false,
 		runId: "",
 		currentRunAgentKey: "",
 		pendingNewChatAgentKey: "",

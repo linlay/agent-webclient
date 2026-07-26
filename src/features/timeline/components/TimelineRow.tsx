@@ -8,6 +8,7 @@ import {
   getAttachmentSizeBytes,
 } from "@/features/artifacts/lib/attachmentUtils";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { ReferenceCard } from "@/features/artifacts/components/ReferenceCard";
 import { UserBubble } from "@/features/timeline/components/UserBubble";
 import { ThinkingBlock } from "@/features/timeline/components/ThinkingBlock";
 import { AwaitingAnswerBlock } from "@/features/timeline/components/AwaitingAnswerBlock";
@@ -310,18 +311,27 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
               ].join(" ")}
             >
               {attachmentItems.map((attachment, index) => (
-                <AttachmentCard
-                  key={`${attachment.name}_${index}`}
-                  attachment={attachment}
-                  variant="timeline"
-                  density={hasMultipleAttachments ? "compact" : "default"}
-                  displayMode={hasMultipleAttachments ? "file" : "auto"}
-                  subtitle={getTimelineAttachmentSubtitle(
-                    attachment,
-                    t,
-                    hasMultipleAttachments,
-                  )}
-                />
+                attachment.type === "chat" || attachment.type === "site" ? (
+                  <ReferenceCard
+                    key={`${attachment.type}_${attachment.id || attachment.name}_${index}`}
+                    reference={attachment}
+                    variant="timeline"
+                    density={hasMultipleAttachments ? "compact" : "default"}
+                  />
+                ) : (
+                  <AttachmentCard
+                    key={`${attachment.name}_${index}`}
+                    attachment={attachment}
+                    variant="timeline"
+                    density={hasMultipleAttachments ? "compact" : "default"}
+                    displayMode={hasMultipleAttachments ? "file" : "auto"}
+                    subtitle={getTimelineAttachmentSubtitle(
+                      attachment,
+                      t,
+                      hasMultipleAttachments,
+                    )}
+                  />
+                )
               ))}
             </div>
           )}

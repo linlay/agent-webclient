@@ -154,7 +154,14 @@ export function reduceNavigationState(
 		case "SET_CONVERSATION_MODE":
 			return { ...state, conversationMode: action.mode };
 		case "SET_WORKER_SELECTION_KEY":
-			return { ...state, workerSelectionKey: action.workerKey };
+			return {
+				...state,
+				workerSelectionKey: action.workerKey,
+				editingMode:
+					action.workerKey === state.workerSelectionKey
+						? state.editingMode
+						: false,
+			};
 		case "SET_WORKER_ROWS": {
 			const workerIndexByKey = new Map(
 				action.rows.map((row) => [row.key, row]),

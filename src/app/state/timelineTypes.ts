@@ -17,12 +17,14 @@ export interface ToolResultPayload {
 }
 
 export interface TimelineAttachment {
+	id?: string;
 	name: string;
 	size?: number;
 	type?: string;
 	mimeType?: string;
 	url?: string;
 	previewUrl?: string;
+	meta?: Record<string, unknown>;
 }
 
 export interface EmbeddedViewport {

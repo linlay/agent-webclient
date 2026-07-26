@@ -231,6 +231,7 @@ export interface AppState {
 	ttsDebugStatus: string;
 	planningMode: boolean;
 	planningModeByChatId: Record<string, boolean>;
+	editingMode: boolean;
 	usageSnapshot: AIUsageSnapshotEvent | null;
 	usagePopoverOpen: boolean;
 	inputMode: InputMode;

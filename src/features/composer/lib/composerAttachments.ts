@@ -32,6 +32,43 @@ export interface ComposerAttachment {
 	references: unknown[];
 }
 
+export interface ComposerContextReferenceInput {
+	type: "chat" | "site";
+	id: string;
+	name: string;
+	url?: string;
+	meta?: Record<string, unknown>;
+}
+
+export interface ComposerRequiredSkill {
+	key: string;
+	label: string;
+}
+
+export function createComposerContextAttachment(
+	reference: ComposerContextReferenceInput,
+): ComposerAttachment {
+	const normalizedReference = {
+		type: reference.type,
+		id: String(reference.id || "").trim(),
+		name: String(reference.name || "").trim(),
+		...(String(reference.url || "").trim()
+			? { url: String(reference.url || "").trim() }
+			: {}),
+		...(reference.meta ? { meta: { ...reference.meta } } : {}),
+	};
+	return {
+		id: `${normalizedReference.type}:${normalizedReference.id}`,
+		name: normalizedReference.name,
+		size: 0,
+		type: normalizedReference.type,
+		resourceUrl: normalizedReference.url,
+		status: "ready",
+		error: "",
+		references: [normalizedReference],
+	};
+}
+
 export function createAttachmentPreviewUrl(file: File): string {
 	if (getAttachmentKind({ name: file.name, mimeType: file.type }) !== "image") {
 		return "";
@@ -66,6 +103,12 @@ export function getComposerAttachmentSubtitle(
 	showReadyMeta = false,
 	t: Translate = runtimeT,
 ): string {
+	if (attachment.type === "chat") {
+		return t("composer.reference.kind.chat");
+	}
+	if (attachment.type === "site") {
+		return t("composer.reference.kind.site");
+	}
 	if (attachment.status === "error") {
 		return attachment.error || t("attachments.error.uploadFailed");
 	}

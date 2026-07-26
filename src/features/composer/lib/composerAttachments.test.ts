@@ -1,4 +1,5 @@
 import {
+	createComposerContextAttachment,
 	createPendingComposerAttachments,
 	keepLatestFilesByName,
 	uploadComposerAttachments,
@@ -22,6 +23,42 @@ function fileNamed(name: string): File {
 }
 
 describe("composerAttachments", () => {
+	it("creates ready chat and site context attachments with canonical references", () => {
+		expect(
+			createComposerContextAttachment({
+				type: "chat",
+				id: "chat_1",
+				name: "Prior design discussion",
+				meta: { agentKey: "coder" },
+			}),
+		).toMatchObject({
+			id: "chat:chat_1",
+			type: "chat",
+			status: "ready",
+			references: [
+				{
+					type: "chat",
+					id: "chat_1",
+					name: "Prior design discussion",
+					meta: { agentKey: "coder" },
+				},
+			],
+		});
+		expect(
+			createComposerContextAttachment({
+				type: "site",
+				id: "web_1",
+				name: "Preview",
+				url: "https://example.com",
+				meta: { kind: "website" },
+			}),
+		).toMatchObject({
+			id: "site:web_1",
+			type: "site",
+			resourceUrl: "https://example.com",
+		});
+	});
+
 	it("keeps the latest file when selected attachments share a name", () => {
 		const firstReport = fileNamed("report.pdf");
 		const notes = fileNamed("notes.md");

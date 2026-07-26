@@ -47,6 +47,10 @@ import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import {
+  readExplicitEditingMode,
+  resolveRunEditingMode,
+} from "@/features/runs/lib/editingMode";
+import {
   createLiveProcessorState,
   createLocalCache,
   createLocalCacheFromState,
@@ -283,6 +287,7 @@ export function useConversationEventHandler(): {
           runId: input.cache.runId,
           agentKey: input.cache.agentKey,
           teamId: input.cache.teamId,
+          editingMode: input.cache.editingMode,
         },
         state: input.state,
         selectedContext: resolveSelectedWorkerContext(input.state),
@@ -296,6 +301,7 @@ export function useConversationEventHandler(): {
       input.cache.runId = next.resolved.runId;
       input.cache.agentKey = next.resolved.agentKey;
       input.cache.teamId = next.resolved.teamId;
+      input.cache.editingMode = next.resolved.editingMode;
 
       dispatch({ type: "UPSERT_CHAT", chat: next.chat });
     },
@@ -428,6 +434,32 @@ export function useConversationEventHandler(): {
 
       if (type === "request.query") {
         const text = readRequestQueryText(event);
+        const requestEditingMode = readExplicitEditingMode(event);
+        const sessionEditingMode =
+          mainRuntime.session?.observationSource !== "attach" &&
+          typeof mainRuntime.session?.editingMode === "boolean"
+            ? mainRuntime.session.editingMode
+            : undefined;
+        if (sessionEditingMode !== undefined) {
+          cache.editingMode = sessionEditingMode;
+        } else if (requestEditingMode !== undefined) {
+          cache.editingMode = requestEditingMode;
+        }
+        const currentActiveRun = state.currentChatActiveRun;
+        if (
+          requestEditingMode !== undefined &&
+          currentActiveRun?.runId &&
+          toText(currentActiveRun.runId) === toText(event.runId) &&
+          readExplicitEditingMode(currentActiveRun) === undefined
+        ) {
+          dispatch({
+            type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+            activeRun: {
+              ...currentActiveRun,
+              editingMode: requestEditingMode,
+            },
+          });
+        }
         if (event.chatId)
           dispatch({ type: "SET_CHAT_ID", chatId: event.chatId });
         if (!isTeamEventOwner && event.agentKey && event.chatId) {
@@ -504,6 +536,14 @@ export function useConversationEventHandler(): {
         cache.runId = toText(event.runId) || cache.runId;
         cache.agentKey = eventOwner?.kind === "agent" ? eventOwner.agentKey : "";
         cache.teamId = eventOwner?.kind === "orchestrated-team" ? eventOwner.teamId : "";
+        const runEditingMode =
+          resolveRunEditingMode({
+            runId: cache.runId,
+            session: mainRuntime.session,
+            activeRun: state.currentChatActiveRun,
+            events: [...state.events, event],
+          }) ?? cache.editingMode;
+        cache.editingMode = runEditingMode;
         if (cache.chatId && cache.runId) {
           dispatch({
             type: "SET_CURRENT_CHAT_ACTIVE_RUN",
@@ -513,9 +553,13 @@ export function useConversationEventHandler(): {
               ...(cache.agentKey ? { agentKey: cache.agentKey } : {}),
               ...(cache.teamId ? { teamId: cache.teamId } : {}),
               ...(eventOwner ? { owner: eventOwner } : {}),
+              ...(typeof runEditingMode === "boolean"
+                ? { editingMode: runEditingMode }
+                : {}),
             },
           });
         }
+        dispatch({ type: "SET_EDITING_MODE", enabled: false });
         if (!isTeamEventOwner && event.agentKey) {
           dispatch({
             type: "SET_WORKER_PRIORITY_KEY",
@@ -564,6 +608,7 @@ export function useConversationEventHandler(): {
           (!eventChatId || currentActiveRun.chatId === eventChatId)
         ) {
           dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: null });
+          cache.editingMode = undefined;
         }
         dispatch({ type: "SET_STREAMING", streaming: false });
         const voiceEnabled = isVoiceEnabled();

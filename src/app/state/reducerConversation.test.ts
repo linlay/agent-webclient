@@ -29,6 +29,42 @@ function buildState(overrides: Partial<AppState> = {}): AppState {
 }
 
 describe("reduceConversationState – SET_CHAT_ID", () => {
+	it("resets KBASE editing mode only when the chat changes", () => {
+		const state = buildState({
+			chatId: "chat_a",
+			editingMode: true,
+		});
+
+		expect(
+			appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_a" })
+				.editingMode,
+		).toBe(true);
+		expect(
+			appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_b" })
+				.editingMode,
+		).toBe(false);
+	});
+
+	it("resets KBASE editing mode when the selected worker changes", () => {
+		const state = buildState({
+			editingMode: true,
+			workerSelectionKey: "agent:a",
+		});
+
+		expect(
+			appReducer(state, {
+				type: "SET_WORKER_SELECTION_KEY",
+				workerKey: "agent:a",
+			}).editingMode,
+		).toBe(true);
+		expect(
+			appReducer(state, {
+				type: "SET_WORKER_SELECTION_KEY",
+				workerKey: "agent:b",
+			}).editingMode,
+		).toBe(false);
+	});
+
 	it("carries forward planningMode when switching to an unrecorded chatId", () => {
 		const state = buildState({
 			chatId: "",

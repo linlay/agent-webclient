@@ -14,6 +14,7 @@ export interface ChatActiveRunSummary {
   owner?: RunOwner;
 	lastSeq?: number | string;
 	planningMode?: boolean;
+	editingMode?: boolean;
 	[key: string]: unknown;
 }
 

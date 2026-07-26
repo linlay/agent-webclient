@@ -83,6 +83,8 @@ const CURRENT_WORKER_CARD_CLASS =
   "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-[7px]";
 const CURRENT_WORKER_NAME_CLASS =
   "current-worker-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
+const KBASE_EDITING_BADGE_CLASS =
+  "kbase-editing-badge tw:inline-flex tw:flex-none tw:items-center tw:whitespace-nowrap tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-warn)_14%,transparent)] tw:px-2 tw:py-1 tw:text-[10px] tw:font-semibold tw:text-accent-warn";
 const TOP_NAV_ICON_BUTTON_CLASS =
   "top-nav-icon-btn ui-icon-hover-24 tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:h-4 tw:[&_.material-icon]:w-4 tw:[&_.material-icon]:text-base";
 const TOP_NAV_DEBUG_BUTTON_CLASS =
@@ -578,13 +580,16 @@ export const TopNav: React.FC = () => {
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const ui = selectUiState(state);
   const conversation = selectConversationState(state);
-  const isMainChatRunning = appContext
+  const mainChatRuntime = appContext
     ? resolveMainChatRuntime(
         appContext.stateRef,
         appContext.activeQuerySessionRequestIdRef,
         appContext.querySessionsRef,
-      ).running
-    : false;
+      )
+    : null;
+  const isMainChatRunning = Boolean(mainChatRuntime?.running);
+  const isEditingKnowledgeBase =
+    mainChatRuntime?.activeRun?.editingMode === true;
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(
     state,
     isMainChatRunning,
@@ -774,6 +779,14 @@ export const TopNav: React.FC = () => {
             >
               {statusLabel}
             </span>
+            {isEditingKnowledgeBase ? (
+              <span
+                className={KBASE_EDITING_BADGE_CLASS}
+                aria-label={t("topNav.status.editingKnowledgeBase")}
+              >
+                {t("topNav.status.editingKnowledgeBase")}
+              </span>
+            ) : null}
             {showUsageControl ? (
               <div className={USAGE_POPOVER_ANCHOR_CLASS}>
                 <UiButton

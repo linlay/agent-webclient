@@ -61,6 +61,7 @@ import {
 	resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
 import { dispatchRunStartedPushEvent } from "@/features/runs/lib/mainChatRunActivation";
+import { readExplicitEditingMode } from "@/features/runs/lib/editingMode";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
@@ -197,6 +198,7 @@ function toChatPatchFromPushEvent(
 		chatPatch.lastRunId = runId;
 	}
 	const hasActiveRun = resolveChatSummaryActiveRun(event);
+	const editingMode = readExplicitEditingMode(event);
 	if (hasActiveRun !== undefined) {
 		chatPatch.hasActiveRun = hasActiveRun;
 		chatPatch.activeRun = hasActiveRun
@@ -205,6 +207,7 @@ function toChatPatchFromPushEvent(
 					...(agentKey ? { agentKey } : {}),
 					...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
 					...(owner ? { owner } : {}),
+					...(typeof editingMode === "boolean" ? { editingMode } : {}),
 				}
 			: null;
 	}
@@ -588,6 +591,12 @@ function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent)
 	const nextTeamId = readEventTeamId(event);
 	if (nextTeamId) {
 		session.teamId = nextTeamId;
+	}
+	if (toText(event.type) === "request.query") {
+		const editingMode = readExplicitEditingMode(event);
+		if (editingMode !== undefined) {
+			session.editingMode = editingMode;
+		}
 	}
 }
 
@@ -1123,6 +1132,9 @@ function buildWsClient(
 						agentKey,
 						owner,
 						lastSeq: 0,
+						...(typeof readExplicitEditingMode(liveEvent) === "boolean"
+							? { editingMode: readExplicitEditingMode(liveEvent) }
+							: {}),
 					});
 				}
 				return;

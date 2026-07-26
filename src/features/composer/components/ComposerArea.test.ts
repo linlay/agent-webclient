@@ -61,6 +61,8 @@ jest.mock("@/features/composer/components/ComposerAttachments", () => ({
 
 const mockComposerInputProps: Array<Record<string, any>> = [];
 const mockComposerActionsProps: Array<Record<string, any>> = [];
+const mockResolveCurrentWorkerSummary = jest.fn(() => null);
+const mockIsDedicatedKbaseWorker = jest.fn(() => false);
 const mockComposerAttachmentsState = {
   sendAttachmentMeta: [] as unknown[],
   sendReferences: [] as unknown[],
@@ -91,7 +93,9 @@ jest.mock("@/features/composer/components/ComposerWonders", () => ({
 }));
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
-  resolveCurrentWorkerSummary: () => null,
+  resolveCurrentWorkerSummary: () => mockResolveCurrentWorkerSummary(),
+  isDedicatedKbaseWorker: () => mockIsDedicatedKbaseWorker(),
+  buildCurrentWorkerDetailView: () => ({ skills: [] }),
 }));
 
 jest.mock("@/features/composer/lib/slashCommands", () => ({
@@ -187,8 +191,8 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
   }),
 }));
 
-jest.mock("@/features/composer/hooks/useComposerSlash", () => ({
-  useComposerSlash: () => ({
+const mockUseComposerSlash = jest.fn(
+  (_input: Record<string, unknown>) => ({
     activeSlashIndex: 0,
     selectSlashCommand: jest.fn(),
     setActiveSlashIndex: jest.fn(),
@@ -199,6 +203,11 @@ jest.mock("@/features/composer/hooks/useComposerSlash", () => ({
     slashPaletteRef: React.createRef(),
     slashPopoverWidth: 320,
   }),
+);
+
+jest.mock("@/features/composer/hooks/useComposerSlash", () => ({
+  useComposerSlash: (input: Record<string, unknown>) =>
+    mockUseComposerSlash(input),
 }));
 
 jest.mock("@/features/composer/hooks/useComposerWonders", () => ({
@@ -255,6 +264,11 @@ describe("ComposerArea", () => {
     mockComposerAttachmentsState.sendReferences = [];
     mockComposerAwaitingState.isAwaitingActive = false;
     mockUseRuntimeAccessLevel.mockClear();
+    mockResolveCurrentWorkerSummary.mockReset();
+    mockResolveCurrentWorkerSummary.mockReturnValue(null);
+    mockIsDedicatedKbaseWorker.mockReset();
+    mockIsDedicatedKbaseWorker.mockReturnValue(false);
+    mockUseComposerSlash.mockClear();
     const initialState = createInitialState();
     useAppDispatch.mockReturnValue(jest.fn());
     useAppState.mockReturnValue(initialState);
@@ -375,6 +389,29 @@ describe("ComposerArea", () => {
     renderToStaticMarkup(React.createElement(ComposerArea));
 
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
+  });
+
+  it("enables the editing switch and slash command for a dedicated KBASE Agent", () => {
+    mockResolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent",
+      sourceId: "knowledge",
+      displayName: "Knowledge",
+      relatedChats: [],
+      raw: { mode: "KBASE" },
+    });
+    mockIsDedicatedKbaseWorker.mockReturnValue(true);
+
+    renderToStaticMarkup(React.createElement(ComposerArea));
+
+    expect(mockComposerActionsProps[0]).toEqual(
+      expect.objectContaining({
+        canUseEditingMode: true,
+        editingMode: false,
+      }),
+    );
+    expect(mockUseComposerSlash).toHaveBeenCalledWith(
+      expect.objectContaining({ canUseEditingMode: true }),
+    );
   });
 
   it("mounts slash palette popover outside clipped composer containers", () => {

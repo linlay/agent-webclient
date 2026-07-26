@@ -306,6 +306,48 @@ describe('data client query payloads', () => {
     expect(JSON.parse(String(options.body))).not.toHaveProperty('stream');
   });
 
+  it('sends one normalized required skill with chat and site references', async () => {
+    await createQueryStream({
+      requestId: 'req_context',
+      message: 'Use the selected context',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
+      requiredSkillKeys: [' product-design ', 'product-design'],
+      references: [
+        {
+          type: 'chat',
+          id: 'chat_2',
+          name: 'Previous design',
+          meta: { agentKey: 'demo-agent' },
+        },
+        {
+          type: 'site',
+          id: 'website:docs',
+          name: 'Docs',
+          url: 'https://example.com',
+          meta: { kind: 'website' },
+        },
+      ],
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(options.body))).toMatchObject({
+      requiredSkillKeys: ['product-design'],
+      references: [
+        {
+          type: 'chat',
+          id: 'chat_2',
+          name: 'Previous design',
+        },
+        {
+          type: 'site',
+          id: 'website:docs',
+          name: 'Docs',
+          url: 'https://example.com',
+        },
+      ],
+    });
+  });
+
   it('sends BTW streams without mutable routing fields', async () => {
     await createBTWStream({
       requestId: 'req_btw_1',
@@ -395,6 +437,54 @@ describe('data client query payloads', () => {
     });
     expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
     expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
+  });
+
+  it('includes top-level editingMode=true only for KBASE query streams', async () => {
+    await createQueryStream({
+      requestId: 'req_kbase_edit',
+      message: '更新知识文档',
+      editingMode: true,
+      agentMode: 'KBASE',
+      params: {
+        editingMode: true,
+        topic: 'guide',
+      },
+      owner: { kind: 'agent', agentKey: 'knowledge-agent' },
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'req_kbase_edit',
+      message: '更新知识文档',
+      editingMode: true,
+      agentKey: 'knowledge-agent',
+      params: { topic: 'guide' },
+    });
+  });
+
+  it('omits editingMode when disabled or when the target is not KBASE', async () => {
+    await createQueryStream({
+      requestId: 'req_kbase_readonly',
+      message: '读取知识文档',
+      editingMode: false,
+      agentMode: 'KBASE',
+      owner: { kind: 'agent', agentKey: 'knowledge-agent' },
+    });
+    await createQueryStream({
+      requestId: 'req_react_edit_stale',
+      message: '普通请求',
+      editingMode: true,
+      agentMode: 'REACT',
+      owner: { kind: 'agent', agentKey: 'react-agent' },
+    });
+
+    for (const [, options] of fetchMock.mock.calls as [string, RequestInit][]) {
+      const body = JSON.parse(String(options.body));
+      expect(body).not.toHaveProperty('editingMode');
+      expect(body.params).not.toEqual(
+        expect.objectContaining({ editingMode: expect.anything() }),
+      );
+    }
   });
 
   it('keeps query params empty in desktop app mode when no business params are provided', async () => {
@@ -1298,6 +1388,17 @@ describe('data client query payloads', () => {
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
       '/api/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2FDockerfile&encoding=utf-8',
+    );
+  });
+
+  it('requests a KBASE file without requiring a frontend workspace root', async () => {
+    await getAgentFile({
+      agentKey: 'knowledge-agent',
+      path: 'docs/guide.md',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/file?agentKey=knowledge-agent&path=docs%2Fguide.md',
     );
   });
 

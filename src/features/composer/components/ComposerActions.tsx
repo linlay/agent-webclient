@@ -6,8 +6,13 @@ import React, {
   useState,
 } from "react";
 import { ControlsForm } from "@/features/composer/components/ControlsForm";
+import { ComposerAddMenu } from "@/features/composer/components/ComposerAddMenu";
 import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
+import type {
+  ComposerContextReferenceInput,
+  ComposerRequiredSkill,
+} from "@/features/composer/lib/composerAttachments";
 import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -16,15 +21,15 @@ import { Flex, Tooltip } from "antd";
 
 const COMPOSER_CONTROL_ROW_CLASS =
   "composer-control-row tw:flex tw:w-full tw:items-center tw:gap-2.5 tw:overflow-hidden";
-const COMPOSER_PLUS_BUTTON_CLASS =
-  "composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!bg-transparent tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover tw:hover:!text-ink-1 tw:[&_.material-icon]:text-lg";
 const COMPOSER_PLUS_WRAP_CLASS =
   "composer-plus-wrap tw:relative tw:inline-flex tw:flex-1 tw:items-center tw:overflow-auto tw:whitespace-nowrap";
-const PLAN_TOGGLE_BUTTON_CLASS =
-  "plan-toggle-btn tw:group tw:!px-2 tw:!text-[13px] tw:!text-text-muted tw:hover:!bg-bg-hover tw:hover:!text-ink-1";
-const PLAN_TOGGLE_ICON_CLASS = "plan-toggle-icon tw:group-hover:hidden";
-const PLAN_TOGGLE_CLOSE_ICON_CLASS =
-  "plan-toggle-close-icon tw:hidden tw:scale-[.8] tw:text-lg tw:group-hover:inline-flex";
+const CONTEXT_TOGGLE_BUTTON_CLASS =
+  "composer-context-toggle-btn tw:group tw:!max-w-[160px] tw:!gap-1.5 tw:!px-2 tw:!text-[13px] tw:!text-text-muted tw:hover:!bg-bg-hover tw:hover:!text-ink-1";
+const CONTEXT_TOGGLE_ICON_CLASS = "composer-context-toggle-icon tw:group-hover:hidden";
+const CONTEXT_TOGGLE_CLOSE_ICON_CLASS =
+  "composer-context-toggle-close-icon tw:hidden tw:scale-[.8] tw:text-lg tw:group-hover:inline-flex";
+const CONTEXT_TOGGLE_LABEL_CLASS =
+  "composer-context-toggle-label tw:overflow-hidden tw:text-ellipsis";
 const PLAN_TOGGLE_SHORTCUT_CLASS =
   "plan-toggle-shortcut tw:rounded-md tw:bg-[var(--colorFillSecondary)] tw:px-[7px] tw:py-[5px] tw:text-[10px] tw:text-text-sub";
 const VOICE_BUTTON_BASE_CLASS =
@@ -49,6 +54,11 @@ interface ComposerActionsProps {
   modelOverride: QueryModelOverride;
   planningMode: boolean;
   canUsePlanningMode: boolean;
+  editingMode: boolean;
+  canUseEditingMode: boolean;
+  currentChatId: string;
+  currentSkillKeys: string[];
+  selectedSkill: ComposerRequiredSkill | null;
   voiceEnabled: boolean;
   hasUploadingAttachments: boolean;
   speechListening: boolean;
@@ -59,6 +69,9 @@ interface ComposerActionsProps {
   onControlParamsChange: (params: Record<string, unknown>) => void;
   onModelOverrideChange: (value: QueryModelOverride) => void;
   onTogglePlanningMode: () => void;
+  onEditingModeChange: (enabled: boolean) => void;
+  onAddReference: (reference: ComposerContextReferenceInput) => void;
+  onSelectedSkillChange: (skill: ComposerRequiredSkill | null) => void;
 }
 
 export const ComposerActions: React.FC<ComposerActionsProps> = ({
@@ -71,6 +84,11 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   modelOverride,
   planningMode,
   canUsePlanningMode,
+  editingMode,
+  canUseEditingMode,
+  currentChatId,
+  currentSkillKeys,
+  selectedSkill,
   voiceEnabled,
   hasUploadingAttachments,
   speechListening,
@@ -81,6 +99,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   onControlParamsChange,
   onModelOverrideChange,
   onTogglePlanningMode,
+  onEditingModeChange,
+  onAddReference,
+  onSelectedSkillChange,
 }) => {
   const { t } = useI18n();
   const {
@@ -136,27 +157,22 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         </Flex>
       )}
       <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
-        <UiButton
-          className={COMPOSER_PLUS_BUTTON_CLASS}
-          variant="ghost"
-          size="sm"
-          iconOnly
-          loading={hasUploadingAttachments}
+        <ComposerAddMenu
           disabled={attachmentActionsDisabled}
-          onClick={openFilePicker}
-          aria-label={t("composer.actions.upload")}
-          title={
-            isFrontendActive
-              ? t("composer.actions.uploadDisabled.frontendActive")
-              : isVoiceMode
-                ? t("composer.actions.uploadDisabled.voiceMode")
-                : isStreaming
-                  ? t("composer.actions.uploadDisabled.streaming")
-                  : t("composer.actions.upload")
-          }
-        >
-          <MaterialIcon name="add" />
-        </UiButton>
+          loading={hasUploadingAttachments}
+          currentChatId={currentChatId}
+          currentSkillKeys={currentSkillKeys}
+          selectedSkill={selectedSkill}
+          planningMode={planningMode}
+          canUsePlanningMode={canUsePlanningMode}
+          editingMode={editingMode}
+          canUseEditingMode={canUseEditingMode}
+          onOpenFilePicker={openFilePicker}
+          onAddReference={onAddReference}
+          onSelectedSkillChange={onSelectedSkillChange}
+          onTogglePlanningMode={onTogglePlanningMode}
+          onEditingModeChange={onEditingModeChange}
+        />
         <div className={COMPOSER_PLUS_WRAP_CLASS}>
           {canCaptureDesktopScreenshot ? (
             <UiButton
@@ -200,23 +216,84 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               }
             >
               <UiButton
-                className={PLAN_TOGGLE_BUTTON_CLASS}
+                className={CONTEXT_TOGGLE_BUTTON_CLASS}
                 variant="ghost"
                 size="sm"
                 onClick={onTogglePlanningMode}
               >
                 <MaterialIcon
                   name="checklist"
-                  className={PLAN_TOGGLE_ICON_CLASS}
+                  className={CONTEXT_TOGGLE_ICON_CLASS}
                 />
                 <MaterialIcon
                   name="close"
-                  className={PLAN_TOGGLE_CLOSE_ICON_CLASS}
+                  className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
                 />
-                {!compact && <span>{t("composer.actions.plan")}</span>}
+                {!compact && (
+                  <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
+                    {t("composer.actions.plan")}
+                  </span>
+                )}
               </UiButton>
             </Tooltip>
           )}
+          {editingMode && canUseEditingMode ? (
+            <Tooltip title={t("composer.editingMode.tooltip")}>
+              <UiButton
+                className={CONTEXT_TOGGLE_BUTTON_CLASS}
+                variant="ghost"
+                size="sm"
+                disabled={attachmentActionsDisabled}
+                onClick={() => onEditingModeChange(false)}
+              >
+                <MaterialIcon
+                  name="edit_square"
+                  className={CONTEXT_TOGGLE_ICON_CLASS}
+                />
+                <MaterialIcon
+                  name="close"
+                  className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
+                />
+                {!compact && (
+                  <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
+                    {t("composer.editingMode.label")}
+                  </span>
+                )}
+              </UiButton>
+            </Tooltip>
+          ) : null}
+          {selectedSkill ? (
+            <Tooltip
+              title={t("composer.addMenu.skill.requiredTooltip", {
+                name: selectedSkill.label,
+              })}
+            >
+              <UiButton
+                className={CONTEXT_TOGGLE_BUTTON_CLASS}
+                variant="ghost"
+                size="sm"
+                disabled={attachmentActionsDisabled}
+                onClick={() => onSelectedSkillChange(null)}
+              >
+                <MaterialIcon
+                  name="skills"
+                  className={CONTEXT_TOGGLE_ICON_CLASS}
+                />
+                <MaterialIcon
+                  name="close"
+                  className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
+                />
+                {!compact && (
+                  <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
+                    <span className="composer-context-required-badge">
+                      {t("composer.addMenu.skill.requiredBadge")}
+                    </span>
+                    {selectedSkill.label}
+                  </span>
+                )}
+              </UiButton>
+            </Tooltip>
+          ) : null}
 
           {!isCopilot && (
             <ControlsForm

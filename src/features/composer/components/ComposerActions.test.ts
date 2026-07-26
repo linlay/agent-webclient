@@ -43,6 +43,11 @@ describe("ComposerActions", () => {
     modelOverride: {},
     planningMode: false,
     canUsePlanningMode: true,
+    editingMode: false,
+    canUseEditingMode: false,
+    currentChatId: "",
+    currentSkillKeys: [],
+    selectedSkill: null,
     voiceEnabled: true,
     hasUploadingAttachments: false,
     canCaptureDesktopScreenshot: false,
@@ -55,6 +60,9 @@ describe("ComposerActions", () => {
     onControlParamsChange: jest.fn(),
     onModelOverrideChange: jest.fn(),
     onTogglePlanningMode: jest.fn(),
+    onEditingModeChange: jest.fn(),
+    onAddReference: jest.fn(),
+    onSelectedSkillChange: jest.fn(),
   };
 
   it("renders permission controls and interrupt while streaming", () => {
@@ -103,5 +111,41 @@ describe("ComposerActions", () => {
     );
 
     expect(html).not.toContain("desktop-screenshot-btn");
+  });
+
+  it("renders editing as a removable active tag instead of a persistent switch", () => {
+    const enabledHtml = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        editingMode: true,
+        canUseEditingMode: true,
+      }),
+    );
+    const disabledHtml = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        canUseEditingMode: true,
+      }),
+    );
+
+    expect(enabledHtml).toContain("composer-context-toggle-btn");
+    expect(enabledHtml).toContain('data-material-icon="edit_square"');
+    expect(enabledHtml).toContain("composer.editingMode.label");
+    expect(enabledHtml).not.toContain("ant-switch");
+    expect(disabledHtml).not.toContain("composer.editingMode.label");
+  });
+
+  it("renders the selected skill as a removable required-skill tag", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        currentSkillKeys: [{ key: "product-design", label: "Product Design" }],
+        selectedSkill: { key: "product-design", label: "Product Design" },
+      }),
+    );
+
+    expect(html).toContain("composer.addMenu.skill.requiredBadge");
+    expect(html).toContain("Product Design");
+    expect(html).toContain('data-material-icon="skills"');
   });
 });

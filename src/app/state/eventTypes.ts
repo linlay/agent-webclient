@@ -355,6 +355,7 @@ export interface AIEventCommonFields {
   taskGroupId?: string;
   groupId?: string;
   agentKey?: string;
+  editingMode?: boolean;
   subAgentKey?: string;
   source?: string;
   message?: string;

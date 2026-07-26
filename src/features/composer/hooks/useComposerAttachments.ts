@@ -10,6 +10,8 @@ import {
 import { t } from "@/shared/i18n";
 import {
   type ComposerAttachment,
+  type ComposerContextReferenceInput,
+  createComposerContextAttachment,
   createPendingComposerAttachments,
   getComposerAttachmentNameKey,
   keepLatestFilesByName,
@@ -87,13 +89,33 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   );
   const sendAttachmentMeta = useMemo(
     () =>
-      readyAttachments.map((attachment) => ({
-        name: attachment.name,
-        size: attachment.size,
-        type: attachment.type,
-        mimeType: attachment.mimeType,
-        url: attachment.resourceUrl,
-      })),
+      readyAttachments.map((attachment) => {
+        const primaryReference =
+          attachment.references[0] &&
+          typeof attachment.references[0] === "object" &&
+          !Array.isArray(attachment.references[0])
+            ? (attachment.references[0] as Record<string, unknown>)
+            : null;
+        return {
+          ...(typeof primaryReference?.id === "string"
+            ? { id: primaryReference.id }
+            : {}),
+          name: attachment.name,
+          size: attachment.size,
+          type: attachment.type,
+          mimeType: attachment.mimeType,
+          url: attachment.resourceUrl,
+          ...(primaryReference?.meta &&
+          typeof primaryReference.meta === "object" &&
+          !Array.isArray(primaryReference.meta)
+            ? {
+                meta: {
+                  ...(primaryReference.meta as Record<string, unknown>),
+                },
+              }
+            : {}),
+        };
+      }),
     [readyAttachments],
   );
   const useUnifiedComposerAttachmentRow = attachments.length > 1;
@@ -160,6 +182,28 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     }
     fileInputRef.current?.click();
   }, [isFrontendActive, isVoiceMode, mainChatRunning]);
+
+  const addContextReference = useCallback(
+    (reference: ComposerContextReferenceInput) => {
+      if (mainChatRunning || isFrontendActive || isVoiceMode) {
+        return false;
+      }
+      const nextAttachment = createComposerContextAttachment(reference);
+      if (
+        !nextAttachment.id ||
+        !nextAttachment.name ||
+        !String(reference.id || "").trim()
+      ) {
+        return false;
+      }
+      setAttachments((current) => [
+        ...current.filter((attachment) => attachment.id !== nextAttachment.id),
+        nextAttachment,
+      ]);
+      return true;
+    },
+    [isFrontendActive, isVoiceMode, mainChatRunning],
+  );
 
   const handleRemoveAttachment = useCallback(
     (attachmentId: string) => {
@@ -425,6 +469,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   }, [state.chatId]);
 
   return {
+    addContextReference,
     attachmentChatId,
     attachmentScrollState,
     attachmentViewportRef,

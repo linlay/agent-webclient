@@ -759,6 +759,59 @@ describe('useConversationEventHandler live chat binding', () => {
         owner: { kind: 'agent', agentKey: 'demo-agent' },
       },
     });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_EDITING_MODE',
+      enabled: false,
+    });
+  });
+
+  it('copies request.query editing mode into activeRun without reopening the composer switch', () => {
+    const state = createInitialState();
+    state.streaming = true;
+    state.editingMode = false;
+    state.workerSelectionKey = 'agent:demo-agent';
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      dispatch,
+      stateRef: { current: state },
+    });
+
+    let eventHandler: ReturnType<typeof useConversationEventHandler> | null = null;
+    const Harness = () => {
+      eventHandler = useConversationEventHandler();
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    eventHandler?.handleEvent({
+      type: 'request.query',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      agentKey: 'demo-agent',
+      message: 'edit',
+      editingMode: true,
+      timestamp: 90,
+    });
+    eventHandler?.handleEvent({
+      type: 'run.start',
+      chatId: 'chat_1',
+      runId: 'run_1',
+      agentKey: 'demo-agent',
+      timestamp: 100,
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_CURRENT_CHAT_ACTIVE_RUN',
+      activeRun: expect.objectContaining({
+        chatId: 'chat_1',
+        runId: 'run_1',
+        editingMode: true,
+      }),
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_EDITING_MODE',
+      enabled: false,
+    });
   });
 });
 

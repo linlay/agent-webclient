@@ -69,6 +69,21 @@ describe('slashCommands', () => {
     });
   });
 
+  it('shows /editing only when KBASE editing mode is available', () => {
+    expect(getFilteredSlashCommands('/editing')).toEqual([]);
+    expect(
+      getFilteredSlashCommands('/editing', { canUseEditingMode: false }),
+    ).toEqual([]);
+    expect(
+      getFilteredSlashCommands('/editing', { canUseEditingMode: true }),
+    ).toMatchObject([{ id: 'editing', command: '/editing' }]);
+    expect(
+      getFilteredSlashCommands('/', { canUseEditingMode: true }).find(
+        (item) => item.id === 'editing',
+      ),
+    ).toMatchObject({ command: '/editing' });
+  });
+
   it('filters debug and settings commands by feature flags', () => {
     expect(getFilteredSlashCommands('/debug')).toEqual([]);
     expect(getFilteredSlashCommands('/settings')).toEqual([]);
@@ -144,6 +159,7 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('compact', availability)).toBe(true);
     expect(isSlashCommandDisabled('voice', availability)).toBe(true);
     expect(isSlashCommandDisabled('plan', availability)).toBe(true);
+    expect(isSlashCommandDisabled('editing', availability)).toBe(true);
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
     expect(isSlashCommandDisabled('detail', availability)).toBe(true);
     expect(isSlashCommandDisabled('switch', availability)).toBe(true);
@@ -176,6 +192,37 @@ describe('slashCommands', () => {
       ...availability,
       canUsePlanningMode: false,
     })).toBe(true);
+  });
+
+  it('enables the editing command only for an idle KBASE worker', () => {
+    const availability = {
+      streaming: false,
+      hasLatestQuery: false,
+      isFrontendActive: false,
+      canUsePlanningMode: false,
+      canUseEditingMode: true,
+      canUseVoiceMode: false,
+      hasActiveChat: false,
+      hasCurrentWorker: true,
+      workerHistoryCount: 0,
+      workerCount: 1,
+      commandOverlayOpen: false,
+      canShowUsage: false,
+    };
+
+    expect(isSlashCommandDisabled('editing', availability)).toBe(false);
+    expect(
+      isSlashCommandDisabled('editing', {
+        ...availability,
+        streaming: true,
+      }),
+    ).toBe(true);
+    expect(
+      isSlashCommandDisabled('editing', {
+        ...availability,
+        canUseEditingMode: false,
+      }),
+    ).toBe(true);
   });
 
   it('finds the most recent user query from timeline nodes', () => {
