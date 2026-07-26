@@ -274,13 +274,35 @@ describe("desktopFileSystem", () => {
     expect(openAgentDirectoryMock).not.toHaveBeenCalled();
   });
 
-  it("does not post a desktop request without a desktop path", async () => {
+  it("resolves a KBASE workspace path from the backend before opening it in Desktop", async () => {
+    const listeners = new Set<(event: MessageEvent) => void>();
     const mockWindow: any = {
       location: { pathname: "/", search: "" },
       parent: null,
-      postMessage: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
+      postMessage: jest.fn((payload: { requestId: string }) => {
+        queueMicrotask(() => {
+          for (const listener of listeners) {
+            listener({
+              source: mockWindow,
+              data: {
+                type: OPEN_PATH_RESPONSE_TYPE,
+                requestId: payload.requestId,
+                ok: true,
+              },
+            } as MessageEvent);
+          }
+        });
+      }),
+      addEventListener: jest.fn((type: string, listener: EventListener) => {
+        if (type === "message") {
+          listeners.add(listener as unknown as (event: MessageEvent) => void);
+        }
+      }),
+      removeEventListener: jest.fn((type: string, listener: EventListener) => {
+        if (type === "message") {
+          listeners.delete(listener as unknown as (event: MessageEvent) => void);
+        }
+      }),
       setTimeout,
       clearTimeout,
       __DESKTOP_WEBVIEW_BRIDGE__: true,
@@ -290,13 +312,33 @@ describe("desktopFileSystem", () => {
     globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DESKTOP_APP: "true",
     };
+    openAgentDirectoryMock.mockResolvedValue({
+      status: 200,
+      code: 0,
+      msg: "success",
+      data: {
+        agentKey: "zenmi",
+        directoryType: "workspace",
+        directoryPath: "/knowledge/zenmi",
+        opened: false,
+      },
+    });
 
     await expect(openRegisteredAgentDirectory({
       agentKey: "zenmi",
       directoryType: "workspace",
-    })).resolves.toBe(false);
+    })).resolves.toBe(true);
 
-    expect(mockWindow.postMessage).not.toHaveBeenCalled();
-    expect(openAgentDirectoryMock).not.toHaveBeenCalled();
+    expect(openAgentDirectoryMock).toHaveBeenCalledWith({
+      agentKey: "zenmi",
+      directoryType: "workspace",
+    });
+    expect(mockWindow.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: OPEN_PATH_REQUEST_TYPE,
+        path: "/knowledge/zenmi",
+      }),
+      "*",
+    );
   });
 });

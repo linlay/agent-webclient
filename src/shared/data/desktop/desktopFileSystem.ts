@@ -192,9 +192,16 @@ export async function openRegisteredAgentDirectory({
     return Boolean(response.data?.opened);
   }
 
-  const normalizedPath = normalizePath(desktopPath);
+  let normalizedPath = normalizePath(desktopPath);
   if (!normalizedPath) {
-    return false;
+    const response = await openAgentDirectory({
+      agentKey: normalizedAgentKey,
+      directoryType,
+    });
+    normalizedPath = normalizePath(response?.data?.directoryPath);
+    if (!normalizedPath) {
+      return false;
+    }
   }
 
   return new Promise<boolean>((resolve, reject) => {

@@ -6,6 +6,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { UiButton } from "@/shared/ui/UiButton";
+import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
@@ -101,7 +102,7 @@ export const WorkerPanelHeader: React.FC<{
   const { t } = useI18n();
   const subtitle = row.agentType === "coder" ? "" : row.role;
   const isAgent = row.type === "agent";
-  const canOpenWorkspace = Boolean(row.workspaceDir);
+  const canOpenWorkspace = canOpenWorkerWorkspace(row);
   const canOpenConfigDirectory = isAgent && Boolean(row.agentConfigDir);
   const workspaceUnavailableTitle =
     row.workspaceSourceKind === "browser-folder"
@@ -282,7 +283,7 @@ export const WorkerPanelHeader: React.FC<{
                 items: actionMenuItems,
                 onClick: ({ domEvent, key }) => {
                   domEvent.stopPropagation();
-                  if (key === "openWorkspace" && row.workspaceDir) {
+                  if (key === "openWorkspace" && canOpenWorkspace) {
                     onOpenWorkspace?.(row.key);
                   } else if (key === "openConfigDirectory" && row.agentConfigDir) {
                     onOpenConfigDirectory?.(row.key);

@@ -1229,6 +1229,34 @@ describe("LeftSidebar", () => {
     });
   });
 
+  it("opens a dedicated KBASE workspace without a frontend workspaceDir", async () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.workerRows[0].agentType = "kbase";
+    state.workerRows[0].workspaceDir = undefined;
+    state.agents[0].mode = "KBASE";
+    state.agents[0].workspaceDir = undefined;
+    openRegisteredAgentDirectory.mockResolvedValue(true);
+    mockState(state);
+
+    renderSidebar();
+    const menu = dropdownMenuProps.find((props) =>
+      Array.isArray(props.items) &&
+      props.items.some((item: any) => item?.key === "openWorkspace" && item?.disabled === false),
+    ) as { onClick?: (event: { key: string; domEvent: { stopPropagation: jest.Mock } }) => void } | undefined;
+
+    menu?.onClick?.({
+      key: "openWorkspace",
+      domEvent: { stopPropagation: jest.fn() },
+    });
+    await Promise.resolve();
+
+    expect(openRegisteredAgentDirectory).toHaveBeenCalledWith({
+      agentKey: "worker_a",
+      directoryType: "workspace",
+    });
+  });
+
   it("renders and opens a worker config directory action when agentConfigDir is available", async () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;

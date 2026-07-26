@@ -7,6 +7,7 @@ import {
 	formatToolPillTitle,
 	getToolPillDurationText,
 	getExpandableToolPillRecords,
+	resolveKbaseIndexSummary,
 } from "@/features/timeline/components/ToolPill";
 
 function createToolNode(
@@ -128,6 +129,98 @@ describe("ToolPill helpers", () => {
 			},
 		]);
 		expect(canExpandToolPill(node)).toBe(false);
+	});
+
+	it.each([
+		[
+			{ name: "kbase-index", status: "success" },
+			"success",
+			"timeline.toolPill.kbase.success",
+		],
+		[
+			{
+				name: "kbase-index",
+				status: "skipped",
+				reason: "excluded_by_kbase_config",
+			},
+			"skipped",
+			"timeline.toolPill.kbase.skipped",
+		],
+		[
+			{ name: "kbase-index", status: "failed", message: "index error" },
+			"failed",
+			"timeline.toolPill.kbase.failed",
+		],
+	])(
+		"summarizes KBASE hook status %# without changing the file tool status",
+		(hook, kind, messageKey) => {
+			const node = createToolNode({
+				id: "tool_kbase",
+				kind: "tool",
+				ts: 100,
+				toolName: "file_write",
+				status: "success",
+				result: {
+					text: JSON.stringify({ filePath: "guide.md", hooks: [hook] }),
+					isCode: false,
+				},
+			});
+
+			expect(resolveKbaseIndexSummary(node)).toEqual({ kind, messageKey });
+			expect(buildToolPillRecords(node)[0]).toEqual(
+				expect.objectContaining({
+					status: "success",
+					kbaseIndexSummary: { kind, messageKey },
+				}),
+			);
+		},
+	);
+
+	it("shows modification failure when the file tool itself failed", () => {
+		const node = createToolNode({
+			id: "tool_kbase_failed",
+			kind: "tool",
+			ts: 100,
+			toolName: "file_edit",
+			status: "failed",
+			result: {
+				text: JSON.stringify({
+					hooks: [{ name: "kbase-index", status: "failed" }],
+				}),
+				isCode: false,
+			},
+		});
+
+		expect(resolveKbaseIndexSummary(node)).toEqual({
+			kind: "tool-failed",
+			messageKey: "timeline.toolPill.kbase.toolFailed",
+		});
+	});
+
+	it("uses the most severe recognized KBASE hook summary", () => {
+		const node = createToolNode({
+			id: "tool_kbase_priority",
+			kind: "tool",
+			ts: 100,
+			toolName: "file_edit",
+			status: "success",
+			result: {
+				text: JSON.stringify({
+					hooks: [
+						{ name: "kbase-index", status: "success" },
+						{
+							name: "kbase-index",
+							status: "skipped",
+							reason: "excluded_by_kbase_config",
+						},
+						{ name: "kbase-index", status: "failed" },
+					],
+				}),
+				isCode: false,
+			},
+		});
+
+		expect(resolveKbaseIndexSummary(node)?.kind).toBe("failed");
 	});
 
 	it("allows args or result to make a tool expandable and keeps description as a supplement", () => {

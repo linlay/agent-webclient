@@ -47,13 +47,110 @@ export interface ToolPillRecord {
   argsText: string;
   argsInlineText: string;
   result: TimelineNode["result"];
+  kbaseIndexSummary?: KbaseIndexSummary;
   durationMs?: number;
+}
+
+export type KbaseIndexSummaryKind =
+  | "success"
+  | "skipped"
+  | "failed"
+  | "tool-failed";
+
+export interface KbaseIndexSummary {
+  kind: KbaseIndexSummaryKind;
+  messageKey:
+    | "timeline.toolPill.kbase.success"
+    | "timeline.toolPill.kbase.skipped"
+    | "timeline.toolPill.kbase.failed"
+    | "timeline.toolPill.kbase.toolFailed";
 }
 
 interface ToolPillDurationOptions {
   now?: number;
   conversationActive?: boolean;
   translate?: TranslateFn;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseToolResultRecord(
+  result: TimelineNode["result"],
+): Record<string, unknown> | null {
+  const text = String(result?.text || "").trim();
+  if (!text) return null;
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (!isRecord(parsed)) return null;
+    const candidates = [parsed, parsed.result, parsed.data];
+    return (
+      candidates.find(
+        (candidate): candidate is Record<string, unknown> =>
+          isRecord(candidate) && Array.isArray(candidate.hooks),
+      ) || parsed
+    );
+  } catch {
+    return null;
+  }
+}
+
+export function resolveKbaseIndexSummary(
+  node: TimelineNode,
+): KbaseIndexSummary | null {
+  const toolName = String(node.toolName || "")
+    .trim()
+    .toLowerCase();
+  if (toolName !== "file_write" && toolName !== "file_edit") {
+    return null;
+  }
+  if (node.status === "failed" || node.status === "error") {
+    return {
+      kind: "tool-failed",
+      messageKey: "timeline.toolPill.kbase.toolFailed",
+    };
+  }
+
+  const result = parseToolResultRecord(node.result);
+  const hooks = Array.isArray(result?.hooks) ? result.hooks : [];
+  let best: KbaseIndexSummary | null = null;
+  const priority: Record<KbaseIndexSummaryKind, number> = {
+    success: 1,
+    skipped: 2,
+    failed: 3,
+    "tool-failed": 4,
+  };
+  for (const hook of hooks) {
+    if (!isRecord(hook) || hook.name !== "kbase-index") continue;
+    let candidate: KbaseIndexSummary | null = null;
+    if (hook.status === "failed") {
+      candidate = {
+        kind: "failed",
+        messageKey: "timeline.toolPill.kbase.failed",
+      };
+    } else if (
+      hook.status === "skipped" &&
+      hook.reason === "excluded_by_kbase_config"
+    ) {
+      candidate = {
+        kind: "skipped",
+        messageKey: "timeline.toolPill.kbase.skipped",
+      };
+    } else if (hook.status === "success") {
+      candidate = {
+        kind: "success",
+        messageKey: "timeline.toolPill.kbase.success",
+      };
+    }
+    if (
+      candidate &&
+      (!best || priority[candidate.kind] > priority[best.kind])
+    ) {
+      best = candidate;
+    }
+  }
+  return best;
 }
 
 function isFinishedToolNode(node: TimelineNode): boolean {
@@ -179,6 +276,7 @@ export function buildToolPillRecords(
     const status = node.status || "pending";
     const argsText = node.argsText || "";
     const result = node.result || null;
+    const kbaseIndexSummary = resolveKbaseIndexSummary(node);
     const hasDetails = Boolean(argsText.trim()) || Boolean(result);
     return {
       key: node.id,
@@ -190,6 +288,7 @@ export function buildToolPillRecords(
       argsText,
       argsInlineText: formatToolArgumentsInline(argsText),
       result,
+      ...(kbaseIndexSummary ? { kbaseIndexSummary } : {}),
       durationMs: node.durationMs,
     };
   });
@@ -387,6 +486,12 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                 ? t("timeline.toolPill.copy.failed")
                 : t("timeline.toolPill.copy.action");
           const isWrap = wrapMap[record.key] || false;
+          const kbaseSummaryClass =
+            record.kbaseIndexSummary?.kind === "success"
+              ? "tw:border-[color-mix(in_srgb,var(--accent-lime)_36%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-lime)_10%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-lime)_72%,#194d35)]"
+              : record.kbaseIndexSummary?.kind === "skipped"
+                ? "tw:border-[color-mix(in_srgb,#e6a700_36%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#e6a700_10%,transparent)] tw:text-[#7a5600]"
+                : "tw:border-[color-mix(in_srgb,var(--accent-danger)_32%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_8%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,#56121c)]";
 
           return (
             <div
@@ -406,6 +511,19 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               )}
 
               <div className="tool-call-body">
+                {record.kbaseIndexSummary ? (
+                  <div
+                    className={`kbase-index-summary tw:mb-2 tw:rounded-lg tw:border tw:px-2.5 tw:py-2 tw:text-[12px] tw:font-medium ${kbaseSummaryClass}`}
+                    data-kbase-index-status={record.kbaseIndexSummary.kind}
+                    role={
+                      record.kbaseIndexSummary.kind === "success"
+                        ? "status"
+                        : "alert"
+                    }
+                  >
+                    {t(record.kbaseIndexSummary.messageKey)}
+                  </div>
+                ) : null}
                 <Flex className="tool-call-copy" align="center" gap={4}>
                   {!!record.durationMs && (
                     <span style={{ marginRight: 4 }}>

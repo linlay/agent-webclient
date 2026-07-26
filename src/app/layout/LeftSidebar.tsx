@@ -68,6 +68,7 @@ import {
 import { resolveSidebarChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import type { AppState, Chat, WorkerConversationRow, WorkerListItem } from "@/app/state/types";
 import { openRegisteredAgentDirectory } from "@/shared/data/desktop/desktopFileSystem";
+import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import { splitWorkerListItems } from "@/features/workers/lib/workerDataCoordinator";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
@@ -546,7 +547,7 @@ export const LeftSidebar: React.FC = () => {
       state.workerIndexByKey.get(workerKey) ||
       state.workerRows.find((item) => item.key === workerKey);
     const workspaceDir = String(row?.workspaceDir || "").trim();
-    if (!workspaceDir) {
+    if (!canOpenWorkerWorkspace(row)) {
       const message =
         row?.workspaceSourceKind === "browser-folder"
           ? t("leftSidebar.browserWorkspaceOpenUnavailable")
@@ -561,13 +562,13 @@ export const LeftSidebar: React.FC = () => {
     void openRegisteredAgentDirectory({
       agentKey,
       directoryType: "workspace",
-      desktopPath: workspaceDir,
+      ...(workspaceDir ? { desktopPath: workspaceDir } : {}),
     })
       .then((opened) => {
         if (!opened) {
           dispatch({
             type: "APPEND_DEBUG",
-            line: `[workspace] ${t("leftSidebar.workspaceUnavailable")}: ${workspaceDir}`,
+            line: `[workspace] ${t("leftSidebar.workspaceUnavailable")}${workspaceDir ? `: ${workspaceDir}` : ""}`,
           });
         }
       })

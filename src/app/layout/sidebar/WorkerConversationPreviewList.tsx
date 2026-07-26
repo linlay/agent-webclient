@@ -7,6 +7,7 @@ import { useI18n } from "@/shared/i18n";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
+import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
 
 type AgentIconConfig = string | {
   color?: string;
@@ -96,7 +97,7 @@ export const WorkerConversationPreviewList: React.FC<{
       ? t("leftSidebar.showMoreUnreadSuffix", { count: unreadCount })
       : "";
   const isAgent = row.type === "agent";
-  const canOpenWorkspace = Boolean(row.workspaceDir);
+  const canOpenWorkspace = canOpenWorkerWorkspace(row);
   const canOpenConfigDirectory = isAgent && Boolean(row.agentConfigDir);
   const workspaceUnavailableTitle =
     row.workspaceSourceKind === "browser-folder"
@@ -212,7 +213,7 @@ export const WorkerConversationPreviewList: React.FC<{
                 items: actionMenuItems,
                 onClick: ({ domEvent, key }) => {
                   domEvent.stopPropagation();
-                  if (key === "openWorkspace" && row.workspaceDir) {
+                  if (key === "openWorkspace" && canOpenWorkspace) {
                     onOpenWorkspace?.(row.key);
                   } else if (key === "openConfigDirectory" && row.agentConfigDir) {
                     onOpenConfigDirectory?.(row.key);
