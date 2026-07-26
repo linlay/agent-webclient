@@ -104,6 +104,13 @@ function renderRegistriesPage(locale: Locale) {
 }
 
 describe("RegistriesPage", () => {
+  it("uses the standalone management page layout contract", () => {
+    const html = renderRegistriesPage("en-US");
+
+    expect(html).toContain("management-page-console");
+    expect(html).not.toContain("command-modal-section");
+  });
+
   it("renders the non-MCP registry console in Chinese", () => {
     const html = renderRegistriesPage("zh-CN");
 

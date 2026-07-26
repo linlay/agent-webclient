@@ -45,6 +45,19 @@ jest.mock("@/shared/data", () => ({
 }));
 
 describe("McpServersPage", () => {
+  it("uses the standalone management page layout contract", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "en-US", persistLocale: false },
+        React.createElement(McpServersPage),
+      ),
+    );
+
+    expect(html).toContain("management-page-console");
+    expect(html).not.toContain("command-modal-section");
+  });
+
   it("renders a connector-focused shell with an unassigned tools entry", () => {
     const html = renderToStaticMarkup(
       React.createElement(

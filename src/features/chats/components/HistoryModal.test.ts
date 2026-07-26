@@ -88,6 +88,13 @@ function renderHistoryModal(
 }
 
 describe("HistoryModal", () => {
+  it("keeps the modal layout contract instead of using the page layout", () => {
+    const html = renderHistoryModal();
+
+    expect(html).toContain("command-modal-section");
+    expect(html).not.toContain("management-page-console");
+  });
+
   it("renders mark-all-read inside toolbar actions when unread chats exist", () => {
     const html = renderHistoryModal();
 

@@ -103,7 +103,7 @@ function createCurrentWorker(): CurrentWorkerSummary {
   };
 }
 
-function renderAutomationModal(locale: Locale) {
+function renderAutomationModal(locale: Locale, embedded = false) {
   return renderToStaticMarkup(
     React.createElement(
       I18nProvider,
@@ -115,6 +115,7 @@ function renderAutomationModal(locale: Locale) {
           { key: "agent-b", name: "小智", role: "分析师" },
         ],
         teams: [{ teamId: "team-a", name: "Alpha Team" }],
+        embedded,
       }),
     ),
   );
@@ -153,6 +154,16 @@ describe("AutomationModal", () => {
         total: 1,
       },
     });
+  });
+
+  it("separates standalone page and embedded console layout contracts", () => {
+    const pageHtml = renderAutomationModal("en-US");
+    const embeddedHtml = renderAutomationModal("en-US", true);
+
+    expect(pageHtml).toContain("management-page-console");
+    expect(pageHtml).not.toContain("command-modal-section");
+    expect(embeddedHtml).toContain("command-modal-section");
+    expect(embeddedHtml).not.toContain("management-page-console");
   });
 
   it("allows the automation list bootstrap to run once per component instance", () => {

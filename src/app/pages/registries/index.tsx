@@ -53,7 +53,7 @@ const CATEGORIES: RegistryConsoleTab[] = [
 
 const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 const REGISTRY_CONSOLE_CLASS_NAME =
-  "command-modal-section automation-console registry-console tw:overflow-hidden";
+  "management-page-console automation-console registry-console tw:overflow-hidden";
 const REGISTRY_CATEGORY_TABS_CLASS_NAME =
   "registry-category-tabs tw:grid tw:grid-cols-4 tw:gap-1.5 tw:rounded-control tw:border tw:p-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_70%,var(--bg-elev-2))] tw:max-[860px]:grid-cols-2";
 const REGISTRY_CATEGORY_TAB_CLASS_NAME =

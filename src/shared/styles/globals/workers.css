@@ -341,6 +341,18 @@
     right: var(--right-sidebar-width);
 }
 
+/* Standalone management routes own the full guest viewport. Modal and drawer
+   consoles use command-modal-section instead and keep their viewport cap. */
+.management-page-console {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+
 .agents-page {
     max-width: none;
     margin: 0;
@@ -381,7 +393,8 @@
 }
 
 .automations-console-page,
-.registries-page {
+.registries-page,
+.mcp-servers-page {
     height: 100vh;
     min-height: 0;
     overflow: hidden;

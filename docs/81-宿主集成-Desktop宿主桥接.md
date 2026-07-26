@@ -18,6 +18,7 @@ Desktop 宿主桥接用于 Desktop WebView 场景，前端通过全局标记和 
 - `desktopAuthContext` 只由认证 bridge 响应传递，不从页面 URL 读取或传播。
 - Desktop 模式下，当前文档尚未收到认证上下文时，不复用 `sessionStorage` 中的历史 token。
 - Agents、Archives、Automations、Memory 和 Registries 等管理路由使用 HTTP/SSE，Desktop 不再为它们传递 `wsSource`。
+- Desktop 负责把 WebView 容器铺满主内容区，WebClient 的独立管理路由负责用页面布局填满 guest viewport；宿主不得注入 CSS 修补 guest 页面高度。
 - Program Bundle 的静态托管由 Desktop main process 负责，不在前端启动服务。
 - 宿主 API 的权限和文件系统访问由 Desktop 端控制。
 - `identity-center` 是 Desktop 侧的 token 签发基础，不作为 webclient 与 Desktop 的 postMessage 协议名称。

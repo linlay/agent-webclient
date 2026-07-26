@@ -461,6 +461,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             currentWorker={currentWorker}
             agents={state.agents}
             teams={state.teams}
+            embedded
           />
         )}
 

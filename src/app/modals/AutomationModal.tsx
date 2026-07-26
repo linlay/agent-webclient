@@ -90,7 +90,7 @@ const CRON_PRESETS = [
   { labelKey: "automationConsole.cronPreset.hourly", value: "0 * * * *" },
 ];
 const AUTOMATION_CONSOLE_CLASS_NAME =
-  "command-modal-section automation-console tw:overflow-hidden";
+  "automation-console tw:overflow-hidden";
 const AUTOMATION_ERROR_CLASS_NAME =
   "automation-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
 const AUTOMATION_BODY_CLASS_NAME =
@@ -416,7 +416,8 @@ export const AutomationModal: React.FC<{
   currentWorker: CurrentWorkerSummary | null;
   agents: Agent[];
   teams: Team[];
-}> = ({ currentWorker, agents, teams }) => {
+  embedded?: boolean;
+}> = ({ currentWorker, agents, teams, embedded = false }) => {
   const { locale, t } = useI18n();
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -919,7 +920,9 @@ export const AutomationModal: React.FC<{
   );
 
   return (
-    <div className={AUTOMATION_CONSOLE_CLASS_NAME}>
+    <div
+      className={`${embedded ? "command-modal-section" : "management-page-console"} ${AUTOMATION_CONSOLE_CLASS_NAME}`}
+    >
       {error && (
         <div className={AUTOMATION_ERROR_CLASS_NAME}>
           <span>{error}</span>

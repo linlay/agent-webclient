@@ -287,6 +287,25 @@ describe("AgentConsole i18n rendering", () => {
     expect(html).toContain("Create agent");
   });
 
+  it("separates standalone page and embedded console layout contracts", () => {
+    const renderConsole = (embedded = false) => renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "en-US", persistLocale: false },
+        React.createElement(AgentConsole, { embedded }),
+      ),
+    );
+
+    const pageHtml = renderConsole();
+    const embeddedHtml = renderConsole(true);
+
+    expect(pageHtml).toContain("management-page-console");
+    expect(pageHtml).not.toContain("command-modal-section");
+    expect(embeddedHtml).toContain("command-modal-section");
+    expect(embeddedHtml).toContain("is-embedded");
+    expect(embeddedHtml).not.toContain("management-page-console");
+  });
+
   it("renders visibility and budget controls", () => {
     const html = renderToStaticMarkup(
       React.createElement(

@@ -36,7 +36,7 @@ import { UiTag } from "@/shared/ui/UiTag";
 import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
 
 const CONSOLE_CLASS_NAME =
-  "command-modal-section automation-console registry-console mcp-servers-console tw:overflow-hidden";
+  "management-page-console automation-console registry-console mcp-servers-console tw:overflow-hidden";
 const BODY_CLASS_NAME =
   "automation-console-body tw:grid tw:min-h-0 tw:flex-auto tw:gap-4 tw:overflow-hidden tw:max-[860px]:overflow-auto";
 const LIST_CLASS_NAME =

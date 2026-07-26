@@ -659,8 +659,7 @@ const MODE_LABEL: Record<string, string> = {
   PLAN_EXECUTE: "P-E",
   PROXY: "PROXY",
 };
-const AGENT_CONSOLE_CLASS_NAME =
-  "command-modal-section agent-console tw:overflow-hidden";
+const AGENT_CONSOLE_CLASS_NAME = "agent-console tw:overflow-hidden";
 const AGENT_ERROR_CLASS_NAME =
   "agent-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
 const AGENT_BODY_CLASS_NAME =
@@ -1493,7 +1492,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   return (
     <div
-      className={`${AGENT_CONSOLE_CLASS_NAME} ${embedded ? "is-embedded" : ""}`}
+      className={`${embedded ? "command-modal-section" : "management-page-console"} ${AGENT_CONSOLE_CLASS_NAME} ${embedded ? "is-embedded" : ""}`}
     >
       {error && (
         <div className={AGENT_ERROR_CLASS_NAME}>

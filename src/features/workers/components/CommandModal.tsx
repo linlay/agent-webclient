@@ -453,6 +453,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             currentWorker={currentWorker}
             agents={state.agents}
             teams={state.teams}
+            embedded
           />
         )}
 
