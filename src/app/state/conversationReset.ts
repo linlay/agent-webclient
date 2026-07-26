@@ -61,6 +61,8 @@ export function buildConversationResetState(
 		rightSidebarOpenTab: null,
 		activeSourceDetail: null,
 		planningPreviews: [],
+		webPreviews: [],
+		activeWebPreviewUrl: "",
 		attachmentPreview: [],
 		inputMode: "text",
 		voiceChat: {

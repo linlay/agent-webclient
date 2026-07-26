@@ -1,5 +1,9 @@
 import { removeEmptyMarkdownTables } from "@/shared/ui/markdownPreprocess";
 import { parseWorkspaceFileHref } from "@/shared/ui/markdownWorkspaceLinks";
+import {
+  parseMarkdownWebHref,
+  shouldOpenWebLinkInSidebar,
+} from "@/shared/ui/markdownWebLinks";
 
 describe("removeEmptyMarkdownTables", () => {
   it("removes a markdown table that only has an Issues header row", () => {
@@ -94,5 +98,55 @@ describe("parseWorkspaceFileHref", () => {
   it("does not intercept unknown relative routes without file extensions", () => {
     expect(parseWorkspaceFileHref("reports/dashboard")).toBeNull();
     expect(parseWorkspaceFileHref("example.com")).toBeNull();
+  });
+});
+
+describe("parseMarkdownWebHref", () => {
+  it.each([
+    ["https://www.baidu.com", "https://www.baidu.com/"],
+    ["http://example.com/path?q=1#section", "http://example.com/path?q=1#section"],
+    ["//example.com/docs", "https://example.com/docs"],
+  ])("normalizes supported web links: %s", (href, expected) => {
+    expect(parseMarkdownWebHref(href, "https://webclient.test/chat")).toEqual({
+      href,
+      url: expected,
+    });
+  });
+
+  it.each([
+    "/api/resource?file=report.txt",
+    "docs/report.html",
+    "#section",
+    "mailto:test@example.com",
+    "javascript:alert(1)",
+    "ftp://example.com/file",
+  ])("does not intercept non-web hrefs: %s", (href) => {
+    expect(
+      parseMarkdownWebHref(href, "https://webclient.test/chat"),
+    ).toBeNull();
+  });
+});
+
+describe("shouldOpenWebLinkInSidebar", () => {
+  const plainClick = {
+    button: 0,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    shiftKey: false,
+  };
+
+  it("uses the sidebar for an unmodified primary click", () => {
+    expect(shouldOpenWebLinkInSidebar(plainClick)).toBe(true);
+  });
+
+  it.each([
+    { ...plainClick, button: 1 },
+    { ...plainClick, ctrlKey: true },
+    { ...plainClick, metaKey: true },
+    { ...plainClick, shiftKey: true },
+    { ...plainClick, altKey: true },
+  ])("preserves native browser activation for %o", (activation) => {
+    expect(shouldOpenWebLinkInSidebar(activation)).toBe(false);
   });
 });

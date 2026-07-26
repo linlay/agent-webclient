@@ -9,6 +9,7 @@ import { stripPendingSpecialFenceTail } from "@/features/events/lib/contentSegme
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import {
 	MarkdownContent,
+	type MarkdownWebLink,
 	type WorkspaceFileLink,
 } from "@/shared/ui/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
@@ -114,6 +115,19 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 		},
 		[dispatch, workspaceFileAgentKey],
 	);
+	const handleWebLinkClick = React.useCallback(
+		(link: MarkdownWebLink) => {
+			dispatch({
+				type: "OPEN_RIGHT_SIDEBAR",
+				tab: "web",
+				webPreview: {
+					title: link.title,
+					url: link.url,
+				},
+			});
+		},
+		[dispatch],
+	);
 
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {
@@ -123,6 +137,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					<MarkdownContent
 						content={streamingSafeText}
 						onWorkspaceFileLinkClick={handleWorkspaceFileLinkClick}
+						onWebLinkClick={handleWebLinkClick}
 					/>
 				</div>
 			</div>
@@ -144,6 +159,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 								onWorkspaceFileLinkClick={
 									handleWorkspaceFileLinkClick
 								}
+								onWebLinkClick={handleWebLinkClick}
 							/>
 						</div>
 					);

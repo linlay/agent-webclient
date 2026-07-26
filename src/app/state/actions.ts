@@ -22,6 +22,7 @@ import type {
 	TtsVoiceBlock,
 	UiTimerHandle,
 	VoiceChatState,
+	WebPreviewState,
 	WorkerConversationRow,
 	WorkerRow,
 } from "@/app/state/types";
@@ -155,6 +156,9 @@ export type AppAction =
 			sourceDetail?: TimelineSource | null;
 			planningPreview?: PlanningPreviewState | null;
 			removePlanningPreviewNodeId?: string;
+			webPreview?: WebPreviewState | null;
+			activeWebPreviewUrl?: string;
+			removeWebPreviewUrl?: string;
 	  }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }

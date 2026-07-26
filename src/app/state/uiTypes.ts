@@ -1,7 +1,14 @@
 import type { AIEvent } from "@/app/state/eventTypes";
 
 export type AgentEvent = AIEvent;
-export type RightSidebarTabKey = "overview" | "btw" | "debug" | "preview" | "sourceDetail" | "planningPreview";
+export type RightSidebarTabKey =
+	| "overview"
+	| "btw"
+	| "debug"
+	| "preview"
+	| "sourceDetail"
+	| "planningPreview"
+	| "web";
 
 export interface ResourceFile {
 	mimeType: string;
@@ -25,6 +32,11 @@ export interface PublishedArtifact {
 export interface PlanningPreviewState {
 	nodeId: string;
 	label: string;
+}
+
+export interface WebPreviewState {
+	title: string;
+	url: string;
 }
 
 export interface FileChangeSummary {

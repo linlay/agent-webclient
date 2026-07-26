@@ -82,6 +82,15 @@ jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
   ),
 }));
 
+jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({
+  WebPreviewPanel: ({ preview }: any) =>
+    React.createElement("iframe", {
+      className: "web-preview-panel",
+      src: preview.url,
+      title: preview.title,
+    }),
+}));
+
 jest.mock("@/app/layout/sidebar/right/DebugTab", () => ({
   DebugTab: () =>
     React.createElement("div", { className: "debug-tab" }, "debug tab"),
@@ -395,6 +404,26 @@ describe("CopilotShell", () => {
     expect(closeButton).toBeDefined();
     expect(mockDiscardBTW).toHaveBeenCalledWith("chat_1");
     expect(dispatch).toHaveBeenCalledWith({ type: "CLOSE_RIGHT_SIDEBAR" });
+  });
+
+  it("renders web previews as tabs in the copilot side panel", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "web",
+      webPreviews: [
+        { title: "百度", url: "https://www.baidu.com/" },
+        { title: "Example", url: "https://example.com/" },
+      ],
+      activeWebPreviewUrl: "https://www.baidu.com/",
+    });
+
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).toContain("copilot-side-panel");
+    expect(html).toContain("copilot-web-preview-tabs");
+    expect(html).toContain("百度");
+    expect(html).toContain('src="https://www.baidu.com/"');
   });
 
   it("starts the first loaded agent conversation on the bare copilot route", () => {

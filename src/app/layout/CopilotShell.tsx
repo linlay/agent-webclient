@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { Drawer } from "antd";
+import { Drawer, Tabs, type TabsProps } from "antd";
 import {
   resolveStatusPillClassName,
   resolveTopNavStatus,
@@ -36,6 +36,7 @@ import { isDebugPanelEnabled, isSettingsMenuEnabled } from "@/shared/config/feat
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
 
 const COPILOT_SHELL_CLASS =
   "app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-bg-base tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0";
@@ -60,7 +61,76 @@ const COPILOT_SIDE_PANEL_CLASS =
 const COPILOT_SIDE_PANEL_HEAD_CLASS =
   "copilot-side-panel-head tw:flex-none tw:flex tw:items-center tw:justify-between tw:gap-2.5 tw:border-b tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:px-3 tw:py-2.5 tw:[&>strong]:text-sm";
 const COPILOT_SIDE_PANEL_BODY_CLASS =
-  "copilot-side-panel-body tw:min-h-0 tw:flex-1 tw:overflow-auto tw:[&_.attachment-preview-panel]:h-full tw:[&_.debug-tab]:h-full tw:[&_.right-sidebar-overview]:h-full";
+  "copilot-side-panel-body tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:overflow-auto tw:[&_.attachment-preview-panel]:h-full tw:[&_.debug-tab]:h-full tw:[&_.right-sidebar-overview]:h-full tw:[&_.web-preview-panel]:h-full";
+
+function buildCopilotWebTabKey(url: string): string {
+  return `web:${url}`;
+}
+
+function getCopilotWebTabUrl(key: string): string {
+  return key.startsWith("web:") ? key.slice("web:".length) : "";
+}
+
+const CopilotWebPreviewTabs: React.FC = () => {
+  const state = useAppState();
+  const dispatch = useAppDispatch();
+  const activePreview =
+    state.webPreviews.find(
+      (preview) => preview.url === state.activeWebPreviewUrl,
+    ) || state.webPreviews[state.webPreviews.length - 1];
+  const items = useMemo<NonNullable<TabsProps["items"]>>(
+    () =>
+      state.webPreviews.map((preview) => ({
+        key: buildCopilotWebTabKey(preview.url),
+        label: (
+          <span className="tw:inline-flex tw:max-w-[112px] tw:items-center tw:gap-1">
+            <MaterialIcon name="open_in_new" />
+            <span className="tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
+              {preview.title}
+            </span>
+          </span>
+        ),
+        children: <WebPreviewPanel preview={preview} />,
+      })),
+    [state.webPreviews],
+  );
+
+  if (!activePreview) {
+    return <OverviewTab />;
+  }
+
+  return (
+    <Tabs
+      className="right-sidebar-tabs copilot-web-preview-tabs"
+      size="small"
+      type="editable-card"
+      hideAdd
+      activeKey={buildCopilotWebTabKey(activePreview.url)}
+      items={items}
+      onChange={(key) =>
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "web",
+          activeWebPreviewUrl: getCopilotWebTabUrl(key),
+        })
+      }
+      onEdit={(key, action) => {
+        if (action !== "remove" || typeof key !== "string") {
+          return;
+        }
+        const urlToRemove = getCopilotWebTabUrl(key);
+        const remaining = state.webPreviews.filter(
+          (preview) => preview.url !== urlToRemove,
+        );
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: remaining.length > 0 ? "web" : "overview",
+          removeWebPreviewUrl: urlToRemove,
+        });
+      }}
+    />
+  );
+};
 
 function normalizeRouteValue(value: string | null | undefined) {
   return String(value || "").trim();
@@ -240,6 +310,8 @@ const CopilotSidePanel: React.FC = () => {
           ? t("copilot.panel.sourceDetail")
           : activeTab === "planningPreview"
             ? t("copilot.panel.planningPreview")
+            : activeTab === "web"
+              ? t("copilot.panel.web")
             : t("copilot.panel.overview");
 
   return (
@@ -277,6 +349,8 @@ const CopilotSidePanel: React.FC = () => {
           state.planningPreviews.map((p) => (
             <PlanningPreviewTab key={p.nodeId} nodeId={p.nodeId} />
           ))
+        ) : activeTab === "web" && state.webPreviews.length > 0 ? (
+          <CopilotWebPreviewTabs />
         ) : (
           <OverviewTab />
         )}

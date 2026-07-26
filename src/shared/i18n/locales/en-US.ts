@@ -364,6 +364,8 @@ export const enUSMessages = {
   "copilot.panel.preview": "Preview",
   "copilot.panel.sourceDetail": "Source",
   "copilot.panel.planningPreview": "Planning",
+  "copilot.panel.web": "Web",
+  "rightSidebar.web.ariaLabel": "Web preview: {title}",
   "rightSidebar.debug.empty": "No events",
   "rightSidebar.debug.openChat.agent": "Agent",
   "rightSidebar.debug.openChat.agentTitle": "Open Agent chat in a new page",

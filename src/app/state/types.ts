@@ -47,6 +47,7 @@ import type {
 	RightSidebarTabKey,
 	RenderQueue,
 	UiTimerHandle,
+	WebPreviewState,
 } from "@/app/state/uiTypes";
 import type { TimelineNode, TimelineSource } from "@/app/state/timelineTypes";
 import type {
@@ -208,6 +209,8 @@ export interface AppState {
 	rightSidebarOpenTab: RightSidebarTabKey | null;
 	activeSourceDetail: TimelineSource | null;
 	planningPreviews: PlanningPreviewState[];
+	webPreviews: WebPreviewState[];
+	activeWebPreviewUrl: string;
 	terminalDockOpen: boolean;
 	attachmentPreview: AttachmentPreviewState[];
 	artifactExpanded: boolean;

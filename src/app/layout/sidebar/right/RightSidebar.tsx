@@ -13,6 +13,7 @@ import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
+import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
 
 type RightSidebarTabsKey = string;
 
@@ -67,6 +68,14 @@ function persistRightSidebarWidth(width: number): void {
   }
 }
 
+function buildWebTabKey(url: string): string {
+  return `web:${url}`;
+}
+
+function getWebUrlFromTabKey(key: string): string {
+  return key.startsWith("web:") ? key.slice("web:".length) : "";
+}
+
 export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
   const dispatch = useAppDispatch();
@@ -75,6 +84,7 @@ export const RightSidebar: React.FC = () => {
   const previews = state.attachmentPreview;
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
+  const webPreviews = state.webPreviews;
   const hasBTWSession = Boolean(
     state.chatId && getSession(state.chatId),
   );
@@ -85,14 +95,19 @@ export const RightSidebar: React.FC = () => {
       ? "debug"
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
-      : state.rightSidebarOpenTab === "preview" && previews.length > 0
-        ? `preview:${previews[previews.length - 1].url}`
-        : state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
-          ? "sourceDetail"
-          : state.rightSidebarOpenTab === "planningPreview" &&
-              planningPreviews.length > 0
-            ? `planningPreview:${planningPreviews[planningPreviews.length - 1].nodeId}`
-            : "overview";
+        : state.rightSidebarOpenTab === "preview" && previews.length > 0
+          ? `preview:${previews[previews.length - 1].url}`
+          : state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
+            ? "sourceDetail"
+            : state.rightSidebarOpenTab === "planningPreview" &&
+                planningPreviews.length > 0
+              ? `planningPreview:${planningPreviews[planningPreviews.length - 1].nodeId}`
+              : state.rightSidebarOpenTab === "web" && webPreviews.length > 0
+                ? buildWebTabKey(
+                    state.activeWebPreviewUrl ||
+                      webPreviews[webPreviews.length - 1].url,
+                  )
+                : "overview";
   const [activePanel, setActivePanel] = React.useState<RightSidebarTabKey>(
     initialPanel === "debug"
       ? "debug"
@@ -100,7 +115,9 @@ export const RightSidebar: React.FC = () => {
         ? "preview"
         : initialPanel.startsWith("planningPreview:")
           ? "planningPreview"
-          : (initialPanel as RightSidebarTabKey),
+          : initialPanel.startsWith("web:")
+            ? "web"
+            : (initialPanel as RightSidebarTabKey),
   );
   const [activeTab, setActiveTab] = React.useState<RightSidebarTabsKey>(
     initialPanel === "debug" ? "overview" : initialPanel,
@@ -147,6 +164,12 @@ export const RightSidebar: React.FC = () => {
       return;
     }
 
+    if (state.rightSidebarOpenTab === "web" && webPreviews.length === 0) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+      return;
+    }
+
     const nextPanel = state.rightSidebarOpenTab;
     setActivePanel(nextPanel);
     if (nextPanel !== "debug") {
@@ -160,6 +183,15 @@ export const RightSidebar: React.FC = () => {
         if (lastPlanning) {
           setActiveTab(`planningPreview:${lastPlanning.nodeId}`);
         }
+      } else if (nextPanel === "web") {
+        const activeWebPreview = webPreviews.find(
+          (preview) => preview.url === state.activeWebPreviewUrl,
+        );
+        const fallbackWebPreview = webPreviews[webPreviews.length - 1];
+        const nextWebPreview = activeWebPreview || fallbackWebPreview;
+        if (nextWebPreview) {
+          setActiveTab(buildWebTabKey(nextWebPreview.url));
+        }
       } else {
         setActiveTab(nextPanel);
       }
@@ -168,10 +200,12 @@ export const RightSidebar: React.FC = () => {
     previews,
     sourceDetail,
     planningPreviews,
+    webPreviews,
     debugPanelEnabled,
     hasBTWSession,
     state.rightSidebarOpen,
     state.rightSidebarOpenTab,
+    state.activeWebPreviewUrl,
   ]);
 
   React.useEffect(() => {
@@ -197,6 +231,10 @@ export const RightSidebar: React.FC = () => {
       setActivePanel("overview");
       setActiveTab("overview");
     }
+    if (activePanel === "web" && webPreviews.length === 0) {
+      setActivePanel("overview");
+      setActiveTab("overview");
+    }
   }, [
     activePanel,
     debugPanelEnabled,
@@ -204,6 +242,7 @@ export const RightSidebar: React.FC = () => {
     previews,
     sourceDetail,
     planningPreviews,
+    webPreviews,
   ]);
 
   React.useEffect(() => {
@@ -349,19 +388,51 @@ export const RightSidebar: React.FC = () => {
       });
     }
 
-    return items;
-  }, [hasBTWSession, previews, sourceDetail, planningPreviews, t]);
-
-  const handleTabChange = React.useCallback((key: string) => {
-    setActiveTab(key);
-    if (key.startsWith("preview:")) {
-      setActivePanel("preview");
-    } else if (key.startsWith("planningPreview:")) {
-      setActivePanel("planningPreview");
-    } else {
-      setActivePanel(key as RightSidebarTabKey);
+    for (const preview of webPreviews) {
+      items.push({
+        key: buildWebTabKey(preview.url),
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="open_in_new" />
+            <Typography.Text ellipsis className="tw:!max-w-[100px]">
+              {preview.title}
+            </Typography.Text>
+          </Flex>
+        ),
+        children: <WebPreviewPanel preview={preview} />,
+      });
     }
-  }, []);
+
+    return items;
+  }, [
+    hasBTWSession,
+    previews,
+    sourceDetail,
+    planningPreviews,
+    t,
+    webPreviews,
+  ]);
+
+  const handleTabChange = React.useCallback(
+    (key: string) => {
+      setActiveTab(key);
+      if (key.startsWith("preview:")) {
+        setActivePanel("preview");
+      } else if (key.startsWith("planningPreview:")) {
+        setActivePanel("planningPreview");
+      } else if (key.startsWith("web:")) {
+        setActivePanel("web");
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "web",
+          activeWebPreviewUrl: getWebUrlFromTabKey(key),
+        });
+      } else {
+        setActivePanel(key as RightSidebarTabKey);
+      }
+    },
+    [dispatch],
+  );
 
   return (
     <aside
@@ -427,6 +498,19 @@ export const RightSidebar: React.FC = () => {
                   type: "OPEN_RIGHT_SIDEBAR",
                   tab: remaining.length > 0 ? "planningPreview" : "overview",
                   removePlanningPreviewNodeId: nodeIdToRemove,
+                });
+              } else if (
+                typeof key === "string" &&
+                key.startsWith("web:")
+              ) {
+                const urlToRemove = getWebUrlFromTabKey(key);
+                const remaining = webPreviews.filter(
+                  (preview) => preview.url !== urlToRemove,
+                );
+                dispatch({
+                  type: "OPEN_RIGHT_SIDEBAR",
+                  tab: remaining.length > 0 ? "web" : "overview",
+                  removeWebPreviewUrl: urlToRemove,
                 });
               } else if (key === "sourceDetail") {
                 dispatch({

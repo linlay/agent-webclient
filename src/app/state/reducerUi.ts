@@ -113,11 +113,19 @@ export function reduceUiState(
 			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");
 			const hasSourceDetail = Object.prototype.hasOwnProperty.call(action, "sourceDetail");
 			const hasPlanningPreview = Object.prototype.hasOwnProperty.call(action, "planningPreview");
+			const hasWebPreview = Object.prototype.hasOwnProperty.call(action, "webPreview");
+			const hasActiveWebPreviewUrl = Object.prototype.hasOwnProperty.call(
+				action,
+				"activeWebPreviewUrl",
+			);
 			const removePreviewUrl = Object.prototype.hasOwnProperty.call(action, "removePreviewUrl")
 				? action.removePreviewUrl
 				: undefined;
 			const removePlanningPreviewNodeId = Object.prototype.hasOwnProperty.call(action, "removePlanningPreviewNodeId")
 				? action.removePlanningPreviewNodeId
+				: undefined;
+			const removeWebPreviewUrl = Object.prototype.hasOwnProperty.call(action, "removeWebPreviewUrl")
+				? action.removeWebPreviewUrl
 				: undefined;
 			let nextPreviews = state.attachmentPreview;
 			if (removePreviewUrl) {
@@ -160,12 +168,52 @@ export function reduceUiState(
 					nextPlanningPreviews = [];
 				}
 			}
+			let nextWebPreviews = state.webPreviews;
+			let nextActiveWebPreviewUrl = state.activeWebPreviewUrl;
+			if (removeWebPreviewUrl) {
+				nextWebPreviews = nextWebPreviews.filter(
+					(preview) => preview.url !== removeWebPreviewUrl,
+				);
+				if (nextActiveWebPreviewUrl === removeWebPreviewUrl) {
+					nextActiveWebPreviewUrl =
+						nextWebPreviews[nextWebPreviews.length - 1]?.url || "";
+				}
+			} else {
+				const incomingWebPreview = hasWebPreview
+					? action.webPreview
+					: undefined;
+				if (incomingWebPreview) {
+					const existingIndex = nextWebPreviews.findIndex(
+						(preview) => preview.url === incomingWebPreview.url,
+					);
+					if (existingIndex >= 0) {
+						nextWebPreviews = [...nextWebPreviews];
+						nextWebPreviews[existingIndex] = incomingWebPreview;
+					} else {
+						nextWebPreviews = [...nextWebPreviews, incomingWebPreview];
+					}
+					nextActiveWebPreviewUrl = incomingWebPreview.url;
+				} else if (hasWebPreview) {
+					nextWebPreviews = [];
+					nextActiveWebPreviewUrl = "";
+				}
+			}
+			if (hasActiveWebPreviewUrl) {
+				const requestedActiveUrl = String(action.activeWebPreviewUrl || "");
+				nextActiveWebPreviewUrl = nextWebPreviews.some(
+					(preview) => preview.url === requestedActiveUrl,
+				)
+					? requestedActiveUrl
+					: nextActiveWebPreviewUrl;
+			}
 			return {
 				...state,
 				rightSidebarOpen: true,
 				rightSidebarOpenTab: action.tab ?? null,
 				attachmentPreview: nextPreviews,
 				planningPreviews: nextPlanningPreviews,
+				webPreviews: nextWebPreviews,
+				activeWebPreviewUrl: nextActiveWebPreviewUrl,
 				activeSourceDetail: hasSourceDetail
 					? action.sourceDetail ?? null
 					: state.activeSourceDetail,

@@ -150,6 +150,8 @@ export function createInitialState(): AppState {
 		rightSidebarOpenTab: null,
 		activeSourceDetail: null,
 		planningPreviews: [],
+		webPreviews: [],
+		activeWebPreviewUrl: "",
 		terminalDockOpen: restoreTerminalDockOpen(),
 		attachmentPreview: [],
 		artifactExpanded: false,

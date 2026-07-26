@@ -21,6 +21,10 @@ jest.mock("antd", () => {
     __mockTabsState: mockTabsState,
     Flex: ({ children, gap, ...props }: any) =>
       React.createElement("div", { ...props, "data-gap": gap }, children),
+    Typography: {
+      Text: ({ children, ellipsis: _ellipsis, ...props }: any) =>
+        React.createElement("span", props, children),
+    },
     Tabs: (props: any) => {
       const { items = [], activeKey, className } = props;
       mockTabsState.current = props;
@@ -63,6 +67,14 @@ jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
 
 jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
   AttachmentPreviewPanel: () => React.createElement("div", null, "preview tab"),
+}));
+
+jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({
+  WebPreviewPanel: ({ preview }: any) =>
+    React.createElement(
+      "iframe",
+      { src: preview.url, title: preview.title },
+    ),
 }));
 
 jest.mock("@/features/btw/components/BtwTab", () => ({
@@ -225,5 +237,55 @@ describe("RightSidebar", () => {
 
     expect(discardBTW).not.toHaveBeenCalled();
     expect(dispatch).toHaveBeenCalledWith({ type: "CLOSE_RIGHT_SIDEBAR" });
+  });
+
+  it("renders and activates a web preview tab", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "web",
+      webPreviews: [
+        { title: "百度", url: "https://www.baidu.com/" },
+        { title: "Example", url: "https://example.com/" },
+      ],
+      activeWebPreviewUrl: "https://www.baidu.com/",
+    });
+
+    const html = renderRightSidebar();
+
+    expect(html).toContain('data-active-key="web:https://www.baidu.com/"');
+    expect(html).toContain('src="https://www.baidu.com/"');
+    expect(html).toContain("百度");
+
+    mockTabsState.current.onChange("web:https://example.com/");
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "OPEN_RIGHT_SIDEBAR",
+      tab: "web",
+      activeWebPreviewUrl: "https://example.com/",
+    });
+  });
+
+  it("closes a web preview tab and returns to overview after the last one", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "web",
+      webPreviews: [
+        { title: "百度", url: "https://www.baidu.com/" },
+      ],
+      activeWebPreviewUrl: "https://www.baidu.com/",
+    });
+    renderRightSidebar();
+
+    mockTabsState.current.onEdit(
+      "web:https://www.baidu.com/",
+      "remove",
+    );
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "OPEN_RIGHT_SIDEBAR",
+      tab: "overview",
+      removeWebPreviewUrl: "https://www.baidu.com/",
+    });
   });
 });

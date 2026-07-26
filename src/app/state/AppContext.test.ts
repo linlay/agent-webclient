@@ -1289,4 +1289,85 @@ describe('appReducer conversation reset behavior', () => {
       timer: null,
     });
   });
+
+  it('opens, reuses, activates, and closes sidebar web previews', () => {
+    const baseState = createInitialState();
+    const first = appReducer(baseState, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'web',
+      webPreview: {
+        title: '百度',
+        url: 'https://www.baidu.com/',
+      },
+    });
+    const second = appReducer(first, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'web',
+      webPreview: {
+        title: 'Example',
+        url: 'https://example.com/',
+      },
+    });
+    const reused = appReducer(second, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'web',
+      webPreview: {
+        title: '百度一下',
+        url: 'https://www.baidu.com/',
+      },
+    });
+
+    expect(reused.webPreviews).toEqual([
+      { title: '百度一下', url: 'https://www.baidu.com/' },
+      { title: 'Example', url: 'https://example.com/' },
+    ]);
+    expect(reused.activeWebPreviewUrl).toBe('https://www.baidu.com/');
+    expect(reused.rightSidebarOpenTab).toBe('web');
+
+    const activated = appReducer(reused, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'web',
+      activeWebPreviewUrl: 'https://example.com/',
+    });
+    expect(activated.activeWebPreviewUrl).toBe('https://example.com/');
+
+    const afterActiveClose = appReducer(activated, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'web',
+      removeWebPreviewUrl: 'https://example.com/',
+    });
+    expect(afterActiveClose.webPreviews).toEqual([
+      { title: '百度一下', url: 'https://www.baidu.com/' },
+    ]);
+    expect(afterActiveClose.activeWebPreviewUrl).toBe(
+      'https://www.baidu.com/',
+    );
+
+    const afterLastClose = appReducer(afterActiveClose, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'overview',
+      removeWebPreviewUrl: 'https://www.baidu.com/',
+    });
+    expect(afterLastClose.webPreviews).toEqual([]);
+    expect(afterLastClose.activeWebPreviewUrl).toBe('');
+    expect(afterLastClose.rightSidebarOpenTab).toBe('overview');
+  });
+
+  it('clears sidebar web previews during conversation reset', () => {
+    const state = {
+      ...createInitialState(),
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: 'web' as const,
+      webPreviews: [
+        { title: '百度', url: 'https://www.baidu.com/' },
+      ],
+      activeWebPreviewUrl: 'https://www.baidu.com/',
+    };
+
+    const next = appReducer(state, { type: 'RESET_CONVERSATION' });
+
+    expect(next.webPreviews).toEqual([]);
+    expect(next.activeWebPreviewUrl).toBe('');
+    expect(next.rightSidebarOpenTab).toBeNull();
+  });
 });

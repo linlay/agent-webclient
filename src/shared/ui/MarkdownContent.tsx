@@ -13,12 +13,20 @@ import {
   parseWorkspaceFileHref,
   type WorkspaceFileLink,
 } from "./markdownWorkspaceLinks";
+import {
+  getMarkdownWebLinkFallbackTitle,
+  parseMarkdownWebHref,
+  shouldOpenWebLinkInSidebar,
+  type MarkdownWebLink,
+} from "./markdownWebLinks";
 
 export type { WorkspaceFileLink } from "./markdownWorkspaceLinks";
+export type { MarkdownWebLink } from "./markdownWebLinks";
 
 interface MarkdownContentProps {
   content: string;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
+  onWebLinkClick?: (link: MarkdownWebLink) => void;
 }
 
 type MarkdownPreProps = React.HTMLAttributes<HTMLPreElement> & {
@@ -61,7 +69,29 @@ function isResourceUrl(href: string): boolean {
  */
 type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
+  onWebLinkClick?: (link: MarkdownWebLink) => void;
 };
+
+function getAnchorText(children: React.ReactNode): string {
+  const parts: string[] = [];
+
+  const visit = (node: React.ReactNode): void => {
+    if (typeof node === "string" || typeof node === "number") {
+      parts.push(String(node));
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+      visit(node.props.children);
+    }
+  };
+
+  visit(children);
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
 
 const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   const { t } = useI18n();
@@ -69,6 +99,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     href,
     children,
     onWorkspaceFileLinkClick,
+    onWebLinkClick,
     ...rest
   } = props;
   const [downloading, setDownloading] = useState(false);
@@ -79,6 +110,15 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     () => parseWorkspaceFileHref(href),
     [href],
   );
+  const webLink = useMemo(() => parseMarkdownWebHref(href), [href]);
+  const webLinkTitle = useMemo(
+    () =>
+      webLink
+        ? getAnchorText(children) ||
+          getMarkdownWebLinkFallbackTitle(webLink.url)
+        : "",
+    [children, webLink],
+  );
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -88,21 +128,45 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
         return;
       }
 
-      if (!href || !isResourceUrl(href) || downloading) return;
+      if (href && isResourceUrl(href)) {
+        e.preventDefault();
+        if (downloading) {
+          return;
+        }
+        setDownloading(true);
 
-      e.preventDefault();
-      setDownloading(true);
+        const filename = extractFilenameFromResourceUrl(href);
+        void downloadResource(href, { filename })
+          .catch((error: unknown) => {
+            console.error("Resource download failed:", error);
+          })
+          .finally(() => {
+            setDownloading(false);
+          });
+        return;
+      }
 
-      const filename = extractFilenameFromResourceUrl(href);
-      void downloadResource(href, { filename })
-        .catch((error: unknown) => {
-          console.error("Resource download failed:", error);
-        })
-        .finally(() => {
-          setDownloading(false);
+      if (
+        webLink &&
+        onWebLinkClick &&
+        shouldOpenWebLinkInSidebar(e)
+      ) {
+        e.preventDefault();
+        onWebLinkClick({
+          ...webLink,
+          title: webLinkTitle,
         });
+      }
     },
-    [href, downloading, onWorkspaceFileLinkClick, workspaceFileLink],
+    [
+      downloading,
+      href,
+      onWebLinkClick,
+      onWorkspaceFileLinkClick,
+      webLink,
+      webLinkTitle,
+      workspaceFileLink,
+    ],
   );
 
   return (
@@ -150,6 +214,7 @@ const MarkdownPre: React.FC<MarkdownPreProps> = ({
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   content,
   onWorkspaceFileLinkClick,
+  onWebLinkClick,
 }) => {
   const markdownConfig = useMemo(
     () => ({
@@ -167,13 +232,14 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
           <AuthAnchor
             {...anchorProps}
             onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
+            onWebLinkClick={onWebLinkClick}
           />
         ),
         code: MarkdownCode,
         pre: MarkdownPre,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,
-    [onWorkspaceFileLinkClick],
+    [onWebLinkClick, onWorkspaceFileLinkClick],
   );
 
   const processedContent = useMemo(() => {

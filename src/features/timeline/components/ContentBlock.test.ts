@@ -24,6 +24,11 @@ const mockMarkdownContentProps: Array<{
 		filePath: string;
 		line?: number;
 	}) => void;
+	onWebLinkClick?: (link: {
+		href: string;
+		url: string;
+		title: string;
+	}) => void;
 }> = [];
 
 jest.mock("@/shared/ui/MarkdownContent", () => {
@@ -36,6 +41,11 @@ jest.mock("@/shared/ui/MarkdownContent", () => {
 				href: string;
 				filePath: string;
 				line?: number;
+			}) => void;
+			onWebLinkClick?: (link: {
+				href: string;
+				url: string;
+				title: string;
 			}) => void;
 		}) => {
 			mockMarkdownContentProps.push(props);
@@ -133,6 +143,32 @@ describe("ContentBlock", () => {
 					path: "china-gdp-2010-2024.html",
 				},
 			}),
+		});
+	});
+
+	it("opens HTTP links in a right-sidebar web tab", () => {
+		const node: TimelineNode = {
+			id: "content_web",
+			kind: "content",
+			role: "assistant",
+			text: "[百度](https://www.baidu.com)",
+			ts: 100,
+		};
+
+		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
+		mockMarkdownContentProps[0].onWebLinkClick?.({
+			href: "https://www.baidu.com",
+			url: "https://www.baidu.com/",
+			title: "百度",
+		});
+
+		expect(mockDispatch).toHaveBeenCalledWith({
+			type: "OPEN_RIGHT_SIDEBAR",
+			tab: "web",
+			webPreview: {
+				title: "百度",
+				url: "https://www.baidu.com/",
+			},
 		});
 	});
 });
