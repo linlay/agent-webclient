@@ -478,8 +478,10 @@ export const RightSidebar: React.FC = () => {
       setActiveTab(key);
       if (key.startsWith("preview:")) {
         setActivePanel("preview");
+        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview" });
       } else if (key.startsWith("planningPreview:")) {
         setActivePanel("planningPreview");
+        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "planningPreview" });
       } else if (key.startsWith("web:")) {
         setActivePanel("web");
         dispatch({
@@ -489,6 +491,7 @@ export const RightSidebar: React.FC = () => {
         });
       } else {
         setActivePanel(key as RightSidebarTabKey);
+        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: key as RightSidebarTabKey });
       }
     },
     [dispatch],

@@ -711,6 +711,7 @@ export const OverviewTab: React.FC = () => {
                   displayMode="file"
                   density="compact"
                   subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
+                  activateMode="alwaysOpen"
                   style={{ width: "100%" }}
                 />
               </li>

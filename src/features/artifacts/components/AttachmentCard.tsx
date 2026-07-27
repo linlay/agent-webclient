@@ -28,6 +28,8 @@ interface AttachmentCardProps {
   onRemove?: () => void;
   removeLabel?: string;
   style?: React.CSSProperties;
+  /** 点击激活行为：toggle 为切换侧边栏开关，alwaysOpen 始终打开预览 */
+  activateMode?: "toggle" | "alwaysOpen";
 }
 
 export const AttachmentCard: React.FC<AttachmentCardProps> = ({
@@ -42,6 +44,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   onRemove,
   removeLabel,
   style,
+  activateMode = "toggle",
 }) => {
   const { t } = useI18n();
   const dispatch = useAppDispatch();
@@ -107,7 +110,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       return;
     }
     if (preview) {
-      if (rightSidebarOpen && rightSidebarOpenTab === "preview") {
+      if (activateMode === "toggle" && rightSidebarOpen && rightSidebarOpenTab === "preview") {
         dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
       } else {
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
@@ -116,7 +119,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     }
 
     triggerDownload();
-  }, [canActivate, dispatch, preview, triggerDownload, rightSidebarOpen, rightSidebarOpenTab]);
+  }, [canActivate, dispatch, preview, triggerDownload, activateMode, rightSidebarOpen, rightSidebarOpenTab]);
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
