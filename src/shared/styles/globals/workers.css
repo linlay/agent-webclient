@@ -345,6 +345,7 @@
    consoles use command-modal-section instead and keep their viewport cap. */
 .management-page-console {
     display: flex;
+    gap: 10px;
     flex: 1 1 auto;
     flex-direction: column;
     height: 100%;

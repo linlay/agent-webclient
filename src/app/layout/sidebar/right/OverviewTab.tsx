@@ -572,8 +572,8 @@ export const OverviewTab: React.FC = () => {
                 onClick: () => toggleFileChange(item),
                 showArrow: false,
                 label: (
-                  <Flex align="center" gap={10}>
-                    <FileIcon filename={item.filePath} />
+                  <Flex align="center" gap={6}>
+                    <FileIcon filename={item.filePath} size={16} />
                     <span className={FILE_CHANGE_PATH_CLASS_NAME}>
                       {displayFileName(item.filePath)}
                     </span>
