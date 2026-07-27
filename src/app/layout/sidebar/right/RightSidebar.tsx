@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { Flex, Tabs, Typography, type TabsProps } from "antd";
+import { Dropdown, Flex, Tabs, Typography, type TabsProps } from "antd";
 import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
@@ -85,9 +85,7 @@ export const RightSidebar: React.FC = () => {
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
   const webPreviews = state.webPreviews;
-  const hasBTWSession = Boolean(
-    state.chatId && getSession(state.chatId),
-  );
+  const hasBTWSession = Boolean(state.chatId && getSession(state.chatId));
   const debugPanelEnabled = isDebugPanelEnabled();
   const desktopSidebarVisible = state.rightSidebarOpen;
   const initialPanel =
@@ -125,6 +123,9 @@ export const RightSidebar: React.FC = () => {
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
   );
+  const [tabRefreshKeys, setTabRefreshKeys] = React.useState<
+    Record<string, number>
+  >({});
 
   React.useEffect(() => {
     if (!state.rightSidebarOpen || !state.rightSidebarOpenTab) {
@@ -267,6 +268,64 @@ export const RightSidebar: React.FC = () => {
     return nextWidth;
   }, []);
 
+  const handleCloseTab = React.useCallback(
+    (key: React.Key) => {
+      if (key === "btw") {
+        if (state.chatId) {
+          discardBTW(state.chatId);
+        }
+        setActivePanel("overview");
+        setActiveTab("overview");
+        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
+      } else if (typeof key === "string" && key.startsWith("preview:")) {
+        const urlToRemove = key.slice("preview:".length);
+        const remaining = previews.filter((p) => p.url !== urlToRemove);
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: remaining.length > 0 ? "preview" : "overview",
+          removePreviewUrl: urlToRemove,
+        });
+      } else if (
+        typeof key === "string" &&
+        key.startsWith("planningPreview:")
+      ) {
+        const nodeIdToRemove = key.slice("planningPreview:".length);
+        const remaining = planningPreviews.filter(
+          (p) => p.nodeId !== nodeIdToRemove,
+        );
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: remaining.length > 0 ? "planningPreview" : "overview",
+          removePlanningPreviewNodeId: nodeIdToRemove,
+        });
+      } else if (typeof key === "string" && key.startsWith("web:")) {
+        const urlToRemove = getWebUrlFromTabKey(key);
+        const remaining = webPreviews.filter(
+          (preview) => preview.url !== urlToRemove,
+        );
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: remaining.length > 0 ? "web" : "overview",
+          removeWebPreviewUrl: urlToRemove,
+        });
+      } else if (key === "sourceDetail") {
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "overview",
+          sourceDetail: null,
+        });
+      }
+    },
+    [dispatch, state.chatId, discardBTW, previews, planningPreviews, webPreviews],
+  );
+
+  const handleRefreshWebTab = React.useCallback((key: string) => {
+    setTabRefreshKeys((prev) => ({
+      ...prev,
+      [key]: (prev[key] ?? 0) + 1,
+    }));
+  }, []);
+
   const handleResizePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0) return;
@@ -368,7 +427,9 @@ export const RightSidebar: React.FC = () => {
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="assignment" />
-            <Typography.Text ellipsis className="tw:!max-w-[100px]">{p.label}</Typography.Text>
+            <Typography.Text ellipsis className="tw:!max-w-[100px]">
+              {p.label}
+            </Typography.Text>
           </Flex>
         ),
         children: <PlanningPreviewTab nodeId={p.nodeId} />,
@@ -389,8 +450,9 @@ export const RightSidebar: React.FC = () => {
     }
 
     for (const preview of webPreviews) {
+      const tabKey = buildWebTabKey(preview.url);
       items.push({
-        key: buildWebTabKey(preview.url),
+        key: tabKey,
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="open_in_new" />
@@ -399,19 +461,17 @@ export const RightSidebar: React.FC = () => {
             </Typography.Text>
           </Flex>
         ),
-        children: <WebPreviewPanel preview={preview} />,
+        children: (
+          <WebPreviewPanel
+            refreshKey={tabRefreshKeys[tabKey] ?? 0}
+            preview={preview}
+          />
+        ),
       });
     }
 
     return items;
-  }, [
-    hasBTWSession,
-    previews,
-    sourceDetail,
-    planningPreviews,
-    t,
-    webPreviews,
-  ]);
+  }, [hasBTWSession, previews, sourceDetail, planningPreviews, t, webPreviews, tabRefreshKeys]);
 
   const handleTabChange = React.useCallback(
     (key: string) => {
@@ -464,63 +524,51 @@ export const RightSidebar: React.FC = () => {
           onChange={handleTabChange}
           items={tabItems}
           onEdit={(key, action) => {
-            if (action === "remove") {
-              if (key === "btw") {
-                if (state.chatId) {
-                  discardBTW(state.chatId);
-                }
-                setActivePanel("overview");
-                setActiveTab("overview");
-                dispatch({
-                  type: "OPEN_RIGHT_SIDEBAR",
-                  tab: "overview",
-                });
-              } else if (
-                typeof key === "string" &&
-                key.startsWith("preview:")
-              ) {
-                const urlToRemove = key.slice("preview:".length);
-                const remaining = previews.filter((p) => p.url !== urlToRemove);
-                dispatch({
-                  type: "OPEN_RIGHT_SIDEBAR",
-                  tab: remaining.length > 0 ? "preview" : "overview",
-                  removePreviewUrl: urlToRemove,
-                });
-              } else if (
-                typeof key === "string" &&
-                key.startsWith("planningPreview:")
-              ) {
-                const nodeIdToRemove = key.slice("planningPreview:".length);
-                const remaining = planningPreviews.filter(
-                  (p) => p.nodeId !== nodeIdToRemove,
-                );
-                dispatch({
-                  type: "OPEN_RIGHT_SIDEBAR",
-                  tab: remaining.length > 0 ? "planningPreview" : "overview",
-                  removePlanningPreviewNodeId: nodeIdToRemove,
-                });
-              } else if (
-                typeof key === "string" &&
-                key.startsWith("web:")
-              ) {
-                const urlToRemove = getWebUrlFromTabKey(key);
-                const remaining = webPreviews.filter(
-                  (preview) => preview.url !== urlToRemove,
-                );
-                dispatch({
-                  type: "OPEN_RIGHT_SIDEBAR",
-                  tab: remaining.length > 0 ? "web" : "overview",
-                  removeWebPreviewUrl: urlToRemove,
-                });
-              } else if (key === "sourceDetail") {
-                dispatch({
-                  type: "OPEN_RIGHT_SIDEBAR",
-                  tab: "overview",
-                  sourceDetail: null,
-                });
-              }
+            if (action === "remove" && typeof key === "string") {
+              handleCloseTab(key);
             }
           }}
+          renderTabBar={(tabBarProps, DefaultTabBar) => (
+            <DefaultTabBar {...tabBarProps}>
+              {(node) => {
+                if (node.key === "overview" || !node.key) return node;
+                const isWebTab = node.key.startsWith("web:");
+
+                const menuitems = [
+                  ...(isWebTab
+                    ? [
+                        {
+                          key: "refresh",
+                          label: "刷新",
+                          onClick: () =>
+                            handleRefreshWebTab(node.key as string),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: "close",
+                    label: "关闭",
+                    onClick: () => handleCloseTab(node.key as string),
+                  },
+                ];
+
+                return (
+                  <Dropdown
+                    key={node.key}
+                    trigger={["contextMenu"]}
+                    overlayStyle={{
+                      width: 100,
+                    }}
+                    menu={{
+                      items: menuitems,
+                    }}
+                  >
+                    {node}
+                  </Dropdown>
+                );
+              }}
+            </DefaultTabBar>
+          )}
           tabBarExtraContent={
             <UiButton
               className="icon-btn"

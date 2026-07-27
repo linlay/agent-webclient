@@ -4,6 +4,7 @@ import { useI18n } from "@/shared/i18n";
 
 interface WebPreviewPanelProps {
   preview: WebPreviewState;
+  refreshKey?: number;
 }
 
 const WEB_PREVIEW_PANEL_CLASS_NAME =
@@ -16,8 +17,22 @@ export const WEB_PREVIEW_IFRAME_SANDBOX =
 
 export const WebPreviewPanel: React.FC<WebPreviewPanelProps> = ({
   preview,
+  refreshKey,
 }) => {
   const { t } = useI18n();
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const prevRefreshKeyRef = React.useRef(refreshKey);
+
+  React.useEffect(() => {
+    if (
+      refreshKey !== undefined &&
+      refreshKey !== prevRefreshKeyRef.current &&
+      iframeRef.current
+    ) {
+      iframeRef.current.src = preview.url;
+      prevRefreshKeyRef.current = refreshKey;
+    }
+  }, [refreshKey, preview.url]);
 
   return (
     <section
@@ -25,6 +40,7 @@ export const WebPreviewPanel: React.FC<WebPreviewPanelProps> = ({
       aria-label={t("rightSidebar.web.ariaLabel", { title: preview.title })}
     >
       <iframe
+        ref={iframeRef}
         className={WEB_PREVIEW_FRAME_CLASS_NAME}
         src={preview.url}
         title={preview.title}
