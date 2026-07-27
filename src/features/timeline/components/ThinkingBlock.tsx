@@ -1,13 +1,34 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { TimelineCollapse } from "./collapse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
+import { Flex } from "antd";
+import { formatToolDuration } from "@/features/timeline/lib/timelineDuration";
+import { Skeleton } from "@/shared/components/skeleton";
 
 interface ThinkingBlockProps {
   node: TimelineNode;
+}
+
+function useThinkingDurationTick(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  const timer = useRef<number>(0);
+  useEffect(() => {
+    if (!active) {
+      window.clearInterval(timer.current);
+      return;
+    }
+    timer.current = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => {
+      window.clearInterval(timer.current);
+    };
+  }, [active]);
+  return now;
 }
 
 export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
@@ -24,14 +45,40 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
   }, [node.id, state.reasoningNodeById]);
 
   const text = node.text || "";
-  const isLoading = node.status === "running" || node.status === "streaming";
+  const isLoading = useMemo(() => node.status === "running", [node.status]);
   const triggerLabel = isLoading
     ? node.reasoningLabel || t("timeline.thinking.inProgress")
     : t("timeline.thinking.title");
 
+  const now = useThinkingDurationTick(isLoading);
+  const liveDurationMs = useMemo(
+    () =>
+      typeof node.startedAt === "number"
+        ? Math.floor(Math.max(0, now - node.startedAt) / 1000) * 1000
+        : undefined,
+    [node.startedAt, now],
+  );
+  const durationLabel =
+    typeof liveDurationMs === "number"
+      ? formatToolDuration(liveDurationMs, t)
+      : "";
+
   return (
     <TimelineCollapse
-      label={triggerLabel}
+      label={
+        <Flex gap={6}>
+          {isLoading ? (
+            <>
+              <Skeleton active={true} text={triggerLabel} />
+              <span className="tw:text-text-sub tw:opacity-60 tw:text-[11px]">
+                {durationLabel}
+              </span>
+            </>
+          ) : (
+            <span>{triggerLabel}</span>
+          )}
+        </Flex>
+      }
       expanded={expanded}
       onExpand={() => {
         if (interaction?.patchNode) {
@@ -61,7 +108,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
         });
       }}
     >
-      <div className={['thinking-detail', SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
+      <div className={["thinking-detail", SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
         {text}
       </div>
     </TimelineCollapse>

@@ -49,7 +49,11 @@ export function processReasoningEvent(
       typeof event.reasoningLabel === "string"
         ? event.reasoningLabel
         : existing?.reasoningLabel;
-    const text = existing ? `${state.getNodeText(nodeId)}${delta}` : eventText || delta;
+    const text = existing
+      ? `${state.getNodeText(nodeId)}${delta}`
+      : eventText || delta;
+    const startedAt =
+      type === "reasoning.start" ? Date.now() : existing?.startedAt;
 
     commands.push({
       cmd: "SET_TIMELINE_NODE",
@@ -63,6 +67,7 @@ export function processReasoningEvent(
         status: "running",
         expanded: config.reasoningExpandedDefault,
         ts: timestamp,
+        startedAt,
       },
     });
     return commands;
@@ -97,7 +102,7 @@ export function processReasoningEvent(
         reasoningLabel: existing?.reasoningLabel,
         text,
         status: "completed",
-        expanded: config.reasoningExpandedDefault,
+        expanded: false,
         ts: timestamp,
       },
     });

@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/app/state/types";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
+import { formatToolDuration as formatToolDurationFromLib } from "@/features/timeline/lib/timelineDuration";
+import type { TranslateFn } from "@/features/timeline/lib/timelineDuration";
 import { t as runtimeT, useI18n } from "@/shared/i18n";
-import type { TranslateParams } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -19,7 +20,6 @@ type ToolGroupRenderEntry = Extract<
   { kind: "tool-group" }
 >;
 
-type TranslateFn = (key: string, params?: TranslateParams) => string;
 type CopyState = "copied" | "error";
 const TOOL_CALL_RESULT_CLASS_NAME = [
   "tool-call-result",
@@ -207,44 +207,7 @@ export function formatToolDuration(
   durationMs?: number,
   translate: TranslateFn = runtimeT,
 ): string {
-  if (!Number.isFinite(durationMs) || Number(durationMs) <= 0) {
-    return "";
-  }
-
-  const value = Number(durationMs);
-  if (value < 1000) {
-    return translate("timeline.toolPill.duration.milliseconds", {
-      count: Math.round(value),
-    });
-  }
-  if (value < 60_000) {
-    const rawSeconds = value / 1000;
-    const seconds =
-      rawSeconds < 10 && !Number.isInteger(rawSeconds)
-        ? Number(rawSeconds.toFixed(1))
-        : Math.round(rawSeconds);
-    return translate("timeline.toolPill.duration.seconds", {
-      count: seconds,
-    });
-  }
-
-  const totalSeconds = Math.round(value / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (minutes < 60) {
-    return translate("timeline.toolPill.duration.minutes", {
-      minutes,
-      seconds,
-    });
-  }
-
-  const hours = Math.floor(minutes / 60);
-  const remainMinutes = minutes % 60;
-  return translate("timeline.toolPill.duration.hours", {
-    hours,
-    minutes: remainMinutes,
-    seconds,
-  });
+  return formatToolDurationFromLib(durationMs, translate);
 }
 
 export function formatToolPillTitle(

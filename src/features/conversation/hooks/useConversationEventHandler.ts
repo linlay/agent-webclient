@@ -511,7 +511,7 @@ export function useConversationEventHandler(): {
         createLiveProcessorState(cache, state),
         {
           mode: "live",
-          reasoningExpandedDefault: true,
+          reasoningExpandedDefault: false,
         },
       );
 
