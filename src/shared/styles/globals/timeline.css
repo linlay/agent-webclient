@@ -1079,6 +1079,10 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     white-space: pre-wrap;
 }
 
+.system-alert-copy-btn.ui-btn.ui-btn-ghost {
+    color: var(--text-muted);
+}
+
 .system-alert-message {
     white-space: pre-wrap;
 }
