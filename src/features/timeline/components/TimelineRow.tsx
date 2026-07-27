@@ -33,14 +33,10 @@ interface TimelineRowProps {
   metaNode?: React.ReactNode;
 }
 
-const TIMELINE_ROW_BASE_CLASS_NAME =
-  "timeline-row tw:relative";
-const TIMELINE_ROW_USER_CLASS_NAME =
-  `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
-const TIMELINE_ROW_FLOW_CLASS_NAME =
-  `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-flow tw:grid tw:grid-cols-[16px_minmax(0,1fr)] tw:items-start tw:gap-2.5`;
-const TIMELINE_ROW_PLANNING_CLASS_NAME =
-  `${TIMELINE_ROW_FLOW_CLASS_NAME} tw:my-5`;
+const TIMELINE_ROW_BASE_CLASS_NAME = "timeline-row tw:relative";
+const TIMELINE_ROW_USER_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
+const TIMELINE_ROW_FLOW_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-flow tw:grid tw:grid-cols-[16px_minmax(0,1fr)] tw:items-start tw:gap-2.5`;
+const TIMELINE_ROW_PLANNING_CLASS_NAME = `${TIMELINE_ROW_FLOW_CLASS_NAME} tw:my-5`;
 const TIMELINE_USER_STACK_CLASS_NAME =
   "timeline-user-stack tw:flex tw:flex-col tw:items-end tw:gap-2";
 const TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME =
@@ -52,11 +48,9 @@ const TIMELINE_USER_ATTACHMENTS_MULTI_CLASS_NAME =
 const TIMELINE_MARKER_CLASS_NAME =
   "timeline-marker tw:relative tw:min-h-4 tw:w-4";
 const NODE_ICON_BASE_CLASS_NAME =
-  "node-icon tw:relative tw:z-[2] tw:inline-flex tw:h-[18px] tw:w-[18px] tw:items-center tw:justify-center tw:[&_.material-icon]:text-lg tw:[&_svg]:block tw:[&_svg]:h-[18px] tw:[&_svg]:w-[18px] tw:[&_svg]:stroke-current tw:[&_svg]:stroke-[1.8] tw:[&_svg]:[stroke-linecap:round] tw:[&_svg]:[stroke-linejoin:round]";
-const NODE_ICON_STEER_CLASS_NAME =
-  `${NODE_ICON_BASE_CLASS_NAME} node-icon-steer tw:text-accent-electric`;
-const NODE_ICON_PLANNING_CLASS_NAME =
-  `${NODE_ICON_BASE_CLASS_NAME} node-icon-planning tw:text-accent-electric-strong`;
+  "node-icon tw:relative tw:z-[2] tw:inline-flex tw:h-[18px] tw:w-[18px] tw:items-center tw:justify-center tw:[&_.material-icon]:text-lg tw:[&_svg]:block tw:[&_svg]:h-[18px] tw:[&_svg]:w-[18px] tw:[&_svg]:stroke-current tw:[&_svg]:stroke-[1.8] tw:[&_svg]:[stroke-linecap:round] tw:[&_svg]:[stroke-linejoin:round]  tw:bg-bg-base tw:outline tw:outline-3 tw:outline-bg-base";
+const NODE_ICON_STEER_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-steer tw:text-accent-electric`;
+const NODE_ICON_PLANNING_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-planning tw:text-accent-electric-strong`;
 const NODE_ICON_CLASS_BY_KIND: Record<string, string> = {
   thinking: "node-icon-thinking tw:text-accent-warn",
   "awaiting-answer": "node-icon-awaiting-answer tw:text-accent-warn",
@@ -79,20 +73,20 @@ const TIMELINE_COMMAND_LABEL_CLASS_NAME =
 
 function createTimeFormatter(locale: Locale): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 }
 
 function createDateTimeFormatter(locale: Locale): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -157,9 +151,7 @@ export function formatTimelineTime(
 }
 
 export const SteerIcon: React.FC = () => {
-  return (
-    <MaterialIcon name="reply" />
-  );
+  return <MaterialIcon name="reply" />;
 };
 
 function isCommandMessageVariant(
@@ -185,7 +177,9 @@ function getTimelineAttachmentSubtitle(
     return getAttachmentKindLabel(attachment, t);
   }
 
-  const attachmentSize = formatAttachmentSize(getAttachmentSizeBytes(attachment));
+  const attachmentSize = formatAttachmentSize(
+    getAttachmentSizeBytes(attachment),
+  );
   if (
     getAttachmentKind(attachment) === "image" &&
     String(attachment.url || "").trim()
@@ -310,7 +304,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                   : TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME,
               ].join(" ")}
             >
-              {attachmentItems.map((attachment, index) => (
+              {attachmentItems.map((attachment, index) =>
                 attachment.type === "chat" || attachment.type === "site" ? (
                   <ReferenceCard
                     key={`${attachment.type}_${attachment.id || attachment.name}_${index}`}
@@ -331,8 +325,8 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                       hasMultipleAttachments,
                     )}
                   />
-                )
-              ))}
+                ),
+              )}
             </div>
           )}
           {hasText && <UserBubble text={node.text || ""} />}
@@ -449,10 +443,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <NodeIcon kind="tool" />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-          <ToolPill
-            node={node}
-            toolGroup={toolGroup}
-          />
+          <ToolPill node={node} toolGroup={toolGroup} />
           {timeNode}
         </div>
       </div>
@@ -471,7 +462,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         <div className={TIMELINE_MARKER_CLASS_NAME}>
           <NodeIcon kind="content" />
         </div>
-        <div className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} ${TIMELINE_CONTENT_FLOW_CLASS_NAME}`}>
+        <div
+          className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} ${TIMELINE_CONTENT_FLOW_CLASS_NAME}`}
+        >
           <ContentBlock node={node} />
           {timeNode}
         </div>
@@ -491,7 +484,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         <div className={TIMELINE_MARKER_CLASS_NAME}>
           <NodeIcon kind="source" />
         </div>
-        <div className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} ${TIMELINE_SOURCE_FLOW_CLASS_NAME}`}>
+        <div
+          className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} ${TIMELINE_SOURCE_FLOW_CLASS_NAME}`}
+        >
           <SourceBlock node={node} />
           {timeNode}
         </div>
