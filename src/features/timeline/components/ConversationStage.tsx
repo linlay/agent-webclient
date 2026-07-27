@@ -814,8 +814,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       try {
         await copyText(text);
         flashActionStatus(key, t("timeline.toolPill.copy.copied"));
+        message.success(t("timeline.toolPill.copy.copied"));
       } catch {
         flashActionStatus(key, t("timeline.toolPill.copy.failed"));
+        message.error(t("timeline.toolPill.copy.failed"));
       }
     },
     [flashActionStatus, t],

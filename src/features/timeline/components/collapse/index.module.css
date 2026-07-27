@@ -4,6 +4,10 @@
     padding: 0;
     color: var(--ink-2);
     width: fit-content;
+    max-width: 100%;
+  }
+  :global(>.ant-collapse-item>.ant-collapse-header>.ant-collapse-header-text) {
+    overflow: auto;
   }
 
   :global(>.ant-collapse-item>.ant-collapse-header:hover) {

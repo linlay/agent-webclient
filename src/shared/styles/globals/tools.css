@@ -6,6 +6,7 @@
     height: 7px;
     border-radius: 50%;
     background: color-mix(in srgb, var(--ink-muted) 84%, transparent);
+    flex-shrink: 0;
 }
 
 @keyframes flash {
@@ -27,6 +28,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .tool-pill-duration {
