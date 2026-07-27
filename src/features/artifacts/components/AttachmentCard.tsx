@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppDispatch } from "@/app/state/AppContext";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { downloadResource } from "@/shared/data";
 import { buildAttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import {
@@ -100,17 +100,23 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       });
   }, [attachment.name, downloadUrl, downloading]);
 
+  const { rightSidebarOpen, rightSidebarOpenTab } = useAppState();
+
   const handleActivate = React.useCallback(() => {
     if (!canActivate) {
       return;
     }
     if (preview) {
-      dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
+      if (rightSidebarOpen && rightSidebarOpenTab === "preview") {
+        dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+      } else {
+        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
+      }
       return;
     }
 
     triggerDownload();
-  }, [canActivate, dispatch, preview, triggerDownload]);
+  }, [canActivate, dispatch, preview, triggerDownload, rightSidebarOpen, rightSidebarOpenTab]);
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
