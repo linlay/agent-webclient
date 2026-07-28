@@ -7,7 +7,12 @@ import React, {
 } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
+import type {
+  Agent,
+  Chat,
+  WorkerConversationRow,
+  WorkerRow,
+} from "@/app/state/types";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
@@ -72,6 +77,29 @@ export function createResolvedNewChatRoute(
   }
 
   const nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.delete("newChat");
+  nextSearchParams.set("chatId", normalizedChatId);
+  const nextSearch = nextSearchParams.toString();
+  return `/agent/${encodeURIComponent(normalizedAgentKey)}${
+    nextSearch ? `?${nextSearch}` : ""
+  }`;
+}
+
+export function createHistoryChatRoute(
+  worker: Pick<WorkerRow, "type" | "sourceId"> | null,
+  searchParams: URLSearchParams,
+  chatId: string,
+): string {
+  const normalizedAgentKey =
+    worker?.type === "agent" ? String(worker.sourceId || "").trim() : "";
+  const normalizedChatId = String(chatId || "").trim();
+  if (!normalizedAgentKey || !normalizedChatId) {
+    return "";
+  }
+
+  const nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.delete("history");
+  nextSearchParams.delete("historyRequest");
   nextSearchParams.delete("newChat");
   nextSearchParams.set("chatId", normalizedChatId);
   const nextSearch = nextSearchParams.toString();
@@ -658,6 +686,16 @@ export const AgentChatShell: React.FC = () => {
   };
 
   const handleSelectHistoryChat = (selectedChatId: string) => {
+    const targetRoute = createHistoryChatRoute(
+      historyWorker,
+      searchParams,
+      selectedChatId,
+    );
+    if (targetRoute) {
+      navigate(targetRoute);
+      return;
+    }
+
     window.dispatchEvent(
       new CustomEvent("agent:load-chat", {
         detail: {
