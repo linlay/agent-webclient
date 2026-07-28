@@ -38,13 +38,13 @@ import {
   Input,
   message,
   Popover,
-  Spin,
   Tooltip,
 } from "antd";
 import type { InputRef } from "antd";
 import type { Agent, TimelineNode, WorkerRow } from "@/app/state/types";
 import { LogoLoading } from "@/shared/components/logo-loading";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
+import { DotLoading } from "@/shared/components/dot-loading";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
@@ -1420,7 +1420,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                               )}
                             </div>
                           )}
-                          {isCompleted && (
+                          {isCompleted && item.nodes?.length > 0 && (
                             <div className={TIMELINE_RUN_META_CLASS_NAME}>
                               <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
                                 <UiButton
@@ -1545,7 +1545,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       style={{ borderRadius: "50%" }}
                     >
                       {isMainChatRunning || state.streaming ? (
-                        <Spin />
+                        <DotLoading color="primary" />
                       ) : (
                         <MaterialIcon name="arrow_downward" />
                       )}

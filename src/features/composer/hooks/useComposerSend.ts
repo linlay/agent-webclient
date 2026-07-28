@@ -161,6 +161,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
+  const interruptSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     submitRememberCommand,
     submitLearnCommand,
@@ -199,6 +200,15 @@ export function useComposerSend(input: UseComposerSendInput) {
       pendingSendRef.current = false;
     }
   }, [inputValue]);
+
+  useEffect(() => {
+    return () => {
+      if (interruptSafetyTimerRef.current) {
+        clearTimeout(interruptSafetyTimerRef.current);
+        interruptSafetyTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const prevMainChatRunningRef = useRef(mainChatRunning);
   useEffect(() => {
@@ -285,12 +295,32 @@ export function useComposerSend(input: UseComposerSendInput) {
         type: "APPEND_DEBUG",
         line: `[interrupt] requested for chatId=${chatId}, runId=${runId}, requestId=${requestId}`,
       });
+
+      // 停止语音，但不立即 abort 流 — 等待后端推送 run.cancel 事件
+      window.dispatchEvent(
+        new CustomEvent("agent:voice-stop-all", {
+          detail: { reason: "interrupt", mode: "stop" },
+        }),
+      );
+
+      // 安全超时：如果 5 秒内未收到 run.cancel，强制 abort 流
+      interruptSafetyTimerRef.current = setTimeout(() => {
+        const ac = stateRef.current.abortController;
+        if (ac) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[interrupt] safety timeout: forcing stream abort`,
+          });
+          ac.abort();
+        }
+        interruptSafetyTimerRef.current = null;
+      }, 5000);
     } catch (error) {
       dispatch({
         type: "APPEND_DEBUG",
         line: `[interrupt] failed: ${(error as Error).message}`,
       });
-    } finally {
+      // interruptChat 失败时立即 abort 流作为回退
       state.abortController?.abort();
       window.dispatchEvent(
         new CustomEvent("agent:voice-stop-all", {
@@ -307,6 +337,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.abortController,
     state.chatId,
     state.planningMode,
+    stateRef,
   ]);
 
   const executeSlashCommand = useSlashCommandExecution({
