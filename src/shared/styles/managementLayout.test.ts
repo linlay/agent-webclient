@@ -32,4 +32,24 @@ describe("management layout contracts", () => {
     expect(modalRule).toMatch(/max-height:\s*70vh;/);
     expect(modalRule).not.toMatch(/height:\s*100%;/);
   });
+
+  it("keeps the worker history dialog height stable and scrolls its list", () => {
+    const workersCss = readStyle("workers.css");
+    const bodyRule = readRule(workersCss, ".worker-history-modal .ant-modal-body");
+    const sectionRule = readRule(
+      workersCss,
+      ".worker-history-modal .command-modal-section",
+    );
+    const listRule = readRule(
+      workersCss,
+      ".worker-history-modal .history-list-container",
+    );
+
+    expect(bodyRule).toMatch(/height:\s*min\(70vh,\s*600px\);/);
+    expect(bodyRule).toMatch(/overflow:\s*hidden;/);
+    expect(sectionRule).toMatch(/height:\s*100%;/);
+    expect(sectionRule).toMatch(/min-height:\s*0;/);
+    expect(listRule).toMatch(/flex:\s*1 1 auto;/);
+    expect(listRule).toMatch(/min-height:\s*0;/);
+  });
 });
