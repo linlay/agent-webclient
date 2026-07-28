@@ -246,6 +246,37 @@ export function buildTimelineDisplayItems(
   };
 
   const flushRun = (): void => {
+    const terminal = runTerminals[runTerminalCursor];
+
+    // 空 run：有 query 但没有任何 timeline 节点（例如 run.start → run.complete 中间无内容）
+    if (pendingRunNodes.length === 0 && activeQueryNode) {
+      if (terminal) {
+        const completedAt =
+          typeof terminal.timestamp === "number" ? terminal.timestamp : undefined;
+        const responseDurationMs =
+          typeof completedAt === "number" &&
+          typeof activeQueryNode.ts === "number"
+            ? Math.max(0, completedAt - activeQueryNode.ts)
+            : undefined;
+
+        runTerminalCursor += 1;
+
+        items.push({
+          kind: "run",
+          key: `run_${activeQueryNode.id}`,
+          queryNode: activeQueryNode,
+          nodes: [],
+          renderEntries: [],
+          runId: terminal.runId,
+          completedAt,
+          responseDurationMs,
+        });
+      }
+      pendingRunNodes = [];
+      activeQueryNode = null;
+      return;
+    }
+
     if (pendingRunNodes.length === 0) {
       pendingRunNodes = [];
       activeQueryNode = null;
@@ -253,7 +284,6 @@ export function buildTimelineDisplayItems(
     }
 
     const queryNode = activeQueryNode;
-    const terminal = runTerminals[runTerminalCursor];
     const lastNode = pendingRunNodes[pendingRunNodes.length - 1];
     const completedAt = terminal
       ? typeof terminal.timestamp === "number"

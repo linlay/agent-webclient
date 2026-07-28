@@ -1420,7 +1420,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                               )}
                             </div>
                           )}
-                          {isCompleted && (
+                          {isCompleted && item.nodes?.length > 0 && (
                             <div className={TIMELINE_RUN_META_CLASS_NAME}>
                               <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
                                 <UiButton

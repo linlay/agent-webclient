@@ -622,6 +622,9 @@ export function useConversationEventHandler(): {
             mode: type === "run.cancel" ? "stop" : "commit",
           });
         }
+        if (type === "run.cancel") {
+          state.abortController?.abort();
+        }
         return;
       }
 
