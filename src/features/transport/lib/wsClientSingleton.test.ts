@@ -129,4 +129,26 @@ describe("wsClientSingleton", () => {
 		expect(singleton.getWsClient()).toBe(client);
 		expect(singleton.getWsClientAccessToken()).toBe("token_2");
 	});
+
+	it("notifies inbound action subscribers when the singleton is replaced or destroyed", async () => {
+		const singleton = await import("./wsClientSingleton");
+		const listener = jest.fn();
+		const unsubscribe = singleton.subscribeWsClient(listener);
+
+		expect(listener).toHaveBeenCalledWith(null);
+		const firstClient = singleton.initWsClient({ accessToken: "token_1" });
+		const secondClient = singleton.initWsClient({ accessToken: "token_2" });
+		singleton.destroyWsClient();
+
+		expect(listener.mock.calls).toEqual([
+			[null],
+			[firstClient],
+			[secondClient],
+			[null],
+		]);
+
+		unsubscribe();
+		singleton.initWsClient({ accessToken: "token_3" });
+		expect(listener).toHaveBeenCalledTimes(4);
+	});
 });

@@ -1,7 +1,7 @@
 # 流式传输SSE与WebSocket
 
 ## 当前状态
-对话流支持 SSE 与 WebSocket 两种模式。SSE 运行时在 `queryStreamRuntime.sse.ts`，WebSocket 运行时在 `queryStreamRuntime.ws.ts`，模式读取和持久化由 `transportMode.ts` 负责。连接与帧处理归 transport，attach/detach 和会话观察编排归 conversation 与 runs。
+对话流支持 SSE 与 WebSocket 两种模式。SSE 运行时在 `queryStreamRuntime.sse.ts`，WebSocket 运行时在 `queryStreamRuntime.ws.ts`，模式读取和持久化由 `transportMode.ts` 负责。连接与帧处理归 transport，attach/detach 和会话观察编排归 conversation 与 runs。直连 Platform 时，即使 query 选择 SSE，页面也保持一条普通 `/ws` 控制连接，用于接收 Platform 发起的 WebClient 反向 request；Gateway backend 第一阶段不启用该能力。
 
 ## 核心职责
 - 发起 `/api/query` 流式请求并逐事件回调。
@@ -22,6 +22,20 @@ attach/detach 也使用同一 owner 规则。SSE 和 WebSocket 不会把 Team �
 
 关闭 Side question 只销毁该 chat 的前端 session、runtime 与持久化记录，不发送 interrupt，也不 abort 正在消费的 SSE；后端 run 自然结束。被丢弃 runtime 的迟到 identity、事件和 finally 都必须被对象身份校验拦截，不能恢复已关闭的 Tab 或污染随后创建的分支。
 
+## WebClient 反向 Request
+
+WebClient 控制连接使用 `/ws?source=WebClient&deviceId=<device-id>&surfaceId=<surface-id>`。`deviceId` 沿用 localStorage 标识，`surfaceId` 是当前页面生命周期内的随机标识并写入 sessionStorage；页面内路由切换和 WebSocket 重连不会更换它，刷新页面或打开新标签页会生成新值。SSE `/api/query` 同时发送 `X-Agent-WebClient-Device-Id` 与 `X-Agent-WebClient-Surface-Id`；device header 与控制连接使用同一标识，认证 JWT 已含 device claim 时由 Platform 优先使用 claim。两者共同使 Platform 将 run 绑定到这个逻辑标签页。
+
+`WsClient.registerInboundRequestHandler(type, handler)` 只允许按完整 `type` 精确登记 handler。收到 `frame:"request"` 后直接把 `payload` 交给 handler；成功返回同 `id`、同 `type` 的 response，业务错误返回 error。未知 type、非法帧参数和同连接重复 id 分别返回 `unknown_request_type`、`invalid_request`、`duplicate_id`。连接关闭后，旧连接上的未完成 handler 不会再发送结果。
+
+第一阶段 Action Registry 只有：
+
+- `webclient.sidebar.getState`
+- `webclient.sidebar.setState`
+- `webclient.sidebar.openUrl`
+
+Action Registry 不接受 Redux action、DOM selector、JavaScript 函数名、CustomEvent、任意路由或组件名。sidebar set 必须显式给出 `open`，左侧栏不接受 `tab`，关闭右侧栏时也不接受 `tab`；右侧第一阶段只接受 `overview`、`btw`、`debug`。`webclient.sidebar.openUrl` 使用 `{url, title?}` 创建或激活 Web Preview 并打开右侧 `web` tab：裸域名按 HTTPS 规范化，只接受 HTTP(S)，拒绝协议相对 URL 和带凭据 URL；它不经过 Desktop bridge。handler dispatch 后从同步 `stateRef` 读取最终状态，并以 `applied:false` 表示幂等请求。Preview 状态成功不代表目标站点允许 iframe 嵌入，CSP 或 `X-Frame-Options` 拒绝仍由现有预览错误状态呈现。
+
 ## 边界与非目标
 - 传输层不解释业务事件含义，只负责帧、连接、错误和生命周期。
 - SSE 是兼容路径，默认产品链路优先验证 WebSocket。
@@ -32,9 +46,13 @@ attach/detach 也使用同一 owner 规则。SSE 和 WebSocket 不会把 Team �
 - `../src/features/transport/lib/queryStreamRuntime.ws.ts`
 - `../src/features/transport/lib/queryStreamExecutors.ts`
 - `../src/features/transport/lib/wsClient.ts`
+- `../src/features/transport/lib/wsClientSingleton.ts`
+- `../src/shared/data/clientDeviceId.ts`
+- `../src/shared/data/clientSurfaceId.ts`
 - `../src/features/transport/lib/transportMode.ts`
 - `../src/features/btw/components/BtwProvider.tsx`
 - `../src/shared/data/api/client.ts`
 - `../src/features/conversation/hooks/useConversationWsRuntime.ts`
+- `../src/features/conversation/hooks/useWebClientActionRuntime.ts`
 - `../src/features/conversation/hooks/useConversationSseAttachRuntime.ts`
 - `../src/features/composer/hooks/useMessageActions.ts`

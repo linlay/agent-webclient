@@ -4,7 +4,8 @@ import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
-import { getClientDeviceId } from "@/features/transport/lib/clientDeviceId";
+import { getClientDeviceId } from "@/shared/data/clientDeviceId";
+import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
 import {
 	readEpochMillis,
 	STRUCTURED_PLATFORM_TIME_FIELDS,
@@ -30,8 +31,16 @@ interface WsRequestFrame {
 	payload?: unknown;
 }
 
+export interface WsInboundRequestFrame {
+	frame: "request";
+	type: string;
+	id: string;
+	payload?: unknown;
+}
+
 interface WsResponseFrame {
 	frame: "response";
+	type?: string;
 	id?: string;
 	code?: number | string;
 	status?: number;
@@ -73,7 +82,55 @@ interface WsErrorFrame {
 	data?: unknown;
 }
 
-type WsInboundFrame = WsResponseFrame | WsStreamFrame | WsPushFrame | WsErrorFrame;
+type WsInboundFrame =
+	| WsInboundRequestFrame
+	| WsResponseFrame
+	| WsStreamFrame
+	| WsPushFrame
+	| WsErrorFrame;
+
+type WsOutboundResponseFrame = {
+	frame: "response";
+	type: string;
+	id: string;
+	code: number;
+	msg: string;
+	data?: unknown;
+};
+
+type WsOutboundErrorFrame = {
+	frame: "error";
+	type: string;
+	id?: string;
+	code: number;
+	msg: string;
+	data?: unknown;
+};
+
+type WsOutboundFrame =
+	| WsRequestFrame
+	| WsOutboundResponseFrame
+	| WsOutboundErrorFrame;
+
+export type WsInboundRequestHandler = (
+	payload: unknown,
+) => Promise<unknown> | unknown;
+
+export type UnsubscribeWsInboundRequestHandler = () => void;
+
+export class WsInboundRequestError extends Error {
+	readonly type: string;
+	readonly code: number;
+	readonly data?: unknown;
+
+	constructor(type: string, code: number, message: string, data?: unknown) {
+		super(message);
+		this.name = "WsInboundRequestError";
+		this.type = type;
+		this.code = code;
+		this.data = data;
+	}
+}
 
 type PendingRequest = {
 	resolve: (value: ApiResponse) => void;
@@ -323,6 +380,11 @@ function buildWsUrl(accessToken = ""): string {
 	if (deviceId) {
 		url.searchParams.set("deviceId", deviceId);
 	}
+	url.searchParams.set("source", "WebClient");
+	const surfaceId = getClientSurfaceId();
+	if (surfaceId) {
+		url.searchParams.set("surfaceId", surfaceId);
+	}
 	return url.toString();
 }
 
@@ -389,6 +451,12 @@ export class WsClient {
 	private status: WsConnectionStatus = "disconnected";
 	private readonly pendingRequests = new Map<string, PendingRequest>();
 	private readonly activeStreams = new Map<string, ActiveStream>();
+	private readonly inboundRequestHandlers = new Map<
+		string,
+		WsInboundRequestHandler
+	>();
+	private readonly seenInboundRequestIds = new Set<string>();
+	private inboundRequestGeneration = 0;
 	private onStatusChange?: (status: WsConnectionStatus) => void;
 	private onPush?: (frame: WsPushFrame) => void;
 	private readonly connectTimeoutMs: number;
@@ -456,6 +524,30 @@ export class WsClient {
 		}
 	}
 
+	registerInboundRequestHandler(
+		type: string,
+		handler: WsInboundRequestHandler,
+	): UnsubscribeWsInboundRequestHandler {
+		const normalizedType = String(type || "").trim();
+		if (!normalizedType) {
+			throw new Error("WebSocket inbound request type is required");
+		}
+		if (typeof handler !== "function") {
+			throw new Error("WebSocket inbound request handler is required");
+		}
+		if (this.inboundRequestHandlers.has(normalizedType)) {
+			throw new Error(
+				`WebSocket inbound request handler already registered: ${normalizedType}`,
+			);
+		}
+		this.inboundRequestHandlers.set(normalizedType, handler);
+		return () => {
+			if (this.inboundRequestHandlers.get(normalizedType) === handler) {
+				this.inboundRequestHandlers.delete(normalizedType);
+			}
+		};
+	}
+
 	connect(): Promise<void> {
 		if (this.disposed) {
 			return Promise.reject(this.createDisposedError());
@@ -478,6 +570,8 @@ export class WsClient {
 		this.clearReconnectTimer();
 		this.clearHealthCheckTimer();
 		this.cleanupPending(new WsClientDisconnectedError());
+		this.inboundRequestGeneration += 1;
+		this.seenInboundRequestIds.clear();
 
 		if (this.socket) {
 			try {
@@ -1012,6 +1106,11 @@ export class WsClient {
 			handleFinalUnauthorized("ws");
 		}
 
+		if (frame.frame === "request") {
+			void this.handleInboundRequest(frame);
+			return;
+		}
+
 		if (frame.frame === "response") {
 			const pending = frame.id ? this.pendingRequests.get(frame.id) : null;
 			if (!pending || !frame.id) {
@@ -1075,6 +1174,8 @@ export class WsClient {
 
 	private readonly handleClose = (event?: CloseEvent) => {
 		this.clearHealthCheckTimer();
+		this.inboundRequestGeneration += 1;
+		this.seenInboundRequestIds.clear();
 		this.socket?.removeEventListener("message", this.handleMessage);
 		this.socket?.removeEventListener("close", this.handleClose);
 		this.socket?.removeEventListener("error", this.handleSocketError);
@@ -1114,7 +1215,105 @@ export class WsClient {
 		}
 	};
 
+	private async handleInboundRequest(
+		frame: WsInboundRequestFrame,
+	): Promise<void> {
+		const id = typeof frame.id === "string" ? frame.id.trim() : "";
+		const type = typeof frame.type === "string" ? frame.type.trim() : "";
+		if (!id) {
+			this.trySendOutboundFrame({
+				frame: "error",
+				type: "invalid_request",
+				code: 400,
+				msg: "id is required",
+			});
+			return;
+		}
+		if (this.seenInboundRequestIds.has(id)) {
+			this.trySendOutboundFrame({
+				frame: "error",
+				type: "duplicate_id",
+				id,
+				code: 409,
+				msg: "request id was already used on this connection",
+			});
+			return;
+		}
+		this.seenInboundRequestIds.add(id);
+		if (!type) {
+			this.trySendOutboundFrame({
+				frame: "error",
+				type: "invalid_request",
+				id,
+				code: 400,
+				msg: "type is required",
+			});
+			return;
+		}
+		const handler = this.inboundRequestHandlers.get(type);
+		if (!handler) {
+			this.trySendOutboundFrame({
+				frame: "error",
+				type: "unknown_request_type",
+				id,
+				code: 404,
+				msg: `unknown request type: ${type}`,
+			});
+			return;
+		}
+		const generation = this.inboundRequestGeneration;
+		try {
+			const data = await handler(frame.payload);
+			if (generation !== this.inboundRequestGeneration) {
+				return;
+			}
+			this.trySendOutboundFrame({
+				frame: "response",
+				type,
+				id,
+				code: 0,
+				msg: "success",
+				...(data === undefined ? {} : { data }),
+			});
+		} catch (error) {
+			if (generation !== this.inboundRequestGeneration) {
+				return;
+			}
+			const requestError =
+				error instanceof WsInboundRequestError
+					? error
+					: new WsInboundRequestError(
+							"internal_error",
+							500,
+							"WebClient action request failed",
+						);
+			this.trySendOutboundFrame({
+				frame: "error",
+				type: requestError.type,
+				id,
+				code: requestError.code,
+				msg: requestError.message,
+				...(requestError.data === undefined
+					? {}
+					: { data: requestError.data }),
+			});
+		}
+	}
+
 	private sendFrame(frame: WsRequestFrame): void {
+		this.sendOutboundFrame(frame);
+	}
+
+	private trySendOutboundFrame(frame: WsOutboundFrame): boolean {
+		try {
+			this.sendOutboundFrame(frame);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	private sendOutboundFrame(frame: WsOutboundFrame): void {
 		if (this.disposed) {
 			throw this.createDisposedError();
 		}

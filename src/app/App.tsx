@@ -43,12 +43,14 @@ import enUS from "antd/locale/en_US";
 import { BtwProvider } from "@/features/btw/components/BtwProvider";
 import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
+import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
 
 const BaseShell = () => {
   useDesktopRouteChange();
+  useWebClientActionRuntime();
   const location = useLocation();
   const { dispatch, stateRef } = useAppContext();
   const { locale, setLocale } = useI18n();

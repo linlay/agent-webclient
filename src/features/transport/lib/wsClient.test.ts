@@ -4,6 +4,7 @@ import {
 	describeWsConnectionFailure,
 	WsClient,
 	WsClientDisconnectedError,
+	WsInboundRequestError,
 	WsClientRequestTimeoutError,
 	type WsConnectionStatus,
 } from "@/features/transport/lib/wsClient";
@@ -12,8 +13,12 @@ import {
 	setAuthCoordinatorNavigationForTests,
 } from "@/shared/data/auth/authCoordinator";
 
-jest.mock("@/features/transport/lib/clientDeviceId", () => ({
+jest.mock("@/shared/data/clientDeviceId", () => ({
 	getClientDeviceId: () => "device-test",
+}));
+
+jest.mock("@/shared/data/clientSurfaceId", () => ({
+	getClientSurfaceId: () => "surface-test",
 }));
 
 type Listener = (event?: any) => void;
@@ -109,6 +114,8 @@ function expectSocketUrl(socket: MockWebSocket, token = ""): void {
 	);
 	expect(url.searchParams.get("token") || "").toBe(token);
 	expect(url.searchParams.get("deviceId")).toBe("device-test");
+	expect(url.searchParams.get("source")).toBe("WebClient");
+	expect(url.searchParams.get("surfaceId")).toBe("surface-test");
 }
 
 describe("WsClient", () => {
@@ -286,6 +293,224 @@ describe("WsClient", () => {
 			code: 0,
 			data: { items: ["agent-a"] },
 		});
+	});
+
+	it("handles inbound requests and returns a flat response with the same id and type", async () => {
+		const client = createClient();
+		const handler = jest.fn().mockReturnValue({
+			applied: true,
+			sidebar: "right",
+			open: true,
+			tab: "debug",
+		});
+		client.registerInboundRequestHandler(
+			"webclient.sidebar.setState",
+			handler,
+		);
+		const connected = client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await connected;
+
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: "webclient.sidebar.setState",
+				id: "wsa-1",
+				payload: {
+					sidebar: "right",
+					open: true,
+					tab: "debug",
+				},
+			}),
+		);
+		await flushMicrotasks();
+
+		expect(handler).toHaveBeenCalledWith({
+			sidebar: "right",
+			open: true,
+			tab: "debug",
+		});
+		expect(JSON.parse(socket.sent[0])).toEqual({
+			frame: "response",
+			type: "webclient.sidebar.setState",
+			id: "wsa-1",
+			code: 0,
+			msg: "success",
+			data: {
+				applied: true,
+				sidebar: "right",
+				open: true,
+				tab: "debug",
+			},
+		});
+	});
+
+	it("rejects unknown and duplicate inbound request ids", async () => {
+		let resolveHandler: ((value: unknown) => void) | undefined;
+		const client = createClient();
+		client.registerInboundRequestHandler(
+			"webclient.sidebar.setState",
+			() =>
+				new Promise((resolve) => {
+					resolveHandler = resolve;
+				}),
+		);
+		const connected = client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await connected;
+
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: "webclient.unknown",
+				id: "wsa-unknown",
+				payload: {},
+			}),
+		);
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: "webclient.sidebar.setState",
+				id: "wsa-duplicate",
+				payload: { sidebar: "right", open: true },
+			}),
+		);
+		await flushMicrotasks();
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: "webclient.sidebar.setState",
+				id: "wsa-duplicate",
+				payload: { sidebar: "right", open: true },
+			}),
+		);
+		await flushMicrotasks();
+
+		expect(JSON.parse(socket.sent[0])).toMatchObject({
+			frame: "error",
+			type: "unknown_request_type",
+			id: "wsa-unknown",
+			code: 404,
+		});
+		expect(JSON.parse(socket.sent[1])).toMatchObject({
+			frame: "error",
+			type: "duplicate_id",
+			id: "wsa-duplicate",
+			code: 409,
+		});
+
+		resolveHandler?.({ applied: true });
+		await flushMicrotasks();
+		expect(JSON.parse(socket.sent[2])).toMatchObject({
+			frame: "response",
+			type: "webclient.sidebar.setState",
+			id: "wsa-duplicate",
+			code: 0,
+		});
+
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: "webclient.sidebar.setState",
+				id: "wsa-duplicate",
+				payload: { sidebar: "right", open: false },
+			}),
+		);
+		await flushMicrotasks();
+		expect(JSON.parse(socket.sent[3])).toMatchObject({
+			frame: "error",
+			type: "duplicate_id",
+			id: "wsa-duplicate",
+			code: 409,
+		});
+	});
+
+	it("rejects malformed inbound request identifiers", async () => {
+		const client = createClient();
+		const connected = client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await connected;
+
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: 42,
+				id: "wsa-malformed",
+				payload: {},
+			}),
+		);
+		await flushMicrotasks();
+
+		expect(JSON.parse(socket.sent[0])).toEqual({
+			frame: "error",
+			type: "invalid_request",
+			id: "wsa-malformed",
+			code: 400,
+			msg: "type is required",
+		});
+	});
+
+	it("returns handler business errors and suppresses results after disconnect", async () => {
+		const client = createClient();
+		let resolvePending: ((value: unknown) => void) | undefined;
+		client.registerInboundRequestHandler(
+			"webclient.invalid",
+			() => {
+				throw new WsInboundRequestError(
+					"invalid_request",
+					400,
+					"payload is invalid",
+					{ field: "sidebar" },
+				);
+			},
+		);
+		client.registerInboundRequestHandler(
+			"webclient.pending",
+			() =>
+				new Promise((resolve) => {
+					resolvePending = resolve;
+				}),
+		);
+		const connected = client.connect();
+		const socket = MockWebSocket.instances[0];
+		socket.open();
+		await connected;
+
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: "webclient.invalid",
+				id: "wsa-invalid",
+				payload: {},
+			}),
+		);
+		await flushMicrotasks();
+		expect(JSON.parse(socket.sent[0])).toEqual({
+			frame: "error",
+			type: "invalid_request",
+			id: "wsa-invalid",
+			code: 400,
+			msg: "payload is invalid",
+			data: { field: "sidebar" },
+		});
+
+		socket.message(
+			JSON.stringify({
+				frame: "request",
+				type: "webclient.pending",
+				id: "wsa-pending",
+				payload: {},
+			}),
+		);
+		await flushMicrotasks();
+		socket.close(1000, "page closed");
+		resolvePending?.({ applied: true });
+		await flushMicrotasks();
+
+		expect(socket.sent).toHaveLength(1);
 	});
 
 	it("refreshes a missing token before opening a websocket", async () => {

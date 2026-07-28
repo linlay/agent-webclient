@@ -3,6 +3,13 @@ import { WsClient, type WsClientOptions } from "@/features/transport/lib/wsClien
 let wsClient: WsClient | null = null;
 let wsClientAccessToken = "";
 let pendingDestroyTimer: ReturnType<typeof setTimeout> | null = null;
+const wsClientListeners = new Set<(client: WsClient | null) => void>();
+
+function notifyWsClientListeners(): void {
+	for (const listener of wsClientListeners) {
+		listener(wsClient);
+	}
+}
 
 function clearPendingDestroy(): void {
 	if (!pendingDestroyTimer) {
@@ -39,6 +46,7 @@ export function initWsClient(options: WsClientOptions = {}): WsClient {
 
 	wsClient = new WsClient(syncedOptions);
 	wsClientAccessToken = accessToken;
+	notifyWsClientListeners();
 	return wsClient;
 }
 
@@ -66,6 +74,17 @@ export function getWsClientAccessToken(): string {
 	return wsClientAccessToken;
 }
 
+export function subscribeWsClient(
+	listener: (client: WsClient | null) => void,
+): () => void {
+	clearPendingDestroy();
+	wsClientListeners.add(listener);
+	listener(wsClient);
+	return () => {
+		wsClientListeners.delete(listener);
+	};
+}
+
 export function destroyWsClient(): void {
 	clearPendingDestroy();
 	if (wsClient) {
@@ -73,6 +92,7 @@ export function destroyWsClient(): void {
 	}
 	wsClient = null;
 	wsClientAccessToken = "";
+	notifyWsClientListeners();
 }
 
 export function scheduleDestroyWsClient(): void {

@@ -10,6 +10,13 @@ import {
   resetDesktopQueryContextBridgeForTests,
 } from '@/shared/data/desktop/desktopQueryContext';
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
+
+jest.mock("@/shared/data/clientSurfaceId", () => ({
+  getClientSurfaceId: () => "surface-test",
+}));
+jest.mock("@/shared/data/clientDeviceId", () => ({
+  getClientDeviceId: () => "device-test",
+}));
 import {
   buildResourceUrl,
   buildAdminSkillDownloadUrl,
@@ -1757,6 +1764,8 @@ describe('data client query payloads', () => {
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
       Authorization: 'Bearer bridge-token-sse',
       Accept: 'text/event-stream',
+      'X-Agent-WebClient-Device-Id': 'device-test',
+      'X-Agent-WebClient-Surface-Id': 'surface-test',
     });
   });
 

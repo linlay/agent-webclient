@@ -10,6 +10,7 @@ import {
 	type Chat,
 } from "@/app/state/types";
 import { dataEndpoints, ensureAccessToken } from "@/shared/data";
+import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import {
 	runOwnerPayload,
 	sameRunOwner,
@@ -1397,7 +1398,7 @@ export function useConversationWsRuntime(options: {
 	]);
 
 	useEffect(() => {
-		if (state.transportMode !== "ws") {
+		if (state.transportMode !== "ws" && isGatewayBackendMode()) {
 			requestWsDetachRun(
 				{
 					dispatch,
@@ -1457,7 +1458,9 @@ export function useConversationWsRuntime(options: {
 			);
 			activeAttachRef.current?.abort();
 			activeAttachRef.current = null;
-			scheduleDestroyWsClient();
+			if (isGatewayBackendMode()) {
+				scheduleDestroyWsClient();
+			}
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
 			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
 		};

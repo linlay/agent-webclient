@@ -29,6 +29,8 @@ import { t } from '@/shared/i18n';
 import { runOwnerPayload, type RunOwner } from '@/shared/data/runOwner';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
+import { getClientDeviceId } from "@/shared/data/clientDeviceId";
+import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
 import {
   formatPlatformErrorForDisplay,
   type PlatformError,
@@ -2710,6 +2712,12 @@ export function createQueryStream(
     headers: {
       Accept: 'text/event-stream',
       'Cache-Control': 'no-cache',
+      ...(isGatewayBackendMode()
+        ? {}
+        : {
+            "X-Agent-WebClient-Device-Id": getClientDeviceId(),
+            "X-Agent-WebClient-Surface-Id": getClientSurfaceId(),
+          }),
     },
     body: JSON.stringify(buildQueryPayload(options)),
     signal: options.signal,
