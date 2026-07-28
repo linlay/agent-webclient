@@ -179,11 +179,15 @@
 }
 
 .right-sidebar-tabs>.ant-tabs-nav {
+    height: 36px;
+    min-height: 36px;
     margin: 0;
 }
 
 .right-sidebar-tabs>.ant-tabs-nav .ant-tabs-nav-list {
-    padding: 8px 8px 0;
+    height: 36px;
+    box-sizing: border-box;
+    padding: 4px 8px 0;
 }
 
 .right-sidebar-tabs.ant-tabs-top>.ant-tabs-nav::before {
@@ -222,8 +226,10 @@
 }
 
 .right-sidebar-tabs.ant-tabs-small.ant-tabs-top>.ant-tabs-nav .ant-tabs-tab {
+    height: 28px;
     border-radius: 8px;
-    margin: 0 2px 10px;
+    margin: 0 2px 4px;
+    padding-block: 2px;
 }
 
 .right-sidebar-tabs.ant-tabs-top>.ant-tabs-nav .ant-tabs-tab-active:hover .ant-tabs-tab-remove {
