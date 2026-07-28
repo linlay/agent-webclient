@@ -20,20 +20,24 @@ type RightSidebarTabsKey = string;
 const RIGHT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:right-sidebar-width";
 const RIGHT_SIDEBAR_DEFAULT_WIDTH = 320;
 const RIGHT_SIDEBAR_MIN_WIDTH = 280;
-const RIGHT_SIDEBAR_MAX_WIDTH = Math.round(
-  (typeof window === "undefined" ? 1280 : window.innerWidth) / 2,
-);
 const RIGHT_SIDEBAR_MAIN_MIN_WIDTH = 420;
+const RIGHT_SIDEBAR_SSR_VIEWPORT_WIDTH = 1280;
 
-function clampRightSidebarWidth(width: number): number {
-  const viewportMax =
+function getRightSidebarMaxWidth(): number {
+  const viewportWidth =
     typeof window === "undefined"
-      ? RIGHT_SIDEBAR_MAX_WIDTH
-      : Math.max(
-          RIGHT_SIDEBAR_MIN_WIDTH,
-          window.innerWidth - RIGHT_SIDEBAR_MAIN_MIN_WIDTH,
-        );
-  const maxWidth = Math.min(RIGHT_SIDEBAR_MAX_WIDTH, viewportMax);
+      ? RIGHT_SIDEBAR_SSR_VIEWPORT_WIDTH
+      : window.innerWidth;
+  return Math.max(
+    RIGHT_SIDEBAR_MIN_WIDTH,
+    viewportWidth - RIGHT_SIDEBAR_MAIN_MIN_WIDTH,
+  );
+}
+
+function clampRightSidebarWidth(
+  width: number,
+  maxWidth = getRightSidebarMaxWidth(),
+): number {
   return Math.min(Math.max(width, RIGHT_SIDEBAR_MIN_WIDTH), maxWidth);
 }
 
@@ -47,11 +51,11 @@ function readStoredRightSidebarWidth(): number {
       RIGHT_SIDEBAR_WIDTH_STORAGE_KEY,
     );
     const parsed = stored ? Number.parseInt(stored, 10) : NaN;
-    return Number.isFinite(parsed)
-      ? clampRightSidebarWidth(parsed)
-      : RIGHT_SIDEBAR_DEFAULT_WIDTH;
+    return clampRightSidebarWidth(
+      Number.isFinite(parsed) ? parsed : RIGHT_SIDEBAR_DEFAULT_WIDTH,
+    );
   } catch {
-    return RIGHT_SIDEBAR_DEFAULT_WIDTH;
+    return clampRightSidebarWidth(RIGHT_SIDEBAR_DEFAULT_WIDTH);
   }
 }
 
@@ -122,6 +126,9 @@ export const RightSidebar: React.FC = () => {
   );
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
+  );
+  const [sidebarMaxWidth, setSidebarMaxWidth] = React.useState(
+    getRightSidebarMaxWidth,
   );
   const [tabRefreshKeys, setTabRefreshKeys] = React.useState<
     Record<string, number>
@@ -255,7 +262,11 @@ export const RightSidebar: React.FC = () => {
 
   React.useEffect(() => {
     const handleWindowResize = () => {
-      setSidebarWidth((width) => clampRightSidebarWidth(width));
+      const nextMaxWidth = getRightSidebarMaxWidth();
+      setSidebarMaxWidth(nextMaxWidth);
+      setSidebarWidth((width) =>
+        clampRightSidebarWidth(width, nextMaxWidth),
+      );
     };
 
     window.addEventListener("resize", handleWindowResize);
@@ -263,7 +274,9 @@ export const RightSidebar: React.FC = () => {
   }, []);
 
   const updateSidebarWidth = React.useCallback((width: number) => {
-    const nextWidth = clampRightSidebarWidth(width);
+    const nextMaxWidth = getRightSidebarMaxWidth();
+    const nextWidth = clampRightSidebarWidth(width, nextMaxWidth);
+    setSidebarMaxWidth(nextMaxWidth);
     setSidebarWidth(nextWidth);
     return nextWidth;
   }, []);
@@ -369,14 +382,14 @@ export const RightSidebar: React.FC = () => {
       } else if (event.key === "Home") {
         nextWidth = RIGHT_SIDEBAR_MIN_WIDTH;
       } else if (event.key === "End") {
-        nextWidth = RIGHT_SIDEBAR_MAX_WIDTH;
+        nextWidth = sidebarMaxWidth;
       }
 
       if (nextWidth === null) return;
       event.preventDefault();
       persistRightSidebarWidth(updateSidebarWidth(nextWidth));
     },
-    [sidebarWidth, updateSidebarWidth],
+    [sidebarMaxWidth, sidebarWidth, updateSidebarWidth],
   );
 
   const tabItems = React.useMemo<TabsProps["items"]>(() => {
@@ -507,7 +520,7 @@ export const RightSidebar: React.FC = () => {
         aria-label={t("rightSidebar.resize.ariaLabel")}
         aria-orientation="vertical"
         aria-valuemin={RIGHT_SIDEBAR_MIN_WIDTH}
-        aria-valuemax={RIGHT_SIDEBAR_MAX_WIDTH}
+        aria-valuemax={sidebarMaxWidth}
         aria-valuenow={sidebarWidth}
         role="separator"
         tabIndex={desktopSidebarVisible ? 0 : -1}

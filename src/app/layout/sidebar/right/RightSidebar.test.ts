@@ -160,6 +160,12 @@ describe("RightSidebar", () => {
     expect(html).not.toContain("debug tab");
   });
 
+  it("only reserves the minimum main-content width when sizing the sidebar", () => {
+    const html = renderRightSidebar();
+
+    expect(html).toContain('aria-valuemax="860"');
+  });
+
   it("renders the debug panel outside the tab list when enabled by env", () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DEBUG_PANEL_ENABLED: "true",
