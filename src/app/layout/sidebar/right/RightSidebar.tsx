@@ -1,7 +1,14 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { Dropdown, Flex, Tabs, Typography, type TabsProps } from "antd";
+import {
+  Dropdown,
+  Flex,
+  message,
+  Tabs,
+  Typography,
+  type TabsProps,
+} from "antd";
 import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
@@ -13,6 +20,7 @@ import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
+import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
 
 type RightSidebarTabsKey = string;
@@ -316,7 +324,14 @@ export const RightSidebar: React.FC = () => {
         });
       }
     },
-    [dispatch, state.chatId, discardBTW, previews, planningPreviews, webPreviews],
+    [
+      dispatch,
+      state.chatId,
+      discardBTW,
+      previews,
+      planningPreviews,
+      webPreviews,
+    ],
   );
 
   const handleRefreshWebTab = React.useCallback((key: string) => {
@@ -456,7 +471,15 @@ export const RightSidebar: React.FC = () => {
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="open_in_new" />
-            <Typography.Text ellipsis className="tw:!max-w-[100px]">
+            <Typography.Text
+              ellipsis={{
+                tooltip: {
+                  title: preview.title,
+                  placement: "right",
+                },
+              }}
+              className="tw:!max-w-[100px]"
+            >
               {preview.title}
             </Typography.Text>
           </Flex>
@@ -471,7 +494,15 @@ export const RightSidebar: React.FC = () => {
     }
 
     return items;
-  }, [hasBTWSession, previews, sourceDetail, planningPreviews, t, webPreviews, tabRefreshKeys]);
+  }, [
+    hasBTWSession,
+    previews,
+    sourceDetail,
+    planningPreviews,
+    t,
+    webPreviews,
+    tabRefreshKeys,
+  ]);
 
   const handleTabChange = React.useCallback(
     (key: string) => {
@@ -491,7 +522,10 @@ export const RightSidebar: React.FC = () => {
         });
       } else {
         setActivePanel(key as RightSidebarTabKey);
-        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: key as RightSidebarTabKey });
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: key as RightSidebarTabKey,
+        });
       }
     },
     [dispatch],
@@ -542,15 +576,25 @@ export const RightSidebar: React.FC = () => {
                     ? [
                         {
                           key: "refresh",
-                          label: "刷新",
+                          label: t("rightSidebar.web.contextMenu.refresh"),
                           onClick: () =>
                             handleRefreshWebTab(node.key as string),
+                        },
+                        {
+                          key: "copy",
+                          label: t("rightSidebar.web.contextMenu.copyUrl"),
+                          onClick: () => {
+                            const url = getWebUrlFromTabKey(node.key as string);
+                            copyText(url).then(() => {
+                              message.success(t("rightSidebar.copy.success"));
+                            });
+                          },
                         },
                       ]
                     : []),
                   {
                     key: "close",
-                    label: "关闭",
+                    label: t("rightSidebar.web.contextMenu.close"),
                     onClick: () => handleCloseTab(node.key as string),
                   },
                 ];
