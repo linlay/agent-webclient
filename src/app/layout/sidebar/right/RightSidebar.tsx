@@ -141,6 +141,9 @@ export const RightSidebar: React.FC = () => {
   const [tabRefreshKeys, setTabRefreshKeys] = React.useState<
     Record<string, number>
   >({});
+  const [tabFullscreenRequests, setTabFullscreenRequests] = React.useState<
+    Record<string, number>
+  >({});
 
   React.useEffect(() => {
     if (!state.rightSidebarOpen || !state.rightSidebarOpenTab) {
@@ -272,9 +275,7 @@ export const RightSidebar: React.FC = () => {
     const handleWindowResize = () => {
       const nextMaxWidth = getRightSidebarMaxWidth();
       setSidebarMaxWidth(nextMaxWidth);
-      setSidebarWidth((width) =>
-        clampRightSidebarWidth(width, nextMaxWidth),
-      );
+      setSidebarWidth((width) => clampRightSidebarWidth(width, nextMaxWidth));
     };
 
     window.addEventListener("resize", handleWindowResize);
@@ -500,6 +501,7 @@ export const RightSidebar: React.FC = () => {
         children: (
           <WebPreviewPanel
             refreshKey={tabRefreshKeys[tabKey] ?? 0}
+            fullscreenRequest={tabFullscreenRequests[tabKey] ?? 0}
             preview={preview}
           />
         ),
@@ -515,6 +517,7 @@ export const RightSidebar: React.FC = () => {
     t,
     webPreviews,
     tabRefreshKeys,
+    tabFullscreenRequests,
   ]);
 
   const handleTabChange = React.useCallback(
@@ -590,12 +593,14 @@ export const RightSidebar: React.FC = () => {
                         {
                           key: "refresh",
                           label: t("rightSidebar.web.contextMenu.refresh"),
+                          icon: <MaterialIcon name="refresh" className="tw:opacity-[0.5]" />,
                           onClick: () =>
                             handleRefreshWebTab(node.key as string),
                         },
                         {
                           key: "copy",
                           label: t("rightSidebar.web.contextMenu.copyUrl"),
+                          icon: <MaterialIcon name="content_copy" className="tw:opacity-[0.5]" />,
                           onClick: () => {
                             const url = getWebUrlFromTabKey(node.key as string);
                             copyText(url).then(() => {
@@ -603,11 +608,24 @@ export const RightSidebar: React.FC = () => {
                             });
                           },
                         },
+                        {
+                          key: "fullscreen",
+                          label: t("rightSidebar.web.contextMenu.fullscreen"),
+                          icon: <MaterialIcon name="crop_free" className="tw:opacity-[0.5]" />,
+                          onClick: () => {
+                            const tabKey = node.key as string;
+                            setTabFullscreenRequests((prev) => ({
+                              ...prev,
+                              [tabKey]: (prev[tabKey] ?? 0) + 1,
+                            }));
+                          },
+                        },
                       ]
                     : []),
                   {
                     key: "close",
                     label: t("rightSidebar.web.contextMenu.close"),
+                    icon: <MaterialIcon name="close" className="tw:opacity-[0.5]" />,
                     onClick: () => handleCloseTab(node.key as string),
                   },
                 ];

@@ -368,6 +368,7 @@ export const enUSMessages = {
   "rightSidebar.web.ariaLabel": "Web preview: {title}",
   "rightSidebar.web.contextMenu.refresh": "Refresh",
   "rightSidebar.web.contextMenu.copyUrl": "Copy URL",
+  "rightSidebar.web.contextMenu.fullscreen": "Full Screen",
   "rightSidebar.web.contextMenu.close": "Close",
   "rightSidebar.debug.empty": "No events",
   "rightSidebar.debug.openChat.agent": "Agent",

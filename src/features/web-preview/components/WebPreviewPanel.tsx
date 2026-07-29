@@ -5,6 +5,7 @@ import { useI18n } from "@/shared/i18n";
 interface WebPreviewPanelProps {
   preview: WebPreviewState;
   refreshKey?: number;
+  fullscreenRequest?: number;
 }
 
 const WEB_PREVIEW_PANEL_CLASS_NAME =
@@ -18,9 +19,11 @@ export const WEB_PREVIEW_IFRAME_SANDBOX =
 export const WebPreviewPanel: React.FC<WebPreviewPanelProps> = ({
   preview,
   refreshKey,
+  fullscreenRequest,
 }) => {
   const { t } = useI18n();
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const sectionRef = React.useRef<HTMLElement>(null);
   const prevRefreshKeyRef = React.useRef(refreshKey);
 
   React.useEffect(() => {
@@ -34,8 +37,21 @@ export const WebPreviewPanel: React.FC<WebPreviewPanelProps> = ({
     }
   }, [refreshKey, preview.url]);
 
+  React.useEffect(() => {
+    if (
+      fullscreenRequest !== undefined &&
+      fullscreenRequest > 0 &&
+      sectionRef.current
+    ) {
+      sectionRef.current.requestFullscreen().catch(() => {
+        // Fullscreen 可能被浏览器拒绝（如 sandbox iframe 内），静默忽略
+      });
+    }
+  }, [fullscreenRequest]);
+
   return (
     <section
+      ref={sectionRef}
       className={WEB_PREVIEW_PANEL_CLASS_NAME}
       aria-label={t("rightSidebar.web.ariaLabel", { title: preview.title })}
     >

@@ -368,6 +368,7 @@ export const zhCNMessages = {
   "rightSidebar.web.ariaLabel": "网页预览：{title}",
   "rightSidebar.web.contextMenu.refresh": "刷新",
   "rightSidebar.web.contextMenu.copyUrl": "复制 url",
+  "rightSidebar.web.contextMenu.fullscreen": "全屏",
   "rightSidebar.web.contextMenu.close": "关闭",
   "rightSidebar.debug.empty": "暂无事件",
   "rightSidebar.debug.openChat.agent": "智能体",
