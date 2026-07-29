@@ -4,6 +4,8 @@ import Style from "./index.module.css";
 export interface DotLoadingProps {
   /** 圆点颜色，支持 'default' | 'primary' 或自定义 CSS 颜色值 */
   color?: "default" | "primary" | string;
+  height?: React.CSSProperties["height"];
+  className?: string;
 }
 
 const colorMap: Record<string, string> = {
@@ -11,42 +13,36 @@ const colorMap: Record<string, string> = {
   primary: "var(--accent, #1677ff)",
 };
 
-export const DotLoading = memo<DotLoadingProps>(({ color = "default" }) => {
-  const resolvedColor = colorMap[color] ?? color;
+export const DotLoading = memo<DotLoadingProps>(
+  ({ color = "default", height = "18px", className }) => {
+    const resolvedColor = colorMap[color] ?? color;
 
-  return (
-    <span
-      className={Style.DotLoading}
-      style={{ color: resolvedColor }}
-      role="img"
-      aria-label="加载中"
-    >
-      <svg height="1em" viewBox="0 0 100 40" className={Style.Svg}>
-        {[0, 1, 2].map((i) => (
-          <rect
-            key={i}
-            fill="currentColor"
-            x={20 + i * 26}
-            y="16"
-            width="8"
-            height="8"
-            rx="2"
-          >
-            <animate
-              attributeName="y"
-              from="16"
-              to="16"
-              dur="2s"
-              begin={`${i * 0.2}s`}
-              repeatCount="indefinite"
-              values="16; 6; 26; 16; 16"
-              keyTimes="0; 0.1; 0.3; 0.4; 1"
-            />
-          </rect>
-        ))}
-      </svg>
-    </span>
-  );
-});
+    return (
+      <span
+        className={`${Style.DotLoading} ${className}`}
+        style={{ color: resolvedColor }}
+        role="img"
+        aria-label="加载中"
+      >
+        <svg height={height} viewBox="0 0 84 40" className={Style.Svg}>
+          {[0, 1, 2].map((i) => (
+            <circle key={i} fill="currentColor" cx={22 + i * 20} cy="22" r="6">
+              <animate
+                attributeName="cy"
+                from="22"
+                to="22"
+                dur="2s"
+                begin={`${i * 0.2}s`}
+                repeatCount="indefinite"
+                values="22; 12; 32; 22; 22"
+                keyTimes="0; 0.1; 0.3; 0.4; 1"
+              />
+            </circle>
+          ))}
+        </svg>
+      </span>
+    );
+  },
+);
 
 DotLoading.displayName = "DotLoading";
