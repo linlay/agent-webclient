@@ -176,27 +176,6 @@ describe("ToolPill helpers", () => {
 		},
 	);
 
-	it("shows modification failure when the file tool itself failed", () => {
-		const node = createToolNode({
-			id: "tool_kbase_failed",
-			kind: "tool",
-			ts: 100,
-			toolName: "file_edit",
-			status: "failed",
-			result: {
-				text: JSON.stringify({
-					hooks: [{ name: "kbase-index", status: "failed" }],
-				}),
-				isCode: false,
-			},
-		});
-
-		expect(resolveKbaseIndexSummary(node)).toEqual({
-			kind: "tool-failed",
-			messageKey: "timeline.toolPill.kbase.toolFailed",
-		});
-	});
-
 	it("uses the most severe recognized KBASE hook summary", () => {
 		const node = createToolNode({
 			id: "tool_kbase_priority",

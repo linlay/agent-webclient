@@ -54,16 +54,14 @@ export interface ToolPillRecord {
 export type KbaseIndexSummaryKind =
   | "success"
   | "skipped"
-  | "failed"
-  | "tool-failed";
+  | "failed";
 
 export interface KbaseIndexSummary {
   kind: KbaseIndexSummaryKind;
   messageKey:
     | "timeline.toolPill.kbase.success"
     | "timeline.toolPill.kbase.skipped"
-    | "timeline.toolPill.kbase.failed"
-    | "timeline.toolPill.kbase.toolFailed";
+    | "timeline.toolPill.kbase.failed";
 }
 
 interface ToolPillDurationOptions {
@@ -105,13 +103,6 @@ export function resolveKbaseIndexSummary(
   if (toolName !== "file_write" && toolName !== "file_edit") {
     return null;
   }
-  if (node.status === "failed" || node.status === "error") {
-    return {
-      kind: "tool-failed",
-      messageKey: "timeline.toolPill.kbase.toolFailed",
-    };
-  }
-
   const result = parseToolResultRecord(node.result);
   const hooks = Array.isArray(result?.hooks) ? result.hooks : [];
   let best: KbaseIndexSummary | null = null;
@@ -119,7 +110,6 @@ export function resolveKbaseIndexSummary(
     success: 1,
     skipped: 2,
     failed: 3,
-    "tool-failed": 4,
   };
   for (const hook of hooks) {
     if (!isRecord(hook) || hook.name !== "kbase-index") continue;

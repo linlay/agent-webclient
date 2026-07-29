@@ -1115,7 +1115,6 @@ export const enUSMessages = {
   "timeline.toolPill.kbase.failed": "File saved, but the knowledge base index update failed",
   "timeline.toolPill.kbase.skipped": "File saved, but it is excluded by the index configuration",
   "timeline.toolPill.kbase.success": "File saved and the knowledge base index was updated",
-  "timeline.toolPill.kbase.toolFailed": "Modification failed",
   "timeline.toolPill.noOutput": "(No output)",
   "timeline.toolPill.runTitle": "Run {index}",
   "timeline.toolPill.status.canceled": "Canceled",
