@@ -23,6 +23,7 @@ describe("WebPreviewPanel", () => {
 
     expect(html).toContain('src="https://www.baidu.com/"');
     expect(html).toContain(`sandbox="${WEB_PREVIEW_IFRAME_SANDBOX}"`);
+    expect(WEB_PREVIEW_IFRAME_SANDBOX).toContain("allow-downloads");
     expect(WEB_PREVIEW_IFRAME_SANDBOX).not.toContain("allow-top-navigation");
     expect(html).not.toContain("web-preview-toolbar");
   });

@@ -13,7 +13,7 @@ const WEB_PREVIEW_FRAME_CLASS_NAME =
   "web-preview-frame tw:min-h-0 tw:w-full tw:flex-1 tw:border-0 tw:bg-white";
 
 export const WEB_PREVIEW_IFRAME_SANDBOX =
-  "allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts";
+  "allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts";
 
 export const WebPreviewPanel: React.FC<WebPreviewPanelProps> = ({
   preview,
