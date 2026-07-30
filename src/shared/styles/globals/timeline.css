@@ -625,14 +625,6 @@
     overflow: hidden;
 }
 
-.attachment-card-timeline.is-file {
-    width: min(100%, 340px);
-}
-
-.attachment-card-timeline.attachment-card-compact.is-file {
-    width: min(100%, 260px);
-}
-
 .attachment-card-timeline.attachment-card-compact .attachment-card-file-shell {
     background: linear-gradient(180deg,
             rgba(255, 255, 255, 0.98),

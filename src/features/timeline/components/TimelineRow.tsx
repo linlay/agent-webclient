@@ -40,11 +40,8 @@ const TIMELINE_ROW_PLANNING_CLASS_NAME = `${TIMELINE_ROW_FLOW_CLASS_NAME} tw:my-
 const TIMELINE_USER_STACK_CLASS_NAME =
   "timeline-user-stack tw:flex tw:flex-col tw:items-end tw:gap-2";
 const TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME =
-  "timeline-user-attachments tw:w-full tw:items-end";
-const TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME =
-  "tw:flex tw:flex-col tw:gap-2.5";
-const TIMELINE_USER_ATTACHMENTS_MULTI_CLASS_NAME =
-  "is-multi tw:grid tw:grid-cols-[repeat(3,auto)] tw:gap-2";
+  "timeline-user-attachments tw:w-full tw:justify-end";
+const TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME = "tw:flex tw:gap-2.5";
 const TIMELINE_MARKER_CLASS_NAME =
   "timeline-marker tw:relative tw:min-h-4 tw:w-4";
 const NODE_ICON_BASE_CLASS_NAME =
@@ -299,9 +296,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
             <div
               className={[
                 TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME,
-                hasMultipleAttachments
-                  ? TIMELINE_USER_ATTACHMENTS_MULTI_CLASS_NAME
-                  : TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME,
+                TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME,
               ].join(" ")}
             >
               {attachmentItems.map((attachment, index) =>
