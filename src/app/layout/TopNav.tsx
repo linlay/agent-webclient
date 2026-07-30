@@ -76,9 +76,9 @@ const TOP_NAV_INNER_CLASS =
   "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center tw:justify-between tw:gap-3";
 const NAV_GROUP_CLASS = "nav-group tw:flex tw:items-center";
 const NAV_LEFT_CLASS =
-  "nav-group nav-left tw:flex tw:min-w-[150px] tw:items-center tw:justify-between tw:gap-3 tw:pl-3";
+  "nav-group nav-left tw:flex tw:w-[150px] tw:items-center tw:justify-between tw:gap-3 tw:pl-3";
 const NAV_CENTER_CLASS =
-  "nav-group nav-center tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:justify-center tw:max-[1279px]:flex-auto";
+  "nav-group nav-center tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:shrink-0";
 const CURRENT_WORKER_CARD_CLASS =
   "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-[7px]";
 const CURRENT_WORKER_NAME_CLASS =
