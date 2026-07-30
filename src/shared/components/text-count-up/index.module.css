@@ -2,11 +2,21 @@
   animation: charEnter 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
+.CharStatic {
+  opacity: 1;
+  animation: none;
+}
+
 .DigitList {
   transform: translateY(calc(var(--to-digit) * -1em));
   animation: digitCount var(--digit-duration) cubic-bezier(0.2, 0.8, 0.2, 1)
     both;
   animation-delay: var(--digit-delay);
+}
+
+.DigitListStatic {
+  transform: translateY(calc(var(--to-digit) * -1em));
+  animation: none;
 }
 
 @keyframes digitCount {
