@@ -990,6 +990,8 @@ function buildWsClient(
 		}
 		return normalized || currentStateToken();
 	};
+	let hasConnected = false;
+	let previousStatus: AppState["wsStatus"] = "disconnected";
 	return initWsClientImpl({
 		accessToken,
 		allowAnonymous: !appMode,
@@ -1001,6 +1003,13 @@ function buildWsClient(
 		},
 		onStatusChange: (status) => {
 			options.dispatch({ type: "SET_WS_STATUS", status });
+			if (status === "connected") {
+				if (hasConnected && previousStatus !== "connected") {
+					refreshCurrentChatAfterWsReconnect(options.stateRef.current);
+				}
+				hasConnected = true;
+			}
+			previousStatus = status;
 		},
 		onPush: (frame) => {
 			const wireType = readPushWireType(frame);
@@ -1189,6 +1198,29 @@ function buildWsClient(
 			options.handleEvent(liveEvent);
 		},
 	});
+}
+
+export function refreshCurrentChatAfterWsReconnect(state: AppState): void {
+	const chatId = String(state.chatId || "").trim();
+	const shouldRefresh = Boolean(
+		chatId
+		&& (
+			state.activeAwaiting
+			|| state.currentChatActiveRun
+			|| String(state.runId || "").trim()
+		)
+	);
+	if (
+		!shouldRefresh
+		|| typeof window === "undefined"
+		|| typeof window.dispatchEvent !== "function"
+		|| typeof CustomEvent !== "function"
+	) {
+		return;
+	}
+	window.dispatchEvent(new CustomEvent("agent:load-chat", {
+		detail: { chatId },
+	}));
 }
 
 export async function connectWsTransport(

@@ -1317,17 +1317,34 @@ describe('replayEvent tool migration', () => {
   });
 
   it('attaches from activeRun.lastSeq instead of replayed chat event seq', async () => {
-    const { actions } = renderChatActions();
+    const { actions, dispatch } = renderChatActions();
     getChat.mockResolvedValue({
       data: {
         firstAgentKey: 'askUser.demo',
         events: [
           { seq: 8, type: 'usage.snapshot', runId: 'run_1', chatId: 'chat-attach' },
+          {
+            seq: 9,
+            type: 'awaiting.ask',
+            runId: 'run_1',
+            awaitingId: 'await_1',
+            mode: 'question',
+            timestamp: EPOCH_MS,
+            questions: [{ id: 'q1', type: 'text', question: '继续吗？' }],
+          },
         ],
         activeRun: {
           runId: 'run_1',
           agentKey: 'askUser.demo',
+          state: 'WAITING_SUBMIT',
           lastSeq: 31,
+        },
+        awaiting: {
+          awaitingId: 'await_1',
+          runId: 'run_1',
+          mode: 'question',
+          status: 'awaiting',
+          createdAt: EPOCH_MS,
         },
         runs: [],
       },
@@ -1347,6 +1364,21 @@ describe('replayEvent tool migration', () => {
         },
       }),
     );
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BATCH_UPDATE',
+      updates: expect.objectContaining({
+        currentChatActiveRun: expect.objectContaining({
+          runId: 'run_1',
+          state: 'WAITING_SUBMIT',
+          lastSeq: 31,
+        }),
+        activeAwaiting: expect.objectContaining({
+          runId: 'run_1',
+          awaitingId: 'await_1',
+          mode: 'question',
+        }),
+      }),
+    }));
   });
 
   it('hydrates the main chat active run from /api/chat before attach completes', async () => {

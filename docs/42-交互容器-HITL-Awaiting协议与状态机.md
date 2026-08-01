@@ -24,6 +24,8 @@ HITL 由 awaiting ask/answer 事件驱动，前端支持 question、approval、f
 
 Submit 收到 HTTP 409 `awaiting_expired`、`awaiting_interrupted`、`already_resolved`，或旧 Platform 的 `unknown awaitingId` 文案后，会清理 submit tracker 和本地 awaiting、停止伪 streaming、清空 abort controller，并重新触发 `agent:load-chat`。提示分别为“已超时/失效”“服务已重启，请重新发起”“已处理”；结构化错误码优先于文案 fallback。
 
+跨重启恢复的 question/plan 采用“先恢复观察、再允许提交”的对称模型：只有 `/api/chat.awaiting` 与同一 `runId` 的 `activeRun(state:"WAITING_SUBMIT")` 同时存在时，前端既恢复交互卡，又在 submit 前主动 attach。`activeRun.lastSeq` 是 replay 覆盖边界；submit 的 `continued:true` 不会触发补 attach。Platform 在同一 EventBus 继续发布时，前端按 `submitId` 去重 submit/answer，并沿原 observer 接收后续输出。timeout、interrupt、cancel 或 planning approve 关闭旧 run 后，统一清除 awaiting、streaming 与 `currentChatActiveRun`；planning approve 的新 execution run 仍通过正常 `run.started` 流程另行 attach。
+
 ## 边界与非目标
 
 - HITL 是前端交互协议消费，不定义后端审批规则。

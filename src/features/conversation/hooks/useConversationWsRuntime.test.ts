@@ -325,6 +325,61 @@ describe("connectWsTransport", () => {
 		expect(connect).toHaveBeenCalledTimes(1);
 	});
 
+	it("reloads the current observed chat after a websocket reconnect", async () => {
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			configurable: true,
+			value: { dispatchEvent },
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			configurable: true,
+			value: MockCustomEvent,
+		});
+		const connected = createConnectedWsClient();
+		const state = createState({
+			chatId: "chat_waiting",
+			runId: "run_waiting",
+			currentChatActiveRun: {
+				chatId: "chat_waiting",
+				runId: "run_waiting",
+				agentKey: "agent_alpha",
+				owner: { kind: "agent", agentKey: "agent_alpha" },
+				lastSeq: 29,
+			},
+		});
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			initWsClientImpl: connected.initWsClientImpl,
+		});
+
+		const onStatusChange = connected.initWsClientImpl.mock.calls[0]?.[0]?.onStatusChange;
+		onStatusChange?.("connected");
+		expect(dispatchEvent).not.toHaveBeenCalled();
+		onStatusChange?.("disconnected");
+		onStatusChange?.("connected");
+		onStatusChange?.("connected");
+
+		const reloads = dispatchEvent.mock.calls
+			.map(([event]) => event as { type?: string; detail?: unknown })
+			.filter((event) => event.type === "agent:load-chat");
+		expect(reloads).toEqual([expect.objectContaining({
+			detail: { chatId: "chat_waiting" },
+		})]);
+	});
+
 	it("skips query ws connect when no token is available", async () => {
 		const initWsClientImpl = jest.fn();
 		const destroyWsClientImpl = jest.fn();
