@@ -6,6 +6,7 @@ import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDispl
 import {
   createReplayState,
   normalizeStartNewConversationDetail,
+  reconcileReplayAwaiting,
   replayEvent,
   setReplayArtifacts,
   setReplayPlan,
@@ -1487,6 +1488,13 @@ describe('replayEvent tool migration', () => {
           runId: 'run_1',
           planningMode: true,
         },
+        awaiting: {
+          awaitingId: 'await_plan_1',
+          runId: 'run_1',
+          mode: 'planning',
+          status: 'awaiting',
+          createdAt: EPOCH_MS,
+        },
         runs: [],
       },
     });
@@ -1543,6 +1551,13 @@ describe('replayEvent tool migration', () => {
           runId: 'run_1',
           planningMode: true,
         },
+        awaiting: {
+          awaitingId: 'await_question_1',
+          runId: 'run_1',
+          mode: 'question',
+          status: 'awaiting',
+          createdAt: EPOCH_MS,
+        },
         runs: [],
       },
     });
@@ -1555,6 +1570,108 @@ describe('replayEvent tool migration', () => {
       enabled: false,
       persist: true,
     });
+  });
+
+  it('does not reactivate a historical ask when /api/chat has no authoritative awaiting', async () => {
+    const state = createInitialState();
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [
+          {
+            type: 'awaiting.ask',
+            runId: 'run_stale',
+            awaitingId: 'await_stale',
+            timestamp: EPOCH_MS,
+            mode: 'question',
+            questions: [{ id: 'q1', type: 'text', question: '已经失效的问题' }],
+          },
+        ],
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_stale_awaiting');
+
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BATCH_UPDATE',
+      updates: expect.objectContaining({
+        activeAwaiting: null,
+        pendingAwaitings: [],
+        events: expect.arrayContaining([
+          expect.objectContaining({ awaitingId: 'await_stale' }),
+        ]),
+      }),
+    }));
+  });
+
+  it('keeps the composer unlocked and records a diagnostic when authoritative awaiting does not match replay', async () => {
+    const state = createInitialState();
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        firstAgentKey: 'demo.coder',
+        events: [
+          {
+            type: 'awaiting.ask',
+            runId: 'run_1',
+            awaitingId: 'await_1',
+            timestamp: EPOCH_MS,
+            mode: 'question',
+            questions: [{ id: 'q1', type: 'text', question: '继续吗？' }],
+          },
+        ],
+        awaiting: {
+          awaitingId: 'await_other',
+          runId: 'run_1',
+          mode: 'question',
+          status: 'awaiting',
+          createdAt: EPOCH_MS,
+        },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_mismatched_awaiting');
+
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BATCH_UPDATE',
+      updates: expect.objectContaining({
+        activeAwaiting: null,
+        pendingAwaitings: [],
+      }),
+    }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'APPEND_DEBUG',
+      line: expect.stringContaining('[awaiting_contract_violation]'),
+    });
+  });
+
+  it('maps authoritative planning mode to the replay plan mode before matching', () => {
+    const rs = createReplayState();
+    replayEvent(rs, {
+      type: 'awaiting.ask',
+      runId: 'run_plan',
+      awaitingId: 'await_plan',
+      timestamp: EPOCH_MS,
+      mode: 'planning',
+      planning: { id: 'confirm' },
+    });
+
+    expect(reconcileReplayAwaiting(rs, {
+      awaitingId: 'await_plan',
+      runId: 'run_plan',
+      mode: 'planning',
+      status: 'awaiting',
+      createdAt: EPOCH_MS,
+    })).toEqual({ matched: true, diagnostic: '' });
+    expect(rs.activeAwaiting).toMatchObject({
+      awaitingId: 'await_plan',
+      runId: 'run_plan',
+      mode: 'plan',
+    });
+    expect(rs.pendingAwaitings).toEqual([]);
   });
 
   it('detaches the current active run before loading and attaching another chat', async () => {

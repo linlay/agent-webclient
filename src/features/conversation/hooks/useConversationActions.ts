@@ -21,7 +21,13 @@ import {
 import { resolveRunOwner } from '@/features/runs/lib/runOwner';
 import { resolveRunEditingMode } from '@/features/runs/lib/editingMode';
 import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
-import { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/conversation/lib/conversationReplay';
+import {
+  createReplayState,
+  reconcileReplayAwaiting,
+  replayEvent,
+  setReplayArtifacts,
+  setReplayPlan,
+} from '@/features/conversation/lib/conversationReplay';
 import {
   buildLoadedChatUsageSnapshot,
   normalizeChatArtifactItems,
@@ -36,7 +42,13 @@ import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/runs/li
  * then dispatching the complete result via BATCH_UPDATE.
  */
 export type { ReplayState } from '@/features/conversation/lib/conversationReplay';
-export { createReplayState, replayEvent, setReplayArtifacts, setReplayPlan } from '@/features/conversation/lib/conversationReplay';
+export {
+  createReplayState,
+  reconcileReplayAwaiting,
+  replayEvent,
+  setReplayArtifacts,
+  setReplayPlan,
+} from '@/features/conversation/lib/conversationReplay';
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object';
@@ -453,6 +465,8 @@ export function useConversationActions() {
           replayEvent(rs, evt);
         }
 
+        const awaitingReconciliation = reconcileReplayAwaiting(rs, chatData.awaiting);
+
         if (chatArtifacts !== undefined) {
           setReplayArtifacts(rs, chatArtifacts);
         }
@@ -483,6 +497,7 @@ export function useConversationActions() {
               timelineCounter: rs.timelineCounter,
               activeReasoningKey: rs.activeReasoningKey,
               activeAwaiting: rs.activeAwaiting,
+              pendingAwaitings: rs.pendingAwaitings,
               events: rs.events,
               debugEvents: rs.debugEvents,
               artifacts: rs.artifacts,
@@ -497,6 +512,12 @@ export function useConversationActions() {
             },
           });
         });
+        if (awaitingReconciliation.diagnostic) {
+          dispatch({
+            type: 'APPEND_DEBUG',
+            line: awaitingReconciliation.diagnostic,
+          });
+        }
         const replayHasContentTimelineText = hasContentTimelineTextInState(rs);
         if (activeRunId && !replayHasContentTimelineText) {
           for (const delayMs of ACTIVE_CHAT_REFRESH_DELAYS_MS) {

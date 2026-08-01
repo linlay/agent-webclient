@@ -83,6 +83,67 @@ export function createReplayState(): ReplayState {
   };
 }
 
+export interface AwaitingReplayReconciliation {
+  matched: boolean;
+  diagnostic: string;
+}
+
+function normalizeAuthoritativeAwaitingMode(value: unknown): ActiveAwaiting['mode'] | '' {
+  const mode = String(value || '').trim();
+  if (mode === 'planning') return 'plan';
+  if (mode === 'plan' || mode === 'question' || mode === 'approval' || mode === 'form') {
+    return mode;
+  }
+  return '';
+}
+
+/**
+ * `/api/chat.awaiting` is the sole authority for replayed, actionable HITL.
+ * Historical asks remain in the event/timeline collections, but cannot by
+ * themselves lock the composer after a reload.
+ */
+export function reconcileReplayAwaiting(
+  rs: ReplayState,
+  authoritative: unknown,
+): AwaitingReplayReconciliation {
+  if (authoritative == null) {
+    rs.activeAwaiting = null;
+    rs.pendingAwaitings = [];
+    return { matched: false, diagnostic: '' };
+  }
+
+  const record = typeof authoritative === 'object'
+    ? authoritative as Record<string, unknown>
+    : null;
+  const awaitingId = String(record?.awaitingId || '').trim();
+  const runId = String(record?.runId || '').trim();
+  const mode = normalizeAuthoritativeAwaitingMode(record?.mode);
+  const status = String(record?.status || '').trim();
+  const createdAt = readEpochMillis(record?.createdAt);
+  const key = `awaitingId=${awaitingId || '<empty>'}, runId=${runId || '<empty>'}, mode=${String(record?.mode || '<empty>')}, createdAt=${String(record?.createdAt ?? '<empty>')}`;
+
+  const candidates = [rs.activeAwaiting, ...rs.pendingAwaitings].filter(
+    (item): item is ActiveAwaiting => item != null,
+  );
+  const matched = status === 'awaiting' && awaitingId && runId && mode && createdAt !== undefined
+    ? candidates.find((item) => (
+        item.awaitingId === awaitingId
+        && item.runId === runId
+        && item.mode === mode
+      )) || null
+    : null;
+
+  rs.activeAwaiting = matched ? cloneActiveAwaiting(matched) : null;
+  rs.pendingAwaitings = [];
+  if (matched) {
+    return { matched: true, diagnostic: '' };
+  }
+  return {
+    matched: false,
+    diagnostic: `[awaiting_contract_violation] authoritative awaiting has no exact replay ask (${key}, status=${status || '<empty>'})`,
+  };
+}
+
 function clonePlan(plan: Plan | null): Plan | null {
   return plan
     ? {

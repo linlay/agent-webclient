@@ -285,6 +285,7 @@ export const enUSMessages = {
   "composer.attachments.viewRight": "View attachments on the right",
   "composer.awaiting.alreadyResolved": "This awaiting item was already submitted from another client.",
   "composer.awaiting.expired": "This action expired or is no longer valid, and the UI has been restored automatically.",
+  "composer.awaiting.interrupted": "The service restarted. Please start this action again.",
   "composer.awaiting.unmatched": "Awaiting submission did not match: {detail}",
   "confirmDialog.loading": "Generating questions...",
   "confirmDialog.validation.date": "Choose a valid date in {format} format.",

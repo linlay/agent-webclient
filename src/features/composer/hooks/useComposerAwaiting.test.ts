@@ -1,6 +1,7 @@
 import type { AppAction } from "@/app/state/AppContext";
 import { createInitialState } from "@/app/state/state";
 import type { ActiveAwaiting } from "@/app/state/types";
+import { ApiError } from "@/shared/data";
 import {
 	buildPlanDecisionPlanningModeAction,
 	resolveAwaitingSubmitAgentKey,
@@ -232,5 +233,153 @@ describe("submitComposerAwaiting", () => {
 				([event]) => (event as { type?: string }).type === "agent:attach-run",
 			),
 		).toHaveLength(0);
+	});
+
+	it.each([
+		["awaiting_expired", "composer.awaiting.expired", "warning"],
+		["awaiting_interrupted", "composer.awaiting.interrupted", "warning"],
+		["already_resolved", "composer.awaiting.alreadyResolved", "info"],
+	] as const)(
+		"clears and reloads chat for structured terminal code %s",
+		async (code, messageKey, messageMethod) => {
+			const dispatch = jest.fn<void, [AppAction]>();
+			const clearActiveAwaiting = jest.fn();
+			const dispatchEvent = jest.fn();
+			class MockCustomEvent {
+				type: string;
+				detail: unknown;
+
+				constructor(type: string, init?: { detail?: unknown }) {
+					this.type = type;
+					this.detail = init?.detail;
+				}
+			}
+			Object.defineProperty(globalThis, "window", {
+				configurable: true,
+				value: {
+					dispatchEvent,
+					location: { pathname: "/", search: "" },
+				},
+			});
+			Object.defineProperty(globalThis, "CustomEvent", {
+				configurable: true,
+				value: MockCustomEvent,
+			});
+			const info = jest.fn();
+			const warning = jest.fn();
+			const activeAwaiting: ActiveAwaiting = {
+				key: "run_1#await_1",
+				runId: "run_1",
+				awaitingId: "await_1",
+				agentKey: "agent_run",
+				timeout: null,
+				mode: "question",
+				questions: [],
+			};
+			const submitAwaitingImpl = jest.fn().mockRejectedValue(new ApiError(code, {
+				status: 409,
+				platformError: {
+					code,
+					category: "tool_interaction",
+					scope: "request",
+					status: 409,
+					retryable: false,
+					message: code,
+					diagnostics: null,
+					raw: null,
+					technicalText: code,
+				},
+			}));
+
+			await submitComposerAwaiting({
+				activeAwaiting,
+				clearActiveAwaiting,
+				dispatch,
+				message: { info, warning },
+				payload: {
+					runId: "run_1",
+					awaitingId: "await_1",
+					params: [],
+				},
+				state: {
+					...createInitialState(),
+					chatId: "chat_1",
+				},
+				t: (key) => key,
+				createSubmitId: () => "submit_test",
+				submitAwaitingImpl,
+			});
+
+			expect(clearActiveAwaiting).toHaveBeenCalledTimes(1);
+			expect(dispatch).toHaveBeenCalledWith({
+				type: "SET_AWAITING_RUNTIME",
+				activeAwaiting: null,
+				pendingAwaitings: [],
+			});
+			expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: false });
+			expect(dispatch).toHaveBeenCalledWith({ type: "SET_ABORT_CONTROLLER", controller: null });
+			expect(messageMethod === "info" ? info : warning).toHaveBeenCalledWith(messageKey);
+			expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
+				type: "agent:load-chat",
+				detail: { chatId: "chat_1" },
+			}));
+		},
+	);
+
+	it("keeps compatibility with the legacy unknown awaitingId error message", async () => {
+		const dispatch = jest.fn<void, [AppAction]>();
+		const clearActiveAwaiting = jest.fn();
+		const warning = jest.fn();
+		const dispatchEvent = jest.fn();
+		class MockCustomEvent {
+			type: string;
+			detail: unknown;
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		}
+		Object.defineProperty(globalThis, "window", {
+			configurable: true,
+			value: {
+				dispatchEvent,
+				location: { pathname: "/", search: "" },
+			},
+		});
+		Object.defineProperty(globalThis, "CustomEvent", {
+			configurable: true,
+			value: MockCustomEvent,
+		});
+
+		await submitComposerAwaiting({
+			activeAwaiting: {
+				key: "run_1#await_1",
+				runId: "run_1",
+				awaitingId: "await_1",
+				agentKey: "agent_run",
+				timeout: null,
+				mode: "question",
+				questions: [],
+			},
+			clearActiveAwaiting,
+			dispatch,
+			message: { info: jest.fn(), warning },
+			payload: { runId: "run_1", awaitingId: "await_1", params: [] },
+			state: { ...createInitialState(), chatId: "chat_1" },
+			t: (key) => key,
+			createSubmitId: () => "submit_test",
+			submitAwaitingImpl: jest.fn().mockRejectedValue(new Error("unknown awaitingId")),
+		});
+
+		expect(warning).toHaveBeenCalledWith("composer.awaiting.expired");
+		expect(clearActiveAwaiting).toHaveBeenCalledTimes(1);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "SET_AWAITING_RUNTIME",
+			activeAwaiting: null,
+			pendingAwaitings: [],
+		});
+		expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
+			type: "agent:load-chat",
+		}));
 	});
 });

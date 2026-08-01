@@ -285,6 +285,7 @@ export const zhCNMessages = {
   "composer.attachments.viewRight": "查看右侧附件",
   "composer.awaiting.alreadyResolved": "已被其他终端提交",
   "composer.awaiting.expired": "该操作已过期或失效，已自动恢复",
+  "composer.awaiting.interrupted": "服务已重启，请重新发起该操作",
   "composer.awaiting.unmatched": "提交未命中：{detail}",
   "confirmDialog.loading": "问题生成中...",
   "confirmDialog.validation.date": "请选择有效日期，格式为 {format}",

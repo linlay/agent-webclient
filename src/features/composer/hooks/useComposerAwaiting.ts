@@ -7,7 +7,7 @@ import type {
   AppState,
   FormActiveAwaiting,
 } from "@/app/state/types";
-import { submitAwaiting } from "@/shared/data";
+import { ApiError, submitAwaiting } from "@/shared/data";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
@@ -59,6 +59,50 @@ interface SubmitComposerAwaitingInput {
   t: AwaitingSubmitTranslator;
   createSubmitId?: () => string;
   submitAwaitingImpl?: typeof submitAwaiting;
+}
+
+type AwaitingTerminalSubmitCode =
+	| "awaiting_expired"
+	| "awaiting_interrupted"
+	| "already_resolved"
+	| "unknown_awaiting";
+
+function readAwaitingTerminalSubmitCode(
+	error: unknown,
+): AwaitingTerminalSubmitCode | "" {
+	const structuredCode = error instanceof ApiError
+		? String(error.platformError?.code || "").trim()
+		: "";
+	if (
+		structuredCode === "awaiting_expired"
+		|| structuredCode === "awaiting_interrupted"
+		|| structuredCode === "already_resolved"
+		|| structuredCode === "unknown_awaiting"
+	) {
+		return structuredCode;
+	}
+	if (
+		error instanceof Error
+		&& /unknown awaiting|unknown_awaiting|awaiting.*not found|awaiting.*expired/i.test(error.message)
+	) {
+		return "unknown_awaiting";
+	}
+	return "";
+}
+
+function refreshAwaitingChat(chatId: string): void {
+	const normalizedChatId = String(chatId || "").trim();
+	if (
+		!normalizedChatId
+		|| typeof window === "undefined"
+		|| typeof window.dispatchEvent !== "function"
+		|| typeof CustomEvent !== "function"
+	) {
+		return;
+	}
+	window.dispatchEvent(new CustomEvent("agent:load-chat", {
+		detail: { chatId: normalizedChatId },
+	}));
 }
 
 export function resolveAwaitingSubmitAgentKey(input: {
@@ -171,6 +215,14 @@ export async function submitComposerAwaiting(
         clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
         void message.info(t("composer.awaiting.alreadyResolved"));
         clearActiveAwaiting();
+        dispatch({
+          type: "SET_AWAITING_RUNTIME",
+          activeAwaiting: null,
+          pendingAwaitings: [],
+        });
+        dispatch({ type: "SET_STREAMING", streaming: false });
+        dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+        refreshAwaitingChat(state.chatId);
         return response;
       }
       throw new Error(
@@ -196,19 +248,27 @@ export async function submitComposerAwaiting(
     });
     return response;
   } catch (error) {
-    const isStaleAwaiting =
-      error instanceof Error &&
-      /unknown awaiting|awaiting.*not found|awaiting.*expired/i.test(
-        error.message,
-      );
+    const terminalCode = readAwaitingTerminalSubmitCode(error);
     if (trackedRunId && trackedAwaitingId) {
       clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
     }
-    if (isStaleAwaiting) {
-      void message.warning(t("composer.awaiting.expired"));
+    if (terminalCode) {
+      if (terminalCode === "already_resolved") {
+        void message.info(t("composer.awaiting.alreadyResolved"));
+      } else if (terminalCode === "awaiting_interrupted") {
+        void message.warning(t("composer.awaiting.interrupted"));
+      } else {
+        void message.warning(t("composer.awaiting.expired"));
+      }
       clearActiveAwaiting();
+      dispatch({
+        type: "SET_AWAITING_RUNTIME",
+        activeAwaiting: null,
+        pendingAwaitings: [],
+      });
       dispatch({ type: "SET_STREAMING", streaming: false });
       dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+      refreshAwaitingChat(state.chatId);
       return;
     }
     return error;

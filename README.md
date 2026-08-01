@@ -45,7 +45,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 ### 人在回路交互
 
-支持 question、approval、form、plan 四类 HITL 场景。智能体运行到关键节点时，可以向用户提问、请求审批、展示表单或发起计划确认；用户提交后，结果会回到运行流并在时间轴中回显。
+支持 question、approval、form、plan 四类 HITL 场景。智能体运行到关键节点时，可以向用户提问、请求审批、展示表单或发起计划确认；用户提交后，结果会回到运行流并在时间轴中回显。历史加载时以 Platform 返回的顶层 awaiting 为唯一可提交状态，孤立旧 ask 不会锁住输入框。
 
 ![人在回路交互](docs/images/screenshots/hitl-awaiting.png)
 
