@@ -92,6 +92,7 @@ import {
   downloadAdminSkillFile,
   fetchAdminSkillIcon,
   getAdminSkillDetail,
+  importAdminSkill,
   mkdirAdminSkillFile,
   renameAdminSkillFile,
   uploadAdminSkillFile,
@@ -995,6 +996,22 @@ describe('data client query payloads', () => {
     expect(formData.get('path')).toBe('assets/demo.txt');
     expect(formData.get('overwrite')).toBe('true');
     expect(formData.get('file')).toBe(blob);
+  });
+
+  it('imports a complete skill ZIP with multipart form data', async () => {
+    const archive = new File(['zip'], 'demo-skill.zip', { type: 'application/zip' });
+
+    await importAdminSkill({ key: 'demo-skill', file: archive });
+
+    const [importUrl, importOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(importUrl).toBe('/api/admin/skills/import');
+    expect(importOptions.method).toBe('POST');
+    expect(importOptions.headers).toEqual({});
+    expect(importOptions.body).toBeInstanceOf(FormData);
+
+    const formData = importOptions.body as FormData;
+    expect(formData.get('key')).toBe('demo-skill');
+    expect(formData.get('file')).toBe(archive);
   });
 
   it('loads global model options', async () => {

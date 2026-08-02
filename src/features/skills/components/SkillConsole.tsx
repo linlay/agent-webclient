@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Alert, Input, Modal, Spin } from "antd";
+import { Alert, Input, Modal, Spin, Tabs } from "antd";
 import type { MenuProps } from "antd";
 import {
   createAdminSkillFile,
@@ -12,6 +12,7 @@ import {
   getAdminSkillDetail,
   getAdminSource,
   getAdminSkills,
+  importAdminSkill,
   mkdirAdminSkillFile,
   renameAdminSkillFile,
   updateAdminSource,
@@ -352,6 +353,361 @@ type SkillConsoleTranslate = (
   key: string,
   params?: Record<string, unknown>,
 ) => string;
+
+type SkillCreateMode = "direct" | "zip";
+type SkillKeyValidationCode = "" | "required" | "invalid" | "exists";
+type SkillArchiveFileValidationCode = "" | "type" | "empty" | "size";
+
+export const ADMIN_SKILL_IMPORT_MAX_BYTES = 32 * 1024 * 1024;
+
+export interface SkillImportDiagnostic {
+  severity?: string;
+  code?: string;
+  message: string;
+  sourcePath?: string;
+}
+
+export function validateNewSkillKey(
+  rawKey: string,
+  existingKeys: readonly string[] = [],
+): SkillKeyValidationCode {
+  const key = rawKey.trim();
+  if (!key) return "required";
+  if (
+    key !== rawKey ||
+    key === "." ||
+    key === ".." ||
+    key.startsWith(".") ||
+    key.toLowerCase().endsWith(".example") ||
+    key.includes("/") ||
+    key.includes("\\") ||
+    key.includes("\0")
+  ) {
+    return "invalid";
+  }
+  if (existingKeys.some((candidate) => candidate.toLowerCase() === key.toLowerCase())) {
+    return "exists";
+  }
+  return "";
+}
+
+export function suggestSkillKeyFromArchiveName(filename: string): string {
+  const name = filename.trim().split(/[\\/]/).pop() || "";
+  return name.replace(/\.zip$/i, "").trim();
+}
+
+export function validateSkillArchiveFile(
+  file: Pick<File, "name" | "size"> | null,
+): SkillArchiveFileValidationCode {
+  if (!file || !file.name.toLowerCase().endsWith(".zip")) return "type";
+  if (file.size <= 0) return "empty";
+  if (file.size > ADMIN_SKILL_IMPORT_MAX_BYTES) return "size";
+  return "";
+}
+
+export function skillImportDiagnostics(error: unknown): SkillImportDiagnostic[] {
+  const data = (error as { data?: unknown } | null)?.data;
+  if (!data || typeof data !== "object") return [];
+  const errorData = (data as { error?: unknown }).error;
+  if (!errorData || typeof errorData !== "object") return [];
+  const diagnostics = (errorData as { diagnostics?: unknown }).diagnostics;
+  if (!Array.isArray(diagnostics)) return [];
+  return diagnostics.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const diagnostic = item as Record<string, unknown>;
+    const message = String(diagnostic.message || "").trim();
+    if (!message) return [];
+    return [{
+      severity: String(diagnostic.severity || "").trim() || undefined,
+      code: String(diagnostic.code || "").trim() || undefined,
+      message,
+      sourcePath: String(diagnostic.sourcePath || "").trim() || undefined,
+    }];
+  });
+}
+
+interface SkillCreateModalProps {
+  open: boolean;
+  existingKeys: readonly string[];
+  t: SkillConsoleTranslate;
+  onCancel: () => void;
+  onDirectCreate: (key: string, name: string) => Promise<boolean>;
+  onZipImport: (key: string, file: File) => Promise<boolean>;
+}
+
+export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
+  open,
+  existingKeys,
+  t,
+  onCancel,
+  onDirectCreate,
+  onZipImport,
+}) => {
+  const [mode, setMode] = useState<SkillCreateMode>("direct");
+  const [directKey, setDirectKey] = useState("");
+  const [directName, setDirectName] = useState("");
+  const [zipKey, setZipKey] = useState("");
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [keyTouched, setKeyTouched] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [archiveFileError, setArchiveFileError] = useState("");
+  const [serverKeyError, setServerKeyError] = useState("");
+  const [diagnostics, setDiagnostics] = useState<SkillImportDiagnostic[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setMode("direct");
+    setDirectKey("");
+    setDirectName("");
+    setZipKey("");
+    setZipFile(null);
+    setKeyTouched(false);
+    setDragActive(false);
+    setSubmitting(false);
+    setSubmitError("");
+    setArchiveFileError("");
+    setServerKeyError("");
+    setDiagnostics([]);
+  }, [open]);
+
+  const currentKey = mode === "direct" ? directKey : zipKey;
+  const keyValidation = validateNewSkillKey(currentKey, existingKeys);
+  const keyError = serverKeyError || (
+    keyValidation && (keyTouched || Boolean(currentKey))
+      ? t(`skillConsole.create.keyError.${keyValidation}`)
+      : ""
+  );
+  const canSubmit = !keyValidation && (mode === "direct" || Boolean(zipFile));
+
+  const resetError = () => {
+    setSubmitError("");
+    setServerKeyError("");
+    setDiagnostics([]);
+  };
+
+  const acceptArchive = (file: File | null) => {
+    resetError();
+    const validation = validateSkillArchiveFile(file);
+    if (validation) {
+      setZipFile(null);
+      setArchiveFileError(t(`skillConsole.import.error.${validation}`));
+      return;
+    }
+    setArchiveFileError("");
+    setZipFile(file as File);
+    setZipKey(suggestSkillKeyFromArchiveName((file as File).name));
+    setKeyTouched(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return;
+    resetError();
+    setSubmitting(true);
+    try {
+      const key = currentKey.trim();
+      const completed = mode === "direct"
+        ? await onDirectCreate(key, directName.trim() || key)
+        : await onZipImport(key, zipFile as File);
+      if (!completed) return;
+    } catch (error) {
+      const importedDiagnostics = skillImportDiagnostics(error);
+      setDiagnostics(importedDiagnostics);
+      const status = (error as { status?: unknown } | null)?.status;
+      if (status === 409) {
+        setServerKeyError(t("skillConsole.import.error.exists"));
+      } else {
+        setSubmitError(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const directContent = (
+    <div className="tw:flex tw:flex-col tw:gap-4 tw:pt-1">
+      <label className="tw:flex tw:flex-col tw:gap-1.5" htmlFor="skill-create-key">
+        <span className="tw:text-sm tw:font-medium tw:text-ink-1">
+          {t("skillConsole.field.key")}
+        </span>
+        <Input
+          id="skill-create-key"
+          autoFocus={mode === "direct"}
+          value={directKey}
+          placeholder="skill-key"
+          status={keyError ? "error" : undefined}
+          aria-describedby={keyError ? "skill-create-key-error" : undefined}
+          onChange={(event) => {
+            setDirectKey(event.target.value);
+            setKeyTouched(true);
+            resetError();
+          }}
+          onPressEnter={() => void handleSubmit()}
+        />
+        {keyError && (
+          <span id="skill-create-key-error" role="alert" className="tw:text-xs tw:text-danger">
+            {keyError}
+          </span>
+        )}
+      </label>
+      <label className="tw:flex tw:flex-col tw:gap-1.5" htmlFor="skill-create-name">
+        <span className="tw:text-sm tw:font-medium tw:text-ink-1">
+          {t("skillConsole.field.name")}
+        </span>
+        <Input
+          id="skill-create-name"
+          value={directName}
+          placeholder={t("skillConsole.create.namePlaceholder")}
+          onChange={(event) => {
+            setDirectName(event.target.value);
+            resetError();
+          }}
+          onPressEnter={() => void handleSubmit()}
+        />
+      </label>
+      <div className="tw:text-xs tw:leading-5 tw:text-ink-muted">
+        {t("skillConsole.create.description")}
+      </div>
+    </div>
+  );
+
+  const zipContent = (
+    <div className="tw:flex tw:flex-col tw:gap-4 tw:pt-1">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip,application/zip"
+        className="tw:hidden"
+        aria-label={t("skillConsole.import.select")}
+        onChange={(event) => {
+          acceptArchive(event.target.files?.[0] || null);
+          event.currentTarget.value = "";
+        }}
+      />
+      <div
+        className={`tw:flex tw:min-h-36 tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center ${
+          dragActive ? "tw:border-accent tw:bg-accent-soft" : "tw:border-line-soft tw:bg-bg-subtle"
+        }`}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+          acceptArchive(event.dataTransfer.files?.[0] || null);
+        }}
+      >
+        <MaterialIcon name="folder_zip" />
+        {zipFile ? (
+          <>
+            <strong className="tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:text-ink-1">
+              {zipFile.name}
+            </strong>
+            <span className="tw:text-xs tw:text-ink-muted">{formatSize(zipFile.size)}</span>
+          </>
+        ) : (
+          <span className="tw:text-sm tw:text-ink-1">{t("skillConsole.import.drop")}</span>
+        )}
+        <UiButton
+          size="sm"
+          variant="ghost"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={submitting}
+        >
+          {zipFile ? t("skillConsole.import.replace") : t("skillConsole.import.select")}
+        </UiButton>
+      </div>
+      {archiveFileError && (
+        <Alert type="error" showIcon message={archiveFileError} />
+      )}
+      <label className="tw:flex tw:flex-col tw:gap-1.5" htmlFor="skill-import-key">
+        <span className="tw:text-sm tw:font-medium tw:text-ink-1">
+          {t("skillConsole.field.key")}
+        </span>
+        <Input
+          id="skill-import-key"
+          value={zipKey}
+          placeholder="skill-key"
+          status={keyError ? "error" : undefined}
+          aria-describedby={keyError ? "skill-import-key-error" : undefined}
+          onChange={(event) => {
+            setZipKey(event.target.value);
+            setKeyTouched(true);
+            resetError();
+          }}
+          onPressEnter={() => void handleSubmit()}
+        />
+        {keyError && (
+          <span id="skill-import-key-error" role="alert" className="tw:text-xs tw:text-danger">
+            {keyError}
+          </span>
+        )}
+      </label>
+      <div className="tw:text-xs tw:leading-5 tw:text-ink-muted">
+        {t("skillConsole.import.description")}
+      </div>
+      {submitting && (
+        <div role="status" aria-live="polite" className="tw:text-xs tw:text-ink-muted">
+          {t("skillConsole.import.uploading")}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <Modal
+      open={open}
+      title={t("skillConsole.create.title")}
+      width={560}
+      destroyOnClose
+      maskClosable={!submitting}
+      keyboard={!submitting}
+      okText={t(mode === "direct" ? "skillConsole.create.submit" : "skillConsole.import.submit")}
+      cancelText={t("skillConsole.action.cancel")}
+      confirmLoading={submitting}
+      okButtonProps={{ disabled: !canSubmit }}
+      onCancel={() => {
+        if (!submitting) onCancel();
+      }}
+      onOk={() => void handleSubmit()}
+    >
+      <Tabs
+        activeKey={mode}
+        onChange={(key) => {
+          setMode(key as SkillCreateMode);
+          setKeyTouched(false);
+          setArchiveFileError("");
+          resetError();
+        }}
+        items={[
+          { key: "direct", label: t("skillConsole.create.mode.direct"), children: directContent },
+          { key: "zip", label: t("skillConsole.create.mode.zip"), children: zipContent },
+        ]}
+      />
+      {submitError && (
+        <Alert className="tw:mt-3" type="error" showIcon message={submitError} />
+      )}
+      {diagnostics.length > 0 && (
+        <ul className="tw:mt-3 tw:flex tw:list-disc tw:flex-col tw:gap-1 tw:pl-5 tw:text-xs tw:text-danger">
+          {diagnostics.map((diagnostic, index) => (
+            <li key={`${diagnostic.code || "diagnostic"}-${diagnostic.sourcePath || index}`}>
+              {diagnostic.sourcePath ? `${diagnostic.sourcePath}: ` : ""}
+              {diagnostic.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
+  );
+};
 
 interface SkillFileWorkspaceProps {
   detail: AdminSkillDetailResponse;
@@ -695,7 +1051,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const [validating, setValidating] = useState(false);
   const [downloadingSkill, setDownloadingSkill] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
@@ -1199,59 +1555,44 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   };
 
-  const handleCreateSkill = () => {
-    let inputKey = "";
-    let inputName = "";
-    Modal.confirm({
-      title: t("skillConsole.create.title"),
-      content: (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            paddingTop: 8,
-          }}
-        >
-          <Input
-            placeholder="skill-key"
-            onChange={(e) => {
-              inputKey = e.target.value;
-            }}
-          />
-          <Input
-            placeholder={t("skillConsole.field.name")}
-            onChange={(e) => {
-              inputName = e.target.value;
-            }}
-          />
-          <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-            {t("skillConsole.create.description")}
-          </div>
-        </div>
-      ),
-      onOk: async () => {
-        const key = inputKey.trim();
-        const name = inputName.trim() || key;
-        if (!key) return;
-        setCreating(true);
-        try {
-          const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
-          const response = await createAdminSkill({ key, skillMd });
-          setSkills((prev) =>
-            [
-              ...prev.filter((item) => item.key !== key),
-              response.data.skill,
-            ].sort((a, b) => a.key.localeCompare(b.key)),
-          );
-          onSelectSkillKey(key);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : String(err));
-        } finally {
-          setCreating(false);
-        }
-      },
+  const confirmDiscardBeforeAdding = async (): Promise<boolean> => {
+    if (dirtyFiles.size === 0) return true;
+    return new Promise<boolean>((resolve) => {
+      Modal.confirm({
+        title: t("skillConsole.confirm.createWithUnsaved"),
+        content: t("skillConsole.confirm.createWithUnsavedDescription"),
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      });
     });
+  };
+
+  const completeSkillCreation = (created: AdminSkillDetailResponse) => {
+    const key = created.skill.key;
+    setSkills((prev) =>
+      [
+        ...prev.filter((item) => item.key !== key),
+        created.skill,
+      ].sort((a, b) => a.key.localeCompare(b.key)),
+    );
+    setCreateModalOpen(false);
+    setMessage(t("skillConsole.message.createSuccess", { name: created.skill.name || key }));
+    onSelectSkillKey(key);
+  };
+
+  const handleDirectCreate = async (key: string, name: string): Promise<boolean> => {
+    if (!(await confirmDiscardBeforeAdding())) return false;
+    const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
+    const response = await createAdminSkill({ key, skillMd });
+    completeSkillCreation(response.data);
+    return true;
+  };
+
+  const handleZipImport = async (key: string, file: File): Promise<boolean> => {
+    if (!(await confirmDiscardBeforeAdding())) return false;
+    const response = await importAdminSkill({ key, file });
+    completeSkillCreation(response.data);
+    return true;
   };
 
   const handleFileChange = (value: string) => {
@@ -1280,6 +1621,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   return (
     <div className={SKILL_CONSOLE_CLASS_NAME}>
+      <SkillCreateModal
+        open={createModalOpen}
+        existingKeys={skills.map((item) => item.key)}
+        t={t}
+        onCancel={() => setCreateModalOpen(false)}
+        onDirectCreate={handleDirectCreate}
+        onZipImport={handleZipImport}
+      />
       {error && (
         <Alert
           message={error}
@@ -1338,8 +1687,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               size="sm"
               variant="primary"
               iconOnly
-              onClick={handleCreateSkill}
-              disabled={creating}
+              onClick={() => setCreateModalOpen(true)}
               aria-label={t("skillConsole.action.createSkill")}
             >
               <MaterialIcon name="add" />
@@ -1361,8 +1709,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                     <UiButton
                       size="sm"
                       variant="primary"
-                      onClick={handleCreateSkill}
-                      disabled={creating}
+                      onClick={() => setCreateModalOpen(true)}
                     >
                       {t("skillConsole.action.createSkill")}
                     </UiButton>

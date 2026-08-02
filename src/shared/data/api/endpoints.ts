@@ -376,6 +376,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  adminSkillImport: defineEndpoint({
+    key: "admin.skills.import",
+    path: "/api/admin/skills/import",
+    method: "POST",
+    transport: "http",
+  }),
   adminSkillDelete: defineEndpoint({
     key: "admin.skills.delete",
     path: "/api/admin/skills/delete",

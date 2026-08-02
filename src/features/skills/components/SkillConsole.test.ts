@@ -5,10 +5,15 @@ import {
   fallbackSkillIcon,
   findPreferredSkillFileEntry,
   isSkillEntryVisible,
+  skillImportDiagnostics,
+  SkillCreateModal,
   SkillFileWorkspace,
   SkillConsole,
+  suggestSkillKeyFromArchiveName,
   toggleSkillExpandedDir,
   updateSkillDirtyFiles,
+  validateSkillArchiveFile,
+  validateNewSkillKey,
 } from "@/features/skills/components/SkillConsole";
 import type { AdminSkillDetailResponse, AdminSkillFileEntry } from "@/shared/data";
 
@@ -43,6 +48,7 @@ jest.mock("@/shared/data", () => ({
   getAdminSkillDetail: jest.fn(),
   getAdminSource: jest.fn(),
   getAdminSkills: jest.fn(),
+  importAdminSkill: jest.fn(),
   mkdirAdminSkillFile: jest.fn(),
   renameAdminSkillFile: jest.fn(),
   updateAdminSource: jest.fn(),
@@ -85,13 +91,36 @@ jest.mock("antd", () => {
     );
   Input.TextArea = (props: Record<string, unknown>) =>
     ReactMod.createElement("textarea", props);
+  const Modal: any = ({ open, title, children, okText, cancelText }: Record<string, unknown>) =>
+    open
+      ? ReactMod.createElement(
+          "section",
+          { "data-testid": "modal" },
+          title,
+          children,
+          ReactMod.createElement("button", null, cancelText),
+          ReactMod.createElement("button", null, okText),
+        )
+      : null;
+  Modal.confirm = jest.fn();
   return {
     Input,
     Spin: ({ children }: { children: React.ReactNode }) =>
       ReactMod.createElement(React.Fragment, null, children),
-    Modal: {
-      confirm: jest.fn(),
-    },
+    Modal,
+    Tabs: ({ items }: { items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }> }) =>
+      ReactMod.createElement(
+        "div",
+        { "data-testid": "tabs" },
+        items.map((item) =>
+          ReactMod.createElement(
+            "div",
+            { key: item.key, "data-tab": item.key },
+            ReactMod.createElement("span", null, item.label),
+            item.children,
+          ),
+        ),
+      ),
     Dropdown: ({ children }: { children: React.ReactNode }) =>
       ReactMod.createElement(React.Fragment, null, children),
   };
@@ -238,6 +267,55 @@ describe("SkillConsole", () => {
       }),
     );
     expect(html).toContain("skill-console-list");
+  });
+
+  it("renders direct-create and ZIP-import modes in the controlled modal", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(SkillCreateModal, {
+        open: true,
+        existingKeys: ["existing-skill"],
+        t: (key: string) => key,
+        onCancel: jest.fn(),
+        onDirectCreate: jest.fn(async () => true),
+        onZipImport: jest.fn(async () => true),
+      }),
+    );
+
+    expect(html).toContain('data-tab="direct"');
+    expect(html).toContain('data-tab="zip"');
+    expect(html).toContain("skillConsole.create.mode.direct");
+    expect(html).toContain("skillConsole.create.mode.zip");
+    expect(html).toContain('accept=".zip,application/zip"');
+  });
+
+  it("validates new skill keys and derives an import key from the ZIP filename", () => {
+    expect(validateNewSkillKey("", [])).toBe("required");
+    expect(validateNewSkillKey("../bad", [])).toBe("invalid");
+    expect(validateNewSkillKey("hidden.example", [])).toBe("invalid");
+    expect(validateNewSkillKey("Demo", ["demo"])).toBe("exists");
+    expect(validateNewSkillKey("new-skill", ["demo"])).toBe("");
+    expect(suggestSkillKeyFromArchiveName("Demo Skill.ZIP")).toBe("Demo Skill");
+  });
+
+  it("rejects invalid, empty, and oversized ZIP selections before upload", () => {
+    expect(validateSkillArchiveFile({ name: "skill.txt", size: 10 })).toBe("type");
+    expect(validateSkillArchiveFile({ name: "skill.zip", size: 0 })).toBe("empty");
+    expect(validateSkillArchiveFile({ name: "skill.zip", size: 32 * 1024 * 1024 + 1 })).toBe("size");
+    expect(validateSkillArchiveFile({ name: "skill.ZIP", size: 32 * 1024 * 1024 })).toBe("");
+  });
+
+  it("reads file-level diagnostics from an import API error", () => {
+    expect(skillImportDiagnostics({
+      data: {
+        error: {
+          diagnostics: [
+            { severity: "error", code: "missing_skill_md", message: "SKILL.md is required", sourcePath: "SKILL.md" },
+          ],
+        },
+      },
+    })).toEqual([
+      { severity: "error", code: "missing_skill_md", message: "SKILL.md is required", sourcePath: "SKILL.md" },
+    ]);
   });
 
   it("prefers a requested file, then SKILL.md, then the first editable file", () => {

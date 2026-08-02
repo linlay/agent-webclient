@@ -1997,6 +1997,20 @@ export function createAdminSkill(
   return postJson<AdminSkillDetailResponse>(dataEndpoints.adminSkillCreate.path, params);
 }
 
+export function importAdminSkill(params: {
+  key: string;
+  file: File;
+}): Promise<ApiResponse<AdminSkillDetailResponse>> {
+  const form = new FormData();
+  form.append("key", params.key);
+  form.append("file", params.file);
+  return requestJson<AdminSkillDetailResponse>(dataEndpoints.adminSkillImport.path, {
+    method: "POST",
+    body: form,
+    jsonContentType: false,
+  });
+}
+
 export function deleteAdminSkill(key: string): Promise<ApiResponse<AdminSkillDeleteResponse>> {
   return postJson<AdminSkillDeleteResponse>(dataEndpoints.adminSkillDelete.path, { key });
 }

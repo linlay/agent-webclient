@@ -16,7 +16,7 @@
 
 ## Skills 管理契约
 
-Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文件操作契约，不保留 `/v2`、`skillKey` 或通用 `file-op` 兼容分支。列表响应为 `AdminSkillSummary[]`；详情、文本文件、保存、创建文件/目录、重命名、删除、上传、下载、校验、创建和删除均使用同一组 `AdminSkill*` DTO 与语义化 client 函数。
+Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文件操作契约，不保留 `/v2`、`skillKey` 或通用 `file-op` 兼容分支。列表响应为 `AdminSkillSummary[]`；详情、文本文件、保存、创建文件/目录、重命名、删除、上传、下载、校验、创建、ZIP 导入和删除均使用同一组 `AdminSkill*` DTO 与语义化 client 函数。完整 ZIP 通过 `importAdminSkill` 以 multipart `key/file` 发送到 `POST /api/admin/skills/import`，成功后复用 `AdminSkillDetailResponse` 并直接进入新技能；409 重名和 422 文件级诊断留在新建弹窗中处理。
 
 后端只在发现 `skills-market/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
 
