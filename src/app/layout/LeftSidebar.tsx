@@ -179,8 +179,11 @@ const WORKER_COLLAPSED_ICON_STATE_CLASS = {
   idle: "",
 } as const;
 
+const WORKER_COLLAPSED_NAME_BADGE_CLASS =
+  "worker-collapsed-name-badge tw:min-w-0 tw:max-w-[48px] tw:text-center";
+
 const WORKER_COLLAPSED_NAME_CLASS =
-  "worker-collapsed-name tw:w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-center tw:text-[10px] tw:leading-[1.2]";
+  "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 export async function handleCreateAgentSuccess(
   createdKey: string,
   dispatch: React.Dispatch<AppAction>,
@@ -1218,6 +1221,7 @@ export const LeftSidebar: React.FC = () => {
                               ? WORKER_COLLAPSED_ICON_STATE_CLASS.active
                               : WORKER_COLLAPSED_ICON_STATE_CLASS.idle
                           }`}
+                          aria-label={item.displayName}
                           onClick={() => handleSelectCollapsedWorker(item.key)}
                         >
                           <AgentIcon
@@ -1235,7 +1239,11 @@ export const LeftSidebar: React.FC = () => {
                               },
                             }}
                           />
-                          <Badge dot={unreadCount > 0} offset={[5, 9]}>
+                          <Badge
+                            dot={unreadCount > 0}
+                            offset={[5, 9]}
+                            className={WORKER_COLLAPSED_NAME_BADGE_CLASS}
+                          >
                             <span className={WORKER_COLLAPSED_NAME_CLASS}>
                               {item.displayName}
                             </span>

@@ -185,10 +185,11 @@ jest.mock("antd", () => {
       ),
     );
 
-  const Badge = ({ children, count, dot }: any) =>
+  const Badge = ({ children, className, count, dot }: any) =>
     React.createElement(
       "span",
       {
+        className,
         "data-badge-count": count,
         "data-badge-dot": dot ? "true" : "false",
       },
@@ -1173,6 +1174,20 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain("worker-collapsed-name");
     expect(html).toContain("Alpha Agent");
+    expect(html).toContain('aria-label="Alpha Agent"');
+    expect(html).toContain(
+      "worker-collapsed-name-badge tw:min-w-0 tw:max-w-[48px] tw:text-center",
+    );
+    const collapsedNameClass =
+      html.match(/class="(worker-collapsed-name [^"]*)"/)?.[1] || "";
+    expect(collapsedNameClass).toContain("tw:inline-block");
+    expect(collapsedNameClass).toContain("tw:max-w-full");
+    expect(collapsedNameClass).toContain("tw:overflow-hidden");
+    expect(collapsedNameClass).toContain("tw:text-ellipsis");
+    expect(collapsedNameClass).toContain("tw:whitespace-nowrap");
+    expect(collapsedNameClass).toContain("tw:text-left");
+    expect(collapsedNameClass).not.toContain("tw:w-full");
+    expect(collapsedNameClass).not.toContain("tw:text-center");
     expect(html).toContain("worker-popover-header");
     expect(html).toContain("worker-popover-new");
     expect(html).not.toContain("ui-icon-hover-20");
@@ -1192,6 +1207,19 @@ describe("LeftSidebar", () => {
     expect(workerStyles).toMatch(
       /\.worker-chat-more:hover\s*\{[\s\S]*?color:\s*var\(--text-main\);/,
     );
+  });
+
+  it("keeps a long mixed worker name intact for CSS prefix truncation", () => {
+    const state = createWorkerState();
+    const displayName = "配置 DBX 数据库 HTTPXAssistantLong";
+    state.workerRows[0].displayName = displayName;
+    state.agents[0].name = displayName;
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain(`aria-label="${displayName}"`);
+    expect(html).toContain(`>${displayName}</span>`);
   });
 
   it("renders and opens a worker workspace action when workspaceDir is available", async () => {
