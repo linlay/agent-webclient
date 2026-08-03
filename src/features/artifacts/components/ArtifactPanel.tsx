@@ -16,8 +16,7 @@ const FLOATING_ARTIFACT_CLASS_NAME =
 const ARTIFACT_LIST_CLASS_NAME =
   "artifact-list tw:m-0 tw:flex tw:list-none tw:flex-nowrap tw:items-stretch tw:gap-1 tw:p-0";
 
-const ARTIFACT_ITEM_CLASS_NAME =
-  "artifact-item tw:list-none";
+const ARTIFACT_ITEM_CLASS_NAME = "artifact-item tw:list-none";
 
 const ARTIFACT_ACTIONS_CLASS_NAME = "artifact-actions";
 
@@ -96,7 +95,10 @@ export const ArtifactPanel: React.FC = () => {
   if (state.artifacts.length === 0) return null;
 
   return isCollapsed ? (
-    <div className={FLOATING_ARTIFACT_CLASS_NAME} onWheel={handleFloatingArtifactWheel}>
+    <div
+      className={FLOATING_ARTIFACT_CLASS_NAME}
+      onWheel={handleFloatingArtifactWheel}
+    >
       <ul className={ARTIFACT_LIST_CLASS_NAME}>
         {summary.artifacts.map((item) => {
           const artifact = item.artifact;
@@ -106,6 +108,7 @@ export const ArtifactPanel: React.FC = () => {
                 attachment={artifact}
                 variant="composer"
                 displayMode="file"
+                thumbnailMode="inline"
                 density="compact"
                 subtitle={formatBytes(artifact.sizeBytes)}
               />

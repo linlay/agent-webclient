@@ -1400,7 +1400,7 @@
 .agent-section-nav {
     position: sticky;
     top: 0;
-    z-index: var(--z-sticky);
+    z-index: 100;
     display: flex;
     gap: 4px;
     margin: 0 0 8px;
