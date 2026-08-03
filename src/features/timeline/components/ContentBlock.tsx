@@ -102,31 +102,64 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 		() => resolvePreferredAgentKey(state),
 		[state],
 	);
+	const {
+		rightSidebarOpen,
+		rightSidebarOpenTab,
+		attachmentPreview,
+		activeAttachmentPreviewUrl,
+		webPreviews,
+		activeWebPreviewUrl,
+	} = state;
 	const handleWorkspaceFileLinkClick = React.useCallback(
 		(link: WorkspaceFileLink) => {
-			dispatch({
-				type: "OPEN_RIGHT_SIDEBAR",
-				tab: "preview",
-				preview: buildWorkspaceFilePreview(
-					link,
-					workspaceFileAgentKey,
-				),
-			});
+			const preview = buildWorkspaceFilePreview(
+				link,
+				workspaceFileAgentKey,
+			);
+			const isActive =
+				rightSidebarOpen &&
+				rightSidebarOpenTab === "preview" &&
+				activeAttachmentPreviewUrl === preview.url;
+			if (isActive) {
+				dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+			} else if (attachmentPreview.some(p => p.url === preview.url)) {
+				dispatch({
+					type: "OPEN_RIGHT_SIDEBAR",
+					tab: "preview",
+					activeAttachmentPreviewUrl: preview.url,
+				});
+			} else {
+				dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
+			}
 		},
-		[dispatch, workspaceFileAgentKey],
+		[dispatch, workspaceFileAgentKey, rightSidebarOpen, rightSidebarOpenTab, activeAttachmentPreviewUrl, attachmentPreview],
 	);
 	const handleWebLinkClick = React.useCallback(
 		(link: MarkdownWebLink) => {
-			dispatch({
-				type: "OPEN_RIGHT_SIDEBAR",
-				tab: "web",
-				webPreview: {
-					title: link.title,
-					url: link.url,
-				},
-			});
+			const isActive =
+				rightSidebarOpen &&
+				rightSidebarOpenTab === "web" &&
+				activeWebPreviewUrl === link.url;
+			if (isActive) {
+				dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+			} else if (webPreviews.some(p => p.url === link.url)) {
+				dispatch({
+					type: "OPEN_RIGHT_SIDEBAR",
+					tab: "web",
+					activeWebPreviewUrl: link.url,
+				});
+			} else {
+				dispatch({
+					type: "OPEN_RIGHT_SIDEBAR",
+					tab: "web",
+					webPreview: {
+						title: link.title,
+						url: link.url,
+					},
+				});
+			}
 		},
-		[dispatch],
+		[dispatch, rightSidebarOpen, rightSidebarOpenTab, activeWebPreviewUrl, webPreviews],
 	);
 
 	/* Simple case: no special segments, just markdown */

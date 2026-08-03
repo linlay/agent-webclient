@@ -211,6 +211,8 @@ export interface AppState {
 	planningPreviews: PlanningPreviewState[];
 	webPreviews: WebPreviewState[];
 	activeWebPreviewUrl: string;
+	activeAttachmentPreviewUrl: string;
+	activePlanningPreviewNodeId: string;
 	terminalDockOpen: boolean;
 	attachmentPreview: AttachmentPreviewState[];
 	artifactExpanded: boolean;

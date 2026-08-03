@@ -103,15 +103,26 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       });
   }, [attachment.name, downloadUrl, downloading]);
 
-  const { rightSidebarOpen, rightSidebarOpenTab } = useAppState();
+  const { rightSidebarOpen, rightSidebarOpenTab, attachmentPreview, activeAttachmentPreviewUrl } = useAppState();
 
   const handleActivate = React.useCallback(() => {
     if (!canActivate) {
       return;
     }
     if (preview) {
-      if (activateMode === "toggle" && rightSidebarOpen && rightSidebarOpenTab === "preview") {
+      const isActive =
+        rightSidebarOpen &&
+        rightSidebarOpenTab === "preview" &&
+        activeAttachmentPreviewUrl === preview.url;
+
+      if (activateMode === "toggle" && isActive) {
         dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+      } else if (attachmentPreview.some(p => p.url === preview.url)) {
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "preview",
+          activeAttachmentPreviewUrl: preview.url,
+        });
       } else {
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
       }
@@ -119,7 +130,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     }
 
     triggerDownload();
-  }, [canActivate, dispatch, preview, triggerDownload, activateMode, rightSidebarOpen, rightSidebarOpenTab]);
+  }, [canActivate, dispatch, preview, triggerDownload, activateMode, rightSidebarOpen, rightSidebarOpenTab, activeAttachmentPreviewUrl, attachmentPreview]);
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {

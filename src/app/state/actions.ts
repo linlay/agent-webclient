@@ -159,6 +159,8 @@ export type AppAction =
 			webPreview?: WebPreviewState | null;
 			activeWebPreviewUrl?: string;
 			removeWebPreviewUrl?: string;
+			activeAttachmentPreviewUrl?: string;
+			activePlanningPreviewNodeId?: string;
 	  }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }

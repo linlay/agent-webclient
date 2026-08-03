@@ -107,13 +107,22 @@ const CopilotWebPreviewTabs: React.FC = () => {
       hideAdd
       activeKey={buildCopilotWebTabKey(activePreview.url)}
       items={items}
-      onChange={(key) =>
-        dispatch({
-          type: "OPEN_RIGHT_SIDEBAR",
-          tab: "web",
-          activeWebPreviewUrl: getCopilotWebTabUrl(key),
-        })
-      }
+      onChange={(key) => {
+        const targetUrl = getCopilotWebTabUrl(key);
+        const isSame =
+          state.rightSidebarOpen &&
+          state.rightSidebarOpenTab === "web" &&
+          state.activeWebPreviewUrl === targetUrl;
+        if (isSame) {
+          dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+        } else {
+          dispatch({
+            type: "OPEN_RIGHT_SIDEBAR",
+            tab: "web",
+            activeWebPreviewUrl: targetUrl,
+          });
+        }
+      }}
       onEdit={(key, action) => {
         if (action !== "remove" || typeof key !== "string") {
           return;

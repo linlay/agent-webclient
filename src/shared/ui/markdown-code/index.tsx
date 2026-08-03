@@ -9,7 +9,7 @@ import { MarkdownMermaid } from "./MarkdownMermaid";
 import { App, Collapse, Flex, Tooltip } from "antd";
 import { UiButton } from "../UiButton";
 import { MaterialIcon } from "../MaterialIcon";
-import { useAppDispatch } from "@/app/state/AppContext";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 
 import Style from "./index.module.css";
@@ -63,6 +63,12 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
   const { message } = App.useApp();
   const { t } = useI18n();
   const dispatch = useAppDispatch();
+  const {
+    rightSidebarOpen,
+    rightSidebarOpenTab,
+    attachmentPreview,
+    activeAttachmentPreviewUrl,
+  } = useAppState();
   const url = useRef("");
   const language = useMemo(() => lang || "plaintext", [lang]);
   const [activeKey, setActiveKey] = useState(() =>
@@ -97,17 +103,32 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
                 const blob = new Blob([text], { type: mimeType });
                 url.current && URL.revokeObjectURL(url.current);
                 url.current = URL.createObjectURL(blob);
-                dispatch({
-                  type: "OPEN_RIGHT_SIDEBAR",
-                  tab: "preview",
-                  preview: {
-                    name: t("markdown.previewHtml"),
-                    url: url.current,
-                    downloadUrl: url.current,
-                    sizeBytes: blob.size,
-                    kind: "html",
-                  },
-                });
+                const preview = {
+                  name: t("markdown.previewHtml"),
+                  url: url.current,
+                  downloadUrl: url.current,
+                  sizeBytes: blob.size,
+                  kind: "html" as const,
+                };
+                const isActive =
+                  rightSidebarOpen &&
+                  rightSidebarOpenTab === "preview" &&
+                  activeAttachmentPreviewUrl === preview.url;
+                if (isActive) {
+                  dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+                } else if (attachmentPreview.some(p => p.url === preview.url)) {
+                  dispatch({
+                    type: "OPEN_RIGHT_SIDEBAR",
+                    tab: "preview",
+                    activeAttachmentPreviewUrl: preview.url,
+                  });
+                } else {
+                  dispatch({
+                    type: "OPEN_RIGHT_SIDEBAR",
+                    tab: "preview",
+                    preview,
+                  });
+                }
               }}
             >
               <MaterialIcon name="preview" />

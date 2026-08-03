@@ -127,6 +127,14 @@ export function reduceUiState(
 			const removeWebPreviewUrl = Object.prototype.hasOwnProperty.call(action, "removeWebPreviewUrl")
 				? action.removeWebPreviewUrl
 				: undefined;
+			const hasActiveAttachmentPreviewUrl = Object.prototype.hasOwnProperty.call(
+				action,
+				"activeAttachmentPreviewUrl",
+			);
+			const hasActivePlanningPreviewNodeId = Object.prototype.hasOwnProperty.call(
+				action,
+				"activePlanningPreviewNodeId",
+			);
 			let nextPreviews = state.attachmentPreview;
 			if (removePreviewUrl) {
 				nextPreviews = nextPreviews.filter((p) => p.url !== removePreviewUrl);
@@ -144,6 +152,19 @@ export function reduceUiState(
 					}
 				} else if (hasPreview) {
 					nextPreviews = [];
+				}
+			}
+			let nextActiveAttachmentPreviewUrl = state.activeAttachmentPreviewUrl;
+			if (removePreviewUrl) {
+				if (nextActiveAttachmentPreviewUrl === removePreviewUrl) {
+					nextActiveAttachmentPreviewUrl = nextPreviews[nextPreviews.length - 1]?.url || "";
+				}
+			} else {
+				const incomingPreview = hasPreview ? action.preview : undefined;
+				if (incomingPreview) {
+					nextActiveAttachmentPreviewUrl = incomingPreview.url;
+				} else if (hasActiveAttachmentPreviewUrl) {
+					nextActiveAttachmentPreviewUrl = String(action.activeAttachmentPreviewUrl || "");
 				}
 			}
 			let nextPlanningPreviews = state.planningPreviews;
@@ -166,6 +187,20 @@ export function reduceUiState(
 					}
 				} else if (hasPlanningPreview) {
 					nextPlanningPreviews = [];
+				}
+			}
+			let nextActivePlanningPreviewNodeId = state.activePlanningPreviewNodeId;
+			if (removePlanningPreviewNodeId) {
+				if (nextActivePlanningPreviewNodeId === removePlanningPreviewNodeId) {
+					nextActivePlanningPreviewNodeId =
+						nextPlanningPreviews[nextPlanningPreviews.length - 1]?.nodeId || "";
+				}
+			} else {
+				const incomingPlanning = hasPlanningPreview ? action.planningPreview : undefined;
+				if (incomingPlanning) {
+					nextActivePlanningPreviewNodeId = incomingPlanning.nodeId;
+				} else if (hasActivePlanningPreviewNodeId) {
+					nextActivePlanningPreviewNodeId = String(action.activePlanningPreviewNodeId || "");
 				}
 			}
 			let nextWebPreviews = state.webPreviews;
@@ -217,6 +252,8 @@ export function reduceUiState(
 				activeSourceDetail: hasSourceDetail
 					? action.sourceDetail ?? null
 					: state.activeSourceDetail,
+				activeAttachmentPreviewUrl: nextActiveAttachmentPreviewUrl,
+				activePlanningPreviewNodeId: nextActivePlanningPreviewNodeId,
 			};
 		}
 		case "CLOSE_RIGHT_SIDEBAR":

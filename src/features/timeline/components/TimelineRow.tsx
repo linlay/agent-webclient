@@ -313,6 +313,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                     attachment={attachment}
                     variant="timeline"
                     density={hasMultipleAttachments ? "compact" : "default"}
+                    thumbnailMode="inline"
                     displayMode={hasMultipleAttachments ? "file" : "auto"}
                     subtitle={getTimelineAttachmentSubtitle(
                       attachment,

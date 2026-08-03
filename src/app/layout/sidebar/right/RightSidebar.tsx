@@ -106,12 +106,16 @@ export const RightSidebar: React.FC = () => {
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
         : state.rightSidebarOpenTab === "preview" && previews.length > 0
-          ? `preview:${previews[previews.length - 1].url}`
-          : state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
-            ? "sourceDetail"
-            : state.rightSidebarOpenTab === "planningPreview" &&
-                planningPreviews.length > 0
-              ? `planningPreview:${planningPreviews[planningPreviews.length - 1].nodeId}`
+					? `preview:${(state.activeAttachmentPreviewUrl && previews.some(p => p.url === state.activeAttachmentPreviewUrl)
+						? state.activeAttachmentPreviewUrl
+						: previews[previews.length - 1].url)}`
+					: state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
+						? "sourceDetail"
+						: state.rightSidebarOpenTab === "planningPreview" &&
+							planningPreviews.length > 0
+							? `planningPreview:${(state.activePlanningPreviewNodeId && planningPreviews.some(p => p.nodeId === state.activePlanningPreviewNodeId)
+								? state.activePlanningPreviewNodeId
+								: planningPreviews[planningPreviews.length - 1].nodeId)}`
               : state.rightSidebarOpenTab === "web" && webPreviews.length > 0
                 ? buildWebTabKey(
                     state.activeWebPreviewUrl ||
@@ -193,14 +197,18 @@ export const RightSidebar: React.FC = () => {
     setActivePanel(nextPanel);
     if (nextPanel !== "debug") {
       if (nextPanel === "preview") {
-        const lastPreview = previews[previews.length - 1];
-        if (lastPreview) {
-          setActiveTab(`preview:${lastPreview.url}`);
+        const targetUrl = state.activeAttachmentPreviewUrl;
+        const target = targetUrl ? previews.find(p => p.url === targetUrl) : undefined;
+        const active = target ?? previews[previews.length - 1];
+        if (active) {
+          setActiveTab(`preview:${active.url}`);
         }
       } else if (nextPanel === "planningPreview") {
-        const lastPlanning = planningPreviews[planningPreviews.length - 1];
-        if (lastPlanning) {
-          setActiveTab(`planningPreview:${lastPlanning.nodeId}`);
+        const targetNodeId = state.activePlanningPreviewNodeId;
+        const target = targetNodeId ? planningPreviews.find(p => p.nodeId === targetNodeId) : undefined;
+        const active = target ?? planningPreviews[planningPreviews.length - 1];
+        if (active) {
+          setActiveTab(`planningPreview:${active.nodeId}`);
         }
       } else if (nextPanel === "web") {
         const activeWebPreview = webPreviews.find(
@@ -225,6 +233,8 @@ export const RightSidebar: React.FC = () => {
     state.rightSidebarOpen,
     state.rightSidebarOpenTab,
     state.activeWebPreviewUrl,
+    state.activeAttachmentPreviewUrl,
+    state.activePlanningPreviewNodeId,
   ]);
 
   React.useEffect(() => {
@@ -471,7 +481,17 @@ export const RightSidebar: React.FC = () => {
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="visibility" />
-            <span>{p.name}</span>
+            <Typography.Text
+              ellipsis={{
+                tooltip: {
+                  title: p.name,
+                  placement: "right",
+                },
+              }}
+              className="tw:!max-w-[100px]"
+            >
+              {p.name}
+            </Typography.Text>
           </Flex>
         ),
         children: <AttachmentPreviewPanel preview={p} />,
@@ -525,10 +545,18 @@ export const RightSidebar: React.FC = () => {
       setActiveTab(key);
       if (key.startsWith("preview:")) {
         setActivePanel("preview");
-        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview" });
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "preview",
+          activeAttachmentPreviewUrl: key.slice("preview:".length),
+        });
       } else if (key.startsWith("planningPreview:")) {
         setActivePanel("planningPreview");
-        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "planningPreview" });
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "planningPreview",
+          activePlanningPreviewNodeId: key.slice("planningPreview:".length),
+        });
       } else if (key.startsWith("web:")) {
         setActivePanel("web");
         dispatch({
@@ -593,14 +621,24 @@ export const RightSidebar: React.FC = () => {
                         {
                           key: "refresh",
                           label: t("rightSidebar.web.contextMenu.refresh"),
-                          icon: <MaterialIcon name="refresh" className="tw:opacity-[0.5]" />,
+                          icon: (
+                            <MaterialIcon
+                              name="refresh"
+                              className="tw:opacity-[0.5]"
+                            />
+                          ),
                           onClick: () =>
                             handleRefreshWebTab(node.key as string),
                         },
                         {
                           key: "copy",
                           label: t("rightSidebar.web.contextMenu.copyUrl"),
-                          icon: <MaterialIcon name="content_copy" className="tw:opacity-[0.5]" />,
+                          icon: (
+                            <MaterialIcon
+                              name="content_copy"
+                              className="tw:opacity-[0.5]"
+                            />
+                          ),
                           onClick: () => {
                             const url = getWebUrlFromTabKey(node.key as string);
                             copyText(url).then(() => {
@@ -611,7 +649,12 @@ export const RightSidebar: React.FC = () => {
                         {
                           key: "fullscreen",
                           label: t("rightSidebar.web.contextMenu.fullscreen"),
-                          icon: <MaterialIcon name="crop_free" className="tw:opacity-[0.5]" />,
+                          icon: (
+                            <MaterialIcon
+                              name="crop_free"
+                              className="tw:opacity-[0.5]"
+                            />
+                          ),
                           onClick: () => {
                             const tabKey = node.key as string;
                             setTabFullscreenRequests((prev) => ({
@@ -625,7 +668,9 @@ export const RightSidebar: React.FC = () => {
                   {
                     key: "close",
                     label: t("rightSidebar.web.contextMenu.close"),
-                    icon: <MaterialIcon name="close" className="tw:opacity-[0.5]" />,
+                    icon: (
+                      <MaterialIcon name="close" className="tw:opacity-[0.5]" />
+                    ),
                     onClick: () => handleCloseTab(node.key as string),
                   },
                 ];

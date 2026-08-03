@@ -1,6 +1,6 @@
 import React from "react";
 import type { TimelineNode, TimelineSource } from "@/app/state/types";
-import { useAppDispatch } from "@/app/state/AppContext";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { Flex } from "antd";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -38,6 +38,7 @@ const SOURCE_ITEM_ICON_CLASS_NAME = "tw:text-accent-electric-strong";
 
 export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
   const dispatch = useAppDispatch();
+  const { rightSidebarOpen, rightSidebarOpenTab, activeSourceDetail } = useAppState();
   const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const sources = Array.isArray(node.sources) ? node.sources : [];
@@ -48,11 +49,19 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
       interaction.openSource(source);
       return;
     }
-    dispatch({
-      type: "OPEN_RIGHT_SIDEBAR",
-      tab: "sourceDetail",
-      sourceDetail: source,
-    });
+    const isSame =
+      rightSidebarOpen &&
+      rightSidebarOpenTab === "sourceDetail" &&
+      activeSourceDetail?.id === source.id;
+    if (isSame) {
+      dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+    } else {
+      dispatch({
+        type: "OPEN_RIGHT_SIDEBAR",
+        tab: "sourceDetail",
+        sourceDetail: source,
+      });
+    }
   };
 
   return (

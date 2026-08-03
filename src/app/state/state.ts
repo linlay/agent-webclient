@@ -152,6 +152,8 @@ export function createInitialState(): AppState {
 		planningPreviews: [],
 		webPreviews: [],
 		activeWebPreviewUrl: "",
+		activeAttachmentPreviewUrl: "",
+		activePlanningPreviewNodeId: "",
 		terminalDockOpen: restoreTerminalDockOpen(),
 		attachmentPreview: [],
 		artifactExpanded: false,

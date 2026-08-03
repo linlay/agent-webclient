@@ -16,6 +16,12 @@ jest.mock("./index.module.css", () => ({ Collapse: "Collapse" }));
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: () => jest.fn(),
+  useAppState: () => ({
+    rightSidebarOpen: false,
+    rightSidebarOpenTab: null,
+    attachmentPreview: [],
+    activeAttachmentPreviewUrl: "",
+  }),
 }));
 
 jest.mock("antd", () => ({

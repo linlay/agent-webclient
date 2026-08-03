@@ -14,6 +14,12 @@ jest.mock("@/app/state/AppContext", () => ({
 		pendingNewChatAgentKey: "coder-agent",
 		workerSelectionKey: "",
 		workerIndexByKey: new Map(),
+		rightSidebarOpen: false,
+		rightSidebarOpenTab: null,
+		attachmentPreview: [],
+		activeAttachmentPreviewUrl: "",
+		webPreviews: [],
+		activeWebPreviewUrl: "",
 	}),
 }));
 

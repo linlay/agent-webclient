@@ -6,6 +6,11 @@ import { I18nProvider } from "@/shared/i18n";
 
 jest.mock("@/app/state/AppContext", () => ({
 	useAppDispatch: () => jest.fn(),
+	useAppState: () => ({
+		rightSidebarOpen: false,
+		rightSidebarOpenTab: null,
+		activeSourceDetail: null,
+	}),
 }));
 
 describe("SourceBlock", () => {
