@@ -53,7 +53,7 @@ export const hitlDialogClassNames = {
   optionInfo: "tw:font-bold tw:text-text-main",
   optionInfoPlain: "tw:text-text-main",
   selectedBadge:
-    "hitl-selected-badge tw:hidden tw:rounded-[10px] tw:bg-bg-hover tw:px-1.5 tw:text-xs tw:text-[var(--colorTextSecondary)]",
+    "hitl-selected-badge tw:hidden tw:rounded-[10px] tw:bg-bg-hover tw:px-1.5 tw:text-xs tw:text-[var(--colorTextSecondary)] tw:whitespace-nowrap",
   optionPreview:
     "tw:h-[200px] tw:w-[min(340px,80vw)] tw:overflow-hidden tw:rounded-lg tw:border tw:border-border tw:bg-bg-card",
   optionPreviewFrame: "tw:block tw:h-full tw:w-full tw:border-0 tw:bg-white",

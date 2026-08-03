@@ -1,4 +1,4 @@
-import { Radio } from "antd";
+import { Radio, Typography } from "antd";
 import { Button, CheckboxRef, Flex, Input, Tabs } from "antd/es";
 import React, {
   forwardRef,
@@ -564,13 +564,19 @@ const ApprovalQuestion = forwardRef<
                 <span className={hitlDialogClassNames.optionIndex}>
                   {index + 1}
                 </span>
-                <span className={hitlDialogClassNames.optionInfo}>
+                <Typography.Text
+                  className={hitlDialogClassNames.optionInfo}
+                  ellipsis={{ tooltip: option.label }}
+                >
                   {option.label}
-                </span>
+                </Typography.Text>
                 {option.description && (
-                  <span className={hitlDialogClassNames.approvalMeta}>
+                  <Typography.Text
+                    className={hitlDialogClassNames.approvalMeta}
+                    ellipsis={{ tooltip: option.description }}
+                  >
                     {option.description}
-                  </span>
+                  </Typography.Text>
                 )}
                 <span className={hitlDialogClassNames.selectedBadge}>
                   {t("approvalDialog.selected")}
@@ -583,6 +589,11 @@ const ApprovalQuestion = forwardRef<
               <Radio
                 className={hitlDialogClassNames.approvalFreeTextOption}
                 value="reject"
+                ref={(checkboxRef) => {
+                  if (checkboxRef) {
+                    checkboxsRef.current[options?.length] = checkboxRef;
+                  }
+                }}
                 onClick={() => {
                   onDecisionChange("reject");
                   onEnterDebounce("reject");
@@ -590,10 +601,7 @@ const ApprovalQuestion = forwardRef<
               >
                 <Flex gap={10} align="center">
                   <span className={hitlDialogClassNames.optionIndex}>
-                    <MaterialIcon
-                      name="edit"
-                      className={hitlDialogClassNames.optionIndexIcon}
-                    />
+                    {options?.length + 1}
                   </span>
                   <span className={hitlDialogClassNames.optionInfo}>
                     {t("approvalDialog.option.reject")}
