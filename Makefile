@@ -9,7 +9,7 @@ COMPOSE_FILE ?= compose.yml
 PASS_PROGRAM_TARGETS = $(if $(filter undefined,$(origin PROGRAM_TARGETS)),,PROGRAM_TARGETS=$(PROGRAM_TARGETS))
 PASS_PROGRAM_TARGET_MATRIX = $(if $(filter undefined,$(origin PROGRAM_TARGET_MATRIX)),,PROGRAM_TARGET_MATRIX=$(PROGRAM_TARGET_MATRIX))
 
-.PHONY: install dev build build-web test docker-build docker-up docker-down release release-program release-image
+.PHONY: install dev build build-web test test-program-deploy docker-build docker-up docker-down release release-program release-image
 
 install:
 	npm install
@@ -26,6 +26,9 @@ build-web:
 test:
 	npm run check:boundaries
 	npm test
+
+test-program-deploy:
+	bash scripts/test-program-deploy.sh
 
 docker-build:
 	docker compose -f $(COMPOSE_FILE) build
