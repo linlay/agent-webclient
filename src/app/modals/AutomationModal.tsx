@@ -133,6 +133,8 @@ const AUTOMATION_ENABLED_FIELD_CLASS_NAME =
   "field-group automation-enabled-field tw:flex tw:items-end tw:[&_.ant-checkbox-wrapper]:flex tw:[&_.ant-checkbox-wrapper]:min-h-8 tw:[&_.ant-checkbox-wrapper]:items-center tw:[&_.ant-checkbox-wrapper]:gap-2 tw:[&_.ant-checkbox-wrapper]:m-0 tw:[&_input]:w-auto tw:[&_label]:m-0 tw:[&_label]:flex tw:[&_label]:min-h-8 tw:[&_label]:items-center tw:[&_label]:gap-2 tw:[&_label]:normal-case tw:[&_label]:tracking-normal";
 const AUTOMATION_MONO_TEXTAREA_CLASS_NAME =
   "settings-textarea automation-mono-textarea tw:font-code";
+const AUTOMATION_SOURCE_EDITOR_CLASS_NAME =
+  "settings-textarea automation-source-editor tw:min-h-0 tw:flex-1 tw:resize-none tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80 tw:max-[860px]:flex-none tw:max-[860px]:resize-y";
 const AUTOMATION_REQUEST_BOX_CLASS_NAME =
   "automation-request-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 tw:[&_.field-group:last-child]:mb-0 tw:[&_.material-icon]:scale-[.8] tw:[&_legend]:px-1.5 tw:[&_legend]:text-[11px] tw:[&_legend]:font-bold tw:[&_legend]:text-ink-muted";
 const AUTOMATION_SAVE_ACTIONS_CLASS_NAME =
@@ -1048,7 +1050,9 @@ export const AutomationModal: React.FC<{
           </div>
         </div>
 
-        <div className={AUTOMATION_DETAIL_CLASS_NAME}>
+        <div
+          className={`${AUTOMATION_DETAIL_CLASS_NAME} ${editorMode === "source" ? "is-source-editor" : ""}`}
+        >
           <div className={AUTOMATION_DETAIL_HEAD_CLASS_NAME}>
             <div>
               <strong>
@@ -1115,14 +1119,14 @@ export const AutomationModal: React.FC<{
           </div>
 
           {editorMode === "source" ? (
-            <>
-              <div className="field-group">
+            <div className="automation-source-workspace">
+              <div className="field-group automation-source-field">
                 <label htmlFor="automation-source-editor">
                   {t("automationConsole.field.sourceFile")}
                 </label>
                 <Input.TextArea
                   id="automation-source-editor"
-                  className="settings-textarea automation-source-editor tw:min-h-[420px] tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2]"
+                  className={AUTOMATION_SOURCE_EDITOR_CLASS_NAME}
                   value={sourceDraft}
                   onChange={(event) => {
                     setSourceDraft(event.target.value);
@@ -1148,7 +1152,7 @@ export const AutomationModal: React.FC<{
                   </span>
                 )}
               </div>
-            </>
+            </div>
           ) : (
             <>
           <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>

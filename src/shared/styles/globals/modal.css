@@ -48,6 +48,23 @@
     max-height: 70vh;
 }
 
+.command-modal.is-automation-console .ant-modal-body {
+    height: min(76vh, 720px);
+    overflow: hidden;
+}
+
+.command-modal.is-automation-console .command-modal-card.is-automation-console {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+}
+
+.command-modal-card.is-automation-console>.command-modal-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+}
+
 .history-list-container .ant-divider {
     margin: 6px 0;
     border-color: var(--border);
@@ -488,6 +505,33 @@
 
 .automation-console-detail {
     overflow: auto;
+}
+
+.automation-console-detail.is-source-editor {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.automation-source-workspace {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.automation-source-field {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.automation-source-editor.ant-input {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    resize: none;
 }
 
 .automation-console-count {
@@ -1421,6 +1465,16 @@
 
     .automation-execution-row {
         grid-template-columns: 1fr;
+    }
+
+    .automation-console-detail.is-source-editor {
+        overflow: visible;
+    }
+
+    .automation-source-editor.ant-input {
+        flex: none;
+        min-height: 320px;
+        resize: vertical;
     }
 
     .registry-meta-grid {

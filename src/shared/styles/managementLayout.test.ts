@@ -33,6 +33,48 @@ describe("management layout contracts", () => {
     expect(modalRule).not.toMatch(/height:\s*100%;/);
   });
 
+  it("keeps management dialogs stable while source editors fill the available height", () => {
+    const modalCss = readStyle("modal.css");
+    const bodyRule = readRule(
+      modalCss,
+      ".command-modal.is-automation-console .ant-modal-body",
+    );
+    const cardRule = readRule(
+      modalCss,
+      ".command-modal.is-automation-console .command-modal-card.is-automation-console",
+    );
+    const sectionRule = readRule(
+      modalCss,
+      ".command-modal-card.is-automation-console>.command-modal-section",
+    );
+    const sourceDetailRule = readRule(
+      modalCss,
+      ".automation-console-detail.is-source-editor",
+    );
+    const sourceWorkspaceRule = readRule(
+      modalCss,
+      ".automation-source-workspace",
+    );
+    const sourceEditorRule = readRule(
+      modalCss,
+      ".automation-source-editor.ant-input",
+    );
+
+    expect(bodyRule).toMatch(/height:\s*min\(76vh,\s*720px\);/);
+    expect(bodyRule).toMatch(/overflow:\s*hidden;/);
+    expect(cardRule).toMatch(/height:\s*100%;/);
+    expect(cardRule).toMatch(/min-height:\s*0;/);
+    expect(sectionRule).toMatch(/flex:\s*1 1 auto;/);
+    expect(sectionRule).toMatch(/min-height:\s*0;/);
+    expect(sourceDetailRule).toMatch(/display:\s*flex;/);
+    expect(sourceDetailRule).toMatch(/overflow:\s*hidden;/);
+    expect(sourceWorkspaceRule).toMatch(/flex:\s*1 1 auto;/);
+    expect(sourceWorkspaceRule).toMatch(/min-height:\s*0;/);
+    expect(sourceEditorRule).toMatch(/flex:\s*1 1 auto;/);
+    expect(sourceEditorRule).toMatch(/min-height:\s*0;/);
+    expect(sourceEditorRule).toMatch(/resize:\s*none;/);
+  });
+
   it("keeps the worker history dialog height stable and scrolls its list", () => {
     const workersCss = readStyle("workers.css");
     const bodyRule = readRule(workersCss, ".worker-history-modal .ant-modal-body");
