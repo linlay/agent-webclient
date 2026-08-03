@@ -85,6 +85,8 @@ import {
   hasEditableAdminDefinition,
   isInvalidAdminAgent,
   readAdminAgentDiagnostics,
+  resolveActiveAgentFormSection,
+  resolveAgentSavePlacement,
   resolveAdminAgentSourcePath,
   saveAgentOrderRequest,
   shouldShowAgentDirectoryButton,
@@ -339,7 +341,7 @@ describe("AgentConsole i18n rendering", () => {
     );
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(html.match(/class="agent-section-nav-link/g)).toHaveLength(5);
+    expect(html.match(/class="agent-section-nav-link tw:/g)).toHaveLength(5);
     expect(html).not.toContain("agent-config-box");
     expect(html).not.toContain("<fieldset");
   });
@@ -351,6 +353,37 @@ describe("AgentConsole i18n rendering", () => {
     expect(shouldShowAgentDirectoryButton("edit", "/agents/a/agent.yml")).toBe(true);
     expect(shouldShowAgentDirectoryButton("edit", "")).toBe(false);
     expect(shouldShowAgentDirectoryButton("create", "/agents/a/agent.yml")).toBe(false);
+  });
+
+  it("renders exactly one edit save based on whether the sticky anchor bar is available", () => {
+    expect(resolveAgentSavePlacement("edit", "structured", true)).toEqual({
+      header: false,
+      sticky: true,
+      footer: false,
+    });
+    expect(resolveAgentSavePlacement("edit", "source", true)).toEqual({
+      header: true,
+      sticky: false,
+      footer: false,
+    });
+    expect(resolveAgentSavePlacement("create", "structured", true)).toEqual({
+      header: false,
+      sticky: false,
+      footer: true,
+    });
+  });
+
+  it("resolves the active anchor from content scroll position and locks prompts at the bottom", () => {
+    const sectionTops = [120, 420, 760, 1100, 1450];
+    expect(resolveActiveAgentFormSection(sectionTops, 80, false)).toBe(
+      AGENT_FORM_SECTION_IDS[0],
+    );
+    expect(resolveActiveAgentFormSection(sectionTops, 800, false)).toBe(
+      AGENT_FORM_SECTION_IDS[2],
+    );
+    expect(resolveActiveAgentFormSection(sectionTops, 800, true)).toBe(
+      AGENT_FORM_SECTION_IDS[4],
+    );
   });
 
   it("opens the registered agent config directory instead of its workspace", () => {

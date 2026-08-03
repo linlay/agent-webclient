@@ -106,6 +106,7 @@ interface AgentConsoleProps {
   selectedAgentKey?: string;
   onSelectAgentKey?: (agentKey: string) => void;
   onClearSelection?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
   embedded?: boolean;
 }
 
@@ -132,6 +133,21 @@ export function shouldShowAgentSectionNav(
   canEditStructuredAgent: boolean,
 ): boolean {
   return editorMode === "structured" && canEditStructuredAgent;
+}
+
+export function resolveAgentSavePlacement(
+  formMode: AgentFormMode,
+  editorMode: AgentEditorMode,
+  canEditStructuredAgent: boolean,
+) {
+  const sticky =
+    formMode === "edit" &&
+    shouldShowAgentSectionNav(editorMode, canEditStructuredAgent);
+  return {
+    header: formMode === "edit" && !sticky,
+    sticky,
+    footer: formMode === "create" && editorMode === "structured",
+  };
 }
 
 export async function saveAgentOrderRequest(agents: Agent[]): Promise<void> {
@@ -759,13 +775,17 @@ const AGENT_DIAGNOSTIC_ITEM_CLASS_NAME =
 const AGENT_DIAGNOSTIC_CODE_CLASS_NAME =
   "agent-diagnostic-code tw:text-[11px] tw:font-bold tw:text-ink-muted";
 const AGENT_FORM_GRID_CLASS_NAME =
-  "agent-form-grid tw:grid tw:grid-cols-2 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
+  "agent-form-grid tw:grid tw:grid-cols-3 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
 const AGENT_FORM_FULL_WIDTH_CLASS_NAME =
-  "field-group agent-form-full-width tw:col-span-2 tw:max-[860px]:col-span-1";
+  "field-group agent-form-full-width tw:col-span-3 tw:max-[860px]:col-span-1";
 const AGENT_SECTION_NAV_CLASS_NAME =
-  "agent-section-nav tw:sticky tw:top-0 tw:z-sticky tw:flex tw:overflow-x-auto";
+  "agent-section-nav tw:sticky tw:top-0 tw:flex tw:items-center";
+const AGENT_SECTION_NAV_LINKS_CLASS_NAME =
+  "agent-section-nav-links tw:flex tw:min-w-0 tw:flex-1 tw:overflow-x-auto";
 const AGENT_SECTION_NAV_LINK_CLASS_NAME =
   "agent-section-nav-link tw:flex-none tw:whitespace-nowrap";
+const AGENT_SECTION_NAV_SAVE_CLASS_NAME =
+  "agent-section-nav-save tw:ml-auto tw:flex-none";
 const AGENT_FORM_SECTION_CLASS_NAME = "agent-form-section";
 const AGENT_FORM_SECTION_HEADING_CLASS_NAME =
   "agent-form-section-heading tw:flex tw:items-center tw:gap-1.5";
@@ -798,7 +818,25 @@ export const AGENT_FORM_SECTION_IDS = [
   "agent-section-prompts",
 ] as const;
 
-type AgentFormSectionId = (typeof AGENT_FORM_SECTION_IDS)[number];
+export type AgentFormSectionId = (typeof AGENT_FORM_SECTION_IDS)[number];
+
+export function resolveActiveAgentFormSection(
+  sectionTops: number[],
+  activationLine: number,
+  atBottom: boolean,
+): AgentFormSectionId {
+  if (atBottom) {
+    return AGENT_FORM_SECTION_IDS[AGENT_FORM_SECTION_IDS.length - 1];
+  }
+
+  let activeSection: AgentFormSectionId = AGENT_FORM_SECTION_IDS[0];
+  AGENT_FORM_SECTION_IDS.forEach((sectionId, index) => {
+    if (sectionTops[index] <= activationLine) {
+      activeSection = sectionId;
+    }
+  });
+  return activeSection;
+}
 
 interface AgentFormSectionProps {
   active?: boolean;
@@ -1044,6 +1082,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
   onClearSelection,
+  onDirtyChange,
   embedded = false,
 }) => {
   const { t } = useI18n();
@@ -1079,6 +1118,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [sourcePath, setSourcePath] = useState("");
   const [sourceLoadedKey, setSourceLoadedKey] = useState("");
   const [sourceDirty, setSourceDirty] = useState(false);
+  const [structuredDirty, setStructuredDirty] = useState(false);
   const didInitialSelectRef = useRef(false);
   const didBootstrapAgentsRef = useRef(false);
   const didBootstrapOptionsRef = useRef(false);
@@ -1086,6 +1126,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const optionsLoadSeqRef = useRef(0);
   const sourceLoadSeqRef = useRef(0);
   const selectedAgentKeyRef = useRef(selectedAgentKey);
+  const detailScrollRef = useRef<HTMLDivElement>(null);
+  const sectionNavLinksRef = useRef<HTMLDivElement>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -1239,7 +1281,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const handleSectionNavigate = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>, sectionId: AgentFormSectionId) => {
       event.preventDefault();
-      const section = document.getElementById(sectionId);
+      const section = detailScrollRef.current?.querySelector<HTMLElement>(
+        `#${sectionId}`,
+      );
       if (!section) return;
       setActiveSectionId(sectionId);
       section.scrollIntoView({
@@ -1254,16 +1298,118 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const canEditStructuredAgent =
     formMode === "create" || hasEditableAdminDefinition(detail);
   const canEditSourceAgent = formMode === "edit" && Boolean(detailSourcePath);
+  const hasUnsavedChanges = structuredDirty || sourceDirty;
+  const savePlacement = resolveAgentSavePlacement(
+    formMode,
+    editorMode,
+    canEditStructuredAgent,
+  );
 
   useEffect(() => {
     selectedAgentKeyRef.current = selectedAgentKey;
   }, [selectedAgentKey]);
 
   useEffect(() => {
+    onDirtyChange?.(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onDirtyChange]);
+
+  useEffect(
+    () => () => {
+      onDirtyChange?.(false);
+    },
+    [onDirtyChange],
+  );
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
     setActiveSectionId(AGENT_FORM_SECTION_IDS[0]);
   }, [editorMode, effectiveSelectedKey, formMode]);
 
-  const selectAgent = useCallback(
+  useEffect(() => {
+    if (!shouldShowAgentSectionNav(editorMode, canEditStructuredAgent)) return;
+    const scrollContainer = detailScrollRef.current;
+    if (!scrollContainer) return;
+
+    let animationFrame = 0;
+    const updateActiveSection = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const nav = scrollContainer.querySelector<HTMLElement>(
+          ".agent-section-nav",
+        );
+        const activationLine =
+          (nav?.getBoundingClientRect().bottom ??
+            scrollContainer.getBoundingClientRect().top) + 8;
+        const sectionTops = AGENT_FORM_SECTION_IDS.map((sectionId) => {
+          const section = scrollContainer.querySelector<HTMLElement>(
+            `#${sectionId}`,
+          );
+          return section?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+        });
+        const atBottom =
+          scrollContainer.scrollTop + scrollContainer.clientHeight >=
+          scrollContainer.scrollHeight - 2;
+        const nextSectionId = resolveActiveAgentFormSection(
+          sectionTops,
+          activationLine,
+          atBottom,
+        );
+        setActiveSectionId((currentSectionId) =>
+          currentSectionId === nextSectionId ? currentSectionId : nextSectionId,
+        );
+      });
+    };
+
+    updateActiveSection();
+    scrollContainer.addEventListener("scroll", updateActiveSection, {
+      passive: true,
+    });
+    window.addEventListener("resize", updateActiveSection);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      scrollContainer.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("resize", updateActiveSection);
+    };
+  }, [
+    canEditStructuredAgent,
+    editorMode,
+    effectiveSelectedKey,
+    form.iconKind,
+    form.mode,
+    form.reasoningEnabled,
+  ]);
+
+  useEffect(() => {
+    const links = sectionNavLinksRef.current;
+    const activeLink = links?.querySelector<HTMLElement>(
+      `a[href="#${activeSectionId}"]`,
+    );
+    if (!links || !activeLink) return;
+
+    const linkLeft = activeLink.offsetLeft;
+    const linkRight = linkLeft + activeLink.offsetWidth;
+    const visibleLeft = links.scrollLeft;
+    const visibleRight = visibleLeft + links.clientWidth;
+    if (linkLeft < visibleLeft) {
+      links.scrollTo({ left: linkLeft, behavior: "smooth" });
+    } else if (linkRight > visibleRight) {
+      links.scrollTo({
+        left: linkRight - links.clientWidth,
+        behavior: "smooth",
+      });
+    }
+  }, [activeSectionId]);
+
+  const commitAgentSelection = useCallback(
     (agentKey: string) => {
       const key = agentKey.trim();
       sourceLoadSeqRef.current += 1;
@@ -1273,7 +1419,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     [onSelectAgentKey],
   );
 
-  const startCreate = useCallback(() => {
+  const resetToCreate = useCallback(() => {
     sourceLoadSeqRef.current += 1;
     setFormMode("create");
     setEditorMode("structured");
@@ -1284,12 +1430,35 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setSourcePath("");
     setSourceLoadedKey("");
     setSourceDirty(false);
+    setStructuredDirty(false);
     setInternalSelectedKey("");
     setFormError("");
     setError("");
     setPendingDeleteKey("");
     onClearSelection?.();
   }, [onClearSelection]);
+
+  const confirmDiscardChanges = useCallback(
+    () =>
+      !hasUnsavedChanges ||
+      window.confirm(t("agentConsole.confirm.switch")),
+    [hasUnsavedChanges, t],
+  );
+
+  const selectAgent = useCallback(
+    (agentKey: string) => {
+      const key = agentKey.trim();
+      if (key === effectiveSelectedKey) return;
+      if (!confirmDiscardChanges()) return;
+      commitAgentSelection(key);
+    },
+    [commitAgentSelection, confirmDiscardChanges, effectiveSelectedKey],
+  );
+
+  const startCreate = useCallback(() => {
+    if (!confirmDiscardChanges()) return;
+    resetToCreate();
+  }, [confirmDiscardChanges, resetToCreate]);
 
   const loadAgents = useCallback(
     async (preferredKey = "") => {
@@ -1413,6 +1582,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setSourcePath("");
     setSourceLoadedKey("");
     setSourceDirty(false);
+    setStructuredDirty(false);
     setError("");
     setFormError("");
     setPendingDeleteKey("");
@@ -1450,18 +1620,19 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     if (effectiveSelectedKey) {
       void loadDetail(effectiveSelectedKey);
     } else if (state.agents.length === 0 && !loadingList) {
-      startCreate();
+      resetToCreate();
     }
   }, [
     effectiveSelectedKey,
     loadDetail,
     loadingList,
-    startCreate,
+    resetToCreate,
     state.agents.length,
   ]);
 
   const updateForm = (patch: Partial<AgentFormState>) => {
     setForm((current) => ({ ...current, ...patch }));
+    setStructuredDirty(true);
     setFormError("");
   };
 
@@ -1556,8 +1727,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setSourcePath("");
       setSourceLoadedKey("");
       setSourceDirty(false);
+      setStructuredDirty(false);
       await loadAgents(savedKey);
-      selectAgent(savedKey);
+      commitAgentSelection(savedKey);
     } catch (error) {
       setFormError((error as Error).message);
     } finally {
@@ -1582,8 +1754,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       );
       dispatch({ type: "SET_AGENTS", agents: remaining });
       const nextKey = remaining[0]?.key || "";
-      if (nextKey) selectAgent(nextKey);
-      else startCreate();
+      if (nextKey) commitAgentSelection(nextKey);
+      else resetToCreate();
     } catch (error) {
       setFormError((error as Error).message);
     } finally {
@@ -1620,11 +1792,22 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   const toggleEditorMode = async () => {
     if (!canEditSourceAgent) return;
+    if (
+      hasUnsavedChanges &&
+      !window.confirm(t("agentConsole.confirm.switchEditor"))
+    ) {
+      return;
+    }
     if (editorMode === "source") {
+      setSourceDirty(false);
       setEditorMode("structured");
       return;
     }
 
+    if (structuredDirty && detail) {
+      setForm(formFromDetail(detail));
+      setStructuredDirty(false);
+    }
     setEditorMode("source");
     const key = form.key.trim();
     if (!key || sourceLoadedKey === key) return;
@@ -1670,6 +1853,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         setDetail(nextDetail);
         setForm(formFromDetail(nextDetail));
         setFormMode("edit");
+        setStructuredDirty(false);
       }
     } catch (error) {
       setFormError((error as Error).message);
@@ -1677,6 +1861,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setSaving(false);
     }
   };
+
+  const structuredSaveDisabled = saving || !canEditStructuredAgent;
+  const sourceSaveDisabled =
+    saving ||
+    loadingSource ||
+    sourceLoadedKey !== form.key ||
+    !sourceDirty;
 
   return (
     <div
@@ -1795,6 +1986,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         </div>
 
         <div
+          ref={detailScrollRef}
           className={`${AGENT_DETAIL_CLASS_NAME} ${editorMode === "source" ? "is-source-editor" : ""}`}
         >
           <Spin spinning={loadingDetail || loadingSource}>
@@ -1877,6 +2069,27 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                         : t("agentConsole.action.delete")}
                     </span>
                   </UiButton>
+                  {savePlacement.header && editorMode === "source" ? (
+                    <UiButton
+                      size="sm"
+                      variant="primary"
+                      onClick={saveSource}
+                      disabled={sourceSaveDisabled}
+                    >
+                      <MaterialIcon name="save" />
+                      <span>{t("agentConsole.action.saveSource")}</span>
+                    </UiButton>
+                  ) : savePlacement.header ? (
+                    <UiButton
+                      size="sm"
+                      variant="primary"
+                      onClick={saveForm}
+                      disabled={structuredSaveDisabled}
+                    >
+                      <MaterialIcon name="save" />
+                      <span>{t("agentConsole.action.saveChanges")}</span>
+                    </UiButton>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -1889,21 +2102,38 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 className={AGENT_SECTION_NAV_CLASS_NAME}
                 aria-label={t("agentConsole.sectionNav.ariaLabel")}
               >
-                {agentFormSections.map((section) => (
-                  <a
-                    className={AGENT_SECTION_NAV_LINK_CLASS_NAME}
-                    href={`#${section.id}`}
-                    aria-current={
-                      activeSectionId === section.id ? "location" : undefined
-                    }
-                    key={section.id}
-                    onClick={(event) =>
-                      handleSectionNavigate(event, section.id)
-                    }
+                <div
+                  ref={sectionNavLinksRef}
+                  className={AGENT_SECTION_NAV_LINKS_CLASS_NAME}
+                >
+                  {agentFormSections.map((section) => (
+                    <a
+                      className={AGENT_SECTION_NAV_LINK_CLASS_NAME}
+                      href={`#${section.id}`}
+                      aria-current={
+                        activeSectionId === section.id ? "location" : undefined
+                      }
+                      key={section.id}
+                      onClick={(event) =>
+                        handleSectionNavigate(event, section.id)
+                      }
+                    >
+                      {section.label}
+                    </a>
+                  ))}
+                </div>
+                {savePlacement.sticky && (
+                  <UiButton
+                    className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
+                    size="sm"
+                    variant="primary"
+                    onClick={saveForm}
+                    disabled={structuredSaveDisabled}
                   >
-                    {section.label}
-                  </a>
-                ))}
+                    <MaterialIcon name="save" />
+                    <span>{t("agentConsole.action.saveChanges")}</span>
+                  </UiButton>
+                )}
               </nav>
             )}
 
@@ -1949,27 +2179,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   {formError && (
                     <div className="settings-error">{formError}</div>
                   )}
-                  <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
-                    <UiButton
-                      size="sm"
-                      variant="primary"
-                      onClick={saveSource}
-                      disabled={
-                        saving ||
-                        loadingSource ||
-                        sourceLoadedKey !== form.key ||
-                        !sourceDirty
-                      }
-                    >
-                      <MaterialIcon name="save" />
-                      <span>{t("agentConsole.action.saveSource")}</span>
-                    </UiButton>
-                    {sourceDirty && (
+                  {sourceDirty && (
+                    <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
                       <span className={AGENT_DIRTY_CLASS_NAME}>
                         {t("agentConsole.message.unsaved")}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               ) : null
             ) : canEditStructuredAgent ? (
@@ -2098,7 +2314,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       />
                     </div>
                   )}
-                  <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
+                  <div className="field-group">
                     <label htmlFor="agent-visibility-input">
                       {t("agentConsole.field.visibility")}
                     </label>
@@ -2401,20 +2617,17 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <>
                 {formError && <div className="settings-error">{formError}</div>}
                 <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
-                  <UiButton
-                    size="sm"
-                    variant="primary"
-                    onClick={saveForm}
-                    disabled={saving || !canEditStructuredAgent}
-                  >
-                    <MaterialIcon name="save" />
-                    <span>
-                      {formMode === "create"
-                        ? t("agentConsole.action.create")
-                        : t("agentConsole.action.saveChanges")}
-                    </span>
-                  </UiButton>
-                  {formMode === "edit" && (
+                  {savePlacement.footer ? (
+                    <UiButton
+                      size="sm"
+                      variant="primary"
+                      onClick={saveForm}
+                      disabled={structuredSaveDisabled}
+                    >
+                      <MaterialIcon name="save" />
+                      <span>{t("agentConsole.action.create")}</span>
+                    </UiButton>
+                  ) : (
                     <UiButton
                       size="sm"
                       variant="ghost"

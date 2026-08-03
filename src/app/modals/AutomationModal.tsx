@@ -31,7 +31,10 @@ import type {
   UpdateAutomationRequest,
   AdminSourceResponse,
 } from "@/shared/data";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import {
+  MaterialIcon,
+  type MaterialIconName,
+} from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
@@ -126,7 +129,9 @@ const AUTOMATION_DETAIL_HEAD_CLASS_NAME =
 const AUTOMATION_ACTIONS_CLASS_NAME =
   "automation-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
 const AUTOMATION_FORM_GRID_CLASS_NAME =
-  "automation-form-grid tw:grid tw:grid-cols-2 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
+  "automation-form-grid tw:grid tw:grid-cols-3 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
+const AUTOMATION_FORM_FULL_WIDTH_CLASS_NAME =
+  "field-group automation-form-full-width tw:col-span-3 tw:max-[860px]:col-span-1";
 const AUTOMATION_CRON_CONTROL_CLASS_NAME =
   "automation-cron-control tw:grid tw:grid-cols-[minmax(0,1fr)_132px] tw:items-center tw:gap-2 tw:[&_.ant-select]:min-w-0 tw:[&_select]:min-w-0";
 const AUTOMATION_ENABLED_FIELD_CLASS_NAME =
@@ -135,18 +140,73 @@ const AUTOMATION_MONO_TEXTAREA_CLASS_NAME =
   "settings-textarea automation-mono-textarea tw:font-code";
 const AUTOMATION_SOURCE_EDITOR_CLASS_NAME =
   "settings-textarea automation-source-editor tw:min-h-0 tw:flex-1 tw:resize-none tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80 tw:max-[860px]:flex-none tw:max-[860px]:resize-y";
-const AUTOMATION_REQUEST_BOX_CLASS_NAME =
-  "automation-request-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 tw:[&_.field-group:last-child]:mb-0 tw:[&_.material-icon]:scale-[.8] tw:[&_legend]:px-1.5 tw:[&_legend]:text-[11px] tw:[&_legend]:font-bold tw:[&_legend]:text-ink-muted";
 const AUTOMATION_SAVE_ACTIONS_CLASS_NAME =
   "automation-save-actions tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2";
 const AUTOMATION_EXECUTIONS_CLASS_NAME =
-  "automation-executions tw:mt-[18px] tw:border-t tw:border-line-soft tw:pt-3";
+  "automation-executions";
 const AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME =
   "automation-executions-head tw:mb-2 tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2";
 const AUTOMATION_EXECUTION_LIST_CLASS_NAME =
   "automation-execution-list tw:flex tw:flex-col tw:gap-1";
 const AUTOMATION_EXECUTION_ROW_CLASS_NAME =
   "automation-execution-row tw:grid tw:grid-cols-[82px_1.1fr_70px_minmax(120px,1fr)] tw:items-center tw:gap-2 tw:rounded-[var(--radius-sm)] tw:bg-[color-mix(in_srgb,var(--bg-input)_55%,transparent)] tw:px-2 tw:py-[7px] tw:text-[11px] tw:text-ink-muted tw:max-[860px]:grid-cols-1 tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
+const AUTOMATION_SECTION_NAV_CLASS_NAME =
+  "automation-section-nav tw:sticky tw:top-0 tw:flex tw:items-center";
+const AUTOMATION_SECTION_NAV_LINKS_CLASS_NAME =
+  "automation-section-nav-links tw:flex tw:min-w-0 tw:flex-1 tw:overflow-x-auto";
+const AUTOMATION_SECTION_NAV_LINK_CLASS_NAME =
+  "automation-section-nav-link tw:flex-none tw:whitespace-nowrap";
+const AUTOMATION_SECTION_NAV_SAVE_CLASS_NAME =
+  "automation-section-nav-save tw:ml-auto tw:flex-none";
+const AUTOMATION_FORM_SECTION_CLASS_NAME = "automation-form-section";
+const AUTOMATION_FORM_SECTION_HEADING_CLASS_NAME =
+  "automation-form-section-heading tw:flex tw:items-center tw:gap-1.5";
+
+export const AUTOMATION_FORM_SECTION_IDS = [
+  "automation-section-basic",
+  "automation-section-query",
+  "automation-section-executions",
+] as const;
+
+type AutomationFormSectionId = (typeof AUTOMATION_FORM_SECTION_IDS)[number];
+
+export function resolveActiveAutomationFormSection(
+  sectionTops: number[],
+  activationLine: number,
+  atBottom: boolean,
+): AutomationFormSectionId {
+  if (atBottom) {
+    return AUTOMATION_FORM_SECTION_IDS[AUTOMATION_FORM_SECTION_IDS.length - 1];
+  }
+  let activeSection: AutomationFormSectionId = AUTOMATION_FORM_SECTION_IDS[0];
+  AUTOMATION_FORM_SECTION_IDS.forEach((sectionId, index) => {
+    if (sectionTops[index] <= activationLine) activeSection = sectionId;
+  });
+  return activeSection;
+}
+
+const AutomationFormSection: React.FC<{
+  active?: boolean;
+  children: React.ReactNode;
+  icon: MaterialIconName;
+  id: AutomationFormSectionId;
+  title: string;
+}> = ({ active = false, children, icon, id, title }) => {
+  const titleId = `${id}-title`;
+  return (
+    <section
+      id={id}
+      className={`${AUTOMATION_FORM_SECTION_CLASS_NAME} ${active ? "is-active" : ""}`}
+      aria-labelledby={titleId}
+    >
+      <div className={AUTOMATION_FORM_SECTION_HEADING_CLASS_NAME}>
+        <MaterialIcon name={icon} />
+        <h3 id={titleId}>{title}</h3>
+      </div>
+      {children}
+    </section>
+  );
+};
 
 const COMMON_ZONE_OPTIONS = [
   "Asia/Shanghai",
@@ -434,6 +494,8 @@ export const AutomationModal: React.FC<{
   const [workerFilter, setWorkerFilter] = useState("");
   const [formMode, setFormMode] = useState<AutomationFormMode>("create");
   const [editorMode, setEditorMode] = useState<AutomationEditorMode>("structured");
+  const [activeSectionId, setActiveSectionId] =
+    useState<AutomationFormSectionId>(AUTOMATION_FORM_SECTION_IDS[0]);
   const [form, setForm] = useState<AutomationFormState>(() =>
     createInitialForm(currentWorker),
   );
@@ -456,6 +518,47 @@ export const AutomationModal: React.FC<{
   const didAutoSelectInitialAutomationRef = useRef(false);
   const sourceLoadSeqRef = useRef(0);
   const selectedAutomationIdRef = useRef(selectedId);
+  const detailScrollRef = useRef<HTMLDivElement>(null);
+  const sectionNavLinksRef = useRef<HTMLDivElement>(null);
+
+  const formSections = useMemo(
+    () => [
+      {
+        id: AUTOMATION_FORM_SECTION_IDS[0],
+        label: t("automationConsole.section.basic"),
+      },
+      {
+        id: AUTOMATION_FORM_SECTION_IDS[1],
+        label: t("automationConsole.section.queryParams"),
+      },
+      {
+        id: AUTOMATION_FORM_SECTION_IDS[2],
+        label: t("automationConsole.section.executions"),
+      },
+    ],
+    [t],
+  );
+
+  const handleSectionNavigate = useCallback(
+    (
+      event: React.MouseEvent<HTMLAnchorElement>,
+      sectionId: AutomationFormSectionId,
+    ) => {
+      event.preventDefault();
+      const section = detailScrollRef.current?.querySelector<HTMLElement>(
+        `#${sectionId}`,
+      );
+      if (!section) return;
+      setActiveSectionId(sectionId);
+      section.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "start",
+      });
+    },
+    [],
+  );
 
   const workerOptions = useMemo(() => {
     const values = new Map<string, string>();
@@ -690,6 +793,77 @@ export const AutomationModal: React.FC<{
   useEffect(() => {
     selectedAutomationIdRef.current = selectedId;
   }, [selectedId]);
+
+  useEffect(() => {
+    setActiveSectionId(AUTOMATION_FORM_SECTION_IDS[0]);
+  }, [editorMode, formMode, selectedId]);
+
+  useEffect(() => {
+    if (editorMode !== "structured") return;
+    const scrollContainer = detailScrollRef.current;
+    if (!scrollContainer) return;
+
+    let animationFrame = 0;
+    const updateActiveSection = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const nav = scrollContainer.querySelector<HTMLElement>(
+          ".automation-section-nav",
+        );
+        const activationLine =
+          (nav?.getBoundingClientRect().bottom ??
+            scrollContainer.getBoundingClientRect().top) + 8;
+        const sectionTops = AUTOMATION_FORM_SECTION_IDS.map((sectionId) => {
+          const section = scrollContainer.querySelector<HTMLElement>(
+            `#${sectionId}`,
+          );
+          return section?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+        });
+        const atBottom =
+          scrollContainer.scrollTop + scrollContainer.clientHeight >=
+          scrollContainer.scrollHeight - 2;
+        const nextSectionId = resolveActiveAutomationFormSection(
+          sectionTops,
+          activationLine,
+          atBottom,
+        );
+        setActiveSectionId((currentSectionId) =>
+          currentSectionId === nextSectionId ? currentSectionId : nextSectionId,
+        );
+      });
+    };
+
+    updateActiveSection();
+    scrollContainer.addEventListener("scroll", updateActiveSection, {
+      passive: true,
+    });
+    window.addEventListener("resize", updateActiveSection);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      scrollContainer.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("resize", updateActiveSection);
+    };
+  }, [editorMode, executions.length, formMode, selectedId]);
+
+  useEffect(() => {
+    const links = sectionNavLinksRef.current;
+    const activeLink = links?.querySelector<HTMLElement>(
+      `a[href="#${activeSectionId}"]`,
+    );
+    if (!links || !activeLink) return;
+    const linkLeft = activeLink.offsetLeft;
+    const linkRight = linkLeft + activeLink.offsetWidth;
+    const visibleLeft = links.scrollLeft;
+    const visibleRight = visibleLeft + links.clientWidth;
+    if (linkLeft < visibleLeft) {
+      links.scrollTo({ left: linkLeft, behavior: "smooth" });
+    } else if (linkRight > visibleRight) {
+      links.scrollTo({
+        left: linkRight - links.clientWidth,
+        behavior: "smooth",
+      });
+    }
+  }, [activeSectionId]);
 
   useEffect(() => {
     if (!shouldStartAutomationConsoleBootstrap(didBootstrapAutomationsRef))
@@ -1051,6 +1225,7 @@ export const AutomationModal: React.FC<{
         </div>
 
         <div
+          ref={detailScrollRef}
           className={`${AUTOMATION_DETAIL_CLASS_NAME} ${editorMode === "source" ? "is-source-editor" : ""}`}
         >
           <div className={AUTOMATION_DETAIL_HEAD_CLASS_NAME}>
@@ -1118,6 +1293,46 @@ export const AutomationModal: React.FC<{
             )}
           </div>
 
+          {editorMode === "structured" && (
+            <nav
+              className={AUTOMATION_SECTION_NAV_CLASS_NAME}
+              aria-label={t("automationConsole.sectionNav.ariaLabel")}
+            >
+              <div
+                ref={sectionNavLinksRef}
+                className={AUTOMATION_SECTION_NAV_LINKS_CLASS_NAME}
+              >
+                {formSections.map((section) => (
+                  <a
+                    className={AUTOMATION_SECTION_NAV_LINK_CLASS_NAME}
+                    href={`#${section.id}`}
+                    aria-current={
+                      activeSectionId === section.id ? "location" : undefined
+                    }
+                    key={section.id}
+                    onClick={(event) =>
+                      handleSectionNavigate(event, section.id)
+                    }
+                  >
+                    {section.label}
+                  </a>
+                ))}
+              </div>
+              {formMode === "edit" && (
+                <UiButton
+                  className={AUTOMATION_SECTION_NAV_SAVE_CLASS_NAME}
+                  size="sm"
+                  variant="primary"
+                  onClick={saveForm}
+                  disabled={saving}
+                >
+                  <MaterialIcon name="save" />
+                  <span>{t("automationConsole.action.saveChanges")}</span>
+                </UiButton>
+              )}
+            </nav>
+          )}
+
           {editorMode === "source" ? (
             <div className="automation-source-workspace">
               <div className="field-group automation-source-field">
@@ -1155,297 +1370,321 @@ export const AutomationModal: React.FC<{
             </div>
           ) : (
             <>
-          <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
-            <div className="field-group">
-              <label htmlFor="automation-name-input">
-                {t("automationConsole.field.name")}
-              </label>
-              <Input
-                id="automation-name-input"
-                value={form.name}
-                onChange={(event) => updateForm({ name: event.target.value })}
-              />
-            </div>
-            <div className="field-group">
-              <label htmlFor="automation-cron-input">Cron</label>
-              <div className={AUTOMATION_CRON_CONTROL_CLASS_NAME}>
-                <Input
-                  id="automation-cron-input"
-                  value={form.cron}
-                  onChange={(event) => updateForm({ cron: event.target.value })}
-                />
-                <Select
-                  aria-label={t("automationConsole.cronPreset.ariaLabel")}
-                  value={
-                    CRON_PRESETS.some((preset) => preset.value === form.cron)
-                      ? form.cron
-                      : ""
-                  }
-                  onChange={(value) => {
-                    if (value) updateForm({ cron: value });
-                  }}
-                  options={[
-                    {
-                      value: "",
-                      label: t("automationConsole.cronPreset.placeholder"),
-                    },
-                    ...cronPresetOptions,
-                  ]}
-                />
-              </div>
-            </div>
-            <div className="field-group">
-              <label htmlFor="automation-agent-input">
-                {t("automationConsole.field.agent")}
-              </label>
-              <Select
-                id="automation-agent-input"
-                showSearch
-                optionFilterProp="label"
-                value={form.agentKey}
-                onChange={(value) => updateForm({ agentKey: value })}
-                options={[
-                  {
-                    value: "",
-                    label: t("automationConsole.field.agentPlaceholder"),
-                  },
-                  ...agentOptions,
-                ]}
-              />
-            </div>
-            <div className="field-group">
-              <label htmlFor="automation-zone-input">
-                {t("automationConsole.field.timezone")}
-              </label>
-              <Select
-                id="automation-zone-input"
-                value={form.zoneId}
-                onChange={(value) => updateForm({ zoneId: value })}
-                options={[
-                  {
-                    value: "",
-                    label: t("automationConsole.field.defaultTimezone"),
-                  },
-                  ...zoneOptions.map((zoneId) => ({
-                    value: zoneId,
-                    label: zoneId,
-                  })),
-                ]}
-              />
-            </div>
-            <div className="field-group">
-              <label htmlFor="automation-runs-input">
-                {t("automationConsole.field.remainingRuns")}
-              </label>
-              <Input
-                id="automation-runs-input"
-                type="number"
-                min="1"
-                placeholder={t(
-                  "automationConsole.field.remainingRunsPlaceholder",
-                )}
-                value={form.remainingRuns}
-                onChange={(event) =>
-                  updateForm({ remainingRuns: event.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="automation-description-input">
-              {t("automationConsole.field.description")}
-            </label>
-            <Input.TextArea
-              id="automation-description-input"
-              className="settings-textarea"
-              rows={2}
-              value={form.description}
-              onChange={(event) =>
-                updateForm({ description: event.target.value })
-              }
-            />
-          </div>
-
-          <fieldset className={AUTOMATION_REQUEST_BOX_CLASS_NAME}>
-            <legend>{t("automationConsole.section.request")}</legend>
-            <div className="field-group">
-              <label htmlFor="automation-message-input">
-                {t("automationConsole.field.message")}
-              </label>
-              <Input.TextArea
-                id="automation-message-input"
-                rows={4}
-                value={form.message}
-                onChange={(event) =>
-                  updateForm({ message: event.target.value })
-                }
-              />
-            </div>
-
-            <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
-              <div className="field-group">
-                <label htmlFor="automation-chat-input">
-                  {t("automationConsole.field.chatId")}
-                </label>
-                <Input
-                  id="automation-chat-input"
-                  value={form.chatId}
-                  onChange={(event) =>
-                    updateForm({ chatId: event.target.value })
-                  }
-                />
-              </div>
-              <div className="field-group">
-                <label htmlFor="automation-role-input">
-                  {t("automationConsole.field.role")}
-                </label>
-                <Select
-                  id="automation-role-input"
-                  value={form.role}
-                  onChange={(value) => updateForm({ role: value })}
-                  options={AUTOMATION_ROLE_OPTIONS.map((role) => ({
-                    value: role,
-                    label: role,
-                  }))}
-                />
-              </div>
-              <div className="field-group">
-                <label htmlFor="automation-hidden-select">
-                  {t("automationConsole.field.hidden")}
-                </label>
-                <Select
-                  id="automation-hidden-select"
-                  value={form.hidden}
-                  onChange={(value) =>
-                    updateForm({
-                      hidden: value,
-                    })
-                  }
-                  options={[
-                    { value: "", label: t("automationConsole.hidden.unset") },
-                    {
-                      value: "true",
-                      label: t("automationConsole.hidden.true"),
-                    },
-                    {
-                      value: "false",
-                      label: t("automationConsole.hidden.false"),
-                    },
-                  ]}
-                />
-              </div>
-              <div className={AUTOMATION_ENABLED_FIELD_CLASS_NAME}>
-                <Checkbox
-                  checked={form.enabled}
-                  onChange={(event) =>
-                    updateForm({ enabled: event.target.checked })
-                  }
-                >
-                  {t("automationConsole.field.enabled")}
-                </Checkbox>
-              </div>
-            </div>
-
-            <div className="field-group tw:mt-2.5">
-              <label htmlFor="automation-params-input">
-                <span>{t("automationConsole.field.params")}</span>
-                <Tooltip
-                  title={t("automationConsole.field.paramsTooltip")}
-                  arrow={false}
-                >
-                  <MaterialIcon name="help" />
-                </Tooltip>
-              </label>
-              <Input.TextArea
-                id="automation-params-input"
-                className={AUTOMATION_MONO_TEXTAREA_CLASS_NAME}
-                rows={3}
-                placeholder='{"kind":"daily"}'
-                value={form.paramsText}
-                onChange={(event) =>
-                  updateForm({ paramsText: event.target.value })
-                }
-              />
-            </div>
-          </fieldset>
-
-          {formError && <div className="settings-error">{formError}</div>}
-
-          <div className={AUTOMATION_SAVE_ACTIONS_CLASS_NAME}>
-            <UiButton
-              size="sm"
-              variant="primary"
-              onClick={saveForm}
-              disabled={saving}
-            >
-              <MaterialIcon name="save" />
-              <span>
-                {formMode === "create"
-                  ? t("automationConsole.action.create")
-                  : t("automationConsole.action.saveChanges")}
-              </span>
-            </UiButton>
-            {formMode === "edit" && (
-              <UiButton
-                size="sm"
-                variant="ghost"
-                onClick={startCreate}
-                disabled={saving}
+              <AutomationFormSection
+                active={activeSectionId === AUTOMATION_FORM_SECTION_IDS[0]}
+                id={AUTOMATION_FORM_SECTION_IDS[0]}
+                icon="settings"
+                title={t("automationConsole.section.basic")}
               >
-                {t("automationConsole.action.cancelEdit")}
-              </UiButton>
-            )}
-          </div>
-            </>
-          )}
-
-          {shouldShowAutomationExecutions(editorMode) && (
-          <div className={AUTOMATION_EXECUTIONS_CLASS_NAME}>
-            <div className={AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME}>
-              <strong>{t("automationConsole.executions.title")}</strong>
-              <UiButton
-                size="sm"
-                variant="ghost"
-                onClick={() => loadExecutions(selectedId)}
-                disabled={!selectedId || executionsLoading}
-              >
-                <MaterialIcon name="refresh" />
-                <span>{t("automationConsole.action.refresh")}</span>
-              </UiButton>
-            </div>
-            <Spin spinning={executionsLoading}>
-              {!selectedId ? (
-                <div className="command-empty-state">
-                  {t("automationConsole.executions.emptyNoSelection")}
-                </div>
-              ) : executions.length === 0 ? (
-                <div className="command-empty-state">
-                  {t("automationConsole.executions.empty")}
-                </div>
-              ) : (
-                <div className={AUTOMATION_EXECUTION_LIST_CLASS_NAME}>
-                  {executions.map((item) => (
-                    <div
-                      className={AUTOMATION_EXECUTION_ROW_CLASS_NAME}
-                      key={item.id}
-                    >
-                      <span>{item.status}</span>
-                      <span>
-                        {automationTimeLabel(
-                          item.startedTime,
-                          item.startedAt,
-                          locale,
+                <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
+                  <div className="field-group">
+                    <label htmlFor="automation-name-input">
+                      {t("automationConsole.field.name")}
+                    </label>
+                    <Input
+                      id="automation-name-input"
+                      value={form.name}
+                      onChange={(event) =>
+                        updateForm({ name: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-cron-input">Cron</label>
+                    <div className={AUTOMATION_CRON_CONTROL_CLASS_NAME}>
+                      <Input
+                        id="automation-cron-input"
+                        value={form.cron}
+                        onChange={(event) =>
+                          updateForm({ cron: event.target.value })
+                        }
+                      />
+                      <Select
+                        aria-label={t(
+                          "automationConsole.cronPreset.ariaLabel",
                         )}
-                      </span>
-                      <span>{toDurationLabel(item.durationMs)}</span>
-                      <span>{item.error || "--"}</span>
+                        value={
+                          CRON_PRESETS.some(
+                            (preset) => preset.value === form.cron,
+                          )
+                            ? form.cron
+                            : ""
+                        }
+                        onChange={(value) => {
+                          if (value) updateForm({ cron: value });
+                        }}
+                        options={[
+                          {
+                            value: "",
+                            label: t(
+                              "automationConsole.cronPreset.placeholder",
+                            ),
+                          },
+                          ...cronPresetOptions,
+                        ]}
+                      />
                     </div>
-                  ))}
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-agent-input">
+                      {t("automationConsole.field.agent")}
+                    </label>
+                    <Select
+                      id="automation-agent-input"
+                      showSearch
+                      optionFilterProp="label"
+                      value={form.agentKey}
+                      onChange={(value) => updateForm({ agentKey: value })}
+                      options={[
+                        {
+                          value: "",
+                          label: t(
+                            "automationConsole.field.agentPlaceholder",
+                          ),
+                        },
+                        ...agentOptions,
+                      ]}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-zone-input">
+                      {t("automationConsole.field.timezone")}
+                    </label>
+                    <Select
+                      id="automation-zone-input"
+                      value={form.zoneId}
+                      onChange={(value) => updateForm({ zoneId: value })}
+                      options={[
+                        {
+                          value: "",
+                          label: t(
+                            "automationConsole.field.defaultTimezone",
+                          ),
+                        },
+                        ...zoneOptions.map((zoneId) => ({
+                          value: zoneId,
+                          label: zoneId,
+                        })),
+                      ]}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-runs-input">
+                      {t("automationConsole.field.remainingRuns")}
+                    </label>
+                    <Input
+                      id="automation-runs-input"
+                      type="number"
+                      min="1"
+                      placeholder={t(
+                        "automationConsole.field.remainingRunsPlaceholder",
+                      )}
+                      value={form.remainingRuns}
+                      onChange={(event) =>
+                        updateForm({ remainingRuns: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className={AUTOMATION_ENABLED_FIELD_CLASS_NAME}>
+                    <Checkbox
+                      checked={form.enabled}
+                      onChange={(event) =>
+                        updateForm({ enabled: event.target.checked })
+                      }
+                    >
+                      {t("automationConsole.field.enabled")}
+                    </Checkbox>
+                  </div>
+                  <div className={AUTOMATION_FORM_FULL_WIDTH_CLASS_NAME}>
+                    <label htmlFor="automation-description-input">
+                      {t("automationConsole.field.description")}
+                    </label>
+                    <Input.TextArea
+                      id="automation-description-input"
+                      className="settings-textarea"
+                      rows={2}
+                      value={form.description}
+                      onChange={(event) =>
+                        updateForm({ description: event.target.value })
+                      }
+                    />
+                  </div>
                 </div>
-              )}
-            </Spin>
-          </div>
+              </AutomationFormSection>
+
+              <AutomationFormSection
+                active={activeSectionId === AUTOMATION_FORM_SECTION_IDS[1]}
+                id={AUTOMATION_FORM_SECTION_IDS[1]}
+                icon="data_object"
+                title={t("automationConsole.section.queryParams")}
+              >
+                <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
+                  <div className={AUTOMATION_FORM_FULL_WIDTH_CLASS_NAME}>
+                    <label htmlFor="automation-message-input">
+                      {t("automationConsole.field.message")}
+                    </label>
+                    <Input.TextArea
+                      id="automation-message-input"
+                      rows={4}
+                      value={form.message}
+                      onChange={(event) =>
+                        updateForm({ message: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-chat-input">
+                      {t("automationConsole.field.chatId")}
+                    </label>
+                    <Input
+                      id="automation-chat-input"
+                      value={form.chatId}
+                      onChange={(event) =>
+                        updateForm({ chatId: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-role-input">
+                      {t("automationConsole.field.role")}
+                    </label>
+                    <Select
+                      id="automation-role-input"
+                      value={form.role}
+                      onChange={(value) => updateForm({ role: value })}
+                      options={AUTOMATION_ROLE_OPTIONS.map((role) => ({
+                        value: role,
+                        label: role,
+                      }))}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-hidden-select">
+                      {t("automationConsole.field.hidden")}
+                    </label>
+                    <Select
+                      id="automation-hidden-select"
+                      value={form.hidden}
+                      onChange={(value) => updateForm({ hidden: value })}
+                      options={[
+                        {
+                          value: "",
+                          label: t("automationConsole.hidden.unset"),
+                        },
+                        {
+                          value: "true",
+                          label: t("automationConsole.hidden.true"),
+                        },
+                        {
+                          value: "false",
+                          label: t("automationConsole.hidden.false"),
+                        },
+                      ]}
+                    />
+                  </div>
+                  <div className={AUTOMATION_FORM_FULL_WIDTH_CLASS_NAME}>
+                    <label htmlFor="automation-params-input">
+                      <span>{t("automationConsole.field.params")}</span>
+                      <Tooltip
+                        title={t("automationConsole.field.paramsTooltip")}
+                        arrow={false}
+                      >
+                        <MaterialIcon name="help" />
+                      </Tooltip>
+                    </label>
+                    <Input.TextArea
+                      id="automation-params-input"
+                      className={AUTOMATION_MONO_TEXTAREA_CLASS_NAME}
+                      rows={3}
+                      placeholder='{"kind":"daily"}'
+                      value={form.paramsText}
+                      onChange={(event) =>
+                        updateForm({ paramsText: event.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </AutomationFormSection>
+
+              {formError && <div className="settings-error">{formError}</div>}
+
+              <div className={AUTOMATION_SAVE_ACTIONS_CLASS_NAME}>
+                {formMode === "create" && (
+                  <UiButton
+                    size="sm"
+                    variant="primary"
+                    onClick={saveForm}
+                    disabled={saving}
+                  >
+                    <MaterialIcon name="save" />
+                    <span>{t("automationConsole.action.create")}</span>
+                  </UiButton>
+                )}
+                {formMode === "edit" && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    onClick={startCreate}
+                    disabled={saving}
+                  >
+                    {t("automationConsole.action.cancelEdit")}
+                  </UiButton>
+                )}
+              </div>
+
+              <AutomationFormSection
+                active={activeSectionId === AUTOMATION_FORM_SECTION_IDS[2]}
+                id={AUTOMATION_FORM_SECTION_IDS[2]}
+                icon="history"
+                title={t("automationConsole.section.executions")}
+              >
+                <div className={AUTOMATION_EXECUTIONS_CLASS_NAME}>
+                  <div className={AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME}>
+                    <span>{t("automationConsole.executions.title")}</span>
+                    <UiButton
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => loadExecutions(selectedId)}
+                      disabled={!selectedId || executionsLoading}
+                    >
+                      <MaterialIcon name="refresh" />
+                      <span>{t("automationConsole.action.refresh")}</span>
+                    </UiButton>
+                  </div>
+                  <Spin spinning={executionsLoading}>
+                    {!selectedId ? (
+                      <div className="command-empty-state">
+                        {t("automationConsole.executions.emptyNoSelection")}
+                      </div>
+                    ) : executions.length === 0 ? (
+                      <div className="command-empty-state">
+                        {t("automationConsole.executions.empty")}
+                      </div>
+                    ) : (
+                      <div className={AUTOMATION_EXECUTION_LIST_CLASS_NAME}>
+                        {executions.map((item) => (
+                          <div
+                            className={AUTOMATION_EXECUTION_ROW_CLASS_NAME}
+                            key={item.id}
+                          >
+                            <span>{item.status}</span>
+                            <span>
+                              {automationTimeLabel(
+                                item.startedTime,
+                                item.startedAt,
+                                locale,
+                              )}
+                            </span>
+                            <span>{toDurationLabel(item.durationMs)}</span>
+                            <span>{item.error || "--"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Spin>
+                </div>
+              </AutomationFormSection>
+            </>
           )}
         </div>
       </div>

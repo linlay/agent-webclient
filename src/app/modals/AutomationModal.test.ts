@@ -1,6 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  AUTOMATION_FORM_SECTION_IDS,
   AutomationModal,
   automationTimeLabel,
   automationSourcePath,
@@ -8,6 +9,7 @@ import {
   buildUpdateAutomationPayloadForSubmit,
   fetchAutomationAgentsForSelect,
   isCurrentAutomationSourceRequest,
+  resolveActiveAutomationFormSection,
   shouldShowAutomationExecutions,
   shouldLoadAutomationAgents,
   shouldStartAutomationConsoleBootstrap,
@@ -196,7 +198,7 @@ describe("AutomationModal", () => {
     const html = renderAutomationModal("zh-CN");
 
     expect(html).toContain("自动化 0 个");
-    expect(html).toContain("请求");
+    expect(html).toContain("查询参数");
     expect(html).toContain("智能体");
     expect(html).toContain("小宅");
     expect(html).toContain("执行官");
@@ -214,7 +216,7 @@ describe("AutomationModal", () => {
     const html = renderAutomationModal("en-US");
 
     expect(html).toContain("Automations 0");
-    expect(html).toContain("Request");
+    expect(html).toContain("Query parameters");
     expect(html).toContain("Agent");
     expect(html).toContain("Quick presets");
     expect(html).not.toContain("automation-team-input");
@@ -287,6 +289,67 @@ describe("AutomationModal", () => {
   it("shows execution logs only in structured editing mode", () => {
     expect(shouldShowAutomationExecutions("structured")).toBe(true);
     expect(shouldShowAutomationExecutions("source")).toBe(false);
+  });
+
+  it("renders three flat structured sections in the planned order", () => {
+    const html = renderAutomationModal("zh-CN");
+    const positions = AUTOMATION_FORM_SECTION_IDS.map((id) =>
+      html.indexOf(`id="${id}"`),
+    );
+
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((left, right) => left - right));
+    expect(html.match(/class="automation-section-nav-link tw:/g)).toHaveLength(3);
+    expect(html).not.toContain("<fieldset");
+  });
+
+  it("keeps basic fields, query parameters, and execution status in their assigned groups", () => {
+    const html = renderAutomationModal("zh-CN");
+    const basicStart = html.indexOf(`id="${AUTOMATION_FORM_SECTION_IDS[0]}"`);
+    const queryStart = html.indexOf(`id="${AUTOMATION_FORM_SECTION_IDS[1]}"`);
+    const executionsStart = html.indexOf(
+      `id="${AUTOMATION_FORM_SECTION_IDS[2]}"`,
+    );
+
+    [
+      "automation-name-input",
+      "automation-cron-input",
+      "automation-agent-input",
+      "automation-zone-input",
+      "automation-runs-input",
+      "automation-description-input",
+    ].forEach((id) => {
+      const position = html.indexOf(`id="${id}"`);
+      expect(position).toBeGreaterThan(basicStart);
+      expect(position).toBeLessThan(queryStart);
+    });
+
+    [
+      "automation-message-input",
+      "automation-chat-input",
+      "automation-role-input",
+      "automation-hidden-select",
+      "automation-params-input",
+    ].forEach((id) => {
+      const position = html.indexOf(`id="${id}"`);
+      expect(position).toBeGreaterThan(queryStart);
+      expect(position).toBeLessThan(executionsStart);
+    });
+
+    expect(html.indexOf("执行记录")).toBeGreaterThan(executionsStart);
+  });
+
+  it("links content scrolling to the active automation anchor", () => {
+    const sectionTops = [120, 520, 980];
+    expect(resolveActiveAutomationFormSection(sectionTops, 80, false)).toBe(
+      AUTOMATION_FORM_SECTION_IDS[0],
+    );
+    expect(resolveActiveAutomationFormSection(sectionTops, 600, false)).toBe(
+      AUTOMATION_FORM_SECTION_IDS[1],
+    );
+    expect(resolveActiveAutomationFormSection(sectionTops, 600, true)).toBe(
+      AUTOMATION_FORM_SECTION_IDS[2],
+    );
   });
 
   it("keeps platform readable automation times in their source timezone", () => {

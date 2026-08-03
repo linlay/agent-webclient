@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useAppDispatch,
   useAppState,
@@ -76,6 +76,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const switchItemRefs = useRef<Array<HTMLElement | null>>([]);
   const historyItemRefs = useRef<Array<HTMLElement | null>>([]);
   const historyDefaultSelectionAppliedRef = useRef(false);
+  const [agentConsoleDirty, setAgentConsoleDirty] = useState(false);
 
   const currentWorker = useMemo(
     () => (modal.type === "agents" ? null : resolveCurrentWorkerSummary(state)),
@@ -128,6 +129,13 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   );
 
   const closeDrawer = (restoreComposerFocus = true) => {
+    if (
+      modal.type === "agents" &&
+      agentConsoleDirty &&
+      !window.confirm(t("agentConsole.confirm.close"))
+    ) {
+      return;
+    }
     onClose(restoreComposerFocus);
   };
 
@@ -465,7 +473,9 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
           />
         )}
 
-        {modal.type === "agents" && <AgentConsole embedded />}
+        {modal.type === "agents" && (
+          <AgentConsole embedded onDirtyChange={setAgentConsoleDirty} />
+        )}
       </div>
     </Drawer>
   );

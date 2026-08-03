@@ -784,12 +784,113 @@
 
 .automation-form-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 }
 
 .automation-form-grid .field-group {
     margin-bottom: 0;
+}
+
+.automation-form-full-width {
+    grid-column: 1 / -1;
+}
+
+.automation-section-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    isolation: isolate;
+    margin: 0 0 8px;
+    padding: 6px 0 8px;
+    background: var(--bg-elev-1);
+    box-shadow: var(--shadow-soft);
+    transform: translateZ(0);
+}
+
+.automation-section-nav-links {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+.automation-section-nav-links::-webkit-scrollbar {
+    display: none;
+}
+
+.automation-section-nav-save {
+    flex: none;
+    margin-left: auto;
+}
+
+.automation-section-nav-link {
+    flex: none;
+    border-radius: var(--radius-sm);
+    padding: 5px 8px;
+    color: var(--ink-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 140ms ease, background-color 140ms ease;
+}
+
+.automation-section-nav-link:hover,
+.automation-section-nav-link:focus-visible,
+.automation-section-nav-link[aria-current="location"] {
+    color: var(--accent-electric);
+    background: color-mix(in srgb, var(--accent-soft) 22%, transparent);
+}
+
+.automation-section-nav-link:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 64%, transparent);
+    outline-offset: 1px;
+}
+
+.automation-form-section {
+    margin: 0;
+    padding: 14px 0 0;
+    scroll-margin-top: 48px;
+}
+
+.automation-form-section+.automation-form-section {
+    margin-top: 16px;
+}
+
+.automation-form-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px;
+    color: var(--ink-1);
+    transition: color 140ms ease;
+}
+
+.automation-form-section-heading>svg {
+    width: 15px;
+    height: 15px;
+    color: var(--ink-muted);
+}
+
+.automation-form-section-heading h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+.automation-form-section:target .automation-form-section-heading,
+.automation-form-section:target .automation-form-section-heading>svg,
+.automation-form-section.is-active .automation-form-section-heading,
+.automation-form-section.is-active .automation-form-section-heading>svg {
+    color: var(--accent-electric);
 }
 
 .automation-cron-control {
@@ -830,28 +931,6 @@
 
 .automation-save-actions {
     margin-top: 12px;
-}
-
-.automation-request-box {
-    margin: 14px 0 0;
-    border: 1px solid var(--line-soft);
-    border-radius: var(--radius-md);
-    padding: 12px;
-}
-
-.automation-request-box .material-icon {
-    transform: scale(.8);
-}
-
-.automation-request-box legend {
-    padding: 0 6px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--ink-muted);
-}
-
-.automation-request-box .field-group:last-child {
-    margin-bottom: 0;
 }
 
 .registry-console-message {
@@ -930,9 +1009,7 @@
 }
 
 .automation-executions {
-    margin-top: 18px;
-    border-top: 1px solid var(--line-soft);
-    padding-top: 12px;
+    margin: 0;
 }
 
 .automation-executions-head {
@@ -1385,7 +1462,7 @@
 
 .agent-form-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -1400,20 +1477,35 @@
 .agent-section-nav {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000;
     display: flex;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
+    isolation: isolate;
     margin: 0 0 8px;
     padding: 6px 0 8px;
+    background: var(--bg-elev-1);
+    box-shadow: var(--shadow-soft);
+    transform: translateZ(0);
+}
+
+.agent-section-nav-links {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 4px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
-    background: color-mix(in srgb, var(--bg-elev-1) 96%, transparent);
-    backdrop-filter: blur(8px);
 }
 
-.agent-section-nav::-webkit-scrollbar {
+.agent-section-nav-links::-webkit-scrollbar {
     display: none;
+}
+
+.agent-section-nav-save {
+    flex: none;
+    margin-left: auto;
 }
 
 .agent-section-nav-link {
