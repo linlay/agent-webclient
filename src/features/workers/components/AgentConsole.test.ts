@@ -73,6 +73,8 @@ jest.mock("@/shared/ui/UiButton", () => ({
 import {
   AgentConsole,
   AGENT_CONSOLE_ADMIN_LIST_ROUTE,
+  AGENT_FORM_SECTION_IDS,
+  buildAgentConfigDirectoryOpenOptions,
   buildAdminToolOption,
   buildDefinition,
   buildAgentListSummary,
@@ -85,6 +87,8 @@ import {
   readAdminAgentDiagnostics,
   resolveAdminAgentSourcePath,
   saveAgentOrderRequest,
+  shouldShowAgentDirectoryButton,
+  shouldShowAgentSectionNav,
   shouldStartAgentConsoleBootstrap,
   toolOptionLabel,
 } from "@/features/workers/components/AgentConsole";
@@ -320,6 +324,71 @@ describe("AgentConsole i18n rendering", () => {
     expect(html).not.toContain("Budget runTimeoutMs");
     expect(html).toContain("runTimeoutMs");
   });
+
+  it("renders five flat structured sections in the planned order", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+
+    const positions = AGENT_FORM_SECTION_IDS.map((id) =>
+      html.indexOf(`id="${id}"`),
+    );
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(html.match(/class="agent-section-nav-link/g)).toHaveLength(5);
+    expect(html).not.toContain("agent-config-box");
+    expect(html).not.toContain("<fieldset");
+  });
+
+  it("shows anchors only for editable structured forms and directory buttons only for saved paths", () => {
+    expect(shouldShowAgentSectionNav("structured", true)).toBe(true);
+    expect(shouldShowAgentSectionNav("source", true)).toBe(false);
+    expect(shouldShowAgentSectionNav("structured", false)).toBe(false);
+    expect(shouldShowAgentDirectoryButton("edit", "/agents/a/agent.yml")).toBe(true);
+    expect(shouldShowAgentDirectoryButton("edit", "")).toBe(false);
+    expect(shouldShowAgentDirectoryButton("create", "/agents/a/agent.yml")).toBe(false);
+  });
+
+  it("opens the registered agent config directory instead of its workspace", () => {
+    expect(buildAgentConfigDirectoryOpenOptions(" agent-a ")).toEqual({
+      agentKey: "agent-a",
+      directoryType: "config",
+    });
+    expect(buildAgentConfigDirectoryOpenOptions(" ")).toBeNull();
+  });
+
+  it("keeps visibility in basic properties and full-width context controls together", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "en-US", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+    const basic = html.slice(
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[0]}"`),
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[1]}"`),
+    );
+    const context = html.slice(
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[2]}"`),
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
+    );
+    const advanced = html.slice(
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
+    );
+
+    expect(basic).toContain("agent-visibility-input");
+    expect(advanced).not.toContain("agent-visibility-input");
+    expect(context).toContain("agent-tags-input");
+    expect(context).toContain("agent-tools-input");
+    expect(context).toContain("agent-skills-input");
+    expect(context.match(/agent-form-full-width/g)).toHaveLength(3);
+  });
 });
 
 describe("AgentConsole tool options", () => {
@@ -360,6 +429,87 @@ describe("AgentConsole tool options", () => {
 });
 
 describe("AgentConsole definition mapping", () => {
+  it("reads greetings from definition first and falls back to detail data", () => {
+    const withDefinition = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      greetings: ["detail greeting"],
+      meta: {},
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+        greetings: [" definition greeting ", ""],
+      },
+    });
+    const fromDetail = formFromDetail({
+      key: "agent-b",
+      name: "Agent B",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      greetings: [" detail fallback "],
+      meta: {},
+    });
+
+    expect(withDefinition.greetings).toEqual(["definition greeting"]);
+    expect(fromDetail.greetings).toEqual(["detail fallback"]);
+  });
+
+  it("normalizes greetings and wonders on save and removes empty fields", () => {
+    const form = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      meta: {},
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+        greetings: ["old greeting"],
+        wonders: ["old wonder"],
+      },
+    });
+    const normalized = buildDefinition(
+      {
+        ...form,
+        greetings: [" Hello ", "", " Welcome back "],
+        wonders: [" Try this ", "  "],
+      },
+      {
+        key: "agent-a",
+        name: "Agent A",
+        greetings: ["old greeting"],
+        wonders: ["old wonder"],
+      },
+      translate,
+    );
+    const cleared = buildDefinition(
+      { ...form, greetings: ["  "], wonders: [] },
+      {
+        key: "agent-a",
+        name: "Agent A",
+        greetings: ["old greeting"],
+        wonders: ["old wonder"],
+      },
+      translate,
+    );
+
+    expect(normalized.greetings).toEqual(["Hello", "Welcome back"]);
+    expect(normalized.wonders).toEqual(["Try this"]);
+    expect(cleared.greetings).toBeUndefined();
+    expect(cleared.wonders).toBeUndefined();
+  });
+
   it("reads budget text and visibility from the editable definition", () => {
     const form = formFromDetail({
       key: "agent-a",
