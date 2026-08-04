@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $ScriptDir 'scripts/program-common.ps1')
 $OutputDir = ''
 $DesktopConfigReset = $false
 $DesktopConfigBackupDir = ''
@@ -15,13 +16,6 @@ function Assert-DeployArgValue([string]$Name, [string]$Value) {
   if ([string]::IsNullOrWhiteSpace($Value)) {
     Fail-Program "missing required deploy argument: $Name"
   }
-}
-
-function Protect-ProgramConfigTree([string]$Target) {
-  if (-not (Test-Path -LiteralPath $Target)) { return }
-  $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-  & icacls.exe $Target '/inheritance:r' '/grant:r' ("{0}:(OI)(CI)F" -f $identity) '*S-1-5-18:(OI)(CI)F' '/T' '/C' | Out-Null
-  if ($LASTEXITCODE -ne 0) { Fail-Program "failed to restrict permissions for $Target" }
 }
 
 function Reset-DesktopProgramConfig([string]$BackupDir) {

@@ -73,9 +73,11 @@ if (-not $Arch) { $Arch = if ($env:ARCH) { $env:ARCH } else { Get-HostArch } }
 foreach ($command in @("node", "npm")) {
     if (-not (Get-Command $command -ErrorAction SilentlyContinue)) { throw "$command is required" }
 }
-foreach ($path in @($TemplatePath, $Renderer, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
+foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
     if (-not (Test-Path -LiteralPath $path)) { throw "Required release input is missing: $path" }
 }
+
+& $DeployTestPath
 
 $Temporary = Join-Path ([IO.Path]::GetTempPath()) "$AppName-build.$([Guid]::NewGuid().ToString('N'))"
 $BuildRoot = Join-Path $Temporary "build"
