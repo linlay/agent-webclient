@@ -19,6 +19,9 @@ jest.mock("@/shared/data/clientDeviceId", () => ({
 }));
 import {
   buildResourceUrl,
+  isLegacyResourceUrl,
+  isLogicalResourceRef,
+  resolveResourceFetchUrl,
   buildAdminSkillDownloadUrl,
   buildAdminSkillFileDownloadUrl,
   archiveChats,
@@ -1912,6 +1915,24 @@ describe('data client query payloads', () => {
     expect(buildResourceUrl('reports/demo image.png')).toBe(
       '/api/resource?file=reports%2Fdemo%20image.png',
     );
+  });
+
+  it('keeps legacy resource urls and resolves only current-chat logical refs', () => {
+    const legacy = '/api/resource?file=chat_01%2Fold.png';
+    expect(buildResourceUrl(legacy)).toBe(legacy);
+    expect(isLegacyResourceUrl(legacy)).toBe(true);
+    expect(isLegacyResourceUrl('https://example.com/api/resource?file=public.png')).toBe(false);
+    expect(isLogicalResourceRef('chat_01/artifacts/run_01/%E5%A4%8F%E6%97%A5.png', 'chat_01')).toBe(true);
+    expect(isLogicalResourceRef('chat_02/image.png', 'chat_01')).toBe(false);
+    expect(isLogicalResourceRef('/Users/alice/image.png', 'chat_01')).toBe(false);
+    expect(isLogicalResourceRef('https://example.com/image.png', 'chat_01')).toBe(false);
+    expect(resolveResourceFetchUrl('chat_01/image.png', 'chat_01')).toBe(
+      '/api/resource?file=chat_01%2Fimage.png',
+    );
+    expect(resolveResourceFetchUrl('chat_01/%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01')).toBe(
+      '/api/resource?file=chat_01%2F%25E5%25A4%258F%25E6%2597%25A5%2520%25231%2525.png',
+    );
+    expect(resolveResourceFetchUrl(legacy, 'chat_01')).toBe(legacy);
   });
 
   it('downloads resources with auth headers and a browser blob download', async () => {

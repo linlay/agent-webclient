@@ -5,7 +5,11 @@ import React, {
 } from "react";
 import { XMarkdown as Markdown } from "@ant-design/x-markdown";
 import Latex from "@ant-design/x-markdown/plugins/Latex";
-import { buildResourceUrl, downloadResource } from "@/shared/data";
+import {
+  downloadResource,
+  isLegacyResourceUrl,
+  isLogicalResourceRef,
+} from "@/shared/data";
 import { MarkdownCode } from "./markdown-code";
 import { useI18n } from "@/shared/i18n";
 import { removeEmptyMarkdownTables } from "./markdownPreprocess";
@@ -19,12 +23,14 @@ import {
   shouldOpenWebLinkInSidebar,
   type MarkdownWebLink,
 } from "./markdownWebLinks";
+import { useAuthenticatedResourceUrl } from "./useAuthenticatedResourceUrl";
 
 export type { WorkspaceFileLink } from "./markdownWorkspaceLinks";
 export type { MarkdownWebLink } from "./markdownWebLinks";
 
 interface MarkdownContentProps {
   content: string;
+  chatId?: string;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
 }
@@ -41,9 +47,11 @@ type MarkdownPreProps = React.HTMLAttributes<HTMLPreElement> & {
 function extractFilenameFromResourceUrl(href: string): string {
   try {
     const url = new URL(href, window.location.origin);
-    const file = url.searchParams.get("file") || "";
+    const file = isLegacyResourceUrl(href)
+      ? url.searchParams.get("file") || ""
+      : href.split(/[?#]/, 1)[0];
     const segments = file.split("/");
-    return segments[segments.length - 1] || "download";
+    return decodeURIComponent(segments[segments.length - 1] || "download");
   } catch {
     return "download";
   }
@@ -52,14 +60,8 @@ function extractFilenameFromResourceUrl(href: string): string {
 /**
  * Returns true when the href points to the local resource API endpoint.
  */
-function isResourceUrl(href: string): boolean {
-  if (!href) return false;
-  try {
-    const url = new URL(href, window.location.origin);
-    return url.pathname === "/api/resource";
-  } catch {
-    return href.startsWith("/api/resource");
-  }
+function isResourceUrl(href: string, chatId: string): boolean {
+  return isLegacyResourceUrl(href) || isLogicalResourceRef(href, chatId);
 }
 
 /**
@@ -68,6 +70,7 @@ function isResourceUrl(href: string): boolean {
  * of letting the browser navigate directly (which causes 401).
  */
 type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  chatId: string;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
 };
@@ -98,12 +101,13 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   const {
     href,
     children,
+    chatId,
     onWorkspaceFileLinkClick,
     onWebLinkClick,
     ...rest
   } = props;
   const [downloading, setDownloading] = useState(false);
-  const downloadFilename = href && isResourceUrl(href)
+  const downloadFilename = href && isResourceUrl(href, chatId)
     ? extractFilenameFromResourceUrl(href)
     : undefined;
   const workspaceFileLink = useMemo(
@@ -122,13 +126,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
-      if (workspaceFileLink && onWorkspaceFileLinkClick) {
-        e.preventDefault();
-        onWorkspaceFileLinkClick(workspaceFileLink);
-        return;
-      }
-
-      if (href && isResourceUrl(href)) {
+      if (href && isResourceUrl(href, chatId)) {
         e.preventDefault();
         if (downloading) {
           return;
@@ -136,7 +134,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
         setDownloading(true);
 
         const filename = extractFilenameFromResourceUrl(href);
-        void downloadResource(href, { filename })
+        void downloadResource(href, { filename, chatId })
           .catch((error: unknown) => {
             console.error("Resource download failed:", error);
           })
@@ -146,6 +144,11 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
         return;
       }
 
+      if (workspaceFileLink && onWorkspaceFileLinkClick) {
+        e.preventDefault();
+        onWorkspaceFileLinkClick(workspaceFileLink);
+        return;
+      }
       if (
         webLink &&
         onWebLinkClick &&
@@ -161,6 +164,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     [
       downloading,
       href,
+      chatId,
       onWebLinkClick,
       onWorkspaceFileLinkClick,
       webLink,
@@ -181,6 +185,22 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   );
 };
 
+type AuthImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
+  chatId: string;
+};
+
+const AuthImage: React.FC<AuthImageProps> = ({ src, chatId, alt, ...rest }) => {
+  const { t } = useI18n();
+  const resolved = useAuthenticatedResourceUrl(src, chatId);
+  if (resolved.error) {
+    const fallback = t("rightSidebar.preview.error.image");
+    return <span role="img" aria-label={alt || fallback}>{alt || fallback}</span>;
+  }
+  if (!resolved.url) {
+    return <span aria-busy={resolved.loading}>{alt || ""}</span>;
+  }
+  return <img {...rest} src={resolved.url} alt={alt || ""} />;
+};
 
 const MarkdownPre: React.FC<MarkdownPreProps> = ({
   children,
@@ -213,6 +233,7 @@ const MarkdownPre: React.FC<MarkdownPreProps> = ({
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   content,
+  chatId = "",
   onWorkspaceFileLinkClick,
   onWebLinkClick,
 }) => {
@@ -231,31 +252,25 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
         a: (anchorProps: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
           <AuthAnchor
             {...anchorProps}
+            chatId={chatId}
             onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
             onWebLinkClick={onWebLinkClick}
           />
         ),
         code: MarkdownCode,
         pre: MarkdownPre,
+        img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) => (
+          <AuthImage {...imageProps} chatId={chatId} />
+        ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,
-    [onWebLinkClick, onWorkspaceFileLinkClick],
+    [chatId, onWebLinkClick, onWorkspaceFileLinkClick],
   );
 
   const processedContent = useMemo(() => {
     if (!content) return "";
 
-    const withoutEmptyTables = removeEmptyMarkdownTables(content);
-
-    /* Rewrite non-http image src to go through API proxy */
-    return withoutEmptyTables.replace(
-      /!\[([^\]]*)\]\((?!https?:\/\/)([^)\s]+)\)/g,
-      (match, alt, src) => {
-        if (src.startsWith("data:") || src.startsWith("blob:")) return match;
-        const proxiedSrc = buildResourceUrl(src);
-        return `![${alt}](${proxiedSrc})`;
-      },
-    );
+    return removeEmptyMarkdownTables(content);
   }, [content]);
 
   if (!processedContent) {

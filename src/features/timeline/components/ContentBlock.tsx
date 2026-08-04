@@ -169,6 +169,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				<div className={markdownClassName}>
 					<MarkdownContent
 						content={streamingSafeText}
+						chatId={state.chatId}
 						onWorkspaceFileLinkClick={handleWorkspaceFileLinkClick}
 						onWebLinkClick={handleWebLinkClick}
 					/>
@@ -189,6 +190,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 						>
 							<MarkdownContent
 								content={segment.text || ""}
+								chatId={state.chatId}
 								onWorkspaceFileLinkClick={
 									handleWorkspaceFileLinkClick
 								}

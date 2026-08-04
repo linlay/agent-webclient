@@ -12,6 +12,8 @@
 ## 核心流程
 业务模块从 `src/shared/data` 导入具体函数，不直接拼接 URL。新增接口时先在 `endpoints.ts` 注册端点，再在 `client.ts` 或 `routedClient.ts` 暴露语义化函数，最后由 feature hook 或页面调用。
 
+Chat 资源使用两层协议：后端新工具结果与 Markdown 提供 `<chatId>/<relativePath>` 逻辑相对引用，前端只有在首段与当前 `chatId` 精确相等且不存在 scheme、query、fragment、反斜线或 `.`/`..` 段时，才把它转换为 `GET /api/resource?file=<encodeURIComponent(ref)>`。历史同源 `/api/resource?file=...` 原样保留，不能二次包装；其他 HTTP(S) 保持外链，POSIX/Windows 绝对路径不按 Chat 资源处理。`downloadResource`、`getResourceText`、`getResourceBlob` 统一通过带 Bearer/Cookie 的 fetch 读取，组件不手工拼接资源请求。
+
 `runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父会话继承。
 
 ## Skills 管理契约

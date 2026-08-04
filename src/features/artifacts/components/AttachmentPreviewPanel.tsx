@@ -17,6 +17,8 @@ import { t } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Image } from "antd";
 import { MaterialIcon } from "@/shared/icons/material";
+import { useAppState } from "@/app/state/AppContext";
+import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 
 const textPreviewKinds = new Set(["text", "pdf", "html"]);
 
@@ -129,6 +131,7 @@ export function resolveWorkspaceHtmlSrcDoc(
 export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   preview,
 }) => {
+  const { chatId } = useAppState();
   const [workspaceFile, setWorkspaceFile] =
     React.useState<AgentFileResponse | null>(null);
   const [textContent, setTextContent] = React.useState("");
@@ -152,6 +155,8 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const previewUrl = workspaceFileRequest
     ? workspaceFileResponse?.contentUrl || ""
     : preview.url;
+  const authenticatedPreview = useAuthenticatedResourceUrl(previewUrl, chatId);
+  const mediaPreviewUrl = authenticatedPreview.url;
   const downloadUrl = workspaceFileRequest
     ? workspaceFileResponse?.contentUrl || ""
     : preview.downloadUrl;
@@ -166,6 +171,12 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   React.useEffect(() => {
     setMediaError("");
   }, [previewKind, previewUrl]);
+
+  React.useEffect(() => {
+    if (authenticatedPreview.error) {
+      setMediaError(t("rightSidebar.preview.error.loadText"));
+    }
+  }, [authenticatedPreview.error]);
 
   React.useEffect(() => {
     setDownloadError("");
@@ -219,7 +230,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
     setTextError("");
     setTextContent("");
 
-    void getResourceText(preview.url, { signal: controller.signal })
+    void getResourceText(preview.url, { signal: controller.signal, chatId })
       .then((content) => {
         setTextContent(content);
       })
@@ -240,7 +251,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       });
 
     return () => controller.abort();
-  }, [preview, workspaceFileRequest]);
+  }, [chatId, preview, workspaceFileRequest]);
 
   React.useEffect(() => {
     if (!preview?.line || previewKind !== "text" || textLoading || textError) {
@@ -270,7 +281,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
 
     setDownloadError("");
     setDownloading(true);
-    void downloadResource(downloadUrl, { filename: previewName })
+    void downloadResource(downloadUrl, { filename: previewName, chatId })
       .catch((error: unknown) => {
         setDownloadError(
           error instanceof Error
@@ -281,7 +292,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       .finally(() => {
         setDownloading(false);
       });
-  }, [downloadUrl, downloading, previewName]);
+  }, [chatId, downloadUrl, downloading, previewName]);
 
   const sourceLocation = previewSourcePath
     ? `${previewSourcePath}${preview.line ? `:${preview.line}` : ""}`
@@ -329,19 +340,19 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       </div>
 
       <div className={ATTACHMENT_PREVIEW_BODY_CLASS_NAME}>
-        {previewKind === "image" ? (
+        {previewKind === "image" && mediaPreviewUrl ? (
           <Image
             className="attachment-preview-image"
-            src={previewUrl}
+            src={mediaPreviewUrl}
             alt={previewName}
             onError={() => setMediaError(t("rightSidebar.preview.error.image"))}
           />
         ) : null}
 
-        {previewKind === "pdf" ? (
+        {previewKind === "pdf" && mediaPreviewUrl ? (
           <iframe
             className={ATTACHMENT_PREVIEW_FRAME_CLASS_NAME}
-            src={previewUrl}
+            src={mediaPreviewUrl}
             title={previewName}
           />
         ) : null}
@@ -373,12 +384,12 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
               </div>
             )
           ) : (
-            <iframe
+            mediaPreviewUrl ? <iframe
               className={ATTACHMENT_PREVIEW_FRAME_CLASS_NAME}
-              src={previewUrl}
+              src={mediaPreviewUrl}
               title={previewName}
               sandbox="allow-forms allow-modals allow-popups allow-scripts"
-            />
+            /> : null
           )
         ) : null}
 
@@ -420,11 +431,11 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           )
         ) : null}
 
-        {previewKind === "audio" ? (
+        {previewKind === "audio" && mediaPreviewUrl ? (
           <div className={ATTACHMENT_PREVIEW_MEDIA_SHELL_CLASS_NAME}>
             <audio
               className={ATTACHMENT_PREVIEW_AUDIO_CLASS_NAME}
-              src={previewUrl}
+              src={mediaPreviewUrl}
               controls
               preload="metadata"
               onError={() =>
@@ -434,10 +445,10 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           </div>
         ) : null}
 
-        {previewKind === "video" ? (
+        {previewKind === "video" && mediaPreviewUrl ? (
           <video
             className={ATTACHMENT_PREVIEW_VIDEO_CLASS_NAME}
-            src={previewUrl}
+            src={mediaPreviewUrl}
             controls
             preload="metadata"
             onError={() => setMediaError(t("rightSidebar.preview.error.video"))}

@@ -1387,7 +1387,7 @@ async function requestWithAuth(
   const buildRequestOptions = (): RequestInit => ({
     ...requestOptions,
     method,
-    ...(gatewayMode ? { credentials: "same-origin" as RequestCredentials } : {}),
+    ...(sameOrigin ? { credentials: "same-origin" as RequestCredentials } : {}),
     headers: buildAuthHeaders(requestOptions.headers || {}, {
       includeJsonContentType: jsonContentType,
       method,
@@ -1416,7 +1416,54 @@ export function createRequestId(prefix = "req"): string {
 }
 
 export function buildResourceUrl(file: string): string {
-  return `${dataEndpoints.resource.path}?file=${encodeURIComponent(file)}`;
+	const normalized = String(file || "").trim();
+	if (isLegacyResourceUrl(normalized)) {
+		return normalized;
+	}
+	return `${dataEndpoints.resource.path}?file=${encodeURIComponent(normalized)}`;
+}
+
+export function isLegacyResourceUrl(value: string): boolean {
+	const normalized = String(value || "").trim();
+	if (!normalized) return false;
+	try {
+		const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+		const parsed = new URL(normalized, origin);
+		return parsed.origin === origin && parsed.pathname === dataEndpoints.resource.path;
+	} catch {
+		return normalized.startsWith(`${dataEndpoints.resource.path}?`);
+	}
+}
+
+export function isLogicalResourceRef(value: string, chatId: string): boolean {
+	const normalized = String(value || "").trim();
+	const expectedChatId = String(chatId || "").trim();
+	if (!normalized || !expectedChatId || normalized.startsWith("/") || normalized.includes("\\")) {
+		return false;
+	}
+	if (/^[a-z][a-z\d+.-]*:/i.test(normalized) || normalized.startsWith("//") || normalized.includes("?") || normalized.includes("#")) {
+		return false;
+	}
+	const segments = normalized.split("/");
+	if (segments.length < 2 || segments.some((segment) => !segment || segment === "." || segment === "..")) {
+		return false;
+	}
+	try {
+		return decodeURIComponent(segments[0]) === expectedChatId;
+	} catch {
+		return false;
+	}
+}
+
+export function resolveResourceFetchUrl(value: string, chatId = ""): string {
+	const normalized = String(value || "").trim();
+	if (isLegacyResourceUrl(normalized)) {
+		return normalized;
+	}
+	if (isLogicalResourceRef(normalized, chatId)) {
+		return buildResourceUrl(normalized);
+	}
+	return normalized;
 }
 
 function withQuery(path: string, query: string): string {
@@ -1531,9 +1578,9 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
 
 export async function downloadResource(
   path: string,
-  options: { filename?: string; signal?: AbortSignal } = {},
+  options: { filename?: string; signal?: AbortSignal; chatId?: string } = {},
 ): Promise<void> {
-  const response = await requestWithAuth(path, {
+  const response = await requestWithAuth(resolveResourceFetchUrl(path, options.chatId || ""), {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,
@@ -1564,9 +1611,9 @@ export async function downloadResource(
 
 export async function getResourceText(
   path: string,
-  options: { signal?: AbortSignal } = {},
+  options: { signal?: AbortSignal; chatId?: string } = {},
 ): Promise<string> {
-  const response = await requestWithAuth(path, {
+  const response = await requestWithAuth(resolveResourceFetchUrl(path, options.chatId || ""), {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,
@@ -1587,6 +1634,30 @@ export async function getResourceText(
     });
   }
   return response.text();
+}
+
+export async function getResourceBlob(
+  path: string,
+  options: { signal?: AbortSignal; chatId?: string } = {},
+): Promise<Blob> {
+  const response = await requestWithAuth(resolveResourceFetchUrl(path, options.chatId || ""), {
+    method: "GET",
+    signal: options.signal,
+    jsonContentType: false,
+    authFailureSource: "download",
+  });
+  if (!response.ok) {
+    const fallbackMessage = t("api.downloadFailedWithStatus", { status: response.status });
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+      platformError: error.platformError,
+    });
+  }
+  return response.blob();
 }
 
 export async function getChatRawJsonl(

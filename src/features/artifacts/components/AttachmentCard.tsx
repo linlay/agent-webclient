@@ -11,6 +11,7 @@ import {
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { FileIcon } from "@/shared/components/file-icon";
 import { useI18n } from "@/shared/i18n";
+import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 
 interface AttachmentCardData extends AttachmentLike {
   name: string;
@@ -48,8 +49,10 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 }) => {
   const { t } = useI18n();
   const dispatch = useAppDispatch();
+  const appState = useAppState();
   const attachmentKind = getAttachmentKind(attachment);
   const sourceUrl = getAttachmentUrl(attachment);
+  const authenticatedSource = useAuthenticatedResourceUrl(sourceUrl, appState.chatId);
   const downloadUrl = getAttachmentDownloadUrl(attachment);
   const preview = React.useMemo(
     () => buildAttachmentPreviewState(attachment),
@@ -62,15 +65,21 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     setImageFailed(false);
   }, [sourceUrl]);
 
+  React.useEffect(() => {
+    if (authenticatedSource.error) {
+      setImageFailed(true);
+    }
+  }, [authenticatedSource.error]);
+
   const wantsPreview =
     displayMode === "preview" ||
     (displayMode === "auto" && attachmentKind === "image");
-  const hasImagePreview = wantsPreview && Boolean(sourceUrl) && !imageFailed;
+  const hasImagePreview = wantsPreview && Boolean(authenticatedSource.url) && !imageFailed;
   const hasInlineThumbnail =
     !hasImagePreview &&
     thumbnailMode === "inline" &&
     attachmentKind === "image" &&
-    Boolean(sourceUrl) &&
+    Boolean(authenticatedSource.url) &&
     !imageFailed;
   const canActivate =
     Boolean(sourceUrl) &&
@@ -94,16 +103,16 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     }
 
     setDownloading(true);
-    void downloadResource(downloadUrl, { filename: attachment.name })
+    void downloadResource(downloadUrl, { filename: attachment.name, chatId: appState.chatId })
       .catch((error: unknown) => {
         console.error("Attachment download failed", error);
       })
       .finally(() => {
         setDownloading(false);
       });
-  }, [attachment.name, downloadUrl, downloading]);
+  }, [appState.chatId, attachment.name, downloadUrl, downloading]);
 
-  const { rightSidebarOpen, rightSidebarOpenTab, attachmentPreview, activeAttachmentPreviewUrl } = useAppState();
+  const { rightSidebarOpen, rightSidebarOpenTab, attachmentPreview, activeAttachmentPreviewUrl } = appState;
 
   const handleActivate = React.useCallback(() => {
     if (!canActivate) {
@@ -160,7 +169,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
         <div className="attachment-card-image-shell">
           <img
             className="attachment-card-image"
-            src={sourceUrl}
+            src={authenticatedSource.url}
             alt={attachment.name}
             loading="lazy"
             onError={() => setImageFailed(true)}
@@ -175,7 +184,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
             <span className="attachment-card-file-icon is-thumbnail">
               <img
                 className="attachment-card-file-thumb"
-                src={sourceUrl}
+                src={authenticatedSource.url}
                 alt={attachment.name}
                 loading="lazy"
                 onError={() => setImageFailed(true)}

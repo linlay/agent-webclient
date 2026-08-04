@@ -53,6 +53,8 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 支持 Viewport HTML 和 Frontend Tool iframe 容器。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
 
+Chat 图片与 Artifact 使用后端返回的 `<chatId>/<relativePath>` 逻辑 URL。前端按当前 chatId 校验后转换成既有 `GET /api/resource?file=...` 鉴权 fetch，并用 Blob URL 预览；历史 endpoint URL 原样兼容，外部 HTTP(S) 不改写，绝对文件路径不作为资源 URL。
+
 ![业务视图容器](docs/images/screenshots/business-viewport.png)
 
 ### 侧边栏与管理入口
