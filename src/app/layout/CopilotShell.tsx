@@ -50,10 +50,6 @@ const COPILOT_WORKER_NAME_CLASS =
   "copilot-worker-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px] tw:leading-[1.25] tw:text-ink-1";
 const COPILOT_ACTION_BTN_CLASS =
   "copilot-action-btn ui-icon-hover-24 tw:h-[30px] tw:min-h-[30px] tw:w-[30px] tw:min-w-[30px] tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_82%,transparent)] tw:p-0 tw:text-ink-2 tw:[&_.material-icon]:text-[17px]";
-const COPILOT_WORKER_SWITCH_BTN_CLASS = [
-  COPILOT_ACTION_BTN_CLASS,
-  "copilot-worker-switch-btn tw:flex-none",
-].join(" ");
 const COPILOT_TOPBAR_ACTIONS_CLASS =
   "copilot-topbar-actions tw:flex tw:min-w-0 tw:flex-none tw:items-center tw:gap-1";
 const COPILOT_SIDE_PANEL_CLASS =
@@ -182,17 +178,6 @@ const CopilotTopBar: React.FC = () => {
           <strong className={COPILOT_WORKER_NAME_CLASS}>
             {currentWorker?.displayName || t("topNav.noSelection")}
           </strong>
-          <UiButton
-            className={COPILOT_WORKER_SWITCH_BTN_CLASS}
-            variant="ghost"
-            size="sm"
-            iconOnly
-            aria-label={t("commandModal.switch.title")}
-            title={t("commandModal.switch.title")}
-            onClick={() => openCommandOverlay({ type: "switch" })}
-          >
-            <MaterialIcon name="swap_horiz" />
-          </UiButton>
           <span
             className={resolveStatusPillClassName(statusClass, "compact")}
             id="copilot-api-status"

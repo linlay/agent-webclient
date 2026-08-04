@@ -97,10 +97,6 @@ export const GlobalSearchOverlay: React.FC = () => {
         handleClose();
         openCommandOverlay({ type: "history" });
         break;
-      case "switch":
-        handleClose();
-        openCommandOverlay({ type: "switch" });
-        break;
       case "settings":
         handleClose();
         openOverlay("settings");

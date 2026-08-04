@@ -25,7 +25,6 @@ describe("useSlashCommandExecution", () => {
           hasActiveChat: false,
           hasCurrentWorker: true,
           workerHistoryCount: 0,
-          workerCount: 1,
           commandOverlayOpen: false,
           canShowUsage: false,
         },

@@ -5,30 +5,23 @@ describe("commandOverlay", () => {
     expect(createCommandOverlayState()).toEqual({
       open: false,
       type: null,
-      searchText: "",
       historySearch: "",
       activeIndex: 0,
-      scope: "all",
-      focusArea: "search",
     });
   });
 
   it("creates an opened overlay state with stable defaults", () => {
     expect(
       createCommandOverlayState({
-        type: "switch",
-        searchText: "alpha",
+        type: "history",
+        historySearch: "alpha",
         activeIndex: 2,
-        scope: "team",
       }),
     ).toEqual({
       open: true,
-      type: "switch",
-      searchText: "alpha",
-      historySearch: "",
+      type: "history",
+      historySearch: "alpha",
       activeIndex: 2,
-      scope: "team",
-      focusArea: "search",
     });
   });
 });

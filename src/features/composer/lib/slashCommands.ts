@@ -15,9 +15,7 @@ export type SlashCommandId =
   | 'plan'
   | 'editing'
   | 'automation'
-  | 'detail'
   | 'history'
-  | 'switch'
   | 'usage';
 
 export interface SlashCommandDefinition {
@@ -44,7 +42,6 @@ export interface SlashCommandAvailability {
   hasActiveChat: boolean;
   hasCurrentWorker: boolean;
   workerHistoryCount: number;
-  workerCount: number;
   commandOverlayOpen: boolean;
   canShowUsage: boolean;
 }
@@ -110,22 +107,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.automation.label',
     descriptionKey: 'slash.command.automation.description',
     keywords: ['automation', 'task', 'cron'],
-  },
-  {
-    id: 'detail',
-    icon: 'conditions',
-    command: '/detail',
-    labelKey: 'slash.command.detail.label',
-    descriptionKey: 'slash.command.detail.description',
-    keywords: ['detail', 'profile', 'info', 'agent'],
-  },
-  {
-    id: 'switch',
-    icon: 'sync_alt',
-    command: '/switch',
-    labelKey: 'slash.command.switch.label',
-    descriptionKey: 'slash.command.switch.description',
-    keywords: ['switch', 'worker', 'agent', 'team'],
   },
   {
     id: 'debug',
@@ -250,14 +231,11 @@ export function isSlashCommandDisabled(
   if (commandId === 'editing') {
     return availability.streaming || availability.canUseEditingMode !== true;
   }
-  if (commandId === 'automation' || commandId === 'detail') {
+  if (commandId === 'automation') {
     return !availability.hasCurrentWorker || availability.commandOverlayOpen;
   }
   if (commandId === 'history') {
     return !availability.hasCurrentWorker || availability.commandOverlayOpen;
-  }
-  if (commandId === 'switch') {
-    return availability.workerCount === 0 || availability.commandOverlayOpen;
   }
   if (commandId === 'usage') {
     return !availability.canShowUsage;

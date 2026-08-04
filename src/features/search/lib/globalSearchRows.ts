@@ -333,14 +333,6 @@ function buildActions(input: BuildGlobalRowsInput): GlobalRow[] {
     {
       kind: "action",
       section: "actions",
-      key: "switch",
-      label: input.t("globalSearch.action.switch"),
-      icon: "swap_horiz",
-      action: "switch",
-    },
-    {
-      kind: "action",
-      section: "actions",
       key: "settings",
       label: input.t("globalSearch.action.settings"),
       icon: "settings",

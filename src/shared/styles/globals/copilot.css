@@ -172,7 +172,6 @@
     font-size: 16px;
 }
 
-.layout-copilot .command-detail-grid,
 .layout-copilot .automation-console-body,
 .layout-copilot .automation-form-grid,
 .layout-copilot .settings-preferences-grid,
@@ -184,7 +183,6 @@
     grid-template-columns: 1fr;
 }
 
-.layout-copilot .command-scope-group,
 .layout-copilot .settings-segmented,
 .layout-copilot .automation-console-toolbar,
 .layout-copilot .automation-detail-actions,
@@ -200,28 +198,6 @@
 .layout-copilot .command-list-preview {
     white-space: normal;
     overflow-wrap: anywhere;
-}
-
-.layout-copilot .command-switch-compact .command-list-item {
-    padding: 9px 10px;
-}
-
-.layout-copilot .command-switch-compact .command-list-head {
-    align-items: center;
-    gap: 8px;
-}
-
-.layout-copilot .command-switch-compact .command-list-head strong {
-    white-space: nowrap;
-}
-
-.layout-copilot .command-switch-compact .command-list-meta {
-    font-size: 12px;
-}
-
-.layout-copilot .command-switch-worker-icon {
-    width: 28px;
-    height: 28px;
 }
 
 .layout-copilot .history-list-title {

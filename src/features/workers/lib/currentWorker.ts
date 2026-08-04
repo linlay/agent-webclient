@@ -250,19 +250,6 @@ export function buildCurrentWorkerDetailView(summary: CurrentWorkerSummary, t: (
   };
 }
 
-export function buildWorkerSwitchRows(
-  rows: WorkerRow[],
-  scope: 'all' | 'agent' | 'team',
-  searchText: string,
-): WorkerRow[] {
-  const normalizedSearch = toText(searchText).toLowerCase();
-  return rows.filter((row) => {
-    if (scope !== 'all' && row.type !== scope) return false;
-    if (!normalizedSearch) return true;
-    return toText(row.searchText).includes(normalizedSearch);
-  });
-}
-
 export function isCoderAgent(summary: CurrentWorkerSummary | null): boolean {
   if (!summary || summary.type !== 'agent') return false;
   return String((summary.raw as Record<string, unknown> | null)?.['mode'] || '').toUpperCase() === 'CODER';

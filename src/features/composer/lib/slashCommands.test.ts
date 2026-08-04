@@ -30,7 +30,7 @@ describe('slashCommands', () => {
   });
 
   it('filters the command list by slash query', () => {
-    expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(10);
+    expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(8);
     expect(getFilteredSlashCommands('/vo').map((item) => item.id)).toEqual(['voice']);
     expect(getFilteredSlashCommands('/his').map((item) => item.id)).toEqual(['history']);
     expect(getFilteredSlashCommands('/agents')).toEqual([]);
@@ -45,6 +45,8 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/btw').map((item) => item.id)).toEqual(['btw']);
     expect(getFilteredSlashCommands('/side').map((item) => item.id)).toEqual(['btw']);
     expect(getFilteredSlashCommands('/顺便').map((item) => item.id)).toEqual(['btw']);
+    expect(getFilteredSlashCommands('/detail')).toEqual([]);
+    expect(getFilteredSlashCommands('/switch')).toEqual([]);
   });
 
   it('parses only the canonical btw command and optional inline question', () => {
@@ -149,7 +151,6 @@ describe('slashCommands', () => {
       hasActiveChat: false,
       hasCurrentWorker: false,
       workerHistoryCount: 0,
-      workerCount: 0,
       commandOverlayOpen: false,
       canShowUsage: false,
     };
@@ -161,8 +162,6 @@ describe('slashCommands', () => {
     expect(isSlashCommandDisabled('plan', availability)).toBe(true);
     expect(isSlashCommandDisabled('editing', availability)).toBe(true);
     expect(isSlashCommandDisabled('settings', availability)).toBe(false);
-    expect(isSlashCommandDisabled('detail', availability)).toBe(true);
-    expect(isSlashCommandDisabled('switch', availability)).toBe(true);
     expect(isSlashCommandDisabled('usage', availability)).toBe(true);
     expect(isSlashCommandDisabled('btw', availability)).toBe(true);
     expect(isSlashCommandDisabled('btw', {
@@ -182,7 +181,6 @@ describe('slashCommands', () => {
       hasActiveChat: true,
       hasCurrentWorker: true,
       workerHistoryCount: 0,
-      workerCount: 1,
       commandOverlayOpen: false,
       canShowUsage: true,
     };
@@ -205,7 +203,6 @@ describe('slashCommands', () => {
       hasActiveChat: false,
       hasCurrentWorker: true,
       workerHistoryCount: 0,
-      workerCount: 1,
       commandOverlayOpen: false,
       canShowUsage: false,
     };

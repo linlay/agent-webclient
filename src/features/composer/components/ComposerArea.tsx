@@ -347,7 +347,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       hasActiveChat: Boolean(String(state.chatId || "").trim()),
       hasCurrentWorker: Boolean(currentWorker),
       workerHistoryCount: currentWorker?.relatedChats.length || 0,
-      workerCount: state.workerRows.length,
       commandOverlayOpen: isAnyOverlayOpen,
       canShowUsage:
         Boolean(state.usageSnapshot) ||
@@ -362,7 +361,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       isMainChatRunning,
       state.usageSnapshot,
       state.events,
-      state.workerRows.length,
       isAnyOverlayOpen,
       voiceModeAvailable,
       planningModeAvailable,

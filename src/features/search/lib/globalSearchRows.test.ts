@@ -122,7 +122,6 @@ describe("buildGlobalRows", () => {
       "actions",
       "actions",
       "actions",
-      "actions",
       "workers",
     ]);
   });
@@ -254,11 +253,10 @@ describe("buildGlobalRows", () => {
     expect(actionKeysWithWorker).toEqual([
       "newConversation",
       "history",
-      "switch",
       "settings",
       "debug",
     ]);
-    expect(actionKeysWithoutWorker).toEqual(["switch", "settings", "debug"]);
+    expect(actionKeysWithoutWorker).toEqual(["settings", "debug"]);
   });
 
   it("caps worker rows at 20 and carries worker icons", () => {

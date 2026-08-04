@@ -76,14 +76,8 @@ export function useSlashCommandExecution(input: {
 				case "automation":
 					openCommandOverlay({ type: "automation" });
 					return;
-				case "detail":
-					openCommandOverlay({ type: "detail" });
-					return;
 				case "history":
 					openCommandOverlay({ type: "history" });
-					return;
-				case "switch":
-					openCommandOverlay({ type: "switch" });
 					return;
 				case "new":
 					resetForNewConversation();

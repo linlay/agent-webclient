@@ -4,7 +4,6 @@ import { t } from "@/shared/i18n";
 import {
   buildCurrentWorkerDetailView,
   buildAutomationDraft,
-  buildWorkerSwitchRows,
   isDedicatedKbaseWorker,
   resolveCurrentWorkerSummary,
 } from '@/features/workers/lib/currentWorker';
@@ -112,30 +111,6 @@ describe('currentWorker helpers', () => {
       members: ['alice', 'bob'],
     });
     expect(detail.rawJson).toContain('"modelName": "gpt-4.1-mini"');
-  });
-
-  it('filters worker switch rows by scope and search text', () => {
-    const rows = [
-      createWorkerRow({
-        key: 'agent:alice',
-        type: 'agent',
-        sourceId: 'alice',
-        displayName: 'Alice',
-        role: 'Analyst',
-        searchText: 'alice analyst',
-      }),
-      createWorkerRow({
-        key: 'team:ops',
-        type: 'team',
-        sourceId: 'ops',
-        displayName: 'Ops Team',
-        role: 'Dispatch',
-        searchText: 'ops dispatch',
-      }),
-    ];
-
-    expect(buildWorkerSwitchRows(rows, 'agent', '')).toHaveLength(1);
-    expect(buildWorkerSwitchRows(rows, 'all', 'ops')[0]?.key).toBe('team:ops');
   });
 
   it('enables editing only for a dedicated KBASE Agent', () => {
