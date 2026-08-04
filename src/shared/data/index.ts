@@ -29,6 +29,7 @@ export {
   downloadChatExport,
   downloadResource,
   getAgent,
+  getAgentSkills,
   getAgentFile,
   getAgentOrder,
   getAgents,

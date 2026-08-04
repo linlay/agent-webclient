@@ -2,6 +2,7 @@ import type { TimelineNode } from '@/app/state/types';
 import {
   SLASH_COMMANDS,
   getFilteredSlashCommands,
+  getFilteredSlashSkills,
   getLatestQueryText,
   isSlashCommandDisabled,
   parseBTWSlashInput,
@@ -47,6 +48,33 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/顺便').map((item) => item.id)).toEqual(['btw']);
     expect(getFilteredSlashCommands('/detail')).toEqual([]);
     expect(getFilteredSlashCommands('/switch')).toEqual([]);
+  });
+
+  it('filters agent and marketplace skills by key, name, and description', () => {
+    const skills = [
+      {
+        key: 'mock-skill',
+        name: 'Mock Skill',
+        description: 'Skill description',
+        agentHasSkill: true,
+      },
+      {
+        key: 'pdf',
+        name: 'PDF',
+        description: 'Read and manipulate PDF files',
+        agentHasSkill: false,
+      },
+    ];
+
+    expect(getFilteredSlashSkills('/', skills)).toMatchObject([
+      { kind: 'skill', command: '/mock-skill', agentHasSkill: true },
+      { kind: 'skill', command: '/pdf', agentHasSkill: false },
+    ]);
+    expect(getFilteredSlashSkills('/pdf', skills).map((item) => item.key)).toEqual(['pdf']);
+    expect(getFilteredSlashSkills('/manipulate', skills).map((item) => item.key)).toEqual(['pdf']);
+    expect(getFilteredSlashSkills('/Mock', skills).map((item) => item.key)).toEqual(['mock-skill']);
+    expect(getFilteredSlashSkills('/missing', skills)).toEqual([]);
+    expect(getFilteredSlashSkills('use /pdf', skills)).toEqual([]);
   });
 
   it('parses only the canonical btw command and optional inline question', () => {

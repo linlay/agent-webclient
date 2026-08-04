@@ -2212,7 +2212,7 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-log',
           sizeBytes: 512,
-          url: 'https://example.com/run.log',
+          url: '/api/resource?file=chat_01%2Frun.log',
         },
         {
           artifactId: 'artifact_2',
@@ -2221,7 +2221,7 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-notes',
           sizeBytes: 128,
-          url: 'https://example.com/notes.txt',
+          url: 'chat_01/artifacts/run_01/notes.txt',
         },
       ],
     });
@@ -2236,7 +2236,7 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-log',
           sizeBytes: 512,
-          url: 'https://example.com/run.log',
+          url: '/api/resource?file=chat_01%2Frun.log',
         },
       },
       {
@@ -2248,7 +2248,7 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-notes',
           sizeBytes: 128,
-          url: 'https://example.com/notes.txt',
+          url: 'chat_01/artifacts/run_01/notes.txt',
         },
       },
     ]);

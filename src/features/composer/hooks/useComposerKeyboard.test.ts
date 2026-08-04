@@ -9,7 +9,7 @@ function renderKeyboardHook(
   const defaults: Parameters<typeof useComposerKeyboard>[0] = {
     closeMention: jest.fn(),
     dispatch: jest.fn(),
-    executeSlashCommand: jest.fn(),
+    onSelectSlashItem: jest.fn(),
     handleSend: jest.fn(),
     onTogglePlanningMode: jest.fn(),
     canUsePlanningMode: true,
@@ -19,11 +19,11 @@ function renderKeyboardHook(
     mentionOpen: false,
     mentionSuggestionsLength: 0,
     selectMentionByIndex: jest.fn(),
-    selectSlashCommand: jest.fn(),
+    selectSlashItem: jest.fn(),
     setActiveSlashIndex: jest.fn(),
     setSlashDismissed: jest.fn(),
     showSlashPalette: false,
-    slashCommandsLength: 0,
+    slashItemsLength: 0,
   };
 
   function Harness() {
@@ -39,6 +39,35 @@ function renderKeyboardHook(
 }
 
 describe("useComposerKeyboard", () => {
+  it("selects the active slash skill with Enter", () => {
+    const onSelectSlashItem = jest.fn();
+    const selectedSkill = {
+      kind: "skill" as const,
+      key: "pdf",
+      name: "PDF",
+      label: "PDF",
+      description: "Read PDFs",
+      agentHasSkill: false,
+      command: "/pdf" as const,
+    };
+    const preventDefault = jest.fn();
+    const handler = renderKeyboardHook({
+      showSlashPalette: true,
+      slashItemsLength: 1,
+      selectSlashItem: () => selectedSkill,
+      onSelectSlashItem,
+    });
+
+    handler({
+      key: "Enter",
+      shiftKey: false,
+      preventDefault,
+    } as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
+
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(onSelectSlashItem).toHaveBeenCalledWith(selectedSkill);
+  });
+
   it("toggles planning mode with Shift+Tab", () => {
     const onTogglePlanningMode = jest.fn();
     const preventDefault = jest.fn();

@@ -16,6 +16,8 @@ Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `
 
 `runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父会话继承。
 
+对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 `auto`：当前 mode 为 WebSocket 时优先向 `/api/skills` 发送 `{agentKey}` request frame，SSE 模式使用 HTTP，WS 连接或传输故障时回退 HTTP；业务错误保持原错误，不二次请求。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
+
 ## Skills 管理契约
 
 Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文件操作契约，不保留 `/v2`、`skillKey` 或通用 `file-op` 兼容分支。列表响应为 `AdminSkillSummary[]`；详情、文本文件、保存、创建文件/目录、重命名、删除、上传、下载、校验、创建、ZIP 导入和删除均使用同一组 `AdminSkill*` DTO 与语义化 client 函数。完整 ZIP 通过 `importAdminSkill` 以 multipart `key/file` 发送到 `POST /api/admin/skills/import`，成功后复用 `AdminSkillDetailResponse` 并直接进入新技能；409 重名和 422 文件级诊断留在新建弹窗中处理。

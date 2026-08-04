@@ -1,13 +1,13 @@
 import { useCallback } from "react";
 import type { Dispatch, KeyboardEvent, RefObject, SetStateAction } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { SlashCommandId } from "@/features/composer/lib/slashCommands";
+import type { SlashPaletteItem } from "@/features/composer/lib/slashCommands";
 import { isImeEnterConfirming } from "@/shared/utils/ime";
 
 export function useComposerKeyboard({
   closeMention,
   dispatch,
-  executeSlashCommand,
+  onSelectSlashItem,
   handleSend,
   onTogglePlanningMode,
   canUsePlanningMode,
@@ -17,15 +17,15 @@ export function useComposerKeyboard({
   mentionOpen,
   mentionSuggestionsLength,
   selectMentionByIndex,
-  selectSlashCommand,
+  selectSlashItem,
   setActiveSlashIndex,
   setSlashDismissed,
   showSlashPalette,
-  slashCommandsLength,
+  slashItemsLength,
 }: {
   closeMention: () => void;
   dispatch: Dispatch<AppAction>;
-  executeSlashCommand: (commandId: SlashCommandId) => Promise<void>;
+  onSelectSlashItem: (item: SlashPaletteItem) => void;
   handleSend: () => void;
   onTogglePlanningMode: () => void;
   canUsePlanningMode: boolean;
@@ -35,11 +35,11 @@ export function useComposerKeyboard({
   mentionOpen: boolean;
   mentionSuggestionsLength: number;
   selectMentionByIndex: (index: number) => void;
-  selectSlashCommand: () => { id: SlashCommandId } | null;
+  selectSlashItem: () => SlashPaletteItem | null;
   setActiveSlashIndex: Dispatch<SetStateAction<number>>;
   setSlashDismissed: Dispatch<SetStateAction<boolean>>;
   showSlashPalette: boolean;
-  slashCommandsLength: number;
+  slashItemsLength: number;
 }) {
   return useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -61,15 +61,15 @@ export function useComposerKeyboard({
       }
 
       if (showSlashPalette) {
-        if (event.key === "ArrowDown") {
+        if (event.key === "ArrowDown" && slashItemsLength > 0) {
           event.preventDefault();
-          setActiveSlashIndex((current) => (current + 1) % slashCommandsLength);
+          setActiveSlashIndex((current) => (current + 1) % slashItemsLength);
           return;
         }
-        if (event.key === "ArrowUp") {
+        if (event.key === "ArrowUp" && slashItemsLength > 0) {
           event.preventDefault();
           setActiveSlashIndex(
-            (current) => (current - 1 + slashCommandsLength) % slashCommandsLength,
+            (current) => (current - 1 + slashItemsLength) % slashItemsLength,
           );
           return;
         }
@@ -80,9 +80,9 @@ export function useComposerKeyboard({
         }
         if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();
-          const selected = selectSlashCommand();
+          const selected = selectSlashItem();
           if (selected) {
-            void executeSlashCommand(selected.id);
+            onSelectSlashItem(selected);
           }
           return;
         }
@@ -128,7 +128,7 @@ export function useComposerKeyboard({
       closeMention,
       canUsePlanningMode,
       dispatch,
-      executeSlashCommand,
+      onSelectSlashItem,
       handleSend,
       onTogglePlanningMode,
       isComposingRef,
@@ -137,11 +137,11 @@ export function useComposerKeyboard({
       mentionOpen,
       mentionSuggestionsLength,
       selectMentionByIndex,
-      selectSlashCommand,
+      selectSlashItem,
       setActiveSlashIndex,
       setSlashDismissed,
       showSlashPalette,
-      slashCommandsLength,
+      slashItemsLength,
     ],
   );
 }

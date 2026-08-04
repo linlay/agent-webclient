@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import {
   getFilteredSlashCommands,
-  type ResolvedSlashCommandDefinition,
+  getFilteredSlashSkills,
+  shouldShowSlashCommandPalette,
+  type SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
+import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 
 interface UseComposerSlashInput {
   composerPillRef: RefObject<HTMLDivElement>;
@@ -15,6 +18,7 @@ interface UseComposerSlashInput {
   commandOverlayOpen: boolean;
   canUsePlanningMode: boolean;
   canUseEditingMode: boolean;
+  currentAgentKey: string;
 }
 
 export function useComposerSlash(input: UseComposerSlashInput) {
@@ -28,11 +32,25 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     commandOverlayOpen,
     canUsePlanningMode,
     canUseEditingMode,
+    currentAgentKey,
   } = input;
   const slashPaletteRef = useRef<HTMLDivElement>(null);
   const [slashDismissed, setSlashDismissed] = useState(false);
   const [activeSlashIndex, setActiveSlashIndex] = useState(0);
   const [slashPopoverWidth, setSlashPopoverWidth] = useState<number>();
+  const slashTokenActive = shouldShowSlashCommandPalette(inputValue);
+  const skillQueryEnabled =
+    Boolean(String(currentAgentKey || "").trim()) &&
+    slashTokenActive &&
+    !isVoiceMode &&
+    !isFrontendActive &&
+    !isAwaitingActive &&
+    !commandOverlayOpen &&
+    !slashDismissed;
+  const skillQuery = useAgentSkillsQuery(currentAgentKey, {
+    enabled: skillQueryEnabled,
+  });
+  const hasSkillSection = Boolean(String(currentAgentKey || "").trim());
 
   const slashCommands = useMemo(
     () =>
@@ -42,13 +60,26 @@ export function useComposerSlash(input: UseComposerSlashInput) {
       }),
     [canUseEditingMode, canUsePlanningMode, inputValue],
   );
+  const slashSkills = useMemo(
+    () =>
+      getFilteredSlashSkills(
+        inputValue,
+        hasSkillSection ? skillQuery.data?.skills || [] : [],
+      ),
+    [hasSkillSection, inputValue, skillQuery.data],
+  );
+  const slashItems = useMemo<SlashPaletteItem[]>(
+    () => [...slashCommands, ...slashSkills],
+    [slashCommands, slashSkills],
+  );
   const showSlashPalette =
     !isVoiceMode &&
     !isFrontendActive &&
     !isAwaitingActive &&
     !commandOverlayOpen &&
     !slashDismissed &&
-    slashCommands.length > 0;
+    slashTokenActive &&
+    (slashItems.length > 0 || hasSkillSection);
 
   useEffect(() => {
     const anchor = composerPillRef.current;
@@ -108,24 +139,29 @@ export function useComposerSlash(input: UseComposerSlashInput) {
       setActiveSlashIndex(0);
       return;
     }
-    if (activeSlashIndex >= slashCommands.length) {
+    if (activeSlashIndex >= slashItems.length) {
       setActiveSlashIndex(0);
     }
-  }, [activeSlashIndex, showSlashPalette, slashCommands.length]);
+  }, [activeSlashIndex, showSlashPalette, slashItems.length]);
 
-  const selectSlashCommand = (
+  const selectSlashItem = (
     index = activeSlashIndex,
-  ): ResolvedSlashCommandDefinition | null => {
-    return slashCommands[index] || slashCommands[0] || null;
+  ): SlashPaletteItem | null => {
+    return slashItems[index] || slashItems[0] || null;
   };
 
   return {
     activeSlashIndex,
-    selectSlashCommand,
+    refetchSlashSkills: skillQuery.refetch,
+    selectSlashItem,
     setActiveSlashIndex,
     setSlashDismissed,
     showSlashPalette,
     slashCommands,
+    slashItems,
+    slashSkillError: skillQuery.error,
+    slashSkillStatus: hasSkillSection ? skillQuery.status : "idle",
+    slashSkills,
     slashDismissed,
     slashPaletteRef,
     slashPopoverWidth,

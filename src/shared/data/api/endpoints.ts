@@ -104,16 +104,19 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   ) {
     body.editingMode = true;
   }
-  if (Array.isArray(options.requiredSkillKeys)) {
-    const requiredSkillKeys = Array.from(
-      new Set(
-        options.requiredSkillKeys
-          .map((key) => String(key || "").trim())
-          .filter(Boolean),
-      ),
-    );
-    if (requiredSkillKeys.length > 0) {
-      body.requiredSkillKeys = requiredSkillKeys;
+  if (Array.isArray(options.mustUseSkills)) {
+    const seenSkillKeys = new Set<string>();
+    const mustUseSkills = options.mustUseSkills.flatMap((key) => {
+      const normalizedKey = String(key || "").trim();
+      const identity = normalizedKey.toLowerCase();
+      if (!normalizedKey || seenSkillKeys.has(identity)) {
+        return [];
+      }
+      seenSkillKeys.add(identity);
+      return [normalizedKey];
+    });
+    if (mustUseSkills.length > 0) {
+      body.mustUseSkills = mustUseSkills;
     }
   }
 
@@ -400,6 +403,14 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "auto",
     payload: (agentKey) => ({ agentKey }),
+  }),
+  agentSkills: defineEndpoint<string, { agentKey: string }>({
+    key: "agent.skills",
+    path: "/api/skills",
+    method: "GET",
+    transport: "auto",
+    cache: { ttlMs: 30_000, dedupe: true },
+    payload: (agentKey) => ({ agentKey: String(agentKey || "").trim() }),
   }),
   agentModelConfig: defineEndpoint({
     key: "agent.modelConfig.update",

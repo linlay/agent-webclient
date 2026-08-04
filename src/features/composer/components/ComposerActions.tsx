@@ -57,8 +57,7 @@ interface ComposerActionsProps {
   editingMode: boolean;
   canUseEditingMode: boolean;
   currentChatId: string;
-  currentSkillKeys: string[];
-  selectedSkill: ComposerRequiredSkill | null;
+  selectedSkills: ComposerRequiredSkill[];
   voiceEnabled: boolean;
   hasUploadingAttachments: boolean;
   speechListening: boolean;
@@ -71,7 +70,7 @@ interface ComposerActionsProps {
   onTogglePlanningMode: () => void;
   onEditingModeChange: (enabled: boolean) => void;
   onAddReference: (reference: ComposerContextReferenceInput) => void;
-  onSelectedSkillChange: (skill: ComposerRequiredSkill | null) => void;
+  onRemoveSelectedSkill: (skillKey: string) => void;
 }
 
 export const ComposerActions: React.FC<ComposerActionsProps> = ({
@@ -87,8 +86,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   editingMode,
   canUseEditingMode,
   currentChatId,
-  currentSkillKeys,
-  selectedSkill,
+  selectedSkills,
   voiceEnabled,
   hasUploadingAttachments,
   speechListening,
@@ -101,7 +99,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   onTogglePlanningMode,
   onEditingModeChange,
   onAddReference,
-  onSelectedSkillChange,
+  onRemoveSelectedSkill,
 }) => {
   const { t } = useI18n();
   const {
@@ -161,15 +159,12 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
           disabled={attachmentActionsDisabled}
           loading={hasUploadingAttachments}
           currentChatId={currentChatId}
-          currentSkillKeys={currentSkillKeys}
-          selectedSkill={selectedSkill}
           planningMode={planningMode}
           canUsePlanningMode={canUsePlanningMode}
           editingMode={editingMode}
           canUseEditingMode={canUseEditingMode}
           onOpenFilePicker={openFilePicker}
           onAddReference={onAddReference}
-          onSelectedSkillChange={onSelectedSkillChange}
           onTogglePlanningMode={onTogglePlanningMode}
           onEditingModeChange={onEditingModeChange}
         />
@@ -262,10 +257,11 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               </UiButton>
             </Tooltip>
           ) : null}
-          {selectedSkill ? (
+          {selectedSkills.map((skill) => (
             <Tooltip
+              key={skill.key.toLowerCase()}
               title={t("composer.addMenu.skill.requiredTooltip", {
-                name: selectedSkill.label,
+                name: skill.label,
               })}
             >
               <UiButton
@@ -273,7 +269,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                 variant="ghost"
                 size="sm"
                 disabled={attachmentActionsDisabled}
-                onClick={() => onSelectedSkillChange(null)}
+                onClick={() => onRemoveSelectedSkill(skill.key)}
               >
                 <MaterialIcon
                   name="skills"
@@ -288,12 +284,12 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                     <span className="composer-context-required-badge">
                       {t("composer.addMenu.skill.requiredBadge")}
                     </span>
-                    {selectedSkill.label}
+                    {skill.label}
                   </span>
                 )}
               </UiButton>
             </Tooltip>
-          ) : null}
+          ))}
 
           {!isCopilot && (
             <ControlsForm

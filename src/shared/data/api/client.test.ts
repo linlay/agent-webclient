@@ -54,6 +54,7 @@ import {
   getAdminRegistries,
   getArchive,
   getAgent,
+	getAgentSkills,
 	getAgentFile,
   getAgentOrder,
   getAgents,
@@ -325,7 +326,7 @@ describe('data client query payloads', () => {
       requestId: 'req_context',
       message: 'Use the selected context',
       owner: { kind: 'agent', agentKey: 'demo-agent' },
-      requiredSkillKeys: [' product-design ', 'product-design'],
+      mustUseSkills: [' product-design ', 'PRODUCT-DESIGN'],
       references: [
         {
           type: 'chat',
@@ -345,7 +346,7 @@ describe('data client query payloads', () => {
 
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(options.body))).toMatchObject({
-      requiredSkillKeys: ['product-design'],
+      mustUseSkills: ['product-design'],
       references: [
         {
           type: 'chat',
@@ -360,6 +361,7 @@ describe('data client query payloads', () => {
         },
       ],
     });
+    expect(JSON.parse(String(options.body))).not.toHaveProperty('requiredSkillKeys');
   });
 
   it('sends BTW streams without mutable routing fields', async () => {
@@ -1375,6 +1377,14 @@ describe('data client query payloads', () => {
     await getAgent('demo-agent');
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
+  });
+
+  it('requests the slash skill catalog for one agent', async () => {
+    await getAgentSkills('mock-agent');
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/skills?agentKey=mock-agent',
+    );
   });
 
   it('reads and updates an admin source file through the typed management endpoint', async () => {

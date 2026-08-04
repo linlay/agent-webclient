@@ -1,4 +1,5 @@
 import type { TimelineNode } from '@/app/state/types';
+import type { AgentSkill } from '@/shared/data';
 import { isDebugPanelEnabled, isMemoryEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';
 import type { MaterialIconName } from '@/shared/ui/MaterialIcon';
@@ -28,9 +29,20 @@ export interface SlashCommandDefinition {
 }
 
 export interface ResolvedSlashCommandDefinition extends SlashCommandDefinition {
+  kind: 'command';
   label: string;
   description: string;
 }
+
+export interface ResolvedSlashSkillDefinition extends AgentSkill {
+  kind: 'skill';
+  command: `/${string}`;
+  label: string;
+}
+
+export type SlashPaletteItem =
+  | ResolvedSlashCommandDefinition
+  | ResolvedSlashSkillDefinition;
 
 export interface SlashCommandAvailability {
   streaming: boolean;
@@ -161,9 +173,42 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
 function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashCommandDefinition {
   return {
     ...command,
+    kind: 'command',
     label: t(command.labelKey),
     description: t(command.descriptionKey),
   };
+}
+
+export function getFilteredSlashSkills(
+  input: string,
+  skills: AgentSkill[],
+): ResolvedSlashSkillDefinition[] {
+  if (!shouldShowSlashCommandPalette(input) || !Array.isArray(skills)) {
+    return [];
+  }
+  const query = String(input || '').slice(1).trim().toLowerCase();
+  return skills.flatMap((skill) => {
+    const key = String(skill?.key || '').trim();
+    const name = String(skill?.name || '').trim();
+    const description = String(skill?.description || '').trim();
+    if (!key) {
+      return [];
+    }
+    const resolved: ResolvedSlashSkillDefinition = {
+      kind: 'skill',
+      key,
+      name: name || key,
+      label: name || key,
+      description,
+      agentHasSkill: skill.agentHasSkill === true,
+      command: `/${key}`,
+    };
+    if (!query) {
+      return [resolved];
+    }
+    const haystack = [key, name, description].join(' ').toLowerCase();
+    return haystack.includes(query) ? [resolved] : [];
+  });
 }
 
 export function isSlashCommandFeatureEnabled(commandId: SlashCommandId): boolean {

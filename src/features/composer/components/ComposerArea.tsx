@@ -27,12 +27,15 @@ import { ComposerInput } from "@/features/composer/components/ComposerInput";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
 import {
-  buildCurrentWorkerDetailView,
   isDedicatedKbaseWorker,
   resolveCurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
 import type { ComposerRequiredSkill } from "@/features/composer/lib/composerAttachments";
-import { getLatestQueryText } from "@/features/composer/lib/slashCommands";
+import {
+  getLatestQueryText,
+  type ResolvedSlashSkillDefinition,
+  type SlashPaletteItem,
+} from "@/features/composer/lib/slashCommands";
 import { useSpeechInput } from "@/features/composer/components/useSpeechInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
@@ -126,24 +129,16 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     () => resolveCurrentWorkerSummary(state),
     [state],
   );
-  const currentSkillKeys = useMemo(
-    () =>
-      currentWorker?.type === "agent"
-        ? buildCurrentWorkerDetailView(currentWorker, t).skills
-        : [],
-    [currentWorker, t],
-  );
-  const [selectedSkill, setSelectedSkill] =
-    useState<ComposerRequiredSkill | null>(null);
-  useEffect(() => {
-    setSelectedSkill(null);
-  }, [currentWorker?.key]);
   const currentAgentKey = useMemo(() => {
     if (currentWorker?.type !== "agent") {
       return "";
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
+  const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>([]);
+  useEffect(() => {
+    setSelectedSkills([]);
+  }, [currentWorker?.key]);
   const { activeRunId, activeRunOwner } = useActiveRunIdentity(state);
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const mainChatRuntime = resolveMainChatRuntime(
@@ -239,14 +234,19 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const {
     activeSlashIndex,
-    selectSlashCommand,
+    refetchSlashSkills,
+    selectSlashItem,
     setActiveSlashIndex,
     setSlashDismissed,
     showSlashPalette,
     slashCommands,
+    slashItems,
     slashDismissed,
     slashPaletteRef,
     slashPopoverWidth,
+    slashSkillError,
+    slashSkillStatus,
+    slashSkills,
   } = useComposerSlash({
     commandOverlayOpen: isAnyOverlayOpen,
     composerPillRef,
@@ -257,6 +257,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isVoiceMode,
     canUsePlanningMode: planningModeAvailable,
     canUseEditingMode: editingModeAvailable,
+    currentAgentKey,
   });
 
   const { closeMention, selectMentionByIndex, updateMentionSuggestions } =
@@ -267,6 +268,39 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       state,
       textareaRef,
     });
+
+  const handleSelectSlashSkill = useCallback(
+    (skill: ResolvedSlashSkillDefinition) => {
+      if (isMainChatRunning) {
+        return;
+      }
+      const identity = skill.key.toLowerCase();
+      setSelectedSkills((current) => {
+        const selected = current.some(
+          (item) => item.key.trim().toLowerCase() === identity,
+        );
+        if (selected) {
+          return current.filter(
+            (item) => item.key.trim().toLowerCase() !== identity,
+          );
+        }
+        return [...current, { key: skill.key, label: skill.label }];
+      });
+      setInputValue("");
+      setSlashDismissed(true);
+      closeMention();
+      window.requestAnimationFrame(() => {
+        textareaRef.current?.resizableTextArea?.textArea?.focus();
+      });
+    }, [closeMention, isMainChatRunning, setSlashDismissed],
+  );
+
+  const removeSelectedSkill = useCallback((skillKey: string) => {
+    const identity = String(skillKey || "").trim().toLowerCase();
+    setSelectedSkills((current) =>
+      current.filter((item) => item.key.trim().toLowerCase() !== identity),
+    );
+  }, []);
 
   const toggleVoiceMode = useCallback(() => {
     if (!voiceModeAvailable || isMainChatRunning || isFrontendActive) {
@@ -388,7 +422,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       compactError: t("composer.background.compact.error"),
     },
     clearComposerAttachments,
-    clearRequiredSkill: () => setSelectedSkill(null),
+    clearMustUseSkills: () => setSelectedSkills([]),
     closeMention,
     controlParams,
     dispatch,
@@ -413,9 +447,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isVoiceMode,
     mainChatRunning: isMainChatRunning,
     modelOverride,
-    requiredSkillAgentKey: selectedSkill ? currentAgentKey : "",
-    requiredSkillKeys: selectedSkill ? [selectedSkill.key] : [],
-    selectSlashCommand,
+    mustUseSkillsAgentKey: selectedSkills.length > 0 ? currentAgentKey : "",
+    mustUseSkills: selectedSkills.map((skill) => skill.key),
+    selectSlashItem,
+    onSelectSlashSkill: handleSelectSlashSkill,
     sendAttachmentMeta,
     sendReferences,
     setInputValue,
@@ -430,6 +465,17 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     textareaRef,
     updateMentionSuggestions,
   });
+
+  const handleSelectSlashItem = useCallback(
+    (item: SlashPaletteItem) => {
+      if (item.kind === "command") {
+        void executeSlashCommand(item.id);
+        return;
+      }
+      handleSelectSlashSkill(item);
+    },
+    [executeSlashCommand, handleSelectSlashSkill],
+  );
 
   const isCurrentChatActiveRun =
     Boolean(state.currentChatActiveRun?.runId) &&
@@ -476,7 +522,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const handleKeyDown = useComposerKeyboard({
     closeMention,
     dispatch,
-    executeSlashCommand,
+    onSelectSlashItem: handleSelectSlashItem,
     handleSend,
     onTogglePlanningMode: togglePlanningMode,
     canUsePlanningMode: planningModeAvailable,
@@ -486,11 +532,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     mentionOpen: state.mentionOpen,
     mentionSuggestionsLength: state.mentionSuggestions.length,
     selectMentionByIndex,
-    selectSlashCommand,
+    selectSlashItem,
     setActiveSlashIndex,
     setSlashDismissed,
     showSlashPalette,
-    slashCommandsLength: slashCommands.length,
+    slashItemsLength: slashItems.length,
   });
 
   useComposerLifecycle({
@@ -625,13 +671,22 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             open={showSlashPalette}
             slashPaletteRef={slashPaletteRef}
             slashCommands={slashCommands}
+            slashSkills={slashSkills}
+            slashSkillStatus={slashSkillStatus}
+            slashSkillError={slashSkillError}
             activeSlashIndex={activeSlashIndex}
             slashAvailability={slashAvailability}
             planningMode={state.planningMode}
             editingMode={state.editingMode}
+            selectedSkillKeys={selectedSkills.map((skill) => skill.key)}
+            skillsDisabled={isMainChatRunning}
             slashPopoverWidth={slashPopoverWidth}
             getPopupContainer={() => document.body}
-            onSelect={(commandId) => void executeSlashCommand(commandId)}
+            onSelectCommand={(commandId) => void executeSlashCommand(commandId)}
+            onSelectSkill={handleSelectSlashSkill}
+            onRetrySkills={() => {
+              void refetchSlashSkills().catch(() => undefined);
+            }}
           >
             <div className={COMPOSER_STACK_CLASS}>
               <div
@@ -669,7 +724,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onInputChange={(next) => {
                     setInputValue(next);
                     setSlashDismissed(false);
-                    if (slashCommands.length > 0 || next.startsWith("/")) {
+                    if (slashItems.length > 0 || next.startsWith("/")) {
                       closeMention();
                     }
                     if (!next.startsWith("/")) {
@@ -701,8 +756,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   editingMode={state.editingMode}
                   canUseEditingMode={editingModeAvailable}
                   currentChatId={state.chatId}
-                  currentSkillKeys={currentSkillKeys}
-                  selectedSkill={selectedSkill}
+                  selectedSkills={selectedSkills}
                   voiceEnabled={voiceEnabled}
                   hasUploadingAttachments={hasUploadingAttachments}
                   speechListening={speechListening}
@@ -715,7 +769,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onTogglePlanningMode={togglePlanningMode}
                   onEditingModeChange={handleEditingModeChange}
                   onAddReference={addContextReference}
-                  onSelectedSkillChange={setSelectedSkill}
+                  onRemoveSelectedSkill={removeSelectedSkill}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>

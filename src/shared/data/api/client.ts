@@ -529,6 +529,18 @@ export interface AgentDetailResponse {
   source?: AgentSource;
 }
 
+export interface AgentSkill {
+  key: string;
+  name: string;
+  description?: string;
+  agentHasSkill: boolean;
+}
+
+export interface AgentSkillsResponse {
+  agentKey: string;
+  skills: AgentSkill[];
+}
+
 export interface AdminAgentDiagnostic {
   severity: string;
   code: string;
@@ -1977,6 +1989,15 @@ export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailRespo
   return requestJson(withQuery(dataEndpoints.agent.path, query));
 }
 
+export function getAgentSkills(
+  agentKey: string,
+): Promise<ApiResponse<AgentSkillsResponse>> {
+  const query = endpointQuery(dataEndpoints.agentSkills, agentKey);
+  return requestJson<AgentSkillsResponse>(
+    withQuery(dataEndpoints.agentSkills.path, query),
+  );
+}
+
 export function getAgentFile(
   params: AgentFileRequest,
 ): Promise<ApiResponse<AgentFileResponse>> {
@@ -2910,7 +2931,7 @@ export interface QueryStreamParams {
   message: string;
   planningMode?: boolean;
   editingMode?: boolean;
-  requiredSkillKeys?: string[];
+  mustUseSkills?: string[];
   agentMode?: string;
   accessLevel?: QueryAccessLevel;
   model?: QueryModelOverride;

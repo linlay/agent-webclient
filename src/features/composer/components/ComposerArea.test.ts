@@ -194,14 +194,19 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
 const mockUseComposerSlash = jest.fn(
   (_input: Record<string, unknown>) => ({
     activeSlashIndex: 0,
-    selectSlashCommand: jest.fn(),
+    refetchSlashSkills: jest.fn(),
+    selectSlashItem: jest.fn(),
     setActiveSlashIndex: jest.fn(),
     setSlashDismissed: jest.fn(),
     showSlashPalette: false,
     slashCommands: [],
+    slashItems: [],
     slashDismissed: false,
     slashPaletteRef: React.createRef(),
     slashPopoverWidth: 320,
+    slashSkillError: null,
+    slashSkillStatus: "idle",
+    slashSkills: [],
   }),
 );
 
@@ -410,7 +415,10 @@ describe("ComposerArea", () => {
       }),
     );
     expect(mockUseComposerSlash).toHaveBeenCalledWith(
-      expect.objectContaining({ canUseEditingMode: true }),
+      expect.objectContaining({
+        canUseEditingMode: true,
+        currentAgentKey: "knowledge",
+      }),
     );
   });
 

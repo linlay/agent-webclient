@@ -19,8 +19,10 @@ import {
 } from "@/features/runs/lib/runOwner";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
 import type {
+  ResolvedSlashSkillDefinition,
   SlashCommandAvailability,
   SlashCommandId,
+  SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
 import { parseBTWSlashInput } from "@/features/composer/lib/slashCommands";
 import { useBTW } from "@/features/btw/components/BtwProvider";
@@ -56,7 +58,7 @@ interface UseComposerSendInput {
   attachmentChatId: string;
   accessLevel: QueryAccessLevel;
   clearComposerAttachments: () => void;
-  clearRequiredSkill: () => void;
+  clearMustUseSkills: () => void;
   closeMention: () => void;
   controlParams: Record<string, unknown>;
   dispatch: Dispatch<AppAction>;
@@ -83,9 +85,10 @@ interface UseComposerSendInput {
   isVoiceMode: boolean;
   mainChatRunning: boolean;
   modelOverride: QueryModelOverride;
-  requiredSkillAgentKey: string;
-  requiredSkillKeys: string[];
-  selectSlashCommand: () => { id: SlashCommandId } | null;
+  mustUseSkillsAgentKey: string;
+  mustUseSkills: string[];
+  selectSlashItem: () => SlashPaletteItem | null;
+  onSelectSlashSkill: (skill: ResolvedSlashSkillDefinition) => void;
   showSlashPalette: boolean;
   sendAttachmentMeta: ComposerSendAttachmentMeta[];
   sendReferences: unknown[];
@@ -126,7 +129,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     attachmentChatId,
     accessLevel,
     clearComposerAttachments,
-    clearRequiredSkill,
+    clearMustUseSkills,
     closeMention,
     controlParams,
     dispatch,
@@ -138,9 +141,10 @@ export function useComposerSend(input: UseComposerSendInput) {
     isVoiceMode,
     mainChatRunning,
     modelOverride,
-    requiredSkillAgentKey,
-    requiredSkillKeys,
-    selectSlashCommand,
+    mustUseSkillsAgentKey,
+    mustUseSkills,
+    selectSlashItem,
+    onSelectSlashSkill,
     showSlashPalette,
     sendAttachmentMeta,
     sendReferences,
@@ -368,9 +372,13 @@ export function useComposerSend(input: UseComposerSendInput) {
       stopSpeechInput();
     }
 
-    const selectedSlashCommand = showSlashPalette ? selectSlashCommand() : null;
-    if (selectedSlashCommand) {
-      void executeSlashCommand(selectedSlashCommand.id);
+    const selectedSlashItem = showSlashPalette ? selectSlashItem() : null;
+    if (selectedSlashItem) {
+      if (selectedSlashItem.kind === "command") {
+        void executeSlashCommand(selectedSlashItem.id);
+      } else {
+        onSelectSlashSkill(selectedSlashItem);
+      }
       return;
     }
 
@@ -384,7 +392,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     const activeChatId = String(currentState.chatId || "").trim();
     const btwMessage = parseBTWSlashInput(message);
     if (btwMessage !== null) {
-      if (requiredSkillKeys.length > 0) {
+      if (mustUseSkills.length > 0) {
         void messageApi.warning(t("composer.addMenu.skill.btwUnsupported"));
         return;
       }
@@ -425,7 +433,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
-        if (sendReferences.length > 0 || requiredSkillKeys.length > 0) {
+        if (sendReferences.length > 0 || mustUseSkills.length > 0) {
           dispatch({
             type: "APPEND_DEBUG",
             line: "[send] references and required skills are not supported while steering an active run",
@@ -468,7 +476,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       });
       return;
     }
-    if (requiredSkillKeys.length > 0) {
+    if (mustUseSkills.length > 0) {
       const mention = parseLeadingAgentMention(
         message,
         resolveMentionCandidatesFromState(currentState),
@@ -478,8 +486,8 @@ export function useComposerSend(input: UseComposerSendInput) {
           ? mention.mentionAgentKey || owner.agentKey
           : "";
       if (
-        !requiredSkillAgentKey ||
-        finalAgentKey !== requiredSkillAgentKey
+        !mustUseSkillsAgentKey ||
+        finalAgentKey !== mustUseSkillsAgentKey
       ) {
         pendingSendRef.current = false;
         pendingSentMessageRef.current = "";
@@ -492,7 +500,7 @@ export function useComposerSend(input: UseComposerSendInput) {
 
     setInputValue("");
     clearComposerAttachments();
-    clearRequiredSkill();
+    clearMustUseSkills();
     setSlashDismissed(false);
     closeMention();
     window.dispatchEvent(
@@ -508,8 +516,8 @@ export function useComposerSend(input: UseComposerSendInput) {
           model: modelOverride,
           params: controlParams,
           editingMode: currentState.editingMode === true,
-          requiredSkillAgentKey,
-          requiredSkillKeys,
+          mustUseSkillsAgentKey,
+          mustUseSkills,
         },
       }),
     );
@@ -517,7 +525,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     attachmentChatId,
     accessLevel,
     clearComposerAttachments,
-    clearRequiredSkill,
+    clearMustUseSkills,
     closeMention,
     controlParams,
     dispatch,
@@ -527,14 +535,15 @@ export function useComposerSend(input: UseComposerSendInput) {
     isAwaitingActive,
     isVoiceMode,
     modelOverride,
-    requiredSkillAgentKey,
-    requiredSkillKeys,
+    mustUseSkillsAgentKey,
+    mustUseSkills,
     messageApi,
     openBTW,
     activeQuerySessionRequestIdRef,
     querySessionsRef,
     resolveCurrentRunId,
-    selectSlashCommand,
+    selectSlashItem,
+    onSelectSlashSkill,
     sendAttachmentMeta,
     sendReferences,
     setInputValue,

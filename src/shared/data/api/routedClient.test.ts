@@ -39,8 +39,9 @@ jest.mock("@/shared/data/api/client", () => {
 		downloadChatExport: jest.fn(),
 		downloadResource: jest.fn(),
 		ensureAccessToken: jest.fn(),
-		getAgent: jest.fn(),
-		getAgentFile: jest.fn(),
+			getAgent: jest.fn(),
+			getAgentSkills: jest.fn(),
+			getAgentFile: jest.fn(),
 		getAgentOrder: jest.fn(),
 		getModelOptions: jest.fn(),
 		getAgents: jest.fn(),
@@ -128,6 +129,7 @@ let mockApiClient: {
 	downloadResource: jest.Mock;
 	ensureAccessToken: jest.Mock;
 	getAgent: jest.Mock;
+	getAgentSkills: jest.Mock;
 	getAgentFile: jest.Mock;
 	getAgentOrder: jest.Mock;
 	getModelOptions: jest.Mock;
@@ -262,6 +264,102 @@ describe("routedClient", () => {
 			payload: { includeChats: 5, includeTeam: true, scope: "nav", mode: "CODER" },
 		});
 		expect(mockApiClient.getAgents).not.toHaveBeenCalled();
+	});
+
+	it("routes agent skills over ws with an agentKey payload", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { agentKey: "mock-agent", skills: [] },
+		});
+		mockGetWsClient.mockReturnValue({
+			connect,
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getAgentSkills("mock-agent");
+
+		expect(request).toHaveBeenCalledWith({
+			type: "/api/skills",
+			payload: { agentKey: "mock-agent" },
+		});
+		expect(mockApiClient.getAgentSkills).not.toHaveBeenCalled();
+	});
+
+	it("falls back to http when the agent skills ws transport disconnects", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request: jest.fn().mockRejectedValue(new WsClientDisconnectedError()),
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+		mockApiClient.getAgentSkills.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { agentKey: "mock-agent", skills: [] },
+		});
+
+		await proxy.getAgentSkills("mock-agent");
+
+		expect(mockApiClient.getAgentSkills).toHaveBeenCalledWith("mock-agent");
+	});
+
+	it("does not hide agent skills business errors behind an http fallback", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const error = new mockApiClient.ApiError("agent not found", {
+			status: 404,
+			code: "agent_not_found",
+		});
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request: jest.fn().mockRejectedValue(error),
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await expect(proxy.getAgentSkills("missing-agent")).rejects.toBe(error);
+
+		expect(mockApiClient.getAgentSkills).not.toHaveBeenCalled();
+	});
+
+	it("caches agent skills independently by agentKey", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "ws");
+		const request = jest.fn(({ payload }: { payload?: { agentKey?: string } }) =>
+			Promise.resolve({
+				status: 200,
+				code: 0,
+				msg: "ok",
+				data: { agentKey: payload?.agentKey, skills: [] },
+			}),
+		);
+		mockGetWsClient.mockReturnValue({
+			connect: jest.fn().mockResolvedValue(undefined),
+			updateOptions: jest.fn(),
+			request,
+		});
+		mockGetWsClientAccessToken.mockReturnValue("");
+
+		await proxy.getAgentSkills("agent-a");
+		await proxy.getAgentSkills("agent-a");
+		await proxy.getAgentSkills("agent-b");
+
+		expect(request).toHaveBeenCalledTimes(2);
+		expect(request.mock.calls.map(([call]) => call.payload)).toEqual([
+			{ agentKey: "agent-a" },
+			{ agentKey: "agent-b" },
+		]);
 	});
 
 	it("dedupes cached GET endpoints and reuses fresh route responses", async () => {
@@ -1831,6 +1929,22 @@ describe("routedClient", () => {
 
 		expect(mockInitWsClient).not.toHaveBeenCalled();
 		expect(mockApiClient.getAgent).toHaveBeenCalledWith("agent_1");
+	});
+
+	it("routes agent skills over http when sse mode is selected", async () => {
+		const proxy = await import("./routedClient");
+		proxy.setTransportModeProvider(() => "sse");
+		mockApiClient.getAgentSkills.mockResolvedValue({
+			status: 200,
+			code: 0,
+			msg: "ok",
+			data: { agentKey: "mock-agent", skills: [] },
+		});
+
+		await proxy.getAgentSkills("mock-agent");
+
+		expect(mockInitWsClient).not.toHaveBeenCalled();
+		expect(mockApiClient.getAgentSkills).toHaveBeenCalledWith("mock-agent");
 	});
 
 	it("routes getChat over http when sse mode is selected", async () => {

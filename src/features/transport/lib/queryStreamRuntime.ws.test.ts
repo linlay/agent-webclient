@@ -50,9 +50,9 @@ jest.mock("@/shared/data", () => ({
 			params.editingMode === true
 				? { editingMode: true }
 				: {}),
-			...(Array.isArray(params.requiredSkillKeys) &&
-			params.requiredSkillKeys.length > 0
-				? { requiredSkillKeys: params.requiredSkillKeys }
+			...(Array.isArray(params.mustUseSkills) &&
+			params.mustUseSkills.length > 0
+				? { mustUseSkills: params.mustUseSkills }
 				: {}),
 			message: params.message,
 			...(params.agentKey ? { agentKey: params.agentKey } : {}),
@@ -277,7 +277,7 @@ describe("executeQueryStreamWs", () => {
 			params: {
 				requestId: "req_context_ws",
 				message: "use context",
-				requiredSkillKeys: ["product-design"],
+				mustUseSkills: ["product-design"],
 				references: [
 					{ type: "chat", id: "chat_2", name: "Previous design" },
 					{ type: "site", id: "website:docs", name: "Docs" },
@@ -291,12 +291,13 @@ describe("executeQueryStreamWs", () => {
 			payload: Record<string, unknown>;
 		};
 		expect(call.payload).toMatchObject({
-			requiredSkillKeys: ["product-design"],
+			mustUseSkills: ["product-design"],
 			references: [
 				{ type: "chat", id: "chat_2", name: "Previous design" },
 				{ type: "site", id: "website:docs", name: "Docs" },
 			],
 		});
+		expect(call.payload).not.toHaveProperty("requiredSkillKeys");
 	});
 
 	it("serializes planningMode=false for CODER websocket payloads", async () => {

@@ -12,6 +12,8 @@
 ## 核心流程
 Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原会话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。新建会话收到稳定 `chatId` 的 URL promotion 仍由原 `/api/query` 消费到终态；SSE 与 WebSocket attach 入口会先检查同一 `chatId`、`runId`、owner 是否已由 live query session 观察，若是则记录本地诊断并拒绝第二个 observer。页面刷新或没有 live query session 的运行中稳定 chat 仍允许恰好一次正常 attach。
 
+`buildQueryPayload` 是 SSE 与 WebSocket query 的统一序列化入口。Composer 选择的强制技能经 trim、去空和大小写不敏感去重后只写入 `mustUseSkills`；无选择时省略字段，已删除的 `requiredSkillKeys` 不得出现在任一传输 payload。
+
 Platform 重启后，可恢复的 question/planning 会在 `/api/chat` 同时返回权威 `awaiting` 与 `activeRun(state:"WAITING_SUBMIT")`。会话加载先 replay 并校准 awaiting，再立即使用 `activeRun.lastSeq` attach；空闲 observer 在用户尚未回答时保持连接。submit 成功只清理 awaiting UI，不再发起第二次 attach，原连接从 `request.submit`、`awaiting.answer` 继续消费同一 run 的 reasoning/content/tool/terminal 事件。WebSocket 发生真正重连时，如果当前 chat 仍有 awaiting、active run 或正在观察的 run，前端先重新加载 `/api/chat`，再由新的 activeRun 游标恢复 attach，而不是等待用户点击提交。
 
 SSE / WebSocket event 必须带安全整数 epoch-ms `timestamp`。客户端遇到缺失、字符串、秒级、浮点或 `0` 的时间会按 `time_contract_violation` 拒绝该 event，不以本机当前时间生成时间线节点或任务状态。

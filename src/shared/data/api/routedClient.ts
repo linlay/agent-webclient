@@ -19,6 +19,7 @@ import {
 	searchGlobal as searchGlobalHttp,
 	searchArchives as searchArchivesHttp,
 	getAgent as getAgentHttp,
+	getAgentSkills as getAgentSkillsHttp,
 	getAgentFile as getAgentFileHttp,
 	getAgentOrder as getAgentOrderHttp,
 	getAgents as getAgentsHttp,
@@ -67,6 +68,7 @@ import {
 	validateMemoryScope as validateMemoryScopeHttp,
 	ApiError,
 	type AgentDetailResponse,
+	type AgentSkillsResponse,
 	type AgentFileRequest,
 	type AgentFileResponse,
 	type AgentModelConfigResponse,
@@ -253,6 +255,16 @@ export function putAgentOrder(
 
 export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailResponse>> {
 	return routeEndpoint(dataEndpoints.agent, agentKey, () => getAgentHttp(agentKey));
+}
+
+export function getAgentSkills(
+	agentKey: string,
+): Promise<ApiResponse<AgentSkillsResponse>> {
+	return routeEndpoint(
+		dataEndpoints.agentSkills,
+		agentKey,
+		() => getAgentSkillsHttp(agentKey),
+	);
 }
 
 function isUnknownAgentFileWsRoute(error: unknown): boolean {

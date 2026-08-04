@@ -16,15 +16,8 @@ import {
   Spin,
 } from "antd";
 import type { Chat } from "@/app/state/types";
-import type {
-  ComposerContextReferenceInput,
-  ComposerRequiredSkill,
-} from "@/features/composer/lib/composerAttachments";
-import {
-  getAdminSkills,
-  getChats,
-  type AdminSkillSummary,
-} from "@/shared/data";
+import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
+import { getChats } from "@/shared/data";
 import {
   canUseDesktopWebsBridge,
   listDesktopWebEntries,
@@ -41,15 +34,12 @@ interface ComposerAddMenuProps {
   disabled: boolean;
   loading: boolean;
   currentChatId: string;
-  currentSkillKeys: string[];
-  selectedSkill: ComposerRequiredSkill | null;
   planningMode: boolean;
   canUsePlanningMode: boolean;
   editingMode: boolean;
   canUseEditingMode: boolean;
   onOpenFilePicker: () => void;
   onAddReference: (reference: ComposerContextReferenceInput) => void;
-  onSelectedSkillChange: (skill: ComposerRequiredSkill | null) => void;
   onTogglePlanningMode: () => void;
   onEditingModeChange: (enabled: boolean) => void;
 }
@@ -99,15 +89,12 @@ export const ComposerAddMenu: React.FC<ComposerAddMenuProps> = ({
   disabled,
   loading,
   currentChatId,
-  currentSkillKeys,
-  selectedSkill,
   planningMode,
   canUsePlanningMode,
   editingMode,
   canUseEditingMode,
   onOpenFilePicker,
   onAddReference,
-  onSelectedSkillChange,
   onTogglePlanningMode,
   onEditingModeChange,
 }) => {
@@ -122,10 +109,7 @@ export const ComposerAddMenu: React.FC<ComposerAddMenuProps> = ({
   const [sites, setSites] = useState<DesktopWebEntry[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [pickerError, setPickerError] = useState("");
-  const [skillSummaries, setSkillSummaries] = useState<AdminSkillSummary[]>([]);
-  const [skillsLoading, setSkillsLoading] = useState(false);
   const siteAvailable = canUseDesktopWebsBridge();
-  const skillKeySignature = currentSkillKeys.join("\u0000");
 
   useEffect(() => {
     const direction = keyboardMenuDirectionRef.current;
@@ -151,56 +135,6 @@ export const ComposerAddMenu: React.FC<ComposerAddMenuProps> = ({
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [menuOpen]);
-
-  const configuredSkillKeys = useMemo(
-    () =>
-      Array.from(
-        new Set(currentSkillKeys.map((key) => normalizeText(key)).filter(Boolean)),
-      ),
-    [skillKeySignature],
-  );
-
-  const availableSkills = useMemo(() => {
-    const byKey = new Map(
-      skillSummaries
-        .filter((skill) => skill.status === "ready")
-        .map((skill) => [normalizeText(skill.key), skill]),
-    );
-    return configuredSkillKeys.flatMap((key) => {
-      const summary = byKey.get(key);
-      if (!summary) {
-        return [];
-      }
-      return [
-        {
-          key,
-          label: normalizeText(summary.name) || key,
-          description: normalizeText(summary.description),
-        },
-      ];
-    });
-  }, [configuredSkillKeys, skillSummaries]);
-
-  useEffect(() => {
-    setSkillSummaries([]);
-  }, [skillKeySignature]);
-
-  const loadSkills = useCallback(async () => {
-    if (configuredSkillKeys.length === 0 || skillsLoading) {
-      return;
-    }
-    setSkillsLoading(true);
-    try {
-      const response = await getAdminSkills();
-      setSkillSummaries(
-        Array.isArray(response.data) ? response.data : [],
-      );
-    } catch {
-      setSkillSummaries([]);
-    } finally {
-      setSkillsLoading(false);
-    }
-  }, [configuredSkillKeys.length, skillsLoading]);
 
   const openPicker = useCallback(
     (kind: Exclude<PickerKind, null>) => {
@@ -243,15 +177,8 @@ export const ComposerAddMenu: React.FC<ComposerAddMenuProps> = ({
       if (!open) {
         keyboardMenuDirectionRef.current = null;
       }
-      if (open && configuredSkillKeys.length > 0 && skillSummaries.length === 0) {
-        void loadSkills();
-      }
     },
-    [
-      configuredSkillKeys.length,
-      loadSkills,
-      skillSummaries.length,
-    ],
+    [],
   );
 
   const handleTriggerKeyDown = useCallback(
@@ -349,59 +276,13 @@ export const ComposerAddMenu: React.FC<ComposerAddMenuProps> = ({
       });
     }
 
-    if (configuredSkillKeys.length > 0) {
-      items.push({
-        type: "group",
-        key: "skills-group",
-        label: t("composer.addMenu.group.skills"),
-        children: skillsLoading
-          ? [
-              {
-                key: "skill:loading",
-                disabled: true,
-                label: itemLabel({
-                  icon: "progress_activity",
-                  title: t("composer.addMenu.skills.loading"),
-                }),
-              },
-            ]
-          : availableSkills.length > 0
-            ? availableSkills.map((skill) => ({
-                key: `skill:${skill.key}`,
-                title: skill.description || skill.label,
-                label: itemLabel({
-                  icon: "skills",
-                  title: skill.label,
-                  suffix:
-                    selectedSkill?.key === skill.key ? (
-                      <MaterialIcon name="check" />
-                    ) : null,
-                }),
-              }))
-            : [
-                {
-                  key: "skill:empty",
-                  disabled: true,
-                  label: itemLabel({
-                    icon: "skills",
-                    title: t("composer.addMenu.skills.empty"),
-                  }),
-                },
-              ],
-      });
-    }
-
     return items;
   }, [
-    availableSkills,
     canUseEditingMode,
     canUsePlanningMode,
-    configuredSkillKeys.length,
     editingMode,
     planningMode,
-    selectedSkill?.key,
     siteAvailable,
-    skillsLoading,
     t,
   ]);
 
@@ -427,18 +308,6 @@ export const ComposerAddMenu: React.FC<ComposerAddMenuProps> = ({
     if (normalizedKey === "mode:editing") {
       onEditingModeChange(!editingMode);
       return;
-    }
-    if (normalizedKey.startsWith("skill:")) {
-      const skillKey = normalizedKey.slice("skill:".length);
-      const skill = availableSkills.find((item) => item.key === skillKey);
-      if (!skill) {
-        return;
-      }
-      onSelectedSkillChange(
-        selectedSkill?.key === skill.key
-          ? null
-          : { key: skill.key, label: skill.label },
-      );
     }
   };
 

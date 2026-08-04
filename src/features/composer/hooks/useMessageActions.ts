@@ -52,8 +52,8 @@ interface SendMessageEventDetail {
   accessLevel?: unknown;
   model?: unknown;
   editingMode?: unknown;
-  requiredSkillAgentKey?: unknown;
-  requiredSkillKeys?: unknown;
+  mustUseSkillsAgentKey?: unknown;
+  mustUseSkills?: unknown;
 }
 
 function notifyNewChatCreated(input: { chatId: string; agentKey: string }): void {
@@ -244,20 +244,23 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       preferredAgentKey = "",
       preferredTeamId = "",
       editingMode = false,
-      requiredSkillKeys: string[] = [],
-      requiredSkillAgentKey = "",
+      mustUseSkills: string[] = [],
+      mustUseSkillsAgentKey = "",
     ) => {
       const rawMessage = String(inputMessage ?? "").trim();
       const normalizedReferences = Array.isArray(references)
         ? references.filter((reference) => reference != null)
         : [];
-      const normalizedRequiredSkillKeys = Array.from(
-        new Set(
-          requiredSkillKeys
-            .map((key) => String(key || "").trim())
-            .filter(Boolean),
-        ),
-      );
+      const seenSkillKeys = new Set<string>();
+      const normalizedMustUseSkills = mustUseSkills.flatMap((key) => {
+        const normalizedKey = String(key || "").trim();
+        const identity = normalizedKey.toLowerCase();
+        if (!normalizedKey || seenSkillKeys.has(identity)) {
+          return [];
+        }
+        seenSkillKeys.add(identity);
+        return [normalizedKey];
+      });
       if (!rawMessage && normalizedReferences.length === 0) return;
 
       /* ── Parallel-query guard ── */
@@ -376,13 +379,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         return;
       }
       if (
-        normalizedRequiredSkillKeys.length > 0 &&
-        requiredSkillAgentKey &&
-        selectedAgentKey !== requiredSkillAgentKey
+        normalizedMustUseSkills.length > 0 &&
+        mustUseSkillsAgentKey &&
+        selectedAgentKey !== mustUseSkillsAgentKey
       ) {
         dispatch({
           type: "APPEND_DEBUG",
-          line: `[send] skipped: required skill agent mismatch (expected=${requiredSkillAgentKey || "-"}, resolved=${selectedAgentKey || "-"})`,
+          line: `[send] skipped: must-use skill agent mismatch (expected=${mustUseSkillsAgentKey || "-"}, resolved=${selectedAgentKey || "-"})`,
         });
         return;
       }
@@ -649,9 +652,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             params: Object.keys(params).length > 0 ? params : undefined,
             planningMode: Boolean(stateRef.current.planningMode),
             editingMode: session.editingMode === true,
-            requiredSkillKeys:
-              normalizedRequiredSkillKeys.length > 0
-                ? normalizedRequiredSkillKeys
+            mustUseSkills:
+              normalizedMustUseSkills.length > 0
+                ? normalizedMustUseSkills
                 : undefined,
             agentMode: selectedAgentMode || undefined,
             signal: abortController.signal,
@@ -743,11 +746,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const agentKey = String(detail.agentKey || "").trim();
       const teamId = String(detail.teamId || "").trim();
       const editingMode = detail.editingMode === true;
-      const requiredSkillAgentKey = String(
-        detail.requiredSkillAgentKey || "",
+      const mustUseSkillsAgentKey = String(
+        detail.mustUseSkillsAgentKey || "",
       ).trim();
-      const requiredSkillKeys = Array.isArray(detail.requiredSkillKeys)
-        ? detail.requiredSkillKeys
+      const mustUseSkills = Array.isArray(detail.mustUseSkills)
+        ? detail.mustUseSkills
             .map((key) => String(key || "").trim())
             .filter(Boolean)
         : [];
@@ -763,8 +766,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           agentKey,
           teamId,
           editingMode,
-          requiredSkillKeys,
-          requiredSkillAgentKey,
+          mustUseSkills,
+          mustUseSkillsAgentKey,
         );
       }
     };

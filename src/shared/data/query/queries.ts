@@ -3,6 +3,7 @@ import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { useDataQuery } from "@/shared/data/query/serverState";
 import {
   getAgents,
+  getAgentSkills,
   getChats,
   getMemoryRecords,
   getModelOptions,
@@ -28,6 +29,19 @@ export function useAgentsQuery(options: GetAgentsOptions = {}) {
 
 export function useTeamsQuery() {
   return useDataQuery(dataEndpoints.teams, undefined, getTeams);
+}
+
+export function useAgentSkillsQuery(
+  agentKey: string,
+  options: { enabled?: boolean } = {},
+) {
+  const normalizedAgentKey = String(agentKey || "").trim();
+  return useDataQuery(
+    dataEndpoints.agentSkills,
+    normalizedAgentKey,
+    getAgentSkills,
+    { enabled: options.enabled !== false && Boolean(normalizedAgentKey) },
+  );
 }
 
 export function useChatsQuery(options: GetChatsOptions = {}) {

@@ -112,7 +112,20 @@ describe("useMessageActions temporary pin", () => {
     };
     renderToStaticMarkup(React.createElement(Harness));
 
-    await actions?.sendMessage("hello");
+    await actions?.sendMessage(
+      "hello",
+      [],
+      [],
+      {},
+      undefined,
+      undefined,
+      "",
+      "",
+      "",
+      false,
+      [" pdf ", "PDF", "mock-skill"],
+      "agent-coder",
+    );
 
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_TEMPORARY_PINNED_AGENT_KEY",
@@ -123,6 +136,7 @@ describe("useMessageActions temporary pin", () => {
         params: expect.objectContaining({
           owner: { kind: "agent", agentKey: "agent-coder" },
           message: "hello",
+          mustUseSkills: ["pdf", "mock-skill"],
         }),
       }),
     );
