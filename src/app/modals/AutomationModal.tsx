@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Checkbox, Input, Select, Spin, Tooltip } from "antd";
+import { Checkbox, Input, Popconfirm, Select, Spin, Tooltip, message } from "antd";
 import type { MenuProps } from "antd";
 import type { Agent, Team } from "@/app/state/types";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
@@ -97,7 +97,7 @@ const AUTOMATION_CONSOLE_CLASS_NAME =
 const AUTOMATION_ERROR_CLASS_NAME =
   "automation-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
 const AUTOMATION_BODY_CLASS_NAME =
-  "automation-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[minmax(280px,0.52fr)_minmax(480px,1.55fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+  "automation-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[minmax(280px,0.52fr)_minmax(480px,1.55fr)] tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
 const AUTOMATION_LIST_CLASS_NAME =
   "automation-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
 const AUTOMATION_TOOLBAR_CLASS_NAME =
@@ -125,7 +125,7 @@ const AUTOMATION_LIST_ITEM_META_CRON_CLASS_NAME =
 const AUTOMATION_DETAIL_CLASS_NAME =
   "automation-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
 const AUTOMATION_DETAIL_HEAD_CLASS_NAME =
-  "automation-detail-head tw:mb-3.5 tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>div:first-child]:flex tw:[&>div:first-child]:min-w-0 tw:[&>div:first-child]:flex-col tw:[&>div:first-child]:gap-1 tw:[&_strong]:text-sm tw:[&_span]:[overflow-wrap:anywhere] tw:[&_span]:text-[11px] tw:[&_span]:text-ink-muted";
+  "automation-detail-head tw:mb-3.5 tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>div:first-child]:flex tw:[&>div:first-child]:min-w-0 tw:[&>div:first-child]:flex-col tw:[&>div:first-child]:gap-1 tw:[&_strong]:text-sm tw:[&_span]:[overflow-wrap:anywhere] tw:[&_span]:text-[11px]";
 const AUTOMATION_ACTIONS_CLASS_NAME =
   "automation-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
 const AUTOMATION_FORM_GRID_CLASS_NAME =
@@ -502,10 +502,11 @@ export const AutomationModal: React.FC<{
   const [loading, setLoading] = useState(false);
   const [loadingSource, setLoadingSource] = useState(false);
   const [executionsLoading, setExecutionsLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [savingForm, setSavingForm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [savingToggle, setSavingToggle] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
-  const [pendingDeleteId, setPendingDeleteId] = useState("");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [workerDropdownOpen, setWorkerDropdownOpen] = useState(false);
   const [sourceDraft, setSourceDraft] = useState("");
@@ -731,7 +732,6 @@ export const AutomationModal: React.FC<{
     setSourceDirty(false);
     setExecutions([]);
     setFormError("");
-    setPendingDeleteId("");
   }, [currentWorker]);
 
   const selectAutomation = useCallback(
@@ -752,7 +752,6 @@ export const AutomationModal: React.FC<{
       setSourceLoadedId("");
       setSourceDirty(false);
       setFormError("");
-      setPendingDeleteId("");
       try {
         const response = await getAutomation(normalizedId);
         setForm(formFromAutomation(response.data));
@@ -900,7 +899,7 @@ export const AutomationModal: React.FC<{
       setFormError(validation);
       return;
     }
-    setSaving(true);
+    setSavingForm(true);
     setError("");
     setFormError("");
     try {
@@ -909,10 +908,13 @@ export const AutomationModal: React.FC<{
           ? await createAutomation(buildCreateAutomationPayloadForSubmit(form))
           : await updateAutomation(buildUpdateAutomationPayloadForSubmit(form));
       await loadAutomations(response.data.id);
+      message.success(t("automationConsole.message.saveSuccess"));
     } catch (error) {
-      setFormError((error as Error).message);
+      const errorMessage = (error as Error).message;
+      setFormError(errorMessage);
+      message.error(t("automationConsole.message.saveFailed", { detail: errorMessage }));
     } finally {
-      setSaving(false);
+      setSavingForm(false);
     }
   };
 
@@ -970,7 +972,7 @@ export const AutomationModal: React.FC<{
     const id = selectedId;
     const requestSeq = sourceLoadSeqRef.current + 1;
     sourceLoadSeqRef.current = requestSeq;
-    setSaving(true);
+    setSavingForm(true);
     setError("");
     setFormError("");
     try {
@@ -1003,12 +1005,12 @@ export const AutomationModal: React.FC<{
     } catch (sourceError) {
       setFormError(sourceError instanceof Error ? sourceError.message : String(sourceError));
     } finally {
-      setSaving(false);
+      setSavingForm(false);
     }
   };
 
   const toggleSelected = async (item: AutomationSummaryResponse) => {
-    setSaving(true);
+    setSavingToggle(true);
     setError("");
     try {
       const response = await toggleAutomation({
@@ -1033,22 +1035,17 @@ export const AutomationModal: React.FC<{
     } catch (error) {
       setError((error as Error).message);
     } finally {
-      setSaving(false);
+      setSavingToggle(false);
     }
   };
 
   const confirmDelete = async (item: AutomationSummaryResponse) => {
-    if (pendingDeleteId !== item.id) {
-      setPendingDeleteId(item.id);
-      return;
-    }
-    setSaving(true);
+    setDeleting(true);
     setError("");
     try {
       await deleteAutomation({ id: item.id });
       const remaining = automations.filter((row) => row.id !== item.id);
       dispatch({ type: "SET_AUTOMATIONS", automations: remaining });
-      setPendingDeleteId("");
       if (selectedId === item.id) {
         const nextId = remaining[0]?.id || "";
         if (nextId) {
@@ -1060,8 +1057,9 @@ export const AutomationModal: React.FC<{
     } catch (error) {
       setError((error as Error).message);
     } finally {
-      setSaving(false);
+      setDeleting(false);
     }
+
   };
 
   const statusMenu: MenuProps = useMemo(
@@ -1145,7 +1143,8 @@ export const AutomationModal: React.FC<{
               variant="ghost"
               iconOnly
               onClick={() => loadAutomations(selectedId)}
-              disabled={loading || saving}
+              disabled={savingForm || deleting || savingToggle}
+              loading={loading}
               aria-label={t("automationConsole.action.refresh")}
             >
               <MaterialIcon name="refresh" />
@@ -1236,7 +1235,7 @@ export const AutomationModal: React.FC<{
                   : selectedSummary?.name ||
                     t("automationConsole.detail.titleEdit")}
               </strong>
-              <span>
+              <span className="tw:text-text-muted">
                 {formMode === "create"
                   ? t("automationConsole.detail.createSubtitle")
                   : selectedSummary
@@ -1250,7 +1249,8 @@ export const AutomationModal: React.FC<{
                   size="sm"
                   variant="ghost"
                   onClick={() => { void toggleEditorMode(); }}
-                  disabled={saving || loadingSource}
+                  disabled={savingForm || deleting || savingToggle}
+                  loading={loadingSource}
                 >
                   <MaterialIcon name={editorMode === "source" ? "tune" : "code"} />
                   <span>
@@ -1263,7 +1263,8 @@ export const AutomationModal: React.FC<{
                   size="sm"
                   variant="ghost"
                   onClick={() => toggleSelected(selectedSummary)}
-                  disabled={saving}
+                  disabled={savingForm || deleting}
+                  loading={savingToggle}
                 >
                   <MaterialIcon
                     name={
@@ -1276,19 +1277,24 @@ export const AutomationModal: React.FC<{
                       : t("automationConsole.action.enable")}
                   </span>
                 </UiButton>
-                <UiButton
-                  size="sm"
-                  variant="danger"
-                  onClick={() => confirmDelete(selectedSummary)}
-                  disabled={saving}
+                <Popconfirm
+                  title={t("automationConsole.confirm.deleteTitle")}
+                  okText={t("automationConsole.confirm.deleteOk")}
+                  cancelText={t("automationConsole.confirm.deleteCancel")}
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => confirmDelete(selectedSummary)}
+                  disabled={savingForm || deleting || savingToggle}
                 >
-                  <MaterialIcon name="delete" />
-                  <span>
-                    {pendingDeleteId === selectedSummary.id
-                      ? t("automationConsole.action.confirmDelete")
-                      : t("automationConsole.action.delete")}
-                  </span>
-                </UiButton>
+                  <UiButton
+                    size="sm"
+                    variant="danger"
+                    disabled={savingForm || savingToggle}
+                    loading={deleting}
+                  >
+                    <MaterialIcon name="delete" />
+                    <span>{t("automationConsole.action.delete")}</span>
+                  </UiButton>
+                </Popconfirm>
               </div>
             )}
           </div>
@@ -1324,7 +1330,8 @@ export const AutomationModal: React.FC<{
                   size="sm"
                   variant="primary"
                   onClick={saveForm}
-                  disabled={saving}
+                  disabled={deleting || savingToggle}
+                  loading={savingForm}
                 >
                   <MaterialIcon name="save" />
                   <span>{t("automationConsole.action.saveChanges")}</span>
@@ -1356,7 +1363,8 @@ export const AutomationModal: React.FC<{
                   size="sm"
                   variant="primary"
                   onClick={saveSource}
-                  disabled={saving || loadingSource || !sourceDirty || sourceLoadedId !== selectedId}
+                  disabled={deleting || savingToggle || loadingSource || !sourceDirty || sourceLoadedId !== selectedId}
+                  loading={savingForm}
                 >
                   <MaterialIcon name="save" />
                   <span>{t("automationConsole.action.saveSource")}</span>
@@ -1614,7 +1622,8 @@ export const AutomationModal: React.FC<{
                     size="sm"
                     variant="primary"
                     onClick={saveForm}
-                    disabled={saving}
+                    disabled={deleting || savingToggle}
+                    loading={savingForm}
                   >
                     <MaterialIcon name="save" />
                     <span>{t("automationConsole.action.create")}</span>
@@ -1625,7 +1634,7 @@ export const AutomationModal: React.FC<{
                     size="sm"
                     variant="ghost"
                     onClick={startCreate}
-                    disabled={saving}
+                    disabled={savingForm || deleting || savingToggle}
                   >
                     {t("automationConsole.action.cancelEdit")}
                   </UiButton>

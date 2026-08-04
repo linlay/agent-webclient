@@ -471,14 +471,7 @@
     font-size: 12px;
 }
 
-.automation-console-body {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: minmax(280px, 0.52fr) minmax(480px, 1.55fr);
-    gap: 16px;
-    overflow: hidden;
-}
+.automation-console-body {}
 
 /* MCP 连接器页：宽屏时左侧列表固定为 280px，窄屏时转为单列。 */
 .mcp-servers-console .automation-console-body {
@@ -504,7 +497,7 @@
 }
 
 .automation-console-detail {
-    overflow: auto;
+    padding: 0 10px 0 20px;
 }
 
 .automation-console-detail.is-source-editor {
@@ -769,7 +762,6 @@
 
 .automation-detail-head span {
     font-size: 11px;
-    color: var(--ink-muted);
     overflow-wrap: anywhere;
 }
 
@@ -797,18 +789,12 @@
 }
 
 .automation-section-nav {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
+    z-index: 100;
     gap: 8px;
-    isolation: isolate;
     margin: 0 0 8px;
     padding: 6px 0 8px;
-    background: var(--bg-elev-1);
-    box-shadow: var(--shadow-soft);
-    transform: translateZ(0);
+    background: var(--bg-base);
+    border-bottom: 1px solid var(--border);
 }
 
 .automation-section-nav-links {
