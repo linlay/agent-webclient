@@ -135,7 +135,6 @@ export interface MemoryInfoConsoleViewProps {
   subtitle: string;
   activeTab: MemoryConsoleTab;
   onTabChange: (tab: MemoryConsoleTab) => void;
-  onClose?: () => void;
   cardClassName?: string;
   recordsPanel: MemoryRecordsPanelProps;
   preferencesPanel: MemoryPreferencesPanelProps;
@@ -1571,7 +1570,6 @@ export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
   subtitle,
   activeTab,
   onTabChange,
-  onClose,
   cardClassName = "",
   recordsPanel,
   preferencesPanel,
@@ -1582,24 +1580,12 @@ export const MemoryInfoConsoleView: React.FC<MemoryInfoConsoleViewProps> = ({
   return (
     <div
       className={`${MEMORY_INFO_CARD_CLASS_NAME} ${cardClassName}`.trim()}
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && onClose) {
-          event.preventDefault();
-          onClose();
-        }
-      }}
-      tabIndex={-1}
     >
       <div className={MEMORY_HEAD_CLASS_NAME}>
         <div>
           <h3>{title}</h3>
           <p className={MEMORY_SUBTITLE_CLASS_NAME}>{subtitle}</p>
         </div>
-        {onClose ? (
-          <UiButton variant="ghost" size="sm" onClick={onClose}>
-            {t("memoryInfo.actions.close")}
-          </UiButton>
-        ) : null}
       </div>
 
       <div className={MEMORY_CONSOLE_TABS_CLASS_NAME}>
@@ -1662,10 +1648,7 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
       width="min(1220px, calc(100vw - 36px))"
       className="memory-info-modal"
     >
-      <MemoryInfoConsoleView
-        {...consoleProps}
-        onClose={onClose}
-      />
+      <MemoryInfoConsoleView {...consoleProps} />
     </Modal>
   );
 };
@@ -2545,7 +2528,6 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
     subtitle,
     activeTab: state.memoryConsoleTab,
     onTabChange: (tab) => dispatch({ type: "SET_MEMORY_CONSOLE_TAB", tab }),
-    onClose: surface === "modal" ? closeModal : undefined,
     recordsPanel: {
       agentKey: agentContext.agentKey,
       loading: state.memoryInfoLoading,
