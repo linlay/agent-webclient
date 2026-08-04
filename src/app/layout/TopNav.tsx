@@ -142,9 +142,18 @@ export function resolveTopNavStatus(
   state: Pick<AppState, "events"> & Partial<Pick<AppState, "streaming">>,
   running = false,
 ): TopNavStatusDisplay {
+  // 找到最近一次 run.start 的索引，只关心该 run 内的 run.error
+  let lastRunStartIndex = -1;
+  for (let index = state.events.length - 1; index >= 0; index -= 1) {
+    if (state.events[index].type === "run.start") {
+      lastRunStartIndex = index;
+      break;
+    }
+  }
+
   let runErrorDetail = "";
   let hasRunError = false;
-  for (let index = state.events.length - 1; index >= 0; index -= 1) {
+  for (let index = state.events.length - 1; index > lastRunStartIndex; index -= 1) {
     const event = state.events[index];
     if (event.type === "run.error") {
       hasRunError = true;
