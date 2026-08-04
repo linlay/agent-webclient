@@ -47,8 +47,8 @@ export const UiButton = React.forwardRef<HTMLButtonElement, UiButtonProps>(
 				disabled={disabled || loading}
 				{...rest}
 			>
-				<span className="ui-btn-label">{children}</span>
-			</button>
+			<span className="ui-btn-label">{children}</span>
+		</button>
 		);
 	},
 );

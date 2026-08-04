@@ -359,6 +359,40 @@ button:active {
 
 .ui-btn.is-loading {
     pointer-events: none;
+    overflow: hidden;
+}
+
+.ui-btn.is-loading::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            transparent 35%,
+            rgba(255, 255, 255, 0.28) 48%,
+            rgba(255, 255, 255, 0.35) 50%,
+            rgba(255, 255, 255, 0.28) 52%,
+            transparent 65%,
+            transparent 100%);
+    background-size: 200% 100%;
+    animation: ui-btn-shimmer 1.6s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes ui-btn-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ui-btn.is-loading::after {
+        animation: none;
+    }
 }
 
 .ui-input {
