@@ -4,11 +4,12 @@ import type { TimelineNode } from "@/app/state/types";
 import { ContentBlock } from "@/features/timeline/components/ContentBlock";
 
 const mockDispatch = jest.fn();
+let mockChatId = "chat_01";
 
 jest.mock("@/app/state/AppContext", () => ({
 	useAppDispatch: () => mockDispatch,
 	useAppState: () => ({
-		chatId: "",
+		chatId: mockChatId,
 		chatAgentById: new Map(),
 		chats: [],
 		pendingNewChatAgentKey: "coder-agent",
@@ -25,6 +26,7 @@ jest.mock("@/app/state/AppContext", () => ({
 
 const mockMarkdownContentProps: Array<{
 	content: string;
+	chatId?: string;
 	onWorkspaceFileLinkClick?: (link: {
 		href: string;
 		filePath: string;
@@ -43,6 +45,7 @@ jest.mock("@/shared/ui/MarkdownContent", () => {
 	return {
 		MarkdownContent: (props: {
 			content: string;
+			chatId?: string;
 			onWorkspaceFileLinkClick?: (link: {
 				href: string;
 				filePath: string;
@@ -68,6 +71,24 @@ describe("ContentBlock", () => {
 	beforeEach(() => {
 		mockDispatch.mockClear();
 		mockMarkdownContentProps.length = 0;
+		mockChatId = "chat_01";
+	});
+
+	it("passes the current chatId to Markdown resource rendering", () => {
+		const node: TimelineNode = {
+			id: "content_resource",
+			kind: "content",
+			role: "assistant",
+			text: "![preview](image.png)",
+			ts: 100,
+		};
+
+		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
+
+		expect(mockMarkdownContentProps[0]).toMatchObject({
+			content: "![preview](image.png)",
+			chatId: "chat_01",
+		});
 	});
 
 	it("keeps assistant markdown whitespace collapsed instead of pre-wrapped", () => {

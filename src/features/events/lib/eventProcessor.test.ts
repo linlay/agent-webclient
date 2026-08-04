@@ -396,7 +396,7 @@ describe('processStreamEvent', () => {
           mimeType: 'application/pdf',
           sha256: 'abc123',
           sizeBytes: 2048,
-          url: 'https://example.com/report.pdf',
+          url: 'artifacts/run_1/report.pdf',
         },
         {
           artifactId: 'artifact_2',
@@ -405,7 +405,7 @@ describe('processStreamEvent', () => {
           mimeType: 'text/plain',
           sha256: 'def456',
           sizeBytes: 128,
-          url: 'https://example.com/summary.txt',
+          url: 'artifacts/run_1/summary.txt',
         },
       ],
     }, 'live', true);
@@ -420,7 +420,7 @@ describe('processStreamEvent', () => {
           mimeType: 'application/pdf',
           sha256: 'abc123',
           sizeBytes: 2048,
-          url: 'https://example.com/report.pdf',
+          url: 'artifacts/run_1/report.pdf',
         },
       },
       {
@@ -432,7 +432,7 @@ describe('processStreamEvent', () => {
           mimeType: 'text/plain',
           sha256: 'def456',
           sizeBytes: 128,
-          url: 'https://example.com/summary.txt',
+          url: 'artifacts/run_1/summary.txt',
         },
       },
     ]);
@@ -444,6 +444,7 @@ describe('processStreamEvent', () => {
     processAndApply(state, {
       type: 'artifact.publish',
       runId: 'run_1',
+      timestamp: 200,
       artifacts: [
         {
           artifactId: 'artifact_1',
@@ -451,7 +452,7 @@ describe('processStreamEvent', () => {
           name: 'valid.txt',
           mimeType: 'text/plain',
           sizeBytes: 12,
-          url: 'https://example.com/valid.txt',
+          url: 'artifacts/run_1/valid.txt',
         },
         {
           artifactId: 'artifact_2',
@@ -477,7 +478,7 @@ describe('processStreamEvent', () => {
           mimeType: 'text/plain',
           sha256: '',
           sizeBytes: 12,
-          url: 'https://example.com/valid.txt',
+          url: 'artifacts/run_1/valid.txt',
         },
       },
     ]);

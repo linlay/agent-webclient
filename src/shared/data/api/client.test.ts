@@ -19,8 +19,11 @@ jest.mock("@/shared/data/clientDeviceId", () => ({
 }));
 import {
   buildResourceUrl,
+  classifyResourceUrl,
+  getResourceBlob,
+  getResourceText,
   isLegacyResourceUrl,
-  isLogicalResourceRef,
+  isChatScopeResourceRef,
   resolveResourceFetchUrl,
   buildAdminSkillDownloadUrl,
   buildAdminSkillFileDownloadUrl,
@@ -1913,26 +1916,153 @@ describe('data client query payloads', () => {
 
   it('builds resource urls from the new resource endpoint', () => {
     expect(buildResourceUrl('reports/demo image.png')).toBe(
-      '/api/resource?file=reports%2Fdemo%20image.png',
+      '/api/resource?file=reports%2Fdemo+image.png',
     );
   });
 
-  it('keeps legacy resource urls and resolves only current-chat logical refs', () => {
+  it('classifies Markdown resources and hides the transport endpoint', () => {
     const legacy = '/api/resource?file=chat_01%2Fold.png';
-    expect(buildResourceUrl(legacy)).toBe(legacy);
+    expect(buildResourceUrl('chat_01/old.png')).toBe(
+      '/api/resource?file=chat_01%2Fold.png',
+    );
+    expect(buildResourceUrl('/Users/alice/demo.png', 'chat_01')).toBe(
+      '/api/resource?file=%2FUsers%2Falice%2Fdemo.png&chatId=chat_01',
+    );
     expect(isLegacyResourceUrl(legacy)).toBe(true);
     expect(isLegacyResourceUrl('https://example.com/api/resource?file=public.png')).toBe(false);
-    expect(isLogicalResourceRef('chat_01/artifacts/run_01/%E5%A4%8F%E6%97%A5.png', 'chat_01')).toBe(true);
-    expect(isLogicalResourceRef('chat_02/image.png', 'chat_01')).toBe(false);
-    expect(isLogicalResourceRef('/Users/alice/image.png', 'chat_01')).toBe(false);
-    expect(isLogicalResourceRef('https://example.com/image.png', 'chat_01')).toBe(false);
-    expect(resolveResourceFetchUrl('chat_01/image.png', 'chat_01')).toBe(
+    expect(isChatScopeResourceRef('artifacts/run_01/%E5%A4%8F%E6%97%A5.png', 'chat_01')).toBe(true);
+    expect(isChatScopeResourceRef('chat_01/image.png', 'chat_01')).toBe(false);
+    expect(isChatScopeResourceRef('/Users/alice/image.png', 'chat_01')).toBe(false);
+    expect(isChatScopeResourceRef('https://example.com/image.png', 'chat_01')).toBe(false);
+    expect(isChatScopeResourceRef('artifacts/%2E%2E/private.png', 'chat_01')).toBe(false);
+    expect(classifyResourceUrl('image.png', 'chat_01')).toMatchObject({
+      kind: 'chat',
+      resourceKey: 'image.png',
+      fetchUrl: '/api/resource?file=chat_01%2Fimage.png',
+      requiresPlatformAuth: true,
+    });
+    expect(classifyResourceUrl(legacy, 'chat_01')).toMatchObject({
+      kind: 'invalid',
+      fetchUrl: '',
+      requiresPlatformAuth: false,
+    });
+    expect(resolveResourceFetchUrl('image.png', 'chat_01')).toBe(
       '/api/resource?file=chat_01%2Fimage.png',
     );
-    expect(resolveResourceFetchUrl('chat_01/%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01')).toBe(
+    expect(resolveResourceFetchUrl('%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01')).toBe(
       '/api/resource?file=chat_01%2F%25E5%25A4%258F%25E6%2597%25A5%2520%25231%2525.png',
     );
-    expect(resolveResourceFetchUrl(legacy, 'chat_01')).toBe(legacy);
+    expect(resolveResourceFetchUrl(legacy, 'chat_01')).toBe('');
+  });
+
+  it.each([
+    ['/Users/alice/image.png', 'absolute'],
+    ['/tmp/image.png', 'absolute'],
+		['/tmp/../private/image.png', 'invalid'],
+		['/tmp/%2E%2E/private/image.png', 'invalid'],
+		['/Users/alice//image.png', 'invalid'],
+    ['C:\\Users\\alice\\image.png', 'invalid'],
+    ['\\\\server\\share\\image.png', 'invalid'],
+    ['file:///tmp/image.png', 'invalid'],
+    ['ftp://example.com/image.png', 'invalid'],
+    ['/api/resource?file=chat_01%2Fimage.png', 'invalid'],
+    ['chat_01/image.png', 'invalid'],
+    ['artifacts//image.png', 'invalid'],
+    ['artifacts/./image.png', 'invalid'],
+    ['artifacts/../image.png', 'invalid'],
+    ['image.png?download=1', 'invalid'],
+    ['image.png#preview', 'invalid'],
+    ['https://example.com/image.png', 'external'],
+    ['http://example.com/image.png', 'external'],
+    ['data:image/png;base64,AAAA', 'inline'],
+    ['blob:https://example.com/id', 'inline'],
+  ])('classifies resource boundary %s as %s', (source, expectedKind) => {
+    expect(classifyResourceUrl(source, 'chat_01').kind).toBe(expectedKind);
+  });
+
+  it('constructs absolute fetches with chat context and rejects them for Team chats', () => {
+    expect(classifyResourceUrl('/Users/alice/%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01')).toMatchObject({
+      kind: 'absolute',
+      resourceKey: '/Users/alice/夏日 #1%.png',
+      fetchUrl: '/api/resource?file=%2FUsers%2Falice%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01',
+      requiresPlatformAuth: true,
+    });
+    expect(classifyResourceUrl('/tmp/image.png', 'chat_01', { teamChat: true }).kind).toBe('invalid');
+    expect(classifyResourceUrl('/Users/alice/image.png', 'chat_01', { teamChat: true }).kind).toBe('invalid');
+  });
+
+  it.each([
+    'C:\\Users\\alice\\image.png',
+    '\\\\server\\share\\image.png',
+    'file:///tmp/image.png',
+    '/api/resource?file=chat_01%2Fimage.png',
+    'chat_01/image.png',
+    'artifacts/../image.png',
+		'/tmp/../private/image.png',
+		'/tmp/%2E%2E/private/image.png',
+  ])('never fetches rejected resource source %s', async (source) => {
+    await expect(getResourceBlob(source, { chatId: 'chat_01' })).rejects.toThrow(
+      '预览加载失败',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uses current chatId for authenticated Blob and text resource reads', async () => {
+    const blob = new Blob(['image'], { type: 'image/png' });
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        blob: async () => blob,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => 'artifact text',
+      });
+    setAccessToken('resource-token');
+
+    await expect(getResourceBlob('image.png', { chatId: 'chat_01' })).resolves.toBe(blob);
+    await expect(getResourceText('report.txt', { chatId: 'chat_01' })).resolves.toBe('artifact text');
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/resource?file=chat_01%2Fimage.png',
+      '/api/resource?file=chat_01%2Freport.txt',
+    ]);
+    for (const [, options] of fetchMock.mock.calls as Array<[string, RequestInit]>) {
+      expect(options.headers).toEqual({ Authorization: 'Bearer resource-token' });
+      expect(options.credentials).toBe('same-origin');
+    }
+  });
+
+  it('fetches Workspace and tmp absolute paths with chat context but rejects Team absolute paths', async () => {
+    const blob = new Blob(['absolute'], { type: 'image/png' });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => blob,
+    });
+    setAccessToken('absolute-token');
+
+    await expect(getResourceBlob('/Users/alice/project/%E5%A4%8F%E6%97%A5%20%231%25.png', {
+      chatId: 'chat_01',
+    })).resolves.toBe(blob);
+    await expect(getResourceBlob('/tmp/poster.png', {
+      chatId: 'chat_01',
+    })).resolves.toBe(blob);
+    await expect(getResourceBlob('/tmp/team.png', {
+      chatId: 'chat_01',
+      teamChat: true,
+    })).rejects.toThrow('预览加载失败');
+
+    expect(fetchMock.mock.calls.map(([requestUrl]) => requestUrl)).toEqual([
+      '/api/resource?file=%2FUsers%2Falice%2Fproject%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01',
+      '/api/resource?file=%2Ftmp%2Fposter.png&chatId=chat_01',
+    ]);
+    for (const [, options] of fetchMock.mock.calls as Array<[string, RequestInit]>) {
+      expect(options.headers).toEqual({ Authorization: 'Bearer absolute-token' });
+      expect(options.credentials).toBe('same-origin');
+    }
   });
 
   it('downloads resources with auth headers and a browser blob download', async () => {
@@ -1968,8 +2098,9 @@ describe('data client query payloads', () => {
       blob: async () => blob,
     });
 
-    await downloadResource('/api/resource?file=chat_1%2Fdemo.txt', {
+    await downloadResource('demo.txt', {
       filename: 'demo.txt',
+      chatId: 'chat_1',
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -1978,11 +2109,58 @@ describe('data client query payloads', () => {
     expect(options.headers).toEqual({
       Authorization: 'Bearer demo-token',
     });
+    expect(options.credentials).toBe('same-origin');
     expect(createElement).toHaveBeenCalledWith('a');
     expect(createObjectURL).toHaveBeenCalledWith(blob);
     expect(click).toHaveBeenCalledTimes(1);
     expect(appendChild).toHaveBeenCalledTimes(1);
     expect(removeChild).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves ChatScope download urls with chatId and never sends Bearer cross-origin', async () => {
+    const createObjectURL = jest.fn(() => 'blob:download');
+    const revokeObjectURL = jest.fn();
+    const click = jest.fn();
+    global.document = {
+      body: {
+        appendChild: jest.fn(),
+        removeChild: jest.fn(),
+      },
+      createElement: jest.fn(() => ({
+        click,
+        href: '',
+        download: '',
+        rel: '',
+      })),
+    } as unknown as Document;
+    global.URL = {
+      createObjectURL,
+      revokeObjectURL,
+    } as unknown as typeof global.URL;
+    setAccessToken('private-platform-token');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['demo']),
+    });
+
+    await downloadResource('artifacts/run_01/image.png', {
+      filename: 'image.png',
+      chatId: 'chat_01',
+    });
+    await downloadResource('https://cdn.example.com/public.png', {
+      filename: 'public.png',
+      chatId: 'chat_01',
+    });
+
+    const [logicalUrl, logicalOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [externalUrl, externalOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(logicalUrl).toBe('/api/resource?file=chat_01%2Fartifacts%2Frun_01%2Fimage.png');
+    expect(logicalOptions.headers).toEqual({ Authorization: 'Bearer private-platform-token' });
+    expect(externalUrl).toBe('https://cdn.example.com/public.png');
+    expect(externalOptions.headers).toEqual({});
+    expect(externalOptions.credentials).toBeUndefined();
+    expect(click).toHaveBeenCalledTimes(2);
   });
 
   it('uses generic platform display text when resource downloads fail without structured codes', async () => {
@@ -1997,7 +2175,7 @@ describe('data client query payloads', () => {
         }),
     });
 
-    await expect(downloadResource('/api/resource?file=private.txt')).rejects.toMatchObject({
+    await expect(downloadResource('private.txt', { chatId: 'chat_01' })).rejects.toMatchObject({
       message: '操作失败，请稍后重试。',
       status: 403,
       code: 40301,

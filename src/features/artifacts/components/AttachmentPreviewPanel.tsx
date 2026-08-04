@@ -1,10 +1,12 @@
 import React from "react";
 import {
-  downloadResource,
   getAgentFile,
-  getResourceText,
   type AgentFileResponse,
 } from "@/shared/data";
+import {
+  downloadArtifactResource,
+  readArtifactResourceText,
+} from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
   formatAttachmentSize,
 } from "@/features/artifacts/lib/attachmentUtils";
@@ -131,7 +133,13 @@ export function resolveWorkspaceHtmlSrcDoc(
 export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   preview,
 }) => {
-  const { chatId } = useAppState();
+  const appState = useAppState();
+  const { chatId } = appState;
+  const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team"
+    || String(currentChat?.teamId || "").trim(),
+  );
   const [workspaceFile, setWorkspaceFile] =
     React.useState<AgentFileResponse | null>(null);
   const [textContent, setTextContent] = React.useState("");
@@ -155,7 +163,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const previewUrl = workspaceFileRequest
     ? workspaceFileResponse?.contentUrl || ""
     : preview.url;
-  const authenticatedPreview = useAuthenticatedResourceUrl(previewUrl, chatId);
+  const authenticatedPreview = useAuthenticatedResourceUrl(previewUrl, chatId, { teamChat });
   const mediaPreviewUrl = authenticatedPreview.url;
   const downloadUrl = workspaceFileRequest
     ? workspaceFileResponse?.contentUrl || ""
@@ -230,7 +238,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
     setTextError("");
     setTextContent("");
 
-    void getResourceText(preview.url, { signal: controller.signal, chatId })
+    void readArtifactResourceText(preview.url, chatId, controller.signal, teamChat)
       .then((content) => {
         setTextContent(content);
       })
@@ -251,7 +259,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       });
 
     return () => controller.abort();
-  }, [chatId, preview, workspaceFileRequest]);
+  }, [chatId, preview, teamChat, workspaceFileRequest]);
 
   React.useEffect(() => {
     if (!preview?.line || previewKind !== "text" || textLoading || textError) {
@@ -281,7 +289,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
 
     setDownloadError("");
     setDownloading(true);
-    void downloadResource(downloadUrl, { filename: previewName, chatId })
+    void downloadArtifactResource(downloadUrl, previewName, chatId, undefined, teamChat)
       .catch((error: unknown) => {
         setDownloadError(
           error instanceof Error
@@ -292,7 +300,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       .finally(() => {
         setDownloading(false);
       });
-  }, [chatId, downloadUrl, downloading, previewName]);
+  }, [chatId, downloadUrl, downloading, previewName, teamChat]);
 
   const sourceLocation = previewSourcePath
     ? `${previewSourcePath}${preview.line ? `:${preview.line}` : ""}`

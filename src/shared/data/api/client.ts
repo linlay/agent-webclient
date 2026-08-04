@@ -47,6 +47,8 @@ import {
   type EndpointDefinition,
 } from "@/shared/data/api/endpointRegistry";
 
+const NativeURL = globalThis.URL;
+
 export class ApiError extends Error {
   name = "ApiError";
   status: number | null;
@@ -1360,6 +1362,7 @@ async function requestWithAuth(
     retryUnauthorized?: boolean;
     authFailureSource?: AuthFailureSource;
     suppressAuthRedirect?: boolean;
+    includePlatformAuth?: boolean;
   } = {},
 ): Promise<Response> {
   const {
@@ -1367,11 +1370,12 @@ async function requestWithAuth(
     retryUnauthorized = true,
     authFailureSource = "json",
     suppressAuthRedirect = false,
+    includePlatformAuth = true,
     ...requestOptions
   } = options;
 
   const gatewayMode = isGatewayBackendMode();
-  if (!gatewayMode && isAppMode()) {
+  if (includePlatformAuth && !gatewayMode && isAppMode()) {
     await ensureAccessToken('missing');
   }
 
@@ -1379,7 +1383,7 @@ async function requestWithAuth(
   const sameOrigin = (() => {
     if (typeof window === "undefined") return path.startsWith("/");
     try {
-      return new URL(path, window.location.href).origin === window.location.origin;
+      return new NativeURL(path, window.location.href).origin === window.location.origin;
     } catch {
       return false;
     }
@@ -1388,23 +1392,25 @@ async function requestWithAuth(
     ...requestOptions,
     method,
     ...(sameOrigin ? { credentials: "same-origin" as RequestCredentials } : {}),
-    headers: buildAuthHeaders(requestOptions.headers || {}, {
-      includeJsonContentType: jsonContentType,
-      method,
-      sameOrigin,
-    }),
+    headers: includePlatformAuth
+      ? buildAuthHeaders(requestOptions.headers || {}, {
+          includeJsonContentType: jsonContentType,
+          method,
+          sameOrigin,
+        })
+      : requestOptions.headers || {},
   });
 
   let response = await fetch(path, buildRequestOptions());
 
-  if (retryUnauthorized && !gatewayMode && isAppMode() && response.status === 401) {
+  if (includePlatformAuth && retryUnauthorized && !gatewayMode && isAppMode() && response.status === 401) {
     const refreshedToken = await ensureAccessToken('unauthorized');
     if (refreshedToken) {
       response = await fetch(path, buildRequestOptions());
     }
   }
 
-  if (gatewayMode && !suppressAuthRedirect && response.status === 401) {
+  if (includePlatformAuth && gatewayMode && !suppressAuthRedirect && response.status === 401) {
     handleFinalUnauthorized(authFailureSource);
   }
 
@@ -1415,12 +1421,14 @@ export function createRequestId(prefix = "req"): string {
   return createCompactId(prefix);
 }
 
-export function buildResourceUrl(file: string): string {
+export function buildResourceUrl(file: string, chatId = ""): string {
 	const normalized = String(file || "").trim();
-	if (isLegacyResourceUrl(normalized)) {
-		return normalized;
+	const search = new URLSearchParams();
+	search.set("file", normalized);
+	if (chatId) {
+		search.set("chatId", chatId);
 	}
-	return `${dataEndpoints.resource.path}?file=${encodeURIComponent(normalized)}`;
+	return `${dataEndpoints.resource.path}?${search.toString()}`;
 }
 
 export function isLegacyResourceUrl(value: string): boolean {
@@ -1428,14 +1436,28 @@ export function isLegacyResourceUrl(value: string): boolean {
 	if (!normalized) return false;
 	try {
 		const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
-		const parsed = new URL(normalized, origin);
-		return parsed.origin === origin && parsed.pathname === dataEndpoints.resource.path;
+		const parsed = new NativeURL(normalized, origin);
+		return parsed.origin === origin
+			&& parsed.pathname === dataEndpoints.resource.path;
 	} catch {
-		return normalized.startsWith(`${dataEndpoints.resource.path}?`);
+		return false;
 	}
 }
 
-export function isLogicalResourceRef(value: string, chatId: string): boolean {
+function decodeSafeResourceSegment(segment: string): string | null {
+	if (!segment) return null;
+	try {
+		const decoded = decodeURIComponent(segment);
+		if (!decoded || decoded === "." || decoded === ".." || decoded.includes("/") || decoded.includes("\\")) {
+			return null;
+		}
+		return decoded;
+	} catch {
+		return null;
+	}
+}
+
+export function isChatScopeResourceRef(value: string, chatId: string): boolean {
 	const normalized = String(value || "").trim();
 	const expectedChatId = String(chatId || "").trim();
 	if (!normalized || !expectedChatId || normalized.startsWith("/") || normalized.includes("\\")) {
@@ -1445,25 +1467,141 @@ export function isLogicalResourceRef(value: string, chatId: string): boolean {
 		return false;
 	}
 	const segments = normalized.split("/");
-	if (segments.length < 2 || segments.some((segment) => !segment || segment === "." || segment === "..")) {
+	const decodedSegments = segments.map(decodeSafeResourceSegment);
+	if (decodedSegments.some((segment) => segment === null)) {
 		return false;
 	}
+	return decodedSegments[0] !== expectedChatId;
+}
+
+export type ResourceUrlKind = "chat" | "absolute" | "external" | "inline" | "invalid";
+
+export interface ResourceUrlClassification {
+	kind: ResourceUrlKind;
+	source: string;
+	fetchUrl: string;
+	resourceKey?: string;
+	requiresPlatformAuth: boolean;
+}
+
+export interface ResourceUrlClassificationOptions {
+	teamChat?: boolean;
+}
+
+function decodedAbsoluteResourcePath(source: string): string | null {
 	try {
-		return decodeURIComponent(segments[0]) === expectedChatId;
+		const decoded = decodeURIComponent(source);
+		if (
+			!decoded.startsWith("/")
+			|| decoded.startsWith("//")
+			|| decoded.includes("\\")
+			|| decoded.includes("\u0000")
+			|| source.includes("?")
+			|| source.includes("#")
+		) {
+			return null;
+		}
+		const segments = decoded.slice(1).split("/");
+		if (
+			segments.length === 0
+			|| segments.some((segment) => !segment || segment === "." || segment === "..")
+		) {
+			return null;
+		}
+		return decoded;
 	} catch {
-		return false;
+		return null;
 	}
 }
 
+export function classifyResourceUrl(
+	value: string,
+	chatId = "",
+	options: ResourceUrlClassificationOptions = {},
+): ResourceUrlClassification {
+	const source = String(value || "").trim();
+	if (isLegacyResourceUrl(source)) {
+		return {
+			kind: "invalid",
+			source,
+			fetchUrl: "",
+			requiresPlatformAuth: false,
+		};
+	}
+	if (/^https?:\/\//i.test(source)) {
+		try {
+			const parsed = new NativeURL(source);
+			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+				return {
+					kind: "external",
+					source,
+					fetchUrl: source,
+					requiresPlatformAuth: false,
+				};
+			}
+		} catch {
+			// Fall through to invalid.
+		}
+	}
+	if (/^(?:data|blob):/i.test(source)) {
+		return {
+			kind: "inline",
+			source,
+			fetchUrl: source,
+			requiresPlatformAuth: false,
+		};
+	}
+	if (source.startsWith("/")) {
+		const resourcePath = decodedAbsoluteResourcePath(source);
+		if (!options.teamChat && resourcePath && chatId) {
+			return {
+				kind: "absolute",
+				source,
+				fetchUrl: buildResourceUrl(resourcePath, chatId),
+				resourceKey: resourcePath,
+				requiresPlatformAuth: true,
+			};
+		}
+		return {
+			kind: "invalid",
+			source,
+			fetchUrl: "",
+			requiresPlatformAuth: false,
+		};
+	}
+	if (isChatScopeResourceRef(source, chatId)) {
+		return {
+			kind: "chat",
+			source,
+			fetchUrl: buildResourceUrl(`${chatId}/${source}`),
+			resourceKey: source,
+			requiresPlatformAuth: true,
+		};
+	}
+	return {
+		kind: "invalid",
+		source,
+		fetchUrl: "",
+		requiresPlatformAuth: false,
+	};
+}
+
 export function resolveResourceFetchUrl(value: string, chatId = ""): string {
-	const normalized = String(value || "").trim();
-	if (isLegacyResourceUrl(normalized)) {
-		return normalized;
+	const classified = classifyResourceUrl(value, chatId);
+	return classified.fetchUrl;
+}
+
+function getResourceRequestTarget(
+	value: string,
+	chatId: string,
+	fallbackMessage: string,
+	options: ResourceUrlClassificationOptions = {},
+): ResourceUrlClassification {
+	const classified = classifyResourceUrl(value, chatId, options);
+	if (classified.kind === "invalid") {
+		throw new Error(fallbackMessage);
 	}
-	if (isLogicalResourceRef(normalized, chatId)) {
-		return buildResourceUrl(normalized);
-	}
-	return normalized;
+	return classified;
 }
 
 function withQuery(path: string, query: string): string {
@@ -1578,13 +1716,20 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
 
 export async function downloadResource(
   path: string,
-  options: { filename?: string; signal?: AbortSignal; chatId?: string } = {},
+  options: { filename?: string; signal?: AbortSignal; chatId?: string; teamChat?: boolean } = {},
 ): Promise<void> {
-  const response = await requestWithAuth(resolveResourceFetchUrl(path, options.chatId || ""), {
+  const target = getResourceRequestTarget(
+    path,
+    options.chatId || "",
+    t("rightSidebar.preview.error.download"),
+    { teamChat: options.teamChat },
+  );
+  const response = await requestWithAuth(target.fetchUrl, {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,
     authFailureSource: "download",
+    includePlatformAuth: target.requiresPlatformAuth,
   });
 
   if (!response.ok) {
@@ -1611,13 +1756,20 @@ export async function downloadResource(
 
 export async function getResourceText(
   path: string,
-  options: { signal?: AbortSignal; chatId?: string } = {},
+  options: { signal?: AbortSignal; chatId?: string; teamChat?: boolean } = {},
 ): Promise<string> {
-  const response = await requestWithAuth(resolveResourceFetchUrl(path, options.chatId || ""), {
+  const target = getResourceRequestTarget(
+    path,
+    options.chatId || "",
+    t("rightSidebar.preview.error.loadText"),
+    { teamChat: options.teamChat },
+  );
+  const response = await requestWithAuth(target.fetchUrl, {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,
     authFailureSource: "download",
+    includePlatformAuth: target.requiresPlatformAuth,
   });
 
   if (!response.ok) {
@@ -1638,13 +1790,20 @@ export async function getResourceText(
 
 export async function getResourceBlob(
   path: string,
-  options: { signal?: AbortSignal; chatId?: string } = {},
+  options: { signal?: AbortSignal; chatId?: string; teamChat?: boolean } = {},
 ): Promise<Blob> {
-  const response = await requestWithAuth(resolveResourceFetchUrl(path, options.chatId || ""), {
+  const target = getResourceRequestTarget(
+    path,
+    options.chatId || "",
+    t("rightSidebar.preview.error.loadText"),
+    { teamChat: options.teamChat },
+  );
+  const response = await requestWithAuth(target.fetchUrl, {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,
     authFailureSource: "download",
+    includePlatformAuth: target.requiresPlatformAuth,
   });
   if (!response.ok) {
     const fallbackMessage = t("api.downloadFailedWithStatus", { status: response.status });

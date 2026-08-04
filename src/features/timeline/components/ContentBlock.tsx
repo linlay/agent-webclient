@@ -88,6 +88,11 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
 	const streamingSafeText = stripPendingSpecialFenceTail(text);
+	const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
+	const teamChat = Boolean(
+		currentChat?.owner?.kind === "orchestrated-team"
+		|| String(currentChat?.teamId || "").trim(),
+	);
 	const markdownClassName = [
 		TIMELINE_TEXT_CLASS_NAME,
 		TIMELINE_MARKDOWN_CLASS_NAME,
@@ -170,6 +175,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					<MarkdownContent
 						content={streamingSafeText}
 						chatId={state.chatId}
+						teamChat={teamChat}
 						onWorkspaceFileLinkClick={handleWorkspaceFileLinkClick}
 						onWebLinkClick={handleWebLinkClick}
 					/>
@@ -191,6 +197,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 							<MarkdownContent
 								content={segment.text || ""}
 								chatId={state.chatId}
+								teamChat={teamChat}
 								onWorkspaceFileLinkClick={
 									handleWorkspaceFileLinkClick
 								}

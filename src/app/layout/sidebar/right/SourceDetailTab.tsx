@@ -103,6 +103,11 @@ export const SourceDetailTab: React.FC = () => {
   const state = useAppState();
   const source = state.activeSourceDetail;
   const [activeChunkId, setActiveChunkId] = React.useState<string>("");
+  const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team"
+    || String(currentChat?.teamId || "").trim(),
+  );
 
   const chunks = React.useMemo(
     () =>
@@ -160,7 +165,11 @@ export const SourceDetailTab: React.FC = () => {
         <div className={SOURCE_DETAIL_CONTENT_CLASS_NAME}>
           {activeChunk?.content ? (
             <div className={SOURCE_DETAIL_CHUNK_CONTENT_CLASS_NAME}>
-              <MarkdownContent content={activeChunk.content} />
+              <MarkdownContent
+                content={activeChunk.content}
+                chatId={state.chatId}
+                teamChat={teamChat}
+              />
             </div>
           ) : (
             <div className={SOURCE_DETAIL_EMPTY_CLASS_NAME}>

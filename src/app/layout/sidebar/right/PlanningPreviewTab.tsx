@@ -21,6 +21,11 @@ export const PlanningPreviewTab: React.FC<PlanningPreviewTabProps> = ({
 }) => {
   const state = useAppState();
   const node = nodeId ? state.timelineNodes.get(nodeId) : undefined;
+  const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team"
+    || String(currentChat?.teamId || "").trim(),
+  );
 
   if (!node) {
     return (
@@ -35,7 +40,11 @@ export const PlanningPreviewTab: React.FC<PlanningPreviewTabProps> = ({
   return (
     <div className={PLANNING_PREVIEW_CLASS_NAME}>
       <div className={PLANNING_PREVIEW_BODY_CLASS_NAME}>
-        <MarkdownContent content={node.text || ""} />
+        <MarkdownContent
+          content={node.text || ""}
+          chatId={state.chatId}
+          teamChat={teamChat}
+        />
       </div>
     </div>
   );

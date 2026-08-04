@@ -4,6 +4,31 @@ import {
   parseMarkdownWebHref,
   shouldOpenWebLinkInSidebar,
 } from "@/shared/ui/markdownWebLinks";
+import { sanitizeMarkdownImageProps } from "@/shared/ui/markdownImageProps";
+
+describe("sanitizeMarkdownImageProps", () => {
+  it("removes void-element and renderer-only props before rendering img", () => {
+    expect(
+      sanitizeMarkdownImageProps({
+        src: "chat_1/image.png",
+        alt: "preview",
+        class: "legacy-class",
+        classname: "legacy-classname",
+        className: "image",
+        children: [],
+        dangerouslySetInnerHTML: { __html: "unsafe" },
+        domNode: { name: "img" },
+        streamStatus: "done",
+        loading: "lazy",
+      }),
+    ).toEqual({
+      src: "chat_1/image.png",
+      alt: "preview",
+      className: "image",
+      loading: "lazy",
+    });
+  });
+});
 
 describe("removeEmptyMarkdownTables", () => {
   it("removes a markdown table that only has an Issues header row", () => {

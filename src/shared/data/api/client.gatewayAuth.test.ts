@@ -107,7 +107,9 @@ describe("API client backend authentication modes", () => {
 		);
 		global.fetch = fetchMock as typeof fetch;
 
-		await expect(downloadResource("/api/resource?file=chat/a.txt")).rejects.toBeInstanceOf(
+		await expect(
+			downloadResource("a.txt", { chatId: "chat" }),
+		).rejects.toBeInstanceOf(
 			ApiError,
 		);
 		const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];

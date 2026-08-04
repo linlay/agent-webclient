@@ -6,9 +6,8 @@ import React, {
 import { XMarkdown as Markdown } from "@ant-design/x-markdown";
 import Latex from "@ant-design/x-markdown/plugins/Latex";
 import {
+  classifyResourceUrl,
   downloadResource,
-  isLegacyResourceUrl,
-  isLogicalResourceRef,
 } from "@/shared/data";
 import { MarkdownCode } from "./markdown-code";
 import { useI18n } from "@/shared/i18n";
@@ -23,6 +22,10 @@ import {
   shouldOpenWebLinkInSidebar,
   type MarkdownWebLink,
 } from "./markdownWebLinks";
+import {
+  sanitizeMarkdownImageProps,
+  type MarkdownImageProps,
+} from "./markdownImageProps";
 import { useAuthenticatedResourceUrl } from "./useAuthenticatedResourceUrl";
 
 export type { WorkspaceFileLink } from "./markdownWorkspaceLinks";
@@ -30,7 +33,8 @@ export type { MarkdownWebLink } from "./markdownWebLinks";
 
 interface MarkdownContentProps {
   content: string;
-  chatId?: string;
+  chatId: string;
+  teamChat?: boolean;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
 }
@@ -41,16 +45,11 @@ type MarkdownPreProps = React.HTMLAttributes<HTMLPreElement> & {
 
 
 /**
- * Extracts the filename from a resource URL query string.
- * e.g. "/api/resource?file=chat_123%2Fjoke_01.md&download=true" → "joke_01.md"
+ * Extracts the filename from a supported ChatScope or absolute resource path.
  */
 function extractFilenameFromResourceUrl(href: string): string {
   try {
-    const url = new URL(href, window.location.origin);
-    const file = isLegacyResourceUrl(href)
-      ? url.searchParams.get("file") || ""
-      : href.split(/[?#]/, 1)[0];
-    const segments = file.split("/");
+    const segments = href.split("/");
     return decodeURIComponent(segments[segments.length - 1] || "download");
   } catch {
     return "download";
@@ -58,19 +57,20 @@ function extractFilenameFromResourceUrl(href: string): string {
 }
 
 /**
- * Returns true when the href points to the local resource API endpoint.
+ * Returns true when the href needs an authenticated Platform resource fetch.
  */
-function isResourceUrl(href: string, chatId: string): boolean {
-  return isLegacyResourceUrl(href) || isLogicalResourceRef(href, chatId);
+function isFetchedResourceKind(kind: ReturnType<typeof classifyResourceUrl>["kind"]): boolean {
+  return kind === "chat" || kind === "absolute";
 }
 
 /**
- * Custom anchor component that intercepts `/api/resource` links and
+ * Custom anchor component that intercepts ChatScope and absolute resource links and
  * downloads them via fetch with auth headers (Bearer token) instead
  * of letting the browser navigate directly (which causes 401).
  */
 type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   chatId: string;
+  teamChat: boolean;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
 };
@@ -102,17 +102,25 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     href,
     children,
     chatId,
+    teamChat,
     onWorkspaceFileLinkClick,
     onWebLinkClick,
     ...rest
   } = props;
   const [downloading, setDownloading] = useState(false);
-  const downloadFilename = href && isResourceUrl(href, chatId)
+  const classified = useMemo(
+    () => classifyResourceUrl(href || "", chatId, { teamChat }),
+    [chatId, href, teamChat],
+  );
+  const fetchedResource = isFetchedResourceKind(classified.kind);
+  const downloadFilename = href && fetchedResource
     ? extractFilenameFromResourceUrl(href)
     : undefined;
   const workspaceFileLink = useMemo(
-    () => parseWorkspaceFileHref(href),
-    [href],
+    () => classified.kind === "absolute" && !String(href || "").startsWith("/tmp/")
+      ? parseWorkspaceFileHref(href)
+      : null,
+    [classified.kind, href],
   );
   const webLink = useMemo(() => parseMarkdownWebHref(href), [href]);
   const webLinkTitle = useMemo(
@@ -126,7 +134,11 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
-      if (href && isResourceUrl(href, chatId)) {
+      if (
+        href
+        && fetchedResource
+        && (!workspaceFileLink || !onWorkspaceFileLinkClick)
+      ) {
         e.preventDefault();
         if (downloading) {
           return;
@@ -134,13 +146,18 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
         setDownloading(true);
 
         const filename = extractFilenameFromResourceUrl(href);
-        void downloadResource(href, { filename, chatId })
+        void downloadResource(href, { filename, chatId, teamChat })
           .catch((error: unknown) => {
             console.error("Resource download failed:", error);
           })
           .finally(() => {
             setDownloading(false);
           });
+        return;
+      }
+
+      if (classified.kind === "invalid") {
+        e.preventDefault();
         return;
       }
 
@@ -165,6 +182,9 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
       downloading,
       href,
       chatId,
+      teamChat,
+      classified.kind,
+      fetchedResource,
       onWebLinkClick,
       onWorkspaceFileLinkClick,
       webLink,
@@ -176,7 +196,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   return (
     <a
       {...rest}
-      href={href}
+      href={classified.kind === "invalid" ? undefined : href}
       download={downloadFilename || rest.download}
       onClick={handleClick}
     >
@@ -185,13 +205,15 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   );
 };
 
-type AuthImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
+type AuthImageProps = MarkdownImageProps & {
   chatId: string;
+  teamChat: boolean;
 };
 
-const AuthImage: React.FC<AuthImageProps> = ({ src, chatId, alt, ...rest }) => {
+const AuthImage: React.FC<AuthImageProps> = (props) => {
+  const { src, chatId, teamChat, alt, ...rendererProps } = props;
   const { t } = useI18n();
-  const resolved = useAuthenticatedResourceUrl(src, chatId);
+  const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat });
   if (resolved.error) {
     const fallback = t("rightSidebar.preview.error.image");
     return <span role="img" aria-label={alt || fallback}>{alt || fallback}</span>;
@@ -199,7 +221,8 @@ const AuthImage: React.FC<AuthImageProps> = ({ src, chatId, alt, ...rest }) => {
   if (!resolved.url) {
     return <span aria-busy={resolved.loading}>{alt || ""}</span>;
   }
-  return <img {...rest} src={resolved.url} alt={alt || ""} />;
+  const imageProps = sanitizeMarkdownImageProps(rendererProps);
+  return <img {...imageProps} src={resolved.url} alt={alt || ""} />;
 };
 
 const MarkdownPre: React.FC<MarkdownPreProps> = ({
@@ -227,13 +250,14 @@ const MarkdownPre: React.FC<MarkdownPreProps> = ({
  * Preserves:
  * - Code block rendering with syntax highlighting
  * - KaTeX math formula support (via CSS import)
- * - Image auth-src rewriting (data-auth-src → blob URL)
+ * - Authenticated image resources rendered through short-lived Blob URLs
  * - Link safety filtering
  * - Authenticated resource downloads (via custom anchor component)
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   content,
-  chatId = "",
+  chatId,
+  teamChat = false,
   onWorkspaceFileLinkClick,
   onWebLinkClick,
 }) => {
@@ -253,6 +277,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
           <AuthAnchor
             {...anchorProps}
             chatId={chatId}
+            teamChat={teamChat}
             onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
             onWebLinkClick={onWebLinkClick}
           />
@@ -260,11 +285,11 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
         code: MarkdownCode,
         pre: MarkdownPre,
         img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) => (
-          <AuthImage {...imageProps} chatId={chatId} />
+          <AuthImage {...imageProps} chatId={chatId} teamChat={teamChat} />
         ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,
-    [chatId, onWebLinkClick, onWorkspaceFileLinkClick],
+    [chatId, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
   const processedContent = useMemo(() => {

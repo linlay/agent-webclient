@@ -1,9 +1,13 @@
 import React from "react";
 import {
+  classifyResourceUrl,
   getResourceBlob,
-  isLegacyResourceUrl,
-  isLogicalResourceRef,
+  type ResourceUrlClassificationOptions,
 } from "@/shared/data";
+import {
+  createObjectUrlLease,
+  type ObjectUrlLease,
+} from "./authenticatedResourceUrl";
 
 export interface AuthenticatedResourceUrlState {
   url: string;
@@ -11,47 +15,100 @@ export interface AuthenticatedResourceUrlState {
   error: unknown;
 }
 
+interface InternalAuthenticatedResourceUrlState
+  extends AuthenticatedResourceUrlState {
+  requestKey: string;
+}
+
+function createRequestKey(
+  source: string,
+  chatId: string,
+  options: ResourceUrlClassificationOptions,
+): string {
+  return `${chatId}\u0000${options.teamChat ? "team" : "agent"}\u0000${source}`;
+}
+
+function getImmediateState(
+  source: string,
+  chatId: string,
+  options: ResourceUrlClassificationOptions,
+): InternalAuthenticatedResourceUrlState {
+  const requestKey = createRequestKey(source, chatId, options);
+  if (!source) {
+    return { requestKey, url: "", loading: false, error: null };
+  }
+  const classified = classifyResourceUrl(source, chatId, options);
+  if (classified.kind === "external" || classified.kind === "inline") {
+    return { requestKey, url: classified.source, loading: false, error: null };
+  }
+  if (classified.kind === "invalid") {
+    return {
+      requestKey,
+      url: "",
+      loading: false,
+      error: new Error("Unsupported resource URL"),
+    };
+  }
+  return { requestKey, url: "", loading: true, error: null };
+}
+
 export function useAuthenticatedResourceUrl(
   source: string | undefined,
   chatId: string,
+  options: ResourceUrlClassificationOptions = {},
 ): AuthenticatedResourceUrlState {
   const normalized = String(source || "").trim();
-  const authenticated =
-    isLegacyResourceUrl(normalized) || isLogicalResourceRef(normalized, chatId);
-  const [state, setState] = React.useState<AuthenticatedResourceUrlState>({
-    url: authenticated ? "" : normalized,
-    loading: authenticated,
-    error: null,
-  });
+  const teamChat = Boolean(options.teamChat);
+  const classificationOptions = React.useMemo(
+    () => ({ teamChat }),
+    [teamChat],
+  );
+  const classified = classifyResourceUrl(normalized, chatId, classificationOptions);
+  const requestKey = createRequestKey(normalized, chatId, classificationOptions);
+  const [state, setState] = React.useState<InternalAuthenticatedResourceUrlState>(
+    () => getImmediateState(normalized, chatId, classificationOptions),
+  );
 
   React.useEffect(() => {
-    if (!authenticated) {
-      setState({ url: normalized, loading: false, error: null });
+    if (!normalized) {
+      setState({ requestKey, url: "", loading: false, error: null });
+      return;
+    }
+    if (classified.kind === "external" || classified.kind === "inline") {
+      setState({ requestKey, url: classified.source, loading: false, error: null });
+      return;
+    }
+    if (classified.kind === "invalid") {
+      setState(getImmediateState(normalized, chatId, classificationOptions));
       return;
     }
 
     const controller = new AbortController();
-    let objectUrl = "";
-    setState({ url: "", loading: true, error: null });
-    void getResourceBlob(normalized, { chatId, signal: controller.signal })
+    let lease: ObjectUrlLease | null = null;
+    setState({ requestKey, url: "", loading: true, error: null });
+    void getResourceBlob(normalized, {
+      chatId,
+      signal: controller.signal,
+      teamChat,
+    })
       .then((blob) => {
         if (controller.signal.aborted) return;
-        objectUrl = URL.createObjectURL(blob);
-        setState({ url: objectUrl, loading: false, error: null });
+        lease = createObjectUrlLease(blob);
+        setState({ requestKey, url: lease.url, loading: false, error: null });
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
-          setState({ url: "", loading: false, error });
+          setState({ requestKey, url: "", loading: false, error });
         }
       });
 
     return () => {
       controller.abort();
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
+      lease?.revoke();
     };
-  }, [authenticated, chatId, normalized]);
+  }, [chatId, classificationOptions, classified.kind, classified.source, normalized, requestKey, teamChat]);
 
-  return state;
+  return state.requestKey === requestKey
+    ? state
+    : getImmediateState(normalized, chatId, classificationOptions);
 }

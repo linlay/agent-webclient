@@ -1,0 +1,40 @@
+import { createObjectUrlLease } from "@/shared/ui/authenticatedResourceUrl";
+
+describe("createObjectUrlLease", () => {
+  it("revokes the Blob URL exactly once when a resource effect is cleaned up", () => {
+    const createObjectURL = jest.fn(() => "blob:resource-preview");
+    const revokeObjectURL = jest.fn();
+    const lease = createObjectUrlLease(new Blob(["image"]), {
+      createObjectURL,
+      revokeObjectURL,
+    });
+
+    expect(lease.url).toBe("blob:resource-preview");
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+
+    lease.revoke();
+    lease.revoke();
+
+    expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:resource-preview");
+  });
+
+  it("releases the previous URL on resource change and the current URL on unmount", () => {
+    const createObjectURL = jest
+      .fn()
+      .mockReturnValueOnce("blob:first")
+      .mockReturnValueOnce("blob:second");
+    const revokeObjectURL = jest.fn();
+    const urlApi = { createObjectURL, revokeObjectURL };
+
+    const first = createObjectUrlLease(new Blob(["first"]), urlApi);
+    first.revoke();
+    const second = createObjectUrlLease(new Blob(["second"]), urlApi);
+    second.revoke();
+
+    expect(revokeObjectURL.mock.calls).toEqual([
+      ["blob:first"],
+      ["blob:second"],
+    ]);
+  });
+});

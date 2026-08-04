@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { downloadResource } from "@/shared/data";
 import { buildAttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
   type AttachmentLike,
   getAttachmentDownloadUrl,
@@ -50,9 +50,14 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   const { t } = useI18n();
   const dispatch = useAppDispatch();
   const appState = useAppState();
+  const currentChat = appState.chats?.find((chat) => chat.chatId === appState.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team"
+    || String(currentChat?.teamId || "").trim(),
+  );
   const attachmentKind = getAttachmentKind(attachment);
   const sourceUrl = getAttachmentUrl(attachment);
-  const authenticatedSource = useAuthenticatedResourceUrl(sourceUrl, appState.chatId);
+  const authenticatedSource = useAuthenticatedResourceUrl(sourceUrl, appState.chatId, { teamChat });
   const downloadUrl = getAttachmentDownloadUrl(attachment);
   const preview = React.useMemo(
     () => buildAttachmentPreviewState(attachment),
@@ -103,14 +108,14 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     }
 
     setDownloading(true);
-    void downloadResource(downloadUrl, { filename: attachment.name, chatId: appState.chatId })
+    void downloadArtifactResource(downloadUrl, attachment.name, appState.chatId, undefined, teamChat)
       .catch((error: unknown) => {
         console.error("Attachment download failed", error);
       })
       .finally(() => {
         setDownloading(false);
       });
-  }, [appState.chatId, attachment.name, downloadUrl, downloading]);
+  }, [appState.chatId, attachment.name, downloadUrl, downloading, teamChat]);
 
   const { rightSidebarOpen, rightSidebarOpenTab, attachmentPreview, activeAttachmentPreviewUrl } = appState;
 

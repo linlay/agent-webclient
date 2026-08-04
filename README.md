@@ -53,7 +53,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 支持 Viewport HTML 和 Frontend Tool iframe 容器。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
 
-Chat 图片与 Artifact 使用后端返回的 `<chatId>/<relativePath>` 逻辑 URL。前端按当前 chatId 校验后转换成既有 `GET /api/resource?file=...` 鉴权 fetch，并用 Blob URL 预览；历史 endpoint URL 原样兼容，外部 HTTP(S) 不改写，绝对文件路径不作为资源 URL。
+Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<relativePath>` URL。前端统一分类：ChatScope 在内部加当前 chatId 后转为 `GET /api/resource?file=...`，普通 Agent 的 Workspace POSIX 绝对路径与 `/tmp/...` 转为带 `chatId` 的鉴权请求，Team 拒绝全部绝对路径；HTTP(S)、`data:`、`blob:` 原样使用。真实 `/api/resource`、`file://`、`<currentChatId>/<relativePath>` 和 traversal 都不是 Markdown 地址，不发起请求；历史 endpoint Markdown 不迁移且不再预览。
 
 ![业务视图容器](docs/images/screenshots/business-viewport.png)
 
