@@ -1372,10 +1372,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     const deriveChatTitle = t("timeline.run.deriveChat");
 
                     const lastContentNode = findLastRunContentNode(item);
-                    const shouldCollapse =
-                      isCompleted &&
-                      lastContentNode != null &&
-                      item.nodes.length > 1;
+                    const shouldCollapse = isCompleted && item.nodes.length > 1;
                     return (
                       <Flex key={item.key} vertical gap={8}>
                         {shouldCollapse && (
@@ -1394,9 +1391,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                     className={TIMELINE_RUN_ITEMS_CLASS_NAME}
                                   >
                                     {buildRunRenderEntries(
-                                      item.nodes.filter(
-                                        (n) => n.id !== lastContentNode!.id,
-                                      ),
+                                      lastContentNode
+                                        ? item.nodes.slice(0, -1)
+                                        : item.nodes,
                                       state.taskItemsById,
                                     ).map((entry) => renderEntry(entry))}
                                   </div>
@@ -1410,9 +1407,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           className={TIMELINE_RUN_GROUP_CLASS_NAME}
                         >
                           {shouldCollapse ? (
-                            buildRunRenderEntries([lastContentNode!]).map(
-                              (entry) => renderEntry(entry),
-                            )
+                            buildRunRenderEntries(
+                              lastContentNode ? [lastContentNode] : [],
+                            ).map((entry) => renderEntry(entry))
                           ) : (
                             <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
                               {item.renderEntries.map((entry) =>
