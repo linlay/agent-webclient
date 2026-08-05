@@ -8,6 +8,20 @@
     animation: fade-slide-in 0.5s 0.08s ease both;
 }
 
+.conversation-stage-virtuoso {
+    >div {
+        max-width: 800px;
+        left: 50%;
+        transform: translateX(-50%);
+
+        >:last-child {
+            position: sticky;
+            bottom: 0;
+            height: 100px;
+        }
+    }
+}
+
 .messages-scroll {
     height: 100%;
     overflow-y: auto;
@@ -164,8 +178,8 @@
 
 .timeline-stack.is-empty {
     display: flex;
-    align-items: flex-end;
-    justify-content: center;
+    align-items: center;
+    justify-content: flex-end;
 }
 
 .timeline-lane {
