@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch } from "react";
+import { message } from "antd";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
 import {
@@ -1197,6 +1198,9 @@ function buildWsClient(
 
 			options.handleEvent(liveEvent);
 		},
+		onTransportError: (error) => {
+			showTransportError(error.message);
+		},
 	});
 }
 
@@ -1221,6 +1225,20 @@ export function refreshCurrentChatAfterWsReconnect(state: AppState): void {
 	window.dispatchEvent(new CustomEvent("agent:load-chat", {
 		detail: { chatId },
 	}));
+}
+
+let lastTransportErrorMessage = "";
+let lastTransportErrorTime = 0;
+const TRANSPORT_ERROR_DEDUP_MS = 3_000;
+
+function showTransportError(msg: string): void {
+	const now = Date.now();
+	if (msg === lastTransportErrorMessage && now - lastTransportErrorTime < TRANSPORT_ERROR_DEDUP_MS) {
+		return;
+	}
+	lastTransportErrorMessage = msg;
+	lastTransportErrorTime = now;
+	void message.error(msg);
 }
 
 export async function connectWsTransport(

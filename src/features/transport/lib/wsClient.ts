@@ -158,6 +158,8 @@ export interface WsClientOptions {
 	onAccessTokenChange?: (accessToken: string) => void;
 	onStatusChange?: (status: WsConnectionStatus) => void;
 	onPush?: (frame: WsPushFrame) => void;
+	/** 当 pending request 或 active stream 因服务端错误被 reject 时触发，用于系统级用户反馈 */
+	onTransportError?: (error: Error, context: { id?: string; kind: "request" | "stream" }) => void;
 	connectTimeoutMs?: number;
 	heartbeatTimeoutMs?: number;
 	reconnectBaseDelayMs?: number;
@@ -459,6 +461,7 @@ export class WsClient {
 	private inboundRequestGeneration = 0;
 	private onStatusChange?: (status: WsConnectionStatus) => void;
 	private onPush?: (frame: WsPushFrame) => void;
+	private onTransportError?: WsClientOptions["onTransportError"];
 	private readonly connectTimeoutMs: number;
 	private readonly heartbeatTimeoutMs: number;
 	private readonly reconnectBaseDelayMs: number;
@@ -479,6 +482,7 @@ export class WsClient {
 		this.onAccessTokenChange = options.onAccessTokenChange;
 		this.onStatusChange = options.onStatusChange;
 		this.onPush = options.onPush;
+		this.onTransportError = options.onTransportError;
 		this.connectTimeoutMs = Math.max(1000, options.connectTimeoutMs ?? 10_000);
 		this.heartbeatTimeoutMs = Math.max(
 			1000,
@@ -521,6 +525,9 @@ export class WsClient {
 		}
 		if (options.onPush !== undefined) {
 			this.onPush = options.onPush;
+		}
+		if (options.onTransportError !== undefined) {
+			this.onTransportError = options.onTransportError;
 		}
 	}
 
@@ -1119,6 +1126,10 @@ export class WsClient {
 			try {
 				pending.resolve(toApiResponse(frame));
 			} catch (error) {
+				this.onTransportError?.(
+					error instanceof Error ? error : new Error(String(error)),
+					{ id: frame.id, kind: "request" },
+				);
 				pending.reject(error);
 			}
 			return;
@@ -1159,11 +1170,13 @@ export class WsClient {
 			if (frame.id) {
 				const pending = this.pendingRequests.get(frame.id);
 				if (pending) {
+					this.onTransportError?.(error, { id: frame.id, kind: "request" });
 					pending.reject(error);
 					return;
 				}
 				const stream = this.activeStreams.get(frame.id);
 				if (stream) {
+					this.onTransportError?.(error, { id: frame.id, kind: "stream" });
 					stream.reject(error);
 					return;
 				}
