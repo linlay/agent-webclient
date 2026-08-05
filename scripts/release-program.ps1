@@ -13,6 +13,7 @@ $RepoRoot = Split-Path -Parent $ScriptDir
 $AssetsDir = Join-Path $ScriptDir "release-assets/program/windows"
 $TemplatePath = Join-Path $ScriptDir "release-assets/program/manifest.template.json"
 $Renderer = Join-Path $ScriptDir "render-program-manifest.mjs"
+$DeployTestPath = Join-Path $ScriptDir "test-program-deploy.ps1"
 $ReleaseDir = Join-Path $RepoRoot "dist/release"
 $Utf8NoBom = New-Object Text.UTF8Encoding($false)
 
