@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Popover } from "antd";
+import { Popover, Tag, Typography } from "antd";
 import type {
   SlashCommandAvailability,
   ResolvedSlashCommandDefinition,
@@ -16,23 +16,19 @@ const SLASH_COMMAND_POPOVER_CLASS =
 const SLASH_COMMAND_LIST_CLASS =
   "slash-command-list tw:flex tw:flex-col tw:gap-1 tw:p-1";
 const SLASH_GROUP_LABEL_CLASS =
-  "tw:px-2 tw:pb-0.5 tw:pt-1.5 tw:text-[10px] tw:font-bold tw:uppercase tw:tracking-[0.08em] tw:text-text-muted";
-const SLASH_COMMAND_ITEM_CLASS =
-  "slash-command-item ui-icon-hover-24 tw:!grid tw:!w-full tw:!grid-cols-[auto_auto_minmax(0,1fr)_auto] tw:!items-center tw:!justify-start tw:!gap-x-2 tw:!rounded-xl tw:!px-2 tw:!py-1.5 tw:text-left tw:hover:!bg-bg-hover tw:[&_.material-icon]:text-[15px] tw:[&_.ui-btn-label]:contents";
+  "tw:px-2 tw:pb-0.5 tw:pt-1.5 tw:text-xs tw:font-bold tw:tracking-[0.08em] tw:text-text-muted tw:sticky tw:top-0 tw:bg-bg-base tw:z-10";
+const SLASH_COMMAND_ITEM_CLASS = "slash-command-item";
 const SLASH_COMMAND_ITEM_STATE_CLASS = {
   idle: "",
   active: "active tw:!bg-bg-hover",
 } as const;
-const SLASH_COMMAND_NAME_CLASS =
-  "slash-command-name tw:font-code tw:text-xs tw:font-semibold tw:text-accent-electric-strong";
 const SLASH_COMMAND_LABEL_CLASS =
-  "slash-command-label tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:text-text-main";
+  "slash-command-label tw:text-xs tw:text-text-main";
 const SLASH_COMMAND_CHECK_CLASS =
   "slash-command-check tw:col-start-4 tw:row-span-2 tw:inline-flex tw:items-center tw:self-center tw:text-accent-lime tw:[&_.material-icon]:text-base";
 const SLASH_COMMAND_DESCRIPTION_CLASS =
-  "slash-command-description tw:col-span-2 tw:col-start-2 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:opacity-80";
-const SLASH_SKILL_SOURCE_CLASS =
-  "tw:col-start-4 tw:row-span-2 tw:inline-flex tw:items-center tw:gap-1 tw:self-center tw:rounded-pill tw:bg-bg-hover tw:px-1.5 tw:py-0.5 tw:text-[9px] tw:font-semibold tw:text-text-muted";
+  "slash-command-description tw:text-text-muted tw:flex-1";
+const SLASH_SKILL_SOURCE_CLASS = " tw:text-xs tw:mr-0 tw:text-text-sub";
 const SLASH_STATUS_CLASS =
   "tw:flex tw:min-h-12 tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:px-2 tw:py-2 tw:text-xs tw:text-text-muted";
 
@@ -76,7 +72,11 @@ const SlashPaletteContent: React.FC<{
   const { t } = useI18n();
   const itemsRef = React.useRef<HTMLElement[]>([]);
   const selectedSkillIdentities = new Set(
-    selectedSkillKeys.map((key) => String(key || "").trim().toLowerCase()),
+    selectedSkillKeys.map((key) =>
+      String(key || "")
+        .trim()
+        .toLowerCase(),
+    ),
   );
 
   useEffect(() => {
@@ -118,10 +118,20 @@ const SlashPaletteContent: React.FC<{
             >
               <MaterialIcon
                 name={command.icon}
-                className="ui-icon-hover-24-target"
+                className="ui-icon-hover-24 tw:text-accent"
               />
-              <span className={SLASH_COMMAND_NAME_CLASS}>{command.command}</span>
               <span className={SLASH_COMMAND_LABEL_CLASS}>{command.label}</span>
+              <Typography.Text
+                className={SLASH_COMMAND_DESCRIPTION_CLASS}
+                ellipsis={{
+                  tooltip: {
+                    title: command.description,
+                    placement: "topRight",
+                  },
+                }}
+              >
+                {command.description}
+              </Typography.Text>
               {command.id === "plan" && planningMode ? (
                 <span className={SLASH_COMMAND_CHECK_CLASS} aria-hidden="true">
                   <MaterialIcon name="check" />
@@ -132,9 +142,7 @@ const SlashPaletteContent: React.FC<{
                   <MaterialIcon name="check" />
                 </span>
               ) : null}
-              <span className={SLASH_COMMAND_DESCRIPTION_CLASS}>
-                {command.description}
-              </span>
+              <Tag className={SLASH_SKILL_SOURCE_CLASS}>{command.command}</Tag>
             </UiButton>
           );
         })}
@@ -157,27 +165,35 @@ const SlashPaletteContent: React.FC<{
               disabled={skillsDisabled}
               role="option"
               aria-selected={index === activeSlashIndex}
-              title={skill.description || skill.label}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onSelectSkill(skill)}
             >
-              <MaterialIcon name="skills" className="ui-icon-hover-24-target" />
-              <span className={SLASH_COMMAND_NAME_CLASS}>{skill.command}</span>
+              <MaterialIcon
+                name="skills"
+                className="ui-icon-hover-24 tw:text-accent"
+              />
               <span className={SLASH_COMMAND_LABEL_CLASS}>{skill.label}</span>
-              {selected ? (
+              <Typography.Text
+                className={SLASH_COMMAND_DESCRIPTION_CLASS}
+                ellipsis={{
+                  tooltip: {
+                    title: skill.description,
+                    placement: "topRight",
+                  },
+                }}
+              >
+                {skill.description || t("slashPalette.skill.noDescription")}
+              </Typography.Text>
+              {selected && (
                 <span className={SLASH_COMMAND_CHECK_CLASS} aria-hidden="true">
                   <MaterialIcon name="check" />
                 </span>
-              ) : (
-                <span className={SLASH_SKILL_SOURCE_CLASS}>
-                  {skill.agentHasSkill
-                    ? t("slashPalette.skill.source.agent")
-                    : t("slashPalette.skill.source.market")}
-                </span>
               )}
-              <span className={SLASH_COMMAND_DESCRIPTION_CLASS}>
-                {skill.description || t("slashPalette.skill.noDescription")}
-              </span>
+              <Tag className={SLASH_SKILL_SOURCE_CLASS}>
+                {skill.agentHasSkill
+                  ? t("slashPalette.skill.source.agent")
+                  : t("slashPalette.skill.source.market")}
+              </Tag>
             </UiButton>
           );
         })}
@@ -193,7 +209,11 @@ const SlashPaletteContent: React.FC<{
           </div>
         ) : null}
         {showSkillState && slashSkillStatus === "error" ? (
-          <div className={SLASH_STATUS_CLASS} role="alert" title={slashSkillError?.message}>
+          <div
+            className={SLASH_STATUS_CLASS}
+            role="alert"
+            title={slashSkillError?.message}
+          >
             <span>{t("slashPalette.skills.loadFailed")}</span>
             <UiButton variant="ghost" size="sm" onClick={onRetrySkills}>
               {t("slashPalette.skills.retry")}

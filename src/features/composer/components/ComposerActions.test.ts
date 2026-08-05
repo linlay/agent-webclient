@@ -46,7 +46,6 @@ describe("ComposerActions", () => {
     editingMode: false,
     canUseEditingMode: false,
     currentChatId: "",
-    selectedSkills: [],
     voiceEnabled: true,
     hasUploadingAttachments: false,
     canCaptureDesktopScreenshot: false,
@@ -61,7 +60,6 @@ describe("ComposerActions", () => {
     onTogglePlanningMode: jest.fn(),
     onEditingModeChange: jest.fn(),
     onAddReference: jest.fn(),
-    onRemoveSelectedSkill: jest.fn(),
   };
 
   it("renders permission controls and interrupt while streaming", () => {
@@ -133,21 +131,5 @@ describe("ComposerActions", () => {
     expect(enabledHtml).not.toContain("ant-switch");
     expect(disabledHtml).not.toContain("composer.editingMode.label");
   });
-
-  it("renders the selected skill as a removable required-skill tag", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(ComposerActions, {
-        ...baseProps,
-        selectedSkills: [
-          { key: "product-design", label: "Product Design" },
-          { key: "pdf", label: "PDF" },
-        ],
-      }),
-    );
-
-    expect(html).toContain("composer.addMenu.skill.requiredBadge");
-    expect(html).toContain("Product Design");
-    expect(html).toContain("PDF");
-    expect(html).toContain('data-material-icon="skills"');
-  });
 });
+

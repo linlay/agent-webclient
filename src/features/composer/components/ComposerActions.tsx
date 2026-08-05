@@ -11,7 +11,6 @@ import { QuerySettingsControls } from "@/features/composer/components/QuerySetti
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
 import type {
   ComposerContextReferenceInput,
-  ComposerRequiredSkill,
 } from "@/features/composer/lib/composerAttachments";
 import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
@@ -57,7 +56,6 @@ interface ComposerActionsProps {
   editingMode: boolean;
   canUseEditingMode: boolean;
   currentChatId: string;
-  selectedSkills: ComposerRequiredSkill[];
   voiceEnabled: boolean;
   hasUploadingAttachments: boolean;
   speechListening: boolean;
@@ -70,7 +68,6 @@ interface ComposerActionsProps {
   onTogglePlanningMode: () => void;
   onEditingModeChange: (enabled: boolean) => void;
   onAddReference: (reference: ComposerContextReferenceInput) => void;
-  onRemoveSelectedSkill: (skillKey: string) => void;
 }
 
 export const ComposerActions: React.FC<ComposerActionsProps> = ({
@@ -86,7 +83,6 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   editingMode,
   canUseEditingMode,
   currentChatId,
-  selectedSkills,
   voiceEnabled,
   hasUploadingAttachments,
   speechListening,
@@ -99,7 +95,6 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   onTogglePlanningMode,
   onEditingModeChange,
   onAddReference,
-  onRemoveSelectedSkill,
 }) => {
   const { t } = useI18n();
   const {
@@ -257,40 +252,6 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               </UiButton>
             </Tooltip>
           ) : null}
-          {selectedSkills.map((skill) => (
-            <Tooltip
-              key={skill.key.toLowerCase()}
-              title={t("composer.addMenu.skill.requiredTooltip", {
-                name: skill.label,
-              })}
-            >
-              <UiButton
-                className={CONTEXT_TOGGLE_BUTTON_CLASS}
-                variant="ghost"
-                size="sm"
-                disabled={attachmentActionsDisabled}
-                onClick={() => onRemoveSelectedSkill(skill.key)}
-              >
-                <MaterialIcon
-                  name="skills"
-                  className={CONTEXT_TOGGLE_ICON_CLASS}
-                />
-                <MaterialIcon
-                  name="close"
-                  className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
-                />
-                {!compact && (
-                  <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
-                    <span className="composer-context-required-badge">
-                      {t("composer.addMenu.skill.requiredBadge")}
-                    </span>
-                    {skill.label}
-                  </span>
-                )}
-              </UiButton>
-            </Tooltip>
-          ))}
-
           {!isCopilot && (
             <ControlsForm
               disabled={isFrontendActive || isStreaming}
