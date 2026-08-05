@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Select } from "antd";
 import type {
   Agent,
   AgentControl,
@@ -21,6 +22,8 @@ const COMPOSER_CONTROL_LABEL_CLASS =
   "composer-control-label tw:text-[11px] tw:font-bold tw:text-ink-2 tw:[&_.material-icon]:text-[15px] tw:[&_.material-icon]:text-ink-muted";
 const COMPOSER_CONTROL_INPUT_CLASS =
   "composer-control-input tw:w-[90px] tw:min-w-0 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_88%,var(--bg-elev-2))] tw:px-2 tw:py-[5px] tw:text-xs tw:leading-[1.2] tw:text-ink-1 tw:focus:border-accent-electric tw:focus:outline-none tw:focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-soft)_24%,transparent)] tw:disabled:bg-[color-mix(in_srgb,var(--bg-elev-2)_92%,transparent)] tw:disabled:text-ink-muted";
+const COMPOSER_CONTROL_SELECT_CLASS =
+  "composer-control-select tw:w-[90px] tw:min-w-0 tw:text-xs";
 const COMPOSER_CONTROL_TOGGLE_CLASS =
   "composer-control-toggle tw:accent-accent-electric";
 
@@ -198,23 +201,23 @@ function renderFieldInput(
 
   if (control.type === "select") {
     const options = Array.isArray(control.options) ? control.options : [];
+    const selectedValue = String(value ?? "");
     return (
-      <select
-        className={COMPOSER_CONTROL_INPUT_CLASS}
-        value={String(value ?? "")}
+      <Select<string>
+        className={COMPOSER_CONTROL_SELECT_CLASS}
+        size="small"
+        placement="topLeft"
+        popupMatchSelectWidth={false}
+        showSearch={false}
+        value={selectedValue || undefined}
+        placeholder={t("composerControls.selectPlaceholder")}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">{t("composerControls.selectPlaceholder")}</option>
-        {options.map((option) => {
-          const optionValue = serializeOptionValue(option.value);
-          return (
-            <option key={optionValue} value={optionValue}>
-              {resolveOptionLabel(option, t)}
-            </option>
-          );
-        })}
-      </select>
+        options={options.map((option) => ({
+          value: serializeOptionValue(option.value),
+          label: resolveOptionLabel(option, t),
+        }))}
+        onChange={onChange}
+      />
     );
   }
 
