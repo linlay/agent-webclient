@@ -1,49 +1,72 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ComposerAddMenu } from "@/features/composer/components/ComposerAddMenu";
+import { AddMenuPopover, AddMenuTrigger } from "@/features/composer/components/ComposerAddMenu";
 
 jest.mock("antd", () => ({
-  Dropdown: ({
+  Popover: ({
     children,
-    menu,
+    content,
   }: {
     children: React.ReactNode;
-    menu: { items?: Array<{ key?: React.Key; children?: Array<{ key?: React.Key }> }> };
+    content: React.ReactNode;
   }) =>
     React.createElement(
       "div",
-      null,
+      { "data-testid": "add-menu-popover" },
       children,
-      menu.items?.flatMap((group) =>
-        (group.children || []).map((item) =>
-          React.createElement("span", {
-            key: String(item.key),
-            "data-menu-key": String(item.key),
-          }),
-        ),
+      React.createElement(
+        "div",
+        { "data-testid": "add-menu-content" },
+        content,
       ),
     ),
-  Empty: () => null,
-  Input: Object.assign(() => null, { Search: () => null }),
-  List: Object.assign(() => null, {
-    Item: Object.assign(() => null, { Meta: () => null }),
-  }),
-  Modal: () => null,
-  Radio: Object.assign(() => null, { Group: () => null }),
-  Spin: () => null,
+  Typography: {
+    Text: ({ children, ...rest }: Record<string, unknown>) =>
+      React.createElement("span", rest, children),
+  },
+}));
+
+jest.mock("@/shared/data", () => ({
+  getChats: () => Promise.resolve({ data: [] }),
+}));
+
+jest.mock("@/shared/data/desktop/desktopWebs", () => ({
+  canUseDesktopWebsBridge: () => false,
+  listDesktopWebEntries: () => Promise.resolve([]),
 }));
 
 jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
-describe("ComposerAddMenu", () => {
-  it("keeps files, references, and modes but does not expose skills", () => {
+jest.mock("@/shared/ui/UiButton", () => ({
+  UiButton: ({
+    children,
+    "aria-label": ariaLabel,
+    ...rest
+  }: Record<string, unknown>) =>
+    React.createElement(
+      "button",
+      { "aria-label": ariaLabel, ...rest },
+      children,
+    ),
+}));
+
+jest.mock("@/shared/ui/MaterialIcon", () => ({
+  MaterialIcon: ({ name }: { name: string }) =>
+    React.createElement("span", { "data-icon": name }),
+}));
+
+describe("AddMenuPopover", () => {
+  it("renders add group with file, cloud, site and merged mode items", () => {
+    const hashPaletteRef = React.createRef<HTMLDivElement>();
     const html = renderToStaticMarkup(
-      React.createElement(ComposerAddMenu, {
-        disabled: false,
-        loading: false,
+      React.createElement(AddMenuPopover, {
+        open: true,
+        inputValue: "",
+        hashPaletteRef: hashPaletteRef as React.RefObject<HTMLDivElement>,
         currentChatId: "chat-1",
+        currentAgentKey: "agent-1",
         planningMode: false,
         canUsePlanningMode: true,
         editingMode: false,
@@ -52,13 +75,37 @@ describe("ComposerAddMenu", () => {
         onAddReference: jest.fn(),
         onTogglePlanningMode: jest.fn(),
         onEditingModeChange: jest.fn(),
+        children: React.createElement("div", null),
       }),
     );
 
-    expect(html).toContain('data-menu-key="add:file"');
-    expect(html).toContain('data-menu-key="add:chat"');
-    expect(html).toContain('data-menu-key="add:site"');
-    expect(html).toContain('data-menu-key="mode:planning"');
-    expect(html).not.toContain("skill:");
+    // Verify add group items are present
+    expect(html).toContain("composer.addMenu.file");
+    expect(html).toContain("composer.addMenu.cloud");
+
+    // Site group is hidden when desktop bridge unavailable
+    expect(html).not.toContain("composer.addMenu.group.site");
+
+    // Mode item merged into add group (no separate mode group label)
+    expect(html).not.toContain("composer.addMenu.group.mode");
+    expect(html).toContain("composer.addMenu.mode.planning");
+
+    // Chat group is present
+    expect(html).toContain("composer.addMenu.group.chat");
+  });
+});
+
+describe("AddMenuTrigger", () => {
+  it("renders a plus button", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AddMenuTrigger, {
+        disabled: false,
+        loading: false,
+        onClick: jest.fn(),
+      }),
+    );
+
+    expect(html).toContain("composer.addMenu.open");
+    expect(html).toContain("add");
   });
 });

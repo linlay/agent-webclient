@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { ControlsForm } from "@/features/composer/components/ControlsForm";
-import { ComposerAddMenu } from "@/features/composer/components/ComposerAddMenu";
+import { AddMenuTrigger } from "@/features/composer/components/ComposerAddMenu";
 import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
 import type {
@@ -68,6 +68,7 @@ interface ComposerActionsProps {
   onTogglePlanningMode: () => void;
   onEditingModeChange: (enabled: boolean) => void;
   onAddReference: (reference: ComposerContextReferenceInput) => void;
+  onAddMenuClick?: () => void;
 }
 
 export const ComposerActions: React.FC<ComposerActionsProps> = ({
@@ -95,6 +96,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   onTogglePlanningMode,
   onEditingModeChange,
   onAddReference,
+  onAddMenuClick,
 }) => {
   const { t } = useI18n();
   const {
@@ -150,18 +152,10 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         </Flex>
       )}
       <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
-        <ComposerAddMenu
+        <AddMenuTrigger
           disabled={attachmentActionsDisabled}
           loading={hasUploadingAttachments}
-          currentChatId={currentChatId}
-          planningMode={planningMode}
-          canUsePlanningMode={canUsePlanningMode}
-          editingMode={editingMode}
-          canUseEditingMode={canUseEditingMode}
-          onOpenFilePicker={openFilePicker}
-          onAddReference={onAddReference}
-          onTogglePlanningMode={onTogglePlanningMode}
-          onEditingModeChange={onEditingModeChange}
+          onClick={() => onAddMenuClick?.()}
         />
         <div className={COMPOSER_PLUS_WRAP_CLASS}>
           {canCaptureDesktopScreenshot ? (

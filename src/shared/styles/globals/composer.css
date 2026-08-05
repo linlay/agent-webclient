@@ -347,17 +347,20 @@ html[data-theme="dark"] .query-model-menu-icon.is-monochrome {
    Mention Suggest
    ======================================== */
 
-.slash-command-popover-overlay .ant-popover-inner {
+.slash-command-popover-overlay .ant-popover-inner,
+.composer-add-menu-popover-overlay .ant-popover-inner {
     padding: 0;
     background: transparent;
     box-shadow: none;
 }
 
-.slash-command-popover-overlay .ant-popover-inner-content {
+.slash-command-popover-overlay .ant-popover-inner-content,
+.composer-add-menu-popover-overlay .ant-popover-inner-content {
     padding: 0;
 }
 
-.slash-command-item {
+.slash-command-item,
+.add-menu-item {
     white-space: nowrap;
     text-align: left;
 

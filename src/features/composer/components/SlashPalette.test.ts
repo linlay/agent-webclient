@@ -5,6 +5,12 @@ import { SlashPalette } from "@/features/composer/components/SlashPalette";
 jest.mock("antd", () => ({
   Popover: ({ content, children }: { content: React.ReactNode; children: React.ReactNode }) =>
     React.createElement("div", null, content, children),
+  Typography: {
+    Text: ({ children, className }: Record<string, unknown>) =>
+      React.createElement("span", { className: className as string }, children),
+  },
+  Tag: ({ children, className }: Record<string, unknown>) =>
+    React.createElement("span", { className: className as string }, children),
 }));
 
 jest.mock("@/shared/i18n", () => ({

@@ -12,6 +12,12 @@ jest.mock("antd", () => ({
   App: {
     useApp: () => ({ message: mockAntdMessage }),
   },
+  Flex: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", { className: "ant-flex" }, children),
+  Tag: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("span", { className: "ant-tag" }, children),
+  Tooltip: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", { className: "ant-tooltip" }, children),
 }));
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -26,6 +32,11 @@ jest.mock("@/features/tools/components/buildin", () => ({
     PlanDialog: () => React.createElement("div", null, "plan"),
     QuestionDialog: () => React.createElement("div", null, "question"),
   },
+}));
+
+jest.mock("@/features/composer/components/AwaitingShell", () => ({
+  AwaitingShell: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", { className: "awaiting-shell" }, children),
 }));
 
 jest.mock("@/features/tools/components/AwaitingHtmlContainer", () => ({
@@ -47,6 +58,32 @@ jest.mock("@/features/composer/components/SlashPalette", () => ({
 
 jest.mock("@/features/composer/components/SteerBar", () => ({
   SteerBar: () => React.createElement("div", null, "steer"),
+}));
+
+jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+  useCommandOverlayOpen: () => false,
+}));
+
+jest.mock("@/features/search/components/GlobalSearchOverlayProvider", () => ({
+  useGlobalSearchOpen: () => false,
+}));
+
+jest.mock("@/shared/config/featureFlags", () => ({
+  isVoiceEnabled: () => false,
+}));
+
+jest.mock("@/features/runs/lib/runRuntimeState", () => ({
+  resolveMainChatRuntime: () => ({ running: false }),
+}));
+
+jest.mock("@/shared/ui/UiButton", () => ({
+  UiButton: ({ children, ...rest }: Record<string, unknown>) =>
+    React.createElement("button", rest, children),
+}));
+
+jest.mock("@/shared/icons/material", () => ({
+  MaterialIcon: ({ name }: { name: string }) =>
+    React.createElement("span", { "data-icon": name }),
 }));
 
 jest.mock("@/features/composer/components/ComposerContext", () => ({
@@ -213,6 +250,21 @@ const mockUseComposerSlash = jest.fn(
 jest.mock("@/features/composer/hooks/useComposerSlash", () => ({
   useComposerSlash: (input: Record<string, unknown>) =>
     mockUseComposerSlash(input),
+}));
+
+jest.mock("@/features/composer/hooks/useComposerHash", () => ({
+  useComposerHash: () => ({
+    showAddMenu: false,
+    setHashDismissed: jest.fn(),
+    hashPaletteRef: React.createRef(),
+    hashPopoverWidth: 320,
+  }),
+}));
+
+jest.mock("@/features/composer/components/ComposerAddMenu", () => ({
+  AddMenuPopover: (props: Record<string, any>) =>
+    React.createElement("div", { className: "add-menu-popover" }, props.children),
+  AddMenuTrigger: () => React.createElement("div", { className: "add-menu-trigger" }),
 }));
 
 jest.mock("@/features/composer/hooks/useComposerWonders", () => ({

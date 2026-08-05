@@ -19,6 +19,7 @@ interface UseComposerSlashInput {
   canUsePlanningMode: boolean;
   canUseEditingMode: boolean;
   currentAgentKey: string;
+  addMenuOpen: boolean;
 }
 
 export function useComposerSlash(input: UseComposerSlashInput) {
@@ -33,6 +34,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     canUsePlanningMode,
     canUseEditingMode,
     currentAgentKey,
+    addMenuOpen,
   } = input;
   const slashPaletteRef = useRef<HTMLDivElement>(null);
   const [slashDismissed, setSlashDismissed] = useState(false);
@@ -46,6 +48,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     !isFrontendActive &&
     !isAwaitingActive &&
     !commandOverlayOpen &&
+    !addMenuOpen &&
     !slashDismissed;
   const skillQuery = useAgentSkillsQuery(currentAgentKey, {
     enabled: skillQueryEnabled,
@@ -77,6 +80,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     !isFrontendActive &&
     !isAwaitingActive &&
     !commandOverlayOpen &&
+    !addMenuOpen &&
     !slashDismissed &&
     slashTokenActive &&
     (slashItems.length > 0 || hasSkillSection);

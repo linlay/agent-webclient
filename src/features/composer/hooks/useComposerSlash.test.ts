@@ -22,6 +22,7 @@ function renderSlashHook(input: { inputValue: string; currentAgentKey: string })
       commandOverlayOpen: false,
       canUsePlanningMode: false,
       canUseEditingMode: false,
+      addMenuOpen: false,
     });
     return null;
   };

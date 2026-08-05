@@ -17,6 +17,7 @@ import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlC
 import { AwaitingShell } from "@/features/composer/components/AwaitingShell";
 import { MentionSuggest } from "@/features/composer/components/MentionSuggest";
 import { SlashPalette } from "@/features/composer/components/SlashPalette";
+import { AddMenuPopover } from "@/features/composer/components/ComposerAddMenu";
 import { SteerBar } from "@/features/composer/components/SteerBar";
 import {
   ComposerProvider,
@@ -46,6 +47,7 @@ import { useComposerMention } from "@/features/composer/hooks/useComposerMention
 import { useRuntimeAccessLevel } from "@/features/composer/hooks/useRuntimeAccessLevel";
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
+import { useComposerHash } from "@/features/composer/hooks/useComposerHash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
 import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
@@ -233,6 +235,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     state,
   });
 
+  const [addMenuClickOpen, setAddMenuClickOpen] = useState(false);
+
   const {
     activeSlashIndex,
     refetchSlashSkills,
@@ -259,6 +263,25 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     canUsePlanningMode: planningModeAvailable,
     canUseEditingMode: editingModeAvailable,
     currentAgentKey,
+    addMenuOpen: addMenuClickOpen,
+  });
+
+  const {
+    showAddMenu,
+    setHashDismissed,
+    hashPaletteRef,
+    hashPopoverWidth: addMenuPopoverWidth,
+  } = useComposerHash({
+    composerPillRef,
+    composerRef,
+    inputValue,
+    isAwaitingActive,
+    isFrontendActive,
+    isVoiceMode,
+    commandOverlayOpen: isAnyOverlayOpen,
+    showSlashPalette,
+    addMenuClickOpen,
+    onDismissClickOpen: () => setAddMenuClickOpen(false),
   });
 
   const { closeMention, selectMentionByIndex, updateMentionSuggestions } =
@@ -672,6 +695,23 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         <div
           className={`${COMPOSER_LAYOUT_CLASS} ${isFrontendActive ? COMPOSER_AREA_FRONTEND_CLASS : ""}`}
         >
+          <AddMenuPopover
+            open={showAddMenu || addMenuClickOpen}
+            inputValue={inputValue}
+            popoverWidth={addMenuPopoverWidth}
+            getPopupContainer={() => document.body}
+            hashPaletteRef={hashPaletteRef}
+            currentChatId={state.chatId}
+            currentAgentKey={currentAgentKey}
+            planningMode={state.planningMode}
+            canUsePlanningMode={planningModeAvailable}
+            editingMode={state.editingMode}
+            canUseEditingMode={editingModeAvailable}
+            onOpenFilePicker={openFilePicker}
+            onAddReference={addContextReference}
+            onTogglePlanningMode={togglePlanningMode}
+            onEditingModeChange={handleEditingModeChange}
+          >
           <SlashPalette
             open={showSlashPalette}
             slashPaletteRef={slashPaletteRef}
@@ -752,10 +792,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onInputChange={(next) => {
                     setInputValue(next);
                     setSlashDismissed(false);
-                    if (slashItems.length > 0 || next.startsWith("/")) {
+                    setHashDismissed(false);
+                    if (slashItems.length > 0 || next.startsWith("/") || next.startsWith("#")) {
                       closeMention();
                     }
-                    if (!next.startsWith("/")) {
+                    if (!next.startsWith("/") && !next.startsWith("#")) {
                       updateMentionSuggestions(next);
                     }
                   }}
@@ -796,6 +837,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onTogglePlanningMode={togglePlanningMode}
                   onEditingModeChange={handleEditingModeChange}
                   onAddReference={addContextReference}
+                  onAddMenuClick={() => setAddMenuClickOpen((prev) => !prev)}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>
@@ -812,6 +854,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 )}
             </div>
           </SlashPalette>
+          </AddMenuPopover>
         </div>
       </div>
     </ComposerProvider>

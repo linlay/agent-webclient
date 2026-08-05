@@ -4,6 +4,7 @@ export const materialIconSymbolIds = {
   arrow_downward: "material-symbol-arrow-downward",
   arrow_upward: "material-symbol-arrow-upward",
   article: "material-symbol-article",
+  attach_file: "material-symbol-attach-file",
   assignment: "material-symbol-assignment",
   bar_chart: "material-symbol-bar-chart",
   bolt: "material-symbol-bolt",
