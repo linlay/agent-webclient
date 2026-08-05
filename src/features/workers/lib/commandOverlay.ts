@@ -1,13 +1,20 @@
 export type CommandOverlayType =
   | "history"
+  | "switch"
   | "automation"
   | "agents";
+
+export type CommandOverlayScope = "all" | "agent" | "team";
+export type CommandOverlayFocusArea = "search" | "list";
 
 export interface CommandOverlayState {
   open: boolean;
   type: CommandOverlayType | null;
+  searchText: string;
   historySearch: string;
   activeIndex: number;
+  scope: CommandOverlayScope;
+  focusArea: CommandOverlayFocusArea;
 }
 
 export type CommandOverlayOpenOptions = Partial<
@@ -22,7 +29,10 @@ export function createCommandOverlayState(
   return {
     open: Boolean(options),
     type: options?.type ?? null,
+    searchText: options?.searchText ?? "",
     historySearch: options?.historySearch ?? "",
     activeIndex: options?.activeIndex ?? 0,
+    scope: options?.scope ?? "all",
+    focusArea: options?.focusArea ?? "search",
   };
 }

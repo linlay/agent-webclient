@@ -5,12 +5,19 @@ import {
   useOptionalAppContext,
 } from "@/app/state/AppContext";
 import { Drawer } from "antd";
-import type { WorkerConversationRow } from "@/app/state/types";
+import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
 import type { CommandOverlayState } from "@/features/workers/lib/commandOverlay";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import {
+  buildWorkerSwitchRows,
+  resolveCurrentWorkerSummary,
+} from "@/features/workers/lib/currentWorker";
 import { useWorkerHistoryRows } from "@/features/workers/hooks/useWorkerHistoryRows";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
 import { AutomationModal } from "@/app/modals/AutomationModal";
+import {
+  SWITCH_SCOPES,
+  SwitchModal,
+} from "@/features/workers/components/SwitchModal";
 import { AgentConsole } from "@/features/workers/components/AgentConsole";
 import { markChatRead } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
@@ -59,9 +66,12 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     current: new Map(),
   };
   const { t } = useI18n();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const historyInputRef = useRef<HTMLInputElement>(null);
+  const switchListRef = useRef<HTMLDivElement>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const switchItemRefs = useRef<Array<HTMLElement | null>>([]);
   const historyItemRefs = useRef<Array<HTMLElement | null>>([]);
   const historyDefaultSelectionAppliedRef = useRef(false);
   const [agentConsoleDirty, setAgentConsoleDirty] = useState(false);
@@ -70,6 +80,26 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     () => (modal.type === "agents" ? null : resolveCurrentWorkerSummary(state)),
     [modal.type, state],
   );
+  const switchRows = useMemo(
+    () =>
+      modal.type === "switch"
+        ? buildWorkerSwitchRows(state.workerRows, modal.scope, modal.searchText)
+        : [],
+    [modal.scope, modal.searchText, modal.type, state.workerRows],
+  );
+  const workerIconsByKey = useMemo(() => {
+    if (modal.type !== "switch") {
+      return undefined;
+    }
+    const icons = new Map<string, Agent["icon"] | Team["icon"]>();
+    for (const agent of state.agents) {
+      icons.set(`agent:${agent.key}`, agent.icon);
+    }
+    for (const team of state.teams) {
+      icons.set(`team:${team.teamId}`, team.icon);
+    }
+    return icons;
+  }, [modal.type, state.agents, state.teams]);
 
   const {
     historyRows: filteredHistoryRows,
@@ -83,6 +113,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     querySessionsRef,
     dispatch,
   });
+  const switchIndex = clampIndex(modal.activeIndex, switchRows.length);
   const historyIndex = clampIndex(
     modal.activeIndex,
     filteredHistoryRows.length,
@@ -113,6 +144,20 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     );
   };
 
+  const selectWorker = (index: number) => {
+    const target = switchRows[index];
+    if (!target) return;
+    closeDrawer(false);
+    window.dispatchEvent(
+      new CustomEvent("agent:select-worker", {
+        detail: {
+          workerKey: target.key,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+  };
+
   const markCurrentWorkerAllRead = async (
     event: React.MouseEvent<HTMLElement>,
   ) => {
@@ -134,13 +179,22 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
 
   useEffect(() => {
     if (!modal.open) return;
+    if (modal.type === "switch") {
+      if (modal.focusArea === "list") {
+        switchListRef.current?.focus();
+      } else {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+      return;
+    }
     if (modal.type === "history") {
       historyInputRef.current?.focus();
       historyInputRef.current?.select();
       return;
     }
     cardRef.current?.focus();
-  }, [modal.open, modal.type]);
+  }, [modal.focusArea, modal.open, modal.type]);
 
   useEffect(() => {
     if (!modal.open || modal.type !== "history") return;
@@ -170,6 +224,11 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     state.chatId,
   ]);
 
+  useEffect(() => {
+    if (!modal.open || modal.type !== "switch") return;
+    switchItemRefs.current[switchIndex]?.scrollIntoView({ block: "nearest" });
+  }, [modal.open, modal.type, switchIndex]);
+
   if (!modal.open || !modal.type) {
     return null;
   }
@@ -184,9 +243,11 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const titleKey =
     modal.type === "history"
       ? "commandModal.history.title"
-      : modal.type === "automation"
-        ? "commandModal.automation.title"
-        : "commandModal.agents.title";
+      : modal.type === "switch"
+        ? "commandModal.switch.title"
+        : modal.type === "automation"
+          ? "commandModal.automation.title"
+          : "commandModal.agents.title";
   const title = (
     <div className="command-modal-title">
       <span>{t(titleKey)}</span>
@@ -267,6 +328,66 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             return;
           }
 
+          if (modal.type === "switch") {
+            if (event.key === "ArrowRight") {
+              event.preventDefault();
+              const currentScopeIndex = SWITCH_SCOPES.findIndex(
+                (item) => item.key === modal.scope,
+              );
+              const nextScope =
+                SWITCH_SCOPES[(currentScopeIndex + 1) % SWITCH_SCOPES.length]
+                  ?.key || "all";
+              onPatch({ scope: nextScope, activeIndex: 0 });
+              return;
+            }
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              const currentScopeIndex = SWITCH_SCOPES.findIndex(
+                (item) => item.key === modal.scope,
+              );
+              const nextScope =
+                SWITCH_SCOPES[
+                  (currentScopeIndex - 1 + SWITCH_SCOPES.length) %
+                    SWITCH_SCOPES.length
+                ]?.key || "all";
+              onPatch({ scope: nextScope, activeIndex: 0 });
+              return;
+            }
+            if (event.key === "ArrowDown" && switchRows.length > 0) {
+              event.preventDefault();
+              onPatch({
+                activeIndex: clampIndex(
+                  modal.activeIndex + 1,
+                  switchRows.length,
+                ),
+                focusArea: "list",
+              });
+              window.requestAnimationFrame(() => {
+                switchListRef.current?.focus();
+              });
+              return;
+            }
+            if (event.key === "ArrowUp" && switchRows.length > 0) {
+              event.preventDefault();
+              onPatch({
+                activeIndex: clampIndex(
+                  modal.activeIndex - 1,
+                  switchRows.length,
+                ),
+                focusArea: "list",
+              });
+              window.requestAnimationFrame(() => {
+                switchListRef.current?.focus();
+              });
+              return;
+            }
+            if (event.key === "Enter" && switchRows.length > 0) {
+              event.preventDefault();
+              selectWorker(switchIndex);
+            }
+            return;
+          }
+
           if (modal.type === "automation" || modal.type === "agents") return;
         }}
       >
@@ -293,6 +414,30 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
               removeHistoryRow(chatId);
             }}
             onSelect={selectHistory}
+          />
+        )}
+
+        {modal.type === "switch" && (
+          <SwitchModal
+            scope={modal.scope}
+            searchText={modal.searchText}
+            switchRows={switchRows}
+            switchIndex={switchIndex}
+            variant="copilot"
+            workerIconsByKey={workerIconsByKey}
+            searchInputRef={searchInputRef}
+            switchListRef={switchListRef}
+            switchItemRefs={switchItemRefs}
+            onSearchChange={(value) =>
+              onPatch({
+                searchText: value,
+                activeIndex: 0,
+                focusArea: "search",
+              })
+            }
+            onScopeChange={(scope) => onPatch({ scope, activeIndex: 0 })}
+            onActivateIndex={(index) => onPatch({ activeIndex: index })}
+            onSelect={selectWorker}
           />
         )}
 

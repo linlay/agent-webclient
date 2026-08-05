@@ -340,8 +340,8 @@ describe("CopilotShell", () => {
 
     expect(html).toContain("copilot-topbar-row");
     expect(html).toContain("copilot-title-block");
-    expect(html).not.toContain("copilot-worker-switch-btn");
-    expect(html).not.toContain("swap_horiz");
+    expect(html).toContain("copilot-worker-switch-btn");
+    expect(html).toContain("swap_horiz");
     expect(html).toContain("edit_square");
     expect(html).toContain("history");
     expect(html).toContain("bug_report");

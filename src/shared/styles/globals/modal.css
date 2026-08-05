@@ -216,6 +216,60 @@
     padding-top: 8px;
 }
 
+.command-switch-toolbar {
+    display: grid;
+    gap: 12px;
+}
+
+.command-scope-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.command-scope-btn {
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-muted);
+    background: color-mix(in srgb, var(--bg-input) 72%, var(--bg-elev-2));
+    box-shadow: none;
+}
+
+.command-scope-btn.is-active {
+    border-color: color-mix(in srgb,
+            var(--accent-electric) 52%,
+            var(--line-soft));
+    color: var(--accent-electric-strong);
+    background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+}
+
+.command-switch-compact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    width: 100%;
+}
+
+.command-switch-worker-icon {
+    flex: 0 0 auto;
+}
+
+.command-switch-compact-main {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: grid;
+    gap: 4px;
+}
+
+.command-switch-compact .command-list-head {
+    justify-content: flex-start;
+}
+
+.command-switch-compact .command-list-head strong,
 .history-list-title {
     min-width: 0;
     overflow: hidden;
