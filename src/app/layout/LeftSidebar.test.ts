@@ -683,7 +683,7 @@ describe("LeftSidebar", () => {
     renderSidebar();
 
     const skillsButton = uiButtonProps.find((props) =>
-      props.text.includes("技能"),
+      props.text.includes("技能中心"),
     );
     expect(skillsButton).toBeTruthy();
 
@@ -727,7 +727,7 @@ describe("LeftSidebar", () => {
     renderSidebar();
 
     const archiveButton = uiButtonProps.find((props) =>
-      props.text.includes("归档"),
+      props.text.includes("已归档对话"),
     );
     expect(archiveButton).toBeTruthy();
 

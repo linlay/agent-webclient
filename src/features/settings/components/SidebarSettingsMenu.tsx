@@ -106,16 +106,16 @@ export function buildSidebarSettingsMenuSections(_input: {
           action: { type: "open-skills" },
         },
         {
-          key: "open-registries",
-          label: t("settingsMenu.registries"),
-          icon: "hub",
-          action: { type: "open-registries" },
-        },
-        {
           key: "open-mcp-servers",
           label: t("settingsMenu.mcpServers"),
           icon: "hub",
           action: { type: "open-mcp-servers" },
+        },
+        {
+          key: "open-registries",
+          label: t("settingsMenu.registries"),
+          icon: "hub",
+          action: { type: "open-registries" },
         },
         {
           key: "open-archive",

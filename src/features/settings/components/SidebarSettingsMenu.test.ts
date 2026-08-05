@@ -50,10 +50,10 @@ describe("buildSidebarSettingsMenuSections", () => {
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
-      "技能",
-      "注册配置",
+      "技能中心",
       "MCP 连接器",
-      "归档",
+      "注册配置",
+      "已归档对话",
       "打开设置...",
       "记忆信息",
     ]);
@@ -86,12 +86,12 @@ describe("SidebarSettingsMenu", () => {
     );
 
     expect(html).toContain("设置菜单");
-    expect(html).toContain("技能");
+    expect(html).toContain("技能中心");
     expect(html).toContain("打开设置...");
     expect(html).toContain("注册配置");
     expect(html).toContain("MCP 连接器");
     expect(html).toContain("记忆信息");
-    expect(html).toContain("归档");
+    expect(html).toContain("已归档对话");
     expect(html).toContain("sidebar-settings-item ui-icon-hover-24");
     expect(html).toContain("sidebar-settings-item-icon ui-icon-hover-24-target");
     expect(html).not.toContain("管理 registry YAML 配置。");
