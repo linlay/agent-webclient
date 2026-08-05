@@ -356,3 +356,18 @@ html[data-theme="dark"] .query-model-menu-icon.is-monochrome {
 .slash-command-popover-overlay .ant-popover-inner-content {
     padding: 0;
 }
+
+.slash-command-item {
+    white-space: nowrap;
+    text-align: left;
+
+    &.ui-btn {
+        justify-content: flex-start;
+
+        .ui-btn-label {
+            gap: 10px;
+            overflow: hidden;
+            width: 100%;
+        }
+    }
+}

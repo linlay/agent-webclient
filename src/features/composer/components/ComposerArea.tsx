@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import { App as AntdApp } from "antd";
+import { App as AntdApp, Flex, Tag, Tooltip } from "antd";
 import {
   useAppContext,
   useAppDispatch,
@@ -53,6 +53,8 @@ import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
+import { UiButton } from "@/shared/ui/UiButton";
+import { MaterialIcon } from "@/shared/icons/material";
 
 interface ComposerAreaProps {
   emptyInputMinRows?: number;
@@ -84,11 +86,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const isAnyOverlayOpen = isCommandOverlayOpen || isGlobalSearchOpen;
-  const {
-    stateRef,
-    querySessionsRef,
-    activeQuerySessionRequestIdRef,
-  } = useAppContext();
+  const { stateRef, querySessionsRef, activeQuerySessionRequestIdRef } =
+    useAppContext();
   const { t } = useI18n();
   const { message } = AntdApp.useApp();
   const composerRef = useRef<HTMLDivElement>(null);
@@ -135,7 +134,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
-  const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>(
+    [],
+  );
   useEffect(() => {
     setSelectedSkills([]);
   }, [currentWorker?.key]);
@@ -292,11 +293,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       window.requestAnimationFrame(() => {
         textareaRef.current?.resizableTextArea?.textArea?.focus();
       });
-    }, [closeMention, isMainChatRunning, setSlashDismissed],
+    },
+    [closeMention, isMainChatRunning, setSlashDismissed],
   );
 
   const removeSelectedSkill = useCallback((skillKey: string) => {
-    const identity = String(skillKey || "").trim().toLowerCase();
+    const identity = String(skillKey || "")
+      .trim()
+      .toLowerCase();
     setSelectedSkills((current) =>
       current.filter((item) => item.key.trim().toLowerCase() !== identity),
     );
@@ -485,7 +489,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     accessLevel,
     activeRunId,
     activeRunOwner,
-    isRunActive: isMainChatRunning || isAwaitingActive || isCurrentChatActiveRun,
+    isRunActive:
+      isMainChatRunning || isAwaitingActive || isCurrentChatActiveRun,
     setAccessLevel,
     messageApi: message,
     t,
@@ -704,6 +709,29 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onRemoveAttachment={handleRemoveAttachment}
                   onScroll={scrollComposerAttachments}
                 />
+                <Flex wrap gap={4}>
+                  {selectedSkills.map((skill) => (
+                    <UiButton
+                      key={skill.key.toLowerCase()}
+                      variant="ghost"
+                      className="tw:group tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
+                      size="sm"
+                      onClick={() => removeSelectedSkill(skill.key)}
+                    >
+                      <Flex gap={4} align="center">
+                        <MaterialIcon
+                          name="skills"
+                          className="tw:group-hover:hidden tw:text-accent tw:text-[14px]"
+                        />
+                        <MaterialIcon
+                          name="close"
+                          className="tw:hidden tw:group-hover:inline-flex tw:text-text-muted tw:text-[14px]"
+                        />
+                        <span className="tw:text-text-sub">{skill.label}</span>
+                      </Flex>
+                    </UiButton>
+                  ))}
+                </Flex>
                 <ComposerInput
                   isVoiceMode={isVoiceMode}
                   isFrontendActive={isFrontendActive}
@@ -756,7 +784,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   editingMode={state.editingMode}
                   canUseEditingMode={editingModeAvailable}
                   currentChatId={state.chatId}
-                  selectedSkills={selectedSkills}
                   voiceEnabled={voiceEnabled}
                   hasUploadingAttachments={hasUploadingAttachments}
                   speechListening={speechListening}
@@ -769,7 +796,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onTogglePlanningMode={togglePlanningMode}
                   onEditingModeChange={handleEditingModeChange}
                   onAddReference={addContextReference}
-                  onRemoveSelectedSkill={removeSelectedSkill}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>

@@ -281,8 +281,6 @@ export const enUSMessages = {
   "composer.addMenu.mode.editing": "Editing mode",
   "composer.addMenu.skills.loading": "Loading skills...",
   "composer.addMenu.skills.empty": "No available skills",
-  "composer.addMenu.skill.requiredBadge": "Must use",
-  "composer.addMenu.skill.requiredTooltip": "This message must use {name}",
   "composer.addMenu.skill.btwUnsupported": "BTW branches do not support a required skill yet.",
   "composer.addMenu.skill.routeMismatch": "This message routes to another agent. Remove or reselect the required skill first.",
   "composer.addMenu.chat.modalTitle": "Choose a chat to reference",
