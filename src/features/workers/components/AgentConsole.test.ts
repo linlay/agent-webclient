@@ -12,8 +12,12 @@ jest.mock("antd", () => {
       React.createElement("input", props),
     );
   Input.TextArea = (props: any) => React.createElement("textarea", props);
+  const Modal = ({ children }: { children?: unknown }) => children || null;
+  Modal.confirm = jest.fn();
   return {
+    Checkbox: ({ children, ...props }: any) => React.createElement("label", null, React.createElement("input", { ...props, type: "checkbox" }), children),
     Input,
+    Modal,
     Select: ({ allowClear, loading, mode, optionFilterProp, options = [], showSearch, value, ...props }: any) =>
       React.createElement(
         "select",
@@ -46,12 +50,14 @@ jest.mock("@/app/state/AppContext", () => ({
 jest.mock("@/shared/data", () => ({
   createAgent: jest.fn(),
   deleteAgent: jest.fn(),
+  deleteAdminAgentPrivateSkill: jest.fn(),
   getAdminAgentDetail: jest.fn(),
   getAdminAgentEditorOptions: jest.fn(),
   getAdminAgents: jest.fn(),
   getAdminSource: jest.fn(),
   getAdminSkills: jest.fn(),
   getAdminTools: jest.fn(),
+  importAdminAgentPrivateSkill: jest.fn(),
   putAdminAgentOrder: jest.fn(),
   updateAgent: jest.fn(),
   updateAdminSource: jest.fn(),
@@ -84,6 +90,8 @@ import {
   getModelReasoningEfforts,
   hasEditableAdminDefinition,
   isInvalidAdminAgent,
+  mergeAgentSkillOptions,
+  privateSkillsFromDetail,
   readAdminAgentDiagnostics,
   resolveActiveAgentFormSection,
   resolveAgentSavePlacement,
@@ -103,6 +111,59 @@ const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
 };
 
 const translate = (key: string) => key;
+
+describe("AgentConsole private skill options", () => {
+  it("prefers the Agent-private source when it has the same key as the center", () => {
+    const options = mergeAgentSkillOptions(
+      [{ key: "office", label: "Office" }],
+      [
+        {
+          key: "office",
+          name: "Private Office",
+          status: "ready",
+          enabled: true,
+          overridesCenter: true,
+        },
+      ],
+      ["office"],
+      translate,
+    );
+
+    expect(options).toEqual([
+      expect.objectContaining({
+        key: "office",
+        label: "Private Office · office · agentConsole.privateSkill.source.override",
+        source: "private",
+        overridesCenter: true,
+      }),
+    ]);
+  });
+
+  it("reads private skills only from admin Agent detail", () => {
+    expect(privateSkillsFromDetail(null)).toEqual([]);
+    expect(
+      privateSkillsFromDetail({
+        key: "agent-a",
+        name: "Agent A",
+        mode: "REACT",
+        tools: [],
+        skills: [],
+        controls: [],
+        meta: {},
+        status: "ready",
+        privateSkills: [
+          {
+            key: "private",
+            name: "Private",
+            status: "ready",
+            enabled: true,
+            overridesCenter: false,
+          },
+        ],
+      } as any),
+    ).toHaveLength(1);
+  });
+});
 
 describe("AgentConsole order persistence", () => {
   beforeEach(() => {

@@ -22,18 +22,20 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Input, Popconfirm, Select, Spin, Switch, message } from "antd";
+import { Checkbox, Input, Modal, Popconfirm, Select, Spin, Switch, message } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
 import {
   createAgent,
   deleteAgent,
+  deleteAdminAgentPrivateSkill,
   getAdminAgentDetail,
   getAdminAgentEditorOptions,
   getAdminAgents,
   getAdminSource,
   getAdminSkills,
   getAdminTools,
+  importAdminAgentPrivateSkill,
   putAdminAgentOrder,
   updateAgent,
   updateAdminSource,
@@ -42,6 +44,7 @@ import { dataEndpoints } from "@/shared/data/api/endpoints";
 import type {
   AdminAgentDetailResponse,
   AdminAgentDiagnostic,
+  AdminAgentPrivateSkill,
   AdminToolSummary,
   AgentDetailResponse,
   AgentEditorModelOption,
@@ -69,6 +72,13 @@ export type AgentToolOption = {
   label: string;
   sourceCategory: string;
   kind: string;
+};
+
+type AgentSkillOption = {
+  key: string;
+  label: string;
+  source: "center" | "private";
+  overridesCenter?: boolean;
 };
 
 interface AgentFormState {
@@ -310,6 +320,61 @@ export function resolveAdminAgentSourcePath(detail: unknown): string {
       .find(Boolean) ||
     ""
   );
+}
+
+export function privateSkillsFromDetail(
+  detail: EditableAgentDetail | null,
+): AdminAgentPrivateSkill[] {
+  if (!detail || !Array.isArray((detail as AdminAgentDetailResponse).privateSkills)) {
+    return [];
+  }
+  return (detail as AdminAgentDetailResponse).privateSkills || [];
+}
+
+export function mergeAgentSkillOptions(
+  centerSkills: Array<{ key: string; label: string }>,
+  privateSkills: AdminAgentPrivateSkill[],
+  selectedSkills: string[],
+  t: Translate,
+): AgentSkillOption[] {
+  const entries = new Map<string, AgentSkillOption>();
+  for (const item of centerSkills) {
+    const key = toText(item.key);
+    if (!key) continue;
+    entries.set(key.toLowerCase(), {
+      key,
+      label: item.label || key,
+      source: "center",
+    });
+  }
+  for (const item of privateSkills) {
+    const key = toText(item.key);
+    if (!key) continue;
+    const centerExists = entries.has(key.toLowerCase());
+    entries.set(key.toLowerCase(), {
+      key,
+      label: toText(item.name) || key,
+      source: "private",
+      overridesCenter: item.overridesCenter || centerExists,
+    });
+  }
+  for (const rawKey of selectedSkills) {
+    const key = toText(rawKey);
+    if (!key || entries.has(key.toLowerCase())) continue;
+    entries.set(key.toLowerCase(), { key, label: key, source: "center" });
+  }
+  return [...entries.values()]
+    .map((item) => ({
+      ...item,
+      label: `${item.label}${item.label === item.key ? "" : ` · ${item.key}`} · ${
+        item.source === "private"
+          ? item.overridesCenter
+            ? t("agentConsole.privateSkill.source.override")
+            : t("agentConsole.privateSkill.source.private")
+          : t("agentConsole.privateSkill.source.center")
+      }`,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
 }
 
 function textListFromUnknown(value: unknown): string[] {
@@ -1096,11 +1161,16 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [editorOptions, setEditorOptions] =
     useState<AgentEditorOptionsResponse | null>(null);
   const [toolOptions, setToolOptions] = useState<AgentToolOption[]>([]);
-  const [skillOptions, setSkillOptions] = useState<
-    Array<{ key: string; label: string }>
-  >([]);
+  const [skillOptions, setSkillOptions] = useState<Array<{ key: string; label: string }>>([]);
   const [savingForm, setSavingForm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [privateSkillModalOpen, setPrivateSkillModalOpen] = useState(false);
+  const [privateSkillFile, setPrivateSkillFile] = useState<File | null>(null);
+  const [privateSkillOverrideRequired, setPrivateSkillOverrideRequired] = useState(false);
+  const [privateSkillOverrideConfirmed, setPrivateSkillOverrideConfirmed] = useState(false);
+  const [privateSkillImporting, setPrivateSkillImporting] = useState(false);
+  const [privateSkillError, setPrivateSkillError] = useState("");
+  const [deletingPrivateSkillKey, setDeletingPrivateSkillKey] = useState("");
   const [savingOrder, setSavingOrder] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
@@ -1120,6 +1190,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const selectedAgentKeyRef = useRef(selectedAgentKey);
   const detailScrollRef = useRef<HTMLDivElement>(null);
   const sectionNavLinksRef = useRef<HTMLDivElement>(null);
+  const privateSkillFileInputRef = useRef<HTMLInputElement>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -1206,6 +1277,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           ]
       ).map((item) => ({ value: item.key, label: item.label || item.key })),
     [editorOptions],
+  );
+  const privateSkills = useMemo(() => privateSkillsFromDetail(detail), [detail]);
+  const agentSkillOptions = useMemo(
+    () => mergeAgentSkillOptions(skillOptions, privateSkills, form.skills, t),
+    [form.skills, privateSkills, skillOptions, t],
   );
   const agentFormSections = useMemo<
     Array<{
@@ -1299,6 +1375,15 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     editorMode,
     canEditStructuredAgent,
   );
+  const canImportPrivateSkill =
+    formMode === "edit" &&
+    canEditStructuredAgent &&
+    toText(detail?.source?.kind).toLowerCase() === "directory" &&
+    !hasUnsavedChanges &&
+    !savingForm &&
+    !deleting &&
+    !privateSkillImporting &&
+    !deletingPrivateSkillKey;
 
   useEffect(() => {
     selectedAgentKeyRef.current = selectedAgentKey;
@@ -1735,6 +1820,95 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     }
   };
 
+  const resetPrivateSkillImport = () => {
+    setPrivateSkillFile(null);
+    setPrivateSkillOverrideRequired(false);
+    setPrivateSkillOverrideConfirmed(false);
+    setPrivateSkillError("");
+    if (privateSkillFileInputRef.current) privateSkillFileInputRef.current.value = "";
+  };
+
+  const openPrivateSkillImport = () => {
+    if (!canImportPrivateSkill) return;
+    resetPrivateSkillImport();
+    setPrivateSkillModalOpen(true);
+  };
+
+  const submitPrivateSkillImport = async () => {
+    const agentKey = form.key.trim();
+    if (!agentKey || !privateSkillFile) {
+      setPrivateSkillError(t("agentConsole.privateSkill.import.required"));
+      return;
+    }
+    if (privateSkillOverrideRequired && !privateSkillOverrideConfirmed) {
+      setPrivateSkillError(t("agentConsole.privateSkill.import.overrideRequired"));
+      return;
+    }
+    setPrivateSkillImporting(true);
+    setPrivateSkillError("");
+    try {
+      const response = await importAdminAgentPrivateSkill({
+        agentKey,
+        file: privateSkillFile,
+        confirmCenterOverride: privateSkillOverrideConfirmed,
+      });
+      const saved = response.data;
+      setDetail(saved);
+      setForm(formFromDetail(saved));
+      setStructuredDirty(false);
+      setPrivateSkillModalOpen(false);
+      resetPrivateSkillImport();
+      await loadAgents(agentKey);
+      commitAgentSelection(agentKey);
+      message.success(t("agentConsole.privateSkill.import.success"));
+    } catch (error) {
+      const detail = (error as Error).message;
+      const data = (error as { data?: unknown }).data;
+      if (
+        data != null &&
+        typeof data === "object" &&
+        (data as { requiresConfirmation?: unknown }).requiresConfirmation === true
+      ) {
+        setPrivateSkillOverrideRequired(true);
+      }
+      setPrivateSkillError(detail);
+    } finally {
+      setPrivateSkillImporting(false);
+    }
+  };
+
+  const confirmDeletePrivateSkill = (skill: AdminAgentPrivateSkill) => {
+    const agentKey = form.key.trim();
+    if (!agentKey || !skill.key || hasUnsavedChanges) return;
+    Modal.confirm({
+      title: t("agentConsole.privateSkill.delete.title"),
+      content: t("agentConsole.privateSkill.delete.description", { name: skill.name || skill.key }),
+      okText: t("agentConsole.privateSkill.delete.confirm"),
+      cancelText: t("agentConsole.privateSkill.delete.cancel"),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setDeletingPrivateSkillKey(skill.key);
+        setFormError("");
+        try {
+          const response = await deleteAdminAgentPrivateSkill({ agentKey, key: skill.key });
+          const saved = response.data;
+          setDetail(saved);
+          setForm(formFromDetail(saved));
+          setStructuredDirty(false);
+          await loadAgents(agentKey);
+          message.success(t("agentConsole.privateSkill.delete.success"));
+        } catch (error) {
+          const detail = (error as Error).message;
+          setFormError(detail);
+          message.error(detail);
+          throw error;
+        } finally {
+          setDeletingPrivateSkillKey("");
+        }
+      },
+    });
+  };
+
   const confirmDelete = async () => {
     const key = form.key.trim();
     if (!key || formMode !== "edit") return;
@@ -1863,6 +2037,67 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     <div
       className={`${embedded ? "command-modal-section" : "management-page-console"} ${AGENT_CONSOLE_CLASS_NAME} ${embedded ? "is-embedded" : ""}`}
     >
+      <Modal
+        open={privateSkillModalOpen}
+        title={t("agentConsole.privateSkill.import.title")}
+        okText={t("agentConsole.privateSkill.import.submit")}
+        cancelText={t("agentConsole.action.cancelEdit")}
+        confirmLoading={privateSkillImporting}
+        okButtonProps={{
+          disabled:
+            !privateSkillFile ||
+            (privateSkillOverrideRequired && !privateSkillOverrideConfirmed),
+        }}
+        maskClosable={!privateSkillImporting}
+        keyboard={!privateSkillImporting}
+        onOk={() => void submitPrivateSkillImport()}
+        onCancel={() => {
+          if (privateSkillImporting) return;
+          setPrivateSkillModalOpen(false);
+          resetPrivateSkillImport();
+        }}
+      >
+        <div className="tw:flex tw:flex-col tw:gap-3">
+          <input
+            ref={privateSkillFileInputRef}
+            className="tw:hidden"
+            type="file"
+            accept=".zip,application/zip"
+            onChange={(event) => {
+              setPrivateSkillFile(event.target.files?.[0] || null);
+              setPrivateSkillOverrideRequired(false);
+              setPrivateSkillOverrideConfirmed(false);
+              setPrivateSkillError("");
+            }}
+          />
+          <div className="tw:flex tw:items-center tw:gap-2">
+            <UiButton
+              size="sm"
+              variant="secondary"
+              onClick={() => privateSkillFileInputRef.current?.click()}
+              disabled={privateSkillImporting}
+            >
+              <MaterialIcon name="folder_zip" />
+              {t("agentConsole.privateSkill.import.selectFile")}
+            </UiButton>
+            <span className="tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:text-ink-muted">
+              {privateSkillFile?.name || t("agentConsole.privateSkill.import.noFile")}
+            </span>
+          </div>
+          {privateSkillOverrideRequired && (
+            <Checkbox
+              checked={privateSkillOverrideConfirmed}
+              onChange={(event) => setPrivateSkillOverrideConfirmed(event.target.checked)}
+            >
+              {t("agentConsole.privateSkill.import.overrideConfirm")}
+            </Checkbox>
+          )}
+          <div className="tw:text-xs tw:leading-5 tw:text-ink-muted">
+            {t("agentConsole.privateSkill.import.description")}
+          </div>
+          {privateSkillError && <div className="tw:text-xs tw:text-danger">{privateSkillError}</div>}
+        </div>
+      </Modal>
       {error && (
         <div className={AGENT_ERROR_CLASS_NAME}>
           <span>{error}</span>
@@ -2440,9 +2675,25 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       />
                     </div>
                     <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <label htmlFor="agent-skills-input">
-                        {t("agentConsole.field.skills")}
-                      </label>
+                      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+                        <label htmlFor="agent-skills-input">
+                          {t("agentConsole.field.skills")}
+                        </label>
+                        <UiButton
+                          size="sm"
+                          variant="ghost"
+                          onClick={openPrivateSkillImport}
+                          disabled={!canImportPrivateSkill}
+                          title={
+                            canImportPrivateSkill
+                              ? t("agentConsole.privateSkill.import.title")
+                              : t("agentConsole.privateSkill.import.disabled")
+                          }
+                        >
+                          <MaterialIcon name="folder_zip" />
+                          {t("agentConsole.privateSkill.import.action")}
+                        </UiButton>
+                      </div>
                       <Select
                         id="agent-skills-input"
                         mode="multiple"
@@ -2450,13 +2701,39 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                         allowClear
                         loading={loadingOptions}
                         value={form.skills}
-                        options={skillOptions.map((item) => ({
+                        options={agentSkillOptions.map((item) => ({
                           value: item.key,
-                          label: `${item.label}${item.label === item.key ? "" : ` · ${item.key}`}`,
+                          label: item.label,
                         }))}
                         optionFilterProp="label"
                         onChange={(value) => updateForm({ skills: value })}
                       />
+                      {privateSkills.length > 0 && (
+                        <div className="tw:mt-2 tw:flex tw:flex-col tw:gap-1.5">
+                          {privateSkills.map((skill) => (
+                            <div
+                              key={skill.key}
+                              className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:rounded-control tw:border tw:px-2 tw:py-1.5 tw:text-xs tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]"
+                            >
+                              <span className="tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
+                                {skill.name || skill.key} · {skill.key} · {skill.overridesCenter
+                                  ? t("agentConsole.privateSkill.source.override")
+                                  : t("agentConsole.privateSkill.source.private")}
+                              </span>
+                              <UiButton
+                                size="mini"
+                                variant="danger"
+                                onClick={() => confirmDeletePrivateSkill(skill)}
+                                disabled={!canImportPrivateSkill || deletingPrivateSkillKey === skill.key}
+                                loading={deletingPrivateSkillKey === skill.key}
+                              >
+                                <MaterialIcon name="delete" />
+                                {t("agentConsole.privateSkill.delete.action")}
+                              </UiButton>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </AgentFormSection>

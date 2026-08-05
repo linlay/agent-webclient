@@ -72,7 +72,7 @@ function renderPalette(
 }
 
 describe("SlashPalette", () => {
-  it("renders command and skill groups with configured and marketplace sources", () => {
+  it("renders command and skill groups with configured and Skill Center sources", () => {
     const html = renderPalette({
       slashSkills: [
         {

@@ -38,6 +38,7 @@ import {
   deriveChat,
   deleteArchive,
   deleteAgent,
+  deleteAdminAgentPrivateSkill,
   deleteChat,
   deleteAutomation,
   downloadResource,
@@ -100,6 +101,7 @@ import {
   fetchAdminSkillIcon,
   getAdminSkillDetail,
   importAdminSkill,
+  importAdminAgentPrivateSkill,
   mkdirAdminSkillFile,
   renameAdminSkillFile,
   uploadAdminSkillFile,
@@ -1020,6 +1022,47 @@ describe('data client query payloads', () => {
     const formData = importOptions.body as FormData;
     expect(formData.get('key')).toBe('demo-skill');
     expect(formData.get('file')).toBe(archive);
+  });
+
+  it('imports and deletes an Agent-private skill through the Agent admin routes', async () => {
+    const archive = new File(['zip'], 'private.zip', { type: 'application/zip' });
+    await importAdminAgentPrivateSkill({
+      agentKey: 'demo-agent',
+      file: archive,
+      confirmCenterOverride: true,
+    });
+    await deleteAdminAgentPrivateSkill({ agentKey: 'demo-agent', key: 'private-skill' });
+
+    const [importUrl, importOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(importUrl).toBe('/api/admin/agents/skills/import');
+    expect(importOptions.method).toBe('POST');
+    expect(importOptions.body).toBeInstanceOf(FormData);
+    const formData = importOptions.body as FormData;
+    expect(formData.get('agentKey')).toBe('demo-agent');
+    expect(formData.get('key')).toBeNull();
+    expect(formData.get('file')).toBe(archive);
+    expect(formData.get('confirmCenterOverride')).toBe('true');
+    expect(formData.get('confirmMarketOverride')).toBeNull();
+
+    const [deleteUrl, deleteOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(deleteUrl).toBe('/api/admin/agents/skills/delete');
+    expect(JSON.parse(String(deleteOptions.body))).toEqual({
+      agentKey: 'demo-agent',
+      key: 'private-skill',
+    });
+  });
+
+  it('keeps a non-JSON proxy failure readable to the user', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 504,
+      text: async () => 'Error occurred while trying to proxy: 127.0.0.1:11948/api/admin/agents/skills/import',
+    });
+
+    await expect(getAdminAgents()).rejects.toMatchObject({
+      status: 504,
+      message: 'Error occurred while trying to proxy: 127.0.0.1:11948/api/admin/agents/skills/import',
+    });
   });
 
   it('loads global model options', async () => {

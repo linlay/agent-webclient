@@ -50,7 +50,7 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('/switch')).toEqual([]);
   });
 
-  it('filters agent and marketplace skills by key, name, and description', () => {
+  it('filters agent and Skill Center skills by key, name, and description', () => {
     const skills = [
       {
         key: 'mock-skill',

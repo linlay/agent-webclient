@@ -214,7 +214,7 @@ describe("SkillConsole", () => {
           name: "Demo Skill",
           description: "A demo skill",
           status: "ready",
-          source: { kind: "skills-market", path: "/skills/demo-skill" },
+          source: { kind: "skills-center", path: "/skills/demo-skill" },
         },
         {
           key: "broken-skill",
@@ -369,7 +369,7 @@ describe("SkillConsole", () => {
         key: "demo-skill",
         name: "Demo Skill",
         status: "ready",
-        source: { kind: "skills-market", path: "/skills/demo-skill" },
+        source: { kind: "skills-center", path: "/skills/demo-skill" },
         updatedAt: 1700000000000,
       },
       capabilities: {

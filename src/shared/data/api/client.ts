@@ -578,6 +578,17 @@ export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "mod
   meta?: Record<string, unknown>;
   status: "ready" | "invalid" | string;
   diagnostics?: AdminAgentDiagnostic[];
+  privateSkills?: AdminAgentPrivateSkill[];
+}
+
+export interface AdminAgentPrivateSkill {
+  key: string;
+  name: string;
+  description?: string;
+  status: AdminSkillStatus;
+  diagnostics?: AdminAgentDiagnostic[];
+  enabled: boolean;
+  overridesCenter: boolean;
 }
 
 export type AdminSourceType = "agent" | "skill" | "automation" | "registry";
@@ -1196,10 +1207,16 @@ async function readJsonResponse<T = unknown>(
   try {
     json = rawText ? JSON.parse(rawText) : null;
   } catch (error) {
-    throw new ApiError(`Invalid JSON response: ${(error as Error).message}`, {
-      status: response.status,
-      data: rawText,
-    });
+    const body = rawText.trim().replace(/\s+/g, " ");
+    throw new ApiError(
+      response.ok
+        ? `Invalid JSON response: ${(error as Error).message}`
+        : body || `HTTP ${response.status}`,
+      {
+        status: response.status,
+        data: rawText,
+      },
+    );
   }
 
   if (!response.ok) {
@@ -2056,6 +2073,29 @@ export function deleteAgent(
   params: DeleteAgentRequest,
 ): Promise<ApiResponse<DeleteAgentResponse>> {
   return postJson<DeleteAgentResponse>(dataEndpoints.adminAgentDelete.path, params);
+}
+
+export function importAdminAgentPrivateSkill(params: {
+  agentKey: string;
+  file: File;
+  confirmCenterOverride?: boolean;
+}): Promise<ApiResponse<AdminAgentDetailResponse>> {
+  const form = new FormData();
+  form.append("agentKey", params.agentKey);
+  form.append("file", params.file);
+  if (params.confirmCenterOverride) form.append("confirmCenterOverride", "true");
+  return requestJson<AdminAgentDetailResponse>(dataEndpoints.adminAgentPrivateSkillImport.path, {
+    method: "POST",
+    body: form,
+    jsonContentType: false,
+  });
+}
+
+export function deleteAdminAgentPrivateSkill(params: {
+  agentKey: string;
+  key: string;
+}): Promise<ApiResponse<AdminAgentDetailResponse>> {
+  return postJson<AdminAgentDetailResponse>(dataEndpoints.adminAgentPrivateSkillDelete.path, params);
 }
 
 export function openAgentDirectory(

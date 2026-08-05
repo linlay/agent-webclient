@@ -195,6 +195,18 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  adminAgentPrivateSkillImport: defineEndpoint({
+    key: "admin.agents.privateSkills.import",
+    path: "/api/admin/agents/skills/import",
+    method: "POST",
+    transport: "http",
+  }),
+  adminAgentPrivateSkillDelete: defineEndpoint({
+    key: "admin.agents.privateSkills.delete",
+    path: "/api/admin/agents/skills/delete",
+    method: "POST",
+    transport: "http",
+  }),
   adminAgentDetail: defineEndpoint({
     key: "admin.agents.detail",
     path: "/api/admin/agents/detail",

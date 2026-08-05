@@ -192,7 +192,7 @@ const SlashPaletteContent: React.FC<{
               <Tag className={SLASH_SKILL_SOURCE_CLASS}>
                 {skill.agentHasSkill
                   ? t("slashPalette.skill.source.agent")
-                  : t("slashPalette.skill.source.market")}
+                  : t("slashPalette.skill.source.center")}
               </Tag>
             </UiButton>
           );
