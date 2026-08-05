@@ -87,8 +87,16 @@ const AddMenuContent: React.FC<{
   menuEntries: AddMenuEntry[];
   isOpen: boolean;
   filterText: string;
+  emptyText: string;
   onClose: () => void;
-}> = ({ hashPaletteRef, menuEntries, isOpen, filterText, onClose }) => {
+}> = ({
+  hashPaletteRef,
+  menuEntries,
+  isOpen,
+  filterText,
+  emptyText,
+  onClose,
+}) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const itemsRef = useRef<HTMLElement[]>([]);
 
@@ -221,7 +229,7 @@ const AddMenuContent: React.FC<{
         })}
         {filteredEntries.length === 0 && (
           <div className="tw:px-2 tw:py-4 tw:text-center tw:text-xs tw:text-text-muted">
-            无匹配结果
+            {emptyText}
           </div>
         )}
       </div>
@@ -363,7 +371,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
         key: "add:planning",
         icon: "checklist",
         label: t("composer.addMenu.mode.planning"),
-        suffix: "开启计划模式",
+        suffix: t("composer.addMenu.mode.planning.suffix"),
         disabled: false,
         check: planningMode,
         action: () => {
@@ -375,7 +383,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
         key: "add:editing",
         icon: "edit_square",
         label: t("composer.addMenu.mode.editing"),
-        suffix: "开启编辑模式",
+        suffix: t("composer.addMenu.mode.editing.suffix"),
         disabled: false,
         check: editingMode,
         action: () => {
@@ -521,6 +529,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
           menuEntries={menuEntries}
           isOpen={popoverOpen}
           filterText={filterText}
+          emptyText={t("composer.addMenu.empty")}
           onClose={closeAll}
         />
       }
