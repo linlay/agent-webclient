@@ -575,9 +575,14 @@ export function useConversationEventHandler(): {
         type === "run.complete" ||
         type === "run.cancel"
       ) {
-        // 将仍处于非终结态的 tool 节点标记为 completed
+        // 将仍处于非终结态的 tool / thinking / planning 节点标记为 completed
         for (const [nodeId, node] of cache.nodeById) {
-          if (node.kind === "tool" && !isTerminalStatus(node.status)) {
+          if (
+            (node.kind === "tool" ||
+              node.kind === "thinking" ||
+              node.kind === "planning") &&
+            !isTerminalStatus(node.status)
+          ) {
             const endedAt = node.endedAt ?? event.timestamp ?? Date.now();
             const completedNode: TimelineNode = {
               ...node,
