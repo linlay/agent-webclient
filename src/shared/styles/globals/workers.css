@@ -440,12 +440,7 @@
 
 /* Skills 页的列表在宽屏保持固定宽度，在窄屏切换为单列。 */
 .skills-page .skill-console-body {
-    grid-template-columns: 280px minmax(0, 1fr);
-}
-
-.skills-page .skill-console-list {
-    width: 280px;
-    min-width: 280px;
+    grid-template-columns: 240px minmax(0, 1fr);
 }
 
 @media (max-width: 860px) {

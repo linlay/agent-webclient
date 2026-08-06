@@ -33,10 +33,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
     <div className={`search-filter-bar ${className}`.trim()}>
       <Input
         prefix={
-          <MaterialIcon
-            name="search"
-            style={{ color: "var(--text-muted)" }}
-          />
+          <MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />
         }
         variant="filled"
         placeholder={searchPlaceholder}
@@ -53,7 +50,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
         >
           <button
             type="button"
-            className={`filter-trigger ${filter.active ? "is-active" : ""}`}
+            className={`filter-trigger ${filter.active ? "is-active" : ""} ui-icon-hover-24`}
             title={filter.label}
           >
             <MaterialIcon name={filter.icon || "filter_list"} />

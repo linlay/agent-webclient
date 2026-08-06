@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Alert, Input, Modal, Spin, Tabs } from "antd";
+import { Alert, Input, Modal, Spin, Tabs, Typography } from "antd";
 import type { MenuProps } from "antd";
 import {
   createAdminSkillFile,
@@ -122,7 +122,7 @@ const SKILL_CONSOLE_CLASS_NAME =
 const SKILL_BODY_CLASS_NAME =
   "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[280px_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
 const SKILL_LIST_CLASS_NAME =
-  "skill-console-list tw:flex tw:min-h-0 tw:min-w-[280px] tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px]";
+  "skill-console-list tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px]";
 const SKILL_TOOLBAR_CLASS_NAME =
   "skill-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2";
 const SKILL_LIST_SCROLL_CLASS_NAME =
@@ -136,9 +136,9 @@ const SKILL_LIST_ITEM_HEAD_CLASS_NAME =
 const SKILL_LIST_ITEM_ICON_CLASS_NAME =
   "skill-console-list-item-icon tw:h-7 tw:w-7 tw:flex-none tw:rounded-md tw:object-cover";
 const SKILL_LIST_ITEM_TITLE_CLASS_NAME =
-  "skill-console-list-item-title tw:inline-flex tw:min-w-0 tw:flex-1 tw:items-baseline tw:gap-[5px] tw:overflow-hidden tw:whitespace-nowrap tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.35]";
+  "skill-console-list-item-title tw:inline-flex tw:flex-col tw:min-w-0 tw:flex-1 tw:items-baseline tw:overflow-hidden tw:whitespace-nowrap tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.35]";
 const SKILL_LIST_ITEM_META_CLASS_NAME =
-  "skill-console-list-item-meta tw:flex tw:min-w-0 tw:items-center tw:gap-1.5 tw:overflow-hidden tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
+  "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
 const SKILL_COUNT_CLASS_NAME =
   "skill-console-count tw:text-xs tw:text-ink-muted";
 const SKILL_DETAIL_CLASS_NAME =
@@ -385,7 +385,11 @@ export function validateNewSkillKey(
   ) {
     return "invalid";
   }
-  if (existingKeys.some((candidate) => candidate.toLowerCase() === key.toLowerCase())) {
+  if (
+    existingKeys.some(
+      (candidate) => candidate.toLowerCase() === key.toLowerCase(),
+    )
+  ) {
     return "exists";
   }
   return "";
@@ -405,7 +409,9 @@ export function validateSkillArchiveFile(
   return "";
 }
 
-export function skillImportDiagnostics(error: unknown): SkillImportDiagnostic[] {
+export function skillImportDiagnostics(
+  error: unknown,
+): SkillImportDiagnostic[] {
   const data = (error as { data?: unknown } | null)?.data;
   if (!data || typeof data !== "object") return [];
   const errorData = (data as { error?: unknown }).error;
@@ -417,12 +423,14 @@ export function skillImportDiagnostics(error: unknown): SkillImportDiagnostic[] 
     const diagnostic = item as Record<string, unknown>;
     const message = String(diagnostic.message || "").trim();
     if (!message) return [];
-    return [{
-      severity: String(diagnostic.severity || "").trim() || undefined,
-      code: String(diagnostic.code || "").trim() || undefined,
-      message,
-      sourcePath: String(diagnostic.sourcePath || "").trim() || undefined,
-    }];
+    return [
+      {
+        severity: String(diagnostic.severity || "").trim() || undefined,
+        code: String(diagnostic.code || "").trim() || undefined,
+        message,
+        sourcePath: String(diagnostic.sourcePath || "").trim() || undefined,
+      },
+    ];
   });
 }
 
@@ -475,11 +483,11 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
 
   const currentKey = mode === "direct" ? directKey : zipKey;
   const keyValidation = validateNewSkillKey(currentKey, existingKeys);
-  const keyError = serverKeyError || (
-    keyValidation && (keyTouched || Boolean(currentKey))
+  const keyError =
+    serverKeyError ||
+    (keyValidation && (keyTouched || Boolean(currentKey))
       ? t(`skillConsole.create.keyError.${keyValidation}`)
-      : ""
-  );
+      : "");
   const canSubmit = !keyValidation && (mode === "direct" || Boolean(zipFile));
 
   const resetError = () => {
@@ -508,9 +516,10 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
     setSubmitting(true);
     try {
       const key = currentKey.trim();
-      const completed = mode === "direct"
-        ? await onDirectCreate(key, directName.trim() || key)
-        : await onZipImport(key, zipFile as File);
+      const completed =
+        mode === "direct"
+          ? await onDirectCreate(key, directName.trim() || key)
+          : await onZipImport(key, zipFile as File);
       if (!completed) return;
     } catch (error) {
       const importedDiagnostics = skillImportDiagnostics(error);
@@ -528,7 +537,10 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
 
   const directContent = (
     <div className="tw:flex tw:flex-col tw:gap-4 tw:pt-1">
-      <label className="tw:flex tw:flex-col tw:gap-1.5" htmlFor="skill-create-key">
+      <label
+        className="tw:flex tw:flex-col tw:gap-1.5"
+        htmlFor="skill-create-key"
+      >
         <span className="tw:text-sm tw:font-medium tw:text-ink-1">
           {t("skillConsole.field.key")}
         </span>
@@ -547,12 +559,19 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
           onPressEnter={() => void handleSubmit()}
         />
         {keyError && (
-          <span id="skill-create-key-error" role="alert" className="tw:text-xs tw:text-danger">
+          <span
+            id="skill-create-key-error"
+            role="alert"
+            className="tw:text-xs tw:text-danger"
+          >
             {keyError}
           </span>
         )}
       </label>
-      <label className="tw:flex tw:flex-col tw:gap-1.5" htmlFor="skill-create-name">
+      <label
+        className="tw:flex tw:flex-col tw:gap-1.5"
+        htmlFor="skill-create-name"
+      >
         <span className="tw:text-sm tw:font-medium tw:text-ink-1">
           {t("skillConsole.field.name")}
         </span>
@@ -588,7 +607,9 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       />
       <div
         className={`tw:flex tw:min-h-36 tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center ${
-          dragActive ? "tw:border-accent tw:bg-accent-soft" : "tw:border-line-soft tw:bg-bg-subtle"
+          dragActive
+            ? "tw:border-accent tw:bg-accent-soft"
+            : "tw:border-line-soft tw:bg-bg-subtle"
         }`}
         onDragEnter={(event) => {
           event.preventDefault();
@@ -611,10 +632,14 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
             <strong className="tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:text-ink-1">
               {zipFile.name}
             </strong>
-            <span className="tw:text-xs tw:text-ink-muted">{formatSize(zipFile.size)}</span>
+            <span className="tw:text-xs tw:text-ink-muted">
+              {formatSize(zipFile.size)}
+            </span>
           </>
         ) : (
-          <span className="tw:text-sm tw:text-ink-1">{t("skillConsole.import.drop")}</span>
+          <span className="tw:text-sm tw:text-ink-1">
+            {t("skillConsole.import.drop")}
+          </span>
         )}
         <UiButton
           size="sm"
@@ -622,13 +647,18 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
           onClick={() => fileInputRef.current?.click()}
           disabled={submitting}
         >
-          {zipFile ? t("skillConsole.import.replace") : t("skillConsole.import.select")}
+          {zipFile
+            ? t("skillConsole.import.replace")
+            : t("skillConsole.import.select")}
         </UiButton>
       </div>
       {archiveFileError && (
         <Alert type="error" showIcon message={archiveFileError} />
       )}
-      <label className="tw:flex tw:flex-col tw:gap-1.5" htmlFor="skill-import-key">
+      <label
+        className="tw:flex tw:flex-col tw:gap-1.5"
+        htmlFor="skill-import-key"
+      >
         <span className="tw:text-sm tw:font-medium tw:text-ink-1">
           {t("skillConsole.field.key")}
         </span>
@@ -646,7 +676,11 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
           onPressEnter={() => void handleSubmit()}
         />
         {keyError && (
-          <span id="skill-import-key-error" role="alert" className="tw:text-xs tw:text-danger">
+          <span
+            id="skill-import-key-error"
+            role="alert"
+            className="tw:text-xs tw:text-danger"
+          >
             {keyError}
           </span>
         )}
@@ -655,7 +689,11 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
         {t("skillConsole.import.description")}
       </div>
       {submitting && (
-        <div role="status" aria-live="polite" className="tw:text-xs tw:text-ink-muted">
+        <div
+          role="status"
+          aria-live="polite"
+          className="tw:text-xs tw:text-ink-muted"
+        >
           {t("skillConsole.import.uploading")}
         </div>
       )}
@@ -670,7 +708,11 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       destroyOnClose
       maskClosable={!submitting}
       keyboard={!submitting}
-      okText={t(mode === "direct" ? "skillConsole.create.submit" : "skillConsole.import.submit")}
+      okText={t(
+        mode === "direct"
+          ? "skillConsole.create.submit"
+          : "skillConsole.import.submit",
+      )}
       cancelText={t("skillConsole.action.cancel")}
       confirmLoading={submitting}
       okButtonProps={{ disabled: !canSubmit }}
@@ -688,17 +730,32 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
           resetError();
         }}
         items={[
-          { key: "direct", label: t("skillConsole.create.mode.direct"), children: directContent },
-          { key: "zip", label: t("skillConsole.create.mode.zip"), children: zipContent },
+          {
+            key: "direct",
+            label: t("skillConsole.create.mode.direct"),
+            children: directContent,
+          },
+          {
+            key: "zip",
+            label: t("skillConsole.create.mode.zip"),
+            children: zipContent,
+          },
         ]}
       />
       {submitError && (
-        <Alert className="tw:mt-3" type="error" showIcon message={submitError} />
+        <Alert
+          className="tw:mt-3"
+          type="error"
+          showIcon
+          message={submitError}
+        />
       )}
       {diagnostics.length > 0 && (
         <ul className="tw:mt-3 tw:flex tw:list-disc tw:flex-col tw:gap-1 tw:pl-5 tw:text-xs tw:text-danger">
           {diagnostics.map((diagnostic, index) => (
-            <li key={`${diagnostic.code || "diagnostic"}-${diagnostic.sourcePath || index}`}>
+            <li
+              key={`${diagnostic.code || "diagnostic"}-${diagnostic.sourcePath || index}`}
+            >
               {diagnostic.sourcePath ? `${diagnostic.sourcePath}: ` : ""}
               {diagnostic.message}
             </li>
@@ -785,6 +842,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             <UiButton
               size="sm"
               variant="ghost"
+              className="ui-icon-hover-24"
               iconOnly
               onClick={onCreateFile}
               aria-label={t("skillConsole.action.createFile")}
@@ -794,6 +852,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             <UiButton
               size="sm"
               variant="ghost"
+              className="ui-icon-hover-24"
               iconOnly
               onClick={onCreateDir}
               aria-label={t("skillConsole.action.createDir")}
@@ -803,6 +862,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             <UiButton
               size="sm"
               variant="ghost"
+              className="ui-icon-hover-24"
               iconOnly
               onClick={onValidate}
               disabled={validating}
@@ -813,6 +873,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             <UiButton
               size="sm"
               variant="ghost"
+              className="ui-icon-hover-24"
               onClick={onDownloadSkill}
               disabled={downloadingSkill || !canDownloadSkill}
               loading={downloadingSkill}
@@ -884,7 +945,10 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
           <>
             <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
               <div className={SKILL_FILE_EDITOR_META_CLASS_NAME}>
-                <MaterialIcon name={iconForEntry(selectedEntry)} />
+                <MaterialIcon
+                  name={iconForEntry(selectedEntry)}
+                  style={{ fontSize: 16 }}
+                />
                 <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
                   {selectedEntry.path}
                 </span>
@@ -904,6 +968,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                 <UiButton
                   size="sm"
                   variant="ghost"
+                  className="ui-icon-hover-24"
                   iconOnly
                   onClick={onRefreshFile}
                   disabled={saving}
@@ -915,6 +980,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                   <UiButton
                     size="sm"
                     variant="primary"
+                    className="ui-icon-hover-24"
                     iconOnly
                     onClick={onSave}
                     disabled={saving || !isFileDirty}
@@ -927,6 +993,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                   <UiButton
                     size="sm"
                     variant="ghost"
+                    className="ui-icon-hover-24"
                     iconOnly
                     onClick={onDownloadFile}
                     disabled={downloadingFile || !selectedEntry.downloadable}
@@ -950,6 +1017,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     <UiButton
                       size="sm"
                       variant="ghost"
+                      className="ui-icon-hover-24"
                       iconOnly
                       onClick={() => fileInputRef.current?.click()}
                       aria-label={t("skillConsole.action.replaceFile")}
@@ -962,6 +1030,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                   <UiButton
                     size="sm"
                     variant="ghost"
+                    className="ui-icon-hover-24"
                     iconOnly
                     onClick={onRenameFile}
                     aria-label={t("skillConsole.action.rename")}
@@ -973,6 +1042,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                   <UiButton
                     size="sm"
                     variant="ghost"
+                    className="ui-icon-hover-24"
                     iconOnly
                     onClick={onDeleteFile}
                     aria-label={t("skillConsole.action.delete")}
@@ -1570,17 +1640,23 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const completeSkillCreation = (created: AdminSkillDetailResponse) => {
     const key = created.skill.key;
     setSkills((prev) =>
-      [
-        ...prev.filter((item) => item.key !== key),
-        created.skill,
-      ].sort((a, b) => a.key.localeCompare(b.key)),
+      [...prev.filter((item) => item.key !== key), created.skill].sort((a, b) =>
+        a.key.localeCompare(b.key),
+      ),
     );
     setCreateModalOpen(false);
-    setMessage(t("skillConsole.message.createSuccess", { name: created.skill.name || key }));
+    setMessage(
+      t("skillConsole.message.createSuccess", {
+        name: created.skill.name || key,
+      }),
+    );
     onSelectSkillKey(key);
   };
 
-  const handleDirectCreate = async (key: string, name: string): Promise<boolean> => {
+  const handleDirectCreate = async (
+    key: string,
+    name: string,
+  ): Promise<boolean> => {
     if (!(await confirmDiscardBeforeAdding())) return false;
     const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
     const response = await createAdminSkill({ key, skillMd });
@@ -1676,6 +1752,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             <UiButton
               size="sm"
               variant="ghost"
+              className="ui-icon-hover-24"
               iconOnly
               onClick={loadSkills}
               disabled={listLoading}
@@ -1686,6 +1763,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             <UiButton
               size="sm"
               variant="primary"
+              className="ui-icon-hover-24"
               iconOnly
               onClick={() => setCreateModalOpen(true)}
               aria-label={t("skillConsole.action.createSkill")}
@@ -1729,7 +1807,17 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
                         <SkillListIcon icon={item.icon} />
                         <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
-                          <strong>{item.name || item.key}</strong>
+                          <Typography.Text
+                            ellipsis={{ tooltip: item.name || item.key }}
+                          >
+                            <strong>{item.name || item.key}</strong>
+                          </Typography.Text>
+                          <Typography.Text
+                            className={SKILL_LIST_ITEM_META_CLASS_NAME}
+                            ellipsis={{ tooltip: item.key }}
+                          >
+                            {item.key}
+                          </Typography.Text>
                         </span>
                         <UiTag tone={statusTone(item.status)}>
                           {translateWithFallback(
@@ -1738,11 +1826,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                             item.status,
                           )}
                         </UiTag>
-                      </span>
-                      <span className={SKILL_LIST_ITEM_META_CLASS_NAME}>
-                        <span className="tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-                          {item.key}
-                        </span>
                       </span>
                     </button>
                   ))}

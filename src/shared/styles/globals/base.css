@@ -134,6 +134,11 @@ textarea {
     --ui-icon-hover-bg-radius: 7px;
 }
 
+:is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only {
+    width: var(--ui-icon-hover-bg-size);
+    min-width: var(--ui-icon-hover-bg-size);
+    min-height: var(--ui-icon-hover-bg-size);
+}
 :is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only .material-icon,
 :is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only .material-icon,
 :is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target),
