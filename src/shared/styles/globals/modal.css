@@ -739,9 +739,9 @@
     z-index: 100;
     gap: 8px;
     margin: 0 0 8px;
-    padding: 6px 0 8px;
-    background: var(--bg-base);
+    padding: 6px;
     border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(100px);
 }
 
 .automation-section-nav-links {
@@ -1405,9 +1405,9 @@
 .agent-section-nav {
     z-index: 100;
     gap: 8px;
-    padding: 6px 0;
-    background: var(--bg-base);
+    padding: 6px;
     border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(100px);
 }
 
 .agent-section-nav-links {

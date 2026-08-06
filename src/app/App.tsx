@@ -135,7 +135,7 @@ const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               colorBgBase: "#0d0e10",
               colorBgLayout: "#0d0e10",
               colorBgContainer: "#161719",
-              colorBgElevated: "#161719",
+              colorBgElevated: "#2d2d2d",
               colorText: "#f2f3f5",
               colorTextSecondary: "#c9cdd4",
               colorTextTertiary: "#86909c",
