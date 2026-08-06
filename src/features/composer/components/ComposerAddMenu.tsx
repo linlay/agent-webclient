@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Popover, Typography } from "antd";
 import type { Chat } from "@/app/state/types";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
@@ -37,6 +31,7 @@ interface AddMenuPopoverProps {
   onAddReference: (reference: ComposerContextReferenceInput) => void;
   onTogglePlanningMode: () => void;
   onEditingModeChange: (enabled: boolean) => void;
+  onClose: () => void;
   children: React.ReactElement;
 }
 
@@ -150,6 +145,7 @@ const AddMenuContent: React.FC<{
         }
       } else if (e.key === "Enter") {
         e.preventDefault();
+        e.stopPropagation();
         const item = actionItems[activeIndex];
         if (item && !item.disabled) {
           item.action();
@@ -157,8 +153,9 @@ const AddMenuContent: React.FC<{
       }
     };
 
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    // 捕获阶段监听，确保先于 Composer 输入框的 keydown 处理
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [activeIndex, actionItems, isOpen]);
 
   let itemIndex = 0;
@@ -238,7 +235,7 @@ const AddMenuContent: React.FC<{
 };
 
 export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
-  open: hashOpen,
+  open,
   inputValue,
   popoverWidth,
   getPopupContainer,
@@ -253,12 +250,11 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
   onAddReference,
   onTogglePlanningMode,
   onEditingModeChange,
+  onClose,
   children,
 }) => {
   const { t } = useI18n();
   const siteAvailable = canUseDesktopWebsBridge();
-
-  const [clickOpen, setClickOpen] = useState(false);
 
   // Site list (loaded inline)
   const [sites, setSites] = useState<DesktopWebEntry[]>([]);
@@ -270,29 +266,20 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
   const [chatsLoading, setChatsLoading] = useState(false);
   const [chatsError, setChatsError] = useState("");
 
-  const popoverOpen = hashOpen || clickOpen;
-
   // Snapshot inputValue when popover opens — filterText = delta after open
   const openInputRef = useRef(inputValue);
   useEffect(() => {
-    if (popoverOpen) {
+    if (open) {
       openInputRef.current = inputValue;
     }
-  }, [popoverOpen]); // eslint-disable-line react-hooks/exhaustive-deps
-  const filterText = popoverOpen
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const filterText = open
     ? (inputValue || "").slice(openInputRef.current.length)
     : "";
 
-  // Reset clickOpen when hash triggers
-  useEffect(() => {
-    if (hashOpen) {
-      setClickOpen(false);
-    }
-  }, [hashOpen]);
-
   // Load chats when popover opens
   useEffect(() => {
-    if (!popoverOpen) return;
+    if (!open) return;
     setChats([]);
     setChatsLoading(true);
     setChatsError("");
@@ -313,11 +300,11 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
         setChatsLoading(false);
       }
     })();
-  }, [popoverOpen, currentChatId, currentAgentKey, t]);
+  }, [open, currentChatId, currentAgentKey, t]);
 
   // Load sites when popover opens (only if bridge available)
   useEffect(() => {
-    if (!popoverOpen || !siteAvailable) return;
+    if (!open || !siteAvailable) return;
     setSites([]);
     setSitesLoading(true);
     setSitesError("");
@@ -332,11 +319,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
         setSitesLoading(false);
       }
     })();
-  }, [popoverOpen, siteAvailable, t]);
-
-  const closeAll = useCallback(() => {
-    setClickOpen(false);
-  }, []);
+  }, [open, siteAvailable, t]);
 
   const menuEntries = useMemo<AddMenuEntry[]>(() => {
     const entries: AddMenuEntry[] = [
@@ -351,7 +334,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
         label: t("composer.addMenu.file"),
         disabled: false,
         action: () => {
-          closeAll();
+          onClose();
           onOpenFilePicker();
         },
       },
@@ -415,7 +398,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
             disabled: false,
             suffix: site.url || site.entryKey,
             action: () => {
-              closeAll();
+              onClose();
               onAddReference({
                 type: "site",
                 id: site.entryKey,
@@ -459,7 +442,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
           disabled: false,
           suffix: normalizeText(chat.lastRunContent) || undefined,
           action: () => {
-            closeAll();
+            onClose();
             onAddReference({
               type: "chat",
               id: chatId,
@@ -493,7 +476,7 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
     planningMode,
     siteAvailable,
     t,
-    closeAll,
+    onClose,
     onOpenFilePicker,
     onTogglePlanningMode,
     onEditingModeChange,
@@ -510,10 +493,11 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
 
   return (
     <Popover
-      open={popoverOpen}
+      open={open}
       placement="topLeft"
       arrow={false}
       autoAdjustOverflow
+      destroyOnHidden
       classNames={{ root: "composer-add-menu-popover-overlay" }}
       styles={{
         root: {
@@ -527,10 +511,10 @@ export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
         <AddMenuContent
           hashPaletteRef={hashPaletteRef}
           menuEntries={menuEntries}
-          isOpen={popoverOpen}
+          isOpen={open}
           filterText={filterText}
           emptyText={t("composer.addMenu.empty")}
-          onClose={closeAll}
+          onClose={onClose}
         />
       }
     >

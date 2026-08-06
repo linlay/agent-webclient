@@ -75,6 +75,7 @@ describe("AddMenuPopover", () => {
         onAddReference: jest.fn(),
         onTogglePlanningMode: jest.fn(),
         onEditingModeChange: jest.fn(),
+        onClose: jest.fn(),
         children: React.createElement("div", null),
       }),
     );

@@ -711,6 +711,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             onAddReference={addContextReference}
             onTogglePlanningMode={togglePlanningMode}
             onEditingModeChange={handleEditingModeChange}
+            onClose={() => {
+              setHashDismissed(true);
+              setAddMenuClickOpen(false);
+            }}
           >
           <SlashPalette
             open={showSlashPalette}
