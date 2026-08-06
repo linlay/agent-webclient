@@ -1,7 +1,10 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
-import { CopilotShell } from "@/app/layout/CopilotShell";
+import {
+  CopilotShell,
+  createCopilotChatRoute,
+} from "@/app/layout/CopilotShell";
 
 const mockUiButtonProps: Array<Record<string, any>> = [];
 const mockDiscardBTW = jest.fn();
@@ -469,6 +472,145 @@ describe("CopilotShell", () => {
     useEffectSpy.mockRestore();
   });
 
+  it("builds a canonical copilot chat route while preserving host parameters", () => {
+    expect(
+      createCopilotChatRoute(
+        "zenmi",
+        new URLSearchParams(
+          "agentKey=legacy&lang=zh&theme=light&hostTheme=dark&wsSource=desktop-copilot&newChat=123&history=1",
+        ),
+        "d8c73338-7e4b-49ad-a134-bc15b16ef3ed",
+      ),
+    ).toBe(
+      "/copilot/zenmi?lang=zh&theme=light&hostTheme=dark&wsSource=desktop-copilot&chatId=d8c73338-7e4b-49ad-a134-bc15b16ef3ed",
+    );
+  });
+
+  it("promotes a new copilot live session to its stable chat URL without loading history", () => {
+    const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useLocation.mockReturnValue({ pathname: "/copilot/zenmi" });
+    useParams.mockReturnValue({ agentKey: "zenmi" });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("lang=zh&theme=light"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [{ key: "zenmi", name: "Zenmi" }],
+      workerSelectionKey: "agent:zenmi",
+    });
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    const registration = (
+      globalWithStorage.window?.addEventListener as jest.Mock
+    ).mock.calls.find(([type]) => type === "agent:new-chat-created");
+    expect(registration).toBeDefined();
+    const listener = registration?.[1] as EventListener;
+    listener(
+      new CustomEvent("agent:new-chat-created", {
+        detail: {
+          agentKey: "zenmi",
+          chatId: "d8c73338-7e4b-49ad-a134-bc15b16ef3ed",
+        },
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith(
+      "/copilot/zenmi?lang=zh&theme=light&chatId=d8c73338-7e4b-49ad-a134-bc15b16ef3ed",
+      { replace: true },
+    );
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:load-chat" }),
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("syncs an explicitly loaded copilot history chat without dispatching a second load", () => {
+    const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useLocation.mockReturnValue({ pathname: "/copilot/zenmi" });
+    useParams.mockReturnValue({ agentKey: "zenmi" });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("lang=zh&theme=light&chatId=old-chat"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [{ key: "zenmi", name: "Zenmi" }],
+      workerSelectionKey: "agent:zenmi",
+    });
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    const registration = (
+      globalWithStorage.window?.addEventListener as jest.Mock
+    ).mock.calls.find(([type]) => type === "agent:load-chat");
+    expect(registration).toBeDefined();
+    const listener = registration?.[1] as EventListener;
+    listener(
+      new CustomEvent("agent:load-chat", {
+        detail: { chatId: "history-chat" },
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith(
+      "/copilot/zenmi?lang=zh&theme=light&chatId=history-chat",
+    );
+    expect(
+      dispatchEvent.mock.calls.filter(
+        ([event]) => (event as Event).type === "agent:load-chat",
+      ),
+    ).toHaveLength(1);
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("clears the copilot chat URL when starting another conversation", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useLocation.mockReturnValue({ pathname: "/copilot/zenmi" });
+    useParams.mockReturnValue({ agentKey: "zenmi" });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("lang=zh&theme=light&chatId=old-chat"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [{ key: "zenmi", name: "Zenmi" }],
+      workerSelectionKey: "agent:zenmi",
+    });
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+
+    const registration = (
+      globalWithStorage.window?.addEventListener as jest.Mock
+    ).mock.calls.find(([type]) => type === "agent:start-new-conversation");
+    expect(registration).toBeDefined();
+    const listener = registration?.[1] as EventListener;
+    listener(
+      new CustomEvent("agent:start-new-conversation", {
+        detail: { agentKey: "zenmi" },
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith(
+      "/copilot/zenmi?lang=zh&theme=light",
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
   it("updates the copilot URL when the user selects another agent on the bare route", () => {
     const useEffectSpy = jest
       .spyOn(React, "useEffect")
@@ -525,6 +667,42 @@ describe("CopilotShell", () => {
     );
 
     expect(navigate).toHaveBeenCalledWith("/copilot/second-agent");
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("clears chat identity and preserves host parameters when selecting another agent", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useLocation.mockReturnValue({ pathname: "/copilot/first-agent" });
+    useParams.mockReturnValue({ agentKey: "first-agent" });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("lang=zh&theme=light&chatId=old-chat"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "first-agent", name: "First Agent" },
+        { key: "second-agent", name: "Second Agent" },
+      ],
+    });
+
+    renderToStaticMarkup(React.createElement(CopilotShell));
+    const selectWorkerHandler = (
+      globalWithStorage.window?.addEventListener as jest.Mock
+    ).mock.calls.find(([type]) => type === "agent:select-worker")?.[1];
+    selectWorkerHandler(
+      new CustomEvent("agent:select-worker", {
+        detail: { workerKey: "agent:second-agent" },
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith(
+      "/copilot/second-agent?lang=zh&theme=light",
+    );
 
     useEffectSpy.mockRestore();
   });

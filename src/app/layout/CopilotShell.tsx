@@ -145,6 +145,49 @@ function normalizeRouteValue(value: string | null | undefined) {
   return String(value || "").trim();
 }
 
+const COPILOT_ROUTE_ONE_SHOT_PARAMS = [
+  "agentKey",
+  "newChat",
+  "newChatRequest",
+  "history",
+  "historyRequest",
+] as const;
+
+export function createCopilotChatRoute(
+  agentKey: string,
+  searchParams: URLSearchParams,
+  chatId = "",
+): string {
+  const normalizedAgentKey = normalizeRouteValue(agentKey);
+  if (!normalizedAgentKey) {
+    return "";
+  }
+
+  const nextSearchParams = new URLSearchParams(searchParams);
+  for (const key of COPILOT_ROUTE_ONE_SHOT_PARAMS) {
+    nextSearchParams.delete(key);
+  }
+  const normalizedChatId = normalizeRouteValue(chatId);
+  if (normalizedChatId) {
+    nextSearchParams.set("chatId", normalizedChatId);
+  } else {
+    nextSearchParams.delete("chatId");
+  }
+  const nextSearch = nextSearchParams.toString();
+  return `/copilot/${encodeURIComponent(normalizedAgentKey)}${
+    nextSearch ? `?${nextSearch}` : ""
+  }`;
+}
+
+function createCopilotRouteTargetKey(agentKey: string, chatId: string): string {
+  return `${normalizeRouteValue(agentKey)}\u0000${normalizeRouteValue(chatId)}`;
+}
+
+type CopilotConversationRouteEventDetail = {
+  agentKey?: unknown;
+  chatId?: unknown;
+};
+
 const CopilotTopBar: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -399,6 +442,10 @@ export const CopilotShell: React.FC = () => {
     () => normalizeRouteValue(searchParams.get("chatId")),
     [searchParams],
   );
+  const currentCopilotRoute = useMemo(() => {
+    const currentSearch = searchParams.toString();
+    return `${location.pathname}${currentSearch ? `?${currentSearch}` : ""}`;
+  }, [location.pathname, searchParams]);
 
   useAppRuntimes();
 
@@ -408,7 +455,10 @@ export const CopilotShell: React.FC = () => {
       return;
     }
 
-    const routeTargetKey = `${resolvedAgentKey}\u0000${routeChatId}`;
+    const routeTargetKey = createCopilotRouteTargetKey(
+      resolvedAgentKey,
+      routeChatId,
+    );
     if (lastRouteTargetKeyRef.current === routeTargetKey) {
       return;
     }
@@ -449,6 +499,89 @@ export const CopilotShell: React.FC = () => {
   }, [dispatch, resolvedAgentKey, routeChatId]);
 
   useEffect(() => {
+    const navigateToHandledConversation = (
+      targetAgentKey: string,
+      targetChatId: string,
+      replace: boolean,
+    ) => {
+      const nextRoute = createCopilotChatRoute(
+        targetAgentKey,
+        searchParams,
+        targetChatId,
+      );
+      if (!nextRoute || nextRoute === currentCopilotRoute) {
+        return;
+      }
+
+      lastRouteTargetKeyRef.current = createCopilotRouteTargetKey(
+        targetAgentKey,
+        targetChatId,
+      );
+      if (replace) {
+        navigate(nextRoute, { replace: true });
+      } else {
+        navigate(nextRoute);
+      }
+    };
+
+    const handleNewChatCreated = (event: Event) => {
+      const detail = ((event as CustomEvent).detail ||
+        {}) as CopilotConversationRouteEventDetail;
+      const chatId = normalizeRouteValue(String(detail.chatId || ""));
+      const agentKey =
+        normalizeRouteValue(String(detail.agentKey || "")) || resolvedAgentKey;
+      if (!agentKey || !chatId) {
+        return;
+      }
+      navigateToHandledConversation(agentKey, chatId, true);
+    };
+
+    const handleLoadChat = (event: Event) => {
+      const detail = ((event as CustomEvent).detail ||
+        {}) as CopilotConversationRouteEventDetail;
+      const chatId = normalizeRouteValue(String(detail.chatId || ""));
+      const agentKey =
+        normalizeRouteValue(String(detail.agentKey || "")) || resolvedAgentKey;
+      if (!agentKey || !chatId) {
+        return;
+      }
+      navigateToHandledConversation(agentKey, chatId, false);
+    };
+
+    const handleStartNewConversation = (event: Event) => {
+      const detail = ((event as CustomEvent).detail ||
+        {}) as CopilotConversationRouteEventDetail;
+      const agentKey =
+        normalizeRouteValue(String(detail.agentKey || "")) || resolvedAgentKey;
+      if (!agentKey || !routeChatId) {
+        return;
+      }
+      navigateToHandledConversation(agentKey, "", false);
+    };
+
+    window.addEventListener("agent:new-chat-created", handleNewChatCreated);
+    window.addEventListener("agent:load-chat", handleLoadChat);
+    window.addEventListener(
+      "agent:start-new-conversation",
+      handleStartNewConversation,
+    );
+    return () => {
+      window.removeEventListener("agent:new-chat-created", handleNewChatCreated);
+      window.removeEventListener("agent:load-chat", handleLoadChat);
+      window.removeEventListener(
+        "agent:start-new-conversation",
+        handleStartNewConversation,
+      );
+    };
+  }, [
+    currentCopilotRoute,
+    navigate,
+    resolvedAgentKey,
+    routeChatId,
+    searchParams,
+  ]);
+
+  useEffect(() => {
     const handler = (event: Event) => {
       const detail = ((event as CustomEvent).detail || {}) as {
         workerKey?: unknown;
@@ -458,19 +591,22 @@ export const CopilotShell: React.FC = () => {
         String(detail.agentKey || ""),
       );
       const workerKey = normalizeRouteValue(String(detail.workerKey || ""));
-      const nextPath = explicitAgentKey
-        ? `/copilot/${encodeURIComponent(explicitAgentKey)}`
-        : workerKey.startsWith("agent:")
-          ? `/copilot/${encodeURIComponent(workerKey.slice("agent:".length))}`
-          : "/copilot";
+      const nextAgentKey = explicitAgentKey || (
+        workerKey.startsWith("agent:")
+          ? normalizeRouteValue(workerKey.slice("agent:".length))
+          : ""
+      );
+      const nextPath = nextAgentKey
+        ? createCopilotChatRoute(nextAgentKey, searchParams)
+        : "/copilot";
 
-      if (location.pathname !== nextPath) {
+      if (currentCopilotRoute !== nextPath) {
         navigate(nextPath);
       }
     };
     window.addEventListener("agent:select-worker", handler);
     return () => window.removeEventListener("agent:select-worker", handler);
-  }, [location.pathname, navigate]);
+  }, [currentCopilotRoute, navigate, searchParams]);
 
   return (
     <SettingsOverlayProvider>
