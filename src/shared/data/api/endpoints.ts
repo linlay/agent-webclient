@@ -233,6 +233,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "PUT",
     transport: "http",
   }),
+  adminSourceDelete: defineEndpoint({
+    key: "admin.source.delete",
+    path: "/api/admin/source",
+    method: "DELETE",
+    transport: "http",
+  }),
   adminAgentEditorOptions: defineEndpoint({
     key: "admin.agents.editorOptions",
     path: "/api/admin/agents/editor-options",

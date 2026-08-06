@@ -632,6 +632,16 @@ export interface UpdateAdminSourceRequest {
   baseSha256?: string;
 }
 
+export interface DeleteAdminSourceRequest {
+  target: AdminSourceTarget;
+  baseSha256?: string;
+}
+
+export interface DeleteAdminSourceResponse {
+  target: AdminSourceTarget;
+  deleted: boolean;
+}
+
 export interface CreateAgentRequest {
   key?: string;
   definition: Record<string, unknown>;
@@ -2043,6 +2053,18 @@ export function updateAdminSource(
     method: "PUT",
     body: JSON.stringify(params),
   });
+}
+
+export function deleteAdminSource(
+  params: DeleteAdminSourceRequest,
+): Promise<ApiResponse<DeleteAdminSourceResponse>> {
+  return requestJson<DeleteAdminSourceResponse>(
+    dataEndpoints.adminSourceDelete.path,
+    {
+      method: "DELETE",
+      body: JSON.stringify(params),
+    },
+  );
 }
 
 export function createAgent(

@@ -430,6 +430,22 @@
     min-width: 280px;
 }
 
+.mcp-server-detail.is-source-editor>.ant-spin-nested-loading,
+.mcp-server-detail.is-source-editor>.ant-spin-nested-loading>.ant-spin-container {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.mcp-source-workspace {
+    padding-bottom: 12px;
+}
+
+.mcp-form-grid .ant-select {
+    width: 100%;
+}
+
 .automation-console-list,
 .automation-console-detail {
     min-width: 0;

@@ -39,6 +39,7 @@ import {
   deleteArchive,
   deleteAgent,
   deleteAdminAgentPrivateSkill,
+  deleteAdminSource,
   deleteChat,
   deleteAutomation,
   downloadResource,
@@ -1435,12 +1436,20 @@ describe('data client query payloads', () => {
     );
   });
 
-  it('reads and updates an admin source file through the typed management endpoint', async () => {
+  it('reads, updates, and deletes an admin source file through the typed management endpoint', async () => {
     await getAdminSource({ type: 'agent', key: 'editable-agent' });
     await updateAdminSource({
       target: { type: 'agent', key: 'editable-agent' },
       content: '# keep this comment\nkey: editable-agent\n',
       baseSha256: 'source-sha',
+    });
+    await deleteAdminSource({
+      target: {
+        type: 'registry',
+        category: 'mcp-servers',
+        file: 'demo.yml',
+      },
+      baseSha256: 'registry-sha',
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
@@ -1454,6 +1463,20 @@ describe('data client query payloads', () => {
           target: { type: 'agent', key: 'editable-agent' },
           content: '# keep this comment\nkey: editable-agent\n',
           baseSha256: 'source-sha',
+        }),
+      }),
+    ]);
+    expect(fetchMock.mock.calls[2]).toEqual([
+      '/api/admin/source',
+      expect.objectContaining({
+        method: 'DELETE',
+        body: JSON.stringify({
+          target: {
+            type: 'registry',
+            category: 'mcp-servers',
+            file: 'demo.yml',
+          },
+          baseSha256: 'registry-sha',
         }),
       }),
     ]);

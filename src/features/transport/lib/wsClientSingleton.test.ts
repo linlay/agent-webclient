@@ -151,4 +151,30 @@ describe("wsClientSingleton", () => {
 		singleton.initWsClient({ accessToken: "token_3" });
 		expect(listener).toHaveBeenCalledTimes(4);
 	});
+
+	it("fans out push frames without replacing the primary runtime handler", async () => {
+		const singleton = await import("./wsClientSingleton");
+		const primary = jest.fn();
+		const subscriber = jest.fn();
+		const unsubscribe = singleton.subscribeWsPush(subscriber);
+
+		singleton.initWsClient({ accessToken: "token_1", onPush: primary });
+		const options = mockWsClientInstances[0]?.options as {
+			onPush?: (frame: Record<string, unknown>) => void;
+		};
+		const frame = {
+			frame: "push",
+			type: "catalog.updated",
+			data: { reason: "mcp-servers", updatedAt: 1786000000000 },
+		};
+		options.onPush?.(frame);
+
+		expect(primary).toHaveBeenCalledWith(frame);
+		expect(subscriber).toHaveBeenCalledWith(frame);
+
+		unsubscribe();
+		options.onPush?.(frame);
+		expect(primary).toHaveBeenCalledTimes(2);
+		expect(subscriber).toHaveBeenCalledTimes(1);
+	});
 });

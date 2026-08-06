@@ -1,9 +1,13 @@
 import { WsClient, type WsClientOptions } from "@/features/transport/lib/wsClient";
 
+type WsPushListener = NonNullable<WsClientOptions["onPush"]>;
+
 let wsClient: WsClient | null = null;
 let wsClientAccessToken = "";
 let pendingDestroyTimer: ReturnType<typeof setTimeout> | null = null;
 const wsClientListeners = new Set<(client: WsClient | null) => void>();
+const wsPushListeners = new Set<WsPushListener>();
+let primaryWsPushListener: WsPushListener | undefined;
 
 function notifyWsClientListeners(): void {
 	for (const listener of wsClientListeners) {
@@ -21,11 +25,20 @@ function clearPendingDestroy(): void {
 
 function withAccessTokenSync(options: WsClientOptions): WsClientOptions {
 	const onAccessTokenChange = options.onAccessTokenChange;
+	if (options.onPush !== undefined) {
+		primaryWsPushListener = options.onPush;
+	}
 	return {
 		...options,
 		onAccessTokenChange: (accessToken) => {
 			wsClientAccessToken = String(accessToken || "").trim();
 			onAccessTokenChange?.(accessToken);
+		},
+		onPush: (frame) => {
+			primaryWsPushListener?.(frame);
+			for (const listener of wsPushListeners) {
+				listener(frame);
+			}
 		},
 	};
 }
@@ -85,6 +98,14 @@ export function subscribeWsClient(
 	};
 }
 
+export function subscribeWsPush(listener: WsPushListener): () => void {
+	clearPendingDestroy();
+	wsPushListeners.add(listener);
+	return () => {
+		wsPushListeners.delete(listener);
+	};
+}
+
 export function destroyWsClient(): void {
 	clearPendingDestroy();
 	if (wsClient) {
@@ -92,6 +113,7 @@ export function destroyWsClient(): void {
 	}
 	wsClient = null;
 	wsClientAccessToken = "";
+	primaryWsPushListener = undefined;
 	notifyWsClientListeners();
 }
 
