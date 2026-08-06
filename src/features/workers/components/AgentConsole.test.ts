@@ -132,11 +132,30 @@ describe("AgentConsole private skill options", () => {
     expect(options).toEqual([
       expect.objectContaining({
         key: "office",
-        label: "Private Office · office · agentConsole.privateSkill.source.override",
+        label: "Private Office · agentConsole.privateSkill.source.private",
         source: "private",
         overridesCenter: true,
       }),
     ]);
+  });
+
+  it("renders a short private acronym without repeating its key", () => {
+    const options = mergeAgentSkillOptions(
+      [{ key: "cdp", label: "cdp" }],
+      [
+        {
+          key: "cdp",
+          name: "cdp",
+          status: "ready",
+          enabled: true,
+          overridesCenter: true,
+        },
+      ],
+      ["cdp"],
+      translate,
+    );
+
+    expect(options[0]?.label).toBe("CDP · agentConsole.privateSkill.source.private");
   });
 
   it("reads private skills only from admin Agent detail", () => {

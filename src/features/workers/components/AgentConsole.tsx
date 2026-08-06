@@ -22,7 +22,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Checkbox, Input, Modal, Popconfirm, Select, Spin, Switch, message } from "antd";
+import { Input, Modal, Popconfirm, Select, Spin, Switch, message } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
 import {
@@ -331,6 +331,18 @@ export function privateSkillsFromDetail(
   return (detail as AdminAgentDetailResponse).privateSkills || [];
 }
 
+function agentSkillDisplayName(label: string, key: string): string {
+  const value = toText(label) || toText(key);
+  if (
+    value === value.toLowerCase() &&
+    value.toLowerCase() === toText(key).toLowerCase() &&
+    /^[a-z0-9]{2,4}$/.test(value)
+  ) {
+    return value.toUpperCase();
+  }
+  return value;
+}
+
 export function mergeAgentSkillOptions(
   centerSkills: Array<{ key: string; label: string }>,
   privateSkills: AdminAgentPrivateSkill[],
@@ -366,13 +378,14 @@ export function mergeAgentSkillOptions(
   return [...entries.values()]
     .map((item) => ({
       ...item,
-      label: `${item.label}${item.label === item.key ? "" : ` · ${item.key}`} · ${
+      label:
         item.source === "private"
-          ? item.overridesCenter
-            ? t("agentConsole.privateSkill.source.override")
-            : t("agentConsole.privateSkill.source.private")
-          : t("agentConsole.privateSkill.source.center")
-      }`,
+          ? `${agentSkillDisplayName(item.label, item.key)} · ${t(
+              "agentConsole.privateSkill.source.private",
+            )}`
+          : `${item.label}${item.label === item.key ? "" : ` · ${item.key}`} · ${t(
+              "agentConsole.privateSkill.source.center",
+            )}`,
     }))
     .sort((left, right) => left.label.localeCompare(right.label));
 }
@@ -1166,8 +1179,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [deleting, setDeleting] = useState(false);
   const [privateSkillModalOpen, setPrivateSkillModalOpen] = useState(false);
   const [privateSkillFile, setPrivateSkillFile] = useState<File | null>(null);
-  const [privateSkillOverrideRequired, setPrivateSkillOverrideRequired] = useState(false);
-  const [privateSkillOverrideConfirmed, setPrivateSkillOverrideConfirmed] = useState(false);
   const [privateSkillImporting, setPrivateSkillImporting] = useState(false);
   const [privateSkillError, setPrivateSkillError] = useState("");
   const [deletingPrivateSkillKey, setDeletingPrivateSkillKey] = useState("");
@@ -1822,8 +1833,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   const resetPrivateSkillImport = () => {
     setPrivateSkillFile(null);
-    setPrivateSkillOverrideRequired(false);
-    setPrivateSkillOverrideConfirmed(false);
     setPrivateSkillError("");
     if (privateSkillFileInputRef.current) privateSkillFileInputRef.current.value = "";
   };
@@ -1840,17 +1849,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setPrivateSkillError(t("agentConsole.privateSkill.import.required"));
       return;
     }
-    if (privateSkillOverrideRequired && !privateSkillOverrideConfirmed) {
-      setPrivateSkillError(t("agentConsole.privateSkill.import.overrideRequired"));
-      return;
-    }
     setPrivateSkillImporting(true);
     setPrivateSkillError("");
     try {
       const response = await importAdminAgentPrivateSkill({
         agentKey,
         file: privateSkillFile,
-        confirmCenterOverride: privateSkillOverrideConfirmed,
       });
       const saved = response.data;
       setDetail(saved);
@@ -1863,14 +1867,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       message.success(t("agentConsole.privateSkill.import.success"));
     } catch (error) {
       const detail = (error as Error).message;
-      const data = (error as { data?: unknown }).data;
-      if (
-        data != null &&
-        typeof data === "object" &&
-        (data as { requiresConfirmation?: unknown }).requiresConfirmation === true
-      ) {
-        setPrivateSkillOverrideRequired(true);
-      }
       setPrivateSkillError(detail);
     } finally {
       setPrivateSkillImporting(false);
@@ -2044,9 +2040,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         cancelText={t("agentConsole.action.cancelEdit")}
         confirmLoading={privateSkillImporting}
         okButtonProps={{
-          disabled:
-            !privateSkillFile ||
-            (privateSkillOverrideRequired && !privateSkillOverrideConfirmed),
+          disabled: !privateSkillFile,
         }}
         maskClosable={!privateSkillImporting}
         keyboard={!privateSkillImporting}
@@ -2065,8 +2059,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             accept=".zip,application/zip"
             onChange={(event) => {
               setPrivateSkillFile(event.target.files?.[0] || null);
-              setPrivateSkillOverrideRequired(false);
-              setPrivateSkillOverrideConfirmed(false);
               setPrivateSkillError("");
             }}
           />
@@ -2084,14 +2076,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               {privateSkillFile?.name || t("agentConsole.privateSkill.import.noFile")}
             </span>
           </div>
-          {privateSkillOverrideRequired && (
-            <Checkbox
-              checked={privateSkillOverrideConfirmed}
-              onChange={(event) => setPrivateSkillOverrideConfirmed(event.target.checked)}
-            >
-              {t("agentConsole.privateSkill.import.overrideConfirm")}
-            </Checkbox>
-          )}
           <div className="tw:text-xs tw:leading-5 tw:text-ink-muted">
             {t("agentConsole.privateSkill.import.description")}
           </div>
@@ -2716,9 +2700,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                               className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:rounded-control tw:border tw:px-2 tw:py-1.5 tw:text-xs tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]"
                             >
                               <span className="tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-                                {skill.name || skill.key} · {skill.key} · {skill.overridesCenter
-                                  ? t("agentConsole.privateSkill.source.override")
-                                  : t("agentConsole.privateSkill.source.private")}
+                                [{t("agentConsole.privateSkill.source.private")}] {agentSkillDisplayName(
+                                  skill.name,
+                                  skill.key,
+                                )}
                               </span>
                               <UiButton
                                 size="mini"

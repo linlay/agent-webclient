@@ -2078,12 +2078,10 @@ export function deleteAgent(
 export function importAdminAgentPrivateSkill(params: {
   agentKey: string;
   file: File;
-  confirmCenterOverride?: boolean;
 }): Promise<ApiResponse<AdminAgentDetailResponse>> {
   const form = new FormData();
   form.append("agentKey", params.agentKey);
   form.append("file", params.file);
-  if (params.confirmCenterOverride) form.append("confirmCenterOverride", "true");
   return requestJson<AdminAgentDetailResponse>(dataEndpoints.adminAgentPrivateSkillImport.path, {
     method: "POST",
     body: form,

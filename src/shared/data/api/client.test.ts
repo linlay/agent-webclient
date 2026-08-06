@@ -1029,7 +1029,6 @@ describe('data client query payloads', () => {
     await importAdminAgentPrivateSkill({
       agentKey: 'demo-agent',
       file: archive,
-      confirmCenterOverride: true,
     });
     await deleteAdminAgentPrivateSkill({ agentKey: 'demo-agent', key: 'private-skill' });
 
@@ -1041,8 +1040,7 @@ describe('data client query payloads', () => {
     expect(formData.get('agentKey')).toBe('demo-agent');
     expect(formData.get('key')).toBeNull();
     expect(formData.get('file')).toBe(archive);
-    expect(formData.get('confirmCenterOverride')).toBe('true');
-    expect(formData.get('confirmMarketOverride')).toBeNull();
+    expect(formData.get('confirmCenterOverride')).toBeNull();
 
     const [deleteUrl, deleteOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(deleteUrl).toBe('/api/admin/agents/skills/delete');
