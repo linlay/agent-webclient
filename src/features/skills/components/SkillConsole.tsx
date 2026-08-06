@@ -455,7 +455,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
   onDirectCreate,
   onZipImport,
 }) => {
-  const [mode, setMode] = useState<SkillCreateMode>("direct");
+  const [mode, setMode] = useState<SkillCreateMode>("zip");
   const [directKey, setDirectKey] = useState("");
   const [directName, setDirectName] = useState("");
   const [zipKey, setZipKey] = useState("");
@@ -471,7 +471,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
 
   useEffect(() => {
     if (!open) return;
-    setMode("direct");
+    setMode("zip");
     setDirectKey("");
     setDirectName("");
     setZipKey("");
@@ -735,14 +735,14 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
         }}
         items={[
           {
-            key: "direct",
-            label: t("skillConsole.create.mode.direct"),
-            children: directContent,
-          },
-          {
             key: "zip",
             label: t("skillConsole.create.mode.zip"),
             children: zipContent,
+          },
+          {
+            key: "direct",
+            label: t("skillConsole.create.mode.direct"),
+            children: directContent,
           },
         ]}
       />

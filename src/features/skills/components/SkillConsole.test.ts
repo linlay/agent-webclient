@@ -109,10 +109,10 @@ jest.mock("antd", () => {
     Spin: ({ children }: { children: React.ReactNode }) =>
       ReactMod.createElement(React.Fragment, null, children),
     Modal,
-    Tabs: ({ items }: { items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }> }) =>
+    Tabs: ({ activeKey, items }: { activeKey?: string; items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }> }) =>
       ReactMod.createElement(
         "div",
-        { "data-testid": "tabs" },
+        { "data-testid": "tabs", "data-active-key": activeKey },
         items.map((item) =>
           ReactMod.createElement(
             "div",
@@ -270,7 +270,7 @@ describe("SkillConsole", () => {
     expect(html).toContain("skill-console-list");
   });
 
-  it("renders direct-create and ZIP-import modes in the controlled modal", () => {
+  it("renders ZIP-import as the default mode and direct-create as the fallback", () => {
     const html = renderToStaticMarkup(
       React.createElement(SkillCreateModal, {
         open: true,
@@ -282,6 +282,12 @@ describe("SkillConsole", () => {
       }),
     );
 
+    // ZIP import is preferred: it is the default active tab and comes first.
+    expect(html).toContain('data-active-key="zip"');
+    expect(html.indexOf('data-tab="zip"')).toBeLessThan(
+      html.indexOf('data-tab="direct"'),
+    );
+    expect(html).toContain("skillConsole.import.submit");
     expect(html).toContain('data-tab="direct"');
     expect(html).toContain('data-tab="zip"');
     expect(html).toContain("skillConsole.create.mode.direct");
