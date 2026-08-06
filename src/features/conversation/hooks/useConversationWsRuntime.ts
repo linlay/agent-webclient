@@ -1152,6 +1152,21 @@ function buildWsClient(
 			}
 
 			if (type === "run.complete" || type === "run.error" || type === "run.cancel") {
+				// 将仍处于 running 状态的 PlanRuntime 标记为 completed
+				for (const [taskId, runtime] of options.stateRef.current.planRuntimeByTaskId) {
+					if (runtime.status === "running") {
+						options.dispatch({
+							type: "SET_PLAN_RUNTIME",
+							taskId,
+							runtime: {
+								status: "completed",
+								updatedAt: liveEvent.timestamp ?? Date.now(),
+								error: "",
+							},
+						});
+					}
+				}
+
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				const currentActiveRun = options.stateRef.current.currentChatActiveRun;
 				const runId = String(liveEvent.runId || "").trim();

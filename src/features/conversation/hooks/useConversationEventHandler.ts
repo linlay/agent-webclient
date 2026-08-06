@@ -603,6 +603,21 @@ export function useConversationEventHandler(): {
           }
         }
 
+        // 将仍处于 running 状态的 PlanRuntime 标记为 completed
+        for (const [taskId, runtime] of stateRef.current.planRuntimeByTaskId) {
+          if (runtime.status === "running") {
+            dispatch({
+              type: "SET_PLAN_RUNTIME",
+              taskId,
+              runtime: {
+                status: "completed",
+                updatedAt: event.timestamp ?? Date.now(),
+                error: "",
+              },
+            });
+          }
+        }
+
         upsertLiveChatSummary({ event, cache, state });
         const currentActiveRun = stateRef.current.currentChatActiveRun;
         const eventRunId = toText(event.runId);
