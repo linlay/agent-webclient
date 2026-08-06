@@ -65,7 +65,8 @@ jest.mock("@/shared/ui/UiButton", () => ({
   UiButton: (props: Record<string, unknown>) =>
     React.createElement("button", {
       "data-variant": props.variant,
-      disabled: props.disabled,
+      "data-loading": props.loading ? "true" : undefined,
+      disabled: Boolean(props.disabled || props.loading),
       ...(typeof props["aria-label"] === "string" ? { "aria-label": props["aria-label"] } : {}),
     }),
 }));
@@ -493,6 +494,137 @@ describe("SkillConsole", () => {
 
     expect(html).toContain('aria-label="skillConsole.action.downloadSkill"');
     expect(html).toMatch(/<button data-variant="ghost" disabled="" aria-label="skillConsole\.action\.downloadSkill"><\/button>/);
+  });
+
+  it("renders whole-skill delete after download as a danger action", () => {
+    const detail: AdminSkillDetailResponse = {
+      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      capabilities: {
+        maxTextBytes: 1048576,
+        maxUploadBytes: 33554432,
+        canCreate: true,
+        canRename: true,
+        canDelete: true,
+        canUpload: true,
+        canDownload: true,
+      },
+      fileManifest: {
+        revision: "rev",
+        defaultOpenPath: "SKILL.md",
+        counts: { files: 1, directories: 0, textFiles: 1, binaryFiles: 0, totalSize: 128 },
+        entries: [demoEntries[0]],
+      },
+    };
+    const noop = jest.fn();
+    const html = renderToStaticMarkup(
+      React.createElement(SkillFileWorkspace, {
+        detail,
+        selectedFilePath: "SKILL.md",
+        fileContent: "# Skill",
+        fileSize: 128,
+        fileSha256: "skill-sha",
+        dirtyFiles: new Set(),
+        expandedDirs: new Set(),
+        isFileDirty: false,
+        saving: false,
+        validating: false,
+        t: (key: string) => key,
+        onCreateFile: noop,
+        onCreateDir: noop,
+        onDeleteSkill: noop,
+        onDownloadSkill: noop,
+        onValidate: noop,
+        onRefreshFile: noop,
+        onSave: noop,
+        onRenameFile: noop,
+        onDeleteFile: noop,
+        onDownloadFile: noop,
+        onReplaceFile: noop,
+        onFileChange: noop,
+        onSelectFileEntry: noop,
+      }),
+    );
+
+    const downloadIndex = html.indexOf('aria-label="skillConsole.action.downloadSkill"');
+    const deleteIndex = html.indexOf('aria-label="skillConsole.action.delete"');
+    expect(downloadIndex).toBeGreaterThanOrEqual(0);
+    expect(deleteIndex).toBeGreaterThan(downloadIndex);
+    expect(html).toContain(
+      'data-variant="danger" aria-label="skillConsole.action.delete"',
+    );
+    expect(html).toContain(
+      "skill-console-file-tree-actions tw:flex tw:flex-none tw:flex-nowrap",
+    );
+  });
+
+  it("disables whole-skill delete when deletion is unavailable or pending", () => {
+    const detail: AdminSkillDetailResponse = {
+      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      capabilities: {
+        maxTextBytes: 1048576,
+        maxUploadBytes: 33554432,
+        canCreate: true,
+        canRename: true,
+        canDelete: false,
+        canUpload: true,
+        canDownload: true,
+      },
+      fileManifest: {
+        revision: "rev",
+        defaultOpenPath: "SKILL.md",
+        counts: { files: 1, directories: 0, textFiles: 1, binaryFiles: 0, totalSize: 128 },
+        entries: [demoEntries[0]],
+      },
+    };
+    const noop = jest.fn();
+    const renderWorkspace = (deletingSkill: boolean) =>
+      renderToStaticMarkup(
+        React.createElement(SkillFileWorkspace, {
+          detail: {
+            ...detail,
+            capabilities: {
+              ...detail.capabilities,
+              canDelete: deletingSkill,
+            },
+          },
+          selectedFilePath: "SKILL.md",
+          fileContent: "# Skill",
+          fileSize: 128,
+          fileSha256: "skill-sha",
+          dirtyFiles: new Set(),
+          expandedDirs: new Set(),
+          isFileDirty: false,
+          saving: false,
+          validating: false,
+          deletingSkill,
+          t: (key: string) => key,
+          onCreateFile: noop,
+          onCreateDir: noop,
+          onDeleteSkill: noop,
+          onDownloadSkill: noop,
+          onValidate: noop,
+          onRefreshFile: noop,
+          onSave: noop,
+          onRenameFile: noop,
+          onDeleteFile: noop,
+          onDownloadFile: noop,
+          onReplaceFile: noop,
+          onFileChange: noop,
+          onSelectFileEntry: noop,
+        }),
+      );
+
+    const unavailable = renderWorkspace(false);
+    expect(unavailable).toMatch(
+      /<button data-variant="danger" disabled="" aria-label="skillConsole\.action\.delete"><\/button>/,
+    );
+
+    const pending = renderWorkspace(true);
+    expect(pending).toMatch(
+      /<button data-variant="danger" data-loading="true" disabled="" aria-label="skillConsole\.action\.deletingSkill"><\/button>/,
+    );
+    expect(pending).toContain('textarea class="skill-console-textarea');
+    expect(pending).toContain('disabled=""');
   });
 
   it("renders binary files as metadata instead of a text editor", () => {

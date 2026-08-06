@@ -44,6 +44,8 @@ describe("SkillsPage", () => {
     renderToStaticMarkup(React.createElement(SkillsPage));
 
     skillConsoleProps.onClearSelection?.();
-    expect(navigateMock).toHaveBeenCalledWith("/skills?lang=en");
+    expect(navigateMock).toHaveBeenCalledWith("/skills?lang=en", {
+      replace: true,
+    });
   });
 });

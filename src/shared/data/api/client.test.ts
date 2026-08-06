@@ -95,6 +95,7 @@ import {
   setAccessToken,
   createAdminSkillFile,
   createAdminSkill,
+  deleteAdminSkill,
   deleteAdminSkillFile,
   downloadAdminSkill,
   downloadAdminSkillFile,
@@ -799,6 +800,7 @@ describe('data client query payloads', () => {
       key: 'new-skill',
       skillMd: '---\nname: New Skill\n---\n',
     });
+    await deleteAdminSkill('demo-skill');
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
@@ -874,6 +876,11 @@ describe('data client query payloads', () => {
           key: 'new-skill',
           skillMd: '---\nname: New Skill\n---\n',
         },
+      },
+      {
+        url: '/api/admin/skills/delete',
+        method: 'POST',
+        body: { key: 'demo-skill' },
       },
     ]);
 

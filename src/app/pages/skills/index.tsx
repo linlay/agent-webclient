@@ -15,7 +15,9 @@ export const SkillsPage = () => {
         onSelectSkillKey={(skillKey) => {
           navigate(`/skills/${encodeURIComponent(skillKey)}${routeSearch}`);
         }}
-        onClearSelection={() => navigate(`/skills${routeSearch}`)}
+        onClearSelection={() =>
+          navigate(`/skills${routeSearch}`, { replace: true })
+        }
       />
     </main>
   );

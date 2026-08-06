@@ -34,8 +34,10 @@ import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import { requestSkillDeletion } from "@/features/skills/lib/skillDeletion";
 
 type StatusFilter = "all" | AdminSkillStatus;
+type SkillMessageTone = "info" | "success" | "warning" | "error";
 
 function adminSourceToSkillTextFile(
   source: AdminSourceResponse,
@@ -145,6 +147,8 @@ const SKILL_DETAIL_CLASS_NAME =
   "skill-console-detail tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:overflow-visible";
 const SKILL_DETAIL_ACTIONS_CLASS_NAME =
   "skill-console-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
+const SKILL_FILE_TREE_ACTIONS_CLASS_NAME =
+  "skill-console-file-tree-actions tw:flex tw:flex-none tw:flex-nowrap tw:items-center tw:gap-2";
 const SKILL_FILE_PANELS_CLASS_NAME =
   "skill-console-file-panels tw:grid tw:min-h-0 tw:h-full tw:grid-cols-[minmax(220px,286px)_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-visible";
 const SKILL_FILE_TREE_PANEL_CLASS_NAME =
@@ -777,11 +781,14 @@ interface SkillFileWorkspaceProps {
   isFileDirty: boolean;
   saving: boolean;
   validating: boolean;
+  deleteSkillUnavailable?: boolean;
+  deletingSkill?: boolean;
   downloadingSkill?: boolean;
   downloadingFile?: boolean;
   t: SkillConsoleTranslate;
   onCreateFile: () => void;
   onCreateDir: () => void;
+  onDeleteSkill?: () => void;
   onDownloadSkill?: () => void;
   onValidate: () => void;
   onRefreshFile: () => void;
@@ -805,11 +812,14 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   isFileDirty,
   saving,
   validating,
+  deleteSkillUnavailable = false,
+  deletingSkill = false,
   downloadingSkill = false,
   downloadingFile = false,
   t,
   onCreateFile,
   onCreateDir,
+  onDeleteSkill = () => {},
   onDownloadSkill = () => {},
   onValidate,
   onRefreshFile,
@@ -830,6 +840,16 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   const isTextSelected = selectedEntry?.contentKind === "text";
   const isBinarySelected = selectedEntry?.contentKind === "binary";
   const canDownloadSkill = detail.capabilities.canDownload;
+  const canDeleteSkill = detail.capabilities.canDelete;
+  const interactionLocked = deletingSkill;
+  const deleteSkillDisabled =
+    !canDeleteSkill ||
+    deleteSkillUnavailable ||
+    deletingSkill ||
+    saving ||
+    validating ||
+    downloadingSkill ||
+    downloadingFile;
 
   return (
     <div className={SKILL_FILE_PANELS_CLASS_NAME}>
@@ -838,13 +858,14 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
           <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted">
             {t("skillConsole.fileTree.root")}
           </span>
-          <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
+          <div className={SKILL_FILE_TREE_ACTIONS_CLASS_NAME}>
             <UiButton
               size="sm"
               variant="ghost"
               className="ui-icon-hover-24"
               iconOnly
               onClick={onCreateFile}
+              disabled={interactionLocked}
               aria-label={t("skillConsole.action.createFile")}
             >
               <MaterialIcon name="article" />
@@ -855,6 +876,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               className="ui-icon-hover-24"
               iconOnly
               onClick={onCreateDir}
+              disabled={interactionLocked}
               aria-label={t("skillConsole.action.createDir")}
             >
               <MaterialIcon name="create_new_folder" />
@@ -865,7 +887,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               className="ui-icon-hover-24"
               iconOnly
               onClick={onValidate}
-              disabled={validating}
+              disabled={validating || interactionLocked}
               aria-label={t("skillConsole.action.validate")}
             >
               <MaterialIcon name="rule" />
@@ -875,7 +897,9 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               variant="ghost"
               className="ui-icon-hover-24"
               onClick={onDownloadSkill}
-              disabled={downloadingSkill || !canDownloadSkill}
+              disabled={
+                downloadingSkill || !canDownloadSkill || interactionLocked
+              }
               loading={downloadingSkill}
               aria-label={
                 downloadingSkill
@@ -887,6 +911,24 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               {downloadingSkill
                 ? t("skillConsole.action.downloadingSkill")
                 : t("skillConsole.action.downloadSkill")}
+            </UiButton>
+            <UiButton
+              size="sm"
+              variant="danger"
+              className="ui-icon-hover-24"
+              onClick={onDeleteSkill}
+              disabled={deleteSkillDisabled}
+              loading={deletingSkill}
+              aria-label={
+                deletingSkill
+                  ? t("skillConsole.action.deletingSkill")
+                  : t("skillConsole.action.delete")
+              }
+            >
+              <MaterialIcon name="delete" />
+              {deletingSkill
+                ? t("skillConsole.action.deletingSkill")
+                : t("skillConsole.action.delete")}
             </UiButton>
           </div>
         </div>
@@ -911,6 +953,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                         ? { backgroundColor: "var(--bg-selected)" }
                         : null),
                     }}
+                    disabled={interactionLocked}
                     onClick={() => {
                       void onSelectFileEntry(entry);
                     }}
@@ -971,7 +1014,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                   className="ui-icon-hover-24"
                   iconOnly
                   onClick={onRefreshFile}
-                  disabled={saving}
+                  disabled={saving || interactionLocked}
                   aria-label={t("skillConsole.action.refresh")}
                 >
                   <MaterialIcon name="refresh" />
@@ -983,7 +1026,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     className="ui-icon-hover-24"
                     iconOnly
                     onClick={onSave}
-                    disabled={saving || !isFileDirty}
+                    disabled={saving || !isFileDirty || interactionLocked}
                     aria-label={t("skillConsole.action.save")}
                   >
                     <MaterialIcon name="save" />
@@ -996,7 +1039,11 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     className="ui-icon-hover-24"
                     iconOnly
                     onClick={onDownloadFile}
-                    disabled={downloadingFile || !selectedEntry.downloadable}
+                    disabled={
+                      downloadingFile ||
+                      !selectedEntry.downloadable ||
+                      interactionLocked
+                    }
                     aria-label={t("skillConsole.action.download")}
                   >
                     <MaterialIcon name="download" />
@@ -1007,6 +1054,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     <input
                       ref={fileInputRef}
                       type="file"
+                      disabled={interactionLocked}
                       className="tw:hidden"
                       onChange={(event) => {
                         const file = event.currentTarget.files?.[0];
@@ -1020,6 +1068,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                       className="ui-icon-hover-24"
                       iconOnly
                       onClick={() => fileInputRef.current?.click()}
+                      disabled={interactionLocked}
                       aria-label={t("skillConsole.action.replaceFile")}
                     >
                       <MaterialIcon name="article" />
@@ -1033,6 +1082,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     className="ui-icon-hover-24"
                     iconOnly
                     onClick={onRenameFile}
+                    disabled={interactionLocked}
                     aria-label={t("skillConsole.action.rename")}
                   >
                     <MaterialIcon name="edit" />
@@ -1045,6 +1095,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     className="ui-icon-hover-24"
                     iconOnly
                     onClick={onDeleteFile}
+                    disabled={interactionLocked}
                     aria-label={t("skillConsole.action.delete")}
                   >
                     <MaterialIcon name="delete" />
@@ -1057,6 +1108,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               <Input.TextArea
                 className={SKILL_TEXTAREA_CLASS_NAME}
                 value={fileContent}
+                disabled={interactionLocked}
                 onChange={(e) => onFileChange(e.target.value)}
               />
             ) : (
@@ -1096,6 +1148,7 @@ export interface SkillConsoleProps {
 export const SkillConsole: React.FC<SkillConsoleProps> = ({
   selectedSkillKey,
   onSelectSkillKey,
+  onClearSelection,
 }) => {
   const { t } = useI18n();
 
@@ -1119,16 +1172,19 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [deletingSkill, setDeletingSkill] = useState(false);
   const [downloadingSkill, setDownloadingSkill] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<SkillMessageTone>("info");
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
     new Set(["references", "scripts", "assets"]),
   );
 
   const detailRef = useRef<AdminSkillDetailResponse | null>(null);
+  const suppressAutoSelectAfterDeleteRef = useRef(false);
   detailRef.current = detail;
 
   const selectedEntry = useMemo(
@@ -1305,13 +1361,19 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   useEffect(() => {
     if (selectedSkillKey) {
+      suppressAutoSelectAfterDeleteRef.current = false;
       void loadDetail(selectedSkillKey);
       return;
     }
   }, [loadDetail, selectedSkillKey]);
 
   useEffect(() => {
-    if (skills.length === 0 || selectedSkillKey) return;
+    if (
+      skills.length === 0 ||
+      selectedSkillKey ||
+      suppressAutoSelectAfterDeleteRef.current
+    )
+      return;
     const firstReady = skills.find((s) => s.status === "ready");
     if (firstReady) {
       onSelectSkillKey(firstReady.key);
@@ -1319,16 +1381,19 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   }, [onSelectSkillKey, selectedSkillKey, skills]);
 
   const handleSelectSkill = (item: AdminSkillSummary) => {
+    if (deletingSkill) return;
+    const select = () => {
+      suppressAutoSelectAfterDeleteRef.current = false;
+      onSelectSkillKey(item.key);
+    };
     if (dirtyFiles.size > 0) {
       Modal.confirm({
         title: t("skillConsole.confirm.switchSkill"),
-        onOk: () => {
-          onSelectSkillKey(item.key);
-        },
+        onOk: select,
       });
       return;
     }
-    onSelectSkillKey(item.key);
+    select();
   };
 
   const applyMutation = useCallback(
@@ -1417,8 +1482,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       });
       applyOpenedFile(adminSourceToSkillTextFile(response.data));
       await loadDetail(detail.skill.key, selectedFilePath);
+      setMessageTone("success");
       setMessage(t("skillConsole.message.saveSuccess"));
     } catch (err) {
+      setMessageTone("error");
       setMessage(t("skillConsole.message.saveFailed"));
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -1451,12 +1518,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         return next;
       });
       if (result.status === "invalid") {
+        setMessageTone("warning");
         setMessage(
           t("skillConsole.message.validateInvalid", {
             count: result.diagnostics?.length || 0,
           }),
         );
       } else {
+        setMessageTone("success");
         setMessage(t("skillConsole.message.validateSuccess"));
       }
     } catch (err) {
@@ -1606,6 +1675,84 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   };
 
+  const handleDeleteSkill = () => {
+    if (
+      !detail ||
+      !detail.capabilities.canDelete ||
+      detailLoading ||
+      deletingSkill ||
+      saving ||
+      validating ||
+      downloadingSkill ||
+      downloadingFile
+    )
+      return;
+    const skillKey = detail.skill.key;
+    const skillName = detail.skill.name || skillKey;
+    const hasUnsavedChanges = dirtyFiles.size > 0;
+    Modal.confirm({
+      title: t("skillConsole.delete.title"),
+      content: (
+        <div className="tw:flex tw:flex-col tw:gap-2">
+          <span>
+            {t("skillConsole.delete.confirm", { name: skillName })}
+          </span>
+          {hasUnsavedChanges && (
+            <span className="tw:text-danger">
+              {t("skillConsole.delete.unsavedWarning")}
+            </span>
+          )}
+        </div>
+      ),
+      okText: t("skillConsole.action.delete"),
+      cancelText: t("skillConsole.action.cancel"),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setDeletingSkill(true);
+        setError("");
+        setMessage("");
+        try {
+          const outcome = await requestSkillDeletion(skillKey);
+          if (outcome.kind === "blocked") {
+            setMessageTone("warning");
+            setMessage(
+              t("skillConsole.delete.blockedByAgents", {
+                agents: outcome.usedByAgents.join(", "),
+              }),
+            );
+            return;
+          }
+
+          setSkills((prev) =>
+            prev.filter(
+              (item) => item.key !== skillKey && item.key !== outcome.key,
+            ),
+          );
+          if (detailRef.current?.skill.key === skillKey) {
+            suppressAutoSelectAfterDeleteRef.current = true;
+            setDetail(null);
+            detailRef.current = null;
+            setDirtyFiles(new Set());
+            clearFileState();
+            onClearSelection();
+          }
+          setMessageTone("success");
+          setMessage(
+            t("skillConsole.message.deleteSuccess", { name: skillName }),
+          );
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
+          setMessageTone("error");
+          setMessage(
+            t("skillConsole.message.deleteFailed", { detail: reason }),
+          );
+        } finally {
+          setDeletingSkill(false);
+        }
+      },
+    });
+  };
+
   const handleReplaceFile = async (file: File) => {
     if (!detail || !selectedFilePath) return;
     setSaving(true);
@@ -1639,12 +1786,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const completeSkillCreation = (created: AdminSkillDetailResponse) => {
     const key = created.skill.key;
+    suppressAutoSelectAfterDeleteRef.current = false;
     setSkills((prev) =>
       [...prev.filter((item) => item.key !== key), created.skill].sort((a, b) =>
         a.key.localeCompare(b.key),
       ),
     );
     setCreateModalOpen(false);
+    setMessageTone("success");
     setMessage(
       t("skillConsole.message.createSuccess", {
         name: created.skill.name || key,
@@ -1724,9 +1873,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         <Alert
           message={message}
           className={SKILL_MESSAGE_CLASS_NAME}
-          type="info"
+          type={messageTone}
           showIcon
           closable
+          onClose={() => setMessage("")}
         />
       )}
 
@@ -1755,7 +1905,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               className="ui-icon-hover-24"
               iconOnly
               onClick={loadSkills}
-              disabled={listLoading}
+              disabled={listLoading || deletingSkill}
               aria-label={t("skillConsole.action.refresh")}
             >
               <MaterialIcon name="refresh" />
@@ -1766,6 +1916,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               className="ui-icon-hover-24"
               iconOnly
               onClick={() => setCreateModalOpen(true)}
+              disabled={deletingSkill}
               aria-label={t("skillConsole.action.createSkill")}
             >
               <MaterialIcon name="add" />
@@ -1788,6 +1939,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       size="sm"
                       variant="primary"
                       onClick={() => setCreateModalOpen(true)}
+                      disabled={deletingSkill}
                     >
                       {t("skillConsole.action.createSkill")}
                     </UiButton>
@@ -1802,6 +1954,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
                         item.key === selectedSkillKey ? "is-active" : ""
                       }`}
+                      disabled={deletingSkill}
                       onClick={() => handleSelectSkill(item)}
                     >
                       <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
@@ -1856,11 +2009,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 isFileDirty={isFileDirty}
                 saving={saving}
                 validating={validating}
+                deleteSkillUnavailable={detailLoading}
+                deletingSkill={deletingSkill}
                 downloadingSkill={downloadingSkill}
                 downloadingFile={downloadingFile}
                 t={t}
                 onCreateFile={handleCreateFile}
                 onCreateDir={handleCreateDir}
+                onDeleteSkill={handleDeleteSkill}
                 onDownloadSkill={handleDownloadSkill}
                 onValidate={handleValidate}
                 onRefreshFile={handleRefreshFile}
