@@ -104,7 +104,7 @@ const TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME =
 const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
-  "conversation-stage-scroll-to-bottom";
+  "conversation-stage-scroll-to-bottom tw:rounded-full tw:pointer-events-auto";
 const VIRTUOSO_CLASS_NAME = [
   "conversation-stage-virtuoso tw:h-full tw:bg-transparent",
   SCROLLBAR_THIN_CLASS_NAME,
@@ -1141,26 +1141,20 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const Footer = useCallback(
     () =>
       !isAtBottom || isMainChatRunning || state.streaming ? (
-        <div className="tw:text-center tw:py-2">
-          <Tooltip
-            title={t("conversationStage.scrollToBottom")}
-            placement="top"
+        <Tooltip title={t("conversationStage.scrollToBottom")} placement="top">
+          <UiButton
+            className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
+            iconOnly
+            size="sm"
+            onClick={handleScrollToBottomClick}
           >
-            <UiButton
-              className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
-              iconOnly
-              size="sm"
-              onClick={handleScrollToBottomClick}
-              style={{ borderRadius: "50%" }}
-            >
-              {isMainChatRunning || state.streaming ? (
-                <DotLoading color="primary" height={15} />
-              ) : (
-                <MaterialIcon name="arrow_downward" />
-              )}
-            </UiButton>
-          </Tooltip>
-        </div>
+            {isMainChatRunning || state.streaming ? (
+              <DotLoading color="primary" height={15} />
+            ) : (
+              <MaterialIcon name="arrow_downward" />
+            )}
+          </UiButton>
+        </Tooltip>
       ) : null,
     [isAtBottom, isMainChatRunning, state.streaming],
   );

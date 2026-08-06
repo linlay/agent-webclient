@@ -1130,7 +1130,7 @@ export const zhCNMessages = {
   "switch.workerType.team": "{teamLabel}",
   "slashPalette.group.commands": "命令",
   "slashPalette.group.skills": "技能",
-  "slashPalette.skill.source.agent": "固有",
+  "slashPalette.skill.source.agent": "自有",
   "slashPalette.skill.source.center": "技能中心",
   "slashPalette.skill.noDescription": "暂无描述",
   "slashPalette.skills.loading": "正在加载技能...",
