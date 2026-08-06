@@ -695,6 +695,16 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   useEffect(() => {
     setIsAtBottom(true);
   }, [state.events]);
+
+  useEffect(() => {
+    if (isMainChatRunning) {
+      virtuosoRef.current?.scrollToIndex({
+        index: "LAST",
+        behavior: "smooth",
+        align: "end",
+      });
+    }
+  }, [isMainChatRunning]);
   const timelineAgentOptions = useMemo(
     () =>
       buildTimelineAgentOptions({
@@ -1260,6 +1270,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         <Virtuoso
           ref={virtuosoRef}
           data={virtualItems}
+          increaseViewportBy={window.innerHeight}
           followOutput={isAtBottom ? "smooth" : false}
           atBottomStateChange={handleAtBottomStateChange}
           rangeChanged={handleRangeChanged}
