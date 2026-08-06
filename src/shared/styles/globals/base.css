@@ -483,6 +483,7 @@ textarea {
 /* Compat owner: Ant Design portal overlays. Portal DOM sits outside component className ownership. */
 .ant-tooltip {
     backdrop-filter: blur(10px);
+    border-radius: 8px;
 }
 
 .ant-tooltip .ant-tooltip-arrow {
@@ -490,7 +491,7 @@ textarea {
 }
 
 .ant-tooltip .ant-tooltip-inner {
-    background: transparent;
+    background: color-mix(in srgb, var(--bg-base) 60%, transparent);
     border: 1px solid var(--line-strong);
     color: var(--text-main);
     box-shadow: none;

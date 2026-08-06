@@ -1149,12 +1149,12 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
             <UiButton
               className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
               iconOnly
-              variant="ghost"
+              size="sm"
               onClick={handleScrollToBottomClick}
               style={{ borderRadius: "50%" }}
             >
               {isMainChatRunning || state.streaming ? (
-                <DotLoading color="primary" />
+                <DotLoading color="primary" height={15} />
               ) : (
                 <MaterialIcon name="arrow_downward" />
               )}

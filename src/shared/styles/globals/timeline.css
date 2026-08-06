@@ -1414,15 +1414,7 @@ html[data-theme="dark"] .xterm .composition-view {
 }
 
 .conversation-stage-scroll-to-bottom {
-    .material-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: var(--bg-base);
-        border: 1px solid var(--border);
-
-        &:hover {
-            background: var(--bg-elev-2);
-        }
+    &.ui-btn.ui-btn-secondary{
+        background-color: var(--bg-base) !important;
     }
 }

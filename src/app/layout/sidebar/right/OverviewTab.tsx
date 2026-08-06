@@ -89,7 +89,7 @@ export interface OverviewFileChangeItem {
 const FILE_CHANGE_JUMP_DURATION_MS = 560;
 
 const RIGHT_SIDEBAR_OVERVIEW_CLASS_NAME =
-  "right-sidebar-overview tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:gap-3.5 tw:overflow-y-auto";
+  "right-sidebar-overview tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:gap-3.5 tw:overflow-y-auto tw:pb-[20px]";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME =
   "right-sidebar-overview-section tw:flex tw:min-w-0 tw:flex-col tw:gap-2";
