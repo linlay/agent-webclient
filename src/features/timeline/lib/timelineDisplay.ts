@@ -27,6 +27,8 @@ export type TimelineRenderEntry =
       renderEntries: TimelineRenderEntry[];
     };
 
+export type RunTerminalType = "run.complete" | "run.error" | "run.cancel";
+
 export type TimelineDisplayItem =
   | {
       kind: "query";
@@ -40,6 +42,7 @@ export type TimelineDisplayItem =
       nodes: TimelineNode[];
       renderEntries: TimelineRenderEntry[];
       runId?: string;
+      terminalType?: RunTerminalType;
       completedAt?: number;
       responseDurationMs?: number;
     }
@@ -50,8 +53,21 @@ export type TimelineDisplayItem =
     };
 
 interface RunTerminalInfo {
+  type: RunTerminalType;
   runId?: string;
   timestamp?: number;
+}
+
+function readRunTerminalType(value: unknown): RunTerminalType | null {
+  const type = String(value || "");
+  if (
+    type === "run.complete" ||
+    type === "run.error" ||
+    type === "run.cancel"
+  ) {
+    return type;
+  }
+  return null;
 }
 
 function normalizeToolGroupValue(value: unknown): string {
@@ -203,18 +219,18 @@ function buildRenderEntries(
 }
 
 function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
-  return events
-    .filter((event) => {
-      const type = String(event.type || "");
-      return (
-        type === "run.complete" || type === "run.error" || type === "run.cancel"
-      );
-    })
-    .map((event) => ({
-      runId: typeof event.runId === "string" ? event.runId : undefined,
-      timestamp:
-        typeof event.timestamp === "number" ? event.timestamp : undefined,
-    }));
+  return events.flatMap((event) => {
+    const type = readRunTerminalType(event.type);
+    if (!type) return [];
+    return [
+      {
+        type,
+        runId: typeof event.runId === "string" ? event.runId : undefined,
+        timestamp:
+          typeof event.timestamp === "number" ? event.timestamp : undefined,
+      },
+    ];
+  });
 }
 
 export function buildTimelineDisplayItems(
@@ -268,6 +284,7 @@ export function buildTimelineDisplayItems(
           nodes: [],
           renderEntries: [],
           runId: terminal.runId,
+          terminalType: terminal.type,
           completedAt,
           responseDurationMs,
         });
@@ -312,6 +329,7 @@ export function buildTimelineDisplayItems(
         true,
       ),
       runId: terminal?.runId,
+      terminalType: terminal?.type,
       completedAt,
       responseDurationMs,
     });

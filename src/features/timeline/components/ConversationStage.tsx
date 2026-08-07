@@ -21,6 +21,7 @@ import {
   type TimelineRenderEntry,
 } from "@/features/timeline/lib/timelineDisplay";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
+import { RunTerminalNotice } from "@/features/timeline/components/RunTerminalNotice";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -1439,6 +1440,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                         {item.renderEntries.map((entry) => renderEntry(entry))}
                       </div>
                     )}
+                    <RunTerminalNotice terminalType={item.terminalType} />
                     {isCompleted && item.nodes?.length > 0 && (
                       <div className={TIMELINE_RUN_META_CLASS_NAME}>
                         <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>

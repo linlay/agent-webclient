@@ -88,6 +88,53 @@ describe('buildTimelineDisplayItems', () => {
 
     expect(items[1].kind === 'run' ? items[1].completedAt : 'bad').toBe(160);
     expect(items[1].kind === 'run' ? items[1].responseDurationMs : 'bad').toBe(60);
+    expect(items[1].kind === 'run' ? items[1].terminalType : 'bad').toBe('run.cancel');
+  });
+
+  it('keeps an empty canceled run visible with its terminal type', () => {
+    const items = buildTimelineDisplayItems(
+      [createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 })],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'run.cancel', runId: 'run_1', timestamp: 160 },
+      ],
+    );
+
+    expect(items[1]).toMatchObject({
+      kind: 'run',
+      runId: 'run_1',
+      terminalType: 'run.cancel',
+      nodes: [],
+      renderEntries: [],
+    });
+  });
+
+  it('preserves terminal types and run ids across multiple runs', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', ts: 130 }),
+        createNode({ id: 'user_2', kind: 'message', role: 'user', ts: 200 }),
+        createNode({ id: 'content_2', kind: 'content', ts: 230 }),
+        createNode({ id: 'user_3', kind: 'message', role: 'user', ts: 300 }),
+        createNode({ id: 'content_3', kind: 'content', ts: 330 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'run.cancel', runId: 'run_1', timestamp: 160 },
+        { type: 'request.query', timestamp: 200 },
+        { type: 'run.error', runId: 'run_2', timestamp: 260 },
+        { type: 'request.query', timestamp: 300 },
+        { type: 'run.complete', runId: 'run_3', timestamp: 360 },
+      ],
+    );
+
+    const runs = items.filter((item) => item.kind === 'run');
+    expect(runs).toMatchObject([
+      { terminalType: 'run.cancel', runId: 'run_1' },
+      { terminalType: 'run.error', runId: 'run_2' },
+      { terminalType: 'run.complete', runId: 'run_3' },
+    ]);
   });
 
   it('builds a completed run without a user query node', () => {
