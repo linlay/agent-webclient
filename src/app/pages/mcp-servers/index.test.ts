@@ -13,6 +13,7 @@ import {
   mcpServerCardTitle,
   mcpServersRoutePath,
   resolveActiveMcpServerFormSection,
+  resolveMcpServerDisplayStatus,
   selectMcpServerAfterDelete,
   shouldLoadMcpServerDirectly,
 } from "@/app/pages/mcp-servers";
@@ -209,6 +210,22 @@ describe("McpServersPage", () => {
       message: "connection refused",
     });
   });
+
+  it.each([
+    ["invalid", "ready", { kind: "registry", status: "invalid" }],
+    ["disabled", "ready", { kind: "registry", status: "disabled" }],
+    ["ready", "pending", { kind: "sync", status: "pending" }],
+    ["ready", "syncing", { kind: "sync", status: "syncing" }],
+    ["ready", "ready", { kind: "sync", status: "ready" }],
+    ["ready", "unavailable", { kind: "sync", status: "unavailable" }],
+  ] as const)(
+    "resolves %s registry and %s sync status to one display status",
+    (registryStatus, syncStatus, expected) => {
+      expect(
+        resolveMcpServerDisplayStatus(registryStatus, syncStatus),
+      ).toEqual(expected);
+    },
+  );
 
   it("refreshes registry summaries and tool definitions as one catalog snapshot", async () => {
     const registryMock = getAdminRegistries as jest.Mock;

@@ -111,8 +111,8 @@ const MCP_SECTION_NAV_LINKS_CLASS_NAME =
   "automation-section-nav-links tw:flex tw:min-w-0 tw:flex-1 tw:overflow-x-auto";
 const MCP_SECTION_NAV_LINK_CLASS_NAME =
   "automation-section-nav-link tw:flex-none tw:whitespace-nowrap";
-const MCP_SECTION_NAV_SAVE_CLASS_NAME =
-  "automation-section-nav-save tw:ml-auto tw:flex-none";
+const MCP_SECTION_NAV_ACTIONS_CLASS_NAME =
+  "automation-section-nav-actions tw:ml-auto tw:flex tw:flex-none tw:items-center tw:gap-2";
 const MCP_FORM_GRID_CLASS_NAME =
   "automation-form-grid mcp-form-grid tw:grid tw:grid-cols-3 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
 const MCP_FORM_FULL_WIDTH_CLASS_NAME =
@@ -285,6 +285,19 @@ function syncStatusTone(
   if (status === "ready") return "accent";
   if (status === "unavailable") return "danger";
   return "muted";
+}
+
+export type McpServerDisplayStatus =
+  | { kind: "registry"; status: AdminRegistryStatus }
+  | { kind: "sync"; status: McpToolSyncStatus };
+
+export function resolveMcpServerDisplayStatus(
+  registryStatus: AdminRegistryStatus,
+  syncStatus: McpToolSyncStatus,
+): McpServerDisplayStatus {
+  return registryStatus === "ready"
+    ? { kind: "sync", status: syncStatus }
+    : { kind: "registry", status: registryStatus };
 }
 
 function catalogUpdateReason(frame: unknown): string {
@@ -1299,6 +1312,9 @@ export const McpServersPage = () => {
   const selectedSyncDiagnostic = readMcpSyncDiagnostic(detail?.summary);
   const lastSyncAttemptAt = summaryNumber(detail?.summary, "lastSyncAttemptAt");
   const lastSyncSuccessAt = summaryNumber(detail?.summary, "lastSyncSuccessAt");
+  const selectedDisplayStatus = detail
+    ? resolveMcpServerDisplayStatus(detail.status, selectedSyncStatus)
+    : null;
   const saveDisabled = isMcpServerSaveDisabled({
     hasDetail: Boolean(detail),
     detailLoading,
@@ -1375,6 +1391,10 @@ export const McpServersPage = () => {
                       const serverTools = filterMcpToolsForServer(mcpTools, serverKey);
                       const baseUrl = registryText(item.summary?.baseUrl) || "--";
                       const syncStatus = readMcpToolSyncStatus(item.summary);
+                      const displayStatus = resolveMcpServerDisplayStatus(
+                        item.status,
+                        syncStatus,
+                      );
                       const isActive = !showUnassigned && selectedItemKey === itemKey;
                       return (
                         <button
@@ -1397,14 +1417,14 @@ export const McpServersPage = () => {
                           <span className={LIST_ITEM_ASIDE_CLASS_NAME}>
                             <UiTag
                               tone={
-                                item.status === "ready"
-                                  ? syncStatusTone(syncStatus)
-                                  : statusTone(item.status)
+                                displayStatus.kind === "sync"
+                                  ? syncStatusTone(displayStatus.status)
+                                  : statusTone(displayStatus.status)
                               }
                             >
-                              {item.status === "ready"
-                                ? t(`mcpServers.syncStatus.${syncStatus}`)
-                                : t(`registryConsole.status.${item.status}`)}
+                              {displayStatus.kind === "sync"
+                                ? t(`mcpServers.syncStatus.${displayStatus.status}`)
+                                : t(`registryConsole.status.${displayStatus.status}`)}
                             </UiTag>
                             <span className={LIST_ITEM_TOOLS_CLASS_NAME}>
                               {t("mcpServers.tools.count", { count: serverTools.length })}
@@ -1491,12 +1511,23 @@ export const McpServersPage = () => {
                       <span>{selectedServerKey}</span>
                     </div>
                     <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-2">
-                      <UiTag tone={statusTone(detail.status)}>
-                        {t(`registryConsole.status.${detail.status}`)}
-                      </UiTag>
-                      <UiTag tone={syncStatusTone(selectedSyncStatus)}>
-                        {t(`mcpServers.syncStatus.${selectedSyncStatus}`)}
-                      </UiTag>
+                      {selectedDisplayStatus && (
+                        <UiTag
+                          tone={
+                            selectedDisplayStatus.kind === "sync"
+                              ? syncStatusTone(selectedDisplayStatus.status)
+                              : statusTone(selectedDisplayStatus.status)
+                          }
+                        >
+                          {selectedDisplayStatus.kind === "sync"
+                            ? t(
+                                `mcpServers.syncStatus.${selectedDisplayStatus.status}`,
+                              )
+                            : t(
+                                `registryConsole.status.${selectedDisplayStatus.status}`,
+                              )}
+                        </UiTag>
+                      )}
                       <UiButton
                         size="sm"
                         variant="ghost"
@@ -1512,18 +1543,6 @@ export const McpServersPage = () => {
                             : t("mcpServers.action.sourceEdit")}
                         </span>
                       </UiButton>
-                      {editorMode === "source" && (
-                        <UiButton
-                          size="sm"
-                          variant="primary"
-                          loading={saving}
-                          disabled={saveDisabled || deleting}
-                          onClick={() => void saveDraft()}
-                        >
-                          <MaterialIcon name="save" />
-                          <span>{t("mcpServers.action.save")}</span>
-                        </UiButton>
-                      )}
                       {!newDraft && (
                         <Popconfirm
                           title={t("mcpServers.confirm.deleteTitle")}
@@ -1547,15 +1566,6 @@ export const McpServersPage = () => {
                           </UiButton>
                         </Popconfirm>
                       )}
-                      <UiButton
-                        size="sm"
-                        variant="ghost"
-                        disabled={newDraft || detailLoading || deleting}
-                        onClick={refreshPage}
-                      >
-                        <MaterialIcon name="refresh" />
-                        <span>{t("mcpServers.action.refresh")}</span>
-                      </UiButton>
                     </div>
                   </div>
                   {editorMode === "structured" && structuredAvailable && (
@@ -1585,27 +1595,37 @@ export const McpServersPage = () => {
                           </a>
                         ))}
                       </div>
-                      <UiButton
-                        size="sm"
-                        variant="secondary"
-                        loading={validating}
-                        disabled={saving || detailLoading || deleting}
-                        onClick={() => void validateDraft()}
-                      >
-                        <MaterialIcon name="rule" />
-                        <span>{t("mcpServers.action.validate")}</span>
-                      </UiButton>
-                      <UiButton
-                        className={MCP_SECTION_NAV_SAVE_CLASS_NAME}
-                        size="sm"
-                        variant="primary"
-                        loading={saving}
-                        disabled={saveDisabled || deleting}
-                        onClick={() => void saveDraft()}
-                      >
-                        <MaterialIcon name="save" />
-                        <span>{t("mcpServers.action.save")}</span>
-                      </UiButton>
+                      <div className={MCP_SECTION_NAV_ACTIONS_CLASS_NAME}>
+                        <UiButton
+                          size="sm"
+                          variant="ghost"
+                          disabled={newDraft || detailLoading || deleting}
+                          onClick={refreshPage}
+                        >
+                          <MaterialIcon name="refresh" />
+                          <span>{t("mcpServers.action.refresh")}</span>
+                        </UiButton>
+                        <UiButton
+                          size="sm"
+                          variant="secondary"
+                          loading={validating}
+                          disabled={saving || detailLoading || deleting}
+                          onClick={() => void validateDraft()}
+                        >
+                          <MaterialIcon name="rule" />
+                          <span>{t("mcpServers.action.validate")}</span>
+                        </UiButton>
+                        <UiButton
+                          size="sm"
+                          variant="primary"
+                          loading={saving}
+                          disabled={saveDisabled || deleting}
+                          onClick={() => void saveDraft()}
+                        >
+                          <MaterialIcon name="save" />
+                          <span>{t("mcpServers.action.save")}</span>
+                        </UiButton>
+                      </div>
                     </nav>
                   )}
 
@@ -1638,6 +1658,15 @@ export const McpServersPage = () => {
                         />
                       </div>
                       <div className="automation-save-actions tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2">
+                        <UiButton
+                          size="sm"
+                          variant="ghost"
+                          disabled={newDraft || detailLoading || deleting}
+                          onClick={refreshPage}
+                        >
+                          <MaterialIcon name="refresh" />
+                          <span>{t("mcpServers.action.refresh")}</span>
+                        </UiButton>
                         <UiButton
                           size="sm"
                           variant="secondary"
@@ -2094,23 +2123,6 @@ export const McpServersPage = () => {
                       )}
                     </div>
                       </McpFormSection>
-                      <div className="automation-save-actions tw:mt-4 tw:flex tw:flex-wrap tw:items-center tw:gap-2">
-                        <UiButton
-                          size="sm"
-                          variant="primary"
-                          loading={saving}
-                          disabled={saveDisabled || deleting}
-                          onClick={() => void saveDraft()}
-                        >
-                          <MaterialIcon name="save" />
-                          <span>{t("mcpServers.action.save")}</span>
-                        </UiButton>
-                        <span className="tw:text-xs tw:text-ink-muted">
-                          {dirty
-                            ? t("mcpServers.config.dirty")
-                            : t("mcpServers.config.readyToEdit")}
-                        </span>
-                      </div>
                     </>
                   )}
                 </>
