@@ -521,7 +521,7 @@ describe("executeQueryStreamWs", () => {
 				accessLevel: "full_access",
 				model: {
 					key: "gpt-5.5",
-					reasoningEffort: "HIGH",
+					reasoningEffort: "XHIGH",
 				},
 			},
 			dispatch,
@@ -535,7 +535,7 @@ describe("executeQueryStreamWs", () => {
 					accessLevel: "full_access",
 					model: {
 						key: "gpt-5.5",
-						reasoningEffort: "HIGH",
+						reasoningEffort: "XHIGH",
 					},
 				}),
 			}),

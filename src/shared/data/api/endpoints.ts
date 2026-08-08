@@ -19,11 +19,11 @@ import type {
   AdminSourceTarget,
   QueryLikeParams,
   QueryModelOverride,
-  QueryReasoningEffort,
   QueryServiceTier,
   QueryStreamParams,
   BTWStreamParams,
 } from "@/shared/data/api/client";
+import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import { runOwnerPayload } from "@/shared/data/runOwner";
 
 type RunSubmitParams = {
@@ -76,9 +76,9 @@ export function compactQueryModelOverride(
     return null;
   }
   const key = String(model.key || "").trim();
-  const reasoningEffort = String(model.reasoningEffort || "").trim() as
-    | QueryReasoningEffort
-    | "";
+  const reasoningEffort = normalizeQueryReasoningEffort(
+    model.reasoningEffort,
+  );
   const serviceTier = String(model.serviceTier || "").trim().toUpperCase() as
     | QueryServiceTier
     | "";

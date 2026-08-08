@@ -5,6 +5,7 @@ import {
   canSendToTargetChat,
   resolveDifferentChatDetachRunDetail,
   resolveQueryStreamExecutor,
+  normalizeQueryModelOverride,
   syncLiveSessionTerminalState,
   useMessageActions,
 } from "@/features/composer/hooks/useMessageActions";
@@ -63,6 +64,23 @@ describe("resolveQueryStreamExecutor", () => {
 
   it("returns the ws executor for ws mode", () => {
     expect(resolveQueryStreamExecutor("ws")).toBe(executeQueryStreamWs);
+  });
+});
+
+describe("normalizeQueryModelOverride", () => {
+  it("preserves all six efforts and normalizes case plus EXTRA_HIGH", () => {
+    expect(normalizeQueryModelOverride({ reasoningEffort: "xhigh" })).toEqual({
+      reasoningEffort: "XHIGH",
+    });
+    expect(normalizeQueryModelOverride({ reasoningEffort: "EXTRA_HIGH" })).toEqual({
+      reasoningEffort: "XHIGH",
+    });
+    expect(normalizeQueryModelOverride({ reasoningEffort: "MAX" })).toEqual({
+      reasoningEffort: "MAX",
+    });
+    expect(normalizeQueryModelOverride({ reasoningEffort: "NONE" })).toEqual({
+      reasoningEffort: "NONE",
+    });
   });
 });
 

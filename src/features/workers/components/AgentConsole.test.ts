@@ -919,16 +919,16 @@ describe("AgentConsole reasoning configuration", () => {
       {
         key: "reasoner",
         isVision: false,
-        reasoningEfforts: ["LOW", "NONE", "medium", "LOW", "XHIGH"],
+        reasoningEfforts: ["LOW", "NONE", "medium", "LOW", "XHIGH", "MAX"],
       },
       { key: "chat", isVision: false, reasoningEfforts: [] },
       { key: "legacy", isVision: false },
     ];
 
-    expect(getModelReasoningEfforts(models, "reasoner")).toEqual(["LOW", "MEDIUM", "XHIGH"]);
+    expect(getModelReasoningEfforts(models, "reasoner")).toEqual(["LOW", "MEDIUM", "XHIGH", "MAX"]);
     expect(getModelReasoningEfforts(models, "chat")).toEqual([]);
-    expect(getModelReasoningEfforts(models, "legacy")).toEqual(["LOW", "MEDIUM", "HIGH"]);
-    expect(getModelReasoningEfforts(models, "custom-model")).toEqual(["LOW", "MEDIUM", "HIGH"]);
+    expect(getModelReasoningEfforts(models, "legacy")).toEqual(["LOW", "MEDIUM", "HIGH", "XHIGH", "MAX"]);
+    expect(getModelReasoningEfforts(models, "custom-model")).toEqual(["LOW", "MEDIUM", "HIGH", "XHIGH", "MAX"]);
     expect(getModelReasoningEfforts(models, "")).toEqual([]);
     expect(defaultReasoningEffort(getModelReasoningEfforts(models, "reasoner"))).toBe("MEDIUM");
     expect(defaultReasoningEffort(["HIGH", "LOW"])).toBe("HIGH");

@@ -11,6 +11,7 @@ import {
   getModelOptions,
   updateAgentModelConfig,
 } from "@/shared/data";
+import { normalizeQueryReasoningEffort as normalizeReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import type {
   AgentModelConfigResponse,
   CoderModelOption,
@@ -195,26 +196,6 @@ export function getModelIdentityMismatchWarning(
     .map(toConfigText)
     .filter(Boolean)
     .join(" / ")}" is ${technicalFamily}`;
-}
-
-function normalizeReasoningEffort(
-  value: unknown,
-): QueryReasoningEffort | undefined {
-  const text = toConfigText(value).toUpperCase();
-  if (
-    text === "NONE" ||
-    text === "LOW" ||
-    text === "MEDIUM" ||
-    text === "HIGH" ||
-    text === "XHIGH" ||
-    text === "MAX"
-  ) {
-    return text;
-  }
-  if (text === "EXTRA_HIGH") {
-    return "XHIGH";
-  }
-  return undefined;
 }
 
 function normalizeServiceTier(value: unknown): QueryServiceTier | undefined {

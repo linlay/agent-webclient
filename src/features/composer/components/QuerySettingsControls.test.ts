@@ -792,6 +792,26 @@ describe("QuerySettingsControls", () => {
     expect(reasoningHtml).toContain("高");
   });
 
+  it("renders the fixed six native reasoning effort menu entries", () => {
+    const efforts = ["NONE", "LOW", "MEDIUM", "HIGH", "XHIGH", "MAX"] as const;
+    const items = buildModelMenuItems({
+      models: [],
+      reasoningEfforts: efforts.map((key) => ({ key, label: key })),
+      modelOverride: { reasoningEffort: "MEDIUM" },
+      selectedReasoningEffort: "MEDIUM",
+      t: (key) => key,
+    }) as TestMenuItem[];
+
+    expect(items[0].children?.map((item) => item.key)).toEqual([
+      "reasoning:NONE",
+      "reasoning:LOW",
+      "reasoning:MEDIUM",
+      "reasoning:HIGH",
+      "reasoning:XHIGH",
+      "reasoning:MAX",
+    ]);
+  });
+
   it("filters out model options that do not provide a display name", () => {
     const normalized = normalizeCoderModelOptionsResponse({
       data: {

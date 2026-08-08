@@ -582,7 +582,7 @@ describe('data client query payloads', () => {
       accessLevel: 'auto_approve',
       model: {
         key: 'gpt-5.5',
-        reasoningEffort: 'HIGH',
+        reasoningEffort: 'XHIGH',
       },
       params: { city: 'beijing' },
     });
@@ -596,10 +596,30 @@ describe('data client query payloads', () => {
       accessLevel: 'auto_approve',
       model: {
         key: 'gpt-5.5',
-        reasoningEffort: 'HIGH',
+        reasoningEffort: 'XHIGH',
       },
       params: { city: 'beijing' },
     });
+  });
+
+  it('normalizes the compatibility alias in HTTP/SSE and preserves MAX for BTW', async () => {
+    await createQueryStream({
+      requestId: 'req_extra_high',
+      message: 'continue',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
+      model: { reasoningEffort: 'EXTRA_HIGH' as never },
+    });
+    await createBTWStream({
+      requestId: 'req_btw_max',
+      chatId: 'chat_1',
+      message: 'side question',
+      model: { reasoningEffort: 'MAX' },
+    });
+
+    const queryBody = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
+    const btwBody = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body));
+    expect(queryBody.model).toEqual({ reasoningEffort: 'XHIGH' });
+    expect(btwBody.model).toEqual({ reasoningEffort: 'MAX' });
   });
 
   it('keeps uploaded references in query streams when present', async () => {
@@ -698,7 +718,7 @@ describe('data client query payloads', () => {
     await updateAgentModelConfig({
       agentKey: 'editable-agent',
       modelKey: 'coder-model',
-      reasoningEffort: 'HIGH',
+      reasoningEffort: 'MAX',
     });
     await deleteAgent({ key: 'editable-agent' });
     await openAgentDirectory({
@@ -748,7 +768,7 @@ describe('data client query payloads', () => {
         body: {
           agentKey: 'editable-agent',
           modelKey: 'coder-model',
-          reasoningEffort: 'HIGH',
+          reasoningEffort: 'MAX',
         },
       },
       { url: '/api/admin/agents/delete', body: { key: 'editable-agent' } },

@@ -40,6 +40,10 @@ import {
   updateAgent,
   updateAdminSource,
 } from "@/shared/data";
+import {
+  ACTIVE_QUERY_REASONING_EFFORTS,
+  normalizeQueryReasoningEffort,
+} from "@/shared/data/api/reasoningEffort";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import type {
   AdminAgentDetailResponse,
@@ -195,7 +199,7 @@ const BUDGET_PLACEHOLDER = `{
   "model": { "maxCalls": 240 },
   "tool": { "maxCalls": 200 }
 }`;
-const DEFAULT_REASONING_EFFORTS = ["LOW", "MEDIUM", "HIGH"];
+const DEFAULT_REASONING_EFFORTS = [...ACTIVE_QUERY_REASONING_EFFORTS];
 
 function toText(value: unknown): string {
   return String(value ?? "").trim();
@@ -208,7 +212,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function normalizeReasoningEffort(value: unknown): string {
-  return toText(value).toUpperCase();
+  return normalizeQueryReasoningEffort(value) || "";
 }
 
 export function getModelReasoningEfforts(

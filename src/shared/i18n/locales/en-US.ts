@@ -418,7 +418,7 @@ export const enUSMessages = {
   "composer.query.reasoning.MAX": "Max",
   "composer.query.reasoning.MEDIUM": "Medium",
   "composer.query.reasoning.NONE": "Off",
-  "composer.query.reasoning.XHIGH": "Extra high",
+  "composer.query.reasoning.XHIGH": "Extra High",
   "composer.query.reasoning.default": "Default reasoning",
   "composer.query.reasoning.empty": "No reasoning efforts available",
   "composer.query.reasoning.group": "Reasoning effort",

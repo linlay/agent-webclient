@@ -10,6 +10,7 @@ import {
   type QueryModelOverride,
   setAccessToken,
 } from "@/shared/data";
+import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
@@ -181,7 +182,7 @@ function normalizeQueryAccessLevel(
     : undefined;
 }
 
-function normalizeQueryModelOverride(
+export function normalizeQueryModelOverride(
   value: unknown,
 ): QueryModelOverride | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -189,7 +190,7 @@ function normalizeQueryModelOverride(
   }
   const record = value as Record<string, unknown>;
   const key = String(record.key || "").trim();
-  const reasoningEffort = String(record.reasoningEffort || "").trim();
+  const reasoningEffort = normalizeQueryReasoningEffort(record.reasoningEffort);
   const serviceTier = String(record.serviceTier || "")
     .trim()
     .toUpperCase();
@@ -197,12 +198,7 @@ function normalizeQueryModelOverride(
   if (key) {
     model.key = key;
   }
-  if (
-    reasoningEffort === "LOW" ||
-    reasoningEffort === "MEDIUM" ||
-    reasoningEffort === "HIGH" ||
-    reasoningEffort === "NONE"
-  ) {
+  if (reasoningEffort) {
     model.reasoningEffort = reasoningEffort;
   }
   if (serviceTier && serviceTier !== "STANDARD") {
