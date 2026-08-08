@@ -8,6 +8,7 @@ jest.mock("@/shared/data", () => ({
 
 import {
   downloadArtifactResource,
+  limitTextPreview,
   readArtifactResourceText,
 } from "@/features/artifacts/lib/artifactResourceRuntime";
 
@@ -42,5 +43,23 @@ describe("artifactResourceRuntime", () => {
       "artifacts/run_01/report.txt",
       { chatId: "chat_01", teamChat: false, signal },
     );
+  });
+
+  it("only truncates text previews that exceed the byte limit", () => {
+    expect(limitTextPreview("hello", 5)).toEqual({
+      content: "hello",
+      truncated: false,
+    });
+    expect(limitTextPreview("hello!", 5)).toEqual({
+      content: "hello",
+      truncated: true,
+    });
+  });
+
+  it("does not leave a broken multibyte character at the truncation boundary", () => {
+    expect(limitTextPreview("你好", 4)).toEqual({
+      content: "你",
+      truncated: true,
+    });
   });
 });

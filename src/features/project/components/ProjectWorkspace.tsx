@@ -715,7 +715,6 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
               toolbarTrailing={viewTabs}
               showName={false}
               showSourcePath={false}
-              showNote={false}
               showLineNumbers
             />
           ) : (

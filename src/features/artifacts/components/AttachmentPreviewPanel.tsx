@@ -5,6 +5,7 @@ import {
 } from "@/shared/data";
 import {
   downloadArtifactResource,
+  limitTextPreview,
   readArtifactResourceText,
 } from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
@@ -21,8 +22,6 @@ import { Image } from "antd";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useAppState } from "@/app/state/AppContext";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
-
-const textPreviewKinds = new Set(["text", "pdf", "html"]);
 
 const ATTACHMENT_PREVIEW_PANEL_CLASS_NAME =
   "attachment-preview-panel tw:flex tw:h-full tw:flex-col";
@@ -80,7 +79,6 @@ interface AttachmentPreviewPanelProps {
   toolbarTrailing?: React.ReactNode;
   showName?: boolean;
   showSourcePath?: boolean;
-  showNote?: boolean;
   showLineNumbers?: boolean;
 }
 
@@ -148,7 +146,6 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   toolbarTrailing,
   showName = true,
   showSourcePath = true,
-  showNote = true,
   showLineNumbers = false,
 }) => {
   const appState = useAppState();
@@ -161,6 +158,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const [workspaceFile, setWorkspaceFile] =
     React.useState<AgentFileResponse | null>(null);
   const [textContent, setTextContent] = React.useState("");
+  const [textTruncated, setTextTruncated] = React.useState(false);
   const [textLoading, setTextLoading] = React.useState(false);
   const [textError, setTextError] = React.useState("");
   const [mediaError, setMediaError] = React.useState("");
@@ -217,6 +215,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       setTextLoading(true);
       setTextError("");
       setTextContent("");
+      setTextTruncated(false);
 
       void getAgentFile(workspaceFileRequest)
         .then((response) => {
@@ -224,6 +223,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           const file = response.data;
           setWorkspaceFile(file);
           setTextContent(file.contentKind === "text" ? file.content || "" : "");
+          setTextTruncated(file.truncated);
         })
         .catch((error: unknown) => {
           if (disposed) return;
@@ -246,6 +246,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
 
     if (preview.kind !== "text") {
       setTextContent("");
+      setTextTruncated(false);
       setTextLoading(false);
       setTextError("");
       return;
@@ -255,10 +256,13 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
     setTextLoading(true);
     setTextError("");
     setTextContent("");
+    setTextTruncated(false);
 
     void readArtifactResourceText(preview.url, chatId, controller.signal, teamChat)
       .then((content) => {
-        setTextContent(content);
+        const limitedPreview = limitTextPreview(content);
+        setTextContent(limitedPreview.content);
+        setTextTruncated(limitedPreview.truncated);
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) {
@@ -524,15 +528,9 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
         ) : null}
       </div>
 
-      {workspaceFileResponse?.truncated && previewKind !== "html" ? (
+      {textTruncated && previewKind !== "html" ? (
         <div className={ATTACHMENT_PREVIEW_NOTE_CLASS_NAME}>
           {t("rightSidebar.preview.text.truncated")}
-        </div>
-      ) : null}
-
-      {showNote && textPreviewKinds.has(previewKind) ? (
-        <div className={ATTACHMENT_PREVIEW_NOTE_CLASS_NAME}>
-          {t("rightSidebar.preview.note")}
         </div>
       ) : null}
     </div>
