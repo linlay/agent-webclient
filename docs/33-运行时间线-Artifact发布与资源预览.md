@@ -14,6 +14,8 @@ Timeline tool processor 识别 `artifact.publish`，调用 `normalizePublishedAr
 
 Artifact、普通附件和回答 Markdown 中的受保护图片都先使用 Bearer/Cookie fetch 获得后端原始 MIME Blob，再创建短生命周期 object URL 交给 `img`、PDF/HTML iframe、audio 或 video；卸载或 URL 变化时通过 effect cleanup revoke，同时用 AbortController 取消过期请求。新 `publishedArtifacts[].url` 形如 `artifacts/run_01/poster.png`。历史 `/api/resource?file=...` Markdown 被分类为非法，不再预览或下载；外部 HTTP(S) 图片继续直接使用外链，跨域下载不发送平台 Bearer，`data:` 与 `blob:` 原样展示。
 
+回答 Markdown 兼容 `![说明](artifacts/run_01/demo.mp4)` 类历史输出：当图片语法的资源名以 `.m4v`、`.mov`、`.mp4`、`.mpeg`、`.mpg`、`.ogv` 或 `.webm` 结尾时，`MarkdownContent` 将其升级为带 controls 的鉴权 video 渲染；普通图片继续使用 `img`。若受保护资源的 Blob MIME 为空或 `application/octet-stream`，则按已识别的视频扩展名补齐 `video/*`，已有具体 MIME 不会被覆盖。该后缀判断仅用于兼容 Markdown 无标准视频语法的边界，Artifact 面板仍优先按自身的 MIME/扩展名规则识别预览类型。
+
 Desktop 右键语义只把附件名称、媒体类型和固定 preview/download capability 返回宿主，不返回上述 object URL、资源 API URL 或鉴权信息。执行时重新定位当前 AttachmentCard/Markdown 资源，并复用左键的预览状态构造或 `downloadResource`/`downloadArtifactResource` 鉴权下载路径。
 
 ## 边界与非目标
@@ -29,3 +31,5 @@ Desktop 右键语义只把附件名称、媒体类型和固定 preview/download 
 - `../src/features/artifacts/components/AttachmentCard.tsx`
 - `../src/features/artifacts/lib/attachmentPreview.ts`
 - `../src/app/layout/sidebar/right/AttachmentPreviewPanel.tsx`
+- `../src/shared/ui/MarkdownContent.tsx`
+- `../src/shared/ui/useAuthenticatedResourceUrl.ts`

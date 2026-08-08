@@ -7,6 +7,7 @@ import {
 import {
   createObjectUrlLease,
   type ObjectUrlLease,
+  withBlobMimeTypeFallback,
 } from "./authenticatedResourceUrl";
 
 export interface AuthenticatedResourceUrlState {
@@ -20,18 +21,23 @@ interface InternalAuthenticatedResourceUrlState
   requestKey: string;
 }
 
+export interface AuthenticatedResourceUrlOptions
+  extends ResourceUrlClassificationOptions {
+  blobMimeTypeFallback?: string;
+}
+
 function createRequestKey(
   source: string,
   chatId: string,
-  options: ResourceUrlClassificationOptions,
+  options: AuthenticatedResourceUrlOptions,
 ): string {
-  return `${chatId}\u0000${options.teamChat ? "team" : "agent"}\u0000${source}`;
+  return `${chatId}\u0000${options.teamChat ? "team" : "agent"}\u0000${options.blobMimeTypeFallback || ""}\u0000${source}`;
 }
 
 function getImmediateState(
   source: string,
   chatId: string,
-  options: ResourceUrlClassificationOptions,
+  options: AuthenticatedResourceUrlOptions,
 ): InternalAuthenticatedResourceUrlState {
   const requestKey = createRequestKey(source, chatId, options);
   if (!source) {
@@ -55,18 +61,25 @@ function getImmediateState(
 export function useAuthenticatedResourceUrl(
   source: string | undefined,
   chatId: string,
-  options: ResourceUrlClassificationOptions = {},
+  options: AuthenticatedResourceUrlOptions = {},
 ): AuthenticatedResourceUrlState {
   const normalized = String(source || "").trim();
   const teamChat = Boolean(options.teamChat);
+  const blobMimeTypeFallback = String(options.blobMimeTypeFallback || "")
+    .trim()
+    .toLowerCase();
+  const requestOptions = React.useMemo(
+    () => ({ teamChat, blobMimeTypeFallback }),
+    [blobMimeTypeFallback, teamChat],
+  );
   const classificationOptions = React.useMemo(
     () => ({ teamChat }),
     [teamChat],
   );
   const classified = classifyResourceUrl(normalized, chatId, classificationOptions);
-  const requestKey = createRequestKey(normalized, chatId, classificationOptions);
+  const requestKey = createRequestKey(normalized, chatId, requestOptions);
   const [state, setState] = React.useState<InternalAuthenticatedResourceUrlState>(
-    () => getImmediateState(normalized, chatId, classificationOptions),
+    () => getImmediateState(normalized, chatId, requestOptions),
   );
 
   React.useEffect(() => {
@@ -79,7 +92,7 @@ export function useAuthenticatedResourceUrl(
       return;
     }
     if (classified.kind === "invalid") {
-      setState(getImmediateState(normalized, chatId, classificationOptions));
+      setState(getImmediateState(normalized, chatId, requestOptions));
       return;
     }
 
@@ -93,7 +106,9 @@ export function useAuthenticatedResourceUrl(
     })
       .then((blob) => {
         if (controller.signal.aborted) return;
-        lease = createObjectUrlLease(blob);
+        lease = createObjectUrlLease(
+          withBlobMimeTypeFallback(blob, blobMimeTypeFallback),
+        );
         setState({ requestKey, url: lease.url, loading: false, error: null });
       })
       .catch((error: unknown) => {
@@ -106,9 +121,9 @@ export function useAuthenticatedResourceUrl(
       controller.abort();
       lease?.revoke();
     };
-  }, [chatId, classificationOptions, classified.kind, classified.source, normalized, requestKey, teamChat]);
+  }, [blobMimeTypeFallback, chatId, classificationOptions, classified.kind, classified.source, normalized, requestKey, requestOptions, teamChat]);
 
   return state.requestKey === requestKey
     ? state
-    : getImmediateState(normalized, chatId, classificationOptions);
+    : getImmediateState(normalized, chatId, requestOptions);
 }

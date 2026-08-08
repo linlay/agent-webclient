@@ -26,6 +26,10 @@ import {
   sanitizeMarkdownImageProps,
   type MarkdownImageProps,
 } from "./markdownImageProps";
+import {
+  getMarkdownVideoMimeType,
+  isMarkdownVideoSource,
+} from "./markdownMedia";
 import { useAuthenticatedResourceUrl } from "./useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { copyText } from "@/shared/utils/copy";
@@ -306,6 +310,61 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   return <img ref={contextTargetRef} {...imageProps} src={resolved.url} alt={alt || ""} />;
 };
 
+type AuthVideoProps = MarkdownImageProps & {
+  chatId: string;
+  teamChat: boolean;
+};
+
+const AuthVideo: React.FC<AuthVideoProps> = (props) => {
+  const { src, chatId, teamChat, alt, title } = props;
+  const { t } = useI18n();
+  const resolved = useAuthenticatedResourceUrl(src, chatId, {
+    teamChat,
+    blobMimeTypeFallback: getMarkdownVideoMimeType(src),
+  });
+  const contextTargetId = React.useId();
+  const authenticatedResource = useMemo(
+    () => isFetchedResourceKind(classifyResourceUrl(src || "", chatId, { teamChat }).kind),
+    [chatId, src, teamChat],
+  );
+  const contextTarget = useMemo(() => authenticatedResource && src ? ({
+      targetId: `resource-video:${contextTargetId}`,
+      kind: "chat-resource" as const,
+      name: alt || getSafeResourceDisplayName(src),
+      mediaType: "video" as const,
+      handlers: {
+        "download-resource": () => downloadResource(src, {
+          filename: extractFilenameFromResourceUrl(src),
+          chatId,
+          teamChat,
+        }),
+      },
+    }) : null,
+    [alt, authenticatedResource, chatId, contextTargetId, src, teamChat],
+  );
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLVideoElement>(contextTarget);
+  if (resolved.error) {
+    const fallback = t("rightSidebar.preview.error.video");
+    return <span role="status">{alt || fallback}</span>;
+  }
+  if (!resolved.url) {
+    return <span aria-busy={resolved.loading}>{alt || ""}</span>;
+  }
+
+  return (
+    <video
+      ref={contextTargetRef}
+      className="markdown-video"
+      src={resolved.url}
+      controls
+      playsInline
+      preload="metadata"
+      aria-label={alt || title || undefined}
+      title={title}
+    />
+  );
+};
+
 const MarkdownPre: React.FC<MarkdownPreProps> = ({
   children,
   domNode: _domNode,
@@ -365,9 +424,12 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
         ),
         code: MarkdownCode,
         pre: MarkdownPre,
-        img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) => (
-          <AuthImage {...imageProps} chatId={chatId} teamChat={teamChat} />
-        ),
+        img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) =>
+          isMarkdownVideoSource(imageProps.src) ? (
+            <AuthVideo {...imageProps} chatId={chatId} teamChat={teamChat} />
+          ) : (
+            <AuthImage {...imageProps} chatId={chatId} teamChat={teamChat} />
+          ),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,
     [chatId, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],

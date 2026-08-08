@@ -5,6 +5,10 @@ import {
   shouldOpenWebLinkInSidebar,
 } from "@/shared/ui/markdownWebLinks";
 import { sanitizeMarkdownImageProps } from "@/shared/ui/markdownImageProps";
+import {
+  getMarkdownVideoMimeType,
+  isMarkdownVideoSource,
+} from "@/shared/ui/markdownMedia";
 
 describe("sanitizeMarkdownImageProps", () => {
   it("removes void-element and renderer-only props before rendering img", () => {
@@ -27,6 +31,39 @@ describe("sanitizeMarkdownImageProps", () => {
       className: "image",
       loading: "lazy",
     });
+  });
+});
+
+describe("isMarkdownVideoSource", () => {
+  it.each([
+    "artifacts/run_01/demo.mp4",
+    "artifacts/run_01/demo.WEBM",
+    "https://cdn.example.com/demo.mov?token=demo#preview",
+    "artifacts/run_01/%E5%8E%A8%E6%88%BF%20%E5%B0%8F%E7%8B%97.m4v",
+  ])("recognizes a supported Markdown video resource: %s", (source) => {
+    expect(isMarkdownVideoSource(source)).toBe(true);
+  });
+
+  it.each([
+    "artifacts/run_01/demo.png",
+    "artifacts/run_01/demo.mp4.png",
+    "artifacts/run_01/video",
+    "data:image/png;base64,AAAA",
+    "blob:https://example.com/id",
+    "artifacts/run_01/demo.%ZZmp4",
+  ])("keeps a non-video Markdown resource as an image: %s", (source) => {
+    expect(isMarkdownVideoSource(source)).toBe(false);
+  });
+
+  it.each([
+    ["demo.mp4", "video/mp4"],
+    ["demo.mov", "video/quicktime"],
+    ["demo.mpg", "video/mpeg"],
+    ["demo.ogv", "video/ogg"],
+    ["demo.webm", "video/webm"],
+    ["demo.png", ""],
+  ])("infers the video MIME fallback for %s", (source, expected) => {
+    expect(getMarkdownVideoMimeType(source)).toBe(expected);
   });
 });
 

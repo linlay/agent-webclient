@@ -895,6 +895,15 @@
     border: 1px solid var(--line-soft);
 }
 
+.timeline-markdown video.markdown-video {
+    display: block;
+    width: min(100%, 720px);
+    max-height: 70vh;
+    border-radius: 10px;
+    border: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--bg-input) 88%, black);
+}
+
 .timeline-markdown .markdown-echarts {
     width: 100%;
     min-height: 180px;
@@ -1050,7 +1059,8 @@ html[data-theme="dark"] .timeline-markdown blockquote {
 
 html[data-theme="dark"] .timeline-markdown th,
 html[data-theme="dark"] .timeline-markdown td,
-html[data-theme="dark"] .timeline-markdown img {
+html[data-theme="dark"] .timeline-markdown img,
+html[data-theme="dark"] .timeline-markdown video.markdown-video {
     border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
 }
 

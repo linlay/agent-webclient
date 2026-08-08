@@ -1,4 +1,26 @@
-import { createObjectUrlLease } from "@/shared/ui/authenticatedResourceUrl";
+import {
+  createObjectUrlLease,
+  withBlobMimeTypeFallback,
+} from "@/shared/ui/authenticatedResourceUrl";
+
+describe("withBlobMimeTypeFallback", () => {
+  it.each(["", "application/octet-stream"])(
+    "repairs a generic Blob MIME type: %s",
+    (type) => {
+      const source = new Blob(["video"], { type });
+      const normalized = withBlobMimeTypeFallback(source, "video/mp4");
+
+      expect(normalized).not.toBe(source);
+      expect(normalized.type).toBe("video/mp4");
+      expect(normalized.size).toBe(source.size);
+    },
+  );
+
+  it("preserves a specific server MIME type", () => {
+    const source = new Blob(["video"], { type: "video/webm" });
+    expect(withBlobMimeTypeFallback(source, "video/mp4")).toBe(source);
+  });
+});
 
 describe("createObjectUrlLease", () => {
   it("revokes the Blob URL exactly once when a resource effect is cleaned up", () => {

@@ -19,6 +19,15 @@ jest.mock("@ant-design/x-markdown", () => ({
         domNode: { name: "img" },
         streamStatus: "done",
       }),
+      React.createElement(components.img, {
+        src: "artifacts/run_01/demo.mp4",
+        alt: "video preview",
+        title: "demo video",
+        children: [],
+        dangerouslySetInnerHTML: { __html: "unsafe" },
+        domNode: { name: "img" },
+        streamStatus: "done",
+      }),
       React.createElement(
         components.a,
         { href: "artifacts/run_01/image.png" },
@@ -69,7 +78,17 @@ describe("MarkdownContent resource image", () => {
       "chat_01",
       { teamChat: false },
     );
+    expect(mockUseAuthenticatedResourceUrl).toHaveBeenCalledWith(
+      "artifacts/run_01/demo.mp4",
+      "chat_01",
+      { teamChat: false, blobMimeTypeFallback: "video/mp4" },
+    );
     expect(html).toContain('src="blob:authenticated-preview"');
+    expect(html).toContain('<video');
+    expect(html).toContain('class="markdown-video"');
+    expect(html).toContain('controls=""');
+    expect(html).toContain('aria-label="video preview"');
+    expect(html).toContain('title="demo video"');
     expect(html).toContain(
       'href="artifacts/run_01/image.png"',
     );
