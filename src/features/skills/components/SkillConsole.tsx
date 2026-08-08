@@ -122,7 +122,7 @@ const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => {
 const SKILL_CONSOLE_CLASS_NAME =
   "skill-console tw:flex tw:flex-auto tw:flex-col tw:min-h-0 tw:gap-3 tw:overflow-hidden";
 const SKILL_BODY_CLASS_NAME =
-  "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[280px_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+  "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[240px_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
 const SKILL_LIST_CLASS_NAME =
   "skill-console-list tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px]";
 const SKILL_TOOLBAR_CLASS_NAME =

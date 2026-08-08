@@ -108,6 +108,7 @@ describe("RegistriesPage", () => {
     const html = renderRegistriesPage("en-US");
 
     expect(html).toContain("management-page-console");
+    expect(html).toContain("280px_minmax(0,1fr)");
     expect(html).not.toContain("command-modal-section");
   });
 

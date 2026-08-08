@@ -386,6 +386,7 @@ describe("AgentConsole i18n rendering", () => {
     const embeddedHtml = renderConsole(true);
 
     expect(pageHtml).toContain("management-page-console");
+    expect(pageHtml).toContain("280px_minmax(0,1fr)");
     expect(pageHtml).not.toContain("command-modal-section");
     expect(embeddedHtml).toContain("command-modal-section");
     expect(embeddedHtml).toContain("is-embedded");
