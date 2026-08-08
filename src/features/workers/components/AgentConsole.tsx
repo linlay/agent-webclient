@@ -2730,7 +2730,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   title={t("agentConsole.section.advancedConfig")}
                 >
                   <div className={AGENT_FORM_GRID_CLASS_NAME}>
-                    <div className="field-group">
+                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
                       <label htmlFor="agent-controls-input">
                         {t("agentConsole.field.controls")}
                       </label>
@@ -2744,7 +2744,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                         }
                       />
                     </div>
-                    <div className="field-group">
+                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
                       <label htmlFor="agent-runtime-input">
                         {t("agentConsole.field.runtimeConfig")}
                       </label>
@@ -2756,20 +2756,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                         value={form.runtimeConfigText}
                         onChange={(event) =>
                           updateForm({ runtimeConfigText: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="field-group">
-                      <label htmlFor="agent-memory-input">
-                        {t("agentConsole.field.memoryConfig")}
-                      </label>
-                      <Input.TextArea
-                        id="agent-memory-input"
-                        className={AGENT_MONO_TEXTAREA_CLASS_NAME}
-                        rows={5}
-                        value={form.memoryConfigText}
-                        onChange={(event) =>
-                          updateForm({ memoryConfigText: event.target.value })
                         }
                       />
                     </div>

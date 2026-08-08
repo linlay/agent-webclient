@@ -502,6 +502,30 @@ describe("AgentConsole i18n rendering", () => {
     expect(context).toContain("agent-skills-input");
     expect(context.match(/agent-form-full-width/g)).toHaveLength(3);
   });
+
+  it("renders advanced configuration fields one per row and hides memory config", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "en-US", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+    const advanced = html.slice(
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
+    );
+
+    expect(advanced).toContain(
+      'class="field-group agent-form-full-width',
+    );
+    expect(advanced.match(/agent-form-full-width/g)).toHaveLength(3);
+    expect(advanced).toContain("agent-controls-input");
+    expect(advanced).toContain("agent-runtime-input");
+    expect(advanced).toContain("agent-budget-input");
+    expect(advanced).not.toContain("agent-memory-input");
+    expect(advanced).not.toContain("Memory Config");
+  });
 });
 
 describe("AgentConsole tool options", () => {
