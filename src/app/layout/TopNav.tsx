@@ -12,7 +12,13 @@ import type {
   AppState,
   RightSidebarTabKey,
 } from "@/app/state/types";
-import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
+import {
+  resolveCurrentWorkerSummary,
+  isCoderAgent,
+  isDedicatedKbaseWorker,
+} from "@/features/workers/lib/currentWorker";
+import type { Chat } from "@/app/state/navigationTypes";
+import { ProjectWorkspaceDialog } from "@/features/project/components/ProjectWorkspaceDialog";
 import {
   isDebugPanelEnabled,
   isVoiceEnabled,
@@ -604,11 +610,19 @@ export const TopNav: React.FC = () => {
     isMainChatRunning,
   );
   const currentWorker = resolveCurrentWorkerSummary(state);
+  const [projectOpen, setProjectOpen] = React.useState(false);
   const voiceEnabled = isVoiceEnabled();
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
   const showTerminalButton = isCoderAgent(currentWorker);
+  const showProjectButton = isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker);
+  const projectInvalidationKey = React.useMemo(
+    () => state.fileChanges
+      .map((change) => `${change.runId}:${change.filePath}:${change.lastUpdatedAt}`)
+      .join("|"),
+    [state.fileChanges],
+  );
   const currentWorkerTerminalStatus = showTerminalButton
     ? terminalAgentStatuses.get(currentWorker?.sourceId || "")
     : undefined;
@@ -938,6 +952,20 @@ export const TopNav: React.FC = () => {
         </div>
 
         <div className={NAV_GROUP_CLASS}>
+          {showProjectButton ? (
+            <UiButton
+              className={TOP_NAV_ICON_BUTTON_CLASS}
+              variant="ghost"
+              size="sm"
+              iconOnly
+              active={projectOpen}
+              aria-label={t("topNav.project.open")}
+              title={t("topNav.project.open")}
+              onClick={() => setProjectOpen(true)}
+            >
+              <MaterialIcon name="folder_open" />
+            </UiButton>
+          ) : null}
           {voiceModeAvailable ? (
             <UiButton
               className={
@@ -1082,6 +1110,19 @@ export const TopNav: React.FC = () => {
           </UiButton>
         </div>
       </div>
+      {showProjectButton && currentWorker ? (
+        <ProjectWorkspaceDialog
+          open={projectOpen}
+          agentKey={currentWorker.sourceId}
+          agentName={currentWorker.displayName}
+          chats={currentWorker.relatedChats as Chat[]}
+          chatId={state.chatId}
+          runId={state.runId}
+          invalidationKey={projectInvalidationKey}
+          invalidationPaths={state.fileChanges.map((change) => change.filePath)}
+          onClose={() => setProjectOpen(false)}
+        />
+      ) : null}
     </nav>
   );
 };

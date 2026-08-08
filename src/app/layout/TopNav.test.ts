@@ -178,6 +178,29 @@ describe("TopNav", () => {
 		expect(html).not.toContain("Open usage stats");
 	});
 
+	it.each(["CODER", "KBASE"])("renders the project browser action for %s agents", (mode) => {
+		const state = createInitialState();
+		state.agents = [{ key: "project-agent", name: "Project Agent", mode }];
+		state.workerSelectionKey = "agent:project-agent";
+		useAppState.mockReturnValue(state);
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain('aria-label="Open project files"');
+		expect(html).toContain('data-material-icon="folder_open"');
+	});
+
+	it("does not render the project browser action for unsupported agents", () => {
+		const state = createInitialState();
+		state.agents = [{ key: "react-agent", name: "React Agent", mode: "REACT" }];
+		state.workerSelectionKey = "agent:react-agent";
+		useAppState.mockReturnValue(state);
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).not.toContain('aria-label="Open project files"');
+	});
+
 	it("renders usage entry with chat total from the latest snapshot", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({

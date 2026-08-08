@@ -71,6 +71,10 @@
 - `GET /api/chat`
 - `GET /api/viewport`
 - `GET /api/data`
+- `GET /api/file`
+- `GET /api/project/tree`
+- `GET /api/project/changes`
+- `GET /api/project/diff`
 - `POST /api/query`：对话流入口；`agentKey` / `teamId` 是可选路由提示，缺省时由后端按现有上下文推导
 - `GET /api/attach`：Run 事件续接；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `POST /api/submit`：Run 前端工具 / awaiting 提交；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
@@ -163,6 +167,7 @@ Git 提交与推送规范：
 - [60-页面能力-Memory页面](docs/60-页面能力-Memory页面.md)
 - [61-页面能力-Archive归档页面](docs/61-页面能力-Archive归档页面.md)
 - [62-页面能力-Automation页面](docs/62-页面能力-Automation页面.md)
+- [63-页面能力-Project文件浏览器](docs/63-页面能力-Project文件浏览器.md)
 
 ### 70+ 周边能力与交付
 - [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)

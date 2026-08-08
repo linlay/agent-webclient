@@ -54,7 +54,13 @@ const ATTACHMENT_PREVIEW_TEXT_WITH_LINES_CLASS_NAME =
   "attachment-preview-text attachment-preview-text-lines tw:m-0 tw:min-h-full tw:flex-1 tw:overflow-auto tw:whitespace-pre-wrap tw:break-words tw:p-0 tw:font-code tw:text-xs tw:leading-[1.6] tw:text-ink-1";
 
 const ATTACHMENT_PREVIEW_LINE_CLASS_NAME =
-  "attachment-preview-line tw:block tw:min-h-[1.6em] tw:px-3.5 tw:py-0";
+  "attachment-preview-line tw:grid tw:min-h-[1.6em] tw:grid-cols-[4.25rem_minmax(0,1fr)] tw:py-0";
+
+const ATTACHMENT_PREVIEW_LINE_NUMBER_CLASS_NAME =
+  "attachment-preview-line-number tw:select-none tw:border-r tw:border-line-soft tw:pr-3 tw:text-right tw:text-ink-muted";
+
+const ATTACHMENT_PREVIEW_LINE_CONTENT_CLASS_NAME =
+  "attachment-preview-line-content tw:min-w-0 tw:whitespace-pre-wrap tw:break-words tw:px-3.5";
 
 const ATTACHMENT_PREVIEW_TARGET_LINE_CLASS_NAME =
   "is-target tw:bg-[color-mix(in_srgb,var(--accent-electric)_16%,transparent)] tw:text-ink-1";
@@ -70,6 +76,12 @@ const ATTACHMENT_PREVIEW_NOTE_CLASS_NAME =
 
 interface AttachmentPreviewPanelProps {
   preview: AttachmentPreviewState;
+  toolbarLeading?: React.ReactNode;
+  toolbarTrailing?: React.ReactNode;
+  showName?: boolean;
+  showSourcePath?: boolean;
+  showNote?: boolean;
+  showLineNumbers?: boolean;
 }
 
 export interface TextPreviewLine {
@@ -132,6 +144,12 @@ export function resolveWorkspaceHtmlSrcDoc(
 
 export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   preview,
+  toolbarLeading,
+  toolbarTrailing,
+  showName = true,
+  showSourcePath = true,
+  showNote = true,
+  showLineNumbers = false,
 }) => {
   const appState = useAppState();
   const { chatId } = appState;
@@ -302,7 +320,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       });
   }, [chatId, downloadUrl, downloading, previewName, teamChat]);
 
-  const sourceLocation = previewSourcePath
+  const sourceLocation = showSourcePath && previewSourcePath
     ? `${previewSourcePath}${preview.line ? `:${preview.line}` : ""}`
     : "";
   const metadata = [
@@ -324,12 +342,19 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   return (
     <div className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
       <div className={ATTACHMENT_PREVIEW_TOOLBAR_CLASS_NAME}>
-        <strong
-          className={ATTACHMENT_PREVIEW_NAME_CLASS_NAME}
-          title={previewName}
-        >
-          {previewName}
-        </strong>
+        {toolbarLeading ? (
+          <div className="attachment-preview-toolbar-leading tw:flex tw:min-w-0 tw:flex-1">
+            {toolbarLeading}
+          </div>
+        ) : null}
+        {showName ? (
+          <strong
+            className={ATTACHMENT_PREVIEW_NAME_CLASS_NAME}
+            title={previewName}
+          >
+            {previewName}
+          </strong>
+        ) : null}
         {metadata ? (
           <span className={ATTACHMENT_PREVIEW_META_CLASS_NAME} title={metadata}>
             {metadata}
@@ -342,9 +367,16 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           loading={downloading}
           disabled={!downloadUrl}
           iconOnly
+          aria-label={t("rightSidebar.preview.action.download")}
+          title={t("rightSidebar.preview.action.download")}
         >
           <MaterialIcon name="download" />
         </UiButton>
+        {toolbarTrailing ? (
+          <div className="attachment-preview-toolbar-trailing tw:flex tw:self-stretch">
+            {toolbarTrailing}
+          </div>
+        ) : null}
       </div>
 
       <div className={ATTACHMENT_PREVIEW_BODY_CLASS_NAME}>
@@ -410,7 +442,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
             <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
               {textError}
             </div>
-          ) : targetLine ? (
+          ) : targetLine || showLineNumbers ? (
             <pre
               ref={textContainerRef}
               className={ATTACHMENT_PREVIEW_TEXT_WITH_LINES_CLASS_NAME}
@@ -428,7 +460,12 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
                     .join(" ")}
                   data-preview-line={line.lineNumber}
                 >
-                  {line.text || " "}
+                  <span className={ATTACHMENT_PREVIEW_LINE_NUMBER_CLASS_NAME} aria-hidden="true">
+                    {line.lineNumber}
+                  </span>
+                  <span className={ATTACHMENT_PREVIEW_LINE_CONTENT_CLASS_NAME}>
+                    {line.text || " "}
+                  </span>
                 </span>
               ))}
             </pre>
@@ -493,7 +530,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
         </div>
       ) : null}
 
-      {textPreviewKinds.has(previewKind) ? (
+      {showNote && textPreviewKinds.has(previewKind) ? (
         <div className={ATTACHMENT_PREVIEW_NOTE_CLASS_NAME}>
           {t("rightSidebar.preview.note")}
         </div>

@@ -58,6 +58,9 @@ import {
   getAgent,
 	getAgentSkills,
 	getAgentFile,
+  getProjectChanges,
+  getProjectDiff,
+  getProjectTree,
   getAgentOrder,
   getAgents,
   getChatLLMTraceRaw,
@@ -1513,6 +1516,73 @@ describe('data client query payloads', () => {
     );
   });
 
+  it('requests project tree, changes, and diff over fixed HTTP endpoints', async () => {
+    await getProjectTree({
+      agentKey: 'coder-agent',
+      path: 'src/lib',
+      cursor: 'cursor one',
+      limit: 200,
+    });
+    await getProjectChanges({
+      agentKey: 'coder-agent',
+      chatId: 'chat-1',
+      runId: 'run-2',
+      limit: 1000,
+    });
+    await getProjectDiff({
+      agentKey: 'coder-agent',
+      chatId: 'chat-1',
+      runId: 'run-2',
+      path: 'src/App.tsx',
+      encoding: 'utf-8',
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      '/api/project/tree?agentKey=coder-agent&path=src%2Flib&cursor=cursor+one&limit=200',
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      '/api/project/changes?agentKey=coder-agent&chatId=chat-1&runId=run-2&limit=1000',
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      '/api/project/diff?agentKey=coder-agent&chatId=chat-1&runId=run-2&path=src%2FApp.tsx&encoding=utf-8',
+    );
+  });
+
+  it('normalizes legacy null project collections to empty arrays', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          code: 0,
+          msg: 'ok',
+          data: {
+            agentKey: 'coder-agent', mode: 'CODER', workspaceName: 'demo', path: '',
+            revision: 'tree-revision', entries: null,
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          code: 0,
+          msg: 'ok',
+          data: {
+            agentKey: 'coder-agent', chatId: 'chat-1', revision: 'changes-revision',
+            runs: null, items: null,
+          },
+        }),
+      });
+
+    const tree = await getProjectTree({ agentKey: 'coder-agent' });
+    const changes = await getProjectChanges({ agentKey: 'coder-agent', chatId: 'chat-1' });
+
+    expect(tree.data.entries).toEqual([]);
+    expect(changes.data.runs).toEqual([]);
+    expect(changes.data.items).toEqual([]);
+  });
+
   it('requests file history with encoded path and version', async () => {
     await getFileHistory({
       chatId: 'chat_1',
@@ -1663,10 +1733,12 @@ describe('data client query payloads', () => {
     await getAgents();
     await getAgents({ includeChats: 5 });
     await getAgents({ includeChats: 5, includeTeam: true, scope: 'copilot', mode: 'CODER' });
+    await getAgents({ includeChats: 20, scope: 'nav', mode: ['CODER', 'KBASE'] });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5');
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5&includeTeam=true&scope=copilot&mode=CODER');
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=20&scope=nav&mode=CODER&mode=KBASE');
   });
 
   it('supports reading and writing agent order', async () => {

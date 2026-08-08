@@ -366,6 +366,7 @@ compose.yml             Docker Compose 部署入口
 - [60-页面能力-Memory页面](docs/60-页面能力-Memory页面.md)
 - [61-页面能力-Archive归档页面](docs/61-页面能力-Archive归档页面.md)
 - [62-页面能力-Automation页面](docs/62-页面能力-Automation页面.md)
+- [63-页面能力-Project文件浏览器](docs/63-页面能力-Project文件浏览器.md)
 
 ### 70+ 周边能力与交付
 

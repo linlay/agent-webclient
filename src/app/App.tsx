@@ -35,6 +35,7 @@ import { ArchivesPage } from "./pages/archives";
 import { RegistriesPage } from "./pages/registries";
 import { McpServersPage } from "./pages/mcp-servers";
 import { SkillsPage } from "./pages/skills";
+import { ProjectPage } from "./pages/project";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import { setTransportModeProvider } from "@/shared/data/api/routedClient";
 import { resolveRouteDataTransportMode } from "./routeDataTransport";
@@ -254,6 +255,14 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute titleKey="route.title.skills">
               <SkillsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/project",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.project">
+              <ProjectPage />
             </DocumentTitleRoute>
           ),
         },

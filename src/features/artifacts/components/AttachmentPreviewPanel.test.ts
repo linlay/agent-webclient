@@ -56,6 +56,26 @@ describe("buildTextPreviewLines", () => {
 				"text",
 			),
 		).toBe("pdf");
+
+		expect(
+			resolveWorkspaceFilePreviewKind(
+				{
+					agentKey: "coder",
+					workspaceRoot: "/workspace",
+					requestedPath: "diagram.png",
+					path: "diagram.png",
+					absolutePath: "/workspace/diagram.png",
+					name: "diagram.png",
+					kind: "file",
+					contentKind: "binary",
+					mimeType: "image/png",
+					contentUrl: "/api/file?agentKey=coder&path=diagram.png&response=content",
+					sizeBytes: 10,
+					truncated: false,
+				},
+				"text",
+			),
+		).toBe("image");
 	});
 
 	it.each([

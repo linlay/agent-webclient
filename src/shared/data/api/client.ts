@@ -110,11 +110,105 @@ export interface AgentFileResponse {
   contentUrl?: string;
 }
 
+export interface ProjectTreeEntry {
+  name: string;
+  path: string;
+  kind: "directory" | "file" | "symlink";
+  targetKind?: "directory" | "file";
+  accessible: boolean;
+  sizeBytes?: number;
+  modifiedUnixMs?: number;
+}
+
+export interface ProjectTreeRequest {
+  [key: string]: unknown;
+  agentKey: string;
+  path?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface ProjectTreeResponse {
+  agentKey: string;
+  mode: "CODER" | "KBASE";
+  workspaceName: string;
+  path: string;
+  revision: string;
+  entries: ProjectTreeEntry[];
+  nextCursor?: string;
+}
+
+export interface ProjectHistoryVersion {
+  exists: boolean;
+  sha256?: string;
+  sizeBytes?: number;
+}
+
+export interface ProjectChangeItem {
+  runId: string;
+  path: string;
+  changeType: "added" | "modified" | "deleted";
+  updatedAt?: number;
+  original: ProjectHistoryVersion;
+  current: ProjectHistoryVersion;
+}
+
+export interface ProjectChangeRun {
+  runId: string;
+  updatedAt?: number;
+  fileCount: number;
+}
+
+export interface ProjectChangesRequest {
+  [key: string]: unknown;
+  agentKey: string;
+  chatId: string;
+  runId?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface ProjectChangesResponse {
+  agentKey: string;
+  chatId: string;
+  revision: string;
+  runs: ProjectChangeRun[];
+  items: ProjectChangeItem[];
+  nextCursor?: string;
+}
+
+export interface ProjectDiffVersion {
+  exists: boolean;
+  content?: string;
+  encoding?: string;
+  sha256?: string;
+  sizeBytes?: number;
+}
+
+export interface ProjectDiffRequest {
+  [key: string]: unknown;
+  agentKey: string;
+  chatId: string;
+  runId: string;
+  path: string;
+  encoding?: string;
+}
+
+export interface ProjectDiffResponse {
+  agentKey: string;
+  chatId: string;
+  runId: string;
+  path: string;
+  changeType: "added" | "modified" | "deleted";
+  original: ProjectDiffVersion;
+  current: ProjectDiffVersion;
+}
+
 export interface GetAgentsOptions {
   includeChats?: number;
   includeTeam?: boolean;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
-  mode?: string;
+  mode?: string | string[];
 }
 
 export interface AgentOrderResponse {
@@ -1028,11 +1122,20 @@ function isVoiceVoicesPayloadShape(
   );
 }
 
+type QueryParamScalar = string | number | boolean | undefined | null;
+type QueryParamValue = QueryParamScalar | QueryParamScalar[];
+
 function toQueryString(
-  params: Record<string, string | number | boolean | undefined | null> = {},
+  params: Record<string, QueryParamValue> = {},
 ): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null && item !== "") search.append(key, String(item));
+      });
+      continue;
+    }
     if (value === undefined || value === null || value === "") {
       continue;
     }
@@ -1040,8 +1143,6 @@ function toQueryString(
   }
   return search.toString();
 }
-
-type QueryParamValue = string | number | boolean | undefined | null;
 
 function toQueryParamsRecord(value: unknown): Record<string, QueryParamValue> {
   if (!isObjectRecord(value) || Array.isArray(value)) {
@@ -1054,7 +1155,10 @@ function toQueryParamsRecord(value: unknown): Record<string, QueryParamValue> {
       typeof item === "string" ||
       typeof item === "number" ||
       typeof item === "boolean" ||
-      item == null
+      item == null ||
+      (Array.isArray(item) && item.every((entry) =>
+        typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean" || entry == null,
+      ))
     ) {
       params[key] = item;
     }
@@ -2032,6 +2136,48 @@ export function getAgentFile(
   return requestJson<AgentFileResponse>(
     withQuery(dataEndpoints.agentFile.path, query),
   );
+}
+
+export async function getProjectTree(
+  params: ProjectTreeRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResponse<ProjectTreeResponse>> {
+  const query = endpointQuery(dataEndpoints.projectTree, params);
+  const response = await requestJson<ProjectTreeResponse>(withQuery(dataEndpoints.projectTree.path, query), {
+    method: "GET",
+    signal: options.signal,
+  });
+  if (response.data) {
+    response.data.entries = Array.isArray(response.data.entries) ? response.data.entries : [];
+  }
+  return response;
+}
+
+export async function getProjectChanges(
+  params: ProjectChangesRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResponse<ProjectChangesResponse>> {
+  const query = endpointQuery(dataEndpoints.projectChanges, params);
+  const response = await requestJson<ProjectChangesResponse>(withQuery(dataEndpoints.projectChanges.path, query), {
+    method: "GET",
+    signal: options.signal,
+  });
+  if (response.data) {
+    response.data.runs = Array.isArray(response.data.runs) ? response.data.runs : [];
+    response.data.items = Array.isArray(response.data.items) ? response.data.items : [];
+  }
+  return response;
+}
+
+export function getProjectDiff(
+  params: ProjectDiffRequest,
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResponse<ProjectDiffResponse>> {
+  const query = endpointQuery(dataEndpoints.projectDiff, params);
+  return requestJson<ProjectDiffResponse>(withQuery(dataEndpoints.projectDiff.path, query), {
+    method: "GET",
+    signal: options.signal,
+  });
 }
 
 export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<AdminAgentDetailResponse>> {

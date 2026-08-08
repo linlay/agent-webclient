@@ -74,5 +74,6 @@
 @import "./globals/workers.css";
 @import "./globals/responsive.css";
 @import "./globals/copilot.css";
+@import "./globals/project.css";
 
 @import "tailwindcss/utilities" source("../..");
