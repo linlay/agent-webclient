@@ -5,6 +5,7 @@ import {
   AgentChatShell,
   consumeLiveSessionPromotion,
   createChatRouteKey,
+  createHistoryChatRoute,
   createNewChatRouteKey,
   createResolvedNewChatRoute,
   parseNewChatTimestamp,
@@ -560,6 +561,36 @@ describe("AgentChatShell", () => {
         "chat-123",
       ),
     ).toBe("/agent/demo-agent?lang=en&hostTheme=dark&chatId=chat-123");
+  });
+
+  it("routes a selected history chat through its selected agent", () => {
+    expect(
+      createHistoryChatRoute(
+        {
+          type: "agent",
+          sourceId: "next agent",
+        },
+        new URLSearchParams(
+          "chatId=old-chat&history=1&historyRequest=1783680000000&newChat=1783680000001&lang=en&hostTheme=dark",
+        ),
+        "next-chat",
+      ),
+    ).toBe(
+      "/agent/next%20agent?chatId=next-chat&lang=en&hostTheme=dark",
+    );
+  });
+
+  it("keeps team history selection on the existing non-route loading path", () => {
+    expect(
+      createHistoryChatRoute(
+        {
+          type: "team",
+          sourceId: "ops",
+        },
+        new URLSearchParams("history=1"),
+        "team-chat",
+      ),
+    ).toBe("");
   });
 
   it("consumes a live-session promotion exactly once for its promoted chat route", () => {
