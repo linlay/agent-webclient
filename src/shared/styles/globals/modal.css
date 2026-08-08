@@ -743,7 +743,14 @@
     gap: 12px;
 }
 
-.automation-form-grid .field-group {
+.automation-basic-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.automation-form-grid .field-group,
+.automation-basic-form-grid .field-group {
     margin-bottom: 0;
 }
 
@@ -1580,7 +1587,8 @@
         max-height: 260px;
     }
 
-    .automation-form-grid {
+    .automation-form-grid,
+    .automation-basic-form-grid {
         grid-template-columns: 1fr;
     }
 

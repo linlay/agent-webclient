@@ -339,6 +339,34 @@ describe("AutomationModal", () => {
     expect(html.indexOf("执行记录")).toBeGreaterThan(executionsStart);
   });
 
+  it("lays out the basic section as paired two-column rows and keeps the query grid at three columns", () => {
+    const html = renderAutomationModal("zh-CN");
+
+    // 基本属性使用 2 列网格容器，描述跨两列全宽；查询参数仍为 3 列网格
+    expect(html).toContain("automation-basic-form-grid");
+    expect(html).toContain("automation-basic-form-full-width");
+    const queryStart = html.indexOf(`id="${AUTOMATION_FORM_SECTION_IDS[1]}"`);
+    expect(html.indexOf("automation-form-grid", queryStart)).toBeGreaterThan(
+      queryStart,
+    );
+
+    // 字段渲染顺序：名称 → 智能体 → Cron 表达式 → 时区 → 剩余次数 → 描述
+    const basicIds = [
+      "automation-name-input",
+      "automation-agent-input",
+      "automation-cron-input",
+      "automation-zone-input",
+      "automation-runs-input",
+      "automation-description-input",
+    ];
+    const positions = basicIds.map((id) => html.indexOf(`id="${id}"`));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((left, right) => left - right));
+
+    // Cron 字段标签已本地化，不再使用硬编码文本
+    expect(html).toContain("Cron 表达式");
+  });
+
   it("links content scrolling to the active automation anchor", () => {
     const sectionTops = [120, 520, 980];
     expect(resolveActiveAutomationFormSection(sectionTops, 80, false)).toBe(

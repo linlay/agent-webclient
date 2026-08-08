@@ -132,6 +132,10 @@ const AUTOMATION_FORM_GRID_CLASS_NAME =
   "automation-form-grid tw:grid tw:grid-cols-3 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
 const AUTOMATION_FORM_FULL_WIDTH_CLASS_NAME =
   "field-group automation-form-full-width tw:col-span-3 tw:max-[860px]:col-span-1";
+const AUTOMATION_BASIC_FORM_GRID_CLASS_NAME =
+  "automation-basic-form-grid tw:grid tw:grid-cols-2 tw:gap-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
+const AUTOMATION_BASIC_FORM_FULL_WIDTH_CLASS_NAME =
+  "field-group automation-form-full-width automation-basic-form-full-width tw:col-span-2 tw:max-[860px]:col-span-1";
 const AUTOMATION_CRON_CONTROL_CLASS_NAME =
   "automation-cron-control tw:grid tw:grid-cols-[minmax(0,1fr)_132px] tw:items-center tw:gap-2 tw:[&_.ant-select]:min-w-0 tw:[&_select]:min-w-0";
 const AUTOMATION_ENABLED_FIELD_CLASS_NAME =
@@ -1384,7 +1388,7 @@ export const AutomationModal: React.FC<{
                 icon="settings"
                 title={t("automationConsole.section.basic")}
               >
-                <div className={AUTOMATION_FORM_GRID_CLASS_NAME}>
+                <div className={AUTOMATION_BASIC_FORM_GRID_CLASS_NAME}>
                   <div className="field-group">
                     <label htmlFor="automation-name-input">
                       {t("automationConsole.field.name")}
@@ -1398,7 +1402,30 @@ export const AutomationModal: React.FC<{
                     />
                   </div>
                   <div className="field-group">
-                    <label htmlFor="automation-cron-input">Cron</label>
+                    <label htmlFor="automation-agent-input">
+                      {t("automationConsole.field.agent")}
+                    </label>
+                    <Select
+                      id="automation-agent-input"
+                      showSearch
+                      optionFilterProp="label"
+                      value={form.agentKey}
+                      onChange={(value) => updateForm({ agentKey: value })}
+                      options={[
+                        {
+                          value: "",
+                          label: t(
+                            "automationConsole.field.agentPlaceholder",
+                          ),
+                        },
+                        ...agentOptions,
+                      ]}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="automation-cron-input">
+                      {t("automationConsole.field.cron")}
+                    </label>
                     <div className={AUTOMATION_CRON_CONTROL_CLASS_NAME}>
                       <Input
                         id="automation-cron-input"
@@ -1432,27 +1459,6 @@ export const AutomationModal: React.FC<{
                         ]}
                       />
                     </div>
-                  </div>
-                  <div className="field-group">
-                    <label htmlFor="automation-agent-input">
-                      {t("automationConsole.field.agent")}
-                    </label>
-                    <Select
-                      id="automation-agent-input"
-                      showSearch
-                      optionFilterProp="label"
-                      value={form.agentKey}
-                      onChange={(value) => updateForm({ agentKey: value })}
-                      options={[
-                        {
-                          value: "",
-                          label: t(
-                            "automationConsole.field.agentPlaceholder",
-                          ),
-                        },
-                        ...agentOptions,
-                      ]}
-                    />
                   </div>
                   <div className="field-group">
                     <label htmlFor="automation-zone-input">
@@ -1503,7 +1509,7 @@ export const AutomationModal: React.FC<{
                       {t("automationConsole.field.enabled")}
                     </Checkbox>
                   </div>
-                  <div className={AUTOMATION_FORM_FULL_WIDTH_CLASS_NAME}>
+                  <div className={AUTOMATION_BASIC_FORM_FULL_WIDTH_CLASS_NAME}>
                     <label htmlFor="automation-description-input">
                       {t("automationConsole.field.description")}
                     </label>
