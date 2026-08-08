@@ -30,6 +30,7 @@ import {
   registryText,
   type UnassignedMcpTool,
 } from "@/features/registries/lib/mcpRegistry";
+import { createMcpDetailRequestCoordinator } from "@/features/registries/lib/mcpDetailRequestCoordinator";
 import {
   buildMcpServerDefinition,
   EMPTY_MCP_SERVER_FORM,
@@ -378,6 +379,29 @@ export function isMcpServerSaveDisabled({
   return !hasDetail || detailLoading || saving || validating;
 }
 
+export function shouldLoadMcpServerDirectly({
+  currentRouteKey,
+  dirty,
+  newDraft,
+  selectedItemKey,
+  targetItemKey,
+  targetRouteKey,
+}: {
+  currentRouteKey: string;
+  dirty: boolean;
+  newDraft: boolean;
+  selectedItemKey: string;
+  targetItemKey: string;
+  targetRouteKey: string;
+}): boolean {
+  return (
+    dirty ||
+    newDraft ||
+    selectedItemKey === targetItemKey ||
+    currentRouteKey === targetRouteKey
+  );
+}
+
 export function selectMcpServerAfterDelete(
   previousItems: AdminRegistryListItem[],
   remainingItems: AdminRegistryListItem[],
@@ -436,6 +460,12 @@ function mcpDetailFromSource(
   };
 }
 
+interface McpDetailLoadResult {
+  detail: AdminRegistryDetailResponse;
+  item: AdminRegistryListItem;
+  validationError: string;
+}
+
 export const McpServersPage = () => {
   const { t, locale } = useI18n();
   const navigate = useNavigate();
@@ -446,7 +476,6 @@ export const McpServersPage = () => {
   const routeServerKeyRef = useRef(routeServerKey);
   const didLoadRef = useRef(false);
   const catalogRequestRef = useRef(0);
-  const detailRequestRef = useRef(0);
   const catalogPushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const itemsRef = useRef<AdminRegistryListItem[]>([]);
   const detailScrollRef = useRef<HTMLElement | null>(null);
@@ -480,6 +509,10 @@ export const McpServersPage = () => {
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [message, setMessage] = useState("");
+  const detailRequestCoordinator = useMemo(
+    () => createMcpDetailRequestCoordinator<McpDetailLoadResult>(),
+    [],
+  );
 
   const applyCatalogSnapshot = useCallback((snapshot: McpCatalogSnapshot) => {
     itemsRef.current = snapshot.items;
@@ -686,73 +719,91 @@ export const McpServersPage = () => {
     [],
   );
 
-  const loadDetail = useCallback(async (item: AdminRegistryListItem) => {
-    const requestID = ++detailRequestRef.current;
-    setDetailLoading(true);
-    setError("");
-    setFormError("");
-    try {
-      const response = await getAdminSource({
-        type: "registry",
-        category: "mcp-servers",
-        file: item.file,
-      });
-      if (requestID !== detailRequestRef.current) return;
-      const refreshedItem =
-        itemsRef.current.find((candidate) => candidate.file === item.file) || item;
-      let nextDetail = mcpDetailFromSource(response.data, refreshedItem);
-      try {
-        const validation = await validateAdminRegistry({
+  const invalidateDetailLoad = useCallback(() => {
+    detailRequestCoordinator.invalidate();
+    setDetailLoading(false);
+  }, [detailRequestCoordinator]);
+
+  const loadDetail = useCallback(
+    async (item: AdminRegistryListItem) => {
+      const itemKey = mcpServerItemKey(item);
+      const selection = detailRequestCoordinator.run(itemKey, async () => {
+        const response = await getAdminSource({
+          type: "registry",
           category: "mcp-servers",
           file: item.file,
-          content: nextDetail.content || "",
         });
-        if (requestID !== detailRequestRef.current) return;
-        nextDetail = {
-          ...nextDetail,
-          status: validation.data.status,
-          diagnostics: validation.data.diagnostics,
-          parsed: validation.data.parsed,
+        const refreshedItem =
+          itemsRef.current.find((candidate) => candidate.file === item.file) || item;
+        let nextDetail = mcpDetailFromSource(response.data, refreshedItem);
+        let validationError = "";
+        try {
+          const validation = await validateAdminRegistry({
+            category: "mcp-servers",
+            file: item.file,
+            content: nextDetail.content || "",
+          });
+          nextDetail = {
+            ...nextDetail,
+            status: validation.data.status,
+            diagnostics: validation.data.diagnostics,
+            parsed: validation.data.parsed,
+          };
+        } catch (error) {
+          validationError = error instanceof Error ? error.message : String(error);
+        }
+        return {
+          detail: nextDetail,
+          item: refreshedItem,
+          validationError,
         };
-      } catch (validationError) {
-        if (requestID !== detailRequestRef.current) return;
-        setFormError(
-          validationError instanceof Error
-            ? validationError.message
-            : String(validationError),
-        );
+      });
+
+      setDetailLoading(true);
+      setError("");
+      setFormError("");
+      try {
+        const result = await selection.promise;
+        if (!detailRequestCoordinator.isLatest(selection.selectionId)) return;
+        if (result.validationError) setFormError(result.validationError);
+        setSelectedItemKey(mcpServerItemKey(result.item));
+        setDetail(result.detail);
+        setDraft(result.detail.content || "");
+        const definition = result.detail.parsed;
+        if (definition) {
+          setBaseDefinition(definition);
+          setForm(
+            mcpServerFormFromDefinition(
+              definition,
+              mcpServerKey(result.detail),
+            ),
+          );
+          setStructuredAvailable(true);
+          setEditorMode("structured");
+        } else {
+          setBaseDefinition({});
+          setForm({
+            ...EMPTY_MCP_SERVER_FORM,
+            serverKey: mcpServerKey(result.detail),
+          });
+          setStructuredAvailable(false);
+          setEditorMode("source");
+        }
+        setDirty(false);
+        setNewDraft(false);
+        setRouteNotFound(false);
+      } catch (loadError) {
+        if (detailRequestCoordinator.isLatest(selection.selectionId)) {
+          setError(loadError instanceof Error ? loadError.message : String(loadError));
+        }
+      } finally {
+        if (detailRequestCoordinator.isLatest(selection.selectionId)) {
+          setDetailLoading(false);
+        }
       }
-      setSelectedItemKey(mcpServerItemKey(refreshedItem));
-      setDetail(nextDetail);
-      setDraft(nextDetail.content || "");
-      const definition = nextDetail.parsed;
-      if (definition) {
-        setBaseDefinition(definition);
-        setForm(mcpServerFormFromDefinition(definition, mcpServerKey(nextDetail)));
-        setStructuredAvailable(true);
-        setEditorMode("structured");
-      } else {
-        setBaseDefinition({});
-        setForm({
-          ...EMPTY_MCP_SERVER_FORM,
-          serverKey: mcpServerKey(nextDetail),
-        });
-        setStructuredAvailable(false);
-        setEditorMode("source");
-      }
-      setDirty(false);
-      setNewDraft(false);
-      setRouteNotFound(false);
-    } catch (loadError) {
-      if (requestID === detailRequestRef.current) {
-        setError(loadError instanceof Error ? loadError.message : String(loadError));
-      }
-    } finally {
-      if (requestID === detailRequestRef.current) {
-        setDetailLoading(false);
-      }
-    }
-  }, []);
+    },
+    [detailRequestCoordinator],
+  );
 
   const loadPage = useCallback(
     async (
@@ -767,6 +818,7 @@ export const McpServersPage = () => {
         const nextItems = snapshot.items;
 
         if (preserveUnassigned) {
+          invalidateDetailLoad();
           setShowUnassigned(true);
           setRouteNotFound(false);
           setSelectedItemKey("");
@@ -781,6 +833,7 @@ export const McpServersPage = () => {
           ? findMcpServerByRouteKey(nextItems, preferredServerKey)
           : nextItems[0] || null;
         if (preferredServerKey && !target) {
+          invalidateDetailLoad();
           setSelectedItemKey("");
           setDetail(null);
           setDraft("");
@@ -794,6 +847,7 @@ export const McpServersPage = () => {
           setShowUnassigned(false);
           await loadDetail(target);
         } else {
+          invalidateDetailLoad();
           setSelectedItemKey("");
           setDetail(null);
           setDraft("");
@@ -807,7 +861,7 @@ export const McpServersPage = () => {
         setLoading(false);
       }
     },
-    [loadDetail, refreshCatalog],
+    [invalidateDetailLoad, loadDetail, refreshCatalog],
   );
 
   useEffect(() => {
@@ -861,6 +915,7 @@ export const McpServersPage = () => {
     if (!routeServerKey) return;
     const target = findMcpServerByRouteKey(items, routeServerKey);
     if (!target) {
+      invalidateDetailLoad();
       setRouteNotFound(true);
       setSelectedItemKey("");
       setDetail(null);
@@ -871,7 +926,7 @@ export const McpServersPage = () => {
       setToolSearchText("");
       void loadDetail(target);
     }
-  }, [dirty, items, loadDetail, loading, newDraft, routeServerKey, selectedItemKey, showUnassigned]);
+  }, [dirty, invalidateDetailLoad, items, loadDetail, loading, newDraft, routeServerKey, selectedItemKey, showUnassigned]);
 
   const confirmDiscard = () =>
     !dirty || window.confirm(t("mcpServers.confirm.discard"));
@@ -916,6 +971,14 @@ export const McpServersPage = () => {
   const selectServer = (item: AdminRegistryListItem) => {
     if (!confirmDiscard()) return;
     const serverKey = mcpServerKey(item);
+    const loadDirectly = shouldLoadMcpServerDirectly({
+      currentRouteKey: routeServerKey,
+      dirty,
+      newDraft,
+      selectedItemKey,
+      targetItemKey: mcpServerItemKey(item),
+      targetRouteKey: serverKey,
+    });
     setShowUnassigned(false);
     setRouteNotFound(false);
     setToolSearchText("");
@@ -926,12 +989,13 @@ export const McpServersPage = () => {
       const snapshot = await refreshCatalog(true);
       const refreshedItem =
         snapshot?.items.find((candidate) => candidate.file === item.file) || item;
-      await loadDetail(refreshedItem);
+      if (loadDirectly) await loadDetail(refreshedItem);
     })();
   };
 
   const selectUnassigned = () => {
     if (!confirmDiscard()) return;
+    invalidateDetailLoad();
     setShowUnassigned(true);
     setRouteNotFound(false);
     setDetail(null);
@@ -949,6 +1013,7 @@ export const McpServersPage = () => {
 
   const startNew = () => {
     if (!confirmDiscard()) return;
+    invalidateDetailLoad();
     const file = defaultMcpServerFileName(items);
     const serverKey = file.replace(/\.ya?ml$/i, "");
     const initialForm: McpServerFormState = {
@@ -1177,6 +1242,7 @@ export const McpServersPage = () => {
         navigate(mcpServersRoutePath(nextServerKey, routeSearch));
         await loadDetail(nextItem);
       } else {
+        invalidateDetailLoad();
         setSelectedItemKey("");
         setDetail(null);
         setDraft("");

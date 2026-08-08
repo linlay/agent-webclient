@@ -14,6 +14,7 @@ import {
   mcpServersRoutePath,
   resolveActiveMcpServerFormSection,
   selectMcpServerAfterDelete,
+  shouldLoadMcpServerDirectly,
 } from "@/app/pages/mcp-servers";
 import {
   buildMcpServerDefinition,
@@ -267,6 +268,49 @@ describe("McpServersPage", () => {
         detailLoading: false,
         saving: false,
         validating: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("assigns one detail-loading owner for each connector selection", () => {
+    expect(
+      shouldLoadMcpServerDirectly({
+        currentRouteKey: "alpha",
+        dirty: false,
+        newDraft: false,
+        selectedItemKey: "mcp-servers/alpha.yml",
+        targetItemKey: "mcp-servers/beta.yml",
+        targetRouteKey: "beta",
+      }),
+    ).toBe(false);
+    expect(
+      shouldLoadMcpServerDirectly({
+        currentRouteKey: "alpha",
+        dirty: false,
+        newDraft: false,
+        selectedItemKey: "mcp-servers/alpha.yml",
+        targetItemKey: "mcp-servers/alpha.yml",
+        targetRouteKey: "alpha",
+      }),
+    ).toBe(true);
+    expect(
+      shouldLoadMcpServerDirectly({
+        currentRouteKey: "",
+        dirty: true,
+        newDraft: true,
+        selectedItemKey: "mcp-servers/new.yml",
+        targetItemKey: "mcp-servers/alpha.yml",
+        targetRouteKey: "alpha",
+      }),
+    ).toBe(true);
+    expect(
+      shouldLoadMcpServerDirectly({
+        currentRouteKey: "shared-key",
+        dirty: false,
+        newDraft: false,
+        selectedItemKey: "mcp-servers/alpha.yml",
+        targetItemKey: "mcp-servers/beta.yml",
+        targetRouteKey: "shared-key",
       }),
     ).toBe(true);
   });
