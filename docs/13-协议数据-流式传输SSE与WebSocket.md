@@ -1,7 +1,7 @@
 # 流式传输SSE与WebSocket
 
 ## 当前状态
-对话流支持 SSE 与 WebSocket 两种模式。SSE 运行时在 `queryStreamRuntime.sse.ts`，WebSocket 运行时在 `queryStreamRuntime.ws.ts`，模式读取和持久化由 `transportMode.ts` 负责。连接与帧处理归 transport，attach/detach 和会话观察编排归 conversation 与 runs。直连 Platform 时，即使 query 选择 SSE，页面也保持一条普通 `/ws` 控制连接，用于接收 Platform 发起的 WebClient 反向 request；Gateway backend 第一阶段不启用该能力。
+对话流支持 SSE 与 WebSocket 两种模式。SSE 运行时在 `queryStreamRuntime.sse.ts`，WebSocket 运行时在 `queryStreamRuntime.ws.ts`，模式读取和持久化由 `transportMode.ts` 负责。连接与帧处理归 transport，attach/detach 和对话观察编排归 conversation 与 runs。直连 Platform 时，即使 query 选择 SSE，页面也保持一条普通 `/ws` 控制连接，用于接收 Platform 发起的 WebClient 反向 request；Gateway backend 第一阶段不启用该能力。
 
 ## 核心职责
 - 发起 `/api/query` 流式请求并逐事件回调。
@@ -10,17 +10,17 @@
 - 将传输细节隐藏在 `QueryStreamExecutor` / `AttachStreamExecutor` 后面。
 
 ## 核心流程
-Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原会话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。新建会话收到稳定 `chatId` 的 URL promotion 仍由原 `/api/query` 消费到终态；SSE 与 WebSocket attach 入口会先检查同一 `chatId`、`runId`、owner 是否已由 live query session 观察，若是则记录本地诊断并拒绝第二个 observer。页面刷新或没有 live query session 的运行中稳定 chat 仍允许恰好一次正常 attach。
+Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原对话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。新建对话收到稳定 `chatId` 的 URL promotion 仍由原 `/api/query` 消费到终态；SSE 与 WebSocket attach 入口会先检查同一 `chatId`、`runId`、owner 是否已由 live query session 观察，若是则记录本地诊断并拒绝第二个 observer。页面刷新或没有 live query session 的运行中稳定 chat 仍允许恰好一次正常 attach。
 
 `buildQueryPayload` 是 SSE 与 WebSocket query 的统一序列化入口。Composer 选择的强制技能经 trim、去空和大小写不敏感去重后只写入 `mustUseSkills`；无选择时省略字段，已删除的 `requiredSkillKeys` 不得出现在任一传输 payload。
 
-Platform 重启后，可恢复的 question/planning 会在 `/api/chat` 同时返回权威 `awaiting` 与 `activeRun(state:"WAITING_SUBMIT")`。会话加载先 replay 并校准 awaiting，再立即使用 `activeRun.lastSeq` attach；空闲 observer 在用户尚未回答时保持连接。submit 成功只清理 awaiting UI，不再发起第二次 attach，原连接从 `request.submit`、`awaiting.answer` 继续消费同一 run 的 reasoning/content/tool/terminal 事件。WebSocket 发生真正重连时，如果当前 chat 仍有 awaiting、active run 或正在观察的 run，前端先重新加载 `/api/chat`，再由新的 activeRun 游标恢复 attach，而不是等待用户点击提交。
+Platform 重启后，可恢复的 question/planning 会在 `/api/chat` 同时返回权威 `awaiting` 与 `activeRun(state:"WAITING_SUBMIT")`。对话加载先 replay 并校准 awaiting，再立即使用 `activeRun.lastSeq` attach；空闲 observer 在用户尚未回答时保持连接。submit 成功只清理 awaiting UI，不再发起第二次 attach，原连接从 `request.submit`、`awaiting.answer` 继续消费同一 run 的 reasoning/content/tool/terminal 事件。WebSocket 发生真正重连时，如果当前 chat 仍有 awaiting、active run 或正在观察的 run，前端先重新加载 `/api/chat`，再由新的 activeRun 游标恢复 attach，而不是等待用户点击提交。
 
 SSE / WebSocket event 必须带安全整数 epoch-ms `timestamp`。客户端遇到缺失、字符串、秒级、浮点或 `0` 的时间会按 `time_contract_violation` 拒绝该 event，不以本机当前时间生成时间线节点或任务状态。
 
-`/api/btw` 复用 SSE 帧解析和错误映射，但始终走 HTTP SSE，不受主会话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主会话事件处理器。新发起的 live BTW run 只消费这条 `/api/btw` 流，不并发调用 `/api/attach`；只有 Provider 初始化时从 `sessionStorage` 恢复出的 running run 才会 attach，且每个恢复 run 只 attach 一次。
+`/api/btw` 复用 SSE 帧解析和错误映射，但始终走 HTTP SSE，不受主对话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主对话事件处理器。新发起的 live BTW run 只消费这条 `/api/btw` 流，不并发调用 `/api/attach`；只有 Provider 初始化时从 `sessionStorage` 恢复出的 running run 才会 attach，且每个恢复 run 只 attach 一次。
 
-BTW 的运行控制也与主会话传输模式隔离。BTW Stop 固定以 HTTP `POST /api/interrupt` 发送 `runId` 与其恢复出的 owner：Agent 为 `agentKey`，编排 Team 为仅 `teamId`；即使主会话选择 WebSocket 也不会改走 WS。前端校验响应中的 `accepted`、`status`、`runId` 和 `detail`：仅 `accepted: true` 时才 abort 当前 BTW SSE 并转为空闲；后端拒绝或网络失败时继续消费原 SSE、保持 running 并允许重试。中断响应绑定发起请求时的 runtime、runId 和 AbortController，迟到响应不能停止关闭后重建的新分支。
+BTW 的运行控制也与主对话传输模式隔离。BTW Stop 固定以 HTTP `POST /api/interrupt` 发送 `runId` 与其恢复出的 owner：Agent 为 `agentKey`，编排 Team 为仅 `teamId`；即使主对话选择 WebSocket 也不会改走 WS。前端校验响应中的 `accepted`、`status`、`runId` 和 `detail`：仅 `accepted: true` 时才 abort 当前 BTW SSE 并转为空闲；后端拒绝或网络失败时继续消费原 SSE、保持 running 并允许重试。中断响应绑定发起请求时的 runtime、runId 和 AbortController，迟到响应不能停止关闭后重建的新分支。
 
 attach/detach 也使用同一 owner 规则。SSE 和 WebSocket 不会把 Team 成员事件携带的 `agentKey` 写回 session/chat owner；成员事件仍可按 `taskId`、`subAgentKey` 和 `presentation: "task"` 渲染为子任务，主回答归属保持 Team。
 

@@ -6,7 +6,7 @@
 - 本文件、`CLAUDE.md`、`README.md` 等仓库规范或项目文档属于项目约定文件，不受上一条“不要生成给人看的 `.md`”限制。
 
 ## 1. 项目概览
-`agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示会话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
+`agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示对话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
 
 ## 2. 技术栈
 - 框架：React 18
@@ -26,7 +26,7 @@
 - 用户在 Composer 区输入消息
 - `src/features/composer/hooks/useMessageActions.ts` 发起 `/api/query` 请求，按运行模式消费 SSE 或 WebSocket 返回
 - `src/features/transport/lib/queryStreamRuntime.sse.ts`、`src/features/transport/lib/queryStreamRuntime.ws.ts` 只负责传输事件，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
-- `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前会话运行态
+- `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前对话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
 - `src/features/voice/lib/voiceRuntime.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责 TTS / 语音聊天链路
 
@@ -36,7 +36,7 @@
 - `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
 - `src/features/chats/`：历史聊天目录、摘要、未读状态和聊天 CRUD UI
-- `src/features/conversation/`：当前会话加载、切换、live/replay 事件编排与 session 快照
+- `src/features/conversation/`：当前对话加载、切换、live/replay 事件编排与 session 快照
 - `src/features/events/`：AGENT 协议事件到 `EventCommand` 的纯投影，不依赖 React 或 transport
 - `src/features/runs/`：run 身份、运行态查询和 attach/detach 事件契约
 - `src/features/timeline/`：时间线 view model、展示组件和仅与展示有关的交互
@@ -56,7 +56,7 @@
 - `TimelineNode`：消息、thinking、tool、content 等时间线节点
 - `ToolState` / `ActionState`：工具与动作执行态
 - `PlanItem` / `PlanRuntime`：规划模式下的计划状态
-- `Agent`、`Team`、`Chat`、`WorkerRow`：会话、团队与 worker 选择器相关实体
+- `Agent`、`Team`、`Chat`、`WorkerRow`：对话、团队与 worker 选择器相关实体
 
 这些结构服务于事件回放、实时流式更新、工具渲染、语音联动和调试面板展示。历史 replay 后必须以 `/api/chat.awaiting` 校准唯一可操作 HITL；孤立 `awaiting.ask` 只保留为历史事件。
 
@@ -135,12 +135,12 @@ Git 提交与推送规范：
 - [12-协议数据-请求路由缓存与鉴权错误](docs/12-协议数据-请求路由缓存与鉴权错误.md)
 - [13-协议数据-流式传输SSE与WebSocket](docs/13-协议数据-流式传输SSE与WebSocket.md)
 
-### 20 会话输入
-- [20-会话输入-会话加载回放与LiveSummary](docs/20-会话输入-会话加载回放与LiveSummary.md)
-- [21-会话输入-Composer输入与快捷交互](docs/21-会话输入-Composer输入与快捷交互.md)
-- [22-会话输入-消息发送路由与运行控制](docs/22-会话输入-消息发送路由与运行控制.md)
-- [23-会话输入-运行参数模型与访问级别](docs/23-会话输入-运行参数模型与访问级别.md)
-- [24-会话输入-附件上传与引用](docs/24-会话输入-附件上传与引用.md)
+### 20 对话输入
+- [20-对话输入-对话加载回放与LiveSummary](docs/20-对话输入-对话加载回放与LiveSummary.md)
+- [21-对话输入-Composer输入与快捷交互](docs/21-对话输入-Composer输入与快捷交互.md)
+- [22-对话输入-消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)
+- [23-对话输入-运行参数模型与访问级别](docs/23-对话输入-运行参数模型与访问级别.md)
+- [24-对话输入-附件上传与引用](docs/24-对话输入-附件上传与引用.md)
 
 ### 30 运行时间线
 - [30-运行时间线-时间线事件处理与渲染](docs/30-运行时间线-时间线事件处理与渲染.md)

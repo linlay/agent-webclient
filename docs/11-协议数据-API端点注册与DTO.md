@@ -14,7 +14,7 @@
 
 Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `chatId` 的 `<relativePath>` ChatScope 引用，前端统一通过 `classifyResourceUrl` 分类，并由 `URLSearchParams` 转换为 `GET /api/resource?file=<chatId>/<relativePath>`。普通 Agent 的 POSIX 绝对路径转换为 `GET /api/resource?chatId=<chatId>&file=<absolutePath>`，其中 `/tmp/...` 走同一分支；Team Chat 拒绝全部绝对路径。HTTP(S)、`data:`、`blob:` 直接使用且不接收平台 Bearer；同源 `/api/resource`、`file://`、Windows/UNC、当前 chatId 前缀、query/fragment、反斜线、空段、`.`/`..` 与编码后路径分隔符都分类为非法，不发起 fetch。`downloadResource`、`getResourceText`、`getResourceBlob` 只对 ChatScope 和获准绝对路径使用 Bearer/Cookie，组件不手工拼接真实资源请求。
 
-`runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父会话继承。
+`runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父对话继承。
 
 对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 `auto`：当前 mode 为 WebSocket 时优先向 `/api/skills` 发送 `{agentKey}` request frame，SSE 模式使用 HTTP，WS 连接或传输故障时回退 HTTP；业务错误保持原错误，不二次请求。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
 
@@ -42,7 +42,7 @@ Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文�
 - `kind: "agent"`：保留既有 Agent 字段，可带最近 `chats`。
 - `kind: "team"`：使用 `teamId` 作为身份，带 name、role、成员与 icon 等展示字段；可带 `stats.totalCount`、`stats.unreadCount` 和最近 `chats`。
 
-后端按每个项首条最近 chat 的 `lastRunId` 将 Agent 与 Team 混排；`chats[0]` 即该 worker 的最近会话。前端不解析不透明的 run ID，而是保留响应顺序，并在嵌套 chat 未给出身份时按父项补齐 `agentKey` 或 `teamId`。`runtimeMode: "orchestrated"` 或 `meta.orchestrated: true` 可用于 Team UI 语义；Team 成员用于展示与内部委派，不能成为外层会话的执行 Agent。
+后端按每个项首条最近 chat 的 `lastRunId` 将 Agent 与 Team 混排；`chats[0]` 即该 worker 的最近对话。前端不解析不透明的 run ID，而是保留响应顺序，并在嵌套 chat 未给出身份时按父项补齐 `agentKey` 或 `teamId`。`runtimeMode: "orchestrated"` 或 `meta.orchestrated: true` 可用于 Team UI 语义；Team 成员用于展示与内部委派，不能成为外层对话的执行 Agent。
 
 `scope` 和 `mode` 只过滤 Agent，Team 不受这两个条件影响。`GET /api/chats?mode=...` 与对应 WS `/api/chats` payload 也必须始终保留 Team-owned chat；前端不会因 `teamId` 丢弃它们。
 

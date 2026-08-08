@@ -5,7 +5,7 @@
 
 ## 核心职责
 - 管理麦克风采集、PCM 编码、下采样和客户端门限过滤。
-- 通过 `/api/voice/ws` 建立 ASR/TTS 相关 WebSocket 会话。
+- 通过 `/api/voice/ws` 建立 ASR/TTS 相关 WebSocket 对话。
 - 播放后端返回的 PCM 音频和 ready cue。
 - 与 Composer 输入、TTS voice block 和 Settings 语音调试面板联动。
 

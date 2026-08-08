@@ -161,8 +161,8 @@ describe('slashCommands', () => {
       descriptionKey: 'slash.command.new.description',
     });
     expect(getFilteredSlashCommands('/new')[0]).toMatchObject({
-      label: '新会话',
-      description: '清空当前会话上下文，保留当前 worker 选择',
+      label: '新对话',
+      description: '清空当前对话上下文，保留当前 worker 选择',
     });
     expect(getFilteredSlashCommands('/voice')[0]).toMatchObject({
       description: '在文字输入与一问一答语聊模式之间切换',

@@ -11,7 +11,7 @@ jest.mock("@/shared/i18n", () => ({
         "globalSearch.group.unread": "未读聊天",
         "globalSearch.group.actions": "操作",
         "globalSearch.group.workers": "智能体",
-        "globalSearch.group.history": "会话",
+        "globalSearch.group.history": "对话",
         "globalSearch.row.unread": "未读",
       })[key] || key,
   }),

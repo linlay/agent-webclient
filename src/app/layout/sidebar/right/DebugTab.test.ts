@@ -241,8 +241,8 @@ describe("buildDebugEventGroups", () => {
 		const html = renderToStaticMarkup(React.createElement(DebugTab));
 
 		expect(html).toContain("chat.start");
-		expect(html).toContain("新页面打开 Agent 会话");
-		expect(html).toContain("新页面打开 Copilot 会话");
+		expect(html).toContain("新页面打开 Agent 对话");
+		expect(html).toContain("新页面打开 Copilot 对话");
 		expect(html).toContain("Agent");
 		expect(html).toContain("Copilot");
 	});

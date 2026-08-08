@@ -203,12 +203,12 @@ describe("ConversationStage", () => {
 
     const html = renderToStaticMarkup(React.createElement(ConversationStage));
 
-    expect(html).toContain("aria-label=\"派生新会话\"");
+    expect(html).toContain("aria-label=\"派生新对话\"");
     expect(html).toContain("material-symbol-branches");
     expect(html.indexOf('data-material-icon="thumb_down"')).toBeLessThan(
       html.indexOf('data-material-icon="branches"'),
     );
-    expect(html).not.toContain("aria-label=\"派生新会话\" disabled=\"\"");
+    expect(html).not.toContain("aria-label=\"派生新对话\" disabled=\"\"");
   });
 
   it("disables derive chat action without required run state", () => {

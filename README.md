@@ -19,7 +19,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 ### 智能体对话工作台
 
-主界面围绕“选 Agent、发消息、看执行、接管运行”组织。顶部按钮提供新会话、用量统计、debug 面板和运行状态入口；左侧用于 Agent 与会话导航；中间展示时间轴；底部 Composer 提供发送、附件、运行参数、模型覆盖、访问级别、steer 和 interrupt 等操作。
+主界面围绕“选 Agent、发消息、看执行、接管运行”组织。顶部按钮提供新对话、用量统计、debug 面板和运行状态入口；左侧用于 Agent 与对话导航；中间展示时间轴；底部 Composer 提供发送、附件、运行参数、模型覆盖、访问级别、steer 和 interrupt 等操作。
 
 ![智能体对话工作台](docs/images/screenshots/main-workspace.png)
 
@@ -33,7 +33,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 ### Usage 与预算管理
 
-前端支持 `usage.snapshot`，可以展示当前调用、最新 run、会话累计和上下文压缩相关用量，包括输入 / 输出 / 推理 token、总 token、缓存命中、LLM 调用数、工具调用数、上下文窗口、首字延迟、输出速度和预计费用。Agent 管理台支持维护 `budget` JSON，把 token、步骤、工具调用等预算约束交给后端执行。
+前端支持 `usage.snapshot`，可以展示当前调用、最新 run、对话累计和上下文压缩相关用量，包括输入 / 输出 / 推理 token、总 token、缓存命中、LLM 调用数、工具调用数、上下文窗口、首字延迟、输出速度和预计费用。Agent 管理台支持维护 `budget` JSON，把 token、步骤、工具调用等预算约束交给后端执行。
 
 ![Usage 与预算管理](docs/images/screenshots/usage-stats.png)
 
@@ -59,7 +59,7 @@ Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<rel
 
 ### 侧边栏与管理入口
 
-左侧侧边栏聚合 Agent、Team、会话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model、viewport server 与非 MCP tools，MCP 连接器及所属工具由独立页面管理。
+左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model、viewport server 与非 MCP tools，MCP 连接器及所属工具由独立页面管理。
 
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 
@@ -283,7 +283,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 
 AGW Web Client 需要一个可访问的上游智能体服务。常用入口包括：
 
-- `GET /api/agents?includeTeam=true`：返回按最近 `lastRunId` 混排的 Agent / Team 扁平列表；Team 带 `kind: "team"`、会话统计与最近 chats。HTTP 与 WebSocket `/api/agents` 使用相同字段。
+- `GET /api/agents?includeTeam=true`：返回按最近 `lastRunId` 混排的 Agent / Team 扁平列表；Team 带 `kind: "team"`、对话统计与最近 chats。HTTP 与 WebSocket `/api/agents` 使用相同字段。
 - `GET /api/chats`：可带 `agentKey`、`mode`；`mode` 只影响 Agent-owned chat，必须保留 Team-owned chat。
 - `GET /api/chat`
 - `POST /api/query`
@@ -330,13 +330,13 @@ compose.yml             Docker Compose 部署入口
 - [12-协议数据-请求路由缓存与鉴权错误](docs/12-协议数据-请求路由缓存与鉴权错误.md)
 - [13-协议数据-流式传输SSE与WebSocket](docs/13-协议数据-流式传输SSE与WebSocket.md)
 
-### 20 会话输入
+### 20 对话输入
 
-- [20-会话输入-会话加载回放与LiveSummary](docs/20-会话输入-会话加载回放与LiveSummary.md)
-- [21-会话输入-Composer输入与快捷交互](docs/21-会话输入-Composer输入与快捷交互.md)
-- [22-会话输入-消息发送路由与运行控制](docs/22-会话输入-消息发送路由与运行控制.md)
-- [23-会话输入-运行参数模型与访问级别](docs/23-会话输入-运行参数模型与访问级别.md)
-- [24-会话输入-附件上传与引用](docs/24-会话输入-附件上传与引用.md)
+- [20-对话输入-对话加载回放与LiveSummary](docs/20-对话输入-对话加载回放与LiveSummary.md)
+- [21-对话输入-Composer输入与快捷交互](docs/21-对话输入-Composer输入与快捷交互.md)
+- [22-对话输入-消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)
+- [23-对话输入-运行参数模型与访问级别](docs/23-对话输入-运行参数模型与访问级别.md)
+- [24-对话输入-附件上传与引用](docs/24-对话输入-附件上传与引用.md)
 
 ### 30 运行时间线
 

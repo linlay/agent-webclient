@@ -14,7 +14,7 @@ Memory 页面由 `/memory` 路由进入，页面入口是 `src/app/pages/memory/
 
 ## 边界与非目标
 - Memory 存储、embedding、召回、合并和权限由后端负责。
-- Memory 页面不处理会话归档和自动化调度，它们分别属于 Archive 与 Automation 专题。
+- Memory 页面不处理对话归档和自动化调度，它们分别属于 Archive 与 Automation 专题。
 - Memory 功能入口受 `MEMORY_ENABLED` 控制。
 
 ## 相关文件

@@ -6,7 +6,7 @@
 ## 核心职责
 - 保存 agents、teams、chats、当前 run、streaming、timeline、tools、plan、voice、modal 和设置态。
 - 将后端事件处理结果转为可渲染的前端状态。
-- 提供会话重置、导航切换、时间线更新、语音状态和 UI 面板状态的统一入口。
+- 提供对话重置、导航切换、时间线更新、语音状态和 UI 面板状态的统一入口。
 - 管理定时器句柄、运行中工具态和 pending steer 等临时运行态。
 
 ## 核心流程

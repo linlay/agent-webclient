@@ -32,7 +32,7 @@ const DEFAULT_TERMS: Record<Locale, I18nTerms> = {
     agentPluralLabel: "智能体",
     teamLabel: "团队",
     teamPluralLabel: "团队",
-    conversationLabel: "会话",
+    conversationLabel: "对话",
   },
 };
 

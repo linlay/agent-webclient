@@ -80,7 +80,7 @@ describe("SidebarHistorySection", () => {
       ),
     );
 
-    expect(html).toContain("历史会话");
+    expect(html).toContain("历史对话");
     expect(html).toContain("history-worker-selector");
     expect(selectorProps[0]).toMatchObject({ worker: agent, workerRows: [agent, team] });
   });
