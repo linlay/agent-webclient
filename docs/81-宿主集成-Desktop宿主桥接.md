@@ -24,6 +24,12 @@ Desktop 宿主桥接用于 Desktop WebView 场景，前端通过全局标记和 
 - 宿主 API 的权限和文件系统访问由 Desktop 端控制。
 - `identity-center` 是 Desktop 侧的 token 签发基础，不作为 webclient 与 Desktop 的 postMessage 协议名称。
 
+## Desktop 原生右键语义 v1
+
+WebClient 使用 `WeakMap<Element, Descriptor>` 登记消息、代码、Web 链接、Workspace 文件和 Chat 资源目标，不向 DOM 属性写入正文、代码、路径、Token 或鉴权 URL。Desktop 通过既有 service action channel 下发 `contextMenu.resolve`；页面以 `document.elementFromPoint(x, y)` 从最近元素向上解析，因此代码、链接和附件会优先于所属消息。响应只包含 v1、requestId、短 targetId、目标类型、安全展示元数据和固定 capability。
+
+`contextMenu.execute` 会按坐标重新解析并同时核对 targetId、目标类型和 capability，再调用左键共用的复制、Web Preview、Workspace Preview 或资源下载处理器。虚拟列表回收、流式更新或 DOM 位移使目标变化时无操作。该桥只通过 `electronAPI.onFromMain` 安装动作监听，不安装 DOM `contextmenu` 监听，也不调用 `preventDefault()`；普通浏览器继续使用浏览器原生菜单。
+
 ## 相关文件
 - `../src/shared/data/desktop/desktopHostBridge.ts`
 - `../src/shared/data/auth/appAuth.ts`
@@ -32,3 +38,4 @@ Desktop 宿主桥接用于 Desktop WebView 场景，前端通过全局标记和 
 - `../src/shared/data/desktop/desktopQueryContext.ts`
 - `../src/shared/hooks/useDesktopRouteChange.ts`
 - `../src/shared/hooks/agentPage/useDesktopAction.ts`
+- `../src/shared/data/desktop/desktopContextMenu.ts`

@@ -325,7 +325,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
               )}
             </div>
           )}
-          {hasText && <UserBubble text={node.text || ""} />}
+          {hasText && <UserBubble text={node.text || ""} targetId={node.id} />}
           {timeNode}
         </div>
       </div>
@@ -358,7 +358,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
             {getCommandMessageLabel(node.messageVariant)}
           </div>
-          <UserBubble text={node.text || ""} variant={node.messageVariant} />
+          <UserBubble text={node.text || ""} targetId={node.id} variant={node.messageVariant} />
           {timeNode}
         </div>
       </div>

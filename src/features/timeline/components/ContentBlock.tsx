@@ -19,6 +19,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { copyText } from "@/shared/utils/copy";
 
 interface ContentBlockProps {
 	node: TimelineNode;
@@ -88,6 +90,14 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
 	const streamingSafeText = stripPendingSpecialFenceTail(text);
+	const contextTarget = React.useMemo(() => ({
+		targetId: `message:${node.id}`,
+		kind: "message" as const,
+		handlers: {
+			"copy-content": () => copyText(text),
+		},
+	}), [node.id, text]);
+	const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
 	const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
 	const teamChat = Boolean(
 		currentChat?.owner?.kind === "orchestrated-team"
@@ -170,7 +180,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {
 		return (
-			<div className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
+			<div ref={contextTargetRef} className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
 				<div className={markdownClassName}>
 					<MarkdownContent
 						content={streamingSafeText}
@@ -186,7 +196,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 
 	/* With viewport segments */
 	return (
-		<div className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
+		<div ref={contextTargetRef} className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
 			{segments?.map((segment, idx) => {
 				if (segment.kind === "text") {
 					return (

@@ -12,6 +12,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { FileIcon } from "@/shared/components/file-icon";
 import { useI18n } from "@/shared/i18n";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
+import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 
 interface AttachmentCardData extends AttachmentLike {
   name: string;
@@ -65,6 +66,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   );
   const [imageFailed, setImageFailed] = React.useState(false);
   const [downloading, setDownloading] = React.useState(false);
+  const contextTargetId = React.useId();
 
   React.useEffect(() => {
     setImageFailed(false);
@@ -146,6 +148,18 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     triggerDownload();
   }, [canActivate, dispatch, preview, triggerDownload, activateMode, rightSidebarOpen, rightSidebarOpenTab, activeAttachmentPreviewUrl, attachmentPreview]);
 
+  const contextTarget = React.useMemo(() => ({
+    targetId: `attachment:${contextTargetId}`,
+    kind: "chat-resource" as const,
+    name: attachment.name,
+    mediaType: attachmentKind === "image" ? "image" as const : "file" as const,
+    handlers: {
+      ...(canActivate && preview ? { "preview-resource": handleActivate } : {}),
+      ...(downloadUrl ? { "download-resource": triggerDownload } : {}),
+    },
+  }), [attachment.name, attachmentKind, canActivate, contextTargetId, downloadUrl, handleActivate, preview, triggerDownload]);
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
+
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (!canActivate) {
@@ -162,6 +176,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 
   return (
     <div
+      ref={contextTargetRef}
       className={classes}
       data-attachment-kind={attachmentKind}
       role={canActivate ? "button" : undefined}

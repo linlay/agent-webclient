@@ -45,6 +45,7 @@ import { BtwProvider } from "@/features/btw/components/BtwProvider";
 import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
+import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
@@ -335,6 +336,8 @@ const App: React.FC<AppProps> = ({ i18n }) => {
   useEffect(() => {
     initializeDesktopQueryContextBridge();
   }, []);
+
+  useEffect(() => initializeDesktopContextMenuBridge(), []);
 
   return (
     <I18nProvider {...mergedI18n}>

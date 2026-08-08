@@ -1,8 +1,11 @@
 import React from "react";
+import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { copyText } from "@/shared/utils/copy";
 
 interface UserBubbleProps {
 	text: string;
 	variant?: "default" | "steer" | "remember" | "learn";
+	targetId?: string;
 }
 
 const USER_BUBBLE_CLASS_NAME =
@@ -15,9 +18,20 @@ const USER_BUBBLE_TEXT_CLASS_NAME =
 export const UserBubble: React.FC<UserBubbleProps> = ({
 	text,
 	variant = "default",
+	targetId,
 }) => {
+	const fallbackId = React.useId();
+	const contextTarget = React.useMemo(() => ({
+		targetId: `message:${targetId || fallbackId}`,
+		kind: "message" as const,
+		handlers: {
+			"copy-content": () => copyText(text),
+		},
+	}), [fallbackId, targetId, text]);
+	const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
 	return (
 		<div
+			ref={contextTargetRef}
 			className={[
 				USER_BUBBLE_CLASS_NAME,
 				variant !== "default" ? USER_BUBBLE_COMMAND_CLASS_NAME : "",

@@ -27,6 +27,8 @@ import {
   type MarkdownImageProps,
 } from "./markdownImageProps";
 import { useAuthenticatedResourceUrl } from "./useAuthenticatedResourceUrl";
+import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { copyText } from "@/shared/utils/copy";
 
 export type { WorkspaceFileLink } from "./markdownWorkspaceLinks";
 export type { MarkdownWebLink } from "./markdownWebLinks";
@@ -53,6 +55,19 @@ function extractFilenameFromResourceUrl(href: string): string {
     return decodeURIComponent(segments[segments.length - 1] || "download");
   } catch {
     return "download";
+  }
+}
+
+function getSafeResourceDisplayName(href: string): string {
+  try {
+    const parsed = new URL(
+      href,
+      typeof window === "undefined" ? "http://localhost/" : window.location.href,
+    );
+    const segment = parsed.pathname.split("/").filter(Boolean).pop() || "download";
+    return decodeURIComponent(segment).slice(0, 256);
+  } catch {
+    return extractFilenameFromResourceUrl(href.split(/[?#]/u)[0] || "download").slice(0, 256);
   }
 }
 
@@ -108,6 +123,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     ...rest
   } = props;
   const [downloading, setDownloading] = useState(false);
+  const contextTargetId = React.useId();
   const classified = useMemo(
     () => classifyResourceUrl(href || "", chatId, { teamChat }),
     [chatId, href, teamChat],
@@ -132,6 +148,57 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     [children, webLink],
   );
 
+  const downloadAuthenticatedResource = useCallback(() => {
+    if (!href || !fetchedResource || downloading) return;
+    setDownloading(true);
+    const filename = extractFilenameFromResourceUrl(href);
+    return downloadResource(href, { filename, chatId, teamChat })
+      .catch((error: unknown) => {
+        console.error("Resource download failed:", error);
+      })
+      .finally(() => {
+        setDownloading(false);
+      });
+  }, [chatId, downloading, fetchedResource, href, teamChat]);
+
+  const contextTarget = useMemo(() => {
+    if (workspaceFileLink) {
+      return {
+        targetId: `workspace:${contextTargetId}`,
+        kind: "workspace-file" as const,
+        name: workspaceFileLink.filePath.split(/[\\/]/u).pop() || workspaceFileLink.filePath,
+        handlers: {
+          ...(onWorkspaceFileLinkClick
+            ? { "preview-workspace": () => onWorkspaceFileLinkClick(workspaceFileLink) }
+            : {}),
+          "copy-workspace-path": () => copyText(workspaceFileLink.filePath),
+        },
+      };
+    }
+    if (webLink) {
+      return {
+        targetId: `web-link:${contextTargetId}`,
+        kind: "web-link" as const,
+        url: webLink.url,
+        title: webLinkTitle,
+        handlers: onWebLinkClick
+          ? { "preview-link": () => onWebLinkClick({ ...webLink, title: webLinkTitle }) }
+          : {},
+      };
+    }
+    if (href && fetchedResource) {
+      return {
+        targetId: `resource:${contextTargetId}`,
+        kind: "chat-resource" as const,
+        name: getSafeResourceDisplayName(href),
+        mediaType: "file" as const,
+        handlers: { "download-resource": downloadAuthenticatedResource },
+      };
+    }
+    return null;
+  }, [contextTargetId, downloadAuthenticatedResource, fetchedResource, href, onWebLinkClick, onWorkspaceFileLinkClick, webLink, webLinkTitle, workspaceFileLink]);
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLAnchorElement>(contextTarget);
+
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (
@@ -143,16 +210,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
         if (downloading) {
           return;
         }
-        setDownloading(true);
-
-        const filename = extractFilenameFromResourceUrl(href);
-        void downloadResource(href, { filename, chatId, teamChat })
-          .catch((error: unknown) => {
-            console.error("Resource download failed:", error);
-          })
-          .finally(() => {
-            setDownloading(false);
-          });
+        void downloadAuthenticatedResource();
         return;
       }
 
@@ -190,11 +248,13 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
       webLink,
       webLinkTitle,
       workspaceFileLink,
+      downloadAuthenticatedResource,
     ],
   );
 
   return (
     <a
+      ref={contextTargetRef}
       {...rest}
       href={classified.kind === "invalid" ? undefined : href}
       download={downloadFilename || rest.download}
@@ -214,6 +274,27 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   const { src, chatId, teamChat, alt, ...rendererProps } = props;
   const { t } = useI18n();
   const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat });
+  const contextTargetId = React.useId();
+  const authenticatedResource = useMemo(
+    () => isFetchedResourceKind(classifyResourceUrl(src || "", chatId, { teamChat }).kind),
+    [chatId, src, teamChat],
+  );
+  const contextTarget = useMemo(() => authenticatedResource && src ? ({
+      targetId: `resource-image:${contextTargetId}`,
+      kind: "chat-resource" as const,
+      name: alt || getSafeResourceDisplayName(src),
+      mediaType: "image" as const,
+      handlers: {
+        "download-resource": () => downloadResource(src, {
+          filename: extractFilenameFromResourceUrl(src),
+          chatId,
+          teamChat,
+        }),
+      },
+    }) : null,
+    [alt, authenticatedResource, chatId, contextTargetId, src, teamChat],
+  );
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLImageElement>(contextTarget);
   if (resolved.error) {
     const fallback = t("rightSidebar.preview.error.image");
     return <span role="img" aria-label={alt || fallback}>{alt || fallback}</span>;
@@ -222,7 +303,7 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
     return <span aria-busy={resolved.loading}>{alt || ""}</span>;
   }
   const imageProps = sanitizeMarkdownImageProps(rendererProps);
-  return <img {...imageProps} src={resolved.url} alt={alt || ""} />;
+  return <img ref={contextTargetRef} {...imageProps} src={resolved.url} alt={alt || ""} />;
 };
 
 const MarkdownPre: React.FC<MarkdownPreProps> = ({

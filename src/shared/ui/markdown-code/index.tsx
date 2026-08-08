@@ -11,6 +11,8 @@ import { UiButton } from "../UiButton";
 import { MaterialIcon } from "../MaterialIcon";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
+import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { copyText } from "@/shared/utils/copy";
 
 import Style from "./index.module.css";
 
@@ -75,14 +77,22 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
     getDefaultActiveKey(language),
   );
   const text = useMemo(() => textFromReactNode(children), [children]);
+  const contextTargetId = React.useId();
+  const copyCode = useCallback(() => copyText(text).then(() => {
+    message.success(t("markdown.copySuccess"));
+  }), [message, t, text]);
+  const contextTarget = useMemo(() => ({
+    targetId: `code:${contextTargetId}`,
+    kind: "code" as const,
+    handlers: { "copy-code": copyCode },
+  }), [contextTargetId, copyCode]);
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
   const onCopy = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      navigator.clipboard.writeText(text).then(() => {
-        message.success(t("markdown.copySuccess"));
-      });
+      void copyCode();
     },
-    [t, text],
+    [copyCode],
   );
   const extraActions = useMemo(() => {
     if (language === "html") {
@@ -147,6 +157,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
   }, [dispatch, language, onCopy, t, text]);
 
   return block ? (
+    <div ref={contextTargetRef}>
     <Flex vertical gap={10}>
       {isEChartsLanguage(language) && (
         <MarkdownECharts code={text} streamStatus={streamStatus} />
@@ -172,6 +183,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
         ]}
       />
     </Flex>
+    </div>
   ) : (
     <code {...rest}>{children}</code>
   );
