@@ -1051,6 +1051,15 @@ function buildWsClient(
 				return;
 			}
 
+			if (type === "chat.renamed") {
+				const chatId = String(liveEvent.chatId || "").trim();
+				const chatName = String(liveEvent.chatName || "").trim();
+				if (chatId && chatName) {
+					options.dispatch({ type: "CHAT_RENAMED", chatId, chatName });
+				}
+				return;
+			}
+
 			if (type === "chat.read" || type === "chat.unread") {
 				upsertPushChatSummary(options.dispatch, liveEvent);
 				syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);

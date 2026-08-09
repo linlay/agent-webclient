@@ -594,6 +594,43 @@ describe("connectWsTransport", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
+	it("applies chat.renamed while the current query is streaming", async () => {
+		const { initWsClientImpl, getOnPush } = createConnectedWsClient();
+		const state = createState({
+			accessToken: "token_local",
+			chatId: "chat_active",
+			streaming: true,
+		});
+
+		await connectWsTransport({
+			dispatch,
+			state,
+			stateRef: { current: state },
+			handleEvent,
+			isAppModeImpl: () => false,
+			ensureAccessTokenImpl: jest.fn(),
+			initWsClientImpl,
+			destroyWsClientImpl: jest.fn(),
+		});
+
+		getOnPush()?.({
+			frame: "push",
+			type: "chat.renamed",
+			payload: {
+				chatId: "chat_active",
+				chatName: "Analyze this image",
+				agentKey: "agent_alpha",
+			},
+		});
+
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "CHAT_RENAMED",
+			chatId: "chat_active",
+			chatName: "Analyze this image",
+		});
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
 	it("rejects string, second, floating, and missing semantic times on state-mutating websocket pushes", async () => {
 		const { initWsClientImpl, getRawOnPush } = createConnectedWsClient();
 		const state = createState({ accessToken: "token_local" });
