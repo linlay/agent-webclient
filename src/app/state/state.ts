@@ -151,6 +151,7 @@ export function createInitialState(): AppState {
 		activeSourceDetail: null,
 		planningPreviews: [],
 		webPreviews: [],
+		webPreviewRefreshRevisionByUrl: new Map(),
 		activeWebPreviewUrl: "",
 		activeAttachmentPreviewUrl: "",
 		activePlanningPreviewNodeId: "",

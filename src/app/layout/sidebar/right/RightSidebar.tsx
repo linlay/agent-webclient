@@ -142,9 +142,6 @@ export const RightSidebar: React.FC = () => {
   const [sidebarMaxWidth, setSidebarMaxWidth] = React.useState(
     getRightSidebarMaxWidth,
   );
-  const [tabRefreshKeys, setTabRefreshKeys] = React.useState<
-    Record<string, number>
-  >({});
   const [tabFullscreenRequests, setTabFullscreenRequests] = React.useState<
     Record<string, number>
   >({});
@@ -358,12 +355,15 @@ export const RightSidebar: React.FC = () => {
     ],
   );
 
-  const handleRefreshWebTab = React.useCallback((key: string) => {
-    setTabRefreshKeys((prev) => ({
-      ...prev,
-      [key]: (prev[key] ?? 0) + 1,
-    }));
-  }, []);
+  const handleRefreshWebTab = React.useCallback(
+    (key: string) => {
+      dispatch({
+        type: "REFRESH_WEB_PREVIEW",
+        url: getWebUrlFromTabKey(key),
+      });
+    },
+    [dispatch],
+  );
 
   const handleResizePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -520,7 +520,9 @@ export const RightSidebar: React.FC = () => {
         ),
         children: (
           <WebPreviewPanel
-            refreshKey={tabRefreshKeys[tabKey] ?? 0}
+            refreshKey={
+              state.webPreviewRefreshRevisionByUrl.get(preview.url) ?? 0
+            }
             fullscreenRequest={tabFullscreenRequests[tabKey] ?? 0}
             preview={preview}
           />
@@ -536,7 +538,7 @@ export const RightSidebar: React.FC = () => {
     planningPreviews,
     t,
     webPreviews,
-    tabRefreshKeys,
+    state.webPreviewRefreshRevisionByUrl,
     tabFullscreenRequests,
   ]);
 

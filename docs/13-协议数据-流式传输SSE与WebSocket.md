@@ -39,8 +39,9 @@ WebClient 控制连接使用 `/ws?source=WebClient&deviceId=<device-id>&surfaceI
 - `webclient.sidebar.getState`
 - `webclient.sidebar.setState`
 - `webclient.sidebar.openUrl`
+- `webclient.sidebar.refreshUrl`
 
-Action Registry 不接受 Redux action、DOM selector、JavaScript 函数名、CustomEvent、任意路由或组件名。sidebar set 必须显式给出 `open`，左侧栏不接受 `tab`，关闭右侧栏时也不接受 `tab`；右侧第一阶段只接受 `overview`、`btw`、`debug`。`webclient.sidebar.openUrl` 使用 `{url, title?}` 创建或激活 Web Preview 并打开右侧 `web` tab：裸域名按 HTTPS 规范化，只接受 HTTP(S)，拒绝协议相对 URL 和带凭据 URL；它不经过 Desktop bridge。handler dispatch 后从同步 `stateRef` 读取最终状态，并以 `applied:false` 表示幂等请求。Preview 状态成功不代表目标站点允许 iframe 嵌入，CSP 或 `X-Frame-Options` 拒绝仍由现有预览错误状态呈现。
+Action Registry 不接受 Redux action、DOM selector、JavaScript 函数名、CustomEvent、任意路由或组件名。sidebar set 必须显式给出 `open`，左侧栏不接受 `tab`，关闭右侧栏时也不接受 `tab`；右侧第一阶段只接受 `overview`、`btw`、`debug`。`webclient.sidebar.openUrl` 使用 `{url, title?}` 创建或激活 Web Preview 并打开右侧 `web` tab：裸域名按 HTTPS 规范化，只接受 HTTP(S)，拒绝协议相对 URL 和带凭据 URL；它不经过 Desktop bridge。handler dispatch 后从同步 `stateRef` 读取最终状态，并以 `applied:false` 表示幂等请求。`webclient.sidebar.refreshUrl` 使用精确 `{url}` 刷新已存在的规范化 Preview，不创建资源、不打开右侧栏、不切换 tab 或活动 URL；目标未打开或当前路由不支持右侧栏时返回 `unsupported_in_current_view`（409）。Preview 状态成功不代表目标站点允许 iframe 嵌入或刷新加载成功，CSP 或 `X-Frame-Options` 拒绝仍由现有预览错误状态呈现。
 
 ## 边界与非目标
 - 传输层不解释业务事件含义，只负责帧、连接、错误和生命周期。

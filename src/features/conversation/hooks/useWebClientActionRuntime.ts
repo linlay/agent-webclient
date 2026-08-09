@@ -19,6 +19,7 @@ import {
 export const WEBCLIENT_SIDEBAR_GET_STATE = "webclient.sidebar.getState";
 export const WEBCLIENT_SIDEBAR_SET_STATE = "webclient.sidebar.setState";
 export const WEBCLIENT_SIDEBAR_OPEN_URL = "webclient.sidebar.openUrl";
+export const WEBCLIENT_SIDEBAR_REFRESH_URL = "webclient.sidebar.refreshUrl";
 
 const SUPPORTED_RIGHT_SIDEBAR_TABS = [
 	"overview",
@@ -324,7 +325,40 @@ export function registerWebClientSidebarActionHandlers(
 		},
 	);
 
+	const unsubscribeRefreshUrl = client.registerInboundRequestHandler(
+		WEBCLIENT_SIDEBAR_REFRESH_URL,
+		(payload) => {
+			const record = requireRecord(payload);
+			requireExactKeys(record, ["url"]);
+			const url = normalizeWebPreviewUrl(record.url);
+			const before = readSidebarState(runtime);
+			if (!before.available.right) {
+				unsupportedInCurrentView(
+					"right sidebar is unavailable in the current view",
+				);
+			}
+
+			const stateBefore = runtime.getState();
+			if (!stateBefore.webPreviews.some((preview) => preview.url === url)) {
+				unsupportedInCurrentView(
+					"web preview URL is not open in the current view",
+				);
+			}
+
+			runtime.dispatch({ type: "REFRESH_WEB_PREVIEW", url });
+			const stateAfter = runtime.getState();
+			return {
+				applied: true,
+				sidebar: "right",
+				open: stateAfter.rightSidebarOpen,
+				tab: stateAfter.rightSidebarOpenTab,
+				url,
+			};
+		},
+	);
+
 	return () => {
+		unsubscribeRefreshUrl();
 		unsubscribeOpenUrl();
 		unsubscribeSetState();
 		unsubscribeGetState();

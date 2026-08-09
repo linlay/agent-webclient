@@ -210,6 +210,7 @@ export interface AppState {
 	activeSourceDetail: TimelineSource | null;
 	planningPreviews: PlanningPreviewState[];
 	webPreviews: WebPreviewState[];
+	webPreviewRefreshRevisionByUrl: Map<string, number>;
 	activeWebPreviewUrl: string;
 	activeAttachmentPreviewUrl: string;
 	activePlanningPreviewNodeId: string;

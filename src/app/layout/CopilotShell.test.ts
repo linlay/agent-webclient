@@ -86,9 +86,10 @@ jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
 }));
 
 jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({
-  WebPreviewPanel: ({ preview }: any) =>
+  WebPreviewPanel: ({ preview, refreshKey }: any) =>
     React.createElement("iframe", {
       className: "web-preview-panel",
+      "data-refresh-key": String(refreshKey ?? 0),
       src: preview.url,
       title: preview.title,
     }),
@@ -418,6 +419,9 @@ describe("CopilotShell", () => {
         { title: "百度", url: "https://www.baidu.com/" },
         { title: "Example", url: "https://example.com/" },
       ],
+      webPreviewRefreshRevisionByUrl: new Map([
+        ["https://www.baidu.com/", 4],
+      ]),
       activeWebPreviewUrl: "https://www.baidu.com/",
     });
 
@@ -427,6 +431,7 @@ describe("CopilotShell", () => {
     expect(html).toContain("copilot-web-preview-tabs");
     expect(html).toContain("百度");
     expect(html).toContain('src="https://www.baidu.com/"');
+    expect(html).toContain('data-refresh-key="4"');
   });
 
   it("starts the first loaded agent conversation on the bare copilot route", () => {

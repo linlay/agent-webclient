@@ -109,6 +109,20 @@ export function reduceUiState(
 		case "SET_TERMINAL_DOCK_OPEN":
 			persistTerminalDockOpen(action.open);
 			return { ...state, terminalDockOpen: action.open };
+		case "REFRESH_WEB_PREVIEW": {
+			if (!state.webPreviews.some((preview) => preview.url === action.url)) {
+				return state;
+			}
+			const nextRevisions = new Map(state.webPreviewRefreshRevisionByUrl);
+			nextRevisions.set(
+				action.url,
+				(nextRevisions.get(action.url) ?? 0) + 1,
+			);
+			return {
+				...state,
+				webPreviewRefreshRevisionByUrl: nextRevisions,
+			};
+		}
 		case "OPEN_RIGHT_SIDEBAR": {
 			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");
 			const hasSourceDetail = Object.prototype.hasOwnProperty.call(action, "sourceDetail");
@@ -205,10 +219,18 @@ export function reduceUiState(
 			}
 			let nextWebPreviews = state.webPreviews;
 			let nextActiveWebPreviewUrl = state.activeWebPreviewUrl;
+			let nextWebPreviewRefreshRevisionByUrl =
+				state.webPreviewRefreshRevisionByUrl;
 			if (removeWebPreviewUrl) {
 				nextWebPreviews = nextWebPreviews.filter(
 					(preview) => preview.url !== removeWebPreviewUrl,
 				);
+				if (nextWebPreviewRefreshRevisionByUrl.has(removeWebPreviewUrl)) {
+					nextWebPreviewRefreshRevisionByUrl = new Map(
+						nextWebPreviewRefreshRevisionByUrl,
+					);
+					nextWebPreviewRefreshRevisionByUrl.delete(removeWebPreviewUrl);
+				}
 				if (nextActiveWebPreviewUrl === removeWebPreviewUrl) {
 					nextActiveWebPreviewUrl =
 						nextWebPreviews[nextWebPreviews.length - 1]?.url || "";
@@ -248,6 +270,8 @@ export function reduceUiState(
 				attachmentPreview: nextPreviews,
 				planningPreviews: nextPlanningPreviews,
 				webPreviews: nextWebPreviews,
+				webPreviewRefreshRevisionByUrl:
+					nextWebPreviewRefreshRevisionByUrl,
 				activeWebPreviewUrl: nextActiveWebPreviewUrl,
 				activeSourceDetail: hasSourceDetail
 					? action.sourceDetail ?? null

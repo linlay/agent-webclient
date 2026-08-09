@@ -11,6 +11,7 @@ import {
 	registerWebClientSidebarActionHandlers,
 	WEBCLIENT_SIDEBAR_GET_STATE,
 	WEBCLIENT_SIDEBAR_OPEN_URL,
+	WEBCLIENT_SIDEBAR_REFRESH_URL,
 	WEBCLIENT_SIDEBAR_SET_STATE,
 } from "@/features/conversation/hooks/useWebClientActionRuntime";
 
@@ -170,6 +171,85 @@ describe("WebClient sidebar actions", () => {
 			title: "example.com",
 		});
 		expect(runtime.getState().webPreviews).toHaveLength(1);
+	});
+
+	it("refreshes an existing normalized URL without changing sidebar or active preview state", async () => {
+		const runtime = createActionRuntime("/agent/demo");
+		const openUrl = runtime.handlers.get(WEBCLIENT_SIDEBAR_OPEN_URL);
+		const setState = runtime.handlers.get(WEBCLIENT_SIDEBAR_SET_STATE);
+		const refreshUrl = runtime.handlers.get(WEBCLIENT_SIDEBAR_REFRESH_URL);
+
+		await Promise.resolve(openUrl?.({ url: "example.com" }));
+		await Promise.resolve(openUrl?.({ url: "https://second.example" }));
+		await Promise.resolve(
+			setState?.({ sidebar: "right", open: false }),
+		);
+
+		await expect(
+			Promise.resolve(refreshUrl?.({ url: "https://example.com" })),
+		).resolves.toEqual({
+			applied: true,
+			sidebar: "right",
+			open: false,
+			tab: null,
+			url: "https://example.com/",
+		});
+		expect(runtime.getState().activeWebPreviewUrl).toBe(
+			"https://second.example/",
+		);
+		expect(
+			runtime.getState().webPreviewRefreshRevisionByUrl.get(
+				"https://example.com/",
+			),
+		).toBe(1);
+
+		await Promise.resolve(refreshUrl?.({ url: "example.com" }));
+		expect(
+			runtime.getState().webPreviewRefreshRevisionByUrl.get(
+				"https://example.com/",
+			),
+		).toBe(2);
+	});
+
+	it("rejects invalid, missing, and unavailable refresh targets", async () => {
+		const runtime = createActionRuntime("/agent/demo");
+		const handler = runtime.handlers.get(WEBCLIENT_SIDEBAR_REFRESH_URL);
+
+		for (const payload of [
+			{},
+			{ url: "javascript:alert(1)" },
+			{ url: "//example.com" },
+			{ url: "https://user:secret@example.com" },
+			{ url: "https://example.com", title: "unsupported" },
+		]) {
+			await expect(
+				Promise.resolve().then(() => handler?.(payload)),
+			).rejects.toMatchObject<Partial<WsInboundRequestError>>({
+				type: "invalid_request",
+				code: 400,
+			});
+		}
+
+		await expect(
+			Promise.resolve().then(() =>
+				handler?.({ url: "https://example.com" }),
+			),
+		).rejects.toMatchObject<Partial<WsInboundRequestError>>({
+			type: "unsupported_in_current_view",
+			code: 409,
+		});
+
+		const unavailable = createActionRuntime("/settings");
+		await expect(
+			Promise.resolve().then(() =>
+				unavailable.handlers
+					.get(WEBCLIENT_SIDEBAR_REFRESH_URL)
+					?.({ url: "https://example.com" }),
+			),
+		).rejects.toMatchObject<Partial<WsInboundRequestError>>({
+			type: "unsupported_in_current_view",
+			code: 409,
+		});
 	});
 
 	it("rejects unsafe or unavailable URL previews", async () => {

@@ -62,6 +62,7 @@ export function buildConversationResetState(
 		activeSourceDetail: null,
 		planningPreviews: [],
 		webPreviews: [],
+		webPreviewRefreshRevisionByUrl: new Map(),
 		activeWebPreviewUrl: "",
 		attachmentPreview: [],
 		inputMode: "text",

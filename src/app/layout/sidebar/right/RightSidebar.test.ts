@@ -16,9 +16,15 @@ jest.mock("@/app/state/AppContext", () => {
 jest.mock("antd", () => {
   const React = require("react");
   const mockTabsState: { current: any } = { current: null };
+  const mockDropdownState: { current: any } = { current: null };
 
   return {
+    __mockDropdownState: mockDropdownState,
     __mockTabsState: mockTabsState,
+    Dropdown: (props: any) => {
+      mockDropdownState.current = props;
+      return React.createElement("div", null, props.children);
+    },
     Flex: ({ children, gap, ...props }: any) =>
       React.createElement("div", { ...props, "data-gap": gap }, children),
     Typography: {
@@ -70,10 +76,14 @@ jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
 }));
 
 jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({
-  WebPreviewPanel: ({ preview }: any) =>
+  WebPreviewPanel: ({ preview, refreshKey }: any) =>
     React.createElement(
       "iframe",
-      { src: preview.url, title: preview.title },
+      {
+        "data-refresh-key": String(refreshKey ?? 0),
+        src: preview.url,
+        title: preview.title,
+      },
     ),
 }));
 
@@ -96,6 +106,9 @@ const { useBTW } = jest.requireMock(
 };
 const { __mockTabsState: mockTabsState } = jest.requireMock("antd") as {
   __mockTabsState: { current: any };
+};
+const { __mockDropdownState: mockDropdownState } = jest.requireMock("antd") as {
+  __mockDropdownState: { current: any };
 };
 
 const globalWithFeatureFlags = globalThis as typeof globalThis & {
@@ -125,6 +138,7 @@ describe("RightSidebar", () => {
     getSession.mockReset();
     getSession.mockReturnValue(null);
     mockTabsState.current = null;
+    mockDropdownState.current = null;
     useAppDispatch.mockReturnValue(dispatch);
     useBTW.mockReturnValue({ discardBTW, getSession });
     useAppState.mockReturnValue({
@@ -254,6 +268,9 @@ describe("RightSidebar", () => {
         { title: "百度", url: "https://www.baidu.com/" },
         { title: "Example", url: "https://example.com/" },
       ],
+      webPreviewRefreshRevisionByUrl: new Map([
+        ["https://www.baidu.com/", 3],
+      ]),
       activeWebPreviewUrl: "https://www.baidu.com/",
     });
 
@@ -261,6 +278,7 @@ describe("RightSidebar", () => {
 
     expect(html).toContain('data-active-key="web:https://www.baidu.com/"');
     expect(html).toContain('src="https://www.baidu.com/"');
+    expect(html).toContain('data-refresh-key="3"');
     expect(html).toContain("百度");
 
     mockTabsState.current.onChange("web:https://example.com/");
@@ -292,6 +310,40 @@ describe("RightSidebar", () => {
       type: "OPEN_RIGHT_SIDEBAR",
       tab: "overview",
       removeWebPreviewUrl: "https://www.baidu.com/",
+    });
+  });
+
+  it("routes the web tab context-menu refresh through shared preview state", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "web",
+      webPreviews: [
+        { title: "百度", url: "https://www.baidu.com/" },
+      ],
+      activeWebPreviewUrl: "https://www.baidu.com/",
+    });
+    renderRightSidebar();
+
+    const DefaultTabBar = ({ children }: any) =>
+      children(
+        React.createElement(
+          "span",
+          { key: "web:https://www.baidu.com/" },
+          "web",
+        ),
+      );
+    renderToStaticMarkup(
+      mockTabsState.current.renderTabBar({}, DefaultTabBar),
+    );
+    const refreshItem = mockDropdownState.current.menu.items.find(
+      (item: { key: string }) => item.key === "refresh",
+    );
+    refreshItem.onClick();
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "REFRESH_WEB_PREVIEW",
+      url: "https://www.baidu.com/",
     });
   });
 });

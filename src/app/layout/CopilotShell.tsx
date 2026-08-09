@@ -90,9 +90,16 @@ const CopilotWebPreviewTabs: React.FC = () => {
             </span>
           </span>
         ),
-        children: <WebPreviewPanel preview={preview} />,
+        children: (
+          <WebPreviewPanel
+            preview={preview}
+            refreshKey={
+              state.webPreviewRefreshRevisionByUrl.get(preview.url) ?? 0
+            }
+          />
+        ),
       })),
-    [state.webPreviews],
+    [state.webPreviews, state.webPreviewRefreshRevisionByUrl],
   );
 
   if (!activePreview) {

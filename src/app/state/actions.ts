@@ -162,6 +162,7 @@ export type AppAction =
 			activeAttachmentPreviewUrl?: string;
 			activePlanningPreviewNodeId?: string;
 	  }
+	| { type: "REFRESH_WEB_PREVIEW"; url: string }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }
 	| { type: "SET_CONVERSATION_MODE"; mode: "chat" | "worker" }
