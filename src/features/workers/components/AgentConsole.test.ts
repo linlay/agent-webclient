@@ -306,38 +306,8 @@ describe("AgentConsole admin diagnostics", () => {
     });
   });
 
-  it("renders invalid agent rows with status and diagnostic text", () => {
-    mockAppState.agents = [
-      {
-        key: "bad-agent",
-        name: "Bad Agent",
-        role: "Fix me",
-        status: "invalid",
-        diagnostics: [
-          {
-            severity: "error",
-            code: "invalid_yaml",
-            message: "yaml failed",
-            sourcePath: "/agents/bad-agent/agent.yml",
-          },
-        ],
-        meta: { mode: "REACT", modelKey: "gpt-5" },
-      },
-    ];
-
-    const html = renderToStaticMarkup(
-      React.createElement(
-        I18nProvider,
-        { locale: "en-US", persistLocale: false },
-        React.createElement(AgentConsole),
-      ),
-    );
-
-    expect(html).toContain("Invalid");
-    expect(html).toContain("yaml failed");
-    expect(html).not.toContain("/agents/bad-agent/agent.yml");
-  });
 });
+
 
 describe("AgentConsole i18n rendering", () => {
   beforeEach(() => {

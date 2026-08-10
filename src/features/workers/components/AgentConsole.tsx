@@ -35,6 +35,7 @@ import {
   getAdminSource,
   getAdminSkills,
   getAdminTools,
+  getAgents,
   importAdminAgentPrivateSkill,
   putAdminAgentOrder,
   updateAgent,
@@ -1163,6 +1164,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const { state, dispatch } = useAppContext();
   const [internalSelectedKey, setInternalSelectedKey] = useState("");
   const effectiveSelectedKey = selectedAgentKey || internalSelectedKey;
+  const [localAgents, setLocalAgents] = useState<Agent[]>([]);
   const [searchText, setSearchText] = useState("");
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
   const [editorMode, setEditorMode] = useState<AgentEditorMode>("structured");
@@ -1214,9 +1216,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const filteredAgents = useMemo(() => {
-    const agents = Array.isArray(state.agents) ? state.agents : [];
+    const agents = Array.isArray(localAgents) ? localAgents : [];
     return filterAgentsPreservingOrder(agents, searchText);
-  }, [searchText, state.agents]);
+  }, [searchText, localAgents]);
   const filteredAgentSortableIds = useMemo(
     () =>
       filteredAgents.map(
@@ -1227,10 +1229,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   const selectedSummary = useMemo(
     () =>
-      state.agents.find(
+      localAgents.find(
         (agent) => toText(agent.key) === effectiveSelectedKey,
       ) || null,
-    [effectiveSelectedKey, state.agents],
+    [effectiveSelectedKey, localAgents],
   );
 
   const modeOptions = useMemo(
@@ -1566,7 +1568,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         const agents = Array.isArray(response.data)
           ? (response.data as Agent[])
           : [];
-        dispatch({ type: "SET_AGENTS", agents });
+        setLocalAgents(agents);
         const normalizedPreferred = preferredKey.trim();
         const nextKey =
           normalizedPreferred &&
@@ -1593,6 +1595,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     [dispatch],
   );
 
+  const refreshGlobalAgents = useCallback(async () => {
+    try {
+      const agentsResponse = await getAgents();
+      const agents = Array.isArray(agentsResponse.data)
+        ? (agentsResponse.data as Agent[])
+        : [];
+      dispatch({ type: "SET_AGENTS", agents });
+    } catch {
+      // 静默失败，不影响主流程
+    }
+  }, [dispatch]);
+
   const saveAgentOrder = useCallback(async (agents: Agent[]) => {
     setSavingOrder(true);
     setError("");
@@ -1616,12 +1630,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setDraggingAgentKey("");
       if (!sourceKey || !targetKey || sourceKey === targetKey || savingOrder)
         return;
-      const nextAgents = moveAgentForDrop(state.agents, sourceKey, targetKey);
-      if (nextAgents === state.agents) return;
-      dispatch({ type: "SET_AGENTS", agents: nextAgents });
+      const nextAgents = moveAgentForDrop(localAgents, sourceKey, targetKey);
+      if (nextAgents === localAgents) return;
+      setLocalAgents(nextAgents);
       await saveAgentOrder(nextAgents);
     },
-    [dispatch, saveAgentOrder, savingOrder, state.agents],
+    [saveAgentOrder, savingOrder, localAgents],
   );
 
   const loadEditorOptions = useCallback(async () => {
@@ -1712,7 +1726,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   useEffect(() => {
     if (effectiveSelectedKey) {
       void loadDetail(effectiveSelectedKey);
-    } else if (state.agents.length === 0 && !loadingList) {
+    } else if (localAgents.length === 0 && !loadingList) {
       resetToCreate();
     }
   }, [
@@ -1720,7 +1734,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     loadDetail,
     loadingList,
     resetToCreate,
-    state.agents.length,
+    localAgents.length,
   ]);
 
   const updateForm = (patch: Partial<AgentFormState>) => {
@@ -1823,6 +1837,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setStructuredDirty(false);
       message.success(t("agentConsole.message.saveSuccess"));
       await loadAgents(savedKey);
+      await refreshGlobalAgents();
       commitAgentSelection(savedKey);
     } catch (error) {
       const errorMessage = (error as Error).message;
@@ -1867,6 +1882,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setPrivateSkillModalOpen(false);
       resetPrivateSkillImport();
       await loadAgents(agentKey);
+      await refreshGlobalAgents();
       commitAgentSelection(agentKey);
       message.success(t("agentConsole.privateSkill.import.success"));
     } catch (error) {
@@ -1917,10 +1933,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setFormError("");
     try {
       await deleteAgent({ key });
-      const remaining = state.agents.filter(
+      const remaining = localAgents.filter(
         (agent) => toText(agent.key) !== key,
       );
-      dispatch({ type: "SET_AGENTS", agents: remaining });
+      setLocalAgents(remaining);
+      await refreshGlobalAgents();
       const nextKey = remaining[0]?.key || "";
       if (nextKey) commitAgentSelection(nextKey);
       else resetToCreate();
@@ -2015,6 +2032,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         applySourceResponse(response.data);
       }
       await loadAgents(key);
+      await refreshGlobalAgents();
       const detailResponse = await getAdminAgentDetail(key);
       if (sourceLoadSeqRef.current === requestSeq) {
         const nextDetail = detailResponse.data as EditableAgentDetail;
@@ -2133,7 +2151,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           </div>
           <div className={AGENT_COUNT_CLASS_NAME}>
             <span>
-              {t("agentConsole.list.count", { count: state.agents.length })}
+              {t("agentConsole.list.count", { count: localAgents.length })}
             </span>
             {savingOrder && <span>{t("agentConsole.list.savingOrder")}</span>}
           </div>
