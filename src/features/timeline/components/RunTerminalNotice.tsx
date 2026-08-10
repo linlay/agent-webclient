@@ -20,13 +20,13 @@ export const RunTerminalNotice: React.FC<{
       align="center"
       data-run-terminal="run.cancel"
     >
+      <Divider type="vertical" />
       <MaterialIcon
         name="pause_circle"
         className="tw:text-[16px]"
         aria-hidden="true"
       />
       <span>{t("timeline.run.interrupted")}</span>
-      <Divider type="vertical" />
     </Flex>
   );
 };

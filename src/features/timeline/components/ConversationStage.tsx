@@ -1440,7 +1440,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                   {isCompleted && (
                     <div className={TIMELINE_RUN_META_CLASS_NAME}>
                       <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
-                        <RunTerminalNotice terminalType={item.terminalType} />
                         <UiButton
                           className={TIMELINE_META_BUTTON_CLASS_NAME}
                           variant="ghost"
@@ -1515,6 +1514,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                         >
                           <MaterialIcon name="branches" />
                         </UiButton>
+                        <RunTerminalNotice terminalType={item.terminalType} />
                       </div>
                       {time.short && (
                         <div
