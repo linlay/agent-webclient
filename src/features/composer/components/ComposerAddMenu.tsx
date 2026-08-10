@@ -224,21 +224,19 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = ({
   const { t } = useI18n();
 
   return (
-    <span className="composer-add-menu-trigger">
-      <UiButton
-        className={PLUS_BUTTON_CLASS}
-        variant="ghost"
-        size="sm"
-        iconOnly
-        loading={loading}
-        disabled={disabled}
-        onClick={onClick}
-        aria-label={t("composer.addMenu.open")}
-        title={t("composer.addMenu.open")}
-      >
-        <MaterialIcon name="add" />
-      </UiButton>
-    </span>
+    <UiButton
+      className={PLUS_BUTTON_CLASS}
+      variant="ghost"
+      size="sm"
+      iconOnly
+      loading={loading}
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={t("composer.addMenu.open")}
+      title={t("composer.addMenu.open")}
+    >
+      <MaterialIcon name="add" />
+    </UiButton>
   );
 };
 

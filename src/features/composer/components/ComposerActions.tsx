@@ -9,9 +9,7 @@ import { ControlsForm } from "@/features/composer/components/ControlsForm";
 import { AddMenuTrigger } from "@/features/composer/components/ComposerAddMenu";
 import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
-import type {
-  ComposerContextReferenceInput,
-} from "@/features/composer/lib/composerAttachments";
+import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
 import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -24,7 +22,8 @@ const COMPOSER_PLUS_WRAP_CLASS =
   "composer-plus-wrap tw:relative tw:inline-flex tw:flex-1 tw:items-center tw:overflow-auto tw:whitespace-nowrap";
 const CONTEXT_TOGGLE_BUTTON_CLASS =
   "composer-context-toggle-btn tw:group tw:!max-w-[160px] tw:!gap-1.5 tw:!px-2 tw:!text-[13px] tw:!text-text-muted tw:hover:!bg-bg-hover tw:hover:!text-ink-1";
-const CONTEXT_TOGGLE_ICON_CLASS = "composer-context-toggle-icon tw:group-hover:hidden";
+const CONTEXT_TOGGLE_ICON_CLASS =
+  "composer-context-toggle-icon tw:group-hover:hidden";
 const CONTEXT_TOGGLE_CLOSE_ICON_CLASS =
   "composer-context-toggle-close-icon tw:hidden tw:scale-[.8] tw:text-lg tw:group-hover:inline-flex";
 const CONTEXT_TOGGLE_LABEL_CLASS =
@@ -152,12 +151,12 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         </Flex>
       )}
       <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
-        <AddMenuTrigger
-          disabled={attachmentActionsDisabled}
-          loading={hasUploadingAttachments}
-          onClick={() => onAddMenuClick?.()}
-        />
         <div className={COMPOSER_PLUS_WRAP_CLASS}>
+          <AddMenuTrigger
+            disabled={attachmentActionsDisabled}
+            loading={hasUploadingAttachments}
+            onClick={() => onAddMenuClick?.()}
+          />
           {canCaptureDesktopScreenshot ? (
             <UiButton
               className="desktop-screenshot-btn"

@@ -64,11 +64,6 @@
     font-size: 10px;
 }
 
-.composer-add-menu-trigger {
-    display: inline-flex;
-    flex: 0 0 auto;
-}
-
 .composer-add-menu-overlay .ant-dropdown-menu {
     width: min(286px, calc(100vw - 24px));
     max-height: min(70vh, 560px);
