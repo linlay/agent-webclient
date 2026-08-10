@@ -134,7 +134,7 @@ const TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME =
 const TIMELINE_META_ROW_CLASS_NAME =
   "timeline-meta-row tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
 const TIMELINE_RUN_META_CLASS_NAME =
-  "timeline-run-meta tw:ml-6 tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
+  "timeline-run-meta tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
 const TIMELINE_META_ACTIONS_CLASS_NAME =
   "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1";
 const TIMELINE_META_BUTTON_CLASS_NAME =
@@ -1436,101 +1436,101 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                         {item.renderEntries.map((entry) => renderEntry(entry))}
                       </div>
                     )}
-                    <RunTerminalNotice terminalType={item.terminalType} />
-                    {isCompleted && item.nodes?.length > 0 && (
-                      <div className={TIMELINE_RUN_META_CLASS_NAME}>
-                        <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
+                  </section>
+                  {isCompleted && (
+                    <div className={TIMELINE_RUN_META_CLASS_NAME}>
+                      <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
+                        <RunTerminalNotice terminalType={item.terminalType} />
+                        <UiButton
+                          className={TIMELINE_META_BUTTON_CLASS_NAME}
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          title={runCopyStatus}
+                          aria-label={runCopyStatus}
+                          onClick={() =>
+                            handleCopy(
+                              runCopyKey,
+                              serializeRunTranscript(
+                                item.queryNode,
+                                item.nodes,
+                              ),
+                            )
+                          }
+                        >
+                          <MaterialIcon name="content_copy" />
+                        </UiButton>
+                        {isDownvoted ? (
                           <UiButton
-                            className={TIMELINE_META_BUTTON_CLASS_NAME}
+                            className={[
+                              TIMELINE_META_BUTTON_CLASS_NAME,
+                              TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME,
+                            ].join(" ")}
                             variant="ghost"
                             size="sm"
                             iconOnly
-                            title={runCopyStatus}
-                            aria-label={runCopyStatus}
-                            onClick={() =>
-                              handleCopy(
-                                runCopyKey,
-                                serializeRunTranscript(
-                                  item.queryNode,
-                                  item.nodes,
-                                ),
-                              )
+                            active
+                            title={t("timeline.feedback.clearDownvote")}
+                            aria-label={t("timeline.feedback.clearDownvote")}
+                            disabled={!runId}
+                            onClick={() => handleDownvote(runId, false)}
+                          >
+                            <MaterialIcon name="thumb_down" />
+                          </UiButton>
+                        ) : (
+                          <Popover
+                            destroyOnHidden
+                            trigger={["click"]}
+                            content={
+                              <FeedbackModal
+                                onFinish={() => {
+                                  handleDownvote(runId, true);
+                                }}
+                              />
                             }
                           >
-                            <MaterialIcon name="content_copy" />
-                          </UiButton>
-                          {isDownvoted ? (
                             <UiButton
-                              className={[
-                                TIMELINE_META_BUTTON_CLASS_NAME,
-                                TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME,
-                              ].join(" ")}
+                              className={TIMELINE_META_BUTTON_CLASS_NAME}
                               variant="ghost"
                               size="sm"
                               iconOnly
-                              active
-                              title={t("timeline.feedback.clearDownvote")}
-                              aria-label={t("timeline.feedback.clearDownvote")}
+                              title={t("timeline.feedback.downvote")}
+                              aria-label={t("timeline.feedback.downvote")}
                               disabled={!runId}
-                              onClick={() => handleDownvote(runId, false)}
                             >
                               <MaterialIcon name="thumb_down" />
                             </UiButton>
-                          ) : (
-                            <Popover
-                              destroyOnHidden
-                              trigger={["click"]}
-                              content={
-                                <FeedbackModal
-                                  onFinish={() => {
-                                    handleDownvote(runId, true);
-                                  }}
-                                />
-                              }
-                            >
-                              <UiButton
-                                className={TIMELINE_META_BUTTON_CLASS_NAME}
-                                variant="ghost"
-                                size="sm"
-                                iconOnly
-                                title={t("timeline.feedback.downvote")}
-                                aria-label={t("timeline.feedback.downvote")}
-                                disabled={!runId}
-                              >
-                                <MaterialIcon name="thumb_down" />
-                              </UiButton>
-                            </Popover>
-                          )}
-                          <UiButton
-                            className={TIMELINE_META_BUTTON_CLASS_NAME}
-                            variant="ghost"
-                            size="sm"
-                            iconOnly
-                            loading={derivingRunId === runId}
-                            title={deriveChatTitle}
-                            aria-label={deriveChatTitle}
-                            disabled={deriveChatDisabled}
-                            onClick={() => handleDeriveChat(runId)}
-                          >
-                            <MaterialIcon name="branches" />
-                          </UiButton>
-                        </div>
-                        {time.short && (
-                          <div
-                            className={TIMELINE_RUN_TIME_CLASS_NAME}
-                            title={
-                              responseDuration
-                                ? `${time.full} · ${t("timeline.run.responseDuration", { duration: responseDuration })}`
-                                : time.full
-                            }
-                          >
-                            {time.short}
-                            {responseDuration ? ` · ${responseDuration}` : ""}
-                          </div>
+                          </Popover>
                         )}
+                        <UiButton
+                          className={TIMELINE_META_BUTTON_CLASS_NAME}
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          loading={derivingRunId === runId}
+                          title={deriveChatTitle}
+                          aria-label={deriveChatTitle}
+                          disabled={deriveChatDisabled}
+                          onClick={() => handleDeriveChat(runId)}
+                        >
+                          <MaterialIcon name="branches" />
+                        </UiButton>
                       </div>
-                    )}
-                  </section>
+                      {time.short && (
+                        <div
+                          className={TIMELINE_RUN_TIME_CLASS_NAME}
+                          title={
+                            responseDuration
+                              ? `${time.full} · ${t("timeline.run.responseDuration", { duration: responseDuration })}`
+                              : time.full
+                          }
+                        >
+                          {time.short}
+                          {responseDuration ? ` · ${responseDuration}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </Flex>
               );
             }
