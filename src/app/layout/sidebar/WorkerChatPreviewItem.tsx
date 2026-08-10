@@ -105,7 +105,7 @@ export const WorkerChatPreviewItem: React.FC<{
   const timeLabelClassName = action === "time"
     ? `${WORKER_PANEL_TIME_LABEL_CLASS} tw:opacity-100`
     : `${WORKER_PANEL_TIME_LABEL_CLASS} tw:opacity-0`;
-  const previewText = chat.lastRunContent || chat.chatName || t("leftSidebar.noPreview");
+  const previewText = chat.chatName || chat.lastRunContent || t("leftSidebar.noPreview");
   const showAutomationSource = isAutomationSource(chat.source);
   const timeContentClassName = showAutomationSource
     ? WORKER_PANEL_TIME_CONTENT_AUTOMATION_CLASS

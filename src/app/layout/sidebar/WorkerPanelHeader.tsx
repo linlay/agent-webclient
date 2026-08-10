@@ -110,8 +110,8 @@ export const WorkerPanelHeader: React.FC<{
       : t("leftSidebar.workspaceUnavailable");
   const previewChat = awaitingChat || activeRunChat || lastChat;
   const preview = previewChat
-    ? previewChat?.lastRunContent ||
-      previewChat?.chatName ||
+    ? previewChat?.chatName ||
+      previewChat?.lastRunContent ||
       t("leftSidebar.latestConversationNoReply")
     : t("leftSidebar.noHistory");
   const previewStatus = awaitingChat

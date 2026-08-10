@@ -24,6 +24,7 @@ const mockModalConfirm = jest.fn();
 const mockMessageSuccess = jest.fn();
 const mockNavigate = jest.fn();
 const mockOpenCommandOverlay = jest.fn();
+const WORKER_CHAT_BASE_UPDATED_AT = 1_710_000_000_000;
 
 function collectText(value: React.ReactNode): string {
   if (value === null || value === undefined || typeof value === "boolean") {
@@ -393,7 +394,7 @@ describe("LeftSidebar", () => {
       agentConfigDir: "/agents/agent_a",
       latestChatId: "chat_6",
       latestRunId: "run_6",
-      latestUpdatedAt: 6000,
+      latestUpdatedAt: WORKER_CHAT_BASE_UPDATED_AT + 6000,
       latestChatName: "Chat 6",
       latestRunContent: "Latest reply 6",
       hasHistory: true,
@@ -406,7 +407,7 @@ describe("LeftSidebar", () => {
       return {
         chatId: `chat_${count}`,
         chatName: `Chat ${count}`,
-        updatedAt: count * 1000,
+        updatedAt: WORKER_CHAT_BASE_UPDATED_AT + count * 1000,
         agentKey: "worker_a",
         firstAgentKey: "worker_a",
         lastRunId: `run_${count}`,
@@ -1803,7 +1804,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain('<circle cx="12" cy="12" r="10"></circle>');
     expect(html).toContain('<path d="M12 6v6l4 2"></path>');
     expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">[\s\S]*?<span class="[^"]*\bworker-panel-time-label\b[^"]*"><span class="[^"]*\bworker-panel-time-content\b[^"]*\bis-automation\b[^"]*"><span class="[^"]*\bworker-chat-source-icon\b[\s\S]*?<\/svg><\/span><span class="[^"]*\bworker-panel-time-text\b[^"]*tw:text-\[10px\][^"]*">/,
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">[\s\S]*?<span class="[^"]*\bworker-panel-time-label\b[^"]*"><span class="[^"]*\bworker-panel-time-content\b[^"]*\bis-automation\b[^"]*"><span class="[^"]*\bworker-chat-source-icon\b[\s\S]*?<\/svg><\/span><span class="[^"]*\bworker-panel-time-text\b[^"]*tw:text-\[10px\][^"]*">/,
     );
   });
 
@@ -1817,7 +1818,7 @@ describe("LeftSidebar", () => {
 
     expect(html).not.toContain("worker-chat-source-icon");
     expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
     );
   });
 
@@ -1837,7 +1838,7 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toMatch(
-      /<div class="worker-panel-preview"><span>Latest reply 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
+      /<div class="worker-panel-preview"><span>Chat 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
     );
   });
 
@@ -1857,10 +1858,10 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toMatch(
-      /<div class="worker-panel-preview"><span>Latest reply 5<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
+      /<div class="worker-panel-preview"><span>Chat 5<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
     );
     expect(html).not.toMatch(
-      /<span>Latest reply 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b/,
+      /<span>Chat 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b/,
     );
   });
 
@@ -1872,11 +1873,27 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span></div>',
+      '<div class="worker-panel-preview"><span>Chat 6</span></div>',
     );
     // header 不应该有 loading 图标（chat item 行始终有，但 CSS 控制显隐）
     expect(html).not.toMatch(
-      /<div class="worker-panel-preview"><span>Latest reply 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b/,
+      /<div class="worker-panel-preview"><span>Chat 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b/,
+    );
+  });
+
+  it("falls back to last run content when a worker chat name is missing", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chats[state.chats.length - 1].chatName = "";
+    mockState(state);
+
+    const html = renderSidebar();
+
+    expect(html).toContain(
+      '<div class="worker-panel-preview"><span>Latest reply 6</span></div>',
+    );
+    expect(html).toMatch(
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
     );
   });
 
@@ -1899,7 +1916,7 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toMatch(
-      /<div class="worker-panel-preview"><span>Latest reply 5<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
+      /<div class="worker-panel-preview"><span>Chat 5<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
     );
     expect(html).toMatch(
       /class="[^"]*\bworker-chat-action\b[^"]*" data-action="loading"/,
@@ -1947,10 +1964,10 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 1</span><span class="chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn">等待审批</span><span class="material-icon worker-chat-loading tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin" data-material-icon="progress_activity">',
+      '<div class="worker-panel-preview"><span>Chat 6</span><span class="chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn">等待审批</span><span class="material-icon worker-chat-loading tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin" data-material-icon="progress_activity">',
     );
     expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 1<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="awaiting"><span class="[^"]*\bchat-awaiting-status\b[^"]*">等待审批<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*" data-material-icon="progress_activity">/,
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="awaiting"><span class="[^"]*\bchat-awaiting-status\b[^"]*">等待审批<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*" data-material-icon="progress_activity">/,
     );
     expect(html).toMatch(
       /data-action="awaiting"[\s\S]*class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,
