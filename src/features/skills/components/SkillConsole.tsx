@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Alert, Input, Modal, Spin, Tabs, Typography } from "antd";
+import { Input, Modal, notification, Spin, Tabs, Typography } from "antd";
 import type { MenuProps } from "antd";
 import {
   createAdminSkillFile,
@@ -37,7 +37,6 @@ import { UiTag } from "@/shared/ui/UiTag";
 import { requestSkillDeletion } from "@/features/skills/lib/skillDeletion";
 
 type StatusFilter = "all" | AdminSkillStatus;
-type SkillMessageTone = "info" | "success" | "warning" | "error";
 
 function adminSourceToSkillTextFile(
   source: AdminSourceResponse,
@@ -173,8 +172,6 @@ const SKILL_BINARY_GRID_CLASS_NAME =
   "skill-console-binary-grid tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:gap-x-3 tw:gap-y-2 tw:text-xs tw:[&>span:nth-child(odd)]:text-ink-muted tw:[&>span:nth-child(even)]:min-w-0 tw:[&>span:nth-child(even)]:overflow-hidden tw:[&>span:nth-child(even)]:text-ellipsis tw:[&>span:nth-child(even)]:whitespace-nowrap";
 const SKILL_DIRTY_CLASS_NAME =
   "skill-console-dirty tw:text-xs tw:text-ink-muted";
-const SKILL_MESSAGE_CLASS_NAME =
-  "skill-console-message tw:absolute tw:left-[2px] tw:top-[2px] tw:right-[2px] tw:z-[100]";
 
 /* ---- helpers ---- */
 
@@ -463,8 +460,6 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
   const [keyTouched, setKeyTouched] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [archiveFileError, setArchiveFileError] = useState("");
   const [serverKeyError, setServerKeyError] = useState("");
   const [diagnostics, setDiagnostics] = useState<SkillImportDiagnostic[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -479,8 +474,6 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
     setKeyTouched(false);
     setDragActive(false);
     setSubmitting(false);
-    setSubmitError("");
-    setArchiveFileError("");
     setServerKeyError("");
     setDiagnostics([]);
   }, [open]);
@@ -495,7 +488,6 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
   const canSubmit = !keyValidation && (mode === "direct" || Boolean(zipFile));
 
   const resetError = () => {
-    setSubmitError("");
     setServerKeyError("");
     setDiagnostics([]);
   };
@@ -505,10 +497,9 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
     const validation = validateSkillArchiveFile(file);
     if (validation) {
       setZipFile(null);
-      setArchiveFileError(t(`skillConsole.import.error.${validation}`));
+      notification.error({ message: t(`skillConsole.import.error.${validation}`) });
       return;
     }
-    setArchiveFileError("");
     setZipFile(file as File);
     setZipKey(suggestSkillKeyFromArchiveName((file as File).name));
     setKeyTouched(true);
@@ -532,7 +523,9 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       if (status === 409) {
         setServerKeyError(t("skillConsole.import.error.exists"));
       } else {
-        setSubmitError(error instanceof Error ? error.message : String(error));
+        notification.error({
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
     } finally {
       setSubmitting(false);
@@ -656,9 +649,6 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
             : t("skillConsole.import.select")}
         </UiButton>
       </div>
-      {archiveFileError && (
-        <Alert type="error" showIcon message={archiveFileError} />
-      )}
       <label
         className="tw:flex tw:flex-col tw:gap-1.5"
         htmlFor="skill-import-key"
@@ -730,7 +720,6 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
         onChange={(key) => {
           setMode(key as SkillCreateMode);
           setKeyTouched(false);
-          setArchiveFileError("");
           resetError();
         }}
         items={[
@@ -746,14 +735,6 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
           },
         ]}
       />
-      {submitError && (
-        <Alert
-          className="tw:mt-3"
-          type="error"
-          showIcon
-          message={submitError}
-        />
-      )}
       {diagnostics.length > 0 && (
         <ul className="tw:mt-3 tw:flex tw:list-disc tw:flex-col tw:gap-1 tw:pl-5 tw:text-xs tw:text-danger">
           {diagnostics.map((diagnostic, index) => (
@@ -1176,9 +1157,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const [downloadingSkill, setDownloadingSkill] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [messageTone, setMessageTone] = useState<SkillMessageTone>("info");
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
     new Set(["references", "scripts", "assets"]),
   );
@@ -1244,12 +1222,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const loadSkills = useCallback(async () => {
     setListLoading(true);
-    setError("");
     try {
       const response = await getAdminSkills();
       setSkills(response.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      notification.error({ message: err instanceof Error ? err.message : String(err) });
     } finally {
       setListLoading(false);
     }
@@ -1259,7 +1236,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     async (skillKey: string, path: string) => {
       const normalizedPath = path.trim();
       if (!skillKey || !normalizedPath) return null;
-      setError("");
       try {
         const response = await getAdminSource({
           type: "skill",
@@ -1270,7 +1246,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         applyOpenedFile(opened);
         return opened;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        notification.error({ message: err instanceof Error ? err.message : String(err) });
         return null;
       }
     },
@@ -1282,7 +1258,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       const normalizedSkillKey = skillKey.trim();
       if (!normalizedSkillKey) return;
       setDetailLoading(true);
-      setError("");
       try {
         const requestedOpenPath = preferredFilePath || "SKILL.md";
         const response = await getAdminSkillDetail(
@@ -1312,7 +1287,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           clearFileState();
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        notification.error({ message: err instanceof Error ? err.message : String(err) });
       } finally {
         setDetailLoading(false);
       }
@@ -1469,7 +1444,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     )
       return;
     setSaving(true);
-    setError("");
     try {
       const response = await updateAdminSource({
         target: {
@@ -1482,12 +1456,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       });
       applyOpenedFile(adminSourceToSkillTextFile(response.data));
       await loadDetail(detail.skill.key, selectedFilePath);
-      setMessageTone("success");
-      setMessage(t("skillConsole.message.saveSuccess"));
+      notification.success({ message: t("skillConsole.message.saveSuccess") });
     } catch (err) {
-      setMessageTone("error");
-      setMessage(t("skillConsole.message.saveFailed"));
-      setError(err instanceof Error ? err.message : String(err));
+      notification.error({ message: t("skillConsole.message.saveFailed") });
+      notification.error({ message: err instanceof Error ? err.message : String(err) });
     } finally {
       setSaving(false);
     }
@@ -1496,7 +1468,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleValidate = async () => {
     if (!detail) return;
     setValidating(true);
-    setError("");
     try {
       const response = await validateAdminSkill(detail.skill.key);
       const result = response.data;
@@ -1518,18 +1489,16 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         return next;
       });
       if (result.status === "invalid") {
-        setMessageTone("warning");
-        setMessage(
-          t("skillConsole.message.validateInvalid", {
+        notification.warning({
+          message: t("skillConsole.message.validateInvalid", {
             count: result.diagnostics?.length || 0,
           }),
-        );
+        });
       } else {
-        setMessageTone("success");
-        setMessage(t("skillConsole.message.validateSuccess"));
+        notification.success({ message: t("skillConsole.message.validateSuccess") });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      notification.error({ message: err instanceof Error ? err.message : String(err) });
     } finally {
       setValidating(false);
     }
@@ -1651,11 +1620,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleDownloadFile = async () => {
     if (!detail || !selectedFilePath || !selectedEntry?.downloadable) return;
     setDownloadingFile(true);
-    setError("");
     try {
       await downloadAdminSkillFile(detail.skill.key, selectedFilePath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      notification.error({ message: err instanceof Error ? err.message : String(err) });
     } finally {
       setDownloadingFile(false);
     }
@@ -1664,12 +1632,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleDownloadSkill = async () => {
     if (!detail || !detail.capabilities.canDownload) return;
     setDownloadingSkill(true);
-    setError("");
     try {
       await downloadAdminSkill(detail.skill.key);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      setError(`${t("skillConsole.message.downloadSkillFailed")}: ${reason}`);
+      notification.error({ message: `${t("skillConsole.message.downloadSkillFailed")}: ${reason}` });
     } finally {
       setDownloadingSkill(false);
     }
@@ -1709,17 +1676,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       okButtonProps: { danger: true },
       onOk: async () => {
         setDeletingSkill(true);
-        setError("");
-        setMessage("");
         try {
           const outcome = await requestSkillDeletion(skillKey);
           if (outcome.kind === "blocked") {
-            setMessageTone("warning");
-            setMessage(
-              t("skillConsole.delete.blockedByAgents", {
+            notification.warning({
+              message: t("skillConsole.delete.blockedByAgents", {
                 agents: outcome.usedByAgents.join(", "),
               }),
-            );
+            });
             return;
           }
 
@@ -1736,16 +1700,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             clearFileState();
             onClearSelection();
           }
-          setMessageTone("success");
-          setMessage(
-            t("skillConsole.message.deleteSuccess", { name: skillName }),
-          );
+          notification.success({
+            message: t("skillConsole.message.deleteSuccess", { name: skillName }),
+          });
         } catch (err) {
           const reason = err instanceof Error ? err.message : String(err);
-          setMessageTone("error");
-          setMessage(
-            t("skillConsole.message.deleteFailed", { detail: reason }),
-          );
+          notification.error({
+            message: t("skillConsole.message.deleteFailed", { detail: reason }),
+          });
         } finally {
           setDeletingSkill(false);
         }
@@ -1756,7 +1718,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleReplaceFile = async (file: File) => {
     if (!detail || !selectedFilePath) return;
     setSaving(true);
-    setError("");
     try {
       const response = await uploadAdminSkillFile({
         key: detail.skill.key,
@@ -1766,7 +1727,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       });
       await applyMutation(response.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      notification.error({ message: err instanceof Error ? err.message : String(err) });
     } finally {
       setSaving(false);
     }
@@ -1793,12 +1754,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       ),
     );
     setCreateModalOpen(false);
-    setMessageTone("success");
-    setMessage(
-      t("skillConsole.message.createSuccess", {
+    notification.success({
+      message: t("skillConsole.message.createSuccess", {
         name: created.skill.name || key,
       }),
-    );
+    });
     onSelectSkillKey(key);
   };
 
@@ -1825,7 +1785,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setDirtyFiles((prev) =>
       updateSkillDirtyFiles(prev, selectedFilePath, value, originalFileContent),
     );
-    setMessage("");
   };
 
   const statusMenu: MenuProps = useMemo(
@@ -1854,31 +1813,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         onDirectCreate={handleDirectCreate}
         onZipImport={handleZipImport}
       />
-      {error && (
-        <Alert
-          message={error}
-          className={SKILL_MESSAGE_CLASS_NAME}
-          type="error"
-          showIcon
-          action={
-            <UiButton size="sm" variant="ghost" onClick={loadSkills}>
-              {t("skillConsole.action.retry")}
-            </UiButton>
-          }
-          closable
-        />
-      )}
-
-      {message && !error && (
-        <Alert
-          message={message}
-          className={SKILL_MESSAGE_CLASS_NAME}
-          type={messageTone}
-          showIcon
-          closable
-          onClose={() => setMessage("")}
-        />
-      )}
 
       <div className={SKILL_BODY_CLASS_NAME}>
         <div className={SKILL_LIST_CLASS_NAME}>
