@@ -1,39 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Popover, Typography } from "antd";
+import { Typography } from "antd";
 import type { Chat } from "@/app/state/types";
-import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
-import { getChats } from "@/shared/data";
-import {
-  canUseDesktopWebsBridge,
-  listDesktopWebEntries,
-  type DesktopWebEntry,
-} from "@/shared/data/desktop/desktopWebs";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-
-// ========== AddMenuPopover ==========
-
-interface AddMenuPopoverProps {
-  open: boolean;
-  inputValue: string;
-  popoverWidth?: number;
-  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
-  hashPaletteRef: React.RefObject<HTMLDivElement>;
-  currentChatId: string;
-  currentAgentKey: string;
-  planningMode: boolean;
-  canUsePlanningMode: boolean;
-  editingMode: boolean;
-  canUseEditingMode: boolean;
-  onOpenFilePicker: () => void;
-  onAddReference: (reference: ComposerContextReferenceInput) => void;
-  onTogglePlanningMode: () => void;
-  onEditingModeChange: (enabled: boolean) => void;
-  onClose: () => void;
-  children: React.ReactElement;
-}
 
 const ADD_MENU_POPOVER_CLASS =
   "add-menu-popover tw:max-h-[min(360px,calc(100vh-120px))] tw:overflow-auto tw:rounded-panel tw:border tw:border-line-soft tw:bg-bg-base";
@@ -58,7 +29,7 @@ function addMenuItemStateClass(active: boolean): string {
     : ADD_MENU_ITEM_STATE_CLASS.idle;
 }
 
-type AddMenuItem = {
+export type AddMenuItem = {
   kind?: undefined;
   key: string;
   icon: MaterialIconName;
@@ -69,15 +40,15 @@ type AddMenuItem = {
   action: () => void;
 };
 
-type AddMenuGroup = {
+export type AddMenuGroup = {
   kind: "group";
   key: string;
   label: string;
 };
 
-type AddMenuEntry = AddMenuItem | AddMenuGroup;
+export type AddMenuEntry = AddMenuItem | AddMenuGroup;
 
-const AddMenuContent: React.FC<{
+export const AddMenuContent: React.FC<{
   hashPaletteRef: React.RefObject<HTMLDivElement>;
   menuEntries: AddMenuEntry[];
   isOpen: boolean;
@@ -234,295 +205,6 @@ const AddMenuContent: React.FC<{
   );
 };
 
-export const AddMenuPopover: React.FC<AddMenuPopoverProps> = ({
-  open,
-  inputValue,
-  popoverWidth,
-  getPopupContainer,
-  hashPaletteRef,
-  currentChatId,
-  currentAgentKey,
-  planningMode,
-  canUsePlanningMode,
-  editingMode,
-  canUseEditingMode,
-  onOpenFilePicker,
-  onAddReference,
-  onTogglePlanningMode,
-  onEditingModeChange,
-  onClose,
-  children,
-}) => {
-  const { t } = useI18n();
-  const siteAvailable = canUseDesktopWebsBridge();
-
-  // Site list (loaded inline)
-  const [sites, setSites] = useState<DesktopWebEntry[]>([]);
-  const [sitesLoading, setSitesLoading] = useState(false);
-  const [sitesError, setSitesError] = useState("");
-
-  // Chat list (loaded inline)
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [chatsLoading, setChatsLoading] = useState(false);
-  const [chatsError, setChatsError] = useState("");
-
-  // Snapshot inputValue when popover opens — filterText = delta after open
-  const openInputRef = useRef(inputValue);
-  useEffect(() => {
-    if (open) {
-      openInputRef.current = inputValue;
-    }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-  const filterText = open
-    ? (inputValue || "").slice(openInputRef.current.length)
-    : "";
-
-  // Load chats when popover opens
-  useEffect(() => {
-    if (!open) return;
-    setChats([]);
-    setChatsLoading(true);
-    setChatsError("");
-    void (async () => {
-      try {
-        const response = await getChats({ agentKey: currentAgentKey });
-        setChats(
-          normalizeChats(response.data).filter(
-            (chat) =>
-              normalizeText(chat.chatId) !== normalizeText(currentChatId),
-          ),
-        );
-      } catch (error) {
-        setChatsError(
-          (error as Error).message || t("composer.addMenu.chat.loadFailed"),
-        );
-      } finally {
-        setChatsLoading(false);
-      }
-    })();
-  }, [open, currentChatId, currentAgentKey, t]);
-
-  // Load sites when popover opens (only if bridge available)
-  useEffect(() => {
-    if (!open || !siteAvailable) return;
-    setSites([]);
-    setSitesLoading(true);
-    setSitesError("");
-    void (async () => {
-      try {
-        setSites(await listDesktopWebEntries());
-      } catch (error) {
-        setSitesError(
-          (error as Error).message || t("composer.addMenu.site.loadFailed"),
-        );
-      } finally {
-        setSitesLoading(false);
-      }
-    })();
-  }, [open, siteAvailable, t]);
-
-  const menuEntries = useMemo<AddMenuEntry[]>(() => {
-    const entries: AddMenuEntry[] = [
-      {
-        kind: "group",
-        key: "add-group",
-        label: t("composer.addMenu.group.add"),
-      },
-      {
-        key: "add:file",
-        icon: "attach_file",
-        label: t("composer.addMenu.file"),
-        disabled: false,
-        action: () => {
-          onClose();
-          onOpenFilePicker();
-        },
-      },
-      {
-        key: "add:cloud",
-        icon: "inventory_2",
-        label: t("composer.addMenu.cloud"),
-        disabled: true,
-        suffix: t("composer.addMenu.comingSoon"),
-        action: () => {},
-      },
-    ];
-
-    // 模式切换项并入 add-group
-    if (canUsePlanningMode) {
-      entries.push({
-        key: "add:planning",
-        icon: "checklist",
-        label: t("composer.addMenu.mode.planning"),
-        suffix: t("composer.addMenu.mode.planning.suffix"),
-        disabled: false,
-        check: planningMode,
-        action: () => {
-          onTogglePlanningMode();
-        },
-      });
-    } else if (canUseEditingMode) {
-      entries.push({
-        key: "add:editing",
-        icon: "edit_square",
-        label: t("composer.addMenu.mode.editing"),
-        suffix: t("composer.addMenu.mode.editing.suffix"),
-        disabled: false,
-        check: editingMode,
-        action: () => {
-          onEditingModeChange(!editingMode);
-        },
-      });
-    }
-
-    // Site 独立 group
-    if (siteAvailable) {
-      entries.push({
-        kind: "group",
-        key: "site-group",
-        label: t("composer.addMenu.group.site"),
-      });
-
-      if (sitesLoading) {
-        // 加载中占位
-      } else if (sitesError) {
-        // 错误占位
-      } else if (sites.length === 0) {
-        // 空状态占位
-      } else {
-        for (const site of sites) {
-          entries.push({
-            key: `site:${site.entryKey}`,
-            icon: "open_in_new",
-            label: site.label,
-            disabled: false,
-            suffix: site.url || site.entryKey,
-            action: () => {
-              onClose();
-              onAddReference({
-                type: "site",
-                id: site.entryKey,
-                name: site.label,
-                ...(site.url ? { url: site.url } : {}),
-                meta: {
-                  kind: site.kind,
-                  ...(site.updatedAt !== undefined
-                    ? { updatedAt: site.updatedAt }
-                    : {}),
-                },
-              });
-            },
-          });
-        }
-      }
-    }
-
-    // Chat 独立 group
-    entries.push({
-      kind: "group",
-      key: "chat-group",
-      label: t("composer.addMenu.group.chat"),
-    });
-
-    if (chatsLoading) {
-      // 加载中占位
-    } else if (chatsError) {
-      // 错误占位
-    } else if (chats.length === 0) {
-      // 空状态占位
-    } else {
-      const isFiltering = filterText.trim().length > 0;
-      const chatList = isFiltering ? chats : chats.slice(0, 5);
-      for (const chat of chatList) {
-        const chatId = normalizeText(chat.chatId);
-        entries.push({
-          key: `chat:${chatId}`,
-          icon: "question_answer",
-          label: normalizeText(chat.chatName) || chatId,
-          disabled: false,
-          suffix: normalizeText(chat.lastRunContent) || undefined,
-          action: () => {
-            onClose();
-            onAddReference({
-              type: "chat",
-              id: chatId,
-              name: normalizeText(chat.chatName) || chatId,
-              meta: {
-                ...(normalizeText(chat.agentKey || chat.firstAgentKey)
-                  ? {
-                      agentKey: normalizeText(
-                        chat.agentKey || chat.firstAgentKey,
-                      ),
-                    }
-                  : {}),
-                ...(normalizeText(chat.teamId)
-                  ? { teamId: normalizeText(chat.teamId) }
-                  : {}),
-                ...(Number.isSafeInteger(chat.updatedAt)
-                  ? { updatedAt: chat.updatedAt }
-                  : {}),
-              },
-            });
-          },
-        });
-      }
-    }
-
-    return entries;
-  }, [
-    canUseEditingMode,
-    canUsePlanningMode,
-    editingMode,
-    planningMode,
-    siteAvailable,
-    t,
-    onClose,
-    onOpenFilePicker,
-    onTogglePlanningMode,
-    onEditingModeChange,
-    sites,
-    sitesLoading,
-    sitesError,
-    chats,
-    chatsLoading,
-    chatsError,
-    onAddReference,
-    currentChatId,
-    filterText,
-  ]);
-
-  return (
-    <Popover
-      open={open}
-      placement="topLeft"
-      arrow={false}
-      autoAdjustOverflow
-      destroyOnHidden
-      classNames={{ root: "composer-add-menu-popover-overlay" }}
-      styles={{
-        root: {
-          width: popoverWidth,
-          maxWidth: "calc(100vw - 24px)",
-          zIndex: 1200,
-        },
-      }}
-      getPopupContainer={getPopupContainer}
-      content={
-        <AddMenuContent
-          hashPaletteRef={hashPaletteRef}
-          menuEntries={menuEntries}
-          isOpen={open}
-          filterText={filterText}
-          emptyText={t("composer.addMenu.empty")}
-          onClose={onClose}
-        />
-      }
-    >
-      {children}
-    </Popover>
-  );
-};
-
 // ========== AddMenuTrigger ==========
 
 interface AddMenuTriggerProps {
@@ -562,11 +244,11 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = ({
 
 // ========== Helpers ==========
 
-function normalizeText(value: unknown): string {
+export function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeChats(value: unknown): Chat[] {
+export function normalizeChats(value: unknown): Chat[] {
   if (!Array.isArray(value)) {
     return [];
   }

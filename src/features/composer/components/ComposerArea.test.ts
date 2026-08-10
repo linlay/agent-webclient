@@ -14,6 +14,8 @@ jest.mock("antd", () => ({
   },
   Flex: ({ children }: { children: React.ReactNode }) =>
     React.createElement("div", { className: "ant-flex" }, children),
+  Popover: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", { className: "ant-popover" }, children),
   Tag: ({ children }: { children: React.ReactNode }) =>
     React.createElement("span", { className: "ant-tag" }, children),
   Tooltip: ({ children }: { children: React.ReactNode }) =>
@@ -47,12 +49,12 @@ jest.mock("@/features/composer/components/MentionSuggest", () => ({
   MentionSuggest: () => React.createElement("div", null, "mention"),
 }));
 
-const mockSlashPaletteProps: Array<Record<string, any>> = [];
+const mockComposerPopoverProps: Array<Record<string, any>> = [];
 
-jest.mock("@/features/composer/components/SlashPalette", () => ({
-  SlashPalette: (props: Record<string, any>) => {
-    mockSlashPaletteProps.push(props);
-    return React.createElement("div", { className: "slash-palette" }, props.children);
+jest.mock("@/features/composer/components/ComposerPopover", () => ({
+  ComposerPopover: (props: Record<string, any>) => {
+    mockComposerPopoverProps.push(props);
+    return React.createElement("div", { className: "composer-popover" }, props.children);
   },
 }));
 
@@ -261,12 +263,6 @@ jest.mock("@/features/composer/hooks/useComposerHash", () => ({
   }),
 }));
 
-jest.mock("@/features/composer/components/ComposerAddMenu", () => ({
-  AddMenuPopover: (props: Record<string, any>) =>
-    React.createElement("div", { className: "add-menu-popover" }, props.children),
-  AddMenuTrigger: () => React.createElement("div", { className: "add-menu-trigger" }),
-}));
-
 jest.mock("@/features/composer/hooks/useComposerWonders", () => ({
   useComposerWonders: jest.fn(() => ({
     sampledGreeting: "Greeting from detail",
@@ -316,7 +312,7 @@ describe("ComposerArea", () => {
     };
     mockComposerInputProps.length = 0;
     mockComposerActionsProps.length = 0;
-    mockSlashPaletteProps.length = 0;
+    mockComposerPopoverProps.length = 0;
     mockComposerAttachmentsState.sendAttachmentMeta = [];
     mockComposerAttachmentsState.sendReferences = [];
     mockComposerAwaitingState.isAwaitingActive = false;
@@ -481,7 +477,7 @@ describe("ComposerArea", () => {
 
     renderToStaticMarkup(React.createElement(ComposerArea));
 
-    expect(mockSlashPaletteProps[0].getPopupContainer()).toBe(body);
+    expect(mockComposerPopoverProps[0].getPopupContainer()).toBe(body);
 
     if (originalDocument) {
       globalWithStorage.document = originalDocument;

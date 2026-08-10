@@ -180,13 +180,13 @@ function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashComm
 }
 
 export function getFilteredSlashSkills(
-  input: string,
+  filterText: string,
   skills: AgentSkill[],
 ): ResolvedSlashSkillDefinition[] {
-  if (!shouldShowSlashCommandPalette(input) || !Array.isArray(skills)) {
+  if (!Array.isArray(skills)) {
     return [];
   }
-  const query = String(input || '').slice(1).trim().toLowerCase();
+  const query = filterText.trim().toLowerCase();
   return skills.flatMap((skill) => {
     const key = String(skill?.key || '').trim();
     const name = String(skill?.name || '').trim();
@@ -232,13 +232,10 @@ export function shouldShowSlashCommandPalette(input: string): boolean {
 }
 
 export function getFilteredSlashCommands(
-  input: string,
+  filterText: string,
   options: SlashCommandFilterOptions = {},
 ): ResolvedSlashCommandDefinition[] {
-  if (!shouldShowSlashCommandPalette(input)) {
-    return [];
-  }
-  const query = String(input || '').slice(1).trim().toLowerCase();
+  const query = filterText.trim().toLowerCase();
   const commands = SLASH_COMMANDS
     .filter((command) => isSlashCommandFeatureEnabled(command.id))
     .filter((command) => command.id !== 'plan' || options.canUsePlanningMode === true)

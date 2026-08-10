@@ -7,6 +7,7 @@ import {
   type SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { useComposerFilter } from "@/features/composer/hooks/useComposerFilter";
 
 interface UseComposerSlashInput {
   composerPillRef: RefObject<HTMLDivElement>;
@@ -55,21 +56,37 @@ export function useComposerSlash(input: UseComposerSlashInput) {
   });
   const hasSkillSection = Boolean(String(currentAgentKey || "").trim());
 
+  // 初步显示判断（不含 items 检查），用于 useComposerFilter 记录起始位置
+  const prelimShowSlash =
+    !isVoiceMode &&
+    !isFrontendActive &&
+    !isAwaitingActive &&
+    !commandOverlayOpen &&
+    !addMenuOpen &&
+    !slashDismissed &&
+    slashTokenActive;
+
+  const { filterText, startIndex: filterStartIndex } = useComposerFilter(
+    prelimShowSlash,
+    inputValue,
+    inputValue.lastIndexOf("/") + 1,
+  );
+
   const slashCommands = useMemo(
     () =>
-      getFilteredSlashCommands(inputValue, {
+      getFilteredSlashCommands(filterText, {
         canUsePlanningMode,
         canUseEditingMode,
       }),
-    [canUseEditingMode, canUsePlanningMode, inputValue],
+    [canUseEditingMode, canUsePlanningMode, filterText],
   );
   const slashSkills = useMemo(
     () =>
       getFilteredSlashSkills(
-        inputValue,
+        filterText,
         hasSkillSection ? skillQuery.data?.skills || [] : [],
       ),
-    [hasSkillSection, inputValue, skillQuery.data],
+    [hasSkillSection, filterText, skillQuery.data],
   );
   const slashItems = useMemo<SlashPaletteItem[]>(
     () => [...slashCommands, ...slashSkills],
@@ -169,5 +186,6 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     slashDismissed,
     slashPaletteRef,
     slashPopoverWidth,
+    filterStartIndex,
   };
 }

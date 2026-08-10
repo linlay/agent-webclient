@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Popover, Tag, Typography } from "antd";
+import { Tag, Typography } from "antd";
 import type {
   SlashCommandAvailability,
   ResolvedSlashCommandDefinition,
@@ -38,7 +38,7 @@ function itemStateClass(active: boolean): string {
     : SLASH_COMMAND_ITEM_STATE_CLASS.idle;
 }
 
-const SlashPaletteContent: React.FC<{
+export const SlashPaletteContent: React.FC<{
   slashPaletteRef: React.RefObject<HTMLDivElement>;
   slashCommands: ResolvedSlashCommandDefinition[];
   slashSkills: ResolvedSlashSkillDefinition[];
@@ -222,83 +222,5 @@ const SlashPaletteContent: React.FC<{
         ) : null}
       </div>
     </div>
-  );
-};
-
-export const SlashPalette: React.FC<{
-  open: boolean;
-  slashPaletteRef: React.RefObject<HTMLDivElement>;
-  slashCommands: ResolvedSlashCommandDefinition[];
-  slashSkills: ResolvedSlashSkillDefinition[];
-  slashSkillStatus: DataQueryStatus;
-  slashSkillError: Error | null;
-  activeSlashIndex: number;
-  slashAvailability: SlashCommandAvailability;
-  planningMode: boolean;
-  editingMode?: boolean;
-  selectedSkillKeys: string[];
-  skillsDisabled: boolean;
-  slashPopoverWidth?: number;
-  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
-  onSelectCommand: (commandId: ResolvedSlashCommandDefinition["id"]) => void;
-  onSelectSkill: (skill: ResolvedSlashSkillDefinition) => void;
-  onRetrySkills: () => void;
-  children: React.ReactElement;
-}> = ({
-  open,
-  slashPaletteRef,
-  slashCommands,
-  slashSkills,
-  slashSkillStatus,
-  slashSkillError,
-  activeSlashIndex,
-  slashAvailability,
-  planningMode,
-  editingMode = false,
-  selectedSkillKeys,
-  skillsDisabled,
-  slashPopoverWidth,
-  getPopupContainer,
-  onSelectCommand,
-  onSelectSkill,
-  onRetrySkills,
-  children,
-}) => {
-  return (
-    <Popover
-      open={open}
-      placement="topLeft"
-      arrow={false}
-      autoAdjustOverflow
-      classNames={{ root: "slash-command-popover-overlay" }}
-      styles={{
-        root: {
-          width: slashPopoverWidth,
-          maxWidth: "calc(100vw - 24px)",
-          zIndex: 1200,
-        },
-      }}
-      getPopupContainer={getPopupContainer}
-      content={
-        <SlashPaletteContent
-          slashPaletteRef={slashPaletteRef}
-          slashCommands={slashCommands}
-          slashSkills={slashSkills}
-          slashSkillStatus={slashSkillStatus}
-          slashSkillError={slashSkillError}
-          activeSlashIndex={activeSlashIndex}
-          slashAvailability={slashAvailability}
-          planningMode={planningMode}
-          editingMode={editingMode}
-          selectedSkillKeys={selectedSkillKeys}
-          skillsDisabled={skillsDisabled}
-          onSelectCommand={onSelectCommand}
-          onSelectSkill={onSelectSkill}
-          onRetrySkills={onRetrySkills}
-        />
-      }
-    >
-      {children}
-    </Popover>
   );
 };

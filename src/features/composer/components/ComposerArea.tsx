@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import { App as AntdApp, Flex, Tag, Tooltip } from "antd";
+import { App as AntdApp, Flex } from "antd";
 import {
   useAppContext,
   useAppDispatch,
@@ -16,8 +16,9 @@ import { Buildin } from "@/features/tools/components/buildin";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
 import { AwaitingShell } from "@/features/composer/components/AwaitingShell";
 import { MentionSuggest } from "@/features/composer/components/MentionSuggest";
-import { SlashPalette } from "@/features/composer/components/SlashPalette";
-import { AddMenuPopover } from "@/features/composer/components/ComposerAddMenu";
+import { ComposerPopover } from "@/features/composer/components/ComposerPopover";
+import { SlashPaletteContent } from "@/features/composer/components/SlashPalette";
+import { useAddMenuPanel } from "@/features/composer/hooks/useAddMenuPanel";
 import { SteerBar } from "@/features/composer/components/SteerBar";
 import {
   ComposerProvider,
@@ -71,7 +72,7 @@ const COMPOSER_LAYOUT_CLASS =
 const COMPOSER_STACK_CLASS =
   "composer-stack tw:flex tw:min-w-0 tw:flex-1 tw:flex-col";
 const COMPOSER_PILL_CLASS =
-  "composer-pill tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:rounded-xl tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[16px]";
+  "composer-pill tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:gap-[2px] tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:rounded-xl tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[16px]";
 const COMPOSER_PILL_FRONTEND_CLASS = "tw:hidden";
 const COMPOSER_PILL_VOICE_CLASS =
   "tw:!border-[color-mix(in_srgb,var(--accent-electric)_16%,var(--line-soft))] tw:!bg-[radial-gradient(circle_at_0%_0%,rgba(94,165,255,0.1),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(13,191,143,0.08),transparent_36%),color-mix(in_srgb,var(--bg-elev-2)_97%,transparent)] tw:!py-1.5 tw:!pr-1.5 tw:!pl-3";
@@ -252,6 +253,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     slashSkillError,
     slashSkillStatus,
     slashSkills,
+    filterStartIndex,
   } = useComposerSlash({
     commandOverlayOpen: isAnyOverlayOpen,
     composerPillRef,
@@ -266,12 +268,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     addMenuOpen: addMenuClickOpen,
   });
 
-  const {
-    showAddMenu,
-    setHashDismissed,
-    hashPaletteRef,
-    hashPopoverWidth: addMenuPopoverWidth,
-  } = useComposerHash({
+  const { showAddMenu, setHashDismissed, hashPaletteRef } = useComposerHash({
     composerPillRef,
     composerRef,
     inputValue,
@@ -310,14 +307,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         }
         return [...current, { key: skill.key, label: skill.label }];
       });
-      setInputValue("");
+      setInputValue((current) => current.slice(0, filterStartIndex - 1));
       setSlashDismissed(true);
       closeMention();
       window.requestAnimationFrame(() => {
         textareaRef.current?.resizableTextArea?.textArea?.focus();
       });
     },
-    [closeMention, isMainChatRunning, setSlashDismissed],
+    [closeMention, isMainChatRunning, setSlashDismissed, filterStartIndex],
   );
 
   const removeSelectedSkill = useCallback((skillKey: string) => {
@@ -695,47 +692,56 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         <div
           className={`${COMPOSER_LAYOUT_CLASS} ${isFrontendActive ? COMPOSER_AREA_FRONTEND_CLASS : ""}`}
         >
-          <AddMenuPopover
-            open={showAddMenu || addMenuClickOpen}
-            inputValue={inputValue}
-            popoverWidth={addMenuPopoverWidth}
+          <ComposerPopover
             getPopupContainer={() => document.body}
-            hashPaletteRef={hashPaletteRef}
-            currentChatId={state.chatId}
-            currentAgentKey={currentAgentKey}
-            planningMode={state.planningMode}
-            canUsePlanningMode={planningModeAvailable}
-            editingMode={state.editingMode}
-            canUseEditingMode={editingModeAvailable}
-            onOpenFilePicker={openFilePicker}
-            onAddReference={addContextReference}
-            onTogglePlanningMode={togglePlanningMode}
-            onEditingModeChange={handleEditingModeChange}
-            onClose={() => {
-              setHashDismissed(true);
-              setAddMenuClickOpen(false);
-            }}
-          >
-          <SlashPalette
-            open={showSlashPalette}
-            slashPaletteRef={slashPaletteRef}
-            slashCommands={slashCommands}
-            slashSkills={slashSkills}
-            slashSkillStatus={slashSkillStatus}
-            slashSkillError={slashSkillError}
-            activeSlashIndex={activeSlashIndex}
-            slashAvailability={slashAvailability}
-            planningMode={state.planningMode}
-            editingMode={state.editingMode}
-            selectedSkillKeys={selectedSkills.map((skill) => skill.key)}
-            skillsDisabled={isMainChatRunning}
-            slashPopoverWidth={slashPopoverWidth}
-            getPopupContainer={() => document.body}
-            onSelectCommand={(commandId) => void executeSlashCommand(commandId)}
-            onSelectSkill={handleSelectSlashSkill}
-            onRetrySkills={() => {
-              void refetchSlashSkills().catch(() => undefined);
-            }}
+            width={slashPopoverWidth}
+            panels={[
+              {
+                open: showSlashPalette,
+                content: (
+                  <SlashPaletteContent
+                    slashPaletteRef={slashPaletteRef}
+                    slashCommands={slashCommands}
+                    slashSkills={slashSkills}
+                    slashSkillStatus={slashSkillStatus}
+                    slashSkillError={slashSkillError}
+                    activeSlashIndex={activeSlashIndex}
+                    slashAvailability={slashAvailability}
+                    planningMode={state.planningMode}
+                    editingMode={state.editingMode}
+                    selectedSkillKeys={selectedSkills.map((s) => s.key)}
+                    skillsDisabled={isMainChatRunning}
+                    onSelectCommand={(commandId) =>
+                      void executeSlashCommand(commandId)
+                    }
+                    onSelectSkill={handleSelectSlashSkill}
+                    onRetrySkills={() => {
+                      void refetchSlashSkills().catch(() => undefined);
+                    }}
+                  />
+                ),
+              },
+              useAddMenuPanel({
+                open: showAddMenu || addMenuClickOpen,
+                inputValue,
+                setInputValue,
+                currentChatId: state.chatId,
+                currentAgentKey,
+                hashPaletteRef,
+                planningMode: state.planningMode,
+                editingMode: state.editingMode,
+                canUsePlanningMode: planningModeAvailable,
+                canUseEditingMode: editingModeAvailable,
+                onOpenFilePicker: openFilePicker,
+                onAddReference: addContextReference,
+                onTogglePlanningMode: togglePlanningMode,
+                onEditingModeChange: handleEditingModeChange,
+                onClose: () => {
+                  setHashDismissed(true);
+                  setAddMenuClickOpen(false);
+                },
+              }),
+            ]}
           >
             <div className={COMPOSER_STACK_CLASS}>
               <div
@@ -797,7 +803,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     setInputValue(next);
                     setSlashDismissed(false);
                     setHashDismissed(false);
-                    if (slashItems.length > 0 || next.startsWith("/") || next.startsWith("#")) {
+                    if (
+                      slashItems.length > 0 ||
+                      next.startsWith("/") ||
+                      next.startsWith("#")
+                    ) {
                       closeMention();
                     }
                     if (!next.startsWith("/") && !next.startsWith("#")) {
@@ -857,8 +867,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   />
                 )}
             </div>
-          </SlashPalette>
-          </AddMenuPopover>
+          </ComposerPopover>
         </div>
       </div>
     </ComposerProvider>

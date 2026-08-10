@@ -22,7 +22,7 @@ interface ComposerAttachmentsProps {
 const COMPOSER_ATTACHMENTS_VIEWPORT_CLASS =
   "composer-attachments-viewport tw:w-full tw:min-w-0 tw:overflow-x-auto tw:overflow-y-hidden tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
 const COMPOSER_ATTACHMENTS_CLASS =
-  "composer-attachments tw:flex tw:w-max tw:min-w-full tw:flex-nowrap tw:items-stretch tw:gap-2.5";
+  "composer-attachments tw:flex tw:w-max tw:min-w-full tw:flex-nowrap tw:items-stretch tw:gap-[4px]";
 const COMPOSER_ATTACHMENTS_SHELL_CLASS =
   "composer-attachments-shell tw:relative";
 const COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS = {

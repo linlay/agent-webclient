@@ -31,23 +31,23 @@ describe('slashCommands', () => {
   });
 
   it('filters the command list by slash query', () => {
-    expect(getFilteredSlashCommands('/').length).toBeGreaterThanOrEqual(8);
-    expect(getFilteredSlashCommands('/vo').map((item) => item.id)).toEqual(['voice']);
-    expect(getFilteredSlashCommands('/his').map((item) => item.id)).toEqual(['history']);
-    expect(getFilteredSlashCommands('/agents')).toEqual([]);
-    expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember']);
-    expect(getFilteredSlashCommands('/remote')).toEqual([]);
-    expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
-    expect(getFilteredSlashCommands('/compact').map((item) => item.id)).toEqual(['compact']);
-    expect(getFilteredSlashCommands('/usage').map((item) => item.id)).toEqual(['usage']);
-    expect(getFilteredSlashCommands('/us').map((item) => item.id)).toEqual(['usage']);
-    expect(getFilteredSlashCommands('/tokens').map((item) => item.id)).toEqual(['usage']);
-    expect(getFilteredSlashCommands('/cost').map((item) => item.id)).toEqual(['usage']);
-    expect(getFilteredSlashCommands('/btw').map((item) => item.id)).toEqual(['btw']);
-    expect(getFilteredSlashCommands('/side').map((item) => item.id)).toEqual(['btw']);
-    expect(getFilteredSlashCommands('/顺便').map((item) => item.id)).toEqual(['btw']);
-    expect(getFilteredSlashCommands('/detail')).toEqual([]);
-    expect(getFilteredSlashCommands('/switch')).toEqual([]);
+    expect(getFilteredSlashCommands('').length).toBeGreaterThanOrEqual(8);
+    expect(getFilteredSlashCommands('vo').map((item) => item.id)).toEqual(['voice']);
+    expect(getFilteredSlashCommands('his').map((item) => item.id)).toEqual(['history']);
+    expect(getFilteredSlashCommands('agents')).toEqual([]);
+    expect(getFilteredSlashCommands('rem').map((item) => item.id)).toEqual(['remember']);
+    expect(getFilteredSlashCommands('remote')).toEqual([]);
+    expect(getFilteredSlashCommands('learn').map((item) => item.id)).toEqual(['learn']);
+    expect(getFilteredSlashCommands('compact').map((item) => item.id)).toEqual(['compact']);
+    expect(getFilteredSlashCommands('usage').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('us').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('tokens').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('cost').map((item) => item.id)).toEqual(['usage']);
+    expect(getFilteredSlashCommands('btw').map((item) => item.id)).toEqual(['btw']);
+    expect(getFilteredSlashCommands('side').map((item) => item.id)).toEqual(['btw']);
+    expect(getFilteredSlashCommands('顺便').map((item) => item.id)).toEqual(['btw']);
+    expect(getFilteredSlashCommands('detail')).toEqual([]);
+    expect(getFilteredSlashCommands('switch')).toEqual([]);
   });
 
   it('filters agent and Skill Center skills by key, name, and description', () => {
@@ -66,14 +66,14 @@ describe('slashCommands', () => {
       },
     ];
 
-    expect(getFilteredSlashSkills('/', skills)).toMatchObject([
+    expect(getFilteredSlashSkills('', skills)).toMatchObject([
       { kind: 'skill', command: '/mock-skill', agentHasSkill: true },
       { kind: 'skill', command: '/pdf', agentHasSkill: false },
     ]);
-    expect(getFilteredSlashSkills('/pdf', skills).map((item) => item.key)).toEqual(['pdf']);
-    expect(getFilteredSlashSkills('/manipulate', skills).map((item) => item.key)).toEqual(['pdf']);
-    expect(getFilteredSlashSkills('/Mock', skills).map((item) => item.key)).toEqual(['mock-skill']);
-    expect(getFilteredSlashSkills('/missing', skills)).toEqual([]);
+    expect(getFilteredSlashSkills('pdf', skills).map((item) => item.key)).toEqual(['pdf']);
+    expect(getFilteredSlashSkills('manipulate', skills).map((item) => item.key)).toEqual(['pdf']);
+    expect(getFilteredSlashSkills('Mock', skills).map((item) => item.key)).toEqual(['mock-skill']);
+    expect(getFilteredSlashSkills('missing', skills)).toEqual([]);
     expect(getFilteredSlashSkills('use /pdf', skills)).toEqual([]);
   });
 
@@ -85,74 +85,74 @@ describe('slashCommands', () => {
   });
 
   it('shows planning as /planning only when planning mode is available', () => {
-    expect(getFilteredSlashCommands('/planning')).toEqual([]);
-    expect(getFilteredSlashCommands('/plan', { canUsePlanningMode: false })).toEqual([]);
+    expect(getFilteredSlashCommands('planning')).toEqual([]);
+    expect(getFilteredSlashCommands('plan', { canUsePlanningMode: false })).toEqual([]);
 
-    expect(getFilteredSlashCommands('/planning', { canUsePlanningMode: true })).toMatchObject([
+    expect(getFilteredSlashCommands('planning', { canUsePlanningMode: true })).toMatchObject([
       { id: 'plan', command: '/planning' },
     ]);
-    expect(getFilteredSlashCommands('/plan', { canUsePlanningMode: true })).toMatchObject([
+    expect(getFilteredSlashCommands('plan', { canUsePlanningMode: true })).toMatchObject([
       { id: 'plan', command: '/planning' },
     ]);
-    expect(getFilteredSlashCommands('/', { canUsePlanningMode: true }).find((item) => item.id === 'plan')).toMatchObject({
+    expect(getFilteredSlashCommands('', { canUsePlanningMode: true }).find((item) => item.id === 'plan')).toMatchObject({
       command: '/planning',
     });
   });
 
   it('shows /editing only when KBASE editing mode is available', () => {
-    expect(getFilteredSlashCommands('/editing')).toEqual([]);
+    expect(getFilteredSlashCommands('editing')).toEqual([]);
     expect(
-      getFilteredSlashCommands('/editing', { canUseEditingMode: false }),
+      getFilteredSlashCommands('editing', { canUseEditingMode: false }),
     ).toEqual([]);
     expect(
-      getFilteredSlashCommands('/editing', { canUseEditingMode: true }),
+      getFilteredSlashCommands('editing', { canUseEditingMode: true }),
     ).toMatchObject([{ id: 'editing', command: '/editing' }]);
     expect(
-      getFilteredSlashCommands('/', { canUseEditingMode: true }).find(
+      getFilteredSlashCommands('', { canUseEditingMode: true }).find(
         (item) => item.id === 'editing',
       ),
     ).toMatchObject({ command: '/editing' });
   });
 
   it('filters debug and settings commands by feature flags', () => {
-    expect(getFilteredSlashCommands('/debug')).toEqual([]);
-    expect(getFilteredSlashCommands('/settings')).toEqual([]);
+    expect(getFilteredSlashCommands('debug')).toEqual([]);
+    expect(getFilteredSlashCommands('settings')).toEqual([]);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DEBUG_PANEL_ENABLED: 'true',
       VOICE_ENABLED: 'true',
     };
-    expect(getFilteredSlashCommands('/debug').map((item) => item.id)).toEqual(['debug']);
-    expect(getFilteredSlashCommands('/settings')).toEqual([]);
+    expect(getFilteredSlashCommands('debug').map((item) => item.id)).toEqual(['debug']);
+    expect(getFilteredSlashCommands('settings')).toEqual([]);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       DEBUG_PANEL_ENABLED: 'true',
       SETTINGS_MENU_ENABLED: 'true',
       VOICE_ENABLED: 'true',
     };
-    expect(getFilteredSlashCommands('/settings').map((item) => item.id)).toEqual(['settings']);
+    expect(getFilteredSlashCommands('settings').map((item) => item.id)).toEqual(['settings']);
   });
 
   it('filters the voice command by the voice runtime flag', () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: 'false',
     };
-    expect(getFilteredSlashCommands('/voice')).toEqual([]);
+    expect(getFilteredSlashCommands('voice')).toEqual([]);
   });
 
   it('filters the remember and learn commands by the memory runtime flag', () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: 'true',
     };
-    expect(getFilteredSlashCommands('/rem')).toEqual([]);
-    expect(getFilteredSlashCommands('/learn')).toEqual([]);
+    expect(getFilteredSlashCommands('rem')).toEqual([]);
+    expect(getFilteredSlashCommands('learn')).toEqual([]);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: 'true',
       MEMORY_ENABLED: 'true',
     };
-    expect(getFilteredSlashCommands('/rem').map((item) => item.id)).toEqual(['remember']);
-    expect(getFilteredSlashCommands('/learn').map((item) => item.id)).toEqual(['learn']);
+    expect(getFilteredSlashCommands('rem').map((item) => item.id)).toEqual(['remember']);
+    expect(getFilteredSlashCommands('learn').map((item) => item.id)).toEqual(['learn']);
   });
 
   it('uses 对话 wording for the new command', () => {
@@ -160,11 +160,11 @@ describe('slashCommands', () => {
       labelKey: 'slash.command.new.label',
       descriptionKey: 'slash.command.new.description',
     });
-    expect(getFilteredSlashCommands('/new')[0]).toMatchObject({
+    expect(getFilteredSlashCommands('new')[0]).toMatchObject({
       label: '新对话',
       description: '清空当前对话上下文，保留当前 worker 选择',
     });
-    expect(getFilteredSlashCommands('/voice')[0]).toMatchObject({
+    expect(getFilteredSlashCommands('voice')[0]).toMatchObject({
       description: '在文字输入与一问一答语聊模式之间切换',
     });
   });

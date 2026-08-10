@@ -682,7 +682,7 @@ export const RightSidebar: React.FC = () => {
                     key={node.key}
                     trigger={["contextMenu"]}
                     overlayStyle={{
-                      width: 100,
+                      minWidth: 100,
                     }}
                     menu={{
                       items: menuitems,
