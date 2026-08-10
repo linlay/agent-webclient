@@ -699,11 +699,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   useEffect(() => {
     if (isMainChatRunning) {
-      virtuosoRef.current?.scrollToIndex({
-        index: "LAST",
-        behavior: "smooth",
-        align: "end",
-      });
+      handleScrollToBottomClick();
     }
   }, [isMainChatRunning]);
   const timelineAgentOptions = useMemo(
