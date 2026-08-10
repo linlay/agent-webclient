@@ -377,6 +377,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         taskGroupId: command.taskGroupId,
         subAgentKey: command.subAgentKey,
         ts: command.ts,
+        mustUseSkills: command.mustUseSkills,
       });
       rs.timelineOrder.push(command.nodeId);
       return;

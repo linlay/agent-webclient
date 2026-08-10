@@ -134,6 +134,7 @@ export interface TimelineNode {
 	chunkCount?: number;
 	sources?: TimelineSource[];
 	errorDetail?: TimelineErrorDetail;
+	mustUseSkills?: string[];
 	embeddedViewports?: Record<string, EmbeddedViewport>;
 	ttsVoiceBlocks?: Record<string, TtsVoiceBlock>;
 }

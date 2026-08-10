@@ -1,4 +1,5 @@
 import React from "react";
+import { Flex } from "antd";
 import type { TimelineNode } from "@/app/state/types";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import {
@@ -18,6 +19,7 @@ import { SourceBlock } from "@/features/timeline/components/SourceBlock";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
+import { UiButton } from "@/shared/ui/UiButton";
 import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
 
@@ -323,6 +325,26 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                 ),
               )}
             </div>
+          )}
+          {node.mustUseSkills && node.mustUseSkills.length > 0 && (
+            <Flex wrap gap={4} justify="flex-end">
+              {node.mustUseSkills.map((key) => (
+                <UiButton
+                  key={key.toLowerCase()}
+                  variant="ghost"
+                  className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
+                  size="sm"
+                >
+                  <Flex gap={4} align="center">
+                    <MaterialIcon
+                      name="skills"
+                      className="tw:text-accent tw:text-[14px]"
+                    />
+                    <span className="tw:text-text-sub">{key}</span>
+                  </Flex>
+                </UiButton>
+              ))}
+            </Flex>
           )}
           {hasText && <UserBubble text={node.text || ""} targetId={node.id} />}
           {timeNode}

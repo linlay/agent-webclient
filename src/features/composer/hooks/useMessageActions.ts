@@ -426,6 +426,10 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           text: cleanMessage,
           attachments: attachments.length > 0 ? attachments : undefined,
           ts: Date.now(),
+          mustUseSkills:
+            normalizedMustUseSkills.length > 0
+              ? normalizedMustUseSkills
+              : undefined,
         },
       });
       dispatch({ type: "APPEND_TIMELINE_ORDER", id: userNodeId });

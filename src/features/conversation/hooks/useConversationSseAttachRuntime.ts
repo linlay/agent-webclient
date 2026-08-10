@@ -17,6 +17,7 @@ import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import { createRequestId } from "@/shared/data";
 import {
 	readEventTeamId,
+	readMustUseSkills,
 	readRequestQueryText,
 } from "@/shared/utils/eventFieldReaders";
 import { toText } from "@/shared/utils/eventUtils";
@@ -109,6 +110,7 @@ function renderAttachedRequestQuery(
 	const attachments = normalizeTimelineAttachments(
 		(event as Record<string, unknown>).references,
 	);
+	const mustUseSkills = readMustUseSkills(event);
 	if (!text && attachments.length === 0) {
 		return;
 	}
@@ -134,6 +136,7 @@ function renderAttachedRequestQuery(
 			text,
 			attachments: attachments.length > 0 ? attachments : undefined,
 			ts: timestamp,
+			mustUseSkills: mustUseSkills.length > 0 ? mustUseSkills : undefined,
 		},
 	});
 	options.dispatch({ type: "APPEND_TIMELINE_ORDER", id: nodeId });

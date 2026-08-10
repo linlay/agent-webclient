@@ -1,5 +1,5 @@
 import type { AgentEvent } from "@/app/state/types";
-import { readRequestQueryText } from "@/shared/utils/eventFieldReaders";
+import { readMustUseSkills, readRequestQueryText } from "@/shared/utils/eventFieldReaders";
 import type {
   EventCommand,
   EventProcessorConfig,
@@ -26,6 +26,7 @@ export function processRunEvent(
     const attachments = normalizeTimelineAttachments(
       (event as Record<string, unknown>).references,
     );
+    const mustUseSkills = readMustUseSkills(event);
     if (!text && attachments.length === 0) return commands;
     const counter = state.nextCounter();
     const suffix = toText(event.requestId) || String(counter);
@@ -37,6 +38,7 @@ export function processRunEvent(
       ts: timestamp,
       variant: "default",
       attachments: attachments.length > 0 ? attachments : undefined,
+      mustUseSkills: mustUseSkills.length > 0 ? mustUseSkills : undefined,
       ...(taskBinding.taskId ? taskBinding : {}),
     });
     return commands;

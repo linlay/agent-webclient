@@ -17,3 +17,11 @@ export function readRequestQueryText(event: AgentEvent): string {
   const raw = event as Record<string, unknown>;
   return safeText(event.message) || safeText(raw.query);
 }
+
+export function readMustUseSkills(event: AgentEvent): string[] {
+  const raw = (event as Record<string, unknown>).mustUseSkills;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((key) => String(key ?? "").trim())
+    .filter(Boolean);
+}

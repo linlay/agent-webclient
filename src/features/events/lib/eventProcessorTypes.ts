@@ -65,6 +65,7 @@ export type EventCommand =
 			taskName?: string;
 			taskGroupId?: string;
 			subAgentKey?: string;
+			mustUseSkills?: string[];
 	  }
 	| {
 			cmd: "SYSTEM_ERROR";
