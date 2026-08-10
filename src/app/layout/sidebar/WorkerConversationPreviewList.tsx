@@ -9,10 +9,12 @@ import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
 
-type AgentIconConfig = string | {
-  color?: string;
-  name?: string;
-};
+type AgentIconConfig =
+  | string
+  | {
+      color?: string;
+      name?: string;
+    };
 
 const WORKER_CHAT_PREVIEW_LIST_CLASS =
   "worker-chat-preview-list tw:pb-0.5 tw:[&_.status-line]:border-0 tw:[&_.status-line]:bg-transparent tw:[&_.worker-chat-item+.worker-chat-item]:mt-0";
@@ -59,7 +61,11 @@ export const WorkerConversationPreviewList: React.FC<{
   onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
   onOpenWorkspace?: (workerKey: string) => void;
   onOpenConfigDirectory?: (workerKey: string) => void;
-  onRenameAgent?: (workerKey: string, agentKey: string, currentName: string) => void;
+  onRenameAgent?: (
+    workerKey: string,
+    agentKey: string,
+    currentName: string,
+  ) => void;
   onEditAgent?: (agentKey: string) => void;
   onCopyAgent?: (workerKey: string, agentKey: string) => void;
   onDeleteAgent?: (workerKey: string, agentKey: string) => void;
@@ -109,7 +115,9 @@ export const WorkerConversationPreviewList: React.FC<{
     {
       key: "openWorkspace",
       className: SIDEBAR_MENU_ITEM_CLASS,
-      icon: <MaterialIcon name="folder_open" className={SIDEBAR_MENU_ICON_CLASS} />,
+      icon: (
+        <MaterialIcon name="folder_open" className={SIDEBAR_MENU_ICON_CLASS} />
+      ),
       label: t("leftSidebar.openWorkspace"),
       disabled: !canOpenWorkspace,
     },
@@ -118,7 +126,12 @@ export const WorkerConversationPreviewList: React.FC<{
           {
             key: "openConfigDirectory",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="data_object" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon
+                name="data_object"
+                className={SIDEBAR_MENU_ICON_CLASS}
+              />
+            ),
             label: t("leftSidebar.openConfigDirectory"),
             disabled: !canOpenConfigDirectory,
           },
@@ -129,7 +142,9 @@ export const WorkerConversationPreviewList: React.FC<{
           {
             key: "renameAgent",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="rename" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon name="rename" className={SIDEBAR_MENU_ICON_CLASS} />
+            ),
             label: t("leftSidebar.renameAgent"),
           },
         ]
@@ -139,7 +154,12 @@ export const WorkerConversationPreviewList: React.FC<{
           {
             key: "editAgent",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="settings" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon
+                name="settings"
+                className={SIDEBAR_MENU_ICON_CLASS}
+              />
+            ),
             label: t("leftSidebar.editAgent"),
           },
         ]
@@ -149,7 +169,12 @@ export const WorkerConversationPreviewList: React.FC<{
           {
             key: "copyAgent",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="content_copy" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon
+                name="content_copy"
+                className={SIDEBAR_MENU_ICON_CLASS}
+              />
+            ),
             label: t("leftSidebar.copyAgentInfo"),
           },
         ]
@@ -159,7 +184,9 @@ export const WorkerConversationPreviewList: React.FC<{
           {
             key: "deleteAgent",
             className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: <MaterialIcon name="delete" className={SIDEBAR_MENU_ICON_CLASS} />,
+            icon: (
+              <MaterialIcon name="delete" className={SIDEBAR_MENU_ICON_CLASS} />
+            ),
             label: t("leftSidebar.deleteAgent"),
             danger: true,
           },
@@ -215,7 +242,10 @@ export const WorkerConversationPreviewList: React.FC<{
                   domEvent.stopPropagation();
                   if (key === "openWorkspace" && canOpenWorkspace) {
                     onOpenWorkspace?.(row.key);
-                  } else if (key === "openConfigDirectory" && row.agentConfigDir) {
+                  } else if (
+                    key === "openConfigDirectory" &&
+                    row.agentConfigDir
+                  ) {
                     onOpenConfigDirectory?.(row.key);
                   } else if (key === "renameAgent") {
                     onRenameAgent?.(row.key, row.sourceId, row.displayName);
@@ -229,7 +259,13 @@ export const WorkerConversationPreviewList: React.FC<{
                 },
               }}
             >
-              <Tooltip title={canOpenWorkspace ? t("leftSidebar.moreActions") : workspaceUnavailableTitle}>
+              <Tooltip
+                title={
+                  canOpenWorkspace
+                    ? t("leftSidebar.moreActions")
+                    : workspaceUnavailableTitle
+                }
+              >
                 <Button
                   className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-24`}
                   type="text"
