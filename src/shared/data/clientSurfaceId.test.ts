@@ -47,18 +47,36 @@ describe("client surface id", () => {
 		expect(sessionStorage.getItem("agent-webclient.surfaceId.v1")).toBe(first);
 	});
 
-	it("generates a new id after a page reload and overwrites sessionStorage", () => {
+	it("reuses the stored id after a page reload", () => {
 		const sessionStorage = createStorage();
 		sessionStorage.setItem("agent-webclient.surfaceId.v1", "surface-old-page");
 		(globalThis as Record<string, unknown>).window = {
 			sessionStorage,
+			performance: {
+				getEntriesByType: () => [{ type: "reload" }],
+			},
+		};
+
+		const next = getClientSurfaceId();
+
+		expect(next).toBe("surface-old-page");
+		expect(sessionStorage.getItem("agent-webclient.surfaceId.v1")).toBe(next);
+	});
+
+	it("generates a new id for a copied tab navigation", () => {
+		const sessionStorage = createStorage();
+		sessionStorage.setItem("agent-webclient.surfaceId.v1", "surface-copied-page");
+		(globalThis as Record<string, unknown>).window = {
+			sessionStorage,
+			performance: {
+				getEntriesByType: () => [{ type: "navigate" }],
+			},
 		};
 
 		const next = getClientSurfaceId();
 
 		expect(next).toMatch(/^surface-/);
-		expect(next).not.toBe("surface-old-page");
-		expect(sessionStorage.getItem("agent-webclient.surfaceId.v1")).toBe(next);
+		expect(next).not.toBe("surface-copied-page");
 	});
 
 	it("uses a different value for another tab", () => {

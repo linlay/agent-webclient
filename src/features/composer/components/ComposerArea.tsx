@@ -579,7 +579,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   // 注意：useAddMenuPanel 必须在组件顶层调用（不能放在 JSX panels 数组内），
   // 否则 awaiting 激活时的 early return 会导致 hooks 数量不一致。
   const addMenuPanel = useAddMenuPanel({
-    open: showAddMenu || addMenuClickOpen,
+    open: !isAwaitingActive && (showAddMenu || addMenuClickOpen),
     inputValue,
     setInputValue,
     currentChatId: state.chatId,

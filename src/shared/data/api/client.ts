@@ -3229,6 +3229,12 @@ export function createAttachStream(
     headers: {
       Accept: 'text/event-stream',
       'Cache-Control': 'no-cache',
+      ...(isGatewayBackendMode()
+        ? {}
+        : {
+            "X-Agent-WebClient-Device-Id": getClientDeviceId(),
+            "X-Agent-WebClient-Surface-Id": getClientSurfaceId(),
+          }),
     },
     jsonContentType: false,
     signal: options.signal,

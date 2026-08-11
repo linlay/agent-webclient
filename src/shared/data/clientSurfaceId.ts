@@ -35,12 +35,44 @@ function createClientSurfaceId(): string {
   );
 }
 
+function readStoredClientSurfaceId(storage: Storage | null): string {
+  try {
+    const raw = String(storage?.getItem(CLIENT_SURFACE_ID_STORAGE_KEY) || "").trim();
+    if (!raw || Array.from(raw).length > CLIENT_SURFACE_ID_MAX_LENGTH) {
+      return "";
+    }
+    return normalizeClientSurfaceId(raw);
+  } catch {
+    return "";
+  }
+}
+
+function isReloadNavigation(): boolean {
+  try {
+    const performanceRef =
+      typeof window !== "undefined" && window.performance
+        ? window.performance
+        : globalThis.performance;
+    const navigationEntries = performanceRef?.getEntriesByType?.("navigation") || [];
+    const navigationType = (navigationEntries[0] as PerformanceNavigationTiming | undefined)?.type;
+    if (navigationType) {
+      return navigationType === "reload";
+    }
+    return performanceRef?.navigation?.type === 1;
+  } catch {
+    return false;
+  }
+}
+
 export function getClientSurfaceId(): string {
   if (cachedClientSurfaceId) {
     return cachedClientSurfaceId;
   }
   const storage = getStorage();
-  cachedClientSurfaceId = createClientSurfaceId();
+  const storedSurfaceId = isReloadNavigation()
+    ? readStoredClientSurfaceId(storage)
+    : "";
+  cachedClientSurfaceId = storedSurfaceId || createClientSurfaceId();
   try {
     storage?.setItem(CLIENT_SURFACE_ID_STORAGE_KEY, cachedClientSurfaceId);
   } catch {

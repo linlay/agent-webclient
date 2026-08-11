@@ -30,7 +30,7 @@ attach/detach 也使用同一 owner 规则。SSE 和 WebSocket 不会把 Team �
 
 ## WebClient 反向 Request
 
-WebClient 控制连接使用 `/ws?source=WebClient&deviceId=<device-id>&surfaceId=<surface-id>`。`deviceId` 沿用 localStorage 标识，`surfaceId` 是当前页面生命周期内的随机标识并写入 sessionStorage；页面内路由切换和 WebSocket 重连不会更换它，刷新页面或打开新标签页会生成新值。SSE `/api/query` 同时发送 `X-Agent-WebClient-Device-Id` 与 `X-Agent-WebClient-Surface-Id`；device header 与控制连接使用同一标识，认证 JWT 已含 device claim 时由 Platform 优先使用 claim。两者共同使 Platform 将 run 绑定到这个逻辑标签页。
+WebClient 控制连接使用 `/ws?source=WebClient&deviceId=<device-id>&surfaceId=<surface-id>`。`deviceId` 沿用 localStorage 标识，`surfaceId` 写入 sessionStorage；页面内路由切换、WebSocket 重连和完整 reload 保持不变，普通新标签页或复制标签页导航会生成新值。SSE `/api/query` 与 `/api/attach` 同时发送 `X-Agent-WebClient-Device-Id`、`X-Agent-WebClient-Surface-Id`；device header 与控制连接使用同一标识，认证 JWT 已含 device claim 时由 Platform 优先使用 claim。Platform 以最新一次成功 attach 的 WebClient 作为该 run 后续反向 Action target；失败 attach 或不携带合法 target headers 的普通客户端 attach 不改变既有 target。
 
 `WsClient.registerInboundRequestHandler(type, handler)` 只允许按完整 `type` 精确登记 handler。收到 `frame:"request"` 后直接把 `payload` 交给 handler；成功返回同 `id`、同 `type` 的 response，业务错误返回 error。未知 type、非法帧参数和同连接重复 id 分别返回 `unknown_request_type`、`invalid_request`、`duplicate_id`。连接关闭后，旧连接上的未完成 handler 不会再发送结果。
 

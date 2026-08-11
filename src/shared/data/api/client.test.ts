@@ -1980,7 +1980,28 @@ describe('data client query payloads', () => {
     expect(options.headers).toMatchObject({
       Authorization: 'Bearer bridge-token-attach',
       Accept: 'text/event-stream',
+      'X-Agent-WebClient-Device-Id': 'device-test',
+      'X-Agent-WebClient-Surface-Id': 'surface-test',
     });
+  });
+
+  it('omits WebClient target headers from gateway attach streams', async () => {
+    installWindow({ storedToken: 'gateway-attach' });
+    (globalThis as typeof globalThis & {
+      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      BACKEND_MODE: 'gateway',
+      DESKTOP_APP: 'true',
+    };
+
+    await createAttachStream({
+      runId: 'run_gateway',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
+    });
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(options.headers).not.toHaveProperty('X-Agent-WebClient-Device-Id');
+    expect(options.headers).not.toHaveProperty('X-Agent-WebClient-Surface-Id');
   });
 
   it('parses voice capabilities from standard ApiResponse payloads', async () => {
