@@ -2,10 +2,10 @@ import React from "react";
 import type { RunTerminalType } from "@/features/timeline/lib/timelineDisplay";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
-import { Divider, Flex } from "antd";
+import { Flex } from "antd";
 
 const RUN_CANCEL_NOTICE_CLASS_NAME =
-  "timeline-run-cancel-notice tw:text-ink-muted tw:text-[13px]";
+  "timeline-run-cancel-notice tw:text-ink-muted";
 
 export const RunTerminalNotice: React.FC<{
   terminalType?: RunTerminalType;
@@ -20,9 +20,8 @@ export const RunTerminalNotice: React.FC<{
       align="center"
       data-run-terminal="run.cancel"
     >
-      <Divider type="vertical" />
       <MaterialIcon
-        name="pause_circle"
+        name="stop_circle"
         className="tw:text-[16px]"
         aria-hidden="true"
       />

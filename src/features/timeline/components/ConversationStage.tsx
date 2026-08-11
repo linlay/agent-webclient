@@ -1409,9 +1409,12 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       items={[
                         {
                           key: "run-entries",
-                          label: t("timeline.run.processed", {
-                            duration: responseDuration,
-                          }),
+                          label:
+                            item.terminalType === "run.cancel"
+                              ? t("timeline.run.interrupted")
+                              : t("timeline.run.processed", {
+                                  duration: responseDuration,
+                                }),
                           children: (
                             <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
                               {buildRunRenderEntries(
@@ -1437,6 +1440,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       </div>
                     )}
                   </section>
+                  {!shouldCollapse && (
+                    <RunTerminalNotice terminalType={item.terminalType} />
+                  )}
                   {isCompleted && (
                     <div className={TIMELINE_RUN_META_CLASS_NAME}>
                       <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
@@ -1514,7 +1520,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                         >
                           <MaterialIcon name="branches" />
                         </UiButton>
-                        <RunTerminalNotice terminalType={item.terminalType} />
                       </div>
                       {time.short && (
                         <div
