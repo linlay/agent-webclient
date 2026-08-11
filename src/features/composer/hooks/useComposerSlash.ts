@@ -108,7 +108,9 @@ export function useComposerSlash(input: UseComposerSlashInput) {
 
     const updateSlashPopoverWidth = () => {
       const nextWidth = anchor.offsetWidth;
-      setSlashPopoverWidth(nextWidth > 0 ? nextWidth : undefined);
+      if (nextWidth > 0) {
+        setSlashPopoverWidth(nextWidth);
+      }
     };
     updateSlashPopoverWidth();
 
@@ -126,7 +128,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     return () => {
       window.removeEventListener("resize", updateSlashPopoverWidth);
     };
-  }, [composerPillRef]);
+  }, []);
 
   useEffect(() => {
     if (!showSlashPalette) return;

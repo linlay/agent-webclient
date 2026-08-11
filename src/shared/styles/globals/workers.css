@@ -174,7 +174,7 @@
 }
 
 .worker-history-modal .ant-modal-body {
-    height: min(70vh, 600px);
+    height: max(70vh, 600px);
     min-height: 0;
     overflow: hidden;
     padding-top: 8px;

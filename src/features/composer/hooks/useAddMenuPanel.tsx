@@ -275,7 +275,6 @@ export function useAddMenuPanel(input: UseAddMenuPanelInput): ComposerPanel {
 
   return {
     open,
-    destroyOnHidden: true,
     content: (
       <AddMenuContent
         hashPaletteRef={hashPaletteRef}

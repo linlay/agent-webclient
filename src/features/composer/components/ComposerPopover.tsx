@@ -3,7 +3,6 @@ import { Popover } from "antd";
 
 export interface ComposerPanel {
   open: boolean;
-  destroyOnHidden?: boolean;
   content: React.ReactNode;
 }
 
@@ -30,7 +29,7 @@ export const ComposerPopover: React.FC<ComposerPopoverProps> = ({
       arrow={false}
       autoAdjustOverflow
       classNames={{ root: "composer-popover-overlay" }}
-      destroyOnHidden={activePanel?.destroyOnHidden ?? false}
+      destroyOnHidden
       styles={{
         root: {
           width,
