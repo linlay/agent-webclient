@@ -419,8 +419,13 @@ export const OverviewTab: React.FC = () => {
 
   const [now, setNow] = React.useState(() => Date.now());
 
+  const isConversationActive =
+    state.streaming ||
+    (Boolean(state.currentChatActiveRun?.runId) &&
+      state.currentChatActiveRun?.chatId === state.chatId);
+
   React.useEffect(() => {
-    if (!state.plan) return;
+    if (!state.plan || !isConversationActive) return;
     const hasRunningTask = Array.from(state.planRuntimeByTaskId.values()).some(
       (runtime) => {
         const s = String(runtime?.status || "")
@@ -432,7 +437,7 @@ export const OverviewTab: React.FC = () => {
     if (!hasRunningTask) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [state.plan, state.planRuntimeByTaskId]);
+  }, [state.plan, state.planRuntimeByTaskId, isConversationActive]);
 
   const taskSummary = React.useMemo(
     () =>
@@ -442,8 +447,9 @@ export const OverviewTab: React.FC = () => {
         state.taskItemsById,
         t,
         now,
+        isConversationActive,
       ),
-    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now, t],
+    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now, t, isConversationActive],
   );
 
   const planningNodes = React.useMemo(() => {

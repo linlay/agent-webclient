@@ -227,6 +227,31 @@ describe('buildPlanSummaryView', () => {
     ]);
   });
 
+  it('downgrades running tasks to pending when the conversation is inactive', () => {
+    const runtimeByTaskId = new Map<string, PlanRuntime>([
+      ['task_1', { status: 'running', updatedAt: 2, error: '' }],
+      ['task_2', { status: 'running', updatedAt: 3, error: '' }],
+    ]);
+
+    const summary = buildPlanSummaryView(
+      planObj([
+        { taskId: 'task_1', description: 'A' },
+        { taskId: 'task_2', description: 'B' },
+      ]),
+      runtimeByTaskId,
+      undefined,
+      t,
+      0,
+      false,
+    );
+
+    expect(summary.normalizedTasks).toEqual([
+      expect.objectContaining({ taskId: 'task_1', status: 'pending' }),
+      expect.objectContaining({ taskId: 'task_2', status: 'pending' }),
+    ]);
+    expect(summary.statusText).toBe(t('plan.summary.status.pending'));
+  });
+
   it('renders plan panel items from plan descriptions instead of agent group task names', () => {
     const state = createInitialState();
     useAppState.mockReturnValue({

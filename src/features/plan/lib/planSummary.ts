@@ -66,12 +66,16 @@ export function buildPlanSummaryView(
 	taskItemsById: Map<string, TaskItemMeta> | undefined,
 	t: (key: string, params?: TranslateParams) => string,
 	now = Date.now(),
+	isConversationActive: boolean = true,
 ): PlanSummaryView {
 	const tasks = plan?.plan || [];
 	const normalizedTasks = tasks.map((task) => {
 		const runtime = planRuntimeByTaskId.get(task.taskId);
 		const taskMeta = taskItemsById?.get(task.taskId);
-		const status = normalizePlanStatus(runtime?.status || task.status);
+		let status = normalizePlanStatus(runtime?.status || task.status);
+		if (!isConversationActive && status === "running") {
+			status = "pending";
+		}
 		const startedAt = readEpochMillis(taskMeta?.startedAt);
 		const durationMs = Number.isFinite(taskMeta?.durationMs)
 			? taskMeta?.durationMs

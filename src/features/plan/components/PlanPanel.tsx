@@ -13,8 +13,13 @@ export const PlanPanel: React.FC = () => {
   const { t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
 
+  const isConversationActive =
+    state.streaming ||
+    (Boolean(state.currentChatActiveRun?.runId) &&
+      state.currentChatActiveRun?.chatId === state.chatId);
+
   useEffect(() => {
-    if (!state.plan) {
+    if (!state.plan || !isConversationActive) {
       return;
     }
     const hasRunningTask = hasRunningPlanTask(state.planRuntimeByTaskId);
@@ -26,14 +31,21 @@ export const PlanPanel: React.FC = () => {
       setNow(Date.now());
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [state.plan, state.planRuntimeByTaskId]);
+  }, [state.plan, state.planRuntimeByTaskId, isConversationActive]);
 
   if (!state.plan) return null;
 
   const planListId = `floating-plan-list-${String(state.plan.planId || "plan").replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const summary = useMemo(
-    () => buildPlanSummaryView(state.plan, state.planRuntimeByTaskId, state.taskItemsById, t, now),
-    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now, t],
+    () => buildPlanSummaryView(
+      state.plan,
+      state.planRuntimeByTaskId,
+      state.taskItemsById,
+      t,
+      now,
+      isConversationActive,
+    ),
+    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now, t, isConversationActive],
   );
 
   return (
