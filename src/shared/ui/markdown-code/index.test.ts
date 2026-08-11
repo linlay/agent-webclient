@@ -13,6 +13,11 @@ import {
 } from "./MarkdownMermaid";
 
 jest.mock("./index.module.css", () => ({ Collapse: "Collapse" }));
+jest.mock("./highlight-theme.css", () => ({}));
+jest.mock("highlight.js", () => ({
+  getLanguage: () => undefined,
+  highlight: (code: string) => ({ value: code }),
+}));
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: () => jest.fn(),

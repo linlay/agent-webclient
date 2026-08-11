@@ -8,5 +8,6 @@
   :global(.ant-collapse-content>.ant-collapse-content-box) {
     max-height: 400px;
     overflow: auto;
+    padding-top: 0 !important;
   }
 }

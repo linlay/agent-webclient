@@ -8,6 +8,6 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@pierre/diffs/react$': '<rootDir>/src/__mocks__/pierreDiffsReact.ts',
     '\\.svg$': '<rootDir>/src/shared/icons/__mocks__/svgMock.ts',
-    '\\.module\\.css$': '<rootDir>/src/__mocks__/styleMock.ts',
+    '\\.css$': '<rootDir>/src/__mocks__/styleMock.ts',
   },
 };

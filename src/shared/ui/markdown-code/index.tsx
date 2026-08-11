@@ -13,7 +13,9 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { copyText } from "@/shared/utils/copy";
+import { useHighlightCode } from "./useHighlight";
 
+import "./highlight-theme.css";
 import Style from "./index.module.css";
 
 type MarkdownCodeProps = React.HTMLAttributes<HTMLElement> & {
@@ -77,6 +79,9 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
     getDefaultActiveKey(language),
   );
   const text = useMemo(() => textFromReactNode(children), [children]);
+  // highlight.js output is safe: highlight() escapes user input and only emits
+  // <span> token wrappers, so dangerouslySetInnerHTML is acceptable here.
+  const highlightedHtml = useHighlightCode(text, language);
   const contextTargetId = React.useId();
   const copyCode = useCallback(() => copyText(text).then(() => {
     message.success(t("markdown.copySuccess"));
@@ -99,17 +104,18 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
       return (
         <Flex>
           <Tooltip title={t("markdown.copy")}>
-            <UiButton variant="ghost" iconOnly onClick={onCopy}>
+            <UiButton variant="ghost" className="ui-icon-hover-24" iconOnly onClick={onCopy}>
               <MaterialIcon name="content_copy" />
             </UiButton>
           </Tooltip>
           <Tooltip title={t("markdown.preview")}>
             <UiButton
               variant="ghost"
+              className="ui-icon-hover-24"
               iconOnly
               onClick={(e) => {
                 e.stopPropagation();
-                const mimeType = "text/html";
+                const mimeType = "text/html;charset=utf-8";
                 const blob = new Blob([text], { type: mimeType });
                 url.current && URL.revokeObjectURL(url.current);
                 url.current = URL.createObjectURL(blob);
@@ -149,7 +155,7 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
     }
     return (
       <Tooltip title={t("markdown.copy")}>
-        <UiButton variant="ghost" iconOnly onClick={onCopy}>
+        <UiButton variant="ghost" className="ui-icon-hover-24" iconOnly onClick={onCopy}>
           <MaterialIcon name="content_copy" />
         </UiButton>
       </Tooltip>
@@ -177,7 +183,12 @@ export const MarkdownCode: React.FC<MarkdownCodeProps> = ({
           {
             key: language,
             label: language,
-            children: <code>{children}</code>,
+            children: (
+              <code
+                className="hljs"
+                dangerouslySetInnerHTML={highlightedHtml}
+              />
+            ),
             extra: extraActions,
           },
         ]}
