@@ -9,7 +9,8 @@ const RUN_CANCEL_NOTICE_CLASS_NAME =
 
 export const RunTerminalNotice: React.FC<{
   terminalType?: RunTerminalType;
-}> = ({ terminalType }) => {
+  duration?: string;
+}> = ({ terminalType, duration }) => {
   const { t } = useI18n();
   if (terminalType !== "run.cancel") return null;
 
@@ -25,7 +26,7 @@ export const RunTerminalNotice: React.FC<{
         className="tw:text-[16px]"
         aria-hidden="true"
       />
-      <span>{t("timeline.run.interrupted")}</span>
+      <span>{t("timeline.run.interrupted", { duration })}</span>
     </Flex>
   );
 };

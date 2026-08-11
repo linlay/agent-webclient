@@ -1260,7 +1260,7 @@ export const enUSMessages = {
   "timeline.query.resendInNewChat": "Resend in new chat",
   "timeline.run.processed": "Worked for {duration}",
   "timeline.run.responseDuration": "Response took {duration}",
-  "timeline.run.interrupted": "This run was interrupted",
+  "timeline.run.interrupted": "You stopped after {duration}",
   "timeline.run.deriveChat": "Derive new chat",
   "timeline.run.deriveChatSuccess": "New chat derived",
   "timeline.run.deriveChatFailed": "Failed to derive new chat",

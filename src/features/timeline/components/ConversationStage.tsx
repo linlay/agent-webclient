@@ -48,7 +48,6 @@ import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { DotLoading } from "@/shared/components/dot-loading";
 import { Virtuoso } from "react-virtuoso";
 import type { VirtuosoHandle, ListRange } from "react-virtuoso";
-import { debounce } from "lodash";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 
@@ -1409,12 +1408,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                       items={[
                         {
                           key: "run-entries",
-                          label:
-                            item.terminalType === "run.cancel"
-                              ? t("timeline.run.interrupted")
-                              : t("timeline.run.processed", {
-                                  duration: responseDuration,
-                                }),
+                          label: t("timeline.run.processed", {
+                            duration: responseDuration,
+                          }),
                           children: (
                             <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
                               {buildRunRenderEntries(
@@ -1441,7 +1437,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     )}
                   </section>
                   {!shouldCollapse && (
-                    <RunTerminalNotice terminalType={item.terminalType} />
+                    <RunTerminalNotice
+                      terminalType={item.terminalType}
+                      duration={responseDuration}
+                    />
                   )}
                   {isCompleted && (
                     <div className={TIMELINE_RUN_META_CLASS_NAME}>

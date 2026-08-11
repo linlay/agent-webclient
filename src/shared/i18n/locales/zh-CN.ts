@@ -1259,7 +1259,7 @@ export const zhCNMessages = {
   "timeline.query.resendInNewChat": "新对话重问",
   "timeline.run.processed": "已处理 {duration}",
   "timeline.run.responseDuration": "响应耗时 {duration}",
-  "timeline.run.interrupted": "本次运行已中断",
+  "timeline.run.interrupted": "你在 {duration} 后停止了",
   "timeline.run.deriveChat": "派生新对话",
   "timeline.run.deriveChatSuccess": "已派生新对话",
   "timeline.run.deriveChatFailed": "派生新对话失败",
