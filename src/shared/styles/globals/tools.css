@@ -9,7 +9,7 @@
     flex-shrink: 0;
 }
 
-@keyframes flash {
+@keyframes status-dot-flash {
 
     0%,
     50%,
@@ -39,7 +39,7 @@
 }
 
 .tool-status-dot[data-tool-status="running"] {
-    animation-name: flash;
+    animation-name: status-dot-flash;
     animation-duration: 1s;
     animation-iteration-count: infinite;
     background: var(--accent-electric);
