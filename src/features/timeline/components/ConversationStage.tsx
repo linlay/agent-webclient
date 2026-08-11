@@ -693,8 +693,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       ).running
     : false;
   useEffect(() => {
-    setIsAtBottom(true);
-  }, [state.events]);
+    return () => {
+      setIsAtBottom(true);
+    };
+  }, [state.chatId]);
 
   useEffect(() => {
     if (isMainChatRunning) {

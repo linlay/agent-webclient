@@ -193,8 +193,7 @@
 }
 
 .timeline-query-anchor-row {
-    position: relative;
-    margin: 20px 0;
+    padding: 20px 0;
 }
 
 .timeline-query-anchor-rail {
