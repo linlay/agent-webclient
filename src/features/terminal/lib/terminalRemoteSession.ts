@@ -12,6 +12,7 @@ import { toText } from "@/shared/utils/eventUtils";
 export type TerminalRemoteSessionOptions = {
   readonly client: WsClient;
   readonly agentKey: string;
+  readonly chatId: string;
   readonly terminalKey: string;
   readonly cols: number;
   readonly rows: number;
@@ -40,6 +41,7 @@ export function createTerminalRemoteSession(
 
   const stream = openTerminalStream(options.client, {
     agentKey: options.agentKey,
+    chatId: options.chatId,
     terminalKey: options.terminalKey,
     cols: options.cols,
     rows: options.rows,

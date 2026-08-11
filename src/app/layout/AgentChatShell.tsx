@@ -714,6 +714,7 @@ export const AgentChatShell: React.FC = () => {
           {effectiveTerminalDockOpen && currentWorker ? (
             <TerminalDock
               agentKey={currentWorker.sourceId}
+              chatId={chatId}
               workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
               worker={currentWorker}
             />

@@ -38,6 +38,7 @@ describe("createTerminalRemoteSession", () => {
     const session = createTerminalRemoteSession({
       client,
       agentKey: "coder",
+      chatId: "chat-1",
       terminalKey: "main",
       cols: 80,
       rows: 24,
@@ -49,6 +50,7 @@ describe("createTerminalRemoteSession", () => {
         type: dataEndpoints.terminalOpen.path,
         payload: {
           agentKey: "coder",
+          chatId: "chat-1",
           terminalKey: "main",
           cols: 80,
           rows: 24,
@@ -80,6 +82,7 @@ describe("createTerminalRemoteSession", () => {
     const session = createTerminalRemoteSession({
       client,
       agentKey: "coder",
+      chatId: "chat-1",
       terminalKey: "main",
       cols: 80,
       rows: 24,
@@ -110,6 +113,7 @@ describe("createTerminalRemoteSession", () => {
     const session = createTerminalRemoteSession({
       client,
       agentKey: "coder",
+      chatId: "chat-1",
       terminalKey: "main",
       cols: 80,
       rows: 24,
@@ -145,6 +149,7 @@ describe("createTerminalRemoteSession", () => {
     const session = createTerminalRemoteSession({
       client,
       agentKey: "coder",
+      chatId: "chat-1",
       terminalKey: "main",
       cols: 80,
       rows: 24,
@@ -167,6 +172,7 @@ describe("createTerminalRemoteSession", () => {
     const session = createTerminalRemoteSession({
       client,
       agentKey: "coder",
+      chatId: "chat-1",
       terminalKey: "main",
       cols: 80,
       rows: 24,

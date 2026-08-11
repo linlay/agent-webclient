@@ -26,6 +26,7 @@ export { resolveTerminalDockWorkspaceKey, resolveTerminalTheme };
 
 type TerminalDockProps = {
   readonly agentKey: string;
+  readonly chatId: string;
   readonly workspaceKey?: string;
   readonly worker?: CurrentWorkerSummary | null;
 };
@@ -69,6 +70,7 @@ function persistDockState(agentKey: string, state: TerminalDockStoredState): voi
 
 export const TerminalDock: React.FC<TerminalDockProps> = ({
   agentKey,
+  chatId,
   workspaceKey = "",
   worker = null,
 }) => {
@@ -260,6 +262,7 @@ export const TerminalDock: React.FC<TerminalDockProps> = ({
             key={tab.id}
             tabId={tab.id}
             agentKey={normalizedAgentKey}
+            chatId={chatId}
             terminalKey={tab.terminalKey}
             availability={availability}
             isActive={tab.id === activeTabId}

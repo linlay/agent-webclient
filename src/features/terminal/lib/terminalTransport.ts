@@ -16,6 +16,7 @@ import {
 
 export type TerminalOpenOptions = {
   readonly agentKey: string;
+  readonly chatId: string;
   readonly terminalKey: string;
   readonly cols: number;
   readonly rows: number;
@@ -83,6 +84,7 @@ export function openTerminalStream(
     type: dataEndpoints.terminalOpen.path,
     payload: {
       agentKey: options.agentKey,
+      chatId: options.chatId,
       terminalKey: options.terminalKey,
       cols: Math.max(1, options.cols),
       rows: Math.max(1, options.rows),

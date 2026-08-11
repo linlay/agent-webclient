@@ -21,6 +21,7 @@ const RESIZE_DEBOUNCE_MS = 120;
 export type TerminalPaneProps = {
   readonly tabId: string;
   readonly agentKey: string;
+  readonly chatId: string;
   readonly terminalKey: string;
   readonly availability: TerminalAvailability;
   readonly isActive: boolean;
@@ -49,6 +50,7 @@ function fitTerminal(
 export const TerminalPane: React.FC<TerminalPaneProps> = ({
   tabId,
   agentKey,
+  chatId,
   terminalKey,
   availability,
   isActive,
@@ -69,6 +71,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   const lastWidthRef = useRef<number>(0);
 
   const normalizedAgentKey = useMemo(() => toText(agentKey), [agentKey]);
+  const normalizedChatId = useMemo(() => toText(chatId), [chatId]);
   const normalizedTerminalKey = useMemo(() => toText(terminalKey) || "main", [terminalKey]);
 
   const writeStatus = useCallback((message: string) => {
@@ -132,7 +135,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !normalizedAgentKey) return;
+    if (!container || !normalizedAgentKey || !normalizedChatId) return;
 
     const version = sessionVersionRef.current + 1;
     sessionVersionRef.current = version;
@@ -194,6 +197,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           remoteSession = createTerminalRemoteSession({
             client,
             agentKey: normalizedAgentKey,
+            chatId: normalizedChatId,
             terminalKey: normalizedTerminalKey,
             cols: Math.max(1, terminal.cols || 80),
             rows: Math.max(1, terminal.rows || 24),
@@ -254,6 +258,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   }, [
     availability,
     normalizedAgentKey,
+    normalizedChatId,
     normalizedTerminalKey,
     onSessionChange,
     queueActivityRefresh,
