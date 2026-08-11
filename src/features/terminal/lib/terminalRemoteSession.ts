@@ -37,6 +37,7 @@ export function createTerminalRemoteSession(
   let terminalId = "";
   let detached = false;
   let closed = false;
+  let ended = false;
 
   const stream = openTerminalStream(options.client, {
     agentKey: options.agentKey,
@@ -49,41 +50,53 @@ export function createTerminalRemoteSession(
       }
       options.onEvent(event);
     },
-    onDone: options.onDone,
-    onError: options.onError,
+    onDone: (reason, lastSeq) => {
+      ended = true;
+      options.onDone?.(reason, lastSeq);
+    },
+    onError: (error) => {
+      ended = true;
+      options.onError?.(error);
+    },
   });
 
   const detach = async (): Promise<void> => {
-    if (detached || closed) {
+    if (detached || closed || ended) {
       return;
     }
     detached = true;
     const id = terminalId;
-    await sendTerminalDetach(options.client, {
-      ...(id ? { terminalId: id } : {}),
-      streamRequestId: stream.requestId,
-    });
-    stream.abort();
+    try {
+      await sendTerminalDetach(options.client, {
+        ...(id ? { terminalId: id } : {}),
+        streamRequestId: stream.requestId,
+      });
+    } finally {
+      stream.abort();
+    }
   };
 
   const close = async (): Promise<void> => {
-    if (closed) {
+    if (closed || ended) {
       return;
     }
     closed = true;
     const id = terminalId;
-    if (id) {
-      terminalId = "";
-      await sendTerminalClose(options.client, {
-        terminalId: id,
-        streamRequestId: stream.requestId,
-      });
-    } else {
-      await sendTerminalClose(options.client, {
-        streamRequestId: stream.requestId,
-      });
+    try {
+      if (id) {
+        terminalId = "";
+        await sendTerminalClose(options.client, {
+          terminalId: id,
+          streamRequestId: stream.requestId,
+        });
+      } else {
+        await sendTerminalClose(options.client, {
+          streamRequestId: stream.requestId,
+        });
+      }
+    } finally {
+      stream.abort();
     }
-    stream.abort();
   };
 
   return {

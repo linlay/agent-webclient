@@ -7,6 +7,8 @@ type StreamOptions = {
   readonly type: string;
   readonly payload: unknown;
   readonly onEvent: (event: AgentEvent) => void;
+  readonly onDone?: (reason: string, lastSeq: number) => void;
+  readonly onError?: (error: Error) => void;
 };
 
 function createMockClient() {
@@ -160,6 +162,90 @@ describe("createTerminalRemoteSession", () => {
       },
     });
     expect(abort).toHaveBeenCalledTimes(1);
+  });
+
+  it("detaches only once", async () => {
+    const { client, abort, getStreamOptions } = createMockClient();
+    const session = createTerminalRemoteSession({
+      client,
+      agentKey: "coder",
+      terminalKey: "main",
+      cols: 80,
+      rows: 24,
+      onEvent: jest.fn(),
+    });
+    getStreamOptions().onEvent({
+      type: "terminal.opened",
+      terminalId: "term_once",
+    } as AgentEvent);
+
+    await session.detach();
+    await session.detach();
+
+    expect(client.request).toHaveBeenCalledTimes(1);
+    expect(abort).toHaveBeenCalledTimes(1);
+  });
+
+  it("cleans up the local stream when detach fails", async () => {
+    const { client, abort, getStreamOptions } = createMockClient();
+    (client.request as jest.Mock).mockRejectedValueOnce(new Error("detach failed"));
+    const session = createTerminalRemoteSession({
+      client,
+      agentKey: "coder",
+      terminalKey: "main",
+      cols: 80,
+      rows: 24,
+      onEvent: jest.fn(),
+    });
+    getStreamOptions().onEvent({
+      type: "terminal.opened",
+      terminalId: "term_failed_detach",
+    } as AgentEvent);
+
+    await expect(session.detach()).rejects.toThrow("detach failed");
+
+    expect(abort).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not detach again after the stream completes", async () => {
+    const { client, getStreamOptions } = createMockClient();
+    const onDone = jest.fn();
+    const session = createTerminalRemoteSession({
+      client,
+      agentKey: "coder",
+      terminalKey: "main",
+      cols: 80,
+      rows: 24,
+      onEvent: jest.fn(),
+      onDone,
+    });
+
+    getStreamOptions().onDone?.("done", 3);
+    await session.detach();
+
+    expect(onDone).toHaveBeenCalledWith("done", 3);
+    expect(client.request).not.toHaveBeenCalled();
+  });
+
+  it("does not detach again after the stream fails", async () => {
+    const { client, getStreamOptions } = createMockClient();
+    const onError = jest.fn();
+    const session = createTerminalRemoteSession({
+      client,
+      agentKey: "coder",
+      terminalKey: "main",
+      cols: 80,
+      rows: 24,
+      onEvent: jest.fn(),
+      onError,
+    });
+    const error = new Error("open failed");
+
+    getStreamOptions().onError?.(error);
+    await session.detach();
+
+    expect(onError).toHaveBeenCalledWith(error);
+    expect(client.request).not.toHaveBeenCalled();
   });
 
   it("closes by stream request id before terminal.opened arrives", async () => {
