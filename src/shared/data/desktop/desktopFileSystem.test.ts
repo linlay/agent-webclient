@@ -1,6 +1,7 @@
 import {
   OPEN_PATH_REQUEST_TYPE,
   OPEN_PATH_RESPONSE_TYPE,
+  openDesktopPath,
   openRegisteredAgentDirectory,
   ProjectFolderSelectionError,
   SELECT_DIRECTORY_REQUEST_TYPE,
@@ -250,6 +251,74 @@ describe("desktopFileSystem", () => {
       "*",
     );
     expect(openAgentDirectoryMock).not.toHaveBeenCalled();
+  });
+
+  it("opens a plain path through the host bridge and reports host failures", async () => {
+    const listeners = new Set<(event: MessageEvent) => void>();
+    let hostOk = true;
+    const mockWindow: any = {
+      location: { pathname: "/", search: "" },
+      parent: null,
+      postMessage: jest.fn((payload: { requestId: string }) => {
+        queueMicrotask(() => {
+          for (const listener of listeners) {
+            listener({
+              source: mockWindow,
+              data: {
+                type: OPEN_PATH_RESPONSE_TYPE,
+                requestId: payload.requestId,
+                ok: hostOk,
+                message: hostOk ? "" : "file is missing",
+              },
+            } as MessageEvent);
+          }
+        });
+      }),
+      addEventListener: jest.fn((type: string, listener: EventListener) => {
+        if (type === "message") {
+          listeners.add(listener as unknown as (event: MessageEvent) => void);
+        }
+      }),
+      removeEventListener: jest.fn((type: string, listener: EventListener) => {
+        if (type === "message") {
+          listeners.delete(listener as unknown as (event: MessageEvent) => void);
+        }
+      }),
+      setTimeout,
+      clearTimeout,
+      __DESKTOP_WEBVIEW_BRIDGE__: true,
+    };
+    mockWindow.parent = mockWindow;
+    (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: "true",
+    };
+
+    await expect(openDesktopPath(" src/app/App.tsx ")).resolves.toBe(true);
+    expect(mockWindow.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: OPEN_PATH_REQUEST_TYPE,
+        path: "src/app/App.tsx",
+      }),
+      "*",
+    );
+    expect(mockWindow.removeEventListener).toHaveBeenCalled();
+
+    hostOk = false;
+    await expect(openDesktopPath("src/app/App.tsx")).rejects.toThrow("file is missing");
+    expect(openAgentDirectoryMock).not.toHaveBeenCalled();
+  });
+
+  it("skips plain path opens without a bridge or path", async () => {
+    (globalThis as unknown as { window?: { location: { pathname: string; search: string } } }).window = {
+      location: { pathname: "/", search: "" },
+    };
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: "false",
+    };
+
+    await expect(openDesktopPath("src/app/App.tsx")).resolves.toBe(false);
+    await expect(openDesktopPath("  ")).resolves.toBe(false);
   });
 
   it("skips invalid directory requests", async () => {

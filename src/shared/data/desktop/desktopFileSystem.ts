@@ -75,7 +75,7 @@ function createDesktopFileSystemRequestId(): string {
   return `desktop_fs_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function canUseDesktopFileSystemBridge(): boolean {
+export function canUseDesktopFileSystemBridge(): boolean {
   return (
     typeof window !== "undefined" &&
     isDesktopAppMode() &&
@@ -172,36 +172,10 @@ export async function selectProjectFolder(): Promise<ProjectFolderSelection | nu
   return selectBrowserProjectFolder();
 }
 
-export async function openRegisteredAgentDirectory({
-  agentKey,
-  directoryType,
-  desktopPath,
-}: OpenRegisteredAgentDirectoryOptions): Promise<boolean> {
-  const normalizedAgentKey = normalizePath(agentKey);
-  if (
-    !normalizedAgentKey ||
-    (directoryType !== "workspace" && directoryType !== "config")
-  ) {
-    return false;
-  }
-  if (!canUseDesktopFileSystemBridge()) {
-    const response = await openAgentDirectory({
-      agentKey: normalizedAgentKey,
-      directoryType,
-    });
-    return Boolean(response.data?.opened);
-  }
-
-  let normalizedPath = normalizePath(desktopPath);
-  if (!normalizedPath) {
-    const response = await openAgentDirectory({
-      agentKey: normalizedAgentKey,
-      directoryType,
-    });
-    normalizedPath = normalizePath(response?.data?.directoryPath);
-    if (!normalizedPath) {
-      return false;
-    }
+export function openDesktopPath(targetPath: string): Promise<boolean> {
+  const normalizedPath = normalizePath(targetPath);
+  if (!normalizedPath || !canUseDesktopFileSystemBridge()) {
+    return Promise.resolve(false);
   }
 
   return new Promise<boolean>((resolve, reject) => {
@@ -247,4 +221,39 @@ export async function openRegisteredAgentDirectory({
       reject(new Error("desktop open path request failed"));
     }
   });
+}
+
+export async function openRegisteredAgentDirectory({
+  agentKey,
+  directoryType,
+  desktopPath,
+}: OpenRegisteredAgentDirectoryOptions): Promise<boolean> {
+  const normalizedAgentKey = normalizePath(agentKey);
+  if (
+    !normalizedAgentKey ||
+    (directoryType !== "workspace" && directoryType !== "config")
+  ) {
+    return false;
+  }
+  if (!canUseDesktopFileSystemBridge()) {
+    const response = await openAgentDirectory({
+      agentKey: normalizedAgentKey,
+      directoryType,
+    });
+    return Boolean(response.data?.opened);
+  }
+
+  let normalizedPath = normalizePath(desktopPath);
+  if (!normalizedPath) {
+    const response = await openAgentDirectory({
+      agentKey: normalizedAgentKey,
+      directoryType,
+    });
+    normalizedPath = normalizePath(response?.data?.directoryPath);
+    if (!normalizedPath) {
+      return false;
+    }
+  }
+
+  return openDesktopPath(normalizedPath);
 }

@@ -1401,7 +1401,7 @@ describe("LeftSidebar", () => {
     ]);
     expect(html).toContain("修改名称");
     expect(html).toContain("编辑智能体");
-    expect(html).toContain("复制信息");
+    expect(html).toContain("智能体信息");
     expect(html).toContain("打开配置目录");
     expect(html).not.toContain("删除智能体");
   });
