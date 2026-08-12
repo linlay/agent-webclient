@@ -8,8 +8,8 @@ import {
   type ConversationMarkdownComponents,
   type ConversationMarkdownElementProps,
 } from "@/shared/ui/ConversationMarkdown";
-import { ReasoningDisclosure } from "@/shared/ui/ReasoningDisclosure";
 import { ShareMarkdownCode } from "@/share/ShareMarkdownCode";
+import { TimelineCollapse } from "@/features/timeline/components/collapse";
 import { t } from "@/shared/i18n";
 import {
   formatSharedDuration,
@@ -68,24 +68,24 @@ export const SharedConversationTranscript: React.FC<
             </div>
             <div className={styles.assistantContent}>
               {group.traceEntries.length > 0 ? (
-                <ReasoningDisclosure
+                <TimelineCollapse
                   className={styles.reasoning}
-                  defaultExpanded={false}
-                  chevronPosition="end"
-                  label={group.durationMs === undefined
-                    ? t("share.reasoning.completedWithoutDuration")
-                    : t("share.reasoning.completed", {
-                        duration: formatSharedDuration(group.durationMs),
-                      })}
+                  destroyOnHidden
+                  label={
+                    group.durationMs === undefined
+                      ? t("share.reasoning.completedWithoutDuration")
+                      : t("share.reasoning.completed", {
+                          duration: formatSharedDuration(group.durationMs),
+                        })
+                  }
                 >
                   <div className={styles.reasoningTrace}>
                     {group.traceEntries.map((entry, index) => {
                       if (entry.type === "reasoning") {
                         return (
-                          <ReasoningDisclosure
+                          <TimelineCollapse
                             className={styles.reasoningSegment}
-                            defaultExpanded={false}
-                            chevronPosition="end"
+                            destroyOnHidden
                             label={entry.label || t("share.reasoning.title")}
                             key={`reasoning-${entry.createdAt ?? index}-${index}`}
                           >
@@ -95,7 +95,7 @@ export const SharedConversationTranscript: React.FC<
                               components={MARKDOWN_COMPONENTS}
                               codeComponent={ShareMarkdownCode}
                             />
-                          </ReasoningDisclosure>
+                          </TimelineCollapse>
                         );
                       }
                       return (
@@ -109,7 +109,7 @@ export const SharedConversationTranscript: React.FC<
                       );
                     })}
                   </div>
-                </ReasoningDisclosure>
+                </TimelineCollapse>
               ) : null}
               {group.responseEntries.map((entry, index) => (
                 <ConversationMarkdown

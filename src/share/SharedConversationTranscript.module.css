@@ -57,9 +57,6 @@
 }
 
 .reasoning {
-  --reasoning-text: var(--share-muted);
-  --reasoning-hover: color-mix(in srgb, var(--share-accent) 8%, transparent);
-  --reasoning-focus: var(--share-accent);
   font-size: 14px;
 }
 
@@ -71,7 +68,6 @@
 }
 
 .reasoningSegment {
-  --reasoning-hover: color-mix(in srgb, var(--share-muted) 8%, transparent);
   min-width: 0;
   color: var(--share-muted);
   font-size: 13px;

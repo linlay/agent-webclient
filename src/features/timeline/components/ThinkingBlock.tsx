@@ -6,7 +6,7 @@ import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { formatToolDuration } from "@/features/timeline/lib/timelineDuration";
 import { Skeleton } from "@/shared/components/skeleton";
-import { ReasoningDisclosure } from "@/shared/ui/ReasoningDisclosure";
+import { TimelineCollapse } from "./collapse";
 
 interface ThinkingBlockProps {
   node: TimelineNode;
@@ -63,7 +63,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
       : "";
 
   return (
-    <ReasoningDisclosure
+    <TimelineCollapse
       label={
         <span className="tw:inline-flex tw:items-center tw:gap-1.5">
           {isLoading ? (
@@ -79,7 +79,8 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
         </span>
       }
       expanded={expanded}
-      onExpandedChange={() => {
+      destroyOnHidden
+      onExpand={() => {
         if (interaction?.patchNode) {
           interaction.patchNode({
             ...node,
@@ -110,6 +111,6 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
       <div className={["thinking-detail", SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
         {text}
       </div>
-    </ReasoningDisclosure>
+    </TimelineCollapse>
   );
 };
