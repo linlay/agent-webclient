@@ -80,6 +80,7 @@ interface AttachmentPreviewPanelProps {
   showName?: boolean;
   showSourcePath?: boolean;
   showLineNumbers?: boolean;
+  fullscreenRequest?: number;
 }
 
 export interface TextPreviewLine {
@@ -147,6 +148,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   showName = true,
   showSourcePath = true,
   showLineNumbers = false,
+  fullscreenRequest,
 }) => {
   const appState = useAppState();
   const { chatId } = appState;
@@ -165,6 +167,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const [downloadError, setDownloadError] = React.useState("");
   const [downloading, setDownloading] = React.useState(false);
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
+  const panelRef = React.useRef<HTMLDivElement | null>(null);
   const workspaceFileRequest = preview.workspaceFile;
   const workspaceFileResponse =
     workspaceFileRequest &&
@@ -284,6 +287,18 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   }, [chatId, preview, teamChat, workspaceFileRequest]);
 
   React.useEffect(() => {
+    if (
+      fullscreenRequest !== undefined &&
+      fullscreenRequest > 0 &&
+      panelRef.current
+    ) {
+      panelRef.current.requestFullscreen().catch(() => {
+        // Fullscreen 可能被浏览器拒绝，静默忽略
+      });
+    }
+  }, [fullscreenRequest]);
+
+  React.useEffect(() => {
     if (!preview?.line || previewKind !== "text" || textLoading || textError) {
       return;
     }
@@ -344,7 +359,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   );
 
   return (
-    <div className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
+    <div ref={panelRef} className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
       <div className={ATTACHMENT_PREVIEW_TOOLBAR_CLASS_NAME}>
         {toolbarLeading ? (
           <div className="attachment-preview-toolbar-leading tw:flex tw:min-w-0 tw:flex-1">

@@ -494,7 +494,14 @@ export const RightSidebar: React.FC = () => {
             </Typography.Text>
           </Flex>
         ),
-        children: <AttachmentPreviewPanel preview={p} />,
+        children: (
+          <AttachmentPreviewPanel
+            preview={p}
+            fullscreenRequest={
+              tabFullscreenRequests[`preview:${p.url}`] ?? 0
+            }
+          />
+        ),
       });
     }
 
@@ -616,6 +623,7 @@ export const RightSidebar: React.FC = () => {
               {(node) => {
                 if (node.key === "overview" || !node.key) return node;
                 const isWebTab = node.key.startsWith("web:");
+                const isPreviewTab = node.key.startsWith("preview:");
 
                 const menuitems = [
                   ...(isWebTab
@@ -666,7 +674,27 @@ export const RightSidebar: React.FC = () => {
                           },
                         },
                       ]
-                    : []),
+                    : isPreviewTab
+                      ? [
+                          {
+                            key: "fullscreen",
+                            label: t("rightSidebar.web.contextMenu.fullscreen"),
+                            icon: (
+                              <MaterialIcon
+                                name="crop_free"
+                                className="tw:opacity-[0.5]"
+                              />
+                            ),
+                            onClick: () => {
+                              const tabKey = node.key as string;
+                              setTabFullscreenRequests((prev) => ({
+                                ...prev,
+                                [tabKey]: (prev[tabKey] ?? 0) + 1,
+                              }));
+                            },
+                          },
+                        ]
+                      : []),
                   {
                     key: "close",
                     label: t("rightSidebar.web.contextMenu.close"),
