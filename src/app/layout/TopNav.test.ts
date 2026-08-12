@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import { resolveNextUsagePopoverOpen, TopNav } from "@/app/layout/TopNav";
+import { TopNav } from "@/app/layout/TopNav";
 
 jest.mock("@/app/state/AppContext", () => {
 	const actual = jest.requireActual("@/app/state/AppContext");
@@ -20,6 +20,30 @@ const { useAppState, useAppDispatch, useOptionalAppContext } = jest.requireMock(
 	useAppDispatch: jest.Mock;
 	useOptionalAppContext: jest.Mock;
 };
+
+jest.mock("antd", () => {
+	const actual = jest.requireActual("antd");
+	return {
+		...actual,
+		Popover: ({
+			open,
+			children,
+			content,
+			classNames,
+		}: {
+			open?: boolean;
+			children: React.ReactNode;
+			content?: React.ReactNode;
+			classNames?: { root?: string };
+		}) =>
+			React.createElement(
+				"div",
+				{ className: classNames?.root },
+				children,
+				open ? content : null,
+			),
+	};
+});
 
 const globalWithStorage = globalThis as typeof globalThis & {
 	localStorage?: {
@@ -714,11 +738,6 @@ describe("TopNav", () => {
 		expect(html).toContain("<strong>2</strong>");
 		expect(html).toContain("<strong>4</strong>");
 		expect(html).not.toContain("Output speed");
-	});
-
-	it("toggles the usage popover state from the usage entry", () => {
-		expect(resolveNextUsagePopoverOpen(false)).toBe(true);
-		expect(resolveNextUsagePopoverOpen(true)).toBe(false);
 	});
 
 	it("derives live output speed and shows zero tool calls when tool count is missing", () => {

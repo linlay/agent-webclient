@@ -27,7 +27,7 @@ import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformErro
 import { tOrFallback, useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Divider, Flex, Typography } from "antd";
+import { Divider, Flex, Popover, Typography } from "antd";
 import { TextCountUp } from "@/shared/components/text-count-up";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
@@ -131,12 +131,8 @@ const USAGE_SECTION_CALL_COUNTS_CLASS =
   "usage-section-call-counts tw:inline-flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2";
 const USAGE_SECTION_STAT_CLASS =
   "usage-section-stat tw:inline-flex tw:min-w-0 tw:items-center tw:gap-1 tw:whitespace-nowrap tw:text-[9px] tw:leading-none tw:text-ink-muted tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-none tw:[&>strong]:text-ink-1";
-const USAGE_POPOVER_ANCHOR_CLASS =
-  "usage-popover-anchor tw:relative tw:inline-flex tw:items-center";
-const USAGE_TRIGGER_CLASS =
-  "usage-trigger tw:min-h-[30px] tw:rounded-lg tw:px-2 tw:py-0 tw:text-ink-2 tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_78%,var(--bg-elev-2))] tw:hover:text-accent-electric-strong tw:[&.is-active]:bg-[color-mix(in_srgb,var(--accent-soft)_78%,var(--bg-elev-2))] tw:[&.is-active]:text-accent-electric-strong tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
-const USAGE_POPOVER_CLASS =
-  "usage-popover tw:absolute tw:right-0 tw:top-[calc(100%+10px)] tw:z-50 tw:max-h-[min(70vh,620px)] tw:w-[min(420px,calc(100vw-24px))] tw:overflow-auto tw:rounded-lg tw:border tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_98%,white)] tw:p-2 tw:text-ink-1 tw:shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
+const USAGE_TRIGGER_CLASS = "usage-trigger";
+const USAGE_POPOVER_ROOT_CLASS = "usage-popover";
 const USAGE_CONTEXT_RING_CLASS =
   "usage-context-ring tw:grid tw:h-11 tw:w-11 tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_54%,transparent_55%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),color-mix(in_srgb,var(--line-soft)_76%,transparent)_0)] tw:[&>span]:font-code tw:[&>span]:text-sm tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1";
 const USAGE_POPOVER_HEADER_CLASS =
@@ -285,10 +281,6 @@ function resolveDisplayTotal(
   snapshot: AIUsageSnapshotEvent | null,
 ): number | null {
   return readUsageNumber(snapshot?.usage?.chat?.totalTokens);
-}
-
-export function resolveNextUsagePopoverOpen(isOpen: boolean): boolean {
-  return !isOpen;
 }
 
 function getReasoningTokens(stats?: AIUsageStats): unknown {
@@ -711,13 +703,9 @@ export const TopNav: React.FC = () => {
     });
   }, [conversation.inputMode, dispatch]);
 
-  const handleToggleUsagePopover = React.useCallback(() => {
-    if (!showUsageControl) return;
-    dispatch({
-      type: "SET_USAGE_POPOVER_OPEN",
-      open: resolveNextUsagePopoverOpen(state.usagePopoverOpen),
-    });
-  }, [dispatch, showUsageControl, state.usagePopoverOpen]);
+  const handleUsagePopoverOpenChange = React.useCallback((open: boolean) => {
+    dispatch({ type: "SET_USAGE_POPOVER_OPEN", open });
+  }, [dispatch]);
 
   const handleCloseUsagePopover = React.useCallback(() => {
     dispatch({ type: "SET_USAGE_POPOVER_OPEN", open: false });
@@ -811,29 +799,15 @@ export const TopNav: React.FC = () => {
               </span>
             ) : null}
             {showUsageControl ? (
-              <div className={USAGE_POPOVER_ANCHOR_CLASS}>
-                <UiButton
-                  className={USAGE_TRIGGER_CLASS}
-                  variant="ghost"
-                  size="sm"
-                  active={state.usagePopoverOpen}
-                  aria-label={t("topNav.usage.open")}
-                  title={t("topNav.usage.open")}
-                  onClick={handleToggleUsagePopover}
-                >
-                  <UsageTriggerRing
-                    snapshot={usageSnapshot}
-                    label={t("topNav.usage.contextWindow")}
-                  />
-                  {usageTotal == null ? (
-                    t("topNav.usage.waitingShort")
-                  ) : (
-                    <TextCountUp text={formatCompactUsageNumber(usageTotal)} />
-                  )}
-                </UiButton>
-                {state.usagePopoverOpen ? (
+              <Popover
+                open={state.usagePopoverOpen}
+                trigger="click"
+                placement="bottomRight"
+                arrow={false}
+                classNames={{ root: USAGE_POPOVER_ROOT_CLASS }}
+                onOpenChange={handleUsagePopoverOpenChange}
+                content={
                   <div
-                    className={USAGE_POPOVER_CLASS}
                     role="dialog"
                     aria-label={t("topNav.usage.title")}
                   >
@@ -945,8 +919,27 @@ export const TopNav: React.FC = () => {
                       />
                     ) : null}
                   </div>
-                ) : null}
-              </div>
+                }
+              >
+                <UiButton
+                  className={USAGE_TRIGGER_CLASS}
+                  variant="ghost"
+                  size="sm"
+                  active={state.usagePopoverOpen}
+                  aria-label={t("topNav.usage.open")}
+                  title={t("topNav.usage.open")}
+                >
+                  <UsageTriggerRing
+                    snapshot={usageSnapshot}
+                    label={t("topNav.usage.contextWindow")}
+                  />
+                  {usageTotal == null ? (
+                    t("topNav.usage.waitingShort")
+                  ) : (
+                    <TextCountUp text={formatCompactUsageNumber(usageTotal)} />
+                  )}
+                </UiButton>
+              </Popover>
             ) : null}
           </div>
         </div>

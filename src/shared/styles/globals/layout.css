@@ -149,12 +149,6 @@
     color: #cf5f18;
 }
 
-.usage-popover-anchor {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-
 .usage-trigger.ui-btn {
     min-height: 30px;
     padding: 0 8px;
@@ -196,11 +190,7 @@
     letter-spacing: 0;
 }
 
-.usage-popover {
-    position: absolute;
-    z-index: 50;
-    top: calc(100% + 10px);
-    right: 0;
+.usage-popover .ant-popover-inner {
     width: min(420px, calc(100vw - 24px));
     max-height: min(70vh, 620px);
     overflow: auto;
@@ -210,6 +200,10 @@
     background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
     box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
     color: var(--ink-1);
+}
+
+.usage-popover .ant-popover-inner-content {
+    padding: 0;
 }
 
 .usage-popover-header {
@@ -411,12 +405,6 @@
     font:
         700 10px/1.15 var(--font-mono);
     overflow-wrap: anywhere;
-}
-
-.usage-popover-empty {
-    margin: 10px 0 2px;
-    color: var(--ink-muted);
-    font-size: 12px;
 }
 
 .inline-icon {
