@@ -539,192 +539,227 @@ export const OverviewTab: React.FC = () => {
     [expandedFileChangeKeys, loadFileHistory],
   );
 
+  const overviewSections: {
+    key: string;
+    hasData: boolean;
+    node: React.ReactNode;
+  }[] = [
+    {
+      key: "fileChanges",
+      hasData: fileChanges.length > 0,
+      node: (
+        <OverviewSection
+          title={
+            isCoder
+              ? t("rightSidebar.overview.fileChanges.titleCoder")
+              : t("rightSidebar.overview.fileChanges.title")
+          }
+          count={renderFileChangeStats(
+            fileChangeTotals.addedLines,
+            fileChangeTotals.deletedLines,
+            {
+              animated: fileChangeAnimation.total,
+              animationKey: `total-${fileChangeAnimation.version}`,
+            },
+          )}
+        >
+          {fileChanges.length === 0 ? (
+            <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
+              {t(
+                isCoder
+                  ? "rightSidebar.overview.fileChanges.emptyCoder"
+                  : "rightSidebar.overview.fileChanges.empty",
+              )}
+            </div>
+          ) : (
+            <Collapse
+              ghost
+              activeKey={Array.from(expandedFileChangeKeys)}
+              className="right-sidebar-file-change-collapse"
+              expandIconPosition="end"
+              items={fileChanges.map((item) => {
+                const itemKey = buildFileChangeKey(item.runId, item.filePath);
+                const cacheKey = buildFileHistoryCacheKey(state.chatId, item);
+                return {
+                  key: itemKey,
+                  onClick: () => toggleFileChange(item),
+                  showArrow: false,
+                  label: (
+                    <Flex align="center" gap={6}>
+                      <FileIcon filename={item.filePath} size={16} />
+                      <span className={FILE_CHANGE_PATH_CLASS_NAME}>
+                        {displayFileName(item.filePath)}
+                      </span>
+                      <span className={FILE_CHANGE_RUN_CLASS_NAME}>
+                        {item.runId}
+                      </span>
+                    </Flex>
+                  ),
+                  extra: renderFileChangeStats(
+                    item.addedLines,
+                    item.deletedLines,
+                    {
+                      animated: fileChangeAnimation.paths.has(itemKey),
+                      animationKey: `${itemKey}-${fileChangeAnimation.version}`,
+                    },
+                  ),
+                  children: (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      {renderFileHistoryPanel(item.filePath, fileHistoryCache[cacheKey], t)}
+                    </div>
+                  ),
+                };
+              })}
+            />
+          )}
+        </OverviewSection>
+      ),
+    },
+    {
+      key: "planning",
+      hasData: planningNodes.length > 0,
+      node: (
+        <OverviewSection
+          title={t("rightSidebar.overview.planning.title")}
+          count={planningNodes.length}
+        >
+          {planningNodes.length === 0 ? (
+            <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
+              {t("rightSidebar.overview.planning.empty")}
+            </div>
+          ) : (
+            <ul className={PLANNING_LIST_CLASS_NAME}>
+              {planningNodes.map((item) => {
+                const previewText =
+                  item.text.length > 120
+                    ? item.text.slice(0, 120) + "..."
+                    : item.text;
+                const tabLabel =
+                  item.text.length > 30
+                    ? item.text.slice(0, 30) + "..."
+                    : item.text;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className={PLANNING_ITEM_CLASS_NAME}
+                      onClick={() => handlePlanningClick(item.id, tabLabel)}
+                    >
+                      <MaterialIcon
+                        name="assignment"
+                        className={PLANNING_ITEM_ICON_CLASS_NAME}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={PLANNING_ITEM_TEXT_CLASS_NAME}
+                        title={item.text.slice(0, 500)}
+                      >
+                        {previewText}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </OverviewSection>
+      ),
+    },
+    {
+      key: "tasks",
+      hasData: Boolean(taskSummary && taskSummary.totalTasks > 0),
+      node: (
+        <OverviewSection
+          title={t("rightSidebar.overview.tasks.title")}
+          count={
+            taskSummary
+              ? `${taskSummary.currentCount}/${taskSummary.totalTasks}`
+              : 0
+          }
+        >
+          {!taskSummary || taskSummary.totalTasks === 0 ? (
+            <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
+              {t("rightSidebar.overview.tasks.empty")}
+            </div>
+          ) : (
+            <ul className={TASK_LIST_CLASS_NAME}>
+              {taskSummary.normalizedTasks.map((task) => {
+                const itemClass =
+                  task.status === "running"
+                    ? `${TASK_ITEM_CLASS_NAME} ${TASK_ITEM_RUNNING_CLASS_NAME}`
+                    : TASK_ITEM_CLASS_NAME;
+                return (
+                  <li
+                    key={task.taskId}
+                    className={itemClass}
+                    data-status={task.status}
+                  >
+                    <span
+                      className="tool-status-dot"
+                      data-tool-status={task.status}
+                    />
+                    <Typography.Text
+                      ellipsis={{ tooltip: task.description || task.taskId }}
+                      className={TASK_ITEM_TEXT_CLASS_NAME}
+                    >
+                      {task.description || task.taskId}
+                    </Typography.Text>
+                    {task.durationText ? (
+                      <span className={TASK_ITEM_DURATION_CLASS_NAME}>
+                        {task.durationText}
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </OverviewSection>
+      ),
+    },
+    {
+      key: "artifacts",
+      hasData: artifacts.length > 0,
+      node: (
+        <OverviewSection
+          title={t("rightSidebar.overview.artifacts.title")}
+          count={artifacts.length}
+        >
+          {artifacts.length === 0 ? (
+            <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
+              {t("rightSidebar.overview.artifacts.empty")}
+            </div>
+          ) : (
+            <ul className={ARTIFACT_DRAWER_LIST_CLASS_NAME}>
+              {artifacts.map((item) => (
+                <li
+                  key={item.artifactId}
+                  className={ARTIFACT_DRAWER_ITEM_CLASS_NAME}
+                >
+                  <AttachmentCard
+                    attachment={item.artifact}
+                    variant="composer"
+                    displayMode="file"
+                    density="compact"
+                    subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
+                    activateMode="alwaysOpen"
+                    style={{ width: "100%" }}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </OverviewSection>
+      ),
+    },
+  ];
+  overviewSections.sort((a, b) => Number(b.hasData) - Number(a.hasData));
+
   return (
     <div className={RIGHT_SIDEBAR_OVERVIEW_CLASS_NAME}>
-      <OverviewSection
-        title={
-          isCoder
-            ? t("rightSidebar.overview.fileChanges.titleCoder")
-            : t("rightSidebar.overview.fileChanges.title")
-        }
-        count={renderFileChangeStats(
-          fileChangeTotals.addedLines,
-          fileChangeTotals.deletedLines,
-          {
-            animated: fileChangeAnimation.total,
-            animationKey: `total-${fileChangeAnimation.version}`,
-          },
-        )}
-      >
-        {fileChanges.length === 0 ? (
-          <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
-            {t(
-              isCoder
-                ? "rightSidebar.overview.fileChanges.emptyCoder"
-                : "rightSidebar.overview.fileChanges.empty",
-            )}
-          </div>
-        ) : (
-          <Collapse
-            ghost
-            activeKey={Array.from(expandedFileChangeKeys)}
-            className="right-sidebar-file-change-collapse"
-            expandIconPosition="end"
-            items={fileChanges.map((item) => {
-              const itemKey = buildFileChangeKey(item.runId, item.filePath);
-              const cacheKey = buildFileHistoryCacheKey(state.chatId, item);
-              return {
-                key: itemKey,
-                onClick: () => toggleFileChange(item),
-                showArrow: false,
-                label: (
-                  <Flex align="center" gap={6}>
-                    <FileIcon filename={item.filePath} size={16} />
-                    <span className={FILE_CHANGE_PATH_CLASS_NAME}>
-                      {displayFileName(item.filePath)}
-                    </span>
-                    <span className={FILE_CHANGE_RUN_CLASS_NAME}>
-                      {item.runId}
-                    </span>
-                  </Flex>
-                ),
-                extra: renderFileChangeStats(
-                  item.addedLines,
-                  item.deletedLines,
-                  {
-                    animated: fileChangeAnimation.paths.has(itemKey),
-                    animationKey: `${itemKey}-${fileChangeAnimation.version}`,
-                  },
-                ),
-                children: (
-                  <div onClick={(e) => e.stopPropagation()}>
-                    {renderFileHistoryPanel(item.filePath, fileHistoryCache[cacheKey], t)}
-                  </div>
-                ),
-              };
-            })}
-          />
-        )}
-      </OverviewSection>
-      <OverviewSection
-        title={t("rightSidebar.overview.planning.title")}
-        count={planningNodes.length}
-      >
-        {planningNodes.length === 0 ? (
-          <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
-            {t("rightSidebar.overview.planning.empty")}
-          </div>
-        ) : (
-          <ul className={PLANNING_LIST_CLASS_NAME}>
-            {planningNodes.map((item) => {
-              const previewText =
-                item.text.length > 120
-                  ? item.text.slice(0, 120) + "..."
-                  : item.text;
-              const tabLabel =
-                item.text.length > 30
-                  ? item.text.slice(0, 30) + "..."
-                  : item.text;
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    className={PLANNING_ITEM_CLASS_NAME}
-                    onClick={() => handlePlanningClick(item.id, tabLabel)}
-                  >
-                    <MaterialIcon
-                      name="assignment"
-                      className={PLANNING_ITEM_ICON_CLASS_NAME}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className={PLANNING_ITEM_TEXT_CLASS_NAME}
-                      title={item.text.slice(0, 500)}
-                    >
-                      {previewText}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </OverviewSection>
-      <OverviewSection
-        title={t("rightSidebar.overview.tasks.title")}
-        count={
-          taskSummary
-            ? `${taskSummary.currentCount}/${taskSummary.totalTasks}`
-            : 0
-        }
-      >
-        {!taskSummary || taskSummary.totalTasks === 0 ? (
-          <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
-            {t("rightSidebar.overview.tasks.empty")}
-          </div>
-        ) : (
-          <ul className={TASK_LIST_CLASS_NAME}>
-            {taskSummary.normalizedTasks.map((task) => {
-              const itemClass =
-                task.status === "running"
-                  ? `${TASK_ITEM_CLASS_NAME} ${TASK_ITEM_RUNNING_CLASS_NAME}`
-                  : TASK_ITEM_CLASS_NAME;
-              return (
-                <li
-                  key={task.taskId}
-                  className={itemClass}
-                  data-status={task.status}
-                >
-                  <span
-                    className="tool-status-dot"
-                    data-tool-status={task.status}
-                  />
-                  <Typography.Text
-                    ellipsis={{ tooltip: task.description || task.taskId }}
-                    className={TASK_ITEM_TEXT_CLASS_NAME}
-                  >
-                    {task.description || task.taskId}
-                  </Typography.Text>
-                  {task.durationText ? (
-                    <span className={TASK_ITEM_DURATION_CLASS_NAME}>
-                      {task.durationText}
-                    </span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </OverviewSection>
-      <OverviewSection
-        title={t("rightSidebar.overview.artifacts.title")}
-        count={artifacts.length}
-      >
-        {artifacts.length === 0 ? (
-          <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
-            {t("rightSidebar.overview.artifacts.empty")}
-          </div>
-        ) : (
-          <ul className={ARTIFACT_DRAWER_LIST_CLASS_NAME}>
-            {artifacts.map((item) => (
-              <li
-                key={item.artifactId}
-                className={ARTIFACT_DRAWER_ITEM_CLASS_NAME}
-              >
-                <AttachmentCard
-                  attachment={item.artifact}
-                  variant="composer"
-                  displayMode="file"
-                  density="compact"
-                  subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
-                  activateMode="alwaysOpen"
-                  style={{ width: "100%" }}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </OverviewSection>
+      {overviewSections.map((section) => (
+        <React.Fragment key={section.key}>{section.node}</React.Fragment>
+      ))}
     </div>
   );
 };
