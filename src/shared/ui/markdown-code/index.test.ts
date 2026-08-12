@@ -10,6 +10,7 @@ import {
   MERMAID_ZOOM_DEFAULT,
   MERMAID_ZOOM_MAX,
   MERMAID_ZOOM_MIN,
+  MERMAID_SECURITY_CONFIG,
 } from "./MarkdownMermaid";
 
 jest.mock("./index.module.css", () => ({ Collapse: "Collapse" }));
@@ -110,6 +111,7 @@ describe("MarkdownCode", () => {
   });
 
   it("suppresses Mermaid's built-in error SVG rendering", () => {
+    expect(Object.isFrozen(MERMAID_SECURITY_CONFIG)).toBe(true);
     expect(getMermaidRenderConfig("default")).toMatchObject({
       startOnLoad: false,
       securityLevel: "strict",

@@ -6,10 +6,11 @@
   "scripts": {
     "start": "npm run start:web",
     "start:web": "dotenv -e .env -- webpack serve --mode development",
-    "build": "npm run build:web",
+    "build": "npm run build:web && npm run check:share-bundle",
     "build:web": "dotenv -e .env -- webpack --mode production",
     "test": "node ./node_modules/jest/bin/jest.js --passWithNoTests --watchman=false",
     "check:boundaries": "node ./scripts/check-feature-boundaries.js",
+    "check:share-bundle": "node ./scripts/check-share-bundle.js",
     "check:i18n": "node ./scripts/check-i18n.js"
   },
   "dependencies": {

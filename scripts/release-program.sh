@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SHARE_BUNDLE_CHECKER="$REPO_ROOT/scripts/check-share-bundle.js"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/release-common.sh"
@@ -19,6 +20,7 @@ require_file "$REPO_ROOT/scripts/release-assets/program/windows/deploy.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/start.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/stop.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1"
+require_file "$SHARE_BUNDLE_CHECKER"
 require_file "$REPO_ROOT/package.json"
 
 cd "$REPO_ROOT"
@@ -50,7 +52,7 @@ prepare_build_root() {
   BUILD_ROOT="$(cd "$BUILD_ROOT" && pwd -P)"
   trap cleanup_release_temps EXIT
 
-  mkdir -p "$BUILD_ROOT"
+  mkdir -p "$BUILD_ROOT/scripts"
   cp "$REPO_ROOT/package.json" "$BUILD_ROOT/package.json"
   copy_file_if_exists "$REPO_ROOT/package-lock.json" "$BUILD_ROOT/package-lock.json"
   cp "$REPO_ROOT/webpack.config.js" "$BUILD_ROOT/webpack.config.js"
@@ -58,6 +60,7 @@ prepare_build_root() {
   cp "$REPO_ROOT/postcss.config.js" "$BUILD_ROOT/postcss.config.js"
   cp "$REPO_ROOT/.env.example" "$BUILD_ROOT/.env.example"
   copy_file_if_exists "$REPO_ROOT/.env" "$BUILD_ROOT/.env"
+  cp "$SHARE_BUNDLE_CHECKER" "$BUILD_ROOT/scripts/check-share-bundle.js"
 
   if [[ ! -f "$BUILD_ROOT/.env" ]]; then
     cp "$BUILD_ROOT/.env.example" "$BUILD_ROOT/.env"

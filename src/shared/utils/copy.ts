@@ -1,5 +1,6 @@
 import { isAppMode } from "@/shared/utils/routing";
 import { hasDesktopHostBridge, postDesktopHostMessage } from "@/shared/data/desktop/desktopHostBridge";
+import { copyWebText } from "@/shared/utils/webClipboard";
 
 const AGENT_APP_CLIPBOARD_REQUEST_TYPE = "desktop:agent-app-clipboard:request";
 const AGENT_APP_CLIPBOARD_RESPONSE_TYPE = "desktop:agent-app-clipboard:response";
@@ -84,25 +85,5 @@ export async function copyText(text: string): Promise<void> {
     return;
   }
 
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(normalized);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = normalized;
-  textarea.setAttribute("readonly", "true");
-  textarea.style.position = "fixed";
-  textarea.style.top = "0";
-  textarea.style.left = "-9999px";
-  textarea.style.opacity = "0";
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-  const copied = document.execCommand("copy");
-  document.body.removeChild(textarea);
-  if (!copied) {
-    throw new Error("copy failed");
-  }
+  await copyWebText(normalized);
 }

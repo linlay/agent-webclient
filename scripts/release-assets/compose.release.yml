@@ -10,6 +10,8 @@ services:
     environment:
       BASE_URL: ${BASE_URL}
       DESKTOP_APP: ${DESKTOP_APP:-true}
+      SHARE_API_BASE_URL: ${SHARE_API_BASE_URL:-}
+      SHARE_APP_DOWNLOAD_URL: ${SHARE_APP_DOWNLOAD_URL:-}
       VOICE_BASE_URL: ${VOICE_BASE_URL:-}
     ports:
       - "${HOST_PORT:-11948}:80"
