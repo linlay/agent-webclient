@@ -500,6 +500,8 @@ export const enUSMessages = {
   "rightSidebar.overview.fileChanges.diffUnavailable": "Diff unavailable",
   "rightSidebar.overview.fileChanges.openFile": "Open the file locally",
   "rightSidebar.overview.fileChanges.openFileUnavailable": "The file cannot be opened in this environment",
+  "rightSidebar.overview.fileChanges.openFolder": "Open the folder locally",
+  "rightSidebar.overview.fileChanges.openFolderUnavailable": "The folder cannot be opened in this environment",
   "rightSidebar.overview.fileChanges.title": "File changes",
   "rightSidebar.overview.fileChanges.titleCoder": "Code changes",
   "rightSidebar.overview.planning.title": "Plan",

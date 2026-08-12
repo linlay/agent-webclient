@@ -500,6 +500,8 @@ export const zhCNMessages = {
   "rightSidebar.overview.fileChanges.diffUnavailable": "差异暂不可用",
   "rightSidebar.overview.fileChanges.openFile": "在本地打开文件",
   "rightSidebar.overview.fileChanges.openFileUnavailable": "当前环境无法打开该文件",
+  "rightSidebar.overview.fileChanges.openFolder": "在本地打开文件夹",
+  "rightSidebar.overview.fileChanges.openFolderUnavailable": "当前环境无法打开该文件夹",
   "rightSidebar.overview.fileChanges.title": "文件修改",
   "rightSidebar.overview.fileChanges.titleCoder": "代码修改",
   "rightSidebar.overview.planning.title": "计划",
