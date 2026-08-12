@@ -183,7 +183,7 @@ describe('AwaitingAnswerBlock', () => {
     expect(html).not.toContain('approve_rule_run');
   });
 
-  it('renders plan decisions from the single plan envelope', () => {
+  it('renders plan decisions from the single planning envelope', () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -194,7 +194,7 @@ describe('AwaitingAnswerBlock', () => {
             kind: 'awaiting.answered',
             text: JSON.stringify({
               status: 'answered',
-              plan: {
+              planning: {
                 id: 'confirm',
                 planningId: 'run_1_planning_1',
                 decision: 'reject',
@@ -208,7 +208,7 @@ describe('AwaitingAnswerBlock', () => {
       ),
     );
 
-    expect(html).toContain('run_1_planning_1');
+    expect(html).toContain('实施计划');
     expect(html).toContain('拒绝 · 请补充测试范围');
   });
 });

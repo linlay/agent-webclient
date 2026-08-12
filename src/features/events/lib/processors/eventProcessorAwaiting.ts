@@ -14,7 +14,7 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 	const answers = rawRecord.answers;
 	const approvals = rawRecord.approvals;
 	const forms = rawRecord.forms;
-	const plan = rawRecord.plan;
+	const planning = rawRecord.planning;
 
 	if (Array.isArray(answers)) {
 		const normalizedAnswers =
@@ -73,13 +73,13 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 		});
 	}
 
-	if (plan && typeof plan === "object" && !Array.isArray(plan)) {
+	if (planning && typeof planning === "object" && !Array.isArray(planning)) {
 		return {
-			...plan,
+			...planning,
 		};
 	}
 
-	return answers ?? approvals ?? forms ?? plan;
+	return answers ?? approvals ?? forms ?? planning;
 }
 
 export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
@@ -94,13 +94,13 @@ export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
 	}
 	if (status === "answered") {
 		if (
-			rawRecord.plan
-			&& typeof rawRecord.plan === "object"
-			&& !Array.isArray(rawRecord.plan)
+			rawRecord.planning
+			&& typeof rawRecord.planning === "object"
+			&& !Array.isArray(rawRecord.planning)
 		) {
 			return {
 				status: "answered",
-				plan: maskStructuredAwaitingAnswers(event),
+				planning: maskStructuredAwaitingAnswers(event),
 			};
 		}
 		return {
@@ -119,7 +119,7 @@ export function readAwaitingAnswerText(event: AgentEvent): string {
 		rawRecord.answers,
 		rawRecord.approvals,
 		rawRecord.forms,
-		rawRecord.plan,
+		rawRecord.planning,
 		event.message,
 	);
 }

@@ -18,8 +18,8 @@ describe("plan decision helpers", () => {
   });
 
   it("reads approve and reject decisions from awaiting answer events", () => {
-    expect(readPlanAnswerDecision({ plan: { decision: "approve" } })).toBe("approve");
-    expect(readPlanAnswerDecision({ plan: { decision: "reject" } })).toBe("reject");
+    expect(readPlanAnswerDecision({ planning: { decision: "approve" } })).toBe("approve");
+    expect(readPlanAnswerDecision({ planning: { decision: "reject" } })).toBe("reject");
   });
 
   it("maps plan decisions to planning mode state", () => {

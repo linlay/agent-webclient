@@ -24,7 +24,7 @@ export function readPlanAnswerDecision(
   if (!event || typeof event !== "object" || Array.isArray(event)) {
     return undefined;
   }
-  return readPlanDecision((event as Record<string, unknown>).plan);
+  return readPlanDecision((event as Record<string, unknown>).planning);
 }
 
 export function getPlanningModeForPlanDecision(

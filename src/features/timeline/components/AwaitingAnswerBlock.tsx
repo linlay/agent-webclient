@@ -18,7 +18,7 @@ interface AwaitingAnswerDisplayItem {
 interface AwaitingAnswerEnvelope {
   status?: "answered" | "error";
   items?: Record<string, unknown>[];
-  plan?: Record<string, unknown>;
+  planning?: Record<string, unknown>;
   error?: {
     code?: string;
     message?: string;
@@ -60,7 +60,8 @@ function formatAwaitingAnswerItem(
   const title =
     question ||
     String(item.title || "").trim() ||
-    String(item.planningId || "").trim() ||
+    (String(item.planningId || "").trim() &&
+      t("planningTimeline.implementPlan")) ||
     String(item.command || "").trim() ||
     String(item.action || "").trim() ||
     id ||
@@ -152,11 +153,11 @@ function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
             Boolean(item) && typeof item === "object" && !Array.isArray(item),
         )
       : undefined;
-    const plan =
-      record.plan &&
-      typeof record.plan === "object" &&
-      !Array.isArray(record.plan)
-        ? (record.plan as Record<string, unknown>)
+    const planning =
+      record.planning &&
+      typeof record.planning === "object" &&
+      !Array.isArray(record.planning)
+        ? (record.planning as Record<string, unknown>)
         : undefined;
     const error =
       record.error &&
@@ -167,7 +168,7 @@ function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
     return {
       status,
       items,
-      plan,
+      planning,
       error,
     };
   } catch (error) {
@@ -198,8 +199,8 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
         },
       ];
     }
-    if (envelope.plan) {
-      return [formatAwaitingAnswerItem(envelope.plan, t)];
+    if (envelope.planning) {
+      return [formatAwaitingAnswerItem(envelope.planning, t)];
     }
     return (envelope.items || []).map((item) =>
       formatAwaitingAnswerItem(item, t),
