@@ -3,15 +3,16 @@ import React, {
   useCallback,
   useState,
 } from "react";
-import { XMarkdown as Markdown } from "@ant-design/x-markdown";
-import Latex from "@ant-design/x-markdown/plugins/Latex";
 import {
   classifyResourceUrl,
   downloadResource,
 } from "@/shared/data";
 import { MarkdownCode } from "./markdown-code";
+import {
+  ConversationMarkdown,
+  type ConversationMarkdownComponents,
+} from "./ConversationMarkdown";
 import { useI18n } from "@/shared/i18n";
-import { removeEmptyMarkdownTables } from "./markdownPreprocess";
 import {
   parseWorkspaceFileHref,
   type WorkspaceFileLink,
@@ -44,11 +45,6 @@ interface MarkdownContentProps {
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
 }
-
-type MarkdownPreProps = React.HTMLAttributes<HTMLPreElement> & {
-  domNode?: unknown;
-};
-
 
 /**
  * Extracts the filename from a supported ChatScope or absolute resource path.
@@ -365,24 +361,6 @@ const AuthVideo: React.FC<AuthVideoProps> = (props) => {
   );
 };
 
-const MarkdownPre: React.FC<MarkdownPreProps> = ({
-  children,
-  domNode: _domNode,
-  ...rest
-}) => {
-  const childArray = React.Children.toArray(children);
-  const onlyChild = childArray.length === 1 ? childArray[0] : null;
-  if (
-    React.isValidElement(onlyChild) 
-		&&
-    onlyChild.type === MarkdownCode
-  ) {
-    return <>{onlyChild}</>;
-  }
-
-  return <pre {...rest}>{children}</pre>;
-};
-
 /**
  * MarkdownContent wraps @ant-design/x-markdown Markdown component
  * for streaming-compatible Markdown rendering.
@@ -401,18 +379,8 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   onWorkspaceFileLinkClick,
   onWebLinkClick,
 }) => {
-  const markdownConfig = useMemo(
+  const markdownComponents = useMemo<ConversationMarkdownComponents>(
     () => ({
-      gfm: true,
-      breaks: true,
-      extensions: Latex(),
-    }),
-    [],
-  );
-
-  const markdownComponents = useMemo(
-    () =>
-      ({
         a: (anchorProps: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
           <AuthAnchor
             {...anchorProps}
@@ -422,32 +390,21 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
             onWebLinkClick={onWebLinkClick}
           />
         ),
-        code: MarkdownCode,
-        pre: MarkdownPre,
         img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) =>
           isMarkdownVideoSource(imageProps.src) ? (
             <AuthVideo {...imageProps} chatId={chatId} teamChat={teamChat} />
           ) : (
             <AuthImage {...imageProps} chatId={chatId} teamChat={teamChat} />
           ),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
+      }),
     [chatId, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
-  const processedContent = useMemo(() => {
-    if (!content) return "";
-
-    return removeEmptyMarkdownTables(content);
-  }, [content]);
-
-  if (!processedContent) {
-    return null;
-  }
-
   return (
-    <Markdown config={markdownConfig} components={markdownComponents} style={{fontSize: 14}}>
-      {processedContent}
-    </Markdown>
+    <ConversationMarkdown
+      content={content}
+      components={markdownComponents}
+      codeComponent={MarkdownCode}
+    />
   );
 };

@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const featuresRoot = path.join(repoRoot, "src", "features");
+const shareRoot = path.join(repoRoot, "src", "share");
 const importPattern = /(?:from\s+|import\s*\(|require\s*\(|jest\.mock\s*\()\s*["']([^"']+)["']/g;
 
 const forbiddenByFeature = {
@@ -68,6 +69,47 @@ for (const [feature, forbiddenFeatures] of Object.entries(forbiddenByFeature)) {
 			if (feature === "events" && importedPath === "react") {
 				violations.push(`${relativeFile}: events must not import React`);
 			}
+		}
+	}
+}
+
+const shareForbiddenImports = [
+	"@/app/",
+	"@/features/",
+	"@/shared/data/auth/",
+	"@/shared/data/desktop/",
+];
+if (fs.existsSync(shareRoot)) {
+	for (const file of walk(shareRoot)) {
+		const source = fs.readFileSync(file, "utf8");
+		const relativeFile = path.relative(repoRoot, file);
+		for (const importedPath of readImports(source)) {
+			if (shareForbiddenImports.some((prefix) => importedPath.startsWith(prefix))) {
+				violations.push(`${relativeFile}: share entry must not import ${importedPath}`);
+			}
+		}
+	}
+}
+
+const pureConversationRendererFiles = [
+	path.join(repoRoot, "src", "shared", "ui", "ConversationMarkdown.tsx"),
+	path.join(
+		repoRoot,
+		"src",
+		"shared",
+		"ui",
+		"markdown-code",
+		"ConversationMarkdownCode.tsx",
+	),
+	path.join(repoRoot, "src", "shared", "utils", "webClipboard.ts"),
+];
+for (const file of pureConversationRendererFiles) {
+	if (!fs.existsSync(file)) continue;
+	const source = fs.readFileSync(file, "utf8");
+	const relativeFile = path.relative(repoRoot, file);
+	for (const importedPath of readImports(source)) {
+		if (shareForbiddenImports.some((prefix) => importedPath.startsWith(prefix))) {
+			violations.push(`${relativeFile}: shared renderer must not import ${importedPath}`);
 		}
 	}
 }

@@ -40,8 +40,31 @@ else
   VOICE_LOCATIONS=""
 fi
 
-export VOICE_LOCATIONS
-envsubst '${BASE_URL} ${VOICE_LOCATIONS}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf
+if [ -n "${SHARE_API_BASE_URL:-}" ]; then
+  SHARE_LOCATIONS=$(cat <<EOF
+    location /api/public/shares/ {
+        proxy_pass ${SHARE_API_BASE_URL}/api/public/shares/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_cache off;
+    }
+EOF
+)
+else
+  SHARE_LOCATIONS=$(cat <<EOF
+    location /api/public/shares/ {
+        return 503;
+    }
+EOF
+)
+fi
+
+export VOICE_LOCATIONS SHARE_LOCATIONS
+envsubst '${BASE_URL} ${VOICE_LOCATIONS} ${SHARE_LOCATIONS}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf
 
 VOICE_ENABLED="false"
 if [ -n "${VOICE_BASE_URL:-}" ]; then
@@ -57,6 +80,7 @@ globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
   "SETTINGS_MENU_ENABLED": "${SETTINGS_MENU_ENABLED:-}",
   "QUICK_ACTIONS_ENABLED": "${QUICK_ACTIONS_ENABLED:-}",
   "MEMORY_ENABLED": "${MEMORY_ENABLED:-}",
+  "SHARE_APP_DOWNLOAD_URL": "${SHARE_APP_DOWNLOAD_URL:-}",
   "VOICE_ASR_CLIENT_GATE_ENABLED": "${VOICE_ASR_CLIENT_GATE_ENABLED:-}",
   "VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD": "${VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD:-}",
   "VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS": "${VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS:-}",

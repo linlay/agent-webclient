@@ -11,3 +11,13 @@
     padding-top: 0 !important;
   }
 }
+
+.ExpandIcon,
+.ExpandIconOpen {
+  display: inline-flex;
+  transition: transform 160ms ease;
+}
+
+.ExpandIconOpen {
+  transform: rotate(90deg);
+}

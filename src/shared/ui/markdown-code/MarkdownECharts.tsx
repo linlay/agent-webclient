@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { EChartsType } from "echarts";
+import type { EChartsOption, EChartsType } from "echarts";
 import { useI18n } from "@/shared/i18n";
 
 const DEFAULT_ECHARTS_HEIGHT = 320;
 
-// json 解析
-const looseJsonParse = (text: string) => {
-  if (!text) return {};
-  return Function(`"use strict";return (${text})`)();
-};
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+export function parseEChartsOption(text: string): EChartsOption {
+  const source = text.trim();
+  if (!source) throw new Error("ECharts option is empty.");
+  const parsed: unknown = JSON.parse(source);
+  if (!isRecord(parsed)) throw new Error("ECharts option must be a JSON object.");
+  return parsed as EChartsOption;
+}
 
 export const MarkdownECharts: React.FC<{
   code: string;
@@ -20,7 +26,7 @@ export const MarkdownECharts: React.FC<{
 
   const payload = useMemo(() => {
     try {
-      return { value: looseJsonParse(code), error: null };
+      return { value: parseEChartsOption(code), error: null };
     } catch (error) {
       return {
         value: null,

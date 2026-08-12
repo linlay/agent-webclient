@@ -20,6 +20,10 @@ export const MERMAID_ZOOM_MIN = 0.5;
 export const MERMAID_ZOOM_MAX = 3;
 const MERMAID_ZOOM_STEP = 0.25;
 const MERMAID_STREAM_RENDER_DELAY_MS = 400;
+export const MERMAID_SECURITY_CONFIG = Object.freeze({
+  securityLevel: "strict" as const,
+  suppressErrorRendering: true,
+});
 
 type MermaidZoomAction = "in" | "out" | "reset";
 
@@ -76,8 +80,7 @@ export function getVisibleMermaidRenderState(
 export function getMermaidRenderConfig(theme: "default" | "dark") {
   return {
     startOnLoad: false,
-    securityLevel: "strict" as const,
-    suppressErrorRendering: true,
+    ...MERMAID_SECURITY_CONFIG,
     flowchart: {
       htmlLabels: true,
       curve: "basis" as const,
@@ -320,6 +323,8 @@ export const MarkdownMermaid: React.FC<{
                 "--mermaid-zoom": String(zoom),
               } as CSSProperties
             }
+            // This sink only receives SVG returned by Mermaid under the frozen
+            // strict security configuration, which applies Mermaid's DOMPurify pass.
             dangerouslySetInnerHTML={{ __html: visibleState.svg }}
           />
         </div>

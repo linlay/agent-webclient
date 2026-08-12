@@ -823,6 +823,13 @@
     }
 }
 
+.timeline-markdown {
+    --markdown-accent: var(--accent-electric);
+    --markdown-muted: var(--ink-3);
+    --markdown-danger: var(--danger-strong);
+    --markdown-danger-soft: color-mix(in srgb, var(--danger-soft) 18%, var(--bg-elev-2));
+}
+
 .timeline-markdown> :first-child {
     margin-top: 0;
 }
@@ -903,93 +910,6 @@
     background: color-mix(in srgb, var(--bg-input) 88%, black);
 }
 
-.timeline-markdown .markdown-echarts {
-    width: 100%;
-    min-height: 180px;
-}
-
-.timeline-markdown .markdown-echarts-error {
-    display: flex;
-    min-height: 120px;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    color: var(--danger-strong);
-    background: color-mix(in srgb, var(--danger-soft) 18%, var(--bg-elev-2));
-}
-
-.timeline-markdown .markdown-mermaid {
-    width: 100%;
-    overflow: hidden;
-}
-
-.timeline-markdown .markdown-mermaid-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-}
-
-.timeline-markdown .markdown-mermaid-render-status {
-    margin-right: auto;
-    color: var(--ink-3);
-    font-size: 12px;
-}
-
-.timeline-markdown .markdown-mermaid-zoom {
-    min-width: 44px;
-    color: var(--ink-3);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
-
-.timeline-markdown .markdown-mermaid-viewport {
-    display: block;
-    width: 100%;
-    min-height: 160px;
-    max-height: min(72vh, 980px);
-    overflow: auto;
-    padding: 14px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    cursor: grab;
-    user-select: none;
-    touch-action: none;
-}
-
-.timeline-markdown .markdown-mermaid-viewport:focus-visible {
-    outline: 2px solid var(--accent-electric);
-    outline-offset: -3px;
-}
-
-.timeline-markdown .markdown-mermaid-viewport.is-dragging {
-    cursor: grabbing;
-}
-
-.timeline-markdown .markdown-mermaid-svg {
-    display: block;
-    width: max(560px, calc(var(--mermaid-zoom, 1) * 100%));
-    margin: 0 auto;
-}
-
-.timeline-markdown .markdown-mermaid-svg svg {
-    display: block;
-    width: 100%;
-    max-width: none;
-    height: auto;
-    margin: 0 auto;
-}
-
-.timeline-markdown .markdown-mermaid-status {
-    display: flex;
-    min-height: 120px;
-    align-items: center;
-    justify-content: center;
-    color: var(--ink-3);
-}
-
 html[data-theme="dark"] .timeline-markdown .markdown-mermaid {
     border-color: color-mix(in srgb, var(--line-soft) 88%, transparent);
     background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
@@ -999,11 +919,6 @@ html[data-theme="dark"] .timeline-markdown .markdown-mermaid {
 html[data-theme="dark"] .timeline-markdown .markdown-mermaid-toolbar {
     border-bottom-color: color-mix(in srgb, var(--line-soft) 88%, transparent);
     background: color-mix(in srgb, var(--bg-input) 74%, var(--bg-elev-2));
-}
-
-.timeline-markdown .katex-display {
-    overflow-x: auto;
-    overflow-y: hidden;
 }
 
 html[data-theme="dark"] .icon-btn {
