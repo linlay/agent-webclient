@@ -69,6 +69,7 @@ export type AppAction =
 	| { type: "SET_ABORT_CONTROLLER"; controller: AbortController | null }
 	| { type: "PUSH_EVENT"; event: AgentEvent }
 	| { type: "CLEAR_EVENTS" }
+	| { type: "CLEAR_CONVERSATION_OVERVIEW" }
 	| { type: "APPEND_DEBUG"; line: string }
 	| { type: "CLEAR_DEBUG" }
 	| { type: "UPSERT_ARTIFACT"; artifact: PublishedArtifact }

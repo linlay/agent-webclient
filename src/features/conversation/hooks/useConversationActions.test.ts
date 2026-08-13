@@ -278,6 +278,57 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it('clears conversation overview data when switching to a different chat', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_old';
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: 'request.query',
+            requestId: 'req_1',
+            chatId: 'chat_new',
+            message: 'hello',
+            timestamp: 100,
+          },
+        ],
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_new');
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'CLEAR_EVENTS' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'CLEAR_CONVERSATION_OVERVIEW' });
+  });
+
+  it('commits the target chat id and resets state when switching to another chat fails', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_old';
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockRejectedValue(new Error('network down'));
+
+    await actions?.loadChat('chat_new');
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat_new' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_STREAMING', streaming: false });
+  });
+
+  it('keeps the current conversation intact when reloading the same chat fails', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_same';
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockRejectedValue(new Error('network down'));
+
+    await actions?.loadChat('chat_same');
+
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat_same' });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_STREAMING', streaming: false });
+  });
+
   it('retries loading a newly listed chat before leaving the route in loading state', async () => {
     const { actions, dispatch } = renderChatActions();
     getChat

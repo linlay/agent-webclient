@@ -360,6 +360,7 @@ export function useConversationActions() {
 
       if (!loadingCurrentChat && currentChatId && currentChatId !== chatId) {
         dispatch({ type: 'CLEAR_EVENTS' });
+        dispatch({ type: 'CLEAR_CONVERSATION_OVERVIEW' });
       }
 
       const currentChat = stateRef.current.chats.find((chat) => String(chat?.chatId || '') === String(chatId));
@@ -597,6 +598,10 @@ export function useConversationActions() {
         }
       } catch (error) {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadChat error] ${(error as Error).message}` });
+        if (!loadingCurrentChat) {
+          dispatch({ type: 'SET_CHAT_ID', chatId });
+          dispatch({ type: 'RESET_CONVERSATION' });
+        }
         dispatch({ type: 'SET_STREAMING', streaming: false });
         if (focusComposerOnComplete) {
           focusComposerSoon();

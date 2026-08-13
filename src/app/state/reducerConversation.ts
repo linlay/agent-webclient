@@ -172,6 +172,18 @@ export function reduceConversationState(
 				activeAwaiting: null,
 				pendingAwaitings: [],
 			};
+		case "CLEAR_CONVERSATION_OVERVIEW":
+			return {
+				...state,
+				artifacts: [],
+				fileChanges: [],
+				plan: null,
+				planRuntimeByTaskId: new Map(),
+				taskItemsById: new Map(),
+				activeTaskIds: new Set(),
+				planCurrentRunningTaskId: "",
+				planLastTouchedTaskId: "",
+			};
 		case "APPEND_DEBUG": {
 			const debugLines =
 				state.debugLines.length >= MAX_DEBUG_LINES
