@@ -27,7 +27,6 @@ import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { UiTag } from "@/shared/ui/UiTag";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import {
   resolveSettingsSummaryBadges,
@@ -46,7 +45,6 @@ import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import type { WorkerSortMode } from "@/app/layout/hooks/useLeftSidebarData";
-import { ChatItem } from "@/features/chats/components/ChatItem";
 import { WorkerPanelHeader } from "@/app/layout/sidebar/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/app/layout/sidebar/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
@@ -156,15 +154,6 @@ const LEFT_SIDEBAR_FILTER_ROW_CLASS = "tw:px-1.5";
 
 const SIDEBAR_STATIC_ICON_CLASS = "sidebar-static-icon";
 
-const CHAT_META_CLASS =
-  "chat-meta tw:flex tw:items-center tw:gap-1.5 tw:px-4 tw:pb-2 tw:pt-0";
-
-const CHAT_META_LABEL_CLASS =
-  "chat-meta-label tw:text-[10px] tw:font-semibold tw:uppercase tw:tracking-[0.06em] tw:text-ink-muted";
-
-const CHAT_META_CHIP_CLASS =
-  "chip tw:!px-2 tw:!py-[3px] tw:font-code tw:!text-[10px] tw:font-medium tw:leading-none";
-
 const CHAT_LIST_CLASS =
   "chat-list tw:flex-1 tw:overflow-y-auto tw:p-1.5 tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
 
@@ -222,7 +211,6 @@ export async function handleCreateAgentSuccess(
   });
 
   const workerKey = `agent:${createdKey}`;
-  dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
   dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
   dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: [] });
   dispatch({ type: "SET_WORKER_CHAT_PANEL_COLLAPSED", collapsed: true });
@@ -262,7 +250,6 @@ export const LeftSidebar: React.FC = () => {
   const historyListRef = useRef<HTMLDivElement>(null);
   const historyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const {
-    filteredChats,
     filteredWorkerRows,
     workerIconsByKey,
     workerChatsByKey,
@@ -330,12 +317,8 @@ export const LeftSidebar: React.FC = () => {
   }, [dispatch, historySearch, historyWorker, historyWorkerKey]);
 
   useEffect(() => {
-    if (state.conversationMode !== "worker") {
-      setExpandedWorkerKey("");
-      return;
-    }
     setExpandedWorkerKey(state.workerSelectionKey);
-  }, [state.conversationMode, state.workerSelectionKey]);
+  }, [state.workerSelectionKey]);
 
   useEffect(() => {
     if (!historyWorkerKey) return;
@@ -867,14 +850,12 @@ export const LeftSidebar: React.FC = () => {
   const settingsSummaryBadges = useMemo(
     () =>
       resolveSettingsSummaryBadges({
-        transportMode: state.transportMode,
         themeMode: state.themeMode,
         wsStatus: state.wsStatus,
         wsErrorMessage: state.wsErrorMessage,
       }),
     [
       state.themeMode,
-      state.transportMode,
       state.wsErrorMessage,
       state.wsStatus,
     ],
@@ -1052,11 +1033,7 @@ export const LeftSidebar: React.FC = () => {
             <Flex gap={2} className={LEFT_SIDEBAR_FILTER_ROW_CLASS}>
               <Input
                 variant="filled"
-                placeholder={
-                  state.conversationMode === "worker"
-                    ? t("leftSidebar.filterWorkers")
-                    : t("leftSidebar.filterChats")
-                }
+                placeholder={t("leftSidebar.filterWorkers")}
                 value={navigation.chatFilter}
                 prefix={
                   <MaterialIcon
@@ -1079,15 +1056,9 @@ export const LeftSidebar: React.FC = () => {
                 className="ui-icon-hover-24"
                 iconOnly
                 onClick={() => {
-                  if (state.conversationMode === "worker") {
-                    window.dispatchEvent(
-                      new CustomEvent("agent:refresh-worker-data"),
-                    );
-                  } else {
-                    window.dispatchEvent(
-                      new CustomEvent("agent:refresh-chats"),
-                    );
-                  }
+                  window.dispatchEvent(
+                    new CustomEvent("agent:refresh-worker-data"),
+                  );
                 }}
               >
                 <MaterialIcon name="refresh" />
@@ -1129,35 +1100,21 @@ export const LeftSidebar: React.FC = () => {
           </>
         )}
 
-        {state.conversationMode !== "worker" && (
-          <div className={CHAT_META_CLASS}>
-            <span className={CHAT_META_LABEL_CLASS}>
-              {t("leftSidebar.workerLabel")}
-            </span>
-            {state.chatId && state.chatAgentById.has(state.chatId) && (
-              <UiTag className={CHAT_META_CHIP_CLASS} tone="accent">
-                {state.chatAgentById.get(state.chatId)}
-              </UiTag>
-            )}
-          </div>
-        )}
-
         <div className={CHAT_LIST_CLASS} id="chat-list">
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
-            {state.conversationMode === "worker" ? (
-              filteredWorkerRows.length === 0 ? (
-                <div className="status-line">{t("leftSidebar.noWorkers")}</div>
-              ) : state.leftDrawerOpen ? (
-                <Collapse
-                  accordion
-                  ghost
-                  className={WORKER_COLLAPSE_CLASS}
-                  activeKey={expandedWorkerKey || undefined}
-                  items={workerCollapseItems}
-                  onChange={handleWorkerCollapseChange}
-                />
-              ) : (
-                <Flex vertical gap={10} align="center">
+            {filteredWorkerRows.length === 0 ? (
+              <div className="status-line">{t("leftSidebar.noWorkers")}</div>
+            ) : state.leftDrawerOpen ? (
+              <Collapse
+                accordion
+                ghost
+                className={WORKER_COLLAPSE_CLASS}
+                activeKey={expandedWorkerKey || undefined}
+                items={workerCollapseItems}
+                onChange={handleWorkerCollapseChange}
+              />
+            ) : (
+              <Flex vertical gap={10} align="center">
                   <UiButton
                     size="sm"
                     iconOnly
@@ -1253,21 +1210,6 @@ export const LeftSidebar: React.FC = () => {
                     );
                   })}
                 </Flex>
-              )
-            ) : filteredChats.length === 0 ? (
-              <div className="status-line">
-                {t("leftSidebar.noConversations")}
-              </div>
-            ) : (
-              filteredChats.map((chat) => (
-                <ChatItem
-                  key={chat.chatId}
-                  chat={chat}
-                  agents={state.agents}
-                  isActive={chat.chatId === state.chatId}
-                  onClick={() => handleSelectChat(chat.chatId)}
-                />
-              ))
             )}
           </Spin>
         </div>

@@ -294,13 +294,6 @@ export function reduceUiState(
 				...state,
 				themeMode: normalizeThemeMode(action.themeMode),
 			};
-		case "SET_TRANSPORT_MODE":
-			return {
-				...state,
-				transportMode: action.mode,
-				wsStatus: "disconnected",
-				wsErrorMessage: "",
-			};
 		case "SET_WS_STATUS":
 			return {
 				...state,

@@ -6,7 +6,6 @@ export function selectUiState(state: AppState) {
     rightSidebarOpen: state.rightSidebarOpen,
     terminalDockOpen: state.terminalDockOpen,
     themeMode: state.themeMode,
-    transportMode: state.transportMode,
     wsStatus: state.wsStatus,
     wsErrorMessage: state.wsErrorMessage,
     audioMuted: state.audioMuted,

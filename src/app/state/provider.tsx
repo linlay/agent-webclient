@@ -17,8 +17,6 @@ import { getAppAccessToken, refreshAppAccessToken } from "@/shared/data/auth/app
 import { setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
 import { syncThemeMode } from "@/shared/styles/theme";
-import { writeStoredTransportMode } from "@/features/transport/lib/transportMode";
-import { setTransportModeProvider } from "@/shared/data";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import { persistComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
 import { dataQueryCache } from "@/shared/data/query/serverState";
@@ -40,12 +38,6 @@ export function applyActionToStateRef(
 	action: AppAction,
 ): void {
 	stateRef.current = appReducer(stateRef.current, action);
-}
-
-export function syncTransportModeProvider(
-	stateRef: React.MutableRefObject<AppState>,
-): void {
-	setTransportModeProvider(() => stateRef.current.transportMode);
 }
 
 export function syncApiAccessToken(state: AppState): void {
@@ -135,10 +127,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	useEffect(() => {
 		syncThemeMode(state.themeMode);
 	}, [state.themeMode]);
-
-	useEffect(() => {
-		writeStoredTransportMode(state.transportMode);
-	}, [state.transportMode]);
 
 	useEffect(() => {
 		syncApiAccessToken(state);

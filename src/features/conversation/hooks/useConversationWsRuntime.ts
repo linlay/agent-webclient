@@ -1400,12 +1400,6 @@ export function useConversationWsRuntime(options: {
 	}, []);
 
 	useEffect(() => {
-		if (state.transportMode !== "ws") {
-			activeAttachRef.current?.abort();
-			activeAttachRef.current = null;
-			return;
-		}
-
 		return registerAttachRunListener({
 			dispatch,
 			stateRef,
@@ -1421,15 +1415,10 @@ export function useConversationWsRuntime(options: {
 		dispatch,
 		querySessionsRef,
 		stableHandleEvent,
-		state.transportMode,
 		stateRef,
 	]);
 
 	useEffect(() => {
-		if (state.transportMode !== "ws") {
-			return;
-		}
-
 		return registerDetachRunListener({
 			dispatch,
 			stateRef,
@@ -1441,14 +1430,12 @@ export function useConversationWsRuntime(options: {
 		activeQuerySessionRequestIdRef,
 		dispatch,
 		querySessionsRef,
-		state.transportMode,
 		stateRef,
 	]);
 
 	useEffect(() => {
 		if (
-			state.transportMode !== "ws"
-			|| typeof window === "undefined"
+			typeof window === "undefined"
 			|| typeof window.addEventListener !== "function"
 		) {
 			return;
@@ -1470,29 +1457,10 @@ export function useConversationWsRuntime(options: {
 		activeQuerySessionRequestIdRef,
 		dispatch,
 		querySessionsRef,
-		state.transportMode,
 		stateRef,
 	]);
 
 	useEffect(() => {
-		if (state.transportMode !== "ws" && isGatewayBackendMode()) {
-			requestWsDetachRun(
-				{
-					dispatch,
-					stateRef,
-					querySessionsRef,
-					activeQuerySessionRequestIdRef,
-				},
-				{ reason: "transport_cleanup" },
-			);
-			activeAttachRef.current?.abort();
-			activeAttachRef.current = null;
-			destroyWsClient();
-			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
-			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
-			return;
-		}
-
 		let cancelled = false;
 
 		void connectWsTransport({
@@ -1546,7 +1514,6 @@ export function useConversationWsRuntime(options: {
 		activeQuerySessionRequestIdRef,
 		querySessionsRef,
 		stableHandleEvent,
-		state.transportMode,
 		stateRef,
 		wsConnectKey,
 	]);

@@ -3,7 +3,6 @@ import { createInitialState } from "@/app/state/state";
 import type { AppState } from "@/app/state/types";
 
 jest.mock("@/shared/data", () => ({
-	setTransportModeProvider: jest.fn(),
 	setAccessToken: jest.fn(),
 }));
 

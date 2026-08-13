@@ -125,19 +125,15 @@ function asArchiveSummary(
 export function buildArchiveBulkCandidates(input: {
 	chats: Chat[];
 	workerRelatedChats: WorkerConversationRow[];
-	conversationMode: string;
 	workerSelectionKey: string;
-	chatFilter: string;
 	days: number;
 	nowMs?: number;
 }): ArchivedSummaryResponse[] {
 	const days = Math.max(1, Math.floor(Number(input.days) || 0));
 	const cutoff = (input.nowMs ?? Date.now()) - days * 24 * 60 * 60 * 1000;
-	const filter = String(input.chatFilter || "").trim().toLowerCase();
-	const rows =
-		input.conversationMode === "worker" && input.workerSelectionKey
-			? input.workerRelatedChats
-			: input.chats;
+	const rows = input.workerSelectionKey
+		? input.workerRelatedChats
+		: input.chats;
 
 	return rows
 		.map(asArchiveSummary)
@@ -145,17 +141,7 @@ export function buildArchiveBulkCandidates(input: {
 			if (!item.chatId) return false;
 			const lastRunAt = toTimestamp(item.lastRunAt);
 			if (!lastRunAt || lastRunAt >= cutoff) return false;
-			if (!filter || input.conversationMode === "worker") return true;
-			const haystack = [
-				item.chatId,
-				item.chatName,
-				item.agentKey,
-				item.teamId,
-				item.lastRunContent,
-			]
-				.join(" ")
-				.toLowerCase();
-			return haystack.includes(filter);
+			return true;
 		});
 }
 
@@ -281,16 +267,12 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
 			buildArchiveBulkCandidates({
 				chats: state.chats,
 				workerRelatedChats: state.workerRelatedChats,
-				conversationMode: state.conversationMode,
 				workerSelectionKey: state.workerSelectionKey,
-				chatFilter: state.chatFilter,
 				days: bulkDays,
 			}),
 		[
 			bulkDays,
-			state.chatFilter,
 			state.chats,
-			state.conversationMode,
 			state.workerRelatedChats,
 			state.workerSelectionKey,
 		],

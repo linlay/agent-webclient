@@ -122,16 +122,6 @@ export function useLeftSidebarData({
   historyWorkerKey: string;
   workerSortMode?: WorkerSortMode;
 }) {
-  const filteredChats = useMemo(() => {
-    const filter = chatFilter.toLowerCase().trim();
-    if (!filter) return chats;
-    return chats.filter((chat) => {
-      const name = (chat.chatName || "").toLowerCase();
-      const id = (chat.chatId || "").toLowerCase();
-      return name.includes(filter) || id.includes(filter);
-    });
-  }, [chats, chatFilter]);
-
   const workerBaseOrderByKey = useMemo(
     () => new Map(workerRows.map((row, index) => [row.key, index])),
     [workerRows],
@@ -252,7 +242,6 @@ export function useLeftSidebarData({
   }, [historyRows, historySearch]);
 
   return {
-    filteredChats,
     filteredWorkerRows,
     workerBaseOrderByKey,
     workerIconsByKey,

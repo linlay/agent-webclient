@@ -649,10 +649,6 @@ describe("AgentChatShell", () => {
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
     expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_CONVERSATION_MODE",
-      mode: "worker",
-    });
-    expect(dispatch).toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
@@ -733,10 +729,6 @@ describe("AgentChatShell", () => {
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
     expect(getAgent).toHaveBeenCalledWith("demo-agent");
-    expect(dispatch).not.toHaveBeenCalledWith({
-      type: "SET_CONVERSATION_MODE",
-      mode: "worker",
-    });
     expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
@@ -832,10 +824,6 @@ describe("AgentChatShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_CONVERSATION_MODE",
-      mode: "worker",
-    });
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",

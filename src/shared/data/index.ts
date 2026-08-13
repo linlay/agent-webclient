@@ -64,7 +64,6 @@ export {
   saveMemoryScope,
   searchArchives,
   searchGlobal,
-  setTransportModeProvider,
   steerChat,
   submitAwaiting,
   submitFeedback,

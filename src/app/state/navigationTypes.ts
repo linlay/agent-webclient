@@ -117,8 +117,6 @@ export interface Team {
 
 export type WorkerListItem = Agent | Team;
 
-export type ConversationMode = "chat" | "worker";
-
 export interface WorkerRow {
 	key: string;
 	type: "agent" | "team";

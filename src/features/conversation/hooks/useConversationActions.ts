@@ -255,9 +255,6 @@ export function useConversationActions() {
     session.runId = session.runId || String(state.runId || '').trim();
     session.abortController = state.abortController;
     markSessionSnapshotApplied(session);
-    if (state.transportMode === 'sse') {
-      state.abortController?.abort();
-    }
 
     activeQuerySessionRequestIdRef.current = '';
     return session;
@@ -634,7 +631,6 @@ export function useConversationActions() {
       }
       if (detail.agentKey) {
         const workerKey = `agent:${detail.agentKey}`;
-        dispatch({ type: 'SET_CONVERSATION_MODE', mode: 'worker' });
         dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey });
         dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey });
       }

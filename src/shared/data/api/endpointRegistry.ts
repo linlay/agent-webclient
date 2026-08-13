@@ -3,7 +3,6 @@ export type EndpointMethod = "GET" | "POST" | "PUT" | "DELETE";
 export type EndpointTransport =
   | "http"
   | "auto"
-  | "sse"
   | "ws"
   | "ws-stream"
   | "resource"

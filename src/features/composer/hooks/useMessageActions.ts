@@ -14,7 +14,7 @@ import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
-import { resolveQueryStreamExecutor as resolveTransportQueryStreamExecutor } from "@/features/transport/lib/queryStreamExecutors";
+import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
 import {
   dispatchDetachRunEvent,
   type DetachRunEventDetail,
@@ -170,8 +170,6 @@ export function resolveDifferentChatDetachRunDetail(input: {
   };
 }
 
-export const resolveQueryStreamExecutor = resolveTransportQueryStreamExecutor;
-
 function normalizeQueryAccessLevel(
   value: unknown,
 ): QueryAccessLevel | undefined {
@@ -312,9 +310,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           currentActiveSession.abortController =
             stateRef.current.abortController;
           markSessionSnapshotApplied(currentActiveSession);
-        }
-        if (stateRef.current.transportMode === "sse") {
-          stateRef.current.abortController?.abort();
         }
         activeQuerySessionRequestIdRef.current = "";
         dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
@@ -637,7 +632,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       };
 
       try {
-        await resolveQueryStreamExecutor(stateRef.current.transportMode)({
+        await executeQueryStreamWs({
           params: {
             requestId,
             message: cleanMessage,

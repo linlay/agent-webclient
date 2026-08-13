@@ -844,10 +844,6 @@ describe("CopilotShell", () => {
     renderToStaticMarkup(React.createElement(CopilotShell));
 
     expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_CONVERSATION_MODE",
-      mode: "worker",
-    });
-    expect(dispatch).toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });

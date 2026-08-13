@@ -165,7 +165,6 @@ export type AppAction =
 	| { type: "REFRESH_WEB_PREVIEW"; url: string }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }
-	| { type: "SET_CONVERSATION_MODE"; mode: "chat" | "worker" }
 	| { type: "SET_WORKER_SELECTION_KEY"; workerKey: string }
 	| { type: "SET_WORKER_ROWS"; rows: WorkerRow[] }
 	| { type: "SET_WORKER_ORDER_KEYS"; workerOrderKeys: string[] }
@@ -175,7 +174,6 @@ export type AppAction =
 	| { type: "SET_WORKER_PRIORITY_KEY"; workerKey: string }
 	| { type: "SET_TEMPORARY_PINNED_AGENT_KEY"; agentKey: string }
 	| { type: "SET_THEME_MODE"; themeMode: AppState["themeMode"] }
-	| { type: "SET_TRANSPORT_MODE"; mode: AppState["transportMode"] }
 	| { type: "SET_WS_STATUS"; status: AppState["wsStatus"] }
 	| { type: "SET_WS_ERROR_MESSAGE"; message: AppState["wsErrorMessage"] }
 	| { type: "SET_ACCESS_TOKEN"; token: string }

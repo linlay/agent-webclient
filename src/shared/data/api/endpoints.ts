@@ -520,7 +520,7 @@ export const dataEndpoints = createEndpointRegistry({
     key: "runs.attach",
     path: "/api/attach",
     method: "GET",
-    transport: "sse",
+    transport: "ws",
     payload: buildAttachPayload,
   }),
   automation: defineEndpoint({
@@ -813,14 +813,14 @@ export const dataEndpoints = createEndpointRegistry({
     key: "runs.btw",
     path: "/api/btw",
     method: "POST",
-    transport: "sse",
+    transport: "ws",
     payload: buildBTWPayload,
   }),
   query: defineEndpoint<QueryStreamParams>({
     key: "runs.query",
     path: "/api/query",
     method: "POST",
-    transport: "sse",
+    transport: "ws",
     payload: buildQueryPayload,
   }),
   read: defineEndpoint({

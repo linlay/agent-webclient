@@ -473,7 +473,6 @@ export const CopilotShell: React.FC = () => {
 
     if (resolvedAgentKey) {
       const workerKey = `agent:${resolvedAgentKey}`;
-      dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
       dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
       dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey });
       dispatch({

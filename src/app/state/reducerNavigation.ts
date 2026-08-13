@@ -151,8 +151,6 @@ export function reduceNavigationState(
 		}
 		case "SET_CHAT_FILTER":
 			return { ...state, chatFilter: action.filter };
-		case "SET_CONVERSATION_MODE":
-			return { ...state, conversationMode: action.mode };
 		case "SET_WORKER_SELECTION_KEY":
 			return {
 				...state,

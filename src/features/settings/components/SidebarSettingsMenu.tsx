@@ -1,7 +1,6 @@
 import React from "react";
 import type {
   ThemeMode,
-  TransportMode,
   WsConnectionStatus,
 } from "@/app/state/types";
 import { t } from "@/shared/i18n";
@@ -50,23 +49,19 @@ export interface SidebarSettingsMenuProps {
 }
 
 export function resolveSettingsSummaryBadges(input: {
-  transportMode: TransportMode;
   themeMode: ThemeMode;
   wsStatus: WsConnectionStatus;
   wsErrorMessage?: string;
 }): SettingsSummaryBadge[] {
-  const transportLabel = input.transportMode === "ws" ? "WS" : "SSE";
+  const transportLabel = "WS";
   const wsDetail = String(input.wsErrorMessage || "").trim();
-  const transportTitle =
-    input.transportMode === "ws"
-      ? wsDetail
-        ? t("settingsMenu.summary.transport.wsError", { detail: wsDetail })
-        : input.wsStatus === "connecting"
-          ? t("settingsMenu.summary.transport.wsConnecting")
-          : input.wsStatus === "connected"
-            ? t("settingsMenu.summary.transport.wsConnected")
-            : t("settingsMenu.summary.transport.ws")
-      : t("settingsMenu.summary.transport.sse");
+  const transportTitle = wsDetail
+    ? t("settingsMenu.summary.transport.wsError", { detail: wsDetail })
+    : input.wsStatus === "connecting"
+      ? t("settingsMenu.summary.transport.wsConnecting")
+      : input.wsStatus === "connected"
+        ? t("settingsMenu.summary.transport.wsConnected")
+        : t("settingsMenu.summary.transport.ws");
 
   return [
     {

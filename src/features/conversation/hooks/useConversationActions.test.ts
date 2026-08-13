@@ -221,7 +221,6 @@ describe('replayEvent tool migration', () => {
       ...options.latestChat,
     };
 
-    state.conversationMode = 'worker';
     state.workerSelectionKey = worker.key;
     state.workerRows = [worker];
     state.workerIndexByKey = new Map([[worker.key, worker]]);

@@ -143,16 +143,8 @@ import {
 } from "@/shared/data/api/endpointRegistry";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { dataQueryCache } from "@/shared/data/query/serverState";
-import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 
-let getTransportMode: () => TransportModeValue = () => "ws";
-const transportClient = createTransportClient({
-	getMode: () => getTransportMode(),
-});
-
-export function setTransportModeProvider(provider: () => TransportModeValue): void {
-	getTransportMode = provider;
-}
+const transportClient = createTransportClient();
 
 type RouteRequestOptions<T> = Omit<TransportRequestOptions<T>, "fallback">;
 
@@ -284,7 +276,7 @@ export function getAgentFile(
 		params,
 		() => getAgentFileHttp(params),
 	).catch((error: unknown) => {
-		if (getTransportMode() !== "ws" || !isUnknownAgentFileWsRoute(error)) {
+		if (!isUnknownAgentFileWsRoute(error)) {
 			throw error;
 		}
 		return getAgentFileHttp(params);

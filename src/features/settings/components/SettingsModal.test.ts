@@ -1,13 +1,8 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import { SettingsModal, formatWsStatusText } from "@/features/settings/components/SettingsModal";
-import {
-  configureI18nRuntime,
-  DEFAULT_LOCALES,
-  getDefaultTermsForLocale,
-  I18nProvider,
-} from "@/shared/i18n";
+import { SettingsModal } from "@/features/settings/components/SettingsModal";
+import { I18nProvider } from "@/shared/i18n";
 
 jest.mock("antd", () => {
   const actual = jest.requireActual("antd");
@@ -64,34 +59,6 @@ const globalWithStorage = globalThis as typeof globalThis & {
   };
 };
 
-describe("formatWsStatusText", () => {
-  beforeEach(() => {
-    configureI18nRuntime({
-      locale: "en-US",
-      fallbackLocale: "en-US",
-      locales: DEFAULT_LOCALES,
-      terms: getDefaultTermsForLocale("en-US"),
-    });
-  });
-
-  it("shows the detailed websocket error when available", () => {
-    expect(
-      formatWsStatusText(
-        "error",
-        "WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
-      ),
-    ).toBe(
-      "WebSocket connection error: WebSocket handshake failed. Check that the access token is valid and that the backend has enabled /ws.",
-    );
-  });
-
-  it("falls back to generic status text when no error details exist", () => {
-    expect(formatWsStatusText("connected")).toBe("WebSocket connected");
-    expect(formatWsStatusText("connecting")).toBe("WebSocket connecting...");
-    expect(formatWsStatusText("disconnected")).toBe("WebSocket disconnected");
-  });
-});
-
 describe("SettingsModal", () => {
   const originalWindow = globalWithWindow.window;
   const originalLocalStorage = globalWithStorage.localStorage;
@@ -132,18 +99,14 @@ describe("SettingsModal", () => {
     );
   }
 
-  it("wraps conversation, theme, and transport controls in the preferences grid", () => {
+  it("wraps theme and language controls in the preferences grid", () => {
     const html = renderSettingsModal();
 
     expect(html).toContain("settings-preferences-grid");
-    expect(html).toContain("Conversation mode");
     expect(html).toContain("Theme");
     expect(html).toContain("Language");
     expect(html).toContain("Chinese");
     expect(html).toContain("English");
-    expect(html).toContain("Transport mode");
-    expect(html).toContain("SSE");
-    expect(html).toContain("WebSocket");
   });
 
   it("keeps the remaining controls in the preferences grid for desktop app mode", () => {
@@ -159,9 +122,7 @@ describe("SettingsModal", () => {
     const html = renderSettingsModal();
 
     expect(html).toContain("settings-preferences-grid");
-    expect(html).toContain("Conversation mode");
     expect(html).toContain("Language");
-    expect(html).toContain("Transport mode");
     expect(html).not.toContain("Theme");
   });
 
@@ -179,17 +140,4 @@ describe("SettingsModal", () => {
     expect(html).toContain("English");
   });
 
-  it("shows sse-specific transport guidance when sse is selected", () => {
-    const state = createInitialState();
-    useAppState.mockReturnValue({
-      ...state,
-      transportMode: "sse",
-    });
-
-    const html = renderSettingsModal();
-
-    expect(html).toContain(
-      "SSE is currently used for query streaming. Live synchronization is disabled, while regular APIs continue to work over HTTP.",
-    );
-  });
 });

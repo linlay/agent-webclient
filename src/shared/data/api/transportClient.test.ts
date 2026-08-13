@@ -47,16 +47,19 @@ describe("TransportClient", () => {
 		isAppModeMock.mockReturnValue(false);
 	});
 
-	it("uses the HTTP fallback when the active mode is not ws", async () => {
+	it("always routes through ws transport since sse is no longer supported", async () => {
 		const fallback = jest.fn().mockResolvedValue({ code: 0, data: "http" });
-		const client = createTransportClient({ getMode: () => "sse" });
+		const connect = jest.fn().mockResolvedValue(undefined);
+		const request = jest.fn().mockResolvedValue({ code: 0, data: "ws" });
+		getWsClientMock.mockReturnValue({ connect, request } as never);
+		const client = createTransportClient({ getMode: () => "ws" as const });
 
 		await expect(
 			client.request("/api/example", undefined, { fallback }),
-		).resolves.toEqual({ code: 0, data: "http" });
+		).resolves.toEqual({ code: 0, data: "ws" });
 
-		expect(fallback).toHaveBeenCalledTimes(1);
-		expect(getWsClientMock).not.toHaveBeenCalled();
+		expect(connect).toHaveBeenCalledTimes(1);
+		expect(fallback).not.toHaveBeenCalled();
 	});
 
 	it("routes request/response calls through the active ws client", async () => {

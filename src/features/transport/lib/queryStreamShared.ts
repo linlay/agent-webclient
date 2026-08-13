@@ -3,8 +3,6 @@ import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import {
   ApiError,
-  type AttachStreamParams,
-  type BTWStreamParams,
   type QueryStreamParams,
 } from "@/shared/data";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
@@ -14,36 +12,6 @@ export interface ExecuteQueryStreamOptions {
   dispatch: Dispatch<AppAction>;
   handleEvent: (event: AgentEvent) => void;
 }
-
-export interface ExecuteAttachRunOptions {
-  params: AttachStreamParams;
-  dispatch: Dispatch<AppAction>;
-  handleEvent: (event: AgentEvent) => void;
-}
-
-export interface BTWStreamIdentity {
-  btwId: string;
-  runId: string;
-}
-
-export interface ExecuteBTWStreamOptions {
-  params: BTWStreamParams;
-  dispatch: Dispatch<AppAction>;
-  handleEvent: (event: AgentEvent) => void;
-  onIdentity?: (identity: BTWStreamIdentity) => void;
-}
-
-export type QueryStreamExecutor = (
-  options: ExecuteQueryStreamOptions,
-) => Promise<void>;
-
-export type AttachStreamExecutor = (
-  options: ExecuteAttachRunOptions,
-) => Promise<void>;
-
-export type BTWStreamExecutor = (
-  options: ExecuteBTWStreamOptions,
-) => Promise<void>;
 
 export interface StreamAbortScope {
   abortController: AbortController;

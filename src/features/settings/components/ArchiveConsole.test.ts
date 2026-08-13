@@ -4,7 +4,7 @@ import {
 } from "@/features/settings/components/ArchiveConsole";
 
 describe("buildArchiveBulkCandidates", () => {
-	it("selects old chats from the current chat filter scope", () => {
+	it("selects chats older than the cutoff", () => {
 		const nowMs = Date.UTC(2026, 3, 29);
 		const candidates = buildArchiveBulkCandidates({
 			chats: [
@@ -28,17 +28,18 @@ describe("buildArchiveBulkCandidates", () => {
 				},
 			],
 			workerRelatedChats: [],
-			conversationMode: "chat",
 			workerSelectionKey: "",
-			chatFilter: "quarterly",
 			days: 30,
 			nowMs,
 		});
 
-		expect(candidates.map((item) => item.chatId)).toEqual(["chat_old"]);
+		expect(candidates.map((item) => item.chatId)).toEqual([
+			"chat_old",
+			"chat_other",
+		]);
 	});
 
-	it("uses selected worker related chats in worker mode", () => {
+	it("uses selected worker related chats when a worker is selected", () => {
 		const nowMs = Date.UTC(2026, 3, 29);
 		const candidates = buildArchiveBulkCandidates({
 			chats: [
@@ -57,9 +58,7 @@ describe("buildArchiveBulkCandidates", () => {
 					lastRunContent: "old",
 				},
 			],
-			conversationMode: "worker",
 			workerSelectionKey: "agent:a",
-			chatFilter: "",
 			days: 30,
 			nowMs,
 		});
@@ -78,9 +77,7 @@ describe("buildArchiveBulkCandidates", () => {
 				},
 			],
 			workerRelatedChats: [],
-			conversationMode: "chat",
 			workerSelectionKey: "",
-			chatFilter: "",
 			days: 30,
 			nowMs: Date.UTC(2026, 3, 29),
 		});

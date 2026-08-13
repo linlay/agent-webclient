@@ -19,7 +19,6 @@ import {
 } from "@/features/conversation/lib/liveEventCache";
 import { applyLiveEventCommand } from "@/features/conversation/lib/liveEventDispatch";
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
-import { executeAttachRunSse, executeBTWStreamSse } from "@/features/transport/lib/queryStreamRuntime.sse";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import {
@@ -52,6 +51,15 @@ interface BTWRuntime {
   session: BTWSessionState;
   cache: LocalCache;
   generation: number;
+}
+
+// TODO(ws-migration): BTW/attach 流能力尚未迁移到 WS，暂时保留占位实现并明确报错。
+async function executeBTWStreamStub(): Promise<never> {
+  throw new Error("SSE BTW is no longer supported. Use WS stream.");
+}
+
+async function executeAttachStreamStub(): Promise<never> {
+  throw new Error("SSE attach is no longer supported. Use WS stream.");
 }
 
 interface BTWContextValue {
@@ -423,20 +431,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         stream: true,
       };
       try {
-        await executeBTWStreamSse({
-          params,
-          dispatch: buildStreamDispatch(runtime, generation),
-          handleEvent: (event) => handleEvent(runtime, generation, event),
-          onIdentity: (identity) => {
-            if (!isCurrentRuntime(runtime, generation)) return;
-            if (identity.btwId) runtime.session.btwId = identity.btwId;
-            if (identity.runId) runtime.session.runId = identity.runId;
-            runtime.session.interruptReady = Boolean(
-              identity.runId && runtime.session.owner,
-            );
-            publish(runtime);
-          },
-        });
+        await executeBTWStreamStub();
       } catch (error) {
         if (!isCurrentRuntime(runtime, generation)) return true;
         const display = formatPlatformErrorForDisplay(error);
@@ -685,16 +680,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         controller: attachAbortController,
       });
       publish(runtime);
-      void executeAttachRunSse({
-        params: {
-          runId: session.runId,
-          owner,
-          lastSeq: 0,
-          signal: attachAbortController.signal,
-        },
-        dispatch: buildStreamDispatch(runtime, generation),
-        handleEvent: (event) => handleEvent(runtime, generation, event),
-      })
+      void executeAttachStreamStub()
         .catch((error) => {
           if (!isCurrentRuntime(runtime, generation)) return;
           const display = formatPlatformErrorForDisplay(error);

@@ -136,7 +136,6 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		},
 		activeReasoningKey: "",
 		chatFilter: "",
-		conversationMode: "worker",
 		workerSelectionKey: "",
 		workerRows: [],
 		workerIndexByKey: new Map(),
@@ -160,7 +159,6 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		activeFrontendTool: null,
 		activeAwaiting: null,
 		themeMode: "system",
-		transportMode: "ws",
 		wsStatus: "disconnected",
 		wsErrorMessage: "",
 		accessToken: "",
@@ -1412,7 +1410,7 @@ describe("registerAttachRunListener", () => {
 		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
+			stateRef: { current: createState() },
 			handleEvent,
 			activeAttachRef,
 			querySessionsRef,
@@ -1518,7 +1516,7 @@ describe("registerAttachRunListener", () => {
 		};
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
+			stateRef: { current: createState() },
 			handleEvent,
 			activeAttachRef: { current: null },
 			querySessionsRef,
@@ -1546,7 +1544,6 @@ describe("registerAttachRunListener", () => {
 			dispatch,
 			stateRef: {
 				current: createState({
-					transportMode: "ws",
 					chatAgentById: new Map([["chat_1", "agent_chat"]]),
 					runAgentById: new Map([["run_1", "agent_run"]]),
 					currentRunAgentKey: "agent_current",
@@ -1588,7 +1585,6 @@ describe("registerAttachRunListener", () => {
 			dispatch,
 			stateRef: {
 				current: createState({
-					transportMode: "ws",
 					chats: [{
 						chatId: "chat_team",
 						teamId: "team_1",
@@ -1632,7 +1628,7 @@ describe("registerAttachRunListener", () => {
 		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
+			stateRef: { current: createState() },
 			handleEvent,
 			activeAttachRef,
 			querySessionsRef,
@@ -1693,7 +1689,7 @@ describe("registerAttachRunListener", () => {
 		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
+			stateRef: { current: createState() },
 			handleEvent,
 			activeAttachRef,
 			querySessionsRef,
@@ -1751,7 +1747,7 @@ describe("registerAttachRunListener", () => {
 		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
+			stateRef: { current: createState() },
 			handleEvent,
 			activeAttachRef,
 			querySessionsRef,
@@ -1813,7 +1809,7 @@ describe("registerAttachRunListener", () => {
 		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
+			stateRef: { current: createState() },
 			handleEvent,
 			activeAttachRef,
 			querySessionsRef,
@@ -1871,7 +1867,7 @@ describe("registerAttachRunListener", () => {
 		const activeQuerySessionRequestIdRef = { current: "" };
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState({ transportMode: "ws" }) },
+			stateRef: { current: createState() },
 			handleEvent,
 			activeAttachRef,
 			querySessionsRef,

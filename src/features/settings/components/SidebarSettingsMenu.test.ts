@@ -14,7 +14,6 @@ describe("resolveSettingsSummaryBadges", () => {
   it("returns compact badges for transport and theme", () => {
     expect(
       resolveSettingsSummaryBadges({
-        transportMode: "ws",
         themeMode: "dark",
         wsStatus: "connected",
       }),

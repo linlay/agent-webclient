@@ -5,7 +5,6 @@ import { useConversationEventHandler } from "@/features/conversation/hooks/useCo
 import { useMessageActions } from "@/features/composer/hooks/useMessageActions";
 import { useMemoryRecordsInitialization } from "@/features/settings/hooks/useMemoryRecordsInitialization";
 import { useActionRuntime } from "@/features/tools/hooks/useActionRuntime";
-import { useConversationSseAttachRuntime } from "@/features/conversation/hooks/useConversationSseAttachRuntime";
 import { useConversationWsRuntime } from "@/features/conversation/hooks/useConversationWsRuntime";
 import { useVoiceChatRuntime } from "@/features/voice/hooks/useVoiceChatRuntime";
 import { useVoiceRuntime } from "@/features/voice/hooks/useVoiceRuntime";
@@ -16,7 +15,6 @@ export function useAppRuntimes(): void {
   useMainChatRunActivation();
   const { handleEvent } = useConversationEventHandler();
   useConversationWsRuntime({ onAgentEvent: handleEvent });
-  useConversationSseAttachRuntime({ onAgentEvent: handleEvent });
   const conversationActions = useConversationActions();
   const { selectWorkerConversation } = useWorkerConversationSelection(conversationActions);
   useWorkerData({

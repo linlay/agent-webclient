@@ -4,21 +4,13 @@ import {
   applyActionToStateRef,
   createInitialState,
   syncApiAccessToken,
-  syncTransportModeProvider,
 } from '@/app/state/AppContext';
 import { MAX_EVENTS } from '@/app/state/constants';
-import * as transportModeModule from '@/features/transport/lib/transportMode';
 
 jest.mock('@/shared/data', () => ({
-  setTransportModeProvider: jest.fn(),
   setAccessToken: jest.fn(),
 }));
 
-const { setTransportModeProvider } = jest.requireMock(
-  '@/shared/data',
-) as {
-  setTransportModeProvider: jest.Mock;
-};
 const { setAccessToken } = jest.requireMock('@/shared/data') as {
   setAccessToken: jest.Mock;
 };
@@ -31,7 +23,6 @@ describe('appReducer conversation reset behavior', () => {
   const originalWindow = globalThis.window;
 
   beforeEach(() => {
-    setTransportModeProvider.mockClear();
     setAccessToken.mockClear();
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -155,74 +146,6 @@ describe('appReducer conversation reset behavior', () => {
     const state = createInitialState();
 
     expect(state.themeMode).toBe('dark');
-  });
-
-  it('hydrates the initial transport mode from localStorage', () => {
-    jest
-      .spyOn(transportModeModule, 'readStoredTransportMode')
-      .mockReturnValue('sse');
-
-    const state = createInitialState();
-
-    expect(state.transportMode).toBe('sse');
-    expect(state.wsStatus).toBe('disconnected');
-    expect(state.wsErrorMessage).toBe('');
-  });
-
-  it('ignores stored sse transport mode in desktop app mode', () => {
-    jest
-      .spyOn(transportModeModule, 'readStoredTransportMode')
-      .mockReturnValue('sse');
-    (globalThis as unknown as { window?: Window & typeof globalThis }).window =
-      {
-        location: {
-          pathname: '/',
-          search: '',
-        },
-        sessionStorage: {
-          getItem: () => null,
-          setItem: () => undefined,
-          removeItem: () => undefined,
-        },
-      } as Window & typeof globalThis;
-    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      DESKTOP_APP: 'true',
-    };
-
-    const state = createInitialState();
-
-    expect(state.transportMode).toBe('ws');
-  });
-
-  it('defaults the initial transport mode to ws when nothing is stored', () => {
-    jest
-      .spyOn(transportModeModule, 'readStoredTransportMode')
-      .mockReturnValue(null);
-
-    const state = createInitialState();
-
-    expect(state.transportMode).toBe('ws');
-  });
-
-  it('registers the API proxy transport provider from the current app state ref', () => {
-    const stateRef = {
-      current: {
-        ...createInitialState(),
-        transportMode: 'sse' as const,
-      },
-    };
-
-    syncTransportModeProvider(stateRef);
-
-    expect(setTransportModeProvider).toHaveBeenCalledTimes(1);
-    const provider = setTransportModeProvider.mock.calls[0][0] as () => 'sse' | 'ws';
-    expect(provider()).toBe('sse');
-
-    stateRef.current = {
-      ...stateRef.current,
-      transportMode: 'ws',
-    };
-    expect(provider()).toBe('ws');
   });
 
   it('syncs the current app access token into the API client module', () => {
@@ -954,19 +877,14 @@ describe('appReducer conversation reset behavior', () => {
     expect(next.themeMode).toBe('dark');
   });
 
-  it('updates transport mode and ws status through the reducer', () => {
+  it('updates ws status through the reducer', () => {
     const baseState = createInitialState();
 
-    const nextMode = appReducer(baseState, {
-      type: 'SET_TRANSPORT_MODE',
-      mode: 'sse',
-    });
-    const nextStatus = appReducer(nextMode, {
+    const nextStatus = appReducer(baseState, {
       type: 'SET_WS_STATUS',
       status: 'connected',
     });
 
-    expect(nextMode.transportMode).toBe('sse');
     expect(nextStatus.wsStatus).toBe('connected');
     expect(nextStatus.wsErrorMessage).toBe('');
   });
@@ -992,25 +910,12 @@ describe('appReducer conversation reset behavior', () => {
       type: 'SET_ACCESS_TOKEN',
       token: 'token_1',
     });
-    const resetByMode = appReducer(
-      {
-        ...errored,
-        wsStatus: 'error',
-      },
-      {
-        type: 'SET_TRANSPORT_MODE',
-        mode: 'sse',
-      },
-    );
 
     expect(errored.wsErrorMessage).toBe(
       'WebSocket 握手失败，请检查 Access Token 是否有效。',
     );
     expect(connected.wsErrorMessage).toBe('');
     expect(resetByToken.wsErrorMessage).toBe('');
-    expect(resetByMode.wsErrorMessage).toBe('');
-    expect(resetByMode.wsStatus).toBe('disconnected');
-    expect(resetByMode.transportMode).toBe('sse');
   });
 
   it('resets voice chat runtime state and input mode during conversation reset', () => {

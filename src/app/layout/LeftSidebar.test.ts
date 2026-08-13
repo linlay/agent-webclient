@@ -420,7 +420,6 @@ describe("LeftSidebar", () => {
 
     return {
       ...state,
-      conversationMode: "worker",
       leftDrawerOpen: false,
       workerSelectionKey: workerRow.key,
       workerRows: [workerRow],
@@ -500,37 +499,6 @@ describe("LeftSidebar", () => {
       | undefined;
   }
 
-  function createChatListState(): AppState {
-    const state = createInitialState();
-    return {
-      ...state,
-      conversationMode: "chat",
-      leftDrawerOpen: true,
-      chats: [
-        {
-          chatId: "chat_pending",
-          chatName: "Pending Chat",
-          updatedAt: 1713781200000,
-          agentKey: "worker_a",
-          firstAgentKey: "worker_a",
-          read: {
-            isRead: false,
-          },
-          hasPendingAwaiting: true,
-        },
-      ],
-      agents: [
-        {
-          key: "worker_a",
-          name: "Alpha Agent",
-          stats: {
-            unreadCount: 1,
-          },
-        },
-      ],
-    };
-  }
-
   beforeEach(() => {
     antdButtonProps.length = 0;
     antdCollapseProps.length = 0;
@@ -574,7 +542,6 @@ describe("LeftSidebar", () => {
     mockState({
       ...state,
       leftDrawerOpen: true,
-      transportMode: "sse",
       themeMode: "dark",
     });
     delete globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
@@ -621,7 +588,7 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain('id="settings-btn"');
     expect(html).toContain("打开设置菜单");
-    expect(html).toContain(">SSE<");
+    expect(html).toContain(">WS<");
     expect(html).toContain(">夜<");
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");
@@ -1065,7 +1032,6 @@ describe("LeftSidebar", () => {
       state: {
         ...state,
         leftDrawerOpen: true,
-        conversationMode: "worker",
       },
       dispatch,
       stateRef: { current: state },
@@ -1109,7 +1075,6 @@ describe("LeftSidebar", () => {
       state: {
         ...state,
         leftDrawerOpen: true,
-        conversationMode: "worker",
       },
       dispatch,
       stateRef: { current: state },
@@ -1344,7 +1309,6 @@ describe("LeftSidebar", () => {
 
   it("hides the config directory action for non-agent workers", () => {
     const state = createInitialState();
-    state.conversationMode = "worker";
     state.leftDrawerOpen = true;
     const teamRow = {
       key: "team:team_ops",
@@ -1649,17 +1613,12 @@ describe("LeftSidebar", () => {
     expect(html).toContain("查看更多（共 12 条，未读 3 条）");
   });
 
-  it("renders unread badges for worker and chat rows", () => {
+  it("renders unread badges for worker rows", () => {
     mockState(createWorkerState());
 
     const workerHtml = renderSidebar();
     expect(workerHtml).toContain('data-badge-dot="true"');
     expect(workerHtml).toMatch(/chat-unread-dot[^"]*\bis-unread\b[^"]*\btw:opacity-100\b/);
-
-    mockState(createChatListState());
-    const chatHtml = renderSidebar();
-    expect(chatHtml).toContain("is-unread");
-    expect(chatHtml).toContain("chat-unread-dot");
   });
 
   it("marks accordion worker selection as preferring a new chat", () => {
@@ -1774,17 +1733,6 @@ describe("LeftSidebar", () => {
       focusComposerOnComplete: true,
     });
     expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
-  });
-
-  it("renders unread chat rows in the chat list", () => {
-    mockState(createChatListState());
-
-    const html = renderSidebar();
-
-    expect(html).toContain('class="ui-list-item is-dense chat-item  is-unread"');
-    expect(html).toMatch(
-      /class="[^"]*\bchat-unread-dot\b[^"]*\bis-unread\b[^"]*\btw:opacity-100\b[^"]*"/,
-    );
   });
 
   it("renders an automation source icon before worker chat time", () => {

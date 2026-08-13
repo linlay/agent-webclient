@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { ConfigProvider, theme as antdTheme, App as AntdApp } from "antd";
 import {
   createBrowserRouter,
@@ -37,11 +37,9 @@ import { McpServersPage } from "./pages/mcp-servers";
 import { SkillsPage } from "./pages/skills";
 import { ProjectPage } from "./pages/project";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
-import { setTransportModeProvider } from "@/shared/data/api/routedClient";
-import { resolveRouteDataTransportMode } from "./routeDataTransport";
+import { BtwProvider } from "@/features/btw/components/BtwProvider";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
-import { BtwProvider } from "@/features/btw/components/BtwProvider";
 import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
@@ -57,15 +55,6 @@ const BaseShell = () => {
   const { dispatch, stateRef } = useAppContext();
   const { locale, setLocale } = useI18n();
   const hadUrlThemeOverrideRef = useRef(false);
-
-  useLayoutEffect(() => {
-    setTransportModeProvider(() =>
-      resolveRouteDataTransportMode(
-        location.pathname,
-        stateRef.current.transportMode,
-      ),
-    );
-  }, [location.pathname, stateRef]);
 
   useEffect(() => {
     const urlThemeMode = readThemeModeFromUrl(location.search);

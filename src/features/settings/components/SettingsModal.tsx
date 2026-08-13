@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  useOptionalAppContext,
   useAppState,
   useAppDispatch,
 } from "@/app/state/AppContext";
 import { Modal } from "antd";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
 import type {
-  ConversationMode,
   ThemeMode,
-  TransportMode,
   VoiceClientGateConfig,
 } from "@/app/state/types";
 import { getCurrentAccessToken, setAccessToken } from "@/shared/data";
@@ -28,13 +25,10 @@ import {
 } from "@/features/settings/lib/settingsClientGateDrafts";
 import { useI18n } from "@/shared/i18n";
 import type { Locale } from "@/shared/i18n";
-import { SettingsTransport } from "@/features/settings/components/SettingsTransport";
 import { SettingsToken } from "@/features/settings/components/SettingsToken";
 import { SettingsClientGate } from "@/features/settings/components/SettingsClientGate";
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
-import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
-export { formatWsStatusText } from "@/features/settings/lib/formatWsStatusText";
 
 const SETTINGS_CARD_CLASS_NAME =
   "settings-card tw:max-h-[min(82vh,860px)] tw:w-full tw:overflow-auto";
@@ -52,14 +46,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const appContext = useOptionalAppContext();
-  const mainChatRunning = appContext
-    ? resolveMainChatRuntime(
-        appContext.stateRef,
-        appContext.activeQuerySessionRequestIdRef,
-        appContext.querySessionsRef,
-      ).running
-    : false;
   const { locale, setLocale, t } = useI18n();
   const appMode = isAppMode();
   const isDesktopApp = isDesktopAppMode();
@@ -158,21 +144,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     [setLocale],
   );
 
-  const handleConversationModeChange = useCallback((mode: ConversationMode) => {
-    window.dispatchEvent(
-      new CustomEvent("agent:set-conversation-mode", {
-        detail: { mode },
-      }),
-    );
-  }, []);
-
-  const handleTransportModeChange = useCallback(
-    (transportMode: TransportMode) => {
-      dispatch({ type: "SET_TRANSPORT_MODE", mode: transportMode });
-    },
-    [dispatch],
-  );
-
   const handleClientGateDraftChange = useCallback(
     (field: ClientGateDraftField, value: string) => {
       setClientGateDrafts((current) => ({
@@ -256,39 +227,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     >
       <div className={SETTINGS_CARD_CLASS_NAME}>
         <div className={SETTINGS_PREFERENCES_GRID_CLASS_NAME}>
-          <div className="field-group">
-            <label>{t("settings.conversationMode.label")}</label>
-            <div
-              className="settings-segmented"
-              role="tablist"
-              aria-label={t("settings.conversationMode.label")}
-            >
-              <UiButton
-                variant="ghost"
-                size="sm"
-                className={`settings-segmented-btn ${state.conversationMode === "worker" ? "is-active" : ""}`}
-                role="tab"
-                aria-selected={state.conversationMode === "worker"}
-                active={state.conversationMode === "worker"}
-                onClick={() => handleConversationModeChange("worker")}
-              >
-                {t("settings.conversationMode.worker")}
-              </UiButton>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                className={`settings-segmented-btn ${state.conversationMode === "chat" ? "is-active" : ""}`}
-                role="tab"
-                aria-selected={state.conversationMode === "chat"}
-                active={state.conversationMode === "chat"}
-                onClick={() => handleConversationModeChange("chat")}
-              >
-                {t("settings.conversationMode.chat")}
-              </UiButton>
-            </div>
-            <p className="settings-hint">{t("settings.conversationMode.hint")}</p>
-          </div>
-
           {!isDesktopApp && (
             <div className="field-group">
               <label>{t("settings.theme.label")}</label>
@@ -356,14 +294,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <p className="settings-hint">{t("settings.language.hint")}</p>
           </div>
-
-          <SettingsTransport
-            transportMode={state.transportMode}
-            wsStatus={state.wsStatus}
-            wsErrorMessage={state.wsErrorMessage}
-            streaming={mainChatRunning}
-            onTransportModeChange={handleTransportModeChange}
-          />
         </div>
 
         <SettingsToken

@@ -379,19 +379,6 @@ export function useWorkerData(input: {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const mode = (e as CustomEvent).detail?.mode === 'worker' ? 'worker' : 'chat';
-      dispatch({ type: 'SET_CONVERSATION_MODE', mode });
-      dispatch({ type: 'SET_WORKER_CHAT_PANEL_COLLAPSED', collapsed: true });
-      if (mode === 'worker') {
-        rebuildWorkerRowsFromState();
-      }
-    };
-    window.addEventListener('agent:set-conversation-mode', handler);
-    return () => window.removeEventListener('agent:set-conversation-mode', handler);
-  }, [dispatch, rebuildWorkerRowsFromState]);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
       const detail = ((e as CustomEvent).detail || {}) as {
         workerKey?: string;
         agentKey?: string;

@@ -495,7 +495,6 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
 
-    dispatch({ type: "SET_CONVERSATION_MODE", mode: "worker" });
     dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });

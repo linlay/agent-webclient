@@ -9,7 +9,6 @@ import {
 import { isAppMode } from "@/shared/utils/routing";
 import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrProtocol";
 import { resolveInitialThemeMode } from "@/shared/styles/theme";
-import { readStoredTransportMode } from "@/features/transport/lib/transportMode";
 import { restoreTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import { restoreComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
@@ -51,7 +50,6 @@ export function createInitialState(): AppState {
 		: readStoredAccessToken();
 	const restoredDrafts = gatewayMode ? restoreComposerDrafts() : null;
 	const themeMode = resolveInitialThemeMode();
-	const transportMode = appMode ? "ws" : readStoredTransportMode() || "ws";
 
 	return {
 		agents: [],
@@ -105,7 +103,6 @@ export function createInitialState(): AppState {
 		},
 		activeReasoningKey: "",
 		chatFilter: "",
-		conversationMode: "worker",
 		workerSelectionKey: "",
 		workerRows: [],
 		workerOrderKeys: [],
@@ -170,7 +167,6 @@ export function createInitialState(): AppState {
 		activeAwaiting: null,
 		pendingAwaitings: [],
 		themeMode,
-		transportMode,
 		wsStatus: "disconnected",
 		wsErrorMessage: "",
 		accessToken: storedToken,

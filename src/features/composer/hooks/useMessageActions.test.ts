@@ -4,13 +4,11 @@ import { createInitialState } from "@/app/state/state";
 import {
   canSendToTargetChat,
   resolveDifferentChatDetachRunDetail,
-  resolveQueryStreamExecutor,
   normalizeQueryModelOverride,
   syncLiveSessionTerminalState,
   useMessageActions,
 } from "@/features/composer/hooks/useMessageActions";
 import type { WorkerRow } from "@/app/state/types";
-import { executeQueryStreamSse } from "@/features/transport/lib/queryStreamRuntime.sse";
 import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
 
 function createDetachTestState(overrides: Record<string, unknown> = {}) {
@@ -25,10 +23,6 @@ function createDetachTestState(overrides: Record<string, unknown> = {}) {
     ...overrides,
   } as never;
 }
-
-jest.mock("@/features/transport/lib/queryStreamRuntime.sse", () => ({
-  executeQueryStreamSse: jest.fn(),
-}));
 
 jest.mock("@/features/transport/lib/queryStreamRuntime.ws", () => ({
   executeQueryStreamWs: jest.fn(),
@@ -57,13 +51,9 @@ const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
   useAppContext: jest.Mock;
 };
 
-describe("resolveQueryStreamExecutor", () => {
-  it("returns the sse executor for sse mode", () => {
-    expect(resolveQueryStreamExecutor("sse")).toBe(executeQueryStreamSse);
-  });
-
-  it("returns the ws executor for ws mode", () => {
-    expect(resolveQueryStreamExecutor("ws")).toBe(executeQueryStreamWs);
+describe("executeQueryStreamWs", () => {
+  it("is the single query stream executor", () => {
+    expect(executeQueryStreamWs).toEqual(expect.any(Function));
   });
 });
 
@@ -112,7 +102,6 @@ describe("useMessageActions temporary pin", () => {
     state.workerRows = [worker];
     state.workerIndexByKey = new Map([[worker.key, worker]]);
     state.temporaryPinnedAgentKey = "agent-coder";
-    state.transportMode = "ws";
     const dispatch = jest.fn();
     useAppContext.mockReturnValue({
       state,
@@ -169,7 +158,6 @@ describe("useMessageActions temporary pin", () => {
       agentKey: "agent_a",
     };
     state.chatAgentById = new Map([["chat_1", "agent_a"]]);
-    state.transportMode = "ws";
     const dispatch = jest.fn();
     useAppContext.mockReturnValue({
       state,
@@ -219,7 +207,6 @@ describe("useMessageActions temporary pin", () => {
     state.workerRows = [worker];
     state.workerIndexByKey = new Map([[worker.key, worker]]);
     state.editingMode = true;
-    state.transportMode = "ws";
     const dispatch = jest.fn();
     const activeRequest = { current: "" };
     useAppContext.mockReturnValue({

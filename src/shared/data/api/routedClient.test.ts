@@ -206,7 +206,6 @@ describe("routedClient", () => {
 
 	it("routes request/response calls over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -234,7 +233,6 @@ describe("routedClient", () => {
 
 	it("routes mixed agent and team filters over ws payload", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -268,7 +266,6 @@ describe("routedClient", () => {
 
 	it("routes agent skills over ws with an agentKey payload", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -295,7 +292,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when the agent skills ws transport disconnects", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		mockGetWsClient.mockReturnValue({
 			connect: jest.fn().mockResolvedValue(undefined),
 			updateOptions: jest.fn(),
@@ -316,7 +312,6 @@ describe("routedClient", () => {
 
 	it("does not hide agent skills business errors behind an http fallback", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const error = new mockApiClient.ApiError("agent not found", {
 			status: 404,
 			code: "agent_not_found",
@@ -335,7 +330,6 @@ describe("routedClient", () => {
 
 	it("caches agent skills independently by agentKey", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const request = jest.fn(({ payload }: { payload?: { agentKey?: string } }) =>
 			Promise.resolve({
 				status: 200,
@@ -364,7 +358,6 @@ describe("routedClient", () => {
 
 	it("dedupes cached GET endpoints and reuses fresh route responses", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -404,7 +397,6 @@ describe("routedClient", () => {
 
 	it("invalidates route cache after agent mutations", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -439,7 +431,6 @@ describe("routedClient", () => {
 
 	it("routes agent order reads and writes over ws", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest
@@ -480,7 +471,6 @@ describe("routedClient", () => {
 
 	it("keeps automation management calls on http even when ws mode is selected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -583,7 +573,6 @@ describe("routedClient", () => {
 
 	it("keeps agent CRUD on http and routes model config over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -658,7 +647,6 @@ describe("routedClient", () => {
 
 	it("forwards updateAgentName to http and invalidates cached routes", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -701,7 +689,6 @@ describe("routedClient", () => {
 
 	it("forwards openAgentDirectory to http with the registered directory identity", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		mockApiClient.openAgentDirectory.mockResolvedValue({
 			status: 200,
 			code: 0,
@@ -736,7 +723,6 @@ describe("routedClient", () => {
 
 	it("routes memory console calls over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -846,7 +832,6 @@ describe("routedClient", () => {
 
 	it("initializes a ws client when ws mode is selected before transport bootstraps", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -879,7 +864,6 @@ describe("routedClient", () => {
 
 	it("waits for a disconnected ws client instead of falling back to http", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -905,7 +889,6 @@ describe("routedClient", () => {
 
 	it("uses the current singleton when the initial ws client is replaced before request", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		let currentSingleton: {
 			connect: jest.Mock;
@@ -950,7 +933,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when agents websocket connect fails", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket connection failed");
 		mockGetWsClient.mockReturnValue({
@@ -974,7 +956,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when teams websocket connect fails", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket connection failed");
 		mockGetWsClient.mockReturnValue({
@@ -998,7 +979,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when chats websocket connect fails", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket connection failed");
 		mockGetWsClient.mockReturnValue({
@@ -1022,7 +1002,6 @@ describe("routedClient", () => {
 
 	it("normalizes chat summaries returned from ws /api/chats responses", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1078,7 +1057,6 @@ describe("routedClient", () => {
 
 	it("routes chat history loads over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1108,7 +1086,6 @@ describe("routedClient", () => {
 
 	it("routes raw chat jsonl loads over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1138,7 +1115,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when raw chat jsonl ws request disconnects", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const request = jest
 			.fn()
@@ -1164,7 +1140,6 @@ describe("routedClient", () => {
 
 	it("routes agent file details over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const params = { agentKey: "coder-agent", path: "Dockerfile" };
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1191,28 +1166,8 @@ describe("routedClient", () => {
 		expect(mockApiClient.getAgentFile).not.toHaveBeenCalled();
 	});
 
-	it("uses HTTP for agent file details outside ws mode", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		const params = { agentKey: "coder-agent", path: "nginx.conf" };
-		mockApiClient.getAgentFile.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { ...params, name: "nginx.conf", contentKind: "text", content: "events {}", sizeBytes: 9, truncated: false },
-		});
-
-		await expect(proxy.getAgentFile(params)).resolves.toMatchObject({
-			data: { name: "nginx.conf" },
-		});
-
-		expect(mockApiClient.getAgentFile).toHaveBeenCalledWith(params);
-		expect(mockGetWsClient).not.toHaveBeenCalled();
-	});
-
 	it("falls back to HTTP when an agent file ws request disconnects", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const params = { agentKey: "coder-agent", path: ".env.example" };
 		const request = jest
 			.fn()
@@ -1240,7 +1195,6 @@ describe("routedClient", () => {
 
 	it("falls back to HTTP when the current server has no agent file ws route", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const params = { agentKey: "coder-agent", path: "jest.config.cjs" };
 		const request = jest.fn().mockRejectedValue(
 			new mockApiClient.ApiError("unknown type: /api/file", {
@@ -1270,7 +1224,6 @@ describe("routedClient", () => {
 
 	it("does not hide real agent file api errors behind an HTTP retry", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const params = { agentKey: "coder-agent", path: "missing.ts" };
 		const error = new mockApiClient.ApiError("file not found", {
 			status: 404,
@@ -1289,7 +1242,6 @@ describe("routedClient", () => {
 
 	it("routes persisted run system prompts over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const params = { chatId: "chat_1", runId: "run_1", agentKey: "agent_1" };
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1323,7 +1275,6 @@ describe("routedClient", () => {
 
 	it("falls back to HTTP when the system prompt ws request disconnects", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const params = { chatId: "chat_1", runId: "run_1", agentKey: "agent_1" };
 		const request = jest.fn().mockRejectedValue(new WsClientDisconnectedError());
 		mockGetWsClient.mockReturnValue({
@@ -1354,32 +1305,8 @@ describe("routedClient", () => {
 		expect(mockApiClient.getChatSystemPrompt).toHaveBeenCalledWith(params);
 	});
 
-	it("uses HTTP for persisted run system prompts outside ws mode", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		const params = { chatId: "chat_1", runId: "run_1", agentKey: "agent_1" };
-		mockApiClient.getChatSystemPrompt.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: {
-				...params,
-				systemRef: { agentKey: params.agentKey, cacheKey: "react:main", fingerprint: "sha256:test" },
-				systemMessage: { role: "system", content: "persisted prompt" },
-			},
-		});
-
-		await expect(proxy.getChatSystemPrompt(params)).resolves.toMatchObject({
-			data: { systemMessage: { content: "persisted prompt" } },
-		});
-
-		expect(mockApiClient.getChatSystemPrompt).toHaveBeenCalledWith(params);
-		expect(mockGetWsClient).not.toHaveBeenCalled();
-	});
-
 	it("does not fall back to HTTP when the system prompt ws request returns an API error", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const params = { chatId: "chat_1", runId: "run_missing", agentKey: "agent_1" };
 		const error = new mockApiClient.ApiError("system prompt not found", {
 			status: 404,
@@ -1404,7 +1331,6 @@ describe("routedClient", () => {
 
 	it("routes raw llm trace loads over ws when connected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1434,7 +1360,6 @@ describe("routedClient", () => {
 
 	it("normalizes object raw llm trace ws responses to json text", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const tracePayload = {
 			request: {
@@ -1469,7 +1394,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when raw llm trace ws request disconnects", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const request = jest
 			.fn()
@@ -1495,7 +1419,6 @@ describe("routedClient", () => {
 
 	it("routes markChatRead over ws without falling back to http", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1531,7 +1454,6 @@ describe("routedClient", () => {
 
 	it("routes access level updates over ws without falling back to http", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1584,7 +1506,6 @@ describe("routedClient", () => {
 
 	it("refreshes the app token once when a ws action connect fails", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const firstConnect = jest.fn().mockRejectedValue(
 			new WsClientDisconnectedError("WebSocket connection failed"),
@@ -1636,7 +1557,6 @@ describe("routedClient", () => {
 
 	it("routes chat action requests over ws", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
@@ -1732,7 +1652,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when derive chat websocket connect fails", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const connect = jest.fn().mockRejectedValue(new Error("ws unavailable"));
 		const request = jest.fn();
@@ -1764,7 +1683,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when a read-only ws request times out", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientRequestTimeoutError(
 			"WebSocket request timeout: /api/agents",
@@ -1791,7 +1709,6 @@ describe("routedClient", () => {
 
 	it("falls back to http when a read-only ws request disconnects after connect", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError("WebSocket transport disconnected");
 		const request = jest.fn().mockRejectedValue(error);
@@ -1816,7 +1733,6 @@ describe("routedClient", () => {
 
 	it("does not fall back for read-only requests when ws returns an ApiError", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new mockApiClient.ApiError("bad request", {
 			status: 400,
@@ -1836,7 +1752,6 @@ describe("routedClient", () => {
 
 	it("does not fall back for side-effect requests when ws transport fails", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 
 		const error = new WsClientDisconnectedError();
 		const request = jest.fn().mockRejectedValue(error);
@@ -1860,7 +1775,6 @@ describe("routedClient", () => {
 
 	it("keeps ordinary requests on websocket transport when ws mode is selected", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "ws");
 		const connect = jest.fn().mockResolvedValue(undefined);
 		const request = jest.fn().mockResolvedValue({
 			status: 200,
@@ -1895,92 +1809,8 @@ describe("routedClient", () => {
 		expect(proxy.downloadResource).toBe(mockApiClient.downloadResource);
 	});
 
-	it("routes ordinary api requests over http when sse mode is selected", async () => {
+	it("routes automation management over ws transport", async () => {
 		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.getAgents.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: ["http"],
-		});
-
-		await expect(proxy.getAgents()).resolves.toMatchObject({
-			data: ["http"],
-		});
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.getAgents).toHaveBeenCalledTimes(1);
-	});
-
-	it("routes getAgent over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.getAgent.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { agentKey: "agent_1" },
-		});
-
-		await expect(proxy.getAgent("agent_1")).resolves.toMatchObject({
-			data: { agentKey: "agent_1" },
-		});
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.getAgent).toHaveBeenCalledWith("agent_1");
-	});
-
-	it("routes agent skills over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.getAgentSkills.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { agentKey: "mock-agent", skills: [] },
-		});
-
-		await proxy.getAgentSkills("mock-agent");
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.getAgentSkills).toHaveBeenCalledWith("mock-agent");
-	});
-
-	it("routes getChat over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.getChat.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { chatId: "chat_1", events: [] },
-		});
-
-		await expect(proxy.getChat("chat_1", false)).resolves.toMatchObject({
-			data: { chatId: "chat_1", events: [] },
-		});
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.getChat).toHaveBeenCalledWith("chat_1", false);
-	});
-
-	it("routes raw chat jsonl over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.getChatRawJsonl.mockResolvedValue('{"_type":"query"}\n');
-
-		await expect(proxy.getChatRawJsonl("chat_1")).resolves.toBe(
-			'{"_type":"query"}\n',
-		);
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.getChatRawJsonl).toHaveBeenCalledWith("chat_1");
-	});
-
-	it("routes automation management over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
 		mockApiClient.getAutomations.mockResolvedValue({
 			status: 200,
 			code: 0,
@@ -2011,257 +1841,4 @@ describe("routedClient", () => {
 		});
 	});
 
-	it("routes agent management over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.createAgent.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { key: "editable-agent" },
-		});
-		mockApiClient.deleteAgent.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { key: "editable-agent", deleted: true },
-		});
-		mockApiClient.getModelOptions.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { models: [{ key: "coder-model" }], reasoningEfforts: [] },
-		});
-
-		await expect(
-			proxy.createAgent({
-				key: "editable-agent",
-				definition: { key: "editable-agent", name: "Editable Agent" },
-			}),
-		).resolves.toMatchObject({
-			data: { key: "editable-agent" },
-		});
-		await expect(
-			proxy.deleteAgent({ key: "editable-agent" }),
-		).resolves.toMatchObject({
-			data: { key: "editable-agent", deleted: true },
-		});
-		await expect(proxy.getModelOptions()).resolves.toMatchObject({
-			data: { models: [{ key: "coder-model" }] },
-		});
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.createAgent).toHaveBeenCalledWith({
-			key: "editable-agent",
-			definition: { key: "editable-agent", name: "Editable Agent" },
-		});
-		expect(mockApiClient.deleteAgent).toHaveBeenCalledWith({
-			key: "editable-agent",
-		});
-		expect(mockApiClient.getModelOptions).toHaveBeenCalledWith(undefined);
-	});
-
-	it("routes submit requests over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.submitTool.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { accepted: true },
-		});
-		mockApiClient.submitAwaiting.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { accepted: true },
-		});
-
-		await expect(
-			proxy.submitTool({
-				runId: "run_1",
-				owner: { kind: "agent", agentKey: "demo-agent" },
-				toolId: "tool_1",
-				params: { city: "beijing" },
-			}),
-		).resolves.toMatchObject({ data: { accepted: true } });
-		await expect(
-			proxy.submitAwaiting({
-				chatId: "chat_1",
-				runId: "run_1",
-				owner: { kind: "agent", agentKey: "demo-agent" },
-				awaitingId: "await_1",
-				submitId: "submit_1",
-				params: [],
-			}),
-		).resolves.toMatchObject({ data: { accepted: true } });
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.submitTool).toHaveBeenCalledWith({
-			runId: "run_1",
-			owner: { kind: "agent", agentKey: "demo-agent" },
-			toolId: "tool_1",
-			params: { city: "beijing" },
-		});
-		expect(mockApiClient.submitAwaiting).toHaveBeenCalledWith({
-			chatId: "chat_1",
-			runId: "run_1",
-			owner: { kind: "agent", agentKey: "demo-agent" },
-			awaitingId: "await_1",
-			submitId: "submit_1",
-			params: [],
-		});
-	});
-
-	it("routes interrupt and steer over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.interruptChat.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { stopped: true },
-		});
-		mockApiClient.steerChat.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { steered: true },
-		});
-
-		const interruptParams = {
-			requestId: "req_1",
-			chatId: "chat_1",
-			owner: { kind: "agent", agentKey: "demo-agent" },
-			message: "stop",
-		};
-		const steerParams = {
-			requestId: "req_2",
-			chatId: "chat_1",
-			owner: { kind: "agent", agentKey: "demo-agent" },
-			message: "change direction",
-		};
-
-		await expect(proxy.interruptChat(interruptParams)).resolves.toMatchObject({
-			data: { stopped: true },
-		});
-		await expect(proxy.steerChat(steerParams)).resolves.toMatchObject({
-			data: { steered: true },
-		});
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.interruptChat).toHaveBeenCalledWith(interruptParams);
-		expect(mockApiClient.steerChat).toHaveBeenCalledWith(steerParams);
-	});
-
-	it("routes background commands over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.rememberChat.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { remembered: true },
-		});
-		mockApiClient.learnChat.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { learned: true },
-		});
-		mockApiClient.compactChat.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { compacted: true },
-		});
-
-		const commandParams = {
-			requestId: "req_bg",
-			chatId: "chat_1",
-		};
-
-		await expect(proxy.rememberChat(commandParams)).resolves.toMatchObject({
-			data: { remembered: true },
-		});
-		await expect(proxy.learnChat(commandParams)).resolves.toMatchObject({
-			data: { learned: true },
-		});
-		await expect(proxy.compactChat(commandParams)).resolves.toMatchObject({
-			data: { compacted: true },
-		});
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.rememberChat).toHaveBeenCalledWith(commandParams);
-		expect(mockApiClient.learnChat).toHaveBeenCalledWith(commandParams);
-		expect(mockApiClient.compactChat).toHaveBeenCalledWith(commandParams);
-	});
-
-	it("routes archive requests over http when sse mode is selected", async () => {
-		const proxy = await import("./routedClient");
-		proxy.setTransportModeProvider(() => "sse");
-		mockApiClient.archiveChats.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { results: [{ chatId: "chat_1", success: true }] },
-		});
-		mockApiClient.getArchives.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { total: 0, items: [] },
-		});
-		mockApiClient.getArchive.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { chatId: "chat_1", events: [] },
-		});
-		mockApiClient.searchArchives.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { query: "old", count: 0, results: [] },
-		});
-		mockApiClient.deleteArchive.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { chatId: "chat_1", deleted: true },
-		});
-		mockApiClient.restoreArchives.mockResolvedValue({
-			status: 200,
-			code: 0,
-			msg: "ok",
-			data: { results: [{ chatId: "chat_1", success: true }] },
-		});
-
-		await proxy.archiveChats({ chatIds: ["chat_1"] });
-		await proxy.getArchives({ agentKey: "agent_a", limit: 10 });
-		await proxy.getArchive("chat_1", true);
-		await proxy.searchArchives({ query: "old", limit: 6 });
-		await proxy.deleteArchive({ chatId: "chat_1" });
-		await proxy.restoreArchives({ chatIds: ["chat_1"] });
-
-		expect(mockInitWsClient).not.toHaveBeenCalled();
-		expect(mockApiClient.archiveChats).toHaveBeenCalledWith({
-			chatIds: ["chat_1"],
-		});
-		expect(mockApiClient.getArchives).toHaveBeenCalledWith({
-			agentKey: "agent_a",
-			limit: 10,
-		});
-		expect(mockApiClient.getArchive).toHaveBeenCalledWith("chat_1", true);
-		expect(mockApiClient.searchArchives).toHaveBeenCalledWith({
-			query: "old",
-			limit: 6,
-		});
-		expect(mockApiClient.deleteArchive).toHaveBeenCalledWith({
-			chatId: "chat_1",
-		});
-		expect(mockApiClient.restoreArchives).toHaveBeenCalledWith({
-			chatIds: ["chat_1"],
-		});
-	});
 });

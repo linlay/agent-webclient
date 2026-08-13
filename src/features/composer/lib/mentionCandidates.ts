@@ -24,9 +24,7 @@ function resolveTeamById(teams: Team[], teamId: string): Team | null {
 
 export function resolveMentionCandidatesFromState(state: AppState): Agent[] {
   const allAgents = normalizeAgents(state?.agents);
-  const mode = toText(state?.conversationMode) || 'chat';
 
-  if (mode !== 'worker') return allAgents as Agent[];
   if (!(state?.workerIndexByKey instanceof Map)) return allAgents as Agent[];
 
   const selectedWorker = state.workerIndexByKey.get(toText(state?.workerSelectionKey));

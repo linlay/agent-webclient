@@ -265,8 +265,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       new CustomEvent("agent:start-new-conversation", {
         detail: {
           ...(agentKey ? { agentKey } : {}),
-          preserveWorkerContext:
-            currentState.conversationMode === "worker" || Boolean(agentKey),
+          preserveWorkerContext: true,
           focusComposerOnComplete: true,
         },
       }),

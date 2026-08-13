@@ -16,7 +16,6 @@ import type {
 	MemoryRecordListItem,
 } from "@/shared/data/memory/memoryTypes";
 import type { ThemeMode } from "@/shared/styles/theme";
-import type { TransportMode } from "@/features/transport/lib/transportMode";
 import type {
 	ActionState,
 	ActiveAwaiting,
@@ -30,7 +29,6 @@ import type {
 import type {
 	Agent,
 	Chat,
-	ConversationMode,
 	CurrentChatActiveRun,
 	Team,
 	WorkerConversationRow,
@@ -59,7 +57,6 @@ import type { AutomationSummaryResponse } from "@/shared/data";
 import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
 
 export type { ThemeMode } from "@/shared/styles/theme";
-export type { TransportMode } from "@/features/transport/lib/transportMode";
 export type {
 	AIAwaitApproval,
 	AIAwaitApprovalOption,
@@ -164,7 +161,6 @@ export interface AppState {
 	renderQueue: RenderQueue;
 	activeReasoningKey: string;
 	chatFilter: string;
-	conversationMode: ConversationMode;
 	workerSelectionKey: string;
 	workerRows: WorkerRow[];
 	workerOrderKeys: string[];
@@ -229,7 +225,6 @@ export interface AppState {
 	activeAwaiting: ActiveAwaiting | null;
 	pendingAwaitings: ActiveAwaiting[];
 	themeMode: ThemeMode;
-	transportMode: TransportMode;
 	wsStatus: WsConnectionStatus;
 	wsErrorMessage: string;
 	accessToken: string;

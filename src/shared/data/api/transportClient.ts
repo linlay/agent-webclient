@@ -9,7 +9,6 @@ import {
 	getWsClientAccessToken,
 	initWsClient,
 } from "@/features/transport/lib/wsClientSingleton";
-import type { TransportMode as TransportModeValue } from "@/features/transport/lib/transportMode";
 import { isAppMode } from "@/shared/utils/routing";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 
@@ -30,12 +29,10 @@ export interface TransportClient {
 	): Promise<ApiResponse<T>>;
 }
 
-export function createTransportClient(input: {
-	getMode: () => TransportModeValue;
-}): TransportClient {
+export function createTransportClient(): TransportClient {
 	return {
 		request: (type, payload, options) =>
-			routeTransportRequest(input.getMode, type, payload, options),
+			routeTransportRequest(type, payload, options),
 	};
 }
 
@@ -98,15 +95,11 @@ function resolveActiveWsClient(
 }
 
 async function routeTransportRequest<T>(
-	getMode: () => TransportModeValue,
 	type: string,
 	payload: unknown,
 	options: TransportRequestOptions<T>,
 ): Promise<ApiResponse<T>> {
 	const { fallback } = options;
-	if (getMode() !== "ws") {
-		return fallback();
-	}
 	let accessToken = await resolveWsAccessToken("missing");
 	let wsClient = resolveWsClient(accessToken);
 	const syncActiveWsClient = () => {
