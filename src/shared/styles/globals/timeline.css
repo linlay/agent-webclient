@@ -739,12 +739,6 @@
     padding: 10px 0 0;
 }
 
-.timeline-run-items {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
 .timeline-task-group {
     display: flex;
     flex-direction: column;

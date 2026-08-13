@@ -145,7 +145,7 @@ const TIMELINE_ROW_TIME_CLASS_NAME =
 const TIMELINE_RUN_GROUP_CLASS_NAME =
   "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:before:absolute tw:before:bottom-0 tw:before:left-2 tw:before:top-0 tw:before:w-px tw:before:bg-line-soft tw:before:content-['']";
 const TIMELINE_RUN_ITEMS_CLASS_NAME =
-  "timeline-run-items tw:flex tw:flex-col tw:gap-2";
+  "timeline-run-items tw:flex tw:flex-col tw:gap-[14px]";
 const TIMELINE_RUN_TIME_CLASS_NAME =
   "timeline-run-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[10px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 const TIMELINE_TASK_GROUP_CLASS_NAME =
