@@ -5,7 +5,7 @@ import { useI18n } from "@/shared/i18n";
 import { Flex } from "antd";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { TimelineCollapse } from "./collapse";
+import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 function basename(value: string): string {

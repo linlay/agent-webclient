@@ -9,7 +9,7 @@ import {
   type ConversationMarkdownElementProps,
 } from "@/shared/ui/ConversationMarkdown";
 import { ShareMarkdownCode } from "@/share/ShareMarkdownCode";
-import { TimelineCollapse } from "@/features/timeline/components/collapse";
+import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { t } from "@/shared/i18n";
 import {
   formatSharedDuration,

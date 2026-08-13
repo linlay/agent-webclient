@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import type { TimelineNode } from "@/app/state/types";
 import { useAppDispatch } from "@/app/state/AppContext";
 import { Flex } from "antd";
-import { TimelineCollapse } from "./collapse";
+import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useI18n } from "@/shared/i18n";
 
 interface AwaitingAnswerBlockProps {

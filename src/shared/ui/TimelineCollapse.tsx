@@ -1,5 +1,5 @@
 import { Collapse } from "antd";
-import Style from "./index.module.css";
+import Style from "./TimelineCollapse.module.css";
 import { useState } from "react";
 
 interface TimelineCollapseProps {

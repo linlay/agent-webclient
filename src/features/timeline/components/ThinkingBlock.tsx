@@ -6,7 +6,7 @@ import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { formatToolDuration } from "@/features/timeline/lib/timelineDuration";
 import { Skeleton } from "@/shared/components/skeleton";
-import { TimelineCollapse } from "./collapse";
+import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 
 interface ThinkingBlockProps {
   node: TimelineNode;

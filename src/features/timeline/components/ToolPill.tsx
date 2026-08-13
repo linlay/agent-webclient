@@ -12,7 +12,7 @@ import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { Flex, Tooltip } from "antd";
 import { useOptionalAppContext } from "@/app/state/provider";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
-import { TimelineCollapse } from "./collapse";
+import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 type ToolGroupRenderEntry = Extract<
