@@ -763,7 +763,7 @@ describe("WsClient", () => {
 
 		expect(onError).toHaveBeenCalledWith(
 			expect.objectContaining({
-				message: "模型服务额度已用尽，请更换模型或联系管理员检查 API Key / 额度。",
+				message: "model request failed with status 429",
 				platformError: expect.objectContaining({
 					code: "provider_quota_exhausted",
 					message: "model request failed with status 429: quota exhausted",
