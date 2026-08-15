@@ -9,6 +9,8 @@ import {
   SkillCreateModal,
   SkillFileWorkspace,
   SkillConsole,
+  SkillListItemStatus,
+  skillVersionLabel,
   suggestSkillKeyFromArchiveName,
   toggleSkillExpandedDir,
   updateSkillDirtyFiles,
@@ -215,6 +217,7 @@ describe("SkillConsole", () => {
           name: "Demo Skill",
           description: "A demo skill",
           status: "ready",
+          version: "1.0.0",
           source: { kind: "skills-center", path: "/skills/demo-skill" },
         },
         {
@@ -244,6 +247,39 @@ describe("SkillConsole", () => {
     expect(html).toContain("240px_minmax(0,1fr)");
     expect(html).not.toContain("minmax(220px,0.252fr)");
     expect(html).not.toContain("minmax(280px,0.52fr)");
+  });
+
+  it("formats skill versions with a v prefix and drops empty values", () => {
+    expect(skillVersionLabel("1.0.0")).toBe("v1.0.0");
+    expect(skillVersionLabel(" 1.0.0 ")).toBe("v1.0.0");
+    expect(skillVersionLabel("")).toBe("");
+    expect(skillVersionLabel(undefined)).toBe("");
+    expect(skillVersionLabel("0.0.0")).toBe("v0.0.0");
+  });
+
+  it("renders the version below the status tag only when present", () => {
+    const withVersion = renderToStaticMarkup(
+      React.createElement(SkillListItemStatus, {
+        status: "ready",
+        version: "1.0.0",
+        statusLabel: "就绪",
+      }),
+    );
+    expect(withVersion).toContain("就绪");
+    expect(withVersion).toContain("v1.0.0");
+    expect(withVersion).toContain("skill-console-list-item-version");
+    expect(withVersion.indexOf("就绪")).toBeLessThan(
+      withVersion.indexOf("v1.0.0"),
+    );
+
+    const withoutVersion = renderToStaticMarkup(
+      React.createElement(SkillListItemStatus, {
+        status: "ready",
+        statusLabel: "就绪",
+      }),
+    );
+    expect(withoutVersion).toContain("就绪");
+    expect(withoutVersion).not.toContain("skill-console-list-item-version");
   });
 
   it("shows the list count text", () => {

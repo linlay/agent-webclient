@@ -140,6 +140,10 @@ const SKILL_LIST_ITEM_TITLE_CLASS_NAME =
   "skill-console-list-item-title tw:inline-flex tw:flex-col tw:min-w-0 tw:flex-1 tw:items-baseline tw:overflow-hidden tw:whitespace-nowrap tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.35]";
 const SKILL_LIST_ITEM_META_CLASS_NAME =
   "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
+const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
+  "skill-console-list-item-status tw:flex tw:flex-none tw:flex-col tw:items-end tw:gap-1 tw:self-start";
+const SKILL_LIST_ITEM_VERSION_CLASS_NAME =
+  "skill-console-list-item-version tw:font-code tw:text-[10px] tw:leading-none tw:text-ink-muted";
 const SKILL_COUNT_CLASS_NAME =
   "skill-console-count tw:text-xs tw:text-ink-muted";
 const SKILL_DETAIL_CLASS_NAME =
@@ -180,6 +184,30 @@ function statusTone(status: AdminSkillStatus): "accent" | "danger" | "muted" {
   if (status === "disabled") return "muted";
   return "accent";
 }
+
+export function skillVersionLabel(version?: string): string {
+  const trimmed = String(version ?? "").trim();
+  if (!trimmed) return "";
+  return `v${trimmed}`;
+}
+
+export const SkillListItemStatus: React.FC<{
+  status: AdminSkillStatus;
+  version?: string;
+  statusLabel: string;
+}> = ({ status, version, statusLabel }) => {
+  const versionLabel = skillVersionLabel(version);
+  return (
+    <span className={SKILL_LIST_ITEM_STATUS_CLASS_NAME}>
+      <UiTag tone={statusTone(status)}>{statusLabel}</UiTag>
+      {versionLabel ? (
+        <span className={SKILL_LIST_ITEM_VERSION_CLASS_NAME}>
+          {versionLabel}
+        </span>
+      ) : null}
+    </span>
+  );
+};
 
 function formatSize(value: number | undefined): string {
   if (value === undefined || value === null) return "--";
@@ -1906,13 +1934,15 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                             {item.key}
                           </Typography.Text>
                         </span>
-                        <UiTag tone={statusTone(item.status)}>
-                          {translateWithFallback(
+                        <SkillListItemStatus
+                          status={item.status}
+                          version={item.version}
+                          statusLabel={translateWithFallback(
                             t,
                             `skillConsole.status.${item.status}`,
                             item.status,
                           )}
-                        </UiTag>
+                        />
                       </span>
                     </button>
                   ))}

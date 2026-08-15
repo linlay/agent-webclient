@@ -447,6 +447,7 @@ export interface AdminSkillSummary {
   description?: string;
   icon?: string;
   meta?: Record<string, unknown>;
+  version?: string;
   status: AdminSkillStatus;
   diagnostic?: AdminRegistryListDiagnostic;
   diagnosticCount?: number;
