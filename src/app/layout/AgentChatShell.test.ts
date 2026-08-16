@@ -370,7 +370,7 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("falls back to a non-CODER placeholder when route agent hydration fails", async () => {
+  it("shows a route error when route agent hydration fails", async () => {
     const dispatch = jest.fn();
     const useEffectSpy = jest
       .spyOn(React, "useEffect")
@@ -384,10 +384,6 @@ describe("AgentChatShell", () => {
     renderToStaticMarkup(React.createElement(AgentChatShell));
     await flushPromises();
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [{ key: "demo-agent", name: "demo-agent", role: "--" }],
-    });
     expect(dispatch).toHaveBeenCalledWith({
       type: "APPEND_DEBUG",
       line: "[loadAgent error] network down",
@@ -421,7 +417,8 @@ describe("AgentChatShell", () => {
     expect(html).toContain("conversation-stage");
     expect(html).toContain('data-show-empty-state="true"');
     expect(html).toContain("bottom-dock");
-    expect(html).toContain("right-sidebar");
+    expect(html).not.toContain("right-sidebar");
+    expect(html).not.toContain("terminal-dock");
     expect(html).not.toContain('<aside class="left-sidebar"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
   });

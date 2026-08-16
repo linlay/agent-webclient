@@ -42,15 +42,17 @@ import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
 import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
+import { TerminalPage } from "./pages/terminal";
+import { ReadonlyRunSurfacePage } from "./pages/run-surface";
 import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
+import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
 
 const BaseShell = () => {
   useDesktopRouteChange();
-  useWebClientActionRuntime();
   const location = useLocation();
   const { dispatch, stateRef } = useAppContext();
   const { locale, setLocale } = useI18n();
@@ -90,6 +92,22 @@ const BaseShell = () => {
   }, [locale, location.search, setLocale]);
 
   return <Outlet />;
+};
+
+const InteractiveRoute: React.FC<{
+  children: React.ReactNode;
+  btwEnabled?: boolean;
+}> = ({ children, btwEnabled = true }) => (
+  <BtwProvider enabled={btwEnabled}>{children}</BtwProvider>
+);
+
+const RootInteractiveRoute: React.FC = () => {
+  useWebClientActionRuntime();
+  return (
+    <InteractiveRoute>
+      <AppShell />
+    </InteractiveRoute>
+  );
 };
 const DocumentTitleRoute: React.FC<{
   title?: string;
@@ -180,7 +198,7 @@ const router = createBrowserRouter(
           path: "/",
           element: (
             <DocumentTitleRoute>
-              <AppShell />
+              <RootInteractiveRoute />
             </DocumentTitleRoute>
           ),
         },
@@ -188,7 +206,9 @@ const router = createBrowserRouter(
           path: "/copilot",
           element: (
             <DocumentTitleRoute>
-              <CopilotShell />
+              <InteractiveRoute btwEnabled={false}>
+                <CopilotShell />
+              </InteractiveRoute>
             </DocumentTitleRoute>
           ),
         },
@@ -196,7 +216,9 @@ const router = createBrowserRouter(
           path: "/copilot/:agentKey",
           element: (
             <DocumentTitleRoute>
-              <CopilotShell />
+              <InteractiveRoute btwEnabled={false}>
+                <CopilotShell />
+              </InteractiveRoute>
             </DocumentTitleRoute>
           ),
         },
@@ -249,6 +271,30 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: "/summary",
+          element: (
+            <DocumentTitleRoute titleKey="mcpServers.section.summary">
+              <ReadonlyRunSurfacePage kind="summary" />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/debug",
+          element: (
+            <DocumentTitleRoute titleKey="copilot.panel.debug">
+              <ReadonlyRunSurfacePage kind="debug" />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/terminal",
+          element: (
+            <DocumentTitleRoute titleKey="terminal.panelAria">
+              <TerminalPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
           path: "/project",
           element: (
             <DocumentTitleRoute titleKey="route.title.project">
@@ -297,10 +343,22 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: "/agent",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.agent">
+              <InteractiveRoute>
+                <AgentChatShell />
+              </InteractiveRoute>
+            </DocumentTitleRoute>
+          ),
+        },
+        {
           path: "/agent/:agentKey",
           element: (
             <DocumentTitleRoute titleKey="route.title.agent">
-              <AgentChatShell />
+              <InteractiveRoute>
+                <AgentChatShell />
+              </InteractiveRoute>
             </DocumentTitleRoute>
           ),
         },
@@ -331,13 +389,13 @@ const App: React.FC<AppProps> = ({ i18n }) => {
   return (
     <I18nProvider {...mergedI18n}>
       <AppProvider>
-        <BtwProvider>
+        <RealtimeTransportProvider>
           <ThemedShell>
             <GatewayAuthBoundary>
               <RouterProvider router={router} />
             </GatewayAuthBoundary>
           </ThemedShell>
-        </BtwProvider>
+        </RealtimeTransportProvider>
       </AppProvider>
     </I18nProvider>
   );

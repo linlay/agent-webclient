@@ -64,6 +64,10 @@ jest.mock("@/shared/data", () => ({
   validateAdminRegistry: jest.fn(),
 }));
 
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
+  usePushTransport: () => ({ subscribe: jest.fn(() => jest.fn()) }),
+}));
+
 describe("McpServersPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();

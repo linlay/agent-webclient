@@ -73,6 +73,52 @@ for (const [feature, forbiddenFeatures] of Object.entries(forbiddenByFeature)) {
 	}
 }
 
+const realtimePrimitivePaths = [
+	"@/features/transport/lib/wsClientSingleton",
+	"@/features/transport/lib/queryStreamRuntime.ws",
+	"@/features/transport/lib/queryStreamRuntime.sse",
+	"@/features/terminal/lib/terminalTransport",
+	"@/features/terminal/lib/terminalRemoteSession",
+];
+const directRunControlNames = [
+	"createQueryStream",
+	"interruptChat",
+	"steerChat",
+	"submitAwaiting",
+	"submitTool",
+	"updateAccessLevel",
+];
+const sourceRoot = path.join(repoRoot, "src");
+for (const file of walk(sourceRoot)) {
+	if (/\.(?:test|spec)\.(?:ts|tsx)$/.test(file)) continue;
+	const relativeFile = path.relative(repoRoot, file);
+	const isTransportInfrastructure = relativeFile.startsWith("src/features/transport/");
+	const isDataInfrastructure = relativeFile.startsWith("src/shared/data/api/");
+	const source = fs.readFileSync(file, "utf8");
+	for (const importedPath of readImports(source)) {
+		if (
+			!isTransportInfrastructure &&
+			realtimePrimitivePaths.some((primitivePath) => importedPath === primitivePath)
+		) {
+			violations.push(
+				`${relativeFile}: business code must use RealtimeTransport instead of ${importedPath}`,
+			);
+		}
+	}
+	if (isTransportInfrastructure || isDataInfrastructure) continue;
+	for (const name of directRunControlNames) {
+		const directImport = new RegExp(
+			`import\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*["']@/shared/data(?:/api/client)?["']`,
+			"s",
+		);
+		if (directImport.test(source)) {
+			violations.push(
+				`${relativeFile}: business code must use RunTransport instead of importing ${name}`,
+			);
+		}
+	}
+}
+
 const shareForbiddenImports = [
 	"@/app/",
 	"@/features/",

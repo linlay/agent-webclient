@@ -4,7 +4,7 @@ import type { AppAction } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/app/state/types";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { createRequestId } from "@/shared/data";
-import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { runVoiceChatListeningReady } from "@/features/voice/lib/voiceChatListeningReady";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import type { VoiceChatRuntimeController } from "@/features/voice/hooks/useVoiceChatRuntimeController";
@@ -26,6 +26,7 @@ export function useVoiceChatListening({
 	resumeAudioCapture: () => Promise<boolean>;
 	startAsrTask: (reason: string) => boolean;
 }) {
+	const runs = useRunTransport();
 	const enterListeningReady = useCallback(
 		async (options: { resumeCapture: boolean }) => {
 			const transitionId = controller.listeningTransitionRef.current + 1;
@@ -141,21 +142,26 @@ export function useVoiceChatListening({
 			});
 
 			try {
-				await executeQueryStreamWs({
-					params: {
-						requestId,
-						message: text,
-						owner: { kind: "agent", agentKey },
-						chatId: chatId || undefined,
-						planningMode: Boolean(controller.stateRef.current.planningMode),
-						agentMode:
-							currentWorker?.type === "agent"
-								? String(currentWorker.raw?.mode || "").trim() || undefined
-								: undefined,
-					},
-					dispatch,
-					handleEvent,
+				const abortController = new AbortController();
+				dispatch({ type: "SET_REQUEST_ID", requestId });
+				dispatch({ type: "SET_STREAMING", streaming: true });
+				dispatch({ type: "SET_ABORT_CONTROLLER", controller: abortController });
+				const execution = runs.startQuery({
+					requestId,
+					message: text,
+					owner: { kind: "agent", agentKey },
+					chatId: chatId || undefined,
+					planningMode: Boolean(controller.stateRef.current.planningMode),
+					agentMode:
+						currentWorker?.type === "agent"
+							? String(currentWorker.raw?.mode || "").trim() || undefined
+							: undefined,
+					signal: abortController.signal,
+					onEvent: handleEvent,
 				});
+				await execution.accepted;
+				const completion = await execution.completion;
+				if (completion.error) throw completion.error;
 
 				const activeAssistantContentId = String(
 					controller.stateRef.current.voiceChat.activeAssistantContentId || "",
@@ -205,6 +211,8 @@ export function useVoiceChatListening({
 					error instanceof Error ? error.message : String(error),
 				);
 			} finally {
+				dispatch({ type: "SET_STREAMING", streaming: false });
+				dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
 				if (!controller.bargeInProgressRef.current) {
 					controller.ttsTaskActiveRef.current = false;
 				}
@@ -216,6 +224,7 @@ export function useVoiceChatListening({
 			dispatch,
 			handleEvent,
 			resumeListeningAfterResponse,
+			runs,
 		],
 	);
 

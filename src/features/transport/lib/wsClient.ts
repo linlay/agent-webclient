@@ -63,7 +63,7 @@ interface WsStreamFrame {
 	lastSeq?: number;
 }
 
-interface WsPushFrame {
+export interface WsPushFrame {
 	frame: "push";
 	type?: string;
 	payload?: unknown;

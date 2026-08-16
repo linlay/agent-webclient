@@ -8,7 +8,8 @@ import useApp from "antd/es/app/useApp";
 import { TimelineNode } from "@/app/state/timelineTypes";
 import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { useAppState } from "@/app/state/AppContext";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 interface PlanningTimelineProps {
   node: TimelineNode;
@@ -19,13 +20,8 @@ const EXPAND_DIV_CLASS_NAME =
 export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
   const { message } = useApp();
   const { t } = useI18n();
-  const dispatch = useAppDispatch();
-  const {
-    rightSidebarOpen,
-    rightSidebarOpenTab,
-    planningPreviews,
-    activePlanningPreviewNodeId,
-  } = useAppState();
+  const state = useAppState();
+  const openTarget = useOpenTarget();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -53,28 +49,13 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                   iconOnly
                   onClick={(e) => {
                     e.stopPropagation();
-                    const isActive =
-                      rightSidebarOpen &&
-                      rightSidebarOpenTab === "planningPreview" &&
-                      activePlanningPreviewNodeId === node.id;
-                    if (isActive) {
-                      dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-                    } else if (planningPreviews.some(p => p.nodeId === node.id)) {
-                      dispatch({
-                        type: "OPEN_RIGHT_SIDEBAR",
-                        tab: "planningPreview",
-                        activePlanningPreviewNodeId: node.id,
-                      });
-                    } else {
-                      dispatch({
-                        type: "OPEN_RIGHT_SIDEBAR",
-                        tab: "planningPreview",
-                        planningPreview: {
-                          nodeId: node.id,
-                          label: node.text || node.id,
-                        },
-                      });
-                    }
+                    openTarget({
+                      version: 1,
+                      kind: "planning",
+                      chatId: state.chatId,
+                      nodeId: node.id,
+                      label: node.text || node.id,
+                    });
                   }}
                 >
                   <MaterialIcon name="open_in_new" />

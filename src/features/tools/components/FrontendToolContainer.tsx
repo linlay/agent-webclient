@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
-import { getViewport, submitTool } from "@/shared/data";
+import { getViewport } from "@/shared/data";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
 const FRONTEND_TOOL_CONTAINER_CLASS_NAME =
 	"frontend-tool-container tw:mb-0 tw:overflow-hidden tw:rounded-2xl tw:border tw:[border-color:color-mix(in_srgb,var(--accent-electric)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_96%,transparent)] tw:shadow-elevated tw:[.layout-copilot_&]:rounded-[10px]";
@@ -29,6 +30,7 @@ export const FrontendToolContainer: React.FC = () => {
 	const state = useAppState();
 	const dispatch = useAppDispatch();
 	const { t } = useI18n();
+	const runs = useRunTransport();
 	const tool = state.activeFrontendTool;
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [statusText, setStatusText] = useState("");
@@ -138,7 +140,7 @@ export const FrontendToolContainer: React.FC = () => {
 						data.params && typeof data.params === "object"
 							? data.params
 							: {};
-					const response = await submitTool({
+					const response = await runs.submitTool({
 						runId: active.runId,
 						owner,
 						toolId: active.toolId,
@@ -177,7 +179,7 @@ export const FrontendToolContainer: React.FC = () => {
 
 		window.addEventListener("message", onMessage);
 		return () => window.removeEventListener("message", onMessage);
-	}, [dispatch, state.activeFrontendTool, t]);
+	}, [dispatch, runs, state.activeFrontendTool, t]);
 
 	if (!tool) return null;
 	const toolLabel = resolveToolLabel(tool);

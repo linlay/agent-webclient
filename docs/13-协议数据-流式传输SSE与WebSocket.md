@@ -1,65 +1,56 @@
-# 流式传输SSE与WebSocket
+# 流式传输 SSE 与 WebSocket
 
 ## 当前状态
-对话流支持 SSE 与 WebSocket 两种模式。SSE 运行时在 `queryStreamRuntime.sse.ts`，WebSocket 运行时在 `queryStreamRuntime.ws.ts`，模式读取和持久化由 `transportMode.ts` 负责。连接与帧处理归 transport，attach/detach 和对话观察编排归 conversation 与 runs。直连 Platform 时，即使 query 选择 SSE，页面也保持一条普通 `/ws` 控制连接，用于接收 Platform 发起的 WebClient 反向 request；Gateway backend 第一阶段不启用该能力。
 
-## 核心职责
-- 发起 `/api/query` 流式请求并逐事件回调。
-- 支持 `/api/attach` 续接已有 run。
-- 管理 abort、detach、重试、WebSocket 连接状态和错误展示。
-- 将传输细节隐藏在 `QueryStreamExecutor` / `AttachStreamExecutor` 后面。
+WebClient 业务层只依赖 `RealtimeTransport`，门面固定提供 `runs`、`push`、`inbound`、`terminal` 四项窄能力。Standalone adapter 复用唯一 `wsClientSingleton`；agents、chats、project、resource、registry 等普通 Data API 始终走现有 HTTP client，不再由 routed client 暗中创建 WebSocket request。
 
-## 核心流程
-Composer 发送消息时解析当前 transport mode，调用对应 executor。所有事件源共享同一个 `useConversationEventHandler` 实例；terminal event 会停止 streaming 并清理 abort controller。切换 chat 时，若原对话仍在流式输出，会按当前模式 detach 或 abort 并保存快照。新建对话收到稳定 `chatId` 的 URL promotion 仍由原 `/api/query` 消费到终态；SSE 与 WebSocket attach 入口会先检查同一 `chatId`、`runId`、owner 是否已由 live query session 观察，若是则记录本地诊断并拒绝第二个 observer。页面刷新或没有 live query session 的运行中稳定 chat 仍允许恰好一次正常 attach。
+主 Run query、BTW、attach 和控制由 `RunTransport` 统一承接。Voice query 进入同一 Run 门面，浏览器 ASR/TTS 的 Voice WebSocket 保持独立。旧 `QueryStreamExecutor`、transport client 和 terminal primitive 兼容入口已移除。
 
-`buildQueryPayload` 是 SSE 与 WebSocket query 的统一序列化入口。Composer 选择的强制技能经 trim、去空和大小写不敏感去重后只写入 `mustUseSkills`；无选择时省略字段，已删除的 `requiredSkillKeys` 不得出现在任一传输 payload。
+## 领域接口
 
-Platform 重启后，可恢复的 question/planning 会在 `/api/chat` 同时返回权威 `awaiting` 与 `activeRun(state:"WAITING_SUBMIT")`。对话加载先 replay 并校准 awaiting，再立即使用 `activeRun.lastSeq` attach；空闲 observer 在用户尚未回答时保持连接。submit 成功只清理 awaiting UI，不再发起第二次 attach，原连接从 `request.submit`、`awaiting.answer` 继续消费同一 run 的 reasoning/content/tool/terminal 事件。WebSocket 发生真正重连时，如果当前 chat 仍有 awaiting、active run 或正在观察的 run，前端先重新加载 `/api/chat`，再由新的 activeRun 游标恢复 attach，而不是等待用户点击提交。
+- `RunTransport`：`startQuery`、`startBtw`、`subscribe`、`interrupt`、awaiting/tool submit、`steer`、access level。
+- `PushTransport`：支持多消费者以及 type/chat/agent 过滤；unsubscribe 立即停止该消费者。
+- `InboundRequestTransport`：仅根网站注册 `webclient.sidebar.*` 反向 action。
+- `TerminalTransport`：`open`、status subscription、write、resize、detach、close。
 
-WebSocket push 中的 `chat.created`、`chat.renamed`、`chat.updated` 直接更新会话摘要；`chat.renamed` 即使在当前 query streaming 期间到达也必须立即应用，不得被流式事件的当前会话过滤丢弃。
+`RunExecution` 与 `TerminalExecution` 同步返回，并分别暴露 `accepted`、`completion` 和幂等 `detach`。accepted 前事件进入有界缓冲；身份稳定后按原序投影。Terminal 的 `detach` 只停止当前 Surface 观察，`close` 才结束终端；即使先 detach，后续显式 close 仍会发送关闭操作。
 
-SSE / WebSocket event 必须带安全整数 epoch-ms `timestamp`。客户端遇到缺失、字符串、秒级、浮点或 `0` 的时间会按 `time_contract_violation` 拒绝该 event，不以本机当前时间生成时间线节点或任务状态。
+## Standalone 生命周期
 
-`/api/btw` 复用 SSE 帧解析和错误映射，但始终走 HTTP SSE，不受主对话 WebSocket 模式影响。BTW 事件进入 feature-owned projection，不进入主对话事件处理器。新发起的 live BTW run 只消费这条 `/api/btw` 流，不并发调用 `/api/attach`；只有 Provider 初始化时从 `sessionStorage` 恢复出的 running run 才会 attach，且每个恢复 run 只 attach 一次。
+`RealtimeTransportProvider` 每个 guest 生命周期只创建一个 `StandaloneRealtimeTransport`。Provider mount 本身不会打开 Run 或 Terminal stream；首个 push、inbound、Run 或 Terminal 消费者按需初始化 singleton。普通 Data API 不参与该生命周期。
 
-BTW 的运行控制也与主对话传输模式隔离。BTW Stop 固定以 HTTP `POST /api/interrupt` 发送 `runId` 与其恢复出的 owner：Agent 为 `agentKey`，编排 Team 为仅 `teamId`；即使主对话选择 WebSocket 也不会改走 WS。前端校验响应中的 `accepted`、`status`、`runId` 和 `detail`：仅 `accepted: true` 时才 abort 当前 BTW SSE 并转为空闲；后端拒绝或网络失败时继续消费原 SSE、保持 running 并允许重试。中断响应绑定发起请求时的 runtime、runId 和 AbortController，迟到响应不能停止关闭后重建的新分支。
+会话通知与 Run 观察分别由 `useChatNotificationRuntime` 和 `useRunSubscriptionRuntime` 编排。Run 恢复固定遵循 replay、推导 owner/run/lastSeq、stale check、subscribe；只读 Surface 使用 epoch、chatId、runId 和 seq 丢弃旧 binding 事件，检测 gap 后最多重新 replay 一次。销毁 Surface 只 detach，不 interrupt/close Run。
 
-attach/detach 也使用同一 owner 规则。SSE 和 WebSocket 不会把 Team 成员事件携带的 `agentKey` 写回 session/chat owner；成员事件仍可按 `taskId`、`subAgentKey` 和 `presentation: "task"` 渲染为子任务，主回答归属保持 Team。
+Run push 的聊天摘要、未读、awaiting 与 active-run 更新仍由 conversation 层解释；transport 只负责连接和帧。管理页 catalog push 同样通过 `PushTransport` 消费，不直接订阅 singleton。
 
-关闭 Side question 只销毁该 chat 的前端 session、runtime 与持久化记录，不发送 interrupt，也不 abort 正在消费的 SSE；后端 run 自然结束。被丢弃 runtime 的迟到 identity、事件和 finally 都必须被对象身份校验拦截，不能恢复已关闭的 Tab 或污染随后创建的分支。
+## 时间与 owner 约束
+
+事件必须带安全整数 epoch-ms `timestamp`。缺失、字符串、秒级、浮点或 `0` 时间按 `time_contract_violation` 拒绝，不使用本机时间伪造时间线状态。Agent owner 使用 `agentKey`，编排 Team owner 只使用 `teamId`；成员事件不得覆盖 Team Run owner。
 
 ## WebClient 反向 Request
 
-WebClient 控制连接使用 `/ws?source=WebClient&deviceId=<device-id>&surfaceId=<surface-id>`。`deviceId` 沿用 localStorage 标识，`surfaceId` 写入 sessionStorage；页面内路由切换、WebSocket 重连和完整 reload 保持不变，普通新标签页或复制标签页导航会生成新值。SSE `/api/query` 与 `/api/attach` 同时发送 `X-Agent-WebClient-Device-Id`、`X-Agent-WebClient-Surface-Id`；device header 与控制连接使用同一标识，认证 JWT 已含 device claim 时由 Platform 优先使用 claim。Platform 以最新一次成功 attach 的 WebClient 作为该 run 后续反向 Action target；失败 attach 或不携带合法 target headers 的普通客户端 attach 不改变既有 target。
-
-`WsClient.registerInboundRequestHandler(type, handler)` 只允许按完整 `type` 精确登记 handler。收到 `frame:"request"` 后直接把 `payload` 交给 handler；成功返回同 `id`、同 `type` 的 response，业务错误返回 error。未知 type、非法帧参数和同连接重复 id 分别返回 `unknown_request_type`、`invalid_request`、`duplicate_id`。连接关闭后，旧连接上的未完成 handler 不会再发送结果。
-
-第一阶段 Action Registry 只有：
+第一阶段 Action Registry 仍为：
 
 - `webclient.sidebar.getState`
 - `webclient.sidebar.setState`
 - `webclient.sidebar.openUrl`
 - `webclient.sidebar.refreshUrl`
 
-Action Registry 不接受 Redux action、DOM selector、JavaScript 函数名、CustomEvent、任意路由或组件名。sidebar set 必须显式给出 `open`，左侧栏不接受 `tab`，关闭右侧栏时也不接受 `tab`；右侧第一阶段只接受 `overview`、`btw`、`debug`。`webclient.sidebar.openUrl` 使用 `{url, title?}` 创建或激活 Web Preview 并打开右侧 `web` tab：裸域名按 HTTPS 规范化，只接受 HTTP(S)，拒绝协议相对 URL 和带凭据 URL；它不经过 Desktop bridge。handler dispatch 后从同步 `stateRef` 读取最终状态，并以 `applied:false` 表示幂等请求。`webclient.sidebar.refreshUrl` 使用精确 `{url}` 刷新已存在的规范化 Preview，不创建资源、不打开右侧栏、不切换 tab 或活动 URL；目标未打开或当前路由不支持右侧栏时返回 `unsupported_in_current_view`（409）。Preview 状态成功不代表目标站点允许 iframe 嵌入或刷新加载成功，CSP 或 `X-Frame-Options` 拒绝仍由现有预览错误状态呈现。
+这些 handler 只在 `/` 通过 `InboundRequestTransport` 显式注册。Agent、Copilot 和独立 Surface 不注册全局 sidebar action；Web URL 只接受绝对 HTTP(S)，拒绝协议相对 URL、凭据 URL 和其他 scheme。
 
-## 边界与非目标
-- 传输层不解释业务事件含义，只负责帧、连接、错误和生命周期。
-- SSE 是兼容路径，默认产品链路优先验证 WebSocket。
-- 代理层必须关闭缓冲，否则前端无法保证实时显示。
+## Desktop 暂停边界
+
+`DESKTOP_APP` 只接受布尔 `true` 或精确字符串 `"true"`。当前仓库尚未接收 canonical generated realtime/workpanel/terminal contract 与 trusted bridge capability，因此 Desktop 模式显示 `DESKTOP_BRIDGE_UNAVAILABLE` 阻断页，绝不创建 Standalone 连接或猜测 IPC/wire 字段。Desktop adapter 见 Desktop 宿主桥接专题中的恢复条件。
 
 ## 相关文件
-- `../src/features/transport/lib/queryStreamRuntime.sse.ts`
-- `../src/features/transport/lib/queryStreamRuntime.ws.ts`
-- `../src/features/transport/lib/queryStreamExecutors.ts`
-- `../src/features/transport/lib/wsClient.ts`
-- `../src/features/transport/lib/wsClientSingleton.ts`
-- `../src/shared/data/clientDeviceId.ts`
-- `../src/shared/data/clientSurfaceId.ts`
-- `../src/features/transport/lib/transportMode.ts`
-- `../src/features/btw/components/BtwProvider.tsx`
-- `../src/shared/data/api/client.ts`
-- `../src/features/conversation/hooks/useConversationWsRuntime.ts`
-- `../src/features/conversation/hooks/useWebClientActionRuntime.ts`
-- `../src/features/conversation/hooks/useConversationSseAttachRuntime.ts`
-- `../src/features/composer/hooks/useMessageActions.ts`
+
+- `../src/features/transport/contracts/realtimeTransport.ts`
+- `../src/features/transport/components/RealtimeTransportProvider.tsx`
+- `../src/features/transport/lib/standaloneRealtimeTransport.ts`
+- `../src/features/transport/lib/standaloneRunTransport.ts`
+- `../src/features/transport/lib/standalonePushTransport.ts`
+- `../src/features/transport/lib/standaloneInboundRequestTransport.ts`
+- `../src/features/transport/lib/standaloneTerminalTransport.ts`
+- `../src/features/conversation/hooks/useChatNotificationRuntime.ts`
+- `../src/features/conversation/hooks/useRunSubscriptionRuntime.ts`
+- `../src/features/surfaces/useReadonlyRunSurfaceRuntime.ts`

@@ -69,6 +69,14 @@ jest.mock("./pages/project", () => ({
   ProjectPage: () => null,
 }));
 
+jest.mock("./pages/terminal", () => ({
+  TerminalPage: () => null,
+}));
+
+jest.mock("./pages/run-surface", () => ({
+  ReadonlyRunSurfacePage: () => null,
+}));
+
 describe("App routing", () => {
   beforeEach(() => {
     jest.resetModules();
@@ -104,12 +112,16 @@ describe("App routing", () => {
         "/mcp-servers/:serverKey",
         "/skills",
         "/skills/:skillKey",
+        "/summary",
+        "/debug",
+        "/terminal",
         "/project",
         "/memory",
         "/agents",
         "/archives",
         "/archives/:chatId",
         "/agents/:agentKey",
+        "/agent",
         "/agent/:agentKey",
       ]),
     );

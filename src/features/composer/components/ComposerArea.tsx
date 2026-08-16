@@ -461,6 +461,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         planningMode: state.planningMode,
         editingMode: state.editingMode,
         chatId: state.chatId,
+        runId: state.runId,
         usagePopoverOpen: state.usagePopoverOpen,
       },
       toggleVoiceMode,

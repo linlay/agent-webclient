@@ -3,6 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { TopNav } from "@/app/layout/TopNav";
 
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
+	useTerminalTransport: () => ({ subscribeStatus: jest.fn(() => jest.fn()) }),
+	useOptionalTerminalTransport: () => ({ subscribeStatus: jest.fn(() => jest.fn()) }),
+}));
+
 jest.mock("@/app/state/AppContext", () => {
 	const actual = jest.requireActual("@/app/state/AppContext");
 	return {

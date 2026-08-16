@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { useAppState } from "@/app/state/AppContext";
 import { buildAttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
@@ -13,6 +13,7 @@ import { FileIcon } from "@/shared/components/file-icon";
 import { useI18n } from "@/shared/i18n";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 interface AttachmentCardData extends AttachmentLike {
   name: string;
@@ -49,7 +50,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   activateMode = "toggle",
 }) => {
   const { t } = useI18n();
-  const dispatch = useAppDispatch();
+  const openTarget = useOpenTarget();
   const appState = useAppState();
   const currentChat = appState.chats?.find((chat) => chat.chatId === appState.chatId);
   const teamChat = Boolean(
@@ -119,34 +120,23 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       });
   }, [appState.chatId, attachment.name, downloadUrl, downloading, teamChat]);
 
-  const { rightSidebarOpen, rightSidebarOpenTab, attachmentPreview, activeAttachmentPreviewUrl } = appState;
-
   const handleActivate = React.useCallback(() => {
     if (!canActivate) {
       return;
     }
     if (preview) {
-      const isActive =
-        rightSidebarOpen &&
-        rightSidebarOpenTab === "preview" &&
-        activeAttachmentPreviewUrl === preview.url;
-
-      if (activateMode === "toggle" && isActive) {
-        dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-      } else if (attachmentPreview.some(p => p.url === preview.url)) {
-        dispatch({
-          type: "OPEN_RIGHT_SIDEBAR",
-          tab: "preview",
-          activeAttachmentPreviewUrl: preview.url,
-        });
-      } else {
-        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
-      }
+      openTarget({
+        version: 1,
+        kind: "artifact",
+        chatId: appState.chatId,
+        preview,
+        toggle: activateMode === "toggle",
+      });
       return;
     }
 
     triggerDownload();
-  }, [canActivate, dispatch, preview, triggerDownload, activateMode, rightSidebarOpen, rightSidebarOpenTab, activeAttachmentPreviewUrl, attachmentPreview]);
+  }, [activateMode, appState.chatId, canActivate, openTarget, preview, triggerDownload]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,

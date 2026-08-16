@@ -6,9 +6,9 @@ import {
   type ApiResponse,
   type QueryAccessLevel,
 } from "@/shared/data";
-import { updateAccessLevel as updateAccessLevelRequest } from "@/shared/data";
 import type { TranslateParams } from "@/shared/i18n";
 import type { RunOwner } from "@/shared/data/runOwner";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
 type SetAccessLevel = (value: QueryAccessLevel) => void;
 type Translate = (key: string, params?: TranslateParams) => string;
@@ -28,7 +28,7 @@ interface ApplyRuntimeAccessLevelChangeOptions {
   t: Translate;
   isLatestRequest?: () => boolean;
   requestIdFactory?: () => string;
-  updateAccessLevel?: (
+  updateAccessLevel: (
     params: AccessLevelUpdateParams,
   ) => Promise<ApiResponse<AccessLevelUpdateResponse>>;
 }
@@ -67,7 +67,7 @@ export async function applyRuntimeAccessLevelChange({
   t,
   isLatestRequest,
   requestIdFactory = () => createRequestId("access"),
-  updateAccessLevel = updateAccessLevelRequest,
+  updateAccessLevel,
 }: ApplyRuntimeAccessLevelChangeOptions): Promise<void> {
   if (nextAccessLevel === previousAccessLevel) {
     return;
@@ -122,6 +122,7 @@ export function useRuntimeAccessLevel({
   t,
 }: UseRuntimeAccessLevelInput): (nextAccessLevel: QueryAccessLevel) => void {
   const requestSeqRef = useRef(0);
+  const runs = useRunTransport();
 
   return useCallback(
     (nextAccessLevel: QueryAccessLevel) => {
@@ -136,6 +137,7 @@ export function useRuntimeAccessLevel({
         setAccessLevel,
         messageApi,
         t,
+        updateAccessLevel: runs.updateAccessLevel,
         isLatestRequest: () => requestSeqRef.current === requestSeq,
       });
     },
@@ -145,6 +147,7 @@ export function useRuntimeAccessLevel({
       activeRunId,
       isRunActive,
       messageApi,
+      runs,
       setAccessLevel,
       t,
     ],

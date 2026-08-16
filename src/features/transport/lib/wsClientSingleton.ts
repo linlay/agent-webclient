@@ -1,6 +1,7 @@
 import { WsClient, type WsClientOptions } from "@/features/transport/lib/wsClient";
 
 type WsPushListener = NonNullable<WsClientOptions["onPush"]>;
+type WsStatusListener = NonNullable<WsClientOptions["onStatusChange"]>;
 
 let wsClient: WsClient | null = null;
 let wsClientAccessToken = "";
@@ -8,6 +9,8 @@ let pendingDestroyTimer: ReturnType<typeof setTimeout> | null = null;
 const wsClientListeners = new Set<(client: WsClient | null) => void>();
 const wsPushListeners = new Set<WsPushListener>();
 let primaryWsPushListener: WsPushListener | undefined;
+const wsStatusListeners = new Set<WsStatusListener>();
+let primaryWsStatusListener: WsStatusListener | undefined;
 
 function notifyWsClientListeners(): void {
 	for (const listener of wsClientListeners) {
@@ -28,6 +31,9 @@ function withAccessTokenSync(options: WsClientOptions): WsClientOptions {
 	if (options.onPush !== undefined) {
 		primaryWsPushListener = options.onPush;
 	}
+	if (options.onStatusChange !== undefined) {
+		primaryWsStatusListener = options.onStatusChange;
+	}
 	return {
 		...options,
 		onAccessTokenChange: (accessToken) => {
@@ -38,6 +44,12 @@ function withAccessTokenSync(options: WsClientOptions): WsClientOptions {
 			primaryWsPushListener?.(frame);
 			for (const listener of wsPushListeners) {
 				listener(frame);
+			}
+		},
+		onStatusChange: (status) => {
+			primaryWsStatusListener?.(status);
+			for (const listener of wsStatusListeners) {
+				listener(status);
 			}
 		},
 	};
@@ -106,6 +118,17 @@ export function subscribeWsPush(listener: WsPushListener): () => void {
 	};
 }
 
+export function subscribeWsStatus(listener: WsStatusListener): () => void {
+	clearPendingDestroy();
+	wsStatusListeners.add(listener);
+	if (wsClient) {
+		listener(wsClient.getStatus());
+	}
+	return () => {
+		wsStatusListeners.delete(listener);
+	};
+}
+
 export function destroyWsClient(): void {
 	clearPendingDestroy();
 	if (wsClient) {
@@ -114,6 +137,7 @@ export function destroyWsClient(): void {
 	wsClient = null;
 	wsClientAccessToken = "";
 	primaryWsPushListener = undefined;
+	primaryWsStatusListener = undefined;
 	notifyWsClientListeners();
 }
 

@@ -1,21 +1,23 @@
 # Desktop宿主桥接
 
 ## 当前状态
-Desktop 宿主桥接用于 Desktop WebView 场景，前端通过全局标记和 postMessage 与宿主通信。现有能力包括宿主消息源判断、路由变化上报、截图桥接、文件系统目录选择和 query context 注入。
+现有 Desktop context、截图、文件系统和右键桥接继续服务各自的宿主能力，但不构成可信 realtime bridge。Realtime/WorkPanel/Terminal adapter 已进入硬暂停：canonical generated contract 与 trusted preload bridge 尚未交付时，`DESKTOP_APP=true` 只显示阻断页，不回落 Standalone。
 
 ## 核心职责
-- 判断当前是否运行在 Desktop WebView 桥接环境。
+- 严格判断 `DESKTOP_APP`：只接受布尔 `true` 或精确字符串 `"true"`。
 - 向宿主发送 route、workspace、screenshot、file system 等请求或通知。
-- 缺少或刷新访问令牌时，通过 Desktop agent auth bridge 重新申请 token。
+- 缺少 canonical realtime bridge 时阻断所有 guest 业务 Surface，避免 guest 直连 Platform。
 - 将 Desktop 截图结果转换为 Composer 可上传文件。
 - 在 query payload 中补充宿主提供的上下文。
 
 ## 核心流程
-运行时检测 `__DESKTOP_WEBVIEW_BRIDGE__` 宿主标记。页面路由变化由 hook 通知宿主；`?newChat=` 收到稳定 `chatId` 后 replace 到 `?chatId=` 是当前 live query 的 URL 身份收敛，宿主只镜像地址和选中态，不回写该等价主聊天路由或触发 `popstate` 重放。Agent Copilot 同样以 `/copilot/:agentKey?chatId=<id>` 作为稳定对话 URL：新建对话、选择历史 chat 和清空对话都由 WebClient 更新地址，Desktop 只监听 WebView 导航并保存当前 surface 的安全相对路径，不增加 chatId IPC 或桥接消息。缺少 token 时发送 `desktop:agent-auth:request`，只接受 `desktop:agent-auth:response`；Desktop 在认证响应中同时传递 `desktopAuthContext`，页面先应用上下文并清理不匹配的旧 token，再写入新 token。Composer 需要截图时调用 screenshot bridge 并转为 File；发送 query 时可由 `buildDesktopQueryContext` 附加宿主上下文。
+当前阶段不实现 Desktop Realtime/OpenTarget adapter，也不复用基于 `window.parent` 的宽泛 bridge 作为可信通道。以下交付物必须全部到位后才能恢复实现：canonical generated realtime/workpanel/terminal contract；trusted bridge 的全局入口、hello、version、capability；surface registration、Run binding、push 与 terminal envelope；`desktop.workpanel.openItem/activateItem/closeItem`；以及可观察 listener/pending/observer 计数的 Fake Broker fixture。
+
+恢复后 WebClient 只把 generated contract 映射为领域 transport，并发送受控 OpenTarget intent；WorkPanel tab 列表、单物理 Platform WS、同 Run attach 去重和跨 Surface 扇出由 Desktop Main/Broker 负责。hello/version/capability 失败立即阻断；accepted 后任何错误不得切换到 Standalone 重发。
 
 ## 边界与非目标
-- Desktop bridge 是可选能力，普通浏览器必须可降级运行。
-- `webclient.*` Action 不经过 Desktop postMessage bridge；Platform 直接通过现有 `/ws` 控制连接向 WebClient 发起 request。Desktop Program Bundle 只需继续透明代理 `/ws`。
+- Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
+- `webclient.*` Action 只在 Standalone 根路由注册；Desktop inbound 能力等待 canonical contract。
 - `desktopAuthContext` 只由认证 bridge 响应传递，不从页面 URL 读取或传播。
 - Desktop 模式下，当前文档尚未收到认证上下文时，不复用 `sessionStorage` 中的历史 token。
 - Agents、Archives、Automations、Memory 和 Registries 等管理路由使用 HTTP/SSE，Desktop 不再为它们传递 `wsSource`。
@@ -39,3 +41,5 @@ WebClient 使用 `WeakMap<Element, Descriptor>` 登记消息、代码、Web 链�
 - `../src/shared/hooks/useDesktopRouteChange.ts`
 - `../src/shared/hooks/agentPage/useDesktopAction.ts`
 - `../src/shared/data/desktop/desktopContextMenu.ts`
+- `../src/features/transport/components/RealtimeTransportProvider.tsx`
+- `../src/features/transport/contracts/realtimeTransport.ts`

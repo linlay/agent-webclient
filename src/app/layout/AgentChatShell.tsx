@@ -10,18 +10,12 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
-import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
 import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
-import {
-  TerminalDock,
-  resolveTerminalDockWorkspaceKey,
-} from "./TerminalDock";
-import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { getAgent, getChats } from "@/shared/data";
@@ -98,19 +92,10 @@ const AGENT_ROUTE_LOADING_SPINNER_CLASS =
 const AGENT_ROUTE_LOADING_COPY_CLASS =
   "agent-route-loading-copy tw:flex tw:min-w-0 tw:flex-col tw:gap-1 tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-xs tw:[&_span]:text-ink-muted tw:[&_strong]:text-sm tw:[&_strong]:font-bold";
 const AGENT_ROUTE_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-[1/-1] tw:[&_.right-sidebar]:translate-x-0 tw:[&_.terminal-dock]:col-start-2 tw:[&_.terminal-dock]:row-start-4";
+  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden";
 const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
-  terminal: "tw:grid-rows-[auto_minmax(0,1fr)_auto_auto]",
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
-  emptyTerminal:
-    "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
-} as const;
-const AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE = {
-  enabled:
-    "desktop-debug-enabled tw:grid-cols-[0_minmax(0,1fr)_var(--right-sidebar-width)]",
-  disabled:
-    "desktop-debug-disabled tw:grid-cols-[0_minmax(0,1fr)_0] tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
 } as const;
 
 function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
@@ -307,7 +292,6 @@ export const AgentChatShell: React.FC = () => {
     state.timelineOrder.length > 0 || state.streaming || Boolean(state.runId);
 
   useAppRuntimes();
-  const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
 
   useEffect(() => {
     stateRef.current = state;
@@ -668,7 +652,6 @@ export const AgentChatShell: React.FC = () => {
   };
 
   const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
-  const effectiveTerminalDockOpen = state.terminalDockOpen && isCoderAgent(currentWorker);
 
   if (!routeAgentReady) {
     if (routeAgentLoadError) {
@@ -678,15 +661,8 @@ export const AgentChatShell: React.FC = () => {
   }
 
   const rowClass = isTimelineEmpty
-    ? effectiveTerminalDockOpen
-      ? AGENT_ROUTE_ROW_CLASS_BY_STATE.emptyTerminal
-      : AGENT_ROUTE_ROW_CLASS_BY_STATE.empty
-    : effectiveTerminalDockOpen
-      ? AGENT_ROUTE_ROW_CLASS_BY_STATE.terminal
-      : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
-  const columnClass = state.rightSidebarOpen
-    ? AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE.enabled
-    : AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE.disabled;
+    ? AGENT_ROUTE_ROW_CLASS_BY_STATE.empty
+    : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
 
   return (
     <SettingsOverlayProvider>
@@ -695,9 +671,7 @@ export const AgentChatShell: React.FC = () => {
         <div
           className={[
             AGENT_ROUTE_SHELL_BASE_CLASS,
-            columnClass,
             rowClass,
-            effectiveTerminalDockOpen ? "terminal-dock-open" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -706,17 +680,9 @@ export const AgentChatShell: React.FC = () => {
           {!routeChatReady && !hasVisibleConversationContent ? (
             <AgentRouteLoadingPage title={t("agentRoute.loading.chat")} overlay />
           ) : null}
-          <TopNav />
+          <TopNav surface="agent" />
           <ConversationStage showEmptyState={!chatId} />
-          <RightSidebar />
           <BottomDock />
-          {effectiveTerminalDockOpen && currentWorker ? (
-            <TerminalDock
-              agentKey={currentWorker.sourceId}
-              workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
-              worker={currentWorker}
-            />
-          ) : null}
           <ShellOverlays />
           <SidebarHistorySection
             open={Boolean(historyWorkerKey)}

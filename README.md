@@ -101,6 +101,7 @@ BASE_URL=http://localhost:11949
 SHARE_API_BASE_URL=http://127.0.0.1:11961
 # SHARE_APP_DOWNLOAD_URL=<实际可访问的 HTTP(S) 客户端下载地址>
 BACKEND_MODE=platform
+DESKTOP_APP=false
 ```
 
 - `PORT`：可选。本地开发端口和 Docker Compose 暴露到宿主机的端口，未设置时默认使用 `11948`；也可由 CLI args、环境变量或宿主配置注入。
@@ -108,6 +109,7 @@ BACKEND_MODE=platform
 - `SHARE_API_BASE_URL`：可选的 Tunnel 上游地址，只供开发服务器和 Nginx 代理公开分享 API，不写入浏览器运行时配置。
 - `SHARE_APP_DOWNLOAD_URL`：分享页的客户端下载引导地址，通过 `runtime-config.js` 注入，只接受 HTTP(S)。
 - `BACKEND_MODE`：默认 `platform`，保留 Bearer Token；设置为 `gateway` 时使用同源 Session Cookie，并在最终 401 后进入 Gateway 配置的登录流程。
+- `DESKTOP_APP`：Standalone 必须显式为 `false`。只有提供 canonical trusted realtime/workpanel/terminal bridge 的兼容 Desktop 才能注入 `true`；bridge 未到位时页面会硬阻断且不会回落直连。
 
 ### 2. 安装依赖并启动
 
@@ -274,6 +276,8 @@ dist/release/agent-webclient-vX.Y.Z-windows-amd64.zip
 
 Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 Desktop 启停脚本。它不内置后端服务，HTTP 托管、静态资源服务和代理路由由 Desktop main process 负责。Desktop Program Bundle 中的 `PORT`、`DESKTOP_APP` 和普通 `/api`、`/ws` 的 `BASE_URL` 由 Desktop 在 host-managed start 阶段提供，不写入 bundle `.env`。
 
+当前 WebClient 已设置 Desktop Realtime 硬暂停：在 canonical generated contract 与 trusted preload bridge 合入前，不得发布 `DESKTOP_APP=true` 的组合；该模式会显示阻断页，也不会临时回落 Standalone。
+
 ## 配置说明
 
 环境变量契约以 [`.env.example`](./.env.example) 为准。
@@ -285,6 +289,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | `SHARE_API_BASE_URL` | 否 | Tunnel HTTP origin；公开 `/share/` 部署启用时必须配置，仅供代理层使用 |
 | `SHARE_APP_DOWNLOAD_URL` | 否 | 分享页客户端下载地址；通过运行时配置注入，只接受 HTTP(S) |
 | `BACKEND_MODE` | 否 | `platform`（默认）保留 Token 认证；`gateway` 使用 Session Cookie、CSRF 与登录回跳 |
+| `DESKTOP_APP` | 否 | Standalone 固定为 `false`；兼容 Desktop host 注入 `true`，bridge 缺失或不兼容时硬阻断 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |
 | `MEMORY_ENABLED` | 否 | 是否显示 memory 相关入口 |

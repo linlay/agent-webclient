@@ -14,7 +14,7 @@ import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
-import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import {
   dispatchDetachRunEvent,
   type DetachRunEventDetail,
@@ -219,6 +219,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
     chatQuerySessionIndexRef,
     activeQuerySessionRequestIdRef,
   } = useAppContext();
+  const runs = useRunTransport();
   const handleEvent = options.onAgentEvent;
 
   /* Apply access token on mount and change */
@@ -632,31 +633,43 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       };
 
       try {
-        await executeQueryStreamWs({
-          params: {
-            requestId,
-            message: cleanMessage,
-            owner: selectedOwner,
-            chatId: chatId || undefined,
-            references:
-              normalizedReferences.length > 0
-                ? normalizedReferences
-                : undefined,
-            accessLevel,
-            model,
-            params: Object.keys(params).length > 0 ? params : undefined,
-            planningMode: Boolean(stateRef.current.planningMode),
-            editingMode: session.editingMode === true,
-            mustUseSkills:
-              normalizedMustUseSkills.length > 0
-                ? normalizedMustUseSkills
-                : undefined,
-            agentMode: selectedAgentMode || undefined,
-            signal: abortController.signal,
-          },
-          dispatch: sessionDispatch,
-          handleEvent: sessionHandleEvent,
+        sessionDispatch({ type: "SET_REQUEST_ID", requestId });
+        sessionDispatch({ type: "SET_STREAMING", streaming: true });
+        sessionDispatch({
+          type: "SET_ABORT_CONTROLLER",
+          controller: abortController,
         });
+
+        const execution = runs.startQuery({
+          requestId,
+          message: cleanMessage,
+          owner: selectedOwner,
+          chatId: chatId || undefined,
+          references:
+            normalizedReferences.length > 0
+              ? normalizedReferences
+              : undefined,
+          accessLevel,
+          model,
+          params: Object.keys(params).length > 0 ? params : undefined,
+          planningMode: Boolean(stateRef.current.planningMode),
+          editingMode: session.editingMode === true,
+          mustUseSkills:
+            normalizedMustUseSkills.length > 0
+              ? normalizedMustUseSkills
+              : undefined,
+          agentMode: selectedAgentMode || undefined,
+          signal: abortController.signal,
+          onEvent: sessionHandleEvent,
+        });
+        const accepted = await execution.accepted;
+        session.chatId = accepted.chatId;
+        session.runId = accepted.runId;
+        session.owner = accepted.owner;
+        const completion = await execution.completion;
+        if (completion.error) {
+          throw completion.error;
+        }
       } catch (error) {
         const err = error as Error;
         if (err.name !== "AbortError") {
@@ -700,6 +713,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             upsertBackgroundChatSummary(syntheticErrorEvent);
           }
         }
+      } finally {
+        sessionDispatch({ type: "SET_STREAMING", streaming: false });
+        sessionDispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       }
     },
     [
@@ -708,6 +724,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       dispatch,
       handleEvent,
       querySessionsRef,
+      runs,
       stateRef,
     ],
   );

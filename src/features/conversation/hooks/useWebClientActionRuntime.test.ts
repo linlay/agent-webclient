@@ -61,7 +61,7 @@ describe("WebClient sidebar actions", () => {
 		await expect(Promise.resolve(handler?.({}))).resolves.toEqual({
 			available: {
 				left: false,
-				right: true,
+				right: false,
 			},
 			left: {
 				open: true,
@@ -75,7 +75,7 @@ describe("WebClient sidebar actions", () => {
 	});
 
 	it("opens an explicit right sidebar tab and is idempotent", async () => {
-		const runtime = createActionRuntime("/copilot/demo");
+		const runtime = createActionRuntime("/");
 		const handler = runtime.handlers.get(WEBCLIENT_SIDEBAR_SET_STATE);
 
 		await expect(
@@ -126,7 +126,7 @@ describe("WebClient sidebar actions", () => {
 	});
 
 	it("opens and normalizes a URL in the right web sidebar", async () => {
-		const runtime = createActionRuntime("/agent/demo");
+		const runtime = createActionRuntime("/");
 		const handler = runtime.handlers.get(WEBCLIENT_SIDEBAR_OPEN_URL);
 
 		await expect(
@@ -174,7 +174,7 @@ describe("WebClient sidebar actions", () => {
 	});
 
 	it("refreshes an existing normalized URL without changing sidebar or active preview state", async () => {
-		const runtime = createActionRuntime("/agent/demo");
+		const runtime = createActionRuntime("/");
 		const openUrl = runtime.handlers.get(WEBCLIENT_SIDEBAR_OPEN_URL);
 		const setState = runtime.handlers.get(WEBCLIENT_SIDEBAR_SET_STATE);
 		const refreshUrl = runtime.handlers.get(WEBCLIENT_SIDEBAR_REFRESH_URL);
@@ -212,7 +212,7 @@ describe("WebClient sidebar actions", () => {
 	});
 
 	it("rejects invalid, missing, and unavailable refresh targets", async () => {
-		const runtime = createActionRuntime("/agent/demo");
+		const runtime = createActionRuntime("/");
 		const handler = runtime.handlers.get(WEBCLIENT_SIDEBAR_REFRESH_URL);
 
 		for (const payload of [
@@ -253,7 +253,7 @@ describe("WebClient sidebar actions", () => {
 	});
 
 	it("rejects unsafe or unavailable URL previews", async () => {
-		const runtime = createActionRuntime("/agent/demo");
+		const runtime = createActionRuntime("/");
 		const handler = runtime.handlers.get(WEBCLIENT_SIDEBAR_OPEN_URL);
 
 		for (const payload of [

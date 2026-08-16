@@ -3,18 +3,11 @@ import type React from "react";
 import type { AppAction } from "@/app/state/actions";
 import type { AppState, RightSidebarTabKey } from "@/app/state/types";
 import { useAppContext } from "@/app/state/AppContext";
-import { isGatewayBackendMode } from "@/shared/config/backendMode";
-import { ensureAccessToken } from "@/shared/data";
-import { isAppMode } from "@/shared/utils/routing";
 import {
 	WsClient,
 	WsInboundRequestError,
 } from "@/features/transport/lib/wsClient";
-import {
-	destroyWsClient,
-	initWsClient,
-	subscribeWsClient,
-} from "@/features/transport/lib/wsClientSingleton";
+import { useInboundRequestTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
 export const WEBCLIENT_SIDEBAR_GET_STATE = "webclient.sidebar.getState";
 export const WEBCLIENT_SIDEBAR_SET_STATE = "webclient.sidebar.setState";
@@ -157,11 +150,7 @@ function sidebarAvailability(pathname: string): {
 	const path = normalizePathname(pathname);
 	return {
 		left: path === "/",
-		right:
-			path === "/" ||
-			path === "/copilot" ||
-			path.startsWith("/copilot/") ||
-			path.startsWith("/agent/"),
+		right: path === "/",
 	};
 }
 
@@ -184,7 +173,7 @@ function readSidebarState(runtime: SidebarActionRuntime) {
 }
 
 export function registerWebClientSidebarActionHandlers(
-	client: WsClient,
+	client: Pick<WsClient, "registerInboundRequestHandler">,
 	runtime: SidebarActionRuntime,
 ): () => void {
 	const unsubscribeGetState = client.registerInboundRequestHandler(
@@ -366,58 +355,20 @@ export function registerWebClientSidebarActionHandlers(
 }
 
 export function useWebClientActionRuntime(): void {
-	const { dispatch, state, stateRef } = useAppContext();
+	const { dispatch, stateRef } = useAppContext();
+	const inbound = useInboundRequestTransport();
 
 	useEffect(() => {
-		if (isGatewayBackendMode()) {
+		if (!inbound) {
 			return;
 		}
-		const accessToken = String(state.accessToken || "").trim();
-		const appMode = isAppMode();
-		if (appMode && !accessToken) {
-			return;
-		}
-		const syncAccessToken = (token: string) => {
-			const normalized = String(token || "").trim();
-			if (normalized && normalized !== stateRef.current.accessToken) {
-				dispatch({ type: "SET_ACCESS_TOKEN", token: normalized });
-			}
-			return normalized;
+		const registrar: Pick<WsClient, "registerInboundRequestHandler"> = {
+			registerInboundRequestHandler: (type, handler) =>
+				inbound.register(type, handler),
 		};
-		const client = initWsClient({
-			accessToken,
-			allowAnonymous: !appMode,
-			resolveAccessToken: async (reason) =>
-				syncAccessToken(await ensureAccessToken(reason)),
-			onAccessTokenChange: syncAccessToken,
+		return registerWebClientSidebarActionHandlers(registrar, {
+			dispatch,
+			getState: () => stateRef.current,
 		});
-		void client.connect().catch(() => undefined);
-	}, [dispatch, state.accessToken, stateRef]);
-
-	useEffect(() => {
-		if (isGatewayBackendMode()) {
-			return;
-		}
-		return () => destroyWsClient();
-	}, []);
-
-	useEffect(() => {
-		if (isGatewayBackendMode()) {
-			return;
-		}
-		let unregisterActions: (() => void) | undefined;
-		const unsubscribeClient = subscribeWsClient((client) => {
-			unregisterActions?.();
-			unregisterActions = client
-				? registerWebClientSidebarActionHandlers(client, {
-						dispatch,
-						getState: () => stateRef.current,
-					})
-				: undefined;
-		});
-		return () => {
-			unregisterActions?.();
-			unsubscribeClient();
-		};
-	}, [dispatch, stateRef]);
+	}, [dispatch, inbound, stateRef]);
 }

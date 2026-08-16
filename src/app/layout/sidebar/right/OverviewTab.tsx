@@ -1,5 +1,6 @@
 import React from "react";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useAppState } from "@/app/state/AppContext";
 import type { FileChangeSummary, PublishedArtifact } from "@/app/state/types";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
@@ -366,8 +367,8 @@ const OverviewSection: React.FC<{
   );
 };
 
-export const OverviewTab: React.FC = () => {
-  const dispatch = useAppDispatch();
+export const SummaryContent: React.FC = () => {
+  const openTarget = useOpenTarget();
   const state = useAppState();
   const { t } = useI18n();
   const [fileChangeAnimation, setFileChangeAnimation] = React.useState<{
@@ -464,13 +465,15 @@ export const OverviewTab: React.FC = () => {
 
   const handlePlanningClick = React.useCallback(
     (nodeId: string, label: string) => {
-      dispatch({
-        type: "OPEN_RIGHT_SIDEBAR",
-        tab: "planningPreview",
-        planningPreview: { nodeId, label },
+      openTarget({
+        version: 1,
+        kind: "planning",
+        chatId: state.chatId,
+        nodeId,
+        label,
       });
     },
-    [dispatch],
+    [openTarget, state.chatId],
   );
 
   React.useEffect(() => {
@@ -763,3 +766,5 @@ export const OverviewTab: React.FC = () => {
     </div>
   );
 };
+
+export const OverviewTab: React.FC = () => <SummaryContent />;

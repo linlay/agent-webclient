@@ -34,18 +34,22 @@ import {
 	readEpochMillis,
 } from "@/shared/utils/platformTime";
 import {
-	destroyWsClient,
-	getWsClient,
-	initWsClient,
-	scheduleDestroyWsClient,
-} from "@/features/transport/lib/wsClientSingleton";
+	destroyStandaloneWsClient as destroyWsClient,
+	getStandaloneWsClient as getWsClient,
+	initializeStandaloneWsClient as initWsClient,
+} from "@/features/transport/lib/standaloneWsClient";
 import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import {
 	createWsFrameId,
 	describeWsConnectionFailure,
 	toWsConnectionError,
 	type WsClient,
+	type WsPushFrame,
 } from "@/features/transport/lib/wsClient";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
+import { useChatNotificationRuntime } from "@/features/conversation/hooks/useChatNotificationRuntime";
+import { useRunSubscriptionRuntime } from "@/features/conversation/hooks/useRunSubscriptionRuntime";
+import type { RunTransport } from "@/features/transport/contracts/realtimeTransport";
 import {
 	WS_STREAM_RETRY_DELAYS_MS,
 	handleStreamReplayError,
@@ -255,6 +259,8 @@ interface ConnectWsTransportOptions {
 	isAppModeImpl?: typeof isAppMode;
 	initWsClientImpl?: typeof initWsClient;
 	destroyWsClientImpl?: typeof destroyWsClient;
+	routePushThroughTransport?: boolean;
+	pushHandlerRef?: { current: ((frame: WsPushFrame) => void) | null };
 }
 
 function appendWsDebug(dispatch: WsTransportDispatch, line: string): void {
@@ -431,6 +437,8 @@ interface RequestWsDetachRunOptions {
 	activeQuerySessionRequestIdRef: { current: string };
 	getWsClientImpl?: typeof getWsClient;
 	logMissing?: boolean;
+	activeAttachRef?: { current: ActiveAttachState | null };
+	preferExecutionDetach?: boolean;
 }
 
 function resolveAttachOwner(
@@ -529,6 +537,33 @@ function requestWsDetachRun(
 		}
 		return;
 	}
+	if (options.preferExecutionDetach) {
+		let detached = false;
+		for (const session of options.querySessionsRef.current.values()) {
+			if (
+				String(session.runId || "").trim() === target.runId
+				&& (!target.chatId || String(session.chatId || "").trim() === target.chatId)
+			) {
+				session.abortController?.abort();
+				detached = true;
+			}
+		}
+		const activeAttach = options.activeAttachRef?.current;
+		if (
+			activeAttach?.runId === target.runId
+			&& (!target.chatId || activeAttach.chatId === target.chatId)
+		) {
+			activeAttach.abort();
+			detached = true;
+		}
+		if (!detached && options.logMissing) {
+			appendWsDebug(
+				options.dispatch,
+				`[run detach] skipped: no local execution (runId=${target.runId})`,
+			);
+		}
+		return;
+	}
 
 	const wsClient = getWsClientImpl();
 	if (!wsClient) {
@@ -572,6 +607,7 @@ interface RegisterAttachRunListenerOptions {
 	chatQuerySessionIndexRef: { current: Map<string, string> };
 	activeQuerySessionRequestIdRef: { current: string };
 	getWsClientImpl?: typeof getWsClient;
+	runs?: RunTransport;
 }
 
 function isAttachTerminalRunEventType(type: string): boolean {
@@ -752,8 +788,8 @@ export function registerAttachRunListener(
 			return;
 		}
 
-		const wsClient = getWsClientImpl();
-		if (!wsClient) {
+		const wsClient = options.runs ? null : getWsClientImpl();
+		if (!options.runs && !wsClient) {
 			dispatchRunAttachDebugEvent(options.dispatch, {
 				stage: "attachRunIgnored",
 				chatId,
@@ -771,6 +807,7 @@ export function registerAttachRunListener(
 		}
 
 		if (current) {
+			if (!options.runs) {
 			requestWsDetachRun(
 				{
 					dispatch: options.dispatch,
@@ -787,6 +824,7 @@ export function registerAttachRunListener(
 					reason: "attach_switch",
 				},
 			);
+			}
 			current.abort();
 		}
 
@@ -827,7 +865,7 @@ export function registerAttachRunListener(
 		const retryCount = { current: 0 };
 		const abortFns: Array<() => void> = [];
 		const startAttachStream = () => {
-			const streamResult = wsClient.stream({
+			const streamResult = wsClient!.stream({
 				type: dataEndpoints.attach.path,
 				payload: {
 					runId,
@@ -849,7 +887,7 @@ export function registerAttachRunListener(
 						{
 							signal: controller.signal,
 							retryDelaysMs: WS_STREAM_RETRY_DELAYS_MS,
-							getRetryClient: async () => wsClient,
+							getRetryClient: async () => wsClient!,
 							startStreamAttempt: () => {
 								startAttachStream();
 							},
@@ -896,7 +934,24 @@ export function registerAttachRunListener(
 			activeSessionStreaming: true,
 			activeAttachRunId: runId,
 		});
-		startAttachStream();
+		if (options.runs) {
+			const execution = options.runs.subscribe({
+				requestId,
+				chatId,
+				runId,
+				owner,
+				lastSeq,
+				signal: controller.signal,
+				onEvent: attachHandleEvent,
+			});
+			abortFns.push(() => {
+				void execution.detach();
+			});
+			void execution.accepted.catch(() => cleanupActiveAttach(requestId));
+			void execution.completion.then(() => cleanupActiveAttach(requestId));
+		} else {
+			startAttachStream();
+		}
 
 		options.querySessionsRef.current.set(requestId, session);
 		options.chatQuerySessionIndexRef.current.set(chatId, requestId);
@@ -934,8 +989,9 @@ export function registerAttachRunListener(
 			window.removeEventListener("agent:attach-run", handler);
 		}
 		const current = options.activeAttachRef.current;
-		if (current) {
-			requestWsDetachRun(
+			if (current) {
+				if (!options.runs) {
+				requestWsDetachRun(
 				{
 					dispatch: options.dispatch,
 					stateRef: options.stateRef,
@@ -949,9 +1005,10 @@ export function registerAttachRunListener(
 					owner: current.owner,
 					...(current.owner.kind === "agent" ? { agentKey: current.owner.agentKey } : {}),
 					reason: "transport_cleanup",
-				},
-			);
-			current.abort();
+					},
+				);
+				}
+				current.abort();
 		}
 		options.activeAttachRef.current = null;
 	};
@@ -996,7 +1053,9 @@ function buildWsClient(
 	};
 	let hasConnected = false;
 	let previousStatus: AppState["wsStatus"] = "disconnected";
-	return initWsClientImpl({
+	let forwardingPush = false;
+	let processPushFrame: ((frame: WsPushFrame) => void) | null = null;
+	const client = initWsClientImpl({
 		accessToken,
 		allowAnonymous: !appMode,
 		resolveAccessToken: async (reason) => {
@@ -1015,7 +1074,10 @@ function buildWsClient(
 			}
 			previousStatus = status;
 		},
-		onPush: (frame) => {
+		onPush: (processPushFrame = (frame) => {
+			if (options.routePushThroughTransport && !forwardingPush) {
+				return;
+			}
 			const wireType = readPushWireType(frame);
 			const liveEvent = toPushEvent(frame);
 			if (!hasValidRequiredPushTime(wireType, liveEvent, frame)) {
@@ -1224,11 +1286,22 @@ function buildWsClient(
 			}
 
 			options.handleEvent(liveEvent);
-		},
+		}),
 		onTransportError: (error) => {
 			showTransportError(error.message);
 		},
 	});
+	if (options.pushHandlerRef && processPushFrame) {
+		options.pushHandlerRef.current = (frame) => {
+			forwardingPush = true;
+			try {
+				processPushFrame?.(frame);
+			} finally {
+				forwardingPush = false;
+			}
+		};
+	}
+	return client;
 }
 
 export function refreshCurrentChatAfterWsReconnect(state: AppState): void {
@@ -1380,7 +1453,6 @@ export function useConversationWsRuntime(options: {
 }): void {
 	const {
 		dispatch,
-		state,
 		stateRef,
 		querySessionsRef,
 		chatQuerySessionIndexRef,
@@ -1388,8 +1460,8 @@ export function useConversationWsRuntime(options: {
 	} = useAppContext();
 	const handleEventRef = useRef(options.onAgentEvent);
 	const activeAttachRef = useRef<ActiveAttachState | null>(null);
-	const appMode = isAppMode();
-	const wsConnectKey = appMode ? "__app_mode__" : state.accessToken;
+	const pushHandlerRef = useRef<((frame: WsPushFrame) => void) | null>(null);
+	const runs = useRunTransport();
 
 	useEffect(() => {
 		handleEventRef.current = options.onAgentEvent;
@@ -1400,7 +1472,43 @@ export function useConversationWsRuntime(options: {
 	}, []);
 
 	useEffect(() => {
-		return registerAttachRunListener({
+		buildWsClient({
+			dispatch,
+			state: { accessToken: stateRef.current.accessToken },
+			stateRef,
+			querySessionsRef,
+			activeQuerySessionRequestIdRef,
+			activeAttachRef,
+			routePushThroughTransport: true,
+			pushHandlerRef,
+			handleEvent: stableHandleEvent,
+			initWsClientImpl: () => ({}) as WsClient,
+		}, "");
+		return () => {
+			pushHandlerRef.current = null;
+		};
+	}, [
+		activeQuerySessionRequestIdRef,
+		dispatch,
+		querySessionsRef,
+		stableHandleEvent,
+		stateRef,
+	]);
+
+	const handlePush = useCallback((frame: WsPushFrame) => {
+		pushHandlerRef.current?.(frame as WsPushFrame);
+	}, []);
+	const handleReconnect = useCallback((currentState: AppState) => {
+		refreshCurrentChatAfterWsReconnect(currentState);
+	}, []);
+	useChatNotificationRuntime({
+		dispatch,
+		stateRef,
+		onPush: handlePush,
+		onReconnect: handleReconnect,
+	});
+
+	const registerAttach = useCallback(() => registerAttachRunListener({
 			dispatch,
 			stateRef,
 			handleEvent: stableHandleEvent,
@@ -1408,24 +1516,44 @@ export function useConversationWsRuntime(options: {
 			querySessionsRef,
 			chatQuerySessionIndexRef,
 			activeQuerySessionRequestIdRef,
-		});
-	}, [
+			runs,
+		}), [
 		activeQuerySessionRequestIdRef,
 		chatQuerySessionIndexRef,
 		dispatch,
 		querySessionsRef,
+		runs,
 		stableHandleEvent,
 		stateRef,
 	]);
 
-	useEffect(() => {
-		return registerDetachRunListener({
-			dispatch,
-			stateRef,
-			querySessionsRef,
-			activeQuerySessionRequestIdRef,
-			logMissing: true,
-		});
+	const registerDetach = useCallback(() => registerDetachRunListener({
+		dispatch,
+		stateRef,
+		querySessionsRef,
+		activeQuerySessionRequestIdRef,
+		activeAttachRef,
+		preferExecutionDetach: true,
+		logMissing: true,
+	}), [
+		activeQuerySessionRequestIdRef,
+		dispatch,
+		querySessionsRef,
+		stateRef,
+	]);
+
+	const detachOnPageHide = useCallback(() => {
+		requestWsDetachRun(
+			{
+				dispatch,
+				stateRef,
+				querySessionsRef,
+				activeQuerySessionRequestIdRef,
+				activeAttachRef,
+				preferExecutionDetach: true,
+			},
+			{ reason: "page_leave" },
+		);
 	}, [
 		activeQuerySessionRequestIdRef,
 		dispatch,
@@ -1433,88 +1561,33 @@ export function useConversationWsRuntime(options: {
 		stateRef,
 	]);
 
-	useEffect(() => {
-		if (
-			typeof window === "undefined"
-			|| typeof window.addEventListener !== "function"
-		) {
-			return;
-		}
-		const handler = () => {
+	const cleanup = useCallback(() => {
 			requestWsDetachRun(
 				{
 					dispatch,
 					stateRef,
 					querySessionsRef,
 					activeQuerySessionRequestIdRef,
-				},
-				{ reason: "page_leave" },
-			);
-		};
-		window.addEventListener("pagehide", handler);
-		return () => window.removeEventListener("pagehide", handler);
-	}, [
-		activeQuerySessionRequestIdRef,
-		dispatch,
-		querySessionsRef,
-		stateRef,
-	]);
-
-	useEffect(() => {
-		let cancelled = false;
-
-		void connectWsTransport({
-			dispatch,
-			state: { accessToken: stateRef.current.accessToken },
-			stateRef,
-			querySessionsRef,
-			activeQuerySessionRequestIdRef,
-			activeAttachRef,
-			handleEvent: stableHandleEvent,
-			isCancelled: () => cancelled,
-		}).catch((error) => {
-			if (cancelled) {
-				return;
-			}
-			if ((error as { wsReported?: boolean } | null)?.wsReported) {
-				return;
-			}
-			const normalized = toWsConnectionError(error, {
-				appMode,
-				hasAccessToken: Boolean(
-					String(stateRef.current.accessToken || "").trim(),
-				),
-			});
-			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: normalized.message });
-			dispatch({ type: "SET_WS_STATUS", status: "error" });
-			appendWsDebug(dispatch, `[live] ${normalized.message}`);
-		});
-
-		return () => {
-			cancelled = true;
-			requestWsDetachRun(
-				{
-					dispatch,
-					stateRef,
-					querySessionsRef,
-					activeQuerySessionRequestIdRef,
+					activeAttachRef,
+					preferExecutionDetach: true,
 				},
 				{ reason: "transport_cleanup" },
 			);
 			activeAttachRef.current?.abort();
 			activeAttachRef.current = null;
-			if (isGatewayBackendMode()) {
-				scheduleDestroyWsClient();
-			}
 			dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
 			dispatch({ type: "SET_WS_STATUS", status: "disconnected" });
-		};
 	}, [
 		dispatch,
 		activeQuerySessionRequestIdRef,
 		querySessionsRef,
-		stableHandleEvent,
 		stateRef,
-		wsConnectKey,
 	]);
+
+	useRunSubscriptionRuntime({
+		registerAttach,
+		registerDetach,
+		detachOnPageHide,
+		cleanup,
+	});
 }

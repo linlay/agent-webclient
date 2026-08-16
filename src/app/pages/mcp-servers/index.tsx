@@ -48,7 +48,7 @@ import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
-import { subscribeWsPush } from "@/features/transport/lib/wsClientSingleton";
+import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
 export const MCP_CATALOG_POLL_INTERVAL_MS = 5_000;
 const MCP_CATALOG_PUSH_DEBOUNCE_MS = 150;
@@ -481,6 +481,7 @@ interface McpDetailLoadResult {
 
 export const McpServersPage = () => {
   const { t, locale } = useI18n();
+  const push = usePushTransport();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ serverKey?: string }>();
@@ -884,7 +885,7 @@ export const McpServersPage = () => {
   }, [loadPage]);
 
   useEffect(() => {
-    const unsubscribe = subscribeWsPush((frame) => {
+    const unsubscribe = push.subscribe({ types: ["catalog.updated"] }, (frame) => {
       const reason = catalogUpdateReason(frame);
       if (reason !== "mcp-servers" && reason !== "config") return;
       if (loading || detailLoading || saving) return;
@@ -903,7 +904,7 @@ export const McpServersPage = () => {
         catalogPushTimerRef.current = null;
       }
     };
-  }, [detailLoading, loading, refreshCatalog, saving]);
+  }, [detailLoading, loading, push, refreshCatalog, saving]);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;

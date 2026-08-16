@@ -1093,6 +1093,66 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     margin-top: 8px;
 }
 
+.terminal-workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.terminal-surface {
+    display: flex;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+    background: var(--bg-base);
+    color: var(--ink-1);
+}
+
+.terminal-surface-invalid {
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.readonly-run-surface {
+    display: flex;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-base);
+    color: var(--ink-1);
+}
+
+.readonly-run-surface-header {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--line-soft);
+    padding: 0 14px;
+}
+
+.readonly-run-surface-header span {
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-family: var(--font-code);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.readonly-run-surface-content {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    padding: 12px;
+}
+
 /* ---- 拖拽调整高度手柄 ---- */
 
 .terminal-dock-resize-handle {
@@ -1336,4 +1396,32 @@ html[data-theme="dark"] .xterm .composition-view {
     &.ui-btn.ui-btn-secondary{
         background-color: var(--bg-base) !important;
     }
+}
+.realtime-transport-blocked {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg-base);
+  color: var(--ink-1);
+}
+
+.realtime-transport-blocked > section {
+  display: grid;
+  width: min(520px, 100%);
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev-1);
+  box-shadow: var(--shadow-elevated);
+}
+
+.realtime-transport-blocked h1,
+.realtime-transport-blocked p {
+  margin: 0;
+}
+
+.realtime-transport-blocked code {
+  color: var(--accent-danger);
 }

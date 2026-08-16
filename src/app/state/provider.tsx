@@ -20,7 +20,7 @@ import { syncThemeMode } from "@/shared/styles/theme";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import { persistComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
 import { dataQueryCache } from "@/shared/data/query/serverState";
-import { destroyWsClient } from "@/features/transport/lib/wsClientSingleton";
+import { destroyStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
 
 export interface AppContextValue {
 	state: AppState;
@@ -185,7 +185,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		const clearIdentityState = () => {
 			persistCurrentDraft();
 			dataQueryCache.clear();
-			destroyWsClient();
+			destroyStandaloneWsClient();
 			window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
 			window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
 			dispatch({

@@ -13,7 +13,7 @@ import { t } from "@/shared/i18n";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Flex, Tabs, Tag, Tooltip, Typography } from "antd";
+import { Flex, Modal, Tabs, Tag, Tooltip, Typography } from "antd";
 
 function formatDebugTime(timestamp?: number): string {
   return formatDebugTimestamp(timestamp);
@@ -339,12 +339,19 @@ const EventRow: React.FC<{
   );
 };
 
-export const DebugTab: React.FC = () => {
+export const DebugPanelContent: React.FC<{
+  independentDetails?: boolean;
+}> = ({ independentDetails = false }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const [selectedEvent, setSelectedEvent] = React.useState<AgentEvent | null>(null);
 
   const openEventPopover = React.useCallback(
     (event: AgentEvent, idx: number, target: HTMLDivElement) => {
+      if (independentDetails) {
+        setSelectedEvent(event);
+        return;
+      }
       const rect = target.getBoundingClientRect();
       dispatch({
         type: "SET_EVENT_POPOVER",
@@ -356,7 +363,7 @@ export const DebugTab: React.FC = () => {
         },
       });
     },
-    [dispatch],
+    [dispatch, independentDetails],
   );
 
   const eventsByTab = React.useMemo(
@@ -464,6 +471,20 @@ export const DebugTab: React.FC = () => {
           />
         )}
       </div>
+      {independentDetails ? (
+        <Modal
+          open={Boolean(selectedEvent)}
+          onCancel={() => setSelectedEvent(null)}
+          footer={null}
+          width="min(860px, 92vw)"
+          title={String(selectedEvent?.type || "Event")}
+          destroyOnHidden
+        >
+          <pre className="event-json">{JSON.stringify(selectedEvent, null, 2)}</pre>
+        </Modal>
+      ) : null}
     </div>
   );
 };
+
+export const DebugTab: React.FC = () => <DebugPanelContent />;

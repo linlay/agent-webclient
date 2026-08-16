@@ -323,16 +323,21 @@ export function useConversationActions() {
   }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, detachActiveConversationSession, dispatch, dispatchDetachActiveRun, focusComposerSoon]);
 
   const loadChat = useCallback(
-    async (chatId: string, options: { focusComposerOnComplete?: boolean } = {}) => {
+    async (chatId: string, options: {
+      focusComposerOnComplete?: boolean;
+      forceReload?: boolean;
+      throwOnError?: boolean;
+    } = {}) => {
       if (!chatId) return;
       const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
+      const forceReload = options.forceReload === true;
       const currentChatId = String(stateRef.current.chatId || '').trim();
       const mainRuntime = resolveMainChatRuntime(
         stateRef,
         activeQuerySessionRequestIdRef,
         querySessionsRef,
       );
-      if (isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)) {
+      if (!forceReload && isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)) {
         if (focusComposerOnComplete) {
           focusComposerSoon();
         }
@@ -340,7 +345,8 @@ export function useConversationActions() {
       }
       const hasAssistantTimelineContent = hasAssistantTimelineContentInState(stateRef.current);
       if (
-        currentChatId
+        !forceReload
+        && currentChatId
         && currentChatId === chatId
         && mainRuntime.running
         && hasAssistantTimelineContent
@@ -605,6 +611,9 @@ export function useConversationActions() {
         dispatch({ type: 'SET_STREAMING', streaming: false });
         if (focusComposerOnComplete) {
           focusComposerSoon();
+        }
+        if (options.throwOnError) {
+          throw error;
         }
       }
     },

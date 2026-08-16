@@ -7,7 +7,9 @@ import type {
   AppState,
   FormActiveAwaiting,
 } from "@/app/state/types";
-import { ApiError, submitAwaiting } from "@/shared/data";
+import { ApiError } from "@/shared/data";
+import type { RunTransport } from "@/features/transport/contracts/realtimeTransport";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
@@ -58,7 +60,7 @@ interface SubmitComposerAwaitingInput {
   state: UseComposerAwaitingInput["state"];
   t: AwaitingSubmitTranslator;
   createSubmitId?: () => string;
-  submitAwaitingImpl?: typeof submitAwaiting;
+  submitAwaitingImpl: RunTransport["submitAwaiting"];
 }
 
 type AwaitingTerminalSubmitCode =
@@ -195,7 +197,7 @@ export async function submitComposerAwaiting(
         pendingSubmitId: submitId,
       },
     });
-    const response = await (input.submitAwaitingImpl ?? submitAwaiting)({
+    const response = await input.submitAwaitingImpl({
       chatId: state.chatId,
       runId: payload.runId,
       owner,
@@ -278,6 +280,7 @@ export async function submitComposerAwaiting(
 export function useComposerAwaiting(input: UseComposerAwaitingInput) {
   const { activeAwaiting, dispatch, state } = input;
   const { t } = useI18n();
+  const runs = useRunTransport();
   const { message } = AntdApp.useApp();
   const isAwaitingActive = !!activeAwaiting;
 
@@ -299,6 +302,7 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
         message,
         payload,
         state,
+        submitAwaitingImpl: runs.submitAwaiting,
         t,
       });
     },
@@ -307,6 +311,7 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
       clearActiveAwaiting,
       dispatch,
       message,
+      runs,
       state.chatAgentById,
       state.chatId,
       state.chats,

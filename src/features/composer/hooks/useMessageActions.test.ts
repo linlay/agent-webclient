@@ -9,7 +9,8 @@ import {
   useMessageActions,
 } from "@/features/composer/hooks/useMessageActions";
 import type { WorkerRow } from "@/app/state/types";
-import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
+
+const startQuery = jest.fn();
 
 function createDetachTestState(overrides: Record<string, unknown> = {}) {
   return {
@@ -24,8 +25,8 @@ function createDetachTestState(overrides: Record<string, unknown> = {}) {
   } as never;
 }
 
-jest.mock("@/features/transport/lib/queryStreamRuntime.ws", () => ({
-  executeQueryStreamWs: jest.fn(),
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
+  useRunTransport: () => ({ startQuery }),
 }));
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -51,12 +52,6 @@ const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
   useAppContext: jest.Mock;
 };
 
-describe("executeQueryStreamWs", () => {
-  it("is the single query stream executor", () => {
-    expect(executeQueryStreamWs).toEqual(expect.any(Function));
-  });
-});
-
 describe("normalizeQueryModelOverride", () => {
   it("preserves all six efforts and normalizes case plus EXTRA_HIGH", () => {
     expect(normalizeQueryModelOverride({ reasoningEffort: "xhigh" })).toEqual({
@@ -77,6 +72,16 @@ describe("normalizeQueryModelOverride", () => {
 describe("useMessageActions temporary pin", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    startQuery.mockReturnValue({
+      accepted: Promise.resolve({
+        requestId: "req_1",
+        chatId: "chat_1",
+        runId: "run_1",
+        owner: { kind: "agent", agentKey: "agent-coder" },
+      }),
+      completion: Promise.resolve({ reason: "done", lastSeq: 1 }),
+      detach: jest.fn(),
+    });
   });
 
   it("clears a matching temporary pinned agent when the first query starts", async () => {
@@ -138,13 +143,11 @@ describe("useMessageActions temporary pin", () => {
       type: "SET_TEMPORARY_PINNED_AGENT_KEY",
       agentKey: "",
     });
-    expect(executeQueryStreamWs).toHaveBeenCalledWith(
+    expect(startQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
-          owner: { kind: "agent", agentKey: "agent-coder" },
-          message: "hello",
-          mustUseSkills: ["pdf", "mock-skill"],
-        }),
+        owner: { kind: "agent", agentKey: "agent-coder" },
+        message: "hello",
+        mustUseSkills: ["pdf", "mock-skill"],
       }),
     );
   });
@@ -177,7 +180,7 @@ describe("useMessageActions temporary pin", () => {
 
     await actions?.sendMessage("hello");
 
-    expect(executeQueryStreamWs).not.toHaveBeenCalled();
+    expect(startQuery).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: "SET_TIMELINE_NODE" }),
     );
@@ -217,14 +220,17 @@ describe("useMessageActions temporary pin", () => {
       chatQuerySessionIndexRef: { current: new Map() },
       activeQuerySessionRequestIdRef: activeRequest,
     });
-    (executeQueryStreamWs as jest.Mock).mockRejectedValue(
-      Object.assign(new Error("unsupported"), {
+    const unsupported = Object.assign(new Error("unsupported"), {
         platformError: {
           code: "editing_mode_unsupported",
           message: "unsupported",
         },
-      }),
-    );
+      });
+    startQuery.mockReturnValue({
+      accepted: Promise.reject(unsupported),
+      completion: Promise.resolve({ reason: "error", lastSeq: 0, error: unsupported }),
+      detach: jest.fn(),
+    });
 
     let actions: ReturnType<typeof useMessageActions> | null = null;
     const Harness = () => {
@@ -246,13 +252,11 @@ describe("useMessageActions temporary pin", () => {
       true,
     );
 
-    expect(executeQueryStreamWs).toHaveBeenCalledTimes(1);
-    expect(executeQueryStreamWs).toHaveBeenCalledWith(
+    expect(startQuery).toHaveBeenCalledTimes(1);
+    expect(startQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
-          agentMode: "KBASE",
-          editingMode: true,
-        }),
+        agentMode: "KBASE",
+        editingMode: true,
       }),
     );
     expect(dispatch).toHaveBeenCalledWith({
