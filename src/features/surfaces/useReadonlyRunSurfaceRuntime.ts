@@ -25,11 +25,27 @@ function lastSeqForRun(events: AgentEvent[], runId: string): number {
   return lastSeq;
 }
 
+export function resolveReadonlyActiveRun<T extends { chatId?: unknown; runId?: unknown }>(input: {
+  chatId: string;
+  activeRun: T | null | undefined;
+}): (T & { chatId: string; runId: string }) | null {
+  const chatId = String(input.chatId || "").trim();
+  const activeChatId = String(input.activeRun?.chatId || "").trim();
+  const activeRunId = String(input.activeRun?.runId || "").trim();
+  if (!input.activeRun || !chatId || activeChatId !== chatId || !activeRunId) {
+    return null;
+  }
+  return {
+    ...input.activeRun,
+    chatId,
+    runId: activeRunId,
+  };
+}
+
 export function useReadonlyRunSurfaceRuntime(input: {
   chatId: string;
-  runId?: string;
   agentKey?: string;
-  role: "summary" | "debug";
+  role: "overview" | "debug";
 }): { status: ReadonlyRunSurfaceStatus; error: string } {
   const { state, stateRef } = useAppContext();
   const actions = useConversationActions();
@@ -76,11 +92,12 @@ export function useReadonlyRunSurfaceRuntime(input: {
   useEffect(() => {
     if (!input.chatId || status !== "ready") return;
     const snapshot = stateRef.current;
-    const activeRun = snapshot.currentChatActiveRun?.chatId === input.chatId
-      ? snapshot.currentChatActiveRun
-      : null;
-    const runId = String(input.runId || activeRun?.runId || snapshot.runId || "").trim();
-    if (!runId) return;
+    const activeRun = resolveReadonlyActiveRun({
+      chatId: input.chatId,
+      activeRun: snapshot.currentChatActiveRun,
+    });
+    if (!activeRun) return;
+    const runId = activeRun.runId;
     const agentKey = String(
       input.agentKey || resolveRunAgentKey({
         runId,
@@ -150,12 +167,10 @@ export function useReadonlyRunSurfaceRuntime(input: {
     input.agentKey,
     input.chatId,
     input.role,
-    input.runId,
     replay,
     replayRevision,
     runs,
     state.currentChatActiveRun,
-    state.runId,
     stateRef,
     status,
     t,

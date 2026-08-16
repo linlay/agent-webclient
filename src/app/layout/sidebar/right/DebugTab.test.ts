@@ -202,9 +202,37 @@ describe("buildDebugEventGroups", () => {
 		expect(
 			buildDebugChatRouteUrl("agent", { agentKey: "", chatId: "chat_1" }),
 		).toBe("");
+		expect(
+			buildDebugChatRouteUrl(
+				"overview",
+				{ agentKey: "demo-agent", chatId: "chat_1" },
+				"?lang=en&theme=light&chatId=old&runId=old-run",
+			),
+		).toBe("/overview/demo-agent?lang=en&theme=light&chatId=chat_1");
+		expect(
+			buildDebugChatRouteUrl(
+				"debug",
+				{ agentKey: "demo-agent", chatId: "chat_1" },
+			),
+		).toBe("/debug/demo-agent?chatId=chat_1");
+		expect(
+			buildDebugChatRouteUrl(
+				"terminal",
+				{ agentKey: "demo-agent" },
+				"?chatId=old&terminalKey=old",
+			),
+		).toBe("/terminal?agentKey=demo-agent&terminalKey=main");
+		expect(
+			buildDebugChatRouteUrl(
+				"share",
+				{ shareId: "share_public-1" },
+				"?desktopAuthContext=secret&lang=en",
+			),
+		).toBe("/share/share_public-1");
+		expect(buildDebugChatRouteUrl("share", { shareId: "chat_1" })).toBe("");
 	});
 
-	it("builds Agent and Copilot targets for chat.start events", () => {
+	it("builds all independent surface targets for chat.start events", () => {
 		const targets = buildDebugChatStartOpenTargets(
 			{
 				type: "chat.start",
@@ -212,12 +240,25 @@ describe("buildDebugEventGroups", () => {
 				firstAgentKey: "fallback-agent",
 			} as AgentEvent,
 			"?theme=dark",
+			"",
+			"share_public-1",
 		);
 
 		expect(targets.map((target) => target.href)).toEqual([
 			"/agent/fallback-agent?theme=dark&chatId=chat_1",
 			"/copilot/fallback-agent?theme=dark&chatId=chat_1",
+			"/overview/fallback-agent?theme=dark&chatId=chat_1",
+			"/debug/fallback-agent?theme=dark&chatId=chat_1",
+			"/terminal?theme=dark&agentKey=fallback-agent&terminalKey=main",
+			"/share/share_public-1",
 		]);
+		expect(
+			buildDebugChatStartOpenTargets({
+				type: "chat.start",
+				chatId: "chat_1",
+				agentKey: "demo-agent",
+			} as AgentEvent).some((target) => target.kind === "share"),
+		).toBe(false);
 		expect(
 			buildDebugChatStartOpenTargets(
 				{ type: "run.start", chatId: "chat_1", agentKey: "demo" } as AgentEvent,
@@ -233,6 +274,7 @@ describe("buildDebugEventGroups", () => {
 				{
 					chatId: "chat_1",
 					firstAgentKey: "demo-agent",
+					shareId: "share_public-1",
 				},
 			],
 			debugEvents: [{ type: "chat.start", chatId: "chat_1" }],
@@ -245,5 +287,9 @@ describe("buildDebugEventGroups", () => {
 		expect(html).toContain("新页面打开 Copilot 对话");
 		expect(html).toContain("Agent");
 		expect(html).toContain("Copilot");
+		expect(html).toContain("概览");
+		expect(html).toContain("调试");
+		expect(html).toContain("终端面板");
+		expect(html).toContain("分享的对话");
 	});
 });

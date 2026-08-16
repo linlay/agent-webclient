@@ -4,10 +4,10 @@ import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorke
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 
 export type OpenTargetIntent =
-  | { version: 1; kind: "summary" | "debug"; chatId: string; runId?: string; agentKey?: string; toggle?: boolean }
+  | { version: 1; kind: "overview" | "debug"; chatId: string; agentKey?: string; toggle?: boolean }
   | { version: 1; kind: "terminal"; agentKey: string; terminalKey?: string; title?: string }
-  | { version: 1; kind: "artifact"; chatId: string; preview: AttachmentPreviewState; toggle?: boolean }
-  | { version: 1; kind: "planning"; chatId: string; nodeId: string; label?: string }
+  | { version: 1; kind: "artifact"; chatId: string; agentKey?: string; preview: AttachmentPreviewState; toggle?: boolean }
+  | { version: 1; kind: "planning"; chatId: string; agentKey?: string; nodeId: string; label?: string }
   | { version: 1; kind: "project"; agentKey?: string; chatId?: string; runId?: string }
   | { version: 1; kind: "web"; url: string; title?: string };
 
@@ -16,7 +16,25 @@ function set(params: URLSearchParams, key: string, value: unknown): void {
   if (normalized) params.set(key, normalized);
 }
 
-export function buildStandaloneOpenTargetUrl(intent: OpenTargetIntent): string {
+function buildSurfaceContextParams(currentSearch: string): URLSearchParams {
+  const source = new URLSearchParams(currentSearch || "");
+  const params = new URLSearchParams();
+  set(params, "lang", source.get("lang"));
+  set(params, "theme", source.get("theme"));
+  return params;
+}
+
+function usesAgentPath(intent: OpenTargetIntent): boolean {
+  return intent.kind === "overview" ||
+    intent.kind === "debug" ||
+    intent.kind === "artifact" ||
+    intent.kind === "planning";
+}
+
+export function buildStandaloneOpenTargetUrl(
+  intent: OpenTargetIntent,
+  currentSearch = "",
+): string {
   if (intent.version !== 1) return "";
   if (intent.kind === "web") {
     try {
@@ -27,7 +45,7 @@ export function buildStandaloneOpenTargetUrl(intent: OpenTargetIntent): string {
     }
   }
 
-  const params = new URLSearchParams();
+  const params = buildSurfaceContextParams(currentSearch);
   if (intent.kind === "terminal") {
     set(params, "agentKey", intent.agentKey);
     set(params, "terminalKey", intent.terminalKey || "main");
@@ -55,11 +73,9 @@ export function buildStandaloneOpenTargetUrl(intent: OpenTargetIntent): string {
     set(params, "label", intent.label);
   } else {
     set(params, "chatId", intent.chatId);
-    set(params, "runId", intent.runId);
-    set(params, "agentKey", intent.agentKey);
   }
   if (
-    (intent.kind === "summary" || intent.kind === "debug" || intent.kind === "artifact" || intent.kind === "planning") &&
+    (intent.kind === "overview" || intent.kind === "debug" || intent.kind === "artifact" || intent.kind === "planning") &&
     !params.get("chatId")
   ) {
     return "";
@@ -67,11 +83,18 @@ export function buildStandaloneOpenTargetUrl(intent: OpenTargetIntent): string {
   if (intent.kind === "artifact" && (!params.get("url") || !params.get("kind"))) return "";
   if (intent.kind === "planning" && !params.get("nodeId")) return "";
   if (intent.kind === "terminal" && !params.get("agentKey")) return "";
+  const routeAgentKey = usesAgentPath(intent)
+    ? String(intent.agentKey || "").trim()
+    : "";
+  if (usesAgentPath(intent) && !routeAgentKey) return "";
   const query = params.toString();
   const routeKind = intent.kind === "artifact" || intent.kind === "planning"
-    ? "summary"
+    ? "overview"
     : intent.kind;
-  return `/${routeKind}${query ? `?${query}` : ""}`;
+  const routePath = routeAgentKey
+    ? `/${routeKind}/${encodeURIComponent(routeAgentKey)}`
+    : `/${routeKind}`;
+  return `${routePath}${query ? `?${query}` : ""}`;
 }
 
 export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
@@ -80,12 +103,11 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
 
   return useCallback((intent: OpenTargetIntent) => {
     if (intent.version !== 1) return false;
-    const url = buildStandaloneOpenTargetUrl(intent);
-    if (!url) return false;
     const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+    const currentWorker = resolveCurrentWorkerSummary(state);
     if (pathname === "/") {
-      if (intent.kind === "summary" || intent.kind === "debug") {
-        const tab = intent.kind === "summary" ? "overview" : "debug";
+      if (intent.kind === "overview" || intent.kind === "debug") {
+        const tab = intent.kind;
         if (intent.toggle && state.rightSidebarOpen && state.rightSidebarOpenTab === tab) {
           dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
         } else {
@@ -93,12 +115,9 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
         }
         return true;
       }
-      if (intent.kind === "terminal") {
-        const currentWorker = resolveCurrentWorkerSummary(state);
-        if (currentWorker?.sourceId === intent.agentKey) {
-          dispatch({ type: "SET_TERMINAL_DOCK_OPEN", open: true });
-          return true;
-        }
+      if (intent.kind === "terminal" && currentWorker?.sourceId === intent.agentKey) {
+        dispatch({ type: "SET_TERMINAL_DOCK_OPEN", open: true });
+        return true;
       }
       if (intent.kind === "artifact") {
         const isActive =
@@ -122,18 +141,46 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "planningPreview",
-          planningPreview: { nodeId: intent.nodeId, label: intent.label || intent.nodeId },
+          planningPreview: {
+            nodeId: intent.nodeId,
+            label: intent.label || intent.nodeId,
+          },
         });
         return true;
       }
-      if (intent.kind === "web") {
-        dispatch({
-          type: "OPEN_RIGHT_SIDEBAR",
-          tab: "web",
-          webPreview: { url: intent.url, title: intent.title || intent.url },
-        });
-        return true;
-      }
+    }
+    const chatId = "chatId" in intent ? String(intent.chatId || "").trim() : "";
+    const chat = chatId
+      ? state.chats.find((item) => String(item?.chatId || "").trim() === chatId)
+      : undefined;
+    const explicitAgentKey = "agentKey" in intent ? intent.agentKey : "";
+    const resolvedAgentKey = usesAgentPath(intent)
+      ? String(
+        explicitAgentKey ||
+        (chatId === state.chatId ? state.currentRunAgentKey : "") ||
+        state.chatAgentById.get(chatId) ||
+        chat?.agentKey ||
+        chat?.firstAgentKey ||
+        (currentWorker?.type === "agent" ? currentWorker.sourceId : "") ||
+        "",
+      ).trim()
+      : "";
+    const normalizedIntent = resolvedAgentKey && usesAgentPath(intent)
+      ? { ...intent, agentKey: resolvedAgentKey } as OpenTargetIntent
+      : intent;
+    const currentSearch = typeof window === "undefined" ? "" : window.location.search;
+    const url = buildStandaloneOpenTargetUrl(normalizedIntent, currentSearch);
+    if (!url) return false;
+    if (pathname === "/" && normalizedIntent.kind === "web") {
+      dispatch({
+        type: "OPEN_RIGHT_SIDEBAR",
+        tab: "web",
+        webPreview: {
+          url: normalizedIntent.url,
+          title: normalizedIntent.title || normalizedIntent.url,
+        },
+      });
+      return true;
     }
 
     if (typeof window === "undefined" || typeof window.open !== "function") return false;

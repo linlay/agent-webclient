@@ -141,9 +141,12 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
   const detach = async (): Promise<void> => {
     if (detached) return;
     detached = true;
-    controller.abort();
-    streamAbort?.();
-    if (options.detachRemote && client && resolvedRunId) {
+    const shouldDetachRemote = !completionSettled;
+    if (shouldDetachRemote) {
+      controller.abort();
+      streamAbort?.();
+    }
+    if (shouldDetachRemote && options.detachRemote && client && resolvedRunId) {
       try {
         await client.request({
           type: dataEndpoints.detach.path,

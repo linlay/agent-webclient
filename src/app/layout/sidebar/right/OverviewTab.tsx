@@ -367,7 +367,7 @@ const OverviewSection: React.FC<{
   );
 };
 
-export const SummaryContent: React.FC = () => {
+export const OverviewContent: React.FC = () => {
   const openTarget = useOpenTarget();
   const state = useAppState();
   const { t } = useI18n();
@@ -767,4 +767,4 @@ export const SummaryContent: React.FC = () => {
   );
 };
 
-export const OverviewTab: React.FC = () => <SummaryContent />;
+export const OverviewTab: React.FC = () => <OverviewContent />;

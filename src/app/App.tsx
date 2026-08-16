@@ -271,15 +271,15 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/summary",
+          path: "/overview/:agentKey",
           element: (
-            <DocumentTitleRoute titleKey="mcpServers.section.summary">
-              <ReadonlyRunSurfacePage kind="summary" />
+            <DocumentTitleRoute titleKey="copilot.panel.overview">
+              <ReadonlyRunSurfacePage kind="overview" />
             </DocumentTitleRoute>
           ),
         },
         {
-          path: "/debug",
+          path: "/debug/:agentKey",
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.debug">
               <ReadonlyRunSurfacePage kind="debug" />

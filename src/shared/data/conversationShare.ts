@@ -52,6 +52,13 @@ export function readConversationShareId(pathname: string): string | null {
   return SHARE_PATH_PATTERN.exec(pathname)?.[1] || null;
 }
 
+export function buildConversationSharePath(value: unknown): string {
+  const shareId = typeof value === "string" ? value.trim() : "";
+  return SHARE_ID_PATTERN.test(shareId)
+    ? `/share/${encodeURIComponent(shareId)}`
+    : "";
+}
+
 export function getSafeConversationShareHref(value: unknown): string | null {
   if (typeof value !== "string" || value.trim() === "") return null;
   try {

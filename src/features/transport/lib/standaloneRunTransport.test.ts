@@ -103,4 +103,38 @@ describe("StandaloneRunTransport", () => {
     });
     await expect(execution.completion).resolves.toMatchObject({ reason: "detached" });
   });
+
+  it("does not send a remote detach after the observed stream already completed", async () => {
+    let streamOptions: any;
+    const abort = jest.fn();
+    const request = jest.fn().mockResolvedValue({ data: {} });
+    mockEnsureStandaloneWsClient.mockResolvedValue({
+      stream: jest.fn((options) => {
+        streamOptions = options;
+        return { requestId: "stream-complete", abort };
+      }),
+      request,
+    });
+    const { StandaloneRunTransport } = await import("./standaloneRunTransport");
+    const transport = new StandaloneRunTransport();
+    const execution = transport.subscribe({
+      chatId: "chat-1",
+      runId: "run-1",
+      owner: { kind: "agent", agentKey: "agent-1" },
+      onEvent: jest.fn(),
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    await execution.accepted;
+
+    streamOptions.onDone("done", 8);
+    await expect(execution.completion).resolves.toMatchObject({
+      reason: "done",
+      lastSeq: 8,
+    });
+    await execution.detach();
+
+    expect(abort).not.toHaveBeenCalled();
+    expect(request).not.toHaveBeenCalled();
+  });
 });

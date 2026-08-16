@@ -59,7 +59,7 @@ export interface RunSubscribeInput extends RunStartCallbacks {
   runId: string;
   owner: RunOwner;
   lastSeq?: number;
-  role?: "main" | "summary" | "debug" | "btw";
+  role?: "main" | "overview" | "debug" | "btw";
   signal?: AbortSignal;
 }
 

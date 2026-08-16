@@ -749,9 +749,8 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
       if (!state.chatId) return;
       openTarget({
         version: 1,
-        kind: tab === "debug" ? "debug" : "summary",
+        kind: tab === "debug" ? "debug" : "overview",
         chatId: state.chatId,
-        runId: state.runId || undefined,
         agentKey: currentWorker?.sourceId,
       });
       return;
@@ -1038,12 +1037,16 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
               variant="ghost"
               iconOnly
               aria-label={
-                ui.rightSidebarOpen
+                surface !== "root"
+                  ? t("copilot.panel.debug")
+                  : ui.rightSidebarOpen
                   ? t("topNav.debug.close")
                   : t("topNav.debug.open")
               }
               active={
-                state.rightSidebarOpen && state.rightSidebarOpenTab === "debug"
+                surface === "root" &&
+                state.rightSidebarOpen &&
+                state.rightSidebarOpenTab === "debug"
               }
               onClick={() => toggleRightSidebar("debug")}
             >
@@ -1064,14 +1067,14 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
               variant="ghost"
               size="sm"
               iconOnly
-              active={ui.terminalDockOpen}
+              active={surface === "root" && ui.terminalDockOpen}
               aria-label={
-                ui.terminalDockOpen
+                surface === "root" && ui.terminalDockOpen
                   ? t("topNav.terminal.close")
                   : t("topNav.terminal.open")
               }
               title={
-                ui.terminalDockOpen
+                surface === "root" && ui.terminalDockOpen
                   ? t("topNav.terminal.close")
                   : t("topNav.terminal.open")
               }
@@ -1104,12 +1107,16 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
             size="sm"
             variant="ghost"
             iconOnly
+            aria-label={t("copilot.panel.overview")}
+            title={t("copilot.panel.overview")}
             active={
-              state.rightSidebarOpen && state.rightSidebarOpenTab !== "debug"
+              surface === "root" &&
+              state.rightSidebarOpen &&
+              state.rightSidebarOpenTab !== "debug"
             }
             onClick={() => toggleRightSidebar("overview")}
           >
-            <MaterialIcon name="dock_to_left" />
+            <MaterialIcon name={surface === "root" ? "dock_to_left" : "open_in_new"} />
           </UiButton>
         </div>
       </div>

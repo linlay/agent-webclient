@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
-import { SummaryContent } from "@/app/layout/sidebar/right/OverviewTab";
+import { useParams, useSearchParams } from "react-router-dom";
+import { OverviewContent } from "@/app/layout/sidebar/right/OverviewTab";
 import { DebugPanelContent } from "@/app/layout/sidebar/right/DebugTab";
 import { useReadonlyRunSurfaceRuntime } from "@/features/surfaces/useReadonlyRunSurfaceRuntime";
 import { useI18n } from "@/shared/i18n";
@@ -37,13 +37,16 @@ function readArtifactPreview(searchParams: URLSearchParams): AttachmentPreviewSt
 }
 
 export const ReadonlyRunSurfacePage: React.FC<{
-  kind: "summary" | "debug";
+  kind: "overview" | "debug";
 }> = ({ kind }) => {
+  const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const { t } = useI18n();
   const chatId = useMemo(() => String(searchParams.get("chatId") || "").trim(), [searchParams]);
-  const runId = useMemo(() => String(searchParams.get("runId") || "").trim(), [searchParams]);
-  const agentKey = useMemo(() => String(searchParams.get("agentKey") || "").trim(), [searchParams]);
+  const agentKey = useMemo(
+    () => String(params.agentKey || "").trim(),
+    [params.agentKey],
+  );
   const artifactPreview = useMemo(() => readArtifactPreview(searchParams), [searchParams]);
   const planningNodeId = useMemo(
     () => searchParams.get("view") === "planning" ? String(searchParams.get("nodeId") || "").trim() : "",
@@ -51,7 +54,6 @@ export const ReadonlyRunSurfacePage: React.FC<{
   );
   const runtime = useReadonlyRunSurfaceRuntime({
     chatId,
-    runId: runId || undefined,
     agentKey: agentKey || undefined,
     role: kind,
   });
@@ -59,7 +61,7 @@ export const ReadonlyRunSurfacePage: React.FC<{
   return (
     <main className={`readonly-run-surface readonly-run-surface-${kind}`}>
       <header className="readonly-run-surface-header">
-        <strong>{kind === "summary" ? t("mcpServers.section.summary") : t("copilot.panel.debug")}</strong>
+        <strong>{kind === "overview" ? t("copilot.panel.overview") : t("copilot.panel.debug")}</strong>
         <span>{chatId || t("platformError.code.invalid_request")}</span>
       </header>
       {runtime.status === "loading" ? <div className="status-line">{t("composer.addMenu.loading")}</div> : null}
@@ -72,7 +74,7 @@ export const ReadonlyRunSurfacePage: React.FC<{
         ) : planningNodeId ? (
           <PlanningPreviewTab nodeId={planningNodeId} />
         ) : (
-          <SummaryContent />
+          <OverviewContent />
         )}
       </section>
     </main>
