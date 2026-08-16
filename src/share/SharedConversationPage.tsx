@@ -3,7 +3,7 @@ import {
   ConversationShareError,
   getConversationShareDownloadUrl,
   getPublicConversationShare,
-  type SharedConversationSnapshot,
+  type SharedConversationTranscript as SharedConversationTranscriptData,
 } from "@/shared/data/conversationShare";
 import { t } from "@/shared/i18n";
 import { SharedConversationTranscript } from "@/share/SharedConversationTranscript";
@@ -11,7 +11,7 @@ import styles from "@/share/SharedConversationPage.module.css";
 
 type PageState =
   | { status: "loading" }
-  | { status: "ready"; snapshot: SharedConversationSnapshot }
+  | { status: "ready"; transcript: SharedConversationTranscriptData }
   | { status: "unavailable" }
   | { status: "unsupported" }
   | { status: "error" };
@@ -47,7 +47,7 @@ export function SharedConversationPage({
     const controller = new AbortController();
     setState({ status: "loading" });
     void getPublicConversationShare(shareId, controller.signal)
-      .then((snapshot) => setState({ status: "ready", snapshot }))
+      .then((transcript) => setState({ status: "ready", transcript }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         if (error instanceof ConversationShareError) {
@@ -86,14 +86,15 @@ export function SharedConversationPage({
 
   const copyText = useMemo(() => {
     if (state.status !== "ready") return "";
-    return state.snapshot.entries
-      .map((entry) => [
-        entry.type === "reasoning"
-          ? entry.label || t("share.reasoning.title")
-          : entry.role === "user"
+    return state.transcript.turns
+      .flatMap((turn) => turn.items)
+      .map((item) => [
+        item.kind === "assistant-reasoning"
+          ? item.label || t("share.reasoning.title")
+          : item.kind === "user-message"
             ? t("share.role.user")
             : t("share.role.assistant"),
-        entry.content,
+        item.content,
       ].join("\n\n"))
       .join("\n\n---\n\n");
   }, [state]);
@@ -170,7 +171,7 @@ export function SharedConversationPage({
             </span>
             <div className={styles.headerText}>
               <span>{PRODUCT_BRAND}</span>
-              <h1 title={state.snapshot.title}>{state.snapshot.title}</h1>
+              <h1 title={state.transcript.metadata.title}>{state.transcript.metadata.title}</h1>
             </div>
           </div>
           <button
@@ -189,7 +190,7 @@ export function SharedConversationPage({
           <p>{t("share.aiNotice")}</p>
         </div>
         <article className={styles.content}>
-          <SharedConversationTranscript entries={state.snapshot.entries} />
+          <SharedConversationTranscript turns={state.transcript.turns} />
         </article>
         <footer className={styles.footer}>{t("share.readOnly")}</footer>
       </div>

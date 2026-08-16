@@ -8,7 +8,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 `agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不包含智能体后端，也不定义模型、工具、调度、记忆或权限的最终语义；它消费上游 `/api/*` 与 `/ws` 能力，为智能体平台提供统一前端。
 
-公开对话分享由同一构建产物中的 `/share/` 轻量入口承载。分享页与主对话复用纯 Markdown/ECharts 核心和无状态 reasoning disclosure，但不装配文件侧边栏、输入框、主应用状态、鉴权、Desktop Bridge 或实时连接。快照按每轮回复聚合运行过程，只显示一个默认折叠的完成入口；打开后 reasoning snapshot 与中间 assistant 过程内容按原始顺序穿插展示，每个 reasoning 仍保持可独立展开的第二层折叠，最后一条 assistant 内容作为最终答复留在外层。公开 schema 不接收工具调用 entry。存在权威 `durationMs` 时展示最后一次快照携带的完成用时。代码块仍延迟加载完整渲染器。该入口只读取同源 `/api/public/shares/{shareId}` JSON；部署层使用 `SHARE_API_BASE_URL` 将公开 API 转发到 Tunnel，并通过运行时 `SHARE_APP_DOWNLOAD_URL` 配置下载引导。
+公开对话分享由同一构建产物中的 `/share/` 轻量入口承载。分享页与主对话复用纯 Markdown/ECharts 核心和无状态 reasoning disclosure，但不装配文件侧边栏、输入框、主应用状态、鉴权、Desktop Bridge 或实时连接。页面一次性读取有限 Share SSE，严格校验后在本地投影为 `turns` 展示运行过程；每轮只显示一个默认折叠的完成入口，打开后 reasoning snapshot 与中间 assistant 过程内容按原始顺序穿插展示，每个 reasoning 仍保持可独立展开的第二层折叠，最后一条 assistant 内容作为最终答复留在外层。完成用时优先使用 `run.start`，缺失时回退 query 时间。代码块仍延迟加载完整渲染器。该入口只以无凭证 `fetch` 读取同源 `/api/public/shares/{shareId}`，不使用 EventSource；部署层使用 `SHARE_API_BASE_URL` 将公开 API 转发到 Tunnel，并通过运行时 `SHARE_APP_DOWNLOAD_URL` 配置下载引导。
 
 接入以后，一个智能体后端可以快速拥有：
 
