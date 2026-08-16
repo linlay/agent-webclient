@@ -51,4 +51,24 @@ describe("StandalonePushTransport", () => {
     expect(unsubscribers[0]).toHaveBeenCalledTimes(1);
     expect(connect).toHaveBeenCalled();
   });
+
+  it("filters Standalone push frames by runId", async () => {
+    let push: ((frame: any) => void) | undefined;
+    mockSubscribeWsPush.mockImplementation((listener) => {
+      push = listener;
+      return jest.fn();
+    });
+    mockEnsureStandaloneWsClient.mockResolvedValue({ connect: jest.fn() });
+    const { StandalonePushTransport } = await import("./standalonePushTransport");
+    const listener = jest.fn();
+    new StandalonePushTransport().subscribe(
+      { types: ["run.updated"], runId: "run-1" },
+      listener,
+    );
+
+    push?.({ frame: "push", type: "run.updated", data: { runId: "run-2" } });
+    push?.({ frame: "push", type: "run.updated", data: { runId: "run-1" } });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 });

@@ -41,6 +41,23 @@ if (manifest.platform.os !== targetOS || manifest.platform.arch !== targetArch) 
 if (!Array.isArray(manifest.runtime.requiredPaths) || manifest.runtime.requiredPaths.length === 0) {
   throw new Error("rendered manifest requiredPaths are missing");
 }
+const proxyRoutes = manifest.desktop?.hosting?.proxyRoutes;
+if (!Array.isArray(proxyRoutes)) {
+  throw new Error("rendered manifest Desktop proxyRoutes are missing");
+}
+if (proxyRoutes.some((route) => route.path === "/auth" || route.path === "/ws")) {
+  throw new Error("Bridge v2 manifest must not expose /auth or /ws");
+}
+const apiRoute = proxyRoutes.find((route) => route.match === "prefix" && route.path === "/api");
+if (
+  !apiRoute ||
+  apiRoute.targetEnv !== "BASE_URL" ||
+  apiRoute.auth !== "agent-platform-access-token" ||
+  apiRoute.http !== true ||
+  apiRoute.websocket === true ||
+  (Array.isArray(apiRoute.ssePaths) && apiRoute.ssePaths.length > 0)
+) {
+  throw new Error("Bridge v2 manifest requires an authenticated HTTP-only /api route");
+}
 fs.mkdirSync(path.dirname(options.get("output")), { recursive: true });
 fs.writeFileSync(options.get("output"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-

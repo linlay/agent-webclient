@@ -141,6 +141,7 @@ export const FrontendToolContainer: React.FC = () => {
 							? data.params
 							: {};
 					const response = await runs.submitTool({
+						chatId: state.chatId,
 						runId: active.runId,
 						owner,
 						toolId: active.toolId,

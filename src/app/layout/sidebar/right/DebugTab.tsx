@@ -183,6 +183,7 @@ export function buildDebugChatRouteUrl(
   input: {
     agentKey?: unknown;
     chatId?: unknown;
+    runId?: unknown;
     terminalKey?: unknown;
     shareId?: unknown;
   },
@@ -212,9 +213,12 @@ export function buildDebugChatRouteUrl(
     params.set("terminalKey", readText(input.terminalKey) || "main");
     return `/terminal?${params.toString()}`;
   }
-  if (!chatId || !agentKey) return "";
+  if (!chatId) return "";
   params.set("chatId", chatId);
-  return `/${kind}/${encodeURIComponent(agentKey)}?${params.toString()}`;
+  if (agentKey) params.set("agentKey", agentKey);
+  const runId = readText(input.runId);
+  if (runId) params.set("runId", runId);
+  return `/${kind}?${params.toString()}`;
 }
 
 export function buildDebugChatStartOpenTargets(
@@ -264,7 +268,7 @@ export function buildDebugChatStartOpenTargets(
       kind: "overview",
       href: buildDebugChatRouteUrl(
         "overview",
-        { agentKey, chatId },
+        { agentKey, chatId, runId: event.runId },
         currentSearch,
       ),
       labelKey: "copilot.panel.overview",
@@ -274,7 +278,7 @@ export function buildDebugChatStartOpenTargets(
       kind: "debug",
       href: buildDebugChatRouteUrl(
         "debug",
-        { agentKey, chatId },
+        { agentKey, chatId, runId: event.runId },
         currentSearch,
       ),
       labelKey: "copilot.panel.debug",

@@ -19,6 +19,7 @@ import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { getAgent, getChats } from "@/shared/data";
+import { ApiError } from "@/shared/data/api/client";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
@@ -78,6 +79,10 @@ type NewChatCreatedEventDetail = {
   chatId?: unknown;
   agentKey?: unknown;
 };
+
+export function isAgentRouteAuthenticationError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
 
 const NEW_CHAT_CREATED_EVENT = "agent:new-chat-created";
 
@@ -149,12 +154,14 @@ const AGENT_ROUTE_ERROR_ICON_CLASS =
 const AGENT_ROUTE_ERROR_COPY_CLASS =
   "tw:flex tw:flex-col tw:items-center tw:gap-1.5 tw:text-center";
 const AGENT_ROUTE_ERROR_RETRY_BUTTON_CLASS =
-  "tw:inline-flex tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--accent)_30%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] tw:px-4 tw:py-2 tw:text-sm tw:font-medium tw:transition-colors hover:tw:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]";
+  "tw:inline-flex tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--accent)_30%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] tw:px-4 tw:py-2 tw:text-sm tw:font-medium tw:transition-colors tw:hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]";
 
 const AgentRouteErrorPage: React.FC<{
   message: string;
+  description: string;
+  retryLabel: string;
   onRetry: () => void;
-}> = ({ message, onRetry }) => (
+}> = ({ message, description, retryLabel, onRetry }) => (
   <main className={AGENT_ROUTE_LOADING_PAGE_CLASS}>
     <div className={AGENT_ROUTE_ERROR_CARD_CLASS}>
       <div className={AGENT_ROUTE_ERROR_ICON_CLASS} aria-hidden="true">
@@ -165,7 +172,7 @@ const AgentRouteErrorPage: React.FC<{
           {message}
         </strong>
         <span className="tw:text-xs tw:text-ink-muted">
-          请检查网络连接后重试
+          {description}
         </span>
       </div>
       <button
@@ -186,7 +193,7 @@ const AgentRouteErrorPage: React.FC<{
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
           />
         </svg>
-        重试
+        {retryLabel}
       </button>
     </div>
   </main>
@@ -218,6 +225,7 @@ export const AgentChatShell: React.FC = () => {
   const routeAgentHydrationRequestRef = useRef(0);
   const routeAgentLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [routeAgentLoadError, setRouteAgentLoadError] = useState<string | null>(null);
+  const [routeAgentLoadErrorDescription, setRouteAgentLoadErrorDescription] = useState("");
   const [hydrationRetryCount, setHydrationRetryCount] = useState(0);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
@@ -384,6 +392,7 @@ export const AgentChatShell: React.FC = () => {
     routeAgentHydrationFailedRef.current.delete(agentKey);
     routeAgentHydratedWithoutSignalRef.current.delete(agentKey);
     setRouteAgentLoadError(null);
+    setRouteAgentLoadErrorDescription("");
     setHydrationRetryCount((c) => c + 1);
   }, [agentKey]);
 
@@ -408,6 +417,7 @@ export const AgentChatShell: React.FC = () => {
     routeAgentLoadingTimeoutRef.current = setTimeout(() => {
       if (cancelled) return;
       setRouteAgentLoadError(t("agentRoute.error.loadFailed"));
+      setRouteAgentLoadErrorDescription(t("agentRoute.error.networkHint"));
     }, 15_000);
 
     void getAgent(agentKey)
@@ -424,6 +434,7 @@ export const AgentChatShell: React.FC = () => {
           routeAgentLoadingTimeoutRef.current = null;
         }
         setRouteAgentLoadError(null);
+        setRouteAgentLoadErrorDescription("");
 
         const payload = (response.data || {}) as unknown as Partial<Agent>;
         const resolvedAgentKey =
@@ -458,7 +469,13 @@ export const AgentChatShell: React.FC = () => {
         }
 
         routeAgentHydrationFailedRef.current.add(agentKey);
-        setRouteAgentLoadError(t("agentRoute.error.loadFailed"));
+        const unauthorized = isAgentRouteAuthenticationError(error);
+        setRouteAgentLoadError(t(unauthorized
+          ? "agentRoute.error.authenticationRequired"
+          : "agentRoute.error.loadFailed"));
+        setRouteAgentLoadErrorDescription(t(unauthorized
+          ? "agentRoute.error.authenticationHint"
+          : "agentRoute.error.networkHint"));
         dispatch({
           type: "APPEND_DEBUG",
           line: `[loadAgent error] ${(error as Error).message}`,
@@ -655,7 +672,12 @@ export const AgentChatShell: React.FC = () => {
 
   if (!routeAgentReady) {
     if (routeAgentLoadError) {
-      return <AgentRouteErrorPage message={routeAgentLoadError} onRetry={handleRetryRouteAgent} />;
+      return <AgentRouteErrorPage
+        message={routeAgentLoadError}
+        description={routeAgentLoadErrorDescription}
+        retryLabel={t("agentRoute.error.retry")}
+        onRetry={handleRetryRouteAgent}
+      />;
     }
     return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
   }

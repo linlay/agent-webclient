@@ -21,6 +21,7 @@ interface AttachmentCardData extends AttachmentLike {
 
 interface AttachmentCardProps {
   attachment: AttachmentCardData;
+  artifactId?: string;
   variant: "composer" | "timeline";
   status?: "uploading" | "ready" | "error";
   displayMode?: "auto" | "file" | "preview";
@@ -37,6 +38,7 @@ interface AttachmentCardProps {
 
 export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   attachment,
+  artifactId,
   variant,
   status,
   displayMode = "auto",
@@ -128,7 +130,9 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       openTarget({
         version: 1,
         kind: "artifact",
+        artifactId,
         chatId: appState.chatId,
+        runId: appState.runId || undefined,
         preview,
         toggle: activateMode === "toggle",
       });
@@ -136,7 +140,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     }
 
     triggerDownload();
-  }, [activateMode, appState.chatId, canActivate, openTarget, preview, triggerDownload]);
+  }, [activateMode, appState.chatId, appState.runId, artifactId, canActivate, openTarget, preview, triggerDownload]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,

@@ -34,6 +34,7 @@ import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOv
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -606,8 +607,11 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
-  const showTerminalButton = isCoderAgent(currentWorker);
-  const showProjectButton = isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker);
+  const desktopMode = isDesktopAppMode();
+  const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
+  const showProjectButton = !desktopMode && (
+    isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker)
+  );
   const currentWorkerTerminalStatus = showTerminalButton
     ? terminalAgentStatuses.get(currentWorker?.sourceId || "")
     : undefined;
@@ -751,6 +755,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
         version: 1,
         kind: tab === "debug" ? "debug" : "overview",
         chatId: state.chatId,
+        runId: state.runId || undefined,
         agentKey: currentWorker?.sourceId,
       });
       return;

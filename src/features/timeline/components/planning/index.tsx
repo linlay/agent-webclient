@@ -53,6 +53,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                       version: 1,
                       kind: "planning",
                       chatId: state.chatId,
+                      runId: state.runId || undefined,
                       nodeId: node.id,
                       label: node.text || node.id,
                     });

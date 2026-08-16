@@ -91,6 +91,7 @@ export function useSlashCommandExecution(input: {
 							version: 1,
 							kind: "debug",
 							chatId: state.chatId,
+							runId: state.runId || undefined,
 							toggle: true,
 						});
 					}

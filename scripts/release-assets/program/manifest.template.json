@@ -85,21 +85,6 @@
       "proxyRoutes": [
         {
           "match": "prefix",
-          "path": "/auth",
-          "targetEnv": "BASE_URL",
-          "websocket": false,
-          "disableProxyBuffering": true
-        },
-        {
-          "match": "exact",
-          "path": "/ws",
-          "targetEnv": "BASE_URL",
-          "http": false,
-          "websocket": true,
-          "stripRequestHeaders": ["sec-websocket-extensions"]
-        },
-        {
-          "match": "prefix",
           "path": "/api/voice",
           "targetEnv": "VOICE_BASE_URL",
           "optional": true,
@@ -116,10 +101,9 @@
           "match": "prefix",
           "path": "/api",
           "targetEnv": "BASE_URL",
-          "websocket": true,
-          "ssePaths": ["/api/query", "/api/attach"],
-          "disableProxyBuffering": true,
-          "stripRequestHeaders": ["sec-websocket-extensions"]
+          "http": true,
+          "websocket": false,
+          "auth": "agent-platform-access-token"
         }
       ]
     },

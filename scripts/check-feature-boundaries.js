@@ -80,6 +80,15 @@ const realtimePrimitivePaths = [
 	"@/features/terminal/lib/terminalTransport",
 	"@/features/terminal/lib/terminalRemoteSession",
 ];
+const desktopForbiddenTransportPaths = [
+	"@/features/transport/lib/standaloneRealtimeTransport",
+	"@/features/transport/lib/standaloneRunTransport",
+	"@/features/transport/lib/standalonePushTransport",
+	"@/features/transport/lib/standaloneTerminalTransport",
+	"@/features/transport/lib/standaloneWsClient",
+	"@/features/transport/lib/wsClientSingleton",
+	"@/features/transport/lib/wsClient",
+];
 const directRunControlNames = [
 	"createQueryStream",
 	"interruptChat",
@@ -93,9 +102,20 @@ for (const file of walk(sourceRoot)) {
 	if (/\.(?:test|spec)\.(?:ts|tsx)$/.test(file)) continue;
 	const relativeFile = path.relative(repoRoot, file);
 	const isTransportInfrastructure = relativeFile.startsWith("src/features/transport/");
+	const isDesktopTransportInfrastructure =
+		relativeFile.startsWith("src/features/transport/") &&
+		/^desktop[^/]*\.(?:ts|tsx)$/iu.test(path.basename(relativeFile));
 	const isDataInfrastructure = relativeFile.startsWith("src/shared/data/api/");
 	const source = fs.readFileSync(file, "utf8");
 	for (const importedPath of readImports(source)) {
+		if (
+			isDesktopTransportInfrastructure &&
+			desktopForbiddenTransportPaths.includes(importedPath)
+		) {
+			violations.push(
+				`${relativeFile}: Desktop transport must not import ${importedPath}`,
+			);
+		}
 		if (
 			!isTransportInfrastructure &&
 			realtimePrimitivePaths.some((primitivePath) => importedPath === primitivePath)

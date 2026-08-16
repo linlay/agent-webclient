@@ -14,6 +14,7 @@ import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 import { Collapse, Flex, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
 import { TextCountUp } from "@/shared/components/text-count-up";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export function getFileIcon(filePath: string): MaterialIconName {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -408,15 +409,18 @@ export const OverviewContent: React.FC = () => {
       ),
     [fileChanges],
   );
+  const currentWorker = React.useMemo(
+    () => resolveCurrentWorkerSummary(state),
+    [state],
+  );
   const isCoder = React.useMemo(() => {
-    const worker = resolveCurrentWorkerSummary(state);
-    if (!worker || worker.type !== "agent") return false;
+    if (!currentWorker || currentWorker.type !== "agent") return false;
     return (
       String(
-        (worker.raw as Record<string, unknown> | null)?.["mode"] || "",
+        (currentWorker.raw as Record<string, unknown> | null)?.["mode"] || "",
       ).toUpperCase() === "CODER"
     );
-  }, [state]);
+  }, [currentWorker]);
 
   const [now, setNow] = React.useState(() => Date.now());
 
@@ -469,6 +473,7 @@ export const OverviewContent: React.FC = () => {
         version: 1,
         kind: "planning",
         chatId: state.chatId,
+        runId: state.runId || undefined,
         nodeId,
         label,
       });
@@ -524,6 +529,18 @@ export const OverviewContent: React.FC = () => {
 
   const toggleFileChange = React.useCallback(
     (item: OverviewFileChangeItem) => {
+      if (isDesktopAppMode()) {
+        openTarget({
+          version: 1,
+          kind: "file-diff",
+          chatId: state.chatId,
+          runId: item.runId,
+          relativePath: item.filePath,
+          agentKey: currentWorker?.type === "agent" ? currentWorker.sourceId : undefined,
+          title: displayFileName(item.filePath),
+        });
+        return;
+      }
       const itemKey = buildFileChangeKey(item.runId, item.filePath);
       const expanding = !expandedFileChangeKeys.has(itemKey);
       setExpandedFileChangeKeys((current) => {
@@ -539,7 +556,7 @@ export const OverviewContent: React.FC = () => {
         loadFileHistory(item);
       }
     },
-    [expandedFileChangeKeys, loadFileHistory],
+    [currentWorker, expandedFileChangeKeys, loadFileHistory, openTarget, state.chatId],
   );
 
   const overviewSections: {
@@ -741,6 +758,7 @@ export const OverviewContent: React.FC = () => {
                 >
                   <AttachmentCard
                     attachment={item.artifact}
+                    artifactId={item.artifactId}
                     variant="composer"
                     displayMode="file"
                     density="compact"

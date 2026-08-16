@@ -8,6 +8,7 @@ import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
+import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
 
 export type ReadonlyRunSurfaceStatus = "loading" | "ready" | "error";
 
@@ -27,12 +28,20 @@ function lastSeqForRun(events: AgentEvent[], runId: string): number {
 
 export function resolveReadonlyActiveRun<T extends { chatId?: unknown; runId?: unknown }>(input: {
   chatId: string;
+  requestedRunId?: string;
   activeRun: T | null | undefined;
 }): (T & { chatId: string; runId: string }) | null {
   const chatId = String(input.chatId || "").trim();
+  const requestedRunId = String(input.requestedRunId || "").trim();
   const activeChatId = String(input.activeRun?.chatId || "").trim();
   const activeRunId = String(input.activeRun?.runId || "").trim();
-  if (!input.activeRun || !chatId || activeChatId !== chatId || !activeRunId) {
+  if (
+    !input.activeRun
+    || !chatId
+    || activeChatId !== chatId
+    || !activeRunId
+    || (requestedRunId && requestedRunId !== activeRunId)
+  ) {
     return null;
   }
   return {
@@ -44,6 +53,7 @@ export function resolveReadonlyActiveRun<T extends { chatId?: unknown; runId?: u
 
 export function useReadonlyRunSurfaceRuntime(input: {
   chatId: string;
+  runId?: string;
   agentKey?: string;
   role: "overview" | "debug";
 }): { status: ReadonlyRunSurfaceStatus; error: string } {
@@ -57,6 +67,7 @@ export function useReadonlyRunSurfaceRuntime(input: {
   const [replayRevision, setReplayRevision] = useState(0);
   const loadEpochRef = useRef(0);
   const bindingEpochRef = useRef(0);
+  const recoveredBindingRef = useRef("");
 
   const replay = useCallback(async () => {
     const epoch = ++loadEpochRef.current;
@@ -78,6 +89,7 @@ export function useReadonlyRunSurfaceRuntime(input: {
   }, [actions.loadChat, input.chatId]);
 
   useEffect(() => {
+    recoveredBindingRef.current = "";
     if (!input.chatId) {
       setStatus("error");
       setError(t("platformError.code.invalid_request"));
@@ -87,13 +99,14 @@ export function useReadonlyRunSurfaceRuntime(input: {
     return () => {
       loadEpochRef.current += 1;
     };
-  }, [input.chatId, replay, t]);
+  }, [input.chatId, input.runId, replay, t]);
 
   useEffect(() => {
     if (!input.chatId || status !== "ready") return;
     const snapshot = stateRef.current;
     const activeRun = resolveReadonlyActiveRun({
       chatId: input.chatId,
+      requestedRunId: input.runId,
       activeRun: snapshot.currentChatActiveRun,
     });
     if (!activeRun) return;
@@ -122,7 +135,17 @@ export function useReadonlyRunSurfaceRuntime(input: {
 
     const epoch = ++bindingEpochRef.current;
     let lastSeq = lastSeqForRun(snapshot.events, runId);
-    let recoveredGap = false;
+    const bindingKey = `${input.chatId}\u0000${runId}`;
+    const recoverOnce = (cause: unknown): boolean => {
+      if (!(cause instanceof RealtimeTransportError)) return false;
+      const code = cause.code;
+      if (code !== "seq_expired" && code !== "replay_required") return false;
+      if (recoveredBindingRef.current === bindingKey) return false;
+      recoveredBindingRef.current = bindingKey;
+      void execution.detach();
+      void replay();
+      return true;
+    };
     let execution = runs.subscribe({
       chatId: input.chatId,
       runId,
@@ -136,11 +159,11 @@ export function useReadonlyRunSurfaceRuntime(input: {
         const seq = eventSeq(event);
         if (seq && seq <= lastSeq) return;
         if (seq && lastSeq && seq > lastSeq + 1) {
-          if (!recoveredGap) {
-            recoveredGap = true;
-            void execution.detach();
-            void replay();
-          }
+          recoverOnce(new RealtimeTransportError(
+            "replay_required",
+            `Run event gap detected after seq ${lastSeq}`,
+            { retryable: true },
+          ));
           return;
         }
         if (seq) lastSeq = seq;
@@ -149,11 +172,13 @@ export function useReadonlyRunSurfaceRuntime(input: {
     });
     void execution.accepted.catch((cause) => {
       if (bindingEpochRef.current !== epoch || cause?.name === "AbortError") return;
+      if (recoverOnce(cause)) return;
       setError(cause instanceof Error ? cause.message : String(cause));
       setStatus("error");
     });
     void execution.completion.then((completion) => {
       if (bindingEpochRef.current !== epoch || !completion.error) return;
+      if (recoverOnce(completion.error)) return;
       setError(completion.error.message);
       setStatus("error");
     });
@@ -167,6 +192,7 @@ export function useReadonlyRunSurfaceRuntime(input: {
     input.agentKey,
     input.chatId,
     input.role,
+    input.runId,
     replay,
     replayRevision,
     runs,

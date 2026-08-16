@@ -9,7 +9,7 @@ WebClient 业务层只依赖 `RealtimeTransport`，门面固定提供 `runs`、`
 ## 领域接口
 
 - `RunTransport`：`startQuery`、`startBtw`、`subscribe`、`interrupt`、awaiting/tool submit、`steer`、access level。
-- `PushTransport`：支持多消费者以及 type/chat/agent 过滤；unsubscribe 立即停止该消费者。
+- `PushTransport`：支持多消费者以及 type/chat/run/agent 过滤；取消订阅立即通过统一 detach 停止该消费者。
 - `InboundRequestTransport`：仅根网站注册 `webclient.sidebar.*` 反向 action。
 - `TerminalTransport`：`open`、status subscription、write、resize、detach、close。
 
@@ -38,9 +38,13 @@ Run push 的聊天摘要、未读、awaiting 与 active-run 更新仍由 convers
 
 这些 handler 只在 `/` 通过 `InboundRequestTransport` 显式注册。Agent、Copilot 和独立 Surface 不注册全局 sidebar action；Web URL 只接受绝对 HTTP(S)，拒绝协议相对 URL、凭据 URL 和其他 scheme。
 
-## Desktop 暂停边界
+## Desktop adapter
 
-`DESKTOP_APP` 只接受布尔 `true` 或精确字符串 `"true"`。当前仓库尚未接收 canonical generated realtime/workpanel/terminal contract 与 trusted bridge capability，因此 Desktop 模式显示 `DESKTOP_BRIDGE_UNAVAILABLE` 阻断页，绝不创建 Standalone 连接或猜测 IPC/wire 字段。Desktop adapter 见 Desktop 宿主桥接专题中的恢复条件。
+`DESKTOP_APP` 只接受布尔 `true` 或精确字符串 `"true"`。Desktop 模式读取固定只读全局 realtime/workpanel bridge，懒执行并缓存 hello；bridge 缺失或版本不兼容时显示稳定阻断页，任何错误都不回退 Standalone。一个 `DesktopBridgeSession` 只安装一个宿主 `onMessage` listener，在内部分发 Run、Push、connection 和 error；Run attach 与 Push 通过 Main Broker 工作，guest 不创建 Agent Platform `/ws`。
+
+Desktop Run attach 使用 bridge subscribe ACK 作为本地 observer 就绪。Bridge v2 batch 以 operation 或 subscription delivery target 定向，并继续校验 bindingEpoch、chatId、runId 与 seq；早到消息采用 256 帧有界缓冲，gap 返回 `replay_required`。query 和 subscription 都调用统一 detach，query detach 不 interrupt Run。
+
+新 Chat query 不预造 chatId/runId，继续 Chat 只携带 chatId。Desktop 在 `run.start` 返回 `run.accepted` 后，adapter 写回 canonical chatId/runId/owner 并按原序释放 early batch；页面随后把 `?newChat=` replace 为稳定 `?chatId=`。五类 control 返回真实 status/code/msg/data，4xx（包括 awaiting 409）转换为等价 `ApiError`。BTW 与 Terminal 在 Desktop 仍明确 unsupported。
 
 ## 相关文件
 
@@ -51,6 +55,9 @@ Run push 的聊天摘要、未读、awaiting 与 active-run 更新仍由 convers
 - `../src/features/transport/lib/standalonePushTransport.ts`
 - `../src/features/transport/lib/standaloneInboundRequestTransport.ts`
 - `../src/features/transport/lib/standaloneTerminalTransport.ts`
+- `../src/features/transport/lib/desktopRealtimeTransport.ts`
+- `../src/features/transport/lib/desktopRunTransport.ts`
+- `../src/features/transport/lib/desktopPushTransport.ts`
 - `../src/features/conversation/hooks/useChatNotificationRuntime.ts`
 - `../src/features/conversation/hooks/useRunSubscriptionRuntime.ts`
 - `../src/features/surfaces/useReadonlyRunSurfaceRuntime.ts`

@@ -7,8 +7,10 @@ import {
   createChatRouteKey,
   createNewChatRouteKey,
   createResolvedNewChatRoute,
+  isAgentRouteAuthenticationError,
   parseNewChatTimestamp,
 } from "@/app/layout/AgentChatShell";
+import { ApiError } from "@/shared/data/api/client";
 import { SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL } from "@/shared/hooks/agentPage/useDesktopAction";
 import type { Chat, WorkerRow } from "@/app/state/types";
 
@@ -192,6 +194,11 @@ const globalWithDom = globalThis as typeof globalThis & {
 };
 
 describe("AgentChatShell", () => {
+  it("classifies only an API 401 as an authentication failure", () => {
+    expect(isAgentRouteAuthenticationError(new ApiError("unauthorized", { status: 401 }))).toBe(true);
+    expect(isAgentRouteAuthenticationError(new ApiError("upstream", { status: 502 }))).toBe(false);
+    expect(isAgentRouteAuthenticationError(new Error("network down"))).toBe(false);
+  });
   const originalWindow = globalWithDom.window;
   const originalCustomEvent = globalWithDom.CustomEvent;
   const originalLocalStorage = globalWithDom.localStorage;

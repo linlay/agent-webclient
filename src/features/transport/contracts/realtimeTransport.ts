@@ -45,7 +45,11 @@ export interface RunStartCallbacks {
 }
 
 export type StartQueryInput = Omit<QueryStreamParams, "signal"> &
-  RunStartCallbacks & { signal?: AbortSignal };
+  RunStartCallbacks & {
+    /** Canonical hosts may supply a preallocated Run identity. */
+    runId?: string;
+    signal?: AbortSignal;
+  };
 
 export type StartBtwInput = Omit<BTWStreamParams, "signal"> &
   RunStartCallbacks & {
@@ -73,6 +77,7 @@ export interface AwaitingSubmitInput {
 }
 
 export interface ToolSubmitInput {
+  chatId?: string;
   runId: string;
   owner: RunOwner;
   toolId: string;
@@ -103,6 +108,7 @@ export interface PushFrame {
 export interface PushFilter {
   types: string[];
   chatId?: string;
+  runId?: string;
   agentKey?: string;
 }
 

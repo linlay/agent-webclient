@@ -2,10 +2,12 @@ import React, { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { TerminalWorkspace } from "@/features/terminal/components/TerminalWorkspace";
 import { useI18n } from "@/shared/i18n";
+import { useRealtimeTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
 export const TerminalPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { t } = useI18n();
+  const realtime = useRealtimeTransport();
   const agentKey = useMemo(
     () => String(searchParams.get("agentKey") || "").trim(),
     [searchParams],
@@ -29,7 +31,9 @@ export const TerminalPage: React.FC = () => {
       <TerminalWorkspace
         agentKey={agentKey}
         initialTerminalKey={terminalKey}
-        availability={{ supported: true }}
+        availability={realtime.kind === "desktop"
+          ? { supported: false, reason: t("terminal.desktopUnsupported") }
+          : { supported: true }}
       />
     </main>
   );

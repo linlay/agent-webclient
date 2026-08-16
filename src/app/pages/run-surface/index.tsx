@@ -43,9 +43,10 @@ export const ReadonlyRunSurfacePage: React.FC<{
   const [searchParams] = useSearchParams();
   const { t } = useI18n();
   const chatId = useMemo(() => String(searchParams.get("chatId") || "").trim(), [searchParams]);
+  const runId = useMemo(() => String(searchParams.get("runId") || "").trim(), [searchParams]);
   const agentKey = useMemo(
-    () => String(params.agentKey || "").trim(),
-    [params.agentKey],
+    () => String(searchParams.get("agentKey") || params.agentKey || "").trim(),
+    [params.agentKey, searchParams],
   );
   const artifactPreview = useMemo(() => readArtifactPreview(searchParams), [searchParams]);
   const planningNodeId = useMemo(
@@ -54,6 +55,7 @@ export const ReadonlyRunSurfacePage: React.FC<{
   );
   const runtime = useReadonlyRunSurfaceRuntime({
     chatId,
+    runId: runId || undefined,
     agentKey: agentKey || undefined,
     role: kind,
   });

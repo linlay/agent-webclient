@@ -271,10 +271,26 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: "/overview",
+          element: (
+            <DocumentTitleRoute titleKey="copilot.panel.overview">
+              <ReadonlyRunSurfacePage kind="overview" />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
           path: "/overview/:agentKey",
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.overview">
               <ReadonlyRunSurfacePage kind="overview" />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/debug",
+          element: (
+            <DocumentTitleRoute titleKey="copilot.panel.debug">
+              <ReadonlyRunSurfacePage kind="debug" />
             </DocumentTitleRoute>
           ),
         },

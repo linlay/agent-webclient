@@ -2,13 +2,17 @@ import { useCallback } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import type { WorkPanelItemDescriptor } from "@/features/transport/contracts/generated/agentWebclientBridge";
+import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export type OpenTargetIntent =
-  | { version: 1; kind: "overview" | "debug"; chatId: string; agentKey?: string; toggle?: boolean }
+  | { version: 1; kind: "overview" | "debug"; chatId: string; runId?: string; agentKey?: string; toggle?: boolean }
   | { version: 1; kind: "terminal"; agentKey: string; terminalKey?: string; title?: string }
-  | { version: 1; kind: "artifact"; chatId: string; agentKey?: string; preview: AttachmentPreviewState; toggle?: boolean }
-  | { version: 1; kind: "planning"; chatId: string; agentKey?: string; nodeId: string; label?: string }
-  | { version: 1; kind: "project"; agentKey?: string; chatId?: string; runId?: string }
+  | { version: 1; kind: "artifact"; artifactId?: string; chatId: string; runId?: string; agentKey?: string; preview: AttachmentPreviewState; toggle?: boolean }
+  | { version: 1; kind: "planning"; chatId: string; runId?: string; agentKey?: string; nodeId: string; label?: string }
+  | { version: 1; kind: "project"; projectId?: string; agentKey?: string; chatId?: string; runId?: string }
+  | { version: 1; kind: "file-diff"; chatId: string; runId: string; relativePath: string; agentKey?: string; title?: string }
   | { version: 1; kind: "web"; url: string; title?: string };
 
 function set(params: URLSearchParams, key: string, value: unknown): void {
@@ -24,11 +28,12 @@ function buildSurfaceContextParams(currentSearch: string): URLSearchParams {
   return params;
 }
 
-function usesAgentPath(intent: OpenTargetIntent): boolean {
+function usesAgentIdentity(intent: OpenTargetIntent): boolean {
   return intent.kind === "overview" ||
     intent.kind === "debug" ||
     intent.kind === "artifact" ||
-    intent.kind === "planning";
+    intent.kind === "planning" ||
+    intent.kind === "file-diff";
 }
 
 export function buildStandaloneOpenTargetUrl(
@@ -39,7 +44,11 @@ export function buildStandaloneOpenTargetUrl(
   if (intent.kind === "web") {
     try {
       const url = new URL(intent.url);
-      return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+      return (
+        (url.protocol === "http:" || url.protocol === "https:")
+        && !url.username
+        && !url.password
+      ) ? url.href : "";
     } catch {
       return "";
     }
@@ -50,11 +59,15 @@ export function buildStandaloneOpenTargetUrl(
     set(params, "agentKey", intent.agentKey);
     set(params, "terminalKey", intent.terminalKey || "main");
   } else if (intent.kind === "project") {
+    set(params, "projectId", intent.projectId);
     set(params, "agentKey", intent.agentKey);
     set(params, "chatId", intent.chatId);
     set(params, "runId", intent.runId);
   } else if (intent.kind === "artifact") {
     set(params, "chatId", intent.chatId);
+    set(params, "runId", intent.runId);
+    set(params, "agentKey", intent.agentKey);
+    set(params, "artifactId", intent.artifactId);
     set(params, "view", "artifact");
     set(params, "name", intent.preview.name);
     set(params, "url", intent.preview.url);
@@ -68,11 +81,21 @@ export function buildStandaloneOpenTargetUrl(
     set(params, "workspacePath", intent.preview.workspaceFile?.path);
   } else if (intent.kind === "planning") {
     set(params, "chatId", intent.chatId);
+    set(params, "runId", intent.runId);
+    set(params, "agentKey", intent.agentKey);
     set(params, "view", "planning");
     set(params, "nodeId", intent.nodeId);
     set(params, "label", intent.label);
+  } else if (intent.kind === "file-diff") {
+    set(params, "chatId", intent.chatId);
+    set(params, "runId", intent.runId);
+    set(params, "agentKey", intent.agentKey);
+    set(params, "path", intent.relativePath);
+    set(params, "view", "diff");
   } else {
     set(params, "chatId", intent.chatId);
+    set(params, "runId", intent.runId);
+    set(params, "agentKey", intent.agentKey);
   }
   if (
     (intent.kind === "overview" || intent.kind === "debug" || intent.kind === "artifact" || intent.kind === "planning") &&
@@ -83,29 +106,165 @@ export function buildStandaloneOpenTargetUrl(
   if (intent.kind === "artifact" && (!params.get("url") || !params.get("kind"))) return "";
   if (intent.kind === "planning" && !params.get("nodeId")) return "";
   if (intent.kind === "terminal" && !params.get("agentKey")) return "";
-  const routeAgentKey = usesAgentPath(intent)
-    ? String(intent.agentKey || "").trim()
-    : "";
-  if (usesAgentPath(intent) && !routeAgentKey) return "";
+  if (intent.kind === "file-diff" && (!params.get("runId") || !params.get("path"))) return "";
   const query = params.toString();
   const routeKind = intent.kind === "artifact" || intent.kind === "planning"
     ? "overview"
+    : intent.kind === "file-diff"
+      ? "project"
     : intent.kind;
-  const routePath = routeAgentKey
-    ? `/${routeKind}/${encodeURIComponent(routeAgentKey)}`
-    : `/${routeKind}`;
+  const routePath = `/${routeKind}`;
   return `${routePath}${query ? `?${query}` : ""}`;
+}
+
+export function normalizeProjectRelativePath(
+  value: unknown,
+  workspaceDir = "",
+): string {
+  let path = String(value || "").trim().replace(/\\/g, "/");
+  const workspace = String(workspaceDir || "").trim().replace(/\\/g, "/").replace(/\/$/, "");
+  const absolute = path.startsWith("/") || /^[a-z]:\//i.test(path) || path.startsWith("//");
+  if (absolute) {
+    if (!workspace || (path !== workspace && !path.startsWith(`${workspace}/`))) return "";
+    path = path.slice(workspace.length).replace(/^\/+/, "");
+  }
+  const parts = path.split("/").filter((part) => part && part !== ".");
+  if (parts.length === 0 || parts.some((part) => part === "..")) return "";
+  return parts.join("/");
+}
+
+export function buildDesktopWorkPanelDescriptor(
+  intent: OpenTargetIntent,
+  currentSearch = "",
+  workspaceDir = "",
+): WorkPanelItemDescriptor | null {
+  if (intent.version !== 1 || intent.kind === "terminal") return null;
+  if (intent.kind === "web") {
+    try {
+      const url = new URL(intent.url);
+      if (
+        (url.protocol !== "http:" && url.protocol !== "https:") ||
+        url.username ||
+        url.password
+      ) return null;
+      return {
+        kind: "web",
+        url: url.toString(),
+        ...(intent.title ? { title: intent.title } : {}),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  const route = buildStandaloneOpenTargetUrl(intent, currentSearch);
+  if (!route) return null;
+  if (intent.kind === "overview" || intent.kind === "debug") {
+    const chatId = String(intent.chatId || "").trim();
+    if (!chatId) return null;
+    return {
+      kind: "webclient",
+      module: intent.kind === "overview" ? "summary" : "debug",
+      route,
+      context: {
+        chatId,
+        ...(intent.runId ? { runId: intent.runId } : {}),
+        ...(intent.agentKey ? { agentKey: intent.agentKey } : {}),
+      },
+    };
+  }
+  if (intent.kind === "artifact") {
+    const artifactId = String(intent.artifactId || "").trim();
+    const chatId = String(intent.chatId || "").trim();
+    const runId = String(intent.runId || "").trim();
+    const agentKey = String(intent.agentKey || "").trim();
+    if (!artifactId || !chatId) return null;
+    return {
+      kind: "webclient",
+      module: "artifact",
+      route,
+      context: {
+        artifactId,
+        chatId,
+        ...(runId ? { runId } : {}),
+        ...(agentKey ? { agentKey } : {}),
+      },
+      title: intent.preview.name,
+    };
+  }
+  if (intent.kind === "planning") {
+    const nodeId = String(intent.nodeId || "").trim();
+    const chatId = String(intent.chatId || "").trim();
+    const runId = String(intent.runId || "").trim();
+    const agentKey = String(intent.agentKey || "").trim();
+    if (!nodeId || !chatId) return null;
+    return {
+      kind: "webclient",
+      module: "planning",
+      route,
+      context: {
+        nodeId,
+        chatId,
+        ...(runId ? { runId } : {}),
+        ...(agentKey ? { agentKey } : {}),
+      },
+      ...(intent.label ? { title: intent.label } : {}),
+    };
+  }
+  if (intent.kind === "project") {
+    const projectId = String(intent.projectId || "").trim();
+    const chatId = String(intent.chatId || "").trim();
+    const runId = String(intent.runId || "").trim();
+    const agentKey = String(intent.agentKey || "").trim();
+    if (!projectId) return null;
+    return {
+      kind: "webclient",
+      module: "project",
+      route,
+      context: {
+        projectId,
+        ...(chatId ? { chatId } : {}),
+        ...(runId ? { runId } : {}),
+        ...(agentKey ? { agentKey } : {}),
+      },
+    };
+  }
+  if (intent.kind !== "file-diff") return null;
+  const chatId = String(intent.chatId || "").trim();
+  const runId = String(intent.runId || "").trim();
+  const agentKey = String(intent.agentKey || "").trim();
+  if (!chatId || !runId) return null;
+  const relativePath = normalizeProjectRelativePath(intent.relativePath, workspaceDir);
+  if (!relativePath) return null;
+  const fileRoute = buildStandaloneOpenTargetUrl(
+    { ...intent, relativePath },
+    currentSearch,
+  );
+  return {
+    kind: "webclient",
+    module: "file-diff",
+    route: fileRoute,
+    context: {
+      chatId,
+      runId,
+      relativePath,
+      ...(agentKey ? { agentKey } : {}),
+    },
+    ...(intent.title ? { title: intent.title } : {}),
+  };
 }
 
 export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
   const dispatch = useAppDispatch();
   const state = useAppState();
+  const workPanel = useOptionalWorkPanelTransport();
 
   return useCallback((intent: OpenTargetIntent) => {
     if (intent.version !== 1) return false;
     const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+    const desktopMode = isDesktopAppMode();
     const currentWorker = resolveCurrentWorkerSummary(state);
-    if (pathname === "/") {
+    if (!desktopMode && pathname === "/") {
       if (intent.kind === "overview" || intent.kind === "debug") {
         const tab = intent.kind;
         if (intent.toggle && state.rightSidebarOpen && state.rightSidebarOpenTab === tab) {
@@ -154,7 +313,7 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
       ? state.chats.find((item) => String(item?.chatId || "").trim() === chatId)
       : undefined;
     const explicitAgentKey = "agentKey" in intent ? intent.agentKey : "";
-    const resolvedAgentKey = usesAgentPath(intent)
+    const resolvedAgentKey = usesAgentIdentity(intent)
       ? String(
         explicitAgentKey ||
         (chatId === state.chatId ? state.currentRunAgentKey : "") ||
@@ -165,10 +324,32 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
         "",
       ).trim()
       : "";
-    const normalizedIntent = resolvedAgentKey && usesAgentPath(intent)
+    const normalizedIntent = resolvedAgentKey && usesAgentIdentity(intent)
       ? { ...intent, agentKey: resolvedAgentKey } as OpenTargetIntent
       : intent;
     const currentSearch = typeof window === "undefined" ? "" : window.location.search;
+    if (desktopMode) {
+      if (!workPanel) return false;
+      const descriptor = buildDesktopWorkPanelDescriptor(
+        normalizedIntent,
+        currentSearch,
+        currentWorker?.row.workspaceDir,
+      );
+      if (!descriptor) {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[workpanel] invalid or unsupported ${normalizedIntent.kind} target`,
+        });
+        return false;
+      }
+      void workPanel.openDescriptor(descriptor).catch((error) => {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[workpanel] ${error instanceof Error ? error.message : String(error)}`,
+        });
+      });
+      return true;
+    }
     const url = buildStandaloneOpenTargetUrl(normalizedIntent, currentSearch);
     if (!url) return false;
     if (pathname === "/" && normalizedIntent.kind === "web") {
@@ -186,5 +367,5 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
     if (typeof window === "undefined" || typeof window.open !== "function") return false;
     window.open(url, "_blank", "noopener,noreferrer");
     return true;
-  }, [dispatch, state]);
+  }, [dispatch, state, workPanel]);
 }

@@ -12,7 +12,10 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function readFrameField(frame: PushFrame, key: "type" | "chatId" | "agentKey"): string {
+function readFrameField(
+  frame: PushFrame,
+  key: "type" | "chatId" | "runId" | "agentKey",
+): string {
   const nested = Object.keys(record(frame.payload)).length
     ? record(frame.payload)
     : record(frame.data);
@@ -23,6 +26,7 @@ function matches(filter: PushFilter, frame: PushFrame): boolean {
   const types = new Set(filter.types.map((type) => String(type || "").trim()).filter(Boolean));
   if (types.size > 0 && !types.has(readFrameField(frame, "type"))) return false;
   if (filter.chatId && filter.chatId !== readFrameField(frame, "chatId")) return false;
+  if (filter.runId && filter.runId !== readFrameField(frame, "runId")) return false;
   if (filter.agentKey && filter.agentKey !== readFrameField(frame, "agentKey")) return false;
   return true;
 }

@@ -112,7 +112,9 @@ describe("App routing", () => {
         "/mcp-servers/:serverKey",
         "/skills",
         "/skills/:skillKey",
+        "/overview",
         "/overview/:agentKey",
+        "/debug",
         "/debug/:agentKey",
         "/terminal",
         "/project",
@@ -125,8 +127,7 @@ describe("App routing", () => {
         "/agent/:agentKey",
       ]),
     );
-    expect(childRoutes.map((route) => route.path)).not.toContain("/overview");
-    expect(childRoutes.map((route) => route.path)).not.toContain("/debug");
+    expect(childRoutes.map((route) => route.path)).not.toContain("/summary");
   });
 
   it("registers localized document title keys for agents, archives, automations, and registries", async () => {

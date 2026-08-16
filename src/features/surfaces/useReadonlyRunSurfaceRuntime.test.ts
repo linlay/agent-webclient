@@ -25,4 +25,12 @@ describe("resolveReadonlyActiveRun", () => {
       activeRun: { chatId: "chat-2", runId: "run-active" },
     })).toBeNull();
   });
+
+  it("keeps an explicitly requested historical run read-only", () => {
+    expect(resolveReadonlyActiveRun({
+      chatId: "chat-1",
+      requestedRunId: "run-history",
+      activeRun: { chatId: "chat-1", runId: "run-active" },
+    })).toBeNull();
+  });
 });

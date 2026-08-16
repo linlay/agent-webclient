@@ -106,6 +106,7 @@ export const ArtifactPanel: React.FC = () => {
             <li key={item.artifactId} className={ARTIFACT_ITEM_CLASS_NAME}>
               <AttachmentCard
                 attachment={artifact}
+                artifactId={item.artifactId}
                 variant="composer"
                 displayMode="file"
                 thumbnailMode="inline"
