@@ -1,22 +1,22 @@
 # Desktop宿主桥接
 
 ## 当前状态
-WebClient 已消费 canonical generated Desktop bridge，通过固定只读全局 `__AGENT_WEBCLIENT_REALTIME_BRIDGE__` 与 `__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__` 接入 Main Broker 和 WorkPanel。现有 Desktop context、截图、文件系统和右键桥接继续服务各自能力，但不作为 realtime fallback。
+WebClient 已消费 canonical generated Desktop contract，通过固定只读全局 `__AGENT_WEBCLIENT_PLATFORM_WS__` 与 `__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__` 接入 Main Broker 和 WorkPanel。现有 Desktop context、截图、文件系统和右键桥接继续服务各自能力，但不作为 realtime fallback。
 
 ## 核心职责
 - 严格判断 `DESKTOP_APP`：只接受布尔 `true` 或精确字符串 `"true"`。
 - 向宿主发送 route、workspace、screenshot、file system 等请求或通知。
-- 缺少 canonical realtime bridge 时阻断所有 guest 业务 Surface，避免 guest 直连 Platform。
-- 将 Run attach、Push 和受控 OpenTarget 映射到 canonical bridge；WebClient 不维护 WorkPanel workspace/tab state。
+- 缺少 canonical Platform Frame Port 时阻断所有 guest 业务 Surface，避免 guest 直连 Platform。
+- 将 Run 与 Push 交给共享 Platform transport；WebClient 不维护 WorkPanel workspace/tab state。
 - 将 Desktop 截图结果转换为 Composer 可上传文件。
 - 在 query payload 中补充宿主提供的上下文。
 
 ## 核心流程
-Provider 在 Desktop bridge 结构存在时渲染页面，按首次能力使用懒执行 hello。version mismatch 是全局稳定阻断；surface/capability denial 留在具体操作中，避免普通管理路由白屏。Run 与 Push 共用一个宿主 listener；WorkPanel 只接收 canonical descriptor，稳定身份来自 chatId/runId/projectId/artifactId/nodeId/project-relative path，失败时不调用 `window.open` 或旧 Action。
+Provider 在 Desktop Frame Port 结构和 transport version 有效时渲染页面。surface/capability denial 作为相同 request id 的标准 Platform error 留在具体操作中。`WsClient` 通过 socket factory 复用 Standalone parser；WorkPanel 保持独立 `getCapabilities()` 宿主查询和逐请求授权，只接收 canonical descriptor，失败时不调用 `window.open` 或旧 Action。
 
-Bridge v2 的新 query 只发送 `operationId/owner/payload` 与可选已有 `chatId`，绝不发送预造 `runId`；`run.accepted` 回填 Platform canonical identity，随后释放 acceptance 前事件。query batch 按 operation、attach batch 按 subscription 精确定向；统一 `detach` 只停止当前 Surface 投递。interrupt、awaiting/tool submit、steer 与 access-level 返回真实 Platform `ApiResponse`，BTW 与 Desktop Terminal 继续明确 unsupported。
+Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。同一 Chat 内 Overview/Debug OpenTarget 只切换 `rightSidebarOpenTab`，不创建 WorkPanel guest，不触碰 transport。独立 `/overview`、`/debug` 为 replay-only。
 
-Bridge v2 是完全不兼容升级。缺失 bridge、v1 method shape、hello/message version 错误或旧 Program manifest 都必须稳定阻断，不安装 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚。
+Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或旧 Program manifest 都必须稳定阻断，不安装旧 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚。
 
 ## 边界与非目标
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。

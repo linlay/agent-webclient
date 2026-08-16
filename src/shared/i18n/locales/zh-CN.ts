@@ -1489,7 +1489,7 @@ export const zhCNMessages = {
   "leftSidebar.sort.byTime": "按时间排序",
   "leftSidebar.historyCount": "共 {count} 条对话",
   "terminal.panelAria": "终端面板",
-  "terminal.desktopUnsupported": "Desktop Bridge v2 暂不支持终端会话。",
+  "terminal.desktopUnsupported": "Desktop Platform Frame Port 暂不支持终端会话。",
   "terminal.new": "新建终端",
   "terminal.closeTab": "关闭 {name}",
   "terminal.emptyNew": "+ 新建终端",

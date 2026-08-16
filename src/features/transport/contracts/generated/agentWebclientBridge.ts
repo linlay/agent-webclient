@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:0fe618fdd080ae5f1b88778c5378713af867dbb8809d9d18f655f99f56f4cd58
+// sha256:c4a4d8f0fae1cd0db31f5add491fbafda5ffac17e2527362fafb09559e9826c7
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -9,16 +9,21 @@
  * separately released Agent WebClient bundle and must not depend on Electron.
  */
 
-export const AGENT_WEBCLIENT_BRIDGE_VERSION = 2 as const;
-export const AGENT_WEBCLIENT_REALTIME_BRIDGE_GLOBAL =
-  "__AGENT_WEBCLIENT_REALTIME_BRIDGE__" as const;
+export const AGENT_WEBCLIENT_BRIDGE_VERSION = 3 as const;
+export const AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION = 1 as const;
+export const AGENT_WEBCLIENT_PLATFORM_WS_GLOBAL =
+  "__AGENT_WEBCLIENT_PLATFORM_WS__" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL =
   "__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__" as const;
 
-export const AGENT_WEBCLIENT_REALTIME_MESSAGE_CHANNEL =
-  "agentWebclient.realtime.message" as const;
-export const AGENT_WEBCLIENT_REALTIME_INVOKE_CHANNEL =
-  "agentWebclient.realtime.invoke" as const;
+export const AGENT_WEBCLIENT_PLATFORM_WS_OPEN_CHANNEL =
+  "agentWebclient.platformWs.open" as const;
+export const AGENT_WEBCLIENT_PLATFORM_WS_SEND_CHANNEL =
+  "agentWebclient.platformWs.send" as const;
+export const AGENT_WEBCLIENT_PLATFORM_WS_CLOSE_CHANNEL =
+  "agentWebclient.platformWs.close" as const;
+export const AGENT_WEBCLIENT_PLATFORM_WS_EVENT_CHANNEL =
+  "agentWebclient.platformWs.event" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_INVOKE_CHANNEL =
   "agentWebclient.workpanel.invoke" as const;
 
@@ -47,7 +52,7 @@ export type AgentWebclientBridgeErrorCode =
 export type AgentWebclientSurfaceKind =
   | "agent-chat"
   | "agent-copilot"
-  | "agent-summary"
+  | "agent-overview"
   | "agent-debug"
   | "agent-project";
 
@@ -78,161 +83,95 @@ export type AgentWebclientBridgeError = {
   details?: Record<string, unknown>;
 };
 
-export type AgentWebclientBridgeHello = {
-  version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-  surface: {
-    kind: AgentWebclientSurfaceKind;
-    capabilities: AgentWebclientSurfaceCapability[];
-    ownerChatId?: string;
-    route: string;
-  };
-  connection: {
-    phase: AgentWebclientConnectionPhase;
-    generation: number;
-  };
-};
-
-export type AgentWebclientBridgeHelloInput = {
-  version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-};
-
 export type AgentWebclientRunOwner =
   | { kind: "agent"; agentKey: string }
   | { kind: "team"; teamId: string };
-
-export type AgentWebclientRunControlKind =
-  | "interrupt"
-  | "submitAwaiting"
-  | "submitTool"
-  | "steer"
-  | "updateAccessLevel";
-
-export type AgentWebclientDeliveryTarget =
-  | { kind: "operation"; operationId: string }
-  | { kind: "subscription"; subscriptionId: string };
-
-export type AgentWebclientRealtimeDetachInput = {
-  version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-  target: AgentWebclientDeliveryTarget;
-};
-
-export type AgentWebclientApiResponse = {
-  status: number;
-  code: number;
-  msg?: string;
-  data?: unknown;
-};
-
-export type AgentWebclientRealtimeRequest =
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      operationId: string;
-      kind: "run.query";
-      chatId?: string;
-      owner: AgentWebclientRunOwner;
-      payload: Record<string, unknown>;
-    }
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      operationId: string;
-      kind: "run.control";
-      chatId: string;
-      runId: string;
-      control: AgentWebclientRunControlKind;
-      owner: AgentWebclientRunOwner;
-      payload: Record<string, unknown>;
-    };
-
-export type AgentWebclientRunSubscriptionRole =
-  | "primary"
-  | "summary"
-  | "debug"
-  | "internal";
-
-export type AgentWebclientRealtimeSubscription =
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "run";
-      chatId: string;
-      runId: string;
-      lastSeq: number;
-      role: Exclude<AgentWebclientRunSubscriptionRole, "internal">;
-      owner: AgentWebclientRunOwner;
-    }
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "push";
-      types: string[];
-      filter?: {
-        chatId?: string;
-        runId?: string;
-        resourceId?: string;
-      };
-    };
-
-export type AgentWebclientBridgeAck = {
-  ok: true;
-  operationId?: string;
-  subscriptionId?: string;
-  response?: AgentWebclientApiResponse;
-};
 
 export type AgentWebclientBridgeFailure = {
   ok: false;
   error: AgentWebclientBridgeError;
 };
 
-export type AgentWebclientBridgeResult =
-  | AgentWebclientBridgeAck
-  | AgentWebclientBridgeFailure;
 
-export type AgentWebclientRealtimeMessage =
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "connection";
-      phase: AgentWebclientConnectionPhase;
-      generation: number;
-    }
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "run.accepted";
-      operationId: string;
-      chatId: string;
-      runId: string;
-      owner: AgentWebclientRunOwner;
-    }
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "run.batch";
-      delivery: AgentWebclientDeliveryTarget;
-      bindingEpoch: number;
-      chatId: string;
-      runId: string;
-      events: Array<Record<string, unknown>>;
-      lastSeq: number;
-    }
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "run.completed";
-      delivery: AgentWebclientDeliveryTarget;
-      chatId: string;
-      runId: string;
-      reason: string;
-      lastSeq?: number;
-    }
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "push";
-      subscriptionId: string;
-      type: string;
-      data?: unknown;
-    }
-  | {
-      version: typeof AGENT_WEBCLIENT_BRIDGE_VERSION;
-      kind: "error";
-      delivery: AgentWebclientDeliveryTarget;
-      error: AgentWebclientBridgeError;
-    };
+export type AgentPlatformRequestFrame = {
+  frame: "request";
+  type: string;
+  id: string;
+  payload?: unknown;
+};
+
+export type AgentPlatformResponseFrame = {
+  frame: "response";
+  type?: string;
+  id?: string;
+  code?: number | string;
+  status?: number;
+  msg?: string;
+  data?: unknown;
+};
+
+export type AgentPlatformStreamFrame = {
+  frame: "stream";
+  id?: string;
+  streamId?: string;
+  event?: Record<string, unknown>;
+  reason?: string;
+  lastSeq?: number;
+};
+
+export type AgentPlatformPushFrame = {
+  frame: "push";
+  type?: string;
+  payload?: unknown;
+  data?: unknown;
+  [key: string]: unknown;
+};
+
+export type AgentPlatformErrorFrame = {
+  frame: "error";
+  id?: string;
+  type?: string;
+  code?: number | string;
+  status?: number;
+  msg?: string;
+  data?: unknown;
+};
+
+export type AgentPlatformRealtimeFrame =
+  | AgentPlatformRequestFrame
+  | AgentPlatformResponseFrame
+  | AgentPlatformStreamFrame
+  | AgentPlatformPushFrame
+  | AgentPlatformErrorFrame;
+
+export type AgentWebclientPlatformWsEvent =
+  | { socketId: string; type: "open" }
+  | { socketId: string; type: "message"; data: string }
+  | { socketId: string; type: "error"; message: string }
+  | { socketId: string; type: "close"; code: number; reason: string };
+
+export type AgentWebclientPlatformWsOpenInput = { socketId: string };
+export type AgentWebclientPlatformWsSendInput = { socketId: string; data: string };
+export type AgentWebclientPlatformWsCloseInput = {
+  socketId: string;
+  code?: number;
+  reason?: string;
+};
+
+export type DesktopPlatformSocketEventType = "open" | "message" | "error" | "close";
+
+export type DesktopPlatformSocket = {
+  readonly readyState: 0 | 1 | 2 | 3;
+  send(data: string): void;
+  close(code?: number, reason?: string): void;
+  addEventListener(type: DesktopPlatformSocketEventType, listener: (event: unknown) => void): void;
+  removeEventListener(type: DesktopPlatformSocketEventType, listener: (event: unknown) => void): void;
+};
+
+export type DesktopPlatformWsBridge = {
+  readonly transportVersion: typeof AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION;
+  createSocket(): DesktopPlatformSocket;
+};
 
 export type WorkPanelContext = {
   chatId?: string;
@@ -245,7 +184,7 @@ export type WorkPanelContext = {
 };
 
 export type WorkPanelWebclientModule =
-  | "summary"
+  | "overview"
   | "debug"
   | "project"
   | "file-diff"
@@ -311,21 +250,23 @@ export type WorkPanelBridgeResult =
   | { ok: true; workspaceId: string; item?: WorkPanelItem; state?: WorkPanelWorkspace }
   | AgentWebclientBridgeFailure;
 
-export type AgentWebclientRealtimeBridge = {
-  hello(): Promise<AgentWebclientBridgeHello | AgentWebclientBridgeFailure>;
-  request(input: AgentWebclientRealtimeRequest): Promise<AgentWebclientBridgeResult>;
-  subscribe(input: AgentWebclientRealtimeSubscription): Promise<AgentWebclientBridgeResult>;
-  detach(input: AgentWebclientRealtimeDetachInput): Promise<AgentWebclientBridgeResult>;
-  onMessage(listener: (message: AgentWebclientRealtimeMessage) => void): () => void;
-};
+export type WorkPanelCapability =
+  | "workpanel.open"
+  | "workpanel.activate"
+  | "workpanel.close";
+
+export type WorkPanelCapabilityResult =
+  | { ok: true; capabilities: WorkPanelCapability[] }
+  | AgentWebclientBridgeFailure;
 
 export type AgentWebclientWorkPanelBridge = {
+  getCapabilities(): Promise<WorkPanelCapabilityResult>;
   openItem(input: WorkPanelOpenItemInput): Promise<WorkPanelBridgeResult>;
   activateItem(input: WorkPanelItemTargetInput): Promise<WorkPanelBridgeResult>;
   closeItem(input: WorkPanelItemTargetInput): Promise<WorkPanelBridgeResult>;
 };
 
-export function isAgentWebclientBridgeVersion(value: unknown): value is 2 {
+export function isAgentWebclientBridgeVersion(value: unknown): value is 3 {
   return value === AGENT_WEBCLIENT_BRIDGE_VERSION;
 }
 
@@ -337,7 +278,7 @@ export function isAgentWebclientSurfaceKind(value: unknown): value is AgentWebcl
   return [
     "agent-chat",
     "agent-copilot",
-    "agent-summary",
+    "agent-overview",
     "agent-debug",
     "agent-project",
   ].includes(String(value));

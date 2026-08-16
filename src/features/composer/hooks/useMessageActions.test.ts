@@ -105,7 +105,7 @@ describe("useMessageActions temporary pin", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     startQuery.mockReturnValue({
-      accepted: Promise.resolve({
+      identity: Promise.resolve({
         requestId: "req_1",
         chatId: "chat_1",
         runId: "run_1",
@@ -184,7 +184,7 @@ describe("useMessageActions temporary pin", () => {
     );
   });
 
-  it("binds a new chat from canonical acceptance when stream events omit identity", async () => {
+  it("binds a new chat from canonical Run identity when stream events omit identity", async () => {
     const state = createInitialState();
     state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
     const dispatch = jest.fn();
@@ -308,7 +308,7 @@ describe("useMessageActions temporary pin", () => {
         },
       });
     startQuery.mockReturnValue({
-      accepted: Promise.reject(unsupported),
+      identity: Promise.reject(unsupported),
       completion: Promise.resolve({ reason: "error", lastSeq: 0, error: unsupported }),
       detach: jest.fn(),
     });

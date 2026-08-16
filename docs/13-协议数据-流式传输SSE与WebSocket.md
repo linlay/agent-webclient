@@ -13,7 +13,7 @@ WebClient 业务层只依赖 `RealtimeTransport`，门面固定提供 `runs`、`
 - `InboundRequestTransport`：仅根网站注册 `webclient.sidebar.*` 反向 action。
 - `TerminalTransport`：`open`、status subscription、write、resize、detach、close。
 
-`RunExecution` 与 `TerminalExecution` 同步返回，并分别暴露 `accepted`、`completion` 和幂等 `detach`。accepted 前事件进入有界缓冲；身份稳定后按原序投影。Terminal 的 `detach` 只停止当前 Surface 观察，`close` 才结束终端；即使先 detach，后续显式 close 仍会发送关闭操作。
+`RunExecution` 同步返回 `identity`、`completion` 和幂等 `detach`；`TerminalExecution` 保留自己的 `accepted`。query 的 identity 只从关联 stream 中首个 canonical `chatId/runId/owner` 事件取得，identity 前事件进入有界缓冲并在身份稳定后按原序投影。Terminal 的 `detach` 只停止当前 Surface 观察，`close` 才结束终端；即使先 detach，后续显式 close 仍会发送关闭操作。
 
 ## Standalone 生命周期
 
@@ -40,24 +40,22 @@ Run push 的聊天摘要、未读、awaiting 与 active-run 更新仍由 convers
 
 ## Desktop adapter
 
-`DESKTOP_APP` 只接受布尔 `true` 或精确字符串 `"true"`。Desktop 模式读取固定只读全局 realtime/workpanel bridge，懒执行并缓存 hello；bridge 缺失或版本不兼容时显示稳定阻断页，任何错误都不回退 Standalone。一个 `DesktopBridgeSession` 只安装一个宿主 `onMessage` listener，在内部分发 Run、Push、connection 和 error；Run attach 与 Push 通过 Main Broker 工作，guest 不创建 Agent Platform `/ws`。
+`DESKTOP_APP` 只接受布尔 `true` 或精确字符串 `"true"`。Desktop 模式读取固定只读全局 `__AGENT_WEBCLIENT_PLATFORM_WS__` 与 WorkPanel bridge；Frame Port 缺失或 transport version 不兼容时显示稳定阻断页，任何错误都不回退 Standalone。Desktop socket factory 不构造网络 URL、不读取 access token，也不创建 Agent Platform `/ws`。
 
-Desktop Run attach 使用 bridge subscribe ACK 作为本地 observer 就绪。Bridge v2 batch 以 operation 或 subscription delivery target 定向，并继续校验 bindingEpoch、chatId、runId 与 seq；早到消息采用 256 帧有界缓冲，gap 返回 `replay_required`。query 和 subscription 都调用统一 detach，query detach 不 interrupt Run。
+Standalone 原生 `WebSocket` 与 Desktop `createSocket()` 共用同一个 `WsClient` JSON parser、request map、stream map、push 分发与 `ApiError` 转换。两种模式的 query、attach、detach、interrupt、submit、steer 和 access-level 都生成 Platform request frame；Platform stream 一帧投影一个 event，不存在 Desktop batch adapter。
 
-新 Chat query 不预造 chatId/runId，继续 Chat 只携带 chatId。Desktop 在 `run.start` 返回 `run.accepted` 后，adapter 写回 canonical chatId/runId/owner 并按原序释放 early batch；页面随后把 `?newChat=` replace 为稳定 `?chatId=`。五类 control 返回真实 status/code/msg/data，4xx（包括 awaiting 409）转换为等价 `ApiError`。BTW 与 Terminal 在 Desktop 仍明确 unsupported。
+新 Chat query 不预造 chatId/runId，继续 Chat 只携带 chatId。页面仅在相关 stream identity 就绪后把 `?newChat=` replace 为稳定 `?chatId=`；`chat.created` push 不参与 query 归属判断。Desktop Chat guest inactive 时幂等 detach，identity 未就绪则等 bootstrap 后 detach；恢复 active 时等待 detach 完成，并以当前 `lastSeq` attach。BTW 与 Terminal 在 Desktop 仍明确 unsupported。
 
 ## 相关文件
 
 - `../src/features/transport/contracts/realtimeTransport.ts`
 - `../src/features/transport/components/RealtimeTransportProvider.tsx`
 - `../src/features/transport/lib/standaloneRealtimeTransport.ts`
-- `../src/features/transport/lib/standaloneRunTransport.ts`
-- `../src/features/transport/lib/standalonePushTransport.ts`
+- `../src/features/transport/lib/platformRunTransport.ts`
+- `../src/features/transport/lib/platformPushTransport.ts`
 - `../src/features/transport/lib/standaloneInboundRequestTransport.ts`
 - `../src/features/transport/lib/standaloneTerminalTransport.ts`
 - `../src/features/transport/lib/desktopRealtimeTransport.ts`
-- `../src/features/transport/lib/desktopRunTransport.ts`
-- `../src/features/transport/lib/desktopPushTransport.ts`
 - `../src/features/conversation/hooks/useChatNotificationRuntime.ts`
 - `../src/features/conversation/hooks/useRunSubscriptionRuntime.ts`
 - `../src/features/surfaces/useReadonlyRunSurfaceRuntime.ts`

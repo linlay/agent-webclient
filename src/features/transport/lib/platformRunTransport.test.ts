@@ -9,12 +9,12 @@ jest.mock("@/features/transport/lib/standaloneWsClient", () => ({
 
 const event = (value: Partial<AgentEvent>): AgentEvent => value as AgentEvent;
 
-describe("StandaloneRunTransport", () => {
+describe("PlatformRunTransport", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("buffers pre-acceptance events and flushes them after Run identity is known", async () => {
+  it("buffers pre-identity events and flushes them after canonical Run identity is known", async () => {
     let streamOptions: any;
     const abort = jest.fn();
     const client = {
@@ -25,9 +25,9 @@ describe("StandaloneRunTransport", () => {
       request: jest.fn().mockResolvedValue({ data: {} }),
     };
     mockEnsureStandaloneWsClient.mockResolvedValue(client);
-    const { StandaloneRunTransport } = await import("./standaloneRunTransport");
+    const { PlatformRunTransport } = await import("./platformRunTransport");
     const onEvent = jest.fn();
-    const transport = new StandaloneRunTransport();
+    const transport = new PlatformRunTransport();
 
     const execution = transport.startQuery({
       requestId: "request-1",
@@ -39,7 +39,7 @@ describe("StandaloneRunTransport", () => {
     await Promise.resolve();
 
     let accepted = false;
-    void execution.accepted.then(() => {
+    void execution.identity.then(() => {
       accepted = true;
     });
     streamOptions.onEvent(event({ type: "thinking", chatId: "chat-1", seq: 1 }));
@@ -55,7 +55,7 @@ describe("StandaloneRunTransport", () => {
       seq: 2,
     }));
 
-    await expect(execution.accepted).resolves.toMatchObject({
+    await expect(execution.identity).resolves.toMatchObject({
       requestId: "request-1",
       chatId: "chat-1",
       runId: "run-1",
@@ -76,8 +76,8 @@ describe("StandaloneRunTransport", () => {
       }),
       request,
     });
-    const { StandaloneRunTransport } = await import("./standaloneRunTransport");
-    const transport = new StandaloneRunTransport();
+    const { PlatformRunTransport } = await import("./platformRunTransport");
+    const transport = new PlatformRunTransport();
     const execution = transport.subscribe({
       chatId: "chat-1",
       runId: "run-1",
@@ -87,7 +87,7 @@ describe("StandaloneRunTransport", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(streamOptions.type).toBe(dataEndpoints.attach.path);
-    await execution.accepted;
+    await execution.identity;
 
     await Promise.all([execution.detach(), execution.detach()]);
 
@@ -115,8 +115,8 @@ describe("StandaloneRunTransport", () => {
       }),
       request,
     });
-    const { StandaloneRunTransport } = await import("./standaloneRunTransport");
-    const transport = new StandaloneRunTransport();
+    const { PlatformRunTransport } = await import("./platformRunTransport");
+    const transport = new PlatformRunTransport();
     const execution = transport.subscribe({
       chatId: "chat-1",
       runId: "run-1",
@@ -125,7 +125,7 @@ describe("StandaloneRunTransport", () => {
     });
     await Promise.resolve();
     await Promise.resolve();
-    await execution.accepted;
+    await execution.identity;
 
     streamOptions.onDone("done", 8);
     await expect(execution.completion).resolves.toMatchObject({
@@ -136,5 +136,57 @@ describe("StandaloneRunTransport", () => {
 
     expect(abort).not.toHaveBeenCalled();
     expect(request).not.toHaveBeenCalled();
+  });
+
+  it("detaches once while inactive and reattaches from lastSeq when active again", async () => {
+    const streamOptions: any[] = [];
+    const aborts: jest.Mock[] = [];
+    const request = jest.fn().mockResolvedValue({ data: {} });
+    const client = {
+      stream: jest.fn((options) => {
+        streamOptions.push(options);
+        const abort = jest.fn();
+        aborts.push(abort);
+        return { requestId: `stream-${streamOptions.length}`, abort };
+      }),
+      request,
+    };
+    const { PlatformRunTransport } = await import("./platformRunTransport");
+    const transport = new PlatformRunTransport(async () => client as any);
+    const execution = transport.subscribe({
+      chatId: "chat-1",
+      runId: "run-1",
+      owner: { kind: "agent", agentKey: "agent-1" },
+      lastSeq: 7,
+      onEvent: jest.fn(),
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    await execution.identity;
+
+    transport.setSurfaceActive(false);
+    transport.setSurfaceActive(false);
+    await Promise.resolve();
+    expect(aborts[0]).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith({
+      type: dataEndpoints.detach.path,
+      payload: {
+        runId: "run-1",
+        agentKey: "agent-1",
+        reason: "surface_inactive",
+      },
+    });
+
+    transport.setSurfaceActive(true);
+    transport.setSurfaceActive(true);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(client.stream).toHaveBeenCalledTimes(2);
+    expect(streamOptions[1]).toMatchObject({
+      type: dataEndpoints.attach.path,
+      payload: { runId: "run-1", agentKey: "agent-1", lastSeq: 7 },
+    });
+    await execution.detach();
   });
 });

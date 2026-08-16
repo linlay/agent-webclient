@@ -1490,7 +1490,7 @@ export const enUSMessages = {
   "leftSidebar.sort.byTime": "Sort by time",
   "leftSidebar.historyCount": "{count} conversations",
   "terminal.panelAria": "Terminal panel",
-  "terminal.desktopUnsupported": "Terminal sessions are not supported by Desktop Bridge v2.",
+  "terminal.desktopUnsupported": "Terminal sessions are not supported by the Desktop Platform Frame Port.",
   "terminal.new": "New terminal",
   "terminal.closeTab": "Close {name}",
   "terminal.emptyNew": "+ New terminal",

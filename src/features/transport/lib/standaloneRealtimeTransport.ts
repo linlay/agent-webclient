@@ -4,8 +4,8 @@ import type {
   StatusListener,
 } from "@/features/transport/contracts/realtimeTransport";
 import { StandaloneInboundRequestTransport } from "@/features/transport/lib/standaloneInboundRequestTransport";
-import { StandalonePushTransport } from "@/features/transport/lib/standalonePushTransport";
-import { StandaloneRunTransport } from "@/features/transport/lib/standaloneRunTransport";
+import { PlatformPushTransport } from "@/features/transport/lib/platformPushTransport";
+import { PlatformRunTransport } from "@/features/transport/lib/platformRunTransport";
 import { StandaloneTerminalTransport } from "@/features/transport/lib/standaloneTerminalTransport";
 import {
   destroyWsClient,
@@ -15,8 +15,8 @@ import {
 
 export class StandaloneRealtimeTransport implements RealtimeTransport {
   readonly kind = "standalone" as const;
-  readonly runs = new StandaloneRunTransport();
-  readonly push = new StandalonePushTransport();
+  readonly runs = new PlatformRunTransport();
+  readonly push = new PlatformPushTransport();
   readonly inbound = new StandaloneInboundRequestTransport();
   readonly terminal = new StandaloneTerminalTransport();
   private disposed = false;

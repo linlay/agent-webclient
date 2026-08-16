@@ -164,7 +164,7 @@ export function buildDesktopWorkPanelDescriptor(
     if (!chatId) return null;
     return {
       kind: "webclient",
-      module: intent.kind === "overview" ? "summary" : "debug",
+      module: intent.kind === "overview" ? "overview" : "debug",
       route,
       context: {
         chatId,
@@ -329,6 +329,22 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
       : intent;
     const currentSearch = typeof window === "undefined" ? "" : window.location.search;
     if (desktopMode) {
+      if (normalizedIntent.kind === "overview" || normalizedIntent.kind === "debug") {
+        const tab = normalizedIntent.kind;
+        if (normalizedIntent.chatId !== state.chatId) {
+          dispatch({
+            type: "APPEND_DEBUG",
+            line: `[chat-secondary-view] ${tab} target does not own the current Chat session`,
+          });
+          return false;
+        }
+        if (normalizedIntent.toggle && state.rightSidebarOpen && state.rightSidebarOpenTab === tab) {
+          dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+        } else {
+          dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab });
+        }
+        return true;
+      }
       if (!workPanel) return false;
       const descriptor = buildDesktopWorkPanelDescriptor(
         normalizedIntent,

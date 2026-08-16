@@ -31,14 +31,18 @@ function matches(filter: PushFilter, frame: PushFrame): boolean {
   return true;
 }
 
-export class StandalonePushTransport implements PushTransport {
+export class PlatformPushTransport implements PushTransport {
+  constructor(
+    private readonly ensureClient: typeof ensureStandaloneWsClient = ensureStandaloneWsClient,
+  ) {}
+
   subscribe(filter: PushFilter, listener: (frame: PushFrame) => void): () => void {
     let active = true;
     const unsubscribe = subscribeWsPush((frame) => {
       const pushFrame = frame as PushFrame;
       if (active && matches(filter, pushFrame)) listener(pushFrame);
     });
-    void ensureStandaloneWsClient()
+    void this.ensureClient()
       .then((client) => (active ? client.connect() : undefined))
       .catch(() => undefined);
     return () => {

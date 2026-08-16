@@ -19,7 +19,7 @@ export type RealtimeConnectionStatus =
 
 export type StatusListener = (status: RealtimeConnectionStatus) => void;
 
-export interface RunAccepted {
+export interface RunIdentity {
   requestId: string;
   chatId: string;
   runId: string;
@@ -35,7 +35,7 @@ export interface RunCompletion {
 }
 
 export interface RunExecution {
-  accepted: Promise<RunAccepted>;
+  identity: Promise<RunIdentity>;
   completion: Promise<RunCompletion>;
   detach(): Promise<void>;
 }

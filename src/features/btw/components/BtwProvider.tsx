@@ -438,16 +438,16 @@ export const BtwProvider: React.FC<{
           onEvent: (event) => handleEvent(runtime, generation, event),
         });
         executionsRef.current.set(normalizedChatId, execution);
-        const accepted = await execution.accepted;
+        const identity = await execution.identity;
         if (!isCurrentRuntime(runtime, generation)) {
           await execution.detach();
           return true;
         }
-        runtime.session.requestId = accepted.requestId;
-        runtime.session.runId = accepted.runId;
-        runtime.session.owner = accepted.owner;
-        runtime.session.agentKey = accepted.owner.kind === "agent"
-          ? accepted.owner.agentKey
+        runtime.session.requestId = identity.requestId;
+        runtime.session.runId = identity.runId;
+        runtime.session.owner = identity.owner;
+        runtime.session.agentKey = identity.owner.kind === "agent"
+          ? identity.owner.agentKey
           : "";
         runtime.session.interruptReady = true;
         publish(runtime);
@@ -721,14 +721,14 @@ export const BtwProvider: React.FC<{
         onEvent: (event) => handleEvent(runtime, generation, event),
       });
       executionsRef.current.set(session.parentChatId, execution);
-      void execution.accepted
-        .then((accepted) => {
+      void execution.identity
+        .then((identity) => {
           if (!isCurrentRuntime(runtime, generation)) return;
-          runtime.session.requestId = accepted.requestId;
-          runtime.session.runId = accepted.runId;
-          runtime.session.owner = accepted.owner;
-          runtime.session.agentKey = accepted.owner.kind === "agent"
-            ? accepted.owner.agentKey
+          runtime.session.requestId = identity.requestId;
+          runtime.session.runId = identity.runId;
+          runtime.session.owner = identity.owner;
+          runtime.session.agentKey = identity.owner.kind === "agent"
+            ? identity.owner.agentKey
             : "";
           publish(runtime);
         })

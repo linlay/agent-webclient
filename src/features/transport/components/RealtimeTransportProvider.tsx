@@ -3,7 +3,6 @@ import { isDesktopAppMode } from "@/shared/utils/routing";
 import type { RealtimeTransport } from "@/features/transport/contracts/realtimeTransport";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
 import {
-  DesktopBridgeSession,
   readDesktopBridges,
 } from "@/features/transport/lib/desktopBridge";
 import { DesktopRealtimeTransport } from "@/features/transport/lib/desktopRealtimeTransport";
@@ -49,9 +48,7 @@ export const RealtimeTransportProvider: React.FC<
   const desktopModeRef = useRef(isDesktopAppMode());
   const transportRef = useRef<RealtimeTransport | null>(null);
   const workPanelRef = useRef<WorkPanelTransport | null>(null);
-  const desktopSessionRef = useRef<DesktopBridgeSession | null>(null);
   const bridgeErrorRef = useRef<RealtimeTransportError | null>(null);
-  const [fatalError, setFatalError] = useState<RealtimeTransportError | null>(null);
   const [, setResourceRevision] = useState(0);
 
   const ensureTransport = (): boolean => {
@@ -60,18 +57,16 @@ export const RealtimeTransportProvider: React.FC<
       transportRef.current = (standaloneFactory || (() => new StandaloneRealtimeTransport()))();
     } else {
       const bridges = readDesktopBridges();
-      if (!bridges.realtime || !bridges.workPanel) {
+      if (!bridges.platformWs || !bridges.workPanel) {
         bridgeErrorRef.current = new RealtimeTransportError(
-          bridges.realtimeIncompatible ? "desktop_bridge_incompatible" : "desktop_bridge_missing",
-          bridges.realtimeIncompatible
-            ? "Desktop realtime bridge is incompatible with Bridge v2"
-            : "Canonical Desktop realtime/workpanel bridge is unavailable",
+          bridges.platformWsIncompatible ? "desktop_bridge_incompatible" : "desktop_bridge_missing",
+          bridges.platformWsIncompatible
+            ? "Desktop Platform Frame Port transport version is incompatible"
+            : "Desktop Platform Frame Port/workpanel bridge is unavailable",
         );
       } else {
-        const session = new DesktopBridgeSession(bridges.realtime);
-        desktopSessionRef.current = session;
-        transportRef.current = new DesktopRealtimeTransport(session);
-        workPanelRef.current = new DesktopWorkPanelTransport(session, bridges.workPanel);
+        transportRef.current = new DesktopRealtimeTransport(bridges.platformWs);
+        workPanelRef.current = new DesktopWorkPanelTransport(bridges.workPanel);
       }
     }
     return Boolean(transportRef.current);
@@ -84,21 +79,16 @@ export const RealtimeTransportProvider: React.FC<
     if (ensureTransport()) {
       setResourceRevision((revision) => revision + 1);
     }
-    const unsubscribeFatal = desktopSessionRef.current?.subscribeFatal((error) => {
-      if (error) setFatalError(error);
-    });
     return () => {
-      unsubscribeFatal?.();
       transportRef.current?.dispose();
       transportRef.current = null;
       workPanelRef.current = null;
-      desktopSessionRef.current = null;
     };
     // adapter 实例严格跟随本次 Provider mount；StrictMode 重挂由上面的 setup 显式恢复。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const blockingError = bridgeErrorRef.current || fatalError;
+  const blockingError = bridgeErrorRef.current;
   if (desktopModeRef.current && blockingError) {
     return <DesktopRealtimeBlocked error={blockingError} />;
   }

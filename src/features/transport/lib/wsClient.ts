@@ -24,6 +24,18 @@ export type WsConnectionStatus =
 
 export type WsAccessTokenRefreshReason = "missing" | "unauthorized";
 
+export type WsSocketEventType = "open" | "message" | "error" | "close";
+
+export interface WsSocketLike {
+	readonly readyState: number;
+	send(data: string): void;
+	close(code?: number, reason?: string): void;
+	addEventListener(type: WsSocketEventType, listener: (event: any) => void): void;
+	removeEventListener(type: WsSocketEventType, listener: (event: any) => void): void;
+}
+
+export type WsSocketFactory = (url: string) => WsSocketLike;
+
 interface WsRequestFrame {
 	frame: "request";
 	type: string;
@@ -150,6 +162,8 @@ type ActiveStream = {
 };
 
 export interface WsClientOptions {
+	socketFactory?: WsSocketFactory;
+	buildSocketUrl?: (accessToken: string) => string;
 	accessToken?: string;
 	allowAnonymous?: boolean;
 	resolveAccessToken?: (
@@ -182,6 +196,8 @@ const WS_TRANSPORT_DISCONNECTED_MESSAGE = "WebSocket transport disconnected";
 const WS_TRANSPORT_NOT_CONNECTED_MESSAGE = "WebSocket transport is not connected";
 const WS_TRANSPORT_NOT_INITIALIZED_MESSAGE =
 	"WebSocket transport is not initialized";
+const WS_SOCKET_CONNECTING = 0;
+const WS_SOCKET_OPEN = 1;
 export class WsClientDisconnectedError extends Error {
 	code: string;
 
@@ -440,7 +456,9 @@ function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent | null {
 
 export class WsClient {
 	private accessToken: string;
-	private socket: WebSocket | null = null;
+	private socket: WsSocketLike | null = null;
+	private readonly socketFactory: WsSocketFactory;
+	private readonly buildSocketUrl: (accessToken: string) => string;
 	private connectPromise: Promise<void> | null = null;
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private healthCheckTimer: ReturnType<typeof setInterval> | null = null;
@@ -477,6 +495,8 @@ export class WsClient {
 
 	constructor(options: WsClientOptions = {}) {
 		this.accessToken = String(options.accessToken || "").trim();
+		this.socketFactory = options.socketFactory || ((url) => new WebSocket(url));
+		this.buildSocketUrl = options.buildSocketUrl || buildWsUrl;
 		this.allowAnonymous = Boolean(options.allowAnonymous);
 		this.resolveAccessToken = options.resolveAccessToken;
 		this.onAccessTokenChange = options.onAccessTokenChange;
@@ -583,8 +603,8 @@ export class WsClient {
 		if (this.socket) {
 			try {
 				if (
-					this.socket.readyState === WebSocket.OPEN ||
-					this.socket.readyState === WebSocket.CONNECTING
+					this.socket.readyState === WS_SOCKET_OPEN ||
+					this.socket.readyState === WS_SOCKET_CONNECTING
 				) {
 					this.socket.close(1000, "ws transport disconnect");
 				}
@@ -782,7 +802,7 @@ export class WsClient {
 		if (this.disposed) {
 			throw this.createDisposedError();
 		}
-		if (this.socket?.readyState === WebSocket.OPEN) {
+		if (this.socket?.readyState === WS_SOCKET_OPEN) {
 			return;
 		}
 
@@ -843,7 +863,7 @@ export class WsClient {
 				return;
 			}
 
-			const socket = new WebSocket(buildWsUrl(this.accessToken));
+			const socket = this.socketFactory(this.buildSocketUrl(this.accessToken));
 			this.socket = socket;
 			let didRetryHandshakeRefresh = false;
 			let connectTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
@@ -937,7 +957,7 @@ export class WsClient {
 					} catch {
 						// Ignore close failures for sockets that are no longer current.
 					}
-					if (this.socket?.readyState === WebSocket.OPEN) {
+					if (this.socket?.readyState === WS_SOCKET_OPEN) {
 						resolve();
 						return;
 					}
@@ -968,7 +988,7 @@ export class WsClient {
 						return;
 					}
 					if (!wasCurrentSocket) {
-						if (this.socket?.readyState === WebSocket.OPEN) {
+						if (this.socket?.readyState === WS_SOCKET_OPEN) {
 							resolve();
 							return;
 						}
@@ -1005,7 +1025,7 @@ export class WsClient {
 						return;
 					}
 					if (!wasCurrentSocket) {
-						if (this.socket?.readyState === WebSocket.OPEN) {
+						if (this.socket?.readyState === WS_SOCKET_OPEN) {
 							resolve();
 							return;
 						}
@@ -1091,7 +1111,7 @@ export class WsClient {
 		});
 	}
 
-	private readonly handleMessage = (event: MessageEvent) => {
+	private readonly handleMessage = (event: { data?: unknown }) => {
 		this.lastSeenAt = Date.now();
 		const raw = typeof event.data === "string" ? event.data : String(event.data);
 		let frame: WsInboundFrame;
@@ -1219,7 +1239,7 @@ export class WsClient {
 		if (this.status !== "connecting") {
 			this.setStatus("error");
 		}
-		if (this.socket?.readyState === WebSocket.OPEN) {
+		if (this.socket?.readyState === WS_SOCKET_OPEN) {
 			try {
 				this.socket.close(4002, "socket error");
 			} catch {
@@ -1330,7 +1350,7 @@ export class WsClient {
 		if (this.disposed) {
 			throw this.createDisposedError();
 		}
-		if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+		if (!this.socket || this.socket.readyState !== WS_SOCKET_OPEN) {
 			throw new WsClientDisconnectedError("WebSocket transport is not connected");
 		}
 		this.socket.send(JSON.stringify(frame));
@@ -1441,10 +1461,7 @@ export class WsClient {
 		this.reconnectAttempt += 1;
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = null;
-			if (
-				typeof window === "undefined" ||
-				typeof WebSocket === "undefined"
-			) {
+				if (typeof window === "undefined") {
 				return;
 			}
 			void (async () => {
@@ -1489,7 +1506,7 @@ export class WsClient {
 	private startHealthCheck(): void {
 		this.clearHealthCheckTimer();
 		this.healthCheckTimer = setInterval(() => {
-			if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+			if (!this.socket || this.socket.readyState !== WS_SOCKET_OPEN) {
 				return;
 			}
 			if (Date.now() - this.lastSeenAt <= this.heartbeatTimeoutMs) {

@@ -947,7 +947,7 @@ export function registerAttachRunListener(
 			abortFns.push(() => {
 				void execution.detach();
 			});
-			void execution.accepted.catch(() => cleanupActiveAttach(requestId));
+			void execution.identity.catch(() => cleanupActiveAttach(requestId));
 			void execution.completion.then(() => cleanupActiveAttach(requestId));
 		} else {
 			startAttachStream();

@@ -276,7 +276,7 @@ dist/release/agent-webclient-vX.Y.Z-windows-amd64.zip
 
 Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 Desktop 启停脚本。它不内置后端服务，HTTP 托管、静态资源服务和代理路由由 Desktop main process 负责。Desktop Program Bundle 中的 `PORT`、`DESKTOP_APP` 和普通 `/api` 的 `BASE_URL` 由 Desktop 在 host-managed start 阶段提供，不写入 bundle `.env`；Agent Platform `/ws` 只由 Desktop Main Broker 持有，guest 不具备该路由。
 
-`DESKTOP_APP=true` 只支持 canonical Bridge v2。bridge 缺失、v1 shape/version 或旧 Program manifest 都显示稳定阻断页，不安装兼容 adapter，也不会临时回落 Standalone；contract hash、WebClient bundle 和 Desktop 内置资源必须原子发布与回滚。
+`DESKTOP_APP=true` 只支持 canonical Platform Frame Port。Frame Port 缺失、transportVersion 不兼容或旧 Program manifest 都显示稳定阻断页，不安装兼容 adapter，也不会临时回落 Standalone；contract hash、WebClient bundle 和 Desktop 内置资源必须原子发布与回滚。
 
 ## 配置说明
 

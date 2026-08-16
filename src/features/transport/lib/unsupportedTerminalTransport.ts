@@ -8,7 +8,7 @@ import { RealtimeTransportError } from "@/features/transport/contracts/realtimeT
 function unsupportedError(): RealtimeTransportError {
   return new RealtimeTransportError(
     "terminal_unsupported",
-    "Desktop Bridge v2 does not support terminal sessions",
+    "Desktop Platform Frame Port does not support terminal sessions",
   );
 }
 

@@ -9,6 +9,7 @@ import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export type ReadonlyRunSurfaceStatus = "loading" | "ready" | "error";
 
@@ -103,6 +104,9 @@ export function useReadonlyRunSurfaceRuntime(input: {
 
   useEffect(() => {
     if (!input.chatId || status !== "ready") return;
+    // Desktop /overview and /debug are replay-only protocol tools. Live state is
+    // owned by the enclosing Chat guest's existing RunExecution.
+    if (isDesktopAppMode()) return;
     const snapshot = stateRef.current;
     const activeRun = resolveReadonlyActiveRun({
       chatId: input.chatId,
@@ -170,7 +174,7 @@ export function useReadonlyRunSurfaceRuntime(input: {
         handleEvent(event);
       },
     });
-    void execution.accepted.catch((cause) => {
+    void execution.identity.catch((cause) => {
       if (bindingEpochRef.current !== epoch || cause?.name === "AbortError") return;
       if (recoverOnce(cause)) return;
       setError(cause instanceof Error ? cause.message : String(cause));

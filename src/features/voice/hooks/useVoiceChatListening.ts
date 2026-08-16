@@ -159,7 +159,7 @@ export function useVoiceChatListening({
 					signal: abortController.signal,
 					onEvent: handleEvent,
 				});
-				await execution.accepted;
+				await execution.identity;
 				const completion = await execution.completion;
 				if (completion.error) throw completion.error;
 

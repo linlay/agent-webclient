@@ -82,12 +82,8 @@ const realtimePrimitivePaths = [
 ];
 const desktopForbiddenTransportPaths = [
 	"@/features/transport/lib/standaloneRealtimeTransport",
-	"@/features/transport/lib/standaloneRunTransport",
-	"@/features/transport/lib/standalonePushTransport",
 	"@/features/transport/lib/standaloneTerminalTransport",
 	"@/features/transport/lib/standaloneWsClient",
-	"@/features/transport/lib/wsClientSingleton",
-	"@/features/transport/lib/wsClient",
 ];
 const directRunControlNames = [
 	"createQueryStream",

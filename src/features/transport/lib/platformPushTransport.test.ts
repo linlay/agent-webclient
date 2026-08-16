@@ -9,7 +9,7 @@ jest.mock("@/features/transport/lib/wsClientSingleton", () => ({
   subscribeWsPush: (listener: unknown) => mockSubscribeWsPush(listener),
 }));
 
-describe("StandalonePushTransport", () => {
+describe("PlatformPushTransport", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -23,8 +23,8 @@ describe("StandalonePushTransport", () => {
     });
     const connect = jest.fn().mockResolvedValue(undefined);
     mockEnsureStandaloneWsClient.mockResolvedValue({ connect });
-    const { StandalonePushTransport } = await import("./standalonePushTransport");
-    const transport = new StandalonePushTransport();
+    const { PlatformPushTransport } = await import("./platformPushTransport");
+    const transport = new PlatformPushTransport();
     const chatListener = jest.fn();
     const agentListener = jest.fn();
 
@@ -59,9 +59,9 @@ describe("StandalonePushTransport", () => {
       return jest.fn();
     });
     mockEnsureStandaloneWsClient.mockResolvedValue({ connect: jest.fn() });
-    const { StandalonePushTransport } = await import("./standalonePushTransport");
+    const { PlatformPushTransport } = await import("./platformPushTransport");
     const listener = jest.fn();
-    new StandalonePushTransport().subscribe(
+    new PlatformPushTransport().subscribe(
       { types: ["run.updated"], runId: "run-1" },
       listener,
     );

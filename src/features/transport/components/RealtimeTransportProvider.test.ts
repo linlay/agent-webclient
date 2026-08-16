@@ -3,10 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
 import type { RealtimeTransport } from "@/features/transport/contracts/realtimeTransport";
 import type {
-  AgentWebclientRealtimeBridge,
   AgentWebclientWorkPanelBridge,
+  DesktopPlatformWsBridge,
 } from "@/features/transport/contracts/generated/agentWebclientBridge";
-import { AGENT_WEBCLIENT_BRIDGE_VERSION } from "@/features/transport/contracts/generated/agentWebclientBridge";
 
 const runtimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
@@ -19,23 +18,12 @@ describe("RealtimeTransportProvider", () => {
   });
 
   function installDesktopBridges(): void {
-    const realtime: AgentWebclientRealtimeBridge = {
-      hello: jest.fn(async () => ({
-        version: AGENT_WEBCLIENT_BRIDGE_VERSION,
-        surface: {
-          kind: "agent-chat",
-          capabilities: ["run.attach", "push.subscribe", "workpanel.open"],
-          route: "/agent/agent-1?chatId=chat-1",
-          ownerChatId: "chat-1",
-        },
-        connection: { phase: "connected", generation: 1 },
-      })),
-      request: jest.fn(),
-      subscribe: jest.fn(),
-      detach: jest.fn(),
-      onMessage: jest.fn(() => () => undefined),
+    const platformWs: DesktopPlatformWsBridge = {
+      transportVersion: 1,
+      createSocket: jest.fn(),
     };
     const workPanel: AgentWebclientWorkPanelBridge = {
+      getCapabilities: jest.fn(async () => ({ ok: true, capabilities: ["workpanel.open"] })),
       openItem: jest.fn(),
       activateItem: jest.fn(),
       closeItem: jest.fn(),
@@ -43,7 +31,7 @@ describe("RealtimeTransportProvider", () => {
     Object.defineProperty(globalThis, "window", {
       configurable: true,
       value: {
-        __AGENT_WEBCLIENT_REALTIME_BRIDGE__: realtime,
+        __AGENT_WEBCLIENT_PLATFORM_WS__: platformWs,
         __AGENT_WEBCLIENT_WORKPANEL_BRIDGE__: workPanel,
       },
     });
@@ -85,21 +73,18 @@ describe("RealtimeTransportProvider", () => {
     expect(standaloneFactory).not.toHaveBeenCalled();
   });
 
-  it("blocks a legacy v1 Desktop bridge as incompatible", () => {
+  it("blocks an incompatible Desktop Frame Port version", () => {
     runtimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: true };
     Object.defineProperty(globalThis, "window", {
       configurable: true,
       value: {
         location: { search: "" },
-        __AGENT_WEBCLIENT_REALTIME_BRIDGE__: {
-          hello: jest.fn(),
-          request: jest.fn(),
-          subscribe: jest.fn(),
-          unsubscribe: jest.fn(),
-          onMessage: jest.fn(),
+        __AGENT_WEBCLIENT_PLATFORM_WS__: {
+          transportVersion: 2,
+          createSocket: jest.fn(),
         },
         __AGENT_WEBCLIENT_WORKPANEL_BRIDGE__: {
-          openItem: jest.fn(), activateItem: jest.fn(), closeItem: jest.fn(),
+          getCapabilities: jest.fn(), openItem: jest.fn(), activateItem: jest.fn(), closeItem: jest.fn(),
         },
       },
     });

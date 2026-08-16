@@ -1,47 +1,27 @@
 import type {
-  AgentWebclientRealtimeBridge,
   AgentWebclientWorkPanelBridge,
 } from "@/features/transport/contracts/generated/agentWebclientBridge";
 import { AGENT_WEBCLIENT_BRIDGE_VERSION } from "@/features/transport/contracts/generated/agentWebclientBridge";
-import { DesktopBridgeSession } from "@/features/transport/lib/desktopBridge";
 import { DesktopWorkPanelTransport } from "@/features/transport/lib/desktopWorkPanelTransport";
 
 describe("DesktopWorkPanelTransport", () => {
   it("opens canonical descriptors and preserves bridge failures", async () => {
-    const realtime: AgentWebclientRealtimeBridge = {
-      hello: jest.fn(async () => ({
-        version: AGENT_WEBCLIENT_BRIDGE_VERSION,
-        surface: {
-          kind: "agent-chat",
-          capabilities: ["workpanel.open"],
-          ownerChatId: "chat-1",
-          route: "/agent/agent-1?chatId=chat-1",
-        },
-        connection: { phase: "connected", generation: 1 },
-      })),
-      request: jest.fn(),
-      subscribe: jest.fn(),
-      detach: jest.fn(),
-      onMessage: jest.fn(() => () => undefined),
-    };
     const workPanel: AgentWebclientWorkPanelBridge = {
+      getCapabilities: jest.fn(async () => ({ ok: true, capabilities: ["workpanel.open"] })),
       openItem: jest.fn(async () => ({ ok: true, workspaceId: "workpanel:chat-1" })),
       activateItem: jest.fn(),
       closeItem: jest.fn(),
     };
-    const transport = new DesktopWorkPanelTransport(
-      new DesktopBridgeSession(realtime),
-      workPanel,
-    );
+    const transport = new DesktopWorkPanelTransport(workPanel);
     await expect(transport.openDescriptor({
       kind: "webclient",
-      module: "summary",
+      module: "overview",
       route: "/overview?chatId=chat-1",
       context: { chatId: "chat-1" },
     })).resolves.toMatchObject({ ok: true });
     expect(workPanel.openItem).toHaveBeenCalledWith({
       version: AGENT_WEBCLIENT_BRIDGE_VERSION,
-      descriptor: expect.objectContaining({ module: "summary" }),
+      descriptor: expect.objectContaining({ module: "overview" }),
     });
 
     (workPanel.openItem as jest.Mock).mockResolvedValueOnce({

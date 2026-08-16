@@ -56,7 +56,7 @@ describe("buildStandaloneOpenTargetUrl", () => {
       agentKey: "agent-1",
     })).toMatchObject({
       kind: "webclient",
-      module: "summary",
+      module: "overview",
       route: "/overview?chatId=chat-1&runId=run-1&agentKey=agent-1",
       context: { chatId: "chat-1", runId: "run-1", agentKey: "agent-1" },
     });

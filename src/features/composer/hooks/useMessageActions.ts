@@ -709,36 +709,36 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           signal: abortController.signal,
           onEvent: sessionHandleEvent,
         });
-        const accepted = await execution.accepted;
+        const identity = await execution.identity;
         queryAccepted = true;
-        session.chatId = accepted.chatId;
-        session.runId = accepted.runId;
-        session.owner = accepted.owner;
+        session.chatId = identity.chatId;
+        session.runId = identity.runId;
+        session.owner = identity.owner;
         chatQuerySessionIndexRef.current.set(
-          accepted.chatId,
+          identity.chatId,
           session.requestId,
         );
         if (session.snapshot && !session.snapshot.chatId) {
-          session.snapshot.chatId = accepted.chatId;
+          session.snapshot.chatId = identity.chatId;
         }
         if (session.snapshot && !session.snapshot.runId) {
-          session.snapshot.runId = accepted.runId;
+          session.snapshot.runId = identity.runId;
         }
         if (isSessionActive()) {
-          // `run.accepted` is the canonical identity boundary. Desktop may
+          // The first canonical stream identity is the URL promotion boundary.
           // legitimately omit chatId/runId from later stream events, so the
           // visible conversation must not depend on those fields being
           // repeated by individual events.
-          dispatch({ type: "SET_CHAT_ID", chatId: accepted.chatId });
-          dispatch({ type: "SET_RUN_ID", runId: accepted.runId });
-          if (accepted.owner.kind === "agent") {
+          dispatch({ type: "SET_CHAT_ID", chatId: identity.chatId });
+          dispatch({ type: "SET_RUN_ID", runId: identity.runId });
+          if (identity.owner.kind === "agent") {
             dispatch({
               type: "SET_CHAT_AGENT_BY_ID",
-              chatId: accepted.chatId,
-              agentKey: accepted.owner.agentKey,
+              chatId: identity.chatId,
+              agentKey: identity.owner.agentKey,
             });
           }
-          promoteCanonicalNewChat(accepted.chatId);
+          promoteCanonicalNewChat(identity.chatId);
         }
         const completion = await execution.completion;
         if (completion.error) {
