@@ -647,6 +647,7 @@ describe('data client query payloads', () => {
       message: 'run the scheduled task now',
       owner: { kind: 'agent', agentKey: 'demo-agent' },
       role: 'automation',
+      hidden: true,
       params: { source: 'automation-list' },
     });
 
@@ -657,6 +658,7 @@ describe('data client query payloads', () => {
       message: 'run the scheduled task now',
       agentKey: 'demo-agent',
       role: 'automation',
+      hidden: true,
       params: { source: 'automation-list' },
       stream: false,
     });
