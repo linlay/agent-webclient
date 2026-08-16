@@ -653,7 +653,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
         if (isSessionActive()) {
           handleEvent(event);
-          promoteCanonicalNewChat(session.chatId);
           return;
         }
 
@@ -726,7 +725,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         }
         if (isSessionActive()) {
           // The first canonical stream identity is the URL promotion boundary.
-          // legitimately omit chatId/runId from later stream events, so the
+          // Later stream events may legitimately omit chatId/runId, so the
           // visible conversation must not depend on those fields being
           // repeated by individual events.
           dispatch({ type: "SET_CHAT_ID", chatId: identity.chatId });

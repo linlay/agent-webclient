@@ -233,6 +233,121 @@ describe("useMessageActions temporary pin", () => {
     expect(chatQuerySessionIndexRef.current.get("chat_1")).toBeTruthy();
   });
 
+  it("does not promote a new-chat URL until canonical chat and Run identity is available", async () => {
+    const state = createInitialState();
+    state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    let onEvent: ((event: Record<string, unknown>) => void) | undefined;
+    let resolveIdentity: ((identity: {
+      requestId: string;
+      chatId: string;
+      runId: string;
+      owner: { kind: "agent"; agentKey: string };
+    }) => void) | undefined;
+    const identity = new Promise<{
+      requestId: string;
+      chatId: string;
+      runId: string;
+      owner: { kind: "agent"; agentKey: string };
+    }>((resolve) => {
+      resolveIdentity = resolve;
+    });
+    startQuery.mockImplementation((input) => {
+      onEvent = input.onEvent;
+      return {
+        identity,
+        completion: Promise.resolve({ reason: "done", lastSeq: 2 }),
+        detach: jest.fn(),
+      };
+    });
+
+    const dispatchedWindowEvents: Event[] = [];
+    const originalWindow = (globalThis as { window?: unknown }).window;
+    const originalCustomEvent = (globalThis as { CustomEvent?: unknown }).CustomEvent;
+    class TestCustomEvent extends Event {
+      detail: unknown;
+      constructor(type: string, init?: { detail?: unknown }) {
+        super(type);
+        this.detail = init?.detail;
+      }
+    }
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { dispatchEvent: (event: Event) => dispatchedWindowEvents.push(event) },
+    });
+    Object.defineProperty(globalThis, "CustomEvent", {
+      configurable: true,
+      value: TestCustomEvent,
+    });
+
+    try {
+      let actions: ReturnType<typeof useMessageActions> | null = null;
+      const Harness = () => {
+        actions = useMessageActions({ onAgentEvent: jest.fn() });
+        return null;
+      };
+      renderToStaticMarkup(React.createElement(Harness));
+
+      const sending = actions?.sendMessage(
+        "hello",
+        [],
+        [],
+        {},
+        undefined,
+        undefined,
+        "",
+        "agent-coder",
+      );
+      onEvent?.({
+        seq: 1,
+        type: "chat.start",
+        chatId: "chat-canonical",
+        timestamp: 1_786_898_607_643,
+      });
+      expect(dispatchedWindowEvents).toHaveLength(0);
+
+      resolveIdentity?.({
+        requestId: "req-canonical",
+        chatId: "chat-canonical",
+        runId: "run-canonical",
+        owner: { kind: "agent", agentKey: "agent-coder" },
+      });
+      await sending;
+
+      expect(dispatchedWindowEvents).toHaveLength(1);
+      expect((dispatchedWindowEvents[0] as TestCustomEvent).detail).toEqual({
+        chatId: "chat-canonical",
+        agentKey: "agent-coder",
+      });
+    } finally {
+      if (originalWindow === undefined) {
+        delete (globalThis as { window?: unknown }).window;
+      } else {
+        Object.defineProperty(globalThis, "window", {
+          configurable: true,
+          value: originalWindow,
+        });
+      }
+      if (originalCustomEvent === undefined) {
+        delete (globalThis as { CustomEvent?: unknown }).CustomEvent;
+      } else {
+        Object.defineProperty(globalThis, "CustomEvent", {
+          configurable: true,
+          value: originalCustomEvent,
+        });
+      }
+    }
+  });
+
   it("blocks direct query sends when the current main chat has an active run", async () => {
     const state = createInitialState();
     state.chatId = "chat_1";

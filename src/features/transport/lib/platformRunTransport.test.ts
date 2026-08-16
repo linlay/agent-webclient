@@ -138,7 +138,7 @@ describe("PlatformRunTransport", () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it("detaches once while inactive and reattaches from lastSeq when active again", async () => {
+  it("releases the old observer while inactive and requires a fresh recovery attach", async () => {
     const streamOptions: any[] = [];
     const aborts: jest.Mock[] = [];
     const request = jest.fn().mockResolvedValue({ data: {} });
@@ -177,16 +177,93 @@ describe("PlatformRunTransport", () => {
         reason: "surface_inactive",
       },
     });
+    await expect(execution.completion).resolves.toMatchObject({
+      reason: "detached",
+      lastSeq: 7,
+    });
 
     transport.setSurfaceActive(true);
     transport.setSurfaceActive(true);
     await Promise.resolve();
     await Promise.resolve();
+    expect(client.stream).toHaveBeenCalledTimes(1);
+
+    const recoveredExecution = transport.subscribe({
+      chatId: "chat-1",
+      runId: "run-1",
+      owner: { kind: "agent", agentKey: "agent-1" },
+      lastSeq: 9,
+      onEvent: jest.fn(),
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    await recoveredExecution.identity;
     expect(client.stream).toHaveBeenCalledTimes(2);
     expect(streamOptions[1]).toMatchObject({
       type: dataEndpoints.attach.path,
-      payload: { runId: "run-1", agentKey: "agent-1", lastSeq: 7 },
+      payload: { runId: "run-1", agentKey: "agent-1", lastSeq: 9 },
     });
-    await execution.detach();
+    await recoveredExecution.detach();
+  });
+
+  it("stops UI delivery before identity and detaches as soon as bootstrap identifies the Run", async () => {
+    let streamOptions: any;
+    const abort = jest.fn();
+    const request = jest.fn().mockResolvedValue({ data: {} });
+    const client = {
+      stream: jest.fn((options) => {
+        streamOptions = options;
+        return { requestId: "stream-pending-identity", abort };
+      }),
+      request,
+    };
+    const { PlatformRunTransport } = await import("./platformRunTransport");
+    const transport = new PlatformRunTransport(async () => client as any);
+    const onEvent = jest.fn();
+    const execution = transport.startQuery({
+      requestId: "request-pending-identity",
+      message: "hello",
+      owner: { kind: "agent", agentKey: "agent-1" },
+      onEvent,
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    transport.setSurfaceActive(false);
+    streamOptions.onEvent(event({
+      seq: 1,
+      type: "chat.start",
+      chatId: "chat-pending",
+    }));
+    expect(onEvent).not.toHaveBeenCalled();
+    expect(request).not.toHaveBeenCalled();
+
+    streamOptions.onEvent(event({
+      seq: 2,
+      type: "request.query",
+      chatId: "chat-pending",
+      runId: "run-pending",
+      agentKey: "agent-1",
+    }));
+
+    await expect(execution.identity).resolves.toMatchObject({
+      chatId: "chat-pending",
+      runId: "run-pending",
+      lastSeq: 2,
+    });
+    await expect(execution.completion).resolves.toMatchObject({
+      reason: "detached",
+      lastSeq: 2,
+    });
+    expect(abort).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith({
+      type: dataEndpoints.detach.path,
+      payload: {
+        runId: "run-pending",
+        agentKey: "agent-1",
+        reason: "surface_inactive",
+      },
+    });
+    expect(onEvent).not.toHaveBeenCalled();
   });
 });

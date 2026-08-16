@@ -42,8 +42,7 @@ type StreamStartOptions = {
 };
 
 type RunSurfaceLifecycleControl = {
-  pause(): void;
-  resume(): void;
+  deactivate(): void;
 };
 
 function eventOwner(event: AgentEvent, fallback: RunOwner): RunOwner {
@@ -67,9 +66,9 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
   let identitySettled = false;
   let completionSettled = false;
   let detached = false;
-  let paused = false;
+  let surfaceReleased = false;
   let launchGeneration = 0;
-  let pendingSurfaceDetach: Promise<void> = Promise.resolve();
+  let surfaceReleasePromise: Promise<void> | null = null;
   let lastSeq = Math.max(0, Number(options.lastSeq) || 0);
   let resolvedChatId = options.chatId;
   let resolvedRunId = options.runId;
@@ -99,7 +98,7 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
       owner: resolvedOwner,
       lastSeq,
     });
-    if (!paused) {
+    if (!surfaceReleased) {
       for (const event of earlyEvents.splice(0)) {
         options.onEvent(event);
       }
@@ -143,21 +142,12 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
         return;
       }
       settleIdentity();
-      if (paused && identitySettled) {
-        stopStream();
-        pendingSurfaceDetach = detachObserver("surface_inactive");
+      if (surfaceReleased && identitySettled) {
+        finalizeSurfaceRelease();
       }
       return;
     }
-    if (paused) {
-      earlyEvents.push(event);
-      if (earlyEvents.length > EARLY_EVENT_BUFFER_LIMIT) {
-        stopStream();
-        fail(new RealtimeTransportError(
-          "early_event_buffer_overflow",
-          "Run emitted too many events while the Chat surface was inactive",
-        ));
-      }
+    if (surfaceReleased) {
       return;
     }
     options.onEvent(event);
@@ -185,12 +175,31 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
     }
   };
 
+  const finalizeSurfaceRelease = () => {
+    if (
+      !surfaceReleased ||
+      !identitySettled ||
+      completionSettled ||
+      surfaceReleasePromise
+    ) {
+      return;
+    }
+    stopStream();
+    surfaceReleasePromise = detachObserver("surface_inactive");
+    settleCompletion({ reason: "detached", lastSeq });
+  };
+
   const launch = (endpoint: string, payload: unknown, acceptOnStart = false) => {
     const generation = ++launchGeneration;
     void options.ensureClient()
       .then((resolvedClient) => {
         if (detached || completionSettled || generation !== launchGeneration) return;
         client = resolvedClient;
+        if (surfaceReleased && resolvedRunId) {
+          if (acceptOnStart) settleIdentity();
+          finalizeSurfaceRelease();
+          return;
+        }
         const stream = resolvedClient.stream({
           type: endpoint,
           payload,
@@ -212,49 +221,37 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
             settleCompletion({ reason: reason || "done", lastSeq });
           },
           onError: (error) => {
-            if (detached || paused || generation !== launchGeneration || error.name === "AbortError") return;
+            if (detached || generation !== launchGeneration || error.name === "AbortError") return;
             fail(error);
           },
         });
         streamAbort = stream.abort;
-        if (acceptOnStart) settleIdentity();
+        if (acceptOnStart) {
+          settleIdentity();
+          finalizeSurfaceRelease();
+        }
       })
       .catch((error) => {
-        if (!paused && generation === launchGeneration) fail(error);
+        if (generation === launchGeneration) fail(error);
       });
   };
 
-  const pause = () => {
-    if (paused || detached || completionSettled) return;
-    paused = true;
-    if (!identitySettled) return;
-    stopStream();
-    pendingSurfaceDetach = detachObserver("surface_inactive");
-  };
-
-  const resume = () => {
-    if (!paused || detached || completionSettled) return;
-    paused = false;
-    for (const event of earlyEvents.splice(0)) options.onEvent(event);
-    if (!identitySettled || !resolvedRunId) return;
-    void pendingSurfaceDetach.then(() => {
-      if (paused || detached || completionSettled) return;
-      launch(dataEndpoints.attach.path, buildAttachPayload({
-        runId: resolvedRunId,
-        owner: resolvedOwner,
-        lastSeq,
-      }), true);
-    });
+  const deactivate = () => {
+    if (surfaceReleased || detached || completionSettled) return;
+    surfaceReleased = true;
+    finalizeSurfaceRelease();
   };
 
   const detach = async (): Promise<void> => {
     if (detached) return;
     detached = true;
     const shouldDetachRemote = !completionSettled;
-    if (shouldDetachRemote) {
+    if (shouldDetachRemote && !surfaceReleasePromise) {
       stopStream();
     }
-    if (shouldDetachRemote && options.detachRemote) {
+    if (surfaceReleasePromise) {
+      await surfaceReleasePromise;
+    } else if (shouldDetachRemote && options.detachRemote) {
       await detachObserver("consumer_detach");
     }
     if (!identitySettled) {
@@ -275,7 +272,7 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
     }
   }
 
-  unregisterLifecycle = options.registerLifecycle?.({ pause, resume }) || unregisterLifecycle;
+  unregisterLifecycle = options.registerLifecycle?.({ deactivate }) || unregisterLifecycle;
   launch(options.endpoint, options.payload, options.acceptOnStart);
 
   return { identity, completion, detach };
@@ -301,15 +298,14 @@ export class PlatformRunTransport implements RunTransport {
   setSurfaceActive(active: boolean): void {
     if (this.surfaceActive === active) return;
     this.surfaceActive = active;
-    for (const control of this.lifecycleControls) {
-      if (active) control.resume();
-      else control.pause();
+    if (!active) {
+      for (const control of this.lifecycleControls) control.deactivate();
     }
   }
 
   private readonly registerLifecycle = (control: RunSurfaceLifecycleControl) => {
     this.lifecycleControls.add(control);
-    if (!this.surfaceActive) queueMicrotask(() => control.pause());
+    if (!this.surfaceActive) queueMicrotask(() => control.deactivate());
     return () => this.lifecycleControls.delete(control);
   };
 

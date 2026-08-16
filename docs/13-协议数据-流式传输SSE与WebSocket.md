@@ -44,7 +44,7 @@ Run push 的聊天摘要、未读、awaiting 与 active-run 更新仍由 convers
 
 Standalone 原生 `WebSocket` 与 Desktop `createSocket()` 共用同一个 `WsClient` JSON parser、request map、stream map、push 分发与 `ApiError` 转换。两种模式的 query、attach、detach、interrupt、submit、steer 和 access-level 都生成 Platform request frame；Platform stream 一帧投影一个 event，不存在 Desktop batch adapter。
 
-新 Chat query 不预造 chatId/runId，继续 Chat 只携带 chatId。页面仅在相关 stream identity 就绪后把 `?newChat=` replace 为稳定 `?chatId=`；`chat.created` push 不参与 query 归属判断。Desktop Chat guest inactive 时幂等 detach，identity 未就绪则等 bootstrap 后 detach；恢复 active 时等待 detach 完成，并以当前 `lastSeq` attach。BTW 与 Terminal 在 Desktop 仍明确 unsupported。
+新 Chat query 不预造 chatId/runId，继续 Chat 只携带 chatId。页面仅在相关 stream identity 就绪后把 `?newChat=` replace 为稳定 `?chatId=`；`chat.created` push 不参与 query 归属判断。Desktop 宿主通过独立 surface lifecycle 信号同步 Main Chat 页面离开、Copilot 关闭和 Kanban Chat 页面退出；guest inactive 且存在 stream 时永久释放本次 observer 并幂等 detach，identity 未就绪则等 bootstrap 后 detach。进入页面不复用旧 execution，而是先强制读取 `/api/chat` replay，以服务端 `activeRun` 判断是否仍需观察，仅在 active 时从服务端 `lastSeq` 新建 attach。左侧 Nav 只切换页面并展示 push 投影的状态，不读取 `activeRun`，也不生成 query/attach/detach。BTW 与 Terminal 在 Desktop 仍明确 unsupported。
 
 ## 相关文件
 
