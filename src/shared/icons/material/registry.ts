@@ -46,6 +46,7 @@ export const materialIconSymbolIds = {
   expand_more: "material-symbol-expand-more",
   filter_list: "material-symbol-filter-list",
   fit_screen: "material-symbol-fit-screen",
+  folder: "material-symbol-folder",
   folder_open: "material-symbol-folder-open",
   folder_zip: "material-symbol-folder-zip",
   format_text_overflow: "material-symbol-format-text-overflow",

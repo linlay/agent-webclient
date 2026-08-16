@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Input, Modal, notification, Spin, Tabs, Typography } from "antd";
+import { Dropdown, Input, Modal, notification, Spin, Tabs, Typography } from "antd";
 import type { MenuProps } from "antd";
 import {
   createAdminSkillFile,
@@ -8,6 +8,7 @@ import {
   deleteAdminSkillFile,
   downloadAdminSkill,
   downloadAdminSkillFile,
+  fetchAdminSkillFileBlob,
   fetchAdminSkillIcon,
   getAdminSkillDetail,
   getAdminSource,
@@ -117,6 +118,90 @@ const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => {
   );
 };
 
+const SKILL_IMAGE_EXTENSION_PATTERN = /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
+
+export function isSkillImageEntry(entry: AdminSkillFileEntry): boolean {
+  if (entry.kind !== "file" || entry.contentKind !== "binary") return false;
+  const mimeType = String(entry.mimeType || "").trim().toLowerCase();
+  if (mimeType.startsWith("image/")) return true;
+  return SKILL_IMAGE_EXTENSION_PATTERN.test(entry.path);
+}
+
+type SkillBinaryPreviewState =
+  | { status: "loading" }
+  | { status: "ready"; objectUrl: string }
+  | { status: "error" };
+
+export const SkillBinaryImagePreview: React.FC<{
+  skillKey: string;
+  entry: AdminSkillFileEntry;
+  t: SkillConsoleTranslate;
+}> = ({ skillKey, entry, t }) => {
+  const [state, setState] = useState<SkillBinaryPreviewState>({
+    status: "loading",
+  });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    let objectUrl = "";
+    setState({ status: "loading" });
+    if (
+      typeof URL === "undefined" ||
+      typeof URL.createObjectURL !== "function"
+    ) {
+      setState({ status: "error" });
+      return () => controller.abort();
+    }
+    void fetchAdminSkillFileBlob(skillKey, entry.path, {
+      signal: controller.signal,
+    })
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setState({ status: "ready", objectUrl });
+      })
+      .catch(() => {
+        if (active && !controller.signal.aborted) {
+          setState({ status: "error" });
+        }
+      });
+    return () => {
+      active = false;
+      controller.abort();
+      if (objectUrl && typeof URL.revokeObjectURL === "function") {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [skillKey, entry.path, entry.sha256]);
+
+  if (state.status === "loading") {
+    return (
+      <div className={SKILL_BINARY_PREVIEW_LOADING_CLASS_NAME}>
+        <Spin size="small" />
+        <span>{t("skillConsole.binary.previewLoading")}</span>
+      </div>
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <div className={SKILL_BINARY_PREVIEW_ERROR_CLASS_NAME}>
+        {t("skillConsole.binary.previewFailed")}
+      </div>
+    );
+  }
+  return (
+    <div className={SKILL_BINARY_PREVIEW_CLASS_NAME}>
+      <img
+        className={SKILL_BINARY_PREVIEW_IMG_CLASS_NAME}
+        src={state.objectUrl}
+        alt={entry.name}
+        onError={() => setState({ status: "error" })}
+      />
+    </div>
+  );
+};
+
 /* ---- class names ---- */
 const SKILL_CONSOLE_CLASS_NAME =
   "skill-console tw:flex tw:flex-auto tw:flex-col tw:min-h-0 tw:gap-3 tw:overflow-hidden";
@@ -176,6 +261,14 @@ const SKILL_BINARY_GRID_CLASS_NAME =
   "skill-console-binary-grid tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:gap-x-3 tw:gap-y-2 tw:text-xs tw:[&>span:nth-child(odd)]:text-ink-muted tw:[&>span:nth-child(even)]:min-w-0 tw:[&>span:nth-child(even)]:overflow-hidden tw:[&>span:nth-child(even)]:text-ellipsis tw:[&>span:nth-child(even)]:whitespace-nowrap";
 const SKILL_DIRTY_CLASS_NAME =
   "skill-console-dirty tw:text-xs tw:text-ink-muted";
+const SKILL_BINARY_PREVIEW_CLASS_NAME =
+  "skill-console-binary-preview tw:flex tw:min-h-0 tw:items-center tw:justify-center tw:gap-2 tw:overflow-hidden tw:rounded-control tw:border tw:bg-bg-hover tw:p-2 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]";
+const SKILL_BINARY_PREVIEW_IMG_CLASS_NAME =
+  "skill-console-binary-preview-img tw:max-h-[320px] tw:max-w-full tw:rounded-md tw:object-contain";
+const SKILL_BINARY_PREVIEW_LOADING_CLASS_NAME =
+  "skill-console-binary-preview-loading tw:flex tw:min-h-24 tw:items-center tw:justify-center tw:gap-2 tw:text-xs tw:text-ink-muted";
+const SKILL_BINARY_PREVIEW_ERROR_CLASS_NAME =
+  "skill-console-binary-preview-error tw:flex tw:min-h-24 tw:items-center tw:justify-center tw:gap-2 tw:text-xs tw:text-danger";
 
 /* ---- helpers ---- */
 
@@ -326,8 +419,33 @@ export function isSkillEntryVisible(
   return true;
 }
 
-function iconForEntry(entry: AdminSkillFileEntry): MaterialIconName {
-  if (entry.kind === "directory") return "folder_open";
+export function skillAnchorPath(
+  entry: AdminSkillFileEntry | undefined,
+): string {
+  if (!entry) return "";
+  if (entry.kind === "directory") return entry.path;
+  return entry.parentPath || "";
+}
+
+export function skillSiblingPath(
+  entry: AdminSkillFileEntry | undefined,
+): string {
+  if (!entry) return "";
+  return entry.parentPath || "";
+}
+
+export function joinSkillPath(parent: string, name: string): string {
+  const normalizedParent = parent.trim().replace(/\/+$/, "");
+  const normalizedName = name.trim();
+  if (!normalizedParent) return normalizedName;
+  return `${normalizedParent}/${normalizedName}`;
+}
+
+function iconForEntry(
+  entry: AdminSkillFileEntry,
+  isExpanded = false,
+): MaterialIconName {
+  if (entry.kind === "directory") return isExpanded ? "folder_open" : "folder";
   if (entry.contentKind === "binary") return "folder_zip";
   return "description";
 }
@@ -797,6 +915,8 @@ interface SkillFileWorkspaceProps {
   t: SkillConsoleTranslate;
   onCreateFile: () => void;
   onCreateDir: () => void;
+  onCreateSubdir: () => void;
+  onUploadFile: (file: File) => void;
   onDeleteSkill?: () => void;
   onDownloadSkill?: () => void;
   onValidate: () => void;
@@ -828,6 +948,8 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   t,
   onCreateFile,
   onCreateDir,
+  onCreateSubdir,
+  onUploadFile,
   onDeleteSkill = () => {},
   onDownloadSkill = () => {},
   onValidate,
@@ -841,6 +963,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   onSelectFileEntry,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const entries = detail.fileManifest.entries || [];
   const selectedEntry = findEntryByPath(entries, selectedFilePath);
   const visibleEntries = entries.filter((entry) =>
@@ -848,6 +971,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   );
   const isTextSelected = selectedEntry?.contentKind === "text";
   const isBinarySelected = selectedEntry?.contentKind === "binary";
+  const isDirSelected = selectedEntry?.contentKind === "directory";
   const canDownloadSkill = detail.capabilities.canDownload;
   const canDeleteSkill = detail.capabilities.canDelete;
   const interactionLocked = deletingSkill;
@@ -860,6 +984,51 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
     downloadingSkill ||
     downloadingFile;
 
+  const fileAddMenu: MenuProps = {
+    onClick: (info) => {
+      if (info.key === "upload") {
+        uploadInputRef.current?.click();
+      } else {
+        onCreateFile();
+      }
+    },
+    items: [
+      {
+        key: "upload",
+        icon: <MaterialIcon name="image" />,
+        label: t("skillConsole.action.uploadFile"),
+      },
+      {
+        key: "create",
+        icon: <MaterialIcon name="article" />,
+        label: t("skillConsole.action.createTextFile"),
+      },
+    ],
+  };
+
+  const dirAddMenu: MenuProps = {
+    onClick: (info) => {
+      if (info.key === "subdir") {
+        onCreateSubdir();
+      } else {
+        onCreateDir();
+      }
+    },
+    items: [
+      {
+        key: "dir",
+        icon: <MaterialIcon name="create_new_folder" />,
+        label: t("skillConsole.action.createDir"),
+      },
+      {
+        key: "subdir",
+        icon: <MaterialIcon name="folder" />,
+        label: t("skillConsole.action.createSubdir"),
+        disabled: selectedEntry?.kind !== "directory",
+      },
+    ],
+  };
+
   return (
     <div className={SKILL_FILE_PANELS_CLASS_NAME}>
       <div className={SKILL_FILE_TREE_PANEL_CLASS_NAME}>
@@ -868,28 +1037,51 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             {t("skillConsole.fileTree.root")}
           </span>
           <div className={SKILL_FILE_TREE_ACTIONS_CLASS_NAME}>
-            <UiButton
-              size="sm"
-              variant="ghost"
-              className="ui-icon-hover-24"
-              iconOnly
-              onClick={onCreateFile}
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept="image/*,.pdf,.txt,.md,.json,.yaml,.yml,.csv,.zip"
               disabled={interactionLocked}
-              aria-label={t("skillConsole.action.createFile")}
+              className="tw:hidden"
+              aria-label={t("skillConsole.action.uploadFile")}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (file) onUploadFile(file);
+              }}
+            />
+            <Dropdown
+              menu={fileAddMenu}
+              trigger={["click"]}
+              placement="bottomRight"
             >
-              <MaterialIcon name="article" />
-            </UiButton>
-            <UiButton
-              size="sm"
-              variant="ghost"
-              className="ui-icon-hover-24"
-              iconOnly
-              onClick={onCreateDir}
-              disabled={interactionLocked}
-              aria-label={t("skillConsole.action.createDir")}
+              <UiButton
+                size="sm"
+                variant="ghost"
+                className="ui-icon-hover-24"
+                disabled={interactionLocked}
+                aria-label={t("skillConsole.action.addFile")}
+              >
+                <MaterialIcon name="article" />
+                {t("skillConsole.action.addFile")}
+              </UiButton>
+            </Dropdown>
+            <Dropdown
+              menu={dirAddMenu}
+              trigger={["click"]}
+              placement="bottomRight"
             >
-              <MaterialIcon name="create_new_folder" />
-            </UiButton>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                className="ui-icon-hover-24"
+                iconOnly
+                disabled={interactionLocked}
+                aria-label={t("skillConsole.action.createDir")}
+              >
+                <MaterialIcon name="create_new_folder" />
+              </UiButton>
+            </Dropdown>
             <UiButton
               size="sm"
               variant="ghost"
@@ -905,6 +1097,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               size="sm"
               variant="ghost"
               className="ui-icon-hover-24"
+              iconOnly
               onClick={onDownloadSkill}
               disabled={
                 downloadingSkill || !canDownloadSkill || interactionLocked
@@ -917,14 +1110,12 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               }
             >
               <MaterialIcon name="download" />
-              {downloadingSkill
-                ? t("skillConsole.action.downloadingSkill")
-                : t("skillConsole.action.downloadSkill")}
             </UiButton>
             <UiButton
               size="sm"
               variant="danger"
               className="ui-icon-hover-24"
+              iconOnly
               onClick={onDeleteSkill}
               disabled={deleteSkillDisabled}
               loading={deletingSkill}
@@ -935,9 +1126,6 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               }
             >
               <MaterialIcon name="delete" />
-              {deletingSkill
-                ? t("skillConsole.action.deletingSkill")
-                : t("skillConsole.action.delete")}
             </UiButton>
           </div>
         </div>
@@ -967,7 +1155,9 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                       void onSelectFileEntry(entry);
                     }}
                   >
-                    <MaterialIcon name={iconForEntry(entry)} />
+                    <MaterialIcon
+                      name={iconForEntry(entry, expandedDirs.has(entry.path))}
+                    />
                     <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
                       {entry.name}
                     </span>
@@ -998,16 +1188,21 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
               <div className={SKILL_FILE_EDITOR_META_CLASS_NAME}>
                 <MaterialIcon
-                  name={iconForEntry(selectedEntry)}
+                  name={iconForEntry(
+                    selectedEntry,
+                    expandedDirs.has(selectedEntry.path),
+                  )}
                   style={{ fontSize: 16 }}
                 />
                 <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
                   {selectedEntry.path}
                 </span>
                 <span>
-                  {isTextSelected
-                    ? languageLabel(selectedEntry)
-                    : selectedEntry.mimeType || "Binary"}
+                  {isDirSelected
+                    ? t("skillConsole.fileTree.directory")
+                    : isTextSelected
+                      ? languageLabel(selectedEntry)
+                      : selectedEntry.mimeType || "Binary"}
                 </span>
                 {fileSize !== undefined && <span>{formatSize(fileSize)}</span>}
               </div>
@@ -1113,7 +1308,26 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               </div>
             </div>
 
-            {isTextSelected ? (
+            {isDirSelected ? (
+              <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
+                <strong>{selectedEntry.name}</strong>
+                <div className={SKILL_BINARY_GRID_CLASS_NAME}>
+                  <span>{t("skillConsole.field.path")}</span>
+                  <span>{selectedEntry.path}</span>
+                  <span>{t("skillConsole.field.children")}</span>
+                  <span>
+                    {
+                      entries.filter(
+                        (entry) => entry.parentPath === selectedEntry.path,
+                      ).length
+                    }
+                  </span>
+                </div>
+                <div className="tw:text-xs tw:text-ink-muted">
+                  {t("skillConsole.fileTree.dirHint")}
+                </div>
+              </div>
+            ) : isTextSelected ? (
               <Input.TextArea
                 className={SKILL_TEXTAREA_CLASS_NAME}
                 value={fileContent}
@@ -1122,6 +1336,13 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               />
             ) : (
               <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
+                {isSkillImageEntry(selectedEntry) && (
+                  <SkillBinaryImagePreview
+                    skillKey={detail.skill.key}
+                    entry={selectedEntry}
+                    t={t}
+                  />
+                )}
                 <strong>{selectedEntry.name}</strong>
                 <div className={SKILL_BINARY_GRID_CLASS_NAME}>
                   <span>{t("skillConsole.field.path")}</span>
@@ -1330,7 +1551,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
       if (entry.kind === "directory") {
         setExpandedDirs((prev) => toggleSkillExpandedDir(prev, entry.path));
-        return;
       }
 
       if (isFileDirty && selectedFilePath !== entry.path) {
@@ -1534,26 +1754,41 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleCreateFile = () => {
     if (!detail) return;
+    const anchor = skillAnchorPath(selectedEntry);
     let inputValue = "";
     Modal.confirm({
       title: t("skillConsole.fileOp.createFile"),
       content: (
-        <Input
-          autoFocus
-          placeholder={t("skillConsole.create.fileNamePlaceholder")}
-          onChange={(e) => {
-            inputValue = e.target.value;
-          }}
-        />
+        <div className="tw:flex tw:flex-col tw:gap-2">
+          <Input
+            autoFocus
+            placeholder={t("skillConsole.create.fileNamePlaceholder")}
+            onChange={(e) => {
+              inputValue = e.target.value;
+            }}
+          />
+          <span className="tw:text-xs tw:text-ink-muted">
+            {t("skillConsole.fileOp.createIn", {
+              path: anchor ? `${anchor}/` : t("skillConsole.fileTree.root"),
+            })}
+          </span>
+        </div>
       ),
       onOk: async () => {
         const name = inputValue.trim();
         if (!name || !isFilePathSafe(name)) return;
         const response = await createAdminSkillFile({
           key: detail.skill.key,
-          path: name,
+          path: joinSkillPath(anchor, name),
           content: "",
         });
+        if (anchor) {
+          setExpandedDirs((prev) => {
+            const next = new Set(prev);
+            next.add(anchor);
+            return next;
+          });
+        }
         await applyMutation(response.data);
       },
     });
@@ -1561,31 +1796,94 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleCreateDir = () => {
     if (!detail) return;
+    const anchor = skillSiblingPath(selectedEntry);
     let inputValue = "";
     Modal.confirm({
       title: t("skillConsole.fileOp.createDir"),
       content: (
-        <Input
-          autoFocus
-          placeholder={t("skillConsole.create.fileNamePlaceholder")}
-          onChange={(e) => {
-            inputValue = e.target.value;
-          }}
-        />
+        <div className="tw:flex tw:flex-col tw:gap-2">
+          <Input
+            autoFocus
+            placeholder={t("skillConsole.create.dirNamePlaceholder")}
+            onChange={(e) => {
+              inputValue = e.target.value;
+            }}
+          />
+          <span className="tw:text-xs tw:text-ink-muted">
+            {t("skillConsole.fileOp.createIn", {
+              path: anchor ? `${anchor}/` : t("skillConsole.fileTree.root"),
+            })}
+          </span>
+        </div>
       ),
       onOk: async () => {
         const name = inputValue.trim();
         if (!name || !isFilePathSafe(name)) return;
+        const path = joinSkillPath(anchor, name);
         const response = await mkdirAdminSkillFile({
           key: detail.skill.key,
-          path: name,
+          path,
         });
         setExpandedDirs((prev) => {
           const next = new Set(prev);
-          next.add(name);
+          if (anchor) next.add(anchor);
+          next.add(path);
           return next;
         });
         await applyMutation(response.data);
+        setSelectedFilePath(path);
+        setFileContent("");
+        setOriginalFileContent("");
+        setFileSha256(null);
+        setFileSize(undefined);
+        setFileUpdatedAt(undefined);
+      },
+    });
+  };
+
+  const handleCreateSubdir = () => {
+    if (!detail || selectedEntry?.kind !== "directory") return;
+    const anchor = selectedEntry.path;
+    let inputValue = "";
+    Modal.confirm({
+      title: t("skillConsole.fileOp.createSubdir"),
+      content: (
+        <div className="tw:flex tw:flex-col tw:gap-2">
+          <Input
+            autoFocus
+            placeholder={t("skillConsole.create.dirNamePlaceholder")}
+            onChange={(e) => {
+              inputValue = e.target.value;
+            }}
+          />
+          <span className="tw:text-xs tw:text-ink-muted">
+            {t("skillConsole.fileOp.createIn", {
+              path: anchor ? `${anchor}/` : t("skillConsole.fileTree.root"),
+            })}
+          </span>
+        </div>
+      ),
+      onOk: async () => {
+        const name = inputValue.trim();
+        if (!name || !isFilePathSafe(name)) return;
+        const path = joinSkillPath(anchor, name);
+        const response = await mkdirAdminSkillFile({
+          key: detail.skill.key,
+          path,
+        });
+        setExpandedDirs((prev) => {
+          const next = new Set(prev);
+          next.add(anchor);
+          next.add(path);
+          return next;
+        });
+        await applyMutation(response.data);
+        setSelectedFilePath(path);
+        setFileContent("");
+        setOriginalFileContent("");
+        setFileSha256(null);
+        setFileSize(undefined);
+        setFileUpdatedAt(undefined);
       },
     });
   };
@@ -1754,6 +2052,41 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         overwrite: true,
       });
       await applyMutation(response.data);
+    } catch (err) {
+      notification.error({ message: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUploadFile = async (file: File) => {
+    if (!detail) return;
+    const anchor = skillAnchorPath(selectedEntry);
+    const path = joinSkillPath(anchor, file.name);
+    setSaving(true);
+    try {
+      const response = await uploadAdminSkillFile({
+        key: detail.skill.key,
+        path,
+        file,
+        overwrite: false,
+      });
+      await applyMutation(response.data);
+      if (anchor) {
+        setExpandedDirs((prev) => {
+          const next = new Set(prev);
+          next.add(anchor);
+          return next;
+        });
+      }
+      const uploadedEntry = detailRef.current?.fileManifest.entries.find(
+        (entry) => entry.path === path,
+      );
+      if (uploadedEntry?.contentKind === "text") {
+        await loadFileByPath(detail.skill.key, path);
+      } else if (uploadedEntry) {
+        applyBinaryEntry(uploadedEntry);
+      }
     } catch (err) {
       notification.error({ message: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -1980,6 +2313,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 t={t}
                 onCreateFile={handleCreateFile}
                 onCreateDir={handleCreateDir}
+                onCreateSubdir={handleCreateSubdir}
+                onUploadFile={handleUploadFile}
                 onDeleteSkill={handleDeleteSkill}
                 onDownloadSkill={handleDownloadSkill}
                 onValidate={handleValidate}

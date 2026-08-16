@@ -104,6 +104,7 @@ import {
   deleteAdminSkillFile,
   downloadAdminSkill,
   downloadAdminSkillFile,
+  fetchAdminSkillFileBlob,
   fetchAdminSkillIcon,
   getAdminSkillDetail,
   importAdminSkill,
@@ -985,6 +986,41 @@ describe('data client query payloads', () => {
     });
     await expect(fetchAdminSkillIcon('/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png'))
       .rejects.toMatchObject({ message: 'skill icon response is not an image' });
+  });
+
+  it('fetches skill file blobs for previews with bearer authentication', async () => {
+    setAccessToken('skill-file-token');
+    const blob = new Blob(['png'], { type: 'image/png' });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'image/png' }),
+      blob: async () => blob,
+    });
+
+    await expect(fetchAdminSkillFileBlob('demo-skill', 'assets/demo.png')).resolves.toBe(blob);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo.png',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Authorization: 'Bearer skill-file-token' }),
+      }),
+    );
+  });
+
+  it('rejects skill file blob responses that are not ok', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      headers: new Headers({ 'Content-Type': 'text/plain' }),
+      text: async () => 'not found',
+      blob: async () => new Blob(['']),
+    });
+
+    await expect(fetchAdminSkillFileBlob('demo-skill', 'assets/missing.png')).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('downloads skill files and archives through authenticated Blob requests', async () => {

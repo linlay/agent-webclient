@@ -2445,6 +2445,30 @@ export async function fetchAdminSkillIcon(
   return response.blob();
 }
 
+export async function fetchAdminSkillFileBlob(
+  key: string,
+  path: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<Blob> {
+  const response = await requestWithAuth(buildAdminSkillFileDownloadUrl(key, path), {
+    method: "GET",
+    signal: options.signal,
+    jsonContentType: false,
+  });
+  if (!response.ok) {
+    const fallbackMessage = t("api.downloadFailedWithStatus", { status: response.status });
+    const rawText = await response.text();
+    const error = getErrorMessageFromText(rawText, fallbackMessage, response.status);
+    throw new ApiError(error.message, {
+      status: response.status,
+      code: error.code,
+      data: error.data,
+      platformError: error.platformError,
+    });
+  }
+  return response.blob();
+}
+
 export function validateAdminSkill(key: string): Promise<ApiResponse<AdminSkillValidateResponse>> {
   return postJson<AdminSkillValidateResponse>(dataEndpoints.adminSkillValidate.path, { key });
 }

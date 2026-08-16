@@ -5,7 +5,11 @@ import {
   fallbackSkillIcon,
   findPreferredSkillFileEntry,
   isSkillEntryVisible,
+  isSkillImageEntry,
+  joinSkillPath,
+  skillAnchorPath,
   skillImportDiagnostics,
+  skillSiblingPath,
   SkillCreateModal,
   SkillFileWorkspace,
   SkillConsole,
@@ -65,12 +69,16 @@ jest.mock("@/shared/ui/MaterialIcon", () => ({
 
 jest.mock("@/shared/ui/UiButton", () => ({
   UiButton: (props: Record<string, unknown>) =>
-    React.createElement("button", {
-      "data-variant": props.variant,
-      "data-loading": props.loading ? "true" : undefined,
-      disabled: Boolean(props.disabled || props.loading),
-      ...(typeof props["aria-label"] === "string" ? { "aria-label": props["aria-label"] } : {}),
-    }),
+    React.createElement(
+      "button",
+      {
+        "data-variant": props.variant,
+        "data-loading": props.loading ? "true" : undefined,
+        disabled: Boolean(props.disabled || props.loading),
+        ...(typeof props["aria-label"] === "string" ? { "aria-label": props["aria-label"] } : {}),
+      },
+      props.children,
+    ),
 }));
 
 jest.mock("@/shared/ui/UiTag", () => ({
@@ -460,6 +468,8 @@ describe("SkillConsole", () => {
         t: (key: string) => key,
         onCreateFile: noop,
         onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
         onValidate: noop,
         onRefreshFile: noop,
         onSave: noop,
@@ -521,6 +531,8 @@ describe("SkillConsole", () => {
         t: (key: string) => key,
         onCreateFile: noop,
         onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
         onDownloadSkill: noop,
         onValidate: noop,
         onRefreshFile: noop,
@@ -535,7 +547,7 @@ describe("SkillConsole", () => {
     );
 
     expect(html).toContain('aria-label="skillConsole.action.downloadSkill"');
-    expect(html).toMatch(/<button data-variant="ghost" disabled="" aria-label="skillConsole\.action\.downloadSkill"><\/button>/);
+    expect(html).toMatch(/<button data-variant="ghost" disabled="" aria-label="skillConsole\.action\.downloadSkill"><i data-icon="download"><\/i><\/button>/);
   });
 
   it("renders whole-skill delete after download as a danger action", () => {
@@ -573,6 +585,8 @@ describe("SkillConsole", () => {
         t: (key: string) => key,
         onCreateFile: noop,
         onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
         onDeleteSkill: noop,
         onDownloadSkill: noop,
         onValidate: noop,
@@ -642,6 +656,8 @@ describe("SkillConsole", () => {
           t: (key: string) => key,
           onCreateFile: noop,
           onCreateDir: noop,
+          onCreateSubdir: noop,
+          onUploadFile: noop,
           onDeleteSkill: noop,
           onDownloadSkill: noop,
           onValidate: noop,
@@ -658,12 +674,12 @@ describe("SkillConsole", () => {
 
     const unavailable = renderWorkspace(false);
     expect(unavailable).toMatch(
-      /<button data-variant="danger" disabled="" aria-label="skillConsole\.action\.delete"><\/button>/,
+      /<button data-variant="danger" disabled="" aria-label="skillConsole\.action\.delete"><i data-icon="delete"><\/i><\/button>/,
     );
 
     const pending = renderWorkspace(true);
     expect(pending).toMatch(
-      /<button data-variant="danger" data-loading="true" disabled="" aria-label="skillConsole\.action\.deletingSkill"><\/button>/,
+      /<button data-variant="danger" data-loading="true" disabled="" aria-label="skillConsole\.action\.deletingSkill"><i data-icon="delete"><\/i><\/button>/,
     );
     expect(pending).toContain('textarea class="skill-console-textarea');
     expect(pending).toContain('disabled=""');
@@ -704,6 +720,8 @@ describe("SkillConsole", () => {
         t: (key: string) => key,
         onCreateFile: noop,
         onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
         onValidate: noop,
         onRefreshFile: noop,
         onSave: noop,
@@ -722,5 +740,307 @@ describe("SkillConsole", () => {
     expect(html).toContain("asset-sha");
     expect(html).not.toContain("skill-console-textarea");
     expect(html).not.toContain("minmax(220px,260px)");
+    expect(html).not.toContain("skill-console-binary-preview");
+  });
+
+  it("detects image entries by mime type and by extension fallback", () => {
+    const binaryEntry = (
+      overrides: Partial<AdminSkillFileEntry>,
+    ): AdminSkillFileEntry => ({
+      path: "assets/demo.png",
+      name: "demo.png",
+      kind: "file",
+      parentPath: "assets",
+      depth: 1,
+      order: 0,
+      size: 1024,
+      mimeType: "image/png",
+      sha256: "img-sha",
+      contentKind: "binary",
+      role: "asset",
+      editable: false,
+      downloadable: true,
+      uploadable: true,
+      renamable: true,
+      deletable: true,
+      ...overrides,
+    });
+
+    expect(isSkillImageEntry(binaryEntry({}))).toBe(true);
+    expect(isSkillImageEntry(binaryEntry({ mimeType: "IMAGE/PNG" }))).toBe(true);
+    expect(isSkillImageEntry(binaryEntry({ mimeType: undefined }))).toBe(true);
+    expect(
+      isSkillImageEntry(
+        binaryEntry({ path: "assets/demo.JPG", mimeType: undefined }),
+      ),
+    ).toBe(true);
+    expect(
+      isSkillImageEntry(
+        binaryEntry({ path: "assets/showcase.mp4", mimeType: "video/mp4" }),
+      ),
+    ).toBe(false);
+    expect(
+      isSkillImageEntry({ ...demoEntries[0], contentKind: "binary" }),
+    ).toBe(false);
+    expect(
+      isSkillImageEntry({ ...demoEntries[1], contentKind: "binary" }),
+    ).toBe(false);
+  });
+
+  it("renders an image preview for selected image binary files", () => {
+    const imageEntry: AdminSkillFileEntry = {
+      path: "assets/demo.png",
+      name: "demo.png",
+      kind: "file",
+      parentPath: "assets",
+      depth: 1,
+      order: 3,
+      size: 2048,
+      mimeType: "image/png",
+      sha256: "image-sha",
+      contentKind: "binary",
+      role: "asset",
+      editable: false,
+      downloadable: true,
+      uploadable: true,
+      renamable: true,
+      deletable: true,
+    };
+    const detail: AdminSkillDetailResponse = {
+      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      capabilities: {
+        maxTextBytes: 1048576,
+        maxUploadBytes: 33554432,
+        canCreate: true,
+        canRename: true,
+        canDelete: true,
+        canUpload: true,
+        canDownload: true,
+      },
+      fileManifest: {
+        revision: "rev",
+        defaultOpenPath: "SKILL.md",
+        counts: {
+          files: 2,
+          directories: 0,
+          textFiles: 1,
+          binaryFiles: 1,
+          totalSize: 2176,
+        },
+        entries: [demoEntries[0], imageEntry],
+      },
+    };
+    const noop = jest.fn();
+    const html = renderToStaticMarkup(
+      React.createElement(SkillFileWorkspace, {
+        detail,
+        selectedFilePath: "assets/demo.png",
+        fileContent: "",
+        fileSize: 2048,
+        fileSha256: "image-sha",
+        dirtyFiles: new Set(),
+        expandedDirs: new Set(["assets"]),
+        isFileDirty: false,
+        saving: false,
+        validating: false,
+        t: (key: string) => key,
+        onCreateFile: noop,
+        onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
+        onValidate: noop,
+        onRefreshFile: noop,
+        onSave: noop,
+        onRenameFile: noop,
+        onDeleteFile: noop,
+        onDownloadFile: noop,
+        onReplaceFile: noop,
+        onFileChange: noop,
+        onSelectFileEntry: noop,
+      }),
+    );
+
+    expect(html).toContain("skill-console-binary-panel");
+    expect(html).toContain("skill-console-binary-preview");
+    expect(html).toContain("skill-console-binary-preview-loading");
+    expect(html).toContain("skillConsole.binary.previewLoading");
+    expect(html).toContain("image/png");
+    expect(html).toContain("image-sha");
+    expect(html).not.toContain("skill-console-textarea");
+  });
+
+  it("anchors new entries to the selected directory or file parent", () => {
+    expect(skillAnchorPath(undefined)).toBe("");
+    expect(skillAnchorPath(demoEntries[0])).toBe(""); // root file
+    expect(skillAnchorPath(demoEntries[1])).toBe("references"); // directory itself
+    expect(skillAnchorPath(demoEntries[2])).toBe("references"); // nested file parent
+    expect(skillSiblingPath(undefined)).toBe("");
+    expect(skillSiblingPath(demoEntries[0])).toBe(""); // root file
+    expect(skillSiblingPath(demoEntries[1])).toBe(""); // root directory sibling
+    expect(skillSiblingPath(demoEntries[2])).toBe("references"); // file sibling
+    expect(joinSkillPath("", "notes.md")).toBe("notes.md");
+    expect(joinSkillPath("assets", "logo.png")).toBe("assets/logo.png");
+    expect(joinSkillPath("assets/", "logo.png")).toBe("assets/logo.png");
+  });
+
+  it("renders a directory info view when a directory is selected", () => {
+    const detail: AdminSkillDetailResponse = {
+      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      capabilities: {
+        maxTextBytes: 1048576,
+        maxUploadBytes: 33554432,
+        canCreate: true,
+        canRename: true,
+        canDelete: true,
+        canUpload: true,
+        canDownload: true,
+      },
+      fileManifest: {
+        revision: "rev",
+        defaultOpenPath: "SKILL.md",
+        counts: {
+          files: 3,
+          directories: 1,
+          textFiles: 2,
+          binaryFiles: 1,
+          totalSize: 4480,
+        },
+        entries: demoEntries,
+      },
+    };
+    const noop = jest.fn();
+    const html = renderToStaticMarkup(
+      React.createElement(SkillFileWorkspace, {
+        detail,
+        selectedFilePath: "references",
+        fileContent: "",
+        fileSize: undefined,
+        fileSha256: null,
+        dirtyFiles: new Set(),
+        expandedDirs: new Set(["references"]),
+        isFileDirty: false,
+        saving: false,
+        validating: false,
+        t: (key: string) => key,
+        onCreateFile: noop,
+        onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
+        onValidate: noop,
+        onRefreshFile: noop,
+        onSave: noop,
+        onRenameFile: noop,
+        onDeleteFile: noop,
+        onDownloadFile: noop,
+        onReplaceFile: noop,
+        onFileChange: noop,
+        onSelectFileEntry: noop,
+      }),
+    );
+
+    expect(html).toContain("skillConsole.fileTree.directory");
+    expect(html).toContain("skillConsole.fileTree.dirHint");
+    expect(html).toContain("skillConsole.field.children");
+    expect(html).toContain(">1<"); // one direct child: references/guide.md
+    expect(html).toContain('data-icon="folder_open"'); // expanded directory icon
+    expect(html).not.toContain("skill-console-textarea");
+
+    const collapsedHtml = renderToStaticMarkup(
+      React.createElement(SkillFileWorkspace, {
+        detail,
+        selectedFilePath: "references",
+        fileContent: "",
+        fileSize: undefined,
+        fileSha256: null,
+        dirtyFiles: new Set(),
+        expandedDirs: new Set(),
+        isFileDirty: false,
+        saving: false,
+        validating: false,
+        t: (key: string) => key,
+        onCreateFile: noop,
+        onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
+        onValidate: noop,
+        onRefreshFile: noop,
+        onSave: noop,
+        onRenameFile: noop,
+        onDeleteFile: noop,
+        onDownloadFile: noop,
+        onReplaceFile: noop,
+        onFileChange: noop,
+        onSelectFileEntry: noop,
+      }),
+    );
+    expect(collapsedHtml).toContain('data-icon="folder"'); // collapsed directory icon
+    expect(collapsedHtml).not.toContain('data-icon="folder_open"');
+  });
+
+  it("renders the add-file dropdown trigger and an image-capable upload input", () => {
+    const detail: AdminSkillDetailResponse = {
+      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      capabilities: {
+        maxTextBytes: 1048576,
+        maxUploadBytes: 33554432,
+        canCreate: true,
+        canRename: true,
+        canDelete: true,
+        canUpload: true,
+        canDownload: true,
+      },
+      fileManifest: {
+        revision: "rev",
+        defaultOpenPath: "SKILL.md",
+        counts: {
+          files: 1,
+          directories: 0,
+          textFiles: 1,
+          binaryFiles: 0,
+          totalSize: 128,
+        },
+        entries: [demoEntries[0]],
+      },
+    };
+    const noop = jest.fn();
+    const html = renderToStaticMarkup(
+      React.createElement(SkillFileWorkspace, {
+        detail,
+        selectedFilePath: "SKILL.md",
+        fileContent: "# Skill",
+        fileSize: 128,
+        fileSha256: "skill-sha",
+        dirtyFiles: new Set(),
+        expandedDirs: new Set(),
+        isFileDirty: false,
+        saving: false,
+        validating: false,
+        t: (key: string) => key,
+        onCreateFile: noop,
+        onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
+        onValidate: noop,
+        onRefreshFile: noop,
+        onSave: noop,
+        onRenameFile: noop,
+        onDeleteFile: noop,
+        onDownloadFile: noop,
+        onReplaceFile: noop,
+        onFileChange: noop,
+        onSelectFileEntry: noop,
+      }),
+    );
+
+    expect(html).toContain('aria-label="skillConsole.action.addFile"');
+    expect(html).toContain(
+      '<i data-icon="article"></i>skillConsole.action.addFile</button>',
+    );
+    expect(html).toContain('aria-label="skillConsole.action.uploadFile"');
+    expect(html).toContain(
+      'accept="image/*,.pdf,.txt,.md,.json,.yaml,.yml,.csv,.zip"',
+    );
+    expect(html).toContain('aria-label="skillConsole.action.createDir"');
+    expect(html).toContain('data-icon="create_new_folder"');
   });
 });
