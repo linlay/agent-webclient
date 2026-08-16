@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import {
+  canProjectLiveQuerySession,
   canSendToTargetChat,
   resolveDifferentChatDetachRunDetail,
   normalizeQueryModelOverride,
@@ -51,6 +52,37 @@ jest.mock("@/features/terminal/lib/terminalDockPersistence", () => ({
 const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
   useAppContext: jest.Mock;
 };
+
+describe("canProjectLiveQuerySession", () => {
+  const session = { requestId: "req_new", chatId: "chat_new" };
+
+  it("keeps the query authoritative across newChat to canonical chatId promotion", () => {
+    expect(canProjectLiveQuerySession({
+      session,
+      activeRequestId: "",
+      visibleChatId: "chat_new",
+      sessions: new Map([[session.requestId, session as never]]),
+    })).toBe(true);
+  });
+
+  it("does not reclaim projection after a real chat switch or over another live session", () => {
+    expect(canProjectLiveQuerySession({
+      session,
+      activeRequestId: "",
+      visibleChatId: "chat_other",
+      sessions: new Map([[session.requestId, session as never]]),
+    })).toBe(false);
+    expect(canProjectLiveQuerySession({
+      session,
+      activeRequestId: "req_other",
+      visibleChatId: "chat_new",
+      sessions: new Map([
+        [session.requestId, session as never],
+        ["req_other", { requestId: "req_other", chatId: "chat_new" } as never],
+      ]),
+    })).toBe(false);
+  });
+});
 
 describe("normalizeQueryModelOverride", () => {
   it("preserves all six efforts and normalizes case plus EXTRA_HIGH", () => {

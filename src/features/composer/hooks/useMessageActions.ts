@@ -124,6 +124,30 @@ export function canSendToTargetChat(input: {
   return false;
 }
 
+export function canProjectLiveQuerySession(input: {
+  session: Pick<LiveQuerySession, "requestId" | "chatId">;
+  activeRequestId: string;
+  visibleChatId: string;
+  sessions: Pick<Map<string, LiveQuerySession>, "has">;
+}): boolean {
+  const sessionRequestId = toText(input.session.requestId);
+  const activeRequestId = toText(input.activeRequestId);
+  if (sessionRequestId && activeRequestId === sessionRequestId) {
+    return true;
+  }
+
+  const sessionChatId = toText(input.session.chatId);
+  const visibleChatId = toText(input.visibleChatId);
+  if (!sessionChatId || sessionChatId !== visibleChatId) {
+    return false;
+  }
+
+  // A canonical new-chat route promotion is not a chat switch. Reclaim a
+  // missing/stale active pointer for the operation that owns the visible
+  // chat, while never displacing another live session.
+  return !activeRequestId || !input.sessions.has(activeRequestId);
+}
+
 export function resolveDifferentChatDetachRunDetail(input: {
   currentActiveSession: Pick<
     LiveQuerySession,
@@ -459,8 +483,21 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       let newChatRouteNotified = false;
       let queryAccepted = false;
 
-      const isSessionActive = () =>
-        activeQuerySessionRequestIdRef.current === session.requestId;
+      const isSessionActive = () => {
+        const activeRequestId = toText(
+          activeQuerySessionRequestIdRef.current,
+        );
+        const active = canProjectLiveQuerySession({
+          session,
+          activeRequestId,
+          visibleChatId: stateRef.current.chatId,
+          sessions: querySessionsRef.current,
+        });
+        if (active && activeRequestId !== session.requestId) {
+          activeQuerySessionRequestIdRef.current = session.requestId;
+        }
+        return active;
+      };
       const promoteCanonicalNewChat = (nextChatId: string) => {
         const normalizedChatId = toText(nextChatId);
         if (
