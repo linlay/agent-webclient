@@ -533,7 +533,12 @@ export const DebugPanelContent: React.FC<{
           },
         ];
       }),
-    [chatAgentKeyById, chatShareIdById, eventsByTab, openEventPopover],
+    [
+      chatAgentKeyById,
+      chatShareIdById,
+      eventsByTab,
+      openEventPopover,
+    ],
   );
 
   return (
