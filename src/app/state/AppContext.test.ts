@@ -1369,4 +1369,20 @@ describe('appReducer conversation reset behavior', () => {
     expect(next.activeWebPreviewUrl).toBe('');
     expect(next.rightSidebarOpenTab).toBeNull();
   });
+
+  it.each(['overview', 'debug'] as const)(
+    'preserves the stable %s sidebar selection during conversation reset',
+    (rightSidebarOpenTab) => {
+      const state = {
+        ...createInitialState(),
+        rightSidebarOpen: true,
+        rightSidebarOpenTab,
+      };
+
+      const next = appReducer(state, { type: 'RESET_CONVERSATION' });
+
+      expect(next.rightSidebarOpen).toBe(true);
+      expect(next.rightSidebarOpenTab).toBe(rightSidebarOpenTab);
+    },
+  );
 });

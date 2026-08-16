@@ -5,6 +5,11 @@ export function buildConversationResetState(
 	options: { preserveWorkerContext?: boolean } = {},
 ): AppState {
 	const preserveWorkerContext = Boolean(options.preserveWorkerContext);
+	const stableRightSidebarTab =
+		state.rightSidebarOpenTab === "overview" ||
+		state.rightSidebarOpenTab === "debug"
+			? state.rightSidebarOpenTab
+			: null;
 	return {
 		...state,
 		currentChatActiveRun: null,
@@ -58,7 +63,7 @@ export function buildConversationResetState(
 		pendingAwaitings: [],
 		usageSnapshot: null,
 		usagePopoverOpen: false,
-		rightSidebarOpenTab: null,
+		rightSidebarOpenTab: stableRightSidebarTab,
 		activeSourceDetail: null,
 		planningPreviews: [],
 		webPreviews: [],
