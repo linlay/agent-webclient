@@ -442,9 +442,10 @@
 .automation-agent-option-text {
     min-width: 0;
     display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
-    line-height: 1.3;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.4;
 }
 
 .automation-agent-option-name {
@@ -1511,35 +1512,11 @@
     font-weight: 500;
 }
 
-.agent-detail-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: flex-start;
-    margin-bottom: 14px;
-}
-
-.agent-detail-head>div:first-child {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.agent-detail-head strong {
-    font-size: 14px;
-}
-
-.agent-detail-head span {
-    font-size: 11px;
-    overflow-wrap: anywhere;
-}
-
-.agent-detail-path-row {
+.agent-detail-path-field {
     color: var(--text-muted);
 }
 
-.agent-detail-path-row>span:first-child {
+.agent-detail-path-field>span:first-child {
     min-width: 0;
     flex: 0 1 auto;
 }
@@ -1554,7 +1531,6 @@
     justify-content: center;
 }
 
-.agent-detail-actions,
 .agent-save-actions {
     display: flex;
     align-items: center;
@@ -1627,8 +1603,9 @@
 
 .agent-section-nav {
     z-index: 100;
-    gap: 8px;
-    padding: 6px;
+    gap: 4px;
+    margin: 0 0 8px;
+    padding: 3px 4px;
     border-bottom: 1px solid var(--border);
     backdrop-filter: blur(100px);
 }
@@ -1647,9 +1624,19 @@
     display: none;
 }
 
-.agent-section-nav-save {
+.agent-section-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     flex: none;
     margin-left: auto;
+}
+
+.agent-section-nav-save.ui-btn {
+    height: 24px;
+    min-height: 24px;
+    padding-inline: 8px;
+    font-size: 12px;
 }
 
 .agent-section-nav-link {
