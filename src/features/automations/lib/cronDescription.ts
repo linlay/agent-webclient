@@ -237,6 +237,21 @@ export function describeCronExpression(
     );
   }
 
+  // Hour lists (e.g. 9,21) share one fixed minute across the listed hours.
+  if (minute !== null && dayOfMonth === "*" && month === "*") {
+    const hours = parseList(hourField, 0, 23);
+    if (hours && hours.length >= 2) {
+      const days = describeWeekdays(dayOfWeek, t);
+      if (days) {
+        const separator = t("automationConsole.cron.listSeparator");
+        const times = hours
+          .map((hourItem) => describeTime(hourItem, minute))
+          .join(separator);
+        return t("automationConsole.cron.atTimes", { days, times });
+      }
+    }
+  }
+
   const hourRange = parseRange(hourField, 0, 23);
   if (hourRange && minute !== null && dayOfMonth === "*" && month === "*") {
     const days = describeWeekdays(dayOfWeek, t);

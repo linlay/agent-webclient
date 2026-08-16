@@ -103,17 +103,42 @@ const EMPTY_FORM: AutomationFormState = {
   paramsText: "",
 };
 
-const CRON_PRESETS = [
-  { labelKey: "automationConsole.cronPreset.dailyNine", value: "0 9 * * *" },
+export interface AutomationCronPreset {
+  labelKey: string;
+  value: string;
+  remainingRuns?: string;
+}
+
+export const CRON_PRESETS: AutomationCronPreset[] = [
   {
-    labelKey: "automationConsole.cronPreset.weekdaySix",
-    value: "0 18 * * 1-5",
+    labelKey: "automationConsole.cronPreset.dailySevenPm",
+    value: "0 19 * * *",
   },
   {
-    labelKey: "automationConsole.cronPreset.everyFiveMinutes",
-    value: "*/5 * * * *",
+    labelKey: "automationConsole.cronPreset.weekdayNineThirty",
+    value: "30 9 * * 1-5",
   },
-  { labelKey: "automationConsole.cronPreset.hourly", value: "0 * * * *" },
+  {
+    labelKey: "automationConsole.cronPreset.everyTenMinutes",
+    value: "*/10 * * * *",
+  },
+  {
+    labelKey: "automationConsole.cronPreset.everyEightHours",
+    value: "0 */8 * * *",
+  },
+  {
+    labelKey: "automationConsole.cronPreset.nightTenPastTenOnce",
+    value: "10 22 * * *",
+    remainingRuns: "1",
+  },
+  {
+    labelKey: "automationConsole.cronPreset.weekendNine",
+    value: "0 9,21 * * 0,6",
+  },
+  {
+    labelKey: "automationConsole.cronPreset.midMonthNoon",
+    value: "0 12 5,15,25 * *",
+  },
 ];
 const AUTOMATION_CONSOLE_CLASS_NAME =
   "automation-console tw:overflow-hidden";
@@ -1916,8 +1941,18 @@ export const AutomationModal: React.FC<{
                             key: option.value,
                             label: option.label,
                           })),
-                          onClick: ({ key }) =>
-                            updateForm({ cron: String(key) }),
+                          onClick: ({ key }) => {
+                            const preset = CRON_PRESETS.find(
+                              (item) => item.value === key,
+                            );
+                            if (!preset) return;
+                            updateForm({
+                              cron: preset.value,
+                              ...(preset.remainingRuns
+                                ? { remainingRuns: preset.remainingRuns }
+                                : {}),
+                            });
+                          },
                         }}
                         trigger={["click"]}
                         placement="bottomRight"

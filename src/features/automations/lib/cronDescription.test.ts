@@ -24,6 +24,8 @@ describe("describeCronExpression", () => {
     ["0 9 1 * *", "每月 1 日 09:00"],
     ["0 9 1 1 *", "每年 1 月 1 日 09:00"],
     ["*/15 9-17 * * 1-5", "工作日 09:00–17:59，每 15 分钟"],
+    ["0 9,21 * * 0,6", "周末 09:00、21:00"],
+    ["0 9,21 * * *", "每天 09:00、21:00"],
   ])("describes %s in Chinese", (cron, expected) => {
     expect(describeCron(cron, "zh-CN")).toBe(expected);
   });
@@ -35,6 +37,7 @@ describe("describeCronExpression", () => {
     ["0 18 * * 1-5", "Weekdays 18:00"],
     ["0 9 * * MON", "Every Monday 09:00"],
     ["0 9 1 * *", "Monthly on day 1 at 09:00"],
+    ["0 9,21 * * 0,6", "Weekends 09:00, 21:00"],
   ])("describes %s in English", (cron, expected) => {
     expect(describeCron(cron, "en-US")).toBe(expected);
   });
@@ -42,6 +45,7 @@ describe("describeCronExpression", () => {
   it("keeps uncommon or invalid expressions inspectable", () => {
     expect(describeCron("0 9 1 * 1", "zh-CN")).toBe("0 9 1 * 1");
     expect(describeCron("0 9 * *", "zh-CN")).toBe("0 9 * *");
+    expect(describeCron("0 9 L * *", "zh-CN")).toBe("0 9 L * *");
     expect(describeCron("", "zh-CN")).toBe("--");
   });
 });
