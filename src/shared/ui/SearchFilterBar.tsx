@@ -8,6 +8,7 @@ export interface SearchFilter {
   key: string;
   label: string;
   icon?: MaterialIconName;
+  iconNode?: React.ReactNode;
   active?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -53,7 +54,9 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
             className={`filter-trigger ${filter.active ? "is-active" : ""} ui-icon-hover-24`}
             title={filter.label}
           >
-            <MaterialIcon name={filter.icon || "filter_list"} />
+            {filter.iconNode || (
+              <MaterialIcon name={filter.icon || "filter_list"} />
+            )}
             {filter.active && <span className="filter-indicator" />}
           </button>
         </Dropdown>

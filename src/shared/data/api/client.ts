@@ -3203,6 +3203,20 @@ export function createQueryStream(
   });
 }
 
+export type QueryOnceParams = Omit<QueryStreamParams, "stream">;
+
+/** Runs a query to completion and returns the regular JSON response. */
+export function executeQueryOnce(
+  options: QueryOnceParams,
+): Promise<ApiResponse<Record<string, unknown>>> {
+  return requestJson<Record<string, unknown>>(dataEndpoints.query.path, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+    body: JSON.stringify(buildQueryPayload({ ...options, stream: false })),
+    signal: options.signal,
+  });
+}
+
 export function createBTWStream(
   options: BTWStreamParams,
 ): Promise<Response> {

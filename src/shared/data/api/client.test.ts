@@ -35,6 +35,7 @@ import {
   createBTWStream,
   createRequestId,
   createQueryStream,
+  executeQueryOnce,
   deriveChat,
   deleteArchive,
   deleteAgent,
@@ -636,6 +637,27 @@ describe('data client query payloads', () => {
       message: '',
       agentKey: 'demo-agent',
       references: [{ id: 'upload_1', name: 'spec.md' }],
+    });
+  });
+
+  it('runs a query once with the non-streaming response contract', async () => {
+    await executeQueryOnce({
+      requestId: 'automation_run_1',
+      message: 'run the scheduled task now',
+      owner: { kind: 'agent', agentKey: 'demo-agent' },
+      role: 'automation',
+      params: { source: 'automation-list' },
+    });
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/query');
+    expect(JSON.parse(String(options.body))).toEqual({
+      requestId: 'automation_run_1',
+      message: 'run the scheduled task now',
+      agentKey: 'demo-agent',
+      role: 'automation',
+      params: { source: 'automation-list' },
+      stream: false,
     });
   });
 

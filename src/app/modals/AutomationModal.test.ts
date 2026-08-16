@@ -6,6 +6,7 @@ import {
   automationTimeLabel,
   automationSourcePath,
   buildCreateAutomationPayloadForSubmit,
+  buildDuplicateAutomationPayload,
   buildUpdateAutomationPayloadForSubmit,
   fetchAutomationAgentsForSelect,
   isCurrentAutomationSourceRequest,
@@ -13,6 +14,7 @@ import {
   shouldShowAutomationExecutions,
   shouldLoadAutomationAgents,
   shouldStartAutomationConsoleBootstrap,
+  splitAutomationCronExpression,
 } from "@/app/modals/AutomationModal";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { getAutomations } from "@/shared/data";
@@ -199,29 +201,33 @@ describe("AutomationModal", () => {
     const html = renderAutomationModal("zh-CN");
 
     expect(html).toContain("自动化 0 个");
-    expect(html).toContain("查询参数");
+    expect(html).not.toContain("查询参数");
     expect(html).toContain("智能体");
     expect(html).toContain("小宅");
     expect(html).toContain("执行官");
-    expect(html).toContain("Asia/Shanghai");
+    expect(html).not.toContain("automation-zone-input");
     expect(html).toContain("automation-cron-control");
+    expect(html).toContain("automation-cron-preset-select");
     expect(html).toContain("快捷选择");
+    expect(html).toContain("新建对话");
+    expect(html).toContain("添加选项");
     expect(html).not.toContain("automation-team-input");
     expect(html).toContain("每天 09:00");
-    expect(html).toContain("value=\"user\"");
-    expect(html).toContain(">user<");
-    expect(html).toContain("创建自动化");
+    expect(html).not.toContain("automation-role-input");
+    expect(html).toContain('aria-label="创建自动化"');
+    expect(html).toContain('data-material-icon="smart_toy"');
   });
 
   it("renders the automation console in English", () => {
     const html = renderAutomationModal("en-US");
 
     expect(html).toContain("Automations 0");
-    expect(html).toContain("Query parameters");
+    expect(html).not.toContain("Query parameters");
     expect(html).toContain("Agent");
     expect(html).toContain("Quick presets");
+    expect(html).toContain("Start a new chat");
     expect(html).not.toContain("automation-team-input");
-    expect(html).toContain("Create automation");
+    expect(html).toContain('aria-label="Create automation"');
   });
 
   it("builds create and update payloads without TeamID and with the selected role", () => {
@@ -236,6 +242,7 @@ describe("AutomationModal", () => {
       remainingRuns: "3",
       enabled: true,
       message: "Summarize status",
+      chatMode: "new" as const,
       chatId: "",
       role: "assistant",
       hidden: "",
@@ -265,6 +272,43 @@ describe("AutomationModal", () => {
     expect(buildUpdateAutomationPayloadForSubmit(form)).not.toHaveProperty("teamId");
   });
 
+  it("only sends ChatId when the existing-chat option is selected", () => {
+    const form = {
+      id: "daily-demo",
+      name: "Daily demo",
+      description: "",
+      cron: "0 9 * * *",
+      agentKey: "agent-a",
+      teamId: "",
+      zoneId: "",
+      remainingRuns: "",
+      enabled: true,
+      message: "Summarize status",
+      chatMode: "new" as const,
+      chatId: "chat-stale",
+      role: "",
+      hidden: "" as const,
+      paramsText: "",
+    };
+
+    expect(buildCreateAutomationPayloadForSubmit(form).query).toEqual({
+      message: "Summarize status",
+    });
+    expect(
+      buildCreateAutomationPayloadForSubmit({
+        ...form,
+        chatMode: "existing",
+      }).query,
+    ).toEqual({
+      message: "Summarize status",
+      chatId: "chat-stale",
+    });
+    expect(buildCreateAutomationPayloadForSubmit(form)).toHaveProperty(
+      "description",
+      "",
+    );
+  });
+
   it("normalizes automation source files to display filenames", () => {
     const automation = {
       id: "sync_workspace_20260429_2146",
@@ -292,7 +336,7 @@ describe("AutomationModal", () => {
     expect(shouldShowAutomationExecutions("source")).toBe(false);
   });
 
-  it("renders three flat structured sections in the planned order", () => {
+  it("renders only Basic and Executions as flat structured sections", () => {
     const html = renderAutomationModal("zh-CN");
     const positions = AUTOMATION_FORM_SECTION_IDS.map((id) =>
       html.indexOf(`id="${id}"`),
@@ -300,84 +344,99 @@ describe("AutomationModal", () => {
 
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((left, right) => left - right));
-    expect(html.match(/class="automation-section-nav-link tw:/g)).toHaveLength(3);
+    expect(html.match(/class="automation-section-nav-link tw:/g)).toHaveLength(2);
+    expect(html).not.toContain("automation-section-query");
     expect(html).not.toContain("<fieldset");
   });
 
-  it("keeps basic fields, query parameters, and execution status in their assigned groups", () => {
+  it("keeps all core fields in Basic and hides empty optional fields", () => {
     const html = renderAutomationModal("zh-CN");
     const basicStart = html.indexOf(`id="${AUTOMATION_FORM_SECTION_IDS[0]}"`);
-    const queryStart = html.indexOf(`id="${AUTOMATION_FORM_SECTION_IDS[1]}"`);
     const executionsStart = html.indexOf(
-      `id="${AUTOMATION_FORM_SECTION_IDS[2]}"`,
+      `id="${AUTOMATION_FORM_SECTION_IDS[1]}"`,
     );
 
     [
       "automation-name-input",
-      "automation-cron-input",
+      "automation-message-input",
+      "automation-chat-mode-input",
       "automation-agent-input",
-      "automation-zone-input",
+      "automation-cron-field-0",
       "automation-runs-input",
-      "automation-description-input",
     ].forEach((id) => {
       const position = html.indexOf(`id="${id}"`);
       expect(position).toBeGreaterThan(basicStart);
-      expect(position).toBeLessThan(queryStart);
+      expect(position).toBeLessThan(executionsStart);
     });
 
     [
-      "automation-message-input",
       "automation-chat-input",
+      "automation-zone-input",
+      "automation-description-input",
       "automation-role-input",
       "automation-hidden-select",
       "automation-params-input",
     ].forEach((id) => {
-      const position = html.indexOf(`id="${id}"`);
-      expect(position).toBeGreaterThan(queryStart);
-      expect(position).toBeLessThan(executionsStart);
+      expect(html).not.toContain(`id="${id}"`);
     });
 
     expect(html.indexOf("执行记录")).toBeGreaterThan(executionsStart);
   });
 
-  it("lays out the basic section as paired two-column rows and keeps the query grid at three columns", () => {
+  it("orders the Basic fields as name, message, chat, agent, cron, and runs", () => {
     const html = renderAutomationModal("zh-CN");
 
-    // 基本属性使用 2 列网格容器，描述跨两列全宽；查询参数仍为 3 列网格
     expect(html).toContain("automation-basic-form-grid");
     expect(html).toContain("automation-basic-form-full-width");
-    const queryStart = html.indexOf(`id="${AUTOMATION_FORM_SECTION_IDS[1]}"`);
-    expect(html.indexOf("automation-form-grid", queryStart)).toBeGreaterThan(
-      queryStart,
-    );
 
-    // 字段渲染顺序：名称 → 智能体 → Cron 表达式 → 时区 → 剩余次数 → 描述
     const basicIds = [
       "automation-name-input",
+      "automation-message-input",
+      "automation-chat-mode-input",
       "automation-agent-input",
-      "automation-cron-input",
-      "automation-zone-input",
+      "automation-cron-field-0",
       "automation-runs-input",
-      "automation-description-input",
     ];
     const positions = basicIds.map((id) => html.indexOf(`id="${id}"`));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((left, right) => left - right));
 
-    // Cron 字段标签已本地化，不再使用硬编码文本
     expect(html).toContain("Cron 表达式");
+    expect(html).toContain("automation-chat-row");
+    expect(html).toMatch(/automation-agent-input/);
+    expect(html.match(/id="automation-cron-field-\d"/g)).toHaveLength(5);
+    ["分", "时", "日", "月", "周"].forEach((label) => {
+      expect(html).toContain(`<span>${label}</span>`);
+    });
+  });
+
+  it("splits a traditional cron expression into minute, hour, day, month, and weekday", () => {
+    expect(splitAutomationCronExpression("0 9 * * 1-5")).toEqual([
+      "0",
+      "9",
+      "*",
+      "*",
+      "1-5",
+    ]);
+    expect(splitAutomationCronExpression("0  9 * *")).toEqual([
+      "0",
+      "",
+      "9",
+      "*",
+      "*",
+    ]);
   });
 
   it("links content scrolling to the active automation anchor", () => {
-    const sectionTops = [120, 520, 980];
+    const sectionTops = [120, 980];
     expect(resolveActiveAutomationFormSection(sectionTops, 80, false)).toBe(
       AUTOMATION_FORM_SECTION_IDS[0],
     );
-    expect(resolveActiveAutomationFormSection(sectionTops, 600, false)).toBe(
+    expect(resolveActiveAutomationFormSection(sectionTops, 1000, false)).toBe(
       AUTOMATION_FORM_SECTION_IDS[1],
     );
     expect(resolveActiveAutomationFormSection(sectionTops, 600, true)).toBe(
-      AUTOMATION_FORM_SECTION_IDS[2],
+      AUTOMATION_FORM_SECTION_IDS[1],
     );
   });
 
@@ -433,20 +492,22 @@ describe("AutomationModal", () => {
     expect(html).toContain("停用");
     expect(html).not.toMatch(/\[小宅\]/);
 
-    // 第二行：智能体名(左) 与 cron(右) 分别落在独立 span 中
+    // 第二行：智能体名(左) 与可读 cron(右) 分别落在独立 span 中
     expect(html).toContain("automation-list-item-meta-worker");
     expect(html).toContain("automation-list-item-meta-cron");
     expect(html).toMatch(
-      /automation-list-item-meta-worker[^>]*>小宅</,
+      /automation-list-item-meta-worker[^>]*>[\s\S]*data-material-icon="smart_toy"[\s\S]*<span>小宅<\/span>/,
     );
     expect(html).toMatch(
-      /automation-list-item-meta-cron[^>]*>0 \*\/\d \* \* \*</,
+      /automation-list-item-meta-cron[^>]*>每 2 小时</,
     );
     // worker / cron 各自所在 span 的可见文本不应再含中点拼接
     expect(html).not.toMatch(/>小宅 · 0 \*\/\d \* \* \*</);
     expect(html).not.toMatch(/>小宅 · --</);
     expect(html).not.toContain("Next");
     expect(html).not.toContain("Last");
+    expect(html).toContain("automation-list-item-menu-trigger");
+    expect(html).toContain('data-material-icon="smart_toy"');
 
     // 缺值回退：cron 为空时显示 --
     expect(html).toMatch(/automation-list-item-meta-cron[^>]*>--/);
@@ -475,7 +536,48 @@ describe("AutomationModal", () => {
     expect(html).not.toMatch(/\[小宅\]/);
     expect(html).not.toContain("Next");
     expect(html).not.toContain("Last");
-    expect(html).toMatch(/automation-list-item-meta-worker[^>]*>小宅</);
-    expect(html).toMatch(/automation-list-item-meta-cron[^>]*>0 \*\/\d \* \* \*</);
+    expect(html).toMatch(
+      /automation-list-item-meta-worker[^>]*>[\s\S]*<span>小宅<\/span>/,
+    );
+    expect(html).toMatch(/automation-list-item-meta-cron[^>]*>Every 2 hours</);
+  });
+
+  it("builds a disabled duplicate while preserving its target and query", () => {
+    const payload = buildDuplicateAutomationPayload(
+      {
+        id: "team-report",
+        name: "团队日报",
+        description: "生成日报",
+        cron: "0 18 * * 1-5",
+        agentKey: "",
+        teamId: "team-a",
+        zoneId: "Asia/Shanghai",
+        remainingRuns: 3,
+        enabled: true,
+        query: {
+          message: "生成今天的日报",
+          role: "automation",
+          hidden: true,
+          params: { format: "brief" },
+        },
+      },
+      "团队日报 副本",
+    );
+
+    expect(payload).toEqual({
+      name: "团队日报 副本",
+      description: "生成日报",
+      cron: "0 18 * * 1-5",
+      teamId: "team-a",
+      zoneId: "Asia/Shanghai",
+      enabled: false,
+      remainingRuns: 3,
+      query: {
+        message: "生成今天的日报",
+        role: "automation",
+        hidden: true,
+        params: { format: "brief" },
+      },
+    });
   });
 });
