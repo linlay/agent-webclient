@@ -46,6 +46,7 @@ import {
   MaterialIcon,
   type MaterialIconName,
 } from "@/shared/ui/MaterialIcon";
+import { AgentIcon } from "@/shared/icons/agent";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
@@ -235,6 +236,46 @@ const AutomationFormSection: React.FC<{
   );
 };
 
+const AutomationAgentOption: React.FC<{
+  agent?: Agent | null;
+  fallbackKey?: string;
+  compact?: boolean;
+}> = ({ agent, fallbackKey = "", compact = false }) => {
+  const name = agent?.name?.trim() || agent?.key || fallbackKey || "";
+  const role = agent?.role?.trim() || "";
+  const iconSize = compact ? 16 : 20;
+  return (
+    <span className={`automation-agent-option${compact ? " is-compact" : ""}`}>
+      <AgentIcon
+        icon={agent?.icon}
+        type="agent"
+        props={{
+          icon: {
+            className: "automation-agent-option-icon",
+            width: iconSize,
+            height: iconSize,
+          },
+          avatar: {
+            className: "automation-agent-option-icon",
+            size: iconSize,
+            icon: <MaterialIcon name="smart_toy" />,
+          },
+        }}
+      />
+      {compact ? (
+        <span className="automation-agent-option-name">{name}</span>
+      ) : (
+        <span className="automation-agent-option-text">
+          <span className="automation-agent-option-name">{name}</span>
+          {role && (
+            <span className="automation-agent-option-role">{role}</span>
+          )}
+        </span>
+      )}
+    </span>
+  );
+};
+
 const COMMON_ZONE_OPTIONS = [
   "Asia/Shanghai",
   "UTC",
@@ -256,7 +297,7 @@ const COMMON_ZONE_OPTIONS = [
   "Australia/Sydney",
 ];
 
-const AUTOMATION_ROLE_OPTIONS = ["user", "assistant", "system"];
+const AUTOMATION_ROLE_OPTIONS = ["automation", "user", "assistant", "system"];
 
 function compactPayload<T extends Record<string, unknown>>(payload: T): T {
   const next = { ...payload };
@@ -457,8 +498,9 @@ function buildQuery(form: AutomationFormState): AutomationQueryRequest {
 export function buildCreateAutomationPayloadForSubmit(
   form: AutomationFormState,
 ): CreateAutomationRequest {
-  const payload = compactPayload({
+  return compactPayload({
     name: form.name.trim(),
+    description: form.description.trim(),
     cron: form.cron.trim(),
     agentKey: form.agentKey.trim(),
     zoneId: form.zoneId.trim(),
@@ -467,8 +509,7 @@ export function buildCreateAutomationPayloadForSubmit(
       ? Number(form.remainingRuns.trim())
       : undefined,
     query: buildQuery(form),
-  }) as Omit<CreateAutomationRequest, "description">;
-  return { ...payload, description: form.description.trim() };
+  }) as CreateAutomationRequest;
 }
 
 export function buildUpdateAutomationPayloadForSubmit(
@@ -699,21 +740,28 @@ export const AutomationModal: React.FC<{
   );
 
   const agentOptions = useMemo(() => {
-    const options = new Map<string, string>();
+    const options = new Map<
+      string,
+      { label: string; agent: Agent | null }
+    >();
     for (const agent of Array.isArray(agents) ? agents : []) {
       const key = String(agent?.key || "").trim();
       if (!key) continue;
       const name = String(agent?.name || key).trim() || key;
       const role = String(agent?.role || "").trim();
-      options.set(key, role ? `${name} · ${role}` : name);
+      options.set(key, {
+        label: role ? `${name} · ${role}` : name,
+        agent,
+      });
     }
     const currentAgentKey = form.agentKey.trim();
     if (currentAgentKey && !options.has(currentAgentKey)) {
-      options.set(currentAgentKey, currentAgentKey);
+      options.set(currentAgentKey, { label: currentAgentKey, agent: null });
     }
-    return Array.from(options.entries()).map(([value, label]) => ({
+    return Array.from(options.entries()).map(([value, item]) => ({
       value,
-      label,
+      label: item.label,
+      agent: item.agent,
     }));
   }, [agents, form.agentKey]);
 
@@ -1173,6 +1221,7 @@ export const AutomationModal: React.FC<{
       owner,
       chatId: automation.query.chatId,
       role: automation.query.role || "automation",
+      hidden: automation.query.hidden ?? true,
       params: automation.query.params,
     });
     message.success(t("automationConsole.message.runSuccess", { name: item.name || item.id }));
@@ -1644,10 +1693,9 @@ export const AutomationModal: React.FC<{
                 arrow={false}
               >
                 <UiButton
-                  className="automation-section-nav-icon-button ui-icon-hover-24"
+                  className="automation-section-nav-icon-button automation-section-nav-save"
                   size="sm"
                   variant="primary"
-                  iconOnly
                   onClick={() => {
                     if (editorMode === "source") {
                       void saveSource();
@@ -1673,6 +1721,7 @@ export const AutomationModal: React.FC<{
                   }
                 >
                   <MaterialIcon name="save" />
+                  <span>{t("automationConsole.action.saveChanges")}</span>
                 </UiButton>
               </Tooltip>
               {selectedSummary && (
@@ -1825,37 +1874,68 @@ export const AutomationModal: React.FC<{
                         },
                         ...agentOptions,
                       ]}
+                      optionRender={(option) => {
+                        const data = option.data as
+                          | {
+                              value: string;
+                              label: string;
+                              agent?: Agent | null;
+                            }
+                          | undefined;
+                        if (!data || !data.value) {
+                          return data?.label ?? "";
+                        }
+                        return (
+                          <AutomationAgentOption
+                            agent={data.agent ?? null}
+                            fallbackKey={data.value}
+                          />
+                        );
+                      }}
+                      labelRender={(option) => {
+                        const value = String(option?.value ?? "");
+                        if (!value) return option?.label ?? "";
+                        const agent = agentByKey.get(value);
+                        if (!agent) return option?.label ?? value;
+                        return (
+                          <AutomationAgentOption
+                            agent={agent}
+                            fallbackKey={value}
+                            compact
+                          />
+                        );
+                      }}
                     />
                   </div>
                   <div className="field-group automation-cron-field">
                     <div className="automation-cron-title-row">
                       <span>{t("automationConsole.field.cron")}</span>
-                      <Select
-                        className="automation-cron-preset-select"
-                        aria-label={t(
-                          "automationConsole.cronPreset.ariaLabel",
-                        )}
-                        style={{ width: 118 }}
-                        value={
-                          CRON_PRESETS.some(
-                            (preset) => preset.value === form.cron,
-                          )
-                            ? form.cron
-                            : ""
-                        }
-                        onChange={(value) => {
-                          if (value) updateForm({ cron: value });
+                      <Dropdown
+                        menu={{
+                          items: cronPresetOptions.map((option) => ({
+                            key: option.value,
+                            label: option.label,
+                          })),
+                          onClick: ({ key }) =>
+                            updateForm({ cron: String(key) }),
                         }}
-                        options={[
-                          {
-                            value: "",
-                            label: t(
-                              "automationConsole.cronPreset.placeholder",
-                            ),
-                          },
-                          ...cronPresetOptions,
-                        ]}
-                      />
+                        trigger={["click"]}
+                        placement="bottomRight"
+                      >
+                        <UiButton
+                          className="automation-cron-preset-trigger"
+                          size="sm"
+                          variant="ghost"
+                          aria-label={t(
+                            "automationConsole.cronPreset.ariaLabel",
+                          )}
+                        >
+                          <MaterialIcon name="bolt" />
+                          <span>
+                            {t("automationConsole.cronPreset.placeholder")}
+                          </span>
+                        </UiButton>
+                      </Dropdown>
                     </div>
                     <div className={AUTOMATION_CRON_CONTROL_CLASS_NAME}>
                       {cronFields.map((value, index) => (

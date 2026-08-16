@@ -42,24 +42,70 @@ jest.mock("antd", () => {
   return {
     Checkbox: ({ children, ...props }: any) =>
       React.createElement("label", null, React.createElement("input", { type: "checkbox", ...props }), children),
-    Dropdown: ({ children }: any) => React.createElement(React.Fragment, null, children),
-    Input,
-    Select: ({ options = [], showSearch, optionFilterProp, ...props }: any) =>
+    Dropdown: ({ children, menu }: any) =>
       React.createElement(
-        "select",
-        props,
-        options.map((option: any) =>
-          React.createElement(
-            "option",
-            { key: option.value, value: option.value },
-            option.label,
+        "div",
+        { className: "mock-dropdown" },
+        children,
+        Array.isArray(menu?.items)
+          ? menu.items.map((item: any, index: number) =>
+              React.createElement(
+                "div",
+                {
+                  key: item.key ?? index,
+                  "data-menu-key": item.key ?? item.type ?? "",
+                },
+                item.label,
+              ),
+            )
+          : null,
+      ),
+    Input,
+    Select: ({
+      options = [],
+      showSearch,
+      optionFilterProp,
+      optionRender,
+      labelRender,
+      ...props
+    }: any) =>
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(
+          "select",
+          props,
+          options.map((option: any) =>
+            React.createElement(
+              "option",
+              { key: option.value, value: option.value },
+              option.label,
+            ),
           ),
         ),
+        optionRender
+          ? React.createElement(
+              "div",
+              { className: "mock-select-options" },
+              options.map((option: any) =>
+                React.createElement(
+                  React.Fragment,
+                  { key: option.value },
+                  optionRender({ data: option }),
+                ),
+              ),
+            )
+          : null,
       ),
     Spin: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Tooltip: ({ children }: any) => React.createElement(React.Fragment, null, children),
   };
 });
+
+jest.mock("@/shared/icons/agent", () => ({
+  AgentIcon: ({ type }: { type: string }) =>
+    React.createElement("svg", { "data-agent-icon-type": type }),
+}));
 
 jest.mock("@/shared/data", () => ({
   createAutomation: jest.fn(),
@@ -207,7 +253,7 @@ describe("AutomationModal", () => {
     expect(html).toContain("执行官");
     expect(html).not.toContain("automation-zone-input");
     expect(html).toContain("automation-cron-control");
-    expect(html).toContain("automation-cron-preset-select");
+    expect(html).toContain("automation-cron-preset-trigger");
     expect(html).toContain("快捷选择");
     expect(html).toContain("新建对话");
     expect(html).toContain("添加选项");
@@ -216,6 +262,20 @@ describe("AutomationModal", () => {
     expect(html).not.toContain("automation-role-input");
     expect(html).toContain('aria-label="创建自动化"');
     expect(html).toContain('data-material-icon="smart_toy"');
+    // 吸顶导航与区块标题使用短词「属性 / 执行」
+    expect(html).toContain(">属性<");
+    expect(html).toContain(">执行<");
+    // 保存按钮：图标 + 保存
+    expect(html).toContain(">保存<");
+    // Agent 下拉选项携带图标渲染
+    expect(html).toContain('data-agent-icon-type="agent"');
+    // Quick Presets：点击即赋值的动作菜单，不再渲染为带选中态的 select
+    expect(html).not.toMatch(/class="automation-cron-preset-select"/);
+    expect(html).toContain("automation-cron-preset-trigger");
+    expect(html).toContain('data-menu-key="0 9 * * *"');
+    expect(html).toContain('data-menu-key="0 18 * * 1-5"');
+    expect(html).toContain('data-menu-key="*/5 * * * *"');
+    expect(html).toContain('data-menu-key="0 * * * *"');
   });
 
   it("renders the automation console in English", () => {
@@ -228,6 +288,14 @@ describe("AutomationModal", () => {
     expect(html).toContain("Start a new chat");
     expect(html).not.toContain("automation-team-input");
     expect(html).toContain('aria-label="Create automation"');
+    // 吸顶导航与区块标题使用短词 Properties / Executions
+    expect(html).toContain(">Properties<");
+    expect(html).toContain(">Executions<");
+    // 保存按钮：图标 + Save
+    expect(html).toContain(">Save<");
+    // Quick Presets：点击即赋值的动作菜单，不再是带选中态的 select
+    expect(html).toContain("Quick presets");
+    expect(html).not.toMatch(/class="automation-cron-preset-select"/);
   });
 
   it("builds create and update payloads without TeamID and with the selected role", () => {
@@ -303,9 +371,8 @@ describe("AutomationModal", () => {
       message: "Summarize status",
       chatId: "chat-stale",
     });
-    expect(buildCreateAutomationPayloadForSubmit(form)).toHaveProperty(
+    expect(buildCreateAutomationPayloadForSubmit(form)).not.toHaveProperty(
       "description",
-      "",
     );
   });
 
