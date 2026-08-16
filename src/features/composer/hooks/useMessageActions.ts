@@ -461,6 +461,23 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
       const isSessionActive = () =>
         activeQuerySessionRequestIdRef.current === session.requestId;
+      const promoteCanonicalNewChat = (nextChatId: string) => {
+        const normalizedChatId = toText(nextChatId);
+        if (
+          chatId ||
+          !normalizedChatId ||
+          newChatRouteNotified ||
+          !isSessionActive() ||
+          session.owner?.kind !== "agent"
+        ) {
+          return;
+        }
+        newChatRouteNotified = true;
+        notifyNewChatCreated({
+          chatId: normalizedChatId,
+          agentKey: session.owner.agentKey,
+        });
+      };
       const bindSessionIdentity = (event: AgentEvent) => {
         const nextChatId = toText(event.chatId);
         if (nextChatId) {
@@ -468,15 +485,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           chatQuerySessionIndexRef.current.set(nextChatId, session.requestId);
           if (session.snapshot && !session.snapshot.chatId) {
             session.snapshot.chatId = nextChatId;
-          }
-          if (!chatId && !newChatRouteNotified) {
-            newChatRouteNotified = true;
-            if (session.owner?.kind === "agent") {
-              notifyNewChatCreated({
-                chatId: nextChatId,
-                agentKey: session.owner.agentKey,
-              });
-            }
           }
         }
         const nextRunId = toText(event.runId);
@@ -608,6 +616,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
         if (isSessionActive()) {
           handleEvent(event);
+          promoteCanonicalNewChat(session.chatId);
           return;
         }
 
@@ -668,6 +677,32 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         session.chatId = accepted.chatId;
         session.runId = accepted.runId;
         session.owner = accepted.owner;
+        chatQuerySessionIndexRef.current.set(
+          accepted.chatId,
+          session.requestId,
+        );
+        if (session.snapshot && !session.snapshot.chatId) {
+          session.snapshot.chatId = accepted.chatId;
+        }
+        if (session.snapshot && !session.snapshot.runId) {
+          session.snapshot.runId = accepted.runId;
+        }
+        if (isSessionActive()) {
+          // `run.accepted` is the canonical identity boundary. Desktop may
+          // legitimately omit chatId/runId from later stream events, so the
+          // visible conversation must not depend on those fields being
+          // repeated by individual events.
+          dispatch({ type: "SET_CHAT_ID", chatId: accepted.chatId });
+          dispatch({ type: "SET_RUN_ID", runId: accepted.runId });
+          if (accepted.owner.kind === "agent") {
+            dispatch({
+              type: "SET_CHAT_AGENT_BY_ID",
+              chatId: accepted.chatId,
+              agentKey: accepted.owner.agentKey,
+            });
+          }
+          promoteCanonicalNewChat(accepted.chatId);
+        }
         const completion = await execution.completion;
         if (completion.error) {
           throw completion.error;

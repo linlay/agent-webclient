@@ -152,6 +152,55 @@ describe("useMessageActions temporary pin", () => {
     );
   });
 
+  it("binds a new chat from canonical acceptance when stream events omit identity", async () => {
+    const state = createInitialState();
+    state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
+    const dispatch = jest.fn();
+    const querySessionsRef = { current: new Map() };
+    const chatQuerySessionIndexRef = { current: new Map() };
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef,
+      chatQuerySessionIndexRef,
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    let actions: ReturnType<typeof useMessageActions> | null = null;
+    const Harness = () => {
+      actions = useMessageActions({ onAgentEvent: jest.fn() });
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.sendMessage(
+      "hello",
+      [],
+      [],
+      {},
+      undefined,
+      undefined,
+      "",
+      "agent-coder",
+    );
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CHAT_ID",
+      chatId: "chat_1",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_RUN_ID",
+      runId: "run_1",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CHAT_AGENT_BY_ID",
+      chatId: "chat_1",
+      agentKey: "agent-coder",
+    });
+    expect(chatQuerySessionIndexRef.current.get("chat_1")).toBeTruthy();
+  });
+
   it("blocks direct query sends when the current main chat has an active run", async () => {
     const state = createInitialState();
     state.chatId = "chat_1";
