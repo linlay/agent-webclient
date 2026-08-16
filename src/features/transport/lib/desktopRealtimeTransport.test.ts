@@ -68,6 +68,25 @@ async function flush(): Promise<void> {
 }
 
 describe("DesktopRealtimeTransport", () => {
+  it("retries a transient surface registration race without caching the failure", async () => {
+    const fake = fakeBridge();
+    (fake.bridge.hello as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: false,
+        error: {
+          code: "surface_unavailable",
+          message: "sender is not registered yet",
+        },
+      })
+      .mockResolvedValueOnce(hello());
+    const session = new DesktopBridgeSession(fake.bridge);
+    await expect(session.requireCapability("run.query")).resolves.toMatchObject({
+      version: AGENT_WEBCLIENT_BRIDGE_VERSION,
+    });
+    expect(fake.bridge.hello).toHaveBeenCalledTimes(2);
+    session.dispose();
+  });
+
   it("preserves a version mismatch as a fatal bridge error", async () => {
     const fake = fakeBridge();
     (fake.bridge.hello as jest.Mock).mockResolvedValueOnce({

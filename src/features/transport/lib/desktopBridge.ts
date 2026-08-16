@@ -28,6 +28,12 @@ declare global {
 type MessageListener = (message: AgentWebclientRealtimeMessage) => void;
 type FatalListener = (error: RealtimeTransportError | null) => void;
 
+const SURFACE_HELLO_RETRY_DELAYS_MS = [25, 50, 100, 200, 400] as const;
+
+function waitForSurfaceRegistration(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -147,26 +153,44 @@ export class DesktopBridgeSession {
     for (const listener of this.fatalListeners) listener(error);
   }
 
+  private async requestHello(): Promise<AgentWebclientBridgeHello> {
+    for (let attempt = 0; ; attempt += 1) {
+      this.assertActive();
+      const result = await this.realtime.hello();
+      if (isFailure(result)) {
+        const error = fromDesktopBridgeError(result.error);
+        const retryDelay = SURFACE_HELLO_RETRY_DELAYS_MS[attempt];
+        if (error.code === "surface_unavailable" && retryDelay !== undefined) {
+          await waitForSurfaceRegistration(retryDelay);
+          continue;
+        }
+        if (error.code === "version_mismatch") this.setFatal(error);
+        throw error;
+      }
+      if (result.version !== AGENT_WEBCLIENT_BRIDGE_VERSION) {
+        const error = new RealtimeTransportError(
+          "version_mismatch",
+          `Desktop bridge version ${String(result.version)} is incompatible`,
+        );
+        this.setFatal(error);
+        throw error;
+      }
+      this.setStatus(connectionStatus(result.connection.phase));
+      return result;
+    }
+  }
+
   async hello(): Promise<AgentWebclientBridgeHello> {
     this.assertActive();
     this.ensureBridgeListener();
     if (!this.helloPromise) {
-      this.helloPromise = this.realtime.hello().then((result) => {
-        if (isFailure(result)) {
-          const error = fromDesktopBridgeError(result.error);
-          if (error.code === "version_mismatch") this.setFatal(error);
-          throw error;
+      const pending = this.requestHello();
+      this.helloPromise = pending;
+      void pending.catch((error) => {
+        if (this.helloPromise === pending && this.fatalError === null) {
+          this.helloPromise = null;
         }
-        if (result.version !== AGENT_WEBCLIENT_BRIDGE_VERSION) {
-          const error = new RealtimeTransportError(
-            "version_mismatch",
-            `Desktop bridge version ${String(result.version)} is incompatible`,
-          );
-          this.setFatal(error);
-          throw error;
-        }
-        this.setStatus(connectionStatus(result.connection.phase));
-        return result;
+        return error;
       });
     }
     return this.helloPromise;

@@ -457,6 +457,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       }
       activeQuerySessionRequestIdRef.current = requestId;
       let newChatRouteNotified = false;
+      let queryAccepted = false;
 
       const isSessionActive = () =>
         activeQuerySessionRequestIdRef.current === session.requestId;
@@ -663,6 +664,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           onEvent: sessionHandleEvent,
         });
         const accepted = await execution.accepted;
+        queryAccepted = true;
         session.chatId = accepted.chatId;
         session.runId = accepted.runId;
         session.owner = accepted.owner;
@@ -681,6 +683,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             }
           }
           if (isSessionActive()) {
+            if (!queryAccepted) {
+              dispatch({ type: "SET_COMPOSER_DRAFT", draft: cleanMessage });
+            }
             dispatch({
               type: "APPEND_DEBUG",
               line: `[send error] ${err.message}`,

@@ -263,6 +263,10 @@ describe("useMessageActions temporary pin", () => {
       type: "SET_EDITING_MODE",
       enabled: false,
     });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_COMPOSER_DRAFT",
+      draft: "edit",
+    });
   });
 });
 
