@@ -368,9 +368,32 @@ const OverviewSection: React.FC<{
   );
 };
 
-export const OverviewContent: React.FC = () => {
+export interface OverviewContentViewProps {
+  state: Pick<
+    ReturnType<typeof useAppState>,
+    | "artifacts"
+    | "chatId"
+    | "currentChatActiveRun"
+    | "fileChanges"
+    | "plan"
+    | "planRuntimeByTaskId"
+    | "rightSidebarOpen"
+    | "streaming"
+    | "taskItemsById"
+    | "timelineNodes"
+  >;
+  agentKey?: string;
+  isCoder?: boolean;
+  teamChat?: boolean;
+}
+
+export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
+  state,
+  agentKey = "",
+  isCoder = false,
+  teamChat = false,
+}) => {
   const openTarget = useOpenTarget();
-  const state = useAppState();
   const { t } = useI18n();
   const [fileChangeAnimation, setFileChangeAnimation] = React.useState<{
     version: number;
@@ -409,19 +432,6 @@ export const OverviewContent: React.FC = () => {
       ),
     [fileChanges],
   );
-  const currentWorker = React.useMemo(
-    () => resolveCurrentWorkerSummary(state),
-    [state],
-  );
-  const isCoder = React.useMemo(() => {
-    if (!currentWorker || currentWorker.type !== "agent") return false;
-    return (
-      String(
-        (currentWorker.raw as Record<string, unknown> | null)?.["mode"] || "",
-      ).toUpperCase() === "CODER"
-    );
-  }, [currentWorker]);
-
   const [now, setNow] = React.useState(() => Date.now());
 
   const isConversationActive =
@@ -537,7 +547,7 @@ export const OverviewContent: React.FC = () => {
           chatId: state.chatId,
           runId: item.runId,
           relativePath: item.filePath,
-          agentKey: currentWorker?.type === "agent" ? currentWorker.sourceId : undefined,
+          agentKey,
           title: displayFileName(item.filePath),
         });
         return;
@@ -557,7 +567,7 @@ export const OverviewContent: React.FC = () => {
         loadFileHistory(item);
       }
     },
-    [currentWorker, expandedFileChangeKeys, loadFileHistory, openTarget, state.chatId],
+    [agentKey, expandedFileChangeKeys, loadFileHistory, openTarget, state.chatId],
   );
 
   const overviewSections: {
@@ -766,6 +776,7 @@ export const OverviewContent: React.FC = () => {
                     density="compact"
                     subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
                     activateMode="alwaysOpen"
+                    surfaceContext={{ chatId: state.chatId, agentKey, teamChat }}
                     style={{ width: "100%" }}
                   />
                 </li>
@@ -784,6 +795,33 @@ export const OverviewContent: React.FC = () => {
         <React.Fragment key={section.key}>{section.node}</React.Fragment>
       ))}
     </div>
+  );
+};
+
+export const OverviewContent: React.FC = () => {
+  const state = useAppState();
+  const currentWorker = React.useMemo(
+    () => resolveCurrentWorkerSummary(state),
+    [state],
+  );
+  const isCoder = React.useMemo(() => {
+    if (!currentWorker || currentWorker.type !== "agent") return false;
+    return String(
+      (currentWorker.raw as Record<string, unknown> | null)?.["mode"] || "",
+    ).toUpperCase() === "CODER";
+  }, [currentWorker]);
+  const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team" ||
+      String(currentChat?.teamId || "").trim(),
+  );
+  return (
+    <OverviewContentView
+      state={state}
+      agentKey={currentWorker?.type === "agent" ? currentWorker.sourceId : ""}
+      isCoder={isCoder}
+      teamChat={teamChat}
+    />
   );
 };
 

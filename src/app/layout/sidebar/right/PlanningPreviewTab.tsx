@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppState } from "@/app/state/AppContext";
+import type { TimelineNode } from "@/app/state/types";
 import { MarkdownContent } from "@/shared/ui/MarkdownContent";
 import { t } from "@/shared/i18n";
 
@@ -16,6 +17,34 @@ const PLANNING_PREVIEW_BODY_CLASS_NAME =
 
 const PLANNING_PREVIEW_EMPTY_CLASS_NAME =
   "right-sidebar-empty tw:rounded-lg tw:border tw:border-dashed tw:border-line-soft tw:px-3 tw:py-3.5 tw:text-center tw:text-xs tw:text-ink-muted";
+
+export const PlanningPreviewContent: React.FC<{
+  node?: TimelineNode | null;
+  chatId: string;
+  teamChat?: boolean;
+}> = ({ node, chatId, teamChat = false }) => {
+  if (!node) {
+    return (
+      <div className={PLANNING_PREVIEW_CLASS_NAME}>
+        <div className={PLANNING_PREVIEW_EMPTY_CLASS_NAME}>
+          {t("rightSidebar.planningPreview.empty")}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={PLANNING_PREVIEW_CLASS_NAME}>
+      <div className={PLANNING_PREVIEW_BODY_CLASS_NAME}>
+        <MarkdownContent
+          content={node.text || ""}
+          chatId={chatId}
+          teamChat={teamChat}
+        />
+      </div>
+    </div>
+  );
+};
 
 export const PlanningPreviewTab: React.FC<PlanningPreviewTabProps> = ({
   planningId,
@@ -35,26 +64,11 @@ export const PlanningPreviewTab: React.FC<PlanningPreviewTabProps> = ({
     currentChat?.owner?.kind === "orchestrated-team"
     || String(currentChat?.teamId || "").trim(),
   );
-
-  if (!node) {
-    return (
-      <div className={PLANNING_PREVIEW_CLASS_NAME}>
-        <div className={PLANNING_PREVIEW_EMPTY_CLASS_NAME}>
-          {t("rightSidebar.planningPreview.empty")}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={PLANNING_PREVIEW_CLASS_NAME}>
-      <div className={PLANNING_PREVIEW_BODY_CLASS_NAME}>
-        <MarkdownContent
-          content={node.text || ""}
-          chatId={state.chatId}
-          teamChat={teamChat}
-        />
-      </div>
-    </div>
+    <PlanningPreviewContent
+      node={node}
+      chatId={state.chatId}
+      teamChat={teamChat}
+    />
   );
 };

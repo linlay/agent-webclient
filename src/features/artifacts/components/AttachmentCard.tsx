@@ -34,6 +34,11 @@ interface AttachmentCardProps {
   style?: React.CSSProperties;
   /** 点击激活行为：toggle 为切换侧边栏开关，alwaysOpen 始终打开预览 */
   activateMode?: "toggle" | "alwaysOpen";
+  surfaceContext?: {
+    chatId: string;
+    agentKey?: string;
+    teamChat?: boolean;
+  };
 }
 
 export const AttachmentCard: React.FC<AttachmentCardProps> = ({
@@ -50,19 +55,21 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   removeLabel,
   style,
   activateMode = "toggle",
+  surfaceContext,
 }) => {
   const { t } = useI18n();
   const openTarget = useOpenTarget();
   const dispatch = useAppDispatch();
   const appState = useAppState();
-  const currentChat = appState.chats?.find((chat) => chat.chatId === appState.chatId);
-  const teamChat = Boolean(
+  const chatId = String(surfaceContext?.chatId ?? appState.chatId ?? "").trim();
+  const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
+  const teamChat = surfaceContext?.teamChat ?? Boolean(
     currentChat?.owner?.kind === "orchestrated-team"
     || String(currentChat?.teamId || "").trim(),
   );
   const attachmentKind = getAttachmentKind(attachment);
   const sourceUrl = getAttachmentUrl(attachment);
-  const authenticatedSource = useAuthenticatedResourceUrl(sourceUrl, appState.chatId, { teamChat });
+  const authenticatedSource = useAuthenticatedResourceUrl(sourceUrl, chatId, { teamChat });
   const downloadUrl = getAttachmentDownloadUrl(attachment);
   const preview = React.useMemo(
     () => buildAttachmentPreviewState(attachment),
@@ -114,14 +121,14 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     }
 
     setDownloading(true);
-    void downloadArtifactResource(downloadUrl, attachment.name, appState.chatId, undefined, teamChat)
+    void downloadArtifactResource(downloadUrl, attachment.name, chatId, undefined, teamChat)
       .catch((error: unknown) => {
         console.error("Attachment download failed", error);
       })
       .finally(() => {
         setDownloading(false);
       });
-  }, [appState.chatId, attachment.name, downloadUrl, downloading, teamChat]);
+  }, [attachment.name, chatId, downloadUrl, downloading, teamChat]);
 
   const handleActivate = React.useCallback(() => {
     if (!canActivate) {
@@ -133,7 +140,8 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
           version: 1,
           kind: "artifact",
           artifactId,
-          chatId: appState.chatId,
+          chatId,
+          agentKey: surfaceContext?.agentKey,
           preview,
           toggle: activateMode === "toggle",
         });
@@ -142,7 +150,8 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
           version: 1,
           kind: "reference",
           referenceId: attachment.id,
-          chatId: appState.chatId,
+          chatId,
+          agentKey: surfaceContext?.agentKey,
           preview,
           toggle: activateMode === "toggle",
         });
@@ -153,7 +162,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     }
 
     triggerDownload();
-  }, [activateMode, appState.chatId, artifactId, attachment.id, canActivate, dispatch, openTarget, preview, triggerDownload]);
+  }, [activateMode, artifactId, attachment.id, canActivate, chatId, dispatch, openTarget, preview, surfaceContext?.agentKey, triggerDownload]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,

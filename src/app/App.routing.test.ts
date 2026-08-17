@@ -74,9 +74,14 @@ jest.mock("./pages/terminal", () => ({
 }));
 
 jest.mock("./pages/surfaces", () => ({
-  ChatSurfacePage: () => null,
-  FileSurfacePage: () => null,
-  WebSurfacePage: () => null,
+  BtwViewPage: () => null,
+  DebugViewPage: () => null,
+  FileViewPage: () => null,
+  OverviewViewPage: () => null,
+  PlanningViewPage: () => null,
+  ResourceViewPage: () => null,
+  SourceViewPage: () => null,
+  WebViewPage: () => null,
 }));
 
 jest.mock("./pages/history", () => ({
@@ -117,13 +122,12 @@ describe("App routing", () => {
         "/mcp-servers/:serverKey",
         "/skills",
         "/skills/:skillKey",
-        "/overview/:agentKey",
-        "/debug/:agentKey",
-        "/btw/:agentKey",
-        "/source-view/:agentKey",
-        "/planning-view/:agentKey",
-        "/artifact-view/:agentKey",
-        "/reference-view/:agentKey",
+        "/overview/:chatId",
+        "/debug/:chatId",
+        "/btw/:chatId",
+        "/source-view/:sourceId",
+        "/planning-view/:planningId",
+        "/resource-view/:agentKey",
         "/file-view/:agentKey",
         "/web-view",
         "/history",

@@ -62,6 +62,11 @@ interface AttachmentPreviewPanelProps {
   preview: AttachmentPreviewState;
   showLineNumbers?: boolean;
   fullscreenRequest?: number;
+  surfaceContext?: {
+    chatId: string;
+    agentKey?: string;
+    teamChat?: boolean;
+  };
 }
 
 export interface TextPreviewLine {
@@ -126,11 +131,12 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   preview,
   showLineNumbers = false,
   fullscreenRequest,
+  surfaceContext,
 }) => {
   const appState = useAppState();
-  const { chatId } = appState;
+  const chatId = String(surfaceContext?.chatId ?? appState.chatId ?? "").trim();
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
-  const teamChat = Boolean(
+  const teamChat = surfaceContext?.teamChat ?? Boolean(
     currentChat?.owner?.kind === "orchestrated-team"
     || String(currentChat?.teamId || "").trim(),
   );
@@ -143,7 +149,17 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const [mediaError, setMediaError] = React.useState("");
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
-  const workspaceFileRequest = preview.workspaceFile;
+  const workspaceFileRequest = React.useMemo(
+    () => preview.workspaceFile
+      ? {
+          ...preview.workspaceFile,
+          agentKey: String(
+            surfaceContext?.agentKey || preview.workspaceFile.agentKey || "",
+          ).trim(),
+        }
+      : undefined,
+    [preview.workspaceFile, surfaceContext?.agentKey],
+  );
   const workspaceFileResponse =
     workspaceFileRequest &&
     workspaceFile?.agentKey === workspaceFileRequest.agentKey &&

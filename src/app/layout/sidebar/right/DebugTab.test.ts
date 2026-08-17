@@ -208,13 +208,13 @@ describe("buildDebugEventGroups", () => {
 				{ agentKey: "demo-agent", chatId: "chat_1" },
 				"?lang=en&theme=light&chatId=old&runId=old-run",
 			),
-		).toBe("/overview/demo-agent?lang=en&theme=light&chatId=chat_1");
+		).toBe("/overview/chat_1?lang=en&theme=light");
 		expect(
 			buildDebugChatRouteUrl(
 				"debug",
 				{ agentKey: "demo-agent", chatId: "chat_1" },
 			),
-		).toBe("/debug/demo-agent?chatId=chat_1");
+		).toBe("/debug/chat_1");
 		expect(
 			buildDebugChatRouteUrl(
 				"terminal",
@@ -247,8 +247,8 @@ describe("buildDebugEventGroups", () => {
 		expect(targets.map((target) => target.href)).toEqual([
 			"/agent/fallback-agent?theme=dark&chatId=chat_1",
 			"/copilot/fallback-agent?theme=dark&chatId=chat_1",
-			"/overview/fallback-agent?theme=dark&chatId=chat_1",
-			"/debug/fallback-agent?theme=dark&chatId=chat_1",
+			"/overview/chat_1?theme=dark",
+			"/debug/chat_1?theme=dark",
 			"/terminal/fallback-agent?theme=dark&terminalKey=main",
 			"/share/share_public-1",
 		]);

@@ -22,18 +22,9 @@ import { resolveRunOwner } from '@/features/runs/lib/runOwner';
 import { resolveRunEditingMode } from '@/features/runs/lib/editingMode';
 import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
 import {
-  createReplayState,
-  reconcileReplayAwaiting,
-  replayEvent,
-  setReplayArtifacts,
-  setReplayPlan,
-} from '@/features/conversation/lib/conversationReplay';
-import {
   buildLoadedChatUsageSnapshot,
-  normalizeChatArtifactItems,
-  normalizeLoadedChatEvents,
-  normalizeChatPlan,
 } from '@/features/conversation/lib/conversationPayload';
+import { buildChatReplayProjection } from '@/features/conversation/lib/chatReplayProjection';
 import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/runs/lib/runControlEvents';
 
 /**
@@ -405,10 +396,11 @@ export function useConversationActions() {
         if (seq !== loadSeqRef.current) return;
 
         const chatData = response.data as Record<string, unknown>;
-        const chatArtifacts = normalizeChatArtifactItems(chatData.artifact);
         const usageSnapshot = buildLoadedChatUsageSnapshot(chatId, chatData);
-        const hasPlanSnapshot = Object.prototype.hasOwnProperty.call(chatData, 'plan');
-        const chatPlan = normalizeChatPlan(chatData.plan);
+        const replayProjection = buildChatReplayProjection(chatId, chatData);
+        const rs = replayProjection.state;
+        const events = replayProjection.events;
+        const awaitingReconciliation = replayProjection.awaitingReconciliation;
         const activeRun = isObjectRecord(chatData.activeRun)
           ? chatData.activeRun
           : null;
@@ -437,10 +429,6 @@ export function useConversationActions() {
             downvotedRunKeys.add(runId);
           }
         }
-
-        /* Replay events into a LOCAL MUTABLE state to avoid React batching issues */
-        const rawEvents = Array.isArray(chatData?.events) ? chatData.events : [];
-        const events = normalizeLoadedChatEvents(rawEvents);
         if (currentChatActiveRun) {
           const restoredEditingMode = resolveRunEditingMode({
             runId: String(currentChatActiveRun.runId || '').trim(),
@@ -454,34 +442,12 @@ export function useConversationActions() {
             };
           }
         }
-        if (events.length !== rawEvents.length) {
+        if (events.length !== replayProjection.rawEventCount) {
           dispatch({
             type: 'APPEND_DEBUG',
             line: '[time_contract_violation] ignored malformed /api/chat replay event timestamp',
           });
         }
-        const rs = createReplayState();
-        rs.chatId = chatId;
-
-        for (const evt of events) {
-          if (seq !== loadSeqRef.current) return;
-          if (evt?.chatId && String(evt.chatId) !== String(chatId)) continue;
-          replayEvent(rs, evt);
-        }
-
-        const awaitingReconciliation = reconcileReplayAwaiting(rs, chatData.awaiting);
-
-        if (chatArtifacts !== undefined) {
-          setReplayArtifacts(rs, chatArtifacts);
-        }
-
-        if (hasPlanSnapshot && chatPlan !== undefined) {
-          setReplayPlan(rs, chatPlan, {
-            resetRuntime: !chatPlan
-              || Boolean(rs.plan?.planId && chatPlan.planId && rs.plan.planId !== chatPlan.planId),
-          });
-        }
-
         flushSync(() => {
           applyLoadedChatState(chatId);
 

@@ -1320,6 +1320,8 @@ export const enUSMessages = {
   "platformError.code.forbidden": "You do not have permission to perform this action.",
   "platformError.code.internal_error": "The service hit an internal error. Please try again later.",
   "platformError.code.invalid_request": "The request is invalid and cannot be processed.",
+  "surface.notFound": "The requested view target was not found.",
+  "surface.loading": "Loading…",
   "platformError.code.provider_auth_failed": "Model service authentication failed. Contact an administrator to check the API key.",
   "platformError.code.provider_bad_response": "The model service returned an invalid response. Please try again later.",
   "platformError.code.provider_content_filter": "The model service rejected this content. Adjust the input and try again.",

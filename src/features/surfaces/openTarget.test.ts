@@ -7,21 +7,19 @@ import {
 import { buildSurfaceRoute, parseSurfaceRoute } from "@/features/surfaces/surfaceRoutes";
 
 describe("canonical independent Surface targets", () => {
-  it("keeps agent identity in the path and omits runId from chat-wide views", () => {
+  it("uses chat identity in chat-wide view paths and omits stale run identity", () => {
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "overview",
       chatId: "chat/a",
-      agentKey: "agent one",
     }, "?lang=en&theme=light&runId=stale&desktopAuthContext=secret")).toBe(
-      "/overview/agent%20one?lang=en&theme=light&chatId=chat%2Fa",
+      "/overview/chat%2Fa?lang=en&theme=light",
     );
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "debug",
       chatId: "chat-1",
-      agentKey: "agent-1",
-    })).toBe("/debug/agent-1?chatId=chat-1");
+    })).toBe("/debug/chat-1");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "terminal",
@@ -29,14 +27,14 @@ describe("canonical independent Surface targets", () => {
     })).toBe("/terminal/agent-1?terminalKey=main");
   });
 
-  it("builds every stable content identity without preview payloads", () => {
+  it("builds every stable content identity", () => {
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "btw",
       agentKey: "agent-1",
       chatId: "chat-1",
       btwId: "btw-1",
-    })).toBe("/btw/agent-1?chatId=chat-1&btwId=btw-1");
+    })).toBe("/btw/chat-1?btwId=btw-1");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "source",
@@ -44,28 +42,41 @@ describe("canonical independent Surface targets", () => {
       chatId: "chat-1",
       publishId: "publish-1",
       sourceId: "source-1",
-    })).toBe("/source-view/agent-1?chatId=chat-1&publishId=publish-1&sourceId=source-1");
+      chunkId: "chunk-1",
+    })).toBe("/source-view/source-1?chatId=chat-1&chunkId=chunk-1");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "planning",
       agentKey: "agent-1",
       chatId: "chat-1",
       planningId: "run-1_planning_1",
-    })).toBe("/planning-view/agent-1?chatId=chat-1&planningId=run-1_planning_1");
+    })).toBe("/planning-view/run-1_planning_1?chatId=chat-1");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "artifact",
       agentKey: "agent-1",
       chatId: "chat-1",
       artifactId: "artifact-1",
-    })).toBe("/artifact-view/agent-1?chatId=chat-1&artifactId=artifact-1");
+      preview: {
+        name: "artifact.txt",
+        url: "artifacts/run-1/artifact.txt",
+        downloadUrl: "",
+        kind: "text",
+      },
+    })).toBe("/resource-view/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Fartifact.txt");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "reference",
       agentKey: "agent-1",
       chatId: "chat-1",
       referenceId: "reference-1",
-    })).toBe("/reference-view/agent-1?chatId=chat-1&referenceId=reference-1");
+      preview: {
+        name: "reference.pdf",
+        url: "/resources/reference.pdf",
+        downloadUrl: "",
+        kind: "pdf",
+      },
+    })).toBe("/resource-view/agent-1?chatId=chat-1&file=%2Fresources%2Freference.pdf");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "file",
@@ -93,7 +104,10 @@ describe("canonical independent Surface targets", () => {
   });
 
   it("requires canonical identities and never falls back to query agentKey", () => {
-    expect(buildStandaloneOpenTargetUrl({ version: 1, kind: "debug", chatId: "chat-1" })).toBe("");
+    expect(buildStandaloneOpenTargetUrl({ version: 1, kind: "debug", chatId: "chat-1" })).toBe(
+      "/debug/chat-1",
+    );
+    expect(buildStandaloneOpenTargetUrl({ version: 1, kind: "debug", chatId: "" })).toBe("");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "planning",
@@ -106,7 +120,20 @@ describe("canonical independent Surface targets", () => {
       kind: "reference",
       agentKey: "agent-1",
       chatId: "chat-1",
-      referenceId: "",
+      referenceId: "reference-1",
+    })).toBe("");
+    expect(buildStandaloneOpenTargetUrl({
+      version: 1,
+      kind: "artifact",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      artifactId: "artifact-1",
+      preview: {
+        name: "external.txt",
+        url: "https://example.com/external.txt",
+        downloadUrl: "https://example.com/external.txt",
+        kind: "text",
+      },
     })).toBe("");
   });
 
@@ -119,7 +146,7 @@ describe("canonical independent Surface targets", () => {
     })).toMatchObject({
       kind: "webclient",
       module: "overview",
-      route: "/overview/agent-1?chatId=chat-1",
+      route: "/overview/chat-1",
       context: { chatId: "chat-1", agentKey: "agent-1" },
     });
     expect(buildDesktopWorkPanelDescriptor({
@@ -147,6 +174,40 @@ describe("canonical independent Surface targets", () => {
       chatId: "chat-1",
       planningId: "planning-1",
     })).toMatchObject({ module: "planning", context: { planningId: "planning-1" } });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
+      kind: "artifact",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      artifactId: "artifact-1",
+      preview: {
+        name: "artifact.txt",
+        url: "artifacts/run-1/artifact.txt",
+        downloadUrl: "",
+        kind: "text",
+      },
+    })).toMatchObject({
+      module: "artifact",
+      route: "/resource-view/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Fartifact.txt",
+      context: { agentKey: "agent-1", chatId: "chat-1", artifactId: "artifact-1" },
+    });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
+      kind: "reference",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      referenceId: "reference-1",
+      preview: {
+        name: "reference.pdf",
+        url: "references/reference.pdf",
+        downloadUrl: "",
+        kind: "pdf",
+      },
+    })).toMatchObject({
+      module: "reference",
+      route: "/resource-view/agent-1?chatId=chat-1&file=references%2Freference.pdf",
+      context: { agentKey: "agent-1", chatId: "chat-1", referenceId: "reference-1" },
+    });
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
       kind: "web",
@@ -205,13 +266,12 @@ describe("canonical independent Surface targets", () => {
 
   it("round-trips every canonical route through the strict parser", () => {
     const intents = [
-      { kind: "overview", agentKey: "agent one", chatId: "chat-1" },
-      { kind: "debug", agentKey: "agent-1", chatId: "chat-1" },
-      { kind: "btw", agentKey: "agent-1", chatId: "chat-1", btwId: "btw-1" },
-      { kind: "source", agentKey: "agent-1", chatId: "chat-1", btwId: "btw-1", publishId: "pub-1", sourceId: "src-1" },
-      { kind: "planning", agentKey: "agent-1", chatId: "chat-1", planningId: "plan-1" },
-      { kind: "artifact", agentKey: "agent-1", chatId: "chat-1", artifactId: "art-1" },
-      { kind: "reference", agentKey: "agent-1", chatId: "chat-1", referenceId: "ref-1" },
+      { kind: "overview", chatId: "chat-1" },
+      { kind: "debug", chatId: "chat-1" },
+      { kind: "btw", chatId: "chat-1", btwId: "btw-1" },
+      { kind: "source", chatId: "chat-1", sourceId: "src-1", chunkId: "chunk-1" },
+      { kind: "planning", chatId: "chat-1", planningId: "plan-1" },
+      { kind: "resource", agentKey: "agent-1", chatId: "chat-1", file: "/resources/art-1.txt" },
       { kind: "file", agentKey: "agent-1", path: "src/app.ts", line: 4 },
       { kind: "project", agentKey: "agent-1", chatId: "chat-1", runId: "run-1", path: "src/app.ts", view: "diff" },
       { kind: "terminal", agentKey: "agent-1", terminalKey: "main" },
@@ -231,5 +291,7 @@ describe("canonical independent Surface targets", () => {
     expect(parseSurfaceRoute("/debug", "?agentKey=agent-1&chatId=chat-1")).toBeNull();
     expect(parseSurfaceRoute("/overview", "?view=planning&nodeId=plan-1")).toBeNull();
     expect(parseSurfaceRoute("/agent", "?agentKey=agent-1&history=1")).toBeNull();
+    expect(parseSurfaceRoute("/artifact-view/agent-1", "?chatId=chat-1&artifactId=art-1")).toBeNull();
+    expect(parseSurfaceRoute("/reference-view/agent-1", "?chatId=chat-1&referenceId=ref-1")).toBeNull();
   });
 });

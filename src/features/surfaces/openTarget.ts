@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { TimelineSource } from "@/app/state/types";
+import { classifyResourceUrl } from "@/shared/data";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import type { WorkPanelItemDescriptor } from "@/features/transport/contracts/generated/agentWebclientBridge";
@@ -23,6 +24,7 @@ export type OpenTargetIntent =
       chatId: string;
       publishId: string;
       sourceId: string;
+      chunkId?: string;
       btwId?: string;
       source?: TimelineSource;
       title?: string;
@@ -68,32 +70,58 @@ function usesAgentIdentity(intent: OpenTargetIntent): intent is OpenTargetIntent
   return intent.kind !== "web" && intent.kind !== "history";
 }
 
+function resourceRouteIntent(input: {
+  agentKey: string;
+  chatId: string;
+  file: string;
+}): SurfaceRouteIntent | null {
+  const file = clean(input.file);
+  const classification = classifyResourceUrl(file, clean(input.chatId));
+  return classification.kind === "chat" || classification.kind === "absolute"
+    ? {
+        kind: "resource",
+        agentKey: input.agentKey,
+        chatId: input.chatId,
+        file,
+      }
+    : null;
+}
+
 function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteIntent | null {
   if (intent.kind === "web") return { kind: "web", url: intent.url, title: intent.title };
   if (intent.kind === "history") return { kind: "history" };
+  if (intent.kind === "overview" || intent.kind === "debug") {
+    return { kind: intent.kind, chatId: intent.chatId };
+  }
+  if (intent.kind === "btw") {
+    return { kind: "btw", chatId: intent.chatId, btwId: intent.btwId };
+  }
+  if (intent.kind === "source") {
+    return {
+      kind: "source",
+      chatId: intent.chatId,
+      sourceId: intent.sourceId,
+      chunkId: intent.chunkId,
+    };
+  }
+  if (intent.kind === "planning") {
+    return { kind: "planning", chatId: intent.chatId, planningId: intent.planningId };
+  }
   const agentKey = clean(intent.agentKey);
   if (!agentKey) return null;
   switch (intent.kind) {
-    case "overview":
-    case "debug":
-      return { kind: intent.kind, agentKey, chatId: intent.chatId };
-    case "btw":
-      return { kind: "btw", agentKey, chatId: intent.chatId, btwId: intent.btwId };
-    case "source":
-      return {
-        kind: "source",
+    case "artifact":
+      return resourceRouteIntent({
         agentKey,
         chatId: intent.chatId,
-        publishId: intent.publishId,
-        sourceId: intent.sourceId,
-        btwId: intent.btwId,
-      };
-    case "planning":
-      return { kind: "planning", agentKey, chatId: intent.chatId, planningId: intent.planningId };
-    case "artifact":
-      return { kind: "artifact", agentKey, chatId: intent.chatId, artifactId: intent.artifactId };
+        file: clean(intent.preview?.url),
+      });
     case "reference":
-      return { kind: "reference", agentKey, chatId: intent.chatId, referenceId: intent.referenceId };
+      return resourceRouteIntent({
+        agentKey,
+        chatId: intent.chatId,
+        file: clean(intent.preview?.url),
+      });
     case "file":
       return { kind: "file", agentKey, path: intent.path, line: intent.line };
     case "terminal":

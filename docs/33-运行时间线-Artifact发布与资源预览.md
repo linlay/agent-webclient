@@ -12,7 +12,7 @@ Artifact 是运行中后端通过 `artifact.publish` 事件发布的资源文件
 ## 核心流程
 Timeline tool processor 识别 `artifact.publish`，调用 `normalizePublishedArtifacts` 生成命令，reducer 写入 artifacts。UI 层由 `ArtifactPanel`、`OverviewTab`、`AttachmentPreviewPanel` 渲染列表、预览和下载动作。
 
-独立预览按来源拆成三类 Surface，并复用同一 Preview Panel：Artifact 使用 `/artifact-view/:agentKey?chatId=...&artifactId=...`；Reference 使用 `/reference-view/:agentKey?chatId=...&referenceId=...`，normalization 必须保留后端 reference ID，无 ID 时不输出独立链接；Workspace File 使用 `/file-view/:agentKey?path=...` 直接走 `/api/file`，不请求 `/api/chat`。
+Artifact 与 Reference 的独立预览统一使用 `/resource-view/:agentKey?chatId=...&file=...`，`file` 来自各自 `preview.url`，并复用同一 Preview Panel 与路由注入的 ChatScope。没有可用资源 URL 时不输出独立链接；旧 `/artifact-view/:agentKey`、`/reference-view/:agentKey` 不保留兼容重定向。Workspace File 继续使用 `/file-view/:agentKey?path=...&line=...` 直接走 `/api/file`，不请求 `/api/chat`，并保留行号定位。
 
 Artifact、普通附件和回答 Markdown 中的受保护图片都先使用 Bearer/Cookie fetch 获得后端原始 MIME Blob，再创建短生命周期 object URL 交给 `img`、PDF/HTML iframe、audio 或 video；卸载或 URL 变化时通过 effect cleanup revoke，同时用 AbortController 取消过期请求。新 `publishedArtifacts[].url` 形如 `artifacts/run_01/poster.png`。历史 `/api/resource?file=...` Markdown 被分类为非法，不再预览或下载；外部 HTTP(S) 图片继续直接使用外链，跨域下载不发送平台 Bearer，`data:` 与 `blob:` 原样展示。
 

@@ -4,13 +4,12 @@ export type SurfacePresentationContext = {
 };
 
 export const SURFACE_ROUTE_PATHS = {
-  overview: "/overview/:agentKey",
-  debug: "/debug/:agentKey",
-  btw: "/btw/:agentKey",
-  source: "/source-view/:agentKey",
-  planning: "/planning-view/:agentKey",
-  artifact: "/artifact-view/:agentKey",
-  reference: "/reference-view/:agentKey",
+  overview: "/overview/:chatId",
+  debug: "/debug/:chatId",
+  btw: "/btw/:chatId",
+  source: "/source-view/:sourceId",
+  planning: "/planning-view/:planningId",
+  resource: "/resource-view/:agentKey",
   file: "/file-view/:agentKey",
   web: "/web-view",
   history: "/history",
@@ -20,24 +19,11 @@ export const SURFACE_ROUTE_PATHS = {
 } as const;
 
 export type SurfaceRouteIntent =
-  | { kind: "overview" | "debug"; agentKey: string; chatId: string }
-  | { kind: "btw"; agentKey: string; chatId: string; btwId?: string }
-  | {
-      kind: "source";
-      agentKey: string;
-      chatId: string;
-      publishId: string;
-      sourceId: string;
-      btwId?: string;
-    }
-  | {
-      kind: "planning";
-      agentKey: string;
-      chatId: string;
-      planningId: string;
-    }
-  | { kind: "artifact"; agentKey: string; chatId: string; artifactId: string }
-  | { kind: "reference"; agentKey: string; chatId: string; referenceId: string }
+  | { kind: "overview" | "debug"; chatId: string }
+  | { kind: "btw"; chatId: string; btwId?: string }
+  | { kind: "source"; sourceId: string; chatId: string; chunkId?: string }
+  | { kind: "planning"; planningId: string; chatId: string }
+  | { kind: "resource"; agentKey: string; chatId: string; file: string }
   | { kind: "file"; agentKey: string; path: string; line?: number }
   | {
       kind: "project";
@@ -125,47 +111,36 @@ export function buildSurfaceRoute(
     pathname = "/web-view";
     params.set("url", url);
     set(params, "title", intent.title);
+  } else if (intent.kind === "overview" || intent.kind === "debug") {
+    const chatId = pathSegment(intent.chatId);
+    if (!chatId) return "";
+    pathname = `/${intent.kind}/${chatId}`;
+  } else if (intent.kind === "btw") {
+    const chatId = pathSegment(intent.chatId);
+    if (!chatId) return "";
+    pathname = `/btw/${chatId}`;
+    set(params, "btwId", intent.btwId);
+  } else if (intent.kind === "source") {
+    const sourceId = pathSegment(intent.sourceId);
+    if (!sourceId || !clean(intent.chatId)) return "";
+    pathname = `/source-view/${sourceId}`;
+    params.set("chatId", clean(intent.chatId));
+    set(params, "chunkId", intent.chunkId);
+  } else if (intent.kind === "planning") {
+    const planningId = pathSegment(intent.planningId);
+    if (!planningId || !clean(intent.chatId)) return "";
+    pathname = `/planning-view/${planningId}`;
+    params.set("chatId", clean(intent.chatId));
   } else {
+    if (!("agentKey" in intent)) return "";
     const agentKey = pathSegment(intent.agentKey);
     if (!agentKey) return "";
     switch (intent.kind) {
-      case "overview":
-      case "debug":
-        if (!clean(intent.chatId)) return "";
-        pathname = `/${intent.kind}/${agentKey}`;
+      case "resource":
+        if (!clean(intent.chatId) || !clean(intent.file)) return "";
+        pathname = `/resource-view/${agentKey}`;
         params.set("chatId", clean(intent.chatId));
-        break;
-      case "btw":
-        if (!clean(intent.chatId)) return "";
-        pathname = `/btw/${agentKey}`;
-        params.set("chatId", clean(intent.chatId));
-        set(params, "btwId", intent.btwId);
-        break;
-      case "source":
-        if (!clean(intent.chatId) || !clean(intent.publishId) || !clean(intent.sourceId)) return "";
-        pathname = `/source-view/${agentKey}`;
-        params.set("chatId", clean(intent.chatId));
-        set(params, "btwId", intent.btwId);
-        params.set("publishId", clean(intent.publishId));
-        params.set("sourceId", clean(intent.sourceId));
-        break;
-      case "planning":
-        if (!clean(intent.chatId) || !clean(intent.planningId)) return "";
-        pathname = `/planning-view/${agentKey}`;
-        params.set("chatId", clean(intent.chatId));
-        params.set("planningId", clean(intent.planningId));
-        break;
-      case "artifact":
-        if (!clean(intent.chatId) || !clean(intent.artifactId)) return "";
-        pathname = `/artifact-view/${agentKey}`;
-        params.set("chatId", clean(intent.chatId));
-        params.set("artifactId", clean(intent.artifactId));
-        break;
-      case "reference":
-        if (!clean(intent.chatId) || !clean(intent.referenceId)) return "";
-        pathname = `/reference-view/${agentKey}`;
-        params.set("chatId", clean(intent.chatId));
-        params.set("referenceId", clean(intent.referenceId));
+        params.set("file", clean(intent.file));
         break;
       case "file":
         if (!clean(intent.path)) return "";
@@ -216,44 +191,43 @@ export function parseSurfaceRoute(pathname: string, search = ""): SurfaceRouteIn
     return null;
   }
   if (segments.length !== 2) return null;
-  const agentKey = decodedPathSegment(segments[1]);
-  if (!agentKey) return null;
+  const identity = decodedPathSegment(segments[1]);
+  if (!identity) return null;
   const chatId = value("chatId");
   switch (segments[0]) {
     case "overview":
     case "debug":
-      return chatId ? { kind: segments[0], agentKey, chatId } : null;
+      return chatId ? null : { kind: segments[0], chatId: identity };
     case "btw":
-      return chatId ? { kind: "btw", agentKey, chatId, ...(value("btwId") ? { btwId: value("btwId") } : {}) } : null;
-    case "source-view":
-      return chatId && value("publishId") && value("sourceId") ? {
-        kind: "source", agentKey, chatId,
-        publishId: value("publishId"), sourceId: value("sourceId"),
+      return chatId ? null : {
+        kind: "btw",
+        chatId: identity,
         ...(value("btwId") ? { btwId: value("btwId") } : {}),
+      };
+    case "source-view":
+      return chatId ? {
+        kind: "source",
+        sourceId: identity,
+        chatId,
+        ...(value("chunkId") ? { chunkId: value("chunkId") } : {}),
       } : null;
     case "planning-view":
-      return chatId && value("planningId")
-        ? { kind: "planning", agentKey, chatId, planningId: value("planningId") }
-        : null;
-    case "artifact-view":
-      return chatId && value("artifactId")
-        ? { kind: "artifact", agentKey, chatId, artifactId: value("artifactId") }
-        : null;
-    case "reference-view":
-      return chatId && value("referenceId")
-        ? { kind: "reference", agentKey, chatId, referenceId: value("referenceId") }
+      return chatId ? { kind: "planning", planningId: identity, chatId } : null;
+    case "resource-view":
+      return chatId && value("file")
+        ? { kind: "resource", agentKey: identity, chatId, file: value("file") }
         : null;
     case "file-view": {
       const line = Number(value("line"));
       return value("path") ? {
-        kind: "file", agentKey, path: value("path"),
+        kind: "file", agentKey: identity, path: value("path"),
         ...(Number.isFinite(line) && line > 0 ? { line: Math.floor(line) } : {}),
       } : null;
     }
     case "project": {
       const view = value("view") === "diff" ? "diff" : "content";
       const intent: SurfaceRouteIntent = {
-        kind: "project", agentKey,
+        kind: "project", agentKey: identity,
         ...(chatId ? { chatId } : {}),
         ...(value("runId") ? { runId: value("runId") } : {}),
         ...(value("path") ? { path: value("path") } : {}),
@@ -266,9 +240,9 @@ export function parseSurfaceRoute(pathname: string, search = ""): SurfaceRouteIn
       return view === "diff" && (!intent.chatId || !intent.runId || !intent.path) ? null : intent;
     }
     case "terminal":
-      return { kind: "terminal", agentKey, terminalKey: value("terminalKey") || "main" };
+      return { kind: "terminal", agentKey: identity, terminalKey: value("terminalKey") || "main" };
     case "agent":
-      return { kind: "agent", agentKey, ...(chatId ? { chatId } : {}) };
+      return { kind: "agent", agentKey: identity, ...(chatId ? { chatId } : {}) };
     default:
       return null;
   }

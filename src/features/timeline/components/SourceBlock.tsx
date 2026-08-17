@@ -47,7 +47,8 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
   const sourceCount = node.sourceCount ?? sources.length;
 
   const openSource = (source: TimelineSource) => {
-    if (interaction?.openSource) {
+    if (interaction) {
+      if (!interaction.openSource) return;
       interaction.openSource(source, node);
       return;
     }
@@ -97,6 +98,7 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
             className={SOURCE_ITEM_CLASS_NAME}
             key={source.id}
             size="sm"
+            disabled={Boolean(interaction && !interaction.openSource)}
             onClick={() => openSource(source)}
           >
             <MaterialIcon className={SOURCE_ITEM_ICON_CLASS_NAME} name="article" />

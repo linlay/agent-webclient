@@ -214,7 +214,7 @@ export function buildDebugChatRouteUrl(
     }, presentation);
   }
   if (kind !== "overview" && kind !== "debug") return "";
-  return buildSurfaceRoute({ kind, agentKey, chatId }, presentation);
+  return buildSurfaceRoute({ kind, chatId }, presentation);
 }
 
 export function buildDebugChatStartOpenTargets(
@@ -422,10 +422,21 @@ const EventRow: React.FC<{
 
 export const DebugPanelContent: React.FC<{
   independentDetails?: boolean;
-}> = ({ independentDetails = false }) => {
+  events?: AgentEvent[];
+  fallbackAgentKey?: string;
+  chatAgentKeyById?: ReadonlyMap<string, string>;
+  chatShareIdById?: ReadonlyMap<string, string>;
+}> = ({
+  independentDetails = false,
+  events,
+  fallbackAgentKey = "",
+  chatAgentKeyById: injectedChatAgentKeyById,
+  chatShareIdById: injectedChatShareIdById,
+}) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const [selectedEvent, setSelectedEvent] = React.useState<AgentEvent | null>(null);
+  const visibleEvents = events ?? state.debugEvents;
 
   const openEventPopover = React.useCallback(
     (event: AgentEvent, idx: number, target: HTMLDivElement) => {
@@ -448,10 +459,13 @@ export const DebugPanelContent: React.FC<{
   );
 
   const eventsByTab = React.useMemo(
-    () => buildDebugEventGroups(state.debugEvents),
-    [state.debugEvents],
+    () => buildDebugEventGroups(visibleEvents),
+    [visibleEvents],
   );
   const chatAgentKeyById = React.useMemo(() => {
+    if (events !== undefined) {
+      return new Map(injectedChatAgentKeyById || []);
+    }
     const next = new Map<string, string>();
     state.chatAgentById.forEach((agentKey, chatId) => {
       const normalizedChatId = readText(chatId);
@@ -477,6 +491,8 @@ export const DebugPanelContent: React.FC<{
     }
     return next;
   }, [
+    events,
+    injectedChatAgentKeyById,
     state.chatAgentById,
     state.chatId,
     state.chats,
@@ -484,6 +500,9 @@ export const DebugPanelContent: React.FC<{
     state.pendingNewChatAgentKey,
   ]);
   const chatShareIdById = React.useMemo(() => {
+    if (events !== undefined) {
+      return new Map(injectedChatShareIdById || []);
+    }
     const next = new Map<string, string>();
     state.chats.forEach((chat) => {
       const chatId = readText(chat?.chatId);
@@ -493,7 +512,7 @@ export const DebugPanelContent: React.FC<{
       }
     });
     return next;
-  }, [state.chats]);
+  }, [events, injectedChatShareIdById, state.chats]);
 
   const tabItems = React.useMemo(
     () =>
@@ -519,7 +538,7 @@ export const DebugPanelContent: React.FC<{
                     index={index}
                     fallbackAgentKey={chatAgentKeyById.get(
                       readText(event.chatId),
-                    )}
+                    ) || fallbackAgentKey}
                     fallbackShareId={chatShareIdById.get(
                       readText(event.chatId),
                     )}
@@ -537,6 +556,7 @@ export const DebugPanelContent: React.FC<{
       chatAgentKeyById,
       chatShareIdById,
       eventsByTab,
+      fallbackAgentKey,
       openEventPopover,
     ],
   );
@@ -544,7 +564,7 @@ export const DebugPanelContent: React.FC<{
   return (
     <div className={DEBUG_PANEL_CLASS_NAME}>
       <div className={DEBUG_EVENT_LIST_CLASS_NAME} id="events-list">
-        {state.debugEvents.length === 0 ? (
+        {visibleEvents.length === 0 ? (
           <div className="status-line">{t("rightSidebar.debug.empty")}</div>
         ) : (
           <Tabs

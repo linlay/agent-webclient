@@ -45,9 +45,14 @@ import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { TerminalPage } from "./pages/terminal";
 import {
-  ChatSurfacePage,
-  FileSurfacePage,
-  WebSurfacePage,
+  BtwViewPage,
+  DebugViewPage,
+  FileViewPage,
+  OverviewViewPage,
+  PlanningViewPage,
+  ResourceViewPage,
+  SourceViewPage,
+  WebViewPage,
 } from "./pages/surfaces";
 import { HistoryPage } from "./pages/history";
 import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
@@ -272,7 +277,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.overview,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.overview">
-              <InteractiveRoute><ChatSurfacePage kind="overview" /></InteractiveRoute>
+              <OverviewViewPage />
             </DocumentTitleRoute>
           ),
         },
@@ -280,7 +285,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.debug,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.debug">
-              <InteractiveRoute><ChatSurfacePage kind="debug" /></InteractiveRoute>
+              <DebugViewPage />
             </DocumentTitleRoute>
           ),
         },
@@ -288,7 +293,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.btw,
           element: (
             <DocumentTitleRoute titleKey="btw.title">
-              <InteractiveRoute><ChatSurfacePage kind="btw" /></InteractiveRoute>
+              <BtwViewPage />
             </DocumentTitleRoute>
           ),
         },
@@ -296,7 +301,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.source,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.sourceDetail">
-              <InteractiveRoute><ChatSurfacePage kind="source" /></InteractiveRoute>
+              <SourceViewPage />
             </DocumentTitleRoute>
           ),
         },
@@ -304,23 +309,15 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.planning,
           element: (
             <DocumentTitleRoute titleKey="rightSidebar.overview.planning.title">
-              <InteractiveRoute><ChatSurfacePage kind="planning" /></InteractiveRoute>
+              <PlanningViewPage />
             </DocumentTitleRoute>
           ),
         },
         {
-          path: SURFACE_ROUTE_PATHS.artifact,
-          element: (
-            <DocumentTitleRoute titleKey="rightSidebar.overview.artifacts.title">
-              <InteractiveRoute><ChatSurfacePage kind="artifact" /></InteractiveRoute>
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: SURFACE_ROUTE_PATHS.reference,
+          path: SURFACE_ROUTE_PATHS.resource,
           element: (
             <DocumentTitleRoute titleKey="attachments.kind.file">
-              <InteractiveRoute><ChatSurfacePage kind="reference" /></InteractiveRoute>
+              <ResourceViewPage />
             </DocumentTitleRoute>
           ),
         },
@@ -328,7 +325,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.file,
           element: (
             <DocumentTitleRoute titleKey="attachments.kind.file">
-              <FileSurfacePage />
+              <FileViewPage />
             </DocumentTitleRoute>
           ),
         },
@@ -336,7 +333,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.web,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.web">
-              <WebSurfacePage />
+              <WebViewPage />
             </DocumentTitleRoute>
           ),
         },
