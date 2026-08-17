@@ -192,17 +192,6 @@
   border-bottom: 1px solid var(--line-soft);
 }
 
-.project-file-pane > .attachment-preview-panel .attachment-preview-toolbar {
-  min-height: 42px;
-  gap: 8px;
-  padding: 0 8px;
-}
-
-.project-file-pane > .attachment-preview-panel .attachment-preview-meta {
-  max-width: 28%;
-  flex: none;
-}
-
 .project-open-tabs {
   display: flex;
   min-width: 0;

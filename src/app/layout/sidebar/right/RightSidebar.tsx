@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import {
@@ -6,6 +6,7 @@ import {
   Flex,
   message,
   Tabs,
+  Tooltip,
   Typography,
   type TabsProps,
 } from "antd";
@@ -22,6 +23,10 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
+import { getAgentFile } from "@/shared/data";
+import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
+import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 
 type RightSidebarTabsKey = string;
 
@@ -88,6 +93,20 @@ function getWebUrlFromTabKey(key: string): string {
   return key.startsWith("web:") ? key.slice("web:".length) : "";
 }
 
+const PreviewTabTooltip: React.FC<{ preview: AttachmentPreviewState }> = ({ preview }) => {
+  const typeLabel = preview.mimeType || "";
+  const sizeLabel = useMemo(() => formatAttachmentSize(preview.sizeBytes), [preview.sizeBytes]);
+  return (
+    <div>
+      <div>{preview.name}</div>
+      <Flex gap={10}>
+      {typeLabel ? <div>{typeLabel}</div> : null}
+      {sizeLabel ? <div>{sizeLabel}</div> : null}
+      </Flex>
+    </div>
+  );
+}
+
 export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
   const dispatch = useAppDispatch();
@@ -99,6 +118,11 @@ export const RightSidebar: React.FC = () => {
   const webPreviews = state.webPreviews;
   const hasBTWSession = Boolean(state.chatId && getSession(state.chatId));
   const debugPanelEnabled = isDebugPanelEnabled();
+  const currentChat = state.chats?.find((chat) => chat.chatId === state.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team"
+    || String(currentChat?.teamId || "").trim(),
+  );
   const desktopSidebarVisible = state.rightSidebarOpen;
   const selectedPanel =
     state.rightSidebarOpenTab === "debug" && debugPanelEnabled
@@ -236,6 +260,49 @@ export const RightSidebar: React.FC = () => {
     [dispatch],
   );
 
+  const handlePreviewDownload = React.useCallback(
+    (preview: AttachmentPreviewState) => {
+      void (async () => {
+        let downloadUrl = preview.downloadUrl;
+        if (preview.workspaceFile) {
+          try {
+            const response = await getAgentFile(preview.workspaceFile);
+            downloadUrl = response.data.contentUrl || "";
+          } catch (error: unknown) {
+            message.error(
+              error instanceof Error
+                ? error.message
+                : t("rightSidebar.preview.error.download"),
+            );
+            return;
+          }
+        }
+
+        if (!downloadUrl) {
+          message.error(t("rightSidebar.preview.error.download"));
+          return;
+        }
+
+        try {
+          await downloadArtifactResource(
+            downloadUrl,
+            preview.name,
+            state.chatId,
+            undefined,
+            teamChat,
+          );
+        } catch (error: unknown) {
+          message.error(
+            error instanceof Error
+              ? error.message
+              : t("rightSidebar.preview.error.download"),
+          );
+        }
+      })();
+    },
+    [state.chatId, teamChat, t],
+  );
+
   const handleResizePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0) return;
@@ -350,20 +417,14 @@ export const RightSidebar: React.FC = () => {
       items.push({
         key: `preview:${p.url}`,
         label: (
-          <Flex align="center" gap={4}>
-            <MaterialIcon name="visibility" />
-            <Typography.Text
-              ellipsis={{
-                tooltip: {
-                  title: p.name,
-                  placement: "right",
-                },
-              }}
-              className="tw:!max-w-[100px]"
-            >
-              {p.name}
-            </Typography.Text>
-          </Flex>
+          <Tooltip title={<PreviewTabTooltip preview={p} />} placement="rightTop">
+            <Flex align="center" gap={4}>
+              <MaterialIcon name="visibility" />
+              <Typography.Text ellipsis className="tw:!max-w-[100px]">
+                {p.name}
+              </Typography.Text>
+            </Flex>
+          </Tooltip>
         ),
         children: (
           <AttachmentPreviewPanel
@@ -542,6 +603,27 @@ export const RightSidebar: React.FC = () => {
                       ]
                     : isPreviewTab
                       ? [
+                          {
+                            key: "download",
+                            label: t("rightSidebar.preview.action.download"),
+                            icon: (
+                              <MaterialIcon
+                                name="download"
+                                className="tw:opacity-[0.5]"
+                              />
+                            ),
+                            onClick: () => {
+                              const previewUrl = (node.key as string).slice(
+                                "preview:".length,
+                              );
+                              const preview = previews.find(
+                                (item) => item.url === previewUrl,
+                              );
+                              if (preview) {
+                                handlePreviewDownload(preview);
+                              }
+                            },
+                          },
                           {
                             key: "fullscreen",
                             label: t("rightSidebar.web.contextMenu.fullscreen"),

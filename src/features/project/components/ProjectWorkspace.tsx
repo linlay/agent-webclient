@@ -708,15 +708,19 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
         <div className="project-resizer" role="separator" aria-orientation="vertical" onPointerDown={startResize} />
         <main className="project-file-pane">
           {selectedPath && activeView === "content" ? (
-            <AttachmentPreviewPanel
-              key={`${agentKey}:${selectedPath}:${previewVersion}`}
-              preview={buildPreview(agentKey, selectedPath)}
-              toolbarLeading={fileTabs}
-              toolbarTrailing={viewTabs}
-              showName={false}
-              showSourcePath={false}
-              showLineNumbers
-            />
+            <>
+              <div className="project-file-header">
+                {fileTabs}
+                {viewTabs}
+              </div>
+              <div className="project-file-body">
+                <AttachmentPreviewPanel
+                  key={`${agentKey}:${selectedPath}:${previewVersion}`}
+                  preview={buildPreview(agentKey, selectedPath)}
+                  showLineNumbers
+                />
+              </div>
+            </>
           ) : (
             <>
               <div className="project-file-header">

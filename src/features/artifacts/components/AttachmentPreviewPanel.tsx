@@ -4,36 +4,21 @@ import {
   type AgentFileResponse,
 } from "@/shared/data";
 import {
-  downloadArtifactResource,
   limitTextPreview,
   readArtifactResourceText,
 } from "@/features/artifacts/lib/artifactResourceRuntime";
-import {
-  formatAttachmentSize,
-} from "@/features/artifacts/lib/attachmentUtils";
 import {
   getAttachmentPreviewKind,
   type AttachmentPreviewKind,
   type AttachmentPreviewState,
 } from "@/features/artifacts/lib/attachmentPreview";
 import { t } from "@/shared/i18n";
-import { UiButton } from "@/shared/ui/UiButton";
 import { Image } from "antd";
-import { MaterialIcon } from "@/shared/icons/material";
 import { useAppState } from "@/app/state/AppContext";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 
 const ATTACHMENT_PREVIEW_PANEL_CLASS_NAME =
   "attachment-preview-panel tw:flex tw:h-full tw:flex-col";
-
-const ATTACHMENT_PREVIEW_TOOLBAR_CLASS_NAME =
-  "attachment-preview-toolbar tw:flex tw:items-center tw:gap-2.5 tw:border-b tw:border-line-soft tw:py-[4px] tw:px-[10px]";
-
-const ATTACHMENT_PREVIEW_NAME_CLASS_NAME =
-  "attachment-preview-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px] tw:text-ink-1";
-
-const ATTACHMENT_PREVIEW_META_CLASS_NAME =
-  "attachment-preview-meta tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted";
 
 const ATTACHMENT_PREVIEW_BODY_CLASS_NAME =
   "attachment-preview-body tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:gap-2.5 tw:overflow-auto";
@@ -75,10 +60,6 @@ const ATTACHMENT_PREVIEW_NOTE_CLASS_NAME =
 
 interface AttachmentPreviewPanelProps {
   preview: AttachmentPreviewState;
-  toolbarLeading?: React.ReactNode;
-  toolbarTrailing?: React.ReactNode;
-  showName?: boolean;
-  showSourcePath?: boolean;
   showLineNumbers?: boolean;
   fullscreenRequest?: number;
 }
@@ -143,10 +124,6 @@ export function resolveWorkspaceHtmlSrcDoc(
 
 export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   preview,
-  toolbarLeading,
-  toolbarTrailing,
-  showName = true,
-  showSourcePath = true,
   showLineNumbers = false,
   fullscreenRequest,
 }) => {
@@ -164,8 +141,6 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const [textLoading, setTextLoading] = React.useState(false);
   const [textError, setTextError] = React.useState("");
   const [mediaError, setMediaError] = React.useState("");
-  const [downloadError, setDownloadError] = React.useState("");
-  const [downloading, setDownloading] = React.useState(false);
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const workspaceFileRequest = preview.workspaceFile;
@@ -184,13 +159,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
     : preview.url;
   const authenticatedPreview = useAuthenticatedResourceUrl(previewUrl, chatId, { teamChat });
   const mediaPreviewUrl = authenticatedPreview.url;
-  const downloadUrl = workspaceFileRequest
-    ? workspaceFileResponse?.contentUrl || ""
-    : preview.downloadUrl;
   const previewName = workspaceFileResponse?.name || preview.name;
-  const previewMimeType = workspaceFileResponse?.mimeType || preview.mimeType;
-  const previewSizeBytes = workspaceFileResponse?.sizeBytes ?? preview.sizeBytes;
-  const previewSourcePath = workspaceFileResponse?.path || preview.sourcePath;
   const workspaceHtmlSrcDoc = resolveWorkspaceHtmlSrcDoc(
     workspaceFileResponse,
   );
@@ -204,11 +173,6 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
       setMediaError(t("rightSidebar.preview.error.loadText"));
     }
   }, [authenticatedPreview.error]);
-
-  React.useEffect(() => {
-    setDownloadError("");
-    setDownloading(false);
-  }, [downloadUrl, previewName]);
 
   React.useEffect(() => {
     setWorkspaceFile(null);
@@ -315,40 +279,6 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
     });
   }, [preview?.line, previewKind, textContent, textError, textLoading]);
 
-  const handleDownload = React.useCallback(() => {
-    if (downloading) {
-      return;
-    }
-
-    if (!downloadUrl) {
-      return;
-    }
-
-    setDownloadError("");
-    setDownloading(true);
-    void downloadArtifactResource(downloadUrl, previewName, chatId, undefined, teamChat)
-      .catch((error: unknown) => {
-        setDownloadError(
-          error instanceof Error
-            ? error.message
-            : t("rightSidebar.preview.error.download"),
-        );
-      })
-      .finally(() => {
-        setDownloading(false);
-      });
-  }, [chatId, downloadUrl, downloading, previewName, teamChat]);
-
-  const sourceLocation = showSourcePath && previewSourcePath
-    ? `${previewSourcePath}${preview.line ? `:${preview.line}` : ""}`
-    : "";
-  const metadata = [
-    sourceLocation,
-    previewMimeType || "",
-    formatAttachmentSize(previewSizeBytes),
-  ]
-    .filter(Boolean)
-    .join(" · ");
   const targetLine =
     Number.isFinite(preview.line) && Number(preview.line) > 0
       ? Math.floor(Number(preview.line))
@@ -360,44 +290,6 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
 
   return (
     <div ref={panelRef} className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
-      <div className={ATTACHMENT_PREVIEW_TOOLBAR_CLASS_NAME}>
-        {toolbarLeading ? (
-          <div className="attachment-preview-toolbar-leading tw:flex tw:min-w-0 tw:flex-1">
-            {toolbarLeading}
-          </div>
-        ) : null}
-        {showName ? (
-          <strong
-            className={ATTACHMENT_PREVIEW_NAME_CLASS_NAME}
-            title={previewName}
-          >
-            {previewName}
-          </strong>
-        ) : null}
-        {metadata ? (
-          <span className={ATTACHMENT_PREVIEW_META_CLASS_NAME} title={metadata}>
-            {metadata}
-          </span>
-        ) : null}
-        <UiButton
-          variant="ghost"
-          size="sm"
-          onClick={handleDownload}
-          loading={downloading}
-          disabled={!downloadUrl}
-          iconOnly
-          aria-label={t("rightSidebar.preview.action.download")}
-          title={t("rightSidebar.preview.action.download")}
-        >
-          <MaterialIcon name="download" />
-        </UiButton>
-        {toolbarTrailing ? (
-          <div className="attachment-preview-toolbar-trailing tw:flex tw:self-stretch">
-            {toolbarTrailing}
-          </div>
-        ) : null}
-      </div>
-
       <div className={ATTACHMENT_PREVIEW_BODY_CLASS_NAME}>
         {previewKind === "image" && mediaPreviewUrl ? (
           <Image
@@ -534,11 +426,6 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
         {mediaError ? (
           <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
             {mediaError}
-          </div>
-        ) : null}
-        {downloadError ? (
-          <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
-            {downloadError}
           </div>
         ) : null}
       </div>
