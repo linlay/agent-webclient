@@ -28,6 +28,18 @@ describe("independent Resource/File preview targets", () => {
     })).toBeNull();
   });
 
+  it("keeps unknown Resource and Workspace files download-only", () => {
+    expect(buildResourceSurfacePreview({
+      agentKey: "agent_1",
+      chatId: "chat_1",
+      file: "artifacts/run_1/archive.zip",
+    })).toMatchObject({ kind: "unsupported" });
+    expect(buildFileSurfacePreview({
+      agentKey: "agent_1",
+      path: "archive.zip",
+    })).toMatchObject({ kind: "unsupported" });
+  });
+
   it("keeps Workspace File identity and line targeting separate from Resource", () => {
     expect(buildFileSurfacePreview({
       agentKey: "coder agent",

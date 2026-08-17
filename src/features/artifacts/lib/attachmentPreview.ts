@@ -31,7 +31,7 @@ export interface AttachmentPreviewState {
 		agentKey: string;
 		path: string;
 	};
-	kind: Exclude<AttachmentPreviewKind, "unsupported">;
+	kind: AttachmentPreviewKind;
 }
 
 const audioExtensions = new Set([
@@ -176,7 +176,13 @@ export function getAttachmentPreviewKind(
 }
 
 export function canPreviewAttachment(attachment: AttachmentLike): boolean {
-	return getAttachmentPreviewKind(attachment) !== "unsupported";
+	return isAttachmentPreviewKindSupported(getAttachmentPreviewKind(attachment));
+}
+
+export function isAttachmentPreviewKindSupported(
+	kind: AttachmentPreviewKind,
+): boolean {
+	return kind !== "office" && kind !== "unsupported";
 }
 
 export function buildAttachmentPreviewState(
@@ -187,11 +193,6 @@ export function buildAttachmentPreviewState(
 		return null;
 	}
 
-	const kind = getAttachmentPreviewKind(attachment);
-	if (kind === "unsupported") {
-		return null;
-	}
-
 	return {
 		name: String(attachment.name || "").trim() || t("attachments.unnamedResource"),
 		url,
@@ -199,6 +200,33 @@ export function buildAttachmentPreviewState(
 		sizeBytes: getAttachmentSizeBytes(attachment),
 		type: attachment.type,
 		mimeType: attachment.mimeType,
-		kind,
+		kind: getAttachmentPreviewKind(attachment),
+	};
+}
+
+export function getResourcePreviewName(source: string): string {
+	const normalized = String(source || "").trim().split(/[?#]/u, 1)[0];
+	const segment = normalized.split("/").filter(Boolean).pop() || normalized;
+	try {
+		return decodeURIComponent(segment) || t("attachments.unnamedResource");
+	} catch {
+		return segment || t("attachments.unnamedResource");
+	}
+}
+
+export function buildResourcePreviewState(
+	source: string,
+): AttachmentPreviewState | null {
+	const url = String(source || "").trim();
+	if (!url) {
+		return null;
+	}
+
+	const name = getResourcePreviewName(url);
+	return {
+		name,
+		url,
+		downloadUrl: url,
+		kind: getAttachmentPreviewKind({ name }),
 	};
 }

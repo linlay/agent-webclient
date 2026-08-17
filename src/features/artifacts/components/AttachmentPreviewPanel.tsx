@@ -4,18 +4,21 @@ import {
   type AgentFileResponse,
 } from "@/shared/data";
 import {
+  downloadAttachmentPreview,
   limitTextPreview,
   readArtifactResourceText,
 } from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
   getAttachmentPreviewKind,
+  isAttachmentPreviewKindSupported,
   type AttachmentPreviewKind,
   type AttachmentPreviewState,
 } from "@/features/artifacts/lib/attachmentPreview";
 import { t } from "@/shared/i18n";
-import { Image } from "antd";
+import { Image, message } from "antd";
 import { useAppState } from "@/app/state/AppContext";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
+import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 
 const ATTACHMENT_PREVIEW_PANEL_CLASS_NAME =
   "attachment-preview-panel tw:flex tw:h-full tw:flex-col";
@@ -149,6 +152,7 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const [mediaError, setMediaError] = React.useState("");
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
+  const contextTargetId = React.useId();
   const workspaceFileRequest = React.useMemo(
     () => preview.workspaceFile
       ? {
@@ -173,12 +177,44 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
   const previewUrl = workspaceFileRequest
     ? workspaceFileResponse?.contentUrl || ""
     : preview.url;
-  const authenticatedPreview = useAuthenticatedResourceUrl(previewUrl, chatId, { teamChat });
+  const mediaSource = ["image", "pdf", "html", "audio", "video"].includes(previewKind)
+    ? previewUrl
+    : "";
+  const authenticatedPreview = useAuthenticatedResourceUrl(mediaSource, chatId, { teamChat });
   const mediaPreviewUrl = authenticatedPreview.url;
   const previewName = workspaceFileResponse?.name || preview.name;
   const workspaceHtmlSrcDoc = resolveWorkspaceHtmlSrcDoc(
     workspaceFileResponse,
   );
+  const handleDownload = React.useCallback(async () => {
+    try {
+      await downloadAttachmentPreview(preview, {
+        chatId,
+        teamChat,
+        workspaceFile: workspaceFileRequest,
+      });
+    } catch (error: unknown) {
+      message.error(
+        error instanceof Error
+          ? error.message
+          : t("rightSidebar.preview.error.download"),
+      );
+    }
+  }, [chatId, preview, teamChat, workspaceFileRequest]);
+  const contextTarget = React.useMemo(() => ({
+    targetId: `preview-resource:${contextTargetId}`,
+    kind: "chat-resource" as const,
+    name: previewName,
+    mediaType: previewKind === "image" ? "image" as const : "file" as const,
+    handlers: {
+      "download-resource": handleDownload,
+    },
+  }), [contextTargetId, handleDownload, previewKind, previewName]);
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
+  const setPanelElement = React.useCallback((element: HTMLDivElement | null) => {
+    panelRef.current = element;
+    contextTargetRef(element);
+  }, [contextTargetRef]);
 
   React.useEffect(() => {
     setMediaError("");
@@ -303,10 +339,11 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
     () => buildTextPreviewLines(textContent, targetLine),
     [targetLine, textContent],
   );
+  const previewable = isAttachmentPreviewKindSupported(previewKind);
 
   return (
-    <div ref={panelRef} className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
-      <div className={ATTACHMENT_PREVIEW_BODY_CLASS_NAME}>
+    <div ref={setPanelElement} className={ATTACHMENT_PREVIEW_PANEL_CLASS_NAME}>
+      {previewable ? <div className={ATTACHMENT_PREVIEW_BODY_CLASS_NAME}>
         {previewKind === "image" && mediaPreviewUrl ? (
           <Image
             className="attachment-preview-image"
@@ -427,24 +464,12 @@ export const AttachmentPreviewPanel: React.FC<AttachmentPreviewPanelProps> = ({
           />
         ) : null}
 
-        {previewKind === "office" ? (
-          <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
-            {t("rightSidebar.preview.office.downloadOnly")}
-          </div>
-        ) : null}
-
-        {previewKind === "unsupported" ? (
-          <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
-            {t("rightSidebar.preview.unsupported.downloadOnly")}
-          </div>
-        ) : null}
-
         {mediaError ? (
           <div className={ATTACHMENT_PREVIEW_STATUS_CLASS_NAME}>
             {mediaError}
           </div>
         ) : null}
-      </div>
+      </div> : null}
 
       {textTruncated && previewKind !== "html" ? (
         <div className={ATTACHMENT_PREVIEW_NOTE_CLASS_NAME}>

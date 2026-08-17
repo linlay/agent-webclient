@@ -131,38 +131,33 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   }, [attachment.name, chatId, downloadUrl, downloading, teamChat]);
 
   const handleActivate = React.useCallback(() => {
-    if (!canActivate) {
+    if (!canActivate || !preview) {
       return;
     }
-    if (preview) {
-      if (artifactId) {
-        openTarget({
-          version: 1,
-          kind: "artifact",
-          artifactId,
-          chatId,
-          agentKey: surfaceContext?.agentKey,
-          preview,
-          toggle: activateMode === "toggle",
-        });
-      } else if (attachment.id) {
-        openTarget({
-          version: 1,
-          kind: "reference",
-          referenceId: attachment.id,
-          chatId,
-          agentKey: surfaceContext?.agentKey,
-          preview,
-          toggle: activateMode === "toggle",
-        });
-      } else {
-        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
-      }
-      return;
+    if (artifactId) {
+      openTarget({
+        version: 1,
+        kind: "artifact",
+        artifactId,
+        chatId,
+        agentKey: surfaceContext?.agentKey,
+        preview,
+        toggle: activateMode === "toggle",
+      });
+    } else if (attachment.id) {
+      openTarget({
+        version: 1,
+        kind: "reference",
+        referenceId: attachment.id,
+        chatId,
+        agentKey: surfaceContext?.agentKey,
+        preview,
+        toggle: activateMode === "toggle",
+      });
+    } else {
+      dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
     }
-
-    triggerDownload();
-  }, [activateMode, artifactId, attachment.id, canActivate, chatId, dispatch, openTarget, preview, surfaceContext?.agentKey, triggerDownload]);
+  }, [activateMode, artifactId, attachment.id, canActivate, chatId, dispatch, openTarget, preview, surfaceContext?.agentKey]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,

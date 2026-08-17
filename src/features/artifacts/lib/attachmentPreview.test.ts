@@ -1,5 +1,6 @@
 import {
 	buildAttachmentPreviewState,
+	buildResourcePreviewState,
 	canPreviewAttachment,
 	getAttachmentPreviewKind,
 } from "@/features/artifacts/lib/attachmentPreview";
@@ -55,7 +56,7 @@ describe("attachmentPreview", () => {
 		).toBe("video");
 	});
 
-	it("marks unsupported attachments for download fallback", () => {
+	it("marks Office and unknown attachments as download-only", () => {
 		expect(
 			canPreviewAttachment({
 				name: "archive.zip",
@@ -63,6 +64,40 @@ describe("attachmentPreview", () => {
 				url: "/resource/archive.zip",
 			}),
 		).toBe(false);
+		expect(
+			canPreviewAttachment({
+				name: "brief.docx",
+				url: "artifacts/run_1/brief.docx",
+			}),
+		).toBe(false);
+	});
+
+	it("keeps unsupported attachments in Viewer state", () => {
+		expect(
+			buildAttachmentPreviewState({
+				name: "archive.zip",
+				mimeType: "application/zip",
+				url: "artifacts/run_1/archive.zip",
+			}),
+		).toMatchObject({
+			name: "archive.zip",
+			url: "artifacts/run_1/archive.zip",
+			downloadUrl: "artifacts/run_1/archive.zip",
+			kind: "unsupported",
+		});
+	});
+
+	it("builds a decoded ChatScope Resource Viewer state", () => {
+		expect(
+			buildResourcePreviewState(
+				"artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
+			),
+		).toEqual({
+			name: "灯下.md",
+			url: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
+			downloadUrl: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
+			kind: "text",
+		});
 	});
 
 	it("routes Office documents to the download-only preview state", () => {

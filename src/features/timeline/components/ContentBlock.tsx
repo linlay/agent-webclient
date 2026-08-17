@@ -1,6 +1,7 @@
 import React from "react";
 import type { TimelineNode } from "@/app/state/types";
 import {
+	buildResourcePreviewState,
 	getAttachmentPreviewKind,
 	type AttachmentPreviewState,
 } from "@/features/artifacts/lib/attachmentPreview";
@@ -10,6 +11,7 @@ import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import {
 	MarkdownContent,
 	type MarkdownWebLink,
+	type ResourceFileLink,
 	type WorkspaceFileLink,
 } from "@/shared/ui/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
@@ -61,8 +63,6 @@ export function buildWorkspaceFilePreview(
 	agentKey: string,
 ): AttachmentPreviewState {
 	const name = displayFileName(link.filePath);
-	const detectedKind = getAttachmentPreviewKind({ name });
-	const kind = detectedKind === "unsupported" ? "text" : detectedKind;
 	const previewKey = [
 		"workspace-file",
 		encodeURIComponent(agentKey),
@@ -73,7 +73,7 @@ export function buildWorkspaceFilePreview(
 		name,
 		url: previewKey,
 		downloadUrl: "",
-		kind,
+		kind: getAttachmentPreviewKind({ name }),
 		sourcePath: link.filePath,
 		line: link.line,
 		workspaceFile: {
@@ -148,6 +148,25 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 		},
 		[openTarget],
 	);
+	const handleResourceFileLinkClick = React.useCallback(
+		(link: ResourceFileLink) => {
+			const preview = buildResourcePreviewState(link.href);
+			if (!preview) {
+				return;
+			}
+			openTarget({
+				version: 1,
+				kind: "resource",
+				agentKey: workspaceFileAgentKey,
+				chatId: state.chatId,
+				file: link.href,
+				preview,
+				title: link.name,
+				toggle: true,
+			});
+		},
+		[openTarget, state.chatId, workspaceFileAgentKey],
+	);
 
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {
@@ -159,6 +178,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 						chatId={state.chatId}
 						teamChat={teamChat}
 						onWorkspaceFileLinkClick={handleWorkspaceFileLinkClick}
+						onResourceFileLinkClick={handleResourceFileLinkClick}
 						onWebLinkClick={handleWebLinkClick}
 					/>
 				</div>
@@ -182,6 +202,9 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 								teamChat={teamChat}
 								onWorkspaceFileLinkClick={
 									handleWorkspaceFileLinkClick
+								}
+								onResourceFileLinkClick={
+									handleResourceFileLinkClick
 								}
 								onWebLinkClick={handleWebLinkClick}
 							/>

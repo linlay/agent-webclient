@@ -1,10 +1,43 @@
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+jest.mock("@/app/state/AppContext", () => ({
+	useAppState: () => ({ chatId: "chat_1", chats: [] }),
+}));
+
+jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({
+	useAuthenticatedResourceUrl: () => ({
+		url: "",
+		loading: false,
+		error: null,
+	}),
+}));
+
 import {
+	AttachmentPreviewPanel,
 	buildTextPreviewLines,
 	resolveWorkspaceHtmlSrcDoc,
 	resolveWorkspaceFilePreviewKind,
 } from "@/features/artifacts/components/AttachmentPreviewPanel";
 
 describe("buildTextPreviewLines", () => {
+	it("renders no inline controls or body for unsupported files", () => {
+		const html = renderToStaticMarkup(
+			React.createElement(AttachmentPreviewPanel, {
+				preview: {
+					name: "archive.zip",
+					url: "artifacts/run_1/archive.zip",
+					downloadUrl: "artifacts/run_1/archive.zip",
+					kind: "unsupported",
+				},
+			}),
+		);
+
+		expect(html).not.toContain("<button");
+		expect(html).not.toContain("attachment-preview-toolbar");
+		expect(html).not.toContain("attachment-preview-body");
+	});
+
 	it("marks the requested line as the target line", () => {
 		expect(buildTextPreviewLines("one\ntwo\nthree", 2)).toEqual([
 			{ lineNumber: 1, text: "one", target: false },

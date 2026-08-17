@@ -79,6 +79,21 @@ describe("canonical independent Surface targets", () => {
     })).toBe("/resource-view/agent-1?chatId=chat-1&file=%2Fresources%2Freference.pdf");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
+      kind: "resource",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      file: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
+      preview: {
+        name: "灯下.md",
+        url: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
+        downloadUrl: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
+        kind: "text",
+      },
+    })).toBe(
+      "/resource-view/agent-1?chatId=chat-1&file=artifacts%2Fmsx9nzkm%2F%25E7%2581%25AF%25E4%25B8%258B.md",
+    );
+    expect(buildStandaloneOpenTargetUrl({
+      version: 1,
       kind: "file",
       agentKey: "agent-1",
       path: "src/app.ts",
@@ -210,6 +225,28 @@ describe("canonical independent Surface targets", () => {
     });
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
+      kind: "resource",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      file: "artifacts/run-1/archive.zip",
+      preview: {
+        name: "archive.zip",
+        url: "artifacts/run-1/archive.zip",
+        downloadUrl: "artifacts/run-1/archive.zip",
+        kind: "unsupported",
+      },
+    })).toMatchObject({
+      module: "artifact",
+      route: "/resource-view/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Farchive.zip",
+      context: {
+        agentKey: "agent-1",
+        chatId: "chat-1",
+        artifactId: expect.stringMatching(/^resource:/),
+      },
+      title: "archive.zip",
+    });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
       kind: "web",
       url: "https://example.com/path",
     })).toMatchObject({ kind: "web", url: "https://example.com/path" });
@@ -253,6 +290,32 @@ describe("canonical independent Surface targets", () => {
       expect(openDescriptor).toHaveBeenCalledWith(expect.objectContaining({ module: kind }));
     },
   );
+
+  it.each([
+    ["artifact", "artifactId"],
+    ["reference", "referenceId"],
+  ] as const)("opens Desktop %s through Resource WorkPanel before loading", (kind, identityKey) => {
+    const openDescriptor = jest.fn(async () => ({ ok: true }));
+    const preview = {
+      name: `${kind}.txt`,
+      url: `${kind}s/run-1/${kind}.txt`,
+      downloadUrl: "",
+      kind: "text" as const,
+    };
+    const intent = {
+      version: 1 as const,
+      kind,
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      [identityKey]: `${kind}-1`,
+      preview,
+    };
+    expect(openDesktopWorkPanelTarget({ intent, workPanel: { openDescriptor } })).toBe(true);
+    expect(openDescriptor).toHaveBeenCalledWith(expect.objectContaining({
+      module: kind,
+      route: expect.stringMatching(/^\/resource-view\/agent-1\?/),
+    }));
+  });
 
   it("normalizes project-relative file identities", () => {
     expect(normalizeProjectRelativePath("src/app.ts")).toBe("src/app.ts");

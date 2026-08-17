@@ -55,6 +55,15 @@ export type OpenTargetIntent =
       toggle?: boolean;
       title?: string;
     } & AgentIntent)
+  | ({
+      version: 1;
+      kind: "resource";
+      chatId: string;
+      file: string;
+      preview?: AttachmentPreviewState;
+      toggle?: boolean;
+      title?: string;
+    } & AgentIntent)
   | { version: 1; kind: "file"; agentKey: string; path: string; line?: number; preview?: AttachmentPreviewState; toggle?: boolean; title?: string }
   | { version: 1; kind: "terminal"; agentKey: string; terminalKey?: string; title?: string }
   | ({ version: 1; kind: "project"; chatId?: string; runId?: string; path?: string; openFiles?: string[]; view?: "content" | "diff" } & AgentIntent)
@@ -122,6 +131,12 @@ function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteIntent | nu
         chatId: intent.chatId,
         file: clean(intent.preview?.url),
       });
+    case "resource":
+      return resourceRouteIntent({
+        agentKey,
+        chatId: intent.chatId,
+        file: intent.file,
+      });
     case "file":
       return { kind: "file", agentKey, path: intent.path, line: intent.line };
     case "terminal":
@@ -173,6 +188,15 @@ export function normalizeProjectRelativePath(
   const parts = path.split("/").filter((part) => part && part !== ".");
   if (parts.length === 0 || parts.some((part) => part === "..")) return "";
   return parts.join("/");
+}
+
+function resourceWorkPanelIdentity(file: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < file.length; index += 1) {
+    hash ^= file.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `resource:${file.length}:${(hash >>> 0).toString(36)}`;
 }
 
 export function buildDesktopWorkPanelDescriptor(
@@ -249,6 +273,24 @@ export function buildDesktopWorkPanelDescriptor(
       route,
       context: { agentKey, chatId, planningId },
       ...(intent.label ? { title: intent.label } : {}),
+    };
+  }
+  if (intent.kind === "resource") {
+    const chatId = clean(intent.chatId);
+    const file = clean(intent.file);
+    if (!chatId || !file) return null;
+    return {
+      kind: "webclient",
+      module: "artifact",
+      route,
+      context: {
+        agentKey,
+        chatId,
+        artifactId: resourceWorkPanelIdentity(file),
+      },
+      ...(intent.title || intent.preview?.name
+        ? { title: intent.title || intent.preview?.name }
+        : {}),
     };
   }
   if (intent.kind === "artifact") {
@@ -393,7 +435,12 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
         return true;
       }
       if (
-        (normalizedIntent.kind === "artifact" || normalizedIntent.kind === "reference" || normalizedIntent.kind === "file") &&
+        (
+          normalizedIntent.kind === "artifact" ||
+          normalizedIntent.kind === "reference" ||
+          normalizedIntent.kind === "resource" ||
+          normalizedIntent.kind === "file"
+        ) &&
         normalizedIntent.preview
       ) {
         const preview = normalizedIntent.preview;

@@ -23,8 +23,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
-import { getAgentFile } from "@/shared/data";
-import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
+import { downloadAttachmentPreview } from "@/features/artifacts/lib/artifactResourceRuntime";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 
@@ -263,34 +262,11 @@ export const RightSidebar: React.FC = () => {
   const handlePreviewDownload = React.useCallback(
     (preview: AttachmentPreviewState) => {
       void (async () => {
-        let downloadUrl = preview.downloadUrl;
-        if (preview.workspaceFile) {
-          try {
-            const response = await getAgentFile(preview.workspaceFile);
-            downloadUrl = response.data.contentUrl || "";
-          } catch (error: unknown) {
-            message.error(
-              error instanceof Error
-                ? error.message
-                : t("rightSidebar.preview.error.download"),
-            );
-            return;
-          }
-        }
-
-        if (!downloadUrl) {
-          message.error(t("rightSidebar.preview.error.download"));
-          return;
-        }
-
         try {
-          await downloadArtifactResource(
-            downloadUrl,
-            preview.name,
-            state.chatId,
-            undefined,
+          await downloadAttachmentPreview(preview, {
+            chatId: state.chatId,
             teamChat,
-          );
+          });
         } catch (error: unknown) {
           message.error(
             error instanceof Error

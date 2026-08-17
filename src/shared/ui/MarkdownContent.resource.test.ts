@@ -92,6 +92,7 @@ describe("MarkdownContent resource image", () => {
     expect(html).toContain(
       'href="artifacts/run_01/image.png"',
     );
+    expect(html).not.toContain('download="image.png"');
     expect(html).toContain('data-kind="legacy"');
     expect(html).not.toContain('href="/api/resource');
     expect(html).toContain('href="/Users/alice/project/poster.png"');

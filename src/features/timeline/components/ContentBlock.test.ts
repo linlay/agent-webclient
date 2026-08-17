@@ -32,6 +32,16 @@ const mockMarkdownContentProps: Array<{
 		filePath: string;
 		line?: number;
 	}) => void;
+	onResourceFileLinkClick?: (link: {
+		href: string;
+		name: string;
+		classification: {
+			kind: "chat";
+			source: string;
+			fetchUrl: string;
+			requiresPlatformAuth: boolean;
+		};
+	}) => void;
 	onWebLinkClick?: (link: {
 		href: string;
 		url: string;
@@ -50,6 +60,16 @@ jest.mock("@/shared/ui/MarkdownContent", () => {
 				href: string;
 				filePath: string;
 				line?: number;
+			}) => void;
+			onResourceFileLinkClick?: (link: {
+				href: string;
+				name: string;
+				classification: {
+					kind: "chat";
+					source: string;
+					fetchUrl: string;
+					requiresPlatformAuth: boolean;
+				};
 			}) => void;
 			onWebLinkClick?: (link: {
 				href: string;
@@ -140,6 +160,40 @@ describe("ContentBlock", () => {
 					path: "/Users/demo/project/src/a.ts",
 				},
 			}),
+		});
+	});
+
+	it("opens relative ChatScope files in the Resource Viewer", () => {
+		const href = "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md";
+		const node: TimelineNode = {
+			id: "content_resource_link",
+			kind: "content",
+			role: "assistant",
+			text: `[灯下.md](${href})`,
+			ts: 100,
+		};
+
+		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
+		mockMarkdownContentProps[0].onResourceFileLinkClick?.({
+			href,
+			name: "灯下.md",
+			classification: {
+				kind: "chat",
+				source: href,
+				fetchUrl: "/api/resource?file=chat_01%2Fartifacts",
+				requiresPlatformAuth: true,
+			},
+		});
+
+		expect(mockDispatch).toHaveBeenCalledWith({
+			type: "OPEN_RIGHT_SIDEBAR",
+			tab: "preview",
+			preview: {
+				name: "灯下.md",
+				url: href,
+				downloadUrl: href,
+				kind: "text",
+			},
 		});
 	});
 

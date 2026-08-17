@@ -23,7 +23,7 @@ export function buildFileSurfacePreview(input: {
     name,
     url: `workspace-file:${encodeURIComponent(agentKey)}:${encodeURIComponent(path)}`,
     downloadUrl: "",
-    kind: detectedKind === "unsupported" ? "text" : detectedKind,
+    kind: detectedKind,
     sourcePath: path,
     line: Number.isFinite(line) && line > 0 ? Math.floor(line) : undefined,
     workspaceFile: { agentKey, path },
