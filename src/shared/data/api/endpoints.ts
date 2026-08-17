@@ -179,12 +179,16 @@ export function buildAttachPayload(options: AttachStreamParams): {
   };
 }
 
+const PLATFORM_WS_BACKENDS = ["platform"] as const;
+const PLATFORM_AND_GATEWAY_WS_BACKENDS = ["platform", "gateway"] as const;
+
 export const dataEndpoints = createEndpointRegistry({
   accessLevelUpdate: defineEndpoint<AccessLevelUpdateParams, Record<string, unknown>>({
     key: "accessLevel.update",
     path: "/api/access-level",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: buildAccessLevelPayload,
   }),
   adminAgentCreate: defineEndpoint({
@@ -424,6 +428,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/agent",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: (agentKey) => ({ agentKey }),
   }),
   agentSkills: defineEndpoint<string, { agentKey: string }>({
@@ -431,6 +436,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/skills",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     cache: { ttlMs: 30_000, dedupe: true },
     payload: (agentKey) => ({ agentKey: String(agentKey || "").trim() }),
   }),
@@ -439,6 +445,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/agent/model-config",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   agentOpenDirectory: defineEndpoint({
     key: "agent.openDirectory",
@@ -450,19 +457,20 @@ export const dataEndpoints = createEndpointRegistry({
     key: "agents.order",
     path: "/api/agents/order",
     method: "GET",
-    transport: "auto",
+    transport: "http",
   }),
   agentOrderUpdate: defineEndpoint({
     key: "agents.order.update",
     path: "/api/agents/order",
     method: "PUT",
-    transport: "auto",
+    transport: "http",
   }),
   agents: defineEndpoint<GetAgentsOptions, Record<string, unknown>>({
     key: "agents.list",
     path: "/api/agents",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     cache: { ttlMs: 8_000, dedupe: true },
     payload: (options = {}) =>
       compactPayload({
@@ -480,6 +488,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/archive",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: ({ chatId, includeRawMessages }) =>
       compactPayload({
         chatId,
@@ -491,6 +500,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/archive/delete",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: ({ chatId }) => ({ chatId }),
   }),
   archiveRestore: defineEndpoint({
@@ -498,12 +508,14 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/archive/restore",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
   archives: defineEndpoint<ArchivesRequest, Record<string, unknown>>({
     key: "archives.list",
     path: "/api/archives",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: (params = {}) =>
       compactPayload({
         agentKey: params.agentKey,
@@ -516,6 +528,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/archives/search",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
   attach: defineEndpoint<AttachStreamParams>({
     key: "runs.attach",
@@ -574,6 +587,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chat",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: ({ chatId, includeRawMessages }) =>
       compactPayload({
         chatId,
@@ -585,12 +599,14 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chat/archive",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
   chatDelete: defineEndpoint<{ chatId: string }, { chatId: string }>({
     key: "chat.delete",
     path: "/api/chat/delete",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: ({ chatId }) => ({ chatId }),
   }),
   chatDerive: defineEndpoint<DeriveChatRequest, Record<string, unknown>>({
@@ -598,6 +614,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chat/derive",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: (params) =>
       compactPayload({
         sourceChatId: params.sourceChatId,
@@ -617,6 +634,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chat/jsonl",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: ({ chatId }) => ({ chatId }),
   }),
   chatSystemPrompt: defineEndpoint<
@@ -627,6 +645,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chat/system-prompt",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: ({ chatId, runId, agentKey }) => ({ chatId, runId, agentKey }),
   }),
   chatLlmTrace: defineEndpoint<{ file: string }, { file: string }>({
@@ -634,6 +653,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chat/llm-trace",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: ({ file }) => ({ file }),
   }),
   chatRename: defineEndpoint({
@@ -641,12 +661,14 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chat/rename",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
   chats: defineEndpoint<GetChatsOptions, Record<string, unknown>>({
     key: "chats.list",
     path: "/api/chats",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     cache: { ttlMs: 5_000, dedupe: true },
     payload: (options = {}) =>
       compactPayload({
@@ -659,6 +681,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/compact",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   detach: defineEndpoint({
     key: "runs.detach",
@@ -671,6 +694,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/feedback",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
   fileHistory: defineEndpoint<
     {
@@ -701,6 +725,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/file",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: (params) =>
       compactPayload({
         agentKey: params.agentKey,
@@ -734,6 +759,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/interrupt",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: buildRunControlPayload,
   }),
   learn: defineEndpoint({
@@ -741,18 +767,21 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/learn",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   memoryContextPreview: defineEndpoint({
     key: "memory.contextPreview",
     path: "/api/memory/context-preview",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   memoryMeta: defineEndpoint({
     key: "memory.meta",
     path: "/api/memory/meta",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     cache: { ttlMs: 30_000, dedupe: true },
   }),
   memoryRecordDetail: defineEndpoint<
@@ -763,6 +792,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/memory/record/detail",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: (params) => compactPayload(params),
   }),
   memoryRecords: defineEndpoint<GetMemoryRecordsParams, Record<string, unknown>>({
@@ -770,6 +800,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/memory/record/list",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: (params) => compactPayload(params as Record<string, unknown>),
   }),
   memoryScope: defineEndpoint<
@@ -780,6 +811,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/memory/scope/detail",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: (params) => compactPayload(params),
   }),
   memoryScopeSave: defineEndpoint({
@@ -787,18 +819,21 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/memory/scope/save",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   memoryScopeValidate: defineEndpoint({
     key: "memory.scope.validate",
     path: "/api/memory/scope/validate",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   memoryScopes: defineEndpoint<string, { agentKey: string }>({
     key: "memory.scopes",
     path: "/api/memory/scope/list",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: (agentKey) => ({ agentKey }),
   }),
   modelOptions: defineEndpoint({
@@ -806,6 +841,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/model-options",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     cache: { ttlMs: 60_000, dedupe: true },
     payload: (agentKey?: string) =>
       compactPayload({ agentKey: String(agentKey || "").trim() }),
@@ -829,12 +865,13 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/read",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
   remember: defineEndpoint({
     key: "chat.remember",
     path: "/api/remember",
     method: "POST",
-    transport: "auto",
+    transport: "http",
   }),
   resource: defineEndpoint<{ file: string }, { file: string }>({
     key: "resource.read",
@@ -848,12 +885,14 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/chats/search",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
   steer: defineEndpoint<QueryLikeParams, Record<string, unknown>>({
     key: "runs.steer",
     path: "/api/steer",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: buildRunControlPayload,
   }),
   submit: defineEndpoint<RunSubmitParams, Record<string, unknown>>({
@@ -861,6 +900,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/submit",
     method: "POST",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: buildRunSubmitPayload,
   }),
   teams: defineEndpoint({
@@ -868,6 +908,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/teams",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     cache: { ttlMs: 30_000, dedupe: true },
   }),
   terminalClose: defineEndpoint({
@@ -923,6 +964,7 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/viewport",
     method: "GET",
     transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: (viewportKey) => ({ viewportKey }),
   }),
   voiceCapabilities: defineEndpoint({

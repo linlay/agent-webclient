@@ -1,7 +1,7 @@
 # API端点注册与DTO
 
 ## 当前状态
-接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 和 HTTP client helper 主要在 `src/shared/data/api/client.ts`。端点声明包含 key、path、method、transport、cache 和 payload 构造函数。
+接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 和 HTTP client helper 主要在 `src/shared/data/api/client.ts`。端点声明包含 key、path、method、transport、wsBackends、cache 和 payload 构造函数；所有 `auto` 端点必须显式声明支持 WS 的 backend。
 
 ## 核心职责
 - 统一维护 `/api/*`、`/ws`、`/api/voice/*`、`/api/resource` 等前端消费入口。
@@ -18,7 +18,7 @@ Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `
 
 `runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父对话继承。
 
-对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 `auto`：当前 mode 为 WebSocket 时优先向 `/api/skills` 发送 `{agentKey}` request frame，SSE 模式使用 HTTP，WS 连接或传输故障时回退 HTTP；业务错误保持原错误，不二次请求。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
+对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 Platform-only `auto`：Platform 模式向 `/api/skills` 发送 `{agentKey}` request frame，Gateway 因未暴露该 WS route 而在请求前选择 HTTP；WS 连接或传输故障不回退 HTTP。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
 
 ## Skills 管理契约
 
