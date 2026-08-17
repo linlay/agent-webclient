@@ -47,6 +47,7 @@ import { ReadonlyRunSurfacePage } from "./pages/run-surface";
 import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
+import { WebClientRouteErrorPage } from "@/app/WebClientRenderError";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
@@ -185,6 +186,7 @@ const router = createBrowserRouter(
     {
       path: "/",
       element: <BaseShell />,
+      errorElement: <WebClientRouteErrorPage />,
       children: [
         {
           path: "/login",
