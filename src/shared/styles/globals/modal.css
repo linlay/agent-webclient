@@ -417,7 +417,7 @@
 .automation-menu-icon.material-icon {
     width: 16px;
     height: 16px;
-    font-size: 16px;
+    font-size: 16px !important;
 }
 
 .automation-agent-filter-option {
@@ -427,7 +427,7 @@
 
 /* Automation detail 中「智能体」下拉选项：图标 + 名称 + 角色小字淡色。 */
 .automation-agent-option {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
@@ -627,17 +627,21 @@
     align-items: center;
     justify-content: center;
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
-    background: var(--bg-hover);
+    background: transparent;
+    backdrop-filter: blur(10px);
     opacity: 0;
     pointer-events: none;
-    transform: translateX(3px);
-    transition: opacity 0.16s ease, transform 0.16s ease;
+    transition: opacity 0.16s ease, color 0.16s ease;
+    cursor: pointer;
+    color: var(--text-muted);
+    &:hover {
+        color: var(--text-main);
+    }
 }
 
 .automation-list-item:hover .automation-list-item-menu {
     opacity: 1;
     pointer-events: auto;
-    transform: translateX(0);
 }
 
 .automation-list-item-menu-trigger.ui-btn {
@@ -937,10 +941,7 @@
 }
 
 .automation-section-nav-save.ui-btn {
-    height: 24px;
-    min-height: 24px;
     padding-inline: 8px;
-    font-size: 12px;
 }
 
 .automation-additional-fields {
@@ -1633,10 +1634,7 @@
 }
 
 .agent-section-nav-save.ui-btn {
-    height: 24px;
-    min-height: 24px;
     padding-inline: 8px;
-    font-size: 12px;
 }
 
 .agent-section-nav-link {
@@ -1868,23 +1866,6 @@
     letter-spacing: 0.04em;
     color: var(--ink-muted);
     margin-bottom: 4px;
-}
-
-.field-group input {
-    width: 100%;
-    padding: 8px 10px;
-    font-size: 12px;
-}
-
-.field-group textarea,
-.settings-textarea {
-    width: 100%;
-    padding: 8px 10px;
-    font-size: 12px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-    border-radius: var(--radius-md);
-    color: var(--ink-1);
-    resize: vertical;
 }
 
 .settings-readonly-textarea {
