@@ -22,7 +22,16 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Input, Modal, Popconfirm, Select, Spin, Switch, Tooltip, message } from "antd";
+import {
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Spin,
+  Switch,
+  Tooltip,
+  message,
+} from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
 import {
@@ -315,7 +324,10 @@ export function resolveAdminAgentSourcePath(detail: unknown): string {
 export function privateSkillsFromDetail(
   detail: EditableAgentDetail | null,
 ): AdminAgentPrivateSkill[] {
-  if (!detail || !Array.isArray((detail as AdminAgentDetailResponse).privateSkills)) {
+  if (
+    !detail ||
+    !Array.isArray((detail as AdminAgentDetailResponse).privateSkills)
+  ) {
     return [];
   }
   return (detail as AdminAgentDetailResponse).privateSkills || [];
@@ -844,8 +856,7 @@ const AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME =
   "agent-section-nav-icon-button ui-icon-hover-24";
 const AGENT_DETAIL_PATH_FIELD_CLASS_NAME =
   "agent-detail-path-field tw:col-span-3 tw:flex tw:min-w-0 tw:items-center tw:gap-1 tw:max-[860px]:col-span-1";
-const AGENT_SECTION_NAV_SAVE_CLASS_NAME =
-  "agent-section-nav-save tw:flex-none";
+const AGENT_SECTION_NAV_SAVE_CLASS_NAME = "agent-section-nav-save tw:flex-none";
 const AGENT_FORM_SECTION_CLASS_NAME = "agent-form-section";
 const AGENT_FORM_SECTION_HEADING_CLASS_NAME =
   "agent-form-section-heading tw:flex tw:items-center tw:gap-1.5";
@@ -1165,7 +1176,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [editorOptions, setEditorOptions] =
     useState<AgentEditorOptionsResponse | null>(null);
   const [toolOptions, setToolOptions] = useState<AgentToolOption[]>([]);
-  const [skillOptions, setSkillOptions] = useState<Array<{ key: string; label: string }>>([]);
+  const [skillOptions, setSkillOptions] = useState<
+    Array<{ key: string; label: string }>
+  >([]);
   const [savingForm, setSavingForm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [privateSkillModalOpen, setPrivateSkillModalOpen] = useState(false);
@@ -1272,7 +1285,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       ).map((item) => ({ value: item.key, label: item.label || item.key })),
     [editorOptions],
   );
-  const privateSkills = useMemo(() => privateSkillsFromDetail(detail), [detail]);
+  const privateSkills = useMemo(
+    () => privateSkillsFromDetail(detail),
+    [detail],
+  );
   const agentSkillOptions = useMemo(
     () => mergeAgentSkillOptions(skillOptions, privateSkills, form.skills, t),
     [form.skills, privateSkills, skillOptions, t],
@@ -1825,7 +1841,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const resetPrivateSkillImport = () => {
     setPrivateSkillFile(null);
     setPrivateSkillError("");
-    if (privateSkillFileInputRef.current) privateSkillFileInputRef.current.value = "";
+    if (privateSkillFileInputRef.current)
+      privateSkillFileInputRef.current.value = "";
   };
 
   const openPrivateSkillImport = () => {
@@ -1870,7 +1887,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     if (!agentKey || !skill.key || hasUnsavedChanges) return;
     Modal.confirm({
       title: t("agentConsole.privateSkill.delete.title"),
-      content: t("agentConsole.privateSkill.delete.description", { name: skill.name || skill.key }),
+      content: t("agentConsole.privateSkill.delete.description", {
+        name: skill.name || skill.key,
+      }),
       okText: t("agentConsole.privateSkill.delete.confirm"),
       cancelText: t("agentConsole.privateSkill.delete.cancel"),
       okButtonProps: { danger: true },
@@ -1878,7 +1897,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         setDeletingPrivateSkillKey(skill.key);
         setFormError("");
         try {
-          const response = await deleteAdminAgentPrivateSkill({ agentKey, key: skill.key });
+          const response = await deleteAdminAgentPrivateSkill({
+            agentKey,
+            key: skill.key,
+          });
           const saved = response.data;
           setDetail(saved);
           setForm(formFromDetail(saved));
@@ -2021,7 +2043,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   };
 
   const sourceSaveDisabled =
-    savingForm || deleting || loadingSource || sourceLoadedKey !== form.key || !sourceDirty;
+    savingForm ||
+    deleting ||
+    loadingSource ||
+    sourceLoadedKey !== form.key ||
+    !sourceDirty;
 
   return (
     <div
@@ -2067,13 +2093,16 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               {t("agentConsole.privateSkill.import.selectFile")}
             </UiButton>
             <span className="tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:text-ink-muted">
-              {privateSkillFile?.name || t("agentConsole.privateSkill.import.noFile")}
+              {privateSkillFile?.name ||
+                t("agentConsole.privateSkill.import.noFile")}
             </span>
           </div>
           <div className="tw:text-xs tw:leading-5 tw:text-ink-muted">
             {t("agentConsole.privateSkill.import.description")}
           </div>
-          {privateSkillError && <div className="tw:text-xs tw:text-danger">{privateSkillError}</div>}
+          {privateSkillError && (
+            <div className="tw:text-xs tw:text-danger">{privateSkillError}</div>
+          )}
         </div>
       </Modal>
       {error && (
@@ -2194,137 +2223,119 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           className={`${AGENT_DETAIL_CLASS_NAME} ${editorMode === "source" ? "is-source-editor" : ""}`}
         >
           <Spin spinning={loadingDetail || loadingSource}>
-              <nav
-                className={AGENT_SECTION_NAV_CLASS_NAME}
-                aria-label={t("agentConsole.sectionNav.ariaLabel")}
-              >
-                {shouldShowAgentSectionNav(
-                  editorMode,
-                  canEditStructuredAgent,
-                ) && (
-                  <div
-                    ref={sectionNavLinksRef}
-                    className={AGENT_SECTION_NAV_LINKS_CLASS_NAME}
-                  >
-                    {agentFormSections.map((section) => (
-                      <a
-                        className={AGENT_SECTION_NAV_LINK_CLASS_NAME}
-                        href={`#${section.id}`}
-                        aria-current={
-                          activeSectionId === section.id
-                            ? "location"
-                            : undefined
-                        }
-                        key={section.id}
-                        onClick={(event) =>
-                          handleSectionNavigate(event, section.id)
-                        }
-                      >
-                        {section.label}
-                      </a>
-                    ))}
-                  </div>
-                )}
-                <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
-                  {canEditSourceAgent && (
-                    <Tooltip
-                      title={
-                        editorMode === "source"
-                          ? t("agentConsole.action.structuredEdit")
-                          : t("agentConsole.action.sourceEdit")
+            <nav
+              className={AGENT_SECTION_NAV_CLASS_NAME}
+              aria-label={t("agentConsole.sectionNav.ariaLabel")}
+            >
+              {shouldShowAgentSectionNav(
+                editorMode,
+                canEditStructuredAgent,
+              ) && (
+                <div
+                  ref={sectionNavLinksRef}
+                  className={AGENT_SECTION_NAV_LINKS_CLASS_NAME}
+                >
+                  {agentFormSections.map((section) => (
+                    <a
+                      className={AGENT_SECTION_NAV_LINK_CLASS_NAME}
+                      href={`#${section.id}`}
+                      aria-current={
+                        activeSectionId === section.id ? "location" : undefined
                       }
-                      arrow={false}
+                      key={section.id}
+                      onClick={(event) =>
+                        handleSectionNavigate(event, section.id)
+                      }
                     >
-                      <UiButton
-                        className={AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME}
-                        size="sm"
-                        variant="ghost"
-                        iconOnly
-                        active={editorMode === "source"}
-                        onClick={() => {
-                          void toggleEditorMode();
-                        }}
-                        disabled={savingForm || deleting || loadingSource}
-                        loading={loadingSource}
-                        aria-label={
-                          editorMode === "source"
-                            ? t("agentConsole.action.structuredEdit")
-                            : t("agentConsole.action.sourceEdit")
-                        }
-                      >
-                        <MaterialIcon
-                          name={editorMode === "source" ? "tune" : "code"}
-                        />
-                      </UiButton>
-                    </Tooltip>
-                  )}
-                  {formMode === "edit" && (
-                    <Popconfirm
-                      title={t("agentConsole.confirm.deleteTitle")}
-                      okText={t("agentConsole.confirm.deleteOk")}
-                      cancelText={t("agentConsole.confirm.deleteCancel")}
-                      okButtonProps={{ danger: true }}
-                      onConfirm={confirmDelete}
-                      disabled={deleting}
-                    >
-                      <Tooltip
-                        title={t("agentConsole.action.delete")}
-                        arrow={false}
-                      >
-                        <UiButton
-                          className={AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME}
-                          size="sm"
-                          variant="danger"
-                          iconOnly
-                          disabled={deleting || savingForm}
-                          loading={deleting}
-                          aria-label={t("agentConsole.action.delete")}
-                        >
-                          <MaterialIcon name="delete" />
-                        </UiButton>
-                      </Tooltip>
-                    </Popconfirm>
-                  )}
+                      {section.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+              <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
+                {canEditSourceAgent && (
                   <Tooltip
                     title={
-                      formMode === "create"
-                        ? t("agentConsole.action.create")
-                        : editorMode === "source"
-                          ? t("agentConsole.action.saveSource")
-                          : t("agentConsole.action.saveChanges")
+                      editorMode === "source"
+                        ? t("agentConsole.action.structuredEdit")
+                        : t("agentConsole.action.sourceEdit")
                     }
                     arrow={false}
                   >
                     <UiButton
-                      className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
+                      className={AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME}
                       size="sm"
-                      variant="primary"
+                      variant="ghost"
+                      iconOnly
+                      active={editorMode === "source"}
                       onClick={() => {
-                        if (editorMode === "source") {
-                          void saveSource();
-                        } else {
-                          void saveForm();
-                        }
+                        void toggleEditorMode();
                       }}
-                      disabled={
+                      disabled={savingForm || deleting || loadingSource}
+                      loading={loadingSource}
+                      aria-label={
                         editorMode === "source"
-                          ? sourceSaveDisabled
-                          : !canEditStructuredAgent || deleting
+                          ? t("agentConsole.action.structuredEdit")
+                          : t("agentConsole.action.sourceEdit")
                       }
-                      loading={savingForm}
                     >
-                      <MaterialIcon name="save" />
-                      <span>
-                        {formMode === "create"
-                          ? t("agentConsole.action.create")
-                          : editorMode === "source"
-                            ? t("agentConsole.action.saveSource")
-                            : t("agentConsole.action.saveChanges")}
-                      </span>
+                      <MaterialIcon
+                        name={editorMode === "source" ? "tune" : "code"}
+                      />
                     </UiButton>
                   </Tooltip>
-                </div>
-              </nav>
+                )}
+                {formMode === "edit" && (
+                  <Popconfirm
+                    title={t("agentConsole.confirm.deleteTitle")}
+                    okText={t("agentConsole.confirm.deleteOk")}
+                    cancelText={t("agentConsole.confirm.deleteCancel")}
+                    okButtonProps={{ danger: true }}
+                    onConfirm={confirmDelete}
+                    disabled={deleting}
+                  >
+                    <UiButton
+                      className={`${AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME} tw:!text-danger`}
+                      size="sm"
+                      variant="ghost"
+                      iconOnly
+                      disabled={deleting || savingForm}
+                      loading={deleting}
+                      aria-label={t("agentConsole.action.delete")}
+                    >
+                      <MaterialIcon name="delete" />
+                    </UiButton>
+                  </Popconfirm>
+                )}
+                <UiButton
+                  className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
+                  size="sm"
+                  variant="primary"
+                  onClick={() => {
+                    if (editorMode === "source") {
+                      void saveSource();
+                    } else {
+                      void saveForm();
+                    }
+                  }}
+                  disabled={
+                    editorMode === "source"
+                      ? sourceSaveDisabled
+                      : !canEditStructuredAgent || deleting
+                  }
+                  loading={savingForm}
+                >
+                  <MaterialIcon name="save" />
+                  <span>
+                    {formMode === "create"
+                      ? t("agentConsole.action.create")
+                      : editorMode === "source"
+                        ? t("agentConsole.action.saveSource")
+                        : t("agentConsole.action.saveChanges")}
+                  </span>
+                </UiButton>
+              </div>
+            </nav>
 
             {formMode === "edit" && detailDiagnostics.length > 0 && (
               <div className={AGENT_DETAIL_ADMIN_META_CLASS_NAME}>
@@ -2696,16 +2707,17 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                               className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:rounded-control tw:border tw:px-2 tw:py-1.5 tw:text-xs tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]"
                             >
                               <span className="tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-                                [{t("agentConsole.privateSkill.source.private")}] {agentSkillDisplayName(
-                                  skill.name,
-                                  skill.key,
-                                )}
+                                [{t("agentConsole.privateSkill.source.private")}
+                                ] {agentSkillDisplayName(skill.name, skill.key)}
                               </span>
                               <UiButton
                                 size="mini"
                                 variant="danger"
                                 onClick={() => confirmDeletePrivateSkill(skill)}
-                                disabled={!canImportPrivateSkill || deletingPrivateSkillKey === skill.key}
+                                disabled={
+                                  !canImportPrivateSkill ||
+                                  deletingPrivateSkillKey === skill.key
+                                }
                                 loading={deletingPrivateSkillKey === skill.key}
                               >
                                 <MaterialIcon name="delete" />

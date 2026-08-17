@@ -24,8 +24,6 @@ const SLASH_COMMAND_ITEM_STATE_CLASS = {
 } as const;
 const SLASH_COMMAND_LABEL_CLASS =
   "slash-command-label tw:text-xs tw:text-text-main";
-const SLASH_COMMAND_CHECK_CLASS =
-  "slash-command-check tw:col-start-4 tw:row-span-2 tw:inline-flex tw:items-center tw:self-center tw:text-accent-lime tw:[&_.material-icon]:text-base";
 const SLASH_COMMAND_DESCRIPTION_CLASS =
   "slash-command-description tw:text-text-muted tw:flex-1";
 const SLASH_SKILL_SOURCE_CLASS = " tw:text-xs tw:mr-0 tw:text-text-sub";
@@ -132,16 +130,6 @@ export const SlashPaletteContent: React.FC<{
               >
                 {command.description}
               </Typography.Text>
-              {command.id === "plan" && planningMode ? (
-                <span className={SLASH_COMMAND_CHECK_CLASS} aria-hidden="true">
-                  <MaterialIcon name="check" />
-                </span>
-              ) : null}
-              {command.id === "editing" && editingMode ? (
-                <span className={SLASH_COMMAND_CHECK_CLASS} aria-hidden="true">
-                  <MaterialIcon name="check" />
-                </span>
-              ) : null}
               <Tag className={SLASH_SKILL_SOURCE_CLASS}>{command.command}</Tag>
             </UiButton>
           );
@@ -184,11 +172,6 @@ export const SlashPaletteContent: React.FC<{
               >
                 {skill.description || t("slashPalette.skill.noDescription")}
               </Typography.Text>
-              {selected && (
-                <span className={SLASH_COMMAND_CHECK_CLASS} aria-hidden="true">
-                  <MaterialIcon name="check" />
-                </span>
-              )}
               <Tag className={SLASH_SKILL_SOURCE_CLASS}>
                 {skill.agentHasSkill
                   ? t("slashPalette.skill.source.agent")
