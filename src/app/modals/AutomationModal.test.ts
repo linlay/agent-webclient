@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   AUTOMATION_FORM_SECTION_IDS,
+  CRON_PRESETS,
   AutomationModal,
   automationTimeLabel,
   automationSourcePath,
@@ -42,24 +43,70 @@ jest.mock("antd", () => {
   return {
     Checkbox: ({ children, ...props }: any) =>
       React.createElement("label", null, React.createElement("input", { type: "checkbox", ...props }), children),
-    Dropdown: ({ children }: any) => React.createElement(React.Fragment, null, children),
-    Input,
-    Select: ({ options = [], showSearch, optionFilterProp, ...props }: any) =>
+    Dropdown: ({ children, menu }: any) =>
       React.createElement(
-        "select",
-        props,
-        options.map((option: any) =>
-          React.createElement(
-            "option",
-            { key: option.value, value: option.value },
-            option.label,
+        "div",
+        { className: "mock-dropdown" },
+        children,
+        Array.isArray(menu?.items)
+          ? menu.items.map((item: any, index: number) =>
+              React.createElement(
+                "div",
+                {
+                  key: item.key ?? index,
+                  "data-menu-key": item.key ?? item.type ?? "",
+                },
+                item.label,
+              ),
+            )
+          : null,
+      ),
+    Input,
+    Select: ({
+      options = [],
+      showSearch,
+      optionFilterProp,
+      optionRender,
+      labelRender,
+      ...props
+    }: any) =>
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(
+          "select",
+          props,
+          options.map((option: any) =>
+            React.createElement(
+              "option",
+              { key: option.value, value: option.value },
+              option.label,
+            ),
           ),
         ),
+        optionRender
+          ? React.createElement(
+              "div",
+              { className: "mock-select-options" },
+              options.map((option: any) =>
+                React.createElement(
+                  React.Fragment,
+                  { key: option.value },
+                  optionRender({ data: option }),
+                ),
+              ),
+            )
+          : null,
       ),
     Spin: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Tooltip: ({ children }: any) => React.createElement(React.Fragment, null, children),
   };
 });
+
+jest.mock("@/shared/icons/agent", () => ({
+  AgentIcon: ({ type }: { type: string }) =>
+    React.createElement("svg", { "data-agent-icon-type": type }),
+}));
 
 jest.mock("@/shared/data", () => ({
   createAutomation: jest.fn(),
@@ -207,15 +254,32 @@ describe("AutomationModal", () => {
     expect(html).toContain("执行官");
     expect(html).not.toContain("automation-zone-input");
     expect(html).toContain("automation-cron-control");
-    expect(html).toContain("automation-cron-preset-select");
-    expect(html).toContain("快捷选择");
+    expect(html).toContain("automation-cron-preset-trigger");
+    expect(html).toContain("常用");
     expect(html).toContain("新建对话");
     expect(html).toContain("添加选项");
     expect(html).not.toContain("automation-team-input");
-    expect(html).toContain("每天 09:00");
+    expect(html).toContain("每天 19:00");
     expect(html).not.toContain("automation-role-input");
     expect(html).toContain('aria-label="创建自动化"');
     expect(html).toContain('data-material-icon="smart_toy"');
+    // 吸顶导航与区块标题使用短词「属性 / 执行」
+    expect(html).toContain(">属性<");
+    expect(html).toContain(">执行<");
+    // 保存按钮：图标 + 保存
+    expect(html).toContain(">保存<");
+    // Agent 下拉选项携带图标渲染
+    expect(html).toContain('data-agent-icon-type="agent"');
+    // 常用预设：点击即赋值的动作菜单，不再渲染为带选中态的 select
+    expect(html).not.toMatch(/class="automation-cron-preset-select"/);
+    expect(html).toContain("automation-cron-preset-trigger");
+    expect(html).toContain('data-menu-key="0 19 * * *"');
+    expect(html).toContain('data-menu-key="30 9 * * 1-5"');
+    expect(html).toContain('data-menu-key="*/10 * * * *"');
+    expect(html).toContain('data-menu-key="0 */8 * * *"');
+    expect(html).toContain('data-menu-key="10 22 * * *"');
+    expect(html).toContain('data-menu-key="0 9,21 * * 0,6"');
+    expect(html).toContain('data-menu-key="0 12 5,15,25 * *"');
   });
 
   it("renders the automation console in English", () => {
@@ -224,10 +288,29 @@ describe("AutomationModal", () => {
     expect(html).toContain("Automations 0");
     expect(html).not.toContain("Query parameters");
     expect(html).toContain("Agent");
-    expect(html).toContain("Quick presets");
+    expect(html).toContain("Common presets");
     expect(html).toContain("Start a new chat");
     expect(html).not.toContain("automation-team-input");
     expect(html).toContain('aria-label="Create automation"');
+    // 吸顶导航与区块标题使用短词 Properties / Executions
+    expect(html).toContain(">Properties<");
+    expect(html).toContain(">Executions<");
+    // 保存按钮：图标 + Save
+    expect(html).toContain(">Save<");
+    // Common presets：点击即赋值的动作菜单，不再是带选中态的 select
+    expect(html).toContain("Common presets");
+    expect(html).not.toMatch(/class="automation-cron-preset-select"/);
+  });
+
+  it("marks the once-only 22:10 preset with remainingRuns 1", () => {
+    const oncePreset = CRON_PRESETS.find(
+      (preset) => preset.value === "10 22 * * *",
+    );
+    expect(oncePreset?.remainingRuns).toBe("1");
+    for (const preset of CRON_PRESETS) {
+      if (preset.value === "10 22 * * *") continue;
+      expect(preset.remainingRuns).toBeUndefined();
+    }
   });
 
   it("builds create and update payloads without TeamID and with the selected role", () => {
@@ -303,9 +386,8 @@ describe("AutomationModal", () => {
       message: "Summarize status",
       chatId: "chat-stale",
     });
-    expect(buildCreateAutomationPayloadForSubmit(form)).toHaveProperty(
+    expect(buildCreateAutomationPayloadForSubmit(form)).not.toHaveProperty(
       "description",
-      "",
     );
   });
 
@@ -504,8 +586,13 @@ describe("AutomationModal", () => {
     // worker / cron 各自所在 span 的可见文本不应再含中点拼接
     expect(html).not.toMatch(/>小宅 · 0 \*\/\d \* \* \*</);
     expect(html).not.toMatch(/>小宅 · --</);
-    expect(html).not.toContain("Next");
-    expect(html).not.toContain("Last");
+    // 列表卡片区域不再展示 next/last 字段标签（右侧表单的预设文案不受此约束）
+    const listHtml = html.slice(
+      html.indexOf("automation-list-items"),
+      html.indexOf("automation-console-detail"),
+    );
+    expect(listHtml).not.toContain("Next");
+    expect(listHtml).not.toContain("Last");
     expect(html).toContain("automation-list-item-menu-trigger");
     expect(html).toContain('data-material-icon="smart_toy"');
 
@@ -534,8 +621,13 @@ describe("AutomationModal", () => {
     expect(html).toContain("<strong>Sync workspace subprojects</strong>");
     expect(html).toContain("Disabled");
     expect(html).not.toMatch(/\[小宅\]/);
-    expect(html).not.toContain("Next");
-    expect(html).not.toContain("Last");
+    // 列表卡片区域不再展示 next/last 字段标签（右侧表单的预设文案不受此约束）
+    const listHtml = html.slice(
+      html.indexOf("automation-list-items"),
+      html.indexOf("automation-console-detail"),
+    );
+    expect(listHtml).not.toContain("Next");
+    expect(listHtml).not.toContain("Last");
     expect(html).toMatch(
       /automation-list-item-meta-worker[^>]*>[\s\S]*<span>小宅<\/span>/,
     );

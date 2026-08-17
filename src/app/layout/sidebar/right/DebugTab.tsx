@@ -10,10 +10,11 @@ import {
   shouldDisplayDebugEvent,
 } from "@/features/events/lib/debugEventDisplay";
 import { t } from "@/shared/i18n";
+import { buildConversationSharePath } from "@/shared/data/conversationShare";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Flex, Tabs, Tag, Tooltip, Typography } from "antd";
+import { Flex, Modal, Tabs, Tag, Tooltip, Typography } from "antd";
 
 function formatDebugTime(timestamp?: number): string {
   return formatDebugTimestamp(timestamp);
@@ -151,7 +152,13 @@ export const DEBUG_EVENT_TABS: Array<{
 ];
 
 export type DebugTabKey = (typeof DEBUG_EVENT_TABS)[number]["key"];
-type DebugChatRouteKind = "agent" | "copilot";
+type DebugChatRouteKind =
+  | "agent"
+  | "copilot"
+  | "overview"
+  | "debug"
+  | "terminal"
+  | "share";
 
 export interface DebugChatRouteTarget {
   kind: DebugChatRouteKind;
@@ -173,25 +180,52 @@ function readCurrentSearch(): string {
 
 export function buildDebugChatRouteUrl(
   kind: DebugChatRouteKind,
-  input: { agentKey?: unknown; chatId?: unknown },
+  input: {
+    agentKey?: unknown;
+    chatId?: unknown;
+    runId?: unknown;
+    terminalKey?: unknown;
+    shareId?: unknown;
+  },
   currentSearch = "",
 ): string {
   const agentKey = readText(input.agentKey);
   const chatId = readText(input.chatId);
-  if (!agentKey || !chatId) {
-    return "";
+  const sourceParams = new URLSearchParams(currentSearch || "");
+  const params = new URLSearchParams();
+  const lang = readText(sourceParams.get("lang"));
+  const theme = readText(sourceParams.get("theme"));
+  if (lang) params.set("lang", lang);
+  if (theme) params.set("theme", theme);
+
+  if (kind === "share") {
+    return buildConversationSharePath(input.shareId);
   }
 
-  const params = new URLSearchParams(currentSearch || "");
-  params.delete("desktopAuthContext");
+  if (kind === "agent" || kind === "copilot") {
+    if (!agentKey || !chatId) return "";
+    params.set("chatId", chatId);
+    return `/${kind}/${encodeURIComponent(agentKey)}?${params.toString()}`;
+  }
+  if (kind === "terminal") {
+    if (!agentKey) return "";
+    params.set("agentKey", agentKey);
+    params.set("terminalKey", readText(input.terminalKey) || "main");
+    return `/terminal?${params.toString()}`;
+  }
+  if (!chatId) return "";
   params.set("chatId", chatId);
-  return `/${kind}/${encodeURIComponent(agentKey)}?${params.toString()}`;
+  if (agentKey) params.set("agentKey", agentKey);
+  const runId = readText(input.runId);
+  if (runId) params.set("runId", runId);
+  return `/${kind}?${params.toString()}`;
 }
 
 export function buildDebugChatStartOpenTargets(
   event: AgentEvent,
   currentSearch = readCurrentSearch(),
   fallbackAgentKey = "",
+  fallbackShareId = "",
 ): DebugChatRouteTarget[] {
   if (String(event.type || "") !== "chat.start") {
     return [];
@@ -202,11 +236,14 @@ export function buildDebugChatStartOpenTargets(
     readText(event.agentKey) ||
     readText(event.firstAgentKey) ||
     readText(fallbackAgentKey);
+  const shareId =
+    readText((event as Record<string, unknown>).shareId) ||
+    readText(fallbackShareId);
   if (!chatId || !agentKey) {
     return [];
   }
 
-  return [
+  const targets: DebugChatRouteTarget[] = [
     {
       kind: "agent",
       href: buildDebugChatRouteUrl(
@@ -227,7 +264,47 @@ export function buildDebugChatStartOpenTargets(
       labelKey: "rightSidebar.debug.openChat.copilot",
       titleKey: "rightSidebar.debug.openChat.copilotTitle",
     },
+    {
+      kind: "overview",
+      href: buildDebugChatRouteUrl(
+        "overview",
+        { agentKey, chatId, runId: event.runId },
+        currentSearch,
+      ),
+      labelKey: "copilot.panel.overview",
+      titleKey: "copilot.panel.overview",
+    },
+    {
+      kind: "debug",
+      href: buildDebugChatRouteUrl(
+        "debug",
+        { agentKey, chatId, runId: event.runId },
+        currentSearch,
+      ),
+      labelKey: "copilot.panel.debug",
+      titleKey: "copilot.panel.debug",
+    },
+    {
+      kind: "terminal",
+      href: buildDebugChatRouteUrl(
+        "terminal",
+        { agentKey, terminalKey: "main" },
+        currentSearch,
+      ),
+      labelKey: "terminal.panelAria",
+      titleKey: "terminal.panelAria",
+    },
   ];
+  const shareHref = buildDebugChatRouteUrl("share", { shareId });
+  if (shareHref) {
+    targets.push({
+      kind: "share",
+      href: shareHref,
+      labelKey: "share.label",
+      titleKey: "share.label",
+    });
+  }
+  return targets;
 }
 
 function openDebugChatRoute(href: string): void {
@@ -269,8 +346,15 @@ const EventRow: React.FC<{
   event: AgentEvent;
   index: number;
   fallbackAgentKey?: string;
+  fallbackShareId?: string;
   onClick: (e: React.MouseEvent<HTMLDivElement>) => void;
-}> = ({ event, index, fallbackAgentKey = "", onClick }) => {
+}> = ({
+  event,
+  index,
+  fallbackAgentKey = "",
+  fallbackShareId = "",
+  onClick,
+}) => {
   const type = String(event.type || "");
   const ts = formatDebugTime(event.timestamp);
   const hasError = isErrorEventType(type);
@@ -279,6 +363,7 @@ const EventRow: React.FC<{
     event,
     readCurrentSearch(),
     fallbackAgentKey,
+    fallbackShareId,
   );
   const handleRouteClick = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, href: string) => {
@@ -339,12 +424,19 @@ const EventRow: React.FC<{
   );
 };
 
-export const DebugTab: React.FC = () => {
+export const DebugPanelContent: React.FC<{
+  independentDetails?: boolean;
+}> = ({ independentDetails = false }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const [selectedEvent, setSelectedEvent] = React.useState<AgentEvent | null>(null);
 
   const openEventPopover = React.useCallback(
     (event: AgentEvent, idx: number, target: HTMLDivElement) => {
+      if (independentDetails) {
+        setSelectedEvent(event);
+        return;
+      }
       const rect = target.getBoundingClientRect();
       dispatch({
         type: "SET_EVENT_POPOVER",
@@ -356,7 +448,7 @@ export const DebugTab: React.FC = () => {
         },
       });
     },
-    [dispatch],
+    [dispatch, independentDetails],
   );
 
   const eventsByTab = React.useMemo(
@@ -395,6 +487,17 @@ export const DebugTab: React.FC = () => {
     state.currentRunAgentKey,
     state.pendingNewChatAgentKey,
   ]);
+  const chatShareIdById = React.useMemo(() => {
+    const next = new Map<string, string>();
+    state.chats.forEach((chat) => {
+      const chatId = readText(chat?.chatId);
+      const shareId = readText(chat?.shareId);
+      if (chatId && buildConversationSharePath(shareId)) {
+        next.set(chatId, shareId);
+      }
+    });
+    return next;
+  }, [state.chats]);
 
   const tabItems = React.useMemo(
     () =>
@@ -421,6 +524,9 @@ export const DebugTab: React.FC = () => {
                     fallbackAgentKey={chatAgentKeyById.get(
                       readText(event.chatId),
                     )}
+                    fallbackShareId={chatShareIdById.get(
+                      readText(event.chatId),
+                    )}
                     onClick={(e) =>
                       openEventPopover(event, index, e.currentTarget)
                     }
@@ -431,7 +537,12 @@ export const DebugTab: React.FC = () => {
           },
         ];
       }),
-    [chatAgentKeyById, eventsByTab, openEventPopover],
+    [
+      chatAgentKeyById,
+      chatShareIdById,
+      eventsByTab,
+      openEventPopover,
+    ],
   );
 
   return (
@@ -464,6 +575,20 @@ export const DebugTab: React.FC = () => {
           />
         )}
       </div>
+      {independentDetails ? (
+        <Modal
+          open={Boolean(selectedEvent)}
+          onCancel={() => setSelectedEvent(null)}
+          footer={null}
+          width="min(860px, 92vw)"
+          title={String(selectedEvent?.type || "Event")}
+          destroyOnHidden
+        >
+          <pre className="event-json">{JSON.stringify(selectedEvent, null, 2)}</pre>
+        </Modal>
+      ) : null}
     </div>
   );
 };
+
+export const DebugTab: React.FC = () => <DebugPanelContent />;

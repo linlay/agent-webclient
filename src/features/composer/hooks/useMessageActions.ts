@@ -14,7 +14,7 @@ import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
-import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import {
   dispatchDetachRunEvent,
   type DetachRunEventDetail,
@@ -124,6 +124,30 @@ export function canSendToTargetChat(input: {
   return false;
 }
 
+export function canProjectLiveQuerySession(input: {
+  session: Pick<LiveQuerySession, "requestId" | "chatId">;
+  activeRequestId: string;
+  visibleChatId: string;
+  sessions: Pick<Map<string, LiveQuerySession>, "has">;
+}): boolean {
+  const sessionRequestId = toText(input.session.requestId);
+  const activeRequestId = toText(input.activeRequestId);
+  if (sessionRequestId && activeRequestId === sessionRequestId) {
+    return true;
+  }
+
+  const sessionChatId = toText(input.session.chatId);
+  const visibleChatId = toText(input.visibleChatId);
+  if (!sessionChatId || sessionChatId !== visibleChatId) {
+    return false;
+  }
+
+  // A canonical new-chat route promotion is not a chat switch. Reclaim a
+  // missing/stale active pointer for the operation that owns the visible
+  // chat, while never displacing another live session.
+  return !activeRequestId || !input.sessions.has(activeRequestId);
+}
+
 export function resolveDifferentChatDetachRunDetail(input: {
   currentActiveSession: Pick<
     LiveQuerySession,
@@ -219,6 +243,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
     chatQuerySessionIndexRef,
     activeQuerySessionRequestIdRef,
   } = useAppContext();
+  const runs = useRunTransport();
   const handleEvent = options.onAgentEvent;
 
   /* Apply access token on mount and change */
@@ -456,9 +481,40 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       }
       activeQuerySessionRequestIdRef.current = requestId;
       let newChatRouteNotified = false;
+      let queryAccepted = false;
 
-      const isSessionActive = () =>
-        activeQuerySessionRequestIdRef.current === session.requestId;
+      const isSessionActive = () => {
+        const activeRequestId = toText(
+          activeQuerySessionRequestIdRef.current,
+        );
+        const active = canProjectLiveQuerySession({
+          session,
+          activeRequestId,
+          visibleChatId: stateRef.current.chatId,
+          sessions: querySessionsRef.current,
+        });
+        if (active && activeRequestId !== session.requestId) {
+          activeQuerySessionRequestIdRef.current = session.requestId;
+        }
+        return active;
+      };
+      const promoteCanonicalNewChat = (nextChatId: string) => {
+        const normalizedChatId = toText(nextChatId);
+        if (
+          chatId ||
+          !normalizedChatId ||
+          newChatRouteNotified ||
+          !isSessionActive() ||
+          session.owner?.kind !== "agent"
+        ) {
+          return;
+        }
+        newChatRouteNotified = true;
+        notifyNewChatCreated({
+          chatId: normalizedChatId,
+          agentKey: session.owner.agentKey,
+        });
+      };
       const bindSessionIdentity = (event: AgentEvent) => {
         const nextChatId = toText(event.chatId);
         if (nextChatId) {
@@ -466,15 +522,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           chatQuerySessionIndexRef.current.set(nextChatId, session.requestId);
           if (session.snapshot && !session.snapshot.chatId) {
             session.snapshot.chatId = nextChatId;
-          }
-          if (!chatId && !newChatRouteNotified) {
-            newChatRouteNotified = true;
-            if (session.owner?.kind === "agent") {
-              notifyNewChatCreated({
-                chatId: nextChatId,
-                agentKey: session.owner.agentKey,
-              });
-            }
           }
         }
         const nextRunId = toText(event.runId);
@@ -632,31 +679,70 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       };
 
       try {
-        await executeQueryStreamWs({
-          params: {
-            requestId,
-            message: cleanMessage,
-            owner: selectedOwner,
-            chatId: chatId || undefined,
-            references:
-              normalizedReferences.length > 0
-                ? normalizedReferences
-                : undefined,
-            accessLevel,
-            model,
-            params: Object.keys(params).length > 0 ? params : undefined,
-            planningMode: Boolean(stateRef.current.planningMode),
-            editingMode: session.editingMode === true,
-            mustUseSkills:
-              normalizedMustUseSkills.length > 0
-                ? normalizedMustUseSkills
-                : undefined,
-            agentMode: selectedAgentMode || undefined,
-            signal: abortController.signal,
-          },
-          dispatch: sessionDispatch,
-          handleEvent: sessionHandleEvent,
+        sessionDispatch({ type: "SET_REQUEST_ID", requestId });
+        sessionDispatch({ type: "SET_STREAMING", streaming: true });
+        sessionDispatch({
+          type: "SET_ABORT_CONTROLLER",
+          controller: abortController,
         });
+
+        const execution = runs.startQuery({
+          requestId,
+          message: cleanMessage,
+          owner: selectedOwner,
+          chatId: chatId || undefined,
+          references:
+            normalizedReferences.length > 0
+              ? normalizedReferences
+              : undefined,
+          accessLevel,
+          model,
+          params: Object.keys(params).length > 0 ? params : undefined,
+          planningMode: Boolean(stateRef.current.planningMode),
+          editingMode: session.editingMode === true,
+          mustUseSkills:
+            normalizedMustUseSkills.length > 0
+              ? normalizedMustUseSkills
+              : undefined,
+          agentMode: selectedAgentMode || undefined,
+          signal: abortController.signal,
+          onEvent: sessionHandleEvent,
+        });
+        const identity = await execution.identity;
+        queryAccepted = true;
+        session.chatId = identity.chatId;
+        session.runId = identity.runId;
+        session.owner = identity.owner;
+        chatQuerySessionIndexRef.current.set(
+          identity.chatId,
+          session.requestId,
+        );
+        if (session.snapshot && !session.snapshot.chatId) {
+          session.snapshot.chatId = identity.chatId;
+        }
+        if (session.snapshot && !session.snapshot.runId) {
+          session.snapshot.runId = identity.runId;
+        }
+        if (isSessionActive()) {
+          // The first canonical stream identity is the URL promotion boundary.
+          // Later stream events may legitimately omit chatId/runId, so the
+          // visible conversation must not depend on those fields being
+          // repeated by individual events.
+          dispatch({ type: "SET_CHAT_ID", chatId: identity.chatId });
+          dispatch({ type: "SET_RUN_ID", runId: identity.runId });
+          if (identity.owner.kind === "agent") {
+            dispatch({
+              type: "SET_CHAT_AGENT_BY_ID",
+              chatId: identity.chatId,
+              agentKey: identity.owner.agentKey,
+            });
+          }
+          promoteCanonicalNewChat(identity.chatId);
+        }
+        const completion = await execution.completion;
+        if (completion.error) {
+          throw completion.error;
+        }
       } catch (error) {
         const err = error as Error;
         if (err.name !== "AbortError") {
@@ -668,6 +754,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             }
           }
           if (isSessionActive()) {
+            if (!queryAccepted) {
+              dispatch({ type: "SET_COMPOSER_DRAFT", draft: cleanMessage });
+            }
             dispatch({
               type: "APPEND_DEBUG",
               line: `[send error] ${err.message}`,
@@ -700,6 +789,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             upsertBackgroundChatSummary(syntheticErrorEvent);
           }
         }
+      } finally {
+        sessionDispatch({ type: "SET_STREAMING", streaming: false });
+        sessionDispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       }
     },
     [
@@ -708,6 +800,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       dispatch,
       handleEvent,
       querySessionsRef,
+      runs,
       stateRef,
     ],
   );

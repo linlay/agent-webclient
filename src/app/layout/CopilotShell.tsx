@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   useLocation,
   useNavigate,
@@ -6,20 +6,12 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { Drawer, Tabs, type TabsProps } from "antd";
 import {
   resolveStatusPillClassName,
   resolveTopNavStatus,
 } from "@/app/layout/TopNav";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
-import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
-import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
-import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
-import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
-import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
-import { BtwTab } from "@/features/btw/components/BtwTab";
-import { useBTW } from "@/features/btw/components/BtwProvider";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import {
@@ -32,11 +24,10 @@ import {
 } from "@/features/workers/components/CommandOverlayProvider";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { isDebugPanelEnabled, isSettingsMenuEnabled } from "@/shared/config/featureFlags";
+import { isSettingsMenuEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
 
 const COPILOT_SHELL_CLASS =
   "app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-bg-base tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0";
@@ -56,98 +47,6 @@ const COPILOT_WORKER_SWITCH_BTN_CLASS = [
 ].join(" ");
 const COPILOT_TOPBAR_ACTIONS_CLASS =
   "copilot-topbar-actions tw:flex tw:min-w-0 tw:flex-none tw:items-center tw:gap-1";
-const COPILOT_SIDE_PANEL_CLASS =
-  "copilot-side-panel tw:fixed tw:inset-y-0 tw:left-0 tw:z-[45] tw:flex tw:w-[min(100vw,360px)] tw:max-w-[360px] tw:flex-col tw:border-r tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-bg-elev-2 tw:shadow-overlay tw:[html[data-theme=dark]_&]:bg-bg-base";
-const COPILOT_SIDE_PANEL_HEAD_CLASS =
-  "copilot-side-panel-head tw:flex-none tw:flex tw:items-center tw:justify-between tw:gap-2.5 tw:border-b tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:px-3 tw:py-2.5 tw:[&>strong]:text-sm";
-const COPILOT_SIDE_PANEL_BODY_CLASS =
-  "copilot-side-panel-body tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:overflow-auto tw:[&_.attachment-preview-panel]:h-full tw:[&_.debug-tab]:h-full tw:[&_.right-sidebar-overview]:h-full tw:[&_.web-preview-panel]:h-full";
-
-function buildCopilotWebTabKey(url: string): string {
-  return `web:${url}`;
-}
-
-function getCopilotWebTabUrl(key: string): string {
-  return key.startsWith("web:") ? key.slice("web:".length) : "";
-}
-
-const CopilotWebPreviewTabs: React.FC = () => {
-  const state = useAppState();
-  const dispatch = useAppDispatch();
-  const activePreview =
-    state.webPreviews.find(
-      (preview) => preview.url === state.activeWebPreviewUrl,
-    ) || state.webPreviews[state.webPreviews.length - 1];
-  const items = useMemo<NonNullable<TabsProps["items"]>>(
-    () =>
-      state.webPreviews.map((preview) => ({
-        key: buildCopilotWebTabKey(preview.url),
-        label: (
-          <span className="tw:inline-flex tw:max-w-[112px] tw:items-center tw:gap-1">
-            <MaterialIcon name="open_in_new" />
-            <span className="tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-              {preview.title}
-            </span>
-          </span>
-        ),
-        children: (
-          <WebPreviewPanel
-            preview={preview}
-            refreshKey={
-              state.webPreviewRefreshRevisionByUrl.get(preview.url) ?? 0
-            }
-          />
-        ),
-      })),
-    [state.webPreviews, state.webPreviewRefreshRevisionByUrl],
-  );
-
-  if (!activePreview) {
-    return <OverviewTab />;
-  }
-
-  return (
-    <Tabs
-      className="right-sidebar-tabs copilot-web-preview-tabs"
-      size="small"
-      type="editable-card"
-      hideAdd
-      activeKey={buildCopilotWebTabKey(activePreview.url)}
-      items={items}
-      onChange={(key) => {
-        const targetUrl = getCopilotWebTabUrl(key);
-        const isSame =
-          state.rightSidebarOpen &&
-          state.rightSidebarOpenTab === "web" &&
-          state.activeWebPreviewUrl === targetUrl;
-        if (isSame) {
-          dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-        } else {
-          dispatch({
-            type: "OPEN_RIGHT_SIDEBAR",
-            tab: "web",
-            activeWebPreviewUrl: targetUrl,
-          });
-        }
-      }}
-      onEdit={(key, action) => {
-        if (action !== "remove" || typeof key !== "string") {
-          return;
-        }
-        const urlToRemove = getCopilotWebTabUrl(key);
-        const remaining = state.webPreviews.filter(
-          (preview) => preview.url !== urlToRemove,
-        );
-        dispatch({
-          type: "OPEN_RIGHT_SIDEBAR",
-          tab: remaining.length > 0 ? "web" : "overview",
-          removeWebPreviewUrl: urlToRemove,
-        });
-      }}
-    />
-  );
-};
-
 function normalizeRouteValue(value: string | null | undefined) {
   return String(value || "").trim();
 }
@@ -203,9 +102,7 @@ const CopilotTopBar: React.FC = () => {
   const { openCommandOverlay } = useCommandOverlayActions();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
-  const debugPanelEnabled = isDebugPanelEnabled();
   const settingsMenuEnabled = isSettingsMenuEnabled();
-  const [debugDrawerOpen, setDebugDrawerOpen] = useState(false);
   const statusLabel = t(statusText);
   const statusTitle = statusDetail
     ? `${statusLabel}: ${statusDetail}`
@@ -275,32 +172,6 @@ const CopilotTopBar: React.FC = () => {
           >
             <MaterialIcon name="history" />
           </UiButton>
-          {debugPanelEnabled ? (
-            <UiButton
-              className={COPILOT_ACTION_BTN_CLASS}
-              variant="ghost"
-              size="sm"
-              iconOnly
-              active={
-                debugDrawerOpen ||
-                (state.rightSidebarOpen &&
-                  state.rightSidebarOpenTab === "debug")
-              }
-              aria-label={
-                debugDrawerOpen
-                  ? t("topNav.debug.close")
-                  : t("topNav.debug.open")
-              }
-              title={
-                debugDrawerOpen
-                  ? t("topNav.debug.close")
-                  : t("topNav.debug.open")
-              }
-              onClick={() => setDebugDrawerOpen((open) => !open)}
-            >
-              <MaterialIcon name="bug_report" />
-            </UiButton>
-          ) : null}
           {settingsMenuEnabled ? (
           <UiButton
             className={COPILOT_ACTION_BTN_CLASS}
@@ -316,105 +187,7 @@ const CopilotTopBar: React.FC = () => {
           ) : null}
         </div>
       </div>
-      <Drawer
-        open={debugPanelEnabled && debugDrawerOpen}
-        onClose={() => setDebugDrawerOpen(false)}
-        title={t("copilot.panel.debug")}
-        closable={{ closeIcon: <MaterialIcon name="keyboard_arrow_right" /> }}
-        mask
-        maskClosable
-        destroyOnHidden
-        placement="right"
-        width="100%"
-        className="copilot-drawer"
-        styles={{
-          header: {
-            borderBottom: 0,
-            flex: "unset",
-            padding: 10,
-          },
-          body: { padding: 0 },
-        }}
-      >
-        <DebugTab />
-      </Drawer>
     </header>
-  );
-};
-
-const CopilotSidePanel: React.FC = () => {
-  const state = useAppState();
-  const dispatch = useAppDispatch();
-  const { discardBTW } = useBTW();
-  const { t } = useI18n();
-  const debugPanelEnabled = isDebugPanelEnabled();
-  const activeTab = state.rightSidebarOpenTab;
-
-  if (!state.rightSidebarOpen || !activeTab) {
-    return null;
-  }
-
-  if (activeTab === "debug" && !debugPanelEnabled) {
-    return null;
-  }
-
-  const title =
-    activeTab === "debug"
-      ? t("copilot.panel.debug")
-      : activeTab === "btw"
-        ? t("btw.title")
-        : activeTab === "preview"
-        ? t("copilot.panel.preview")
-        : activeTab === "sourceDetail"
-          ? t("copilot.panel.sourceDetail")
-          : activeTab === "planningPreview"
-            ? t("copilot.panel.planningPreview")
-            : activeTab === "web"
-              ? t("copilot.panel.web")
-            : t("copilot.panel.overview");
-
-  return (
-    <section className={COPILOT_SIDE_PANEL_CLASS} aria-label={title}>
-      <div className={COPILOT_SIDE_PANEL_HEAD_CLASS}>
-        <strong>{title}</strong>
-        <UiButton
-          variant="ghost"
-          size="sm"
-          iconOnly
-          aria-label={t("copilot.panel.close")}
-          title={t("copilot.panel.close")}
-          onClick={() => {
-            if (activeTab === "btw") {
-              discardBTW(state.chatId);
-            }
-            dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-          }}
-        >
-          <MaterialIcon name="close" />
-        </UiButton>
-      </div>
-      <div className={COPILOT_SIDE_PANEL_BODY_CLASS}>
-        {activeTab === "debug" ? (
-          <DebugTab />
-        ) : activeTab === "btw" ? (
-          <BtwTab />
-        ) : activeTab === "preview" && state.attachmentPreview.length > 0 ? (
-          state.attachmentPreview.map((p) => (
-            <AttachmentPreviewPanel key={p.url} preview={p} />
-          ))
-        ) : activeTab === "sourceDetail" && state.activeSourceDetail ? (
-          <SourceDetailTab />
-        ) : activeTab === "planningPreview" && state.planningPreviews.length > 0 ? (
-          state.planningPreviews.map((p) => (
-            <PlanningPreviewTab key={p.nodeId} nodeId={p.nodeId} />
-          ))
-        ) : activeTab === "web" && state.webPreviews.length > 0 ? (
-          <CopilotWebPreviewTabs />
-        ) : (
-          <OverviewTab />
-        )}
-      </div>
-    </section>
   );
 };
 
@@ -622,7 +395,6 @@ export const CopilotShell: React.FC = () => {
           <CopilotTopBar />
           <ConversationStage showEmptyState={false} />
           <BottomDock mode="copilot" />
-          <CopilotSidePanel />
           <ShellOverlays
             commandOverlayVariant="copilot"
             settingsOverlayVariant="copilot"

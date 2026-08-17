@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ensureTerminalStatusStream,
   getTerminalAgentStatuses,
+  publishTerminalStatusEvent,
   subscribeTerminalActivity,
   type TerminalAgentTerminalStatus,
 } from "@/features/terminal/lib/terminalStatusActivity";
+import { useOptionalTerminalTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
 export {
   getTerminalAgentStatuses,
@@ -26,6 +27,7 @@ export function useTerminalAgentStatuses(): ReadonlyMap<
   string,
   TerminalAgentTerminalStatus
 > {
+  const terminal = useOptionalTerminalTransport();
   const [agentStatuses, setAgentStatuses] = useState<
     ReadonlyMap<string, TerminalAgentTerminalStatus>
   >(
@@ -40,20 +42,15 @@ export function useTerminalAgentStatuses(): ReadonlyMap<
       setAgentStatuses(new Map(next));
     });
 
-    if (typeof window === "undefined") {
-      return unsubscribe;
-    }
-
-    const handleFocus = () => {
-      void ensureTerminalStatusStream();
-    };
-    window.addEventListener("focus", handleFocus);
+    const unsubscribeStatus = terminal?.subscribeStatus((event) => {
+      publishTerminalStatusEvent(event);
+    });
 
     return () => {
-      window.removeEventListener("focus", handleFocus);
+      unsubscribeStatus?.();
       unsubscribe();
     };
-  }, []);
+  }, [terminal]);
 
   return agentStatuses;
 }

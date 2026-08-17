@@ -23,7 +23,8 @@ import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import {
   createRequestId,
-  interruptBTWRun,
+  type ApiResponse,
+  type BTWInterruptResponse,
   type BTWStreamParams,
 } from "@/shared/data";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
@@ -46,20 +47,13 @@ import {
   isCurrentBTWRuntime,
   settleBTWInterrupt,
 } from "@/features/btw/lib/btwRuntime";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
+import type { RunExecution } from "@/features/transport/contracts/realtimeTransport";
 
 interface BTWRuntime {
   session: BTWSessionState;
   cache: LocalCache;
   generation: number;
-}
-
-// TODO(ws-migration): BTW/attach 流能力尚未迁移到 WS，暂时保留占位实现并明确报错。
-async function executeBTWStreamStub(): Promise<never> {
-  throw new Error("SSE BTW is no longer supported. Use WS stream.");
-}
-
-async function executeAttachStreamStub(): Promise<never> {
-  throw new Error("SSE attach is no longer supported. Use WS stream.");
 }
 
 interface BTWContextValue {
@@ -173,10 +167,12 @@ function appendSystemError(runtime: BTWRuntime, message: string): void {
   runtime.cache = createLocalCacheFromState(runtime.session.projection);
 }
 
-export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const BtwProvider: React.FC<{
+  children: React.ReactNode;
+  enabled?: boolean;
+}> = ({ children, enabled = true }) => {
   const { dispatch: appDispatch, stateRef } = useAppContext();
+  const runs = useRunTransport();
   const initialPersistedRef = useRef<PersistedBTWSession[] | null>(null);
   if (!initialPersistedRef.current) {
     initialPersistedRef.current = readPersistedBTWSessions();
@@ -193,6 +189,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
   const [sessions, setSessions] = useState(initialSessionsRef.current);
   const sessionsRef = useRef(sessions);
   const runtimesRef = useRef(new Map<string, BTWRuntime>());
+  const executionsRef = useRef(new Map<string, RunExecution>());
   // Only runs restored at mount are attach candidates. Live /api/btw streams
   // are already being observed by sendBTW and must never be attached again.
   const restoredRunIdsRef = useRef<Set<string> | null>(null);
@@ -351,6 +348,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       explicitMessage?: string,
       options: OpenBTWOptions = {},
     ): Promise<boolean> => {
+      if (!enabled) return false;
       const normalizedChatId = String(parentChatId || "").trim();
       if (!normalizedChatId) return false;
       const runtime = getRuntime(normalizedChatId);
@@ -376,7 +374,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       runtime.session.draft = "";
       runtime.session.focusToken += 1;
       runtime.session.requestId = createRequestId("req");
-      runtime.session.runId = createRequestId("run");
+      runtime.session.runId = "";
       runtime.session.lastSeq = 0;
       runtime.session.owner = resolveRunOwner({
         chatId: normalizedChatId,
@@ -431,7 +429,30 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         stream: true,
       };
       try {
-        await executeBTWStreamStub();
+        if (!runtime.session.owner) {
+          throw new Error("run owner is required for BTW");
+        }
+        const execution = runs.startBtw({
+          ...params,
+          owner: runtime.session.owner,
+          onEvent: (event) => handleEvent(runtime, generation, event),
+        });
+        executionsRef.current.set(normalizedChatId, execution);
+        const identity = await execution.identity;
+        if (!isCurrentRuntime(runtime, generation)) {
+          await execution.detach();
+          return true;
+        }
+        runtime.session.requestId = identity.requestId;
+        runtime.session.runId = identity.runId;
+        runtime.session.owner = identity.owner;
+        runtime.session.agentKey = identity.owner.kind === "agent"
+          ? identity.owner.agentKey
+          : "";
+        runtime.session.interruptReady = true;
+        publish(runtime);
+        const completion = await execution.completion;
+        if (completion.error) throw completion.error;
       } catch (error) {
         if (!isCurrentRuntime(runtime, generation)) return true;
         const display = formatPlatformErrorForDisplay(error);
@@ -442,6 +463,10 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         appendSystemError(runtime, display.message);
         publish(runtime);
       } finally {
+        const activeExecution = executionsRef.current.get(normalizedChatId);
+        if (activeExecution) {
+          executionsRef.current.delete(normalizedChatId);
+        }
         if (
           isCurrentRuntime(runtime, generation) &&
           runtime.session.status === "running"
@@ -455,17 +480,19 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       return true;
     },
     [
-      buildStreamDispatch,
       getRuntime,
       handleEvent,
       isCurrentRuntime,
       publish,
+      runs,
       stateRef,
+      enabled,
     ],
   );
 
   const openBTW = useCallback(
     (options: OpenBTWOptions = {}): boolean => {
+      if (!enabled) return false;
       const parentChatId = String(
         options.parentChatId || stateRef.current.chatId || "",
       ).trim();
@@ -488,7 +515,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       return true;
     },
-    [appDispatch, getRuntime, publish, sendBTW, stateRef],
+    [appDispatch, enabled, getRuntime, publish, sendBTW, stateRef],
   );
 
   const setDraft = useCallback(
@@ -540,8 +567,10 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       restoredRunIds: restoredRunIdsRef.current || new Set<string>(),
     });
     if (!discarded.removed) return false;
-    // Deliberately do not abort or interrupt: the stale stream keeps draining,
-    // while runtime identity guards prevent it from publishing again.
+    const normalizedChatId = String(parentChatId || "").trim();
+    const execution = executionsRef.current.get(normalizedChatId);
+    executionsRef.current.delete(normalizedChatId);
+    void execution?.detach();
     const nextSessions = discarded.nextSessions;
     sessionsRef.current = nextSessions;
     setSessions(nextSessions);
@@ -579,14 +608,14 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
       runtime.session.error = "";
       publish(runtime);
       try {
-        const response = await interruptBTWRun({
+        const response = await runs.interrupt({
           requestId: createRequestId("req"),
           chatId: parentChatId,
           runId,
           owner,
           message: "",
           planningMode: false,
-        });
+        }) as ApiResponse<BTWInterruptResponse>;
         const accepted = isAcceptedBTWInterrupt(response, runId);
         const settlement = settleBTWInterrupt({
           runtimes: runtimesRef.current,
@@ -628,7 +657,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
     },
-    [getExistingRuntime, isCurrentRuntime, publish, stateRef],
+    [getExistingRuntime, isCurrentRuntime, publish, runs, stateRef],
   );
 
   useEffect(() => {
@@ -648,6 +677,7 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [sessions]);
 
   useEffect(() => {
+    if (!enabled) return;
     for (const session of sessionsRef.current.values()) {
       if (
         session.status !== "running" ||
@@ -680,7 +710,28 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         controller: attachAbortController,
       });
       publish(runtime);
-      void executeAttachStreamStub()
+      const execution = runs.subscribe({
+        requestId: session.requestId || undefined,
+        chatId: session.parentChatId,
+        runId: session.runId,
+        owner,
+        lastSeq: session.lastSeq,
+        role: "btw",
+        signal: attachAbortController.signal,
+        onEvent: (event) => handleEvent(runtime, generation, event),
+      });
+      executionsRef.current.set(session.parentChatId, execution);
+      void execution.identity
+        .then((identity) => {
+          if (!isCurrentRuntime(runtime, generation)) return;
+          runtime.session.requestId = identity.requestId;
+          runtime.session.runId = identity.runId;
+          runtime.session.owner = identity.owner;
+          runtime.session.agentKey = identity.owner.kind === "agent"
+            ? identity.owner.agentKey
+            : "";
+          publish(runtime);
+        })
         .catch((error) => {
           if (!isCurrentRuntime(runtime, generation)) return;
           const display = formatPlatformErrorForDisplay(error);
@@ -691,8 +742,11 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
           appendSystemError(runtime, display.message);
           publish(runtime);
         })
-        .finally(() => {
+      void execution.completion.finally(() => {
           if (!isCurrentRuntime(runtime, generation)) return;
+          if (executionsRef.current.get(session.parentChatId) === execution) {
+            executionsRef.current.delete(session.parentChatId);
+          }
           runtime.session.projection = appReducer(runtime.session.projection, {
             type: "SET_ABORT_CONTROLLER",
             controller: null,
@@ -708,15 +762,23 @@ export const BtwProvider: React.FC<{ children: React.ReactNode }> = ({
         });
     }
   }, [
-    buildStreamDispatch,
     getRuntime,
     handleEvent,
     isCurrentRuntime,
     publish,
+    runs,
     sessions,
     stateRef,
     stateRef.current.chatAgentById,
+    enabled,
   ]);
+
+  useEffect(() => () => {
+    for (const execution of executionsRef.current.values()) {
+      void execution.detach();
+    }
+    executionsRef.current.clear();
+  }, []);
 
   const value = useMemo<BTWContextValue>(
     () => ({

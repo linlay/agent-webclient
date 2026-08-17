@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import {
+  canProjectLiveQuerySession,
   canSendToTargetChat,
   resolveDifferentChatDetachRunDetail,
   normalizeQueryModelOverride,
@@ -9,7 +10,8 @@ import {
   useMessageActions,
 } from "@/features/composer/hooks/useMessageActions";
 import type { WorkerRow } from "@/app/state/types";
-import { executeQueryStreamWs } from "@/features/transport/lib/queryStreamRuntime.ws";
+
+const startQuery = jest.fn();
 
 function createDetachTestState(overrides: Record<string, unknown> = {}) {
   return {
@@ -24,8 +26,8 @@ function createDetachTestState(overrides: Record<string, unknown> = {}) {
   } as never;
 }
 
-jest.mock("@/features/transport/lib/queryStreamRuntime.ws", () => ({
-  executeQueryStreamWs: jest.fn(),
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
+  useRunTransport: () => ({ startQuery }),
 }));
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -51,9 +53,34 @@ const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
   useAppContext: jest.Mock;
 };
 
-describe("executeQueryStreamWs", () => {
-  it("is the single query stream executor", () => {
-    expect(executeQueryStreamWs).toEqual(expect.any(Function));
+describe("canProjectLiveQuerySession", () => {
+  const session = { requestId: "req_new", chatId: "chat_new" };
+
+  it("keeps the query authoritative across newChat to canonical chatId promotion", () => {
+    expect(canProjectLiveQuerySession({
+      session,
+      activeRequestId: "",
+      visibleChatId: "chat_new",
+      sessions: new Map([[session.requestId, session as never]]),
+    })).toBe(true);
+  });
+
+  it("does not reclaim projection after a real chat switch or over another live session", () => {
+    expect(canProjectLiveQuerySession({
+      session,
+      activeRequestId: "",
+      visibleChatId: "chat_other",
+      sessions: new Map([[session.requestId, session as never]]),
+    })).toBe(false);
+    expect(canProjectLiveQuerySession({
+      session,
+      activeRequestId: "req_other",
+      visibleChatId: "chat_new",
+      sessions: new Map([
+        [session.requestId, session as never],
+        ["req_other", { requestId: "req_other", chatId: "chat_new" } as never],
+      ]),
+    })).toBe(false);
   });
 });
 
@@ -77,6 +104,16 @@ describe("normalizeQueryModelOverride", () => {
 describe("useMessageActions temporary pin", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    startQuery.mockReturnValue({
+      identity: Promise.resolve({
+        requestId: "req_1",
+        chatId: "chat_1",
+        runId: "run_1",
+        owner: { kind: "agent", agentKey: "agent-coder" },
+      }),
+      completion: Promise.resolve({ reason: "done", lastSeq: 1 }),
+      detach: jest.fn(),
+    });
   });
 
   it("clears a matching temporary pinned agent when the first query starts", async () => {
@@ -138,15 +175,177 @@ describe("useMessageActions temporary pin", () => {
       type: "SET_TEMPORARY_PINNED_AGENT_KEY",
       agentKey: "",
     });
-    expect(executeQueryStreamWs).toHaveBeenCalledWith(
+    expect(startQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
-          owner: { kind: "agent", agentKey: "agent-coder" },
-          message: "hello",
-          mustUseSkills: ["pdf", "mock-skill"],
-        }),
+        owner: { kind: "agent", agentKey: "agent-coder" },
+        message: "hello",
+        mustUseSkills: ["pdf", "mock-skill"],
       }),
     );
+  });
+
+  it("binds a new chat from canonical Run identity when stream events omit identity", async () => {
+    const state = createInitialState();
+    state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
+    const dispatch = jest.fn();
+    const querySessionsRef = { current: new Map() };
+    const chatQuerySessionIndexRef = { current: new Map() };
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef,
+      chatQuerySessionIndexRef,
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    let actions: ReturnType<typeof useMessageActions> | null = null;
+    const Harness = () => {
+      actions = useMessageActions({ onAgentEvent: jest.fn() });
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+
+    await actions?.sendMessage(
+      "hello",
+      [],
+      [],
+      {},
+      undefined,
+      undefined,
+      "",
+      "agent-coder",
+    );
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CHAT_ID",
+      chatId: "chat_1",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_RUN_ID",
+      runId: "run_1",
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_CHAT_AGENT_BY_ID",
+      chatId: "chat_1",
+      agentKey: "agent-coder",
+    });
+    expect(chatQuerySessionIndexRef.current.get("chat_1")).toBeTruthy();
+  });
+
+  it("does not promote a new-chat URL until canonical chat and Run identity is available", async () => {
+    const state = createInitialState();
+    state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({
+      state,
+      dispatch,
+      stateRef: { current: state },
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+
+    let onEvent: ((event: Record<string, unknown>) => void) | undefined;
+    let resolveIdentity: ((identity: {
+      requestId: string;
+      chatId: string;
+      runId: string;
+      owner: { kind: "agent"; agentKey: string };
+    }) => void) | undefined;
+    const identity = new Promise<{
+      requestId: string;
+      chatId: string;
+      runId: string;
+      owner: { kind: "agent"; agentKey: string };
+    }>((resolve) => {
+      resolveIdentity = resolve;
+    });
+    startQuery.mockImplementation((input) => {
+      onEvent = input.onEvent;
+      return {
+        identity,
+        completion: Promise.resolve({ reason: "done", lastSeq: 2 }),
+        detach: jest.fn(),
+      };
+    });
+
+    const dispatchedWindowEvents: Event[] = [];
+    const originalWindow = (globalThis as { window?: unknown }).window;
+    const originalCustomEvent = (globalThis as { CustomEvent?: unknown }).CustomEvent;
+    class TestCustomEvent extends Event {
+      detail: unknown;
+      constructor(type: string, init?: { detail?: unknown }) {
+        super(type);
+        this.detail = init?.detail;
+      }
+    }
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { dispatchEvent: (event: Event) => dispatchedWindowEvents.push(event) },
+    });
+    Object.defineProperty(globalThis, "CustomEvent", {
+      configurable: true,
+      value: TestCustomEvent,
+    });
+
+    try {
+      let actions: ReturnType<typeof useMessageActions> | null = null;
+      const Harness = () => {
+        actions = useMessageActions({ onAgentEvent: jest.fn() });
+        return null;
+      };
+      renderToStaticMarkup(React.createElement(Harness));
+
+      const sending = actions?.sendMessage(
+        "hello",
+        [],
+        [],
+        {},
+        undefined,
+        undefined,
+        "",
+        "agent-coder",
+      );
+      onEvent?.({
+        seq: 1,
+        type: "chat.start",
+        chatId: "chat-canonical",
+        timestamp: 1_786_898_607_643,
+      });
+      expect(dispatchedWindowEvents).toHaveLength(0);
+
+      resolveIdentity?.({
+        requestId: "req-canonical",
+        chatId: "chat-canonical",
+        runId: "run-canonical",
+        owner: { kind: "agent", agentKey: "agent-coder" },
+      });
+      await sending;
+
+      expect(dispatchedWindowEvents).toHaveLength(1);
+      expect((dispatchedWindowEvents[0] as TestCustomEvent).detail).toEqual({
+        chatId: "chat-canonical",
+        agentKey: "agent-coder",
+      });
+    } finally {
+      if (originalWindow === undefined) {
+        delete (globalThis as { window?: unknown }).window;
+      } else {
+        Object.defineProperty(globalThis, "window", {
+          configurable: true,
+          value: originalWindow,
+        });
+      }
+      if (originalCustomEvent === undefined) {
+        delete (globalThis as { CustomEvent?: unknown }).CustomEvent;
+      } else {
+        Object.defineProperty(globalThis, "CustomEvent", {
+          configurable: true,
+          value: originalCustomEvent,
+        });
+      }
+    }
   });
 
   it("blocks direct query sends when the current main chat has an active run", async () => {
@@ -177,7 +376,7 @@ describe("useMessageActions temporary pin", () => {
 
     await actions?.sendMessage("hello");
 
-    expect(executeQueryStreamWs).not.toHaveBeenCalled();
+    expect(startQuery).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: "SET_TIMELINE_NODE" }),
     );
@@ -217,14 +416,17 @@ describe("useMessageActions temporary pin", () => {
       chatQuerySessionIndexRef: { current: new Map() },
       activeQuerySessionRequestIdRef: activeRequest,
     });
-    (executeQueryStreamWs as jest.Mock).mockRejectedValue(
-      Object.assign(new Error("unsupported"), {
+    const unsupported = Object.assign(new Error("unsupported"), {
         platformError: {
           code: "editing_mode_unsupported",
           message: "unsupported",
         },
-      }),
-    );
+      });
+    startQuery.mockReturnValue({
+      identity: Promise.reject(unsupported),
+      completion: Promise.resolve({ reason: "error", lastSeq: 0, error: unsupported }),
+      detach: jest.fn(),
+    });
 
     let actions: ReturnType<typeof useMessageActions> | null = null;
     const Harness = () => {
@@ -246,18 +448,20 @@ describe("useMessageActions temporary pin", () => {
       true,
     );
 
-    expect(executeQueryStreamWs).toHaveBeenCalledTimes(1);
-    expect(executeQueryStreamWs).toHaveBeenCalledWith(
+    expect(startQuery).toHaveBeenCalledTimes(1);
+    expect(startQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
-          agentMode: "KBASE",
-          editingMode: true,
-        }),
+        agentMode: "KBASE",
+        editingMode: true,
       }),
     );
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_EDITING_MODE",
       enabled: false,
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_COMPOSER_DRAFT",
+      draft: "edit",
     });
   });
 });

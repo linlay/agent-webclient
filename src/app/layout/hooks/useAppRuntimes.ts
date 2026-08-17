@@ -1,6 +1,7 @@
 import { useConversationActions } from "@/features/conversation/hooks/useConversationActions";
 import { useChatReadSync } from "@/features/chats/hooks/useChatReadSync";
 import { useMainChatRunActivation } from "@/features/runs/hooks/useMainChatRunActivation";
+import { useDesktopLiveSurfaceRecovery } from "@/features/runs/hooks/useDesktopLiveSurfaceRecovery";
 import { useConversationEventHandler } from "@/features/conversation/hooks/useConversationEventHandler";
 import { useMessageActions } from "@/features/composer/hooks/useMessageActions";
 import { useMemoryRecordsInitialization } from "@/features/settings/hooks/useMemoryRecordsInitialization";
@@ -16,6 +17,7 @@ export function useAppRuntimes(): void {
   const { handleEvent } = useConversationEventHandler();
   useConversationWsRuntime({ onAgentEvent: handleEvent });
   const conversationActions = useConversationActions();
+  useDesktopLiveSurfaceRecovery(conversationActions.loadChat);
   const { selectWorkerConversation } = useWorkerConversationSelection(conversationActions);
   useWorkerData({
     loadChat: conversationActions.loadChat,

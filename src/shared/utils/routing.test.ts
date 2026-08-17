@@ -1,4 +1,4 @@
-import { APP_UI_BASE, isAppMode } from '@/shared/utils/routing';
+import { APP_UI_BASE, isAppMode, isDesktopAppMode } from '@/shared/utils/routing';
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
@@ -32,5 +32,22 @@ describe('routing', () => {
         '?desktopAuthContext=platform%3A1',
       ]),
     ).toBe(false);
+  });
+
+  it.each(["1", "yes", "TRUE ", false, 1, null])(
+    "does not treat %p as DESKTOP_APP=true",
+    (value) => {
+      globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+        DESKTOP_APP: value,
+      };
+      expect(isDesktopAppMode()).toBe(false);
+    },
+  );
+
+  it("accepts the boolean true value", () => {
+    globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: true,
+    };
+    expect(isDesktopAppMode()).toBe(true);
   });
 });

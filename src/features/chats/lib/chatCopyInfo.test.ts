@@ -33,12 +33,12 @@ describe("buildChatCopyInfoGroups", () => {
 
   it("shows summary identity and AgentKey before detail is available", () => {
     const groups = buildChatCopyInfoGroups({
-      summary: { chatId: "chat-2", chatName: "Summary name", agentKey: "agent-summary" },
+      summary: { chatId: "chat-2", chatName: "Summary name", agentKey: "agent-fallback" },
       t,
     });
     const rows = groups.flatMap((group) => group.rows);
 
     expect(rows.map((row) => row.key)).toEqual(["id", "name", "agentKey"]);
-    expect(rows.find((row) => row.key === "agentKey")?.copyValue).toBe("agent-summary");
+    expect(rows.find((row) => row.key === "agentKey")?.copyValue).toBe("agent-fallback");
   });
 });

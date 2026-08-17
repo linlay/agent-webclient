@@ -243,7 +243,7 @@ export interface AutomationExecutionListResponse {
 export interface AutomationSummaryResponse {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   cron: string;
   agentKey: string;
   enabled: boolean;
@@ -305,7 +305,7 @@ export interface AutomationQueryRequest {
 
 export interface CreateAutomationRequest {
   name: string;
-  description: string;
+  description?: string;
   cron: string;
   agentKey: string;
   enabled?: boolean;
@@ -3175,6 +3175,7 @@ export interface QueryStreamParams {
   owner: RunOwner;
   chatId?: string;
   role?: string;
+  hidden?: boolean;
   references?: unknown[];
   params?: Record<string, unknown>;
   scene?: string;

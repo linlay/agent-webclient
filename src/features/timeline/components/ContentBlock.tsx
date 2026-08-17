@@ -21,6 +21,7 @@ import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { copyText } from "@/shared/utils/copy";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 interface ContentBlockProps {
 	node: TimelineNode;
@@ -85,6 +86,7 @@ export function buildWorkspaceFilePreview(
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const { t } = useI18n();
 	const dispatch = useAppDispatch();
+	const openTarget = useOpenTarget();
 	const state = useAppState();
 	const interaction = useTimelineInteraction();
 	const voiceEnabled = isVoiceEnabled();
@@ -117,64 +119,32 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 		() => resolvePreferredAgentKey(state),
 		[state],
 	);
-	const {
-		rightSidebarOpen,
-		rightSidebarOpenTab,
-		attachmentPreview,
-		activeAttachmentPreviewUrl,
-		webPreviews,
-		activeWebPreviewUrl,
-	} = state;
 	const handleWorkspaceFileLinkClick = React.useCallback(
 		(link: WorkspaceFileLink) => {
 			const preview = buildWorkspaceFilePreview(
 				link,
 				workspaceFileAgentKey,
 			);
-			const isActive =
-				rightSidebarOpen &&
-				rightSidebarOpenTab === "preview" &&
-				activeAttachmentPreviewUrl === preview.url;
-			if (isActive) {
-				dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-			} else if (attachmentPreview.some(p => p.url === preview.url)) {
-				dispatch({
-					type: "OPEN_RIGHT_SIDEBAR",
-					tab: "preview",
-					activeAttachmentPreviewUrl: preview.url,
-				});
-			} else {
-				dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
-			}
+			openTarget({
+				version: 1,
+				kind: "artifact",
+				chatId: state.chatId,
+				preview,
+				toggle: true,
+			});
 		},
-		[dispatch, workspaceFileAgentKey, rightSidebarOpen, rightSidebarOpenTab, activeAttachmentPreviewUrl, attachmentPreview],
+		[openTarget, state.chatId, workspaceFileAgentKey],
 	);
 	const handleWebLinkClick = React.useCallback(
 		(link: MarkdownWebLink) => {
-			const isActive =
-				rightSidebarOpen &&
-				rightSidebarOpenTab === "web" &&
-				activeWebPreviewUrl === link.url;
-			if (isActive) {
-				dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-			} else if (webPreviews.some(p => p.url === link.url)) {
-				dispatch({
-					type: "OPEN_RIGHT_SIDEBAR",
-					tab: "web",
-					activeWebPreviewUrl: link.url,
-				});
-			} else {
-				dispatch({
-					type: "OPEN_RIGHT_SIDEBAR",
-					tab: "web",
-					webPreview: {
-						title: link.title,
-						url: link.url,
-					},
-				});
-			}
+			openTarget({
+				version: 1,
+				kind: "web",
+				url: link.url,
+				title: link.title,
+			});
 		},
-		[dispatch, rightSidebarOpen, rightSidebarOpenTab, activeWebPreviewUrl, webPreviews],
+		[openTarget],
 	);
 
 	/* Simple case: no special segments, just markdown */

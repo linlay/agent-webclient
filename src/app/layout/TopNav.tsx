@@ -17,8 +17,6 @@ import {
   isCoderAgent,
   isDedicatedKbaseWorker,
 } from "@/features/workers/lib/currentWorker";
-import type { Chat } from "@/app/state/navigationTypes";
-import { ProjectWorkspaceDialog } from "@/features/project/components/ProjectWorkspaceDialog";
 import {
   isDebugPanelEnabled,
   isVoiceEnabled,
@@ -35,6 +33,8 @@ import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgr
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -576,11 +576,12 @@ const UsageCallCounts: React.FC<{
   );
 };
 
-export const TopNav: React.FC = () => {
+export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "root" }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
   const { t, locale } = useI18n();
+  const openTarget = useOpenTarget();
   const terminalAgentStatuses = useTerminalAgentStatuses();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
@@ -602,18 +603,14 @@ export const TopNav: React.FC = () => {
     isMainChatRunning,
   );
   const currentWorker = resolveCurrentWorkerSummary(state);
-  const [projectOpen, setProjectOpen] = React.useState(false);
   const voiceEnabled = isVoiceEnabled();
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
-  const showTerminalButton = isCoderAgent(currentWorker);
-  const showProjectButton = isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker);
-  const projectInvalidationKey = React.useMemo(
-    () => state.fileChanges
-      .map((change) => `${change.runId}:${change.filePath}:${change.lastUpdatedAt}`)
-      .join("|"),
-    [state.fileChanges],
+  const desktopMode = isDesktopAppMode();
+  const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
+  const showProjectButton = !desktopMode && (
+    isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker)
   );
   const currentWorkerTerminalStatus = showTerminalButton
     ? terminalAgentStatuses.get(currentWorker?.sourceId || "")
@@ -752,6 +749,17 @@ export const TopNav: React.FC = () => {
   ]);
 
   const toggleRightSidebar = (tab: RightSidebarTabKey) => {
+    if (surface !== "root") {
+      if (!state.chatId) return;
+      openTarget({
+        version: 1,
+        kind: tab === "debug" ? "debug" : "overview",
+        chatId: state.chatId,
+        runId: state.runId || undefined,
+        agentKey: currentWorker?.sourceId,
+      });
+      return;
+    }
     if (state.rightSidebarOpen && tab === state.rightSidebarOpenTab) {
       dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
       return;
@@ -951,10 +959,15 @@ export const TopNav: React.FC = () => {
               variant="ghost"
               size="sm"
               iconOnly
-              active={projectOpen}
               aria-label={t("topNav.project.open")}
               title={t("topNav.project.open")}
-              onClick={() => setProjectOpen(true)}
+              onClick={() => openTarget({
+                version: 1,
+                kind: "project",
+                agentKey: currentWorker?.sourceId,
+                chatId: state.chatId || undefined,
+                runId: state.runId || undefined,
+              })}
             >
               <MaterialIcon name="folder_open" />
             </UiButton>
@@ -1029,12 +1042,16 @@ export const TopNav: React.FC = () => {
               variant="ghost"
               iconOnly
               aria-label={
-                ui.rightSidebarOpen
+                surface !== "root"
+                  ? t("copilot.panel.debug")
+                  : ui.rightSidebarOpen
                   ? t("topNav.debug.close")
                   : t("topNav.debug.open")
               }
               active={
-                state.rightSidebarOpen && state.rightSidebarOpenTab === "debug"
+                surface === "root" &&
+                state.rightSidebarOpen &&
+                state.rightSidebarOpenTab === "debug"
               }
               onClick={() => toggleRightSidebar("debug")}
             >
@@ -1055,22 +1072,23 @@ export const TopNav: React.FC = () => {
               variant="ghost"
               size="sm"
               iconOnly
-              active={ui.terminalDockOpen}
+              active={surface === "root" && ui.terminalDockOpen}
               aria-label={
-                ui.terminalDockOpen
+                surface === "root" && ui.terminalDockOpen
                   ? t("topNav.terminal.close")
                   : t("topNav.terminal.open")
               }
               title={
-                ui.terminalDockOpen
+                surface === "root" && ui.terminalDockOpen
                   ? t("topNav.terminal.close")
                   : t("topNav.terminal.open")
               }
               onClick={() =>
-                dispatch({
-                  type: "SET_TERMINAL_DOCK_OPEN",
-                  open: !ui.terminalDockOpen,
-                })
+                surface === "root"
+                  ? dispatch({ type: "SET_TERMINAL_DOCK_OPEN", open: !ui.terminalDockOpen })
+                  : currentWorker
+                    ? openTarget({ version: 1, kind: "terminal", agentKey: currentWorker.sourceId, terminalKey: "main" })
+                    : undefined
               }
             >
               <MaterialIcon name="terminal" />
@@ -1094,28 +1112,19 @@ export const TopNav: React.FC = () => {
             size="sm"
             variant="ghost"
             iconOnly
+            aria-label={t("copilot.panel.overview")}
+            title={t("copilot.panel.overview")}
             active={
-              state.rightSidebarOpen && state.rightSidebarOpenTab !== "debug"
+              surface === "root" &&
+              state.rightSidebarOpen &&
+              state.rightSidebarOpenTab !== "debug"
             }
             onClick={() => toggleRightSidebar("overview")}
           >
-            <MaterialIcon name="dock_to_left" />
+            <MaterialIcon name={surface === "root" ? "dock_to_left" : "open_in_new"} />
           </UiButton>
         </div>
       </div>
-      {showProjectButton && currentWorker ? (
-        <ProjectWorkspaceDialog
-          open={projectOpen}
-          agentKey={currentWorker.sourceId}
-          agentName={currentWorker.displayName}
-          chats={currentWorker.relatedChats as Chat[]}
-          chatId={state.chatId}
-          runId={state.runId}
-          invalidationKey={projectInvalidationKey}
-          invalidationPaths={state.fileChanges.map((change) => change.filePath)}
-          onClose={() => setProjectOpen(false)}
-        />
-      ) : null}
     </nav>
   );
 };

@@ -3,6 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { SlashCommandId } from "@/features/composer/lib/slashCommands";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
 
+jest.mock("@/features/surfaces/openTarget", () => ({
+  useOpenTarget: () => jest.fn(),
+}));
+
 describe("useSlashCommandExecution", () => {
   it("toggles the transient KBASE editing mode from /editing", async () => {
     const dispatch = jest.fn();

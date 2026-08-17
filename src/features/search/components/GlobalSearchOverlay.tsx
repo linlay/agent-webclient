@@ -15,10 +15,12 @@ import {
 } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
 import { readEpochMillis } from "@/shared/utils/platformTime";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 export const GlobalSearchOverlay: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const openTarget = useOpenTarget();
   const { t } = useI18n();
   const { openOverlay } = useSettingsOverlayActions();
   const isOpen = useGlobalSearchOpen();
@@ -103,7 +105,14 @@ export const GlobalSearchOverlay: React.FC = () => {
         break;
       case "debug":
         handleClose();
-        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "debug" });
+        if (state.chatId) {
+          openTarget({
+            version: 1,
+            kind: "debug",
+            chatId: state.chatId,
+            runId: state.runId || undefined,
+          });
+        }
         break;
     }
   };

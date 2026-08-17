@@ -22,7 +22,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Input, Modal, Popconfirm, Select, Spin, Switch, message } from "antd";
+import { Input, Modal, Popconfirm, Select, Spin, Switch, Tooltip, message } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/app/state/types";
 import {
@@ -145,21 +145,6 @@ export function shouldShowAgentSectionNav(
   canEditStructuredAgent: boolean,
 ): boolean {
   return editorMode === "structured" && canEditStructuredAgent;
-}
-
-export function resolveAgentSavePlacement(
-  formMode: AgentFormMode,
-  editorMode: AgentEditorMode,
-  canEditStructuredAgent: boolean,
-) {
-  const sticky =
-    formMode === "edit" &&
-    shouldShowAgentSectionNav(editorMode, canEditStructuredAgent);
-  return {
-    header: formMode === "edit" && !sticky,
-    sticky,
-    footer: formMode === "create" && editorMode === "structured",
-  };
 }
 
 export async function saveAgentOrderRequest(agents: Agent[]): Promise<void> {
@@ -835,12 +820,6 @@ const AGENT_LIST_ITEM_DIAGNOSTIC_CLASS_NAME =
   "agent-console-list-item-diagnostic tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:font-medium tw:text-accent-danger";
 const AGENT_DETAIL_CLASS_NAME =
   "agent-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
-const AGENT_DETAIL_HEAD_CLASS_NAME =
-  "agent-detail-head tw:mb-3.5 tw:flex tw:items-start tw:justify-between tw:gap-3 tw:[&>div:first-child]:flex tw:[&>div:first-child]:min-w-0 tw:[&>div:first-child]:flex-col tw:[&>div:first-child]:gap-1 tw:[&_strong]:text-sm tw:[&_span]:[overflow-wrap:anywhere] tw:[&_span]:text-[11px]";
-const AGENT_DETAIL_PATH_ROW_CLASS_NAME =
-  "agent-detail-path-row tw:flex tw:min-w-0 tw:items-center tw:gap-1";
-const AGENT_DETAIL_ACTIONS_CLASS_NAME =
-  "agent-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
 const AGENT_DETAIL_ADMIN_META_CLASS_NAME =
   "agent-detail-admin-meta tw:mb-3.5 tw:flex tw:flex-col tw:gap-2";
 const AGENT_DIAGNOSTICS_CLASS_NAME =
@@ -854,13 +833,19 @@ const AGENT_FORM_GRID_CLASS_NAME =
 const AGENT_FORM_FULL_WIDTH_CLASS_NAME =
   "field-group agent-form-full-width tw:col-span-3 tw:max-[860px]:col-span-1";
 const AGENT_SECTION_NAV_CLASS_NAME =
-  "agent-section-nav tw:sticky tw:top-0 tw:flex tw:items-center";
+  "agent-section-nav tw:sticky tw:top-0 tw:flex tw:items-center tw:gap-1";
 const AGENT_SECTION_NAV_LINKS_CLASS_NAME =
   "agent-section-nav-links tw:flex tw:min-w-0 tw:flex-1 tw:overflow-x-auto";
 const AGENT_SECTION_NAV_LINK_CLASS_NAME =
   "agent-section-nav-link tw:flex-none tw:whitespace-nowrap";
+const AGENT_SECTION_NAV_ACTIONS_CLASS_NAME =
+  "agent-section-nav-actions tw:ml-auto tw:flex tw:flex-none tw:items-center tw:gap-1";
+const AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME =
+  "agent-section-nav-icon-button ui-icon-hover-24";
+const AGENT_DETAIL_PATH_FIELD_CLASS_NAME =
+  "agent-detail-path-field tw:col-span-3 tw:flex tw:min-w-0 tw:items-center tw:gap-1 tw:max-[860px]:col-span-1";
 const AGENT_SECTION_NAV_SAVE_CLASS_NAME =
-  "agent-section-nav-save tw:ml-auto tw:flex-none";
+  "agent-section-nav-save tw:flex-none";
 const AGENT_FORM_SECTION_CLASS_NAME = "agent-form-section";
 const AGENT_FORM_SECTION_HEADING_CLASS_NAME =
   "agent-form-section-heading tw:flex tw:items-center tw:gap-1.5";
@@ -1227,14 +1212,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     [filteredAgents],
   );
 
-  const selectedSummary = useMemo(
-    () =>
-      localAgents.find(
-        (agent) => toText(agent.key) === effectiveSelectedKey,
-      ) || null,
-    [effectiveSelectedKey, localAgents],
-  );
-
   const modeOptions = useMemo(
     () =>
       (editorOptions?.modes?.length
@@ -1387,11 +1364,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     formMode === "create" || hasEditableAdminDefinition(detail);
   const canEditSourceAgent = formMode === "edit" && Boolean(detailSourcePath);
   const hasUnsavedChanges = structuredDirty || sourceDirty;
-  const savePlacement = resolveAgentSavePlacement(
-    formMode,
-    editorMode,
-    canEditStructuredAgent,
-  );
   const canImportPrivateSkill =
     formMode === "edit" &&
     canEditStructuredAgent &&
@@ -2222,157 +2194,137 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           className={`${AGENT_DETAIL_CLASS_NAME} ${editorMode === "source" ? "is-source-editor" : ""}`}
         >
           <Spin spinning={loadingDetail || loadingSource}>
-            <div className={AGENT_DETAIL_HEAD_CLASS_NAME}>
-              <div>
-                <strong>
-                  {formMode === "create"
-                    ? t("agentConsole.detail.titleCreate")
-                    : selectedSummary?.name ||
-                      form.name ||
-                      form.key ||
-                      t("agentConsole.detail.titleEdit")}
-                </strong>
-                <div className={AGENT_DETAIL_PATH_ROW_CLASS_NAME}>
-                  <span
-                    className={
-                      canOpenDetailDirectory
-                        ? "tw:cursor-pointer tw:hover:underline tw:hover:text-ink-1 tw:transition-colors"
-                        : ""
-                    }
-                    onClick={
-                      canOpenDetailDirectory
-                        ? handleOpenDetailDirectory
-                        : undefined
-                    }
-                    title={
-                      canOpenDetailDirectory
-                        ? t("agentConsole.detail.openDirectory")
-                        : undefined
-                    }
-                  >
-                    {detailSubtitle}
-                  </span>
-                  {canOpenDetailDirectory && (
-                    <UiButton
-                      className="agent-detail-open-directory"
-                      size="mini"
-                      variant="ghost"
-                      iconOnly
-                      onClick={handleOpenDetailDirectory}
-                      aria-label={t("agentConsole.detail.openDirectory")}
-                      title={t("agentConsole.detail.openDirectory")}
-                    >
-                      <MaterialIcon name="folder_open" />
-                    </UiButton>
-                  )}
-                </div>
-              </div>
-              {formMode === "edit" && (
-                <div className={AGENT_DETAIL_ACTIONS_CLASS_NAME}>
-                  {canEditSourceAgent && (
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        void toggleEditorMode();
-                      }}
-                      disabled={savingForm || deleting || loadingSource}
-                    >
-                      <MaterialIcon
-                        name={editorMode === "source" ? "tune" : "code"}
-                      />
-                      <span>
-                        {editorMode === "source"
-                          ? t("agentConsole.action.structuredEdit")
-                          : t("agentConsole.action.sourceEdit")}
-                      </span>
-                    </UiButton>
-                  )}
-                  <Popconfirm
-                    title={t("agentConsole.confirm.deleteTitle")}
-                    okText={t("agentConsole.confirm.deleteOk")}
-                    cancelText={t("agentConsole.confirm.deleteCancel")}
-                    okButtonProps={{ danger: true }}
-                    onConfirm={confirmDelete}
-                    disabled={deleting}
-                  >
-                    <UiButton
-                      size="sm"
-                      variant="danger"
-                      disabled={deleting || savingForm}
-                      loading={deleting}
-                    >
-                      <MaterialIcon name="delete" />
-                      <span>{t("agentConsole.action.delete")}</span>
-                    </UiButton>
-                  </Popconfirm>
-                  {savePlacement.header && editorMode === "source" ? (
-                    <UiButton
-                      size="sm"
-                      variant="primary"
-                      onClick={saveSource}
-                      disabled={sourceSaveDisabled}
-                      loading={savingForm}
-                    >
-                      <MaterialIcon name="save" />
-                      <span>{t("agentConsole.action.saveSource")}</span>
-                    </UiButton>
-                  ) : savePlacement.header ? (
-                    <UiButton
-                      size="sm"
-                      variant="primary"
-                      onClick={saveForm}
-                      disabled={!canEditStructuredAgent || deleting}
-                      loading={savingForm}
-                    >
-                      <MaterialIcon name="save" />
-                      <span>{t("agentConsole.action.saveChanges")}</span>
-                    </UiButton>
-                  ) : null}
-                </div>
-              )}
-            </div>
-
-            {shouldShowAgentSectionNav(editorMode, canEditStructuredAgent) && (
               <nav
                 className={AGENT_SECTION_NAV_CLASS_NAME}
                 aria-label={t("agentConsole.sectionNav.ariaLabel")}
               >
-                <div
-                  ref={sectionNavLinksRef}
-                  className={AGENT_SECTION_NAV_LINKS_CLASS_NAME}
-                >
-                  {agentFormSections.map((section) => (
-                    <a
-                      className={AGENT_SECTION_NAV_LINK_CLASS_NAME}
-                      href={`#${section.id}`}
-                      aria-current={
-                        activeSectionId === section.id ? "location" : undefined
-                      }
-                      key={section.id}
-                      onClick={(event) =>
-                        handleSectionNavigate(event, section.id)
-                      }
-                    >
-                      {section.label}
-                    </a>
-                  ))}
-                </div>
-                {savePlacement.sticky && (
-                  <UiButton
-                    className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
-                    size="sm"
-                    variant="primary"
-                    onClick={saveForm}
-                    disabled={!canEditStructuredAgent || deleting}
-                    loading={savingForm}
+                {shouldShowAgentSectionNav(
+                  editorMode,
+                  canEditStructuredAgent,
+                ) && (
+                  <div
+                    ref={sectionNavLinksRef}
+                    className={AGENT_SECTION_NAV_LINKS_CLASS_NAME}
                   >
-                    <MaterialIcon name="save" />
-                    <span>{t("agentConsole.action.saveChanges")}</span>
-                  </UiButton>
+                    {agentFormSections.map((section) => (
+                      <a
+                        className={AGENT_SECTION_NAV_LINK_CLASS_NAME}
+                        href={`#${section.id}`}
+                        aria-current={
+                          activeSectionId === section.id
+                            ? "location"
+                            : undefined
+                        }
+                        key={section.id}
+                        onClick={(event) =>
+                          handleSectionNavigate(event, section.id)
+                        }
+                      >
+                        {section.label}
+                      </a>
+                    ))}
+                  </div>
                 )}
+                <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
+                  {canEditSourceAgent && (
+                    <Tooltip
+                      title={
+                        editorMode === "source"
+                          ? t("agentConsole.action.structuredEdit")
+                          : t("agentConsole.action.sourceEdit")
+                      }
+                      arrow={false}
+                    >
+                      <UiButton
+                        className={AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME}
+                        size="sm"
+                        variant="ghost"
+                        iconOnly
+                        active={editorMode === "source"}
+                        onClick={() => {
+                          void toggleEditorMode();
+                        }}
+                        disabled={savingForm || deleting || loadingSource}
+                        loading={loadingSource}
+                        aria-label={
+                          editorMode === "source"
+                            ? t("agentConsole.action.structuredEdit")
+                            : t("agentConsole.action.sourceEdit")
+                        }
+                      >
+                        <MaterialIcon
+                          name={editorMode === "source" ? "tune" : "code"}
+                        />
+                      </UiButton>
+                    </Tooltip>
+                  )}
+                  {formMode === "edit" && (
+                    <Popconfirm
+                      title={t("agentConsole.confirm.deleteTitle")}
+                      okText={t("agentConsole.confirm.deleteOk")}
+                      cancelText={t("agentConsole.confirm.deleteCancel")}
+                      okButtonProps={{ danger: true }}
+                      onConfirm={confirmDelete}
+                      disabled={deleting}
+                    >
+                      <Tooltip
+                        title={t("agentConsole.action.delete")}
+                        arrow={false}
+                      >
+                        <UiButton
+                          className={AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME}
+                          size="sm"
+                          variant="danger"
+                          iconOnly
+                          disabled={deleting || savingForm}
+                          loading={deleting}
+                          aria-label={t("agentConsole.action.delete")}
+                        >
+                          <MaterialIcon name="delete" />
+                        </UiButton>
+                      </Tooltip>
+                    </Popconfirm>
+                  )}
+                  <Tooltip
+                    title={
+                      formMode === "create"
+                        ? t("agentConsole.action.create")
+                        : editorMode === "source"
+                          ? t("agentConsole.action.saveSource")
+                          : t("agentConsole.action.saveChanges")
+                    }
+                    arrow={false}
+                  >
+                    <UiButton
+                      className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
+                      size="sm"
+                      variant="primary"
+                      onClick={() => {
+                        if (editorMode === "source") {
+                          void saveSource();
+                        } else {
+                          void saveForm();
+                        }
+                      }}
+                      disabled={
+                        editorMode === "source"
+                          ? sourceSaveDisabled
+                          : !canEditStructuredAgent || deleting
+                      }
+                      loading={savingForm}
+                    >
+                      <MaterialIcon name="save" />
+                      <span>
+                        {formMode === "create"
+                          ? t("agentConsole.action.create")
+                          : editorMode === "source"
+                            ? t("agentConsole.action.saveSource")
+                            : t("agentConsole.action.saveChanges")}
+                      </span>
+                    </UiButton>
+                  </Tooltip>
+                </div>
               </nav>
-            )}
 
             {formMode === "edit" && detailDiagnostics.length > 0 && (
               <div className={AGENT_DETAIL_ADMIN_META_CLASS_NAME}>
@@ -2434,6 +2386,28 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   title={t("agentConsole.section.basic")}
                 >
                   <div className={AGENT_FORM_GRID_CLASS_NAME}>
+                    {canOpenDetailDirectory && (
+                      <div className={AGENT_DETAIL_PATH_FIELD_CLASS_NAME}>
+                        <span
+                          className="tw:min-w-0 tw:cursor-pointer tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:hover:underline tw:hover:text-ink-1 tw:transition-colors"
+                          onClick={handleOpenDetailDirectory}
+                          title={t("agentConsole.detail.openDirectory")}
+                        >
+                          {detailSubtitle}
+                        </span>
+                        <UiButton
+                          className="agent-detail-open-directory"
+                          size="mini"
+                          variant="ghost"
+                          iconOnly
+                          onClick={handleOpenDetailDirectory}
+                          aria-label={t("agentConsole.detail.openDirectory")}
+                          title={t("agentConsole.detail.openDirectory")}
+                        >
+                          <MaterialIcon name="folder_open" />
+                        </UiButton>
+                      </div>
+                    )}
                     <div className="field-group">
                       <label htmlFor="agent-key-input">
                         {t("agentConsole.field.key")}
@@ -2883,18 +2857,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               <>
                 {formError && <div className="settings-error">{formError}</div>}
                 <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
-                  {savePlacement.footer ? (
-                    <UiButton
-                      size="sm"
-                      variant="primary"
-                      onClick={saveForm}
-                      disabled={!canEditStructuredAgent || deleting}
-                      loading={savingForm}
-                    >
-                      <MaterialIcon name="save" />
-                      <span>{t("agentConsole.action.create")}</span>
-                    </UiButton>
-                  ) : (
+                  {formMode === "edit" && (
                     <UiButton
                       size="sm"
                       variant="ghost"

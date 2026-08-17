@@ -100,7 +100,7 @@ export const RightSidebar: React.FC = () => {
   const hasBTWSession = Boolean(state.chatId && getSession(state.chatId));
   const debugPanelEnabled = isDebugPanelEnabled();
   const desktopSidebarVisible = state.rightSidebarOpen;
-  const initialPanel =
+  const selectedPanel =
     state.rightSidebarOpenTab === "debug" && debugPanelEnabled
       ? "debug"
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
@@ -122,20 +122,18 @@ export const RightSidebar: React.FC = () => {
                       webPreviews[webPreviews.length - 1].url,
                   )
                 : "overview";
-  const [activePanel, setActivePanel] = React.useState<RightSidebarTabKey>(
-    initialPanel === "debug"
-      ? "debug"
-      : initialPanel.startsWith("preview:")
-        ? "preview"
-        : initialPanel.startsWith("planningPreview:")
-          ? "planningPreview"
-          : initialPanel.startsWith("web:")
-            ? "web"
-            : (initialPanel as RightSidebarTabKey),
-  );
-  const [activeTab, setActiveTab] = React.useState<RightSidebarTabsKey>(
-    initialPanel === "debug" ? "overview" : initialPanel,
-  );
+  const activePanel: RightSidebarTabKey = selectedPanel === "debug"
+    ? "debug"
+    : selectedPanel.startsWith("preview:")
+      ? "preview"
+      : selectedPanel.startsWith("planningPreview:")
+        ? "planningPreview"
+        : selectedPanel.startsWith("web:")
+          ? "web"
+          : (selectedPanel as RightSidebarTabKey);
+  const activeTab: RightSidebarTabsKey = selectedPanel === "debug"
+    ? "overview"
+    : selectedPanel;
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
   );
@@ -145,131 +143,6 @@ export const RightSidebar: React.FC = () => {
   const [tabFullscreenRequests, setTabFullscreenRequests] = React.useState<
     Record<string, number>
   >({});
-
-  React.useEffect(() => {
-    if (!state.rightSidebarOpen || !state.rightSidebarOpenTab) {
-      return;
-    }
-
-    if (state.rightSidebarOpenTab === "debug" && !debugPanelEnabled) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-
-    if (state.rightSidebarOpenTab === "btw" && !hasBTWSession) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-
-    if (state.rightSidebarOpenTab === "preview" && previews.length === 0) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-
-    if (state.rightSidebarOpenTab === "sourceDetail" && !sourceDetail) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-
-    if (
-      state.rightSidebarOpenTab === "planningPreview" &&
-      planningPreviews.length === 0
-    ) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-
-    if (state.rightSidebarOpenTab === "web" && webPreviews.length === 0) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-
-    const nextPanel = state.rightSidebarOpenTab;
-    setActivePanel(nextPanel);
-    if (nextPanel !== "debug") {
-      if (nextPanel === "preview") {
-        const targetUrl = state.activeAttachmentPreviewUrl;
-        const target = targetUrl ? previews.find(p => p.url === targetUrl) : undefined;
-        const active = target ?? previews[previews.length - 1];
-        if (active) {
-          setActiveTab(`preview:${active.url}`);
-        }
-      } else if (nextPanel === "planningPreview") {
-        const targetNodeId = state.activePlanningPreviewNodeId;
-        const target = targetNodeId ? planningPreviews.find(p => p.nodeId === targetNodeId) : undefined;
-        const active = target ?? planningPreviews[planningPreviews.length - 1];
-        if (active) {
-          setActiveTab(`planningPreview:${active.nodeId}`);
-        }
-      } else if (nextPanel === "web") {
-        const activeWebPreview = webPreviews.find(
-          (preview) => preview.url === state.activeWebPreviewUrl,
-        );
-        const fallbackWebPreview = webPreviews[webPreviews.length - 1];
-        const nextWebPreview = activeWebPreview || fallbackWebPreview;
-        if (nextWebPreview) {
-          setActiveTab(buildWebTabKey(nextWebPreview.url));
-        }
-      } else {
-        setActiveTab(nextPanel);
-      }
-    }
-  }, [
-    previews,
-    sourceDetail,
-    planningPreviews,
-    webPreviews,
-    debugPanelEnabled,
-    hasBTWSession,
-    state.rightSidebarOpen,
-    state.rightSidebarOpenTab,
-    state.activeWebPreviewUrl,
-    state.activeAttachmentPreviewUrl,
-    state.activePlanningPreviewNodeId,
-  ]);
-
-  React.useEffect(() => {
-    if (activePanel === "debug" && !debugPanelEnabled) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-    if (activePanel === "btw" && !hasBTWSession) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-      return;
-    }
-    if (activePanel === "preview" && previews.length === 0) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-    }
-    if (activePanel === "sourceDetail" && !sourceDetail) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-    }
-    if (activePanel === "planningPreview" && planningPreviews.length === 0) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-    }
-    if (activePanel === "web" && webPreviews.length === 0) {
-      setActivePanel("overview");
-      setActiveTab("overview");
-    }
-  }, [
-    activePanel,
-    debugPanelEnabled,
-    hasBTWSession,
-    previews,
-    sourceDetail,
-    planningPreviews,
-    webPreviews,
-  ]);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -303,8 +176,6 @@ export const RightSidebar: React.FC = () => {
         if (state.chatId) {
           discardBTW(state.chatId);
         }
-        setActivePanel("overview");
-        setActiveTab("overview");
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
       } else if (typeof key === "string" && key.startsWith("preview:")) {
         const urlToRemove = key.slice("preview:".length);
@@ -551,30 +422,25 @@ export const RightSidebar: React.FC = () => {
 
   const handleTabChange = React.useCallback(
     (key: string) => {
-      setActiveTab(key);
       if (key.startsWith("preview:")) {
-        setActivePanel("preview");
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "preview",
           activeAttachmentPreviewUrl: key.slice("preview:".length),
         });
       } else if (key.startsWith("planningPreview:")) {
-        setActivePanel("planningPreview");
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "planningPreview",
           activePlanningPreviewNodeId: key.slice("planningPreview:".length),
         });
       } else if (key.startsWith("web:")) {
-        setActivePanel("web");
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "web",
           activeWebPreviewUrl: getWebUrlFromTabKey(key),
         });
       } else {
-        setActivePanel(key as RightSidebarTabKey);
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: key as RightSidebarTabKey,

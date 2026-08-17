@@ -15,6 +15,7 @@ $TemplatePath = Join-Path $ScriptDir "release-assets/program/manifest.template.j
 $Renderer = Join-Path $ScriptDir "render-program-manifest.mjs"
 $DeployTestPath = Join-Path $ScriptDir "test-program-deploy.ps1"
 $ShareBundleChecker = Join-Path $ScriptDir "check-share-bundle.js"
+$DesktopContractChecker = Join-Path $ScriptDir "check-agent-webclient-contract.js"
 $ReleaseDir = Join-Path $RepoRoot "dist/release"
 $Utf8NoBom = New-Object Text.UTF8Encoding($false)
 
@@ -75,7 +76,7 @@ if (-not $Arch) { $Arch = if ($env:ARCH) { $env:ARCH } else { Get-HostArch } }
 foreach ($command in @("node", "npm")) {
     if (-not (Get-Command $command -ErrorAction SilentlyContinue)) { throw "$command is required" }
 }
-foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, $ShareBundleChecker, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
+foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, $ShareBundleChecker, $DesktopContractChecker, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
     if (-not (Test-Path -LiteralPath $path)) { throw "Required release input is missing: $path" }
 }
 
@@ -91,6 +92,7 @@ try {
         Copy-Item -LiteralPath (Join-Path $RepoRoot $name) -Destination (Join-Path $BuildRoot $name)
     }
     Copy-Item -LiteralPath $ShareBundleChecker -Destination (Join-Path $BuildScriptsDir "check-share-bundle.js")
+    Copy-Item -LiteralPath $DesktopContractChecker -Destination (Join-Path $BuildScriptsDir "check-agent-webclient-contract.js")
     Copy-IfPresent -Source (Join-Path $RepoRoot "package-lock.json") -Destination (Join-Path $BuildRoot "package-lock.json")
     Copy-IfPresent -Source (Join-Path $RepoRoot ".env") -Destination (Join-Path $BuildRoot ".env")
     if (-not (Test-Path -LiteralPath (Join-Path $BuildRoot ".env"))) {

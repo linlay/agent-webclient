@@ -348,7 +348,7 @@ describe("CopilotShell", () => {
     expect(html).toContain("swap_horiz");
     expect(html).toContain("edit_square");
     expect(html).toContain("history");
-    expect(html).toContain("bug_report");
+    expect(html).not.toContain("bug_report");
     expect(html).toContain("settings");
     expect(html).not.toContain(">call<");
     expect(html).not.toContain(">call_end<");
@@ -372,7 +372,7 @@ describe("CopilotShell", () => {
     expect(html).not.toContain("bug_report");
   });
 
-  it("renders the compact side panel for reused right-sidebar content", () => {
+  it("does not render reused right-sidebar content", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       rightSidebarOpen: true,
@@ -381,11 +381,11 @@ describe("CopilotShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(CopilotShell));
 
-    expect(html).toContain("copilot-side-panel");
-    expect(html).toContain("overview-tab");
+    expect(html).not.toContain("copilot-side-panel");
+    expect(html).not.toContain("overview-tab");
   });
 
-  it("renders the side-question panel in copilot mode", () => {
+  it("does not render the side-question panel in copilot mode", () => {
     const dispatch = jest.fn();
     useAppState.mockReturnValue({
       ...createInitialState(),
@@ -397,20 +397,11 @@ describe("CopilotShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(CopilotShell));
 
-    expect(html).toContain("copilot-side-panel");
-    expect(html).toContain("btw-tab");
-
-    const closeButton = mockUiButtonProps.find(
-      (props) => props["aria-label"] === "copilot.panel.close",
-    );
-    closeButton?.onClick();
-
-    expect(closeButton).toBeDefined();
-    expect(mockDiscardBTW).toHaveBeenCalledWith("chat_1");
-    expect(dispatch).toHaveBeenCalledWith({ type: "CLOSE_RIGHT_SIDEBAR" });
+    expect(html).not.toContain("copilot-side-panel");
+    expect(html).not.toContain("btw-tab");
   });
 
-  it("renders web previews as tabs in the copilot side panel", () => {
+  it("does not render web previews in a copilot side panel", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       rightSidebarOpen: true,
@@ -427,11 +418,8 @@ describe("CopilotShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(CopilotShell));
 
-    expect(html).toContain("copilot-side-panel");
-    expect(html).toContain("copilot-web-preview-tabs");
-    expect(html).toContain("百度");
-    expect(html).toContain('src="https://www.baidu.com/"');
-    expect(html).toContain('data-refresh-key="4"');
+    expect(html).not.toContain("copilot-side-panel");
+    expect(html).not.toContain("copilot-web-preview-tabs");
   });
 
   it("starts the first loaded agent conversation on the bare copilot route", () => {

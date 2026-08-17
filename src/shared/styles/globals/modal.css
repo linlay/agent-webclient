@@ -425,6 +425,53 @@
     gap: 8px;
 }
 
+/* Automation detail 中「智能体」下拉选项：图标 + 名称 + 角色小字淡色。 */
+.automation-agent-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.automation-agent-option-icon {
+    flex: 0 0 auto;
+    border-radius: 6px;
+}
+
+.automation-agent-option-text {
+    min-width: 0;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.4;
+}
+
+.automation-agent-option-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-1);
+}
+
+.automation-agent-option-role {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    color: var(--ink-muted);
+    opacity: .85;
+}
+
+.automation-agent-option.is-compact .automation-agent-option-name {
+    font-weight: 500;
+}
+
 .filter-indicator {
     width: 5px;
     height: 5px;
@@ -889,6 +936,13 @@
     margin-left: auto;
 }
 
+.automation-section-nav-save.ui-btn {
+    height: 24px;
+    min-height: 24px;
+    padding-inline: 8px;
+    font-size: 12px;
+}
+
 .automation-additional-fields {
     grid-column: 1 / -1;
 }
@@ -978,23 +1032,11 @@
     letter-spacing: .04em;
 }
 
-.automation-cron-preset-select.ant-select {
-    min-width: 0;
+.automation-cron-preset-trigger.ui-btn {
     height: 24px;
+    min-height: 24px;
+    padding: 0 6px;
     font-size: 11px;
-}
-
-.automation-cron-preset-select.ant-select .ant-select-selector {
-    min-height: 24px !important;
-    height: 24px !important;
-    padding-inline: 5px !important;
-    border-color: transparent !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.automation-cron-preset-select.ant-select .ant-select-selection-item {
-    line-height: 22px !important;
 }
 
 .automation-cron-part {
@@ -1470,35 +1512,11 @@
     font-weight: 500;
 }
 
-.agent-detail-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: flex-start;
-    margin-bottom: 14px;
-}
-
-.agent-detail-head>div:first-child {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.agent-detail-head strong {
-    font-size: 14px;
-}
-
-.agent-detail-head span {
-    font-size: 11px;
-    overflow-wrap: anywhere;
-}
-
-.agent-detail-path-row {
+.agent-detail-path-field {
     color: var(--text-muted);
 }
 
-.agent-detail-path-row>span:first-child {
+.agent-detail-path-field>span:first-child {
     min-width: 0;
     flex: 0 1 auto;
 }
@@ -1513,7 +1531,6 @@
     justify-content: center;
 }
 
-.agent-detail-actions,
 .agent-save-actions {
     display: flex;
     align-items: center;
@@ -1586,8 +1603,9 @@
 
 .agent-section-nav {
     z-index: 100;
-    gap: 8px;
-    padding: 6px;
+    gap: 4px;
+    margin: 0 0 8px;
+    padding: 3px 4px;
     border-bottom: 1px solid var(--border);
     backdrop-filter: blur(100px);
 }
@@ -1606,9 +1624,19 @@
     display: none;
 }
 
-.agent-section-nav-save {
+.agent-section-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     flex: none;
     margin-left: auto;
+}
+
+.agent-section-nav-save.ui-btn {
+    height: 24px;
+    min-height: 24px;
+    padding-inline: 8px;
+    font-size: 12px;
 }
 
 .agent-section-nav-link {

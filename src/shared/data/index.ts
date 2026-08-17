@@ -13,7 +13,6 @@ export * from "@/shared/data/memory/memoryTypes";
 export * from "@/shared/data/errors/platformError";
 export * from "@/shared/data/query/queries";
 export * from "@/shared/data/query/serverState";
-export * from "@/shared/data/api/transportClient";
 export * from "@/shared/data/runOwner";
 
 export {
@@ -52,7 +51,6 @@ export {
   getResourceText,
   getTeams,
   getViewport,
-  interruptChat,
   learnChat,
   markChatRead,
   openAgentDirectory,
@@ -64,12 +62,8 @@ export {
   saveMemoryScope,
   searchArchives,
   searchGlobal,
-  steerChat,
-  submitAwaiting,
   submitFeedback,
-  submitTool,
   toggleAutomation,
-  updateAccessLevel,
   updateAgent,
   updateAgentName,
   updateAgentModelConfig,

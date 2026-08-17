@@ -69,6 +69,14 @@ jest.mock("./pages/project", () => ({
   ProjectPage: () => null,
 }));
 
+jest.mock("./pages/terminal", () => ({
+  TerminalPage: () => null,
+}));
+
+jest.mock("./pages/run-surface", () => ({
+  ReadonlyRunSurfacePage: () => null,
+}));
+
 describe("App routing", () => {
   beforeEach(() => {
     jest.resetModules();
@@ -104,15 +112,22 @@ describe("App routing", () => {
         "/mcp-servers/:serverKey",
         "/skills",
         "/skills/:skillKey",
+        "/overview",
+        "/overview/:agentKey",
+        "/debug",
+        "/debug/:agentKey",
+        "/terminal",
         "/project",
         "/memory",
         "/agents",
         "/archives",
         "/archives/:chatId",
         "/agents/:agentKey",
+        "/agent",
         "/agent/:agentKey",
       ]),
     );
+    expect(childRoutes.map((route) => route.path)).not.toContain("/summary");
   });
 
   it("registers localized document title keys for agents, archives, automations, and registries", async () => {

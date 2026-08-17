@@ -9,10 +9,7 @@ import {
   type QueryAccessLevel,
   type QueryModelOverride,
 } from "@/shared/data";
-import {
-  interruptChat,
-  steerChat,
-} from "@/shared/data";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import {
   resolvePreferredRunOwner,
   resolveRunOwner,
@@ -68,7 +65,7 @@ interface UseComposerSendInput {
     setInputValue: (value: string) => void;
     setSlashDismissed: (dismissed: boolean) => void;
     slashAvailability: SlashCommandAvailability;
-    state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "editingMode" | "chatId" | "usagePopoverOpen">;
+    state: Pick<AppState, "rightSidebarOpen" | "planningMode" | "editingMode" | "chatId" | "runId" | "usagePopoverOpen">;
     toggleVoiceMode: () => void;
   };
   backgroundCommandText: {
@@ -160,6 +157,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     updateMentionSuggestions,
   } = input;
   const { t } = useI18n();
+  const runs = useRunTransport();
   const { message: messageApi } = AntdApp.useApp();
   const { openBTW } = useBTW();
   const [steerSubmitting, setSteerSubmitting] = useState(false);
@@ -286,7 +284,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     try {
-      await interruptChat({
+      await runs.interrupt({
         requestId,
         chatId,
         runId,
@@ -337,6 +335,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch,
     resolveCurrentOwner,
     resolveCurrentRunId,
+    runs,
     state.abortController,
     state.chatId,
     state.planningMode,
@@ -606,7 +605,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch({ type: "UPDATE_PENDING_STEER_STATUS", steerId, status: "sending" });
 
     try {
-      const response = await steerChat({
+      const response = await runs.steer({
         requestId: steer.requestId,
         chatId,
         runId: steer.runId,
@@ -654,6 +653,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch,
     resolveCurrentOwner,
     restoreMessageToComposer,
+    runs,
     messageApi,
     state.chatId,
     state.planningMode,

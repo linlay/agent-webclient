@@ -129,6 +129,7 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   const model = compactQueryModelOverride(options.model);
   if (model) body.model = model;
   if (options.role) body.role = options.role;
+  if (typeof options.hidden === "boolean") body.hidden = options.hidden;
   if (options.references !== undefined) body.references = options.references;
   if (options.params !== undefined) {
     const { editingMode: _editingMode, ...params } = options.params;

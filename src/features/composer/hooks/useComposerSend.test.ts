@@ -5,6 +5,17 @@ jest.mock('@/shared/data', () => ({
   rememberChat: jest.fn(),
 }));
 
+jest.mock('@/features/transport/hooks/useRealtimeTransport', () => ({
+  useRunTransport: () => ({
+    interrupt: jest.fn(),
+    steer: jest.fn(),
+  }),
+}));
+
+jest.mock('@/features/surfaces/openTarget', () => ({
+  useOpenTarget: () => jest.fn(),
+}));
+
 const mockMessageApi = {
   error: jest.fn(),
   warning: jest.fn(),

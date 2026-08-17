@@ -10,21 +10,16 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
-import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
 import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
-import {
-  TerminalDock,
-  resolveTerminalDockWorkspaceKey,
-} from "./TerminalDock";
-import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
 import { SidebarHistorySection } from "@/app/layout/sidebar/SidebarHistorySection";
 import { useLeftSidebarData } from "@/app/layout/hooks/useLeftSidebarData";
 import { getAgent, getChats } from "@/shared/data";
+import { ApiError } from "@/shared/data/api/client";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
@@ -85,6 +80,10 @@ type NewChatCreatedEventDetail = {
   agentKey?: unknown;
 };
 
+export function isAgentRouteAuthenticationError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
+
 const NEW_CHAT_CREATED_EVENT = "agent:new-chat-created";
 
 const AGENT_ROUTE_LOADING_PAGE_CLASS =
@@ -98,19 +97,10 @@ const AGENT_ROUTE_LOADING_SPINNER_CLASS =
 const AGENT_ROUTE_LOADING_COPY_CLASS =
   "agent-route-loading-copy tw:flex tw:min-w-0 tw:flex-col tw:gap-1 tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-xs tw:[&_span]:text-ink-muted tw:[&_strong]:text-sm tw:[&_strong]:font-bold";
 const AGENT_ROUTE_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-[1/-1] tw:[&_.right-sidebar]:translate-x-0 tw:[&_.terminal-dock]:col-start-2 tw:[&_.terminal-dock]:row-start-4";
+  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden";
 const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
-  terminal: "tw:grid-rows-[auto_minmax(0,1fr)_auto_auto]",
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
-  emptyTerminal:
-    "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
-} as const;
-const AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE = {
-  enabled:
-    "desktop-debug-enabled tw:grid-cols-[0_minmax(0,1fr)_var(--right-sidebar-width)]",
-  disabled:
-    "desktop-debug-disabled tw:grid-cols-[0_minmax(0,1fr)_0] tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
 } as const;
 
 function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
@@ -164,12 +154,14 @@ const AGENT_ROUTE_ERROR_ICON_CLASS =
 const AGENT_ROUTE_ERROR_COPY_CLASS =
   "tw:flex tw:flex-col tw:items-center tw:gap-1.5 tw:text-center";
 const AGENT_ROUTE_ERROR_RETRY_BUTTON_CLASS =
-  "tw:inline-flex tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--accent)_30%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] tw:px-4 tw:py-2 tw:text-sm tw:font-medium tw:transition-colors hover:tw:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]";
+  "tw:inline-flex tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--accent)_30%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] tw:px-4 tw:py-2 tw:text-sm tw:font-medium tw:transition-colors tw:hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]";
 
 const AgentRouteErrorPage: React.FC<{
   message: string;
+  description: string;
+  retryLabel: string;
   onRetry: () => void;
-}> = ({ message, onRetry }) => (
+}> = ({ message, description, retryLabel, onRetry }) => (
   <main className={AGENT_ROUTE_LOADING_PAGE_CLASS}>
     <div className={AGENT_ROUTE_ERROR_CARD_CLASS}>
       <div className={AGENT_ROUTE_ERROR_ICON_CLASS} aria-hidden="true">
@@ -180,7 +172,7 @@ const AgentRouteErrorPage: React.FC<{
           {message}
         </strong>
         <span className="tw:text-xs tw:text-ink-muted">
-          请检查网络连接后重试
+          {description}
         </span>
       </div>
       <button
@@ -201,7 +193,7 @@ const AgentRouteErrorPage: React.FC<{
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
           />
         </svg>
-        重试
+        {retryLabel}
       </button>
     </div>
   </main>
@@ -233,6 +225,7 @@ export const AgentChatShell: React.FC = () => {
   const routeAgentHydrationRequestRef = useRef(0);
   const routeAgentLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [routeAgentLoadError, setRouteAgentLoadError] = useState<string | null>(null);
+  const [routeAgentLoadErrorDescription, setRouteAgentLoadErrorDescription] = useState("");
   const [hydrationRetryCount, setHydrationRetryCount] = useState(0);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
@@ -307,7 +300,6 @@ export const AgentChatShell: React.FC = () => {
     state.timelineOrder.length > 0 || state.streaming || Boolean(state.runId);
 
   useAppRuntimes();
-  const currentWorker = useMemo(() => resolveCurrentWorkerSummary(state), [state]);
 
   useEffect(() => {
     stateRef.current = state;
@@ -400,6 +392,7 @@ export const AgentChatShell: React.FC = () => {
     routeAgentHydrationFailedRef.current.delete(agentKey);
     routeAgentHydratedWithoutSignalRef.current.delete(agentKey);
     setRouteAgentLoadError(null);
+    setRouteAgentLoadErrorDescription("");
     setHydrationRetryCount((c) => c + 1);
   }, [agentKey]);
 
@@ -424,6 +417,7 @@ export const AgentChatShell: React.FC = () => {
     routeAgentLoadingTimeoutRef.current = setTimeout(() => {
       if (cancelled) return;
       setRouteAgentLoadError(t("agentRoute.error.loadFailed"));
+      setRouteAgentLoadErrorDescription(t("agentRoute.error.networkHint"));
     }, 15_000);
 
     void getAgent(agentKey)
@@ -440,6 +434,7 @@ export const AgentChatShell: React.FC = () => {
           routeAgentLoadingTimeoutRef.current = null;
         }
         setRouteAgentLoadError(null);
+        setRouteAgentLoadErrorDescription("");
 
         const payload = (response.data || {}) as unknown as Partial<Agent>;
         const resolvedAgentKey =
@@ -474,7 +469,13 @@ export const AgentChatShell: React.FC = () => {
         }
 
         routeAgentHydrationFailedRef.current.add(agentKey);
-        setRouteAgentLoadError(t("agentRoute.error.loadFailed"));
+        const unauthorized = isAgentRouteAuthenticationError(error);
+        setRouteAgentLoadError(t(unauthorized
+          ? "agentRoute.error.authenticationRequired"
+          : "agentRoute.error.loadFailed"));
+        setRouteAgentLoadErrorDescription(t(unauthorized
+          ? "agentRoute.error.authenticationHint"
+          : "agentRoute.error.networkHint"));
         dispatch({
           type: "APPEND_DEBUG",
           line: `[loadAgent error] ${(error as Error).message}`,
@@ -668,25 +669,22 @@ export const AgentChatShell: React.FC = () => {
   };
 
   const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
-  const effectiveTerminalDockOpen = state.terminalDockOpen && isCoderAgent(currentWorker);
 
   if (!routeAgentReady) {
     if (routeAgentLoadError) {
-      return <AgentRouteErrorPage message={routeAgentLoadError} onRetry={handleRetryRouteAgent} />;
+      return <AgentRouteErrorPage
+        message={routeAgentLoadError}
+        description={routeAgentLoadErrorDescription}
+        retryLabel={t("agentRoute.error.retry")}
+        onRetry={handleRetryRouteAgent}
+      />;
     }
     return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
   }
 
   const rowClass = isTimelineEmpty
-    ? effectiveTerminalDockOpen
-      ? AGENT_ROUTE_ROW_CLASS_BY_STATE.emptyTerminal
-      : AGENT_ROUTE_ROW_CLASS_BY_STATE.empty
-    : effectiveTerminalDockOpen
-      ? AGENT_ROUTE_ROW_CLASS_BY_STATE.terminal
-      : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
-  const columnClass = state.rightSidebarOpen
-    ? AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE.enabled
-    : AGENT_ROUTE_COLUMN_CLASS_BY_DEBUG_STATE.disabled;
+    ? AGENT_ROUTE_ROW_CLASS_BY_STATE.empty
+    : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
 
   return (
     <SettingsOverlayProvider>
@@ -695,9 +693,7 @@ export const AgentChatShell: React.FC = () => {
         <div
           className={[
             AGENT_ROUTE_SHELL_BASE_CLASS,
-            columnClass,
             rowClass,
-            effectiveTerminalDockOpen ? "terminal-dock-open" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -706,17 +702,9 @@ export const AgentChatShell: React.FC = () => {
           {!routeChatReady && !hasVisibleConversationContent ? (
             <AgentRouteLoadingPage title={t("agentRoute.loading.chat")} overlay />
           ) : null}
-          <TopNav />
+          <TopNav surface="agent" />
           <ConversationStage showEmptyState={!chatId} />
-          <RightSidebar />
           <BottomDock />
-          {effectiveTerminalDockOpen && currentWorker ? (
-            <TerminalDock
-              agentKey={currentWorker.sourceId}
-              workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
-              worker={currentWorker}
-            />
-          ) : null}
           <ShellOverlays />
           <SidebarHistorySection
             open={Boolean(historyWorkerKey)}

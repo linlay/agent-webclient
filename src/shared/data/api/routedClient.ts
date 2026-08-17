@@ -1,10 +1,7 @@
-import type { AIAwaitSubmitParamData } from "@/app/state/types";
-import type { RunOwner } from "@/shared/data/runOwner";
 import {
 	buildResourceUrl,
 	archiveChats as archiveChatsHttp,
 	createAgent as createAgentHttp,
-	createQueryStream,
 	createAutomation as createAutomationHttp,
 	deriveChat as deriveChatHttp,
 	deleteAgent as deleteAgentHttp,
@@ -44,7 +41,6 @@ import {
 	getTeams as getTeamsHttp,
 	getViewport as getViewportHttp,
 	compactChat as compactChatHttp,
-	interruptChat as interruptChatHttp,
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
 	openAgentDirectory as openAgentDirectoryHttp,
@@ -53,28 +49,21 @@ import {
 	restoreArchives as restoreArchivesHttp,
 	saveMemoryScope as saveMemoryScopeHttp,
 	setAccessToken,
-	steerChat as steerChatHttp,
 	submitFeedback as submitFeedbackHttp,
-	submitAwaiting as submitAwaitingHttp,
-	submitTool as submitToolHttp,
 	toggleAutomation as toggleAutomationHttp,
 	updateAgent as updateAgentHttp,
 	updateAgentName as updateAgentNameHttp,
-	updateAccessLevel as updateAccessLevelHttp,
 	updateAgentModelConfig as updateAgentModelConfigHttp,
 	putAgentOrder as putAgentOrderHttp,
 	updateAutomation as updateAutomationHttp,
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
-	ApiError,
 	type AgentDetailResponse,
 	type AgentSkillsResponse,
 	type AgentFileRequest,
 	type AgentFileResponse,
 	type AgentModelConfigResponse,
 	type AgentOrderResponse,
-	type AccessLevelUpdateParams,
-	type AccessLevelUpdateResponse,
 	type ApiResponse,
 	type ArchiveChatsRequest,
 	type ArchiveChatsResponse,
@@ -104,7 +93,6 @@ import {
 	type MarkChatReadParams,
 	type OpenAgentDirectoryRequest,
 	type OpenAgentDirectoryResponse,
-	type QueryLikeParams,
 	type RenameChatRequest,
 	type RenameChatResponse,
 	type AutomationDetailResponse,
@@ -133,10 +121,6 @@ import type {
 	MemoryScopeValidationResult,
 } from "@/shared/data/memory/memoryTypes";
 import {
-	createTransportClient,
-	type TransportRequestOptions,
-} from "@/shared/data/api/transportClient";
-import {
 	createDataCacheKey,
 	resolveEndpointPayload,
 	type EndpointDefinition,
@@ -144,21 +128,10 @@ import {
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { dataQueryCache } from "@/shared/data/query/serverState";
 
-const transportClient = createTransportClient();
-
-type RouteRequestOptions<T> = Omit<TransportRequestOptions<T>, "fallback">;
-
-async function routeRequest<T>(
-	type: string,
-	payload: unknown,
-	fallback: () => Promise<ApiResponse<T>>,
-	options: RouteRequestOptions<T> = {},
-): Promise<ApiResponse<T>> {
-	return transportClient.request<T>(type, payload, {
-		...options,
-		fallback,
-	});
-}
+type RouteRequestOptions<T> = {
+	fallbackOnConnectFailure?: boolean;
+	fallbackOnRequestFailure?: boolean;
+};
 
 function emptyPayloadAsUndefined(payload: unknown): unknown {
 	if (
@@ -198,17 +171,8 @@ function routeEndpoint<T, TInput>(
 	options: RouteRequestOptions<T> = {},
 ): Promise<ApiResponse<T>> {
 	const payload = emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input));
-	const request = () => {
-		if (endpoint.transport !== "auto" && endpoint.transport !== "ws") {
-			return fallback();
-		}
-		return routeRequest<T>(
-			endpoint.path,
-			payload,
-			fallback,
-			options,
-		);
-	};
+	void options;
+	const request = fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
 	if (!cache) {
 		return request();
@@ -259,15 +223,6 @@ export function getAgentSkills(
 	);
 }
 
-function isUnknownAgentFileWsRoute(error: unknown): boolean {
-	return (
-		error instanceof ApiError &&
-		error.status === 400 &&
-		String(error.message || "").trim() ===
-			`unknown type: ${dataEndpoints.agentFile.path}`
-	);
-}
-
 export function getAgentFile(
 	params: AgentFileRequest,
 ): Promise<ApiResponse<AgentFileResponse>> {
@@ -275,12 +230,7 @@ export function getAgentFile(
 		dataEndpoints.agentFile,
 		params,
 		() => getAgentFileHttp(params),
-	).catch((error: unknown) => {
-		if (!isUnknownAgentFileWsRoute(error)) {
-			throw error;
-		}
-		return getAgentFileHttp(params);
-	});
+	);
 }
 
 export function createAgent(
@@ -673,32 +623,6 @@ export function saveMemoryScope(
 	});
 }
 
-export function submitTool(params: {
-	runId: string;
-	owner: RunOwner;
-	toolId: string;
-	params: Record<string, unknown>;
-}): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.submit, params, () => submitToolHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	});
-}
-
-export function submitAwaiting(params: {
-	chatId?: string;
-	runId: string;
-	owner: RunOwner;
-	awaitingId: string;
-	submitId?: string;
-	params: AIAwaitSubmitParamData[];
-}): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.submit, params, () => submitAwaitingHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	});
-}
-
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
 	return routeEndpoint(dataEndpoints.read, params, () => markChatReadHttp(params), {
 		fallbackOnConnectFailure: false,
@@ -753,34 +677,6 @@ export function searchGlobal(
 	);
 }
 
-export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.interrupt, params, () => interruptChatHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	});
-}
-
-export function updateAccessLevel(
-	params: AccessLevelUpdateParams,
-): Promise<ApiResponse<AccessLevelUpdateResponse>> {
-	return routeEndpoint<AccessLevelUpdateResponse, AccessLevelUpdateParams>(
-		dataEndpoints.accessLevelUpdate,
-		params,
-		() => updateAccessLevelHttp(params),
-		{
-			fallbackOnConnectFailure: false,
-			fallbackOnRequestFailure: false,
-		},
-	);
-}
-
-export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.steer, params, () => steerChatHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	});
-}
-
 export function rememberChat(params: {
 	requestId: string;
 	chatId: string;
@@ -822,7 +718,6 @@ export function compactChat(params: {
 
 export {
 	buildResourceUrl,
-	createQueryStream,
 	downloadResource,
 	downloadChatExport,
 	ensureAccessToken,

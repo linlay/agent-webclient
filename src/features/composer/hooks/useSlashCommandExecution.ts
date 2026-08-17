@@ -9,6 +9,7 @@ import {
 } from "@/features/composer/lib/slashCommands";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
 import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 export function useSlashCommandExecution(input: {
 	slashAvailability: SlashCommandAvailability;
@@ -26,6 +27,7 @@ export function useSlashCommandExecution(input: {
 	state: Pick<
 		AppState,
 		"rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen"
+		| "runId"
 	> &
 		Partial<Pick<AppState, "editingMode">>;
 }) {
@@ -46,6 +48,7 @@ export function useSlashCommandExecution(input: {
 	} = input;
 	const { openOverlay } = useSettingsOverlayActions();
 	const { openCommandOverlay } = useCommandOverlayActions();
+	const openTarget = useOpenTarget();
 
 	return useCallback(
 		async (commandId: SlashCommandId) => {
@@ -83,11 +86,15 @@ export function useSlashCommandExecution(input: {
 					resetForNewConversation();
 					return;
 				case "debug":
-					dispatch(
-						state.rightSidebarOpen
-							? { type: "CLOSE_RIGHT_SIDEBAR" }
-							: { type: "OPEN_RIGHT_SIDEBAR", tab: "debug" },
-					);
+					if (state.chatId) {
+						openTarget({
+							version: 1,
+							kind: "debug",
+							chatId: state.chatId,
+							runId: state.runId || undefined,
+							toggle: true,
+						});
+					}
 					return;
 				case "voice":
 					toggleVoiceMode();
@@ -133,6 +140,7 @@ export function useSlashCommandExecution(input: {
 			openCommandOverlay,
 			openOverlay,
 			openBTW,
+			openTarget,
 		],
 	);
 }

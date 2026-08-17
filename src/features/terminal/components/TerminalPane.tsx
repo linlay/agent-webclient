@@ -3,12 +3,11 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import type { AgentEvent } from "@/app/state/types";
 import {
-  createTerminalRemoteSession,
   reportTerminalTeardownError,
   terminalErrorMessage,
-  type TerminalRemoteSession,
-} from "@/features/terminal/lib/terminalRemoteSession";
-import { resolveTerminalWsClient } from "@/features/terminal/lib/terminalTransport";
+} from "@/features/terminal/lib/terminalErrors";
+import type { TerminalExecution } from "@/features/transport/contracts/realtimeTransport";
+import { useTerminalTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { resolveTerminalTheme } from "@/features/terminal/lib/terminalTheme";
 import type { TerminalAvailability } from "@/features/terminal/lib/terminalWorkspace";
 import { notifyTerminalActivityChanged } from "@/features/terminal/hooks/useActiveTerminalAgents";
@@ -27,7 +26,7 @@ export type TerminalPaneProps = {
   readonly themeMode: string;
   readonly onSessionChange: (
     tabId: string,
-    session: TerminalRemoteSession | null,
+    session: TerminalExecution | null,
   ) => void;
 };
 
@@ -55,10 +54,11 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   themeMode,
   onSessionChange,
 }) => {
+  const terminalTransport = useTerminalTransport();
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const remoteSessionRef = useRef<TerminalRemoteSession | null>(null);
+  const remoteSessionRef = useRef<TerminalExecution | null>(null);
   const inputBufferRef = useRef("");
   const inputFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,7 +92,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     inputBufferRef.current = "";
     if (!data) return;
     const submitsCommand = data.includes("\r") || data.includes("\n");
-    void remoteSessionRef.current?.sendInput(data).catch((error) => {
+    void remoteSessionRef.current?.write(data).catch((error) => {
       writeStatus(terminalErrorMessage(error));
     }).finally(() => {
       if (submitsCommand) {
@@ -138,7 +138,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     sessionVersionRef.current = version;
     const isCurrentSession = () => sessionVersionRef.current === version;
     let disposed = false;
-    let remoteSession: TerminalRemoteSession | null = null;
+    let remoteSession: TerminalExecution | null = null;
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -188,37 +188,31 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const dataSubscription = terminal.onData(queueInput);
 
     if (availability.supported) {
-      void resolveTerminalWsClient()
-        .then((client) => {
-          if (disposed || !isCurrentSession()) return;
-          remoteSession = createTerminalRemoteSession({
-            client,
-            agentKey: normalizedAgentKey,
-            terminalKey: normalizedTerminalKey,
-            cols: Math.max(1, terminal.cols || 80),
-            rows: Math.max(1, terminal.rows || 24),
-            onEvent: handleTerminalEvent,
-            onDone: () => {
-              if (!isCurrentSession()) return;
-              remoteSessionRef.current = null;
-              onSessionChange(tabId, null);
-              notifyTerminalActivityChanged();
-            },
-            onError: (error) => {
-              if (disposed || !isCurrentSession() || error.name === "AbortError") return;
-              remoteSessionRef.current = null;
-              onSessionChange(tabId, null);
-              notifyTerminalActivityChanged();
-              writeStatus(terminalErrorMessage(error));
-            },
-          });
-          remoteSessionRef.current = remoteSession;
-          onSessionChange(tabId, remoteSession);
-        })
-        .catch((error) => {
-          if (disposed || !isCurrentSession()) return;
-          writeStatus(terminalErrorMessage(error));
-        });
+      remoteSession = terminalTransport.open({
+        agentKey: normalizedAgentKey,
+        terminalKey: normalizedTerminalKey,
+        cols: Math.max(1, terminal.cols || 80),
+        rows: Math.max(1, terminal.rows || 24),
+        onEvent: handleTerminalEvent,
+      });
+      remoteSessionRef.current = remoteSession;
+      onSessionChange(tabId, remoteSession);
+      void remoteSession.accepted.catch((error) => {
+        if (disposed || !isCurrentSession() || error.name === "AbortError") return;
+        remoteSessionRef.current = null;
+        onSessionChange(tabId, null);
+        notifyTerminalActivityChanged();
+        writeStatus(terminalErrorMessage(error));
+      });
+      void remoteSession.completion.then((completion) => {
+        if (!isCurrentSession()) return;
+        remoteSessionRef.current = null;
+        onSessionChange(tabId, null);
+        notifyTerminalActivityChanged();
+        if (completion.error && completion.error.name !== "AbortError") {
+          writeStatus(terminalErrorMessage(completion.error));
+        }
+      });
     }
 
     return () => {
@@ -260,6 +254,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     queueInput,
     queueResize,
     tabId,
+    terminalTransport,
     writeStatus,
   ]);
 

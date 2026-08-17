@@ -22,6 +22,9 @@ export function processRunEvent(
 
   if (type === "request.query") {
     if (config.mode !== "replay") return commands;
+    const hidden = event.hidden === true ||
+      (event.hidden === undefined && toText(event.role) === "automation");
+    if (hidden) return commands;
     const text = readRequestQueryText(event);
     const attachments = normalizeTimelineAttachments(
       (event as Record<string, unknown>).references,

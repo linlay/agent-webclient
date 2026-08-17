@@ -7,8 +7,10 @@ import {
   createChatRouteKey,
   createNewChatRouteKey,
   createResolvedNewChatRoute,
+  isAgentRouteAuthenticationError,
   parseNewChatTimestamp,
 } from "@/app/layout/AgentChatShell";
+import { ApiError } from "@/shared/data/api/client";
 import { SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL } from "@/shared/hooks/agentPage/useDesktopAction";
 import type { Chat, WorkerRow } from "@/app/state/types";
 
@@ -192,6 +194,11 @@ const globalWithDom = globalThis as typeof globalThis & {
 };
 
 describe("AgentChatShell", () => {
+  it("classifies only an API 401 as an authentication failure", () => {
+    expect(isAgentRouteAuthenticationError(new ApiError("unauthorized", { status: 401 }))).toBe(true);
+    expect(isAgentRouteAuthenticationError(new ApiError("upstream", { status: 502 }))).toBe(false);
+    expect(isAgentRouteAuthenticationError(new Error("network down"))).toBe(false);
+  });
   const originalWindow = globalWithDom.window;
   const originalCustomEvent = globalWithDom.CustomEvent;
   const originalLocalStorage = globalWithDom.localStorage;
@@ -370,7 +377,7 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("falls back to a non-CODER placeholder when route agent hydration fails", async () => {
+  it("shows a route error when route agent hydration fails", async () => {
     const dispatch = jest.fn();
     const useEffectSpy = jest
       .spyOn(React, "useEffect")
@@ -384,10 +391,6 @@ describe("AgentChatShell", () => {
     renderToStaticMarkup(React.createElement(AgentChatShell));
     await flushPromises();
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [{ key: "demo-agent", name: "demo-agent", role: "--" }],
-    });
     expect(dispatch).toHaveBeenCalledWith({
       type: "APPEND_DEBUG",
       line: "[loadAgent error] network down",
@@ -421,7 +424,8 @@ describe("AgentChatShell", () => {
     expect(html).toContain("conversation-stage");
     expect(html).toContain('data-show-empty-state="true"');
     expect(html).toContain("bottom-dock");
-    expect(html).toContain("right-sidebar");
+    expect(html).not.toContain("right-sidebar");
+    expect(html).not.toContain("terminal-dock");
     expect(html).not.toContain('<aside class="left-sidebar"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
   });

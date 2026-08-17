@@ -37,6 +37,7 @@ jest.mock("antd", () => {
     Switch: ({ checked, ...props }: any) =>
       React.createElement("input", { ...props, type: "checkbox", checked }),
     Spin: ({ children }: { children?: unknown }) => children || null,
+    Tooltip: ({ children }: { children?: unknown }) => children || null,
   };
 });
 
@@ -94,7 +95,6 @@ import {
   privateSkillsFromDetail,
   readAdminAgentDiagnostics,
   resolveActiveAgentFormSection,
-  resolveAgentSavePlacement,
   resolveAdminAgentSourcePath,
   saveAgentOrderRequest,
   shouldShowAgentDirectoryButton,
@@ -406,22 +406,25 @@ describe("AgentConsole i18n rendering", () => {
     expect(shouldShowAgentDirectoryButton("create", "/agents/a/agent.yml")).toBe(false);
   });
 
-  it("renders exactly one edit save based on whether the sticky anchor bar is available", () => {
-    expect(resolveAgentSavePlacement("edit", "structured", true)).toEqual({
-      header: false,
-      sticky: true,
-      footer: false,
-    });
-    expect(resolveAgentSavePlacement("edit", "source", true)).toEqual({
-      header: true,
-      sticky: false,
-      footer: false,
-    });
-    expect(resolveAgentSavePlacement("create", "structured", true)).toEqual({
-      header: false,
-      sticky: false,
-      footer: true,
-    });
+  it("keeps a single save action inside the sticky nav bar for every editor mode", () => {
+    expect(shouldShowAgentSectionNav("structured", true)).toBe(true);
+    expect(shouldShowAgentSectionNav("source", true)).toBe(false);
+    expect(shouldShowAgentSectionNav("structured", false)).toBe(false);
+
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(AgentConsole),
+      ),
+    );
+
+    const nav = html.slice(html.indexOf("agent-section-nav "));
+    expect(nav).toContain("agent-section-nav-actions");
+    expect(nav).toContain("创建智能体");
+
+    const afterSaveActions = html.slice(html.indexOf("agent-save-actions"));
+    expect(afterSaveActions).not.toContain("创建智能体");
   });
 
   it("resolves the active anchor from content scroll position and locks prompts at the bottom", () => {

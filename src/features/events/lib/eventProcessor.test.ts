@@ -261,6 +261,37 @@ describe('processStreamEvent', () => {
     expect(liveCommands).toEqual([]);
   });
 
+  it('hides automation request.query nodes by default while honoring hidden=false', () => {
+    const hiddenByRole = processStreamEvent({
+      type: 'request.query',
+      requestId: 'req_hidden_default',
+      role: 'automation',
+      message: 'scheduled task',
+    }, buildProcessorState(createState()), {
+      mode: 'replay',
+      reasoningExpandedDefault: false,
+    });
+    const explicitlyVisible = processStreamEvent({
+      type: 'request.query',
+      requestId: 'req_visible',
+      role: 'automation',
+      hidden: false,
+      message: 'visible scheduled task',
+    }, buildProcessorState(createState()), {
+      mode: 'replay',
+      reasoningExpandedDefault: false,
+    });
+
+    expect(hiddenByRole).toEqual([]);
+    expect(explicitlyVisible).toEqual([
+      expect.objectContaining({
+        cmd: 'USER_MESSAGE',
+        nodeId: 'user_req_visible',
+        text: 'visible scheduled task',
+      }),
+    ]);
+  });
+
   it('renders run.error with platform i18n text and technical details', () => {
     const state = createState();
 

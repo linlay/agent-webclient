@@ -1,4 +1,5 @@
 import {
+  buildConversationSharePath,
   ConversationShareError,
   getConversationShareDownloadUrl,
   getSafeConversationShareHref,
@@ -75,6 +76,12 @@ describe("conversationShare", () => {
     expect(readConversationShareId("/share/a")).toBe("a");
     expect(readConversationShareId("/share/bad.id")).toBeNull();
     expect(readConversationShareId("/agent/share_abc-123")).toBeNull();
+  });
+
+  it("builds only canonical public share paths", () => {
+    expect(buildConversationSharePath("share_abc-123")).toBe("/share/share_abc-123");
+    expect(buildConversationSharePath(" opaque_123 ")).toBe("/share/opaque_123");
+    expect(buildConversationSharePath(undefined)).toBe("");
   });
 
   it("allows only absolute HTTP(S) links in public Markdown", () => {
