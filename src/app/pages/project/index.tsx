@@ -1,6 +1,6 @@
 import React from "react";
 import { Select, Spin } from "antd";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { Agent, WorkerListItem } from "@/app/state/navigationTypes";
 import { ProjectWorkspace } from "@/features/project/components/ProjectWorkspace";
 import {
@@ -19,10 +19,12 @@ function isProjectAgent(item: WorkerListItem): item is Agent {
 
 export const ProjectPage: React.FC = () => {
   const { t } = useI18n();
+  const params = useParams<{ agentKey: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const route = React.useMemo(
-    () => readProjectRouteState(searchParams.toString()),
-    [searchParams],
+    () => readProjectRouteState(searchParams.toString(), params.agentKey),
+    [params.agentKey, searchParams],
   );
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -53,9 +55,15 @@ export const ProjectPage: React.FC = () => {
 
   const navigateState = React.useCallback((state: ProjectRouteState, replace = false) => {
     const url = buildProjectRoute(state);
+    if (!url) return;
+    const nextAgentKey = String(state.agentKey || "").trim();
+    if (nextAgentKey && nextAgentKey !== String(params.agentKey || "").trim()) {
+      navigate(url, { replace });
+      return;
+    }
     const query = url.split("?", 2)[1] || "";
     setSearchParams(query, { replace });
-  }, [setSearchParams]);
+  }, [navigate, params.agentKey, setSearchParams]);
 
   const selectAgent = (agentKey: string) => {
     const agent = agents.find((item) => item.key === agentKey);

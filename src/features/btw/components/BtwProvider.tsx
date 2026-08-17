@@ -32,8 +32,11 @@ import { t } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
 import { readEventTeamId } from "@/shared/utils/eventFieldReaders";
 import {
+  BTW_SESSION_STORAGE_KEY,
+  findPersistedBTWSession,
   persistBTWSessions,
   readPersistedBTWSessions,
+  removePersistedBTWSessions,
 } from "@/features/btw/lib/btwPersistence";
 import type {
   BTWSessionState,
@@ -64,6 +67,8 @@ interface BTWContextValue {
   setDraft: (parentChatId: string, draft: string) => void;
   patchTimelineNode: (parentChatId: string, node: TimelineNode) => void;
   newBranch: (parentChatId: string) => boolean;
+  selectBranch: (parentChatId: string, btwId: string, agentKey?: string) => boolean;
+  startNewBranch: (parentChatId: string, agentKey?: string) => boolean;
   discardBTW: (parentChatId: string) => boolean;
   interruptBTW: (parentChatId: string) => Promise<boolean>;
 }
@@ -98,6 +103,17 @@ function createProjection(
             attachments: item.attachments,
             ts: item.timestamp,
           };
+    projection = appReducer(projection, {
+      type: "SET_TIMELINE_NODE",
+      id: node.id,
+      node,
+    });
+    projection = appReducer(projection, {
+      type: "APPEND_TIMELINE_ORDER",
+      id: node.id,
+    });
+  }
+  for (const node of persisted?.sourceNodes || []) {
     projection = appReducer(projection, {
       type: "SET_TIMELINE_NODE",
       id: node.id,
@@ -179,12 +195,13 @@ export const BtwProvider: React.FC<{
   }
   const initialSessionsRef = useRef<Map<string, BTWSessionState> | null>(null);
   if (!initialSessionsRef.current) {
-    initialSessionsRef.current = new Map(
-      initialPersistedRef.current.map((item) => [
-        item.parentChatId,
-        createSession(item.parentChatId, item),
-      ]),
-    );
+    const initialSessions = new Map<string, BTWSessionState>();
+    for (const item of initialPersistedRef.current) {
+      if (!initialSessions.has(item.parentChatId)) {
+        initialSessions.set(item.parentChatId, createSession(item.parentChatId, item));
+      }
+    }
+    initialSessionsRef.current = initialSessions;
   }
   const [sessions, setSessions] = useState(initialSessionsRef.current);
   const sessionsRef = useRef(sessions);
@@ -559,6 +576,56 @@ export const BtwProvider: React.FC<{
     [getExistingRuntime, publish],
   );
 
+  const selectBranch = useCallback((parentChatId: string, btwId: string, agentKey = ""): boolean => {
+    const normalizedChatId = String(parentChatId || "").trim();
+    const normalizedBtwId = String(btwId || "").trim();
+    const normalizedAgentKey = String(agentKey || "").trim();
+    if (!normalizedChatId || !normalizedBtwId) return false;
+    const persisted = findPersistedBTWSession({
+      parentChatId: normalizedChatId,
+      btwId: normalizedBtwId,
+      agentKey: normalizedAgentKey,
+    });
+    if (!persisted) return false;
+    const current = sessionsRef.current.get(normalizedChatId);
+    if (
+      current?.status === "running" &&
+      current.btwId !== normalizedBtwId &&
+      executionsRef.current.has(normalizedChatId)
+    ) return false;
+    const restored = createSession(normalizedChatId, persisted);
+    const runtime = runtimesRef.current.get(normalizedChatId);
+    if (runtime) {
+      runtime.generation += 1;
+      runtime.session = restored;
+      runtime.cache = createLocalCacheFromState(restored.projection);
+    }
+    sessionsRef.current = new Map(sessionsRef.current).set(normalizedChatId, restored);
+    setSessions(sessionsRef.current);
+    return true;
+  }, []);
+
+  const startNewBranch = useCallback((parentChatId: string, agentKey = ""): boolean => {
+    const normalizedChatId = String(parentChatId || "").trim();
+    const normalizedAgentKey = String(agentKey || "").trim();
+    if (!normalizedChatId) return false;
+    const current = sessionsRef.current.get(normalizedChatId);
+    if (current?.status === "running" && executionsRef.current.has(normalizedChatId)) return false;
+    const fresh = createSession(normalizedChatId);
+    fresh.agentKey = normalizedAgentKey;
+    fresh.owner = toRunOwner({ agentKey: normalizedAgentKey }) || undefined;
+    fresh.focusToken = 1;
+    const runtime = runtimesRef.current.get(normalizedChatId);
+    if (runtime) {
+      runtime.generation += 1;
+      runtime.session = fresh;
+      runtime.cache = createLocalCacheFromState(fresh.projection);
+    }
+    sessionsRef.current = new Map(sessionsRef.current).set(normalizedChatId, fresh);
+    setSessions(sessionsRef.current);
+    return true;
+  }, []);
+
   const discardBTW = useCallback((parentChatId: string): boolean => {
     const discarded = discardBTWSessionRegistry({
       parentChatId,
@@ -580,6 +647,7 @@ export const BtwProvider: React.FC<{
       persistTimerRef.current = null;
     }
     persistBTWSessions(nextSessions.values());
+    removePersistedBTWSessions(normalizedChatId);
     return true;
   }, []);
 
@@ -675,6 +743,34 @@ export const BtwProvider: React.FC<{
       }
     };
   }, [sessions]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== BTW_SESSION_STORAGE_KEY) return;
+      const nextSessions = new Map(sessionsRef.current);
+      let changed = false;
+      for (const persisted of readPersistedBTWSessions()) {
+        const current = nextSessions.get(persisted.parentChatId);
+        if (current?.status === "running" || Number(current?.updatedAt || 0) >= persisted.updatedAt) {
+          continue;
+        }
+        const restored = createSession(persisted.parentChatId, persisted);
+        nextSessions.set(persisted.parentChatId, restored);
+        const runtime = runtimesRef.current.get(persisted.parentChatId);
+        if (runtime) {
+          runtime.session = restored;
+          runtime.cache = createLocalCacheFromState(restored.projection);
+        }
+        changed = true;
+      }
+      if (changed) {
+        sessionsRef.current = nextSessions;
+        setSessions(nextSessions);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -792,6 +888,8 @@ export const BtwProvider: React.FC<{
       setDraft,
       patchTimelineNode,
       newBranch,
+      selectBranch,
+      startNewBranch,
       discardBTW,
       interruptBTW,
     }),
@@ -804,6 +902,8 @@ export const BtwProvider: React.FC<{
       sendBTW,
       sessions,
       setDraft,
+      selectBranch,
+      startNewBranch,
       stateRef,
     ],
   );

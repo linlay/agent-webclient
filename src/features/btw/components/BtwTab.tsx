@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { useAppState } from "@/app/state/AppContext";
 import type {
   TimelineNode,
   TimelineSource,
@@ -19,6 +19,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 const BTW_TAB_CLASS =
   "btw-tab tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:bg-bg-base";
@@ -59,7 +60,7 @@ function renderEntry(entry: TimelineRenderEntry): React.ReactNode {
 
 export const BtwTab: React.FC = () => {
   const state = useAppState();
-  const appDispatch = useAppDispatch();
+  const openTarget = useOpenTarget();
   const { t } = useI18n();
   const { message } = AntdApp.useApp();
   const {
@@ -132,15 +133,22 @@ export const BtwTab: React.FC = () => {
       conversationActive: running,
       patchNode: (node: TimelineNode) =>
         patchTimelineNode(parentChatId, node),
-      openSource: (source: TimelineSource) => {
-        appDispatch({
-          type: "OPEN_RIGHT_SIDEBAR",
-          tab: "sourceDetail",
-          sourceDetail: source,
+      openSource: (source: TimelineSource, node?: TimelineNode) => {
+        const publishId = String(node?.sourcePublishId || "").trim();
+        if (!publishId) return;
+        openTarget({
+          version: 1,
+          kind: "source",
+          chatId: parentChatId,
+          btwId: session?.btwId || undefined,
+          publishId,
+          sourceId: source.id,
+          source,
+          title: source.title || source.name,
         });
       },
     }),
-    [appDispatch, parentChatId, patchTimelineNode, running],
+    [openTarget, parentChatId, patchTimelineNode, running, session?.btwId],
   );
 
   if (!parentChatId) {
@@ -168,6 +176,24 @@ export const BtwTab: React.FC = () => {
             <span>{t(running ? "btw.status.running" : "btw.status.readOnly")}</span>
           </span>
           <Flex gap={2}>
+            {session ? (
+              <Tooltip title={t("planningTimeline.openInSidebar")}>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  aria-label={t("planningTimeline.openInSidebar")}
+                  onClick={() => openTarget({
+                    version: 1,
+                    kind: "btw",
+                    chatId: parentChatId,
+                    btwId: session.btwId || undefined,
+                  })}
+                >
+                  <MaterialIcon name="open_in_new" />
+                </UiButton>
+              </Tooltip>
+            ) : null}
             <Popconfirm
               title={t("btw.new.confirmTitle")}
               description={t("btw.new.confirmDescription")}

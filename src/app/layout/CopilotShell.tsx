@@ -28,6 +28,7 @@ import { isSettingsMenuEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 const COPILOT_SHELL_CLASS =
   "app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-bg-base tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0";
@@ -100,6 +101,7 @@ const CopilotTopBar: React.FC = () => {
   const { t } = useI18n();
   const { openOverlay } = useSettingsOverlayActions();
   const { openCommandOverlay } = useCommandOverlayActions();
+  const openTarget = useOpenTarget();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
   const settingsMenuEnabled = isSettingsMenuEnabled();
@@ -168,7 +170,7 @@ const CopilotTopBar: React.FC = () => {
             iconOnly
             aria-label={t("commandModal.history.title")}
             title={t("commandModal.history.title")}
-            onClick={() => openCommandOverlay({ type: "history" })}
+            onClick={() => openTarget({ version: 1, kind: "history" })}
           >
             <MaterialIcon name="history" />
           </UiButton>
@@ -200,10 +202,8 @@ export const CopilotShell: React.FC = () => {
   const [searchParams] = useSearchParams();
   const lastRouteTargetKeyRef = useRef("");
   const requestedAgentKey = useMemo(
-    () =>
-      normalizeRouteValue(params.agentKey) ||
-      normalizeRouteValue(searchParams.get("agentKey")),
-    [params.agentKey, searchParams],
+    () => normalizeRouteValue(params.agentKey),
+    [params.agentKey],
   );
   const resolvedAgentKey = useMemo(() => {
     const agents = Array.isArray(state.agents) ? state.agents : [];

@@ -18,6 +18,8 @@
 
 `useChatReadSync` 独立同步已读状态，worker 选择逻辑位于 workers 模块。`/agent/:agentKey?newChat=` 的首条 query 仅在收到稳定 `chatId` 后将路由 replace 为 `?chatId=`；这是同一 live query 的一次性 session promotion，不是历史对话打开。`AgentChatShell` 消费 promotion 后只收敛 URL 和选中态，不派发 `agent:load-chat`；`useConversationActions.loadChat()` 也会在目标 chat 已由活跃 live query 消费时直接返回，不拉取 `/api/chat`、不 reset timeline、也不派发 attach。
 
+全局聊天历史独立使用 `/history`，记录只输出 `/agent/:agentKey?chatId=...`。Overview、Debug、Planning、Source、Artifact、Reference 的 URL 定位字段不会传给后端；它们只调用 `GET /api/chat?chatId=...`，再从同一 replay 投影按各自稳定 ID 定位。缺少或无效 ID 显示无效目标，不回退到其他节点或最新 Run。
+
 Agent Copilot 使用相同的稳定对话身份规则：新对话收到稳定 `chatId` 后将 `/copilot/:agentKey` replace 为 `/copilot/:agentKey?chatId=<id>`，只收敛 URL，不重新加载正在消费的 live query。用户选择历史 chat 时先让既有 `agent:load-chat` 完成一次加载并同步 URL；点击新对话或切换 Agent 时立即清除旧 `chatId`。这些导航保留 `lang`、`theme`、`hostTheme`、`wsSource` 等宿主参数。Desktop 只被动镜像 URL，不读取 query 流 payload。
 
 ## 边界与非目标

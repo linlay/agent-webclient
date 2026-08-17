@@ -756,7 +756,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
         version: 1,
         kind: tab === "debug" ? "debug" : "overview",
         chatId: state.chatId,
-        runId: state.runId || undefined,
         agentKey: currentWorker?.sourceId,
       });
       return;
@@ -970,7 +969,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
                 kind: "project",
                 agentKey: currentWorker?.sourceId,
                 chatId: state.chatId || undefined,
-                runId: state.runId || undefined,
               })}
             >
               <MaterialIcon name="folder_open" />

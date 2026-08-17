@@ -7,6 +7,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 function basename(value: string): string {
   const normalized = value.replace(/\\/g, "/");
@@ -38,7 +39,8 @@ const SOURCE_ITEM_ICON_CLASS_NAME = "tw:text-accent-electric-strong";
 
 export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
   const dispatch = useAppDispatch();
-  const { rightSidebarOpen, rightSidebarOpenTab, activeSourceDetail } = useAppState();
+  const state = useAppState();
+  const openTarget = useOpenTarget();
   const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const sources = Array.isArray(node.sources) ? node.sources : [];
@@ -46,22 +48,20 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
 
   const openSource = (source: TimelineSource) => {
     if (interaction?.openSource) {
-      interaction.openSource(source);
+      interaction.openSource(source, node);
       return;
     }
-    const isSame =
-      rightSidebarOpen &&
-      rightSidebarOpenTab === "sourceDetail" &&
-      activeSourceDetail?.id === source.id;
-    if (isSame) {
-      dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-    } else {
-      dispatch({
-        type: "OPEN_RIGHT_SIDEBAR",
-        tab: "sourceDetail",
-        sourceDetail: source,
-      });
-    }
+    const publishId = String(node.sourcePublishId || "").trim();
+    if (!publishId) return;
+    openTarget({
+      version: 1,
+      kind: "source",
+      chatId: state.chatId,
+      publishId,
+      sourceId: source.id,
+      source,
+      title: source.title || source.name,
+    });
   };
 
   return (

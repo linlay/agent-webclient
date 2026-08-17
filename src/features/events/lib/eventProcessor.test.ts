@@ -252,10 +252,12 @@ describe('processStreamEvent', () => {
         variant: 'default',
         attachments: [
           {
+            id: 'i1',
             name: 'demo.png',
             size: 2048,
           },
         ],
+        mustUseSkills: undefined,
       },
     ]);
     expect(liveCommands).toEqual([]);
@@ -353,10 +355,12 @@ describe('processStreamEvent', () => {
         variant: 'default',
         attachments: [
           {
+            id: 'f1',
             name: 'report.pdf',
             size: 4096,
           },
         ],
+        mustUseSkills: undefined,
       },
     ]);
   });

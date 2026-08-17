@@ -38,12 +38,18 @@ import { SkillsPage } from "./pages/skills";
 import { ProjectPage } from "./pages/project";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import { BtwProvider } from "@/features/btw/components/BtwProvider";
+import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
 import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { TerminalPage } from "./pages/terminal";
-import { ReadonlyRunSurfacePage } from "./pages/run-surface";
+import {
+  ChatSurfacePage,
+  FileSurfacePage,
+  WebSurfacePage,
+} from "./pages/surfaces";
+import { HistoryPage } from "./pages/history";
 import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
@@ -205,16 +211,6 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/copilot",
-          element: (
-            <DocumentTitleRoute>
-              <InteractiveRoute btwEnabled={false}>
-                <CopilotShell />
-              </InteractiveRoute>
-            </DocumentTitleRoute>
-          ),
-        },
-        {
           path: "/copilot/:agentKey",
           element: (
             <DocumentTitleRoute>
@@ -273,39 +269,87 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/overview",
+          path: SURFACE_ROUTE_PATHS.overview,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.overview">
-              <ReadonlyRunSurfacePage kind="overview" />
+              <InteractiveRoute><ChatSurfacePage kind="overview" /></InteractiveRoute>
             </DocumentTitleRoute>
           ),
         },
         {
-          path: "/overview/:agentKey",
-          element: (
-            <DocumentTitleRoute titleKey="copilot.panel.overview">
-              <ReadonlyRunSurfacePage kind="overview" />
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: "/debug",
+          path: SURFACE_ROUTE_PATHS.debug,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.debug">
-              <ReadonlyRunSurfacePage kind="debug" />
+              <InteractiveRoute><ChatSurfacePage kind="debug" /></InteractiveRoute>
             </DocumentTitleRoute>
           ),
         },
         {
-          path: "/debug/:agentKey",
+          path: SURFACE_ROUTE_PATHS.btw,
           element: (
-            <DocumentTitleRoute titleKey="copilot.panel.debug">
-              <ReadonlyRunSurfacePage kind="debug" />
+            <DocumentTitleRoute titleKey="btw.title">
+              <InteractiveRoute><ChatSurfacePage kind="btw" /></InteractiveRoute>
             </DocumentTitleRoute>
           ),
         },
         {
-          path: "/terminal",
+          path: SURFACE_ROUTE_PATHS.source,
+          element: (
+            <DocumentTitleRoute titleKey="copilot.panel.sourceDetail">
+              <InteractiveRoute><ChatSurfacePage kind="source" /></InteractiveRoute>
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.planning,
+          element: (
+            <DocumentTitleRoute titleKey="rightSidebar.overview.planning.title">
+              <InteractiveRoute><ChatSurfacePage kind="planning" /></InteractiveRoute>
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.artifact,
+          element: (
+            <DocumentTitleRoute titleKey="rightSidebar.overview.artifacts.title">
+              <InteractiveRoute><ChatSurfacePage kind="artifact" /></InteractiveRoute>
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.reference,
+          element: (
+            <DocumentTitleRoute titleKey="attachments.kind.file">
+              <InteractiveRoute><ChatSurfacePage kind="reference" /></InteractiveRoute>
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.file,
+          element: (
+            <DocumentTitleRoute titleKey="attachments.kind.file">
+              <FileSurfacePage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.web,
+          element: (
+            <DocumentTitleRoute titleKey="copilot.panel.web">
+              <WebSurfacePage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.history,
+          element: (
+            <DocumentTitleRoute titleKey="leftSidebar.historyTitle">
+              <HistoryPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.terminal,
           element: (
             <DocumentTitleRoute titleKey="terminal.panelAria">
               <TerminalPage />
@@ -313,7 +357,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/project",
+          path: SURFACE_ROUTE_PATHS.project,
           element: (
             <DocumentTitleRoute titleKey="route.title.project">
               <ProjectPage />
@@ -361,17 +405,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/agent",
-          element: (
-            <DocumentTitleRoute titleKey="route.title.agent">
-              <InteractiveRoute>
-                <AgentChatShell />
-              </InteractiveRoute>
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: "/agent/:agentKey",
+          path: SURFACE_ROUTE_PATHS.agent,
           element: (
             <DocumentTitleRoute titleKey="route.title.agent">
               <InteractiveRoute>

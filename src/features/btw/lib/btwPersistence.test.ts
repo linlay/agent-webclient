@@ -7,6 +7,7 @@ import {
   buildBTWTranscript,
   persistBTWSessions,
   readPersistedBTWSessions,
+  removePersistedBTWSessions,
 } from "@/features/btw/lib/btwPersistence";
 
 function createStorage() {
@@ -25,6 +26,7 @@ function createStorage() {
 
 function createSession(parentChatId: string, itemCount = 2): BTWSessionState {
   const projection = createInitialState();
+  const timestampBase = 1_700_000_000_000;
   projection.chatId = parentChatId;
   for (let index = 0; index < itemCount; index += 1) {
     const userId = `user_${index}`;
@@ -34,7 +36,7 @@ function createSession(parentChatId: string, itemCount = 2): BTWSessionState {
       kind: "message",
       role: "user",
       text: `question ${index}`,
-      ts: index * 2 + 1,
+      ts: timestampBase + index * 2 + 1,
     });
     projection.timelineNodes.set(contentId, {
       id: contentId,
@@ -42,7 +44,7 @@ function createSession(parentChatId: string, itemCount = 2): BTWSessionState {
       contentId,
       text: `answer ${index}`,
       status: "completed",
-      ts: index * 2 + 2,
+      ts: timestampBase + index * 2 + 2,
     });
     projection.timelineOrder.push(userId, contentId);
   }
@@ -94,7 +96,7 @@ describe("btwPersistence", () => {
   it("round-trips branch identity and a compact transcript", () => {
     persistBTWSessions([createSession("chat_1")]);
 
-    expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
       BTW_SESSION_STORAGE_KEY,
       expect.any(String),
     );
@@ -123,6 +125,23 @@ describe("btwPersistence", () => {
     });
   });
 
+  it("keeps multiple stable BTW branches for the same agent and chat", () => {
+    const first = createSession("chat_shared");
+    first.btwId = "btw_first";
+    first.updatedAt = 1_786_890_000_001;
+    persistBTWSessions([first]);
+
+    const second = createSession("chat_shared");
+    second.btwId = "btw_second";
+    second.updatedAt = 1_786_890_000_002;
+    persistBTWSessions([second]);
+
+    expect(readPersistedBTWSessions().map((item) => item.btwId)).toEqual([
+      "btw_second",
+      "btw_first",
+    ]);
+  });
+
   it("caps stored chats and transcript entries", () => {
     const sessions = Array.from(
       { length: BTW_MAX_STORED_CHATS + 5 },
@@ -138,7 +157,7 @@ describe("btwPersistence", () => {
     );
   });
 
-  it("overwrites discarded sessions so they cannot be restored", () => {
+  it("preserves distinct branch identities and removes discarded chats explicitly", () => {
     const first = createSession("chat_1");
     const second = createSession("chat_2");
     persistBTWSessions([first, second]);
@@ -146,14 +165,16 @@ describe("btwPersistence", () => {
     persistBTWSessions([second]);
     expect(readPersistedBTWSessions().map((item) => item.parentChatId)).toEqual([
       "chat_2",
+      "chat_1",
     ]);
 
-    persistBTWSessions([]);
+    removePersistedBTWSessions("chat_1");
+    removePersistedBTWSessions("chat_2");
     expect(readPersistedBTWSessions()).toEqual([]);
   });
 
   it("fails soft on corrupt storage", () => {
-    window.sessionStorage.setItem(BTW_SESSION_STORAGE_KEY, "{");
+    window.localStorage.setItem(BTW_SESSION_STORAGE_KEY, "{");
     expect(readPersistedBTWSessions()).toEqual([]);
   });
 });

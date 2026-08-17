@@ -33,11 +33,9 @@ function lastSeqForRun(events: AgentEvent[], runId: string): number {
 
 export function resolveReadonlyActiveRun<T extends { chatId?: unknown; runId?: unknown }>(input: {
   chatId: string;
-  requestedRunId?: string;
   activeRun: T | null | undefined;
 }): (T & { chatId: string; runId: string }) | null {
   const chatId = String(input.chatId || "").trim();
-  const requestedRunId = String(input.requestedRunId || "").trim();
   const activeChatId = String(input.activeRun?.chatId || "").trim();
   const activeRunId = String(input.activeRun?.runId || "").trim();
   if (
@@ -45,7 +43,6 @@ export function resolveReadonlyActiveRun<T extends { chatId?: unknown; runId?: u
     || !chatId
     || activeChatId !== chatId
     || !activeRunId
-    || (requestedRunId && requestedRunId !== activeRunId)
   ) {
     return null;
   }
@@ -63,9 +60,21 @@ export function shouldReplayReadonlySurfaceOnLifecycle(
   return previousActive === false && nextActive;
 }
 
+export function loadReadonlySurfaceChat(
+  loadChat: (
+    chatId: string,
+    options: { forceReload: true; throwOnError: true },
+  ) => Promise<unknown>,
+  chatId: string,
+): Promise<unknown> {
+  return loadChat(String(chatId || "").trim(), {
+    forceReload: true,
+    throwOnError: true,
+  });
+}
+
 export function useReadonlyRunSurfaceRuntime(input: {
   chatId: string;
-  runId?: string;
   agentKey?: string;
   role: "overview" | "debug";
 }): { status: ReadonlyRunSurfaceStatus; error: string } {
@@ -87,10 +96,7 @@ export function useReadonlyRunSurfaceRuntime(input: {
     setStatus("loading");
     setError("");
     try {
-      await actions.loadChat(input.chatId, {
-        forceReload: true,
-        throwOnError: true,
-      });
+      await loadReadonlySurfaceChat(actions.loadChat, input.chatId);
       if (loadEpochRef.current !== epoch) return;
       setReplayRevision((revision) => revision + 1);
       setStatus("ready");
@@ -112,7 +118,7 @@ export function useReadonlyRunSurfaceRuntime(input: {
     return () => {
       loadEpochRef.current += 1;
     };
-  }, [input.chatId, input.runId, replay, t]);
+  }, [input.chatId, replay, t]);
 
   useEffect(() => {
     if (!isDesktopAppMode()) return;
@@ -142,7 +148,6 @@ export function useReadonlyRunSurfaceRuntime(input: {
     const snapshot = stateRef.current;
     const activeRun = resolveReadonlyActiveRun({
       chatId: input.chatId,
-      requestedRunId: input.runId,
       activeRun: snapshot.currentChatActiveRun,
     });
     if (!activeRun) return;
@@ -228,7 +233,6 @@ export function useReadonlyRunSurfaceRuntime(input: {
     input.agentKey,
     input.chatId,
     input.role,
-    input.runId,
     replay,
     replayRevision,
     runs,

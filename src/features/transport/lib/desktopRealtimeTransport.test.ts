@@ -108,7 +108,7 @@ describe("DesktopRealtimeTransport", () => {
     transport.dispose();
   });
 
-  it("sends controls as Platform request frames and keeps Desktop BTW unsupported", async () => {
+  it("sends controls and BTW as Platform request frames", async () => {
     const socket = new FakeDesktopPlatformSocket();
     const transport = new DesktopRealtimeTransport({
       transportVersion: 1,
@@ -135,7 +135,31 @@ describe("DesktopRealtimeTransport", () => {
       owner: { kind: "agent", agentKey: "agent-1" },
       onEvent: () => undefined,
     });
-    await expect(btw.identity).rejects.toMatchObject({ code: "unsupported_in_current_view" });
+    await flush();
+    const btwFrame = socket.sent.find((item) => item.type === "/api/btw");
+    expect(btwFrame).toMatchObject({ frame: "request", type: "/api/btw" });
+    socket.frame({
+      frame: "stream",
+      id: btwFrame?.id,
+      streamId: "btw-stream-1",
+      event: {
+        type: "run.start",
+        requestId: "btw-1",
+        chatId: "chat-1",
+        btwId: "btw-branch-1",
+        runId: "btw-run-1",
+        agentKey: "agent-1",
+        seq: 1,
+        timestamp: 1_786_890_000_001,
+      },
+    });
+    await expect(btw.identity).resolves.toMatchObject({
+      requestId: "btw-1",
+      chatId: "chat-1",
+      runId: "btw-run-1",
+    });
+    socket.frame({ frame: "stream", id: btwFrame?.id, streamId: "btw-stream-1", reason: "complete", lastSeq: 1 });
+    await expect(btw.completion).resolves.toMatchObject({ reason: "complete" });
     transport.dispose();
   });
 

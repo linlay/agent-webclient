@@ -1,6 +1,7 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArchiveConsole } from "@/features/settings/components/ArchiveConsole";
 import type { ChatSummaryResponse } from "@/shared/data";
+import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/surfaceRoutes";
 
 export const ArchivesPage = () => {
 	const navigate = useNavigate();
@@ -22,9 +23,10 @@ export const ArchivesPage = () => {
 		const agentKey = String(summary.agentKey || "").trim();
 		const chatId = String(summary.chatId || "").trim();
 		if (!agentKey || !chatId) return;
-		const searchParams = new URLSearchParams(location.search);
-		searchParams.set("chatId", chatId);
-		navigate(`/agent/${encodeURIComponent(agentKey)}?${searchParams.toString()}`);
+		navigate(buildSurfaceRoute(
+			{ kind: "agent", agentKey, chatId },
+			readSurfacePresentationContext(location.search),
+		));
 	};
 
 	return (

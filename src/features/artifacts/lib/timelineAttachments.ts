@@ -38,7 +38,7 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
         : undefined;
     acc.push({
       name,
-      ...((type === 'chat' || type === 'site') && id ? { id } : {}),
+      ...(id ? { id } : {}),
       ...(Number.isFinite(rawSize) && rawSize >= 0 ? { size: rawSize } : {}),
       ...(type ? { type } : {}),
       ...(mimeType ? { mimeType } : {}),

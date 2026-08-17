@@ -97,7 +97,7 @@ export const GlobalSearchOverlay: React.FC = () => {
         break;
       case "history":
         handleClose();
-        openCommandOverlay({ type: "history" });
+        openTarget({ version: 1, kind: "history" });
         break;
       case "settings":
         handleClose();
@@ -110,7 +110,6 @@ export const GlobalSearchOverlay: React.FC = () => {
             version: 1,
             kind: "debug",
             chatId: state.chatId,
-            runId: state.runId || undefined,
           });
         }
         break;

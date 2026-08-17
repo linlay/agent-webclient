@@ -819,7 +819,8 @@ describe("CopilotShell", () => {
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
-    useSearchParams.mockReturnValue([new URLSearchParams("agentKey=demo-agent")]);
+    useParams.mockReturnValue({ agentKey: "demo-agent" });
+    useSearchParams.mockReturnValue([new URLSearchParams()]);
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
@@ -861,9 +862,8 @@ describe("CopilotShell", () => {
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
-    useSearchParams.mockReturnValue([
-      new URLSearchParams("agentKey=demo-agent&chatId=chat-123"),
-    ]);
+    useParams.mockReturnValue({ agentKey: "demo-agent" });
+    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [

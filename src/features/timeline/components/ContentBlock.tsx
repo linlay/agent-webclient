@@ -127,13 +127,15 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 			);
 			openTarget({
 				version: 1,
-				kind: "artifact",
-				chatId: state.chatId,
+				kind: "file",
+				agentKey: workspaceFileAgentKey,
+				path: link.filePath,
+				line: link.line,
 				preview,
 				toggle: true,
 			});
 		},
-		[openTarget, state.chatId, workspaceFileAgentKey],
+		[openTarget, workspaceFileAgentKey],
 	);
 	const handleWebLinkClick = React.useCallback(
 		(link: MarkdownWebLink) => {

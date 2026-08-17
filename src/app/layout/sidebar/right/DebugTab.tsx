@@ -15,6 +15,7 @@ import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Modal, Tabs, Tag, Tooltip, Typography } from "antd";
+import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/surfaceRoutes";
 
 function formatDebugTime(timestamp?: number): string {
   return formatDebugTimestamp(timestamp);
@@ -191,12 +192,10 @@ export function buildDebugChatRouteUrl(
 ): string {
   const agentKey = readText(input.agentKey);
   const chatId = readText(input.chatId);
-  const sourceParams = new URLSearchParams(currentSearch || "");
+  const presentation = readSurfacePresentationContext(currentSearch);
   const params = new URLSearchParams();
-  const lang = readText(sourceParams.get("lang"));
-  const theme = readText(sourceParams.get("theme"));
-  if (lang) params.set("lang", lang);
-  if (theme) params.set("theme", theme);
+  if (presentation.lang) params.set("lang", presentation.lang);
+  if (presentation.theme) params.set("theme", presentation.theme);
 
   if (kind === "share") {
     return buildConversationSharePath(input.shareId);
@@ -208,17 +207,14 @@ export function buildDebugChatRouteUrl(
     return `/${kind}/${encodeURIComponent(agentKey)}?${params.toString()}`;
   }
   if (kind === "terminal") {
-    if (!agentKey) return "";
-    params.set("agentKey", agentKey);
-    params.set("terminalKey", readText(input.terminalKey) || "main");
-    return `/terminal?${params.toString()}`;
+    return buildSurfaceRoute({
+      kind: "terminal",
+      agentKey,
+      terminalKey: readText(input.terminalKey) || "main",
+    }, presentation);
   }
-  if (!chatId) return "";
-  params.set("chatId", chatId);
-  if (agentKey) params.set("agentKey", agentKey);
-  const runId = readText(input.runId);
-  if (runId) params.set("runId", runId);
-  return `/${kind}?${params.toString()}`;
+  if (kind !== "overview" && kind !== "debug") return "";
+  return buildSurfaceRoute({ kind, agentKey, chatId }, presentation);
 }
 
 export function buildDebugChatStartOpenTargets(

@@ -563,7 +563,7 @@ describe("AgentChatShell", () => {
         ),
         "chat-123",
       ),
-    ).toBe("/agent/demo-agent?lang=en&hostTheme=dark&chatId=chat-123");
+    ).toBe("/agent/demo-agent?lang=en&chatId=chat-123");
   });
 
   it("consumes a live-session promotion exactly once for its promoted chat route", () => {
@@ -781,7 +781,7 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("opens route history when history=1 is present without starting a blank conversation", () => {
+  it("does not parse the removed history=1 route compatibility flag", () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -832,21 +832,15 @@ describe("AgentChatShell", () => {
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
-    expect(dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:open-worker-history",
-        detail: {
-          workerKey: "agent:demo-agent",
-          agentKey: "demo-agent",
-        },
-      }),
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:open-worker-history" }),
     );
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",
       }),
     );
-    expect(html).toContain("worker-history-modal");
+    expect(html).not.toContain("worker-history-modal");
 
     useEffectSpy.mockRestore();
   });

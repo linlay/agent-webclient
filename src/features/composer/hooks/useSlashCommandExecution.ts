@@ -80,7 +80,7 @@ export function useSlashCommandExecution(input: {
 					openCommandOverlay({ type: "automation" });
 					return;
 				case "history":
-					openCommandOverlay({ type: "history" });
+					openTarget({ version: 1, kind: "history" });
 					return;
 				case "new":
 					resetForNewConversation();
@@ -91,7 +91,6 @@ export function useSlashCommandExecution(input: {
 							version: 1,
 							kind: "debug",
 							chatId: state.chatId,
-							runId: state.runId || undefined,
 							toggle: true,
 						});
 					}

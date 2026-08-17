@@ -1,16 +1,17 @@
 import React, { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { TerminalWorkspace } from "@/features/terminal/components/TerminalWorkspace";
 import { useI18n } from "@/shared/i18n";
 import { useRealtimeTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
 export const TerminalPage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const params = useParams<{ agentKey: string }>();
   const { t } = useI18n();
   const realtime = useRealtimeTransport();
   const agentKey = useMemo(
-    () => String(searchParams.get("agentKey") || "").trim(),
-    [searchParams],
+    () => String(params.agentKey || "").trim(),
+    [params.agentKey],
   );
   const terminalKey = useMemo(
     () => String(searchParams.get("terminalKey") || "").trim() || "main",

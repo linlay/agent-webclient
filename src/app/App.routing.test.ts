@@ -73,8 +73,14 @@ jest.mock("./pages/terminal", () => ({
   TerminalPage: () => null,
 }));
 
-jest.mock("./pages/run-surface", () => ({
-  ReadonlyRunSurfacePage: () => null,
+jest.mock("./pages/surfaces", () => ({
+  ChatSurfacePage: () => null,
+  FileSurfacePage: () => null,
+  WebSurfacePage: () => null,
+}));
+
+jest.mock("./pages/history", () => ({
+  HistoryPage: () => null,
 }));
 
 describe("App routing", () => {
@@ -104,7 +110,6 @@ describe("App routing", () => {
     expect(childRoutes.map((route) => route.path)).toEqual(
       expect.arrayContaining([
         "/",
-        "/copilot",
         "/copilot/:agentKey",
         "/automations",
         "/registries",
@@ -112,22 +117,35 @@ describe("App routing", () => {
         "/mcp-servers/:serverKey",
         "/skills",
         "/skills/:skillKey",
-        "/overview",
         "/overview/:agentKey",
-        "/debug",
         "/debug/:agentKey",
-        "/terminal",
-        "/project",
+        "/btw/:agentKey",
+        "/source-view/:agentKey",
+        "/planning-view/:agentKey",
+        "/artifact-view/:agentKey",
+        "/reference-view/:agentKey",
+        "/file-view/:agentKey",
+        "/web-view",
+        "/history",
+        "/terminal/:agentKey",
+        "/project/:agentKey",
         "/memory",
         "/agents",
         "/archives",
         "/archives/:chatId",
         "/agents/:agentKey",
-        "/agent",
         "/agent/:agentKey",
       ]),
     );
     expect(childRoutes.map((route) => route.path)).not.toContain("/summary");
+    expect(childRoutes.map((route) => route.path)).not.toEqual(expect.arrayContaining([
+      "/copilot",
+      "/overview",
+      "/debug",
+      "/terminal",
+      "/project",
+      "/agent",
+    ]));
   });
 
   it("registers localized document title keys for agents, archives, automations, and registries", async () => {
@@ -157,7 +175,7 @@ describe("App routing", () => {
     expect(childRoutes.find((route) => route.path === "/skills")?.element?.props.titleKey).toBe(
       "route.title.skills",
     );
-    expect(childRoutes.find((route) => route.path === "/project")?.element?.props.titleKey).toBe(
+    expect(childRoutes.find((route) => route.path === "/project/:agentKey")?.element?.props.titleKey).toBe(
       "route.title.project",
     );
   });

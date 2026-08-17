@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppState } from "@/app/state/AppContext";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { buildAttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
@@ -53,6 +53,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 }) => {
   const { t } = useI18n();
   const openTarget = useOpenTarget();
+  const dispatch = useAppDispatch();
   const appState = useAppState();
   const currentChat = appState.chats?.find((chat) => chat.chatId === appState.chatId);
   const teamChat = Boolean(
@@ -127,20 +128,32 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       return;
     }
     if (preview) {
-      openTarget({
-        version: 1,
-        kind: "artifact",
-        artifactId,
-        chatId: appState.chatId,
-        runId: appState.runId || undefined,
-        preview,
-        toggle: activateMode === "toggle",
-      });
+      if (artifactId) {
+        openTarget({
+          version: 1,
+          kind: "artifact",
+          artifactId,
+          chatId: appState.chatId,
+          preview,
+          toggle: activateMode === "toggle",
+        });
+      } else if (attachment.id) {
+        openTarget({
+          version: 1,
+          kind: "reference",
+          referenceId: attachment.id,
+          chatId: appState.chatId,
+          preview,
+          toggle: activateMode === "toggle",
+        });
+      } else {
+        dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
+      }
       return;
     }
 
     triggerDownload();
-  }, [activateMode, appState.chatId, appState.runId, artifactId, canActivate, openTarget, preview, triggerDownload]);
+  }, [activateMode, appState.chatId, artifactId, attachment.id, canActivate, dispatch, openTarget, preview, triggerDownload]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,

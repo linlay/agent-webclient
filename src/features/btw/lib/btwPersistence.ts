@@ -7,8 +7,8 @@ import type {
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import { toRunOwner } from "@/shared/data/runOwner";
 
-export const BTW_SESSION_STORAGE_KEY = "agent-webclient:btw:v1";
-export const BTW_SESSION_STORAGE_VERSION = 1;
+export const BTW_SESSION_STORAGE_KEY = "agent-webclient:btw:v2";
+export const BTW_SESSION_STORAGE_VERSION = 2;
 export const BTW_MAX_STORED_CHATS = 20;
 export const BTW_MAX_TRANSCRIPT_ITEMS = 50;
 export const BTW_MAX_STORAGE_BYTES = 2 * 1024 * 1024;
@@ -20,10 +20,14 @@ interface BTWStorageEnvelope {
 
 function getSessionStorage(): Storage | null {
   try {
-    return typeof window !== "undefined" ? window.sessionStorage : null;
+    return typeof window !== "undefined" ? window.localStorage : null;
   } catch {
     return null;
   }
+}
+
+function persistedSessionKey(session: Pick<PersistedBTWSession, "agentKey" | "parentChatId" | "btwId">): string {
+  return [session.agentKey, session.parentChatId, session.btwId || "__current__"].join("\u0000");
 }
 
 function normalizeTranscriptItem(value: unknown): BTWTranscriptItem | null {
@@ -82,6 +86,17 @@ function normalizePersistedSession(value: unknown): PersistedBTWSession | null {
     updatedAt,
     config,
     transcript,
+    sourceNodes: Array.isArray(record.sourceNodes)
+      ? record.sourceNodes
+          .filter((node): node is TimelineNode => Boolean(
+            node &&
+            typeof node === "object" &&
+            !Array.isArray(node) &&
+            String((node as TimelineNode).id || "").trim() &&
+            (node as TimelineNode).kind === "source",
+          ))
+          .slice(-BTW_MAX_TRANSCRIPT_ITEMS)
+      : undefined,
   };
 }
 
@@ -103,6 +118,22 @@ export function readPersistedBTWSessions(): PersistedBTWSession[] {
   } catch {
     return [];
   }
+}
+
+export function findPersistedBTWSession(input: {
+  agentKey?: string;
+  parentChatId: string;
+  btwId: string;
+}): PersistedBTWSession | null {
+  const agentKey = String(input.agentKey || "").trim();
+  const parentChatId = String(input.parentChatId || "").trim();
+  const btwId = String(input.btwId || "").trim();
+  if (!parentChatId || !btwId) return null;
+  return readPersistedBTWSessions().find((session) =>
+    session.parentChatId === parentChatId &&
+    session.btwId === btwId &&
+    (!agentKey || !session.agentKey || session.agentKey === agentKey),
+  ) || null;
 }
 
 function nodeToTranscript(node: TimelineNode): BTWTranscriptItem | null {
@@ -161,6 +192,17 @@ export function buildBTWTranscript(session: BTWSessionState): BTWTranscriptItem[
 }
 
 function toPersistedSession(session: BTWSessionState): PersistedBTWSession {
+  const sourceNodes = session.projection.timelineOrder
+    .map((id) => session.projection.timelineNodes.get(id))
+    .filter((node): node is TimelineNode => Boolean(node?.kind === "source"))
+    .slice(-BTW_MAX_TRANSCRIPT_ITEMS)
+    .map((node) => ({
+      ...node,
+      sources: node.sources?.map((source) => ({
+        ...source,
+        chunks: source.chunks.map((chunk) => ({ ...chunk })),
+      })),
+    }));
   return {
     parentChatId: session.parentChatId,
     btwId: session.btwId,
@@ -174,7 +216,24 @@ function toPersistedSession(session: BTWSessionState): PersistedBTWSession {
     updatedAt: session.updatedAt,
     config: session.config,
     transcript: buildBTWTranscript(session),
+    ...(sourceNodes.length > 0 ? { sourceNodes } : {}),
   };
+}
+
+export function findPersistedBTWSource(input: {
+  agentKey?: string;
+  parentChatId: string;
+  btwId: string;
+  publishId: string;
+  sourceId: string;
+}) {
+  const session = findPersistedBTWSession(input);
+  const node = session?.sourceNodes?.find(
+    (candidate) => candidate.sourcePublishId === String(input.publishId || "").trim(),
+  );
+  return node?.sources?.find(
+    (source) => source.id === String(input.sourceId || "").trim(),
+  ) || null;
 }
 
 function encodedEnvelope(sessions: PersistedBTWSession[]): string {
@@ -195,8 +254,14 @@ export function persistBTWSessions(sessions: Iterable<BTWSessionState>): void {
   const storage = getSessionStorage();
   if (!storage) return;
   try {
-    const values = Array.from(sessions)
-      .map(toPersistedSession)
+    const current = Array.from(sessions).map(toPersistedSession);
+    const merged = new Map<string, PersistedBTWSession>();
+    for (const session of [...current, ...readPersistedBTWSessions()]) {
+      const key = persistedSessionKey(session);
+      const existing = merged.get(key);
+      if (!existing || session.updatedAt > existing.updatedAt) merged.set(key, session);
+    }
+    const values = Array.from(merged.values())
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, BTW_MAX_STORED_CHATS);
     let raw = encodedEnvelope(values);
@@ -216,5 +281,19 @@ export function persistBTWSessions(sessions: Iterable<BTWSessionState>): void {
     storage.setItem(BTW_SESSION_STORAGE_KEY, raw);
   } catch {
     // Session persistence is best-effort; the backend branch remains authoritative.
+  }
+}
+
+export function removePersistedBTWSessions(parentChatId: string): void {
+  const storage = getSessionStorage();
+  const normalized = String(parentChatId || "").trim();
+  if (!storage || !normalized) return;
+  try {
+    const values = readPersistedBTWSessions().filter(
+      (session) => session.parentChatId !== normalized,
+    );
+    storage.setItem(BTW_SESSION_STORAGE_KEY, encodedEnvelope(values));
+  } catch {
+    // Removal is best-effort for the same reason as persistence.
   }
 }

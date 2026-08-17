@@ -458,22 +458,23 @@ export const OverviewContent: React.FC = () => {
   );
 
   const planningNodes = React.useMemo(() => {
-    const nodes: { id: string; text: string; status: string }[] = [];
+    const nodes: { id: string; planningId: string; text: string; status: string }[] = [];
     for (const [id, node] of state.timelineNodes) {
       if (node.kind === "planning" && node.text) {
-        nodes.push({ id, text: node.text, status: node.status || "" });
+        nodes.push({ id, planningId: node.planningId || "", text: node.text, status: node.status || "" });
       }
     }
     return nodes;
   }, [state.timelineNodes]);
 
   const handlePlanningClick = React.useCallback(
-    (nodeId: string, label: string) => {
+    (planningId: string, nodeId: string, label: string) => {
+      if (!planningId) return;
       openTarget({
         version: 1,
         kind: "planning",
         chatId: state.chatId,
-        runId: state.runId || undefined,
+        planningId,
         nodeId,
         label,
       });
@@ -663,7 +664,8 @@ export const OverviewContent: React.FC = () => {
                     <button
                       type="button"
                       className={PLANNING_ITEM_CLASS_NAME}
-                      onClick={() => handlePlanningClick(item.id, tabLabel)}
+                      disabled={!item.planningId}
+                      onClick={() => handlePlanningClick(item.planningId, item.id, tabLabel)}
                     >
                       <MaterialIcon
                         name="assignment"

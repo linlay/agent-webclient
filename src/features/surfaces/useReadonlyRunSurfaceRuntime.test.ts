@@ -1,5 +1,6 @@
 import {
   resolveReadonlyActiveRun,
+  loadReadonlySurfaceChat,
   shouldReplayReadonlySurfaceOnLifecycle,
 } from "./useReadonlyRunSurfaceRuntime";
 
@@ -29,12 +30,11 @@ describe("resolveReadonlyActiveRun", () => {
     })).toBeNull();
   });
 
-  it("keeps an explicitly requested historical run read-only", () => {
+  it("does not treat a historical run selector as part of Surface identity", () => {
     expect(resolveReadonlyActiveRun({
       chatId: "chat-1",
-      requestedRunId: "run-history",
       activeRun: { chatId: "chat-1", runId: "run-active" },
-    })).toBeNull();
+    })).toMatchObject({ runId: "run-active" });
   });
 });
 
@@ -46,5 +46,16 @@ describe("shouldReplayReadonlySurfaceOnLifecycle", () => {
     expect(shouldReplayReadonlySurfaceOnLifecycle(true, false)).toBe(false);
     expect(shouldReplayReadonlySurfaceOnLifecycle(false, false)).toBe(false);
     expect(shouldReplayReadonlySurfaceOnLifecycle(false, true)).toBe(true);
+  });
+});
+
+describe("loadReadonlySurfaceChat", () => {
+  it("passes only chatId and replay controls to the chat loader", async () => {
+    const loadChat = jest.fn(async () => ({ code: 0 }));
+    await loadReadonlySurfaceChat(loadChat, " chat-1 ");
+    expect(loadChat).toHaveBeenCalledWith("chat-1", {
+      forceReload: true,
+      throwOnError: true,
+    });
   });
 });

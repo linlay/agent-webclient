@@ -14,7 +14,7 @@ WebClient 已消费 canonical generated Desktop contract，通过固定只读全
 ## 核心流程
 Provider 在 Desktop Frame Port 结构和 transport version 有效时渲染页面。surface/capability denial 作为相同 request id 的标准 Platform error 留在具体操作中。`WsClient` 通过 socket factory 复用 Standalone parser；WorkPanel 保持独立 `getCapabilities()` 宿主查询和逐请求授权，只接收 canonical descriptor，失败时不调用 `window.open` 或旧 Action。
 
-Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。Desktop Overview/Debug OpenTarget 统一生成 canonical WorkPanel descriptor，不再派发 guest 内部 `rightSidebarOpen/rightSidebarOpenTab` action；`toggle` 也不负责隐藏。Overview/Debug WorkPanel guest 首次挂载 replay，收到宿主 hidden→active 生命周期时再 replay 一次，始终不申请 query/attach。
+Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。Desktop WorkPanel 为 Overview、Debug、BTW、Source、Planning、Artifact、Reference、File、Project 分别使用判别式 context 和 canonical 路由，不共享全可选 context。只有激活的 Main Chat 或 BTW 子 Surface 可以发送 `/api/btw`/BTW attach，BTW 子 Surface 不能发送 `/api/query`；其他独立 Surface 只做 chat replay 或文件读取。
 
 Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或旧 Program manifest 都必须稳定阻断，不安装旧 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚；Desktop 按钮与 WebClient 顶栏入口归属变更也必须原子交付，不能发布重复入口或无入口的混合版本。
 

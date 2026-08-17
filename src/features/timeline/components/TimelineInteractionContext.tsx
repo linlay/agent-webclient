@@ -4,7 +4,7 @@ import type { TimelineNode, TimelineSource } from "@/app/state/types";
 export interface TimelineInteractionValue {
   conversationActive?: boolean;
   patchNode?: (node: TimelineNode) => void;
-  openSource?: (source: TimelineSource) => void;
+  openSource?: (source: TimelineSource, node?: TimelineNode) => void;
 }
 
 const TimelineInteractionContext =

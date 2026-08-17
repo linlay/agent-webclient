@@ -99,9 +99,11 @@ function sourceSubtitle(source: TimelineSource): string {
   return parts.join(" · ") || source.id;
 }
 
-export const SourceDetailTab: React.FC = () => {
+export const SourceDetailTab: React.FC<{ source?: TimelineSource | null }> = ({
+  source: sourceOverride,
+}) => {
   const state = useAppState();
-  const source = state.activeSourceDetail;
+  const source = sourceOverride === undefined ? state.activeSourceDetail : sourceOverride;
   const [activeChunkId, setActiveChunkId] = React.useState<string>("");
   const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
   const teamChat = Boolean(

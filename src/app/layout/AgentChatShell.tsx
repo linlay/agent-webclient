@@ -24,6 +24,7 @@ import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
+import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/surfaceRoutes";
 
 export function parseNewChatTimestamp(rawValue: unknown): string {
   const timestamp = String(rawValue || "").trim();
@@ -66,13 +67,10 @@ export function createResolvedNewChatRoute(
     return "";
   }
 
-  const nextSearchParams = new URLSearchParams(searchParams);
-  nextSearchParams.delete("newChat");
-  nextSearchParams.set("chatId", normalizedChatId);
-  const nextSearch = nextSearchParams.toString();
-  return `/agent/${encodeURIComponent(normalizedAgentKey)}${
-    nextSearch ? `?${nextSearch}` : ""
-  }`;
+  return buildSurfaceRoute(
+    { kind: "agent", agentKey: normalizedAgentKey, chatId: normalizedChatId },
+    readSurfacePresentationContext(searchParams.toString()),
+  );
 }
 
 type NewChatCreatedEventDetail = {
@@ -219,7 +217,6 @@ export const AgentChatShell: React.FC = () => {
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
-  const lastOpenedHistoryRouteKeyRef = useRef("");
   const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationRequestRef = useRef(0);
@@ -237,10 +234,6 @@ export const AgentChatShell: React.FC = () => {
   );
   const chatId = useMemo(
     () => String(searchParams.get("chatId") || "").trim(),
-    [searchParams],
-  );
-  const routeHistoryRequested = useMemo(
-    () => String(searchParams.get("history") || "").trim() === "1",
     [searchParams],
   );
   const routeNewChatTimestamp = useMemo(
@@ -329,15 +322,10 @@ export const AgentChatShell: React.FC = () => {
         return;
       }
 
-      const nextSearchParams = new URLSearchParams(searchParams);
-      nextSearchParams.delete("chatId");
-      nextSearchParams.delete("history");
-      nextSearchParams.delete("historyRequest");
-      nextSearchParams.delete("newChat");
-      const nextSearch = nextSearchParams.toString();
-      navigate(
-        `/agent/${encodeURIComponent(nextAgentKey)}${nextSearch ? `?${nextSearch}` : ""}`,
-      );
+      navigate(buildSurfaceRoute(
+        { kind: "agent", agentKey: nextAgentKey },
+        readSurfacePresentationContext(searchParams.toString()),
+      ));
     };
 
     window.addEventListener("agent:select-worker", handleSelectWorker);
@@ -527,13 +515,6 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
 
-    if (routeHistoryRequested) {
-      lastInitializedAgentKeyRef.current = "";
-      lastLoadedChatKeyRef.current = "";
-      window.dispatchEvent(new CustomEvent("agent:focus-composer"));
-      return;
-    }
-
     if (!routeNewChatTimestamp) {
       lastInitializedAgentKeyRef.current = "";
       lastLoadedChatKeyRef.current = "";
@@ -564,7 +545,6 @@ export const AgentChatShell: React.FC = () => {
     chatId,
     dispatch,
     routeAgentHydrated,
-    routeHistoryRequested,
     routeNewChatTimestamp,
     routeWorkerKey,
   ]);
@@ -613,29 +593,6 @@ export const AgentChatShell: React.FC = () => {
       openRouteHistoryForWorker(workerKey);
     },
   });
-
-  useEffect(() => {
-    if (!routeHistoryRequested || !agentKey || !routeAgentReady) return;
-    const workerKey = `agent:${agentKey}`;
-    const routeKey = `${agentKey}\u0000${chatId}\u0000history`;
-    if (lastOpenedHistoryRouteKeyRef.current === routeKey) return;
-    if (!state.workerIndexByKey.has(workerKey)) return;
-
-    lastOpenedHistoryRouteKeyRef.current = routeKey;
-    window.dispatchEvent(
-      new CustomEvent("agent:open-worker-history", {
-        detail: { workerKey, agentKey },
-      }),
-    );
-    openRouteHistoryForWorker(workerKey);
-  }, [
-    agentKey,
-    chatId,
-    openRouteHistoryForWorker,
-    routeAgentReady,
-    routeHistoryRequested,
-    state.workerIndexByKey,
-  ]);
 
   useEffect(() => {
     if (!historyWorkerKey) return;

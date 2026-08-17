@@ -2,7 +2,7 @@
 
 ## 定位与入口
 
-Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器，不向 Team 或其他 Agent 显示。对话顶部工具栏通过 `90vw × 85vh` Dialog 打开当前 Agent；独立页面使用 `/project`，查询参数保存 `agentKey`、`chatId`、`runId`、当前 `path`、重复的 `open` 文件标签与 `view=content|diff`。Dialog 的“在完整页面打开”会带上当前选择状态和全部已打开文件。
+Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器。独立页面使用 `/project/:agentKey`；普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。Dialog 的“在完整页面打开”会带上当前选择状态和全部已打开文件。
 
 ## 组件边界
 
@@ -40,4 +40,4 @@ npm test -- --runInBand src/features/project/lib/projectRoute.test.ts src/featur
 npm run build
 ```
 
-手工回归需覆盖直接访问 `/project`、Agent/Chat/Run 切换、浏览器前进后退、Dialog 到完整页面、目录分页与过滤、媒体预览、Diff 空态、页面隐藏暂停刷新，以及切换 Agent 后旧请求不再落入当前视图。
+手工回归需覆盖直接访问 `/project/:agentKey`、Chat/Run 切换、无 Run 的目录与文件内容、浏览器前进后退、Dialog 到完整页面、目录分页与过滤、媒体预览、Diff 必填身份、页面隐藏暂停刷新，以及切换 Agent 后旧请求不再落入当前视图。
