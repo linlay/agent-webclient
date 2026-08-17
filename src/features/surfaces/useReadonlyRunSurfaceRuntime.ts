@@ -9,6 +9,10 @@ import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
+import {
+  DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
+  type DesktopLiveSurfaceActiveEventDetail,
+} from "@/features/transport/lib/desktopSurfaceLifecycle";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export type ReadonlyRunSurfaceStatus = "loading" | "ready" | "error";
@@ -52,6 +56,13 @@ export function resolveReadonlyActiveRun<T extends { chatId?: unknown; runId?: u
   };
 }
 
+export function shouldReplayReadonlySurfaceOnLifecycle(
+  previousActive: boolean | null,
+  nextActive: boolean,
+): boolean {
+  return previousActive === false && nextActive;
+}
+
 export function useReadonlyRunSurfaceRuntime(input: {
   chatId: string;
   runId?: string;
@@ -69,6 +80,7 @@ export function useReadonlyRunSurfaceRuntime(input: {
   const loadEpochRef = useRef(0);
   const bindingEpochRef = useRef(0);
   const recoveredBindingRef = useRef("");
+  const desktopSurfaceActiveRef = useRef<boolean | null>(null);
 
   const replay = useCallback(async () => {
     const epoch = ++loadEpochRef.current;
@@ -101,6 +113,26 @@ export function useReadonlyRunSurfaceRuntime(input: {
       loadEpochRef.current += 1;
     };
   }, [input.chatId, input.runId, replay, t]);
+
+  useEffect(() => {
+    if (!isDesktopAppMode()) return;
+    desktopSurfaceActiveRef.current = null;
+    const handleSurfaceActive = (event: Event) => {
+      const detail = (event as CustomEvent<DesktopLiveSurfaceActiveEventDetail>).detail;
+      const nextActive = detail?.active === true;
+      const shouldReplay = shouldReplayReadonlySurfaceOnLifecycle(
+        desktopSurfaceActiveRef.current,
+        nextActive,
+      );
+      desktopSurfaceActiveRef.current = nextActive;
+      if (shouldReplay) void replay();
+    };
+    window.addEventListener(DESKTOP_LIVE_SURFACE_ACTIVE_EVENT, handleSurfaceActive);
+    return () => {
+      desktopSurfaceActiveRef.current = null;
+      window.removeEventListener(DESKTOP_LIVE_SURFACE_ACTIVE_EVENT, handleSurfaceActive);
+    };
+  }, [input.chatId, replay]);
 
   useEffect(() => {
     if (!input.chatId || status !== "ready") return;

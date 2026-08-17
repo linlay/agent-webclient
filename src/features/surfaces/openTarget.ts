@@ -254,6 +254,33 @@ export function buildDesktopWorkPanelDescriptor(
   };
 }
 
+type DesktopWorkPanelTargetOpener = {
+  openDescriptor(descriptor: WorkPanelItemDescriptor): Promise<unknown>;
+};
+
+export function openDesktopWorkPanelTarget(input: {
+  intent: OpenTargetIntent;
+  workPanel: DesktopWorkPanelTargetOpener | null | undefined;
+  currentSearch?: string;
+  workspaceDir?: string;
+  onError?: (message: string) => void;
+}): boolean {
+  if (!input.workPanel) return false;
+  const descriptor = buildDesktopWorkPanelDescriptor(
+    input.intent,
+    input.currentSearch,
+    input.workspaceDir,
+  );
+  if (!descriptor) {
+    input.onError?.(`[workpanel] invalid or unsupported ${input.intent.kind} target`);
+    return false;
+  }
+  void input.workPanel.openDescriptor(descriptor).catch((error) => {
+    input.onError?.(`[workpanel] ${error instanceof Error ? error.message : String(error)}`);
+  });
+  return true;
+}
+
 export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
   const dispatch = useAppDispatch();
   const state = useAppState();
@@ -329,42 +356,13 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
       : intent;
     const currentSearch = typeof window === "undefined" ? "" : window.location.search;
     if (desktopMode) {
-      if (normalizedIntent.kind === "overview" || normalizedIntent.kind === "debug") {
-        const tab = normalizedIntent.kind;
-        if (normalizedIntent.chatId !== state.chatId) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[chat-secondary-view] ${tab} target does not own the current Chat session`,
-          });
-          return false;
-        }
-        if (normalizedIntent.toggle && state.rightSidebarOpen && state.rightSidebarOpenTab === tab) {
-          dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-        } else {
-          dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab });
-        }
-        return true;
-      }
-      if (!workPanel) return false;
-      const descriptor = buildDesktopWorkPanelDescriptor(
-        normalizedIntent,
+      return openDesktopWorkPanelTarget({
+        intent: normalizedIntent,
+        workPanel,
         currentSearch,
-        currentWorker?.row.workspaceDir,
-      );
-      if (!descriptor) {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[workpanel] invalid or unsupported ${normalizedIntent.kind} target`,
-        });
-        return false;
-      }
-      void workPanel.openDescriptor(descriptor).catch((error) => {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[workpanel] ${error instanceof Error ? error.message : String(error)}`,
-        });
+        workspaceDir: currentWorker?.row.workspaceDir,
+        onError: (line) => dispatch({ type: "APPEND_DEBUG", line }),
       });
-      return true;
     }
     const url = buildStandaloneOpenTargetUrl(normalizedIntent, currentSearch);
     if (!url) return false;

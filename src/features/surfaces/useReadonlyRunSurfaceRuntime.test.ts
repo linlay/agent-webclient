@@ -1,4 +1,7 @@
-import { resolveReadonlyActiveRun } from "./useReadonlyRunSurfaceRuntime";
+import {
+  resolveReadonlyActiveRun,
+  shouldReplayReadonlySurfaceOnLifecycle,
+} from "./useReadonlyRunSurfaceRuntime";
 
 describe("resolveReadonlyActiveRun", () => {
   it("returns the active run for the requested chat", () => {
@@ -32,5 +35,16 @@ describe("resolveReadonlyActiveRun", () => {
       requestedRunId: "run-history",
       activeRun: { chatId: "chat-1", runId: "run-active" },
     })).toBeNull();
+  });
+});
+
+describe("shouldReplayReadonlySurfaceOnLifecycle", () => {
+  it("replays only when a mounted WorkPanel surface returns from hidden to active", () => {
+    expect(shouldReplayReadonlySurfaceOnLifecycle(null, true)).toBe(false);
+    expect(shouldReplayReadonlySurfaceOnLifecycle(null, false)).toBe(false);
+    expect(shouldReplayReadonlySurfaceOnLifecycle(true, true)).toBe(false);
+    expect(shouldReplayReadonlySurfaceOnLifecycle(true, false)).toBe(false);
+    expect(shouldReplayReadonlySurfaceOnLifecycle(false, false)).toBe(false);
+    expect(shouldReplayReadonlySurfaceOnLifecycle(false, true)).toBe(true);
   });
 });

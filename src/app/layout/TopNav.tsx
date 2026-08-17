@@ -608,6 +608,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
   const desktopMode = isDesktopAppMode();
+  const hideDesktopAgentActions = desktopMode && surface === "agent";
   const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
   const showProjectButton = !desktopMode && (
     isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker)
@@ -952,7 +953,10 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
           </div>
         </div>
 
-        <div className={NAV_GROUP_CLASS}>
+        {hideDesktopAgentActions ? (
+          <div className={NAV_GROUP_CLASS} />
+        ) : (
+          <div className={NAV_GROUP_CLASS}>
           {showProjectButton ? (
             <UiButton
               className={TOP_NAV_ICON_BUTTON_CLASS}
@@ -1123,7 +1127,8 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
           >
             <MaterialIcon name={surface === "root" ? "dock_to_left" : "open_in_new"} />
           </UiButton>
-        </div>
+          </div>
+        )}
       </div>
     </nav>
   );

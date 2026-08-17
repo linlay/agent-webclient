@@ -2,6 +2,7 @@ import {
   buildDesktopWorkPanelDescriptor,
   buildStandaloneOpenTargetUrl,
   normalizeProjectRelativePath,
+  openDesktopWorkPanelTarget,
 } from "@/features/surfaces/openTarget";
 
 describe("buildStandaloneOpenTargetUrl", () => {
@@ -123,6 +124,32 @@ describe("buildStandaloneOpenTargetUrl", () => {
       agentKey: "agent-1",
     })).toBeNull();
   });
+
+  it.each(["overview", "debug"] as const)(
+    "opens Desktop %s through WorkPanel without interpreting toggle as hide",
+    async (kind) => {
+      const openDescriptor = jest.fn(async () => ({ ok: true }));
+      const onError = jest.fn();
+      expect(openDesktopWorkPanelTarget({
+        intent: {
+          version: 1,
+          kind,
+          chatId: "chat-1",
+          agentKey: "agent-1",
+          toggle: true,
+        },
+        workPanel: { openDescriptor },
+        onError,
+      })).toBe(true);
+      expect(openDescriptor).toHaveBeenCalledTimes(1);
+      expect(openDescriptor).toHaveBeenCalledWith(expect.objectContaining({
+        kind: "webclient",
+        module: kind,
+        context: expect.objectContaining({ chatId: "chat-1", agentKey: "agent-1" }),
+      }));
+      expect(onError).not.toHaveBeenCalled();
+    },
+  );
 
   it("normalizes project-relative file diff identities", () => {
     expect(normalizeProjectRelativePath("src/app.ts")).toBe("src/app.ts");
