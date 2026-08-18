@@ -133,6 +133,13 @@ export function resolveFileViewerHtml(
   return response.content || "";
 }
 
+export function resolveContentViewerErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   target,
   showLineNumbers = false,
@@ -247,11 +254,10 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
         })
         .catch((error: unknown) => {
           if (disposed) return;
-          setTextError(
-            error instanceof Error
-              ? error.message
-              : t("contentViewer.error.loadText"),
-          );
+          setTextError(resolveContentViewerErrorMessage(
+            error,
+            t("contentViewer.error.loadText"),
+          ));
         })
         .finally(() => {
           if (!disposed) {

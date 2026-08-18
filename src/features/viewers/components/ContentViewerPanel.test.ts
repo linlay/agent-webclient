@@ -16,6 +16,7 @@ jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({
 import {
 	ContentViewerPanel,
 	buildViewerTextLines,
+	resolveContentViewerErrorMessage,
 	resolveFileViewerContentKind,
 	resolveFileViewerHtml,
 } from "@/features/viewers/components/ContentViewerPanel";
@@ -50,6 +51,17 @@ describe("ContentViewerPanel", () => {
 		expect(buildViewerTextLines("one", 0)).toEqual([
 			{ lineNumber: 1, text: "one", target: false },
 		]);
+	});
+
+	it("shows the original Platform 403 message in an opened file viewer", () => {
+		const platformError = Object.assign(
+			new Error("Workspace file access denied"),
+			{ status: 403, code: 403 },
+		);
+
+		expect(
+			resolveContentViewerErrorMessage(platformError, "Unable to load file"),
+		).toBe("Workspace file access denied");
 	});
 
 	it("uses the file response content kind and MIME type for workspace previews", () => {

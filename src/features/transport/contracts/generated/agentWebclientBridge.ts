@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:52f2b663f89e5f18ae762d90b66bc03c3afe9fe8ea6613c1fc7749d23f0ca6ea
+// sha256:c479d674e7b697cdabf3b5e44ad0e0230795afda7e7b97b75f0e538ef9101c84
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -63,7 +63,8 @@ export type AgentWebclientSurfaceKind =
   | "agent-overview"
   | "agent-debug"
   | "agent-btw"
-  | "agent-project";
+  | "agent-project"
+  | "agent-management";
 
 export type AgentWebclientSurfaceCapability =
   | "run.query"
@@ -330,5 +331,6 @@ export function isAgentWebclientSurfaceKind(value: unknown): value is AgentWebcl
     "agent-debug",
     "agent-btw",
     "agent-project",
+    "agent-management",
   ].includes(String(value));
 }

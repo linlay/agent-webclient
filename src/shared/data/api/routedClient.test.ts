@@ -1,5 +1,6 @@
 const mockGetAgents = jest.fn();
 const mockGetAgent = jest.fn();
+const mockGetAgentFile = jest.fn();
 const mockGetAgentOrder = jest.fn();
 const mockGetChat = jest.fn();
 const mockGetChats = jest.fn();
@@ -41,6 +42,7 @@ jest.mock("@/shared/data/api/client", () => ({
 	uploadFile: jest.fn(),
 	getAgents: (...args: unknown[]) => mockGetAgents(...args),
 	getAgent: (...args: unknown[]) => mockGetAgent(...args),
+	getAgentFile: (...args: unknown[]) => mockGetAgentFile(...args),
 	getAgentOrder: (...args: unknown[]) => mockGetAgentOrder(...args),
 	getChat: (...args: unknown[]) => mockGetChat(...args),
 	getChats: (...args: unknown[]) => mockGetChats(...args),
@@ -181,6 +183,49 @@ describe("routedClient capability routing", () => {
 		});
 		expect(mockGetChatRawJsonl).not.toHaveBeenCalled();
 		expect(mockGetChatLLMTraceRaw).not.toHaveBeenCalled();
+	});
+
+	it("routes Platform file reads over the Frame Port without HTTP", async () => {
+		const params = {
+			agentKey: "coder-agent",
+			path: "/Users/demo/Project/src/project-file.ts",
+		};
+		mockRequestPlatformData.mockResolvedValue(ok({
+			path: params.path,
+			content: "export {};",
+		}));
+		const routed = await import("./routedClient");
+
+		await expect(routed.getAgentFile(params)).resolves.toMatchObject({
+			data: { path: params.path, content: "export {};" },
+		});
+
+		expect(mockRequestPlatformData).toHaveBeenCalledWith("/api/file", params);
+		expect(mockGetAgentFile).not.toHaveBeenCalled();
+	});
+
+	it("preserves Platform file errors and never falls back to HTTP", async () => {
+		const routed = await import("./routedClient");
+		const failures = [
+			Object.assign(new Error("File access denied by Platform"), {
+				status: 403,
+				code: 403,
+			}),
+			Object.assign(new Error("WebSocket transport disconnected"), {
+				code: "WS_DISCONNECTED",
+			}),
+		];
+
+		for (const [index, failure] of failures.entries()) {
+			mockRequestPlatformData.mockRejectedValueOnce(failure);
+			await expect(routed.getAgentFile({
+				agentKey: "coder-agent",
+				path: `/workspace/file-${index}.ts`,
+			})).rejects.toBe(failure);
+		}
+
+		expect(mockRequestPlatformData).toHaveBeenCalledTimes(failures.length);
+		expect(mockGetAgentFile).not.toHaveBeenCalled();
 	});
 
 	it("uses WS for Gateway-supported endpoints and HTTP for unsupported ones", async () => {
