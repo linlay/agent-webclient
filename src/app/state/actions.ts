@@ -164,6 +164,7 @@ export type AppAction =
 			activePlanningPreviewNodeId?: string;
 	  }
 	| { type: "REFRESH_WEB_PREVIEW"; url: string }
+	| { type: "CLOSE_WEB_PREVIEW"; url: string }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }
 	| { type: "SET_WORKER_SELECTION_KEY"; workerKey: string }

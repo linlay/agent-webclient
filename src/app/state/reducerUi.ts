@@ -124,6 +124,31 @@ export function reduceUiState(
 				webPreviewRefreshRevisionByUrl: nextRevisions,
 			};
 		}
+		case "CLOSE_WEB_PREVIEW": {
+			if (!state.webPreviews.some((preview) => preview.url === action.url)) {
+				return state;
+			}
+			const webPreviews = state.webPreviews.filter(
+				(preview) => preview.url !== action.url,
+			);
+			const webPreviewRefreshRevisionByUrl = new Map(
+				state.webPreviewRefreshRevisionByUrl,
+			);
+			webPreviewRefreshRevisionByUrl.delete(action.url);
+			const wasActive = state.activeWebPreviewUrl === action.url;
+			return {
+				...state,
+				webPreviews,
+				webPreviewRefreshRevisionByUrl,
+				activeWebPreviewUrl: wasActive
+					? webPreviews[webPreviews.length - 1]?.url || ""
+					: state.activeWebPreviewUrl,
+				rightSidebarOpenTab:
+					wasActive && webPreviews.length === 0 && state.rightSidebarOpenTab === "web"
+						? "overview"
+						: state.rightSidebarOpenTab,
+			};
+		}
 		case "OPEN_RIGHT_SIDEBAR": {
 			const hasViewerTarget = Object.prototype.hasOwnProperty.call(action, "viewerTarget");
 			const hasSourceDetail = Object.prototype.hasOwnProperty.call(action, "sourceDetail");

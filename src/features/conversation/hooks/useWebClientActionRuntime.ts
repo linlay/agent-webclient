@@ -13,6 +13,17 @@ export const WEBCLIENT_SIDEBAR_GET_STATE = "webclient.sidebar.getState";
 export const WEBCLIENT_SIDEBAR_SET_STATE = "webclient.sidebar.setState";
 export const WEBCLIENT_SIDEBAR_OPEN_URL = "webclient.sidebar.openUrl";
 export const WEBCLIENT_SIDEBAR_REFRESH_URL = "webclient.sidebar.refreshUrl";
+export const DESKTOP_ACTION_CALL = "desktop.action.call";
+
+const WORKPANEL_ACTIONS = new Set([
+	"desktop.workpanel.getState",
+	"desktop.workpanel.openTab",
+	"desktop.workpanel.openWeb",
+	"desktop.workpanel.refreshWeb",
+	"desktop.workpanel.activateTab",
+	"desktop.workpanel.closeTab",
+	"desktop.workpanel.closeWorkpanel",
+]);
 
 const SUPPORTED_RIGHT_SIDEBAR_TABS = [
 	"overview",
@@ -31,6 +42,14 @@ interface SidebarActionRuntime {
 	getPathname?: () => string;
 }
 
+type WorkPanelModule = SupportedRightSidebarTab;
+
+const WORKPANEL_MODULE_TITLES: Record<WorkPanelModule, string> = {
+	overview: "Overview",
+	btw: "BTW",
+	debug: "Debug",
+};
+
 function invalidRequest(message: string): never {
 	throw new WsInboundRequestError("invalid_request", 400, message);
 }
@@ -41,6 +60,10 @@ function unsupportedInCurrentView(message: string): never {
 		409,
 		message,
 	);
+}
+
+function sourceChatMismatch(message: string): never {
+	throw new WsInboundRequestError("source_chat_mismatch", 403, message);
 }
 
 function requireRecord(payload: unknown): Record<string, unknown> {
@@ -143,6 +166,310 @@ function normalizePathname(pathname: string): string {
 		: normalized;
 }
 
+function webPreviewItemId(url: string): string {
+	const bytes = new TextEncoder().encode(url);
+	let binary = "";
+	for (const byte of bytes) binary += String.fromCharCode(byte);
+	return `web:${btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/u, "")}`;
+}
+
+function requireCurrentChat(
+	sourceValue: unknown,
+	runtime: SidebarActionRuntime,
+): string {
+	const source = requireRecord(sourceValue);
+	const sourceChatId = typeof source.chatId === "string"
+		? source.chatId.trim()
+		: "";
+	const currentChatId = runtime.getState().chatId.trim();
+	if (!sourceChatId) {
+		return sourceChatMismatch("source.chatId is required");
+	}
+	if (!currentChatId || sourceChatId !== currentChatId) {
+		return sourceChatMismatch(
+			"source.chatId does not match the current page chat",
+		);
+	}
+	return currentChatId;
+}
+
+function workPanelItems(state: AppState) {
+	const builtins = SUPPORTED_RIGHT_SIDEBAR_TABS.map((module) => ({
+		itemId: `sidebar:${module}`,
+		stableKey: `sidebar:${module}`,
+		descriptor: {
+			kind: "webclient" as const,
+			module,
+			context: { chatId: state.chatId },
+		},
+		title: WORKPANEL_MODULE_TITLES[module],
+		closable: false,
+		pinned: true,
+	}));
+	const previews = state.webPreviews.map((preview) => ({
+		itemId: webPreviewItemId(preview.url),
+		stableKey: `web:${preview.url}`,
+		descriptor: {
+			kind: "web" as const,
+			url: preview.url,
+			title: preview.title,
+		},
+		title: preview.title,
+		closable: true,
+		pinned: false,
+	}));
+	return [...builtins, ...previews];
+}
+
+function readWorkPanelState(runtime: SidebarActionRuntime, chatId: string) {
+	const state = runtime.getState();
+	let activeItemId: string | null = null;
+	if (state.rightSidebarOpen) {
+		if (isSupportedRightSidebarTab(state.rightSidebarOpenTab)) {
+			activeItemId = `sidebar:${state.rightSidebarOpenTab}`;
+		} else if (
+			state.rightSidebarOpenTab === "web" &&
+			state.webPreviews.some(
+				(preview) => preview.url === state.activeWebPreviewUrl,
+			)
+		) {
+			activeItemId = webPreviewItemId(state.activeWebPreviewUrl);
+		}
+	}
+	return {
+		workspaceId: `standalone:${chatId}`,
+		ownerChatId: chatId,
+		items: workPanelItems(state),
+		activeItemId,
+		visible: state.rightSidebarOpen,
+	};
+}
+
+function workPanelSuccess(
+	action: string,
+	runtime: SidebarActionRuntime,
+	chatId: string,
+	extra: Record<string, unknown> = {},
+) {
+	const state = readWorkPanelState(runtime, chatId);
+	return {
+		ok: true,
+		action,
+		result: {
+			ok: true,
+			workspaceId: state.workspaceId,
+			state,
+			...extra,
+		},
+	};
+}
+
+function ensureWorkPanelAvailable(runtime: SidebarActionRuntime): void {
+	const pathname = runtime.getPathname?.() ??
+		(typeof window === "undefined" ? "/" : window.location.pathname);
+	if (!sidebarAvailability(pathname).right) {
+		unsupportedInCurrentView("WorkPanel is unavailable in the current view");
+	}
+}
+
+function openWorkPanelWeb(
+	runtime: SidebarActionRuntime,
+	urlValue: unknown,
+	titleValue: unknown,
+): { url: string; title: string } {
+	const url = normalizeWebPreviewUrl(urlValue);
+	const state = runtime.getState();
+	const existing = state.webPreviews.find((preview) => preview.url === url);
+	const title = normalizeWebPreviewTitle(
+		titleValue,
+		existing?.title || new URL(url).hostname || url,
+	);
+	runtime.dispatch({
+		type: "OPEN_RIGHT_SIDEBAR",
+		tab: "web",
+		webPreview: { url, title },
+	});
+	return { url, title };
+}
+
+function openWorkPanelDescriptor(
+	runtime: SidebarActionRuntime,
+	descriptorValue: unknown,
+	chatId: string,
+): Record<string, unknown> {
+	const descriptor = requireRecord(descriptorValue);
+	const kind = descriptor.kind;
+	if (kind === "native") {
+		return unsupportedInCurrentView(
+			"native WorkPanel descriptors are unsupported in the current view",
+		);
+	}
+	if (kind === "web") {
+		requireExactKeys(descriptor, ["kind", "url", "title", "pinned", "closable"]);
+		if (descriptor.pinned === true || descriptor.closable === false) {
+			return unsupportedInCurrentView(
+				"pinned or non-closable Web descriptors are unsupported in the current view",
+			);
+		}
+		return openWorkPanelWeb(runtime, descriptor.url, descriptor.title);
+	}
+	if (kind !== "webclient") {
+		return unsupportedInCurrentView("unsupported WorkPanel descriptor kind");
+	}
+	requireExactKeys(descriptor, [
+		"kind",
+		"module",
+		"route",
+		"context",
+		"title",
+		"pinned",
+		"closable",
+	]);
+	if (!isSupportedRightSidebarTab(descriptor.module)) {
+		return unsupportedInCurrentView(
+			"this WebClient module is unsupported in the current view",
+		);
+	}
+	const context = requireRecord(descriptor.context);
+	const descriptorChatId = typeof context.chatId === "string"
+		? context.chatId.trim()
+		: "";
+	if (descriptorChatId && descriptorChatId !== chatId) {
+		return sourceChatMismatch(
+			"descriptor.context.chatId does not match source.chatId",
+		);
+	}
+	runtime.dispatch({
+		type: "OPEN_RIGHT_SIDEBAR",
+		tab: descriptor.module,
+	});
+	return { module: descriptor.module, itemId: `sidebar:${descriptor.module}` };
+}
+
+export function registerStandaloneWorkPanelActionHandler(
+	client: Pick<WsClient, "registerInboundRequestHandler">,
+	runtime: SidebarActionRuntime,
+): () => void {
+	return client.registerInboundRequestHandler(
+		DESKTOP_ACTION_CALL,
+		(payload) => {
+			ensureWorkPanelAvailable(runtime);
+			const request = requireRecord(payload);
+			requireExactKeys(request, ["requestId", "action", "args", "source"]);
+			const action = typeof request.action === "string"
+				? request.action.trim()
+				: "";
+			if (!WORKPANEL_ACTIONS.has(action)) {
+				throw new WsInboundRequestError(
+					"desktop_action_unsupported_runtime",
+					409,
+					"desktop action is unavailable in standalone runtime mode",
+				);
+			}
+			const chatId = requireCurrentChat(request.source, runtime);
+			const args = requireRecord(request.args);
+
+			switch (action) {
+				case "desktop.workpanel.getState":
+					requireExactKeys(args, []);
+					return workPanelSuccess(action, runtime, chatId);
+				case "desktop.workpanel.openWeb": {
+					requireExactKeys(args, ["url", "title"]);
+					const item = openWorkPanelWeb(runtime, args.url, args.title);
+					return workPanelSuccess(action, runtime, chatId, {
+						item: {
+							itemId: webPreviewItemId(item.url),
+							descriptor: { kind: "web", ...item },
+						},
+					});
+				}
+				case "desktop.workpanel.openTab": {
+					requireExactKeys(args, ["descriptor"]);
+					const opened = openWorkPanelDescriptor(runtime, args.descriptor, chatId);
+					return workPanelSuccess(action, runtime, chatId, { item: opened });
+				}
+				case "desktop.workpanel.refreshWeb": {
+					requireExactKeys(args, ["url"]);
+					const url = normalizeWebPreviewUrl(args.url);
+					const preview = runtime.getState().webPreviews.find(
+						(candidate) => candidate.url === url,
+					);
+					if (!preview) {
+						return unsupportedInCurrentView(
+							"Web Preview item is unavailable in the current view",
+						);
+					}
+					runtime.dispatch({
+						type: "OPEN_RIGHT_SIDEBAR",
+						tab: "web",
+						activeWebPreviewUrl: url,
+					});
+					runtime.dispatch({ type: "REFRESH_WEB_PREVIEW", url });
+					return workPanelSuccess(action, runtime, chatId, {
+						itemId: webPreviewItemId(url),
+					});
+				}
+				case "desktop.workpanel.activateTab": {
+					requireExactKeys(args, ["tabId"]);
+					if (typeof args.tabId !== "string" || !args.tabId.trim()) {
+						return invalidRequest("tabId is required");
+					}
+					const tabId = args.tabId.trim();
+					const item = workPanelItems(runtime.getState()).find(
+						(candidate) => candidate.itemId === tabId,
+					);
+					if (!item) {
+						return unsupportedInCurrentView(
+							"WorkPanel item is unavailable in the current view",
+						);
+					}
+					if (item.descriptor.kind === "web") {
+						runtime.dispatch({
+							type: "OPEN_RIGHT_SIDEBAR",
+							tab: "web",
+							activeWebPreviewUrl: item.descriptor.url,
+						});
+					} else {
+						runtime.dispatch({
+							type: "OPEN_RIGHT_SIDEBAR",
+							tab: item.descriptor.module,
+						});
+					}
+					return workPanelSuccess(action, runtime, chatId, { item });
+				}
+				case "desktop.workpanel.closeTab": {
+					requireExactKeys(args, ["tabId"]);
+					if (typeof args.tabId !== "string" || !args.tabId.trim()) {
+						return invalidRequest("tabId is required");
+					}
+					const tabId = args.tabId.trim();
+					const item = workPanelItems(runtime.getState()).find(
+						(candidate) => candidate.itemId === tabId,
+					);
+					if (!item) {
+						return unsupportedInCurrentView(
+							"WorkPanel item is unavailable in the current view",
+						);
+					}
+					if (item.descriptor.kind !== "web") {
+						return unsupportedInCurrentView(
+							"built-in WorkPanel items cannot be closed",
+						);
+					}
+					runtime.dispatch({ type: "CLOSE_WEB_PREVIEW", url: item.descriptor.url });
+					return workPanelSuccess(action, runtime, chatId, { item });
+				}
+				case "desktop.workpanel.closeWorkpanel":
+					requireExactKeys(args, []);
+					runtime.dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+					return workPanelSuccess(action, runtime, chatId);
+				default:
+					return unsupportedInCurrentView("unsupported WorkPanel action");
+			}
+		},
+	);
+}
+
 function sidebarAvailability(pathname: string): {
 	left: boolean;
 	right: boolean;
@@ -176,6 +503,10 @@ export function registerWebClientSidebarActionHandlers(
 	client: Pick<WsClient, "registerInboundRequestHandler">,
 	runtime: SidebarActionRuntime,
 ): () => void {
+	const unsubscribeWorkPanel = registerStandaloneWorkPanelActionHandler(
+		client,
+		runtime,
+	);
 	const unsubscribeGetState = client.registerInboundRequestHandler(
 		WEBCLIENT_SIDEBAR_GET_STATE,
 		(payload) => {
@@ -347,6 +678,7 @@ export function registerWebClientSidebarActionHandlers(
 	);
 
 	return () => {
+		unsubscribeWorkPanel();
 		unsubscribeRefreshUrl();
 		unsubscribeOpenUrl();
 		unsubscribeSetState();
@@ -359,7 +691,10 @@ export function useWebClientActionRuntime(): void {
 	const inbound = useInboundRequestTransport();
 
 	useEffect(() => {
-		if (!inbound) {
+		const pathname = typeof window === "undefined"
+			? "/"
+			: normalizePathname(window.location.pathname);
+		if (!inbound || pathname !== "/") {
 			return;
 		}
 		const registrar: Pick<WsClient, "registerInboundRequestHandler"> = {

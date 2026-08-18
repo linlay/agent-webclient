@@ -23,6 +23,7 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 ## 边界与非目标
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
 - `webclient.*` Action 只在 Standalone 根路由注册；Desktop WorkPanel 使用正式 `desktop.workpanel.*` 语义，不恢复 sidebar Action 映射。
+- Standalone 根路由以 `desktop.action.call` 承接七个 `desktop.workpanel.*`，复用右侧栏/Web Preview 状态并校验可信 `source.chatId`；Desktop 模式不注册该 provider，因为 Platform 的 `desktop.*` 反向请求由 Desktop Main Broker 处理。
 - Agent WebClient guest 不读取、缓存或接收 access token；Desktop host 对 manifest 声明过鉴权的显式 HTTP `/api` 请求在 Main 内注入并在一次 401 后刷新。
 - Agents、Agent、Chats、Archives、Memory 等 capability 标记为 Platform WS 的数据请求复用 Frame Port；Automations、Admin/Registries、Project、上传下载和资源 Blob 保持普通 HTTP。Desktop 不再传递 `wsSource`。
 - Program manifest 只保留显式 HTTP `/api` 与独立可选 `/api/voice`；主 Platform request/response/stream/push 统一走 Main Broker Frame Port，guest 不声明 `/auth`、主 `/ws` 或 query/attach SSE。
@@ -37,6 +38,8 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 WebClient 使用 `WeakMap<Element, Descriptor>` 登记消息、代码、Web 链接、Workspace 文件和 Chat 资源目标，不向 DOM 属性写入正文、代码、路径、Token 或鉴权 URL。Desktop 通过既有 service action channel 下发 `contextMenu.resolve`；页面以 `document.elementFromPoint(x, y)` 从最近元素向上解析，因此代码、链接和附件会优先于所属消息。响应只包含 v1、requestId、短 targetId、目标类型、安全展示元数据和固定 capability。
 
 `contextMenu.execute` 会按坐标重新解析并同时核对 targetId、目标类型和 capability，再调用左键共用的复制、Web Preview、Workspace Preview 或资源下载处理器。虚拟列表回收、流式更新或 DOM 位移使目标变化时无操作。该桥只通过 `electronAPI.onFromMain` 安装动作监听，不安装 DOM `contextmenu` 监听，也不调用 `preventDefault()`；普通浏览器继续使用浏览器原生菜单。
+
+WorkPanel 外层 Artifact/Reference tab 的下载不依赖坐标解析。Desktop 只可发送共享契约声明的 v1 `workPanel.resource.downloadCurrent`；统一 Resource Viewer 在挂载期间注册唯一的当前目标处理器，并调用 Content Viewer 既有鉴权下载执行器。动作不包含资源身份，未挂载 Resource Viewer、版本错误或处理器已卸载时无操作，Desktop 不解析 `/resource-viewer` route 来复制 Platform 权限逻辑。
 
 ## 相关文件
 - `../src/shared/data/desktop/desktopHostBridge.ts`
