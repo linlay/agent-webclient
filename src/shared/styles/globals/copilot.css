@@ -2,6 +2,10 @@
     padding: 12px 10px 14px;
 }
 
+.layout-copilot.is-desktop-copilot-host .copilot-topbar-actions {
+    margin-right: 38px;
+}
+
 .layout-copilot .timeline-stack {
     max-width: none;
 }

@@ -369,6 +369,22 @@ describe("CopilotShell", () => {
     expect(html).not.toContain("volume_off");
   });
 
+  it("reserves top-bar space for the Desktop native Copilot close button", () => {
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("wsSource=desktop-copilot"),
+    ]);
+
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).toContain("is-desktop-copilot-host");
+  });
+
+  it("does not reserve native close-button space outside the Desktop Copilot host", () => {
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).not.toContain("is-desktop-copilot-host");
+  });
+
   it("does not render desktop-only shell chrome", () => {
     const html = renderToStaticMarkup(React.createElement(CopilotShell));
 

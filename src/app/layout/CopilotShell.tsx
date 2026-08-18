@@ -222,6 +222,8 @@ export const CopilotShell: React.FC = () => {
     () => normalizeRouteValue(searchParams.get("chatId")),
     [searchParams],
   );
+  const isDesktopCopilotHost =
+    searchParams.get("wsSource") === "desktop-copilot";
   const currentCopilotRoute = useMemo(() => {
     const currentSearch = searchParams.toString();
     return `${location.pathname}${currentSearch ? `?${currentSearch}` : ""}`;
@@ -436,7 +438,12 @@ export const CopilotShell: React.FC = () => {
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
         <GlobalShortcutLayer />
-        <div className={COPILOT_SHELL_CLASS} id="app">
+        <div
+          className={`${COPILOT_SHELL_CLASS}${
+            isDesktopCopilotHost ? " is-desktop-copilot-host" : ""
+          }`}
+          id="app"
+        >
           <CopilotTopBar />
           <ConversationStage showEmptyState={false} />
           {(!requestedAgentKey || routeAgentHydratedKey === requestedAgentKey) && (
