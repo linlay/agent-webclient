@@ -6,7 +6,7 @@ import { useChatSurfaceReplay } from "@/features/surfaces/useChatSurfaceReplay";
 import { useI18n } from "@/shared/i18n";
 import { IndependentSurfaceFrame } from "./SurfaceFrame";
 
-export const BtwViewPage: React.FC = () => {
+export const BtwViewerPage: React.FC = () => {
   const { chatId: routeChatId } = useParams<{ chatId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const chatId = String(routeChatId || "").trim();

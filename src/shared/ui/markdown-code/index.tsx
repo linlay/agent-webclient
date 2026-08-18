@@ -17,6 +17,10 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { copyText } from "@/shared/utils/copy";
+import {
+  buildResourceViewerTarget,
+  getViewerTargetKey,
+} from "@/features/viewers/lib/viewerTarget";
 export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
   lang,
   block,
@@ -29,8 +33,7 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
   const {
     rightSidebarOpen,
     rightSidebarOpenTab,
-    attachmentPreview,
-    activeAttachmentPreviewUrl,
+    activeViewerKey,
   } = useAppState();
   const previewUrl = useRef("");
   const language = useMemo(() => getMarkdownCodeLanguage(lang), [lang]);
@@ -69,30 +72,25 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
             const blob = new Blob([text], { type: "text/html;charset=utf-8" });
             if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
             previewUrl.current = URL.createObjectURL(blob);
-            const preview = {
+            const viewerTarget = buildResourceViewerTarget({
               name: t("markdown.previewHtml"),
               url: previewUrl.current,
-              downloadUrl: previewUrl.current,
               sizeBytes: blob.size,
-              kind: "html" as const,
-            };
+              mimeType: "text/html;charset=utf-8",
+            });
+            if (!viewerTarget) return;
+            const viewerKey = getViewerTargetKey(viewerTarget);
             const isActive =
               rightSidebarOpen
-              && rightSidebarOpenTab === "preview"
-              && activeAttachmentPreviewUrl === preview.url;
+              && rightSidebarOpenTab === "viewer"
+              && activeViewerKey === viewerKey;
             if (isActive) {
               dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-            } else if (attachmentPreview.some((item) => item.url === preview.url)) {
-              dispatch({
-                type: "OPEN_RIGHT_SIDEBAR",
-                tab: "preview",
-                activeAttachmentPreviewUrl: preview.url,
-              });
             } else {
               dispatch({
                 type: "OPEN_RIGHT_SIDEBAR",
-                tab: "preview",
-                preview,
+                tab: "viewer",
+                viewerTarget,
               });
             }
           }}
@@ -102,8 +100,7 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
       </Tooltip>
     );
   }, [
-    activeAttachmentPreviewUrl,
-    attachmentPreview,
+    activeViewerKey,
     block,
     dispatch,
     language,

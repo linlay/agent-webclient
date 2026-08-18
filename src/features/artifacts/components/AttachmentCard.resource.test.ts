@@ -10,8 +10,8 @@ jest.mock("@/app/state/AppContext", () => ({
     chats: [],
     rightSidebarOpen: false,
     rightSidebarOpenTab: null,
-    attachmentPreview: [],
-    activeAttachmentPreviewUrl: "",
+    viewerTabs: [],
+    activeViewerKey: "",
   }),
 }));
 

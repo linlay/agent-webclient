@@ -1,5 +1,5 @@
 import type { ActionRuntime } from "@/features/tools/lib/actionRuntime";
-import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import type {
 	MemoryInfoFilters,
 	MemoryConsoleTab,
@@ -208,10 +208,10 @@ export interface AppState {
 	webPreviews: WebPreviewState[];
 	webPreviewRefreshRevisionByUrl: Map<string, number>;
 	activeWebPreviewUrl: string;
-	activeAttachmentPreviewUrl: string;
+	activeViewerKey: string;
 	activePlanningPreviewNodeId: string;
 	terminalDockOpen: boolean;
-	attachmentPreview: AttachmentPreviewState[];
+	viewerTabs: ViewerTarget[];
 	artifactExpanded: boolean;
 	artifactManualOverride: boolean | null;
 	artifactAutoCollapseTimer: UiTimerHandle | null;

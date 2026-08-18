@@ -1,9 +1,9 @@
-export { BtwViewPage } from "./BtwViewPage";
-export { DebugViewPage } from "./DebugViewPage";
-export { FileViewPage } from "./FileViewPage";
-export { OverviewViewPage } from "./OverviewViewPage";
-export { PlanningViewPage } from "./PlanningViewPage";
-export { ResourceViewPage } from "./ResourceViewPage";
-export { SourceViewPage } from "./SourceViewPage";
-export { WebViewPage } from "./WebViewPage";
+export { BtwViewerPage } from "./BtwViewerPage";
+export { DebugViewerPage } from "./DebugViewerPage";
+export { FileViewerPage } from "./FileViewerPage";
+export { OverviewViewerPage } from "./OverviewViewerPage";
+export { PlanningViewerPage } from "./PlanningViewerPage";
+export { ResourceViewerPage } from "./ResourceViewerPage";
+export { SourceViewerPage } from "./SourceViewerPage";
+export { WebViewerPage } from "./WebViewerPage";
 export { IndependentSurfaceFrame } from "./SurfaceFrame";

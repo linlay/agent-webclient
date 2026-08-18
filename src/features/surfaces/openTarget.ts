@@ -3,7 +3,13 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { TimelineSource } from "@/app/state/types";
 import { classifyResourceUrl } from "@/shared/data";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import {
+  buildFileViewerTarget,
+  buildResourceViewerTargetFromUrl,
+  getViewerTargetKey,
+  type ResourceViewerTarget,
+  type ViewerTarget,
+} from "@/features/viewers/lib/viewerTarget";
 import type { WorkPanelItemDescriptor } from "@/features/transport/contracts/generated/agentWebclientBridge";
 import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
 import { isDesktopAppMode } from "@/shared/utils/routing";
@@ -42,7 +48,7 @@ export type OpenTargetIntent =
       kind: "artifact";
       artifactId: string;
       chatId: string;
-      preview?: AttachmentPreviewState;
+      resourceTarget?: ResourceViewerTarget;
       toggle?: boolean;
       title?: string;
     } & AgentIntent)
@@ -51,7 +57,7 @@ export type OpenTargetIntent =
       kind: "reference";
       referenceId: string;
       chatId: string;
-      preview?: AttachmentPreviewState;
+      resourceTarget?: ResourceViewerTarget;
       toggle?: boolean;
       title?: string;
     } & AgentIntent)
@@ -60,11 +66,11 @@ export type OpenTargetIntent =
       kind: "resource";
       chatId: string;
       file: string;
-      preview?: AttachmentPreviewState;
+      resourceTarget?: ResourceViewerTarget;
       toggle?: boolean;
       title?: string;
     } & AgentIntent)
-  | { version: 1; kind: "file"; agentKey: string; path: string; line?: number; preview?: AttachmentPreviewState; toggle?: boolean; title?: string }
+  | { version: 1; kind: "file"; agentKey: string; path: string; line?: number; toggle?: boolean; title?: string }
   | { version: 1; kind: "terminal"; agentKey: string; terminalKey?: string; title?: string }
   | ({ version: 1; kind: "project"; chatId?: string; runId?: string; path?: string; openFiles?: string[]; view?: "content" | "diff" } & AgentIntent)
   | ({ version: 1; kind: "file-diff"; chatId: string; runId: string; relativePath: string; title?: string } & AgentIntent)
@@ -73,6 +79,16 @@ export type OpenTargetIntent =
 
 function clean(value: unknown): string {
   return String(value || "").trim();
+}
+
+export function normalizeWorkspaceFileRequestPath(value: unknown): string {
+  const requestedPath = typeof value === "string" ? value : "";
+  if (
+    !requestedPath.trim() ||
+    requestedPath.length > 2_048 ||
+    /[\u0000-\u001f\u007f]/u.test(requestedPath)
+  ) return "";
+  return requestedPath.replace(/\\/g, "/");
 }
 
 function usesAgentIdentity(intent: OpenTargetIntent): intent is OpenTargetIntent & AgentIntent {
@@ -123,13 +139,13 @@ function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteIntent | nu
       return resourceRouteIntent({
         agentKey,
         chatId: intent.chatId,
-        file: clean(intent.preview?.url),
+        file: clean(intent.resourceTarget?.url),
       });
     case "reference":
       return resourceRouteIntent({
         agentKey,
         chatId: intent.chatId,
-        file: clean(intent.preview?.url),
+        file: clean(intent.resourceTarget?.url),
       });
     case "resource":
       return resourceRouteIntent({
@@ -137,8 +153,10 @@ function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteIntent | nu
         chatId: intent.chatId,
         file: intent.file,
       });
-    case "file":
-      return { kind: "file", agentKey, path: intent.path, line: intent.line };
+    case "file": {
+      const path = normalizeWorkspaceFileRequestPath(intent.path);
+      return path ? { kind: "file", agentKey, path, line: intent.line } : null;
+    }
     case "terminal":
       return { kind: "terminal", agentKey, terminalKey: intent.terminalKey };
     case "project":
@@ -288,8 +306,8 @@ export function buildDesktopWorkPanelDescriptor(
         chatId,
         artifactId: resourceWorkPanelIdentity(file),
       },
-      ...(intent.title || intent.preview?.name
-        ? { title: intent.title || intent.preview?.name }
+      ...(intent.title || intent.resourceTarget?.name
+        ? { title: intent.title || intent.resourceTarget?.name }
         : {}),
     };
   }
@@ -302,7 +320,7 @@ export function buildDesktopWorkPanelDescriptor(
       module: "artifact",
       route,
       context: { agentKey, chatId, artifactId },
-      ...(intent.title || intent.preview?.name ? { title: intent.title || intent.preview?.name } : {}),
+      ...(intent.title || intent.resourceTarget?.name ? { title: intent.title || intent.resourceTarget?.name } : {}),
     };
   }
   if (intent.kind === "reference") {
@@ -314,20 +332,20 @@ export function buildDesktopWorkPanelDescriptor(
       module: "reference",
       route,
       context: { agentKey, chatId, referenceId },
-      ...(intent.title || intent.preview?.name ? { title: intent.title || intent.preview?.name } : {}),
+      ...(intent.title || intent.resourceTarget?.name ? { title: intent.title || intent.resourceTarget?.name } : {}),
     };
   }
   if (intent.kind === "file") {
-    const relativePath = normalizeProjectRelativePath(intent.path, workspaceDir);
-    if (!relativePath) return null;
-    const fileRoute = buildStandaloneOpenTargetUrl({ ...intent, path: relativePath }, currentSearch);
+    const path = normalizeWorkspaceFileRequestPath(intent.path);
+    if (!path) return null;
+    const fileRoute = buildStandaloneOpenTargetUrl({ ...intent, path }, currentSearch);
     if (!fileRoute) return null;
     return {
       kind: "webclient",
       module: "file",
       route: fileRoute,
-      context: { agentKey, path: relativePath },
-      ...(intent.title || intent.preview?.name ? { title: intent.title || intent.preview?.name } : {}),
+      context: { agentKey, path },
+      ...(intent.title ? { title: intent.title } : {}),
     };
   }
   if (intent.kind === "project") {
@@ -391,6 +409,23 @@ export function openDesktopWorkPanelTarget(input: {
   return true;
 }
 
+function viewerTargetFromIntent(intent: OpenTargetIntent): ViewerTarget | null {
+  if (intent.kind === "file") {
+    return buildFileViewerTarget({
+      agentKey: intent.agentKey,
+      path: normalizeWorkspaceFileRequestPath(intent.path),
+      line: intent.line,
+    });
+  }
+  if (intent.kind === "resource") {
+    return intent.resourceTarget || buildResourceViewerTargetFromUrl(intent.file);
+  }
+  if (intent.kind === "artifact" || intent.kind === "reference") {
+    return intent.resourceTarget || null;
+  }
+  return null;
+}
+
 export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
   const dispatch = useAppDispatch();
   const state = useAppState();
@@ -435,24 +470,22 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
         return true;
       }
       if (
-        (
-          normalizedIntent.kind === "artifact" ||
-          normalizedIntent.kind === "reference" ||
-          normalizedIntent.kind === "resource" ||
-          normalizedIntent.kind === "file"
-        ) &&
-        normalizedIntent.preview
+        normalizedIntent.kind === "artifact" ||
+        normalizedIntent.kind === "reference" ||
+        normalizedIntent.kind === "resource" ||
+        normalizedIntent.kind === "file"
       ) {
-        const preview = normalizedIntent.preview;
+        if (!toSurfaceRouteIntent(normalizedIntent)) return false;
+        const viewerTarget = viewerTargetFromIntent(normalizedIntent);
+        if (!viewerTarget) return false;
+        const viewerKey = getViewerTargetKey(viewerTarget);
         const isActive = state.rightSidebarOpen &&
-          state.rightSidebarOpenTab === "preview" &&
-          state.activeAttachmentPreviewUrl === preview.url;
+          state.rightSidebarOpenTab === "viewer" &&
+          state.activeViewerKey === viewerKey;
         if (normalizedIntent.toggle && isActive) {
           dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-        } else if (state.attachmentPreview.some((item) => item.url === preview.url)) {
-          dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", activeAttachmentPreviewUrl: preview.url });
         } else {
-          dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
+          dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", viewerTarget });
         }
         return true;
       }

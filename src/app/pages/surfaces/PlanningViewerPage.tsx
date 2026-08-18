@@ -5,7 +5,7 @@ import { useChatSurfaceReplay } from "@/features/surfaces/useChatSurfaceReplay";
 import { useI18n } from "@/shared/i18n";
 import { IndependentSurfaceFrame } from "./SurfaceFrame";
 
-export const PlanningViewPage: React.FC = () => {
+export const PlanningViewerPage: React.FC = () => {
   const { planningId: routePlanningId } = useParams<{ planningId: string }>();
   const [searchParams] = useSearchParams();
   const planningId = String(routePlanningId || "").trim();

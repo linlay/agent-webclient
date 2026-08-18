@@ -74,14 +74,14 @@ jest.mock("./pages/terminal", () => ({
 }));
 
 jest.mock("./pages/surfaces", () => ({
-  BtwViewPage: () => null,
-  DebugViewPage: () => null,
-  FileViewPage: () => null,
-  OverviewViewPage: () => null,
-  PlanningViewPage: () => null,
-  ResourceViewPage: () => null,
-  SourceViewPage: () => null,
-  WebViewPage: () => null,
+  BtwViewerPage: () => null,
+  DebugViewerPage: () => null,
+  FileViewerPage: () => null,
+  OverviewViewerPage: () => null,
+  PlanningViewerPage: () => null,
+  ResourceViewerPage: () => null,
+  SourceViewerPage: () => null,
+  WebViewerPage: () => null,
 }));
 
 jest.mock("./pages/history", () => ({
@@ -125,11 +125,11 @@ describe("App routing", () => {
         "/overview/:chatId",
         "/debug/:chatId",
         "/btw/:chatId",
-        "/source-view/:sourceId",
-        "/planning-view/:planningId",
-        "/resource-view/:agentKey",
-        "/file-view/:agentKey",
-        "/web-view",
+        "/source-viewer/:sourceId",
+        "/planning-viewer/:planningId",
+        "/resource-viewer/:agentKey",
+        "/file-viewer/:agentKey",
+        "/web-viewer",
         "/history",
         "/terminal/:agentKey",
         "/project/:agentKey",

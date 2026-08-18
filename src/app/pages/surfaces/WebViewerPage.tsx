@@ -5,7 +5,7 @@ import { isAllowedWebSurfaceUrl } from "@/features/surfaces/surfaceRoutes";
 import { useI18n } from "@/shared/i18n";
 import { IndependentSurfaceFrame } from "./SurfaceFrame";
 
-export const WebViewPage: React.FC = () => {
+export const WebViewerPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { t } = useI18n();
   const url = String(searchParams.get("url") || "").trim();

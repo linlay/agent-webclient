@@ -5,7 +5,7 @@ import { useChatSurfaceReplay } from "@/features/surfaces/useChatSurfaceReplay";
 import { useI18n } from "@/shared/i18n";
 import { IndependentSurfaceFrame } from "./SurfaceFrame";
 
-export const DebugViewPage: React.FC = () => {
+export const DebugViewerPage: React.FC = () => {
   const { chatId: routeChatId } = useParams<{ chatId: string }>();
   const chatId = String(routeChatId || "").trim();
   const { t } = useI18n();

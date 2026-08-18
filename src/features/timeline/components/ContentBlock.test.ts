@@ -17,8 +17,8 @@ jest.mock("@/app/state/AppContext", () => ({
 		workerIndexByKey: new Map(),
 		rightSidebarOpen: false,
 		rightSidebarOpenTab: null,
-		attachmentPreview: [],
-		activeAttachmentPreviewUrl: "",
+		viewerTabs: [],
+		activeViewerKey: "",
 		webPreviews: [],
 		activeWebPreviewUrl: "",
 	}),
@@ -129,7 +129,7 @@ describe("ContentBlock", () => {
 		expect(html).not.toContain("tw:whitespace-pre-wrap");
 	});
 
-	it("opens workspace file links in the right sidebar preview", () => {
+	it("opens workspace file links in the right-sidebar Viewer", () => {
 		const node: TimelineNode = {
 			id: "content_1",
 			kind: "content",
@@ -147,18 +147,14 @@ describe("ContentBlock", () => {
 
 		expect(mockDispatch).toHaveBeenCalledWith({
 			type: "OPEN_RIGHT_SIDEBAR",
-			tab: "preview",
-			preview: expect.objectContaining({
+			tab: "viewer",
+			viewerTarget: expect.objectContaining({
+				type: "file",
 				name: "a.ts",
-				kind: "text",
-				sourcePath: "/Users/demo/project/src/a.ts",
+				contentKind: "text",
+				agentKey: "coder-agent",
+				path: "/Users/demo/project/src/a.ts",
 				line: 12,
-				url: "workspace-file:coder-agent:%2FUsers%2Fdemo%2Fproject%2Fsrc%2Fa.ts:12",
-				downloadUrl: "",
-				workspaceFile: {
-					agentKey: "coder-agent",
-					path: "/Users/demo/project/src/a.ts",
-				},
 			}),
 		});
 	});
@@ -187,17 +183,18 @@ describe("ContentBlock", () => {
 
 		expect(mockDispatch).toHaveBeenCalledWith({
 			type: "OPEN_RIGHT_SIDEBAR",
-			tab: "preview",
-			preview: {
+			tab: "viewer",
+			viewerTarget: {
+				type: "resource",
 				name: "灯下.md",
 				url: href,
 				downloadUrl: href,
-				kind: "text",
+				contentKind: "text",
 			},
 		});
 	});
 
-	it("opens bare HTML file links with an HTML preview kind", () => {
+	it("opens bare HTML file links with an HTML Viewer content kind", () => {
 		const node: TimelineNode = {
 			id: "content_html",
 			kind: "content",
@@ -214,15 +211,13 @@ describe("ContentBlock", () => {
 
 		expect(mockDispatch).toHaveBeenCalledWith({
 			type: "OPEN_RIGHT_SIDEBAR",
-			tab: "preview",
-			preview: expect.objectContaining({
+			tab: "viewer",
+			viewerTarget: expect.objectContaining({
+				type: "file",
 				name: "china-gdp-2010-2024.html",
-				kind: "html",
-				sourcePath: "china-gdp-2010-2024.html",
-				workspaceFile: {
-					agentKey: "coder-agent",
-					path: "china-gdp-2010-2024.html",
-				},
+				contentKind: "html",
+				agentKey: "coder-agent",
+				path: "china-gdp-2010-2024.html",
 			}),
 		});
 	});

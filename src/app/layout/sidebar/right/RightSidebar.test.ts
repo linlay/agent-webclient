@@ -71,8 +71,8 @@ jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
   PlanningPreviewTab: () => React.createElement("div", null, "planning preview tab"),
 }));
 
-jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
-  AttachmentPreviewPanel: () => React.createElement("div", null, "preview tab"),
+jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({
+  ContentViewerPanel: () => React.createElement("div", null, "viewer tab"),
 }));
 
 jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({

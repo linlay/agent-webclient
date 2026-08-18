@@ -45,14 +45,14 @@ import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { TerminalPage } from "./pages/terminal";
 import {
-  BtwViewPage,
-  DebugViewPage,
-  FileViewPage,
-  OverviewViewPage,
-  PlanningViewPage,
-  ResourceViewPage,
-  SourceViewPage,
-  WebViewPage,
+  BtwViewerPage,
+  DebugViewerPage,
+  FileViewerPage,
+  OverviewViewerPage,
+  PlanningViewerPage,
+  ResourceViewerPage,
+  SourceViewerPage,
+  WebViewerPage,
 } from "./pages/surfaces";
 import { HistoryPage } from "./pages/history";
 import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
@@ -277,7 +277,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.overview,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.overview">
-              <OverviewViewPage />
+              <OverviewViewerPage />
             </DocumentTitleRoute>
           ),
         },
@@ -285,7 +285,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.debug,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.debug">
-              <DebugViewPage />
+              <DebugViewerPage />
             </DocumentTitleRoute>
           ),
         },
@@ -293,7 +293,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.btw,
           element: (
             <DocumentTitleRoute titleKey="btw.title">
-              <BtwViewPage />
+              <BtwViewerPage />
             </DocumentTitleRoute>
           ),
         },
@@ -301,7 +301,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.source,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.sourceDetail">
-              <SourceViewPage />
+              <SourceViewerPage />
             </DocumentTitleRoute>
           ),
         },
@@ -309,7 +309,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.planning,
           element: (
             <DocumentTitleRoute titleKey="rightSidebar.overview.planning.title">
-              <PlanningViewPage />
+              <PlanningViewerPage />
             </DocumentTitleRoute>
           ),
         },
@@ -317,7 +317,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.resource,
           element: (
             <DocumentTitleRoute titleKey="attachments.kind.file">
-              <ResourceViewPage />
+              <ResourceViewerPage />
             </DocumentTitleRoute>
           ),
         },
@@ -325,7 +325,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.file,
           element: (
             <DocumentTitleRoute titleKey="attachments.kind.file">
-              <FileViewPage />
+              <FileViewerPage />
             </DocumentTitleRoute>
           ),
         },
@@ -333,7 +333,7 @@ const router = createBrowserRouter(
           path: SURFACE_ROUTE_PATHS.web,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.web">
-              <WebViewPage />
+              <WebViewerPage />
             </DocumentTitleRoute>
           ),
         },

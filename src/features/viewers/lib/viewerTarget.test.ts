@@ -1,14 +1,14 @@
 import {
-	buildAttachmentPreviewState,
-	buildResourcePreviewState,
-	canPreviewAttachment,
-	getAttachmentPreviewKind,
-} from "@/features/artifacts/lib/attachmentPreview";
+	buildResourceViewerTarget,
+	buildResourceViewerTargetFromUrl,
+	detectViewerContentKind,
+	isViewerContentSupported,
+} from "@/features/viewers/lib/viewerTarget";
 
-describe("attachmentPreview", () => {
-	it("detects common browser-previewable attachment kinds", () => {
+describe("viewerTarget", () => {
+	it("detects common browser-viewable content kinds", () => {
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "diagram.png",
 				mimeType: "image/png",
 				url: "/resource/diagram.png",
@@ -16,7 +16,7 @@ describe("attachmentPreview", () => {
 		).toBe("image");
 
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "guide.pdf",
 				mimeType: "application/pdf",
 				url: "/resource/guide.pdf",
@@ -24,7 +24,7 @@ describe("attachmentPreview", () => {
 		).toBe("pdf");
 
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "notes.md",
 				mimeType: "text/markdown",
 				url: "/resource/notes.md",
@@ -32,7 +32,7 @@ describe("attachmentPreview", () => {
 		).toBe("text");
 
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "report.html",
 				mimeType: "text/html; charset=utf-8",
 				url: "/resource/report.html",
@@ -40,7 +40,7 @@ describe("attachmentPreview", () => {
 		).toBe("html");
 
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "clip.mp3",
 				mimeType: "audio/mpeg",
 				url: "/resource/clip.mp3",
@@ -48,7 +48,7 @@ describe("attachmentPreview", () => {
 		).toBe("audio");
 
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "demo.mp4",
 				mimeType: "video/mp4",
 				url: "/resource/demo.mp4",
@@ -56,25 +56,25 @@ describe("attachmentPreview", () => {
 		).toBe("video");
 	});
 
-	it("marks Office and unknown attachments as download-only", () => {
+	it("marks Office and unknown resources as unsupported", () => {
 		expect(
-			canPreviewAttachment({
+			isViewerContentSupported(detectViewerContentKind({
 				name: "archive.zip",
 				mimeType: "application/zip",
 				url: "/resource/archive.zip",
-			}),
+			})),
 		).toBe(false);
 		expect(
-			canPreviewAttachment({
+			isViewerContentSupported(detectViewerContentKind({
 				name: "brief.docx",
 				url: "artifacts/run_1/brief.docx",
-			}),
+			})),
 		).toBe(false);
 	});
 
-	it("keeps unsupported attachments in Viewer state", () => {
+	it("keeps unsupported resources in Viewer state", () => {
 		expect(
-			buildAttachmentPreviewState({
+			buildResourceViewerTarget({
 				name: "archive.zip",
 				mimeType: "application/zip",
 				url: "artifacts/run_1/archive.zip",
@@ -83,26 +83,28 @@ describe("attachmentPreview", () => {
 			name: "archive.zip",
 			url: "artifacts/run_1/archive.zip",
 			downloadUrl: "artifacts/run_1/archive.zip",
-			kind: "unsupported",
+			type: "resource",
+			contentKind: "unsupported",
 		});
 	});
 
 	it("builds a decoded ChatScope Resource Viewer state", () => {
 		expect(
-			buildResourcePreviewState(
+			buildResourceViewerTargetFromUrl(
 				"artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
 			),
 		).toEqual({
 			name: "灯下.md",
 			url: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
 			downloadUrl: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
-			kind: "text",
+			type: "resource",
+			contentKind: "text",
 		});
 	});
 
-	it("routes Office documents to the download-only preview state", () => {
+	it("routes Office documents to a download-only content kind", () => {
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "brief.ppt",
 				mimeType: "text/plain",
 				url: "/resource/brief.ppt",
@@ -110,7 +112,7 @@ describe("attachmentPreview", () => {
 		).toBe("office");
 
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "draft.docx",
 				mimeType:
 					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -119,7 +121,7 @@ describe("attachmentPreview", () => {
 		).toBe("office");
 
 		expect(
-			getAttachmentPreviewKind({
+			detectViewerContentKind({
 				name: "budget.xlsx",
 				mimeType: "application/octet-stream",
 				url: "/resource/budget.xlsx",
@@ -127,29 +129,30 @@ describe("attachmentPreview", () => {
 		).toBe("office");
 	});
 
-	it("builds preview state from preview urls when available", () => {
+	it("builds a Resource Viewer target with separate content and download URLs", () => {
 		expect(
-			buildAttachmentPreviewState({
+			buildResourceViewerTarget({
 				name: "draft.txt",
 				mimeType: "text/plain",
-				url: "/resource/draft.txt",
-				previewUrl: "blob:draft-preview",
-				size: 128,
+				url: "blob:draft-viewer",
+				downloadUrl: "/resource/draft.txt",
+				sizeBytes: 128,
 			}),
 		).toEqual({
 			name: "draft.txt",
-			url: "blob:draft-preview",
+			url: "blob:draft-viewer",
 			downloadUrl: "/resource/draft.txt",
 			mimeType: "text/plain",
 			sizeBytes: 128,
-			type: undefined,
-			kind: "text",
+			resourceType: undefined,
+			type: "resource",
+			contentKind: "text",
 		});
 	});
 
-	it("normalizes artifact-style sizeBytes into preview state", () => {
+	it("keeps resource size metadata in the Viewer target", () => {
 		expect(
-			buildAttachmentPreviewState({
+			buildResourceViewerTarget({
 				name: "artifact.pdf",
 				mimeType: "application/pdf",
 				url: "/resource/artifact.pdf",

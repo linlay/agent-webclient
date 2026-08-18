@@ -9,13 +9,12 @@ jest.mock("@/shared/data", () => ({
 }));
 
 import {
-  downloadAttachmentPreview,
-  downloadArtifactResource,
-  limitTextPreview,
-  readArtifactResourceText,
-} from "@/features/artifacts/lib/artifactResourceRuntime";
+  downloadViewerTarget,
+  limitViewerText,
+  readViewerResourceText,
+} from "@/features/viewers/lib/viewerRuntime";
 
-describe("artifactResourceRuntime", () => {
+describe("viewerRuntime", () => {
   beforeEach(() => {
     mockDownloadResource.mockReset();
     mockGetAgentFile.mockReset();
@@ -28,11 +27,12 @@ describe("artifactResourceRuntime", () => {
   });
 
   it("downloads ChatScope and Workspace Viewer resources through one runtime", async () => {
-    await downloadAttachmentPreview({
+    await downloadViewerTarget({
+      type: "resource",
       name: "灯下.md",
       url: "artifacts/run_01/%E7%81%AF%E4%B8%8B.md",
       downloadUrl: "artifacts/run_01/%E7%81%AF%E4%B8%8B.md",
-      kind: "text",
+      contentKind: "text",
     }, {
       chatId: "chat_01",
       teamChat: true,
@@ -48,12 +48,12 @@ describe("artifactResourceRuntime", () => {
       },
     );
 
-    await downloadAttachmentPreview({
+    await downloadViewerTarget({
+      type: "file",
       name: "main.ts",
-      url: "workspace-file:coder:main.ts",
-      downloadUrl: "",
-      kind: "text",
-      workspaceFile: { agentKey: "coder", path: "src/main.ts" },
+      agentKey: "coder",
+      path: "src/main.ts",
+      contentKind: "text",
     }, {
       chatId: "chat_01",
     });
@@ -78,15 +78,16 @@ describe("artifactResourceRuntime", () => {
     mockDownloadResource.mockImplementationOnce(() => new Promise<void>((resolve) => {
       finishDownload = resolve;
     }));
-    const preview = {
+    const target = {
+      type: "resource" as const,
       name: "report.pdf",
       url: "artifacts/run_01/report.pdf",
       downloadUrl: "artifacts/run_01/report.pdf",
-      kind: "pdf" as const,
+      contentKind: "pdf" as const,
     };
 
-    const first = downloadAttachmentPreview(preview, { chatId: "chat_01" });
-    const second = downloadAttachmentPreview(preview, { chatId: "chat_01" });
+    const first = downloadViewerTarget(target, { chatId: "chat_01" });
+    const second = downloadViewerTarget(target, { chatId: "chat_01" });
     expect(first).toBe(second);
     expect(mockDownloadResource).toHaveBeenCalledTimes(1);
 
@@ -94,25 +95,15 @@ describe("artifactResourceRuntime", () => {
     await Promise.all([first, second]);
   });
 
-  it("passes the current chatId to Artifact download and text reads", async () => {
+  it("passes the current chatId to Resource Viewer text reads", async () => {
     const signal = new AbortController().signal;
 
-    await downloadArtifactResource(
-      "artifacts/run_01/image.png",
-      "image.png",
-      "chat_01",
-      signal,
-    );
-    await readArtifactResourceText(
+    await readViewerResourceText(
       "artifacts/run_01/report.txt",
       "chat_01",
       signal,
     );
 
-    expect(mockDownloadResource).toHaveBeenCalledWith(
-      "artifacts/run_01/image.png",
-      { filename: "image.png", chatId: "chat_01", teamChat: false, signal },
-    );
     expect(mockGetResourceText).toHaveBeenCalledWith(
       "artifacts/run_01/report.txt",
       { chatId: "chat_01", teamChat: false, signal },
@@ -120,18 +111,18 @@ describe("artifactResourceRuntime", () => {
   });
 
   it("only truncates text previews that exceed the byte limit", () => {
-    expect(limitTextPreview("hello", 5)).toEqual({
+    expect(limitViewerText("hello", 5)).toEqual({
       content: "hello",
       truncated: false,
     });
-    expect(limitTextPreview("hello!", 5)).toEqual({
+    expect(limitViewerText("hello!", 5)).toEqual({
       content: "hello",
       truncated: true,
     });
   });
 
   it("does not leave a broken multibyte character at the truncation boundary", () => {
-    expect(limitTextPreview("你好", 4)).toEqual({
+    expect(limitViewerText("你好", 4)).toEqual({
       content: "你",
       truncated: true,
     });

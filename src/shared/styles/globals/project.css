@@ -282,7 +282,7 @@
   flex: 1;
   overflow: hidden;
 }
-.project-file-body > .attachment-preview-panel { height: 100%; }
+.project-file-body > .content-viewer-panel { height: 100%; }
 .project-diff-scroll { height: 100%; overflow: auto; padding: 10px 0; }
 .project-empty,
 .project-page-state {

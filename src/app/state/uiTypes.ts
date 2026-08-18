@@ -5,7 +5,7 @@ export type RightSidebarTabKey =
 	| "overview"
 	| "btw"
 	| "debug"
-	| "preview"
+	| "viewer"
 	| "sourceDetail"
 	| "planningPreview"
 	| "web";

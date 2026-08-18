@@ -7,11 +7,11 @@ export const SURFACE_ROUTE_PATHS = {
   overview: "/overview/:chatId",
   debug: "/debug/:chatId",
   btw: "/btw/:chatId",
-  source: "/source-view/:sourceId",
-  planning: "/planning-view/:planningId",
-  resource: "/resource-view/:agentKey",
-  file: "/file-view/:agentKey",
-  web: "/web-view",
+  source: "/source-viewer/:sourceId",
+  planning: "/planning-viewer/:planningId",
+  resource: "/resource-viewer/:agentKey",
+  file: "/file-viewer/:agentKey",
+  web: "/web-viewer",
   history: "/history",
   project: "/project/:agentKey",
   terminal: "/terminal/:agentKey",
@@ -108,7 +108,7 @@ export function buildSurfaceRoute(
   } else if (intent.kind === "web") {
     const url = validWebUrl(intent.url);
     if (!url) return "";
-    pathname = "/web-view";
+    pathname = "/web-viewer";
     params.set("url", url);
     set(params, "title", intent.title);
   } else if (intent.kind === "overview" || intent.kind === "debug") {
@@ -123,13 +123,13 @@ export function buildSurfaceRoute(
   } else if (intent.kind === "source") {
     const sourceId = pathSegment(intent.sourceId);
     if (!sourceId || !clean(intent.chatId)) return "";
-    pathname = `/source-view/${sourceId}`;
+    pathname = `/source-viewer/${sourceId}`;
     params.set("chatId", clean(intent.chatId));
     set(params, "chunkId", intent.chunkId);
   } else if (intent.kind === "planning") {
     const planningId = pathSegment(intent.planningId);
     if (!planningId || !clean(intent.chatId)) return "";
-    pathname = `/planning-view/${planningId}`;
+    pathname = `/planning-viewer/${planningId}`;
     params.set("chatId", clean(intent.chatId));
   } else {
     if (!("agentKey" in intent)) return "";
@@ -138,13 +138,13 @@ export function buildSurfaceRoute(
     switch (intent.kind) {
       case "resource":
         if (!clean(intent.chatId) || !clean(intent.file)) return "";
-        pathname = `/resource-view/${agentKey}`;
+        pathname = `/resource-viewer/${agentKey}`;
         params.set("chatId", clean(intent.chatId));
         params.set("file", clean(intent.file));
         break;
       case "file":
         if (!clean(intent.path)) return "";
-        pathname = `/file-view/${agentKey}`;
+        pathname = `/file-viewer/${agentKey}`;
         params.set("path", clean(intent.path));
         if (Number.isFinite(intent.line) && Number(intent.line) > 0) {
           params.set("line", String(Math.floor(Number(intent.line))));
@@ -184,7 +184,7 @@ export function parseSurfaceRoute(pathname: string, search = ""): SurfaceRouteIn
   const value = (key: string) => clean(params.get(key));
   if (segments.length === 1) {
     if (segments[0] === "history") return { kind: "history" };
-    if (segments[0] === "web-view") {
+    if (segments[0] === "web-viewer") {
       const url = validWebUrl(value("url"));
       return url ? { kind: "web", url, ...(value("title") ? { title: value("title") } : {}) } : null;
     }
@@ -204,20 +204,20 @@ export function parseSurfaceRoute(pathname: string, search = ""): SurfaceRouteIn
         chatId: identity,
         ...(value("btwId") ? { btwId: value("btwId") } : {}),
       };
-    case "source-view":
+    case "source-viewer":
       return chatId ? {
         kind: "source",
         sourceId: identity,
         chatId,
         ...(value("chunkId") ? { chunkId: value("chunkId") } : {}),
       } : null;
-    case "planning-view":
+    case "planning-viewer":
       return chatId ? { kind: "planning", planningId: identity, chatId } : null;
-    case "resource-view":
+    case "resource-viewer":
       return chatId && value("file")
         ? { kind: "resource", agentKey: identity, chatId, file: value("file") }
         : null;
-    case "file-view": {
+    case "file-viewer": {
       const line = Number(value("line"));
       return value("path") ? {
         kind: "file", agentKey: identity, path: value("path"),

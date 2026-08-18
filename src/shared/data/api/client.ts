@@ -1661,7 +1661,7 @@ function decodedAbsoluteResourcePath(source: string): string | null {
 export function classifyResourceUrl(
 	value: string,
 	chatId = "",
-	options: ResourceUrlClassificationOptions = {},
+	_options: ResourceUrlClassificationOptions = {},
 ): ResourceUrlClassification {
 	const source = String(value || "").trim();
 	if (isLegacyResourceUrl(source)) {
@@ -1697,7 +1697,7 @@ export function classifyResourceUrl(
 	}
 	if (source.startsWith("/")) {
 		const resourcePath = decodedAbsoluteResourcePath(source);
-		if (!options.teamChat && resourcePath && chatId) {
+		if (resourcePath && chatId) {
 			return {
 				kind: "absolute",
 				source,
@@ -1865,7 +1865,7 @@ export async function downloadResource(
   const target = getResourceRequestTarget(
     path,
     options.chatId || "",
-    t("rightSidebar.preview.error.download"),
+    t("contentViewer.error.download"),
     { teamChat: options.teamChat },
   );
   const response = await requestWithAuth(target.fetchUrl, {
@@ -1905,7 +1905,7 @@ export async function getResourceText(
   const target = getResourceRequestTarget(
     path,
     options.chatId || "",
-    t("rightSidebar.preview.error.loadText"),
+    t("contentViewer.error.loadText"),
     { teamChat: options.teamChat },
   );
   const response = await requestWithAuth(target.fetchUrl, {
@@ -1939,7 +1939,7 @@ export async function getResourceBlob(
   const target = getResourceRequestTarget(
     path,
     options.chatId || "",
-    t("rightSidebar.preview.error.loadText"),
+    t("contentViewer.error.loadText"),
     { teamChat: options.teamChat },
   );
   const response = await requestWithAuth(target.fetchUrl, {

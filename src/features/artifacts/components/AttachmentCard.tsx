@@ -1,11 +1,12 @@
 import React from "react";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import { buildAttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import { useAppState } from "@/app/state/AppContext";
+import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
   type AttachmentLike,
   getAttachmentDownloadUrl,
   getAttachmentKind,
+  getAttachmentSizeBytes,
   getAttachmentUrl,
 } from "@/features/artifacts/lib/attachmentUtils";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -59,7 +60,6 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 }) => {
   const { t } = useI18n();
   const openTarget = useOpenTarget();
-  const dispatch = useAppDispatch();
   const appState = useAppState();
   const chatId = String(surfaceContext?.chatId ?? appState.chatId ?? "").trim();
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
@@ -71,9 +71,17 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   const sourceUrl = getAttachmentUrl(attachment);
   const authenticatedSource = useAuthenticatedResourceUrl(sourceUrl, chatId, { teamChat });
   const downloadUrl = getAttachmentDownloadUrl(attachment);
-  const preview = React.useMemo(
-    () => buildAttachmentPreviewState(attachment),
-    [attachment],
+  const resourceTarget = React.useMemo(
+    () => buildResourceViewerTarget({
+      name: attachment.name,
+      url: sourceUrl,
+      downloadUrl,
+      sizeBytes: getAttachmentSizeBytes(attachment),
+      resourceType: attachment.type,
+      mimeType: attachment.mimeType,
+      contentKind: attachmentKind === "image" ? "image" : undefined,
+    }),
+    [attachment, attachmentKind, downloadUrl, sourceUrl],
   );
   const [imageFailed, setImageFailed] = React.useState(false);
   const [downloading, setDownloading] = React.useState(false);
@@ -131,7 +139,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   }, [attachment.name, chatId, downloadUrl, downloading, teamChat]);
 
   const handleActivate = React.useCallback(() => {
-    if (!canActivate || !preview) {
+    if (!canActivate || !resourceTarget) {
       return;
     }
     if (artifactId) {
@@ -141,7 +149,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
         artifactId,
         chatId,
         agentKey: surfaceContext?.agentKey,
-        preview,
+        resourceTarget,
         toggle: activateMode === "toggle",
       });
     } else if (attachment.id) {
@@ -151,13 +159,21 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
         referenceId: attachment.id,
         chatId,
         agentKey: surfaceContext?.agentKey,
-        preview,
+        resourceTarget,
         toggle: activateMode === "toggle",
       });
     } else {
-      dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "preview", preview });
+      openTarget({
+        version: 1,
+        kind: "resource",
+        chatId,
+        agentKey: surfaceContext?.agentKey,
+        file: resourceTarget.url,
+        resourceTarget,
+        toggle: activateMode === "toggle",
+      });
     }
-  }, [activateMode, artifactId, attachment.id, canActivate, chatId, dispatch, openTarget, preview, surfaceContext?.agentKey]);
+  }, [activateMode, artifactId, attachment.id, canActivate, chatId, openTarget, resourceTarget, surfaceContext?.agentKey]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,
@@ -165,10 +181,10 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     name: attachment.name,
     mediaType: attachmentKind === "image" ? "image" as const : "file" as const,
     handlers: {
-      ...(canActivate && preview ? { "preview-resource": handleActivate } : {}),
+      ...(canActivate && resourceTarget ? { "preview-resource": handleActivate } : {}),
       ...(downloadUrl ? { "download-resource": triggerDownload } : {}),
     },
-  }), [attachment.name, attachmentKind, canActivate, contextTargetId, downloadUrl, handleActivate, preview, triggerDownload]);
+  }), [attachment.name, attachmentKind, canActivate, contextTargetId, downloadUrl, handleActivate, resourceTarget, triggerDownload]);
   const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
 
   const handleKeyDown = React.useCallback(

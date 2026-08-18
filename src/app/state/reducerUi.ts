@@ -2,6 +2,7 @@ import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { normalizeThemeMode } from "@/shared/styles/theme";
 import { persistTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
+import { getViewerTargetKey } from "@/features/viewers/lib/viewerTarget";
 
 export function reduceUiState(
 	state: AppState,
@@ -124,7 +125,7 @@ export function reduceUiState(
 			};
 		}
 		case "OPEN_RIGHT_SIDEBAR": {
-			const hasPreview = Object.prototype.hasOwnProperty.call(action, "preview");
+			const hasViewerTarget = Object.prototype.hasOwnProperty.call(action, "viewerTarget");
 			const hasSourceDetail = Object.prototype.hasOwnProperty.call(action, "sourceDetail");
 			const hasPlanningPreview = Object.prototype.hasOwnProperty.call(action, "planningPreview");
 			const hasWebPreview = Object.prototype.hasOwnProperty.call(action, "webPreview");
@@ -132,8 +133,8 @@ export function reduceUiState(
 				action,
 				"activeWebPreviewUrl",
 			);
-			const removePreviewUrl = Object.prototype.hasOwnProperty.call(action, "removePreviewUrl")
-				? action.removePreviewUrl
+			const removeViewerKey = Object.prototype.hasOwnProperty.call(action, "removeViewerKey")
+				? action.removeViewerKey
 				: undefined;
 			const removePlanningPreviewNodeId = Object.prototype.hasOwnProperty.call(action, "removePlanningPreviewNodeId")
 				? action.removePlanningPreviewNodeId
@@ -141,44 +142,48 @@ export function reduceUiState(
 			const removeWebPreviewUrl = Object.prototype.hasOwnProperty.call(action, "removeWebPreviewUrl")
 				? action.removeWebPreviewUrl
 				: undefined;
-			const hasActiveAttachmentPreviewUrl = Object.prototype.hasOwnProperty.call(
+			const hasActiveViewerKey = Object.prototype.hasOwnProperty.call(
 				action,
-				"activeAttachmentPreviewUrl",
+				"activeViewerKey",
 			);
 			const hasActivePlanningPreviewNodeId = Object.prototype.hasOwnProperty.call(
 				action,
 				"activePlanningPreviewNodeId",
 			);
-			let nextPreviews = state.attachmentPreview;
-			if (removePreviewUrl) {
-				nextPreviews = nextPreviews.filter((p) => p.url !== removePreviewUrl);
+			let nextViewerTabs = state.viewerTabs;
+			if (removeViewerKey) {
+				nextViewerTabs = nextViewerTabs.filter(
+					(target) => getViewerTargetKey(target) !== removeViewerKey,
+				);
 			} else {
-				const incomingPreview = hasPreview ? action.preview : undefined;
-				if (incomingPreview) {
-					const existingIndex = nextPreviews.findIndex(
-						(p) => p.url === incomingPreview.url,
+				const incomingTarget = hasViewerTarget ? action.viewerTarget : undefined;
+				if (incomingTarget) {
+					const incomingKey = getViewerTargetKey(incomingTarget);
+					const existingIndex = nextViewerTabs.findIndex(
+						(target) => getViewerTargetKey(target) === incomingKey,
 					);
 					if (existingIndex >= 0) {
-						nextPreviews = [...nextPreviews];
-						nextPreviews[existingIndex] = incomingPreview;
+						nextViewerTabs = [...nextViewerTabs];
+						nextViewerTabs[existingIndex] = incomingTarget;
 					} else {
-						nextPreviews = [...nextPreviews, incomingPreview];
+						nextViewerTabs = [...nextViewerTabs, incomingTarget];
 					}
-				} else if (hasPreview) {
-					nextPreviews = [];
+				} else if (hasViewerTarget) {
+					nextViewerTabs = [];
 				}
 			}
-			let nextActiveAttachmentPreviewUrl = state.activeAttachmentPreviewUrl;
-			if (removePreviewUrl) {
-				if (nextActiveAttachmentPreviewUrl === removePreviewUrl) {
-					nextActiveAttachmentPreviewUrl = nextPreviews[nextPreviews.length - 1]?.url || "";
+			let nextActiveViewerKey = state.activeViewerKey;
+			if (removeViewerKey) {
+				if (nextActiveViewerKey === removeViewerKey) {
+					const lastTarget = nextViewerTabs[nextViewerTabs.length - 1];
+					nextActiveViewerKey = lastTarget ? getViewerTargetKey(lastTarget) : "";
 				}
 			} else {
-				const incomingPreview = hasPreview ? action.preview : undefined;
-				if (incomingPreview) {
-					nextActiveAttachmentPreviewUrl = incomingPreview.url;
-				} else if (hasActiveAttachmentPreviewUrl) {
-					nextActiveAttachmentPreviewUrl = String(action.activeAttachmentPreviewUrl || "");
+				const incomingTarget = hasViewerTarget ? action.viewerTarget : undefined;
+				if (incomingTarget) {
+					nextActiveViewerKey = getViewerTargetKey(incomingTarget);
+				} else if (hasActiveViewerKey) {
+					nextActiveViewerKey = String(action.activeViewerKey || "");
 				}
 			}
 			let nextPlanningPreviews = state.planningPreviews;
@@ -267,7 +272,7 @@ export function reduceUiState(
 				...state,
 				rightSidebarOpen: true,
 				rightSidebarOpenTab: action.tab ?? null,
-				attachmentPreview: nextPreviews,
+				viewerTabs: nextViewerTabs,
 				planningPreviews: nextPlanningPreviews,
 				webPreviews: nextWebPreviews,
 				webPreviewRefreshRevisionByUrl:
@@ -276,7 +281,7 @@ export function reduceUiState(
 				activeSourceDetail: hasSourceDetail
 					? action.sourceDetail ?? null
 					: state.activeSourceDetail,
-				activeAttachmentPreviewUrl: nextActiveAttachmentPreviewUrl,
+				activeViewerKey: nextActiveViewerKey,
 				activePlanningPreviewNodeId: nextActivePlanningPreviewNodeId,
 			};
 		}

@@ -1,10 +1,8 @@
 import React from "react";
 import type { TimelineNode } from "@/app/state/types";
 import {
-	buildResourcePreviewState,
-	getAttachmentPreviewKind,
-	type AttachmentPreviewState,
-} from "@/features/artifacts/lib/attachmentPreview";
+	buildResourceViewerTargetFromUrl,
+} from "@/features/viewers/lib/viewerTarget";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { stripPendingSpecialFenceTail } from "@/features/events/lib/contentSegments";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
@@ -53,36 +51,6 @@ const TTS_VOICE_DETAIL_OPEN_CLASS_NAME = "tw:mt-2 tw:max-h-[260px]";
 const TTS_VOICE_TEXT_CLASS_NAME =
 	"tw:whitespace-pre-wrap tw:break-words tw:rounded-[10px] tw:bg-[color-mix(in_srgb,var(--bg-input)_86%,var(--bg-elev-2))] tw:px-3 tw:py-2.5 tw:text-[13px] tw:leading-[1.5]";
 
-function displayFileName(filePath: string): string {
-	const normalized = filePath.replace(/\\/g, "/");
-	return normalized.split("/").filter(Boolean).pop() || filePath;
-}
-
-export function buildWorkspaceFilePreview(
-	link: WorkspaceFileLink,
-	agentKey: string,
-): AttachmentPreviewState {
-	const name = displayFileName(link.filePath);
-	const previewKey = [
-		"workspace-file",
-		encodeURIComponent(agentKey),
-		encodeURIComponent(link.filePath),
-		link.line || "",
-	].join(":");
-	return {
-		name,
-		url: previewKey,
-		downloadUrl: "",
-		kind: getAttachmentPreviewKind({ name }),
-		sourcePath: link.filePath,
-		line: link.line,
-		workspaceFile: {
-			agentKey,
-			path: link.filePath,
-		},
-	};
-}
-
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const { t } = useI18n();
 	const dispatch = useAppDispatch();
@@ -121,17 +89,12 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	);
 	const handleWorkspaceFileLinkClick = React.useCallback(
 		(link: WorkspaceFileLink) => {
-			const preview = buildWorkspaceFilePreview(
-				link,
-				workspaceFileAgentKey,
-			);
 			openTarget({
 				version: 1,
 				kind: "file",
 				agentKey: workspaceFileAgentKey,
 				path: link.filePath,
 				line: link.line,
-				preview,
 				toggle: true,
 			});
 		},
@@ -150,8 +113,8 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	);
 	const handleResourceFileLinkClick = React.useCallback(
 		(link: ResourceFileLink) => {
-			const preview = buildResourcePreviewState(link.href);
-			if (!preview) {
+			const resourceTarget = buildResourceViewerTargetFromUrl(link.href);
+			if (!resourceTarget) {
 				return;
 			}
 			openTarget({
@@ -160,7 +123,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				agentKey: workspaceFileAgentKey,
 				chatId: state.chatId,
 				file: link.href,
-				preview,
+				resourceTarget,
 				title: link.name,
 				toggle: true,
 			});

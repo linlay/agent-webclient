@@ -10,7 +10,7 @@ import {
   Typography,
   type TabsProps,
 } from "antd";
-import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
+import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
@@ -23,9 +23,12 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
-import { downloadAttachmentPreview } from "@/features/artifacts/lib/artifactResourceRuntime";
+import { downloadViewerTarget } from "@/features/viewers/lib/viewerRuntime";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
-import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import {
+  getViewerTargetKey,
+  type ViewerTarget,
+} from "@/features/viewers/lib/viewerTarget";
 
 type RightSidebarTabsKey = string;
 
@@ -92,12 +95,13 @@ function getWebUrlFromTabKey(key: string): string {
   return key.startsWith("web:") ? key.slice("web:".length) : "";
 }
 
-const PreviewTabTooltip: React.FC<{ preview: AttachmentPreviewState }> = ({ preview }) => {
-  const typeLabel = preview.mimeType || "";
-  const sizeLabel = useMemo(() => formatAttachmentSize(preview.sizeBytes), [preview.sizeBytes]);
+const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
+  const typeLabel = target.type === "resource" ? target.mimeType || "" : "";
+  const sizeBytes = target.type === "resource" ? target.sizeBytes : undefined;
+  const sizeLabel = useMemo(() => formatAttachmentSize(sizeBytes), [sizeBytes]);
   return (
     <div>
-      <div>{preview.name}</div>
+      <div>{target.name}</div>
       <Flex gap={10}>
       {typeLabel ? <div>{typeLabel}</div> : null}
       {sizeLabel ? <div>{sizeLabel}</div> : null}
@@ -111,7 +115,7 @@ export const RightSidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
-  const previews = state.attachmentPreview;
+  const viewerTabs = state.viewerTabs;
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
   const webPreviews = state.webPreviews;
@@ -128,10 +132,10 @@ export const RightSidebar: React.FC = () => {
       ? "debug"
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
-        : state.rightSidebarOpenTab === "preview" && previews.length > 0
-					? `preview:${(state.activeAttachmentPreviewUrl && previews.some(p => p.url === state.activeAttachmentPreviewUrl)
-						? state.activeAttachmentPreviewUrl
-						: previews[previews.length - 1].url)}`
+        : state.rightSidebarOpenTab === "viewer" && viewerTabs.length > 0
+					? `viewer:${(state.activeViewerKey && viewerTabs.some((target) => getViewerTargetKey(target) === state.activeViewerKey)
+						? state.activeViewerKey
+						: getViewerTargetKey(viewerTabs[viewerTabs.length - 1]))}`
 					: state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
 						? "sourceDetail"
 						: state.rightSidebarOpenTab === "planningPreview" &&
@@ -147,8 +151,8 @@ export const RightSidebar: React.FC = () => {
                 : "overview";
   const activePanel: RightSidebarTabKey = selectedPanel === "debug"
     ? "debug"
-    : selectedPanel.startsWith("preview:")
-      ? "preview"
+    : selectedPanel.startsWith("viewer:")
+			? "viewer"
       : selectedPanel.startsWith("planningPreview:")
         ? "planningPreview"
         : selectedPanel.startsWith("web:")
@@ -200,13 +204,15 @@ export const RightSidebar: React.FC = () => {
           discardBTW(state.chatId);
         }
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
-      } else if (typeof key === "string" && key.startsWith("preview:")) {
-        const urlToRemove = key.slice("preview:".length);
-        const remaining = previews.filter((p) => p.url !== urlToRemove);
+      } else if (typeof key === "string" && key.startsWith("viewer:")) {
+        const viewerKeyToRemove = key.slice("viewer:".length);
+        const remaining = viewerTabs.filter(
+          (target) => getViewerTargetKey(target) !== viewerKeyToRemove,
+        );
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
-          tab: remaining.length > 0 ? "preview" : "overview",
-          removePreviewUrl: urlToRemove,
+          tab: remaining.length > 0 ? "viewer" : "overview",
+          removeViewerKey: viewerKeyToRemove,
         });
       } else if (
         typeof key === "string" &&
@@ -243,7 +249,7 @@ export const RightSidebar: React.FC = () => {
       dispatch,
       state.chatId,
       discardBTW,
-      previews,
+      viewerTabs,
       planningPreviews,
       webPreviews,
     ],
@@ -259,11 +265,11 @@ export const RightSidebar: React.FC = () => {
     [dispatch],
   );
 
-  const handlePreviewDownload = React.useCallback(
-    (preview: AttachmentPreviewState) => {
+  const handleViewerDownload = React.useCallback(
+    (target: ViewerTarget) => {
       void (async () => {
         try {
-          await downloadAttachmentPreview(preview, {
+          await downloadViewerTarget(target, {
             chatId: state.chatId,
             teamChat,
           });
@@ -271,7 +277,7 @@ export const RightSidebar: React.FC = () => {
           message.error(
             error instanceof Error
               ? error.message
-              : t("rightSidebar.preview.error.download"),
+              : t("contentViewer.error.download"),
           );
         }
       })();
@@ -389,24 +395,25 @@ export const RightSidebar: React.FC = () => {
       });
     }
 
-    for (const p of previews) {
+    for (const target of viewerTabs) {
+      const viewerKey = getViewerTargetKey(target);
       items.push({
-        key: `preview:${p.url}`,
+        key: `viewer:${viewerKey}`,
         label: (
-          <Tooltip title={<PreviewTabTooltip preview={p} />} placement="rightTop">
+          <Tooltip title={<ViewerTabTooltip target={target} />} placement="rightTop">
             <Flex align="center" gap={4}>
               <MaterialIcon name="visibility" />
               <Typography.Text ellipsis className="tw:!max-w-[100px]">
-                {p.name}
+                {target.name}
               </Typography.Text>
             </Flex>
           </Tooltip>
         ),
         children: (
-          <AttachmentPreviewPanel
-            preview={p}
+          <ContentViewerPanel
+            target={target}
             fullscreenRequest={
-              tabFullscreenRequests[`preview:${p.url}`] ?? 0
+              tabFullscreenRequests[`viewer:${viewerKey}`] ?? 0
             }
           />
         ),
@@ -448,7 +455,7 @@ export const RightSidebar: React.FC = () => {
     return items;
   }, [
     hasBTWSession,
-    previews,
+    viewerTabs,
     sourceDetail,
     planningPreviews,
     t,
@@ -459,11 +466,11 @@ export const RightSidebar: React.FC = () => {
 
   const handleTabChange = React.useCallback(
     (key: string) => {
-      if (key.startsWith("preview:")) {
+      if (key.startsWith("viewer:")) {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
-          tab: "preview",
-          activeAttachmentPreviewUrl: key.slice("preview:".length),
+          tab: "viewer",
+          activeViewerKey: key.slice("viewer:".length),
         });
       } else if (key.startsWith("planningPreview:")) {
         dispatch({
@@ -526,7 +533,7 @@ export const RightSidebar: React.FC = () => {
               {(node) => {
                 if (node.key === "overview" || !node.key) return node;
                 const isWebTab = node.key.startsWith("web:");
-                const isPreviewTab = node.key.startsWith("preview:");
+                const isViewerTab = node.key.startsWith("viewer:");
 
                 const menuitems = [
                   ...(isWebTab
@@ -577,11 +584,11 @@ export const RightSidebar: React.FC = () => {
                           },
                         },
                       ]
-                    : isPreviewTab
+                    : isViewerTab
                       ? [
                           {
                             key: "download",
-                            label: t("rightSidebar.preview.action.download"),
+                            label: t("contentViewer.action.download"),
                             icon: (
                               <MaterialIcon
                                 name="download"
@@ -589,14 +596,14 @@ export const RightSidebar: React.FC = () => {
                               />
                             ),
                             onClick: () => {
-                              const previewUrl = (node.key as string).slice(
-                                "preview:".length,
+                              const viewerKey = (node.key as string).slice(
+                                "viewer:".length,
                               );
-                              const preview = previews.find(
-                                (item) => item.url === previewUrl,
+                              const target = viewerTabs.find(
+                                (item) => getViewerTargetKey(item) === viewerKey,
                               );
-                              if (preview) {
-                                handlePreviewDownload(preview);
+                              if (target) {
+                                handleViewerDownload(target);
                               }
                             },
                           },

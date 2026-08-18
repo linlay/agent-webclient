@@ -18,7 +18,7 @@ function findSource(
   return null;
 }
 
-export const SourceViewPage: React.FC = () => {
+export const SourceViewerPage: React.FC = () => {
   const { sourceId: routeSourceId } = useParams<{ sourceId: string }>();
   const [searchParams] = useSearchParams();
   const sourceId = String(routeSourceId || "").trim();

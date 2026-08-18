@@ -14,7 +14,7 @@
 
 匿名分享是独立的公开 HTTP 边界：`src/shared/data/conversationShare.ts` 固定以无凭证 `GET /api/public/shares/{shareId}` 读取数据，使用 6 秒超时，并严格接受 `schemaVersion=1` 的有序 `entries`；entry 只允许 user/assistant message 或 reasoning，reasoning 可携带非负整数 `durationMs`。它不进入需要 Platform 鉴权和传输路由的 endpoint registry，避免公开页初始化 Token、WebSocket 或缓存运行时。
 
-Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `chatId` 的 `<relativePath>` ChatScope 引用，前端统一通过 `classifyResourceUrl` 分类，并由 `URLSearchParams` 转换为 `GET /api/resource?file=<chatId>/<relativePath>`。普通 Agent 的 POSIX 绝对路径转换为 `GET /api/resource?chatId=<chatId>&file=<absolutePath>`，其中 `/tmp/...` 走同一分支；Team Chat 拒绝全部绝对路径。HTTP(S)、`data:`、`blob:` 直接使用且不接收平台 Bearer；同源 `/api/resource`、`file://`、Windows/UNC、当前 chatId 前缀、query/fragment、反斜线、空段、`.`/`..` 与编码后路径分隔符都分类为非法，不发起 fetch。`downloadResource`、`getResourceText`、`getResourceBlob` 只对 ChatScope 和获准绝对路径使用 Bearer/Cookie，组件不手工拼接真实资源请求。
+Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `chatId` 的 `<relativePath>` ChatScope 引用，前端统一通过 `classifyResourceUrl` 分类，并由 `URLSearchParams` 转换为 `GET /api/resource?file=<chatId>/<relativePath>`。POSIX 绝对路径转换为 `GET /api/resource?chatId=<chatId>&file=<absolutePath>`，其中 `/tmp/...` 与 Team Chat 都走同一请求分支，是否允许由 Platform 判定。HTTP(S)、`data:`、`blob:` 直接使用且不接收平台 Bearer；同源 `/api/resource`、`file://`、Windows/UNC、当前 chatId 前缀、query/fragment、反斜线、空段、`.`/`..` 与编码后路径分隔符都作为 URL 结构非法而不发起 fetch。`downloadResource`、`getResourceText`、`getResourceBlob` 只对 ChatScope 和结构合法的绝对路径使用 Bearer/Cookie，组件不手工拼接真实资源请求。
 
 `runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父对话继承。
 

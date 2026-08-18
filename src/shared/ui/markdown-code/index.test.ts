@@ -25,8 +25,8 @@ jest.mock("@/app/state/AppContext", () => ({
   useAppState: () => ({
     rightSidebarOpen: false,
     rightSidebarOpenTab: null,
-    attachmentPreview: [],
-    activeAttachmentPreviewUrl: "",
+    viewerTabs: [],
+    activeViewerKey: "",
   }),
 }));
 

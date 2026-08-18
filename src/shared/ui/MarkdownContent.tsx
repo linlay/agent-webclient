@@ -313,7 +313,7 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   );
   const contextTargetRef = useDesktopContextMenuTarget<HTMLImageElement>(contextTarget);
   if (resolved.error) {
-    const fallback = t("rightSidebar.preview.error.image");
+    const fallback = t("contentViewer.error.image");
     return <span role="img" aria-label={alt || fallback}>{alt || fallback}</span>;
   }
   if (!resolved.url) {
@@ -357,7 +357,7 @@ const AuthVideo: React.FC<AuthVideoProps> = (props) => {
   );
   const contextTargetRef = useDesktopContextMenuTarget<HTMLVideoElement>(contextTarget);
   if (resolved.error) {
-    const fallback = t("rightSidebar.preview.error.video");
+    const fallback = t("contentViewer.error.video");
     return <span role="status">{alt || fallback}</span>;
   }
   if (!resolved.url) {

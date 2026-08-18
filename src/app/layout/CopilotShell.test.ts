@@ -75,11 +75,11 @@ jest.mock("@/app/layout/CommandStatusOverlay", () => ({
   ),
 }));
 
-jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
-  AttachmentPreviewPanel: () => (
+jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({
+  ContentViewerPanel: () => (
     React.createElement(
       "div",
-      { className: "attachment-preview-panel" },
+      { className: "content-viewer-panel" },
       "attachment preview",
     )
   ),

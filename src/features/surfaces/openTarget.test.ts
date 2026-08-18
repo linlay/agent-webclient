@@ -2,6 +2,7 @@ import {
   buildDesktopWorkPanelDescriptor,
   buildStandaloneOpenTargetUrl,
   normalizeProjectRelativePath,
+  normalizeWorkspaceFileRequestPath,
   openDesktopWorkPanelTarget,
 } from "@/features/surfaces/openTarget";
 import { buildSurfaceRoute, parseSurfaceRoute } from "@/features/surfaces/surfaceRoutes";
@@ -43,54 +44,57 @@ describe("canonical independent Surface targets", () => {
       publishId: "publish-1",
       sourceId: "source-1",
       chunkId: "chunk-1",
-    })).toBe("/source-view/source-1?chatId=chat-1&chunkId=chunk-1");
+    })).toBe("/source-viewer/source-1?chatId=chat-1&chunkId=chunk-1");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "planning",
       agentKey: "agent-1",
       chatId: "chat-1",
       planningId: "run-1_planning_1",
-    })).toBe("/planning-view/run-1_planning_1?chatId=chat-1");
+    })).toBe("/planning-viewer/run-1_planning_1?chatId=chat-1");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "artifact",
       agentKey: "agent-1",
       chatId: "chat-1",
       artifactId: "artifact-1",
-      preview: {
+      resourceTarget: {
+        type: "resource",
         name: "artifact.txt",
         url: "artifacts/run-1/artifact.txt",
         downloadUrl: "",
-        kind: "text",
+        contentKind: "text",
       },
-    })).toBe("/resource-view/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Fartifact.txt");
+    })).toBe("/resource-viewer/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Fartifact.txt");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "reference",
       agentKey: "agent-1",
       chatId: "chat-1",
       referenceId: "reference-1",
-      preview: {
+      resourceTarget: {
+        type: "resource",
         name: "reference.pdf",
         url: "/resources/reference.pdf",
         downloadUrl: "",
-        kind: "pdf",
+        contentKind: "pdf",
       },
-    })).toBe("/resource-view/agent-1?chatId=chat-1&file=%2Fresources%2Freference.pdf");
+    })).toBe("/resource-viewer/agent-1?chatId=chat-1&file=%2Fresources%2Freference.pdf");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "resource",
       agentKey: "agent-1",
       chatId: "chat-1",
       file: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
-      preview: {
+      resourceTarget: {
+        type: "resource",
         name: "灯下.md",
         url: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
         downloadUrl: "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md",
-        kind: "text",
+        contentKind: "text",
       },
     })).toBe(
-      "/resource-view/agent-1?chatId=chat-1&file=artifacts%2Fmsx9nzkm%2F%25E7%2581%25AF%25E4%25B8%258B.md",
+      "/resource-viewer/agent-1?chatId=chat-1&file=artifacts%2Fmsx9nzkm%2F%25E7%2581%25AF%25E4%25B8%258B.md",
     );
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
@@ -98,7 +102,7 @@ describe("canonical independent Surface targets", () => {
       agentKey: "agent-1",
       path: "src/app.ts",
       line: 12,
-    })).toBe("/file-view/agent-1?path=src%2Fapp.ts&line=12");
+    })).toBe("/file-viewer/agent-1?path=src%2Fapp.ts&line=12");
   });
 
   it("uses the global history and Web wrapper routes", () => {
@@ -110,7 +114,7 @@ describe("canonical independent Surface targets", () => {
       kind: "web",
       url: "https://example.com/path",
       title: "Example",
-    })).toBe("/web-view?url=https%3A%2F%2Fexample.com%2Fpath&title=Example");
+    })).toBe("/web-viewer?url=https%3A%2F%2Fexample.com%2Fpath&title=Example");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "web",
@@ -143,11 +147,40 @@ describe("canonical independent Surface targets", () => {
       agentKey: "agent-1",
       chatId: "chat-1",
       artifactId: "artifact-1",
-      preview: {
+      resourceTarget: {
+        type: "resource",
         name: "external.txt",
         url: "https://example.com/external.txt",
         downloadUrl: "https://example.com/external.txt",
-        kind: "text",
+        contentKind: "text",
+      },
+    })).toBe("");
+    expect(buildStandaloneOpenTargetUrl({
+      version: 1,
+      kind: "artifact",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      artifactId: "artifact-1",
+      resourceTarget: {
+        type: "resource",
+        name: "inline.txt",
+        url: "data:text/plain,demo",
+        downloadUrl: "",
+        contentKind: "text",
+      },
+    })).toBe("");
+    expect(buildStandaloneOpenTargetUrl({
+      version: 1,
+      kind: "reference",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      referenceId: "reference-1",
+      resourceTarget: {
+        type: "resource",
+        name: "legacy.txt",
+        url: "/api/resource?file=legacy.txt",
+        downloadUrl: "",
+        contentKind: "text",
       },
     })).toBe("");
   });
@@ -195,15 +228,16 @@ describe("canonical independent Surface targets", () => {
       agentKey: "agent-1",
       chatId: "chat-1",
       artifactId: "artifact-1",
-      preview: {
+      resourceTarget: {
+        type: "resource",
         name: "artifact.txt",
         url: "artifacts/run-1/artifact.txt",
         downloadUrl: "",
-        kind: "text",
+        contentKind: "text",
       },
     })).toMatchObject({
       module: "artifact",
-      route: "/resource-view/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Fartifact.txt",
+      route: "/resource-viewer/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Fartifact.txt",
       context: { agentKey: "agent-1", chatId: "chat-1", artifactId: "artifact-1" },
     });
     expect(buildDesktopWorkPanelDescriptor({
@@ -212,16 +246,28 @@ describe("canonical independent Surface targets", () => {
       agentKey: "agent-1",
       chatId: "chat-1",
       referenceId: "reference-1",
-      preview: {
+      resourceTarget: {
+        type: "resource",
         name: "reference.pdf",
         url: "references/reference.pdf",
         downloadUrl: "",
-        kind: "pdf",
+        contentKind: "pdf",
       },
     })).toMatchObject({
       module: "reference",
-      route: "/resource-view/agent-1?chatId=chat-1&file=references%2Freference.pdf",
+      route: "/resource-viewer/agent-1?chatId=chat-1&file=references%2Freference.pdf",
       context: { agentKey: "agent-1", chatId: "chat-1", referenceId: "reference-1" },
+    });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
+      kind: "file",
+      agentKey: "agent-1",
+      path: "/Users/demo/project/src/app.ts",
+      line: 12,
+    })).toMatchObject({
+      module: "file",
+      route: "/file-viewer/agent-1?path=%2FUsers%2Fdemo%2Fproject%2Fsrc%2Fapp.ts&line=12",
+      context: { agentKey: "agent-1", path: "/Users/demo/project/src/app.ts" },
     });
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
@@ -229,15 +275,16 @@ describe("canonical independent Surface targets", () => {
       agentKey: "agent-1",
       chatId: "chat-1",
       file: "artifacts/run-1/archive.zip",
-      preview: {
+      resourceTarget: {
+        type: "resource",
         name: "archive.zip",
         url: "artifacts/run-1/archive.zip",
         downloadUrl: "artifacts/run-1/archive.zip",
-        kind: "unsupported",
+        contentKind: "unsupported",
       },
     })).toMatchObject({
       module: "artifact",
-      route: "/resource-view/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Farchive.zip",
+      route: "/resource-viewer/agent-1?chatId=chat-1&file=artifacts%2Frun-1%2Farchive.zip",
       context: {
         agentKey: "agent-1",
         chatId: "chat-1",
@@ -291,16 +338,39 @@ describe("canonical independent Surface targets", () => {
     },
   );
 
+  it("opens Desktop File through WorkPanel without worker workspace metadata", () => {
+    const openDescriptor = jest.fn(async () => ({ ok: true }));
+    const onError = jest.fn();
+    expect(openDesktopWorkPanelTarget({
+      intent: {
+        version: 1,
+        kind: "file",
+        agentKey: "agent-1",
+        path: "/Users/demo/project/README.md",
+      },
+      workPanel: { openDescriptor },
+      onError,
+    })).toBe(true);
+    expect(openDescriptor).toHaveBeenCalledWith({
+      kind: "webclient",
+      module: "file",
+      route: "/file-viewer/agent-1?path=%2FUsers%2Fdemo%2Fproject%2FREADME.md",
+      context: { agentKey: "agent-1", path: "/Users/demo/project/README.md" },
+    });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["artifact", "artifactId"],
     ["reference", "referenceId"],
   ] as const)("opens Desktop %s through Resource WorkPanel before loading", (kind, identityKey) => {
     const openDescriptor = jest.fn(async () => ({ ok: true }));
-    const preview = {
+    const resourceTarget = {
+      type: "resource" as const,
       name: `${kind}.txt`,
       url: `${kind}s/run-1/${kind}.txt`,
       downloadUrl: "",
-      kind: "text" as const,
+      contentKind: "text" as const,
     };
     const intent = {
       version: 1 as const,
@@ -308,12 +378,12 @@ describe("canonical independent Surface targets", () => {
       agentKey: "agent-1",
       chatId: "chat-1",
       [identityKey]: `${kind}-1`,
-      preview,
+      resourceTarget,
     };
     expect(openDesktopWorkPanelTarget({ intent, workPanel: { openDescriptor } })).toBe(true);
     expect(openDescriptor).toHaveBeenCalledWith(expect.objectContaining({
       module: kind,
-      route: expect.stringMatching(/^\/resource-view\/agent-1\?/),
+      route: expect.stringMatching(/^\/resource-viewer\/agent-1\?/),
     }));
   });
 
@@ -327,6 +397,24 @@ describe("canonical independent Surface targets", () => {
     expect(normalizeProjectRelativePath("../secret")).toBe("");
   });
 
+  it("normalizes only structural details of Platform File request paths", () => {
+    expect(normalizeWorkspaceFileRequestPath("src/app.ts")).toBe("src/app.ts");
+    expect(normalizeWorkspaceFileRequestPath("../outside.txt")).toBe("../outside.txt");
+    expect(normalizeWorkspaceFileRequestPath("/Users/demo/project/src/app.ts")).toBe(
+      "/Users/demo/project/src/app.ts",
+    );
+    expect(normalizeWorkspaceFileRequestPath("C:\\Users\\demo\\app.ts")).toBe(
+      "C:/Users/demo/app.ts",
+    );
+    expect(normalizeWorkspaceFileRequestPath("\\\\server\\share\\app.ts")).toBe(
+      "//server/share/app.ts",
+    );
+    expect(normalizeWorkspaceFileRequestPath(" file with spaces ")).toBe(" file with spaces ");
+    expect(normalizeWorkspaceFileRequestPath("bad\u0000path")).toBe("");
+    expect(normalizeWorkspaceFileRequestPath("\n/etc/hosts")).toBe("");
+    expect(normalizeWorkspaceFileRequestPath("a".repeat(2_049))).toBe("");
+  });
+
   it("round-trips every canonical route through the strict parser", () => {
     const intents = [
       { kind: "overview", chatId: "chat-1" },
@@ -335,7 +423,7 @@ describe("canonical independent Surface targets", () => {
       { kind: "source", chatId: "chat-1", sourceId: "src-1", chunkId: "chunk-1" },
       { kind: "planning", chatId: "chat-1", planningId: "plan-1" },
       { kind: "resource", agentKey: "agent-1", chatId: "chat-1", file: "/resources/art-1.txt" },
-      { kind: "file", agentKey: "agent-1", path: "src/app.ts", line: 4 },
+      { kind: "file", agentKey: "agent-1", path: "/Users/demo/project/src/app.ts", line: 4 },
       { kind: "project", agentKey: "agent-1", chatId: "chat-1", runId: "run-1", path: "src/app.ts", view: "diff" },
       { kind: "terminal", agentKey: "agent-1", terminalKey: "main" },
       { kind: "agent", agentKey: "agent-1", chatId: "chat-1" },

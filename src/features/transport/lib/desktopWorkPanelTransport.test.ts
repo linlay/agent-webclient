@@ -31,7 +31,7 @@ describe("DesktopWorkPanelTransport", () => {
     await expect(transport.openDescriptor({
       kind: "webclient",
       module: "planning",
-      route: "/planning-view/agent-1?chatId=chat-1&planningId=planning-1",
+      route: "/planning-viewer/agent-1?chatId=chat-1&planningId=planning-1",
       context: { agentKey: "agent-1", chatId: "chat-1", planningId: "planning-1" },
     })).rejects.toMatchObject({ code: "capability_denied" });
   });

@@ -14,7 +14,7 @@ WebClient 已消费 canonical generated Desktop contract，通过固定只读全
 ## 核心流程
 Provider 在 Desktop Frame Port 结构和 transport version 有效时渲染页面。surface/capability denial 作为相同 request id 的标准 Platform error 留在具体操作中。`WsClient` 通过 socket factory 复用 Standalone parser；WorkPanel 保持独立 `getCapabilities()` 宿主查询和逐请求授权，只接收 canonical descriptor，失败时不调用 `window.open` 或旧 Action。
 
-Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。Desktop WorkPanel 为 Overview、Debug、BTW、Source、Planning、Artifact、Reference、File、Project 分别使用判别式 context 和 canonical 路由，不共享全可选 context。只有激活的 Main Chat 或 BTW 子 Surface 可以发送 `/api/btw`/BTW attach，BTW 子 Surface 不能发送 `/api/query`；其他独立 Surface 只做 chat replay 或文件读取。
+Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。Desktop WorkPanel 为 Overview、Debug、BTW、Source、Planning、Artifact、Reference、File、Project 分别使用判别式 context 和 canonical 路由，不共享全可选 context。File descriptor 保留用户请求的相对或绝对路径，不依赖 `currentWorker.workspaceDir` 做打开前判权；Artifact/Reference 保留各自 module/context，但共用 Resource route。Bridge 只负责先打开面板，随后由面板通过 `/api/file` 或 `/api/resource` 请求 Platform。只有激活的 Main Chat 或 BTW 子 Surface 可以发送 `/api/btw`/BTW attach，BTW 子 Surface 不能发送 `/api/query`；其他独立 Surface 只做 chat replay 或文件读取。
 
 Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或旧 Program manifest 都必须稳定阻断，不安装旧 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚；Desktop 按钮与 WebClient 顶栏入口归属变更也必须原子交付，不能发布重复入口或无入口的混合版本。
 
@@ -27,7 +27,7 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 - Desktop 负责把 WebView 容器铺满主内容区，WebClient 的独立管理路由负责用页面布局填满 guest viewport；宿主不得注入 CSS 修补 guest 页面高度。
 - Desktop 的 Main Chat WorkPanel 按钮、presentation visibility 和 hide/show 语义属于宿主；WebClient 不维护 workspace/tab/visible 状态，也不借 Copilot Dock 代替该入口。
 - Program Bundle 的静态托管由 Desktop main process 负责，不在前端启动服务。
-- 宿主 API 的权限和文件系统访问由 Desktop 端控制。
+- File、Artifact 与 Reference 的 Workspace、ChatScope、canonical path、symlink 和越界访问权限以 Platform 为唯一权威；WebClient 与 Desktop 仅做 descriptor/URL 结构校验，不复制权限规则。
 - `identity-center` 是 Desktop 侧的 token 签发基础，不作为 webclient 与 Desktop 的 postMessage 协议名称。
 
 ## Desktop 原生右键语义 v1
