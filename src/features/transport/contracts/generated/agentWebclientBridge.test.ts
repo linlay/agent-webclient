@@ -6,6 +6,8 @@ import {
   AGENT_WEBCLIENT_PLATFORM_WS_GLOBAL,
   AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL,
+  AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
+  AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
 } from "./agentWebclientBridge";
 
 describe("generated Agent WebClient bridge contract", () => {
@@ -19,11 +21,15 @@ describe("generated Agent WebClient bridge contract", () => {
     expect(AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL).toBe(
       "__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__",
     );
+    expect(AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION).toBe(
+      "workPanel.resource.downloadCurrent",
+    );
+    expect(AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION).toBe(1);
     expect(source).toContain(
-      "sha256:3d1a8f85397bacf803ddce187f6ee67590ab4ebb682bb1dfba4220a3921506d3",
+      "sha256:52f2b663f89e5f18ae762d90b66bc03c3afe9fe8ea6613c1fc7749d23f0ca6ea",
     );
     expect(createHash("sha256").update(source).digest("hex")).toBe(
-      "930950ad4698a2b007ebe1438f593399912f5886137cd89ff86143ba78e39d22",
+      "70e12abeeef85a739ce0a95e17b1c5547da97b9c8df2bce3863ed082e96d8282",
     );
   });
 });

@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:3d1a8f85397bacf803ddce187f6ee67590ab4ebb682bb1dfba4220a3921506d3
+// sha256:52f2b663f89e5f18ae762d90b66bc03c3afe9fe8ea6613c1fc7749d23f0ca6ea
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -15,6 +15,14 @@ export const AGENT_WEBCLIENT_PLATFORM_WS_GLOBAL =
   "__AGENT_WEBCLIENT_PLATFORM_WS__" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL =
   "__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__" as const;
+export const AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION =
+  "workPanel.resource.downloadCurrent" as const;
+export const AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION = 1 as const;
+
+export type AgentWebclientWorkPanelResourceDownloadAction = {
+  action: typeof AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION;
+  version: typeof AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION;
+};
 
 export const AGENT_WEBCLIENT_PLATFORM_WS_OPEN_CHANNEL =
   "agentWebclient.platformWs.open" as const;

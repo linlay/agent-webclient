@@ -41,6 +41,7 @@ export const ResourceViewerPage: React.FC = () => {
       {target ? (
         <ContentViewerPanel
           target={target}
+          enableDesktopCurrentResourceDownload
           surfaceContext={{ chatId, teamChat: false }}
         />
       ) : null}

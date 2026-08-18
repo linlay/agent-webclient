@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
+import {
+  AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
+  AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
+} from "@/features/transport/contracts/generated/agentWebclientBridge";
 
 export const SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL =
   "desktop:service-webview:action";
@@ -44,6 +48,7 @@ type DesktopContextMenuWindow = Window & typeof globalThis & {
 };
 
 const targets = new WeakMap<Element, DesktopContextMenuTargetDescriptor>();
+let currentResourceDownloadHandler: (() => void | Promise<void>) | null = null;
 
 const CAPABILITY_BY_COMMAND: Record<DesktopContextMenuCommand, string> = {
   "copy-content": "content.copy",
@@ -102,6 +107,31 @@ export function useDesktopContextMenuTarget<T extends Element = HTMLElement>(
 
   useEffect(() => () => cleanupRef.current?.(), []);
   return ref;
+}
+
+export function useDesktopCurrentResourceDownload(
+  handler: (() => void | Promise<void>) | null,
+) {
+  const handlerRef = useRef(handler);
+  const enabled = handler !== null;
+  handlerRef.current = handler;
+
+  useEffect(() => {
+    if (!enabled) return;
+    const registeredHandler = () => handlerRef.current?.();
+    return registerDesktopCurrentResourceDownload(registeredHandler);
+  }, [enabled]);
+}
+
+export function registerDesktopCurrentResourceDownload(
+  handler: () => void | Promise<void>,
+) {
+  currentResourceDownloadHandler = handler;
+  return () => {
+    if (currentResourceDownloadHandler === handler) {
+      currentResourceDownloadHandler = null;
+    }
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -195,6 +225,13 @@ export function initializeDesktopContextMenuBridge() {
       if (!isRecord(value)) return;
       if (value.action === "contextMenu.resolve") handleResolve(value);
       if (value.action === "contextMenu.execute") handleExecute(value);
+      if (
+        value.action === AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION &&
+        value.version === AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION &&
+        currentResourceDownloadHandler
+      ) {
+        void Promise.resolve(currentResourceDownloadHandler()).catch(() => undefined);
+      }
     },
   );
   return typeof maybeUnsubscribe === "function"

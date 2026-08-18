@@ -18,7 +18,7 @@ const desktopMirrorPath = configuredDesktopMirror
     );
 
 const vendored = fs.readFileSync(vendoredPath, "utf8");
-const expectedMirrorHash = "930950ad4698a2b007ebe1438f593399912f5886137cd89ff86143ba78e39d22";
+const expectedMirrorHash = "70e12abeeef85a739ce0a95e17b1c5547da97b9c8df2bce3863ed082e96d8282";
 const actualHash = crypto.createHash("sha256").update(vendored).digest("hex");
 
 if (actualHash !== expectedMirrorHash) {

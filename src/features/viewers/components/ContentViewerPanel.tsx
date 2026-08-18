@@ -18,7 +18,10 @@ import { t } from "@/shared/i18n";
 import { Image, message } from "antd";
 import { useAppState } from "@/app/state/AppContext";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
-import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import {
+  useDesktopContextMenuTarget,
+  useDesktopCurrentResourceDownload,
+} from "@/shared/data/desktop/desktopContextMenu";
 
 const CONTENT_VIEWER_PANEL_CLASS_NAME =
   "content-viewer-panel tw:flex tw:h-full tw:flex-col";
@@ -65,6 +68,7 @@ interface ContentViewerPanelProps {
   target: ViewerTarget;
   showLineNumbers?: boolean;
   fullscreenRequest?: number;
+  enableDesktopCurrentResourceDownload?: boolean;
   surfaceContext?: {
     chatId: string;
     teamChat?: boolean;
@@ -133,6 +137,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   target,
   showLineNumbers = false,
   fullscreenRequest,
+  enableDesktopCurrentResourceDownload = false,
   surfaceContext,
 }) => {
   const appState = useAppState();
@@ -194,6 +199,9 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
       );
     }
   }, [chatId, target, teamChat]);
+  useDesktopCurrentResourceDownload(
+    enableDesktopCurrentResourceDownload ? handleDownload : null,
+  );
   const contextTarget = React.useMemo(() => ({
     targetId: `viewer-resource:${contextTargetId}`,
     kind: "chat-resource" as const,

@@ -1,10 +1,15 @@
 import {
   initializeDesktopContextMenuBridge,
+  registerDesktopCurrentResourceDownload,
   registerDesktopContextMenuTarget,
   resolveDesktopContextMenuTargetAt,
   SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL,
   WEBVIEW_CONTEXT_MENU_SEMANTIC_RESPONSE_CHANNEL,
 } from "./desktopContextMenu";
+import {
+  AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
+  AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
+} from "@/features/transport/contracts/generated/agentWebclientBridge";
 
 type FakeElement = {
   parentElement: FakeElement | null;
@@ -164,5 +169,43 @@ describe("Desktop context menu semantic bridge", () => {
     cleanup();
     expect((globalThis.window as unknown as { addEventListener: jest.Mock }).addEventListener)
       .not.toHaveBeenCalled();
+  });
+
+  it("downloads only through the Resource Viewer registered current-target handler", async () => {
+    let hostListener: ((event: unknown, payload: unknown) => void) | undefined;
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        electronAPI: {
+          onFromMain: (_channel: string, listener: typeof hostListener) => {
+            hostListener = listener;
+          },
+        },
+        location: { href: "http://127.0.0.1/ui/" },
+        postMessage: jest.fn(),
+      },
+    });
+    const download = jest.fn(async () => undefined);
+    const unregister = registerDesktopCurrentResourceDownload(download);
+    initializeDesktopContextMenuBridge();
+
+    hostListener?.({}, {
+      action: AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
+      version: AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
+    });
+    await Promise.resolve();
+    expect(download).toHaveBeenCalledTimes(1);
+
+    unregister();
+    hostListener?.({}, {
+      action: AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
+      version: AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
+    });
+    hostListener?.({}, {
+      action: AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
+      version: 999,
+    });
+    await Promise.resolve();
+    expect(download).toHaveBeenCalledTimes(1);
   });
 });
