@@ -565,6 +565,39 @@ describe("WsClient", () => {
 		await expect(promise).resolves.toBeUndefined();
 	});
 
+	it("does not report an anonymous handshake failure as a missing token", async () => {
+		const client = createClient({
+			accessToken: "",
+			allowAnonymous: true,
+		});
+		const promise = client.connect();
+		const socket = MockWebSocket.instances[0];
+
+		socket.error();
+		const error = await promise.catch((reason) => reason as Error);
+
+		expect(error.message).toMatch(/握手失败|handshake failed|断开|disconnected/i);
+		expect(error.message).not.toMatch(/access token|令牌/i);
+	});
+
+	it("prefers and preserves an anonymous pre-open close reason after an error event", async () => {
+		const client = createClient({
+			accessToken: "",
+			allowAnonymous: true,
+		});
+		const promise = client.connect();
+		const socket = MockWebSocket.instances[0];
+
+		socket.error();
+		socket.close(1008, "surface_unavailable");
+		const error = await promise.catch((reason) => reason as Error);
+
+		expect(error).toBeInstanceOf(WsClientDisconnectedError);
+		expect(error).toMatchObject({ code: "WS_DISCONNECTED" });
+		expect(error.message).toContain("surface_unavailable");
+		expect(error.message).not.toMatch(/access token|令牌/i);
+	});
+
 	it("routes stream frames and completes on done", async () => {
 		jest.spyOn(Date, "now").mockReturnValue(1_776_474_697_581);
 		const onEvent = jest.fn();
@@ -1153,9 +1186,7 @@ describe("WsClient", () => {
 		const firstSocket = MockWebSocket.instances[0];
 		firstSocket.close(1008, "token expired");
 
-		await expect(firstConnect).rejects.toThrow(
-			/握手失败|handshake failed|disconnected/i,
-		);
+		await expect(firstConnect).rejects.toThrow(/token expired/i);
 		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
 
 		const secondConnect = client.connect();

@@ -296,6 +296,11 @@ function isTransportDisconnectedMessage(message: string): boolean {
 	);
 }
 
+function readTransportDisconnectReason(message: string): string {
+	const prefix = `${WS_TRANSPORT_DISCONNECTED_MESSAGE}:`;
+	return message.startsWith(prefix) ? message.slice(prefix.length).trim() : "";
+}
+
 function createDisconnectErrorFromClose(
 	event?: Pick<CloseEvent, "code" | "reason">,
 ): WsClientDisconnectedError {
@@ -358,6 +363,10 @@ export function describeWsConnectionFailure(
 	if (rawMessage === WS_HEARTBEAT_TIMEOUT_MESSAGE) {
 		return t("ws.heartbeatTimeout");
 	}
+	const disconnectReason = readTransportDisconnectReason(rawMessage);
+	if (disconnectReason) {
+		return t("ws.connectionFailedWithMessage", { message: disconnectReason });
+	}
 	if (isTransportDisconnectedMessage(rawMessage)) {
 		return t("ws.disconnected");
 	}
@@ -379,6 +388,9 @@ export function toWsConnectionError(
 	const message = describeWsConnectionFailure(error, options);
 	if (error instanceof Error && error.message === message) {
 		return error;
+	}
+	if (error instanceof WsClientDisconnectedError) {
+		return new WsClientDisconnectedError(message);
 	}
 	return new Error(message);
 }
@@ -621,6 +633,16 @@ export class WsClient {
 
 	getStatus(): WsConnectionStatus {
 		return this.status;
+	}
+
+	private hasConnectionCredentials(): boolean {
+		return this.allowAnonymous || Boolean(this.accessToken);
+	}
+
+	private createHandshakeFailure(): Error {
+		return this.allowAnonymous
+			? new WsClientDisconnectedError()
+			: new Error("WebSocket connection failed");
 	}
 
 	async request<T>(opts: {
@@ -866,6 +888,7 @@ export class WsClient {
 			const socket = this.socketFactory(this.buildSocketUrl(this.accessToken));
 			this.socket = socket;
 			let didRetryHandshakeRefresh = false;
+			let deferredAnonymousHandshakeErrorTimer: ReturnType<typeof setTimeout> | null = null;
 			let connectTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
 				connectTimer = null;
 				cleanupBeforeOpen();
@@ -885,13 +908,17 @@ export class WsClient {
 					return;
 				}
 				reject(
-					toWsConnectionError(new Error("WebSocket connection failed"), {
-						hasAccessToken: Boolean(this.accessToken),
+					toWsConnectionError(this.createHandshakeFailure(), {
+						hasAccessToken: this.hasConnectionCredentials(),
 					}),
 				);
 			}, this.connectTimeoutMs);
 
 			const cleanupBeforeOpen = () => {
+				if (deferredAnonymousHandshakeErrorTimer) {
+					clearTimeout(deferredAnonymousHandshakeErrorTimer);
+					deferredAnonymousHandshakeErrorTimer = null;
+				}
 				if (connectTimer) {
 					clearTimeout(connectTimer);
 					connectTimer = null;
@@ -975,7 +1002,7 @@ export class WsClient {
 				resolve();
 			};
 
-			const handleError = () => {
+			const finalizeHandshakeError = () => {
 				cleanupBeforeOpen();
 				const wasCurrentSocket = isCurrentSocket();
 				if (wasCurrentSocket) {
@@ -1008,11 +1035,23 @@ export class WsClient {
 					this.setStatus("error");
 					this.scheduleReconnect();
 					reject(
-						toWsConnectionError(new Error("WebSocket connection failed"), {
-							hasAccessToken: Boolean(this.accessToken),
+						toWsConnectionError(this.createHandshakeFailure(), {
+							hasAccessToken: this.hasConnectionCredentials(),
 						}),
 					);
 				})();
+			};
+
+			const handleError = () => {
+				if (!this.allowAnonymous) {
+					finalizeHandshakeError();
+					return;
+				}
+				if (deferredAnonymousHandshakeErrorTimer) return;
+				deferredAnonymousHandshakeErrorTimer = setTimeout(() => {
+					deferredAnonymousHandshakeErrorTimer = null;
+					finalizeHandshakeError();
+				}, 0);
 			};
 
 			const handleCloseBeforeOpen = (event?: CloseEvent) => {
@@ -1057,8 +1096,8 @@ export class WsClient {
 						this.setStatus("disconnected");
 					}
 					reject(
-						toWsConnectionError(new Error("WebSocket connection failed"), {
-							hasAccessToken: Boolean(this.accessToken),
+						toWsConnectionError(createDisconnectErrorFromClose(event), {
+							hasAccessToken: this.hasConnectionCredentials(),
 						}),
 					);
 				})();
