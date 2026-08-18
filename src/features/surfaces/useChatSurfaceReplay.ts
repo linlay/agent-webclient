@@ -209,7 +209,6 @@ export function useChatSurfaceReplay(input: {
   useEffect(() => {
     if (
       !input.liveRole ||
-      isDesktopAppMode() ||
       status !== "ready" ||
       !snapshot?.activeRun ||
       !snapshot.owner

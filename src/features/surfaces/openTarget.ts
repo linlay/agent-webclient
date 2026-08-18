@@ -197,7 +197,10 @@ export function normalizeProjectRelativePath(
   workspaceDir = "",
 ): string {
   let path = clean(value).replace(/\\/g, "/");
-  const workspace = clean(workspaceDir).replace(/\\/g, "/").replace(/\/$/, "");
+  const configuredWorkspace = clean(workspaceDir).replace(/\\/g, "/").replace(/\/$/, "");
+  const workspace = configuredWorkspace || (
+    path === "/workspace" || path.startsWith("/workspace/") ? "/workspace" : ""
+  );
   const absolute = path.startsWith("/") || /^[a-z]:\//i.test(path) || path.startsWith("//");
   if (absolute) {
     if (!workspace || (path !== workspace && !path.startsWith(`${workspace}/`))) return "";
@@ -238,8 +241,23 @@ export function buildDesktopWorkPanelDescriptor(
   }
 
   const route = buildStandaloneOpenTargetUrl(intent, currentSearch);
+  if (!route) return null;
+
+  if (intent.kind === "planning") {
+    const chatId = clean(intent.chatId);
+    const planningId = clean(intent.planningId);
+    if (!chatId || !planningId) return null;
+    return {
+      kind: "webclient",
+      module: "planning",
+      route,
+      context: { chatId, planningId },
+      ...(intent.label ? { title: intent.label } : {}),
+    };
+  }
+
   const agentKey = clean(intent.agentKey);
-  if (!route || !agentKey) return null;
+  if (!agentKey) return null;
 
   if (intent.kind === "overview" || intent.kind === "debug") {
     const chatId = clean(intent.chatId);
@@ -279,18 +297,6 @@ export function buildDesktopWorkPanelDescriptor(
         ...(clean(intent.btwId) ? { btwId: clean(intent.btwId) } : {}),
       },
       ...(intent.title ? { title: intent.title } : {}),
-    };
-  }
-  if (intent.kind === "planning") {
-    const chatId = clean(intent.chatId);
-    const planningId = clean(intent.planningId);
-    if (!chatId || !planningId) return null;
-    return {
-      kind: "webclient",
-      module: "planning",
-      route,
-      context: { agentKey, chatId, planningId },
-      ...(intent.label ? { title: intent.label } : {}),
     };
   }
   if (intent.kind === "resource") {

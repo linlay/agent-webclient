@@ -218,10 +218,21 @@ describe("canonical independent Surface targets", () => {
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
       kind: "planning",
-      agentKey: "agent-1",
       chatId: "chat-1",
       planningId: "planning-1",
-    })).toMatchObject({ module: "planning", context: { planningId: "planning-1" } });
+      label: "Implementation plan",
+    })).toEqual({
+      kind: "webclient",
+      module: "planning",
+      route: "/planning-viewer/planning-1?chatId=chat-1",
+      context: { chatId: "chat-1", planningId: "planning-1" },
+      title: "Implementation plan",
+    });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
+      kind: "overview",
+      chatId: "chat-1",
+    })).toBeNull();
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
       kind: "artifact",
@@ -324,6 +335,17 @@ describe("canonical independent Surface targets", () => {
       route: "/project/coder?chatId=chat-1&runId=run-1&path=src%2Fapp.ts&view=diff",
       context: { agentKey: "coder", chatId: "chat-1", runId: "run-1", path: "src/app.ts" },
     });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
+      kind: "file-diff",
+      agentKey: "coder",
+      chatId: "chat-1",
+      runId: "run-1",
+      relativePath: "/workspace/src/app.ts",
+    })).toMatchObject({
+      module: "file-diff",
+      context: { agentKey: "coder", chatId: "chat-1", runId: "run-1", path: "src/app.ts" },
+    });
   });
 
   it.each(["overview", "debug"] as const)(
@@ -337,6 +359,27 @@ describe("canonical independent Surface targets", () => {
       expect(openDescriptor).toHaveBeenCalledWith(expect.objectContaining({ module: kind }));
     },
   );
+
+  it("opens Desktop Planning through WorkPanel without an agent identity", () => {
+    const openDescriptor = jest.fn(async () => ({ ok: true }));
+    expect(openDesktopWorkPanelTarget({
+      intent: {
+        version: 1,
+        kind: "planning",
+        chatId: "team-chat-1",
+        planningId: "planning-1",
+        label: "Team plan",
+      },
+      workPanel: { openDescriptor },
+    })).toBe(true);
+    expect(openDescriptor).toHaveBeenCalledWith({
+      kind: "webclient",
+      module: "planning",
+      route: "/planning-viewer/planning-1?chatId=team-chat-1",
+      context: { chatId: "team-chat-1", planningId: "planning-1" },
+      title: "Team plan",
+    });
+  });
 
   it("opens Desktop File through WorkPanel without worker workspace metadata", () => {
     const openDescriptor = jest.fn(async () => ({ ok: true }));

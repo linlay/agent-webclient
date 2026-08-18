@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:c479d674e7b697cdabf3b5e44ad0e0230795afda7e7b97b75f0e538ef9101c84
+// sha256:dc43c1f46783295d3ee3d05513748d7b5290d3ea55a2c1f796f474cc27e23856
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -190,7 +190,7 @@ export type WorkPanelSourceContext = WorkPanelChatContext & {
   publishId: string;
   sourceId: string;
 };
-export type WorkPanelPlanningContext = WorkPanelChatContext & { planningId: string };
+export type WorkPanelPlanningContext = { chatId: string; planningId: string };
 export type WorkPanelArtifactContext = WorkPanelChatContext & { artifactId: string };
 export type WorkPanelReferenceContext = WorkPanelChatContext & { referenceId: string };
 export type WorkPanelFileContext = { agentKey: string; path: string };
