@@ -49,7 +49,7 @@
 }
 
 .command-modal.is-automation-console .ant-modal-body {
-    height: min(76vh, 720px);
+    height: 70vh;
     overflow: hidden;
 }
 
