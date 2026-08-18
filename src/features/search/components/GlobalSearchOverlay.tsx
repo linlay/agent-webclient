@@ -153,6 +153,7 @@ export const GlobalSearchOverlay: React.FC = () => {
       setGlobalRemoteState(null);
       return;
     }
+    window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
     searchInputRef.current?.focus();
     searchInputRef.current?.select();
   }, [isOpen]);

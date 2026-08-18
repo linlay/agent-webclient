@@ -240,7 +240,11 @@ export function createAgent(
 	params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return createAgentHttp(params).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -249,7 +253,11 @@ export function updateAgent(
 	params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return updateAgentHttp(params).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -258,7 +266,11 @@ export function updateAgentName(
 	params: UpdateAgentNameRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return updateAgentNameHttp(params).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -271,7 +283,11 @@ export function updateAgentModelConfig(
 		params,
 		() => updateAgentModelConfigHttp(params),
 	).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -281,6 +297,7 @@ export function deleteAgent(
 ): Promise<ApiResponse<DeleteAgentResponse>> {
 	return deleteAgentHttp(params).then((response) => {
 		invalidateRouteEndpoints(
+			dataEndpoints.agent,
 			dataEndpoints.agents,
 			dataEndpoints.chats,
 			dataEndpoints.modelOptions,

@@ -582,7 +582,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
   const appContext = useOptionalAppContext();
   const { t, locale } = useI18n();
   const openTarget = useOpenTarget();
-  const terminalAgentStatuses = useTerminalAgentStatuses();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const isGlobalSearchOpen = useGlobalSearchOpen();
@@ -603,13 +602,14 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
     isMainChatRunning,
   );
   const currentWorker = resolveCurrentWorkerSummary(state);
+  const desktopMode = isDesktopAppMode();
+  const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
+  const terminalAgentStatuses = useTerminalAgentStatuses(showTerminalButton);
   const voiceEnabled = isVoiceEnabled();
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
-  const desktopMode = isDesktopAppMode();
   const hideDesktopAgentActions = desktopMode && surface === "agent";
-  const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
   const showProjectButton = !desktopMode && (
     isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker)
   );

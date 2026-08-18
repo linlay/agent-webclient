@@ -168,6 +168,8 @@ const { getAgent } = jest.requireMock(
   getAgent: jest.Mock;
 };
 
+const refreshWorkerData = jest.fn(() => Promise.resolve());
+
 const flushPromises = async () => {
   await Promise.resolve();
 };
@@ -234,6 +236,8 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
+    useAppRuntimes.mockReturnValue({ refreshWorkerData });
+    refreshWorkerData.mockClear();
     getAgent.mockReset();
     getAgent.mockResolvedValue({
       data: {
@@ -270,6 +274,9 @@ describe("AgentChatShell", () => {
     expect(html).toContain("Loading agent");
     expect(html).not.toContain("conversation-stage");
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+    expect(useAppRuntimes).toHaveBeenCalledWith({
+      initialWorkerRefreshEnabled: false,
+    });
   });
 
   it("hydrates an unknown route agent before route activation", async () => {

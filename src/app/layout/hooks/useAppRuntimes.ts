@@ -12,16 +12,23 @@ import { useVoiceRuntime } from "@/features/voice/hooks/useVoiceRuntime";
 import { useWorkerData } from "@/features/workers/hooks/useWorkerData";
 import { useWorkerConversationSelection } from "@/features/workers/hooks/useWorkerConversationSelection";
 
-export function useAppRuntimes(): void {
+export interface UseAppRuntimesOptions {
+  initialWorkerRefreshEnabled?: boolean;
+}
+
+export function useAppRuntimes(
+  options: UseAppRuntimesOptions = {},
+): ReturnType<typeof useWorkerData> {
   useMainChatRunActivation();
   const { handleEvent } = useConversationEventHandler();
   useConversationWsRuntime({ onAgentEvent: handleEvent });
   const conversationActions = useConversationActions();
   useDesktopLiveSurfaceRecovery(conversationActions.loadChat);
   const { selectWorkerConversation } = useWorkerConversationSelection(conversationActions);
-  useWorkerData({
+  const workerData = useWorkerData({
     loadChat: conversationActions.loadChat,
     selectWorkerConversation,
+    initialRefreshEnabled: options.initialWorkerRefreshEnabled,
   });
   useChatReadSync();
   useMessageActions({ onAgentEvent: handleEvent });
@@ -29,4 +36,5 @@ export function useAppRuntimes(): void {
   useVoiceRuntime();
   useVoiceChatRuntime({ onAgentEvent: handleEvent });
   useMemoryRecordsInitialization();
+  return workerData;
 }

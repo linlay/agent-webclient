@@ -292,7 +292,9 @@ export const AgentChatShell: React.FC = () => {
   const hasVisibleConversationContent =
     state.timelineOrder.length > 0 || state.streaming || Boolean(state.runId);
 
-  useAppRuntimes();
+  const { refreshWorkerData } = useAppRuntimes({
+    initialWorkerRefreshEnabled: false,
+  });
 
   useEffect(() => {
     stateRef.current = state;
@@ -563,15 +565,20 @@ export const AgentChatShell: React.FC = () => {
       setRemoteHistoryRows(null);
       setHistoryIndex(currentChatIndex >= 0 ? currentChatIndex : 0);
 
-      const worker =
-        stateRef.current.workerIndexByKey.get(normalizedWorkerKey) ||
-        stateRef.current.workerRows.find(
-          (item) => item.key === normalizedWorkerKey,
-        );
-      if (!worker) return;
-
-      void getChats(worker.type === "agent" ? { agentKey: worker.sourceId } : undefined)
+      void refreshWorkerData()
+        .then(() => {
+          const worker =
+            stateRef.current.workerIndexByKey.get(normalizedWorkerKey) ||
+            stateRef.current.workerRows.find(
+              (item) => item.key === normalizedWorkerKey,
+            );
+          if (!worker) return null;
+          return getChats(
+            worker.type === "agent" ? { agentKey: worker.sourceId } : undefined,
+          );
+        })
         .then((response) => {
+          if (!response) return;
           const fetchedChats = (
             Array.isArray(response.data) ? response.data : []
           ) as Chat[];
@@ -585,7 +592,7 @@ export const AgentChatShell: React.FC = () => {
           });
         });
     },
-    [dispatch, workerChatsByKey],
+    [dispatch, refreshWorkerData, workerChatsByKey],
   );
 
   useDesktopActionForAgentPage({

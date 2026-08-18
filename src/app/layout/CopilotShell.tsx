@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -6,6 +6,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import type { Agent } from "@/app/state/types";
 import {
   resolveStatusPillClassName,
   resolveTopNavStatus,
@@ -29,6 +30,8 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { getAgent } from "@/shared/data";
+import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 
 const COPILOT_SHELL_CLASS =
   "app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-bg-base tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0";
@@ -201,21 +204,18 @@ export const CopilotShell: React.FC = () => {
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const lastRouteTargetKeyRef = useRef("");
+  const agentsRef = useRef(state.agents);
+  const [routeAgentHydratedKey, setRouteAgentHydratedKey] = useState("");
   const requestedAgentKey = useMemo(
     () => normalizeRouteValue(params.agentKey),
     [params.agentKey],
   );
   const resolvedAgentKey = useMemo(() => {
+    if (requestedAgentKey) {
+      return requestedAgentKey;
+    }
     const agents = Array.isArray(state.agents) ? state.agents : [];
     if (agents.length === 0) return "";
-
-    if (requestedAgentKey) {
-      const matched = agents.find(
-        (agent) => normalizeRouteValue(agent?.key) === requestedAgentKey,
-      );
-      if (matched?.key) return normalizeRouteValue(matched.key);
-    }
-
     return normalizeRouteValue(agents[0]?.key);
   }, [requestedAgentKey, state.agents]);
   const routeChatId = useMemo(
@@ -227,7 +227,52 @@ export const CopilotShell: React.FC = () => {
     return `${location.pathname}${currentSearch ? `?${currentSearch}` : ""}`;
   }, [location.pathname, searchParams]);
 
-  useAppRuntimes();
+  useAppRuntimes({
+    initialWorkerRefreshEnabled: !requestedAgentKey,
+  });
+
+  useEffect(() => {
+    agentsRef.current = state.agents;
+  }, [state.agents]);
+
+  useEffect(() => {
+    if (!requestedAgentKey) {
+      return;
+    }
+
+    let cancelled = false;
+    void getAgent(requestedAgentKey)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+        const payload = (response.data || {}) as unknown as Partial<Agent>;
+        const resolvedKey =
+          normalizeRouteValue(payload.key) || requestedAgentKey;
+        dispatch({
+          type: "SET_AGENTS",
+          agents: upsertAgentSummary(agentsRef.current, {
+            ...payload,
+            key: resolvedKey,
+          }),
+        });
+        setRouteAgentHydratedKey(requestedAgentKey);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[loadAgent error] ${(error as Error).message}`,
+        });
+        setRouteAgentHydratedKey(requestedAgentKey);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, requestedAgentKey]);
 
   useEffect(() => {
     if (!resolvedAgentKey) {
@@ -394,7 +439,9 @@ export const CopilotShell: React.FC = () => {
         <div className={COPILOT_SHELL_CLASS} id="app">
           <CopilotTopBar />
           <ConversationStage showEmptyState={false} />
-          <BottomDock mode="copilot" />
+          {(!requestedAgentKey || routeAgentHydratedKey === requestedAgentKey) && (
+            <BottomDock mode="copilot" />
+          )}
           <ShellOverlays
             commandOverlayVariant="copilot"
             settingsOverlayVariant="copilot"

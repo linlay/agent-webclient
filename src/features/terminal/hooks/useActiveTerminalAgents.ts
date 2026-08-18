@@ -23,7 +23,7 @@ export {
   type TerminalStatusSession,
 } from "@/features/terminal/lib/terminalStatusActivity";
 
-export function useTerminalAgentStatuses(): ReadonlyMap<
+export function useTerminalAgentStatuses(enabled = true): ReadonlyMap<
   string,
   TerminalAgentTerminalStatus
 > {
@@ -38,6 +38,10 @@ export function useTerminalAgentStatuses(): ReadonlyMap<
   );
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const unsubscribe = subscribeTerminalActivity((next) => {
       setAgentStatuses(new Map(next));
     });
@@ -50,7 +54,7 @@ export function useTerminalAgentStatuses(): ReadonlyMap<
       unsubscribeStatus?.();
       unsubscribe();
     };
-  }, [terminal]);
+  }, [enabled, terminal]);
 
   return agentStatuses;
 }

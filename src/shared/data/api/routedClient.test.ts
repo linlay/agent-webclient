@@ -95,16 +95,43 @@ describe("routedClient capability routing", () => {
 		expect(mockGetAgents).not.toHaveBeenCalled();
 	});
 
-	it("routes agent detail over WS with the registered payload", async () => {
+	it("routes agent detail over WS with cached request dedupe", async () => {
 		mockRequestPlatformData.mockResolvedValue(ok({ key: "demo-agent" }));
 		const routed = await import("./routedClient");
 
-		await routed.getAgent("demo-agent");
+		const [first, second] = await Promise.all([
+			routed.getAgent("demo-agent"),
+			routed.getAgent("demo-agent"),
+		]);
+		const third = await routed.getAgent("demo-agent");
 
+		expect(first).toEqual(second);
+		expect(third.data).toEqual({ key: "demo-agent" });
+		expect(mockRequestPlatformData).toHaveBeenCalledTimes(1);
 		expect(mockRequestPlatformData).toHaveBeenCalledWith("/api/agent", {
 			agentKey: "demo-agent",
 		});
 		expect(mockGetAgent).not.toHaveBeenCalled();
+	});
+
+	it("dedupes only concurrent chat detail requests", async () => {
+		mockRequestPlatformData.mockResolvedValue(ok({ chatId: "chat-1" }));
+		const routed = await import("./routedClient");
+
+		const [first, second] = await Promise.all([
+			routed.getChat("chat-1", false),
+			routed.getChat("chat-1", false),
+		]);
+		const refreshed = await routed.getChat("chat-1", false);
+
+		expect(first).toEqual(second);
+		expect(refreshed.data).toEqual({ chatId: "chat-1" });
+		expect(
+			mockRequestPlatformData.mock.calls.filter(
+				([type]) => type === "/api/chat",
+			),
+		).toHaveLength(2);
+		expect(mockGetChat).not.toHaveBeenCalled();
 	});
 
 	it("keeps cached payloads independent and preserves invalidation", async () => {
@@ -118,12 +145,17 @@ describe("routedClient capability routing", () => {
 		await routed.getChat("chat-1", true);
 		await routed.getAgents();
 		await routed.getAgents();
+		await routed.getAgent("agent-1");
+		await routed.getAgent("agent-1");
 		await routed.updateAgentName({ agentKey: "agent-1", name: "New name" });
 		await routed.getAgents();
+		await routed.getAgent("agent-1");
 
 		expect(mockRequestPlatformData.mock.calls.filter(([type]) => type === "/api/chat"))
 			.toHaveLength(2);
 		expect(mockRequestPlatformData.mock.calls.filter(([type]) => type === "/api/agents"))
+			.toHaveLength(2);
+		expect(mockRequestPlatformData.mock.calls.filter(([type]) => type === "/api/agent"))
 			.toHaveLength(2);
 		expect(mockUpdateAgentName).toHaveBeenCalledTimes(1);
 	});

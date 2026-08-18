@@ -25,6 +25,10 @@ jest.mock("@/app/layout/hooks/useAppRuntimes", () => ({
   useAppRuntimes: jest.fn(),
 }));
 
+jest.mock("@/shared/data", () => ({
+  getAgent: jest.fn(),
+}));
+
 jest.mock("@/features/timeline/components/ConversationStage", () => ({
   ConversationStage: (props: { showEmptyState?: boolean }) =>
     React.createElement(
@@ -229,6 +233,10 @@ const { useAppRuntimes } = jest.requireMock(
   useAppRuntimes: jest.Mock;
 };
 
+const { getAgent } = jest.requireMock("@/shared/data") as {
+  getAgent: jest.Mock;
+};
+
 const { isDebugPanelEnabled } = jest.requireMock(
   "@/shared/config/featureFlags",
 ) as {
@@ -304,6 +312,8 @@ describe("CopilotShell", () => {
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
+    getAgent.mockReset();
+    getAgent.mockResolvedValue({ data: {} });
     isDebugPanelEnabled.mockReturnValue(true);
   });
 
@@ -337,6 +347,9 @@ describe("CopilotShell", () => {
     expect(html).toContain("command-modal");
     expect(html).toContain('data-variant="copilot"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+    expect(useAppRuntimes).toHaveBeenCalledWith({
+      initialWorkerRefreshEnabled: true,
+    });
   });
 
   it("renders a single-line top bar without voice or mute controls", () => {
@@ -773,7 +786,7 @@ describe("CopilotShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("falls back to the first loaded agent when the copilot path agent is missing", () => {
+  it("keeps the requested route agent when it is not in the worker list", () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -795,18 +808,22 @@ describe("CopilotShell", () => {
 
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:first-agent",
+      workerKey: "agent:missing-agent",
     });
     expect(dispatchEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",
         detail: {
-          agentKey: "first-agent",
+          agentKey: "missing-agent",
           preserveWorkerContext: true,
           focusComposerOnComplete: true,
         },
       }),
     );
+    expect(getAgent).toHaveBeenCalledWith("missing-agent");
+    expect(useAppRuntimes).toHaveBeenCalledWith({
+      initialWorkerRefreshEnabled: false,
+    });
 
     useEffectSpy.mockRestore();
   });

@@ -429,6 +429,7 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
+    cache: { ttlMs: 30_000, dedupe: true },
     payload: (agentKey) => ({ agentKey }),
   }),
   agentSkills: defineEndpoint<string, { agentKey: string }>({
@@ -588,6 +589,7 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
+    cache: { ttlMs: 0, dedupe: true },
     payload: ({ chatId, includeRawMessages }) =>
       compactPayload({
         chatId,
