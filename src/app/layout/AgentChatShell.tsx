@@ -336,11 +336,12 @@ export const AgentChatShell: React.FC = () => {
     };
   }, [agentKey, navigate, searchParams]);
 
+  // In-page actions such as "resend in new chat" do not pass through a
+  // `newChat` URL first, so every live new-chat promotion must converge the
+  // outer route once Platform returns its stable chat id.
   useEffect(() => {
     if (
       !agentKey ||
-      chatId ||
-      !routeNewChatTimestamp ||
       typeof window === "undefined" ||
       typeof window.addEventListener !== "function"
     ) {
@@ -376,7 +377,7 @@ export const AgentChatShell: React.FC = () => {
     return () => {
       window.removeEventListener(NEW_CHAT_CREATED_EVENT, handleNewChatCreated);
     };
-  }, [agentKey, chatId, navigate, routeNewChatTimestamp, searchParams]);
+  }, [agentKey, navigate, searchParams]);
 
   const handleRetryRouteAgent = useCallback(() => {
     routeAgentHydrationFailedRef.current.delete(agentKey);

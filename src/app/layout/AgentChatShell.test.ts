@@ -551,6 +551,45 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
+  it("replaces an existing chat route when resend in new chat gets a stable chat id", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("chatId=chat-old&lang=en"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    const registration = (globalWithDom.window?.addEventListener as jest.Mock).mock.calls.find(
+      ([type]) => type === "agent:new-chat-created",
+    );
+    expect(registration).toBeDefined();
+    const listener = registration?.[1] as EventListener;
+    const NewChatCreatedEvent = globalWithDom.CustomEvent as typeof CustomEvent;
+    listener(
+      new NewChatCreatedEvent("agent:new-chat-created", {
+        detail: { chatId: "chat-new", agentKey: "confirmed-agent" },
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/agent/confirmed-agent?lang=en&chatId=chat-new",
+      { replace: true },
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
   it("builds no resolved route without a stable chat id", () => {
     expect(
       createResolvedNewChatRoute(
