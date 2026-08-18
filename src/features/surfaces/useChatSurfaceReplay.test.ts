@@ -1,6 +1,7 @@
 import type { AgentEvent } from "@/app/state/types";
 import {
   classifyChatSurfaceEvent,
+  resolveChatSurfaceOwner,
   shouldReloadChatSurfaceOnLifecycle,
 } from "@/features/surfaces/useChatSurfaceReplay";
 
@@ -46,5 +47,28 @@ describe("standalone Overview/Debug live replay policy", () => {
     expect(shouldReloadChatSurfaceOnLifecycle(true, false)).toBe(false);
     expect(shouldReloadChatSurfaceOnLifecycle(false, false)).toBe(false);
     expect(shouldReloadChatSurfaceOnLifecycle(false, true)).toBe(true);
+  });
+
+  it("recovers a completed chat owner from the newest persisted run", () => {
+    expect(resolveChatSurfaceOwner({
+      chatId: "chat_1",
+      runs: [
+        { runId: "run_2", agentKey: "agent-latest" },
+        { runId: "run_1", agentKey: "agent-old" },
+      ],
+    }, null)).toEqual({ kind: "agent", agentKey: "agent-latest" });
+  });
+
+  it("keeps active and team ownership ahead of completed-run fallbacks", () => {
+    expect(resolveChatSurfaceOwner({
+      runs: [{ runId: "run_1", agentKey: "agent-old" }],
+    }, {
+      runId: "run_live",
+      agentKey: "agent-live",
+    })).toEqual({ kind: "agent", agentKey: "agent-live" });
+
+    expect(resolveChatSurfaceOwner({
+      runs: [{ runId: "run_team", agentKey: "member", teamId: "team-1" }],
+    }, null)).toEqual({ kind: "orchestrated-team", teamId: "team-1" });
   });
 });

@@ -104,17 +104,27 @@ function cloneReplayState(state: ReplayState): ReplayState {
   };
 }
 
-function resolveSnapshotOwner(
+export function resolveChatSurfaceOwner(
   chat: Record<string, unknown>,
   activeRun: Record<string, unknown> | null,
 ): RunOwner | null {
-  return toRunOwner({
+  const activeOrLegacyOwner = toRunOwner({
     teamId: activeRun?.teamId || chat.teamId,
     agentKey:
       activeRun?.agentKey ||
       chat.firstAgentKey ||
       chat.agentKey,
   });
+  if (activeOrLegacyOwner) return activeOrLegacyOwner;
+
+  // Platform chat details keep completed-run ownership in runs[] rather than
+  // repeating it on the chat object. Runs are ordered newest first.
+  const runs = Array.isArray(chat.runs) ? chat.runs : [];
+  for (const candidate of runs) {
+    const owner = toRunOwner(objectRecord(candidate));
+    if (owner) return owner;
+  }
+  return null;
 }
 
 export function useChatSurfaceReplay(input: {
@@ -161,7 +171,7 @@ export function useChatSurfaceReplay(input: {
         setSnapshot({
           chat,
           projection: replay.state,
-          owner: resolveSnapshotOwner(chat, activeRun),
+          owner: resolveChatSurfaceOwner(chat, activeRun),
           activeRun,
         });
         setStatus("ready");
