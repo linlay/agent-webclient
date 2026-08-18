@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { TimelineSource } from "@/app/state/types";
 import { classifyResourceUrl } from "@/shared/data";
@@ -430,8 +430,14 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
   const dispatch = useAppDispatch();
   const state = useAppState();
   const workPanel = useOptionalWorkPanelTransport();
+  // state 每次 reducer 更新都是新对象；通过 ref 读取最新值，
+  // 让 openTarget 引用保持稳定，避免下游 useCallback/useMemo 链
+  // 在无关状态变化（如 Composer 输入草稿）时整体失效并引发组件 remount。
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   return useCallback((intent) => {
+    const state = stateRef.current;
     if (intent.version !== 1) return false;
     const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
     const desktopMode = isDesktopAppMode();
@@ -528,5 +534,5 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
     if (!url || typeof window === "undefined" || typeof window.open !== "function") return false;
     window.open(url, "_blank", "noopener,noreferrer");
     return true;
-  }, [dispatch, state, workPanel]);
+  }, [dispatch, workPanel]);
 }
