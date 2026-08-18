@@ -1269,7 +1269,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           ref={virtuosoRef}
           data={virtualItems}
           increaseViewportBy={window.innerHeight}
-          followOutput={isAtBottom ? "smooth" : false}
+          followOutput={(atBottom) => (atBottom ? "smooth" : false)}
+          atBottomThreshold={50}
           atBottomStateChange={handleAtBottomStateChange}
           rangeChanged={handleRangeChanged}
           className={VIRTUOSO_CLASS_NAME}
