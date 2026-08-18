@@ -284,12 +284,12 @@ describe("buildDebugEventGroups", () => {
 
 		expect(html).toContain("chat.start");
 		expect(html).toContain("新页面打开 Agent 对话");
-		expect(html).toContain("新页面打开 Copilot 对话");
+		expect(html).toContain("新页面打开副驾对话");
 		expect(html).toContain("Agent");
-		expect(html).toContain("Copilot");
+		expect(html).toContain("副驾");
 		expect(html).toContain("概览");
 		expect(html).toContain("调试");
-		expect(html).toContain("终端面板");
+		expect(html).toContain("终端");
 		expect(html).toContain("分享的对话");
 	});
 });
