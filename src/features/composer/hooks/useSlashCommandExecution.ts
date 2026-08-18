@@ -80,7 +80,7 @@ export function useSlashCommandExecution(input: {
 					openCommandOverlay({ type: "automation" });
 					return;
 				case "history":
-					openTarget({ version: 1, kind: "history" });
+					openCommandOverlay({ type: "history" });
 					return;
 				case "new":
 					resetForNewConversation();

@@ -8,6 +8,7 @@ import {
 
 const mockUiButtonProps: Array<Record<string, any>> = [];
 const mockDiscardBTW = jest.fn();
+const mockOpenCommandOverlay = jest.fn();
 
 jest.mock("react-router-dom", () => ({
   useLocation: jest.fn(),
@@ -166,7 +167,7 @@ jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
   CommandOverlayProvider: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),
   useCommandOverlayActions: () => ({
-    openCommandOverlay: jest.fn(),
+    openCommandOverlay: mockOpenCommandOverlay,
     patchCommandOverlay: jest.fn(),
     closeCommandOverlay: jest.fn(),
   }),
@@ -308,6 +309,7 @@ describe("CopilotShell", () => {
     useNavigate.mockReturnValue(navigate);
     navigate.mockClear();
     mockDiscardBTW.mockReset();
+    mockOpenCommandOverlay.mockReset();
     mockUiButtonProps.length = 0;
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
@@ -367,6 +369,17 @@ describe("CopilotShell", () => {
     expect(html).not.toContain(">call_end<");
     expect(html).not.toContain("volume_up");
     expect(html).not.toContain("volume_off");
+  });
+
+  it("opens current Agent history in the Copilot drawer", () => {
+    renderToStaticMarkup(React.createElement(CopilotShell));
+    const historyButton = mockUiButtonProps.find(
+      (props) => props["aria-label"] === "commandModal.history.title",
+    );
+
+    expect(historyButton).toBeDefined();
+    historyButton?.onClick();
+    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "history" });
   });
 
   it("reserves top-bar space for the Desktop native Copilot close button", () => {

@@ -97,7 +97,7 @@ export const GlobalSearchOverlay: React.FC = () => {
         break;
       case "history":
         handleClose();
-        openTarget({ version: 1, kind: "history" });
+        openCommandOverlay({ type: "history" });
         break;
       case "settings":
         handleClose();

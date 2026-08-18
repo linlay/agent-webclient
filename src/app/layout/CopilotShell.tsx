@@ -29,7 +29,6 @@ import { isSettingsMenuEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { getAgent } from "@/shared/data";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 
@@ -104,7 +103,6 @@ const CopilotTopBar: React.FC = () => {
   const { t } = useI18n();
   const { openOverlay } = useSettingsOverlayActions();
   const { openCommandOverlay } = useCommandOverlayActions();
-  const openTarget = useOpenTarget();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const { statusClass, statusText, statusDetail } = resolveTopNavStatus(state);
   const settingsMenuEnabled = isSettingsMenuEnabled();
@@ -173,7 +171,7 @@ const CopilotTopBar: React.FC = () => {
             iconOnly
             aria-label={t("commandModal.history.title")}
             title={t("commandModal.history.title")}
-            onClick={() => openTarget({ version: 1, kind: "history" })}
+            onClick={() => openCommandOverlay({ type: "history" })}
           >
             <MaterialIcon name="history" />
           </UiButton>
