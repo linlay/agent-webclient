@@ -75,7 +75,8 @@ export type OpenTargetIntent =
   | ({ version: 1; kind: "project"; chatId?: string; runId?: string; path?: string; openFiles?: string[]; view?: "content" | "diff" } & AgentIntent)
   | ({ version: 1; kind: "file-diff"; chatId: string; runId: string; relativePath: string; title?: string } & AgentIntent)
   | { version: 1; kind: "history" }
-  | { version: 1; kind: "web"; url: string; title?: string };
+  | { version: 1; kind: "web"; url: string; title?: string }
+  | { version: 1; kind: "skill"; key: string; label?: string; title?: string };
 
 function clean(value: unknown): string {
   return String(value || "").trim();
@@ -92,7 +93,7 @@ export function normalizeWorkspaceFileRequestPath(value: unknown): string {
 }
 
 function usesAgentIdentity(intent: OpenTargetIntent): intent is OpenTargetIntent & AgentIntent {
-  return intent.kind !== "web" && intent.kind !== "history";
+  return intent.kind !== "web" && intent.kind !== "history" && intent.kind !== "skill";
 }
 
 function resourceRouteIntent(input: {
@@ -115,6 +116,7 @@ function resourceRouteIntent(input: {
 function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteIntent | null {
   if (intent.kind === "web") return { kind: "web", url: intent.url, title: intent.title };
   if (intent.kind === "history") return { kind: "history" };
+  if (intent.kind === "skill") return { kind: "skill", key: clean(intent.key) };
   if (intent.kind === "overview" || intent.kind === "debug") {
     return { kind: intent.kind, chatId: intent.chatId };
   }
@@ -242,6 +244,20 @@ export function buildDesktopWorkPanelDescriptor(
 
   const route = buildStandaloneOpenTargetUrl(intent, currentSearch);
   if (!route) return null;
+
+  if (intent.kind === "skill") {
+    const key = clean(intent.key);
+    if (!key) return null;
+    return {
+      kind: "webclient",
+      module: "skill",
+      route,
+      context: { key },
+      ...(intent.title || intent.label
+        ? { title: intent.title || intent.label }
+        : {}),
+    };
+  }
 
   if (intent.kind === "planning") {
     const chatId = clean(intent.chatId);
@@ -521,6 +537,17 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "web",
           webPreview: { url: normalizedIntent.url, title: normalizedIntent.title || normalizedIntent.url },
+        });
+        return true;
+      }
+      if (normalizedIntent.kind === "skill") {
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "skill",
+          skillPreview: {
+            key: normalizedIntent.key,
+            label: normalizedIntent.label || normalizedIntent.key,
+          },
         });
         return true;
       }

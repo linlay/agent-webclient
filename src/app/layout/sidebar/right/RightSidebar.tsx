@@ -16,6 +16,7 @@ import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
+import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 import { useBTW } from "@/features/btw/components/BtwProvider";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
@@ -119,6 +120,8 @@ export const RightSidebar: React.FC = () => {
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
   const webPreviews = state.webPreviews;
+  const skillTabs = state.skillTabs;
+  const activeSkillKey = state.activeSkillKey;
   const hasBTWSession = Boolean(state.chatId && getSession(state.chatId));
   const debugPanelEnabled = isDebugPanelEnabled();
   const currentChat = state.chats?.find((chat) => chat.chatId === state.chatId);
@@ -148,7 +151,11 @@ export const RightSidebar: React.FC = () => {
                     state.activeWebPreviewUrl ||
                       webPreviews[webPreviews.length - 1].url,
                   )
-                : "overview";
+                : state.rightSidebarOpenTab === "skill" && skillTabs.length > 0
+                  ? `skill:${(activeSkillKey && skillTabs.some((s) => s.key === activeSkillKey)
+                      ? activeSkillKey
+                      : skillTabs[skillTabs.length - 1].key)}`
+                  : "overview";
   const activePanel: RightSidebarTabKey = selectedPanel === "debug"
     ? "debug"
     : selectedPanel.startsWith("viewer:")
@@ -157,7 +164,9 @@ export const RightSidebar: React.FC = () => {
         ? "planningPreview"
         : selectedPanel.startsWith("web:")
           ? "web"
-          : (selectedPanel as RightSidebarTabKey);
+          : selectedPanel.startsWith("skill:")
+            ? "skill"
+            : (selectedPanel as RightSidebarTabKey);
   const activeTab: RightSidebarTabsKey = selectedPanel === "debug"
     ? "overview"
     : selectedPanel;
@@ -237,6 +246,14 @@ export const RightSidebar: React.FC = () => {
           tab: remaining.length > 0 ? "web" : "overview",
           removeWebPreviewUrl: urlToRemove,
         });
+      } else if (typeof key === "string" && key.startsWith("skill:")) {
+        const skillKeyToRemove = key.slice("skill:".length);
+        const remaining = skillTabs.filter((s) => s.key !== skillKeyToRemove);
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: remaining.length > 0 ? "skill" : "overview",
+          removeSkillKey: skillKeyToRemove,
+        });
       } else if (key === "sourceDetail") {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
@@ -252,6 +269,7 @@ export const RightSidebar: React.FC = () => {
       viewerTabs,
       planningPreviews,
       webPreviews,
+      skillTabs,
     ],
   );
 
@@ -452,6 +470,21 @@ export const RightSidebar: React.FC = () => {
       });
     }
 
+    for (const skill of skillTabs) {
+      items.push({
+        key: `skill:${skill.key}`,
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="skills" />
+            <Typography.Text ellipsis className="tw:!max-w-[100px]">
+              {skill.label || skill.key}
+            </Typography.Text>
+          </Flex>
+        ),
+        children: <SkillDetailView skillKey={skill.key} />,
+      });
+    }
+
     return items;
   }, [
     hasBTWSession,
@@ -460,6 +493,7 @@ export const RightSidebar: React.FC = () => {
     planningPreviews,
     t,
     webPreviews,
+    skillTabs,
     state.webPreviewRefreshRevisionByUrl,
     tabFullscreenRequests,
   ]);
@@ -483,6 +517,12 @@ export const RightSidebar: React.FC = () => {
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "web",
           activeWebPreviewUrl: getWebUrlFromTabKey(key),
+        });
+      } else if (key.startsWith("skill:")) {
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "skill",
+          activeSkillKey: key.slice("skill:".length),
         });
       } else {
         dispatch({

@@ -30,6 +30,7 @@ import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
 import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import type { PlanningPreviewState } from "@/app/state/uiTypes";
+import type { SkillViewerState } from "@/app/state/uiTypes";
 import type {
 	MemoryInfoFilters,
 	MemoryConsoleTab,
@@ -162,6 +163,9 @@ export type AppAction =
 			removeWebPreviewUrl?: string;
 			activeViewerKey?: string;
 			activePlanningPreviewNodeId?: string;
+			skillPreview?: SkillViewerState | null;
+			removeSkillKey?: string;
+			activeSkillKey?: string;
 	  }
 	| { type: "REFRESH_WEB_PREVIEW"; url: string }
 	| { type: "CLOSE_WEB_PREVIEW"; url: string }

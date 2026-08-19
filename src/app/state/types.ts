@@ -44,6 +44,7 @@ import type {
 	FileChangeSummary,
 	RightSidebarTabKey,
 	RenderQueue,
+	SkillViewerState,
 	UiTimerHandle,
 	WebPreviewState,
 } from "@/app/state/uiTypes";
@@ -210,6 +211,8 @@ export interface AppState {
 	activeWebPreviewUrl: string;
 	activeViewerKey: string;
 	activePlanningPreviewNodeId: string;
+	skillTabs: SkillViewerState[];
+	activeSkillKey: string;
 	terminalDockOpen: boolean;
 	viewerTabs: ViewerTarget[];
 	artifactExpanded: boolean;

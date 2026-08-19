@@ -8,7 +8,8 @@ export type RightSidebarTabKey =
 	| "viewer"
 	| "sourceDetail"
 	| "planningPreview"
-	| "web";
+	| "web"
+	| "skill";
 
 export interface ResourceFile {
 	mimeType: string;
@@ -37,6 +38,11 @@ export interface PlanningPreviewState {
 export interface WebPreviewState {
 	title: string;
 	url: string;
+}
+
+export interface SkillViewerState {
+	key: string;
+	label: string;
 }
 
 export interface FileChangeSummary {

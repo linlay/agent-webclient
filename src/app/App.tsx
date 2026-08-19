@@ -51,6 +51,7 @@ import {
   OverviewViewerPage,
   PlanningViewerPage,
   ResourceViewerPage,
+  SkillViewerPage,
   SourceViewerPage,
   WebViewerPage,
 } from "./pages/surfaces";
@@ -334,6 +335,14 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.web">
               <WebViewerPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.skill,
+          element: (
+            <DocumentTitleRoute titleKey="route.title.skills">
+              <SkillViewerPage />
             </DocumentTitleRoute>
           ),
         },

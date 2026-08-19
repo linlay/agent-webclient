@@ -202,6 +202,7 @@ export type WorkPanelProjectContext = {
 };
 export type WorkPanelFileDiffContext = WorkPanelChatContext & { runId: string; path: string };
 export type WorkPanelAgentContext = { agentKey: string; chatId?: string };
+export type WorkPanelSkillContext = { key: string };
 
 export type WorkPanelContext =
   | WorkPanelChatContext
@@ -213,7 +214,8 @@ export type WorkPanelContext =
   | WorkPanelFileContext
   | WorkPanelProjectContext
   | WorkPanelFileDiffContext
-  | WorkPanelAgentContext;
+  | WorkPanelAgentContext
+  | WorkPanelSkillContext;
 
 export type WorkPanelWebclientModule =
   | "overview"
@@ -227,7 +229,8 @@ export type WorkPanelWebclientModule =
   | "file"
   | "planning"
   | "agent"
-  | "copilot";
+  | "copilot"
+  | "skill";
 
 type WorkPanelWebclientDescriptorBase = {
   kind: "webclient";
@@ -248,6 +251,7 @@ export type WorkPanelWebclientDescriptor = WorkPanelWebclientDescriptorBase & (
   | { module: "file"; context: WorkPanelFileContext }
   | { module: "planning"; context: WorkPanelPlanningContext }
   | { module: "agent" | "copilot"; context: WorkPanelAgentContext }
+  | { module: "skill"; context: WorkPanelSkillContext }
 );
 
 export type WorkPanelItemDescriptor =

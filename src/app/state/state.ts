@@ -152,6 +152,8 @@ export function createInitialState(): AppState {
 		activeWebPreviewUrl: "",
 		activeViewerKey: "",
 		activePlanningPreviewNodeId: "",
+		skillTabs: [],
+		activeSkillKey: "",
 		terminalDockOpen: restoreTerminalDockOpen(),
 		viewerTabs: [],
 		artifactExpanded: false,

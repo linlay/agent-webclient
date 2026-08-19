@@ -175,6 +175,11 @@ export function reduceUiState(
 				action,
 				"activePlanningPreviewNodeId",
 			);
+			const hasSkillPreview = Object.prototype.hasOwnProperty.call(action, "skillPreview");
+			const removeSkillKey = Object.prototype.hasOwnProperty.call(action, "removeSkillKey")
+				? action.removeSkillKey
+				: undefined;
+			const hasActiveSkillKey = Object.prototype.hasOwnProperty.call(action, "activeSkillKey");
 			let nextViewerTabs = state.viewerTabs;
 			if (removeViewerKey) {
 				nextViewerTabs = nextViewerTabs.filter(
@@ -293,6 +298,37 @@ export function reduceUiState(
 					? requestedActiveUrl
 					: nextActiveWebPreviewUrl;
 			}
+			let nextSkillTabs = state.skillTabs;
+			let nextActiveSkillKey = state.activeSkillKey;
+			if (removeSkillKey) {
+				nextSkillTabs = nextSkillTabs.filter((s) => s.key !== removeSkillKey);
+				if (nextActiveSkillKey === removeSkillKey) {
+					nextActiveSkillKey = nextSkillTabs[nextSkillTabs.length - 1]?.key || "";
+				}
+			} else {
+				const incomingSkillPreview = hasSkillPreview ? action.skillPreview : undefined;
+				if (incomingSkillPreview) {
+					const existingIndex = nextSkillTabs.findIndex(
+						(s) => s.key === incomingSkillPreview.key,
+					);
+					if (existingIndex >= 0) {
+						nextSkillTabs = [...nextSkillTabs];
+						nextSkillTabs[existingIndex] = incomingSkillPreview;
+					} else {
+						nextSkillTabs = [...nextSkillTabs, incomingSkillPreview];
+					}
+					nextActiveSkillKey = incomingSkillPreview.key;
+				} else if (hasSkillPreview) {
+					nextSkillTabs = [];
+					nextActiveSkillKey = "";
+				}
+			}
+			if (hasActiveSkillKey) {
+				const requestedActiveKey = String(action.activeSkillKey || "");
+				if (nextSkillTabs.some((s) => s.key === requestedActiveKey)) {
+					nextActiveSkillKey = requestedActiveKey;
+				}
+			}
 			return {
 				...state,
 				rightSidebarOpen: true,
@@ -308,6 +344,8 @@ export function reduceUiState(
 					: state.activeSourceDetail,
 				activeViewerKey: nextActiveViewerKey,
 				activePlanningPreviewNodeId: nextActivePlanningPreviewNodeId,
+				skillTabs: nextSkillTabs,
+				activeSkillKey: nextActiveSkillKey,
 			};
 		}
 		case "CLOSE_RIGHT_SIDEBAR":

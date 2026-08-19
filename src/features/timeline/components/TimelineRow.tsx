@@ -22,6 +22,7 @@ import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -251,6 +252,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   metaNode,
 }) => {
   const { locale, t } = useI18n();
+  const openTarget = useOpenTarget();
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
   const taskID =
@@ -334,6 +336,14 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                   variant="ghost"
                   className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
                   size="sm"
+                  onClick={() =>
+                    openTarget({
+                      version: 1,
+                      kind: "skill",
+                      key,
+                      label: key,
+                    })
+                  }
                 >
                   <Flex gap={4} align="center">
                     <MaterialIcon

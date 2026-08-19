@@ -52,6 +52,7 @@ import { useComposerHash } from "@/features/composer/hooks/useComposerHash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
 import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
@@ -86,6 +87,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const openTarget = useOpenTarget();
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const isAnyOverlayOpen = isCommandOverlayOpen || isGlobalSearchOpen;
@@ -325,6 +327,18 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       current.filter((item) => item.key.trim().toLowerCase() !== identity),
     );
   }, []);
+
+  const openSkillViewer = useCallback(
+    (skill: ComposerRequiredSkill) => {
+      openTarget({
+        version: 1,
+        kind: "skill",
+        key: skill.key,
+        label: skill.label,
+      });
+    },
+    [openTarget],
+  );
 
   const toggleVoiceMode = useCallback(() => {
     if (!voiceModeAvailable || isMainChatRunning || isFrontendActive) {
@@ -771,7 +785,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                       variant="ghost"
                       className="tw:group tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
                       size="sm"
-                      onClick={() => removeSelectedSkill(skill.key)}
+                      onClick={() => openSkillViewer(skill)}
                     >
                       <Flex gap={4} align="center">
                         <MaterialIcon
@@ -781,6 +795,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                         <MaterialIcon
                           name="close"
                           className="tw:hidden tw:group-hover:inline-flex tw:text-text-muted tw:text-[14px]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSelectedSkill(skill.key);
+                          }}
                         />
                         <span className="tw:text-text-sub">{skill.label}</span>
                       </Flex>
