@@ -24,6 +24,16 @@
     --radius-md: 8px;
     --radius-lg: 12px;
     --radius-xl: 16px;
+    --ui-icon-size-xs: 14px;
+    --ui-icon-size-sm: 16px;
+    --ui-icon-hit-size-xs: 20px;
+    --ui-icon-hit-size-sm: 24px;
+    --ui-control-height-mini: 24px;
+    --ui-control-height-sm: 32px;
+    --ui-control-height-md: 36px;
+    --ui-form-gap: 12px;
+    --ui-section-gap: 16px;
+    --ui-section-padding-start: 14px;
     --tool-pill-scale: 0.86;
     --colorFill: rgba(0, 0, 0, 0.15);
     --colorFillSecondary: rgba(0, 0, 0, 0.06);
@@ -123,14 +133,14 @@ textarea {
 }
 
 .ui-icon-hover-24 {
-    --ui-icon-hover-icon-size: 16px;
-    --ui-icon-hover-bg-size: 24px;
+    --ui-icon-hover-icon-size: var(--ui-icon-size-sm);
+    --ui-icon-hover-bg-size: var(--ui-icon-hit-size-sm);
     --ui-icon-hover-bg-radius: 8px;
 }
 
 .ui-icon-hover-20 {
-    --ui-icon-hover-icon-size: 14px;
-    --ui-icon-hover-bg-size: 20px;
+    --ui-icon-hover-icon-size: var(--ui-icon-size-xs);
+    --ui-icon-hover-bg-size: var(--ui-icon-hit-size-xs);
     --ui-icon-hover-bg-radius: 7px;
 }
 
@@ -234,33 +244,33 @@ button:active {
 }
 
 .ui-btn.ui-btn-mini {
-    min-height: 24px;
-    height: 24px;
+    min-height: var(--ui-control-height-mini);
+    height: var(--ui-control-height-mini);
     padding: 0 8px;
     font-size: 11px;
 }
 
 .ui-btn.ui-btn-mini.is-icon-only {
-    width: 24px;
-    min-width: 24px;
+    width: var(--ui-icon-hit-size-sm);
+    min-width: var(--ui-icon-hit-size-sm);
 }
 
 .ui-btn.ui-btn-sm {
-    min-height: 32px;
+    min-height: var(--ui-control-height-sm);
     padding: 6px 12px;
     font-size: 12px;
 }
 
 .ui-btn.ui-btn-md {
-    min-height: 36px;
+    min-height: var(--ui-control-height-md);
     padding: 8px 14px;
     font-size: 13px;
     font-weight: 600;
 }
 
 .ui-btn.is-icon-only {
-    width: 32px;
-    min-width: 32px;
+    width: var(--ui-control-height-sm);
+    min-width: var(--ui-control-height-sm);
     padding: 0;
 }
 

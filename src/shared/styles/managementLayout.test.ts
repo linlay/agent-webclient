@@ -13,6 +13,20 @@ function readRule(css: string, selector: string): string {
 }
 
 describe("management layout contracts", () => {
+  it("shares icon, control, and form spacing tokens across management pages", () => {
+    const baseCss = readStyle("base.css");
+
+    expect(baseCss).toMatch(/--ui-icon-size-sm:\s*16px;/);
+    expect(baseCss).toMatch(/--ui-icon-hit-size-sm:\s*24px;/);
+    expect(baseCss).toMatch(/--ui-control-height-mini:\s*24px;/);
+    expect(baseCss).toMatch(/--ui-control-height-sm:\s*32px;/);
+    expect(baseCss).toMatch(/--ui-control-height-md:\s*36px;/);
+    expect(baseCss).toMatch(/--ui-form-gap:\s*12px;/);
+    expect(readRule(baseCss, ".ui-icon-hover-24")).toMatch(
+      /var\(--ui-icon-hit-size-sm\)/,
+    );
+  });
+
   it("keeps standalone management consoles at full guest viewport height", () => {
     const workersCss = readStyle("workers.css");
     const pageRule = readRule(workersCss, ".management-page-console");
