@@ -80,7 +80,7 @@ export function resolveStatusPillClassName(
 const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5";
 const TOP_NAV_INNER_CLASS =
   "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center";
-const NAV_GROUP_CLASS = "nav-group tw:flex tw:items-center";
+const NAV_GROUP_CLASS = "nav-group tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
 const NAV_LEFT_CLASS = "nav-group nav-left tw:flex-[0_1_180px]";
 const NAV_CENTER_CLASS =
   "nav-group nav-center tw:flex-[1_0_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center";
