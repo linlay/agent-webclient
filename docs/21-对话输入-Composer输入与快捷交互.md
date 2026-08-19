@@ -12,6 +12,8 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 ## 核心流程
 用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的“必须使用”标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
 
+Desktop 可以在显式新对话路由上附带一次性的 `composerIntent=find-skill|create-skill`。Agent 对话壳层只接受这两个受控值，并在新会话初始化后将对应的本地化模板写入 Composer、聚焦输入框，再通过 replace navigation 删除该参数。这个入口只创建可编辑草稿，不发送 query、不创建 Run；未知值必须忽略。真正的安装或文件写入仍由用户发送后进入 Agent 的确认流程。
+
 Side question Tab 默认不显示。`/btw` 会先为当前 chat 创建一个空 session，再显示并激活该 Tab；`/btw 问题` 会在主 query/steer 路由前被识别，并把问题作为全新隐藏只读分支的首次请求发送，不能携带此前已关闭分支的 `btwId`。BTW 可以和主 run 并行；没有有效 `chatId` 时命令不可用。
 
 Side question 在回答中也允许关闭。桌面右侧 Tab 的关闭按钮和 Copilot BTW 面板的关闭按钮都执行永久前端丢弃：清除当前 chat 的内容、续接身份和持久化记录，界面回到 Overview，旧分支不能从前端恢复；再次执行 `/btw` 会创建空白新分支。右侧栏最外层的关闭按钮仍只收起侧栏，不丢弃 BTW。丢弃不会中断后端 run 或终止其 SSE，后台请求会自然结束，迟到事件也不能让 Tab 复活。

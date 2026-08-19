@@ -430,6 +430,8 @@ export const enUSMessages = {
   "composer.actions.screenshotCapturing": "Capturing screenshot...",
   "composer.actions.screenshotDisabled.frontendActive": "A frontend tool is active. Screenshots are temporarily unavailable.",
   "composer.actions.screenshotDisabled.streaming": "A run is active. Appending screenshots is not supported right now.",
+  "composer.intent.findSkill": "Use find-skills to find a skill that can implement ‘...’. First list each candidate's source, version, compatibility, and risks. Do not install anything until I explicitly confirm a specific skill.",
+  "composer.intent.createSkill": "Use skill-creator to create a skill that can implement ‘...’. First show the implementation plan, target directory, and file preview. Do not write to the skills center until I confirm.",
   "composer.actions.screenshotDisabled.voiceMode": "Switch back to text input before capturing a screenshot.",
   "composer.actions.screenshotFailed": "Screenshot capture failed",
   "composer.actions.screenshotTimeout": "Screenshot timed out. Try again.",

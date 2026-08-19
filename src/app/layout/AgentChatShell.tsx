@@ -31,6 +31,36 @@ export function parseNewChatTimestamp(rawValue: unknown): string {
   return /^[1-9]\d{12}$/.test(timestamp) ? timestamp : "";
 }
 
+export type ComposerIntent = "find-skill" | "create-skill";
+
+const COMPOSER_INTENT_MESSAGE_KEYS = {
+  "find-skill": "composer.intent.findSkill",
+  "create-skill": "composer.intent.createSkill",
+} as const;
+
+export function parseComposerIntent(rawValue: unknown): ComposerIntent | "" {
+  const intent = String(rawValue || "").trim();
+  return intent === "find-skill" || intent === "create-skill" ? intent : "";
+}
+
+export function composerIntentMessageKey(intent: ComposerIntent) {
+  return COMPOSER_INTENT_MESSAGE_KEYS[intent];
+}
+
+export function createConsumedComposerIntentRoute(
+  agentKey: string,
+  searchParams: URLSearchParams,
+): string {
+  const normalizedAgentKey = String(agentKey || "").trim();
+  if (!normalizedAgentKey) {
+    return "";
+  }
+  const nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.delete("composerIntent");
+  const search = nextSearchParams.toString();
+  return `/agent/${encodeURIComponent(normalizedAgentKey)}${search ? `?${search}` : ""}`;
+}
+
 export function createNewChatRouteKey(
   agentKey: string,
   newChatTimestamp: string,
@@ -217,6 +247,7 @@ export const AgentChatShell: React.FC = () => {
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
+  const consumedComposerIntentKeysRef = useRef<Set<string>>(new Set());
   const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationRequestRef = useRef(0);
@@ -238,6 +269,10 @@ export const AgentChatShell: React.FC = () => {
   );
   const routeNewChatTimestamp = useMemo(
     () => parseNewChatTimestamp(searchParams.get("newChat")),
+    [searchParams],
+  );
+  const routeComposerIntent = useMemo(
+    () => parseComposerIntent(searchParams.get("composerIntent")),
     [searchParams],
   );
   const routeAgent = useMemo(
@@ -549,6 +584,50 @@ export const AgentChatShell: React.FC = () => {
     routeAgentHydrated,
     routeNewChatTimestamp,
     routeWorkerKey,
+  ]);
+
+  useEffect(() => {
+    if (
+      !agentKey ||
+      chatId ||
+      !routeAgentHydrated ||
+      !routeNewChatTimestamp ||
+      !routeComposerIntent
+    ) {
+      return;
+    }
+
+    const intentKey = `${createNewChatRouteKey(
+      agentKey,
+      routeNewChatTimestamp,
+    )}\u0000${routeComposerIntent}`;
+    if (consumedComposerIntentKeysRef.current.has(intentKey)) {
+      return;
+    }
+    consumedComposerIntentKeysRef.current.add(intentKey);
+
+    window.dispatchEvent(
+      new CustomEvent("agent:set-composer-draft", {
+        detail: {
+          draft: t(composerIntentMessageKey(routeComposerIntent)),
+        },
+      }),
+    );
+    window.dispatchEvent(new CustomEvent("agent:focus-composer"));
+
+    const consumedRoute = createConsumedComposerIntentRoute(agentKey, searchParams);
+    if (consumedRoute) {
+      navigate(consumedRoute, { replace: true });
+    }
+  }, [
+    agentKey,
+    chatId,
+    navigate,
+    routeAgentHydrated,
+    routeComposerIntent,
+    routeNewChatTimestamp,
+    searchParams,
+    t,
   ]);
 
   const openRouteHistoryForWorker = useCallback(

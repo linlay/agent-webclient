@@ -430,6 +430,8 @@ export const zhCNMessages = {
   "composer.actions.screenshotCapturing": "正在截屏...",
   "composer.actions.screenshotDisabled.frontendActive": "前端工具处理中，暂时不能截屏。",
   "composer.actions.screenshotDisabled.streaming": "当前运行中，暂不支持追加截图。",
+  "composer.intent.findSkill": "请使用 find-skills 帮我查找能实现「……」的技能。先列出候选技能的来源、版本、兼容性和风险；在我明确确认具体技能前，不要安装。",
+  "composer.intent.createSkill": "请使用 skill-creator 帮我创建一个能实现「……」的技能。先展示实现计划、目标目录和文件预览；在我确认前，不要写入技能中心。",
   "composer.actions.screenshotDisabled.voiceMode": "请先切回文字输入再截屏。",
   "composer.actions.screenshotFailed": "截屏失败",
   "composer.actions.screenshotTimeout": "截屏超时，请重试。",
