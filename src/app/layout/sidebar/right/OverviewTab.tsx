@@ -14,7 +14,6 @@ import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 import { Collapse, Flex, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
 import { TextCountUp } from "@/shared/components/text-count-up";
-import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export function getFileIcon(filePath: string): MaterialIconName {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -244,6 +243,20 @@ export async function loadFileHistoryForCache(params: {
 
 export function buildFileChangeKey(runId: string, filePath: string): string {
   return `${runId}\u0000${filePath}`;
+}
+
+export function toggleExpandedFileChangeKey(
+  current: ReadonlySet<string>,
+  itemKey: string,
+): { next: Set<string>; expanding: boolean } {
+  const next = new Set(current);
+  const expanding = !next.has(itemKey);
+  if (expanding) {
+    next.add(itemKey);
+  } else {
+    next.delete(itemKey);
+  }
+  return { next, expanding };
 }
 
 export function buildFileHistoryCacheKey(
@@ -540,34 +553,17 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
 
   const toggleFileChange = React.useCallback(
     (item: OverviewFileChangeItem) => {
-      if (isDesktopAppMode()) {
-        openTarget({
-          version: 1,
-          kind: "file-diff",
-          chatId: state.chatId,
-          runId: item.runId,
-          relativePath: item.filePath,
-          agentKey,
-          title: displayFileName(item.filePath),
-        });
-        return;
-      }
       const itemKey = buildFileChangeKey(item.runId, item.filePath);
-      const expanding = !expandedFileChangeKeys.has(itemKey);
-      setExpandedFileChangeKeys((current) => {
-        const next = new Set(current);
-        if (next.has(itemKey)) {
-          next.delete(itemKey);
-        } else {
-          next.add(itemKey);
-        }
-        return next;
-      });
+      const { next, expanding } = toggleExpandedFileChangeKey(
+        expandedFileChangeKeys,
+        itemKey,
+      );
+      setExpandedFileChangeKeys(next);
       if (expanding) {
         loadFileHistory(item);
       }
     },
-    [agentKey, expandedFileChangeKeys, loadFileHistory, openTarget, state.chatId],
+    [expandedFileChangeKeys, loadFileHistory],
   );
 
   const overviewSections: {
