@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:dc43c1f46783295d3ee3d05513748d7b5290d3ea55a2c1f796f474cc27e23856
+// sha256:af3035edc14e9db5698ecf839d33f027a701f9efef09f11ac3993e6799286245
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
