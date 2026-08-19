@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentEvent } from "@/app/state/types";
 import type { ChatDetailResponse } from "@/shared/data";
-import { getChat } from "@/shared/data";
+import { ApiError, getChat } from "@/shared/data";
 import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import {
   buildChatReplayProjection,
@@ -17,6 +17,7 @@ import {
   DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
   type DesktopLiveSurfaceActiveEventDetail,
 } from "@/features/transport/lib/desktopSurfaceLifecycle";
+import { t } from "@/shared/i18n/runtime";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export type ChatSurfaceReplayStatus = "loading" | "ready" | "error";
@@ -79,6 +80,35 @@ function lastSeqForRun(events: AgentEvent[], runId: string): number {
 function normalizedSeq(value: unknown): number {
   const seq = Number(value);
   return Number.isFinite(seq) && seq >= 0 ? Math.floor(seq) : 0;
+}
+
+export function chatSurfaceReplayErrorCode(cause: unknown): string {
+  if (cause instanceof RealtimeTransportError) return String(cause.code || "").trim();
+  if (cause instanceof ApiError) {
+    const directCode = typeof cause.code === "string" ? cause.code.trim() : "";
+    if (directCode) return directCode;
+    return String(cause.platformError?.code || "").trim();
+  }
+  const record = objectRecord(cause);
+  const directCode = typeof record?.code === "string" ? record.code.trim() : "";
+  if (directCode) return directCode;
+  const platformError = objectRecord(record?.platformError);
+  return typeof platformError?.code === "string" ? platformError.code.trim() : "";
+}
+
+export function decideChatSurfaceReplayRecovery(input: {
+  cause: unknown;
+  bindingKey: string;
+  attemptedBindingKey: string;
+}): { recover: boolean; attemptedBindingKey: string } {
+  const code = chatSurfaceReplayErrorCode(input.cause);
+  if (
+    (code !== "seq_expired" && code !== "replay_required") ||
+    input.attemptedBindingKey === input.bindingKey
+  ) {
+    return { recover: false, attemptedBindingKey: input.attemptedBindingKey };
+  }
+  return { recover: true, attemptedBindingKey: input.bindingKey };
 }
 
 function cloneReplayState(state: ReplayState): ReplayState {
@@ -144,13 +174,23 @@ export function useChatSurfaceReplay(input: {
   const [reloadRevision, setReloadRevision] = useState(0);
   const loadEpochRef = useRef(0);
   const bindingEpochRef = useRef(0);
+  const recoveryGenerationRef = useRef(0);
+  const attemptedRecoveryBindingRef = useRef("");
   const desktopSurfaceActiveRef = useRef<boolean | null>(null);
   const snapshotRef = useRef<ChatSurfaceReplaySnapshot | null>(null);
   snapshotRef.current = snapshot;
 
-  const reload = useCallback(() => {
+  const reloadSnapshot = useCallback(() => {
     setReloadRevision((revision) => revision + 1);
   }, []);
+
+  const reload = useCallback(() => {
+    recoveryGenerationRef.current += 1;
+    attemptedRecoveryBindingRef.current = "";
+    setError("");
+    setStatus("loading");
+    reloadSnapshot();
+  }, [reloadSnapshot]);
 
   useEffect(() => {
     const epoch = ++loadEpochRef.current;
@@ -219,6 +259,11 @@ export function useChatSurfaceReplay(input: {
     if (!runId) return;
 
     const epoch = ++bindingEpochRef.current;
+    const recoveryBindingKey = [
+      recoveryGenerationRef.current,
+      chatId,
+      runId,
+    ].join(":");
     let lastSeq = Math.max(
       lastSeqForRun(snapshotRef.current?.projection.events || [], runId),
       normalizedSeq(snapshot.activeRun.lastSeq),
@@ -226,12 +271,29 @@ export function useChatSurfaceReplay(input: {
     let recovering = false;
     let execution: RunExecution | null = null;
     const recover = (cause: unknown): boolean => {
-      if (recovering || !(cause instanceof RealtimeTransportError)) return false;
-      if (cause.code !== "seq_expired" && cause.code !== "replay_required") return false;
+      if (recovering) return false;
+      const decision = decideChatSurfaceReplayRecovery({
+        cause,
+        bindingKey: recoveryBindingKey,
+        attemptedBindingKey: attemptedRecoveryBindingRef.current,
+      });
+      if (!decision.recover) return false;
       recovering = true;
+      attemptedRecoveryBindingRef.current = decision.attemptedBindingKey;
       void execution?.detach();
-      reload();
+      setError("");
+      setStatus("loading");
+      reloadSnapshot();
       return true;
+    };
+    const reportError = (cause: unknown) => {
+      const code = chatSurfaceReplayErrorCode(cause);
+      setError(
+        code === "seq_expired" || code === "replay_required"
+          ? t("surface.replayExpired")
+          : cause instanceof Error ? cause.message : String(cause),
+      );
+      setStatus("error");
     };
     execution = runs.subscribe({
       chatId,
@@ -264,14 +326,12 @@ export function useChatSurfaceReplay(input: {
     void activeExecution.identity.catch((cause: unknown) => {
       if (bindingEpochRef.current !== epoch) return;
       if (recover(cause)) return;
-      setError(cause instanceof Error ? cause.message : String(cause));
-      setStatus("error");
+      reportError(cause);
     });
     void activeExecution.completion.then((completion) => {
       if (bindingEpochRef.current !== epoch || !completion.error) return;
       if (recover(completion.error)) return;
-      setError(completion.error.message);
-      setStatus("error");
+      reportError(completion.error);
     });
     return () => {
       bindingEpochRef.current += 1;
@@ -280,7 +340,7 @@ export function useChatSurfaceReplay(input: {
   }, [
     chatId,
     input.liveRole,
-    reload,
+    reloadSnapshot,
     runs,
     snapshot?.activeRun,
     snapshot?.owner,

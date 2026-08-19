@@ -1339,6 +1339,8 @@ export const zhCNMessages = {
   "platformError.code.invalid_request": "请求无效，服务无法处理当前请求。",
   "surface.notFound": "未找到请求的视图目标。",
   "surface.loading": "加载中…",
+  "surface.replayExpired": "实时视图回放已过期，请重试。",
+  "surface.retry": "重试",
   "platformError.code.provider_auth_failed": "模型服务鉴权失败，请联系管理员检查 API Key。",
   "platformError.code.provider_bad_response": "模型服务返回异常，请稍后重试。",
   "platformError.code.provider_content_filter": "模型服务拒绝了当前内容，请调整输入后重试。",

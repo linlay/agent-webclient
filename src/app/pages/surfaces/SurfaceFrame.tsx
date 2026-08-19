@@ -8,6 +8,7 @@ export const IndependentSurfaceFrame: React.FC<{
   loading?: boolean;
   error?: string;
   notFound?: string;
+  onRetry?: () => void;
   children?: React.ReactNode;
 }> = ({
   kind,
@@ -16,6 +17,7 @@ export const IndependentSurfaceFrame: React.FC<{
   loading = false,
   error = "",
   notFound = "",
+  onRetry,
   children,
 }) => {
   const { t } = useI18n();
@@ -26,7 +28,14 @@ export const IndependentSurfaceFrame: React.FC<{
         <span>{identity || ""}</span>
       </header>
       {loading ? <div className="status-line">{t("surface.loading")}</div> : null}
-      {error ? <div className="system-alert" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="system-alert readonly-run-surface-error" role="alert">
+          <span>{error}</span>
+          {onRetry ? (
+            <button type="button" onClick={onRetry}>{t("surface.retry")}</button>
+          ) : null}
+        </div>
+      ) : null}
       {!error && notFound ? (
         <div className="status-line" role="status">{notFound}</div>
       ) : null}

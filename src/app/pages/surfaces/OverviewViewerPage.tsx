@@ -35,6 +35,7 @@ export const OverviewViewerPage: React.FC = () => {
       identity={chatId}
       loading={Boolean(chatId) && runtime.status === "loading"}
       error={!chatId ? t("platformError.code.invalid_request") : runtime.error}
+      onRetry={chatId ? runtime.reload : undefined}
     >
       {projection ? (
         <OverviewContentView

@@ -21,7 +21,7 @@ WebClient 业务层只依赖 `RealtimeTransport`，门面固定提供 `runs`、`
 
 `transport: "auto"` 必须声明 `wsBackends`。当前 backend 在能力表中时只发送 WS request；不在能力表时直接使用 HTTP client，这属于请求前的静态路由选择，不是 WS 故障后的 fallback。Desktop 命中 WS 能力时复用 Main Broker 注入的 Platform socket；Broker client 未初始化时直接报传输错误，绝不创建 guest 直连。
 
-会话通知与 Run 观察分别由 `useChatNotificationRuntime` 和 `useRunSubscriptionRuntime` 编排。Run 恢复固定遵循 replay、推导 owner/run/lastSeq、stale check、subscribe；只读 Surface 使用 epoch、chatId、runId 和 seq 丢弃旧 binding 事件，检测 gap 后最多重新 replay 一次。销毁 Surface 只 detach，不 interrupt/close Run。
+会话通知与 Run 观察分别由 `useChatNotificationRuntime` 和 `useRunSubscriptionRuntime` 编排。Run 恢复固定遵循 replay、推导 owner/run/lastSeq、stale check、subscribe；只读 Surface 使用 epoch、chatId、runId 和 seq 丢弃旧 binding 事件，并从 `RealtimeTransportError.code`、`ApiError.code` 或 `platformError.code` 识别 `seq_expired`/`replay_required`。每个 Chat、Run 和 Surface 激活周期最多自动重新 replay 一次，第二次失败保留稳定错误与手动重试入口；销毁 Surface 只 detach，不 interrupt/close Run。
 
 Run push 的聊天摘要、未读、awaiting 与 active-run 更新仍由 conversation 层解释；transport 只负责连接和帧。管理页 catalog push 同样通过 `PushTransport` 消费，不直接订阅 singleton。
 
