@@ -12,7 +12,17 @@ jest.mock("antd", () => {
       React.createElement("input", props),
     );
   Input.TextArea = (props: any) => React.createElement("textarea", props);
-  const Modal = ({ children }: { children?: unknown }) => children || null;
+  const Modal = ({ open, children, title, okText, cancelText }: any) =>
+    open
+      ? React.createElement(
+          "section",
+          { "data-testid": "modal" },
+          title,
+          children,
+          React.createElement("button", null, cancelText),
+          React.createElement("button", null, okText),
+        )
+      : null;
   Modal.confirm = jest.fn();
   return {
     Checkbox: ({ children, ...props }: any) => React.createElement("label", null, React.createElement("input", { ...props, type: "checkbox" }), children),
@@ -37,7 +47,25 @@ jest.mock("antd", () => {
     Switch: ({ checked, ...props }: any) =>
       React.createElement("input", { ...props, type: "checkbox", checked }),
     Spin: ({ children }: { children?: unknown }) => children || null,
+    Tabs: ({ activeKey, items }: any) =>
+      React.createElement(
+        "div",
+        { "data-testid": "tabs", "data-active-key": activeKey },
+        items.map((item: any) =>
+          React.createElement(
+            "div",
+            { key: item.key, "data-tab": item.key },
+            React.createElement("span", null, item.label),
+            item.children,
+          ),
+        ),
+      ),
     Tooltip: ({ children }: { children?: unknown }) => children || null,
+    message: {
+      error: jest.fn(),
+      success: jest.fn(),
+      warning: jest.fn(),
+    },
   };
 });
 
@@ -58,6 +86,8 @@ jest.mock("@/shared/data", () => ({
   getAdminSource: jest.fn(),
   getAdminSkills: jest.fn(),
   getAdminTools: jest.fn(),
+  getAgents: jest.fn(),
+  importAdminAgent: jest.fn(),
   importAdminAgentPrivateSkill: jest.fn(),
   putAdminAgentOrder: jest.fn(),
   updateAgent: jest.fn(),
@@ -79,17 +109,23 @@ jest.mock("@/shared/ui/UiButton", () => ({
 
 import {
   AgentConsole,
+  AgentCreateModal,
   AGENT_CONSOLE_ADMIN_LIST_ROUTE,
   AGENT_FORM_SECTION_IDS,
+  agentImportConflict,
+  agentImportDiagnostics,
+  agentImportSuccessMessageKey,
   buildAgentConfigDirectoryOpenOptions,
   buildAdminToolOption,
   buildDefinition,
   buildAgentListSummary,
+  confirmAgentDraftDiscard,
   defaultReasoningEffort,
   firstAdminAgentDiagnosticMessage,
   formFromDetail,
   getModelReasoningEfforts,
   hasEditableAdminDefinition,
+  importAgentArchiveWithOverwrite,
   isInvalidAdminAgent,
   mergeAgentSkillOptions,
   privateSkillsFromDetail,
@@ -101,6 +137,7 @@ import {
   shouldShowAgentSectionNav,
   shouldStartAgentConsoleBootstrap,
   toolOptionLabel,
+  validateAgentArchiveFile,
 } from "@/features/workers/components/AgentConsole";
 
 const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
@@ -111,6 +148,128 @@ const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
 };
 
 const translate = (key: string) => key;
+
+describe("Agent creation modal", () => {
+  it("defaults to ZIP import and keeps direct creation as the second tab", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AgentCreateModal, {
+        open: true,
+        t: translate,
+        onCancel: jest.fn(),
+        onDirectCreate: jest.fn(() => true),
+        onBeforeZipImport: jest.fn(() => true),
+        onZipImport: jest.fn(),
+        onImported: jest.fn(),
+      }),
+    );
+
+    expect(html).toContain('data-active-key="zip"');
+    expect(html.indexOf('data-tab="zip"')).toBeLessThan(
+      html.indexOf('data-tab="direct"'),
+    );
+    expect(html).toContain("agentConsole.create.mode.zip");
+    expect(html).toContain("agentConsole.create.mode.direct");
+    expect(html).toContain('accept=".zip,application/zip"');
+    expect(html).toContain("agentConsole.import.description");
+    expect(html).not.toContain('id="agent-import-key"');
+  });
+
+  it("validates dropped or selected ZIP files before upload", () => {
+    expect(validateAgentArchiveFile({ name: "agent.txt", size: 10 })).toBe("type");
+    expect(validateAgentArchiveFile({ name: "agent.zip", size: 0 })).toBe("empty");
+    expect(
+      validateAgentArchiveFile({ name: "agent.zip", size: 32 * 1024 * 1024 + 1 }),
+    ).toBe("size");
+    expect(
+      validateAgentArchiveFile({ name: "agent.ZIP", size: 32 * 1024 * 1024 }),
+    ).toBe("");
+  });
+
+  it("keeps the draft when discard confirmation is cancelled", () => {
+    const confirm = jest.fn(() => false);
+    expect(confirmAgentDraftDiscard(false, "discard?", confirm)).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(confirmAgentDraftDiscard(true, "discard?", confirm)).toBe(false);
+    expect(confirm).toHaveBeenCalledWith("discard?");
+  });
+
+  it("parses diagnostics and the explicit overwrite contract", () => {
+    const error = {
+      status: 409,
+      data: {
+        error: {
+          agentKey: "demo-agent",
+          existingName: "Demo Agent",
+          overwriteRequired: true,
+          diagnostics: [
+            {
+              severity: "error",
+              code: "invalid_agent_yaml",
+              message: "invalid YAML",
+              sourcePath: "agent.yml",
+            },
+          ],
+        },
+      },
+    };
+    expect(agentImportConflict(error)).toEqual({
+      agentKey: "demo-agent",
+      existingName: "Demo Agent",
+    });
+    expect(agentImportDiagnostics(error)).toEqual([
+      {
+        severity: "error",
+        code: "invalid_agent_yaml",
+        message: "invalid YAML",
+        sourcePath: "agent.yml",
+      },
+    ]);
+  });
+
+  it("retries the same file with overwrite=true after confirmation", async () => {
+    const file = { name: "demo.zip", size: 10 } as File;
+    const ready = {
+      key: "demo-agent",
+      name: "Demo Agent",
+      status: "ready",
+    } as any;
+    const importArchive = jest
+      .fn()
+      .mockRejectedValueOnce({
+        status: 409,
+        data: {
+          error: {
+            agentKey: "demo-agent",
+            existingName: "Demo Agent",
+            overwriteRequired: true,
+          },
+        },
+      })
+      .mockResolvedValueOnce(ready);
+    const confirmOverwrite = jest.fn(async () => true);
+
+    await expect(
+      importAgentArchiveWithOverwrite(file, importArchive, confirmOverwrite),
+    ).resolves.toBe(ready);
+    expect(importArchive.mock.calls).toEqual([
+      [file, false],
+      [file, true],
+    ]);
+    expect(confirmOverwrite).toHaveBeenCalledWith({
+      agentKey: "demo-agent",
+      existingName: "Demo Agent",
+    });
+  });
+
+  it("uses distinct ready and invalid completion messages", () => {
+    expect(agentImportSuccessMessageKey("ready")).toBe(
+      "agentConsole.import.success",
+    );
+    expect(agentImportSuccessMessageKey("invalid")).toBe(
+      "agentConsole.import.invalid",
+    );
+  });
+});
 
 describe("AgentConsole private skill options", () => {
   it("prefers the Agent-private source when it has the same key as the center", () => {

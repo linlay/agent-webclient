@@ -29,6 +29,7 @@ import {
   Select,
   Spin,
   Switch,
+  Tabs,
   Tooltip,
   message,
 } from "antd";
@@ -45,6 +46,7 @@ import {
   getAdminSkills,
   getAdminTools,
   getAgents,
+  importAdminAgent,
   importAdminAgentPrivateSkill,
   putAdminAgentOrder,
   updateAgent,
@@ -78,6 +80,7 @@ import { openRegisteredAgentDirectory } from "@/shared/data/desktop/desktopFileS
 
 type AgentFormMode = "create" | "edit";
 type AgentEditorMode = "structured" | "source";
+type AgentCreateMode = "zip" | "direct";
 type IconKind = "none" | "builtin" | "image";
 type Translate = I18nContextValue["t"];
 type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse;
@@ -1149,6 +1152,354 @@ const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
   );
 };
 
+export const ADMIN_AGENT_IMPORT_MAX_BYTES = 32 * 1024 * 1024;
+
+export type AgentArchiveFileValidationCode = "" | "type" | "empty" | "size";
+
+export interface AgentImportConflict {
+  agentKey: string;
+  existingName: string;
+}
+
+export function validateAgentArchiveFile(
+  file: Pick<File, "name" | "size"> | null,
+): AgentArchiveFileValidationCode {
+  if (!file || !file.name.toLowerCase().endsWith(".zip")) return "type";
+  if (file.size <= 0) return "empty";
+  if (file.size > ADMIN_AGENT_IMPORT_MAX_BYTES) return "size";
+  return "";
+}
+
+export function agentImportDiagnostics(
+  error: unknown,
+): AdminAgentDiagnostic[] {
+  const data = (error as { data?: unknown } | null)?.data;
+  if (!data || typeof data !== "object") return [];
+  const errorData = (data as { error?: unknown }).error;
+  if (!errorData || typeof errorData !== "object") return [];
+  const diagnostics = (errorData as { diagnostics?: unknown }).diagnostics;
+  if (!Array.isArray(diagnostics)) return [];
+  return diagnostics.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const diagnostic = item as Record<string, unknown>;
+    const message = String(diagnostic.message || "").trim();
+    if (!message) return [];
+    return [
+      {
+        severity: String(diagnostic.severity || "").trim() || "error",
+        code: String(diagnostic.code || "").trim() || "invalid_archive",
+        message,
+        sourcePath: String(diagnostic.sourcePath || "").trim() || undefined,
+      },
+    ];
+  });
+}
+
+export function agentImportConflict(error: unknown): AgentImportConflict | null {
+  if ((error as { status?: unknown } | null)?.status !== 409) return null;
+  const data = (error as { data?: unknown } | null)?.data;
+  if (!data || typeof data !== "object") return null;
+  const errorData = (data as { error?: unknown }).error;
+  if (!errorData || typeof errorData !== "object") return null;
+  const conflict = errorData as Record<string, unknown>;
+  if (conflict.overwriteRequired !== true) return null;
+  const agentKey = String(conflict.agentKey || "").trim();
+  if (!agentKey) return null;
+  return {
+    agentKey,
+    existingName: String(conflict.existingName || "").trim(),
+  };
+}
+
+export function confirmAgentDraftDiscard(
+  hasUnsavedChanges: boolean,
+  prompt: string,
+  confirm: (message: string) => boolean = window.confirm,
+): boolean {
+  return !hasUnsavedChanges || confirm(prompt);
+}
+
+export function agentImportSuccessMessageKey(status: string): string {
+  return status === "invalid"
+    ? "agentConsole.import.invalid"
+    : "agentConsole.import.success";
+}
+
+function formatAgentArchiveSize(size: number): string {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KiB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function confirmAgentImportOverwrite(
+  conflict: AgentImportConflict,
+  t: Translate,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+    Modal.confirm({
+      title: t("agentConsole.import.overwrite.title"),
+      content: t("agentConsole.import.overwrite.description", {
+        name: conflict.existingName || conflict.agentKey,
+        key: conflict.agentKey,
+      }),
+      okText: t("agentConsole.import.overwrite.confirm"),
+      cancelText: t("agentConsole.import.overwrite.cancel"),
+      okButtonProps: { danger: true },
+      onOk: () => finish(true),
+      onCancel: () => finish(false),
+      afterClose: () => finish(false),
+    });
+  });
+}
+
+export async function importAgentArchiveWithOverwrite(
+  file: File,
+  importArchive: (
+    file: File,
+    overwrite: boolean,
+  ) => Promise<AdminAgentDetailResponse>,
+  confirmOverwrite: (conflict: AgentImportConflict) => Promise<boolean>,
+): Promise<AdminAgentDetailResponse | null> {
+  try {
+    return await importArchive(file, false);
+  } catch (error) {
+    const conflict = agentImportConflict(error);
+    if (!conflict) throw error;
+    if (!(await confirmOverwrite(conflict))) return null;
+    return importArchive(file, true);
+  }
+}
+
+interface AgentCreateModalProps {
+  open: boolean;
+  t: Translate;
+  onCancel: () => void;
+  onDirectCreate: () => Promise<boolean> | boolean;
+  onBeforeZipImport: () => boolean;
+  onZipImport: (
+    file: File,
+    overwrite: boolean,
+  ) => Promise<AdminAgentDetailResponse>;
+  onImported: (detail: AdminAgentDetailResponse) => Promise<void> | void;
+}
+
+export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
+  open,
+  t,
+  onCancel,
+  onDirectCreate,
+  onBeforeZipImport,
+  onZipImport,
+  onImported,
+}) => {
+  const [mode, setMode] = useState<AgentCreateMode>("zip");
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<AdminAgentDiagnostic[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setMode("zip");
+    setZipFile(null);
+    setDragActive(false);
+    setSubmitting(false);
+    setDiagnostics([]);
+  }, [open]);
+
+  const acceptArchive = (file: File | null) => {
+    setDiagnostics([]);
+    const validation = validateAgentArchiveFile(file);
+    if (validation) {
+      setZipFile(null);
+      message.error(t(`agentConsole.import.error.${validation}`));
+      return;
+    }
+    setZipFile(file as File);
+  };
+
+  const showImportError = (error: unknown) => {
+    setDiagnostics(agentImportDiagnostics(error));
+    message.error(error instanceof Error ? error.message : String(error));
+  };
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    if (mode === "direct") {
+      setSubmitting(true);
+      try {
+        await onDirectCreate();
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+    if (!zipFile || !onBeforeZipImport()) return;
+
+    setDiagnostics([]);
+    setSubmitting(true);
+    try {
+      const imported = await importAgentArchiveWithOverwrite(
+        zipFile,
+        onZipImport,
+        (conflict) => confirmAgentImportOverwrite(conflict, t),
+      );
+      if (!imported) return;
+      await onImported(imported);
+    } catch (error) {
+      showImportError(error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const zipContent = (
+    <div className="tw:flex tw:flex-col tw:gap-4 tw:pt-1">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip,application/zip"
+        className="tw:hidden"
+        aria-label={t("agentConsole.import.select")}
+        onChange={(event) => {
+          acceptArchive(event.target.files?.[0] || null);
+          event.currentTarget.value = "";
+        }}
+      />
+      <div
+        className={`tw:flex tw:min-h-36 tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center ${
+          dragActive
+            ? "tw:border-accent tw:bg-accent-soft"
+            : "tw:border-line-soft tw:bg-bg-subtle"
+        }`}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+          acceptArchive(event.dataTransfer.files?.[0] || null);
+        }}
+      >
+        <MaterialIcon name="folder_zip" />
+        {zipFile ? (
+          <>
+            <strong className="tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:text-ink-1">
+              {zipFile.name}
+            </strong>
+            <span className="tw:text-xs tw:text-ink-muted">
+              {formatAgentArchiveSize(zipFile.size)}
+            </span>
+          </>
+        ) : (
+          <span className="tw:text-sm tw:text-ink-1">
+            {t("agentConsole.import.drop")}
+          </span>
+        )}
+        <UiButton
+          size="sm"
+          variant="ghost"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={submitting}
+        >
+          {zipFile
+            ? t("agentConsole.import.replace")
+            : t("agentConsole.import.select")}
+        </UiButton>
+      </div>
+      <div className="tw:text-xs tw:leading-5 tw:text-ink-muted">
+        {t("agentConsole.import.description")}
+      </div>
+      <div className="tw:text-xs tw:leading-5 tw:text-warning">
+        {t("agentConsole.import.trustWarning")}
+      </div>
+      {submitting && (
+        <div role="status" aria-live="polite" className="tw:text-xs tw:text-ink-muted">
+          {t("agentConsole.import.uploading")}
+        </div>
+      )}
+    </div>
+  );
+
+  const directContent = (
+    <div className="tw:flex tw:min-h-36 tw:flex-col tw:items-center tw:justify-center tw:gap-3 tw:rounded-control tw:border tw:border-line-soft tw:bg-bg-subtle tw:p-6 tw:text-center">
+      <MaterialIcon name="add" />
+      <div className="tw:text-sm tw:font-medium tw:text-ink-1">
+        {t("agentConsole.create.direct.title")}
+      </div>
+      <div className="tw:max-w-md tw:text-xs tw:leading-5 tw:text-ink-muted">
+        {t("agentConsole.create.direct.description")}
+      </div>
+    </div>
+  );
+
+  return (
+    <Modal
+      open={open}
+      title={t("agentConsole.create.title")}
+      width={560}
+      destroyOnClose
+      maskClosable={!submitting}
+      keyboard={!submitting}
+      okText={t(
+        mode === "direct"
+          ? "agentConsole.create.direct.submit"
+          : "agentConsole.import.submit",
+      )}
+      cancelText={t("agentConsole.import.cancel")}
+      confirmLoading={submitting}
+      okButtonProps={{ disabled: mode === "zip" && !zipFile }}
+      onCancel={() => {
+        if (!submitting) onCancel();
+      }}
+      onOk={() => void handleSubmit()}
+    >
+      <Tabs
+        activeKey={mode}
+        onChange={(key) => {
+          setMode(key as AgentCreateMode);
+          setDiagnostics([]);
+        }}
+        items={[
+          {
+            key: "zip",
+            label: t("agentConsole.create.mode.zip"),
+            children: zipContent,
+          },
+          {
+            key: "direct",
+            label: t("agentConsole.create.mode.direct"),
+            children: directContent,
+          },
+        ]}
+      />
+      {diagnostics.length > 0 && (
+        <ul className="tw:mt-3 tw:flex tw:list-disc tw:flex-col tw:gap-1 tw:pl-5 tw:text-xs tw:text-danger">
+          {diagnostics.map((diagnostic, index) => (
+            <li key={`${diagnostic.code || "diagnostic"}-${diagnostic.sourcePath || index}`}>
+              {diagnostic.sourcePath ? `${diagnostic.sourcePath}: ` : ""}
+              {diagnostic.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
+  );
+};
+
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
@@ -1181,6 +1532,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   >([]);
   const [savingForm, setSavingForm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [privateSkillModalOpen, setPrivateSkillModalOpen] = useState(false);
   const [privateSkillFile, setPrivateSkillFile] = useState<File | null>(null);
   const [privateSkillImporting, setPrivateSkillImporting] = useState(false);
@@ -1525,7 +1877,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
   const confirmDiscardChanges = useCallback(
     () =>
-      !hasUnsavedChanges || window.confirm(t("agentConsole.confirm.switch")),
+      confirmAgentDraftDiscard(
+        hasUnsavedChanges,
+        t("agentConsole.confirm.switch"),
+      ),
     [hasUnsavedChanges, t],
   );
 
@@ -1539,10 +1894,16 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     [commitAgentSelection, confirmDiscardChanges, effectiveSelectedKey],
   );
 
-  const startCreate = useCallback(() => {
-    if (!confirmDiscardChanges()) return;
+  const startDirectCreate = useCallback(() => {
+    if (!confirmDiscardChanges()) return false;
     resetToCreate();
+    setCreateModalOpen(false);
+    return true;
   }, [confirmDiscardChanges, resetToCreate]);
+
+  const openCreateModal = useCallback(() => {
+    setCreateModalOpen(true);
+  }, []);
 
   const loadAgents = useCallback(
     async (preferredKey = "") => {
@@ -1594,6 +1955,42 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       // 静默失败，不影响主流程
     }
   }, [dispatch]);
+
+  const importAgentArchive = useCallback(
+    async (file: File, overwrite: boolean) => {
+      const response = await importAdminAgent({ file, overwrite });
+      return response.data;
+    },
+    [],
+  );
+
+  const finishAgentArchiveImport = useCallback(
+    async (imported: AdminAgentDetailResponse) => {
+      const importedKey = toText(imported.key);
+      setDetail(imported);
+      setForm(formFromDetail(imported));
+      setFormMode("edit");
+      setEditorMode("structured");
+      setSourceDraft("");
+      setSourceSha256("");
+      setSourcePath("");
+      setSourceLoadedKey("");
+      setSourceDirty(false);
+      setStructuredDirty(false);
+      setFormError("");
+      commitAgentSelection(importedKey);
+      setCreateModalOpen(false);
+      await loadAgents(importedKey);
+      await refreshGlobalAgents();
+      const resultMessageKey = agentImportSuccessMessageKey(imported.status);
+      if (imported.status === "invalid") {
+        message.warning(t(resultMessageKey));
+      } else {
+        message.success(t(resultMessageKey));
+      }
+    },
+    [commitAgentSelection, loadAgents, refreshGlobalAgents, t],
+  );
 
   const saveAgentOrder = useCallback(async (agents: Agent[]) => {
     setSavingOrder(true);
@@ -2053,6 +2450,15 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     <div
       className={`${embedded ? "command-modal-section" : "management-page-console"} ${AGENT_CONSOLE_CLASS_NAME} ${embedded ? "is-embedded" : ""}`}
     >
+      <AgentCreateModal
+        open={createModalOpen}
+        t={t}
+        onCancel={() => setCreateModalOpen(false)}
+        onDirectCreate={startDirectCreate}
+        onBeforeZipImport={confirmDiscardChanges}
+        onZipImport={importAgentArchive}
+        onImported={finishAgentArchiveImport}
+      />
       <Modal
         open={privateSkillModalOpen}
         title={t("agentConsole.privateSkill.import.title")}
@@ -2145,7 +2551,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               variant="primary"
               iconOnly
               aria-label={t("agentConsole.action.new")}
-              onClick={startCreate}
+              onClick={openCreateModal}
             >
               <MaterialIcon name="add" />
             </UiButton>
@@ -2161,7 +2567,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               {filteredAgents.length === 0 ? (
                 <div className="command-empty-state">
                   {t("agentConsole.empty")}
-                  <UiButton size="sm" variant="primary" onClick={startCreate}>
+                  <UiButton size="sm" variant="primary" onClick={openCreateModal}>
                     {t("agentConsole.action.create")}
                   </UiButton>
                 </div>
@@ -2873,7 +3279,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     <UiButton
                       size="sm"
                       variant="ghost"
-                      onClick={startCreate}
+                      onClick={startDirectCreate}
                       disabled={savingForm || deleting}
                     >
                       {t("agentConsole.action.cancelEdit")}

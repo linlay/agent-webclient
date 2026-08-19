@@ -12,6 +12,16 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 ## 核心流程
 进入 `/agents` 后，路由参数决定选中 agent。`AgentConsole` 使用 data client 拉取 admin agents、详情和 editor options。保存或删除后调用对应 admin API，并失效 agents/model options 缓存。
 
+## 新建与 ZIP 导入
+
+工具栏加号和空列表“创建智能体”统一打开专用新建弹窗。弹窗提供“ZIP 包导入”和“直接新增”两个页签，默认进入 ZIP 导入；直接新增确认后关闭弹窗并进入原有结构化创建表单，不改变 `/api/admin/agents/create` 契约。真正进入直接新增或提交 ZIP 前才执行现有未保存修改确认，取消后保留当前编辑状态。
+
+ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空及 32 MiB 上限。页面不显示或发送 Agent Key；Key 固定由 Platform 从包内 `agent.yml` / `agent.yaml` 读取。说明区明确 ZIP 可以携带 prompt、专属 Skills、`.config`、知识文件和其他资源，且 `.config` 可能包含敏感内容，只应上传可信包。
+
+`importAdminAgent` 以 multipart `file` 和可选 `overwrite` 调用 `POST /api/admin/agents/import`。首次提交不发送 `overwrite`；收到 409 且 `data.error.overwriteRequired=true` 时，弹出二次危险确认，说明旧 `.config`、专属 Skills 和资源将被整目录替换。确认后复用同一个 `File` 并以 `overwrite=true` 重试，取消则保留原编辑状态和已选文件。422 的文件级 diagnostics 在弹窗内展示。
+
+导入成功后刷新 admin 列表和全局 Agent 缓存，并选中导入 Agent。`status: ready` 显示成功提示；`status: invalid` 显示警告但仍关闭弹窗、切换并保留管理台诊断，方便继续修复。覆盖不会触碰既有 chat、archive 或已经启动的 session，这些运行时边界由 Platform 保证。
+
 ## 结构化编辑布局
 右侧详情与 Automation 管理台保持一致的简化形态：无详情大头部（标题、路径、操作按钮不再单独占一行），吸顶锚点栏直接位于详情顶部。结构化编辑且可编辑时显示五个吸顶锚点，源码编辑或不可结构化编辑时锚点栏只保留右侧操作区。已有来源路径作为「基本属性」分组的第一行只读字段展示，既可以直接点击，也可以通过路径右侧的文件夹按钮调用注册目录接口，在访达中打开当前 Agent 的配置目录（`directoryType: config`），不打开 workspace。
 
@@ -36,6 +46,7 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 - 专属 Skill 不属于技能中心，不在技能中心页面展示、编辑或删除。
 - Registry 文件编辑不在 Agent 管理台内完成。
 - 前端只展示后端诊断，不自行判定 YAML 或 agent 能力是否有效。
+- 本次不提供 Agent ZIP 导出、自动改名或客户端填写导入 Key。
 
 ## 相关文件
 - `../src/app/pages/agents/index.tsx`

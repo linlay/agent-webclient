@@ -744,6 +744,11 @@ export interface CreateAgentRequest {
   agentsPrompt?: string;
 }
 
+export interface ImportAgentArchiveRequest {
+  file: File;
+  overwrite?: boolean;
+}
+
 export interface UpdateAgentRequest {
   key: string;
   definition: Record<string, unknown>;
@@ -2218,6 +2223,19 @@ export function createAgent(
   params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
   return postJson<AgentDetailResponse>(dataEndpoints.adminAgentCreate.path, params);
+}
+
+export function importAdminAgent(
+  params: ImportAgentArchiveRequest,
+): Promise<ApiResponse<AdminAgentDetailResponse>> {
+  const form = new FormData();
+  form.append("file", params.file);
+  if (params.overwrite) form.append("overwrite", "true");
+  return requestJson<AdminAgentDetailResponse>(dataEndpoints.adminAgentImport.path, {
+    method: "POST",
+    body: form,
+    jsonContentType: false,
+  });
 }
 
 export function updateAgent(

@@ -197,6 +197,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  adminAgentImport: defineEndpoint({
+    key: "admin.agents.import",
+    path: "/api/admin/agents/import",
+    method: "POST",
+    transport: "http",
+  }),
   adminAgentDelete: defineEndpoint({
     key: "admin.agents.delete",
     path: "/api/admin/agents/delete",

@@ -26,6 +26,12 @@ Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文�
 
 后端只在发现 `skills-center/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
 
+## Agent 管理导入契约
+
+完整 Agent ZIP 使用 HTTP-only 端点 `POST /api/admin/agents/import`。`importAdminAgent` 接收 `ImportAgentArchiveRequest { file, overwrite? }` 并发送 multipart：`file` 必填，只有用户确认整目录覆盖后才附加字符串 `overwrite=true`；不得发送 `key` 或 `agentKey`。成功复用 `AdminAgentDetailResponse`，前端读取 `key`、`status` 和 `diagnostics` 完成列表刷新、选中与 ready/invalid 提示。
+
+409 覆盖冲突从 `data.error` 读取 `agentKey`、`existingName` 和 `overwriteRequired:true`；只有满足这份明确契约才展示覆盖确认并用同一 `File` 重试。422 的 `diagnostics[]` 使用 `AdminAgentDiagnostic` 展示 `sourcePath/message`；413、415 和其他错误沿用统一 `ApiError` 消息。该端点不进入 WebSocket/routed client，也不由前端解析 ZIP 中的 YAML。
+
 ## 对话运行身份
 
 前端内部以 `RunOwner` 表示对话和 run 的公开请求身份，只有两种互斥情况：

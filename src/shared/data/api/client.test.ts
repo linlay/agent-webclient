@@ -107,6 +107,7 @@ import {
   fetchAdminSkillFileBlob,
   fetchAdminSkillIcon,
   getAdminSkillDetail,
+  importAdminAgent,
   importAdminSkill,
   importAdminAgentPrivateSkill,
   mkdirAdminSkillFile,
@@ -1113,6 +1114,30 @@ describe('data client query payloads', () => {
     const formData = importOptions.body as FormData;
     expect(formData.get('key')).toBe('demo-skill');
     expect(formData.get('file')).toBe(archive);
+  });
+
+  it('imports an Agent ZIP without a client-supplied key and only sends overwrite when confirmed', async () => {
+    const archive = new File(['zip'], 'portable-agent.zip', { type: 'application/zip' });
+
+    await importAdminAgent({ file: archive });
+    await importAdminAgent({ file: archive, overwrite: true });
+
+    const [firstUrl, firstOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(firstUrl).toBe('/api/admin/agents/import');
+    expect(firstOptions.method).toBe('POST');
+    expect(firstOptions.headers).toEqual({});
+    expect(firstOptions.body).toBeInstanceOf(FormData);
+    const firstForm = firstOptions.body as FormData;
+    expect(firstForm.get('file')).toBe(archive);
+    expect(firstForm.get('overwrite')).toBeNull();
+    expect(firstForm.get('key')).toBeNull();
+    expect(firstForm.get('agentKey')).toBeNull();
+
+    const [retryUrl, retryOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(retryUrl).toBe('/api/admin/agents/import');
+    const retryForm = retryOptions.body as FormData;
+    expect(retryForm.get('file')).toBe(archive);
+    expect(retryForm.get('overwrite')).toBe('true');
   });
 
   it('imports and deletes an Agent-private skill through the Agent admin routes', async () => {
