@@ -115,7 +115,6 @@ import {
   agentImportConflict,
   agentImportDiagnostics,
   agentImportSuccessMessageKey,
-  buildAgentConfigDirectoryOpenOptions,
   buildAdminToolOption,
   buildDefinition,
   buildAgentListSummary,
@@ -130,10 +129,8 @@ import {
   mergeAgentSkillOptions,
   privateSkillsFromDetail,
   readAdminAgentDiagnostics,
-  resolveActiveAgentFormSection,
   resolveAdminAgentSourcePath,
   saveAgentOrderRequest,
-  shouldShowAgentDirectoryButton,
   shouldShowAgentSectionNav,
   shouldStartAgentConsoleBootstrap,
   toolOptionLabel,
@@ -537,7 +534,7 @@ describe("AgentConsole i18n rendering", () => {
     expect(html).toContain("runTimeoutMs");
   });
 
-  it("renders five flat structured sections in the planned order", () => {
+  it("renders five accessible tabs with one visible configuration panel", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -551,18 +548,18 @@ describe("AgentConsole i18n rendering", () => {
     );
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(html.match(/class="agent-section-nav-link tw:/g)).toHaveLength(5);
+    expect(html.match(/role="tab"/g)).toHaveLength(5);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(5);
+    expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
+    expect(html.match(/ hidden=""/g)).toHaveLength(4);
     expect(html).not.toContain("agent-config-box");
     expect(html).not.toContain("<fieldset");
   });
 
-  it("shows anchors only for editable structured forms and directory buttons only for saved paths", () => {
+  it("shows tabs only for editable structured forms", () => {
     expect(shouldShowAgentSectionNav("structured", true)).toBe(true);
     expect(shouldShowAgentSectionNav("source", true)).toBe(false);
     expect(shouldShowAgentSectionNav("structured", false)).toBe(false);
-    expect(shouldShowAgentDirectoryButton("edit", "/agents/a/agent.yml")).toBe(true);
-    expect(shouldShowAgentDirectoryButton("edit", "")).toBe(false);
-    expect(shouldShowAgentDirectoryButton("create", "/agents/a/agent.yml")).toBe(false);
   });
 
   it("keeps a single save action inside the sticky nav bar for every editor mode", () => {
@@ -586,28 +583,7 @@ describe("AgentConsole i18n rendering", () => {
     expect(afterSaveActions).not.toContain("创建智能体");
   });
 
-  it("resolves the active anchor from content scroll position and locks prompts at the bottom", () => {
-    const sectionTops = [120, 420, 760, 1100, 1450];
-    expect(resolveActiveAgentFormSection(sectionTops, 80, false)).toBe(
-      AGENT_FORM_SECTION_IDS[0],
-    );
-    expect(resolveActiveAgentFormSection(sectionTops, 800, false)).toBe(
-      AGENT_FORM_SECTION_IDS[2],
-    );
-    expect(resolveActiveAgentFormSection(sectionTops, 800, true)).toBe(
-      AGENT_FORM_SECTION_IDS[4],
-    );
-  });
-
-  it("opens the registered agent config directory instead of its workspace", () => {
-    expect(buildAgentConfigDirectoryOpenOptions(" agent-a ")).toEqual({
-      agentKey: "agent-a",
-      directoryType: "config",
-    });
-    expect(buildAgentConfigDirectoryOpenOptions(" ")).toBeNull();
-  });
-
-  it("keeps visibility in basic properties and full-width context controls together", () => {
+  it("structures basic properties as identity and runtime sections", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -620,23 +596,32 @@ describe("AgentConsole i18n rendering", () => {
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[1]}"`),
     );
     const context = html.slice(
-      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[2]}"`),
-      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
-    );
-    const advanced = html.slice(
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
     );
+    const advanced = html.slice(
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
+    );
 
-    expect(basic).toContain("agent-visibility-input");
+    expect(basic).toContain("agent-mode-options");
+    expect(basic).toContain('type="radio"');
+    expect(basic).toContain("agent-visibility-options");
+    expect(basic).toContain('type="checkbox"');
+    expect(basic).not.toContain("agent-detail-path-field");
+    expect(basic).toContain("agent-basic-identity");
+    expect(basic).toContain("agent-identity-avatar");
+    expect(basic).toContain("agent-basic-runtime");
+    expect(basic).toContain("Identity information");
+    expect(basic).toContain("Run mode");
     expect(advanced).not.toContain("agent-visibility-input");
-    expect(context).toContain("agent-tags-input");
-    expect(context).toContain("agent-tools-input");
-    expect(context).toContain("agent-skills-input");
-    expect(context.match(/agent-form-full-width/g)).toHaveLength(3);
+    expect(context).toContain("agent-context-capabilities");
+    expect(context).toContain("agent-context-options");
+    expect(context).toContain("agent-selection-summary");
+    expect(context).toContain("Manage tools");
+    expect(context).toContain("Manage skills");
   });
 
-  it("renders advanced configuration fields one per row and hides memory config", () => {
+  it("renders every advanced configuration as a plain full-width textarea", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -645,19 +630,18 @@ describe("AgentConsole i18n rendering", () => {
       ),
     );
     const advanced = html.slice(
-      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
     );
 
     expect(advanced).toContain(
       'class="field-group agent-form-full-width',
     );
-    expect(advanced.match(/agent-form-full-width/g)).toHaveLength(3);
+    expect(advanced.match(/agent-form-full-width/g)).toHaveLength(4);
     expect(advanced).toContain("agent-controls-input");
     expect(advanced).toContain("agent-runtime-input");
     expect(advanced).toContain("agent-budget-input");
-    expect(advanced).not.toContain("agent-memory-input");
-    expect(advanced).not.toContain("Memory Config");
+    expect(advanced).toContain("agent-memory-input");
+    expect(advanced).toContain("Memory Config");
   });
 });
 
@@ -728,11 +712,16 @@ describe("AgentConsole definition mapping", () => {
       meta: {},
     });
 
-    expect(withDefinition.greetings).toEqual(["definition greeting"]);
-    expect(fromDetail.greetings).toEqual(["detail fallback"]);
+    expect(withDefinition.greetingsText).toBe(JSON.stringify([
+      " definition greeting ",
+      "",
+    ], null, 2));
+    expect(fromDetail.greetingsText).toBe(JSON.stringify([
+      " detail fallback ",
+    ], null, 2));
   });
 
-  it("normalizes greetings and wonders on save and removes empty fields", () => {
+  it("preserves greetings and wonders JSON on save and removes blank fields", () => {
     const form = formFromDetail({
       key: "agent-a",
       name: "Agent A",
@@ -752,8 +741,8 @@ describe("AgentConsole definition mapping", () => {
     const normalized = buildDefinition(
       {
         ...form,
-        greetings: [" Hello ", "", " Welcome back "],
-        wonders: [" Try this ", "  "],
+        greetingsText: '[" Hello ", "", " Welcome back "]',
+        wondersText: '[" Try this ", "  "]',
       },
       {
         key: "agent-a",
@@ -764,7 +753,7 @@ describe("AgentConsole definition mapping", () => {
       translate,
     );
     const cleared = buildDefinition(
-      { ...form, greetings: ["  "], wonders: [] },
+      { ...form, greetingsText: "  ", wondersText: "" },
       {
         key: "agent-a",
         name: "Agent A",
@@ -774,8 +763,8 @@ describe("AgentConsole definition mapping", () => {
       translate,
     );
 
-    expect(normalized.greetings).toEqual(["Hello", "Welcome back"]);
-    expect(normalized.wonders).toEqual(["Try this"]);
+    expect(normalized.greetings).toEqual([" Hello ", "", " Welcome back "]);
+    expect(normalized.wonders).toEqual([" Try this ", "  "]);
     expect(cleared.greetings).toBeUndefined();
     expect(cleared.wonders).toBeUndefined();
   });
