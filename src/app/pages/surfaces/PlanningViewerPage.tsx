@@ -30,8 +30,6 @@ export const PlanningViewerPage: React.FC = () => {
   return (
     <IndependentSurfaceFrame
       kind="planning"
-      title={t("rightSidebar.overview.planning.title")}
-      identity={planningId}
       loading={!invalid && runtime.status === "loading"}
       error={error}
       notFound={missing ? t("surface.notFound") : ""}

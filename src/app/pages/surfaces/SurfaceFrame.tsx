@@ -3,8 +3,6 @@ import { useI18n } from "@/shared/i18n";
 
 export const IndependentSurfaceFrame: React.FC<{
   kind: string;
-  title: string;
-  identity?: string;
   loading?: boolean;
   error?: string;
   notFound?: string;
@@ -12,8 +10,6 @@ export const IndependentSurfaceFrame: React.FC<{
   children?: React.ReactNode;
 }> = ({
   kind,
-  title,
-  identity,
   loading = false,
   error = "",
   notFound = "",
@@ -23,10 +19,6 @@ export const IndependentSurfaceFrame: React.FC<{
   const { t } = useI18n();
   return (
     <main className={`readonly-run-surface readonly-run-surface-${kind}`}>
-      <header className="readonly-run-surface-header">
-        <strong>{title}</strong>
-        <span>{identity || ""}</span>
-      </header>
       {loading ? <div className="status-line">{t("surface.loading")}</div> : null}
       {error ? (
         <div className="system-alert readonly-run-surface-error" role="alert">

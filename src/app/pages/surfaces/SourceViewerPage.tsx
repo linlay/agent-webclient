@@ -40,8 +40,6 @@ export const SourceViewerPage: React.FC = () => {
   return (
     <IndependentSurfaceFrame
       kind="source"
-      title={t("copilot.panel.sourceDetail")}
-      identity={sourceId}
       loading={!invalid && runtime.status === "loading"}
       error={error}
       notFound={missing ? t("surface.notFound") : ""}

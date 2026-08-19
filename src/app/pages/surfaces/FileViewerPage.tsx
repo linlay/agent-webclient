@@ -23,13 +23,10 @@ export const FileViewerPage: React.FC = () => {
   const agentKey = String(routeAgentKey || "").trim();
   const path = searchParams.get("path") || "";
   const line = Number(searchParams.get("line") || 0);
-  const name = path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
   const target = buildFileViewerTargetFromRoute({ agentKey, path, line });
   return (
     <IndependentSurfaceFrame
       kind="file"
-      title={name || t("attachments.kind.file")}
-      identity={path}
       error={target ? "" : t("platformError.code.invalid_request")}
     >
       {target ? (

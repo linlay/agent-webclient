@@ -14,8 +14,6 @@ export const WebViewerPage: React.FC = () => {
   return (
     <IndependentSurfaceFrame
       kind="web"
-      title={title || t("copilot.panel.web")}
-      identity={url}
       error={valid ? "" : t("platformError.code.invalid_request")}
     >
       {valid ? <WebPreviewPanel preview={{ url, title }} /> : null}

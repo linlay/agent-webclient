@@ -31,8 +31,6 @@ export const DebugViewerPage: React.FC = () => {
   return (
     <IndependentSurfaceFrame
       kind="debug"
-      title={t("copilot.panel.debug")}
-      identity={chatId}
       loading={Boolean(chatId) && runtime.status === "loading"}
       error={!chatId ? t("platformError.code.invalid_request") : runtime.error}
       onRetry={chatId ? runtime.reload : undefined}

@@ -31,8 +31,6 @@ export const BtwViewerPage: React.FC = () => {
   return (
     <IndependentSurfaceFrame
       kind="btw"
-      title={t("btw.title")}
-      identity={runtime.session.btwId || chatId}
       loading={!invalid && chatRuntime.status === "loading"}
       error={invalid || missingOwner
         ? t("platformError.code.invalid_request")

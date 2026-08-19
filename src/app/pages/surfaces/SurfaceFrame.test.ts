@@ -7,7 +7,6 @@ describe("IndependentSurfaceFrame", () => {
     const withRetry = renderToStaticMarkup(
       React.createElement(IndependentSurfaceFrame, {
         kind: "overview",
-        title: "概览",
         error: "实时视图回放已过期，请重试。",
         onRetry: () => undefined,
       }),
@@ -19,7 +18,6 @@ describe("IndependentSurfaceFrame", () => {
     const withoutRetry = renderToStaticMarkup(
       React.createElement(IndependentSurfaceFrame, {
         kind: "overview",
-        title: "概览",
         error: "加载失败",
       }),
     );

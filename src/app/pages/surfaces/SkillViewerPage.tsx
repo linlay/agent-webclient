@@ -12,8 +12,6 @@ export const SkillViewerPage: React.FC = () => {
   return (
     <IndependentSurfaceFrame
       kind="skill"
-      title={t("route.title.skills")}
-      identity={key}
       error={invalid ? t("platformError.code.invalid_request") : ""}
     >
       {invalid ? null : <SkillDetailView skillKey={key} />}

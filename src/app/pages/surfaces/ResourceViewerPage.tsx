@@ -34,8 +34,6 @@ export const ResourceViewerPage: React.FC = () => {
   return (
     <IndependentSurfaceFrame
       kind="resource"
-      title={target?.name || t("attachments.kind.file")}
-      identity={file}
       error={target ? "" : t("platformError.code.invalid_request")}
     >
       {target ? (
