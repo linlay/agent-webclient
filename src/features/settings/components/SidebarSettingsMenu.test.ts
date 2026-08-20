@@ -11,17 +11,12 @@ const globalWithFeatureFlags = globalThis as typeof globalThis & {
 };
 
 describe("resolveSettingsSummaryBadges", () => {
-  it("returns compact badges for transport and theme", () => {
+  it("returns compact badge for theme", () => {
     expect(
       resolveSettingsSummaryBadges({
         themeMode: "dark",
-        wsStatus: "connected",
       }),
     ).toEqual([
-      expect.objectContaining({
-        key: "transport",
-        label: "WS",
-      }),
       expect.objectContaining({
         key: "theme",
         label: "夜",
@@ -42,10 +37,7 @@ describe("buildSidebarSettingsMenuSections", () => {
   });
 
   it("includes skills, registry config, MCP connectors, archive, settings, and memory info in order", () => {
-    const sections = buildSidebarSettingsMenuSections({
-      wsStatus: "error",
-      wsErrorMessage: "握手失败",
-    });
+    const sections = buildSidebarSettingsMenuSections();
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
@@ -60,7 +52,7 @@ describe("buildSidebarSettingsMenuSections", () => {
 
   it("hides memory info item when MEMORY_ENABLED is not set", () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {};
-    const sections = buildSidebarSettingsMenuSections({});
+    const sections = buildSidebarSettingsMenuSections();
     const labels = sections[0]?.items.map((item) => item.label) || [];
     expect(labels).not.toContain("记忆信息");
   });

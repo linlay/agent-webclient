@@ -579,7 +579,7 @@ describe("LeftSidebar", () => {
     expect(html).not.toContain("settings-summary-chip");
   });
 
-  it("renders compact transport and theme summaries on the settings trigger when enabled by env", () => {
+  it("renders compact theme summary on the settings trigger when enabled by env", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",
     };
@@ -588,7 +588,6 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain('id="settings-btn"');
     expect(html).toContain("打开设置菜单");
-    expect(html).toContain(">WS<");
     expect(html).toContain(">夜<");
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");

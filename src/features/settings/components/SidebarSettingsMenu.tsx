@@ -1,8 +1,5 @@
 import React from "react";
-import type {
-  ThemeMode,
-  WsConnectionStatus,
-} from "@/app/state/types";
+import type { ThemeMode } from "@/app/state/types";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
@@ -10,7 +7,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { isMemoryEnabled } from "@/shared/config/featureFlags";
 
 export interface SettingsSummaryBadge {
-  key: "transport" | "theme";
+  key: "theme";
   icon: MaterialIconName;
   label: string;
   title: string;
@@ -43,33 +40,13 @@ export interface SidebarSettingsMenuSection {
 }
 
 export interface SidebarSettingsMenuProps {
-  wsStatus?: WsConnectionStatus;
-  wsErrorMessage?: string;
   onAction: (action: SidebarSettingsMenuAction) => void;
 }
 
 export function resolveSettingsSummaryBadges(input: {
   themeMode: ThemeMode;
-  wsStatus: WsConnectionStatus;
-  wsErrorMessage?: string;
 }): SettingsSummaryBadge[] {
-  const transportLabel = "WS";
-  const wsDetail = String(input.wsErrorMessage || "").trim();
-  const transportTitle = wsDetail
-    ? t("settingsMenu.summary.transport.wsError", { detail: wsDetail })
-    : input.wsStatus === "connecting"
-      ? t("settingsMenu.summary.transport.wsConnecting")
-      : input.wsStatus === "connected"
-        ? t("settingsMenu.summary.transport.wsConnected")
-        : t("settingsMenu.summary.transport.ws");
-
   return [
-    {
-      key: "transport",
-      icon: "swap_horiz",
-      label: transportLabel,
-      title: transportTitle,
-    },
     {
       key: "theme",
       icon: input.themeMode === "dark" ? "dark_mode" : "light_mode",
@@ -85,10 +62,7 @@ export function resolveSettingsSummaryBadges(input: {
   ];
 }
 
-export function buildSidebarSettingsMenuSections(_input: {
-  wsStatus?: WsConnectionStatus;
-  wsErrorMessage?: string;
-}): SidebarSettingsMenuSection[] {
+export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[] {
   return [
     {
       key: "entry",
@@ -140,13 +114,11 @@ export function buildSidebarSettingsMenuSections(_input: {
 }
 
 export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
-  wsStatus,
-  wsErrorMessage,
   onAction,
 }) => {
   const sections = React.useMemo(
-    () => buildSidebarSettingsMenuSections({ wsStatus, wsErrorMessage }),
-    [wsErrorMessage, wsStatus],
+    () => buildSidebarSettingsMenuSections(),
+    [],
   );
 
   return (
