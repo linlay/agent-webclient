@@ -3,11 +3,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import {
   AgentChatShell,
+  composerIntentMessageKey,
   consumeLiveSessionPromotion,
   createChatRouteKey,
+  createConsumedComposerIntentRoute,
   createNewChatRouteKey,
   createResolvedNewChatRoute,
   isAgentRouteAuthenticationError,
+  parseComposerIntent,
   parseNewChatTimestamp,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
@@ -196,6 +199,28 @@ const globalWithDom = globalThis as typeof globalThis & {
 };
 
 describe("AgentChatShell", () => {
+  it("accepts only controlled one-shot composer intents", () => {
+    expect(parseComposerIntent("find-skill")).toBe("find-skill");
+    expect(parseComposerIntent("create-skill")).toBe("create-skill");
+    expect(parseComposerIntent("install-now")).toBe("");
+    expect(parseComposerIntent(undefined)).toBe("");
+    expect(composerIntentMessageKey("find-skill")).toBe("composer.intent.findSkill");
+    expect(composerIntentMessageKey("create-skill")).toBe("composer.intent.createSkill");
+  });
+
+  it("removes only the consumed composer intent from the agent route", () => {
+    expect(
+      createConsumedComposerIntentRoute(
+        "demo agent",
+        new URLSearchParams(
+          "newChat=1783680000000&composerIntent=find-skill&lang=en&hostTheme=dark",
+        ),
+      ),
+    ).toBe(
+      "/agent/demo%20agent?newChat=1783680000000&lang=en&hostTheme=dark",
+    );
+  });
+
   it("classifies only an API 401 as an authentication failure", () => {
     expect(isAgentRouteAuthenticationError(new ApiError("unauthorized", { status: 401 }))).toBe(true);
     expect(isAgentRouteAuthenticationError(new ApiError("upstream", { status: 502 }))).toBe(false);
@@ -508,6 +533,75 @@ describe("AgentChatShell", () => {
         },
       }),
     );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("prefills a controlled skill intent without sending it", () => {
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams(
+        "newChat=1783680000000&composerIntent=find-skill&lang=en",
+      ),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:set-composer-draft",
+        detail: { draft: expect.any(String) },
+      }),
+    );
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:focus-composer" }),
+    );
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/agent/demo-agent?newChat=1783680000000&lang=en",
+      { replace: true },
+    );
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("ignores an unknown composer intent", () => {
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams(
+        "newChat=1783680000000&composerIntent=install-now",
+      ),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:set-composer-draft" }),
+    );
+    expect(navigateMock).not.toHaveBeenCalled();
 
     useEffectSpy.mockRestore();
   });

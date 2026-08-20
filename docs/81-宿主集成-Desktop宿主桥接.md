@@ -6,6 +6,7 @@ WebClient 已消费 canonical generated Desktop contract，通过固定只读全
 ## 核心职责
 - 严格判断 `DESKTOP_APP`：只接受布尔 `true` 或精确字符串 `"true"`。
 - 向宿主发送 route、workspace、screenshot、file system 等请求或通知。
+- 接受 Desktop 在显式新对话路由上提供的受控 Composer 意图，并将其消费为本地可编辑草稿。
 - 缺少 canonical Platform Frame Port 时阻断所有 guest 业务 Surface，避免 guest 直连 Platform。
 - 将 Run 与 Push 交给共享 Platform transport；WebClient 不维护 WorkPanel workspace/tab state。
 - 将 Desktop 截图结果转换为 Composer 可上传文件。
