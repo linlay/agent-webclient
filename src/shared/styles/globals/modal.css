@@ -627,8 +627,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
-    background: transparent;
-    backdrop-filter: blur(10px);
+    background: linear-gradient(-90deg, var(--bg-elev-1) 70%, transparent);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.16s ease, color 0.16s ease;
