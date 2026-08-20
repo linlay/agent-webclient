@@ -6,11 +6,15 @@ import type {
   AdminSkillFileEntry,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { useHighlightCode } from "@/shared/ui/markdown-code/useHighlight";
+import "@/shared/ui/markdown-code/highlight-theme.css";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import {
   findPreferredSkillFileEntry,
+  iconForEntry,
   isSkillEntryVisible,
+  isSkillImageEntry,
+  SkillBinaryImagePreview,
 } from "@/features/skills/components/SkillConsole";
 
 const SKILL_DETAIL_VIEW_CLASS =
@@ -36,15 +40,6 @@ function formatSize(value: number | undefined): string {
   if (value === undefined || value === null) return "--";
   if (value < 1024) return `${value} B`;
   return `${(value / 1024).toFixed(1)} KB`;
-}
-
-function iconForEntry(
-  entry: AdminSkillFileEntry,
-  isExpanded = false,
-): MaterialIconName {
-  if (entry.kind === "directory") return isExpanded ? "folder_open" : "folder";
-  if (entry.contentKind === "binary") return "folder_zip";
-  return "description";
 }
 
 export const SkillDetailView: React.FC<{ skillKey: string }> = ({
@@ -149,6 +144,10 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
   const visibleEntries = useMemo(
     () => entries.filter((entry) => isSkillEntryVisible(entry, expandedDirs)),
     [entries, expandedDirs],
+  );
+  const highlightedHtml = useHighlightCode(
+    fileContent,
+    selectedEntry?.language || "",
   );
 
   const handleSelectEntry = useCallback(
@@ -262,9 +261,19 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
             </div>
 
             {selectedEntry.contentKind === "text" ? (
-              <pre className={SKILL_DETAIL_PRE_CLASS}>{fileContent}</pre>
+              <pre
+                className={SKILL_DETAIL_PRE_CLASS}
+                dangerouslySetInnerHTML={highlightedHtml}
+              />
             ) : (
               <div className={SKILL_DETAIL_META_CLASS}>
+                {isSkillImageEntry(selectedEntry) && (
+                  <SkillBinaryImagePreview
+                    skillKey={detail.skill.key}
+                    entry={selectedEntry}
+                    t={t}
+                  />
+                )}
                 <strong>{selectedEntry.name}</strong>
                 <div className={SKILL_DETAIL_META_GRID_CLASS}>
                   <span>{t("skillConsole.field.path")}</span>

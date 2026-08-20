@@ -851,14 +851,8 @@ export const LeftSidebar: React.FC = () => {
     () =>
       resolveSettingsSummaryBadges({
         themeMode: state.themeMode,
-        wsStatus: state.wsStatus,
-        wsErrorMessage: state.wsErrorMessage,
       }),
-    [
-      state.themeMode,
-      state.wsErrorMessage,
-      state.wsStatus,
-    ],
+    [state.themeMode],
   );
 
   // --- Create Project Dialog State ---
@@ -1225,8 +1219,6 @@ export const LeftSidebar: React.FC = () => {
             onOpenChange={setSettingsMenuOpen}
             content={
               <SidebarSettingsMenu
-                wsStatus={state.wsStatus}
-                wsErrorMessage={state.wsErrorMessage}
                 onAction={handleSettingsMenuAction}
               />
             }

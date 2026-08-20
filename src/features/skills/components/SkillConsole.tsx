@@ -453,11 +453,12 @@ export function joinSkillPath(parent: string, name: string): string {
   return `${normalizedParent}/${normalizedName}`;
 }
 
-function iconForEntry(
+export function iconForEntry(
   entry: AdminSkillFileEntry,
   isExpanded = false,
 ): MaterialIconName {
   if (entry.kind === "directory") return isExpanded ? "folder_open" : "folder";
+  if (isSkillImageEntry(entry)) return "image";
   if (entry.contentKind === "binary") return "folder_zip";
   return "description";
 }
