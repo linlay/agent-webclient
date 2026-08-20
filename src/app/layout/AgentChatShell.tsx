@@ -55,6 +55,29 @@ export function createNewChatRouteKey(
   return `${agentKey}\u0000${newChatTimestamp}`;
 }
 
+export function claimNewChatAgentRefresh(
+  refreshedRouteKeys: Set<string>,
+  agentKey: string,
+  newChatTimestamp: string,
+): boolean {
+  const normalizedAgentKey = String(agentKey || "").trim();
+  const normalizedNewChatTimestamp = parseNewChatTimestamp(newChatTimestamp);
+  if (!normalizedAgentKey || !normalizedNewChatTimestamp) {
+    return false;
+  }
+
+  const routeKey = createNewChatRouteKey(
+    normalizedAgentKey,
+    normalizedNewChatTimestamp,
+  );
+  if (refreshedRouteKeys.has(routeKey)) {
+    return false;
+  }
+
+  refreshedRouteKeys.add(routeKey);
+  return true;
+}
+
 export function createChatRouteKey(agentKey: string, chatId: string): string {
   const normalizedAgentKey = String(agentKey || "").trim();
   const normalizedChatId = String(chatId || "").trim();
@@ -283,6 +306,7 @@ export const AgentChatShell: React.FC = () => {
   const stateRef = useRef(state);
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
+  const refreshedNewChatAgentRouteKeysRef = useRef<Set<string>>(new Set());
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
   const pendingNewChatResendRef = useRef<PendingNewChatResend | null>(null);
   const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
@@ -362,13 +386,28 @@ export const AgentChatShell: React.FC = () => {
   const hasVisibleConversationContent =
     state.timelineOrder.length > 0 || state.streaming || Boolean(state.runId);
 
-  const { refreshWorkerData } = useAppRuntimes({
+  const { loadAgents, refreshWorkerData } = useAppRuntimes({
     initialWorkerRefreshEnabled: false,
   });
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    if (
+      chatId ||
+      !claimNewChatAgentRefresh(
+        refreshedNewChatAgentRouteKeysRef.current,
+        agentKey,
+        routeNewChatTimestamp,
+      )
+    ) {
+      return;
+    }
+
+    void loadAgents().catch(() => undefined);
+  }, [agentKey, chatId, loadAgents, routeNewChatTimestamp]);
 
   useEffect(() => {
     return () => {

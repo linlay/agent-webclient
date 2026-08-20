@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import {
   AgentChatShell,
+  claimNewChatAgentRefresh,
   consumeLiveSessionPromotion,
   createChatRouteKey,
   createExplicitNewChatRoute,
@@ -172,6 +173,7 @@ const { getAgent } = jest.requireMock(
 };
 
 const refreshWorkerData = jest.fn(() => Promise.resolve());
+const loadAgents = jest.fn(() => Promise.resolve());
 
 const flushPromises = async () => {
   await Promise.resolve();
@@ -239,7 +241,9 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
-    useAppRuntimes.mockReturnValue({ refreshWorkerData });
+    useAppRuntimes.mockReturnValue({ loadAgents, refreshWorkerData });
+    loadAgents.mockReset();
+    loadAgents.mockResolvedValue(undefined);
     refreshWorkerData.mockClear();
     getAgent.mockReset();
     getAgent.mockResolvedValue({
@@ -473,6 +477,7 @@ describe("AgentChatShell", () => {
         type: "agent:load-chat",
       }),
     );
+    expect(loadAgents).not.toHaveBeenCalled();
 
     useEffectSpy.mockRestore();
   });
@@ -509,6 +514,37 @@ describe("AgentChatShell", () => {
           preserveWorkerContext: true,
           focusComposerOnComplete: true,
         },
+      }),
+    );
+    expect(loadAgents).toHaveBeenCalledTimes(1);
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("keeps explicit new chat activation usable when the agent refresh fails", async () => {
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    loadAgents.mockRejectedValueOnce(new Error("refresh failed"));
+    useSearchParams.mockReturnValue([new URLSearchParams("newChat=1783680000000")]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+    await flushPromises();
+
+    expect(loadAgents).toHaveBeenCalledTimes(1);
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
       }),
     );
 
@@ -599,6 +635,36 @@ describe("AgentChatShell", () => {
     expect(createNewChatRouteKey("demo-agent", "1783680000001")).not.toBe(
       createNewChatRouteKey("demo-agent", "1783680000000"),
     );
+  });
+
+  it("claims each explicit new chat agent refresh exactly once", () => {
+    const refreshedRouteKeys = new Set<string>();
+
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1783680000000",
+    )).toBe(true);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1783680000000",
+    )).toBe(false);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1783680000001",
+    )).toBe(true);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "other-agent",
+      "1783680000000",
+    )).toBe(true);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1",
+    )).toBe(false);
   });
 
   it("only accepts positive 13-digit Unix millisecond timestamps for new chat routes", () => {
@@ -702,6 +768,7 @@ describe("AgentChatShell", () => {
         type: "agent:start-new-conversation",
       }),
     );
+    expect(loadAgents).not.toHaveBeenCalled();
 
     useEffectSpy.mockRestore();
   });
@@ -750,6 +817,7 @@ describe("AgentChatShell", () => {
         type: "agent:start-new-conversation",
       }),
     );
+    expect(loadAgents).not.toHaveBeenCalled();
     expect(html).toContain("agent-route-loading-page");
     expect(html).toContain("agent-route-loading-overlay");
     expect(html).toContain("Loading conversation");
