@@ -763,12 +763,15 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
           event.currentTarget.value = "";
         }}
       />
-      <div
-        className={`tw:flex tw:min-h-36 tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center ${
+      <button
+        type="button"
+        className={`tw:flex tw:min-h-36 tw:w-full tw:cursor-pointer tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center tw:transition-colors focus-visible:tw:outline focus-visible:tw:outline-2 focus-visible:tw:outline-offset-2 focus-visible:tw:outline-accent disabled:tw:cursor-not-allowed ${
           dragActive
             ? "tw:border-accent tw:bg-accent-soft"
             : "tw:border-line-soft tw:bg-bg-subtle"
         }`}
+        onClick={() => fileInputRef.current?.click()}
+        disabled={submitting}
         onDragEnter={(event) => {
           event.preventDefault();
           setDragActive(true);
@@ -799,17 +802,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
             {t("skillConsole.import.drop")}
           </span>
         )}
-        <UiButton
-          size="sm"
-          variant="ghost"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={submitting}
-        >
-          {zipFile
-            ? t("skillConsole.import.replace")
-            : t("skillConsole.import.select")}
-        </UiButton>
-      </div>
+      </button>
       <label
         className="tw:flex tw:flex-col tw:gap-1.5"
         htmlFor="skill-import-key"
