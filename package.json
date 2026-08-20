@@ -5,13 +5,16 @@
   "description": "AGENT protocol debugging web client",
   "scripts": {
     "start": "npm run start:web",
-    "start:web": "dotenv -e .env -- webpack serve --mode development",
-    "build": "npm run check:desktop-contract && npm run build:web && npm run check:share-bundle",
+    "start:web": "npm run build:conversation-export && dotenv -e .env -- webpack serve --mode development",
+    "build": "npm run check:desktop-contract && npm run build:web && npm run build:conversation-export && npm run check:conversation-export",
     "build:web": "dotenv -e .env -- webpack --mode production",
+    "build:conversation-export": "webpack --config webpack.export.config.js && node ./scripts/build-conversation-export-template.js",
+    "sync:conversation-export": "node ./scripts/sync-conversation-export-artifacts.js",
+    "check:conversation-export-sync": "node ./scripts/sync-conversation-export-artifacts.js --check",
     "test": "node ./node_modules/jest/bin/jest.js --passWithNoTests --watchman=false",
     "check:boundaries": "node ./scripts/check-feature-boundaries.js",
     "check:desktop-contract": "node ./scripts/check-agent-webclient-contract.js",
-    "check:share-bundle": "node ./scripts/check-share-bundle.js",
+    "check:conversation-export": "node ./scripts/check-conversation-export-template.js",
     "check:i18n": "node ./scripts/check-i18n.js"
   },
   "dependencies": {
@@ -23,6 +26,7 @@
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
     "antd": "^5.0.0",
+    "dompurify": "3.4.13",
     "echarts": "6.0.0",
     "highlight.js": "11.11.1",
     "katex": "0.16.47",

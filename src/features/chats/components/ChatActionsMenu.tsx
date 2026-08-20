@@ -7,6 +7,7 @@ import {
   archiveChats,
   deleteChat,
   downloadChatExport,
+  downloadConversationHtmlExport,
   getChat,
   renameChat,
   type ChatDetailResponse,
@@ -180,17 +181,29 @@ export const ChatActionsMenu: React.FC<{
     void runArchive();
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: "markdown" | "html") => {
     if (!normalizedChatId || pending) return;
     setPending(true);
     try {
-      await downloadChatExport(normalizedChatId);
-      message.success(t("chatActions.export.success"));
+      if (format === "html") {
+        await downloadConversationHtmlExport(normalizedChatId);
+      } else {
+        await downloadChatExport(normalizedChatId);
+      }
+      message.success(
+        t(format === "html"
+          ? "chatActions.exportHtml.success"
+          : "chatActions.export.success"),
+      );
     } catch (error) {
-      message.error(t("chatActions.export.failed"));
+      message.error(
+        t(format === "html"
+          ? "chatActions.exportHtml.failed"
+          : "chatActions.export.failed"),
+      );
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[export chat error] ${(error as Error).message}`,
+        line: `[export chat ${format} error] ${(error as Error).message}`,
       });
     } finally {
       setPending(false);
@@ -244,7 +257,10 @@ export const ChatActionsMenu: React.FC<{
     info.domEvent.stopPropagation();
     switch (info.key) {
       case "export":
-        void handleExport();
+        void handleExport("markdown");
+        break;
+      case "exportHtml":
+        void handleExport("html");
         break;
       case "rename":
         handleRename();
@@ -267,6 +283,12 @@ export const ChatActionsMenu: React.FC<{
       className: menuItemClassName,
       icon: <MaterialIcon name="export" className={menuIconClassName} />,
       label: t("chatActions.export"),
+    },
+    {
+      key: "exportHtml",
+      className: menuItemClassName,
+      icon: <MaterialIcon name="html" className={menuIconClassName} />,
+      label: t("chatActions.exportHtml"),
     },
     {
       key: "rename",

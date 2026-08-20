@@ -12,7 +12,7 @@
 ## 核心流程
 业务模块从 `src/shared/data` 导入具体函数，不直接拼接 URL。新增接口时先在 `endpoints.ts` 注册端点，再在 `client.ts` 或 `routedClient.ts` 暴露语义化函数，最后由 feature hook 或页面调用。
 
-匿名分享是独立的公开 HTTP 边界：`src/shared/data/conversationShare.ts` 固定以无凭证 `GET /api/public/shares/{shareId}` 一次性读取 `text/event-stream`，使用 6 秒超时、2 MiB 有界 ArrayBuffer 和 fatal UTF-8 解码，并严格接受 `shareVersion=1` 的有限 Share SSE Profile。页面在本地将安全事件投影为 `turns`；每轮完成用时优先使用 `run.start`，缺失时回退 query 时间。该入口不使用 EventSource，也不进入需要 Platform 鉴权和传输路由的 endpoint registry，避免公开页初始化 Token、WebSocket 或缓存运行时。
+静态 HTML 导出统一注册为 `GET /api/chat/export?chatId=...&format=html`，由 Platform 返回完整文档。`src/shared/data/conversationSharePath.ts` 只负责将事件中的合法 `shareId` 构造成 `/share/{id}` 路径，不发起匿名请求，也不读取运行时配置。
 
 Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `chatId` 的 `<relativePath>` ChatScope 引用，前端统一通过 `classifyResourceUrl` 分类，并由 `URLSearchParams` 转换为 `GET /api/resource?file=<chatId>/<relativePath>`。普通 Agent 的 POSIX 绝对路径转换为 `GET /api/resource?chatId=<chatId>&file=<absolutePath>`，其中 `/tmp/...` 走同一分支；Team Chat 拒绝全部绝对路径。HTTP(S)、`data:`、`blob:` 直接使用且不接收平台 Bearer；同源 `/api/resource`、`file://`、Windows/UNC、当前 chatId 前缀、query/fragment、反斜线、空段、`.`/`..` 与编码后路径分隔符都分类为非法，不发起 fetch。`downloadResource`、`getResourceText`、`getResourceBlob` 只对 ChatScope 和获准绝对路径使用 Bearer/Cookie，组件不手工拼接真实资源请求。
 
@@ -59,4 +59,4 @@ Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文�
 - `../src/shared/data/api/client.ts`
 - `../src/shared/data/index.ts`
 - `../src/shared/data/api/client.test.ts`
-- `../src/shared/data/conversationShare.ts`
+- `../src/shared/data/conversationSharePath.ts`

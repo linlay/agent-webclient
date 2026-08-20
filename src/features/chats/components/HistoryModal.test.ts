@@ -118,7 +118,7 @@ describe("HistoryModal", () => {
     expect(html).toContain("A compact history title");
     expect(html).toContain("command-list-preview");
     expect(html).toContain("sidebar-static-icon");
-    expect((html.match(/ui-icon-hover-24/g) || []).length).toBe(3);
+    expect((html.match(/ui-icon-hover-24/g) || []).length).toBe(4);
   });
 
   it("shows unread, running, and awaiting statuses together when all are present", () => {

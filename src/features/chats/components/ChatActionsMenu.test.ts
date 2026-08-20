@@ -6,6 +6,7 @@ const mockDispatch = jest.fn();
 const mockRenameChat = jest.fn();
 const mockGetChat = jest.fn();
 const mockArchiveChats = jest.fn();
+const mockDownloadConversationHtmlExport = jest.fn();
 const mockModalConfirm = jest.fn();
 const mockMessageError = jest.fn();
 let mockMenuItems: Array<Record<string, any>> = [];
@@ -21,6 +22,8 @@ jest.mock("@/shared/data", () => ({
 	archiveChats: (...args: unknown[]) => mockArchiveChats(...args),
 	deleteChat: jest.fn(),
 	downloadChatExport: jest.fn(),
+	downloadConversationHtmlExport: (...args: unknown[]) =>
+		mockDownloadConversationHtmlExport(...args),
 	getChat: (...args: unknown[]) => mockGetChat(...args),
 	renameChat: (...args: unknown[]) => mockRenameChat(...args),
 }));
@@ -30,6 +33,10 @@ jest.mock("@/shared/ui/MaterialIcon", () => ({
 		const React = require("react");
 		return React.createElement("span", { "data-icon": name, className });
 	},
+}));
+
+jest.mock("@/shared/ui/CopyInfoModal", () => ({
+	CopyInfoModal: () => null,
 }));
 
 jest.mock("antd", () => {
@@ -42,9 +49,18 @@ jest.mock("antd", () => {
 			menu,
 		}: {
 			children?: React.ReactNode;
-			menu?: { items?: Array<Record<string, any>> };
+			menu?: {
+				items?: Array<Record<string, any>>;
+				onClick?: (info: Record<string, unknown>) => void;
+			};
 		}) => {
-			mockMenuItems = menu?.items || [];
+			mockMenuItems = (menu?.items || []).map((item) => ({
+				...item,
+				onClick: () => menu?.onClick?.({
+					key: item.key,
+					domEvent: { stopPropagation: jest.fn() },
+				}),
+			}));
 			return React.createElement("div", null, children);
 		},
 		Input: (props: Record<string, unknown>) =>
@@ -67,6 +83,7 @@ describe("ChatActionsMenu", () => {
 		mockRenameChat.mockReset();
 		mockGetChat.mockReset();
 		mockArchiveChats.mockReset();
+		mockDownloadConversationHtmlExport.mockReset();
 		mockModalConfirm.mockClear();
 		mockMessageError.mockClear();
 		mockMenuItems = [];
@@ -186,9 +203,10 @@ describe("ChatActionsMenu", () => {
 
 		expect(html).toContain("chat-actions-trigger ui-icon-hover-24");
 		expect(html).toContain("ui-icon-hover-24-target");
-		expect(mockMenuItems).toHaveLength(5);
+		expect(mockMenuItems).toHaveLength(6);
 		expect(mockMenuItems.map((item) => item.key)).toEqual([
 			"export",
+			"exportHtml",
 			"rename",
 			"archive",
 			"delete",
@@ -201,6 +219,21 @@ describe("ChatActionsMenu", () => {
 				expect.objectContaining({ className: "ui-icon-hover-24" }),
 			]),
 		);
+	});
+
+	it("exports a static HTML snapshot through the dedicated data service", async () => {
+		mockDownloadConversationHtmlExport.mockResolvedValue(undefined);
+		renderToStaticMarkup(
+			React.createElement(ChatActionsMenu, { chatId: " chat_1 " }),
+		);
+
+		const exportHtmlItem = mockMenuItems.find(
+			(item) => item.key === "exportHtml",
+		);
+		exportHtmlItem?.onClick();
+		await Promise.resolve();
+
+		expect(mockDownloadConversationHtmlExport).toHaveBeenCalledWith("chat_1");
 	});
 
 	it("loads chat details without raw messages from copy information", () => {
@@ -220,4 +253,3 @@ describe("ChatActionsMenu", () => {
 		expect(mockGetChat).toHaveBeenCalledWith("chat_1", false);
 	});
 });
-

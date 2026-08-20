@@ -14,8 +14,11 @@ $AssetsDir = Join-Path $ScriptDir "release-assets/program/windows"
 $TemplatePath = Join-Path $ScriptDir "release-assets/program/manifest.template.json"
 $Renderer = Join-Path $ScriptDir "render-program-manifest.mjs"
 $DeployTestPath = Join-Path $ScriptDir "test-program-deploy.ps1"
-$ShareBundleChecker = Join-Path $ScriptDir "check-share-bundle.js"
 $DesktopContractChecker = Join-Path $ScriptDir "check-agent-webclient-contract.js"
+$ConversationExportWebpackConfig = Join-Path $RepoRoot "webpack.export.config.js"
+$ConversationExportBuilder = Join-Path $ScriptDir "build-conversation-export-template.js"
+$ConversationExportChecker = Join-Path $ScriptDir "check-conversation-export-template.js"
+$ConversationExportCdnAssets = Join-Path $ScriptDir "conversation-export-cdn-assets.json"
 $ReleaseDir = Join-Path $RepoRoot "dist/release"
 $Utf8NoBom = New-Object Text.UTF8Encoding($false)
 
@@ -76,7 +79,7 @@ if (-not $Arch) { $Arch = if ($env:ARCH) { $env:ARCH } else { Get-HostArch } }
 foreach ($command in @("node", "npm")) {
     if (-not (Get-Command $command -ErrorAction SilentlyContinue)) { throw "$command is required" }
 }
-foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, $ShareBundleChecker, $DesktopContractChecker, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
+foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, $DesktopContractChecker, $ConversationExportWebpackConfig, $ConversationExportBuilder, $ConversationExportChecker, $ConversationExportCdnAssets, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
     if (-not (Test-Path -LiteralPath $path)) { throw "Required release input is missing: $path" }
 }
 
@@ -88,11 +91,13 @@ try {
     New-Item -ItemType Directory -Path $BuildRoot -Force | Out-Null
     $BuildScriptsDir = Join-Path $BuildRoot "scripts"
     New-Item -ItemType Directory -Path $BuildScriptsDir -Force | Out-Null
-    foreach ($name in @("package.json", "webpack.config.js", "tsconfig.json", "postcss.config.js", ".env.example")) {
+    foreach ($name in @("package.json", "webpack.config.js", "webpack.export.config.js", "tsconfig.json", "postcss.config.js", ".env.example")) {
         Copy-Item -LiteralPath (Join-Path $RepoRoot $name) -Destination (Join-Path $BuildRoot $name)
     }
-    Copy-Item -LiteralPath $ShareBundleChecker -Destination (Join-Path $BuildScriptsDir "check-share-bundle.js")
     Copy-Item -LiteralPath $DesktopContractChecker -Destination (Join-Path $BuildScriptsDir "check-agent-webclient-contract.js")
+    Copy-Item -LiteralPath $ConversationExportBuilder -Destination (Join-Path $BuildScriptsDir "build-conversation-export-template.js")
+    Copy-Item -LiteralPath $ConversationExportChecker -Destination (Join-Path $BuildScriptsDir "check-conversation-export-template.js")
+    Copy-Item -LiteralPath $ConversationExportCdnAssets -Destination (Join-Path $BuildScriptsDir "conversation-export-cdn-assets.json")
     Copy-IfPresent -Source (Join-Path $RepoRoot "package-lock.json") -Destination (Join-Path $BuildRoot "package-lock.json")
     Copy-IfPresent -Source (Join-Path $RepoRoot ".env") -Destination (Join-Path $BuildRoot ".env")
     if (-not (Test-Path -LiteralPath (Join-Path $BuildRoot ".env"))) {
@@ -111,6 +116,12 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $BuildRoot "dist/index.html") -PathType Leaf)) {
         throw "Frontend build did not produce dist/index.html"
     }
+    if (-not (Test-Path -LiteralPath (Join-Path $BuildRoot "dist/export/conversation.template.html") -PathType Leaf)) {
+        throw "Frontend build did not produce dist/export/conversation.template.html"
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $BuildRoot "dist/export/conversation-assets.json") -PathType Leaf)) {
+        throw "Frontend build did not produce dist/export/conversation-assets.json"
+    }
 
     foreach ($pair in @(Get-Targets)) {
         $archiveName = "$AppName-$Version-$($pair.OS)-$($pair.Arch).zip"
@@ -121,6 +132,8 @@ try {
         New-Item -ItemType Directory -Path (Join-Path $bundleRoot "scripts") -Force | Out-Null
         New-Item -ItemType Directory -Path $ReleaseDir -Force | Out-Null
         Copy-Item (Join-Path $BuildRoot "dist/*") (Join-Path $bundleRoot "frontend/dist") -Recurse -Force
+        Remove-Item -LiteralPath (Join-Path $bundleRoot "frontend/dist/export/assets") -Recurse -Force
+        Remove-Item -LiteralPath (Join-Path $bundleRoot "frontend/dist/export/conversation-assets.json") -Force
         Copy-Item (Join-Path $RepoRoot ".env.example") (Join-Path $bundleRoot ".env.example")
         Copy-Item (Join-Path $AssetsDir "deploy.ps1") $bundleRoot
         Copy-Item (Join-Path $AssetsDir "start.ps1") $bundleRoot

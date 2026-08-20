@@ -6,9 +6,11 @@ RUN npm install
 
 COPY . .
 RUN npm run build
+RUN rm -rf /app/dist/export/assets
+RUN rm -f /app/dist/export/conversation-assets.json
 
 FROM nginx:1.27-alpine
-RUN apk add --no-cache gettext
+RUN apk add --no-cache gettext jq
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf.template

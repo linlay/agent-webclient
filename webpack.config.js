@@ -5,7 +5,6 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
-const shareApiTarget = String(process.env.SHARE_API_BASE_URL || '').trim();
 const voiceTarget = String(process.env.VOICE_BASE_URL || '').trim();
 const allowedHostsEnv = String(process.env.DEV_SERVER_ALLOWED_HOSTS || 'all').trim();
 const allowedHosts = allowedHostsEnv === 'all'
@@ -24,7 +23,7 @@ const runtimeConfigEnvKeys = [
   'SETTINGS_MENU_ENABLED',
   'QUICK_ACTIONS_ENABLED',
   'MEMORY_ENABLED',
-  'SHARE_APP_DOWNLOAD_URL',
+  'CONVERSATION_EXPORT_ASSET_ORIGIN',
   'VOICE_ASR_CLIENT_GATE_ENABLED',
   'VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD',
   'VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS',
@@ -130,31 +129,12 @@ module.exports = (env, argv) => {
       },
     ]
     : [];
-  const shareProxyRules = shareApiTarget
-    ? [
-      {
-        context: ['/api/public/shares'],
-        target: shareApiTarget,
-        changeOrigin: true,
-        ws: false,
-      },
-    ]
-    : [];
-
   return {
-    entry: {
-      main: './src/app/index.tsx',
-      share: './src/share/index.tsx',
-    },
+    entry: './src/app/index.tsx',
     mode: isProd ? 'production' : 'development',
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: (pathData) => {
-        const directory = pathData.chunk?.name === 'share' ? 'share/js' : 'js';
-        return isProd
-          ? `${directory}/[name].[contenthash:8].js`
-          : `${directory}/[name].js`;
-      },
+      filename: isProd ? 'js/[name].[contenthash:8].js' : 'js/[name].js',
       chunkFilename: isProd ? 'js/[name].[contenthash:8].chunk.js' : 'js/[name].chunk.js',
       publicPath: '/',
       clean: {
@@ -225,21 +205,11 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './public/index.html',
         title: 'AGENT Webclient',
-        excludeChunks: ['share'],
-      }),
-      new HtmlWebpackPlugin({
-        template: './public/share.html',
-        filename: 'share/index.html',
-        title: 'ZenMind Share',
-        chunks: ['share'],
       }),
       ...(isProd
         ? [
           new MiniCssExtractPlugin({
-            filename: (pathData) => {
-              const directory = pathData.chunk?.name === 'share' ? 'share/css' : 'css';
-              return `${directory}/[name].[contenthash:8].css`;
-            },
+            filename: 'css/[name].[contenthash:8].css',
           }),
         ]
         : []),
@@ -257,9 +227,6 @@ module.exports = (env, argv) => {
       },
       historyApiFallback: {
         disableDotRule: true,
-        rewrites: [
-          { from: /^\/share(?:\/.*)?$/, to: '/share/index.html' },
-        ],
       },
       webSocketServer: {
         type: 'ws',
@@ -281,7 +248,6 @@ module.exports = (env, argv) => {
           ws: true,
         },
         ...voiceProxyRules,
-        ...shareProxyRules,
         {
           context: ['/api'],
           target: apiTarget,
@@ -311,6 +277,11 @@ module.exports = (env, argv) => {
         },
       ],
       setupMiddlewares: (middlewares, devServer) => {
+        devServer.app.get('/export/conversation.template.html', (_req, res) => {
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store');
+          res.sendFile(path.resolve(__dirname, 'dist/export/conversation.template.html'));
+        });
         devServer.app.get('/runtime-config.js', (_req, res) => {
           res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
           res.setHeader('Cache-Control', 'no-store');
@@ -322,11 +293,6 @@ module.exports = (env, argv) => {
     devtool: isProd ? 'source-map' : 'eval-cheap-module-source-map',
     performance: {
       hints: isProd ? 'warning' : false,
-    },
-    optimization: {
-      splitChunks: {
-        chunks: (chunk) => chunk.name !== 'share',
-      },
     },
   };
 };

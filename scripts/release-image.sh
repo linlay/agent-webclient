@@ -83,10 +83,11 @@ echo "[release-image] building frontend on host..."
   cd "$REPO_ROOT"
   load_build_env "$BUILD_ENV_FILE"
   export NODE_ENV=production
-  ./node_modules/.bin/webpack --mode production
+  npm run build
 )
 
 [[ -f "$REPO_ROOT/dist/index.html" ]] || die "dist/index.html not found after build"
+[[ -f "$REPO_ROOT/dist/export/conversation.template.html" ]] || die "dist/export/conversation.template.html not found after build"
 
 cp -R "$REPO_ROOT/dist" "$BUILD_CONTEXT_DIR/dist"
 rm -rf "$BUILD_CONTEXT_DIR/dist/bundle"

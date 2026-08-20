@@ -41,7 +41,8 @@
       "__STOP_SCRIPT__",
       "__DEPLOY_SCRIPT__",
       "__PROGRAM_COMMON__",
-      "frontend/dist/index.html"
+      "frontend/dist/index.html",
+      "frontend/dist/export/conversation.template.html"
     ]
   },
   "web": {
@@ -66,7 +67,7 @@
           "SETTINGS_MENU_ENABLED",
           "QUICK_ACTIONS_ENABLED",
           "MEMORY_ENABLED",
-          "SHARE_APP_DOWNLOAD_URL",
+          "CONVERSATION_EXPORT_ASSET_ORIGIN",
           "VOICE_ASR_CLIENT_GATE_ENABLED",
           "VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD",
           "VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS",

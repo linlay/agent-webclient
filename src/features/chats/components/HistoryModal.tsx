@@ -15,6 +15,7 @@ import {
   archiveChats,
   deleteChat,
   downloadChatExport,
+  downloadConversationHtmlExport,
 } from "@/shared/data";
 import { useAppContext } from "@/app/state/provider";
 
@@ -76,17 +77,25 @@ export const HistoryModal: React.FC<{
   }, []);
   const getHistoryTitle = (chat: WorkerConversationRow) =>
     resolveConversationDisplayTitle(chat, t("leftSidebar.titleUntitled"));
-  const handleExport = async (chatId: string) => {
+  const handleExport = async (chatId: string, format: "markdown" | "html") => {
     if (!chatId || pending) return;
     setPending(true);
     try {
-      await downloadChatExport(chatId);
-      message.success(t("history.exported"));
+      if (format === "html") {
+        await downloadConversationHtmlExport(chatId);
+      } else {
+        await downloadChatExport(chatId);
+      }
+      message.success(
+        t(format === "html" ? "history.exportedHtml" : "history.exported"),
+      );
     } catch (error) {
-      message.error(t("history.exportFailed"));
+      message.error(
+        t(format === "html" ? "history.exportHtmlFailed" : "history.exportFailed"),
+      );
       dispatch({
         type: "APPEND_DEBUG",
-        line: `[export chat error] ${(error as Error).message}`,
+        line: `[export chat ${format} error] ${(error as Error).message}`,
       });
     } finally {
       setPending(false);
@@ -254,11 +263,29 @@ export const HistoryModal: React.FC<{
                         loading={pending}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleExport?.(chat.chatId);
+                          handleExport(chat.chatId, "markdown");
                         }}
                       >
                         <MaterialIcon
                           name="export"
+                          style={{ color: "var(--accent)" }}
+                        />
+                      </UiButton>
+                    </Tooltip>
+                    <Tooltip title={t("history.action.exportHtml")}>
+                      <UiButton
+                        className="ui-icon-hover-24"
+                        size="sm"
+                        variant="ghost"
+                        iconOnly
+                        loading={pending}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExport(chat.chatId, "html");
+                        }}
+                      >
+                        <MaterialIcon
+                          name="html"
                           style={{ color: "var(--accent)" }}
                         />
                       </UiButton>

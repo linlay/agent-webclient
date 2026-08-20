@@ -608,7 +608,7 @@ export const dataEndpoints = createEndpointRegistry({
   }),
   chatExport: defineEndpoint({
     key: "chat.export",
-    path: "/api/chat-export",
+    path: "/api/chat/export",
     method: "GET",
     transport: "resource",
   }),

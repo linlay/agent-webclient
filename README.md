@@ -8,7 +8,9 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 `agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不包含智能体后端，也不定义模型、工具、调度、记忆或权限的最终语义；它消费上游 `/api/*` 与 `/ws` 能力，为智能体平台提供统一前端。
 
-公开对话分享由同一构建产物中的 `/share/` 轻量入口承载。分享页与主对话复用纯 Markdown/ECharts 核心和无状态 reasoning disclosure，但不装配文件侧边栏、输入框、主应用状态、鉴权、Desktop Bridge 或实时连接。页面一次性读取有限 Share SSE，严格校验后在本地投影为 `turns` 展示运行过程；每轮只显示一个默认折叠的完成入口，打开后 reasoning snapshot 与中间 assistant 过程内容按原始顺序穿插展示，每个 reasoning 仍保持可独立展开的第二层折叠，最后一条 assistant 内容作为最终答复留在外层。完成用时优先使用 `run.start`，缺失时回退 query 时间。代码块仍延迟加载完整渲染器。该入口只以无凭证 `fetch` 读取同源 `/api/public/shares/{shareId}`，不使用 EventSource；部署层使用 `SHARE_API_BASE_URL` 将公开 API 转发到 Tunnel，并通过运行时 `SHARE_APP_DOWNLOAD_URL` 配置下载引导。
+公开对话分享不由本项目运行或代理。Agent Platform 使用本项目构建的完整静态 HTML 模板创建分享，Tunnel 在公开 `/share/{shareId}` 直接返回已存储的 HTML；WebClient 不参与匿名访问热路径。
+
+对话静态 HTML 使用 `src/export/` 的独立只读组件树和严格 `ConversationSnapshotV1` parser。生产构建生成轻量 `frontend/dist/export/conversation.template.html` 和内容寻址的 `conversation-export-assets/<hash>`：模板只保留唯一 Snapshot JSON、初始 DOM、外部 CSS link 和外部 deferred runtime script，不包含内联样式或可执行脚本。资源路径固定到内容哈希，但 origin 不在构建时写死；Platform 根据当前受控 Tunnel origin 注入 CSS、JS 与 CSP 地址。React、ReactDOM 与 KaTeX 进入主 JS/CSS，ECharts 与 Mermaid 只在命中对应代码块时从同一不可变资产目录按需加载；所有入口资源带 SRI。Tunnel 托管不可变的内容寻址资产，WebClient 与 Desktop 都不参与匿名访问热路径。
 
 接入以后，一个智能体后端可以快速拥有：
 
@@ -98,16 +100,12 @@ cp .env.example .env
 
 ```bash
 BASE_URL=http://localhost:11949
-SHARE_API_BASE_URL=http://127.0.0.1:11961
-# SHARE_APP_DOWNLOAD_URL=<实际可访问的 HTTP(S) 客户端下载地址>
 BACKEND_MODE=platform
 DESKTOP_APP=false
 ```
 
 - `PORT`：可选。本地开发端口和 Docker Compose 暴露到宿主机的端口，未设置时默认使用 `11948`；也可由 CLI args、环境变量或宿主配置注入。
 - `BASE_URL`：AGW / AGENT 后端地址，前端会把 `/api/*` 和 `/ws` 代理到这里。
-- `SHARE_API_BASE_URL`：可选的 Tunnel 上游地址，只供开发服务器和 Nginx 代理公开分享 API，不写入浏览器运行时配置。
-- `SHARE_APP_DOWNLOAD_URL`：分享页的客户端下载引导地址，通过 `runtime-config.js` 注入，只接受 HTTP(S)。
 - `BACKEND_MODE`：默认 `platform`，保留 Bearer Token；设置为 `gateway` 时使用同源 Session Cookie，并在最终 401 后进入 Gateway 配置的登录流程。
 - `DESKTOP_APP`：Standalone 必须显式为 `false`。只有提供 canonical trusted realtime/workpanel/terminal bridge 的兼容 Desktop 才能注入 `true`；bridge 未到位时页面会硬阻断且不会回落直连。
 
@@ -125,7 +123,6 @@ make dev
 - `/api/*` 到 `BASE_URL`
 - `/ws` 到 `BASE_URL`
 - `/auth/*` 到 `BASE_URL`，供 Gateway OIDC/SSO 使用
-- `/api/public/shares/*` 到 `SHARE_API_BASE_URL`；访问 `/share/{shareId}` 时使用独立分享入口
 
 ### 3. 测试和构建
 
@@ -134,7 +131,7 @@ make test
 make build
 ```
 
-构建产物输出到 `dist/`，其中 `/share/` 入口位于 `dist/share/`，与主应用共用版本和镜像。
+构建产物输出到 `dist/`；`dist/export/` 同时生成供 Agent Platform 使用的轻量模板、资产 manifest 和待同步到 Tunnel 的内容寻址资产集合。运行 `npm run sync:conversation-export` 会复制当前模板与资产集，但不会删除或覆盖 Tunnel 的历史资产集。
 
 ## 一键容器部署
 
@@ -184,7 +181,6 @@ cp .env.example .env
 ```bash
 PORT=11948
 BASE_URL=https://your-agent-api.example.com
-SHARE_API_BASE_URL=https://your-tunnel-api.example.com
 ```
 
 启动：
@@ -222,7 +218,7 @@ dist/release/agent-webclient-image-vX.Y.Z-linux-<arch>.tar.gz
 tar -xzf agent-webclient-image-vX.Y.Z-linux-amd64.tar.gz
 cd agent-webclient
 cp .env.example .env
-# 修改 .env 中的 BASE_URL、SHARE_API_BASE_URL 和 HOST_PORT
+# 修改 .env 中的 BASE_URL 和 HOST_PORT
 ./start.sh
 ```
 
@@ -245,11 +241,9 @@ make build
 然后将 `dist/` 部署到已有静态资源服务，并自行配置：
 
 - `/api/*` 反向代理到 `BASE_URL`
-- `/api/public/shares/*` 优先反向代理到 Tunnel，并禁止落入普通 `/api/*` 上游
 - `/ws` 反向代理到 `BASE_URL` 并保留 WebSocket upgrade
 - 对流式接口关闭代理缓冲
 - SPA fallback 到 `index.html`
-- `/share/*` fallback 到 `/share/index.html`
 
 没有现成网关配置时，优先使用 Docker Compose。
 
@@ -286,13 +280,12 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | --- | --- | --- |
 | `PORT` | 否 | 本地开发端口，Docker Compose 中也是宿主机暴露端口；未设置时默认 `11948`，也可由 CLI args、环境变量或宿主配置注入 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
-| `SHARE_API_BASE_URL` | 否 | Tunnel HTTP origin；公开 `/share/` 部署启用时必须配置，仅供代理层使用 |
-| `SHARE_APP_DOWNLOAD_URL` | 否 | 分享页客户端下载地址；通过运行时配置注入，只接受 HTTP(S) |
 | `BACKEND_MODE` | 否 | `platform`（默认）保留 Token 认证；`gateway` 使用 Session Cookie、CSRF 与登录回跳 |
 | `DESKTOP_APP` | 否 | Standalone 固定为 `false`；兼容 Desktop host 注入 `true`，bridge 缺失或不兼容时硬阻断 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |
 | `MEMORY_ENABLED` | 否 | 是否显示 memory 相关入口 |
+| `CONVERSATION_EXPORT_ASSET_ORIGIN` | HTML 导出时是 | Tunnel 资源 origin；生产必须为 HTTPS，本地开发可使用 loopback HTTP，例如 `http://127.0.0.1:11961` |
 
 开发、容器部署和 release 构建复用同一组变量名。`.env` 是本地真实配置，不提交版本库。
 
@@ -320,7 +313,7 @@ AGW Web Client 需要一个可访问的上游智能体服务。常用入口包�
 public/                 HTML 模板等静态入口资源
 docs/                   中文专题设计文档和截图资源，专题按模块编号
 src/app/                应用壳层、路由、布局、状态与页面入口
-src/share/              匿名只读分享入口
+src/export/             静态对话 HTML 的独立只读渲染运行时
 src/features/           对话、时间线、工具、计划、worker 等功能模块
 src/shared/data/        API 端点注册、请求客户端、鉴权和轻量缓存
 src/shared/styles/      全局主题变量和样式入口

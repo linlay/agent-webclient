@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="conversation-export-profile" content="conversation-snapshot-json-v1" />
+    <meta
+      name="conversation-export-asset-set"
+      content="__CONVERSATION_EXPORT_ASSET_SET__"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="__CONVERSATION_EXPORT_CSP__"
+    />
+    <title>Conversation Snapshot</title>
+    <link
+      rel="stylesheet"
+      href="__CONVERSATION_EXPORT_CSS_URL__"
+      integrity="__CONVERSATION_EXPORT_CSS_INTEGRITY__"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+  <body>
+    <div id="root">
+      <div
+        class="export-loading"
+        role="status"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <span class="export-loading-spinner" aria-hidden="true"></span>
+        <p>正在准备对话内容…</p>
+      </div>
+    </div>
+    <script id="conversation-snapshot" type="application/json">
+      __CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__
+    </script>
+    <script
+      id="conversation-export-runtime"
+      src="__CONVERSATION_EXPORT_RUNTIME_URL__"
+      integrity="__CONVERSATION_EXPORT_RUNTIME_INTEGRITY__"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+      defer
+    ></script>
+  </body>
+</html>

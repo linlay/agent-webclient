@@ -10,7 +10,7 @@ import {
   shouldDisplayDebugEvent,
 } from "@/features/events/lib/debugEventDisplay";
 import { t } from "@/shared/i18n";
-import { buildConversationSharePath } from "@/shared/data/conversationShare";
+import { buildConversationSharePath } from "@/shared/data/conversationSharePath";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";

@@ -112,18 +112,13 @@ describe('webpack devServer proxy', () => {
     const config = configFactory({}, { mode: 'development' });
 
     expect(config.devServer?.historyApiFallback?.disableDotRule).toBe(true);
-    expect(config.devServer?.historyApiFallback?.rewrites).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ to: '/share/index.html' }),
-      ]),
-    );
+    expect(config.devServer?.historyApiFallback?.rewrites).toBeUndefined();
   });
 
-  it('routes the public share API to its deployment-only upstream', () => {
+  it('does not proxy public share pages or APIs', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      SHARE_API_BASE_URL: 'http://tunnel.example.com',
       VOICE_BASE_URL: '',
     };
 
@@ -131,20 +126,15 @@ describe('webpack devServer proxy', () => {
     const configFactory = require('../webpack.config.js');
     const config = configFactory({}, { mode: 'development' });
     const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
-    const shareRule = proxyRules.find((rule: { context?: string[] }) =>
-      Array.isArray(rule.context) && rule.context.includes('/api/public/shares'));
-
-    expect(shareRule).toMatchObject({
-      target: 'http://tunnel.example.com',
-      ws: false,
-    });
+    expect(proxyRules.some((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.some((path) => path.includes('public/share'))
+    )).toBe(false);
   });
 
-  it('exposes the share download URL through runtime config', () => {
+  it('emits the supported runtime config', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      SHARE_APP_DOWNLOAD_URL: 'https://download.example.test/',
       VOICE_BASE_URL: '',
     };
 
@@ -168,7 +158,7 @@ describe('webpack devServer proxy', () => {
       end(value) { body = value; },
     });
 
-    expect(body).toContain('"SHARE_APP_DOWNLOAD_URL":"https://download.example.test/"');
+    expect(body).toContain('"BACKEND_MODE":');
   });
 
   it('derives webpack mode from argv mode without NODE_ENV', () => {
@@ -305,7 +295,7 @@ describe('html template asset paths', () => {
     });
   });
 
-  it('emits an isolated share entry under /share', () => {
+  it('emits only the main application entry', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const configFactory = require('../webpack.config.js');
     const config = configFactory({}, { mode: 'production' });
@@ -314,14 +304,8 @@ describe('html template asset paths', () => {
         plugin.constructor?.name === 'HtmlWebpackPlugin',
     );
 
-    expect(config.entry).toMatchObject({
-      main: './src/app/index.tsx',
-      share: './src/share/index.tsx',
-    });
-    expect(htmlPlugins).toHaveLength(2);
-    expect(htmlPlugins?.some((plugin: { userOptions?: { filename?: string; chunks?: string[] } }) =>
-      plugin.userOptions?.filename === 'share/index.html'
-      && plugin.userOptions?.chunks?.includes('share'))).toBe(true);
+    expect(config.entry).toBe('./src/app/index.tsx');
+    expect(htmlPlugins).toHaveLength(1);
     expect(config.output?.clean?.keep).toEqual(/^release\//);
   });
 });

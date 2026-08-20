@@ -46,6 +46,11 @@ import {
   resolveEndpointPayload,
   type EndpointDefinition,
 } from "@/shared/data/api/endpointRegistry";
+import {
+  CONVERSATION_EXPORT_ASSET_ORIGIN_HEADER,
+  MAX_CONVERSATION_HTML_BYTES,
+  resolveConversationExportAssetOrigin,
+} from "@/shared/data/conversationExport";
 
 const NativeURL = globalThis.URL;
 
@@ -3063,6 +3068,73 @@ export async function downloadChatExport(chatId: string): Promise<void> {
     filenameFromContentDisposition(response.headers.get("Content-Disposition"))
     || `${chatId || "chat"}.md`;
   triggerBrowserDownload(blob, filename);
+}
+
+export async function downloadConversationHtmlExport(
+  chatId: string,
+): Promise<void> {
+  const normalizedChatId = chatId.trim();
+  if (!normalizedChatId) throw new Error("chat_id_required");
+
+  const response = await requestWithAuth(
+    `${dataEndpoints.chatExport.path}?chatId=${encodeURIComponent(normalizedChatId)}&format=html`,
+    {
+      method: "GET",
+      jsonContentType: false,
+      authFailureSource: "download",
+      headers: {
+        Accept: "text/html",
+        [CONVERSATION_EXPORT_ASSET_ORIGIN_HEADER]:
+          resolveConversationExportAssetOrigin(),
+      },
+    },
+  );
+  if (!response.ok) {
+      const rawText = await response.text();
+      const fallbackMessage = t("api.downloadFailedWithStatus", {
+        status: response.status,
+      });
+      const error = getErrorMessageFromText(
+        rawText,
+        fallbackMessage,
+        response.status,
+      );
+      throw new ApiError(error.message, {
+        status: response.status,
+        code: error.code,
+        data: error.data,
+        platformError: error.platformError,
+      });
+  }
+  const contentType = response.headers
+      .get("Content-Type")
+      ?.split(";", 1)[0]
+      ?.trim()
+      .toLowerCase();
+  if (contentType !== "text/html") {
+    throw new Error("conversation_export_html_unsupported");
+  }
+  const declaredLength = Number(response.headers.get("Content-Length"));
+  if (
+    Number.isFinite(declaredLength) &&
+    declaredLength > MAX_CONVERSATION_HTML_BYTES
+  ) {
+    throw conversationExportHTMLTooLargeError(declaredLength);
+  }
+  const html = await response.blob();
+  if (html.size > MAX_CONVERSATION_HTML_BYTES) {
+    throw conversationExportHTMLTooLargeError(html.size);
+  }
+  const filename =
+    filenameFromContentDisposition(response.headers.get("Content-Disposition")) ||
+    `${normalizedChatId}.html`;
+  triggerBrowserDownload(html, filename);
+}
+
+function conversationExportHTMLTooLargeError(actualBytes: number): Error {
+  return new Error(
+    `conversation_export_html_too_large: actual=${actualBytes} limit=${MAX_CONVERSATION_HTML_BYTES} (20 MiB)`,
+  );
 }
 
 export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
