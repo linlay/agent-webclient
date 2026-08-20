@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { message } from "antd";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { Agent, Chat, WorkerConversationRow } from "@/app/state/types";
@@ -25,10 +26,26 @@ import { useI18n } from "@/shared/i18n";
 import { useDesktopActionForAgentPage } from "@/shared/hooks/agentPage/useDesktopAction";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/surfaceRoutes";
+import {
+  canPrepareDesktopNewChat,
+  prepareDesktopNewChat,
+} from "@/shared/data/desktop/desktopNewChat";
 
 export function parseNewChatTimestamp(rawValue: unknown): string {
   const timestamp = String(rawValue || "").trim();
   return /^[1-9]\d{12}$/.test(timestamp) ? timestamp : "";
+}
+
+let lastCreatedNewChatTimestamp = 0;
+
+export function createNewChatTimestamp(now = Date.now()): string {
+  const candidate = Math.max(Math.floor(now), lastCreatedNewChatTimestamp + 1);
+  const timestamp = String(candidate);
+  if (!/^[1-9]\d{12}$/.test(timestamp)) {
+    return "";
+  }
+  lastCreatedNewChatTimestamp = candidate;
+  return timestamp;
 }
 
 export function createNewChatRouteKey(
@@ -77,6 +94,56 @@ type NewChatCreatedEventDetail = {
   chatId?: unknown;
   agentKey?: unknown;
 };
+
+export type PendingNewChatResend = {
+  agentKey: string;
+  sourceChatId: string;
+  newChat: string;
+  message: string;
+  routePrepared: boolean;
+  sent: boolean;
+  failed: boolean;
+};
+
+export function resolveNewChatResendRouteAction(
+  pending: Readonly<PendingNewChatResend> | null,
+  agentKey: string,
+  newChat: string,
+  initialized: boolean,
+) {
+  const matches = Boolean(
+    pending &&
+    pending.agentKey === agentKey &&
+    pending.newChat === newChat,
+  );
+  return {
+    matches,
+    waitForPreparation: Boolean(
+      matches && (!pending?.routePrepared || pending.failed),
+    ),
+    shouldInitialize: !initialized,
+    shouldSend: Boolean(matches && pending?.routePrepared && !pending.sent),
+  };
+}
+
+export function createExplicitNewChatRoute(
+  agentKey: string,
+  searchParams: URLSearchParams,
+  newChat: string,
+): string {
+  const normalizedAgentKey = String(agentKey || "").trim();
+  const normalizedNewChat = parseNewChatTimestamp(newChat);
+  if (!normalizedAgentKey || !normalizedNewChat) {
+    return "";
+  }
+  const baseRoute = buildSurfaceRoute(
+    { kind: "agent", agentKey: normalizedAgentKey },
+    readSurfacePresentationContext(searchParams.toString()),
+  );
+  const url = new URL(baseRoute, "http://agent-webclient.local");
+  url.searchParams.set("newChat", normalizedNewChat);
+  return `${url.pathname}${url.search}`;
+}
 
 export function isAgentRouteAuthenticationError(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401;
@@ -217,6 +284,7 @@ export const AgentChatShell: React.FC = () => {
   const lastInitializedAgentKeyRef = useRef("");
   const lastLoadedChatKeyRef = useRef("");
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
+  const pendingNewChatResendRef = useRef<PendingNewChatResend | null>(null);
   const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationRequestRef = useRef(0);
@@ -224,6 +292,8 @@ export const AgentChatShell: React.FC = () => {
   const [routeAgentLoadError, setRouteAgentLoadError] = useState<string | null>(null);
   const [routeAgentLoadErrorDescription, setRouteAgentLoadErrorDescription] = useState("");
   const [hydrationRetryCount, setHydrationRetryCount] = useState(0);
+  const [pendingNewChatResendVersion, setPendingNewChatResendVersion] =
+    useState(0);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
@@ -301,6 +371,12 @@ export const AgentChatShell: React.FC = () => {
   }, [state]);
 
   useEffect(() => {
+    return () => {
+      pendingNewChatResendRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (
       typeof window === "undefined" ||
       typeof window.addEventListener !== "function"
@@ -335,6 +411,93 @@ export const AgentChatShell: React.FC = () => {
       window.removeEventListener("agent:select-worker", handleSelectWorker);
     };
   }, [agentKey, navigate, searchParams]);
+
+  const handleResendInNewChat = useCallback((text: string) => {
+    const resendMessage = String(text || "").trim();
+    const sourceChatId = String(chatId || "").trim();
+    if (
+      !resendMessage ||
+      !agentKey ||
+      !sourceChatId ||
+      pendingNewChatResendRef.current
+    ) {
+      return;
+    }
+    const newChat = createNewChatTimestamp();
+    const targetRoute = createExplicitNewChatRoute(
+      agentKey,
+      searchParams,
+      newChat,
+    );
+    if (!newChat || !targetRoute) {
+      message.error(t("timeline.query.resendInNewChatFailed"));
+      return;
+    }
+
+    const pending: PendingNewChatResend = {
+      agentKey,
+      sourceChatId,
+      newChat,
+      message: resendMessage,
+      routePrepared: false,
+      sent: false,
+      failed: false,
+    };
+    pendingNewChatResendRef.current = pending;
+    setPendingNewChatResendVersion((version) => version + 1);
+
+    if (!canPrepareDesktopNewChat()) {
+      pending.routePrepared = true;
+      setPendingNewChatResendVersion((version) => version + 1);
+      navigate(targetRoute);
+      return;
+    }
+
+    void prepareDesktopNewChat({
+      agentKey,
+      sourceChatId,
+      newChat,
+    }).then(() => {
+      if (pendingNewChatResendRef.current !== pending) {
+        return;
+      }
+      pending.routePrepared = true;
+      setPendingNewChatResendVersion((version) => version + 1);
+    }).catch((error) => {
+      if (pendingNewChatResendRef.current !== pending) {
+        return;
+      }
+      pending.failed = true;
+      setPendingNewChatResendVersion((version) => version + 1);
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[resend new chat error] ${(error as Error).message}`,
+      });
+      message.error(t("timeline.query.resendInNewChatFailed"));
+    });
+  }, [agentKey, chatId, dispatch, navigate, searchParams, t]);
+
+  useEffect(() => {
+    const pending = pendingNewChatResendRef.current;
+    if (!pending) return;
+    const remainsOnSource =
+      agentKey === pending.agentKey &&
+      chatId === pending.sourceChatId &&
+      !routeNewChatTimestamp;
+    const remainsOnTarget =
+      agentKey === pending.agentKey &&
+      !chatId &&
+      routeNewChatTimestamp === pending.newChat;
+    if (remainsOnSource && pending.failed) {
+      pendingNewChatResendRef.current = null;
+      setPendingNewChatResendVersion((version) => version + 1);
+      return;
+    }
+    if (!remainsOnSource && !remainsOnTarget) {
+      pendingNewChatResendRef.current = null;
+      setPendingNewChatResendVersion((version) => version + 1);
+    }
+  }, [agentKey, chatId, routeNewChatTimestamp]);
 
   useEffect(() => {
     if (
@@ -528,7 +691,33 @@ export const AgentChatShell: React.FC = () => {
       agentKey,
       routeNewChatTimestamp,
     );
-    if (lastInitializedAgentKeyRef.current === routeNewChatKey) {
+    const pendingResend = pendingNewChatResendRef.current;
+    const resendAction = resolveNewChatResendRouteAction(
+      pendingResend,
+      agentKey,
+      routeNewChatTimestamp,
+      lastInitializedAgentKeyRef.current === routeNewChatKey,
+    );
+    if (resendAction.waitForPreparation) {
+      return;
+    }
+    const sendPreparedResend = () => {
+      if (resendAction.shouldSend && pendingResend) {
+        pendingResend.sent = true;
+        window.dispatchEvent(
+          new CustomEvent("agent:send-message", {
+            detail: {
+              message: pendingResend.message,
+              agentKey: pendingResend.agentKey,
+            },
+          }),
+        );
+        pendingNewChatResendRef.current = null;
+        setPendingNewChatResendVersion((version) => version + 1);
+      }
+    };
+    if (!resendAction.shouldInitialize) {
+      sendPreparedResend();
       return;
     }
     lastInitializedAgentKeyRef.current = routeNewChatKey;
@@ -538,10 +727,11 @@ export const AgentChatShell: React.FC = () => {
         detail: {
           agentKey,
           preserveWorkerContext: true,
-          focusComposerOnComplete: true,
+          focusComposerOnComplete: !resendAction.matches,
         },
       }),
     );
+    sendPreparedResend();
   }, [
     agentKey,
     chatId,
@@ -549,6 +739,7 @@ export const AgentChatShell: React.FC = () => {
     routeAgentHydrated,
     routeNewChatTimestamp,
     routeWorkerKey,
+    pendingNewChatResendVersion,
   ]);
 
   const openRouteHistoryForWorker = useCallback(
@@ -667,7 +858,10 @@ export const AgentChatShell: React.FC = () => {
             <AgentRouteLoadingPage title={t("agentRoute.loading.chat")} overlay />
           ) : null}
           <TopNav surface="agent" />
-          <ConversationStage showEmptyState={!chatId} />
+          <ConversationStage
+            showEmptyState={!chatId}
+            onResendInNewChat={handleResendInNewChat}
+          />
           <BottomDock />
           <ShellOverlays />
           <SidebarHistorySection

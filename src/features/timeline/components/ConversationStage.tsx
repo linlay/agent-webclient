@@ -660,10 +660,12 @@ export const TimelineAgentSwitcher: React.FC<{
 
 interface ConversationStageProps {
   showEmptyState?: boolean;
+  onResendInNewChat?: (message: string) => void;
 }
 
 export const ConversationStage: React.FC<ConversationStageProps> = ({
   showEmptyState = true,
+  onResendInNewChat,
 }) => {
   const { t } = useI18n();
   const state = useAppState();
@@ -859,6 +861,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     (text: string) => {
       const messageText = text.trim();
       if (isMainChatRunning || !messageText) return;
+      if (onResendInNewChat) {
+        onResendInNewChat(messageText);
+        return;
+      }
 
       const workerDetail: Record<string, string | boolean> = {
         preserveWorkerContext: true,
@@ -881,7 +887,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         new CustomEvent("agent:send-message", { detail: sendDetail }),
       );
     },
-    [currentWorker, isMainChatRunning],
+    [currentWorker, isMainChatRunning, onResendInNewChat],
   );
 
   const handleDeriveChat = useCallback(

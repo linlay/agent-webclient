@@ -1342,6 +1342,7 @@ export const enUSMessages = {
   "timeline.query.noText": "(No text query)",
   "timeline.query.resend": "Resend",
   "timeline.query.resendInNewChat": "Resend in new chat",
+  "timeline.query.resendInNewChatFailed": "Failed to resend in a new chat. Please try again.",
   "timeline.run.processed": "Worked for {duration}",
   "timeline.run.responseDuration": "Response took {duration}",
   "timeline.run.interrupted": "You stopped after {duration}",

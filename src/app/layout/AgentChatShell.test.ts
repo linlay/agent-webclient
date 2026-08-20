@@ -5,10 +5,13 @@ import {
   AgentChatShell,
   consumeLiveSessionPromotion,
   createChatRouteKey,
+  createExplicitNewChatRoute,
+  createNewChatTimestamp,
   createNewChatRouteKey,
   createResolvedNewChatRoute,
   isAgentRouteAuthenticationError,
   parseNewChatTimestamp,
+  resolveNewChatResendRouteAction,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
 import { SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL } from "@/shared/hooks/agentPage/useDesktopAction";
@@ -604,6 +607,72 @@ describe("AgentChatShell", () => {
     expect(parseNewChatTimestamp("01783680000000")).toBe("");
     expect(parseNewChatTimestamp("17836800000000")).toBe("");
     expect(parseNewChatTimestamp("not-a-timestamp")).toBe("");
+  });
+
+  it("creates monotonic 13-digit new Chat timestamps", () => {
+    expect(createNewChatTimestamp(1_999_999_999_998)).toBe("1999999999998");
+    expect(createNewChatTimestamp(1_999_999_999_998)).toBe("1999999999999");
+  });
+
+  it("creates an explicit new Chat route without the source chat id", () => {
+    expect(createExplicitNewChatRoute(
+      "demo-agent",
+      new URLSearchParams("chatId=chat-old&lang=en&history=1"),
+      "1783680000000",
+    )).toBe("/agent/demo-agent?lang=en&newChat=1783680000000");
+  });
+
+  it("waits for route preparation before resetting or sending a resend", () => {
+    const pending = {
+      agentKey: "demo-agent",
+      sourceChatId: "chat-old",
+      newChat: "1783680000000",
+      message: "retry this",
+      routePrepared: false,
+      sent: false,
+      failed: false,
+    };
+
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      false,
+    )).toEqual({
+      matches: true,
+      waitForPreparation: true,
+      shouldInitialize: true,
+      shouldSend: false,
+    });
+
+    pending.routePrepared = true;
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      false,
+    )).toEqual({
+      matches: true,
+      waitForPreparation: false,
+      shouldInitialize: true,
+      shouldSend: true,
+    });
+
+    pending.sent = true;
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      true,
+    ).shouldSend).toBe(false);
+
+    pending.failed = true;
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      false,
+    ).waitForPreparation).toBe(true);
   });
 
   it("does not treat the legacy newChat URL as a new conversation request", () => {
