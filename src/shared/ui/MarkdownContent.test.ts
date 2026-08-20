@@ -131,9 +131,9 @@ describe("parseWorkspaceFileHref", () => {
   });
 
   it.each([
-    "./Dockerfile",
+    "./Makefile",
     "./.env.example",
-    "./nginx.conf",
+    "./AGENTS.md",
     "./jest.config.cjs",
   ])("parses extensionless and configuration workspace paths: %s", (href) => {
     expect(parseWorkspaceFileHref(href)).toEqual({

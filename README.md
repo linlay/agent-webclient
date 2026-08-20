@@ -88,7 +88,6 @@ Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<rel
 - npm 9+
 - GNU Make
 - 可访问的 AGW / AGENT API 服务
-- Docker Desktop 或 Docker Engine + Compose v2，仅容器部署和镜像发布需要
 
 ### 1. 初始化配置
 
@@ -104,7 +103,7 @@ BACKEND_MODE=platform
 DESKTOP_APP=false
 ```
 
-- `PORT`：可选。本地开发端口和 Docker Compose 暴露到宿主机的端口，未设置时默认使用 `11948`；也可由 CLI args、环境变量或宿主配置注入。
+- `PORT`：可选。本地开发端口，未设置时默认使用 `11948`；也可由 CLI args、环境变量或 Desktop 宿主注入。
 - `BASE_URL`：AGW / AGENT 后端地址，前端会把 `/api/*` 和 `/ws` 代理到这里。
 - `BACKEND_MODE`：默认 `platform`，保留 Bearer Token；设置为 `gateway` 时使用同源 Session Cookie，并在最终 401 后进入 Gateway 配置的登录流程。
 - `DESKTOP_APP`：Standalone 必须显式为 `false`。只有提供 canonical trusted realtime/workpanel/terminal bridge 的兼容 Desktop 才能注入 `true`；bridge 未到位时页面会硬阻断且不会回落直连。
@@ -133,121 +132,7 @@ make build
 
 构建产物输出到 `dist/`；`dist/export/` 同时生成供 Agent Platform 使用的轻量模板、资产 manifest 和待同步到 Tunnel 的内容寻址资产集合。运行 `npm run sync:conversation-export` 会复制当前模板与资产集，但不会删除或覆盖 Tunnel 的历史资产集。
 
-## 一键容器部署
-
-适合本机、内网服务器或云主机快速部署。
-
-```bash
-cp .env.example .env
-# 修改 .env 中的 BASE_URL，必要时修改 PORT
-make docker-up
-```
-
-默认访问地址：
-
-```text
-http://localhost:11948
-```
-
-查看状态和日志：
-
-```bash
-docker compose -f compose.yml ps
-docker compose -f compose.yml logs -f webclient
-```
-
-停止服务：
-
-```bash
-make docker-down
-```
-
-容器内使用 Nginx 托管静态资源，并将 `/api/*` 和 `/ws` 反向代理到上游服务。Nginx 已对流式接口关闭代理缓冲，避免实时事件被延迟。
-
-## 云端部署
-
-### 方式一：云主机源码部署
-
-在云服务器上安装 Docker 和 Compose 后执行：
-
-```bash
-git clone <your-repo-url> agent-webclient
-cd agent-webclient
-cp .env.example .env
-```
-
-修改 `.env`：
-
-```bash
-PORT=11948
-BASE_URL=https://your-agent-api.example.com
-```
-
-启动：
-
-```bash
-make docker-up
-```
-
-如果需要公网访问，请在安全组、防火墙和域名网关中开放对应端口或域名。
-
-### 方式二：发布离线镜像包
-
-在构建机生成镜像部署包：
-
-```bash
-make release-image
-```
-
-也可以指定架构：
-
-```bash
-ARCH=amd64 make release-image
-ARCH=arm64 make release-image
-```
-
-产物路径：
-
-```text
-dist/release/agent-webclient-image-vX.Y.Z-linux-<arch>.tar.gz
-```
-
-将压缩包上传到目标服务器后：
-
-```bash
-tar -xzf agent-webclient-image-vX.Y.Z-linux-amd64.tar.gz
-cd agent-webclient
-cp .env.example .env
-# 修改 .env 中的 BASE_URL 和 HOST_PORT
-./start.sh
-```
-
-停止：
-
-```bash
-./stop.sh
-```
-
-这种方式适合不能在服务器上联网构建镜像的环境。
-
-### 方式三：静态资源接入已有网关
-
-也可以执行：
-
-```bash
-make build
-```
-
-然后将 `dist/` 部署到已有静态资源服务，并自行配置：
-
-- `/api/*` 反向代理到 `BASE_URL`
-- `/ws` 反向代理到 `BASE_URL` 并保留 WebSocket upgrade
-- 对流式接口关闭代理缓冲
-- SPA fallback 到 `index.html`
-
-没有现成网关配置时，优先使用 Docker Compose。
-
-## Desktop Program Bundle
+## Desktop Program Bundle 发布
 
 项目支持打包为 Desktop 托管的 Program Bundle：
 
@@ -278,7 +163,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 
 | 变量 | 必填 | 说明 |
 | --- | --- | --- |
-| `PORT` | 否 | 本地开发端口，Docker Compose 中也是宿主机暴露端口；未设置时默认 `11948`，也可由 CLI args、环境变量或宿主配置注入 |
+| `PORT` | 否 | 本地开发端口；Program Bundle 运行时由 Desktop 宿主注入 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
 | `BACKEND_MODE` | 否 | `platform`（默认）保留 Token 认证；`gateway` 使用 Session Cookie、CSRF 与登录回跳 |
 | `DESKTOP_APP` | 否 | Standalone 固定为 `false`；兼容 Desktop host 注入 `true`，bridge 缺失或不兼容时硬阻断 |
@@ -287,7 +172,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | `MEMORY_ENABLED` | 否 | 是否显示 memory 相关入口 |
 | `CONVERSATION_EXPORT_ASSET_ORIGIN` | HTML 导出时是 | Tunnel 资源 origin；生产必须为 HTTPS，本地开发可使用 loopback HTTP，例如 `http://127.0.0.1:11961` |
 
-开发、容器部署和 release 构建复用同一组变量名。`.env` 是本地真实配置，不提交版本库。
+本地开发和 Program Bundle 构建复用同一组变量名。`.env` 是本地真实配置，不提交版本库。
 
 ## 上游服务要求
 
@@ -319,9 +204,7 @@ src/shared/data/        API 端点注册、请求客户端、鉴权和轻量缓�
 src/shared/styles/      全局主题变量和样式入口
 src/shared/ui/          通用基础 UI 组件
 src/shared/utils/       通用工具函数
-scripts/                发布、镜像和程序包辅助脚本
-nginx.conf              容器内 Nginx 反向代理模板
-compose.yml             Docker Compose 部署入口
+scripts/                Program Bundle、协议同步和构建辅助脚本
 ```
 
 ## 深入文档
@@ -384,7 +267,7 @@ compose.yml             Docker Compose 部署入口
 - [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)
 - [80-界面基础-样式主题基础UI与国际化](docs/80-界面基础-样式主题基础UI与国际化.md)
 - [81-宿主集成-Desktop宿主桥接](docs/81-宿主集成-Desktop宿主桥接.md)
-- [90-交付运维-开发代理与生产反向代理](docs/90-交付运维-开发代理与生产反向代理.md)
+- [90-交付运维-开发代理与Desktop托管](docs/90-交付运维-开发代理与生产反向代理.md)
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
 
@@ -392,15 +275,15 @@ compose.yml             Docker Compose 部署入口
 
 ### 页面能打开，但接口请求失败
 
-检查 `.env` 中的 `BASE_URL` 是否能被当前运行环境访问。容器部署时，`BASE_URL=http://localhost:xxxx` 指的是容器内部的 localhost，通常需要改成可从容器访问的宿主机地址、内网域名或 `host.docker.internal`。
+检查 `.env` 中的 `BASE_URL` 是否能被本地开发环境访问，并确认目标服务端口正确。
 
 ### WebSocket 无法连接
 
-确认上游服务实际提供 `/ws`，并确认反向代理保留了 `Upgrade` 和 `Connection` 头。容器内置 Nginx 已处理这部分，使用自定义网关时需要自行配置。
+确认上游服务实际提供 `/ws`。本地开发检查 Webpack Dev Server 代理配置，Desktop 中检查 host-managed 服务状态与 Main Broker 日志。
 
 ### 实时输出变慢或一次性刷出
 
-通常是代理缓冲未关闭。需要对 `/api/*` 和 `/ws` 关闭 buffering，并提高 read timeout。
+检查上游事件是否逐帧 flush，并确认本地开发代理或 Desktop 托管层没有积压响应。
 
 ### 本地启动端口冲突
 

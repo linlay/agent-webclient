@@ -5,11 +5,10 @@ else
 VERSION := $(shell cat VERSION 2>/dev/null || echo "dev")
 ARCH ?= $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 endif
-COMPOSE_FILE ?= compose.yml
 PASS_PROGRAM_TARGETS = $(if $(filter undefined,$(origin PROGRAM_TARGETS)),,PROGRAM_TARGETS=$(PROGRAM_TARGETS))
 PASS_PROGRAM_TARGET_MATRIX = $(if $(filter undefined,$(origin PROGRAM_TARGET_MATRIX)),,PROGRAM_TARGET_MATRIX=$(PROGRAM_TARGET_MATRIX))
 
-.PHONY: install dev build build-web test test-program-deploy docker-build docker-up docker-down release release-program release-image
+.PHONY: install dev build build-web test test-program-deploy release release-program
 
 install:
 	npm install
@@ -30,15 +29,6 @@ test:
 test-program-deploy:
 	bash scripts/test-program-deploy.sh
 
-docker-build:
-	docker compose -f $(COMPOSE_FILE) build
-
-docker-up:
-	docker compose -f $(COMPOSE_FILE) up -d --build
-
-docker-down:
-	docker compose -f $(COMPOSE_FILE) down
-
 release:
 	$(MAKE) release-program VERSION=$(VERSION) ARCH=$(ARCH) $(PASS_PROGRAM_TARGETS) $(PASS_PROGRAM_TARGET_MATRIX)
 
@@ -49,6 +39,3 @@ else
 release-program:
 	VERSION=$(VERSION) ARCH=$(ARCH) $(PASS_PROGRAM_TARGETS) $(PASS_PROGRAM_TARGET_MATRIX) bash scripts/release-program.sh
 endif
-
-release-image:
-	VERSION=$(VERSION) ARCH=$(ARCH) bash scripts/release-image.sh

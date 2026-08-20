@@ -19,11 +19,16 @@ export function resolveConversationExportAssetOrigin(): string {
     hostname === "localhost"
     || hostname === "127.0.0.1"
     || hostname === "[::1]";
+  const forbiddenHostname =
+    (!loopback && hostname.endsWith(".localhost"))
+    || (!loopback && /^127(?:\.\d{1,3}){3}$/u.test(hostname))
+    || hostname === "0.0.0.0";
   if (
     parsed.username
     || parsed.password
     || parsed.search
     || parsed.hash
+    || forbiddenHostname
     || (parsed.pathname !== "" && parsed.pathname !== "/")
     || (parsed.protocol !== "https:"
       && !(parsed.protocol === "http:" && loopback))

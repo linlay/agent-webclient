@@ -16,8 +16,7 @@
 - UI：Ant Design、`@ant-design/x`、`@ant-design/x-markdown`
 - 数学公式：KaTeX
 - 测试：Jest、ts-jest
-- 部署：Docker、Nginx 静态站点代理
-- Desktop Program Bundle：`frontend/dist` 与 manifest；HTTP 托管在 Desktop main process 中实现
+- 发布：Desktop Program Bundle，交付 `frontend/dist` 与 manifest；HTTP 托管在 Desktop main process 中实现
 
 ## 3. 架构设计
 应用采用单页前端结构，`src/app/App.tsx` 负责装配 Ant Design 主题与应用上下文，`src/app/index.tsx` 负责入口挂载与全局样式引入。全局状态由 `src/app/state/AppContext.tsx` 统一导出，状态初始化、reducer、provider 和类型定义拆分在 `src/app/state/` 下；消息输入、流式事件消费、语音播放、计划面板、前端工具渲染等能力继续按 `features/*/{components,hooks,lib}` 组织。
@@ -45,9 +44,8 @@
 - `src/shared/styles/`：全局主题变量、样式入口与主题工具；当前统一入口为 `globals.css`
 - `src/shared/ui/`：通用基础 UI 组件
 - `src/shared/utils/`：通用工具函数
-- `scripts/`：镜像、程序包与发布辅助脚本
-- `nginx.conf`：容器内反向代理模板
-- `Makefile`：本地开发、测试、构建与容器命令入口
+- `scripts/`：Program Bundle、协议同步和构建辅助脚本
+- `Makefile`：本地开发、测试、构建与 Program Bundle 发布入口
 - `webpack.config.js` / `tsconfig.json`：当前 TypeScript + Webpack 构建链必需配置
 
 ## 5. 数据结构
@@ -86,12 +84,11 @@
 接口统一按 `ApiResponse` 结构读取，错误会被包装为 `ApiError`。
 
 ## 7. 开发要点
-- 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，开发与部署都使用 `.env`。
+- 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，本地开发使用 `.env`，Program Bundle 运行参数由 Desktop 宿主注入。
 - 仓库统一使用 `npm`；根目录提交 `package-lock.json`，不使用 `pnpm` / `yarn` 锁文件。
 - 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 与主 `/ws` 代理目标由 `BASE_URL` 控制；设置 `VOICE_BASE_URL` 时语音 WebSocket 与语音相关 HTTP 代理到该上游，未设置时语音功能关闭。
 - Desktop Program Bundle 只交付 `frontend/dist` 和 manifest；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 Desktop main process 托管。
-- 生产容器通过根目录 `nginx.conf` 模板反向代理普通 `/api/*` 与 `/ws` 到 `BASE_URL`，并在设置 `VOICE_BASE_URL` 时追加 `/api/voice/ws`、`/api/voice/*` 的语音代理。
-- SSE 和 WebSocket 请求都需要禁用代理缓冲，避免事件流被延迟或截断。
+- Desktop main process 负责 Program Bundle 的静态托管和代理；WebClient 仓库不维护第二套生产发布链。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition`、音频采集能力与后端 WebSocket 能力，浏览器兼容性需单独验证。
 - `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为全局样式入口，其他全局样式通过该文件集中导入。
 
@@ -104,13 +101,6 @@
 5. `make test`
 6. `make build`
 
-容器联调流程：
-1. 在 `.env` 中设置可访问的 `BASE_URL`，按需设置 `VOICE_BASE_URL`
-2. 执行 `make docker-up`
-3. 通过 `docker compose -f compose.yml logs -f webclient` 检查容器与代理状态
-4. 需要重建镜像时执行 `make docker-build`
-5. 停止容器时执行 `make docker-down`
-
 Git 提交与推送规范：
 - 当用户说“提交”“提交一下”“提交代码”等要求时，默认流程是先提交本次目标改动，再继续 `push` 到远端分支，直到远端同步完成。
 - 提交前必须核对 `git status`、暂存区范围和 diff，只提交本次任务相关文件；未跟踪文件或无关本地改动不得顺手带入。
@@ -119,7 +109,7 @@ Git 提交与推送规范：
 
 ## 9. 已知约束与注意事项
 - 本仓库是后端协议的消费方，不在前端定义或修改后端协议语义。
-- 开发与部署都依赖外部 AGENT API / 语音服务，脱离后端无法完成核心联调。
+- 本地开发依赖外部 AGENT API / 语音服务，脱离后端无法完成核心联调。
 - 若上游返回非标准 JSON、SSE 帧格式异常或 WebSocket 事件不完整，前端会以错误态显示，但无法替代后端修复协议问题。
 - 语音、前端工具和运行态调试能力对浏览器能力、代理配置和后端实时链路较敏感，回归时需要重点验证。
 
@@ -173,6 +163,6 @@ Git 提交与推送规范：
 - [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)
 - [80-界面基础-样式主题基础UI与国际化](docs/80-界面基础-样式主题基础UI与国际化.md)
 - [81-宿主集成-Desktop宿主桥接](docs/81-宿主集成-Desktop宿主桥接.md)
-- [90-交付运维-开发代理与生产反向代理](docs/90-交付运维-开发代理与生产反向代理.md)
+- [90-交付运维-开发代理与Desktop托管](docs/90-交付运维-开发代理与生产反向代理.md)
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
