@@ -22,7 +22,7 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 
 ## 边界与非目标
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
-- `webclient.*` Action 只在 Standalone 根路由注册；Desktop WorkPanel 使用正式 `desktop.workpanel.*` 语义，不恢复 sidebar Action 映射。
+- Standalone 根路由与 Desktop WorkPanel 都只使用正式 `desktop.workpanel.*` 语义，不维护平行 sidebar Action 映射。
 - Standalone 根路由以 `desktop.action.call` 承接七个 `desktop.workpanel.*`，复用右侧栏/Web Preview 状态并校验可信 `source.chatId`；Desktop 模式不注册该 provider，因为 Platform 的 `desktop.*` 反向请求由 Desktop Main Broker 处理。
 - Agent WebClient guest 不读取、缓存或接收 access token；Desktop host 对 manifest 声明过鉴权的显式 HTTP `/api` 请求在 Main 内注入并在一次 401 后刷新。
 - Agents、Agent、Chats、Archives、Memory 等 capability 标记为 Platform WS 的数据请求复用 Frame Port；Automations、Admin/Registries、Project、上传下载和资源 Blob 保持普通 HTTP。Desktop 不再传递 `wsSource`。

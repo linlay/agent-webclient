@@ -56,7 +56,7 @@ import {
   WebViewerPage,
 } from "./pages/surfaces";
 import { HistoryPage } from "./pages/history";
-import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
+import { useStandaloneWorkPanelActionRuntime } from "@/features/conversation/hooks/useStandaloneWorkPanelActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
 import { WebClientRouteErrorPage } from "@/app/WebClientRenderError";
@@ -115,7 +115,7 @@ const InteractiveRoute: React.FC<{
 );
 
 const RootInteractiveRoute: React.FC = () => {
-  useWebClientActionRuntime();
+  useStandaloneWorkPanelActionRuntime();
   return (
     <InteractiveRoute>
       <AppShell />

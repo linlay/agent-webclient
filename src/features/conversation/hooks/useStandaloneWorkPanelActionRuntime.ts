@@ -9,10 +9,6 @@ import {
 } from "@/features/transport/lib/wsClient";
 import { useInboundRequestTransport } from "@/features/transport/hooks/useRealtimeTransport";
 
-export const WEBCLIENT_SIDEBAR_GET_STATE = "webclient.sidebar.getState";
-export const WEBCLIENT_SIDEBAR_SET_STATE = "webclient.sidebar.setState";
-export const WEBCLIENT_SIDEBAR_OPEN_URL = "webclient.sidebar.openUrl";
-export const WEBCLIENT_SIDEBAR_REFRESH_URL = "webclient.sidebar.refreshUrl";
 export const DESKTOP_ACTION_CALL = "desktop.action.call";
 
 const WORKPANEL_ACTIONS = new Set([
@@ -30,13 +26,13 @@ const SUPPORTED_RIGHT_SIDEBAR_TABS = [
 	"btw",
 	"debug",
 ] as const satisfies readonly RightSidebarTabKey[];
-const WEBCLIENT_SIDEBAR_URL_MAX_LENGTH = 2048;
-const WEBCLIENT_SIDEBAR_TITLE_MAX_LENGTH = 200;
+const WORKPANEL_URL_MAX_LENGTH = 2048;
+const WORKPANEL_TITLE_MAX_LENGTH = 200;
 
 type SupportedRightSidebarTab =
 	(typeof SUPPORTED_RIGHT_SIDEBAR_TABS)[number];
 
-interface SidebarActionRuntime {
+interface WorkPanelActionRuntime {
 	dispatch: React.Dispatch<AppAction>;
 	getState: () => AppState;
 	getPathname?: () => string;
@@ -104,9 +100,9 @@ function normalizeWebPreviewUrl(value: unknown): string {
 	if (!candidate) {
 		return invalidRequest("url is required");
 	}
-	if (Array.from(candidate).length > WEBCLIENT_SIDEBAR_URL_MAX_LENGTH) {
+	if (Array.from(candidate).length > WORKPANEL_URL_MAX_LENGTH) {
 		return invalidRequest(
-			`url must be at most ${WEBCLIENT_SIDEBAR_URL_MAX_LENGTH} characters`,
+			`url must be at most ${WORKPANEL_URL_MAX_LENGTH} characters`,
 		);
 	}
 	if (candidate.startsWith("//")) {
@@ -151,9 +147,9 @@ function normalizeWebPreviewTitle(
 		return invalidRequest("title must be a string");
 	}
 	const title = value.trim();
-	if (Array.from(title).length > WEBCLIENT_SIDEBAR_TITLE_MAX_LENGTH) {
+	if (Array.from(title).length > WORKPANEL_TITLE_MAX_LENGTH) {
 		return invalidRequest(
-			`title must be at most ${WEBCLIENT_SIDEBAR_TITLE_MAX_LENGTH} characters`,
+			`title must be at most ${WORKPANEL_TITLE_MAX_LENGTH} characters`,
 		);
 	}
 	return title || fallback;
@@ -175,7 +171,7 @@ function webPreviewItemId(url: string): string {
 
 function requireCurrentChat(
 	sourceValue: unknown,
-	runtime: SidebarActionRuntime,
+	runtime: WorkPanelActionRuntime,
 ): string {
 	const source = requireRecord(sourceValue);
 	const sourceChatId = typeof source.chatId === "string"
@@ -221,7 +217,7 @@ function workPanelItems(state: AppState) {
 	return [...builtins, ...previews];
 }
 
-function readWorkPanelState(runtime: SidebarActionRuntime, chatId: string) {
+function readWorkPanelState(runtime: WorkPanelActionRuntime, chatId: string) {
 	const state = runtime.getState();
 	let activeItemId: string | null = null;
 	if (state.rightSidebarOpen) {
@@ -247,7 +243,7 @@ function readWorkPanelState(runtime: SidebarActionRuntime, chatId: string) {
 
 function workPanelSuccess(
 	action: string,
-	runtime: SidebarActionRuntime,
+	runtime: WorkPanelActionRuntime,
 	chatId: string,
 	extra: Record<string, unknown> = {},
 ) {
@@ -264,16 +260,16 @@ function workPanelSuccess(
 	};
 }
 
-function ensureWorkPanelAvailable(runtime: SidebarActionRuntime): void {
+function ensureWorkPanelAvailable(runtime: WorkPanelActionRuntime): void {
 	const pathname = runtime.getPathname?.() ??
 		(typeof window === "undefined" ? "/" : window.location.pathname);
-	if (!sidebarAvailability(pathname).right) {
+	if (normalizePathname(pathname) !== "/") {
 		unsupportedInCurrentView("WorkPanel is unavailable in the current view");
 	}
 }
 
 function openWorkPanelWeb(
-	runtime: SidebarActionRuntime,
+	runtime: WorkPanelActionRuntime,
 	urlValue: unknown,
 	titleValue: unknown,
 ): { url: string; title: string } {
@@ -293,7 +289,7 @@ function openWorkPanelWeb(
 }
 
 function openWorkPanelDescriptor(
-	runtime: SidebarActionRuntime,
+	runtime: WorkPanelActionRuntime,
 	descriptorValue: unknown,
 	chatId: string,
 ): Record<string, unknown> {
@@ -348,7 +344,7 @@ function openWorkPanelDescriptor(
 
 export function registerStandaloneWorkPanelActionHandler(
 	client: Pick<WsClient, "registerInboundRequestHandler">,
-	runtime: SidebarActionRuntime,
+	runtime: WorkPanelActionRuntime,
 ): () => void {
 	return client.registerInboundRequestHandler(
 		DESKTOP_ACTION_CALL,
@@ -470,223 +466,7 @@ export function registerStandaloneWorkPanelActionHandler(
 	);
 }
 
-function sidebarAvailability(pathname: string): {
-	left: boolean;
-	right: boolean;
-} {
-	const path = normalizePathname(pathname);
-	return {
-		left: path === "/",
-		right: path === "/",
-	};
-}
-
-function readSidebarState(runtime: SidebarActionRuntime) {
-	const state = runtime.getState();
-	const pathname =
-		runtime.getPathname?.() ??
-		(typeof window === "undefined" ? "/" : window.location.pathname);
-	return {
-		available: sidebarAvailability(pathname),
-		left: {
-			open: state.leftDrawerOpen,
-		},
-		right: {
-			open: state.rightSidebarOpen,
-			tab: state.rightSidebarOpenTab,
-			supportedTabs: [...SUPPORTED_RIGHT_SIDEBAR_TABS],
-		},
-	};
-}
-
-export function registerWebClientSidebarActionHandlers(
-	client: Pick<WsClient, "registerInboundRequestHandler">,
-	runtime: SidebarActionRuntime,
-): () => void {
-	const unsubscribeWorkPanel = registerStandaloneWorkPanelActionHandler(
-		client,
-		runtime,
-	);
-	const unsubscribeGetState = client.registerInboundRequestHandler(
-		WEBCLIENT_SIDEBAR_GET_STATE,
-		(payload) => {
-			const record = requireRecord(payload);
-			if (Object.keys(record).length > 0) {
-				invalidRequest("webclient.sidebar.getState payload must be empty");
-			}
-			return readSidebarState(runtime);
-		},
-	);
-
-	const unsubscribeSetState = client.registerInboundRequestHandler(
-		WEBCLIENT_SIDEBAR_SET_STATE,
-		(payload) => {
-			const record = requireRecord(payload);
-			requireExactKeys(record, ["sidebar", "open", "tab"]);
-			const sidebar = record.sidebar;
-			if (sidebar !== "left" && sidebar !== "right") {
-				invalidRequest("sidebar must be left or right");
-			}
-			if (typeof record.open !== "boolean") {
-				invalidRequest("open must be a boolean");
-			}
-			const open = record.open;
-			const hasTab = Object.prototype.hasOwnProperty.call(record, "tab");
-			if (sidebar === "left" && hasTab) {
-				invalidRequest("tab is not supported for the left sidebar");
-			}
-			if (!open && hasTab) {
-				invalidRequest("tab is not supported when closing a sidebar");
-			}
-			if (hasTab && !isSupportedRightSidebarTab(record.tab)) {
-				invalidRequest("tab must be overview, btw, or debug");
-			}
-
-			const before = readSidebarState(runtime);
-			if (!before.available[sidebar]) {
-				unsupportedInCurrentView(
-					`${sidebar} sidebar is unavailable in the current view`,
-				);
-			}
-
-			let applied = false;
-			if (sidebar === "left") {
-				applied = before.left.open !== open;
-				if (applied) {
-					runtime.dispatch({
-						type: "SET_LEFT_DRAWER_OPEN",
-						open,
-					});
-				}
-			} else if (!open) {
-				applied = before.right.open;
-				if (applied) {
-					runtime.dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-				}
-			} else {
-				const requestedTab = hasTab
-					? (record.tab as SupportedRightSidebarTab)
-					: isSupportedRightSidebarTab(before.right.tab)
-						? before.right.tab
-						: "overview";
-				applied =
-					!before.right.open || before.right.tab !== requestedTab;
-				if (applied) {
-					runtime.dispatch({
-						type: "OPEN_RIGHT_SIDEBAR",
-						tab: requestedTab,
-					});
-				}
-			}
-
-			const after = readSidebarState(runtime);
-			return {
-				applied,
-				sidebar,
-				...(sidebar === "left"
-					? { open: after.left.open }
-					: {
-							open: after.right.open,
-							tab: after.right.tab,
-						}),
-			};
-		},
-	);
-
-	const unsubscribeOpenUrl = client.registerInboundRequestHandler(
-		WEBCLIENT_SIDEBAR_OPEN_URL,
-		(payload) => {
-			const record = requireRecord(payload);
-			requireExactKeys(record, ["url", "title"]);
-			const before = readSidebarState(runtime);
-			if (!before.available.right) {
-				unsupportedInCurrentView(
-					"right sidebar is unavailable in the current view",
-				);
-			}
-
-			const url = normalizeWebPreviewUrl(record.url);
-			const stateBefore = runtime.getState();
-			const existingPreview = stateBefore.webPreviews.find(
-				(preview) => preview.url === url,
-			);
-			const fallbackTitle =
-				existingPreview?.title || new URL(url).hostname || url;
-			const title = normalizeWebPreviewTitle(record.title, fallbackTitle);
-			const applied =
-				!stateBefore.rightSidebarOpen ||
-				stateBefore.rightSidebarOpenTab !== "web" ||
-				stateBefore.activeWebPreviewUrl !== url ||
-				existingPreview?.title !== title;
-
-			if (applied) {
-				runtime.dispatch({
-					type: "OPEN_RIGHT_SIDEBAR",
-					tab: "web",
-					webPreview: {
-						title,
-						url,
-					},
-				});
-			}
-
-			const stateAfter = runtime.getState();
-			const finalPreview = stateAfter.webPreviews.find(
-				(preview) => preview.url === url,
-			);
-			return {
-				applied,
-				sidebar: "right",
-				open: stateAfter.rightSidebarOpen,
-				tab: stateAfter.rightSidebarOpenTab,
-				url: finalPreview?.url || url,
-				title: finalPreview?.title || title,
-			};
-		},
-	);
-
-	const unsubscribeRefreshUrl = client.registerInboundRequestHandler(
-		WEBCLIENT_SIDEBAR_REFRESH_URL,
-		(payload) => {
-			const record = requireRecord(payload);
-			requireExactKeys(record, ["url"]);
-			const url = normalizeWebPreviewUrl(record.url);
-			const before = readSidebarState(runtime);
-			if (!before.available.right) {
-				unsupportedInCurrentView(
-					"right sidebar is unavailable in the current view",
-				);
-			}
-
-			const stateBefore = runtime.getState();
-			if (!stateBefore.webPreviews.some((preview) => preview.url === url)) {
-				unsupportedInCurrentView(
-					"web preview URL is not open in the current view",
-				);
-			}
-
-			runtime.dispatch({ type: "REFRESH_WEB_PREVIEW", url });
-			const stateAfter = runtime.getState();
-			return {
-				applied: true,
-				sidebar: "right",
-				open: stateAfter.rightSidebarOpen,
-				tab: stateAfter.rightSidebarOpenTab,
-				url,
-			};
-		},
-	);
-
-	return () => {
-		unsubscribeWorkPanel();
-		unsubscribeRefreshUrl();
-		unsubscribeOpenUrl();
-		unsubscribeSetState();
-		unsubscribeGetState();
-	};
-}
-
-export function useWebClientActionRuntime(): void {
+export function useStandaloneWorkPanelActionRuntime(): void {
 	const { dispatch, stateRef } = useAppContext();
 	const inbound = useInboundRequestTransport();
 
@@ -701,7 +481,7 @@ export function useWebClientActionRuntime(): void {
 			registerInboundRequestHandler: (type, handler) =>
 				inbound.register(type, handler),
 		};
-		return registerWebClientSidebarActionHandlers(registrar, {
+		return registerStandaloneWorkPanelActionHandler(registrar, {
 			dispatch,
 			getState: () => stateRef.current,
 		});

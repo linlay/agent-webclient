@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:af3035edc14e9db5698ecf839d33f027a701f9efef09f11ac3993e6799286245
+// sha256:b90686ce5fb76147bf0e6bd4afe9084c15034c1b852dc87d1c01f4643048e723
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -45,7 +45,6 @@ export const AGENT_WEBCLIENT_BRIDGE_ERROR_CODES = [
   "capability_denied",
   "surface_unavailable",
   "target_unavailable",
-  "ambiguous_action_target",
   "unsupported_in_current_view",
   "unsupported_native_surface",
   "seq_expired",
@@ -74,8 +73,7 @@ export type AgentWebclientSurfaceCapability =
   | "push.subscribe"
   | "workpanel.open"
   | "workpanel.activate"
-  | "workpanel.close"
-  | "inbound.action.owner";
+  | "workpanel.close";
 
 export type AgentWebclientConnectionPhase =
   | "idle"
