@@ -104,12 +104,12 @@ const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
     <div>
       <div>{target.name}</div>
       <Flex gap={10}>
-      {typeLabel ? <div>{typeLabel}</div> : null}
-      {sizeLabel ? <div>{sizeLabel}</div> : null}
+        {typeLabel ? <div>{typeLabel}</div> : null}
+        {sizeLabel ? <div>{sizeLabel}</div> : null}
       </Flex>
     </div>
   );
-}
+};
 
 export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
@@ -126,8 +126,8 @@ export const RightSidebar: React.FC = () => {
   const debugPanelEnabled = isDebugPanelEnabled();
   const currentChat = state.chats?.find((chat) => chat.chatId === state.chatId);
   const teamChat = Boolean(
-    currentChat?.owner?.kind === "orchestrated-team"
-    || String(currentChat?.teamId || "").trim(),
+    currentChat?.owner?.kind === "orchestrated-team" ||
+    String(currentChat?.teamId || "").trim(),
   );
   const desktopSidebarVisible = state.rightSidebarOpen;
   const selectedPanel =
@@ -136,40 +136,54 @@ export const RightSidebar: React.FC = () => {
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
         : state.rightSidebarOpenTab === "viewer" && viewerTabs.length > 0
-					? `viewer:${(state.activeViewerKey && viewerTabs.some((target) => getViewerTargetKey(target) === state.activeViewerKey)
-						? state.activeViewerKey
-						: getViewerTargetKey(viewerTabs[viewerTabs.length - 1]))}`
-					: state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
-						? "sourceDetail"
-						: state.rightSidebarOpenTab === "planningPreview" &&
-							planningPreviews.length > 0
-							? `planningPreview:${(state.activePlanningPreviewNodeId && planningPreviews.some(p => p.nodeId === state.activePlanningPreviewNodeId)
-								? state.activePlanningPreviewNodeId
-								: planningPreviews[planningPreviews.length - 1].nodeId)}`
+          ? `viewer:${
+              state.activeViewerKey &&
+              viewerTabs.some(
+                (target) =>
+                  getViewerTargetKey(target) === state.activeViewerKey,
+              )
+                ? state.activeViewerKey
+                : getViewerTargetKey(viewerTabs[viewerTabs.length - 1])
+            }`
+          : state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
+            ? "sourceDetail"
+            : state.rightSidebarOpenTab === "planningPreview" &&
+                planningPreviews.length > 0
+              ? `planningPreview:${
+                  state.activePlanningPreviewNodeId &&
+                  planningPreviews.some(
+                    (p) => p.nodeId === state.activePlanningPreviewNodeId,
+                  )
+                    ? state.activePlanningPreviewNodeId
+                    : planningPreviews[planningPreviews.length - 1].nodeId
+                }`
               : state.rightSidebarOpenTab === "web" && webPreviews.length > 0
                 ? buildWebTabKey(
                     state.activeWebPreviewUrl ||
                       webPreviews[webPreviews.length - 1].url,
                   )
                 : state.rightSidebarOpenTab === "skill" && skillTabs.length > 0
-                  ? `skill:${(activeSkillKey && skillTabs.some((s) => s.key === activeSkillKey)
-                      ? activeSkillKey
-                      : skillTabs[skillTabs.length - 1].key)}`
+                  ? `skill:${
+                      activeSkillKey &&
+                      skillTabs.some((s) => s.key === activeSkillKey)
+                        ? activeSkillKey
+                        : skillTabs[skillTabs.length - 1].key
+                    }`
                   : "overview";
-  const activePanel: RightSidebarTabKey = selectedPanel === "debug"
-    ? "debug"
-    : selectedPanel.startsWith("viewer:")
-			? "viewer"
-      : selectedPanel.startsWith("planningPreview:")
-        ? "planningPreview"
-        : selectedPanel.startsWith("web:")
-          ? "web"
-          : selectedPanel.startsWith("skill:")
-            ? "skill"
-            : (selectedPanel as RightSidebarTabKey);
-  const activeTab: RightSidebarTabsKey = selectedPanel === "debug"
-    ? "overview"
-    : selectedPanel;
+  const activePanel: RightSidebarTabKey =
+    selectedPanel === "debug"
+      ? "debug"
+      : selectedPanel.startsWith("viewer:")
+        ? "viewer"
+        : selectedPanel.startsWith("planningPreview:")
+          ? "planningPreview"
+          : selectedPanel.startsWith("web:")
+            ? "web"
+            : selectedPanel.startsWith("skill:")
+              ? "skill"
+              : (selectedPanel as RightSidebarTabKey);
+  const activeTab: RightSidebarTabsKey =
+    selectedPanel === "debug" ? "overview" : selectedPanel;
   const [sidebarWidth, setSidebarWidth] = React.useState(
     readStoredRightSidebarWidth,
   );
@@ -418,7 +432,10 @@ export const RightSidebar: React.FC = () => {
       items.push({
         key: `viewer:${viewerKey}`,
         label: (
-          <Tooltip title={<ViewerTabTooltip target={target} />} placement="rightTop">
+          <Tooltip
+            title={<ViewerTabTooltip target={target} />}
+            placement="rightTop"
+          >
             <Flex align="center" gap={4}>
               <MaterialIcon name="visibility" />
               <Typography.Text ellipsis className="tw:!max-w-[100px]">
@@ -476,9 +493,7 @@ export const RightSidebar: React.FC = () => {
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="skills" />
-            <Typography.Text ellipsis className="tw:!max-w-[100px]">
-              {skill.label || skill.key}
-            </Typography.Text>
+            <span>{skill.label || skill.key}</span>
           </Flex>
         ),
         children: <SkillDetailView skillKey={skill.key} />,
@@ -640,7 +655,8 @@ export const RightSidebar: React.FC = () => {
                                 "viewer:".length,
                               );
                               const target = viewerTabs.find(
-                                (item) => getViewerTargetKey(item) === viewerKey,
+                                (item) =>
+                                  getViewerTargetKey(item) === viewerKey,
                               );
                               if (target) {
                                 handleViewerDownload(target);

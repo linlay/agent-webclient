@@ -641,6 +641,8 @@ export const enUSMessages = {
   "approvalDialog.status.autoSubmitting": "Auto-submitting...",
   "approvalDialog.timeoutResolved": "Awaiting timed out.",
   "approvalDialog.timeout.countdown": "Submit countdown {label}",
+  "approvalDialog.error.missingDecision": "Please select a decision for every approval",
+  "approvalDialog.error.missingReason": "Please provide a reject reason",
   "planDialog.option.approve": "Yes, implement this plan",
   "planDialog.option.reject": "No",
   "planDialog.rejectPlaceholder": "Tell me how to adjust it",

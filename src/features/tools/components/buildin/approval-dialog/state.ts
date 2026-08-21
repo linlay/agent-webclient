@@ -74,6 +74,32 @@ export function buildPartialApprovalSubmitParams(
   });
 }
 
+export function findApprovalDecisionError(
+  approvals: AIAwaitApproval[],
+  decisions: Record<string, ApprovalDialogDecision | undefined>,
+  reasons: Record<string, string>,
+  t: ApprovalDialogTranslate,
+): { index: number; message: string } | null {
+  const normalizedApprovals = Array.isArray(approvals) ? approvals : [];
+  for (let index = 0; index < normalizedApprovals.length; index += 1) {
+    const approval = normalizedApprovals[index];
+    const decision = decisions[approval.id];
+    if (!decision) {
+      return {
+        index,
+        message: t("approvalDialog.error.missingDecision"),
+      };
+    }
+    if (decision === "reject_with_reason" && !reasons[approval.id]?.trim()) {
+      return {
+        index,
+        message: t("approvalDialog.error.missingReason"),
+      };
+    }
+  }
+  return null;
+}
+
 function normalizeApprovalDecision(
   decision: ApprovalDialogDecision | undefined,
 ): AIAwaitApprovalDecision {

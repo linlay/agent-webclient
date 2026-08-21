@@ -1,5 +1,5 @@
-import { Radio, Typography } from "antd";
-import { Button, CheckboxRef, Flex, Input, Tabs } from "antd/es";
+import { message, Radio, Typography } from "antd";
+import { Button, CheckboxRef, Flex, Input } from "antd/es";
 import React, {
   forwardRef,
   useCallback,
@@ -23,6 +23,7 @@ import {
   type ApprovalDialogDecision,
   buildPartialApprovalSubmitParams,
   buildApprovalSubmitParams,
+  findApprovalDecisionError,
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
@@ -30,6 +31,7 @@ import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin
 import { useI18n } from "@/shared/i18n";
 import { debounce } from "lodash";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { Pager } from "@/shared/ui/Pager";
 import {
   getHitlPaginationDotClassName,
   hitlDialogClassNames,
@@ -88,11 +90,6 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
     [approvals],
   );
 
-  const canSubmit = useMemo(
-    () => !readOnly && hasAllDecisions(decisions, reasons),
-    [decisions, hasAllDecisions, readOnly, reasons],
-  );
-
   useAwaitingResolutionNotice({
     resolutionReason: data.resolutionReason,
     onResolved,
@@ -144,14 +141,22 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   const submitDecision = useCallback(
     async (nextDecisions = decisions, nextReasons = reasons) => {
-      if (readOnly || !hasAllDecisions(nextDecisions, nextReasons)) {
+      const error = findApprovalDecisionError(
+        approvals,
+        nextDecisions,
+        nextReasons,
+        t,
+      );
+      if (error) {
+        setCurIndex(clampAwaitingIndex(error.index, approvals.length));
+        void message.warning(error.message);
         return;
       }
       await submitPayload(
         buildApprovalSubmitParams(approvals, nextDecisions, nextReasons),
       );
     },
-    [approvals, decisions, hasAllDecisions, readOnly, reasons, submitPayload],
+    [approvals, decisions, reasons, submitPayload, t],
   );
 
   const doSkip = useCallback(async () => {
@@ -336,114 +341,108 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   return ready ? (
     <div className={hitlDialogClassNames.surface}>
-      <Tabs
-        activeKey={curIndex.toString()}
-        onChange={(key) =>
-          setCurIndex(clampAwaitingIndex(Number(key), approvals.length))
-        }
-        renderTabBar={() => null as any}
-        items={approvals.map((approval, index) => ({
-          key: index.toString(),
-          label: approval.id,
-          children: (
-            <ApprovalQuestion
-              ref={(ref) => {
-                if (ref) {
-                  approvalsRef.current[index] = ref;
-                }
-              }}
-              approval={approval}
-              readOnly={readOnly}
-              decision={decisions[approval.id]}
-              reason={reasons[approval.id] || ""}
-              onDecisionChange={(nextDecision) => {
-                handleDecisionChange(approval.id, nextDecision);
-              }}
-              onReasonChange={(nextReason) => {
-                setReasons((current) => ({
-                  ...current,
-                  [approval.id]: nextReason,
-                }));
-              }}
-              onEnter={(nextDecision) => {
-                void moveForward(nextDecision);
-              }}
-              pagnation={
-                <Flex
-                  className={hitlDialogClassNames.headerSide}
-                  align="center"
-                  gap={16}
-                >
-                  {timeoutCountdown.label && (
-                    <Flex className={hitlDialogClassNames.timeoutRow}>
-                      <span>
-                        {timeoutExpired && submitting
-                          ? t("approvalDialog.status.autoSubmitting")
-                          : t("approvalDialog.timeout.countdown", {
-                              label: timeoutCountdown.label,
-                            })}
-                      </span>
-                    </Flex>
-                  )}
-                  {approvals.length > 1 && (
-                    <Flex className={hitlDialogClassNames.pagination} gap={6}>
-                      {approvals?.map((item, index) => {
-                        const value = decisions?.[item.id];
-                        const skip = value === "reject";
-                        const done = !skip && value;
-                        return (
-                          <span
-                            key={item.id}
-                            className={getHitlPaginationDotClassName({
-                              active: index === curIndex,
-                              done: Boolean(done),
-                              skip,
-                            })}
-                            onClick={() => setCurIndex(index)}
-                          ></span>
-                        );
-                      })}
-                    </Flex>
-                  )}
-                </Flex>
+      <Pager
+        index={curIndex}
+        panels={approvals.map((approval, index) => (
+          <ApprovalQuestion
+            key={approval.id ?? index}
+            ref={(ref) => {
+              if (ref) {
+                approvalsRef.current[index] = ref;
               }
-              confirmSlot={
-                <Flex gap={10} align="center">
-                  {curIndex < approvals.length - 1 && (
-                    <Button
-                      type="primary"
-                      shape="round"
-                      size="small"
-                      className={hitlDialogClassNames.button}
-                      onClick={() => {
-                        void moveForward();
-                      }}
-                      disabled={readOnly || !currentDecision}
-                    >
-                      {t("approvalDialog.action.continue")}
-                    </Button>
-                  )}
-                  {curIndex >= approvals.length - 1 && (
-                    <Button
-                      type="primary"
-                      shape="round"
-                      size="small"
-                      className={hitlDialogClassNames.button}
-                      onClick={() => {
-                        void submitDecision();
-                      }}
-                      loading={submitting}
-                      disabled={!canSubmit}
-                    >
-                      <span>{t("approvalDialog.action.submit")}</span>
-                      <MaterialIcon name="keyboard_return" />
-                    </Button>
-                  )}
-                </Flex>
-              }
-            />
-          ),
-        }))}
+            }}
+            approval={approval}
+            readOnly={readOnly}
+            decision={decisions[approval.id]}
+            reason={reasons[approval.id] || ""}
+            onDecisionChange={(nextDecision) => {
+              handleDecisionChange(approval.id, nextDecision);
+            }}
+            onReasonChange={(nextReason) => {
+              setReasons((current) => ({
+                ...current,
+                [approval.id]: nextReason,
+              }));
+            }}
+            onEnter={(nextDecision) => {
+              void moveForward(nextDecision);
+            }}
+            pagnation={
+              <Flex
+                className={hitlDialogClassNames.headerSide}
+                align="center"
+                gap={16}
+              >
+                {timeoutCountdown.label && (
+                  <Flex className={hitlDialogClassNames.timeoutRow}>
+                    <span>
+                      {timeoutExpired && submitting
+                        ? t("approvalDialog.status.autoSubmitting")
+                        : t("approvalDialog.timeout.countdown", {
+                            label: timeoutCountdown.label,
+                          })}
+                    </span>
+                  </Flex>
+                )}
+                {approvals.length > 1 && (
+                  <Flex className={hitlDialogClassNames.pagination} gap={6}>
+                    {approvals?.map((item, index) => {
+                      const value = decisions?.[item.id];
+                      const skip = value === "reject";
+                      const done = !skip && value;
+                      return (
+                        <span
+                          key={item.id}
+                          className={getHitlPaginationDotClassName({
+                            active: index === curIndex,
+                            done: Boolean(done),
+                            skip,
+                          })}
+                          onClick={() => setCurIndex(index)}
+                        ></span>
+                      );
+                    })}
+                  </Flex>
+                )}
+              </Flex>
+            }
+            confirmSlot={
+              <Flex gap={10} align="center">
+                {curIndex < approvals.length - 1 && (
+                  <Button
+                    type="primary"
+                    shape="round"
+                    size="small"
+                    className={hitlDialogClassNames.button}
+                    onClick={() => {
+                      void moveForward();
+                    }}
+                    loading={submitting}
+                    disabled={resolved || !currentDecision}
+                  >
+                    {t("approvalDialog.action.continue")}
+                  </Button>
+                )}
+                {curIndex >= approvals.length - 1 && (
+                  <Button
+                    type="primary"
+                    shape="round"
+                    size="small"
+                    className={hitlDialogClassNames.button}
+                    onClick={() => {
+                      void submitDecision();
+                    }}
+                    loading={submitting}
+                    disabled={resolved}
+                  >
+                    <span>{t("approvalDialog.action.submit")}</span>
+                    <MaterialIcon name="keyboard_return" />
+                  </Button>
+                )}
+              </Flex>
+            }
+          />
+        ))}
       />
     </div>
   ) : (

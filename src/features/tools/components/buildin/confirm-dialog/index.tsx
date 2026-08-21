@@ -7,7 +7,6 @@ import {
   Form,
   Input,
   InputNumber,
-  Tabs,
   Tooltip,
 } from "antd/es";
 import { message } from "antd";
@@ -56,6 +55,7 @@ import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin
 import { debounce } from "lodash";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { Pager } from "@/shared/ui/Pager";
 import {
   getHitlPaginationDotClassName,
   hitlDialogClassNames,
@@ -205,6 +205,13 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
   });
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      questionsRef.current[curIndex]?.getElements()?.[0]?.focus();
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [curIndex]);
+
+  useEffect(() => {
     callbackRef.current = {
       onSubmit,
     };
@@ -307,58 +314,55 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
       <Form.List name="params">
         {(fields) => {
           return (
-            <Tabs
-              activeKey={curIndex.toString()}
-              onChange={(key) => setCurIndex(Number(key))}
-              renderTabBar={() => null as any}
-              items={fields.map((field) => ({
-                key: field.key.toString(),
-                label: field.name,
-                children: (
-                  <Form.Item {...field} className={hitlDialogClassNames.formItem}>
-                    <Question
-                      ref={(ref) => {
-                        if (ref) {
-                          questionsRef.current[field.name] = ref;
-                        }
-                      }}
-                      data={questions[field.name]}
-                      pagination={
-                        questions.length > 1 ? (
-                          <Flex
-                            className={hitlDialogClassNames.pagination}
-                            align="center"
-                            gap={6}
-                          >
-                            {questions?.map((item, index) => {
-                              const value = params?.[
-                                index
-                              ] as AIAwaitQuestionSubmitParamData;
-                              const done =
-                                value?.answer ||
-                                (Array.isArray(value?.answers) &&
-                                  value?.answers?.length > 0);
-                              return (
-                                <span
-                                  key={item.id}
-                                  className={getHitlPaginationDotClassName({
-                                    active: index === curIndex,
-                                    done: Boolean(done),
-                                  })}
-                                  onClick={() => setCurIndex(index)}
-                                ></span>
-                              );
-                            })}
-                          </Flex>
-                        ) : null
+            <Pager
+              index={curIndex}
+              panels={fields.map((field) => (
+                <Form.Item
+                  {...field}
+                  className={hitlDialogClassNames.formItem}
+                >
+                  <Question
+                    ref={(ref) => {
+                      if (ref) {
+                        questionsRef.current[field.name] = ref;
                       }
-                      onEnter={() => {
-                        void moveForward();
-                      }}
-                    />
-                  </Form.Item>
-                ),
-              }))}
+                    }}
+                    data={questions[field.name]}
+                    pagination={
+                      questions.length > 1 ? (
+                        <Flex
+                          className={hitlDialogClassNames.pagination}
+                          align="center"
+                          gap={6}
+                        >
+                          {questions?.map((item, index) => {
+                            const value = params?.[
+                              index
+                            ] as AIAwaitQuestionSubmitParamData;
+                            const done =
+                              value?.answer ||
+                              (Array.isArray(value?.answers) &&
+                                value?.answers?.length > 0);
+                            return (
+                              <span
+                                key={item.id}
+                                className={getHitlPaginationDotClassName({
+                                  active: index === curIndex,
+                                  done: Boolean(done),
+                                })}
+                                onClick={() => setCurIndex(index)}
+                              ></span>
+                            );
+                          })}
+                        </Flex>
+                      ) : null
+                    }
+                    onEnter={() => {
+                      void moveForward();
+                    }}
+                  />
+                </Form.Item>
+              ))}
             />
           );
         }}
@@ -544,7 +548,6 @@ const Question = forwardRef<
         {renderQuestionHeader()}
         <Input
           className={hitlDialogClassNames.inputField}
-          ref={(ref) => ref?.focus()}
           tabIndex={0}
           placeholder={placeholder}
           value={typeof value?.answer === "string" ? value.answer : ""}
@@ -569,7 +572,6 @@ const Question = forwardRef<
       >
         {renderQuestionHeader()}
         <Input.Password
-          ref={(ref) => ref?.focus()}
           className={hitlDialogClassNames.inputField}
           tabIndex={0}
           placeholder={placeholder}
@@ -595,7 +597,6 @@ const Question = forwardRef<
       >
         {renderQuestionHeader()}
         <InputNumber
-          ref={(ref) => ref?.focus()}
           className={hitlDialogClassNames.inputFieldFull}
           tabIndex={0}
           controls={false}
@@ -642,7 +643,6 @@ const Question = forwardRef<
       >
         {renderQuestionHeader()}
         <DatePicker
-          ref={(ref) => ref?.focus()}
           className={hitlDialogClassNames.inputField}
           tabIndex={0}
           placeholder={placeholder || format}

@@ -641,6 +641,8 @@ export const zhCNMessages = {
   "approvalDialog.status.autoSubmitting": "自动提交中...",
   "approvalDialog.timeoutResolved": "等待已超时",
   "approvalDialog.timeout.countdown": "倒计时 {label}",
+  "approvalDialog.error.missingDecision": "还有审批项未选择决策",
+  "approvalDialog.error.missingReason": "请填写拒绝理由",
   "planDialog.option.approve": "是，实施此计划",
   "planDialog.option.reject": "否",
   "planDialog.rejectPlaceholder": "请告知如何调整",
