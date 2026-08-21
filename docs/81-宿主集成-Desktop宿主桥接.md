@@ -1,7 +1,7 @@
 # Desktop宿主桥接
 
 ## 当前状态
-WebClient 已消费 canonical generated Desktop contract，通过固定只读全局 `__AGENT_WEBCLIENT_PLATFORM_WS__` 与 `__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__` 接入 Main Broker 和 WorkPanel。现有 Desktop context、截图、文件系统和右键桥接继续服务各自能力，但不作为 realtime fallback。
+WebClient 已消费 canonical generated Desktop contract，通过固定只读全局 `__AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__` 与 `__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__` 接入 Main Broker 和 WorkPanel。Frame Port transport version 固定为 2；现有 Desktop context、截图、文件系统和右键桥接继续服务各自能力，但不作为 realtime fallback。
 
 ## 核心职责
 - 严格判断 `DESKTOP_APP`：只接受布尔 `true` 或精确字符串 `"true"`。
@@ -12,15 +12,17 @@ WebClient 已消费 canonical generated Desktop contract，通过固定只读全
 - 在 query payload 中补充宿主提供的上下文。
 
 ## 核心流程
-Provider 在 Desktop Frame Port 结构和 transport version 有效时渲染页面。surface/capability denial 作为相同 request id 的标准 Platform error 留在具体操作中。`WsClient` 通过 socket factory 复用 Standalone parser；WorkPanel 保持独立 `getCapabilities()` 宿主查询和逐请求授权，只接收 canonical descriptor，失败时不调用 `window.open` 或旧 Action。
+Provider 仅在 Desktop Frame Port 结构和 transport version 有效时渲染页面。surface/capability denial 作为相同 request id 的标准 Platform error 留在具体操作中。`DesktopFramePortDriver` 把 Session 的结构化 frame/state/close 交给共享 `PlatformFrameClient`，不依赖 `WsClient`、socket factory 或字符串消息；WorkPanel 保持独立 `getCapabilities()` 宿主查询和逐请求授权，只接收 canonical descriptor，失败时不调用 `window.open` 或旧 Action。
 
-Bridge 全局可见早于 Desktop surface 完成登记属于允许的启动窗口，由 Desktop 在 Frame Port open 握手层限时收敛；WebClient 不通过 `/api/agents` 预热或业务请求重试规避该窗口。Desktop adapter 使用 `allowAnonymous=true`，空 guest token 不得被误判为缺少 access token；握手 close 的非空 reason 应保留到 disconnected/debug 信息，且不得触发 HTTP fallback。
+Bridge 全局可见早于 Desktop surface 完成登记属于允许的启动窗口，由 Desktop 在 Frame Port open 层限时收敛；WebClient 不通过 `/api/agents` 预热或业务请求重试规避该窗口。逻辑 Session 生命周期与宿主物理 WebSocket generation 分离；`connecting/connected/reconnecting/closed` 由宿主权威投影，WebClient 不从 guest token 或本地 timer 推断。永久 close 的稳定 reason/error 保留到 UI 与诊断，且不得触发 HTTP fallback。
 
 Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。Desktop WorkPanel 为 Overview、Debug、BTW、Source、Planning、Artifact、Reference、File、Project、Skill 分别使用判别式 context 和 canonical 路由，不共享全可选 context。Desktop 只依据宿主持有的结构化 surface role 映射 Frame Port 身份，不从 route、查询参数或文件路径推断；File、File Diff、Source、Artifact、Reference、Planning、Skill 等 management surface 可发送各自所需的普通 request/response，但不获得 query、attach 或 BTW live Run lease。File descriptor 保留用户请求的相对或绝对路径，不依赖 `currentWorker.workspaceDir` 做打开前判权；File Diff 的 `/workspace/...` 事件路径可在独立 Overview 中安全归一化为项目相对路径。Artifact/Reference 保留各自 module/context，但共用 Resource route。Skill descriptor 只携带非空 `key`，不继承 Chat、Agent、路径或凭据上下文。Bridge 只负责先打开面板，随后由面板请求 Platform。激活且归属于 Main Chat 的 Overview/Debug 可以发送普通 attach 帧，但 Desktop 只把它注册为 Main Chat 当前 visible Run 的本地只读 consumer，并在本地拦截 detach，不产生第二个上游 observer。本地 replay 游标过期时，Frame Port 保留 `seq_expired`、可重试标记和不含敏感数据的游标窗口诊断；WebClient 重新读取 `/api/chat` 后使用新快照游标订阅。只有激活的 Main Chat 或 BTW 子 Surface 可以发送 `/api/btw`/BTW attach，BTW 子 Surface不能发送 `/api/query`；其他独立 Surface 只做 chat replay 或文件读取。
 
 Main Chat 从已有 Chat 发起“新对话重问”时，WebClient 通过一次性 `desktop:agent-webclient:new-chat:prepare` 请求提交 `requestId + agentKey + sourceChatId + newChat`。只有匹配的 `desktop:agent-webclient:new-chat:prepared` 成功响应才允许重置和发送。响应表示 Desktop 已把外层 route 与 guest URL 切换到同一 `newChat`，并以无 `ownerChatId` 的 active Main Chat Surface 完成登记；它不表示 query 或 Chat 已创建。失败、超时、来源变化或重复事务不得降级为直接发送。
 
 Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或旧 Program manifest 都必须稳定阻断，不安装旧 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚；Desktop 按钮与 WebClient 顶栏入口归属变更也必须原子交付，不能发布重复入口或无入口的混合版本。
+
+物理断线只产生 `reconnecting`，不会 close 逻辑 Session 或终止已接受 stream；Desktop Broker 恢复后从 `lastSeq` 继续向同一订阅者投递。`surface_inactive` 只解除观察者，不 interrupt 后台 Run。协议不兼容、身份失效、应用退出或显式 dispose 才永久关闭，所有未完成操作统一收到 `DESKTOP_FRAME_PORT_CLOSED`。Desktop Driver 不实现 WebSocket readyState、close code/reason、JSON 二次编码、heartbeat timeout 或重连循环。
 
 ## 边界与非目标
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
@@ -56,4 +58,7 @@ WorkPanel 外层 Artifact/Reference tab 的下载不依赖坐标解析。Desktop
 - `../src/features/transport/contracts/realtimeTransport.ts`
 - `../src/features/transport/contracts/generated/agentWebclientBridge.ts`
 - `../src/features/transport/lib/desktopBridge.ts`
+- `../src/features/transport/lib/desktopFramePortDriver.ts`
+- `../src/features/transport/lib/desktopPlatformFrameClientRegistry.ts`
+- `../src/features/transport/lib/platformFrameClient.ts`
 - `../src/features/transport/lib/desktopWorkPanelTransport.ts`

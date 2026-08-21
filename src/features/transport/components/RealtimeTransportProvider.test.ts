@@ -4,7 +4,8 @@ import { RealtimeTransportProvider } from "@/features/transport/components/Realt
 import type { RealtimeTransport } from "@/features/transport/contracts/realtimeTransport";
 import type {
   AgentWebclientWorkPanelBridge,
-  DesktopPlatformWsBridge,
+  DesktopPlatformFramePort,
+  DesktopPlatformSession,
 } from "@/features/transport/contracts/generated/agentWebclientBridge";
 
 const runtimeConfig = globalThis as typeof globalThis & {
@@ -18,9 +19,16 @@ describe("RealtimeTransportProvider", () => {
   });
 
   function installDesktopBridges(): void {
-    const platformWs: DesktopPlatformWsBridge = {
-      transportVersion: 1,
-      createSocket: jest.fn(),
+    const session: DesktopPlatformSession = {
+      send: jest.fn(),
+      close: jest.fn(),
+      onFrame: jest.fn(() => () => undefined),
+      onState: jest.fn(() => () => undefined),
+      onClose: jest.fn(() => () => undefined),
+    };
+    const platformFramePort: DesktopPlatformFramePort = {
+      transportVersion: 2,
+      createSession: jest.fn(() => session),
     };
     const workPanel: AgentWebclientWorkPanelBridge = {
       getCapabilities: jest.fn(async () => ({ ok: true, capabilities: ["workpanel.open"] })),
@@ -31,7 +39,8 @@ describe("RealtimeTransportProvider", () => {
     Object.defineProperty(globalThis, "window", {
       configurable: true,
       value: {
-        __AGENT_WEBCLIENT_PLATFORM_WS__: platformWs,
+        location: { search: "" },
+        __AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__: platformFramePort,
         __AGENT_WEBCLIENT_WORKPANEL_BRIDGE__: workPanel,
       },
     });
@@ -79,9 +88,9 @@ describe("RealtimeTransportProvider", () => {
       configurable: true,
       value: {
         location: { search: "" },
-        __AGENT_WEBCLIENT_PLATFORM_WS__: {
-          transportVersion: 2,
-          createSocket: jest.fn(),
+        __AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__: {
+          transportVersion: 1,
+          createSession: jest.fn(),
         },
         __AGENT_WEBCLIENT_WORKPANEL_BRIDGE__: {
           getCapabilities: jest.fn(), openItem: jest.fn(), activateItem: jest.fn(), closeItem: jest.fn(),

@@ -1,14 +1,14 @@
 import type {
   AgentWebclientWorkPanelBridge,
-  DesktopPlatformWsBridge,
+  DesktopPlatformFramePort,
 } from "@/features/transport/contracts/generated/agentWebclientBridge";
 import {
-  AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION,
+  AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_TRANSPORT_VERSION,
 } from "@/features/transport/contracts/generated/agentWebclientBridge";
 
 declare global {
   interface Window {
-    __AGENT_WEBCLIENT_PLATFORM_WS__?: DesktopPlatformWsBridge;
+    __AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__?: DesktopPlatformFramePort;
     __AGENT_WEBCLIENT_WORKPANEL_BRIDGE__?: AgentWebclientWorkPanelBridge;
   }
 }
@@ -22,12 +22,12 @@ function hasMethods(value: unknown, methods: readonly string[]): boolean {
   return methods.every((method) => typeof value[method] === "function");
 }
 
-export function isDesktopPlatformWsBridge(
+export function isDesktopPlatformFramePort(
   value: unknown,
-): value is DesktopPlatformWsBridge {
+): value is DesktopPlatformFramePort {
   return isRecord(value)
-    && value.transportVersion === AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION
-    && hasMethods(value, ["createSocket"]);
+    && value.transportVersion === AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_TRANSPORT_VERSION
+    && hasMethods(value, ["createSession"]);
 }
 
 export function isDesktopWorkPanelBridge(
@@ -37,22 +37,22 @@ export function isDesktopWorkPanelBridge(
 }
 
 export function readDesktopBridges(): {
-  platformWs: DesktopPlatformWsBridge | null;
+  platformFramePort: DesktopPlatformFramePort | null;
   workPanel: AgentWebclientWorkPanelBridge | null;
-  platformWsIncompatible: boolean;
+  platformFramePortIncompatible: boolean;
 } {
   if (typeof window === "undefined") {
-    return { platformWs: null, workPanel: null, platformWsIncompatible: false };
+    return { platformFramePort: null, workPanel: null, platformFramePortIncompatible: false };
   }
-  const platformWsCandidate = window.__AGENT_WEBCLIENT_PLATFORM_WS__;
+  const platformFramePortCandidate = window.__AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__;
   return {
-    platformWs: isDesktopPlatformWsBridge(platformWsCandidate)
-      ? platformWsCandidate
+    platformFramePort: isDesktopPlatformFramePort(platformFramePortCandidate)
+      ? platformFramePortCandidate
       : null,
     workPanel: isDesktopWorkPanelBridge(window.__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__)
       ? window.__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__
       : null,
-    platformWsIncompatible: Boolean(platformWsCandidate)
-      && !isDesktopPlatformWsBridge(platformWsCandidate),
+    platformFramePortIncompatible: Boolean(platformFramePortCandidate)
+      && !isDesktopPlatformFramePort(platformFramePortCandidate),
   };
 }

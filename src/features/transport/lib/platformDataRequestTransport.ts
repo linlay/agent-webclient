@@ -1,28 +1,26 @@
 import type { ApiResponse } from "@/shared/data/api/client";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { ensureStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
-import {
-  WsClientDisconnectedError,
-  type WsClient,
-} from "@/features/transport/lib/wsClient";
-import { getWsClient } from "@/features/transport/lib/wsClientSingleton";
+import type { PlatformFrameClient } from "@/features/transport/lib/platformFrameClient";
+import { DesktopFramePortClosedError } from "@/features/transport/lib/desktopFramePortDriver";
+import { getDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
 
-async function resolveDataRequestClient(): Promise<WsClient> {
+async function resolveDataRequestClient(): Promise<PlatformFrameClient> {
   if (!isDesktopAppMode()) {
     return ensureStandaloneWsClient();
   }
 
-  const client = getWsClient();
+  const client = getDesktopPlatformFrameClient();
   if (!client) {
-    throw new WsClientDisconnectedError(
-      "Desktop WebSocket transport is not initialized",
+    throw new DesktopFramePortClosedError(
+      "Desktop Platform Frame Port is not initialized",
     );
   }
   return client;
 }
 
 /**
- * Send a strict request/response call over the shared Platform WebSocket.
+ * Send a strict request/response call over the active Platform frame client.
  * Transport failures are deliberately propagated; callers must not retry via HTTP.
  */
 export async function requestPlatformData<T>(

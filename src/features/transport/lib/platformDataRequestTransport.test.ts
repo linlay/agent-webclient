@@ -1,14 +1,14 @@
 import { requestPlatformData } from "@/features/transport/lib/platformDataRequestTransport";
 import { ensureStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
-import { getWsClient } from "@/features/transport/lib/wsClientSingleton";
+import { getDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 jest.mock("@/features/transport/lib/standaloneWsClient", () => ({
   ensureStandaloneWsClient: jest.fn(),
 }));
 
-jest.mock("@/features/transport/lib/wsClientSingleton", () => ({
-  getWsClient: jest.fn(),
+jest.mock("@/features/transport/lib/desktopPlatformFrameClientRegistry", () => ({
+  getDesktopPlatformFrameClient: jest.fn(),
 }));
 
 jest.mock("@/shared/utils/routing", () => ({
@@ -19,7 +19,9 @@ describe("platformDataRequestTransport", () => {
   const ensureStandaloneWsClientMock = ensureStandaloneWsClient as jest.MockedFunction<
     typeof ensureStandaloneWsClient
   >;
-  const getWsClientMock = getWsClient as jest.MockedFunction<typeof getWsClient>;
+  const getDesktopPlatformFrameClientMock = getDesktopPlatformFrameClient as jest.MockedFunction<
+    typeof getDesktopPlatformFrameClient
+  >;
   const isDesktopAppModeMock = isDesktopAppMode as jest.MockedFunction<
     typeof isDesktopAppMode
   >;
@@ -63,7 +65,7 @@ describe("platformDataRequestTransport", () => {
         data: { key: "agent-1" },
       }),
     };
-    getWsClientMock.mockReturnValue(client as never);
+    getDesktopPlatformFrameClientMock.mockReturnValue(client as never);
 
     await requestPlatformData("/api/agent", { agentKey: "agent-1" });
 
@@ -77,11 +79,11 @@ describe("platformDataRequestTransport", () => {
 
   it("fails in Desktop mode when the Broker client is unavailable", async () => {
     isDesktopAppModeMock.mockReturnValue(true);
-    getWsClientMock.mockReturnValue(null);
+    getDesktopPlatformFrameClientMock.mockReturnValue(null);
 
     await expect(requestPlatformData("/api/agents", undefined)).rejects.toMatchObject({
-      name: "WsClientDisconnectedError",
-      code: "WS_DISCONNECTED",
+      name: "DesktopFramePortClosedError",
+      code: "DESKTOP_FRAME_PORT_CLOSED",
     });
 
     expect(ensureStandaloneWsClientMock).not.toHaveBeenCalled();
@@ -102,8 +104,8 @@ describe("platformDataRequestTransport", () => {
   });
 
   it("propagates request failures without an alternate transport", async () => {
-    const requestError = Object.assign(new Error("WebSocket request timeout"), {
-      code: "WS_REQUEST_TIMEOUT",
+    const requestError = Object.assign(new Error("Platform request timeout"), {
+      code: "PLATFORM_REQUEST_TIMEOUT",
     });
     const client = {
       connect: jest.fn().mockResolvedValue(undefined),

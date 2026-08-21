@@ -5,6 +5,7 @@ import type {
 } from "@/features/transport/contracts/realtimeTransport";
 import { ensureStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
 import { subscribeWsPush } from "@/features/transport/lib/wsClientSingleton";
+import type { PlatformFrameClient } from "@/features/transport/lib/platformFrameClient";
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -33,13 +34,14 @@ function matches(filter: PushFilter, frame: PushFrame): boolean {
 
 export class PlatformPushTransport implements PushTransport {
   constructor(
-    private readonly ensureClient: typeof ensureStandaloneWsClient = ensureStandaloneWsClient,
+    private readonly ensureClient: () => Promise<PlatformFrameClient> = ensureStandaloneWsClient,
+    private readonly subscribeClientPush: (listener: (frame: PushFrame) => void) => () => void =
+      (listener) => subscribeWsPush((frame) => listener(frame as PushFrame)),
   ) {}
 
   subscribe(filter: PushFilter, listener: (frame: PushFrame) => void): () => void {
     let active = true;
-    const unsubscribe = subscribeWsPush((frame) => {
-      const pushFrame = frame as PushFrame;
+    const unsubscribe = this.subscribeClientPush((pushFrame) => {
       if (active && matches(filter, pushFrame)) listener(pushFrame);
     });
     void this.ensureClient()

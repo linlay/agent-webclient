@@ -1,20 +1,22 @@
-import type { AgentEvent } from "@/app/state/types";
-import { ApiError, type ApiResponse } from "@/shared/data/api/client";
-import { dataEndpoints } from "@/shared/data/api/endpoints";
-import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
 import { getClientDeviceId } from "@/shared/data/clientDeviceId";
 import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
-import {
-	readEpochMillis,
-	STRUCTURED_PLATFORM_TIME_FIELDS,
-} from "@/shared/utils/platformTime";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import {
 	handleFinalUnauthorized,
 	isWsAuthenticationRequired,
 } from "@/shared/data/auth/authCoordinator";
+import {
+	type PlatformErrorFrame,
+	type PlatformResponseFrame,
+	type PlatformStreamEventFrame,
+} from "@/features/transport/lib/platformFrameCodec";
+import {
+	PlatformFrameClient,
+	PlatformRequestTimeoutError,
+} from "@/features/transport/lib/platformFrameClient";
+import type { AgentPlatformRequestFrame } from "@/features/transport/contracts/generated/agentWebclientBridge";
 
 export type WsConnectionStatus =
 	| "disconnected"
@@ -50,22 +52,8 @@ export interface WsInboundRequestFrame {
 	payload?: unknown;
 }
 
-interface WsResponseFrame {
-	frame: "response";
-	type?: string;
-	id?: string;
-	code?: number | string;
-	status?: number;
-	msg?: string;
-	data?: unknown;
-}
-
-interface WsStreamEventFrame {
-	type?: string;
-	seq?: number;
-	payload?: unknown;
-	[key: string]: unknown;
-}
+type WsResponseFrame = PlatformResponseFrame;
+type WsStreamEventFrame = PlatformStreamEventFrame;
 
 interface WsStreamFrame {
 	frame: "stream";
@@ -83,16 +71,7 @@ export interface WsPushFrame {
 	[key: string]: unknown;
 }
 
-interface WsErrorFrame {
-	frame: "error";
-	id?: string;
-	type?: string;
-	code?: number | string;
-	status?: number;
-	msg?: string;
-	error?: string;
-	data?: unknown;
-}
+type WsErrorFrame = PlatformErrorFrame;
 
 type WsInboundFrame =
 	| WsInboundRequestFrame
@@ -144,23 +123,6 @@ export class WsInboundRequestError extends Error {
 	}
 }
 
-type PendingRequest = {
-	resolve: (value: ApiResponse) => void;
-	reject: (reason?: unknown) => void;
-	abortHandler?: () => void;
-	timer?: ReturnType<typeof setTimeout>;
-};
-
-type ActiveStream = {
-	onEvent: (event: AgentEvent) => void;
-	onFrame?: (raw: string) => void;
-	onError?: (err: Error) => void;
-	onDone?: (reason: string, lastSeq: number) => void;
-	reject: (reason?: unknown) => void;
-	abortHandler?: () => void;
-	signal?: AbortSignal;
-};
-
 export interface WsClientOptions {
 	socketFactory?: WsSocketFactory;
 	buildSocketUrl?: (accessToken: string) => string;
@@ -198,6 +160,49 @@ const WS_TRANSPORT_NOT_INITIALIZED_MESSAGE =
 	"WebSocket transport is not initialized";
 const WS_SOCKET_CONNECTING = 0;
 const WS_SOCKET_OPEN = 1;
+const PLATFORM_WS_PROTOCOL_VERSION = 2;
+const MIN_PLATFORM_HEARTBEAT_INTERVAL_MS = 5_000;
+const MAX_PLATFORM_HEARTBEAT_INTERVAL_MS = 120_000;
+const MAX_PLATFORM_SILENCE_TIMEOUT_MS = 600_000;
+
+type PlatformWsHandshake = {
+	sessionId: string;
+	heartbeatIntervalMs: number;
+	silenceTimeoutMs: number;
+};
+
+function safeInteger(value: unknown): number | null {
+	return typeof value === "number" && Number.isSafeInteger(value) ? value : null;
+}
+
+function parsePlatformWsHandshake(raw: unknown): PlatformWsHandshake {
+	const frame = JSON.parse(typeof raw === "string" ? raw : String(raw)) as Record<string, unknown>;
+	const data = frame.data;
+	if (frame.frame !== "push" || frame.type !== "connected" || !data || typeof data !== "object" || Array.isArray(data)) {
+		throw new Error("connected must be the first Platform frame");
+	}
+	const payload = data as Record<string, unknown>;
+	const liveness = payload.liveness;
+	if (payload.protocolVersion !== PLATFORM_WS_PROTOCOL_VERSION || !liveness || typeof liveness !== "object" || Array.isArray(liveness)) {
+		throw new Error("Agent Platform WebSocket protocol v2 is required");
+	}
+	const sessionId = String(payload.sessionId || "").trim();
+	const serverTime = safeInteger(payload.serverTime);
+	const policy = liveness as Record<string, unknown>;
+	const heartbeatIntervalMs = safeInteger(policy.heartbeatIntervalMs);
+	const silenceTimeoutMs = safeInteger(policy.silenceTimeoutMs);
+	if (
+		!sessionId || serverTime === null || heartbeatIntervalMs === null ||
+		heartbeatIntervalMs < MIN_PLATFORM_HEARTBEAT_INTERVAL_MS ||
+		heartbeatIntervalMs > MAX_PLATFORM_HEARTBEAT_INTERVAL_MS ||
+		silenceTimeoutMs === null ||
+		silenceTimeoutMs < (2 * heartbeatIntervalMs) + 10_000 ||
+		silenceTimeoutMs > MAX_PLATFORM_SILENCE_TIMEOUT_MS
+	) {
+		throw new Error("Agent Platform protocol-v2 liveness policy is invalid");
+	}
+	return { sessionId, heartbeatIntervalMs, silenceTimeoutMs };
+}
 export class WsClientDisconnectedError extends Error {
 	code: string;
 
@@ -208,22 +213,14 @@ export class WsClientDisconnectedError extends Error {
 	}
 }
 
-export class WsClientRequestTimeoutError extends Error {
-	code: string;
-
-	constructor(message = "WebSocket request timeout") {
-		super(message);
-		this.name = "WsClientRequestTimeoutError";
-		this.code = "WS_REQUEST_TIMEOUT";
-	}
-}
+export { PlatformRequestTimeoutError as WsClientRequestTimeoutError };
 
 export function isWsTransportError(
 	error: unknown,
-): error is WsClientDisconnectedError | WsClientRequestTimeoutError {
+): error is WsClientDisconnectedError | PlatformRequestTimeoutError {
 	return (
 		error instanceof WsClientDisconnectedError ||
-		error instanceof WsClientRequestTimeoutError
+		error instanceof PlatformRequestTimeoutError
 	);
 }
 
@@ -233,16 +230,6 @@ export interface WsConnectionErrorOptions {
 }
 
 type WsFrameIdKind = "wsreq" | "wsstream";
-
-function isObjectRecord(value: unknown): value is Record<string, unknown> {
-	return value != null && typeof value === "object";
-}
-
-function hasValidPresentTimeFields(record: Record<string, unknown>): boolean {
-	return STRUCTURED_PLATFORM_TIME_FIELDS.every(
-		(field) => record[field] === undefined || readEpochMillis(record[field]) !== undefined,
-	);
-}
 
 function normalizeWsFrameIdPrefix(kind: WsFrameIdKind): "wsr" | "wss" {
 	return kind === "wsreq" ? "wsr" : "wss";
@@ -418,55 +405,7 @@ function buildWsUrl(accessToken = ""): string {
 	return url.toString();
 }
 
-function toApiError(frame: WsErrorFrame | WsResponseFrame): ApiError {
-	const display = formatPlatformErrorForDisplay(frame);
-	return new ApiError(display.message, {
-		status: display.status ?? frame.status ?? null,
-		code: display.code || (frame.code ?? null),
-		data: frame.data ?? null,
-		platformError: display.error,
-	});
-}
-
-function toApiResponse<T>(frame: WsResponseFrame): ApiResponse<T> {
-	const code =
-		typeof frame.code === "number"
-			? frame.code
-			: Number.isFinite(Number(frame.code))
-				? Number(frame.code)
-				: 0;
-
-	if (code !== 0) {
-		throw toApiError(frame);
-	}
-
-	return {
-		status: typeof frame.status === "number" ? frame.status : 200,
-		code,
-		msg: typeof frame.msg === "string" ? frame.msg : "ok",
-		data: (frame.data ?? null) as T,
-	};
-}
-
-function toAgentEvent(frameEvent: WsStreamEventFrame): AgentEvent | null {
-	const { payload, ...rest } = frameEvent;
-	const payloadRecord = isObjectRecord(payload) ? payload : {};
-	const event = {
-		...payloadRecord,
-		...rest,
-		type: String(frameEvent.type || payloadRecord.type || ""),
-		seq:
-			typeof frameEvent.seq === "number"
-				? frameEvent.seq
-				: Number(payloadRecord.seq ?? 0) || undefined,
-	} as AgentEvent;
-	const timestamp = readEpochMillis(event.timestamp);
-	return !hasValidPresentTimeFields(event) || timestamp === undefined
-		? null
-		: { ...event, timestamp };
-}
-
-export class WsClient {
+export class StandaloneSocketDriver extends PlatformFrameClient {
 	private accessToken: string;
 	private socket: WsSocketLike | null = null;
 	private readonly socketFactory: WsSocketFactory;
@@ -481,8 +420,6 @@ export class WsClient {
 	private expectedClose = false;
 	private disposed = false;
 	private status: WsConnectionStatus = "disconnected";
-	private readonly pendingRequests = new Map<string, PendingRequest>();
-	private readonly activeStreams = new Map<string, ActiveStream>();
 	private readonly inboundRequestHandlers = new Map<
 		string,
 		WsInboundRequestHandler
@@ -490,15 +427,15 @@ export class WsClient {
 	private readonly seenInboundRequestIds = new Set<string>();
 	private inboundRequestGeneration = 0;
 	private onStatusChange?: (status: WsConnectionStatus) => void;
-	private onPush?: (frame: WsPushFrame) => void;
-	private onTransportError?: WsClientOptions["onTransportError"];
 	private readonly connectTimeoutMs: number;
-	private readonly heartbeatTimeoutMs: number;
+	private heartbeatTimeoutMs: number;
+	private readonly configuredHeartbeatTimeoutMs?: number;
+	private platformSessionId = "";
+	private lastHeartbeatSequence = 0;
 	private readonly reconnectBaseDelayMs: number;
 	private readonly reconnectMaxDelayMs: number;
 	private readonly reconnectTokenRefreshThreshold: number;
 	private readonly healthCheckIntervalMs: number;
-	private readonly requestTimeoutMs: number;
 	private resolveAccessToken?: (
 		reason: WsAccessTokenRefreshReason,
 	) => string | Promise<string>;
@@ -506,6 +443,7 @@ export class WsClient {
 	private allowAnonymous: boolean;
 
 	constructor(options: WsClientOptions = {}) {
+		super(Math.max(1, options.requestTimeoutMs ?? 30_000), options.onTransportError);
 		this.accessToken = String(options.accessToken || "").trim();
 		this.socketFactory = options.socketFactory || ((url) => new WebSocket(url));
 		this.buildSocketUrl = options.buildSocketUrl || buildWsUrl;
@@ -513,9 +451,9 @@ export class WsClient {
 		this.resolveAccessToken = options.resolveAccessToken;
 		this.onAccessTokenChange = options.onAccessTokenChange;
 		this.onStatusChange = options.onStatusChange;
-		this.onPush = options.onPush;
-		this.onTransportError = options.onTransportError;
+		this.setPushHandler(options.onPush);
 		this.connectTimeoutMs = Math.max(1000, options.connectTimeoutMs ?? 10_000);
+		this.configuredHeartbeatTimeoutMs = options.heartbeatTimeoutMs;
 		this.heartbeatTimeoutMs = Math.max(
 			1000,
 			options.heartbeatTimeoutMs ?? DEFAULT_WS_HEARTBEAT_TIMEOUT_MS,
@@ -533,7 +471,6 @@ export class WsClient {
 			1000,
 			options.healthCheckIntervalMs ?? DEFAULT_WS_HEALTH_CHECK_INTERVAL_MS,
 		);
-		this.requestTimeoutMs = Math.max(1, options.requestTimeoutMs ?? 30_000);
 	}
 
 	updateOptions(options: Partial<WsClientOptions> = {}): void {
@@ -556,10 +493,10 @@ export class WsClient {
 			this.onStatusChange = options.onStatusChange;
 		}
 		if (options.onPush !== undefined) {
-			this.onPush = options.onPush;
+			this.setPushHandler(options.onPush);
 		}
 		if (options.onTransportError !== undefined) {
-			this.onTransportError = options.onTransportError;
+			this.setTransportErrorHandler(options.onTransportError);
 		}
 	}
 
@@ -587,11 +524,11 @@ export class WsClient {
 		};
 	}
 
-	connect(): Promise<void> {
+	connect(signal?: AbortSignal): Promise<void> {
 		if (this.disposed) {
 			return Promise.reject(this.createDisposedError());
 		}
-		return this.ensureConnected();
+		return this.ensureConnected(signal);
 	}
 
 	dispose(): void {
@@ -599,7 +536,7 @@ export class WsClient {
 			return;
 		}
 		this.disposed = true;
-		this.cleanupPending(this.createDisposedError());
+		this.disposePlatformFrames(this.createDisposedError());
 		this.disconnect();
 	}
 
@@ -608,7 +545,7 @@ export class WsClient {
 		this.expectedClose = true;
 		this.clearReconnectTimer();
 		this.clearHealthCheckTimer();
-		this.cleanupPending(new WsClientDisconnectedError());
+		this.failPlatformFrames(new WsClientDisconnectedError());
 		this.inboundRequestGeneration += 1;
 		this.seenInboundRequestIds.clear();
 
@@ -627,6 +564,8 @@ export class WsClient {
 
 		this.socket = null;
 		this.connectPromise = null;
+		this.platformSessionId = "";
+		this.lastHeartbeatSequence = 0;
 		this.reconnectAttempt = 0;
 		this.setStatus("disconnected");
 	}
@@ -645,178 +584,6 @@ export class WsClient {
 			: new Error("WebSocket connection failed");
 	}
 
-	async request<T>(opts: {
-		type: string;
-		payload?: unknown;
-		signal?: AbortSignal;
-	}): Promise<ApiResponse<T>> {
-		await this.ensureConnected(opts.signal);
-		const id = createWsFrameId("wsreq");
-
-		return new Promise<ApiResponse<T>>((resolve, reject) => {
-			const cleanup = () => {
-				const current = this.pendingRequests.get(id);
-				if (current?.timer) {
-					clearTimeout(current.timer);
-				}
-				if (current?.abortHandler && opts.signal) {
-					opts.signal.removeEventListener("abort", current.abortHandler);
-				}
-				this.pendingRequests.delete(id);
-			};
-
-			const abortHandler = () => {
-				cleanup();
-				reject(new DOMException("The operation was aborted.", "AbortError"));
-			};
-
-			if (opts.signal?.aborted) {
-				abortHandler();
-				return;
-			}
-
-			if (opts.signal) {
-				opts.signal.addEventListener("abort", abortHandler, { once: true });
-			}
-
-			this.pendingRequests.set(id, {
-				resolve: (value) => {
-					cleanup();
-					resolve(value as ApiResponse<T>);
-				},
-				reject: (reason) => {
-					cleanup();
-					reject(reason);
-				},
-				abortHandler,
-				timer: setTimeout(() => {
-					cleanup();
-					reject(
-						new WsClientRequestTimeoutError(
-							`WebSocket request timeout: ${opts.type}`,
-						),
-					);
-				}, this.requestTimeoutMs),
-			});
-
-			try {
-				this.sendFrame({
-					frame: "request",
-					type: opts.type,
-					id,
-					payload: opts.payload,
-				});
-			} catch (error) {
-				cleanup();
-				reject(error);
-			}
-		});
-	}
-
-	stream(opts: {
-		type: string;
-		payload: unknown;
-		signal?: AbortSignal;
-		onEvent: (event: AgentEvent) => void;
-		onFrame?: (raw: string) => void;
-		onError?: (err: Error) => void;
-		onDone?: (reason: string, lastSeq: number) => void;
-		requestId?: string;
-	}): { requestId: string; abort: () => void } {
-		const id = opts.requestId || createWsFrameId("wsstream");
-		let aborted = false;
-
-		const abort = () => {
-			if (aborted) {
-				return;
-			}
-			aborted = true;
-			this.cleanupStream(id, opts.signal);
-		};
-
-		const abortHandler = () => {
-			abort();
-			opts.onError?.(new DOMException("The operation was aborted.", "AbortError"));
-		};
-
-		if (opts.signal?.aborted) {
-			abortHandler();
-			return { requestId: id, abort };
-		}
-
-		this.activeStreams.set(id, {
-			onEvent: opts.onEvent,
-			onFrame: opts.onFrame,
-			onError: opts.onError,
-			onDone: opts.onDone,
-			reject: (reason) => {
-				abort();
-				if (reason instanceof Error) {
-					opts.onError?.(reason);
-					return;
-				}
-				opts.onError?.(new Error(String(reason || "WebSocket stream failed")));
-			},
-			abortHandler,
-			signal: opts.signal,
-		});
-
-		if (opts.signal) {
-			opts.signal.addEventListener("abort", abortHandler, { once: true });
-		}
-
-		void this.ensureConnected(opts.signal)
-			.then(() => {
-				if (aborted || !this.activeStreams.has(id)) {
-					return;
-				}
-				this.sendFrame({
-					frame: "request",
-					type: opts.type,
-					id,
-					payload: opts.payload,
-				});
-			})
-			.catch((error) => {
-				abort();
-				opts.onError?.(
-					error instanceof Error ? error : new Error(String(error || "WebSocket stream failed")),
-				);
-			});
-
-		return { requestId: id, abort };
-	}
-
-	attachRun(
-		runId: string,
-		agentKey: string,
-		lastSeq: number,
-		onEvent: (event: AgentEvent) => void,
-		onDone?: (reason: string, lastSeq: number) => void,
-		signal?: AbortSignal,
-	): { requestId: string; abort: () => void } {
-			const requestId = createWsFrameId("wsstream");
-			const stream = this.stream({
-				type: dataEndpoints.attach.path,
-			payload: {
-				runId,
-				agentKey,
-				lastSeq,
-			},
-			signal,
-			onEvent,
-			onDone,
-			onError: (error) => {
-				onDone?.(error.name === "AbortError" ? "detached" : "error", 0);
-			},
-			requestId,
-		});
-		return {
-			requestId,
-			abort: stream.abort,
-		};
-	}
-
 	private async ensureConnected(
 		signal?: AbortSignal,
 		allowHandshakeRefresh = true,
@@ -824,7 +591,7 @@ export class WsClient {
 		if (this.disposed) {
 			throw this.createDisposedError();
 		}
-		if (this.socket?.readyState === WS_SOCKET_OPEN) {
+		if (this.socket?.readyState === WS_SOCKET_OPEN && this.status === "connected") {
 			return;
 		}
 
@@ -907,11 +674,9 @@ export class WsClient {
 					reject(inactiveConnectionError());
 					return;
 				}
-				reject(
-					toWsConnectionError(this.createHandshakeFailure(), {
-						hasAccessToken: this.hasConnectionCredentials(),
-					}),
-				);
+				reject(new WsClientDisconnectedError(
+					"PLATFORM_WS_HANDSHAKE_TIMEOUT: Agent Platform protocol-v2 handshake timed out",
+				));
 			}, this.connectTimeoutMs);
 
 			const cleanupBeforeOpen = () => {
@@ -924,6 +689,7 @@ export class WsClient {
 					connectTimer = null;
 				}
 				socket.removeEventListener("open", handleOpen);
+				socket.removeEventListener("message", handleHandshakeMessage);
 				socket.removeEventListener("error", handleError);
 				socket.removeEventListener("close", handleCloseBeforeOpen);
 			};
@@ -965,7 +731,7 @@ export class WsClient {
 			};
 
 			const handleOpen = () => {
-				cleanupBeforeOpen();
+				socket.removeEventListener("open", handleOpen);
 				if (!isActiveHandshake()) {
 					try {
 						socket.close(1000, "inactive ws connection");
@@ -990,6 +756,34 @@ export class WsClient {
 					}
 					resolve();
 					return;
+				}
+				socket.addEventListener("message", handleHandshakeMessage);
+			};
+
+			const handleHandshakeMessage = (event: { data?: unknown }) => {
+				if (!isActiveHandshake() || !isCurrentSocket()) return;
+				let handshake: PlatformWsHandshake;
+				try {
+					handshake = parsePlatformWsHandshake(event.data);
+				} catch (error) {
+					cleanupBeforeOpen();
+					this.socket = null;
+					this.setStatus("error");
+					try {
+						socket.close(1002, "protocol mismatch");
+					} catch {
+						// The failed handshake is already detached locally.
+					}
+					reject(new WsClientDisconnectedError(
+						`PLATFORM_WS_PROTOCOL_MISMATCH: ${error instanceof Error ? error.message : String(error)}`,
+					));
+					return;
+				}
+				cleanupBeforeOpen();
+				this.platformSessionId = handshake.sessionId;
+				this.lastHeartbeatSequence = 0;
+				if (this.configuredHeartbeatTimeoutMs === undefined) {
+					this.heartbeatTimeoutMs = handshake.silenceTimeoutMs;
 				}
 				socket.addEventListener("message", this.handleMessage);
 				socket.addEventListener("close", this.handleClose);
@@ -1151,17 +945,53 @@ export class WsClient {
 	}
 
 	private readonly handleMessage = (event: { data?: unknown }) => {
-		this.lastSeenAt = Date.now();
 		const raw = typeof event.data === "string" ? event.data : String(event.data);
 		let frame: WsInboundFrame;
 
 		try {
-			frame = JSON.parse(raw) as WsInboundFrame;
+			const parsed = JSON.parse(raw) as unknown;
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+				return;
+			}
+			frame = parsed as WsInboundFrame;
 		} catch {
 			console.warn(
 				"[WsClient] Failed to parse incoming frame:",
 				raw.slice(0, 200),
 			);
+			return;
+		}
+		if (!["request", "response", "stream", "push", "error"].includes(frame.frame)) {
+			return;
+		}
+		this.lastSeenAt = Date.now();
+		if (frame.frame === "push" && frame.type === "connected") {
+			try {
+				this.socket?.close(1002, "duplicate connected handshake");
+			} catch {
+				// The close listener owns permanent cleanup.
+			}
+			return;
+		}
+		if (frame.frame === "push" && frame.type === "heartbeat") {
+			const payload = frame.data;
+			const heartbeat = payload && typeof payload === "object" && !Array.isArray(payload)
+				? payload as Record<string, unknown>
+				: null;
+			const sequence = safeInteger(heartbeat?.sequence);
+			const timestamp = safeInteger(heartbeat?.timestamp);
+			if (
+				!heartbeat || String(heartbeat.sessionId || "").trim() !== this.platformSessionId ||
+				sequence === null || sequence <= this.lastHeartbeatSequence || timestamp === null
+			) {
+				try {
+					this.socket?.close(1002, "invalid protocol-v2 heartbeat");
+				} catch {
+					// The close listener owns permanent cleanup.
+				}
+				return;
+			}
+			this.lastHeartbeatSequence = sequence;
 			return;
 		}
 
@@ -1177,69 +1007,8 @@ export class WsClient {
 			return;
 		}
 
-		if (frame.frame === "response") {
-			const pending = frame.id ? this.pendingRequests.get(frame.id) : null;
-			if (!pending || !frame.id) {
-				return;
-			}
-			try {
-				pending.resolve(toApiResponse(frame));
-			} catch (error) {
-				this.onTransportError?.(
-					error instanceof Error ? error : new Error(String(error)),
-					{ id: frame.id, kind: "request" },
-				);
-				pending.reject(error);
-			}
-			return;
-		}
-
-		if (frame.frame === "stream") {
-			const stream = frame.id ? this.activeStreams.get(frame.id) : null;
-			if (!stream || !frame.id) {
-				return;
-			}
-			stream.onFrame?.(raw);
-			if (frame.event) {
-				const event = toAgentEvent(frame.event);
-				if (!event) {
-					stream.onError?.(new Error("time_contract_violation: stream event requires epoch_ms_int64 timestamp"));
-					this.cleanupStream(frame.id);
-					return;
-				}
-				stream.onEvent(event);
-			}
-			if (frame.reason) {
-				stream.onDone?.(
-					frame.reason,
-					typeof frame.lastSeq === "number" ? frame.lastSeq : 0,
-				);
-				this.cleanupStream(frame.id);
-			}
-			return;
-		}
-
-		if (frame.frame === "push") {
-			this.onPush?.(frame);
-			return;
-		}
-
-		if (frame.frame === "error") {
-			const error = toApiError(frame);
-			if (frame.id) {
-				const pending = this.pendingRequests.get(frame.id);
-				if (pending) {
-					this.onTransportError?.(error, { id: frame.id, kind: "request" });
-					pending.reject(error);
-					return;
-				}
-				const stream = this.activeStreams.get(frame.id);
-				if (stream) {
-					this.onTransportError?.(error, { id: frame.id, kind: "stream" });
-					stream.reject(error);
-					return;
-				}
-			}
+		this.dispatchPlatformFrame(frame, raw);
+		if (frame.frame === "error" && !frame.id) {
 			this.setStatus("error");
 		}
 	};
@@ -1253,6 +1022,8 @@ export class WsClient {
 		this.socket?.removeEventListener("error", this.handleSocketError);
 		this.socket = null;
 		this.connectPromise = null;
+		this.platformSessionId = "";
+		this.lastHeartbeatSequence = 0;
 
 		if (this.disposed || this.expectedClose) {
 			this.expectedClose = false;
@@ -1262,12 +1033,12 @@ export class WsClient {
 		if (isGatewayBackendMode() && Number(event?.code) === 4401) {
 			handleFinalUnauthorized("ws");
 			this.setStatus("error");
-			this.cleanupPending(createDisconnectErrorFromClose(event));
+			this.failPlatformFrames(createDisconnectErrorFromClose(event));
 			return;
 		}
 
 		this.setStatus("error");
-		this.cleanupPending(createDisconnectErrorFromClose(event));
+		this.failPlatformFrames(createDisconnectErrorFromClose(event));
 		this.scheduleReconnect(this.shouldRefreshTokenForClose(event));
 	};
 
@@ -1372,7 +1143,7 @@ export class WsClient {
 		}
 	}
 
-	private sendFrame(frame: WsRequestFrame): void {
+	protected sendRequestFrame(frame: AgentPlatformRequestFrame): void {
 		this.sendOutboundFrame(frame);
 	}
 
@@ -1402,29 +1173,6 @@ export class WsClient {
 	private setStatus(status: WsConnectionStatus): void {
 		this.status = status;
 		this.onStatusChange?.(status);
-	}
-
-	private cleanupPending(error: Error): void {
-		for (const [id, pending] of this.pendingRequests.entries()) {
-			pending.reject(error);
-			this.pendingRequests.delete(id);
-		}
-		for (const [id, stream] of this.activeStreams.entries()) {
-			stream.reject(error);
-			this.activeStreams.delete(id);
-		}
-	}
-
-	private cleanupStream(id: string, signal?: AbortSignal): void {
-		const stream = this.activeStreams.get(id);
-		if (!stream) {
-			return;
-		}
-		const activeSignal = signal || stream.signal;
-		if (stream.abortHandler && activeSignal) {
-			activeSignal.removeEventListener("abort", stream.abortHandler);
-		}
-		this.activeStreams.delete(id);
 	}
 
 	private shouldRefreshTokenForClose(
@@ -1570,3 +1318,5 @@ export class WsClient {
 		this.healthCheckTimer = null;
 	}
 }
+
+export { StandaloneSocketDriver as WsClient };

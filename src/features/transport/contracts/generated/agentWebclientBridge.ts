@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:b90686ce5fb76147bf0e6bd4afe9084c15034c1b852dc87d1c01f4643048e723
+// sha256:d28c04d0e9e56948844a35188ddb563333407bccda8d5b6422bde4759cd8a20f
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -9,10 +9,10 @@
  * separately released Agent WebClient bundle and must not depend on Electron.
  */
 
-export const AGENT_WEBCLIENT_BRIDGE_VERSION = 3 as const;
-export const AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION = 1 as const;
-export const AGENT_WEBCLIENT_PLATFORM_WS_GLOBAL =
-  "__AGENT_WEBCLIENT_PLATFORM_WS__" as const;
+export const AGENT_WEBCLIENT_BRIDGE_VERSION = 4 as const;
+export const AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_TRANSPORT_VERSION = 2 as const;
+export const AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_GLOBAL =
+  "__AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL =
   "__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION =
@@ -24,14 +24,14 @@ export type AgentWebclientWorkPanelResourceDownloadAction = {
   version: typeof AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION;
 };
 
-export const AGENT_WEBCLIENT_PLATFORM_WS_OPEN_CHANNEL =
-  "agentWebclient.platformWs.open" as const;
-export const AGENT_WEBCLIENT_PLATFORM_WS_SEND_CHANNEL =
-  "agentWebclient.platformWs.send" as const;
-export const AGENT_WEBCLIENT_PLATFORM_WS_CLOSE_CHANNEL =
-  "agentWebclient.platformWs.close" as const;
-export const AGENT_WEBCLIENT_PLATFORM_WS_EVENT_CHANNEL =
-  "agentWebclient.platformWs.event" as const;
+export const AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_OPEN_CHANNEL =
+  "agentWebclient.platformFramePort.open" as const;
+export const AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_SEND_CHANNEL =
+  "agentWebclient.platformFramePort.send" as const;
+export const AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_CLOSE_CHANNEL =
+  "agentWebclient.platformFramePort.close" as const;
+export const AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_EVENT_CHANNEL =
+  "agentWebclient.platformFramePort.event" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_INVOKE_CHANNEL =
   "agentWebclient.workpanel.invoke" as const;
 
@@ -152,33 +152,49 @@ export type AgentPlatformRealtimeFrame =
   | AgentPlatformPushFrame
   | AgentPlatformErrorFrame;
 
-export type AgentWebclientPlatformWsEvent =
-  | { socketId: string; type: "open" }
-  | { socketId: string; type: "message"; data: string }
-  | { socketId: string; type: "error"; message: string }
-  | { socketId: string; type: "close"; code: number; reason: string };
-
-export type AgentWebclientPlatformWsOpenInput = { socketId: string };
-export type AgentWebclientPlatformWsSendInput = { socketId: string; data: string };
-export type AgentWebclientPlatformWsCloseInput = {
-  socketId: string;
-  code?: number;
-  reason?: string;
+export type DesktopPlatformConnectionState = {
+  phase: "connecting" | "connected" | "reconnecting" | "closed";
+  logicalGeneration: number;
+  physicalGeneration: number;
+  reconnectCount: number;
+  retryable: boolean;
+  physicalSessionId?: string;
+  lastInboundAt?: number;
+  lastHeartbeatAt?: number;
+  error?: { code: string; message: string };
 };
 
-export type DesktopPlatformSocketEventType = "open" | "message" | "error" | "close";
-
-export type DesktopPlatformSocket = {
-  readonly readyState: 0 | 1 | 2 | 3;
-  send(data: string): void;
-  close(code?: number, reason?: string): void;
-  addEventListener(type: DesktopPlatformSocketEventType, listener: (event: unknown) => void): void;
-  removeEventListener(type: DesktopPlatformSocketEventType, listener: (event: unknown) => void): void;
+export type DesktopPlatformSessionClose = {
+  reason: "surface_inactive" | "disposed" | "identity_invalidated" | "protocol_mismatch" | "app_shutdown";
+  error?: { code: string; message: string };
 };
 
-export type DesktopPlatformWsBridge = {
-  readonly transportVersion: typeof AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION;
-  createSocket(): DesktopPlatformSocket;
+export type AgentWebclientPlatformFramePortEvent =
+  | { sessionId: string; type: "frame"; frame: AgentPlatformRealtimeFrame }
+  | { sessionId: string; type: "state"; state: DesktopPlatformConnectionState }
+  | { sessionId: string; type: "close"; event: DesktopPlatformSessionClose };
+
+export type AgentWebclientPlatformFramePortOpenInput = { sessionId: string };
+export type AgentWebclientPlatformFramePortSendInput = {
+  sessionId: string;
+  frame: AgentPlatformRequestFrame;
+};
+export type AgentWebclientPlatformFramePortCloseInput = {
+  sessionId: string;
+  reason?: "surface_inactive" | "disposed";
+};
+
+export type DesktopPlatformSession = {
+  send(frame: AgentPlatformRequestFrame): void;
+  close(reason?: "surface_inactive" | "disposed"): void;
+  onFrame(listener: (frame: Exclude<AgentPlatformRealtimeFrame, AgentPlatformRequestFrame>) => void): () => void;
+  onState(listener: (state: DesktopPlatformConnectionState) => void): () => void;
+  onClose(listener: (event: DesktopPlatformSessionClose) => void): () => void;
+};
+
+export type DesktopPlatformFramePort = {
+  readonly transportVersion: typeof AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_TRANSPORT_VERSION;
+  createSession(): DesktopPlatformSession;
 };
 
 export type WorkPanelChatContext = { agentKey: string; chatId: string };
@@ -317,7 +333,7 @@ export type AgentWebclientWorkPanelBridge = {
   closeItem(input: WorkPanelItemTargetInput): Promise<WorkPanelBridgeResult>;
 };
 
-export function isAgentWebclientBridgeVersion(value: unknown): value is 3 {
+export function isAgentWebclientBridgeVersion(value: unknown): value is 4 {
   return value === AGENT_WEBCLIENT_BRIDGE_VERSION;
 }
 

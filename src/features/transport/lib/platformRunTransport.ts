@@ -20,7 +20,7 @@ import type {
 } from "@/features/transport/contracts/realtimeTransport";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
 import { ensureStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
-import type { WsClient } from "@/features/transport/lib/wsClient";
+import type { PlatformFrameClient } from "@/features/transport/lib/platformFrameClient";
 import { createWsFrameId } from "@/features/transport/lib/wsClient";
 
 const EARLY_EVENT_BUFFER_LIMIT = 256;
@@ -37,7 +37,7 @@ type StreamStartOptions = {
   signal?: AbortSignal;
   acceptOnStart?: boolean;
   detachRemote?: boolean;
-  ensureClient: () => Promise<WsClient>;
+  ensureClient: () => Promise<PlatformFrameClient>;
   registerLifecycle?: (control: RunSurfaceLifecycleControl) => () => void;
 };
 
@@ -62,7 +62,7 @@ function eventSeq(event: AgentEvent): number {
 
 function startStreamExecution(options: StreamStartOptions): RunExecution {
   let streamAbort: (() => void) | null = null;
-  let client: WsClient | null = null;
+  let client: PlatformFrameClient | null = null;
   let identitySettled = false;
   let completionSettled = false;
   let detached = false;
@@ -291,7 +291,7 @@ export class PlatformRunTransport implements RunTransport {
   private surfaceActive = true;
 
   constructor(
-    private readonly ensureClient: () => Promise<WsClient> = ensureStandaloneWsClient,
+    private readonly ensureClient: () => Promise<PlatformFrameClient> = ensureStandaloneWsClient,
     private readonly options: { supportsBtw?: boolean } = {},
   ) {}
 

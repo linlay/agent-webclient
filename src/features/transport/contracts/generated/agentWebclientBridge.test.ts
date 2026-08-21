@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import {
   AGENT_WEBCLIENT_BRIDGE_VERSION,
-  AGENT_WEBCLIENT_PLATFORM_WS_GLOBAL,
-  AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION,
+  AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_GLOBAL,
+  AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_TRANSPORT_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
@@ -17,10 +17,10 @@ describe("generated Agent WebClient bridge contract", () => {
   it("keeps the canonical version, globals, source header and mirror hash", () => {
     const source = readFileSync(join(__dirname, "agentWebclientBridge.ts"), "utf8");
     const canonicalSource = source.replace(/\r\n/gu, "\n");
-    expect(AGENT_WEBCLIENT_BRIDGE_VERSION).toBe(3);
-    expect(AGENT_WEBCLIENT_PLATFORM_WS_TRANSPORT_VERSION).toBe(1);
-    expect(AGENT_WEBCLIENT_PLATFORM_WS_GLOBAL).toBe(
-      "__AGENT_WEBCLIENT_PLATFORM_WS__",
+    expect(AGENT_WEBCLIENT_BRIDGE_VERSION).toBe(4);
+    expect(AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_TRANSPORT_VERSION).toBe(2);
+    expect(AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_GLOBAL).toBe(
+      "__AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__",
     );
     expect(AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL).toBe(
       "__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__",
@@ -31,10 +31,10 @@ describe("generated Agent WebClient bridge contract", () => {
     expect(AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION).toBe(1);
     expect(isAgentWebclientSurfaceKind("agent-management")).toBe(true);
     expect(source).toContain(
-      "sha256:b90686ce5fb76147bf0e6bd4afe9084c15034c1b852dc87d1c01f4643048e723",
+      "sha256:d28c04d0e9e56948844a35188ddb563333407bccda8d5b6422bde4759cd8a20f",
     );
     expect(createHash("sha256").update(canonicalSource).digest("hex")).toBe(
-      "a8781919d181188253447b3ce8eed925845fcecea1f6a22cac2377697434ee5d",
+      "1e896b410af4535c0ecebbdf9265cfeeeaf5479efb2e89baffde5b494d2ef109",
     );
   });
 

@@ -1,6 +1,5 @@
 import type {
-  DesktopPlatformWsBridge,
-  DesktopPlatformSocket,
+  DesktopPlatformFramePort,
 } from "@/features/transport/contracts/generated/agentWebclientBridge";
 import type {
   RealtimeConnectionStatus,
@@ -10,12 +9,8 @@ import type {
 import { PlatformPushTransport } from "@/features/transport/lib/platformPushTransport";
 import { PlatformRunTransport } from "@/features/transport/lib/platformRunTransport";
 import { UnsupportedTerminalTransport } from "@/features/transport/lib/unsupportedTerminalTransport";
-import type { WsClient, WsSocketLike } from "@/features/transport/lib/wsClient";
-import {
-  destroyWsClient,
-  initWsClient,
-  subscribeWsStatus,
-} from "@/features/transport/lib/wsClientSingleton";
+import { DesktopFramePortDriver } from "@/features/transport/lib/desktopFramePortDriver";
+import { registerDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
 import {
   DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
   DESKTOP_SURFACE_ACTIVE_CHANGED_MESSAGE_TYPE,
@@ -30,16 +25,13 @@ type DesktopLifecycleElectronApi = {
   ) => unknown;
 };
 
-function asWsSocket(socket: DesktopPlatformSocket): WsSocketLike {
-  return socket as WsSocketLike;
-}
-
 export class DesktopRealtimeTransport implements RealtimeTransport {
   readonly kind = "desktop" as const;
   readonly runs: PlatformRunTransport;
   readonly push: PlatformPushTransport;
   readonly terminal = new UnsupportedTerminalTransport();
-  private readonly client: WsClient;
+  private readonly client: DesktopFramePortDriver;
+  private readonly unregisterPlatformFrameClient: () => void;
   private readonly handleVisibilityChange: () => void;
   private readonly unsubscribeSurfaceLifecycle: () => void;
   private hostSurfaceActive = true;
@@ -47,17 +39,15 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
   private effectiveSurfaceActive = true;
   private disposed = false;
 
-  constructor(readonly platformWs: DesktopPlatformWsBridge) {
-    destroyWsClient();
-    this.client = initWsClient({
-      accessToken: "",
-      allowAnonymous: true,
-      buildSocketUrl: () => "desktop-platform-frame-port",
-      socketFactory: () => asWsSocket(platformWs.createSocket()),
-    });
+  constructor(readonly platformFramePort: DesktopPlatformFramePort) {
+    this.client = new DesktopFramePortDriver(platformFramePort.createSession());
+    this.unregisterPlatformFrameClient = registerDesktopPlatformFrameClient(this.client);
     const ensureClient = async () => this.client;
     this.runs = new PlatformRunTransport(ensureClient, { supportsBtw: true });
-    this.push = new PlatformPushTransport(ensureClient);
+    this.push = new PlatformPushTransport(
+      ensureClient,
+      (listener) => this.client.subscribePush(listener),
+    );
     this.handleVisibilityChange = () => {
       this.documentVisible = document.visibilityState !== "hidden";
       this.syncSurfaceActive();
@@ -109,7 +99,7 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
       return () => undefined;
     }
     listener(this.getStatus());
-    return subscribeWsStatus(listener);
+    return this.client.subscribeStatus(listener);
   }
 
   dispose(): void {
@@ -119,6 +109,7 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
       document.removeEventListener("visibilitychange", this.handleVisibilityChange);
     }
     this.unsubscribeSurfaceLifecycle();
-    destroyWsClient();
+    this.unregisterPlatformFrameClient();
+    this.client.dispose();
   }
 }

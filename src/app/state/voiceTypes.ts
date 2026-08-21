@@ -16,6 +16,7 @@ export type WsConnectionStatus =
 	| "disconnected"
 	| "connecting"
 	| "connected"
+	| "reconnecting"
 	| "error";
 
 export interface VoiceClientGateSettings {

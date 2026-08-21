@@ -1,51 +1,67 @@
 import type {
-  DesktopPlatformSocket,
-  DesktopPlatformSocketEventType,
-  DesktopPlatformWsBridge,
+  AgentPlatformRequestFrame,
+  AgentPlatformRealtimeFrame,
+  DesktopPlatformConnectionState,
+  DesktopPlatformFramePort,
+  DesktopPlatformSession,
+  DesktopPlatformSessionClose,
 } from "@/features/transport/contracts/generated/agentWebclientBridge";
 import { DesktopRealtimeTransport } from "@/features/transport/lib/desktopRealtimeTransport";
+import { getDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
 import {
   DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
   DESKTOP_SURFACE_ACTIVE_CHANGED_MESSAGE_TYPE,
   SERVICE_WEBVIEW_BRIDGE_SURFACE_LIFECYCLE_CHANNEL,
 } from "@/features/transport/lib/desktopSurfaceLifecycle";
 
-class FakeDesktopPlatformSocket implements DesktopPlatformSocket {
-  readyState: 0 | 1 | 2 | 3 = 0;
+class FakeDesktopPlatformSession implements DesktopPlatformSession {
   readonly sent: Array<Record<string, unknown>> = [];
-  private readonly listeners = new Map<DesktopPlatformSocketEventType, Set<(event: any) => void>>();
+  closeCalls = 0;
+  private readonly frameListeners = new Set<(frame: any) => void>();
+  private readonly stateListeners = new Set<(state: DesktopPlatformConnectionState) => void>();
+  private readonly closeListeners = new Set<(event: DesktopPlatformSessionClose) => void>();
 
-  open(): void {
-    this.readyState = 1;
-    this.emit("open", new Event("open"));
+  connected(): void {
+    this.state({
+      phase: "connected",
+      logicalGeneration: 1,
+      physicalGeneration: 1,
+      reconnectCount: 0,
+      retryable: false,
+      physicalSessionId: "ws-test",
+    });
   }
 
-  send(data: string): void {
-    this.sent.push(JSON.parse(data));
+  state(state: DesktopPlatformConnectionState): void {
+    for (const listener of this.stateListeners) listener(state);
   }
 
-  close(code = 1000, reason = ""): void {
-    if (this.readyState === 3) return;
-    this.readyState = 3;
-    this.emit("close", { code, reason });
+  send(frame: AgentPlatformRequestFrame): void {
+    this.sent.push(frame);
   }
 
-  addEventListener(type: DesktopPlatformSocketEventType, listener: (event: any) => void): void {
-    const listeners = this.listeners.get(type) || new Set();
-    listeners.add(listener);
-    this.listeners.set(type, listeners);
+  close(reason: "surface_inactive" | "disposed" = "disposed"): void {
+    this.closeCalls += 1;
+    for (const listener of this.closeListeners) listener({ reason });
   }
 
-  removeEventListener(type: DesktopPlatformSocketEventType, listener: (event: any) => void): void {
-    this.listeners.get(type)?.delete(listener);
+  onFrame(listener: (frame: Exclude<AgentPlatformRealtimeFrame, AgentPlatformRequestFrame>) => void): () => void {
+    this.frameListeners.add(listener);
+    return () => this.frameListeners.delete(listener);
+  }
+
+  onState(listener: (state: DesktopPlatformConnectionState) => void): () => void {
+    this.stateListeners.add(listener);
+    return () => this.stateListeners.delete(listener);
+  }
+
+  onClose(listener: (event: DesktopPlatformSessionClose) => void): () => void {
+    this.closeListeners.add(listener);
+    return () => this.closeListeners.delete(listener);
   }
 
   frame(frame: Record<string, unknown>): void {
-    this.emit("message", { data: JSON.stringify(frame) });
-  }
-
-  private emit(type: DesktopPlatformSocketEventType, event: any): void {
-    for (const listener of this.listeners.get(type) || []) listener(event);
+    for (const listener of this.frameListeners) listener(frame);
   }
 }
 
@@ -54,12 +70,127 @@ async function flush(): Promise<void> {
 }
 
 describe("DesktopRealtimeTransport", () => {
+  it("registers the Frame Port client for ordinary Platform requests", async () => {
+    const session = new FakeDesktopPlatformSession();
+    const transport = new DesktopRealtimeTransport({
+      transportVersion: 2,
+      createSession: () => session,
+    });
+    const client = getDesktopPlatformFrameClient();
+    expect(client).not.toBeNull();
+    const request = client!.request<{ key: string }>({
+      type: "/api/agent",
+      payload: { agentKey: "agent-1" },
+    });
+    session.connected();
+    await flush();
+    const frame = session.sent.find((item) => item.type === "/api/agent");
+    session.frame({
+      frame: "response",
+      id: frame?.id,
+      code: 0,
+      status: 200,
+      msg: "ok",
+      data: { key: "agent-1" },
+    });
+    await expect(request).resolves.toMatchObject({ data: { key: "agent-1" } });
+    transport.dispose();
+    expect(getDesktopPlatformFrameClient()).toBeNull();
+  });
+
+  it("keeps one logical Frame Port session healthy across 120 seconds of business silence", async () => {
+    jest.useFakeTimers();
+    const session = new FakeDesktopPlatformSession();
+    const transport = new DesktopRealtimeTransport({
+      transportVersion: 2,
+      createSession: () => session,
+    });
+    const statuses: string[] = [];
+    const unsubscribe = transport.subscribeStatus((status) => statuses.push(status));
+    session.connected();
+    jest.advanceTimersByTime(120_000);
+    expect(session.closeCalls).toBe(0);
+    expect(transport.getStatus()).toBe("connected");
+    expect(statuses).toContain("connected");
+    unsubscribe();
+    transport.dispose();
+    jest.useRealTimers();
+  });
+
+  it("treats host reconnecting as nonfatal and keeps the original stream", async () => {
+    const session = new FakeDesktopPlatformSession();
+    const transport = new DesktopRealtimeTransport({
+      transportVersion: 2,
+      createSession: () => session,
+    });
+    const statuses: string[] = [];
+    transport.subscribeStatus((status) => statuses.push(status));
+    const events: string[] = [];
+    const execution = transport.runs.startQuery({
+      requestId: "req-reconnect",
+      message: "keep going",
+      owner: { kind: "agent", agentKey: "agent-1" },
+      onEvent: (event) => events.push(event.type),
+    });
+    session.connected();
+    await flush();
+    const query = session.sent.find((frame) => frame.type === "/api/query");
+    const id = String(query?.id || "");
+    session.frame({
+      frame: "stream",
+      id,
+      event: {
+        type: "run.start",
+        seq: 1,
+        chatId: "chat-reconnect",
+        runId: "run-reconnect",
+        agentKey: "agent-1",
+        timestamp: 1_786_890_000_001,
+      },
+    });
+    await execution.identity;
+    session.state({
+      phase: "reconnecting",
+      logicalGeneration: 1,
+      physicalGeneration: 1,
+      reconnectCount: 1,
+      retryable: true,
+      error: { code: "PLATFORM_CONNECTION_UNAVAILABLE", message: "network lost" },
+    });
+    expect(transport.getStatus()).toBe("reconnecting");
+    session.state({
+      phase: "connected",
+      logicalGeneration: 1,
+      physicalGeneration: 2,
+      reconnectCount: 1,
+      retryable: false,
+      physicalSessionId: "ws-test-2",
+    });
+    session.frame({
+      frame: "stream",
+      id,
+      event: {
+        type: "content.delta",
+        seq: 2,
+        chatId: "chat-reconnect",
+        runId: "run-reconnect",
+        timestamp: 1_786_890_000_002,
+      },
+    });
+    session.frame({ frame: "stream", id, reason: "complete", lastSeq: 2 });
+    await expect(execution.completion).resolves.toMatchObject({ reason: "complete", lastSeq: 2 });
+    expect(session.sent.filter((frame) => frame.type === "/api/query")).toHaveLength(1);
+    expect(events).toEqual(["run.start", "content.delta"]);
+    expect(statuses).toEqual(expect.arrayContaining(["reconnecting", "connected"]));
+    transport.dispose();
+  });
+
   it("uses the shared Platform parser and preserves one message per stream frame", async () => {
-    const socket = new FakeDesktopPlatformSocket();
-    const bridge: DesktopPlatformWsBridge = {
-      transportVersion: 1,
-      createSocket: () => {
-        queueMicrotask(() => socket.open());
+    const socket = new FakeDesktopPlatformSession();
+    const bridge: DesktopPlatformFramePort = {
+      transportVersion: 2,
+      createSession: () => {
+        queueMicrotask(() => socket.connected());
         return socket;
       },
     };
@@ -109,11 +240,11 @@ describe("DesktopRealtimeTransport", () => {
   });
 
   it("sends controls and BTW as Platform request frames", async () => {
-    const socket = new FakeDesktopPlatformSocket();
+    const socket = new FakeDesktopPlatformSession();
     const transport = new DesktopRealtimeTransport({
-      transportVersion: 1,
-      createSocket: () => {
-        queueMicrotask(() => socket.open());
+      transportVersion: 2,
+      createSession: () => {
+        queueMicrotask(() => socket.connected());
         return socket;
       },
     });
@@ -204,11 +335,11 @@ describe("DesktopRealtimeTransport", () => {
     });
 
     try {
-      const socket = new FakeDesktopPlatformSocket();
+      const socket = new FakeDesktopPlatformSession();
       const transport = new DesktopRealtimeTransport({
-        transportVersion: 1,
-        createSocket: () => {
-          queueMicrotask(() => socket.open());
+        transportVersion: 2,
+        createSession: () => {
+          queueMicrotask(() => socket.connected());
           return socket;
         },
       });

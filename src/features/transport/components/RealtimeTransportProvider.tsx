@@ -57,15 +57,15 @@ export const RealtimeTransportProvider: React.FC<
       transportRef.current = (standaloneFactory || (() => new StandaloneRealtimeTransport()))();
     } else {
       const bridges = readDesktopBridges();
-      if (!bridges.platformWs || !bridges.workPanel) {
+      if (!bridges.platformFramePort || !bridges.workPanel) {
         bridgeErrorRef.current = new RealtimeTransportError(
-          bridges.platformWsIncompatible ? "desktop_bridge_incompatible" : "desktop_bridge_missing",
-          bridges.platformWsIncompatible
+          bridges.platformFramePortIncompatible ? "desktop_bridge_incompatible" : "desktop_bridge_missing",
+          bridges.platformFramePortIncompatible
             ? "Desktop Platform Frame Port transport version is incompatible"
             : "Desktop Platform Frame Port/workpanel bridge is unavailable",
         );
       } else {
-        transportRef.current = new DesktopRealtimeTransport(bridges.platformWs);
+        transportRef.current = new DesktopRealtimeTransport(bridges.platformFramePort);
         workPanelRef.current = new DesktopWorkPanelTransport(bridges.workPanel);
       }
     }

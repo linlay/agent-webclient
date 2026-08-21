@@ -61,9 +61,21 @@ class MockWebSocket {
 		this.emit("close", { code: code ?? 1000, reason: reason ?? "", wasClean: true });
 	}
 
-	open(): void {
+	open(sendHandshake = true): void {
 		this.readyState = MockWebSocket.OPEN;
 		this.emit("open");
+		if (sendHandshake) {
+			this.message(JSON.stringify({
+				frame: "push",
+				type: "connected",
+				data: {
+					protocolVersion: 2,
+					sessionId: "ws-test-session",
+					serverTime: 1_786_890_000_000,
+					liveness: { heartbeatIntervalMs: 30_000, silenceTimeoutMs: 100_000 },
+				},
+			}));
+		}
 	}
 
 	message(data: string): void {
@@ -75,7 +87,7 @@ class MockWebSocket {
 	}
 
 	private emit(type: string, event: unknown = {}): void {
-		for (const listener of this.listeners.get(type) || []) {
+		for (const listener of Array.from(this.listeners.get(type) || [])) {
 			listener(event);
 		}
 	}
@@ -276,7 +288,7 @@ describe("WsClient", () => {
 		expect(sentFrame).toMatchObject({
 			frame: "request",
 			type: "/api/agents",
-			id: `wsr_${(1_776_475_494 * 1000).toString(36)}`,
+			id: `pfr_${(1_776_475_494 * 1000).toString(36)}`,
 		});
 
 		socket.message(
@@ -616,7 +628,7 @@ describe("WsClient", () => {
 		await flushMicrotasks();
 
 		const sentFrame = JSON.parse(await waitForSentFrame(socket)) as { id: string };
-		expect(sentFrame.id).toBe(`wss_${(1_776_474_697 * 1000).toString(36)}`);
+		expect(sentFrame.id).toBe(`pfs_${(1_776_474_697 * 1000).toString(36)}`);
 		expect(stream.requestId).toBe(sentFrame.id);
 		socket.message(
 			JSON.stringify({
@@ -820,7 +832,7 @@ describe("WsClient", () => {
 		jest.advanceTimersByTime(1_000);
 
 		await expect(promise).rejects.toEqual(
-			new WsClientRequestTimeoutError("WebSocket request timeout: /api/agents"),
+			new WsClientRequestTimeoutError("Platform request timeout: /api/agents"),
 		);
 	});
 
@@ -916,7 +928,11 @@ describe("WsClient", () => {
 		jest.advanceTimersByTime(95_000);
 		expect(socket.closeCalls).toBe(0);
 
-		socket.message(JSON.stringify({ frame: "push", type: "heartbeat", data: {} }));
+		socket.message(JSON.stringify({
+			frame: "push",
+			type: "heartbeat",
+			data: { sessionId: "ws-test-session", sequence: 1, timestamp: 1_786_890_095_000 },
+		}));
 		jest.advanceTimersByTime(95_000);
 		expect(socket.closeCalls).toBe(0);
 
@@ -988,9 +1004,7 @@ describe("WsClient", () => {
 		const socket = MockWebSocket.instances[0];
 		socket.error();
 
-		await expect(promise).rejects.toThrow(
-			/握手失败|handshake failed/i,
-		);
+		await expect(promise).rejects.toThrow(/握手失败|handshake failed/i);
 		client.disconnect();
 	});
 
@@ -1006,9 +1020,7 @@ describe("WsClient", () => {
 		jest.advanceTimersByTime(1_000);
 		await flushMicrotasks();
 
-		await expect(promise).rejects.toThrow(
-			/握手失败|handshake failed/i,
-		);
+		await expect(promise).rejects.toThrow(/PLATFORM_WS_HANDSHAKE_TIMEOUT/i);
 		expect(socket.closeCalls).toBe(1);
 		expect(client.getStatus()).toBe("error");
 		client.disconnect();
