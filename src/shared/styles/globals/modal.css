@@ -150,7 +150,7 @@
     width: 100%;
     border: 0;
     border-radius: 14px;
-    padding: 12px;
+    padding: 4px 12px;
     text-align: left;
     position: relative;
 }
@@ -276,6 +276,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 13px;
+    font-weight: bold;
 }
 
 .history-list-summary {
