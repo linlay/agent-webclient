@@ -38,15 +38,28 @@ import { SkillsPage } from "./pages/skills";
 import { ProjectPage } from "./pages/project";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import { BtwProvider } from "@/features/btw/components/BtwProvider";
+import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
 import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { TerminalPage } from "./pages/terminal";
-import { ReadonlyRunSurfacePage } from "./pages/run-surface";
-import { useWebClientActionRuntime } from "@/features/conversation/hooks/useWebClientActionRuntime";
+import {
+  BtwViewerPage,
+  DebugViewerPage,
+  FileViewerPage,
+  OverviewViewerPage,
+  PlanningViewerPage,
+  ResourceViewerPage,
+  SkillViewerPage,
+  SourceViewerPage,
+  WebViewerPage,
+} from "./pages/surfaces";
+import { HistoryPage } from "./pages/history";
+import { useStandaloneWorkPanelActionRuntime } from "@/features/conversation/hooks/useStandaloneWorkPanelActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
+import { WebClientRouteErrorPage } from "@/app/WebClientRenderError";
 
 const defaultDocumentTitle =
   typeof document === "undefined" ? "" : document.title;
@@ -102,7 +115,7 @@ const InteractiveRoute: React.FC<{
 );
 
 const RootInteractiveRoute: React.FC = () => {
-  useWebClientActionRuntime();
+  useStandaloneWorkPanelActionRuntime();
   return (
     <InteractiveRoute>
       <AppShell />
@@ -185,6 +198,7 @@ const router = createBrowserRouter(
     {
       path: "/",
       element: <BaseShell />,
+      errorElement: <WebClientRouteErrorPage />,
       children: [
         {
           path: "/login",
@@ -199,16 +213,6 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute>
               <RootInteractiveRoute />
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: "/copilot",
-          element: (
-            <DocumentTitleRoute>
-              <InteractiveRoute btwEnabled={false}>
-                <CopilotShell />
-              </InteractiveRoute>
             </DocumentTitleRoute>
           ),
         },
@@ -271,39 +275,87 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/overview",
+          path: SURFACE_ROUTE_PATHS.overview,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.overview">
-              <ReadonlyRunSurfacePage kind="overview" />
+              <OverviewViewerPage />
             </DocumentTitleRoute>
           ),
         },
         {
-          path: "/overview/:agentKey",
-          element: (
-            <DocumentTitleRoute titleKey="copilot.panel.overview">
-              <ReadonlyRunSurfacePage kind="overview" />
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: "/debug",
+          path: SURFACE_ROUTE_PATHS.debug,
           element: (
             <DocumentTitleRoute titleKey="copilot.panel.debug">
-              <ReadonlyRunSurfacePage kind="debug" />
+              <DebugViewerPage />
             </DocumentTitleRoute>
           ),
         },
         {
-          path: "/debug/:agentKey",
+          path: SURFACE_ROUTE_PATHS.btw,
           element: (
-            <DocumentTitleRoute titleKey="copilot.panel.debug">
-              <ReadonlyRunSurfacePage kind="debug" />
+            <DocumentTitleRoute titleKey="btw.title">
+              <BtwViewerPage />
             </DocumentTitleRoute>
           ),
         },
         {
-          path: "/terminal",
+          path: SURFACE_ROUTE_PATHS.source,
+          element: (
+            <DocumentTitleRoute titleKey="copilot.panel.sourceDetail">
+              <SourceViewerPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.planning,
+          element: (
+            <DocumentTitleRoute titleKey="rightSidebar.overview.planning.title">
+              <PlanningViewerPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.resource,
+          element: (
+            <DocumentTitleRoute titleKey="attachments.kind.file">
+              <ResourceViewerPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.file,
+          element: (
+            <DocumentTitleRoute titleKey="attachments.kind.file">
+              <FileViewerPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.web,
+          element: (
+            <DocumentTitleRoute titleKey="copilot.panel.web">
+              <WebViewerPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.skill,
+          element: (
+            <DocumentTitleRoute titleKey="route.title.skills">
+              <SkillViewerPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.history,
+          element: (
+            <DocumentTitleRoute titleKey="leftSidebar.historyTitle">
+              <HistoryPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.terminal,
           element: (
             <DocumentTitleRoute titleKey="terminal.panelAria">
               <TerminalPage />
@@ -311,7 +363,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/project",
+          path: SURFACE_ROUTE_PATHS.project,
           element: (
             <DocumentTitleRoute titleKey="route.title.project">
               <ProjectPage />
@@ -359,17 +411,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/agent",
-          element: (
-            <DocumentTitleRoute titleKey="route.title.agent">
-              <InteractiveRoute>
-                <AgentChatShell />
-              </InteractiveRoute>
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: "/agent/:agentKey",
+          path: SURFACE_ROUTE_PATHS.agent,
           element: (
             <DocumentTitleRoute titleKey="route.title.agent">
               <InteractiveRoute>

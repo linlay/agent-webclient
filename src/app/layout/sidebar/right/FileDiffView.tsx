@@ -129,6 +129,7 @@ export const FileDiffView: React.FC<{
         style={
           {
             "--diffs-gap-fallback": 0,
+            "--diffs-font-size": "12px",
           } as any
         }
       />

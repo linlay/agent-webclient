@@ -208,20 +208,20 @@ describe("buildDebugEventGroups", () => {
 				{ agentKey: "demo-agent", chatId: "chat_1" },
 				"?lang=en&theme=light&chatId=old&runId=old-run",
 			),
-		).toBe("/overview?lang=en&theme=light&chatId=chat_1&agentKey=demo-agent");
+		).toBe("/overview/chat_1?lang=en&theme=light");
 		expect(
 			buildDebugChatRouteUrl(
 				"debug",
 				{ agentKey: "demo-agent", chatId: "chat_1" },
 			),
-		).toBe("/debug?chatId=chat_1&agentKey=demo-agent");
+		).toBe("/debug/chat_1");
 		expect(
 			buildDebugChatRouteUrl(
 				"terminal",
 				{ agentKey: "demo-agent" },
 				"?chatId=old&terminalKey=old",
 			),
-		).toBe("/terminal?agentKey=demo-agent&terminalKey=main");
+		).toBe("/terminal/demo-agent?terminalKey=main");
 		expect(
 			buildDebugChatRouteUrl(
 				"share",
@@ -247,9 +247,9 @@ describe("buildDebugEventGroups", () => {
 		expect(targets.map((target) => target.href)).toEqual([
 			"/agent/fallback-agent?theme=dark&chatId=chat_1",
 			"/copilot/fallback-agent?theme=dark&chatId=chat_1",
-			"/overview?theme=dark&chatId=chat_1&agentKey=fallback-agent",
-			"/debug?theme=dark&chatId=chat_1&agentKey=fallback-agent",
-			"/terminal?theme=dark&agentKey=fallback-agent&terminalKey=main",
+			"/overview/chat_1?theme=dark",
+			"/debug/chat_1?theme=dark",
+			"/terminal/fallback-agent?theme=dark&terminalKey=main",
 			"/share/share_public-1",
 		]);
 		expect(
@@ -284,12 +284,12 @@ describe("buildDebugEventGroups", () => {
 
 		expect(html).toContain("chat.start");
 		expect(html).toContain("新页面打开 Agent 对话");
-		expect(html).toContain("新页面打开 Copilot 对话");
+		expect(html).toContain("新页面打开副驾对话");
 		expect(html).toContain("Agent");
-		expect(html).toContain("Copilot");
+		expect(html).toContain("副驾");
 		expect(html).toContain("概览");
 		expect(html).toContain("调试");
-		expect(html).toContain("终端面板");
+		expect(html).toContain("终端");
 		expect(html).toContain("分享的对话");
 	});
 });

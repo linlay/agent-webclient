@@ -1260,6 +1260,63 @@ describe('appReducer conversation reset behavior', () => {
     });
   });
 
+  it('opens, updates, activates, and closes sidebar Viewer targets', () => {
+    const resourceTarget = {
+      type: 'resource' as const,
+      name: 'report.md',
+      url: 'artifacts/run-1/report.md',
+      downloadUrl: 'artifacts/run-1/report.md',
+      contentKind: 'text' as const,
+    };
+    const fileTarget = {
+      type: 'file' as const,
+      name: 'app.ts',
+      agentKey: 'agent-1',
+      path: 'src/app.ts',
+      contentKind: 'text' as const,
+      line: 10,
+    };
+    const first = appReducer(createInitialState(), {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'viewer',
+      viewerTarget: resourceTarget,
+    });
+    const second = appReducer(first, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'viewer',
+      viewerTarget: fileTarget,
+    });
+    const updated = appReducer(second, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'viewer',
+      viewerTarget: { ...fileTarget, line: 42 },
+    });
+
+    expect(updated.viewerTabs).toEqual([
+      resourceTarget,
+      { ...fileTarget, line: 42 },
+    ]);
+    expect(updated.activeViewerKey).toBe('file:agent-1:src/app.ts');
+    expect(updated.rightSidebarOpenTab).toBe('viewer');
+
+    const activated = appReducer(updated, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'viewer',
+      activeViewerKey: 'resource:artifacts/run-1/report.md',
+    });
+    const afterActiveClose = appReducer(activated, {
+      type: 'OPEN_RIGHT_SIDEBAR',
+      tab: 'viewer',
+      removeViewerKey: 'resource:artifacts/run-1/report.md',
+    });
+    expect(afterActiveClose.viewerTabs).toEqual([{ ...fileTarget, line: 42 }]);
+    expect(afterActiveClose.activeViewerKey).toBe('file:agent-1:src/app.ts');
+
+    const reset = appReducer(afterActiveClose, { type: 'RESET_CONVERSATION' });
+    expect(reset.viewerTabs).toEqual([]);
+    expect(reset.activeViewerKey).toBe('');
+  });
+
   it('opens, reuses, activates, and closes sidebar web previews', () => {
     const baseState = createInitialState();
     const first = appReducer(baseState, {

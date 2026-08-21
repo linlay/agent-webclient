@@ -12,7 +12,17 @@ jest.mock("antd", () => {
       React.createElement("input", props),
     );
   Input.TextArea = (props: any) => React.createElement("textarea", props);
-  const Modal = ({ children }: { children?: unknown }) => children || null;
+  const Modal = ({ open, children, title, okText, cancelText }: any) =>
+    open
+      ? React.createElement(
+          "section",
+          { "data-testid": "modal" },
+          title,
+          children,
+          React.createElement("button", null, cancelText),
+          React.createElement("button", null, okText),
+        )
+      : null;
   Modal.confirm = jest.fn();
   return {
     Checkbox: ({ children, ...props }: any) => React.createElement("label", null, React.createElement("input", { ...props, type: "checkbox" }), children),
@@ -37,7 +47,25 @@ jest.mock("antd", () => {
     Switch: ({ checked, ...props }: any) =>
       React.createElement("input", { ...props, type: "checkbox", checked }),
     Spin: ({ children }: { children?: unknown }) => children || null,
+    Tabs: ({ activeKey, items }: any) =>
+      React.createElement(
+        "div",
+        { "data-testid": "tabs", "data-active-key": activeKey },
+        items.map((item: any) =>
+          React.createElement(
+            "div",
+            { key: item.key, "data-tab": item.key },
+            React.createElement("span", null, item.label),
+            item.children,
+          ),
+        ),
+      ),
     Tooltip: ({ children }: { children?: unknown }) => children || null,
+    message: {
+      error: jest.fn(),
+      success: jest.fn(),
+      warning: jest.fn(),
+    },
   };
 });
 
@@ -58,6 +86,8 @@ jest.mock("@/shared/data", () => ({
   getAdminSource: jest.fn(),
   getAdminSkills: jest.fn(),
   getAdminTools: jest.fn(),
+  getAgents: jest.fn(),
+  importAdminAgent: jest.fn(),
   importAdminAgentPrivateSkill: jest.fn(),
   putAdminAgentOrder: jest.fn(),
   updateAgent: jest.fn(),
@@ -79,28 +109,32 @@ jest.mock("@/shared/ui/UiButton", () => ({
 
 import {
   AgentConsole,
+  AgentCreateModal,
   AGENT_CONSOLE_ADMIN_LIST_ROUTE,
   AGENT_FORM_SECTION_IDS,
-  buildAgentConfigDirectoryOpenOptions,
+  agentImportConflict,
+  agentImportDiagnostics,
+  agentImportSuccessMessageKey,
   buildAdminToolOption,
   buildDefinition,
   buildAgentListSummary,
+  confirmAgentDraftDiscard,
   defaultReasoningEffort,
   firstAdminAgentDiagnosticMessage,
   formFromDetail,
   getModelReasoningEfforts,
   hasEditableAdminDefinition,
+  importAgentArchiveWithOverwrite,
   isInvalidAdminAgent,
   mergeAgentSkillOptions,
   privateSkillsFromDetail,
   readAdminAgentDiagnostics,
-  resolveActiveAgentFormSection,
   resolveAdminAgentSourcePath,
   saveAgentOrderRequest,
-  shouldShowAgentDirectoryButton,
   shouldShowAgentSectionNav,
   shouldStartAgentConsoleBootstrap,
   toolOptionLabel,
+  validateAgentArchiveFile,
 } from "@/features/workers/components/AgentConsole";
 
 const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
@@ -111,6 +145,128 @@ const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
 };
 
 const translate = (key: string) => key;
+
+describe("Agent creation modal", () => {
+  it("defaults to ZIP import and keeps direct creation as the second tab", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AgentCreateModal, {
+        open: true,
+        t: translate,
+        onCancel: jest.fn(),
+        onDirectCreate: jest.fn(() => true),
+        onBeforeZipImport: jest.fn(() => true),
+        onZipImport: jest.fn(),
+        onImported: jest.fn(),
+      }),
+    );
+
+    expect(html).toContain('data-active-key="zip"');
+    expect(html.indexOf('data-tab="zip"')).toBeLessThan(
+      html.indexOf('data-tab="direct"'),
+    );
+    expect(html).toContain("agentConsole.create.mode.zip");
+    expect(html).toContain("agentConsole.create.mode.direct");
+    expect(html).toContain('accept=".zip,application/zip"');
+    expect(html).toContain("agentConsole.import.description");
+    expect(html).not.toContain('id="agent-import-key"');
+  });
+
+  it("validates dropped or selected ZIP files before upload", () => {
+    expect(validateAgentArchiveFile({ name: "agent.txt", size: 10 })).toBe("type");
+    expect(validateAgentArchiveFile({ name: "agent.zip", size: 0 })).toBe("empty");
+    expect(
+      validateAgentArchiveFile({ name: "agent.zip", size: 32 * 1024 * 1024 + 1 }),
+    ).toBe("size");
+    expect(
+      validateAgentArchiveFile({ name: "agent.ZIP", size: 32 * 1024 * 1024 }),
+    ).toBe("");
+  });
+
+  it("keeps the draft when discard confirmation is cancelled", () => {
+    const confirm = jest.fn(() => false);
+    expect(confirmAgentDraftDiscard(false, "discard?", confirm)).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(confirmAgentDraftDiscard(true, "discard?", confirm)).toBe(false);
+    expect(confirm).toHaveBeenCalledWith("discard?");
+  });
+
+  it("parses diagnostics and the explicit overwrite contract", () => {
+    const error = {
+      status: 409,
+      data: {
+        error: {
+          agentKey: "demo-agent",
+          existingName: "Demo Agent",
+          overwriteRequired: true,
+          diagnostics: [
+            {
+              severity: "error",
+              code: "invalid_agent_yaml",
+              message: "invalid YAML",
+              sourcePath: "agent.yml",
+            },
+          ],
+        },
+      },
+    };
+    expect(agentImportConflict(error)).toEqual({
+      agentKey: "demo-agent",
+      existingName: "Demo Agent",
+    });
+    expect(agentImportDiagnostics(error)).toEqual([
+      {
+        severity: "error",
+        code: "invalid_agent_yaml",
+        message: "invalid YAML",
+        sourcePath: "agent.yml",
+      },
+    ]);
+  });
+
+  it("retries the same file with overwrite=true after confirmation", async () => {
+    const file = { name: "demo.zip", size: 10 } as File;
+    const ready = {
+      key: "demo-agent",
+      name: "Demo Agent",
+      status: "ready",
+    } as any;
+    const importArchive = jest
+      .fn()
+      .mockRejectedValueOnce({
+        status: 409,
+        data: {
+          error: {
+            agentKey: "demo-agent",
+            existingName: "Demo Agent",
+            overwriteRequired: true,
+          },
+        },
+      })
+      .mockResolvedValueOnce(ready);
+    const confirmOverwrite = jest.fn(async () => true);
+
+    await expect(
+      importAgentArchiveWithOverwrite(file, importArchive, confirmOverwrite),
+    ).resolves.toBe(ready);
+    expect(importArchive.mock.calls).toEqual([
+      [file, false],
+      [file, true],
+    ]);
+    expect(confirmOverwrite).toHaveBeenCalledWith({
+      agentKey: "demo-agent",
+      existingName: "Demo Agent",
+    });
+  });
+
+  it("uses distinct ready and invalid completion messages", () => {
+    expect(agentImportSuccessMessageKey("ready")).toBe(
+      "agentConsole.import.success",
+    );
+    expect(agentImportSuccessMessageKey("invalid")).toBe(
+      "agentConsole.import.invalid",
+    );
+  });
+});
 
 describe("AgentConsole private skill options", () => {
   it("prefers the Agent-private source when it has the same key as the center", () => {
@@ -378,7 +534,7 @@ describe("AgentConsole i18n rendering", () => {
     expect(html).toContain("runTimeoutMs");
   });
 
-  it("renders five flat structured sections in the planned order", () => {
+  it("renders five accessible tabs with one visible configuration panel", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -392,18 +548,18 @@ describe("AgentConsole i18n rendering", () => {
     );
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(html.match(/class="agent-section-nav-link tw:/g)).toHaveLength(5);
+    expect(html.match(/role="tab"/g)).toHaveLength(5);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(5);
+    expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
+    expect(html.match(/ hidden=""/g)).toHaveLength(4);
     expect(html).not.toContain("agent-config-box");
     expect(html).not.toContain("<fieldset");
   });
 
-  it("shows anchors only for editable structured forms and directory buttons only for saved paths", () => {
+  it("shows tabs only for editable structured forms", () => {
     expect(shouldShowAgentSectionNav("structured", true)).toBe(true);
     expect(shouldShowAgentSectionNav("source", true)).toBe(false);
     expect(shouldShowAgentSectionNav("structured", false)).toBe(false);
-    expect(shouldShowAgentDirectoryButton("edit", "/agents/a/agent.yml")).toBe(true);
-    expect(shouldShowAgentDirectoryButton("edit", "")).toBe(false);
-    expect(shouldShowAgentDirectoryButton("create", "/agents/a/agent.yml")).toBe(false);
   });
 
   it("keeps a single save action inside the sticky nav bar for every editor mode", () => {
@@ -427,28 +583,7 @@ describe("AgentConsole i18n rendering", () => {
     expect(afterSaveActions).not.toContain("创建智能体");
   });
 
-  it("resolves the active anchor from content scroll position and locks prompts at the bottom", () => {
-    const sectionTops = [120, 420, 760, 1100, 1450];
-    expect(resolveActiveAgentFormSection(sectionTops, 80, false)).toBe(
-      AGENT_FORM_SECTION_IDS[0],
-    );
-    expect(resolveActiveAgentFormSection(sectionTops, 800, false)).toBe(
-      AGENT_FORM_SECTION_IDS[2],
-    );
-    expect(resolveActiveAgentFormSection(sectionTops, 800, true)).toBe(
-      AGENT_FORM_SECTION_IDS[4],
-    );
-  });
-
-  it("opens the registered agent config directory instead of its workspace", () => {
-    expect(buildAgentConfigDirectoryOpenOptions(" agent-a ")).toEqual({
-      agentKey: "agent-a",
-      directoryType: "config",
-    });
-    expect(buildAgentConfigDirectoryOpenOptions(" ")).toBeNull();
-  });
-
-  it("keeps visibility in basic properties and full-width context controls together", () => {
+  it("structures basic properties as identity and runtime sections", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -461,23 +596,32 @@ describe("AgentConsole i18n rendering", () => {
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[1]}"`),
     );
     const context = html.slice(
-      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[2]}"`),
-      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
-    );
-    const advanced = html.slice(
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
     );
+    const advanced = html.slice(
+      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
+    );
 
-    expect(basic).toContain("agent-visibility-input");
+    expect(basic).toContain("agent-mode-options");
+    expect(basic).toContain('type="radio"');
+    expect(basic).toContain("agent-visibility-options");
+    expect(basic).toContain('type="checkbox"');
+    expect(basic).not.toContain("agent-detail-path-field");
+    expect(basic).toContain("agent-basic-identity");
+    expect(basic).toContain("agent-identity-avatar");
+    expect(basic).toContain("agent-basic-runtime");
+    expect(basic).toContain("Identity information");
+    expect(basic).toContain("Run mode");
     expect(advanced).not.toContain("agent-visibility-input");
-    expect(context).toContain("agent-tags-input");
-    expect(context).toContain("agent-tools-input");
-    expect(context).toContain("agent-skills-input");
-    expect(context.match(/agent-form-full-width/g)).toHaveLength(3);
+    expect(context).toContain("agent-context-capabilities");
+    expect(context).toContain("agent-context-options");
+    expect(context).toContain("agent-selection-summary");
+    expect(context).toContain("Manage tools");
+    expect(context).toContain("Manage skills");
   });
 
-  it("renders advanced configuration fields one per row and hides memory config", () => {
+  it("renders every advanced configuration as a plain full-width textarea", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -486,19 +630,18 @@ describe("AgentConsole i18n rendering", () => {
       ),
     );
     const advanced = html.slice(
-      html.indexOf(`id="${AGENT_FORM_SECTION_IDS[3]}"`),
       html.indexOf(`id="${AGENT_FORM_SECTION_IDS[4]}"`),
     );
 
     expect(advanced).toContain(
       'class="field-group agent-form-full-width',
     );
-    expect(advanced.match(/agent-form-full-width/g)).toHaveLength(3);
+    expect(advanced.match(/agent-form-full-width/g)).toHaveLength(4);
     expect(advanced).toContain("agent-controls-input");
     expect(advanced).toContain("agent-runtime-input");
     expect(advanced).toContain("agent-budget-input");
-    expect(advanced).not.toContain("agent-memory-input");
-    expect(advanced).not.toContain("Memory Config");
+    expect(advanced).toContain("agent-memory-input");
+    expect(advanced).toContain("Memory Config");
   });
 });
 
@@ -569,11 +712,16 @@ describe("AgentConsole definition mapping", () => {
       meta: {},
     });
 
-    expect(withDefinition.greetings).toEqual(["definition greeting"]);
-    expect(fromDetail.greetings).toEqual(["detail fallback"]);
+    expect(withDefinition.greetingsText).toBe(JSON.stringify([
+      " definition greeting ",
+      "",
+    ], null, 2));
+    expect(fromDetail.greetingsText).toBe(JSON.stringify([
+      " detail fallback ",
+    ], null, 2));
   });
 
-  it("normalizes greetings and wonders on save and removes empty fields", () => {
+  it("preserves greetings and wonders JSON on save and removes blank fields", () => {
     const form = formFromDetail({
       key: "agent-a",
       name: "Agent A",
@@ -593,8 +741,8 @@ describe("AgentConsole definition mapping", () => {
     const normalized = buildDefinition(
       {
         ...form,
-        greetings: [" Hello ", "", " Welcome back "],
-        wonders: [" Try this ", "  "],
+        greetingsText: '[" Hello ", "", " Welcome back "]',
+        wondersText: '[" Try this ", "  "]',
       },
       {
         key: "agent-a",
@@ -605,7 +753,7 @@ describe("AgentConsole definition mapping", () => {
       translate,
     );
     const cleared = buildDefinition(
-      { ...form, greetings: ["  "], wonders: [] },
+      { ...form, greetingsText: "  ", wondersText: "" },
       {
         key: "agent-a",
         name: "Agent A",
@@ -615,8 +763,8 @@ describe("AgentConsole definition mapping", () => {
       translate,
     );
 
-    expect(normalized.greetings).toEqual(["Hello", "Welcome back"]);
-    expect(normalized.wonders).toEqual(["Try this"]);
+    expect(normalized.greetings).toEqual([" Hello ", "", " Welcome back "]);
+    expect(normalized.wonders).toEqual([" Try this ", "  "]);
     expect(cleared.greetings).toBeUndefined();
     expect(cleared.wonders).toBeUndefined();
   });

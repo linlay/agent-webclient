@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Typography } from "antd";
+import { Switch, Typography } from "antd";
 import type { Chat } from "@/app/state/types";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -18,8 +18,6 @@ const ADD_MENU_ITEM_STATE_CLASS = {
 } as const;
 const ADD_MENU_ITEM_LABEL_CLASS =
   "add-menu-item-label tw:text-xs tw:text-text-main tw:!max-w-[150px]";
-const ADD_MENU_ITEM_CHECK_CLASS =
-  "add-menu-item-check tw:inline-flex tw:items-center tw:self-center tw:text-accent-lime tw:[&_.material-icon]:text-base";
 const ADD_MENU_ITEM_SUFFIX_CLASS =
   "add-menu-item-suffix tw:text-xs tw:text-text-muted tw:flex-1";
 
@@ -120,6 +118,7 @@ export const AddMenuContent: React.FC<{
         const item = actionItems[activeIndex];
         if (item && !item.disabled) {
           item.action();
+          onClose();
         }
       }
     };
@@ -161,6 +160,7 @@ export const AddMenuContent: React.FC<{
               onClick={() => {
                 if (!item.disabled) {
                   item.action();
+                  onClose();
                 }
               }}
             >
@@ -187,10 +187,16 @@ export const AddMenuContent: React.FC<{
                   {item.suffix}
                 </Typography.Text>
               ) : null}
-              {item.check ? (
-                <span className={ADD_MENU_ITEM_CHECK_CLASS} aria-hidden="true">
-                  <MaterialIcon name="check" />
-                </span>
+              {item.check !== undefined ? (
+                <Switch
+                  size="small"
+                  checked={item.check}
+                  disabled={item.disabled}
+                  onChange={() => {
+                    item.action();
+                  }}
+                  onClick={(_, event) => event.stopPropagation()}
+                />
               ) : null}
             </UiButton>
           );

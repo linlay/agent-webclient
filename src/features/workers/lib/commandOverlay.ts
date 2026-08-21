@@ -23,6 +23,12 @@ export type CommandOverlayOpenOptions = Partial<
   type: CommandOverlayType;
 };
 
+export function shouldRefreshWorkerDataOnCommandOpen(
+  options: CommandOverlayOpenOptions,
+): boolean {
+  return options.type === "switch";
+}
+
 export function createCommandOverlayState(
   options?: CommandOverlayOpenOptions,
 ): CommandOverlayState {

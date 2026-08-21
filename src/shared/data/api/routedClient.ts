@@ -127,11 +127,8 @@ import {
 } from "@/shared/data/api/endpointRegistry";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { dataQueryCache } from "@/shared/data/query/serverState";
-
-type RouteRequestOptions<T> = {
-	fallbackOnConnectFailure?: boolean;
-	fallbackOnRequestFailure?: boolean;
-};
+import { getBackendMode } from "@/shared/config/backendMode";
+import { requestPlatformData } from "@/features/transport/lib/platformDataRequestTransport";
 
 function emptyPayloadAsUndefined(payload: unknown): unknown {
 	if (
@@ -168,11 +165,17 @@ function routeEndpoint<T, TInput>(
 	endpoint: EndpointDefinition<TInput>,
 	input: TInput,
 	fallback: () => Promise<ApiResponse<T>>,
-	options: RouteRequestOptions<T> = {},
 ): Promise<ApiResponse<T>> {
 	const payload = emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input));
-	void options;
-	const request = fallback;
+	const backend = getBackendMode();
+	const useWebSocket = endpoint.transport === "ws"
+		|| (
+			endpoint.transport === "auto"
+			&& endpoint.wsBackends?.includes(backend) === true
+		);
+	const request = useWebSocket
+		? () => requestPlatformData<T>(endpoint.path, payload)
+		: fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
 	if (!cache) {
 		return request();
@@ -237,7 +240,11 @@ export function createAgent(
 	params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return createAgentHttp(params).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -246,7 +253,11 @@ export function updateAgent(
 	params: UpdateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return updateAgentHttp(params).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -255,7 +266,11 @@ export function updateAgentName(
 	params: UpdateAgentNameRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
 	return updateAgentNameHttp(params).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -268,7 +283,11 @@ export function updateAgentModelConfig(
 		params,
 		() => updateAgentModelConfigHttp(params),
 	).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.agents, dataEndpoints.modelOptions);
+		invalidateRouteEndpoints(
+			dataEndpoints.agent,
+			dataEndpoints.agents,
+			dataEndpoints.modelOptions,
+		);
 		return response;
 	});
 }
@@ -278,6 +297,7 @@ export function deleteAgent(
 ): Promise<ApiResponse<DeleteAgentResponse>> {
 	return deleteAgentHttp(params).then((response) => {
 		invalidateRouteEndpoints(
+			dataEndpoints.agent,
 			dataEndpoints.agents,
 			dataEndpoints.chats,
 			dataEndpoints.modelOptions,
@@ -392,10 +412,6 @@ export function archiveChats(
 		dataEndpoints.chatArchive,
 		params,
 		() => archiveChatsHttp(params),
-		{
-			fallbackOnConnectFailure: false,
-			fallbackOnRequestFailure: false,
-		},
 	).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
@@ -456,10 +472,6 @@ export function deleteArchive(params: {
 		dataEndpoints.archiveDelete,
 		params,
 		() => deleteArchiveHttp(params),
-		{
-			fallbackOnConnectFailure: false,
-			fallbackOnRequestFailure: false,
-		},
 	).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
@@ -473,10 +485,6 @@ export function restoreArchives(params: {
 		dataEndpoints.archiveRestore,
 		params,
 		() => restoreArchivesHttp(params),
-		{
-			fallbackOnConnectFailure: false,
-			fallbackOnRequestFailure: false,
-		},
 	).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
@@ -624,27 +632,18 @@ export function saveMemoryScope(
 }
 
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.read, params, () => markChatReadHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	}).then((response) => {
+	return routeEndpoint(dataEndpoints.read, params, () => markChatReadHttp(params)).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
 	});
 }
 
 export function submitFeedback(params: FeedbackParams): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.feedback, params, () => submitFeedbackHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	});
+	return routeEndpoint(dataEndpoints.feedback, params, () => submitFeedbackHttp(params));
 }
 
 export function deleteChat(params: { chatId: string }): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.chatDelete, params, () => deleteChatHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	}).then((response) => {
+	return routeEndpoint(dataEndpoints.chatDelete, params, () => deleteChatHttp(params)).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
 	});
@@ -657,10 +656,6 @@ export function renameChat(
 		dataEndpoints.chatRename,
 		params,
 		() => renameChatHttp(params),
-		{
-			fallbackOnConnectFailure: false,
-			fallbackOnRequestFailure: false,
-		},
 	).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
@@ -681,10 +676,7 @@ export function rememberChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.remember, params, () => rememberChatHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	}).then((response) => {
+	return routeEndpoint(dataEndpoints.remember, params, () => rememberChatHttp(params)).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
 	});
@@ -694,10 +686,7 @@ export function learnChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.learn, params, () => learnChatHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	}).then((response) => {
+	return routeEndpoint(dataEndpoints.learn, params, () => learnChatHttp(params)).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
 	});
@@ -707,10 +696,7 @@ export function compactChat(params: {
 	requestId: string;
 	chatId: string;
 }): Promise<ApiResponse<CompactChatResponse>> {
-	return routeEndpoint(dataEndpoints.compact, params, () => compactChatHttp(params), {
-		fallbackOnConnectFailure: false,
-		fallbackOnRequestFailure: false,
-	}).then((response) => {
+	return routeEndpoint(dataEndpoints.compact, params, () => compactChatHttp(params)).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
 	});

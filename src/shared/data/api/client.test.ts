@@ -110,6 +110,7 @@ import {
   fetchAdminSkillFileBlob,
   fetchAdminSkillIcon,
   getAdminSkillDetail,
+  importAdminAgent,
   importAdminSkill,
   importAdminAgentPrivateSkill,
   mkdirAdminSkillFile,
@@ -1116,6 +1117,30 @@ describe('data client query payloads', () => {
     const formData = importOptions.body as FormData;
     expect(formData.get('key')).toBe('demo-skill');
     expect(formData.get('file')).toBe(archive);
+  });
+
+  it('imports an Agent ZIP without a client-supplied key and only sends overwrite when confirmed', async () => {
+    const archive = new File(['zip'], 'portable-agent.zip', { type: 'application/zip' });
+
+    await importAdminAgent({ file: archive });
+    await importAdminAgent({ file: archive, overwrite: true });
+
+    const [firstUrl, firstOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(firstUrl).toBe('/api/admin/agents/import');
+    expect(firstOptions.method).toBe('POST');
+    expect(firstOptions.headers).toEqual({});
+    expect(firstOptions.body).toBeInstanceOf(FormData);
+    const firstForm = firstOptions.body as FormData;
+    expect(firstForm.get('file')).toBe(archive);
+    expect(firstForm.get('overwrite')).toBeNull();
+    expect(firstForm.get('key')).toBeNull();
+    expect(firstForm.get('agentKey')).toBeNull();
+
+    const [retryUrl, retryOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(retryUrl).toBe('/api/admin/agents/import');
+    const retryForm = retryOptions.body as FormData;
+    expect(retryForm.get('file')).toBe(archive);
+    expect(retryForm.get('overwrite')).toBe('true');
   });
 
   it('imports and deletes an Agent-private skill through the Agent admin routes', async () => {
@@ -2237,15 +2262,15 @@ describe('data client query payloads', () => {
     expect(classifyResourceUrl(source, 'chat_01').kind).toBe(expectedKind);
   });
 
-  it('constructs absolute fetches with chat context and rejects them for Team chats', () => {
+  it('constructs absolute fetches with chat context and delegates Team access to Platform', () => {
     expect(classifyResourceUrl('/Users/alice/%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01')).toMatchObject({
       kind: 'absolute',
       resourceKey: '/Users/alice/夏日 #1%.png',
       fetchUrl: '/api/resource?file=%2FUsers%2Falice%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01',
       requiresPlatformAuth: true,
     });
-    expect(classifyResourceUrl('/tmp/image.png', 'chat_01', { teamChat: true }).kind).toBe('invalid');
-    expect(classifyResourceUrl('/Users/alice/image.png', 'chat_01', { teamChat: true }).kind).toBe('invalid');
+    expect(classifyResourceUrl('/tmp/image.png', 'chat_01', { teamChat: true }).kind).toBe('absolute');
+    expect(classifyResourceUrl('/Users/alice/image.png', 'chat_01', { teamChat: true }).kind).toBe('absolute');
   });
 
   it.each([
@@ -2292,7 +2317,7 @@ describe('data client query payloads', () => {
     }
   });
 
-  it('fetches Workspace and tmp absolute paths with chat context but rejects Team absolute paths', async () => {
+  it('sends Workspace and tmp absolute paths with chat context so Platform decides access', async () => {
     const blob = new Blob(['absolute'], { type: 'image/png' });
     fetchMock.mockResolvedValue({
       ok: true,
@@ -2310,11 +2335,12 @@ describe('data client query payloads', () => {
     await expect(getResourceBlob('/tmp/team.png', {
       chatId: 'chat_01',
       teamChat: true,
-    })).rejects.toThrow('预览加载失败');
+    })).resolves.toBe(blob);
 
     expect(fetchMock.mock.calls.map(([requestUrl]) => requestUrl)).toEqual([
       '/api/resource?file=%2FUsers%2Falice%2Fproject%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01',
       '/api/resource?file=%2Ftmp%2Fposter.png&chatId=chat_01',
+      '/api/resource?file=%2Ftmp%2Fteam.png&chatId=chat_01',
     ]);
     for (const [, options] of fetchMock.mock.calls as Array<[string, RequestInit]>) {
       expect(options.headers).toEqual({ Authorization: 'Bearer absolute-token' });

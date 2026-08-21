@@ -181,7 +181,7 @@
 .right-sidebar-tabs>.ant-tabs-nav {
     height: 36px;
     min-height: 36px;
-    margin: 0;
+    margin: 2px 0 6px;
 }
 
 .right-sidebar-tabs>.ant-tabs-nav .ant-tabs-nav-list {

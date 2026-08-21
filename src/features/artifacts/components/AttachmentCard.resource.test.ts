@@ -10,8 +10,8 @@ jest.mock("@/app/state/AppContext", () => ({
     chats: [],
     rightSidebarOpen: false,
     rightSidebarOpenTab: null,
-    attachmentPreview: [],
-    activeAttachmentPreviewUrl: "",
+    viewerTabs: [],
+    activeViewerKey: "",
   }),
 }));
 
@@ -51,5 +51,22 @@ describe("AttachmentCard logical resources", () => {
       { teamChat: false },
     );
     expect(html).toContain('src="blob:artifact-thumbnail"');
+  });
+
+  it("keeps unsupported files interactive so activation opens Viewer", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(AttachmentCard, {
+        attachment: {
+          name: "archive.zip",
+          mimeType: "application/zip",
+          url: "artifacts/run_01/archive.zip",
+        },
+        variant: "timeline",
+      }),
+    );
+
+    expect(html).toContain('data-attachment-kind="file"');
+    expect(html).toContain('role="button"');
+    expect(html).toContain('class="attachment-card attachment-card-timeline attachment-card-default is-file is-interactive"');
   });
 });

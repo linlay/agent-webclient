@@ -304,7 +304,7 @@ describe("WsClient", () => {
 			tab: "debug",
 		});
 		client.registerInboundRequestHandler(
-			"webclient.sidebar.setState",
+			"test.inbound.setState",
 			handler,
 		);
 		const connected = client.connect();
@@ -315,7 +315,7 @@ describe("WsClient", () => {
 		socket.message(
 			JSON.stringify({
 				frame: "request",
-				type: "webclient.sidebar.setState",
+				type: "test.inbound.setState",
 				id: "wsa-1",
 				payload: {
 					sidebar: "right",
@@ -333,7 +333,7 @@ describe("WsClient", () => {
 		});
 		expect(JSON.parse(socket.sent[0])).toEqual({
 			frame: "response",
-			type: "webclient.sidebar.setState",
+			type: "test.inbound.setState",
 			id: "wsa-1",
 			code: 0,
 			msg: "success",
@@ -350,7 +350,7 @@ describe("WsClient", () => {
 		let resolveHandler: ((value: unknown) => void) | undefined;
 		const client = createClient();
 		client.registerInboundRequestHandler(
-			"webclient.sidebar.setState",
+			"test.inbound.setState",
 			() =>
 				new Promise((resolve) => {
 					resolveHandler = resolve;
@@ -364,7 +364,7 @@ describe("WsClient", () => {
 		socket.message(
 			JSON.stringify({
 				frame: "request",
-				type: "webclient.unknown",
+				type: "test.inbound.unknown",
 				id: "wsa-unknown",
 				payload: {},
 			}),
@@ -372,7 +372,7 @@ describe("WsClient", () => {
 		socket.message(
 			JSON.stringify({
 				frame: "request",
-				type: "webclient.sidebar.setState",
+				type: "test.inbound.setState",
 				id: "wsa-duplicate",
 				payload: { sidebar: "right", open: true },
 			}),
@@ -381,7 +381,7 @@ describe("WsClient", () => {
 		socket.message(
 			JSON.stringify({
 				frame: "request",
-				type: "webclient.sidebar.setState",
+				type: "test.inbound.setState",
 				id: "wsa-duplicate",
 				payload: { sidebar: "right", open: true },
 			}),
@@ -405,7 +405,7 @@ describe("WsClient", () => {
 		await flushMicrotasks();
 		expect(JSON.parse(socket.sent[2])).toMatchObject({
 			frame: "response",
-			type: "webclient.sidebar.setState",
+			type: "test.inbound.setState",
 			id: "wsa-duplicate",
 			code: 0,
 		});
@@ -413,7 +413,7 @@ describe("WsClient", () => {
 		socket.message(
 			JSON.stringify({
 				frame: "request",
-				type: "webclient.sidebar.setState",
+				type: "test.inbound.setState",
 				id: "wsa-duplicate",
 				payload: { sidebar: "right", open: false },
 			}),
@@ -457,7 +457,7 @@ describe("WsClient", () => {
 		const client = createClient();
 		let resolvePending: ((value: unknown) => void) | undefined;
 		client.registerInboundRequestHandler(
-			"webclient.invalid",
+			"test.inbound.invalid",
 			() => {
 				throw new WsInboundRequestError(
 					"invalid_request",
@@ -468,7 +468,7 @@ describe("WsClient", () => {
 			},
 		);
 		client.registerInboundRequestHandler(
-			"webclient.pending",
+			"test.inbound.pending",
 			() =>
 				new Promise((resolve) => {
 					resolvePending = resolve;
@@ -482,7 +482,7 @@ describe("WsClient", () => {
 		socket.message(
 			JSON.stringify({
 				frame: "request",
-				type: "webclient.invalid",
+				type: "test.inbound.invalid",
 				id: "wsa-invalid",
 				payload: {},
 			}),
@@ -500,7 +500,7 @@ describe("WsClient", () => {
 		socket.message(
 			JSON.stringify({
 				frame: "request",
-				type: "webclient.pending",
+				type: "test.inbound.pending",
 				id: "wsa-pending",
 				payload: {},
 			}),
@@ -563,6 +563,39 @@ describe("WsClient", () => {
 		expectSocketUrl(socket);
 		socket.open();
 		await expect(promise).resolves.toBeUndefined();
+	});
+
+	it("does not report an anonymous handshake failure as a missing token", async () => {
+		const client = createClient({
+			accessToken: "",
+			allowAnonymous: true,
+		});
+		const promise = client.connect();
+		const socket = MockWebSocket.instances[0];
+
+		socket.error();
+		const error = await promise.catch((reason) => reason as Error);
+
+		expect(error.message).toMatch(/握手失败|handshake failed|断开|disconnected/i);
+		expect(error.message).not.toMatch(/access token|令牌/i);
+	});
+
+	it("prefers and preserves an anonymous pre-open close reason after an error event", async () => {
+		const client = createClient({
+			accessToken: "",
+			allowAnonymous: true,
+		});
+		const promise = client.connect();
+		const socket = MockWebSocket.instances[0];
+
+		socket.error();
+		socket.close(1008, "surface_unavailable");
+		const error = await promise.catch((reason) => reason as Error);
+
+		expect(error).toBeInstanceOf(WsClientDisconnectedError);
+		expect(error).toMatchObject({ code: "WS_DISCONNECTED" });
+		expect(error.message).toContain("surface_unavailable");
+		expect(error.message).not.toMatch(/access token|令牌/i);
 	});
 
 	it("routes stream frames and completes on done", async () => {
@@ -1153,9 +1186,7 @@ describe("WsClient", () => {
 		const firstSocket = MockWebSocket.instances[0];
 		firstSocket.close(1008, "token expired");
 
-		await expect(firstConnect).rejects.toThrow(
-			/握手失败|handshake failed|disconnected/i,
-		);
+		await expect(firstConnect).rejects.toThrow(/token expired/i);
 		expect(resolveAccessToken).toHaveBeenCalledWith("unauthorized");
 
 		const secondConnect = client.connect();

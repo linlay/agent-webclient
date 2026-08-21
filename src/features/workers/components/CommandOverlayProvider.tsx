@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   createCommandOverlayState,
+  shouldRefreshWorkerDataOnCommandOpen,
   type CommandOverlayOpenOptions,
   type CommandOverlayState,
 } from "@/features/workers/lib/commandOverlay";
@@ -39,6 +40,12 @@ export const CommandOverlayProvider: React.FC<{
 
   const openCommandOverlay = useCallback(
     (options: CommandOverlayOpenOptions) => {
+      if (
+        shouldRefreshWorkerDataOnCommandOpen(options) &&
+        typeof window !== "undefined"
+      ) {
+        window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+      }
       setCommandOverlay(createCommandOverlayState(options));
     },
     [],

@@ -1,3 +1,5 @@
+import type { BackendMode } from "@/shared/config/backendMode";
+
 export type EndpointMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export type EndpointTransport =
@@ -18,6 +20,8 @@ export interface EndpointDefinition<TInput = void, TPayload = unknown> {
   path: string;
   method: EndpointMethod;
   transport: EndpointTransport;
+  /** Backends that expose this request/response endpoint on the main WebSocket. */
+  wsBackends?: readonly BackendMode[];
   cache?: EndpointCachePolicy;
   payload?: (input: TInput) => TPayload;
 }
@@ -25,6 +29,12 @@ export interface EndpointDefinition<TInput = void, TPayload = unknown> {
 export function defineEndpoint<TInput = void, TPayload = unknown>(
   definition: EndpointDefinition<TInput, TPayload>,
 ): EndpointDefinition<TInput, TPayload> {
+  if (
+    definition.transport === "auto"
+    && (!definition.wsBackends || definition.wsBackends.length === 0)
+  ) {
+    throw new Error(`Auto endpoint ${definition.key} must declare wsBackends`);
+  }
   return Object.freeze(definition);
 }
 

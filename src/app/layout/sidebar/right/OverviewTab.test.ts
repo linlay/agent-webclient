@@ -8,6 +8,7 @@ import {
 	getFileIcon,
 	loadFileHistoryForCache,
 	resolveAnimatedFileChangePaths,
+	toggleExpandedFileChangeKey,
 	type FileHistoryCacheEntry,
 } from "@/app/layout/sidebar/right/OverviewTab";
 
@@ -235,6 +236,43 @@ describe("right sidebar overview file history loading", () => {
 			original: "old\n",
 			current: "new\n",
 		});
+	});
+});
+
+describe("right sidebar overview file change expansion", () => {
+	it("expands a collapsed file without mutating the input set", () => {
+		const current = new Set(["run_1\u0000/other.ts"]);
+
+		const result = toggleExpandedFileChangeKey(
+			current,
+			"run_1\u0000/app.ts",
+		);
+
+		expect(result.expanding).toBe(true);
+		expect(result.next).toEqual(
+			new Set(["run_1\u0000/other.ts", "run_1\u0000/app.ts"]),
+		);
+		expect(current).toEqual(new Set(["run_1\u0000/other.ts"]));
+		expect(result.next).not.toBe(current);
+	});
+
+	it("collapses an expanded file without affecting other files", () => {
+		const current = new Set([
+			"run_1\u0000/app.ts",
+			"run_1\u0000/other.ts",
+		]);
+
+		const result = toggleExpandedFileChangeKey(
+			current,
+			"run_1\u0000/app.ts",
+		);
+
+		expect(result.expanding).toBe(false);
+		expect(result.next).toEqual(new Set(["run_1\u0000/other.ts"]));
+		expect(current).toEqual(
+			new Set(["run_1\u0000/app.ts", "run_1\u0000/other.ts"]),
+		);
+		expect(result.next).not.toBe(current);
 	});
 });
 

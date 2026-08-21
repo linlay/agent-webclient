@@ -10,7 +10,8 @@ describe("project route", () => {
       openFiles: ["README.md", "src/app.tsx"],
       view: "diff",
     });
-    expect(readProjectRouteState(route.split("?", 2)[1] || "")).toEqual({
+    expect(route).toContain("/project/coder%20one?");
+    expect(readProjectRouteState(route.split("?", 2)[1] || "", "coder one")).toEqual({
       agentKey: "coder one",
       chatId: "chat-1",
       runId: "run-2",
@@ -28,7 +29,7 @@ describe("project route", () => {
       view: "content",
     });
     expect(route).toContain("open=a.ts&open=b.ts");
-    expect(readProjectRouteState(route.split("?", 2)[1] || "").openFiles).toEqual([
+    expect(readProjectRouteState(route.split("?", 2)[1] || "", "coder").openFiles).toEqual([
       "a.ts",
       "b.ts",
     ]);
@@ -36,10 +37,11 @@ describe("project route", () => {
 
   it("defaults to content view and omits empty values", () => {
     expect(buildProjectRoute({ agentKey: "coder", view: "content" })).toBe(
-      "/project?agentKey=coder&view=content",
+      "/project/coder",
     );
-    expect(readProjectRouteState("?agentKey=coder&view=unknown").view).toBe(
+    expect(readProjectRouteState("?view=unknown", "coder").view).toBe(
       "content",
     );
+    expect(buildProjectRoute({ view: "content" })).toBe("");
   });
 });

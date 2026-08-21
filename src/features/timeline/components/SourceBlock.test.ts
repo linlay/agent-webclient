@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TimelineNode } from "@/app/state/types";
 import { SourceBlock } from "@/features/timeline/components/SourceBlock";
+import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
 import { I18nProvider } from "@/shared/i18n";
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -65,5 +66,30 @@ describe("SourceBlock", () => {
 		expect(html).toContain("refund.md");
 		expect(html).toContain("source-list");
 		expect(html).not.toContain("审批通过后进入打款流程。");
+	});
+
+	it("disables source navigation when an injected timeline omits the handler", () => {
+		const node: TimelineNode = {
+			id: "source_1",
+			kind: "source",
+			ts: 100,
+			expanded: true,
+			sourcePublishId: "publish_1",
+			sources: [{
+				id: "source_1",
+				name: "source.md",
+				chunks: [],
+			}],
+		};
+
+		const html = renderToStaticMarkup(
+			React.createElement(
+				TimelineInteractionProvider,
+				{ value: { conversationActive: false } },
+				React.createElement(SourceBlock, { node }),
+			),
+		);
+
+		expect(html).toContain("disabled");
 	});
 });

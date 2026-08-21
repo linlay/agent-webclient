@@ -76,6 +76,15 @@ describe('buildAgentListFallbackRequestOptions', () => {
 });
 
 describe('shouldStartInitialWorkerRefresh', () => {
+  it('allows route surfaces to defer the initial worker list request', () => {
+    expect(shouldStartInitialWorkerRefresh({
+      enabled: false,
+      hasStarted: false,
+      appMode: false,
+      hasAccessToken: true,
+    })).toBe(false);
+  });
+
   it('starts immediately for standalone pages once the first refresh has not started', () => {
     expect(shouldStartInitialWorkerRefresh({
       hasStarted: false,

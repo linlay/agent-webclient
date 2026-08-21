@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import {
@@ -6,15 +6,17 @@ import {
   Flex,
   message,
   Tabs,
+  Tooltip,
   Typography,
   type TabsProps,
 } from "antd";
-import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
+import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
 import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
 import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
 import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
+import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 import { useBTW } from "@/features/btw/components/BtwProvider";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
@@ -22,6 +24,12 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
+import { downloadViewerTarget } from "@/features/viewers/lib/viewerRuntime";
+import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import {
+  getViewerTargetKey,
+  type ViewerTarget,
+} from "@/features/viewers/lib/viewerTarget";
 
 type RightSidebarTabsKey = string;
 
@@ -88,27 +96,49 @@ function getWebUrlFromTabKey(key: string): string {
   return key.startsWith("web:") ? key.slice("web:".length) : "";
 }
 
+const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
+  const typeLabel = target.type === "resource" ? target.mimeType || "" : "";
+  const sizeBytes = target.type === "resource" ? target.sizeBytes : undefined;
+  const sizeLabel = useMemo(() => formatAttachmentSize(sizeBytes), [sizeBytes]);
+  return (
+    <div>
+      <div>{target.name}</div>
+      <Flex gap={10}>
+      {typeLabel ? <div>{typeLabel}</div> : null}
+      {sizeLabel ? <div>{sizeLabel}</div> : null}
+      </Flex>
+    </div>
+  );
+}
+
 export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
   const dispatch = useAppDispatch();
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
-  const previews = state.attachmentPreview;
+  const viewerTabs = state.viewerTabs;
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
   const webPreviews = state.webPreviews;
+  const skillTabs = state.skillTabs;
+  const activeSkillKey = state.activeSkillKey;
   const hasBTWSession = Boolean(state.chatId && getSession(state.chatId));
   const debugPanelEnabled = isDebugPanelEnabled();
+  const currentChat = state.chats?.find((chat) => chat.chatId === state.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team"
+    || String(currentChat?.teamId || "").trim(),
+  );
   const desktopSidebarVisible = state.rightSidebarOpen;
   const selectedPanel =
     state.rightSidebarOpenTab === "debug" && debugPanelEnabled
       ? "debug"
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
-        : state.rightSidebarOpenTab === "preview" && previews.length > 0
-					? `preview:${(state.activeAttachmentPreviewUrl && previews.some(p => p.url === state.activeAttachmentPreviewUrl)
-						? state.activeAttachmentPreviewUrl
-						: previews[previews.length - 1].url)}`
+        : state.rightSidebarOpenTab === "viewer" && viewerTabs.length > 0
+					? `viewer:${(state.activeViewerKey && viewerTabs.some((target) => getViewerTargetKey(target) === state.activeViewerKey)
+						? state.activeViewerKey
+						: getViewerTargetKey(viewerTabs[viewerTabs.length - 1]))}`
 					: state.rightSidebarOpenTab === "sourceDetail" && sourceDetail
 						? "sourceDetail"
 						: state.rightSidebarOpenTab === "planningPreview" &&
@@ -121,16 +151,22 @@ export const RightSidebar: React.FC = () => {
                     state.activeWebPreviewUrl ||
                       webPreviews[webPreviews.length - 1].url,
                   )
-                : "overview";
+                : state.rightSidebarOpenTab === "skill" && skillTabs.length > 0
+                  ? `skill:${(activeSkillKey && skillTabs.some((s) => s.key === activeSkillKey)
+                      ? activeSkillKey
+                      : skillTabs[skillTabs.length - 1].key)}`
+                  : "overview";
   const activePanel: RightSidebarTabKey = selectedPanel === "debug"
     ? "debug"
-    : selectedPanel.startsWith("preview:")
-      ? "preview"
+    : selectedPanel.startsWith("viewer:")
+			? "viewer"
       : selectedPanel.startsWith("planningPreview:")
         ? "planningPreview"
         : selectedPanel.startsWith("web:")
           ? "web"
-          : (selectedPanel as RightSidebarTabKey);
+          : selectedPanel.startsWith("skill:")
+            ? "skill"
+            : (selectedPanel as RightSidebarTabKey);
   const activeTab: RightSidebarTabsKey = selectedPanel === "debug"
     ? "overview"
     : selectedPanel;
@@ -177,13 +213,15 @@ export const RightSidebar: React.FC = () => {
           discardBTW(state.chatId);
         }
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
-      } else if (typeof key === "string" && key.startsWith("preview:")) {
-        const urlToRemove = key.slice("preview:".length);
-        const remaining = previews.filter((p) => p.url !== urlToRemove);
+      } else if (typeof key === "string" && key.startsWith("viewer:")) {
+        const viewerKeyToRemove = key.slice("viewer:".length);
+        const remaining = viewerTabs.filter(
+          (target) => getViewerTargetKey(target) !== viewerKeyToRemove,
+        );
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
-          tab: remaining.length > 0 ? "preview" : "overview",
-          removePreviewUrl: urlToRemove,
+          tab: remaining.length > 0 ? "viewer" : "overview",
+          removeViewerKey: viewerKeyToRemove,
         });
       } else if (
         typeof key === "string" &&
@@ -208,6 +246,14 @@ export const RightSidebar: React.FC = () => {
           tab: remaining.length > 0 ? "web" : "overview",
           removeWebPreviewUrl: urlToRemove,
         });
+      } else if (typeof key === "string" && key.startsWith("skill:")) {
+        const skillKeyToRemove = key.slice("skill:".length);
+        const remaining = skillTabs.filter((s) => s.key !== skillKeyToRemove);
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: remaining.length > 0 ? "skill" : "overview",
+          removeSkillKey: skillKeyToRemove,
+        });
       } else if (key === "sourceDetail") {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
@@ -220,9 +266,10 @@ export const RightSidebar: React.FC = () => {
       dispatch,
       state.chatId,
       discardBTW,
-      previews,
+      viewerTabs,
       planningPreviews,
       webPreviews,
+      skillTabs,
     ],
   );
 
@@ -234,6 +281,26 @@ export const RightSidebar: React.FC = () => {
       });
     },
     [dispatch],
+  );
+
+  const handleViewerDownload = React.useCallback(
+    (target: ViewerTarget) => {
+      void (async () => {
+        try {
+          await downloadViewerTarget(target, {
+            chatId: state.chatId,
+            teamChat,
+          });
+        } catch (error: unknown) {
+          message.error(
+            error instanceof Error
+              ? error.message
+              : t("contentViewer.error.download"),
+          );
+        }
+      })();
+    },
+    [state.chatId, teamChat, t],
   );
 
   const handleResizePointerDown = React.useCallback(
@@ -346,30 +413,25 @@ export const RightSidebar: React.FC = () => {
       });
     }
 
-    for (const p of previews) {
+    for (const target of viewerTabs) {
+      const viewerKey = getViewerTargetKey(target);
       items.push({
-        key: `preview:${p.url}`,
+        key: `viewer:${viewerKey}`,
         label: (
-          <Flex align="center" gap={4}>
-            <MaterialIcon name="visibility" />
-            <Typography.Text
-              ellipsis={{
-                tooltip: {
-                  title: p.name,
-                  placement: "right",
-                },
-              }}
-              className="tw:!max-w-[100px]"
-            >
-              {p.name}
-            </Typography.Text>
-          </Flex>
+          <Tooltip title={<ViewerTabTooltip target={target} />} placement="rightTop">
+            <Flex align="center" gap={4}>
+              <MaterialIcon name="visibility" />
+              <Typography.Text ellipsis className="tw:!max-w-[100px]">
+                {target.name}
+              </Typography.Text>
+            </Flex>
+          </Tooltip>
         ),
         children: (
-          <AttachmentPreviewPanel
-            preview={p}
+          <ContentViewerPanel
+            target={target}
             fullscreenRequest={
-              tabFullscreenRequests[`preview:${p.url}`] ?? 0
+              tabFullscreenRequests[`viewer:${viewerKey}`] ?? 0
             }
           />
         ),
@@ -408,25 +470,41 @@ export const RightSidebar: React.FC = () => {
       });
     }
 
+    for (const skill of skillTabs) {
+      items.push({
+        key: `skill:${skill.key}`,
+        label: (
+          <Flex align="center" gap={4}>
+            <MaterialIcon name="skills" />
+            <Typography.Text ellipsis className="tw:!max-w-[100px]">
+              {skill.label || skill.key}
+            </Typography.Text>
+          </Flex>
+        ),
+        children: <SkillDetailView skillKey={skill.key} />,
+      });
+    }
+
     return items;
   }, [
     hasBTWSession,
-    previews,
+    viewerTabs,
     sourceDetail,
     planningPreviews,
     t,
     webPreviews,
+    skillTabs,
     state.webPreviewRefreshRevisionByUrl,
     tabFullscreenRequests,
   ]);
 
   const handleTabChange = React.useCallback(
     (key: string) => {
-      if (key.startsWith("preview:")) {
+      if (key.startsWith("viewer:")) {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
-          tab: "preview",
-          activeAttachmentPreviewUrl: key.slice("preview:".length),
+          tab: "viewer",
+          activeViewerKey: key.slice("viewer:".length),
         });
       } else if (key.startsWith("planningPreview:")) {
         dispatch({
@@ -439,6 +517,12 @@ export const RightSidebar: React.FC = () => {
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "web",
           activeWebPreviewUrl: getWebUrlFromTabKey(key),
+        });
+      } else if (key.startsWith("skill:")) {
+        dispatch({
+          type: "OPEN_RIGHT_SIDEBAR",
+          tab: "skill",
+          activeSkillKey: key.slice("skill:".length),
         });
       } else {
         dispatch({
@@ -489,7 +573,7 @@ export const RightSidebar: React.FC = () => {
               {(node) => {
                 if (node.key === "overview" || !node.key) return node;
                 const isWebTab = node.key.startsWith("web:");
-                const isPreviewTab = node.key.startsWith("preview:");
+                const isViewerTab = node.key.startsWith("viewer:");
 
                 const menuitems = [
                   ...(isWebTab
@@ -540,8 +624,29 @@ export const RightSidebar: React.FC = () => {
                           },
                         },
                       ]
-                    : isPreviewTab
+                    : isViewerTab
                       ? [
+                          {
+                            key: "download",
+                            label: t("contentViewer.action.download"),
+                            icon: (
+                              <MaterialIcon
+                                name="download"
+                                className="tw:opacity-[0.5]"
+                              />
+                            ),
+                            onClick: () => {
+                              const viewerKey = (node.key as string).slice(
+                                "viewer:".length,
+                              );
+                              const target = viewerTabs.find(
+                                (item) => getViewerTargetKey(item) === viewerKey,
+                              );
+                              if (target) {
+                                handleViewerDownload(target);
+                              }
+                            },
+                          },
                           {
                             key: "fullscreen",
                             label: t("rightSidebar.web.contextMenu.fullscreen"),

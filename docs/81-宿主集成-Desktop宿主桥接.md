@@ -14,19 +14,25 @@ WebClient 已消费 canonical generated Desktop contract，通过固定只读全
 ## 核心流程
 Provider 在 Desktop Frame Port 结构和 transport version 有效时渲染页面。surface/capability denial 作为相同 request id 的标准 Platform error 留在具体操作中。`WsClient` 通过 socket factory 复用 Standalone parser；WorkPanel 保持独立 `getCapabilities()` 宿主查询和逐请求授权，只接收 canonical descriptor，失败时不调用 `window.open` 或旧 Action。
 
-Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。同一 Chat 内 Overview/Debug OpenTarget 只切换 `rightSidebarOpenTab`，不创建 WorkPanel guest，不触碰 transport。独立 `/overview`、`/debug` 为 replay-only。
+Bridge 全局可见早于 Desktop surface 完成登记属于允许的启动窗口，由 Desktop 在 Frame Port open 握手层限时收敛；WebClient 不通过 `/api/agents` 预热或业务请求重试规避该窗口。Desktop adapter 使用 `allowAnonymous=true`，空 guest token 不得被误判为缺少 access token；握手 close 的非空 reason 应保留到 disconnected/debug 信息，且不得触发 HTTP fallback。
 
-Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或旧 Program manifest 都必须稳定阻断，不安装旧 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚。
+Frame Port 只承载 Platform `request/response/stream/push/error`。新 query 绝不发送预造 `runId`；关联 stream bootstrap identity 解析后释放 identity 前事件。Main Chat、Copilot Chat、Kanban Chat 至多一个 active；Page Visibility 驱动 inactive detach 和 active `lastSeq` attach。Desktop WorkPanel 为 Overview、Debug、BTW、Source、Planning、Artifact、Reference、File、Project、Skill 分别使用判别式 context 和 canonical 路由，不共享全可选 context。Desktop 只依据宿主持有的结构化 surface role 映射 Frame Port 身份，不从 route、查询参数或文件路径推断；File、File Diff、Source、Artifact、Reference、Planning、Skill 等 management surface 可发送各自所需的普通 request/response，但不获得 query、attach 或 BTW live Run lease。File descriptor 保留用户请求的相对或绝对路径，不依赖 `currentWorker.workspaceDir` 做打开前判权；File Diff 的 `/workspace/...` 事件路径可在独立 Overview 中安全归一化为项目相对路径。Artifact/Reference 保留各自 module/context，但共用 Resource route。Skill descriptor 只携带非空 `key`，不继承 Chat、Agent、路径或凭据上下文。Bridge 只负责先打开面板，随后由面板请求 Platform。激活且归属于 Main Chat 的 Overview/Debug 可以发送普通 attach 帧，但 Desktop 只把它注册为 Main Chat 当前 visible Run 的本地只读 consumer，并在本地拦截 detach，不产生第二个上游 observer。本地 replay 游标过期时，Frame Port 保留 `seq_expired`、可重试标记和不含敏感数据的游标窗口诊断；WebClient 重新读取 `/api/chat` 后使用新快照游标订阅。只有激活的 Main Chat 或 BTW 子 Surface 可以发送 `/api/btw`/BTW attach，BTW 子 Surface不能发送 `/api/query`；其他独立 Surface 只做 chat replay 或文件读取。
+
+Main Chat 从已有 Chat 发起“新对话重问”时，WebClient 通过一次性 `desktop:agent-webclient:new-chat:prepare` 请求提交 `requestId + agentKey + sourceChatId + newChat`。只有匹配的 `desktop:agent-webclient:new-chat:prepared` 成功响应才允许重置和发送。响应表示 Desktop 已把外层 route 与 guest URL 切换到同一 `newChat`，并以无 `ownerChatId` 的 active Main Chat Surface 完成登记；它不表示 query 或 Chat 已创建。失败、超时、来源变化或重复事务不得降级为直接发送。
+
+Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或旧 Program manifest 都必须稳定阻断，不安装旧 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚；Desktop 按钮与 WebClient 顶栏入口归属变更也必须原子交付，不能发布重复入口或无入口的混合版本。
 
 ## 边界与非目标
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
-- `webclient.*` Action 只在 Standalone 根路由注册；Desktop WorkPanel 使用正式 `desktop.workpanel.*` 语义，不恢复 sidebar Action 映射。
-- Agent WebClient guest 不读取、缓存或接收 access token；Desktop host 对 manifest 声明过鉴权的 `/api` HTTP 请求在 Main 内注入并在一次 401 后刷新。
-- Agents、Archives、Automations、Memory 和 Registries 等管理路由使用普通 HTTP，Desktop 不再为它们传递 `wsSource`。
-- Program manifest 只保留带 `agent-platform-access-token` 的 HTTP-only `/api` 与独立可选 `/api/voice`；不得声明 `/auth`、主 `/ws`、query/attach SSE 或通用 `/api` WebSocket。
+- Standalone 根路由与 Desktop WorkPanel 都只使用正式 `desktop.workpanel.*` 语义，不维护平行 sidebar Action 映射。
+- Standalone 根路由以 `desktop.action.call` 承接七个 `desktop.workpanel.*`，复用右侧栏/Web Preview 状态并校验可信 `source.chatId`；Desktop 模式不注册该 provider，因为 Platform 的 `desktop.*` 反向请求由 Desktop Main Broker 处理。
+- Agent WebClient guest 不读取、缓存或接收 access token；Desktop host 对 manifest 声明过鉴权的显式 HTTP `/api` 请求在 Main 内注入并在一次 401 后刷新。
+- Agents、Agent、Chats、Archives、Memory 等 capability 标记为 Platform WS 的数据请求复用 Frame Port；Automations、Admin/Registries、Project、上传下载和资源 Blob 保持普通 HTTP。Desktop 不再传递 `wsSource`。
+- Program manifest 只保留显式 HTTP `/api` 与独立可选 `/api/voice`；主 Platform request/response/stream/push 统一走 Main Broker Frame Port，guest 不声明 `/auth`、主 `/ws` 或 query/attach SSE。
 - Desktop 负责把 WebView 容器铺满主内容区，WebClient 的独立管理路由负责用页面布局填满 guest viewport；宿主不得注入 CSS 修补 guest 页面高度。
+- Desktop 的 Main Chat WorkPanel 按钮、presentation visibility 和 hide/show 语义属于宿主；WebClient 不维护 workspace/tab/visible 状态，也不借 Copilot Dock 代替该入口。
 - Program Bundle 的静态托管由 Desktop main process 负责，不在前端启动服务。
-- 宿主 API 的权限和文件系统访问由 Desktop 端控制。
+- File、Artifact 与 Reference 的 Workspace、ChatScope、canonical path、symlink 和越界访问权限以 Platform 为唯一权威；WebClient 与 Desktop 仅做 descriptor/URL 结构校验，不复制权限规则。
 - `identity-center` 是 Desktop 侧的 token 签发基础，不作为 webclient 与 Desktop 的 postMessage 协议名称。
 
 ## Desktop 原生右键语义 v1
@@ -34,6 +40,8 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 WebClient 使用 `WeakMap<Element, Descriptor>` 登记消息、代码、Web 链接、Workspace 文件和 Chat 资源目标，不向 DOM 属性写入正文、代码、路径、Token 或鉴权 URL。Desktop 通过既有 service action channel 下发 `contextMenu.resolve`；页面以 `document.elementFromPoint(x, y)` 从最近元素向上解析，因此代码、链接和附件会优先于所属消息。响应只包含 v1、requestId、短 targetId、目标类型、安全展示元数据和固定 capability。
 
 `contextMenu.execute` 会按坐标重新解析并同时核对 targetId、目标类型和 capability，再调用左键共用的复制、Web Preview、Workspace Preview 或资源下载处理器。虚拟列表回收、流式更新或 DOM 位移使目标变化时无操作。该桥只通过 `electronAPI.onFromMain` 安装动作监听，不安装 DOM `contextmenu` 监听，也不调用 `preventDefault()`；普通浏览器继续使用浏览器原生菜单。
+
+WorkPanel 外层 Artifact/Reference tab 的下载不依赖坐标解析。Desktop 只可发送共享契约声明的 v1 `workPanel.resource.downloadCurrent`；统一 Resource Viewer 在挂载期间注册唯一的当前目标处理器，并调用 Content Viewer 既有鉴权下载执行器。动作不包含资源身份，未挂载 Resource Viewer、版本错误或处理器已卸载时无操作，Desktop 不解析 `/resource-viewer` route 来复制 Platform 权限逻辑。
 
 ## 相关文件
 - `../src/shared/data/desktop/desktopHostBridge.ts`

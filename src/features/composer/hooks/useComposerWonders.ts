@@ -15,6 +15,13 @@ interface UseComposerWondersInput {
   showWonders?: boolean;
 }
 
+export function shouldLoadComposerAgentDetails(
+  currentAgentKey: string,
+  isBlankConversation: boolean,
+): boolean {
+  return Boolean(currentAgentKey && isBlankConversation);
+}
+
 export function useComposerWonders(input: UseComposerWondersInput) {
   const { agents, currentAgentKey, isBlankConversation, showWonders = true } = input;
   const blankWonderSignatureRef = useRef("");
@@ -52,7 +59,7 @@ export function useComposerWonders(input: UseComposerWondersInput) {
   }, [agentGreetingCache, currentAgentKey]);
 
   useEffect(() => {
-    if (!currentAgentKey) {
+    if (!shouldLoadComposerAgentDetails(currentAgentKey, isBlankConversation)) {
       return;
     }
     if (
@@ -120,7 +127,12 @@ export function useComposerWonders(input: UseComposerWondersInput) {
     return () => {
       cancelled = true;
     };
-  }, [agentGreetingCache, agentWonderCache, currentAgentKey]);
+  }, [
+    agentGreetingCache,
+    agentWonderCache,
+    currentAgentKey,
+    isBlankConversation,
+  ]);
 
   useEffect(() => {
     const signature = currentAgentKey

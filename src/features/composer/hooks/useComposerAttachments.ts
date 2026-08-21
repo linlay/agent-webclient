@@ -177,11 +177,11 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   }, []);
 
   const openFilePicker = useCallback(() => {
-    if (mainChatRunning || isFrontendActive || isVoiceMode) {
+    if (isFrontendActive || isVoiceMode) {
       return;
     }
     fileInputRef.current?.click();
-  }, [isFrontendActive, isVoiceMode, mainChatRunning]);
+  }, [isFrontendActive, isVoiceMode]);
 
   const addContextReference = useCallback(
     (reference: ComposerContextReferenceInput) => {
@@ -235,12 +235,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   const uploadFiles = useCallback(
     (files: File[]) => {
-      if (
-        files.length === 0 ||
-        mainChatRunning ||
-        isFrontendActive ||
-        isVoiceMode
-      ) {
+      if (files.length === 0 || isFrontendActive || isVoiceMode) {
         return false;
       }
 
@@ -302,7 +297,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       dispatch,
       isFrontendActive,
       isVoiceMode,
-      mainChatRunning,
       state.chatAgentById,
       state.chatId,
       state.pendingNewChatAgentKey,

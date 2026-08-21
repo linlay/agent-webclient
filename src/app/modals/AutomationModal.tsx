@@ -42,10 +42,7 @@ import type {
   UpdateAutomationRequest,
   AdminSourceResponse,
 } from "@/shared/data";
-import {
-  MaterialIcon,
-  type MaterialIconName,
-} from "@/shared/ui/MaterialIcon";
+import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -140,8 +137,7 @@ export const CRON_PRESETS: AutomationCronPreset[] = [
     value: "0 12 5,15,25 * *",
   },
 ];
-const AUTOMATION_CONSOLE_CLASS_NAME =
-  "automation-console tw:overflow-hidden";
+const AUTOMATION_CONSOLE_CLASS_NAME = "automation-console tw:overflow-hidden";
 const AUTOMATION_ERROR_CLASS_NAME =
   "automation-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
 const AUTOMATION_BODY_CLASS_NAME =
@@ -163,7 +159,7 @@ const AUTOMATION_LIST_ITEM_MAIN_CLASS_NAME =
 const AUTOMATION_LIST_ITEM_MENU_CLASS_NAME =
   "automation-list-item-menu tw:absolute tw:z-[1]";
 const AUTOMATION_LIST_ITEM_MENU_TRIGGER_CLASS_NAME =
-  "automation-list-item-menu-trigger ui-icon-hover-24";
+  "automation-list-item-menu-trigger";
 const AUTOMATION_LIST_ITEM_HEAD_CLASS_NAME =
   "automation-list-item-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-tag]:flex-none";
 const AUTOMATION_LIST_ITEM_TITLE_CLASS_NAME =
@@ -188,8 +184,7 @@ const AUTOMATION_MONO_TEXTAREA_CLASS_NAME =
   "settings-textarea automation-mono-textarea tw:font-code";
 const AUTOMATION_SOURCE_EDITOR_CLASS_NAME =
   "settings-textarea automation-source-editor tw:min-h-0 tw:flex-1 tw:resize-none tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80 tw:max-[860px]:flex-none tw:max-[860px]:resize-y";
-const AUTOMATION_EXECUTIONS_CLASS_NAME =
-  "automation-executions";
+const AUTOMATION_EXECUTIONS_CLASS_NAME = "automation-executions";
 const AUTOMATION_EXECUTIONS_HEAD_CLASS_NAME =
   "automation-executions-head tw:mb-2 tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2";
 const AUTOMATION_EXECUTION_LIST_CLASS_NAME =
@@ -292,9 +287,7 @@ const AutomationAgentOption: React.FC<{
       ) : (
         <span className="automation-agent-option-text">
           <span className="automation-agent-option-name">{name}</span>
-          {role && (
-            <span className="automation-agent-option-role">{role}</span>
-          )}
+          {role && <span className="automation-agent-option-role">{role}</span>}
         </span>
       )}
     </span>
@@ -416,10 +409,7 @@ export function splitAutomationCronExpression(value: string): string[] {
   const exactFields = value.split(" ");
   if (exactFields.length === 5) return exactFields;
   const normalizedFields = value.trim() ? value.trim().split(/\s+/) : [];
-  return Array.from(
-    { length: 5 },
-    (_, index) => normalizedFields[index] || "",
-  );
+  return Array.from({ length: 5 }, (_, index) => normalizedFields[index] || "");
 }
 
 export function automationTimeLabel(
@@ -635,7 +625,8 @@ export const AutomationModal: React.FC<{
     useState<AutomationStatusFilter>("all");
   const [agentFilter, setAgentFilter] = useState("");
   const [formMode, setFormMode] = useState<AutomationFormMode>("create");
-  const [editorMode, setEditorMode] = useState<AutomationEditorMode>("structured");
+  const [editorMode, setEditorMode] =
+    useState<AutomationEditorMode>("structured");
   const [activeSectionId, setActiveSectionId] =
     useState<AutomationFormSectionId>(AUTOMATION_FORM_SECTION_IDS[0]);
   const [form, setForm] = useState<AutomationFormState>(() =>
@@ -765,10 +756,7 @@ export const AutomationModal: React.FC<{
   );
 
   const agentOptions = useMemo(() => {
-    const options = new Map<
-      string,
-      { label: string; agent: Agent | null }
-    >();
+    const options = new Map<string, { label: string; agent: Agent | null }>();
     for (const agent of Array.isArray(agents) ? agents : []) {
       const key = String(agent?.key || "").trim();
       if (!key) continue;
@@ -988,7 +976,9 @@ export const AutomationModal: React.FC<{
           const section = scrollContainer.querySelector<HTMLElement>(
             `#${sectionId}`,
           );
-          return section?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+          return (
+            section?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY
+          );
         });
         const atBottom =
           scrollContainer.scrollTop + scrollContainer.clientHeight >=
@@ -1084,7 +1074,9 @@ export const AutomationModal: React.FC<{
     } catch (error) {
       const errorMessage = (error as Error).message;
       setFormError(errorMessage);
-      message.error(t("automationConsole.message.saveFailed", { detail: errorMessage }));
+      message.error(
+        t("automationConsole.message.saveFailed", { detail: errorMessage }),
+      );
     } finally {
       setSavingForm(false);
     }
@@ -1112,25 +1104,33 @@ export const AutomationModal: React.FC<{
     setFormError("");
     try {
       const response = await getAdminSource({ type: "automation", key: id });
-      if (!isCurrentAutomationSourceRequest(
-        requestSeq,
-        sourceLoadSeqRef.current,
-        id,
-        selectedAutomationIdRef.current,
-      )) {
+      if (
+        !isCurrentAutomationSourceRequest(
+          requestSeq,
+          sourceLoadSeqRef.current,
+          id,
+          selectedAutomationIdRef.current,
+        )
+      ) {
         return;
       }
       applySourceResponse(response.data);
     } catch (sourceError) {
-      if (!isCurrentAutomationSourceRequest(
-        requestSeq,
-        sourceLoadSeqRef.current,
-        id,
-        selectedAutomationIdRef.current,
-      )) {
+      if (
+        !isCurrentAutomationSourceRequest(
+          requestSeq,
+          sourceLoadSeqRef.current,
+          id,
+          selectedAutomationIdRef.current,
+        )
+      ) {
         return;
       }
-      setFormError(sourceError instanceof Error ? sourceError.message : String(sourceError));
+      setFormError(
+        sourceError instanceof Error
+          ? sourceError.message
+          : String(sourceError),
+      );
     } finally {
       if (sourceLoadSeqRef.current === requestSeq) {
         setLoadingSource(false);
@@ -1152,29 +1152,40 @@ export const AutomationModal: React.FC<{
         content: sourceDraft,
         baseSha256: sourceSha256 || undefined,
       });
-      if (isCurrentAutomationSourceRequest(
-        requestSeq,
-        sourceLoadSeqRef.current,
-        id,
-        selectedAutomationIdRef.current,
-      )) {
+      if (
+        isCurrentAutomationSourceRequest(
+          requestSeq,
+          sourceLoadSeqRef.current,
+          id,
+          selectedAutomationIdRef.current,
+        )
+      ) {
         applySourceResponse(response.data);
       }
       const [detailResponse, listResponse] = await Promise.all([
         getAutomation(id),
         getAutomations(),
       ]);
-      dispatch({ type: "SET_AUTOMATIONS", automations: listResponse.data.items || [] });
-      if (isCurrentAutomationSourceRequest(
-        requestSeq,
-        sourceLoadSeqRef.current,
-        id,
-        selectedAutomationIdRef.current,
-      )) {
+      dispatch({
+        type: "SET_AUTOMATIONS",
+        automations: listResponse.data.items || [],
+      });
+      if (
+        isCurrentAutomationSourceRequest(
+          requestSeq,
+          sourceLoadSeqRef.current,
+          id,
+          selectedAutomationIdRef.current,
+        )
+      ) {
         setForm(formFromAutomation(detailResponse.data));
       }
     } catch (sourceError) {
-      setFormError(sourceError instanceof Error ? sourceError.message : String(sourceError));
+      setFormError(
+        sourceError instanceof Error
+          ? sourceError.message
+          : String(sourceError),
+      );
     } finally {
       setSavingForm(false);
     }
@@ -1230,7 +1241,6 @@ export const AutomationModal: React.FC<{
     } finally {
       setDeleting(false);
     }
-
   };
 
   const runAutomationOnce = async (item: AutomationSummaryResponse) => {
@@ -1249,7 +1259,9 @@ export const AutomationModal: React.FC<{
       hidden: automation.query.hidden ?? true,
       params: automation.query.params,
     });
-    message.success(t("automationConsole.message.runSuccess", { name: item.name || item.id }));
+    message.success(
+      t("automationConsole.message.runSuccess", { name: item.name || item.id }),
+    );
   };
 
   const copyAutomation = async (item: AutomationSummaryResponse) => {
@@ -1261,7 +1273,9 @@ export const AutomationModal: React.FC<{
       buildDuplicateAutomationPayload(response.data, copyName),
     );
     await loadAutomations(created.data.id);
-    message.success(t("automationConsole.message.copySuccess", { name: copyName }));
+    message.success(
+      t("automationConsole.message.copySuccess", { name: copyName }),
+    );
   };
 
   const performListAction = async (
@@ -1281,15 +1295,17 @@ export const AutomationModal: React.FC<{
         await confirmDelete(item);
       }
     } catch (actionError) {
-      const detail = actionError instanceof Error
-        ? actionError.message
-        : String(actionError);
+      const detail =
+        actionError instanceof Error
+          ? actionError.message
+          : String(actionError);
       setError(detail);
-      const messageKey = key === "run"
-        ? "automationConsole.message.runFailed"
-        : key === "copy"
-          ? "automationConsole.message.copyFailed"
-          : "automationConsole.message.actionFailed";
+      const messageKey =
+        key === "run"
+          ? "automationConsole.message.runFailed"
+          : key === "copy"
+            ? "automationConsole.message.copyFailed"
+            : "automationConsole.message.actionFailed";
       message.error(t(messageKey, { detail }));
     } finally {
       setListAction(null);
@@ -1310,6 +1326,7 @@ export const AutomationModal: React.FC<{
   const automationActionMenu = (
     item: AutomationSummaryResponse,
   ): MenuProps => ({
+    className: "tw:whitespace-nowrap",
     items: [
       {
         key: "toggle",
@@ -1331,10 +1348,7 @@ export const AutomationModal: React.FC<{
       {
         key: "copy",
         icon: (
-          <MaterialIcon
-            className="automation-menu-icon"
-            name="content_copy"
-          />
+          <MaterialIcon className="automation-menu-icon" name="content_copy" />
         ),
         label: t("automationConsole.action.copy"),
       },
@@ -1538,7 +1552,9 @@ export const AutomationModal: React.FC<{
                           className={AUTOMATION_LIST_ITEM_MAIN_CLASS_NAME}
                           onClick={() => selectAutomation(item.id)}
                         >
-                          <span className={AUTOMATION_LIST_ITEM_HEAD_CLASS_NAME}>
+                          <span
+                            className={AUTOMATION_LIST_ITEM_HEAD_CLASS_NAME}
+                          >
                             <span
                               className={AUTOMATION_LIST_ITEM_TITLE_CLASS_NAME}
                               title={item.name || item.id}
@@ -1565,41 +1581,34 @@ export const AutomationModal: React.FC<{
                               title={getAutomationWorkerName(item) || "--"}
                             >
                               <MaterialIcon name="smart_toy" />
-                              <span>{getAutomationWorkerName(item) || "--"}</span>
+                              <span>
+                                {getAutomationWorkerName(item) || "--"}
+                              </span>
                             </span>
                             <span
-                              className={AUTOMATION_LIST_ITEM_META_CRON_CLASS_NAME}
+                              className={
+                                AUTOMATION_LIST_ITEM_META_CRON_CLASS_NAME
+                              }
                               title={cron || "--"}
                             >
                               {describeCronExpression(cron, t)}
                             </span>
                           </span>
                         </button>
-                        <div
-                          className={AUTOMATION_LIST_ITEM_MENU_CLASS_NAME}
-                          onClick={(event) => event.stopPropagation()}
+                        <Dropdown
+                          menu={automationActionMenu(item)}
+                          trigger={["click"]}
+                          placement="bottomRight"
+                          getPopupContainer={(node) => node}
+                          disabled={Boolean(listAction && !itemBusy)}
                         >
-                          <Dropdown
-                            menu={automationActionMenu(item)}
-                            trigger={["click"]}
-                            placement="bottomRight"
-                            disabled={Boolean(listAction && !itemBusy)}
+                          <div
+                            className={AUTOMATION_LIST_ITEM_MENU_CLASS_NAME}
+                            onClick={(event) => event.stopPropagation()}
                           >
-                            <UiButton
-                              size="mini"
-                              variant="ghost"
-                              iconOnly
-                              loading={itemBusy}
-                              className={AUTOMATION_LIST_ITEM_MENU_TRIGGER_CLASS_NAME}
-                              aria-label={t("automationConsole.action.more", {
-                                name: item.name || item.id,
-                              })}
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              <MaterialIcon name="more_horiz" />
-                            </UiButton>
-                          </Dropdown>
-                        </div>
+                            <MaterialIcon name="more_horiz" />
+                          </div>
+                        </Dropdown>
                       </div>
                     );
                   })}
@@ -1626,7 +1635,8 @@ export const AutomationModal: React.FC<{
                   className={AUTOMATION_SECTION_NAV_LINK_CLASS_NAME}
                   href={`#${section.id}`}
                   aria-current={
-                    editorMode === "structured" && activeSectionId === section.id
+                    editorMode === "structured" &&
+                    activeSectionId === section.id
                       ? "location"
                       : undefined
                   }
@@ -1707,48 +1717,6 @@ export const AutomationModal: React.FC<{
                   />
                 </UiButton>
               </Tooltip>
-              <Tooltip
-                title={
-                  editorMode === "source"
-                    ? t("automationConsole.action.saveSource")
-                    : formMode === "create"
-                      ? t("automationConsole.action.create")
-                      : t("automationConsole.action.saveChanges")
-                }
-                arrow={false}
-              >
-                <UiButton
-                  className="automation-section-nav-icon-button automation-section-nav-save"
-                  size="sm"
-                  variant="primary"
-                  onClick={() => {
-                    if (editorMode === "source") {
-                      void saveSource();
-                    } else {
-                      void saveForm();
-                    }
-                  }}
-                  disabled={
-                    deleting ||
-                    savingToggle ||
-                    (editorMode === "source" &&
-                      (loadingSource ||
-                        !sourceDirty ||
-                        sourceLoadedId !== selectedId))
-                  }
-                  loading={savingForm}
-                  aria-label={
-                    editorMode === "source"
-                      ? t("automationConsole.action.saveSource")
-                      : formMode === "create"
-                        ? t("automationConsole.action.create")
-                        : t("automationConsole.action.saveChanges")
-                  }
-                >
-                  <MaterialIcon name="save" />
-                  <span>{t("automationConsole.action.saveChanges")}</span>
-                </UiButton>
-              </Tooltip>
               {selectedSummary && (
                 <Popconfirm
                   title={t("automationConsole.confirm.deleteTitle")}
@@ -1758,24 +1726,50 @@ export const AutomationModal: React.FC<{
                   onConfirm={() => confirmDelete(selectedSummary)}
                   disabled={savingForm || deleting || savingToggle}
                 >
-                  <Tooltip
-                    title={t("automationConsole.action.delete")}
-                    arrow={false}
+                  <UiButton
+                    className="automation-section-nav-icon-button ui-icon-hover-24 tw:!text-danger"
+                    size="sm"
+                    variant="ghost"
+                    iconOnly
+                    disabled={savingForm || savingToggle}
+                    loading={deleting}
+                    aria-label={t("automationConsole.action.delete")}
                   >
-                    <UiButton
-                      className="automation-section-nav-icon-button ui-icon-hover-24"
-                      size="sm"
-                      variant="danger"
-                      iconOnly
-                      disabled={savingForm || savingToggle}
-                      loading={deleting}
-                      aria-label={t("automationConsole.action.delete")}
-                    >
-                      <MaterialIcon name="delete" />
-                    </UiButton>
-                  </Tooltip>
+                    <MaterialIcon name="delete" />
+                  </UiButton>
                 </Popconfirm>
               )}
+              <UiButton
+                className="automation-section-nav-icon-button automation-section-nav-save"
+                size="sm"
+                variant="primary"
+                onClick={() => {
+                  if (editorMode === "source") {
+                    void saveSource();
+                  } else {
+                    void saveForm();
+                  }
+                }}
+                disabled={
+                  deleting ||
+                  savingToggle ||
+                  (editorMode === "source" &&
+                    (loadingSource ||
+                      !sourceDirty ||
+                      sourceLoadedId !== selectedId))
+                }
+                loading={savingForm}
+                aria-label={
+                  editorMode === "source"
+                    ? t("automationConsole.action.saveSource")
+                    : formMode === "create"
+                      ? t("automationConsole.action.create")
+                      : t("automationConsole.action.saveChanges")
+                }
+              >
+                <MaterialIcon name="save" />
+                <span>{t("automationConsole.action.saveChanges")}</span>
+              </UiButton>
             </div>
           </nav>
 
@@ -1893,9 +1887,7 @@ export const AutomationModal: React.FC<{
                       options={[
                         {
                           value: "",
-                          label: t(
-                            "automationConsole.field.agentPlaceholder",
-                          ),
+                          label: t("automationConsole.field.agentPlaceholder"),
                         },
                         ...agentOptions,
                       ]}
@@ -2011,7 +2003,9 @@ export const AutomationModal: React.FC<{
                     />
                   </div>
                   {visibleOptionalFields.has("description") && (
-                    <div className={AUTOMATION_BASIC_FORM_FULL_WIDTH_CLASS_NAME}>
+                    <div
+                      className={AUTOMATION_BASIC_FORM_FULL_WIDTH_CLASS_NAME}
+                    >
                       <label htmlFor="automation-description-input">
                         {t("automationConsole.field.description")}
                       </label>
@@ -2038,9 +2032,7 @@ export const AutomationModal: React.FC<{
                         options={[
                           {
                             value: "",
-                            label: t(
-                              "automationConsole.field.defaultTimezone",
-                            ),
+                            label: t("automationConsole.field.defaultTimezone"),
                           },
                           ...zoneOptions.map((zoneId) => ({
                             value: zoneId,
@@ -2099,7 +2091,9 @@ export const AutomationModal: React.FC<{
                     </div>
                   )}
                   {visibleOptionalFields.has("paramsText") && (
-                    <div className={AUTOMATION_BASIC_FORM_FULL_WIDTH_CLASS_NAME}>
+                    <div
+                      className={AUTOMATION_BASIC_FORM_FULL_WIDTH_CLASS_NAME}
+                    >
                       <label htmlFor="automation-params-input">
                         <span>{t("automationConsole.field.params")}</span>
                         <Tooltip

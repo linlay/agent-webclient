@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/app/App";
+import { WebClientRenderErrorBoundary } from "@/app/WebClientRenderError";
 import "@/shared/styles/globals.css";
 import "katex/dist/katex.min.css";
 
@@ -12,6 +13,8 @@ if (!container) {
 const root = createRoot(container);
 root.render(
 	<React.StrictMode>
-		<App />
+		<WebClientRenderErrorBoundary>
+			<App />
+		</WebClientRenderErrorBoundary>
 	</React.StrictMode>,
 );

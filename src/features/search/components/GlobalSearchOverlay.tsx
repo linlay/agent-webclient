@@ -110,7 +110,6 @@ export const GlobalSearchOverlay: React.FC = () => {
             version: 1,
             kind: "debug",
             chatId: state.chatId,
-            runId: state.runId || undefined,
           });
         }
         break;
@@ -154,6 +153,7 @@ export const GlobalSearchOverlay: React.FC = () => {
       setGlobalRemoteState(null);
       return;
     }
+    window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
     searchInputRef.current?.focus();
     searchInputRef.current?.select();
   }, [isOpen]);

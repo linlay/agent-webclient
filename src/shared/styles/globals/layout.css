@@ -97,18 +97,6 @@
     text-transform: uppercase;
 }
 
-.current-worker-name {
-    flex: 0 1 auto;
-    min-width: 0;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--ink-1);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 .current-worker-role {
     flex: 0 1 auto;
     min-width: 0;

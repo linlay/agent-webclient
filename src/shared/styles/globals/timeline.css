@@ -1153,6 +1153,28 @@ html[data-theme="dark"] .worker-chat-float-btn:hover {
     padding: 12px;
 }
 
+.readonly-run-surface-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.readonly-run-surface-error button {
+    flex: none;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    padding: 3px 10px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+}
+
+.readonly-run-surface-error button:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
 /* ---- 拖拽调整高度手柄 ---- */
 
 .terminal-dock-resize-handle {

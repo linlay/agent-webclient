@@ -2,7 +2,7 @@
 
 ## 定位与入口
 
-Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器，不向 Team 或其他 Agent 显示。对话顶部工具栏通过 `90vw × 85vh` Dialog 打开当前 Agent；独立页面使用 `/project`，查询参数保存 `agentKey`、`chatId`、`runId`、当前 `path`、重复的 `open` 文件标签与 `view=content|diff`。Dialog 的“在完整页面打开”会带上当前选择状态和全部已打开文件。
+Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器。独立页面使用 `/project/:agentKey`；普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。Dialog 的“在完整页面打开”会带上当前选择状态和全部已打开文件。
 
 ## 组件边界
 
@@ -11,7 +11,7 @@ Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器，不向
 - `src/app/pages/project/index.tsx`：加载 CODER/KBASE Agent，处理 URL 状态和无 Agent 选择器。
 - `src/features/project/lib/projectRoute.ts`：Project 查询参数的读写纯函数。
 - `src/features/project/lib/projectTabs.ts`：多文件标签的去重打开与相邻关闭选择规则。
-- `src/features/artifacts/components/AttachmentPreviewPanel.tsx`：复用 Workspace 文本、图片、PDF、HTML、音视频预览。
+- `src/features/viewers/components/ContentViewerPanel.tsx`：消费 `FileViewerTarget`，复用 Workspace 文本、图片、PDF、HTML、音视频展示。
 - `src/app/layout/sidebar/right/FileDiffView.tsx`：复用两侧文本 Diff。
 
 ## 数据与刷新
@@ -29,15 +29,15 @@ Project 数据固定走 HTTP：
 
 桌面端目录树默认 280px，可在 220–520px 之间拖动；小屏使用可展开侧栏。目录树支持名称过滤、懒加载、分页、变更徽标与手动刷新。点击文件会追加到右侧多文件标签栏；标签支持切换和关闭，关闭当前标签后选择相邻文件。文件标签、MIME/大小、下载图标和“内容 / Diff”页签共用一行，Dialog 与独立页的 Agent/Chat/Run/刷新动作也使用单行紧凑工具栏。
 
-Project 文本预览固定显示行号；图片继续通过 `/api/file?response=content` 和现有鉴权资源预览显示。Project 隐藏附件预览的通用说明，但保留真正发生截断时的提示。二进制、超限、无 Run 快照等 Diff 错误以明确空态展示，不回退为伪 Diff。
+Project 文本 Viewer 固定显示行号；图片继续通过 `/api/file?response=content` 和现有鉴权资源链路显示。Project 不展示 Content Viewer 的通用说明，但保留真正发生截断时的提示。二进制、超限、无 Run 快照等 Diff 错误以明确空态展示，不回退为伪 Diff。
 
 首版没有保存、创建、重命名、删除、Terminal、拖拽上传或 Git Diff。实时内容可以包含 Bash/ACP/外部程序产生的变化，但只有 Platform `file_write/file_edit` 的 Run 快照会出现在变更列表和 Diff。
 
 ## 验证
 
 ```bash
-npm test -- --runInBand src/features/project/lib/projectRoute.test.ts src/features/project/lib/projectTabs.test.ts src/features/artifacts/components/AttachmentPreviewPanel.test.ts src/shared/data/api/client.test.ts
+npm test -- --runInBand src/features/project/lib/projectRoute.test.ts src/features/project/lib/projectTabs.test.ts src/features/viewers/components/ContentViewerPanel.test.ts src/shared/data/api/client.test.ts
 npm run build
 ```
 
-手工回归需覆盖直接访问 `/project`、Agent/Chat/Run 切换、浏览器前进后退、Dialog 到完整页面、目录分页与过滤、媒体预览、Diff 空态、页面隐藏暂停刷新，以及切换 Agent 后旧请求不再落入当前视图。
+手工回归需覆盖直接访问 `/project/:agentKey`、Chat/Run 切换、无 Run 的目录与文件内容、浏览器前进后退、Dialog 到完整页面、目录分页与过滤、媒体预览、Diff 必填身份、页面隐藏暂停刷新，以及切换 Agent 后旧请求不再落入当前视图。

@@ -5,6 +5,7 @@ import type { TranslateParams } from "@/shared/i18n";
 type Translate = (key: string, params?: TranslateParams) => string;
 
 export interface AttachmentLike {
+  id?: string;
   name?: string;
   size?: number;
   sizeBytes?: number;

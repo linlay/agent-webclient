@@ -201,6 +201,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       onCancel={() => closeModal()}
       title={title}
       footer={null}
+      centered
       destroyOnHidden
       getContainer={false}
       width={

@@ -1,15 +1,15 @@
 import React from "react";
 import type { TimelineNode } from "@/app/state/types";
 import {
-	getAttachmentPreviewKind,
-	type AttachmentPreviewState,
-} from "@/features/artifacts/lib/attachmentPreview";
+	buildResourceViewerTargetFromUrl,
+} from "@/features/viewers/lib/viewerTarget";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { stripPendingSpecialFenceTail } from "@/features/events/lib/contentSegments";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import {
 	MarkdownContent,
 	type MarkdownWebLink,
+	type ResourceFileLink,
 	type WorkspaceFileLink,
 } from "@/shared/ui/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
@@ -51,38 +51,6 @@ const TTS_VOICE_DETAIL_OPEN_CLASS_NAME = "tw:mt-2 tw:max-h-[260px]";
 const TTS_VOICE_TEXT_CLASS_NAME =
 	"tw:whitespace-pre-wrap tw:break-words tw:rounded-[10px] tw:bg-[color-mix(in_srgb,var(--bg-input)_86%,var(--bg-elev-2))] tw:px-3 tw:py-2.5 tw:text-[13px] tw:leading-[1.5]";
 
-function displayFileName(filePath: string): string {
-	const normalized = filePath.replace(/\\/g, "/");
-	return normalized.split("/").filter(Boolean).pop() || filePath;
-}
-
-export function buildWorkspaceFilePreview(
-	link: WorkspaceFileLink,
-	agentKey: string,
-): AttachmentPreviewState {
-	const name = displayFileName(link.filePath);
-	const detectedKind = getAttachmentPreviewKind({ name });
-	const kind = detectedKind === "unsupported" ? "text" : detectedKind;
-	const previewKey = [
-		"workspace-file",
-		encodeURIComponent(agentKey),
-		encodeURIComponent(link.filePath),
-		link.line || "",
-	].join(":");
-	return {
-		name,
-		url: previewKey,
-		downloadUrl: "",
-		kind,
-		sourcePath: link.filePath,
-		line: link.line,
-		workspaceFile: {
-			agentKey,
-			path: link.filePath,
-		},
-	};
-}
-
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const { t } = useI18n();
 	const dispatch = useAppDispatch();
@@ -121,19 +89,16 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	);
 	const handleWorkspaceFileLinkClick = React.useCallback(
 		(link: WorkspaceFileLink) => {
-			const preview = buildWorkspaceFilePreview(
-				link,
-				workspaceFileAgentKey,
-			);
 			openTarget({
 				version: 1,
-				kind: "artifact",
-				chatId: state.chatId,
-				preview,
+				kind: "file",
+				agentKey: workspaceFileAgentKey,
+				path: link.filePath,
+				line: link.line,
 				toggle: true,
 			});
 		},
-		[openTarget, state.chatId, workspaceFileAgentKey],
+		[openTarget, workspaceFileAgentKey],
 	);
 	const handleWebLinkClick = React.useCallback(
 		(link: MarkdownWebLink) => {
@@ -146,6 +111,25 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 		},
 		[openTarget],
 	);
+	const handleResourceFileLinkClick = React.useCallback(
+		(link: ResourceFileLink) => {
+			const resourceTarget = buildResourceViewerTargetFromUrl(link.href);
+			if (!resourceTarget) {
+				return;
+			}
+			openTarget({
+				version: 1,
+				kind: "resource",
+				agentKey: workspaceFileAgentKey,
+				chatId: state.chatId,
+				file: link.href,
+				resourceTarget,
+				title: link.name,
+				toggle: true,
+			});
+		},
+		[openTarget, state.chatId, workspaceFileAgentKey],
+	);
 
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {
@@ -157,6 +141,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 						chatId={state.chatId}
 						teamChat={teamChat}
 						onWorkspaceFileLinkClick={handleWorkspaceFileLinkClick}
+						onResourceFileLinkClick={handleResourceFileLinkClick}
 						onWebLinkClick={handleWebLinkClick}
 					/>
 				</div>
@@ -180,6 +165,9 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 								teamChat={teamChat}
 								onWorkspaceFileLinkClick={
 									handleWorkspaceFileLinkClick
+								}
+								onResourceFileLinkClick={
+									handleResourceFileLinkClick
 								}
 								onWebLinkClick={handleWebLinkClick}
 							/>

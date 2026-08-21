@@ -103,6 +103,7 @@ export interface TimelineNode {
 	steerId?: string;
 	awaitingId?: string;
 	reasoningLabel?: string;
+	planningId?: string;
 	title?: string;
 	text?: string;
 	attachments?: TimelineAttachment[];

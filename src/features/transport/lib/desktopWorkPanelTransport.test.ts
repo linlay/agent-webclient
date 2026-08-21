@@ -16,8 +16,8 @@ describe("DesktopWorkPanelTransport", () => {
     await expect(transport.openDescriptor({
       kind: "webclient",
       module: "overview",
-      route: "/overview?chatId=chat-1",
-      context: { chatId: "chat-1" },
+      route: "/overview/agent-1?chatId=chat-1",
+      context: { agentKey: "agent-1", chatId: "chat-1" },
     })).resolves.toMatchObject({ ok: true });
     expect(workPanel.openItem).toHaveBeenCalledWith({
       version: AGENT_WEBCLIENT_BRIDGE_VERSION,
@@ -31,8 +31,8 @@ describe("DesktopWorkPanelTransport", () => {
     await expect(transport.openDescriptor({
       kind: "webclient",
       module: "planning",
-      route: "/overview?chatId=chat-1&view=planning&nodeId=node-1",
-      context: { chatId: "chat-1", nodeId: "node-1" },
+      route: "/planning-viewer/agent-1?chatId=chat-1&planningId=planning-1",
+      context: { agentKey: "agent-1", chatId: "chat-1", planningId: "planning-1" },
     })).rejects.toMatchObject({ code: "capability_denied" });
   });
 });

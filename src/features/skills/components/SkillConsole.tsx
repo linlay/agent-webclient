@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Dropdown, Input, Modal, notification, Spin, Tabs, Typography } from "antd";
+import {
+  Dropdown,
+  Input,
+  Modal,
+  notification,
+  Spin,
+  Tabs,
+  Tooltip,
+  Typography,
+} from "antd";
 import type { MenuProps } from "antd";
 import {
   createAdminSkillFile,
@@ -118,11 +127,14 @@ const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => {
   );
 };
 
-const SKILL_IMAGE_EXTENSION_PATTERN = /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
+const SKILL_IMAGE_EXTENSION_PATTERN =
+  /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
 
 export function isSkillImageEntry(entry: AdminSkillFileEntry): boolean {
   if (entry.kind !== "file" || entry.contentKind !== "binary") return false;
-  const mimeType = String(entry.mimeType || "").trim().toLowerCase();
+  const mimeType = String(entry.mimeType || "")
+    .trim()
+    .toLowerCase();
   if (mimeType.startsWith("image/")) return true;
   return SKILL_IMAGE_EXTENSION_PATTERN.test(entry.path);
 }
@@ -441,11 +453,12 @@ export function joinSkillPath(parent: string, name: string): string {
   return `${normalizedParent}/${normalizedName}`;
 }
 
-function iconForEntry(
+export function iconForEntry(
   entry: AdminSkillFileEntry,
   isExpanded = false,
 ): MaterialIconName {
   if (entry.kind === "directory") return isExpanded ? "folder_open" : "folder";
+  if (isSkillImageEntry(entry)) return "image";
   if (entry.contentKind === "binary") return "folder_zip";
   return "description";
 }
@@ -643,7 +656,9 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
     const validation = validateSkillArchiveFile(file);
     if (validation) {
       setZipFile(null);
-      notification.error({ message: t(`skillConsole.import.error.${validation}`) });
+      notification.error({
+        message: t(`skillConsole.import.error.${validation}`),
+      });
       return;
     }
     setZipFile(file as File);
@@ -1000,7 +1015,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
       },
       {
         key: "create",
-        icon: <MaterialIcon name="article" />,
+        icon: <MaterialIcon name="description" />,
         label: t("skillConsole.action.createTextFile"),
       },
     ],
@@ -1060,10 +1075,10 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                 variant="ghost"
                 className="ui-icon-hover-24"
                 disabled={interactionLocked}
+                iconOnly
                 aria-label={t("skillConsole.action.addFile")}
               >
-                <MaterialIcon name="article" />
-                {t("skillConsole.action.addFile")}
+                <MaterialIcon name="description" />
               </UiButton>
             </Dropdown>
             <Dropdown
@@ -1082,17 +1097,18 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                 <MaterialIcon name="create_new_folder" />
               </UiButton>
             </Dropdown>
-            <UiButton
-              size="sm"
-              variant="ghost"
-              className="ui-icon-hover-24"
-              iconOnly
-              onClick={onValidate}
-              disabled={validating || interactionLocked}
-              aria-label={t("skillConsole.action.validate")}
-            >
-              <MaterialIcon name="rule" />
-            </UiButton>
+            <Tooltip title={t("skillConsole.action.validate")}>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                className="ui-icon-hover-24"
+                iconOnly
+                onClick={onValidate}
+                disabled={validating || interactionLocked}
+              >
+                <MaterialIcon name="rule" />
+              </UiButton>
+            </Tooltip>
             <UiButton
               size="sm"
               variant="ghost"
@@ -1113,8 +1129,8 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             </UiButton>
             <UiButton
               size="sm"
-              variant="danger"
-              className="ui-icon-hover-24"
+              variant="ghost"
+              className="ui-icon-hover-24 tw:!text-danger"
               iconOnly
               onClick={onDeleteSkill}
               disabled={deleteSkillDisabled}
@@ -1475,7 +1491,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       const response = await getAdminSkills();
       setSkills(response.data);
     } catch (err) {
-      notification.error({ message: err instanceof Error ? err.message : String(err) });
+      notification.error({
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setListLoading(false);
     }
@@ -1495,7 +1513,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         applyOpenedFile(opened);
         return opened;
       } catch (err) {
-        notification.error({ message: err instanceof Error ? err.message : String(err) });
+        notification.error({
+          message: err instanceof Error ? err.message : String(err),
+        });
         return null;
       }
     },
@@ -1536,7 +1556,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           clearFileState();
         }
       } catch (err) {
-        notification.error({ message: err instanceof Error ? err.message : String(err) });
+        notification.error({
+          message: err instanceof Error ? err.message : String(err),
+        });
       } finally {
         setDetailLoading(false);
       }
@@ -1707,7 +1729,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       notification.success({ message: t("skillConsole.message.saveSuccess") });
     } catch (err) {
       notification.error({ message: t("skillConsole.message.saveFailed") });
-      notification.error({ message: err instanceof Error ? err.message : String(err) });
+      notification.error({
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setSaving(false);
     }
@@ -1743,10 +1767,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           }),
         });
       } else {
-        notification.success({ message: t("skillConsole.message.validateSuccess") });
+        notification.success({
+          message: t("skillConsole.message.validateSuccess"),
+        });
       }
     } catch (err) {
-      notification.error({ message: err instanceof Error ? err.message : String(err) });
+      notification.error({
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setValidating(false);
     }
@@ -1949,7 +1977,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     try {
       await downloadAdminSkillFile(detail.skill.key, selectedFilePath);
     } catch (err) {
-      notification.error({ message: err instanceof Error ? err.message : String(err) });
+      notification.error({
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setDownloadingFile(false);
     }
@@ -1962,7 +1992,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       await downloadAdminSkill(detail.skill.key);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      notification.error({ message: `${t("skillConsole.message.downloadSkillFailed")}: ${reason}` });
+      notification.error({
+        message: `${t("skillConsole.message.downloadSkillFailed")}: ${reason}`,
+      });
     } finally {
       setDownloadingSkill(false);
     }
@@ -1987,9 +2019,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       title: t("skillConsole.delete.title"),
       content: (
         <div className="tw:flex tw:flex-col tw:gap-2">
-          <span>
-            {t("skillConsole.delete.confirm", { name: skillName })}
-          </span>
+          <span>{t("skillConsole.delete.confirm", { name: skillName })}</span>
           {hasUnsavedChanges && (
             <span className="tw:text-danger">
               {t("skillConsole.delete.unsavedWarning")}
@@ -2027,7 +2057,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             onClearSelection();
           }
           notification.success({
-            message: t("skillConsole.message.deleteSuccess", { name: skillName }),
+            message: t("skillConsole.message.deleteSuccess", {
+              name: skillName,
+            }),
           });
         } catch (err) {
           const reason = err instanceof Error ? err.message : String(err);
@@ -2053,7 +2085,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       });
       await applyMutation(response.data);
     } catch (err) {
-      notification.error({ message: err instanceof Error ? err.message : String(err) });
+      notification.error({
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setSaving(false);
     }
@@ -2088,7 +2122,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         applyBinaryEntry(uploadedEntry);
       }
     } catch (err) {
-      notification.error({ message: err instanceof Error ? err.message : String(err) });
+      notification.error({
+        message: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setSaving(false);
     }

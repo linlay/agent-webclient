@@ -1642,6 +1642,7 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
     <Modal
       open={open}
       onCancel={onClose}
+      centered
       footer={null}
       destroyOnHidden
       getContainer={false}

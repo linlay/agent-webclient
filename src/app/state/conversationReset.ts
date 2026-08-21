@@ -69,7 +69,8 @@ export function buildConversationResetState(
 		webPreviews: [],
 		webPreviewRefreshRevisionByUrl: new Map(),
 		activeWebPreviewUrl: "",
-		attachmentPreview: [],
+		viewerTabs: [],
+		activeViewerKey: "",
 		inputMode: "text",
 		voiceChat: {
 			...state.voiceChat,

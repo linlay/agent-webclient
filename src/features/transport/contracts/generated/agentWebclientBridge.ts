@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:c4a4d8f0fae1cd0db31f5add491fbafda5ffac17e2527362fafb09559e9826c7
+// sha256:b90686ce5fb76147bf0e6bd4afe9084c15034c1b852dc87d1c01f4643048e723
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -15,6 +15,14 @@ export const AGENT_WEBCLIENT_PLATFORM_WS_GLOBAL =
   "__AGENT_WEBCLIENT_PLATFORM_WS__" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL =
   "__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__" as const;
+export const AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION =
+  "workPanel.resource.downloadCurrent" as const;
+export const AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION = 1 as const;
+
+export type AgentWebclientWorkPanelResourceDownloadAction = {
+  action: typeof AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION;
+  version: typeof AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION;
+};
 
 export const AGENT_WEBCLIENT_PLATFORM_WS_OPEN_CHANNEL =
   "agentWebclient.platformWs.open" as const;
@@ -37,7 +45,6 @@ export const AGENT_WEBCLIENT_BRIDGE_ERROR_CODES = [
   "capability_denied",
   "surface_unavailable",
   "target_unavailable",
-  "ambiguous_action_target",
   "unsupported_in_current_view",
   "unsupported_native_surface",
   "seq_expired",
@@ -54,7 +61,9 @@ export type AgentWebclientSurfaceKind =
   | "agent-copilot"
   | "agent-overview"
   | "agent-debug"
-  | "agent-project";
+  | "agent-btw"
+  | "agent-project"
+  | "agent-management";
 
 export type AgentWebclientSurfaceCapability =
   | "run.query"
@@ -64,8 +73,7 @@ export type AgentWebclientSurfaceCapability =
   | "push.subscribe"
   | "workpanel.open"
   | "workpanel.activate"
-  | "workpanel.close"
-  | "inbound.action.owner";
+  | "workpanel.close";
 
 export type AgentWebclientConnectionPhase =
   | "idle"
@@ -173,40 +181,83 @@ export type DesktopPlatformWsBridge = {
   createSocket(): DesktopPlatformSocket;
 };
 
-export type WorkPanelContext = {
+export type WorkPanelChatContext = { agentKey: string; chatId: string };
+export type WorkPanelBTWContext = WorkPanelChatContext & { btwId?: string };
+export type WorkPanelSourceContext = WorkPanelChatContext & {
+  btwId?: string;
+  publishId: string;
+  sourceId: string;
+};
+export type WorkPanelPlanningContext = { chatId: string; planningId: string };
+export type WorkPanelArtifactContext = WorkPanelChatContext & { artifactId: string };
+export type WorkPanelReferenceContext = WorkPanelChatContext & { referenceId: string };
+export type WorkPanelFileContext = { agentKey: string; path: string };
+export type WorkPanelProjectContext = {
+  agentKey: string;
   chatId?: string;
   runId?: string;
-  agentKey?: string;
-  projectId?: string;
-  artifactId?: string;
-  nodeId?: string;
-  relativePath?: string;
+  path?: string;
 };
+export type WorkPanelFileDiffContext = WorkPanelChatContext & { runId: string; path: string };
+export type WorkPanelAgentContext = { agentKey: string; chatId?: string };
+export type WorkPanelSkillContext = { key: string };
+
+export type WorkPanelContext =
+  | WorkPanelChatContext
+  | WorkPanelBTWContext
+  | WorkPanelSourceContext
+  | WorkPanelPlanningContext
+  | WorkPanelArtifactContext
+  | WorkPanelReferenceContext
+  | WorkPanelFileContext
+  | WorkPanelProjectContext
+  | WorkPanelFileDiffContext
+  | WorkPanelAgentContext
+  | WorkPanelSkillContext;
 
 export type WorkPanelWebclientModule =
   | "overview"
   | "debug"
+  | "btw"
+  | "source"
   | "project"
   | "file-diff"
   | "artifact"
+  | "reference"
+  | "file"
   | "planning"
   | "agent"
-  | "copilot";
+  | "copilot"
+  | "skill";
+
+type WorkPanelWebclientDescriptorBase = {
+  kind: "webclient";
+  route: string;
+  title?: string;
+  pinned?: boolean;
+  closable?: boolean;
+};
+
+export type WorkPanelWebclientDescriptor = WorkPanelWebclientDescriptorBase & (
+  | { module: "overview" | "debug"; context: WorkPanelChatContext }
+  | { module: "btw"; context: WorkPanelBTWContext }
+  | { module: "source"; context: WorkPanelSourceContext }
+  | { module: "project"; context: WorkPanelProjectContext }
+  | { module: "file-diff"; context: WorkPanelFileDiffContext }
+  | { module: "artifact"; context: WorkPanelArtifactContext }
+  | { module: "reference"; context: WorkPanelReferenceContext }
+  | { module: "file"; context: WorkPanelFileContext }
+  | { module: "planning"; context: WorkPanelPlanningContext }
+  | { module: "agent" | "copilot"; context: WorkPanelAgentContext }
+  | { module: "skill"; context: WorkPanelSkillContext }
+);
 
 export type WorkPanelItemDescriptor =
-  | {
-      kind: "webclient";
-      module: WorkPanelWebclientModule;
-      route: string;
-      context: WorkPanelContext;
-      title?: string;
-      pinned?: boolean;
-      closable?: boolean;
-    }
+  | WorkPanelWebclientDescriptor
   | {
       kind: "native";
       surfaceKey: string;
-      context: WorkPanelContext;
+      context: Record<string, never>;
       title?: string;
       pinned?: boolean;
       closable?: boolean;
@@ -280,6 +331,8 @@ export function isAgentWebclientSurfaceKind(value: unknown): value is AgentWebcl
     "agent-copilot",
     "agent-overview",
     "agent-debug",
+    "agent-btw",
     "agent-project",
+    "agent-management",
   ].includes(String(value));
 }

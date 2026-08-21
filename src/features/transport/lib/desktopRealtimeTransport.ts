@@ -56,7 +56,7 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
       socketFactory: () => asWsSocket(platformWs.createSocket()),
     });
     const ensureClient = async () => this.client;
-    this.runs = new PlatformRunTransport(ensureClient, { supportsBtw: false });
+    this.runs = new PlatformRunTransport(ensureClient, { supportsBtw: true });
     this.push = new PlatformPushTransport(ensureClient);
     this.handleVisibilityChange = () => {
       this.documentVisible = document.visibilityState !== "hidden";

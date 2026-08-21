@@ -1,12 +1,46 @@
-import {
-	buildTextPreviewLines,
-	resolveWorkspaceHtmlSrcDoc,
-	resolveWorkspaceFilePreviewKind,
-} from "@/features/artifacts/components/AttachmentPreviewPanel";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
-describe("buildTextPreviewLines", () => {
+jest.mock("@/app/state/AppContext", () => ({
+	useAppState: () => ({ chatId: "chat_1", chats: [] }),
+}));
+
+jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({
+	useAuthenticatedResourceUrl: () => ({
+		url: "",
+		loading: false,
+		error: null,
+	}),
+}));
+
+import {
+	ContentViewerPanel,
+	buildViewerTextLines,
+	resolveContentViewerErrorMessage,
+	resolveFileViewerContentKind,
+	resolveFileViewerHtml,
+} from "@/features/viewers/components/ContentViewerPanel";
+
+describe("ContentViewerPanel", () => {
+	it("renders no inline controls or body for unsupported files", () => {
+		const html = renderToStaticMarkup(
+			React.createElement(ContentViewerPanel, {
+				target: {
+					type: "resource",
+					name: "archive.zip",
+					url: "artifacts/run_1/archive.zip",
+					downloadUrl: "artifacts/run_1/archive.zip",
+					contentKind: "unsupported",
+				},
+			}),
+		);
+
+		expect(html).not.toContain("<button");
+		expect(html).not.toContain("content-viewer-body");
+	});
+
 	it("marks the requested line as the target line", () => {
-		expect(buildTextPreviewLines("one\ntwo\nthree", 2)).toEqual([
+		expect(buildViewerTextLines("one\ntwo\nthree", 2)).toEqual([
 			{ lineNumber: 1, text: "one", target: false },
 			{ lineNumber: 2, text: "two", target: true },
 			{ lineNumber: 3, text: "three", target: false },
@@ -14,14 +48,25 @@ describe("buildTextPreviewLines", () => {
 	});
 
 	it("normalizes invalid target lines to no highlight", () => {
-		expect(buildTextPreviewLines("one", 0)).toEqual([
+		expect(buildViewerTextLines("one", 0)).toEqual([
 			{ lineNumber: 1, text: "one", target: false },
 		]);
 	});
 
+	it("shows the original Platform 403 message in an opened file viewer", () => {
+		const platformError = Object.assign(
+			new Error("Workspace file access denied"),
+			{ status: 403, code: 403 },
+		);
+
+		expect(
+			resolveContentViewerErrorMessage(platformError, "Unable to load file"),
+		).toBe("Workspace file access denied");
+	});
+
 	it("uses the file response content kind and MIME type for workspace previews", () => {
 		expect(
-			resolveWorkspaceFilePreviewKind(
+			resolveFileViewerContentKind(
 				{
 					agentKey: "coder",
 					workspaceRoot: "/workspace",
@@ -39,7 +84,7 @@ describe("buildTextPreviewLines", () => {
 		).toBe("text");
 
 		expect(
-			resolveWorkspaceFilePreviewKind(
+			resolveFileViewerContentKind(
 				{
 					agentKey: "coder",
 					workspaceRoot: "/workspace",
@@ -58,7 +103,7 @@ describe("buildTextPreviewLines", () => {
 		).toBe("pdf");
 
 		expect(
-			resolveWorkspaceFilePreviewKind(
+			resolveFileViewerContentKind(
 				{
 					agentKey: "coder",
 					workspaceRoot: "/workspace",
@@ -85,7 +130,7 @@ describe("buildTextPreviewLines", () => {
 		"prioritizes HTML name or MIME detection for %s",
 		(name, mimeType) => {
 			expect(
-				resolveWorkspaceFilePreviewKind(
+				resolveFileViewerContentKind(
 					{
 					agentKey: "coder",
 					workspaceRoot: "/workspace",
@@ -122,9 +167,9 @@ describe("buildTextPreviewLines", () => {
 			truncated: false,
 		};
 
-		expect(resolveWorkspaceHtmlSrcDoc(response)).toBe(response.content);
+		expect(resolveFileViewerHtml(response)).toBe(response.content);
 		expect(
-			resolveWorkspaceHtmlSrcDoc({ ...response, truncated: true }),
+			resolveFileViewerHtml({ ...response, truncated: true }),
 		).toBeNull();
 	});
 });

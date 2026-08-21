@@ -92,6 +92,7 @@ describe("MarkdownContent resource image", () => {
     expect(html).toContain(
       'href="artifacts/run_01/image.png"',
     );
+    expect(html).not.toContain('download="image.png"');
     expect(html).toContain('data-kind="legacy"');
     expect(html).not.toContain('href="/api/resource');
     expect(html).toContain('href="/Users/alice/project/poster.png"');
@@ -103,7 +104,7 @@ describe("MarkdownContent resource image", () => {
     expect(html).not.toContain("renderer-class");
   });
 
-  it("rejects absolute Markdown resources for Team chats", () => {
+  it("keeps absolute Markdown resources clickable so Platform decides Team access", () => {
     const html = renderToStaticMarkup(
       React.createElement(MarkdownContent, {
         content: "[workspace](/Users/alice/project/poster.png)",
@@ -113,6 +114,6 @@ describe("MarkdownContent resource image", () => {
     );
 
     expect(html).toContain('data-kind="absolute"');
-    expect(html).not.toContain('href="/Users/alice/project/poster.png"');
+    expect(html).toContain('href="/Users/alice/project/poster.png"');
   });
 });

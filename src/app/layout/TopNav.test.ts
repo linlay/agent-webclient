@@ -3,6 +3,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { TopNav } from "@/app/layout/TopNav";
 
+const mockUseTerminalAgentStatuses = jest.fn(() => new Map());
+
+jest.mock("@/features/terminal/hooks/useActiveTerminalAgents", () => ({
+	useTerminalAgentStatuses: (enabled?: boolean) =>
+		mockUseTerminalAgentStatuses(enabled),
+}));
+
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
 	useTerminalTransport: () => ({ subscribeStatus: jest.fn(() => jest.fn()) }),
 	useOptionalTerminalTransport: () => ({ subscribeStatus: jest.fn(() => jest.fn()) }),
@@ -71,6 +78,7 @@ describe("TopNav", () => {
 		useAppDispatch.mockReturnValue(jest.fn());
 		useAppState.mockReturnValue(createInitialState());
 		useOptionalAppContext.mockReturnValue(null);
+		mockUseTerminalAgentStatuses.mockClear();
 		delete globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
 	});
 
@@ -217,6 +225,21 @@ describe("TopNav", () => {
 
 		expect(html).toContain('aria-label="Open project files"');
 		expect(html).toContain('data-material-icon="folder_open"');
+	});
+
+	it("subscribes to terminal status only when the terminal action is available", () => {
+		const state = createInitialState();
+		useAppState.mockReturnValue(state);
+
+		renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(false);
+
+		state.agents = [{ key: "coder", name: "Coder", mode: "CODER" }];
+		state.workerSelectionKey = "agent:coder";
+		renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(true);
 	});
 
 	it("does not render the project browser action for unsupported agents", () => {
@@ -956,5 +979,30 @@ describe("TopNav", () => {
 
 		expect(html).toContain("Open debug panel");
 		expect(html).toContain("bug_report");
+	});
+
+	it("leaves the Desktop Agent action group empty for the host-owned WorkPanel entry", () => {
+		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+			DESKTOP_APP: "true",
+			DEBUG_PANEL_ENABLED: "true",
+		};
+
+		const html = renderToStaticMarkup(React.createElement(TopNav, { surface: "agent" }));
+
+		expect(html).not.toContain("Open debug panel");
+		expect(html).not.toContain("Open overview");
+		expect(html).not.toContain("bug_report");
+		expect(html).not.toContain("open_in_new");
+	});
+
+	it("keeps Standalone Agent and Desktop root actions unchanged", () => {
+		const standaloneAgentHtml = renderToStaticMarkup(
+			React.createElement(TopNav, { surface: "agent" }),
+		);
+		expect(standaloneAgentHtml).toContain("open_in_new");
+
+		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: "true" };
+		const desktopRootHtml = renderToStaticMarkup(React.createElement(TopNav));
+		expect(desktopRootHtml).toContain("dock_to_left");
 	});
 });

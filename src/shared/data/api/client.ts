@@ -749,6 +749,11 @@ export interface CreateAgentRequest {
   agentsPrompt?: string;
 }
 
+export interface ImportAgentArchiveRequest {
+  file: File;
+  overwrite?: boolean;
+}
+
 export interface UpdateAgentRequest {
   key: string;
   definition: Record<string, unknown>;
@@ -1666,7 +1671,7 @@ function decodedAbsoluteResourcePath(source: string): string | null {
 export function classifyResourceUrl(
 	value: string,
 	chatId = "",
-	options: ResourceUrlClassificationOptions = {},
+	_options: ResourceUrlClassificationOptions = {},
 ): ResourceUrlClassification {
 	const source = String(value || "").trim();
 	if (isLegacyResourceUrl(source)) {
@@ -1702,7 +1707,7 @@ export function classifyResourceUrl(
 	}
 	if (source.startsWith("/")) {
 		const resourcePath = decodedAbsoluteResourcePath(source);
-		if (!options.teamChat && resourcePath && chatId) {
+		if (resourcePath && chatId) {
 			return {
 				kind: "absolute",
 				source,
@@ -1870,7 +1875,7 @@ export async function downloadResource(
   const target = getResourceRequestTarget(
     path,
     options.chatId || "",
-    t("rightSidebar.preview.error.download"),
+    t("contentViewer.error.download"),
     { teamChat: options.teamChat },
   );
   const response = await requestWithAuth(target.fetchUrl, {
@@ -1910,7 +1915,7 @@ export async function getResourceText(
   const target = getResourceRequestTarget(
     path,
     options.chatId || "",
-    t("rightSidebar.preview.error.loadText"),
+    t("contentViewer.error.loadText"),
     { teamChat: options.teamChat },
   );
   const response = await requestWithAuth(target.fetchUrl, {
@@ -1944,7 +1949,7 @@ export async function getResourceBlob(
   const target = getResourceRequestTarget(
     path,
     options.chatId || "",
-    t("rightSidebar.preview.error.loadText"),
+    t("contentViewer.error.loadText"),
     { teamChat: options.teamChat },
   );
   const response = await requestWithAuth(target.fetchUrl, {
@@ -2223,6 +2228,19 @@ export function createAgent(
   params: CreateAgentRequest,
 ): Promise<ApiResponse<AgentDetailResponse>> {
   return postJson<AgentDetailResponse>(dataEndpoints.adminAgentCreate.path, params);
+}
+
+export function importAdminAgent(
+  params: ImportAgentArchiveRequest,
+): Promise<ApiResponse<AdminAgentDetailResponse>> {
+  const form = new FormData();
+  form.append("file", params.file);
+  if (params.overwrite) form.append("overwrite", "true");
+  return requestJson<AdminAgentDetailResponse>(dataEndpoints.adminAgentImport.path, {
+    method: "POST",
+    body: form,
+    jsonContentType: false,
+  });
 }
 
 export function updateAgent(

@@ -66,10 +66,15 @@ function currentPathname(): string {
 }
 
 export function shouldStartInitialWorkerRefresh(input: {
+  enabled?: boolean;
   hasStarted: boolean;
   appMode: boolean;
   hasAccessToken: boolean;
 }): boolean {
+  if (input.enabled === false) {
+    return false;
+  }
+
   if (input.hasStarted) {
     return false;
   }
@@ -87,8 +92,13 @@ export function useWorkerData(input: {
     focusComposerOnComplete?: boolean;
     preferNewChat?: boolean;
   }) => Promise<void>;
+  initialRefreshEnabled?: boolean;
 }) {
-  const { loadChat, selectWorkerConversation } = input;
+  const {
+    loadChat,
+    selectWorkerConversation,
+    initialRefreshEnabled = true,
+  } = input;
   const { state, dispatch, stateRef } = useAppContext();
   const initialRefreshStartedRef = useRef(false);
   const appMode = isAppMode();
@@ -308,6 +318,7 @@ export function useWorkerData(input: {
 
   useEffect(() => {
     if (!shouldStartInitialWorkerRefresh({
+      enabled: initialRefreshEnabled,
       hasStarted: initialRefreshStartedRef.current,
       appMode,
       hasAccessToken: Boolean(String(state.accessToken || '').trim()),
@@ -318,7 +329,7 @@ export function useWorkerData(input: {
     initialRefreshStartedRef.current = true;
     setAccessToken(stateRef.current.accessToken);
     refreshWorkerData().catch(() => undefined);
-  }, [appMode, refreshWorkerData, state.accessToken, stateRef]);
+  }, [appMode, initialRefreshEnabled, refreshWorkerData, state.accessToken, stateRef]);
 
   useEffect(() => {
     const handler = (e: Event) => {

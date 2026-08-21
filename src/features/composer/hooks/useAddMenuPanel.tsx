@@ -130,7 +130,6 @@ export function useAddMenuPanel(input: UseAddMenuPanelInput): ComposerPanel {
         disabled: false,
         action: () => {
           setInputValue((current) => current.slice(0, filterStartIndex - 1));
-          onClose();
           onOpenFilePicker();
         },
       },
@@ -186,7 +185,6 @@ export function useAddMenuPanel(input: UseAddMenuPanelInput): ComposerPanel {
             suffix: site.url || site.entryKey,
             action: () => {
               setInputValue((current) => current.slice(0, filterStartIndex - 1));
-              onClose();
               onAddReference({
                 type: "site",
                 id: site.entryKey,
@@ -224,7 +222,6 @@ export function useAddMenuPanel(input: UseAddMenuPanelInput): ComposerPanel {
           suffix: normalizeText(chat.lastRunContent) || undefined,
           action: () => {
             setInputValue((current) => current.slice(0, filterStartIndex - 1));
-            onClose();
             onAddReference({
               type: "chat",
               id: chatId,
@@ -258,7 +255,6 @@ export function useAddMenuPanel(input: UseAddMenuPanelInput): ComposerPanel {
     planningMode,
     siteAvailable,
     t,
-    onClose,
     onOpenFilePicker,
     onTogglePlanningMode,
     onEditingModeChange,

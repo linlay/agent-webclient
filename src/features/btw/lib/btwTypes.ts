@@ -2,6 +2,7 @@ import type {
   AIUsageSnapshotEvent,
   AppState,
   TimelineAttachment,
+  TimelineNode,
 } from "@/app/state/types";
 import type {
   QueryAccessLevel,
@@ -58,6 +59,7 @@ export interface PersistedBTWSession {
   updatedAt: number;
   config: BTWQueryConfig;
   transcript: BTWTranscriptItem[];
+  sourceNodes?: TimelineNode[];
 }
 
 export interface OpenBTWOptions extends BTWQueryConfig {

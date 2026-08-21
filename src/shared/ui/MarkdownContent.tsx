@@ -6,6 +6,7 @@ import React, {
 import {
   classifyResourceUrl,
   downloadResource,
+  type ResourceUrlClassification,
 } from "@/shared/data";
 import { MarkdownCode } from "./markdown-code";
 import {
@@ -43,7 +44,14 @@ interface MarkdownContentProps {
   chatId: string;
   teamChat?: boolean;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
+  onResourceFileLinkClick?: (link: ResourceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
+}
+
+export interface ResourceFileLink {
+  href: string;
+  name: string;
+  classification: ResourceUrlClassification;
 }
 
 /**
@@ -87,6 +95,7 @@ type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   chatId: string;
   teamChat: boolean;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
+  onResourceFileLinkClick?: (link: ResourceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
 };
 
@@ -119,7 +128,9 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     chatId,
     teamChat,
     onWorkspaceFileLinkClick,
+    onResourceFileLinkClick,
     onWebLinkClick,
+    download: _download,
     ...rest
   } = props;
   const [downloading, setDownloading] = useState(false);
@@ -129,14 +140,21 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     [chatId, href, teamChat],
   );
   const fetchedResource = isFetchedResourceKind(classified.kind);
-  const downloadFilename = href && fetchedResource
-    ? extractFilenameFromResourceUrl(href)
-    : undefined;
   const workspaceFileLink = useMemo(
     () => classified.kind === "absolute" && !String(href || "").startsWith("/tmp/")
       ? parseWorkspaceFileHref(href)
       : null,
     [classified.kind, href],
+  );
+  const resourceFileLink = useMemo<ResourceFileLink | null>(
+    () => href && fetchedResource && !workspaceFileLink
+      ? {
+          href,
+          name: getSafeResourceDisplayName(href),
+          classification: classified,
+        }
+      : null,
+    [classified, fetchedResource, href, workspaceFileLink],
   );
   const webLink = useMemo(() => parseMarkdownWebHref(href), [href]);
   const webLinkTitle = useMemo(
@@ -186,31 +204,31 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
           : {},
       };
     }
-    if (href && fetchedResource) {
+    if (resourceFileLink) {
       return {
         targetId: `resource:${contextTargetId}`,
         kind: "chat-resource" as const,
-        name: getSafeResourceDisplayName(href),
+        name: resourceFileLink.name,
         mediaType: "file" as const,
-        handlers: { "download-resource": downloadAuthenticatedResource },
+        handlers: {
+          ...(onResourceFileLinkClick
+            ? { "preview-resource": () => onResourceFileLinkClick(resourceFileLink) }
+            : {}),
+          "download-resource": downloadAuthenticatedResource,
+        },
       };
     }
     return null;
-  }, [contextTargetId, downloadAuthenticatedResource, fetchedResource, href, onWebLinkClick, onWorkspaceFileLinkClick, webLink, webLinkTitle, workspaceFileLink]);
+  }, [contextTargetId, downloadAuthenticatedResource, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, resourceFileLink, webLink, webLinkTitle, workspaceFileLink]);
   const contextTargetRef = useDesktopContextMenuTarget<HTMLAnchorElement>(contextTarget);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
-      if (
-        href
-        && fetchedResource
-        && (!workspaceFileLink || !onWorkspaceFileLinkClick)
-      ) {
+      if (resourceFileLink) {
         e.preventDefault();
-        if (downloading) {
-          return;
+        if (onResourceFileLinkClick) {
+          onResourceFileLinkClick(resourceFileLink);
         }
-        void downloadAuthenticatedResource();
         return;
       }
 
@@ -242,13 +260,13 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
       chatId,
       teamChat,
       classified.kind,
-      fetchedResource,
       onWebLinkClick,
+      onResourceFileLinkClick,
       onWorkspaceFileLinkClick,
+      resourceFileLink,
       webLink,
       webLinkTitle,
       workspaceFileLink,
-      downloadAuthenticatedResource,
     ],
   );
 
@@ -257,7 +275,6 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
       ref={contextTargetRef}
       {...rest}
       href={classified.kind === "invalid" ? undefined : href}
-      download={downloadFilename || rest.download}
       onClick={handleClick}
     >
       {downloading ? t("markdown.downloading") : children}
@@ -296,7 +313,7 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   );
   const contextTargetRef = useDesktopContextMenuTarget<HTMLImageElement>(contextTarget);
   if (resolved.error) {
-    const fallback = t("rightSidebar.preview.error.image");
+    const fallback = t("contentViewer.error.image");
     return <span role="img" aria-label={alt || fallback}>{alt || fallback}</span>;
   }
   if (!resolved.url) {
@@ -340,7 +357,7 @@ const AuthVideo: React.FC<AuthVideoProps> = (props) => {
   );
   const contextTargetRef = useDesktopContextMenuTarget<HTMLVideoElement>(contextTarget);
   if (resolved.error) {
-    const fallback = t("rightSidebar.preview.error.video");
+    const fallback = t("contentViewer.error.video");
     return <span role="status">{alt || fallback}</span>;
   }
   if (!resolved.url) {
@@ -370,13 +387,14 @@ const AuthVideo: React.FC<AuthVideoProps> = (props) => {
  * - KaTeX math formula support (via CSS import)
  * - Authenticated image resources rendered through short-lived Blob URLs
  * - Link safety filtering
- * - Authenticated resource downloads (via custom anchor component)
+ * - Authenticated resource previews with explicit context-menu downloads
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   content,
   chatId,
   teamChat = false,
   onWorkspaceFileLinkClick,
+  onResourceFileLinkClick,
   onWebLinkClick,
 }) => {
   const markdownComponents = useMemo<ConversationMarkdownComponents>(
@@ -387,6 +405,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
             chatId={chatId}
             teamChat={teamChat}
             onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
+            onResourceFileLinkClick={onResourceFileLinkClick}
             onWebLinkClick={onWebLinkClick}
           />
         ),
@@ -397,7 +416,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
             <AuthImage {...imageProps} chatId={chatId} teamChat={teamChat} />
           ),
       }),
-    [chatId, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
+    [chatId, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
   return (

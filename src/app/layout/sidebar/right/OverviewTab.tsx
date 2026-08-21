@@ -14,7 +14,6 @@ import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 import { Collapse, Flex, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
 import { TextCountUp } from "@/shared/components/text-count-up";
-import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export function getFileIcon(filePath: string): MaterialIconName {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -246,6 +245,20 @@ export function buildFileChangeKey(runId: string, filePath: string): string {
   return `${runId}\u0000${filePath}`;
 }
 
+export function toggleExpandedFileChangeKey(
+  current: ReadonlySet<string>,
+  itemKey: string,
+): { next: Set<string>; expanding: boolean } {
+  const next = new Set(current);
+  const expanding = !next.has(itemKey);
+  if (expanding) {
+    next.add(itemKey);
+  } else {
+    next.delete(itemKey);
+  }
+  return { next, expanding };
+}
+
 export function buildFileHistoryCacheKey(
   chatId: string,
   item: Pick<OverviewFileChangeItem, "runId" | "filePath">,
@@ -368,9 +381,32 @@ const OverviewSection: React.FC<{
   );
 };
 
-export const OverviewContent: React.FC = () => {
+export interface OverviewContentViewProps {
+  state: Pick<
+    ReturnType<typeof useAppState>,
+    | "artifacts"
+    | "chatId"
+    | "currentChatActiveRun"
+    | "fileChanges"
+    | "plan"
+    | "planRuntimeByTaskId"
+    | "rightSidebarOpen"
+    | "streaming"
+    | "taskItemsById"
+    | "timelineNodes"
+  >;
+  agentKey?: string;
+  isCoder?: boolean;
+  teamChat?: boolean;
+}
+
+export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
+  state,
+  agentKey = "",
+  isCoder = false,
+  teamChat = false,
+}) => {
   const openTarget = useOpenTarget();
-  const state = useAppState();
   const { t } = useI18n();
   const [fileChangeAnimation, setFileChangeAnimation] = React.useState<{
     version: number;
@@ -409,19 +445,6 @@ export const OverviewContent: React.FC = () => {
       ),
     [fileChanges],
   );
-  const currentWorker = React.useMemo(
-    () => resolveCurrentWorkerSummary(state),
-    [state],
-  );
-  const isCoder = React.useMemo(() => {
-    if (!currentWorker || currentWorker.type !== "agent") return false;
-    return (
-      String(
-        (currentWorker.raw as Record<string, unknown> | null)?.["mode"] || "",
-      ).toUpperCase() === "CODER"
-    );
-  }, [currentWorker]);
-
   const [now, setNow] = React.useState(() => Date.now());
 
   const isConversationActive =
@@ -458,22 +481,23 @@ export const OverviewContent: React.FC = () => {
   );
 
   const planningNodes = React.useMemo(() => {
-    const nodes: { id: string; text: string; status: string }[] = [];
+    const nodes: { id: string; planningId: string; text: string; status: string }[] = [];
     for (const [id, node] of state.timelineNodes) {
       if (node.kind === "planning" && node.text) {
-        nodes.push({ id, text: node.text, status: node.status || "" });
+        nodes.push({ id, planningId: node.planningId || "", text: node.text, status: node.status || "" });
       }
     }
     return nodes;
   }, [state.timelineNodes]);
 
   const handlePlanningClick = React.useCallback(
-    (nodeId: string, label: string) => {
+    (planningId: string, nodeId: string, label: string) => {
+      if (!planningId) return;
       openTarget({
         version: 1,
         kind: "planning",
         chatId: state.chatId,
-        runId: state.runId || undefined,
+        planningId,
         nodeId,
         label,
       });
@@ -529,34 +553,17 @@ export const OverviewContent: React.FC = () => {
 
   const toggleFileChange = React.useCallback(
     (item: OverviewFileChangeItem) => {
-      if (isDesktopAppMode()) {
-        openTarget({
-          version: 1,
-          kind: "file-diff",
-          chatId: state.chatId,
-          runId: item.runId,
-          relativePath: item.filePath,
-          agentKey: currentWorker?.type === "agent" ? currentWorker.sourceId : undefined,
-          title: displayFileName(item.filePath),
-        });
-        return;
-      }
       const itemKey = buildFileChangeKey(item.runId, item.filePath);
-      const expanding = !expandedFileChangeKeys.has(itemKey);
-      setExpandedFileChangeKeys((current) => {
-        const next = new Set(current);
-        if (next.has(itemKey)) {
-          next.delete(itemKey);
-        } else {
-          next.add(itemKey);
-        }
-        return next;
-      });
+      const { next, expanding } = toggleExpandedFileChangeKey(
+        expandedFileChangeKeys,
+        itemKey,
+      );
+      setExpandedFileChangeKeys(next);
       if (expanding) {
         loadFileHistory(item);
       }
     },
-    [currentWorker, expandedFileChangeKeys, loadFileHistory, openTarget, state.chatId],
+    [expandedFileChangeKeys, loadFileHistory],
   );
 
   const overviewSections: {
@@ -663,7 +670,8 @@ export const OverviewContent: React.FC = () => {
                     <button
                       type="button"
                       className={PLANNING_ITEM_CLASS_NAME}
-                      onClick={() => handlePlanningClick(item.id, tabLabel)}
+                      disabled={!item.planningId}
+                      onClick={() => handlePlanningClick(item.planningId, item.id, tabLabel)}
                     >
                       <MaterialIcon
                         name="assignment"
@@ -764,6 +772,7 @@ export const OverviewContent: React.FC = () => {
                     density="compact"
                     subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
                     activateMode="alwaysOpen"
+                    surfaceContext={{ chatId: state.chatId, agentKey, teamChat }}
                     style={{ width: "100%" }}
                   />
                 </li>
@@ -782,6 +791,33 @@ export const OverviewContent: React.FC = () => {
         <React.Fragment key={section.key}>{section.node}</React.Fragment>
       ))}
     </div>
+  );
+};
+
+export const OverviewContent: React.FC = () => {
+  const state = useAppState();
+  const currentWorker = React.useMemo(
+    () => resolveCurrentWorkerSummary(state),
+    [state],
+  );
+  const isCoder = React.useMemo(() => {
+    if (!currentWorker || currentWorker.type !== "agent") return false;
+    return String(
+      (currentWorker.raw as Record<string, unknown> | null)?.["mode"] || "",
+    ).toUpperCase() === "CODER";
+  }, [currentWorker]);
+  const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team" ||
+      String(currentChat?.teamId || "").trim(),
+  );
+  return (
+    <OverviewContentView
+      state={state}
+      agentKey={currentWorker?.type === "agent" ? currentWorker.sourceId : ""}
+      isCoder={isCoder}
+      teamChat={teamChat}
+    />
   );
 };
 

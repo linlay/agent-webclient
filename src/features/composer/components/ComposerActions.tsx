@@ -107,6 +107,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   } = useComposerContext();
   const attachmentActionsDisabled =
     isFrontendActive || isVoiceMode || isStreaming;
+  // streaming 时允许通过 + 菜单上传附件，仅在前端工具激活或语音模式下禁用
+  const addMenuDisabled = isFrontendActive || isVoiceMode;
 
   const controlRowRef = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
@@ -153,7 +155,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
       <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
         <div className={COMPOSER_PLUS_WRAP_CLASS}>
           <AddMenuTrigger
-            disabled={attachmentActionsDisabled}
+            disabled={addMenuDisabled}
             loading={hasUploadingAttachments}
             onClick={() => onAddMenuClick?.()}
           />

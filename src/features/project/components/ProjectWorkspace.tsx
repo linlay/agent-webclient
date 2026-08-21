@@ -2,11 +2,11 @@ import React from "react";
 import { Select, Spin } from "antd";
 import type { Chat } from "@/app/state/navigationTypes";
 import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
-import { AttachmentPreviewPanel } from "@/features/artifacts/components/AttachmentPreviewPanel";
+import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
 import {
-  getAttachmentPreviewKind,
-  type AttachmentPreviewState,
-} from "@/features/artifacts/lib/attachmentPreview";
+  buildFileViewerTarget,
+  type FileViewerTarget,
+} from "@/features/viewers/lib/viewerTarget";
 import {
   getProjectChanges,
   getProjectDiff,
@@ -92,16 +92,8 @@ function historyBadge(change?: ProjectChangeItem): string {
   return "M";
 }
 
-function buildPreview(agentKey: string, path: string): AttachmentPreviewState {
-  const detected = getAttachmentPreviewKind({ name: path });
-  return {
-    name: path.split("/").pop() || path,
-    url: "",
-    downloadUrl: "",
-    sourcePath: path,
-    kind: detected === "unsupported" ? "text" : detected,
-    workspaceFile: { agentKey, path },
-  };
+function buildProjectFileTarget(agentKey: string, path: string): FileViewerTarget {
+  return buildFileViewerTarget({ agentKey, path }) as FileViewerTarget;
 }
 
 export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
@@ -708,15 +700,19 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
         <div className="project-resizer" role="separator" aria-orientation="vertical" onPointerDown={startResize} />
         <main className="project-file-pane">
           {selectedPath && activeView === "content" ? (
-            <AttachmentPreviewPanel
-              key={`${agentKey}:${selectedPath}:${previewVersion}`}
-              preview={buildPreview(agentKey, selectedPath)}
-              toolbarLeading={fileTabs}
-              toolbarTrailing={viewTabs}
-              showName={false}
-              showSourcePath={false}
-              showLineNumbers
-            />
+            <>
+              <div className="project-file-header">
+                {fileTabs}
+                {viewTabs}
+              </div>
+              <div className="project-file-body">
+                <ContentViewerPanel
+                  key={`${agentKey}:${selectedPath}:${previewVersion}`}
+                  target={buildProjectFileTarget(agentKey, selectedPath)}
+                  showLineNumbers
+                />
+              </div>
+            </>
           ) : (
             <>
               <div className="project-file-header">

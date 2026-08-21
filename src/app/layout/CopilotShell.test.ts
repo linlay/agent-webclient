@@ -8,6 +8,7 @@ import {
 
 const mockUiButtonProps: Array<Record<string, any>> = [];
 const mockDiscardBTW = jest.fn();
+const mockOpenCommandOverlay = jest.fn();
 
 jest.mock("react-router-dom", () => ({
   useLocation: jest.fn(),
@@ -23,6 +24,10 @@ jest.mock("@/app/state/AppContext", () => ({
 
 jest.mock("@/app/layout/hooks/useAppRuntimes", () => ({
   useAppRuntimes: jest.fn(),
+}));
+
+jest.mock("@/shared/data", () => ({
+  getAgent: jest.fn(),
 }));
 
 jest.mock("@/features/timeline/components/ConversationStage", () => ({
@@ -75,11 +80,11 @@ jest.mock("@/app/layout/CommandStatusOverlay", () => ({
   ),
 }));
 
-jest.mock("@/features/artifacts/components/AttachmentPreviewPanel", () => ({
-  AttachmentPreviewPanel: () => (
+jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({
+  ContentViewerPanel: () => (
     React.createElement(
       "div",
-      { className: "attachment-preview-panel" },
+      { className: "content-viewer-panel" },
       "attachment preview",
     )
   ),
@@ -162,7 +167,7 @@ jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
   CommandOverlayProvider: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),
   useCommandOverlayActions: () => ({
-    openCommandOverlay: jest.fn(),
+    openCommandOverlay: mockOpenCommandOverlay,
     patchCommandOverlay: jest.fn(),
     closeCommandOverlay: jest.fn(),
   }),
@@ -227,6 +232,10 @@ const { useAppRuntimes } = jest.requireMock(
   "@/app/layout/hooks/useAppRuntimes",
 ) as {
   useAppRuntimes: jest.Mock;
+};
+
+const { getAgent } = jest.requireMock("@/shared/data") as {
+  getAgent: jest.Mock;
 };
 
 const { isDebugPanelEnabled } = jest.requireMock(
@@ -300,10 +309,13 @@ describe("CopilotShell", () => {
     useNavigate.mockReturnValue(navigate);
     navigate.mockClear();
     mockDiscardBTW.mockReset();
+    mockOpenCommandOverlay.mockReset();
     mockUiButtonProps.length = 0;
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
+    getAgent.mockReset();
+    getAgent.mockResolvedValue({ data: {} });
     isDebugPanelEnabled.mockReturnValue(true);
   });
 
@@ -337,6 +349,9 @@ describe("CopilotShell", () => {
     expect(html).toContain("command-modal");
     expect(html).toContain('data-variant="copilot"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+    expect(useAppRuntimes).toHaveBeenCalledWith({
+      initialWorkerRefreshEnabled: true,
+    });
   });
 
   it("renders a single-line top bar without voice or mute controls", () => {
@@ -354,6 +369,33 @@ describe("CopilotShell", () => {
     expect(html).not.toContain(">call_end<");
     expect(html).not.toContain("volume_up");
     expect(html).not.toContain("volume_off");
+  });
+
+  it("opens current Agent history in the Copilot drawer", () => {
+    renderToStaticMarkup(React.createElement(CopilotShell));
+    const historyButton = mockUiButtonProps.find(
+      (props) => props["aria-label"] === "commandModal.history.title",
+    );
+
+    expect(historyButton).toBeDefined();
+    historyButton?.onClick();
+    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "history" });
+  });
+
+  it("reserves top-bar space for the Desktop native Copilot close button", () => {
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("wsSource=desktop-copilot"),
+    ]);
+
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).toContain("is-desktop-copilot-host");
+  });
+
+  it("does not reserve native close-button space outside the Desktop Copilot host", () => {
+    const html = renderToStaticMarkup(React.createElement(CopilotShell));
+
+    expect(html).not.toContain("is-desktop-copilot-host");
   });
 
   it("does not render desktop-only shell chrome", () => {
@@ -773,7 +815,7 @@ describe("CopilotShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("falls back to the first loaded agent when the copilot path agent is missing", () => {
+  it("keeps the requested route agent when it is not in the worker list", () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -795,18 +837,22 @@ describe("CopilotShell", () => {
 
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:first-agent",
+      workerKey: "agent:missing-agent",
     });
     expect(dispatchEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",
         detail: {
-          agentKey: "first-agent",
+          agentKey: "missing-agent",
           preserveWorkerContext: true,
           focusComposerOnComplete: true,
         },
       }),
     );
+    expect(getAgent).toHaveBeenCalledWith("missing-agent");
+    expect(useAppRuntimes).toHaveBeenCalledWith({
+      initialWorkerRefreshEnabled: false,
+    });
 
     useEffectSpy.mockRestore();
   });
@@ -819,7 +865,8 @@ describe("CopilotShell", () => {
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
-    useSearchParams.mockReturnValue([new URLSearchParams("agentKey=demo-agent")]);
+    useParams.mockReturnValue({ agentKey: "demo-agent" });
+    useSearchParams.mockReturnValue([new URLSearchParams()]);
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
@@ -861,9 +908,8 @@ describe("CopilotShell", () => {
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
-    useSearchParams.mockReturnValue([
-      new URLSearchParams("agentKey=demo-agent&chatId=chat-123"),
-    ]);
+    useParams.mockReturnValue({ agentKey: "demo-agent" });
+    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [

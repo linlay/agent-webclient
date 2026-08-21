@@ -79,16 +79,15 @@ export function resolveStatusPillClassName(
 
 const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5";
 const TOP_NAV_INNER_CLASS =
-  "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center tw:justify-between tw:gap-3";
-const NAV_GROUP_CLASS = "nav-group tw:flex tw:items-center";
-const NAV_LEFT_CLASS =
-  "nav-group nav-left tw:flex tw:w-[150px] tw:items-center tw:justify-between tw:gap-3 tw:pl-3";
+  "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center";
+const NAV_GROUP_CLASS = "nav-group tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
+const NAV_LEFT_CLASS = "nav-group nav-left tw:flex-[0_1_180px]";
 const NAV_CENTER_CLASS =
-  "nav-group nav-center tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:shrink-0";
+  "nav-group nav-center tw:flex-[1_0_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center";
 const CURRENT_WORKER_CARD_CLASS =
   "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-[7px]";
 const CURRENT_WORKER_NAME_CLASS =
-  "current-worker-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
+  "current-worker-name tw:whitespace-nowrap tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
 const KBASE_EDITING_BADGE_CLASS =
   "kbase-editing-badge tw:inline-flex tw:flex-none tw:items-center tw:whitespace-nowrap tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-warn)_14%,transparent)] tw:px-2 tw:py-1 tw:text-[10px] tw:font-semibold tw:text-accent-warn";
 const TOP_NAV_ICON_BUTTON_CLASS =
@@ -155,7 +154,11 @@ export function resolveTopNavStatus(
 
   let runErrorDetail = "";
   let hasRunError = false;
-  for (let index = state.events.length - 1; index > lastRunStartIndex; index -= 1) {
+  for (
+    let index = state.events.length - 1;
+    index > lastRunStartIndex;
+    index -= 1
+  ) {
     const event = state.events[index];
     if (event.type === "run.error") {
       hasRunError = true;
@@ -212,11 +215,16 @@ function formatFirstTokenLatency(value: unknown): string | null {
 }
 
 function resolveFirstTokenLatency(stats?: AIUsageStats): number | null {
-  const directLatency = readUsageTimingNumber(stats?.timing?.firstTokenLatencyMs);
+  const directLatency = readUsageTimingNumber(
+    stats?.timing?.firstTokenLatencyMs,
+  );
   if (directLatency != null) return directLatency;
-  const totalLatency = readUsageTimingNumber(stats?.timing?.firstTokenLatencyTotalMs);
+  const totalLatency = readUsageTimingNumber(
+    stats?.timing?.firstTokenLatencyTotalMs,
+  );
   const count = readUsageTimingNumber(stats?.timing?.firstTokenLatencyCount);
-  if (totalLatency == null || totalLatency <= 0 || count == null || count <= 0) return null;
+  if (totalLatency == null || totalLatency <= 0 || count == null || count <= 0)
+    return null;
   return totalLatency / count;
 }
 
@@ -228,8 +236,15 @@ function formatOutputTokensPerSecond(value: unknown): string | null {
 
 function resolveOutputTokensPerSecond(stats?: AIUsageStats): number | null {
   const completionTokens = readUsageTimingNumber(stats?.completionTokens);
-  const generationDurationMs = readUsageTimingNumber(stats?.timing?.generationDurationMs);
-  if (completionTokens == null || completionTokens <= 0 || generationDurationMs == null || generationDurationMs <= 0) {
+  const generationDurationMs = readUsageTimingNumber(
+    stats?.timing?.generationDurationMs,
+  );
+  if (
+    completionTokens == null ||
+    completionTokens <= 0 ||
+    generationDurationMs == null ||
+    generationDurationMs <= 0
+  ) {
     return null;
   }
   return (completionTokens * 1000) / generationDurationMs;
@@ -244,10 +259,9 @@ function formatCompactUsageNumber(value: unknown): string {
   return numberValue.toLocaleString();
 }
 
-
 function formatChatEstimatedCost(
   cost?: AIUsageEstimatedCost,
-  locale: string = "zh-CN"
+  locale: string = "zh-CN",
 ): string {
   const total = readUsageNumber(cost?.total);
   if (total == null || total < 0) return "--";
@@ -255,7 +269,8 @@ function formatChatEstimatedCost(
   const currency = cost?.currency?.toUpperCase();
   if (currency === "USD") {
     return new Intl.NumberFormat(locale, {
-      style: "currency", currencyDisplay: "symbol",
+      style: "currency",
+      currencyDisplay: "symbol",
       currency: "USD",
     }).format(total);
   }
@@ -264,7 +279,8 @@ function formatChatEstimatedCost(
     // 默认只使用中文环境下的货币格式化: ¥1,234.5678
     // en-US 环境下格式为: CN¥1,234.5678
     return new Intl.NumberFormat("zh-CN", {
-      style: "currency", currencyDisplay: "symbol",
+      style: "currency",
+      currencyDisplay: "symbol",
       currency: "CNY",
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,
@@ -311,7 +327,8 @@ function hasUsageStatsData(stats?: AIUsageStats): boolean {
     stats.timing?.firstTokenLatencyCount,
     stats.timing?.generationDurationMs,
   ];
-  if (numericValues.some((value) => readUsageNumber(value) != null)) return true;
+  if (numericValues.some((value) => readUsageNumber(value) != null))
+    return true;
   return Boolean(stats.estimatedCost);
 }
 
@@ -515,7 +532,9 @@ const UsageCallCounts: React.FC<{
 }> = ({ t, stats, showFirstTokenLatency = false, showOutputSpeed = false }) => {
   const headerStats: UsageHeaderStat[] = [];
   if (showFirstTokenLatency) {
-    const firstTokenLatency = formatFirstTokenLatency(resolveFirstTokenLatency(stats));
+    const firstTokenLatency = formatFirstTokenLatency(
+      resolveFirstTokenLatency(stats),
+    );
     if (firstTokenLatency) {
       headerStats.push({
         key: "firstTokenLatency",
@@ -526,7 +545,9 @@ const UsageCallCounts: React.FC<{
   }
 
   if (showOutputSpeed) {
-    const outputSpeed = formatOutputTokensPerSecond(resolveOutputTokensPerSecond(stats));
+    const outputSpeed = formatOutputTokensPerSecond(
+      resolveOutputTokensPerSecond(stats),
+    );
     if (outputSpeed) {
       headerStats.push({
         key: "outputTokensPerSecond",
@@ -549,7 +570,11 @@ const UsageCallCounts: React.FC<{
     },
   ].forEach((count) => {
     let value = count.value;
-    if (count.key === "tool" && readUsageNumber(value) == null && hasUsageStatsData(stats)) {
+    if (
+      count.key === "tool" &&
+      readUsageNumber(value) == null &&
+      hasUsageStatsData(stats)
+    ) {
       value = 0;
     }
     if (readUsageNumber(value) == null) return;
@@ -576,13 +601,14 @@ const UsageCallCounts: React.FC<{
   );
 };
 
-export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "root" }) => {
+export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
+  surface = "root",
+}) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
   const { t, locale } = useI18n();
   const openTarget = useOpenTarget();
-  const terminalAgentStatuses = useTerminalAgentStatuses();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const isGlobalSearchOpen = useGlobalSearchOpen();
@@ -603,15 +629,17 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
     isMainChatRunning,
   );
   const currentWorker = resolveCurrentWorkerSummary(state);
+  const desktopMode = isDesktopAppMode();
+  const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
+  const terminalAgentStatuses = useTerminalAgentStatuses(showTerminalButton);
   const voiceEnabled = isVoiceEnabled();
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
-  const desktopMode = isDesktopAppMode();
-  const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
-  const showProjectButton = !desktopMode && (
-    isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker)
-  );
+  const hideDesktopAgentActions = desktopMode && surface === "agent";
+  const showProjectButton =
+    !desktopMode &&
+    (isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker));
   const currentWorkerTerminalStatus = showTerminalButton
     ? terminalAgentStatuses.get(currentWorker?.sourceId || "")
     : undefined;
@@ -628,37 +656,37 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
     ? "Meta+Shift+Space"
     : "Control+Shift+Space";
   const voiceToggleDisabled =
-    !voiceModeAvailable || isMainChatRunning || Boolean(state.activeFrontendTool);
+    !voiceModeAvailable ||
+    isMainChatRunning ||
+    Boolean(state.activeFrontendTool);
   const usageSnapshot = state.usageSnapshot;
   const compactUsage = resolveLatestCompactUsage(state.events);
   const showUsageControl =
     Boolean(usageSnapshot) || Boolean(compactUsage) || isMainChatRunning;
   const usageTotal = resolveDisplayTotal(usageSnapshot);
-  const {
-    submitCompactCommand,
-    submittingCommand,
-  } = useBackgroundCommandActions({
-    dispatch,
-    state: {
-      chatId: state.chatId,
-      events: state.events,
-      usageSnapshot: state.usageSnapshot,
-    },
-    text: {
-      remember: {
-        pending: t("composer.background.remember.pending"),
-        error: t("composer.background.remember.error"),
+  const { submitCompactCommand, submittingCommand } =
+    useBackgroundCommandActions({
+      dispatch,
+      state: {
+        chatId: state.chatId,
+        events: state.events,
+        usageSnapshot: state.usageSnapshot,
       },
-      learn: {
-        pending: t("composer.background.learn.pending"),
-        error: t("composer.background.learn.error"),
+      text: {
+        remember: {
+          pending: t("composer.background.remember.pending"),
+          error: t("composer.background.remember.error"),
+        },
+        learn: {
+          pending: t("composer.background.learn.pending"),
+          error: t("composer.background.learn.error"),
+        },
+        compact: {
+          pending: t("composer.background.compact.pending"),
+          error: t("composer.background.compact.error"),
+        },
       },
-      compact: {
-        pending: t("composer.background.compact.pending"),
-        error: t("composer.background.compact.error"),
-      },
-    },
-  });
+    });
   const compactStatusOverlayPending =
     state.commandStatusOverlay.visible &&
     state.commandStatusOverlay.commandType === "compact" &&
@@ -700,9 +728,12 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
     });
   }, [conversation.inputMode, dispatch]);
 
-  const handleUsagePopoverOpenChange = React.useCallback((open: boolean) => {
-    dispatch({ type: "SET_USAGE_POPOVER_OPEN", open });
-  }, [dispatch]);
+  const handleUsagePopoverOpenChange = React.useCallback(
+    (open: boolean) => {
+      dispatch({ type: "SET_USAGE_POPOVER_OPEN", open });
+    },
+    [dispatch],
+  );
 
   const handleCloseUsagePopover = React.useCallback(() => {
     dispatch({ type: "SET_USAGE_POPOVER_OPEN", open: false });
@@ -714,7 +745,10 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat) return;
       const target = event.target;
-      if (target instanceof HTMLElement && target.closest(".modal, .ant-modal")) {
+      if (
+        target instanceof HTMLElement &&
+        target.closest(".modal, .ant-modal")
+      ) {
         return;
       }
 
@@ -755,7 +789,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
         version: 1,
         kind: tab === "debug" ? "debug" : "overview",
         chatId: state.chatId,
-        runId: state.runId || undefined,
         agentKey: currentWorker?.sourceId,
       });
       return;
@@ -772,14 +805,20 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
   };
   const contextPercent = resolveContextPercent(usageSnapshot);
   const estimatedCostLabel = formatChatEstimatedCost(
-    resolveChatEstimatedCost(usageSnapshot), locale,
+    resolveChatEstimatedCost(usageSnapshot),
+    locale,
   );
-  const reasoningEffort = usageSnapshot?.contextWindow?.reasoningEffort || '';
+  const reasoningEffort = usageSnapshot?.contextWindow?.reasoningEffort || "";
   const reasoningEffortLabel = reasoningEffort
-    ? tOrFallback(`composer.query.reasoning.${reasoningEffort}`, reasoningEffort)
-    : '';
+    ? tOrFallback(
+        `composer.query.reasoning.${reasoningEffort}`,
+        reasoningEffort,
+      )
+    : "";
   const statusLabel = t(statusText);
-  const statusTitle = statusDetail ? `${statusLabel}: ${statusDetail}` : statusLabel;
+  const statusTitle = statusDetail
+    ? `${statusLabel}: ${statusDetail}`
+    : statusLabel;
   return (
     <nav className={TOP_NAV_CLASS}>
       <div className={TOP_NAV_INNER_CLASS}>
@@ -815,10 +854,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
                 classNames={{ root: USAGE_POPOVER_ROOT_CLASS }}
                 onOpenChange={handleUsagePopoverOpenChange}
                 content={
-                  <div
-                    role="dialog"
-                    aria-label={t("topNav.usage.title")}
-                  >
+                  <div role="dialog" aria-label={t("topNav.usage.title")}>
                     <Flex gap={10} align="center">
                       <div
                         className={USAGE_CONTEXT_RING_CLASS}
@@ -829,7 +865,11 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
                         }
                         aria-label={t("topNav.usage.contextWindow")}
                       >
-                        <span>{contextPercent == null ? "--%" : `${contextPercent.label}%`}</span>
+                        <span>
+                          {contextPercent == null
+                            ? "--%"
+                            : `${contextPercent.label}%`}
+                        </span>
                       </div>
                       <Flex vertical style={{ flex: 1, overflow: "hidden" }}>
                         <div className={USAGE_POPOVER_HEADER_CLASS}>
@@ -839,7 +879,11 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
                             style={{ overflow: "hidden", whiteSpace: "nowrap" }}
                           >
                             <Typography.Text
-                              ellipsis={{ tooltip: usageSnapshot?.contextWindow?.modelKey || usageSnapshot?.model?.key }}
+                              ellipsis={{
+                                tooltip:
+                                  usageSnapshot?.contextWindow?.modelKey ||
+                                  usageSnapshot?.model?.key,
+                              }}
                             >
                               {usageSnapshot?.contextWindow?.modelKey ||
                                 usageSnapshot?.model?.key ||
@@ -952,178 +996,197 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({ surface = "ro
           </div>
         </div>
 
-        <div className={NAV_GROUP_CLASS}>
-          {showProjectButton ? (
+        {hideDesktopAgentActions ? (
+          <div className={NAV_GROUP_CLASS} />
+        ) : (
+          <div className={NAV_GROUP_CLASS}>
+            {showProjectButton ? (
+              <UiButton
+                className={TOP_NAV_ICON_BUTTON_CLASS}
+                variant="ghost"
+                size="sm"
+                iconOnly
+                aria-label={t("topNav.project.open")}
+                title={t("topNav.project.open")}
+                onClick={() =>
+                  openTarget({
+                    version: 1,
+                    kind: "project",
+                    agentKey: currentWorker?.sourceId,
+                    chatId: state.chatId || undefined,
+                  })
+                }
+              >
+                <MaterialIcon name="folder_open" />
+              </UiButton>
+            ) : null}
+            {voiceModeAvailable ? (
+              <UiButton
+                className={
+                  conversation.inputMode === "voice"
+                    ? VOICE_TOOL_CLASS_BY_MODE.hangup
+                    : VOICE_TOOL_CLASS_BY_MODE.call
+                }
+                variant="ghost"
+                size="sm"
+                iconOnly
+                disabled={voiceToggleDisabled}
+                aria-label={
+                  conversation.inputMode === "voice"
+                    ? t("topNav.voice.hangup")
+                    : t("topNav.voice.open")
+                }
+                aria-keyshortcuts={
+                  conversation.inputMode === "voice"
+                    ? "Escape"
+                    : voiceOpenAriaShortcut
+                }
+                title={
+                  conversation.inputMode === "voice"
+                    ? t("topNav.voice.hangupWithShortcut")
+                    : t("topNav.voice.openWithShortcut", {
+                        shortcut: voiceOpenShortcutLabel,
+                      })
+                }
+                onClick={handleToggleVoiceMode}
+              >
+                <MaterialIcon
+                  name={
+                    conversation.inputMode === "voice" ? "call_end" : "call"
+                  }
+                />
+              </UiButton>
+            ) : null}
+            {showMuteControl ? (
+              <UiButton
+                className={[
+                  CURRENT_WORKER_TOOL_BASE_CLASS,
+                  ui.audioMuted ? MUTED_TOOL_ACTIVE_CLASS : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                variant="ghost"
+                size="sm"
+                iconOnly
+                active={ui.audioMuted}
+                aria-label={
+                  ui.audioMuted
+                    ? t("topNav.audio.unmute")
+                    : t("topNav.audio.mute")
+                }
+                title={
+                  ui.audioMuted
+                    ? t("topNav.audio.unmute")
+                    : t("topNav.audio.mute")
+                }
+                onClick={handleToggleAudioMuted}
+              >
+                <MaterialIcon
+                  name={ui.audioMuted ? "volume_off" : "volume_up"}
+                />
+              </UiButton>
+            ) : null}
+            <Divider type="vertical" />
+            {debugPanelEnabled ? (
+              <UiButton
+                className={TOP_NAV_DEBUG_BUTTON_CLASS}
+                size="sm"
+                variant="ghost"
+                iconOnly
+                aria-label={
+                  surface !== "root"
+                    ? t("copilot.panel.debug")
+                    : ui.rightSidebarOpen
+                      ? t("topNav.debug.close")
+                      : t("topNav.debug.open")
+                }
+                active={
+                  surface === "root" &&
+                  state.rightSidebarOpen &&
+                  state.rightSidebarOpenTab === "debug"
+                }
+                onClick={() => toggleRightSidebar("debug")}
+              >
+                <MaterialIcon name="bug_report" />
+              </UiButton>
+            ) : null}
+            {showTerminalButton ? (
+              <UiButton
+                className={[
+                  TOP_NAV_ICON_BUTTON_CLASS,
+                  "current-worker-tool-terminal tw:relative",
+                  "ui-icon-hover-24",
+                  isCurrentWorkerTerminalActive ? "has-terminal" : "",
+                  isCurrentWorkerTerminalBusy ? "has-running-terminal" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                variant="ghost"
+                size="sm"
+                iconOnly
+                active={surface === "root" && ui.terminalDockOpen}
+                aria-label={
+                  surface === "root" && ui.terminalDockOpen
+                    ? t("topNav.terminal.close")
+                    : t("topNav.terminal.open")
+                }
+                title={
+                  surface === "root" && ui.terminalDockOpen
+                    ? t("topNav.terminal.close")
+                    : t("topNav.terminal.open")
+                }
+                onClick={() =>
+                  surface === "root"
+                    ? dispatch({
+                        type: "SET_TERMINAL_DOCK_OPEN",
+                        open: !ui.terminalDockOpen,
+                      })
+                    : currentWorker
+                      ? openTarget({
+                          version: 1,
+                          kind: "terminal",
+                          agentKey: currentWorker.sourceId,
+                          terminalKey: "main",
+                        })
+                      : undefined
+                }
+              >
+                <MaterialIcon name="terminal" />
+                {isCurrentWorkerTerminalActive ? (
+                  <span
+                    className={[
+                      "current-worker-terminal-dot tw:absolute tw:right-[5px] tw:top-[5px] tw:h-[7px] tw:w-[7px] tw:rounded-full tw:border tw:border-bg-elev-1 tw:bg-accent-electric-strong",
+                      isCurrentWorkerTerminalBusy
+                        ? "is-busy tw:animate-[status-pulse_1s_ease-in-out_infinite] tw:bg-accent-lime tw:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-lime)_16%,transparent)]"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    aria-hidden
+                  />
+                ) : null}
+              </UiButton>
+            ) : null}
             <UiButton
               className={TOP_NAV_ICON_BUTTON_CLASS}
-              variant="ghost"
-              size="sm"
-              iconOnly
-              aria-label={t("topNav.project.open")}
-              title={t("topNav.project.open")}
-              onClick={() => openTarget({
-                version: 1,
-                kind: "project",
-                agentKey: currentWorker?.sourceId,
-                chatId: state.chatId || undefined,
-                runId: state.runId || undefined,
-              })}
-            >
-              <MaterialIcon name="folder_open" />
-            </UiButton>
-          ) : null}
-          {voiceModeAvailable ? (
-            <UiButton
-              className={
-                conversation.inputMode === "voice"
-                  ? VOICE_TOOL_CLASS_BY_MODE.hangup
-                  : VOICE_TOOL_CLASS_BY_MODE.call
-              }
-              variant="ghost"
-              size="sm"
-              iconOnly
-              disabled={voiceToggleDisabled}
-              aria-label={
-                conversation.inputMode === "voice"
-                  ? t("topNav.voice.hangup")
-                  : t("topNav.voice.open")
-              }
-              aria-keyshortcuts={
-                conversation.inputMode === "voice"
-                  ? "Escape"
-                  : voiceOpenAriaShortcut
-              }
-              title={
-                conversation.inputMode === "voice"
-                  ? t("topNav.voice.hangupWithShortcut")
-                  : t("topNav.voice.openWithShortcut", {
-                      shortcut: voiceOpenShortcutLabel,
-                    })
-              }
-              onClick={handleToggleVoiceMode}
-            >
-              <MaterialIcon
-                name={conversation.inputMode === "voice" ? "call_end" : "call"}
-              />
-            </UiButton>
-          ) : null}
-          {showMuteControl ? (
-            <UiButton
-              className={[
-                CURRENT_WORKER_TOOL_BASE_CLASS,
-                ui.audioMuted ? MUTED_TOOL_ACTIVE_CLASS : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              variant="ghost"
-              size="sm"
-              iconOnly
-              active={ui.audioMuted}
-              aria-label={
-                ui.audioMuted
-                  ? t("topNav.audio.unmute")
-                  : t("topNav.audio.mute")
-              }
-              title={
-                ui.audioMuted
-                  ? t("topNav.audio.unmute")
-                  : t("topNav.audio.mute")
-              }
-              onClick={handleToggleAudioMuted}
-            >
-              <MaterialIcon name={ui.audioMuted ? "volume_off" : "volume_up"} />
-            </UiButton>
-          ) : null}
-          <Divider type="vertical" />
-          {debugPanelEnabled ? (
-            <UiButton
-              className={TOP_NAV_DEBUG_BUTTON_CLASS}
               size="sm"
               variant="ghost"
               iconOnly
-              aria-label={
-                surface !== "root"
-                  ? t("copilot.panel.debug")
-                  : ui.rightSidebarOpen
-                  ? t("topNav.debug.close")
-                  : t("topNav.debug.open")
-              }
+              aria-label={t("copilot.panel.overview")}
+              title={t("copilot.panel.overview")}
               active={
                 surface === "root" &&
                 state.rightSidebarOpen &&
-                state.rightSidebarOpenTab === "debug"
+                state.rightSidebarOpenTab !== "debug"
               }
-              onClick={() => toggleRightSidebar("debug")}
+              onClick={() => toggleRightSidebar("overview")}
             >
-              <MaterialIcon name="bug_report" />
+              <MaterialIcon
+                name={surface === "root" ? "dock_to_left" : "open_in_new"}
+              />
             </UiButton>
-          ) : null}
-          {showTerminalButton ? (
-            <UiButton
-              className={[
-                TOP_NAV_ICON_BUTTON_CLASS,
-                "current-worker-tool-terminal tw:relative",
-                "ui-icon-hover-24",
-                isCurrentWorkerTerminalActive ? "has-terminal" : "",
-                isCurrentWorkerTerminalBusy ? "has-running-terminal" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              variant="ghost"
-              size="sm"
-              iconOnly
-              active={surface === "root" && ui.terminalDockOpen}
-              aria-label={
-                surface === "root" && ui.terminalDockOpen
-                  ? t("topNav.terminal.close")
-                  : t("topNav.terminal.open")
-              }
-              title={
-                surface === "root" && ui.terminalDockOpen
-                  ? t("topNav.terminal.close")
-                  : t("topNav.terminal.open")
-              }
-              onClick={() =>
-                surface === "root"
-                  ? dispatch({ type: "SET_TERMINAL_DOCK_OPEN", open: !ui.terminalDockOpen })
-                  : currentWorker
-                    ? openTarget({ version: 1, kind: "terminal", agentKey: currentWorker.sourceId, terminalKey: "main" })
-                    : undefined
-              }
-            >
-              <MaterialIcon name="terminal" />
-              {isCurrentWorkerTerminalActive ? (
-                <span
-                  className={[
-                    "current-worker-terminal-dot tw:absolute tw:right-[5px] tw:top-[5px] tw:h-[7px] tw:w-[7px] tw:rounded-full tw:border tw:border-bg-elev-1 tw:bg-accent-electric-strong",
-                    isCurrentWorkerTerminalBusy
-                      ? "is-busy tw:animate-[status-pulse_1s_ease-in-out_infinite] tw:bg-accent-lime tw:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-lime)_16%,transparent)]"
-                      : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-hidden
-                />
-              ) : null}
-            </UiButton>
-          ) : null}
-          <UiButton
-            className={TOP_NAV_ICON_BUTTON_CLASS}
-            size="sm"
-            variant="ghost"
-            iconOnly
-            aria-label={t("copilot.panel.overview")}
-            title={t("copilot.panel.overview")}
-            active={
-              surface === "root" &&
-              state.rightSidebarOpen &&
-              state.rightSidebarOpenTab !== "debug"
-            }
-            onClick={() => toggleRightSidebar("overview")}
-          >
-            <MaterialIcon name={surface === "root" ? "dock_to_left" : "open_in_new"} />
-          </UiButton>
-        </div>
+          </div>
+        )}
       </div>
     </nav>
   );

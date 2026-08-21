@@ -99,15 +99,29 @@ function sourceSubtitle(source: TimelineSource): string {
   return parts.join(" · ") || source.id;
 }
 
-export const SourceDetailTab: React.FC = () => {
-  const state = useAppState();
-  const source = state.activeSourceDetail;
+export function resolveInitialSourceChunkId(
+  chunks: TimelineSourceChunk[],
+  initialChunkId: string,
+): string {
+  if (chunks.length === 0) return "";
+  const initial = String(initialChunkId || "").trim();
+  return initial && chunks.some((chunk) => chunk.chunkId === initial)
+    ? initial
+    : chunks[0].chunkId;
+}
+
+export const SourceDetailContent: React.FC<{
+  source: TimelineSource | null;
+  chatId: string;
+  teamChat?: boolean;
+  initialChunkId?: string;
+}> = ({
+  source,
+  chatId,
+  teamChat = false,
+  initialChunkId = "",
+}) => {
   const [activeChunkId, setActiveChunkId] = React.useState<string>("");
-  const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
-  const teamChat = Boolean(
-    currentChat?.owner?.kind === "orchestrated-team"
-    || String(currentChat?.teamId || "").trim(),
-  );
 
   const chunks = React.useMemo(
     () =>
@@ -118,10 +132,12 @@ export const SourceDetailTab: React.FC = () => {
   );
 
   React.useEffect(() => {
-    if (chunks.length > 0) {
-      setActiveChunkId(chunks[0].chunkId);
+    if (chunks.length === 0) {
+      setActiveChunkId("");
+      return;
     }
-  }, [chunks]);
+    setActiveChunkId(resolveInitialSourceChunkId(chunks, initialChunkId));
+  }, [chunks, initialChunkId]);
 
   const activeChunk = React.useMemo(
     () => chunks.find((c) => c.chunkId === activeChunkId) ?? null,
@@ -167,7 +183,7 @@ export const SourceDetailTab: React.FC = () => {
             <div className={SOURCE_DETAIL_CHUNK_CONTENT_CLASS_NAME}>
               <MarkdownContent
                 content={activeChunk.content}
-                chatId={state.chatId}
+                chatId={chatId}
                 teamChat={teamChat}
               />
             </div>
@@ -179,6 +195,22 @@ export const SourceDetailTab: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+export const SourceDetailTab: React.FC = () => {
+  const state = useAppState();
+  const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
+  const teamChat = Boolean(
+    currentChat?.owner?.kind === "orchestrated-team"
+    || String(currentChat?.teamId || "").trim(),
+  );
+  return (
+    <SourceDetailContent
+      source={state.activeSourceDetail}
+      chatId={state.chatId}
+      teamChat={teamChat}
+    />
   );
 };
 

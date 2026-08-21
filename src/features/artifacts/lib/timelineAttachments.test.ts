@@ -15,6 +15,7 @@ describe('normalizeTimelineAttachments', () => {
       ]),
     ).toEqual([
       {
+        id: 'img_1',
         type: 'image',
         name: 'preview.png',
         mimeType: 'image/png',

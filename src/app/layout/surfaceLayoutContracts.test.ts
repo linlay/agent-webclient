@@ -15,4 +15,15 @@ describe("independent conversation surface layout contracts", () => {
       /RightSidebar|DebugDrawer|SidePanel|BtwProvider|TerminalDock/,
     );
   });
+
+  it("reserves top-bar actions space for the Desktop native Copilot close button", () => {
+    const copilotStyles = readFileSync(
+      join(__dirname, "../../shared/styles/globals/copilot.css"),
+      "utf8",
+    );
+
+    expect(copilotStyles).toMatch(
+      /\.layout-copilot\.is-desktop-copilot-host \.copilot-topbar-actions\s*\{[\s\S]*?margin-right:\s*38px;/,
+    );
+  });
 });

@@ -20,6 +20,8 @@
 
 导出与公开分享不复用上述 replay/live 状态。对话菜单直接请求 Agent Platform 的 Markdown 或完整 HTML 导出；公开 `/share/` 由 Tunnel 直接返回已渲染 HTML 主文档。两条路径都不 attach active run，也不从当前 renderer timeline 重建快照。
 
+当前对象历史与全局历史是两个独立入口。Copilot 顶栏、`/history` Composer 命令和全局快捷操作通过 Command Overlay 打开当前 Agent/Team 的历史抽屉：Agent 历史使用 `GET /api/chats?agentKey=...`，选择记录后派发 `agent:load-chat` 并在当前壳层内切换。全局聊天历史独立使用 `/history`，以无参数 `GET /api/chats` 获取全量摘要，并在前端按关键词、`updatedAt` 自然日范围和 Agent/Team 归属组合筛选；Agent-owned 记录只输出 `/agent/:agentKey?chatId=...`。Overview、Debug、Planning、Source、Artifact、Reference 的 URL 定位字段不会传给后端；它们只调用 `GET /api/chat?chatId=...`，再从同一 replay 投影按各自稳定 ID 定位。缺少或无效 ID 显示无效目标，不回退到其他节点或最新 Run。
+
 Agent Copilot 使用相同的稳定对话身份规则：新对话收到稳定 `chatId` 后将 `/copilot/:agentKey` replace 为 `/copilot/:agentKey?chatId=<id>`，只收敛 URL，不重新加载正在消费的 live query。用户选择历史 chat 时先让既有 `agent:load-chat` 完成一次加载并同步 URL；点击新对话或切换 Agent 时立即清除旧 `chatId`。这些导航保留 `lang`、`theme`、`hostTheme`、`wsSource` 等宿主参数。Desktop 只被动镜像 URL，不读取 query 流 payload。
 
 ## 边界与非目标

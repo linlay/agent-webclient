@@ -1,7 +1,7 @@
 # API端点注册与DTO
 
 ## 当前状态
-接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 和 HTTP client helper 主要在 `src/shared/data/api/client.ts`。端点声明包含 key、path、method、transport、cache 和 payload 构造函数。
+接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 和 HTTP client helper 主要在 `src/shared/data/api/client.ts`。端点声明包含 key、path、method、transport、wsBackends、cache 和 payload 构造函数；所有 `auto` 端点必须显式声明支持 WS 的 backend。
 
 ## 核心职责
 - 统一维护 `/api/*`、`/ws`、`/api/voice/*`、`/api/resource` 等前端消费入口。
@@ -14,17 +14,23 @@
 
 静态 HTML 导出统一注册为 `GET /api/chat/export?chatId=...&format=html`，由 Platform 返回完整文档。`src/shared/data/conversationSharePath.ts` 只负责将事件中的合法 `shareId` 构造成 `/share/{id}` 路径，不发起匿名请求，也不读取运行时配置。
 
-Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `chatId` 的 `<relativePath>` ChatScope 引用，前端统一通过 `classifyResourceUrl` 分类，并由 `URLSearchParams` 转换为 `GET /api/resource?file=<chatId>/<relativePath>`。普通 Agent 的 POSIX 绝对路径转换为 `GET /api/resource?chatId=<chatId>&file=<absolutePath>`，其中 `/tmp/...` 走同一分支；Team Chat 拒绝全部绝对路径。HTTP(S)、`data:`、`blob:` 直接使用且不接收平台 Bearer；同源 `/api/resource`、`file://`、Windows/UNC、当前 chatId 前缀、query/fragment、反斜线、空段、`.`/`..` 与编码后路径分隔符都分类为非法，不发起 fetch。`downloadResource`、`getResourceText`、`getResourceBlob` 只对 ChatScope 和获准绝对路径使用 Bearer/Cookie，组件不手工拼接真实资源请求。
+Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `chatId` 的 `<relativePath>` ChatScope 引用，前端统一通过 `classifyResourceUrl` 分类，并由 `URLSearchParams` 转换为 `GET /api/resource?file=<chatId>/<relativePath>`。POSIX 绝对路径转换为 `GET /api/resource?chatId=<chatId>&file=<absolutePath>`，其中 `/tmp/...` 与 Team Chat 都走同一请求分支，是否允许由 Platform 判定。HTTP(S)、`data:`、`blob:` 直接使用且不接收平台 Bearer；同源 `/api/resource`、`file://`、Windows/UNC、当前 chatId 前缀、query/fragment、反斜线、空段、`.`/`..` 与编码后路径分隔符都作为 URL 结构非法而不发起 fetch。`downloadResource`、`getResourceText`、`getResourceBlob` 只对 ChatScope 和结构合法的绝对路径使用 Bearer/Cookie，组件不手工拼接真实资源请求。
 
 `runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父对话继承。
 
-对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 `auto`：当前 mode 为 WebSocket 时优先向 `/api/skills` 发送 `{agentKey}` request frame，SSE 模式使用 HTTP，WS 连接或传输故障时回退 HTTP；业务错误保持原错误，不二次请求。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
+对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 Platform-only `auto`：Platform 模式向 `/api/skills` 发送 `{agentKey}` request frame，Gateway 因未暴露该 WS route 而在请求前选择 HTTP；WS 连接或传输故障不回退 HTTP。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
 
 ## Skills 管理契约
 
 Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文件操作契约，不保留 `/v2`、`skillKey` 或通用 `file-op` 兼容分支。列表响应为 `AdminSkillSummary[]`；详情、文本文件、保存、创建文件/目录、重命名、删除、上传、下载、校验、创建、ZIP 导入和删除均使用同一组 `AdminSkill*` DTO 与语义化 client 函数。完整 ZIP 通过 `importAdminSkill` 以 multipart `key/file` 发送到 `POST /api/admin/skills/import`，成功后复用 `AdminSkillDetailResponse` 并直接进入新技能；409 重名和 422 文件级诊断留在新建弹窗中处理。
 
 后端只在发现 `skills-center/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
+
+## Agent 管理导入契约
+
+完整 Agent ZIP 使用 HTTP-only 端点 `POST /api/admin/agents/import`。`importAdminAgent` 接收 `ImportAgentArchiveRequest { file, overwrite? }` 并发送 multipart：`file` 必填，只有用户确认整目录覆盖后才附加字符串 `overwrite=true`；不得发送 `key` 或 `agentKey`。成功复用 `AdminAgentDetailResponse`，前端读取 `key`、`status` 和 `diagnostics` 完成列表刷新、选中与 ready/invalid 提示。
+
+409 覆盖冲突从 `data.error` 读取 `agentKey`、`existingName` 和 `overwriteRequired:true`；只有满足这份明确契约才展示覆盖确认并用同一 `File` 重试。422 的 `diagnostics[]` 使用 `AdminAgentDiagnostic` 展示 `sourcePath/message`；413、415 和其他错误沿用统一 `ApiError` 消息。该端点不进入 WebSocket/routed client，也不由前端解析 ZIP 中的 YAML。
 
 ## 对话运行身份
 

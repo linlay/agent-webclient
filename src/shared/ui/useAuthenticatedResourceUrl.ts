@@ -5,9 +5,9 @@ import {
   type ResourceUrlClassificationOptions,
 } from "@/shared/data";
 import {
-  createObjectUrlLease,
-  type ObjectUrlLease,
+  authenticatedResourceBlobCache,
   withBlobMimeTypeFallback,
+  type AuthenticatedResourceCacheState,
 } from "./authenticatedResourceUrl";
 
 export interface AuthenticatedResourceUrlState {
@@ -96,30 +96,22 @@ export function useAuthenticatedResourceUrl(
       return;
     }
 
-    const controller = new AbortController();
-    let lease: ObjectUrlLease | null = null;
-    setState({ requestKey, url: "", loading: true, error: null });
-    void getResourceBlob(normalized, {
-      chatId,
-      signal: controller.signal,
-      teamChat,
-    })
-      .then((blob) => {
-        if (controller.signal.aborted) return;
-        lease = createObjectUrlLease(
-          withBlobMimeTypeFallback(blob, blobMimeTypeFallback),
-        );
-        setState({ requestKey, url: lease.url, loading: false, error: null });
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          setState({ requestKey, url: "", loading: false, error });
-        }
-      });
+    // 共享缓存持有 object-URL 租约与请求去重，组件卸载/重挂
+    // （虚拟列表滚动、markdown 重渲染）不再触发重复网络请求。
+    const subscription = authenticatedResourceBlobCache.acquire(
+      requestKey,
+      () => getResourceBlob(normalized, { chatId, teamChat })
+        .then((blob) => withBlobMimeTypeFallback(blob, blobMimeTypeFallback)),
+    );
+    const listener = (next: AuthenticatedResourceCacheState) => {
+      setState({ requestKey, ...next });
+    };
+    setState({ requestKey, ...subscription.state });
+    subscription.subscribe(listener);
 
     return () => {
-      controller.abort();
-      lease?.revoke();
+      subscription.unsubscribe(listener);
+      subscription.release();
     };
   }, [blobMimeTypeFallback, chatId, classificationOptions, classified.kind, classified.source, normalized, requestKey, requestOptions, teamChat]);
 

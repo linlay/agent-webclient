@@ -3,12 +3,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import {
   AgentChatShell,
+  claimNewChatAgentRefresh,
   consumeLiveSessionPromotion,
   createChatRouteKey,
+  createExplicitNewChatRoute,
+  createNewChatTimestamp,
   createNewChatRouteKey,
   createResolvedNewChatRoute,
   isAgentRouteAuthenticationError,
   parseNewChatTimestamp,
+  resolveNewChatResendRouteAction,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
 import { SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL } from "@/shared/hooks/agentPage/useDesktopAction";
@@ -168,6 +172,9 @@ const { getAgent } = jest.requireMock(
   getAgent: jest.Mock;
 };
 
+const refreshWorkerData = jest.fn(() => Promise.resolve());
+const loadAgents = jest.fn(() => Promise.resolve());
+
 const flushPromises = async () => {
   await Promise.resolve();
 };
@@ -234,6 +241,10 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(jest.fn());
     useAppRuntimes.mockClear();
+    useAppRuntimes.mockReturnValue({ loadAgents, refreshWorkerData });
+    loadAgents.mockReset();
+    loadAgents.mockResolvedValue(undefined);
+    refreshWorkerData.mockClear();
     getAgent.mockReset();
     getAgent.mockResolvedValue({
       data: {
@@ -270,6 +281,9 @@ describe("AgentChatShell", () => {
     expect(html).toContain("Loading agent");
     expect(html).not.toContain("conversation-stage");
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+    expect(useAppRuntimes).toHaveBeenCalledWith({
+      initialWorkerRefreshEnabled: false,
+    });
   });
 
   it("hydrates an unknown route agent before route activation", async () => {
@@ -463,6 +477,7 @@ describe("AgentChatShell", () => {
         type: "agent:load-chat",
       }),
     );
+    expect(loadAgents).not.toHaveBeenCalled();
 
     useEffectSpy.mockRestore();
   });
@@ -499,6 +514,37 @@ describe("AgentChatShell", () => {
           preserveWorkerContext: true,
           focusComposerOnComplete: true,
         },
+      }),
+    );
+    expect(loadAgents).toHaveBeenCalledTimes(1);
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("keeps explicit new chat activation usable when the agent refresh fails", async () => {
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    loadAgents.mockRejectedValueOnce(new Error("refresh failed"));
+    useSearchParams.mockReturnValue([new URLSearchParams("newChat=1783680000000")]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+    await flushPromises();
+
+    expect(loadAgents).toHaveBeenCalledTimes(1);
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent:start-new-conversation",
       }),
     );
 
@@ -563,7 +609,7 @@ describe("AgentChatShell", () => {
         ),
         "chat-123",
       ),
-    ).toBe("/agent/demo-agent?lang=en&hostTheme=dark&chatId=chat-123");
+    ).toBe("/agent/demo-agent?lang=en&chatId=chat-123");
   });
 
   it("consumes a live-session promotion exactly once for its promoted chat route", () => {
@@ -591,12 +637,108 @@ describe("AgentChatShell", () => {
     );
   });
 
+  it("claims each explicit new chat agent refresh exactly once", () => {
+    const refreshedRouteKeys = new Set<string>();
+
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1783680000000",
+    )).toBe(true);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1783680000000",
+    )).toBe(false);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1783680000001",
+    )).toBe(true);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "other-agent",
+      "1783680000000",
+    )).toBe(true);
+    expect(claimNewChatAgentRefresh(
+      refreshedRouteKeys,
+      "demo-agent",
+      "1",
+    )).toBe(false);
+  });
+
   it("only accepts positive 13-digit Unix millisecond timestamps for new chat routes", () => {
     expect(parseNewChatTimestamp("1783680000000")).toBe("1783680000000");
     expect(parseNewChatTimestamp("1")).toBe("");
     expect(parseNewChatTimestamp("01783680000000")).toBe("");
     expect(parseNewChatTimestamp("17836800000000")).toBe("");
     expect(parseNewChatTimestamp("not-a-timestamp")).toBe("");
+  });
+
+  it("creates monotonic 13-digit new Chat timestamps", () => {
+    expect(createNewChatTimestamp(1_999_999_999_998)).toBe("1999999999998");
+    expect(createNewChatTimestamp(1_999_999_999_998)).toBe("1999999999999");
+  });
+
+  it("creates an explicit new Chat route without the source chat id", () => {
+    expect(createExplicitNewChatRoute(
+      "demo-agent",
+      new URLSearchParams("chatId=chat-old&lang=en&history=1"),
+      "1783680000000",
+    )).toBe("/agent/demo-agent?lang=en&newChat=1783680000000");
+  });
+
+  it("waits for route preparation before resetting or sending a resend", () => {
+    const pending = {
+      agentKey: "demo-agent",
+      sourceChatId: "chat-old",
+      newChat: "1783680000000",
+      message: "retry this",
+      routePrepared: false,
+      sent: false,
+      failed: false,
+    };
+
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      false,
+    )).toEqual({
+      matches: true,
+      waitForPreparation: true,
+      shouldInitialize: true,
+      shouldSend: false,
+    });
+
+    pending.routePrepared = true;
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      false,
+    )).toEqual({
+      matches: true,
+      waitForPreparation: false,
+      shouldInitialize: true,
+      shouldSend: true,
+    });
+
+    pending.sent = true;
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      true,
+    ).shouldSend).toBe(false);
+
+    pending.failed = true;
+    expect(resolveNewChatResendRouteAction(
+      pending,
+      "demo-agent",
+      "1783680000000",
+      false,
+    ).waitForPreparation).toBe(true);
   });
 
   it("does not treat the legacy newChat URL as a new conversation request", () => {
@@ -626,6 +768,7 @@ describe("AgentChatShell", () => {
         type: "agent:start-new-conversation",
       }),
     );
+    expect(loadAgents).not.toHaveBeenCalled();
 
     useEffectSpy.mockRestore();
   });
@@ -674,6 +817,7 @@ describe("AgentChatShell", () => {
         type: "agent:start-new-conversation",
       }),
     );
+    expect(loadAgents).not.toHaveBeenCalled();
     expect(html).toContain("agent-route-loading-page");
     expect(html).toContain("agent-route-loading-overlay");
     expect(html).toContain("Loading conversation");
@@ -781,7 +925,7 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("opens route history when history=1 is present without starting a blank conversation", () => {
+  it("does not parse the removed history=1 route compatibility flag", () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -832,21 +976,15 @@ describe("AgentChatShell", () => {
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
-    expect(dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:open-worker-history",
-        detail: {
-          workerKey: "agent:demo-agent",
-          agentKey: "demo-agent",
-        },
-      }),
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:open-worker-history" }),
     );
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",
       }),
     );
-    expect(html).toContain("worker-history-modal");
+    expect(html).not.toContain("worker-history-modal");
 
     useEffectSpy.mockRestore();
   });

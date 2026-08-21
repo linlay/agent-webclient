@@ -72,6 +72,7 @@ export function processPlanningEvent(
       node: {
         id: nodeId,
         kind: "planning",
+        planningId: toText(event.planningId).trim() || existing?.planningId,
         ...applyTaskBindingToNode(event, state, existing),
         reasoningLabel: readPlanningLabel(event, existing?.reasoningLabel),
         text,
@@ -107,6 +108,7 @@ export function processPlanningEvent(
       node: {
         id: nodeId,
         kind: "planning",
+        planningId: toText(event.planningId).trim() || existing?.planningId,
         ...applyTaskBindingToNode(event, state, existing),
         reasoningLabel: readPlanningLabel(event, existing?.reasoningLabel),
         text,

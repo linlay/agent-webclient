@@ -27,9 +27,10 @@ import type {
 	WorkerRow,
 } from "@/app/state/types";
 import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
-import type { AttachmentPreviewState } from "@/features/artifacts/lib/attachmentPreview";
+import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import type { PlanningPreviewState } from "@/app/state/uiTypes";
+import type { SkillViewerState } from "@/app/state/uiTypes";
 import type {
 	MemoryInfoFilters,
 	MemoryConsoleTab,
@@ -152,18 +153,22 @@ export type AppAction =
 	| {
 			type: "OPEN_RIGHT_SIDEBAR";
 			tab?: RightSidebarTabKey;
-			preview?: AttachmentPreviewState | null;
-			removePreviewUrl?: string;
+			viewerTarget?: ViewerTarget | null;
+			removeViewerKey?: string;
 			sourceDetail?: TimelineSource | null;
 			planningPreview?: PlanningPreviewState | null;
 			removePlanningPreviewNodeId?: string;
 			webPreview?: WebPreviewState | null;
 			activeWebPreviewUrl?: string;
 			removeWebPreviewUrl?: string;
-			activeAttachmentPreviewUrl?: string;
+			activeViewerKey?: string;
 			activePlanningPreviewNodeId?: string;
+			skillPreview?: SkillViewerState | null;
+			removeSkillKey?: string;
+			activeSkillKey?: string;
 	  }
 	| { type: "REFRESH_WEB_PREVIEW"; url: string }
+	| { type: "CLOSE_WEB_PREVIEW"; url: string }
 	| { type: "CLOSE_RIGHT_SIDEBAR" }
 	| { type: "SET_CHAT_FILTER"; filter: string }
 	| { type: "SET_WORKER_SELECTION_KEY"; workerKey: string }

@@ -47,13 +47,14 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                   variant="ghost"
                   size="sm"
                   iconOnly
+                  disabled={!node.planningId}
                   onClick={(e) => {
                     e.stopPropagation();
                     openTarget({
                       version: 1,
                       kind: "planning",
                       chatId: state.chatId,
-                      runId: state.runId || undefined,
+                      planningId: node.planningId || "",
                       nodeId: node.id,
                       label: node.text || node.id,
                     });

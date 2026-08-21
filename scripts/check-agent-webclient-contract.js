@@ -17,8 +17,9 @@ const desktopMirrorPath = configuredDesktopMirror
       "../zenmind-desktop/contracts/agent-webclient/agent-webclient-bridge.ts",
     );
 
-const vendored = fs.readFileSync(vendoredPath, "utf8");
-const expectedMirrorHash = "d69d9a360087fb711d0c753c9056a7b687abb91e78f588e5121485fde4f4e924";
+const normalizeContractText = (value) => value.replace(/\r\n/gu, "\n");
+const vendored = normalizeContractText(fs.readFileSync(vendoredPath, "utf8"));
+const expectedMirrorHash = "a8781919d181188253447b3ce8eed925845fcecea1f6a22cac2377697434ee5d";
 const actualHash = crypto.createHash("sha256").update(vendored).digest("hex");
 
 if (actualHash !== expectedMirrorHash) {
@@ -29,7 +30,7 @@ if (actualHash !== expectedMirrorHash) {
 }
 
 if (fs.existsSync(desktopMirrorPath)) {
-  const desktopMirror = fs.readFileSync(desktopMirrorPath, "utf8");
+  const desktopMirror = normalizeContractText(fs.readFileSync(desktopMirrorPath, "utf8"));
   if (desktopMirror !== vendored) {
     console.error(`Vendored contract differs from Desktop mirror: ${desktopMirrorPath}`);
     process.exit(1);
