@@ -337,6 +337,8 @@ describe("SkillConsole", () => {
     expect(html).toContain("skillConsole.create.mode.direct");
     expect(html).toContain("skillConsole.create.mode.zip");
     expect(html).toContain('accept=".zip,application/zip"');
+    expect(html).toContain("tw:cursor-pointer");
+    expect(html.match(/skillConsole\.import\.select/g)).toHaveLength(1);
   });
 
   it("validates new skill keys and derives an import key from the ZIP filename", () => {
