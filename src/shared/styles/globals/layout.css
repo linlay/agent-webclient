@@ -85,29 +85,6 @@
     position: relative;
 }
 
-.current-worker-card.has-one-tool {
-    padding-right: 54px;
-}
-
-.current-worker-label {
-    font-size: 10px;
-    line-height: 1.2;
-    letter-spacing: 0.08em;
-    color: var(--ink-muted);
-    text-transform: uppercase;
-}
-
-.current-worker-role {
-    flex: 0 1 auto;
-    min-width: 0;
-    font-size: 12px;
-    line-height: 1.3;
-    color: var(--ink-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 .current-worker-tool.ui-btn.is-active {
     border-color: color-mix(in srgb,
             var(--accent-electric) 36%,

@@ -191,46 +191,6 @@
     min-height: 0;
 }
 
-.worker-chat-sidebar {
-    position: fixed;
-    top: calc(var(--top-nav-height) + 16px);
-    right: calc(var(--right-sidebar-width) + 16px);
-    bottom: 88px;
-    width: 280px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 96%, transparent);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--bg-elev-2) 98%, transparent);
-    box-shadow: var(--shadow-medium);
-    display: flex;
-    flex-direction: column;
-    z-index: 26;
-}
-
-.worker-chat-sidebar.is-collapsed {
-    display: none;
-}
-
-.worker-chat-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--line-soft);
-}
-
-.worker-chat-head h3 {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.worker-chat-collapse-btn {
-    border-radius: 999px;
-    padding: 5px 10px;
-    font-size: 11px;
-}
-
 .worker-chat-item:hover,
 .worker-chat-item.is-active,
 .worker-chat-item.is-selected {
@@ -312,47 +272,6 @@
     line-height: 1.5;
     color: var(--text-main);
     white-space: pre-wrap;
-}
-
-.worker-chat-float-btn {
-    position: fixed;
-    right: 0;
-    top: 86px;
-    transform: none;
-    z-index: 27;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    border-radius: 10px 0 0 10px;
-    border: 1px solid color-mix(in srgb, var(--line-strong) 82%, var(--line-soft));
-    border-right: 0;
-    background: color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-input));
-    color: var(--ink-2);
-    padding: 8px 6px !important;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    letter-spacing: 0.04em;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-    box-shadow: var(--shadow-medium) !important;
-}
-
-.worker-chat-float-btn:hover {
-    background: color-mix(in srgb, var(--bg-hover) 76%, var(--bg-elev-2));
-    color: var(--accent-electric-strong);
-    box-shadow: 0 10px 20px rgba(10, 38, 87, 0.18) !important;
-}
-
-.layout-desktop-fixed.desktop-debug-disabled .worker-chat-sidebar {
-    right: 18px;
-}
-
-.layout-desktop-fixed.desktop-debug-disabled .worker-chat-float-btn {
-    right: 0;
-}
-
-.layout-desktop-fixed.desktop-debug-enabled .worker-chat-float-btn {
-    right: var(--right-sidebar-width);
 }
 
 /* Standalone management routes own the full guest viewport. Modal and drawer

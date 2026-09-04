@@ -1075,11 +1075,8 @@ html[data-theme="dark"] .icon-btn {
     box-shadow: none;
 }
 
-html[data-theme="dark"] .chat-item,
 html[data-theme="dark"] .composer-pill,
 html[data-theme="dark"] .mention-suggest,
-html[data-theme="dark"] .worker-chat-sidebar,
-html[data-theme="dark"] .worker-chat-float-btn,
 html[data-theme="dark"] .attachment-card-file-shell,
 html[data-theme="dark"] .attachment-card.is-image,
 html[data-theme="dark"] .plan-header,
@@ -1146,10 +1143,6 @@ html[data-theme="dark"] .timeline-markdown code:not(pre code) {
 
 html[data-theme="dark"] .timeline-markdown a {
     color: var(--accent-strong);
-}
-
-html[data-theme="dark"] .worker-chat-float-btn:hover {
-    box-shadow: none !important;
 }
 
 .system-alert {

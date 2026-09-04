@@ -169,20 +169,3 @@ html[data-theme="dark"] .sidebar-settings-popover .ant-popover-inner {
 html[data-theme="dark"] .sidebar-settings-menu {
     background: var(--bg-base);
 }
-
-@media (max-width: 1279px) {
-    .worker-chat-sidebar {
-        top: 66px;
-        right: 16px;
-        bottom: 92px;
-        width: min(300px, calc(100vw - 24px));
-    }
-
-    .worker-chat-float-btn {
-        right: 0;
-        top: 78px;
-        bottom: auto;
-        padding: 7px 5px !important;
-        font-size: 10px;
-    }
-}
