@@ -24,6 +24,7 @@ import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { useAgentSkillLabels } from "@/features/skills/components/AgentSkillLabelsProvider";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -253,6 +254,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   metaNode,
 }) => {
   const { locale, t } = useI18n();
+  const { resolveSkillLabel } = useAgentSkillLabels();
   const openTarget = useOpenTarget();
   const interaction = useTimelineInteraction();
   const surfaceContext = interaction?.surfaceContext;
@@ -345,7 +347,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                       version: 1,
                       kind: "skill",
                       key,
-                      label: key,
+                      label: resolveSkillLabel(key),
                     })
                   }
                 >
@@ -354,7 +356,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                       name="skills"
                       className="tw:text-accent tw:text-[14px]"
                     />
-                    <span className="tw:text-text-sub">{key}</span>
+                    <span className="tw:text-text-sub">
+                      {resolveSkillLabel(key)}
+                    </span>
                   </Flex>
                 </UiButton>
               ))}

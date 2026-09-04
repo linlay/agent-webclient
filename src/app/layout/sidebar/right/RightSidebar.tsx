@@ -17,6 +17,7 @@ import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
 import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
 import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
+import { useAgentSkillLabels } from "@/features/skills/components/AgentSkillLabelsProvider";
 import { useBTW } from "@/features/btw/components/BtwProvider";
 import type { RightSidebarTabKey } from "@/app/state/uiTypes";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
@@ -113,6 +114,7 @@ const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
 
 export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
+  const { resolveSkillLabel } = useAgentSkillLabels();
   const dispatch = useAppDispatch();
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
@@ -494,7 +496,7 @@ export const RightSidebar: React.FC = () => {
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="skills" />
-            <span>{skill.label || skill.key}</span>
+            <span>{resolveSkillLabel(skill.key, skill.label)}</span>
           </Flex>
         ),
         children: <SkillDetailView skillKey={skill.key} />,
@@ -510,6 +512,7 @@ export const RightSidebar: React.FC = () => {
     t,
     webPreviews,
     skillTabs,
+    resolveSkillLabel,
     state.webPreviewRefreshRevisionByUrl,
     tabFullscreenRequests,
   ]);

@@ -40,6 +40,7 @@ import { useStandaloneDesktopActionRuntime } from "@/features/conversation/hooks
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
 import { WebClientRouteErrorPage } from "@/app/WebClientRenderError";
+import { AgentSkillLabelsProvider } from "@/features/skills/components/AgentSkillLabelsProvider";
 
 // 管理台与独立 Surface 窗口页面全部按需加载，入口只保留登录页与对话壳层
 function lazyPage<T extends React.ComponentType<object>, M>(
@@ -121,7 +122,9 @@ const InteractiveRoute: React.FC<{
   children: React.ReactNode;
   btwEnabled?: boolean;
 }> = ({ children, btwEnabled = true }) => (
-  <BtwProvider enabled={btwEnabled}>{children}</BtwProvider>
+  <AgentSkillLabelsProvider>
+    <BtwProvider enabled={btwEnabled}>{children}</BtwProvider>
+  </AgentSkillLabelsProvider>
 );
 
 const AutomationConversationIntentBridge: React.FC = () => {

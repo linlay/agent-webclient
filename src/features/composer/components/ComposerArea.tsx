@@ -63,6 +63,7 @@ import { isChatTransitionBlockingInteractions } from "@/features/conversation/li
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useHostRequiredSkills } from "@/features/composer/components/HostRequiredSkillsContext";
+import { useAgentSkillLabels } from "@/features/skills/components/AgentSkillLabelsProvider";
 
 interface ComposerAreaProps {
   emptyInputMinRows?: number;
@@ -146,6 +147,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
   const hostRequiredSkills = useHostRequiredSkills();
+  const { resolveSkillLabel } = useAgentSkillLabels();
   const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>(
     [],
   );
@@ -169,6 +171,22 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     const forcedIdentities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
     return selectedSkills.filter((skill) => !forcedIdentities.has(skill.key.trim().toLowerCase()));
   }, [forcedSkills, selectedSkills]);
+  const displayedForcedSkills = useMemo(
+    () =>
+      forcedSkills.map((skill) => ({
+        ...skill,
+        label: resolveSkillLabel(skill.key, skill.label),
+      })),
+    [forcedSkills, resolveSkillLabel],
+  );
+  const displayedManualSkills = useMemo(
+    () =>
+      effectiveManualSkills.map((skill) => ({
+        ...skill,
+        label: resolveSkillLabel(skill.key, skill.label),
+      })),
+    [effectiveManualSkills, resolveSkillLabel],
+  );
 
   // Restore: 当 state.selectedSkills 被 reducer 更改（SET_CHAT_ID 恢复）时，同步到局部
   useEffect(() => {
@@ -826,7 +844,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onScroll={scrollComposerAttachments}
                 />
                 <Flex wrap gap={4}>
-                  {forcedSkills.map((skill) => (
+                  {displayedForcedSkills.map((skill) => (
                     <UiButton
                       key={`forced:${skill.key.toLowerCase()}`}
                       variant="ghost"
@@ -842,7 +860,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                       </Flex>
                     </UiButton>
                   ))}
-                  {effectiveManualSkills.map((skill) => (
+                  {displayedManualSkills.map((skill) => (
                     <UiButton
                       key={skill.key.toLowerCase()}
                       variant="ghost"
