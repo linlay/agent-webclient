@@ -23,8 +23,8 @@
 
 核心调用链如下：
 - 用户在 Composer 区输入消息
-- `src/features/composer/hooks/useMessageActions.ts` 发起 `/api/query` 请求，按运行模式消费 SSE 或 WebSocket 返回
-- `src/features/transport/lib/queryStreamRuntime.sse.ts`、`src/features/transport/lib/queryStreamRuntime.ws.ts` 只负责传输事件，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
+- `src/features/composer/hooks/useMessageActions.ts` 通过 `RunTransport.startQuery` 发起 `/api/query` Run
+- `src/features/transport/lib/platformRunTransport.ts` 与 `src/features/transport/lib/platformFrameClient.ts` 统一传输 Run stream 和控制请求，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
 - `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前对话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
 - `src/features/voice/lib/voiceRuntime.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责 TTS / 语音聊天链路

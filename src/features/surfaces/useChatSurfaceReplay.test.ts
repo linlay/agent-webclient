@@ -123,6 +123,19 @@ describe("standalone Overview/Debug live replay policy", () => {
     }, null)).toEqual({ kind: "agent", agentKey: "agent-latest" });
   });
 
+  it("recovers legacy Chat ownership when persisted runs omit an owner", () => {
+    expect(resolveChatSurfaceOwner({
+      chatId: "chat_legacy_first",
+      firstAgentKey: "agent-first",
+      runs: [{ runId: "run_1" }],
+    }, null)).toEqual({ kind: "agent", agentKey: "agent-first" });
+
+    expect(resolveChatSurfaceOwner({
+      chatId: "chat_legacy_agent",
+      agentKey: "agent-legacy",
+    }, null)).toEqual({ kind: "agent", agentKey: "agent-legacy" });
+  });
+
   it("keeps active and team ownership ahead of completed-run fallbacks", () => {
     expect(resolveChatSurfaceOwner({
       runs: [{ runId: "run_1", agentKey: "agent-old" }],

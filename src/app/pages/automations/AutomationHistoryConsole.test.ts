@@ -35,14 +35,6 @@ describe("Automation Run now contracts", () => {
     expect(consoleSource).toContain('name={selectedTriggering ? "progress_activity" : "bolt"}');
   });
 
-  it("removes the legacy query-simulated run path", () => {
-    const modalSource = readSource("src/app/modals/AutomationModal.tsx");
-
-    expect(modalSource).not.toContain("executeQueryOnce");
-    expect(modalSource).not.toContain("runAutomationOnce");
-    expect(modalSource).not.toContain('key: "run"');
-  });
-});
 
 describe("Automation execution viewer contracts", () => {
   const consoleSource = readSource(

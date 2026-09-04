@@ -263,12 +263,6 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     cache: { ttlMs: 60_000, dedupe: true },
   }),
-  adminAgentOrder: defineEndpoint({
-    key: "admin.agents.order",
-    path: "/api/admin/agents/order",
-    method: "GET",
-    transport: "http",
-  }),
   adminAgentOrderUpdate: defineEndpoint({
     key: "admin.agents.order.update",
     path: "/api/admin/agents/order",
@@ -300,20 +294,6 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
-  adminServices: defineEndpoint({
-    key: "admin.services.list",
-    path: "/api/admin/services",
-    method: "GET",
-    transport: "http",
-  }),
-  adminRegistryDetail: defineEndpoint({
-    key: "admin.registries.detail",
-    path: "/api/admin/registries/detail",
-    method: "GET",
-    transport: "http",
-    payload: (params: { category: string; file: string }) =>
-      compactPayload(params),
-  }),
   adminRegistryValidate: defineEndpoint({
     key: "admin.registries.validate",
     path: "/api/admin/registries/validate",
@@ -338,22 +318,6 @@ export const dataEndpoints = createEndpointRegistry({
       key: params.key,
       ...(params.openPath ? { openPath: params.openPath } : {}),
     }),
-  }),
-  adminSkillFile: defineEndpoint<
-    { key: string; path: string },
-    { key: string; path: string }
-  >({
-    key: "admin.skills.file",
-    path: "/api/admin/skills/file",
-    method: "GET",
-    transport: "http",
-    payload: (params) => ({ key: params.key, path: params.path }),
-  }),
-  adminSkillSaveFile: defineEndpoint({
-    key: "admin.skills.saveFile",
-    path: "/api/admin/skills/file",
-    method: "PUT",
-    transport: "http",
   }),
   adminSkillCreateFile: defineEndpoint({
     key: "admin.skills.createFile",

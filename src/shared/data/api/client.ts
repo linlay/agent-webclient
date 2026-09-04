@@ -1,7 +1,4 @@
-import type {
-  AIAwaitSubmitParamData,
-  VoiceCapabilities,
-} from '@/app/state/types';
+import type { VoiceCapabilities } from '@/app/state/types';
 import {
   getAppAccessToken,
   refreshAppAccessToken,
@@ -26,22 +23,14 @@ import type {
   MemoryRecordsPayload,
 } from '@/shared/data/memory/memoryTypes';
 import { t } from '@/shared/i18n';
-import { runOwnerPayload, type RunOwner } from '@/shared/data/runOwner';
+import type { RunOwner } from '@/shared/data/runOwner';
 import { createCompactId } from '@/shared/utils/compactId';
 import { isAppMode } from '@/shared/utils/routing';
-import { getClientDeviceId } from "@/shared/data/clientDeviceId";
-import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
 import {
   formatPlatformErrorForDisplay,
   type PlatformError,
 } from "@/shared/data/errors/platformError";
-import {
-  buildAttachPayload,
-  buildBTWPayload,
-  buildQueryPayload,
-  compactQueryModelOverride,
-  dataEndpoints,
-} from "@/shared/data/api/endpoints";
+import { dataEndpoints } from "@/shared/data/api/endpoints";
 import {
   resolveEndpointPayload,
   type EndpointDefinition,
@@ -469,12 +458,6 @@ export interface AdminToolSummary {
   serverKey?: string;
 }
 
-export interface AdminServiceSummary {
-  id: string;
-  name: string;
-  status: string;
-}
-
 export interface AdminRegistryDiagnostic {
   severity: string;
   code: string;
@@ -519,12 +502,6 @@ export interface AdminRegistryDetailResponse extends AdminRegistrySummary {
   parsed?: Record<string, unknown>;
   encoding?: string;
   sha256?: string;
-}
-
-export interface AdminRegistryDetailRequest {
-  category: AdminRegistryCategory;
-  file: string;
-  content: string;
 }
 
 export interface AdminRegistryValidateRequest {
@@ -626,14 +603,6 @@ export interface AdminSkillDetailResponse {
   fileManifest: AdminSkillFileManifest;
   diagnostics?: AdminRegistryDiagnostic[];
   openedFile?: AdminSkillTextFile;
-}
-
-export interface AdminSkillSaveFileRequest {
-  key: string;
-  path: string;
-  content: string;
-  encoding?: string;
-  baseSha256?: string;
 }
 
 export interface AdminSkillCreateFileRequest {
@@ -1838,11 +1807,6 @@ export function classifyResourceUrl(
 	};
 }
 
-export function resolveResourceFetchUrl(value: string, chatId = ""): string {
-	const classified = classifyResourceUrl(value, chatId);
-	return classified.fetchUrl;
-}
-
 function getResourceRequestTarget(
 	value: string,
 	chatId: string,
@@ -2261,29 +2225,6 @@ export function getAdminRegistries(): Promise<ApiResponse<AdminRegistryListRespo
   return requestJson<AdminRegistryListResponse>(dataEndpoints.adminRegistries.path);
 }
 
-export function getAdminServices(): Promise<ApiResponse<AdminServiceSummary[]>> {
-  return requestJson<AdminServiceSummary[]>(dataEndpoints.adminServices.path);
-}
-
-export function getAdminRegistryDetail(
-  category: AdminRegistryCategory,
-  file: string,
-): Promise<ApiResponse<AdminRegistryDetailResponse>> {
-  const query = endpointQuery(dataEndpoints.adminRegistryDetail, { category, file });
-  return requestJson<AdminRegistryDetailResponse>(
-    withQuery(dataEndpoints.adminRegistryDetail.path, query),
-  );
-}
-
-export function saveAdminRegistryDetail(
-  params: AdminRegistryDetailRequest,
-): Promise<ApiResponse<AdminRegistryDetailResponse>> {
-  return requestJson<AdminRegistryDetailResponse>(dataEndpoints.adminRegistryDetail.path, {
-    method: "PUT",
-    body: JSON.stringify(params),
-  });
-}
-
 export function validateAdminRegistry(
   params: AdminRegistryValidateRequest,
 ): Promise<ApiResponse<AdminRegistryValidateResponse>> {
@@ -2301,10 +2242,6 @@ export function putAgentOrder(
     method: "PUT",
     body: JSON.stringify(params ?? { order: [] }),
   });
-}
-
-export function getAdminAgentOrder(): Promise<ApiResponse<AgentOrderResponse>> {
-  return requestJson<AgentOrderResponse>(dataEndpoints.adminAgentOrder.path);
 }
 
 export function putAdminAgentOrder(
@@ -2523,25 +2460,6 @@ export function getAdminSkillDetail(
   return requestJson<AdminSkillDetailResponse>(
     withQuery(dataEndpoints.adminSkillDetail.path, query),
   );
-}
-
-export function getAdminSkillFile(
-  key: string,
-  path: string,
-): Promise<ApiResponse<AdminSkillTextFile>> {
-  const query = endpointQuery(dataEndpoints.adminSkillFile, { key, path });
-  return requestJson<AdminSkillTextFile>(
-    withQuery(dataEndpoints.adminSkillFile.path, query),
-  );
-}
-
-export function saveAdminSkillFile(
-  params: AdminSkillSaveFileRequest,
-): Promise<ApiResponse<AdminSkillMutationResponse>> {
-  return requestJson<AdminSkillMutationResponse>(dataEndpoints.adminSkillSaveFile.path, {
-    method: "PUT",
-    body: JSON.stringify(params),
-  });
 }
 
 export function createAdminSkillFile(
@@ -2970,60 +2888,14 @@ export function saveMemoryScope(
   });
 }
 
-export function getVoiceCapabilities(): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.voiceCapabilities.path);
-}
-
 export async function getVoiceCapabilitiesFlexible(): Promise<VoiceCapabilities | null> {
   const response = await requestWithAuth(dataEndpoints.voiceCapabilities.path);
   return readVoiceCapabilitiesResponse(response);
 }
 
-export function getVoiceVoices(): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.voiceVoices.path);
-}
-
 export async function getVoiceVoicesFlexible(path = dataEndpoints.voiceVoices.path): Promise<{ voices?: unknown[]; defaultVoice?: unknown } | null> {
   const response = await requestWithAuth(path);
   return readVoiceVoicesResponse(response);
-}
-
-export function submitTool(params: {
-  runId: string;
-  owner: RunOwner;
-  toolId: string;
-  params: Record<string, unknown>;
-}): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.submit.path, {
-    method: "POST",
-    body: JSON.stringify({
-      runId: params.runId,
-      ...runOwnerPayload(params.owner),
-      toolId: params.toolId,
-      params: params.params,
-    }),
-  });
-}
-
-export function submitAwaiting(params: {
-  chatId?: string;
-  runId: string;
-  owner: RunOwner;
-  awaitingId: string;
-  submitId?: string;
-  params: AIAwaitSubmitParamData[];
-}): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.submit.path, {
-    method: "POST",
-    body: JSON.stringify({
-      chatId: params.chatId,
-      runId: params.runId,
-      ...runOwnerPayload(params.owner),
-      awaitingId: params.awaitingId,
-      submitId: params.submitId,
-      params: params.params,
-    }),
-  });
 }
 
 export interface UploadFileParams {
@@ -3421,67 +3293,6 @@ function requireConversationExportLength(
   }
 }
 
-export function interruptChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.interrupt.path, {
-    method: "POST",
-    body: JSON.stringify({
-      requestId: params.requestId,
-      chatId: params.chatId,
-      runId: params.runId,
-      ...runOwnerPayload(params.owner),
-      message: params.message,
-    }),
-  });
-}
-
-/**
- * BTW runs always use the HTTP control endpoint, independently of the main
- * conversation transport mode.
- */
-export function interruptBTWRun(
-  params: QueryLikeParams,
-): Promise<ApiResponse<BTWInterruptResponse>> {
-  return requestJson<BTWInterruptResponse>(dataEndpoints.interrupt.path, {
-    method: "POST",
-    body: JSON.stringify({
-      requestId: params.requestId,
-      chatId: params.chatId,
-      runId: params.runId,
-      ...runOwnerPayload(params.owner),
-      message: params.message,
-    }),
-  });
-}
-
-export function updateAccessLevel(
-  params: AccessLevelUpdateParams,
-): Promise<ApiResponse<AccessLevelUpdateResponse>> {
-  return requestJson(dataEndpoints.accessLevelUpdate.path, {
-    method: "POST",
-    body: JSON.stringify({
-      requestId: params.requestId,
-      runId: params.runId,
-      ...runOwnerPayload(params.owner),
-      accessLevel: params.accessLevel,
-      reason: params.reason,
-    }),
-  });
-}
-
-export function steerChat(params: QueryLikeParams): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.steer.path, {
-    method: "POST",
-    body: JSON.stringify({
-      requestId: params.requestId,
-      chatId: params.chatId,
-      runId: params.runId,
-      steerId: params.steerId,
-      ...runOwnerPayload(params.owner),
-      message: params.message,
-    }),
-  });
-}
-
 export function rememberChat(
   params: BackgroundCommandParams,
 ): Promise<ApiResponse> {
@@ -3557,79 +3368,4 @@ export interface AttachStreamParams {
   owner: RunOwner;
   lastSeq?: number;
   signal?: AbortSignal;
-}
-
-export function createQueryStream(
-  options: QueryStreamParams,
-): Promise<Response> {
-  return requestWithAuth(dataEndpoints.query.path, {
-    method: 'POST',
-    headers: {
-      Accept: 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      ...(isGatewayBackendMode()
-        ? {}
-        : {
-            "X-Agent-WebClient-Device-Id": getClientDeviceId(),
-            "X-Agent-WebClient-Surface-Id": getClientSurfaceId(),
-          }),
-    },
-    body: JSON.stringify(buildQueryPayload(options)),
-    signal: options.signal,
-    authFailureSource: "sse",
-  });
-}
-
-export type QueryOnceParams = Omit<QueryStreamParams, "stream">;
-
-/** Runs a query to completion and returns the regular JSON response. */
-export function executeQueryOnce(
-  options: QueryOnceParams,
-): Promise<ApiResponse<Record<string, unknown>>> {
-  return requestJson<Record<string, unknown>>(dataEndpoints.query.path, {
-    method: "POST",
-    headers: { Accept: "application/json" },
-    body: JSON.stringify(buildQueryPayload({ ...options, stream: false })),
-    signal: options.signal,
-  });
-}
-
-export function createBTWStream(
-  options: BTWStreamParams,
-): Promise<Response> {
-  return requestWithAuth(dataEndpoints.btw.path, {
-    method: "POST",
-    headers: {
-      Accept: "text/event-stream",
-      "Cache-Control": "no-cache",
-    },
-    body: JSON.stringify(buildBTWPayload(options)),
-    signal: options.signal,
-    authFailureSource: "sse",
-  });
-}
-
-export { compactQueryModelOverride };
-
-export function createAttachStream(
-  options: AttachStreamParams,
-): Promise<Response> {
-  const query = endpointQuery(dataEndpoints.attach, options);
-
-  return requestWithAuth(withQuery(dataEndpoints.attach.path, query), {
-    method: 'GET',
-    headers: {
-      Accept: 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      ...(isGatewayBackendMode()
-        ? {}
-        : {
-            "X-Agent-WebClient-Device-Id": getClientDeviceId(),
-            "X-Agent-WebClient-Surface-Id": getClientSurfaceId(),
-          }),
-    },
-    jsonContentType: false,
-    signal: options.signal,
-    authFailureSource: "sse",
-  });
 }

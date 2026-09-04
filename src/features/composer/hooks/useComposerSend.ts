@@ -350,7 +350,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         type: "APPEND_DEBUG",
         line: `[interrupt] failed: ${(error as Error).message}`,
       });
-      // interruptChat 失败时立即 abort 流作为回退
+      // 中断请求失败时立即 abort 流作为回退
       state.abortController?.abort();
       window.dispatchEvent(
         new CustomEvent("agent:voice-stop-all", {

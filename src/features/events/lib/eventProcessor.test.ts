@@ -247,6 +247,14 @@ describe('processStreamEvent', () => {
       toolsCleared: 0,
       toolsKept: 0,
       tokensFreed: 0,
+      generation: 3,
+      toolDigestCount: 2,
+      compactedRunCount: 4,
+      digestedRunIds: ['run-1', 'run-2'],
+      originalMessages: 12,
+      projectedMessages: 5,
+      elapsedMs: 840,
+      cacheMetrics: { hits: 2 },
       timestamp: 123,
     }, 'replay', false);
 
@@ -259,6 +267,8 @@ describe('processStreamEvent', () => {
       tooltip: expect.stringContaining('本次压缩范围'),
       ts: 123,
     });
+    expect(state.timelineNodes.get('compact_compact-1')?.text).toContain('历史消息：12');
+    expect(state.timelineNodes.get('compact_compact-1')?.text).toContain('工具结果摘要：2');
 
     const duplicateCommands = processAndApply(state, {
       type: 'context.compact.complete',

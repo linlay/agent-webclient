@@ -4,7 +4,7 @@
 
 WebClient 业务层只依赖 `RealtimeTransport`，门面固定提供 `runs`、`push`、`inbound`、`terminal` 四项窄能力。Standalone adapter 与数据请求 transport 复用唯一 `wsClientSingleton`；agents、agent、chats、chat、archive 等普通 Data API 按 endpoint 的 `wsBackends` 能力表选择主 WebSocket 或 HTTP。Platform 与 Gateway 已暴露的 WS route 严格走 request/response frame，连接失败、断开和超时都不回退 HTTP。
 
-主 Run query、BTW、attach 和控制由 `RunTransport` 统一承接。Voice query 进入同一 Run 门面，浏览器 ASR/TTS 的 Voice WebSocket 保持独立。Admin/Registries、Automation、Project、上传下载、resource Blob 与语音 HTTP 保留专用 HTTP 路径；旧 `QueryStreamExecutor` 和 terminal primitive 兼容入口已移除。
+主 Run query、BTW、attach 和控制由 `RunTransport` 统一承接。Voice query 进入同一 Run 门面，浏览器 ASR/TTS 的 Voice WebSocket 保持独立。Admin/Registries、Automation、Project、上传下载、resource Blob 与语音 HTTP 使用各自的专用 HTTP 路径。
 
 ## 领域接口
 
