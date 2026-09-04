@@ -5,44 +5,30 @@ import { createRoot, type Root } from "react-dom/client";
 import type { AgentEvent } from "@/app/state/types";
 import type { ChatDetailResponse } from "@/shared/data";
 import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
-import {
-  findHighlightedRunIndex,
-  ReadOnlyConversationTimeline,
-} from "./ReadOnlyConversationTimeline";
-import { buildTimelineDisplayItems } from "@/features/timeline/lib/timelineDisplay";
+import { ReadOnlyConversationTimeline } from "./ReadOnlyConversationTimeline";
 
-const mockScrollToIndex = jest.fn();
 const EPOCH = 1_710_000_000_000;
 
 jest.mock("react-virtuoso", () => {
   const ReactRuntime = require("react") as typeof React;
   return {
-    Virtuoso: ReactRuntime.forwardRef(
-      (
-        props: {
-          data?: unknown[];
-          computeItemKey?: (index: number, item: unknown) => React.Key;
-          itemContent: (index: number, item: unknown) => React.ReactNode;
-          className?: string;
-        },
-        ref: React.ForwardedRef<unknown>,
-      ) => {
-        ReactRuntime.useImperativeHandle(ref, () => ({
-          scrollToIndex: mockScrollToIndex,
-        }));
-        return ReactRuntime.createElement(
-          "div",
-          { className: props.className, "data-testid": "virtuoso" },
-          ...(props.data || []).map((item, index) =>
-            ReactRuntime.createElement(
-              ReactRuntime.Fragment,
-              { key: props.computeItemKey?.(index, item) || index },
-              props.itemContent(index, item),
-            ),
+    Virtuoso: (props: {
+      data?: unknown[];
+      computeItemKey?: (index: number, item: unknown) => React.Key;
+      itemContent: (index: number, item: unknown) => React.ReactNode;
+      className?: string;
+    }) =>
+      ReactRuntime.createElement(
+        "div",
+        { className: props.className, "data-testid": "virtuoso" },
+        ...(props.data || []).map((item, index) =>
+          ReactRuntime.createElement(
+            ReactRuntime.Fragment,
+            { key: props.computeItemKey?.(index, item) || index },
+            props.itemContent(index, item),
           ),
-        );
-      },
-    ),
+        ),
+      ),
   };
 });
 
@@ -216,10 +202,7 @@ describe("ReadOnlyConversationTimeline", () => {
     container.remove();
   });
 
-  const renderTimeline = (
-    chat: ChatDetailResponse,
-    targetRunId: string,
-  ) => {
+  const renderTimeline = (chat: ChatDetailResponse) => {
     const projection = buildChatReplayProjection(chat.chatId, chat);
     act(() => {
       root.render(
@@ -230,7 +213,6 @@ describe("ReadOnlyConversationTimeline", () => {
             { key: "agent-parent", name: "Parent" },
             { key: "agent-child", name: "Child" },
           ],
-          targetRunId,
           agentKey: "agent-parent",
           teamChat: false,
         }),
@@ -245,16 +227,24 @@ describe("ReadOnlyConversationTimeline", () => {
       agentKey: "agent-parent",
       events: completedChatEvents(),
     };
-    const projection = renderTimeline(chat, "run-2");
+    const projection = renderTimeline(chat);
 
-    expect(Array.from(projection.state.timelineNodes.values()).map((node) => node.kind)).toEqual(
+    expect(
+      Array.from(projection.state.timelineNodes.values()).map(
+        (node) => node.kind,
+      ),
+    ).toEqual(
       expect.arrayContaining(["message", "thinking", "tool", "content"]),
     );
     expect(projection.state.taskItemsById.has("task-1")).toBe(true);
-    expect(container.querySelectorAll('[data-testid="timeline-row"]')).toHaveLength(2);
+    expect(
+      container.querySelectorAll('[data-testid="timeline-row"]'),
+    ).toHaveLength(2);
     expect(
       Array.from(container.querySelectorAll('[data-testid="render-entry"]')).map(
-        (element) => element.getAttribute("data-node-kind") || element.getAttribute("data-entry-kind"),
+        (element) =>
+          element.getAttribute("data-node-kind") ||
+          element.getAttribute("data-entry-kind"),
       ),
     ).toEqual(expect.arrayContaining(["thinking", "tool", "content", "task-group"]));
     expect(
@@ -265,37 +255,52 @@ describe("ReadOnlyConversationTimeline", () => {
     ).not.toBeNull();
   });
 
-  it("marks and scrolls to the matching run in a multi-run chat", () => {
-    renderTimeline(
-      { chatId: "chat-history", events: completedChatEvents() },
-      "run-2",
-    );
-
-    const highlighted = container.querySelector('[data-current-execution="true"]');
-    expect(highlighted?.getAttribute("data-run-id")).toBe("run-2");
-    expect(highlighted?.getAttribute("aria-label")).toBe(
-      "automationHistory.chat.currentExecution",
-    );
-    expect(mockScrollToIndex).toHaveBeenCalledWith({
-      index: 3,
-      align: "center",
-      behavior: "auto",
-    });
-  });
-
-  it("keeps the full history visible when the requested run is absent", () => {
-    renderTimeline(
-      { chatId: "chat-history", events: completedChatEvents() },
-      "missing-run",
-    );
+  it("renders every run with the same presentation and without execution-specific decoration", () => {
+    renderTimeline({ chatId: "chat-history", events: completedChatEvents() });
 
     expect(container.textContent).toContain("Question one");
+    expect(container.textContent).toContain("Answer one");
     expect(container.textContent).toContain("Question two");
-    expect(container.querySelector('[data-current-execution="true"]')).toBeNull();
-    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Answer two");
+    const runs = Array.from(container.querySelectorAll("[data-run-id]"));
+    expect(runs.map((run) => run.getAttribute("data-run-id"))).toEqual([
+      "run-1",
+      "run-2",
+    ]);
+    expect(new Set(runs.map((run) => run.className)).size).toBe(1);
+    expect(
+      container.querySelector('[data-current-execution="true"]'),
+    ).toBeNull();
+    expect(container.textContent).not.toContain(
+      "automationHistory.chat.currentExecution",
+    );
   });
 
-  it("marks the unterminated run when it matches the active run snapshot", () => {
+  it("keeps all user-visible runs when an automation query is hidden", () => {
+    const events = completedChatEvents().map((event, index) =>
+      index === 0
+        ? {
+            ...event,
+            role: "automation",
+            hidden: true,
+            message: "Internal automation request",
+          }
+        : event,
+    );
+    renderTimeline({ chatId: "chat-history", events });
+
+    expect(container.textContent).not.toContain("Internal automation request");
+    expect(container.textContent).toContain("Answer one");
+    expect(container.textContent).toContain("Question two");
+    expect(container.textContent).toContain("Answer two");
+    expect(
+      Array.from(container.querySelectorAll("[data-run-id]")).map((run) =>
+        run.getAttribute("data-run-id"),
+      ),
+    ).toEqual(["run-1", "run-2"]);
+  });
+
+  it("keeps a running chat snapshot in the full history without special treatment", () => {
     const events = completedChatEvents().slice(0, 8).concat([
       {
         type: "request.query",
@@ -314,72 +319,23 @@ describe("ReadOnlyConversationTimeline", () => {
         timestamp: EPOCH + 310,
       },
     ] as AgentEvent[]);
-    renderTimeline(
-      {
-        chatId: "chat-history",
-        activeRun: { runId: "run-running" },
-        events,
-      },
-      "run-running",
-    );
+    renderTimeline({
+      chatId: "chat-history",
+      activeRun: { runId: "run-running" },
+      events,
+    });
 
+    expect(container.textContent).toContain("Running question");
+    expect(container.textContent).toContain("Partial answer");
     expect(
-      container.querySelector('[data-current-execution="true"]')?.getAttribute(
-        "data-run-id",
-      ),
-    ).toBe("run-running");
+      container.querySelector('[data-current-execution="true"]'),
+    ).toBeNull();
   });
 
   it("shows an empty history state without interactive controls", () => {
-    renderTimeline({ chatId: "chat-empty", events: [] }, "run-none");
+    renderTimeline({ chatId: "chat-empty", events: [] });
 
     expect(container.textContent).toContain("automationHistory.chat.empty");
     expect(container.querySelector("button")).toBeNull();
-  });
-});
-
-describe("findHighlightedRunIndex", () => {
-  it("selects exact completed runs, falls back to an active run, and ignores misses", () => {
-    const projection = buildChatReplayProjection("chat-history", {
-      events: completedChatEvents(),
-    });
-    const items = buildTimelineDisplayItems(
-      projection.state.timelineOrder
-        .map((id) => projection.state.timelineNodes.get(id))
-        .filter((node): node is NonNullable<typeof node> => Boolean(node)),
-      projection.state.events,
-      projection.state.taskItemsById,
-    );
-
-    expect(findHighlightedRunIndex(items, "run-2")).toBe(3);
-    expect(findHighlightedRunIndex(items, "missing-run")).toBe(-1);
-
-    const activeProjection = buildChatReplayProjection("chat-active", {
-      events: [
-        {
-          type: "request.query",
-          requestId: "request-active",
-          chatId: "chat-active",
-          message: "Question",
-          timestamp: EPOCH + 10,
-        },
-        {
-          type: "content.snapshot",
-          contentId: "content-active",
-          chatId: "chat-active",
-          text: "Partial",
-          timestamp: EPOCH + 20,
-        },
-      ],
-    });
-    const activeItems = buildTimelineDisplayItems(
-      activeProjection.state.timelineOrder
-        .map((id) => activeProjection.state.timelineNodes.get(id))
-        .filter((node): node is NonNullable<typeof node> => Boolean(node)),
-      activeProjection.state.events,
-      activeProjection.state.taskItemsById,
-      { hasActiveRun: true },
-    );
-    expect(findHighlightedRunIndex(activeItems, "run-active", "run-active")).toBe(1);
   });
 });

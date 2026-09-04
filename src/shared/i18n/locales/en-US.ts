@@ -173,7 +173,6 @@ export const enUSMessages = {
   "automationHistory.action.recheck": "Check again",
   "automationHistory.action.reload": "Reload",
   "automationHistory.action.view": "View",
-  "automationHistory.chat.currentExecution": "This execution",
   "automationHistory.chat.empty": "There is no conversation content to display.",
   "automationHistory.chat.noAssociation": "This execution has no associated conversation history.",
   "automationHistory.count": "{count} runs",

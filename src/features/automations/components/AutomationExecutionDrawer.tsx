@@ -454,7 +454,6 @@ export const AutomationExecutionDrawer: React.FC<
                 chat={chatState.data.chat}
                 projection={chatState.data.projection}
                 agents={agents}
-                targetRunId={String(visible?.runId || "")}
                 agentKey={agentKey}
                 teamChat={Boolean(teamId)}
               />

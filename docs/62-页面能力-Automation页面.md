@@ -21,7 +21,7 @@ Automation 页面由 `/automations` 路由进入，页面入口是 `src/app/page
 
 Execution 行保持 48–56px 的高密度布局；`resultPreview` 最多两行。展开区不重复结果摘要，仅展示完整时间、Run ID、finish reason、错误信息和唯一“查看”操作，并使用留白、浅背景与行分隔表达层级，不增加卡片边框。
 
-Execution Drawer 使用 `POST /api/automation/execution` 读取完整结果，并使用现有 `getChat(chatId, false)` 读取关联 Chat。左右栏分别维护 loading、error 和重试状态：左栏是 280px 定宽的 Execution Detail，依次显示完整 assistant result、复制结果、error、finish reason、Execution ID、Run ID 和折叠 Query；右栏是占据其余空间的 Chat Detail，显示 Agent/Team 身份和完整只读时间线。历史事件通过 `buildChatReplayProjection` 解释，并复用 `buildTimelineDisplayItems`、`TimelineRow`、Markdown、工具和任务分组展示。对应 `runId` 会被自动定位并轻量标记为“本次执行”；无法匹配时仍展示完整 Chat。
+Execution Drawer 使用 `POST /api/automation/execution` 读取完整结果，并使用现有 `getChat(chatId, false)` 读取关联 Chat。左右栏分别维护 loading、error 和重试状态：左栏是 280px 定宽的 Execution Detail，依次显示完整 assistant result、复制结果、error、finish reason、Execution ID、Run ID 和折叠 Query；右栏是占据其余空间的 Chat Detail，显示 Agent/Team 身份和完整只读时间线。历史事件通过 `buildChatReplayProjection` 解释，并复用 `buildTimelineDisplayItems`、`TimelineRow`、Markdown、工具和任务分组展示；所有 Run 按 Chat 原始顺序使用统一样式呈现，不根据当前 Execution 过滤、定位或增加专属装饰。
 
 Drawer 不改变页面 URL、Desktop 外层路由、主 Chat 或已读状态，不调用 query、attach、detach，也不提供“打开对话”、Composer、重发、反馈、编辑、派生或运行控制。running Execution 只展示 `/api/chat` 返回的当前快照，不创建 live observer。切换 Execution 或关闭 Drawer 会使旧请求失效，迟到响应不会覆盖当前查看内容。
 

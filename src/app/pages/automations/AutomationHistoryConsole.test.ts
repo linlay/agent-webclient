@@ -57,6 +57,9 @@ describe("Automation execution viewer contracts", () => {
   const timelineSource = readSource(
     "src/features/conversation/components/ReadOnlyConversationTimeline.tsx",
   );
+  const timelineStyles = readSource(
+    "src/features/conversation/components/ReadOnlyConversationTimeline.module.css",
+  );
 
   it("exposes one in-page view action for executions with a result or chat", () => {
     expect(consoleSource).toContain(
@@ -91,6 +94,14 @@ describe("Automation execution viewer contracts", () => {
     expect(drawerSource.indexOf("{executionPanel}")).toBeLessThan(
       drawerSource.indexOf("{chatPanel}"),
     );
+  });
+
+  it("keeps the full chat presentation independent from the viewed execution", () => {
+    expect(drawerSource).not.toContain("targetRunId");
+    expect(timelineSource).not.toContain("scrollToIndex");
+    expect(timelineSource).not.toContain("data-current-execution");
+    expect(timelineStyles).not.toContain(".currentRun");
+    expect(timelineStyles).not.toContain(".currentRunLabel");
   });
 
   it("debounces snapshot refreshes for the currently viewed execution", () => {

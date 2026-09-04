@@ -173,7 +173,6 @@ export const zhCNMessages = {
   "automationHistory.action.recheck": "重新检查",
   "automationHistory.action.reload": "重新加载",
   "automationHistory.action.view": "查看",
-  "automationHistory.chat.currentExecution": "本次执行",
   "automationHistory.chat.empty": "历史对话中没有可显示的内容。",
   "automationHistory.chat.noAssociation": "本次执行没有关联的历史对话",
   "automationHistory.count": "{count} 次触发",
