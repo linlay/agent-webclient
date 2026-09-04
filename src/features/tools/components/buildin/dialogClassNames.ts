@@ -32,7 +32,7 @@ export const hitlDialogClassNames = {
   paginationDotActive: "tw:scale-150",
   paginationDotDone: "tw:bg-accent-lime",
   paginationDotSkip: "tw:bg-accent-danger",
-  approvalDetails: "tw:px-3 tw:pb-3 tw:text-text-muted",
+  approvalDetails: "tw:px-3 tw:text-text-muted",
   approvalMeta: "tw:text-xs tw:leading-normal tw:text-text-muted",
   radioGroup: "hitl-radio-group tw:flex tw:flex-col tw:gap-1",
   checkboxGroup: "hitl-checkbox-group tw:flex tw:flex-col tw:gap-1",

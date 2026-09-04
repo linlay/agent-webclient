@@ -529,9 +529,13 @@ const ApprovalQuestion = forwardRef<
           </div>
           {pagnation}
         </Flex>
-        <div className={hitlDialogClassNames.approvalDetails}>
+        <Typography.Paragraph
+          className={hitlDialogClassNames.approvalDetails}
+          ellipsis={{ rows: 5 }}
+          title={approval?.command}
+        >
           {approval?.command}
-        </div>
+        </Typography.Paragraph>
         <Radio.Group
           className={hitlDialogClassNames.radioGroup}
           value={decision}
