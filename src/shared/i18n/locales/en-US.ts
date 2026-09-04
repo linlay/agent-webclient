@@ -1365,7 +1365,7 @@ export const enUSMessages = {
   "slash.command.debug.label": "Debug panel",
   "slash.command.editing.description": "Toggle knowledge base editing mode",
   "slash.command.editing.label": "Knowledge base editing mode",
-  "slash.command.history.description": "View recent conversations for the current {agentLabel} or {teamLabel}",
+  "slash.command.history.description": "View all recent conversations",
   "slash.command.history.label": "Conversation history",
   "slash.command.learn.description": "Extract reusable lessons, rules, and practices from the current conversation and submit them to the learning endpoint",
   "slash.command.learn.label": "Learn from chat",

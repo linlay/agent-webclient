@@ -1365,7 +1365,7 @@ export const zhCNMessages = {
   "slash.command.debug.label": "调试面板",
   "slash.command.editing.description": "切换知识库编辑模式",
   "slash.command.editing.label": "知识库编辑模式",
-  "slash.command.history.description": "查看当前{agentLabel}或{teamLabel}的历史对话",
+  "slash.command.history.description": "查看所有历史对话",
   "slash.command.history.label": "历史对话",
   "slash.command.learn.description": "提炼当前对话中的经验、规则与做法，并提交到学习接口",
   "slash.command.learn.label": "沉淀学习",
