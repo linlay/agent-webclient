@@ -15,6 +15,7 @@ import {
   resolveStatusPillClassName,
   resolveTopNavStatus,
 } from "@/app/layout/TopNav";
+import { UsageContextControl } from "@/app/layout/UsageContextControl";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
 import { BottomDock } from "@/app/layout/BottomDock";
@@ -172,6 +173,7 @@ const CopilotTopBar: React.FC = () => {
           >
             {statusLabel}
           </span>
+          <UsageContextControl presentation="drawer" />
         </div>
         <div className={COPILOT_TOPBAR_ACTIONS_CLASS}>
           <UiButton

@@ -194,6 +194,18 @@
     padding: 0;
 }
 
+.usage-drawer .ant-drawer-content {
+    border-radius: 0 0 12px 12px;
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
+    color: var(--ink-1);
+}
+
+.usage-drawer .ant-drawer-body {
+    max-height: min(70vh, 620px);
+    overflow: auto;
+    padding: 8px;
+}
+
 .usage-popover-header {
     display: flex;
     align-items: center;
