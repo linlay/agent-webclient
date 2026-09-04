@@ -1,10 +1,10 @@
 import "../hitlCompat.module.css";
 
 const dialogSurface =
-  "tw:overflow-hidden tw:rounded-[20px] tw:border tw:border-border tw:bg-bg-card tw:p-2.5 tw:shadow-elevated";
+  "hitl-dialog-surface tw:overflow-hidden tw:rounded-[20px] tw:border tw:border-border tw:bg-bg-card tw:p-2.5 tw:shadow-elevated";
 
 const dialogLoadingSurface =
-  "tw:overflow-hidden tw:rounded-[20px] tw:border tw:border-border tw:bg-bg-card tw:p-2.5 tw:shadow-elevated tw:min-h-[200px] tw:text-[var(--colorTextSecondary)]";
+  "hitl-dialog-surface tw:overflow-hidden tw:rounded-[20px] tw:border tw:border-border tw:bg-bg-card tw:p-2.5 tw:shadow-elevated tw:min-h-[200px] tw:text-[var(--colorTextSecondary)]";
 
 export const hitlDialogClassNames = {
   surface: dialogSurface,

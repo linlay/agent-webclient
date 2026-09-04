@@ -34,6 +34,7 @@ import {
   isMainChatRuntimeObservedByLiveQuery,
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
+import { initializeDesktopWorkspaceArrowKeys } from "@/shared/data/desktop/desktopWorkspaceArrowKeys";
 
 export function parseNewChatTimestamp(rawValue: unknown): string {
   const timestamp = String(rawValue || "").trim();
@@ -334,6 +335,8 @@ export const AgentChatShell: React.FC = () => {
   const [hydrationRetryCount, setHydrationRetryCount] = useState(0);
   const [pendingNewChatResendVersion, setPendingNewChatResendVersion] =
     useState(0);
+
+  useEffect(() => initializeDesktopWorkspaceArrowKeys(), []);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],

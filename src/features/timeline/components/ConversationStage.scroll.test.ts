@@ -304,6 +304,15 @@ describe("ConversationStage scroll restoration", () => {
     mockScrollBy.mockReset();
   }
 
+  it("marks the focusable Main Chat message scroller for workspace arrow keys", () => {
+    renderStage();
+
+    expect(mockVirtuosoProps.id).toBe("messages");
+    expect(
+      mockVirtuosoProps["data-desktop-workspace-arrow-keys"],
+    ).toBe("allow");
+  });
+
   it("immediately overlays source content when the route targets another chat", () => {
     renderStage("chat-next");
 

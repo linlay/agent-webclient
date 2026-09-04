@@ -2092,6 +2092,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           isScrolling={handleIsScrolling}
           className={VIRTUOSO_CLASS_NAME}
           id="messages"
+          data-desktop-workspace-arrow-keys="allow"
           components={{
             Footer,
             Item: ConversationVirtualItem,
