@@ -8,7 +8,7 @@ import {
   resolveCurrentWorkerSummary,
 } from "@/features/workers/lib/currentWorker";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
-import { AutomationHistoryConsole } from "@/app/pages/automations/AutomationHistoryConsole";
+import { AutomationHistoryConsole } from "@/features/automations/components/AutomationHistoryConsole";
 import {
   SWITCH_SCOPES,
   SwitchModal,

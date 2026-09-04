@@ -1,25 +1,29 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import fs from "node:fs";
+import path from "node:path";
+import { RegistryConsole } from "@/features/registries/components/RegistryConsole";
+import { RegistryCapabilityIconTag } from "@/features/registries/components/RegistryListPane";
 import {
-  RegistriesPage,
   filterRegistryItems,
+  defaultRegistryFileName,
   listItemOwnerLabel,
   normalizeToolToSummary,
   readToolKind,
   readToolSourceCategory,
   readToolSourceType,
   registryCapabilityChips,
-  RegistryCapabilityIconTag,
   registryDetailToListItem,
   registryItemKey,
   registryListMeta,
   registryListTitle,
+  registryTemplateForCategory,
   summaryLine,
   toolListMeta,
   toolListOwnerLabel,
   toolSearchHaystack,
   toolSourceLabel,
-} from "@/app/pages/registries";
+} from "@/features/registries/lib/registryConsole";
 import type { AdminRegistryListItem, AdminToolSummary } from "@/shared/data";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
@@ -93,19 +97,19 @@ const registryItems: AdminRegistryListItem[] = [
   },
 ];
 
-function renderRegistriesPage(locale: Locale) {
+function renderRegistryConsole(locale: Locale) {
   return renderToStaticMarkup(
     React.createElement(
       I18nProvider,
       { locale, persistLocale: false },
-      React.createElement(RegistriesPage),
+      React.createElement(RegistryConsole),
     ),
   );
 }
 
-describe("RegistriesPage", () => {
+describe("RegistryConsole", () => {
   it("uses the standalone management page layout contract", () => {
-    const html = renderRegistriesPage("en-US");
+    const html = renderRegistryConsole("en-US");
 
     expect(html).toContain("management-page-console");
     expect(html).toContain("280px_minmax(0,1fr)");
@@ -113,7 +117,7 @@ describe("RegistriesPage", () => {
   });
 
   it("renders the non-MCP registry console in Chinese", () => {
-    const html = renderRegistriesPage("zh-CN");
+    const html = renderRegistryConsole("zh-CN");
 
     expect(html).toContain("搜索 registry 配置");
     expect(html).toContain("供应商");
@@ -127,7 +131,7 @@ describe("RegistriesPage", () => {
   });
 
   it("renders the non-MCP registry console in English", () => {
-    const html = renderRegistriesPage("en-US");
+    const html = renderRegistryConsole("en-US");
 
     expect(html).toContain("Search registry configs");
     expect(html).toContain("Providers");
@@ -151,6 +155,25 @@ describe("RegistriesPage", () => {
     expect(
       filterRegistryItems(registryItems, { searchText: "api.openai" }).map(registryItemKey),
     ).toEqual(["providers/openai.yml"]);
+  });
+
+  it("creates collision-free category templates", () => {
+    expect(defaultRegistryFileName("providers", registryItems)).toBe(
+      "new-provider.yml",
+    );
+    expect(
+      defaultRegistryFileName("viewport-servers", [
+        ...registryItems,
+        {
+          category: "viewport-servers",
+          file: "new-viewport-server.yml",
+          status: "ready",
+        },
+      ]),
+    ).toBe("new-viewport-server-2.yml");
+    expect(
+      registryTemplateForCategory("models", "new-model.yml"),
+    ).toContain("provider:");
   });
 
   it("formats registry list metadata and model capability chips", () => {
@@ -246,5 +269,22 @@ describe("RegistriesPage", () => {
     expect(toolListMeta(platformTool)).toBe("builtin_datetime · local · platform · backend");
     expect(toolListMeta(extensionTool)).toBe("extension_tool · agent-local · external · frontend");
     expect(toolListMeta(platformTool)).not.toContain("内置");
+  });
+
+  it("keeps request and dirty-draft behavior in the Registry runtime", () => {
+    const source = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        "src/features/registries/hooks/useRegistryConsoleRuntime.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain("getAdminRegistries");
+    expect(source).toContain("getAdminSource");
+    expect(source).toContain("validateAdminRegistry");
+    expect(source).toContain("updateAdminSource");
+    expect(source).toContain("setDirty(true)");
+    expect(source).toContain("window.confirm");
   });
 });

@@ -4,7 +4,7 @@ import { Modal } from "antd";
 import type { CommandOverlayState } from "@/features/workers/lib/commandOverlay";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
-import { AutomationHistoryConsole } from "@/app/pages/automations/AutomationHistoryConsole";
+import { AutomationHistoryConsole } from "@/features/automations/components/AutomationHistoryConsole";
 import { AgentConsole } from "@/features/workers/components/AgentConsole";
 import { useI18n } from "@/shared/i18n";
 

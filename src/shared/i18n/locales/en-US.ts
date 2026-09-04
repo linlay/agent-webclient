@@ -292,6 +292,7 @@ export const enUSMessages = {
   "automationConsole.field.message": "Automation message",
   "automationConsole.field.name": "Name",
   "automationConsole.field.params": "Params",
+  "automationConsole.field.paramsPlaceholder": '{"kind":"daily"}',
   "automationConsole.field.paramsTooltip": "JSON format",
   "automationConsole.field.remainingRuns": "Remaining runs",
   "automationConsole.field.remainingRunsPlaceholder": "Leave blank for unlimited runs",

@@ -1,7 +1,7 @@
 # MCP连接器管理台
 
 ## 当前状态
-MCP 连接器管理台由 `/mcp-servers` 进入，并通过 `/mcp-servers/:serverKey` 支持连接器详情直达。页面主体位于 `src/app/pages/mcp-servers/index.tsx`。
+MCP 连接器管理台由 `/mcp-servers` 进入，并通过 `/mcp-servers/:serverKey` 支持连接器详情直达。`src/app/pages/mcp-servers/index.tsx` 只负责 `useParams/useLocation/useNavigate`、查询参数保留和 URL 拼装；领域界面由 `src/features/registries/components/McpServersConsole.tsx` 提供。
 
 ## 核心职责
 - 只管理 `mcp-servers` registry 配置，支持新建、校验、保存和刷新。
@@ -11,7 +11,7 @@ MCP 连接器管理台由 `/mcp-servers` 进入，并通过 `/mcp-servers/:serve
 - 集中展示缺少 serverKey 或引用不存在连接器的未归属工具。
 
 ## 核心流程
-页面首次加载、切换连接器、保存和手工刷新时并行读取 `/api/admin/registries` 与 `/api/admin/tools`，前者只保留 `mcp-servers`，后者只保留 MCP 来源工具。加载连接器源码后，页面通过 registry validate 接口取得解析后的配置并初始化结构化表单；YAML 语法无法解析时自动进入源码编辑，修复并保存后才恢复配置编辑。页面订阅 `catalog.updated(reason=mcp-servers|config)` 自动刷新 catalog，并在页面可见时以 5 秒只读轮询兜底；后台刷新只更新连接器摘要和工具快照，不覆盖未保存的结构化表单或 YAML 草稿。基础路由默认展示第一个连接器，详情路由按 `summary.serverKey`、key、name、文件名依次解析稳定路由键。列表选择会更新详情 URL，并保留当前语言和主题查询参数。
+`useMcpCatalogRuntime` 在首次加载、切换、保存和手工刷新时协调 `/api/admin/registries` 与 `/api/admin/tools` 快照，使用请求序号忽略迟到响应，订阅 `catalog.updated(reason=mcp-servers|config)` 并在页面可见时以 5 秒轮询兜底。`useMcpServerEditorRuntime` 负责详情请求、结构化/源码草稿、校验、保存、删除和脏状态；连接器详情请求由协调器保证迟到响应不能覆盖当前选择。加载连接器源码后，通过 registry validate 接口取得解析后的配置并初始化结构化表单；YAML 语法无法解析时自动进入源码编辑，修复并保存后才恢复配置编辑。后台刷新只更新连接器摘要和工具快照，不覆盖未保存的结构化表单或 YAML 草稿。基础路由默认展示第一个连接器，详情路由按 `summary.serverKey`、key、name、文件名依次解析稳定路由键。列表选择通过 console 回调交给页面壳更新 URL，并保留当前语言和主题查询参数。
 
 配置编辑覆盖 HTTP/stdio 传输、启停、工具前缀、连接参数、认证、请求头/环境变量、超时、重试和工具别名。HTTP 的 `baseUrl` 与 `endpointPath` 分开输入，并实时展示最终连接地址，避免把 `/mcp` 同时写进两处。结构化保存会规范化这些字段，同时保留源码中的 `tools` 和其他未在表单展示的高级字段；源码编辑用于直接修改完整 YAML。两种模式切换时如果存在未保存修改会要求确认，避免静默丢失草稿。新建连接器在结构化保存时按 `serverKey` 生成对应 YAML 文件名，并阻止覆盖同名配置。
 
@@ -24,6 +24,14 @@ MCP 连接器管理台由 `/mcp-servers` 进入，并通过 `/mcp-servers/:serve
 
 ## 相关文件
 - `../src/app/pages/mcp-servers/index.tsx`
+- `../src/features/registries/components/McpServersConsole.tsx`
+- `../src/features/registries/components/McpServersListPane.tsx`
+- `../src/features/registries/components/McpServerEditorPane.tsx`
+- `../src/features/registries/components/McpServerStatusOverview.tsx`
+- `../src/features/registries/components/McpToolOwnershipPanel.tsx`
+- `../src/features/registries/hooks/useMcpCatalogRuntime.ts`
+- `../src/features/registries/hooks/useMcpServerEditorRuntime.ts`
+- `../src/features/registries/lib/mcpServerConsole.ts`
 - `../src/features/registries/lib/mcpRegistry.ts`
 - `../src/features/registries/lib/mcpServerForm.ts`
 - `../src/shared/data/api/client.ts`

@@ -292,6 +292,7 @@ export const zhCNMessages = {
   "automationConsole.field.message": "自动化消息",
   "automationConsole.field.name": "名称",
   "automationConsole.field.params": "参数",
+  "automationConsole.field.paramsPlaceholder": '{"kind":"daily"}',
   "automationConsole.field.paramsTooltip": "JSON格式",
   "automationConsole.field.remainingRuns": "剩余次数",
   "automationConsole.field.remainingRunsPlaceholder": "留空表示无限次",

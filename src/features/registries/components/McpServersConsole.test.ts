@@ -1,22 +1,28 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import fs from "node:fs";
+import path from "node:path";
 import {
   McpServersPage,
+  mcpServersRoutePath,
+} from "@/app/pages/mcp-servers";
+import {
   readMcpSyncDiagnostic,
   readMcpToolSyncStatus,
   createMcpServerTemplate,
   defaultMcpServerFileName,
   fetchMcpCatalogSnapshot,
   isMcpServerSaveDisabled,
-  MCP_SERVER_FORM_SECTION_IDS,
   mcpServerCardSecondaryKey,
   mcpServerCardTitle,
-  mcpServersRoutePath,
-  resolveActiveMcpServerFormSection,
   resolveMcpServerDisplayStatus,
   selectMcpServerAfterDelete,
   shouldLoadMcpServerDirectly,
-} from "@/app/pages/mcp-servers";
+} from "@/features/registries/lib/mcpServerConsole";
+import {
+  MCP_SERVER_FORM_SECTION_IDS,
+  resolveActiveMcpServerFormSection,
+} from "@/features/registries/components/McpServerFormFields";
 import {
   buildMcpServerDefinition,
   mcpServerFormFromDefinition,
@@ -408,5 +414,38 @@ describe("McpServersPage", () => {
     expect(resolveActiveMcpServerFormSection([20, 80, 140, 200, 260], 30, true)).toBe(
       MCP_SERVER_FORM_SECTION_IDS[4],
     );
+  });
+
+  it("keeps routing in app and request lifecycles in feature runtimes", () => {
+    const consoleSource = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        "src/features/registries/components/McpServersConsole.tsx",
+      ),
+      "utf8",
+    );
+    const catalogSource = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        "src/features/registries/hooks/useMcpCatalogRuntime.ts",
+      ),
+      "utf8",
+    );
+    const editorSource = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        "src/features/registries/hooks/useMcpServerEditorRuntime.ts",
+      ),
+      "utf8",
+    );
+
+    expect(consoleSource).not.toContain("react-router-dom");
+    expect(consoleSource).not.toContain('from "@/shared/data"');
+    expect(catalogSource).toContain("MCP_CATALOG_POLL_INTERVAL_MS");
+    expect(catalogSource).toContain("MCP_CATALOG_PUSH_DEBOUNCE_MS");
+    expect(catalogSource).toContain("requestId !== catalogRequestRef.current");
+    expect(editorSource).toContain("createMcpDetailRequestCoordinator");
+    expect(editorSource).toContain("if (!current) return current");
+    expect(editorSource).not.toContain("setDraft(item");
   });
 });

@@ -51,7 +51,7 @@ jest.mock("@/app/state/AppContext", () => ({
   useOptionalAppContext: () => null,
 }));
 
-jest.mock("@/app/pages/automations/AutomationHistoryConsole", () => ({
+jest.mock("@/features/automations/components/AutomationHistoryConsole", () => ({
   AutomationHistoryConsole: (props: Record<string, any>) => {
     mockAutomationConsoleProps.push(props);
     return React.createElement("div", {

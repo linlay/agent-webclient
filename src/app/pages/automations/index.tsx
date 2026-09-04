@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAppState } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { AutomationHistoryConsole } from "./AutomationHistoryConsole";
+import { AutomationHistoryConsole } from "@/features/automations/components/AutomationHistoryConsole";
 
 export const AutomationsPage = () => {
   const state = useAppState();

@@ -610,11 +610,6 @@
     overflow: auto;
 }
 
-.automation-console-body.is-editor-only>.automation-console-list,
-.automation-console.is-editor-only #automation-section-executions {
-    display: none;
-}
-
 .automation-console-body.is-editor-only .automation-console-detail {
     height: 100%;
     padding: 0 4px;

@@ -32,8 +32,10 @@
 ## 4. 目录结构
 - `public/`：HTML 模板等静态入口资源
 - `docs/`：中文专题文档，按两位编号和模块分段组织，覆盖前端协议消费、运行态 UI、管理台、页面能力与部署专题
-- `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`
+- `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`；`app/pages` 只保留路由参数适配、页面 `<main>` 和 feature 装配，不实现 CRUD、表单、数据加载或领域校验
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
+- `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
+- `src/features/registries/`：Registry 与 MCP 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑
 - `src/features/chats/`：历史聊天目录、摘要、未读状态和聊天 CRUD UI
 - `src/features/conversation/`：当前对话加载、切换、live/replay 事件编排与 session 快照
 - `src/features/events/`：AGENT 协议事件到 `EventCommand` 的纯投影，不依赖 React 或 transport
@@ -47,6 +49,8 @@
 - `scripts/`：Program Bundle、协议同步和构建辅助脚本
 - `Makefile`：本地开发、测试、构建与 Program Bundle 发布入口
 - `webpack.config.js` / `tsconfig.json`：当前 TypeScript + Webpack 构建链必需配置
+
+生产代码中的 `features/**` 不得反向导入 `@/app/pages/**` 或 `@/app/modals/**`；允许按现状依赖 `app/state` 的共享状态与类型。领域数据加载时机、刷新策略和响应解释归 feature，`shared/data` 只保留端点、DTO 与请求执行。
 
 ## 5. 数据结构
 主要数据结构集中在 [`src/app/state/types.ts`](./src/app/state/types.ts)：

@@ -1,7 +1,7 @@
 # Automation页面
 
 ## 当前状态
-Automation 页面由 `/automations` 路由进入，页面入口是 `src/app/pages/automations/index.tsx`，主体为 `AutomationHistoryConsole`。页面采用 history-first 信息架构：左侧选择 Automation，右侧首先查看最近触发及其结果；配置编辑和 Execution 查看都在当前页面的右侧 Drawer 中完成。
+Automation 页面由 `/automations` 路由进入。`src/app/pages/automations/index.tsx` 只解析当前 Worker 并装配 feature；主体 `AutomationHistoryConsole`、编辑器、Execution 历史和领域运行时均位于 `src/features/automations/`。页面采用 history-first 信息架构：左侧选择 Automation，右侧首先查看最近触发及其结果；配置编辑和 Execution 查看都在当前页面的右侧 Drawer 中完成。
 
 ## 核心职责
 - 展示 automation 列表，并按启用中/已暂停分组；每项显示调度、Agent/Team 和最近一次触发。
@@ -25,7 +25,7 @@ Execution Drawer 使用 `POST /api/automation/execution` 读取完整结果，�
 
 Drawer 不改变页面 URL、Desktop 外层路由、主 Chat 或已读状态，不调用 query、attach、detach，也不提供“打开对话”、Composer、重发、反馈、编辑、派生或运行控制。running Execution 只展示 `/api/chat` 返回的当前快照，不创建 live observer。切换 Execution 或关闭 Drawer 会使旧请求失效，迟到响应不会覆盖当前查看内容。
 
-新建和编辑均在约 `min(680px, 100vw)` 的右侧 Drawer 中复用 `AutomationModal` 的 editor-only 模式，保留结构化/源码编辑、Cron 常用项、校验、启停和删除能力，并在关闭前检查未保存修改。命令抽屉/弹窗仍复用同一个 `AutomationModal`，不存在第二套字段与 payload 规则。
+新建和编辑均在约 `min(680px, 100vw)` 的右侧 Drawer 中复用 `AutomationEditor`，保留结构化/源码编辑、Cron 常用项、校验、启停和删除能力，并在关闭前检查未保存修改。编辑器只按目标 ID 加载详情，不重复读取 Automation 列表。命令抽屉/弹窗与页面都复用 feature 中的 `AutomationHistoryConsole`，不存在第二套字段与 payload 规则；旧 `AutomationModal` 列表/Execution 模式已删除。
 
 桌面左栏固定约 288px；860px 以下改为上下布局，列表限制高度并独立滚动；560px 以下进一步收紧 Execution 列。Execution Drawer 从右侧打开，桌面端宽度为 `min(1180px, calc(100vw - 24px))`；左侧 Execution Detail 固定为 280px，右侧 Chat Detail 占据其余全部空间，两栏独立滚动。860px 以下改为“执行信息 / 历史对话”页签，默认打开执行信息，切换页签不会重新请求已加载数据。
 
@@ -39,12 +39,16 @@ Drawer 不改变页面 URL、Desktop 外层路由、主 Chat 或已读状态，�
 
 ## 相关文件
 - `../src/app/pages/automations/index.tsx`
-- `../src/app/pages/automations/AutomationHistoryConsole.tsx`
-- `../src/app/pages/automations/AutomationHistoryConsole.module.css`
+- `../src/features/automations/components/AutomationHistoryConsole.tsx`
+- `../src/features/automations/components/AutomationHistoryConsole.module.css`
+- `../src/features/automations/components/AutomationEditor.tsx`
+- `../src/features/automations/components/AutomationEditorDrawer.tsx`
 - `../src/features/automations/components/AutomationExecutionDrawer.tsx`
+- `../src/features/automations/hooks/useAutomationHistoryRuntime.ts`
+- `../src/features/automations/hooks/useAutomationEditorRuntime.ts`
+- `../src/features/automations/lib/automationForm.ts`
 - `../src/features/conversation/components/ReadOnlyConversationTimeline.tsx`
 - `../src/features/timeline/components/TimelineRenderEntryView.tsx`
-- `../src/app/modals/AutomationModal.tsx`
 - `../src/features/automations/lib/executionView.ts`
 - `../src/shared/data/api/client.ts`
 - `../src/shared/data/api/routedClient.ts`

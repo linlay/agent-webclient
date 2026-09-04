@@ -91,8 +91,18 @@ for (const file of walk(sourceRoot)) {
 	const isDesktopTransportInfrastructure =
 		relativeFile.startsWith("src/features/transport/") &&
 		/^desktop[^/]*\.(?:ts|tsx)$/iu.test(path.basename(relativeFile));
+	const isFeatureImplementation = relativeFile.startsWith("src/features/");
 	const source = fs.readFileSync(file, "utf8");
 	for (const importedPath of readImports(source)) {
+		if (
+			isFeatureImplementation &&
+			(importedPath.startsWith("@/app/pages/") ||
+				importedPath.startsWith("@/app/modals/"))
+		) {
+			violations.push(
+				`${relativeFile}: feature production code must not import ${importedPath}`,
+			);
+		}
 		if (
 			isDesktopTransportInfrastructure &&
 			desktopForbiddenTransportPaths.includes(importedPath)
