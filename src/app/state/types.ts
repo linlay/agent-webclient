@@ -291,7 +291,3 @@ export interface AppState {
 	eventPopoverAnchor: { x: number; y: number } | null;
 	commandStatusOverlay: CommandStatusOverlayState;
 }
-
-export interface Services {
-	[key: string]: unknown;
-}

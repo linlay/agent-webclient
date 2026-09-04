@@ -55,4 +55,5 @@ Agent Copilot 使用相同的稳定对话身份规则：新对话收到稳定 `c
 - `../src/features/chats/lib/chatSummary.ts`
 - `../src/features/chats/lib/chatSummaryLive.ts`
 - `../src/features/runs/lib/runAgentIdentity.ts`
-- `../src/features/chats/components/ChatItem.tsx`
+- `../src/app/layout/sidebar/WorkerConversationPreviewList.tsx`
+- `../src/app/layout/sidebar/WorkerChatPreviewItem.tsx`

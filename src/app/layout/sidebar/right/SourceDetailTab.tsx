@@ -53,20 +53,6 @@ const SOURCE_DETAIL_CHUNK_TEXT_CLASS_NAME =
 const SOURCE_DETAIL_CHUNK_META_CLASS_NAME =
   "right-sidebar-source-detail-chunk-meta tw:w-full tw:min-w-0 tw:text-xs tw:text-ink-muted tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
 
-export function formatSourceScore(
-  score: number | undefined,
-  translate: TranslateFn = t,
-): string {
-  if (!Number.isFinite(score)) {
-    return "";
-  }
-  const normalized = Number(score)
-    .toFixed(Math.abs(Number(score)) < 1 ? 3 : 2)
-    .replace(/0+$/, "")
-    .replace(/\.$/, "");
-  return translate("timeline.source.score", { score: normalized });
-}
-
 function formatRange(
   start: number | undefined,
   end: number | undefined,

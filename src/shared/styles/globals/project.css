@@ -9,25 +9,6 @@
   background: var(--bg-elev-1);
 }
 
-.project-workspace-modal .ant-modal-content {
-  height: 85vh;
-  padding: 0;
-  overflow: hidden;
-}
-
-.project-workspace-modal .ant-modal-close {
-  top: 7px;
-  right: 8px;
-  z-index: 2;
-}
-
-.project-workspace-modal .ant-modal-body {
-  height: 85vh;
-  min-height: 0;
-}
-
-.project-workspace-modal .project-toolbar { padding-right: 48px; }
-
 .project-toolbar {
   display: flex;
   min-height: 46px;
@@ -380,7 +361,4 @@
   .project-agent-select { width: min(100%, 320px); }
   .project-page-workspace { padding: 0; }
   .project-page-workspace > .project-workspace { border: 0; border-radius: 0; }
-  .project-workspace-modal { max-width: 100vw; margin: 0; top: 0; padding: 0; }
-  .project-workspace-modal .ant-modal-content { height: 100vh; border-radius: 0; }
-  .project-workspace-modal .ant-modal-body { height: 100vh; }
 }

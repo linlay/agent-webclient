@@ -63,7 +63,7 @@ import {
 
 const FREE_TEXT_OPTION_VALUE = "freeText";
 
-interface ConfirmDialogProps extends CallbackData {
+interface QuestionDialogProps extends CallbackData {
   data: QuestionActiveAwaiting;
   onResolved?: () => void;
 }
@@ -72,7 +72,7 @@ interface CallbackData {
   onSubmit?: (paylod: AIAwaitSubmitPayloadData) => Promise<any>;
 }
 
-export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
+export const QuestionDialog: React.FC<QuestionDialogProps> = ({
   data,
   onSubmit,
   onResolved,
@@ -434,8 +434,6 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     </Flex>
   );
 };
-
-export const ConfirmDialog = QuestionDialog;
 
 function SelectOptionTooltipTitle({
   option,

@@ -218,15 +218,6 @@ export class WsClientDisconnectedError extends Error {
 
 export { PlatformRequestTimeoutError as WsClientRequestTimeoutError };
 
-export function isWsTransportError(
-	error: unknown,
-): error is WsClientDisconnectedError | PlatformRequestTimeoutError {
-	return (
-		error instanceof WsClientDisconnectedError ||
-		error instanceof PlatformRequestTimeoutError
-	);
-}
-
 export interface WsConnectionErrorOptions {
 	appMode?: boolean;
 	hasAccessToken?: boolean;

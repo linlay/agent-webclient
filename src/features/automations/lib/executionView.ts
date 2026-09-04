@@ -1,7 +1,4 @@
-import type {
-  AutomationExecutionResponse,
-  AutomationExecutionStatus,
-} from "@/shared/data";
+import type { AutomationExecutionResponse } from "@/shared/data";
 
 export interface AutomationExecutionGroup {
   key: string;
@@ -127,12 +124,4 @@ export function groupAutomationExecutions(
               }).format(new Date(`${key}T12:00:00`)),
     items: groupItems,
   }));
-}
-
-export function isAutomationExecutionStatus(
-  value: unknown,
-): value is AutomationExecutionStatus {
-  return ["running", "success", "failed", "canceled"].includes(
-    String(value || ""),
-  );
 }

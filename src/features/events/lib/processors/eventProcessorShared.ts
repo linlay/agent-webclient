@@ -244,31 +244,6 @@ export function readToolArgumentsText(event: AgentEvent): string {
   }
 }
 
-export function formatStructuredEventText(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return "";
-    }
-    try {
-      const parsed = JSON.parse(trimmed);
-      return typeof parsed === "string"
-        ? parsed
-        : JSON.stringify(parsed, null, 2);
-    } catch {
-      return value;
-    }
-  }
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return safeText(value);
-  }
-}
-
 export function applyTaskBindingToNode(
   event: AgentEvent,
   state: EventProcessorState,

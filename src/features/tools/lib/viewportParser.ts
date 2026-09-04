@@ -83,7 +83,3 @@ export function parseViewportBlocks(text: string): ViewportBlock[] {
 
   return blocks;
 }
-
-export function findHtmlViewportBlocks(text: string): ViewportBlock[] {
-  return parseViewportBlocks(text).filter((item) => item.type === 'html');
-}

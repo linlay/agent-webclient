@@ -114,7 +114,7 @@ export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
 export function readAwaitingAnswerText(event: AgentEvent): string {
 	const rawRecord = event as Record<string, unknown>;
 	return pickEventText(
-		formatStructuredEventText(buildAwaitingAnswerEnvelope(event)),
+		formatAwaitingAnswerText(buildAwaitingAnswerEnvelope(event)),
 		event.text,
 		rawRecord.answers,
 		rawRecord.approvals,
@@ -159,7 +159,7 @@ function pickEventText(...candidates: Array<unknown>): string {
 	return "";
 }
 
-function formatStructuredEventText(value: unknown): string {
+function formatAwaitingAnswerText(value: unknown): string {
 	if (value === null || value === undefined) {
 		return "";
 	}

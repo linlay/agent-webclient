@@ -11,7 +11,7 @@ export * from "@/shared/data/api/endpointRegistry";
 export * from "@/shared/data/api/endpoints";
 export * from "@/shared/data/memory/memoryTypes";
 export * from "@/shared/data/errors/platformError";
-export * from "@/shared/data/query/queries";
+export { useAgentSkillsQuery } from "@/shared/data/query/queries";
 export * from "@/shared/data/query/serverState";
 export * from "@/shared/data/runOwner";
 

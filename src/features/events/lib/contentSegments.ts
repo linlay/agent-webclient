@@ -115,10 +115,6 @@ export function stripSpecialBlocksFromText(text: string): string {
   return merged.replace(/\n{3,}/g, '\n\n').trim();
 }
 
-export function stripViewportBlocksFromText(text: string): string {
-  return stripSpecialBlocksFromText(text);
-}
-
 export function viewportSignature(contentId: string, block: { key?: string; payloadRaw?: string }): string {
   return `${contentId || 'content'}::${block?.key || ''}::${block?.payloadRaw || ''}`;
 }
