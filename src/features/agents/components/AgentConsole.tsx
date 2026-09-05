@@ -7,14 +7,9 @@ import React, {
 } from "react";
 import "./AgentConsole.module.css";
 import {
-  Dropdown,
-  Input,
   Modal,
-  Popover,
   Popconfirm,
-  Select,
   Spin,
-  Tabs,
   Tooltip,
   message,
   type MenuProps,
@@ -38,18 +33,10 @@ import {
   updateAgent,
   updateAdminSource,
 } from "@/shared/data";
-import {
-  ACTIVE_QUERY_REASONING_EFFORTS,
-  normalizeQueryReasoningEffort,
-} from "@/shared/data/api/reasoningEffort";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import type {
   AdminAgentDetailResponse,
-  AdminAgentDiagnostic,
   AdminAgentPrivateSkill,
-  AdminToolSummary,
-  AgentDetailResponse,
-  AgentEditorModelOption,
   AgentEditorOptionsResponse,
   AdminSourceResponse,
   CoderModelOption,
@@ -61,11 +48,13 @@ import {
   filterAgentsPreservingOrder,
   moveAgentForDrop,
 } from "@/features/agents/lib/agentOrdering";
-import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import { buildModelMenuItems } from "@/features/model-config/components/ModelMenuPresenter";
 import { AgentCreateModal } from "@/features/agents/components/AgentCreateModal";
-import { AgentCapabilitiesEditor } from "@/features/agents/components/AgentCapabilitiesEditor";
-import { AgentEditor } from "@/features/agents/components/AgentEditor";
+import {
+  AGENT_FORM_SECTION_IDS,
+  AgentEditor,
+  type AgentFormSectionId,
+} from "@/features/agents/components/AgentEditor";
 import { AgentListPane } from "@/features/agents/components/AgentListPane";
 import { AgentSourceEditor } from "@/features/agents/components/AgentSourceEditor";
 import { useAgentConsoleRuntime } from "@/features/agents/hooks/useAgentConsoleRuntime";
@@ -78,86 +67,72 @@ import type {
   AgentSkillOption,
   AgentToolOption,
 } from "@/features/agents/lib/agentOptions";
-import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { UiButton } from "@/shared/ui/UiButton";
-import { useI18n, type I18nContextValue } from "@/shared/i18n";
+import { useI18n } from "@/shared/i18n";
+import {
+  EMPTY_FORM,
+  asRecord,
+  buildAdminToolOption,
+  buildAgentListSummary,
+  buildDefinition,
+  createEmptyAgentForm,
+  defaultReasoningEffort,
+  fallbackDefinition,
+  firstAdminAgentDiagnosticMessage,
+  formFromDetail,
+  getActiveAgentSectionId,
+  getModelReasoningEfforts,
+  hasEditableAdminDefinition,
+  initialAgentInteractionMode,
+  isInvalidAdminAgent,
+  mergeAgentSkillOptions,
+  normalizeModeForForm,
+  normalizeReasoningEffort,
+  normalizeServiceTier,
+  optionLabel,
+  privateSkillsFromDetail,
+  promptEntriesFromJson,
+  readAdminAgentDiagnostics,
+  reasoningEffortLabel,
+  resolveAdminAgentSourcePath,
+  shouldReloadAgentDetail,
+  shouldStartAgentConsoleBootstrap,
+  toText,
+  toolFilterForOption,
+  toolOptionLabel,
+  type AgentEditorMode,
+  type AgentFormMode,
+  type AgentFormState,
+  type AgentInteractionMode,
+  type AgentToolFilter,
+  type EditableAgentDetail,
+} from "@/features/agents/lib/agentDefinition";
 
-type AgentFormMode = "create" | "edit";
-type AgentEditorMode = "structured" | "source";
-type AgentInteractionMode = "view" | "edit";
-type IconKind = "none" | "builtin" | "image";
-type AgentToolFilter = "all" | "file" | "desktop" | "system";
-type Translate = I18nContextValue["t"];
-
-export function initialAgentInteractionMode(
-  formMode: AgentFormMode,
-): AgentInteractionMode {
-  return formMode === "edit" ? "view" : "edit";
-}
-
-export function shouldReloadAgentDetail(
-  loadedAgentKey: string,
-  selectedAgentKey: string,
-): boolean {
-  const nextKey = selectedAgentKey.trim();
-  return Boolean(nextKey) && loadedAgentKey !== nextKey;
-}
-
-export function getActiveAgentSectionId<T extends string>(
-  sections: ReadonlyArray<{ id: T; top: number }>,
-  anchorTop: number,
-  options: { atScrollEnd?: boolean } = {},
-): T | null {
-  if (!sections.length) return null;
-  const visualSections = [...sections].sort(
-    (left, right) => left.top - right.top,
-  );
-  if (options.atScrollEnd) {
-    return visualSections[visualSections.length - 1].id;
-  }
-  return (
-    visualSections
-      .slice()
-      .reverse()
-      .find((section) => section.top <= anchorTop)?.id ?? visualSections[0].id
-  );
-}
-type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse;
-
-type ChoicePresentation = {
-  icon: MaterialIconName;
-  label: string;
-  description: string;
+export {
+  buildAdminToolOption,
+  buildAgentListSummary,
+  buildDefinition,
+  defaultReasoningEffort,
+  firstAdminAgentDiagnosticMessage,
+  formFromDetail,
+  getActiveAgentSectionId,
+  getModelReasoningEfforts,
+  hasEditableAdminDefinition,
+  initialAgentInteractionMode,
+  isInvalidAdminAgent,
+  mergeAgentSkillOptions,
+  privateSkillsFromDetail,
+  readAdminAgentDiagnostics,
+  resolveAdminAgentSourcePath,
+  shouldReloadAgentDetail,
+  shouldStartAgentConsoleBootstrap,
+  toolOptionLabel,
 };
-interface AgentFormState {
-  key: string;
-  name: string;
-  iconKind: IconKind;
-  iconName: string;
-  iconImage: string;
-  role: string;
-  description: string;
-  mode: string;
-  modelKey: string;
-  serviceTier: string;
-  reasoningConfigured: boolean;
-  reasoningEnabled: boolean;
-  reasoningEffort: string;
-  tools: string[];
-  skills: string[];
-  greetingsText: string;
-  wondersText: string;
-  contextTags: string[];
-  visibilityScopes: string[];
-  budgetText: string;
-  controlsText: string;
-  runtimeConfigText: string;
-  memoryConfigText: string;
-  proxyConfigText: string;
-  soulPrompt: string;
-  agentsPrompt: string;
-}
+
+export { AGENT_FORM_SECTION_IDS };
+
 
 export interface AgentConsoleProps {
   selectedAgentKey?: string;
@@ -182,749 +157,6 @@ export async function saveAgentOrderRequest(agents: Agent[]): Promise<void> {
   await putAdminAgentOrder({ order: agentOrderPayload(agents) });
 }
 
-const EMPTY_FORM: AgentFormState = {
-  key: "",
-  name: "",
-  iconKind: "none",
-  iconName: "",
-  iconImage: "",
-  role: "",
-  description: "",
-  mode: "REACT",
-  modelKey: "",
-  serviceTier: "STANDARD",
-  reasoningConfigured: false,
-  reasoningEnabled: false,
-  reasoningEffort: "",
-  tools: [],
-  skills: [],
-  greetingsText: "[]",
-  wondersText: "[]",
-  contextTags: [],
-  visibilityScopes: ["nav"],
-  budgetText: "",
-  controlsText: "[]",
-  runtimeConfigText: "",
-  memoryConfigText: "",
-  proxyConfigText: "",
-  soulPrompt: "",
-  agentsPrompt: "",
-};
-
-function createEmptyAgentForm(): AgentFormState {
-  const suffix = `${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
-  return { ...EMPTY_FORM, key: `agent-${suffix}` };
-}
-
-const BUDGET_PLACEHOLDER = `{
-  "runTimeoutMs": 600000,
-  "maxSteps": 240,
-  "model": { "maxCalls": 240 },
-  "tool": { "maxCalls": 200 }
-}`;
-const SIMPLE_BUDGET_TEMPLATE = `{
-  "runTimeoutMs": 600000,
-  "maxSteps": 120
-}`;
-const DEFAULT_REASONING_EFFORTS = [...ACTIVE_QUERY_REASONING_EFFORTS];
-
-function toText(value: unknown): string {
-  return String(value ?? "").trim();
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? { ...(value as Record<string, unknown>) }
-    : {};
-}
-
-function normalizeReasoningEffort(value: unknown): string {
-  return normalizeQueryReasoningEffort(value) || "";
-}
-
-function normalizeServiceTier(value: unknown): string {
-  const tier = toText(value).toUpperCase();
-  if (!tier || tier === "DEFAULT" || tier === "AUTO") return "STANDARD";
-  return tier === "PRIORITY" ? "FAST" : tier;
-}
-
-export function getModelReasoningEfforts(
-  models: AgentEditorModelOption[] | undefined,
-  modelKey: string,
-): string[] {
-  if (!toText(modelKey)) return [];
-  const selectedModel = (models || []).find(
-    (model) => toText(model.key) === toText(modelKey),
-  );
-  if (!selectedModel || !Array.isArray(selectedModel.reasoningEfforts)) {
-    return [...DEFAULT_REASONING_EFFORTS];
-  }
-  const seen = new Set<string>();
-  return selectedModel.reasoningEfforts.reduce<string[]>((efforts, value) => {
-    const effort = normalizeReasoningEffort(value);
-    if (!effort || effort === "NONE" || seen.has(effort)) return efforts;
-    seen.add(effort);
-    efforts.push(effort);
-    return efforts;
-  }, []);
-}
-
-export function defaultReasoningEffort(efforts: string[]): string {
-  return efforts.includes("MEDIUM") ? "MEDIUM" : efforts[0] || "";
-}
-
-function reasoningEffortLabel(effort: string, t: Translate): string {
-  const normalized = normalizeReasoningEffort(effort);
-  switch (normalized) {
-    case "LOW":
-    case "MEDIUM":
-    case "HIGH":
-    case "XHIGH":
-    case "MAX":
-      return t(`composer.query.reasoning.${normalized}`);
-    default:
-      return effort;
-  }
-}
-
-function readAdminToolKind(tool: Partial<AdminToolSummary>): string {
-  return toText(tool.kind);
-}
-
-function readAdminToolSourceCategory(tool: Partial<AdminToolSummary>): string {
-  return toText(tool.sourceCategory);
-}
-
-function toolSourceLabel(sourceCategory: string, t: Translate): string {
-  switch (sourceCategory.toLowerCase()) {
-    case "platform":
-      return t("toolSource.platform");
-    case "external":
-      return t("toolSource.external");
-    case "mcp":
-      return t("toolSource.mcp");
-    default:
-      return sourceCategory;
-  }
-}
-
-export function toolOptionLabel(option: AgentToolOption, t: Translate): string {
-  const sourceLabel = toolSourceLabel(option.sourceCategory, t);
-  return [
-    option.label,
-    option.label === option.key ? "" : option.key,
-    sourceLabel,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
-function toolFilterForOption(option: AgentToolOption): Exclude<
-  AgentToolFilter,
-  "all"
-> {
-  const haystack = `${option.key} ${option.label} ${option.kind}`.toLowerCase();
-  if (/file|path|glob|grep/.test(haystack)) return "file";
-  if (/desktop|screen|window|clipboard/.test(haystack)) return "desktop";
-  return "system";
-}
-
-function contextOptionPresentation(key: string): {
-  icon: MaterialIconName;
-  descriptionKey: string;
-} {
-  switch (key.toLowerCase()) {
-    case "system":
-      return { icon: "article", descriptionKey: "agentConsole.context.systemHint" };
-    case "session":
-      return { icon: "history", descriptionKey: "agentConsole.context.sessionHint" };
-    case "owner":
-      return { icon: "person", descriptionKey: "agentConsole.context.ownerHint" };
-    default:
-      return { icon: "description", descriptionKey: "agentConsole.context.defaultHint" };
-  }
-}
-
-export function readAdminAgentStatus(value: unknown): string {
-  return toText(asRecord(value).status).toLowerCase();
-}
-
-export function isInvalidAdminAgent(value: unknown): boolean {
-  return readAdminAgentStatus(value) === "invalid";
-}
-
-export function readAdminAgentDiagnostics(
-  value: unknown,
-): AdminAgentDiagnostic[] {
-  const diagnostics = asRecord(value).diagnostics;
-  if (!Array.isArray(diagnostics)) return [];
-  return diagnostics
-    .map((item) => {
-      const record = asRecord(item);
-      const message = toText(record.message);
-      const code = toText(record.code);
-      if (!message && !code) return null;
-      const sourcePath = toText(record.sourcePath);
-      return {
-        severity: toText(record.severity) || "error",
-        code,
-        message: message || code,
-        ...(sourcePath ? { sourcePath } : {}),
-      };
-    })
-    .filter((item): item is AdminAgentDiagnostic => Boolean(item));
-}
-
-export function firstAdminAgentDiagnosticMessage(value: unknown): string {
-  return readAdminAgentDiagnostics(value)[0]?.message || "";
-}
-
-export function hasEditableAdminDefinition(
-  detail: EditableAgentDetail | null,
-): boolean {
-  if (!detail || !isInvalidAdminAgent(detail)) return true;
-  return Boolean(detail.definition);
-}
-
-export function resolveAdminAgentSourcePath(detail: unknown): string {
-  const record = asRecord(detail);
-  const source = asRecord(record.source);
-  return (
-    toText(source.path) ||
-    toText(source.agentDir) ||
-    readAdminAgentDiagnostics(detail)
-      .map((item) => toText(item.sourcePath))
-      .find(Boolean) ||
-    ""
-  );
-}
-
-export function privateSkillsFromDetail(
-  detail: EditableAgentDetail | null,
-): AdminAgentPrivateSkill[] {
-  if (
-    !detail ||
-    !Array.isArray((detail as AdminAgentDetailResponse).privateSkills)
-  ) {
-    return [];
-  }
-  return (detail as AdminAgentDetailResponse).privateSkills || [];
-}
-
-function agentSkillDisplayName(label: string, key: string): string {
-  const value = toText(label) || toText(key);
-  if (
-    value === value.toLowerCase() &&
-    value.toLowerCase() === toText(key).toLowerCase() &&
-    /^[a-z0-9]{2,4}$/.test(value)
-  ) {
-    return value.toUpperCase();
-  }
-  return value;
-}
-
-export function mergeAgentSkillOptions(
-  centerSkills: Array<{ key: string; label: string; description?: string }>,
-  privateSkills: AdminAgentPrivateSkill[],
-  selectedSkills: string[],
-  t: Translate,
-): AgentSkillOption[] {
-  const entries = new Map<string, AgentSkillOption>();
-  for (const item of centerSkills) {
-    const key = toText(item.key);
-    if (!key) continue;
-    entries.set(key.toLowerCase(), {
-      key,
-      label: item.label || key,
-      description: item.description,
-      source: "center",
-    });
-  }
-  for (const item of privateSkills) {
-    const key = toText(item.key);
-    if (!key) continue;
-    const centerExists = entries.has(key.toLowerCase());
-    entries.set(key.toLowerCase(), {
-      key,
-      label: toText(item.name) || key,
-      description: toText(item.description) || undefined,
-      source: "private",
-      overridesCenter: item.overridesCenter || centerExists,
-    });
-  }
-  for (const rawKey of selectedSkills) {
-    const key = toText(rawKey);
-    if (!key || entries.has(key.toLowerCase())) continue;
-    entries.set(key.toLowerCase(), { key, label: key, source: "center" });
-  }
-  return [...entries.values()]
-    .map((item) => ({
-      ...item,
-      label:
-        item.source === "private"
-          ? `${agentSkillDisplayName(item.label, item.key)} · ${t(
-              "agentConsole.privateSkill.source.private",
-            )}`
-          : `${item.label}${item.label === item.key ? "" : ` · ${item.key}`} · ${t(
-              "agentConsole.privateSkill.source.center",
-            )}`,
-    }))
-    .sort((left, right) => left.label.localeCompare(right.label));
-}
-
-function textListFromUnknown(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.map((item) => toText(item)).filter(Boolean)
-    : [];
-}
-
-function promptEntriesFromJson(value: string): string[] {
-  const raw = value.trim();
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map((item) => toText(item));
-  } catch {
-    // Keep legacy or temporarily invalid content editable as one entry.
-  }
-  return [value];
-}
-
-function promptEntriesToJson(entries: string[]): string {
-  return JSON.stringify(entries, null, 2);
-}
-
-function stringifyJson(value: unknown, fallback = ""): string {
-  if (value === undefined || value === null || value === "") return fallback;
-  return JSON.stringify(value, null, 2);
-}
-
-function parseJsonField(
-  label: string,
-  value: string,
-  t: Translate,
-  options: { allowEmpty?: boolean; expectArray?: boolean } = {},
-): unknown {
-  const raw = value.trim();
-  if (!raw && options.allowEmpty !== false) return undefined;
-  try {
-    const parsed = JSON.parse(raw);
-    if (options.expectArray && !Array.isArray(parsed)) {
-      throw new Error(t("agentConsole.error.jsonArray", { label }));
-    }
-    if (
-      !options.expectArray &&
-      (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
-    ) {
-      throw new Error(t("agentConsole.error.jsonObject", { label }));
-    }
-    return parsed;
-  } catch (error) {
-    const message = (error as Error).message;
-    throw new Error(
-      message.startsWith(label)
-        ? message
-        : t("agentConsole.error.jsonInvalid", { label, detail: message }),
-    );
-  }
-}
-
-function normalizeModeForForm(value: unknown): string {
-  switch (toText(value).toUpperCase()) {
-    case "PROXY":
-    case "ACP-PROXY":
-    case "ACP_PROXY":
-      return "PROXY";
-    case "PLAN-EXECUTE":
-    case "PLAN_EXECUTE":
-      return "PLAN_EXECUTE";
-    case "ONESHOT":
-    case "":
-      return "REACT";
-    default:
-      return toText(value).toUpperCase();
-  }
-}
-
-function modePresentation(
-  mode: string,
-  fallbackLabel: string,
-  t: Translate,
-): ChoicePresentation {
-  switch (normalizeModeForForm(mode)) {
-    case "REACT":
-      return { icon: "refresh", label: t("agentConsole.mode.react.label"), description: t("agentConsole.mode.react.description") };
-    case "CODER":
-      return { icon: "code", label: t("agentConsole.mode.coder.label"), description: t("agentConsole.mode.coder.description") };
-    case "KBASE":
-      return { icon: "book_2", label: t("agentConsole.mode.kbase.label"), description: t("agentConsole.mode.kbase.description") };
-    default:
-      return { icon: "settings", label: fallbackLabel || mode, description: t("agentConsole.mode.custom.description") };
-  }
-}
-
-function visibilityPresentation(
-  scope: string,
-  fallbackLabel: string,
-  t: Translate,
-): ChoicePresentation {
-  switch (scope.trim().toLowerCase()) {
-    case "nav":
-      return { icon: "dashboard", label: t("agentConsole.visibility.nav.label"), description: t("agentConsole.visibility.nav.description") };
-    case "copilot":
-      return { icon: "smart_toy", label: t("agentConsole.visibility.copilot.label"), description: t("agentConsole.visibility.copilot.description") };
-    case "invoke":
-      return { icon: "call", label: t("agentConsole.visibility.invoke.label"), description: t("agentConsole.visibility.invoke.description") };
-    case "internal":
-      return { icon: "lock", label: t("agentConsole.visibility.internal.label"), description: t("agentConsole.visibility.internal.description") };
-    default:
-      return { icon: "visibility", label: fallbackLabel || scope, description: t("agentConsole.visibility.custom.description") };
-  }
-}
-
-function iconFieldsFromValue(
-  value: unknown,
-): Pick<AgentFormState, "iconKind" | "iconName" | "iconImage"> {
-  if (typeof value === "string" && value.trim()) {
-    return { iconKind: "image", iconName: "", iconImage: value.trim() };
-  }
-  const record = asRecord(value);
-  const name = toText(record.name);
-  if (name) return { iconKind: "builtin", iconName: name, iconImage: "" };
-  return { iconKind: "none", iconName: "", iconImage: "" };
-}
-
-function buildIconValue(form: AgentFormState): unknown {
-  if (form.iconKind === "image") return form.iconImage.trim() || undefined;
-  if (form.iconKind === "builtin")
-    return form.iconName.trim() ? { name: form.iconName.trim() } : undefined;
-  return undefined;
-}
-
-function optionLabel(item: Record<string, unknown>): string {
-  return toText(item.label) || toText(item.name) || toText(item.key);
-}
-
-export function buildAdminToolOption(item: unknown): AgentToolOption | null {
-  const record = asRecord(item);
-  const tool = record as Partial<AdminToolSummary>;
-  const key = toText(record.key) || toText(record.name);
-  if (!key) return null;
-  return {
-    key,
-    label: optionLabel(record) || key,
-    sourceCategory: readAdminToolSourceCategory(tool),
-    kind: readAdminToolKind(tool),
-  };
-}
-
-function countListItems(value: unknown): number {
-  return Array.isArray(value) ? value.length : 0;
-}
-
-function readCount(value: unknown): number | undefined {
-  const count = Number(value);
-  return Number.isFinite(count) && count >= 0 ? count : undefined;
-}
-
-function resolveFirstCount(...values: unknown[]): number {
-  for (const value of values) {
-    const count = readCount(value);
-    if (count !== undefined) return count;
-    if (Array.isArray(value)) return countListItems(value);
-  }
-  return 0;
-}
-
-export function buildAgentListSummary(
-  agent: Agent,
-  formFallback?: AgentFormState,
-) {
-  const meta = asRecord(agent.meta);
-  const modelConfig = asRecord(agent.modelConfig);
-  const toolConfig = asRecord(agent.toolConfig);
-  const skillConfig = asRecord(agent.skillConfig);
-  return {
-    mode: formFallback?.mode || toText(meta.mode) || toText(agent.mode) || "--",
-    modelKey:
-      toText(meta.modelKey) ||
-      toText(agent.modelKey) ||
-      toText(modelConfig.modelKey) ||
-      toText(agent.model) ||
-      formFallback?.modelKey ||
-      "--",
-    toolsCount: resolveFirstCount(
-      meta.toolsCount,
-      toolConfig.tools,
-      agent.tools,
-      formFallback?.tools,
-    ),
-    skillsCount: resolveFirstCount(
-      meta.skillsCount,
-      skillConfig.skills,
-      agent.skills,
-      formFallback?.skills,
-    ),
-  };
-}
-
-export function shouldStartAgentConsoleBootstrap(
-  ref: React.MutableRefObject<boolean>,
-): boolean {
-  if (ref.current) return false;
-  ref.current = true;
-  return true;
-}
-
-function resolveModelKey(
-  detail: EditableAgentDetail,
-  definition: Record<string, unknown>,
-): string {
-  const modelConfig = asRecord(definition.modelConfig);
-  const meta = asRecord(detail.meta);
-  return (
-    toText(modelConfig.modelKey) ||
-    toText(meta.modelKey) ||
-    toText(detail.model)
-  );
-}
-
-function fallbackDefinition(
-  detail: EditableAgentDetail,
-): Record<string, unknown> {
-  const definition: Record<string, unknown> = {
-    key: detail.key,
-    name: detail.name,
-    icon: detail.icon,
-    role: detail.role || "",
-    description: detail.description || "",
-    mode: normalizeModeForForm(detail.mode),
-  };
-  const meta = asRecord(detail.meta);
-  const visibility = asRecord(meta.visibility);
-  const budget = asRecord(meta.budget);
-  const detailModelConfig = asRecord(detail.modelConfig);
-  const modelKey =
-    toText(detailModelConfig.modelKey) ||
-    toText(meta.modelKey) ||
-    toText(detail.model);
-  if (modelKey || Object.keys(detailModelConfig).length > 0) {
-    definition.modelConfig = {
-      ...detailModelConfig,
-      ...(modelKey ? { modelKey } : {}),
-    };
-  }
-  if (Array.isArray(detail.tools))
-    definition.toolConfig = { tools: detail.tools };
-  if (Array.isArray(detail.skills))
-    definition.skillConfig = { skills: detail.skills };
-  if (Array.isArray(detail.greetings)) definition.greetings = detail.greetings;
-  if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
-  if (Array.isArray(detail.controls)) definition.controls = detail.controls;
-  if (Array.isArray(visibility.scopes))
-    definition.visibility = { scopes: visibility.scopes };
-  if (Object.keys(budget).length > 0) definition.budget = budget;
-  return definition;
-}
-
-export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
-  const definition = detail.definition || fallbackDefinition(detail);
-  const modelConfig = asRecord(definition.modelConfig);
-  const reasoning = asRecord(modelConfig.reasoning);
-  const reasoningEffort = normalizeReasoningEffort(reasoning.effort);
-  const toolConfig = asRecord(definition.toolConfig);
-  const skillConfig = asRecord(definition.skillConfig);
-  const contextConfig = asRecord(definition.contextConfig);
-  const meta = asRecord(detail.meta);
-  const definitionVisibility = asRecord(definition.visibility);
-  const metaVisibility = asRecord(meta.visibility);
-  const definitionBudget = asRecord(definition.budget);
-  const metaBudget = asRecord(meta.budget);
-  const budget =
-    Object.keys(definitionBudget).length > 0 ? definitionBudget : metaBudget;
-  return {
-    key: toText(definition.key) || detail.key,
-    name: toText(definition.name) || detail.name || detail.key,
-    ...iconFieldsFromValue(definition.icon ?? detail.icon),
-    role: toText(definition.role) || detail.role || "",
-    description: toText(definition.description) || detail.description || "",
-    mode: normalizeModeForForm(
-      toText(definition.mode) || detail.mode || "REACT",
-    ),
-    modelKey:
-      toText(modelConfig.modelKey) || resolveModelKey(detail, definition),
-    serviceTier: normalizeServiceTier(modelConfig.serviceTier),
-    reasoningConfigured: Object.prototype.hasOwnProperty.call(
-      modelConfig,
-      "reasoning",
-    ),
-    reasoningEnabled:
-      reasoning.enabled !== false &&
-      (reasoning.enabled === true || Boolean(reasoningEffort)),
-    reasoningEffort,
-    tools: textListFromUnknown(toolConfig.tools || detail.tools),
-    skills: textListFromUnknown(skillConfig.skills || detail.skills),
-    greetingsText: stringifyJson(
-      definition.greetings ?? detail.greetings ?? [],
-      "[]",
-    ),
-    wondersText: stringifyJson(
-      definition.wonders ?? detail.wonders ?? [],
-      "[]",
-    ),
-    contextTags: textListFromUnknown(
-      contextConfig.tags || definition.contextTags,
-    ),
-    visibilityScopes: (() => {
-      const definitionScopes = textListFromUnknown(definitionVisibility.scopes);
-      if (definitionScopes.length > 0) return definitionScopes;
-      const metaScopes = textListFromUnknown(metaVisibility.scopes);
-      return metaScopes.length > 0 ? metaScopes : ["nav"];
-    })(),
-    budgetText: stringifyJson(budget),
-    controlsText: stringifyJson(
-      definition.controls || detail.controls || [],
-      "[]",
-    ),
-    runtimeConfigText: stringifyJson(definition.runtimeConfig),
-    memoryConfigText: stringifyJson(definition.memoryConfig),
-    proxyConfigText: stringifyJson(definition.proxyConfig),
-    soulPrompt: detail.soulPrompt || "",
-    agentsPrompt: detail.agentsPrompt || "",
-  };
-}
-
-export function buildDefinition(
-  form: AgentFormState,
-  baseDefinition: Record<string, unknown>,
-  t: Translate,
-  reasoningSupported?: boolean,
-): Record<string, unknown> {
-  const definition = { ...baseDefinition };
-  definition.key = form.key.trim();
-  definition.name = form.name.trim();
-  const icon = buildIconValue(form);
-  if (icon) definition.icon = icon;
-  else delete definition.icon;
-  definition.role = form.role.trim();
-  definition.description = form.description.trim();
-  definition.mode = normalizeModeForForm(form.mode);
-
-  const modelKey = form.modelKey.trim();
-  if (modelKey) {
-    const modelConfig: Record<string, unknown> = {
-      ...asRecord(definition.modelConfig),
-      modelKey,
-    };
-    const serviceTier = normalizeServiceTier(form.serviceTier);
-    if (serviceTier !== "STANDARD") modelConfig.serviceTier = serviceTier;
-    else delete modelConfig.serviceTier;
-    if (reasoningSupported === true && form.reasoningConfigured) {
-      const reasoning = { ...asRecord(modelConfig.reasoning) };
-      if (form.reasoningEnabled) {
-        reasoning.enabled = true;
-        const effort = normalizeReasoningEffort(form.reasoningEffort);
-        if (effort) reasoning.effort = effort;
-        else delete reasoning.effort;
-      } else {
-        reasoning.enabled = false;
-        delete reasoning.effort;
-      }
-      modelConfig.reasoning = reasoning;
-    } else if (reasoningSupported === false) {
-      delete modelConfig.reasoning;
-    }
-    definition.modelConfig = modelConfig;
-  } else delete definition.modelConfig;
-
-  const tools = form.tools.map((item) => item.trim()).filter(Boolean);
-  if (tools.length > 0)
-    definition.toolConfig = { ...asRecord(definition.toolConfig), tools };
-  else delete definition.toolConfig;
-
-  const skills = form.skills.map((item) => item.trim()).filter(Boolean);
-  if (skills.length > 0)
-    definition.skillConfig = { ...asRecord(definition.skillConfig), skills };
-  else delete definition.skillConfig;
-
-  const greetings = parseJsonField(
-    t("agentConsole.field.greetings"),
-    form.greetingsText,
-    t,
-    { expectArray: true },
-  );
-  if (greetings === undefined) delete definition.greetings;
-  else definition.greetings = greetings;
-
-  const wonders = parseJsonField(
-    t("agentConsole.field.wonders"),
-    form.wondersText,
-    t,
-    { expectArray: true },
-  );
-  if (wonders === undefined) delete definition.wonders;
-  else definition.wonders = wonders;
-
-  const contextTags = form.contextTags
-    .map((item) => item.trim())
-    .filter(Boolean);
-  if (contextTags.length > 0) {
-    definition.contextConfig = {
-      ...asRecord(definition.contextConfig),
-      tags: contextTags,
-    };
-    delete definition.contextTags;
-  } else {
-    const existingContextConfig = asRecord(definition.contextConfig);
-    delete existingContextConfig.tags;
-    if (Object.keys(existingContextConfig).length > 0)
-      definition.contextConfig = existingContextConfig;
-    else delete definition.contextConfig;
-    delete definition.contextTags;
-  }
-
-  const visibilityScopes = form.visibilityScopes
-    .map((item) => item.trim())
-    .filter(Boolean);
-  if (visibilityScopes.length > 0) {
-    definition.visibility = {
-      ...asRecord(definition.visibility),
-      scopes: visibilityScopes,
-    };
-  } else {
-    delete definition.visibility;
-  }
-
-  const budget = parseJsonField("Budget", form.budgetText, t);
-  if (budget === undefined) delete definition.budget;
-  else definition.budget = budget;
-
-  definition.controls = parseJsonField("Controls", form.controlsText, t, {
-    expectArray: true,
-  });
-  for (const [key, label, value] of [
-    ["runtimeConfig", "Runtime Config", form.runtimeConfigText],
-    ["memoryConfig", "Memory Config", form.memoryConfigText],
-  ] as const) {
-    const parsed = parseJsonField(label, value, t);
-    if (parsed === undefined) delete definition[key];
-    else definition[key] = parsed;
-  }
-  if (definition.mode === "PROXY") {
-    definition.proxyConfig = parseJsonField(
-      "Proxy Config",
-      form.proxyConfigText,
-      t,
-      { allowEmpty: false },
-    );
-  } else {
-    delete definition.proxyConfig;
-  }
-  return definition;
-}
-
 const AGENT_CONSOLE_CLASS_NAME = "agent-console tw:overflow-hidden";
 const AGENT_ERROR_CLASS_NAME =
   "agent-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
@@ -940,10 +172,6 @@ const AGENT_DIAGNOSTIC_ITEM_CLASS_NAME =
   "agent-diagnostic-item tw:flex tw:min-w-0 tw:flex-col tw:gap-[3px]";
 const AGENT_DIAGNOSTIC_CODE_CLASS_NAME =
   "agent-diagnostic-code tw:text-[11px] tw:font-bold tw:text-ink-muted";
-const AGENT_FORM_GRID_CLASS_NAME =
-  "agent-form-grid tw:grid tw:grid-cols-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
-const AGENT_FORM_FULL_WIDTH_CLASS_NAME =
-  "field-group agent-form-full-width tw:col-span-3 tw:max-[860px]:col-span-1";
 const AGENT_SECTION_NAV_CLASS_NAME =
   "agent-section-nav tw:sticky tw:top-0 tw:flex tw:items-center tw:gap-1";
 const AGENT_SECTION_NAV_LINKS_CLASS_NAME =
@@ -955,62 +183,8 @@ const AGENT_SECTION_NAV_ACTIONS_CLASS_NAME =
 const AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME =
   "agent-section-nav-icon-button ui-icon-hover-24";
 const AGENT_SECTION_NAV_SAVE_CLASS_NAME = "agent-section-nav-save tw:flex-none";
-const AGENT_FORM_SECTION_CLASS_NAME = "agent-form-section";
-const AGENT_FORM_SECTION_HEADING_CLASS_NAME =
-  "agent-form-section-heading tw:flex tw:items-center tw:gap-1.5";
-const AGENT_MONO_TEXTAREA_CLASS_NAME =
-  "settings-textarea agent-mono-textarea tw:font-code";
-const AGENT_PROMPT_TEXTAREA_CLASS_NAME =
-  "settings-textarea agent-prompt-textarea tw:min-h-[120px]";
-const AGENT_SOURCE_EDITOR_CLASS_NAME =
-  "settings-textarea agent-source-editor tw:min-h-0 tw:flex-1 tw:resize-none tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80 tw:max-[860px]:flex-none tw:max-[860px]:resize-y";
-const AGENT_DIRTY_CLASS_NAME =
-  "agent-source-dirty tw:text-[11px] tw:text-ink-muted";
 const AGENT_UNEDITABLE_CLASS_NAME =
   "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
-const AGENT_SAVE_ACTIONS_CLASS_NAME =
-  "agent-save-actions tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2";
-
-export const AGENT_FORM_SECTION_IDS = [
-  "agent-section-basic",
-  "agent-section-model",
-  "agent-section-prompts",
-  "agent-section-context-capabilities",
-  "agent-section-advanced",
-] as const;
-
-export type AgentFormSectionId = (typeof AGENT_FORM_SECTION_IDS)[number];
-
-interface AgentFormSectionProps {
-  children: React.ReactNode;
-  icon: MaterialIconName;
-  id: AgentFormSectionId;
-  title: string;
-}
-
-const AgentFormSection: React.FC<AgentFormSectionProps> = ({
-  children,
-  icon,
-  id,
-  title,
-}) => {
-  const titleId = `${id}-title`;
-  return (
-    <section
-      id={id}
-      className={AGENT_FORM_SECTION_CLASS_NAME}
-      aria-labelledby={titleId}
-      tabIndex={-1}
-    >
-      <div className={AGENT_FORM_SECTION_HEADING_CLASS_NAME}>
-        <MaterialIcon name={icon} />
-        <h3 id={titleId}>{title}</h3>
-      </div>
-      {children}
-    </section>
-  );
-};
-
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
@@ -2398,532 +1572,46 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 />
               ) : null
             ) : canEditStructuredAgent ? (
-              <AgentEditor readOnly={isReadOnly}>
-                <AgentFormSection
-                  id={AGENT_FORM_SECTION_IDS[0]}
-                  icon="person"
-                  title={t("agentConsole.basic.identityTitle")}
-                >
-                  <div className="agent-basic-identity">
-                    <div className="agent-identity-avatar-column">
-                      <div className="agent-icon-picker">
-                        <div className="agent-identity-avatar" aria-hidden="true">
-                          <AgentIcon
-                            icon={selectedIconValue as any}
-                            type="agent"
-                            props={{
-                              icon: { width: 80, height: 80 },
-                              avatar: {
-                                size: 80,
-                                icon: <MaterialIcon name="smart_toy" />,
-                              },
-                            }}
-                          />
-                        </div>
-                        <Popover
-                          open={iconEditorOpen}
-                          onOpenChange={setIconEditorOpen}
-                          trigger="click"
-                          placement="bottom"
-                          arrow={false}
-                          destroyOnHidden
-                          classNames={{ root: "agent-icon-editor-popover" }}
-                          content={
-                            <div
-                              id="agent-icon-editor"
-                              className="agent-icon-editor-panel"
-                            >
-                              <div className="field-group">
-                                <label htmlFor="agent-icon-kind-input">
-                                  {t("agentConsole.field.icon")}
-                                </label>
-                                <Select
-                                  id="agent-icon-kind-input"
-                                  value={form.iconKind}
-                                  options={[
-                                    {
-                                      value: "none",
-                                      label: t("agentConsole.field.iconKind.none"),
-                                    },
-                                    {
-                                      value: "builtin",
-                                      label: t("agentConsole.field.iconKind.builtin"),
-                                    },
-                                    {
-                                      value: "image",
-                                      label: t("agentConsole.field.iconKind.image"),
-                                    },
-                                  ]}
-                                  onChange={(value: IconKind) =>
-                                    updateForm({ iconKind: value })
-                                  }
-                                />
-                              </div>
-                              {form.iconKind === "builtin" && (
-                                <div className="field-group">
-                                  <label htmlFor="agent-icon-name-input">
-                                    {t("agentConsole.field.iconName")}
-                                  </label>
-                                  <Select
-                                    id="agent-icon-name-input"
-                                    showSearch
-                                    allowClear
-                                    value={form.iconName || undefined}
-                                    options={AGENT_ICON_NAMES.map((name) => ({
-                                      value: name,
-                                      label: name,
-                                    }))}
-                                    onChange={(value) =>
-                                      updateForm({ iconName: value || "" })
-                                    }
-                                  />
-                                </div>
-                              )}
-                              {form.iconKind === "image" && (
-                                <div className="field-group">
-                                  <label htmlFor="agent-icon-image-input">
-                                    {t("agentConsole.field.iconImage")}
-                                  </label>
-                                  <Input
-                                    id="agent-icon-image-input"
-                                    placeholder={t("agentConsole.placeholder.iconImage")}
-                                    value={form.iconImage}
-                                    onChange={(event) =>
-                                      updateForm({ iconImage: event.target.value })
-                                    }
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          }
-                        >
-                          <UiButton
-                            size="sm"
-                            variant="ghost"
-                            className="agent-icon-picker-action"
-                            aria-expanded={iconEditorOpen}
-                            aria-controls="agent-icon-editor"
-                          >
-                            <MaterialIcon name="image" />
-                            {t("agentConsole.basic.changeIcon")}
-                          </UiButton>
-                        </Popover>
-                      </div>
-                    </div>
-                    <div className="agent-identity-fields">
-                      <div className="field-group">
-                        <label htmlFor="agent-name-input">
-                          {t("agentConsole.field.name")}
-                        </label>
-                        <Input
-                          id="agent-name-input"
-                          value={form.name}
-                          onChange={(event) =>
-                            updateForm({ name: event.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="field-group">
-                        <label htmlFor="agent-role-input">
-                          {t("agentConsole.field.role")}
-                        </label>
-                        <Input
-                          id="agent-role-input"
-                          value={form.role}
-                          onChange={(event) =>
-                            updateForm({ role: event.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="field-group agent-identity-description">
-                      <label htmlFor="agent-description-input">
-                        {t("agentConsole.field.description")}
-                      </label>
-                      <Input.TextArea
-                        id="agent-description-input"
-                        className="agent-description-textarea"
-                        rows={4}
-                        value={form.description}
-                        onChange={(event) =>
-                          updateForm({ description: event.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="agent-basic-runtime">
-                    <div className="agent-subsection-heading">
-                      <MaterialIcon name="play_circle" />
-                      <h3>{t("agentConsole.basic.runtimeTitle")}</h3>
-                    </div>
-                    <div className="field-group">
-                      <span id="agent-mode-label" className="field-label">
-                        {t("agentConsole.field.mode")}
-                      </span>
-                      <div
-                        id="agent-mode-options"
-                        className="agent-choice-grid agent-mode-choice-grid"
-                        role="radiogroup"
-                        aria-labelledby="agent-mode-label"
-                      >
-                        {modeOptions.map((option) => {
-                          const presentation = modePresentation(option.value, option.label, t);
-                          return <label
-                            key={option.value}
-                            className={`agent-choice-card ${form.mode === option.value ? "is-selected" : ""}`}
-                          >
-                            <input
-                              type="radio"
-                              name="agent-mode"
-                              value={option.value}
-                              checked={form.mode === option.value}
-                              onChange={() => setMode(option.value)}
-                            />
-                            <MaterialIcon name={presentation.icon} />
-                            <span className="agent-choice-card-copy">
-                              <span className="agent-choice-card-title">{presentation.label}</span>
-                              <span className="agent-choice-card-description">{presentation.description}</span>
-                            </span>
-                          </label>
-                        })}
-                      </div>
-                    </div>
-                    <div className="field-group">
-                      <span id="agent-visibility-label" className="field-label">
-                        {t("agentConsole.field.visibility")}
-                      </span>
-                      <div
-                        id="agent-visibility-options"
-                        className="agent-choice-grid agent-visibility-choice-grid"
-                        role="group"
-                        aria-labelledby="agent-visibility-label"
-                        aria-busy={loadingOptions}
-                      >
-                        {visibilityScopeOptions.map((option) => {
-                          const checked = form.visibilityScopes.includes(
-                            option.value,
-                          );
-                          const presentation = visibilityPresentation(option.value, option.label, t);
-                          return (
-                            <label
-                              key={option.value}
-                              className={`agent-choice-card ${checked ? "is-selected" : ""}`}
-                            >
-                              <input
-                                type="checkbox"
-                                value={option.value}
-                                checked={checked}
-                                onChange={() =>
-                                  updateForm({
-                                    visibilityScopes: checked
-                                      ? form.visibilityScopes.filter(
-                                          (scope) => scope !== option.value,
-                                        )
-                                      : [...form.visibilityScopes, option.value],
-                                  })
-                                }
-                              />
-                              <MaterialIcon name={presentation.icon} />
-                              <span className="agent-choice-card-copy">
-                                <span className="agent-choice-card-title">{presentation.label}</span>
-                                <span className="agent-choice-card-description">{presentation.description}</span>
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </AgentFormSection>
-
-
-                <AgentFormSection
-                  id={AGENT_FORM_SECTION_IDS[2]}
-                  icon="subject"
-                  title={t("agentConsole.section.prompts")}
-                >
-                  <div className={AGENT_FORM_GRID_CLASS_NAME}>
-                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <div className="agent-prompt-field-heading">
-                        <label htmlFor="agent-soul-input">
-                          {t("agentConsole.prompt.soul.label")}
-                          <span>SOUL.md</span>
-                        </label>
-                        <Tooltip title={t("agentConsole.prompt.soul.description")}>
-                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.soul.description")}><MaterialIcon name="info" /></button>
-                        </Tooltip>
-                      </div>
-                      <Input.TextArea
-                        id="agent-soul-input"
-                        className={AGENT_PROMPT_TEXTAREA_CLASS_NAME}
-                        rows={10}
-                        value={form.soulPrompt}
-                        onChange={(event) => updateForm({ soulPrompt: event.target.value })}
-                      />
-                    </div>
-                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <div className="agent-prompt-field-heading">
-                        <label htmlFor="agent-agents-input">
-                          {t("agentConsole.prompt.agents.label")}
-                          <span>AGENTS.md</span>
-                        </label>
-                        <Tooltip title={t("agentConsole.prompt.agents.description")}>
-                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.agents.description")}><MaterialIcon name="info" /></button>
-                        </Tooltip>
-                      </div>
-                      <Input.TextArea
-                        id="agent-agents-input"
-                        className={AGENT_PROMPT_TEXTAREA_CLASS_NAME}
-                        rows={10}
-                        value={form.agentsPrompt}
-                        onChange={(event) => updateForm({ agentsPrompt: event.target.value })}
-                      />
-                    </div>
-                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <div className="agent-prompt-field-heading">
-                        <span id="agent-greetings-label" className="agent-prompt-field-label">{t("agentConsole.field.greetings")}</span>
-                        <Tooltip title={t("agentConsole.prompt.greetings.description")}>
-                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.greetings.description")}><MaterialIcon name="info" /></button>
-                        </Tooltip>
-                        {!isReadOnly && <UiButton className="agent-prompt-heading-action" size="sm" variant="ghost" onClick={() => updateForm({ greetingsText: promptEntriesToJson([...greetingEntries, ""]) })}><MaterialIcon name="add" />{t("agentConsole.prompt.addGreeting")}</UiButton>}
-                      </div>
-                      <div className="agent-prompt-entry-list" role="group" aria-labelledby="agent-greetings-label">
-                        {(greetingEntries.length ? greetingEntries : [""]).map((entry, index) => (
-                          <div className="agent-prompt-entry" key={`greeting-${index}`}>
-                            <Input
-                              id={index === 0 ? "agent-greetings-input" : undefined}
-                              aria-label={t("agentConsole.prompt.greetings.item", { index: index + 1 })}
-                              placeholder={t("agentConsole.prompt.greetings.placeholder")}
-                              value={entry}
-                              onChange={(event) => {
-                                const next = [...(greetingEntries.length ? greetingEntries : [""])];
-                                next[index] = event.target.value;
-                                updateForm({ greetingsText: promptEntriesToJson(next) });
-                              }}
-                            />
-                            {!isReadOnly && <UiButton size="mini" variant="ghost" aria-label={t("agentConsole.prompt.removeItem", { index: index + 1 })} onClick={() => updateForm({ greetingsText: promptEntriesToJson(greetingEntries.filter((_, entryIndex) => entryIndex !== index)) })}><MaterialIcon name="delete" /></UiButton>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <div className="agent-prompt-field-heading">
-                        <span id="agent-wonders-label" className="agent-prompt-field-label">{t("agentConsole.field.wonders")}</span>
-                        <Tooltip title={t("agentConsole.prompt.wonders.description")}>
-                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.wonders.description")}><MaterialIcon name="info" /></button>
-                        </Tooltip>
-                        {!isReadOnly && <UiButton className="agent-prompt-heading-action" size="sm" variant="ghost" onClick={() => updateForm({ wondersText: promptEntriesToJson([...wonderEntries, ""]) })}><MaterialIcon name="add" />{t("agentConsole.prompt.addWonder")}</UiButton>}
-                      </div>
-                      <div className="agent-prompt-entry-list" role="group" aria-labelledby="agent-wonders-label">
-                        {(wonderEntries.length ? wonderEntries : [""]).map((entry, index) => (
-                          <div className="agent-prompt-entry" key={`wonder-${index}`}>
-                            <Input
-                              id={index === 0 ? "agent-wonders-input" : undefined}
-                              aria-label={t("agentConsole.prompt.wonders.item", { index: index + 1 })}
-                              placeholder={t("agentConsole.prompt.wonders.placeholder")}
-                              value={entry}
-                              onChange={(event) => {
-                                const next = [...(wonderEntries.length ? wonderEntries : [""])];
-                                next[index] = event.target.value;
-                                updateForm({ wondersText: promptEntriesToJson(next) });
-                              }}
-                            />
-                            {!isReadOnly && <UiButton size="mini" variant="ghost" aria-label={t("agentConsole.prompt.removeItem", { index: index + 1 })} onClick={() => updateForm({ wondersText: promptEntriesToJson(wonderEntries.filter((_, entryIndex) => entryIndex !== index)) })}><MaterialIcon name="delete" /></UiButton>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </AgentFormSection>
-                <AgentFormSection
-                  id={AGENT_FORM_SECTION_IDS[1]}
-                  icon="psychology"
-                  title={t("agentConsole.section.model")}
-                >
-                  <div className="agent-model-selector-card">
-                    <div className="agent-model-dropdown">
-                      <Dropdown
-                        menu={{
-                          className: "query-settings-menu",
-                          items: modelItems,
-                          onClick: onModelMenuClick,
-                        }}
-                        onOpenChange={onModelMenuOpenChange}
-                        placement="topRight"
-                        trigger={["click"]}
-                      >
-                        <UiButton
-                          className={`query-settings-btn tw:!min-h-8 tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap query-model-btn tw:overflow-hidden ${queryModelButtonStateClass}`.trim()}
-                          variant="ghost"
-                          size="sm"
-                          disabled={isReadOnly || loadingOptions}
-                          title={formError || t("composer.query.model.title")}
-                          onClick={(event) => event.preventDefault()}
-                        >
-                          {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-                          <span className="query-model-label tw:text-text-main">
-                            {selectedModelLabel}
-                          </span>
-                          <span>{selectedReasoningLabel}</span>
-                          <MaterialIcon name="expand_more" />
-                        </UiButton>
-                      </Dropdown>
-                    </div>
-                  </div>
-                </AgentFormSection>
-
-                <AgentFormSection
-                  id={AGENT_FORM_SECTION_IDS[3]}
-                  icon="hub"
-                  title={t("agentConsole.section.capabilities")}
-                >
-                  <AgentCapabilitiesEditor
-                    readOnly={isReadOnly}
-                    contextOptions={contextTagOptions.map((option) => {
-                      const presentation = contextOptionPresentation(option.value);
-                      return {
-                        value: option.value,
-                        label: option.label,
-                        icon: presentation.icon,
-                        description: t(presentation.descriptionKey),
-                      };
-                    })}
-                    contextTags={form.contextTags}
-                    tools={form.tools}
-                    skills={form.skills}
-                    filteredTools={filteredToolOptions}
-                    selectedTools={selectedTools}
-                    filteredSkills={filteredSkillOptions}
-                    selectedSkills={selectedSkills}
-                    toolFilter={toolFilter}
-                    toolSearchText={toolSearchText}
-                    skillSearchText={skillSearchText}
-                    toolsExpanded={toolsExpanded}
-                    skillsExpanded={skillsExpanded}
-                    canImportPrivateSkill={canImportPrivateSkill}
-                    t={t}
-                    getToolCategory={toolFilterForOption}
-                    getToolSourceLabel={(tool) => toolSourceLabel(tool.sourceCategory, t) || tool.kind}
-                    onContextTagsChange={(contextTags) => updateForm({ contextTags })}
-                    onToolsChange={(tools) => updateForm({ tools })}
-                    onSkillsChange={(skills) => updateForm({ skills })}
-                    onToolFilterChange={setToolFilter}
-                    onToolSearchTextChange={setToolSearchText}
-                    onSkillSearchTextChange={setSkillSearchText}
-                    onToolsExpandedChange={setToolsExpanded}
-                    onSkillsExpandedChange={setSkillsExpanded}
-                    onImportPrivateSkill={openPrivateSkillImport}
-                  />
-                </AgentFormSection>
-
-                <AgentFormSection
-                  id={AGENT_FORM_SECTION_IDS[4]}
-                  icon="tune"
-                  title={t("agentConsole.section.advancedConfig")}
-                >
-                  <div className={AGENT_FORM_GRID_CLASS_NAME}>
-                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <label htmlFor="agent-controls-input">
-                        {t("agentConsole.field.controls")}
-                      </label>
-                      <Input.TextArea
-                        id="agent-controls-input"
-                        className={AGENT_MONO_TEXTAREA_CLASS_NAME}
-                        rows={5}
-                        value={form.controlsText}
-                        onChange={(event) =>
-                          updateForm({ controlsText: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <label htmlFor="agent-runtime-input">
-                        {t("agentConsole.field.runtimeConfig")}
-                      </label>
-                      <Input.TextArea
-                        id="agent-runtime-input"
-                        className={AGENT_MONO_TEXTAREA_CLASS_NAME}
-                        rows={5}
-                        placeholder='{"environmentId":"shell","level":"RUN"}'
-                        value={form.runtimeConfigText}
-                        onChange={(event) =>
-                          updateForm({ runtimeConfigText: event.target.value })
-                        }
-                      />
-                    </div>
-                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                      <div className="agent-advanced-field-heading">
-                        <label htmlFor="agent-budget-input">
-                          {t("agentConsole.field.budget")}
-                        </label>
-                        {!isReadOnly && (
-                          <Dropdown
-                            menu={{
-                              items: [
-                                {
-                                  key: "simple",
-                                  label: t("agentConsole.budget.template.simple"),
-                                },
-                                {
-                                  key: "advanced",
-                                  label: t("agentConsole.budget.template.advanced"),
-                                },
-                              ],
-                              onClick: ({ key }) =>
-                                updateForm({
-                                  budgetText:
-                                    key === "simple"
-                                      ? SIMPLE_BUDGET_TEMPLATE
-                                      : BUDGET_PLACEHOLDER,
-                                }),
-                            }}
-                            placement="bottomRight"
-                            trigger={["click"]}
-                          >
-                            <UiButton
-                              className="agent-budget-template-trigger"
-                              size="mini"
-                              variant="ghost"
-                            >
-                              <MaterialIcon name="content_copy" />
-                              <span>{t("agentConsole.budget.template")}</span>
-                              <MaterialIcon name="expand_more" />
-                            </UiButton>
-                          </Dropdown>
-                        )}
-                      </div>
-                      <Input.TextArea
-                        id="agent-budget-input"
-                        className={AGENT_MONO_TEXTAREA_CLASS_NAME}
-                        rows={7}
-                        placeholder={BUDGET_PLACEHOLDER}
-                        value={form.budgetText}
-                        onChange={(event) =>
-                          updateForm({ budgetText: event.target.value })
-                        }
-                      />
-                    </div>
-                    {form.mode === "PROXY" && (
-                      <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
-                        <label htmlFor="agent-proxy-input">
-                          {t("agentConsole.field.acpProxyConfig")}
-                        </label>
-                        <Input.TextArea
-                          id="agent-proxy-input"
-                          className={AGENT_MONO_TEXTAREA_CLASS_NAME}
-                          rows={5}
-                          placeholder='{"baseUrl":"http://127.0.0.1:3210","timeoutMs":300000}'
-                          value={form.proxyConfigText}
-                          onChange={(event) =>
-                            updateForm({ proxyConfigText: event.target.value })
-                          }
-                        />
-                      </div>
-                    )}
-                  </div>
-                </AgentFormSection>
-              </AgentEditor>
+              <AgentEditor
+                isReadOnly={isReadOnly}
+                t={t}
+                form={form}
+                formError={formError}
+                selectedIconValue={selectedIconValue}
+                iconEditorOpen={iconEditorOpen}
+                setIconEditorOpen={setIconEditorOpen}
+                updateForm={updateForm}
+                modeOptions={modeOptions}
+                setMode={setMode}
+                loadingOptions={loadingOptions}
+                visibilityScopeOptions={visibilityScopeOptions}
+                greetingEntries={greetingEntries}
+                wonderEntries={wonderEntries}
+                modelItems={modelItems}
+                onModelMenuClick={onModelMenuClick}
+                onModelMenuOpenChange={onModelMenuOpenChange}
+                queryModelButtonStateClass={queryModelButtonStateClass}
+                showFastBadge={showFastBadge}
+                selectedModelLabel={selectedModelLabel}
+                selectedReasoningLabel={selectedReasoningLabel}
+                contextTagOptions={contextTagOptions}
+                filteredToolOptions={filteredToolOptions}
+                selectedTools={selectedTools}
+                filteredSkillOptions={filteredSkillOptions}
+                selectedSkills={selectedSkills}
+                toolFilter={toolFilter}
+                toolSearchText={toolSearchText}
+                skillSearchText={skillSearchText}
+                toolsExpanded={toolsExpanded}
+                skillsExpanded={skillsExpanded}
+                canImportPrivateSkill={canImportPrivateSkill}
+                setToolFilter={setToolFilter}
+                setToolSearchText={setToolSearchText}
+                setSkillSearchText={setSkillSearchText}
+                setToolsExpanded={setToolsExpanded}
+                setSkillsExpanded={setSkillsExpanded}
+                openPrivateSkillImport={openPrivateSkillImport}
+              />
             ) : (
               <div className={AGENT_UNEDITABLE_CLASS_NAME}>
                 <MaterialIcon name="warning" />

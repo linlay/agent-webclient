@@ -2,6 +2,7 @@ export {
   AgentConsole,
   type AgentConsoleProps,
 } from "@/features/agents/components/AgentConsole";
+export type { Agent } from "@/features/agents/lib/agentState";
 export { AgentProjectCreateDialog } from "@/features/agents/components/AgentProjectCreateDialog";
 export {
   AgentCreateModal,
