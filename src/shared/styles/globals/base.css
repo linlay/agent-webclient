@@ -569,10 +569,6 @@ textarea {
     border: 1px solid var(--line-soft);
 }
 
-.copilot-modal.ant-modal .ant-modal-content {
-    padding: 10px;
-}
-
 .ant-modal .ant-modal-content {
     max-height: calc(100vh - 150px);
     overflow: hidden;

@@ -1,0 +1,3 @@
+:global(.archive-modal) :global(.ant-modal-body) {
+    padding-top: 8px;
+}

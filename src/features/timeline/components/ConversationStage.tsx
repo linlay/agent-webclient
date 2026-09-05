@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import "./TimelineCompat.module.css";
 
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;

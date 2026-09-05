@@ -145,3 +145,9 @@
         display: none;
     }
 }
+
+@keyframes ui-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

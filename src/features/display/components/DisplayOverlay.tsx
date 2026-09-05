@@ -6,6 +6,7 @@ import {
 	subscribeDisplay,
 	type DisplayEffect,
 } from "@/features/display/lib/displayRuntime";
+import "./DisplayOverlay.module.css";
 
 type Particle = {
 	x: number;

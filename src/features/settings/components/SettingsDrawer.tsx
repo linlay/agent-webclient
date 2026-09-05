@@ -27,6 +27,8 @@ import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebu
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
 import { MaterialIcon } from "@/shared/icons/material";
 import "./Settings.module.css";
+import "./SettingsFields.module.css";
+import "./SettingsOverlayCompat.module.css";
 
 interface SettingsDrawerProps {
   open?: boolean;

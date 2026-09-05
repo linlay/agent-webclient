@@ -1,7 +1,7 @@
 /* ========================================
    Tool Pill & Detail
    ======================================== */
-.tool-status-dot {
+:global(.tool-status-dot) {
     width: 7px;
     height: 7px;
     border-radius: 50%;
@@ -23,7 +23,7 @@
     }
 }
 
-.tool-pill-label {
+:global(.tool-pill-label) {
     max-width: min(46vw, 260px);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -31,42 +31,42 @@
     flex-shrink: 0;
 }
 
-.tool-pill-duration {
+:global(.tool-pill-duration) {
     color: color-mix(in srgb, var(--ink-muted) 78%, transparent);
     font-family: var(--font-mono);
     font-size: 12px;
     white-space: nowrap;
 }
 
-.tool-status-dot[data-tool-status="running"] {
+:global(.tool-status-dot)[data-tool-status="running"] {
     animation-name: status-dot-flash;
     animation-duration: 1s;
     animation-iteration-count: infinite;
     background: var(--accent-electric);
 }
 
-.tool-status-dot[data-tool-status="completed"] {
+:global(.tool-status-dot)[data-tool-status="completed"] {
     background: var(--accent-electric);
 }
 
-.tool-status-dot[data-tool-status="success"] {
+:global(.tool-status-dot)[data-tool-status="success"] {
     background: var(--accent-lime);
 }
 
-.tool-status-dot[data-tool-status="failed"],
-.tool-status-dot[data-tool-status="error"],
-.tool-status-dot[data-tool-status="canceled"] {
+:global(.tool-status-dot)[data-tool-status="failed"],
+:global(.tool-status-dot)[data-tool-status="error"],
+:global(.tool-status-dot)[data-tool-status="canceled"] {
     background: var(--accent-danger);
 }
 
-.tool-call-head {
+:global(.tool-call-head) {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
 }
 
-.tool-call-title {
+:global(.tool-call-title) {
     font-size: 12px;
     font-family: var(--font-mono);
     font-weight: 600;
@@ -75,16 +75,16 @@
     color: var(--ink-muted);
 }
 
-.tool-call-meta {
+:global(.tool-call-meta) {
     letter-spacing: 0.04em;
 }
 
-.tool-call-meta-status {
+:global(.tool-call-meta-status) {
     position: relative;
     padding-left: 8px;
 }
 
-.tool-call-meta-status::before {
+:global(.tool-call-meta-status)::before {
     content: "";
     position: absolute;
     left: 0;
@@ -97,47 +97,47 @@
     transform: translateY(-50%);
 }
 
-.tool-call-card.is-grouped[data-tool-status="running"] .tool-call-meta-status,
-.tool-call-card.is-grouped[data-tool-status="completed"] .tool-call-meta-status {
+:global(.tool-call-card):global(.is-grouped)[data-tool-status="running"] :global(.tool-call-meta-status),
+:global(.tool-call-card):global(.is-grouped)[data-tool-status="completed"] :global(.tool-call-meta-status) {
     color: color-mix(in srgb, var(--accent-electric) 78%, var(--ink-muted));
 }
 
-.tool-call-card.is-grouped[data-tool-status="success"] .tool-call-meta-status {
+:global(.tool-call-card):global(.is-grouped)[data-tool-status="success"] :global(.tool-call-meta-status) {
     color: color-mix(in srgb, var(--accent-lime) 72%, var(--ink-muted));
 }
 
-.tool-call-card.is-grouped[data-tool-status="failed"] .tool-call-meta-status,
-.tool-call-card.is-grouped[data-tool-status="error"] .tool-call-meta-status,
-.tool-call-card.is-grouped[data-tool-status="canceled"] .tool-call-meta-status {
+:global(.tool-call-card):global(.is-grouped)[data-tool-status="failed"] :global(.tool-call-meta-status),
+:global(.tool-call-card):global(.is-grouped)[data-tool-status="error"] :global(.tool-call-meta-status),
+:global(.tool-call-card):global(.is-grouped)[data-tool-status="canceled"] :global(.tool-call-meta-status) {
     color: color-mix(in srgb, var(--accent-danger) 80%, var(--ink-muted));
 }
 
-.tool-call-body {
+:global(.tool-call-body) {
     display: flex;
     flex-direction: column;
     gap: 8px;
     position: relative;
 }
 
-.tool-call-card {
+:global(.tool-call-card) {
     background: color-mix(in srgb, var(--bg-input) 86%, var(--bg-elev-2));
     border-radius: 10px;
 }
 
-.tool-call-card.has-live-output {
+:global(.tool-call-card):global(.has-live-output) {
     background: transparent;
     border-radius: 0;
 }
 
-.tool-call-note {
+:global(.tool-call-note) {
     font-size: 12px;
     line-height: 1.5;
     color: var(--ink-muted);
     white-space: pre-wrap;
 }
 
-.tool-call-inline,
-.tool-call-result {
+:global(.tool-call-inline),
+:global(.tool-call-result) {
     margin: 0;
     font-family: var(--font-mono);
     font-size: 12px;
@@ -145,45 +145,45 @@
     color: var(--text-muted);
 }
 
-.tool-call-output-stdout,
-.tool-call-output-stderr,
-.tool-call-output-truncation {
+:global(.tool-call-output-stdout),
+:global(.tool-call-output-stderr),
+:global(.tool-call-output-truncation) {
     white-space: inherit;
 }
 
-.tool-call-output-stderr {
+:global(.tool-call-output-stderr) {
     color: color-mix(in srgb, var(--accent-danger) 68%, var(--text-muted));
 }
 
-.tool-call-output-truncation {
+:global(.tool-call-output-truncation) {
     color: var(--ink-muted);
     font-style: italic;
 }
 
-.tool-call-result .input {
+:global(.tool-call-result) :global(.input) {
     color: var(--text-main);
     margin-bottom: 8px;
 }
 
-.tool-call-result .input td {
+:global(.tool-call-result) :global(.input) td {
     padding: 0;
     vertical-align: baseline;
 }
 
-.tool-call-result .input td:first-child {
+:global(.tool-call-result) :global(.input) td:first-child {
     color: color-mix(in srgb, var(--accent-lime) 30%, var(--ink-muted));
     padding-right: 10px;
     white-space: nowrap;
 }
 
-.tool-call-inline {
+:global(.tool-call-inline) {
     display: block;
     padding: 7px 9px;
     overflow-x: auto;
     white-space: nowrap;
 }
 
-.tool-call-copy {
+:global(.tool-call-copy) {
     position: absolute;
     top: -26px;
     right: 0;
@@ -191,37 +191,37 @@
     font-size: 12px;
 }
 
-.tool-call-copy .ui-btn-label {
+:global(.tool-call-copy) :global(.ui-btn-label) {
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
 
-.tool-call-copy .material-icon {
+:global(.tool-call-copy) :global(.material-icon) {
     font-size: 14px;
 }
 
-.tool-call-copy button {
+:global(.tool-call-copy) button {
     width: 20px !important;
     min-width: 20px !important;
     height: 20px !important;
     min-height: 20px !important;
 }
 
-.tool-call-copy button:hover {
+:global(.tool-call-copy) button:hover {
     color: var(--ink-2);
     box-shadow: none;
 }
 
-.tool-call-copy button[data-copy-state="copied"] {
+:global(.tool-call-copy) button[data-copy-state="copied"] {
     color: color-mix(in srgb, var(--accent-lime) 82%, var(--ink-2));
 }
 
-.tool-call-copy button[data-copy-state="error"] {
+:global(.tool-call-copy) button[data-copy-state="error"] {
     color: color-mix(in srgb, var(--accent-danger) 86%, var(--ink-2));
 }
 
-.tool-call-result {
+:global(.tool-call-result) {
     padding: 10px 12px;
     overflow-x: auto;
     overflow-y: auto;
@@ -229,33 +229,33 @@
     word-break: break-word;
 }
 
-.tool-call-live-output {
+:global(.tool-call-live-output) {
     min-width: 0;
 }
 
-.tool-output-terminal-shell {
+:global(.tool-output-terminal-shell) {
     box-sizing: border-box;
     width: 100%;
     padding: 4px 0 0;
     overflow: visible;
 }
 
-.tool-output-terminal {
+:global(.tool-output-terminal) {
     width: 100%;
     min-height: 18px;
     overflow: visible;
 }
 
-.tool-output-terminal .xterm {
+:global(.tool-output-terminal) :global(.xterm) {
     width: 100%;
     height: 100%;
 }
 
-.tool-output-terminal .xterm-viewport {
+:global(.tool-output-terminal) :global(.xterm-viewport) {
     background-color: transparent !important;
     overflow-y: hidden !important;
 }
 
-.is-frontend-active .composer-pill {
+:global(.is-frontend-active) :global(.composer-pill) {
     display: none;
 }

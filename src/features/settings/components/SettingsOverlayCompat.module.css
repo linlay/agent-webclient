@@ -1,0 +1,8 @@
+/* ========================================
+   Settings Modal
+   ======================================== */
+:global(.settings-card) {
+    width: 100%;
+    max-height: min(82vh, 860px);
+    overflow: auto;
+}

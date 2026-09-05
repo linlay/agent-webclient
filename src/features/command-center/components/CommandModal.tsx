@@ -7,6 +7,7 @@ import { HistoryModal } from "@/features/chats/components/HistoryModal";
 import { AutomationHistoryConsole } from "@/features/automations/components/AutomationHistoryConsole";
 import { AgentConsole } from "@/features/agents/components/AgentConsole";
 import { useI18n } from "@/shared/i18n";
+import "./CommandSurface.module.css";
 
 interface CommandModalProps {
   modal: CommandOverlayState;

@@ -5,6 +5,7 @@ import {
   useArchiveRuntime,
   type RestoredArchiveChatSummary,
 } from "@/features/archive/hooks/useArchiveRuntime";
+import "./ArchiveOverlay.module.css";
 
 export type { RestoredArchiveChatSummary } from "@/features/archive/hooks/useArchiveRuntime";
 export {

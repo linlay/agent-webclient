@@ -1,8 +1,0 @@
-/* AntD Popover portal compat */
-.event-popover-copy-menu-overlay .ant-popover-inner {
-    padding: 0;
-}
-
-.event-popover-copy-menu-overlay .ant-popover-inner-content {
-    padding: 6px;
-}

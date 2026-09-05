@@ -8,7 +8,7 @@
     --voice-speaking-status: #d7670f;
 }
 
-@keyframes voice-eq {
+@keyframes :global(voice-eq) {
 
     0%,
     100% {
@@ -27,7 +27,7 @@
     }
 }
 
-@keyframes voice-orb-pulse {
+@keyframes :global(voice-orb-pulse) {
     0% {
         opacity: 0.28;
         transform: scale(0.92);

@@ -18,12 +18,12 @@ describe("independent conversation surface layout contracts", () => {
 
   it("reserves top-bar actions space for the Desktop native Copilot close button", () => {
     const copilotStyles = readFileSync(
-      join(__dirname, "../../shared/styles/globals/copilot.css"),
+      join(__dirname, "CopilotLayout.module.css"),
       "utf8",
     );
 
     expect(copilotStyles).toMatch(
-      /\.layout-copilot\.is-desktop-copilot-host \.copilot-topbar-actions\s*\{[\s\S]*?margin-right:\s*38px;/,
+      /:global\(\.layout-copilot\):global\(\.is-desktop-copilot-host\) :global\(\.copilot-topbar-actions\)\s*\{[\s\S]*?margin-right:\s*38px;/,
     );
   });
 });

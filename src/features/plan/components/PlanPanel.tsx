@@ -6,6 +6,7 @@ import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { Flex } from "antd";
+import "./PlanPanel.module.css";
 
 export const PlanPanel: React.FC = () => {
   const state = useAppState();

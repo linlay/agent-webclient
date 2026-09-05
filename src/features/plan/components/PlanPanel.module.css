@@ -1,7 +1,7 @@
 /* ========================================
    Plan Panel
    ======================================== */
-.floating-plan {
+:global(.floating-plan) {
     position: relative;
     width: 100%;
     margin: 0;
@@ -11,7 +11,7 @@
     box-shadow: none;
 }
 
-.plan-header {
+:global(.plan-header) {
     width: 100%;
     border: 1px solid color-mix(in srgb, var(--accent-electric) 18%, var(--line-soft));
     border-radius: 16px;
@@ -33,7 +33,7 @@
         box-shadow 0.18s ease;
 }
 
-.plan-header:hover {
+:global(.plan-header):hover {
     border-color: color-mix(in srgb,
             var(--accent-electric) 30%,
             var(--line-soft));
@@ -43,7 +43,7 @@
     box-shadow: var(--shadow-medium);
 }
 
-.plan-title {
+:global(.plan-title) {
     flex: 0 0 auto;
     font:
         700 12px/1 var(--font-mono);
@@ -52,7 +52,7 @@
     text-transform: uppercase;
 }
 
-.plan-header-badges {
+:global(.plan-header-badges) {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -60,7 +60,7 @@
     min-width: 0;
 }
 
-.plan-summary-status {
+:global(.plan-summary-status) {
     font:
         700 11px/1 var(--font-mono);
     color: var(--accent-electric-strong);
@@ -68,11 +68,11 @@
     flex: 0 0 auto;
 }
 
-.plan-overall-status {
+:global(.plan-overall-status) {
     flex: 0 0 auto;
 }
 
-.plan-summary-text {
+:global(.plan-summary-text) {
     flex: 1;
     min-width: 0;
     font-size: 12px;
@@ -82,7 +82,7 @@
     text-overflow: ellipsis;
 }
 
-.plan-chevron {
+:global(.plan-chevron) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -91,11 +91,11 @@
     margin-left: auto;
 }
 
-.plan-chevron .material-icon {
+:global(.plan-chevron) :global(.material-icon) {
     font-size: 18px;
 }
 
-.plan-list {
+:global(.plan-list) {
     list-style: none;
     margin: 0;
     padding: 0 8px;
@@ -115,7 +115,7 @@
         transform 0.18s ease;
 }
 
-.floating-plan.is-expanded .plan-list {
+:global(.floating-plan):global(.is-expanded) :global(.plan-list) {
     max-height: min(320px, calc(100dvh - 220px));
     overflow: auto;
     padding: 8px;
@@ -124,7 +124,7 @@
     pointer-events: auto;
 }
 
-.plan-item {
+:global(.plan-item) {
     display: flex;
     align-items: baseline;
     gap: 8px;
@@ -134,21 +134,21 @@
     border-radius: 6px;
 }
 
-.plan-item+.plan-item {
+:global(.plan-item)+:global(.plan-item) {
     margin-top: 2px;
 }
 
-.plan-item[data-status="running"] {
+:global(.plan-item)[data-status="running"] {
     background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
 }
 
-.plan-item-text {
+:global(.plan-item-text) {
     flex: 1;
     min-width: 0;
     line-height: 1.45;
 }
 
-.plan-item-duration {
+:global(.plan-item-duration) {
     flex-shrink: 0;
     margin-left: auto;
     font-size: 10px;

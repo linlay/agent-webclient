@@ -18,6 +18,7 @@ import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { useI18n } from "@/shared/i18n";
+import "./EventPopover.module.css";
 import {
 	buildCopyMenuTitle,
 	buildDefaultCopyMenuItem,

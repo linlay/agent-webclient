@@ -16,6 +16,7 @@ import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { toolOutputText } from "@/features/events/lib/toolOutputState";
+import "@/features/tools/components/ToolTimeline.module.css";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,

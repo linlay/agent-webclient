@@ -21,7 +21,7 @@ describe("layout status pill styles", () => {
 
   it("keeps status-pill as a semantic class without legacy global styling", () => {
     const layoutCss = fs.readFileSync(
-      path.join(process.cwd(), "src", "shared", "styles", "globals", "layout.css"),
+      path.join(process.cwd(), "src", "app", "layout", "AppLayoutCompat.module.css"),
       "utf8",
     );
 

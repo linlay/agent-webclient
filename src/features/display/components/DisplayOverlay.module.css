@@ -1,4 +1,4 @@
-.desktop-display-overlay {
+:global(.desktop-display-overlay) {
     position: fixed;
     inset: 0;
     z-index: 999;
@@ -7,14 +7,14 @@
     animation: desktop-display-lifecycle var(--desktop-display-duration, 8000ms) ease-in-out both;
 }
 
-.desktop-display-overlay canvas {
+:global(.desktop-display-overlay) canvas {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
 }
 
-.desktop-display-national-greeting {
+:global(.desktop-display-national-greeting) {
     position: absolute;
     top: 16%;
     left: 50%;
@@ -27,7 +27,7 @@
     text-shadow: 0 4px 18px rgb(108 0 0 / 70%), 0 0 36px rgb(255 214 92 / 58%);
 }
 
-.desktop-display-static-decoration {
+:global(.desktop-display-static-decoration) {
     display: none;
     position: absolute;
     inset: 8%;
@@ -42,15 +42,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .desktop-display-overlay canvas {
+    :global(.desktop-display-overlay) canvas {
         display: none;
     }
 
-    .desktop-display-static-decoration {
+    :global(.desktop-display-static-decoration) {
         display: block;
     }
 
-    .desktop-display-overlay.is-fireworks .desktop-display-static-decoration {
+    :global(.desktop-display-overlay):global(.is-fireworks) :global(.desktop-display-static-decoration) {
         background:
             radial-gradient(circle at 20% 28%, #ffd166 0 3px, transparent 4px),
             radial-gradient(circle at 74% 22%, #52d9ff 0 4px, transparent 5px),
@@ -58,13 +58,13 @@
         box-shadow: inset 0 0 80px rgb(103 72 180 / 16%);
     }
 
-    .desktop-display-overlay.is-snowfall .desktop-display-static-decoration {
+    :global(.desktop-display-overlay):global(.is-snowfall) :global(.desktop-display-static-decoration) {
         background-image: radial-gradient(circle, rgb(255 255 255 / 90%) 0 3px, transparent 4px);
         background-size: 72px 72px;
         box-shadow: inset 0 0 100px rgb(183 224 255 / 18%);
     }
 
-    .desktop-display-overlay.is-nationalDay .desktop-display-static-decoration {
+    :global(.desktop-display-overlay):global(.is-nationalDay) :global(.desktop-display-static-decoration) {
         background: linear-gradient(155deg, rgb(196 26 33 / 58%), rgb(255 211 77 / 18%), rgb(196 26 33 / 48%));
         border: 2px solid rgb(255 221 120 / 72%);
     }

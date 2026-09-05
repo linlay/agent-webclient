@@ -11,7 +11,10 @@ function readFeatureStyle(relativePath: string): string {
 }
 
 function readManagementStyles(): string {
-  return [readStyle("dialogs.css"), readStyle("management.css")].join("\n");
+  return [
+    readFeatureStyle("features/command-center/components/CommandSurface.module.css"),
+    readFeatureStyle("features/automations/components/AutomationManagement.module.css"),
+  ].join("\n");
 }
 
 function readRule(css: string, selector: string): string {
@@ -37,7 +40,7 @@ describe("management layout contracts", () => {
   });
 
   it("keeps standalone management consoles at full guest viewport height", () => {
-    const workersCss = readStyle("workers.css");
+    const workersCss = readFeatureStyle("app/layout/ManagementPages.module.css");
     const pageRule = readRule(workersCss, ".management-page-console");
 
     expect(pageRule).toMatch(/flex:\s*1 1 auto;/);
@@ -58,7 +61,7 @@ describe("management layout contracts", () => {
 
   it("keeps management dialogs stable while source editors fill the available height", () => {
     const modalCss = readManagementStyles();
-    const copilotCss = readStyle("copilot.css");
+    const copilotCss = readFeatureStyle("app/layout/CopilotLayout.module.css");
     const bodyRule = readRule(
       modalCss,
       ".command-modal.is-automation-console .ant-modal-body",

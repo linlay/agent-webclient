@@ -1,0 +1,8 @@
+/* AntD Popover portal compat */
+:global(.event-popover-copy-menu-overlay) :global(.ant-popover-inner) {
+    padding: 0;
+}
+
+:global(.event-popover-copy-menu-overlay) :global(.ant-popover-inner-content) {
+    padding: 6px;
+}

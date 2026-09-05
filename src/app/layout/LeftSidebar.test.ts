@@ -1486,7 +1486,7 @@ describe("LeftSidebar", () => {
     expect(mockModalConfirm).toHaveBeenCalledTimes(1);
     const confirmConfig = mockModalConfirm.mock.calls[0][0];
     const modalStyles = readOwnedStyle(
-      "shared", "styles", "globals", "dialogs.css",
+      "features", "command-center", "components", "CommandSurface.module.css",
     );
     expect(confirmConfig.content.props.className).toBe("left-sidebar-rename-agent-input");
     expect(modalStyles).toMatch(

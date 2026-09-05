@@ -58,20 +58,5 @@
 }
 
 @import "./globals/base.css";
-@import "./globals/layout.css";
-@import "./globals/timeline.css";
-@import "./globals/tools.css";
-@import "./globals/composer.css";
-@import "./globals/voice.css";
-@import "./globals/panels.css";
-@import "./globals/sidebar.css";
-@import "./globals/events.css";
-@import "./globals/dialogs.css";
-@import "./globals/management.css";
-@import "./globals/display.css";
-@import "./globals/workers.css";
-@import "./globals/responsive.css";
-@import "./globals/copilot.css";
-@import "./globals/project.css";
 
 @import "tailwindcss/utilities" source("../..");

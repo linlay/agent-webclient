@@ -17,6 +17,7 @@ import {
 import { AgentConsole } from "@/features/agents/components/AgentConsole";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/icons/material";
+import "./CommandSurface.module.css";
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) return 0;

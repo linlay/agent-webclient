@@ -1,4 +1,5 @@
 import React from "react";
+import "./SidebarSettingsMenu.module.css";
 import type { ThemeMode } from "@/shared/styles/theme";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
