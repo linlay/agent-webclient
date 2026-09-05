@@ -267,6 +267,16 @@ export function shouldRenderToolOutputTerminal(
   return Boolean(!record.result && toolOutputText(record.toolOutput));
 }
 
+export function buildToolPillCopyText(
+  record: ToolPillRecord,
+  resultText: string,
+): string {
+  if (shouldRenderToolOutputTerminal(record)) {
+    return toolOutputText(record.toolOutput);
+  }
+  return record.argsInlineText + "\n\n" + resultText;
+}
+
 export function claimToolOutputAutoExpand(
   records: ToolPillRecord[],
   claimedKeys: Set<string>,
@@ -501,7 +511,13 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
           return (
             <div
               key={record.key}
-              className={`tool-call-card ${isGrouped ? "is-grouped" : ""}`}
+              className={[
+                "tool-call-card",
+                isGrouped ? "is-grouped" : "",
+                hasLiveOutput ? "has-live-output" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               data-tool-status={record.status}
             >
               {isGrouped && (
@@ -575,7 +591,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                       onClick={() => {
                         void handleCopyResult(
                           resultCopyKey,
-                          record.argsInlineText + "\n\n" + displayedOutput,
+                          buildToolPillCopyText(record, displayedOutput),
                         );
                       }}
                     >
@@ -591,17 +607,6 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                 </Flex>
                 {hasLiveOutput && record.toolOutput ? (
                   <div className="tool-call-live-output">
-                    {record.argsInlineText ? (
-                      <code
-                        className={`${TOOL_CALL_RESULT_CLASS_NAME} tool-call-live-arguments`}
-                        style={{ whiteSpace: "nowrap" }}
-                      >
-                        <JsonToTable
-                          className="input"
-                          text={record.argsInlineText}
-                        />
-                      </code>
-                    ) : null}
                     <ToolOutputTerminal
                       output={record.toolOutput}
                       themeMode={themeMode}

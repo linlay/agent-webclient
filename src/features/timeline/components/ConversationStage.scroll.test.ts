@@ -70,16 +70,12 @@ jest.mock("@/shared/ui/MaterialIcon", () => ({
 }));
 
 jest.mock("@/shared/ui/UiButton", () => ({
-  UiButton: ({ children, ...props }: any) =>
+  UiButton: ({ children, iconOnly: _iconOnly, ...props }: any) =>
     React.createElement("button", props, children),
 }));
 
 jest.mock("@/shared/components/logo-loading", () => ({
   LogoLoading: () => React.createElement("span"),
-}));
-
-jest.mock("@/shared/components/dot-loading", () => ({
-  DotLoading: () => React.createElement("span"),
 }));
 
 jest.mock("@/shared/i18n", () => ({
@@ -130,6 +126,7 @@ jest.mock("react-virtuoso", () => {
       return () => props.scrollerRef?.(null);
     }, [props.scrollerRef]);
     const Item = props.components?.Item || "div";
+    const Footer = props.components?.Footer;
     return React.createElement(
       "div",
       { ref: scrollerRef, className: props.className, id: props.id },
@@ -147,6 +144,7 @@ jest.mock("react-virtuoso", () => {
           props.itemContent(index, item),
         ),
       ),
+      Footer ? React.createElement(Footer, { key: "footer" }) : null,
     );
   });
   return { Virtuoso };
@@ -311,6 +309,24 @@ describe("ConversationStage scroll restoration", () => {
     expect(
       mockVirtuosoProps["data-desktop-workspace-arrow-keys"],
     ).toBe("allow");
+  });
+
+  it("does not cover live output at the bottom and shows a down arrow after scrolling away", () => {
+    mockState = { ...createChatState(), streaming: true };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).toBeNull();
+
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+
+    const button = container.querySelector(
+      ".conversation-stage-scroll-to-bottom",
+    );
+    expect(button).not.toBeNull();
+    expect(button?.querySelector('[data-icon="arrow_downward"]')).not.toBeNull();
   });
 
   it("immediately overlays source content when the route targets another chat", () => {

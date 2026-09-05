@@ -60,7 +60,6 @@ import {
   isMainChatRuntimeObservedByLiveQuery,
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
-import { DotLoading } from "@/shared/components/dot-loading";
 import { Virtuoso } from "react-virtuoso";
 import type {
   ItemProps,
@@ -1937,7 +1936,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const Footer = useCallback(() => {
     const running = isMainChatRunning || state.streaming;
-    if (isAtBottom && !running) {
+    if (isAtBottom) {
       return null;
     }
     return (
@@ -1957,11 +1956,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           size="sm"
           onClick={handleScrollToBottomClick}
         >
-          {running ? (
-            <DotLoading color="primary" height={15} ariaLabel={t("leftSidebar.loading")} />
-          ) : (
-            <MaterialIcon name="arrow_downward" />
-          )}
+          <MaterialIcon name="arrow_downward" />
         </UiButton>
       </Tooltip>
     );

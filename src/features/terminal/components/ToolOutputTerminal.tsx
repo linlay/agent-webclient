@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { FitAddon } from "@xterm/addon-fit";
+import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
 import type { ToolOutputState } from "@/app/state/types";
 import {
@@ -15,7 +16,14 @@ import "@xterm/xterm/css/xterm.css";
 
 const DEFAULT_COLUMNS = 80;
 const INITIAL_ROWS = 1;
-const FALLBACK_ROW_HEIGHT_PX = 18;
+const FALLBACK_ROW_HEIGHT_PX = 13;
+
+function resolveToolOutputTerminalTheme(themeMode: string) {
+  return {
+    ...resolveTerminalTheme(themeMode),
+    background: "rgba(0, 0, 0, 0)",
+  };
+}
 
 export interface ToolOutputTerminalProps {
   readonly output: ToolOutputState;
@@ -51,23 +59,32 @@ export const ToolOutputTerminal: React.FC<ToolOutputTerminalProps> = ({
 
     disposedRef.current = false;
     const terminal = new Terminal({
+      allowTransparency: true,
       cols: DEFAULT_COLUMNS,
       rows: INITIAL_ROWS,
       convertEol: true,
       cursorBlink: false,
       cursorInactiveStyle: "none",
       disableStdin: true,
+      customGlyphs: true,
       fontFamily:
         'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-      fontSize: 12,
-      lineHeight: 1.5,
+      fontSize: 11,
+      lineHeight: 1,
       scrollback: TOOL_OUTPUT_MAX_BYTES,
-      theme: resolveTerminalTheme(themeMode),
+      theme: resolveToolOutputTerminalTheme(themeMode),
     });
     const fitAddon = new FitAddon();
     terminalRef.current = terminal;
     terminal.loadAddon(fitAddon);
     terminal.open(container);
+    try {
+      const webglAddon = new WebglAddon();
+      terminal.loadAddon(webglAddon);
+      webglAddon.onContextLoss(() => webglAddon.dispose());
+    } catch {
+      // WebGL can be unavailable or disabled; xterm keeps its DOM renderer.
+    }
     rowHeightRef.current = measureRowHeight(terminal);
 
     const syncLayout = () => {
@@ -94,7 +111,6 @@ export const ToolOutputTerminal: React.FC<ToolOutputTerminalProps> = ({
         terminal.resize(terminal.cols, rows);
       }
       container.style.height = `${Math.ceil(rows * rowHeightRef.current)}px`;
-      terminal.scrollToBottom();
     };
 
     const pump = () => {
@@ -152,7 +168,9 @@ export const ToolOutputTerminal: React.FC<ToolOutputTerminalProps> = ({
 
   useEffect(() => {
     const terminal = terminalRef.current;
-    if (terminal) terminal.options.theme = resolveTerminalTheme(themeMode);
+    if (terminal) {
+      terminal.options.theme = resolveToolOutputTerminalTheme(themeMode);
+    }
   }, [themeMode]);
 
   useEffect(() => {

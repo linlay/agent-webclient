@@ -1,6 +1,7 @@
 import type { TimelineNode } from "@/app/state/types";
 import {
 	buildToolPillRecords,
+	buildToolPillCopyText,
 	canExpandToolPill,
 	claimToolOutputAutoExpand,
 	formatToolArgumentsInline,
@@ -287,6 +288,10 @@ describe("ToolPill helpers", () => {
 
 		expect(shouldRenderToolOutputTerminal(liveRecord)).toBe(true);
 		expect(shouldRenderToolOutputTerminal(completedRecord)).toBe(false);
+		expect(buildToolPillCopyText(liveRecord, "")).toBe("working\n");
+		expect(buildToolPillCopyText(completedRecord, "done\n")).toBe(
+			"\n\ndone\n",
+		);
 	});
 
 	it("keeps grouped pills collapsed when all records only have description", () => {

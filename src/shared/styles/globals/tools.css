@@ -124,6 +124,11 @@
     border-radius: 10px;
 }
 
+.tool-call-card.has-live-output {
+    background: transparent;
+    border-radius: 0;
+}
+
 .tool-call-note {
     font-size: 12px;
     line-height: 1.5;
@@ -228,21 +233,11 @@
     min-width: 0;
 }
 
-.tool-call-live-arguments.tool-call-result {
-    max-height: none;
-    overflow-y: visible;
-    padding-bottom: 8px;
-}
-
 .tool-output-terminal-shell {
     box-sizing: border-box;
     width: 100%;
-    padding: 10px 12px;
+    padding: 4px 0 0;
     overflow: visible;
-}
-
-.tool-call-live-arguments + .tool-output-terminal-shell {
-    padding-top: 0;
 }
 
 .tool-output-terminal {
@@ -257,6 +252,7 @@
 }
 
 .tool-output-terminal .xterm-viewport {
+    background-color: transparent !important;
     overflow-y: hidden !important;
 }
 
