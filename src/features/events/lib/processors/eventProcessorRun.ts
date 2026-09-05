@@ -1,11 +1,11 @@
 import type { AgentEvent } from "@/app/state/types";
-import { readMustUseSkills, readRequestQueryText } from "@/shared/utils/eventFieldReaders";
+import { readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
 import type {
   EventCommand,
   EventProcessorConfig,
   EventProcessorState,
 } from "@/features/events/lib/eventProcessorTypes";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/events/lib/processors/eventProcessorShared";
 import { t } from "@/shared/i18n";

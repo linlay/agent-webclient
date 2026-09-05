@@ -1,4 +1,4 @@
-import type { VoiceCapabilities } from '@/app/state/types';
+import type { VoiceCapabilities } from '@/shared/data/api/dto/voice';
 import {
   getAppAccessToken,
   refreshAppAccessToken,

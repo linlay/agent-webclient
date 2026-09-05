@@ -51,7 +51,7 @@ const mockMarkdownContentProps: Array<{
 	}) => void;
 }> = [];
 
-jest.mock("@/shared/ui/MarkdownContent", () => {
+jest.mock("@/features/viewers/components/MarkdownContent", () => {
 	const ReactRuntime = require("react");
 
 	return {

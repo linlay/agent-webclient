@@ -16,7 +16,7 @@ import {
 	PlatformFrameClient,
 	PlatformRequestTimeoutError,
 } from "@/features/transport/lib/platformFrameClient";
-import type { AgentPlatformRequestFrame } from "@/features/transport/contracts/generated/agentWebclientBridge";
+import type { AgentPlatformRequestFrame } from "@/shared/contracts/generated/agentWebclientBridge";
 import type { InboundRequestMetadata } from "@/features/transport/contracts/realtimeTransport";
 
 export type WsConnectionStatus =

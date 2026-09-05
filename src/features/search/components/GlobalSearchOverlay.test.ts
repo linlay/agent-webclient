@@ -57,7 +57,7 @@ jest.mock("@/features/search/components/GlobalSearchOverlayProvider", () => ({
   useGlobalSearchOpen: () => true,
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayActions: () => ({
     openCommandOverlay: mockOpenCommandOverlay,
   }),

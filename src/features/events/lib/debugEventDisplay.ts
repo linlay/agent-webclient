@@ -8,25 +8,12 @@ import {
 import type { TimelineNode } from '@/app/state/types';
 import { isDeltaLogsEnabled } from '@/shared/config/featureFlags';
 
-const hiddenDebugEvents = new WeakSet<AgentEvent>();
-const deltaLogEventTypes = new Set([
-  'content.start',
-  'content.delta',
-  'content.end',
-  'reasoning.start',
-  'reasoning.delta',
-  'reasoning.end',
-  'planning.start',
-  'planning.delta',
-  'planning.end',
-  'tool.start',
-  'tool.args',
-  'tool.end',
-  'tool.output',
-  'action.start',
-  'action.args',
-  'action.end',
-]);
+import { shouldDisplayDebugEvent } from '@/features/events/lib/debugEventVisibility';
+
+export {
+  markDebugEventHidden,
+  shouldDisplayDebugEvent,
+} from '@/features/events/lib/debugEventVisibility';
 
 const toolSnapshotPassthroughTypes = new Set([
   'tool.start',
@@ -479,20 +466,6 @@ export function classifyEventGroup(eventType: string): DebugEventGroup {
 export function isErrorEventType(eventType: string): boolean {
   const type = String(eventType || '').toLowerCase();
   return /(\.error|\.fail|\.cancel|\.cancelled)$/.test(type);
-}
-
-export function markDebugEventHidden(event: AgentEvent): void {
-  hiddenDebugEvents.add(event);
-}
-
-export function shouldDisplayDebugEvent(event: AgentEvent): boolean {
-  if (hiddenDebugEvents.has(event)) {
-    return false;
-  }
-  if (isDeltaLogsEnabled()) {
-    return true;
-  }
-  return !deltaLogEventTypes.has(String(event.type || '').toLowerCase());
 }
 
 export function appendVisibleDebugEvent(

@@ -6,7 +6,7 @@ import {
 import {
   clearAllAwaitingQuestionMeta,
   getAwaitingQuestionMeta,
-} from '@/features/tools/lib/awaitingQuestionMeta';
+} from '@/features/events/lib/awaitingQuestionMeta';
 
 describe('reduceActiveAwaiting', () => {
   beforeEach(() => {

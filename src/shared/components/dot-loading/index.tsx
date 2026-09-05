@@ -6,6 +6,7 @@ export interface DotLoadingProps {
   color?: "default" | "primary" | string;
   height?: React.CSSProperties["height"];
   className?: string;
+  ariaLabel: string;
 }
 
 const colorMap: Record<string, string> = {
@@ -14,7 +15,7 @@ const colorMap: Record<string, string> = {
 };
 
 export const DotLoading = memo<DotLoadingProps>(
-  ({ color = "default", height = "18px", className }) => {
+  ({ color = "default", height = "18px", className, ariaLabel }) => {
     const resolvedColor = colorMap[color] ?? color;
 
     return (
@@ -22,7 +23,7 @@ export const DotLoading = memo<DotLoadingProps>(
         className={`${Style.DotLoading} ${className}`}
         style={{ color: resolvedColor }}
         role="img"
-        aria-label="加载中"
+        aria-label={ariaLabel}
       >
         <svg height={height} viewBox="0 0 84 40" className={Style.Svg}>
           {[0, 1, 2].map((i) => (

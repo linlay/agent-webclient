@@ -30,7 +30,7 @@ import {
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
-import { readEventTeamId } from "@/shared/utils/eventFieldReaders";
+import { readEventTeamId } from "@/features/events/lib/eventFields";
 import {
   BTW_SESSION_STORAGE_KEY,
   findPersistedBTWSession,

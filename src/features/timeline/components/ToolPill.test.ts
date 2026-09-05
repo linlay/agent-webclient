@@ -9,6 +9,7 @@ import {
 	getToolPillDurationText,
 	getExpandableToolPillRecords,
 	resolveKbaseIndexSummary,
+	shouldRenderToolOutputTerminal,
 } from "@/features/timeline/components/ToolPill";
 
 function createToolNode(
@@ -262,6 +263,30 @@ describe("ToolPill helpers", () => {
 		// A manual collapse does not clear the claim, so later chunks for the
 		// same invocation cannot force the pill open again.
 		expect(claimToolOutputAutoExpand(records, claimed)).toBe(false);
+	});
+
+	it("lets a final result replace even stale live terminal state", () => {
+		const liveRecord = buildToolPillRecords(
+			createToolNode({
+				id: "tool_live",
+				kind: "tool",
+				ts: 100,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 0,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "working\n" }],
+				},
+			}),
+		)[0];
+		const completedRecord = {
+			...liveRecord,
+			status: "success",
+			result: { text: "done\n", isCode: false },
+		};
+
+		expect(shouldRenderToolOutputTerminal(liveRecord)).toBe(true);
+		expect(shouldRenderToolOutputTerminal(completedRecord)).toBe(false);
 	});
 
 	it("keeps grouped pills collapsed when all records only have description", () => {

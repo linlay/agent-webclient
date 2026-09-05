@@ -11,11 +11,11 @@ import {
 import type { TimelineNode } from "@/app/state/timelineTypes";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
-import { isPlanViewEventType } from "@/features/plan/lib/planViewEvents";
+import { isPlanViewEventType } from "@/features/events/lib/planViewEvents";
 import {
   readEventTeamId,
   readRequestQueryText,
-} from "@/shared/utils/eventFieldReaders";
+} from "@/features/events/lib/eventFields";
 import { isTerminalStatus, toText } from "@/shared/utils/eventUtils";
 import {
   ARTIFACT_AUTO_COLLAPSE_MS,

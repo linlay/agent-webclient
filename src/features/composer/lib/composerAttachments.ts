@@ -12,7 +12,7 @@ import {
 	getAttachmentKind,
 	getAttachmentKindLabel,
 } from "@/features/artifacts/lib/attachmentUtils";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { t as runtimeT } from "@/shared/i18n";
 import type { TranslateParams } from "@/shared/i18n";

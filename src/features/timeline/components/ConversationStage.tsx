@@ -1958,14 +1958,14 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           onClick={handleScrollToBottomClick}
         >
           {running ? (
-            <DotLoading color="primary" height={15} />
+            <DotLoading color="primary" height={15} ariaLabel={t("leftSidebar.loading")} />
           ) : (
             <MaterialIcon name="arrow_downward" />
           )}
         </UiButton>
       </Tooltip>
     );
-  }, [isAtBottom, isMainChatRunning, runStartedAt, state.streaming]);
+  }, [isAtBottom, isMainChatRunning, runStartedAt, state.streaming, t]);
 
   return (
     <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}>

@@ -10,11 +10,11 @@ import {
   readEventChatName,
   readEventFirstAgentName,
   readEventTeamId,
-} from '@/shared/utils/eventFieldReaders';
+} from '@/features/events/lib/eventFields';
 import { toText } from '@/shared/utils/eventUtils';
 import { isEpochMillis } from '@/shared/utils/platformTime';
 import { toRunOwner } from '@/shared/data/runOwner';
-import { readExplicitEditingMode } from '@/features/runs/lib/editingMode';
+import { readExplicitEditingMode } from '@/features/events/lib/eventFields';
 
 export interface LiveChatSummaryCache {
   chatId: string;

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppState } from "@/app/state/AppContext";
-import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { TerminalPane } from "@/features/terminal/components/TerminalPane";
 import type { TerminalExecution } from "@/features/transport/contracts/realtimeTransport";
 import { reportTerminalTeardownError } from "@/features/terminal/lib/terminalErrors";
@@ -8,6 +7,7 @@ import {
   resolveTerminalAvailability,
   resolveTerminalAvailabilityKey,
   type TerminalAvailability,
+  type TerminalWorkerSummary,
 } from "@/features/terminal/lib/terminalWorkspace";
 import {
   persistTerminalDockState,
@@ -24,7 +24,7 @@ type TerminalTab = TerminalDockTabState;
 export interface TerminalWorkspaceProps {
   agentKey: string;
   workspaceKey?: string;
-  worker?: CurrentWorkerSummary | null;
+  worker?: TerminalWorkerSummary | null;
   availability?: TerminalAvailability;
   initialTerminalKey?: string;
   onRequestClose?: () => void;

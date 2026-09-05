@@ -7,7 +7,7 @@ import type {
   EventCommand,
   EventProcessorState,
 } from "@/features/events/lib/eventProcessorTypes";
-import { parseFrontendToolParams } from "@/features/tools/lib/frontendToolParams";
+import { parseFrontendToolParams } from "@/features/events/lib/frontendToolParams";
 import { toText } from "@/shared/utils/eventUtils";
 import {
   pickToolName,

@@ -8,7 +8,7 @@ import {
 	isSlashCommandFeatureEnabled,
 } from "@/features/composer/lib/slashCommands";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
-import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
+import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import type { CompactLevel } from "@/shared/data";
 

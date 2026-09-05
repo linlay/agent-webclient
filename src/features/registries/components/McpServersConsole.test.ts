@@ -2,10 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import fs from "node:fs";
 import path from "node:path";
-import {
-  McpServersPage,
-  mcpServersRoutePath,
-} from "@/app/pages/mcp-servers";
+import { McpServersConsole } from "@/features/registries/components/McpServersConsole";
+import { mcpServersRoutePath } from "@/features/registries/lib/mcpRoute";
 import {
   readMcpSyncDiagnostic,
   readMcpToolSyncStatus,
@@ -74,7 +72,7 @@ jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
   usePushTransport: () => ({ subscribe: jest.fn(() => jest.fn()) }),
 }));
 
-describe("McpServersPage", () => {
+describe("McpServersConsole", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -84,7 +82,10 @@ describe("McpServersPage", () => {
       React.createElement(
         I18nProvider,
         { locale: "en-US", persistLocale: false },
-        React.createElement(McpServersPage),
+        React.createElement(McpServersConsole, {
+          routeServerKey: "",
+          onRouteServerKeyChange: jest.fn(),
+        }),
       ),
     );
 
@@ -97,7 +98,10 @@ describe("McpServersPage", () => {
       React.createElement(
         I18nProvider,
         { locale: "zh-CN", persistLocale: false },
-        React.createElement(McpServersPage),
+        React.createElement(McpServersConsole, {
+          routeServerKey: "",
+          onRouteServerKeyChange: jest.fn(),
+        }),
       ),
     );
 

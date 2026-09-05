@@ -18,7 +18,7 @@ import { BottomDock } from "@/app/layout/BottomDock";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
-import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
+import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { getAgent } from "@/shared/data";

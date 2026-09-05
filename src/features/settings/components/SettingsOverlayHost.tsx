@@ -1,5 +1,5 @@
 import React from "react";
-import { MemoryInfoModal } from "@/features/settings/components/MemoryInfoModal";
+import { MemoryModal } from "@/features/memory/components/MemoryModal";
 import { SettingsModal } from "@/features/settings/components/SettingsModal";
 import { SettingsDrawer } from "@/features/settings/components/SettingsDrawer";
 import {
@@ -32,7 +32,7 @@ export const SettingsOverlayHost: React.FC<{
 
   if (activeOverlay === "memoryInfo") {
     return (
-      <MemoryInfoModal
+      <MemoryModal
         open
         onClose={() => closeOverlay("memoryInfo")}
       />

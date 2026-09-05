@@ -7,7 +7,7 @@ const path = require("node:path");
 const repoRoot = path.resolve(__dirname, "..");
 const vendoredPath = path.join(
   repoRoot,
-  "src/features/transport/contracts/generated/agentWebclientBridge.ts",
+  "src/shared/contracts/generated/agentWebclientBridge.ts",
 );
 const configuredDesktopMirror = process.env.AGENT_WEBCLIENT_CONTRACT_PATH;
 const desktopMirrorPath = configuredDesktopMirror

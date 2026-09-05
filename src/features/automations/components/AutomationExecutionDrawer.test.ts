@@ -61,7 +61,7 @@ jest.mock("@/shared/icons/agent", () => ({
   AgentIcon: () => React.createElement("span", { "data-testid": "agent-icon" }),
 }));
 
-jest.mock("@/shared/ui/MarkdownContent", () => ({
+jest.mock("@/features/viewers/components/MarkdownContent", () => ({
   MarkdownContent: ({ content }: { content: string }) =>
     React.createElement("div", { "data-testid": "markdown" }, content),
 }));

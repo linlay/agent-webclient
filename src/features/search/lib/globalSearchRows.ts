@@ -13,7 +13,6 @@ import {
 import { resolveConversationDisplayTitle } from "@/features/chats/lib/chatListFormatter";
 import type { MaterialIconName } from "@/shared/icons/material";
 import { toText } from "@/shared/utils/eventUtils";
-import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export type GlobalRowSection =
   | "awaiting"
@@ -84,6 +83,11 @@ type ConversationCandidate = {
 const ATTENTION_LIMIT_PER_AGENT = 5;
 const WORKER_RESULT_LIMIT = 20;
 const HISTORY_RESULT_LIMIT = 10;
+
+function readSortTimestamp(value: unknown): number {
+  const timestamp = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
@@ -199,7 +203,7 @@ function chatToCandidate(chat: Chat): ConversationCandidate | null {
     chatName: toText(chat?.chatName),
     agentKey: readAgentKey(chat) || undefined,
     teamId: toText(chat?.teamId) || undefined,
-    updatedAt: readEpochMillis(chat?.updatedAt) ?? 0,
+    updatedAt: readSortTimestamp(chat?.updatedAt),
     lastRunId: toText(chat?.lastRunId),
     lastRunContent: toText(chat?.lastRunContent),
     isRead: read?.isRead ?? true,
@@ -217,7 +221,7 @@ function historyRowToCandidate(row: WorkerConversationRow): ConversationCandidat
     chatName: toText(row?.chatName),
     agentKey: toText(row?.agentKey) || undefined,
     teamId: toText(row?.teamId) || undefined,
-    updatedAt: readEpochMillis(row?.updatedAt) ?? 0,
+    updatedAt: readSortTimestamp(row?.updatedAt),
     lastRunId: toText(row?.lastRunId),
     lastRunContent: toText(row?.lastRunContent),
     searchSnippet: toText(row?.searchSnippet) || undefined,

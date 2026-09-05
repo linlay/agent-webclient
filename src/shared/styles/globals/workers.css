@@ -174,7 +174,7 @@
 }
 
 .worker-history-modal .ant-modal-body {
-    height: max(70vh, 600px);
+    height: min(70vh, 600px);
     min-height: 0;
     overflow: hidden;
 }
@@ -194,7 +194,7 @@
 .worker-chat-item:hover,
 .worker-chat-item.is-active,
 .worker-chat-item.is-selected {
-    background-color: var(--bg-hover);
+    background-color: transparent;
     color: var(--text-main);
 }
 
@@ -241,12 +241,13 @@
     opacity: 1;
 }
 
-.worker-chat-item .chat-actions-trigger {
+[data-action] .chat-actions-trigger {
+    display: none;
     color: var(--text-muted);
 }
 
 .worker-chat-item:hover [data-action]:not([data-action="loading"]):not([data-action="awaiting"]) .chat-actions-trigger {
-    display: inline-flex;
+    display: unset;
 }
 
 .worker-chat-item:hover .worker-panel-time-label {

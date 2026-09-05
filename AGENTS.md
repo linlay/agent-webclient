@@ -8,7 +8,7 @@
 ## 1. 项目概览
 `agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示对话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
 
-工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；`tool.result` 是唯一终态并替换过程区。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
+工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；运行期使用只读 xterm 按实际缓冲内容完整增高展示并解释换行、回车、退格和 ANSI 控制，`tool.result` 是唯一终态并销毁、替换过程终端。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
 
 ## 2. 技术栈
 - 框架：React 18
@@ -38,6 +38,10 @@
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
 - `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
 - `src/features/registries/`：Registry 与 MCP 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑
+- `src/features/archive/` / `src/features/memory/`：归档与记忆管理页面、内嵌面板及各自运行时；不再归入 Settings
+- `src/features/command-center/` / `src/features/shortcuts/`：跨领域命令容器与全局快捷键装配
+- `src/features/debug/` / `src/features/overview/` / `src/features/source/`：右栏内容与独立 Viewer Surface
+- `src/features/surfaces/` / `src/features/viewers/`：独立窗口外壳、路由目标与带鉴权/跳转行为的内容渲染
 - `src/features/chats/`：历史聊天目录、摘要、未读状态和聊天 CRUD UI
 - `src/features/conversation/`：当前对话加载、切换、live/replay 事件编排与 session 快照
 - `src/features/events/`：AGENT 协议事件到 `EventCommand` 的纯投影，不依赖 React 或 transport
@@ -52,7 +56,7 @@
 - `Makefile`：本地开发、测试、构建与 Program Bundle 发布入口
 - `webpack.config.js` / `tsconfig.json`：当前 TypeScript + Webpack 构建链必需配置
 
-生产代码中的 `features/**` 不得反向导入 `@/app/pages/**` 或 `@/app/modals/**`；允许按现状依赖 `app/state` 的共享状态与类型。领域数据加载时机、刷新策略和响应解释归 feature，`shared/data` 只保留端点、DTO 与请求执行。
+`features/**`（含测试）不得反向导入 `@/app/pages/**`、`@/app/modals/**` 或 `@/app/layout/**`；允许按现状依赖 `app/state` 的共享状态与类型。`shared/**` 不得导入 `app/**` 或 `features/**`，`app/pages/**` 不得直接导入 `shared/data`。领域数据加载时机、刷新策略和响应解释归 feature，`shared/data` 只保留端点、DTO 与请求执行契约。`npm run check:boundaries` 会生成 feature import graph，任意循环依赖都会失败。
 
 ## 5. 数据结构
 主要数据结构集中在 [`src/app/state/types.ts`](./src/app/state/types.ts)：

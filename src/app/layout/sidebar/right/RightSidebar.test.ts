@@ -55,20 +55,24 @@ jest.mock("antd", () => {
   };
 });
 
-jest.mock("@/app/layout/sidebar/right/OverviewTab", () => ({
+jest.mock("@/features/overview/components/OverviewTab", () => ({
   OverviewTab: () => React.createElement("div", null, "overview tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/DebugTab", () => ({
+jest.mock("@/features/debug/components/DebugTab", () => ({
   DebugTab: () => React.createElement("div", null, "debug tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/SourceDetailTab", () => ({
+jest.mock("@/features/source/components/SourceDetailTab", () => ({
   SourceDetailTab: () => React.createElement("div", null, "source detail tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
+jest.mock("@/features/plan/components/PlanningPreviewTab", () => ({
   PlanningPreviewTab: () => React.createElement("div", null, "planning preview tab"),
+}));
+
+jest.mock("@/features/skills/components/SkillDetailView", () => ({
+  SkillDetailView: () => React.createElement("div", null, "skill detail view"),
 }));
 
 jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({

@@ -20,7 +20,7 @@ import {
 } from "@/features/automations/lib/executionView";
 import { ReadOnlyConversationTimeline } from "@/features/conversation/components/ReadOnlyConversationTimeline";
 import { AgentIcon } from "@/shared/icons/agent";
-import { MarkdownContent } from "@/shared/ui/MarkdownContent";
+import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";

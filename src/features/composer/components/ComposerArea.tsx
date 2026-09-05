@@ -48,7 +48,7 @@ import { useRuntimeAccessLevel } from "@/features/composer/hooks/useRuntimeAcces
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
-import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
+import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";

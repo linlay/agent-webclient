@@ -7,7 +7,7 @@ import {
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
   type AgentWebclientWorkPanelPreviewReviewAction,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 
 export const SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL =
   "desktop:service-webview:action";

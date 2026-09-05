@@ -19,7 +19,7 @@ import {
   dispatchDetachRunEvent,
   type DetachRunEventDetail,
 } from "@/features/runs/lib/runControlEvents";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import {
@@ -39,7 +39,7 @@ import type { AgentEvent, AppState } from "@/app/state/types";
 import {
   readEventTeamId,
   readRequestQueryText,
-} from "@/shared/utils/eventFieldReaders";
+} from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import { isChatTransitionBlockingInteractions } from "@/features/conversation/lib/chatTransition";
 

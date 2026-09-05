@@ -1,7 +1,7 @@
 # Automation页面
 
 ## 当前状态
-Automation 页面由 `/automations` 路由进入。`src/app/pages/automations/index.tsx` 只解析当前 Worker 并装配 feature；主体 `AutomationHistoryConsole`、编辑器、Execution 历史和领域运行时均位于 `src/features/automations/`。页面采用 history-first 信息架构：左侧选择 Automation，右侧首先查看最近触发及其结果；配置编辑和 Execution 查看都在当前页面的右侧 Drawer 中完成。
+Automation 页面由 `/automations` 路由进入。`src/app/pages/automations/index.tsx` 只渲染 `AutomationsRouteContent`；当前 Worker、Agent、Team 的状态适配以及 `AutomationHistoryConsole`、编辑器、Execution 历史和领域运行时均位于 `src/features/automations/`。页面采用 history-first 信息架构：左侧选择 Automation，右侧首先查看最近触发及其结果；配置编辑和 Execution 查看都在当前页面的右侧 Drawer 中完成。
 
 ## 核心职责
 - 展示 automation 列表，并按启用中/已暂停分组；每项显示调度、Agent/Team 和最近一次触发。
@@ -39,6 +39,7 @@ Drawer 不改变页面 URL、Desktop 外层路由、主 Chat 或已读状态，�
 
 ## 相关文件
 - `../src/app/pages/automations/index.tsx`
+- `../src/features/automations/components/AutomationsRouteContent.tsx`
 - `../src/features/automations/components/AutomationHistoryConsole.tsx`
 - `../src/features/automations/components/AutomationHistoryConsole.module.css`
 - `../src/features/automations/components/AutomationEditor.tsx`

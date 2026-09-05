@@ -1,5 +1,7 @@
-import { buildFileViewerTargetFromRoute } from "@/app/pages/surfaces/FileViewerPage";
-import { buildResourceViewerTargetFromRoute } from "@/app/pages/surfaces/ResourceViewerPage";
+import {
+  buildFileViewerTargetFromRoute,
+  buildResourceViewerTargetFromRoute,
+} from "@/features/surfaces/lib/viewerRouteTargets";
 
 describe("independent Resource/File Viewer targets", () => {
   it("keeps Resource on the protected ChatScope request path", () => {

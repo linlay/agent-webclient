@@ -16,7 +16,7 @@ import type {
   WorkPanelOpenDocumentResult,
   WorkPanelOpenResourceInput,
   WorkPanelOpenResourceResult,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import {

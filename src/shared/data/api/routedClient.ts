@@ -135,7 +135,7 @@ import {
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { dataQueryCache } from "@/shared/data/query/serverState";
 import { getBackendMode } from "@/shared/config/backendMode";
-import { requestPlatformData } from "@/features/transport/lib/platformDataRequestTransport";
+import { requestDataThroughExecutor } from "@/shared/data/api/dataRequestExecutor";
 
 function emptyPayloadAsUndefined(payload: unknown): unknown {
 	if (
@@ -181,7 +181,7 @@ function routeEndpoint<T, TInput>(
 			&& endpoint.wsBackends?.includes(backend) === true
 		);
 	const request = useWebSocket
-		? () => requestPlatformData<T>(endpoint.path, payload)
+		? () => requestDataThroughExecutor<T>(endpoint.path, payload)
 		: fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
 	if (!cache) {

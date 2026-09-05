@@ -24,6 +24,7 @@ import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { SteerIcon } from "@/features/runs/components/SteerIcon";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -149,10 +150,6 @@ export function formatTimelineTime(
     full,
   };
 }
-
-export const SteerIcon: React.FC = () => {
-  return <MaterialIcon name="reply" />;
-};
 
 function isCommandMessageVariant(
   variant?: TimelineNode["messageVariant"],

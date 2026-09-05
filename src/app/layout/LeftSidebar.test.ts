@@ -12,7 +12,7 @@ import {
 import {
   createWorkerChatOrderByKey,
   sortWorkerRowsForMode,
-} from "@/app/layout/hooks/useLeftSidebarData";
+} from "@/features/workers/hooks/useWorkerSidebarData";
 import type { AppState, Chat, WorkerRow } from "@/app/state/types";
 import { I18nProvider } from "@/shared/i18n";
 
@@ -288,7 +288,7 @@ jest.mock("@/app/state/AppContext", () => {
   };
 });
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayActions: () => ({
     openCommandOverlay: mockOpenCommandOverlay,
     patchCommandOverlay: jest.fn(),

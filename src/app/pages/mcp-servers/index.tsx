@@ -1,17 +1,6 @@
 import { McpServersConsole } from "@/features/registries/components/McpServersConsole";
+import { mcpServersRoutePath } from "@/features/registries/lib/mcpRoute";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-
-export function mcpServersRoutePath(serverKey: string, search = ""): string {
-  const normalizedKey = serverKey.trim();
-  const normalizedSearch = search
-    ? search.startsWith("?")
-      ? search
-      : `?${search}`
-    : "";
-  return normalizedKey
-    ? `/mcp-servers/${encodeURIComponent(normalizedKey)}${normalizedSearch}`
-    : `/mcp-servers${normalizedSearch}`;
-}
 
 export const McpServersPage = () => {
   const location = useLocation();

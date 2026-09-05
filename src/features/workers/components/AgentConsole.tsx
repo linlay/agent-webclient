@@ -78,7 +78,7 @@ import {
   moveAgentForDrop,
 } from "@/features/workers/lib/agentOrdering";
 import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
-import { buildModelMenuItems } from "@/features/composer/components/QuerySettingsControls";
+import { buildModelMenuItems } from "@/features/model-config/lib/modelMenuItems";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -1463,7 +1463,7 @@ export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
       />
       <button
         type="button"
-        className={`tw:flex tw:min-h-36 tw:w-full tw:cursor-pointer tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center tw:transition-colors focus-visible:tw:outline focus-visible:tw:outline-2 focus-visible:tw:outline-offset-2 focus-visible:tw:outline-accent disabled:tw:cursor-not-allowed ${
+        className={`tw:flex tw:min-h-36 tw:w-full tw:cursor-pointer tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center tw:transition-colors tw:focus-visible:outline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-accent tw:disabled:cursor-not-allowed ${
           dragActive
             ? "tw:border-accent tw:bg-accent-soft"
             : "tw:border-line-soft tw:bg-bg-subtle"
@@ -2741,7 +2741,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           />
           <button
             type="button"
-            className={`tw:flex tw:min-h-36 tw:w-full tw:cursor-pointer tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center tw:transition-colors focus-visible:tw:outline focus-visible:tw:outline-2 focus-visible:tw:outline-offset-2 focus-visible:tw:outline-accent disabled:tw:cursor-not-allowed ${
+            className={`tw:flex tw:min-h-36 tw:w-full tw:cursor-pointer tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center tw:transition-colors tw:focus-visible:outline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-accent tw:disabled:cursor-not-allowed ${
               privateSkillDragActive
                 ? "tw:border-accent tw:bg-accent-soft"
                 : "tw:border-line-soft tw:bg-bg-subtle"

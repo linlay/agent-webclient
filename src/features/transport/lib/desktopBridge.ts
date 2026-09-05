@@ -1,10 +1,10 @@
 import type {
   AgentWebclientWorkPanelBridge,
   DesktopPlatformFramePort,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import {
   AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_TRANSPORT_VERSION,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 
 declare global {
   interface Window {

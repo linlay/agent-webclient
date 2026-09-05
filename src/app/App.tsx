@@ -34,7 +34,7 @@ import { BtwProvider } from "@/features/btw/components/BtwProvider";
 import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
-import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
+import { GatewayAuthBoundary } from "@/features/auth/components/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { useStandaloneDesktopActionRuntime } from "@/features/conversation/hooks/useStandaloneWorkPanelActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";

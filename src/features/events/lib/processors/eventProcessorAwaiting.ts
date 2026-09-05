@@ -2,8 +2,8 @@ import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types"
 import {
 	getAwaitingItemMeta,
 	maskAwaitingAnswerParams,
-} from "@/features/tools/lib/awaitingQuestionMeta";
-import { readAwaitingAnswerErrorInfo } from "@/features/tools/lib/awaitingAnswerError";
+} from "@/features/events/lib/awaitingQuestionMeta";
+import { readAwaitingAnswerErrorInfo } from "@/features/events/lib/awaitingAnswerError";
 import { t } from "@/shared/i18n";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 

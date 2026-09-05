@@ -15,9 +15,9 @@ import {
   resolveStatusPillClassName,
   resolveTopNavStatus,
 } from "@/app/layout/TopNav";
-import { UsageContextControl } from "@/app/layout/UsageContextControl";
+import { UsageContextControl } from "@/features/usage/components/UsageContextControl";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
-import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
+import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import {
@@ -27,7 +27,7 @@ import {
 import {
   CommandOverlayProvider,
   useCommandOverlayActions,
-} from "@/features/workers/components/CommandOverlayProvider";
+} from "@/features/command-center/components/CommandOverlayProvider";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";

@@ -5,7 +5,7 @@ import type {
   AgentPlatformRequestFrame,
   AgentPlatformResponseFrame,
   AgentPlatformStreamFrame,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import type {
   PushFrame,
   RealtimeConnectionStatus,

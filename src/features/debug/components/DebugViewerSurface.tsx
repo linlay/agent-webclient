@@ -1,0 +1,40 @@
+import React from "react";
+import { DebugPanelContent } from "@/features/debug/components/DebugPanel";
+import { useChatSurfaceReplay } from "@/features/conversation/hooks/useChatSurfaceReplay";
+import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
+import { useI18n } from "@/shared/i18n";
+
+export const DebugViewerSurface: React.FC<{ chatId: string }> = ({ chatId }) => {
+  const { t } = useI18n();
+  const runtime = useChatSurfaceReplay({ chatId, liveRole: "debug" });
+  const agentKey = runtime.snapshot?.owner?.kind === "agent"
+    ? runtime.snapshot.owner.agentKey
+    : String(runtime.snapshot?.chat.agentKey || runtime.snapshot?.chat.firstAgentKey || "").trim();
+  const chatAgentKeyById = React.useMemo(
+    () => new Map(chatId && agentKey ? [[chatId, agentKey]] : []),
+    [agentKey, chatId],
+  );
+  const shareId = String((runtime.snapshot?.chat as Record<string, unknown> | undefined)?.shareId || "").trim();
+  const chatShareIdById = React.useMemo(
+    () => new Map(chatId && shareId ? [[chatId, shareId]] : []),
+    [chatId, shareId],
+  );
+  return (
+    <IndependentSurfaceFrame
+      kind="debug"
+      loading={Boolean(chatId) && runtime.status === "loading"}
+      error={!chatId ? t("platformError.code.invalid_request") : runtime.error}
+      onRetry={chatId ? runtime.reload : undefined}
+    >
+      {runtime.snapshot ? (
+        <DebugPanelContent
+          independentDetails
+          events={runtime.snapshot.projection.debugEvents}
+          fallbackAgentKey={agentKey}
+          chatAgentKeyById={chatAgentKeyById}
+          chatShareIdById={chatShareIdById}
+        />
+      ) : null}
+    </IndependentSurfaceFrame>
+  );
+};

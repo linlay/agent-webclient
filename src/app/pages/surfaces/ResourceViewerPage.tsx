@@ -1,45 +1,9 @@
 import React from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
-import {
-  buildResourceViewerTargetFromUrl,
-  type ResourceViewerTarget,
-} from "@/features/viewers/lib/viewerTarget";
-import { classifyResourceUrl } from "@/shared/data";
+import { buildResourceViewerTargetFromRoute } from "@/features/surfaces/lib/viewerRouteTargets";
 import { useI18n } from "@/shared/i18n";
-import { IndependentSurfaceFrame } from "./SurfaceFrame";
-
-export function buildResourceViewerTargetFromRoute(input: {
-  agentKey: string;
-  chatId: string;
-  file: string;
-  sourceKind?: string;
-  resourceId?: string;
-  relativePath?: string;
-}): ResourceViewerTarget | null {
-  const agentKey = String(input.agentKey || "").trim();
-  const chatId = String(input.chatId || "").trim();
-  const file = String(input.file || "").trim();
-  const classification = classifyResourceUrl(file, chatId);
-  const allowed = classification.kind === "chat" || classification.kind === "absolute";
-  if (!agentKey || !chatId || !file || !allowed) return null;
-  const target = buildResourceViewerTargetFromUrl(file);
-  const sourceKind = input.sourceKind === "artifact" || input.sourceKind === "reference"
-    ? input.sourceKind
-    : "";
-  return target && sourceKind && input.resourceId && input.relativePath
-    ? {
-        ...target,
-        source: {
-          kind: sourceKind,
-          agentKey,
-          chatId,
-          resourceId: input.resourceId,
-          relativePath: input.relativePath,
-        },
-      }
-    : target;
-}
+import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 
 export const ResourceViewerPage: React.FC = () => {
   const { agentKey: routeAgentKey } = useParams<{ agentKey: string }>();

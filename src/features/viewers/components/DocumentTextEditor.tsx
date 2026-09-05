@@ -17,7 +17,7 @@ const MarkdownPreview: React.FC<{
 }> = process.env.NODE_ENV === "test"
   ? ({ content }) => <div>{content}</div>
   : React.lazy(async () => {
-      const module = await import("@/shared/ui/MarkdownContent");
+      const module = await import("@/features/viewers/components/MarkdownContent");
       return { default: module.MarkdownContent };
     });
 

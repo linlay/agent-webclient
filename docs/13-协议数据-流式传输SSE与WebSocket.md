@@ -62,4 +62,4 @@ Desktop 收到 `reconnecting` 时保留已接受 stream 和原订阅者，不 re
 - `../src/features/transport/lib/wsClient.ts`
 - `../src/features/conversation/hooks/useChatNotificationRuntime.ts`
 - `../src/features/conversation/hooks/useRunSubscriptionRuntime.ts`
-- `../src/features/surfaces/useChatSurfaceReplay.ts`
+- `../src/features/conversation/hooks/useChatSurfaceReplay.ts`

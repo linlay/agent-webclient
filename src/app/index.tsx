@@ -4,6 +4,9 @@ import App from "@/app/App";
 import { WebClientRenderErrorBoundary } from "@/app/WebClientRenderError";
 import "@/shared/styles/globals.css";
 import "katex/dist/katex.min.css";
+import { configureApplicationDataRequestExecutor } from "@/app/bootstrap/configureDataRequestExecutor";
+
+configureApplicationDataRequestExecutor();
 
 const container = document.getElementById("root");
 if (!container) {

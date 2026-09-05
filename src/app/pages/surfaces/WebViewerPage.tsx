@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
 import { isAllowedWebSurfaceUrl } from "@/features/surfaces/surfaceRoutes";
 import { useI18n } from "@/shared/i18n";
-import { IndependentSurfaceFrame } from "./SurfaceFrame";
+import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 
 export const WebViewerPage: React.FC = () => {
   const [searchParams] = useSearchParams();

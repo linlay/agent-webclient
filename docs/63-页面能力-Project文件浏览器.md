@@ -7,11 +7,13 @@ Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器。页面
 ## 组件边界
 
 - `src/features/project/components/ProjectWorkspace.tsx`：页面使用的目录、上下文选择、内容与 Diff 主组件。
-- `src/app/pages/project/index.tsx`：加载 CODER/KBASE Agent，处理 URL 状态和无 Agent 选择器。
+- `src/app/pages/project/index.tsx`：只负责 `ProjectRouteState` 与 URL 双向适配。
+- `src/features/project/components/ProjectConsole.tsx`：Agent 选择器、空状态和 Workspace 装配。
+- `src/features/project/hooks/useProjectAgents.ts`：加载 CODER/KBASE Agent 与最近会话。
 - `src/features/project/lib/projectRoute.ts`：Project 查询参数的读写纯函数。
 - `src/features/project/lib/projectTabs.ts`：多文件标签的去重打开与相邻关闭选择规则。
 - `src/features/viewers/components/ContentViewerPanel.tsx`：消费 `FileViewerTarget`，复用 Workspace 文本、图片、PDF、HTML、音视频展示。
-- `src/app/layout/sidebar/right/FileDiffView.tsx`：复用两侧文本 Diff。
+- `src/features/project/components/FileDiffView.tsx`：Project 与 Overview 复用的两侧文本 Diff。
 
 ## 数据与刷新
 

@@ -1,6 +1,5 @@
 import React from "react";
 import type { Agent, Team, WorkerRow } from "@/app/state/types";
-import type { CommandOverlayScope } from "@/features/workers/lib/commandOverlay";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { useAppState } from "@/app/state/AppContext";
@@ -17,10 +16,12 @@ export const SWITCH_SCOPES = [
   { key: "team", labelKey: "switch.workerType.team" },
 ] as const;
 
+export type WorkerSwitchScope = "all" | "agent" | "team";
+
 type WorkerIcon = Agent["icon"] | Team["icon"];
 
 export const SwitchModal: React.FC<{
-  scope: CommandOverlayScope;
+  scope: WorkerSwitchScope;
   searchText: string;
   switchRows: WorkerRow[];
   switchIndex: number;
@@ -30,7 +31,7 @@ export const SwitchModal: React.FC<{
   switchListRef: React.RefObject<HTMLDivElement>;
   switchItemRefs: React.MutableRefObject<Array<HTMLElement | null>>;
   onSearchChange: (value: string) => void;
-  onScopeChange: (scope: CommandOverlayScope) => void;
+  onScopeChange: (scope: WorkerSwitchScope) => void;
   onActivateIndex: (index: number) => void;
   onSelect: (index: number) => void;
   onClose?: () => void;

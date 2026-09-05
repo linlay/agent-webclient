@@ -3,7 +3,7 @@ import { useAppContext } from "@/app/state/AppContext";
 import {
   DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
   type DesktopLiveSurfaceActiveEventDetail,
-} from "@/features/transport/lib/desktopSurfaceLifecycle";
+} from "@/shared/data/desktop/desktopSurfaceLifecycle";
 
 type LoadChatForSurfaceRecovery = (
   chatId: string,

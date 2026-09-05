@@ -224,6 +224,42 @@
     word-break: break-word;
 }
 
+.tool-call-live-output {
+    min-width: 0;
+}
+
+.tool-call-live-arguments.tool-call-result {
+    max-height: none;
+    overflow-y: visible;
+    padding-bottom: 8px;
+}
+
+.tool-output-terminal-shell {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    overflow: visible;
+}
+
+.tool-call-live-arguments + .tool-output-terminal-shell {
+    padding-top: 0;
+}
+
+.tool-output-terminal {
+    width: 100%;
+    min-height: 18px;
+    overflow: visible;
+}
+
+.tool-output-terminal .xterm {
+    width: 100%;
+    height: 100%;
+}
+
+.tool-output-terminal .xterm-viewport {
+    overflow-y: hidden !important;
+}
+
 .is-frontend-active .composer-pill {
     display: none;
 }

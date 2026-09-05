@@ -13,7 +13,7 @@ import {
   clearAllAwaitingQuestionMeta,
   registerAwaitingApprovalMeta,
   registerAwaitingQuestionMeta,
-} from '@/features/tools/lib/awaitingQuestionMeta';
+} from '@/features/events/lib/awaitingQuestionMeta';
 
 type TestState = {
   timelineNodes: Map<string, TimelineNode>;

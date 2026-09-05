@@ -71,12 +71,12 @@ import { readExplicitEditingMode } from "@/features/runs/lib/editingMode";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import {
 	readEventTeamId,
 	readMustUseSkills,
 	readRequestQueryText,
-} from "@/shared/utils/eventFieldReaders";
+} from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import {
 	dispatchRunAttachDebugEvent,

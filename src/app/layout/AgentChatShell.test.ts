@@ -72,7 +72,7 @@ jest.mock("@/app/layout/LeftSidebar", () => ({
     React.createElement("aside", { className: "left-sidebar" }, "left"),
 }));
 
-jest.mock("@/app/layout/sidebar/SidebarHistorySection", () => ({
+jest.mock("@/features/chats/components/SidebarHistorySection", () => ({
   SidebarHistorySection: ({ open }: any) =>
     open
       ? React.createElement(
@@ -114,12 +114,12 @@ jest.mock("@/features/settings/components/SettingsModal", () => ({
     React.createElement("div", { className: "settings-modal" }, "settings"),
 }));
 
-jest.mock("@/features/settings/components/MemoryInfoModal", () => ({
+jest.mock("@/features/memory/components/MemoryInfoModal", () => ({
   MemoryInfoModal: () =>
     React.createElement("div", { className: "memory-info-modal" }, "memory"),
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   CommandOverlayProvider: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),
   useCommandOverlayActions: () => ({
@@ -144,12 +144,12 @@ jest.mock("@/features/search/components/GlobalSearchOverlay", () => ({
   GlobalSearchOverlay: () => null,
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayHost", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayHost", () => ({
   CommandOverlayHost: () =>
     React.createElement("div", { className: "command-modal" }, "command"),
 }));
 
-jest.mock("@/app/modals/EventPopover", () => ({
+jest.mock("@/features/debug/components/EventPopover", () => ({
   EventPopover: () =>
     React.createElement("div", { className: "event-popover" }, "event"),
 }));

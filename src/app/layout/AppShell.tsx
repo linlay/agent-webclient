@@ -7,12 +7,12 @@ import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
-import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
+import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { TerminalDock, resolveTerminalDockWorkspaceKey } from "./TerminalDock";
 import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
-import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
+import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
 
 const APP_SHELL_BASE_CLASS =
   "app-shell layout-desktop-fixed tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:col-start-1 tw:[&_.left-sidebar]:row-[1/-1] tw:[&_.left-sidebar]:min-w-0 tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-[1/-1] tw:[&_.right-sidebar]:translate-x-0 tw:[&_.terminal-dock]:col-start-2 tw:[&_.terminal-dock]:row-start-4";

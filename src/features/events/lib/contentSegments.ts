@@ -1,5 +1,5 @@
 import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
-import { parseViewportBlocks } from '@/features/tools/lib/viewportParser';
+import { parseViewportBlocks } from '@/features/events/lib/viewportParser';
 
 const SPECIAL_FENCE_HEADERS = ['```viewport', '```tts-voice'] as const;
 
