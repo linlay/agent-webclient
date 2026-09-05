@@ -21,6 +21,17 @@ function walk(directory) {
   return files;
 }
 
+function walkStyles(directory) {
+  if (!fs.existsSync(directory)) return [];
+  const files = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...walkStyles(target));
+    else if (/\.css$/.test(entry.name)) files.push(target);
+  }
+  return files;
+}
+
 function readImports(source) {
   return Array.from(source.matchAll(importPattern), (match) => match[1]);
 }
@@ -55,6 +66,30 @@ for (const feature of featureNames) {
     const relativeFile = path.relative(repoRoot, file);
     const source = fs.readFileSync(file, "utf8");
     const imports = readImports(source);
+    if (feature === "workers") {
+      const forbiddenWorkerFiles = /(?:^|\/)(?:AgentConsole|AgentProjectCreateDialog|agentCreate|agentImport|agentOrdering|agentOptions)\.(?:ts|tsx)$/;
+      if (forbiddenWorkerFiles.test(relativeFile)) {
+        violations.push(`${relativeFile}: Agent management implementation belongs in features/agents`);
+      }
+      if (imports.includes("@/features/agents/components/AgentConsole")) {
+        violations.push(`${relativeFile}: workers must not import AgentConsole`);
+      }
+      const workerAdminApiPattern = /\b(?:createAgent|importAdminAgent|updateAgent|updateAgentName|updateAgentModelConfig|deleteAgent|importAdminAgentPrivateSkill|deleteAdminAgentPrivateSkill|putAdminAgentOrder)\b/;
+      const workerSharedDataImports = Array.from(
+        source.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']@\/shared\/data["']/g),
+        (match) => match[1],
+      );
+      if (workerSharedDataImports.some((names) => workerAdminApiPattern.test(names))) {
+        violations.push(`${relativeFile}: workers must not import Agent admin APIs from shared/data`);
+      }
+    }
+    if (
+      !isTestFile(file) &&
+      /\/features\/[^/]+\/lib\/[^/]+\.ts$/.test(file) &&
+      /(?:from\s+["']react["']|require\s*\(\s*["']react["']\s*\)|react\/jsx-runtime)/.test(source)
+    ) {
+      violations.push(`${relativeFile}: feature lib/*.ts must stay React-free; move presenters to components/*.tsx`);
+    }
     for (const importedPath of imports) {
       if (
         importedPath.startsWith("@/app/pages/") ||
@@ -97,6 +132,40 @@ for (const file of walk(pagesRoot)) {
     if (importedPath.startsWith("@/shared/data")) {
       violations.push(`${relativeFile}: app page must not import ${importedPath}`);
     }
+  }
+}
+
+const appStateTypesImport = "@/app/state/types";
+const appStateRoot = path.join(sourceRoot, "app", "state") + path.sep;
+for (const file of walk(sourceRoot).filter((candidate) => !isTestFile(candidate))) {
+  if (file.startsWith(appStateRoot)) continue;
+  const relativeFile = path.relative(repoRoot, file);
+  if (readImports(fs.readFileSync(file, "utf8")).includes(appStateTypesImport)) {
+    violations.push(`${relativeFile}: import state types from their owning feature, not ${appStateTypesImport}`);
+  }
+}
+
+const appStateTypesFile = path.join(sourceRoot, "app", "state", "types.ts");
+if (fs.existsSync(appStateTypesFile)) {
+  const source = fs.readFileSync(appStateTypesFile, "utf8");
+  if (/export\s+(?:type\s+)?(?:\*|\{)[\s\S]*?\s+from\s+["']@\/features\//m.test(source)) {
+    violations.push("src/app/state/types.ts: AppState may compose domain types but must not re-export them");
+  }
+}
+
+const domainSelectorPattern = /\.(?:agent|memory|archive|automation|registry|search|worker|project|composer|timeline|tool|voice|desktop-display|layout-copilot|copilot|sidebar|right-sidebar|floating-plan)[a-zA-Z0-9_-]*/;
+const globalStylesRoot = path.join(sharedRoot, "styles", "globals");
+const sharedGlobalStyles = [
+  path.join(sharedRoot, "styles", "globals.css"),
+  ...walkStyles(globalStylesRoot),
+].filter((file, index, files) => fs.existsSync(file) && files.indexOf(file) === index);
+for (const file of sharedGlobalStyles) {
+  const source = fs.readFileSync(file, "utf8");
+  const match = source.match(domainSelectorPattern);
+  if (match) {
+    violations.push(
+      `${path.relative(repoRoot, file)}: domain selector ${match[0]} must live in its app/feature CSS Module`,
+    );
   }
 }
 

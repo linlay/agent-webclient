@@ -1,6 +1,6 @@
-import type React from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/AppContext";
+import type { ActionDispatch, MutableValueRef } from "@/shared/contracts/stateInterop";
 import type { WorkerListItem } from "@/features/workers/lib/workerState";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
@@ -9,8 +9,8 @@ import { getAgents } from "@/shared/data";
 
 export async function handleCreateAgentSuccess(
   createdKey: string,
-  dispatch: React.Dispatch<AppAction>,
-  stateRef: React.MutableRefObject<AppState>,
+  dispatch: ActionDispatch<AppAction>,
+  stateRef: MutableValueRef<AppState>,
 ) {
   if (!createdKey) return;
   const agentsResponse = await getAgents({

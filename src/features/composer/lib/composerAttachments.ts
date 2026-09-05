@@ -1,6 +1,6 @@
-import type { Dispatch, SetStateAction } from "react";
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/AppContext";
+import type { ActionDispatch, StateSetter } from "@/shared/contracts/stateInterop";
 import {
 	createRequestId,
 	extractUploadChatId,
@@ -191,9 +191,9 @@ export async function uploadComposerAttachments(input: {
 		| "workerSelectionKey"
 		| "workerIndexByKey"
 	>;
-	dispatch: Dispatch<AppAction>;
-	setAttachments: Dispatch<SetStateAction<ComposerAttachment[]>>;
-	setAttachmentChatId: Dispatch<SetStateAction<string>>;
+	dispatch: ActionDispatch<AppAction>;
+	setAttachments: StateSetter<ComposerAttachment[]>;
+	setAttachmentChatId: StateSetter<string>;
 	isLatestAttachment?: (attachment: ComposerAttachment) => boolean;
 }): Promise<boolean> {
 	const {
