@@ -2,6 +2,7 @@ import type { TimelineNode } from "@/app/state/types";
 import {
 	buildToolPillRecords,
 	canExpandToolPill,
+	claimToolOutputAutoExpand,
 	formatToolArgumentsInline,
 	formatToolDuration,
 	formatToolPillTitle,
@@ -235,6 +236,32 @@ describe("ToolPill helpers", () => {
 		});
 		expect(canExpandToolPill(argsNode)).toBe(true);
 		expect(canExpandToolPill(resultNode)).toBe(true);
+	});
+
+	it("uses live output as details and auto-expands each tool only once", () => {
+		const node = createToolNode({
+			id: "tool_live",
+			kind: "tool",
+			ts: 100,
+			status: "running",
+			toolOutput: {
+				lastChunkIndex: 0,
+				truncated: false,
+				segments: [{ stream: "stdout", text: "scan qr\n" }],
+			},
+		});
+		const records = buildToolPillRecords(node);
+		const claimed = new Set<string>();
+
+		expect(records[0]).toMatchObject({
+			hasDetails: true,
+			toolOutput: node.toolOutput,
+		});
+		expect(canExpandToolPill(node)).toBe(true);
+		expect(claimToolOutputAutoExpand(records, claimed)).toBe(true);
+		// A manual collapse does not clear the claim, so later chunks for the
+		// same invocation cannot force the pill open again.
+		expect(claimToolOutputAutoExpand(records, claimed)).toBe(false);
 	});
 
 	it("keeps grouped pills collapsed when all records only have description", () => {

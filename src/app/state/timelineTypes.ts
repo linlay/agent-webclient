@@ -16,6 +16,20 @@ export interface ToolResultPayload {
 	isCode: boolean;
 }
 
+export type ToolOutputStream = "stdout" | "stderr";
+
+export interface ToolOutputSegment {
+	stream: ToolOutputStream;
+	text: string;
+	truncationMarker?: boolean;
+}
+
+export interface ToolOutputState {
+	segments: ToolOutputSegment[];
+	lastChunkIndex: number;
+	truncated: boolean;
+}
+
 export interface TimelineAttachment {
 	id?: string;
 	name: string;
@@ -124,6 +138,7 @@ export interface TimelineNode {
 	description?: string;
 	argsText?: string;
 	result?: ToolResultPayload | null;
+	toolOutput?: ToolOutputState;
 	startedAt?: number;
 	endedAt?: number;
 	durationMs?: number;

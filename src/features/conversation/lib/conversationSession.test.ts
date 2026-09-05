@@ -18,6 +18,31 @@ describe('conversation session restore', () => {
     });
   });
 
+  it('deep-clones transient tool output in conversation snapshots', () => {
+    const sourceNode: TimelineNode = {
+      id: 'tool_live',
+      kind: 'tool',
+      toolId: 'call_1',
+      status: 'running',
+      ts: 100,
+      toolOutput: {
+        lastChunkIndex: 0,
+        truncated: false,
+        segments: [{ stream: 'stdout', text: 'scan qr\n' }],
+      },
+    };
+    const snapshot = snapshotConversationState({
+      ...createInitialState(),
+      timelineNodes: new Map([[sourceNode.id, sourceNode]]),
+      timelineOrder: [sourceNode.id],
+    });
+
+    sourceNode.toolOutput!.segments[0].text = 'mutated';
+    expect(snapshot.timelineNodes.get(sourceNode.id)?.toolOutput?.segments).toEqual([
+      { stream: 'stdout', text: 'scan qr\n' },
+    ]);
+  });
+
   it('replays buffered background events without duplicating the optimistic query node', () => {
     const baseState = createInitialState();
     const userNode: TimelineNode = {

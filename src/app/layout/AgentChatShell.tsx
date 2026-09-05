@@ -121,6 +121,33 @@ export function consumeLiveSessionPromotion(
   return Boolean(routeKey && promotions.delete(routeKey));
 }
 
+export function shouldKeepClaimedChatRouteLoad(input: {
+  lastRouteKey: string;
+  routeKey: string;
+  targetChatId: string;
+  visibleChatId: string;
+  transitionTargetChatId?: string;
+}): boolean {
+  if (!input.routeKey || input.lastRouteKey !== input.routeKey) {
+    return false;
+  }
+  return input.visibleChatId === input.targetChatId ||
+    input.transitionTargetChatId === input.targetChatId;
+}
+
+export function shouldSkipPromotedChatHistoryLoad(input: {
+  promotionConsumed: boolean;
+  targetChatId: string;
+  visibleChatId: string;
+  liveQueryOwnsTarget: boolean;
+}): boolean {
+  return Boolean(
+    input.promotionConsumed &&
+      (input.visibleChatId === input.targetChatId ||
+        input.liveQueryOwnsTarget),
+  );
+}
+
 export function createResolvedNewChatRoute(
   agentKey: string,
   searchParams: URLSearchParams,
@@ -692,20 +719,25 @@ export const AgentChatShell: React.FC = () => {
 
     if (chatId) {
       const routeKey = createChatRouteKey(agentKey, chatId);
-      if (lastLoadedChatKeyRef.current === routeKey) {
+      const currentState = appContext?.stateRef.current || stateRef.current;
+      if (shouldKeepClaimedChatRouteLoad({
+        lastRouteKey: lastLoadedChatKeyRef.current,
+        routeKey,
+        targetChatId: chatId,
+        visibleChatId: String(currentState.chatId || "").trim(),
+        transitionTargetChatId: String(
+          currentState.chatTransition?.targetChatId || "",
+        ).trim(),
+      })) {
         return;
       }
       lastLoadedChatKeyRef.current = routeKey;
       lastInitializedAgentKeyRef.current = "";
-      if (
-        consumeLiveSessionPromotion(
-          promotedLiveChatRouteKeysRef.current,
-          agentKey,
-          chatId,
-        )
-      ) {
-        return;
-      }
+      const promotionConsumed = consumeLiveSessionPromotion(
+        promotedLiveChatRouteKeysRef.current,
+        agentKey,
+        chatId,
+      );
       const mainRuntime = appContext
         ? resolveMainChatRuntime(
             appContext.stateRef,
@@ -713,10 +745,16 @@ export const AgentChatShell: React.FC = () => {
             appContext.querySessionsRef,
           )
         : null;
-      if (
+      const liveQueryOwnsTarget = Boolean(
         mainRuntime &&
-        isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)
-      ) {
+          isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId),
+      );
+      if (shouldSkipPromotedChatHistoryLoad({
+        promotionConsumed,
+        targetChatId: chatId,
+        visibleChatId: String(currentState.chatId || "").trim(),
+        liveQueryOwnsTarget,
+      }) || liveQueryOwnsTarget) {
         return;
       }
       window.dispatchEvent(

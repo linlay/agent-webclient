@@ -323,6 +323,7 @@ export function buildToolTimelineNode(input: {
     argsText,
     status,
     result,
+    toolOutput: existing?.toolOutput,
     ts,
     startedAt: input.startedAt ?? existing?.startedAt,
     endedAt: input.endedAt ?? existing?.endedAt,

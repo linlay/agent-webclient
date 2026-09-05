@@ -136,6 +136,12 @@ function cloneTimelineNode(node: TimelineNode): TimelineNode {
         )
       : undefined,
     result: node.result ? { ...node.result } : node.result,
+    toolOutput: node.toolOutput
+      ? {
+          ...node.toolOutput,
+          segments: node.toolOutput.segments.map((segment) => ({ ...segment })),
+        }
+      : undefined,
   };
 }
 

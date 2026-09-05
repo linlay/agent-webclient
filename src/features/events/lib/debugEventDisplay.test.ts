@@ -386,6 +386,15 @@ describe('shouldDisplayDebugEvent', () => {
       { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },
       { type: 'tool.args', toolId: 'tool_1', delta: '{"foo":"bar"}' },
       { type: 'tool.end', toolId: 'tool_1', timestamp: 13 },
+      {
+        type: 'tool.output',
+        toolId: 'tool_1',
+        toolName: 'demo.run',
+        stream: 'stdout',
+        delta: 'live',
+        chunkIndex: 0,
+        timestamp: 13,
+      },
       { type: 'tool.result', toolId: 'tool_1', result: 'ok', timestamp: 14 },
     ];
 
@@ -399,6 +408,11 @@ describe('shouldDisplayDebugEvent', () => {
       'tool.snapshot',
       'tool.result',
     ]);
+    expect(debugEvents[0]).toMatchObject({
+      type: 'tool.snapshot',
+      arguments: '{"foo":"bar"}',
+    });
+    expect(debugEvents[0].arguments).not.toContain('live');
   });
 
   it('keeps streamed events uncollapsed when delta logs are enabled', () => {
@@ -418,6 +432,15 @@ describe('shouldDisplayDebugEvent', () => {
       { type: 'tool.start', toolId: 'tool_1', toolName: 'demo.run' },
       { type: 'tool.args', toolId: 'tool_1', delta: '{"foo":"bar"}' },
       { type: 'tool.end', toolId: 'tool_1', timestamp: 13 },
+      {
+        type: 'tool.output',
+        toolId: 'tool_1',
+        toolName: 'demo.run',
+        stream: 'stdout',
+        delta: 'live',
+        chunkIndex: 0,
+        timestamp: 14,
+      },
     ];
 
     const debugEvents = rawEvents.reduce(
@@ -439,6 +462,7 @@ describe('shouldDisplayDebugEvent', () => {
       'tool.start',
       'tool.args',
       'tool.end',
+      'tool.output',
     ]);
   });
 

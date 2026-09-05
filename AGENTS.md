@@ -8,6 +8,8 @@
 ## 1. 项目概览
 `agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示对话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
 
+工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；`tool.result` 是唯一终态并替换过程区。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
+
 ## 2. 技术栈
 - 框架：React 18
 - 语言：TypeScript

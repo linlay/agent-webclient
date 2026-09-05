@@ -73,6 +73,7 @@ export function processStreamEvent(
 		type === "tool.start" ||
 		type === "tool.snapshot" ||
 		type === "tool.args" ||
+		type === "tool.output" ||
 		type === "tool.result" ||
 		type === "tool.end" ||
 		type.startsWith("action.") ||

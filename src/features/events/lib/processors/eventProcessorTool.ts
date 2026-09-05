@@ -25,6 +25,7 @@ import {
   readToolDescription,
   resolveFinalToolArgsText,
 } from "@/features/events/lib/processors/eventProcessorShared";
+import { appendToolOutputChunk } from "@/features/events/lib/toolOutputState";
 
 function readStructuredExitCode(value: unknown): number | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -192,13 +193,10 @@ export function processToolEvent(
         existing,
         existingToolState,
         argsText,
-        status: type === "tool.snapshot" ? "completed" : "start",
+        status: "running",
         result: existing?.result || null,
         ts: timestamp,
-        startedAt:
-          type === "tool.snapshot"
-            ? (existing?.startedAt ?? timestamp)
-            : existing?.startedAt,
+        startedAt: existing?.startedAt ?? timestamp,
         endedAt: existing?.endedAt,
         durationMs: existing?.durationMs,
         state,
@@ -289,11 +287,88 @@ export function processToolEvent(
         argsText: parsedToolParams && !isEmptyRecord(parsedToolParams)
           ? JSON.stringify(parsedToolParams, null, 2)
           : nextArgsBuffer || existingNode?.argsText || "",
-       status: "running",
-       result: existingNode?.result || null,
-       ts: timestamp,
-        startedAt: existingNode?.startedAt,
+        status: "running",
+        result: existingNode?.result || null,
+        toolOutput: existingNode?.toolOutput,
+        ts: existingNode?.ts ?? timestamp,
+        startedAt: existingNode?.startedAt ?? timestamp,
         endedAt: existingNode?.endedAt,
+      },
+    });
+    return commands;
+  }
+
+  if (type === "tool.output" && event.toolId) {
+    const toolId = event.toolId;
+    const stream = event.stream;
+    const delta = typeof event.delta === "string" ? event.delta : "";
+    const chunkIndex = event.chunkIndex;
+    if (
+      (stream !== "stdout" && stream !== "stderr") ||
+      !delta ||
+      !Number.isInteger(chunkIndex) ||
+      Number(chunkIndex) < 0
+    ) {
+      return commands;
+    }
+    const mappedNodeId = state.getToolNodeId(toolId);
+    const mappedNode = mappedNodeId
+      ? state.getTimelineNode(mappedNodeId)
+      : undefined;
+    if (
+      mappedNode &&
+      (["success", "failed", "error", "canceled"] as string[]).includes(
+        mappedNode.status || "",
+      )
+    ) {
+      return commands;
+    }
+    if (Number(chunkIndex) <= (mappedNode?.toolOutput?.lastChunkIndex ?? -1)) {
+      return commands;
+    }
+    const nodeId = ensureMappedNode({
+      currentNodeId: mappedNodeId,
+      getNode: state.getTimelineNode,
+      setMapCommand: { cmd: "SET_TOOL_NODE_ID", toolId, nodeId: "" },
+      prefix: "tool",
+      commands,
+      state,
+    });
+    const existing = state.getTimelineNode(nodeId);
+    const existingToolState = state.getToolState(toolId);
+    commands.push({
+      cmd: "SET_TIMELINE_NODE",
+      id: nodeId,
+      node: {
+        id: nodeId,
+        kind: "tool",
+        ...applyTaskBindingToNode(event, state, existing),
+        toolId,
+        toolLabel:
+          toText(event.toolLabel) ||
+          existing?.toolLabel ||
+          existingToolState?.toolLabel ||
+          "",
+        toolName: pickToolName(
+          existing?.toolName,
+          existingToolState?.toolName,
+          event.toolName,
+        ),
+        viewportKey:
+          existing?.viewportKey || existingToolState?.viewportKey || "",
+        description:
+          existing?.description || existingToolState?.description || "",
+        argsText: existing?.argsText || existingToolState?.argsBuffer || "",
+        status: "running",
+        result: null,
+        toolOutput: appendToolOutputChunk(existing?.toolOutput, {
+          stream,
+          delta,
+          chunkIndex: Number(chunkIndex),
+        }),
+        ts: existing?.ts ?? timestamp,
+        startedAt: existing?.startedAt ?? timestamp,
+        endedAt: undefined,
       },
     });
     return commands;
@@ -349,20 +424,23 @@ export function processToolEvent(
     commands.push({
       cmd: "SET_TIMELINE_NODE",
       id: nodeId,
-      node: buildToolTimelineNode({
-        nodeId,
-        event,
-        existing,
-        existingToolState,
-        argsText,
-        status: failed ? "failed" : "success",
-        result: { text: resultText, isCode: typeof resultValue !== "string" },
-        ts: existing?.ts ?? timestamp,
-        startedAt,
-        endedAt,
-        durationMs,
-        state,
-      }),
+      node: {
+        ...buildToolTimelineNode({
+          nodeId,
+          event,
+          existing,
+          existingToolState,
+          argsText,
+          status: failed ? "failed" : "success",
+          result: { text: resultText, isCode: typeof resultValue !== "string" },
+          ts: existing?.ts ?? timestamp,
+          startedAt,
+          endedAt,
+          durationMs,
+          state,
+        }),
+        toolOutput: undefined,
+      },
     });
     if (fileChange) {
       commands.push({ cmd: "UPSERT_FILE_CHANGE", fileChange });
@@ -395,14 +473,10 @@ export function processToolEvent(
         existing,
         existingToolState,
         argsText,
-        status: event.error
-          ? "failed"
-          : existing?.status === "failed"
-            ? "failed"
-            : "completed",
+        status: "running",
         result: existing?.result || null,
         ts: existing?.ts ?? timestamp,
-        startedAt: timestamp,
+        startedAt: existing?.startedAt ?? timestamp,
         endedAt: existing?.endedAt,
         state,
       }),

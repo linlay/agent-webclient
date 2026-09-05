@@ -31,6 +31,8 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 运行中的每个事件都会进入时间轴：消息内容、推理、规划、工具调用、来源、产物、等待用户输入和错误状态都能按顺序展示。结构化计划会进入计划面板，展示任务状态、进度、耗时和任务关联的运行内容。
 
+工具卡片支持 live-only `tool.output`：Native Host Bash 可在命令结束前展示 stdout / stderr（包括扫码二维码），最终仍由 `tool.result` 替换并收口。旧后端或没有过程输出的工具保持原有展示。
+
 ![运行时间轴](docs/images/screenshots/timeline-events.png)
 
 ![计划面板](docs/images/screenshots/plan-panel.png)

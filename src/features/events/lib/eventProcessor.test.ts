@@ -902,6 +902,108 @@ describe('processStreamEvent', () => {
     expect(state.timelineNodes.get('tool_0')?.argsText).toBe('{\n  "foo": "bar"\n}');
   });
 
+  it('projects tool.output into a running node and replaces it with tool.result', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.output',
+      runId: 'run_1',
+      taskId: 'task_1',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stdout',
+      delta: 'scan ',
+      chunkIndex: 0,
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.output',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stdout',
+      delta: 'QR\n',
+      chunkIndex: 1,
+      timestamp: 101,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.output',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stderr',
+      delta: 'waiting\n',
+      chunkIndex: 2,
+      timestamp: 102,
+    }, 'live', true);
+
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      toolId: 'tool_live',
+      toolName: 'bash',
+      taskId: 'task_1',
+      status: 'running',
+      startedAt: 100,
+      toolOutput: {
+        lastChunkIndex: 2,
+        truncated: false,
+        segments: [
+          { stream: 'stdout', text: 'scan QR\n' },
+          { stream: 'stderr', text: 'waiting\n' },
+        ],
+      },
+    });
+
+    processAndApply(state, {
+      type: 'tool.output',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stdout',
+      delta: 'duplicate',
+      chunkIndex: 2,
+      timestamp: 103,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')?.toolOutput?.segments).toHaveLength(2);
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      result: 'scan QR\ndone\n',
+      timestamp: 120,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      status: 'success',
+      result: { text: 'scan QR\ndone\n', isCode: false },
+      endedAt: 120,
+      durationMs: 20,
+    });
+    expect(state.timelineNodes.get('tool_0')?.toolOutput).toBeUndefined();
+  });
+
+  it('keeps tool.end and tool.snapshot non-terminal until tool.result', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_lifecycle',
+      toolName: 'bash',
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.end',
+      toolId: 'tool_lifecycle',
+      timestamp: 101,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('running');
+    expect(state.timelineNodes.get('tool_0')?.endedAt).toBeUndefined();
+    processAndApply(state, {
+      type: 'tool.snapshot',
+      toolId: 'tool_lifecycle',
+      toolName: 'bash',
+      arguments: '{"command":"login"}',
+      timestamp: 102,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('running');
+  });
+
   it('marks incomplete tool args when the run ends before buffered args form valid JSON', () => {
     const state = createState();
 

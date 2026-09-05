@@ -67,6 +67,7 @@ export enum AIToolEventTypeEnum {
   Args = "tool.args",
   Snapshot = "tool.snapshot",
   End = "tool.end",
+  Output = "tool.output",
   Result = "tool.result",
 }
 
@@ -365,6 +366,8 @@ export interface AIEventCommonFields {
   result?: unknown;
   approval?: Record<string, unknown>;
   output?: unknown;
+  stream?: boolean | "stdout" | "stderr";
+  chunkIndex?: number;
   plan?: AIPlan[] | AIAwaitPlan | AIAwaitPlanSubmitParamData;
   planning?: AIAwaitPlan;
   arguments?: unknown;

@@ -14,6 +14,8 @@ import {
   parseComposerPrefillPayload,
   parseNewChatTimestamp,
   resolveNewChatResendRouteAction,
+  shouldKeepClaimedChatRouteLoad,
+  shouldSkipPromotedChatHistoryLoad,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
 import type { Chat, WorkerRow } from "@/app/state/types";
@@ -740,6 +742,47 @@ describe("AgentChatShell", () => {
     expect(
       consumeLiveSessionPromotion(promotions, "demo-agent", "chat-456"),
     ).toBe(false);
+  });
+
+  it("does not let a stale live-session promotion skip the target history load", () => {
+    expect(shouldSkipPromotedChatHistoryLoad({
+      promotionConsumed: true,
+      targetChatId: "chat-target",
+      visibleChatId: "chat-previous",
+      liveQueryOwnsTarget: false,
+    })).toBe(false);
+
+    expect(shouldSkipPromotedChatHistoryLoad({
+      promotionConsumed: true,
+      targetChatId: "chat-target",
+      visibleChatId: "chat-target",
+      liveQueryOwnsTarget: false,
+    })).toBe(true);
+
+    expect(shouldSkipPromotedChatHistoryLoad({
+      promotionConsumed: true,
+      targetChatId: "chat-target",
+      visibleChatId: "chat-previous",
+      liveQueryOwnsTarget: true,
+    })).toBe(true);
+  });
+
+  it("reclaims a route load when neither visible state nor transition owns its target", () => {
+    expect(shouldKeepClaimedChatRouteLoad({
+      lastRouteKey: createChatRouteKey("demo-agent", "chat-target"),
+      routeKey: createChatRouteKey("demo-agent", "chat-target"),
+      targetChatId: "chat-target",
+      visibleChatId: "chat-previous",
+      transitionTargetChatId: "chat-previous",
+    })).toBe(false);
+
+    expect(shouldKeepClaimedChatRouteLoad({
+      lastRouteKey: createChatRouteKey("demo-agent", "chat-target"),
+      routeKey: createChatRouteKey("demo-agent", "chat-target"),
+      targetChatId: "chat-target",
+      visibleChatId: "chat-previous",
+      transitionTargetChatId: "chat-target",
+    })).toBe(true);
   });
 
   it("uses each timestamp as the retrigger key for explicit new chat routes", () => {

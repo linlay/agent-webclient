@@ -22,6 +22,7 @@ const deltaLogEventTypes = new Set([
   'tool.start',
   'tool.args',
   'tool.end',
+  'tool.output',
   'action.start',
   'action.args',
   'action.end',

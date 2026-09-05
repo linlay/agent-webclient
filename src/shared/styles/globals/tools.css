@@ -140,6 +140,21 @@
     color: var(--text-muted);
 }
 
+.tool-call-output-stdout,
+.tool-call-output-stderr,
+.tool-call-output-truncation {
+    white-space: inherit;
+}
+
+.tool-call-output-stderr {
+    color: color-mix(in srgb, var(--accent-danger) 68%, var(--text-muted));
+}
+
+.tool-call-output-truncation {
+    color: var(--ink-muted);
+    font-style: italic;
+}
+
 .tool-call-result .input {
     color: var(--text-main);
     margin-bottom: 8px;

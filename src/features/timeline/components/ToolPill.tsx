@@ -14,6 +14,7 @@ import { useOptionalAppContext } from "@/app/state/provider";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { toolOutputText } from "@/features/events/lib/toolOutputState";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -47,6 +48,7 @@ export interface ToolPillRecord {
   argsText: string;
   argsInlineText: string;
   result: TimelineNode["result"];
+  toolOutput?: TimelineNode["toolOutput"];
   kbaseIndexSummary?: KbaseIndexSummary;
   durationMs?: number;
 }
@@ -229,8 +231,12 @@ export function buildToolPillRecords(
     const status = node.status || "pending";
     const argsText = node.argsText || "";
     const result = node.result || null;
+    const toolOutput = node.toolOutput;
     const kbaseIndexSummary = resolveKbaseIndexSummary(node);
-    const hasDetails = Boolean(argsText.trim()) || Boolean(result);
+    const hasDetails =
+      Boolean(argsText.trim()) ||
+      Boolean(result) ||
+      Boolean(toolOutputText(toolOutput));
     return {
       key: node.id,
       title: translate("timeline.toolPill.runTitle", { index: index + 1 }),
@@ -241,6 +247,7 @@ export function buildToolPillRecords(
       argsText,
       argsInlineText: formatToolArgumentsInline(argsText),
       result,
+      ...(toolOutput ? { toolOutput } : {}),
       ...(kbaseIndexSummary ? { kbaseIndexSummary } : {}),
       durationMs: node.durationMs,
     };
@@ -251,6 +258,21 @@ export function getExpandableToolPillRecords(
   records: ToolPillRecord[],
 ): ToolPillRecord[] {
   return records.filter((record) => record.hasDetails);
+}
+
+export function claimToolOutputAutoExpand(
+  records: ToolPillRecord[],
+  claimedKeys: Set<string>,
+): boolean {
+  let claimed = false;
+  for (const record of records) {
+    if (!toolOutputText(record.toolOutput) || claimedKeys.has(record.key)) {
+      continue;
+    }
+    claimedKeys.add(record.key);
+    claimed = true;
+  }
+  return claimed;
 }
 
 export function canExpandToolPill(
@@ -291,6 +313,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyState>>({});
   const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
   const copyTimerRef = useRef<Map<string, number>>(new Map());
+  const autoExpandedOutputKeysRef = useRef<Set<string>>(new Set());
   const source = toolGroup || node;
   const { t } = useI18n();
   const appContext = useOptionalAppContext();
@@ -362,6 +385,24 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
     };
   }, []);
 
+  const outputRecords = useMemo(() => {
+    if (!source) return [];
+    return buildToolPillRecords(source, t).filter((record) =>
+      Boolean(toolOutputText(record.toolOutput)),
+    );
+  }, [source, t]);
+
+  useEffect(() => {
+    if (
+      claimToolOutputAutoExpand(
+        outputRecords,
+        autoExpandedOutputKeysRef.current,
+      )
+    ) {
+      setExpanded(true);
+    }
+  }, [outputRecords]);
+
   if (!source) return null;
 
   const toolLabel = formatToolPillTitle(source, t);
@@ -401,9 +442,9 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   return (
     <TimelineCollapse
       expanded={canExpand && expanded}
-      onExpand={() => {
+      onExpand={(nextExpanded) => {
         if (!canExpand) return;
-        setExpanded(!expanded);
+        setExpanded(nextExpanded);
       }}
       label={
         <Flex align="center" gap={6} className="tw:text-[13px]">
@@ -430,6 +471,11 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
       <Flex vertical gap={16}>
         {expandableRecords.map((record) => {
           const resultText = formatToolResultText(record.result, t);
+          const liveOutputText = toolOutputText(record.toolOutput);
+          const displayedOutput = record.result ? resultText : liveOutputText;
+          const liveOutputSegments = record.result
+            ? []
+            : record.toolOutput?.segments || [];
           const resultCopyKey = `${record.key}:result`;
           const resultCopyState = copyStatus[resultCopyKey] || "idle";
           const resultCopyLabel =
@@ -519,7 +565,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                       onClick={() => {
                         void handleCopyResult(
                           resultCopyKey,
-                          record.argsInlineText + "\n\n" + resultText,
+                          record.argsInlineText + "\n\n" + displayedOutput,
                         );
                       }}
                     >
@@ -535,10 +581,31 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                 </Flex>
                 <code
                   className={TOOL_CALL_RESULT_CLASS_NAME}
-                  style={{ whiteSpace: isWrap ? "pre-wrap" : "nowrap" }}
+                  style={{
+                    whiteSpace: isWrap
+                      ? "pre-wrap"
+                      : liveOutputText
+                        ? "pre"
+                        : "nowrap",
+                  }}
                 >
                   <JsonToTable className="input" text={record.argsInlineText} />
-                  <span>{resultText}</span>
+                  {liveOutputSegments.length > 0 ? (
+                    liveOutputSegments.map((segment, index) => (
+                      <span
+                        key={`${record.key}:output:${index}`}
+                        className={
+                          segment.truncationMarker
+                            ? "tool-call-output-truncation"
+                            : `tool-call-output-${segment.stream}`
+                        }
+                      >
+                        {segment.text}
+                      </span>
+                    ))
+                  ) : (
+                    <span>{resultText}</span>
+                  )}
                 </code>
               </div>
             </div>
