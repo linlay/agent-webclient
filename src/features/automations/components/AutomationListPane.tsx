@@ -10,7 +10,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import styles from "./AutomationHistoryConsole.module.css";
+import styles from "./AutomationListPane.module.css";
 
 const STATUS_ICON: Record<AutomationExecutionStatus, MaterialIconName> = {
   running: "progress_activity",

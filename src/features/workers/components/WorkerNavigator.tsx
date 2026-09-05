@@ -64,6 +64,7 @@ import {
 import type { AgentDetailResponse } from "@/shared/data";
 import { AgentProjectCreateDialog } from "@/features/workers/components/AgentProjectCreateDialog";
 import { useAgentProjectCreate } from "@/features/workers/hooks/useAgentProjectCreate";
+import "./WorkerNavigator.module.css";
 
 const LEFT_SIDEBAR_BASE_CLASS =
   "sidebar left-sidebar is-open tw:!relative tw:gap-1.5 tw:px-0 tw:py-1.5";

@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import "./AgentConsole.module.css";
 import {
   closestCenter,
   DndContext,

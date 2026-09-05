@@ -43,38 +43,42 @@ import {
   type UsageHeaderStat,
   type UsageMetric,
 } from "@/features/usage/lib/usageMetrics";
+import styles from "./UsageContextControl.module.css";
+
+const withModuleClass = (semanticClass: string, utilityClasses = "") =>
+  `${semanticClass} ${styles[semanticClass]} ${utilityClasses}`.trim();
 
 const USAGE_CONTEXT_WINDOW_CLASS =
-  "usage-context-window tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:px-1.5 tw:py-1";
+  withModuleClass("usage-context-window", "tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:px-1.5 tw:py-1");
 const USAGE_CONTEXT_COPY_CLASS =
-  "usage-context-copy tw:inline-flex tw:min-w-0 tw:flex-1 tw:flex-wrap tw:items-baseline tw:gap-2 tw:[&>small]:flex-none tw:[&>small]:text-[9px] tw:[&>small]:leading-[1.1] tw:[&>small]:text-ink-2 tw:[&>span]:flex-none tw:[&>span]:text-[9px] tw:[&>span]:leading-[1.1] tw:[&>span]:text-ink-muted tw:[&>strong]:flex-none tw:[&>strong]:[overflow-wrap:anywhere] tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1]";
+  withModuleClass("usage-context-copy", "tw:inline-flex tw:min-w-0 tw:flex-1 tw:flex-wrap tw:items-baseline tw:gap-2 tw:[&>small]:flex-none tw:[&>small]:text-[9px] tw:[&>small]:leading-[1.1] tw:[&>small]:text-ink-2 tw:[&>span]:flex-none tw:[&>span]:text-[9px] tw:[&>span]:leading-[1.1] tw:[&>span]:text-ink-muted tw:[&>strong]:flex-none tw:[&>strong]:[overflow-wrap:anywhere] tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1]");
 const USAGE_CONTEXT_COMPACT_BTN_CLASS =
-  "usage-context-compact-btn tw:min-h-[18px] tw:flex-none tw:rounded-md tw:px-1.5 tw:py-0 tw:text-[9px] tw:leading-none";
+  withModuleClass("usage-context-compact-btn", "tw:min-h-[18px] tw:flex-none tw:rounded-md tw:px-1.5 tw:py-0 tw:text-[9px] tw:leading-none");
 const USAGE_CACHE_HIT_INLINE_CLASS =
-  "usage-cache-hit-inline tw:inline-flex tw:min-w-max tw:items-baseline tw:gap-1 tw:whitespace-nowrap tw:text-[9px] tw:leading-[1.1] tw:text-ink-muted tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1] tw:[&>strong]:text-ink-1";
+  withModuleClass("usage-cache-hit-inline", "tw:inline-flex tw:min-w-max tw:items-baseline tw:gap-1 tw:whitespace-nowrap tw:text-[9px] tw:leading-[1.1] tw:text-ink-muted tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1] tw:[&>strong]:text-ink-1");
 const USAGE_TRIGGER_RING_CLASS =
-  "usage-trigger-ring tw:grid tw:h-[26px] tw:w-[26px] tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_46%,transparent_50%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),var(--line-soft)_0)] tw:[&>span]:font-code tw:[&>span]:text-[11px] tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1";
+  withModuleClass("usage-trigger-ring", "tw:grid tw:h-[26px] tw:w-[26px] tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_46%,transparent_50%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),var(--line-soft)_0)] tw:[&>span]:font-code tw:[&>span]:text-[11px] tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1");
 const USAGE_POPOVER_SECTION_CLASS =
-  "usage-popover-section tw:mt-1.5 tw:[&_h3]:m-0 tw:[&_h3]:text-[11px] tw:[&_h3]:font-bold tw:[&_h3]:text-ink-2";
+  withModuleClass("usage-popover-section", "tw:mt-1.5 tw:[&_h3]:m-0 tw:[&_h3]:text-[11px] tw:[&_h3]:font-bold tw:[&_h3]:text-ink-2");
 const USAGE_POPOVER_SECTION_TITLE_CLASS =
-  "usage-popover-section-title tw:mb-[3px] tw:mr-1 tw:flex tw:items-center tw:justify-between tw:gap-2";
+  withModuleClass("usage-popover-section-title", "tw:mb-[3px] tw:mr-1 tw:flex tw:items-center tw:justify-between tw:gap-2");
 const USAGE_METRIC_GRID_CLASS =
-  "usage-metric-grid tw:m-0 tw:grid tw:grid-cols-3 tw:gap-1";
+  withModuleClass("usage-metric-grid", "tw:m-0 tw:grid tw:grid-cols-3 tw:gap-1");
 const USAGE_METRIC_CLASS =
-  "usage-metric tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-1 tw:rounded-[7px] tw:border tw:[border-color:color-mix(in_srgb,var(--line-soft)_72%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev)_68%,transparent)] tw:px-[5px] tw:py-[3px] tw:[&_dd]:m-0 tw:[&_dd]:[overflow-wrap:anywhere] tw:[&_dd]:font-code tw:[&_dd]:text-[10px] tw:[&_dd]:font-bold tw:[&_dd]:leading-[1.15] tw:[&_dd]:text-ink-1 tw:[&_dt]:m-0 tw:[&_dt]:overflow-hidden tw:[&_dt]:text-ellipsis tw:[&_dt]:whitespace-nowrap tw:[&_dt]:text-[9px] tw:[&_dt]:leading-[1.2] tw:[&_dt]:text-ink-muted";
+  withModuleClass("usage-metric", "tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-1 tw:rounded-[7px] tw:border tw:[border-color:color-mix(in_srgb,var(--line-soft)_72%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev)_68%,transparent)] tw:px-[5px] tw:py-[3px] tw:[&_dd]:m-0 tw:[&_dd]:[overflow-wrap:anywhere] tw:[&_dd]:font-code tw:[&_dd]:text-[10px] tw:[&_dd]:font-bold tw:[&_dd]:leading-[1.15] tw:[&_dd]:text-ink-1 tw:[&_dt]:m-0 tw:[&_dt]:overflow-hidden tw:[&_dt]:text-ellipsis tw:[&_dt]:whitespace-nowrap tw:[&_dt]:text-[9px] tw:[&_dt]:leading-[1.2] tw:[&_dt]:text-ink-muted");
 const USAGE_SECTION_CALL_COUNTS_CLASS =
-  "usage-section-call-counts tw:inline-flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2";
+  withModuleClass("usage-section-call-counts", "tw:inline-flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2");
 const USAGE_SECTION_STAT_CLASS =
-  "usage-section-stat tw:inline-flex tw:min-w-0 tw:items-center tw:gap-1 tw:whitespace-nowrap tw:text-[9px] tw:leading-none tw:text-ink-muted tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-none tw:[&>strong]:text-ink-1";
-const USAGE_TRIGGER_CLASS = "usage-trigger";
-const USAGE_POPOVER_ROOT_CLASS = "usage-popover";
-const USAGE_DRAWER_ROOT_CLASS = "usage-drawer";
+  withModuleClass("usage-section-stat", "tw:inline-flex tw:min-w-0 tw:items-center tw:gap-1 tw:whitespace-nowrap tw:text-[9px] tw:leading-none tw:text-ink-muted tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-none tw:[&>strong]:text-ink-1");
+const USAGE_TRIGGER_CLASS = withModuleClass("usage-trigger");
+const USAGE_POPOVER_ROOT_CLASS = withModuleClass("usage-popover");
+const USAGE_DRAWER_ROOT_CLASS = withModuleClass("usage-drawer");
 const USAGE_CONTEXT_RING_CLASS =
-  "usage-context-ring tw:grid tw:h-11 tw:w-11 tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_54%,transparent_55%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),color-mix(in_srgb,var(--line-soft)_76%,transparent)_0)] tw:[&>span]:font-code tw:[&>span]:text-sm tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1";
+  withModuleClass("usage-context-ring", "tw:grid tw:h-11 tw:w-11 tw:flex-none tw:place-items-center tw:rounded-full tw:bg-[radial-gradient(circle_at_center,var(--bg-elev-2)_0_54%,transparent_55%),conic-gradient(var(--accent-electric)_var(--usage-context-percent,0%),color-mix(in_srgb,var(--line-soft)_76%,transparent)_0)] tw:[&>span]:font-code tw:[&>span]:text-sm tw:[&>span]:font-bold tw:[&>span]:leading-none tw:[&>span]:text-ink-1");
 const USAGE_POPOVER_HEADER_CLASS =
-  "usage-popover-header tw:mb-1 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:[&_span]:max-w-[340px] tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-[10px] tw:[&_span]:font-medium tw:[&_span]:leading-[1.15] tw:[&_span]:text-ink-muted tw:[&_strong]:text-[11px] tw:[&_strong]:leading-[1.15]";
+  withModuleClass("usage-popover-header", "tw:mb-1 tw:flex tw:items-center tw:justify-between tw:gap-3 tw:[&_span]:max-w-[340px] tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-[10px] tw:[&_span]:font-medium tw:[&_span]:leading-[1.15] tw:[&_span]:text-ink-muted tw:[&_strong]:text-[11px] tw:[&_strong]:leading-[1.15]");
 const USAGE_POPOVER_CLOSE_CLASS =
-  "usage-popover-close tw:h-5 tw:min-h-5 tw:w-5 tw:min-w-5 tw:rounded-[7px] tw:p-0";
+  withModuleClass("usage-popover-close", "tw:h-5 tw:min-h-5 tw:w-5 tw:min-w-5 tw:rounded-[7px] tw:p-0");
 const USAGE_POPOVER_COMPACT_QUERY = "(max-width: 620px)";
 
 const UsageContextWindow: React.FC<{

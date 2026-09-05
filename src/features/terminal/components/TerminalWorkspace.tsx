@@ -18,8 +18,16 @@ import {
 import { notifyTerminalActivityChanged } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { useI18n } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
+import styles from "./TerminalWorkspace.module.css";
 
 type TerminalTab = TerminalDockTabState;
+
+function withModuleClasses(...classNames: string[]): string {
+  return [
+    ...classNames,
+    ...classNames.map((className) => styles[className]).filter(Boolean),
+  ].filter(Boolean).join(" ");
+}
 
 export interface TerminalWorkspaceProps {
   agentKey: string;
@@ -153,13 +161,16 @@ export const TerminalWorkspace: React.FC<TerminalWorkspaceProps> = ({
   }, []);
 
   return (
-    <div className="terminal-workspace">
-      <div className="terminal-dock-tabs">
-        <div className="terminal-dock-tab-list">
+    <div className={withModuleClasses("terminal-workspace")}>
+      <div className={withModuleClasses("terminal-dock-tabs")}>
+        <div className={withModuleClasses("terminal-dock-tab-list")}>
           {tabs.map((tab, index) => (
             <div
               key={tab.id}
-              className={`terminal-dock-tab ${tab.id === activeTabId ? "terminal-dock-tab-active" : ""}`}
+              className={withModuleClasses(
+                "terminal-dock-tab",
+                tab.id === activeTabId ? "terminal-dock-tab-active" : "",
+              )}
               onClick={() => setActiveTabId(tab.id)}
               role="tab"
               aria-selected={tab.id === activeTabId}
@@ -171,11 +182,11 @@ export const TerminalWorkspace: React.FC<TerminalWorkspaceProps> = ({
                 }
               }}
             >
-              <span className="terminal-dock-tab-label">
+              <span className={withModuleClasses("terminal-dock-tab-label")}>
                 {t("terminal.defaultLabel")}{tabs.length > 1 ? index + 1 : null}
               </span>
               <button
-                className="terminal-dock-tab-close"
+                className={withModuleClasses("terminal-dock-tab-close")}
                 aria-label={t("terminal.closeTab", { name: tab.label })}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -187,16 +198,16 @@ export const TerminalWorkspace: React.FC<TerminalWorkspaceProps> = ({
             </div>
           ))}
         </div>
-        <button className="terminal-dock-tab-add" aria-label={t("terminal.new")} onClick={createTab}>
+        <button className={withModuleClasses("terminal-dock-tab-add")} aria-label={t("terminal.new")} onClick={createTab}>
           +
         </button>
         {onRequestClose ? (
-          <button className="terminal-dock-close" aria-label={t("topNav.terminal.close")} onClick={onRequestClose}>
+          <button className={withModuleClasses("terminal-dock-close")} aria-label={t("topNav.terminal.close")} onClick={onRequestClose}>
             ×
           </button>
         ) : null}
       </div>
-      <div className="terminal-dock-panes">
+      <div className={withModuleClasses("terminal-dock-panes")}>
         {tabs.map((tab) => (
           <TerminalPane
             key={tab.id}
@@ -213,8 +224,8 @@ export const TerminalWorkspace: React.FC<TerminalWorkspaceProps> = ({
           />
         ))}
         {tabs.length === 0 ? (
-          <div className="terminal-dock-empty">
-            <button className="terminal-dock-empty-add" onClick={createTab}>
+          <div className={withModuleClasses("terminal-dock-empty")}>
+            <button className={withModuleClasses("terminal-dock-empty-add")} onClick={createTab}>
               {t("terminal.emptyNew")}
             </button>
           </div>

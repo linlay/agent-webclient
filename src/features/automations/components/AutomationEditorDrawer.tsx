@@ -5,7 +5,7 @@ import { AutomationEditor } from "@/features/automations/components/AutomationEd
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import styles from "./AutomationHistoryConsole.module.css";
+import styles from "./AutomationEditorDrawer.module.css";
 
 export interface AutomationEditorDrawerProps {
   open: boolean;

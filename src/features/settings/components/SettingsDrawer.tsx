@@ -28,6 +28,7 @@ import { SettingsClientGate } from "@/features/settings/components/SettingsClien
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
 import { MaterialIcon } from "@/shared/icons/material";
+import "./Settings.module.css";
 
 interface SettingsDrawerProps {
   open?: boolean;

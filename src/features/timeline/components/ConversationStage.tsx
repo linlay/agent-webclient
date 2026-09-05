@@ -75,6 +75,7 @@ import {
   setConversationScrollBookmark,
   type ConversationScrollBookmark,
 } from "@/features/timeline/lib/conversationScrollBookmark";
+import "./Timeline.module.css";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 

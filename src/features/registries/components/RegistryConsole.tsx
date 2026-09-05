@@ -7,6 +7,7 @@ import { useRegistryConsoleRuntime } from "@/features/registries/hooks/useRegist
 import type { RegistryEditableCategory } from "@/features/registries/lib/registryConsole";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
+import "./RegistryConsole.module.css";
 
 const CONSOLE_CLASS_NAME =
   "management-page-console automation-console registry-console tw:overflow-hidden";

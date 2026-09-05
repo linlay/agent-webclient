@@ -1,0 +1,83 @@
+:global(.memory-info-page) {
+    min-height: 100vh;
+    display: grid;
+    place-items: stretch center;
+}
+
+:global(.memory-info-page-card) {
+    width: 100%;
+    height: 100%;
+    min-height: 620px;
+    padding: 10px;
+}
+
+:global(.memory-info-input),
+:global(.memory-info-select) {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: 13px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2));
+    color: var(--ink-1);
+}
+
+:global(.memory-info-pane-list) :global(.memory-info-input),
+:global(.memory-info-pane-list) :global(.memory-info-select) {
+    min-height: 34px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+:global(.memory-info-pane-list) :global(.memory-info-select) {
+    padding-right: 34px;
+    background-position: right 10px center;
+    background-size: 14px 14px;
+}
+
+:global(.memory-info-select) {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 42px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%235C667A' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px 16px;
+}
+
+:global(.memory-info-input):focus,
+:global(.memory-info-select):focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--accent-electric) 48%, var(--line-soft));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 32%, transparent);
+}
+:global(.settings-head) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+:global(.settings-head) h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+:global(.settings-head) button {
+    border: 0;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+:global(.settings-head) button:hover {
+    color: var(--ink-1);
+    background: var(--bg-hover);
+    box-shadow: none;
+}

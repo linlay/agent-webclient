@@ -46,6 +46,7 @@ import {
 } from "@/features/memory/lib/memoryInfo";
 import { toText } from "@/shared/utils/eventUtils";
 import { useMemoryRuntime } from "@/features/memory/hooks/useMemoryRuntime";
+import "./MemoryConsole.module.css";
 
 type MemoryInfoFilterField = keyof MemoryInfoFilters;
 type PreferenceRecordField =

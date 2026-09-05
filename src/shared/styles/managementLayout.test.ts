@@ -5,6 +5,15 @@ function readStyle(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), "src", "shared", "styles", "globals", relativePath), "utf8");
 }
 
+function readFeatureStyle(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), "src", relativePath), "utf8")
+    .replace(/:global\(([^)]+)\)/g, "$1");
+}
+
+function readManagementStyles(): string {
+  return [readStyle("dialogs.css"), readStyle("management.css")].join("\n");
+}
+
 function readRule(css: string, selector: string): string {
   const start = css.indexOf(`${selector} {`);
   if (start < 0) return "";
@@ -40,7 +49,7 @@ describe("management layout contracts", () => {
   });
 
   it("lets modal and drawer sections fill the fixed command card height", () => {
-    const modalCss = readStyle("modal.css");
+    const modalCss = readManagementStyles();
     const modalRule = readRule(modalCss, ".command-modal-section");
 
     expect(modalRule).toMatch(/height:\s*100%;/);
@@ -48,7 +57,7 @@ describe("management layout contracts", () => {
   });
 
   it("keeps management dialogs stable while source editors fill the available height", () => {
-    const modalCss = readStyle("modal.css");
+    const modalCss = readManagementStyles();
     const copilotCss = readStyle("copilot.css");
     const bodyRule = readRule(
       modalCss,
@@ -105,7 +114,9 @@ describe("management layout contracts", () => {
   });
 
   it("keeps the worker history dialog height stable and scrolls its list", () => {
-    const workersCss = readStyle("workers.css");
+    const workersCss = readFeatureStyle(
+      "features/workers/components/WorkerNavigator.module.css",
+    );
     const bodyRule = readRule(workersCss, ".worker-history-modal .ant-modal-body");
     const sectionRule = readRule(
       workersCss,

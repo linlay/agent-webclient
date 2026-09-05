@@ -29,6 +29,7 @@ import { SettingsToken } from "@/features/settings/components/SettingsToken";
 import { SettingsClientGate } from "@/features/settings/components/SettingsClientGate";
 import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebug";
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
+import "./Settings.module.css";
 
 const SETTINGS_CARD_CLASS_NAME =
   "settings-card tw:max-h-[min(82vh,860px)] tw:w-full tw:overflow-auto";

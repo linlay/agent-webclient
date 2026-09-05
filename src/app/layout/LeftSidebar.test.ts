@@ -42,6 +42,11 @@ function collectText(value: React.ReactNode): string {
   return "";
 }
 
+function readOwnedStyle(...segments: string[]): string {
+  return fs.readFileSync(path.join(process.cwd(), "src", ...segments), "utf8")
+    .replace(/:global\(([^)]+)\)/g, "$1");
+}
+
 jest.mock("antd", () => {
   const React = require("react");
 
@@ -1165,9 +1170,8 @@ describe("LeftSidebar", () => {
     expect(html).toMatch(
       /class="[^"]*\bworker-chat-more\b(?![^"tw:]*hover:text-text-main)[^"]*"/,
     );
-    const workerStyles = fs.readFileSync(
-      path.join(process.cwd(), "src", "shared", "styles", "globals", "workers.css"),
-      "utf8",
+    const workerStyles = readOwnedStyle(
+      "features", "workers", "components", "WorkerNavigator.module.css",
     );
     expect(workerStyles).toMatch(
       /\.worker-chat-more:hover\s*\{[\s\S]*?color:\s*var\(--text-main\);/,
@@ -1479,9 +1483,8 @@ describe("LeftSidebar", () => {
 
     expect(mockModalConfirm).toHaveBeenCalledTimes(1);
     const confirmConfig = mockModalConfirm.mock.calls[0][0];
-    const modalStyles = fs.readFileSync(
-      path.join(process.cwd(), "src", "shared", "styles", "globals", "modal.css"),
-      "utf8",
+    const modalStyles = readOwnedStyle(
+      "shared", "styles", "globals", "dialogs.css",
     );
     expect(confirmConfig.content.props.className).toBe("left-sidebar-rename-agent-input");
     expect(modalStyles).toMatch(
@@ -1880,9 +1883,8 @@ describe("LeftSidebar", () => {
     );
     expect(html).toContain("worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5");
     expect(html).not.toContain("worker-chat-item:hover_");
-    const workerStyles = fs.readFileSync(
-      path.join(process.cwd(), "src", "shared", "styles", "globals", "workers.css"),
-      "utf8",
+    const workerStyles = readOwnedStyle(
+      "features", "workers", "components", "WorkerNavigator.module.css",
     );
     expect(workerStyles).toMatch(
       /\.worker-chat-item:hover,[\s\S]*?\.worker-chat-item\.is-selected\s*\{[\s\S]*?background-color:\s*transparent;[\s\S]*?color:\s*var\(--text-main\);/,

@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { TerminalWorkspace } from "@/features/terminal/components/TerminalWorkspace";
 import { useI18n } from "@/shared/i18n";
 import { useRealtimeTransport } from "@/features/transport/hooks/useRealtimeTransport";
+import styles from "@/features/terminal/components/TerminalWorkspace.module.css";
 
 export const TerminalPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -20,7 +21,10 @@ export const TerminalPage: React.FC = () => {
 
   if (!agentKey) {
     return (
-      <main className="terminal-surface terminal-surface-invalid" role="alert">
+      <main
+        className={`terminal-surface terminal-surface-invalid ${styles["terminal-surface"]} ${styles["terminal-surface-invalid"]}`}
+        role="alert"
+      >
         <strong>{t("terminal.panelAria")}</strong>
         <span>{t("platformError.code.invalid_request")}</span>
       </main>
@@ -28,7 +32,7 @@ export const TerminalPage: React.FC = () => {
   }
 
   return (
-    <main className="terminal-surface" aria-label={t("terminal.panelAria")}>
+    <main className={`terminal-surface ${styles["terminal-surface"]}`} aria-label={t("terminal.panelAria")}>
       <TerminalWorkspace
         agentKey={agentKey}
         initialTerminalKey={terminalKey}

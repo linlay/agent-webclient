@@ -46,24 +46,6 @@
     flex-direction: column;
 }
 
-.attachment-card-composer {
-    flex: 0 0 auto;
-}
-
-.attachment-card-composer.is-image {
-    width: 88px;
-    aspect-ratio: 1 / 1;
-    border-radius: 16px;
-}
-
-.attachment-card-composer .attachment-card-title {
-    font-size: 12px;
-}
-
-.attachment-card-composer .attachment-card-subtitle {
-    font-size: 10px;
-}
-
 .composer-add-menu-overlay .ant-popover-inner {
     padding: 0;
     border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);

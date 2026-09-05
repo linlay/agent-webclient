@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import "./HistoryModal.module.css";
 import { DatePicker, Flex, Input, InputRef, Popover, Tag, Tooltip } from "antd";
 import dayjs from "dayjs";
 import type { AppState, Chat } from "@/app/state/types";

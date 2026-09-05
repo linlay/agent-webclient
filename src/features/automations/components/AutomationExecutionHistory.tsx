@@ -17,7 +17,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";
-import styles from "./AutomationHistoryConsole.module.css";
+import styles from "./AutomationExecutionHistory.module.css";
 
 const STATUS_ICON: Record<AutomationExecutionStatus, MaterialIconName> = {
   running: "progress_activity",

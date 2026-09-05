@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppState } from "@/app/state/AppContext";
+import styles from "./CommandStatusOverlay.module.css";
 
 export const CommandStatusOverlay: React.FC = () => {
 	const overlay = useAppState().commandStatusOverlay;
@@ -9,18 +10,18 @@ export const CommandStatusOverlay: React.FC = () => {
 	}
 
 	return (
-		<div className="command-status-overlay" aria-live="polite">
+		<div className={`command-status-overlay ${styles["command-status-overlay"]}`} aria-live="polite">
 			<div
-				className={`command-status-card is-${overlay.phase}`}
+				className={`command-status-card ${styles["command-status-card"]} is-${overlay.phase}`}
 				data-command-type={overlay.commandType || ""}
 				data-phase={overlay.phase}
 			>
-				<div className="command-status-orb" aria-hidden="true">
+				<div className={`command-status-orb ${styles["command-status-orb"]}`} aria-hidden="true">
 					<span />
 					<span />
 					<span />
 				</div>
-				<div className="command-status-text">{overlay.text}</div>
+				<div className={`command-status-text ${styles["command-status-text"]}`}>{overlay.text}</div>
 			</div>
 		</div>
 	);

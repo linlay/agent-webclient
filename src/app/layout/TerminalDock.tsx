@@ -5,6 +5,7 @@ import { TerminalWorkspace } from "@/features/terminal/components/TerminalWorksp
 import { resolveTerminalDockWorkspaceKey } from "@/features/terminal/lib/terminalWorkspace";
 import { resolveTerminalTheme } from "@/features/terminal/lib/terminalTheme";
 import { useI18n } from "@/shared/i18n";
+import styles from "./TerminalDock.module.css";
 
 export { resolveTerminalDockWorkspaceKey, resolveTerminalTheme };
 
@@ -42,8 +43,8 @@ export const TerminalDock: React.FC<{
   }, []);
 
   return (
-    <section className="terminal-dock" aria-label={t("terminal.panelAria")} style={{ height }}>
-      <div className="terminal-dock-resize-handle" onMouseDown={startResize} />
+    <section className={`terminal-dock ${styles["terminal-dock"]}`} aria-label={t("terminal.panelAria")} style={{ height }}>
+      <div className={`terminal-dock-resize-handle ${styles["terminal-dock-resize-handle"]}`} onMouseDown={startResize} />
       <TerminalWorkspace
         agentKey={agentKey}
         workspaceKey={workspaceKey}
