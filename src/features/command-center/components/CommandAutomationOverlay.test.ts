@@ -74,7 +74,7 @@ jest.mock("@/features/workers/components/SwitchModal", () => ({
   SwitchModal: () => null,
 }));
 
-jest.mock("@/features/workers/components/AgentConsole", () => ({
+jest.mock("@/features/agents/components/AgentConsole", () => ({
   AgentConsole: () => null,
 }));
 

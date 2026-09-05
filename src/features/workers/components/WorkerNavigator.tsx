@@ -6,7 +6,6 @@ import React, {
   useState,
 } from "react";
 import { flushSync } from "react-dom";
-import { useNavigate } from "react-router-dom";
 import {
   Badge,
   Button,
@@ -25,11 +24,6 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import {
-  resolveSettingsSummaryBadges,
-  SidebarSettingsMenu,
-  type SidebarSettingsMenuAction,
-} from "@/features/workers/components/SidebarSettingsMenu";
-import {
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
   isMemoryEnabled,
@@ -42,12 +36,7 @@ import type { WorkerSortMode } from "@/features/workers/hooks/useWorkerSidebarDa
 import { WorkerPanelHeader } from "@/features/workers/components/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/features/workers/components/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/features/chats/components/SidebarHistorySection";
-import {
-  deleteAgent,
-  getAgent,
-  markChatRead,
-  updateAgentName,
-} from "@/shared/data";
+import { markChatRead } from "@/shared/data";
 import {
   isChatActiveRun,
   isWorkerAttentionChat,
@@ -62,8 +51,14 @@ import {
   type AgentCopySummary,
 } from "@/features/workers/lib/agentCopyInfo";
 import type { AgentDetailResponse } from "@/shared/data";
-import { AgentProjectCreateDialog } from "@/features/workers/components/AgentProjectCreateDialog";
-import { useAgentProjectCreate } from "@/features/workers/hooks/useAgentProjectCreate";
+import { AgentProjectCreateDialog } from "@/features/agents/components/AgentProjectCreateDialog";
+import { useAgentProjectCreate } from "@/features/agents/hooks/useAgentProjectCreate";
+import { handleCreateAgentSuccess } from "@/features/workers/lib/agentProjectCreated";
+import {
+  deleteManagedAgent,
+  loadAgentCopyDetail as requestAgentCopyDetail,
+  renameManagedAgent,
+} from "@/features/agents/lib/agentOperations";
 import "./WorkerNavigator.module.css";
 
 const LEFT_SIDEBAR_BASE_CLASS =
@@ -105,17 +100,20 @@ const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 interface WorkerNavigatorProps {
   onOpenCommand: (type: "automation" | "agents") => void;
-  onOpenSettings: (target: "settings" | "memoryInfo") => void;
+  onOpenMemory: () => void;
+  renderSettingsMenu: (close: () => void) => React.ReactNode;
+  settingsSummary?: React.ReactNode;
 }
 
 export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   onOpenCommand,
-  onOpenSettings,
+  onOpenMemory,
+  renderSettingsMenu,
+  settingsSummary,
 }) => {
-  const { state, dispatch, querySessionsRef } = useAppContext();
+  const { state, stateRef, dispatch, querySessionsRef } = useAppContext();
   const { t } = useI18n();
   const terminalAgentStatuses = useTerminalAgentStatuses();
-  const navigate = useNavigate();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
   const memoryEnabled = isMemoryEnabled();
@@ -395,7 +393,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
         const newName = nextName.trim();
         if (!newName) return;
         try {
-          await updateAgentName({ key: agentKey, name: newName });
+          await renameManagedAgent(agentKey, newName);
           message.success(t("leftSidebar.renameAgentSuccess"));
           window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
         } catch (error) {
@@ -423,10 +421,10 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     setAgentCopyLoading(true);
     setAgentCopyError("");
     setAgentCopyDetail(null);
-    void getAgent(target.agentKey)
-      .then((response) => {
+    void requestAgentCopyDetail(target.agentKey)
+      .then((detail) => {
         if (agentCopyRequestRef.current !== requestId) return;
-        setAgentCopyDetail(response.data);
+        setAgentCopyDetail(detail);
       })
       .catch((error) => {
         if (agentCopyRequestRef.current !== requestId) return;
@@ -482,7 +480,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
         try {
-          await deleteAgent({ key: agentKey });
+          await deleteManagedAgent(agentKey);
           window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
         } catch (error) {
           dispatch({
@@ -497,43 +495,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 
   const handleCloseHistory = () => {
     setHistoryOpen(false);
-  };
-
-  const handleSettingsMenuAction = (action: SidebarSettingsMenuAction) => {
-    const openStandalonePage = (path: string) => {
-      window.open(
-        `${path}${window.location.search || ""}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
-      setSettingsMenuOpen(false);
-    };
-    if (action.type === "open-skills") {
-      openStandalonePage("/skills");
-      return;
-    }
-    if (action.type === "open-registries") {
-      openStandalonePage("/registries");
-      return;
-    }
-    if (action.type === "open-mcp-servers") {
-      openStandalonePage("/mcp-servers");
-      return;
-    }
-    if (action.type === "open-archive") {
-      openStandalonePage("/archives");
-      return;
-    }
-    if (action.type === "open-settings") {
-      onOpenSettings("settings");
-      setSettingsMenuOpen(false);
-      return;
-    }
-    if (action.type === "open-memory-info") {
-      onOpenSettings("memoryInfo");
-      setSettingsMenuOpen(false);
-      return;
-    }
   };
 
   const getWorkerChatLoading = (chatId: string) => {
@@ -613,15 +574,13 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     },
   );
 
-  const settingsSummaryBadges = useMemo(
-    () =>
-      resolveSettingsSummaryBadges({
-        themeMode: state.themeMode,
-      }),
-    [state.themeMode],
-  );
-
-  const agentProjectCreate = useAgentProjectCreate();
+  const agentProjectCreate = useAgentProjectCreate({
+    onCreated: (agentKey) => handleCreateAgentSuccess(agentKey, dispatch, stateRef),
+    onError: (error) => dispatch({
+      type: "APPEND_DEBUG",
+      line: `[new project error] ${(error as Error).message}`,
+    }),
+  });
 
   return (
     <>
@@ -697,7 +656,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     size="sm"
                     variant="ghost"
                     className="ui-icon-hover-24"
-                    onClick={() => onOpenSettings("memoryInfo")}
+                    onClick={onOpenMemory}
                   >
                     <MaterialIcon
                       name="psychology"
@@ -919,11 +878,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
               root: "sidebar-settings-popover",
             }}
             onOpenChange={setSettingsMenuOpen}
-            content={
-              <SidebarSettingsMenu
-                onAction={handleSettingsMenuAction}
-              />
-            }
+            content={renderSettingsMenu(() => setSettingsMenuOpen(false))}
           >
             <UiButton
               className="icon-btn ui-icon-hover-24"
@@ -940,21 +895,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
               {state.leftDrawerOpen && (
                 <>
                   <span>{t("leftSidebar.settings")}</span>
-                  <span className="settings-trigger-summary">
-                    {settingsSummaryBadges.map((badge) => (
-                      <span
-                        key={badge.key}
-                        className="settings-summary-chip"
-                        title={badge.title}
-                      >
-                        <MaterialIcon
-                          name={badge.icon}
-                          className="settings-summary-chip-icon"
-                        />
-                        <span>{badge.label}</span>
-                      </span>
-                    ))}
-                  </span>
+                  {settingsSummary}
                 </>
               )}
             </UiButton>

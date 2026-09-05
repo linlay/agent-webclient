@@ -10,49 +10,20 @@ import type {
 } from "@/shared/data";
 import { resolveModelPresentation } from "@/shared/icons/model";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import {
+  filterServiceTierOptions,
+  getModelDisplayName,
+  normalizeModelServiceTier,
+  supportedModelServiceTiers,
+  toModelOptionText,
+  translatedModelOptionLabel,
+} from "@/features/model-config/lib/modelOptions";
 
 export type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
 const MENU_ITEM_CLASS =
   "query-settings-menu-item tw:inline-flex tw:items-center tw:justify-between tw:gap-1.5 tw:text-[13px] tw:[&_.material-icon]:text-sm";
 const MODEL_MENU_ITEM_CLASS = "query-model-menu-item";
-
-function toText(value: unknown): string {
-  return String(value || "").trim();
-}
-
-function normalizeServiceTier(value: unknown): QueryServiceTier | undefined {
-  const text = toText(value).toUpperCase();
-  if (text === "STANDARD" || text === "DEFAULT" || text === "AUTO" || text === "") {
-    return "STANDARD";
-  }
-  if (text === "PRIORITY") return "FAST";
-  return text || undefined;
-}
-
-function defaultServiceTierOptions(): ServiceTierOption[] {
-  return [{ key: "STANDARD", label: "Standard" }];
-}
-
-function supportedServiceTiers(model: CoderModelOption | undefined): Set<QueryServiceTier> {
-  const supported = new Set<QueryServiceTier>(["STANDARD"]);
-  const tiers = Array.isArray(model?.serviceTiers) ? model.serviceTiers : [];
-  for (const tier of tiers) {
-    const normalized = normalizeServiceTier(tier);
-    if (normalized) supported.add(normalized);
-  }
-  return supported;
-}
-
-function translatedOptionLabel(
-  prefix: string,
-  option: { key: string; label: string },
-  t: (key: string) => string,
-): string {
-  const messageKey = `${prefix}.${option.key}`;
-  const translated = t(messageKey);
-  return translated === messageKey ? option.label : translated;
-}
 
 function itemLabel(content: React.ReactNode): React.ReactElement {
   return React.createElement("span", { className: MENU_ITEM_CLASS }, content);
@@ -61,7 +32,7 @@ function itemLabel(content: React.ReactNode): React.ReactElement {
 export function buildModelMenuItems({
   models,
   reasoningEfforts,
-  serviceTiers = defaultServiceTierOptions(),
+  serviceTiers = filterServiceTierOptions([]),
   modelOverride,
   selectedModelLabel,
   selectedModelKey,
@@ -83,27 +54,25 @@ export function buildModelMenuItems({
   status?: ModelOptionsStatus;
   t: (key: string) => string;
 }): MenuProps["items"] {
-  const modelStatusItem = models.length > 0
-    ? null
-    : {
-        key: `model-status:${modelsLoading ? "loading" : status}`,
-        disabled: true,
-        label: itemLabel(
-          t(
-            modelsLoading
-              ? "composer.query.model.loading"
-              : status === "failed"
-                ? "composer.query.model.loadFailed"
-                : "composer.query.model.empty",
-          ),
-        ),
-      };
+  const modelStatusItem = (() => {
+    if (models.length > 0) return null;
+    if (modelsLoading) {
+      return { key: "model-status:loading", disabled: true, label: itemLabel(t("composer.query.model.loading")) };
+    }
+    if (status === "failed") {
+      return { key: "model-status:failed", disabled: true, label: itemLabel(t("composer.query.model.loadFailed")) };
+    }
+    if (status === "empty") {
+      return { key: "model-status:empty", disabled: true, label: itemLabel(t("composer.query.model.empty")) };
+    }
+    return null;
+  })();
 
   const activeModelKey = selectedModelKey || modelOverride.key;
   const modelMenuChildren = [
     ...(modelStatusItem ? [modelStatusItem] : []),
     ...models.map((model) => {
-      const key = toText(model.key);
+      const key = toModelOptionText(model.key);
       const presentation = resolveModelPresentation(model);
       return {
         key: `model:${encodeURIComponent(key)}`,
@@ -119,7 +88,7 @@ export function buildModelMenuItems({
           React.createElement(
             "span",
             { className: "query-model-menu-copy" },
-            React.createElement("span", { className: "query-model-menu-name" }, toText(model.name)),
+            React.createElement("span", { className: "query-model-menu-name" }, getModelDisplayName(model)),
             React.createElement("span", { className: "query-model-menu-provider" }, presentation.provider),
           ),
         ),
@@ -127,9 +96,9 @@ export function buildModelMenuItems({
       };
     }),
   ];
-  const selectedModel = models.find((model) => toText(model.key) === toText(activeModelKey));
+  const selectedModel = models.find((model) => toModelOptionText(model.key) === toModelOptionText(activeModelKey));
   const availableServiceTiers = serviceTiers.filter((option) =>
-    supportedServiceTiers(selectedModel).has(normalizeServiceTier(option.key) || "STANDARD"),
+    supportedModelServiceTiers(selectedModel).has(normalizeModelServiceTier(option.key) || "STANDARD"),
   );
 
   return [
@@ -139,7 +108,7 @@ export function buildModelMenuItems({
       label: t("composer.query.reasoning.group"),
       children: reasoningEfforts.map((option) => ({
         key: `reasoning:${option.key}`,
-        label: itemLabel(translatedOptionLabel("composer.query.reasoning", option, t)),
+        label: itemLabel(translatedModelOptionLabel("composer.query.reasoning", option, t)),
         extra:
           (selectedReasoningEffort || modelOverride.reasoningEffort) === option.key
             ? React.createElement(MaterialIcon, { name: "check" })
@@ -152,7 +121,7 @@ export function buildModelMenuItems({
       label: t("composer.query.serviceTier.group"),
       children: availableServiceTiers.map((option) => ({
         key: `serviceTier:${option.key}`,
-        label: itemLabel(translatedOptionLabel("composer.query.serviceTier", option, t)),
+        label: itemLabel(translatedModelOptionLabel("composer.query.serviceTier", option, t)),
         extra:
           (selectedServiceTier || modelOverride.serviceTier || "STANDARD") === option.key
             ? React.createElement(MaterialIcon, { name: "check" })

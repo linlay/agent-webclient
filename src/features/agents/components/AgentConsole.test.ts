@@ -119,16 +119,11 @@ jest.mock("@/shared/ui/UiButton", () => ({
 
 import {
   AgentConsole,
-  AgentCreateModal,
   AGENT_CONSOLE_ADMIN_LIST_ROUTE,
   AGENT_FORM_SECTION_IDS,
-  agentImportConflict,
-  agentImportDiagnostics,
-  agentImportSuccessMessageKey,
   buildAdminToolOption,
   buildDefinition,
   buildAgentListSummary,
-  confirmAgentDraftDiscard,
   defaultReasoningEffort,
   initialAgentInteractionMode,
   firstAdminAgentDiagnosticMessage,
@@ -136,7 +131,6 @@ import {
   getActiveAgentSectionId,
   getModelReasoningEfforts,
   hasEditableAdminDefinition,
-  importAgentArchiveWithOverwrite,
   isInvalidAdminAgent,
   mergeAgentSkillOptions,
   privateSkillsFromDetail,
@@ -147,8 +141,16 @@ import {
   shouldShowAgentSectionNav,
   shouldStartAgentConsoleBootstrap,
   toolOptionLabel,
+} from "@/features/agents/components/AgentConsole";
+import { AgentCreateModal } from "@/features/agents/components/AgentCreateModal";
+import {
+  agentImportConflict,
+  agentImportDiagnostics,
+  agentImportSuccessMessageKey,
+  confirmAgentDraftDiscard,
+  importAgentArchiveWithOverwrite,
   validateAgentArchiveFile,
-} from "@/features/workers/components/AgentConsole";
+} from "@/features/agents/lib/agentImport";
 
 const { getAdminAgents, putAdminAgentOrder } = jest.requireMock(
   "@/shared/data",

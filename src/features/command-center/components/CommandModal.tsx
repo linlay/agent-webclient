@@ -5,7 +5,7 @@ import type { CommandOverlayState } from "@/features/command-center/lib/commandO
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
 import { AutomationHistoryConsole } from "@/features/automations/components/AutomationHistoryConsole";
-import { AgentConsole } from "@/features/workers/components/AgentConsole";
+import { AgentConsole } from "@/features/agents/components/AgentConsole";
 import { useI18n } from "@/shared/i18n";
 
 interface CommandModalProps {

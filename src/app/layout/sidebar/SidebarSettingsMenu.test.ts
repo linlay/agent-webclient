@@ -4,7 +4,7 @@ import {
   buildSidebarSettingsMenuSections,
   resolveSettingsSummaryBadges,
   SidebarSettingsMenu,
-} from "@/features/workers/components/SidebarSettingsMenu";
+} from "@/app/layout/sidebar/SidebarSettingsMenu";
 
 const globalWithFeatureFlags = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;

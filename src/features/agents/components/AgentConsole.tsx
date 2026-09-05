@@ -7,23 +7,6 @@ import React, {
 } from "react";
 import "./AgentConsole.module.css";
 import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
   Dropdown,
   Input,
   Modal,
@@ -77,9 +60,24 @@ import {
   agentOrderPayload,
   filterAgentsPreservingOrder,
   moveAgentForDrop,
-} from "@/features/workers/lib/agentOrdering";
+} from "@/features/agents/lib/agentOrdering";
 import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
-import { buildModelMenuItems } from "@/features/model-config/lib/modelMenuItems";
+import { buildModelMenuItems } from "@/features/model-config/components/ModelMenuPresenter";
+import { AgentCreateModal } from "@/features/agents/components/AgentCreateModal";
+import { AgentCapabilitiesEditor } from "@/features/agents/components/AgentCapabilitiesEditor";
+import { AgentEditor } from "@/features/agents/components/AgentEditor";
+import { AgentListPane } from "@/features/agents/components/AgentListPane";
+import { AgentSourceEditor } from "@/features/agents/components/AgentSourceEditor";
+import { useAgentConsoleRuntime } from "@/features/agents/hooks/useAgentConsoleRuntime";
+import {
+  agentImportSuccessMessageKey,
+  confirmAgentDraftDiscard,
+  formatAgentArchiveSize,
+} from "@/features/agents/lib/agentImport";
+import type {
+  AgentSkillOption,
+  AgentToolOption,
+} from "@/features/agents/lib/agentOptions";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -87,7 +85,6 @@ import { useI18n, type I18nContextValue } from "@/shared/i18n";
 
 type AgentFormMode = "create" | "edit";
 type AgentEditorMode = "structured" | "source";
-type AgentCreateMode = "zip" | "direct";
 type AgentInteractionMode = "view" | "edit";
 type IconKind = "none" | "builtin" | "image";
 type AgentToolFilter = "all" | "file" | "desktop" | "system";
@@ -133,21 +130,6 @@ type ChoicePresentation = {
   label: string;
   description: string;
 };
-export type AgentToolOption = {
-  key: string;
-  label: string;
-  sourceCategory: string;
-  kind: string;
-};
-
-type AgentSkillOption = {
-  key: string;
-  label: string;
-  description?: string;
-  source: "center" | "private";
-  overridesCenter?: boolean;
-};
-
 interface AgentFormState {
   key: string;
   name: string;
@@ -177,7 +159,7 @@ interface AgentFormState {
   agentsPrompt: string;
 }
 
-interface AgentConsoleProps {
+export interface AgentConsoleProps {
   selectedAgentKey?: string;
   onSelectAgentKey?: (agentKey: string) => void;
   onClearSelection?: () => void;
@@ -943,65 +925,11 @@ export function buildDefinition(
   return definition;
 }
 
-function normalizeModeKey(value: string): string {
-  const upper = value.trim().toUpperCase();
-  if (upper === "PLAN-EXECUTE" || upper === "PLAN_EXECUTE")
-    return "PLAN_EXECUTE";
-  if (upper === "ACP-PROXY" || upper === "ACP_PROXY" || upper === "PROXY")
-    return "PROXY";
-  return upper;
-}
-
-const MODE_LABEL: Record<string, string> = {
-  REACT: "REACT",
-  CODER: "CODER",
-  PLAN_EXECUTE: "P-E",
-  PROXY: "PROXY",
-};
 const AGENT_CONSOLE_CLASS_NAME = "agent-console tw:overflow-hidden";
 const AGENT_ERROR_CLASS_NAME =
   "agent-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
 const AGENT_BODY_CLASS_NAME =
   "agent-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[280px_minmax(0,1fr)] tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
-const AGENT_LIST_CLASS_NAME =
-  "agent-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
-const AGENT_TOOLBAR_CLASS_NAME =
-  "agent-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:max-[860px]:grid-cols-[1fr_auto_auto] tw:max-[860px]:[&_.ant-input-affix-wrapper]:col-span-full";
-const AGENT_COUNT_CLASS_NAME =
-  "agent-console-count tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-ink-muted";
-const AGENT_LIST_SCROLL_CLASS_NAME =
-  "agent-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto tw:pr-0.5";
-const AGENT_LIST_ITEMS_CLASS_NAME =
-  "agent-console-list-items tw:flex tw:flex-col tw:gap-1.5";
-const AGENT_LIST_ITEM_CLASS_NAME =
-  "agent-console-list-item tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-2.5 tw:rounded-control tw:border tw:border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:focus-visible:outline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[color-mix(in_srgb,var(--accent-electric)_68%,transparent)] tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:hover:bg-bg-hover tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:[&.is-active]:bg-bg-hover tw:[&.is-dragging]:opacity-[0.55] tw:[&.is-invalid]:[border-color:color-mix(in_srgb,var(--accent-danger)_34%,transparent)] tw:[&.is-invalid]:bg-[color-mix(in_srgb,var(--accent-danger)_7%,transparent)]";
-const AGENT_LIST_ITEM_ICON_COL_CLASS_NAME =
-  "agent-console-list-item-icon-col tw:flex tw:flex-none tw:flex-col tw:items-center tw:gap-[3px]";
-const AGENT_LIST_ITEM_ICON_CLASS_NAME =
-  "agent-console-list-item-icon tw:inline-flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:overflow-hidden tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-soft)_22%,var(--bg-input))] tw:text-accent-electric tw:[&.is-drag-handle]:cursor-grab tw:[&.is-drag-handle:active]:cursor-grabbing";
-const AGENT_LIST_ITEM_SVG_CLASS_NAME = "agent-console-list-item-svg tw:block";
-const AGENT_LIST_ITEM_MAIN_CLASS_NAME =
-  "agent-console-list-item-main tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-1";
-const AGENT_LIST_ITEM_ROW_CLASS_NAME =
-  "agent-console-list-item-row tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap";
-const AGENT_LIST_ITEM_HEAD_CLASS_NAME = `${AGENT_LIST_ITEM_ROW_CLASS_NAME} agent-console-list-item-head tw:text-ink-1 tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:whitespace-nowrap tw:[&>strong]:text-[13px]`;
-const AGENT_LIST_ITEM_HEAD_META_CLASS_NAME =
-  "agent-console-list-item-head-meta tw:inline-flex tw:min-w-0 tw:items-center tw:justify-end tw:gap-1.5 tw:[&>span]:flex-[0_1_auto] tw:[&>span]:text-xs tw:[&>span]:font-semibold tw:[&>span]:text-ink-muted";
-const AGENT_STATUS_INVALID_CLASS_NAME =
-  "agent-console-status is-invalid tw:flex-none tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-danger)_14%,var(--bg-input))] tw:px-1.5 tw:py-0.5 tw:text-[10px] tw:font-bold tw:leading-[1.2] tw:text-accent-danger";
-const AGENT_LIST_ITEM_META_CLASS_NAME = `${AGENT_LIST_ITEM_ROW_CLASS_NAME} agent-console-list-item-meta tw:text-[11px] tw:text-ink-muted tw:[&>span]:text-[11px] tw:[&>span]:font-medium tw:[&>span]:text-ink-muted`;
-const AGENT_LIST_ITEM_COUNTS_CLASS_NAME =
-  "agent-console-list-item-counts tw:inline-flex tw:items-center tw:gap-0.5";
-const AGENT_LIST_ITEM_COUNT_CLASS_NAME =
-  "agent-console-list-item-count tw:inline-flex tw:items-center tw:gap-px tw:text-[9px]";
-const AGENT_LIST_ITEM_COUNT_ICON_CLASS_NAME =
-  "agent-console-list-item-count-icon tw:h-[9px] tw:w-[9px]";
-const AGENT_LIST_ITEM_COUNT_SEP_CLASS_NAME =
-  "agent-console-list-item-count-sep tw:text-[8px] tw:text-ink-muted tw:opacity-60";
-const AGENT_LIST_ITEM_MODE_BADGE_CLASS_NAME =
-  "agent-console-list-item-mode-badge tw:inline-flex tw:items-center tw:justify-center tw:gap-0.5 tw:text-ink-muted tw:[&_span]:text-[10px] tw:[&_span]:font-semibold tw:[&_span]:tracking-[0.04em] tw:[&_svg]:h-2 tw:[&_svg]:w-2";
-const AGENT_LIST_ITEM_DIAGNOSTIC_CLASS_NAME =
-  "agent-console-list-item-diagnostic tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:font-medium tw:text-accent-danger";
 const AGENT_DETAIL_CLASS_NAME =
   "agent-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
 const AGENT_DETAIL_ADMIN_META_CLASS_NAME =
@@ -1083,513 +1011,6 @@ const AgentFormSection: React.FC<AgentFormSectionProps> = ({
   );
 };
 
-const ModeBadge: React.FC<{ mode: string }> = ({ mode }) => {
-  const normalized = normalizeModeKey(mode);
-  const label = MODE_LABEL[normalized];
-  if (!label) return null;
-  return (
-    <span className={AGENT_LIST_ITEM_MODE_BADGE_CLASS_NAME}>
-      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <circle cx="12" cy="12" r="5" />
-      </svg>
-      <span>{label}</span>
-    </span>
-  );
-};
-
-interface SortableAgentListItemProps {
-  agent: Agent;
-  agentKey: string;
-  diagnosticMessage: string;
-  disabled: boolean;
-  isActive: boolean;
-  isDragging: boolean;
-  isInvalid: boolean;
-  name: string;
-  sortableId: string;
-  summary: ReturnType<typeof buildAgentListSummary>;
-  t: Translate;
-  onSelect: (agentKey: string) => void;
-}
-
-const SortableAgentListItem: React.FC<SortableAgentListItemProps> = ({
-  agent,
-  agentKey,
-  diagnosticMessage,
-  disabled,
-  isActive,
-  isDragging,
-  isInvalid,
-  name,
-  sortableId,
-  summary,
-  t,
-  onSelect,
-}) => {
-  const {
-    attributes,
-    listeners,
-    setActivatorNodeRef,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({
-    id: sortableId,
-    disabled: disabled || !agentKey,
-  });
-  const isCoderMode = summary.mode.toUpperCase() === "CODER";
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      role="button"
-      tabIndex={0}
-      className={`${AGENT_LIST_ITEM_CLASS_NAME} ${isActive ? "is-active" : ""} ${isDragging ? "is-dragging" : ""} ${isInvalid ? "is-invalid" : ""}`}
-      onClick={() => onSelect(agentKey)}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect(agentKey);
-        }
-      }}
-    >
-      <span className={AGENT_LIST_ITEM_ICON_COL_CLASS_NAME}>
-        <span
-          ref={setActivatorNodeRef}
-          className={`${AGENT_LIST_ITEM_ICON_CLASS_NAME} ${disabled || !agentKey ? "" : "is-drag-handle"}`}
-          aria-label={t("agentConsole.list.dragHandle", { name })}
-          {...attributes}
-          {...listeners}
-        >
-          <AgentIcon
-            icon={agent.icon}
-            type="agent"
-            props={{
-              icon: {
-                width: 28,
-                height: 28,
-                className: AGENT_LIST_ITEM_SVG_CLASS_NAME,
-              },
-              avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
-            }}
-          />
-        </span>
-      </span>
-      <span className={AGENT_LIST_ITEM_MAIN_CLASS_NAME}>
-        <span className={AGENT_LIST_ITEM_HEAD_CLASS_NAME}>
-          <strong>{name}</strong>
-          {(isInvalid || !isCoderMode) && (
-            <span className={AGENT_LIST_ITEM_HEAD_META_CLASS_NAME}>
-              {isInvalid && (
-                <span className={AGENT_STATUS_INVALID_CLASS_NAME}>
-                  {t("agentConsole.status.invalid")}
-                </span>
-              )}
-              {!isCoderMode && <span>{agentKey || "--"}</span>}
-            </span>
-          )}
-        </span>
-        <span className={AGENT_LIST_ITEM_META_CLASS_NAME}>
-          <span>{summary.modelKey}</span>
-          <span className={AGENT_LIST_ITEM_COUNTS_CLASS_NAME}>
-            <span className={AGENT_LIST_ITEM_COUNT_CLASS_NAME}>
-              <svg
-                className={AGENT_LIST_ITEM_COUNT_ICON_CLASS_NAME}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-              </svg>
-              {summary.toolsCount}
-            </span>
-            <span className={AGENT_LIST_ITEM_COUNT_SEP_CLASS_NAME}>·</span>
-            <span className={AGENT_LIST_ITEM_COUNT_CLASS_NAME}>
-              <svg
-                className={AGENT_LIST_ITEM_COUNT_ICON_CLASS_NAME}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-              </svg>
-              {summary.skillsCount}
-            </span>
-            <span className={AGENT_LIST_ITEM_COUNT_SEP_CLASS_NAME}>·</span>
-            <ModeBadge mode={summary.mode} />
-          </span>
-        </span>
-        {isInvalid && diagnosticMessage && (
-          <span className={AGENT_LIST_ITEM_DIAGNOSTIC_CLASS_NAME}>
-            {diagnosticMessage}
-          </span>
-        )}
-      </span>
-    </div>
-  );
-};
-
-export const ADMIN_AGENT_IMPORT_MAX_BYTES = 32 * 1024 * 1024;
-
-export type AgentArchiveFileValidationCode = "" | "type" | "empty" | "size";
-
-export interface AgentImportConflict {
-  agentKey: string;
-  existingName: string;
-}
-
-export function validateAgentArchiveFile(
-  file: Pick<File, "name" | "size"> | null,
-): AgentArchiveFileValidationCode {
-  if (!file || !file.name.toLowerCase().endsWith(".zip")) return "type";
-  if (file.size <= 0) return "empty";
-  if (file.size > ADMIN_AGENT_IMPORT_MAX_BYTES) return "size";
-  return "";
-}
-
-export function agentImportDiagnostics(
-  error: unknown,
-): AdminAgentDiagnostic[] {
-  const data = (error as { data?: unknown } | null)?.data;
-  if (!data || typeof data !== "object") return [];
-  const errorData = (data as { error?: unknown }).error;
-  if (!errorData || typeof errorData !== "object") return [];
-  const diagnostics = (errorData as { diagnostics?: unknown }).diagnostics;
-  if (!Array.isArray(diagnostics)) return [];
-  return diagnostics.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const diagnostic = item as Record<string, unknown>;
-    const message = String(diagnostic.message || "").trim();
-    if (!message) return [];
-    return [
-      {
-        severity: String(diagnostic.severity || "").trim() || "error",
-        code: String(diagnostic.code || "").trim() || "invalid_archive",
-        message,
-        sourcePath: String(diagnostic.sourcePath || "").trim() || undefined,
-      },
-    ];
-  });
-}
-
-export function agentImportConflict(error: unknown): AgentImportConflict | null {
-  if ((error as { status?: unknown } | null)?.status !== 409) return null;
-  const data = (error as { data?: unknown } | null)?.data;
-  if (!data || typeof data !== "object") return null;
-  const errorData = (data as { error?: unknown }).error;
-  if (!errorData || typeof errorData !== "object") return null;
-  const conflict = errorData as Record<string, unknown>;
-  if (conflict.overwriteRequired !== true) return null;
-  const agentKey = String(conflict.agentKey || "").trim();
-  if (!agentKey) return null;
-  return {
-    agentKey,
-    existingName: String(conflict.existingName || "").trim(),
-  };
-}
-
-export function confirmAgentDraftDiscard(
-  hasUnsavedChanges: boolean,
-  prompt: string,
-  confirm: (message: string) => boolean = window.confirm,
-): boolean {
-  return !hasUnsavedChanges || confirm(prompt);
-}
-
-export function agentImportSuccessMessageKey(status: string): string {
-  return status === "invalid"
-    ? "agentConsole.import.invalid"
-    : "agentConsole.import.success";
-}
-
-function formatAgentArchiveSize(size: number): string {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KiB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MiB`;
-}
-
-function confirmAgentImportOverwrite(
-  conflict: AgentImportConflict,
-  t: Translate,
-): Promise<boolean> {
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (value: boolean) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
-    Modal.confirm({
-      title: t("agentConsole.import.overwrite.title"),
-      content: t("agentConsole.import.overwrite.description", {
-        name: conflict.existingName || conflict.agentKey,
-        key: conflict.agentKey,
-      }),
-      okText: t("agentConsole.import.overwrite.confirm"),
-      cancelText: t("agentConsole.import.overwrite.cancel"),
-      okButtonProps: { danger: true },
-      onOk: () => finish(true),
-      onCancel: () => finish(false),
-      afterClose: () => finish(false),
-    });
-  });
-}
-
-export async function importAgentArchiveWithOverwrite(
-  file: File,
-  importArchive: (
-    file: File,
-    overwrite: boolean,
-  ) => Promise<AdminAgentDetailResponse>,
-  confirmOverwrite: (conflict: AgentImportConflict) => Promise<boolean>,
-): Promise<AdminAgentDetailResponse | null> {
-  try {
-    return await importArchive(file, false);
-  } catch (error) {
-    const conflict = agentImportConflict(error);
-    if (!conflict) throw error;
-    if (!(await confirmOverwrite(conflict))) return null;
-    return importArchive(file, true);
-  }
-}
-
-interface AgentCreateModalProps {
-  open: boolean;
-  t: Translate;
-  onCancel: () => void;
-  onDirectCreate: () => Promise<boolean> | boolean;
-  onBeforeZipImport: () => boolean;
-  onZipImport: (
-    file: File,
-    overwrite: boolean,
-  ) => Promise<AdminAgentDetailResponse>;
-  onImported: (detail: AdminAgentDetailResponse) => Promise<void> | void;
-}
-
-export const AgentCreateModal: React.FC<AgentCreateModalProps> = ({
-  open,
-  t,
-  onCancel,
-  onDirectCreate,
-  onBeforeZipImport,
-  onZipImport,
-  onImported,
-}) => {
-  const [mode, setMode] = useState<AgentCreateMode>("zip");
-  const [zipFile, setZipFile] = useState<File | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [diagnostics, setDiagnostics] = useState<AdminAgentDiagnostic[]>([]);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setMode("zip");
-    setZipFile(null);
-    setDragActive(false);
-    setSubmitting(false);
-    setDiagnostics([]);
-  }, [open]);
-
-  const acceptArchive = (file: File | null) => {
-    setDiagnostics([]);
-    const validation = validateAgentArchiveFile(file);
-    if (validation) {
-      setZipFile(null);
-      message.error(t(`agentConsole.import.error.${validation}`));
-      return;
-    }
-    setZipFile(file as File);
-  };
-
-  const showImportError = (error: unknown) => {
-    setDiagnostics(agentImportDiagnostics(error));
-    message.error(error instanceof Error ? error.message : String(error));
-  };
-
-  const handleSubmit = async () => {
-    if (submitting) return;
-    if (mode === "direct") {
-      setSubmitting(true);
-      try {
-        await onDirectCreate();
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
-    if (!zipFile || !onBeforeZipImport()) return;
-
-    setDiagnostics([]);
-    setSubmitting(true);
-    try {
-      const imported = await importAgentArchiveWithOverwrite(
-        zipFile,
-        onZipImport,
-        (conflict) => confirmAgentImportOverwrite(conflict, t),
-      );
-      if (!imported) return;
-      await onImported(imported);
-    } catch (error) {
-      showImportError(error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const zipContent = (
-    <div className="tw:flex tw:flex-col tw:gap-4 tw:pt-1">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".zip,application/zip"
-        className="tw:hidden"
-        aria-label={t("agentConsole.import.select")}
-        onChange={(event) => {
-          acceptArchive(event.target.files?.[0] || null);
-          event.currentTarget.value = "";
-        }}
-      />
-      <button
-        type="button"
-        className={`tw:flex tw:min-h-36 tw:w-full tw:cursor-pointer tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:rounded-control tw:border tw:border-dashed tw:p-5 tw:text-center tw:transition-colors tw:focus-visible:outline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-accent tw:disabled:cursor-not-allowed ${
-          dragActive
-            ? "tw:border-accent tw:bg-accent-soft"
-            : "tw:border-line-soft tw:bg-bg-subtle"
-        }`}
-        onClick={() => fileInputRef.current?.click()}
-        disabled={submitting}
-        onDragEnter={(event) => {
-          event.preventDefault();
-          setDragActive(true);
-        }}
-        onDragOver={(event) => event.preventDefault()}
-        onDragLeave={(event) => {
-          event.preventDefault();
-          setDragActive(false);
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragActive(false);
-          acceptArchive(event.dataTransfer.files?.[0] || null);
-        }}
-      >
-        <MaterialIcon name="folder_zip" />
-        {zipFile ? (
-          <>
-            <strong className="tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-sm tw:text-ink-1">
-              {zipFile.name}
-            </strong>
-            <span className="tw:text-xs tw:text-ink-muted">
-              {formatAgentArchiveSize(zipFile.size)}
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="tw:text-sm tw:text-ink-1">
-              {t("agentConsole.import.drop")}
-            </span>
-            <span className="tw:flex tw:max-w-lg tw:flex-col tw:text-xs tw:leading-5 tw:text-ink-muted">
-              {t("agentConsole.import.description")
-                .split("；")
-                .map((line, index) => (
-                  <span key={index}>
-                    {line}
-                  </span>
-                ))}
-            </span>
-          </>
-        )}
-      </button>
-      <div className="tw:text-xs tw:leading-5 tw:text-warning">
-        {t("agentConsole.import.trustWarning")}
-      </div>
-      {submitting && (
-        <div role="status" aria-live="polite" className="tw:text-xs tw:text-ink-muted">
-          {t("agentConsole.import.uploading")}
-        </div>
-      )}
-    </div>
-  );
-
-  const directContent = (
-    <div className="tw:flex tw:min-h-36 tw:flex-col tw:items-center tw:justify-center tw:gap-3 tw:rounded-control tw:border tw:border-line-soft tw:bg-bg-subtle tw:p-6 tw:text-center">
-      <MaterialIcon name="add" />
-      <div className="tw:text-sm tw:font-medium tw:text-ink-1">
-        {t("agentConsole.create.direct.title")}
-      </div>
-      <div className="tw:max-w-md tw:text-xs tw:leading-5 tw:text-ink-muted">
-        {t("agentConsole.create.direct.description")}
-      </div>
-    </div>
-  );
-
-  return (
-    <Modal
-      open={open}
-      title={t("agentConsole.create.title")}
-      width={560}
-      destroyOnClose
-      maskClosable={!submitting}
-      keyboard={!submitting}
-      okText={t(
-        mode === "direct"
-          ? "agentConsole.create.direct.submit"
-          : "agentConsole.import.submit",
-      )}
-      cancelText={t("agentConsole.import.cancel")}
-      confirmLoading={submitting}
-      okButtonProps={{ disabled: mode === "zip" && !zipFile }}
-      onCancel={() => {
-        if (!submitting) onCancel();
-      }}
-      onOk={() => void handleSubmit()}
-    >
-      <Tabs
-        activeKey={mode}
-        onChange={(key) => {
-          setMode(key as AgentCreateMode);
-          setDiagnostics([]);
-        }}
-        items={[
-          {
-            key: "zip",
-            label: t("agentConsole.create.mode.zip"),
-            children: zipContent,
-          },
-          {
-            key: "direct",
-            label: t("agentConsole.create.mode.direct"),
-            children: directContent,
-          },
-        ]}
-      />
-      {diagnostics.length > 0 && (
-        <ul className="tw:mt-3 tw:flex tw:list-disc tw:flex-col tw:gap-1 tw:pl-5 tw:text-xs tw:text-danger">
-          {diagnostics.map((diagnostic, index) => (
-            <li key={`${diagnostic.code || "diagnostic"}-${diagnostic.sourcePath || index}`}>
-              {diagnostic.sourcePath ? `${diagnostic.sourcePath}: ` : ""}
-              {diagnostic.message}
-            </li>
-          ))}
-        </ul>
-      )}
-    </Modal>
-  );
-};
-
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
@@ -1649,35 +1070,22 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [activeAgentSectionId, setActiveAgentSectionId] =
     useState<AgentFormSectionId>(AGENT_FORM_SECTION_IDS[0]);
   const didInitialSelectRef = useRef(false);
-  const didBootstrapAgentsRef = useRef(false);
-  const didBootstrapOptionsRef = useRef(false);
-  const listLoadSeqRef = useRef(0);
-  const optionsLoadSeqRef = useRef(0);
-  const sourceLoadSeqRef = useRef(0);
+  const {
+    didBootstrapAgentsRef,
+    didBootstrapOptionsRef,
+    listLoadSeqRef,
+    optionsLoadSeqRef,
+    sourceLoadSeqRef,
+  } = useAgentConsoleRuntime();
   const selectedAgentKeyRef = useRef(selectedAgentKey);
   const loadedDetailKeyRef = useRef("");
   const detailScrollRef = useRef<HTMLDivElement>(null);
   const sectionNavRef = useRef<HTMLElement>(null);
   const privateSkillFileInputRef = useRef<HTMLInputElement>(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
   const filteredAgents = useMemo(() => {
     const agents = Array.isArray(localAgents) ? localAgents : [];
     return filterAgentsPreservingOrder(agents, searchText);
   }, [searchText, localAgents]);
-  const filteredAgentSortableIds = useMemo(
-    () =>
-      filteredAgents.map(
-        (agent, index) => toText(agent.key) || `agent-console-empty-${index}`,
-      ),
-    [filteredAgents],
-  );
-
   const modeOptions = useMemo(() => {
     const availableModes = new Map(
       (editorOptions?.modes || []).map((item) => [
@@ -2172,15 +1580,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     }
   }, []);
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setDraggingAgentKey(String(event.active.id));
-  }, []);
-
-  const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
-      const sourceKey = String(event.active.id);
-      const targetKey = event.over ? String(event.over.id) : "";
-      setDraggingAgentKey("");
+  const handleMoveAgent = useCallback(
+    async (sourceKey: string, targetKey: string) => {
       if (!sourceKey || !targetKey || sourceKey === targetKey || savingOrder)
         return;
       const nextAgents = moveAgentForDrop(localAgents, sourceKey, targetKey);
@@ -2800,108 +2201,27 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       )}
 
       <div className={AGENT_BODY_CLASS_NAME}>
-        <div className={AGENT_LIST_CLASS_NAME}>
-          <div className={AGENT_TOOLBAR_CLASS_NAME}>
-            <Input
-              prefix={
-                <MaterialIcon
-                  name="search"
-                  style={{ color: "var(--text-muted)" }}
-                />
-              }
-              variant="filled"
-              placeholder={t("agentConsole.searchPlaceholder")}
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-            />
-            <UiButton
-              size="sm"
-              variant="ghost"
-              iconOnly
-              onClick={() => loadAgents(effectiveSelectedKey)}
-              disabled={savingForm || deleting}
-              loading={loadingList}
-              aria-label={t("agentConsole.action.refresh")}
-            >
-              <MaterialIcon name="refresh" />
-            </UiButton>
-            <UiButton
-              size="sm"
-              variant="primary"
-              iconOnly
-              aria-label={t("agentConsole.action.new")}
-              onClick={openCreateModal}
-            >
-              <MaterialIcon name="add" />
-            </UiButton>
-          </div>
-          <div className={AGENT_COUNT_CLASS_NAME}>
-            <span>
-              {t("agentConsole.list.count", { count: localAgents.length })}
-            </span>
-            {savingOrder && <span>{t("agentConsole.list.savingOrder")}</span>}
-          </div>
-          <div className={AGENT_LIST_SCROLL_CLASS_NAME}>
-            <Spin spinning={loadingList || savingOrder}>
-              {filteredAgents.length === 0 ? (
-                <div className="command-empty-state">
-                  {t("agentConsole.empty")}
-                  <UiButton size="sm" variant="primary" onClick={openCreateModal}>
-                    {t("agentConsole.action.create")}
-                  </UiButton>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragStart={handleDragStart}
-                  onDragCancel={() => setDraggingAgentKey("")}
-                  onDragEnd={(event) => {
-                    void handleDragEnd(event);
-                  }}
-                >
-                  <SortableContext
-                    items={filteredAgentSortableIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className={AGENT_LIST_ITEMS_CLASS_NAME}>
-                      {filteredAgents.map((agent, index) => {
-                        const agentKey = toText(agent.key);
-                        const name = toText(agent.name) || agentKey;
-                        const summary = buildAgentListSummary(
-                          agent,
-                          agentKey === form.key ? form : undefined,
-                        );
-                        const sortableId =
-                          agentKey || `agent-console-empty-${index}`;
-                        const isInvalid = isInvalidAdminAgent(agent);
-                        const diagnosticMessage =
-                          firstAdminAgentDiagnosticMessage(agent);
-                        return (
-                          <SortableAgentListItem
-                            key={sortableId}
-                            agent={agent}
-                            agentKey={agentKey}
-                            diagnosticMessage={diagnosticMessage}
-                            disabled={savingOrder}
-                            isActive={agentKey === effectiveSelectedKey}
-                            isDragging={agentKey === draggingAgentKey}
-                            isInvalid={isInvalid}
-                            name={name}
-                            sortableId={sortableId}
-                            summary={summary}
-                            t={t}
-                            onSelect={selectAgent}
-                          />
-                        );
-                      })}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              )}
-            </Spin>
-          </div>
-        </div>
+        <AgentListPane
+          agents={filteredAgents}
+          selectedAgentKey={effectiveSelectedKey}
+          draggingAgentKey={draggingAgentKey}
+          loading={loadingList || savingForm || deleting}
+          savingOrder={savingOrder}
+          searchText={searchText}
+          t={t}
+          getSummary={(agent) => {
+            const agentKey = toText(agent.key);
+            return buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
+          }}
+          getDiagnostic={firstAdminAgentDiagnosticMessage}
+          isInvalid={isInvalidAdminAgent}
+          onSearchTextChange={setSearchText}
+          onRefresh={() => void loadAgents(effectiveSelectedKey)}
+          onCreate={openCreateModal}
+          onSelect={selectAgent}
+          onDraggingAgentKeyChange={setDraggingAgentKey}
+          onMove={handleMoveAgent}
+        />
 
         <div
           ref={detailScrollRef}
@@ -3065,39 +2385,20 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 
             {editorMode === "source" ? (
               sourceLoadedKey === form.key ? (
-                <div className="agent-source-workspace">
-                  <div className="field-group agent-source-field">
-                    <label htmlFor="agent-source-editor">
-                      {t("agentConsole.field.sourceFile")}
-                    </label>
-                    <Input.TextArea
-                      id="agent-source-editor"
-                      className={AGENT_SOURCE_EDITOR_CLASS_NAME}
-                      value={sourceDraft}
-                      onChange={(event) => {
-                        setSourceDraft(event.target.value);
-                        setSourceDirty(true);
-                        setFormError("");
-                      }}
-                    />
-                  </div>
-                  {formError && (
-                    <div className="settings-error">{formError}</div>
-                  )}
-                  {sourceDirty && (
-                    <div className={AGENT_SAVE_ACTIONS_CLASS_NAME}>
-                      <span className={AGENT_DIRTY_CLASS_NAME}>
-                        {t("agentConsole.message.unsaved")}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <AgentSourceEditor
+                  value={sourceDraft}
+                  dirty={sourceDirty}
+                  error={formError}
+                  t={t}
+                  onChange={(value) => {
+                    setSourceDraft(value);
+                    setSourceDirty(true);
+                    setFormError("");
+                  }}
+                />
               ) : null
             ) : canEditStructuredAgent ? (
-              <div
-                className={`agent-editor-fieldset ${isReadOnly ? "is-readonly" : ""}`}
-                aria-readonly={isReadOnly}
-              >
+              <AgentEditor readOnly={isReadOnly}>
                 <AgentFormSection
                   id={AGENT_FORM_SECTION_IDS[0]}
                   icon="person"
@@ -3477,154 +2778,43 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                   icon="hub"
                   title={t("agentConsole.section.capabilities")}
                 >
-                  <div className="agent-context-capabilities">
-                    <section className="agent-context-block" aria-labelledby="agent-context-heading">
-                      <h4 id="agent-context-heading">{t("agentConsole.context.title")}</h4>
-                      <div className="agent-context-tag-list" role="group" aria-labelledby="agent-context-heading">
-                        {contextTagOptions.map((option) => {
-                          const presentation = contextOptionPresentation(option.value);
-                          const checked = form.contextTags.includes(option.value);
-                          return (
-                            <label key={option.value} className={`agent-context-tag ${checked ? "is-selected" : ""}`} title={t(presentation.descriptionKey)}>
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => updateForm({
-                                  contextTags: checked
-                                    ? form.contextTags.filter((key) => key !== option.value)
-                                    : [...form.contextTags, option.value],
-                                })}
-                              />
-                              <MaterialIcon name={presentation.icon} />
-                              <span>{option.label}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </section>
-
-                    <section className="agent-context-block" aria-labelledby="agent-tools-heading">
-                      <div className="agent-context-block-heading">
-                        <h4 id="agent-tools-heading">{t("agentConsole.field.tools")}</h4>
-                        {!isReadOnly && (
-                          <Popover
-                            content={
-                              <div id="agent-tools-manager" className="agent-capability-manager agent-capability-popover agent-capability-popover--compact">
-                                <div className="agent-tool-list-toolbar">
-                                  <Input aria-label={t("agentConsole.context.searchTools")} prefix={<MaterialIcon name="search" />} placeholder={t("agentConsole.context.searchTools")} value={toolSearchText} onChange={(event) => setToolSearchText(event.target.value)} />
-                                  <div className="agent-tool-filter" role="group" aria-label={t("agentConsole.context.filterTools")}>
-                                    {(["all", "file", "desktop", "system"] as const).map((filter) => (
-                                      <button key={filter} type="button" className={toolFilter === filter ? "is-active" : ""} onClick={() => setToolFilter(filter)}>{t(`agentConsole.context.toolFilter.${filter}`)}</button>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="agent-selectable-list agent-capability-scroll" role="group" aria-label={t("agentConsole.field.tools")}>
-                                  {filteredToolOptions.map((tool) => {
-                                    const toolCategory = toolFilterForOption(tool);
-                                    return (
-                                      <label key={tool.key} className="agent-selectable-row">
-                                        <input type="checkbox" checked={form.tools.includes(tool.key)} onChange={(event) => updateForm({ tools: event.target.checked ? [...form.tools, tool.key] : form.tools.filter((key) => key !== tool.key) })} />
-                                        <MaterialIcon name={toolCategory === "file" ? "description" : toolCategory === "desktop" ? "terminal" : "settings"} />
-                                        <span className="agent-selectable-row-copy"><strong>{tool.label}</strong>{tool.label !== tool.key && <span>· {tool.key}</span>}</span>
-                                        <span className="agent-selectable-row-meta">{toolSourceLabel(tool.sourceCategory, t) || tool.kind}</span>
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            }
-                            open={toolsExpanded}
-                            onOpenChange={setToolsExpanded}
-                            placement="bottomRight"
-                            trigger={["click"]}
-                          >
-                            <UiButton size="sm" variant="ghost" aria-expanded={toolsExpanded} aria-controls="agent-tools-manager">
-                              <MaterialIcon name="tune" />
-                              {t("agentConsole.context.manageTools")}
-                            </UiButton>
-                          </Popover>
-                        )}
-                      </div>
-                      <div className="agent-tool-tag-list" aria-live="polite">
-                        <strong>{t("agentConsole.context.selectedCount", { count: form.tools.length })}</strong>
-                        {selectedTools.map((tool) => (
-                          <span key={tool.key} className="agent-tool-tag">
-                            <MaterialIcon name={toolFilterForOption(tool) === "file" ? "description" : toolFilterForOption(tool) === "desktop" ? "terminal" : "settings"} />
-                            <span>{tool.label}</span>
-                            {!isReadOnly && (
-                              <button type="button" aria-label={t("agentConsole.prompt.removeItem", { index: tool.label })} onClick={() => updateForm({ tools: form.tools.filter((key) => key !== tool.key) })}>
-                                <MaterialIcon name="close" />
-                              </button>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </section>
-
-                    <section className="agent-context-block" aria-labelledby="agent-skills-heading">
-                      <div className="agent-context-block-heading">
-                        <h4 id="agent-skills-heading">{t("agentConsole.field.skills")}</h4>
-                        {!isReadOnly && (
-                          <span className="agent-context-heading-actions">
-                            <UiButton size="sm" variant="ghost" onClick={openPrivateSkillImport} disabled={!canImportPrivateSkill} title={canImportPrivateSkill ? t("agentConsole.privateSkill.import.title") : t("agentConsole.privateSkill.import.disabled")}><MaterialIcon name="folder_zip" />{t("agentConsole.privateSkill.import.action")}</UiButton>
-                            <Popover
-                              content={
-                                <div id="agent-skills-manager" className="agent-capability-manager agent-capability-popover agent-capability-popover--compact agent-skill-manager-popover">
-                                  <Input className="agent-skill-search" aria-label={t("agentConsole.context.searchSkills")} prefix={<MaterialIcon name="search" />} placeholder={t("agentConsole.context.searchSkills")} value={skillSearchText} onChange={(event) => setSkillSearchText(event.target.value)} />
-                                  <div className="agent-selectable-list agent-capability-scroll agent-skill-single-line-list" role="group" aria-label={t("agentConsole.field.skills")}>
-                                    {filteredSkillOptions.map((skill) => {
-                                      const description = skill.description || (skill.source === "private" ? t("agentConsole.privateSkill.source.private") : t("agentConsole.privateSkill.source.center"));
-                                      return (
-                                        <label key={skill.key} className="agent-selectable-row agent-skill-row agent-skill-row--single-line">
-                                          <input type="checkbox" checked={form.skills.includes(skill.key)} onChange={(event) => updateForm({ skills: event.target.checked ? [...form.skills, skill.key] : form.skills.filter((key) => key !== skill.key) })} />
-                                          <MaterialIcon name="skills" />
-                                          <span className="agent-selectable-row-copy">
-                                            <strong className="agent-skill-title">{skill.label}</strong>
-                                            <Tooltip title={description} placement="right" mouseEnterDelay={0.35} overlayClassName="agent-skill-description-tooltip">
-                                              <span className="agent-skill-description-help" tabIndex={0} aria-label={description}>
-                                                <MaterialIcon name="info" />
-                                              </span>
-                                            </Tooltip>
-                                          </span>
-                                        </label>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              }
-                              open={skillsExpanded}
-                              onOpenChange={setSkillsExpanded}
-                              placement="bottomRight"
-                              trigger={["click"]}
-                            >
-                              <UiButton size="sm" variant="ghost" aria-expanded={skillsExpanded} aria-controls="agent-skills-manager"><MaterialIcon name="tune" />{t("agentConsole.context.manageSkills")}</UiButton>
-                            </Popover>
-                          </span>
-                        )}
-                      </div>
-                      <div className="agent-selected-skill-list" aria-live="polite">
-                        <strong>{t("agentConsole.context.selectedCount", { count: form.skills.length })}</strong>
-                        {selectedSkills.map((skill) => {
-                          const description = skill.description || (skill.source === "private" ? t("agentConsole.privateSkill.source.private") : t("agentConsole.privateSkill.source.center"));
-                          return (
-                            <div key={skill.key} className="agent-selected-skill-row">
-                              <MaterialIcon name="skills" />
-                              <span className="agent-selected-skill-copy">
-                                <strong className="agent-skill-title">{skill.label}</strong>
-                                <span className="agent-skill-inline-separator" aria-hidden="true">·</span>
-                                <span className="agent-skill-description" title={description}>{description}</span>
-                              </span>
-                              {!isReadOnly && (
-                                <button type="button" aria-label={t("agentConsole.prompt.removeItem", { index: skill.label })} onClick={() => updateForm({ skills: form.skills.filter((key) => key !== skill.key) })}>
-                                  <MaterialIcon name="close" />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  </div>
+                  <AgentCapabilitiesEditor
+                    readOnly={isReadOnly}
+                    contextOptions={contextTagOptions.map((option) => {
+                      const presentation = contextOptionPresentation(option.value);
+                      return {
+                        value: option.value,
+                        label: option.label,
+                        icon: presentation.icon,
+                        description: t(presentation.descriptionKey),
+                      };
+                    })}
+                    contextTags={form.contextTags}
+                    tools={form.tools}
+                    skills={form.skills}
+                    filteredTools={filteredToolOptions}
+                    selectedTools={selectedTools}
+                    filteredSkills={filteredSkillOptions}
+                    selectedSkills={selectedSkills}
+                    toolFilter={toolFilter}
+                    toolSearchText={toolSearchText}
+                    skillSearchText={skillSearchText}
+                    toolsExpanded={toolsExpanded}
+                    skillsExpanded={skillsExpanded}
+                    canImportPrivateSkill={canImportPrivateSkill}
+                    t={t}
+                    getToolCategory={toolFilterForOption}
+                    getToolSourceLabel={(tool) => toolSourceLabel(tool.sourceCategory, t) || tool.kind}
+                    onContextTagsChange={(contextTags) => updateForm({ contextTags })}
+                    onToolsChange={(tools) => updateForm({ tools })}
+                    onSkillsChange={(skills) => updateForm({ skills })}
+                    onToolFilterChange={setToolFilter}
+                    onToolSearchTextChange={setToolSearchText}
+                    onSkillSearchTextChange={setSkillSearchText}
+                    onToolsExpandedChange={setToolsExpanded}
+                    onSkillsExpandedChange={setSkillsExpanded}
+                    onImportPrivateSkill={openPrivateSkillImport}
+                  />
                 </AgentFormSection>
 
                 <AgentFormSection
@@ -3733,9 +2923,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     )}
                   </div>
                 </AgentFormSection>
-
-
-              </div>
+              </AgentEditor>
             ) : (
               <div className={AGENT_UNEDITABLE_CLASS_NAME}>
                 <MaterialIcon name="warning" />

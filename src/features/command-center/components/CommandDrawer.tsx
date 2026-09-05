@@ -13,7 +13,7 @@ import {
   SWITCH_SCOPES,
   SwitchModal,
 } from "@/features/workers/components/SwitchModal";
-import { AgentConsole } from "@/features/workers/components/AgentConsole";
+import { AgentConsole } from "@/features/agents/components/AgentConsole";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/icons/material";
 

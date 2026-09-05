@@ -3,7 +3,7 @@ import {
   agentOrderPayload,
   filterAgentsPreservingOrder,
   moveAgentForDrop,
-} from '@/features/workers/lib/agentOrdering';
+} from '@/features/agents/lib/agentOrdering';
 
 function keys(agents: Agent[]): string[] {
   return agents.map((agent) => agent.key);

@@ -1,10 +1,10 @@
 import React from "react";
 import { Button, Checkbox, Flex, Input, Modal, Radio, Select } from "antd";
-import type { AgentProjectCreateRuntime } from "@/features/workers/hooks/useAgentProjectCreate";
+import type { AgentProjectCreateRuntime } from "@/features/agents/hooks/useAgentProjectCreate";
 import {
   ACP_PROXY_OPTIONS,
   workspaceNameFromPath,
-} from "@/features/workers/lib/agentCreate";
+} from "@/features/agents/lib/agentCreate";
 import { useI18n } from "@/shared/i18n";
 
 export const AgentProjectCreateDialog: React.FC<{

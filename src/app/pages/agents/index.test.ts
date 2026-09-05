@@ -15,7 +15,7 @@ jest.mock("react-router-dom", () => ({
   useParams: () => ({ agentKey: "" }),
 }));
 
-jest.mock("@/features/workers/components/AgentConsole", () => ({
+jest.mock("@/features/agents/components/AgentConsole", () => ({
   AgentConsole: (props: typeof agentConsoleProps) => {
     agentConsoleProps = props;
     return React.createElement("div", null, "agent console");
