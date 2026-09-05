@@ -1,4 +1,5 @@
-import type { AppState, ChatTransition } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { ChatTransition } from "@/features/conversation/lib/conversationState";
 
 export function isChatTransitionPending(
   transition: ChatTransition | null | undefined,

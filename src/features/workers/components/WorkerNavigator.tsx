@@ -42,7 +42,7 @@ import {
   isWorkerAttentionChat,
 } from "@/features/chats/lib/chatRunState";
 import { resolveSidebarChatRuntime } from "@/features/runs/lib/runRuntimeState";
-import type { WorkerConversationRow } from "@/app/state/types";
+import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import { openRegisteredAgentDirectory } from "@/shared/data/desktop/desktopFileSystem";
 import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";

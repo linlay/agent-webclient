@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Drawer, Spin, Tabs, message } from "antd";
-import type { Agent, Team } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team } from "@/features/workers/lib/workerState";
 import type {
   AutomationExecutionDetailResponse,
   AutomationExecutionResponse,

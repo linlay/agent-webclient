@@ -2,7 +2,7 @@
 
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ToolOutputState } from "@/app/state/types";
+import type { ToolOutputState } from "@/features/timeline/lib/timelineState";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 
 const mockTerminalInstances: Array<{

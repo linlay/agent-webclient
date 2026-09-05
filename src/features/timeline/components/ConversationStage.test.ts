@@ -1,12 +1,9 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import type {
-  TaskItemMeta,
-  TimelineNode,
-  WorkerConversationRow,
-  WorkerRow,
-} from "@/app/state/types";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import {
   buildTimelineAgentOptions,
   ConversationStage,

@@ -1,4 +1,4 @@
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import { getAgents } from "@/shared/data";
 
 export async function fetchAutomationAgentsForSelect(): Promise<Agent[]> {

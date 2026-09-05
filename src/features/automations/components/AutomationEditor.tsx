@@ -1,5 +1,6 @@
 import { Input, Popconfirm, Spin, Tooltip } from "antd";
-import type { Agent, Team } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team } from "@/features/workers/lib/workerState";
 import { AutomationFormFields } from "@/features/automations/components/AutomationFormFields";
 import { useAutomationEditorRuntime } from "@/features/automations/hooks/useAutomationEditorRuntime";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";

@@ -5,7 +5,8 @@ import {
   useAppDispatch,
 } from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
-import type { AppState, RightSidebarTabKey } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import {
   resolveCurrentWorkerSummary,
   isCoderAgent,
@@ -21,6 +22,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Divider } from "antd";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
+import { useMemoryOverlayState } from "@/features/memory/components/MemoryOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { UsageContextControl } from "@/features/usage/components/UsageContextControl";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
@@ -163,6 +165,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   const { t } = useI18n();
   const openTarget = useOpenTarget();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
+  const { isMemoryOpen } = useMemoryOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const ui = selectUiState(state);
@@ -244,7 +247,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   }, [conversation.inputMode, dispatch]);
 
   React.useEffect(() => {
-    if (isAnyOverlayOpen || isCommandOverlayOpen || isGlobalSearchOpen) return;
+    if (isAnyOverlayOpen || isMemoryOpen || isCommandOverlayOpen || isGlobalSearchOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat) return;
@@ -282,7 +285,9 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
     handleStartVoiceMode,
     handleHangupVoiceMode,
     isAnyOverlayOpen,
+    isMemoryOpen,
     isCommandOverlayOpen,
+    isGlobalSearchOpen,
     isMacPlatform,
   ]);
 

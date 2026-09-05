@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { bytesToBase64 } from "@/features/voice/lib/voiceChatAudio";
 import {

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Input, Spin, Tooltip } from "antd";
-import type { Agent, Team } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team } from "@/features/workers/lib/workerState";
 import { describeCronExpression } from "@/features/automations/lib/cronDescription";
 import type {
   AutomationExecutionStatus,

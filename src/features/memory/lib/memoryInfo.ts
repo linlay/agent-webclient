@@ -1,4 +1,6 @@
-import type { Agent, AppState, Chat } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import type {
   MemoryPreferenceScopeType,
   MemoryScopeDraftRecord,

@@ -1,4 +1,5 @@
-import type { AgentEvent, Chat } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { toText } from "@/shared/utils/eventUtils";
 
 export function bindRunAgentKey(

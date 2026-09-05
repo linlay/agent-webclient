@@ -1,5 +1,5 @@
 import React from "react";
-import type { ThemeMode } from "@/app/state/types";
+import type { ThemeMode } from "@/shared/styles/theme";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";

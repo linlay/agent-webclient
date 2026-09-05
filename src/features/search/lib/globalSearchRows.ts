@@ -1,10 +1,6 @@
-import type {
-  Agent,
-  Chat,
-  Team,
-  WorkerConversationRow,
-  WorkerRow,
-} from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team, WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import {
   isChatUnread,

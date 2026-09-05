@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { formatDebugTimestamp } from "@/shared/utils/debugTime";
 import {
   classifyEventGroup,

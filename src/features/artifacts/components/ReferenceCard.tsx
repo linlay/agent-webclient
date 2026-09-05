@@ -1,5 +1,5 @@
 import React from "react";
-import type { TimelineAttachment } from "@/app/state/types";
+import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";

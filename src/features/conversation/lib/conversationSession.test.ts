@@ -1,5 +1,6 @@
 import { createInitialState } from '@/app/state/AppContext';
-import type { AgentEvent, TimelineNode } from '@/app/state/types';
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   applyPendingSessionUpdates,
   buildConversationStateUpdates,

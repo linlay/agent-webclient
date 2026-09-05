@@ -1,5 +1,5 @@
 import { createInitialState } from "@/app/state/AppContext";
-import type { WorkerRow } from "@/app/state/types";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import {
   resolvePreferredAgentKey,
   resolvePreferredTeamId,

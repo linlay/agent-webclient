@@ -1,5 +1,6 @@
 import type { AppAction } from "@/app/state/actions";
-import type { AppState, Chat } from "@/app/state/types";
+import type { AppState } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { upsertChatSummary } from "@/features/chats/lib/chatSummary";
 import { setMapValue } from "@/app/state/reducerHelpers";
 import {

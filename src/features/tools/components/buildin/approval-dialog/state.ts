@@ -1,9 +1,4 @@
-import type {
-  AIAwaitApproval,
-  AIAwaitApprovalDecision,
-  AIAwaitApprovalOption,
-  AIAwaitApprovalSubmitParamData,
-} from "@/app/state/types";
+import type { AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitApprovalOption, AIAwaitApprovalSubmitParamData } from "@/shared/contracts/agentEvents";
 import type { TranslateParams } from "@/shared/i18n";
 
 export type ApprovalDialogDecision =

@@ -1,5 +1,5 @@
 import React from "react";
-import type { PendingSteer } from "@/app/state/types";
+import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { Button, Typography } from "antd";
 import { SteerIcon } from "@/features/runs/components/SteerIcon";
 import { useI18n } from "@/shared/i18n";

@@ -1,5 +1,5 @@
 import React from "react";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
 	buildResourceViewerTargetFromUrl,
 } from "@/features/viewers/lib/viewerTarget";

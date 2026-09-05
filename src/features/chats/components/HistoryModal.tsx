@@ -8,7 +8,8 @@ import React, {
 import "./HistoryModal.module.css";
 import { DatePicker, Flex, Input, InputRef, Popover, Tag, Tooltip } from "antd";
 import dayjs from "dayjs";
-import type { AppState, Chat } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import {

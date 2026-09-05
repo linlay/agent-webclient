@@ -1,4 +1,4 @@
-import type { Team } from '@/app/state/types';
+import type { Team } from "@/features/workers/lib/workerState";
 import { toText } from '@/shared/utils/eventUtils';
 
 function pushTeamAgentKeys(raw: unknown, keys: string[], seen: Set<string>): void {

@@ -1,6 +1,8 @@
 import React from "react";
 import type { Dayjs } from "dayjs";
-import type { Agent, Chat, Team, WorkerListItem } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team, WorkerListItem } from "@/features/workers/lib/workerState";
 import { getAgents, getChats } from "@/shared/data";
 import {
   ALL_HISTORY_OWNERS,

@@ -1,5 +1,6 @@
 import { appReducer, createInitialState } from '@/app/state/AppContext';
-import type { AppState, TimelineNode } from '@/app/state/types';
+import type { AppState } from "@/app/state/AppContext";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   clearReasoningAutoCollapseTimer,
   scheduleReasoningAutoCollapseTimer,

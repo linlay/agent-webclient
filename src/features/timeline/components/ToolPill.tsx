@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
 import { formatToolDuration as formatToolDurationFromLib } from "@/features/timeline/lib/timelineDuration";

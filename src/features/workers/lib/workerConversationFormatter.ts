@@ -1,4 +1,5 @@
-import type { Chat, WorkerConversationRow, WorkerRow } from '@/app/state/types';
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { isChatActiveRun } from '@/features/chats/lib/chatRunState';
 import { normalizeChatReadState } from '@/features/chats/lib/chatReadState';
 import { toText } from '@/shared/utils/eventUtils';

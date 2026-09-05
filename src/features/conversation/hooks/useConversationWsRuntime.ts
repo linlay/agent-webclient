@@ -3,13 +3,10 @@ import type { Dispatch } from "react";
 import { message } from "antd";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
-import {
-	isAwaitingAnswerPushEvent,
-	isAwaitingAskPushEvent,
-	type AgentEvent,
-	type AppState,
-	type Chat,
-} from "@/app/state/types";
+import { isAwaitingAnswerPushEvent, isAwaitingAskPushEvent } from "@/shared/contracts/agentEvents";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { dataEndpoints, ensureAccessToken } from "@/shared/data";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import {

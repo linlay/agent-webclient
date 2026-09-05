@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { ApiError, type ApiResponse } from "@/shared/data/api/client";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import {

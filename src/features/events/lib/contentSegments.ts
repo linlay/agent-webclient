@@ -1,18 +1,10 @@
 import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
 import { parseViewportBlocks } from '@/features/events/lib/viewportParser';
+import type { ContentSegment } from '@/shared/contracts/contentSegments';
+
+export type { ContentSegment } from '@/shared/contracts/contentSegments';
 
 const SPECIAL_FENCE_HEADERS = ['```viewport', '```tts-voice'] as const;
-
-export interface ContentSegment {
-  kind: 'text' | 'viewport' | 'ttsVoice';
-  text?: string;
-  signature?: string;
-  key?: string;
-  payloadRaw?: string;
-  payload?: unknown;
-  closed?: boolean;
-  startOffset?: number;
-}
 
 function pushTextSegment(segments: ContentSegment[], text: string): void {
   const normalized = String(text ?? '').trim();

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
-import type { ToolOutputState } from "@/app/state/types";
+import type { ToolOutputState } from "@/features/timeline/lib/timelineState";
 import {
   TOOL_OUTPUT_MAX_BYTES,
   toolOutputText,

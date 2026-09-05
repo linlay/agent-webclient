@@ -1,4 +1,4 @@
-import type { TimelineNode } from '@/app/state/types';
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { serializeRunTranscript } from '@/features/timeline/lib/runTranscript';
 
 function createNode(partial: Partial<TimelineNode> & Pick<TimelineNode, 'id' | 'kind' | 'ts'>): TimelineNode {

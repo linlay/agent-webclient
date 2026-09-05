@@ -1,10 +1,4 @@
-import type {
-  AIAwaitApproval,
-  AIAwaitForm,
-  AIAwaitQuestion,
-  AIAwaitQuestionSubmitParamData,
-  AIAwaitQuestionType,
-} from '@/app/state/types';
+import type { AIAwaitApproval, AIAwaitForm, AIAwaitQuestion, AIAwaitQuestionSubmitParamData, AIAwaitQuestionType } from "@/shared/contracts/agentEvents";
 
 export const MASKED_PASSWORD_VALUE = '••••••';
 

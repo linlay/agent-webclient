@@ -12,12 +12,13 @@ import {
   useAppState,
   useOptionalAppContext,
 } from "@/app/state/AppContext";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
+import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
 import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
@@ -880,6 +881,7 @@ export const AgentChatShell: React.FC = () => {
     : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
 
   return (
+    <MemoryOverlayProvider>
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
         <GlobalSearchOverlayProvider>
@@ -905,5 +907,6 @@ export const AgentChatShell: React.FC = () => {
       </GlobalSearchOverlayProvider>
       </CommandOverlayProvider>
     </SettingsOverlayProvider>
+    </MemoryOverlayProvider>
   );
 };

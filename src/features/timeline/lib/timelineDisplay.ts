@@ -1,4 +1,6 @@
-import type { AgentEvent, TaskItemMeta, TimelineNode } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 
 export type TimelineRenderEntry =
   | {

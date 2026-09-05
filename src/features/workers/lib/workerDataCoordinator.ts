@@ -1,4 +1,6 @@
-import type { Agent, Chat, Team, WorkerListItem } from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team, WorkerListItem } from "@/features/workers/lib/workerState";
 import { mergeFetchedChats } from '@/features/chats/lib/chatSummary';
 
 export type WorkerDataSnapshot = {

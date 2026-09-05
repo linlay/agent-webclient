@@ -2,10 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { useAppState } from "@/app/state/AppContext";
-import type {
-  TimelineNode,
-  TimelineSource,
-} from "@/app/state/types";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import { useBTW } from "@/features/btw/components/BtwProvider";
 import {
   TimelineInteractionProvider,

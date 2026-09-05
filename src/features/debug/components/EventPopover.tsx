@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { Popover } from "antd";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import {
 	getChatSystemPrompt,
 	getChatLLMTraceRaw,

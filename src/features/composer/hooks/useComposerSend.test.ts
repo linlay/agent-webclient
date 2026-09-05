@@ -53,7 +53,7 @@ import {
   useBackgroundCommandActions,
 } from '@/features/composer/hooks/useBackgroundCommandActions';
 import { useComposerSend } from '@/features/composer/hooks/useComposerSend';
-import type { AIUsageSnapshotEvent } from '@/app/state/types';
+import type { AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
 import { compactChat, createRequestId } from '@/shared/data';
 
 const compactChatMock = compactChat as jest.Mock;

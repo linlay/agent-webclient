@@ -1,8 +1,4 @@
-import type {
-  ToolOutputSegment,
-  ToolOutputState,
-  ToolOutputStream,
-} from "@/app/state/types";
+import type { ToolOutputSegment, ToolOutputState, ToolOutputStream } from "@/features/timeline/lib/timelineState";
 
 export const TOOL_OUTPUT_MAX_BYTES = 1024 * 1024;
 export const TOOL_OUTPUT_TRUNCATION_MARKER =

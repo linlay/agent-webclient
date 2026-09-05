@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { ChatDetailResponse } from "@/shared/data";
 import { ApiError, getChat } from "@/shared/data";
 import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";

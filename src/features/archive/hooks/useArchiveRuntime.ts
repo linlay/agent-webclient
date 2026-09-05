@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import {
   archiveChats,
   deleteArchive,

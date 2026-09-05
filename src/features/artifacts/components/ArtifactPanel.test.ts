@@ -1,4 +1,4 @@
-import type { PublishedArtifact } from "@/app/state/types";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
 import { buildArtifactSummaryView } from "@/features/artifacts/components/ArtifactPanel";
 import { t } from "@/shared/i18n";
 

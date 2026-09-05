@@ -1,11 +1,6 @@
-import type { AgentEvent } from '@/app/state/types';
-import {
-  AIContentEventTypeEnum,
-  AIPlanningEventTypeEnum,
-  AIReasoningEventTypeEnum,
-  AIToolEventTypeEnum,
-} from '@/app/state/types';
-import type { TimelineNode } from '@/app/state/types';
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import { AIContentEventTypeEnum, AIPlanningEventTypeEnum, AIReasoningEventTypeEnum, AIToolEventTypeEnum } from "@/shared/contracts/agentEvents";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { isDeltaLogsEnabled } from '@/shared/config/featureFlags';
 
 import { shouldDisplayDebugEvent } from '@/features/events/lib/debugEventVisibility';

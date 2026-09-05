@@ -1,9 +1,7 @@
 import type { AppAction } from "@/app/state/actions";
-import type {
-	ActiveAwaiting,
-	FileChangeSummary,
-	PublishedArtifact,
-} from "@/app/state/types";
+import type { ActiveAwaiting } from "@/features/tools/lib/toolsState";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
 
 export { buildConversationResetState } from "@/app/state/conversationReset";
 

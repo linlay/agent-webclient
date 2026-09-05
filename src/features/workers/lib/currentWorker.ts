@@ -1,12 +1,8 @@
 import type { TranslateParams } from "@/shared/i18n/types";
-import type {
-  Agent,
-  AppState,
-  Chat,
-  Team,
-  WorkerConversationRow,
-  WorkerRow,
-} from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team, WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import { toText } from '@/shared/utils/eventUtils';
 

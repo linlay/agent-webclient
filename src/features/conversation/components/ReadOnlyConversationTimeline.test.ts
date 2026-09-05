@@ -2,7 +2,7 @@
 
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { ChatDetailResponse } from "@/shared/data";
 import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
 import { ReadOnlyConversationTimeline } from "./ReadOnlyConversationTimeline";

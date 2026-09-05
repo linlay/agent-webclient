@@ -1,4 +1,4 @@
-import type { TimelineSourceChunk } from "@/app/state/types";
+import type { TimelineSourceChunk } from "@/features/timeline/lib/timelineState";
 import { resolveInitialSourceChunkId } from "@/features/source/components/SourceDetailTab";
 
 jest.mock("@/features/viewers/components/MarkdownContent", () => ({

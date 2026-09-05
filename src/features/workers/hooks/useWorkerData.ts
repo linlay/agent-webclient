@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
 import { getAgent, getAgents, getChats, setAccessToken } from '@/shared/data';
-import type { Agent, Chat, WorkerListItem, WorkerRow } from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerListItem, WorkerRow } from "@/features/workers/lib/workerState";
 import { isAppMode } from '@/shared/utils/routing';
 import {
   refreshWorkerDataFromAgentsWithChats,

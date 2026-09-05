@@ -1,5 +1,6 @@
 import React from "react";
-import type { Agent, Team, WorkerRow } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team, WorkerRow } from "@/features/workers/lib/workerState";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { useAppState } from "@/app/state/AppContext";

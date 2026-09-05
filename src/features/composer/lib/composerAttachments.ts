@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { AppAction } from "@/app/state/actions";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import {
 	createRequestId,
 	extractUploadChatId,
@@ -40,7 +40,7 @@ export interface ComposerContextReferenceInput {
 	meta?: Record<string, unknown>;
 }
 
-export type { ComposerRequiredSkill } from "@/app/state/types";
+export type { ComposerRequiredSkill } from "@/features/composer/lib/composerState";
 
 export function createComposerContextAttachment(
 	reference: ComposerContextReferenceInput,

@@ -1,4 +1,4 @@
-import type { WorkerConversationRow } from '@/app/state/types';
+import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import {
   appReducer,
   applyActionToStateRef,

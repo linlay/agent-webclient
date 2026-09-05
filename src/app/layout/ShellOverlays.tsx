@@ -5,6 +5,7 @@ import { DisplayOverlay } from "@/features/display/components/DisplayOverlay";
 import { SettingsOverlayHost } from "@/features/settings/components/SettingsOverlayHost";
 import { CommandOverlayHost } from "@/features/command-center/components/CommandOverlayHost";
 import { GlobalSearchOverlay } from "@/features/search/components/GlobalSearchOverlay";
+import { MemoryOverlayHost } from "@/features/memory/components/MemoryOverlayHost";
 
 export const ShellOverlays: React.FC<{
 	commandOverlayVariant?: "copilot";
@@ -14,6 +15,7 @@ export const ShellOverlays: React.FC<{
 		<>
 			<CommandStatusOverlay />
 			<SettingsOverlayHost variant={settingsOverlayVariant} />
+			<MemoryOverlayHost />
 			<CommandOverlayHost variant={commandOverlayVariant} />
 			{commandOverlayVariant !== "copilot" && <GlobalSearchOverlay />}
 			<EventPopover />

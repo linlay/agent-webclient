@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import type { RunOwner } from "@/shared/data/runOwner";
 import {

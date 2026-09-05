@@ -1,5 +1,6 @@
 import type { AppAction } from "@/app/state/actions";
-import type { AppState, PendingSteer } from "@/app/state/types";
+import type { AppState } from "@/app/state/types";
+import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
 import { bindRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { appendVisibleDebugEvent } from "@/features/events/lib/debugEventDisplay";

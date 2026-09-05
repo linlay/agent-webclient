@@ -1,9 +1,7 @@
-import type {
-  AgentEvent,
-  PublishedArtifact,
-  TimelineNode,
-  ToolState,
-} from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { ToolState } from "@/features/tools/lib/toolsState";
 import type {
   EventCommand,
   EventProcessorState,

@@ -1,10 +1,7 @@
-import type {
-	ActiveAwaiting,
-	AppState,
-	TaskItemMeta,
-	TimelineNode,
-	ToolState,
-} from "@/app/state/types";
+import type { ActiveAwaiting, ToolState } from "@/features/tools/lib/toolsState";
+import type { AppState } from "@/app/state/AppContext";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventProcessorState } from "@/features/events/lib/eventProcessorTypes";
 import { cloneActiveAwaitingQueue } from "@/features/tools/lib/awaitingRuntime";
 import { toText } from "@/shared/utils/eventUtils";

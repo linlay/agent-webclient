@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("antd", () => {

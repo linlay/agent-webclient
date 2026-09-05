@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
-import {
-  isAwaitingAnswerLike,
-  isAwaitingAskLike,
-  type AgentEvent,
-  type AIUsageSnapshotEvent,
-  type AppState,
-  type UiTimerHandle,
-} from "@/app/state/types";
-import type { TimelineNode } from "@/app/state/timelineTypes";
+import { isAwaitingAnswerLike, isAwaitingAskLike } from "@/shared/contracts/agentEvents";
+import type { AgentEvent, AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { UiTimerHandle } from "@/shared/contracts/ui";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
 import { isPlanViewEventType } from "@/features/events/lib/planViewEvents";

@@ -1,4 +1,5 @@
-import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types";
+import { isAwaitingAnswerStreamEvent } from "@/shared/contracts/agentEvents";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import {
 	getAwaitingItemMeta,
 	maskAwaitingAnswerParams,

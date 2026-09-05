@@ -5,10 +5,8 @@ import {
 } from "@/app/state/AppContext";
 import { Drawer } from "antd";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
-import type {
-  ThemeMode,
-  VoiceClientGateConfig,
-} from "@/app/state/types";
+import type { ThemeMode } from "@/shared/styles/theme";
+import type { VoiceClientGateConfig } from "@/features/voice/lib/voiceState";
 import { getCurrentAccessToken, setAccessToken } from "@/shared/data";
 import { isAppMode, isDesktopAppMode } from "@/shared/utils/routing";
 import { normalizeVoiceClientGateConfig } from "@/features/voice/lib/voiceAsrProtocol";

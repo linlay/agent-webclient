@@ -1,4 +1,5 @@
-import type { AppState, TtsVoiceBlock } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { TtsVoiceBlock } from "@/features/timeline/lib/timelineState";
 import { getCurrentAccessToken } from "@/shared/data";
 import { parseContentSegments } from "@/features/events/lib/contentSegments";
 import {

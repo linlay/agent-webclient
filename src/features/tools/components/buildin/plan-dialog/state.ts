@@ -1,9 +1,4 @@
-import type {
-  AIAwaitPlan,
-  AIAwaitPlanDecision,
-  AIAwaitPlanOption,
-  AIAwaitPlanSubmitParamData,
-} from "@/app/state/types";
+import type { AIAwaitPlan, AIAwaitPlanDecision, AIAwaitPlanOption, AIAwaitPlanSubmitParamData } from "@/shared/contracts/agentEvents";
 
 const DEFAULT_PLAN_OPTIONS: AIAwaitPlanOption[] = [
   {

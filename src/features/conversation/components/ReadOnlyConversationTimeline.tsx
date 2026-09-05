@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import type { Agent, TimelineNode, TimelineSource } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import type { ChatDetailResponse } from "@/shared/data";
 import type { ChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
 import {

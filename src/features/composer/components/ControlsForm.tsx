@@ -1,9 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import type {
-  Agent,
-  AgentControl,
-  AgentControlOption,
-} from "@/app/state/types";
+import type { Agent, AgentControl, AgentControlOption } from "@/features/agents/lib/agentState";
 import { useAppState } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { useI18n } from "@/shared/i18n";

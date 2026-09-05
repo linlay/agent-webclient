@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Drawer, Modal } from "antd";
-import type { Agent, Team } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team } from "@/features/workers/lib/workerState";
 import { AutomationEditor } from "@/features/automations/components/AutomationEditor";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { useI18n } from "@/shared/i18n";

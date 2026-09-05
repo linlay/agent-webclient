@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { formatDebugTimestamp } from "@/shared/utils/debugTime";
 
 export function formatReadableTimestamp(timestamp?: number): string {

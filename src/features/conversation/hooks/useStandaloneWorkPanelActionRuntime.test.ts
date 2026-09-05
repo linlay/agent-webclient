@@ -1,7 +1,7 @@
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
 import type { AppAction } from "@/app/state/actions";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import type { WsClient, WsInboundRequestHandler } from "@/features/transport/lib/wsClient";
 import { WsInboundRequestError } from "@/features/transport/lib/wsClient";
 import {

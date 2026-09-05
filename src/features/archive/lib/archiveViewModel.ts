@@ -1,4 +1,5 @@
-import type { Chat, WorkerConversationRow } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import type {
   ArchiveDetailResponse,
   ArchiveSearchResult,

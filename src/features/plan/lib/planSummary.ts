@@ -1,4 +1,5 @@
-import type { Plan, PlanRuntime, TaskItemMeta } from "@/app/state/types";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import type { TranslateParams } from "@/shared/i18n/types";
 
 function normalizePlanStatus(status?: string): string {

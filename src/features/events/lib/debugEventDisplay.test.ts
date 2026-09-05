@@ -7,7 +7,7 @@ import {
   resolveDebugEventTarget,
   shouldDisplayDebugEvent,
 } from '@/features/events/lib/debugEventDisplay';
-import type { AgentEvent } from '@/app/state/types';
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 
 const globalWithRuntimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;

@@ -1,12 +1,9 @@
-import type {
-  AgentEvent,
-  FileChangeSummary,
-  Plan,
-  PlanRuntime,
-  TaskItemMeta,
-  TimelineNode,
-  ToolState,
-} from '@/app/state/types';
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { ToolState } from "@/features/tools/lib/toolsState";
 import type { EventCommand, EventProcessorState } from '@/features/events/lib/eventProcessorTypes';
 import { processStreamEvent } from '@/features/events/lib/eventProcessor';
 import {

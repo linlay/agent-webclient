@@ -10,7 +10,7 @@ import {
   useAppState,
   useOptionalAppContext,
 } from "@/app/state/AppContext";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import {
   resolveStatusPillClassName,
   resolveTopNavStatus,
@@ -24,6 +24,7 @@ import {
   SettingsOverlayProvider,
   useSettingsOverlayActions,
 } from "@/features/settings/components/SettingsOverlayProvider";
+import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
 import {
   CommandOverlayProvider,
   useCommandOverlayActions,
@@ -463,6 +464,7 @@ export const CopilotShell: React.FC = () => {
 
   return (
     <HostRequiredSkillsProvider {...hostRequiredSkills}>
+      <MemoryOverlayProvider>
       <SettingsOverlayProvider>
         <CommandOverlayProvider>
           <GlobalShortcutLayer />
@@ -488,6 +490,7 @@ export const CopilotShell: React.FC = () => {
           </div>
         </CommandOverlayProvider>
       </SettingsOverlayProvider>
+      </MemoryOverlayProvider>
     </HostRequiredSkillsProvider>
   );
 };

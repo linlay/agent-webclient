@@ -1,5 +1,6 @@
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState, AgentEvent } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { appReducer } from "@/app/state/reducer";
 import { createLiveQuerySession } from "@/features/conversation/lib/conversationSession";
 import { registerMainChatRunActivationListener } from "@/features/runs/hooks/useMainChatRunActivation";

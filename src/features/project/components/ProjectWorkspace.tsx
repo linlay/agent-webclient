@@ -1,6 +1,6 @@
 import React from "react";
 import { Select, Spin } from "antd";
-import type { Chat } from "@/app/state/navigationTypes";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { FileDiffView } from "@/features/project/components/FileDiffView";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
 import {

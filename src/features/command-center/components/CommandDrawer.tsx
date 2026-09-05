@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppState } from "@/app/state/AppContext";
 import { Drawer } from "antd";
-import type { Agent, Team } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team } from "@/features/workers/lib/workerState";
 import type { CommandOverlayState } from "@/features/command-center/lib/commandOverlay";
 import {
   buildWorkerSwitchRows,

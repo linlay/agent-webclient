@@ -583,3 +583,5 @@ export type AIEvent =
   | AIArtifactEvent
   | AISourcePublishEvent
   | AIAwaitEvent;
+
+export type AgentEvent = AIEvent;

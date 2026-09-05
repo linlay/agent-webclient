@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Dropdown, Input, Select, Tooltip } from "antd";
 import type { MenuProps } from "antd";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import {
   AUTOMATION_CRON_PRESETS,
   automationOptionalFieldHasValue,

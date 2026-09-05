@@ -1,5 +1,6 @@
 import React from "react";
-import type { Agent, WorkerListItem } from "@/app/state/navigationTypes";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { WorkerListItem } from "@/features/workers/lib/workerState";
 import { getAgents } from "@/shared/data";
 
 function isProjectAgent(item: WorkerListItem): item is Agent {

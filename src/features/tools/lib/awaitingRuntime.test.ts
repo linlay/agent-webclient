@@ -1,4 +1,4 @@
-import { ViewportTypeEnum } from '@/app/state/types';
+import { ViewportTypeEnum } from "@/shared/contracts/agentEvents";
 import {
   reduceActiveAwaiting,
   reduceAwaitingRuntime,

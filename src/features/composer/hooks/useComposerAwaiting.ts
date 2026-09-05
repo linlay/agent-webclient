@@ -2,11 +2,9 @@ import { useCallback } from "react";
 import type { Dispatch } from "react";
 import { App as AntdApp } from "antd";
 import type { AppAction } from "@/app/state/AppContext";
-import type {
-  AIAwaitSubmitPayloadData,
-  AppState,
-  FormActiveAwaiting,
-} from "@/app/state/types";
+import type { AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { ApiError } from "@/shared/data";
 import type { RunTransport } from "@/features/transport/contracts/realtimeTransport";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";

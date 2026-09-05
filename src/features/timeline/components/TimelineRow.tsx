@@ -1,6 +1,6 @@
 import React from "react";
 import { Flex } from "antd";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import {
   formatAttachmentSize,

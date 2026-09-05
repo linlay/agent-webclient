@@ -1,3 +1,3 @@
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 
 export type AgentEventSink = (event: AgentEvent) => void;

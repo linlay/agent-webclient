@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useAppState } from "@/app/state/AppContext";
-import type { PublishedArtifact } from "@/app/state/types";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";

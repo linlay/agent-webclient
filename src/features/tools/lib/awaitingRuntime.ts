@@ -1,21 +1,6 @@
-import type {
-  ActiveAwaiting,
-  AgentEvent,
-  AIAwaitApproval,
-  AIAwaitApprovalDecision,
-  AIAwaitForm,
-  AIAwaitMode,
-  AIAwaitPlan,
-  AIAwaitPlanDecision,
-  AIAwaitQuestion,
-  FormActiveAwaiting,
-} from '@/app/state/types';
-import {
-  AIAwaitQuestionType,
-  ViewportTypeEnum,
-  isAwaitingAnswerStreamEvent,
-  isAwaitingAskStreamEvent,
-} from '@/app/state/types';
+import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
+import type { AgentEvent, AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitForm, AIAwaitMode, AIAwaitPlan, AIAwaitPlanDecision, AIAwaitQuestion } from "@/shared/contracts/agentEvents";
+import { AIAwaitQuestionType, ViewportTypeEnum, isAwaitingAnswerStreamEvent, isAwaitingAskStreamEvent } from "@/shared/contracts/agentEvents";
 import { toText } from '@/shared/utils/eventUtils';
 import { readEpochMillis } from '@/shared/utils/platformTime';
 import {

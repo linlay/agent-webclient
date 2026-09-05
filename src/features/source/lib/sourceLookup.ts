@@ -1,4 +1,4 @@
-import type { TimelineNode, TimelineSource } from "@/app/state/types";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 
 export function findSourceById(
   timelineNodes: Iterable<TimelineNode>,

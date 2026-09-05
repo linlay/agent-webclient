@@ -2,13 +2,10 @@ import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
 import { getChat } from '@/shared/data';
-import type {
-  Chat,
-  CurrentChatActiveRun,
-  AgentEvent,
-  ComposerRequiredSkill,
-  WorkerRow,
-} from '@/app/state/types';
+import type { Chat, CurrentChatActiveRun } from "@/features/chats/lib/chatState";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { ComposerRequiredSkill } from "@/features/composer/lib/composerState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormatter';
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import {

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import {
 	type SlashCommandAvailability,
 	type SlashCommandId,

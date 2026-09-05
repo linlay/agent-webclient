@@ -1,4 +1,4 @@
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
 import type {
   EventCommand,

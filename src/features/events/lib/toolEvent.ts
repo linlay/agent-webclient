@@ -1,4 +1,4 @@
-import type { AgentEvent } from '@/app/state/types';
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 
 export function resolveViewportKey(event: Pick<AgentEvent, 'viewportKey'>): string {
   return String(event.viewportKey || '').trim();

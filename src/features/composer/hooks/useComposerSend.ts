@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "reac
 import { App as AntdApp, Button } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import {
   createRequestId,
   type CompactLevel,

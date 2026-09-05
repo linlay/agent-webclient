@@ -1,5 +1,6 @@
 import type { AppAction } from '@/app/state/AppContext';
-import type { TimelineNode, UiTimerHandle } from '@/app/state/types';
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { UiTimerHandle } from "@/shared/contracts/ui";
 
 function getTimerApi(): Pick<typeof globalThis, 'setTimeout' | 'clearTimeout'> {
   return (globalThis.window || globalThis) as Pick<typeof globalThis, 'setTimeout' | 'clearTimeout'>;

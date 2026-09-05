@@ -25,6 +25,13 @@ function readImports(source) {
   return Array.from(source.matchAll(importPattern), (match) => match[1]);
 }
 
+function readRuntimeImports(source) {
+  const withoutTypeOnlyImports = source
+    .replace(/import\s+type\s+[\s\S]*?\s+from\s+["'][^"']+["'];?/g, "")
+    .replace(/export\s+type\s+[\s\S]*?\s+from\s+["'][^"']+["'];?/g, "");
+  return readImports(withoutTypeOnlyImports);
+}
+
 function isTestFile(file) {
   return /\.(?:test|spec)\.(?:ts|tsx)$/.test(file);
 }
@@ -46,7 +53,8 @@ const featureGraph = new Map(featureNames.map((name) => [name, new Set()]));
 for (const feature of featureNames) {
   for (const file of walk(path.join(featuresRoot, feature))) {
     const relativeFile = path.relative(repoRoot, file);
-    const imports = readImports(fs.readFileSync(file, "utf8"));
+    const source = fs.readFileSync(file, "utf8");
+    const imports = readImports(source);
     for (const importedPath of imports) {
       if (
         importedPath.startsWith("@/app/pages/") ||
@@ -62,7 +70,12 @@ for (const feature of featureNames) {
       if (feature === "transport" && dependency && dependency !== "transport") {
         violations.push(`${relativeFile}: transport must not import business feature ${dependency}`);
       }
-      if (!isTestFile(file) && dependency && dependency !== feature) {
+      if (
+        !isTestFile(file) &&
+        readRuntimeImports(source).includes(importedPath) &&
+        dependency &&
+        dependency !== feature
+      ) {
         featureGraph.get(feature).add(dependency);
       }
     }

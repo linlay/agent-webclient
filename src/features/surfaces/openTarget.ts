@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import type { TimelineSource } from "@/app/state/types";
+import type { TimelineSource } from "@/features/timeline/lib/timelineState";
 import { classifyResourceUrl } from "@/shared/data";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {

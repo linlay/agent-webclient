@@ -18,7 +18,8 @@ import {
   shouldSkipPromotedChatHistoryLoad,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
-import type { Chat, WorkerRow } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(),

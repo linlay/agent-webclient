@@ -49,12 +49,10 @@ import {
   Tooltip,
 } from "antd";
 import type { InputRef } from "antd";
-import {
-  type Agent,
-  type ConversationSurfaceMode,
-  type TimelineNode,
-  type WorkerRow,
-} from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { LogoLoading } from "@/shared/components/logo-loading";
 import {
   isMainChatRuntimeObservedByLiveQuery,

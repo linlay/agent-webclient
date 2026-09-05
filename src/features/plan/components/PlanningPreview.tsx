@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppState } from "@/app/state/AppContext";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { t } from "@/shared/i18n";
 

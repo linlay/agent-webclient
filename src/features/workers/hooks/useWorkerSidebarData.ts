@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { AppState, WorkerConversationRow } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
 import { resolveWorkerUnreadCount } from "@/features/chats/lib/chatReadState";

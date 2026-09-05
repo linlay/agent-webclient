@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal } from "antd";
-import type { Agent, Team } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team } from "@/features/workers/lib/workerState";
 import { useAppState } from "@/app/state/AppContext";
 import { AutomationEditorDrawer } from "@/features/automations/components/AutomationEditorDrawer";
 import { AutomationExecutionDrawer } from "@/features/automations/components/AutomationExecutionDrawer";

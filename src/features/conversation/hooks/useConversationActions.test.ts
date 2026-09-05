@@ -1,7 +1,10 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/state';
-import type { Agent, AgentEvent, Chat, Team, WorkerRow } from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team, WorkerRow } from "@/features/workers/lib/workerState";
 import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDisplay';
 import {
   createReplayState,

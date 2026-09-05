@@ -1,6 +1,7 @@
 import type React from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState, WorkerListItem } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { WorkerListItem } from "@/features/workers/lib/workerState";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import { splitWorkerListItems } from "@/features/workers/lib/workerDataCoordinator";

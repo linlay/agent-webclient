@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { createRequestId } from "@/shared/data";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";

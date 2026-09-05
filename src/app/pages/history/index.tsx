@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { GlobalHistoryConsole } from "@/features/chats/components/GlobalHistoryConsole";
 import { readInitialHistoryOwnerKey } from "@/features/chats/lib/historyRoute";
 import {

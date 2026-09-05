@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import type React from "react";
 import type { AppAction } from "@/app/state/actions";
-import type { AppState, RightSidebarTabKey } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import { useAppContext } from "@/app/state/AppContext";
 import {
 	WsClient,

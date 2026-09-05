@@ -1,4 +1,5 @@
-import type { FileChangeSummary, PublishedArtifact } from "@/app/state/types";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
 import {
 	buildFileChangeKey,
 	buildFileChangeAnimationSignatures,

@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, DatePicker, Input, Select, Spin } from "antd";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import {
   ALL_HISTORY_OWNERS,
   resolveGlobalHistoryRowText,

@@ -1,5 +1,5 @@
 import React from "react";
-import type { CurrentChatActiveRun } from "@/app/state/types";
+import type { CurrentChatActiveRun } from "@/features/chats/lib/chatState";
 import { useChatSurfaceReplay } from "@/features/conversation/hooks/useChatSurfaceReplay";
 import { OverviewContentView } from "@/features/overview/components/OverviewPanel";
 import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";

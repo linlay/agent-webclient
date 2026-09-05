@@ -1,6 +1,6 @@
 import type { AppAction } from "@/app/state/AppContext";
 import { createInitialState } from "@/app/state/state";
-import type { ActiveAwaiting } from "@/app/state/types";
+import type { ActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { ApiError } from "@/shared/data";
 import {
 	buildPlanDecisionPlanningModeAction,

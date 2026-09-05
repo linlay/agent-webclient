@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type {
-  AIContextCompactEvent,
-  AIUsageSnapshotEvent,
-  AppState,
-} from "@/app/state/types";
-import { AIContextEventTypeEnum, AIUsageEventTypeEnum } from "@/app/state/types";
+import type { AIContextCompactEvent, AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import { AIContextEventTypeEnum, AIUsageEventTypeEnum } from "@/shared/contracts/agentEvents";
 import {
   compactChat,
   createRequestId,

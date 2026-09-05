@@ -13,7 +13,9 @@ import {
   createWorkerChatOrderByKey,
   sortWorkerRowsForMode,
 } from "@/features/workers/hooks/useWorkerSidebarData";
-import type { AppState, Chat, WorkerRow } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { I18nProvider } from "@/shared/i18n";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];

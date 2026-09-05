@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppState } from "@/app/state/AppContext";
-import type { TimelineSource, TimelineSourceChunk } from "@/app/state/types";
+import type { TimelineSource, TimelineSourceChunk } from "@/features/timeline/lib/timelineState";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { t, TranslateParams } from "@/shared/i18n";
 import { Flex, Tag } from "antd";

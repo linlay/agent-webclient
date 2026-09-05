@@ -1,4 +1,4 @@
-import type { Agent } from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
 import { toText } from '@/shared/utils/eventUtils';
 
 export function buildAgentOrderSearchText(agent: Agent): string {

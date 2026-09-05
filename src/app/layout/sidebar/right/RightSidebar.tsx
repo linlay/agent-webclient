@@ -18,7 +18,7 @@ import { PlanningPreviewTab } from "@/features/plan/components/PlanningPreviewTa
 import { BtwTab } from "@/features/btw/components/BtwTab";
 import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 import { useBTW } from "@/features/btw/components/BtwProvider";
-import type { RightSidebarTabKey } from "@/app/state/uiTypes";
+import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";

@@ -1,4 +1,5 @@
-import type { Chat, WorkerRow } from '@/app/state/types';
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import {
   buildSelectedWorkerConversationRows,
   buildWorkerConversationRows,

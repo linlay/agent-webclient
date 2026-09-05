@@ -9,7 +9,7 @@ import {
 	areVoiceClientGateConfigsEqual,
 	QA_ASR_TASK_ID,
 } from "@/features/voice/lib/voiceChatRuntimeUtils";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import type { VoiceChatRuntimeController } from "@/features/voice/hooks/useVoiceChatRuntimeController";
 
 export function useVoiceChatCapture({

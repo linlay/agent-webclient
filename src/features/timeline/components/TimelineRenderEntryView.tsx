@@ -1,6 +1,6 @@
 import React from "react";
 import { Flex } from "antd";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import { formatResponseDuration } from "@/shared/utils/formatResponseDuration";
 import { AgentIcon } from "@/shared/icons/agent";

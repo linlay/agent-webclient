@@ -9,11 +9,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type {
-  AIAwaitApproval,
-  AIAwaitSubmitPayloadData,
-  ApprovalActiveAwaiting,
-} from "@/app/state/types";
+import type { AIAwaitApproval, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { ApprovalActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
   clampAwaitingIndex,

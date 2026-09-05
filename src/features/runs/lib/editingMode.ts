@@ -1,4 +1,5 @@
-import type { AgentEvent, ChatActiveRunSummary } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { ChatActiveRunSummary } from "@/features/chats/lib/chatState";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import { readExplicitEditingMode } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";

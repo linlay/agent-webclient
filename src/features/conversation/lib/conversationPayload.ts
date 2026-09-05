@@ -1,12 +1,7 @@
-import type {
-  AgentEvent,
-  AIUsageSnapshotEvent,
-  AIUsageStats,
-  ArtifactFile,
-  Plan,
-  PublishedArtifact,
-} from "@/app/state/types";
-import { AIUsageEventTypeEnum } from "@/app/state/types";
+import type { AgentEvent, AIUsageSnapshotEvent, AIUsageStats } from "@/shared/contracts/agentEvents";
+import type { ArtifactFile, PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
+import type { Plan } from "@/features/plan/lib/planState";
+import { AIUsageEventTypeEnum } from "@/shared/contracts/agentEvents";
 import {
   readEpochMillis,
   readRequiredPlatformEventTimestamp,

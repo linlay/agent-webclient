@@ -3,7 +3,9 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { createInitialState } from "@/app/state/state";
-import type { AppState, ChatTransition, TimelineNode } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { ChatTransition } from "@/features/conversation/lib/conversationState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   clearConversationScrollBookmarks,
   getConversationScrollBookmark,

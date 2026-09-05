@@ -1,21 +1,13 @@
-import type {
-  ActionState,
-  ActiveAwaiting,
-  ActiveFrontendTool,
-  AgentEvent,
-  AppState,
-  AIUsageSnapshotEvent,
-  FileChangeSummary,
-  Message,
-  PendingSteer,
-  PendingTool,
-  PublishedArtifact,
-  Plan,
-  PlanRuntime,
-  TaskItemMeta,
-  TimelineNode,
-  ToolState,
-} from '@/app/state/types';
+import type { ActionState, ActiveAwaiting, ActiveFrontendTool, PendingTool, ToolState } from "@/features/tools/lib/toolsState";
+import type { AgentEvent, AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { Message } from "@/features/conversation/lib/messageState";
+import type { PendingSteer } from "@/features/composer/lib/composerState";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   cloneActiveAwaiting,
   cloneActiveAwaitingQueue,

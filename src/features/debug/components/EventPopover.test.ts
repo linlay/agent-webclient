@@ -7,7 +7,7 @@ import {
   DEFAULT_LOCALES,
   getDefaultTermsForLocale,
 } from "@/shared/i18n";
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 
 const {
   canCollectEvent,

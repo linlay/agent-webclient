@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Input, Popover, Switch, Typography } from "antd";
 import type { InputRef } from "antd";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
 import {
   isSlashCommandDisabled,

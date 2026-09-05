@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
-import type { TimelineAttachment } from "@/app/state/types";
-import { AIRunEventTypeEnum } from "@/app/state/types";
+import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
+import { AIRunEventTypeEnum } from "@/shared/contracts/agentEvents";
 import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import {
   createRequestId,
@@ -35,7 +35,8 @@ import {
   resolveRunOwner,
 } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
-import type { AgentEvent, AppState } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
 import {
   readEventTeamId,
   readRequestQueryText,

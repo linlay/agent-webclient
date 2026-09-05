@@ -1,4 +1,4 @@
-import type { TimelineAttachment } from '@/app/state/types';
+import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object';

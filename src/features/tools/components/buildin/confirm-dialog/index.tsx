@@ -20,13 +20,9 @@ import React, {
   useState,
 } from "react";
 import dayjs from "dayjs";
-import {
-  AIAwaitQuestion,
-  AIAwaitQuestionType,
-  AIAwaitQuestionSubmitParamData,
-  AIAwaitSubmitPayloadData,
-  QuestionActiveAwaiting,
-} from "@/app/state/types";
+import { AIAwaitQuestionType } from "@/shared/contracts/agentEvents";
+import type { AIAwaitQuestion, AIAwaitQuestionSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { QuestionActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
   buildQuestionSubmitParams,

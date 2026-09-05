@@ -6,12 +6,8 @@ import {
   useAppState,
   useOptionalAppContext,
 } from "@/app/state/AppContext";
-import type {
-  AIUsageEstimatedCost,
-  AIUsageSnapshotEvent,
-  AIUsageStats,
-  AppState,
-} from "@/app/state/types";
+import type { AIUsageEstimatedCost, AIUsageSnapshotEvent, AIUsageStats } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
 import {
   resolveCurrentWorkerSummary,
   supportsActiveRunContextCompact,

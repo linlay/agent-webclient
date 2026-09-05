@@ -1,4 +1,4 @@
-import type { TtsVoiceBlock } from "@/app/state/types";
+import type { TtsVoiceBlock } from "@/features/timeline/lib/timelineState";
 
 export const DEFAULT_SAMPLE_RATE = 24000;
 export const DEFAULT_CHANNELS = 1;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { markChatRead } from "@/shared/data";
 import {
 	normalizeChatReadState,

@@ -8,6 +8,7 @@ import {
 import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
 import { WorkerNavigator } from "@/features/workers/components/WorkerNavigator";
+import { useMemoryOverlayActions } from "@/features/memory/components/MemoryOverlayProvider";
 
 export {
   buildCoderAgentCreateRequest,
@@ -19,6 +20,7 @@ export const LeftSidebar: React.FC = () => {
   const { state } = useAppContext();
   const { openCommandOverlay } = useCommandOverlayActions();
   const { openOverlay } = useSettingsOverlayActions();
+  const { openMemory } = useMemoryOverlayActions();
   const settingsSummaryBadges = React.useMemo(
     () => resolveSettingsSummaryBadges({ themeMode: state.themeMode }),
     [state.themeMode],
@@ -39,14 +41,14 @@ export const LeftSidebar: React.FC = () => {
         return;
       }
       if (action.type === "open-settings") openOverlay("settings");
-      if (action.type === "open-memory-info") openOverlay("memoryInfo");
+      if (action.type === "open-memory-info") openMemory();
     },
-    [openOverlay],
+    [openMemory, openOverlay],
   );
   return (
     <WorkerNavigator
       onOpenCommand={(type) => openCommandOverlay({ type })}
-      onOpenMemory={() => openOverlay("memoryInfo")}
+      onOpenMemory={openMemory}
       renderSettingsMenu={(close) => (
         <SidebarSettingsMenu
           onAction={(action) => {

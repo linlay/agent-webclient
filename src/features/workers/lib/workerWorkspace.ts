@@ -1,4 +1,4 @@
-import type { WorkerRow } from "@/app/state/types";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 
 export function canOpenWorkerWorkspace(
   row: Pick<WorkerRow, "type" | "agentType" | "workspaceDir"> | null | undefined,

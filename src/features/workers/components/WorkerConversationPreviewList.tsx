@@ -5,7 +5,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
-import type { WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
 

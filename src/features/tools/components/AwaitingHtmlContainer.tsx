@@ -7,11 +7,8 @@ import React, {
 } from "react";
 import { Button, Flex, Input, message, Radio } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import type {
-  AIAwaitFormSubmitParamData,
-  AIAwaitSubmitPayloadData,
-  FormActiveAwaiting,
-} from "@/app/state/types";
+import type { AIAwaitFormSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { getViewport } from "@/shared/data";
 import {
   type AwaitingCollectDecision,

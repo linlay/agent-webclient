@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useAppState } from "@/app/state/AppContext";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
+import { useMemoryOverlayState } from "@/features/memory/components/MemoryOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import {
   useGlobalSearchActions,
@@ -33,6 +34,7 @@ function isMessageInput(target: EventTarget | null): boolean {
 export function useGlobalShortcuts(): void {
   const state = useAppState();
   const { isAnyOverlayOpen } = useSettingsOverlayState();
+  const { isMemoryOpen } = useMemoryOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const { openGlobalSearch } = useGlobalSearchActions();
@@ -54,7 +56,7 @@ export function useGlobalShortcuts(): void {
       if (isInsideModalOrDrawer(event.target)) return;
 
       /* Guard: settings or command overlay already open */
-      if (isAnyOverlayOpen || isCommandOverlayOpen || isGlobalSearchOpen)
+      if (isAnyOverlayOpen || isMemoryOpen || isCommandOverlayOpen || isGlobalSearchOpen)
         return;
 
       /* Guard: active frontend tool or awaiting */
@@ -76,6 +78,7 @@ export function useGlobalShortcuts(): void {
   }, [
     isMac,
     isAnyOverlayOpen,
+    isMemoryOpen,
     isCommandOverlayOpen,
     isGlobalSearchOpen,
     openGlobalSearch,

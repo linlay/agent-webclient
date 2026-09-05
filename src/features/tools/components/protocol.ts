@@ -1,14 +1,5 @@
-import type {
-  ActiveAwaiting,
-  AIAwaitApprovalSubmitParamData,
-  AIAwaitFormSubmitParamData,
-  AIAwaitMode,
-  AIAwaitPlanSubmitParamData,
-  AIAwaitQuestionSubmitParamData,
-  AIAwaitSubmitParamData,
-  AIAwaitSubmitPayloadData,
-  FormActiveAwaiting,
-} from '@/app/state/types';
+import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
+import type { AIAwaitApprovalSubmitParamData, AIAwaitFormSubmitParamData, AIAwaitMode, AIAwaitPlanSubmitParamData, AIAwaitQuestionSubmitParamData, AIAwaitSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
 
 export type AwaitingRenderMode = 'none' | 'builtin' | 'html';
 export type AwaitingCollectDecision = 'submit' | 'reject';

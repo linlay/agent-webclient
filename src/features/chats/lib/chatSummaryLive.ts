@@ -1,10 +1,7 @@
-import {
-  isAwaitingAnswerLike,
-  isAwaitingAskLike,
-  type AgentEvent,
-  type AppState,
-  type Chat,
-} from '@/app/state/types';
+import { isAwaitingAnswerLike, isAwaitingAskLike } from "@/shared/contracts/agentEvents";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { resolveChatSummaryActiveRun } from '@/features/chats/lib/chatRunState';
 import {
   readEventChatName,

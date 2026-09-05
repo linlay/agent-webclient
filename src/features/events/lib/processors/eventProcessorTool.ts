@@ -1,8 +1,6 @@
-import type {
-  AgentEvent,
-  FileChangeSummary,
-  ToolState,
-} from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { ToolState } from "@/features/tools/lib/toolsState";
 import type {
   EventCommand,
   EventProcessorState,

@@ -7,6 +7,7 @@ import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
+import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
 import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
@@ -64,6 +65,7 @@ export const AppShell: React.FC = () => {
       : APP_SHELL_COLUMN_CLASS_BY_STATE.closedNoDebug;
 
   return (
+    <MemoryOverlayProvider>
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
         <GlobalSearchOverlayProvider>
@@ -96,5 +98,6 @@ export const AppShell: React.FC = () => {
         </GlobalSearchOverlayProvider>
       </CommandOverlayProvider>
     </SettingsOverlayProvider>
+    </MemoryOverlayProvider>
   );
 };

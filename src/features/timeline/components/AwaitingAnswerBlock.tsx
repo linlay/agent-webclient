@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useAppDispatch } from "@/app/state/AppContext";
 import { Flex } from "antd";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
