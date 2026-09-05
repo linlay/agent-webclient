@@ -17,6 +17,8 @@ Agent、Team 和 Worker 列表是左侧导航和对话入口的核心。前端�
 - `scope`、`mode` 仅筛 Agent；Copilot 路由是否回退到 nav scope 也只看 Agent 数量，不能被始终返回的 Team 阻止。
 - Agent/Team 选择只是前端路由提示，后端仍负责最终运行上下文。
 - Worker 列表不是 registry 编辑器；Agent 管理台和 Registry 管理台另有专题。
+- `features/workers` 只负责 Agent/Team 选择、会话列表、Worker view model 和工作区入口；Agent CRUD、ZIP 导入、专属 Skill、源码编辑和项目创建实现归 `features/agents`。
+- 跨领域设置菜单由 `app/layout/sidebar` 组合，`WorkerNavigator` 只消费菜单 slot 与打开动作，不解释 Memory、Archive、Registry 或 Settings 路由。
 - 未读和 pending awaiting 展示只服务导航，不修改后端协议。
 
 ## 相关文件
@@ -27,3 +29,5 @@ Agent、Team 和 Worker 列表是左侧导航和对话入口的核心。前端�
 - `../src/app/layout/LeftSidebar.tsx`
 - `../src/features/workers/components/WorkerNavigator.tsx`
 - `../src/features/workers/hooks/useWorkerSidebarData.ts`
+- `../src/features/workers/lib/workerState.ts`
+- `../src/app/layout/sidebar/SidebarSettingsMenu.tsx`

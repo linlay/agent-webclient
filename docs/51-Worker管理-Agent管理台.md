@@ -1,7 +1,7 @@
 # Agent管理台
 
 ## 当前状态
-Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agents/index.tsx`，主体为 `AgentConsole`。它面向 agent 定义查看、创建、编辑、排序、删除、打开工作区等管理操作。
+Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agents/index.tsx`，主体由 `src/features/agents` 对外提供。它面向 agent 定义查看、创建、编辑、排序、删除、ZIP 导入、专属 Skill 和源码编辑等管理操作；`features/workers` 不再包含管理台实现。
 
 ## 核心职责
 - 展示 agent 列表、状态、来源路径、诊断信息和可编辑详情。
@@ -11,6 +11,8 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 
 ## 核心流程
 进入 `/agents` 后，路由参数决定选中 agent。`AgentConsole` 使用 data client 拉取 admin agents、详情和 editor options。排序继续向 `/api/admin/agents/order` 提交包含 invalid Agent 的完整管理 catalog；普通客户端使用的 `/api/agents/order` 不替代管理接口。保存或删除后调用对应 admin API，并失效 agents/model options 缓存。
+
+`AgentConsole` 只编排页面状态、请求生命周期、脏状态保护和各编辑 surface；`AgentListPane` 负责筛选、选择与拖拽排序，`AgentEditor` 负责结构化表单，`AgentCapabilitiesEditor` 负责 Context/Tool/Skill，`AgentSourceEditor` 负责源码，`AgentCreateModal` 与 `useAgentImport` 负责直接创建和 ZIP 导入。表单与后端 definition 的归一化、校验和双向映射集中在 React-free 的 `lib/agentDefinition.ts`。
 
 ## 新建与 ZIP 导入
 
@@ -44,13 +46,21 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 - Agent 管理台编辑的是后端 agent 定义，不负责运行中的 query stream。
 - 专属 Skill 不属于技能中心，不在技能中心页面展示、编辑或删除。
 - Registry 文件编辑不在 Agent 管理台内完成。
+- 模型、reasoning 和 service tier 菜单由 `features/model-config` 唯一提供，Composer 与 Agent 管理台不得维护重复 presenter。
 - 前端只展示后端诊断，不自行判定 YAML 或 agent 能力是否有效。
 - 本次不提供 Agent ZIP 导出、自动改名或客户端填写导入 Key。
 
 ## 相关文件
 - `../src/app/pages/agents/index.tsx`
-- `../src/features/workers/components/AgentConsole.tsx`
-- `../src/features/workers/lib/agentSummary.ts`
-- `../src/features/workers/lib/agentOrdering.ts`
+- `../src/features/agents/components/AgentConsole.tsx`
+- `../src/features/agents/components/AgentEditor.tsx`
+- `../src/features/agents/components/AgentCapabilitiesEditor.tsx`
+- `../src/features/agents/components/AgentSourceEditor.tsx`
+- `../src/features/agents/components/AgentCreateModal.tsx`
+- `../src/features/agents/hooks/useAgentImport.ts`
+- `../src/features/agents/lib/agentDefinition.ts`
+- `../src/features/agents/lib/agentOrdering.ts`
+- `../src/features/model-config/components/ModelMenuPresenter.tsx`
+- `../src/features/model-config/lib/modelOptions.ts`
 - `../src/shared/data/api/client.ts`
 - `../src/shared/data/api/routedClient.ts`

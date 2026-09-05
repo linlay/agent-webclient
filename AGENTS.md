@@ -21,7 +21,7 @@
 - 发布：Desktop Program Bundle，交付 `frontend/dist` 与 manifest；HTTP 托管在 Desktop main process 中实现
 
 ## 3. 架构设计
-应用采用单页前端结构，`src/app/App.tsx` 负责装配 Ant Design 主题与应用上下文，`src/app/index.tsx` 负责入口挂载与全局样式引入。全局状态由 `src/app/state/AppContext.tsx` 统一导出，状态初始化、reducer、provider 和类型定义拆分在 `src/app/state/` 下；消息输入、流式事件消费、语音播放、计划面板、前端工具渲染等能力继续按 `features/*/{components,hooks,lib}` 组织。
+应用采用单页前端结构，`src/app/App.tsx` 负责装配 Ant Design 主题与应用上下文，`src/app/index.tsx` 负责入口挂载与全局样式引入。全局状态由 `src/app/state/AppContext.tsx` 统一导出，领域状态、action、初始值和单领域 reducer 由对应 feature 所有，`src/app/state/` 只负责扁平 `AppState`、`AppAction`、初始状态和跨领域 reducer 的组合；消息输入、流式事件消费、语音播放、计划面板、前端工具渲染等能力继续按 `features/*/{components,hooks,lib}` 组织。
 
 核心调用链如下：
 - 用户在 Composer 区输入消息
@@ -36,6 +36,8 @@
 - `docs/`：中文专题文档，按两位编号和模块分段组织，覆盖前端协议消费、运行态 UI、管理台、页面能力与部署专题
 - `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`；`app/pages` 只保留路由参数适配、页面 `<main>` 和 feature 装配，不实现 CRUD、表单、数据加载或领域校验
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
+- `src/features/agents/`：Agent 管理台、创建、CRUD、排序、ZIP 导入、专属 Skill、模型/工具配置、源码编辑和项目创建能力
+- `src/features/model-config/`：Composer 与 Agent 管理台共用的模型菜单 presenter，以及模型、reasoning、service tier 的 React-free 归一化逻辑
 - `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
 - `src/features/registries/`：Registry 与 MCP 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑
 - `src/features/archive/` / `src/features/memory/`：归档与记忆管理页面、内嵌面板及各自运行时；不再归入 Settings
@@ -49,22 +51,23 @@
 - `src/features/timeline/`：时间线 view model、展示组件和仅与展示有关的交互
 - `src/features/transport/`：SSE/WebSocket 客户端、帧处理、重试和 executor，不解释业务事件
 - `src/shared/data/`：统一数据管理模块，包含接口注册、API 客户端、鉴权封装、请求路由与轻量 server-state 查询缓存
-- `src/shared/styles/`：全局主题变量、样式入口与主题工具；当前统一入口为 `globals.css`
+- `src/shared/styles/`：全局 token、reset、基础排版、可访问性入口与主题工具；领域样式由 app/feature 自有 CSS Modules 承担
 - `src/shared/ui/`：通用基础 UI 组件
 - `src/shared/utils/`：通用工具函数
 - `scripts/`：Program Bundle、协议同步和构建辅助脚本
 - `Makefile`：本地开发、测试、构建与 Program Bundle 发布入口
 - `webpack.config.js` / `tsconfig.json`：当前 TypeScript + Webpack 构建链必需配置
 
-`features/**`（含测试）不得反向导入 `@/app/pages/**`、`@/app/modals/**` 或 `@/app/layout/**`；允许按现状依赖 `app/state` 的共享状态与类型。`shared/**` 不得导入 `app/**` 或 `features/**`，`app/pages/**` 不得直接导入 `shared/data`。领域数据加载时机、刷新策略和响应解释归 feature，`shared/data` 只保留端点、DTO 与请求执行契约。`npm run check:boundaries` 会生成 feature import graph，任意循环依赖都会失败。
+`features/**`（含测试）不得反向导入 `@/app/pages/**`、`@/app/modals/**` 或 `@/app/layout/**`；可依赖 `app/state` 的组合上下文，但领域类型必须直接从所属 feature 或 `shared/contracts` 导入。`shared/**` 不得导入 `app/**` 或 `features/**`，`app/pages/**` 不得直接导入 `shared/data`。`features/**/lib/*.ts` 保持 React-free，React presenter 放在 `components/*.tsx`。领域数据加载时机、刷新策略和响应解释归 feature，`shared/data` 只保留端点、DTO 与请求执行契约。`npm run check:boundaries` 会检查运行时 feature DAG、状态类型所有权、workers 管理职责和 shared 全局样式选择器，任意循环依赖或反向依赖都会失败。
 
 ## 5. 数据结构
-主要数据结构集中在 [`src/app/state/types.ts`](./src/app/state/types.ts)：
-- `AgentEvent`：后端流式事件的统一前端表示
-- `TimelineNode`：消息、thinking、tool、content 等时间线节点
-- `ToolState` / `ActionState`：工具与动作执行态
-- `PlanItem` / `PlanRuntime`：规划模式下的计划状态
-- `Agent`、`Team`、`Chat`、`WorkerRow`：对话、团队与 worker 选择器相关实体
+领域类型由所属模块维护，`src/app/state/types.ts` 只组合扁平 `AppState`：
+- `src/shared/contracts/agentEvents.ts`：wire event、awaiting 和 usage 协议类型
+- `src/features/agents/lib/agentState.ts`：`Agent` 与 Agent 管理状态
+- `src/features/workers/lib/workerState.ts`、`src/features/chats/lib/chatState.ts`：`Team`、`WorkerRow`、`Chat` 与导航摘要
+- `src/features/conversation/lib/conversationState.ts`、`src/features/timeline/lib/timelineState.ts`：会话、run/session 与时间线节点
+- `src/features/tools/lib/toolsState.ts`、`src/features/plan/lib/planState.ts`、`src/features/tasks/lib/tasksState.ts`：工具、awaiting、plan 与 task runtime
+- 其余拥有全局字段的 feature 在各自 `lib/<domain>State.ts` 维护状态、action、初始值和 reducer
 
 这些结构服务于事件回放、实时流式更新、工具渲染、语音联动和调试面板展示。历史 replay 后必须以 `/api/chat.awaiting` 校准唯一可操作 HITL；孤立 `awaiting.ask` 只保留为历史事件。
 
@@ -100,7 +103,7 @@
 - Desktop Program Bundle 只交付 `frontend/dist` 和 manifest；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 Desktop main process 托管。
 - Desktop main process 负责 Program Bundle 的静态托管和代理；WebClient 仓库不维护第二套生产发布链。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition`、音频采集能力与后端 WebSocket 能力，浏览器兼容性需单独验证。
-- `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为全局样式入口，其他全局样式通过该文件集中导入。
+- `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为真正的全局样式入口；领域组件自行引入 `*.module.css`，Ant Design portal 通过局部 `:global(...)` 兼容，不得把领域选择器放回 shared globals。
 
 ## 8. 开发流程
 本地开发流程：
