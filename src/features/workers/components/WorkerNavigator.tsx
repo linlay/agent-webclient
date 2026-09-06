@@ -33,6 +33,7 @@ import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useWorkerSidebarData } from "@/features/workers/hooks/useWorkerSidebarData";
 import type { WorkerSortMode } from "@/features/workers/hooks/useWorkerSidebarData";
+import type { WorkerActionHandlers } from "./WorkerActionsMenu";
 import { WorkerPanelHeader } from "@/features/workers/components/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/features/workers/components/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/features/chats/components/SidebarHistorySection";
@@ -43,8 +44,7 @@ import {
 } from "@/features/chats/lib/chatRunState";
 import { resolveSidebarChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
-import { openRegisteredAgentDirectory } from "@/shared/data/desktop/desktopFileSystem";
-import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
+import { openWorkerDirectory } from "@/features/workers/lib/workerWorkspace";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import {
   buildAgentCopyInfoGroups,
@@ -295,77 +295,20 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     }
   };
 
-  const handleOpenWorkspace = (workerKey: string) => {
+  const handleOpenDirectory = (workerKey: string, directoryType: "workspace" | "config") => {
     const row =
       state.workerIndexByKey.get(workerKey) ||
       state.workerRows.find((item) => item.key === workerKey);
-    const workspaceDir = String(row?.workspaceDir || "").trim();
-    if (!canOpenWorkerWorkspace(row)) {
-      const message =
-        row?.workspaceSourceKind === "browser-folder"
-          ? t("leftSidebar.browserWorkspaceOpenUnavailable")
-          : t("leftSidebar.workspaceUnavailable");
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[workspace] ${message}`,
-      });
-      return;
-    }
-    const agentKey = String(row?.sourceId || "").trim();
-    void openRegisteredAgentDirectory({
-      agentKey,
-      directoryType: "workspace",
-      ...(workspaceDir ? { desktopPath: workspaceDir } : {}),
-    })
-      .then((opened) => {
-        if (!opened) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[workspace] ${t("leftSidebar.workspaceUnavailable")}${workspaceDir ? `: ${workspaceDir}` : ""}`,
-          });
-        }
-      })
-      .catch((error) => {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[workspace open error] ${(error as Error).message}`,
-        });
-      });
+    void openWorkerDirectory(row, directoryType, t, (line) => {
+      dispatch({ type: "APPEND_DEBUG", line });
+    });
   };
 
-  const handleOpenConfigDirectory = (workerKey: string) => {
-    const row =
-      state.workerIndexByKey.get(workerKey) ||
-      state.workerRows.find((item) => item.key === workerKey);
-    const agentConfigDir = String(row?.agentConfigDir || "").trim();
-    const agentKey = String(row?.sourceId || "").trim();
-    if (!agentConfigDir || !agentKey) {
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[config directory] ${t("leftSidebar.configDirectoryUnavailable")}`,
-      });
-      return;
-    }
-    void openRegisteredAgentDirectory({
-      agentKey,
-      directoryType: "config",
-      desktopPath: agentConfigDir,
-    })
-      .then((opened) => {
-        if (!opened) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[config directory] ${t("leftSidebar.configDirectoryUnavailable")}: ${agentConfigDir}`,
-          });
-        }
-      })
-      .catch((error) => {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[config directory open error] ${(error as Error).message}`,
-        });
-      });
-  };
+  const handleOpenWorkspace = (workerKey: string) =>
+    handleOpenDirectory(workerKey, "workspace");
+
+  const handleOpenConfigDirectory = (workerKey: string) =>
+    handleOpenDirectory(workerKey, "config");
 
   const handleRenameAgent = (
     workerKey: string,
@@ -493,6 +436,15 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     });
   };
 
+  const workerActions: WorkerActionHandlers = {
+    onOpenWorkspace: handleOpenWorkspace,
+    onOpenConfigDirectory: handleOpenConfigDirectory,
+    onRenameAgent: handleRenameAgent,
+    onEditAgent: handleEditAgent,
+    onCopyAgent: handleCopyAgent,
+    onDeleteAgent: handleDeleteAgent,
+  };
+
   const handleCloseHistory = () => {
     setHistoryOpen(false);
   };
@@ -542,12 +494,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
             }
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
-            onOpenWorkspace={handleOpenWorkspace}
-            onOpenConfigDirectory={handleOpenConfigDirectory}
-            onRenameAgent={handleRenameAgent}
-            onEditAgent={handleEditAgent}
-            onCopyAgent={handleCopyAgent}
-            onDeleteAgent={handleDeleteAgent}
+            {...workerActions}
           />
         ),
         children: (
@@ -562,12 +509,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
             onOpenHistory={handleOpenHistory}
             onStartNewConversation={handleStartNewConversationForWorker}
             onMarkAllRead={handleMarkWorkerAllRead}
-            onOpenWorkspace={handleOpenWorkspace}
-            onOpenConfigDirectory={handleOpenConfigDirectory}
-            onRenameAgent={handleRenameAgent}
-            onEditAgent={handleEditAgent}
-            onCopyAgent={handleCopyAgent}
-            onDeleteAgent={handleDeleteAgent}
+            {...workerActions}
           />
         ),
       };
@@ -817,12 +759,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                               handleStartNewConversationForWorker
                             }
                             onMarkAllRead={handleMarkWorkerAllRead}
-                            onOpenWorkspace={handleOpenWorkspace}
-                            onOpenConfigDirectory={handleOpenConfigDirectory}
-                            onRenameAgent={handleRenameAgent}
-                            onEditAgent={handleEditAgent}
-                            onCopyAgent={handleCopyAgent}
-                            onDeleteAgent={handleDeleteAgent}
+                            {...workerActions}
                           />
                         }
                       >

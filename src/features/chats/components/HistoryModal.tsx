@@ -22,10 +22,6 @@ import { UiButton } from "@/shared/ui/UiButton";
 import useApp from "antd/es/app/useApp";
 import { useI18n } from "@/shared/i18n";
 import {
-  archiveChats,
-  deleteChat,
-  downloadChatExport,
-  downloadConversationHtmlExport,
   getChats,
   markChatRead,
   searchGlobal,
@@ -35,6 +31,7 @@ import { useAppContext } from "@/app/state/provider";
 import { AgentSelector } from "@/features/chats/components/AgentSelector";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { readEpochMillis } from "@/shared/utils/platformTime";
+import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
 
 const HISTORY_MODAL_TITLE_TAG_CLASS =
   "history-modal-title-tag tw:rounded-[10px] tw:bg-accent-soft tw:px-1.5 tw:py-0.5 tw:text-xs tw:font-normal tw:text-accent";
@@ -122,7 +119,9 @@ export const HistoryModal: React.FC<{
   const historyItemRefs = useRef<Array<HTMLElement | null>>([]);
   const { state, dispatch } = useAppContext();
   const { t } = useI18n();
-  const [pending, setPending] = useState(false);
+  const { pending, archive, remove, exportChat } = useChatOperations(
+    state.chatId, dispatch, t,
+  );
   const [remoteHistoryRows, setRemoteHistoryRows] = useState<Chat[] | null>(
     null,
   );
@@ -400,17 +399,12 @@ export const HistoryModal: React.FC<{
 
   const handleExport = async (chatId: string, format: "markdown" | "html") => {
     if (!chatId || pending) return;
-    setPending(true);
     try {
-      if (format === "html") {
-        await downloadConversationHtmlExport(chatId);
-      } else {
-        await downloadChatExport(chatId);
-      }
+      await exportChat(chatId, format);
       message.success(
         t(format === "html" ? "history.exportedHtml" : "history.exported"),
       );
-    } catch (error) {
+    } catch {
       message.error(
         t(
           format === "html"
@@ -418,12 +412,6 @@ export const HistoryModal: React.FC<{
             : "history.exportFailed",
         ),
       );
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[export chat ${format} error] ${(error as Error).message}`,
-      });
-    } finally {
-      setPending(false);
     }
   };
   const handleArchive = (chat: Chat) => {
@@ -434,37 +422,9 @@ export const HistoryModal: React.FC<{
       okText: t("chatActions.archive.ok"),
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
-        setPending(true);
-        try {
-          const response = await archiveChats({ chatIds: [chat.chatId] });
-          const result = response.data?.results?.[0];
-          if (!result?.success) {
-            throw new Error(result?.error || t("chatActions.archive.failed"));
-          }
-          dispatch({ type: "CHAT_ARCHIVED", chatId: chat.chatId });
-          removeRemoteHistoryRow(chat.chatId);
-          clearActiveChatIfNeeded(chat.chatId);
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[archive chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await archive(chat.chatId, removeRemoteHistoryRow);
       },
     });
-  };
-  const clearActiveChatIfNeeded = (chatId: string) => {
-    if (String(state.chatId || "") !== chatId) {
-      return;
-    }
-    dispatch({ type: "SET_CHAT_ID", chatId: "" });
-    dispatch({ type: "SET_RUN_ID", runId: "" });
-    dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
-    window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-    window.dispatchEvent(new CustomEvent("agent:voice-reset"));
   };
   const handleDelete = (chat: Chat) => {
     if (!chat || !chat?.chatId || pending) return;
@@ -475,21 +435,7 @@ export const HistoryModal: React.FC<{
       okButtonProps: { danger: true },
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
-        setPending(true);
-        try {
-          await deleteChat({ chatId: chat.chatId });
-          dispatch({ type: "CHAT_DELETED", chatId: chat.chatId });
-          removeRemoteHistoryRow(chat.chatId);
-          clearActiveChatIfNeeded(chat.chatId);
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[delete chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await remove(chat.chatId, removeRemoteHistoryRow);
       },
     });
   };

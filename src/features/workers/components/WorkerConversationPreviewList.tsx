@@ -1,13 +1,12 @@
 import React from "react";
-import { Button, Dropdown, Flex, Tooltip } from "antd";
-import type { MenuProps } from "antd";
+import { Button, Flex, Tooltip } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
-import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
+import { WorkerActionsMenu, type WorkerActionHandlers } from "./WorkerActionsMenu";
 
 type AgentIconConfig =
   | string
@@ -34,17 +33,13 @@ const WORKER_POPOVER_HEADER_TITLE_CLASS =
 const WORKER_POPOVER_NEW_CLASS =
   "worker-panel-new worker-popover-new tw:!inline-flex tw:!h-6 tw:!w-6 tw:text-text-muted";
 
-const SIDEBAR_MENU_ITEM_CLASS = "ui-icon-hover-24";
-
-const SIDEBAR_MENU_ICON_CLASS = "ui-icon-hover-24-target";
-
 const WORKER_CHAT_DIVIDER_CLASS =
   "worker-chat-divider tw:mx-5 tw:h-px tw:bg-border";
 
 const WORKER_CHAT_MORE_CLASS =
   "worker-chat-more tw:cursor-pointer tw:px-[9px] tw:py-[4px] tw:text-center tw:text-[12px] tw:text-text-muted tw:opacity-[0.72]";
 
-export const WorkerConversationPreviewList: React.FC<{
+export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
   row: WorkerRow;
   chats: WorkerConversationRow[];
   activeChatId: string;
@@ -59,16 +54,6 @@ export const WorkerConversationPreviewList: React.FC<{
     workerKey: string,
   ) => void;
   onMarkAllRead?: (e: React.MouseEvent<HTMLElement>, workerKey: string) => void;
-  onOpenWorkspace?: (workerKey: string) => void;
-  onOpenConfigDirectory?: (workerKey: string) => void;
-  onRenameAgent?: (
-    workerKey: string,
-    agentKey: string,
-    currentName: string,
-  ) => void;
-  onEditAgent?: (agentKey: string) => void;
-  onCopyAgent?: (workerKey: string, agentKey: string) => void;
-  onDeleteAgent?: (workerKey: string, agentKey: string) => void;
 }> = ({
   row,
   chats,
@@ -81,12 +66,7 @@ export const WorkerConversationPreviewList: React.FC<{
   onOpenHistory,
   onStartNewConversation,
   onMarkAllRead,
-  onOpenWorkspace,
-  onOpenConfigDirectory,
-  onRenameAgent,
-  onEditAgent,
-  onCopyAgent,
-  onDeleteAgent,
+  ...workerActions
 }) => {
   const { t } = useI18n();
   const recentChats = chats.slice(0, 5);
@@ -102,97 +82,6 @@ export const WorkerConversationPreviewList: React.FC<{
     unreadCount > 0
       ? t("leftSidebar.showMoreUnreadSuffix", { count: unreadCount })
       : "";
-  const isAgent = row.type === "agent";
-  const canOpenWorkspace = canOpenWorkerWorkspace(row);
-  const canOpenConfigDirectory = isAgent && Boolean(row.agentConfigDir);
-  const workspaceUnavailableTitle =
-    row.workspaceSourceKind === "browser-folder"
-      ? t("leftSidebar.browserWorkspaceOpenUnavailable")
-      : t("leftSidebar.workspaceUnavailable");
-  const isCoder = row.agentType === "coder";
-  const isKbase = row.agentType === "kbase";
-  const actionMenuItems: MenuProps["items"] = [
-    {
-      key: "openWorkspace",
-      className: SIDEBAR_MENU_ITEM_CLASS,
-      icon: (
-        <MaterialIcon name="folder_open" className={SIDEBAR_MENU_ICON_CLASS} />
-      ),
-      label: t("leftSidebar.openWorkspace"),
-      disabled: !canOpenWorkspace,
-    },
-    ...(isAgent
-      ? [
-          {
-            key: "openConfigDirectory",
-            className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: (
-              <MaterialIcon
-                name="data_object"
-                className={SIDEBAR_MENU_ICON_CLASS}
-              />
-            ),
-            label: t("leftSidebar.openConfigDirectory"),
-            disabled: !canOpenConfigDirectory,
-          },
-        ]
-      : []),
-    ...(isAgent && onRenameAgent
-      ? [
-          {
-            key: "renameAgent",
-            className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: (
-              <MaterialIcon name="rename" className={SIDEBAR_MENU_ICON_CLASS} />
-            ),
-            label: t("leftSidebar.renameAgent"),
-          },
-        ]
-      : []),
-    ...(isAgent && onEditAgent
-      ? [
-          {
-            key: "editAgent",
-            className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: (
-              <MaterialIcon
-                name="settings"
-                className={SIDEBAR_MENU_ICON_CLASS}
-              />
-            ),
-            label: t("leftSidebar.editAgent"),
-          },
-        ]
-      : []),
-    ...(isAgent && onCopyAgent
-      ? [
-          {
-            key: "copyAgent",
-            className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: (
-              <MaterialIcon
-                name="content_copy"
-                className={SIDEBAR_MENU_ICON_CLASS}
-              />
-            ),
-            label: t("leftSidebar.copyAgentInfo"),
-          },
-        ]
-      : []),
-    ...(isAgent && (isCoder || isKbase) && onDeleteAgent
-      ? [
-          {
-            key: "deleteAgent",
-            className: SIDEBAR_MENU_ITEM_CLASS,
-            icon: (
-              <MaterialIcon name="delete" className={SIDEBAR_MENU_ICON_CLASS} />
-            ),
-            label: t("leftSidebar.deleteAgent"),
-            danger: true,
-          },
-        ]
-      : []),
-  ];
 
   return (
     <div className={WORKER_CHAT_PREVIEW_LIST_CLASS}>
@@ -234,46 +123,17 @@ export const WorkerConversationPreviewList: React.FC<{
                 onClick={(e) => onStartNewConversation(e, row.key)}
               />
             </Tooltip>
-            <Dropdown
-              trigger={["click"]}
-              menu={{
-                items: actionMenuItems,
-                onClick: ({ domEvent, key }) => {
-                  domEvent.stopPropagation();
-                  if (key === "openWorkspace" && canOpenWorkspace) {
-                    onOpenWorkspace?.(row.key);
-                  } else if (
-                    key === "openConfigDirectory" &&
-                    row.agentConfigDir
-                  ) {
-                    onOpenConfigDirectory?.(row.key);
-                  } else if (key === "renameAgent") {
-                    onRenameAgent?.(row.key, row.sourceId, row.displayName);
-                  } else if (key === "editAgent") {
-                    onEditAgent?.(row.sourceId);
-                  } else if (key === "copyAgent") {
-                    onCopyAgent?.(row.key, row.sourceId);
-                  } else if (key === "deleteAgent") {
-                    onDeleteAgent?.(row.key, row.sourceId);
-                  }
-                },
-              }}
+            <WorkerActionsMenu
+              row={row}
+              {...workerActions}
             >
-              <Tooltip
-                title={
-                  canOpenWorkspace
-                    ? t("leftSidebar.moreActions")
-                    : workspaceUnavailableTitle
-                }
-              >
-                <Button
-                  className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-24`}
-                  type="text"
-                  icon={<MaterialIcon name="more_horiz" />}
-                  onClick={(event) => event.stopPropagation()}
-                />
-              </Tooltip>
-            </Dropdown>
+              <Button
+                className={`${WORKER_POPOVER_NEW_CLASS} ui-icon-hover-24`}
+                type="text"
+                icon={<MaterialIcon name="more_horiz" />}
+                onClick={(event) => event.stopPropagation()}
+              />
+            </WorkerActionsMenu>
           </Flex>
         </div>
       )}

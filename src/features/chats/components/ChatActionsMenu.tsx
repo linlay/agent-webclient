@@ -1,20 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Dropdown, Input, Modal, message, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
 import {
-  archiveChats,
-  deleteChat,
-  downloadChatExport,
-  downloadConversationHtmlExport,
   getChat,
-  renameChat,
   type ChatDetailResponse,
 } from "@/shared/data";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import { buildChatCopyInfoGroups } from "@/features/chats/lib/chatCopyInfo";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
 
 export const ChatActionsMenu: React.FC<{
   chatId: string;
@@ -34,7 +30,9 @@ export const ChatActionsMenu: React.FC<{
   onDeleted,
 }) => {
   const { state, dispatch } = useAppContext();
-  const [pending, setPending] = useState(false);
+  const { pending, archive, remove, rename, exportChat } = useChatOperations(
+    state.chatId, dispatch, t,
+  );
   const [copyInfoOpen, setCopyInfoOpen] = useState(false);
   const [copyInfoDetail, setCopyInfoDetail] =
     useState<ChatDetailResponse | null>(null);
@@ -57,17 +55,6 @@ export const ChatActionsMenu: React.FC<{
     .join(" ");
   const menuItemClassName = iconHover24 ? "ui-icon-hover-24" : undefined;
   const menuIconClassName = iconHover24 ? "ui-icon-hover-24-target" : undefined;
-
-  const clearActiveChatIfNeeded = () => {
-    if (String(state.chatId || "") !== normalizedChatId) {
-      return;
-    }
-    dispatch({ type: "SET_CHAT_ID", chatId: "" });
-    dispatch({ type: "SET_RUN_ID", runId: "" });
-    dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
-    window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-    window.dispatchEvent(new CustomEvent("agent:voice-reset"));
-  };
 
   const handleRename = () => {
     if (!normalizedChatId || pending) return;
@@ -92,28 +79,7 @@ export const ChatActionsMenu: React.FC<{
         if (!chatName) {
           throw new Error(t("chatActions.rename.required"));
         }
-        setPending(true);
-        try {
-          const response = await renameChat({
-            chatId: normalizedChatId,
-            chatName,
-          });
-          const renamedName =
-            String(response.data?.chatName || "").trim() || chatName;
-          dispatch({
-            type: "CHAT_RENAMED",
-            chatId: normalizedChatId,
-            chatName: renamedName,
-          });
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[rename chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await rename(normalizedChatId, chatName);
       },
     });
   };
@@ -127,86 +93,33 @@ export const ChatActionsMenu: React.FC<{
       okButtonProps: { danger: true },
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
-        setPending(true);
-        try {
-          await deleteChat({ chatId: normalizedChatId });
-          dispatch({ type: "CHAT_DELETED", chatId: normalizedChatId });
-          onDeleted?.(normalizedChatId);
-          clearActiveChatIfNeeded();
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[delete chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await remove(normalizedChatId, onDeleted);
       },
     });
   };
 
-  const runArchive = useCallback(async () => {
-    if (!normalizedChatId || pending) return;
-    setPending(true);
-    try {
-      const response = await archiveChats({ chatIds: [normalizedChatId] });
-      const result = response.data?.results?.[0];
-      if (!result?.success) {
-        throw new Error(result?.error || t("chatActions.archive.failed"));
-      }
-      dispatch({ type: "CHAT_ARCHIVED", chatId: normalizedChatId });
-      onArchived?.(normalizedChatId);
-      clearActiveChatIfNeeded();
-    } catch (error) {
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[archive chat error] ${(error as Error).message}`,
-      });
-      message.error(t("chatActions.archive.failed"));
-    } finally {
-      setPending(false);
-    }
-  }, [
-    clearActiveChatIfNeeded,
-    dispatch,
-    normalizedChatId,
-    onArchived,
-    pending,
-    t,
-  ]);
-
   const handleArchive = () => {
     if (!normalizedChatId || pending) return;
-    void runArchive();
+    void archive(normalizedChatId, onArchived).catch(() => {
+      message.error(t("chatActions.archive.failed"));
+    });
   };
 
   const handleExport = async (format: "markdown" | "html") => {
     if (!normalizedChatId || pending) return;
-    setPending(true);
     try {
-      if (format === "html") {
-        await downloadConversationHtmlExport(normalizedChatId);
-      } else {
-        await downloadChatExport(normalizedChatId);
-      }
+      await exportChat(normalizedChatId, format);
       message.success(
         t(format === "html"
           ? "chatActions.exportHtml.success"
           : "chatActions.export.success"),
       );
-    } catch (error) {
+    } catch {
       message.error(
         t(format === "html"
           ? "chatActions.exportHtml.failed"
           : "chatActions.export.failed"),
       );
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[export chat ${format} error] ${(error as Error).message}`,
-      });
-    } finally {
-      setPending(false);
     }
   };
 
