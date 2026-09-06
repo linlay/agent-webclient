@@ -359,6 +359,7 @@ describe("CopilotShell", () => {
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
     expect(useAppRuntimes).toHaveBeenCalledWith({
       initialWorkerRefreshEnabled: true,
+      targetChatId: "", routeReady: true,
     });
   });
 
@@ -614,7 +615,7 @@ describe("CopilotShell", () => {
       dispatchEvent.mock.calls.filter(
         ([event]) => (event as Event).type === "agent:load-chat",
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
 
     useEffectSpy.mockRestore();
   });
@@ -864,6 +865,7 @@ describe("CopilotShell", () => {
     expect(getAgent).toHaveBeenCalledWith("missing-agent");
     expect(useAppRuntimes).toHaveBeenCalledWith({
       initialWorkerRefreshEnabled: false,
+      targetChatId: "", routeReady: false,
     });
 
     useEffectSpy.mockRestore();
@@ -937,15 +939,10 @@ describe("CopilotShell", () => {
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
-    expect(dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:load-chat",
-        detail: {
-          chatId: "chat-123",
-          focusComposerOnComplete: true,
-        },
-      }),
-    );
+    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({
+      targetChatId: "chat-123",
+    }));
+    expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: "agent:load-chat" }));
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",

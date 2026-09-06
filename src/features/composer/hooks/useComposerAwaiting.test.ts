@@ -132,6 +132,39 @@ describe("resolveAwaitingSubmitAgentKey", () => {
 });
 
 describe("submitComposerAwaiting", () => {
+	it("cannot submit an awaiting hidden by the shared conversation surface", async () => {
+		const submitAwaitingImpl = jest.fn();
+		const dispatch = jest.fn();
+		await submitComposerAwaiting({
+			activeAwaiting: { key: "run_1#await_1", runId: "run_1", awaitingId: "await_1", agentKey: "demo", timeout: null, mode: "question", questions: [] },
+			clearActiveAwaiting: jest.fn(), dispatch,
+			message: { info: jest.fn(), warning: jest.fn() },
+			payload: { runId: "run_1", awaitingId: "await_1", params: [] },
+			state: { ...createInitialState(), chatId: "A", chatSurfaceBlocked: true },
+			t: key => key, submitAwaitingImpl,
+		});
+		expect(submitAwaitingImpl).not.toHaveBeenCalled();
+		expect(dispatch).not.toHaveBeenCalled();
+	});
+	it("does not let a late awaiting response clear the new conversation", async () => {
+		let resolve!: (response: any) => void;
+		let current = true;
+		const dispatch = jest.fn(), clearActiveAwaiting = jest.fn();
+		const pending = submitComposerAwaiting({
+			activeAwaiting: { key: "run_1#await_1", runId: "run_1", awaitingId: "await_1", agentKey: "demo", timeout: null, mode: "question", questions: [] },
+			clearActiveAwaiting, dispatch,
+			message: { info: jest.fn(), warning: jest.fn() },
+			payload: { runId: "run_1", awaitingId: "await_1", params: [] },
+			state: { ...createInitialState(), chatId: "A" }, isCurrent: () => current,
+			t: key => key, submitAwaitingImpl: () => new Promise(r => { resolve = r; }),
+		});
+		current = false;
+		dispatch.mockClear();
+		resolve({ data: { accepted: true } });
+		await pending;
+		expect(clearActiveAwaiting).not.toHaveBeenCalled();
+		expect(dispatch).not.toHaveBeenCalled();
+	});
 	afterEach(() => {
 		delete (globalThis as { window?: unknown }).window;
 		delete (globalThis as { CustomEvent?: unknown }).CustomEvent;

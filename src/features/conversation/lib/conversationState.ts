@@ -15,6 +15,9 @@ export interface ChatTransition {
   displayMode: ChatTransitionDisplayMode;
   focusComposerOnReady: boolean;
   error: string;
+  /** Absolute preparation deadline; scroll restoration has its own budget. */
+  startedAt?: number;
+  deadlineAt?: number;
 }
 
 export interface ConversationScrollRequest {
@@ -38,6 +41,7 @@ export interface ConversationState {
   events: AgentEvent[];
   chatLoadSeq: number;
   chatTransition: ChatTransition | null;
+  chatSurfaceBlocked: boolean;
   conversationScrollRequest: ConversationScrollRequest | null;
   planningMode: boolean;
   planningModeByChatId: Record<string, boolean>;
@@ -52,6 +56,7 @@ export type ConversationAction =
   | { type: "ADVANCE_CHAT_TRANSITION"; seq: number; targetChatId: string; phase: Extract<ChatTransitionPhase, "applying" | "restoring" | "ready"> }
   | { type: "FAIL_CHAT_TRANSITION"; seq: number; targetChatId: string; error: string }
   | { type: "CLEAR_CHAT_TRANSITION" }
+  | { type: "SET_CHAT_SURFACE_BLOCKED"; blocked: boolean }
   | { type: "REQUEST_CONVERSATION_SCROLL"; chatId: string; reason: "local-send" | "user-click" }
   | { type: "SET_RUN_ID"; runId: string }
   | { type: "SET_RUN_AGENT_BY_ID"; runId: string; agentKey: string }
@@ -84,6 +89,7 @@ export function createInitialConversationState(): ConversationState {
     events: [],
     chatLoadSeq: 0,
     chatTransition: null,
+    chatSurfaceBlocked: false,
     conversationScrollRequest: null,
     planningMode: false,
     planningModeByChatId: {},
@@ -100,6 +106,7 @@ export function reduceConversationState(
     case "SET_CHAT_ID": return { ...state, chatId: action.chatId };
     case "BEGIN_CHAT_TRANSITION": return { ...state, chatTransition: action.transition };
     case "CLEAR_CHAT_TRANSITION": return { ...state, chatTransition: null };
+    case "SET_CHAT_SURFACE_BLOCKED": return { ...state, chatSurfaceBlocked: action.blocked };
     case "SET_RUN_ID": return { ...state, runId: action.runId };
     case "SET_CURRENT_RUN_AGENT_KEY": return { ...state, currentRunAgentKey: action.agentKey };
     case "SET_REQUEST_ID": return { ...state, requestId: action.requestId };

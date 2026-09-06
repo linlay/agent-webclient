@@ -1,4 +1,5 @@
 import { useConversationActions } from "@/features/conversation/hooks/useConversationActions";
+import { useConversationRouteLoad } from "@/features/conversation/hooks/useConversationRouteLoad";
 import { useChatReadSync } from "@/features/chats/hooks/useChatReadSync";
 import { useMainChatRunActivation } from "@/features/runs/hooks/useMainChatRunActivation";
 import { useDesktopLiveSurfaceRecovery } from "@/features/runs/hooks/useDesktopLiveSurfaceRecovery";
@@ -13,6 +14,8 @@ import { useWorkerConversationSelection } from "@/features/workers/hooks/useWork
 
 export interface UseAppRuntimesOptions {
   initialWorkerRefreshEnabled?: boolean;
+  targetChatId?: string;
+  routeReady?: boolean;
 }
 
 export function useAppRuntimes(
@@ -22,7 +25,8 @@ export function useAppRuntimes(
   const { handleEvent } = useConversationEventHandler();
   useConversationWsRuntime({ onAgentEvent: handleEvent });
   const conversationActions = useConversationActions();
-  useDesktopLiveSurfaceRecovery(conversationActions.loadChat);
+  useConversationRouteLoad(conversationActions, options.targetChatId, options.routeReady !== false);
+  useDesktopLiveSurfaceRecovery(conversationActions.loadChat, options.targetChatId);
   const { selectWorkerConversation } = useWorkerConversationSelection(conversationActions);
   const workerData = useWorkerData({
     loadChat: conversationActions.loadChat,
@@ -36,6 +40,7 @@ export function useAppRuntimes(
   useMemoryRecordsInitialization();
   return {
     ...workerData,
+    loadChat: conversationActions.loadChat,
     startNewConversation: conversationActions.startNewConversation,
   };
 }

@@ -1754,6 +1754,7 @@ export const enUSMessages = {
   "contentBlock.ttsVoice": "TTS voice",
   "contentBlock.replayVoice": "Replay voice",
   "conversationStage.queryAnchor": "Go to question {index}",
+  "conversationStage.loadTimeout": "Conversation loading exceeded 15 seconds. Please retry.",
   "conversationStage.scrollToBottom": "Scroll to bottom",
   "viewport.loading": "Loading view...",
   "viewport.loadFailed": "Failed to load view: {detail}",

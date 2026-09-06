@@ -28,6 +28,7 @@ export async function recoverDesktopLiveSurface(input: {
 
 export function useDesktopLiveSurfaceRecovery(
   loadChat: LoadChatForSurfaceRecovery,
+  routeChatId?: string,
 ): void {
   const { stateRef } = useAppContext();
 
@@ -37,7 +38,7 @@ export function useDesktopLiveSurfaceRecovery(
       void recoverDesktopLiveSurface({
         active: detail?.active === true,
         chatId: String(stateRef.current.chatId || "").trim(),
-        routeChatId: new URLSearchParams(window.location.search).get("chatId") || "",
+        routeChatId: routeChatId || "",
         loadChat,
       }).catch(() => undefined);
     };
@@ -45,5 +46,5 @@ export function useDesktopLiveSurfaceRecovery(
     return () => {
       window.removeEventListener(DESKTOP_LIVE_SURFACE_ACTIVE_EVENT, handleSurfaceActive);
     };
-  }, [loadChat, stateRef]);
+  }, [loadChat, routeChatId, stateRef]);
 }

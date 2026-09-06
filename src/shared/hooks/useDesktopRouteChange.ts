@@ -34,6 +34,7 @@ type DesktopRouteBridge = {
   listeners: Set<DesktopRouteSubscriber>;
   listening: boolean;
   unsubscribeFromMain: (() => void) | null;
+  lastCommand?: DesktopRouteCommand;
 };
 
 type DesktopRouteElectronAPI = {
@@ -221,6 +222,13 @@ function dispatchDesktopRoutePayload(payload: unknown): void {
     target,
     routeRevision,
   };
+  const bridge = getDesktopRouteBridge();
+  if (bridge.lastCommand && (routeRevision < bridge.lastCommand.routeRevision ||
+    (routeRevision === bridge.lastCommand.routeRevision && target !== bridge.lastCommand.target))) {
+    reportDesktopRouteDiagnostic("stale-command-rejected", { routeRevision, target });
+    return;
+  }
+  bridge.lastCommand = command;
   reportDesktopRouteDiagnostic("bridge-received", {
     routeRevision: command.routeRevision,
     target,
@@ -229,9 +237,17 @@ function dispatchDesktopRoutePayload(payload: unknown): void {
       : `${window.location.pathname}${window.location.search}${window.location.hash}`,
   });
 
-  for (const listener of Array.from(getDesktopRouteBridge().listeners)) {
+  for (const listener of Array.from(bridge.listeners)) {
     listener(target, command);
   }
+}
+
+/** Diagnostic correlation only; never a source of conversation readiness. */
+export function readDesktopChatRouteRevision(chatId: string): number | undefined {
+  const command = getDesktopRouteBridge().lastCommand;
+  if (!command) return undefined;
+  const target = new URL(command.target, "http://desktop.invalid");
+  return target.searchParams.get("chatId") === chatId ? command.routeRevision : undefined;
 }
 
 function ensureDesktopRouteBridgeListening(): void {

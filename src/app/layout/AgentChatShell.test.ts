@@ -14,8 +14,6 @@ import {
   parseComposerPrefillPayload,
   parseNewChatTimestamp,
   resolveNewChatResendRouteAction,
-  shouldKeepClaimedChatRouteLoad,
-  shouldSkipPromotedChatHistoryLoad,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
 import type { Chat } from "@/features/chats/lib/chatState";
@@ -319,6 +317,7 @@ describe("AgentChatShell", () => {
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
     expect(useAppRuntimes).toHaveBeenCalledWith({
       initialWorkerRefreshEnabled: false,
+      targetChatId: "", routeReady: false,
     });
   });
 
@@ -745,47 +744,6 @@ describe("AgentChatShell", () => {
     ).toBe(false);
   });
 
-  it("does not let a stale live-session promotion skip the target history load", () => {
-    expect(shouldSkipPromotedChatHistoryLoad({
-      promotionConsumed: true,
-      targetChatId: "chat-target",
-      visibleChatId: "chat-previous",
-      liveQueryOwnsTarget: false,
-    })).toBe(false);
-
-    expect(shouldSkipPromotedChatHistoryLoad({
-      promotionConsumed: true,
-      targetChatId: "chat-target",
-      visibleChatId: "chat-target",
-      liveQueryOwnsTarget: false,
-    })).toBe(true);
-
-    expect(shouldSkipPromotedChatHistoryLoad({
-      promotionConsumed: true,
-      targetChatId: "chat-target",
-      visibleChatId: "chat-previous",
-      liveQueryOwnsTarget: true,
-    })).toBe(true);
-  });
-
-  it("reclaims a route load when neither visible state nor transition owns its target", () => {
-    expect(shouldKeepClaimedChatRouteLoad({
-      lastRouteKey: createChatRouteKey("demo-agent", "chat-target"),
-      routeKey: createChatRouteKey("demo-agent", "chat-target"),
-      targetChatId: "chat-target",
-      visibleChatId: "chat-previous",
-      transitionTargetChatId: "chat-previous",
-    })).toBe(false);
-
-    expect(shouldKeepClaimedChatRouteLoad({
-      lastRouteKey: createChatRouteKey("demo-agent", "chat-target"),
-      routeKey: createChatRouteKey("demo-agent", "chat-target"),
-      targetChatId: "chat-target",
-      visibleChatId: "chat-previous",
-      transitionTargetChatId: "chat-target",
-    })).toBe(true);
-  });
-
   it("uses each timestamp as the retrigger key for explicit new chat routes", () => {
     expect(createNewChatRouteKey("demo-agent", "1783680000000")).toBe(
       "demo-agent\u00001783680000000",
@@ -961,15 +919,10 @@ describe("AgentChatShell", () => {
       type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
       agentKey: "demo-agent",
     });
-    expect(dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:load-chat",
-        detail: {
-          chatId: "chat-123",
-          focusComposerOnComplete: true,
-        },
-      }),
-    );
+    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({
+      targetChatId: "chat-123",
+    }));
+    expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: "agent:load-chat" }));
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",
@@ -1041,7 +994,7 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("does not cover visible timeline content when route chat id and state chat id diverge", () => {
+  it("keeps the timeline mounted for the shared surface to mask when route and state diverge", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
@@ -1059,7 +1012,7 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("waits for agent hydration before activating a direct chat route", async () => {
+  it("registers the direct Chat target while waiting for Agent hydration", async () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -1083,8 +1036,8 @@ describe("AgentChatShell", () => {
         type: "agent:load-chat",
       }),
     );
-    expect(html).toContain("Loading agent");
-    expect(html).not.toContain("Loading conversation");
+    expect(html).toContain("conversation-stage");
+    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({ targetChatId: "chat-123", routeReady: false }));
 
     await flushPromises();
 

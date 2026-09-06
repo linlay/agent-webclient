@@ -342,6 +342,16 @@ describe("useDesktopRouteChange bridge", () => {
       "/agent/demo?chatId=chat-c",
       { replace: true, flushSync: true },
     );
+    act(() => {
+      for (const routeRevision of [9, 10]) {
+        callbacks[0]?.({}, {
+          type: "desktopRouteChanged", pathname: "/agent/demo",
+          search: "?chatId=chat-b", routeRevision,
+        });
+      }
+    });
+    expect(navigate).toHaveBeenCalledTimes(2); // Neither stale nor conflicting revision wins.
+    expect(statuses).toHaveLength(1);
     window.removeEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
   });
 

@@ -4,7 +4,9 @@ import { ComposerArea } from "@/features/composer/components/ComposerArea";
 import { PlanPanel } from "@/features/plan/components/PlanPanel";
 import { FrontendToolContainer } from "@/features/tools/components/FrontendToolContainer";
 import { ArtifactPanel } from "@/features/artifacts/components/ArtifactPanel";
-import { isChatTransitionBlockingInteractions } from "@/features/conversation/lib/chatTransition";
+import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
+import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
+import { ConversationRegionSkeleton } from "@/features/conversation/components/ConversationRegionSkeleton";
 
 interface BottomDockProps {
 	mode?: "desktop" | "copilot";
@@ -27,14 +29,17 @@ const BOTTOM_DOCK_STACK_CLASS_BY_MODE = {
 export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 	const state = useAppState();
 	const isCopilot = mode === "copilot";
-	const transitionBlocking = isChatTransitionBlockingInteractions(
-		state.chatTransition,
-	);
+	const presentation = useConversationSurface();
+	const transitionBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
 
 	return (
 		<div className={BOTTOM_DOCK_CLASS_BY_MODE[mode]}>
 			<div className={BOTTOM_DOCK_INNER_CLASS_BY_MODE[mode]}>
 				<div className={BOTTOM_DOCK_STACK_CLASS_BY_MODE[mode]}>
+					{transitionBlocking && !presentation?.error && <>
+						<ConversationRegionSkeleton region="artifacts" phase={presentation?.phase} />
+						<ConversationRegionSkeleton region="plan-tasks" phase={presentation?.phase} />
+					</>}
 					{!transitionBlocking && (
 						<div className="bottom-dock-artifact-rail">
 							<ArtifactPanel />
@@ -50,13 +55,15 @@ export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 							<FrontendToolContainer />
 						</div>
 					)}
-					<div className="bottom-dock-composer-rail">
+					<fieldset className="bottom-dock-composer-rail" disabled={transitionBlocking}
+						aria-disabled={transitionBlocking} {...(transitionBlocking ? { inert: "" } : {})}
+						style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
 						<ComposerArea
 							emptyInputMinRows={isCopilot ? 3 : undefined}
 							inputMaxRows={isCopilot ? 6 : undefined}
 							showWonders={!isCopilot}
 						/>
-					</div>
+					</fieldset>
 				</div>
 			</div>
 		</div>

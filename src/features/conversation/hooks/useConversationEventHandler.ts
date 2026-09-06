@@ -309,6 +309,11 @@ export function useConversationEventHandler(): {
       const state = stateRef.current;
       let cache = cacheRef.current;
       const type = toText(event.type);
+      const targetChatId = state.chatTransition?.targetChatId || state.chatId;
+      // Background sessions retain their own events; this sink only projects
+      // the selected conversation. A late source event must not switch it back.
+      if (targetChatId && event.chatId && toText(event.chatId) !== targetChatId) return;
+      if (state.chatTransition?.phase === "error" && state.chatTransition.targetChatId !== state.chatId) return;
       const mainRuntime = resolveMainChatRuntime(
         stateRef,
         activeQuerySessionRequestIdRef,

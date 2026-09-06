@@ -559,7 +559,7 @@ describe("ConversationStage scroll restoration", () => {
     ).toBeNull();
   });
 
-  it("keeps the live timeline visible while its canonical route binding catches up", () => {
+  it("masks an uncommitted live handoff until its data belongs to the Router target", () => {
     mockState = {
       ...createChatState(createTransition("loading", {
         sourceChatId: "chat-source",
@@ -581,10 +581,11 @@ describe("ConversationStage scroll restoration", () => {
 
     renderStage("chat-next");
 
-    expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
+    expect(container.querySelector(".conversation-transition-overlay")).not.toBeNull();
+    expect(container.querySelector("[data-conversation-content]")?.getAttribute("aria-hidden")).toBe("true");
     expect(container.querySelector('[data-node-id="query-1"]')).not.toBeNull();
-    expect(mockVirtuosoProps.followOutput(true)).toBe("smooth");
-    expect(mockDispatch).toHaveBeenCalledWith({
+    expect(mockVirtuosoProps.followOutput(true)).toBe(false);
+    expect(mockDispatch).not.toHaveBeenCalledWith({
       type: "CLEAR_CHAT_TRANSITION",
     });
   });

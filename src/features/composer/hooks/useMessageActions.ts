@@ -42,7 +42,7 @@ import {
   readRequestQueryText,
 } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
-import { isChatTransitionBlockingInteractions } from "@/features/conversation/lib/chatTransition";
+import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
 
 interface SendMessageEventDetail {
   message?: unknown;
@@ -284,7 +284,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       });
       if (!rawMessage && normalizedReferences.length === 0) return;
       if (
-        isChatTransitionBlockingInteractions(stateRef.current.chatTransition)
+        areConversationInteractionsBlocked(stateRef.current)
       ) {
         return;
       }

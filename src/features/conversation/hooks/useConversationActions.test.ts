@@ -1331,6 +1331,10 @@ describe('replayEvent tool migration', () => {
 
 	it('waits for the requested chat content commit before auto-read', () => {
 		expect(isChatContentCommitted({
+			chatId: 'chat_1', blocked: true,
+			transition: { targetChatId: 'chat_1', phase: 'ready' },
+		})).toBe(false);
+		expect(isChatContentCommitted({
 			chatId: 'chat_1',
 			transition: { targetChatId: 'chat_1', phase: 'applying' },
 		})).toBe(false);
@@ -1649,11 +1653,7 @@ describe('replayEvent tool migration', () => {
       type: 'SET_CHAT_TRANSITION_DISPLAY_MODE',
       seq: 1,
       targetChatId: 'chat-active',
-      displayMode: 'background',
-    });
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'APPEND_DEBUG',
-      line: '[chat transition] active-run background chatId=chat-active runId=run_active transitionSeq=1 phase=applying displayMode=background',
+      displayMode: 'blocking',
     });
   });
 

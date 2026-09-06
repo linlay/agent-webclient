@@ -1,4 +1,6 @@
 import React from "react";
+import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
+import { ConversationRegionSkeleton } from "@/features/conversation/components/ConversationRegionSkeleton";
 import {
   useOptionalAppContext,
   useAppState,
@@ -313,6 +315,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
     });
   };
   const statusLabel = t(statusText);
+  const presentation = useConversationSurface();
   const statusTitle = statusDetail
     ? `${statusLabel}: ${statusDetail}`
     : statusLabel;
@@ -322,6 +325,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
         <div className={NAV_LEFT_CLASS}></div>
 
         <div className={NAV_CENTER_CLASS}>
+          {presentation?.blocked ? <ConversationRegionSkeleton region="header" phase={presentation.phase} /> :
           <div className={CURRENT_WORKER_CARD_CLASS} aria-live="polite">
             <strong className={CURRENT_WORKER_NAME_CLASS}>
               {currentWorker?.displayName || t("topNav.noSelection")}
@@ -344,6 +348,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
             ) : null}
             <UsageContextControl />
           </div>
+          }
         </div>
 
         {hideDesktopAgentActions ? (

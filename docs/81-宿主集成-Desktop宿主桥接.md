@@ -39,6 +39,7 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 物理断线只产生 `reconnecting`，不会 close 逻辑 Session 或终止已接受 stream；Desktop Broker 恢复后从 `lastSeq` 继续向同一订阅者投递。`surface_inactive` 只解除观察者，不 interrupt 后台 Run。协议不兼容、身份失效、应用退出或显式 dispose 才永久关闭，所有未完成操作统一收到 `DESKTOP_FRAME_PORT_CLOSED`。Desktop Driver 不实现 WebSocket readyState、close code/reason、JSON 二次编码、heartbeat timeout 或重连循环。
 
 ## 边界与非目标
+- APPLIED 仅表示 Router 提交，不代表历史数据 ready。页面拒绝更旧 revision 或同 revision 的冲突目标；会话阶段日志以对应目标的 route revision 与 transaction seq 关联。surface 激活恢复只消费 Router 提供的目标，不使用物理 URL 推断应恢复哪个 Chat。准备超时由 WebClient 展示错误，不触发 Desktop 再次 reload。
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
 - Standalone 根路由与 Desktop WorkPanel 都只使用正式 `desktop.workpanel.*` 语义，不维护平行 sidebar Action 映射。
 - Standalone 根路由分别注册七个精确 `desktop.workpanel.*` 与 `desktop.display` request type，直接消费纯 payload，并校验帧顶层可信 `source.chatId/runId/owner`；Desktop 模式不注册该 provider，因为 Platform 的 `desktop.*` 反向请求由 Desktop Main Broker 处理。

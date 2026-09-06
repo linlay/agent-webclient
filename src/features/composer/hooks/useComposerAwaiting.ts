@@ -22,6 +22,7 @@ import {
 import { useI18n } from "@/shared/i18n";
 import type { TranslateParams } from "@/shared/i18n";
 import { createCompactId } from "@/shared/utils/compactId";
+import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
 
 type FormActiveAwaitingPatch = Pick<
   FormActiveAwaiting,
@@ -39,7 +40,8 @@ interface UseComposerAwaitingInput {
   state: Pick<
     AppState,
     "currentRunAgentKey" | "runAgentById" | "chatId" | "chatAgentById" | "chats"
-  >;
+  > & Partial<Pick<AppState, "chatSurfaceBlocked">>;
+  stateRef?: { current: AppState };
 }
 
 interface AwaitingSubmitMessageApi {
@@ -59,6 +61,7 @@ interface SubmitComposerAwaitingInput {
   t: AwaitingSubmitTranslator;
   createSubmitId?: () => string;
   submitAwaitingImpl: RunTransport["submitAwaiting"];
+  isCurrent?: () => boolean;
 }
 
 type AwaitingTerminalSubmitCode =
@@ -168,7 +171,7 @@ export async function submitComposerAwaiting(
     state,
     t,
   } = input;
-  if (!activeAwaiting) return;
+  if (!activeAwaiting || state.chatSurfaceBlocked || input.isCurrent?.() === false) return;
   let trackedRunId = "";
   let trackedAwaitingId = "";
   try {
@@ -203,6 +206,7 @@ export async function submitComposerAwaiting(
       submitId,
       params: payload.params,
     });
+    if (input.isCurrent?.() === false) return;
     const responseData = response.data as Record<string, unknown> | null;
     const accepted = Boolean(responseData?.accepted ?? true);
     const status = String(responseData?.status || "");
@@ -248,6 +252,7 @@ export async function submitComposerAwaiting(
     });
     return response;
   } catch (error) {
+    if (input.isCurrent?.() === false) return;
     const terminalCode = readAwaitingTerminalSubmitCode(error);
     if (trackedRunId && trackedAwaitingId) {
       clearAwaitingSubmitId(trackedRunId, trackedAwaitingId);
@@ -293,6 +298,12 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
 
   const handleAwaitingSubmit = useCallback(
     async (payload: AIAwaitSubmitPayloadData) => {
+      const isCurrent = () => {
+        const latest = input.stateRef?.current;
+        return !latest || (!areConversationInteractionsBlocked(latest) &&
+          latest.chatId === state.chatId && latest.activeAwaiting?.awaitingId === activeAwaiting?.awaitingId &&
+          latest.activeAwaiting?.runId === activeAwaiting?.runId);
+      };
       return submitComposerAwaiting({
         activeAwaiting,
         clearActiveAwaiting,
@@ -301,6 +312,7 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
         payload,
         state,
         submitAwaitingImpl: runs.submitAwaiting,
+        isCurrent,
         t,
       });
     },
@@ -314,6 +326,8 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
       state.chatId,
       state.chats,
       state.currentRunAgentKey,
+      state.chatSurfaceBlocked,
+      input.stateRef,
       state.runAgentById,
       t,
     ],

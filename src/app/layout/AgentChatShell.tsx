@@ -1,3 +1,4 @@
+import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
 import React, {
   useCallback,
   useEffect,
@@ -10,7 +11,6 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   useAppDispatch,
   useAppState,
-  useOptionalAppContext,
 } from "@/app/state/AppContext";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TopNav } from "@/app/layout/TopNav";
@@ -31,10 +31,6 @@ import {
   canPrepareDesktopNewChat,
   prepareDesktopNewChat,
 } from "@/shared/data/desktop/desktopNewChat";
-import {
-  isMainChatRuntimeObservedByLiveQuery,
-  resolveMainChatRuntime,
-} from "@/features/runs/lib/runRuntimeState";
 import { initializeDesktopWorkspaceArrowKeys } from "@/shared/data/desktop/desktopWorkspaceArrowKeys";
 
 export function parseNewChatTimestamp(rawValue: unknown): string {
@@ -120,33 +116,6 @@ export function consumeLiveSessionPromotion(
 ): boolean {
   const routeKey = createChatRouteKey(agentKey, chatId);
   return Boolean(routeKey && promotions.delete(routeKey));
-}
-
-export function shouldKeepClaimedChatRouteLoad(input: {
-  lastRouteKey: string;
-  routeKey: string;
-  targetChatId: string;
-  visibleChatId: string;
-  transitionTargetChatId?: string;
-}): boolean {
-  if (!input.routeKey || input.lastRouteKey !== input.routeKey) {
-    return false;
-  }
-  return input.visibleChatId === input.targetChatId ||
-    input.transitionTargetChatId === input.targetChatId;
-}
-
-export function shouldSkipPromotedChatHistoryLoad(input: {
-  promotionConsumed: boolean;
-  targetChatId: string;
-  visibleChatId: string;
-  liveQueryOwnsTarget: boolean;
-}): boolean {
-  return Boolean(
-    input.promotionConsumed &&
-      (input.visibleChatId === input.targetChatId ||
-        input.liveQueryOwnsTarget),
-  );
 }
 
 export function createResolvedNewChatRoute(
@@ -341,16 +310,21 @@ const AgentRouteErrorPage: React.FC<{
 );
 
 export const AgentChatShell: React.FC = () => {
+  const [params] = useSearchParams();
+  return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
+    <AgentChatShellContent />
+  </ConversationSurfaceProvider>;
+};
+
+const AgentChatShellContent: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const appContext = useOptionalAppContext();
   const { t } = useI18n();
   const navigate = useNavigate();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const stateRef = useRef(state);
   const lastInitializedAgentKeyRef = useRef("");
-  const lastLoadedChatKeyRef = useRef("");
   const refreshedNewChatAgentRouteKeysRef = useRef<Set<string>>(new Set());
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
   const pendingNewChatResendRef = useRef<PendingNewChatResend | null>(null);
@@ -414,6 +388,8 @@ export const AgentChatShell: React.FC = () => {
     (!agentKey || state.workerSelectionKey === routeWorkerKey);
   const { loadAgents, startNewConversation } = useAppRuntimes({
     initialWorkerRefreshEnabled: false,
+    targetChatId: chatId,
+    routeReady: routeAgentHydrated,
   });
 
   useEffect(() => {
@@ -719,59 +695,14 @@ export const AgentChatShell: React.FC = () => {
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
 
     if (chatId) {
-      const routeKey = createChatRouteKey(agentKey, chatId);
-      const currentState = appContext?.stateRef.current || stateRef.current;
-      if (shouldKeepClaimedChatRouteLoad({
-        lastRouteKey: lastLoadedChatKeyRef.current,
-        routeKey,
-        targetChatId: chatId,
-        visibleChatId: String(currentState.chatId || "").trim(),
-        transitionTargetChatId: String(
-          currentState.chatTransition?.targetChatId || "",
-        ).trim(),
-      })) {
-        return;
-      }
-      lastLoadedChatKeyRef.current = routeKey;
       lastInitializedAgentKeyRef.current = "";
-      const promotionConsumed = consumeLiveSessionPromotion(
-        promotedLiveChatRouteKeysRef.current,
-        agentKey,
-        chatId,
-      );
-      const mainRuntime = appContext
-        ? resolveMainChatRuntime(
-            appContext.stateRef,
-            appContext.activeQuerySessionRequestIdRef,
-            appContext.querySessionsRef,
-          )
-        : null;
-      const liveQueryOwnsTarget = Boolean(
-        mainRuntime &&
-          isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId),
-      );
-      if (shouldSkipPromotedChatHistoryLoad({
-        promotionConsumed,
-        targetChatId: chatId,
-        visibleChatId: String(currentState.chatId || "").trim(),
-        liveQueryOwnsTarget,
-      }) || liveQueryOwnsTarget) {
-        return;
-      }
-      window.dispatchEvent(
-        new CustomEvent("agent:load-chat", {
-          detail: {
-            chatId,
-            focusComposerOnComplete: true,
-          },
-        }),
-      );
+      // Promotion is metadata only. The conversation coordinator owns loading.
+      consumeLiveSessionPromotion(promotedLiveChatRouteKeysRef.current, agentKey, chatId);
       return;
     }
 
     if (!routeNewChatTimestamp) {
       lastInitializedAgentKeyRef.current = "";
-      lastLoadedChatKeyRef.current = "";
       window.dispatchEvent(new CustomEvent("agent:focus-composer"));
       return;
     }
@@ -810,7 +741,6 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
     lastInitializedAgentKeyRef.current = routeNewChatKey;
-    lastLoadedChatKeyRef.current = "";
     const startDetail = {
       agentKey,
       preserveWorkerContext: true,
@@ -848,7 +778,6 @@ export const AgentChatShell: React.FC = () => {
     sendPreparedResend();
   }, [
     agentKey,
-    appContext,
     chatId,
     composerPrefillPayload,
     dispatch,
@@ -864,7 +793,7 @@ export const AgentChatShell: React.FC = () => {
 
   const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
 
-  if (!routeAgentReady) {
+  if (!routeAgentReady && !chatId) {
     if (routeAgentLoadError) {
       return <AgentRouteErrorPage
         message={routeAgentLoadError}

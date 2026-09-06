@@ -30,6 +30,7 @@ export function reduceConversationState(
 			const transition = state.chatTransition;
 			if (
 				!transition ||
+				transition.phase === "error" ||
 				transition.seq !== action.seq ||
 				transition.targetChatId !== action.targetChatId ||
 				(transition.displayMode === "background" &&
@@ -50,6 +51,8 @@ export function reduceConversationState(
 			const transition = state.chatTransition;
 			if (
 				!transition ||
+				transition.phase === "error" ||
+				transition.phase === "ready" ||
 				transition.seq !== action.seq ||
 				transition.targetChatId !== action.targetChatId
 			) {
@@ -84,6 +87,9 @@ export function reduceConversationState(
 		}
 		case "CLEAR_CHAT_TRANSITION":
 			return state.chatTransition ? { ...state, chatTransition: null } : state;
+		case "SET_CHAT_SURFACE_BLOCKED":
+			return state.chatSurfaceBlocked === action.blocked
+				? state : { ...state, chatSurfaceBlocked: action.blocked };
 		case "REQUEST_CONVERSATION_SCROLL": {
 			const id = (state.conversationScrollRequest?.id || 0) + 1;
 			return {

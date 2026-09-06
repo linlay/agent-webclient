@@ -96,6 +96,7 @@ export function useVoiceChatListening({
 
 	const submitVoiceChatQuery = useCallback(
 		async (finalText: string) => {
+			if (controller.stateRef.current.chatSurfaceBlocked) return;
 			const text = String(finalText || "").trim();
 			if (!text) return;
 

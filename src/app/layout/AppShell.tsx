@@ -1,3 +1,4 @@
+import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
 import React, { useMemo } from "react";
 import { useAppState } from "@/app/state/AppContext";
 import { TopNav } from "@/app/layout/TopNav";
@@ -36,7 +37,11 @@ const APP_SHELL_COLUMN_CLASS_BY_STATE = {
     "left-drawer-open desktop-debug-disabled tw:grid-cols-[var(--left-sidebar-width)_minmax(420px,1fr)_0] tw:[&_.left-sidebar]:w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:min-w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:pointer-events-auto tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
 } as const;
 
-export const AppShell: React.FC = () => {
+export const AppShell: React.FC = () => (
+  <ConversationSurfaceProvider><AppShellContent /></ConversationSurfaceProvider>
+);
+
+const AppShellContent: React.FC = () => {
   const state = useAppState();
 
   /* Initialize business logic hooks */
