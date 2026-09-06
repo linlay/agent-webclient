@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Modal } from "antd";
 import {
   getMemoryMeta,
-  getMemoryRecord,
-  getMemoryRecords,
   getMemoryScope,
   getMemoryScopes,
   previewMemoryContext,
@@ -12,31 +10,15 @@ import {
 } from "@/shared/data";
 import type {
   MemoryConsoleTab,
-  MemoryContextPreviewResponse,
-  MemoryContextPromptLayer,
-  MemoryInfoFilters,
-  MemoryMeta,
   MemoryPreferenceMode,
   MemoryPreferenceScopeType,
-  MemoryRecordDetail,
-  MemoryRecordListItem,
-  MemoryScopeDetailMeta,
   MemoryScopeDraftRecord,
-  MemoryScopeSaveSummary,
-  MemoryScopeSummary,
-  MemoryScopeValidationResult,
 } from "@/shared/data/memory/memoryTypes";
 import { UiButton } from "@/shared/ui/UiButton";
-import { UiTag } from "@/shared/ui/UiTag";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import {
   createMemoryPreferenceDraftRecord,
-  formatMemoryJson,
-  formatMemoryTimestamp,
-  formatScopeTabLabel,
   hydratePreferenceDrafts,
-  normalizeMemoryTagList,
   normalizePreferenceScopeType,
   preferredScopeTypeFromSummaries,
   resolveMemoryAgentContext,
@@ -46,6 +28,7 @@ import {
 } from "@/features/memory/lib/memoryInfo";
 import { toText } from "@/shared/utils/eventUtils";
 import { useMemoryRuntime } from "@/features/memory/hooks/useMemoryRuntime";
+import { useMemoryRecords } from "@/features/memory/hooks/useMemoryRecords";
 import "./MemoryConsole.module.css";
 import {
   MemoryRecordsPanelView,
@@ -62,91 +45,11 @@ import {
   type MemoryPreviewPanelProps,
 } from "@/features/memory/components/MemoryPreviewPanel";
 import {
-  PREFERENCE_SCOPE_ORDER,
-  PREVIEW_PROMPT_LAYER_ORDER,
   MEMORY_INFO_CARD_CLASS_NAME,
   MEMORY_HEAD_CLASS_NAME,
   MEMORY_SUBTITLE_CLASS_NAME,
   MEMORY_CONSOLE_TABS_CLASS_NAME,
-  MEMORY_CONSOLE_PANE_CLASS_NAME,
-  MEMORY_INFO_LAYOUT_CLASS_NAME,
-  MEMORY_INFO_PANE_CLASS_NAME,
-  MEMORY_INFO_PANE_HEADER_CLASS_NAME,
-  MEMORY_INFO_PANE_HINT_CLASS_NAME,
-  MEMORY_INFO_ACTIONS_CLASS_NAME,
-  MEMORY_FILTER_GRID_CLASS_NAME,
-  MEMORY_PANE_LIST_FILTER_GRID_CLASS_NAME,
-  MEMORY_FIELD_CLASS_NAME,
-  MEMORY_PANE_LIST_FIELD_CLASS_NAME,
-  MEMORY_FIELD_WIDE_CLASS_NAME,
-  MEMORY_INFO_INPUT_CLASS_NAME,
-  MEMORY_INFO_SELECT_CLASS_NAME,
-  MEMORY_INFO_ERROR_CLASS_NAME,
-  COMMAND_EMPTY_STATE_CLASS_NAME,
-  COMMAND_DETAIL_LABEL_CLASS_NAME,
   SETTINGS_SEGMENTED_BUTTON_CLASS_NAME,
-  MEMORY_INFO_RECORD_LIST_CLASS_NAME,
-  MEMORY_INFO_RECORD_ITEM_CLASS_NAME,
-  MEMORY_RECORD_HEAD_CLASS_NAME,
-  MEMORY_RECORD_META_CLASS_NAME,
-  MEMORY_RECORD_SUMMARY_CLASS_NAME,
-  MEMORY_DETAIL_STACK_CLASS_NAME,
-  MEMORY_DETAIL_TITLE_CLASS_NAME,
-  MEMORY_DETAIL_BADGES_CLASS_NAME,
-  MEMORY_DETAIL_SUMMARY_CLASS_NAME,
-  MEMORY_DETAIL_GRID_CLASS_NAME,
-  MEMORY_DETAIL_CARD_CLASS_NAME,
-  MEMORY_DETAIL_BLOCK_CLASS_NAME,
-  MEMORY_RAW_BLOCK_CLASS_NAME,
-  MEMORY_RAW_SUMMARY_CLASS_NAME,
-  MEMORY_PREVIEW_LAYOUT_CLASS_NAME,
-  MEMORY_PREVIEW_PANE_INPUT_CLASS_NAME,
-  MEMORY_PREVIEW_PANE_RESULT_CLASS_NAME,
-  MEMORY_PREVIEW_CONTEXT_LIST_CLASS_NAME,
-  MEMORY_PREVIEW_CONTEXT_ITEM_CLASS_NAME,
-  MEMORY_PREVIEW_TEXTAREA_CLASS_NAME,
-  MEMORY_PREVIEW_SUMMARY_GRID_CLASS_NAME,
-  MEMORY_PREVIEW_LAYER_TABS_CLASS_NAME,
-  MEMORY_PREVIEW_LAYER_TAB_CLASS_NAME,
-  MEMORY_PREVIEW_PROMPT_BLOCK_CLASS_NAME,
-  MEMORY_PREVIEW_LIST_CLASS_NAME,
-  MEMORY_PREVIEW_ITEM_CARD_CLASS_NAME,
-  MEMORY_PREVIEW_HEAD_CLASS_NAME,
-  MEMORY_PREVIEW_EMPTY_CLASS_NAME,
-  MEMORY_PREFERENCE_SCOPE_TABS_CLASS_NAME,
-  MEMORY_PREFERENCE_SCOPE_TAB_CLASS_NAME,
-  MEMORY_PREFERENCE_LAYOUT_CLASS_NAME,
-  MEMORY_PREFERENCE_PANE_LIST_CLASS_NAME,
-  MEMORY_PREFERENCE_PANE_DETAIL_CLASS_NAME,
-  MEMORY_PREFERENCE_PANE_EDITOR_CLASS_NAME,
-  MEMORY_PREFERENCE_MODE_TOGGLE_CLASS_NAME,
-  MEMORY_PREFERENCE_FORM_CLASS_NAME,
-  MEMORY_PREFERENCE_FORM_GRID_CLASS_NAME,
-  MEMORY_PREFERENCE_TEXTAREA_CLASS_NAME,
-  MEMORY_PREFERENCE_MARKDOWN_PANEL_CLASS_NAME,
-  MEMORY_PREFERENCE_MARKDOWN_CLASS_NAME,
-  MEMORY_PREFERENCE_MARKDOWN_HINT_CLASS_NAME,
-  MEMORY_PREFERENCE_VALIDATION_CLASS_NAME,
-  MEMORY_PREFERENCE_VALIDATION_ITEM_CLASS_BY_KIND,
-  MEMORY_PREFERENCE_RECORD_ROW_CLASS_NAME,
-  MEMORY_PREFERENCE_RECORD_MAIN_CLASS_NAME,
-  MEMORY_PREFERENCE_RECORD_MARKER_CLASS_NAME,
-  MEMORY_PREFERENCE_RECORD_BODY_CLASS_NAME,
-  MEMORY_PREFERENCE_RECORD_TOPLINE_CLASS_NAME,
-  MEMORY_PREFERENCE_RECORD_SUMMARY_CLASS_NAME,
-  MEMORY_PREFERENCE_RECORD_META_CLASS_NAME,
-  MEMORY_PREFERENCE_RECORD_DELETE_CLASS_NAME,
-  MEMORY_INFO_BANNER_CLASS_BY_TONE,
-  toneForStatus,
-  formatDetailValue,
-  mergeMemoryMetaOptions,
-  promptToneForLayer,
-  formatPreviewLayerLabel,
-  renderMemoryDetailRows,
-  renderPreferenceInspectorRows,
-  buildFallbackScopeSummaries,
-  formatValidationFieldLabel,
-  formatValidationMessage,
 } from "@/features/memory/lib/memoryPanelPresentation";
 
 export interface MemoryInfoConsoleViewProps {
@@ -286,10 +189,10 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
   surface = "page",
 }) => {
   const { state, dispatch, t } = useMemoryRuntime();
-  const listRequestSeqRef = useRef(0);
-  const detailRequestSeqRef = useRef(0);
+  const { loadRecords, loadDetail } = useMemoryRecords(open);
   const preferenceScopesSeqRef = useRef(0);
   const preferenceScopeSeqRef = useRef(0);
+  const previewRequestSeqRef = useRef(0);
   const metaLoadAttemptedRef = useRef(false);
   const previewAutoTriggeredRef = useRef(false);
   const preferencesLoadSignatureRef = useRef("");
@@ -399,6 +302,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
       if (!chatId || !message) {
         return;
       }
+      const seq = ++previewRequestSeqRef.current;
       dispatch({
         type: "BATCH_UPDATE",
         updates: {
@@ -409,6 +313,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
       });
       try {
         const response = await previewMemoryContext({ chatId, message });
+        if (seq !== previewRequestSeqRef.current) return;
         dispatch({
           type: "BATCH_UPDATE",
           updates: {
@@ -418,6 +323,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
           },
         });
       } catch (error) {
+        if (seq !== previewRequestSeqRef.current) return;
         const messageText =
           error instanceof Error ? error.message : String(error);
         dispatch({
@@ -435,152 +341,6 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
     [dispatch, previewChatId, state.memoryPreviewDraft, t],
   );
 
-  const loadDetail = useCallback(
-    async (id: string, agentKeyOverride?: string) => {
-      const agentKey = toText(agentKeyOverride) || agentContext.agentKey;
-      if (!id) {
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: null });
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL_ERROR", error: "" });
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL_LOADING", loading: false });
-        return;
-      }
-
-      const seq = ++detailRequestSeqRef.current;
-      dispatch({ type: "SET_MEMORY_INFO_DETAIL_LOADING", loading: true });
-      dispatch({ type: "SET_MEMORY_INFO_DETAIL_ERROR", error: "" });
-
-      try {
-        let response: Awaited<ReturnType<typeof getMemoryRecord>>;
-        try {
-          response = await getMemoryRecord(agentKey || undefined, id);
-        } catch (error) {
-          if (!agentKey) {
-            throw error;
-          }
-          response = await getMemoryRecord(undefined, id);
-        }
-        if (seq !== detailRequestSeqRef.current) return;
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: response.data });
-      } catch (error) {
-        if (seq !== detailRequestSeqRef.current) return;
-        const message = error instanceof Error ? error.message : String(error);
-        dispatch({
-          type: "SET_MEMORY_INFO_DETAIL_ERROR",
-          error: t("memoryInfo.errors.loadDetail", { detail: message }),
-        });
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: null });
-      } finally {
-        if (seq === detailRequestSeqRef.current) {
-          dispatch({ type: "SET_MEMORY_INFO_DETAIL_LOADING", loading: false });
-        }
-      }
-    },
-    [agentContext.agentKey, dispatch, t],
-  );
-
-  const loadRecords = useCallback(async () => {
-    const seq = ++listRequestSeqRef.current;
-    dispatch({ type: "SET_MEMORY_INFO_LOADING", loading: true });
-    dispatch({ type: "SET_MEMORY_INFO_ERROR", error: "" });
-
-    try {
-      const baseRequest = {
-        keyword: state.memoryInfoFilters.keyword,
-        kind: state.memoryInfoFilters.kind,
-        scopeType: state.memoryInfoFilters.scopeType,
-        status: state.memoryInfoFilters.status,
-        category: state.memoryInfoFilters.category,
-        limit: state.memoryInfoFilters.limit,
-      };
-      const hasExplicitFilter = Boolean(
-        toText(baseRequest.keyword) ||
-          toText(baseRequest.kind) ||
-          toText(baseRequest.scopeType) ||
-          toText(baseRequest.status) ||
-          toText(baseRequest.category),
-      );
-      let response = await getMemoryRecords({
-        agentKey: agentContext.agentKey || undefined,
-        ...baseRequest,
-      });
-      if (
-        agentContext.agentKey &&
-        !hasExplicitFilter &&
-        (!Array.isArray(response.data?.results) ||
-          response.data.results.length === 0)
-      ) {
-        response = await getMemoryRecords(baseRequest);
-      }
-      if (seq !== listRequestSeqRef.current) return;
-      const records = Array.isArray(response.data?.results)
-        ? response.data.results
-        : [];
-      const nextSelectedRecordId = records.some(
-        (item) => item.id === state.memoryInfoSelectedRecordId,
-      )
-        ? state.memoryInfoSelectedRecordId
-        : records[0]?.id || "";
-      const nextSelectedRecord = records.find(
-        (item) => item.id === nextSelectedRecordId,
-      );
-
-      dispatch({
-        type: "SET_MEMORY_INFO_RECORDS",
-        records,
-        nextCursor: response.data?.nextCursor || "",
-        selectedRecordId: nextSelectedRecordId,
-      });
-
-      if (!nextSelectedRecordId) {
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: null });
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL_ERROR", error: "" });
-        dispatch({ type: "SET_MEMORY_INFO_DETAIL_LOADING", loading: false });
-        return;
-      }
-
-      if (
-        state.memoryInfoDetail?.id !== nextSelectedRecordId ||
-        detailRequestSeqRef.current === 0
-      ) {
-        void loadDetail(
-          nextSelectedRecordId,
-          nextSelectedRecord?.agentKey || agentContext.agentKey || undefined,
-        );
-      }
-    } catch (error) {
-      if (seq !== listRequestSeqRef.current) return;
-      const message = error instanceof Error ? error.message : String(error);
-      dispatch({
-        type: "SET_MEMORY_INFO_ERROR",
-        error: t("memoryInfo.errors.loadRecords", { detail: message }),
-      });
-      dispatch({
-        type: "SET_MEMORY_INFO_RECORDS",
-        records: [],
-        nextCursor: "",
-        selectedRecordId: "",
-      });
-      dispatch({ type: "SET_MEMORY_INFO_DETAIL", detail: null });
-    } finally {
-      if (seq === listRequestSeqRef.current) {
-        dispatch({ type: "SET_MEMORY_INFO_LOADING", loading: false });
-      }
-    }
-  }, [
-    agentContext.agentKey,
-    dispatch,
-    loadDetail,
-    state.memoryInfoDetail?.id,
-    state.memoryInfoFilters.category,
-    state.memoryInfoFilters.keyword,
-    state.memoryInfoFilters.kind,
-    state.memoryInfoFilters.limit,
-    state.memoryInfoFilters.scopeType,
-    state.memoryInfoFilters.status,
-    state.memoryInfoSelectedRecordId,
-    t,
-  ]);
-
   const loadPreferenceScope = useCallback(
     async (
       scopeType: MemoryPreferenceScopeType,
@@ -590,6 +350,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         preserveValidation?: boolean;
       } = {},
     ) => {
+      const seq = ++preferenceScopeSeqRef.current;
       if (!agentContext.agentKey) {
         dispatch({
           type: "BATCH_UPDATE",
@@ -598,11 +359,11 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         return;
       }
 
-      const seq = ++preferenceScopeSeqRef.current;
       dispatch({
         type: "BATCH_UPDATE",
         updates: {
           memoryPreferenceLoading: true,
+          memoryPreferenceSaving: false,
           memoryPreferenceError: "",
           ...(options.preserveSaveSummary
             ? {}
@@ -658,6 +419,8 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
 
   const loadPreferenceScopes = useCallback(
     async (preferredScopeType?: MemoryPreferenceScopeType) => {
+      const seq = ++preferenceScopesSeqRef.current;
+      const scopeSeq = preferenceScopeSeqRef.current;
       if (!agentContext.agentKey) {
         dispatch({
           type: "BATCH_UPDATE",
@@ -666,7 +429,6 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         return;
       }
 
-      const seq = ++preferenceScopesSeqRef.current;
       dispatch({
         type: "BATCH_UPDATE",
         updates: {
@@ -683,9 +445,11 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         const scopes = Array.isArray(response.data?.scopes)
           ? response.data.scopes
           : [];
+        dispatch({ type: "SET_MEMORY_PREFERENCE_SCOPES", scopes });
+        // Keep the catalog, but do not replace a scope selected while it loaded.
+        if (scopeSeq !== preferenceScopeSeqRef.current) return;
         const targetScopeType =
           preferredScopeType || preferredScopeTypeFromSummaries(scopes);
-        dispatch({ type: "SET_MEMORY_PREFERENCE_SCOPES", scopes });
         const matchedScope =
           scopes.find(
             (scope) =>
@@ -693,7 +457,10 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
           ) || null;
         await loadPreferenceScope(targetScopeType, matchedScope?.scopeKey);
       } catch (error) {
-        if (seq !== preferenceScopesSeqRef.current) return;
+        if (
+          seq !== preferenceScopesSeqRef.current ||
+          scopeSeq !== preferenceScopeSeqRef.current
+        ) return;
         const message = error instanceof Error ? error.message : String(error);
         dispatch({
           type: "BATCH_UPDATE",
@@ -864,6 +631,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
   const handlePreferenceValidate = useCallback(async () => {
     if (!agentContext.agentKey) return;
     if (state.memoryPreferenceMode !== "markdown") return;
+    const seq = preferenceScopeSeqRef.current;
     const syncedMarkdownDraft =
       preferenceMarkdownTextareaRef.current?.value ??
       state.memoryPreferenceMarkdownDraft;
@@ -886,6 +654,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         state.memoryPreferenceActiveScopeType,
         syncedMarkdownDraft,
       );
+      if (seq !== preferenceScopeSeqRef.current) return;
       dispatch({
         type: "BATCH_UPDATE",
         updates: {
@@ -895,6 +664,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         },
       });
     } catch (error) {
+      if (seq !== preferenceScopeSeqRef.current) return;
       const message = error instanceof Error ? error.message : String(error);
       dispatch({
         type: "BATCH_UPDATE",
@@ -917,6 +687,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
 
   const handlePreferenceSave = useCallback(async () => {
     if (!agentContext.agentKey) return;
+    const seq = preferenceScopeSeqRef.current;
     const syncedRecordsDraft =
       state.memoryPreferenceMode === "records"
         ? syncSelectedPreferenceDraftFromLiveValues(
@@ -965,6 +736,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
           state.memoryPreferenceActiveScopeType,
           syncedMarkdownDraft,
         );
+        if (seq !== preferenceScopeSeqRef.current) return;
         dispatch({
           type: "SET_MEMORY_PREFERENCE_VALIDATION",
           validation: validationResponse.data,
@@ -994,6 +766,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
             }),
       });
 
+      if (seq !== preferenceScopeSeqRef.current) return;
       dispatch({
         type: "BATCH_UPDATE",
         updates: {
@@ -1008,6 +781,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         { preserveSaveSummary: true, preserveValidation: false },
       );
     } catch (error) {
+      if (seq !== preferenceScopeSeqRef.current) return;
       const message = error instanceof Error ? error.message : String(error);
       dispatch({
         type: "BATCH_UPDATE",
@@ -1033,17 +807,23 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
   ]);
 
   useEffect(() => {
-    if (open) {
-      return;
-    }
-    listRequestSeqRef.current += 1;
-    detailRequestSeqRef.current += 1;
-    preferenceScopesSeqRef.current += 1;
-    preferenceScopeSeqRef.current += 1;
-    metaLoadAttemptedRef.current = false;
-    previewAutoTriggeredRef.current = false;
-    preferencesLoadSignatureRef.current = "";
-  }, [open]);
+    return () => {
+      preferenceScopesSeqRef.current += 1;
+      preferenceScopeSeqRef.current += 1;
+      metaLoadAttemptedRef.current = false;
+      preferencesLoadSignatureRef.current = "";
+      dispatch({ type: "SET_MEMORY_PREFERENCE_LOADING", loading: false });
+      dispatch({ type: "SET_MEMORY_PREFERENCE_SAVING", saving: false });
+    };
+  }, [open, agentContext.agentKey, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      previewRequestSeqRef.current += 1;
+      previewAutoTriggeredRef.current = false;
+      dispatch({ type: "SET_MEMORY_PREVIEW_LOADING", loading: false });
+    };
+  }, [open, previewChatId, dispatch]);
 
   useEffect(() => {
     if (!open) {
