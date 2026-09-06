@@ -3,29 +3,28 @@ import {
   createEndpointRegistry,
   defineEndpoint,
 } from "@/shared/data/api/endpointRegistry";
+import type { ArchivesRequest } from "@/shared/data/api/dto/archives";
 import type {
-  ArchivesRequest,
   AttachStreamParams,
-  DeriveChatRequest,
-  GetAgentsOptions,
-  GetChatsOptions,
+  AccessLevelUpdateParams,
+  BackgroundCommandParams,
+  CompactChatParams,
+  QueryLikeParams,
+  QueryStreamParams,
+  BTWStreamParams,
+} from "@/shared/data/api/dto/commands";
+import type { DeriveChatRequest, GetChatsOptions, ChatSystemPromptRequest } from "@/shared/data/api/dto/chats";
+import type { GetAgentsOptions } from "@/shared/data/api/dto/agents";
+import type {
   AgentFileRequest,
   DocumentCommitRequest,
   ProjectChangesRequest,
   ProjectDiffRequest,
   ProjectTreeRequest,
-  ChatSystemPromptRequest,
-  GetMemoryRecordsParams,
-  AccessLevelUpdateParams,
-  AdminSourceTarget,
-  BackgroundCommandParams,
-  CompactChatParams,
-  QueryLikeParams,
-  QueryModelOverride,
-  QueryServiceTier,
-  QueryStreamParams,
-  BTWStreamParams,
-} from "@/shared/data/api/client";
+} from "@/shared/data/api/dto/resources";
+import type { GetMemoryRecordsParams } from "@/shared/data/memory/memoryTypes";
+import type { AdminSourceTarget } from "@/shared/data/api/dto/admin";
+import type { QueryModelOverride, QueryServiceTier } from "@/shared/data/api/dto/models";
 import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import { runOwnerPayload } from "@/shared/data/runOwner";
 

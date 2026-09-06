@@ -1,4 +1,4 @@
-import type { ApiResponse } from "@/shared/data/api/client";
+import type { ApiResponse } from "@/shared/data/api/dto/common";
 
 export type DataRequestExecutor = <T>(
   type: string,

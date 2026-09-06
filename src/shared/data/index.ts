@@ -2,7 +2,71 @@ export * from "@/shared/data/auth/accessTokenStorage";
 export * from "@/shared/data/auth/appAuth";
 export * from "@/shared/data/auth/gatewaySession";
 export * from "@/shared/data/auth/authCoordinator";
-export * from "@/shared/data/api/client";
+// DTOs have a single contract owner; routed requests are selected explicitly below.
+export type * from "@/shared/data/api/dto/agents";
+export type * from "@/shared/data/api/dto/archives";
+export type * from "@/shared/data/api/dto/automations";
+export type * from "@/shared/data/api/dto/chats";
+export type * from "@/shared/data/api/dto/common";
+export type * from "@/shared/data/api/dto/commands";
+export type * from "@/shared/data/api/dto/models";
+export type * from "@/shared/data/api/dto/resources";
+export type * from "@/shared/data/api/dto/admin";
+export type * from "@/shared/data/api/dto/skills";
+
+export * from "@/shared/data/api/reasoningEffort";
+export {
+  ApiError,
+  createRequestId,
+} from "@/shared/data/api/http";
+export {
+  buildAdminSkillDownloadUrl,
+  buildAdminSkillFileDownloadUrl,
+  downloadAdminSkill,
+  downloadAdminSkillFile,
+  fetchAdminSkillFileBlob,
+  fetchAdminSkillIcon,
+  downloadConversationHtmlExport,
+  getResourceBlob,
+  getResourceDocumentMetadata,
+  getResourceDocumentText,
+} from "@/shared/data/api/resources";
+export {
+  classifyResourceUrl,
+  isChatScopeResourceRef,
+  isLegacyResourceUrl,
+} from "@/shared/data/api/resources/urls";
+export {
+  commitDocument,
+  getFileHistory,
+  getProjectChanges,
+  getProjectDiff,
+  getProjectTree,
+} from "@/shared/data/api/requests/projects";
+export * from "@/shared/data/api/requests/skills";
+export {
+  deleteAdminAgentPrivateSkill,
+  getAdminAgentDetail,
+  getAdminAgentEditorOptions,
+  getAdminAgents,
+  importAdminAgent,
+  importAdminAgentPrivateSkill,
+  putAdminAgentOrder,
+} from "@/shared/data/api/requests/agents";
+export * from "@/shared/data/api/requests/admin";
+
+export {
+  extractUploadChatId,
+  extractUploadReferences,
+} from "@/shared/data/api/requests/uploads";
+
+export {
+  getVoiceCapabilitiesFlexible,
+  getVoiceVoicesFlexible,
+} from "@/shared/data/api/client";
+export {
+  normalizeChatSummariesPayload,
+} from "@/shared/data/api/requests/chats";
 export * from "@/shared/data/desktop/desktopFileSystem";
 export * from "@/shared/data/desktop/desktopHostBridge";
 export * from "@/shared/data/desktop/desktopQueryContext";
@@ -15,61 +79,4 @@ export { useAgentSkillsQuery } from "@/shared/data/query/queries";
 export * from "@/shared/data/query/serverState";
 export * from "@/shared/data/runOwner";
 
-export {
-  archiveChats,
-  compactChat,
-  createAgent,
-  createAutomation,
-  deriveChat,
-  deleteAgent,
-  deleteArchive,
-  deleteAutomation,
-  deleteChat,
-  downloadChatExport,
-  downloadResource,
-  getAgent,
-  getAgentSkills,
-  getAgentFile,
-  getAgentOrder,
-  getAgents,
-  getArchive,
-  getArchives,
-  getAutomation,
-  getAutomationExecution,
-  getAutomationExecutions,
-  getAutomations,
-  getChat,
-  getChatSystemPrompt,
-  getChatLLMTraceRaw,
-  getChatRawJsonl,
-  getChats,
-  getMemoryMeta,
-  getMemoryRecord,
-  getMemoryRecords,
-  getMemoryScope,
-  getMemoryScopes,
-  getModelOptions,
-  getResourceText,
-  getTeams,
-  getViewport,
-  learnChat,
-  markChatRead,
-  openAgentDirectory,
-  previewMemoryContext,
-  putAgentOrder,
-  rememberChat,
-  renameChat,
-  restoreArchives,
-  saveMemoryScope,
-  searchArchives,
-  searchGlobal,
-  submitFeedback,
-  toggleAutomation,
-  triggerAutomation,
-  updateAgent,
-  updateAgentName,
-  updateAgentModelConfig,
-  updateAutomation,
-  uploadFile,
-  validateMemoryScope,
-} from "@/shared/data/api/routedClient";
+export * from "@/shared/data/api/routedClient";

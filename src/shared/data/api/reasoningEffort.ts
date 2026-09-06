@@ -1,4 +1,4 @@
-import type { QueryReasoningEffort } from "@/shared/data/api/client";
+import type { QueryReasoningEffort } from "@/shared/data/api/dto/models";
 
 export const QUERY_REASONING_EFFORTS: readonly QueryReasoningEffort[] = [
   "NONE",

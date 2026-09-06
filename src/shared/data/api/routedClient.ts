@@ -2,12 +2,10 @@ import {
 	buildResourceUrl,
 	archiveChats as archiveChatsHttp,
 	createAgent as createAgentHttp,
-	createAutomation as createAutomationHttp,
 	deriveChat as deriveChatHttp,
 	deleteAgent as deleteAgentHttp,
 	deleteArchive as deleteArchiveHttp,
 	deleteChat as deleteChatHttp,
-	deleteAutomation as deleteAutomationHttp,
 	downloadResource,
 	downloadChatExport,
 	ensureAccessToken,
@@ -32,10 +30,6 @@ import {
 	getMemoryScope as getMemoryScopeHttp,
 	getMemoryScopes as getMemoryScopesHttp,
 	getModelOptions as getModelOptionsHttp,
-	getAutomation as getAutomationHttp,
-	getAutomationExecution as getAutomationExecutionHttp,
-	getAutomationExecutions as getAutomationExecutionsHttp,
-	getAutomations as getAutomationsHttp,
 	normalizeChatSummariesPayload,
 	previewMemoryContext as previewMemoryContextHttp,
 	getResourceText,
@@ -51,72 +45,65 @@ import {
 	saveMemoryScope as saveMemoryScopeHttp,
 	setAccessToken,
 	submitFeedback as submitFeedbackHttp,
-	toggleAutomation as toggleAutomationHttp,
-	triggerAutomation as triggerAutomationHttp,
 	updateAgent as updateAgentHttp,
 	updateAgentName as updateAgentNameHttp,
 	updateAgentModelConfig as updateAgentModelConfigHttp,
 	putAgentOrder as putAgentOrderHttp,
-	updateAutomation as updateAutomationHttp,
 	uploadFile,
 	validateMemoryScope as validateMemoryScopeHttp,
-	type AgentDetailResponse,
-	type AgentSkillsResponse,
-	type AgentFileRequest,
-	type AgentFileResponse,
-	type AgentModelConfigResponse,
-	type AgentOrderResponse,
-	type ApiResponse,
-	type ArchiveChatsRequest,
-	type ArchiveChatsResponse,
-	type ArchiveDeleteResponse,
-	type ArchiveDetailResponse,
-	type ArchivesRequest,
-	type ArchivesResponse,
-	type ArchiveSearchParams,
-	type ArchiveSearchResponse,
-	type ArchiveRestoreResponse,
-	type ChatDetailResponse,
-	type ChatSystemPromptRequest,
-	type ChatSystemPromptResponse,
-	type CreateAgentRequest,
-	type CreateAutomationRequest,
-	type DeriveChatRequest,
-	type DeriveChatResponse,
-	type DeleteAgentRequest,
-	type DeleteAgentResponse,
-	type DeleteAutomationRequest,
-	type FeedbackParams,
-	type GetAgentsOptions,
-	type GetChatsOptions,
-	type GetMemoryRecordsParams,
-	type GlobalSearchParams,
-	type GlobalSearchResponse,
-	type MarkChatReadParams,
-	type OpenAgentDirectoryRequest,
-	type OpenAgentDirectoryResponse,
-	type RenameChatRequest,
-	type RenameChatResponse,
-	type AutomationDetailResponse,
-	type AutomationExecutionDetailResponse,
-	type AutomationExecutionListResponse,
-	type AutomationExecutionRequest,
-	type AutomationExecutionsRequest,
-	type AutomationListRequest,
-	type AutomationListResponse,
-	type CoderModelOptionsResponse,
-	type CompactChatResponse,
-	type CompactLevel,
-	type ToggleAutomationRequest,
-	type TriggerAutomationRequest,
-	type TriggerAutomationResponse,
-	type UpdateAgentRequest,
-	type UpdateAgentNameRequest,
-	type UpdateAgentModelConfigRequest,
-	type UpdateAgentOrderRequest,
-	type UpdateAutomationRequest,
-	} from "@/shared/data/api/client";
+} from "@/shared/data/api/client";
 import type {
+	AgentDetailResponse,
+	AgentSkillsResponse,
+	AgentModelConfigResponse,
+	AgentOrderResponse,
+	CreateAgentRequest,
+	DeleteAgentRequest,
+	DeleteAgentResponse,
+	GetAgentsOptions,
+	OpenAgentDirectoryRequest,
+	OpenAgentDirectoryResponse,
+	UpdateAgentRequest,
+	UpdateAgentNameRequest,
+	UpdateAgentModelConfigRequest,
+	UpdateAgentOrderRequest,
+} from "@/shared/data/api/dto/agents";
+import type {
+	AgentFileRequest,
+	AgentFileResponse,
+} from "@/shared/data/api/dto/resources";
+import type { ApiResponse } from "@/shared/data/api/dto/common";
+import type {
+	CompactChatResponse,
+	CompactLevel,
+} from "@/shared/data/api/dto/commands";
+import type {
+	ArchiveChatsRequest,
+	ArchiveChatsResponse,
+	ArchiveDeleteResponse,
+	ArchiveDetailResponse,
+	ArchivesRequest,
+	ArchivesResponse,
+	ArchiveSearchParams,
+	ArchiveSearchResponse,
+	ArchiveRestoreResponse,
+} from "@/shared/data/api/dto/archives";
+import type {
+	ChatDetailResponse,
+	ChatSystemPromptRequest,
+	ChatSystemPromptResponse,
+	DeriveChatRequest,
+	DeriveChatResponse,
+	FeedbackParams,
+	GetChatsOptions,
+	GlobalSearchParams,
+	GlobalSearchResponse,
+	MarkChatReadParams,
+	RenameChatRequest,
+	RenameChatResponse,
+} from "@/shared/data/api/dto/chats";
+import type {
+	GetMemoryRecordsParams,
 	MemoryContextPreviewResponse,
 	MemoryMeta,
 	MemoryRecordDetail,
@@ -127,6 +114,10 @@ import type {
 	MemoryScopesResponse,
 	MemoryScopeValidationResult,
 } from "@/shared/data/memory/memoryTypes";
+import type {
+	CoderModelOptionsResponse,
+} from "@/shared/data/api/dto/models";
+
 import {
 	createDataCacheKey,
 	resolveEndpointPayload,
@@ -506,59 +497,18 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
 	);
 }
 
-export function getAutomations(
-	params: AutomationListRequest = {},
-): Promise<ApiResponse<AutomationListResponse>> {
-	return getAutomationsHttp(params);
-}
-
-export function getAutomation(
-	id: string,
-): Promise<ApiResponse<AutomationDetailResponse>> {
-	return getAutomationHttp(id);
-}
-
-export function createAutomation(
-	params: CreateAutomationRequest,
-): Promise<ApiResponse<AutomationDetailResponse>> {
-	return createAutomationHttp(params);
-}
-
-export function updateAutomation(
-	params: UpdateAutomationRequest,
-): Promise<ApiResponse<AutomationDetailResponse>> {
-	return updateAutomationHttp(params);
-}
-
-export function deleteAutomation(
-	params: DeleteAutomationRequest,
-): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
-	return deleteAutomationHttp(params);
-}
-
-export function toggleAutomation(
-	params: ToggleAutomationRequest,
-): Promise<ApiResponse<AutomationDetailResponse>> {
-	return toggleAutomationHttp(params);
-}
-
-export function triggerAutomation(
-	params: TriggerAutomationRequest,
-): Promise<ApiResponse<TriggerAutomationResponse>> {
-	return triggerAutomationHttp(params);
-}
-
-export function getAutomationExecutions(
-	params: AutomationExecutionsRequest,
-): Promise<ApiResponse<AutomationExecutionListResponse>> {
-	return getAutomationExecutionsHttp(params);
-}
-
-export function getAutomationExecution(
-	params: AutomationExecutionRequest,
-): Promise<ApiResponse<AutomationExecutionDetailResponse>> {
-	return getAutomationExecutionHttp(params);
-}
+// HTTP-only Automation methods share the raw client's function identities.
+export {
+	createAutomation,
+	deleteAutomation,
+	getAutomation,
+	getAutomationExecution,
+	getAutomationExecutions,
+	getAutomations,
+	toggleAutomation,
+	triggerAutomation,
+	updateAutomation,
+} from "@/shared/data/api/client";
 
 export function getMemoryRecords(
 	params: GetMemoryRecordsParams,
