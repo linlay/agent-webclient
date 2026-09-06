@@ -4,6 +4,7 @@ import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   applyPendingSessionUpdates,
   buildConversationStateUpdates,
+  cloneConversationSnapshot,
   createLiveQuerySession,
   markSessionSnapshotApplied,
   snapshotConversationState,
@@ -17,6 +18,86 @@ describe('conversation session restore', () => {
         getItem: () => '',
       },
     });
+  });
+
+  it('preserves each snapshot entry point field and scalar contract', () => {
+    const state = {
+      ...createInitialState(),
+      chatId: ' chat_1 ',
+      runId: ' run_1 ',
+      currentRunAgentKey: ' agent_1 ',
+      requestId: ' req_1 ',
+      planCurrentRunningTaskId: ' task_1 ',
+      planLastTouchedTaskId: ' task_2 ',
+      activeReasoningKey: ' reasoning_1 ',
+      extra: { retained: true },
+    };
+    const snapshot = snapshotConversationState(state);
+    const rawSnapshot = { ...snapshot, chatId: state.chatId, extra: state.extra };
+    const cloned = cloneConversationSnapshot(rawSnapshot);
+    const updates = buildConversationStateUpdates(rawSnapshot);
+
+    expect(snapshot).toMatchObject({
+      chatId: 'chat_1', runId: 'run_1', currentRunAgentKey: 'agent_1', requestId: 'req_1',
+      planCurrentRunningTaskId: 'task_1', planLastTouchedTaskId: 'task_2', activeReasoningKey: 'reasoning_1',
+    });
+    expect(snapshot).not.toHaveProperty('extra');
+    expect(snapshot).not.toHaveProperty('accessToken');
+    expect(cloned).toMatchObject({ chatId: ' chat_1 ', extra: state.extra });
+    expect((cloned as typeof rawSnapshot).extra).toBe(state.extra);
+    expect(updates.chatId).toBe(' chat_1 ');
+    expect(updates).not.toHaveProperty('extra');
+    expect(updates).not.toHaveProperty('activeTaskIds');
+    expect(updates).toMatchObject({
+      artifactExpanded: false, artifactManualOverride: null, artifactAutoCollapseTimer: null,
+      timelineDomCache: new Map(),
+      renderQueue: { dirtyNodeIds: new Set(), scheduled: false, stickToBottomRequested: false, fullSyncNeeded: false },
+    });
+    expect(Object.keys(updates).sort()).toEqual([
+      ...Object.keys(snapshot).filter((key) => key !== 'activeTaskIds'),
+      'timelineDomCache', 'renderQueue', 'artifactExpanded', 'artifactManualOverride', 'artifactAutoCollapseTimer',
+    ].sort());
+  });
+
+  it('keeps tolerant snapshot plan cloning distinct from strict update and replay cloning', () => {
+    const state = createInitialState();
+    state.plan = { planId: 'plan_1', plan: null } as unknown as NonNullable<typeof state.plan>;
+    expect(snapshotConversationState(state).plan?.plan).toEqual([]);
+    const snapshot = { ...snapshotConversationState(state), plan: state.plan };
+    expect(cloneConversationSnapshot(snapshot).plan?.plan).toEqual([]);
+    expect(() => buildConversationStateUpdates(snapshot)).toThrow(TypeError);
+    expect(() => applyPendingSessionUpdates(snapshot, createLiveQuerySession({ requestId: 'req_1' }))).toThrow(TypeError);
+  });
+
+  it('preserves collection isolation and intentionally shallow values in all snapshot copies', () => {
+    const source = snapshotConversationState(createInitialState());
+    source.timelineNodes.set('tool_1', {
+      id: 'tool_1', kind: 'tool', ts: 1,
+      toolOutput: { lastChunkIndex: 0, truncated: false, segments: [{ stream: 'stdout', text: 'output' }] },
+    });
+    source.timelineOrder.push('tool_1');
+    source.events.push({ type: 'run.start', runId: 'run_1' });
+    source.activeTaskIds.add('task_1');
+    const copies = [
+      snapshotConversationState({ ...createInitialState(), ...source }),
+      cloneConversationSnapshot(source),
+      buildConversationStateUpdates(source),
+    ];
+    for (const copy of copies) {
+      for (const [key, value] of Object.entries(source)) {
+        if (key === 'activeTaskIds' && !('activeTaskIds' in copy)) continue;
+        if (value instanceof Map || value instanceof Set || Array.isArray(value)) {
+          expect(copy[key as keyof typeof copy]).not.toBe(value);
+          expect(copy[key as keyof typeof copy]).toEqual(value);
+        }
+      }
+      expect(copy.events?.[0]).toBe(source.events[0]);
+      const tool = copy.timelineNodes?.get('tool_1');
+      expect(tool).not.toBe(source.timelineNodes.get('tool_1'));
+      expect(tool?.toolOutput?.segments[0]).not.toBe(source.timelineNodes.get('tool_1')?.toolOutput?.segments[0]);
+    }
+    expect(copies[0].timelineNodes).not.toBe(copies[1].timelineNodes);
+    expect(copies[1].timelineNodes).not.toBe(copies[2].timelineNodes);
   });
 
   it('deep-clones transient tool output in conversation snapshots', () => {

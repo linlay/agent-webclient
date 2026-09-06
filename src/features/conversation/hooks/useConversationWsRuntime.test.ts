@@ -4,7 +4,8 @@ import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { appReducer } from "@/app/state/reducer";
 import { createLiveQuerySession } from "@/features/conversation/lib/conversationSession";
 import { registerMainChatRunActivationListener } from "@/features/runs/hooks/useMainChatRunActivation";
-import { connectWsTransport, registerAttachRunListener, registerDetachRunListener } from "@/features/conversation/hooks/useConversationWsRuntime";
+import { connectWsTransport, createConversationPushHandler, registerAttachRunListener, registerDetachRunListener } from "@/features/conversation/hooks/useConversationWsRuntime";
+import type { WsPushFrame } from "@/features/transport/lib/wsClient";
 import { WS_STREAM_RETRY_DELAYS_MS } from "@/features/transport/lib/wsStreamReplay";
 
 const DEBUG_RUN_OBSERVATION_EVENT_TYPE = "debug.runObservation";
@@ -322,6 +323,79 @@ describe("connectWsTransport", () => {
 			expect.objectContaining({ accessToken: "token_1" }),
 		);
 		expect(connect).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([false, true])("preserves raw and forwarded push routing when transport routing is %s", async (routePushThroughTransport) => {
+		const client = createConnectedWsClient();
+		const state = createState();
+		const pushHandlerRef: { current: ((frame: WsPushFrame) => void) | null } = { current: null };
+		await connectWsTransport({
+			dispatch, state, stateRef: { current: state }, handleEvent,
+			isAppModeImpl: () => false, initWsClientImpl: client.initWsClientImpl,
+			routePushThroughTransport, pushHandlerRef,
+		});
+		const frame: WsPushFrame = { frame: 'push', type: 'chat.renamed', chatId: 'chat_1', chatName: 'Renamed' };
+		client.getRawOnPush()?.(frame);
+		expect(dispatch).toHaveBeenCalledTimes(routePushThroughTransport ? 0 : 1);
+		dispatch.mockClear();
+		pushHandlerRef.current?.(frame);
+		expect(dispatch).toHaveBeenCalledTimes(1);
+		expect(dispatch).toHaveBeenCalledWith({ type: 'CHAT_RENAMED', chatId: 'chat_1', chatName: 'Renamed' });
+		dispatch.mockClear();
+		client.getRawOnPush()?.(frame);
+		expect(dispatch).toHaveBeenCalledTimes(routePushThroughTransport ? 0 : 1);
+	});
+
+	it("restores the forwarding guard when a forwarded push handler throws", async () => {
+		const client = createConnectedWsClient();
+		const state = createState();
+		const pushHandlerRef: { current: ((frame: WsPushFrame) => void) | null } = { current: null };
+		await connectWsTransport({
+			dispatch, state, stateRef: { current: state }, handleEvent,
+			isAppModeImpl: () => false, initWsClientImpl: client.initWsClientImpl,
+			routePushThroughTransport: true, pushHandlerRef,
+		});
+		const frame: WsPushFrame = { frame: 'push', type: 'chat.renamed', chatId: 'chat_1', chatName: 'Renamed' };
+		dispatch.mockImplementationOnce(() => { throw new Error('dispatch failed'); });
+		expect(() => pushHandlerRef.current?.(frame)).toThrow('dispatch failed');
+		dispatch.mockClear();
+		client.getRawOnPush()?.(frame);
+		expect(dispatch).not.toHaveBeenCalled();
+		pushHandlerRef.current?.(frame);
+		expect(dispatch).toHaveBeenCalledTimes(1);
+	});
+
+	it("processes direct pushes like the compatibility client using the latest state", async () => {
+		const stateRef = { current: createState({ chatId: 'chat_1' }) };
+		const directDispatch = jest.fn<void, [AppAction]>();
+		const directEvent = jest.fn<void, [AgentEvent]>();
+		const directPush = createConversationPushHandler({ stateRef, dispatch: directDispatch, handleEvent: directEvent });
+		const client = createConnectedWsClient();
+		await connectWsTransport({
+			dispatch, state: stateRef.current, stateRef, handleEvent,
+			isAppModeImpl: () => false, initWsClientImpl: client.initWsClientImpl,
+		});
+		const frames: WsPushFrame[] = [
+			{ frame: 'push', type: 'heartbeat', timestamp: EPOCH_MS },
+			{ frame: 'push', type: 'chat.updated', chatId: 'chat_1', updatedAt: 'invalid' },
+			{ frame: 'push', type: 'chat.renamed', chatId: 'chat_1', chatName: 'Renamed', payload: { chatName: 'Old' } },
+			{ frame: 'push', type: 'chat.renamed', data: { chatId: 'chat_1', chatName: 'Nested' } },
+			{ frame: 'push', type: 'content.delta', chatId: 'chat_1', contentId: 'content_1', delta: 'text' },
+		];
+		for (const chatId of ['chat_1', 'chat_2']) {
+			stateRef.current = createState({ chatId });
+			dispatch.mockClear();
+			handleEvent.mockClear();
+			directDispatch.mockClear();
+			directEvent.mockClear();
+			for (const frame of frames) {
+				directPush(frame);
+				client.getRawOnPush()?.(frame);
+			}
+			expect(directDispatch.mock.calls).toEqual(dispatch.mock.calls);
+			expect(directEvent.mock.calls).toEqual(handleEvent.mock.calls);
+			expect(directEvent).toHaveBeenCalledTimes(chatId === 'chat_1' ? 1 : 0);
+		}
 	});
 
 	it("reloads the current observed chat after a websocket reconnect", async () => {
