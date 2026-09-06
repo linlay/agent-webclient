@@ -99,4 +99,30 @@ describe("tool output terminal", () => {
       terminal.dispose();
     }
   });
+
+  it("keeps split carriage-return and ANSI sequences intact across chunks", async () => {
+    const terminal = new Terminal({
+      cols: 80,
+      rows: 1,
+      convertEol: true,
+      scrollback: 100,
+    });
+
+    try {
+      for (const chunk of [
+        "event=start\nprogress=000%",
+        "\rprogress=050%\nevent=log sequence=1\nprogress=050%\r\u001b[",
+        "2Kprogress=100%\n",
+      ]) {
+        await writeTerminal(terminal, chunk);
+      }
+
+      expect(readToolOutputTerminalText(terminal)).toBe(
+        "event=start\nprogress=050%\nevent=log sequence=1\nprogress=100%",
+      );
+      expect(resolveToolOutputTerminalRows(terminal)).toBe(5);
+    } finally {
+      terminal.dispose();
+    }
+  });
 });
