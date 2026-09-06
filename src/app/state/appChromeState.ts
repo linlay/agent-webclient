@@ -1,3 +1,5 @@
+import { normalizeThemeMode } from "@/shared/styles/theme";
+import { persistTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
 import type { ThemeMode } from "@/shared/styles/theme";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { UiTimerHandle } from "@/shared/contracts/ui";
@@ -51,15 +53,60 @@ export function createInitialAppChromeState(input: {
   };
 }
 
-export function reduceAppChromeState(state: AppChromeState, action: AppChromeAction): AppChromeState {
+export function reduceAppChromeState<S extends AppChromeState>(state: S, action: AppChromeAction): S;
+export function reduceAppChromeState<S extends AppChromeState>(state: S, action: { type: string }): S | null;
+export function reduceAppChromeState<S extends AppChromeState>(state: S, input: { type: string }): S | null {
+  const action = input as AppChromeAction;
   switch (action.type) {
-    case "SET_LEFT_DRAWER_OPEN": return { ...state, leftDrawerOpen: action.open };
-    case "SET_TERMINAL_DOCK_OPEN": return { ...state, terminalDockOpen: action.open };
-    case "SET_THEME_MODE": return { ...state, themeMode: action.themeMode };
-    case "SET_ACCESS_TOKEN": return { ...state, accessToken: action.token };
-    case "SET_EVENT_POPOVER": return { ...state, eventPopoverIndex: action.index, eventPopoverEventRef: action.event, eventPopoverAnchor: action.anchor ?? null };
-    case "SHOW_COMMAND_STATUS_OVERLAY": return { ...state, commandStatusOverlay: { ...state.commandStatusOverlay, visible: true, commandType: action.commandType, phase: action.phase, text: action.text } };
-    case "SET_COMMAND_STATUS_OVERLAY_TIMER": return { ...state, commandStatusOverlay: { ...state.commandStatusOverlay, timer: action.timer } };
-    case "HIDE_COMMAND_STATUS_OVERLAY": return { ...state, commandStatusOverlay: { ...state.commandStatusOverlay, visible: false } };
+    case "SET_LEFT_DRAWER_OPEN":
+      return { ...state, leftDrawerOpen: action.open };
+    case "SET_TERMINAL_DOCK_OPEN":
+      persistTerminalDockOpen(action.open);
+      return { ...state, terminalDockOpen: action.open };
+    case "SET_THEME_MODE":
+      return { ...state, themeMode: normalizeThemeMode(action.themeMode) };
+    case "SET_ACCESS_TOKEN":
+      return { ...state, accessToken: action.token };
+    case "SET_EVENT_POPOVER":
+      return {
+        ...state,
+        eventPopoverIndex: action.index,
+        eventPopoverEventRef: action.event,
+        eventPopoverAnchor: action.anchor ?? null,
+      };
+    case "SHOW_COMMAND_STATUS_OVERLAY":
+      return {
+        ...state,
+        commandStatusOverlay: {
+          visible: true,
+          commandType: action.commandType,
+          phase: action.phase,
+          text: action.text,
+          timer: null,
+        },
+      };
+    case "SET_COMMAND_STATUS_OVERLAY_TIMER":
+      return {
+        ...state,
+        commandStatusOverlay: {
+          ...state.commandStatusOverlay,
+          timer: action.timer,
+        },
+      };
+    case "HIDE_COMMAND_STATUS_OVERLAY":
+      if (!state.commandStatusOverlay.visible && !state.commandStatusOverlay.timer) {
+        return state;
+      }
+      return {
+        ...state,
+        commandStatusOverlay: {
+          visible: false,
+          commandType: null,
+          phase: "success",
+          text: "",
+          timer: null,
+        },
+      };
+    default: return null;
   }
 }

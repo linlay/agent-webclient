@@ -201,18 +201,39 @@ export function createInitialTimelineState(): TimelineState {
   };
 }
 
-export function reduceTimelineState(state: TimelineState, action: TimelineAction): TimelineState {
+export function reduceTimelineState<S extends TimelineState>(state: S, action: TimelineAction): S;
+export function reduceTimelineState<S extends TimelineState>(state: S, action: { type: string }): S | null;
+export function reduceTimelineState<S extends TimelineState>(state: S, input: { type: string }): S | null {
+  const action = input as TimelineAction;
   switch (action.type) {
-    case "SET_TIMELINE_NODE": return { ...state, timelineNodes: new Map(state.timelineNodes).set(action.id, action.node) };
-    case "APPEND_TIMELINE_ORDER": return state.timelineOrder.includes(action.id) ? state : { ...state, timelineOrder: [...state.timelineOrder, action.id] };
-    case "INCREMENT_TIMELINE_COUNTER": return { ...state, timelineCounter: state.timelineCounter + 1 };
-    case "SET_CONTENT_NODE_BY_ID": return { ...state, contentNodeById: new Map(state.contentNodeById).set(action.contentId, action.nodeId) };
-    case "SET_REASONING_NODE_BY_ID": return { ...state, reasoningNodeById: new Map(state.reasoningNodeById).set(action.reasoningId, action.nodeId) };
-    case "SET_REASONING_COLLAPSE_TIMER": return { ...state, reasoningCollapseTimers: new Map(state.reasoningCollapseTimers).set(action.reasoningId, action.timer) };
-    case "CLEAR_REASONING_COLLAPSE_TIMER": { const next = new Map(state.reasoningCollapseTimers); next.delete(action.reasoningId); return { ...state, reasoningCollapseTimers: next }; }
-    case "SET_TOOL_NODE_BY_ID": return { ...state, toolNodeById: new Map(state.toolNodeById).set(action.toolId, action.nodeId) };
-    case "SET_ACTIVE_REASONING_KEY": return { ...state, activeReasoningKey: action.key };
+    case "SET_TIMELINE_NODE":
+      return { ...state, timelineNodes: new Map(state.timelineNodes).set(action.id, action.node) };
+    case "APPEND_TIMELINE_ORDER":
+      return { ...state, timelineOrder: [...state.timelineOrder, action.id] };
+    case "SET_CONTENT_NODE_BY_ID":
+      return { ...state, contentNodeById: new Map(state.contentNodeById).set(action.contentId, action.nodeId) };
+    case "SET_REASONING_NODE_BY_ID":
+      return { ...state, reasoningNodeById: new Map(state.reasoningNodeById).set(action.reasoningId, action.nodeId) };
+    case "SET_REASONING_COLLAPSE_TIMER":
+      return {
+        ...state,
+        reasoningCollapseTimers: new Map(state.reasoningCollapseTimers).set(action.reasoningId, action.timer),
+      };
+    case "CLEAR_REASONING_COLLAPSE_TIMER": {
+      const timers = state.reasoningCollapseTimers;
+      if (!timers.has(action.reasoningId)) return { ...state, reasoningCollapseTimers: timers };
+      const next = new Map(timers);
+      next.delete(action.reasoningId);
+      return { ...state, reasoningCollapseTimers: next };
+    }
+    case "SET_TOOL_NODE_BY_ID":
+      return { ...state, toolNodeById: new Map(state.toolNodeById).set(action.toolId, action.nodeId) };
+    case "SET_ACTIVE_REASONING_KEY":
+      return { ...state, activeReasoningKey: action.key };
+    case "INCREMENT_TIMELINE_COUNTER":
+      return { ...state, timelineCounter: state.timelineCounter + 1 };
     case "PATCH_CONTENT_TTS_VOICE_BLOCK":
     case "REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS": return state;
+    default: return null;
   }
 }

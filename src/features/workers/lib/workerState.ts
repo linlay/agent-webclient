@@ -105,19 +105,55 @@ export function createInitialWorkersState(): WorkersState {
   };
 }
 
-export function reduceWorkersState(state: WorkersState, action: WorkersAction): WorkersState {
+export function reduceWorkersState<S extends WorkersState>(state: S, action: WorkersAction): S;
+export function reduceWorkersState<S extends WorkersState>(state: S, action: { type: string }): S | null;
+export function reduceWorkersState<S extends WorkersState>(state: S, input: { type: string }): S | null {
+  const action = input as WorkersAction;
   switch (action.type) {
-    case "SET_TEAMS": return { ...state, teams: action.teams };
-    case "START_SIDEBAR_REQUEST": return { ...state, sidebarPendingRequestCount: state.sidebarPendingRequestCount + 1 };
-    case "FINISH_SIDEBAR_REQUEST": return { ...state, sidebarPendingRequestCount: Math.max(0, state.sidebarPendingRequestCount - 1) };
-    case "SET_CHAT_FILTER": return { ...state, chatFilter: action.filter };
-    case "SET_WORKER_SELECTION_KEY": return { ...state, workerSelectionKey: action.workerKey };
-    case "SET_WORKER_ROWS": return { ...state, workerRows: action.rows };
-    case "SET_WORKER_ORDER_KEYS": return { ...state, workerOrderKeys: action.workerOrderKeys };
-    case "SET_WORKER_RELATED_CHATS": return { ...state, workerRelatedChats: action.chats };
-    case "SET_WORKER_CHAT_PANEL_COLLAPSED": return { ...state, workerChatPanelCollapsed: action.collapsed };
-    case "SET_PENDING_NEW_CHAT_AGENT_KEY": return { ...state, pendingNewChatAgentKey: action.agentKey };
-    case "SET_WORKER_PRIORITY_KEY": return { ...state, workerPriorityKey: action.workerKey };
-    case "SET_TEMPORARY_PINNED_AGENT_KEY": return { ...state, temporaryPinnedAgentKey: action.agentKey };
+    case "SET_TEAMS":
+      return { ...state, teams: action.teams };
+    case "START_SIDEBAR_REQUEST":
+      return { ...state, sidebarPendingRequestCount: state.sidebarPendingRequestCount + 1 };
+    case "FINISH_SIDEBAR_REQUEST":
+      return {
+        ...state,
+        sidebarPendingRequestCount: Math.max(
+          0,
+          state.sidebarPendingRequestCount - 1,
+        ),
+      };
+    case "SET_CHAT_FILTER":
+      return { ...state, chatFilter: action.filter };
+    case "SET_WORKER_SELECTION_KEY":
+      return { ...state, workerSelectionKey: action.workerKey };
+    case "SET_WORKER_ROWS": {
+      const workerIndexByKey = new Map(
+        action.rows.map((row) => [row.key, row]),
+      );
+      const workerSelectionKey = workerIndexByKey.has(
+        state.workerSelectionKey,
+      )
+        ? state.workerSelectionKey
+        : "";
+      return {
+        ...state,
+        workerRows: action.rows,
+        workerIndexByKey,
+        workerSelectionKey,
+      };
+    }
+    case "SET_WORKER_ORDER_KEYS":
+      return { ...state, workerOrderKeys: action.workerOrderKeys };
+    case "SET_WORKER_RELATED_CHATS":
+      return { ...state, workerRelatedChats: action.chats };
+    case "SET_WORKER_CHAT_PANEL_COLLAPSED":
+      return { ...state, workerChatPanelCollapsed: action.collapsed };
+    case "SET_PENDING_NEW_CHAT_AGENT_KEY":
+      return { ...state, pendingNewChatAgentKey: action.agentKey };
+    case "SET_WORKER_PRIORITY_KEY":
+      return { ...state, workerPriorityKey: action.workerKey };
+    case "SET_TEMPORARY_PINNED_AGENT_KEY":
+      return { ...state, temporaryPinnedAgentKey: String(action.agentKey || "").trim() };
+    default: return null;
   }
 }

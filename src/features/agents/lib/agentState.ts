@@ -56,6 +56,13 @@ export function createInitialAgentsState(): AgentsState {
   return { agents: [] };
 }
 
-export function reduceAgentsState(state: AgentsState, action: AgentsAction): AgentsState {
-  return action.type === "SET_AGENTS" ? { ...state, agents: action.agents } : state;
+export function reduceAgentsState<S extends AgentsState>(state: S, action: AgentsAction): S;
+export function reduceAgentsState<S extends AgentsState>(state: S, action: { type: string }): S | null;
+export function reduceAgentsState<S extends AgentsState>(state: S, input: { type: string }): S | null {
+  const action = input as AgentsAction;
+  switch (action.type) {
+    case "SET_AGENTS":
+      return { ...state, agents: action.agents };
+    default: return null;
+  }
 }

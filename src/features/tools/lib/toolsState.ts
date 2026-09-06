@@ -132,16 +132,88 @@ export function createInitialToolsState(): ToolsState {
   };
 }
 
-export function reduceToolsState(state: ToolsState, action: ToolsAction): ToolsState {
+export function reduceToolsState<S extends ToolsState>(state: S, action: ToolsAction): S;
+export function reduceToolsState<S extends ToolsState>(state: S, action: { type: string }): S | null;
+export function reduceToolsState<S extends ToolsState>(state: S, input: { type: string }): S | null {
+  const action = input as ToolsAction;
   switch (action.type) {
-    case "SET_ACTIVE_FRONTEND_TOOL": return { ...state, activeFrontendTool: action.tool };
-    case "SET_ACTIVE_AWAITING": return { ...state, activeAwaiting: action.awaiting };
-    case "SET_AWAITING_RUNTIME": return { ...state, activeAwaiting: action.activeAwaiting, pendingAwaitings: action.pendingAwaitings };
-    case "CLEAR_ACTIVE_AWAITING": return { ...state, activeAwaiting: null };
-    case "SET_TOOL_STATE": return { ...state, toolStates: new Map(state.toolStates).set(action.key, action.state) };
-    case "SET_PENDING_TOOL": return { ...state, pendingTools: new Map(state.pendingTools).set(action.key, action.tool) };
-    case "SET_ACTION_STATE": return { ...state, actionStates: new Map(state.actionStates).set(action.key, action.state) };
+    case "SET_ACTIVE_FRONTEND_TOOL":
+      return { ...state, activeFrontendTool: action.tool };
+    case "SET_ACTIVE_AWAITING":
+      return { ...state, activeAwaiting: action.awaiting };
+    case "SET_AWAITING_RUNTIME":
+      return {
+        ...state,
+        activeAwaiting: action.activeAwaiting,
+        pendingAwaitings: action.pendingAwaitings,
+      };
+    case "PATCH_ACTIVE_AWAITING":
+      if (!state.activeAwaiting) {
+        return state;
+      }
+      return { ...state, activeAwaiting: patchActiveAwaiting(state.activeAwaiting, action.patch) };
+    case "CLEAR_ACTIVE_AWAITING":
+      if (!state.activeAwaiting && state.pendingAwaitings.length === 0) {
+        return state;
+      }
+      return {
+        ...state,
+        activeAwaiting: state.pendingAwaitings[0] ?? null,
+        pendingAwaitings: state.pendingAwaitings.slice(1),
+      };
+    case "SET_TOOL_STATE":
+      return { ...state, toolStates: new Map(state.toolStates).set(action.key, action.state) };
+    case "SET_PENDING_TOOL":
+      return { ...state, pendingTools: new Map(state.pendingTools).set(action.key, action.tool) };
+    case "SET_ACTION_STATE":
+      return { ...state, actionStates: new Map(state.actionStates).set(action.key, action.state) };
     case "ADD_EXECUTED_ACTION_ID": return { ...state, executedActionIds: new Set(state.executedActionIds).add(action.actionId) };
-    case "PATCH_ACTIVE_AWAITING": return state;
+    default: return null;
   }
+}
+
+export function patchActiveAwaiting(
+  current: ActiveAwaiting,
+  patch: Extract<ToolsAction, { type: "PATCH_ACTIVE_AWAITING" }>["patch"],
+): ActiveAwaiting {
+  const resolutionPatch =
+    patch.resolutionReason === "timeout" ||
+    patch.resolutionReason === "remote_answered"
+      ? { resolutionReason: patch.resolutionReason }
+      : {};
+
+  if (current.mode === "form") {
+    return {
+      ...current,
+      ...resolutionPatch,
+      ...(typeof patch.pendingSubmitId === "string"
+        ? { pendingSubmitId: patch.pendingSubmitId }
+        : {}),
+      ...(typeof patch.loading === "boolean" ? { loading: patch.loading } : {}),
+      ...(typeof patch.loadError === "string"
+        ? { loadError: patch.loadError }
+        : {}),
+      ...(typeof patch.viewportHtml === "string"
+        ? { viewportHtml: patch.viewportHtml }
+        : {}),
+    };
+  }
+
+  if (
+    patch.resolutionReason === "timeout" ||
+    patch.resolutionReason === "remote_answered"
+  ) {
+    return {
+      ...current,
+      resolutionReason: patch.resolutionReason,
+    };
+  }
+  if (typeof patch.pendingSubmitId === "string") {
+    return {
+      ...current,
+      pendingSubmitId: patch.pendingSubmitId,
+    };
+  }
+
+  return current;
 }

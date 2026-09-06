@@ -36,11 +36,34 @@ export function createInitialArtifactsState(): ArtifactsState {
   return { artifacts: [], artifactExpanded: false, artifactManualOverride: null, artifactAutoCollapseTimer: null };
 }
 
-export function reduceArtifactsState(state: ArtifactsState, action: ArtifactsAction): ArtifactsState {
+export function reduceArtifactsState<S extends ArtifactsState>(state: S, action: ArtifactsAction): S;
+export function reduceArtifactsState<S extends ArtifactsState>(state: S, action: { type: string }): S | null;
+export function reduceArtifactsState<S extends ArtifactsState>(state: S, input: { type: string }): S | null {
+  const action = input as ArtifactsAction;
   switch (action.type) {
-    case "UPSERT_ARTIFACT": return { ...state, artifacts: [...state.artifacts.filter((item) => item.artifactId !== action.artifact.artifactId), action.artifact] };
-    case "SET_ARTIFACT_EXPANDED": return { ...state, artifactExpanded: action.expanded };
-    case "SET_ARTIFACT_MANUAL_OVERRIDE": return { ...state, artifactManualOverride: action.override };
-    case "SET_ARTIFACT_AUTO_COLLAPSE_TIMER": return { ...state, artifactAutoCollapseTimer: action.timer };
+    case "UPSERT_ARTIFACT":
+      return { ...state, artifacts: upsertArtifact(state.artifacts, action.artifact) };
+    case "SET_ARTIFACT_EXPANDED":
+      return { ...state, artifactExpanded: action.expanded };
+    case "SET_ARTIFACT_MANUAL_OVERRIDE":
+      return { ...state, artifactManualOverride: action.override };
+    case "SET_ARTIFACT_AUTO_COLLAPSE_TIMER":
+      return { ...state, artifactAutoCollapseTimer: action.timer };
+    default: return null;
   }
+}
+
+export function upsertArtifact(
+  artifacts: PublishedArtifact[],
+  artifact: PublishedArtifact,
+): PublishedArtifact[] {
+  const index = artifacts.findIndex(
+    (item) => item.artifactId === artifact.artifactId,
+  );
+  if (index < 0) {
+    return [...artifacts, artifact];
+  }
+  const next = artifacts.slice();
+  next[index] = artifact;
+  return next;
 }

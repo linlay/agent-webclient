@@ -26,10 +26,28 @@ export function createInitialTasksState(): TasksState {
   return { taskItemsById: new Map(), activeTaskIds: new Set() };
 }
 
-export function reduceTasksState(state: TasksState, action: TasksAction): TasksState {
+export function reduceTasksState<S extends TasksState>(state: S, action: TasksAction): S;
+export function reduceTasksState<S extends TasksState>(state: S, action: { type: string }): S | null;
+export function reduceTasksState<S extends TasksState>(state: S, input: { type: string }): S | null {
+  const action = input as TasksAction;
   switch (action.type) {
-    case "SET_TASK_ITEM_META": return { ...state, taskItemsById: new Map(state.taskItemsById).set(action.taskId, action.task) };
-    case "ADD_ACTIVE_TASK_ID": return { ...state, activeTaskIds: new Set(state.activeTaskIds).add(action.taskId) };
-    case "REMOVE_ACTIVE_TASK_ID": { const next = new Set(state.activeTaskIds); next.delete(action.taskId); return { ...state, activeTaskIds: next }; }
+    case "SET_TASK_ITEM_META":
+      return { ...state, taskItemsById: new Map(state.taskItemsById).set(action.taskId, action.task) };
+    case "ADD_ACTIVE_TASK_ID":
+      return {
+        ...state,
+        activeTaskIds: state.activeTaskIds.has(action.taskId)
+          ? state.activeTaskIds
+          : new Set(state.activeTaskIds).add(action.taskId),
+      };
+    case "REMOVE_ACTIVE_TASK_ID": {
+      const activeTaskIds = state.activeTaskIds.has(action.taskId) ? new Set(state.activeTaskIds) : state.activeTaskIds;
+      if (activeTaskIds !== state.activeTaskIds) activeTaskIds.delete(action.taskId);
+      return {
+        ...state,
+        activeTaskIds,
+      };
+    }
+    default: return null;
   }
 }
