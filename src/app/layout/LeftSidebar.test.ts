@@ -1874,11 +1874,10 @@ describe("LeftSidebar", () => {
       /class="[^"]*\bworker-chat-action\b[^"]*" data-action="loading"/,
     );
     expect(html).toContain("worker-chat-action tw:relative tw:inline-flex tw:min-h-4 tw:flex-[0_0_30px]");
-    expect(html).toContain("worker-chat-loading tw:absolute tw:right-[5px]");
+    expect(html).toContain("worker-chat-loading tw:absolute tw:inset-y-0 tw:right-[5px] tw:my-auto");
     expect(html).toMatch(
       /class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,
     );
-    expect(html).toContain("tw:absolute tw:right-[5px] tw:top-1/2 tw:-translate-y-1/2");
     expect(html).not.toContain("tw:!hidden");
     expect(html).toMatch(
       /class="ui-list-item is-selected [^"]*\bworker-chat-item\b[^"]*\bis-active\b[^"]*"/,
@@ -1892,7 +1891,13 @@ describe("LeftSidebar", () => {
       /\.worker-chat-item:hover,[\s\S]*?\.worker-chat-item\.is-selected\s*\{[\s\S]*?background-color:\s*transparent;[\s\S]*?color:\s*var\(--text-main\);/,
     );
     expect(workerStyles).toMatch(
-      /\[data-action\]\s+\.worker-chat-loading\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?transform:\s*translateY\(-50%\);[\s\S]*?display:\s*none;/,
+      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*position:\s*absolute;[^}]*top:\s*0;[^}]*right:\s*5px;[^}]*bottom:\s*0;[^}]*margin-block:\s*auto;[^}]*display:\s*none;/,
+    );
+    expect(workerStyles).not.toMatch(
+      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*transform:/,
+    );
+    expect(workerStyles).toMatch(
+      /\[data-action="loading"\]\s+\.worker-chat-loading,[\s\S]*?\[data-action="awaiting"\]\s+\.worker-chat-loading\s*\{[^}]*display:\s*inline-flex;/,
     );
     expect(workerStyles).toMatch(
       /\[data-action\]\s+\.chat-actions-trigger\s*\{[\s\S]*?display:\s*none;/,

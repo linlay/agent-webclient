@@ -26,7 +26,7 @@ const WORKER_CHAT_ACTION_CLASS =
   "worker-chat-action tw:relative tw:inline-flex tw:min-h-4 tw:flex-[0_0_30px] tw:items-center tw:justify-end";
 
 const WORKER_CHAT_LOADING_CLASS =
-  "worker-chat-loading tw:absolute tw:right-[5px] tw:top-1/2 tw:-translate-y-1/2 tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin";
+  "worker-chat-loading tw:absolute tw:inset-y-0 tw:right-[5px] tw:my-auto tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin";
 
 const WORKER_PANEL_TIME_LABEL_CLASS =
   "worker-panel-time-label tw:min-w-0 tw:max-w-full tw:whitespace-nowrap tw:text-right tw:text-[11px] tw:text-text-muted";

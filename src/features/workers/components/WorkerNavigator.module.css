@@ -206,22 +206,17 @@
 [data-action] :global(.worker-chat-loading) {
     position: absolute;
     padding: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
     right: 5px;
+    bottom: 0;
+    margin-block: auto;
     transition: none;
     display: none;
 }
 
-[data-action] :global(.worker-chat-loading) {
-    transform: none;
-    top: unset;
-    color: var(--text-sub);
-}
-
 [data-action="loading"] :global(.worker-chat-loading),
 [data-action="awaiting"] :global(.worker-chat-loading) {
-    display: unset;
+    display: inline-flex;
 }
 
 :global(.worker-chat-loading) {
