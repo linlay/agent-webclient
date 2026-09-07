@@ -287,7 +287,7 @@ html[data-theme="dark"] :global(.copilot-side-panel) {
 }
 
 :global(.copilot-drawer) :global(.ant-drawer-body) {
-    padding: 10px;
+    padding: 6px 10px 10px;
 }
 
 :global(.copilot-drawer):global(.is-automation-console) :global(.ant-drawer-body) {
