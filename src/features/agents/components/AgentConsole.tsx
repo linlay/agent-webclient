@@ -870,10 +870,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   }, [effectiveSelectedKey, loadDetail]);
 
   useEffect(() => {
-    if (effectiveSelectedKey || localAgents.length !== 0 || loadingList) return;
+    // Keep bootstrap errors (and a new draft) when already in create mode.
+    if (formMode === "create" || effectiveSelectedKey || localAgents.length !== 0 || loadingList) return;
     loadedDetailKeyRef.current = "";
     resetToCreate();
-  }, [effectiveSelectedKey, loadingList, resetToCreate, localAgents.length]);
+  }, [formMode, effectiveSelectedKey, loadingList, resetToCreate, localAgents.length]);
 
   const updateForm = (patch: Partial<AgentFormState>) => {
     if (isReadOnly) return;

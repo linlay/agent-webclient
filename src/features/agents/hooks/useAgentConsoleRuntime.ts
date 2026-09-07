@@ -12,6 +12,10 @@ export function useAgentConsoleRuntime() {
     listLoadSeqRef.current += 1;
     optionsLoadSeqRef.current += 1;
     sourceLoadSeqRef.current += 1;
+    // StrictMode replays effects after cleanup. Allow fresh bootstrap requests
+    // to replace the requests invalidated above.
+    didBootstrapAgentsRef.current = false;
+    didBootstrapOptionsRef.current = false;
   }, []);
 
   return {
