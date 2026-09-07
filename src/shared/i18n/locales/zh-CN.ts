@@ -1474,6 +1474,7 @@ export const zhCNMessages = {
   "timeline.query.resendInNewChat": "新对话重问",
   "timeline.query.resendInNewChatFailed": "新对话重问失败，请重试",
   "timeline.run.processed": "已处理 {duration}",
+  "timeline.run.duration": "耗时 {duration}",
   "timeline.run.responseDuration": "响应耗时 {duration}",
   "timeline.run.interrupted": "你在 {duration} 后停止了",
   "timeline.run.interruptedNeutral": "本次运行已中断",

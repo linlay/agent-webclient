@@ -1475,6 +1475,7 @@ export const enUSMessages = {
   "timeline.query.resendInNewChat": "Resend in new chat",
   "timeline.query.resendInNewChatFailed": "Failed to resend in a new chat. Please try again.",
   "timeline.run.processed": "Worked for {duration}",
+  "timeline.run.duration": "Took {duration}",
   "timeline.run.responseDuration": "Response took {duration}",
   "timeline.run.interrupted": "You stopped after {duration}",
   "timeline.run.interruptedNeutral": "This run was interrupted.",

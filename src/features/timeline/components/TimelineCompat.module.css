@@ -32,7 +32,7 @@
 }
 
 :global(.timeline-row-time) {
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1;
     color: var(--ink-muted);
     letter-spacing: 0.02em;
