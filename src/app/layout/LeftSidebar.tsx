@@ -6,6 +6,7 @@ import {
   type SidebarSettingsMenuAction,
 } from "@/app/layout/sidebar/SidebarSettingsMenu";
 import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
 import { WorkerNavigator } from "@/features/workers/components/WorkerNavigator";
 import { useMemoryOverlayActions } from "@/features/memory/components/MemoryOverlayProvider";
@@ -57,7 +58,7 @@ export const LeftSidebar: React.FC = () => {
           }}
         />
       )}
-      settingsSummary={(
+      settingsSummary={
         <span className="settings-trigger-summary">
           {settingsSummaryBadges.map((badge) => (
             <span
@@ -65,14 +66,12 @@ export const LeftSidebar: React.FC = () => {
               className="settings-summary-chip"
               title={badge.title}
             >
-              <span className="material-icon settings-summary-chip-icon">
-                {badge.icon}
-              </span>
+              <MaterialIcon name={badge.icon} />
               <span>{badge.label}</span>
             </span>
           ))}
         </span>
-      )}
+      }
     />
   );
 };

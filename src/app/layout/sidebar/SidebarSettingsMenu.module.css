@@ -47,10 +47,6 @@
     white-space: nowrap;
 }
 
-:global(.settings-summary-chip-icon) {
-    font-size: 16px;
-}
-
 :global(.sidebar-settings-popover) :global(.ant-popover-inner) {
     padding: 0;
     border-radius: 16px;
