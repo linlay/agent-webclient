@@ -153,6 +153,15 @@ describe("platformError", () => {
 		);
 	});
 
+	it("explains an uncompactable context without suggesting a provider retry", () => {
+		const display = formatPlatformErrorForDisplay({ error: {
+			category: "model", code: "context_window_uncompactable", retryable: false,
+			message: "Context cannot be reduced below the model window",
+		} });
+		expect(display.message).toBe("上下文无法压缩至模型可用范围，本次运行已停止。");
+		expect(display.retryHint).toBe("");
+	});
+
 	it("falls back to category and then generic text for unknown codes", () => {
 		const categoryDisplay = formatPlatformErrorForDisplay({
 			error: {

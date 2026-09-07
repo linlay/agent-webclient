@@ -260,8 +260,8 @@ describe('processStreamEvent', () => {
       id: 'compact_compact-1',
       kind: 'message',
       role: 'system',
-      text: expect.stringContaining('上下文剩余 44.44% / 已释放 55.56%'),
-      tooltip: expect.stringContaining('本次压缩范围'),
+      text: expect.stringContaining('本次压缩 55.56%（5,000 tokens） · 当前上下文约 4,000 tokens'),
+      tooltip: expect.stringContaining('本次压缩前'),
       ts: 123,
     });
     expect(state.timelineNodes.get('compact_compact-1')?.text).toContain('历史消息：12');
@@ -277,6 +277,25 @@ describe('processStreamEvent', () => {
 
     expect(duplicateCommands).toEqual([]);
     expect(state.timelineOrder).toEqual(['compact_compact-1']);
+  });
+
+  it('shows the incident reduction and current tokens without treating retained context as free capacity', () => {
+    const state = createState();
+    processAndApply(state, {
+      type: 'context.compact.complete', compactId: 'incident', level: 'l1_tools', scope: 'run',
+      preCompactEstimatedTokens: 552203, postCompactEstimatedTokens: 546551,
+      remainingRatio: 98.97646336582743, releasedRatio: 1.0235366341725727, tokensFreed: 5652,
+    }, 'live', false);
+    expect(state.timelineNodes.get('compact_incident')?.text).toBe(
+      '已压缩工具上下文 · 本次压缩 1.02%（5,652 tokens） · 当前上下文约 546,551 tokens',
+    );
+    processAndApply(state, {
+      type: 'context.compact.failed', compactId: 'incident-summary', level: 'summary',
+      detail: 'summary_input_too_large',
+    }, 'live', false);
+    expect(state.timelineNodes.get('compact_failed_incident-summary')?.text).toBe(
+      '上下文压缩失败：待摘要的上下文超过单次摘要输入上限（summary_input_too_large）',
+    );
   });
 
   it('creates request.query user nodes only during replay', () => {

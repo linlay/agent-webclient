@@ -14,6 +14,7 @@ import {
 } from "@/shared/data";
 import { resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import { useI18n } from "@/shared/i18n";
+import { formatCompactStats } from "@/shared/utils/contextCompactStats";
 
 export type BackgroundCommandType = "remember" | "learn" | "compact";
 
@@ -129,22 +130,12 @@ function compactTimelineText(
       t("contextCompact.toolDigestCount", { count: data.toolDigestCount }),
     );
   }
-  const remainingRatio = readCompactNumber(data.remainingRatio)
-    ?? (typeof data.compressionRatio === "number" ? data.compressionRatio * 100 : null);
-  const releasedRatio = readCompactNumber(data.releasedRatio)
-    ?? (remainingRatio == null ? null : Math.max(0, 100 - remainingRatio));
-  if (remainingRatio != null && releasedRatio != null) {
-    parts.push(
-      t("contextCompact.reduction", {
-        remaining: remainingRatio.toFixed(2),
-        released: releasedRatio.toFixed(2),
-      }),
-    );
-  }
+  parts.push(...formatCompactStats(data, t));
   return parts.join(" · ");
 }
 
 function readCompactNumber(value: unknown): number | null {
+  if (value == null || value === "" || typeof value === "boolean") return null;
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : null;
 }

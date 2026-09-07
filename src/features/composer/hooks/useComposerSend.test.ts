@@ -80,7 +80,13 @@ function testT(key: string, params?: Record<string, unknown>): string {
     return `Tool result summaries: ${String(params?.count || '')}`;
   }
   if (key === 'contextCompact.reduction') {
-    return `Context remaining ${String(params?.remaining || '')}% / released ${String(params?.released || '')}%`;
+    return `Compacted ${String(params?.released || '')}%`;
+  }
+  if (key === 'contextCompact.reductionTokens') {
+    return `Compacted ${String(params?.released || '')}% (${String(params?.tokens || '')} tokens)`;
+  }
+  if (key === 'contextCompact.currentTokens') {
+    return `Current context: approximately ${String(params?.tokens || '')} tokens`;
   }
   return key;
 }
@@ -316,7 +322,7 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(scheduleCommandStatusOverlayHide).toHaveBeenCalledTimes(1);
   });
 
-  it('submits L1 explicitly and renders released and remaining percentages', async () => {
+  it('submits L1 explicitly and renders the reduction and current context', async () => {
     compactChatMock.mockResolvedValue({
       data: {
         accepted: true,
@@ -352,7 +358,7 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'SET_TIMELINE_NODE',
       node: expect.objectContaining({
-        text: expect.stringContaining('Context remaining 1.18% / released 98.82%'),
+        text: expect.stringContaining('Compacted 98.82% · Current context: approximately 2,334 tokens'),
       }),
     }));
   });
