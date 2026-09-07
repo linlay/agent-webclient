@@ -97,7 +97,7 @@ const UsageContextWindow: React.FC<{
   return (
     <div className={USAGE_CONTEXT_WINDOW_CLASS}>
       <div className={USAGE_CONTEXT_COPY_CLASS}>
-        <span title={t("contextCompact.policy")}>{t("topNav.usage.contextWindow")}</span>
+        <span>{t("topNav.usage.contextWindow")}</span>
         <strong>
           {formatUsageNumber(snapshot?.contextWindow?.currentSize)}
           {" / "}
@@ -117,7 +117,6 @@ const UsageContextWindow: React.FC<{
         </Dropdown>
       </div>
 
-      <small>{t("contextCompact.policy")}</small>
       <div
         className={USAGE_CACHE_HIT_INLINE_CLASS}
         aria-label={t("topNav.usage.cacheHitRate")}

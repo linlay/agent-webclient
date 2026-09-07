@@ -888,7 +888,6 @@ export const enUSMessages = {
   "globalSearch.group.conversations": "Conversations",
   "globalSearch.row.unread": "Unread",
   "contextCompact.completed": "Context compacted",
-  "contextCompact.policy": "At 80%, compact old tools and keep the last 5 calls intact. Summarize only if usage remains at least 90%.",
   "contextCompact.toolsCompleted": "Tool context compacted",
   "contextCompact.summaryCompleted": "Context summary generated",
   "contextCompact.reduction": "Compacted {released}%",

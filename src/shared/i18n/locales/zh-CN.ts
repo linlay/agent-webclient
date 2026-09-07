@@ -888,7 +888,6 @@ export const zhCNMessages = {
   "globalSearch.group.conversations": "对话",
   "globalSearch.row.unread": "未读",
   "contextCompact.completed": "已压缩上下文",
-  "contextCompact.policy": "80% 压缩旧工具，L1 保留最近 5 次；压后仍达 90% 则生成摘要。",
   "contextCompact.toolsCompleted": "已压缩工具上下文",
   "contextCompact.summaryCompleted": "已生成上下文摘要",
   "contextCompact.reduction": "本次压缩 {released}%",
