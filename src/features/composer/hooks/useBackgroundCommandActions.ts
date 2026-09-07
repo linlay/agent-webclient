@@ -12,6 +12,7 @@ import {
   type CompactChatResponse,
   type CompactLevel,
 } from "@/shared/data";
+import { resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import { useI18n } from "@/shared/i18n";
 
 export type BackgroundCommandType = "remember" | "learn" | "compact";
@@ -45,6 +46,7 @@ interface RunBackgroundCommandInput {
   now?: () => number;
   requestId?: string;
   getEvents?: () => AppState["events"];
+  isCurrentChat?: () => boolean;
   scheduleCommandStatusOverlayHide: () => void;
   t: (key: string, params?: Record<string, unknown>) => string;
   texts: BackgroundCommandTexts;
@@ -60,11 +62,11 @@ function isCompactNoHistory(data: CompactChatResponse): boolean {
   return (
     data.accepted === false &&
     data.status === "skipped" &&
-    (data.detail === "no_compactable_history" || data.detail === "no_compactable_tools")
+    (["no_compactable_history", "no_compactable_tools", "already_at_target"].includes(data.detail || ""))
   );
 }
 
-function compactFailureText(
+export function compactFailureText(
   data: CompactChatResponse,
   t: (key: string, params?: Record<string, unknown>) => string,
 ): string {
@@ -182,7 +184,7 @@ export function buildCompactUsageSnapshot(
   return {
     type: AIUsageEventTypeEnum.Snapshot,
     chatId: data.chatId || previous?.chatId || "",
-    runId: previous?.runId || data.boundaryRunId || "",
+    runId: data.runId || previous?.runId || data.boundaryRunId || "",
     ...(previous?.model ? { model: previous.model } : {}),
     contextWindow: {
       ...previousContext,
@@ -207,6 +209,8 @@ function buildCompactCompleteEvent(
     chatId: data.chatId || chatId,
     runId: data.runId || data.boundaryRunId,
     compactId: data.compactId,
+    cycleId: data.cycleId,
+    cycleComplete: data.cycleComplete,
     trigger: data.trigger,
     scope: data.scope,
     retryable: data.retryable,
@@ -267,6 +271,23 @@ export async function runBackgroundCommand(
     return;
   }
 
+  const showOutcome = (phase: "success" | "error", message: string, compactData?: CompactChatResponse) => {
+    const active = commandType === "compact" ? resolveCompactPhase(getEvents?.() || events, chatId) : null;
+    const sameCycle = active && [compactData?.cycleId, compactData?.compactId, compactData?.requestId].includes(active.cycleId);
+    // The run may already have entered an independent automatic cycle while
+    // this manual API response was in transit. Do not hide its blocking phase.
+    if (active && !sameCycle) {
+      dispatch({
+        type: "SHOW_COMMAND_STATUS_OVERLAY", commandType, phase: "pending",
+        text: active.level === "l1_tools"
+          ? texts.toolsCompacting || texts.pending
+          : texts.summaryCompacting || texts.pending,
+      });
+      return;
+    }
+    dispatch({ type: "SHOW_COMMAND_STATUS_OVERLAY", commandType, phase, text: message });
+  };
+
   const requestId = providedRequestId || createRequestId(commandType);
   dispatch({
     type: "SHOW_COMMAND_STATUS_OVERLAY",
@@ -284,12 +305,15 @@ export async function runBackgroundCommand(
       : commandType === "remember"
         ? await rememberChat({ requestId, chatId })
         : await learnChat({ requestId, chatId });
+    if (input.isCurrentChat && !input.isCurrentChat()) return;
     let successText = texts.pending;
+    let completedCompact: CompactChatResponse | undefined;
     if (commandType === "compact") {
       if (!response.data) {
         throw new Error("compact response data is missing");
       }
       const compactData = response.data as CompactChatResponse;
+      completedCompact = compactData;
       const completed = isCompactCompleted(compactData);
       const noHistory = isCompactNoHistory(compactData);
       if (!completed && !noHistory) {
@@ -298,12 +322,7 @@ export async function runBackgroundCommand(
           type: "APPEND_DEBUG",
           line: `[compact] rejected: ${compactData.detail || compactData.status || "unknown"}`,
         });
-        dispatch({
-          type: "SHOW_COMMAND_STATUS_OVERLAY",
-          commandType,
-          phase: "error",
-          text: failureText,
-        });
+        showOutcome("error", failureText, compactData);
         return;
       }
       const currentEvents = getEvents?.() || events;
@@ -313,16 +332,17 @@ export async function runBackgroundCommand(
         requestId,
         AIContextEventTypeEnum.CompactComplete,
       );
-      if (completed) {
+      if (completed && !completeEventReceived) {
         const compactEvent = buildCompactCompleteEvent(compactData, requestId, chatId);
         if (compactEvent && !completeEventReceived) {
           dispatch({ type: "PUSH_EVENT", event: compactEvent });
         }
         const nextUsageSnapshot = buildCompactUsageSnapshot(
           compactData,
-          usageSnapshot || latestUsageSnapshotFromEvents(currentEvents),
+          latestUsageSnapshotFromEvents(currentEvents) || usageSnapshot,
         );
-        if (nextUsageSnapshot) {
+        const newerUsageArrived = currentEvents.slice(events.length).some((event) => event.type === "usage.snapshot" || event.type === "context.compact.complete");
+        if (nextUsageSnapshot && !newerUsageArrived) {
           dispatch({ type: "SET_USAGE_SNAPSHOT", snapshot: nextUsageSnapshot });
         }
       }
@@ -352,25 +372,16 @@ export async function runBackgroundCommand(
       type: "APPEND_DEBUG",
       line: `[${commandType}] submitted for chatId=${chatId}, requestId=${requestId}`,
     });
-    dispatch({
-      type: "SHOW_COMMAND_STATUS_OVERLAY",
-      commandType,
-      phase: "success",
-      text: successText,
-    });
+    showOutcome("success", successText, completedCompact);
   } catch (error) {
+    if (input.isCurrentChat && !input.isCurrentChat()) return;
     dispatch({
       type: "APPEND_DEBUG",
       line: `[${commandType}] failed: ${(error as Error).message}`,
     });
-    dispatch({
-      type: "SHOW_COMMAND_STATUS_OVERLAY",
-      commandType,
-      phase: "error",
-      text: texts.error,
-    });
+    showOutcome("error", texts.error);
   } finally {
-    scheduleCommandStatusOverlayHide();
+    if (!input.isCurrentChat || input.isCurrentChat()) scheduleCommandStatusOverlayHide();
   }
 }
 
@@ -380,8 +391,13 @@ export function useBackgroundCommandActions(input: {
   dispatch: Dispatch<AppAction>;
   state: BackgroundCommandState;
   text: BackgroundCommandTextMap;
+  canCompact?: boolean;
 }) {
   const { dispatch, state, text } = input;
+  const chatRef = useRef(state.chatId);
+  chatRef.current = state.chatId;
+  const phase = resolveCompactPhase(state.events, String(state.chatId || ""));
+  const phaseKey = phase ? `${phase.chatId}:${phase.runId}:${phase.cycleId}:${phase.level}` : "";
   const { t } = useI18n();
   const [submittingCommand, setSubmittingCommand] =
     useState<BackgroundCommandType | null>(null);
@@ -391,36 +407,26 @@ export function useBackgroundCommandActions(input: {
   eventsRef.current = state.events;
 
   useEffect(() => {
-    const requestId = activeCompactRequestIdRef.current;
-    if (submittingCommand !== "compact" || !requestId) return;
-    const started = [...state.events].reverse().find((event) =>
-      event.type === AIContextEventTypeEnum.CompactStart &&
-      event.requestId === requestId
-    );
-    if (!started) return;
+    if (!phase) return;
     dispatch({
-      type: "SHOW_COMMAND_STATUS_OVERLAY",
-      commandType: "compact",
-      phase: "pending",
-      text:
-        (started.level === "l1_tools"
-          ? text.compact.toolsCompacting
-          : text.compact.summaryCompacting)
-        || text.compact.compacting
-        || text.compact.pending,
+      type: "SHOW_COMMAND_STATUS_OVERLAY", commandType: "compact", phase: "pending",
+      text: phase.level === "l1_tools"
+        ? text.compact.toolsCompacting || text.compact.pending
+        : text.compact.summaryCompacting || text.compact.pending,
     });
-  }, [
-    dispatch,
-    state.events,
-    submittingCommand,
-    text.compact.compacting,
-    text.compact.pending,
-    text.compact.summaryCompacting,
-    text.compact.toolsCompacting,
-  ]);
+  }, [dispatch, phaseKey, text.compact.toolsCompacting, text.compact.summaryCompacting, text.compact.pending]);
+  const previousPhaseRef = useRef("");
+  useEffect(() => {
+    if (previousPhaseRef.current && !phaseKey && submittingCommand !== "compact") {
+      dispatch({ type: "HIDE_COMMAND_STATUS_OVERLAY" });
+    }
+    previousPhaseRef.current = phaseKey;
+  }, [dispatch, phaseKey, submittingCommand]);
 
   const scheduleCommandStatusOverlayHide = useCallback(() => {
+    const scheduledChat = chatRef.current;
     const timer = window.setTimeout(() => {
+      if (chatRef.current !== scheduledChat || resolveCompactPhase(eventsRef.current, String(chatRef.current || ""))) return;
       dispatch({ type: "HIDE_COMMAND_STATUS_OVERLAY" });
     }, 2000);
     dispatch({
@@ -436,7 +442,7 @@ export function useBackgroundCommandActions(input: {
         return;
       }
 
-      if (commandType === "compact" && pendingCompactChats.has(chatId)) {
+      if (commandType === "compact" && (input.canCompact === false || phase || pendingCompactChats.has(chatId))) {
         return;
       }
 
@@ -454,6 +460,7 @@ export function useBackgroundCommandActions(input: {
           dispatch,
           events: state.events,
           getEvents: () => eventsRef.current,
+          isCurrentChat: () => chatRef.current === chatId,
           requestId,
           scheduleCommandStatusOverlayHide,
           t,
@@ -472,6 +479,8 @@ export function useBackgroundCommandActions(input: {
     },
     [
       dispatch,
+      input.canCompact,
+      phaseKey,
       scheduleCommandStatusOverlayHide,
       state.chatId,
       state.events,

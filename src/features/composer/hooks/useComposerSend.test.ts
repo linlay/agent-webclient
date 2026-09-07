@@ -410,13 +410,9 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: 'SET_TIMELINE_NODE',
     }));
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'SET_USAGE_SNAPSHOT',
-      snapshot: expect.objectContaining({
-        chatId: 'chat-1',
-        contextWindow: expect.objectContaining({ currentSize: 3200 }),
-      }),
-    });
+    // The live event handler already applied this completion. A late API
+    // response must not overwrite newer usage from the resumed model turn.
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_USAGE_SNAPSHOT' }));
   });
 
   it('does not write a success timeline node or usage update when compact is skipped', async () => {
@@ -454,6 +450,36 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: 'SET_TIMELINE_NODE',
     }));
+  });
+
+  it('does not apply a late compact response to another chat', async () => {
+    compactChatMock.mockResolvedValue({ data: { accepted: true, status: 'completed', chatId: 'a', compactId: 'c', postCompactEstimatedTokens: 123 } });
+    const dispatch = jest.fn();
+    const hide = jest.fn();
+    await runBackgroundCommand({
+      chatId: 'a', commandType: 'compact', dispatch, events: [], isCurrentChat: () => false,
+      scheduleCommandStatusOverlayHide: hide, t: testT,
+      texts: { pending: 'waiting', error: 'failed' }, usageSnapshot: null,
+    });
+    expect(dispatch).toHaveBeenCalledTimes(1); // initial waiting only
+    expect(hide).not.toHaveBeenCalled();
+  });
+
+  it('keeps an independent automatic L2 cycle pending after the manual response arrives', async () => {
+    const data = { accepted: true, status: 'completed', chatId: 'a', compactId: 'manual', postCompactEstimatedTokens: 9100 };
+    compactChatMock.mockResolvedValue({ data });
+    const dispatch = jest.fn();
+    await runBackgroundCommand({
+      chatId: 'a', commandType: 'compact', dispatch, events: [],
+      getEvents: () => [
+        { type: 'context.compact.complete', chatId: 'a', compactId: 'manual' },
+        { type: 'context.compact.complete', chatId: 'a', runId: 'r', compactId: 'auto-l1', cycleId: 'auto', cycleComplete: false, level: 'l1_tools' },
+      ],
+      scheduleCommandStatusOverlayHide: jest.fn(), t: testT,
+      texts: { pending: 'waiting', error: 'failed', summaryCompacting: 'L2 pending' }, usageSnapshot: null,
+    });
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'SHOW_COMMAND_STATUS_OVERLAY', commandType: 'compact', phase: 'pending', text: 'L2 pending' });
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_USAGE_SNAPSHOT' }));
   });
 
   it('shows a retry error without completion state when compact history changed', async () => {

@@ -40,6 +40,7 @@ import {
   type UsageMetric,
 } from "@/features/usage/lib/usageMetrics";
 import styles from "./UsageContextControl.module.css";
+import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 
 const withModuleClass = (semanticClass: string, utilityClasses = "") =>
   `${semanticClass} ${styles[semanticClass]} ${utilityClasses}`.trim();
@@ -96,7 +97,7 @@ const UsageContextWindow: React.FC<{
   return (
     <div className={USAGE_CONTEXT_WINDOW_CLASS}>
       <div className={USAGE_CONTEXT_COPY_CLASS}>
-        <span>{t("topNav.usage.contextWindow")}</span>
+        <span title={t("contextCompact.policy")}>{t("topNav.usage.contextWindow")}</span>
         <strong>
           {formatUsageNumber(snapshot?.contextWindow?.currentSize)}
           {" / "}
@@ -116,6 +117,7 @@ const UsageContextWindow: React.FC<{
         </Dropdown>
       </div>
 
+      <small>{t("contextCompact.policy")}</small>
       <div
         className={USAGE_CACHE_HIT_INLINE_CLASS}
         aria-label={t("topNav.usage.cacheHitRate")}
@@ -271,6 +273,7 @@ export const UsageContextControl: React.FC<{
   const usageTotal = resolveDisplayTotal(usageSnapshot);
   const { submitCompactCommand, submittingCommand } =
     useBackgroundCommandActions({
+      canCompact: !isMainChatRunning || supportsActiveRunContextCompact(currentWorker),
       dispatch,
       state: {
         chatId: state.chatId,
@@ -300,11 +303,10 @@ export const UsageContextControl: React.FC<{
     state.commandStatusOverlay.visible &&
     state.commandStatusOverlay.commandType === "compact" &&
     state.commandStatusOverlay.phase === "pending";
-  const compactDisabled =
-    !String(state.chatId || "").trim() ||
-    (isMainChatRunning && !supportsActiveRunContextCompact(currentWorker)) ||
-    submittingCommand === "compact" ||
-    compactStatusOverlayPending;
+  const compactDisabled = !canSubmitCompact(
+    String(state.chatId || ""), isMainChatRunning, supportsActiveRunContextCompact(currentWorker),
+    submittingCommand === "compact" || compactStatusOverlayPending || Boolean(resolveCompactPhase(state.events, String(state.chatId || ""))),
+  );
   const contextPercent = resolveContextPercent(usageSnapshot);
   const estimatedCostLabel = formatChatEstimatedCost(
     resolveChatEstimatedCost(usageSnapshot),

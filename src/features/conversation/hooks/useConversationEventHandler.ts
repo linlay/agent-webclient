@@ -379,6 +379,25 @@ export function useConversationEventHandler(): {
         }
       }
 
+      if (type === "context.compact.complete") {
+        const tokens = Number(event.postCompactEstimatedTokens);
+        const previous = state.usageSnapshot;
+        const sameRun = !event.runId || !previous?.runId || event.runId === previous.runId || event.scope === "history";
+        const duplicate = state.events.some((old) => old.type === type && old.compactId && old.compactId === event.compactId);
+        const newerUsage = Number(previous?.timestamp || 0) > Number(event.timestamp || 0);
+        if (Number.isFinite(tokens) && tokens >= 0 && sameRun && !duplicate && !newerUsage) {
+          dispatch({
+            type: "SET_USAGE_SNAPSHOT",
+            snapshot: {
+              ...previous, type: "usage.snapshot" as AIUsageSnapshotEvent["type"],
+              chatId: eventChatId, runId: toText(event.runId) || previous?.runId || "",
+              timestamp: event.timestamp, seq: event.seq,
+              contextWindow: { ...previous?.contextWindow, currentSize: tokens, estimatedNextCallSize: tokens },
+            },
+          });
+        }
+      }
+
       if (type === "usage.snapshot") {
         dispatch({
           type: "SET_USAGE_SNAPSHOT",

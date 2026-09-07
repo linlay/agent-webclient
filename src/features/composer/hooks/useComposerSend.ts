@@ -35,6 +35,8 @@ import { resolveMentionCandidatesFromState } from "@/features/composer/lib/menti
 import {
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
+import { resolveCurrentWorkerSummary, supportsActiveRunContextCompact } from "@/features/workers/lib/currentWorker";
+import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
 
 export {
@@ -174,6 +176,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     submitLearnCommand,
     submitCompactCommand,
   } = useBackgroundCommandActions({
+    canCompact: !mainChatRunning || supportsActiveRunContextCompact(resolveCurrentWorkerSummary(stateRef.current)),
     dispatch,
     state: {
       chatId: state.chatId,
@@ -423,6 +426,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         void messageApi.warning(t("contextCompact.noChat"));
         return;
       }
+      if (!canSubmitCompact(activeChatId, mainChatRunning, supportsActiveRunContextCompact(resolveCurrentWorkerSummary(stateRef.current)), Boolean(resolveCompactPhase(currentState.events, activeChatId)))) return;
       setInputValue("");
       setSlashDismissed(false);
       closeMention();

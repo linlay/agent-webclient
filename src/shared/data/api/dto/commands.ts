@@ -54,6 +54,8 @@ export interface CompactChatParams extends BackgroundCommandParams {
 }
 
 export interface CompactChatResponse {
+  cycleId?: string;
+  cycleComplete?: boolean;
   accepted: boolean;
   status: string;
   requestId?: string;
