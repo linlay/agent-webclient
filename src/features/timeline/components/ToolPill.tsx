@@ -293,6 +293,13 @@ export function claimToolOutputAutoExpand(
   return claimed;
 }
 
+export function shouldCollapseCompletedToolOutput(
+  records: ToolPillRecord[],
+  claimedKeys: Set<string>,
+): boolean {
+  return claimedKeys.size > 0 && records.length === 0;
+}
+
 export function canExpandToolPill(
   source: TimelineNode | ToolGroupRenderEntry,
 ): boolean {
@@ -412,13 +419,18 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   }, [source, t]);
 
   useEffect(() => {
+    const claimedKeys = autoExpandedOutputKeysRef.current;
     if (
       claimToolOutputAutoExpand(
         outputRecords,
-        autoExpandedOutputKeysRef.current,
+        claimedKeys,
       )
     ) {
       setExpanded(true);
+      return;
+    }
+    if (shouldCollapseCompletedToolOutput(outputRecords, claimedKeys)) {
+      setExpanded(false);
     }
   }, [outputRecords]);
 

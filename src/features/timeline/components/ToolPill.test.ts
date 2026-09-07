@@ -10,6 +10,7 @@ import {
 	getToolPillDurationText,
 	getExpandableToolPillRecords,
 	resolveKbaseIndexSummary,
+	shouldCollapseCompletedToolOutput,
 	shouldRenderToolOutputTerminal,
 } from "@/features/timeline/components/ToolPill";
 
@@ -264,6 +265,48 @@ describe("ToolPill helpers", () => {
 		// A manual collapse does not clear the claim, so later chunks for the
 		// same invocation cannot force the pill open again.
 		expect(claimToolOutputAutoExpand(records, claimed)).toBe(false);
+	});
+
+	it("collapses an auto-expanded live output after its final result replaces it", () => {
+		const liveRecords = buildToolPillRecords(
+			createToolNode({
+				id: "tool_live",
+				kind: "tool",
+				ts: 100,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 0,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "working\n" }],
+				},
+			}),
+		).filter((record) => Boolean(record.toolOutput));
+		const claimed = new Set<string>();
+
+		expect(claimToolOutputAutoExpand(liveRecords, claimed)).toBe(true);
+		expect(shouldCollapseCompletedToolOutput(liveRecords, claimed)).toBe(false);
+		expect(shouldCollapseCompletedToolOutput([], claimed)).toBe(true);
+	});
+
+	it("keeps an output-expanded group open while another live output remains", () => {
+		const claimed = new Set(["tool_1", "tool_2"]);
+		const remainingLiveRecords = buildToolPillRecords(
+			createToolNode({
+				id: "tool_2",
+				kind: "tool",
+				ts: 110,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 1,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "still working\n" }],
+				},
+			}),
+		).filter((record) => Boolean(record.toolOutput));
+
+		expect(
+			shouldCollapseCompletedToolOutput(remainingLiveRecords, claimed),
+		).toBe(false);
 	});
 
 	it("lets a final result replace even stale live terminal state", () => {
