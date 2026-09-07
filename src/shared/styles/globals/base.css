@@ -149,6 +149,7 @@ textarea {
     min-width: var(--ui-icon-hover-bg-size);
     min-height: var(--ui-icon-hover-bg-size);
 }
+
 :is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only .material-icon,
 :is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only .material-icon,
 :is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target),
@@ -556,8 +557,10 @@ textarea {
     box-shadow: none;
 }
 
-.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item {
+.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item,
+.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-submenu-title {
     padding: 4px 8px;
+    align-items: center;
 }
 
 .ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item-icon {

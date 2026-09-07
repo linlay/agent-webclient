@@ -17,6 +17,7 @@ const mockDownloadConversationHtmlExport = jest.fn();
 const mockModalConfirm = jest.fn();
 const mockMessageError = jest.fn();
 let mockMenuItems: Array<Record<string, any>> = [];
+let mockMenuGroups: Array<Record<string, any>> = [];
 
 jest.mock("@/app/state/AppContext", () => ({
 	useAppContext: () => ({
@@ -61,13 +62,20 @@ jest.mock("antd", () => {
 				onClick?: (info: Record<string, unknown>) => void;
 			};
 		}) => {
-			mockMenuItems = (menu?.items || []).map((item) => ({
-				...item,
-				onClick: () => menu?.onClick?.({
-					key: item.key,
-					domEvent: { stopPropagation: jest.fn() },
-				}),
-			}));
+			const flatten = (entries: Array<Record<string, any>>): Array<Record<string, any>> =>
+				entries.flatMap((item) =>
+					Array.isArray(item.children)
+						? flatten(item.children)
+						: [{
+							...item,
+							onClick: () => menu?.onClick?.({
+								key: item.key,
+								domEvent: { stopPropagation: jest.fn() },
+							}),
+						}],
+				);
+			mockMenuGroups = menu?.items || [];
+			mockMenuItems = flatten(mockMenuGroups);
 			return React.createElement("div", null, children);
 		},
 		Input: (props: Record<string, unknown>) =>
@@ -96,6 +104,7 @@ describe("ChatActionsMenu", () => {
 		mockModalConfirm.mockClear();
 		mockMessageError.mockClear();
 		mockMenuItems = [];
+		mockMenuGroups = [];
 		mockRenameChat.mockResolvedValue({
 			status: 200,
 			code: 0,
@@ -306,6 +315,17 @@ describe("ChatActionsMenu", () => {
 			"archive",
 			"delete",
 			"copyInfo",
+		]);
+		expect(mockMenuGroups.map((item) => item.key)).toEqual([
+			"exportGroup",
+			"rename",
+			"archive",
+			"delete",
+			"copyInfo",
+		]);
+		expect(mockMenuGroups[0].children.map((item: Record<string, any>) => item.key)).toEqual([
+			"export",
+			"exportHtml",
 		]);
 		expect(mockMenuItems.find((item) => item.key === "delete")?.danger).toBe(true);
 		expect(mockMenuItems.find((item) => item.key === "copyInfo")?.danger).toBeUndefined();

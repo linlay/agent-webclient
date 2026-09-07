@@ -192,16 +192,22 @@ export const ChatActionsMenu: React.FC<{
 
   const items: MenuProps["items"] = [
     {
-      key: "export",
+      key: "exportGroup",
       className: menuItemClassName,
       icon: <MaterialIcon name="export" className={menuIconClassName} />,
-      label: t("chatActions.export"),
-    },
-    {
-      key: "exportHtml",
-      className: menuItemClassName,
-      icon: <MaterialIcon name="html" className={menuIconClassName} />,
-      label: t("chatActions.exportHtml"),
+      label: t("chatActions.export.menu"),
+      children: [
+        {
+          key: "export",
+          className: menuItemClassName,
+          label: t("chatActions.export"),
+        },
+        {
+          key: "exportHtml",
+          className: menuItemClassName,
+          label: t("chatActions.exportHtml"),
+        },
+      ],
     },
     {
       key: "rename",
