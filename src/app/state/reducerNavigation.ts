@@ -1,5 +1,9 @@
+import { reduceAgentsState } from "@/features/agents/lib/agentState";
+import { reduceWorkersState } from "@/features/workers/lib/workerState";
+import { reduceAutomationsState } from "@/features/automations/lib/automationsState";
 import type { AppAction } from "@/app/state/actions";
-import type { AppState, Chat } from "@/app/state/types";
+import type { AppState } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { upsertChatSummary } from "@/features/chats/lib/chatSummary";
 import { setMapValue } from "@/app/state/reducerHelpers";
 import {
@@ -69,10 +73,6 @@ export function reduceNavigationState(
 	action: AppAction,
 ): AppState | null {
 	switch (action.type) {
-		case "SET_AGENTS":
-			return { ...state, agents: action.agents };
-		case "SET_TEAMS":
-			return { ...state, teams: action.teams };
 		case "SET_CHATS":
 			return {
 				...state,
@@ -81,21 +81,6 @@ export function reduceNavigationState(
 				chatAgentById: syncChatAgentBindings(
 					state.chatAgentById,
 					action.chats,
-				),
-			};
-		case "SET_AUTOMATIONS":
-			return { ...state, automations: action.automations };
-		case "START_SIDEBAR_REQUEST":
-			return {
-				...state,
-				sidebarPendingRequestCount: state.sidebarPendingRequestCount + 1,
-			};
-		case "FINISH_SIDEBAR_REQUEST":
-			return {
-				...state,
-				sidebarPendingRequestCount: Math.max(
-					0,
-					state.sidebarPendingRequestCount - 1,
 				),
 			};
 		case "UPSERT_CHAT": {
@@ -149,48 +134,6 @@ export function reduceNavigationState(
 				agents: upsertAgentUnreadCount(state.agents, agentKey, 0),
 			};
 		}
-		case "SET_CHAT_FILTER":
-			return { ...state, chatFilter: action.filter };
-		case "SET_WORKER_SELECTION_KEY":
-			return {
-				...state,
-				workerSelectionKey: action.workerKey,
-				editingMode:
-					action.workerKey === state.workerSelectionKey
-						? state.editingMode
-						: false,
-			};
-		case "SET_WORKER_ROWS": {
-			const workerIndexByKey = new Map(
-				action.rows.map((row) => [row.key, row]),
-			);
-			const workerSelectionKey = workerIndexByKey.has(
-				state.workerSelectionKey,
-			)
-				? state.workerSelectionKey
-				: "";
-			return {
-				...state,
-				workerRows: action.rows,
-				workerIndexByKey,
-				workerSelectionKey,
-			};
-		}
-		case "SET_WORKER_ORDER_KEYS":
-			return { ...state, workerOrderKeys: action.workerOrderKeys };
-		case "SET_WORKER_RELATED_CHATS":
-			return { ...state, workerRelatedChats: action.chats };
-		case "SET_WORKER_CHAT_PANEL_COLLAPSED":
-			return { ...state, workerChatPanelCollapsed: action.collapsed };
-		case "SET_PENDING_NEW_CHAT_AGENT_KEY":
-			return { ...state, pendingNewChatAgentKey: action.agentKey };
-		case "SET_WORKER_PRIORITY_KEY":
-			return { ...state, workerPriorityKey: action.workerKey };
-		case "SET_TEMPORARY_PINNED_AGENT_KEY":
-			return {
-				...state,
-				temporaryPinnedAgentKey: String(action.agentKey || "").trim(),
-			};
 		case "SET_CHAT_AGENT_BY_ID":
 			return {
 				...state,
@@ -200,7 +143,17 @@ export function reduceNavigationState(
 					action.agentKey,
 				),
 			};
+		case "SET_WORKER_SELECTION_KEY":
+			return {
+				...reduceWorkersState(state, action),
+				editingMode:
+					action.workerKey === state.workerSelectionKey
+						? state.editingMode
+						: false,
+			};
 		default:
-			return null;
+			return reduceAgentsState(state, action)
+				?? reduceWorkersState(state, action)
+				?? reduceAutomationsState(state, action);
 	}
 }

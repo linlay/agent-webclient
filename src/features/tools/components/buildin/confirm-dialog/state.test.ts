@@ -1,7 +1,7 @@
 import {
   AIAwaitQuestionType,
   type AIAwaitQuestion,
-} from "@/app/state/types";
+} from "@/shared/contracts/agentEvents";
 import {
   buildQuestionDismissPayload,
   buildQuestionSubmitParams,

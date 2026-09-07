@@ -26,6 +26,8 @@ Main Chat 的 active 恢复只能在 URL 中 canonical `chatId` 与当前已投�
 
 Desktop route bridge 是 Main Chat SPA 导航的权威命令，协议只保留 `READY + APPLIED`。`BaseShell` 中不会随 Chat 子路由卸载的 Router subscriber 完成注册后，通过 page-to-preload 事件 `__desktopServiceWebviewRouteStatus` 发送 `desktopRouteReady(routerLocation)`；React StrictMode 重挂可重复发送，Desktop 幂等处理。Desktop 收到 READY 后才通过现有命令通道发送最新 `desktopRouteChanged(routeRevision, pathname, search, hash)`，Main Chat 命令必须携带正整数 revision，不接受无 revision 兼容导航。浏览器物理 `window.location` 可能已被宿主更新，而 React Router 仍持有旧 `agentKey/chatId/newChat`，因此物理 URL 只能用于宿主观测，不能用于 WebClient bridge 去重。WebClient 仅以 `useLocation()` 判断目标；不匹配时覆盖最新 pending 并调用 `navigate(target, { replace: true, flushSync: true })`，使目标 Router、历史骨架与页面 DOM 在一次同步提交内进入首帧。Router 已精确匹配时立即发送 APPLIED，否则在 location 提交后的 layout effect 中发送 `desktopRouteApplied(routeRevision, routerLocation)`；IPC 收到和 `navigate()` 返回都不代表完成。A→B→C 中 C 覆盖 B pending，B 的迟到 render 不能确认 C。DevTools 诊断固定为 `[desktop-route] router-ready/bridge-received/router-navigate/router-applied`，记录 revision、Router target 与 physical location。Desktop 缺失 READY 或 APPLIED 时可执行一次异常 reload，但 WebClient 不增加 received ACK、定时重发、HTTP、WebSocket、MessagePort 或 Snapshot 协议。
 
+Desktop Main Chat 的普通 `←/→` 工作区快捷键由 WebClient 先做 DOM 语义判定，再以 `desktop:agent-webclient:workspace-arrow-key` 受限消息通知宿主；只在 Agent Chat Shell 安装，不适用于管理页、WorkPanel 或 Standalone。目标位于输入、可编辑内容、按钮、链接、菜单、可聚焦选项、代码/终端，或页面存在 active awaiting/HITL、模态层、非折叠文字选区、修饰键、repeat、IME composition、pointer/drag gesture 时必须放行。active awaiting 采用整页门禁，因为既有 HITL 方向键处理器挂在 window，不能只检查 event target。只有宿主确认消息来自 active、身份已提交且 generation 匹配的 Main Chat surface 后，才把左键解释为左侧栏切换、右键解释为当前 canonical Chat WorkPanel 切换；WebClient 不读取或缓存两侧栏状态。
+
 Main Chat 从已有 Chat 发起“新对话重问”时，WebClient 通过一次性 `desktop:agent-webclient:new-chat:prepare` 请求提交 `requestId + agentKey + sourceChatId + newChat`。只有匹配的 `desktop:agent-webclient:new-chat:prepared` 成功响应才允许重置和发送。响应表示 Desktop 已把外层 route 与 guest URL 切换到同一 `newChat`，并以无 `ownerChatId` 的 active Main Chat Surface 完成登记；它不表示 query 或 Chat 已创建。失败、超时、来源变化或重复事务不得降级为直接发送。
 
 Desktop 原生 Market 的创建技能入口复用普通新 Chat 路由，并通过一次性 URL 参数传入本地化 `composerDraft` 与 `composerSkill=skill-creator`。参数名声明能力类型，参数值声明具体选择；WebClient 校验后填入草稿并选中对应 Skill，随后立即从 URL 删除。非法 Skill key、缺少任一参数、已有 `chatId` 或无有效 `newChat` 时忽略。宿主不能借这些参数自动提交消息或绕过 Composer 确认。
@@ -37,6 +39,7 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 物理断线只产生 `reconnecting`，不会 close 逻辑 Session 或终止已接受 stream；Desktop Broker 恢复后从 `lastSeq` 继续向同一订阅者投递。`surface_inactive` 只解除观察者，不 interrupt 后台 Run。协议不兼容、身份失效、应用退出或显式 dispose 才永久关闭，所有未完成操作统一收到 `DESKTOP_FRAME_PORT_CLOSED`。Desktop Driver 不实现 WebSocket readyState、close code/reason、JSON 二次编码、heartbeat timeout 或重连循环。
 
 ## 边界与非目标
+- APPLIED 仅表示 Router 提交，不代表历史数据 ready。页面拒绝更旧 revision 或同 revision 的冲突目标；会话阶段日志以对应目标的 route revision 与 transaction seq 关联。surface 激活恢复只消费 Router 提供的目标，不使用物理 URL 推断应恢复哪个 Chat。准备超时由 WebClient 展示错误，不触发 Desktop 再次 reload。
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
 - Standalone 根路由与 Desktop WorkPanel 都只使用正式 `desktop.workpanel.*` 语义，不维护平行 sidebar Action 映射。
 - Standalone 根路由分别注册七个精确 `desktop.workpanel.*` 与 `desktop.display` request type，直接消费纯 payload，并校验帧顶层可信 `source.chatId/runId/owner`；Desktop 模式不注册该 provider，因为 Platform 的 `desktop.*` 反向请求由 Desktop Main Broker 处理。
@@ -72,7 +75,7 @@ Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraf
 - `../src/shared/data/desktop/desktopContextMenu.ts`
 - `../src/features/transport/components/RealtimeTransportProvider.tsx`
 - `../src/features/transport/contracts/realtimeTransport.ts`
-- `../src/features/transport/contracts/generated/agentWebclientBridge.ts`
+- `../src/shared/contracts/generated/agentWebclientBridge.ts`
 - `../src/features/transport/lib/desktopBridge.ts`
 - `../src/features/transport/lib/desktopFramePortDriver.ts`
 - `../src/features/transport/lib/desktopPlatformFrameClientRegistry.ts`

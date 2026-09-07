@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import type { Dispatch, SetStateAction, RefObject } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import { parseLeadingMentionDraft } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from "react";
-import type { TimelineNode, TimelineSource } from "@/app/state/types";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 
 export interface TimelineInteractionValue {
   conversationActive?: boolean;

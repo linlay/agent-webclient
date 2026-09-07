@@ -1,12 +1,9 @@
-import type {
-	FileChangeSummary,
-	Plan,
-	PlanRuntime,
-	PublishedArtifact,
-	TaskItemMeta,
-	TimelineNode,
-	ToolState,
-} from "@/app/state/types";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { ToolState } from "@/features/tools/lib/toolsState";
 
 export interface EventProcessorState {
 	getContentNodeId(contentId: string): string | undefined;

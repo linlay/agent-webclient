@@ -1,5 +1,5 @@
-import type { Plan, PlanRuntime, TaskItemMeta } from "@/app/state/types";
-import { readEpochMillis } from "@/shared/utils/platformTime";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import type { TranslateParams } from "@/shared/i18n/types";
 
 function normalizePlanStatus(status?: string): string {
@@ -76,7 +76,9 @@ export function buildPlanSummaryView(
 		if (!isConversationActive && status === "running") {
 			status = "pending";
 		}
-		const startedAt = readEpochMillis(taskMeta?.startedAt);
+		const startedAt = Number.isFinite(taskMeta?.startedAt)
+			? Number(taskMeta?.startedAt)
+			: undefined;
 		const durationMs = Number.isFinite(taskMeta?.durationMs)
 			? taskMeta?.durationMs
       : status === "running" && startedAt !== undefined

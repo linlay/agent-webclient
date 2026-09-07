@@ -1,5 +1,5 @@
 import React from "react";
-import type { WebPreviewState } from "@/app/state/types";
+import type { WebPreviewState } from "@/features/viewers/lib/viewerState";
 import { useI18n } from "@/shared/i18n";
 
 interface WebPreviewPanelProps {

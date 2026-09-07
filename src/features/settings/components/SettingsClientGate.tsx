@@ -1,5 +1,5 @@
 import React from "react";
-import type { VoiceClientGateConfig } from "@/app/state/types";
+import type { VoiceClientGateConfig } from "@/features/voice/lib/voiceState";
 import type {
   ClientGateDraftField,
   ClientGateDraftState,

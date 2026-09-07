@@ -55,8 +55,8 @@ jest.mock("@/shared/data/api/client", () => ({
 	normalizeChatSummariesPayload: jest.fn((data: unknown) => data),
 }));
 
-jest.mock("@/features/transport/lib/platformDataRequestTransport", () => ({
-	requestPlatformData: (...args: unknown[]) => mockRequestPlatformData(...args),
+jest.mock("@/shared/data/api/dataRequestExecutor", () => ({
+	requestDataThroughExecutor: (...args: unknown[]) => mockRequestPlatformData(...args),
 }));
 
 jest.mock("@/shared/config/backendMode", () => ({

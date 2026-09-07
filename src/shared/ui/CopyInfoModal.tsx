@@ -8,6 +8,7 @@ import {
   type CopyInfoGroup,
   type CopyInfoRow,
 } from "@/shared/ui/copyInfoModel";
+import styles from "./CopyInfoModal.module.css";
 
 type CopyFeedback = "copied" | "error";
 
@@ -97,16 +98,16 @@ export const CopyInfoModal: React.FC<{
         : t("copyInfo.action.copyField", { label: row.label });
 
     return (
-      <div className="copy-info-row" key={row.key}>
-        <div className="copy-info-row-label">{row.label}</div>
-        <pre className={`copy-info-row-value${row.code ? " is-code" : ""}`}>
+      <div className={`copy-info-row ${styles["copy-info-row"]}`} key={row.key}>
+        <div className={`copy-info-row-label ${styles["copy-info-row-label"]}`}>{row.label}</div>
+        <pre className={`copy-info-row-value ${styles["copy-info-row-value"]}${row.code ? " is-code" : ""}`}>
           {row.displayValue}
         </pre>
         <Tooltip title={copyTitle}>
           <Button
             type="text"
             size="small"
-            className="copy-info-row-action ui-icon-hover-24"
+            className={`copy-info-row-action ${styles["copy-info-row-action"]} ui-icon-hover-24`}
             aria-label={t("copyInfo.action.copyField", { label: row.label })}
             danger={feedback === "error"}
             icon={(
@@ -122,7 +123,7 @@ export const CopyInfoModal: React.FC<{
   };
 
   const renderGroupRows = (group: CopyInfoGroup) => (
-    <div className="copy-info-group-rows">
+    <div className={`copy-info-group-rows ${styles["copy-info-group-rows"]}`}>
       {group.rows.map((row) => renderRow(group.key, row))}
     </div>
   );
@@ -142,7 +143,7 @@ export const CopyInfoModal: React.FC<{
       open={open}
       title={title}
       width="min(760px, calc(100vw - 32px))"
-      className="copy-info-modal"
+      className={`copy-info-modal ${styles["copy-info-modal"]}`}
       destroyOnHidden
       onCancel={onClose}
       footer={[
@@ -169,7 +170,7 @@ export const CopyInfoModal: React.FC<{
     >
       {error ? (
         <Alert
-          className="copy-info-alert"
+          className={`copy-info-alert ${styles["copy-info-alert"]}`}
           type="error"
           showIcon
           message={t("copyInfo.load.failed")}
@@ -182,14 +183,14 @@ export const CopyInfoModal: React.FC<{
         />
       ) : null}
       {loading ? (
-        <div className="copy-info-loading" role="status">
+        <div className={`copy-info-loading ${styles["copy-info-loading"]}`} role="status">
           <Spin size="small" />
           <span>{t("copyInfo.load.loading")}</span>
         </div>
       ) : null}
-      <div className="copy-info-content">
+      <div className={`copy-info-content ${styles["copy-info-content"]}`}>
         {visibleGroups.map((group) => (
-          <section className="copy-info-group" key={group.key}>
+          <section className={`copy-info-group ${styles["copy-info-group"]}`} key={group.key}>
             <h3>{group.label}</h3>
             {renderGroupRows(group)}
           </section>

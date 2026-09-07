@@ -1,20 +1,9 @@
 import React from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
-import {
-  buildFileViewerTarget,
-  type FileViewerTarget,
-} from "@/features/viewers/lib/viewerTarget";
+import { buildFileViewerTargetFromRoute } from "@/features/surfaces/lib/viewerRouteTargets";
 import { useI18n } from "@/shared/i18n";
-import { IndependentSurfaceFrame } from "./SurfaceFrame";
-
-export function buildFileViewerTargetFromRoute(input: {
-  agentKey: string;
-  path: string;
-  line?: number;
-}): FileViewerTarget | null {
-  return buildFileViewerTarget(input);
-}
+import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 
 export const FileViewerPage: React.FC = () => {
   const { agentKey: routeAgentKey } = useParams<{ agentKey: string }>();

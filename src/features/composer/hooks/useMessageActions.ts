@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
-import type { TimelineAttachment } from "@/app/state/types";
-import { AIRunEventTypeEnum } from "@/app/state/types";
+import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
+import { AIRunEventTypeEnum } from "@/shared/contracts/agentEvents";
 import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import {
   createRequestId,
@@ -19,7 +19,7 @@ import {
   dispatchDetachRunEvent,
   type DetachRunEventDetail,
 } from "@/features/runs/lib/runControlEvents";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import {
@@ -35,13 +35,14 @@ import {
   resolveRunOwner,
 } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
-import type { AgentEvent, AppState } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
 import {
   readEventTeamId,
   readRequestQueryText,
-} from "@/shared/utils/eventFieldReaders";
+} from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
-import { isChatTransitionBlockingInteractions } from "@/features/conversation/lib/chatTransition";
+import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
 
 interface SendMessageEventDetail {
   message?: unknown;
@@ -283,7 +284,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       });
       if (!rawMessage && normalizedReferences.length === 0) return;
       if (
-        isChatTransitionBlockingInteractions(stateRef.current.chatTransition)
+        areConversationInteractionsBlocked(stateRef.current)
       ) {
         return;
       }

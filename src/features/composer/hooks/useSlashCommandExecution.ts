@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import {
 	type SlashCommandAvailability,
 	type SlashCommandId,
@@ -8,7 +8,7 @@ import {
 	isSlashCommandFeatureEnabled,
 } from "@/features/composer/lib/slashCommands";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
-import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
+import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import type { CompactLevel } from "@/shared/data";
 

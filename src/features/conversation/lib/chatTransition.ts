@@ -1,4 +1,13 @@
-import type { AppState, ChatTransition } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { ChatTransition } from "@/features/conversation/lib/conversationState";
+
+export const CHAT_PREPARATION_TIMEOUT_MS = 15_000;
+
+export function areConversationInteractionsBlocked(
+  state: Pick<AppState, "chatTransition"> & Partial<Pick<AppState, "chatSurfaceBlocked">>,
+): boolean {
+  return Boolean(state.chatSurfaceBlocked) || isChatTransitionBlockingInteractions(state.chatTransition);
+}
 
 export function isChatTransitionPending(
   transition: ChatTransition | null | undefined,

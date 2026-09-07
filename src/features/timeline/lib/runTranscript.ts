@@ -1,4 +1,4 @@
-import type { TimelineNode } from '@/app/state/types';
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
 
 function pushSection(lines: string[], title: string, body: string): void {

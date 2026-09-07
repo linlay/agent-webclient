@@ -3,7 +3,9 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { createInitialState } from "@/app/state/state";
-import type { AppState, ChatTransition, TimelineNode } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { ChatTransition } from "@/features/conversation/lib/conversationState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   clearConversationScrollBookmarks,
   getConversationScrollBookmark,
@@ -70,16 +72,12 @@ jest.mock("@/shared/ui/MaterialIcon", () => ({
 }));
 
 jest.mock("@/shared/ui/UiButton", () => ({
-  UiButton: ({ children, ...props }: any) =>
+  UiButton: ({ children, iconOnly: _iconOnly, ...props }: any) =>
     React.createElement("button", props, children),
 }));
 
 jest.mock("@/shared/components/logo-loading", () => ({
   LogoLoading: () => React.createElement("span"),
-}));
-
-jest.mock("@/shared/components/dot-loading", () => ({
-  DotLoading: () => React.createElement("span"),
 }));
 
 jest.mock("@/shared/i18n", () => ({
@@ -130,6 +128,7 @@ jest.mock("react-virtuoso", () => {
       return () => props.scrollerRef?.(null);
     }, [props.scrollerRef]);
     const Item = props.components?.Item || "div";
+    const Footer = props.components?.Footer;
     return React.createElement(
       "div",
       { ref: scrollerRef, className: props.className, id: props.id },
@@ -147,6 +146,7 @@ jest.mock("react-virtuoso", () => {
           props.itemContent(index, item),
         ),
       ),
+      Footer ? React.createElement(Footer, { key: "footer" }) : null,
     );
   });
   return { Virtuoso };
@@ -303,6 +303,33 @@ describe("ConversationStage scroll restoration", () => {
     mockScrollToIndex.mockReset();
     mockScrollBy.mockReset();
   }
+
+  it("marks the focusable Main Chat message scroller for workspace arrow keys", () => {
+    renderStage();
+
+    expect(mockVirtuosoProps.id).toBe("messages");
+    expect(
+      mockVirtuosoProps["data-desktop-workspace-arrow-keys"],
+    ).toBe("allow");
+  });
+
+  it("does not cover live output at the bottom and shows a down arrow after scrolling away", () => {
+    mockState = { ...createChatState(), streaming: true };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).toBeNull();
+
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+
+    const button = container.querySelector(
+      ".conversation-stage-scroll-to-bottom",
+    );
+    expect(button).not.toBeNull();
+    expect(button?.querySelector('[data-icon="arrow_downward"]')).not.toBeNull();
+  });
 
   it("immediately overlays source content when the route targets another chat", () => {
     renderStage("chat-next");
@@ -532,7 +559,7 @@ describe("ConversationStage scroll restoration", () => {
     ).toBeNull();
   });
 
-  it("keeps the live timeline visible while its canonical route binding catches up", () => {
+  it("masks an uncommitted live handoff until its data belongs to the Router target", () => {
     mockState = {
       ...createChatState(createTransition("loading", {
         sourceChatId: "chat-source",
@@ -554,10 +581,11 @@ describe("ConversationStage scroll restoration", () => {
 
     renderStage("chat-next");
 
-    expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
+    expect(container.querySelector(".conversation-transition-overlay")).not.toBeNull();
+    expect(container.querySelector("[data-conversation-content]")?.getAttribute("aria-hidden")).toBe("true");
     expect(container.querySelector('[data-node-id="query-1"]')).not.toBeNull();
-    expect(mockVirtuosoProps.followOutput(true)).toBe("smooth");
-    expect(mockDispatch).toHaveBeenCalledWith({
+    expect(mockVirtuosoProps.followOutput(true)).toBe(false);
+    expect(mockDispatch).not.toHaveBeenCalledWith({
       type: "CLEAR_CHAT_TRANSITION",
     });
   });

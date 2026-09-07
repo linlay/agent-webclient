@@ -1,0 +1,130 @@
+/* ========================================
+   Shell Brand & Shared Icon Buttons
+   ======================================== */
+:global(.brand-text) {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.06;
+}
+
+:global(.brand-text) strong {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+:global(.brand-text) span {
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: 0.01em;
+}
+
+:global(.icon-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 10px;
+    padding: 7px 12px;
+    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+    color: var(--ink-2);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+:global(.icon-btn):hover {
+    color: var(--accent-electric-strong);
+    background: color-mix(in srgb, var(--accent-soft) 72%, var(--bg-elev-2));
+}
+
+:global(.top-nav) :global(.icon-btn):global(.ui-btn):global(.is-icon-only),
+:global(.top-nav) :global(.current-worker-tool):global(.ui-btn) {
+    width: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    border-radius: 8px;
+}
+
+:global(.top-nav) :global(.top-nav-icon-btn):global(.ui-btn):focus-visible {
+    outline: none;
+}
+
+:global(.top-nav) :global(.icon-btn) :global(.material-icon),
+:global(.top-nav) :global(.current-worker-tool) :global(.material-icon) {
+    font-size: 18px;
+}
+
+:global(.top-nav) :global(.current-worker-tool-terminal) {
+    position: relative;
+}
+
+:global(.current-worker-terminal-dot) {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    width: 7px;
+    height: 7px;
+    border: 1px solid var(--bg-elev-1);
+    border-radius: 50%;
+    background: var(--accent-electric-strong);
+}
+
+:global(.current-worker-terminal-dot):global(.is-busy) {
+    animation: status-pulse 1s ease-in-out infinite;
+    background: var(--accent-lime);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-lime) 16%, transparent);
+}
+
+:global(.current-worker-card) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+}
+
+:global(.current-worker-tool):global(.ui-btn):global(.is-active) {
+    border-color: color-mix(in srgb,
+            var(--accent-electric) 36%,
+            var(--line-soft));
+    background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+    color: var(--accent-electric-strong);
+}
+
+:global(.current-worker-tool-voice):global(.ui-btn):global(.is-call) {
+    color: #2f7c49;
+}
+
+:global(.current-worker-tool-voice):global(.ui-btn):global(.is-hangup) {
+    border-color: color-mix(in srgb, #f06b67 44%, var(--line-soft));
+    background: color-mix(in srgb, #fff0ef 86%, var(--bg-elev-2));
+    color: #d53f3f;
+}
+
+:global(.current-worker-tool-voice):global(.ui-btn):global(.is-hangup):hover:not(:disabled) {
+    border-color: color-mix(in srgb, #e4564f 52%, var(--line-soft));
+    box-shadow: 0 8px 18px rgba(229, 86, 79, 0.18);
+}
+
+:global(.current-worker-tool):global(.ui-btn):global(.is-muted):global(.is-active) {
+    border-color: color-mix(in srgb, #ff945f 38%, var(--line-soft));
+    background: color-mix(in srgb, #fff0e6 84%, var(--bg-elev-2));
+    color: #cf5f18;
+}
+
+:global(.inline-icon) {
+    vertical-align: middle;
+}
+
+@keyframes status-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
+}

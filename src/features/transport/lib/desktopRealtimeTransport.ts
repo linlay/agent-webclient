@@ -1,6 +1,6 @@
 import type {
   DesktopPlatformFramePort,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import type {
   RealtimeConnectionStatus,
   RealtimeTransport,
@@ -16,7 +16,7 @@ import {
   DESKTOP_SURFACE_ACTIVE_CHANGED_MESSAGE_TYPE,
   SERVICE_WEBVIEW_BRIDGE_SURFACE_LIFECYCLE_CHANNEL,
   type DesktopLiveSurfaceActiveEventDetail,
-} from "@/features/transport/lib/desktopSurfaceLifecycle";
+} from "@/shared/data/desktop/desktopSurfaceLifecycle";
 
 type DesktopLifecycleElectronApi = {
   onFromMain?: (

@@ -1,4 +1,4 @@
-import type { Chat } from '@/app/state/types';
+import type { Chat } from "@/features/chats/lib/chatState";
 import {
   mergeChatSummary,
   mergeFetchedChats,

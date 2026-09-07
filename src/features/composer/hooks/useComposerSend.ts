@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "reac
 import { App as AntdApp, Button } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import {
   createRequestId,
   type CompactLevel,
@@ -35,6 +35,8 @@ import { resolveMentionCandidatesFromState } from "@/features/composer/lib/menti
 import {
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
+import { resolveCurrentWorkerSummary, supportsActiveRunContextCompact } from "@/features/workers/lib/currentWorker";
+import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
 
 export {
@@ -174,6 +176,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     submitLearnCommand,
     submitCompactCommand,
   } = useBackgroundCommandActions({
+    canCompact: !mainChatRunning || supportsActiveRunContextCompact(resolveCurrentWorkerSummary(stateRef.current)),
     dispatch,
     state: {
       chatId: state.chatId,
@@ -350,7 +353,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         type: "APPEND_DEBUG",
         line: `[interrupt] failed: ${(error as Error).message}`,
       });
-      // interruptChat 失败时立即 abort 流作为回退
+      // 中断请求失败时立即 abort 流作为回退
       state.abortController?.abort();
       window.dispatchEvent(
         new CustomEvent("agent:voice-stop-all", {
@@ -423,6 +426,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         void messageApi.warning(t("contextCompact.noChat"));
         return;
       }
+      if (!canSubmitCompact(activeChatId, mainChatRunning, supportsActiveRunContextCompact(resolveCurrentWorkerSummary(stateRef.current)), Boolean(resolveCompactPhase(currentState.events, activeChatId)))) return;
       setInputValue("");
       setSlashDismissed(false);
       closeMention();

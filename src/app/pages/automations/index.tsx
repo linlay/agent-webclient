@@ -1,21 +1,7 @@
-import { useMemo } from "react";
-import { useAppState } from "@/app/state/AppContext";
-import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { AutomationHistoryConsole } from "./AutomationHistoryConsole";
+import { AutomationsRouteContent } from "@/features/automations/components/AutomationsRouteContent";
 
-export const AutomationsPage = () => {
-  const state = useAppState();
-  const currentWorker = useMemo(
-    () => resolveCurrentWorkerSummary(state),
-    [state],
-  );
-  return (
-    <main className="automations-page automations-console-page">
-      <AutomationHistoryConsole
-        currentWorker={currentWorker}
-        agents={state.agents}
-        teams={state.teams}
-      />
-    </main>
-  );
-};
+export const AutomationsPage = () => (
+  <main className="automations-page automations-console-page">
+    <AutomationsRouteContent />
+  </main>
+);

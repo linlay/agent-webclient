@@ -1,6 +1,6 @@
 import { Collapse } from "antd";
 import Style from "./TimelineCollapse.module.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface TimelineCollapseProps {
   label: React.ReactNode;
@@ -23,6 +23,9 @@ export const TimelineCollapse: React.FC<TimelineCollapseProps> = ({
   className,
 }) => {
   const [activeKey, setActiveKey] = useState(expanded ? [KEY] : []);
+  useEffect(() => {
+    setActiveKey(expanded ? [KEY] : []);
+  }, [expanded]);
   return (
     <Collapse
       ghost

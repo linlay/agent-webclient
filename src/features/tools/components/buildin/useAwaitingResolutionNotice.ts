@@ -1,6 +1,6 @@
 import { message } from "antd";
 import { useEffect, useRef } from "react";
-import type { ActiveAwaitingResolutionReason } from "@/app/state/types";
+import type { ActiveAwaitingResolutionReason } from "@/features/tools/lib/toolsState";
 import { useI18n } from "@/shared/i18n";
 
 export function resolveAwaitingResolutionNoticeKey(input: {

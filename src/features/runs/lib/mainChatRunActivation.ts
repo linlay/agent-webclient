@@ -1,4 +1,4 @@
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import { resolveChatAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import type { RunOwner } from "@/shared/data/runOwner";

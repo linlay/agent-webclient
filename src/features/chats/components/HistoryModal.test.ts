@@ -1,8 +1,41 @@
+/**
+ * @jest-environment jsdom
+ * @jest-environment-options {"customExportConditions":["node","node-addons"]}
+ */
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { I18nProvider, type Locale } from "@/shared/i18n";
+
+const mockConfirm = jest.fn();
+const mockDispatch = jest.fn();
+const mockArchiveChats = jest.fn();
+const mockDeleteChat = jest.fn();
+const mockExportMarkdown = jest.fn();
+const mockExportHtml = jest.fn();
+const mockSuccess = jest.fn();
+const mockError = jest.fn();
+const mockButtons: Array<Record<string, any>> = [];
+let mockActiveChatId = "";
+
+jest.mock("@/shared/data", () => ({
+  ...jest.requireActual("@/shared/data"),
+  archiveChats: (...args: unknown[]) => mockArchiveChats(...args),
+  deleteChat: (...args: unknown[]) => mockDeleteChat(...args),
+  downloadChatExport: (...args: unknown[]) => mockExportMarkdown(...args),
+  downloadConversationHtmlExport: (...args: unknown[]) => mockExportHtml(...args),
+}));
+
+jest.mock("@/shared/ui/UiButton", () => {
+  const original = jest.requireActual("@/shared/ui/UiButton");
+  return {
+    UiButton: (props: Record<string, any>) => {
+      mockButtons.push(props);
+      return React.createElement(original.UiButton, props);
+    },
+  };
+});
 
 jest.mock("antd", () => {
   const React = require("react");
@@ -41,11 +74,11 @@ jest.mock("antd/es/app/useApp", () => ({
   __esModule: true,
   default: () => ({
     message: {
-      error: jest.fn(),
-      success: jest.fn(),
+      error: (...args: unknown[]) => mockError(...args),
+      success: (...args: unknown[]) => mockSuccess(...args),
     },
     modal: {
-      confirm: jest.fn(),
+      confirm: (...args: unknown[]) => mockConfirm(...args),
     },
   }),
 }));
@@ -55,7 +88,7 @@ const stateChats: Chat[] = [];
 jest.mock("@/app/state/provider", () => ({
   useAppContext: () => ({
     state: {
-      chatId: "",
+      chatId: mockActiveChatId,
       chats: stateChats,
       chatAgentById: new Map(),
       workerSelectionKey: "agent:alpha",
@@ -64,7 +97,7 @@ jest.mock("@/app/state/provider", () => ({
         { key: "beta", name: "Beta" },
       ],
     },
-    dispatch: jest.fn(),
+    dispatch: mockDispatch,
   }),
 }));
 
@@ -110,6 +143,71 @@ function renderHistoryModal(
 }
 
 describe("HistoryModal", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockArchiveChats.mockReset();
+    mockDeleteChat.mockReset();
+    mockExportHtml.mockReset();
+    mockExportMarkdown.mockReset();
+    mockButtons.length = 0;
+    mockActiveChatId = "";
+  });
+
+  const clickAction = (icon: string) => {
+    const button = mockButtons.find((props) => props.children?.props?.name === icon);
+    expect(button).toBeDefined();
+    const stopPropagation = jest.fn();
+    button?.onClick({ stopPropagation });
+    expect(stopPropagation).toHaveBeenCalled();
+  };
+
+  it.each([
+    ["inventory_2", "CHAT_ARCHIVED"],
+    ["delete", "CHAT_DELETED"],
+  ])("confirms %s and resets only after the corresponding operation succeeds", async (icon, actionType) => {
+    mockActiveChatId = "chat-1";
+    mockArchiveChats.mockResolvedValue({ data: { results: [{ success: true }] } });
+    renderHistoryModal([createHistoryChat()]);
+    clickAction(icon);
+    expect(mockArchiveChats).not.toHaveBeenCalled();
+    expect(mockDeleteChat).not.toHaveBeenCalled();
+    const config = mockConfirm.mock.calls[0][0];
+    expect(config.content).toBe("A compact history title");
+    expect(Boolean(config.okButtonProps?.danger)).toBe(icon === "delete");
+    await config.onOk();
+    expect(mockDispatch.mock.calls.map(([action]) => action.type)).toEqual([
+      actionType, "SET_CHAT_ID", "SET_RUN_ID", "RESET_ACTIVE_CONVERSATION",
+    ]);
+    if (icon === "delete") {
+      expect(mockDeleteChat).toHaveBeenCalledWith({ chatId: "chat-1" });
+      expect(mockArchiveChats).not.toHaveBeenCalled();
+    } else {
+      expect(mockArchiveChats).toHaveBeenCalledWith({ chatIds: ["chat-1"] });
+      expect(mockDeleteChat).not.toHaveBeenCalled();
+    }
+  });
+
+  it("keeps failed archive confirmation open, with no removal or active-chat reset", async () => {
+    mockActiveChatId = "chat-1";
+    mockArchiveChats.mockResolvedValue({ data: { results: [{ success: false, error: "denied" }] } });
+    renderHistoryModal([createHistoryChat()]);
+    clickAction("inventory_2");
+    await expect(mockConfirm.mock.calls[0][0].onOk()).rejects.toThrow("denied");
+    expect(mockDispatch.mock.calls).toEqual([[{
+      type: "APPEND_DEBUG", line: "[archive chat error] denied",
+    }]]);
+    expect(mockError).not.toHaveBeenCalled();
+  });
+
+  it.each(["export", "html"])("keeps the %s export action and history notification", async (icon) => {
+    renderHistoryModal([createHistoryChat()]);
+    clickAction(icon);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(icon === "html" ? mockExportHtml : mockExportMarkdown).toHaveBeenCalledWith("chat-1");
+    expect(mockSuccess).toHaveBeenCalled();
+    expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
   it("keeps the modal layout contract instead of using the page layout", () => {
     const html = renderHistoryModal([createHistoryChat()]);
 

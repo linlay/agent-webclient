@@ -60,14 +60,15 @@ export function resolveAwaitingTimeoutEntry(
     return null;
   }
 
-  const normalizedCreatedAt = readEpochMillis(createdAt);
-  if (normalizedCreatedAt === undefined) {
-    return null;
-  }
-  const expectedDeadlineAt = normalizedCreatedAt + timeoutMs;
   const cachedEntry = awaitingKey
     ? awaitingTimeoutByKey.get(awaitingKey)
     : undefined;
+  const normalizedCreatedAt = Number.isFinite(createdAt)
+    ? Number(createdAt)
+    : readEpochMillis(createdAt);
+  const expectedDeadlineAt = normalizedCreatedAt !== undefined
+    ? normalizedCreatedAt + timeoutMs
+    : cachedEntry?.deadlineAt ?? now + timeoutMs;
   if (cachedEntry && cachedEntry.deadlineAt === expectedDeadlineAt) {
     return cachedEntry;
   }

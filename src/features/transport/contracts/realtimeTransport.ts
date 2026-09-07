@@ -6,7 +6,7 @@ import type {
   QueryLikeParams,
   QueryStreamParams,
 } from "@/shared/data/api/client";
-import type { AIAwaitSubmitParamData, AgentEvent } from "@/app/state/types";
+import type { AIAwaitSubmitParamData, AgentEvent } from "@/shared/contracts/agentEvents";
 import type { RunOwner } from "@/shared/data/runOwner";
 
 export type RealtimeTransportKind = "standalone" | "desktop";

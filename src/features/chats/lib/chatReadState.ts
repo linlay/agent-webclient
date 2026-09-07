@@ -1,4 +1,6 @@
-import type { Agent, Chat, ChatReadState, Team, WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat, ChatReadState } from "@/features/chats/lib/chatState";
+import type { Team, WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { toText } from "@/shared/utils/eventUtils";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 

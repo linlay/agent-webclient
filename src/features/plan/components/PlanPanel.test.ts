@@ -2,7 +2,8 @@ import React from "react";
 import { t } from "@/shared/i18n";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import type { PlanRuntime, TaskItemMeta } from "@/app/state/types";
+import type { PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import { PlanPanel } from "@/features/plan/components/PlanPanel";
 import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 

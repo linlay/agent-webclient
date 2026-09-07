@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ViewportTypeEnum } from '@/app/state/types';
-import type { FormActiveAwaiting } from '@/app/state/types';
+import { ViewportTypeEnum } from "@/shared/contracts/agentEvents";
+import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { I18nProvider } from '@/shared/i18n';
 import {
   AWAITING_COLLECT_TIMEOUT_ERROR,

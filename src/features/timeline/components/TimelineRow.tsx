@@ -1,6 +1,6 @@
 import React from "react";
 import { Flex } from "antd";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import {
   formatAttachmentSize,
@@ -26,6 +26,7 @@ import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import type { AgentSkill } from "@/shared/data/api/client";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
+import { SteerIcon } from "@/features/runs/components/SteerIcon";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -72,7 +73,7 @@ const TIMELINE_CONTENT_FLOW_CLASS_NAME =
 const TIMELINE_SOURCE_FLOW_CLASS_NAME =
   "tw:w-[min(100%,760px)] tw:max-w-[760px]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
-  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[10px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 const TIMELINE_COMMAND_LABEL_CLASS_NAME =
   "timeline-command-label tw:mt-[9px] tw:font-code tw:text-[11px] tw:font-bold tw:leading-none tw:tracking-[0.06em] tw:text-accent-electric-strong tw:uppercase tw:empty:hidden";
 
@@ -154,10 +155,6 @@ export function formatTimelineTime(
     full,
   };
 }
-
-export const SteerIcon: React.FC = () => {
-  return <MaterialIcon name="reply" />;
-};
 
 function isCommandMessageVariant(
   variant?: TimelineNode["messageVariant"],

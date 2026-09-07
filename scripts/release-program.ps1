@@ -15,6 +15,7 @@ $TemplatePath = Join-Path $ScriptDir "release-assets/program/manifest.template.j
 $Renderer = Join-Path $ScriptDir "render-program-manifest.mjs"
 $DeployTestPath = Join-Path $ScriptDir "test-program-deploy.ps1"
 $DesktopContractChecker = Join-Path $ScriptDir "check-agent-webclient-contract.js"
+$FeatureBoundaryChecker = Join-Path $ScriptDir "check-feature-boundaries.js"
 $ConversationExportWebpackConfig = Join-Path $RepoRoot "webpack.export.config.js"
 $ConversationExportBuilder = Join-Path $ScriptDir "build-conversation-export-template.js"
 $ConversationExportChecker = Join-Path $ScriptDir "check-conversation-export-template.js"
@@ -79,8 +80,24 @@ if (-not $Arch) { $Arch = if ($env:ARCH) { $env:ARCH } else { Get-HostArch } }
 foreach ($command in @("node", "npm")) {
     if (-not (Get-Command $command -ErrorAction SilentlyContinue)) { throw "$command is required" }
 }
+if (-not (Test-Path -LiteralPath $FeatureBoundaryChecker -PathType Leaf)) {
+    throw "Required release input is missing: $FeatureBoundaryChecker"
+}
 foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, $DesktopContractChecker, $ConversationExportWebpackConfig, $ConversationExportBuilder, $ConversationExportChecker, $ConversationExportCdnAssets, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
     if (-not (Test-Path -LiteralPath $path)) { throw "Required release input is missing: $path" }
+}
+foreach ($name in @("webpack.config.js", "tsconfig.json", "postcss.config.js")) {
+    $path = Join-Path $RepoRoot $name
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Required release input is missing: $path" }
+}
+foreach ($name in @("deploy.ps1", "start.ps1", "stop.ps1", "program-common.ps1")) {
+    $path = Join-Path $AssetsDir $name
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Required release input is missing: $path" }
+}
+
+foreach ($pair in @(Get-Targets)) {
+    $archive = Join-Path $ReleaseDir "$AppName-$Version-$($pair.OS)-$($pair.Arch).zip"
+    if (Test-Path -LiteralPath $archive) { throw "Release already exists: $archive; choose a new VERSION" }
 }
 
 & $DeployTestPath
@@ -95,6 +112,7 @@ try {
         Copy-Item -LiteralPath (Join-Path $RepoRoot $name) -Destination (Join-Path $BuildRoot $name)
     }
     Copy-Item -LiteralPath $DesktopContractChecker -Destination (Join-Path $BuildScriptsDir "check-agent-webclient-contract.js")
+    Copy-Item -LiteralPath $FeatureBoundaryChecker -Destination (Join-Path $BuildScriptsDir "check-feature-boundaries.js")
     Copy-Item -LiteralPath $ConversationExportBuilder -Destination (Join-Path $BuildScriptsDir "build-conversation-export-template.js")
     Copy-Item -LiteralPath $ConversationExportChecker -Destination (Join-Path $BuildScriptsDir "check-conversation-export-template.js")
     Copy-Item -LiteralPath $ConversationExportCdnAssets -Destination (Join-Path $BuildScriptsDir "conversation-export-cdn-assets.json")
@@ -143,7 +161,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Manifest rendering failed" }
 
         Add-Type -AssemblyName System.IO.Compression.FileSystem
-        Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $archive) { throw "Release already exists: $archive; choose a new VERSION" }
         [IO.Compression.ZipFile]::CreateFromDirectory($stageRoot, $archive, [IO.Compression.CompressionLevel]::Optimal, $false)
         Test-Bundle -BundleRoot $bundleRoot -Archive $archive
         $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()

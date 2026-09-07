@@ -1,0 +1,312 @@
+/* ========================================
+   Conversation Stage & Timeline
+   ======================================== */
+:global(.timeline-row):global(.is-debug-target) {
+    border-radius: 18px;
+    background: color-mix(in srgb, #f7e4a3 18%, transparent);
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, #e2c66c 72%, transparent),
+        0 14px 28px color-mix(in srgb, #e2c66c 16%, transparent);
+    transform: translateY(-1px);
+}
+
+:global(.timeline-row)[data-kind="content"] :global(.timeline-markdown) p {
+    margin: 0 0 12px;
+}
+
+:global(.timeline-row)[data-kind="content"] :global(.timeline-markdown) ul,
+:global(.timeline-row)[data-kind="content"] :global(.timeline-markdown) ol {
+    margin: 0 0 12px;
+}
+
+:global(.timeline-row)[data-kind="content"] :global(.timeline-markdown) pre,
+:global(.timeline-row)[data-kind="content"] :global(.timeline-markdown) table,
+:global(.timeline-row)[data-kind="content"] :global(.timeline-markdown) :global(.markdown-mermaid),
+:global(.timeline-row)[data-kind="content"] :global(.timeline-markdown) :global(.markdown-echarts) {
+    max-width: min(100%, 820px);
+}
+
+:global(.timeline-row)[data-kind="source"] :global(.timeline-flow-content) {
+    width: min(100%, 760px);
+    max-width: 760px;
+}
+
+:global(.timeline-row-time) {
+    font-size: 12px;
+    line-height: 1;
+    color: var(--ink-muted);
+    letter-spacing: 0.02em;
+}
+
+@keyframes timeline-task-status-flash {
+
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+
+    25%,
+    75% {
+        opacity: 0;
+    }
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) :global(.markdown-mermaid) {
+    border-color: color-mix(in srgb, var(--line-soft) 88%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+    box-shadow: none;
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) :global(.markdown-mermaid-toolbar) {
+    border-bottom-color: color-mix(in srgb, var(--line-soft) 88%, transparent);
+    background: color-mix(in srgb, var(--bg-input) 74%, var(--bg-elev-2));
+}
+
+html[data-theme="dark"] :global(.icon-btn) {
+    box-shadow: none;
+}
+
+html[data-theme="dark"] :global(.composer-pill),
+html[data-theme="dark"] :global(.mention-suggest),
+html[data-theme="dark"] :global(.plan-header),
+html[data-theme="dark"] :global(.floating-plan):global(.is-expanded) :global(.plan-list) {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
+}
+
+html[data-theme="dark"] :global(.tool-call-inline),
+html[data-theme="dark"] :global(.tool-call-result),
+html[data-theme="dark"] :global(.status-line) {
+    background: color-mix(in srgb, var(--bg-elev-1) 92%, var(--bg-elev-2));
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme="dark"] :global(.composer-pill) {
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-elev-1));
+    box-shadow: none;
+}
+
+html[data-theme="dark"] :global(.composer-control-input),
+html[data-theme="dark"] :global(.ui-input) {
+    background: color-mix(in srgb,
+            var(--bg-elev-1) 96%,
+            var(--bg-elev-2)) !important;
+    border-color: color-mix(in srgb,
+            var(--line-soft) 100%,
+            transparent) !important;
+}
+
+html[data-theme="dark"] :global(.send-btn) {
+    box-shadow: 0 6px 16px rgba(10, 24, 56, 0.34);
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) table,
+html[data-theme="dark"] :global(.timeline-markdown) pre,
+html[data-theme="dark"] :global(.timeline-markdown) blockquote {
+    background: color-mix(in srgb, var(--bg-elev-1) 94%, var(--bg-elev-2));
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) th,
+html[data-theme="dark"] :global(.timeline-markdown) td,
+html[data-theme="dark"] :global(.timeline-markdown) img,
+html[data-theme="dark"] :global(.timeline-markdown) video:global(.markdown-video) {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) :global(.markdown-echarts) {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+    background: rgba(255, 255, 255, 0.035);
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) thead th {
+    background: color-mix(in srgb, var(--bg-elev-1) 100%, var(--bg-elev-2));
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) code:not(pre code) {
+    padding: 0.15em 0.42em;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-elev-1) 100%, var(--bg-elev-2));
+    color: var(--ink);
+}
+
+html[data-theme="dark"] :global(.timeline-markdown) a {
+    color: var(--accent-strong);
+}
+
+:global(.system-alert) {
+    border: 1px solid color-mix(in srgb, var(--accent-danger) 28%, var(--line-soft));
+    background: color-mix(in srgb, var(--accent-danger) 12%, var(--bg-elev-2));
+    color: color-mix(in srgb, var(--accent-danger) 75%, #3f0f1e);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
+
+:global(.system-alert-copy-btn):global(.ui-btn):global(.ui-btn-ghost) {
+    color: var(--text-muted);
+}
+
+:global(.system-alert-message) {
+    white-space: pre-wrap;
+}
+
+:global(.system-alert-details) {
+    margin-top: 8px;
+    color: var(--ink-2);
+    white-space: normal;
+}
+
+:global(.system-alert-details) summary {
+    cursor: pointer;
+    color: var(--ink-muted);
+    font-size: 11px;
+}
+
+:global(.system-alert-details) dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 4px 8px;
+    margin: 8px 0 0;
+}
+
+:global(.system-alert-details) dt {
+    color: var(--ink-muted);
+    font-size: 11px;
+}
+
+:global(.system-alert-details) dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: pre-wrap;
+}
+
+:global(.system-alert-details) pre {
+    margin: 8px 0 0;
+    max-height: 220px;
+    overflow: auto;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
+    padding: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: pre-wrap;
+}
+
+/* ========================================
+   Thinking Block
+   ======================================== */
+:global(.thinking-detail),
+:global(.awaiting-detail) {
+    color: var(--ink-2);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+:global(.thinking-detail) {
+    font-size: 12px;
+    max-height: 50vh;
+    overflow: auto;
+}
+
+:global(.status-line) {
+    border: 1px dashed color-mix(in srgb, var(--line-strong) 62%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-input) 82%, var(--bg-elev-2));
+    color: var(--ink-muted);
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 7px 8px;
+}
+
+:global(.ant-typography) {
+    color: inherit;
+    font-size: inherit;
+}
+
+:global(.ant-badge) :global(.ant-badge-multiple-words) {
+    padding: 0 4px;
+}
+
+:global(.timeline-planning-collapse) {
+    background-color: color-mix(in srgb, var(--bg-input) 86%, var(--bg-elev-2));
+}
+
+:global(.timeline-planning-collapse) :global(.ant-collapse-extra) :global(.material-icon) {
+    font-size: 14px;
+}
+
+:global(.timeline-planning-collapse) :global(.ant-collapse-extra) :global(.ui-btn):global(.is-icon-only) {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+}
+
+:global(.timeline-planning-collapse) :global(.ant-collapse-extra) :global(.ui-btn):global(.ui-btn-sm) {
+    min-height: 20px;
+}
+
+:global(.timeline-planning-collapse):global(.ant-collapse):global(.ant-collapse-icon-position-end)>:global(.ant-collapse-item)>:global(.ant-collapse-header) :global(.ant-collapse-expand-icon) {
+    padding-left: 6px;
+}
+
+:global(.timeline-planning-collapse):global(.ant-collapse) :global(.ant-collapse-content)>:global(.ant-collapse-content-box) {
+    padding: 0 16px 16px;
+    position: relative;
+}
+
+/* xterm viewport 背景跟随主题 */
+:global(#root) :global(.xterm) :global(.xterm-viewport) {
+    background-color: var(--bg-base);
+}
+
+html[data-theme="light"] :global(.xterm) :global(.composition-view) {
+    background: #fafafa;
+    color: #1d2129;
+}
+
+html[data-theme="dark"] :global(.xterm) :global(.composition-view) {
+    background: #181818;
+    color: #f2f3f5;
+}
+
+:global(.conversation-stage-scroll-to-bottom) {
+    &:global(.ui-btn):global(.ui-btn-secondary) {
+        background-color: var(--bg-base) !important;
+    }
+}
+
+:global(.realtime-transport-blocked) {
+    display: grid;
+    min-height: 100dvh;
+    place-items: center;
+    padding: 24px;
+    background: var(--bg-base);
+    color: var(--ink-1);
+}
+
+:global(.realtime-transport-blocked)>section {
+    display: grid;
+    width: min(520px, 100%);
+    gap: 12px;
+    padding: 24px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    background: var(--bg-elev-1);
+    box-shadow: var(--shadow-elevated);
+}
+
+:global(.realtime-transport-blocked) h1,
+:global(.realtime-transport-blocked) p {
+    margin: 0;
+}
+
+:global(.realtime-transport-blocked) code {
+    color: var(--accent-danger);
+}

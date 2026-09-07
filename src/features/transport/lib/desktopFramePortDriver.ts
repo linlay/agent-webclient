@@ -2,7 +2,7 @@ import type {
   AgentPlatformRequestFrame,
   DesktopPlatformConnectionState,
   DesktopPlatformSession,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import type {
   RealtimeConnectionStatus,
   StatusListener,

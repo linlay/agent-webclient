@@ -3,7 +3,7 @@ import {
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_VERSION,
   type AgentWebclientWorkPanelPreviewReviewAction,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import { useDesktopCurrentPreviewReview } from "@/shared/data/desktop/desktopContextMenu";
 
 const FRAME_ACTION = "__zenmindDesktopHtmlReviewAction";

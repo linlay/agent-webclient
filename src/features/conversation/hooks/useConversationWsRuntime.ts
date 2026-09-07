@@ -1,15 +1,12 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch } from "react";
 import { message } from "antd";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
-import {
-	isAwaitingAnswerPushEvent,
-	isAwaitingAskPushEvent,
-	type AgentEvent,
-	type AppState,
-	type Chat,
-} from "@/app/state/types";
+import { isAwaitingAnswerPushEvent, isAwaitingAskPushEvent } from "@/shared/contracts/agentEvents";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { dataEndpoints, ensureAccessToken } from "@/shared/data";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import {
@@ -71,12 +68,12 @@ import { readExplicitEditingMode } from "@/features/runs/lib/editingMode";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import {
 	readEventTeamId,
 	readMustUseSkills,
 	readRequestQueryText,
-} from "@/shared/utils/eventFieldReaders";
+} from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import {
 	dispatchRunAttachDebugEvent,
@@ -1035,6 +1032,224 @@ export function registerDetachRunListener(
 	};
 }
 
+export function createConversationPushHandler(
+	options: Pick<ConnectWsTransportOptions,
+		"dispatch" | "stateRef" | "querySessionsRef" | "activeQuerySessionRequestIdRef"
+		| "activeAttachRef" | "handleEvent"
+	>,
+): (frame: WsPushFrame) => void {
+	return (frame) => {
+		const wireType = readPushWireType(frame);
+		const liveEvent = toPushEvent(frame);
+		if (!hasValidRequiredPushTime(wireType, liveEvent, frame)) {
+			appendWsDebug(
+				options.dispatch,
+				`[time_contract_violation] ignored WebSocket push ${wireType || String(liveEvent.type || "unknown")} without valid epoch_ms_int64 time`,
+			);
+			if (
+				typeof window !== "undefined" &&
+				typeof window.dispatchEvent === "function" &&
+				typeof CustomEvent === "function"
+			) {
+				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			}
+			return;
+		}
+		markDebugEventHidden(liveEvent);
+		const type = String(liveEvent.type || "");
+		const currentChatId = String(options.stateRef.current.chatId || "").trim();
+		const eventChatId = String(liveEvent.chatId || "").trim();
+
+		if (type === "heartbeat") {
+			return;
+		}
+
+		if (type === "live.connected") {
+			appendWsDebug(
+				options.dispatch,
+				"[live] Connected to relay live stream via WebSocket push",
+			);
+			return;
+		}
+
+		if (type === "chat.created") {
+			upsertPushChatSummary(options.dispatch, liveEvent);
+			return;
+		}
+
+		if (type === "chat.renamed") {
+			const chatId = String(liveEvent.chatId || "").trim();
+			const chatName = String(liveEvent.chatName || "").trim();
+			if (chatId && chatName) {
+				options.dispatch({ type: "CHAT_RENAMED", chatId, chatName });
+			}
+			return;
+		}
+
+		if (type === "chat.read" || type === "chat.unread") {
+			upsertPushChatSummary(options.dispatch, liveEvent);
+			syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
+			return;
+		}
+
+		if (type === "chat.read_all") {
+			const agentKey = String(liveEvent.agentKey || "").trim();
+			if (agentKey) {
+				options.dispatch({ type: "MARK_AGENT_CHATS_READ", agentKey });
+			}
+			return;
+		}
+
+		if (type === "chat.deleted") {
+			const deletedChatId = String(liveEvent.chatId || "").trim();
+			if (deletedChatId) {
+				options.dispatch({ type: "CHAT_DELETED", chatId: deletedChatId });
+				if (deletedChatId === currentChatId) {
+					options.dispatch({ type: "SET_CHAT_ID", chatId: "" });
+					options.dispatch({ type: "SET_RUN_ID", runId: "" });
+					options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
+					window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+					window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+				}
+			}
+			return;
+		}
+
+		if (type === "chat.archived") {
+			const archivedChatId = String(liveEvent.chatId || "").trim();
+			if (archivedChatId) {
+				options.dispatch({ type: "CHAT_ARCHIVED", chatId: archivedChatId });
+				if (archivedChatId === currentChatId) {
+					options.dispatch({ type: "SET_CHAT_ID", chatId: "" });
+					options.dispatch({ type: "SET_RUN_ID", runId: "" });
+					options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
+					window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+					window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+				}
+			}
+			return;
+		}
+
+		if (type === "archive.restored") {
+			const summary = isObjectRecord(liveEvent.summary)
+				? (liveEvent.summary as Partial<Chat> & Pick<Chat, "chatId">)
+				: null;
+			if (summary?.chatId) {
+				options.dispatch({ type: "UPSERT_CHAT", chat: summary });
+				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			}
+			return;
+		}
+
+		if (type === "chat.updated") {
+			upsertPushChatSummary(options.dispatch, liveEvent);
+			syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
+			return;
+		}
+
+		if (type === "run.start") {
+			upsertPushChatSummary(options.dispatch, liveEvent);
+			const runId = String(liveEvent.runId || "").trim();
+			const owner = resolveRunOwner({
+				chatId: eventChatId,
+				chats: options.stateRef.current.chats,
+				eventIdentity: {
+					teamId: readEventTeamId(liveEvent),
+					agentKey: liveEvent.agentKey,
+				},
+			});
+			const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
+			dispatchRunAttachDebugEvent(options.dispatch, {
+				stage: "runStartedCandidate",
+				chatId: eventChatId,
+				runId,
+				agentKey,
+				...readRunAttachDebugSnapshot({
+					state: options.stateRef.current,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				}),
+			});
+			if (owner) {
+				dispatchRunStartedPushEvent({
+					chatId: eventChatId,
+					runId,
+					agentKey,
+					owner,
+					lastSeq: 0,
+					...(typeof readExplicitEditingMode(liveEvent) === "boolean"
+						? { editingMode: readExplicitEditingMode(liveEvent) }
+						: {}),
+				});
+			}
+			return;
+		}
+
+		if (type === "run.complete" || type === "run.error" || type === "run.cancel") {
+			// 将仍处于 running 状态的 PlanRuntime 标记为 completed
+			for (const [taskId, runtime] of options.stateRef.current.planRuntimeByTaskId) {
+				if (runtime.status === "running") {
+					options.dispatch({
+						type: "SET_PLAN_RUNTIME",
+						taskId,
+						runtime: {
+							status: "completed",
+							updatedAt: liveEvent.timestamp ?? Date.now(),
+							error: "",
+						},
+					});
+				}
+			}
+
+			upsertPushChatSummary(options.dispatch, liveEvent);
+			const currentActiveRun = options.stateRef.current.currentChatActiveRun;
+			const runId = String(liveEvent.runId || "").trim();
+			syncCurrentTerminalPushObservation(
+				{
+					dispatch: options.dispatch,
+					stateRef: options.stateRef,
+					querySessionsRef: options.querySessionsRef,
+					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
+					activeAttachRef: options.activeAttachRef,
+				},
+				eventChatId,
+				runId,
+			);
+			if (
+				currentActiveRun?.runId &&
+				currentActiveRun.runId === runId &&
+				currentActiveRun.chatId === eventChatId
+			) {
+				options.dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: null });
+			}
+			return;
+		}
+
+		const isAwaitingPushEvent =
+			isAwaitingAskPushEvent(type) || isAwaitingAnswerPushEvent(type);
+		if (isAwaitingPushEvent) {
+			upsertPushChatSummary(options.dispatch, liveEvent);
+			return;
+		}
+
+		const mainRuntime = resolveMainChatRuntime(
+			options.stateRef,
+			options.activeQuerySessionRequestIdRef,
+			options.querySessionsRef,
+		);
+		if (mainRuntime.streaming) {
+			return;
+		}
+
+		if (currentChatId && eventChatId && eventChatId !== currentChatId) {
+			return;
+		}
+
+		options.handleEvent(liveEvent);
+	};
+}
+
 function buildWsClient(
 	options: ConnectWsTransportOptions,
 	accessToken: string,
@@ -1056,7 +1271,7 @@ function buildWsClient(
 	let hasConnected = false;
 	let previousStatus: AppState["wsStatus"] = "disconnected";
 	let forwardingPush = false;
-	let processPushFrame: ((frame: WsPushFrame) => void) | null = null;
+	const processPushFrame = createConversationPushHandler(options);
 	const client = initWsClientImpl({
 		accessToken,
 		allowAnonymous: !appMode,
@@ -1076,228 +1291,21 @@ function buildWsClient(
 			}
 			previousStatus = status;
 		},
-		onPush: (processPushFrame = (frame) => {
+		onPush: (frame) => {
 			if (options.routePushThroughTransport && !forwardingPush) {
 				return;
 			}
-			const wireType = readPushWireType(frame);
-			const liveEvent = toPushEvent(frame);
-			if (!hasValidRequiredPushTime(wireType, liveEvent, frame)) {
-				appendWsDebug(
-					options.dispatch,
-					`[time_contract_violation] ignored WebSocket push ${wireType || String(liveEvent.type || "unknown")} without valid epoch_ms_int64 time`,
-				);
-				if (
-					typeof window !== "undefined" &&
-					typeof window.dispatchEvent === "function" &&
-					typeof CustomEvent === "function"
-				) {
-					window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
-				}
-				return;
-			}
-			markDebugEventHidden(liveEvent);
-			const type = String(liveEvent.type || "");
-			const currentChatId = String(options.stateRef.current.chatId || "").trim();
-			const eventChatId = String(liveEvent.chatId || "").trim();
-
-			if (type === "heartbeat") {
-				return;
-			}
-
-			if (type === "live.connected") {
-				appendWsDebug(
-					options.dispatch,
-					"[live] Connected to relay live stream via WebSocket push",
-				);
-				return;
-			}
-
-			if (type === "chat.created") {
-				upsertPushChatSummary(options.dispatch, liveEvent);
-				return;
-			}
-
-			if (type === "chat.renamed") {
-				const chatId = String(liveEvent.chatId || "").trim();
-				const chatName = String(liveEvent.chatName || "").trim();
-				if (chatId && chatName) {
-					options.dispatch({ type: "CHAT_RENAMED", chatId, chatName });
-				}
-				return;
-			}
-
-			if (type === "chat.read" || type === "chat.unread") {
-				upsertPushChatSummary(options.dispatch, liveEvent);
-				syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
-				return;
-			}
-
-			if (type === "chat.read_all") {
-				const agentKey = String(liveEvent.agentKey || "").trim();
-				if (agentKey) {
-					options.dispatch({ type: "MARK_AGENT_CHATS_READ", agentKey });
-				}
-				return;
-			}
-
-			if (type === "chat.deleted") {
-				const deletedChatId = String(liveEvent.chatId || "").trim();
-				if (deletedChatId) {
-					options.dispatch({ type: "CHAT_DELETED", chatId: deletedChatId });
-					if (deletedChatId === currentChatId) {
-						options.dispatch({ type: "SET_CHAT_ID", chatId: "" });
-						options.dispatch({ type: "SET_RUN_ID", runId: "" });
-						options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
-						window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-						window.dispatchEvent(new CustomEvent("agent:voice-reset"));
-					}
-				}
-				return;
-			}
-
-			if (type === "chat.archived") {
-				const archivedChatId = String(liveEvent.chatId || "").trim();
-				if (archivedChatId) {
-					options.dispatch({ type: "CHAT_ARCHIVED", chatId: archivedChatId });
-					if (archivedChatId === currentChatId) {
-						options.dispatch({ type: "SET_CHAT_ID", chatId: "" });
-						options.dispatch({ type: "SET_RUN_ID", runId: "" });
-						options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
-						window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-						window.dispatchEvent(new CustomEvent("agent:voice-reset"));
-					}
-				}
-				return;
-			}
-
-			if (type === "archive.restored") {
-				const summary = isObjectRecord(liveEvent.summary)
-					? (liveEvent.summary as Partial<Chat> & Pick<Chat, "chatId">)
-					: null;
-				if (summary?.chatId) {
-					options.dispatch({ type: "UPSERT_CHAT", chat: summary });
-					window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
-				}
-				return;
-			}
-
-			if (type === "chat.updated") {
-				upsertPushChatSummary(options.dispatch, liveEvent);
-				syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
-				return;
-			}
-
-			if (type === "run.start") {
-				upsertPushChatSummary(options.dispatch, liveEvent);
-				const runId = String(liveEvent.runId || "").trim();
-				const owner = resolveRunOwner({
-					chatId: eventChatId,
-					chats: options.stateRef.current.chats,
-					eventIdentity: {
-						teamId: readEventTeamId(liveEvent),
-						agentKey: liveEvent.agentKey,
-					},
-				});
-				const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
-				dispatchRunAttachDebugEvent(options.dispatch, {
-					stage: "runStartedCandidate",
-					chatId: eventChatId,
-					runId,
-					agentKey,
-					...readRunAttachDebugSnapshot({
-						state: options.stateRef.current,
-						querySessionsRef: options.querySessionsRef,
-						activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
-						activeAttachRef: options.activeAttachRef,
-					}),
-				});
-				if (owner) {
-					dispatchRunStartedPushEvent({
-						chatId: eventChatId,
-						runId,
-						agentKey,
-						owner,
-						lastSeq: 0,
-						...(typeof readExplicitEditingMode(liveEvent) === "boolean"
-							? { editingMode: readExplicitEditingMode(liveEvent) }
-							: {}),
-					});
-				}
-				return;
-			}
-
-			if (type === "run.complete" || type === "run.error" || type === "run.cancel") {
-				// 将仍处于 running 状态的 PlanRuntime 标记为 completed
-				for (const [taskId, runtime] of options.stateRef.current.planRuntimeByTaskId) {
-					if (runtime.status === "running") {
-						options.dispatch({
-							type: "SET_PLAN_RUNTIME",
-							taskId,
-							runtime: {
-								status: "completed",
-								updatedAt: liveEvent.timestamp ?? Date.now(),
-								error: "",
-							},
-						});
-					}
-				}
-
-				upsertPushChatSummary(options.dispatch, liveEvent);
-				const currentActiveRun = options.stateRef.current.currentChatActiveRun;
-				const runId = String(liveEvent.runId || "").trim();
-				syncCurrentTerminalPushObservation(
-					{
-						dispatch: options.dispatch,
-						stateRef: options.stateRef,
-						querySessionsRef: options.querySessionsRef,
-						activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
-						activeAttachRef: options.activeAttachRef,
-					},
-					eventChatId,
-					runId,
-				);
-				if (
-					currentActiveRun?.runId &&
-					currentActiveRun.runId === runId &&
-					currentActiveRun.chatId === eventChatId
-				) {
-					options.dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: null });
-				}
-				return;
-			}
-
-			const isAwaitingPushEvent =
-				isAwaitingAskPushEvent(type) || isAwaitingAnswerPushEvent(type);
-			if (isAwaitingPushEvent) {
-				upsertPushChatSummary(options.dispatch, liveEvent);
-				return;
-			}
-
-			const mainRuntime = resolveMainChatRuntime(
-				options.stateRef,
-				options.activeQuerySessionRequestIdRef,
-				options.querySessionsRef,
-			);
-			if (mainRuntime.streaming) {
-				return;
-			}
-
-			if (currentChatId && eventChatId && eventChatId !== currentChatId) {
-				return;
-			}
-
-			options.handleEvent(liveEvent);
-		}),
+			processPushFrame(frame);
+		},
 		onTransportError: (error) => {
 			showTransportError(error.message);
 		},
 	});
-	if (options.pushHandlerRef && processPushFrame) {
+	if (options.pushHandlerRef) {
 		options.pushHandlerRef.current = (frame) => {
 			forwardingPush = true;
 			try {
-				processPushFrame?.(frame);
+				processPushFrame(frame);
 			} finally {
 				forwardingPush = false;
 			}
@@ -1462,7 +1470,6 @@ export function useConversationWsRuntime(options: {
 	} = useAppContext();
 	const handleEventRef = useRef(options.onAgentEvent);
 	const activeAttachRef = useRef<ActiveAttachState | null>(null);
-	const pushHandlerRef = useRef<((frame: WsPushFrame) => void) | null>(null);
 	const runs = useRunTransport();
 
 	useEffect(() => {
@@ -1473,23 +1480,14 @@ export function useConversationWsRuntime(options: {
 		handleEventRef.current(event);
 	}, []);
 
-	useEffect(() => {
-		buildWsClient({
-			dispatch,
-			state: { accessToken: stateRef.current.accessToken },
-			stateRef,
-			querySessionsRef,
-			activeQuerySessionRequestIdRef,
-			activeAttachRef,
-			routePushThroughTransport: true,
-			pushHandlerRef,
-			handleEvent: stableHandleEvent,
-			initWsClientImpl: () => ({}) as WsClient,
-		}, "");
-		return () => {
-			pushHandlerRef.current = null;
-		};
-	}, [
+	const handlePush = useMemo(() => createConversationPushHandler({
+		dispatch,
+		stateRef,
+		querySessionsRef,
+		activeQuerySessionRequestIdRef,
+		activeAttachRef,
+		handleEvent: stableHandleEvent,
+	}), [
 		activeQuerySessionRequestIdRef,
 		dispatch,
 		querySessionsRef,
@@ -1497,9 +1495,6 @@ export function useConversationWsRuntime(options: {
 		stateRef,
 	]);
 
-	const handlePush = useCallback((frame: WsPushFrame) => {
-		pushHandlerRef.current?.(frame as WsPushFrame);
-	}, []);
 	const handleReconnect = useCallback((currentState: AppState) => {
 		refreshCurrentChatAfterWsReconnect(currentState);
 	}, []);

@@ -3,29 +3,28 @@ import {
   createEndpointRegistry,
   defineEndpoint,
 } from "@/shared/data/api/endpointRegistry";
+import type { ArchivesRequest } from "@/shared/data/api/dto/archives";
 import type {
-  ArchivesRequest,
   AttachStreamParams,
-  DeriveChatRequest,
-  GetAgentsOptions,
-  GetChatsOptions,
+  AccessLevelUpdateParams,
+  BackgroundCommandParams,
+  CompactChatParams,
+  QueryLikeParams,
+  QueryStreamParams,
+  BTWStreamParams,
+} from "@/shared/data/api/dto/commands";
+import type { DeriveChatRequest, GetChatsOptions, ChatSystemPromptRequest } from "@/shared/data/api/dto/chats";
+import type { GetAgentsOptions } from "@/shared/data/api/dto/agents";
+import type {
   AgentFileRequest,
   DocumentCommitRequest,
   ProjectChangesRequest,
   ProjectDiffRequest,
   ProjectTreeRequest,
-  ChatSystemPromptRequest,
-  GetMemoryRecordsParams,
-  AccessLevelUpdateParams,
-  AdminSourceTarget,
-  BackgroundCommandParams,
-  CompactChatParams,
-  QueryLikeParams,
-  QueryModelOverride,
-  QueryServiceTier,
-  QueryStreamParams,
-  BTWStreamParams,
-} from "@/shared/data/api/client";
+} from "@/shared/data/api/dto/resources";
+import type { GetMemoryRecordsParams } from "@/shared/data/memory/memoryTypes";
+import type { AdminSourceTarget } from "@/shared/data/api/dto/admin";
+import type { QueryModelOverride, QueryServiceTier } from "@/shared/data/api/dto/models";
 import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import { runOwnerPayload } from "@/shared/data/runOwner";
 
@@ -263,12 +262,6 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     cache: { ttlMs: 60_000, dedupe: true },
   }),
-  adminAgentOrder: defineEndpoint({
-    key: "admin.agents.order",
-    path: "/api/admin/agents/order",
-    method: "GET",
-    transport: "http",
-  }),
   adminAgentOrderUpdate: defineEndpoint({
     key: "admin.agents.order.update",
     path: "/api/admin/agents/order",
@@ -300,20 +293,6 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
-  adminServices: defineEndpoint({
-    key: "admin.services.list",
-    path: "/api/admin/services",
-    method: "GET",
-    transport: "http",
-  }),
-  adminRegistryDetail: defineEndpoint({
-    key: "admin.registries.detail",
-    path: "/api/admin/registries/detail",
-    method: "GET",
-    transport: "http",
-    payload: (params: { category: string; file: string }) =>
-      compactPayload(params),
-  }),
   adminRegistryValidate: defineEndpoint({
     key: "admin.registries.validate",
     path: "/api/admin/registries/validate",
@@ -338,22 +317,6 @@ export const dataEndpoints = createEndpointRegistry({
       key: params.key,
       ...(params.openPath ? { openPath: params.openPath } : {}),
     }),
-  }),
-  adminSkillFile: defineEndpoint<
-    { key: string; path: string },
-    { key: string; path: string }
-  >({
-    key: "admin.skills.file",
-    path: "/api/admin/skills/file",
-    method: "GET",
-    transport: "http",
-    payload: (params) => ({ key: params.key, path: params.path }),
-  }),
-  adminSkillSaveFile: defineEndpoint({
-    key: "admin.skills.saveFile",
-    path: "/api/admin/skills/file",
-    method: "PUT",
-    transport: "http",
   }),
   adminSkillCreateFile: defineEndpoint({
     key: "admin.skills.createFile",

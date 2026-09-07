@@ -62,7 +62,7 @@ jest.mock("@/features/composer/components/SteerBar", () => ({
   SteerBar: () => React.createElement("div", null, "steer"),
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayOpen: () => false,
 }));
 

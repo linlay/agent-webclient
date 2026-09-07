@@ -1,10 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { AppAction } from "@/app/state/actions";
-import type {
-  VoiceCapabilities,
-  VoiceChatState,
-  VoiceClientGateConfig,
-} from "@/app/state/types";
+import type { VoiceCapabilities, VoiceChatState, VoiceClientGateConfig } from "@/features/voice/lib/voiceState";
 import { AsrDebugSession } from "@/features/voice/lib/asrDebugSession";
 import {
   DEFAULT_VOICE_WS_PATH,

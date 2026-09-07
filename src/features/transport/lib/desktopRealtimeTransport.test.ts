@@ -5,14 +5,14 @@ import type {
   DesktopPlatformFramePort,
   DesktopPlatformSession,
   DesktopPlatformSessionClose,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import { DesktopRealtimeTransport } from "@/features/transport/lib/desktopRealtimeTransport";
 import { getDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
 import {
   DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
   DESKTOP_SURFACE_ACTIVE_CHANGED_MESSAGE_TYPE,
   SERVICE_WEBVIEW_BRIDGE_SURFACE_LIFECYCLE_CHANNEL,
-} from "@/features/transport/lib/desktopSurfaceLifecycle";
+} from "@/shared/data/desktop/desktopSurfaceLifecycle";
 
 class FakeDesktopPlatformSession implements DesktopPlatformSession {
   readonly sent: Array<Record<string, unknown>> = [];

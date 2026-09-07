@@ -1,4 +1,5 @@
-import type { AgentEvent, AppState, Chat } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { toText } from "@/shared/utils/eventUtils";
 
 export function bindRunAgentKey(
@@ -64,26 +65,4 @@ export function resolveChatAgentKey(input: {
 		|| toText(chat?.firstAgentKey)
 		|| toText(input.chatAgentById?.get(chatId))
 	);
-}
-
-export function resolveStateRunAgentKey(
-	state: Pick<
-		AppState,
-		| "runId"
-		| "currentRunAgentKey"
-		| "runAgentById"
-		| "chatId"
-		| "chatAgentById"
-		| "chats"
-	>,
-	runId?: unknown,
-): string {
-	return resolveRunAgentKey({
-		runId: toText(runId) || state.runId,
-		currentRunAgentKey: state.currentRunAgentKey,
-		runAgentById: state.runAgentById,
-		chatId: state.chatId,
-		chatAgentById: state.chatAgentById,
-		chats: state.chats,
-	});
 }

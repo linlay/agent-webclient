@@ -1,4 +1,4 @@
-import type { TimelineNode } from '@/app/state/types';
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { AgentSkill } from '@/shared/data';
 import { isDebugPanelEnabled, isMemoryEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';

@@ -1,5 +1,5 @@
 import type { StateSnapshot } from "react-virtuoso";
-import type { ConversationSurfaceMode } from "@/app/state/types";
+import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
 import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
 import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
 

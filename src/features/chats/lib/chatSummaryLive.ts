@@ -1,20 +1,17 @@
-import {
-  isAwaitingAnswerLike,
-  isAwaitingAskLike,
-  type AgentEvent,
-  type AppState,
-  type Chat,
-} from '@/app/state/types';
+import { isAwaitingAnswerLike, isAwaitingAskLike } from "@/shared/contracts/agentEvents";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { resolveChatSummaryActiveRun } from '@/features/chats/lib/chatRunState';
 import {
   readEventChatName,
   readEventFirstAgentName,
   readEventTeamId,
-} from '@/shared/utils/eventFieldReaders';
+} from '@/features/events/lib/eventFields';
 import { toText } from '@/shared/utils/eventUtils';
 import { isEpochMillis } from '@/shared/utils/platformTime';
 import { toRunOwner } from '@/shared/data/runOwner';
-import { readExplicitEditingMode } from '@/features/runs/lib/editingMode';
+import { readExplicitEditingMode } from '@/features/events/lib/eventFields';
 
 export interface LiveChatSummaryCache {
   chatId: string;

@@ -1,0 +1,62 @@
+.readonly-run-surface {
+    display: flex;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-base);
+    color: var(--ink-1);
+}
+
+.readonly-run-surface-header {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--line-soft);
+    padding: 0 14px;
+}
+
+.readonly-run-surface-header span {
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-family: var(--font-code);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.readonly-run-surface-content {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    padding: 12px;
+}
+
+.readonly-run-surface-content.is-flush {
+    padding: 0;
+}
+
+.readonly-run-surface-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.readonly-run-surface-error button {
+    flex: none;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    padding: 3px 10px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+}
+
+.readonly-run-surface-error button:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}

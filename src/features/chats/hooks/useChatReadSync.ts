@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { markChatRead } from "@/shared/data";
 import {
 	normalizeChatReadState,
@@ -36,10 +36,11 @@ export function getAutoReadTriggerKey(
 
 export function isChatContentCommitted(input: {
 	chatId: string;
+	blocked?: boolean;
 	transition: { targetChatId?: string; phase?: string } | null | undefined;
 }): boolean {
 	const chatId = String(input.chatId || "").trim();
-	if (!chatId) return false;
+	if (!chatId || input.blocked) return false;
 	if (!input.transition) return true;
 	return (
 		String(input.transition.targetChatId || "").trim() === chatId &&
@@ -110,11 +111,12 @@ export function useChatReadSync(): void {
 	const autoReadTriggerKey = useMemo(
 		() => isChatContentCommitted({
 			chatId: String(state.chatId || ""),
+			blocked: state.chatSurfaceBlocked,
 			transition: state.chatTransition,
 		})
 			? getAutoReadTriggerKey(activeChat)
 			: "",
-		[activeChat, state.chatId, state.chatTransition],
+		[activeChat, state.chatId, state.chatSurfaceBlocked, state.chatTransition],
 	);
 
 	useEffect(() => {

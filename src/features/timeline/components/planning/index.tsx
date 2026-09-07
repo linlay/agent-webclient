@@ -5,7 +5,7 @@ import { Collapse, Flex, Tooltip } from "antd";
 import { ContentBlock } from "../ContentBlock";
 import { copyText } from "@/shared/utils/copy";
 import useApp from "antd/es/app/useApp";
-import { TimelineNode } from "@/app/state/timelineTypes";
+import { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { useAppState } from "@/app/state/AppContext";

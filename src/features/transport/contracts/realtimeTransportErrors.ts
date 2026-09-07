@@ -1,7 +1,7 @@
 import type {
   AgentWebclientBridgeError,
   AgentWebclientBridgeErrorCode,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 
 export type RealtimeTransportErrorCode =
   | AgentWebclientBridgeErrorCode

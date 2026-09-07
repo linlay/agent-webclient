@@ -12,8 +12,10 @@ import {
 import {
   createWorkerChatOrderByKey,
   sortWorkerRowsForMode,
-} from "@/app/layout/hooks/useLeftSidebarData";
-import type { AppState, Chat, WorkerRow } from "@/app/state/types";
+} from "@/features/workers/hooks/useWorkerSidebarData";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { I18nProvider } from "@/shared/i18n";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];
@@ -40,6 +42,11 @@ function collectText(value: React.ReactNode): string {
     return collectText(value.props.children);
   }
   return "";
+}
+
+function readOwnedStyle(...segments: string[]): string {
+  return fs.readFileSync(path.join(process.cwd(), "src", ...segments), "utf8")
+    .replace(/:global\(([^)]+)\)/g, "$1");
 }
 
 jest.mock("antd", () => {
@@ -288,7 +295,7 @@ jest.mock("@/app/state/AppContext", () => {
   };
 });
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayActions: () => ({
     openCommandOverlay: mockOpenCommandOverlay,
     patchCommandOverlay: jest.fn(),
@@ -1165,9 +1172,8 @@ describe("LeftSidebar", () => {
     expect(html).toMatch(
       /class="[^"]*\bworker-chat-more\b(?![^"tw:]*hover:text-text-main)[^"]*"/,
     );
-    const workerStyles = fs.readFileSync(
-      path.join(process.cwd(), "src", "shared", "styles", "globals", "workers.css"),
-      "utf8",
+    const workerStyles = readOwnedStyle(
+      "features", "workers", "components", "WorkerNavigator.module.css",
     );
     expect(workerStyles).toMatch(
       /\.worker-chat-more:hover\s*\{[\s\S]*?color:\s*var\(--text-main\);/,
@@ -1479,9 +1485,8 @@ describe("LeftSidebar", () => {
 
     expect(mockModalConfirm).toHaveBeenCalledTimes(1);
     const confirmConfig = mockModalConfirm.mock.calls[0][0];
-    const modalStyles = fs.readFileSync(
-      path.join(process.cwd(), "src", "shared", "styles", "globals", "modal.css"),
-      "utf8",
+    const modalStyles = readOwnedStyle(
+      "features", "command-center", "components", "CommandSurface.module.css",
     );
     expect(confirmConfig.content.props.className).toBe("left-sidebar-rename-agent-input");
     expect(modalStyles).toMatch(
@@ -1869,26 +1874,30 @@ describe("LeftSidebar", () => {
       /class="[^"]*\bworker-chat-action\b[^"]*" data-action="loading"/,
     );
     expect(html).toContain("worker-chat-action tw:relative tw:inline-flex tw:min-h-4 tw:flex-[0_0_30px]");
-    expect(html).toContain("worker-chat-loading tw:absolute tw:right-[5px]");
+    expect(html).toContain("worker-chat-loading tw:absolute tw:inset-y-0 tw:right-[5px] tw:my-auto");
     expect(html).toMatch(
       /class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,
     );
-    expect(html).toContain("tw:absolute tw:right-[5px] tw:top-1/2 tw:-translate-y-1/2");
     expect(html).not.toContain("tw:!hidden");
     expect(html).toMatch(
       /class="ui-list-item is-selected [^"]*\bworker-chat-item\b[^"]*\bis-active\b[^"]*"/,
     );
     expect(html).toContain("worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5");
     expect(html).not.toContain("worker-chat-item:hover_");
-    const workerStyles = fs.readFileSync(
-      path.join(process.cwd(), "src", "shared", "styles", "globals", "workers.css"),
-      "utf8",
+    const workerStyles = readOwnedStyle(
+      "features", "workers", "components", "WorkerNavigator.module.css",
     );
     expect(workerStyles).toMatch(
       /\.worker-chat-item:hover,[\s\S]*?\.worker-chat-item\.is-selected\s*\{[\s\S]*?background-color:\s*transparent;[\s\S]*?color:\s*var\(--text-main\);/,
     );
     expect(workerStyles).toMatch(
-      /\[data-action\]\s+\.worker-chat-loading\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?transform:\s*translateY\(-50%\);[\s\S]*?display:\s*none;/,
+      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*position:\s*absolute;[^}]*top:\s*0;[^}]*right:\s*5px;[^}]*bottom:\s*0;[^}]*margin-block:\s*auto;[^}]*display:\s*none;/,
+    );
+    expect(workerStyles).not.toMatch(
+      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*transform:/,
+    );
+    expect(workerStyles).toMatch(
+      /\[data-action="loading"\]\s+\.worker-chat-loading,[\s\S]*?\[data-action="awaiting"\]\s+\.worker-chat-loading\s*\{[^}]*display:\s*inline-flex;/,
     );
     expect(workerStyles).toMatch(
       /\[data-action\]\s+\.chat-actions-trigger\s*\{[\s\S]*?display:\s*none;/,

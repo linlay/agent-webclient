@@ -1,10 +1,7 @@
-import type {
-	ActiveAwaiting,
-	AppState,
-	TaskItemMeta,
-	TimelineNode,
-	ToolState,
-} from "@/app/state/types";
+import type { ActiveAwaiting, ToolState } from "@/features/tools/lib/toolsState";
+import type { AppState } from "@/app/state/AppContext";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventProcessorState } from "@/features/events/lib/eventProcessorTypes";
 import { cloneActiveAwaitingQueue } from "@/features/tools/lib/awaitingRuntime";
 import { toText } from "@/shared/utils/eventUtils";
@@ -98,10 +95,21 @@ export function getCachedNode(
 	nodeId: string,
 ): TimelineNode | undefined {
 	const cachedNode = cache.nodeById.get(nodeId);
+	const stateNode = state.timelineNodes.get(nodeId);
 	if (cachedNode !== undefined) {
+		// Clicks update React state; keep its expansion choice without discarding
+		// stream text and metadata that may still be ahead in the live cache.
+		if (
+			cachedNode.kind === "thinking" &&
+			cachedNode.status === "running" &&
+			typeof stateNode?.expanded === "boolean" &&
+			stateNode.expanded !== cachedNode.expanded
+		) {
+			return { ...cachedNode, expanded: stateNode.expanded };
+		}
 		return cachedNode;
 	}
-	return state.timelineNodes.get(nodeId);
+	return stateNode;
 }
 
 export function getCachedNodeText(

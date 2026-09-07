@@ -1,6 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { ContentBlock } from "@/features/timeline/components/ContentBlock";
 import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
 
@@ -51,7 +51,7 @@ const mockMarkdownContentProps: Array<{
 	}) => void;
 }> = [];
 
-jest.mock("@/shared/ui/MarkdownContent", () => {
+jest.mock("@/features/viewers/components/MarkdownContent", () => {
 	const ReactRuntime = require("react");
 
 	return {

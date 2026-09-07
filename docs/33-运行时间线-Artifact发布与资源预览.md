@@ -45,5 +45,5 @@ Desktop 原生图片稳定后，WebClient 的 preview-review 只保留 HTML Reso
 - `../src/features/viewers/lib/viewerRuntime.ts`
 - `../src/features/viewers/components/ContentViewerPanel.tsx`
 - `../src/features/viewers/hooks/useDesktopHtmlPreviewReview.ts`
-- `../src/shared/ui/MarkdownContent.tsx`
+- `../src/features/viewers/components/MarkdownContent.tsx`
 - `../src/shared/ui/useAuthenticatedResourceUrl.ts`

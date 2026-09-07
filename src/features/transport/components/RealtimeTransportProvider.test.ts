@@ -6,7 +6,7 @@ import type {
   AgentWebclientWorkPanelBridge,
   DesktopPlatformFramePort,
   DesktopPlatformSession,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 
 const runtimeConfig = globalThis as typeof globalThis & {
   __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;

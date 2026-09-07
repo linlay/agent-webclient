@@ -1,14 +1,15 @@
-import type { AgentEvent } from "@/app/state/types";
-import { readMustUseSkills, readRequestQueryText } from "@/shared/utils/eventFieldReaders";
+import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
+import { readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
 import type {
   EventCommand,
   EventProcessorConfig,
   EventProcessorState,
 } from "@/features/events/lib/eventProcessorTypes";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/events/lib/processors/eventProcessorShared";
 import { t } from "@/shared/i18n";
+import { formatCompactStats } from "@/shared/utils/contextCompactStats";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 
 export function processRunEvent(
@@ -76,7 +77,6 @@ export function processRunEvent(
     const level = toText(event.level) || "summary";
     const digestCount = Number((event as Record<string, unknown>).toolDigestCount ?? 0);
     const originalMessages = Number((event as Record<string, unknown>).originalMessages ?? 0);
-    const compressionRatio = Number((event as Record<string, unknown>).compressionRatio ?? 0);
     const textParts = [
       level === "l1_tools"
         ? t("contextCompact.toolsCompleted")
@@ -100,24 +100,13 @@ export function processRunEvent(
         t("contextCompact.toolDigestCount", { count: digestCount }),
       );
     }
-    const rawRemainingRatio = (event as Record<string, unknown>).remainingRatio;
-    const rawReleasedRatio = (event as Record<string, unknown>).releasedRatio;
-    const hasReduction = rawRemainingRatio != null || rawReleasedRatio != null || compressionRatio > 0;
-    const remainingRatio = Number(rawRemainingRatio ?? compressionRatio * 100);
-    const releasedRatio = Number(rawReleasedRatio ?? (100 - remainingRatio));
-    if (hasReduction && Number.isFinite(remainingRatio) && Number.isFinite(releasedRatio) && remainingRatio >= 0 && releasedRatio >= 0) {
-      textParts.push(
-        t("contextCompact.reduction", {
-          remaining: remainingRatio.toFixed(2),
-          released: releasedRatio.toFixed(2),
-        }),
-      );
-    }
+    const stats = formatCompactStats(event as AIContextCompactEvent, t);
+    textParts.push(...stats);
     commands.push({
       cmd: "SYSTEM_MESSAGE",
       nodeId,
       text: textParts.join(" · "),
-      ...(hasReduction
+      ...(stats.length > 0
         ? { tooltip: t("contextCompact.reductionTooltip") }
         : {}),
       ts: timestamp,
@@ -134,7 +123,9 @@ export function processRunEvent(
       nodeId,
       text: t("contextCompact.failed", {
         detail:
-          safeText((event as Record<string, unknown>).detail) ||
+          (event.detail === "summary_input_too_large"
+            ? t("contextCompact.summaryInputTooLargeDetail")
+            : safeText((event as Record<string, unknown>).detail)) ||
           safeText((event as Record<string, unknown>).error) ||
           t("contextCompact.unknownError"),
       }),

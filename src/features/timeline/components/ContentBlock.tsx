@@ -1,5 +1,5 @@
 import React from "react";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
 	buildResourceViewerTargetFromUrl,
 } from "@/features/viewers/lib/viewerTarget";
@@ -11,10 +11,10 @@ import {
 	type MarkdownWebLink,
 	type ResourceFileLink,
 	type WorkspaceFileLink,
-} from "@/shared/ui/MarkdownContent";
+} from "@/features/viewers/components/MarkdownContent";
 import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
-import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
+import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";

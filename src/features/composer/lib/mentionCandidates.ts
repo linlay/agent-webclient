@@ -1,4 +1,6 @@
-import type { Agent, AppState, Team } from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { AppState } from "@/app/state/AppContext";
+import type { Team } from "@/features/workers/lib/workerState";
 import { toText } from '@/shared/utils/eventUtils';
 import { readTeamAgentKeys } from '@/features/workers/lib/teamUtils';
 

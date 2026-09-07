@@ -1,0 +1,295 @@
+/* ========================================
+   Sidebar (Left & Right)
+   ======================================== */
+:global(.sidebar) {
+    width: var(--left-sidebar-width);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+    background: var(--bg-elev-1);
+}
+
+:global(.right-sidebar) {
+    width: var(--right-sidebar-width);
+    right: 0;
+    left: auto;
+    transform: translateX(100%);
+    border-left: 1px solid var(--line-soft);
+}
+
+:global(.right-sidebar-resize-handle) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -5px;
+    z-index: 200;
+    width: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+:global(.right-sidebar-resize-handle)::after {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 4px;
+    width: 0;
+    border-radius: 999px;
+    background: transparent;
+    transition: outline 0.15s ease;
+    outline: 4px solid transparent;
+}
+
+:global(.right-sidebar-resize-handle):hover::after,
+:global(.right-sidebar-resize-handle):focus-visible::after,
+:global(.right-sidebar-resizing) :global(.right-sidebar-resize-handle)::after {
+    outline-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+:global(.right-sidebar-resize-handle):focus-visible {
+    outline: none;
+}
+
+:global(.right-sidebar-resizing) {
+    cursor: col-resize;
+    user-select: none;
+}
+
+:global(.right-sidebar-resizing) * {
+    cursor: col-resize !important;
+}
+
+:global(.sidebar):global(.is-open) {
+    transform: translateX(0);
+}
+
+:global(.left-sidebar-buttons) :global(.ant-badge) :global(.ant-badge-count) {
+    color: var(--accent);
+    background-color: var(--accent-soft);
+    font-size: 10px;
+}
+
+:global(.ui-list-item) {
+    width: 100%;
+    text-align: left;
+    border-radius: 10px;
+    background: transparent;
+    padding: 10px;
+    display: block;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+:global(.ui-list-item):global(.is-dense) {
+    padding-top: 9px;
+    padding-bottom: 9px;
+}
+
+:global(.ui-list-item):hover,
+:global(.ui-list-item):global(.is-selected) {
+    background-color: var(--bg-hover);
+}
+
+:global(.ui-list-item):global(.is-loading) {
+    border-color: transparent !important;
+    background-color: transparent !important;
+    background-image: linear-gradient(90deg,
+            var(--colorFillSecondary) 25%,
+            var(--colorFill) 37%,
+            var(--colorFillSecondary) 63%) !important;
+    background-size: 400% 100%;
+    animation-name: ui-list-item-loading-shimmer;
+    animation-duration: 1.4s;
+    animation-timing-function: ease;
+    animation-iteration-count: infinite;
+}
+
+@keyframes ui-list-item-loading-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+/* ========================================
+   Debug Panel (Right Sidebar)
+   ======================================== */
+
+:global(.debug-panel) :global(.ant-tabs) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.debug-panel) :global(.ant-tag) {
+    margin-inline-end: 0;
+}
+
+:global(.debug-panel) :global(.ant-tabs-content-holder) {
+    flex: 1;
+    min-height: 0;
+}
+
+:global(.debug-panel) :global(.ant-tabs-tabpane) {
+    height: 100%;
+}
+
+:global(.right-sidebar-tabs) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs-top) :global(.ant-tabs-tab-btn) :global(.ant-tabs-tab-icon):not(:last-child) {
+    display: inline-flex;
+    margin-inline-end: 4px;
+}
+
+:global(.right-sidebar-tabs) :global(.ant-tabs-nav-wrap) :global(.material-icon) {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs) :global(.ant-tabs-tab-btn) {
+    display: flex;
+    color: var(--text-muted);
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs) :global(.ant-tabs-tab):global(.ant-tabs-tab-active) :global(.ant-tabs-tab-btn) {
+    display: flex;
+    color: var(--text-main);
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs) :global(.ant-tabs-ink-bar) {
+    display: none;
+}
+
+:global(.right-sidebar-tabs)>:global(.ant-tabs-nav) {
+    height: 36px;
+    min-height: 36px;
+    margin: 2px 0 6px;
+}
+
+:global(.right-sidebar-tabs)>:global(.ant-tabs-nav) :global(.ant-tabs-nav-list) {
+    height: 36px;
+    box-sizing: border-box;
+    padding: 4px 8px 0;
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs-top)>:global(.ant-tabs-nav)::before {
+    display: none;
+}
+
+:global(.right-sidebar-tabs)>:global(.ant-tabs-content-holder) {
+    flex: 1;
+    min-height: 0;
+}
+
+:global(.right-sidebar-tabs)>:global(.ant-tabs-content-holder)>:global(.ant-tabs-content) {
+    height: 100%;
+}
+
+:global(.right-sidebar-tabs) :global(.ant-tabs-tabpane) {
+    height: 100%;
+    min-height: 0;
+}
+
+:global(.right-sidebar-tabs)>:global(.ant-tabs-nav) :global(.ant-tabs-tab) {
+    border: 0;
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs-card)>:global(.ant-tabs-nav) :global(.ant-tabs-tab) {
+    background: transparent;
+
+    &:hover:not(:global(.ant-tabs-tab-active)) {
+        background: var(--bg-hover);
+    }
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs-top)>:global(.ant-tabs-nav) :global(.ant-tabs-tab-active) {
+    background: var(--bg-base);
+    box-shadow: var(--shadow-soft);
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs-small):global(.ant-tabs-top)>:global(.ant-tabs-nav) :global(.ant-tabs-tab) {
+    height: 28px;
+    border-radius: 8px;
+    margin: 0 2px 4px;
+    padding-block: 2px;
+}
+
+:global(.right-sidebar-tabs):global(.ant-tabs-top)>:global(.ant-tabs-nav) :global(.ant-tabs-tab-active):hover :global(.ant-tabs-tab-remove) {
+    display: block;
+}
+
+:global(.right-sidebar-tabs) :global(.ant-tabs-tab-remove) {
+    margin-right: 0;
+    display: none;
+    position: absolute;
+    right: 0;
+    background: var(--bg-base);
+}
+
+@keyframes right-sidebar-file-change-jump {
+    0% {
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+    }
+
+    35% {
+        transform: translateY(-4px) scale(1.14);
+        filter: brightness(1.15);
+    }
+
+    70% {
+        transform: translateY(1px) scale(.98);
+        filter: brightness(1.04);
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+    }
+}
+
+:global(.mono) {
+    font-family: var(--font-mono);
+}
+
+:global(.right-sidebar-file-change-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-header) {
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-elev-1);
+    padding: 4px 10px;
+    border-radius: 0 !important;
+    z-index: 100;
+
+    &:hover {
+        background: var(--bg-hover);
+        backdrop-filter: blur(10px);
+    }
+
+    >:global(.ant-collapse-header-text) {
+        overflow: hidden;
+    }
+}
+
+:global(.right-sidebar-file-change-collapse) :global(.ant-collapse-content)>:global(.ant-collapse-content-box) {
+    padding: 0;
+    padding-block: 0 !important;
+    overflow: auto;
+}

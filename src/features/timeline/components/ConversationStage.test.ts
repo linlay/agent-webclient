@@ -1,12 +1,9 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
-import type {
-  TaskItemMeta,
-  TimelineNode,
-  WorkerConversationRow,
-  WorkerRow,
-} from "@/app/state/types";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import {
   buildTimelineAgentOptions,
   ConversationStage,
@@ -99,7 +96,7 @@ jest.mock("@/features/timeline/components/TimelineRow", () => ({
       },
       props.node?.text || "timeline-row",
     ),
-  formatTimelineTime: () => ({ short: "", full: "" }),
+  formatTimelineTime: jest.fn(() => ({ short: "", full: "" })),
 }));
 
 jest.mock("antd", () => {
@@ -122,6 +119,11 @@ const { useAppState, useAppDispatch } = jest.requireMock(
 ) as {
   useAppState: jest.Mock;
   useAppDispatch: jest.Mock;
+};
+const { formatTimelineTime: mockFormatTimelineTime } = jest.requireMock(
+  "@/features/timeline/components/TimelineRow",
+) as {
+  formatTimelineTime: jest.Mock;
 };
 
 const globalWithStorage = globalThis as typeof globalThis & {
@@ -175,6 +177,7 @@ describe("ConversationStage", () => {
     mockCurrentWorker = null;
     mockUseAgentSkillsQuery.mockReset();
     mockUseAgentSkillsQuery.mockReturnValue({ data: null, status: "idle" });
+    mockFormatTimelineTime.mockReturnValue({ short: "", full: "" });
     globalWithStorage.window = {
       dispatchEvent: jest.fn(() => true),
       location: {
@@ -224,22 +227,37 @@ describe("ConversationStage", () => {
 
   it("renders derive chat action for completed runs", () => {
     const state = createInitialState();
+    const queryAt = 1_700_000_000_000;
+    mockFormatTimelineTime.mockReturnValue({
+      short: "今天 11:04",
+      full: "2026/09/07 11:04",
+    });
     const nodes: TimelineNode[] = [
-      { id: "user_1", kind: "message", role: "user", text: "hi", ts: 100 },
+      {
+        id: "user_1",
+        kind: "message",
+        role: "user",
+        text: "hi",
+        ts: queryAt,
+      },
       {
         id: "content_1",
         kind: "content",
         role: "assistant",
         text: "answer",
-        ts: 130,
+        ts: queryAt + 30_000,
       },
     ];
     useAppState.mockReturnValue({
       ...state,
       chatId: "chat_1",
       events: [
-        { type: "request.query", timestamp: 100 },
-        { type: "run.complete", timestamp: 180, runId: "run_1" },
+        { type: "request.query", timestamp: queryAt },
+        {
+          type: "run.complete",
+          timestamp: queryAt + 61_000,
+          runId: "run_1",
+        },
       ],
       timelineNodes: createTimelineMap(nodes),
       timelineOrder: nodes.map((node) => node.id),
@@ -251,6 +269,7 @@ describe("ConversationStage", () => {
 
     expect(html).toContain("aria-label=\"派生新对话\"");
     expect(html).toContain("material-symbol-branches");
+    expect(html).toContain("耗时 1分1秒");
     expect(html.indexOf('data-material-icon="thumb_down"')).toBeLessThan(
       html.indexOf('data-material-icon="branches"'),
     );

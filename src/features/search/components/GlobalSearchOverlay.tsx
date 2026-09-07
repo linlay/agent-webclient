@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Modal } from "antd";
-import type { Agent, Team, WorkerConversationRow } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team, WorkerConversationRow } from "@/features/workers/lib/workerState";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { buildGlobalRows } from "@/features/search/lib/globalSearchRows";
 import type { GlobalRow } from "@/features/search/lib/globalSearchRows";
@@ -13,7 +14,7 @@ import {
   useGlobalSearchActions,
   useGlobalSearchOpen,
 } from "@/features/search/components/GlobalSearchOverlayProvider";
-import { useCommandOverlayActions } from "@/features/workers/components/CommandOverlayProvider";
+import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 

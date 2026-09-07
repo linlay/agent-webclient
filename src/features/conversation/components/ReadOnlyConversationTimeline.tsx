@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import type { VirtuosoHandle } from "react-virtuoso";
-import type { Agent, TimelineNode, TimelineSource } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import type { ChatDetailResponse } from "@/shared/data";
 import type { ChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
 import {
@@ -23,32 +23,10 @@ import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useI18n } from "@/shared/i18n";
 import styles from "./ReadOnlyConversationTimeline.module.css";
 
-export function findHighlightedRunIndex(
-  items: TimelineDisplayItem[],
-  targetRunId: string,
-  activeRunId = "",
-): number {
-  const normalizedTarget = String(targetRunId || "").trim();
-  if (!normalizedTarget) return -1;
-
-  const exactIndex = items.findIndex(
-    (item) => item.kind === "run" && item.runId === normalizedTarget,
-  );
-  if (exactIndex >= 0) return exactIndex;
-
-  if (String(activeRunId || "").trim() !== normalizedTarget) return -1;
-  for (let index = items.length - 1; index >= 0; index -= 1) {
-    const item = items[index];
-    if (item.kind === "run" && !item.terminalType) return index;
-  }
-  return -1;
-}
-
 export interface ReadOnlyConversationTimelineProps {
   chat: ChatDetailResponse;
   projection: ChatReplayProjection;
   agents: Agent[];
-  targetRunId?: string;
   agentKey?: string;
   teamChat?: boolean;
 }
@@ -59,13 +37,11 @@ export const ReadOnlyConversationTimeline: React.FC<
   chat,
   projection,
   agents,
-  targetRunId = "",
   agentKey = "",
   teamChat = false,
 }) => {
   const { locale, t } = useI18n();
   const openTarget = useOpenTarget();
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Map<string, boolean>>(
     () => new Map(),
   );
@@ -101,20 +77,6 @@ export const ReadOnlyConversationTimeline: React.FC<
       ),
     [activeRunId, projection, timelineEntries],
   );
-  const highlightedRunIndex = useMemo(
-    () => findHighlightedRunIndex(displayItems, targetRunId, activeRunId),
-    [activeRunId, displayItems, targetRunId],
-  );
-
-  useEffect(() => {
-    if (highlightedRunIndex < 0) return;
-    virtuosoRef.current?.scrollToIndex({
-      index: highlightedRunIndex,
-      align: "center",
-      behavior: "auto",
-    });
-  }, [highlightedRunIndex]);
-
   const patchNode = useCallback((node: TimelineNode) => {
     setExpandedNodeIds((current) => {
       const next = new Map(current);
@@ -163,7 +125,12 @@ export const ReadOnlyConversationTimeline: React.FC<
   }, []);
 
   const renderEntry = useCallback(
-    (entry: Extract<TimelineDisplayItem, { kind: "run" }>['renderEntries'][number]) => (
+    (
+      entry: Extract<
+        TimelineDisplayItem,
+        { kind: "run" }
+      >["renderEntries"][number],
+    ) => (
       <TimelineRenderEntryView
         key={entry.key}
         entry={entry}
@@ -192,12 +159,11 @@ export const ReadOnlyConversationTimeline: React.FC<
         aria-label={t("automationHistory.panel.chat")}
       >
         <Virtuoso
-          ref={virtuosoRef}
           className={styles.virtuoso}
           data={displayItems}
           computeItemKey={(_index, item) => item.key}
           increaseViewportBy={400}
-          itemContent={(index, item) => {
+          itemContent={(_index, item) => {
             if (item.kind === "query") {
               return (
                 <div className={styles.item}>
@@ -207,7 +173,6 @@ export const ReadOnlyConversationTimeline: React.FC<
             }
 
             if (item.kind === "run") {
-              const highlighted = index === highlightedRunIndex;
               const duration = formatResponseDuration(
                 item.responseDurationMs,
                 t,
@@ -216,25 +181,12 @@ export const ReadOnlyConversationTimeline: React.FC<
                 today: t("timeline.time.today"),
                 yesterday: t("timeline.time.yesterday"),
               });
-              const displayedRunId =
-                item.runId || (highlighted ? activeRunId : "");
               return (
                 <div className={styles.item}>
                   <section
-                    className={`${styles.run} ${highlighted ? styles.currentRun : ""}`}
-                    data-run-id={displayedRunId || undefined}
-                    data-current-execution={highlighted ? "true" : undefined}
-                    aria-label={
-                      highlighted
-                        ? t("automationHistory.chat.currentExecution")
-                        : undefined
-                    }
+                    className={styles.run}
+                    data-run-id={item.runId || undefined}
                   >
-                    {highlighted ? (
-                      <span className={styles.currentRunLabel}>
-                        {t("automationHistory.chat.currentExecution")}
-                      </span>
-                    ) : null}
                     <div className={styles.runEntries}>
                       {item.renderEntries.map(renderEntry)}
                     </div>
@@ -244,14 +196,11 @@ export const ReadOnlyConversationTimeline: React.FC<
                         duration={duration}
                       />
                     ) : null}
-                    {time.short || displayedRunId ? (
+                    {time.short ? (
                       <div className={styles.runMeta}>
-                        {displayedRunId ? <span>{displayedRunId}</span> : null}
-                        {time.short ? (
-                          <time title={time.full}>
-                            {time.short}{duration ? ` · ${duration}` : ""}
-                          </time>
-                        ) : null}
+                        <time title={time.full}>
+                          {time.short}{duration ? ` · ${duration}` : ""}
+                        </time>
                       </div>
                     ) : null}
                   </section>

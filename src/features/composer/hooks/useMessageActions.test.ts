@@ -9,7 +9,7 @@ import {
   syncLiveSessionTerminalState,
   useMessageActions,
 } from "@/features/composer/hooks/useMessageActions";
-import type { WorkerRow } from "@/app/state/types";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 
 const startQuery = jest.fn();
 
@@ -387,19 +387,20 @@ describe("useMessageActions temporary pin", () => {
     );
   });
 
-  it("blocks every direct query entry while a chat transition is active", async () => {
+  it.each(["loading", "ready", "error"] as const)("blocks direct query entry during %s, including the shared exit animation", async (phase) => {
     const state = createInitialState();
     state.chatId = "chat_old";
     state.chatTransition = {
       seq: 1,
       sourceChatId: "chat_old",
       targetChatId: "chat_new",
-      phase: "loading",
+      phase,
       kind: "history-switch",
       displayMode: "blocking",
       focusComposerOnReady: false,
       error: "",
     };
+    state.chatSurfaceBlocked = true;
     const dispatch = jest.fn();
     useAppContext.mockReturnValue({
       state,

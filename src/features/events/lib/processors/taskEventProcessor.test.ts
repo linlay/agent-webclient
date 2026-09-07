@@ -1,4 +1,4 @@
-import type { TaskItemMeta } from "@/app/state/types";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import type { EventProcessorState } from "@/features/events/lib/eventProcessorTypes";
 import { processTaskEvent } from "@/features/events/lib/processors/taskEventProcessor";
 

@@ -1,3 +1,4 @@
+import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
 import React, {
   useCallback,
   useEffect,
@@ -10,15 +11,15 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   useAppDispatch,
   useAppState,
-  useOptionalAppContext,
 } from "@/app/state/AppContext";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
-import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
+import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
+import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { getAgent } from "@/shared/data";
@@ -30,10 +31,7 @@ import {
   canPrepareDesktopNewChat,
   prepareDesktopNewChat,
 } from "@/shared/data/desktop/desktopNewChat";
-import {
-  isMainChatRuntimeObservedByLiveQuery,
-  resolveMainChatRuntime,
-} from "@/features/runs/lib/runRuntimeState";
+import { initializeDesktopWorkspaceArrowKeys } from "@/shared/data/desktop/desktopWorkspaceArrowKeys";
 
 export function parseNewChatTimestamp(rawValue: unknown): string {
   const timestamp = String(rawValue || "").trim();
@@ -312,16 +310,21 @@ const AgentRouteErrorPage: React.FC<{
 );
 
 export const AgentChatShell: React.FC = () => {
+  const [params] = useSearchParams();
+  return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
+    <AgentChatShellContent />
+  </ConversationSurfaceProvider>;
+};
+
+const AgentChatShellContent: React.FC = () => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const appContext = useOptionalAppContext();
   const { t } = useI18n();
   const navigate = useNavigate();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const stateRef = useRef(state);
   const lastInitializedAgentKeyRef = useRef("");
-  const lastLoadedChatKeyRef = useRef("");
   const refreshedNewChatAgentRouteKeysRef = useRef<Set<string>>(new Set());
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
   const pendingNewChatResendRef = useRef<PendingNewChatResend | null>(null);
@@ -334,6 +337,8 @@ export const AgentChatShell: React.FC = () => {
   const [hydrationRetryCount, setHydrationRetryCount] = useState(0);
   const [pendingNewChatResendVersion, setPendingNewChatResendVersion] =
     useState(0);
+
+  useEffect(() => initializeDesktopWorkspaceArrowKeys(), []);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
@@ -383,6 +388,8 @@ export const AgentChatShell: React.FC = () => {
     (!agentKey || state.workerSelectionKey === routeWorkerKey);
   const { loadAgents, startNewConversation } = useAppRuntimes({
     initialWorkerRefreshEnabled: false,
+    targetChatId: chatId,
+    routeReady: routeAgentHydrated,
   });
 
   useEffect(() => {
@@ -688,48 +695,14 @@ export const AgentChatShell: React.FC = () => {
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
 
     if (chatId) {
-      const routeKey = createChatRouteKey(agentKey, chatId);
-      if (lastLoadedChatKeyRef.current === routeKey) {
-        return;
-      }
-      lastLoadedChatKeyRef.current = routeKey;
       lastInitializedAgentKeyRef.current = "";
-      if (
-        consumeLiveSessionPromotion(
-          promotedLiveChatRouteKeysRef.current,
-          agentKey,
-          chatId,
-        )
-      ) {
-        return;
-      }
-      const mainRuntime = appContext
-        ? resolveMainChatRuntime(
-            appContext.stateRef,
-            appContext.activeQuerySessionRequestIdRef,
-            appContext.querySessionsRef,
-          )
-        : null;
-      if (
-        mainRuntime &&
-        isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)
-      ) {
-        return;
-      }
-      window.dispatchEvent(
-        new CustomEvent("agent:load-chat", {
-          detail: {
-            chatId,
-            focusComposerOnComplete: true,
-          },
-        }),
-      );
+      // Promotion is metadata only. The conversation coordinator owns loading.
+      consumeLiveSessionPromotion(promotedLiveChatRouteKeysRef.current, agentKey, chatId);
       return;
     }
 
     if (!routeNewChatTimestamp) {
       lastInitializedAgentKeyRef.current = "";
-      lastLoadedChatKeyRef.current = "";
       window.dispatchEvent(new CustomEvent("agent:focus-composer"));
       return;
     }
@@ -768,7 +741,6 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
     lastInitializedAgentKeyRef.current = routeNewChatKey;
-    lastLoadedChatKeyRef.current = "";
     const startDetail = {
       agentKey,
       preserveWorkerContext: true,
@@ -806,7 +778,6 @@ export const AgentChatShell: React.FC = () => {
     sendPreparedResend();
   }, [
     agentKey,
-    appContext,
     chatId,
     composerPrefillPayload,
     dispatch,
@@ -822,7 +793,7 @@ export const AgentChatShell: React.FC = () => {
 
   const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
 
-  if (!routeAgentReady) {
+  if (!routeAgentReady && !chatId) {
     if (routeAgentLoadError) {
       return <AgentRouteErrorPage
         message={routeAgentLoadError}
@@ -839,6 +810,7 @@ export const AgentChatShell: React.FC = () => {
     : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
 
   return (
+    <MemoryOverlayProvider>
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
         <GlobalSearchOverlayProvider>
@@ -864,5 +836,6 @@ export const AgentChatShell: React.FC = () => {
       </GlobalSearchOverlayProvider>
       </CommandOverlayProvider>
     </SettingsOverlayProvider>
+    </MemoryOverlayProvider>
   );
 };

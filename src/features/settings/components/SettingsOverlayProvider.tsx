@@ -2,13 +2,10 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
-import { useAppDispatch } from "@/app/state/AppContext";
-
-export type SettingsOverlayKey = "settings" | "memoryInfo";
+export type SettingsOverlayKey = "settings";
 
 interface SettingsOverlayActions {
   openOverlay: (overlay: SettingsOverlayKey) => void;
@@ -35,14 +32,9 @@ const SettingsOverlayStateContext = createContext<SettingsOverlayState>({
 export const SettingsOverlayProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const dispatch = useAppDispatch();
   const [activeOverlay, setActiveOverlay] = useState<SettingsOverlayKey | null>(
     null,
   );
-
-  const resetMemorySession = useCallback(() => {
-    dispatch({ type: "RESET_MEMORY_INFO_SESSION" });
-  }, [dispatch]);
 
   const openOverlay = useCallback(
     (overlay: SettingsOverlayKey) => {
@@ -61,12 +53,6 @@ export const SettingsOverlayProvider: React.FC<{
     },
     [],
   );
-
-  useEffect(() => {
-    if (activeOverlay !== "memoryInfo") return undefined;
-    dispatch({ type: "SET_MEMORY_CONSOLE_TAB", tab: "records" });
-    return resetMemorySession;
-  }, [activeOverlay, dispatch, resetMemorySession]);
 
   const actionsValue = useMemo(
     () => ({ openOverlay, closeOverlay }),

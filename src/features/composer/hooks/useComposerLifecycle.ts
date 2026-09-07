@@ -6,7 +6,7 @@ import {
   AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT,
   type AgentWebclientComposerDraftAction,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import { DESKTOP_COMPOSER_REVIEW_DRAFT_EVENT } from "@/shared/data/desktop/desktopContextMenu";
 
 function emitComposerDraftResult(requestId: string, ok: boolean, code?: string) {

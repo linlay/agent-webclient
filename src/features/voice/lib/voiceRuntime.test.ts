@@ -2,7 +2,8 @@ import {
 	AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
 	AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
 } from "@/shared/data/auth/appAuth";
-import type { AppState, TtsVoiceBlock } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { TtsVoiceBlock } from "@/features/timeline/lib/timelineState";
 import { setAccessToken } from "@/shared/data";
 import { initVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 

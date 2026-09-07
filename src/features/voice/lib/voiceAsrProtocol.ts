@@ -1,8 +1,4 @@
-import type {
-	VoiceCapabilities,
-	VoiceClientGateConfig,
-	VoiceClientGateSettings,
-} from "@/app/state/types";
+import type { VoiceCapabilities, VoiceClientGateConfig, VoiceClientGateSettings } from "@/features/voice/lib/voiceState";
 import { bytesToBase64 } from "@/features/voice/lib/voiceChatAudio";
 import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
 import { dataEndpoints } from "@/shared/data/api/endpoints";

@@ -45,14 +45,12 @@ jest.mock(
   () => ({
     ReadOnlyConversationTimeline: (props: {
       chat: ChatDetailResponse;
-      targetRunId?: string;
     }) =>
       React.createElement(
         "div",
         {
           "data-testid": "read-only-timeline",
           "data-chat-id": props.chat.chatId,
-          "data-target-run-id": props.targetRunId,
         },
         `timeline:${props.chat.chatId}`,
       ),
@@ -63,7 +61,7 @@ jest.mock("@/shared/icons/agent", () => ({
   AgentIcon: () => React.createElement("span", { "data-testid": "agent-icon" }),
 }));
 
-jest.mock("@/shared/ui/MarkdownContent", () => ({
+jest.mock("@/features/viewers/components/MarkdownContent", () => ({
   MarkdownContent: ({ content }: { content: string }) =>
     React.createElement("div", { "data-testid": "markdown" }, content),
 }));
@@ -410,7 +408,8 @@ describe("AutomationExecutionDrawer", () => {
     await act(async () => Promise.resolve());
 
     const timeline = container.querySelector('[data-testid="read-only-timeline"]');
-    expect(timeline?.getAttribute("data-target-run-id")).toBe("run-a");
+    expect(timeline?.getAttribute("data-chat-id")).toBe("chat-a");
+    expect(timeline?.hasAttribute("data-target-run-id")).toBe(false);
     expect(container.textContent).toContain("automationHistory.status.running");
     expect(mockGetChat).toHaveBeenCalledWith("chat-a", false);
   });

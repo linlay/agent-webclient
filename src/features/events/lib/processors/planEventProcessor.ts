@@ -1,4 +1,5 @@
-import type { AgentEvent, PlanItem } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { PlanItem } from "@/features/plan/lib/planState";
 import type {
 	EventCommand,
 	EventProcessorState,

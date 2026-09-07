@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Drawer, Spin, Tabs, message } from "antd";
-import type { Agent, Team } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Team } from "@/features/workers/lib/workerState";
 import type {
   AutomationExecutionDetailResponse,
   AutomationExecutionResponse,
@@ -20,7 +21,7 @@ import {
 } from "@/features/automations/lib/executionView";
 import { ReadOnlyConversationTimeline } from "@/features/conversation/components/ReadOnlyConversationTimeline";
 import { AgentIcon } from "@/shared/icons/agent";
-import { MarkdownContent } from "@/shared/ui/MarkdownContent";
+import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";
@@ -454,7 +455,6 @@ export const AutomationExecutionDrawer: React.FC<
                 chat={chatState.data.chat}
                 projection={chatState.data.projection}
                 agents={agents}
-                targetRunId={String(visible?.runId || "")}
                 agentKey={agentKey}
                 teamChat={Boolean(teamId)}
               />

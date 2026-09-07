@@ -2,13 +2,10 @@ import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
 import { getChat } from '@/shared/data';
-import type {
-  Chat,
-  CurrentChatActiveRun,
-  AgentEvent,
-  ComposerRequiredSkill,
-  WorkerRow,
-} from '@/app/state/types';
+import type { Chat, CurrentChatActiveRun } from "@/features/chats/lib/chatState";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { ComposerRequiredSkill } from "@/features/composer/lib/composerState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormatter';
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import {
@@ -27,9 +24,12 @@ import {
 } from '@/features/conversation/lib/conversationPayload';
 import { buildChatReplayProjection } from '@/features/conversation/lib/chatReplayProjection';
 import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/runs/lib/runControlEvents';
-import { isCurrentChatTransition } from '@/features/conversation/lib/chatTransition';
+import { CHAT_PREPARATION_TIMEOUT_MS, isChatTransitionPending, isCurrentChatTransition } from '@/features/conversation/lib/chatTransition';
 import { normalizeChatReadState } from '@/features/chats/lib/chatReadState';
+import type { ChatTransition } from '@/features/conversation/lib/conversationState';
+import { useI18n } from '@/shared/i18n';
 import { readEpochMillis } from '@/shared/utils/platformTime';
+import { readDesktopChatRouteRevision } from '@/shared/hooks/useDesktopRouteChange';
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
@@ -196,35 +196,10 @@ export function buildLoadedChatSummary(
 }
 
 const LOAD_CHAT_RETRY_DELAYS_MS = [180, 420, 800] as const;
-const ACTIVE_CHAT_REFRESH_DELAYS_MS = [2000, 8000, 20000] as const;
 
 function waitForLoadChatRetry(delayMs: number): Promise<void> {
   return new Promise((resolve) => {
     globalThis.setTimeout(resolve, delayMs);
-  });
-}
-
-function hasAssistantTimelineContentInState(state: {
-  timelineOrder: string[];
-  timelineNodes: Map<string, { kind?: string; role?: string }>;
-}): boolean {
-  return state.timelineOrder.some((nodeId) => {
-    const node = state.timelineNodes.get(nodeId);
-    return Boolean(node && (node.kind !== 'message' || node.role !== 'user'));
-  });
-}
-
-function hasContentTimelineTextInState(state: {
-  timelineOrder: string[];
-  timelineNodes: Map<string, { kind?: string; text?: string }>;
-}): boolean {
-  return state.timelineOrder.some((nodeId) => {
-    const node = state.timelineNodes.get(nodeId);
-    return Boolean(
-      node &&
-      node.kind === 'content' &&
-      String(node.text || '').trim(),
-    );
   });
 }
 
@@ -240,6 +215,19 @@ export function useConversationActions() {
     conversationViewportRef,
   } = useAppContext();
   const localLoadSeqRef = useRef(0);
+  const loadsRef = useRef(new Map<number, Promise<void>>());
+  const cancelLoadsRef = useRef(new Map<number, () => void>());
+  const { t } = useI18n();
+  const { state } = useAppContext();
+
+  useEffect(() => () => {
+    for (const cancel of cancelLoadsRef.current.values()) cancel();
+  }, []);
+  useEffect(() => {
+    for (const [seq, cancel] of cancelLoadsRef.current) {
+      if (state.chatTransition?.seq !== seq || state.chatTransition.phase === 'error') cancel();
+    }
+  }, [state.chatTransition]);
 
   const clearPlanAutoCollapseTimer = useCallback(() => {
     const timer = stateRef.current.planAutoCollapseTimer;
@@ -403,92 +391,120 @@ export function useConversationActions() {
     }
   }, [activateBlankConversation, dispatch]);
 
+  const prepareChat = useCallback((chatId: string, options: {
+    focusComposerOnComplete?: boolean; forceReload?: boolean; retryError?: boolean; acceptReady?: boolean;
+  } = {}): ChatTransition | null => {
+    chatId = String(chatId || '').trim();
+    if (!chatId) return null;
+    const current = stateRef.current;
+    const existing = current.chatTransition;
+    if (existing?.targetChatId === chatId) {
+      if (isChatTransitionPending(existing)) return existing;
+      if (existing.phase === 'error' && !options.retryError) return existing;
+    }
+    const currentChatId = String(current.chatId || '').trim();
+    const runtime = resolveMainChatRuntime(stateRef, activeQuerySessionRequestIdRef, querySessionsRef);
+    const liveOwnsTarget = isMainChatRuntimeObservedByLiveQuery(runtime, chatId);
+    if (!options.forceReload && currentChatId === chatId && existing?.phase !== 'error' &&
+      ((options.acceptReady && existing?.targetChatId === chatId && existing.phase === 'ready') ||
+        liveOwnsTarget)) {
+      if (existing && existing.targetChatId !== chatId) dispatch({ type: 'CLEAR_CHAT_TRANSITION' });
+      return null;
+    }
+    conversationViewportRef?.current?.captureCurrent();
+    const seq = Math.max(localLoadSeqRef.current + 1, current.chatLoadSeq + 1);
+    localLoadSeqRef.current = seq;
+    const startedAt = Date.now();
+    const transition: ChatTransition = {
+      seq, sourceChatId: currentChatId, targetChatId: chatId,
+      startedAt, deadlineAt: startedAt + CHAT_PREPARATION_TIMEOUT_MS,
+      phase: 'loading',
+      kind: options.forceReload && currentChatId === chatId
+        ? 'same-chat-reload' : currentChatId ? 'history-switch' : 'initial-load',
+      displayMode: currentChatId === chatId && (runtime.running || current.currentChatActiveRun?.runId)
+        ? 'background' : 'blocking',
+      focusComposerOnReady: Boolean(options.focusComposerOnComplete), error: '',
+    };
+    dispatch({ type: 'BEGIN_CHAT_TRANSITION', transition });
+    dispatch({ type: 'APPEND_DEBUG', line: `[chat transition] begin targetChatId=${chatId} actualChatId=${currentChatId} transitionSeq=${seq} deadlineAt=${transition.deadlineAt}` });
+    if (currentChatId !== chatId && !liveOwnsTarget) {
+      dispatchDetachActiveRun('chat_switch', chatId);
+      detachActiveConversationSession();
+    }
+    return transition;
+  }, [activeQuerySessionRequestIdRef, conversationViewportRef, detachActiveConversationSession, dispatch, dispatchDetachActiveRun, querySessionsRef, stateRef]);
+
+  useEffect(() => {
+    const transition = state.chatTransition;
+    if (transition) dispatch({
+      type: 'APPEND_DEBUG',
+      line: `[chat transition] phase=${transition.phase} targetChatId=${transition.targetChatId} actualChatId=${stateRef.current.chatId} transitionSeq=${transition.seq} routeRevision=${readDesktopChatRouteRevision(transition.targetChatId) ?? 'standalone'} displayMode=${transition.displayMode}`,
+    });
+    if (!transition || !['loading', 'applying'].includes(transition.phase)) return;
+    const deadline = transition.deadlineAt || Date.now() + CHAT_PREPARATION_TIMEOUT_MS;
+    const expire = () => {
+      const current = stateRef.current.chatTransition;
+      if (!current || current.seq !== transition.seq || !['loading', 'applying'].includes(current.phase) || Date.now() < deadline) return;
+      dispatch({ type: 'FAIL_CHAT_TRANSITION', seq: current.seq, targetChatId: current.targetChatId, error: t('conversationStage.loadTimeout') });
+      dispatch({ type: 'APPEND_DEBUG', line: `[chat transition] timeout targetChatId=${current.targetChatId} actualChatId=${stateRef.current.chatId} transitionSeq=${current.seq} phase=${current.phase}` });
+    };
+    const timer = setTimeout(expire, Math.max(0, deadline - Date.now()));
+    window.addEventListener('focus', expire);
+    document.addEventListener('visibilitychange', expire);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('focus', expire);
+      document.removeEventListener('visibilitychange', expire);
+    };
+  }, [dispatch, state.chatTransition, stateRef, t]);
+
   const loadChat = useCallback(
-    async (chatId: string, options: {
+    (chatId: string, options: {
       focusComposerOnComplete?: boolean;
       forceReload?: boolean;
       throwOnError?: boolean;
-    } = {}) => {
-      if (!chatId) return;
-      const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
-      const forceReload = options.forceReload === true;
-      const currentChatId = String(stateRef.current.chatId || '').trim();
-      const mainRuntime = resolveMainChatRuntime(
-        stateRef,
-        activeQuerySessionRequestIdRef,
-        querySessionsRef,
-      );
-      if (!forceReload && isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)) {
-        if (focusComposerOnComplete) {
-          focusComposerSoon();
+    } = {}): Promise<void> => {
+      chatId = String(chatId || '').trim();
+      if (!chatId) return Promise.resolve();
+      const transition = prepareChat(chatId, { ...options, retryError: true });
+      if (!transition) {
+        if (options.focusComposerOnComplete) focusComposerSoon();
+        return Promise.resolve();
+      }
+      const { seq } = transition;
+      const mainRuntime = resolveMainChatRuntime(stateRef, activeQuerySessionRequestIdRef, querySessionsRef);
+      if (transition.kind !== 'same-chat-reload' && isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)) {
+        // A live handoff may bypass replay, but never the transaction deadline.
+        if (stateRef.current.chatId === chatId) {
+          dispatch({ type: 'CLEAR_CHAT_TRANSITION' });
         }
-        return;
+        dispatch({ type: 'APPEND_DEBUG', line: `[chat transition] live-handoff targetChatId=${chatId} actualChatId=${stateRef.current.chatId} transitionSeq=${seq}` });
+        return Promise.resolve();
       }
-      const hasAssistantTimelineContent = hasAssistantTimelineContentInState(stateRef.current);
-      if (
-        !forceReload
-        && currentChatId
-        && currentChatId === chatId
-        && mainRuntime.running
-        && hasAssistantTimelineContent
-      ) {
-        if (focusComposerOnComplete) {
-          focusComposerSoon();
-        }
-        return;
-      }
-
-      conversationViewportRef?.current?.captureCurrent();
-      const seq = Math.max(
-        localLoadSeqRef.current + 1,
-        stateRef.current.chatLoadSeq + 1,
-      );
-      localLoadSeqRef.current = seq;
-      const loadingCurrentChat = Boolean(currentChatId && currentChatId === chatId);
-      const existingActiveRun = stateRef.current.currentChatActiveRun;
-      const transitionStartsInBackground = Boolean(
-        loadingCurrentChat &&
-        existingActiveRun?.chatId === chatId &&
-        String(existingActiveRun.runId || '').trim(),
-      );
-      dispatch({
-        type: 'BEGIN_CHAT_TRANSITION',
-        transition: {
-          seq,
-          sourceChatId: currentChatId,
-          targetChatId: chatId,
-          phase: 'loading',
-          kind: forceReload && loadingCurrentChat
-            ? 'same-chat-reload'
-            : currentChatId
-              ? 'history-switch'
-              : 'initial-load',
-          displayMode: transitionStartsInBackground
-            ? 'background'
-            : 'blocking',
-          focusComposerOnReady: focusComposerOnComplete,
-          error: '',
-        },
-      });
-      if (transitionStartsInBackground) {
-        dispatch({
-          type: 'APPEND_DEBUG',
-          line: `[chat transition] active-run background chatId=${chatId} runId=${String(existingActiveRun?.runId || '').trim()} transitionSeq=${seq} phase=loading displayMode=background`,
-        });
-      }
+      const existingLoad = loadsRef.current.get(seq);
+      if (existingLoad) return existingLoad;
+      if (transition.phase !== 'loading') return Promise.resolve();
+      const transitionStartsInBackground = transition.displayMode === 'background';
+      const scope = { cancelled: false };
       const isLoadCurrent = () => {
+        if (scope.cancelled) return false;
         const latestState = stateRef.current;
+        if (transition.deadlineAt && Date.now() >= transition.deadlineAt) return false;
         if (latestState.chatLoadSeq >= seq) {
-          return isCurrentChatTransition(latestState, seq, chatId);
+          return isCurrentChatTransition(latestState, seq, chatId) &&
+            (latestState.chatTransition?.phase === 'loading' || latestState.chatTransition?.phase === 'applying');
         }
-        // Some isolated consumers provide a read-only state ref. Runtime
-        // AppProvider always takes the global branch above.
         return localLoadSeqRef.current === seq;
       };
-      if (!loadingCurrentChat) {
-        dispatchDetachActiveRun('chat_switch', chatId);
-        detachActiveConversationSession();
-      }
+      const pending = (async () => {
+      let rejectCancellation!: (error: Error) => void;
+      const cancelled = new Promise<never>((_resolve, reject) => { rejectCancellation = reject; });
+      cancelLoadsRef.current.set(seq, () => {
+        scope.cancelled = true;
+        rejectCancellation(new Error('chat transition superseded'));
+      });
+      const deadlineTimer = setTimeout(() => rejectCancellation(new Error('chat preparation deadline exceeded')),
+        Math.max(0, (transition.deadlineAt || Date.now() + CHAT_PREPARATION_TIMEOUT_MS) - Date.now()));
 
       const currentChat = stateRef.current.chats.find((chat) => String(chat?.chatId || '') === String(chatId));
       const workerKey = createWorkerKeyFromChat((currentChat || {}) as Chat);
@@ -506,8 +522,10 @@ export function useConversationActions() {
         let response: Awaited<ReturnType<typeof getChat>> | null = null;
         let lastLoadError: unknown = null;
         for (let attempt = 0; attempt <= LOAD_CHAT_RETRY_DELAYS_MS.length; attempt += 1) {
+          if (!isLoadCurrent()) return;
           try {
-            response = await getChat(chatId, false);
+            // Settle our waiter on timeout/switch without closing the shared transport.
+            response = await Promise.race([getChat(chatId, false), cancelled]);
             lastLoadError = null;
             break;
           } catch (error) {
@@ -515,7 +533,7 @@ export function useConversationActions() {
             if (!isLoadCurrent() || attempt >= LOAD_CHAT_RETRY_DELAYS_MS.length) {
               break;
             }
-            await waitForLoadChatRetry(LOAD_CHAT_RETRY_DELAYS_MS[attempt]);
+            await Promise.race([waitForLoadChatRetry(LOAD_CHAT_RETRY_DELAYS_MS[attempt]), cancelled]);
           }
         }
         if (!response) {
@@ -623,12 +641,12 @@ export function useConversationActions() {
             seq,
             targetChatId: chatId,
             displayMode:
-              transitionStartsInBackground || currentChatActiveRun
+              transitionStartsInBackground
                 ? 'background'
                 : 'blocking',
           });
         });
-        if (currentChatActiveRun) {
+        if (currentChatActiveRun && transitionStartsInBackground) {
           dispatch({
             type: 'APPEND_DEBUG',
             line: `[chat transition] active-run background chatId=${chatId} runId=${activeRunId} transitionSeq=${seq} phase=applying displayMode=background`,
@@ -639,32 +657,6 @@ export function useConversationActions() {
             type: 'APPEND_DEBUG',
             line: awaitingReconciliation.diagnostic,
           });
-        }
-        const replayHasContentTimelineText = hasContentTimelineTextInState(rs);
-        if (activeRunId && !replayHasContentTimelineText) {
-          for (const delayMs of ACTIVE_CHAT_REFRESH_DELAYS_MS) {
-            const refreshTimer = globalThis.setTimeout(() => {
-              const latestState = stateRef.current;
-              if (String(latestState.chatId || '').trim() !== chatId) {
-                return;
-              }
-              if (
-                latestState.currentChatActiveRun?.chatId !== chatId ||
-                String(latestState.currentChatActiveRun.runId || '').trim() !== activeRunId
-              ) {
-                return;
-              }
-              if (hasContentTimelineTextInState(latestState)) {
-                return;
-              }
-              window.dispatchEvent(
-                new CustomEvent('agent:load-chat', {
-                  detail: { chatId },
-                }),
-              );
-            }, delayMs);
-            (refreshTimer as { unref?: () => void }).unref?.();
-          }
         }
         if (usageSnapshot) {
           dispatch({ type: 'SET_USAGE_SNAPSHOT', snapshot: usageSnapshot });
@@ -695,6 +687,8 @@ export function useConversationActions() {
               agentKey: activeRunAgentKey,
             });
           }
+          // Follow active runs through their event stream. Missing content is
+          // normal during reasoning, tools or HITL and must not trigger polling.
           dispatchAttachRunEvent(
             chatId,
             activeRunId,
@@ -732,11 +726,17 @@ export function useConversationActions() {
         if (options.throwOnError) {
           throw error;
         }
+      } finally {
+        clearTimeout(deadlineTimer);
+        cancelLoadsRef.current.delete(seq);
       }
+      })();
+      loadsRef.current.set(seq, pending);
+      void pending.finally(() => loadsRef.current.delete(seq)).catch(() => undefined);
+      return pending;
     },
     [
-      clearArtifactAutoCollapseTimer,
-      clearPlanAutoCollapseTimer,
+      prepareChat,
       activeQuerySessionRequestIdRef,
       conversationViewportRef,
       detachActiveConversationSession,
@@ -761,6 +761,7 @@ export function useConversationActions() {
 
   return {
     activateBlankConversation,
+    prepareChat,
     loadChat,
     startNewConversation,
   };

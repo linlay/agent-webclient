@@ -1,9 +1,15 @@
-import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import type { TranslateParams } from "@/shared/i18n";
 import { t as runtimeT } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
 
 type Translate = (key: string, params?: TranslateParams) => string;
+
+export interface TerminalWorkerSummary {
+  type: "agent" | "team";
+  sourceId: string;
+  raw: Record<string, unknown> | null;
+  row: { workspaceDir?: string };
+}
 
 export type TerminalAvailability =
   | { readonly supported: true }
@@ -18,7 +24,7 @@ export function isChatWorkspaceKey(workspaceKey: string): boolean {
 }
 
 export function resolveTerminalDockWorkspaceKey(
-  worker: CurrentWorkerSummary | null,
+  worker: TerminalWorkerSummary | null,
 ): string {
   if (!worker || worker.type !== "agent") return "";
   const raw = isObjectRecord(worker.raw) ? worker.raw : {};
@@ -34,7 +40,7 @@ export function resolveTerminalDockWorkspaceKey(
 }
 
 export function resolveTerminalAvailability(
-  worker: CurrentWorkerSummary | null,
+  worker: TerminalWorkerSummary | null,
   _workspaceKey: string,
   t: Translate = runtimeT,
 ): TerminalAvailability {
@@ -45,7 +51,7 @@ export function resolveTerminalAvailability(
 }
 
 export function resolveTerminalAvailabilityKey(
-  worker: CurrentWorkerSummary | null,
+  worker: TerminalWorkerSummary | null,
   workspaceKey: string,
 ): string {
   if (!worker || worker.type !== "agent") {

@@ -1,4 +1,4 @@
-import type { TtsVoiceBlock } from "@/app/state/types";
+import type { TtsVoiceBlock } from "@/features/timeline/lib/timelineState";
 import {
 	DEFAULT_CHANNELS,
 	DEFAULT_SAMPLE_RATE,

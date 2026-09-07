@@ -1,4 +1,6 @@
-import type { AgentEvent, Chat, WorkerConversationRow } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { toText } from "@/shared/utils/eventUtils";
 

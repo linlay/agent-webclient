@@ -3,6 +3,7 @@ import { Dropdown, Input } from "antd";
 import type { MenuProps } from "antd";
 import { MaterialIcon } from "./MaterialIcon";
 import type { MaterialIconName } from "./MaterialIcon";
+import "./SearchFilterBar.module.css";
 
 export interface SearchFilter {
   key: string;

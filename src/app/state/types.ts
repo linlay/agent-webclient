@@ -1,297 +1,42 @@
-import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
-import type {
-	MemoryInfoFilters,
-	MemoryConsoleTab,
-	MemoryContextPreviewResponse,
-	MemoryContextPromptLayer,
-	MemoryMeta,
-	MemoryPreferenceMode,
-	MemoryScopeDetailMeta,
-	MemoryScopeDraftRecord,
-	MemoryScopeSaveSummary,
-	MemoryScopeSummary,
-	MemoryScopeValidationResult,
-	MemoryRecordDetail,
-	MemoryRecordListItem,
-} from "@/shared/data/memory/memoryTypes";
-import type { ThemeMode } from "@/shared/styles/theme";
-import type {
-	ActionState,
-	ActiveAwaiting,
-	ActiveFrontendTool,
-	PendingTool,
-	Plan,
-	PlanRuntime,
-	TaskItemMeta,
-	ToolState,
-} from "@/app/state/toolTypes";
-import type {
-	Agent,
-	Chat,
-	CurrentChatActiveRun,
-	Team,
-	WorkerConversationRow,
-	WorkerRow,
-} from "@/app/state/navigationTypes";
-import type {
-	AgentEvent,
-	CommandStatusOverlayState,
-	Message,
-	PendingSteer,
-	PlanningPreviewState,
-	PublishedArtifact,
-	FileChangeSummary,
-	RightSidebarTabKey,
-	RenderQueue,
-	SkillViewerState,
-	UiTimerHandle,
-	WebPreviewState,
-} from "@/app/state/uiTypes";
-import type { TimelineNode, TimelineSource } from "@/app/state/timelineTypes";
-import type {
-	InputMode,
-	VoiceChatState,
-	WsConnectionStatus,
-} from "@/app/state/voiceTypes";
-import type { AutomationSummaryResponse } from "@/shared/data";
-import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
+import type { AgentsState } from "@/features/agents/lib/agentState";
+import type { ArtifactsState } from "@/features/artifacts/lib/artifactsState";
+import type { AutomationsState } from "@/features/automations/lib/automationsState";
+import type { ChatsState } from "@/features/chats/lib/chatState";
+import type { ComposerState } from "@/features/composer/lib/composerState";
+import type { ConversationState } from "@/features/conversation/lib/conversationState";
+import type { DebugState } from "@/features/debug/lib/debugState";
+import type { MemoryState } from "@/features/memory/lib/memoryState";
+import type { OverviewState } from "@/features/overview/lib/overviewState";
+import type { PlanState } from "@/features/plan/lib/planState";
+import type { TasksState } from "@/features/tasks/lib/tasksState";
+import type { TimelineState } from "@/features/timeline/lib/timelineState";
+import type { ToolsState } from "@/features/tools/lib/toolsState";
+import type { UsageState } from "@/features/usage/lib/usageState";
+import type { ViewersState } from "@/features/viewers/lib/viewerState";
+import type { VoiceState } from "@/features/voice/lib/voiceState";
+import type { WorkersState } from "@/features/workers/lib/workerState";
+import type { AppChromeState } from "@/app/state/appChromeState";
 
-export type { ThemeMode } from "@/shared/styles/theme";
-export type {
-	AIAwaitApproval,
-	AIAwaitApprovalOption,
-	AIAwaitApprovalDecision,
-	AIAwaitApprovalSubmitParamData,
-	AIAwaitForm,
-	AIAwaitFormSubmitParamData,
-	AIAwaitMode,
-	AIAwaitPlan,
-	AIAwaitPlanDecision,
-	AIAwaitPlanInput,
-	AIAwaitPlanOption,
-	AIAwaitPlanSubmitParamData,
-	AIAwaitQuestion,
-	AIAwaitQuestionOption,
-	AIAwaitQuestionSubmitParamData,
-	AIAwaitSubmitParamData,
-	AIAwaitSubmitPayloadData,
-	AIContextCompactEvent,
-	AIUsageEstimatedCost,
-	AIUsageSnapshotEvent,
-	AIUsageStats,
-} from "@/app/state/eventTypes";
-export {
-	AWAITING_ANSWER_EVENT_TYPE,
-	AWAITING_ANSWER_PUSH_EVENT_TYPE,
-	AWAITING_ANSWER_STREAM_EVENT_TYPE,
-	AWAITING_ASK_PUSH_EVENT_TYPE,
-	AWAITING_ASK_STREAM_EVENT_TYPE,
-	AIAwaitEventTypeEnum,
-	AIAwaitQuestionType,
-	AIContentEventTypeEnum,
-	AIContextEventTypeEnum,
-	AIPlanningEventTypeEnum,
-	AIReasoningEventTypeEnum,
-	AIRunEventTypeEnum,
-	AISourceEventTypeEnum,
-	AIToolEventTypeEnum,
-	AIUsageEventTypeEnum,
-	ViewportTypeEnum,
-	isAwaitingAnswerLike,
-	isAwaitingAnswerPushEvent,
-	isAwaitingAnswerStreamEvent,
-	isAwaitingAskLike,
-	isAwaitingAskPushEvent,
-	isAwaitingAskStreamEvent,
-} from "@/app/state/eventTypes";
-export type * from "@/app/state/timelineTypes";
-export type * from "@/app/state/toolTypes";
-export type * from "@/app/state/voiceTypes";
-export type * from "@/app/state/navigationTypes";
-export type * from "@/app/state/uiTypes";
-
-export interface ComposerRequiredSkill {
-	key: string;
-	label: string;
-}
-
-export type ConversationSurfaceMode = "main" | "agent" | "copilot";
-
-export type ChatTransitionPhase =
-	| "loading"
-	| "applying"
-	| "restoring"
-	| "ready"
-	| "error";
-
-export type ChatTransitionKind =
-	| "initial-load"
-	| "history-switch"
-	| "same-chat-reload";
-
-export type ChatTransitionDisplayMode = "blocking" | "background";
-
-export interface ChatTransition {
-	seq: number;
-	sourceChatId: string;
-	targetChatId: string;
-	phase: ChatTransitionPhase;
-	kind: ChatTransitionKind;
-	displayMode: ChatTransitionDisplayMode;
-	focusComposerOnReady: boolean;
-	error: string;
-}
-
-export interface ConversationScrollRequest {
-	id: number;
-	chatId: string;
-	target: "bottom";
-	reason: "local-send" | "user-click";
-}
-
-export interface AppState {
-	agents: Agent[];
-	teams: Team[];
-	chats: Chat[];
-	automations: AutomationSummaryResponse[];
-	sidebarPendingRequestCount: number;
-	chatAgentById: Map<string, string>;
-	runAgentById: Map<string, string>;
-	currentRunAgentKey: string;
-	pendingNewChatAgentKey: string;
-	workerPriorityKey: string;
-	temporaryPinnedAgentKey: string;
-	chatId: string;
-	currentChatActiveRun: CurrentChatActiveRun | null;
-	runId: string;
-	requestId: string;
-	/**
-	 * @deprecated Debug/UI mirror only. Runtime authority lives in
-	 * activeQuerySessionRequestIdRef/querySessionsRef and currentChatActiveRun.
-	 */
-	streaming: boolean;
-	abortController: AbortController | null;
-	messagesById: Map<string, Message>;
-	messageOrder: string[];
-	events: AgentEvent[];
-	debugEvents: AgentEvent[];
-	debugLines: string[];
-	artifacts: PublishedArtifact[];
-	fileChanges: FileChangeSummary[];
-	plan: Plan | null;
-	planRuntimeByTaskId: Map<string, PlanRuntime>;
-	taskItemsById: Map<string, TaskItemMeta>;
-	activeTaskIds: Set<string>;
-	planCurrentRunningTaskId: string;
-	planLastTouchedTaskId: string;
-	toolStates: Map<string, ToolState>;
-	toolNodeById: Map<string, string>;
-	contentNodeById: Map<string, string>;
-	pendingTools: Map<string, PendingTool>;
-	reasoningNodeById: Map<string, string>;
-	reasoningCollapseTimers: Map<string, UiTimerHandle>;
-	actionStates: Map<string, ActionState>;
-	executedActionIds: Set<string>;
-	timelineNodes: Map<string, TimelineNode>;
-	timelineOrder: string[];
-	timelineNodeByMessageId: Map<string, string>;
-	timelineDomCache: Map<string, HTMLElement>;
-	timelineCounter: number;
-	renderQueue: RenderQueue;
-	activeReasoningKey: string;
-	chatFilter: string;
-	workerSelectionKey: string;
-	workerRows: WorkerRow[];
-	workerOrderKeys: string[];
-	workerIndexByKey: Map<string, WorkerRow>;
-	workerRelatedChats: WorkerConversationRow[];
-	workerChatPanelCollapsed: boolean;
-	chatLoadSeq: number;
-	chatTransition: ChatTransition | null;
-	conversationScrollRequest: ConversationScrollRequest | null;
-	memoryConsoleTab: MemoryConsoleTab;
-	memoryInfoLoading: boolean;
-	memoryInfoError: string;
-	memoryInfoRecords: MemoryRecordListItem[];
-	memoryInfoSelectedRecordId: string;
-	memoryInfoDetail: MemoryRecordDetail | null;
-	memoryInfoDetailLoading: boolean;
-	memoryInfoDetailError: string;
-	memoryInfoFilters: MemoryInfoFilters;
-	memoryInfoNextCursor: string;
-	memoryMeta: MemoryMeta | null;
-	memoryPreferenceScopes: MemoryScopeSummary[];
-	memoryPreferenceActiveScopeType: string;
-	memoryPreferenceActiveScopeKey: string;
-	memoryPreferenceLabel: string;
-	memoryPreferenceFileName: string;
-	memoryPreferenceMeta: MemoryScopeDetailMeta | null;
-	memoryPreferenceLoading: boolean;
-	memoryPreferenceError: string;
-	memoryPreferenceMode: MemoryPreferenceMode;
-	memoryPreferenceMarkdownDraft: string;
-	memoryPreferenceRecordsDraft: MemoryScopeDraftRecord[];
-	memoryPreferenceSelectedRecordId: string;
-	memoryPreferenceDirty: boolean;
-	memoryPreferenceSaving: boolean;
-	memoryPreferenceSaveSummary: MemoryScopeSaveSummary | null;
-	memoryPreferenceValidation: MemoryScopeValidationResult | null;
-	memoryPreviewDraft: string;
-	memoryPreviewLoading: boolean;
-	memoryPreviewError: string;
-	memoryPreviewResult: MemoryContextPreviewResponse | null;
-	memoryPreviewPromptLayer: MemoryContextPromptLayer;
-	leftDrawerOpen: boolean;
-	rightSidebarOpen: boolean;
-	rightSidebarOpenTab: RightSidebarTabKey | null;
-	activeSourceDetail: TimelineSource | null;
-	planningPreviews: PlanningPreviewState[];
-	webPreviews: WebPreviewState[];
-	webPreviewRefreshRevisionByUrl: Map<string, number>;
-	activeWebPreviewUrl: string;
-	activeViewerKey: string;
-	activePlanningPreviewNodeId: string;
-	skillTabs: SkillViewerState[];
-	activeSkillKey: string;
-	terminalDockOpen: boolean;
-	viewerTabs: ViewerTarget[];
-	artifactExpanded: boolean;
-	artifactManualOverride: boolean | null;
-	artifactAutoCollapseTimer: UiTimerHandle | null;
-	planExpanded: boolean;
-	planManualOverride: boolean | null;
-	planAutoCollapseTimer: UiTimerHandle | null;
-	mentionOpen: boolean;
-	mentionSuggestions: Agent[];
-	mentionActiveIndex: number;
-	activeFrontendTool: ActiveFrontendTool | null;
-	activeAwaiting: ActiveAwaiting | null;
-	pendingAwaitings: ActiveAwaiting[];
-	themeMode: ThemeMode;
-	wsStatus: WsConnectionStatus;
-	wsErrorMessage: string;
-	accessToken: string;
-	audioMuted: boolean;
-	ttsDebugStatus: string;
-	planningMode: boolean;
-	planningModeByChatId: Record<string, boolean>;
-	editingMode: boolean;
-	usageSnapshot: AIUsageSnapshotEvent | null;
-	usagePopoverOpen: boolean;
-	inputMode: InputMode;
-	voiceChat: VoiceChatState;
-	composerDraft: string;
-	composerDraftByChatId: Record<string, string>;
-	selectedSkills: ComposerRequiredSkill[];
-	selectedSkillsByChatId: Record<string, ComposerRequiredSkill[]>;
-	pendingSteers: Record<string, PendingSteer[]>;
-	downvotedRunKeys: Set<string>;
-	eventPopoverIndex: number;
-	eventPopoverEventRef: AgentEvent | null;
-	eventPopoverAnchor: { x: number; y: number } | null;
-	commandStatusOverlay: CommandStatusOverlayState;
-}
-
-export interface Services {
-	[key: string]: unknown;
-}
+/**
+ * Root wire shape remains flat. Each field is owned by its domain state contract;
+ * app/state only composes those contracts for Context and reducer orchestration.
+ */
+export type AppState =
+  & AppChromeState
+  & AgentsState
+  & WorkersState
+  & ChatsState
+  & ConversationState
+  & TimelineState
+  & ToolsState
+  & PlanState
+  & TasksState
+  & ArtifactsState
+  & OverviewState
+  & ViewersState
+  & ComposerState
+  & MemoryState
+  & VoiceState
+  & UsageState
+  & AutomationsState
+  & DebugState;

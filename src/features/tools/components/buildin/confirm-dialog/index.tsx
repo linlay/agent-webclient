@@ -20,13 +20,9 @@ import React, {
   useState,
 } from "react";
 import dayjs from "dayjs";
-import {
-  AIAwaitQuestion,
-  AIAwaitQuestionType,
-  AIAwaitQuestionSubmitParamData,
-  AIAwaitSubmitPayloadData,
-  QuestionActiveAwaiting,
-} from "@/app/state/types";
+import { AIAwaitQuestionType } from "@/shared/contracts/agentEvents";
+import type { AIAwaitQuestion, AIAwaitQuestionSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { QuestionActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
   buildQuestionSubmitParams,
@@ -63,7 +59,7 @@ import {
 
 const FREE_TEXT_OPTION_VALUE = "freeText";
 
-interface ConfirmDialogProps extends CallbackData {
+interface QuestionDialogProps extends CallbackData {
   data: QuestionActiveAwaiting;
   onResolved?: () => void;
 }
@@ -72,7 +68,7 @@ interface CallbackData {
   onSubmit?: (paylod: AIAwaitSubmitPayloadData) => Promise<any>;
 }
 
-export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
+export const QuestionDialog: React.FC<QuestionDialogProps> = ({
   data,
   onSubmit,
   onResolved,
@@ -434,8 +430,6 @@ export const QuestionDialog: React.FC<ConfirmDialogProps> = ({
     </Flex>
   );
 };
-
-export const ConfirmDialog = QuestionDialog;
 
 function SelectOptionTooltipTitle({
   option,

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArchiveConsole } from "@/features/settings/components/ArchiveConsole";
-import type { ChatSummaryResponse } from "@/shared/data";
+import { ArchiveConsole } from "@/features/archive/components/ArchiveConsole";
+import type { RestoredArchiveChatSummary } from "@/features/archive/components/ArchiveConsole";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/surfaceRoutes";
 
 export const ArchivesPage = () => {
@@ -19,7 +19,7 @@ export const ArchivesPage = () => {
 		);
 	};
 
-	const openRestoredChat = (summary: ChatSummaryResponse) => {
+	const openRestoredChat = (summary: RestoredArchiveChatSummary) => {
 		const agentKey = String(summary.agentKey || "").trim();
 		const chatId = String(summary.chatId || "").trim();
 		if (!agentKey || !chatId) return;

@@ -11,7 +11,8 @@ import type { AppAction } from "@/app/state/actions";
 import { useAppContext } from "@/app/state/AppContext";
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
-import type { AgentEvent, TimelineNode } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   createLocalCacheFromState,
   createLiveProcessorState,
@@ -30,7 +31,7 @@ import {
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
-import { readEventTeamId } from "@/shared/utils/eventFieldReaders";
+import { readEventTeamId } from "@/features/events/lib/eventFields";
 import {
   BTW_SESSION_STORAGE_KEY,
   findPersistedBTWSession,

@@ -1,21 +1,13 @@
-import type {
-  ActionState,
-  ActiveAwaiting,
-  ActiveFrontendTool,
-  AgentEvent,
-  AppState,
-  AIUsageSnapshotEvent,
-  FileChangeSummary,
-  Message,
-  PendingSteer,
-  PendingTool,
-  PublishedArtifact,
-  Plan,
-  PlanRuntime,
-  TaskItemMeta,
-  TimelineNode,
-  ToolState,
-} from '@/app/state/types';
+import type { ActionState, ActiveAwaiting, ActiveFrontendTool, PendingTool, ToolState } from "@/features/tools/lib/toolsState";
+import type { AgentEvent, AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { Message } from "@/features/conversation/lib/messageState";
+import type { PendingSteer } from "@/features/composer/lib/composerState";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   cloneActiveAwaiting,
   cloneActiveAwaitingQueue,
@@ -136,6 +128,12 @@ function cloneTimelineNode(node: TimelineNode): TimelineNode {
         )
       : undefined,
     result: node.result ? { ...node.result } : node.result,
+    toolOutput: node.toolOutput
+      ? {
+          ...node.toolOutput,
+          segments: node.toolOutput.segments.map((segment) => ({ ...segment })),
+        }
+      : undefined,
   };
 }
 
@@ -192,59 +190,8 @@ export function createLiveQuerySession(input: {
   };
 }
 
-export function snapshotConversationState(state: AppState): ConversationSnapshot {
+function cloneConversationCollections(snapshot: ConversationSnapshot) {
   return {
-    chatId: String(state.chatId || '').trim(),
-    runId: String(state.runId || '').trim(),
-    runAgentById: cloneMap(state.runAgentById),
-    currentRunAgentKey: String(state.currentRunAgentKey || '').trim(),
-    requestId: String(state.requestId || '').trim(),
-    streaming: Boolean(state.streaming),
-    abortController: state.abortController,
-    messagesById: cloneMap(state.messagesById),
-    messageOrder: state.messageOrder.slice(),
-    events: state.events.slice(),
-    debugEvents: state.debugEvents.slice(),
-    debugLines: state.debugLines.slice(),
-    artifacts: cloneArtifacts(state.artifacts),
-    fileChanges: cloneFileChanges(state.fileChanges),
-    plan: state.plan
-      ? {
-          ...state.plan,
-          plan: Array.isArray(state.plan.plan)
-            ? state.plan.plan.map((item) => ({ ...item }))
-            : [],
-        }
-      : null,
-    planRuntimeByTaskId: cloneMap(state.planRuntimeByTaskId),
-    taskItemsById: cloneTaskItemMap(state.taskItemsById),
-    activeTaskIds: cloneSet(state.activeTaskIds),
-    planCurrentRunningTaskId: String(state.planCurrentRunningTaskId || '').trim(),
-    planLastTouchedTaskId: String(state.planLastTouchedTaskId || '').trim(),
-    toolStates: cloneMap(state.toolStates),
-    toolNodeById: cloneMap(state.toolNodeById),
-    contentNodeById: cloneMap(state.contentNodeById),
-    pendingTools: cloneMap(state.pendingTools),
-    reasoningNodeById: cloneMap(state.reasoningNodeById),
-    actionStates: cloneMap(state.actionStates),
-    executedActionIds: cloneSet(state.executedActionIds),
-    timelineNodes: cloneTimelineNodeMap(state.timelineNodes),
-    timelineOrder: state.timelineOrder.slice(),
-    timelineNodeByMessageId: cloneMap(state.timelineNodeByMessageId),
-    timelineCounter: state.timelineCounter,
-    activeReasoningKey: String(state.activeReasoningKey || '').trim(),
-    activeFrontendTool: cloneActiveFrontendTool(state.activeFrontendTool),
-    activeAwaiting: cloneActiveAwaiting(state.activeAwaiting),
-    pendingAwaitings: cloneActiveAwaitingQueue(state.pendingAwaitings),
-    usageSnapshot: state.usageSnapshot,
-    pendingSteers: clonePendingSteersDict(state.pendingSteers),
-    downvotedRunKeys: cloneSet(state.downvotedRunKeys),
-  };
-}
-
-export function cloneConversationSnapshot(snapshot: ConversationSnapshot): ConversationSnapshot {
-  return {
-    ...snapshot,
     messagesById: cloneMap(snapshot.messagesById),
     runAgentById: cloneMap(snapshot.runAgentById),
     messageOrder: snapshot.messageOrder.slice(),
@@ -253,17 +200,8 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     debugLines: snapshot.debugLines.slice(),
     artifacts: cloneArtifacts(snapshot.artifacts),
     fileChanges: cloneFileChanges(snapshot.fileChanges),
-    plan: snapshot.plan
-      ? {
-          ...snapshot.plan,
-          plan: Array.isArray(snapshot.plan.plan)
-            ? snapshot.plan.plan.map((item) => ({ ...item }))
-            : [],
-        }
-      : null,
     planRuntimeByTaskId: cloneMap(snapshot.planRuntimeByTaskId),
     taskItemsById: cloneTaskItemMap(snapshot.taskItemsById),
-    activeTaskIds: cloneSet(snapshot.activeTaskIds),
     toolStates: cloneMap(snapshot.toolStates),
     toolNodeById: cloneMap(snapshot.toolNodeById),
     contentNodeById: cloneMap(snapshot.contentNodeById),
@@ -277,9 +215,51 @@ export function cloneConversationSnapshot(snapshot: ConversationSnapshot): Conve
     activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
     activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
     pendingAwaitings: cloneActiveAwaitingQueue(snapshot.pendingAwaitings),
-    usageSnapshot: snapshot.usageSnapshot,
     pendingSteers: clonePendingSteersDict(snapshot.pendingSteers),
     downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
+  };
+}
+
+export function snapshotConversationState(state: AppState): ConversationSnapshot {
+  return {
+    ...cloneConversationCollections(state),
+    chatId: String(state.chatId || '').trim(),
+    runId: String(state.runId || '').trim(),
+    currentRunAgentKey: String(state.currentRunAgentKey || '').trim(),
+    requestId: String(state.requestId || '').trim(),
+    streaming: Boolean(state.streaming),
+    abortController: state.abortController,
+    plan: state.plan
+      ? {
+          ...state.plan,
+          plan: Array.isArray(state.plan.plan)
+            ? state.plan.plan.map((item) => ({ ...item }))
+            : [],
+        }
+      : null,
+    activeTaskIds: cloneSet(state.activeTaskIds),
+    planCurrentRunningTaskId: String(state.planCurrentRunningTaskId || '').trim(),
+    planLastTouchedTaskId: String(state.planLastTouchedTaskId || '').trim(),
+    timelineCounter: state.timelineCounter,
+    activeReasoningKey: String(state.activeReasoningKey || '').trim(),
+    usageSnapshot: state.usageSnapshot,
+  };
+}
+
+export function cloneConversationSnapshot(snapshot: ConversationSnapshot): ConversationSnapshot {
+  return {
+    ...snapshot,
+    ...cloneConversationCollections(snapshot),
+    plan: snapshot.plan
+      ? {
+          ...snapshot.plan,
+          plan: Array.isArray(snapshot.plan.plan)
+            ? snapshot.plan.plan.map((item) => ({ ...item }))
+            : [],
+        }
+      : null,
+    activeTaskIds: cloneSet(snapshot.activeTaskIds),
+    usageSnapshot: snapshot.usageSnapshot,
   };
 }
 
@@ -428,40 +408,21 @@ export function buildConversationStateUpdates(
   snapshot: ConversationSnapshot,
 ): Partial<AppState> {
   return {
+    ...cloneConversationCollections(snapshot),
     chatId: snapshot.chatId,
     runId: snapshot.runId,
-    runAgentById: cloneMap(snapshot.runAgentById),
     currentRunAgentKey: snapshot.currentRunAgentKey,
     requestId: snapshot.requestId,
     streaming: snapshot.streaming,
     abortController: snapshot.abortController,
-    messagesById: cloneMap(snapshot.messagesById),
-    messageOrder: snapshot.messageOrder.slice(),
-    events: snapshot.events.slice(),
-    debugEvents: snapshot.debugEvents.slice(),
-    debugLines: snapshot.debugLines.slice(),
-    artifacts: cloneArtifacts(snapshot.artifacts),
-    fileChanges: cloneFileChanges(snapshot.fileChanges),
     plan: snapshot.plan
       ? {
           ...snapshot.plan,
           plan: snapshot.plan.plan.map((item) => ({ ...item })),
         }
       : null,
-    planRuntimeByTaskId: cloneMap(snapshot.planRuntimeByTaskId),
-    taskItemsById: cloneTaskItemMap(snapshot.taskItemsById),
     planCurrentRunningTaskId: snapshot.planCurrentRunningTaskId,
     planLastTouchedTaskId: snapshot.planLastTouchedTaskId,
-    toolStates: cloneMap(snapshot.toolStates),
-    toolNodeById: cloneMap(snapshot.toolNodeById),
-    contentNodeById: cloneMap(snapshot.contentNodeById),
-    pendingTools: cloneMap(snapshot.pendingTools),
-    reasoningNodeById: cloneMap(snapshot.reasoningNodeById),
-    actionStates: cloneMap(snapshot.actionStates),
-    executedActionIds: cloneSet(snapshot.executedActionIds),
-    timelineNodes: cloneTimelineNodeMap(snapshot.timelineNodes),
-    timelineOrder: snapshot.timelineOrder.slice(),
-    timelineNodeByMessageId: cloneMap(snapshot.timelineNodeByMessageId),
     timelineDomCache: new Map(),
     timelineCounter: snapshot.timelineCounter,
     renderQueue: {
@@ -471,14 +432,9 @@ export function buildConversationStateUpdates(
       fullSyncNeeded: false,
     },
     activeReasoningKey: snapshot.activeReasoningKey,
-    activeFrontendTool: cloneActiveFrontendTool(snapshot.activeFrontendTool),
-    activeAwaiting: cloneActiveAwaiting(snapshot.activeAwaiting),
-    pendingAwaitings: cloneActiveAwaitingQueue(snapshot.pendingAwaitings),
     usageSnapshot: snapshot.usageSnapshot,
     artifactExpanded: false,
     artifactManualOverride: null,
     artifactAutoCollapseTimer: null,
-    pendingSteers: clonePendingSteersDict(snapshot.pendingSteers),
-    downvotedRunKeys: cloneSet(snapshot.downvotedRunKeys),
   };
 }

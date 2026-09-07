@@ -149,6 +149,7 @@ textarea {
     min-width: var(--ui-icon-hover-bg-size);
     min-height: var(--ui-icon-hover-bg-size);
 }
+
 :is(.ui-icon-hover-24, .ui-icon-hover-20).ui-btn.is-icon-only .material-icon,
 :is(.ui-icon-hover-24, .ui-icon-hover-20).ant-btn-icon-only .material-icon,
 :is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target),
@@ -551,66 +552,15 @@ textarea {
     }
 }
 
-@keyframes command-status-in {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.96);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes command-status-pulse {
-
-    0%,
-    100% {
-        opacity: 0.24;
-        transform: scale(0.88);
-    }
-
-    50% {
-        opacity: 0.68;
-        transform: scale(1.08);
-    }
-}
-
-@keyframes command-status-core {
-
-    0%,
-    100% {
-        transform: scale(0.9);
-    }
-
-    50% {
-        transform: scale(1.08);
-    }
-}
-
-@keyframes command-status-error {
-
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    35% {
-        transform: translateX(-4px);
-    }
-
-    70% {
-        transform: translateX(4px);
-    }
-}
 
 .ant-badge .ant-badge-count {
     box-shadow: none;
 }
 
-.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item {
+.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item,
+.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-submenu-title {
     padding: 4px 8px;
+    align-items: center;
 }
 
 .ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item-icon {
@@ -620,10 +570,6 @@ textarea {
 .ant-dropdown .ant-dropdown-menu {
     box-shadow: var(--shadow-soft);
     border: 1px solid var(--line-soft);
-}
-
-.copilot-modal.ant-modal .ant-modal-content {
-    padding: 10px;
 }
 
 .ant-modal .ant-modal-content {

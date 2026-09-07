@@ -1,7 +1,4 @@
-import type {
-	VoiceClientGateConfig,
-	VoiceOption,
-} from "@/app/state/types";
+import type { VoiceClientGateConfig, VoiceOption } from "@/features/voice/lib/voiceState";
 import { t } from "@/shared/i18n";
 
 export const QA_ASR_TASK_ID = "qa-asr";

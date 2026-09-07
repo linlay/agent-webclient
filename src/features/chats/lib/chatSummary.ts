@@ -1,4 +1,4 @@
-import type { Chat } from '@/app/state/types';
+import type { Chat } from "@/features/chats/lib/chatState";
 import { mergeChatReadState } from '@/features/chats/lib/chatReadState';
 
 export type ChatSummaryPatch = Partial<Chat> & Pick<Chat, 'chatId'>;

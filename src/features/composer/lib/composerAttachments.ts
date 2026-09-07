@@ -1,6 +1,6 @@
-import type { Dispatch, SetStateAction } from "react";
 import type { AppAction } from "@/app/state/actions";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { ActionDispatch, StateSetter } from "@/shared/contracts/stateInterop";
 import {
 	createRequestId,
 	extractUploadChatId,
@@ -12,7 +12,7 @@ import {
 	getAttachmentKind,
 	getAttachmentKindLabel,
 } from "@/features/artifacts/lib/attachmentUtils";
-import { normalizeTimelineAttachments } from "@/features/artifacts/lib/timelineAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { t as runtimeT } from "@/shared/i18n";
 import type { TranslateParams } from "@/shared/i18n";
@@ -40,7 +40,7 @@ export interface ComposerContextReferenceInput {
 	meta?: Record<string, unknown>;
 }
 
-export type { ComposerRequiredSkill } from "@/app/state/types";
+export type { ComposerRequiredSkill } from "@/features/composer/lib/composerState";
 
 export function createComposerContextAttachment(
 	reference: ComposerContextReferenceInput,
@@ -191,9 +191,9 @@ export async function uploadComposerAttachments(input: {
 		| "workerSelectionKey"
 		| "workerIndexByKey"
 	>;
-	dispatch: Dispatch<AppAction>;
-	setAttachments: Dispatch<SetStateAction<ComposerAttachment[]>>;
-	setAttachmentChatId: Dispatch<SetStateAction<string>>;
+	dispatch: ActionDispatch<AppAction>;
+	setAttachments: StateSetter<ComposerAttachment[]>;
+	setAttachmentChatId: StateSetter<string>;
 	isLatestAttachment?: (attachment: ComposerAttachment) => boolean;
 }): Promise<boolean> {
 	const {

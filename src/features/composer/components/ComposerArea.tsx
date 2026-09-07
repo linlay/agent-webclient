@@ -48,7 +48,7 @@ import { useRuntimeAccessLevel } from "@/features/composer/hooks/useRuntimeAcces
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
-import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
+import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
@@ -59,7 +59,8 @@ import type {
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
-import { isChatTransitionBlockingInteractions } from "@/features/conversation/lib/chatTransition";
+import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
+import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useHostRequiredSkills } from "@/features/composer/components/HostRequiredSkillsContext";
@@ -227,9 +228,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     querySessionsRef,
   );
   const isMainChatRunning = mainChatRuntime.running;
-  const chatTransitionBlocking = isChatTransitionBlockingInteractions(
-    state.chatTransition,
-  );
+  const presentation = useConversationSurface();
+  const chatTransitionBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "")
@@ -279,6 +279,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     activeAwaiting: state.activeAwaiting,
     dispatch,
     state,
+    stateRef,
   });
 
   const {

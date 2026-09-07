@@ -1,10 +1,5 @@
-import {
-  AIAwaitQuestionType,
-  type AIAwaitQuestion,
-  type AIAwaitQuestionOption,
-  type AIAwaitQuestionSubmitParamData,
-  type AIAwaitSubmitPayloadData,
-} from "@/app/state/types";
+import { AIAwaitQuestionType } from "@/shared/contracts/agentEvents";
+import type { AIAwaitQuestion, AIAwaitQuestionOption, AIAwaitQuestionSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
 import { t } from "@/shared/i18n";
 
 export function hasAwaitingQuestions(

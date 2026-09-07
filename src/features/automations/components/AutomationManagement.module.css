@@ -1,0 +1,153 @@
+:global(.automation-console-error) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid color-mix(in srgb, var(--accent-danger) 42%, var(--line-soft));
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    color: var(--accent-danger);
+    font-size: 12px;
+}
+
+:global(.automation-console-detail) {
+    min-width: 0;
+    min-height: 0;
+}
+
+:global(.automation-console-detail) {
+    padding: 0 10px 0 20px;
+}
+
+:global(.automation-console-detail):global(.is-source-editor) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+:global(.automation-source-workspace) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+:global(.automation-source-field) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+:global(.automation-source-editor):global(.ant-input) {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    resize: none;
+}
+
+:global(.automation-form-full-width) {
+    grid-column: 1 / -1;
+}
+
+:global(.automation-section-nav) {
+    z-index: 100;
+    gap: 4px;
+    margin: 0 0 8px;
+    padding: 3px 4px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(100px);
+}
+
+:global(.automation-section-nav-links) {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+:global(.automation-section-nav-links)::-webkit-scrollbar {
+    display: none;
+}
+
+:global(.automation-section-nav-actions) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+    margin-left: auto;
+}
+
+:global(.automation-section-nav-save):global(.ui-btn) {
+    padding-inline: 8px;
+}
+
+:global(.automation-section-nav-link) {
+    flex: none;
+    border-radius: var(--radius-sm);
+    padding: 3px 7px;
+    color: var(--ink-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 140ms ease, background-color 140ms ease;
+}
+
+:global(.automation-section-nav-link):hover,
+:global(.automation-section-nav-link):focus-visible,
+:global(.automation-section-nav-link)[aria-current="location"] {
+    color: var(--accent-electric);
+    background: color-mix(in srgb, var(--accent-soft) 22%, transparent);
+}
+
+:global(.automation-section-nav-link):focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 64%, transparent);
+    outline-offset: 1px;
+}
+
+:global(.automation-form-section) {
+    margin: 0;
+    padding: 14px 0 0;
+    scroll-margin-top: 36px;
+}
+
+:global(.automation-form-section)+:global(.automation-form-section) {
+    margin-top: 16px;
+}
+
+:global(.automation-form-section-heading) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px;
+    color: var(--ink-1);
+    transition: color 140ms ease;
+}
+
+:global(.automation-form-section-heading)>svg {
+    width: 15px;
+    height: 15px;
+    color: var(--ink-muted);
+}
+
+:global(.automation-form-section-heading) h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+:global(.automation-form-section):target :global(.automation-form-section-heading),
+:global(.automation-form-section):target :global(.automation-form-section-heading)>svg,
+:global(.automation-form-section):global(.is-active) :global(.automation-form-section-heading),
+:global(.automation-form-section):global(.is-active) :global(.automation-form-section-heading)>svg {
+    color: var(--accent-electric);
+}
+
+:global(.automation-mono-textarea) {
+    font-family: var(--font-mono);
+}

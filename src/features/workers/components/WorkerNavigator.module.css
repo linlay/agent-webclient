@@ -1,0 +1,271 @@
+:global(.worker-popover) :global(.ant-popover-inner) {
+    overflow: hidden;
+    border-radius: 14px;
+}
+
+:global(.worker-popover) :global(.ant-popover-inner-content) {
+    padding: 0 !important;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-item) {
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-item):global(.ant-collapse-item-active) {
+    box-shadow: var(--shadow-soft);
+    background: var(--bg-card);
+}
+
+:global(.worker-collapse) :global(.ant-collapse-item):hover:not(:global(.ant-collapse-item-active)) {
+    background: var(--bg-hover);
+}
+
+:global(.worker-collapse) :global(.ant-collapse-item-active)>:global(.ant-collapse-header) {
+    align-items: flex-start !important;
+    padding: 6px 10px !important;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-header) {
+    align-items: flex-start !important;
+    padding: 6px 2px !important;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-expand-icon) {
+    padding-top: 10px;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-header-text) {
+    min-width: 0;
+    flex: 1;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-content) {
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+    background: transparent;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-content-box) {
+    padding: 0 !important;
+}
+
+:global(.worker-panel-header) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+:global(.worker-panel-role) {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 8px;
+}
+
+:global(.worker-panel-icon) {
+    transition: transform 0.2s ease-in-out;
+}
+
+:global(.worker-collapse) :global(.ant-collapse-item-active) :global(.worker-panel-new) {
+    display: inline-flex;
+}
+
+:global(.ant-collapse-item-active) :global(.worker-panel-preview) {
+    height: 0;
+}
+
+:global(.ant-collapse-item-active)>:global(.ant-collapse-header) :global(.ant-badge) {
+    display: none;
+}
+
+:global(.worker-panel-preview) {
+    font-size: 12px;
+    height: 20px;
+    transition: height 0.2s ease-in-out;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+:global(.worker-collapse) :global(.worker-panel-new) {
+    display: none;
+    color: var(--text-muted);
+}
+
+:global(.worker-popover-new) :global(.material-icon) {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+:global(.worker-terminal-active) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    color: var(--accent-electric-strong);
+    background: color-mix(in srgb, var(--accent-soft) 72%, transparent);
+    flex: 0 0 auto;
+}
+
+:global(.worker-terminal-active):global(.is-busy) {
+    animation: status-pulse 1s ease-in-out infinite;
+    color: var(--accent-lime);
+    background: color-mix(in srgb, var(--accent-lime) 16%, transparent);
+}
+
+:global(.worker-terminal-active) :global(.material-icon) {
+    font-size: 16px;
+}
+
+:global(.worker-panel-time) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 4px;
+}
+
+:global(.worker-panel-time-label) {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+:global(.worker-popover-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px 8px;
+}
+
+:global(.worker-popover-header-main) {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+:global(.worker-popover-header-icon) {
+    transform: scale(0.78);
+}
+
+:global(.worker-popover-header-title) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-1);
+}
+
+:global(.worker-popover-new) {
+    display: inline-flex !important;
+    width: 24px !important;
+    height: 24px !important;
+    color: var(--text-muted);
+}
+
+:global(.worker-panel-extra-btn) {
+    min-width: 0;
+}
+
+:global(.worker-history-modal) :global(.ant-modal-body) {
+    height: min(70vh, 600px);
+    min-height: 0;
+    overflow: hidden;
+}
+
+:global(.worker-history-modal) :global(.command-modal-section) {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+
+:global(.worker-history-modal) :global(.history-list-container) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+:global(.worker-chat-item):hover,
+:global(.worker-chat-item):global(.is-active),
+:global(.worker-chat-item):global(.is-selected) {
+    background-color: transparent;
+    color: var(--text-main);
+}
+
+:global(.worker-chat-item):global(.is-active),
+:global(.worker-chat-item):global(.is-selected) {
+    font-weight: bold;
+}
+
+[data-action] :global(.worker-chat-loading) {
+    position: absolute;
+    padding: 0;
+    top: 0;
+    right: 5px;
+    bottom: 0;
+    margin-block: auto;
+    transition: none;
+    display: none;
+}
+
+[data-action="loading"] :global(.worker-chat-loading),
+[data-action="awaiting"] :global(.worker-chat-loading) {
+    display: inline-flex;
+}
+
+:global(.worker-chat-loading) {
+    animation: ui-spin 1s linear infinite;
+    font-size: 16px;
+    color: var(--text-sub);
+    margin-right: 2px;
+}
+
+[data-action] :global(.worker-panel-time-label) {
+    opacity: 0;
+    text-align: right;
+    white-space: nowrap;
+}
+
+[data-action="time"] :global(.worker-panel-time-label) {
+    opacity: 1;
+}
+
+[data-action] :global(.chat-actions-trigger) {
+    display: none;
+    color: var(--text-muted);
+}
+
+:global(.worker-chat-item):hover [data-action]:not([data-action="loading"]):not([data-action="awaiting"]) :global(.chat-actions-trigger) {
+    display: unset;
+}
+
+:global(.worker-chat-item):hover :global(.worker-panel-time-label) {
+    opacity: 0;
+}
+
+:global(.worker-chat-more):hover {
+    color: var(--text-main);
+}
+
+@keyframes status-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
+}
+
+@keyframes ui-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

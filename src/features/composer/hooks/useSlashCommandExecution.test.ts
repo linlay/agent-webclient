@@ -10,7 +10,7 @@ jest.mock("@/features/surfaces/openTarget", () => ({
   useOpenTarget: () => mockOpenTarget,
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayActions: () => ({
     openCommandOverlay: mockOpenCommandOverlay,
   }),

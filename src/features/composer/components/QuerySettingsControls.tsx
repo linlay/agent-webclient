@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import {
   resolveCurrentWorkerSummary,
   type CurrentWorkerSummary,
@@ -26,7 +26,16 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { resolveModelPresentation } from "@/shared/icons/model";
+import { buildModelMenuItems } from "@/features/model-config/components/ModelMenuPresenter";
+import {
+  filterModelOptions,
+  filterReasoningOptions,
+  filterServiceTierOptions,
+  getModelDisplayName,
+  normalizeModelServiceTier,
+  normalizeOptionalModelServiceTier,
+  serviceTierSupportedByModel,
+} from "@/features/model-config/lib/modelOptions";
 
 interface QuerySettingsControlsProps {
   accessLevel: QueryAccessLevel;
@@ -79,7 +88,6 @@ const QUERY_MODEL_ERROR_CLASS =
   "query-model-error tw:max-w-[220px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:text-danger";
 const QUERY_SETTINGS_MENU_ITEM_CLASS =
   "query-settings-menu-item tw:inline-flex tw:items-center tw:justify-between tw:gap-1.5 tw:text-[13px] tw:[&_.material-icon]:text-sm";
-const QUERY_MODEL_MENU_ITEM_CLASS = "query-model-menu-item";
 
 type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
@@ -154,10 +162,6 @@ function getModelKey(value: unknown): string {
   );
 }
 
-function getModelDisplayName(model: CoderModelOption): string {
-  return toConfigText(model.name);
-}
-
 function normalizeModelIdentityText(value: unknown): string {
   return toConfigText(value)
     .toLowerCase()
@@ -198,97 +202,6 @@ export function getModelIdentityMismatchWarning(
     .join(" / ")}" is ${technicalFamily}`;
 }
 
-function normalizeServiceTier(value: unknown): QueryServiceTier | undefined {
-  const text = toConfigText(value).toUpperCase();
-  if (
-    text === "STANDARD" ||
-    text === "DEFAULT" ||
-    text === "AUTO" ||
-    text === ""
-  ) {
-    return "STANDARD";
-  }
-  if (text === "PRIORITY") return "FAST";
-  return text || undefined;
-}
-
-function normalizeOptionalServiceTier(
-  value: unknown,
-): QueryServiceTier | undefined {
-  return toConfigText(value) ? normalizeServiceTier(value) : undefined;
-}
-
-function filterModelOptions(value: unknown): CoderModelOption[] {
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is CoderModelOption =>
-          isRecord(item) && Boolean(toText(item.key)) && Boolean(toConfigText(item.name)),
-      )
-    : [];
-}
-
-function filterReasoningOptions(value: unknown): ReasoningEffortOption[] {
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is ReasoningEffortOption =>
-          isRecord(item) && Boolean(toText(item.key)),
-      )
-    : [];
-}
-
-function filterServiceTierOptions(value: unknown): ServiceTierOption[] {
-  const seen = new Set<string>(["STANDARD"]);
-  const parsed: ServiceTierOption[] = [{ key: "STANDARD", label: "Standard" }];
-  if (!Array.isArray(value)) {
-    return parsed;
-  }
-  for (const item of value) {
-    if (!isRecord(item)) continue;
-    const key = normalizeServiceTier(item.key);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    parsed.push({ key, label: toConfigText(item.label) || key });
-  }
-  return parsed;
-}
-
-function normalizeModelServiceTiers(model: CoderModelOption | undefined): Set<QueryServiceTier> {
-  const supported = new Set<QueryServiceTier>(["STANDARD"]);
-  const tiers = Array.isArray(model?.serviceTiers) ? model.serviceTiers : [];
-  for (const tier of tiers) {
-    const normalized = normalizeServiceTier(tier);
-    if (normalized && normalized !== "STANDARD") {
-      supported.add(normalized);
-    }
-  }
-  return supported;
-}
-
-function serviceTierSupportedByModel(
-  tier: QueryServiceTier | undefined,
-  model: CoderModelOption | undefined,
-): boolean {
-  const normalized = normalizeServiceTier(tier) || "STANDARD";
-  return normalizeModelServiceTiers(model).has(normalized);
-}
-
-function serviceTierLabelText(
-  option: ServiceTierOption,
-  t: (key: string) => string,
-): string {
-  const messageKey = `composer.query.serviceTier.${option.key}`;
-  const translated = t(messageKey);
-  return translated === messageKey ? option.label : translated;
-}
-
-function reasoningEffortLabelText(
-  option: ReasoningEffortOption,
-  t: (key: string) => string,
-): string {
-  const messageKey = `composer.query.reasoning.${option.key}`;
-  const translated = t(messageKey);
-  return translated === messageKey ? option.label : translated;
-}
 
 export function shouldClearModelOverride(
   isCoderAgent: boolean,
@@ -378,164 +291,6 @@ export function shouldRetryModelOptionsOnOpen({
   );
 }
 
-export function buildModelMenuItems({
-  models,
-  reasoningEfforts,
-  serviceTiers = filterServiceTierOptions([]),
-  modelOverride,
-  selectedModelLabel,
-  selectedModelKey,
-  selectedReasoningEffort,
-  selectedServiceTier,
-  modelsLoading = false,
-  status = "idle",
-  t,
-}: {
-  models: CoderModelOption[];
-  reasoningEfforts: ReasoningEffortOption[];
-  serviceTiers?: ServiceTierOption[];
-  modelOverride: QueryModelOverride;
-  selectedModelLabel?: string;
-  selectedModelKey?: string;
-  selectedReasoningEffort?: QueryReasoningEffort;
-  selectedServiceTier?: QueryServiceTier;
-  modelsLoading?: boolean;
-  status?: ModelOptionsStatus;
-  t: (key: string) => string;
-}): MenuProps["items"] {
-  const modelStatusItem = (() => {
-    if (models.length > 0) return null;
-    if (modelsLoading) {
-      return {
-        key: "model-status:loading",
-        disabled: true,
-        label: (
-          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-            {t("composer.query.model.loading")}
-          </span>
-        ),
-      };
-    }
-    if (status === "failed") {
-      return {
-        key: "model-status:failed",
-        disabled: true,
-        label: (
-          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-            {t("composer.query.model.loadFailed")}
-          </span>
-        ),
-      };
-    }
-    if (status === "empty") {
-      return {
-        key: "model-status:empty",
-        disabled: true,
-        label: (
-          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-            {t("composer.query.model.empty")}
-          </span>
-        ),
-      };
-    }
-    return null;
-  })();
-
-  const modelMenuChildren = [
-    ...(modelStatusItem ? [modelStatusItem] : []),
-    ...models.map((model) => {
-      const key = String(model.key || "").trim();
-      const label = getModelDisplayName(model);
-      const presentation = resolveModelPresentation(model);
-      return {
-        key: `model:${encodeURIComponent(key)}`,
-        label: (
-          <span className={QUERY_MODEL_MENU_ITEM_CLASS}>
-            <img
-              className={`query-model-menu-icon${presentation.isMonochrome ? " is-monochrome" : ""}`}
-              src={presentation.icon}
-              alt=""
-              aria-hidden="true"
-            />
-            <span className="query-model-menu-copy">
-              <span className="query-model-menu-name">{label}</span>
-              <span className="query-model-menu-provider">
-                {presentation.provider}
-              </span>
-            </span>
-          </span>
-        ),
-        extra:
-          (selectedModelKey || modelOverride.key) === key ? (
-            <MaterialIcon name="check" />
-          ) : null,
-      };
-    }),
-  ];
-  const resolvedSelectedModelLabel =
-    selectedModelLabel || selectedModelKey || modelOverride.key || "";
-  const selectedModel = models.find((model) => toText(model.key) === toText(selectedModelKey || modelOverride.key));
-  const availableServiceTiers = serviceTiers.filter((option) =>
-    serviceTierSupportedByModel(option.key, selectedModel),
-  );
-
-  return [
-    {
-      key: "reasoning",
-      type: "group",
-      label: t("composer.query.reasoning.group"),
-      children: reasoningEfforts.map((option) => ({
-        key: `reasoning:${option.key}`,
-        label: (
-          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-            {reasoningEffortLabelText(option, t)}
-          </span>
-        ),
-        extra:
-          (selectedReasoningEffort || modelOverride.reasoningEffort) ===
-          option.key ? (
-            <MaterialIcon name="check" />
-          ) : null,
-      })),
-    },
-    {
-      key: "service-tier",
-      type: "group",
-      label: t("composer.query.serviceTier.group"),
-      children: availableServiceTiers.map((option) => ({
-        key: `serviceTier:${option.key}`,
-        label: (
-          <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-            {serviceTierLabelText(option, t)}
-          </span>
-        ),
-        extra:
-          (selectedServiceTier || modelOverride.serviceTier || "STANDARD") ===
-          option.key ? (
-            <MaterialIcon name="check" />
-          ) : null,
-      })),
-    },
-    {
-      key: "model-submenu",
-      popupClassName: "query-settings-submenu",
-      label: (
-        <span className={QUERY_SETTINGS_MENU_ITEM_CLASS}>
-          <span>{resolvedSelectedModelLabel}</span>
-        </span>
-      ),
-      children: [
-        {
-          key: "models",
-          label: t("composer.query.model.group"),
-          type: "group",
-          children: modelMenuChildren,
-        },
-      ],
-    },
-  ];
-}
-
 export function normalizeCoderModelOptionsResponse(response: unknown): {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
@@ -579,7 +334,7 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
         candidate.defaultReasoningEffort,
       ),
       defaultServiceTier:
-        normalizeServiceTier(candidate.defaultServiceTier) || "STANDARD",
+        normalizeModelServiceTier(candidate.defaultServiceTier) || "STANDARD",
       recognized: true,
     };
   }
@@ -645,18 +400,18 @@ export function resolveCoderAgentDefaultModelOverride(
   const definitionModelConfig = getRecord(definition.modelConfig);
   const modelReasoning = getRecord(modelConfig.reasoning);
   const definitionModelReasoning = getRecord(definitionModelConfig.reasoning);
-  const rawServiceTier = normalizeOptionalServiceTier(raw.serviceTier);
-  const rawDefaultServiceTier = normalizeOptionalServiceTier(
+  const rawServiceTier = normalizeOptionalModelServiceTier(raw.serviceTier);
+  const rawDefaultServiceTier = normalizeOptionalModelServiceTier(
     raw.defaultServiceTier,
   );
-  const metaServiceTier = normalizeOptionalServiceTier(meta.serviceTier);
-  const modelConfigServiceTier = normalizeOptionalServiceTier(
+  const metaServiceTier = normalizeOptionalModelServiceTier(meta.serviceTier);
+  const modelConfigServiceTier = normalizeOptionalModelServiceTier(
     modelConfig.serviceTier,
   );
-  const definitionServiceTier = normalizeOptionalServiceTier(
+  const definitionServiceTier = normalizeOptionalModelServiceTier(
     definitionModelConfig.serviceTier,
   );
-  const fallbackServiceTier = normalizeOptionalServiceTier(
+  const fallbackServiceTier = normalizeOptionalModelServiceTier(
     options?.defaultServiceTier,
   );
 
@@ -1048,7 +803,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const selectedReasoningEffort =
     modelOverride.reasoningEffort || resolvedDefaultOverride.reasoningEffort;
   const selectedServiceTier =
-    normalizeServiceTier(
+    normalizeModelServiceTier(
       modelOverride.serviceTier ||
         resolvedDefaultOverride.serviceTier ||
         modelDefaults.defaultServiceTier,
@@ -1086,7 +841,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       });
       const detail = response.data;
       const nextDefaultServiceTier =
-        normalizeServiceTier(nextOverride.serviceTier) || "STANDARD";
+        normalizeModelServiceTier(nextOverride.serviceTier) || "STANDARD";
       setModelDefaults((currentDefaults) => ({
         ...currentDefaults,
         defaultModelKey: nextModelKey,
@@ -1199,7 +954,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       return;
     }
     if (textKey.startsWith("serviceTier:")) {
-      const serviceTier = normalizeServiceTier(
+      const serviceTier = normalizeModelServiceTier(
         textKey.slice("serviceTier:".length),
       );
       if (!serviceTier) return;

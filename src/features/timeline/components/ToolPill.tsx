@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
 import { formatToolDuration as formatToolDurationFromLib } from "@/features/timeline/lib/timelineDuration";
@@ -13,7 +13,10 @@ import { Flex, Tooltip } from "antd";
 import { useOptionalAppContext } from "@/app/state/provider";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
+import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { toolOutputText } from "@/features/events/lib/toolOutputState";
+import "@/features/tools/components/ToolTimeline.module.css";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -47,6 +50,7 @@ export interface ToolPillRecord {
   argsText: string;
   argsInlineText: string;
   result: TimelineNode["result"];
+  toolOutput?: TimelineNode["toolOutput"];
   kbaseIndexSummary?: KbaseIndexSummary;
   durationMs?: number;
 }
@@ -229,8 +233,12 @@ export function buildToolPillRecords(
     const status = node.status || "pending";
     const argsText = node.argsText || "";
     const result = node.result || null;
+    const toolOutput = node.toolOutput;
     const kbaseIndexSummary = resolveKbaseIndexSummary(node);
-    const hasDetails = Boolean(argsText.trim()) || Boolean(result);
+    const hasDetails =
+      Boolean(argsText.trim()) ||
+      Boolean(result) ||
+      Boolean(toolOutputText(toolOutput));
     return {
       key: node.id,
       title: translate("timeline.toolPill.runTitle", { index: index + 1 }),
@@ -241,6 +249,7 @@ export function buildToolPillRecords(
       argsText,
       argsInlineText: formatToolArgumentsInline(argsText),
       result,
+      ...(toolOutput ? { toolOutput } : {}),
       ...(kbaseIndexSummary ? { kbaseIndexSummary } : {}),
       durationMs: node.durationMs,
     };
@@ -251,6 +260,44 @@ export function getExpandableToolPillRecords(
   records: ToolPillRecord[],
 ): ToolPillRecord[] {
   return records.filter((record) => record.hasDetails);
+}
+
+export function shouldRenderToolOutputTerminal(
+  record: ToolPillRecord,
+): boolean {
+  return Boolean(!record.result && toolOutputText(record.toolOutput));
+}
+
+export function buildToolPillCopyText(
+  record: ToolPillRecord,
+  resultText: string,
+): string {
+  if (shouldRenderToolOutputTerminal(record)) {
+    return toolOutputText(record.toolOutput);
+  }
+  return record.argsInlineText + "\n\n" + resultText;
+}
+
+export function claimToolOutputAutoExpand(
+  records: ToolPillRecord[],
+  claimedKeys: Set<string>,
+): boolean {
+  let claimed = false;
+  for (const record of records) {
+    if (!toolOutputText(record.toolOutput) || claimedKeys.has(record.key)) {
+      continue;
+    }
+    claimedKeys.add(record.key);
+    claimed = true;
+  }
+  return claimed;
+}
+
+export function shouldCollapseCompletedToolOutput(
+  records: ToolPillRecord[],
+  claimedKeys: Set<string>,
+): boolean {
+  return claimedKeys.size > 0 && records.length === 0;
 }
 
 export function canExpandToolPill(
@@ -291,9 +338,11 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyState>>({});
   const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
   const copyTimerRef = useRef<Map<string, number>>(new Map());
+  const autoExpandedOutputKeysRef = useRef<Set<string>>(new Set());
   const source = toolGroup || node;
   const { t } = useI18n();
   const appContext = useOptionalAppContext();
+  const themeMode = appContext?.state.themeMode || "light";
   const interaction = useTimelineInteraction();
   const mainChatStreaming =
     interaction?.conversationActive ??
@@ -362,6 +411,29 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
     };
   }, []);
 
+  const outputRecords = useMemo(() => {
+    if (!source) return [];
+    return buildToolPillRecords(source, t).filter((record) =>
+      Boolean(toolOutputText(record.toolOutput)),
+    );
+  }, [source, t]);
+
+  useEffect(() => {
+    const claimedKeys = autoExpandedOutputKeysRef.current;
+    if (
+      claimToolOutputAutoExpand(
+        outputRecords,
+        claimedKeys,
+      )
+    ) {
+      setExpanded(true);
+      return;
+    }
+    if (shouldCollapseCompletedToolOutput(outputRecords, claimedKeys)) {
+      setExpanded(false);
+    }
+  }, [outputRecords]);
+
   if (!source) return null;
 
   const toolLabel = formatToolPillTitle(source, t);
@@ -401,9 +473,9 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   return (
     <TimelineCollapse
       expanded={canExpand && expanded}
-      onExpand={() => {
+      onExpand={(nextExpanded) => {
         if (!canExpand) return;
-        setExpanded(!expanded);
+        setExpanded(nextExpanded);
       }}
       label={
         <Flex align="center" gap={6} className="tw:text-[13px]">
@@ -430,6 +502,9 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
       <Flex vertical gap={16}>
         {expandableRecords.map((record) => {
           const resultText = formatToolResultText(record.result, t);
+          const liveOutputText = toolOutputText(record.toolOutput);
+          const hasLiveOutput = shouldRenderToolOutputTerminal(record);
+          const displayedOutput = record.result ? resultText : liveOutputText;
           const resultCopyKey = `${record.key}:result`;
           const resultCopyState = copyStatus[resultCopyKey] || "idle";
           const resultCopyLabel =
@@ -449,7 +524,13 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
           return (
             <div
               key={record.key}
-              className={`tool-call-card ${isGrouped ? "is-grouped" : ""}`}
+              className={[
+                "tool-call-card",
+                isGrouped ? "is-grouped" : "",
+                hasLiveOutput ? "has-live-output" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               data-tool-status={record.status}
             >
               {isGrouped && (
@@ -483,32 +564,36 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                       {formatToolDuration(record.durationMs, t)}
                     </span>
                   )}
-                  <Tooltip
-                    title={
-                      isWrap
-                        ? t("timeline.toolPill.wrap.disable")
-                        : t("timeline.toolPill.wrap.enable")
-                    }
-                  >
-                    <UiButton
-                      className="ui-icon-hover-20"
-                      variant="ghost"
-                      size="sm"
-                      iconOnly
-                      onClick={() =>
-                        setWrapMap((current) => ({
-                          ...current,
-                          [record.key]: !isWrap,
-                        }))
+                  {!hasLiveOutput ? (
+                    <Tooltip
+                      title={
+                        isWrap
+                          ? t("timeline.toolPill.wrap.disable")
+                          : t("timeline.toolPill.wrap.enable")
                       }
                     >
-                      <MaterialIcon
-                        name={
-                          isWrap ? "format_text_wrap" : "format_text_overflow"
+                      <UiButton
+                        className="ui-icon-hover-20"
+                        variant="ghost"
+                        size="sm"
+                        iconOnly
+                        onClick={() =>
+                          setWrapMap((current) => ({
+                            ...current,
+                            [record.key]: !isWrap,
+                          }))
                         }
-                      />
-                    </UiButton>
-                  </Tooltip>
+                      >
+                        <MaterialIcon
+                          name={
+                            isWrap
+                              ? "format_text_wrap"
+                              : "format_text_overflow"
+                          }
+                        />
+                      </UiButton>
+                    </Tooltip>
+                  ) : null}
                   <Tooltip title={resultCopyLabel}>
                     <UiButton
                       className="ui-icon-hover-20"
@@ -519,7 +604,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                       onClick={() => {
                         void handleCopyResult(
                           resultCopyKey,
-                          record.argsInlineText + "\n\n" + resultText,
+                          buildToolPillCopyText(record, displayedOutput),
                         );
                       }}
                     >
@@ -533,13 +618,25 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                     </UiButton>
                   </Tooltip>
                 </Flex>
-                <code
-                  className={TOOL_CALL_RESULT_CLASS_NAME}
-                  style={{ whiteSpace: isWrap ? "pre-wrap" : "nowrap" }}
-                >
-                  <JsonToTable className="input" text={record.argsInlineText} />
-                  <span>{resultText}</span>
-                </code>
+                {hasLiveOutput && record.toolOutput ? (
+                  <div className="tool-call-live-output">
+                    <ToolOutputTerminal
+                      output={record.toolOutput}
+                      themeMode={themeMode}
+                    />
+                  </div>
+                ) : (
+                  <code
+                    className={TOOL_CALL_RESULT_CLASS_NAME}
+                    style={{ whiteSpace: isWrap ? "pre-wrap" : "nowrap" }}
+                  >
+                    <JsonToTable
+                      className="input"
+                      text={record.argsInlineText}
+                    />
+                    <span>{resultText}</span>
+                  </code>
+                )}
               </div>
             </div>
           );

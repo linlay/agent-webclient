@@ -1,11 +1,11 @@
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type {
   AgentPlatformErrorFrame,
   AgentPlatformPushFrame,
   AgentPlatformRequestFrame,
   AgentPlatformResponseFrame,
   AgentPlatformStreamFrame,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import type {
   PushFrame,
   RealtimeConnectionStatus,

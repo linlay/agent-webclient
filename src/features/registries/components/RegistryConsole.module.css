@@ -1,0 +1,360 @@
+:global(.mcp-servers-console) :global(.automation-console-body) {
+    grid-template-columns: 280px minmax(0, 1fr);
+}
+
+:global(.mcp-servers-console) :global(.automation-console-list) {
+    width: 280px;
+    min-width: 280px;
+}
+
+:global(.mcp-server-detail):global(.is-source-editor)>:global(.ant-spin-nested-loading),
+:global(.mcp-server-detail):global(.is-source-editor)>:global(.ant-spin-nested-loading)>:global(.ant-spin-container) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+:global(.mcp-source-workspace) {
+    padding-bottom: 12px;
+}
+
+:global(.mcp-form-grid) :global(.ant-select) {
+    width: 100%;
+}
+
+:global(.automation-console-list),
+:global(.automation-console-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+}
+
+:global(.automation-console-count) {
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+:global(.automation-console-list-scroll) {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    padding-right: 2px;
+}
+
+:global(.automation-list-items) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+:global(.automation-list-item) {
+    position: relative;
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--ink-1);
+    text-align: left;
+}
+
+:global(.automation-list-item-main) {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 3px;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    padding: 8px 10px;
+    color: inherit;
+    text-align: left;
+}
+
+:global(.automation-list-item-main):hover,
+:global(.automation-list-item-main):active {
+    border-color: transparent;
+    background: transparent;
+    transform: none;
+}
+
+:global(.automation-list-item-main):focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 70%, transparent);
+    outline-offset: -2px;
+}
+
+:global(.automation-list-item-menu) {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: linear-gradient(-90deg, var(--bg-elev-1) 70%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, color 0.16s ease;
+    cursor: pointer;
+    color: var(--text-muted);
+    &:hover {
+        color: var(--text-main);
+    }
+}
+
+:global(.automation-list-item):hover :global(.automation-list-item-menu) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+:global(.automation-list-item-menu-trigger):global(.ui-btn) {
+    background: var(--bg-hover);
+}
+
+:global(.automation-list-item):hover,
+:global(.automation-list-item):global(.is-active) {
+    border-color: color-mix(in srgb, var(--accent-soft) 58%, var(--line-soft));
+    background: var(--bg-hover);
+}
+
+:global(.automation-list-item-head) {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+:global(.automation-list-item-title) {
+    min-width: 0;
+    flex: 1;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+:global(.automation-list-item-title) strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+:global(.automation-list-item-owner) {
+    flex: 0 0 auto;
+    max-width: 42%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink-muted);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+:global(.automation-list-item-head) :global(.ui-tag) {
+    flex: 0 0 auto;
+}
+
+:global(.automation-list-item-meta) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    font-size: 11px;
+    color: var(--ink-muted);
+    line-height: 1.35;
+}
+
+:global(.automation-list-item-meta-worker) {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+:global(.automation-list-item-meta-worker) :global(.material-icon) {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+}
+
+:global(.automation-list-item-meta-worker)>span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+:global(.automation-list-item-meta-cron) {
+    min-width: 0;
+    flex: 0 0 auto;
+    max-width: 58%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    color: var(--ink-muted);
+}
+
+:global(.registry-list-meta) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+:global(.registry-list-meta-text) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:global(.registry-capability-chips) {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+:global(.registry-capability-chip) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 22px;
+    min-width: 22px;
+    height: 20px;
+    padding: 0;
+    border-radius: var(--radius-sm);
+}
+
+:global(.registry-capability-chip) :global(.material-icon-svg) {
+    width: 12px;
+    height: 12px;
+}
+
+:global(.registry-tool-tags) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+:global(.automation-detail-head) {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+
+:global(.automation-detail-head)>div:first-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+:global(.automation-detail-head) strong {
+    font-size: 14px;
+}
+
+:global(.automation-detail-head) span {
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+:global(.automation-detail-actions),
+:global(.automation-save-actions),
+:global(.automation-form-grid) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+:global(.automation-save-actions) {
+    margin-top: 12px;
+}
+
+:global(.registry-console-message) {
+    border: 1px solid color-mix(in srgb, var(--accent-electric) 28%, var(--line-soft));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-electric) 7%, transparent);
+    color: var(--ink-1);
+    font-size: 12px;
+    padding: 8px 10px;
+}
+
+:global(.registry-meta-grid) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+:global(.registry-meta-grid) span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+:global(.registry-diagnostics) {
+    border-color: color-mix(in srgb, var(--accent-danger) 28%, var(--line-soft));
+    background: color-mix(in srgb, var(--accent-danger) 5%, transparent);
+}
+
+:global(.registry-diagnostic-row) {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 12px;
+}
+
+:global(.registry-diagnostic-row)+:global(.registry-diagnostic-row) {
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+:global(.registry-diagnostic-row) strong {
+    color: var(--accent-danger);
+    font-size: 11px;
+}
+
+:global(.registry-diagnostic-row) span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--ink-2);
+}
+
+:global(.registry-summary) div {
+    min-height: 18px;
+    font-size: 12px;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+}
+
+:global(.registry-editor-field) {
+    margin-top: 14px;
+}
+
+:global(.registry-yaml-editor):global(.ant-input) {
+    min-height: 420px;
+    resize: vertical;
+    line-height: 1.5;
+    tab-size: 2;
+}
+
+:global(.registry-dirty) {
+    color: var(--ink-muted);
+    font-size: 12px;
+}

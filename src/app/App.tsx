@@ -34,12 +34,16 @@ import { BtwProvider } from "@/features/btw/components/BtwProvider";
 import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
-import { GatewayAuthBoundary } from "@/shared/data/auth/GatewayAuthBoundary";
+import { GatewayAuthBoundary } from "@/features/auth/components/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { useStandaloneDesktopActionRuntime } from "@/features/conversation/hooks/useStandaloneWorkPanelActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
 import { WebClientRouteErrorPage } from "@/app/WebClientRenderError";
+import "@/app/layout/AppLayoutCompat.module.css";
+import "@/app/layout/CopilotLayout.module.css";
+import "@/app/layout/ManagementPages.module.css";
+import "@/app/layout/SidebarLayout.module.css";
 
 // 管理台与独立 Surface 窗口页面全部按需加载，入口只保留登录页与对话壳层
 function lazyPage<T extends React.ComponentType<object>, M>(

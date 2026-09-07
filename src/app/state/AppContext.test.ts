@@ -1,4 +1,4 @@
-import type { WorkerConversationRow } from '@/app/state/types';
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import {
   appReducer,
   applyActionToStateRef,
@@ -275,6 +275,26 @@ describe('appReducer conversation reset behavior', () => {
 
     expect(next.chatId).toBe('chat_1');
     expect(next.pendingNewChatAgentKey).toBe('');
+  });
+
+  it('rebuilds worker indexes and retains selection/editing coordination', () => {
+    const row: WorkerRow = {
+      key: 'agent:one', type: 'agent', sourceId: 'one', displayName: 'One', role: '',
+      teamAgentLabels: [], latestChatId: '', latestRunId: '', latestUpdatedAt: 0,
+      latestChatName: '', latestRunContent: '', hasHistory: false, latestRunSortValue: 0, searchText: '',
+    };
+    const state = { ...createInitialState(), workerSelectionKey: row.key, editingMode: true };
+    const loaded = appReducer(state, { type: 'SET_WORKER_ROWS', rows: [row] });
+    expect(loaded.workerIndexByKey.get(row.key)).toBe(row);
+    expect(loaded.workerSelectionKey).toBe(row.key);
+    expect(appReducer(loaded, { type: 'SET_WORKER_SELECTION_KEY', workerKey: row.key }).editingMode).toBe(true);
+    expect(appReducer(loaded, { type: 'SET_WORKER_SELECTION_KEY', workerKey: 'agent:two' }).editingMode).toBe(false);
+    const removed = appReducer(loaded, { type: 'SET_WORKER_ROWS', rows: [] });
+    expect(removed.workerIndexByKey.size).toBe(0);
+    expect(removed.workerSelectionKey).toBe('');
+    expect(removed.editingMode).toBe(true);
+    expect(appReducer(state, { type: 'SET_TEMPORARY_PINNED_AGENT_KEY', agentKey: ' one ' }).temporaryPinnedAgentKey).toBe('one');
+    expect(appReducer(state, { type: 'FINISH_SIDEBAR_REQUEST' }).sidebarPendingRequestCount).toBe(0);
   });
 
   it('stores the temporary pinned agent key only in state', () => {
@@ -1114,6 +1134,17 @@ describe('appReducer conversation reset behavior', () => {
         }),
       },
     });
+  });
+
+  it('keeps inactive TTS cleanup on the original path and preserves no-op identity', () => {
+    const state = createInitialState();
+    expect(appReducer(state, { type: 'REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS', nodeId: 'missing', activeSignatures: new Set() })).toBe(state);
+    const content = appReducer(state, { type: 'SET_TIMELINE_NODE', id: 'content', node: { id: 'content', kind: 'content', contentId: 'content', text: 'latest', ts: 1 } });
+    const patched = appReducer(content, { type: 'PATCH_CONTENT_TTS_VOICE_BLOCK', nodeId: 'content', signature: 'voice', patch: { text: 'spoken' } });
+    expect(appReducer(patched, { type: 'REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS', nodeId: 'content', activeSignatures: new Set(['voice']) })).toBe(patched);
+    const cleaned = appReducer(patched, { type: 'REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS', nodeId: 'content', activeSignatures: new Set() });
+    expect(cleaned.timelineNodes.get('content')).toMatchObject({ text: 'latest', ttsVoiceBlocks: {} });
+    expect(patched.timelineNodes.get('content')).toMatchObject({ ttsVoiceBlocks: { voice: { text: 'spoken' } } });
   });
 
   it('patches active awaiting runtime state without replacing the session', () => {

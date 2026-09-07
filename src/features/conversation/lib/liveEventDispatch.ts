@@ -1,5 +1,7 @@
 import type { AppAction } from "@/app/state/AppContext";
-import type { AgentEvent, AppState, TimelineNode } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventCommand } from "@/features/events/lib/eventProcessorTypes";
 import {
 	getCachedNode,

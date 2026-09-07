@@ -1,4 +1,4 @@
-import type { ChatTransition } from "@/app/state/types";
+import type { ChatTransition } from "@/features/conversation/lib/conversationState";
 import {
   isChatTransitionBlockingInteractions,
   isChatTransitionPending,

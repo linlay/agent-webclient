@@ -1,5 +1,6 @@
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState, Chat } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import {
 	AGENT_RUN_STARTED_PUSH_EVENT,

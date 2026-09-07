@@ -1,299 +1,46 @@
-import type {
-	ActiveAwaiting,
-	ActionState,
-	ActiveFrontendTool,
-	Agent,
-	AgentEvent,
-	AppState,
-	Chat,
-	ChatTransition,
-	ChatTransitionPhase,
-	ComposerRequiredSkill,
-	CurrentChatActiveRun,
-	Message,
-	PendingSteer,
-	PendingTool,
-	Plan,
-	PlanRuntime,
-	PublishedArtifact,
-	FileChangeSummary,
-	TaskItemMeta,
-	Team,
-	TimelineNode,
-	TimelineSource,
-	ToolState,
-	TtsVoiceBlock,
-	UiTimerHandle,
-	VoiceChatState,
-	WebPreviewState,
-	WorkerConversationRow,
-	WorkerRow,
-} from "@/app/state/types";
-import type { AIUsageSnapshotEvent } from "@/app/state/eventTypes";
-import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
-import type { RightSidebarTabKey } from "@/app/state/uiTypes";
-import type { PlanningPreviewState } from "@/app/state/uiTypes";
-import type { SkillViewerState } from "@/app/state/uiTypes";
-import type {
-	MemoryInfoFilters,
-	MemoryConsoleTab,
-	MemoryContextPreviewResponse,
-	MemoryContextPromptLayer,
-	MemoryMeta,
-	MemoryPreferenceMode,
-	MemoryScopeDetailMeta,
-	MemoryScopeDraftRecord,
-	MemoryScopeSaveSummary,
-	MemoryScopeSummary,
-	MemoryScopeValidationResult,
-	MemoryRecordDetail,
-	MemoryRecordListItem,
-} from "@/shared/data/memory/memoryTypes";
-import type { AutomationSummaryResponse } from "@/shared/data";
+import type { AppState } from "@/app/state/types";
+import type { AppChromeAction } from "@/app/state/appChromeState";
+import type { AgentsAction } from "@/features/agents/lib/agentState";
+import type { ArtifactsAction } from "@/features/artifacts/lib/artifactsState";
+import type { AutomationsAction } from "@/features/automations/lib/automationsState";
+import type { ChatsAction } from "@/features/chats/lib/chatState";
+import type { ComposerAction } from "@/features/composer/lib/composerState";
+import type { ConversationAction } from "@/features/conversation/lib/conversationState";
+import type { DebugAction } from "@/features/debug/lib/debugState";
+import type { MemoryAction } from "@/features/memory/lib/memoryState";
+import type { OverviewAction } from "@/features/overview/lib/overviewState";
+import type { PlanAction } from "@/features/plan/lib/planState";
+import type { TasksAction } from "@/features/tasks/lib/tasksState";
+import type { TimelineAction } from "@/features/timeline/lib/timelineState";
+import type { ToolsAction } from "@/features/tools/lib/toolsState";
+import type { UsageAction } from "@/features/usage/lib/usageState";
+import type { ViewersAction } from "@/features/viewers/lib/viewerState";
+import type { VoiceAction } from "@/features/voice/lib/voiceState";
+import type { WorkersAction } from "@/features/workers/lib/workerState";
+
+export type AppCoordinationAction =
+  | { type: "CLEAR_CONVERSATION_OVERVIEW" }
+  | { type: "RESET_CONVERSATION" }
+  | { type: "RESET_ACTIVE_CONVERSATION" }
+  | { type: "BATCH_UPDATE"; updates: Partial<AppState> };
 
 export type AppAction =
-	| { type: "SET_AGENTS"; agents: Agent[] }
-	| { type: "SET_TEAMS"; teams: Team[] }
-	| { type: "SET_CHATS"; chats: Chat[] }
-	| { type: "SET_AUTOMATIONS"; automations: AutomationSummaryResponse[] }
-	| { type: "START_SIDEBAR_REQUEST" }
-	| { type: "FINISH_SIDEBAR_REQUEST" }
-	| { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
-	| { type: "CHAT_DELETED"; chatId: string }
-	| { type: "CHAT_ARCHIVED"; chatId: string }
-	| { type: "CHAT_RENAMED"; chatId: string; chatName: string }
-	| { type: "MARK_AGENT_CHATS_READ"; agentKey: string }
-	| { type: "SET_CHAT_ID"; chatId: string }
-	| { type: "BEGIN_CHAT_TRANSITION"; transition: ChatTransition }
-	| {
-			type: "SET_CHAT_TRANSITION_DISPLAY_MODE";
-			seq: number;
-			targetChatId: string;
-			displayMode: ChatTransition["displayMode"];
-	  }
-	| {
-			type: "ADVANCE_CHAT_TRANSITION";
-			seq: number;
-			targetChatId: string;
-			phase: Extract<ChatTransitionPhase, "applying" | "restoring" | "ready">;
-	  }
-	| {
-			type: "FAIL_CHAT_TRANSITION";
-			seq: number;
-			targetChatId: string;
-			error: string;
-	  }
-	| { type: "CLEAR_CHAT_TRANSITION" }
-	| {
-			type: "REQUEST_CONVERSATION_SCROLL";
-			chatId: string;
-			reason: "local-send" | "user-click";
-	  }
-	| { type: "SET_CURRENT_CHAT_ACTIVE_RUN"; activeRun: CurrentChatActiveRun | null }
-	| { type: "SET_RUN_ID"; runId: string }
-	| { type: "SET_RUN_AGENT_BY_ID"; runId: string; agentKey: string }
-	| { type: "SET_CURRENT_RUN_AGENT_KEY"; agentKey: string }
-	| { type: "SET_REQUEST_ID"; requestId: string }
-	| { type: "SET_STREAMING"; streaming: boolean }
-	| { type: "SET_ABORT_CONTROLLER"; controller: AbortController | null }
-	| { type: "PUSH_EVENT"; event: AgentEvent }
-	| { type: "CLEAR_EVENTS" }
-	| { type: "CLEAR_CONVERSATION_OVERVIEW" }
-	| { type: "APPEND_DEBUG"; line: string }
-	| { type: "CLEAR_DEBUG" }
-	| { type: "UPSERT_ARTIFACT"; artifact: PublishedArtifact }
-	| { type: "UPSERT_FILE_CHANGE"; fileChange: FileChangeSummary }
-	| { type: "SET_ARTIFACT_EXPANDED"; expanded: boolean }
-	| { type: "SET_ARTIFACT_MANUAL_OVERRIDE"; override: boolean | null }
-	| { type: "SET_ARTIFACT_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
-	| { type: "SET_PLAN"; plan: Plan | null }
-	| { type: "SET_PLAN_EXPANDED"; expanded: boolean }
-	| { type: "SET_PLAN_MANUAL_OVERRIDE"; override: boolean | null }
-	| { type: "SET_TASK_ITEM_META"; taskId: string; task: TaskItemMeta }
-	| { type: "ADD_ACTIVE_TASK_ID"; taskId: string }
-	| { type: "REMOVE_ACTIVE_TASK_ID"; taskId: string }
-	| { type: "SET_PLAN_CURRENT_RUNNING_TASK_ID"; taskId: string }
-	| { type: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
-	| { type: "SET_PLAN_RUNTIME"; taskId: string; runtime: PlanRuntime }
-	| { type: "SET_MEMORY_CONSOLE_TAB"; tab: MemoryConsoleTab }
-	| { type: "RESET_MEMORY_INFO_SESSION" }
-	| { type: "SET_MEMORY_INFO_LOADING"; loading: boolean }
-	| { type: "SET_MEMORY_INFO_ERROR"; error: string }
-	| {
-			type: "SET_MEMORY_INFO_FILTERS";
-			filters: Partial<MemoryInfoFilters>;
-	  }
-	| {
-			type: "SET_MEMORY_INFO_RECORDS";
-			records: MemoryRecordListItem[];
-			nextCursor?: string;
-			selectedRecordId?: string;
-	  }
-	| { type: "SET_MEMORY_INFO_SELECTED_RECORD_ID"; id: string }
-	| { type: "SET_MEMORY_INFO_DETAIL_LOADING"; loading: boolean }
-	| { type: "SET_MEMORY_INFO_DETAIL_ERROR"; error: string }
-	| { type: "SET_MEMORY_INFO_DETAIL"; detail: MemoryRecordDetail | null }
-	| { type: "SET_MEMORY_META"; meta: MemoryMeta | null }
-	| { type: "SET_MEMORY_PREFERENCE_SCOPES"; scopes: MemoryScopeSummary[] }
-	| {
-			type: "SET_MEMORY_PREFERENCE_ACTIVE_SCOPE";
-			scopeType: string;
-			scopeKey: string;
-			label?: string;
-			fileName?: string;
-			meta?: MemoryScopeDetailMeta | null;
-	  }
-	| { type: "SET_MEMORY_PREFERENCE_LOADING"; loading: boolean }
-	| { type: "SET_MEMORY_PREFERENCE_ERROR"; error: string }
-	| { type: "SET_MEMORY_PREFERENCE_MODE"; mode: MemoryPreferenceMode }
-	| { type: "SET_MEMORY_PREFERENCE_MARKDOWN_DRAFT"; markdown: string }
-	| {
-			type: "SET_MEMORY_PREFERENCE_RECORDS_DRAFT";
-			records: MemoryScopeDraftRecord[];
-	  }
-	| {
-			type: "SET_MEMORY_PREFERENCE_SELECTED_RECORD_ID";
-			id: string;
-	  }
-	| { type: "SET_MEMORY_PREFERENCE_DIRTY"; dirty: boolean }
-	| { type: "SET_MEMORY_PREFERENCE_SAVING"; saving: boolean }
-	| {
-			type: "SET_MEMORY_PREFERENCE_SAVE_SUMMARY";
-			summary: MemoryScopeSaveSummary | null;
-	  }
-	| {
-			type: "SET_MEMORY_PREFERENCE_VALIDATION";
-			validation: MemoryScopeValidationResult | null;
-	  }
-	| { type: "SET_MEMORY_PREVIEW_DRAFT"; draft: string }
-	| { type: "SET_MEMORY_PREVIEW_LOADING"; loading: boolean }
-	| { type: "SET_MEMORY_PREVIEW_ERROR"; error: string }
-	| {
-			type: "SET_MEMORY_PREVIEW_RESULT";
-			result: MemoryContextPreviewResponse | null;
-	  }
-	| {
-			type: "SET_MEMORY_PREVIEW_PROMPT_LAYER";
-			layer: MemoryContextPromptLayer;
-	  }
-	| { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
-	| { type: "SET_TERMINAL_DOCK_OPEN"; open: boolean }
-	| {
-			type: "OPEN_RIGHT_SIDEBAR";
-			tab?: RightSidebarTabKey;
-			viewerTarget?: ViewerTarget | null;
-			removeViewerKey?: string;
-			sourceDetail?: TimelineSource | null;
-			planningPreview?: PlanningPreviewState | null;
-			removePlanningPreviewNodeId?: string;
-			webPreview?: WebPreviewState | null;
-			activeWebPreviewUrl?: string;
-			removeWebPreviewUrl?: string;
-			activeViewerKey?: string;
-			activePlanningPreviewNodeId?: string;
-			skillPreview?: SkillViewerState | null;
-			removeSkillKey?: string;
-			activeSkillKey?: string;
-	  }
-	| { type: "REFRESH_WEB_PREVIEW"; url: string }
-	| { type: "CLOSE_WEB_PREVIEW"; url: string }
-	| { type: "CLOSE_RIGHT_SIDEBAR" }
-	| { type: "SET_CHAT_FILTER"; filter: string }
-	| { type: "SET_WORKER_SELECTION_KEY"; workerKey: string }
-	| { type: "SET_WORKER_ROWS"; rows: WorkerRow[] }
-	| { type: "SET_WORKER_ORDER_KEYS"; workerOrderKeys: string[] }
-	| { type: "SET_WORKER_RELATED_CHATS"; chats: WorkerConversationRow[] }
-	| { type: "SET_WORKER_CHAT_PANEL_COLLAPSED"; collapsed: boolean }
-	| { type: "SET_PENDING_NEW_CHAT_AGENT_KEY"; agentKey: string }
-	| { type: "SET_WORKER_PRIORITY_KEY"; workerKey: string }
-	| { type: "SET_TEMPORARY_PINNED_AGENT_KEY"; agentKey: string }
-	| { type: "SET_THEME_MODE"; themeMode: AppState["themeMode"] }
-	| { type: "SET_WS_STATUS"; status: AppState["wsStatus"] }
-	| { type: "SET_WS_ERROR_MESSAGE"; message: AppState["wsErrorMessage"] }
-	| { type: "SET_ACCESS_TOKEN"; token: string }
-	| { type: "SET_AUDIO_MUTED"; muted: boolean }
-	| { type: "SET_TTS_DEBUG_STATUS"; status: string }
-	| { type: "SET_PLANNING_MODE"; chatId: string; enabled: boolean; persist?: boolean }
-	| { type: "SET_EDITING_MODE"; enabled: boolean }
-	| { type: "SET_USAGE_SNAPSHOT"; snapshot: AIUsageSnapshotEvent | null }
-	| { type: "SET_USAGE_POPOVER_OPEN"; open: boolean }
-	| { type: "SET_INPUT_MODE"; mode: AppState["inputMode"] }
-	| { type: "PATCH_VOICE_CHAT"; patch: Partial<VoiceChatState> }
-	| { type: "SET_PLAN_AUTO_COLLAPSE_TIMER"; timer: UiTimerHandle | null }
-	| { type: "SET_COMPOSER_DRAFT"; draft: string }
-	| { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
-	| { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer }
-	| { type: "UPDATE_PENDING_STEER_STATUS"; steerId: string; status: PendingSteer['status'] }
-	| { type: "REMOVE_PENDING_STEER"; steerId: string }
-	| { type: "CLEAR_PENDING_STEERS" }
-	| { type: "TOGGLE_RUN_DOWNVOTE"; runKey: string }
-	| { type: "SET_RUN_DOWNVOTED"; runKey: string; downvoted: boolean }
-	| { type: "SET_MENTION_OPEN"; open: boolean }
-	| { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
-	| { type: "SET_MENTION_ACTIVE_INDEX"; index: number }
-	| { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
-	| { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
-	| {
-			type: "SET_AWAITING_RUNTIME";
-			activeAwaiting: ActiveAwaiting | null;
-			pendingAwaitings: ActiveAwaiting[];
-	  }
-	| {
-			type: "PATCH_ACTIVE_AWAITING";
-				patch: {
-					resolutionReason?: ActiveAwaiting["resolutionReason"];
-					pendingSubmitId?: string;
-					loading?: boolean;
-				loadError?: string;
-				viewportHtml?: string;
-			};
-	  }
-	| { type: "CLEAR_ACTIVE_AWAITING" }
-	| {
-			type: "SHOW_COMMAND_STATUS_OVERLAY";
-			commandType: NonNullable<AppState["commandStatusOverlay"]["commandType"]>;
-			phase: AppState["commandStatusOverlay"]["phase"];
-			text: string;
-	  }
-	| { type: "SET_COMMAND_STATUS_OVERLAY_TIMER"; timer: UiTimerHandle | null }
-	| { type: "HIDE_COMMAND_STATUS_OVERLAY" }
-	| { type: "SET_TIMELINE_NODE"; id: string; node: TimelineNode }
-	| {
-			type: "PATCH_CONTENT_TTS_VOICE_BLOCK";
-			nodeId: string;
-			signature: string;
-			patch: Partial<TtsVoiceBlock>;
-	  }
-	| {
-			type: "REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS";
-			nodeId: string;
-			activeSignatures: Set<string>;
-	  }
-	| { type: "APPEND_TIMELINE_ORDER"; id: string }
-	| { type: "SET_TOOL_STATE"; key: string; state: ToolState }
-	| { type: "SET_PENDING_TOOL"; key: string; tool: PendingTool }
-	| { type: "SET_ACTION_STATE"; key: string; state: ActionState }
-	| { type: "ADD_EXECUTED_ACTION_ID"; actionId: string }
-	| {
-			type: "SET_EVENT_POPOVER";
-			index: number;
-			event: AgentEvent | null;
-			anchor?: { x: number; y: number } | null;
-	  }
-	| { type: "RESET_CONVERSATION" }
-	| { type: "RESET_ACTIVE_CONVERSATION" }
-	| { type: "INCREMENT_TIMELINE_COUNTER" }
-	| { type: "SET_MESSAGE"; id: string; message: Message }
-	| { type: "SET_MESSAGE_ORDER"; order: string[] }
-	| { type: "SET_CONTENT_NODE_BY_ID"; contentId: string; nodeId: string }
-	| { type: "SET_REASONING_NODE_BY_ID"; reasoningId: string; nodeId: string }
-	| {
-			type: "SET_REASONING_COLLAPSE_TIMER";
-			reasoningId: string;
-			timer: UiTimerHandle;
-	  }
-	| { type: "CLEAR_REASONING_COLLAPSE_TIMER"; reasoningId: string }
-	| { type: "SET_TOOL_NODE_BY_ID"; toolId: string; nodeId: string }
-	| { type: "SET_ACTIVE_REASONING_KEY"; key: string }
-	| { type: "SET_CHAT_AGENT_BY_ID"; chatId: string; agentKey: string }
-	| { type: "BATCH_UPDATE"; updates: Partial<AppState> };
+  | AgentsAction
+  | WorkersAction
+  | ChatsAction
+  | ConversationAction
+  | TimelineAction
+  | ToolsAction
+  | PlanAction
+  | TasksAction
+  | ArtifactsAction
+  | OverviewAction
+  | ViewersAction
+  | ComposerAction
+  | MemoryAction
+  | VoiceAction
+  | UsageAction
+  | AutomationsAction
+  | DebugAction
+  | AppChromeAction
+  | AppCoordinationAction;

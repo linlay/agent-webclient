@@ -1,5 +1,5 @@
 import { VOICE_CHAT_FRAME_BYTES, encodePcm16 } from "@/features/voice/lib/voiceChatAudio";
-import type { VoiceClientGateConfig } from "@/app/state/types";
+import type { VoiceClientGateConfig } from "@/features/voice/lib/voiceState";
 import { DEFAULT_VOICE_CLIENT_GATE } from "@/features/voice/lib/voiceAsrProtocol";
 import { t } from "@/shared/i18n";
 

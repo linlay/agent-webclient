@@ -11,14 +11,14 @@ import {
   type TabsProps,
 } from "antd";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
-import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
-import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
-import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
-import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
+import { DebugTab } from "@/features/debug/components/DebugTab";
+import { OverviewTab } from "@/features/overview/components/OverviewTab";
+import { SourceDetailTab } from "@/features/source/components/SourceDetailTab";
+import { PlanningPreviewTab } from "@/features/plan/components/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
 import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 import { useBTW } from "@/features/btw/components/BtwProvider";
-import type { RightSidebarTabKey } from "@/app/state/uiTypes";
+import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
