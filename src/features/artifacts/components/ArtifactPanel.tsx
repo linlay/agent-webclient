@@ -14,7 +14,7 @@ const FLOATING_ARTIFACT_CLASS_NAME =
   "floating-artifact tw:relative tw:m-0 tw:flex tw:w-full tw:flex-row tw:items-stretch tw:gap-1 tw:overflow-hidden tw:border-0 tw:bg-transparent tw:shadow-none";
 
 const ARTIFACT_LIST_CLASS_NAME =
-  "artifact-list tw:m-0 tw:flex tw:list-none tw:flex-nowrap tw:items-stretch tw:gap-1 tw:p-0";
+  "artifact-list tw:m-0 tw:flex tw:list-none tw:flex-nowrap tw:items-stretch tw:gap-1 tw:p-0 tw:overflow-hidden";
 
 const ARTIFACT_ITEM_CLASS_NAME = "artifact-item tw:list-none";
 
@@ -60,7 +60,9 @@ export function buildArtifactSummaryView(
   };
 }
 
-function handleFloatingArtifactWheel(event: React.WheelEvent<HTMLDivElement>) {
+function handleFloatingArtifactWheel(
+  event: React.WheelEvent<HTMLUListElement>,
+) {
   const panel = event.currentTarget;
   const maxScrollLeft = panel.scrollWidth - panel.clientWidth;
   if (maxScrollLeft <= 0) return;
@@ -95,11 +97,11 @@ export const ArtifactPanel: React.FC = () => {
   if (state.artifacts.length === 0) return null;
 
   return isCollapsed ? (
-    <div
-      className={FLOATING_ARTIFACT_CLASS_NAME}
-      onWheel={handleFloatingArtifactWheel}
-    >
-      <ul className={ARTIFACT_LIST_CLASS_NAME}>
+    <div className={FLOATING_ARTIFACT_CLASS_NAME}>
+      <ul
+        className={ARTIFACT_LIST_CLASS_NAME}
+        onWheel={handleFloatingArtifactWheel}
+      >
         {summary.artifacts.map((item) => {
           const artifact = item.artifact;
           return (
