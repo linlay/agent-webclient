@@ -1590,15 +1590,6 @@
         overflow: auto;
     }
 
-    :global(.mcp-servers-console) :global(.automation-console-body) {
-        grid-template-columns: 1fr;
-    }
-
-    :global(.mcp-servers-console) :global(.automation-console-list) {
-        width: auto;
-        min-width: 0;
-    }
-
     :global(.automation-console-list) {
         max-height: 260px;
     }

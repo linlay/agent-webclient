@@ -24,6 +24,7 @@ import type {
 } from "@/shared/data/api/dto/resources";
 import type { GetMemoryRecordsParams } from "@/shared/data/memory/memoryTypes";
 import type { AdminSourceTarget } from "@/shared/data/api/dto/admin";
+import type { ConnectorDefinitionTarget } from "@/shared/data/api/dto/connectors";
 import type { QueryModelOverride, QueryServiceTier } from "@/shared/data/api/dto/models";
 import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import { runOwnerPayload } from "@/shared/data/runOwner";
@@ -291,6 +292,25 @@ export const dataEndpoints = createEndpointRegistry({
     key: "admin.registries.list",
     path: "/api/admin/registries",
     method: "GET",
+    transport: "http",
+  }),
+  adminConnectors: defineEndpoint({
+    key: "admin.connectors.list",
+    path: "/api/admin/connectors",
+    method: "GET",
+    transport: "http",
+  }),
+  adminConnectorDetail: defineEndpoint({
+    key: "admin.connectors.detail",
+    path: "/api/admin/connectors/detail",
+    method: "GET",
+    transport: "http",
+    payload: (target: ConnectorDefinitionTarget) => ({ id: target.id, file: target.file }),
+  }),
+  adminConnectorUpdate: defineEndpoint({
+    key: "admin.connectors.update",
+    path: "/api/admin/connectors/detail",
+    method: "PUT",
     transport: "http",
   }),
   adminRegistryValidate: defineEndpoint({

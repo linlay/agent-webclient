@@ -7,10 +7,9 @@ export interface AgentSource {
 export type AdminRegistryCategory =
   | "providers"
   | "models"
-  | "mcp-servers"
   | "viewport-servers";
 
-export type RegistryConsoleTab = Exclude<AdminRegistryCategory, "mcp-servers"> | "tools";
+export type RegistryConsoleTab = AdminRegistryCategory | "tools";
 
 export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
 

@@ -48,7 +48,7 @@ describe("management layout contracts", () => {
     expect(pageRule).toMatch(/min-height:\s*0;/);
     expect(pageRule).toMatch(/max-height:\s*none;/);
     expect(pageRule).toMatch(/overflow:\s*hidden;/);
-    expect(workersCss).toMatch(/\.automations-console-page,\s*\.registries-page,\s*\.mcp-servers-page\s*\{[\s\S]*?height:\s*100vh;/);
+    expect(workersCss).toMatch(/\.automations-console-page,\s*\.registries-page,\s*\.connectors-page\s*\{[\s\S]*?height:\s*100vh;/);
   });
 
   it("lets modal and drawer sections fill the fixed command card height", () => {

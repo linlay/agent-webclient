@@ -12,10 +12,7 @@ import type {
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 
 export type RegistryStatusFilter = "all" | AdminRegistryStatus;
-export type RegistryEditableCategory = Exclude<
-  AdminRegistryCategory,
-  "mcp-servers"
->;
+export type RegistryEditableCategory = AdminRegistryCategory;
 export type RegistryTranslate = (
   key: string,
   params?: Record<string, unknown>,

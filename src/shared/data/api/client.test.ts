@@ -1046,7 +1046,7 @@ describe('data client requests', () => {
     await deleteAdminSource({
       target: {
         type: 'registry',
-        category: 'mcp-servers',
+        category: 'viewport-servers',
         file: 'demo.yml',
       },
       baseSha256: 'registry-sha',
@@ -1073,7 +1073,7 @@ describe('data client requests', () => {
         body: JSON.stringify({
           target: {
             type: 'registry',
-            category: 'mcp-servers',
+            category: 'viewport-servers',
             file: 'demo.yml',
           },
           baseSha256: 'registry-sha',

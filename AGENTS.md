@@ -39,7 +39,8 @@
 - `src/features/agents/`：Agent 管理台、创建、CRUD、排序、ZIP 导入、专属 Skill、模型/工具配置、源码编辑和项目创建能力
 - `src/features/model-config/`：Composer 与 Agent 管理台共用的模型菜单 presenter，以及模型、reasoning、service tier 的 React-free 归一化逻辑
 - `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
-- `src/features/registries/`：Registry 与 MCP 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑
+- `src/features/registries/`：Registry 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑
+- `src/features/connectors/`：CLI/MCP 连接器安装包目录、组件概览、JSON 配置编辑与同步状态
 - `src/features/archive/` / `src/features/memory/`：归档与记忆管理页面、内嵌面板及各自运行时；不再归入 Settings
 - `src/features/command-center/` / `src/features/shortcuts/`：跨领域命令容器与全局快捷键装配
 - `src/features/debug/` / `src/features/overview/` / `src/features/source/`：右栏内容与独立 Viewer Surface
@@ -166,7 +167,7 @@ Git 提交与推送规范：
 - [50-Worker管理-AgentTeam选择与Worker列表](docs/50-Worker管理-AgentTeam选择与Worker列表.md)
 - [51-Worker管理-Agent管理台](docs/51-Worker管理-Agent管理台.md)
 - [52-Worker管理-Registry管理台与工具目录](docs/52-Worker管理-Registry管理台与工具目录.md)
-- [53-Worker管理-MCP连接器](docs/53-Worker管理-MCP连接器.md)
+- [53-Worker管理-连接器](docs/53-Worker管理-连接器.md)
 
 ### 60 页面能力
 - [60-页面能力-Memory页面](docs/60-页面能力-Memory页面.md)

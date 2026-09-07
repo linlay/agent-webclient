@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isMcpTool } from "@/features/registries/lib/mcpRegistry";
 import {
+  REGISTRY_CATEGORIES,
   defaultRegistryFileName,
   filterRegistryItems,
   normalizeToolToSummary,
@@ -109,7 +109,7 @@ export function useRegistryConsoleRuntime() {
         Array.isArray(data)
           ? data
           : (data as unknown as { items?: AdminToolSummary[] })?.items || []
-      ).filter((tool) => !isMcpTool(tool));
+      ).filter((tool) => String(tool.sourceCategory || "").trim().toLowerCase() !== "mcp");
       if (request !== toolsRequestRef.current) return null;
       setToolItems(list);
       return list;
@@ -160,7 +160,7 @@ export function useRegistryConsoleRuntime() {
         const response = await getAdminRegistries();
         if (request !== listRequestRef.current) return;
         const nextItems = (response.data.items || []).filter(
-          (item) => item.category !== "mcp-servers",
+          (item) => REGISTRY_CATEGORIES.includes(item.category),
         );
         setItems(nextItems);
         const category =
@@ -339,7 +339,7 @@ export function useRegistryConsoleRuntime() {
       });
       const refreshedResponse = await getAdminRegistries();
       const refreshedItems = (refreshedResponse.data.items || []).filter(
-        (item) => item.category !== "mcp-servers",
+        (item) => REGISTRY_CATEGORIES.includes(item.category),
       );
       const refreshed = refreshedItems.find(
         (item) =>

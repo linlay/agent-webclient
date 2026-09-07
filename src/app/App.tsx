@@ -58,7 +58,7 @@ const MemoryPage = lazyPage(() => import("./pages/memory"), (m) => m.MemoryPage)
 const AgentsPage = lazyPage(() => import("./pages/agents"), (m) => m.AgentsPage);
 const ArchivesPage = lazyPage(() => import("./pages/archives"), (m) => m.ArchivesPage);
 const RegistriesPage = lazyPage(() => import("./pages/registries"), (m) => m.RegistriesPage);
-const McpServersPage = lazyPage(() => import("./pages/mcp-servers"), (m) => m.McpServersPage);
+const ConnectorsPage = lazyPage(() => import("./pages/connectors"), (m) => m.ConnectorsPage);
 const SkillsPage = lazyPage(() => import("./pages/skills"), (m) => m.SkillsPage);
 const ProjectPage = lazyPage(() => import("./pages/project"), (m) => m.ProjectPage);
 const TerminalPage = lazyPage(() => import("./pages/terminal"), (m) => m.TerminalPage);
@@ -302,18 +302,34 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: "/connectors",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.connectors">
+              <ConnectorsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/connectors/:connectorId",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.connectors">
+              <ConnectorsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
           path: "/mcp-servers",
           element: (
-            <DocumentTitleRoute titleKey="route.title.mcpServers">
-              <McpServersPage />
+            <DocumentTitleRoute titleKey="route.title.connectors">
+              <ConnectorsPage />
             </DocumentTitleRoute>
           ),
         },
         {
           path: "/mcp-servers/:serverKey",
           element: (
-            <DocumentTitleRoute titleKey="route.title.mcpServers">
-              <McpServersPage />
+            <DocumentTitleRoute titleKey="route.title.connectors">
+              <ConnectorsPage />
             </DocumentTitleRoute>
           ),
         },

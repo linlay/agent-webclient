@@ -12,6 +12,7 @@ export type * from "@/shared/data/api/dto/commands";
 export type * from "@/shared/data/api/dto/models";
 export type * from "@/shared/data/api/dto/resources";
 export type * from "@/shared/data/api/dto/admin";
+export type * from "@/shared/data/api/dto/connectors";
 export type * from "@/shared/data/api/dto/skills";
 
 export * from "@/shared/data/api/reasoningEffort";
@@ -54,6 +55,7 @@ export {
   putAdminAgentOrder,
 } from "@/shared/data/api/requests/agents";
 export * from "@/shared/data/api/requests/admin";
+export * from "@/shared/data/api/requests/connectors";
 
 export {
   extractUploadChatId,

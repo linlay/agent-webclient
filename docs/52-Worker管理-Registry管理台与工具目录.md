@@ -1,7 +1,7 @@
 # Registry管理台与工具目录
 
 ## 当前状态
-Registry 管理台由 `/registries` 路由进入，管理 providers、models、viewport-servers 和非 MCP tools 目录视图。MCP 连接器及其工具位于独立 `/mcp-servers` 页面。`src/app/pages/registries/index.tsx` 只保留页面 `<main>` 和 `RegistryConsole` 装配，领域实现位于 `src/features/registries/`。
+Registry 管理台由 `/registries` 路由进入，管理 providers、models、viewport-servers 和非 MCP tools 目录视图。CLI/MCP 连接器及其组件工具位于独立 `/connectors` 页面。`src/app/pages/registries/index.tsx` 只保留页面 `<main>` 和 `RegistryConsole` 装配，领域实现位于 `src/features/registries/`。
 
 ## 核心职责
 - 列出 registry 文件状态、摘要、诊断和更新时间。

@@ -65,7 +65,7 @@ Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<rel
 
 ### 侧边栏与管理入口
 
-左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model、viewport server 与非 MCP tools，MCP 连接器及所属工具由独立页面管理。
+左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model、viewport server 与非 MCP tools，CLI/MCP 连接器安装包、附带技能和组件工具由独立 `/connectors` 页面管理。
 
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 

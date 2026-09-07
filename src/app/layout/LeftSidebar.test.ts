@@ -626,7 +626,7 @@ describe("LeftSidebar", () => {
     );
   });
 
-  it("opens MCP connectors in a new page and preserves the current search string", () => {
+  it("opens Connectors in a new page and preserves the current search string", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       SETTINGS_MENU_ENABLED: "true",
     };
@@ -635,14 +635,14 @@ describe("LeftSidebar", () => {
     renderSidebar();
 
     const mcpServersButton = uiButtonProps.find((props) =>
-      props.text.includes("MCP 连接器"),
+      props.text.includes("连接器"),
     );
     expect(mcpServersButton).toBeTruthy();
 
     (mcpServersButton?.onClick as () => void)();
 
     expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
-      "/mcp-servers?lang=zh-CN",
+      "/connectors?lang=zh-CN",
       "_blank",
       "noopener,noreferrer",
     );

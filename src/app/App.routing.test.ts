@@ -67,6 +67,8 @@ describe("App routing", () => {
         "/copilot/:agentKey",
         "/automations",
         "/registries",
+        "/connectors",
+        "/connectors/:connectorId",
         "/mcp-servers",
         "/mcp-servers/:serverKey",
         "/skills",
@@ -123,7 +125,7 @@ describe("App routing", () => {
       "route.title.registries",
     );
     expect(childRoutes.find((route) => route.path === "/mcp-servers")?.element?.props.titleKey).toBe(
-      "route.title.mcpServers",
+      "route.title.connectors",
     );
     expect(childRoutes.find((route) => route.path === "/skills")?.element?.props.titleKey).toBe(
       "route.title.skills",

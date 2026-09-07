@@ -69,7 +69,7 @@
 
 :global(.automations-console-page),
 :global(.registries-page),
-:global(.mcp-servers-page) {
+:global(.connectors-page) {
     height: 100vh;
     min-height: 0;
     overflow: hidden;
