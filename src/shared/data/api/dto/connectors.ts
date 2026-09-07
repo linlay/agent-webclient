@@ -19,6 +19,9 @@ export interface ConnectorSummary {
   description?: string;
   token_schema?: unknown;
   oauth?: unknown;
+  builtin?: boolean;
+  readOnly?: boolean;
+  canDelete?: boolean;
   hasMcp: boolean;
   hasCli: boolean;
   hasBin: boolean;
@@ -43,4 +46,17 @@ export interface ConnectorDefinition extends ConnectorDefinitionTarget {
 export interface UpdateConnectorDefinitionRequest extends ConnectorDefinitionTarget {
   content: string;
   baseSha256: string;
+}
+
+export interface ImportConnectorArchiveRequest {
+  file: File;
+  overwrite?: boolean;
+}
+
+export interface ImportConnectorArchiveResponse {
+  id: string;
+  name: string;
+  version: string;
+  installed: boolean;
+  authMode: ConnectorSummary["auth_mode"];
 }

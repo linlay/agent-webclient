@@ -10,10 +10,11 @@ interface Props {
   file: ConnectorDefinitionFile;
   draft: string;
   disabled: boolean;
+  readOnly?: boolean;
   onChange: (value: string) => void;
 }
 
-export function ConnectorConfigEditor({ file, draft, disabled, onChange }: Props) {
+export function ConnectorConfigEditor({ file, draft, disabled, readOnly = false, onChange }: Props) {
   const { t } = useI18n();
   const [source, setSource] = useState(false);
   let parsed: Record<string, unknown> | null = null;
@@ -22,8 +23,8 @@ export function ConnectorConfigEditor({ file, draft, disabled, onChange }: Props
   const field = (label: string, path: string[], value: unknown, multiline = false) => (
     <label className={styles.field} key={path.join(".")}>
       <span>{label}</span>
-      {multiline ? <Input.TextArea disabled={disabled} value={String(value ?? "")} autoSize={{ minRows: 3, maxRows: 8 }} onChange={event => onChange(updateConnectorField(draft, path, event.target.value))} /> :
-        <Input disabled={disabled} value={String(value ?? "")} onChange={event => onChange(updateConnectorField(draft, path, event.target.value))} />}
+      {multiline ? <Input.TextArea disabled={disabled} readOnly={readOnly} value={String(value ?? "")} autoSize={{ minRows: 3, maxRows: 8 }} onChange={event => onChange(updateConnectorField(draft, path, event.target.value))} /> :
+        <Input disabled={disabled} readOnly={readOnly} value={String(value ?? "")} onChange={event => onChange(updateConnectorField(draft, path, event.target.value))} />}
     </label>
   );
   return (
@@ -37,7 +38,7 @@ export function ConnectorConfigEditor({ file, draft, disabled, onChange }: Props
       <p className={styles.hint}>{t(file === "cli.json" ? "connectors.hint.cli" : file === "mcp.json" ? "connectors.hint.mcp" : "connectors.hint.manifest")}</p>
       {sourceMode ? <label className={styles.field}>
         <span>{t("connectors.field.json")}</span>
-        <Input.TextArea aria-label={t("connectors.field.json")} className={styles.source} spellCheck={false} value={draft} disabled={disabled} onChange={event => onChange(event.target.value)} />
+        <Input.TextArea aria-label={t("connectors.field.json")} className={styles.source} spellCheck={false} value={draft} disabled={disabled} readOnly={readOnly} onChange={event => onChange(event.target.value)} />
       </label> : file === "connector.json" ? <div className={styles.formGrid}>
         {field(t("connectors.field.name"), ["name"], parsed?.name)}
         {field(t("connectors.field.version"), ["version"], parsed?.version)}
@@ -57,14 +58,14 @@ export function ConnectorConfigEditor({ file, draft, disabled, onChange }: Props
               {field(t(stdio ? "connectors.field.command" : "connectors.field.url"), ["mcpServers", key, stdio ? "command" : "url"], stdio ? server.command : server.url)}
               <label className={styles.field}>
                 <span>{t("connectors.field.timeout")}</span>
-                <Input type="number" min={1} step={1} disabled={disabled} value={typeof server.timeout === "number" ? server.timeout : ""} onChange={event => {
+                <Input type="number" min={1} step={1} disabled={disabled} readOnly={readOnly} value={typeof server.timeout === "number" ? server.timeout : ""} onChange={event => {
                   const value = event.target.value;
                   onChange(updateConnectorField(draft, ["mcpServers", key, "timeout"], value === "" ? undefined : Number(value)));
                 }} />
               </label>
               {stdio && <label className={styles.field}>
                 <span>{t("connectors.field.args")}</span>
-                <Input.TextArea disabled={disabled} autoSize={{ minRows: 3 }} value={Array.isArray(server.args) ? server.args.join("\n") : ""} onChange={event => onChange(updateConnectorField(draft, ["mcpServers", key, "args"], event.target.value ? event.target.value.split("\n") : []))} />
+                <Input.TextArea disabled={disabled} readOnly={readOnly} autoSize={{ minRows: 3 }} value={Array.isArray(server.args) ? server.args.join("\n") : ""} onChange={event => onChange(updateConnectorField(draft, ["mcpServers", key, "args"], event.target.value ? event.target.value.split("\n") : []))} />
               </label>}
             </div>
           </section>;

@@ -313,6 +313,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "PUT",
     transport: "http",
   }),
+  adminConnectorImport: defineEndpoint({
+    key: "admin.connectors.import",
+    path: "/api/admin/connectors/import",
+    method: "POST",
+    transport: "http",
+  }),
   adminRegistryValidate: defineEndpoint({
     key: "admin.registries.validate",
     path: "/api/admin/registries/validate",

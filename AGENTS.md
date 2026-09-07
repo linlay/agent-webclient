@@ -40,7 +40,7 @@
 - `src/features/model-config/`：Composer 与 Agent 管理台共用的模型菜单 presenter，以及模型、reasoning、service tier 的 React-free 归一化逻辑
 - `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
 - `src/features/registries/`：Registry 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑
-- `src/features/connectors/`：CLI/MCP 连接器安装包目录、组件概览、JSON 配置编辑与同步状态
+- `src/features/connectors/`：CLI/MCP 连接器安装包目录、ZIP 导入、组件概览、JSON 配置编辑与同步状态
 - `src/features/archive/` / `src/features/memory/`：归档与记忆管理页面、内嵌面板及各自运行时；不再归入 Settings
 - `src/features/command-center/` / `src/features/shortcuts/`：跨领域命令容器与全局快捷键装配
 - `src/features/debug/` / `src/features/overview/` / `src/features/source/`：右栏内容与独立 Viewer Surface

@@ -3,7 +3,7 @@ import { useBlocker } from "react-router-dom";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { fetchConnectorCatalog, isConnectorCatalogUpdate } from "@/features/connectors/lib/connectorCatalog";
 import { parseConnectorDefinition } from "@/features/connectors/lib/connectorDefinition";
-import { ApiError, getConnectorDefinition, updateConnectorDefinition } from "@/shared/data";
+import { ApiError, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
 import type { AdminToolSummary, ConnectorDefinition, ConnectorDefinitionFile, ConnectorSummary } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 
@@ -19,6 +19,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const [draft, setDraft] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [revision, setRevision] = useState(0);
@@ -30,25 +31,27 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const selected = currentItem || (dirty && selectionRef.current?.id === requestedId ? selectionRef.current : !routeId ? items[0] : undefined);
   selectionRef.current = selected;
   const selectedId = selected?.id || "";
+  const readOnly = selected?.readOnly === true || selected?.builtin === true;
   const activeFile = dirty && detail?.id === selectedId ? detail.file : (file === "mcp.json" && !selected?.hasMcp) || (file === "cli.json" && !selected?.hasCli) ? "connector.json" : file;
   const catalogRequest = useRef(0);
   const detailRequest = useRef(0);
   const catalogBusy = useRef(false);
   const savingRef = useRef(false);
+  const importingRef = useRef(false);
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
 
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    currentLocation.pathname !== nextLocation.pathname && (dirtyRef.current || savingRef.current),
+    currentLocation.pathname !== nextLocation.pathname && (dirtyRef.current || savingRef.current || importingRef.current),
   );
   useEffect(() => {
     if (blocker.state !== "blocked") return;
-    if (!savingRef.current && window.confirm(t("connectors.confirm.discard"))) blocker.proceed();
+    if (!savingRef.current && !importingRef.current && window.confirm(t("connectors.confirm.discard"))) blocker.proceed();
     else blocker.reset();
   }, [blocker, t]);
 
   const refreshCatalog = useCallback(async (silent = false) => {
-    if (silent && (catalogBusy.current || savingRef.current)) return;
+    if (silent && (catalogBusy.current || savingRef.current || importingRef.current)) return;
     const request = ++catalogRequest.current;
     catalogBusy.current = true;
     if (!silent) setLoading(true);
@@ -114,7 +117,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (!dirtyRef.current && !savingRef.current) return;
+      if (!dirtyRef.current && !savingRef.current && !importingRef.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
@@ -123,19 +126,19 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   }, []);
 
   const selectFile = (next: ConnectorDefinitionFile) => {
-    if (next === activeFile || savingRef.current) return;
+    if (next === activeFile || savingRef.current || importingRef.current) return;
     if (dirty && !window.confirm(t("connectors.confirm.discard"))) return;
     setDetail(null);
     setDraft("");
     setFile(next);
   };
   const reload = () => {
-    if (savingRef.current || (dirty && !window.confirm(t("connectors.confirm.discard")))) return;
+    if (savingRef.current || importingRef.current || (dirty && !window.confirm(t("connectors.confirm.discard")))) return;
     setRevision(value => value + 1);
     void refreshCatalog();
   };
   const save = async () => {
-    if (!detail || detailLoading || savingRef.current || !dirty || detail.id !== selectedId || detail.file !== activeFile) return;
+    if (!detail || readOnly || detailLoading || savingRef.current || importingRef.current || !dirty || detail.id !== selectedId || detail.file !== activeFile) return;
     setError("");
     setMessage("");
     try { parseConnectorDefinition(draft); }
@@ -159,10 +162,35 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     }
   };
 
+  const importArchive = async (archive: File, overwrite: boolean): Promise<string | null> => {
+    if (savingRef.current || importingRef.current) return null;
+    if (dirtyRef.current && !window.confirm(t("connectors.import.confirmDraft"))) return null;
+    importingRef.current = true;
+    setImporting(true);
+    try {
+      const response = await importConnectorArchive({ file: archive, overwrite });
+      const id = response.data.id;
+      // The upload succeeded. Only now discard the previous draft and reload its hash.
+      detailRequest.current += 1;
+      dirtyRef.current = false;
+      setDetail(null);
+      setDraft("");
+      setFile("connector.json");
+      setRevision(value => value + 1);
+      await refreshCatalog();
+      importingRef.current = false;
+      onRouteIdChange(id);
+      return id;
+    } finally {
+      importingRef.current = false;
+      setImporting(false);
+    }
+  };
+
   return {
-    items, tools, loading, catalogError, selected, file: activeFile, detail, draft, dirty,
-    detailLoading, saving, error, message, refreshCatalog, selectFile, reload, save,
-    selectConnector: (id: string) => { if (!savingRef.current && id !== selectedId) onRouteIdChange(id); },
-    updateDraft: (value: string) => { setDraft(value); setMessage(""); setError(""); },
+    items, tools, loading, catalogError, selected, file: activeFile, detail, draft, dirty, readOnly,
+    detailLoading, saving, importing, error, message, refreshCatalog, selectFile, reload, save, importArchive,
+    selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && id !== selectedId) onRouteIdChange(id); },
+    updateDraft: (value: string) => { if (!readOnly && !importingRef.current) { setDraft(value); setMessage(""); setError(""); } },
   };
 }

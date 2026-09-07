@@ -37,6 +37,14 @@
 .error { color: var(--accent-danger); font-size: 12px; line-height: 1.6; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 8px; overflow-wrap: anywhere; }
 .notice { color: var(--ink-1); background: var(--bg-hover); padding: 10px 12px; border-radius: 8px; font-size: 12px; }
 .empty { padding: 32px 12px; text-align: center; font-size: 13px; color: var(--ink-muted); }
+.importBody { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
+.fileInput { display: none; }
+.dropZone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 160px; width: 100%; padding: 24px; border: 1px dashed var(--line-soft); border-radius: 10px; background: var(--bg-hover); color: var(--ink-1); cursor: pointer; }
+.dropZone strong { max-width: 100%; overflow-wrap: anywhere; }
+.dropZone:focus-visible, .dragActive { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
+.dropZone:disabled { cursor: wait; opacity: .6; }
+.importConflict { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--accent-danger); border-radius: 8px; font-size: 13px; line-height: 1.6; }
+.importConflict p { margin: 0; }
 @media (max-width: 860px) {
   .body { display: flex; flex-direction: column; overflow: auto; gap: 10px; }
   .list { flex: 0 0 320px; border-right: 0; border-bottom: 1px solid var(--line-soft); }
