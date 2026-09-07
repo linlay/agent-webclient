@@ -608,6 +608,49 @@ describe('processStreamEvent', () => {
     expect(node?.reasoningLabel).toBe('分析问题');
   });
 
+  it.each([true, false])('preserves manual reasoning expansion %s across deltas', (expanded) => {
+    const state = createState();
+    const defaultExpanded = !expanded;
+
+    processAndApply(state, {
+      type: 'reasoning.start',
+      reasoningId: 'reasoning_1',
+      text: 'thinking',
+    }, 'live', defaultExpanded);
+    const node = state.timelineNodes.get('thinking_0')!;
+    expect(node.expanded).toBe(defaultExpanded);
+    state.timelineNodes.set(node.id, { ...node, expanded });
+
+    for (const delta of [' more', ' details']) {
+      processAndApply(state, {
+        type: 'reasoning.delta',
+        reasoningId: 'reasoning_1',
+        delta,
+      }, 'live', defaultExpanded);
+      expect(state.timelineNodes.get(node.id)?.expanded).toBe(expanded);
+    }
+    expect(state.timelineNodes.get(node.id)?.text).toBe('thinking more details');
+  });
+
+  it.each(['reasoning.end', 'reasoning.snapshot'])('still collapses reasoning on %s', (type) => {
+    const state = createState();
+    processAndApply(state, {
+      type: 'reasoning.start',
+      reasoningId: 'reasoning_1',
+      text: 'thinking',
+    }, 'live', false);
+    const node = state.timelineNodes.get('thinking_0')!;
+    state.timelineNodes.set(node.id, { ...node, expanded: true });
+
+    processAndApply(state, { type, reasoningId: 'reasoning_1' } as AgentEvent, 'live', false);
+
+    expect(state.timelineNodes.get(node.id)).toMatchObject({
+      text: 'thinking',
+      status: 'completed',
+      expanded: false,
+    });
+  });
+
   it('uses the reasoning.start event timestamp as the node start time', () => {
     const state = createState();
     const startedAt = 1_787_538_153_749;

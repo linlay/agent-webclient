@@ -67,7 +67,7 @@ export function processReasoningEvent(
         reasoningLabel,
         text,
         status: "running",
-        expanded: config.reasoningExpandedDefault,
+        expanded: existing?.expanded ?? config.reasoningExpandedDefault,
         ts: timestamp,
         startedAt,
       },

@@ -95,10 +95,21 @@ export function getCachedNode(
 	nodeId: string,
 ): TimelineNode | undefined {
 	const cachedNode = cache.nodeById.get(nodeId);
+	const stateNode = state.timelineNodes.get(nodeId);
 	if (cachedNode !== undefined) {
+		// Clicks update React state; keep its expansion choice without discarding
+		// stream text and metadata that may still be ahead in the live cache.
+		if (
+			cachedNode.kind === "thinking" &&
+			cachedNode.status === "running" &&
+			typeof stateNode?.expanded === "boolean" &&
+			stateNode.expanded !== cachedNode.expanded
+		) {
+			return { ...cachedNode, expanded: stateNode.expanded };
+		}
 		return cachedNode;
 	}
-	return state.timelineNodes.get(nodeId);
+	return stateNode;
 }
 
 export function getCachedNodeText(
