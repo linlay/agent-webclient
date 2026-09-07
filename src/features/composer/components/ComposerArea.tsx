@@ -64,6 +64,8 @@ import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useHostRequiredSkills } from "@/features/composer/components/HostRequiredSkillsContext";
+import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 
 interface ComposerAreaProps {
   emptyInputMinRows?: number;
@@ -84,6 +86,7 @@ const COMPOSER_PILL_VOICE_CLASS =
   "tw:!border-[color-mix(in_srgb,var(--accent-electric)_16%,var(--line-soft))] tw:!bg-[radial-gradient(circle_at_0%_0%,rgba(94,165,255,0.1),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(13,191,143,0.08),transparent_36%),color-mix(in_srgb,var(--bg-elev-2)_97%,transparent)] tw:!py-1.5 tw:!pr-1.5 tw:!pl-3";
 const VOICE_HINT_CLASS =
   "voice-hint tw:mt-1 tw:px-2 tw:py-0 tw:text-[10px] tw:text-ink-muted";
+const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 export const ComposerArea: React.FC<ComposerAreaProps> = ({
   emptyInputMinRows = 5,
@@ -170,6 +173,34 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     const forcedIdentities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
     return selectedSkills.filter((skill) => !forcedIdentities.has(skill.key.trim().toLowerCase()));
   }, [forcedSkills, selectedSkills]);
+  const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
+    enabled: Boolean(currentAgentKey && effectiveSkills.length > 0),
+  });
+  const activeAgentSkills = skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;
+  const displayedForcedSkills = useMemo(
+    () =>
+      forcedSkills.map((skill) => ({
+        ...skill,
+        label: resolveSkillDisplayName(
+          activeAgentSkills,
+          skill.key,
+          skill.label,
+        ),
+      })),
+    [activeAgentSkills, forcedSkills],
+  );
+  const displayedManualSkills = useMemo(
+    () =>
+      effectiveManualSkills.map((skill) => ({
+        ...skill,
+        label: resolveSkillDisplayName(
+          activeAgentSkills,
+          skill.key,
+          skill.label,
+        ),
+      })),
+    [activeAgentSkills, effectiveManualSkills],
+  );
 
   // Restore: 当 state.selectedSkills 被 reducer 更改（SET_CHAT_ID 恢复）时，同步到局部
   useEffect(() => {
@@ -827,7 +858,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onScroll={scrollComposerAttachments}
                 />
                 <Flex wrap gap={4}>
-                  {forcedSkills.map((skill) => (
+                  {displayedForcedSkills.map((skill) => (
                     <UiButton
                       key={`forced:${skill.key.toLowerCase()}`}
                       variant="ghost"
@@ -843,7 +874,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                       </Flex>
                     </UiButton>
                   ))}
-                  {effectiveManualSkills.map((skill) => (
+                  {displayedManualSkills.map((skill) => (
                     <UiButton
                       key={skill.key.toLowerCase()}
                       variant="ghost"

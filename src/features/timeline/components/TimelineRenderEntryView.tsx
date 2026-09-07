@@ -7,6 +7,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { TimelineRow } from "./TimelineRow";
+import type { AgentSkill } from "@/shared/data/api/client";
 
 const TASK_GROUP_CLASS_NAME = "timeline-task-group tw:flex tw:flex-col tw:gap-2";
 const TASK_GROUP_HEADER_CLASS_NAME =
@@ -40,6 +41,7 @@ const TASK_GROUP_ERROR_CLASS_NAME =
   "timeline-task-group-error tw:ml-[34px] tw:break-words tw:text-xs tw:leading-[1.45] tw:text-[color-mix(in_srgb,var(--accent-danger)_82%,var(--ink-1))]";
 const TASK_GROUP_BODY_CLASS_NAME =
   "timeline-task-group-body tw:flex tw:flex-col tw:gap-2";
+const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 function formatTaskStatus(
   status: string,
@@ -78,6 +80,7 @@ function resolveTaskGroupAgent(
 export interface TimelineRenderEntryViewProps {
   entry: TimelineRenderEntry;
   agents: Agent[];
+  skills?: readonly AgentSkill[];
   fallbackAgentKey?: string;
   expandedTaskGroups: Record<string, boolean>;
   onToggleTaskGroup: (key: string) => void;
@@ -88,19 +91,21 @@ export const TimelineRenderEntryView: React.FC<
 > = ({
   entry,
   agents,
+  skills,
   fallbackAgentKey = "",
   expandedTaskGroups,
   onToggleTaskGroup,
 }) => {
   const { t } = useI18n();
+  const activeAgentSkills = skills ?? EMPTY_AGENT_SKILLS;
 
   if (entry.kind === "node") {
     if (entry.node.kind === "agent-group") return null;
-    return <TimelineRow node={entry.node} />;
+    return <TimelineRow node={entry.node} skills={activeAgentSkills} />;
   }
 
   if (entry.kind === "tool-group") {
-    return <TimelineRow toolGroup={entry} />;
+    return <TimelineRow toolGroup={entry} skills={activeAgentSkills} />;
   }
 
   const expanded = Boolean(expandedTaskGroups[entry.key]);
@@ -191,6 +196,7 @@ export const TimelineRenderEntryView: React.FC<
               key={childEntry.key}
               entry={childEntry}
               agents={agents}
+              skills={activeAgentSkills}
               fallbackAgentKey={fallbackAgentKey}
               expandedTaskGroups={expandedTaskGroups}
               onToggleTaskGroup={onToggleTaskGroup}

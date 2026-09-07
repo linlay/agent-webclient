@@ -24,6 +24,8 @@ import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import type { AgentSkill } from "@/shared/data/api/client";
+import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { SteerIcon } from "@/features/runs/components/SteerIcon";
 
 type ToolGroupRenderEntry = Extract<
@@ -36,7 +38,10 @@ interface TimelineRowProps {
   toolGroup?: ToolGroupRenderEntry;
   showTime?: boolean;
   metaNode?: React.ReactNode;
+  skills?: readonly AgentSkill[];
 }
+
+const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 const TIMELINE_ROW_BASE_CLASS_NAME = "timeline-row tw:relative";
 const TIMELINE_ROW_USER_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
@@ -248,8 +253,10 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   toolGroup,
   showTime = false,
   metaNode,
+  skills,
 }) => {
   const { locale, t } = useI18n();
+  const activeAgentSkills = skills ?? EMPTY_AGENT_SKILLS;
   const openTarget = useOpenTarget();
   const interaction = useTimelineInteraction();
   const surfaceContext = interaction?.surfaceContext;
@@ -331,30 +338,33 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           )}
           {node.mustUseSkills && node.mustUseSkills.length > 0 && (
             <Flex wrap gap={4} justify="flex-end">
-              {node.mustUseSkills.map((key) => (
-                <UiButton
-                  key={key.toLowerCase()}
-                  variant="ghost"
-                  className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
-                  size="sm"
-                  onClick={() =>
-                    openTarget({
-                      version: 1,
-                      kind: "skill",
-                      key,
-                      label: key,
-                    })
-                  }
-                >
-                  <Flex gap={4} align="center">
-                    <MaterialIcon
-                      name="skills"
-                      className="tw:text-accent tw:text-[14px]"
-                    />
-                    <span className="tw:text-text-sub">{key}</span>
-                  </Flex>
-                </UiButton>
-              ))}
+              {node.mustUseSkills.map((key) => {
+                const label = resolveSkillDisplayName(activeAgentSkills, key);
+                return (
+                  <UiButton
+                    key={key.toLowerCase()}
+                    variant="ghost"
+                    className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
+                    size="sm"
+                    onClick={() =>
+                      openTarget({
+                        version: 1,
+                        kind: "skill",
+                        key,
+                        label,
+                      })
+                    }
+                  >
+                    <Flex gap={4} align="center">
+                      <MaterialIcon
+                        name="skills"
+                        className="tw:text-accent tw:text-[14px]"
+                      />
+                      <span className="tw:text-text-sub">{label}</span>
+                    </Flex>
+                  </UiButton>
+                );
+              })}
             </Flex>
           )}
           {hasText && <UserBubble text={node.text || ""} targetId={node.id} />}
