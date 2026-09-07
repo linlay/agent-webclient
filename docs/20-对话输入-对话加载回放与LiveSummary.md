@@ -16,6 +16,8 @@
 
 `useConversationActions` 拉取对话详情，并把详情事件按 replay 模式交给事件处理器；`useConversationEventHandler` 处理实时事件。两条路径生成相同的 `EventCommand`，再分别由 replay/live adapter 应用。历史 replay 完成后，`reconcileReplayAwaiting` 读取顶层 `/api/chat.awaiting`：没有顶层等待项时清空 replay 产生的活动队列；存在时按 `runId + awaitingId + mode` 精确匹配完整 ask，planning 先映射为前端 plan。该校准只改变 Composer 操作态，不删除历史 events 或 debug timeline；协议不一致时记录诊断并保持输入框解锁。
 
+详情存在 `activeRun` 时，从其 `lastSeq` 接入 Run 事件流更新当前对话。等待模型首响应、推理、工具执行和 HITL 均可能没有正文，不以正文缺失为条件定时请求 `/api/chat`。会话切换、显式刷新和断线重连后的恢复仍可加载详情；一次加载只保留有上限的请求失败重试，成功响应不安排后续历史刷新。
+
 `useChatReadSync` 是单 Chat 自动已读的唯一业务入口，worker 选择逻辑位于 workers 模块。`loadChat()` 只在请求仍匹配 `chatLoadSeq + targetChatId` 时，把 `/api/chat` 顶层的 owner、`lastRunId/lastRunContent` 与完整 `read` summary 同 replay Timeline 放进一次 React 提交；因此由 Desktop Cmd+K、Sidebar 或外部路由打开、此前不在 `state.chats` 的 Chat 也具有权威 read 基线。Hook 只有在目标仍为当前 Chat、切换已经进入 `ready`（无切换事务的 active live Chat 视为已提交）且 `read.isRead === false` 时才发送 `/api/read`，并按 `chatId + lastRunId + readRunId` 去重。已读、请求失败、过期切换和内容尚未提交的路由变化都不写 read；当前可见 Chat 收到更新 Run 的 `chat.unread` 后，新 `lastRunId` 会形成新的唯一触发键。`/api/chat` 详情与 `chat.read/chat.unread` Push 通过 `readAt/readRunId` 和 Platform `RunIDAfter` 语义合并，较旧详情不得覆盖较新的 Push；`chat.read` 不把 `readAt` 写入 Chat `updatedAt`。
 
 `/agent/:agentKey?newChat=` 的首条 query 仅在收到稳定 `chatId` 后将路由 replace 为 `?chatId=`。promotion 标记只说明导航来源，不是数据已加载的证据。会话领域统一协调 Router、历史选择、恢复和重试；只有目标已提交，或确有目标原始 live query 时才可免历史请求。live 数据尚未绑定目标时仍保留有期限的事务；attach 不能充当原始 query。壳层不再通过“登记过路由”或自行消费标记来跳过加载，也不依赖整个 AppContext 重复派发选中态更新。

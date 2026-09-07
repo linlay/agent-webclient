@@ -196,25 +196,10 @@ export function buildLoadedChatSummary(
 }
 
 const LOAD_CHAT_RETRY_DELAYS_MS = [180, 420, 800] as const;
-const ACTIVE_CHAT_REFRESH_DELAYS_MS = [2000, 8000, 20000] as const;
 
 function waitForLoadChatRetry(delayMs: number): Promise<void> {
   return new Promise((resolve) => {
     globalThis.setTimeout(resolve, delayMs);
-  });
-}
-
-function hasContentTimelineTextInState(state: {
-  timelineOrder: string[];
-  timelineNodes: Map<string, { kind?: string; text?: string }>;
-}): boolean {
-  return state.timelineOrder.some((nodeId) => {
-    const node = state.timelineNodes.get(nodeId);
-    return Boolean(
-      node &&
-      node.kind === 'content' &&
-      String(node.text || '').trim(),
-    );
   });
 }
 
@@ -673,32 +658,6 @@ export function useConversationActions() {
             line: awaitingReconciliation.diagnostic,
           });
         }
-        const replayHasContentTimelineText = hasContentTimelineTextInState(rs);
-        if (activeRunId && !replayHasContentTimelineText) {
-          for (const delayMs of ACTIVE_CHAT_REFRESH_DELAYS_MS) {
-            const refreshTimer = globalThis.setTimeout(() => {
-              const latestState = stateRef.current;
-              if (String(latestState.chatId || '').trim() !== chatId) {
-                return;
-              }
-              if (
-                latestState.currentChatActiveRun?.chatId !== chatId ||
-                String(latestState.currentChatActiveRun.runId || '').trim() !== activeRunId
-              ) {
-                return;
-              }
-              if (hasContentTimelineTextInState(latestState)) {
-                return;
-              }
-              window.dispatchEvent(
-                new CustomEvent('agent:load-chat', {
-                  detail: { chatId },
-                }),
-              );
-            }, delayMs);
-            (refreshTimer as { unref?: () => void }).unref?.();
-          }
-        }
         if (usageSnapshot) {
           dispatch({ type: 'SET_USAGE_SNAPSHOT', snapshot: usageSnapshot });
         }
@@ -728,6 +687,8 @@ export function useConversationActions() {
               agentKey: activeRunAgentKey,
             });
           }
+          // Follow active runs through their event stream. Missing content is
+          // normal during reasoning, tools or HITL and must not trigger polling.
           dispatchAttachRunEvent(
             chatId,
             activeRunId,

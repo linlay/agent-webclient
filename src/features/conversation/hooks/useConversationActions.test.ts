@@ -1691,6 +1691,74 @@ describe('replayEvent tool migration', () => {
     });
   });
 
+  it.each([
+    { label: 'waiting for the first response', runState: 'RUNNING', events: [] },
+    {
+      label: 'streaming reasoning without content',
+      runState: 'RUNNING',
+      events: [{ type: 'reasoning.delta', reasoningId: 'reasoning-1', delta: 'Thinking' }],
+    },
+    {
+      label: 'running a tool without content',
+      runState: 'RUNNING',
+      events: [{ type: 'tool.start', toolId: 'tool-1', toolName: 'bash' }],
+    },
+    { label: 'waiting for user input', runState: 'WAITING_SUBMIT', events: [] },
+  ])('does not poll chat history while $label', async ({ runState, events }) => {
+    jest.useFakeTimers();
+    try {
+      const state = createInitialState();
+      const { actions, dispatch } = renderChatActions(state);
+      getChat.mockResolvedValue({
+        data: {
+          chatId: 'chat-active',
+          events: events.map((event, index) => ({
+            ...event,
+            chatId: 'chat-active',
+            runId: 'run-active',
+            timestamp: EPOCH_MS + index,
+          })),
+          activeRun: {
+            runId: 'run-active',
+            agentKey: 'askUser.demo',
+            state: runState,
+            lastSeq: 7,
+          },
+          runs: [],
+        },
+      });
+      // Mirror the worker listener so a timer-triggered reload makes a real
+      // getChat call and can reproduce the recursive refresh fan-out.
+      globalWithBrowserApis.window!.dispatchEvent.mockImplementation((event: CustomEvent) => {
+        if (event.type === 'agent:load-chat') void actions!.loadChat(event.detail.chatId);
+        return true;
+      });
+
+      await actions!.loadChat('chat-active');
+      Object.assign(state, dispatch.mock.calls.find(([action]) => action.type === 'BATCH_UPDATE')![0].updates);
+
+      expect(globalWithBrowserApis.window!.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'agent:attach-run',
+          detail: expect.objectContaining({ chatId: 'chat-active', runId: 'run-active', lastSeq: 7 }),
+        }),
+      );
+      await jest.advanceTimersByTimeAsync(10_000);
+      expect(getChat).toHaveBeenCalledTimes(1);
+
+      // An explicit reload still works, and must not start a new timer chain.
+      await actions!.loadChat('chat-active', { forceReload: true });
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(getChat).toHaveBeenCalledTimes(2);
+      expect(globalWithBrowserApis.window!.dispatchEvent).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'agent:load-chat' }),
+      );
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  });
+
   it('does not schedule another history refresh after the attached active run completes', async () => {
     jest.useFakeTimers();
     try {
