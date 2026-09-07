@@ -56,6 +56,7 @@ import type { ConversationSurfaceMode } from "@/features/conversation/lib/conver
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { LogoLoading } from "@/shared/components/logo-loading";
+import { DotLoading } from "@/shared/components/dot-loading";
 import {
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
@@ -1753,7 +1754,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const Footer = useCallback(() => {
     const running = isMainChatRunning || state.streaming;
-    if (isAtBottom) {
+    if (isAtBottom && !running) {
       return null;
     }
     return (
@@ -1773,7 +1774,15 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           size="sm"
           onClick={handleScrollToBottomClick}
         >
-          <MaterialIcon name="arrow_downward" />
+          {running ? (
+            <DotLoading
+              color="primary"
+              height={15}
+              ariaLabel={t("leftSidebar.loading")}
+            />
+          ) : (
+            <MaterialIcon name="arrow_downward" />
+          )}
         </UiButton>
       </Tooltip>
     );
@@ -1902,10 +1911,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
             !restoringRef.current &&
             isAtBottomRef.current &&
             atBottom
-              ? "smooth"
+              ? "auto"
               : false
           }
-          atBottomThreshold={50}
+          atBottomThreshold={200}
           atBottomStateChange={handleAtBottomStateChange}
           rangeChanged={handleRangeChanged}
           isScrolling={handleIsScrolling}
