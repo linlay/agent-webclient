@@ -1,3 +1,4 @@
+import { useOptionalAppContext } from "@/app/state/AppContext";
 import { RegistryDetailPane } from "@/features/registries/components/RegistryDetailPane";
 import {
   RegistryCategoryTabs,
@@ -20,6 +21,7 @@ const BODY_CLASS_NAME =
 
 export function RegistryConsole() {
   const { t } = useI18n();
+  const appContext = useOptionalAppContext();
   const runtime = useRegistryConsoleRuntime();
   const refresh = () => {
     if (runtime.isToolsTab || runtime.detail) {
@@ -80,6 +82,7 @@ export function RegistryConsole() {
           newDraft={runtime.newDraft}
           saving={runtime.saving}
           selectedTool={runtime.selectedTool}
+          theme={appContext?.state.themeMode ?? "light"}
           validating={runtime.validating}
           onDraftChange={runtime.updateDraft}
           onRefresh={runtime.refreshCurrent}

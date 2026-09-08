@@ -1,4 +1,4 @@
-import { Input, Spin } from "antd";
+import { Spin } from "antd";
 import {
   readToolKind,
   readToolSourceCategory,
@@ -14,10 +14,13 @@ import type {
   AdminToolSummary,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import type { ThemeMode } from "@/shared/styles/theme";
+import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { formatEpochMillisLocal } from "@/shared/utils/platformTime";
+import styles from "./RegistryConsole.module.css";
 
 const DETAIL_CLASS_NAME =
   "automation-console-detail registry-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto";
@@ -31,8 +34,6 @@ const REQUEST_BOX_CLASS_NAME =
   "automation-request-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 registry-summary tw:[&_div]:min-h-[18px] tw:[&_div]:[overflow-wrap:anywhere] tw:[&_div]:text-xs tw:[&_div]:text-ink-2";
 const DIAGNOSTICS_CLASS_NAME =
   "automation-request-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 registry-diagnostics tw:[border-color:color-mix(in_srgb,var(--accent-danger)_28%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_5%,transparent)]";
-const YAML_EDITOR_CLASS_NAME =
-  "settings-textarea automation-mono-textarea registry-yaml-editor tw:min-h-[420px] tw:resize-y tw:font-code tw:leading-[1.5] tw:[tab-size:2] tw:max-[860px]:min-h-80";
 
 function formatSize(value: number | undefined): string {
   if (value === undefined || value === null) return "--";
@@ -48,6 +49,7 @@ export interface RegistryDetailPaneProps {
   newDraft: boolean;
   saving: boolean;
   selectedTool: AdminToolSummary | null;
+  theme: ThemeMode;
   validating: boolean;
   onDraftChange: (value: string) => void;
   onRefresh: () => void;
@@ -64,6 +66,7 @@ export function RegistryDetailPane({
   newDraft,
   saving,
   selectedTool,
+  theme,
   validating,
   onDraftChange,
   onRefresh,
@@ -192,13 +195,34 @@ export function RegistryDetailPane({
               <div>{summaryLine(detail.summary) || "--"}</div>
             </fieldset>
             <div className="field-group registry-editor-field tw:mt-3.5">
-              <label htmlFor="registry-yaml-editor">{t("registryConsole.editor.label")}</label>
-              <Input.TextArea
-                id="registry-yaml-editor"
-                className={YAML_EDITOR_CLASS_NAME}
-                value={draft}
-                onChange={(event) => onDraftChange(event.target.value)}
-              />
+              <span id="registry-yaml-editor-label">{t("registryConsole.editor.label")}</span>
+              <div
+                className={styles.yamlEditor}
+                role="group"
+                aria-labelledby="registry-yaml-editor-label"
+              >
+                <CodeEditor
+                  key={`${detail.category}/${detail.file}`}
+                  path={`registry:///${detail.category}/${detail.file}`}
+                  language="yaml"
+                  theme={theme}
+                  value={draft}
+                  disabled={saving || detailLoading}
+                  onChange={onDraftChange}
+                  options={{
+                    ariaLabel: t("registryConsole.editor.label"),
+                    lineNumbers: "on",
+                    lineNumbersMinChars: 3,
+                    lineHeight: 20,
+                    tabSize: 2,
+                    insertSpaces: true,
+                    detectIndentation: false,
+                    folding: true,
+                    guides: { indentation: true, highlightActiveIndentation: true },
+                    padding: { top: 12, bottom: 12 },
+                  }}
+                />
+              </div>
             </div>
             <div className="automation-save-actions tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2">
               <UiButton

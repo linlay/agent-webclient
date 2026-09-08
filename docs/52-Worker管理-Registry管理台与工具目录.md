@@ -6,6 +6,7 @@ Registry 管理台由 `/registries` 路由进入，管理 providers、models 和
 ## 核心职责
 - 列出 registry 文件状态、摘要、诊断和更新时间。
 - 支持新建、编辑、保存、校验 registry YAML 内容。
+- 供应商和模型的 YAML 编辑区复用本地 Monaco `CodeEditor`，提供语法高亮、行号、代码折叠、两空格缩进和查找替换；明暗配色跟随应用主题，编辑区支持纵向调整高度。切换文件时隔离编辑器与撤销记录，加载或保存期间只读，配置语义仍由后端校验。
 - 将 tools 接口结果归一为可搜索的目录视图。
 - 展示 provider、model 配置类别的数量和状态。
 

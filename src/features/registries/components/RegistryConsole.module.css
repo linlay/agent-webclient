@@ -322,11 +322,26 @@
     margin-top: 14px;
 }
 
-:global(.registry-yaml-editor):global(.ant-input) {
+.yamlEditor {
+    height: clamp(420px, 55vh, 680px);
     min-height: 420px;
+    min-width: 0;
+    overflow: hidden;
     resize: vertical;
-    line-height: 1.5;
-    tab-size: 2;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    background: var(--bg-elev-1);
+}
+
+.yamlEditor:focus-within {
+    border-color: var(--accent-electric);
+}
+
+@media (max-width: 860px) {
+    .yamlEditor {
+        height: 360px;
+        min-height: 320px;
+    }
 }
 
 :global(.registry-dirty) {
