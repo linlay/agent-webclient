@@ -115,6 +115,8 @@ export function RegistryCategoryTabs({
 
 export function RegistryListPane(props: RegistryListPaneProps) {
   const { t } = useI18n();
+  const isFiltered = props.searchText.trim().length > 0 ||
+    (!props.isToolsTab && props.statusFilter !== "all");
   const statusMenu: MenuProps = useMemo(
     () => ({
       onClick: (info) =>
@@ -182,13 +184,18 @@ export function RegistryListPane(props: RegistryListPaneProps) {
           ) : null}
         </div>
         <div className="automation-console-count tw:text-xs tw:text-ink-muted">
-          {props.isToolsTab
-            ? t("registryConsole.list.count.tools", {
-                count: props.currentCategoryItems.length,
-              })
-            : t("registryConsole.list.count", {
-                count: props.currentCategoryItems.length,
-              })}
+          {t(
+            isFiltered
+              ? "registryConsole.list.count.filtered"
+              : props.isToolsTab
+                ? "registryConsole.list.count.tools"
+                : "registryConsole.list.count",
+            {
+              count: isFiltered
+                ? props.filteredItems.length
+                : props.currentCategoryItems.length,
+            },
+          )}
         </div>
         <div className="automation-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto tw:pr-0.5">
           <Spin spinning={props.isToolsTab ? props.toolsLoading : props.loading}>

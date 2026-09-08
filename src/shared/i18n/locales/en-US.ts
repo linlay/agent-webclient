@@ -512,6 +512,7 @@ export const enUSMessages = {
   "registryConsole.filter.status.invalid": "Invalid",
   "registryConsole.filter.status.ready": "Ready",
   "registryConsole.list.count": "Configs {count}",
+  "registryConsole.list.count.filtered": "Filtered {count}",
   "registryConsole.message.catalogUpdated": "Config updated",
   "registryConsole.message.newDraft": "Draft created",
   "registryConsole.message.savedWaiting": "Saved. The watcher will apply it automatically; refresh to view updates",

@@ -512,6 +512,7 @@ export const zhCNMessages = {
   "registryConsole.filter.status.invalid": "配置错误",
   "registryConsole.filter.status.ready": "可用",
   "registryConsole.list.count": "配置 {count} 个",
+  "registryConsole.list.count.filtered": "筛选 {count} 个",
   "registryConsole.message.catalogUpdated": "配置已更新",
   "registryConsole.message.newDraft": "已创建草稿",
   "registryConsole.message.savedWaiting": "已保存，watcher 会自动生效，可刷新查看",
