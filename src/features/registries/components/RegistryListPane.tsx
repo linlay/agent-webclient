@@ -7,6 +7,7 @@ import {
   listItemOwnerLabel,
   registryCapabilityChips,
   registryItemKey,
+  registryItemIcon,
   registryListMeta,
   registryListTitle,
   registryStatusTone,
@@ -220,6 +221,7 @@ export function RegistryListPane(props: RegistryListPaneProps) {
                   const meta = props.isToolsTab
                     ? toolListMeta(item)
                     : registryListMeta(item, t);
+                  const icon = registryItemIcon(item);
                   const ownerLabel = listItemOwnerLabel(item, props.isToolsTab, t);
                   const chips = props.isToolsTab ? [] : registryCapabilityChips(item);
                   const capabilityTitle = chips
@@ -233,6 +235,17 @@ export function RegistryListPane(props: RegistryListPaneProps) {
                       onClick={() => props.onSelect(item)}
                     >
                       <span className="automation-list-item-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-tag]:flex-none">
+                        {icon ? (
+                          <img
+                            className={styles.registryIcon}
+                            src={icon.icon}
+                            width={16}
+                            height={16}
+                            alt=""
+                            aria-hidden="true"
+                            data-monochrome={icon.isMonochrome}
+                          />
+                        ) : null}
                         <span
                           className="automation-list-item-title tw:inline-flex tw:min-w-0 tw:flex-1 tw:items-baseline tw:gap-[5px] tw:overflow-hidden tw:whitespace-nowrap"
                           title={`${item.category} ${item.file}`}

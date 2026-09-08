@@ -22,7 +22,7 @@ describe("model icon presentation", () => {
     ["OUR BGE M3 Local", "bge-m3-local", "bge"],
     ["BabelArk Text Embedding v4", "text-embedding-v4", "default"],
   ] as const)("resolves the %s model icon to %s", (name, modelId, family) => {
-    expect(resolveModelIconFamily({ key: modelId, name, modelId, icon: name })).toBe(family);
+    expect(resolveModelIconFamily({ key: modelId, name, modelId, icon: family })).toBe(family);
   });
 
   it("uses icon before conflicting model identifiers", () => {
@@ -31,28 +31,24 @@ describe("model icon presentation", () => {
         key: "gpt-5.5",
         name: "GPT-5.5",
         modelId: "gpt-5.5",
-        icon: "GLM 5.2",
+        icon: "glm",
       }),
     ).toBe("glm");
   });
 
-  it("falls back to model identifiers when icon is missing or unknown", () => {
+  it.each([undefined, "", " ", "default", "Custom Registry Name", "GPT-5.5", "constructor"])("uses the default for icon %s without guessing from model identifiers", (icon) => {
     expect(
       resolveModelIconFamily({
         key: "gpt-5.5",
         name: "GPT-5.5",
         modelId: "gpt-5.5",
+        icon,
       }),
-    ).toBe("chatgpt");
+    ).toBe("default");
+  });
 
-    expect(
-      resolveModelIconFamily({
-        key: "kimi-k2.7-code",
-        name: "Kimi K2.7 Code",
-        modelId: "kimi-k2.7-code",
-        icon: "Custom Registry Name",
-      }),
-    ).toBe("kimi");
+  it("trims icon identifiers and ignores letter case", () => {
+    expect(resolveModelIconFamily({ key: "custom", icon: " QWEN " })).toBe("qwen");
   });
 
   it("keeps ACP model options renderable through the icon field", () => {
@@ -61,7 +57,7 @@ describe("model icon presentation", () => {
         key: "acp-proxy-model",
         name: "ACP Proxy Model",
         modelId: "unrecognized-model",
-        icon: "MiniMax M2.5",
+        icon: "minimax",
       }),
     ).toBe("minimax");
   });
@@ -92,6 +88,7 @@ describe("model icon presentation", () => {
         key: "gpt-5_5",
         name: "GPT-5.5",
         modelId: "gpt-5.5",
+        icon: "chatgpt",
       }),
     ).toMatchObject({
       family: "chatgpt",

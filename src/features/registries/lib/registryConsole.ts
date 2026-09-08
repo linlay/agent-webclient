@@ -10,6 +10,10 @@ import type {
   RegistryConsoleTab,
 } from "@/shared/data";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
+import {
+  resolveModelPresentation,
+  type ModelPresentation,
+} from "@/shared/icons/model";
 
 export type RegistryStatusFilter = "all" | AdminRegistryStatus;
 export type RegistryEditableCategory = Exclude<AdminRegistryCategory, "viewport-servers">;
@@ -84,6 +88,7 @@ export function registryTemplateForCategory(
     case "providers":
       return [
         `key: ${key}`,
+        "icon: default",
         "baseUrl: https://api.example.com",
         "apiKey: ",
         "defaultModel: ",
@@ -96,6 +101,7 @@ export function registryTemplateForCategory(
       return [
         `key: ${key}`,
         "name: New Model",
+        "icon: default",
         "provider: ",
         "protocol: OPENAI",
         `modelId: ${key}`,
@@ -269,6 +275,16 @@ export function registryListTitle(item: AdminRegistryListItem): string {
     return item.key || item.name || item.file;
   }
   return item.name || item.key || item.file;
+}
+
+export function registryItemIcon(
+  item: AdminRegistryListItem,
+): Pick<ModelPresentation, "family" | "icon" | "isMonochrome"> | null {
+  if (!isRegistryEditableCategory(item.category)) return null;
+  return resolveModelPresentation({
+    key: "",
+    icon: summaryString(item.summary, "icon"),
+  });
 }
 
 export function registryListMeta(

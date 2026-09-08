@@ -172,6 +172,17 @@
     gap: 8px;
 }
 
+.registryIcon {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+html[data-theme="dark"] .registryIcon[data-monochrome="true"] {
+    filter: invert(1) brightness(1.3);
+}
+
 :global(.automation-list-item-title) {
     min-width: 0;
     flex: 1;

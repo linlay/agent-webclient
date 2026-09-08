@@ -15,6 +15,7 @@ import {
   registryCapabilityChips,
   registryDetailToListItem,
   registryItemKey,
+  registryItemIcon,
   registryListMeta,
   registryListTitle,
   registryTemplateForCategory,
@@ -175,6 +176,23 @@ describe("RegistryConsole", () => {
     expect(
       registryTemplateForCategory("models", "new-model.yml"),
     ).toContain("provider:");
+    for (const category of ["models", "providers"] as const) {
+      expect(registryTemplateForCategory(category, "new.yml")).toContain("icon: default");
+    }
+  });
+
+  it.each(["models", "providers"] as const)("uses only the explicit icon for %s", (category) => {
+    const item: AdminRegistryListItem = {
+      category,
+      file: "deepseek.yml",
+      key: "deepseek",
+      name: "DeepSeek",
+      status: "ready",
+    };
+    expect(registryItemIcon(item)?.family).toBe("default");
+    expect(registryItemIcon({ ...item, summary: { icon: "unknown" } })?.family).toBe("default");
+    expect(registryItemIcon({ ...item, summary: { icon: "default" } })?.family).toBe("default");
+    expect(registryItemIcon({ ...item, summary: { icon: "qwen" } })?.family).toBe("qwen");
   });
 
   it("formats registry list metadata and model capability chips", () => {
