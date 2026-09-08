@@ -138,3 +138,12 @@ it("keeps built-in definitions readable and rejects edits and saves", async () =
   expect(current.draft).toBe(definition.content);
   expect(updateConnectorDefinition).not.toHaveBeenCalled();
 });
+
+it("preserves HTTP 401 diagnostics for the catalog entry point and clears them after recovery", async () => {
+  jest.mocked(getAdminConnectors).mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }));
+  await mount();
+  expect(current.catalogErrorStatus).toBe(401);
+  await act(async () => current.refreshCatalog());
+  expect(current.catalogErrorStatus).toBeNull();
+  expect(current.catalogError).toBe("");
+});

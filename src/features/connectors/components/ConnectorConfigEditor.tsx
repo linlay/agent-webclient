@@ -30,7 +30,7 @@ export function ConnectorConfigEditor({ file, draft, disabled, readOnly = false,
   return (
     <div className={styles.config}>
       <div className={styles.toolbar}>
-        <strong>{file}</strong>
+        <strong>{file === "connector.json" ? t("connectors.section.basics") : file}</strong>
         {file !== "cli.json" && <UiButton size="sm" variant="ghost" disabled={disabled || !parsed} onClick={() => setSource(value => !value)}>
           {t(sourceMode ? "connectors.action.form" : "connectors.action.source")}
         </UiButton>}

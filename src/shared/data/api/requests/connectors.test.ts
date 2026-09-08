@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
-import { getAdminConnectors, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "./connectors";
-import { requestJson } from "@/shared/data/api/http";
+import { cancelConnectorAuth, getAdminConnectors, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
+import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
   requestJson: jest.fn(),
@@ -31,4 +31,42 @@ it("uploads exactly one ZIP without forcing a JSON content type and only adds ov
   expect(first.has("overwrite")).toBe(false);
   expect(second.getAll("file")).toEqual([file]);
   expect(second.get("overwrite")).toBe("true");
+});
+
+it("uses all four authenticated authorization endpoints without caching and forwards cancellation", async () => {
+  const controller = new AbortController();
+  await getConnectorAuthStatus("demo & other", controller.signal);
+  await startConnectorAuth("demo", controller.signal);
+  await cancelConnectorAuth("demo", controller.signal);
+  await logoutConnectorAuth("demo", controller.signal);
+  expect(jest.mocked(requestJson).mock.calls).toEqual([
+    ["/api/admin/connectors/auth?id=demo+%26+other", { method: "GET", cache: "no-store", signal: controller.signal }],
+    ["/api/admin/connectors/auth?id=demo", { method: "POST", cache: "no-store", signal: controller.signal }],
+    ["/api/admin/connectors/auth/cancel?id=demo", { method: "POST", cache: "no-store", signal: controller.signal }],
+    ["/api/admin/connectors/auth?id=demo", { method: "DELETE", cache: "no-store", signal: controller.signal }],
+  ]);
+});
+
+it("consumes the Platform envelope through the existing identity client and preserves HTTP errors", async () => {
+  const originalFetch = globalThis.fetch;
+  const fetchMock = jest.fn();
+  globalThis.fetch = fetchMock;
+  const actualRequest = jest.requireActual("@/shared/data/api/http").requestJson;
+  const data = { connectorId: "demo", sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" };
+  setAccessToken("platform-test-identity");
+  try {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ code: 0, msg: "", data }) });
+    jest.mocked(requestJson).mockImplementationOnce(actualRequest);
+    await expect(getConnectorAuthStatus("demo")).resolves.toMatchObject({ code: 0, data });
+    expect(fetchMock).toHaveBeenCalledWith("/api/admin/connectors/auth?id=demo", expect.objectContaining({ cache: "no-store", credentials: "same-origin", headers: expect.objectContaining({ Authorization: "Bearer platform-test-identity" }) }));
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401, text: async () => '{"error":"unauthorized"}' });
+    jest.mocked(requestJson).mockImplementationOnce(actualRequest);
+    await expect(startConnectorAuth("demo")).rejects.toMatchObject({ name: "ApiError", status: 401 });
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, text: async () => "<html>old server</html>" });
+    jest.mocked(requestJson).mockImplementationOnce(actualRequest);
+    await expect(getConnectorAuthStatus("demo")).rejects.toBeInstanceOf(ApiError);
+  } finally {
+    globalThis.fetch = originalFetch;
+    setAccessToken("");
+  }
 });

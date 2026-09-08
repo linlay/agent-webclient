@@ -14,6 +14,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const [tools, setTools] = useState<AdminToolSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
+  const [catalogErrorStatus, setCatalogErrorStatus] = useState<number | null>(null);
   const [file, setFile] = useState<ConnectorDefinitionFile>("connector.json");
   const [detail, setDetail] = useState<ConnectorDefinition | null>(null);
   const [draft, setDraft] = useState("");
@@ -61,8 +62,12 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
       setItems(snapshot.items);
       setTools(snapshot.tools);
       setCatalogError("");
+      setCatalogErrorStatus(null);
     } catch (cause) {
-      if (request === catalogRequest.current) setCatalogError(cause instanceof Error ? cause.message : String(cause));
+      if (request === catalogRequest.current) {
+        setCatalogError(cause instanceof Error ? cause.message : String(cause));
+        setCatalogErrorStatus(cause instanceof ApiError ? cause.status : null);
+      }
     } finally {
       if (request === catalogRequest.current) {
         catalogBusy.current = false;
@@ -188,7 +193,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   };
 
   return {
-    items, tools, loading, catalogError, selected, file: activeFile, detail, draft, dirty, readOnly,
+    items, tools, loading, catalogError, catalogErrorStatus, selected, file: activeFile, detail, draft, dirty, readOnly,
     detailLoading, saving, importing, error, message, refreshCatalog, selectFile, reload, save, importArchive,
     selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && id !== selectedId) onRouteIdChange(id); },
     updateDraft: (value: string) => { if (!readOnly && !importingRef.current) { setDraft(value); setMessage(""); setError(""); } },

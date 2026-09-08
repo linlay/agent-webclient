@@ -60,3 +60,19 @@ export interface ImportConnectorArchiveResponse {
   installed: boolean;
   authMode: ConnectorSummary["auth_mode"];
 }
+
+export type ConnectorAuthStatus = "not_required" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
+
+export interface ConnectorAuthSession {
+  connectorId: string;
+  sessionId: string;
+  status: ConnectorAuthStatus;
+  authorizationUrl?: string;
+  message?: string;
+  expiresAt: string;
+}
+
+export interface ConnectorAuthActionResult {
+  id: string;
+  status: "canceled" | "unauthorized";
+}

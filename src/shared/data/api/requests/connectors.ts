@@ -3,6 +3,7 @@ import type {
   ConnectorDefinition, ConnectorDefinitionTarget, ConnectorListResponse,
   UpdateConnectorDefinitionRequest,
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
+  ConnectorAuthSession, ConnectorAuthActionResult,
 } from "@/shared/data/api/dto/connectors";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { requestJson } from "@/shared/data/api/http";
@@ -34,5 +35,34 @@ export function importConnectorArchive(params: ImportConnectorArchiveRequest): P
     method: "POST",
     body: form,
     jsonContentType: false,
+  });
+}
+
+// Authorization sessions bypass the server-state cache and never persist in browser storage.
+export function getConnectorAuthStatus(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthSession>> {
+  const endpoint = dataEndpoints.adminConnectorAuthStatus;
+  return requestJson<ConnectorAuthSession>(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
+    method: endpoint.method, cache: "no-store", signal,
+  });
+}
+
+export function startConnectorAuth(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthSession>> {
+  const endpoint = dataEndpoints.adminConnectorAuthStart;
+  return requestJson<ConnectorAuthSession>(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
+    method: endpoint.method, cache: "no-store", signal,
+  });
+}
+
+export function cancelConnectorAuth(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthActionResult>> {
+  const endpoint = dataEndpoints.adminConnectorAuthCancel;
+  return requestJson<ConnectorAuthActionResult>(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
+    method: endpoint.method, cache: "no-store", signal,
+  });
+}
+
+export function logoutConnectorAuth(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthActionResult>> {
+  const endpoint = dataEndpoints.adminConnectorAuthLogout;
+  return requestJson<ConnectorAuthActionResult>(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
+    method: endpoint.method, cache: "no-store", signal,
   });
 }

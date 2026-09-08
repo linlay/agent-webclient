@@ -15,13 +15,9 @@ export function ConnectorOverview({ item, tools }: { item: ConnectorSummary; too
   const { t, locale } = useI18n();
   const time = (value?: number) => value ? new Date(value).toLocaleString(locale) : "—";
   return <div className={styles.stack}>
-    <dl className={styles.metadata}>
-      <dt>{t("connectors.field.primaryType")}</dt><dd>{item.type.toUpperCase()}</dd>
-      <dt>{t("connectors.field.auth")}</dt><dd>{item.auth_mode}</dd>
-      <dt>{t("connectors.field.bin")}</dt><dd>{t(item.hasBin ? "connectors.value.bundled" : "connectors.value.none")}</dd>
-    </dl>
     {item.hasCli && <section className={styles.card}>
       <h3>{t("connectors.type.cli")}</h3><p>{t("connectors.overview.cli")}</p>
+      <p className={styles.hint}>{t("connectors.field.bin")} · {t(item.hasBin ? "connectors.value.bundled" : "connectors.value.none")}</p>
     </section>}
     {item.hasMcp && <section className={styles.stack}>
       <h3>{t("connectors.section.mcp")}</h3>
