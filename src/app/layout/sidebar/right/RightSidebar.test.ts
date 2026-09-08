@@ -27,6 +27,7 @@ jest.mock("antd", () => {
     },
     Flex: ({ children, gap, ...props }: any) =>
       React.createElement("div", { ...props, "data-gap": gap }, children),
+    Tooltip: ({ children }: any) => children,
     Typography: {
       Text: ({ children, ellipsis: _ellipsis, ...props }: any) =>
         React.createElement("span", props, children),
@@ -77,6 +78,14 @@ jest.mock("@/features/skills/components/SkillDetailView", () => ({
 
 jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({
   ContentViewerPanel: () => React.createElement("div", null, "viewer tab"),
+}));
+
+jest.mock("@/features/viewers/components/ViewerTabContextMenu", () => ({
+  ViewerTabContextMenu: jest.fn(({ children }) => children),
+}));
+
+jest.mock("@/features/viewers/lib/viewerRuntime", () => ({
+  downloadViewerTarget: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({
@@ -348,6 +357,43 @@ describe("RightSidebar", () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: "REFRESH_WEB_PREVIEW",
       url: "https://www.baidu.com/",
+    });
+  });
+
+  it("binds the viewer menu to the right-clicked tab even when another viewer is active", () => {
+    const activeTarget = {
+      type: "resource", name: "active.pdf", url: "artifacts/active.pdf",
+      downloadUrl: "artifacts/active.pdf", contentKind: "pdf",
+    };
+    const clickedTarget = {
+      type: "resource", name: "manual.docx", url: "references/manual.docx",
+      downloadUrl: "references/manual.docx", contentKind: "office",
+    };
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "viewer",
+      viewerTabs: [activeTarget, clickedTarget],
+      activeViewerKey: "resource:artifacts/active.pdf",
+    });
+    renderRightSidebar();
+    const DefaultTabBar = ({ children }: any) => children(React.createElement(
+      "span", { key: "viewer:resource:references/manual.docx" }, "manual.docx",
+    ));
+    renderToStaticMarkup(mockTabsState.current.renderTabBar({}, DefaultTabBar));
+    const { ViewerTabContextMenu } = jest.requireMock(
+      "@/features/viewers/components/ViewerTabContextMenu",
+    );
+    const props = ViewerTabContextMenu.mock.calls.at(-1)[0];
+    expect(props.target).toBe(clickedTarget);
+    expect(props.chatId).toBe("chat_1");
+    props.onDownload();
+    expect(jest.requireMock("@/features/viewers/lib/viewerRuntime").downloadViewerTarget)
+      .toHaveBeenCalledWith(clickedTarget, { chatId: "chat_1", teamChat: false });
+    props.onClose();
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", removeViewerKey: "resource:references/manual.docx",
     });
   });
 });

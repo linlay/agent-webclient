@@ -284,6 +284,11 @@ module.exports = (env, argv) => {
         },
       ],
       setupMiddlewares: (middlewares, devServer) => {
+        const { createStandaloneFileActions } = require('./scripts/standalone-file-actions.cjs');
+        middlewares.unshift({
+          name: 'standalone-file-actions',
+          middleware: createStandaloneFileActions(),
+        });
         devServer.app.get('/export/conversation.template.html', (_req, res) => {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
           res.setHeader('Cache-Control', 'no-store');

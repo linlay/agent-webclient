@@ -145,13 +145,15 @@ describe('webpack devServer proxy', () => {
       setHeader(name: string, value: string): void;
       end(body: string): void;
     }) => void) | undefined;
-    config.devServer?.setupMiddlewares?.([], {
+    const middlewares: Array<{ name: string; middleware: unknown }> = [];
+    config.devServer?.setupMiddlewares?.(middlewares, {
       app: {
         get(path: string, handler: typeof runtimeConfigHandler) {
           if (path === '/runtime-config.js') runtimeConfigHandler = handler;
         },
       },
     });
+    expect(middlewares[0]).toEqual({ name: 'standalone-file-actions', middleware: expect.any(Function) });
     let body = '';
     runtimeConfigHandler?.({}, {
       setHeader() {},

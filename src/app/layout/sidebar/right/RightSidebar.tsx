@@ -11,6 +11,7 @@ import {
   type TabsProps,
 } from "antd";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
+import { ViewerTabContextMenu } from "@/features/viewers/components/ViewerTabContextMenu";
 import { DebugTab } from "@/features/debug/components/DebugTab";
 import { OverviewTab } from "@/features/overview/components/OverviewTab";
 import { SourceDetailTab } from "@/features/source/components/SourceDetailTab";
@@ -591,6 +592,33 @@ export const RightSidebar: React.FC = () => {
                 const isWebTab = node.key.startsWith("web:");
                 const isViewerTab = node.key.startsWith("viewer:");
 
+                if (isViewerTab) {
+                  const tabKey = node.key;
+                  const viewerKey = tabKey.slice("viewer:".length);
+                  const target = viewerTabs.find(
+                    (item) => getViewerTargetKey(item) === viewerKey,
+                  );
+                  if (!target) return node;
+                  return (
+                    <ViewerTabContextMenu
+                      key={tabKey}
+                      target={target}
+                      chatId={state.chatId}
+                      teamChat={teamChat}
+                      onDownload={() => handleViewerDownload(target)}
+                      onFullscreen={() => {
+                        setTabFullscreenRequests((prev) => ({
+                          ...prev,
+                          [tabKey]: (prev[tabKey] ?? 0) + 1,
+                        }));
+                      }}
+                      onClose={() => handleCloseTab(tabKey)}
+                    >
+                      {node}
+                    </ViewerTabContextMenu>
+                  );
+                }
+
                 const menuitems = [
                   ...(isWebTab
                     ? [
@@ -640,49 +668,7 @@ export const RightSidebar: React.FC = () => {
                           },
                         },
                       ]
-                    : isViewerTab
-                      ? [
-                          {
-                            key: "download",
-                            label: t("contentViewer.action.download"),
-                            icon: (
-                              <MaterialIcon
-                                name="download"
-                                className="tw:opacity-[0.5]"
-                              />
-                            ),
-                            onClick: () => {
-                              const viewerKey = (node.key as string).slice(
-                                "viewer:".length,
-                              );
-                              const target = viewerTabs.find(
-                                (item) =>
-                                  getViewerTargetKey(item) === viewerKey,
-                              );
-                              if (target) {
-                                handleViewerDownload(target);
-                              }
-                            },
-                          },
-                          {
-                            key: "fullscreen",
-                            label: t("rightSidebar.web.contextMenu.fullscreen"),
-                            icon: (
-                              <MaterialIcon
-                                name="crop_free"
-                                className="tw:opacity-[0.5]"
-                              />
-                            ),
-                            onClick: () => {
-                              const tabKey = node.key as string;
-                              setTabFullscreenRequests((prev) => ({
-                                ...prev,
-                                [tabKey]: (prev[tabKey] ?? 0) + 1,
-                              }));
-                            },
-                          },
-                        ]
-                      : []),
+                    : []),
                   {
                     key: "close",
                     label: t("rightSidebar.web.contextMenu.close"),

@@ -1,4 +1,9 @@
-import { downloadResource, getAgentFile, getResourceDocumentMetadata, getResourceDocumentText, getResourceText } from "@/shared/data";
+import { downloadResource, getAgentFile, getResourceBlob, getResourceDocumentMetadata, getResourceDocumentText, getResourceText } from "@/shared/data";
+import {
+  requestStandaloneFileAction,
+  type StandaloneFileAction,
+  type StandaloneFileCapabilities,
+} from "@/shared/data/standalone/standaloneFileActions";
 import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { t } from "@/shared/i18n";
 
@@ -74,6 +79,20 @@ export function readViewerResourceText(
   teamChat = false,
 ): Promise<string> {
   return getResourceText(source, { chatId, teamChat, signal });
+}
+
+export async function openStandaloneViewerTarget(
+  action: StandaloneFileAction,
+  target: ViewerTarget,
+  options: { chatId: string; teamChat?: boolean },
+  capabilities: StandaloneFileCapabilities,
+): Promise<void> {
+  const source = target.type === "file"
+    ? String((await getAgentFile({ agentKey: target.agentKey, path: target.path })).data.contentUrl || "")
+    : target.downloadUrl || target.url;
+  if (!source) throw new Error(t("contentViewer.localAction.failed"));
+  const blob = await getResourceBlob(source, options);
+  await requestStandaloneFileAction(action, target.name, blob, capabilities);
 }
 
 export function readViewerResourceDocument(
