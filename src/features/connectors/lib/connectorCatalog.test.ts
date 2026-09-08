@@ -1,5 +1,5 @@
 import type { AdminToolSummary, ConnectorSummary } from "@/shared/data";
-import { connectorFiles, connectorsRoutePath, filterConnectors, isConnectorCatalogUpdate, toolsForConnector, unassignedConnectorTools } from "./connectorCatalog";
+import { connectorFiles, connectorToolDisplayName, connectorsRoutePath, filterConnectorTools, filterConnectors, isConnectorCatalogUpdate, toolsForConnector, unassignedConnectorTools } from "./connectorCatalog";
 import { parseConnectorDefinition, updateConnectorField } from "./connectorDefinition";
 
 const mixed: ConnectorSummary = { id: "search", name: "Search", version: "1.0.0", type: "cli", auth_mode: "none", hasMcp: true, hasCli: true, hasBin: true, skills: ["lookup"], mcp: [
@@ -22,6 +22,18 @@ describe("connector catalog and definitions", () => {
     expect(toolsForConnector(tools, mixed).map(item => item.key)).toEqual(["main", "extra"]);
     expect(unassignedConnectorTools(tools, [mixed, cli]).map(item => item.key)).toEqual(["neighbor", "missing"]);
     expect(toolsForConnector(tools, cli)).toEqual([]);
+  });
+  it("displays the exact original MCP name and only strips known generated prefixes from older responses", () => {
+    const prefixed = tool("mcp_0006cb5d2c648af7_sheet_unset_freeze", "docs");
+    const original = "sheet.unset_freeze_with_a_name_longer_than_the_routing_limit";
+    expect(connectorToolDisplayName({ ...prefixed, mcpToolName: original })).toBe(original);
+    expect(connectorToolDisplayName(prefixed)).toBe("sheet_unset_freeze");
+    expect(connectorToolDisplayName({ ...prefixed, label: "取消冻结" })).toBe("取消冻结");
+    expect(connectorToolDisplayName({ ...prefixed, mcpToolName: prefixed.name })).toBe(prefixed.name);
+    expect(connectorToolDisplayName(tool("mcp_custom_sheet_unset_freeze"))).toBe("mcp_custom_sheet_unset_freeze");
+    expect(filterConnectorTools([{ ...prefixed, mcpToolName: original, description: "删除所有冻结行列" }], "SHEET.UNSET")).toHaveLength(1);
+    expect(filterConnectorTools([{ ...prefixed, description: "删除所有冻结行列" }], "冻结")).toHaveLength(1);
+    expect(prefixed.key).toBe("mcp_0006cb5d2c648af7_sheet_unset_freeze");
   });
   it("uses the new route and update reason", () => {
     expect(connectorsRoutePath("search/a", "lang=zh-CN&theme=dark")).toBe("/connectors/search%2Fa?lang=zh-CN&theme=dark");

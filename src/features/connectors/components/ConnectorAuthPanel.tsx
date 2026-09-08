@@ -33,7 +33,7 @@ export function ConnectorAuthPanel({ item, disabled, onConfigure, onCredentialsC
     ? t(`connectors.auth.error.${auth.error.status}`)
     : auth.error?.message.startsWith("connectors.auth.error.") ? t(auth.error.message) : auth.error?.message;
 
-  return <section className={styles.card} aria-label={t("connectors.auth.title")}>
+  return <section className={styles.group} aria-label={t("connectors.auth.title")}>
     <div className={styles.toolbar}>
       <h3>{t("connectors.auth.title")}</h3>
       {item.auth_mode !== "token" && <UiTag role="status" tone={status === "authorized" ? "accent" : ["failed", "expired"].includes(status) ? "danger" : "muted"}>{t(`connectors.auth.status.${status}`)}</UiTag>}

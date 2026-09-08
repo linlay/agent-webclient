@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { cancelConnectorAuth, getAdminConnectors, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
+import { cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
@@ -69,4 +69,12 @@ it("consumes the Platform envelope through the existing identity client and pres
     globalThis.fetch = originalFetch;
     setAccessToken("");
   }
+});
+
+
+it("scopes connector skill queries to the admin connector and original skill name", async () => {
+  await getConnectorSkills("builtin.dbx");
+  await getConnectorSkillDetail("builtin.dbx", "query&report");
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/connectors/skills?id=builtin.dbx");
+  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/skills/detail?id=builtin.dbx&name=query%26report");
 });

@@ -4,8 +4,10 @@
 设置菜单统一显示“连接器”，主路由为 `/connectors` 和 `/connectors/:connectorId`，旧 `/mcp-servers` 路由保留为页面入口别名。详情使用安装包 id；页面壳负责路由与查询参数适配，领域实现归 `src/features/connectors/`。
 
 - `GET /api/admin/connectors` 读取 `data.connectors[]` 中的清单、CLI/MCP/bin/skills 标识和各 MCP 组件同步状态。
-- `GET /api/admin/tools` 读取 MCP 工具摘要，按每个组件的完整 serverKey 精确归属；未匹配工具单独展示。
+- `GET /api/admin/tools` 读取 MCP 工具摘要，按每个组件的完整 serverKey 精确归属；未匹配工具单独展示。工具名称优先使用 mcpToolName，不重复展示内部调用 key；旧响应仅去除已知的 mcp_<16 位十六进制>_ 前缀，实际调用标识保持不变。超过 8 个工具时提供名称与描述搜索。
 - `GET /api/admin/connectors/detail?id=...&file=...` 读取已存在的 connector.json、mcp.json、cli.json。
+- `GET /api/admin/connectors/skills?id=...` 读取指定原包的技能名称、描述、版本、触发词、文档相对路径、大小和更新时间。
+- `GET /api/admin/connectors/skills/detail?id=...&name=...` 读取包内指定技能的上述元数据及完整 SKILL.md、sha256；不使用技能中心或运行时的 Skill 接口。
 - `PUT /api/admin/connectors/detail` 提交 id、file、content 和必填 baseSha256，完整包校验和 reload 由后端负责。
 - `POST /api/admin/connectors/import` 使用 multipart 的 `file` 上传 ZIP，需要覆盖时额外提交 `overwrite=true`；成功读取 `data.id/name/version/installed/authMode`。
 - `GET /api/admin/connectors/auth?id=...` 恢复或轮询当前授权状态；`POST` 同地址异步开始登录，`DELETE` 同地址退出并清除此部署的连接器凭据。
@@ -14,9 +16,11 @@
 旧 MCP Registry YAML 接口与前端实现已移除。页面支持外部连接器 ZIP 导入，不提供删除入口；`builtin` 或 `readOnly` 标记的内置包仅可查看和复制配置，不能保存或通过 ZIP 覆盖。
 
 ## 展示与编辑
-列表按名称、id、技能和组件 serverKey 搜索。CLI/MCP 筛选依据 hasCli/hasMcp，同一混合包可以出现在两种筛选结果中。概览展示主类型、认证声明、bin、附带技能及 MCP 组件；纯 CLI 包不显示 MCP 同步状态。CLI 的 init/versionCheck/登录声明不会由配置编辑页面执行，包内可执行文件可以随 ZIP 导入。
+列表按名称、id、技能和组件 serverKey 搜索。CLI/MCP 筛选依据 hasCli/hasMcp，同一混合包可以出现在两种筛选结果中。列表不显示 ID：首行名称与版本两端对齐，底行左侧显示已观察到的登录状态或同步失败，右侧显示 CLI/MCP 类型。未读取的授权状态显示“尚未确认”。布局参考技能管理台，以标题和间距分组，减少嵌套边框。
 
-MCP 组件分别展示 pending/syncing/ready/unavailable/disabled、工具数、同步时间和诊断。unavailable 且存在工具时标记上次成功快照；ready 且 toolCount 为零时明确表示远端返回零工具。serverKey 使用后端返回的完整值，不根据 id 前缀猜测归属。
+详情分为“概览 / 配置 / 技能（数量）”。概览保留基本信息与账号授权，配置展示 CLI/bin 说明、MCP 组件、工具及同步状态；CLI 的 init/versionCheck/登录声明不会由配置编辑页面执行，包内可执行文件可以随 ZIP 导入。
+
+MCP 组件分别展示 unmounted/pending/syncing/ready/unavailable/disabled、工具数、同步时间和诊断。未挂载组件提示挂载到 Agent 后同步；unavailable 且存在工具时标记上次成功快照；ready 且 toolCount 为零时明确表示远端返回零工具。serverKey 使用后端返回的完整值，不根据 id 前缀猜测归属。
 
 详情不再重复渲染名称、ID、描述头部。“概览”的基本信息是 connector.json 的唯一编辑入口，支持名称、版本、描述表单和完整 JSON 源码；主类型、ID 与认证声明也在这里展示。“配置”只展示包实际包含的 cli.json/mcp.json；仅有一个组件时不重复展示文件选择按钮。概览与配置由当前文件统一驱动，切换被未保存确认阻止时不会产生标签与编辑文件错位。
 
@@ -35,8 +39,13 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 
 授权变化后刷新目录、详情中的 MCP 元数据和工具快照，不重载配置草稿。登录成功与 MCP tools/list 同步就绪分别展示。账号授权按部署共享，退出前需在页面内确认影响范围。OAuth/MCP 回调要求浏览器与 Platform 在同一台机器，当前不支持远程浏览器回调。联调需要运行带上述接口的 Platform 版本及有效平台身份，旧服务需要更新并重启；真实扫码或账号确认由用户完成。
 
+## 技能详情
+进入技能页时按连接器 ID 加载独立技能列表，自动选择第一项，也可切换技能查看描述、版本、触发词、文档相对路径和更新时间。SKILL.md 提供 Markdown 说明预览和完整源码，只读展示不执行脚本、不编辑包内容。页签数量来自连接器目录；无技能、加载失败和重试有独立状态。
+
+打开技能页不丢弃概览或配置草稿，返回原文件无需再次加载。切换连接器、技能或刷新时忽略旧响应，避免同名技能串包。技能版本或名称集合变化会刷新技能列表，内容也可手动刷新。
+
 ## ZIP 导入
-目录工具栏提供“导入 ZIP”，支持选择或拖入单个文件。前端检查 ZIP 扩展名、非空和 64 MiB 上传上限；完整包结构、解压大小、路径安全和 manifest 校验交由后端。ZIP 可以直接包含 connector.json，也可以使用与包 id 一致的单层目录，按需携带 cli.json、mcp.json、bin 和 skills。
+目录工具栏提供“导入”，支持选择或拖入单个 ZIP 文件。前端检查 ZIP 扩展名、非空和 64 MiB 上传上限；完整包结构、解压大小、路径安全和 manifest 校验交由后端。ZIP 可以直接包含 connector.json，也可以使用与包 id 一致的单层目录，按需携带 cli.json、mcp.json、bin 和 skills。
 
 首次上传不覆盖已安装包。仅当后端返回 `409 connector_exists` 时展示覆盖警告，用户再次点击“确认覆盖导入”后才发送 `overwrite=true`；更换文件清除覆盖状态。413 显示服务器大小限制提示，内置包覆盖错误显示只读说明，其他错误展示后端诊断并保留所选文件。
 
@@ -49,12 +58,14 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 - `src/app/pages/connectors/index.tsx`
 - `src/features/connectors/components/ConnectorsConsole.tsx`
 - `src/features/connectors/components/ConnectorConfigEditor.tsx`
-- `src/features/connectors/components/ConnectorOverview.tsx`
+- `src/features/connectors/components/ConnectorComponents.tsx`
+- `src/features/connectors/components/ConnectorSkills.tsx`
 - `src/features/connectors/components/ConnectorImportModal.tsx`
 - `src/features/connectors/components/ConnectorAuthPanel.tsx`
 - `src/features/connectors/hooks/useConnectorsRuntime.ts`
 - `src/features/connectors/hooks/useConnectorImport.ts`
 - `src/features/connectors/hooks/useConnectorAuth.ts`
+- `src/features/connectors/hooks/useConnectorSkills.ts`
 - `src/features/connectors/lib/connectorAuth.ts`
 - `src/shared/data/api/dto/connectors.ts`
 - `src/shared/data/api/requests/connectors.ts`

@@ -24,6 +24,7 @@ export interface AdminToolSummary {
   sourceType: string;
   sourceCategory: AdminToolSourceCategory;
   serverKey?: string;
+  mcpToolName?: string;
 }
 
 export interface AdminRegistryDiagnostic {

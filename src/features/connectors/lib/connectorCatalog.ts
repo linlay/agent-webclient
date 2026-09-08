@@ -19,6 +19,18 @@ export function toolsForConnector(tools: AdminToolSummary[], item: ConnectorSumm
   return tools.filter(tool => tool.sourceCategory === "mcp" && keys.has(tool.serverKey || ""));
 }
 
+export function connectorToolDisplayName(tool: AdminToolSummary): string {
+  const name = tool.mcpToolName?.trim() || tool.label?.trim() || tool.name || tool.key;
+  // Older admin responses only expose the generated routing name.
+  return tool.mcpToolName?.trim() ? name : name.replace(/^mcp_[0-9a-f]{16}_(?=.)/i, "");
+}
+
+export function filterConnectorTools(tools: AdminToolSummary[], search: string): AdminToolSummary[] {
+  const needle = search.trim().toLowerCase();
+  return tools.filter(tool => [connectorToolDisplayName(tool), tool.label, tool.description, tool.key]
+    .filter(Boolean).join(" ").toLowerCase().includes(needle));
+}
+
 export function unassignedConnectorTools(tools: AdminToolSummary[], items: ConnectorSummary[]): AdminToolSummary[] {
   const keys = new Set(items.flatMap(item => (item.mcp || []).map(server => server.serverKey)));
   return tools.filter(tool => tool.sourceCategory === "mcp" && !keys.has(tool.serverKey || ""));

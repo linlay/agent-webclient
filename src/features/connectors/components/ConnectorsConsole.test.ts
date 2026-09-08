@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { ApiError, getAdminConnectors, getAdminTools, getConnectorAuthStatus, getConnectorDefinition, updateConnectorDefinition } from "@/shared/data";
+import { ApiError, getAdminConnectors, getAdminTools, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, updateConnectorDefinition } from "@/shared/data";
 import type { ConnectorSummary } from "@/shared/data";
 import { I18nProvider } from "@/shared/i18n";
 import { ConnectorsConsole } from "./ConnectorsConsole";
@@ -14,6 +14,7 @@ jest.mock("./ConnectorImportModal", () => ({ ConnectorImportModal: () => null })
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
   getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), updateConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(),
+  getConnectorSkills: jest.fn(), getConnectorSkillDetail: jest.fn(),
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
 }));
 const item: ConnectorSummary = { id: "demo", name: "Demo connector", version: "1.0", description: "Connector description", type: "cli", auth_mode: "cli", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
@@ -34,6 +35,7 @@ beforeEach(() => {
   jest.mocked(getAdminTools).mockResolvedValue({ code: 0, msg: "", data: [] });
   jest.mocked(getConnectorDefinition).mockImplementation(async target => ({ code: 0, msg: "", data: { ...target, sha256: "original", content: JSON.stringify(target.file === "connector.json" ? item : target.file === "mcp.json" ? { mcpServers: { main: { type: "http", url: "https://mcp.example" } } } : { auth: "configured-cli login" }) } }));
   jest.mocked(getConnectorAuthStatus).mockResolvedValue({ code: 0, msg: "", data: { connectorId: item.id, sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" } });
+  jest.mocked(getConnectorSkills).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skills: [] } });
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -117,4 +119,55 @@ it("saves overview fields to connector.json with the current base hash", async (
   await click("保存配置");
   expect(updateConnectorDefinition).toHaveBeenCalledWith(expect.objectContaining({ id: "demo", file: "connector.json", baseSha256: "original", content: expect.stringContaining("Renamed connector") }));
   expect(button("概览").textContent).toBe("概览");
+});
+
+
+it("shows three tabs, moves component details into configuration, and keeps skill browsing read-only", async () => {
+  const skill = { name: "demo-guide", description: "Read connector records", version: "2.0.0", path: "skills/demo-guide/SKILL.md", size: 120, updatedAt: 0 };
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, skills: [skill.name], mcp: [{ serverKey: "demo", status: "unmounted", toolCount: 0 }] }] } });
+  jest.mocked(getConnectorSkills).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skills: [skill] } });
+  jest.mocked(getConnectorSkillDetail).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skill, content: "---\nname: demo-guide\ndescription: Read connector records\n---\n# Complete guide\nQuery records with the CLI.", sha256: "skill-hash" } });
+  await mount();
+  expect(detail().textContent).not.toContain("MCP 组件与工具");
+  expect(getConnectorSkills).not.toHaveBeenCalled();
+  await click("配置");
+  expect(detail().textContent).toContain("MCP 组件与工具");
+  expect(detail().textContent).toContain("未挂载");
+  await click("技能1");
+  expect(getConnectorSkills).toHaveBeenCalledWith("demo");
+  expect(getConnectorSkillDetail).toHaveBeenCalledWith("demo", "demo-guide");
+  expect(detail().textContent).toContain("Read connector records");
+  expect(detail().textContent).toContain("2.0.0");
+  expect(detail().textContent).toContain("Complete guide");
+  expect(button("保存配置")).toBeUndefined();
+  await click("源码");
+  expect(detail().querySelector("pre")?.textContent).toContain("name: demo-guide");
+});
+
+it("preserves a manifest draft while inspecting the empty skills tab", async () => {
+  await mount();
+  const input = detail().querySelector<HTMLInputElement>("input")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "Draft name");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await click("技能0");
+  expect(detail().textContent).toContain("此连接器未附带技能");
+  await click("概览");
+  expect(detail().querySelector<HTMLInputElement>("input")?.value).toBe("Draft name");
+  expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
+});
+
+it("uses compact name/version and status/type rows without exposing the connector id in the list", async () => {
+  await mount();
+  const listItem = container.querySelector('aside button[aria-current="true"]')!;
+  expect(listItem.querySelector("code")).toBeNull();
+  const heading = listItem.querySelector("strong")!.parentElement!;
+  expect(heading.firstElementChild?.textContent).toBe(item.name);
+  expect(heading.lastElementChild?.textContent).toBe("v1.0");
+  const footer = listItem.lastElementChild!;
+  expect(footer.firstElementChild?.textContent).toBe("未登录");
+  expect(footer.lastElementChild?.textContent).toBe("CLIMCP");
+  expect(button("导入")).toBeDefined();
+  expect(container.textContent).not.toContain("可通过 ZIP 导入外部连接器");
 });

@@ -5,7 +5,7 @@ import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, logoutConnectorA
 import type { ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
 import { I18nProvider } from "@/shared/i18n";
 import { ConnectorAuthPanel } from "./ConnectorAuthPanel";
-import { ConnectorOverview } from "./ConnectorOverview";
+import { ConnectorComponents } from "./ConnectorComponents";
 
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
@@ -21,7 +21,7 @@ const response = (status: ConnectorAuthSession["status"], values: Partial<Connec
 async function mount(connector = item, locale: "zh-CN" | "en-US" = "zh-CN") {
   await act(async () => root.render(React.createElement(I18nProvider, { locale, persistLocale: false }, React.createElement(React.Fragment, null,
     React.createElement(ConnectorAuthPanel, { key: `${connector.id}/${connector.auth_mode}`, item: connector, onConfigure, onCredentialsChange, onStatusChange }),
-    React.createElement(ConnectorOverview, { item: connector, tools: [] }),
+    React.createElement(ConnectorComponents, { item: connector, tools: [] }),
   ))));
 }
 const button = (text: string) => Array.from(container.querySelectorAll("button")).find(node => node.textContent === text)!;

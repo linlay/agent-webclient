@@ -4,7 +4,8 @@ export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json"
 export interface ConnectorMcpStatus {
   serverKey: string;
   toolCount: number;
-  status: "pending" | "syncing" | "ready" | "unavailable" | "disabled";
+  status: "pending" | "syncing" | "ready" | "unavailable" | "disabled" | "unmounted";
+  agentKey?: string;
   lastSyncAttemptAt?: number;
   lastSyncSuccessAt?: number;
   diagnostic?: { severity: string; code: string; message: string };
@@ -31,6 +32,28 @@ export interface ConnectorSummary {
 
 export interface ConnectorListResponse {
   connectors: ConnectorSummary[];
+}
+
+export interface ConnectorSkillSummary {
+  name: string;
+  description: string;
+  version?: string;
+  triggers?: string[];
+  path: string;
+  size: number;
+  updatedAt: number;
+}
+
+export interface ConnectorSkillListResponse {
+  connectorId: string;
+  skills: ConnectorSkillSummary[];
+}
+
+export interface ConnectorSkillDetail {
+  connectorId: string;
+  skill: ConnectorSkillSummary;
+  content: string;
+  sha256: string;
 }
 
 export interface ConnectorDefinitionTarget {

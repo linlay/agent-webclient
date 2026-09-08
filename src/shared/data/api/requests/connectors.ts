@@ -3,6 +3,7 @@ import type {
   ConnectorDefinition, ConnectorDefinitionTarget, ConnectorListResponse,
   UpdateConnectorDefinitionRequest,
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
+  ConnectorSkillListResponse, ConnectorSkillDetail,
   ConnectorAuthSession, ConnectorAuthActionResult,
 } from "@/shared/data/api/dto/connectors";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
@@ -11,6 +12,14 @@ import { endpointQuery, withQuery } from "@/shared/data/api/queryParams";
 
 export function getAdminConnectors(): Promise<ApiResponse<ConnectorListResponse>> {
   return requestJson<ConnectorListResponse>(dataEndpoints.adminConnectors.path);
+}
+
+export function getConnectorSkills(id: string): Promise<ApiResponse<ConnectorSkillListResponse>> {
+  return requestJson(withQuery(dataEndpoints.adminConnectorSkills.path, endpointQuery(dataEndpoints.adminConnectorSkills, { id })));
+}
+
+export function getConnectorSkillDetail(id: string, name: string): Promise<ApiResponse<ConnectorSkillDetail>> {
+  return requestJson(withQuery(dataEndpoints.adminConnectorSkillDetail.path, endpointQuery(dataEndpoints.adminConnectorSkillDetail, { id, name })));
 }
 
 export function getConnectorDefinition(target: ConnectorDefinitionTarget): Promise<ApiResponse<ConnectorDefinition>> {

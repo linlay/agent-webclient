@@ -319,6 +319,20 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  adminConnectorSkills: defineEndpoint<{ id: string }, { id: string }>({
+    key: "admin.connectors.skills",
+    path: "/api/admin/connectors/skills",
+    method: "GET",
+    transport: "http",
+    payload: ({ id }) => ({ id }),
+  }),
+  adminConnectorSkillDetail: defineEndpoint<{ id: string; name: string }, { id: string; name: string }>({
+    key: "admin.connectors.skills.detail",
+    path: "/api/admin/connectors/skills/detail",
+    method: "GET",
+    transport: "http",
+    payload: ({ id, name }) => ({ id, name }),
+  }),
   adminConnectorAuthStatus: defineEndpoint({
     key: "admin.connectors.auth.status",
     path: "/api/admin/connectors/auth",

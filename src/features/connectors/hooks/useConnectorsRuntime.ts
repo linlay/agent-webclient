@@ -131,11 +131,13 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   }, []);
 
   const selectFile = (next: ConnectorDefinitionFile) => {
-    if (next === activeFile || savingRef.current || importingRef.current) return;
-    if (dirty && !window.confirm(t("connectors.confirm.discard"))) return;
+    if (savingRef.current || importingRef.current) return false;
+    if (next === activeFile) return true;
+    if (dirty && !window.confirm(t("connectors.confirm.discard"))) return false;
     setDetail(null);
     setDraft("");
     setFile(next);
+    return true;
   };
   const reload = () => {
     if (savingRef.current || importingRef.current || (dirty && !window.confirm(t("connectors.confirm.discard")))) return;

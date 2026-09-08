@@ -52,7 +52,7 @@ export function ConnectorConfigEditor({ file, draft, disabled, readOnly = false,
         {Object.entries(jsonRecord(parsed?.mcpServers)).map(([key, raw]) => {
           const server = jsonRecord(raw);
           const stdio = server.type === "stdio";
-          return <section className={styles.card} key={key}>
+          return <section className={styles.group} key={key}>
             <div className={styles.toolbar}><strong>{key}</strong><code>{String(server.type || "")}</code></div>
             <div className={styles.formGrid}>
               {field(t(stdio ? "connectors.field.command" : "connectors.field.url"), ["mcpServers", key, stdio ? "command" : "url"], stdio ? server.command : server.url)}
