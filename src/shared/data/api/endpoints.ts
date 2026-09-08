@@ -1026,6 +1026,14 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  view: defineEndpoint<import("@/shared/contracts/view").ViewRequest>({
+    key: "view.detail",
+    path: "/api/view",
+    method: "GET",
+    transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
+    payload: (params) => ({ ...params }),
+  }),
   viewport: defineEndpoint<string, { viewportKey: string }>({
     key: "viewport.detail",
     path: "/api/viewport",

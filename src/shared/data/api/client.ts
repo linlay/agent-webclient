@@ -176,6 +176,7 @@ export type * from "@/shared/data/api/dto/skills";
 export type * from "@/shared/data/api/dto/models";
 export type * from "@/shared/data/api/dto/archives";
 export * from "@/shared/data/api/requests/chats";
+export * from "@/shared/data/api/requests/views";
 export {
   buildResourceUrl,
   isLegacyResourceUrl,

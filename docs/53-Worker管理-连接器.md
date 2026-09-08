@@ -69,3 +69,7 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 - `src/features/connectors/lib/connectorAuth.ts`
 - `src/shared/data/api/dto/connectors.ts`
 - `src/shared/data/api/requests/connectors.ts`
+
+## VIEW
+
+连接器主类型增加 `view`，组件摘要提供 `hasView/views`，管理台可筛选 VIEW、查看 key/renderer/usage 并编辑 `view.json`。可与 MCP/CLI 同包，复用原 ZIP 导入与 hash 并发保存。渲染接入见 [VIEW连接器](46-交互容器-VIEW连接器.md)。

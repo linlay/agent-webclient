@@ -116,13 +116,13 @@ describe("RegistryConsole", () => {
     expect(html).not.toContain("command-modal-section");
   });
 
-  it("renders the non-MCP registry console in Chinese", () => {
+  it("renders provider/model/tool management in Chinese", () => {
     const html = renderRegistryConsole("zh-CN");
 
     expect(html).toContain("搜索 registry 配置");
     expect(html).toContain("供应商");
     expect(html).toContain("模型");
-    expect(html).toContain("视口服务器");
+    expect(html).not.toContain("视口服务器");
     expect(html).toContain("工具");
     expect(html).not.toContain("MCP 服务器");
     expect(html).not.toContain("MCP 连接器");
@@ -130,18 +130,19 @@ describe("RegistryConsole", () => {
     expect(html).toContain("请选择或新建 registry 配置");
   });
 
-  it("renders the non-MCP registry console in English", () => {
+  it("renders provider/model/tool management in English", () => {
     const html = renderRegistryConsole("en-US");
 
     expect(html).toContain("Search registry configs");
     expect(html).toContain("Providers");
     expect(html).toContain("Models");
-    expect(html).toContain("Viewport Servers");
+    expect(html).not.toContain("Viewport Servers");
     expect(html).toContain("Tools");
     expect(html).not.toContain("MCP Servers");
   });
 
   it("filters registry items by category, status, summary, and diagnostic", () => {
+    expect(filterRegistryItems(registryItems, {}).map(item => item.category)).toEqual(["providers", "models"]);
     expect(registryItemKey(registryItems[0])).toBe("providers/openai.yml");
     expect(summaryLine({ key: "openai", protocols: ["OPENAI", "ANTHROPIC"] })).toBe(
       "key: openai · protocols: OPENAI, ANTHROPIC",
@@ -162,15 +163,15 @@ describe("RegistryConsole", () => {
       "new-provider.yml",
     );
     expect(
-      defaultRegistryFileName("viewport-servers", [
+      defaultRegistryFileName("models", [
         ...registryItems,
         {
-          category: "viewport-servers",
-          file: "new-viewport-server.yml",
+          category: "models",
+          file: "new-model.yml",
           status: "ready",
         },
       ]),
-    ).toBe("new-viewport-server-2.yml");
+    ).toBe("new-model-2.yml");
     expect(
       registryTemplateForCategory("models", "new-model.yml"),
     ).toContain("provider:");
@@ -185,8 +186,6 @@ describe("RegistryConsole", () => {
       "vision",
       "reasoner",
     ]);
-    expect(registryListTitle(registryItems[2])).toBe("preview");
-    expect(registryListMeta(registryItems[2], translate)).toBe("http://localhost:11970");
   });
 
   it("renders model capability chips as accessible icon-only tags", () => {

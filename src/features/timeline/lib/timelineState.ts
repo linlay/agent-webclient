@@ -135,6 +135,9 @@ export interface TimelineNode {
 	toolId?: string;
 	toolLabel?: string;
 	toolName?: string;
+	view?: import("@/shared/contracts/view").ViewReference;
+	viewError?: string;
+	viewChatId?: string;
 	viewportKey?: string;
 	description?: string;
 	argsText?: string;

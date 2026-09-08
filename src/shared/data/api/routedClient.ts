@@ -35,6 +35,7 @@ import {
 	getResourceText,
 	getTeams as getTeamsHttp,
 	getViewport as getViewportHttp,
+	getView as getViewHttp,
 	compactChat as compactChatHttp,
 	learnChat as learnChatHttp,
 	markChatRead as markChatReadHttp,
@@ -487,6 +488,10 @@ export function restoreArchives(params: {
 		invalidateRouteEndpoints(dataEndpoints.chats);
 		return response;
 	});
+}
+
+export function getView(params: import("@/shared/contracts/view").ViewRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewDocument>> {
+  return routeEndpoint(dataEndpoints.view, params, () => getViewHttp(params));
 }
 
 export function getViewport(viewportKey: string): Promise<ApiResponse> {

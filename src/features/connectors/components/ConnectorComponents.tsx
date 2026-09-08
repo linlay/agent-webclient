@@ -27,6 +27,13 @@ export function ConnectorComponents({ item, tools }: { item: ConnectorSummary; t
   const { t, locale } = useI18n();
   const time = (value?: number) => value ? new Date(value).toLocaleString(locale) : "—";
   return <div className={styles.stack}>
+    {item.hasView && <section className={styles.group}>
+      <h3>VIEW</h3>
+      {(item.views || []).map(view => <div className={styles.tool} key={view.key}>
+        <strong>{view.title || view.key}</strong>
+        <p>{view.key} · {view.renderer.toUpperCase()} · {view.usage.join(" / ")}</p>
+      </div>)}
+    </section>}
     {item.hasCli && <section className={styles.group}>
       <h3>{t("connectors.type.cli")}</h3><p>{t("connectors.overview.cli")}</p>
       <p className={styles.hint}>{t("connectors.field.bin")} · {t(item.hasBin ? "connectors.value.bundled" : "connectors.value.none")}</p>

@@ -65,7 +65,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
           <UiButton size="sm" variant="ghost" iconOnly aria-label={t("connectors.action.refresh")} disabled={runtime.loading || busy} onClick={() => void runtime.refreshCatalog()}><MaterialIcon name="refresh" /></UiButton>
         </div>
         <div className={styles.filters} aria-label={t("connectors.filter.label")}>
-          {(["all", "cli", "mcp"] as const).map(type => <button type="button" key={type} aria-pressed={filter === type} onClick={() => setFilter(type)}>{type === "all" ? t("connectors.filter.all") : type.toUpperCase()}</button>)}
+          {(["all", "cli", "mcp", "view"] as const).map(type => <button type="button" key={type} aria-pressed={filter === type} onClick={() => setFilter(type)}>{type === "all" ? t("connectors.filter.all") : type.toUpperCase()}</button>)}
         </div>
         <p className={styles.hint}>{runtime.catalogError && !runtime.items.length ? t("connectors.list.unavailable") : t("connectors.list.count", { count: runtime.items.length })}</p>
         <div className={styles.listScroll}>
@@ -77,7 +77,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
                 <span className={styles.itemStatus}>{(item.mcp || []).some(server => server.status === "unavailable")
                   ? <UiTag tone="danger">{t("connectors.sync.unavailable")}</UiTag>
                   : <UiTag tone={authStatuses[item.id] === "authorized" ? "accent" : "muted"}>{t(`connectors.auth.status.${authStatuses[item.id] || (item.auth_mode === "none" ? "not_required" : "unknown")}`)}</UiTag>}</span>
-                <span className={styles.badges}>{item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}{item.hasMcp && <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>}</span>
+                <span className={styles.badges}>{item.hasView && <UiTag tone="accent">VIEW</UiTag>}{item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}{item.hasMcp && <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>}</span>
               </span>
             </button>)}
             {!items.length && !runtime.loading && !runtime.catalogError && <p className={styles.empty}>{t("connectors.list.empty")}</p>}

@@ -39,8 +39,8 @@
 - `src/features/agents/`：Agent 管理台、创建、CRUD、排序、ZIP 导入、专属 Skill、模型/工具配置、源码编辑和项目创建能力
 - `src/features/model-config/`：Composer 与 Agent 管理台共用的模型菜单 presenter，以及模型、reasoning、service tier 的 React-free 归一化逻辑
 - `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
-- `src/features/registries/`：Registry 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑
-- `src/features/connectors/`：CLI/MCP 连接器安装包目录、ZIP 导入、组件概览、JSON 配置编辑与同步状态
+- `src/features/registries/`：providers/models 与非 MCP tools 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑；VIEW 统一在连接器管理，旧 viewport-servers 不进入此管理台
+- `src/features/connectors/`：MCP/CLI/VIEW 连接器安装包目录、ZIP 导入、组件概览、JSON 配置编辑与同步状态
 - `src/features/archive/` / `src/features/memory/`：归档与记忆管理页面、内嵌面板及各自运行时；不再归入 Settings
 - `src/features/command-center/` / `src/features/shortcuts/`：跨领域命令容器与全局快捷键装配
 - `src/features/debug/` / `src/features/overview/` / `src/features/source/`：右栏内容与独立 Viewer Surface
@@ -182,3 +182,5 @@ Git 提交与推送规范：
 - [90-交付运维-开发代理与Desktop托管](docs/90-交付运维-开发代理与生产反向代理.md)
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
+
+VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 继续兼容；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。

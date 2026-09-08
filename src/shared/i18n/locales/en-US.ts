@@ -491,7 +491,6 @@ export const enUSMessages = {
   "registryConsole.capability.vision": "Vision",
   "registryConsole.category.models": "Models",
   "registryConsole.category.providers": "Providers",
-  "registryConsole.category.viewport-servers": "Viewport Servers",
   "registryConsole.category.tools": "Tools",
   "registryConsole.confirm.discard": "This YAML has unsaved changes. Discard them?",
   "registryConsole.detail.empty": "Select or create a registry config.",

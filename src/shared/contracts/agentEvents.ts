@@ -375,6 +375,8 @@ export interface AIEventCommonFields {
   toolName?: string;
   toolType?: string;
   toolKey?: string;
+  view?: import("./view").ViewReference;
+  viewError?: string;
   viewportKey?: string;
   toolTimeout?: number | null;
   toolParams?: Record<string, unknown>;

@@ -1,3 +1,4 @@
+import { readViewReference } from "@/shared/contracts/view";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
@@ -308,6 +309,7 @@ export function buildToolTimelineNode(input: {
       existingToolState?.toolName,
       event.toolName,
     ),
+    ...(readViewReference(event.view) ? { view: readViewReference(event.view), viewError: toText(event.viewError), viewChatId: toText(event.chatId) } : existing?.view ? { view: existing.view, viewError: existing.viewError, viewChatId: existing.viewChatId } : {}),
     viewportKey:
       resolveViewportKey(event) ||
       existing?.viewportKey ||

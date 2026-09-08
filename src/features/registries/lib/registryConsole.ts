@@ -12,7 +12,7 @@ import type {
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 
 export type RegistryStatusFilter = "all" | AdminRegistryStatus;
-export type RegistryEditableCategory = AdminRegistryCategory;
+export type RegistryEditableCategory = Exclude<AdminRegistryCategory, "viewport-servers">;
 export type RegistryTranslate = (
   key: string,
   params?: Record<string, unknown>,
@@ -21,8 +21,12 @@ export type RegistryTranslate = (
 export const REGISTRY_CATEGORIES: RegistryEditableCategory[] = [
   "providers",
   "models",
-  "viewport-servers",
 ];
+// Legacy API categories remain in the transport DTO, but cannot be edited here.
+export function isRegistryEditableCategory(category: string): category is RegistryEditableCategory {
+  return REGISTRY_CATEGORIES.some(item => item === category);
+}
+
 export const REGISTRY_CONSOLE_TABS: RegistryConsoleTab[] = [
   ...REGISTRY_CATEGORIES,
   "tools",
@@ -56,7 +60,6 @@ export function defaultRegistryFileName(
   const stemByCategory: Record<RegistryEditableCategory, string> = {
     providers: "new-provider",
     models: "new-model",
-    "viewport-servers": "new-viewport-server",
   };
   const existingNames = new Set(
     existing
@@ -101,14 +104,6 @@ export function registryTemplateForCategory(
         "isFunction: true",
         "maxInputTokens: 128000",
         "maxOutputTokens: 8192",
-        "",
-      ].join("\n");
-    case "viewport-servers":
-      return [
-        `serverKey: ${key}`,
-        "baseUrl: http://localhost:11969",
-        'endpointPath: "/mcp"',
-        "timeout: 15",
         "",
       ].join("\n");
   }
@@ -270,7 +265,7 @@ export function toolListMeta(item: AdminRegistryListItem): string {
 }
 
 export function registryListTitle(item: AdminRegistryListItem): string {
-  if (item.category === "providers" || item.category === "viewport-servers") {
+  if (item.category === "providers") {
     return item.key || item.name || item.file;
   }
   return item.name || item.key || item.file;
@@ -294,8 +289,6 @@ export function registryListMeta(
           .filter(Boolean)
           .join(" · ") || registryDiagnosticText(item.diagnostic) || "--"
       );
-    case "viewport-servers":
-      return summaryString(summary, "baseUrl") || registryDiagnosticText(item.diagnostic) || "--";
     default:
       return summaryLine(summary) || registryDiagnosticText(item.diagnostic) || "--";
   }
@@ -347,6 +340,7 @@ export function filterRegistryItems(
   const needle = (filters.searchText || "").trim().toLowerCase();
   const statusFilter = filters.statusFilter || "all";
   return items.filter((item) => {
+    if (!isRegistryEditableCategory(item.category)) return false;
     if (filters.categoryFilter && item.category !== filters.categoryFilter) return false;
     if (statusFilter !== "all" && item.status !== statusFilter) return false;
     if (!needle) return true;

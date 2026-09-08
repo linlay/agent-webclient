@@ -1,10 +1,11 @@
+import { readViewReference } from "@/shared/contracts/view";
 import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
 import { parseViewportBlocks } from '@/features/events/lib/viewportParser';
 import type { ContentSegment } from '@/shared/contracts/contentSegments';
 
 export type { ContentSegment } from '@/shared/contracts/contentSegments';
 
-const SPECIAL_FENCE_HEADERS = ['```viewport', '```tts-voice'] as const;
+const SPECIAL_FENCE_HEADERS = ['```viewport', '```view', '```tts-voice'] as const;
 
 function pushTextSegment(segments: ContentSegment[], text: string): void {
   const normalized = String(text ?? '').trim();
@@ -62,7 +63,7 @@ export function stripPendingSpecialFenceTail(text: string): string {
   return raw.slice(0, pendingStart).replace(/[ \t]*\n?$/, '');
 }
 
-function findNextSpecialFence(raw: string, fromIndex: number): { kind: 'viewport' | 'ttsVoice'; start: number; contentStart: number } | null {
+function findNextSpecialFence(raw: string, fromIndex: number): { kind: 'viewport' | 'view' | 'ttsVoice'; start: number; contentStart: number } | null {
   let cursor = Math.max(0, fromIndex || 0);
   while (cursor < raw.length) {
     const start = raw.indexOf('```', cursor);
@@ -72,6 +73,7 @@ function findNextSpecialFence(raw: string, fromIndex: number): { kind: 'viewport
     const headerEnd = lineEnd === -1 ? raw.length : lineEnd + 1;
     const headerLine = raw.slice(start, lineEnd === -1 ? raw.length : lineEnd);
 
+    if (matchesFenceHeader(headerLine, 'view')) return { kind: 'view', start, contentStart: headerEnd };
     if (matchesFenceHeader(headerLine, 'viewport')) {
       return { kind: 'viewport', start, contentStart: headerEnd };
     }
@@ -116,7 +118,7 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
   if (!raw.trim()) return [];
 
   const lowerRaw = raw.toLowerCase();
-  if (!lowerRaw.includes('```viewport') && !lowerRaw.includes('```tts-voice')) {
+  if (!lowerRaw.includes('```view') && !lowerRaw.includes('```tts-voice')) {
     return [{ kind: 'text', text: raw.trim() }];
   }
 
@@ -132,6 +134,16 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
 
     pushTextSegment(segments, raw.slice(cursor, fence.start));
     const closingFence = findClosingFence(raw, fence.contentStart);
+
+    if (fence.kind === 'view') {
+      if (!closingFence) { pushTextSegment(segments, raw.slice(fence.start)); break; }
+      const block = safeJsonParse(raw.slice(fence.contentStart, closingFence.start), null, isObjectJson);
+      const ref = readViewReference(block?.view);
+      if (ref) segments.push({ kind: 'view', view: ref, signature: `${contentId}::view::${fence.start}`, payloadRaw: JSON.stringify(block?.payload ?? {}) });
+      else pushTextSegment(segments, raw.slice(fence.start, closingFence.end));
+      cursor = closingFence.end;
+      continue;
+    }
 
     if (fence.kind === 'viewport') {
       if (!closingFence) {

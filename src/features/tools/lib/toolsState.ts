@@ -84,6 +84,9 @@ export interface ApprovalActiveAwaiting extends ActiveAwaitingBase {
 }
 
 export interface FormActiveAwaiting extends ActiveAwaitingBase {
+  chatId?: string;
+  view?: import("@/shared/contracts/view").ViewReference;
+  viewError?: string;
   mode: "form";
   forms: AIAwaitForm[];
   viewportKey: string;
@@ -118,7 +121,7 @@ export type ToolsAction =
   | { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
   | { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
   | { type: "SET_AWAITING_RUNTIME"; activeAwaiting: ActiveAwaiting | null; pendingAwaitings: ActiveAwaiting[] }
-  | { type: "PATCH_ACTIVE_AWAITING"; patch: { resolutionReason?: ActiveAwaiting["resolutionReason"]; pendingSubmitId?: string; loading?: boolean; loadError?: string; viewportHtml?: string } }
+  | { type: "PATCH_ACTIVE_AWAITING"; patch: { forms?: AIAwaitForm[]; resolutionReason?: ActiveAwaiting["resolutionReason"]; pendingSubmitId?: string; loading?: boolean; loadError?: string; viewportHtml?: string } }
   | { type: "CLEAR_ACTIVE_AWAITING" }
   | { type: "SET_TOOL_STATE"; key: string; state: ToolState }
   | { type: "SET_PENDING_TOOL"; key: string; tool: PendingTool }
@@ -186,6 +189,7 @@ export function patchActiveAwaiting(
     return {
       ...current,
       ...resolutionPatch,
+      ...(Array.isArray(patch.forms) ? { forms: patch.forms.map(form => ({ ...form, form: form.form ? { ...form.form } : form.form })) } : {}),
       ...(typeof patch.pendingSubmitId === "string"
         ? { pendingSubmitId: patch.pendingSubmitId }
         : {}),

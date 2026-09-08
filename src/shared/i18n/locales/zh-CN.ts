@@ -491,7 +491,6 @@ export const zhCNMessages = {
   "registryConsole.capability.vision": "视觉",
   "registryConsole.category.models": "模型",
   "registryConsole.category.providers": "供应商",
-  "registryConsole.category.viewport-servers": "视口服务器",
   "registryConsole.category.tools": "工具",
   "registryConsole.confirm.discard": "当前 YAML 有未保存修改，确定丢弃吗？",
   "registryConsole.detail.empty": "请选择或新建 registry 配置。",

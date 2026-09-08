@@ -1,3 +1,4 @@
+import { ViewEmbed } from "./ViewEmbed";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
@@ -41,6 +42,9 @@ interface ToolPillProps {
 }
 
 export interface ToolPillRecord {
+  view?: TimelineNode["view"];
+  viewChatId?: string;
+  viewError?: string;
   key: string;
   title: string;
   status: string;
@@ -241,6 +245,7 @@ export function buildToolPillRecords(
       Boolean(toolOutputText(toolOutput));
     return {
       key: node.id,
+      ...(node.view ? { view: node.view, viewChatId: node.viewChatId, viewError: node.viewError } : {}),
       title: translate("timeline.toolPill.runTitle", { index: index + 1 }),
       status,
       statusLabel: resolveStatusLabel(status, translate),
@@ -558,6 +563,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                     {t(record.kbaseIndexSummary.messageKey)}
                   </div>
                 ) : null}
+                {record.view && <ViewEmbed chatId={record.viewChatId || appContext?.state.chatId || ""} view={record.view} viewError={record.viewError} payloadRaw={resultText} />}
                 <Flex className="tool-call-copy" align="center" gap={4}>
                   {!!record.durationMs && (
                     <span style={{ marginRight: 4 }}>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  REGISTRY_CATEGORIES,
+  isRegistryEditableCategory,
   defaultRegistryFileName,
   filterRegistryItems,
   normalizeToolToSummary,
@@ -60,7 +60,6 @@ export function useRegistryConsoleRuntime() {
     const counts: Record<RegistryConsoleTab, number> = {
       providers: 0,
       models: 0,
-      "viewport-servers": 0,
       tools: toolItems.length,
     };
     for (const item of items) {
@@ -160,7 +159,7 @@ export function useRegistryConsoleRuntime() {
         const response = await getAdminRegistries();
         if (request !== listRequestRef.current) return;
         const nextItems = (response.data.items || []).filter(
-          (item) => REGISTRY_CATEGORIES.includes(item.category),
+          (item) => isRegistryEditableCategory(item.category),
         );
         setItems(nextItems);
         const category =
@@ -339,7 +338,7 @@ export function useRegistryConsoleRuntime() {
       });
       const refreshedResponse = await getAdminRegistries();
       const refreshedItems = (refreshedResponse.data.items || []).filter(
-        (item) => REGISTRY_CATEGORIES.includes(item.category),
+        (item) => isRegistryEditableCategory(item.category),
       );
       const refreshed = refreshedItems.find(
         (item) =>

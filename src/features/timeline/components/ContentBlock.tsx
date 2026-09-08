@@ -1,3 +1,4 @@
+import { ViewEmbed } from "./ViewEmbed";
 import React from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
@@ -181,6 +182,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					);
 				}
 
+				if (segment.kind === "view" && segment.view) return <ViewEmbed key={segment.signature} chatId={chatId} view={segment.view} payloadRaw={segment.payloadRaw || "{}"} />;
 				if (segment.kind === "viewport") {
 					return (
 						<ViewportEmbed

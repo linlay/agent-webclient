@@ -9,7 +9,7 @@ export type AdminRegistryCategory =
   | "models"
   | "viewport-servers";
 
-export type RegistryConsoleTab = AdminRegistryCategory | "tools";
+export type RegistryConsoleTab = Exclude<AdminRegistryCategory, "viewport-servers"> | "tools";
 
 export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
 

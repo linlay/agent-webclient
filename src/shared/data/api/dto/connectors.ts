@@ -1,5 +1,5 @@
-export type ConnectorType = "cli" | "mcp";
-export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json";
+export type ConnectorType = "cli" | "mcp" | "view";
+export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json" | "view.json";
 
 export interface ConnectorMcpStatus {
   serverKey: string;
@@ -25,6 +25,8 @@ export interface ConnectorSummary {
   canDelete?: boolean;
   hasMcp: boolean;
   hasCli: boolean;
+  hasView?: boolean;
+  views?: Array<{ key: string; title?: string; renderer: string; usage: string[]; source: string }>;
   hasBin: boolean;
   skills: string[];
   mcp?: ConnectorMcpStatus[];

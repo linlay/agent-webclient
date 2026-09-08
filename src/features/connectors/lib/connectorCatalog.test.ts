@@ -54,3 +54,8 @@ describe("connector catalog and definitions", () => {
     expect(parseConnectorDefinition(updateConnectorField(content, ["mcpServers", "main", "timeout"], undefined))).toEqual({ mcpServers: { main: { type: "stdio", command: "service" } } });
   });
 });
+
+test("VIEW is a composable component and has its own definition tab", () => {
+  const view = { ...mixed, type: "view" as const, hasView: true };
+  expect(connectorFiles(view)).toContain("view.json");
+});

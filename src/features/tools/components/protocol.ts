@@ -7,6 +7,7 @@ export type AwaitingCollectDecision = 'submit' | 'reject';
 export interface AwaitingViewportData {
   runId: string;
   awaitingId: string;
+  view?: import("@/shared/contracts/view").ViewReference;
   viewportKey: string;
   mode: 'form';
   timeout: number | null;
@@ -90,6 +91,7 @@ export function buildAwaitingViewportData(
   return {
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
+    ...(awaiting.view ? { view: awaiting.view } : {}),
     viewportKey: awaiting.viewportKey,
     mode: 'form',
     timeout: awaiting.timeout,

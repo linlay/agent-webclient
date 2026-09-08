@@ -19,7 +19,7 @@ export function ConnectorConfigEditor({ file, draft, disabled, readOnly = false,
   const [source, setSource] = useState(false);
   let parsed: Record<string, unknown> | null = null;
   try { parsed = parseConnectorDefinition(draft); } catch { /* Invalid drafts remain editable as source. */ }
-  const sourceMode = source || !parsed || file === "cli.json";
+  const sourceMode = source || !parsed || (file === "cli.json" || file === "view.json");
   const field = (label: string, path: string[], value: unknown, multiline = false) => (
     <label className={styles.field} key={path.join(".")}>
       <span>{label}</span>
@@ -31,11 +31,11 @@ export function ConnectorConfigEditor({ file, draft, disabled, readOnly = false,
     <div className={styles.config}>
       <div className={styles.toolbar}>
         <strong>{file === "connector.json" ? t("connectors.section.basics") : file}</strong>
-        {file !== "cli.json" && <UiButton size="sm" variant="ghost" disabled={disabled || !parsed} onClick={() => setSource(value => !value)}>
+        {file !== "cli.json" && file !== "view.json" && <UiButton size="sm" variant="ghost" disabled={disabled || !parsed} onClick={() => setSource(value => !value)}>
           {t(sourceMode ? "connectors.action.form" : "connectors.action.source")}
         </UiButton>}
       </div>
-      <p className={styles.hint}>{t(file === "cli.json" ? "connectors.hint.cli" : file === "mcp.json" ? "connectors.hint.mcp" : "connectors.hint.manifest")}</p>
+      <p className={styles.hint}>{file === "view.json" ? "VIEW · HTML / QLC" : t(file === "cli.json" ? "connectors.hint.cli" : file === "mcp.json" ? "connectors.hint.mcp" : "connectors.hint.manifest")}</p>
       {sourceMode ? <label className={styles.field}>
         <span>{t("connectors.field.json")}</span>
         <Input.TextArea aria-label={t("connectors.field.json")} className={styles.source} spellCheck={false} value={draft} disabled={disabled} readOnly={readOnly} onChange={event => onChange(event.target.value)} />

@@ -57,7 +57,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 ### 业务视图容器
 
-支持 Viewport HTML 和 Frontend Tool iframe 容器。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
+支持 VIEW 连接器的 HTML/QLC 结果展示与 HITL 表单，管理页并列展示 MCP / CLI / VIEW。新 VIEW 使用隔离 iframe 和 Chat 快照；旧 Viewport HTML 和 Frontend Tool 容器保持兼容。接入契约见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
 
 Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<relativePath>` URL。前端统一分类：ChatScope 在内部加当前 chatId 后转为 `GET /api/resource?file=...`，普通 Agent 的 Workspace POSIX 绝对路径与 `/tmp/...` 转为带 `chatId` 的鉴权请求，Team 拒绝全部绝对路径；HTTP(S)、`data:`、`blob:` 原样使用。真实 `/api/resource`、`file://`、`<currentChatId>/<relativePath>` 和 traversal 都不是 Markdown 地址，不发起请求；历史 endpoint Markdown 不迁移且不再预览。
 
@@ -65,7 +65,7 @@ Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<rel
 
 ### 侧边栏与管理入口
 
-左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model、viewport server 与非 MCP tools，CLI/MCP 连接器安装包、附带技能和组件工具由独立 `/connectors` 页面管理。
+左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model 与非 MCP tools，MCP/CLI/VIEW 连接器安装包、附带技能和组件工具由独立 `/connectors` 页面管理。
 
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 
