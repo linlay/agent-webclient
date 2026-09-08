@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
 import { connectorAuthDeadline, connectorAuthViewStatus, isConnectorAuthActive, readConnectorAuthAction, readConnectorAuthSession, supportsConnectorLogin } from "../lib/connectorAuth";
@@ -19,9 +19,11 @@ interface Options {
   readOnly?: boolean;
   onStatusChange?: (id: string, status: ConnectorAuthViewStatus) => void;
   onCredentialsChange?: () => void;
+  checkStatus?: typeof getConnectorAuthStatus;
+  observe?: boolean;
 }
 
-export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange }: Options) {
+export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange, checkStatus = getConnectorAuthStatus, observe = false }: Options) {
   const enabled = supportsConnectorLogin(mode);
   const identity = `${id}/${mode}/${readOnly}`;
   const initial = (): AuthState => ({ identity, session: null, status: mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null });
@@ -41,6 +43,17 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
     let pollTimer: ReturnType<typeof setTimeout> | undefined;
     let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
     let requestTimer: ReturnType<typeof setTimeout> | undefined;
+    let lastCheckedAt = 0;
+    const permanentError = () => error instanceof ApiError && [401, 403, 404, 405].includes(error.status || 0);
+    const schedulePoll = () => {
+      clearTimeout(pollTimer);
+      const active = isConnectorAuthActive(session) && connectorAuthViewStatus(session) !== "expired";
+      if (!enabled || permanentError() || (!active && !observe)) return;
+      pollTimer = setTimeout(() => {
+        if (observe && document.visibilityState === "hidden") schedulePoll();
+        else void perform("check");
+      }, active ? (error ? 5_000 : 2_000) : 30_000);
+    };
 
     const publish = () => {
       if (disposed) return;
@@ -74,7 +87,10 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
       operation = action === "check" ? null : action;
       error = null;
       let timedOut = false;
-      requestTimer = setTimeout(() => { timedOut = true; controller.abort(); }, 20_000);
+      // Shared checks enforce their timeout after leaving the page's queue.
+      if (action !== "check" || checkStatus === getConnectorAuthStatus) {
+        requestTimer = setTimeout(() => { timedOut = true; controller.abort(); }, 20_000);
+      }
       publish();
       const current = () => !disposed && generation === sequence;
       try {
@@ -89,14 +105,14 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
             if (!current() || controller.signal.aborted) return;
             session = readConnectorAuthAction(canceled.data, id, "canceled");
           }
-          const response = await (action === "check" ? getConnectorAuthStatus : startConnectorAuth)(id, controller.signal);
+          const response = await (action === "check" ? checkStatus : startConnectorAuth)(id, controller.signal);
           next = readConnectorAuthSession(response.data, id);
         }
         if (!current() || controller.signal.aborted) return;
         const previousStatus = session?.status;
         session = next;
         publish();
-        if ((next.status === "authorized" && previousStatus !== "authorized") || (previousStatus === "authorized" && next.status !== "authorized") || action === "logout" || action === "cancel") {
+        if ((next.status === "authorized" && previousStatus !== "authorized" && (!observe || previousStatus !== undefined)) || (previousStatus === "authorized" && next.status !== "authorized") || action === "logout" || action === "cancel") {
           callbacks.current.onCredentialsChange?.();
         }
       } catch (cause) {
@@ -108,10 +124,8 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
           request = null;
           operation = null;
           publish();
-          const permanentError = error instanceof ApiError && [401, 403, 404, 405].includes(error.status || 0);
-          if (isConnectorAuthActive(session) && connectorAuthViewStatus(session) !== "expired" && !permanentError) {
-            pollTimer = setTimeout(() => void perform("check"), error ? 5_000 : 2_000);
-          }
+          lastCheckedAt = Date.now();
+          schedulePoll();
         }
       }
     };
@@ -119,6 +133,10 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
     scope.current = { identity, perform };
     publish();
     if (enabled) void perform("check");
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastCheckedAt >= 30_000 && !permanentError()) void perform("check");
+    };
+    if (observe) document.addEventListener("visibilitychange", onVisible);
     return () => {
       disposed = true;
       sequence += 1;
@@ -126,17 +144,20 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
       clearTimeout(deadlineTimer);
       clearTimeout(requestTimer);
       request?.abort();
+      if (observe) document.removeEventListener("visibilitychange", onVisible);
       scope.current = null;
       // Leaving this view only stops observation; it never cancels login or removes credentials.
     };
-  }, [id, mode, identity, enabled, readOnly]);
+  }, [id, mode, identity, enabled, readOnly, checkStatus, observe]);
 
-  const perform = (action: AuthAction) => scope.current?.identity === identity ? scope.current.perform(action) : Promise.resolve();
-  return {
+  const perform = useCallback((action: AuthAction) => scope.current?.identity === identity ? scope.current.perform(action) : Promise.resolve(), [identity]);
+  return useMemo(() => ({
     ...(state.identity === identity ? state : initial()),
     start: () => perform("start"),
     cancel: () => perform("cancel"),
     logout: () => perform("logout"),
     refresh: () => perform("check"),
-  };
+  }), [state, identity, mode, enabled, perform]);
 }
+
+export type ConnectorAuthRuntime = ReturnType<typeof useConnectorAuth>;

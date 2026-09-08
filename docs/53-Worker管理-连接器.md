@@ -16,7 +16,7 @@
 旧 MCP Registry YAML 接口与前端实现已移除。页面支持外部连接器 ZIP 导入，不提供删除入口；`builtin` 或 `readOnly` 标记的内置包仅可查看和复制配置，不能保存或通过 ZIP 覆盖。
 
 ## 展示与编辑
-列表按名称、id、技能和组件 serverKey 搜索。CLI/MCP 筛选依据 hasCli/hasMcp，同一混合包可以出现在两种筛选结果中。列表不显示 ID：首行名称与版本两端对齐，底行左侧显示已观察到的登录状态或同步失败，右侧显示 CLI/MCP 类型。未读取的授权状态显示“尚未确认”。布局参考技能管理台，以标题和间距分组，减少嵌套边框。
+列表按名称、id、技能和组件 serverKey 搜索。CLI/MCP 筛选依据 hasCli/hasMcp，同一混合包可以出现在两种筛选结果中。列表不显示 ID：首行名称与版本两端对齐，底行左侧显示授权状态或同步失败，右侧显示 CLI/MCP 类型。目录加载完成后自动逐项异步检查授权，首次显示“检查中”，不依赖点击；检查失败时明确提示并保留上次已知状态。布局参考技能管理台，以标题和间距分组，减少嵌套边框。
 
 详情分为“概览 / 配置 / 技能（数量）”。概览保留基本信息与账号授权，配置展示 CLI/bin 说明、MCP 组件、工具及同步状态；CLI 的 init/versionCheck/登录声明不会由配置编辑页面执行，包内可执行文件可以随 ZIP 导入。
 
@@ -31,11 +31,13 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 ## 账号授权
 现有详情页概览中的“账号授权”区域按清单中的 `auth_mode` 决定交互：`cli/oauth/mcp` 使用统一登录 API，`none` 显示无需授权，`token` 引导到现有配置页。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
 
-首次进入读取服务端会话，展示 not_required/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
+列表与详情共用页面内的授权观察器，进入目录后自动读取全部支持交互登录的连接器状态，展示 not_required/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。无需授权及凭据配置类型不请求交互授权接口。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
 
 pending 时展示后端返回的“打开授权页面”链接，只接受无用户名密码的显式 HTTP(S) URL，使用新页面、noopener/noreferrer 与 no-referrer。入口由用户直接点击，避免依赖异步自动弹窗；链接会保留供浏览器拦截后手动再次打开。页面仅在后端返回 authorized 后显示成功，扫码、打开链接或时间到达均不代表授权完成。
 
-操作使用同步请求锁避免重复提交；取消或退出会使旧轮询结果失效。离开组件或切换连接器时取消浏览器请求并清理定时器，不向后端发送取消或退出；重新进入可恢复当前服务端会话。所有授权请求使用现有 Platform API 身份客户端和 `{code,msg,data}`，设置 `cache: no-store`，不进入查询缓存、localStorage、sessionStorage 或导出；列表只保留当前页面内观察到的状态标签。
+操作使用同步请求锁避免重复提交；取消或退出会使旧轮询结果失效。切换条目、筛选和页签时复用同一观察器，不清空已知状态，也不额外创建详情查询。离开整个管理台或连接器从目录移除时才取消排队及进行中的请求、清理定时器，不向后端发送取消或退出。所有授权请求使用现有 Platform API 身份客户端和 `{code,msg,data}`，设置 `cache: no-store`，仅在当前页面内保留会话，不进入通用查询缓存、localStorage、sessionStorage 或导出。
+
+状态 API 保持现有同步 HTTP 请求/响应契约，异步调度由 WebClient 完成，目录加载不等待授权检查。后台最多并发 2 个状态请求，为当前选中连接器另预留 1 个名额；排队时间不计入网络超时。点击条目（包括当前选中项）或手工刷新立即重查，同一连接器已有请求时合并，不重复发送。已有状态在重查期间保留。普通状态检查完成后间隔 30 秒刷新，隐藏页面暂停后台检查，重新可见时只刷新已过期结果；登录进行中沿用上述快速轮询与错误退避。首次观察已授权状态不会为每个连接器重复刷新目录。
 
 授权变化后刷新目录、详情中的 MCP 元数据和工具快照，不重载配置草稿。登录成功与 MCP tools/list 同步就绪分别展示。账号授权按部署共享，退出前需在页面内确认影响范围。OAuth/MCP 回调要求浏览器与 Platform 在同一台机器，当前不支持远程浏览器回调。联调需要运行带上述接口的 Platform 版本及有效平台身份，旧服务需要更新并重启；真实扫码或账号确认由用户完成。
 
@@ -62,11 +64,13 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 - `src/features/connectors/components/ConnectorSkills.tsx`
 - `src/features/connectors/components/ConnectorImportModal.tsx`
 - `src/features/connectors/components/ConnectorAuthPanel.tsx`
+- `src/features/connectors/components/ConnectorAuthObserver.tsx`
 - `src/features/connectors/hooks/useConnectorsRuntime.ts`
 - `src/features/connectors/hooks/useConnectorImport.ts`
 - `src/features/connectors/hooks/useConnectorAuth.ts`
 - `src/features/connectors/hooks/useConnectorSkills.ts`
 - `src/features/connectors/lib/connectorAuth.ts`
+- `src/features/connectors/lib/connectorAuthChecks.ts`
 - `src/shared/data/api/dto/connectors.ts`
 - `src/shared/data/api/requests/connectors.ts`
 

@@ -34,7 +34,7 @@ beforeEach(() => {
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item] } });
   jest.mocked(getAdminTools).mockResolvedValue({ code: 0, msg: "", data: [] });
   jest.mocked(getConnectorDefinition).mockImplementation(async target => ({ code: 0, msg: "", data: { ...target, sha256: "original", content: JSON.stringify(target.file === "connector.json" ? item : target.file === "mcp.json" ? { mcpServers: { main: { type: "http", url: "https://mcp.example" } } } : { auth: "configured-cli login" }) } }));
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue({ code: 0, msg: "", data: { connectorId: item.id, sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" } });
+  jest.mocked(getConnectorAuthStatus).mockImplementation(async id => ({ code: 0, msg: "", data: { connectorId: id, sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" } }));
   jest.mocked(getConnectorSkills).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skills: [] } });
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -60,7 +60,7 @@ it("uses overview as the single manifest editor and removes the redundant detail
   expect(detail().querySelector<HTMLTextAreaElement>("textarea")?.value).toContain("configured-cli login");
   await click("概览");
   expect(detail().querySelector('[aria-label="基本信息"]')).not.toBeNull();
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
 });
 
 it("keeps an unsaved overview draft when switching to component configuration is canceled", async () => {
@@ -170,4 +170,62 @@ it("uses compact name/version and status/type rows without exposing the connecto
   expect(footer.lastElementChild?.textContent).toBe("CLIMCP");
   expect(button("导入")).toBeDefined();
   expect(container.textContent).not.toContain("可通过 ZIP 导入外部连接器");
+});
+
+
+it("checks unselected connectors independently while the list and configuration remain usable", async () => {
+  const other = { ...item, id: "other", name: "Other connector" };
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item, other] } });
+  let resolveSlow!: (value: any) => void;
+  jest.mocked(getConnectorAuthStatus).mockImplementation(id => id === "demo" ? new Promise(resolve => { resolveSlow = resolve; }) : Promise.resolve({ code: 0, msg: "", data: { connectorId: id, sessionId: "", status: "authorized", expiresAt: "" } }));
+  await mount();
+  const rows = () => Array.from(container.querySelectorAll("aside button")).filter(node => node.querySelector("strong"));
+  expect(rows()[0].textContent).toContain("检查中");
+  expect(rows()[1].textContent).toContain("已授权");
+  expect(container.textContent).not.toContain("尚未确认");
+  expect(detail().querySelector<HTMLInputElement>("input")?.value).toBe(item.name);
+  await click("配置");
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  await act(async () => resolveSlow({ code: 0, msg: "", data: { connectorId: "demo", sessionId: "", status: "unauthorized", expiresAt: "" } }));
+  expect(rows()[0].textContent).toContain("未登录");
+  expect(rows()[1].textContent).toContain("已授权");
+});
+
+it("rechecks even the selected item without hiding its known status or duplicating requests", async () => {
+  await mount();
+  const row = container.querySelector<HTMLButtonElement>('aside button[aria-current="true"]')!;
+  let resolveCheck!: (value: any) => void;
+  jest.mocked(getConnectorAuthStatus).mockImplementationOnce(() => new Promise(resolve => { resolveCheck = resolve; }));
+  await act(async () => { row.click(); row.click(); });
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(row.textContent).toContain("未登录");
+  expect(row.textContent).not.toContain("尚未确认");
+  expect(button("重新检查状态")).toBeUndefined();
+  await act(async () => resolveCheck({ code: 0, msg: "", data: { connectorId: "demo", sessionId: "", status: "authorized", expiresAt: "" } }));
+  expect(row.textContent).toContain("已授权");
+  expect(detail().querySelector('[role="status"]')?.textContent).toBe("已授权");
+});
+
+it("keeps the last known status on errors and shares retries between list and details", async () => {
+  await mount();
+  const row = container.querySelector<HTMLButtonElement>('aside button[aria-current="true"]')!;
+  jest.mocked(getConnectorAuthStatus).mockRejectedValueOnce(new Error("network offline"));
+  await act(async () => row.click());
+  expect(row.textContent).toContain("未登录 · 检查失败");
+  expect(detail().querySelector('[role="alert"]')?.textContent).toContain("network offline");
+  await click("重新检查状态");
+  expect(row.textContent).not.toContain("检查失败");
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(3);
+});
+
+it("aborts old checks and recreates observers correctly under StrictMode", async () => {
+  const signals: AbortSignal[] = [];
+  jest.mocked(getConnectorAuthStatus).mockImplementation((_id, signal) => {
+    signals.push(signal!);
+    return new Promise(() => {});
+  });
+  await act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(Harness))));
+  expect(signals.filter(signal => !signal.aborted)).toHaveLength(1);
+  await act(async () => root.render(null));
+  expect(signals.every(signal => signal.aborted)).toBe(true);
 });

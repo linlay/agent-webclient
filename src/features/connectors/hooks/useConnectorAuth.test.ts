@@ -14,8 +14,8 @@ const onCredentialsChange = jest.fn();
 let current: ReturnType<typeof useConnectorAuth>;
 let root: Root;
 let mounted: boolean;
-function Harness({ id = "demo", mode = "cli", readOnly = false }: { id?: string; mode?: ConnectorSummary["auth_mode"]; readOnly?: boolean }) {
-  current = useConnectorAuth({ id, mode, readOnly, onStatusChange, onCredentialsChange });
+function Harness({ id = "demo", mode = "cli", readOnly = false, observe = false }: { id?: string; mode?: ConnectorSummary["auth_mode"]; readOnly?: boolean; observe?: boolean }) {
+  current = useConnectorAuth({ id, mode, readOnly, observe, onStatusChange, onCredentialsChange });
   return null;
 }
 const response = (status: ConnectorAuthSession["status"], values: Partial<ConnectorAuthSession> = {}): ApiResponse<ConnectorAuthSession> => ({
@@ -236,4 +236,35 @@ it("rejects malformed sessions instead of treating them as authorization", async
   expect(current.status).toBe("unknown");
   expect(current.error?.message).toBe("connectors.auth.error.response");
   expect(onCredentialsChange).not.toHaveBeenCalled();
+});
+
+
+it("retains a page snapshot for 30 seconds, pauses hidden checks and resumes when visible", async () => {
+  const visibility = jest.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+  try {
+    await mount({ observe: true });
+    await advance(29_999);
+    expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+    await advance(1);
+    expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+    visibility.mockReturnValue("hidden");
+    await advance(60_000);
+    expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+    visibility.mockReturnValue("visible");
+    await act(async () => document.dispatchEvent(new Event("visibilitychange")));
+    expect(getConnectorAuthStatus).toHaveBeenCalledTimes(3);
+    await act(async () => current.refresh());
+    expect(getConnectorAuthStatus).toHaveBeenCalledTimes(4);
+  } finally { visibility.mockRestore(); }
+});
+
+it("does not refresh the catalog for each initially authorized row and stops automatic checks on auth errors", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("authorized"));
+  await mount({ observe: true });
+  expect(onCredentialsChange).not.toHaveBeenCalled();
+  jest.mocked(getConnectorAuthStatus).mockRejectedValueOnce(new ApiError("forbidden", { status: 403 }));
+  await act(async () => current.refresh());
+  expect(current.status).toBe("authorized");
+  await advance(90_000);
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
 });

@@ -5,7 +5,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
-import { useConnectorAuth } from "../hooks/useConnectorAuth";
+import { useConnectorAuth, type ConnectorAuthRuntime } from "../hooks/useConnectorAuth";
 import { connectorAuthDeadline, isConnectorAuthActive, safeConnectorAuthorizationUrl, supportsConnectorLogin } from "../lib/connectorAuth";
 import type { ConnectorAuthViewStatus } from "../lib/connectorAuth";
 import styles from "./ConnectorsConsole.module.css";
@@ -14,14 +14,24 @@ interface Props {
   item: ConnectorSummary;
   disabled?: boolean;
   onConfigure: () => void;
-  onCredentialsChange: () => void;
-  onStatusChange: (id: string, status: ConnectorAuthViewStatus) => void;
+  onCredentialsChange?: () => void;
+  onStatusChange?: (id: string, status: ConnectorAuthViewStatus) => void;
+  auth?: ConnectorAuthRuntime;
 }
 
-export function ConnectorAuthPanel({ item, disabled, onConfigure, onCredentialsChange, onStatusChange }: Props) {
+export function ConnectorAuthPanel(props: Props) {
+  return props.auth ? <ConnectorAuthPanelContent {...props} auth={props.auth} /> : <StandaloneConnectorAuthPanel {...props} />;
+}
+
+function StandaloneConnectorAuthPanel(props: Props) {
+  const { item, onCredentialsChange, onStatusChange } = props;
+  const auth = useConnectorAuth({ id: item.id, mode: item.auth_mode, readOnly: item.builtin === true || item.readOnly === true, onCredentialsChange, onStatusChange });
+  return <ConnectorAuthPanelContent {...props} auth={auth} />;
+}
+
+function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props & { auth: ConnectorAuthRuntime }) {
   const { t, locale } = useI18n();
   const readOnly = item.builtin === true || item.readOnly === true;
-  const auth = useConnectorAuth({ id: item.id, mode: item.auth_mode, readOnly, onCredentialsChange, onStatusChange });
   const [confirmLogout, setConfirmLogout] = useState(false);
   const interactive = supportsConnectorLogin(item.auth_mode);
   const active = isConnectorAuthActive(auth.session);
@@ -36,9 +46,9 @@ export function ConnectorAuthPanel({ item, disabled, onConfigure, onCredentialsC
   return <section className={styles.group} aria-label={t("connectors.auth.title")}>
     <div className={styles.toolbar}>
       <h3>{t("connectors.auth.title")}</h3>
-      {item.auth_mode !== "token" && <UiTag role="status" tone={status === "authorized" ? "accent" : ["failed", "expired"].includes(status) ? "danger" : "muted"}>{t(`connectors.auth.status.${status}`)}</UiTag>}
+      {item.auth_mode !== "token" && <UiTag role="status" tone={status === "authorized" ? "accent" : ["failed", "expired"].includes(status) || auth.error ? "danger" : "muted"}>{t(status === "unknown" ? auth.error ? "connectors.auth.checkFailed" : "connectors.auth.checking" : `connectors.auth.status.${status}`)}</UiTag>}
     </div>
-    <p>{t(item.auth_mode === "token" ? "connectors.auth.token" : `connectors.auth.description.${status}`)}</p>
+    <p>{t(item.auth_mode === "token" ? "connectors.auth.token" : status === "unknown" ? auth.error ? "connectors.auth.checkFailedHint" : "connectors.auth.checkingHint" : `connectors.auth.description.${status}`)}</p>
     {interactive && <>
       <p className={styles.hint}>{t("connectors.auth.shared")}</p>
       {(item.auth_mode === "oauth" || item.auth_mode === "mcp") && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
