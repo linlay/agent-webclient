@@ -11,13 +11,20 @@ const blocker = { state: "unblocked" };
 jest.mock("react-router-dom", () => ({ useBlocker: () => blocker }));
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
 jest.mock("./ConnectorImportModal", () => ({ ConnectorImportModal: () => null }));
+jest.mock("@/shared/ui/CodeEditor", () => ({
+  CodeEditor: ({ value, disabled, onChange, options, language, path, theme }: import("@/shared/ui/CodeEditor").CodeEditorProps) => React.createElement("textarea", {
+    value, readOnly: disabled, "aria-label": options?.ariaLabel,
+    "data-language": language, "data-path": path, "data-theme": theme,
+    onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => onChange?.(event.target.value),
+  }),
+}));
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
   getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), updateConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(),
   getConnectorSkills: jest.fn(), getConnectorSkillDetail: jest.fn(),
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
 }));
-const item: ConnectorSummary = { id: "demo", name: "Demo connector", version: "1.0", description: "Connector description", type: "cli", auth_mode: "cli", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
+const item: ConnectorSummary = { id: "demo", name: "Demo connector", version: "1.0", description: "Connector description", icon: "assets/icon.svg", type: "cli", auth_mode: "cli", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
 let container: HTMLDivElement;
 let root: Root;
 const button = (text: string) => Array.from(container.querySelectorAll("button")).find(node => node.textContent?.replace(" •", "") === text)!;
@@ -47,7 +54,7 @@ it("uses overview as the single manifest editor and removes the redundant detail
   await mount();
   expect(detail().querySelector("header")).toBeNull();
   expect(detail().querySelector("h2")).toBeNull();
-  expect(detail().querySelector<HTMLInputElement>("input")?.value).toBe(item.name);
+  expect(detail().querySelector<HTMLInputElement>("input:not([readonly])")?.value).toBe(item.name);
   expect(detail().querySelectorAll('[aria-label="基本信息"]')).toHaveLength(1);
   expect(button("connector.json")).toBeUndefined();
   await click("配置");
@@ -85,7 +92,7 @@ it("keeps an unsaved overview draft when switching to component configuration is
 
 it("refreshes list authorization and MCP data without overwriting the manifest draft", async () => {
   await mount();
-  const input = detail().querySelector<HTMLInputElement>("input")!;
+  const input = detail().querySelector<HTMLInputElement>("input:not([readonly])")!;
   const before = "Unsaved manifest name";
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, before);
@@ -97,7 +104,7 @@ it("refreshes list authorization and MCP data without overwriting the manifest d
   expect(getAdminConnectors).toHaveBeenCalledTimes(2);
   expect(getAdminTools).toHaveBeenCalledTimes(2);
   expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
-  expect(detail().querySelector<HTMLInputElement>("input")?.value).toBe(before);
+  expect(detail().querySelector<HTMLInputElement>("input:not([readonly])")?.value).toBe(before);
 });
 
 it("does not report installed connectors as missing when platform authentication fails", async () => {
@@ -110,7 +117,7 @@ it("does not report installed connectors as missing when platform authentication
 
 it("saves overview fields to connector.json with the current base hash", async () => {
   await mount();
-  const name = detail().querySelector<HTMLInputElement>("input")!;
+  const name = detail().querySelector<HTMLInputElement>("input:not([readonly])")!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(name, "Renamed connector");
     name.dispatchEvent(new Event("input", { bubbles: true }));
@@ -118,7 +125,52 @@ it("saves overview fields to connector.json with the current base hash", async (
   jest.mocked(updateConnectorDefinition).mockImplementation(async params => ({ code: 0, msg: "", data: { ...params, sha256: "saved" } }));
   await click("保存配置");
   expect(updateConnectorDefinition).toHaveBeenCalledWith(expect.objectContaining({ id: "demo", file: "connector.json", baseSha256: "original", content: expect.stringContaining("Renamed connector") }));
+  expect(JSON.parse(jest.mocked(updateConnectorDefinition).mock.calls[0][0].content).icon).toBe(item.icon);
   expect(button("概览").textContent).toBe("概览");
+});
+
+it("keeps built-in fields and the Monaco JSON source read-only", async () => {
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, builtin: true, readOnly: true }] } });
+  await mount();
+  const basics = detail().querySelector('[aria-label="基本信息"]')!;
+  const fields = Array.from(basics.querySelectorAll("input"));
+  expect(fields.map(input => input.value)).toEqual([item.id, "CLI", "cli", item.name, item.version]);
+  expect(fields.every(input => input.readOnly)).toBe(true);
+  expect(basics.querySelector("textarea")?.readOnly).toBe(true);
+  expect(basics.textContent).toContain("只读");
+  expect(basics.textContent).not.toContain("可在 JSON 源码中编辑");
+  expect(button("保存配置")).toBeUndefined();
+  await click("JSON 源码");
+  const editor = basics.querySelector("textarea")!;
+  expect(editor.value).toContain(item.id);
+  expect(editor.readOnly).toBe(true);
+  expect(editor.dataset.language).toBe("json");
+  expect(editor.dataset.path).toBe("connector:///demo/connector.json");
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(editor, "{}");
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await click("基本信息");
+  expect(basics.querySelectorAll("input")[3].value).toBe(item.name);
+  expect(updateConnectorDefinition).not.toHaveBeenCalled();
+});
+
+it("edits and saves CLI JSON through the Monaco editor without changing the file identity", async () => {
+  await mount();
+  await click("配置");
+  await click("cli.json");
+  const editor = detail().querySelector<HTMLTextAreaElement>('textarea[aria-label="JSON 配置"]')!;
+  expect(editor.readOnly).toBe(false);
+  expect(editor.dataset.language).toBe("json");
+  expect(editor.dataset.path).toBe("connector:///demo/cli.json");
+  const changed = JSON.stringify({ auth: "updated-cli login" }, null, 2);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(editor, changed);
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  jest.mocked(updateConnectorDefinition).mockImplementation(async params => ({ code: 0, msg: "", data: { ...params, sha256: "saved" } }));
+  await click("保存配置");
+  expect(updateConnectorDefinition).toHaveBeenCalledWith({ id: item.id, file: "cli.json", content: changed, baseSha256: "original" });
 });
 
 
@@ -146,7 +198,7 @@ it("shows three tabs, moves component details into configuration, and keeps skil
 
 it("preserves a manifest draft while inspecting the empty skills tab", async () => {
   await mount();
-  const input = detail().querySelector<HTMLInputElement>("input")!;
+  const input = detail().querySelector<HTMLInputElement>("input:not([readonly])")!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "Draft name");
     input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -154,7 +206,7 @@ it("preserves a manifest draft while inspecting the empty skills tab", async () 
   await click("技能0");
   expect(detail().textContent).toContain("此连接器未附带技能");
   await click("概览");
-  expect(detail().querySelector<HTMLInputElement>("input")?.value).toBe("Draft name");
+  expect(detail().querySelector<HTMLInputElement>("input:not([readonly])")?.value).toBe("Draft name");
   expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
 });
 
@@ -163,12 +215,12 @@ it("uses compact name/version and status/type rows without exposing the connecto
   const listItem = container.querySelector('aside button[aria-current="true"]')!;
   expect(listItem.querySelector("code")).toBeNull();
   const heading = listItem.querySelector("strong")!.parentElement!;
-  expect(heading.firstElementChild?.textContent).toBe(item.name);
+  expect(heading.querySelector("strong")?.textContent).toBe(item.name);
   expect(heading.lastElementChild?.textContent).toBe("v1.0");
   const footer = listItem.lastElementChild!;
   expect(footer.firstElementChild?.textContent).toBe("未登录");
   expect(footer.lastElementChild?.textContent).toBe("CLIMCP");
-  expect(button("导入")).toBeDefined();
+  expect(container.querySelector('aside button[aria-label="导入"]')?.getAttribute("title")).toBe("导入");
   expect(container.textContent).not.toContain("可通过 ZIP 导入外部连接器");
 });
 
@@ -183,7 +235,7 @@ it("checks unselected connectors independently while the list and configuration 
   expect(rows()[0].textContent).toContain("检查中");
   expect(rows()[1].textContent).toContain("已授权");
   expect(container.textContent).not.toContain("尚未确认");
-  expect(detail().querySelector<HTMLInputElement>("input")?.value).toBe(item.name);
+  expect(detail().querySelector<HTMLInputElement>("input:not([readonly])")?.value).toBe(item.name);
   await click("配置");
   expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
   await act(async () => resolveSlow({ code: 0, msg: "", data: { connectorId: "demo", sessionId: "", status: "unauthorized", expiresAt: "" } }));

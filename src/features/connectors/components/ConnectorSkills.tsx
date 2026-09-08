@@ -4,7 +4,6 @@ import { XMarkdown } from "@ant-design/x-markdown";
 import type { ConnectorSummary } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useConnectorSkills } from "../hooks/useConnectorSkills";
 import styles from "./ConnectorsConsole.module.css";
 
@@ -13,13 +12,9 @@ export function ConnectorSkills({ item }: { item: ConnectorSummary }) {
   const runtime = useConnectorSkills(item.id, JSON.stringify([item.version, item.skills]));
   const [source, setSource] = useState(false);
   const detail = runtime.detail;
-  return <section className={styles.stack} aria-label={t("connectors.skills.label")}>
-    <div className={styles.toolbar}>
-      <span className={styles.hint}>{t("connectors.hint.skills")}</span>
-      <UiButton size="sm" variant="ghost" iconOnly aria-label={t("connectors.skills.refresh")} disabled={runtime.listLoading || runtime.detailLoading} onClick={runtime.reload}><MaterialIcon name="refresh" /></UiButton>
-    </div>
+  return <section className={styles.skills} aria-label={t("connectors.skills.label")}>
     {runtime.listError && <div role="alert" className={styles.error}>{runtime.listError}<UiButton size="sm" variant="ghost" onClick={runtime.reload}>{t("connectors.action.retry")}</UiButton></div>}
-    <Spin spinning={runtime.listLoading}>
+    <Spin spinning={runtime.listLoading} wrapperClassName={styles.skillsLoading}>
       {!runtime.listLoading && !runtime.listError && !runtime.skills.length && <p className={styles.empty}>{t("connectors.skills.empty")}</p>}
       {!!runtime.skills.length && <div className={styles.skillsLayout}>
         <nav className={styles.skillList} aria-label={t("connectors.skills.list")}>
@@ -28,7 +23,7 @@ export function ConnectorSkills({ item }: { item: ConnectorSummary }) {
             <span className={styles.description}>{skill.description}</span>
           </button>)}
         </nav>
-        <article className={styles.skillDetail}>
+        <article key={runtime.name} className={styles.skillDetail} tabIndex={0} aria-label={runtime.name}>
           {runtime.detailError && <div role="alert" className={styles.error}>{runtime.detailError}<UiButton size="sm" variant="ghost" onClick={runtime.reload}>{t("connectors.action.retry")}</UiButton></div>}
           <Spin spinning={runtime.detailLoading}>
             {detail && <div className={styles.stack}>

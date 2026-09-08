@@ -27,6 +27,7 @@ export {
   downloadAdminSkillFile,
   fetchAdminSkillFileBlob,
   fetchAdminSkillIcon,
+  fetchConnectorIcon,
   downloadConversationHtmlExport,
   getResourceBlob,
   getResourceDocumentMetadata,

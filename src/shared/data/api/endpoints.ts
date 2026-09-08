@@ -300,6 +300,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
+  connectorIcon: defineEndpoint({
+    key: "connectors.icon",
+    path: "/api/connectors/icon",
+    method: "GET",
+    transport: "resource",
+  }),
   adminConnectorDetail: defineEndpoint({
     key: "admin.connectors.detail",
     path: "/api/admin/connectors/detail",

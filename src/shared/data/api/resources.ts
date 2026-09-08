@@ -399,6 +399,27 @@ export async function fetchAdminSkillIcon(
   return response.blob();
 }
 
+export async function fetchConnectorIcon(
+  url: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<Blob> {
+  const path = url.trim();
+  if (path.split("?", 1)[0] !== dataEndpoints.connectorIcon.path || path.includes("#")) {
+    throw new ApiError("connector icon URL is invalid");
+  }
+  const response = await requestWithAuth(path, {
+    method: dataEndpoints.connectorIcon.method,
+    signal: options.signal,
+    jsonContentType: false,
+  });
+  await requireResourceSuccess(response, "api.downloadFailedWithStatus");
+  const contentType = String(response.headers.get("Content-Type") || "").split(";", 1)[0].trim().toLowerCase();
+  if (!["image/png", "image/svg+xml"].includes(contentType)) {
+    throw new ApiError("connector icon response is not a supported image", { status: response.status });
+  }
+  return response.blob();
+}
+
 export async function fetchAdminSkillFileBlob(
   key: string,
   path: string,

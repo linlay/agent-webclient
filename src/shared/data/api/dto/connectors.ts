@@ -18,6 +18,9 @@ export interface ConnectorSummary {
   type: ConnectorType;
   auth_mode: "none" | "cli" | "mcp" | "token" | "oauth";
   description?: string;
+  icon?: string;
+  iconSha256?: string;
+  iconUrl?: string;
   token_schema?: unknown;
   oauth?: unknown;
   builtin?: boolean;

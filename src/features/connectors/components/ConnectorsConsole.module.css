@@ -11,28 +11,33 @@
 .console p { margin: 0; line-height: 1.6; }
 .console code { font-size: 12px; color: var(--ink-muted); overflow-wrap: anywhere; }
 .hint { color: var(--ink-muted); font-size: 12px; line-height: 1.6; }
-.filters, .files, .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
-.filters button, .files button, .tabs button { border: 1px solid transparent; border-radius: 7px; color: var(--ink-muted); background: transparent; padding: 7px 12px; font: inherit; font-size: 12px; cursor: pointer; }
-.filters button[aria-pressed="true"], .files button[aria-pressed="true"], .tabs button[aria-current] { color: var(--ink-1); background: var(--bg-hover); border-color: var(--line-soft); }
+.files, .tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.files button, .tabs button { border: 1px solid transparent; border-radius: 7px; color: var(--ink-muted); background: transparent; padding: 7px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+.files button[aria-pressed="true"], .tabs button[aria-current] { color: var(--ink-1); background: var(--bg-hover); border-color: var(--line-soft); }
 .console button:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
-.listScroll { flex: 1; min-height: 0; overflow: auto; }
+.listScroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .listItem { display: flex; flex-direction: column; gap: 5px; width: 100%; text-align: left; padding: 8px 10px; margin-bottom: 6px; color: var(--ink-1); background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
 .listItem:hover, .listItem[aria-current="true"] { background: var(--bg-hover); border-color: var(--line-soft); }
 .listItem strong { font-size: 13px; }
 .description { color: var(--ink-muted); font-size: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .badges { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .detail { min-width: 0; overflow: auto; padding: 0 8px 16px 0; display: flex; flex-direction: column; gap: 16px; }
-.tabs { border-bottom: 1px solid var(--line-soft); padding-bottom: 6px; }
+.bodySkills .detail { min-height: 0; overflow: hidden; padding-bottom: 0; }
+.bodySkills .tabs { flex-shrink: 0; }
+.tabs { align-items: center; border-bottom: 1px solid var(--line-soft); padding-bottom: 6px; }
 .stack, .config { display: flex; flex-direction: column; gap: 12px; }
 .group { display: flex; flex-direction: column; gap: 10px; padding: 0; font-size: 13px; overflow-wrap: anywhere; }
 .metadata { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: 12px; }
 .metadata dt { color: var(--ink-muted); }
 .metadata dd { margin: 0; overflow-wrap: anywhere; }
+.manifest { display: flex; flex-direction: column; gap: 16px; }
+.manifestMetadata { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; }
+.manifestHeading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, 25%); gap: 12px; }
 .tool { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line-soft); padding-top: 12px; font-size: 12px; }
 .tool p { color: var(--ink-muted); white-space: pre-wrap; }
 .formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
-.source { min-height: 380px !important; font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important; font-size: 12px !important; line-height: 1.65 !important; tab-size: 2; }
+.jsonEditor { height: clamp(320px, 55vh, 640px); min-width: 0; position: relative; overflow: hidden; border-radius: 6px; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 0; }
 .error { color: var(--accent-danger); font-size: 12px; line-height: 1.6; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 8px; overflow-wrap: anywhere; }
 .notice { color: var(--ink-1); background: var(--bg-hover); padding: 10px 12px; border-radius: 8px; font-size: 12px; }
@@ -49,23 +54,30 @@
   .body { display: flex; flex-direction: column; overflow: auto; gap: 10px; }
   .list { flex: 0 0 260px; border-bottom: 1px solid var(--line-soft); }
   .detail { flex: 0 0 auto; overflow: visible; padding: 12px; }
+  .bodySkills { overflow: hidden; }
+  .bodySkills .list { flex: 0 1 28%; min-height: 140px; }
+  .bodySkills .detail { flex: 1; padding: 0; }
   .formGrid { grid-template-columns: 1fr; }
 }
 
 .listToolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; }
 .itemHeading, .itemFooter { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; width: 100%; }
-.itemHeading strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.itemHeading strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .version { flex-shrink: 0; color: var(--ink-muted); font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; }
 .itemFooter { margin-top: 3px; align-items: flex-end; }
 .itemStatus { min-width: 0; }
 .itemFooter .badges { justify-content: flex-end; gap: 4px; }
 .tabCount { margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--bg-hover); font-size: 11px; font-variant-numeric: tabular-nums; }
-.skillsLayout { display: grid; grid-template-columns: minmax(160px, 200px) minmax(0, 1fr); align-items: start; gap: 20px; }
-.skillList { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.skillItem { display: flex; flex-direction: column; gap: 5px; width: 100%; padding: 8px; text-align: left; background: transparent; color: var(--ink-1); border: 0; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
+.skills { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
+/* Keep the loading wrapper within the available height so only the two panes scroll. */
+.skillsLoading, .skillsLoading > :global(.ant-spin-container) { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.skillsLayout { display: grid; grid-template-columns: minmax(160px, 200px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; gap: 20px; }
+.skillList, .skillDetail { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 2px 4px 12px; }
+.skillList { display: flex; flex-direction: column; gap: 4px; }
+.skillItem { display: flex; flex: 0 0 auto; flex-direction: column; gap: 5px; width: 100%; padding: 8px; text-align: left; background: transparent; color: var(--ink-1); border: 0; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
 .skillItem strong { font-size: 13px; }
 .skillItem[aria-current], .skillItem:hover { background: var(--bg-hover); }
-.skillDetail { min-width: 0; }
+.skillDetail:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
 .skillDescription { font-size: 13px; color: var(--ink-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .documentHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; font-size: 12px; }
 .skillSource { margin: 0; padding: 12px; border-radius: 6px; background: var(--bg-hover); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
@@ -77,4 +89,4 @@
 .console .skillMarkdown :global(h2) { font-size: 16px; }
 .console .skillMarkdown :global(h3) { font-size: 14px; }
 .skillMarkdown > :global(:first-child) { margin-top: 0; }
-@media (max-width: 1000px) { .skillsLayout { grid-template-columns: 1fr; gap: 16px; } .skillList { flex-direction: row; overflow-x: auto; } .skillItem { min-width: 160px; max-width: 240px; flex: 0 0 auto; } }
+@media (max-width: 600px) { .skillsLayout { grid-template-columns: 1fr; grid-template-rows: minmax(80px, 1fr) minmax(0, 3fr); gap: 12px; } }

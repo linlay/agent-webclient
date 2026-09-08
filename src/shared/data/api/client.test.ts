@@ -91,6 +91,7 @@ import {
   downloadAdminSkillFile,
   fetchAdminSkillFileBlob,
   fetchAdminSkillIcon,
+  fetchConnectorIcon,
   getAdminSkillDetail,
   importAdminAgent,
   importAdminSkill,
@@ -648,6 +649,27 @@ describe('data client requests', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer skill-icon-token' }),
       }),
     );
+  });
+
+  it.each(['image/png', 'image/svg+xml'])('fetches connector icons as authenticated %s blobs', async contentType => {
+    setAccessToken('connector-icon-token');
+    const blob = new Blob(['icon'], { type: contentType });
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers({ 'Content-Type': contentType }), blob: async () => blob });
+    const url = '/api/connectors/icon?id=wecom&v=hash';
+    await expect(fetchConnectorIcon(url)).resolves.toBe(blob);
+    expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({
+      method: 'GET', headers: expect.objectContaining({ Authorization: 'Bearer connector-icon-token' }),
+    }));
+  });
+
+  it.each(['https://external.example/icon.svg', '//external.example/icon.png', '/api/connectors/icon/../private', '/api/admin/connectors'])('rejects unexpected connector icon URLs: %s', async url => {
+    await expect(fetchConnectorIcon(url)).rejects.toThrow('connector icon URL is invalid');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-image connector icon responses', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers({ 'Content-Type': 'text/html' }) });
+    await expect(fetchConnectorIcon('/api/connectors/icon?id=wecom')).rejects.toThrow('connector icon response is not a supported image');
   });
 
   it('rejects unexpected or non-image skill icon responses without exposing the token', async () => {
