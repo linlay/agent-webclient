@@ -112,7 +112,7 @@ it("does not report installed connectors as missing when platform authentication
   await mount();
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("Platform 身份认证未通过");
   expect(container.textContent).not.toContain("找不到连接器");
-  expect(container.textContent).not.toContain("已安装 0 个连接器");
+  expect(container.textContent).not.toContain("已安装 0 个");
 });
 
 it("saves overview fields to connector.json with the current base hash", async () => {

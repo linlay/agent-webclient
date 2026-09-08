@@ -58,6 +58,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
   });
   const busy = runtime.saving || runtime.importing;
   const items = filterConnectors(runtime.items, search, filter);
+  const hasFilter = filter !== "all" || Boolean(search.trim());
   const selected = runtime.selected;
   const selectedAuth = selected ? authRuntimes[connectorAuthIdentity(selected)] : undefined;
   const refreshStatuses = () => { Object.values(authRuntimes).forEach(auth => void auth.refresh()); };
@@ -91,7 +92,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
           <UiButton size="sm" variant="primary" iconOnly aria-label={t("connectors.import.action")} title={t("connectors.import.action")} disabled={busy || runtime.detailLoading} onClick={importer.show}><MaterialIcon name="add" /></UiButton>
           <UiButton size="sm" variant="ghost" iconOnly aria-label={t("connectors.action.refresh")} disabled={runtime.loading || busy} onClick={() => { void runtime.refreshCatalog(); refreshStatuses(); }}><MaterialIcon name="refresh" /></UiButton>
         </div>
-        <p className={styles.hint}>{runtime.catalogError && !runtime.items.length ? t("connectors.list.unavailable") : t("connectors.list.count", { count: runtime.items.length })}</p>
+        <p className={styles.hint}>{runtime.catalogError && !runtime.items.length ? t("connectors.list.unavailable") : t(hasFilter ? "connectors.list.count.filtered" : "connectors.list.count", { count: items.length })}</p>
         <div className={styles.listScroll}>
           <Spin spinning={runtime.loading}>
             {items.map(item => {
