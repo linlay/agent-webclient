@@ -34,6 +34,14 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 表单与源码共用一份草稿。切换文件、离开页面和重新加载时保护未保存修改；保存冲突（409）保留草稿与原始哈希，提示用户复制修改后重新加载并合并。校验或保存失败同样保留草稿。后端是包配置合法性的最终校验方。
 
+## Composer 中的 Agent 挂载
+
+“+ → 连接器”使用 `GET /api/admin/agents/connectors?agentKey=<key>` 读取源配置中的 `connectorIds`，已挂载的连接器（例如 zenmi 的已有配置）首次打开即显示开启。`activeConnectorIds` 表示当前运行定义，`reloadPending` 表示它与已保存配置仍不一致。授权状态与挂载状态独立：已挂载但未授权时保留开启的开关，同时显示授权入口；关闭开关不注销部署共享账号。builtin 包只读不限制 Agent 挂载开关。
+
+切换通过 `PUT /api/admin/agents/connectors` 提交 `{agentKey, connectorId, enabled}`，由平台修改 `agent.yml` 的 `connectorConfig.connectors` 并重载。保存期间显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
+
+收到 `catalog.updated(reason=agents|connectors|config)` 或页面恢复可见时刷新配置；`reloadPending` 时显示已保存、等待重载提示，并每 2 秒确认一次，生效或读取失败后停止。活跃 Run、子调用、Team 成员或 Terminal 租约导致的延后生效由 Platform 现有发布规则处理。该配置作用于 Agent 的后续运行，不进入聊天 Query 参数。
+
 ## 账号授权
 现有详情页概览中的“账号授权”区域按清单中的 `auth_mode` 决定交互：`cli/oauth/mcp` 使用统一登录 API，`none` 显示无需授权，`token` 引导到现有配置页。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
 

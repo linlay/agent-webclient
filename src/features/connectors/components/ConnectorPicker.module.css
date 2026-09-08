@@ -1,0 +1,52 @@
+.picker {
+  width: 100%;
+}
+
+.search:global(.ant-input-affix-wrapper) {
+  min-height: 32px;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+}
+
+.search :global(.ant-input-prefix) {
+  margin-right: 8px;
+  color: var(--ink-muted);
+}
+
+.list {
+  max-height: min(300px, 55vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 5px 8px;
+  border-radius: 8px;
+}
+
+.row:hover { background: var(--bg-hover); }
+.picker .icon { flex: 0 0 auto; color: var(--accent); font-size: 16px; }
+.name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main); font-size: 14px; }
+.toggle { flex: 0 0 auto; }
+.toggle:global(.ant-switch-checked) { background: #00bd9d; }
+.toggle:global(.ant-switch-checked):hover:not(:disabled) { background: #00a98d; }
+.connecting { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; color: var(--text-main); font-size: 12px; }
+.picker .spinner { color: #00bd9d; font-size: 16px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .picker .spinner { animation: none; } }
+.picker .connect:global(.ui-btn) { flex: 0 0 auto; padding: 2px 0; min-height: 24px; height: 24px; color: var(--ink-muted); font-size: 12px; }
+.connect :global(.ui-btn-label) { display: inline-flex; align-items: center; gap: 5px; }
+.connect :global(.material-icon) { font-size: 16px; }
+.status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 20px 8px; color: var(--ink-muted); font-size: 12px; }
+.authorization { display: inline-flex; align-items: center; gap: 5px; margin: 0 10px 8px 40px; font-size: 12px; color: var(--accent); }
+.authorization :global(.material-icon) { font-size: 14px; }
+.hint, .error { margin: 0 10px 8px 40px; font-size: 12px; line-height: 1.5; color: var(--ink-muted); }
+.error { color: var(--accent-danger); }
+.notice { padding: 8px; color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
+.authAction { display: flex; justify-content: flex-end; padding: 0 8px 4px; }

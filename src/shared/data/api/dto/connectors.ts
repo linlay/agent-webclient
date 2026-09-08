@@ -16,7 +16,7 @@ export interface ConnectorSummary {
   name: string;
   version: string;
   type: ConnectorType;
-  auth_mode: "none" | "cli" | "mcp" | "token" | "oauth";
+  auth_mode: "none" | "cli" | "mcp" | "token" | "oneid-token" | "oauth" | null;
   description?: string;
   icon?: string;
   iconSha256?: string;
@@ -103,4 +103,16 @@ export interface ConnectorAuthSession {
 export interface ConnectorAuthActionResult {
   id: string;
   status: "canceled" | "unauthorized";
+}
+export interface AgentConnectorsResponse {
+  agentKey: string;
+  connectorIds: string[];
+  activeConnectorIds: string[];
+  reloadPending: boolean;
+}
+
+export interface SetAgentConnectorRequest {
+  agentKey: string;
+  connectorId: string;
+  enabled: boolean;
 }

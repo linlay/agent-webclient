@@ -18,8 +18,9 @@ import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 
-type Section = "files" | "mode" | "skills" | "commands" | "chat" | "site";
+type Section = "files" | "mode" | "skills" | "connectors" | "commands" | "chat" | "site";
 export interface AddMenuTriggerProps {
   disabled: boolean;
   loading: boolean;
@@ -53,6 +54,11 @@ const sectionMeta: Record<
     key: "composer.addMenu.section.skills",
     detailWidth: 320,
   },
+  connectors: {
+    icon: "hub",
+    key: "composer.addMenu.section.connectors",
+    detailWidth: 240,
+  },
   commands: {
     icon: "terminal",
     key: "composer.addMenu.section.commands",
@@ -76,6 +82,7 @@ const sectionNav: NavEntry[] = [
   "divider",
   "mode",
   "skills",
+  "connectors",
   "commands",
   "chat",
   "site",
@@ -204,6 +211,8 @@ const AddMenuSectionDetail: React.FC<
           style={{ marginBottom: 10 }}
         />
       )}
+      {section === "connectors" && <AgentConnectorPicker key={props.currentAgentKey} agentKey={props.currentAgentKey}
+        search={search} onSearchChange={onSearchChange} disabled={props.disabled} />}
       {section === "files" &&
         item(
           <>
@@ -390,6 +399,12 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   const { t } = useI18n();
   const [section, setSection] = useState<Section | null>(null);
   const [search, setSearch] = useState("");
+  const [compact, setCompact] = useState(() => typeof window !== "undefined" && window.innerWidth < 560);
+  useEffect(() => {
+    const updateCompact = () => setCompact(window.innerWidth < 560);
+    window.addEventListener("resize", updateCompact);
+    return () => window.removeEventListener("resize", updateCompact);
+  }, []);
   // 切换面板时重置搜索词，与原先面板销毁重建的行为保持一致
   useEffect(() => {
     setSearch("");
@@ -402,6 +417,16 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
       return props.canUsePlanningMode || props.canUseEditingMode;
     return true;
   });
+  // A side-by-side submenu cannot fit narrow chat windows. Reuse the parent
+  // popover for this picker so the search and switches stay within the viewport.
+  if (compact && section === "connectors") {
+    return <div>
+      <UiButton variant="ghost" size="sm" className="composer-add-menu-detail-item" onClick={() => setSection(null)}>
+        <MaterialIcon name="chevron_left" />{t("composer.addMenu.connectors.back")}
+      </UiButton>
+      <AddMenuSectionDetail {...props} section="connectors" onClose={props.onClose} search={search} onSearchChange={setSearch} />
+    </div>;
+  }
   return (
     <div className="composer-add-menu-nav" role="menu">
       {navEntries.map((entry, index) =>

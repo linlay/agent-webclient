@@ -5,6 +5,7 @@ import type {
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
   ConnectorSkillListResponse, ConnectorSkillDetail,
   ConnectorAuthSession, ConnectorAuthActionResult,
+  AgentConnectorsResponse, SetAgentConnectorRequest,
 } from "@/shared/data/api/dto/connectors";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { requestJson } from "@/shared/data/api/http";
@@ -12,6 +13,16 @@ import { endpointQuery, withQuery } from "@/shared/data/api/queryParams";
 
 export function getAdminConnectors(): Promise<ApiResponse<ConnectorListResponse>> {
   return requestJson<ConnectorListResponse>(dataEndpoints.adminConnectors.path);
+}
+
+export function getAgentConnectors(agentKey: string): Promise<ApiResponse<AgentConnectorsResponse>> {
+  const endpoint = dataEndpoints.adminAgentConnectors;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store" });
+}
+
+export function setAgentConnector(params: SetAgentConnectorRequest): Promise<ApiResponse<AgentConnectorsResponse>> {
+  const endpoint = dataEndpoints.adminAgentConnectorUpdate;
+  return requestJson(endpoint.path, { method: endpoint.method, body: JSON.stringify(params), cache: "no-store" });
 }
 
 export function getConnectorSkills(id: string): Promise<ApiResponse<ConnectorSkillListResponse>> {

@@ -1,11 +1,20 @@
 /** @jest-environment jsdom */
 import { cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
+import { getAgentConnectors, setAgentConnector } from "./connectors";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
   requestJson: jest.fn(),
 }));
 beforeEach(() => jest.clearAllMocks());
+
+it("reads configured Agent connectors without caching and sends only the single switch edit", async () => {
+  await getAgentConnectors("zenmi & other");
+  const input = { agentKey: "zenmi", connectorId: "docs", enabled: false };
+  await setAgentConnector(input);
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store" });
+  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/agents/connectors", { method: "PUT", cache: "no-store", body: JSON.stringify(input) });
+});
 
 it("uses installed connector APIs with file identity and a required base hash", async () => {
   await getAdminConnectors();
