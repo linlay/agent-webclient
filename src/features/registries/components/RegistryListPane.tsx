@@ -24,11 +24,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import styles from "./RegistryConsole.module.css";
 
-const CATEGORY_TABS_CLASS_NAME =
-  "registry-category-tabs tw:grid tw:grid-cols-3 tw:gap-1.5 tw:rounded-control tw:border tw:p-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_70%,var(--bg-elev-2))]";
-const CATEGORY_TAB_CLASS_NAME =
-  "registry-category-tab tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-[var(--radius-sm)] tw:border tw:border-transparent tw:bg-transparent tw:px-2 tw:py-[7px] tw:text-xs tw:leading-[1.25] tw:text-ink-muted tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_52%,var(--line-soft))] tw:hover:bg-bg-base tw:hover:text-ink-1 tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_52%,var(--line-soft))] tw:[&.is-active]:bg-bg-base tw:[&.is-active]:text-ink-1 tw:[&.is-active>strong]:bg-[color-mix(in_srgb,var(--accent-electric)_14%,var(--bg-input))] tw:[&.is-active>strong]:text-accent-electric-strong tw:[&>span]:min-w-0 tw:[&>span]:overflow-hidden tw:[&>span]:text-ellipsis tw:[&>span]:whitespace-nowrap tw:[&>strong]:flex-none tw:[&>strong]:rounded-pill tw:[&>strong]:bg-[color-mix(in_srgb,var(--line-soft)_78%,transparent)] tw:[&>strong]:px-1.5 tw:[&>strong]:py-0.5 tw:[&>strong]:text-[10px] tw:[&>strong]:leading-[1.2] tw:[&>strong]:text-ink-muted";
 const LIST_CLASS_NAME =
   "automation-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
 const TOOLBAR_CLASS_NAME =
@@ -89,7 +86,7 @@ export function RegistryCategoryTabs({
   const { t } = useI18n();
   return (
     <div
-      className={CATEGORY_TABS_CLASS_NAME}
+      className={styles.categoryTabs}
       role="tablist"
       aria-label={t("registryConsole.section.categories")}
     >
@@ -99,7 +96,7 @@ export function RegistryCategoryTabs({
           key={category}
           role="tab"
           aria-selected={category === activeCategory}
-          className={`${CATEGORY_TAB_CLASS_NAME} ${category === activeCategory ? "is-active" : ""}`}
+          className={styles.categoryTab}
           onClick={() => onSwitchCategory(category)}
         >
           <span>
