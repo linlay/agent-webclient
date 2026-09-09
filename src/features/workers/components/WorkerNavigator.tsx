@@ -59,6 +59,7 @@ import {
   loadAgentCopyDetail as requestAgentCopyDetail,
   renameManagedAgent,
 } from "@/features/agents/lib/agentOperations";
+import { PinnedChatSection } from "./PinnedChatSection";
 import "./WorkerNavigator.module.css";
 
 const LEFT_SIDEBAR_BASE_CLASS =
@@ -223,7 +224,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   };
 
   const handleSelectCollapsedWorker = (workerKey: string) => {
-    const workerChats = workerChatsByKey.get(workerKey) || [];
+    const workerChats = (workerChatsByKey.get(workerKey) || []).filter((chat) => !chat.pinned);
     const runningChat = workerChats.find(isWorkerChatRunning);
     const latestChat = workerChats[0];
     const targetChat =
@@ -471,8 +472,9 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
       const rawChats = workerChatsByKey.get(row.key) || [];
       const icon = workerIconsByKey.get(row.key);
       const unreadCount = workerUnreadCountByKey.get(row.key) || 0;
-      const awaitingChat = rawChats.find((chat) => chat.hasPendingAwaiting);
-      const activeRunChat = rawChats.find(isWorkerChatRunning);
+      const unpinnedChats = rawChats.filter((chat) => !chat.pinned);
+      const awaitingChat = unpinnedChats.find((chat) => chat.hasPendingAwaiting);
+      const activeRunChat = unpinnedChats.find(isWorkerChatRunning);
 
       return {
         key: row.key,
@@ -483,7 +485,8 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
             row={row}
             isActive={row.key === state.workerSelectionKey}
             icon={icon}
-            lastChat={rawChats[0]}
+            lastChat={unpinnedChats[0]}
+            emptyPreview={rawChats.length > 0 ? t("leftSidebar.noUnpinnedConversations") : undefined}
             awaitingChat={awaitingChat}
             activeRunChat={activeRunChat}
             unreadCount={unreadCount}
@@ -699,6 +702,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 
         <div className={CHAT_LIST_CLASS} id="chat-list">
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
+            <PinnedChatSection collapsed={!state.leftDrawerOpen} onSelectChat={handleSelectChat} getChatLoading={getWorkerChatLoading} />
             {filteredWorkerRows.length === 0 ? (
               <div className="status-line">{t("leftSidebar.noWorkers")}</div>
             ) : state.leftDrawerOpen ? (

@@ -57,6 +57,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
   isActive: boolean;
   icon?: AgentIconConfig;
   lastChat?: WorkerConversationRow;
+  emptyPreview?: string;
   awaitingChat?: WorkerConversationRow;
   activeRunChat?: WorkerConversationRow;
   unreadCount?: number;
@@ -71,6 +72,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
   isActive,
   icon,
   lastChat,
+  emptyPreview,
   awaitingChat,
   activeRunChat,
   unreadCount = 0,
@@ -86,7 +88,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
     ? previewChat?.chatName ||
       previewChat?.lastRunContent ||
       t("leftSidebar.latestConversationNoReply")
-    : t("leftSidebar.noHistory");
+    : emptyPreview || t("leftSidebar.noHistory");
   const previewStatus = awaitingChat
     ? "awaiting"
     : activeRunChat

@@ -1,3 +1,4 @@
+import { invalidateChatNavigationCache } from "@/shared/data";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
@@ -848,6 +849,14 @@ export function createConversationPushHandler(
 			return;
 		}
 
+		if (type === "chats.order.changed") {
+			invalidateChatNavigationCache();
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			}
+			return;
+		}
+
 		if (type === "chat.created") {
 			upsertPushChatSummary(options.dispatch, liveEvent);
 			return;
@@ -1087,6 +1096,8 @@ export function useConversationWsRuntime(options: {
 	]);
 
 	const handleReconnect = useCallback((currentState: AppState) => {
+		invalidateChatNavigationCache();
+		window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
 		refreshCurrentChatAfterWsReconnect(currentState);
 	}, []);
 	useChatNotificationRuntime({

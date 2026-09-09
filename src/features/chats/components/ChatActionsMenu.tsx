@@ -12,6 +12,8 @@ import { buildChatCopyInfoGroups } from "@/features/chats/lib/chatCopyInfo";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
 
+import { useChatPinActions } from "@/features/chats/hooks/useChatPinActions";
+
 export const ChatActionsMenu: React.FC<{
   chatId: string;
   chatName?: string;
@@ -33,6 +35,9 @@ export const ChatActionsMenu: React.FC<{
   const { pending, archive, remove, rename, exportChat } = useChatOperations(
     state.chatId, dispatch, t,
   );
+  const pinActions = useChatPinActions();
+  const isPinned = state.chatPinnedOrder?.includes(chatId) ?? false;
+  const pinningSupported = Array.isArray(state.chatPinnedOrder);
   const [copyInfoOpen, setCopyInfoOpen] = useState(false);
   const [copyInfoDetail, setCopyInfoDetail] =
     useState<ChatDetailResponse | null>(null);
@@ -169,6 +174,11 @@ export const ChatActionsMenu: React.FC<{
   const handleMenuClick: MenuProps["onClick"] = (info) => {
     info.domEvent.stopPropagation();
     switch (info.key) {
+      case "pin":
+        if (!normalizedChatId || pinActions.pending || !pinningSupported) return;
+        void pinActions.update({ operation: "set_pinned", chatId: normalizedChatId, pinned: !isPinned })
+          .catch(() => message.error(t("chatActions.pin.failed")));
+        break;
       case "export":
         void handleExport("markdown");
         break;
@@ -191,6 +201,13 @@ export const ChatActionsMenu: React.FC<{
   };
 
   const items: MenuProps["items"] = [
+    ...(pinningSupported ? [{
+      key: "pin",
+      className: menuItemClassName,
+      icon: <MaterialIcon name="push_pin" className={menuIconClassName} />,
+      label: t(isPinned ? "chatActions.unpin" : "chatActions.pin"),
+      disabled: pending || pinActions.pending,
+    }] : []),
     {
       key: "exportGroup",
       className: menuItemClassName,
@@ -241,6 +258,11 @@ export const ChatActionsMenu: React.FC<{
       <Dropdown
         menu={{ items, onClick: handleMenuClick }}
         trigger={["click"]}
+        onOpenChange={(open) => {
+          if (open && !pinningSupported) {
+            window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+          }
+        }}
         placement="bottomRight"
       >
         <UiButton

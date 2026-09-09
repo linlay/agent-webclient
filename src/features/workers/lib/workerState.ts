@@ -43,6 +43,7 @@ export interface WorkerRow {
 }
 
 export interface WorkerConversationRow {
+  pinned?: boolean;
   chatId: string;
   chatName: string;
   agentKey?: string;

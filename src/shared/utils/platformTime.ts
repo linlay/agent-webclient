@@ -66,6 +66,7 @@ export const DESKTOP_PUSH_TIME_CONTRACT: Record<string, PushTimeContract> = {
     },
   },
   "archive.deleted": {},
+  "chats.order.changed": { required: ["updatedAt"] },
   "catalog.updated": { required: ["updatedAt"] },
   "awaiting.asking": { required: ["createdAt"] },
   "awaiting.answered": { required: ["answeredAt"] },

@@ -2,6 +2,8 @@ const mockGetAgents = jest.fn();
 const mockGetAgent = jest.fn();
 const mockGetAgentFile = jest.fn();
 const mockGetAgentOrder = jest.fn();
+const mockGetChatOrder = jest.fn();
+const mockPutChatOrder = jest.fn();
 const mockGetChat = jest.fn();
 const mockGetChats = jest.fn();
 const mockGetChatRawJsonl = jest.fn();
@@ -45,6 +47,8 @@ jest.mock("@/shared/data/api/client", () => ({
 	getAgent: (...args: unknown[]) => mockGetAgent(...args),
 	getAgentFile: (...args: unknown[]) => mockGetAgentFile(...args),
 	getAgentOrder: (...args: unknown[]) => mockGetAgentOrder(...args),
+	getChatOrder: (...args: unknown[]) => mockGetChatOrder(...args),
+	putChatOrder: (...args: unknown[]) => mockPutChatOrder(...args),
 	getChat: (...args: unknown[]) => mockGetChat(...args),
 	getChats: (...args: unknown[]) => mockGetChats(...args),
 	getChatRawJsonl: (...args: unknown[]) => mockGetChatRawJsonl(...args),
@@ -324,4 +328,38 @@ describe("routedClient capability routing", () => {
 		expect(mockGetAgentOrder).toHaveBeenCalledTimes(1);
 		expect(mockRequestPlatformData).not.toHaveBeenCalled();
 	});
+});
+
+
+describe("chat pinning routes", () => {
+  beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); mockGetBackendMode.mockReturnValue("platform"); });
+  it("preserves false filters over WS and invalidates both navigation caches on pin", async () => {
+    mockRequestPlatformData.mockResolvedValue(ok([]));
+    const routed = await import("./routedClient");
+    const agents = { includeTeam: true, includeChats: 5, chatsPinned: false };
+    await routed.getAgents(agents);
+    await routed.getChats({ pinned: false, limit: 5 });
+    expect(mockRequestPlatformData).toHaveBeenCalledWith("/api/agents", agents);
+    expect(mockRequestPlatformData).toHaveBeenCalledWith("/api/chats", { pinned: false, limit: 5 });
+    await routed.getAgents(agents);
+    await routed.getChats({ pinned: false, limit: 5 });
+    expect(mockRequestPlatformData).toHaveBeenCalledTimes(2);
+    mockRequestPlatformData.mockResolvedValueOnce(ok({ sortMode: "recent", pinnedOrder: ["a"] }));
+    await routed.putChatOrder({ operation: "set_pinned", chatId: "a", pinned: true });
+    expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/chats/order", { operation: "set_pinned", chatId: "a", pinned: true });
+    await routed.getAgents(agents);
+    await routed.getChats({ pinned: false, limit: 5 });
+    expect(mockRequestPlatformData).toHaveBeenCalledTimes(5);
+  });
+  it("uses the registered HTTP route for Gateway order operations", async () => {
+    mockGetBackendMode.mockReturnValue("gateway");
+    mockGetChatOrder.mockResolvedValue(ok({ sortMode: "recent", pinnedOrder: ["a"] }));
+    mockPutChatOrder.mockResolvedValue(ok({ sortMode: "recent", pinnedOrder: [] }));
+    const routed = await import("./routedClient");
+    await routed.getChatOrder();
+    await routed.putChatOrder({ operation: "set_pinned", chatId: "a", pinned: false });
+    expect(mockGetChatOrder).toHaveBeenCalledTimes(1);
+    expect(mockPutChatOrder).toHaveBeenCalledWith({ operation: "set_pinned", chatId: "a", pinned: false });
+    expect(mockRequestPlatformData).not.toHaveBeenCalled();
+  });
 });

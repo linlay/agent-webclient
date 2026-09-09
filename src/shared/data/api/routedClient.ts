@@ -25,6 +25,8 @@ import {
 	getChat as getChatHttp,
 	getChatSystemPrompt as getChatSystemPromptHttp,
 	getChats as getChatsHttp,
+	getChatOrder as getChatOrderHttp,
+	putChatOrder as putChatOrderHttp,
 	getCurrentAccessToken,
 	getMemoryMeta as getMemoryMetaHttp,
 	getMemoryRecord as getMemoryRecordHttp,
@@ -95,6 +97,8 @@ import type {
 } from "@/shared/data/api/dto/archives";
 import type {
 	ChatDetailResponse,
+	ChatOrderResponse,
+	UpdateChatOrderRequest,
 	ChatSystemPromptRequest,
 	ChatSystemPromptResponse,
 	DeriveChatRequest,
@@ -706,4 +710,21 @@ export function getConnectorOrder(): Promise<ApiResponse<ConnectorOrderResponse>
 
 export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<ApiResponse<ConnectorOrderResponse>> {
 	return routeEndpoint(dataEndpoints.connectorOrderUpdate, params, () => putConnectorOrderHttp(params));
+}
+
+export function invalidateChatNavigationCache(): void {
+  invalidateRouteEndpoints(dataEndpoints.chats, dataEndpoints.agents);
+}
+
+export function getChatOrder(): Promise<ApiResponse<ChatOrderResponse>> {
+  return routeEndpoint(dataEndpoints.chatOrder, undefined, getChatOrderHttp);
+}
+
+export function putChatOrder(params: UpdateChatOrderRequest): Promise<ApiResponse<ChatOrderResponse>> {
+  return routeEndpoint<ChatOrderResponse, UpdateChatOrderRequest>(
+    dataEndpoints.chatOrderUpdate, params, () => putChatOrderHttp(params),
+  ).then((response) => {
+    invalidateChatNavigationCache();
+    return response;
+  });
 }

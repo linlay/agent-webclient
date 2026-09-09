@@ -29,6 +29,7 @@ export interface ChatReadState {
 }
 
 export interface Chat {
+  pinned?: boolean;
   chatId: string;
   chatName?: string;
   firstAgentName?: string;
@@ -50,11 +51,15 @@ export interface Chat {
 }
 
 export interface ChatsState {
+  chatPinnedOrder: string[] | null;
+  chatPinningPending: boolean;
   chats: Chat[];
   currentChatActiveRun: CurrentChatActiveRun | null;
 }
 
 export type ChatsAction =
+  | { type: "SET_CHAT_PINNING"; order: string[] | null; chats?: Chat[]; baseChats?: Chat[] }
+  | { type: "SET_CHAT_PINNING_PENDING"; pending: boolean }
   | { type: "SET_CHATS"; chats: Chat[] }
   | { type: "UPSERT_CHAT"; chat: Partial<Chat> & Pick<Chat, "chatId"> }
   | { type: "CHAT_DELETED"; chatId: string }
@@ -64,5 +69,5 @@ export type ChatsAction =
   | { type: "SET_CURRENT_CHAT_ACTIVE_RUN"; activeRun: CurrentChatActiveRun | null };
 
 export function createInitialChatsState(): ChatsState {
-  return { chats: [], currentChatActiveRun: null };
+  return { chats: [], currentChatActiveRun: null, chatPinnedOrder: null, chatPinningPending: false };
 }

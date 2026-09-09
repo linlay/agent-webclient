@@ -569,6 +569,7 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (options = {}) =>
       compactPayload({
         includeChats: options.includeChats,
+        chatsPinned: options.chatsPinned,
         includeTeam: options.includeTeam,
         scope: options.scope,
         mode: options.mode,
@@ -770,6 +771,20 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
+  chatOrder: defineEndpoint({
+    key: "chats.order",
+    path: "/api/chats/order",
+    method: "GET",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
+  chatOrderUpdate: defineEndpoint({
+    key: "chats.order.update",
+    path: "/api/chats/order",
+    method: "PUT",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
   chats: defineEndpoint<GetChatsOptions, Record<string, unknown>>({
     key: "chats.list",
     path: "/api/chats",
@@ -781,6 +796,8 @@ export const dataEndpoints = createEndpointRegistry({
       compactPayload({
         agentKey: options.agentKey,
         mode: options.mode,
+        pinned: options.pinned,
+        limit: options.limit,
       }),
   }),
   compact: defineEndpoint<CompactChatParams, Record<string, unknown>>({

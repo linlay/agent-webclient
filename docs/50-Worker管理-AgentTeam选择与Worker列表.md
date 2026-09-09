@@ -31,3 +31,13 @@ Agent、Team 和 Worker 列表是左侧导航和对话入口的核心。前端�
 - `../src/features/workers/hooks/useWorkerSidebarData.ts`
 - `../src/features/workers/lib/workerState.ts`
 - `../src/app/layout/sidebar/SidebarSettingsMenu.tsx`
+
+## 统一 Chat 置顶
+
+独立侧栏顶部的 Pinned 共用一组顺序，接纳普通 Agent、CODER、KBASE 和 Team 对话。展开时显示会话标题、所属 Agent/Team、运行/HITL/未读状态；收起时由置顶图标打开列表。Chat 操作菜单支持置顶与取消置顶；拖动手柄或空格、方向键、空格完成组内排序，搜索过滤期间暂停排序。
+
+`useWorkerData` 先读取 `/api/chats/order` 判断支持，再用 `/api/chats?pinned=true` 全量读取置顶摘要。后续 `/api/agents?includeChats=5&includeTeam=true&chatsPinned=false` 在后端截取之前排除置顶，分组预览和收起时的摘要也不重复展示置顶 Chat。Worker 的历史总数、未读计数和 History 搜索仍覆盖完整历史，Agent/Team 本身保留在原列表。
+
+`chatPinnedOrder` 与同一份 `state.chats` 一起投影 UI，不修改对话 `updatedAt`、普通排序或浏览器持久化。修改成功使用后端返回的顺序，随后刷新并补齐原分组；失败提示并重新对账。并发刷新合并为串行重取，请求期间的 live push、重命名、已读与删除不会被较早的置顶摘要覆盖。后端缺少 `pinnedOrder` 或返回 404/501 时保留原侧栏并隐藏置顶操作，其他加载失败保留当前置顶状态。
+
+Desktop 内嵌 Agent/Copilot 页面继续由宿主提供外层侧栏；WebClient 不额外显示第二份导航。

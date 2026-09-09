@@ -7,6 +7,8 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 
+let mockPinnedOrder: string[] | null = null;
+const mockPutChatOrder = jest.fn();
 const mockDispatch = jest.fn();
 const mockRenameChat = jest.fn();
 const mockGetChat = jest.fn();
@@ -21,12 +23,13 @@ let mockMenuGroups: Array<Record<string, any>> = [];
 
 jest.mock("@/app/state/AppContext", () => ({
 	useAppContext: () => ({
-		state: { chatId: "chat_1" },
+		state: { chatId: "chat_1", chatPinnedOrder: mockPinnedOrder },
 		dispatch: mockDispatch,
 	}),
 }));
 
 jest.mock("@/shared/data", () => ({
+  putChatOrder: (...args: unknown[]) => mockPutChatOrder(...args),
 	archiveChats: (...args: unknown[]) => mockArchiveChats(...args),
 	deleteChat: (...args: unknown[]) => mockDeleteChat(...args),
 	downloadChatExport: (...args: unknown[]) => mockDownloadChatExport(...args),
@@ -367,4 +370,33 @@ describe("ChatActionsMenu", () => {
 
 		expect(mockGetChat).toHaveBeenCalledWith("chat_1", false);
 	});
+});
+
+
+describe("pin menu", () => {
+  afterEach(() => { mockPinnedOrder = null; });
+  it.each([false, true])("sends an explicit pinned value when current pin is %s", async pinned => {
+    mockPinnedOrder = pinned ? ["chat_1"] : [];
+    mockPutChatOrder.mockResolvedValue({ data: { sortMode: "recent", pinnedOrder: pinned ? [] : ["chat_1"] } });
+    renderToStaticMarkup(React.createElement(ChatActionsMenu, { chatId: "chat_1" }));
+    mockMenuItems.find(item => item.key === "pin")!.onClick();
+    await Promise.resolve(); await Promise.resolve();
+    expect(mockPutChatOrder).toHaveBeenLastCalledWith({ operation: "set_pinned", chatId: "chat_1", pinned: !pinned });
+    expect(mockDispatch).toHaveBeenCalledWith({ type: "SET_CHAT_PINNING", order: pinned ? [] : ["chat_1"] });
+  });
+  it("keeps membership unchanged when a write fails and reports the error", async () => {
+    mockPinnedOrder = [];
+    mockDispatch.mockClear();
+    mockPutChatOrder.mockRejectedValue(new Error("offline"));
+    renderToStaticMarkup(React.createElement(ChatActionsMenu, { chatId: "chat_1" }));
+    mockMenuItems.find(item => item.key === "pin")!.onClick();
+    await Promise.resolve(); await Promise.resolve();
+    expect(mockDispatch.mock.calls.some(([action]) => action.type === "SET_CHAT_PINNING")).toBe(false);
+    expect(mockMessageError).toHaveBeenCalled();
+  });
+  it("hides pin actions when the backend has not advertised support", () => {
+    mockPinnedOrder = null;
+    renderToStaticMarkup(React.createElement(ChatActionsMenu, { chatId: "chat_1" }));
+    expect(mockMenuItems.some(item => item.key === "pin")).toBe(false);
+  });
 });

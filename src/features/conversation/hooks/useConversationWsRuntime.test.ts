@@ -1,3 +1,4 @@
+import { dataQueryCache } from "@/shared/data/query/serverState";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/AppContext";
@@ -269,6 +270,20 @@ describe("createConversationPushHandler", () => {
 			writable: true,
 		});
 	});
+
+
+  it("refreshes pins and invalidates navigation caches after another client's reorder", () => {
+    const invalidate = jest.spyOn(dataQueryCache, "invalidatePrefix");
+    const dispatchEvent = jest.fn();
+    Object.defineProperty(globalThis, "window", { value: { dispatchEvent }, configurable: true, writable: true });
+    Object.defineProperty(globalThis, "CustomEvent", { value: class { constructor(public type: string) {} }, configurable: true, writable: true });
+    const onPush = createConversationPushHandler({ dispatch, stateRef: { current: createState() }, handleEvent });
+    onPush({ frame: "push", type: "chats.order.changed", data: { updatedAt: EPOCH_MS } });
+    expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "agent:refresh-worker-data" }));
+    expect(invalidate).toHaveBeenCalledWith("request:chats.list");
+    expect(invalidate).toHaveBeenCalledWith("request:agents.list");
+    invalidate.mockRestore();
+  });
 
 	it("reads current chat state on every push and ignores heartbeat and invalid updates", () => {
 		const stateRef = { current: createState({ chatId: "chat_1" }) };

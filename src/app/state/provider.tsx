@@ -209,6 +209,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 					agents: [],
 					teams: [],
 					chats: [],
+					chatPinnedOrder: null,
+					chatPinningPending: false,
 					automations: [],
 				},
 			});

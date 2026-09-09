@@ -4,6 +4,8 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 后端负责智能体如何运行；AGW Web Client 负责把运行过程展示清楚，并提供操作、调试和交付界面。
 
+独立 WebClient 侧栏支持跨普通 Agent、CODER、KBASE 与 Team 的统一 Pinned：菜单置顶/取消置顶，组内拖动或键盘排序，收起侧栏仍可打开置顶列表。状态复用 Platform 的 `chat-pinned.json`，不写浏览器独立副本；各 Worker 的 5 条预览在后端截取前排除置顶项，历史总数保持完整。
+
 ## 这个项目是什么
 
 `agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不包含智能体后端，也不定义模型、工具、调度、记忆或权限的最终语义；它消费上游 `/api/*` 与 `/ws` 能力，为智能体平台提供统一前端。

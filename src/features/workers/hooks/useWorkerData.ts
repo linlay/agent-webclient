@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
-import { getAgent, getAgents, getChats, setAccessToken } from '@/shared/data';
+import { readChatPinningSnapshot } from '@/features/chats/lib/chatPinningData';
+import type { ChatPinningSnapshot } from '@/features/chats/lib/chatPinning';
+import { getAgent, getAgents, getChats, setAccessToken, invalidateChatNavigationCache } from '@/shared/data';
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { WorkerListItem, WorkerRow } from "@/features/workers/lib/workerState";
@@ -22,6 +24,7 @@ import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 type AgentListRequestOptions = {
   includeChats?: number;
+  chatsPinned?: boolean;
   includeTeam: true;
   scope: 'nav' | 'copilot';
 };
@@ -52,7 +55,7 @@ export function buildAgentListFallbackRequestOptions(
   if (options.scope !== 'copilot') {
     return null;
   }
-  return { includeChats: options.includeChats, includeTeam: true, scope: 'nav' };
+  return { ...options, scope: 'nav' };
 }
 
 export function shouldFallbackMixedWorkerList(
@@ -103,6 +106,8 @@ export function useWorkerData(input: {
   } = input;
   const { state, dispatch, stateRef } = useAppContext();
   const initialRefreshStartedRef = useRef(false);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const refreshAgainRef = useRef(false);
   const appMode = isAppMode();
 
   const extractAgentWorkerKey = useCallback((detail: { workerKey?: unknown; agentKey?: unknown }): string => {
@@ -237,12 +242,22 @@ export function useWorkerData(input: {
     });
   }, [dispatch, rebuildWorkerRowsFromState, runWithSidebarLoading, stateRef]);
 
-  const refreshWorkerData = useCallback(async () => {
+  const performWorkerRefresh = useCallback(async () => {
     await runWithSidebarLoading(async () => {
+      const baseChats = stateRef.current.chats;
+      let pins: ChatPinningSnapshot | undefined;
+      try {
+        pins = await readChatPinningSnapshot();
+      } catch (error) {
+        dispatch({ type: 'APPEND_DEBUG', line: `[load chat pins error] ${String(error)}` });
+      }
       await refreshWorkerDataFromAgentsWithChats({
         fetchAgents: async () => {
           return fetchAgentsWithScopeFallback(
-            buildAgentListRequestOptions(currentPathname(), INITIAL_AGENT_CHAT_LIMIT),
+            {
+              ...buildAgentListRequestOptions(currentPathname(), INITIAL_AGENT_CHAT_LIMIT),
+              ...((pins ? pins.order : stateRef.current.chatPinnedOrder) != null ? { chatsPinned: false } : {}),
+            },
           );
         },
         getSnapshot: getWorkerDataSnapshot,
@@ -265,8 +280,28 @@ export function useWorkerData(input: {
           dispatch({ type: 'APPEND_DEBUG', line });
         },
       });
+      if (pins && !refreshAgainRef.current && !stateRef.current.chatPinningPending) {
+        dispatch({ type: 'SET_CHAT_PINNING', ...pins, baseChats });
+      }
     });
-  }, [dispatch, fetchAgentsWithScopeFallback, getWorkerDataSnapshot, rebuildWorkerRowsFromState, runWithSidebarLoading]);
+  }, [dispatch, fetchAgentsWithScopeFallback, getWorkerDataSnapshot, rebuildWorkerRowsFromState, runWithSidebarLoading, stateRef]);
+
+  const refreshWorkerData = useCallback((): Promise<void> => {
+    if (refreshInFlightRef.current) {
+      refreshAgainRef.current = true;
+      return refreshInFlightRef.current;
+    }
+    const refresh = async () => {
+      do {
+        refreshAgainRef.current = false;
+        await performWorkerRefresh();
+      } while (refreshAgainRef.current);
+    };
+    refreshInFlightRef.current = refresh().finally(() => {
+      refreshInFlightRef.current = null;
+    });
+    return refreshInFlightRef.current;
+  }, [performWorkerRefresh]);
 
   const ensureAgentLoadedForWorkerSelection = useCallback(async (
     detail: { workerKey?: unknown; agentKey?: unknown },
@@ -369,6 +404,7 @@ export function useWorkerData(input: {
 
   useEffect(() => {
     const handler = () => {
+      invalidateChatNavigationCache();
       refreshWorkerData().catch(() => undefined);
     };
     window.addEventListener('agent:refresh-worker-data', handler);

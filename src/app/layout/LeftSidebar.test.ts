@@ -506,6 +506,22 @@ describe("LeftSidebar", () => {
       | undefined;
   }
 
+
+  it("shows unified pins once and retains five unpinned owner previews", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chatPinnedOrder = ["chat_6"];
+    state.chats = state.chats.map(chat => ({ ...chat, pinned: chat.chatId === "chat_6" }));
+    mockState(state);
+    const html = renderSidebar();
+    const pinSection = html.split('<section class="pinned-chat-section"')[1].split('</section>')[0];
+    const workerSection = html.split('</section>')[1];
+    expect(pinSection).toContain("Chat 6");
+    expect(workerSection).not.toContain("Chat 6");
+    for (let i = 1; i <= 5; i += 1) expect(workerSection).toContain(`Chat ${i}`);
+    expect((workerSection.match(/class="[^"]*worker-chat-item /g) || []).length).toBe(5);
+  });
+
   beforeEach(() => {
     antdButtonProps.length = 0;
     antdCollapseProps.length = 0;

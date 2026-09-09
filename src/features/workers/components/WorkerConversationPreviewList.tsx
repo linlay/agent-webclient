@@ -69,7 +69,7 @@ export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
   ...workerActions
 }) => {
   const { t } = useI18n();
-  const recentChats = chats.slice(0, 5);
+  const recentChats = chats.filter((chat) => !chat.pinned).slice(0, 5);
   const showMoreCount = Math.max(
     Number.isFinite(Number(totalChatCount)) ? Number(totalChatCount) : 0,
     chats.length,

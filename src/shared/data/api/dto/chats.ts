@@ -1,6 +1,8 @@
 export interface GetChatsOptions {
   agentKey?: string;
   mode?: string;
+  pinned?: boolean;
+  limit?: number;
 }
 
 export interface DeriveChatRequest {
@@ -84,6 +86,7 @@ export interface ActiveRunInfo {
 }
 
 export interface ChatSummaryResponse {
+  pinned?: boolean;
   chatId: string;
   chatName?: string;
   agentKey?: string;
@@ -175,3 +178,14 @@ export interface GlobalSearchResponse {
   count: number;
   results: GlobalSearchResult[];
 }
+
+export interface ChatOrderResponse {
+  sortMode: "recent" | "manual";
+  pinnedOrder?: string[];
+  updatedAt?: number;
+}
+
+export type UpdateChatOrderRequest =
+  | { operation: "set_pinned"; chatId: string; pinned: boolean }
+  | { operation: "move"; chatId: string; beforeChatId: string; afterChatId?: never }
+  | { operation: "move"; chatId: string; afterChatId: string; beforeChatId?: never };

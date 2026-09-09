@@ -1,3 +1,5 @@
+import { applyChatPinnedOrder } from "@/features/chats/lib/chatPinning";
+import { reduceChatPinningState } from "@/features/chats/lib/chatPinningState";
 import { reduceAgentsState } from "@/features/agents/lib/agentState";
 import { reduceWorkersState } from "@/features/workers/lib/workerState";
 import { reduceAutomationsState } from "@/features/automations/lib/automationsState";
@@ -76,7 +78,7 @@ export function reduceNavigationState(
 		case "SET_CHATS":
 			return {
 				...state,
-				chats: action.chats,
+				chats: applyChatPinnedOrder(action.chats, state.chatPinnedOrder),
 				temporaryPinnedAgentKey: clearTemporaryPinForChats(state, action.chats),
 				chatAgentById: syncChatAgentBindings(
 					state.chatAgentById,
@@ -84,7 +86,7 @@ export function reduceNavigationState(
 				),
 			};
 		case "UPSERT_CHAT": {
-			const chats = upsertChatSummary(state.chats, action.chat);
+			const chats = applyChatPinnedOrder(upsertChatSummary(state.chats, action.chat), state.chatPinnedOrder);
 			return {
 				...state,
 				chats,
@@ -101,6 +103,7 @@ export function reduceNavigationState(
 			return {
 				...state,
 				chats: state.chats.filter((chat) => String(chat.chatId || "") !== chatId),
+				chatPinnedOrder: state.chatPinnedOrder?.filter((id) => id !== chatId) ?? null,
 				workerRelatedChats: state.workerRelatedChats.filter(
 					(chat) => String(chat.chatId || "") !== chatId,
 				),
@@ -151,8 +154,13 @@ export function reduceNavigationState(
 						? state.editingMode
 						: false,
 			};
+		case "SET_CHAT_PINNING": {
+			const next = reduceChatPinningState(state, action)!;
+			return { ...next, chatAgentById: syncChatAgentBindings(state.chatAgentById, next.chats) };
+		}
 		default:
-			return reduceAgentsState(state, action)
+			return reduceChatPinningState(state, action)
+				?? reduceAgentsState(state, action)
 				?? reduceWorkersState(state, action)
 				?? reduceAutomationsState(state, action);
 	}

@@ -1,5 +1,7 @@
 # agent-webclient Project Conventions
 
+Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebClient 的 `chatPinnedOrder` 仅为内存投影。`features/chats` 维护协议响应解释、mutation 和状态 reducer，`features/workers` 装配统一 Pinned 列表。导航用 `chatsPinned:false` 请求每个 Worker 的 5 条预览，Pinned 全量独立加载；History 保留全部会话。
+
 ## 0. 回复与交付规范
 - 请用中文回复用户。
 - 给用户看的内容不要生成 `.md` 文件；需要生成面向人阅读的交付物时，优先生成 HTML 来替代 Markdown，让人类看效果更好。

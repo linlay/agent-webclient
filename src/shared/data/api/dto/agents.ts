@@ -11,6 +11,7 @@ import type { AgentSource } from "@/shared/data/api/dto/admin";
 
 export interface GetAgentsOptions {
   includeChats?: number;
+  chatsPinned?: boolean;
   includeTeam?: boolean;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
   mode?: string | string[];

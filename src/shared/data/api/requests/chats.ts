@@ -5,6 +5,8 @@ import {
 } from "@/shared/data/api/http";
 import type {
   GetChatsOptions,
+  ChatOrderResponse,
+  UpdateChatOrderRequest,
   ChatDetailResponse,
   ChatSystemPromptRequest,
   ChatSystemPromptResponse,
@@ -196,5 +198,16 @@ export function compactChat(
   return requestJson(dataEndpoints.compact.path, {
     method: "POST",
     body: JSON.stringify(resolveEndpointPayload(dataEndpoints.compact, params)),
+  });
+}
+
+export function getChatOrder(): Promise<ApiResponse<ChatOrderResponse>> {
+  return requestJson(dataEndpoints.chatOrder.path);
+}
+
+export function putChatOrder(params: UpdateChatOrderRequest): Promise<ApiResponse<ChatOrderResponse>> {
+  return requestJson(dataEndpoints.chatOrderUpdate.path, {
+    method: "PUT",
+    body: JSON.stringify(params),
   });
 }

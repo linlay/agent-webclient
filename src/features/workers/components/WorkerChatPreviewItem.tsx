@@ -92,7 +92,8 @@ export const WorkerChatPreviewItem: React.FC<{
   isActive: boolean;
   loading: boolean;
   onClick: () => void;
-}> = ({ chat, isActive, loading, onClick }) => {
+  ownerLabel?: string;
+}> = ({ chat, isActive, loading, onClick, ownerLabel }) => {
   const { t } = useI18n();
   const action = chat.hasPendingAwaiting ? "awaiting" : loading ? "loading" : "time";
   const isBusyAction = action !== "time";
@@ -119,10 +120,22 @@ export const WorkerChatPreviewItem: React.FC<{
       className={itemClassName}
       selected={isActive}
       onClick={onClick}
+      tabIndex={0}
+      role="button"
+      aria-current={isActive ? "page" : undefined}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
     >
       <div className={WORKER_CHAT_ITEM_HEAD_CLASS}>
         <UnreadDot chat={chat} />
-        <span className={WORKER_CHAT_NAME_CLASS}>{previewText}</span>
+        <span className={WORKER_CHAT_NAME_CLASS} title={ownerLabel ? previewText : undefined}>
+          {previewText}
+          {ownerLabel && <span className="pinned-chat-owner" title={ownerLabel}>{ownerLabel}</span>}
+        </span>
         <span className={WORKER_CHAT_ACTION_CLASS} data-action={action}>
           {chat.hasPendingAwaiting && (
             <span className={CHAT_AWAITING_STATUS_CLASS}>
