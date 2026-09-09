@@ -1,12 +1,11 @@
-import { createElement, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
-import { App as AntdApp, Button } from "antd";
+import { App as AntdApp } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/AppContext";
 import {
   createRequestId,
-  type CompactLevel,
   type QueryAccessLevel,
   type QueryModelOverride,
 } from "@/shared/data";
@@ -29,6 +28,7 @@ import {
   resolveActiveRunId,
 } from "@/features/composer/lib/steerSubmission";
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
+import { useCompactChooser } from "@/features/composer/hooks/useCompactChooser";
 import { useI18n } from "@/shared/i18n";
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
@@ -165,7 +165,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   } = input;
   const { t } = useI18n();
   const runs = useRunTransport();
-  const { message: messageApi, modal } = AntdApp.useApp();
+  const { message: messageApi } = AntdApp.useApp();
   const { openBTW } = useBTW();
   const [steerSubmitting, setSteerSubmitting] = useState(false);
   const pendingSendRef = useRef(false);
@@ -203,25 +203,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     },
   });
 
-  const openCompactChooser = useCallback(async () => {
-    let dialog: ReturnType<typeof modal.confirm>;
-    const run = (level: CompactLevel) => {
-      dialog.destroy();
-      void submitCompactCommand(level);
-    };
-    dialog = modal.confirm({
-      title: t("contextCompact.chooser.title"),
-      content: t("contextCompact.chooser.description"),
-      icon: null,
-      footer: () => createElement(
-        "div",
-        { style: { display: "flex", justifyContent: "flex-end", gap: 8 } },
-        createElement(Button, { onClick: () => dialog.destroy() }, t("contextCompact.chooser.cancel")),
-        createElement(Button, { onClick: () => run("l1_tools") }, t("topNav.usage.compactTools")),
-        createElement(Button, { type: "primary", onClick: () => run("summary") }, t("topNav.usage.compactSummary")),
-      ),
-    });
-  }, [modal, submitCompactCommand, t]);
+  const openCompactChooser = useCompactChooser(submitCompactCommand);
 
   useEffect(() => {
     const message = inputValue.trim();

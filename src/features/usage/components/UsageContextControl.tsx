@@ -1,6 +1,5 @@
 import React from "react";
-import { Drawer, Dropdown, Flex, Popover, Typography } from "antd";
-import type { MenuProps } from "antd";
+import { Drawer, Flex, Popover, Typography } from "antd";
 import {
   useAppDispatch,
   useAppState,
@@ -14,7 +13,7 @@ import {
 } from "@/features/workers/lib/currentWorker";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
-import type { CompactLevel } from "@/shared/data";
+import { useCompactChooser } from "@/features/composer/hooks/useCompactChooser";
 import { tOrFallback, useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -80,19 +79,12 @@ const USAGE_POPOVER_COMPACT_QUERY = "(max-width: 620px)";
 
 const UsageContextWindow: React.FC<{
   compactDisabled: boolean;
-  onCompact: (level: CompactLevel) => void;
+  onCompact: () => void;
   snapshot: AIUsageSnapshotEvent | null;
   t: (key: string, values?: Record<string, string>) => string;
 }> = ({ compactDisabled, onCompact, snapshot, t }) => {
   const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
   const cacheHitLabel = formatUsagePercent(cacheHitPercent);
-  const compactMenu: MenuProps = {
-    items: [
-      { key: "l1_tools", label: t("topNav.usage.compactTools") },
-      { key: "summary", label: t("topNav.usage.compactSummary") },
-    ],
-    onClick: ({ key }) => onCompact(key as CompactLevel),
-  };
 
   return (
     <div className={USAGE_CONTEXT_WINDOW_CLASS}>
@@ -103,18 +95,18 @@ const UsageContextWindow: React.FC<{
           {" / "}
           {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
         </strong>
-        <Dropdown menu={compactMenu} trigger={["click"]} disabled={compactDisabled}>
-          <UiButton
-            className={USAGE_CONTEXT_COMPACT_BTN_CLASS}
-            variant="ghost"
-            size="sm"
-            disabled={compactDisabled}
-            aria-label={t("topNav.usage.compact")}
-            title={t("topNav.usage.compact")}
-          >
-            {t("topNav.usage.compact")}
-          </UiButton>
-        </Dropdown>
+        <UiButton
+          className={USAGE_CONTEXT_COMPACT_BTN_CLASS}
+          variant="ghost"
+          size="sm"
+          disabled={compactDisabled}
+          aria-label={t("topNav.usage.compact")}
+          title={t("topNav.usage.compact")}
+          aria-haspopup="dialog"
+          onClick={onCompact}
+        >
+          {t("topNav.usage.compact")}
+        </UiButton>
       </div>
 
       <div
@@ -349,6 +341,12 @@ export const UsageContextControl: React.FC<{
     dispatch({ type: "SET_USAGE_POPOVER_OPEN", open: false });
   }, [dispatch]);
 
+  const openCompactChooser = useCompactChooser(submitCompactCommand);
+  const handleOpenCompactChooser = React.useCallback(() => {
+    handleCloseUsagePopover();
+    void openCompactChooser();
+  }, [handleCloseUsagePopover, openCompactChooser]);
+
   if (!showUsageControl) {
     return null;
   }
@@ -416,7 +414,7 @@ export const UsageContextControl: React.FC<{
           </div>
           <UsageContextWindow
             compactDisabled={compactDisabled}
-            onCompact={submitCompactCommand}
+            onCompact={handleOpenCompactChooser}
             snapshot={usageSnapshot}
             t={t}
           />
