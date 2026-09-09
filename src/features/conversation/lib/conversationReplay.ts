@@ -382,6 +382,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         id: command.nodeId,
         kind: 'message',
         role: 'system',
+        systemMessageLevel: command.cmd === 'SYSTEM_ERROR' ? 'error' : 'info',
         text: command.text,
         ...(command.cmd === 'SYSTEM_ERROR' && command.errorDetail
           ? { errorDetail: command.errorDetail }

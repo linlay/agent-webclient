@@ -115,6 +115,7 @@ export interface TimelineNode {
 	kind: TimelineNodeKind;
 	role?: TimelineRole;
 	messageVariant?: "default" | "steer" | "remember" | "learn" | "compact";
+	systemMessageLevel?: "info" | "error";
 	steerId?: string;
 	awaitingId?: string;
 	reasoningLabel?: string;

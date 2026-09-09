@@ -151,6 +151,7 @@ export function applyLiveEventCommand(input: {
 				id: command.nodeId,
 				kind: "message",
 				role: "system",
+				systemMessageLevel: command.cmd === "SYSTEM_ERROR" ? "error" : "info",
 				text: command.text,
 				...(command.cmd === "SYSTEM_MESSAGE" && command.tooltip
 					? { tooltip: command.tooltip }
@@ -168,6 +169,7 @@ export function applyLiveEventCommand(input: {
 					id: command.nodeId,
 					kind: "message",
 					role: "system",
+					systemMessageLevel: command.cmd === "SYSTEM_ERROR" ? "error" : "info",
 					text: command.text,
 					...(command.cmd === "SYSTEM_MESSAGE" && command.tooltip
 						? { tooltip: command.tooltip }

@@ -64,6 +64,7 @@ const NODE_ICON_CLASS_BY_KIND: Record<string, string> = {
   content: "node-icon-content tw:text-accent-lime",
   source: "node-icon-source tw:text-accent-electric-strong",
   alert: "node-icon-alert tw:text-accent-danger",
+  info: "node-icon-info tw:text-ink-muted",
   assistant: "node-icon-assistant tw:text-accent-electric",
 };
 const TIMELINE_FLOW_CONTENT_CLASS_NAME =
@@ -198,7 +199,8 @@ const NodeIcon: React.FC<{
   kind: string;
   role?: string;
   messageVariant?: TimelineNode["messageVariant"];
-}> = ({ kind, role, messageVariant }) => {
+  systemMessageLevel?: TimelineNode["systemMessageLevel"];
+}> = ({ kind, role, messageVariant, systemMessageLevel }) => {
   if (isCommandMessageVariant(messageVariant)) {
     return (
       <span className={NODE_ICON_STEER_CLASS_NAME}>
@@ -233,8 +235,9 @@ const NodeIcon: React.FC<{
       break;
     default:
       if (role === "system") {
-        className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.alert}`;
-        iconName = "warning";
+        const isInfo = systemMessageLevel === "info";
+        className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND[isInfo ? "info" : "alert"]}`;
+        iconName = isInfo ? "info" : "warning";
       } else {
         className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.assistant}`;
         iconName = "smart_toy";
@@ -411,7 +414,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
     );
   }
 
-  /* System alerts */
+  /* System messages */
   if (node && node.kind === "message" && node.role === "system") {
     return (
       <div
@@ -422,10 +425,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="message" role="system" />
+          <NodeIcon kind="message" role="system" systemMessageLevel={node.systemMessageLevel} />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           <SystemAlert
+            level={node.systemMessageLevel}
             text={node.text || ""}
             tooltip={node.tooltip}
             errorDetail={node.errorDetail}

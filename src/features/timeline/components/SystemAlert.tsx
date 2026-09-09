@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from "react";
 import { Button, Flex, Tooltip } from "antd";
-import type { TimelineErrorDetail } from "@/features/timeline/lib/timelineState";
+import type { TimelineErrorDetail, TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -70,7 +70,8 @@ export const SystemAlert: React.FC<{
   text: string;
   tooltip?: string;
   errorDetail?: TimelineErrorDetail;
-}> = ({ text, tooltip, errorDetail }) => {
+  level?: TimelineNode["systemMessageLevel"];
+}> = ({ text, tooltip, errorDetail, level = "error" }) => {
   const { t } = useI18n();
   const showDetails = hasTechnicalDetail(errorDetail);
   const rows = [
@@ -117,7 +118,7 @@ export const SystemAlert: React.FC<{
         : t("timeline.systemAlert.copy.tooltip");
 
   return (
-    <div className="system-alert">
+    <div className="system-alert" data-level={level}>
       <Flex justify="space-between" align="center" gap={6}>
         {tooltip ? (
           <Tooltip title={tooltip}>

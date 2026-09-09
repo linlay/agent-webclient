@@ -149,6 +149,12 @@ html[data-theme="dark"] :global(.timeline-markdown) a {
     color: var(--text-muted);
 }
 
+:global(.system-alert)[data-level="info"] {
+    border-color: var(--line-soft);
+    background: var(--bg-elev-2);
+    color: var(--ink-2);
+}
+
 :global(.system-alert-message) {
     white-space: pre-wrap;
 }
