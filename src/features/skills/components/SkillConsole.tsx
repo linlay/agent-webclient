@@ -1472,6 +1472,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const detailRef = useRef<AdminSkillDetailResponse | null>(null);
   const suppressAutoSelectAfterDeleteRef = useRef(false);
+  // 程序化选中（创建/导入/点击）发起到 URL 参数回流前的在途 key；此窗口内禁止 auto-select 抢跳，避免与导入导航来回争夺选中
+  const pendingSelectionRef = useRef<string | null>(null);
+  // 详情/文件异步加载的单调序号；只应用最新一次请求的结果，丢弃过期响应，防止旧 key 内容覆盖当前
+  const loadSeqRef = useRef(0);
   detailRef.current = detail;
 
   const selectedEntry = useMemo(
@@ -1544,19 +1548,22 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   }, []);
 
   const loadFileByPath = useCallback(
-    async (skillKey: string, path: string) => {
+    async (skillKey: string, path: string, seq?: number) => {
       const normalizedPath = path.trim();
       if (!skillKey || !normalizedPath) return null;
+      const token = seq ?? ++loadSeqRef.current;
       try {
         const response = await getAdminSource({
           type: "skill",
           key: skillKey,
           path: normalizedPath,
         });
+        if (token !== loadSeqRef.current) return null;
         const opened = adminSourceToSkillTextFile(response.data);
         applyOpenedFile(opened);
         return opened;
       } catch (err) {
+        if (token !== loadSeqRef.current) return null;
         notification.error({
           message: err instanceof Error ? err.message : String(err),
         });
@@ -1570,6 +1577,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     async (skillKey: string, preferredFilePath = "") => {
       const normalizedSkillKey = skillKey.trim();
       if (!normalizedSkillKey) return;
+      const seq = ++loadSeqRef.current;
       setDetailLoading(true);
       try {
         const requestedOpenPath = preferredFilePath || "SKILL.md";
@@ -1577,6 +1585,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           normalizedSkillKey,
           requestedOpenPath,
         );
+        if (seq !== loadSeqRef.current) return;
         const d = response.data;
         setDetail(d);
         detailRef.current = d;
@@ -1593,18 +1602,19 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         ) {
           applyOpenedFile(d.openedFile);
         } else if (targetEntry?.contentKind === "text") {
-          await loadFileByPath(d.skill.key, targetEntry.path);
+          await loadFileByPath(d.skill.key, targetEntry.path, seq);
         } else if (targetEntry?.contentKind === "binary") {
           applyBinaryEntry(targetEntry);
         } else {
           clearFileState();
         }
       } catch (err) {
+        if (seq !== loadSeqRef.current) return;
         notification.error({
           message: err instanceof Error ? err.message : String(err),
         });
       } finally {
-        setDetailLoading(false);
+        if (seq === loadSeqRef.current) setDetailLoading(false);
       }
     },
     [applyBinaryEntry, applyOpenedFile, clearFileState, loadFileByPath],
@@ -1650,6 +1660,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   useEffect(() => {
     if (selectedSkillKey) {
+      pendingSelectionRef.current = null;
       suppressAutoSelectAfterDeleteRef.current = false;
       void loadDetail(selectedSkillKey);
       return;
@@ -1660,11 +1671,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (
       skills.length === 0 ||
       selectedSkillKey ||
+      pendingSelectionRef.current ||
       suppressAutoSelectAfterDeleteRef.current
     )
       return;
     const firstReady = skills.find((s) => s.status === "ready");
     if (firstReady) {
+      pendingSelectionRef.current = firstReady.key;
       onSelectSkillKey(firstReady.key);
     }
   }, [onSelectSkillKey, selectedSkillKey, skills]);
@@ -1672,6 +1685,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleSelectSkill = (item: AdminSkillSummary) => {
     if (deletingSkill) return;
     const select = () => {
+      pendingSelectionRef.current = item.key;
       suppressAutoSelectAfterDeleteRef.current = false;
       onSelectSkillKey(item.key);
     };
@@ -2188,6 +2202,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const completeSkillCreation = (created: AdminSkillDetailResponse) => {
     const key = created.skill.key;
+    pendingSelectionRef.current = key;
     suppressAutoSelectAfterDeleteRef.current = false;
     setSkills((prev) =>
       [...prev.filter((item) => item.key !== key), created.skill].sort((a, b) =>
