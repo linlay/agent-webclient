@@ -4,6 +4,8 @@ import { useChatSurfaceReplay } from "@/features/conversation/hooks/useChatSurfa
 import { OverviewContentView } from "@/features/overview/components/OverviewPanel";
 import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 import { useI18n } from "@/shared/i18n";
+import { buildOverviewRunInfo } from "@/features/overview/lib/overviewRunInfo";
+import { buildLoadedChatUsageSnapshot } from "@/features/conversation/lib/conversationPayload";
 
 export const OverviewViewerSurface: React.FC<{ chatId: string }> = ({ chatId }) => {
   const { t } = useI18n();
@@ -17,6 +19,18 @@ export const OverviewViewerSurface: React.FC<{ chatId: string }> = ({ chatId }) 
   const agentKey = snapshot?.owner?.kind === "agent"
     ? snapshot.owner.agentKey
     : String(snapshot?.chat.agentKey || snapshot?.chat.firstAgentKey || "").trim();
+  const runInfo = React.useMemo(() => projection ? buildOverviewRunInfo({
+    ...projection,
+    chatId,
+    currentChatActiveRun,
+    streaming: Boolean(currentChatActiveRun),
+    chat: snapshot?.chat,
+    usageSnapshot: snapshot ? buildLoadedChatUsageSnapshot(chatId, {
+      ...snapshot.chat,
+      events: projection.events,
+      activeRun: snapshot.activeRun,
+    }) : null,
+  }) : null, [projection, snapshot, chatId, currentChatActiveRun]);
   return (
     <IndependentSurfaceFrame
       kind="overview"
@@ -24,8 +38,9 @@ export const OverviewViewerSurface: React.FC<{ chatId: string }> = ({ chatId }) 
       error={!chatId ? t("platformError.code.invalid_request") : runtime.error}
       onRetry={chatId ? runtime.reload : undefined}
     >
-      {projection ? (
+      {projection && runInfo ? (
         <OverviewContentView
+          runInfo={runInfo}
           state={{
             artifacts: projection.artifacts,
             chatId,

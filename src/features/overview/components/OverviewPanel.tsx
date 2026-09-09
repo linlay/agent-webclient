@@ -11,6 +11,8 @@ import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 import { Collapse, Flex, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
 import { TextCountUp } from "@/shared/components/text-count-up";
+import { OverviewRunInfoSection } from "./OverviewRunInfo";
+import { buildOverviewRunInfo, type OverviewRunInfo } from "@/features/overview/lib/overviewRunInfo";
 import {
   buildFileChangeAnimationSignatures,
   buildFileChangeKey,
@@ -181,6 +183,7 @@ const OverviewSection: React.FC<{
 };
 
 export interface OverviewContentViewProps {
+  runInfo: OverviewRunInfo;
   state: Pick<
     ReturnType<typeof useAppState>,
     | "artifacts"
@@ -201,6 +204,7 @@ export interface OverviewContentViewProps {
 
 export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
   state,
+  runInfo,
   agentKey = "",
   isCoder = false,
   teamChat = false,
@@ -575,6 +579,11 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
 
   return (
     <div className={RIGHT_SIDEBAR_OVERVIEW_CLASS_NAME}>
+      <OverviewRunInfoSection
+        key={state.chatId}
+        info={runInfo}
+        hasContent={overviewSections.some((section) => section.hasData)}
+      />
       {overviewSections.map((section) => (
         <React.Fragment key={section.key}>{section.node}</React.Fragment>
       ))}
@@ -595,6 +604,10 @@ export const OverviewContent: React.FC = () => {
     ).toUpperCase() === "CODER";
   }, [currentWorker]);
   const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
+  const runInfo = React.useMemo(() => buildOverviewRunInfo({
+    ...state,
+    chat: currentChat,
+  }), [state, currentChat]);
   const teamChat = Boolean(
     currentChat?.owner?.kind === "orchestrated-team" ||
       String(currentChat?.teamId || "").trim(),
@@ -602,6 +615,7 @@ export const OverviewContent: React.FC = () => {
   return (
     <OverviewContentView
       state={state}
+      runInfo={runInfo}
       agentKey={currentWorker?.type === "agent" ? currentWorker.sourceId : ""}
       isCoder={isCoder}
       teamChat={teamChat}
