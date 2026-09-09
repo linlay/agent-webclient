@@ -12,7 +12,7 @@ Memory 页面由 `/memory` 路由进入，页面入口是 `src/app/pages/memory/
 ## 核心流程
 进入 `/memory` 后，`useMemoryRecordsInitialization` 根据当前 agent 上下文初始化 records。`MemoryConsole` 只编排 tab、runtime 与 surface，Records、Preferences、Preview 的真实 JSX 分别位于独立 Panel 文件。用户切换 scope 或选择记录时，控制台通过 data client 拉取 detail；编辑 preference 时先维护本地 draft，保存前可调用 validate，保存成功后失效 memory meta 缓存并刷新相关状态。
 
-侧栏通过独立 `onOpenMemory` 动作打开 `MemoryOverlayProvider`；`MemoryOverlayHost` 由 `ShellOverlays` 组合。关闭 Modal 时由 Memory 自己执行 `RESET_MEMORY_INFO`，Settings Provider 不再持有 Memory key 或生命周期。
+侧栏通过独立 `onOpenMemory` 动作打开 `MemoryOverlayProvider`；`ShellOverlays` 组合 `MemoryOverlayHost`，再由 `MemoryModal` 渲染 `MemoryInfoConsole` 的 modal surface。关闭 Modal 时由 `MemoryOverlayProvider` 执行 `RESET_MEMORY_INFO_SESSION`，Settings Provider 不再持有 Memory key 或生命周期。
 
 ## 边界与非目标
 - Memory 存储、embedding、召回、合并和权限由后端负责。
@@ -22,7 +22,7 @@ Memory 页面由 `/memory` 路由进入，页面入口是 `src/app/pages/memory/
 
 ## 相关文件
 - `../src/app/pages/memory/index.tsx`
-- `../src/features/memory/components/MemoryInfoModal.tsx`
+- `../src/features/memory/components/MemoryModal.tsx`
 - `../src/features/memory/components/MemoryConsole.tsx`
 - `../src/features/memory/components/MemoryRecordsPanel.tsx`
 - `../src/features/memory/components/MemoryPreferencesPanel.tsx`
