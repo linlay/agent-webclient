@@ -6,7 +6,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { useConnectorAuth, type ConnectorAuthRuntime } from "../hooks/useConnectorAuth";
-import { connectorAuthDeadline, isConnectorAuthActive, safeConnectorAuthorizationUrl, supportsConnectorLogin } from "../lib/connectorAuth";
+import { connectorAuthDeadline, isConnectorAuthActive, safeConnectorAuthorizationUrl, supportsConnectorAuthCheck, supportsConnectorLogin } from "../lib/connectorAuth";
 import type { ConnectorAuthViewStatus } from "../lib/connectorAuth";
 import styles from "./ConnectorsConsole.module.css";
 
@@ -33,7 +33,8 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props 
   const { t, locale } = useI18n();
   const readOnly = item.builtin === true || item.readOnly === true;
   const [confirmLogout, setConfirmLogout] = useState(false);
-  const interactive = supportsConnectorLogin(item.auth_mode);
+  const checkable = supportsConnectorAuthCheck(item.auth_mode);
+  const interactive = supportsConnectorLogin(item.auth_mode) && auth.status !== "delegated";
   const active = isConnectorAuthActive(auth.session);
   const busy = !!auth.operation || disabled;
   const status = auth.operation === "start" ? "preparing" : auth.status;
@@ -48,9 +49,9 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props 
       <h3>{t("connectors.auth.title")}</h3>
       {item.auth_mode !== "token" && <UiTag role="status" tone={status === "authorized" ? "accent" : ["failed", "expired"].includes(status) || auth.error ? "danger" : "muted"}>{t(status === "unknown" ? auth.error ? "connectors.auth.checkFailed" : "connectors.auth.checking" : `connectors.auth.status.${status}`)}</UiTag>}
     </div>
-    <p>{t(item.auth_mode === "token" ? "connectors.auth.token" : status === "unknown" ? auth.error ? "connectors.auth.checkFailedHint" : "connectors.auth.checkingHint" : `connectors.auth.description.${status}`)}</p>
-    {interactive && <>
-      <p className={styles.hint}>{t("connectors.auth.shared")}</p>
+    <p>{t(item.auth_mode === "token" ? "connectors.auth.token" : status === "unknown" ? auth.error ? "connectors.auth.checkFailedHint" : "connectors.auth.checkingHint" : item.auth_mode === "oneid-token" ? "connectors.auth.oneid" : `connectors.auth.description.${status}`)}</p>
+    {checkable && <>
+      {interactive && <p className={styles.hint}>{t("connectors.auth.shared")}</p>}
       {(item.auth_mode === "oauth" || item.auth_mode === "mcp") && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
       {item.hasMcp && <p className={styles.hint}>{t("connectors.auth.mcpAvailability")}</p>}
       {auth.session?.message && ["failed", "setup_required", "canceled", "expired"].includes(status) && <p className={styles.hint}>{auth.session.message}</p>}
@@ -64,14 +65,14 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props 
         <p className={styles.hint}>{t("connectors.auth.openHint")}</p>
       </div>}
       <div className={styles.authActions}>
-        {!readOnly && !active && ["unauthorized", "setup_required", "failed", "canceled", "expired"].includes(status) && <UiButton size="sm" variant="primary" disabled={busy} loading={auth.operation === "start"} onClick={() => void auth.start()}>{t(["failed", "canceled", "expired"].includes(status) ? "connectors.auth.retry" : "connectors.auth.login")}</UiButton>}
-        {!readOnly && active && status === "expired" && <UiButton size="sm" variant="primary" disabled={busy} onClick={() => void auth.start()}>{t("connectors.auth.retry")}</UiButton>}
+        {interactive && !readOnly && !active && ["unauthorized", "setup_required", "failed", "canceled", "expired"].includes(status) && <UiButton size="sm" variant="primary" disabled={busy} loading={auth.operation === "start"} onClick={() => void auth.start()}>{t(["failed", "canceled", "expired"].includes(status) ? "connectors.auth.retry" : "connectors.auth.login")}</UiButton>}
+        {interactive && !readOnly && active && status === "expired" && <UiButton size="sm" variant="primary" disabled={busy} onClick={() => void auth.start()}>{t("connectors.auth.retry")}</UiButton>}
         {auth.operation === "start" && <UiButton size="sm" loading disabled>{t("connectors.auth.starting")}</UiButton>}
-        {!readOnly && active && <UiButton size="sm" disabled={busy} loading={auth.operation === "cancel"} onClick={() => void auth.cancel()}>{t("connectors.auth.cancel")}</UiButton>}
-        {!readOnly && status === "authorized" && !confirmLogout && <UiButton size="sm" disabled={busy} onClick={() => setConfirmLogout(true)}>{t("connectors.auth.logout")}</UiButton>}
+        {interactive && !readOnly && active && <UiButton size="sm" disabled={busy} loading={auth.operation === "cancel"} onClick={() => void auth.cancel()}>{t("connectors.auth.cancel")}</UiButton>}
+        {interactive && !readOnly && status === "authorized" && !confirmLogout && <UiButton size="sm" disabled={busy} onClick={() => setConfirmLogout(true)}>{t("connectors.auth.logout")}</UiButton>}
         <UiButton size="sm" variant="ghost" disabled={busy || auth.checking} onClick={() => void auth.refresh()}>{t(auth.checking ? "connectors.auth.checking" : "connectors.auth.refresh")}</UiButton>
       </div>
-      {confirmLogout && status === "authorized" && <div className={styles.notice}>
+      {interactive && confirmLogout && status === "authorized" && <div className={styles.notice}>
         <p>{t("connectors.auth.logoutConfirm")}</p>
         <div className={styles.actions}>
           <UiButton size="sm" variant="danger" disabled={busy} loading={auth.operation === "logout"} onClick={() => { setConfirmLogout(false); void auth.logout(); }}>{t("connectors.auth.logoutConfirmAction")}</UiButton>

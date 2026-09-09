@@ -40,9 +40,9 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); jest.restoreAllMocks(); });
 
-it("offers a safe manual link when pending and only displays success after the server confirms it", async () => {
+it.each(["cli", null] as const)("offers a safe manual link for auth_mode=%s and only displays success after server confirmation", async mode => {
   const open = jest.spyOn(window, "open").mockReturnValue(null);
-  await mount();
+  await mount({ ...item, auth_mode: mode });
   await click("登录");
   expect(container.textContent).toContain("等待扫码 / 授权");
   const link = container.querySelector<HTMLAnchorElement>('a[target="_blank"]')!;
@@ -129,6 +129,37 @@ it("shows the none mode without querying authorization", async () => {
   expect(container.textContent).toContain("无需授权");
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(button("登录")).toBeUndefined();
+});
+
+it.each(["zh-CN", "en-US"] as const)("displays delegated authentication without an endless spinner or login action in %s", async locale => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("delegated"));
+  await mount({ ...item, auth_mode: null }, locale);
+  expect(container.textContent).toContain(locale === "zh-CN" ? "由连接器管理" : "Managed by connector");
+  expect(container.textContent).not.toContain(locale === "zh-CN" ? "检查中" : "Checking");
+  expect(button(locale === "zh-CN" ? "登录" : "Sign in")).toBeUndefined();
+  expect(button(locale === "zh-CN" ? "重新检查状态" : "Check status again")).toBeDefined();
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+});
+
+it.each(["unauthorized", "authorized"] as const)("shows Desktop identity %s with refresh and Desktop guidance", async status => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
+  await mount({ ...item, auth_mode: "oneid-token" });
+  expect(container.textContent).toContain(status === "authorized" ? "已授权" : "未登录");
+  expect(container.textContent).toContain("请在 Desktop 中登录或退出");
+  expect(button("登录")).toBeUndefined();
+  expect(button("退出登录")).toBeUndefined();
+  await click("重新检查状态");
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+});
+
+it.each([null, "oneid-token"] as const)("shows and recovers from canonical auth_mode=%s check errors", async mode => {
+  jest.mocked(getConnectorAuthStatus).mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }));
+  await mount({ ...item, auth_mode: mode });
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("Platform 身份认证未通过");
+  expect(container.textContent).not.toContain("正在获取授权状态");
+  await click("重新检查状态");
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  expect(container.textContent).toContain("未登录");
 });
 
 it("removes expired links while retaining an explicit retry action", async () => {

@@ -50,6 +50,24 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.restoreAllMocks(); });
 const mount = async () => { await act(async () => root.render(React.createElement(Harness))); };
 
+it("resolves canonical null CLI auth in both catalog rows and the selected overview", async () => {
+  const connectors = [
+    { ...item, auth_mode: null, name: "企业微信" },
+    { ...item, id: "tmeet", auth_mode: null, name: "腾讯会议" },
+  ];
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors } });
+  jest.mocked(getConnectorAuthStatus).mockImplementation(async id => ({ code: 0, msg: "", data: {
+    connectorId: id, sessionId: "", status: id === item.id ? "authorized" : "setup_required", expiresAt: "0001-01-01T00:00:00Z",
+  } }));
+  await mount();
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(container.querySelector("aside")?.textContent).toContain("已授权");
+  expect(container.querySelector("aside")?.textContent).toContain("待准备依赖");
+  expect(detail().querySelector('[aria-label="账号授权"]')?.textContent).toContain("已授权");
+  expect(container.textContent).not.toContain("检查中");
+  expect(container.textContent).not.toContain("正在获取授权状态");
+});
+
 it("uses overview as the single manifest editor and removes the redundant detail header", async () => {
   await mount();
   expect(detail().querySelector("header")).toBeNull();

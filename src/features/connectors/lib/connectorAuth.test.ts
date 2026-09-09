@@ -1,9 +1,16 @@
-import { connectorAuthDeadline, connectorAuthViewStatus, readConnectorAuthSession, safeConnectorAuthorizationUrl, supportsConnectorLogin } from "./connectorAuth";
+import { connectorAuthDeadline, connectorAuthViewStatus, readConnectorAuthSession, safeConnectorAuthorizationUrl, supportsConnectorAuthCheck, supportsConnectorLogin } from "./connectorAuth";
 import type { ConnectorAuthSession } from "@/shared/data";
 
 const session: ConnectorAuthSession = { connectorId: "demo", sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" };
 it("uses auth modes instead of provider identifiers", () => {
   expect(["cli", "oauth", "mcp", "none", "token"].map(mode => supportsConnectorLogin(mode as "cli"))).toEqual([true, true, true, false, false]);
+});
+it("checks canonical delegated and Desktop identity modes while keeping Desktop login external", () => {
+  expect(supportsConnectorAuthCheck(null)).toBe(true);
+  expect(supportsConnectorLogin(null)).toBe(true);
+  expect(supportsConnectorAuthCheck("oneid-token")).toBe(true);
+  expect(supportsConnectorLogin("oneid-token")).toBe(false);
+  expect(readConnectorAuthSession({ ...session, status: "delegated" }, "demo").status).toBe("delegated");
 });
 it.each(["javascript:alert(1)", "data:text/html,test", "file:///tmp/login", "//example.test/login", "https://user:password@example.test", "https://example.test/\nlogin", "https://", "https:\\example.test"])("rejects an unsafe authorization URL: %s", url => {
   expect(safeConnectorAuthorizationUrl(url)).toBeNull();

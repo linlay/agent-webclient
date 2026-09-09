@@ -131,6 +131,7 @@ it("keeps an already mounted connector switched on even when authorization is mi
 });
 
 it("allows mounting builtin and delegated or identity-token packages without waiting for interactive login", async () => {
+  jest.mocked(getConnectorAuthStatus).mockReturnValue(new Promise(() => {}));
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
     { ...connector("builtin.dbx", "DBX", null), builtin: true, readOnly: true },
     connector("identity", "Identity", "oneid-token"),
@@ -142,5 +143,7 @@ it("allows mounting builtin and delegated or identity-token packages without wai
   expect(switches[1].getAttribute("aria-checked")).toBe("false");
   await act(async () => switches[0].click());
   expect(onSelectionChange).toHaveBeenCalledWith("builtin.dbx", false);
-  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
 });

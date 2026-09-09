@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
-import { connectorAuthDeadline, connectorAuthViewStatus, isConnectorAuthActive, readConnectorAuthAction, readConnectorAuthSession, supportsConnectorLogin } from "../lib/connectorAuth";
+import { connectorAuthDeadline, connectorAuthViewStatus, isConnectorAuthActive, readConnectorAuthAction, readConnectorAuthSession, supportsConnectorAuthCheck, supportsConnectorLogin } from "../lib/connectorAuth";
 import type { ConnectorAuthViewStatus } from "../lib/connectorAuth";
 
 type AuthAction = "check" | "start" | "cancel" | "logout";
@@ -24,7 +24,7 @@ interface Options {
 }
 
 export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange, checkStatus = getConnectorAuthStatus, observe = false }: Options) {
-  const enabled = supportsConnectorLogin(mode);
+  const enabled = supportsConnectorAuthCheck(mode);
   const identity = `${id}/${mode}/${readOnly}`;
   const initial = (): AuthState => ({ identity, session: null, status: mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null });
   const [state, setState] = useState<AuthState>(initial);
@@ -72,6 +72,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
 
     const perform = async (action: AuthAction) => {
       if (disposed || !enabled || operation || (action === "check" && request) || (action !== "check" && readOnly)) return;
+      if (action !== "check" && (!supportsConnectorLogin(mode) || session?.status === "delegated")) return;
       const expired = connectorAuthViewStatus(session) === "expired";
       if (action === "start" && (!session || session.status === "authorized" || session.status === "not_required" || (isConnectorAuthActive(session) && !expired))) return;
       if (action === "cancel" && !isConnectorAuthActive(session)) return;

@@ -89,7 +89,7 @@ export interface ImportConnectorArchiveResponse {
   authMode: ConnectorSummary["auth_mode"];
 }
 
-export type ConnectorAuthStatus = "not_required" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
+export type ConnectorAuthStatus = "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
 
 export interface ConnectorAuthSession {
   connectorId: string;

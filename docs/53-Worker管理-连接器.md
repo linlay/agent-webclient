@@ -43,9 +43,9 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 收到 `catalog.updated(reason=agents|connectors|config)` 或页面恢复可见时刷新配置；`reloadPending` 时显示已保存、等待重载提示，并每 2 秒确认一次，生效或读取失败后停止。活跃 Run、子调用、Team 成员或 Terminal 租约导致的延后生效由 Platform 现有发布规则处理。该配置作用于 Agent 的后续运行，不进入聊天 Query 参数。
 
 ## 账号授权
-现有详情页概览中的“账号授权”区域按清单中的 `auth_mode` 决定交互：`cli/oauth/mcp` 使用统一登录 API，`none` 显示无需授权，`token` 引导到现有配置页。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
+现有详情页概览中的“账号授权”区域按目录返回的 `auth_mode` 决定交互：`null/oauth/mcp` 查询统一状态 API；`null` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid-token` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 引导到现有配置页。兼容旧服务返回的 `cli` 登录模式与 `none` 无需授权模式；当前 Platform 会将旧包中的 `cli/none` 规范化为目录中的 `null`，因此不能只检查旧字符串，也不能把 `null` 当成无需认证。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
 
-列表与详情共用页面内的授权观察器，进入目录后自动读取全部支持交互登录的连接器状态，展示 not_required/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。无需授权及凭据配置类型不请求交互授权接口。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
+列表与详情共用页面内的授权观察器，进入目录后自动读取 `null/cli/oauth/mcp/oneid-token` 的连接器状态，展示 not_required/delegated/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。旧 `none` 无需授权及 `token` 凭据配置类型不请求交互授权接口。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
 
 pending 时展示后端返回的“打开授权页面”链接，只接受无用户名密码的显式 HTTP(S) URL，使用新页面、noopener/noreferrer 与 no-referrer。入口由用户直接点击，避免依赖异步自动弹窗；链接会保留供浏览器拦截后手动再次打开。页面仅在后端返回 authorized 后显示成功，扫码、打开链接或时间到达均不代表授权完成。
 

@@ -46,8 +46,8 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-it("starts once, polls preparing → pending → authorized, then refreshes associated data and stops polling", async () => {
-  await mount();
+it.each(["cli", null] as const)("starts once with auth_mode=%s, polls preparing → pending → authorized, then refreshes associated data and stops polling", async mode => {
+  await mount({ mode });
   const start = deferred<ApiResponse<ConnectorAuthSession>>();
   jest.mocked(startConnectorAuth).mockReturnValueOnce(start.promise);
   await act(async () => { void current.start(); void current.start(); });
@@ -210,6 +210,35 @@ it.each(["none", "token"] as const)("does not request interactive authentication
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(startConnectorAuth).not.toHaveBeenCalled();
   expect(jest.getTimerCount()).toBe(0);
+});
+
+it("finishes delegated authentication checks without starting or canceling connector-managed login", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("delegated"));
+  await mount({ mode: null });
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+  expect(current.status).toBe("delegated");
+  expect(current.checking).toBe(false);
+  expect(current.error).toBeNull();
+  await act(async () => { void current.start(); void current.cancel(); void current.logout(); });
+  expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(cancelConnectorAuth).not.toHaveBeenCalled();
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+});
+
+it.each(["unauthorized", "authorized"] as const)("observes Desktop identity %s without managing its credentials", async status => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
+  await mount({ mode: "oneid-token", observe: true });
+  expect(current.status).toBe(status);
+  expect(current.checking).toBe(false);
+  await act(async () => { void current.start(); void current.cancel(); void current.logout(); });
+  expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(cancelConnectorAuth).not.toHaveBeenCalled();
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status === "authorized" ? "unauthorized" : "authorized"));
+  await act(async () => current.refresh());
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(current.status).not.toBe(status);
+  expect(onCredentialsChange).toHaveBeenCalledTimes(1);
 });
 
 it("cannot change read-only connector credentials", async () => {
