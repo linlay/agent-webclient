@@ -93,3 +93,9 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 ## VIEW
 
 连接器主类型增加 `view`，组件摘要提供 `hasView/views`，管理台可筛选 VIEW、查看 key/renderer/usage 并编辑 `view.json`。可与 MCP/CLI 同包，复用原 ZIP 导入与 hash 并发保存。渲染接入见 [VIEW连接器](46-交互容器-VIEW连接器.md)。
+
+## 连接器中心置顶
+
+设置入口与独立页面标题统一使用“连接器中心”。每个连接器名称右侧支持独立的置顶按钮，未置顶时悬停或键盘聚焦显示灰色小图标，已置顶时常显主题正文色。按钮透明、无独立列宽；置顶不切换选中项，不修改配置、授权或编辑草稿。内置只读连接器也可以置顶。
+
+使用 `GET /api/connectors/order` 和 `PUT /api/connectors/order` 的 `{key,pinned}` 保存到平台 `runtime/connectors-center/order.json`；平台 WebSocket 同路径支持读取与单项更新。偏好按用户区分、跨 Agent 共享，与技能置顶彼此独立。前端仅保留内存缓存，打开页面、手工刷新和窗口重新聚焦时重新读取；保存成功后才排序，失败保留现有顺序并提供重试。

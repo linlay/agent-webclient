@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { AddMenuTrigger, type AddMenuTriggerProps } from "./ComposerAddMenu";
 import { dataQueryCache } from "@/shared/data/query/serverState";
-import { usePinnedSkills } from "@/features/composer/hooks/usePinnedSkills";
+import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 
 let serverOrder: string[] = [];
@@ -208,7 +208,7 @@ describe("Composer skill pins", () => {
     getSkillOrderMock.mockRejectedValueOnce(new Error("offline"));
     render();
     await openSkills();
-    expect(container.querySelector<HTMLButtonElement>(".composer-add-menu-skill-pin")!.disabled).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>(".composer-add-menu-skill-row button[aria-pressed]")!.disabled).toBe(true);
     await act(async () => container.querySelector<HTMLButtonElement>('[role="alert"] button')!.click());
     await pin("Slides");
     expect(names()[0]).toBe("Slides");

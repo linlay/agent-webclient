@@ -116,3 +116,15 @@ export interface SetAgentConnectorRequest {
   connectorId: string;
   enabled: boolean;
 }
+
+export interface ConnectorOrderResponse {
+  version: number;
+  /** Pinned connector IDs, newest first; shared across the user's Agents. */
+  order: string[];
+  updatedAt?: number;
+}
+
+export interface UpdateConnectorOrderRequest {
+  key: string;
+  pinned: boolean;
+}

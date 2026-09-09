@@ -43,3 +43,5 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 - `../src/features/composer/hooks/useComposerSlash.ts`
 - `../src/features/btw/components/BtwTab.tsx`
 - `../src/features/btw/components/BtwProvider.tsx`
+
+技能中心管理列表与 Composer 使用相同的技能置顶偏好。名称右侧的置顶按钮使用 14px 图标、透明背景和绝对定位，不独占列表列宽；未置顶时仅悬停或键盘聚焦显示灰色图标，已置顶时始终显示主题正文色（浅色近黑、深色浅色）。取消置顶恢复目录默认相对顺序，描述继续使用完整行宽。

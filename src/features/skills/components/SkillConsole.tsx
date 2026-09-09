@@ -44,6 +44,9 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
+import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
+import { sortPinnedItems } from "@/features/catalog-order/lib/pinnedOrder";
+import { PinnableItem } from "@/shared/ui/PinnableItem";
 import { UiTag } from "@/shared/ui/UiTag";
 import { requestSkillDeletion } from "@/features/skills/lib/skillDeletion";
 import { useOptionalAppContext } from "@/app/state/AppContext";
@@ -240,7 +243,7 @@ const SKILL_LIST_ITEM_TITLE_CLASS_NAME =
 const SKILL_LIST_ITEM_META_CLASS_NAME =
   "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
-  "skill-console-list-item-status tw:flex tw:flex-none tw:flex-col tw:items-end tw:gap-1 tw:self-start";
+  "skill-console-list-item-status tw:flex tw:flex-none tw:items-center tw:gap-1";
 const SKILL_LIST_ITEM_VERSION_CLASS_NAME =
   "skill-console-list-item-version tw:font-code tw:text-[10px] tw:leading-none tw:text-ink-muted";
 const SKILL_COUNT_CLASS_NAME =
@@ -1441,6 +1444,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   onClearSelection,
 }) => {
   const { t } = useI18n();
+  const { pinnedSkillKeys, toggleSkillPin, pinsDisabled, pinError, refreshPins } = usePinnedSkills(true);
 
   const [skills, setSkills] = useState<AdminSkillSummary[]>([]);
   const [listLoading, setListLoading] = useState(false);
@@ -1486,7 +1490,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const filteredSkills = useMemo(() => {
     const needle = searchText.trim().toLowerCase();
-    return skills.filter((item) => {
+    return sortPinnedItems(skills, pinnedSkillKeys, item => item.key).filter((item) => {
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
       if (!needle) return true;
       const haystack = [
@@ -1500,7 +1504,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         .toLowerCase();
       return haystack.includes(needle);
     });
-  }, [skills, searchText, statusFilter]);
+  }, [skills, searchText, statusFilter, pinnedSkillKeys]);
 
   const applyOpenedFile = useCallback((file: AdminSkillTextFile) => {
     applyOpenedFileState(
@@ -2294,7 +2298,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               variant="ghost"
               className="ui-icon-hover-24"
               iconOnly
-              onClick={loadSkills}
+              onClick={() => { void loadSkills(); void refreshPins().catch(() => undefined); }}
               disabled={listLoading || deletingSkill}
               aria-label={t("skillConsole.action.refresh")}
             >
@@ -2317,6 +2321,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             {t("skillConsole.list.count", { count: filteredSkills.length })}
           </div>
 
+          {pinError && <div role="alert" className="tw:text-xs tw:text-danger">
+            {t("composer.addMenu.skill.pinFailed")}
+            <UiButton variant="ghost" size="sm" onClick={() => { void refreshPins().catch(() => undefined); }}>{t("slashPalette.skills.retry")}</UiButton>
+          </div>}
           <div className={SKILL_LIST_SCROLL_CLASS_NAME}>
             <Spin spinning={listLoading}>
               {filteredSkills.length === 0 ? (
@@ -2338,9 +2346,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               ) : (
                 <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
                   {filteredSkills.map((item) => (
+                    <PinnableItem key={item.key} pinned={pinnedSkillKeys.includes(item.key.toLowerCase())}
+                      label={t(pinnedSkillKeys.includes(item.key.toLowerCase()) ? "composer.addMenu.skill.unpin" : "composer.addMenu.skill.pin", { name: item.name || item.key })}
+                      disabled={pinsDisabled} onToggle={() => { void toggleSkillPin(item.key); }}>
                     <button
                       type="button"
-                      key={item.key}
                       className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
                         item.key === selectedSkillKey ? "is-active" : ""
                       }`}
@@ -2350,29 +2360,20 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
                         <SkillListIcon icon={item.icon} />
                         <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
-                          <Typography.Text
+                          <Typography.Text data-pin-title className="tw:w-full"
                             ellipsis={{ tooltip: item.name || item.key }}
                           >
                             <strong>{item.name || item.key}</strong>
                           </Typography.Text>
-                          <Typography.Text
-                            className={SKILL_LIST_ITEM_META_CLASS_NAME}
-                            ellipsis={{ tooltip: item.key }}
-                          >
-                            {item.key}
-                          </Typography.Text>
+                          <span className="tw:flex tw:w-full tw:min-w-0 tw:items-center tw:justify-between tw:gap-1">
+                            <Typography.Text className={SKILL_LIST_ITEM_META_CLASS_NAME} ellipsis={{ tooltip: item.key }}>{item.key}</Typography.Text>
+                            <SkillListItemStatus status={item.status} version={item.version}
+                              statusLabel={translateWithFallback(t, `skillConsole.status.${item.status}`, item.status)} />
+                          </span>
                         </span>
-                        <SkillListItemStatus
-                          status={item.status}
-                          version={item.version}
-                          statusLabel={translateWithFallback(
-                            t,
-                            `skillConsole.status.${item.status}`,
-                            item.status,
-                          )}
-                        />
                       </span>
                     </button>
+                    </PinnableItem>
                   ))}
                 </div>
               )}

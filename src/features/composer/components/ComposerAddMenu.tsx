@@ -13,9 +13,10 @@ import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { PinnableItem } from "@/shared/ui/PinnableItem";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
-import { usePinnedSkills } from "@/features/composer/hooks/usePinnedSkills";
+import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 type Section = "files" | "skills" | "connectors" | "chat" | "site";
@@ -222,7 +223,9 @@ const AddMenuSectionDetail: React.FC<
               name: skill.name || skill.key,
             });
             return (
-              <div key={skill.key} className="composer-add-menu-skill-row">
+              <PinnableItem key={skill.key} className={`composer-add-menu-skill-row ${selected.has(skill.key.toLowerCase()) ? "is-selected" : ""}`}
+                pinned={pinned} label={pinLabel} disabled={pinsDisabled}
+                onToggle={() => { void toggleSkillPin(skill.key); }}>
                 <UiButton
                   variant="ghost"
                   size="sm"
@@ -232,33 +235,16 @@ const AddMenuSectionDetail: React.FC<
                 >
                   <SkillIcon icon={skill.icon} />
                   <span className="composer-add-menu-item-copy">
-                    <b>{skill.name || skill.key}</b>
+                    <b data-pin-title>{skill.name || skill.key}</b>
                     <small>
                       {skill.description || t("slashPalette.skill.noDescription")}
                     </small>
                   </span>
                   {selected.has(skill.key.toLowerCase()) && (
-                    <MaterialIcon name="check" />
+                    <MaterialIcon name="check" className="composer-add-menu-skill-selected" />
                   )}
                 </UiButton>
-                <UiButton
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  className="composer-add-menu-skill-pin"
-                  aria-label={pinLabel}
-                  title={pinLabel}
-                  aria-pressed={pinned}
-                  disabled={pinsDisabled}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    void toggleSkillPin(skill.key);
-                  }}
-                >
-                  <MaterialIcon name="push_pin" />
-                </UiButton>
-              </div>
+              </PinnableItem>
             );
           })}
           {skillQuery.status === "loading" && (

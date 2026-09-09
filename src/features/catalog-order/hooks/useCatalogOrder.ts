@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getCurrentAccessToken, getSkillOrder, putSkillOrder } from "@/shared/data/api/routedClient";
+import { getCurrentAccessToken, getSkillOrder, putSkillOrder, getConnectorOrder, putConnectorOrder } from "@/shared/data/api/routedClient";
 import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
 import { getBackendMode } from "@/shared/config/backendMode";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
@@ -21,13 +21,19 @@ function currentSessionRevision(): number {
   return sessionRevision;
 }
 
-export function usePinnedSkills(enabled: boolean) {
+const catalogs = {
+  skills: { endpoint: dataEndpoints.skillOrder, read: getSkillOrder, write: putSkillOrder },
+  connectors: { endpoint: dataEndpoints.connectorOrder, read: getConnectorOrder, write: putConnectorOrder },
+};
+
+export function useCatalogOrder(catalog: keyof typeof catalogs, enabled: boolean) {
+  const config = catalogs[catalog];
   const revision = currentSessionRevision();
   const endpoint = useMemo(() => ({
-    ...dataEndpoints.skillOrder,
-    key: `${dataEndpoints.skillOrder.key}:${revision}`,
-  }), [revision]);
-  const query = useDataQuery(endpoint, undefined, getSkillOrder, { enabled: false, ttlMs: TTL_MS });
+    ...config.endpoint,
+    key: `${config.endpoint.key}:${revision}`,
+  }), [config, revision]);
+  const query = useDataQuery(endpoint, undefined, config.read, { enabled: false, ttlMs: TTL_MS });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<Error | null>(null);
   const pending = useRef(false);
@@ -46,14 +52,14 @@ export function usePinnedSkills(enabled: boolean) {
     return () => window.removeEventListener("focus", refresh);
   }, [enabled, refreshPins]);
 
-  const pinnedSkillKeys = query.data?.order ?? EMPTY_KEYS;
-  const toggleSkillPin = useCallback(async (key: string) => {
+  const pinnedKeys = query.data?.order ?? EMPTY_KEYS;
+  const togglePin = useCallback(async (key: string) => {
     if (pending.current || query.status !== "success") return;
     pending.current = true;
     setSaving(true);
     setSaveError(null);
     try {
-      const response = await putSkillOrder({ key, pinned: !pinnedSkillKeys.includes(key.trim().toLowerCase()) });
+      const response = await config.write({ key, pinned: !pinnedKeys.includes(key.trim().toLowerCase()) });
       const cacheKey = createDataCacheKey(endpoint);
       dataQueryCache.invalidate(cacheKey);
       await dataQueryCache.fetch(cacheKey, () => Promise.resolve(response.data), { ttlMs: TTL_MS });
@@ -63,11 +69,11 @@ export function usePinnedSkills(enabled: boolean) {
       pending.current = false;
       setSaving(false);
     }
-  }, [endpoint, pinnedSkillKeys, query.status]);
+  }, [config, endpoint, pinnedKeys, query.status]);
 
   return {
-    pinnedSkillKeys,
-    toggleSkillPin,
+    pinnedKeys,
+    togglePin,
     refreshPins,
     pinsDisabled: saving || query.status !== "success",
     pinError: saveError || query.error,

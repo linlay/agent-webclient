@@ -1,3 +1,5 @@
+import type { ConnectorOrderResponse, UpdateConnectorOrderRequest } from "@/shared/data/api/dto/connectors";
+import { getConnectorOrder as getConnectorOrderHttp, putConnectorOrder as putConnectorOrderHttp } from "@/shared/data/api/requests/connectors";
 import {
 	buildResourceUrl,
 	archiveChats as archiveChatsHttp,
@@ -697,3 +699,11 @@ export {
 	setAccessToken,
 	uploadFile,
 };
+
+export function getConnectorOrder(): Promise<ApiResponse<ConnectorOrderResponse>> {
+	return routeEndpoint(dataEndpoints.connectorOrder, undefined, getConnectorOrderHttp);
+}
+
+export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<ApiResponse<ConnectorOrderResponse>> {
+	return routeEndpoint(dataEndpoints.connectorOrderUpdate, params, () => putConnectorOrderHttp(params));
+}

@@ -5,6 +5,9 @@ import type { ConnectorType } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useCatalogOrder } from "@/features/catalog-order/hooks/useCatalogOrder";
+import { sortPinnedItems } from "@/features/catalog-order/lib/pinnedOrder";
+import { PinnableItem } from "@/shared/ui/PinnableItem";
 import { UiTag } from "@/shared/ui/UiTag";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { useConnectorsRuntime } from "@/features/connectors/hooks/useConnectorsRuntime";
@@ -30,6 +33,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
   const { t } = useI18n();
   const appContext = useOptionalAppContext();
   const runtime = useConnectorsRuntime(routeId, onRouteIdChange);
+  const { pinnedKeys, togglePin, pinsDisabled, pinError, refreshPins } = useCatalogOrder("connectors", true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ConnectorType | "all">("all");
   const [showUnassigned, setShowUnassigned] = useState(false);
@@ -57,7 +61,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
     },
   });
   const busy = runtime.saving || runtime.importing;
-  const items = filterConnectors(runtime.items, search, filter);
+  const items = sortPinnedItems(filterConnectors(runtime.items, search, filter), pinnedKeys, item => item.id);
   const hasFilter = filter !== "all" || Boolean(search.trim());
   const selected = runtime.selected;
   const selectedAuth = selected ? authRuntimes[connectorAuthIdentity(selected)] : undefined;
@@ -90,9 +94,10 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
               },
             }]} />
           <UiButton size="sm" variant="primary" iconOnly aria-label={t("connectors.import.action")} title={t("connectors.import.action")} disabled={busy || runtime.detailLoading} onClick={importer.show}><MaterialIcon name="add" /></UiButton>
-          <UiButton size="sm" variant="ghost" iconOnly aria-label={t("connectors.action.refresh")} disabled={runtime.loading || busy} onClick={() => { void runtime.refreshCatalog(); refreshStatuses(); }}><MaterialIcon name="refresh" /></UiButton>
+          <UiButton size="sm" variant="ghost" iconOnly aria-label={t("connectors.action.refresh")} disabled={runtime.loading || busy} onClick={() => { void runtime.refreshCatalog(); refreshStatuses(); void refreshPins().catch(() => undefined); }}><MaterialIcon name="refresh" /></UiButton>
         </div>
         <p className={styles.hint}>{runtime.catalogError && !runtime.items.length ? t("connectors.list.unavailable") : t(hasFilter ? "connectors.list.count.filtered" : "connectors.list.count", { count: items.length })}</p>
+        {pinError && <div role="alert" className={styles.error}>{t("connectors.pinFailed")}<UiButton size="sm" variant="ghost" onClick={() => { void refreshPins().catch(() => undefined); }}>{t("connectors.action.retry")}</UiButton></div>}
         <div className={styles.listScroll}>
           <Spin spinning={runtime.loading}>
             {items.map(item => {
@@ -102,16 +107,20 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
               const authLabel = item.auth_mode === "none" ? t("connectors.auth.status.not_required") : item.auth_mode === "token" ? t("connectors.auth.configuredCredentials")
                 : auth?.error ? knownStatus ? t("connectors.auth.checkFailedWithStatus", { status: knownStatus }) : t("connectors.auth.checkFailed")
                   : knownStatus || t("connectors.auth.checking");
-              return <button type="button" className={styles.listItem} aria-current={!showUnassigned && selected?.id === item.id ? "true" : undefined} disabled={busy} key={item.id} onClick={() => { authChecks.prioritize(item.id); void auth?.refresh(); setShowUnassigned(false); setSkillsConnectorId(null); runtime.selectConnector(item.id); }}>
-              <span className={styles.itemHeading}><ConnectorIcon item={item} /><strong>{item.name}</strong><span className={styles.version}>{t("connectors.version", { version: item.version })}</span></span>
+              return <PinnableItem key={item.id} pinned={pinnedKeys.includes(item.id)}
+                label={t(pinnedKeys.includes(item.id) ? "connectors.unpin" : "connectors.pin", { name: item.name })}
+                disabled={pinsDisabled} onToggle={() => { void togglePin(item.id); }}>
+              <button type="button" className={styles.listItem} aria-current={!showUnassigned && selected?.id === item.id ? "true" : undefined} disabled={busy} onClick={() => { authChecks.prioritize(item.id); void auth?.refresh(); setShowUnassigned(false); setSkillsConnectorId(null); runtime.selectConnector(item.id); }}>
+              <span className={styles.itemHeading} data-pin-title><ConnectorIcon item={item} /><strong>{item.name}</strong></span>
               {item.description && <span className={styles.description}>{item.description}</span>}
               <span className={styles.itemFooter}>
+                <span className={styles.version}>{t("connectors.version", { version: item.version })}</span>
                 <span className={styles.itemStatus}>{(item.mcp || []).some(server => server.status === "unavailable")
                   ? <UiTag tone="danger">{t("connectors.sync.unavailable")}</UiTag>
                   : <UiTag tone={auth?.error ? "danger" : authStatus === "authorized" ? "accent" : "muted"}>{authLabel}</UiTag>}</span>
                 <span className={styles.badges}>{item.hasView && <UiTag tone="accent">VIEW</UiTag>}{item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}{item.hasMcp && <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>}</span>
               </span>
-            </button>; })}
+            </button></PinnableItem>; })}
             {!items.length && !runtime.loading && !runtime.catalogError && <p className={styles.empty}>{t("connectors.list.empty")}</p>}
           </Spin>
         </div>

@@ -166,41 +166,19 @@
 :global(.composer-add-menu-skill-select):global(.ui-btn) {
     flex: 1;
     min-width: 0;
-    width: auto;
+    width: 100%;
     background: transparent;
 }
 
-:global(.composer-add-menu-skill-pin):global(.ui-btn) {
-    flex: 0 0 28px;
-    width: 28px;
-    min-width: 28px;
-    height: 28px;
-    min-height: 28px;
-    margin: 3px 3px 0 0;
-    padding: 4px;
-    opacity: 0;
-    color: var(--ink-muted);
+:global(.composer-add-menu-skill-selected) {
+    position: absolute;
+    right: 10px;
+    bottom: 6px;
+    font-size: 12px;
 }
 
-:global(.composer-add-menu-skill-pin) :global(.material-icon) {
-    color: inherit;
-}
-
-:global(.composer-add-menu-skill-row):hover :global(.composer-add-menu-skill-pin),
-:global(.composer-add-menu-skill-row):focus-within :global(.composer-add-menu-skill-pin),
-:global(.composer-add-menu-skill-pin)[aria-pressed="true"] {
-    opacity: 1;
-}
-
-:global(.composer-add-menu-skill-pin)[aria-pressed="true"] {
-    color: var(--accent);
-    background: var(--bg-hover);
-}
-
-@media (hover: none) {
-    :global(.composer-add-menu-skill-pin):global(.ui-btn) {
-        opacity: 1;
-    }
+:global(.composer-add-menu-skill-row):global(.is-selected) small {
+    padding-right: 18px;
 }
 
 :global(.composer-add-menu-mode-switch) {

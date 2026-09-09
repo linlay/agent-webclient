@@ -42,7 +42,7 @@ describe("buildSidebarSettingsMenuSections", () => {
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
       "技能中心",
-      "连接器",
+      "连接器中心",
       "注册配置",
       "已归档对话",
       "打开设置...",
@@ -80,7 +80,7 @@ describe("SidebarSettingsMenu", () => {
     expect(html).toContain("技能中心");
     expect(html).toContain("打开设置...");
     expect(html).toContain("注册配置");
-    expect(html).toContain("连接器");
+    expect(html).toContain("连接器中心");
     expect(html).toContain("记忆信息");
     expect(html).toContain("已归档对话");
     expect(html).toContain("sidebar-settings-item ui-icon-hover-24");

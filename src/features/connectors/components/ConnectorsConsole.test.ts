@@ -6,6 +6,13 @@ import type { ConnectorSummary } from "@/shared/data";
 import { I18nProvider } from "@/shared/i18n";
 import { ConnectorsConsole } from "./ConnectorsConsole";
 
+import { dataQueryCache } from "@/shared/data/query/serverState";
+import { getConnectorOrder, putConnectorOrder } from "@/shared/data/api/routedClient";
+let serverOrder: string[] = [];
+jest.mock("@/shared/data/api/routedClient", () => ({
+  ...jest.requireActual("@/shared/data/api/routedClient"),
+  getConnectorOrder: jest.fn(), putConnectorOrder: jest.fn(),
+}));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 const blocker = { state: "unblocked" };
 jest.mock("react-router-dom", () => ({ useBlocker: () => blocker }));
@@ -37,6 +44,14 @@ function Harness() {
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.resetAllMocks();
+  dataQueryCache.clear();
+  serverOrder = [];
+  jest.mocked(getConnectorOrder).mockImplementation(async () => ({ code: 0, msg: "", data: { version: 1, order: [...serverOrder] } }));
+  jest.mocked(putConnectorOrder).mockImplementation(async ({ key, pinned }) => {
+    serverOrder = serverOrder.filter(id => id !== key);
+    if (pinned) serverOrder.unshift(key);
+    return { code: 0, msg: "", data: { version: 1, order: [...serverOrder] } };
+  });
   push.subscribe.mockImplementation(() => jest.fn());
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item] } });
   jest.mocked(getAdminTools).mockResolvedValue({ code: 0, msg: "", data: [] });
@@ -234,9 +249,10 @@ it("uses compact name/version and status/type rows without exposing the connecto
   expect(listItem.querySelector("code")).toBeNull();
   const heading = listItem.querySelector("strong")!.parentElement!;
   expect(heading.querySelector("strong")?.textContent).toBe(item.name);
-  expect(heading.lastElementChild?.textContent).toBe("v1.0");
+  expect(heading.hasAttribute("data-pin-title")).toBe(true);
   const footer = listItem.lastElementChild!;
-  expect(footer.firstElementChild?.textContent).toBe("未登录");
+  expect(footer.firstElementChild?.textContent).toBe("v1.0");
+  expect(footer.children[1]?.textContent).toBe("未登录");
   expect(footer.lastElementChild?.textContent).toBe("CLIMCP");
   expect(container.querySelector('aside button[aria-label="导入"]')?.getAttribute("title")).toBe("导入");
   expect(container.textContent).not.toContain("可通过 ZIP 导入外部连接器");
@@ -298,4 +314,42 @@ it("aborts old checks and recreates observers correctly under StrictMode", async
   expect(signals.filter(signal => !signal.aborted)).toHaveLength(1);
   await act(async () => root.render(null));
   expect(signals.every(signal => signal.aborted)).toBe(true);
+});
+
+it("pins a read-only connector without changing selection or discarding a draft, and restores on remount", async () => {
+  const other = { ...item, id: "builtin.other", name: "Other connector", builtin: true, readOnly: true };
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item, other] } });
+  await mount();
+  const input = detail().querySelector<HTMLInputElement>("input:not([readonly])")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "Unsaved name");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  const names = () => Array.from(container.querySelectorAll("aside strong")).map(node => node.textContent);
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="置顶 Other connector"]')!.click());
+  expect(putConnectorOrder).toHaveBeenLastCalledWith({ key: "builtin.other", pinned: true });
+  expect(names()).toEqual(["Other connector", "Demo connector"]);
+  expect(container.querySelector('aside button[aria-current="true"] strong')?.textContent).toBe(item.name);
+  expect(input.value).toBe("Unsaved name");
+  expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
+  expect(container.querySelector("button button")).toBeNull();
+  await act(async () => root.render(null));
+  await mount();
+  expect(names()[0]).toBe("Other connector");
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="取消置顶 Other connector"]')!.click());
+  expect(names()).toEqual(["Demo connector", "Other connector"]);
+});
+
+it("preserves connector order on save failure and reads remote pins when focused", async () => {
+  const other = { ...item, id: "other", name: "Other connector" };
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item, other] } });
+  await mount();
+  jest.mocked(putConnectorOrder).mockRejectedValueOnce(new Error("offline"));
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="置顶 Other connector"]')!.click());
+  expect(container.querySelector("aside strong")?.textContent).toBe(item.name);
+  expect(container.textContent).toContain("无法同步连接器置顶");
+  serverOrder = ["other"];
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(container.querySelector("aside strong")?.textContent).toBe("Other connector");
+  expect(container.textContent).not.toContain("无法同步连接器置顶");
 });

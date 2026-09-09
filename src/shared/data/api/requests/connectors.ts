@@ -1,6 +1,7 @@
 import type { ApiResponse } from "@/shared/data/api/dto/common";
 import type {
   ConnectorDefinition, ConnectorDefinitionTarget, ConnectorListResponse,
+  ConnectorOrderResponse, UpdateConnectorOrderRequest,
   UpdateConnectorDefinitionRequest,
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
   ConnectorSkillListResponse, ConnectorSkillDetail,
@@ -84,5 +85,15 @@ export function logoutConnectorAuth(id: string, signal?: AbortSignal): Promise<A
   const endpoint = dataEndpoints.adminConnectorAuthLogout;
   return requestJson<ConnectorAuthActionResult>(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
     method: endpoint.method, cache: "no-store", signal,
+  });
+}
+
+export function getConnectorOrder(): Promise<ApiResponse<ConnectorOrderResponse>> {
+  return requestJson(dataEndpoints.connectorOrder.path, { cache: "no-store" });
+}
+
+export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<ApiResponse<ConnectorOrderResponse>> {
+  return requestJson(dataEndpoints.connectorOrderUpdate.path, {
+    method: "PUT", body: JSON.stringify(params),
   });
 }

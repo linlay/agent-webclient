@@ -8,7 +8,7 @@ import {
 } from "@/features/composer/lib/slashCommands";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { useComposerFilter } from "@/features/composer/hooks/useComposerFilter";
-import { usePinnedSkills } from "@/features/composer/hooks/usePinnedSkills";
+import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 interface UseComposerSlashInput {
