@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Spin } from "antd";
+import { message, Spin } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import type { ConnectorType } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
@@ -31,6 +31,7 @@ export interface ConnectorsConsoleProps {
 
 export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsoleProps) {
   const { t } = useI18n();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const appContext = useOptionalAppContext();
   const runtime = useConnectorsRuntime(routeId, onRouteIdChange);
   const { pinnedKeys, togglePin, pinsDisabled, pinError, refreshPins } = useCatalogOrder("connectors", true);
@@ -53,7 +54,8 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
   const onCredentialsChange = useCallback(() => { void runtime.refreshCatalog(true); }, [runtime.refreshCatalog]);
   const importer = useConnectorImport({
     onImport: runtime.importArchive,
-    onImported: () => {
+    onImported: (id) => {
+      void messageApi.success({ key: "connector-import", content: t("connectors.import.success", { id }), duration: 3 });
       setSearch("");
       setFilter("all");
       setShowUnassigned(false);
@@ -79,7 +81,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
   return <div className={`management-page-console ${styles.console}`}>
     {runtime.items.map(item => <ConnectorAuthObserver key={connectorAuthIdentity(item)} item={item} checks={authChecks} onChange={onAuthChange} onCredentialsChange={onCredentialsChange} />)}
     <ConnectorImportModal runtime={importer} />
-    {importer.message && <p role="status" className={styles.notice}>{importer.message}</p>}
+    {messageContextHolder}
     {runtime.catalogError && <div role="alert" className={styles.error}>{runtime.catalogErrorStatus === 401 ? t("connectors.auth.error.401") : runtime.catalogError}<UiButton size="sm" variant="ghost" onClick={() => void runtime.refreshCatalog()}>{t("connectors.action.retry")}</UiButton></div>}
     <div className={`${styles.body} ${showingSkills ? styles.bodySkills : ""}`}>
       <aside className={styles.list} aria-label={t("connectors.list.label")}>

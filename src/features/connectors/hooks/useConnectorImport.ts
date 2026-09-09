@@ -4,7 +4,7 @@ import { connectorImportErrorKey, isConnectorImportConflict, validateConnectorAr
 
 interface Options {
   onImport: (file: File, overwrite: boolean) => Promise<string | null>;
-  onImported: () => void;
+  onImported: (id: string) => void;
 }
 
 export function useConnectorImport({ onImport, onImported }: Options) {
@@ -14,7 +14,6 @@ export function useConnectorImport({ onImport, onImported }: Options) {
   const [submitting, setSubmitting] = useState(false);
   const [overwriteRequired, setOverwriteRequired] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const submittingRef = useRef(false);
 
   const acceptFiles = (files: File[]) => {
@@ -33,11 +32,10 @@ export function useConnectorImport({ onImport, onImported }: Options) {
     try {
       const id = await onImport(archive, overwriteRequired);
       if (!id) return;
-      setMessage(t("connectors.import.success", { id }));
       setOpen(false);
       setArchive(null);
       setOverwriteRequired(false);
-      onImported();
+      onImported(id);
     } catch (cause) {
       const conflict = isConnectorImportConflict(cause);
       setOverwriteRequired(conflict);
@@ -50,12 +48,11 @@ export function useConnectorImport({ onImport, onImported }: Options) {
   };
 
   return {
-    open, archive, submitting, overwriteRequired, error, message, acceptFiles, submit,
+    open, archive, submitting, overwriteRequired, error, acceptFiles, submit,
     show: () => {
       if (submittingRef.current) return;
       setArchive(null);
       setError("");
-      setMessage("");
       setOverwriteRequired(false);
       setOpen(true);
     },

@@ -31,7 +31,7 @@ it("requires a separate user action before retrying with overwrite", async () =>
   await act(async () => current.submit());
   expect(onImport.mock.calls).toEqual([[file, false], [file, true]]);
   expect(current.open).toBe(false);
-  expect(current.message).toBe("connectors.import.success");
+  expect(onImported).toHaveBeenCalledWith("demo");
   expect(onImported).toHaveBeenCalledTimes(1);
 });
 
