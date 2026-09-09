@@ -99,10 +99,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   currentAgentKey,
   isMainChatRunning,
   selectedSkillKeys,
-  slashCommands,
-  slashAvailability,
   onSelectSkill,
-  onSelectCommand,
 }) => {
   const { t } = useI18n();
   const {
@@ -172,14 +169,11 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             canUseEditingMode={canUseEditingMode}
             isMainChatRunning={isMainChatRunning}
             selectedSkillKeys={selectedSkillKeys}
-            slashCommands={slashCommands}
-            slashAvailability={slashAvailability}
             onOpenFilePicker={openFilePicker}
             onAddReference={onAddReference}
             onTogglePlanningMode={onTogglePlanningMode}
             onEditingModeChange={onEditingModeChange}
             onSelectSkill={onSelectSkill}
-            onSelectCommand={onSelectCommand}
           />
           {canCaptureDesktopScreenshot ? (
             <UiButton

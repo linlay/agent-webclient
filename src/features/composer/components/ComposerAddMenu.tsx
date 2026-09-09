@@ -3,11 +3,6 @@ import { Input, Popover, Switch, Typography } from "antd";
 import type { InputRef } from "antd";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
-import {
-  isSlashCommandDisabled,
-  type ResolvedSlashCommandDefinition,
-  type SlashCommandAvailability,
-} from "@/features/composer/lib/slashCommands";
 import { getChats, type AgentSkill } from "@/shared/data";
 import {
   canUseDesktopWebsBridge,
@@ -21,7 +16,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 
-type Section = "files" | "mode" | "skills" | "connectors" | "commands" | "chat" | "site";
+type Section = "files" | "mode" | "skills" | "connectors" | "chat" | "site";
 export interface AddMenuTriggerProps {
   disabled: boolean;
   loading: boolean;
@@ -33,14 +28,11 @@ export interface AddMenuTriggerProps {
   canUseEditingMode: boolean;
   isMainChatRunning: boolean;
   selectedSkillKeys: string[];
-  slashCommands: ResolvedSlashCommandDefinition[];
-  slashAvailability: SlashCommandAvailability;
   onOpenFilePicker: () => void;
   onAddReference: (reference: ComposerContextReferenceInput) => void;
   onTogglePlanningMode: () => void;
   onEditingModeChange: (enabled: boolean) => void;
   onSelectSkill: (skill: AgentSkill) => void;
-  onSelectCommand: (id: ResolvedSlashCommandDefinition["id"]) => void;
 }
 
 // 每个面板可指定宽度（px），缺省 200
@@ -59,11 +51,6 @@ const sectionMeta: Record<
     icon: "hub",
     key: "composer.addMenu.section.connectors",
     detailWidth: 240,
-  },
-  commands: {
-    icon: "terminal",
-    key: "composer.addMenu.section.commands",
-    detailWidth: 320,
   },
   chat: {
     icon: "question_answer",
@@ -84,7 +71,6 @@ const sectionNav: NavEntry[] = [
   "mode",
   "skills",
   "connectors",
-  "commands",
   "chat",
   "site",
 ];
@@ -100,7 +86,6 @@ const normalizeChats = (value: unknown): Chat[] =>
 
 const searchPlaceholderKey: Partial<Record<Section, string>> = {
   skills: "composer.addMenu.search.skills",
-  commands: "composer.addMenu.search.commands",
   chat: "composer.addMenu.chat.search",
   site: "composer.addMenu.site.search",
 };
@@ -129,9 +114,6 @@ const AddMenuSectionDetail: React.FC<
   const skills = skillQuery.data?.skills || [];
   const filteredSkills = skills.filter((skill) =>
     matchKeyword(skill.name || skill.key, skill.key, skill.description || ""),
-  );
-  const filteredCommands = props.slashCommands.filter((command) =>
-    matchKeyword(command.label, command.description, command.id),
   );
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
@@ -297,28 +279,6 @@ const AddMenuSectionDetail: React.FC<
                 {t("composer.addMenu.empty")}
               </div>
             )}
-        </div>
-      )}
-      {section === "commands" && (
-        <div className="composer-add-menu-scroll">
-          {filteredCommands.map((command) =>
-            item(
-              <>
-                <MaterialIcon name={command.icon} />
-                <span className="composer-add-menu-item-copy">
-                  <b>{command.label}</b>
-                  <small>{command.description}</small>
-                </span>
-              </>,
-              () => props.onSelectCommand(command.id),
-              isSlashCommandDisabled(command.id, props.slashAvailability),
-            ),
-          )}
-          {!filteredCommands.length && (
-            <div className="composer-add-menu-status">
-              {t("composer.addMenu.empty")}
-            </div>
-          )}
         </div>
       )}
       {section === "chat" && (

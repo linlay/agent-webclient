@@ -973,10 +973,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   currentAgentKey={currentAgentKey}
                   isMainChatRunning={isMainChatRunning}
                   selectedSkillKeys={effectiveSkills.map((skill) => skill.key)}
-                  slashCommands={slashCommands}
-                  slashAvailability={slashAvailability}
                   onSelectSkill={handleSelectSlashSkill}
-                  onSelectCommand={(commandId) => void executeSlashCommand(commandId)}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>
