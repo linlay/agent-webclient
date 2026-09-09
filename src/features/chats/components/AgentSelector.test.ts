@@ -3,16 +3,20 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AgentSelector } from "@/features/chats/components/AgentSelector";
 import { I18nProvider } from "@/shared/i18n";
 
+let mockMenu: any;
+
 jest.mock("antd", () => ({
-  Dropdown: ({ children, menu, ...props }: any) =>
-    React.createElement(
+  Dropdown: ({ children, menu }: any) => {
+    mockMenu = menu;
+    return React.createElement(
       "div",
-      props,
+      null,
       children,
-      menu.items.map((item: any) =>
+      menu.items.filter((item: any) => item.type !== "divider").map((item: any) =>
         React.createElement("div", { key: item.key, "data-menu-key": item.key }, item.label),
       ),
-    ),
+    );
+  },
 }));
 
 jest.mock("@/app/state/provider", () => ({
@@ -45,7 +49,7 @@ function renderAgentSelector(
       I18nProvider,
       { locale: "zh-CN", persistLocale: false },
       React.createElement(AgentSelector, {
-        value: ["alpha"],
+        value: "alpha",
         onChange: jest.fn(),
         ...props,
       }),
@@ -54,32 +58,48 @@ function renderAgentSelector(
 }
 
 describe("AgentSelector", () => {
-  it("lists agents from state and marks selected agents with a check", () => {
-    const html = renderAgentSelector({ value: ["alpha"] });
+  it("lists all agents first and marks only the selected agent", () => {
+    const html = renderAgentSelector({ value: "alpha" });
 
     expect(html).toContain("Alpha");
     expect(html).toContain("Beta");
-    expect(html).toContain('data-menu-key="alpha"');
-    expect(html).toContain('data-menu-key="beta"');
+    expect(html).toContain('data-menu-key="agent:alpha"');
+    expect(html).toContain('data-menu-key="agent:beta"');
+    expect(mockMenu.items[0].key).toBe("all");
+    expect(mockMenu.selectedKeys).toEqual(["agent:alpha"]);
+    expect(mockMenu.multiple).toBeUndefined();
     expect(html).toContain('data-agent-type="agent"');
     expect(html).toContain('data-material-icon="check"');
   });
 
   it("shows the single selected agent name as the trigger label", () => {
-    const html = renderAgentSelector({ value: ["beta"] });
+    const html = renderAgentSelector({ value: "beta" });
 
     expect(html).toContain("Beta");
   });
 
-  it("shows the selected count when multiple agents are selected", () => {
-    const html = renderAgentSelector({ value: ["alpha", "beta"] });
-
-    expect(html).toContain("已选 2 个");
+  it("replaces the selected agent and uses the all option to clear the filter", () => {
+    const onChange = jest.fn();
+    renderAgentSelector({ value: "alpha", onChange });
+    mockMenu.onClick({ key: "agent:beta" });
+    expect(onChange).toHaveBeenLastCalledWith("beta");
+    mockMenu.onClick({ key: "all" });
+    expect(onChange).toHaveBeenLastCalledWith("");
+    mockMenu.onClick({ key: "agent:alpha" });
+    expect(onChange).toHaveBeenLastCalledWith("alpha");
   });
 
   it("shows the all-agents label when nothing is selected", () => {
-    const html = renderAgentSelector({ value: [] });
+    const html = renderAgentSelector({ value: "" });
 
     expect(html).toContain("全部智能体");
+    expect(mockMenu.selectedKeys).toEqual(["all"]);
+  });
+
+  it("keeps an unknown selected agent visible instead of claiming all agents", () => {
+    const html = renderAgentSelector({ value: "archived-agent" });
+
+    expect(html).toContain('title="archived-agent"');
+    expect(mockMenu.selectedKeys).toEqual(["agent:archived-agent"]);
   });
 });

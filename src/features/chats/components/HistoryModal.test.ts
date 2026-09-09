@@ -2,9 +2,12 @@
  * @jest-environment jsdom
  * @jest-environment-options {"customExportConditions":["node","node-addons"]}
  */
-import React from "react";
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
+import { Simulate } from "react-dom/test-utils";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
+import type { AgentSelector } from "@/features/chats/components/AgentSelector";
 import type { Chat } from "@/features/chats/lib/chatState";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
@@ -17,10 +20,17 @@ const mockExportHtml = jest.fn();
 const mockSuccess = jest.fn();
 const mockError = jest.fn();
 const mockButtons: Array<Record<string, any>> = [];
+const mockGetChats = jest.fn();
+const mockSearchGlobal = jest.fn();
+let mockSelectorProps: React.ComponentProps<typeof AgentSelector>;
 let mockActiveChatId = "";
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock("@/shared/data", () => ({
   ...jest.requireActual("@/shared/data"),
+  getChats: (...args: unknown[]) => mockGetChats(...args),
+  searchGlobal: (...args: unknown[]) => mockSearchGlobal(...args),
   archiveChats: (...args: unknown[]) => mockArchiveChats(...args),
   deleteChat: (...args: unknown[]) => mockDeleteChat(...args),
   downloadChatExport: (...args: unknown[]) => mockExportMarkdown(...args),
@@ -42,28 +52,13 @@ jest.mock("antd", () => {
   return {
     Flex: ({ children, className }: any) =>
       React.createElement("div", { className }, children),
-    Input: ({ prefix, className, ...props }: any) =>
+    Input: React.forwardRef(({ prefix, className, variant, ...props }: any, ref: any) =>
       React.createElement(
         "div",
         { className: className || "ant-input-affix-wrapper" },
         prefix,
-        React.createElement("input", props),
-      ),
-    Popover: ({ content, children }: any) =>
-      React.createElement(
-        "div",
-        { className: "ant-popover" },
-        children,
-        content,
-      ),
-    DatePicker: {
-      RangePicker: (props: any) =>
-        React.createElement(
-          "div",
-          { className: "ant-range-picker" },
-          ...(props?.placeholder || []),
-        ),
-    },
+        React.createElement("input", { ...props, ref }),
+      )),
     Tag: ({ children, ...props }: any) => React.createElement("span", props, children),
     Tooltip: ({ children }: any) =>
       React.createElement(React.Fragment, null, children),
@@ -102,12 +97,14 @@ jest.mock("@/app/state/provider", () => ({
 }));
 
 jest.mock("@/features/chats/components/AgentSelector", () => ({
-  AgentSelector: ({ value }: { value?: string[] }) =>
-    React.createElement(
+  AgentSelector: (props: React.ComponentProps<typeof AgentSelector>) => {
+    mockSelectorProps = props;
+    return React.createElement(
       "button",
       { type: "button", className: "history-worker-selector" },
-      (value || []).join(","),
-    ),
+      props.value,
+    );
+  },
 }));
 
 function createHistoryChat(overrides: Partial<Chat> = {}): Chat {
@@ -151,6 +148,8 @@ describe("HistoryModal", () => {
     mockExportMarkdown.mockReset();
     mockButtons.length = 0;
     mockActiveChatId = "";
+    mockGetChats.mockResolvedValue({ data: [] });
+    mockSearchGlobal.mockResolvedValue({ data: { results: [] } });
   });
 
   const clickAction = (icon: string) => {
@@ -215,19 +214,15 @@ describe("HistoryModal", () => {
     expect(html).not.toContain("management-page-console");
   });
 
-  it("renders search input, filter popover, refresh button and chat count in the modal title", () => {
+  it("renders the agent selector directly beside search without a nested filter or date range", () => {
     const html = renderHistoryModal([createHistoryChat()]);
 
     expect(html).toContain("history-modal-title");
     expect(html).toContain('placeholder="搜索对话"');
-    expect(html).toContain("history-filter-trigger");
-    expect(html).toContain('data-material-icon="filter_list"');
-    expect(html).toContain("筛选");
-    expect(html).toContain("1/2");
-    expect(html).toContain("history-filter-popover");
-    expect(html).toContain("智能体");
-    expect(html).toContain("更新时间");
-    expect(html).toContain("ant-range-picker");
+    expect(html).not.toContain("history-filter-trigger");
+    expect(html).not.toContain("1/2");
+    expect(html).not.toContain("history-filter-popover");
+    expect(html).not.toContain("ant-range-picker");
     expect(html).toContain("history-worker-selector");
     expect(html).toContain('data-material-icon="refresh"');
     expect(html).toContain("共 1 条对话");
@@ -245,6 +240,78 @@ describe("HistoryModal", () => {
 
     expect(html).toContain("A compact history title");
     expect(html).not.toContain("Another agent chat");
+  });
+
+  it("switches between one agent and all agents, fetching the complete catalog", async () => {
+    stateChats.splice(0, stateChats.length,
+      createHistoryChat(),
+      createHistoryChat({ chatId: "chat-beta", chatName: "Beta history", agentKey: "beta" }),
+    );
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    const scrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = jest.fn();
+    try {
+      await act(async () => root.render(React.createElement(I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(HistoryModal, { onSelectChat: jest.fn() }),
+      )));
+      expect(mockGetChats).toHaveBeenLastCalledWith({ agentKey: "alpha" });
+      expect(container.textContent).not.toContain("Beta history");
+
+      await act(async () => mockSelectorProps.onChange("beta"));
+      expect(mockGetChats).toHaveBeenLastCalledWith({ agentKey: "beta" });
+      expect(container.textContent).toContain("Beta history");
+      expect(container.textContent).not.toContain("A compact history title");
+
+      await act(async () => mockSelectorProps.onChange(""));
+      expect(mockGetChats).toHaveBeenLastCalledWith({});
+      expect(container.textContent).toContain("Beta history");
+      expect(container.textContent).toContain("A compact history title");
+      expect(container.textContent).toContain("共 2 条对话");
+    } finally {
+      act(() => root.unmount());
+      HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    }
+  });
+
+  it("ignores late search responses after switching to another agent or all agents", async () => {
+    jest.useFakeTimers();
+    const pendingSearches: Array<(value: unknown) => void> = [];
+    mockSearchGlobal.mockImplementation(() => new Promise((resolve) => pendingSearches.push(resolve)));
+    stateChats.splice(0, stateChats.length, createHistoryChat());
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    const scrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = jest.fn();
+    try {
+      await act(async () => root.render(React.createElement(I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(HistoryModal, { onSelectChat: jest.fn() }),
+      )));
+      act(() => Simulate.change(container.querySelector("input")!, {
+        target: { value: "search" },
+      } as unknown as React.ChangeEvent<HTMLInputElement>));
+      act(() => jest.advanceTimersByTime(250));
+      expect(mockSearchGlobal).toHaveBeenLastCalledWith({ query: "search", agentKey: "alpha", limit: 30 });
+      await act(async () => mockSelectorProps.onChange("beta"));
+      act(() => jest.advanceTimersByTime(250));
+      await act(async () => pendingSearches[0]({ data: { results: [
+        { chatId: "stale-alpha", chatName: "Stale alpha search", agentKey: "alpha" },
+      ] } }));
+      expect(container.textContent).not.toContain("Stale alpha search");
+
+      await act(async () => mockSelectorProps.onChange(""));
+      expect(mockGetChats).toHaveBeenLastCalledWith({});
+      await act(async () => pendingSearches[1]({ data: { results: [
+        { chatId: "stale-beta", chatName: "Stale beta search", agentKey: "beta" },
+      ] } }));
+      expect(container.textContent).not.toContain("Stale beta search");
+    } finally {
+      act(() => root.unmount());
+      HTMLElement.prototype.scrollIntoView = scrollIntoView;
+      jest.useRealTimers();
+    }
   });
 
   it("renders mark-all-read inside toolbar actions when unread chats exist", () => {
@@ -280,6 +347,7 @@ describe("HistoryModal", () => {
 
     expect(html).not.toContain("history-filter-trigger");
     expect(html).not.toContain("history-filter-popover");
+    expect(html).not.toContain("history-worker-selector");
     expect(html).toContain("history-modal-title");
   });
 

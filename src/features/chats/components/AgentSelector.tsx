@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Dropdown } from "antd";
 import { useAppContext } from "@/app/state/provider";
 import { AgentIcon } from "@/shared/icons/agent";
@@ -18,49 +18,44 @@ const ICON_PROPS = {
 };
 
 export const AgentSelector: React.FC<{
-  value?: string[];
-  onChange: (agentKeys: string[]) => void;
-}> = ({ value = [], onChange }) => {
+  value?: string;
+  onChange: (agentKey: string) => void;
+}> = ({ value = "", onChange }) => {
   const { t } = useI18n();
   const { state } = useAppContext();
+  const [open, setOpen] = useState(false);
   const agents = useMemo(
     () => (Array.isArray(state.agents) ? state.agents : []),
     [state.agents],
   );
-  const selectedKeys = useMemo(
-    () =>
-      value
-        .map((key) =>
-          String(key || "").startsWith("agent:")
-            ? String(key).slice("agent:".length)
-            : String(key || ""),
-        )
-        .filter(Boolean),
-    [value],
-  );
-  const selectedAgents = useMemo(
-    () => agents.filter((agent) => selectedKeys.includes(agent.key)),
-    [agents, selectedKeys],
-  );
-  const triggerLabel =
-    selectedAgents.length === 0
-      ? t("history.agentSelector.all")
-      : selectedAgents.length === 1
-        ? selectedAgents[0].name || selectedAgents[0].key
-        : t("history.agentSelector.selectedCount", {
-            count: selectedAgents.length,
-          });
+  const selectedAgent = agents.find((agent) => agent.key === value);
+  const triggerLabel = value
+    ? selectedAgent?.name || value
+    : t("history.agentSelector.all");
   const menuItems = useMemo(
-    () =>
-      agents.map((agent) => ({
-        key: agent.key,
+    () => [
+      {
+        key: "all",
+        label: (
+          <span className="history-worker-option">
+            <MaterialIcon name="smart_toy" className="history-worker-option-icon" />
+            <span className="history-worker-option-name">
+              {t("history.agentSelector.all")}
+            </span>
+            {!value ? <MaterialIcon name="check" className="history-worker-option-check" /> : null}
+          </span>
+        ),
+      },
+      { type: "divider" as const },
+      ...agents.map((agent) => ({
+        key: `agent:${agent.key}`,
         label: (
           <span className="history-worker-option">
             <AgentIcon icon={agent.icon} type="agent" props={ICON_PROPS} />
-            <span className="history-worker-option-name">
+            <span className="history-worker-option-name" title={agent.name || agent.key}>
               {agent.name || agent.key}
             </span>
-            {selectedKeys.includes(agent.key) ? (
+            {value === agent.key ? (
               <MaterialIcon
                 name="check"
                 className="history-worker-option-check"
@@ -69,35 +64,45 @@ export const AgentSelector: React.FC<{
           </span>
         ),
       })),
-    [agents, selectedKeys],
+    ],
+    [agents, t, value],
   );
 
   return (
     <Dropdown
+      autoFocus
+      open={open}
+      onOpenChange={setOpen}
+      overlayClassName="history-agent-menu"
       menu={{
         items: menuItems,
         selectable: true,
-        multiple: true,
-        selectedKeys,
+        selectedKeys: [value ? `agent:${value}` : "all"],
         onClick: ({ key }) => {
-          const agentKey = String(key);
-          const next = selectedKeys.includes(agentKey)
-            ? selectedKeys.filter((item) => item !== agentKey)
-            : [...selectedKeys, agentKey];
-          onChange(next);
+          onChange(key === "all" ? "" : key.slice("agent:".length));
+          setOpen(false);
         },
       }}
       trigger={["click"]}
-      placement="bottomLeft"
+      placement="bottomRight"
     >
       <button
         type="button"
-        className="history-worker-selector"
+        className={`history-worker-selector${value ? " is-filtered" : ""}`}
         aria-label={t("history.workerSelector.ariaLabel")}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={triggerLabel}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
-        {selectedAgents.length === 1 ? (
+        {selectedAgent ? (
           <AgentIcon
-            icon={selectedAgents[0].icon}
+            icon={selectedAgent.icon}
             type="agent"
             props={{
               icon: {
@@ -111,7 +116,7 @@ export const AgentSelector: React.FC<{
               },
             }}
           />
-        ) : null}
+        ) : <MaterialIcon name="smart_toy" className="history-worker-selector-icon" />}
         <span className="history-worker-selector-name">{triggerLabel}</span>
         <MaterialIcon
           name="expand_more"
