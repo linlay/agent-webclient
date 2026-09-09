@@ -99,6 +99,20 @@ describe("routedClient capability routing", () => {
 		expect(mockGetAgents).not.toHaveBeenCalled();
 	});
 
+	it("invalidates only the selected agent skills and keeps concurrent reads deduplicated", async () => {
+		mockRequestPlatformData.mockImplementation(async (_path, payload) => ok({ agentKey: payload.agentKey, skills: [{ key: "a" }, { key: "b" }] }));
+		const routed = await import("./routedClient");
+		await routed.getAgentSkills("one");
+		await routed.getAgentSkills("two");
+		routed.invalidateAgentSkills("one");
+		mockRequestPlatformData.mockResolvedValue(ok({ agentKey: "one", skills: [{ key: "b" }, { key: "new" }] }));
+		const [first, second] = await Promise.all([routed.getAgentSkills("one"), routed.getAgentSkills("one")]);
+		expect(first.data.skills.map(skill => skill.key)).toEqual(["b", "new"]);
+		expect(second).toEqual(first);
+		expect((await routed.getAgentSkills("two")).data.skills.map(skill => skill.key)).toEqual(["a", "b"]);
+		expect(mockRequestPlatformData).toHaveBeenCalledTimes(3);
+	});
+
 	it("routes agent detail over WS with cached request dedupe", async () => {
 		mockRequestPlatformData.mockResolvedValue(ok({ key: "demo-agent" }));
 		const routed = await import("./routedClient");

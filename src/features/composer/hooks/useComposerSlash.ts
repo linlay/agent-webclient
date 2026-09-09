@@ -6,7 +6,7 @@ import {
   shouldShowSlashCommandPalette,
   type SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
-import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposerSkillMenuQuery";
 import { useComposerFilter } from "@/features/composer/hooks/useComposerFilter";
 import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
@@ -53,7 +53,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     !commandOverlayOpen &&
     !addMenuOpen &&
     !slashDismissed;
-  const skillQuery = useAgentSkillsQuery(currentAgentKey, {
+  const skillQuery = useComposerSkillMenuQuery(currentAgentKey, {
     enabled: skillQueryEnabled,
   });
   const hasSkillSection = Boolean(String(currentAgentKey || "").trim());

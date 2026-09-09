@@ -9,7 +9,7 @@ import {
   listDesktopWebEntries,
   type DesktopWebEntry,
 } from "@/shared/data/desktop/desktopWebs";
-import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposerSkillMenuQuery";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -110,7 +110,7 @@ const AddMenuSectionDetail: React.FC<
   const keyword = search.trim().toLowerCase();
   const matchKeyword = (...values: string[]) =>
     !keyword || values.some((value) => value.toLowerCase().includes(keyword));
-  const skillQuery = useAgentSkillsQuery(props.currentAgentKey, {
+  const skillQuery = useComposerSkillMenuQuery(props.currentAgentKey, {
     enabled: section === "skills",
   });
   const skills = skillQuery.data?.skills || [];
