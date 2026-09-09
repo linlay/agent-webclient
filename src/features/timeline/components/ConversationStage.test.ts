@@ -7,13 +7,14 @@ import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/wo
 import {
   buildTimelineAgentOptions,
   ConversationStage,
-  dispatchDerivedChatNavigation,
   dispatchTimelineAgentSwitch,
   filterTimelineAgentOptions,
-  isDeriveChatActionDisabled,
   shouldEnableQueryAnchors,
   TimelineAgentSwitcher,
 } from "@/features/timeline/components/ConversationStage";
+
+const mockOnFeedback = jest.fn();
+const mockDeriveChatAction = { isDisabled: jest.fn(() => false), execute: jest.fn() };
 
 let mockCurrentWorker: {
   key: string;
@@ -175,6 +176,8 @@ describe("ConversationStage", () => {
 
   beforeEach(() => {
     mockCurrentWorker = null;
+    mockDeriveChatAction.isDisabled.mockReset().mockReturnValue(false);
+    mockDeriveChatAction.execute.mockReset();
     mockUseAgentSkillsQuery.mockReset();
     mockUseAgentSkillsQuery.mockReturnValue({ data: null, status: "idle" });
     mockFormatTimelineTime.mockReturnValue({ short: "", full: "" });
@@ -225,7 +228,8 @@ describe("ConversationStage", () => {
     expect(shouldEnableQueryAnchors(998)).toBe(true);
   });
 
-  it("renders derive chat action for completed runs", () => {
+  it.each([false, true])("renders the completed run action with injected disabled=%s", (disabled) => {
+    mockDeriveChatAction.isDisabled.mockReturnValue(disabled);
     const state = createInitialState();
     const queryAt = 1_700_000_000_000;
     mockFormatTimelineTime.mockReturnValue({
@@ -264,7 +268,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { surfaceMode: "main" }),
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("aria-label=\"派生新对话\"");
@@ -273,34 +277,10 @@ describe("ConversationStage", () => {
     expect(html.indexOf('data-material-icon="thumb_down"')).toBeLessThan(
       html.indexOf('data-material-icon="branches"'),
     );
-    expect(html).not.toContain("aria-label=\"派生新对话\" disabled=\"\"");
-  });
-
-  it("disables derive chat action without required run state", () => {
-    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "run_1" })).toBe(false);
-    expect(isDeriveChatActionDisabled({ chatId: "", runId: "run_1" })).toBe(true);
-    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "" })).toBe(true);
-    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "run_1", streaming: true })).toBe(true);
-    expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "run_1", activeAwaiting: { mode: "question" } })).toBe(true);
-  });
-
-  it("dispatches chat refresh and load events after derive succeeds", () => {
-    dispatchDerivedChatNavigation("chat_new");
-
-    expect(globalWithStorage.window?.dispatchEvent).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ type: "agent:refresh-chats" }),
-    );
-    expect(globalWithStorage.window?.dispatchEvent).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        type: "agent:load-chat",
-        detail: {
-          chatId: "chat_new",
-          focusComposerOnComplete: true,
-        },
-      }),
-    );
+    const deriveButton = html.match(/<button\b[^>]*aria-label="派生新对话"[^>]*>/)?.[0];
+    expect(deriveButton).toBeDefined();
+    expect(deriveButton?.includes('disabled=""')).toBe(disabled);
+    expect(mockDeriveChatAction.isDisabled).toHaveBeenCalledWith("run_1");
   });
 
   it("renders one animated anchor line for each request query item", () => {
@@ -337,7 +317,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { surfaceMode: "main" }),
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-query-anchor-row");
@@ -391,7 +371,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { surfaceMode: "main" }),
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).not.toContain("timeline-query-anchor-rail");
@@ -443,7 +423,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { surfaceMode: "main" }),
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-task-group-header");
@@ -499,7 +479,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { surfaceMode: "main" }),
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-task-group-header");
@@ -519,7 +499,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, {
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction,
         surfaceMode: "main",
         showEmptyState: false,
       }),
@@ -567,7 +547,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { surfaceMode: "main" }),
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-empty");
@@ -602,7 +582,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { surfaceMode: "main" }),
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("与 小宅 对话");

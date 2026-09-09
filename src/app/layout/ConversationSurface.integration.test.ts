@@ -6,7 +6,8 @@ Object.assign(globalThis, { TextEncoder, TextDecoder, IS_REACT_ACT_ENVIRONMENT: 
 const { MemoryRouter, Routes, Route, useNavigate } = require("react-router-dom");
 const { AppProvider, useAppContext } = require("@/app/state/AppContext");
 const { AgentChatShell } = require("./AgentChatShell");
-const { getChat, getAgent } = require("@/shared/data");
+const { getChat, getAgent, deriveChat, submitFeedback } = require("@/shared/data");
+const { message } = require("antd");
 const { I18nProvider } = require("@/shared/i18n");
 let mockConversationActions: any;
 
@@ -31,7 +32,7 @@ jest.mock("@/features/composer/components/ComposerArea", () => ({
   ComposerArea: () => React.createElement("input", { "data-testid": "composer", defaultValue: "preserved draft" }),
 }));
 jest.mock("@/shared/data", () => ({
-  ...jest.requireActual("@/shared/data"), getChat: jest.fn(), getAgent: jest.fn(), setAccessToken: jest.fn(),
+  ...jest.requireActual("@/shared/data"), getChat: jest.fn(), getAgent: jest.fn(), deriveChat: jest.fn(), submitFeedback: jest.fn(), setAccessToken: jest.fn(),
 }));
 jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({
   useAuthenticatedResourceUrl: () => ({ url: "", loading: false, error: "" }),
@@ -101,6 +102,7 @@ describe("whole conversation surface navigation", () => {
     act(() => root.unmount());
     container.remove();
     jest.useRealTimers();
+    jest.restoreAllMocks();
   });
   async function go(chatId: string) { await act(async () => navigate(`/agent/demo?chatId=${chatId}`)); }
   async function finishTransition() {
@@ -108,6 +110,92 @@ describe("whole conversation surface navigation", () => {
     await act(async () => jest.advanceTimersByTime(160)); // shared minimum hold
     await act(async () => jest.advanceTimersByTime(80)); // shared fade
   }
+
+  async function completedRunDeriveButton() {
+    await act(async () => context.dispatch({ type: "BATCH_UPDATE", updates: {
+      events: [{ type: "request.query", timestamp: 1 }, { type: "run.complete", runId: "run_1", timestamp: 3 }],
+      timelineOrder: ["query", "answer"],
+      timelineNodes: new Map([
+        ["query", { id: "query", kind: "message", role: "user", text: "question", ts: 1 }],
+        ["answer", { id: "answer", kind: "content", role: "assistant", text: "answer", ts: 2 }],
+      ]),
+    } }));
+    await finishTransition();
+    const button = container.querySelector('[data-material-icon="branches"]')?.closest("button");
+    expect(button).not.toBeNull();
+    return button!;
+  }
+
+  it("derives from the clicked run and signals navigation before chat loading completes", async () => {
+    const pending = deferred();
+    deriveChat.mockReturnValue(pending.promise);
+    const success = jest.spyOn(message, "success").mockImplementation(() => undefined);
+    const button = await completedRunDeriveButton();
+    const events = jest.spyOn(window, "dispatchEvent");
+
+    await act(async () => button.click());
+    expect(button.disabled).toBe(true);
+    expect(button.classList.contains("is-loading")).toBe(true);
+    expect(deriveChat).toHaveBeenCalledWith({ sourceChatId: "A", sourceRunId: "run_1" });
+    expect(success).not.toHaveBeenCalled();
+
+    await act(async () => pending.resolve({ data: { chatId: "B" } }));
+    expect(events.mock.calls.map(([event]) => event.type).filter(type =>
+      type === "agent:refresh-chats" || type === "agent:load-chat",
+    )).toEqual(["agent:refresh-chats", "agent:load-chat"]);
+    expect(getChat).toHaveBeenCalledWith("B", false);
+    expect(success).toHaveBeenCalledTimes(1);
+    expect(context.state.chatTransition.phase).toBe("loading");
+  });
+
+  it.each(["request error", "missing chatId"])("clears button loading and permits retry after %s", async (failure) => {
+    const pending = deferred();
+    deriveChat.mockReturnValue(pending.promise.then(() => {
+      if (failure === "request error") throw new Error("request failed");
+      return { data: {} };
+    }));
+    const error = jest.spyOn(message, "error").mockImplementation(() => undefined);
+    const button = await completedRunDeriveButton();
+    await act(async () => button.click());
+    expect(button.classList.contains("is-loading")).toBe(true);
+
+    await act(async () => pending.resolve(undefined));
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(button.disabled).toBe(false);
+    expect(button.classList.contains("is-loading")).toBe(false);
+    expect(context.state.chatId).toBe("A");
+    expect(getChat).not.toHaveBeenCalled();
+
+    deriveChat.mockReturnValue(new Promise(() => {}));
+    await act(async () => button.click());
+    expect(deriveChat).toHaveBeenCalledTimes(2);
+    expect(button.classList.contains("is-loading")).toBe(true);
+  });
+
+  it("submits the feedback form reason as comment and supports clearing the downvote", async () => {
+    const pending = deferred();
+    submitFeedback.mockReturnValueOnce(pending.promise).mockResolvedValue({});
+    jest.spyOn(message, "success").mockImplementation(() => undefined);
+    await completedRunDeriveButton();
+    const feedbackButton = () => container.querySelector('[data-material-icon="thumb_down"]')!.closest("button")!;
+    await act(async () => feedbackButton().click());
+    const textarea = document.querySelector<HTMLTextAreaElement>('textarea[id="reason"]');
+    expect(textarea).not.toBeNull();
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, "  回答缺少依据  ");
+      textarea!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => textarea!.closest("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+
+    expect(submitFeedback).toHaveBeenCalledWith({ chatId: "A", runId: "run_1", type: "thumbs_down", comment: "回答缺少依据" });
+    expect(context.state.downvotedRunKeys.has("run_1")).toBe(true);
+    expect(feedbackButton().classList.contains("is-downvoted")).toBe(true);
+
+    await act(async () => pending.resolve({}));
+    await act(async () => feedbackButton().click());
+    expect(submitFeedback).toHaveBeenLastCalledWith({ chatId: "A", runId: "run_1", type: "clear" });
+    expect(context.state.downvotedRunKeys.has("run_1")).toBe(false);
+  });
   function expectMasked() {
     expect(container.querySelector(".conversation-transition-overlay")).not.toBeNull();
     expect(container.querySelector('[data-conversation-skeleton="artifacts"]')).not.toBeNull();

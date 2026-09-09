@@ -84,11 +84,6 @@ jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
-jest.mock("@/shared/data", () => ({
-  deriveChat: jest.fn(),
-  submitFeedback: jest.fn(),
-}));
-
 jest.mock("antd", () => {
   const React = require("react");
   const passthrough = ({ children, ...props }: any) =>
@@ -267,6 +262,8 @@ describe("ConversationStage scroll restoration", () => {
       root.render(
         React.createElement(ConversationStage, {
           surfaceMode: "main",
+          onFeedback: async () => undefined,
+          deriveChatAction: { isDisabled: () => false, execute: async () => undefined },
           expectedChatId,
         }),
       );

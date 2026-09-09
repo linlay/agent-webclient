@@ -36,7 +36,6 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { deriveChat, submitFeedback } from "@/shared/data";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import {
@@ -232,41 +231,6 @@ function normalizeSearchText(value: unknown): string {
 
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
-}
-
-export function isDeriveChatActionDisabled(input: {
-  chatId?: unknown;
-  runId?: unknown;
-  streaming?: boolean;
-  activeAwaiting?: unknown;
-}): boolean {
-  return (
-    !String(input.chatId || "").trim() ||
-    !String(input.runId || "").trim() ||
-    input.streaming === true ||
-    Boolean(input.activeAwaiting)
-  );
-}
-
-export function dispatchDerivedChatNavigation(chatId: string): void {
-  const normalizedChatId = String(chatId || "").trim();
-  if (
-    !normalizedChatId ||
-    typeof window === "undefined" ||
-    typeof window.dispatchEvent !== "function"
-  ) {
-    return;
-  }
-
-  window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
-  window.dispatchEvent(
-    new CustomEvent("agent:load-chat", {
-      detail: {
-        chatId: normalizedChatId,
-        focusComposerOnComplete: true,
-      },
-    }),
-  );
 }
 
 function buildQueryAnchorId(nodeId: string): string {
@@ -860,6 +824,11 @@ function ConversationTransitionOverlay({
 
 interface ConversationStageProps {
   surfaceMode: ConversationSurfaceMode;
+  deriveChatAction: {
+    isDisabled: (runId: string) => boolean;
+    execute: (runId: string) => Promise<void>;
+  };
+  onFeedback: (runId: string, downvoted: boolean, comment?: string) => Promise<void>;
   expectedChatId?: string;
   showEmptyState?: boolean;
   onResendInNewChat?: (message: string) => void;
@@ -867,6 +836,8 @@ interface ConversationStageProps {
 
 export const ConversationStage: React.FC<ConversationStageProps> = ({
   surfaceMode,
+  deriveChatAction,
+  onFeedback,
   expectedChatId,
   showEmptyState = true,
   onResendInNewChat,
@@ -1108,48 +1079,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     [flashActionStatus, t],
   );
 
-  const handleDownvote = useCallback(
-    async (runId: string, nextDownvoted: boolean) => {
-      const chatId = String(state.chatId || "").trim();
-      const normalizedRunId = String(runId || "").trim();
-      if (!chatId || !normalizedRunId) {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: "[feedback error] missing chatId or runId",
-        });
-        return;
-      }
-      dispatch({
-        type: "SET_RUN_DOWNVOTED",
-        runKey: normalizedRunId,
-        downvoted: nextDownvoted,
-      });
-      try {
-        await submitFeedback({
-          chatId,
-          runId: normalizedRunId,
-          type: nextDownvoted ? "thumbs_down" : "clear",
-        });
-        message.success(
-          nextDownvoted
-            ? t("timeline.feedback.downvoted")
-            : t("timeline.feedback.cleared"),
-        );
-      } catch (error) {
-        dispatch({
-          type: "SET_RUN_DOWNVOTED",
-          runKey: normalizedRunId,
-          downvoted: !nextDownvoted,
-        });
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[feedback error] ${(error as Error).message}`,
-        });
-      }
-    },
-    [dispatch, state.chatId, t],
-  );
-
   const handleResend = useCallback(
     (text: string) => {
       if (isMainChatRunning || !text.trim()) return;
@@ -1195,40 +1124,16 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const handleDeriveChat = useCallback(
     async (runId: string) => {
-      const sourceChatId = String(state.chatId || "").trim();
-      const sourceRunId = String(runId || "").trim();
-      if (
-        isDeriveChatActionDisabled({
-          chatId: sourceChatId,
-          runId: sourceRunId,
-          streaming: isMainChatRunning,
-          activeAwaiting: state.activeAwaiting,
-        })
-      ) {
-        return;
-      }
+      if (deriveChatAction.isDisabled(runId)) return;
 
-      setDerivingRunId(sourceRunId);
+      setDerivingRunId(runId);
       try {
-        const response = await deriveChat({ sourceChatId, sourceRunId });
-        const derivedChatId = String(response.data?.chatId || "").trim();
-        if (!derivedChatId) {
-          throw new Error("derive response missing chatId");
-        }
-        dispatchDerivedChatNavigation(derivedChatId);
-        message.success(t("timeline.run.deriveChatSuccess"));
-      } catch (error) {
-        const errorMessage = (error as Error)?.message || String(error);
-        message.error(t("timeline.run.deriveChatFailed"));
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[deriveChat error] ${errorMessage}`,
-        });
+        await deriveChatAction.execute(runId);
       } finally {
-        setDerivingRunId((current) => (current === sourceRunId ? "" : current));
+        setDerivingRunId((current) => (current === runId ? "" : current));
       }
     },
-    [dispatch, isMainChatRunning, state.activeAwaiting, state.chatId, t],
+    [deriveChatAction],
   );
 
   const toggleTaskGroup = useCallback((key: string) => {
@@ -2035,12 +1940,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
               );
               const runCopyStatus =
                 actionStatus[runCopyKey] || t("timeline.toolPill.copy.action");
-              const deriveChatDisabled = isDeriveChatActionDisabled({
-                chatId: state.chatId,
-                runId,
-                streaming: isMainChatRunning,
-                activeAwaiting: state.activeAwaiting,
-              });
+              const deriveChatDisabled = deriveChatAction.isDisabled(runId);
               const deriveChatTitle = t("timeline.run.deriveChat");
 
               const lastContentNode = findLastRunContentNode(item);
@@ -2128,7 +2028,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             title={t("timeline.feedback.clearDownvote")}
                             aria-label={t("timeline.feedback.clearDownvote")}
                             disabled={!runId}
-                            onClick={() => handleDownvote(runId, false)}
+                            onClick={() => onFeedback(runId, false)}
                           >
                             <MaterialIcon name="thumb_down" />
                           </UiButton>
@@ -2138,8 +2038,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             trigger={["click"]}
                             content={
                               <FeedbackModal
-                                onFinish={() => {
-                                  handleDownvote(runId, true);
+                                onFinish={({ reason }) => {
+                                  void onFeedback(runId, true, reason);
                                 }}
                               />
                             }
@@ -2225,7 +2125,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 };
 
 const FeedbackModal: React.FC<{
-  onFinish: (values: any) => void;
+  onFinish: (values: { reason?: string }) => void;
 }> = (props) => {
   const { onFinish } = props;
   const { t } = useI18n();

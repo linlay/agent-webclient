@@ -1,6 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
+import { AppShell } from "@/app/layout/AppShell";
 import {
   AgentChatShell,
   claimNewChatAgentRefresh,
@@ -18,6 +19,18 @@ import {
 import { ApiError } from "@/shared/data/api/client";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
+
+const mockOnFeedback = jest.fn();
+let mockStageOnFeedback: unknown;
+jest.mock("@/features/conversation/hooks/useRunFeedbackAction", () => ({
+  useRunFeedbackAction: () => mockOnFeedback,
+}));
+
+const mockDeriveChatAction = { isDisabled: jest.fn(), execute: jest.fn() };
+let mockStageDeriveChatAction: unknown;
+jest.mock("@/features/conversation/hooks/useDeriveChatAction", () => ({
+  useDeriveChatAction: () => mockDeriveChatAction,
+}));
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(),
@@ -44,12 +57,18 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
     showEmptyState,
     surfaceMode,
     expectedChatId,
+    deriveChatAction,
+    onFeedback,
   }: {
     showEmptyState?: boolean;
     surfaceMode?: string;
     expectedChatId?: string;
-  }) =>
-    React.createElement(
+    deriveChatAction: unknown;
+    onFeedback: unknown;
+  }) => {
+    mockStageDeriveChatAction = deriveChatAction;
+    mockStageOnFeedback = onFeedback;
+    return React.createElement(
       "main",
       {
         className: "conversation-stage",
@@ -58,7 +77,8 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
         "data-expected-chat-id": expectedChatId,
       },
       "stage",
-    ),
+    );
+  },
 }));
 
 jest.mock("@/app/layout/BottomDock", () => ({
@@ -240,6 +260,8 @@ describe("AgentChatShell", () => {
   const navigateMock = jest.fn();
 
   beforeEach(() => {
+    mockStageDeriveChatAction = undefined;
+    mockStageOnFeedback = undefined;
     globalWithDom.window = {
       addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
@@ -471,12 +493,21 @@ describe("AgentChatShell", () => {
     expect(html).toContain("layout-agent-route");
     expect(html).toContain("top-nav");
     expect(html).toContain("conversation-stage");
+    expect(mockStageDeriveChatAction).toBe(mockDeriveChatAction);
+    expect(mockStageOnFeedback).toBe(mockOnFeedback);
     expect(html).toContain('data-show-empty-state="true"');
     expect(html).toContain("bottom-dock");
     expect(html).not.toContain("right-sidebar");
     expect(html).not.toContain("terminal-dock");
     expect(html).not.toContain('<aside class="left-sidebar"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+  });
+
+  it("injects the same conversation action into the main shell stage", () => {
+    const html = renderToStaticMarkup(React.createElement(AppShell));
+    expect(html).toContain("conversation-stage");
+    expect(mockStageDeriveChatAction).toBe(mockDeriveChatAction);
+    expect(mockStageOnFeedback).toBe(mockOnFeedback);
   });
 
   it("does not start a blank conversation for a bare agent route", () => {

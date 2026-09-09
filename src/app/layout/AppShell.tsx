@@ -12,6 +12,8 @@ import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverla
 import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
+import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
+import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { TerminalDock, resolveTerminalDockWorkspaceKey } from "./TerminalDock";
 import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
 import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
@@ -46,6 +48,8 @@ const AppShellContent: React.FC = () => {
 
   /* Initialize business logic hooks */
   useAppRuntimes();
+  const deriveChatAction = useDeriveChatAction();
+  const onFeedback = useRunFeedbackAction();
 
   const currentWorker = useMemo(
     () => resolveCurrentWorkerSummary(state),
@@ -88,7 +92,11 @@ const AppShellContent: React.FC = () => {
           >
             <TopNav />
             <LeftSidebar />
-            <ConversationStage surfaceMode="main" />
+            <ConversationStage
+              surfaceMode="main"
+              deriveChatAction={deriveChatAction}
+              onFeedback={onFeedback}
+            />
             <RightSidebar />
             <BottomDock />
             {effectiveTerminalDockOpen && currentWorker ? (

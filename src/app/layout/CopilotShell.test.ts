@@ -9,6 +9,17 @@ import {
 const mockUiButtonProps: Array<Record<string, any>> = [];
 const mockDiscardBTW = jest.fn();
 const mockOpenCommandOverlay = jest.fn();
+const mockOnFeedback = jest.fn();
+let mockStageOnFeedback: unknown;
+jest.mock("@/features/conversation/hooks/useRunFeedbackAction", () => ({
+  useRunFeedbackAction: () => mockOnFeedback,
+}));
+
+const mockDeriveChatAction = { isDisabled: jest.fn(), execute: jest.fn() };
+let mockStageDeriveChatAction: unknown;
+jest.mock("@/features/conversation/hooks/useDeriveChatAction", () => ({
+  useDeriveChatAction: () => mockDeriveChatAction,
+}));
 
 jest.mock("react-router-dom", () => ({
   useLocation: jest.fn(),
@@ -36,8 +47,12 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
     showEmptyState?: boolean;
     surfaceMode?: string;
     expectedChatId?: string;
-  }) =>
-    React.createElement(
+    deriveChatAction: unknown;
+    onFeedback: unknown;
+  }) => {
+    mockStageDeriveChatAction = props.deriveChatAction;
+    mockStageOnFeedback = props.onFeedback;
+    return React.createElement(
       "main",
       {
         className: "conversation-stage",
@@ -46,7 +61,8 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
         "data-expected-chat-id": props.expectedChatId,
       },
       "stage",
-    ),
+    );
+  },
 }));
 
 jest.mock("@/app/layout/BottomDock", () => ({
@@ -288,6 +304,8 @@ describe("CopilotShell", () => {
   const navigate = jest.fn();
 
   beforeEach(() => {
+    mockStageDeriveChatAction = undefined;
+    mockStageOnFeedback = undefined;
     globalWithStorage.window = {
       addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
@@ -350,6 +368,8 @@ describe("CopilotShell", () => {
     expect(html).toContain("layout-copilot");
     expect(html).toContain("copilot-topbar");
     expect(html).toContain("conversation-stage");
+    expect(mockStageDeriveChatAction).toBe(mockDeriveChatAction);
+    expect(mockStageOnFeedback).toBe(mockOnFeedback);
     expect(html).toContain("bottom-dock");
     expect(html).toContain('data-show-empty-state="false"');
     expect(html).toContain('data-surface-mode="copilot"');

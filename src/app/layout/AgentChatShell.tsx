@@ -22,6 +22,8 @@ import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverla
 import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
+import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
+import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { getAgent } from "@/shared/data";
 import { ApiError } from "@/shared/data/api/client";
 import { useI18n } from "@/shared/i18n";
@@ -318,6 +320,8 @@ export const AgentChatShell: React.FC = () => {
 
 const AgentChatShellContent: React.FC = () => {
   const state = useAppState();
+  const deriveChatAction = useDeriveChatAction();
+  const onFeedback = useRunFeedbackAction();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -826,6 +830,8 @@ const AgentChatShellContent: React.FC = () => {
           <TopNav surface="agent" />
           <ConversationStage
             surfaceMode="agent"
+            deriveChatAction={deriveChatAction}
+            onFeedback={onFeedback}
             expectedChatId={chatId || undefined}
             showEmptyState={!chatId}
             onResendInNewChat={handleResendInNewChat}

@@ -20,6 +20,8 @@ import {
 } from "@/app/layout/TopNav";
 import { UsageContextControl } from "@/features/usage/components/UsageContextControl";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
+import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
+import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
@@ -231,6 +233,8 @@ export const CopilotShell: React.FC = () => {
 
 const CopilotShellContent: React.FC = () => {
   const state = useAppState();
+  const deriveChatAction = useDeriveChatAction();
+  const onFeedback = useRunFeedbackAction();
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
@@ -480,6 +484,8 @@ const CopilotShellContent: React.FC = () => {
             <CopilotTopBar />
             <ConversationStage
               surfaceMode="copilot"
+              deriveChatAction={deriveChatAction}
+              onFeedback={onFeedback}
               expectedChatId={routeChatId || undefined}
               showEmptyState={false}
             />
