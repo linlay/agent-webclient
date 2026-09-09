@@ -40,6 +40,7 @@ import type { AppState } from "@/app/state/AppContext";
 import {
   readEventTeamId,
   readRequestQueryText,
+  readSteerConfirmation,
 } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
@@ -669,6 +670,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         }
 
         const type = toText(event.type);
+        const steerConfirmation = readSteerConfirmation(event);
+        if (steerConfirmation) {
+          dispatch({ type: "CONFIRM_PENDING_STEER", ...steerConfirmation });
+          return;
+        }
         if (type === "request.query") {
           upsertBackgroundChatSummary(
             event,

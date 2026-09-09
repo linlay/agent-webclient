@@ -6,7 +6,7 @@ type EventWithRunId = {
 };
 
 export type SteerSubmissionResult = {
-  accepted: boolean;
+  accepted: boolean | null;
   status: string;
   detail: string;
 };
@@ -30,7 +30,7 @@ export function normalizeSteerSubmissionResponse(
   const data = isRecord(response?.data) ? response.data : {};
   if (typeof data.accepted !== "boolean") {
     return {
-      accepted: false,
+      accepted: null,
       status: "invalid_response",
       detail: String(data.detail || response?.msg || "").trim(),
     };

@@ -12,7 +12,23 @@ export interface PendingSteer {
   runId: string;
   createdAt: number;
   status: "queued" | "sending";
+  submissionError?: string;
 }
+
+export interface PendingSteerTarget {
+  steerId: string;
+  chatId?: string;
+  runId?: string;
+}
+
+export type ComposerSteerAction =
+  | { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer; chatId?: string }
+  | ({ type: "UPDATE_PENDING_STEER_STATUS"; status: PendingSteer["status"] } & PendingSteerTarget)
+  | ({ type: "REMOVE_PENDING_STEER" } & PendingSteerTarget)
+  | ({ type: "CONFIRM_PENDING_STEER" } & PendingSteerTarget)
+  | { type: "SET_PENDING_STEER_ERROR"; chatId: string; runId: string; steerId: string; error: string }
+  | { type: "RESTORE_PENDING_STEER"; chatId: string; runId: string; steerId: string }
+  | { type: "CLEAR_PENDING_STEERS" };
 
 export interface ComposerState {
   mentionOpen: boolean;
@@ -33,10 +49,7 @@ export type ComposerDraftState = Pick<
 export type ComposerAction =
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
   | { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
-  | { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer }
-  | { type: "UPDATE_PENDING_STEER_STATUS"; steerId: string; status: PendingSteer["status"] }
-  | { type: "REMOVE_PENDING_STEER"; steerId: string }
-  | { type: "CLEAR_PENDING_STEERS" }
+  | ComposerSteerAction
   | { type: "SET_MENTION_OPEN"; open: boolean }
   | { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
   | { type: "SET_MENTION_ACTIVE_INDEX"; index: number };

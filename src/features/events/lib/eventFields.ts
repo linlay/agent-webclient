@@ -18,6 +18,18 @@ export function readRequestQueryText(event: AgentEvent): string {
   return safeText(event.message) || safeText(raw.query);
 }
 
+export function readSteerConfirmation(event: AgentEvent): {
+  steerId: string;
+  chatId?: string;
+  runId?: string;
+} | null {
+  const steerId = toText(event.steerId);
+  if (event.type !== "request.steer" || !steerId || !toText(event.message)) return null;
+  const chatId = toText(event.chatId);
+  const runId = toText(event.runId);
+  return { steerId, ...(chatId ? { chatId } : {}), ...(runId ? { runId } : {}) };
+}
+
 export function readMustUseSkills(event: AgentEvent): string[] {
   const raw = (event as Record<string, unknown>).mustUseSkills;
   if (!Array.isArray(raw)) return [];

@@ -522,7 +522,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     handleSend: handleSendImmediately,
     handleSteer,
     interruptCurrentRun,
-    steerSubmitting,
   } = useComposerSend({
     attachmentChatId,
     accessLevel,
@@ -801,7 +800,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             pendingSteers={
               state.pendingSteers[String(state.chatId || "")] || []
             }
-            steerSubmitting={steerSubmitting}
             mainChatRunning={isMainChatRunning}
             onSubmit={(steerId) => void handleSteer(steerId)}
             onCancel={handleCancelSteer}

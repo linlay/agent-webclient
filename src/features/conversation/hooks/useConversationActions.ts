@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
+import { readSteerConfirmation } from '@/features/events/lib/eventFields';
 import { useAppContext } from '@/app/state/AppContext';
 import { getChat } from '@/shared/data';
 import type { Chat, CurrentChatActiveRun } from "@/features/chats/lib/chatState";
@@ -605,6 +606,13 @@ export function useConversationActions() {
         flushSync(() => {
 		  dispatch({ type: 'UPSERT_CHAT', chat: loadedChatSummary });
           applyLoadedChatState(chatId);
+
+          for (const event of events) {
+            const confirmation = readSteerConfirmation(event);
+            if (confirmation) {
+              dispatch({ type: 'CONFIRM_PENDING_STEER', chatId, ...confirmation });
+            }
+          }
 
           /* Dispatch the complete replay result as a single batch update */
           dispatch({

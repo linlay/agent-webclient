@@ -1,5 +1,4 @@
 import type { AppAction } from "@/app/state/AppContext";
-import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { AppState } from "@/app/state/AppContext";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventCommand } from "@/features/events/lib/eventProcessorTypes";
@@ -7,7 +6,6 @@ import {
 	getCachedNode,
 	type LocalCache,
 } from "@/features/conversation/lib/liveEventCache";
-import { toText } from "@/shared/utils/eventUtils";
 
 export function applyLiveEventCommand(input: {
 	command: EventCommand;
@@ -183,16 +181,4 @@ export function applyLiveEventCommand(input: {
 			dispatch({ type: "APPEND_TIMELINE_ORDER", id: command.nodeId });
 			return;
 	}
-}
-
-export function findMatchingPendingSteer(state: AppState, event: AgentEvent) {
-	const steerId = toText(event.steerId);
-	if (!steerId) {
-		return null;
-	}
-	for (const chatId of Object.keys(state.pendingSteers)) {
-		const match = state.pendingSteers[chatId].find((steer) => toText(steer.steerId) === steerId);
-		if (match) return match;
-	}
-	return null;
 }

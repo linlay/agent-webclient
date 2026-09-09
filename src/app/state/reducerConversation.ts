@@ -4,8 +4,8 @@ import {
 	switchComposerChat,
 	updateComposerDraft,
 	updateComposerSelectedSkills,
-	type PendingSteer,
 } from "@/features/composer/lib/composerState";
+import { reduceComposerSteerState } from "@/features/composer/lib/pendingSteers";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
 import { bindRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { appendVisibleDebugEvent } from "@/features/events/lib/debugEventDisplay";
@@ -298,51 +298,15 @@ export function reduceConversationState(
 				...updateComposerSelectedSkills(state, state.chatId, action.skills),
 			};
 		}
-		case "ENQUEUE_PENDING_STEER": {
-			const chatId = state.chatId || "";
-			const existing = state.pendingSteers[chatId] || [];
-			return {
-				...state,
-				pendingSteers: { ...state.pendingSteers, [chatId]: [...existing, action.steer] },
-			};
-		}
-		case "UPDATE_PENDING_STEER_STATUS": {
-			const next: Record<string, PendingSteer[]> = {};
-			let changed = false;
-			for (const cid of Object.keys(state.pendingSteers)) {
-				const updated = state.pendingSteers[cid].map((steer) =>
-					steer.steerId === action.steerId
-						? ((changed = true), { ...steer, status: action.status })
-						: steer,
-				);
-				next[cid] = changed ? updated : state.pendingSteers[cid];
-			}
-			if (!changed) return state;
-			return { ...state, pendingSteers: next };
-		}
-		case "REMOVE_PENDING_STEER": {
-			const next: Record<string, PendingSteer[]> = {};
-			let removed = false;
-			for (const cid of Object.keys(state.pendingSteers)) {
-				const filtered = state.pendingSteers[cid].filter(
-					(steer) => steer.steerId !== action.steerId,
-				);
-				if (filtered.length < state.pendingSteers[cid].length) {
-					removed = true;
-				}
-				if (filtered.length === 0) continue;
-				next[cid] = filtered;
-			}
-			if (!removed) return state;
-			return { ...state, pendingSteers: next };
-		}
+		case "ENQUEUE_PENDING_STEER":
+		case "UPDATE_PENDING_STEER_STATUS":
+		case "REMOVE_PENDING_STEER":
+		case "CONFIRM_PENDING_STEER":
+		case "SET_PENDING_STEER_ERROR":
+		case "RESTORE_PENDING_STEER":
 		case "CLEAR_PENDING_STEERS": {
-			const chatId = state.chatId || "";
-			const existing = state.pendingSteers[chatId];
-			if (!existing || existing.length === 0) {
-				return state;
-			}
-			return { ...state, pendingSteers: { ...state.pendingSteers, [chatId]: [] } };
+			const updates = reduceComposerSteerState(state, action, state.chatId || "");
+			return updates ? { ...state, ...updates } : state;
 		}
 		case "TOGGLE_RUN_DOWNVOTE":
 			return {

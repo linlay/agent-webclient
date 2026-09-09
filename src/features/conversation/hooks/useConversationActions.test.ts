@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { appReducer } from '@/app/state/reducer';
 import { createInitialState } from '@/app/state/state';
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
@@ -234,6 +235,36 @@ describe('replayEvent tool migration', () => {
     state.chats = hasHistory ? [olderChat, latestChat] : [];
     return state;
   }
+
+  it('reconciles missed steer confirmations on history load without clearing unrelated pending entries', async () => {
+    const state = createInitialState();
+    const steer = { steerId: 'confirmed', runId: 'run-1', requestId: 'req-steer', message: 'steering', status: 'sending' as const, createdAt: 1 };
+    state.pendingSteers = {
+      'chat-1': [steer, { ...steer, steerId: 'unconfirmed' }, { ...steer, steerId: 'malformed' }],
+      'chat-2': [{ ...steer }],
+    };
+    state.composerDraftByChatId = { 'chat-1': 'saved draft' };
+    const stateRef = { current: state };
+    const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
+    useAppContext.mockReturnValue({
+      state, stateRef, dispatch, querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() }, activeQuerySessionRequestIdRef: { current: '' },
+    });
+    const event = { type: 'request.steer', runId: 'run-1', steerId: 'confirmed', message: 'steering', timestamp: EPOCH_MS };
+    getChat.mockResolvedValue({ data: {
+      chatId: 'chat-1', agentKey: 'agent-alpha', createdAt: EPOCH_MS, updatedAt: EPOCH_MS + 1,
+      events: [event, { ...event }, { ...event, steerId: 'unconfirmed', runId: 'another-run' },
+        { ...event, steerId: 'malformed', message: '' }], runs: [],
+    } });
+    let actions: ReturnType<typeof useTestConversationActions>;
+    const Harness = () => { actions = useTestConversationActions(); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    await actions!.loadChat('chat-1');
+    expect(stateRef.current.pendingSteers['chat-1'].map(item => item.steerId)).toEqual(['unconfirmed', 'malformed']);
+    expect(stateRef.current.pendingSteers['chat-2']).toEqual([steer]);
+    expect(stateRef.current.composerDraft).toBe('saved draft');
+    expect(stateRef.current.timelineOrder.filter(id => id === 'steer_confirmed')).toHaveLength(1);
+  });
 
   it('commits loaded chat id and replayed timeline state atomically', async () => {
     const state = createInitialState();

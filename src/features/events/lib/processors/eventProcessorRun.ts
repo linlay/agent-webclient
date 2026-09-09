@@ -56,6 +56,7 @@ export function processRunEvent(
     const prefix = "steer";
     const suffix =
       toText(event.steerId) || toText(event.requestId) || String(counter ?? Date.now());
+    if (state.getTimelineNode(`${prefix}_${suffix}`)) return commands;
     if (event.chatId) commands.push({ cmd: "SET_CHAT_ID", chatId: event.chatId });
     if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
     commands.push({

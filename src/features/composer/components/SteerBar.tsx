@@ -12,18 +12,17 @@ const STEER_PREVIEW_CLASS =
   "steer-preview steer-preview-draft tw:flex tw:gap-2 tw:px-3 tw:pb-[9px] tw:pt-2 tw:text-xs tw:text-ink-1";
 const STEER_PREVIEW_ICON_CLASS = "node-icon steer-preview-icon tw:mt-1.5";
 const STEER_PREVIEW_TEXT_CLASS =
-  "steer-preview-text tw:mt-1.5 tw:flex-1";
+  "steer-preview-text tw:mt-1.5 tw:min-w-0 tw:flex-1";
 const STEER_PREVIEW_ACTIONS_CLASS =
   "steer-preview-actions tw:flex tw:gap-1 tw:[&_button]:text-xs";
 const STEER_PRIMARY_BUTTON_CLASS = "steer-primary-btn tw:!bg-bg-base";
 
 export const SteerBar: React.FC<{
   pendingSteers: PendingSteer[];
-  steerSubmitting: boolean;
   mainChatRunning: boolean;
   onSubmit: (steerId: string) => void;
   onCancel: (steerId: string) => void;
-}> = ({ pendingSteers, steerSubmitting, mainChatRunning, onSubmit, onCancel }) => {
+}> = ({ pendingSteers, mainChatRunning, onSubmit, onCancel }) => {
   const { t } = useI18n();
 
   if (pendingSteers.length === 0) return null;
@@ -37,23 +36,30 @@ export const SteerBar: React.FC<{
             <div
               key={steer.steerId}
               className={STEER_PREVIEW_CLASS}
-              aria-busy="true"
+              aria-busy={isSending}
             >
               <div className={STEER_PREVIEW_ICON_CLASS}>
                 <SteerIcon />
               </div>
-              <Typography.Text className={STEER_PREVIEW_TEXT_CLASS} ellipsis={{tooltip: steer.message}}>{steer.message}</Typography.Text>
+              <div className={STEER_PREVIEW_TEXT_CLASS}>
+                <Typography.Text ellipsis={{tooltip: steer.message}}>{steer.message}</Typography.Text>
+                {steer.submissionError && (
+                  <div role="status" title={steer.submissionError}>
+                    {t("composer.steer.unknown")}
+                  </div>
+                )}
+              </div>
               <div className={STEER_PREVIEW_ACTIONS_CLASS}>
                 <Button
                   size="small"
                   type="text"
                   className={STEER_PRIMARY_BUTTON_CLASS}
                   shape="round"
-                  loading={isSending && steerSubmitting}
+                  loading={isSending}
                   disabled={isSending}
                   onClick={() => onSubmit(steer.steerId)}
                 >
-                  {t("composer.steer.submit")}
+                  {t(isSending ? "composer.steer.waiting" : "composer.steer.submit")}
                 </Button>
                 <Button
                   size="small"

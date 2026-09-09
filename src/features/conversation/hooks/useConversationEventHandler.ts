@@ -11,6 +11,7 @@ import { isPlanViewEventType } from "@/features/events/lib/planViewEvents";
 import {
   readEventTeamId,
   readRequestQueryText,
+  readSteerConfirmation,
 } from "@/features/events/lib/eventFields";
 import { isTerminalStatus, toText } from "@/shared/utils/eventUtils";
 import {
@@ -64,7 +65,6 @@ export {
   createLocalCacheFromState,
   shouldSyncLiveCache,
 } from "@/features/conversation/lib/liveEventCache";
-export { findMatchingPendingSteer } from "@/features/conversation/lib/liveEventDispatch";
 
 export function buildAwaitingPlanningModeAction(input: {
   event: AgentEvent;
@@ -309,6 +309,10 @@ export function useConversationEventHandler(): {
       const state = stateRef.current;
       let cache = cacheRef.current;
       const type = toText(event.type);
+      const steerConfirmation = readSteerConfirmation(event);
+      if (steerConfirmation) {
+        dispatch({ type: "CONFIRM_PENDING_STEER", ...steerConfirmation });
+      }
       const targetChatId = state.chatTransition?.targetChatId || state.chatId;
       // Background sessions retain their own events; this sink only projects
       // the selected conversation. A late source event must not switch it back.
@@ -521,7 +525,6 @@ export function useConversationEventHandler(): {
           });
           return;
         }
-        dispatch({ type: "REMOVE_PENDING_STEER", steerId });
       }
 
       const previousActiveReasoningKey =

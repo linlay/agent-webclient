@@ -848,6 +848,7 @@ describe('useComposerSend active run gate', () => {
 
     expect(dispatch).toHaveBeenCalledWith({
       type: 'ENQUEUE_PENDING_STEER',
+      chatId: 'chat-1',
       steer: expect.objectContaining({
         message: 'hello',
         requestId: 'req_request',
