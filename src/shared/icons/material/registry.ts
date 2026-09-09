@@ -82,6 +82,7 @@ export const materialIconSymbolIds = {
   preview: "material-symbol-preview",
   progress_activity: "material-symbol-progress-activity",
   psychology: "material-symbol-psychology",
+  push_pin: "material-symbol-push-pin",
   question_answer: "material-symbol-forum",
   redo: "material-symbol-redo",
   refresh: "material-symbol-refresh",

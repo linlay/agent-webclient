@@ -152,6 +152,57 @@
     font-size: 11px;
 }
 
+:global(.composer-add-menu-skill-row) {
+    display: flex;
+    align-items: flex-start;
+    border-radius: 8px;
+}
+
+:global(.composer-add-menu-skill-row):hover,
+:global(.composer-add-menu-skill-row):focus-within {
+    background: var(--bg-hover);
+}
+
+:global(.composer-add-menu-skill-select):global(.ui-btn) {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    background: transparent;
+}
+
+:global(.composer-add-menu-skill-pin):global(.ui-btn) {
+    flex: 0 0 28px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    margin: 3px 3px 0 0;
+    padding: 4px;
+    opacity: 0;
+    color: var(--ink-muted);
+}
+
+:global(.composer-add-menu-skill-pin) :global(.material-icon) {
+    color: inherit;
+}
+
+:global(.composer-add-menu-skill-row):hover :global(.composer-add-menu-skill-pin),
+:global(.composer-add-menu-skill-row):focus-within :global(.composer-add-menu-skill-pin),
+:global(.composer-add-menu-skill-pin)[aria-pressed="true"] {
+    opacity: 1;
+}
+
+:global(.composer-add-menu-skill-pin)[aria-pressed="true"] {
+    color: var(--accent);
+    background: var(--bg-hover);
+}
+
+@media (hover: none) {
+    :global(.composer-add-menu-skill-pin):global(.ui-btn) {
+        opacity: 1;
+    }
+}
+
 :global(.composer-add-menu-mode) {
     display: flex;
     flex-direction: column;

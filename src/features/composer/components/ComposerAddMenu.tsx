@@ -15,6 +15,8 @@ import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
+import { usePinnedSkills } from "@/features/composer/hooks/usePinnedSkills";
+import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 type Section = "files" | "mode" | "skills" | "connectors" | "chat" | "site";
 export interface AddMenuTriggerProps {
@@ -112,7 +114,8 @@ const AddMenuSectionDetail: React.FC<
     enabled: section === "skills",
   });
   const skills = skillQuery.data?.skills || [];
-  const filteredSkills = skills.filter((skill) =>
+  const { pinnedSkillKeys, toggleSkillPin, pinsDisabled, pinError, refreshPins } = usePinnedSkills(section === "skills");
+  const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter((skill) =>
     matchKeyword(skill.name || skill.key, skill.key, skill.description || ""),
   );
   const filteredChats = chats.filter((chat) =>
@@ -227,24 +230,59 @@ const AddMenuSectionDetail: React.FC<
       )}
       {section === "skills" && (
         <div className="composer-add-menu-scroll">
-          {filteredSkills.map((skill) =>
-            item(
-              <>
-                <SkillIcon icon={skill.icon} />
-                <span className="composer-add-menu-item-copy">
-                  <b>{skill.name || skill.key}</b>
-                  <small>
-                    {skill.description || t("slashPalette.skill.noDescription")}
-                  </small>
-                </span>
-                {selected.has(skill.key.toLowerCase()) && (
-                  <MaterialIcon name="check" />
-                )}
-              </>,
-              () => props.onSelectSkill(skill),
-              props.isMainChatRunning,
-            ),
+          {pinError && (
+            <div className="composer-add-menu-status" role="alert" title={pinError.message}>
+              {t("composer.addMenu.skill.pinFailed")}
+              <UiButton variant="ghost" size="sm" onClick={() => { void refreshPins().catch(() => undefined); }}>
+                {t("slashPalette.skills.retry")}
+              </UiButton>
+            </div>
           )}
+          {filteredSkills.map((skill) => {
+            const pinned = pinnedSkillKeys.includes(text(skill.key).toLowerCase());
+            const pinLabel = t(pinned ? "composer.addMenu.skill.unpin" : "composer.addMenu.skill.pin", {
+              name: skill.name || skill.key,
+            });
+            return (
+              <div key={skill.key} className="composer-add-menu-skill-row">
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  className="composer-add-menu-detail-item composer-add-menu-skill-select"
+                  disabled={props.isMainChatRunning}
+                  onClick={() => execute(() => props.onSelectSkill(skill))}
+                >
+                  <SkillIcon icon={skill.icon} />
+                  <span className="composer-add-menu-item-copy">
+                    <b>{skill.name || skill.key}</b>
+                    <small>
+                      {skill.description || t("slashPalette.skill.noDescription")}
+                    </small>
+                  </span>
+                  {selected.has(skill.key.toLowerCase()) && (
+                    <MaterialIcon name="check" />
+                  )}
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  className="composer-add-menu-skill-pin"
+                  aria-label={pinLabel}
+                  title={pinLabel}
+                  aria-pressed={pinned}
+                  disabled={pinsDisabled}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void toggleSkillPin(skill.key);
+                  }}
+                >
+                  <MaterialIcon name="push_pin" />
+                </UiButton>
+              </div>
+            );
+          })}
           {skillQuery.status === "loading" && (
             <div className="composer-add-menu-status">
               {t("slashPalette.skills.loading")}

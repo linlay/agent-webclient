@@ -84,3 +84,4 @@ export * from "@/shared/data/query/serverState";
 export * from "@/shared/data/runOwner";
 
 export * from "@/shared/data/api/routedClient";
+export { getSkillOrder, putSkillOrder } from "@/shared/data/api/routedClient";

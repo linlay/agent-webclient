@@ -506,6 +506,20 @@ export const dataEndpoints = createEndpointRegistry({
     cache: { ttlMs: 30_000, dedupe: true },
     payload: (agentKey) => ({ agentKey: String(agentKey || "").trim() }),
   }),
+  skillOrder: defineEndpoint({
+    key: "skills.order",
+    path: "/api/skills/order",
+    method: "GET",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
+  skillOrderUpdate: defineEndpoint({
+    key: "skills.order.update",
+    path: "/api/skills/order",
+    method: "PUT",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
   agentModelConfig: defineEndpoint({
     key: "agent.modelConfig.update",
     path: "/api/agent/model-config",

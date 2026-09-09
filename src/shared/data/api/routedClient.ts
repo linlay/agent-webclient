@@ -74,6 +74,8 @@ import type {
 	AgentFileResponse,
 } from "@/shared/data/api/dto/resources";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
+import type { SkillOrderResponse, UpdateSkillOrderRequest } from "@/shared/data/api/dto/skills";
+import { getSkillOrder as getSkillOrderHttp, putSkillOrder as putSkillOrderHttp } from "@/shared/data/api/requests/skills";
 import type {
 	CompactChatResponse,
 	CompactLevel,
@@ -223,6 +225,14 @@ export function getAgentSkills(
 		agentKey,
 		() => getAgentSkillsHttp(agentKey),
 	);
+}
+
+export function getSkillOrder(): Promise<ApiResponse<SkillOrderResponse>> {
+	return routeEndpoint(dataEndpoints.skillOrder, undefined, getSkillOrderHttp);
+}
+
+export function putSkillOrder(params: UpdateSkillOrderRequest): Promise<ApiResponse<SkillOrderResponse>> {
+	return routeEndpoint(dataEndpoints.skillOrderUpdate, params, () => putSkillOrderHttp(params));
 }
 
 export function getAgentFile(
