@@ -16,7 +16,6 @@ type RoutingState = Pick<
 interface RoutingOptions {
   chatId?: string;
   explicitAgentKey?: string;
-  explicitTeamId?: string;
 }
 
 function normalizeText(value: unknown): string {
@@ -70,28 +69,6 @@ export function resolvePreferredAgentKey(
 
   const selectedWorker = resolveSelectedWorker(state);
   if (selectedWorker?.type === "agent") {
-    return normalizeText(selectedWorker.sourceId);
-  }
-
-  return "";
-}
-
-export function resolvePreferredTeamId(
-  state: RoutingState,
-  options: RoutingOptions = {},
-): string {
-  const explicitTeamId = normalizeText(options.explicitTeamId);
-  if (explicitTeamId) {
-    return explicitTeamId;
-  }
-
-  const chatId = normalizeText(options.chatId) || normalizeText(state.chatId);
-  if (chatId) {
-    return "";
-  }
-
-  const selectedWorker = resolveSelectedWorker(state);
-  if (selectedWorker?.type === "team") {
     return normalizeText(selectedWorker.sourceId);
   }
 

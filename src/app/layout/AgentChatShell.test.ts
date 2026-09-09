@@ -113,8 +113,8 @@ jest.mock("@/features/settings/components/SettingsModal", () => ({
     React.createElement("div", { className: "settings-modal" }, "settings"),
 }));
 
-jest.mock("@/features/memory/components/MemoryInfoModal", () => ({
-  MemoryInfoModal: () =>
+jest.mock("@/features/memory/components/MemoryModal", () => ({
+  MemoryModal: () =>
     React.createElement("div", { className: "memory-info-modal" }, "memory"),
 }));
 

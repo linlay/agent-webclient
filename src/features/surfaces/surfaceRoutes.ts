@@ -98,14 +98,6 @@ function validWebUrl(value: unknown): string {
   }
 }
 
-function decodedPathSegment(value: string): string {
-  try {
-    return decodeURIComponent(value).trim();
-  } catch {
-    return "";
-  }
-}
-
 export function buildSurfaceRoute(
   intent: SurfaceRouteIntent,
   context: SurfacePresentationContext = {},
@@ -193,88 +185,6 @@ export function buildSurfaceRoute(
 
   const query = params.toString();
   return `${pathname}${query ? `?${query}` : ""}`;
-}
-
-export function parseSurfaceRoute(pathname: string, search = ""): SurfaceRouteIntent | null {
-  const segments = String(pathname || "").split("/").filter(Boolean);
-  const params = new URLSearchParams(search || "");
-  const value = (key: string) => clean(params.get(key));
-  if (segments.length === 1) {
-    if (segments[0] === "history") return { kind: "history" };
-    if (segments[0] === "web-viewer") {
-      const url = validWebUrl(value("url"));
-      return url ? { kind: "web", url, ...(value("title") ? { title: value("title") } : {}) } : null;
-    }
-    return null;
-  }
-  if (segments.length !== 2) return null;
-  const identity = decodedPathSegment(segments[1]);
-  if (!identity) return null;
-  const chatId = value("chatId");
-  switch (segments[0]) {
-    case "overview":
-    case "debug":
-      return chatId ? null : { kind: segments[0], chatId: identity };
-    case "btw":
-      return chatId ? null : {
-        kind: "btw",
-        chatId: identity,
-        ...(value("btwId") ? { btwId: value("btwId") } : {}),
-      };
-    case "source-viewer":
-      return chatId ? {
-        kind: "source",
-        sourceId: identity,
-        chatId,
-        ...(value("chunkId") ? { chunkId: value("chunkId") } : {}),
-      } : null;
-    case "planning-viewer":
-      return chatId ? { kind: "planning", planningId: identity, chatId } : null;
-    case "skill-viewer":
-      return { kind: "skill", key: identity };
-    case "resource-viewer":
-      return chatId && value("file")
-        ? {
-            kind: "resource",
-            agentKey: identity,
-            chatId,
-            file: value("file"),
-            ...(value("sourceKind") === "artifact" || value("sourceKind") === "reference"
-              ? { sourceKind: value("sourceKind") as "artifact" | "reference" }
-              : {}),
-            ...(value("resourceId") ? { resourceId: value("resourceId") } : {}),
-            ...(value("relativePath") ? { relativePath: value("relativePath") } : {}),
-          }
-        : null;
-    case "file-viewer": {
-      const line = Number(value("line"));
-      return value("path") ? {
-        kind: "file", agentKey: identity, path: value("path"),
-        ...(Number.isFinite(line) && line > 0 ? { line: Math.floor(line) } : {}),
-      } : null;
-    }
-    case "project": {
-      const view = value("view") === "diff" ? "diff" : "content";
-      const intent: SurfaceRouteIntent = {
-        kind: "project", agentKey: identity,
-        ...(chatId ? { chatId } : {}),
-        ...(value("runId") ? { runId: value("runId") } : {}),
-        ...(value("path") ? { path: value("path") } : {}),
-        ...(params.getAll("open").map(clean).filter(Boolean).length
-          ? { openFiles: Array.from(new Set(params.getAll("open").map(clean).filter(Boolean))) }
-          : {}),
-        view,
-      };
-      if (intent.runId && !intent.chatId) return null;
-      return view === "diff" && (!intent.chatId || !intent.runId || !intent.path) ? null : intent;
-    }
-    case "terminal":
-      return { kind: "terminal", agentKey: identity, terminalKey: value("terminalKey") || "main" };
-    case "agent":
-      return { kind: "agent", agentKey: identity, ...(chatId ? { chatId } : {}) };
-    default:
-      return null;
-  }
 }
 
 export function isAllowedWebSurfaceUrl(value: unknown): boolean {

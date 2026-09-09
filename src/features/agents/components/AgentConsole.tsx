@@ -19,7 +19,6 @@ import type { Agent } from "@/features/agents/lib/agentState";
 import {
   createAgent,
   deleteAgent,
-  deleteAdminAgentPrivateSkill,
   getAdminAgentDetail,
   getAdminAgentEditorOptions,
   getAdminAgents,
@@ -36,7 +35,6 @@ import {
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import type {
   AdminAgentDetailResponse,
-  AdminAgentPrivateSkill,
   AgentEditorOptionsResponse,
   AdminSourceResponse,
   CoderModelOption,
@@ -230,7 +228,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [privateSkillDragActive, setPrivateSkillDragActive] = useState(false);
   const [privateSkillImporting, setPrivateSkillImporting] = useState(false);
   const [privateSkillError, setPrivateSkillError] = useState("");
-  const [deletingPrivateSkillKey, setDeletingPrivateSkillKey] = useState("");
   const [savingOrder, setSavingOrder] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
@@ -491,8 +488,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     toText(detail?.source?.kind).toLowerCase() === "directory" &&
     !savingForm &&
     !deleting &&
-    !privateSkillImporting &&
-    !deletingPrivateSkillKey;
+    !privateSkillImporting;
 
   useEffect(() => {
     selectedAgentKeyRef.current = selectedAgentKey;
@@ -1068,43 +1064,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     } finally {
       setPrivateSkillImporting(false);
     }
-  };
-
-  const confirmDeletePrivateSkill = (skill: AdminAgentPrivateSkill) => {
-    const agentKey = form.key.trim();
-    if (!agentKey || !skill.key || hasUnsavedChanges) return;
-    Modal.confirm({
-      title: t("agentConsole.privateSkill.delete.title"),
-      content: t("agentConsole.privateSkill.delete.description", {
-        name: skill.name || skill.key,
-      }),
-      okText: t("agentConsole.privateSkill.delete.confirm"),
-      cancelText: t("agentConsole.privateSkill.delete.cancel"),
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        setDeletingPrivateSkillKey(skill.key);
-        setFormError("");
-        try {
-          const response = await deleteAdminAgentPrivateSkill({
-            agentKey,
-            key: skill.key,
-          });
-          const saved = response.data;
-          setDetail(saved);
-          setForm(formFromDetail(saved));
-          setStructuredDirty(false);
-          await loadAgents(agentKey);
-          message.success(t("agentConsole.privateSkill.delete.success"));
-        } catch (error) {
-          const detail = (error as Error).message;
-          setFormError(detail);
-          message.error(detail);
-          throw error;
-        } finally {
-          setDeletingPrivateSkillKey("");
-        }
-      },
-    });
   };
 
   const confirmDelete = async () => {

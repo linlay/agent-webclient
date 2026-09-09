@@ -7,7 +7,7 @@ import {
   createDefaultMemoryMeta,
   createDefaultMemoryPreferenceMode,
 } from "@/shared/data/memory/memoryTypes";
-import { MemoryInfoModalView } from "@/features/memory/components/MemoryInfoModal";
+import { MemoryInfoModalView } from "@/features/memory/components/MemoryConsole";
 
 jest.mock("antd", () => {
   const actual = jest.requireActual("antd");

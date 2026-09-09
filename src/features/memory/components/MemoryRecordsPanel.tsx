@@ -366,6 +366,3 @@ export const MemoryRecordsPanelView: React.FC<MemoryRecordsPanelProps> = ({
     </div>
   );
 };
-
-
-export const MemoryRecordsPanel = MemoryRecordsPanelView;

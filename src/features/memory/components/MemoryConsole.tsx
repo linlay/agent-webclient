@@ -1019,16 +1019,3 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
     />
   );
 };
-
-export const MemoryInfoModal: React.FC<{
-  open?: boolean;
-  onClose?: () => void;
-}> = ({ open = true, onClose }) => {
-  return (
-    <MemoryInfoConsole
-      open={open}
-      surface="modal"
-      onClose={onClose}
-    />
-  );
-};

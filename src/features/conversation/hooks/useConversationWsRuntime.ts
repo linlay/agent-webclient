@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch } from "react";
-import { message } from "antd";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
 import { isAwaitingAnswerPushEvent, isAwaitingAskPushEvent } from "@/shared/contracts/agentEvents";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { AppState } from "@/app/state/AppContext";
 import type { Chat } from "@/features/chats/lib/chatState";
-import { dataEndpoints, ensureAccessToken } from "@/shared/data";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import {
-	runOwnerPayload,
 	sameRunOwner,
 	toRunOwner,
 	type RunOwner,
@@ -25,22 +22,13 @@ import {
 	normalizeChatReadState,
 	upsertAgentUnreadCount,
 } from "@/features/chats/lib/chatReadState";
-import { isAppMode } from "@/shared/utils/routing";
 import {
 	hasValidDesktopPushTimeContract,
 	readEpochMillis,
 } from "@/shared/utils/platformTime";
-import {
-	destroyStandaloneWsClient as destroyWsClient,
-	getStandaloneWsClient as getWsClient,
-	initializeStandaloneWsClient as initWsClient,
-} from "@/features/transport/lib/standaloneWsClient";
 import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import {
 	createWsFrameId,
-	describeWsConnectionFailure,
-	toWsConnectionError,
-	type WsClient,
 	type WsPushFrame,
 } from "@/features/transport/lib/wsClient";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
@@ -48,12 +36,7 @@ import { useChatNotificationRuntime } from "@/features/conversation/hooks/useCha
 import { useRunSubscriptionRuntime } from "@/features/conversation/hooks/useRunSubscriptionRuntime";
 import type { RunTransport } from "@/features/transport/contracts/realtimeTransport";
 import {
-	WS_STREAM_RETRY_DELAYS_MS,
-	handleStreamReplayError,
-} from "@/features/transport/lib/wsStreamReplay";
-import {
 	AGENT_DETACH_RUN_EVENT,
-	type DetachRunReason,
 } from "@/features/runs/lib/runControlEvents";
 import {
 	createLiveQuerySession,
@@ -245,38 +228,17 @@ function toChatPatchFromPushEvent(
 
 type WsTransportDispatch = Dispatch<AppAction>;
 
-interface ConnectWsTransportOptions {
+interface ConversationPushHandlerOptions {
 	dispatch: WsTransportDispatch;
-	state: Pick<AppState, "accessToken">;
 	stateRef: { current: AppState };
 	querySessionsRef?: { current: Map<string, LiveQuerySession> };
 	activeQuerySessionRequestIdRef?: { current: string };
 	activeAttachRef?: { current: ActiveAttachState | null };
 	handleEvent: (event: AgentEvent) => void;
-	isCancelled?: () => boolean;
-	ensureAccessTokenImpl?: typeof ensureAccessToken;
-	isAppModeImpl?: typeof isAppMode;
-	initWsClientImpl?: typeof initWsClient;
-	destroyWsClientImpl?: typeof destroyWsClient;
-	routePushThroughTransport?: boolean;
-	pushHandlerRef?: { current: ((frame: WsPushFrame) => void) | null };
 }
 
 function appendWsDebug(dispatch: WsTransportDispatch, line: string): void {
 	dispatch({ type: "APPEND_DEBUG", line });
-}
-
-function setWsError(
-	dispatch: WsTransportDispatch,
-	message: string,
-	status: AppState["wsStatus"] = "error",
-): Error {
-	dispatch({ type: "SET_WS_ERROR_MESSAGE", message });
-	dispatch({ type: "SET_WS_STATUS", status });
-	appendWsDebug(dispatch, `[live] ${message}`);
-	const error = new Error(message) as Error & { wsReported?: boolean };
-	error.wsReported = true;
-	return error;
 }
 
 function upsertPushChatSummary(
@@ -331,7 +293,7 @@ function isTerminalPushForSession(
 
 function syncCurrentTerminalPushObservation(
 	options: Pick<
-		ConnectWsTransportOptions,
+		ConversationPushHandlerOptions,
 		| "dispatch"
 		| "stateRef"
 		| "querySessionsRef"
@@ -413,13 +375,6 @@ type ActiveAttachState = {
 	abort: () => void;
 };
 
-interface DetachRunResponse {
-	accepted?: boolean;
-	status?: string;
-	runId?: string;
-	detail?: string;
-}
-
 type DetachRunDetail = {
 	chatId?: unknown;
 	runId?: unknown;
@@ -434,10 +389,8 @@ interface RequestWsDetachRunOptions {
 	stateRef: { current: AppState };
 	querySessionsRef: { current: Map<string, LiveQuerySession> };
 	activeQuerySessionRequestIdRef: { current: string };
-	getWsClientImpl?: typeof getWsClient;
 	logMissing?: boolean;
 	activeAttachRef?: { current: ActiveAttachState | null };
-	preferExecutionDetach?: boolean;
 }
 
 function resolveAttachOwner(
@@ -464,20 +417,10 @@ function resolveAttachOwner(
 	});
 }
 
-function normalizeDetachReason(value: unknown): DetachRunReason {
-	const reason = toText(value);
-	return reason === "new_conversation"
-		|| reason === "page_leave"
-		|| reason === "transport_cleanup"
-		|| reason === "attach_switch"
-		? reason
-		: "chat_switch";
-}
-
 function resolveDetachRunTarget(
 	options: RequestWsDetachRunOptions,
 	detail: DetachRunDetail = {},
-): { chatId: string; runId: string; owner: RunOwner; reason: DetachRunReason } | null {
+): { chatId: string; runId: string; owner: RunOwner } | null {
 	const state = options.stateRef.current;
 	const activeRequestId = toText(options.activeQuerySessionRequestIdRef.current);
 	const session = activeRequestId
@@ -517,7 +460,6 @@ function resolveDetachRunTarget(
 		chatId,
 		runId,
 		owner,
-		reason: normalizeDetachReason(detail.reason),
 	};
 }
 
@@ -525,7 +467,6 @@ function requestWsDetachRun(
 	options: RequestWsDetachRunOptions,
 	detail: DetachRunDetail = {},
 ): void {
-	const getWsClientImpl = options.getWsClientImpl ?? getWsClient;
 	const target = resolveDetachRunTarget(options, detail);
 	if (!target) {
 		if (options.logMissing) {
@@ -536,65 +477,30 @@ function requestWsDetachRun(
 		}
 		return;
 	}
-	if (options.preferExecutionDetach) {
-		let detached = false;
-		for (const session of options.querySessionsRef.current.values()) {
-			if (
-				String(session.runId || "").trim() === target.runId
-				&& (!target.chatId || String(session.chatId || "").trim() === target.chatId)
-			) {
-				session.abortController?.abort();
-				detached = true;
-			}
-		}
-		const activeAttach = options.activeAttachRef?.current;
+	let detached = false;
+	for (const session of options.querySessionsRef.current.values()) {
 		if (
-			activeAttach?.runId === target.runId
-			&& (!target.chatId || activeAttach.chatId === target.chatId)
+			String(session.runId || "").trim() === target.runId
+			&& (!target.chatId || String(session.chatId || "").trim() === target.chatId)
 		) {
-			activeAttach.abort();
+			session.abortController?.abort();
 			detached = true;
 		}
-		if (!detached && options.logMissing) {
-			appendWsDebug(
-				options.dispatch,
-				`[run detach] skipped: no local execution (runId=${target.runId})`,
-			);
-		}
-		return;
 	}
-
-	const wsClient = getWsClientImpl();
-	if (!wsClient) {
+	const activeAttach = options.activeAttachRef?.current;
+	if (
+		activeAttach?.runId === target.runId
+		&& (!target.chatId || activeAttach.chatId === target.chatId)
+	) {
+		activeAttach.abort();
+		detached = true;
+	}
+	if (!detached && options.logMissing) {
 		appendWsDebug(
 			options.dispatch,
-			`[ws detach] skipped: WebSocket client unavailable (runId=${target.runId})`,
+			`[run detach] skipped: no local execution (runId=${target.runId})`,
 		);
-		return;
 	}
-
-	void wsClient.request<DetachRunResponse>({
-		type: dataEndpoints.detach.path,
-		payload: {
-			runId: target.runId,
-			...runOwnerPayload(target.owner),
-			reason: target.reason,
-		},
-	}).then((response) => {
-		const data = (response.data || {}) as DetachRunResponse;
-		const status = toText(data.status);
-		if (data.accepted === false && status && status !== "not_observing") {
-			appendWsDebug(
-				options.dispatch,
-				`[ws detach] ${target.runId}: ${status}`,
-			);
-		}
-	}).catch((error) => {
-		appendWsDebug(
-			options.dispatch,
-			`[ws detach error] ${(error as Error).message}`,
-		);
-	});
 }
 
 interface RegisterAttachRunListenerOptions {
@@ -605,8 +511,7 @@ interface RegisterAttachRunListenerOptions {
 	querySessionsRef: { current: Map<string, LiveQuerySession> };
 	chatQuerySessionIndexRef: { current: Map<string, string> };
 	activeQuerySessionRequestIdRef: { current: string };
-	getWsClientImpl?: typeof getWsClient;
-	runs?: RunTransport;
+	runs: RunTransport;
 }
 
 function isAttachTerminalRunEventType(type: string): boolean {
@@ -685,7 +590,6 @@ function renderAttachedRequestQuery(
 export function registerAttachRunListener(
 	options: RegisterAttachRunListenerOptions,
 ): () => void {
-	const getWsClientImpl = options.getWsClientImpl ?? getWsClient;
 
 	const cleanupActiveAttach = (requestId: string) => {
 		if (options.activeAttachRef.current?.requestId !== requestId) {
@@ -787,45 +691,7 @@ export function registerAttachRunListener(
 			return;
 		}
 
-		const wsClient = options.runs ? null : getWsClientImpl();
-		if (!options.runs && !wsClient) {
-			dispatchRunAttachDebugEvent(options.dispatch, {
-				stage: "attachRunIgnored",
-				chatId,
-				runId,
-				agentKey,
-				reason: "missing_ws_client",
-				...readRunAttachDebugSnapshot({
-					state: options.stateRef.current,
-					querySessionsRef: options.querySessionsRef,
-					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
-					activeAttachRef: options.activeAttachRef,
-				}),
-			});
-			return;
-		}
-
-		if (current) {
-			if (!options.runs) {
-			requestWsDetachRun(
-				{
-					dispatch: options.dispatch,
-					stateRef: options.stateRef,
-					querySessionsRef: options.querySessionsRef,
-					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
-					getWsClientImpl,
-				},
-				{
-					chatId: current.chatId,
-					runId: current.runId,
-					owner: current.owner,
-					...(current.owner.kind === "agent" ? { agentKey: current.owner.agentKey } : {}),
-					reason: "attach_switch",
-				},
-			);
-			}
-			current.abort();
-		}
+		current?.abort();
 
 		const controller = new AbortController();
 		let session: LiveQuerySession | null = null;
@@ -860,63 +726,6 @@ export function registerAttachRunListener(
 		session.streaming = true;
 		session.abortController = controller;
 
-		let receivedServerActivity = false;
-		const retryCount = { current: 0 };
-		const abortFns: Array<() => void> = [];
-		const startAttachStream = () => {
-			const streamResult = wsClient!.stream({
-				type: dataEndpoints.attach.path,
-				payload: {
-					runId,
-					...runOwnerPayload(owner),
-					lastSeq,
-				},
-				signal: controller.signal,
-				onEvent: (attachedEvent) => {
-					receivedServerActivity = true;
-					attachHandleEvent(attachedEvent);
-				},
-				onFrame: (_rawFrame) => {
-					receivedServerActivity = true;
-				},
-				onError: (error) => {
-					const handled = handleStreamReplayError(
-						error,
-						receivedServerActivity,
-						{
-							signal: controller.signal,
-							retryDelaysMs: WS_STREAM_RETRY_DELAYS_MS,
-							getRetryClient: async () => wsClient!,
-							startStreamAttempt: () => {
-								startAttachStream();
-							},
-						},
-						retryCount,
-						(finalError) => {
-							if (finalError.name === "AbortError") {
-								cleanupActiveAttach(requestId);
-								return;
-							}
-							cleanupActiveAttach(requestId);
-						},
-					);
-
-					if (!handled) {
-						if (error.name === "AbortError") {
-							cleanupActiveAttach(requestId);
-							return;
-						}
-						cleanupActiveAttach(requestId);
-					}
-				},
-				onDone: () => {
-					cleanupActiveAttach(requestId);
-				},
-				requestId,
-			});
-			abortFns.push(streamResult.abort);
-		};
-
 		dispatchRunAttachDebugEvent(options.dispatch, {
 			stage: "attachRunRequested",
 			chatId,
@@ -933,24 +742,17 @@ export function registerAttachRunListener(
 			activeSessionStreaming: true,
 			activeAttachRunId: runId,
 		});
-		if (options.runs) {
-			const execution = options.runs.subscribe({
-				requestId,
-				chatId,
-				runId,
-				owner,
-				lastSeq,
-				signal: controller.signal,
-				onEvent: attachHandleEvent,
-			});
-			abortFns.push(() => {
-				void execution.detach();
-			});
-			void execution.identity.catch(() => cleanupActiveAttach(requestId));
-			void execution.completion.then(() => cleanupActiveAttach(requestId));
-		} else {
-			startAttachStream();
-		}
+		const execution = options.runs.subscribe({
+			requestId,
+			chatId,
+			runId,
+			owner,
+			lastSeq,
+			signal: controller.signal,
+			onEvent: attachHandleEvent,
+		});
+		void execution.identity.catch(() => cleanupActiveAttach(requestId));
+		void execution.completion.then(() => cleanupActiveAttach(requestId));
 
 		options.querySessionsRef.current.set(requestId, session);
 		options.chatQuerySessionIndexRef.current.set(chatId, requestId);
@@ -963,9 +765,7 @@ export function registerAttachRunListener(
 			owner,
 			controller,
 			abort: () => {
-				for (const fn of abortFns) {
-					fn();
-				}
+				void execution.detach();
 				controller.abort();
 			},
 		};
@@ -987,28 +787,7 @@ export function registerAttachRunListener(
 		if (typeof window !== "undefined" && typeof window.removeEventListener === "function") {
 			window.removeEventListener("agent:attach-run", handler);
 		}
-		const current = options.activeAttachRef.current;
-			if (current) {
-				if (!options.runs) {
-				requestWsDetachRun(
-				{
-					dispatch: options.dispatch,
-					stateRef: options.stateRef,
-					querySessionsRef: options.querySessionsRef,
-					activeQuerySessionRequestIdRef: options.activeQuerySessionRequestIdRef,
-					getWsClientImpl,
-				},
-				{
-					chatId: current.chatId,
-					runId: current.runId,
-					owner: current.owner,
-					...(current.owner.kind === "agent" ? { agentKey: current.owner.agentKey } : {}),
-					reason: "transport_cleanup",
-					},
-				);
-				}
-				current.abort();
-		}
+		options.activeAttachRef.current?.abort();
 		options.activeAttachRef.current = null;
 	};
 }
@@ -1033,10 +812,7 @@ export function registerDetachRunListener(
 }
 
 export function createConversationPushHandler(
-	options: Pick<ConnectWsTransportOptions,
-		"dispatch" | "stateRef" | "querySessionsRef" | "activeQuerySessionRequestIdRef"
-		| "activeAttachRef" | "handleEvent"
-	>,
+	options: ConversationPushHandlerOptions,
 ): (frame: WsPushFrame) => void {
 	return (frame) => {
 		const wireType = readPushWireType(frame);
@@ -1250,70 +1026,6 @@ export function createConversationPushHandler(
 	};
 }
 
-function buildWsClient(
-	options: ConnectWsTransportOptions,
-	accessToken: string,
-): WsClient {
-	const initWsClientImpl = options.initWsClientImpl ?? initWsClient;
-	const ensureAccessTokenImpl =
-		options.ensureAccessTokenImpl ?? ensureAccessToken;
-	const appMode = (options.isAppModeImpl ?? isAppMode)();
-	const currentStateToken = () =>
-		String(options.stateRef.current.accessToken || options.state.accessToken || "")
-			.trim();
-	const syncToken = (token: string) => {
-		const normalized = String(token || "").trim();
-		if (normalized && normalized !== currentStateToken()) {
-			options.dispatch({ type: "SET_ACCESS_TOKEN", token: normalized });
-		}
-		return normalized || currentStateToken();
-	};
-	let hasConnected = false;
-	let previousStatus: AppState["wsStatus"] = "disconnected";
-	let forwardingPush = false;
-	const processPushFrame = createConversationPushHandler(options);
-	const client = initWsClientImpl({
-		accessToken,
-		allowAnonymous: !appMode,
-		resolveAccessToken: async (reason) => {
-			if (!appMode) {
-				return currentStateToken();
-			}
-			return syncToken(await ensureAccessTokenImpl(reason));
-		},
-		onStatusChange: (status) => {
-			options.dispatch({ type: "SET_WS_STATUS", status });
-			if (status === "connected") {
-				if (hasConnected && previousStatus !== "connected") {
-					refreshCurrentChatAfterWsReconnect(options.stateRef.current);
-				}
-				hasConnected = true;
-			}
-			previousStatus = status;
-		},
-		onPush: (frame) => {
-			if (options.routePushThroughTransport && !forwardingPush) {
-				return;
-			}
-			processPushFrame(frame);
-		},
-		onTransportError: (error) => {
-			showTransportError(error.message);
-		},
-	});
-	if (options.pushHandlerRef) {
-		options.pushHandlerRef.current = (frame) => {
-			forwardingPush = true;
-			try {
-				processPushFrame(frame);
-			} finally {
-				forwardingPush = false;
-			}
-		};
-	}
-	return client;
-}
-
 export function refreshCurrentChatAfterWsReconnect(state: AppState): void {
 	const chatId = String(state.chatId || "").trim();
 	const shouldRefresh = Boolean(
@@ -1335,127 +1047,6 @@ export function refreshCurrentChatAfterWsReconnect(state: AppState): void {
 	window.dispatchEvent(new CustomEvent("agent:load-chat", {
 		detail: { chatId },
 	}));
-}
-
-let lastTransportErrorMessage = "";
-let lastTransportErrorTime = 0;
-const TRANSPORT_ERROR_DEDUP_MS = 3_000;
-
-function showTransportError(msg: string): void {
-	const now = Date.now();
-	if (msg === lastTransportErrorMessage && now - lastTransportErrorTime < TRANSPORT_ERROR_DEDUP_MS) {
-		return;
-	}
-	lastTransportErrorMessage = msg;
-	lastTransportErrorTime = now;
-	void message.error(msg);
-}
-
-export async function connectWsTransport(
-	options: ConnectWsTransportOptions,
-): Promise<void> {
-	const isCancelled = options.isCancelled ?? (() => false);
-	const ensureAccessTokenImpl =
-		options.ensureAccessTokenImpl ?? ensureAccessToken;
-	const destroyWsClientImpl =
-		options.destroyWsClientImpl ?? destroyWsClient;
-	const appMode = (options.isAppModeImpl ?? isAppMode)();
-	const currentStateToken = () =>
-		String(options.stateRef.current.accessToken || options.state.accessToken || "")
-			.trim();
-	const syncToken = (token: string) => {
-		const normalized = String(token || "").trim();
-		if (normalized && normalized !== currentStateToken()) {
-			options.dispatch({ type: "SET_ACCESS_TOKEN", token: normalized });
-		}
-		return normalized;
-	};
-	const resolveToken = async (
-		reason: Parameters<typeof ensureAccessToken>[0],
-	): Promise<string> => {
-		if (!appMode) {
-			return currentStateToken();
-		}
-		return syncToken(await ensureAccessTokenImpl(reason));
-	};
-
-	if (isCancelled()) {
-		return;
-	}
-
-	const initialToken = await resolveToken("missing");
-	if (isCancelled()) {
-		return;
-	}
-
-	if (!initialToken && appMode) {
-		destroyWsClientImpl();
-		throw setWsError(
-			options.dispatch,
-			describeWsConnectionFailure(new Error("missing access token"), {
-				appMode,
-				hasAccessToken: false,
-			}),
-			"disconnected",
-		);
-	}
-
-	const connectClient = async (accessToken: string): Promise<void> => {
-		if (isCancelled()) {
-			return;
-		}
-		const client = buildWsClient(options, accessToken);
-		await client.connect();
-	};
-
-	try {
-		await connectClient(initialToken);
-	} catch (error) {
-		if (isCancelled()) {
-			throw error;
-		}
-		if (!appMode) {
-			throw setWsError(
-				options.dispatch,
-				describeWsConnectionFailure(error, {
-					appMode: false,
-					hasAccessToken: true,
-				}),
-			);
-		}
-
-		appendWsDebug(
-			options.dispatch,
-			"[live] Query WebSocket connect failed, retrying after token refresh",
-		);
-		const refreshedToken = await resolveToken("unauthorized");
-		if (isCancelled()) {
-			return;
-		}
-		if (!refreshedToken) {
-			destroyWsClientImpl();
-			throw setWsError(
-				options.dispatch,
-				describeWsConnectionFailure(new Error("missing access token"), {
-					appMode: true,
-					hasAccessToken: false,
-				}),
-				"disconnected",
-			);
-		}
-		destroyWsClientImpl();
-		try {
-			await connectClient(refreshedToken);
-		} catch (refreshError) {
-			throw setWsError(
-				options.dispatch,
-				describeWsConnectionFailure(refreshError, {
-					appMode: true,
-					hasAccessToken: true,
-				}),
-			);
-		}
-	}
 }
 
 export function useConversationWsRuntime(options: {
@@ -1530,7 +1121,6 @@ export function useConversationWsRuntime(options: {
 		querySessionsRef,
 		activeQuerySessionRequestIdRef,
 		activeAttachRef,
-		preferExecutionDetach: true,
 		logMissing: true,
 	}), [
 		activeQuerySessionRequestIdRef,
@@ -1547,7 +1137,6 @@ export function useConversationWsRuntime(options: {
 				querySessionsRef,
 				activeQuerySessionRequestIdRef,
 				activeAttachRef,
-				preferExecutionDetach: true,
 			},
 			{ reason: "page_leave" },
 		);
@@ -1566,7 +1155,6 @@ export function useConversationWsRuntime(options: {
 					querySessionsRef,
 					activeQuerySessionRequestIdRef,
 					activeAttachRef,
-					preferExecutionDetach: true,
 				},
 				{ reason: "transport_cleanup" },
 			);

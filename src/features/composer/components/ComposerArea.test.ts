@@ -143,7 +143,6 @@ jest.mock("@/features/workers/lib/currentWorker", () => ({
   resolveCurrentWorkerSummary: () => mockResolveCurrentWorkerSummary(),
   isDedicatedKbaseWorker: () => mockIsDedicatedKbaseWorker(),
   supportsActiveRunContextCompact: () => true,
-  buildCurrentWorkerDetailView: () => ({ skills: [] }),
 }));
 
 jest.mock("@/shared/data/query/queries", () => ({

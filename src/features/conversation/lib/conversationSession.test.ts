@@ -1,16 +1,15 @@
+import { createReplayState, replayEvent } from '@/features/conversation/lib/conversationReplay';
 import { createInitialState } from '@/app/state/AppContext';
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
-  applyPendingSessionUpdates,
-  buildConversationStateUpdates,
   cloneConversationSnapshot,
   createLiveQuerySession,
   markSessionSnapshotApplied,
   snapshotConversationState,
 } from '@/features/conversation/lib/conversationSession';
 
-describe('conversation session restore', () => {
+describe('conversation snapshots and replay', () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -35,7 +34,6 @@ describe('conversation session restore', () => {
     const snapshot = snapshotConversationState(state);
     const rawSnapshot = { ...snapshot, chatId: state.chatId, extra: state.extra };
     const cloned = cloneConversationSnapshot(rawSnapshot);
-    const updates = buildConversationStateUpdates(rawSnapshot);
 
     expect(snapshot).toMatchObject({
       chatId: 'chat_1', runId: 'run_1', currentRunAgentKey: 'agent_1', requestId: 'req_1',
@@ -45,28 +43,14 @@ describe('conversation session restore', () => {
     expect(snapshot).not.toHaveProperty('accessToken');
     expect(cloned).toMatchObject({ chatId: ' chat_1 ', extra: state.extra });
     expect((cloned as typeof rawSnapshot).extra).toBe(state.extra);
-    expect(updates.chatId).toBe(' chat_1 ');
-    expect(updates).not.toHaveProperty('extra');
-    expect(updates).not.toHaveProperty('activeTaskIds');
-    expect(updates).toMatchObject({
-      artifactExpanded: false, artifactManualOverride: null, artifactAutoCollapseTimer: null,
-      timelineDomCache: new Map(),
-      renderQueue: { dirtyNodeIds: new Set(), scheduled: false, stickToBottomRequested: false, fullSyncNeeded: false },
-    });
-    expect(Object.keys(updates).sort()).toEqual([
-      ...Object.keys(snapshot).filter((key) => key !== 'activeTaskIds'),
-      'timelineDomCache', 'renderQueue', 'artifactExpanded', 'artifactManualOverride', 'artifactAutoCollapseTimer',
-    ].sort());
   });
 
-  it('keeps tolerant snapshot plan cloning distinct from strict update and replay cloning', () => {
+  it('tolerates malformed plans when taking and cloning snapshots', () => {
     const state = createInitialState();
     state.plan = { planId: 'plan_1', plan: null } as unknown as NonNullable<typeof state.plan>;
     expect(snapshotConversationState(state).plan?.plan).toEqual([]);
     const snapshot = { ...snapshotConversationState(state), plan: state.plan };
     expect(cloneConversationSnapshot(snapshot).plan?.plan).toEqual([]);
-    expect(() => buildConversationStateUpdates(snapshot)).toThrow(TypeError);
-    expect(() => applyPendingSessionUpdates(snapshot, createLiveQuerySession({ requestId: 'req_1' }))).toThrow(TypeError);
   });
 
   it('preserves collection isolation and intentionally shallow values in all snapshot copies', () => {
@@ -81,11 +65,9 @@ describe('conversation session restore', () => {
     const copies = [
       snapshotConversationState({ ...createInitialState(), ...source }),
       cloneConversationSnapshot(source),
-      buildConversationStateUpdates(source),
     ];
     for (const copy of copies) {
       for (const [key, value] of Object.entries(source)) {
-        if (key === 'activeTaskIds' && !('activeTaskIds' in copy)) continue;
         if (value instanceof Map || value instanceof Set || Array.isArray(value)) {
           expect(copy[key as keyof typeof copy]).not.toBe(value);
           expect(copy[key as keyof typeof copy]).toEqual(value);
@@ -97,7 +79,6 @@ describe('conversation session restore', () => {
       expect(tool?.toolOutput?.segments[0]).not.toBe(source.timelineNodes.get('tool_1')?.toolOutput?.segments[0]);
     }
     expect(copies[0].timelineNodes).not.toBe(copies[1].timelineNodes);
-    expect(copies[1].timelineNodes).not.toBe(copies[2].timelineNodes);
   });
 
   it('deep-clones transient tool output in conversation snapshots', () => {
@@ -125,95 +106,9 @@ describe('conversation session restore', () => {
     ]);
   });
 
-  it('replays buffered background events without duplicating the optimistic query node', () => {
-    const baseState = createInitialState();
-    const userNode: TimelineNode = {
-      id: 'user_local',
-      kind: 'message',
-      role: 'user',
-      text: 'hello',
-      ts: 100,
-    };
-    const snapshot = snapshotConversationState({
-      ...baseState,
-      requestId: 'req_1',
-      streaming: true,
-      timelineNodes: new Map([['user_local', userNode]]),
-      timelineOrder: ['user_local'],
-    });
-    const session = createLiveQuerySession({ requestId: 'req_1' });
-    session.streaming = true;
-    session.abortController = new AbortController();
-    session.bufferedEvents = [
-      {
-        type: 'request.query',
-        requestId: 'req_1',
-        chatId: 'chat_live',
-        message: 'hello',
-        timestamp: 101,
-      },
-      {
-        type: 'run.start',
-        requestId: 'req_1',
-        chatId: 'chat_live',
-        runId: 'run_1',
-        timestamp: 102,
-      },
-      {
-        type: 'content.start',
-        chatId: 'chat_live',
-        runId: 'run_1',
-        contentId: 'content_1',
-        text: 'Hi',
-        timestamp: 103,
-      },
-      {
-        type: 'content.delta',
-        chatId: 'chat_live',
-        runId: 'run_1',
-        contentId: 'content_1',
-        delta: ' there',
-        timestamp: 104,
-      },
-    ] as AgentEvent[];
-
-    const restored = applyPendingSessionUpdates(snapshot, session);
-
-    expect(restored.chatId).toBe('chat_live');
-    expect(restored.runId).toBe('run_1');
-    expect(restored.requestId).toBe('req_1');
-    expect(restored.timelineOrder).toEqual(['user_local', 'content_0']);
-    expect(restored.timelineNodes.get('content_0')).toMatchObject({
-      kind: 'content',
-      contentId: 'content_1',
-      text: 'Hi there',
-    });
-    expect(restored.timelineNodes.has('user_req_1')).toBe(false);
-    expect(restored.events.map((event) => event.type)).toEqual([
-      'request.query',
-      'run.start',
-      'content.start',
-      'content.delta',
-    ]);
-    expect(restored.debugEvents.map((event) => event.type)).toEqual([
-      'request.query',
-      'run.start',
-    ]);
-  });
-
-  it('restores run agent identity from buffered events', () => {
-    const snapshot = snapshotConversationState({
-      ...createInitialState(),
-      chatId: 'chat_1',
-      runId: '',
-      chatAgentById: new Map([['chat_1', 'agent_chat']]),
-    });
-    const session = createLiveQuerySession({
-      requestId: 'req_1',
-      chatId: 'chat_1',
-      agentKey: 'agent_run',
-    });
-    session.bufferedEvents = [
+  it('restores run agent identity during replay', () => {
+    const restored = createReplayState();
+    const events = [
       {
         type: 'request.query',
         requestId: 'req_1',
@@ -240,7 +135,7 @@ describe('conversation session restore', () => {
       },
     ] as AgentEvent[];
 
-    const restored = applyPendingSessionUpdates(snapshot, session);
+    for (const event of events) replayEvent(restored, event);
 
     expect(restored.runId).toBe('run_1');
     expect(restored.runAgentById.get('run_1')).toBe('agent_run');
@@ -252,78 +147,7 @@ describe('conversation session restore', () => {
     });
   });
 
-  it('does not let session routing override backend run agent metadata', () => {
-    const snapshot = snapshotConversationState(createInitialState());
-    const session = createLiveQuerySession({
-      requestId: 'req_1',
-      agentKey: 'composer-agent',
-    });
-    session.runId = 'run_1';
-    session.bufferedEvents = [
-      {
-        type: 'run.start',
-        chatId: 'chat_1',
-        runId: 'run_1',
-        agentKey: 'metadata-agent',
-        timestamp: 101,
-      },
-    ] as AgentEvent[];
-
-    const restored = applyPendingSessionUpdates(snapshot, session);
-
-    expect(restored.runAgentById.get('run_1')).toBe('metadata-agent');
-    expect(restored.currentRunAgentKey).toBe('metadata-agent');
-  });
-
-  it('merges pending raw/debug buffers and clears render caches for restored state', () => {
-    const baseState = createInitialState();
-    const snapshot = snapshotConversationState({
-      ...baseState,
-      chatId: 'chat_1',
-      runId: 'run_1',
-      requestId: 'req_1',
-      streaming: true,
-      debugLines: ['before'],
-    });
-    const session = createLiveQuerySession({
-      requestId: 'req_1',
-      chatId: 'chat_1',
-    });
-    session.runId = 'run_1';
-    session.streaming = false;
-    session.abortController = null;
-    session.bufferedEvents = [
-      {
-        type: 'run.complete',
-        chatId: 'chat_1',
-        runId: 'run_1',
-        timestamp: 300,
-      },
-    ];
-    session.bufferedDebugLines = ['before', 'after'];
-    session.appliedDebugLineCount = 1;
-
-    const restored = applyPendingSessionUpdates(snapshot, session);
-    const updates = buildConversationStateUpdates(restored);
-
-    expect(restored.streaming).toBe(false);
-    expect(restored.abortController).toBeNull();
-    expect(restored.debugEvents.map((event) => event.type)).toEqual([
-      'run.complete',
-    ]);
-    expect(updates.debugEvents?.map((event) => event.type)).toEqual([
-      'run.complete',
-    ]);
-    expect(restored.debugLines).toEqual(['before', 'after']);
-    expect(updates.timelineDomCache).toEqual(new Map());
-    expect(updates.renderQueue).toMatchObject({
-      scheduled: false,
-      stickToBottomRequested: false,
-      fullSyncNeeded: false,
-    });
-  });
-
-  it('preserves usage snapshot across conversation session restore', () => {
+  it('preserves usage snapshot across conversation snapshots and replay', () => {
     const usageSnapshot = {
       type: 'usage.snapshot',
       chatId: 'chat_1',
@@ -340,27 +164,15 @@ describe('conversation session restore', () => {
       runId: 'run_1',
       usageSnapshot,
     });
-    const updates = buildConversationStateUpdates(snapshot);
+    const cloned = cloneConversationSnapshot(snapshot);
 
     expect(snapshot.usageSnapshot).toBe(usageSnapshot);
-    expect(updates.usageSnapshot).toBe(usageSnapshot);
+    expect(cloned.usageSnapshot).toBe(usageSnapshot);
   });
 
-  it('restores pending streamed tool events as debug snapshots', () => {
-    const snapshot = snapshotConversationState({
-      ...createInitialState(),
-      chatId: 'chat_1',
-      runId: 'run_1',
-      requestId: 'req_1',
-      streaming: true,
-    });
-    const session = createLiveQuerySession({
-      requestId: 'req_1',
-      chatId: 'chat_1',
-    });
-    session.runId = 'run_1';
-    session.streaming = false;
-    session.bufferedEvents = [
+  it('replays streamed tool events as debug snapshots', () => {
+    const restored = createReplayState();
+    const events = [
       {
         type: 'tool.start',
         toolId: 'tool_1',
@@ -385,9 +197,9 @@ describe('conversation session restore', () => {
         result: 'ok',
         timestamp: 103,
       },
-    ];
+    ] as AgentEvent[];
 
-    const restored = applyPendingSessionUpdates(snapshot, session);
+    for (const event of events) replayEvent(restored, event);
 
     expect(restored.events.map((event) => event.type)).toEqual([
       'tool.start',
@@ -409,21 +221,9 @@ describe('conversation session restore', () => {
     });
   });
 
-  it('restores pending streamed text events as debug snapshots', () => {
-    const snapshot = snapshotConversationState({
-      ...createInitialState(),
-      chatId: 'chat_1',
-      runId: 'run_1',
-      requestId: 'req_1',
-      streaming: true,
-    });
-    const session = createLiveQuerySession({
-      requestId: 'req_1',
-      chatId: 'chat_1',
-    });
-    session.runId = 'run_1';
-    session.streaming = false;
-    session.bufferedEvents = [
+  it('replays streamed text events as debug snapshots', () => {
+    const restored = createReplayState();
+    const events = [
       { type: 'content.start', contentId: 'content_1', text: 'A', runId: 'run_1' },
       { type: 'content.delta', contentId: 'content_1', delta: 'B' },
       { type: 'content.end', contentId: 'content_1', timestamp: 102 },
@@ -433,9 +233,9 @@ describe('conversation session restore', () => {
       { type: 'planning.start', planningId: 'planning_1', planningLabel: 'Plan', text: 'E', runId: 'run_1' },
       { type: 'planning.delta', planningId: 'planning_1', delta: 'F' },
       { type: 'planning.end', planningId: 'planning_1', timestamp: 104 },
-    ];
+    ] as AgentEvent[];
 
-    const restored = applyPendingSessionUpdates(snapshot, session);
+    for (const event of events) replayEvent(restored, event);
 
     expect(restored.debugEvents.map((event) => event.type)).toEqual([
       'content.snapshot',

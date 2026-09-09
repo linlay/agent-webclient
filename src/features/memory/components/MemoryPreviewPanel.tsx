@@ -374,6 +374,3 @@ export const MemoryPreviewPanelView: React.FC<MemoryPreviewPanelProps> = ({
     </div>
   );
 };
-
-
-export const MemoryPreviewPanel = MemoryPreviewPanelView;

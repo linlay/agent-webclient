@@ -1,8 +1,8 @@
+import { resolvePreferredRunOwner } from "@/features/runs/lib/runOwner";
 import { createInitialState } from "@/app/state/AppContext";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
 import {
   resolvePreferredAgentKey,
-  resolvePreferredTeamId,
 } from "@/features/composer/lib/queryRouting";
 
 function createWorkerRow(overrides: Partial<WorkerRow> = {}): WorkerRow {
@@ -90,7 +90,7 @@ describe("queryRouting", () => {
     ).toBe("");
   });
 
-  it("returns selected team only when no chat is active", () => {
+  it("routes new chats to the selected team and existing chats to their saved owner", () => {
     const state = createInitialState();
     const selectedTeam = createWorkerRow({
       key: "team:demo-team",
@@ -99,8 +99,14 @@ describe("queryRouting", () => {
     });
     state.workerSelectionKey = selectedTeam.key;
     state.workerIndexByKey.set(selectedTeam.key, selectedTeam);
-
-    expect(resolvePreferredTeamId(state)).toBe("demo-team");
-    expect(resolvePreferredTeamId(state, { chatId: "chat_1" })).toBe("");
+    expect(resolvePreferredRunOwner(state)).toEqual({
+      kind: "orchestrated-team",
+      teamId: "demo-team",
+    });
+    state.chats = [{ chatId: "chat_1", agentKey: "saved-agent" }];
+    expect(resolvePreferredRunOwner(state, { chatId: "chat_1" })).toEqual({
+      kind: "agent",
+      agentKey: "saved-agent",
+    });
   });
 });

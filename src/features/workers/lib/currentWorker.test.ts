@@ -1,10 +1,7 @@
 import type { AppState } from "@/app/state/AppContext";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { createInitialState } from '@/app/state/AppContext';
-import { t } from "@/shared/i18n";
 import {
-  buildCurrentWorkerDetailView,
-  buildAutomationDraft,
   buildWorkerSwitchRows,
   isDedicatedKbaseWorker,
   resolveCurrentWorkerSummary,
@@ -73,47 +70,6 @@ describe('currentWorker helpers', () => {
       displayName: 'Alice',
       role: 'Analyst',
     });
-  });
-
-  it('extracts structured detail fields with raw metadata fallback', () => {
-    const row = createWorkerRow({
-      key: 'team:ops',
-      type: 'team',
-      sourceId: 'ops',
-      displayName: 'Ops Team',
-      role: 'Dispatch',
-      teamAgentLabels: ['Alice', 'Bob'],
-    });
-    const state = createState({
-      workerSelectionKey: 'team:ops',
-      workerRows: [row],
-      workerIndexByKey: new Map([[row.key, row]]),
-      teams: [{
-        teamId: 'ops',
-        name: 'Ops Team',
-        role: 'Dispatch',
-        modelName: 'gpt-4.1-mini',
-        skills: ['triage', 'automation'],
-        tools: [{ toolName: 'calendar' }],
-        members: [{ agentKey: 'alice' }, { key: 'bob' }],
-      }],
-    });
-
-    const summary = resolveCurrentWorkerSummary(state);
-    expect(summary).not.toBeNull();
-
-    const detail = buildCurrentWorkerDetailView(summary!, t);
-
-    expect(detail).toMatchObject({
-      kindLabel: '小组',
-      identifierLabel: 'teamId',
-      identifierValue: 'ops',
-      model: 'gpt-4.1-mini',
-      skills: ['triage', 'automation'],
-      tools: ['calendar'],
-      members: ['alice', 'bob'],
-    });
-    expect(detail.rawJson).toContain('"modelName": "gpt-4.1-mini"');
   });
 
   it('filters worker switch rows by scope and search text', () => {
@@ -209,28 +165,4 @@ describe('currentWorker helpers', () => {
     expect(supportsActiveRunContextCompact(null)).toBe(true);
   });
 
-  it('builds an automation draft with worker context baked in', () => {
-    const row = createWorkerRow({
-      key: 'agent:alice',
-      type: 'agent',
-      sourceId: 'alice',
-      displayName: 'Alice',
-      role: 'Analyst',
-    });
-    const state = createState({
-      workerSelectionKey: 'agent:alice',
-      workerRows: [row],
-      workerIndexByKey: new Map([[row.key, row]]),
-      agents: [{ key: 'alice', name: 'Alice', role: 'Analyst' }],
-    });
-    const summary = resolveCurrentWorkerSummary(state);
-    expect(summary).not.toBeNull();
-
-    const draft = buildAutomationDraft(summary!, '每天整理日报', '工作日 18:00', t);
-
-    expect(draft).toContain('对象名称: Alice');
-    expect(draft).toContain('对象标识: agentKey=alice');
-    expect(draft).toContain('任务内容: 每天整理日报');
-    expect(draft).toContain('执行时间/规则: 工作日 18:00');
-  });
 });

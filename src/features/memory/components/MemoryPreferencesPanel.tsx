@@ -591,6 +591,3 @@ export const MemoryPreferencesPanelView: React.FC<MemoryPreferencesPanelProps> =
     </div>
   );
 };
-
-
-export const MemoryPreferencesPanel = MemoryPreferencesPanelView;
