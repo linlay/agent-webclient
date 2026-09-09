@@ -32,6 +32,32 @@
     display: inline;
 }
 
+/* Keep compact title styles on the content so Ant Design portals inherit them. */
+:global(.command-switch-compact) :global(.command-modal-title) {
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+:global(.command-switch-compact) :global(.command-modal-title)>button,
+:global(.command-switch-compact) :global(.command-modal-title)>span:not(:global(.command-modal-subtitle)) {
+    flex: 0 0 auto;
+}
+
+:global(.command-switch-compact) :global(.command-modal-title)>span:not(:global(.command-modal-subtitle)) {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+:global(.command-switch-compact) :global(.command-modal-title)>:global(.command-modal-subtitle) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 500;
+}
+
 :global(.modal-title-bar) {
     align-items: center;
 }
