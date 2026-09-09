@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input, Popover, Switch, Typography } from "antd";
+import { Input, Popover, Typography } from "antd";
 import type { InputRef } from "antd";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
@@ -18,7 +18,7 @@ import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { usePinnedSkills } from "@/features/composer/hooks/usePinnedSkills";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
-type Section = "files" | "mode" | "skills" | "connectors" | "chat" | "site";
+type Section = "files" | "skills" | "connectors" | "chat" | "site";
 export interface AddMenuTriggerProps {
   disabled: boolean;
   loading: boolean;
@@ -43,7 +43,6 @@ const sectionMeta: Record<
   { icon: MaterialIconName; key: string; detailWidth?: number }
 > = {
   files: { icon: "attach_file", key: "composer.addMenu.section.files" },
-  mode: { icon: "checklist", key: "composer.addMenu.section.mode" },
   skills: {
     icon: "skills",
     key: "composer.addMenu.section.skills",
@@ -66,7 +65,7 @@ const sectionMeta: Record<
   },
 };
 // 一级面板导航条目："divider" 为分割线，可自由插入任意位置
-type NavEntry = Section | "divider";
+type NavEntry = Section | "mode" | "divider";
 const sectionNav: NavEntry[] = [
   "files",
   "divider",
@@ -207,27 +206,6 @@ const AddMenuSectionDetail: React.FC<
           </>,
           props.onOpenFilePicker,
         )}
-      {section === "mode" && (
-        <div className="composer-add-menu-mode">
-          {props.canUsePlanningMode &&
-            item(
-              <>
-                <span>{t("composer.addMenu.mode.planning")}</span>
-                <Switch size="small" checked={props.planningMode} />
-              </>,
-              props.onTogglePlanningMode,
-            )}
-          {!props.canUsePlanningMode &&
-            props.canUseEditingMode &&
-            item(
-              <>
-                <span>{t("composer.addMenu.mode.editing")}</span>
-                <Switch size="small" checked={props.editingMode} />
-              </>,
-              () => props.onEditingModeChange(!props.editingMode),
-            )}
-        </div>
-      )}
       {section === "skills" && (
         <div className="composer-add-menu-scroll">
           {pinError && (
@@ -435,6 +413,26 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             className="composer-add-menu-divider"
             aria-hidden="true"
           />
+        ) : entry === "mode" ? (
+          <UiButton
+            key={entry}
+            variant="ghost"
+            size="sm"
+            role="menuitemcheckbox"
+            aria-checked={props.canUsePlanningMode ? props.planningMode : props.editingMode}
+            className="composer-add-menu-nav-item"
+            onMouseEnter={() => setSection(null)}
+            onFocus={() => setSection(null)}
+            onClick={() => {
+              if (props.canUsePlanningMode) props.onTogglePlanningMode();
+              else props.onEditingModeChange(!props.editingMode);
+              props.onClose();
+            }}
+          >
+            <MaterialIcon name="checklist" />
+            <span>{t(props.canUsePlanningMode ? "composer.addMenu.mode.planning" : "composer.addMenu.mode.editing")}</span>
+            <span className="composer-add-menu-mode-switch" aria-hidden="true" />
+          </UiButton>
         ) : (
           <Popover
             key={entry}
