@@ -66,6 +66,7 @@ export function processRunEvent(
       ts: timestamp,
       variant,
       steerId: variant === "steer" ? toText(event.steerId) || suffix : undefined,
+      attachments: normalizeTimelineAttachments((event as Record<string, unknown>).references),
     });
     return commands;
   }

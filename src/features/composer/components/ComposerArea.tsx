@@ -300,6 +300,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     hasComposerAttachmentOverflow,
     hasStagedAttachments,
     hasUploadingAttachments,
+    hasFailedAttachments,
     isCapturingDesktopScreenshot,
     openFilePicker,
     scrollComposerAttachments,
@@ -559,6 +560,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       toggleVoiceMode,
     },
     hasUploadingAttachments,
+    hasFailedAttachments,
     inputValue,
     isAwaitingActive,
     isVoiceMode,
@@ -658,6 +660,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isFrontendActive ||
     isAwaitingActive ||
     hasUploadingAttachments ||
+    hasFailedAttachments ||
     !inputValue.trim();
 
   const handleKeyDown = useComposerKeyboard({

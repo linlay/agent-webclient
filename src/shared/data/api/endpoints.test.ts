@@ -209,3 +209,9 @@ describe("endpoint payload builders", () => {
     });
   });
 });
+
+it('includes uploaded references in the steer control payload', () => {
+  const references = [{ type: 'file', name: 'image.png', url: 'image.png', mimeType: 'image/png' }];
+  expect(buildRunControlPayload({ requestId: 'req-image', runId: 'run-image', steerId: 'steer-image',
+    owner: { kind: 'agent', agentKey: 'agent-a' }, message: 'look', references })).toEqual(expect.objectContaining({ references }));
+});

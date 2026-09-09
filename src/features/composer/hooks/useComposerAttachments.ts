@@ -7,6 +7,7 @@ import {
   captureDesktopScreenshot as captureDesktopScreenshotFromBridge,
   desktopScreenshotToFile,
 } from "@/shared/data/desktop/desktopScreenshot";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { t } from "@/shared/i18n";
 import {
   type ComposerAttachment,
@@ -31,7 +32,7 @@ interface UseComposerAttachmentsInput {
     | "pendingNewChatAgentKey"
     | "workerIndexByKey"
     | "workerSelectionKey"
-  >;
+  > & Partial<Pick<AppState, "restoredSteerReferencesByChatId">>;
   onError?: (message: string) => void;
 }
 
@@ -66,7 +67,30 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const attachmentsRef = useRef<ComposerAttachment[]>([]);
   const latestAttachmentIdByNameRef = useRef(new Map<string, string>());
   const stagedFilesByAttachmentIdRef = useRef(new Map<string, File>());
-  const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
+  const [localAttachments, setAttachments] = useState<ComposerAttachment[]>([]);
+  const restoredReferences = state.restoredSteerReferencesByChatId?.[state.chatId];
+  const restoredAttachments = useMemo<ComposerAttachment[]>(
+    () => (restoredReferences || []).flatMap((reference, index) => {
+      const [item] = normalizeTimelineAttachments([reference]);
+      return item ? [{
+        id: `restored-steer:${index}`,
+        name: item.name,
+        size: item.size || 0,
+        type: item.type,
+        mimeType: item.mimeType,
+        resourceUrl: item.url,
+        status: "ready" as const,
+        error: "",
+        references: [reference],
+      }] : [];
+    }),
+    [restoredReferences],
+  );
+  const attachments = useMemo(
+    () => [...localAttachments, ...restoredAttachments],
+    [localAttachments, restoredAttachments],
+  );
+  const hasFailedAttachments = attachments.some(attachment => attachment.status === "error");
   const [attachmentChatId, setAttachmentChatId] = useState("");
   const [isCapturingDesktopScreenshot, setIsCapturingDesktopScreenshot] =
     useState(false);
@@ -169,6 +193,9 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   );
 
   const clearComposerAttachments = useCallback(() => {
+    if (restoredReferences?.length) {
+      dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId, references: [] });
+    }
     attachmentsRef.current.forEach((attachment) => {
       revokeAttachmentPreviewUrl(attachment.previewUrl);
     });
@@ -180,7 +207,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       canScrollLeft: false,
       canScrollRight: false,
     });
-  }, []);
+  }, [dispatch, state.chatId, restoredReferences]);
 
   const openFilePicker = useCallback(() => {
     if (isFrontendActive || isVoiceMode) {
@@ -213,6 +240,11 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   const handleRemoveAttachment = useCallback(
     (attachmentId: string) => {
+      if (attachmentId.startsWith("restored-steer:")) {
+        const index = Number(attachmentId.slice("restored-steer:".length));
+        dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId, references: (restoredReferences || []).filter((_, i) => i !== index) });
+        return;
+      }
       setAttachments((current) => {
         const removedAttachment = current.find(
           (attachment) => attachment.id === attachmentId,
@@ -237,7 +269,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
         return next;
       });
     },
-    [state.chatId],
+    [state.chatId, dispatch, restoredReferences],
   );
 
   const uploadFiles = useCallback(
@@ -578,6 +610,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     hasComposerAttachmentOverflow,
     hasStagedAttachments,
     hasUploadingAttachments,
+    hasFailedAttachments,
     isCapturingDesktopScreenshot,
     openFilePicker,
     readyAttachments,

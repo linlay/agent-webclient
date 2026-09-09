@@ -149,7 +149,7 @@ function cloneActiveFrontendTool(tool: ActiveFrontendTool | null): ActiveFronten
 function clonePendingSteersDict(input: Record<string, PendingSteer[]>): Record<string, PendingSteer[]> {
   const result: Record<string, PendingSteer[]> = {};
   for (const chatId of Object.keys(input)) {
-    result[chatId] = input[chatId].map((steer) => ({ ...steer }));
+    result[chatId] = input[chatId].map((steer) => ({ ...steer, ...(steer.references ? { references: structuredClone(steer.references) } : {}) }));
   }
   return result;
 }

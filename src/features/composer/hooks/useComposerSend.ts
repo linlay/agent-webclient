@@ -27,6 +27,7 @@ import {
   normalizeSteerSubmissionResponse,
   resolveActiveRunId,
 } from "@/features/composer/lib/steerSubmission";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { findPendingSteer } from "@/features/composer/lib/pendingSteers";
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 import { useCompactChooser } from "@/features/composer/hooks/useCompactChooser";
@@ -85,6 +86,7 @@ interface UseComposerSendInput {
     compactSummaryCompacting?: string;
   };
   hasUploadingAttachments: boolean;
+  hasFailedAttachments?: boolean;
   inputValue: string;
   isAwaitingActive: boolean;
   isVoiceMode: boolean;
@@ -141,6 +143,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     executeSlashCommandInput,
     backgroundCommandText,
     hasUploadingAttachments,
+    hasFailedAttachments,
     inputValue,
     isAwaitingActive,
     isVoiceMode,
@@ -242,7 +245,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch({ type: "REMOVE_PENDING_STEER", chatId: currentState.chatId, runId: firstQueued.runId, steerId: firstQueued.steerId });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
-        detail: { message: firstQueued.message, chatId: currentState.chatId },
+        detail: { message: firstQueued.message, chatId: currentState.chatId, ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
       }),
     );
   }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef]);
@@ -399,7 +402,7 @@ export function useComposerSend(input: UseComposerSendInput) {
 
     const message = inputValue.trim();
     if (!message) return;
-    if (hasUploadingAttachments) return;
+    if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
     }
@@ -465,10 +468,10 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
-        if (sendReferences.length > 0 || mustUseSkills.length > 0) {
+        if (mustUseSkills.length > 0) {
           dispatch({
             type: "APPEND_DEBUG",
-            line: "[send] references and required skills are not supported while steering an active run",
+            line: "[send] required skills are not supported while steering an active run",
           });
           return;
         }
@@ -486,9 +489,12 @@ export function useComposerSend(input: UseComposerSendInput) {
             runId: activeRunId,
             createdAt: Date.now(),
             status: "queued",
+            references: structuredClone(sendReferences),
           },
         });
         setInputValue("");
+        dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
+        clearComposerAttachments();
         setSlashDismissed(false);
         closeMention();
         return;
@@ -565,6 +571,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch,
     executeSlashCommand,
     hasUploadingAttachments,
+    hasFailedAttachments,
     inputValue,
     isAwaitingActive,
     isVoiceMode,
@@ -627,6 +634,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         steerId: steer.steerId,
         owner,
         message: steer.message,
+        references: steer.references,
         planningMode: Boolean(currentState.planningMode),
       });
       // The stream can acknowledge the message before the control response.

@@ -15,6 +15,10 @@ export interface QueryLikeParams {
   planningMode?: boolean;
 }
 
+export interface SteerParams extends QueryLikeParams {
+  references?: unknown[];
+}
+
 export interface BTWInterruptResponse {
   accepted: boolean;
   status: string;

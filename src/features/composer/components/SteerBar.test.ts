@@ -33,3 +33,17 @@ it('displays an unknown submission outcome without removing the message', () => 
   expect(html).toContain('steering');
   expect(html).toContain('<button data-loading="false">composer.steer.cancel</button>');
 });
+
+jest.mock('@/features/artifacts/components/AttachmentCard', () => ({
+  AttachmentCard: ({ attachment }: { attachment: { name: string; url: string } }) =>
+    React.createElement('img', { alt: attachment.name, src: attachment.url }),
+}));
+
+it('renders uploaded image previews for queued steers', () => {
+  const html = renderToStaticMarkup(React.createElement(SteerBar, {
+    pendingSteers: [{ ...steer, references: [{ name: 'preview.png', mimeType: 'image/png', url: 'preview.png' }] }],
+    mainChatRunning: true, onSubmit: jest.fn(), onCancel: jest.fn(),
+  }));
+  expect(html).toContain('src="preview.png"');
+  expect(html).toContain('alt="preview.png"');
+});

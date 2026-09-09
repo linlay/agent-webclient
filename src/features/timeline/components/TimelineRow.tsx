@@ -403,6 +403,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
             {getCommandMessageLabel(node.messageVariant)}
           </div>
+          <div className="tw:flex tw:flex-wrap tw:gap-1">
+            {(node.attachments || []).map((attachment, index) => (
+              <AttachmentCard key={attachment.id || index} attachment={attachment} variant="timeline" surfaceContext={surfaceContext} />
+            ))}
+          </div>
           <UserBubble
             text={node.text || ""}
             targetId={node.id}

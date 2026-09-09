@@ -5,7 +5,7 @@ import type {
   PendingSteerTarget,
 } from "./composerState";
 
-type ComposerSteerState = Pick<ComposerState, "pendingSteers" | "composerDraft" | "composerDraftByChatId">;
+type ComposerSteerState = Pick<ComposerState, "pendingSteers" | "composerDraft" | "composerDraftByChatId"> & Partial<Pick<ComposerState, "restoredSteerReferencesByChatId">>;
 
 export function findPendingSteer(
   pendingSteers: ComposerState["pendingSteers"],
@@ -26,6 +26,9 @@ export function reduceComposerSteerState(
   currentChatId: string,
 ): Partial<ComposerSteerState> | null {
   const pendingSteers = state.pendingSteers;
+  if (action.type === "SET_RESTORED_STEER_REFERENCES") {
+    return { restoredSteerReferencesByChatId: { ...state.restoredSteerReferencesByChatId, [action.chatId]: action.references } };
+  }
   if (action.type === "ENQUEUE_PENDING_STEER") {
     const chatId = action.chatId ?? currentChatId;
     const existing = pendingSteers[chatId] || [];
@@ -64,6 +67,10 @@ export function reduceComposerSteerState(
   return {
     pendingSteers: nextPendingSteers,
     composerDraftByChatId: { ...state.composerDraftByChatId, [chatId]: draft },
+    ...(steer.references?.length ? { restoredSteerReferencesByChatId: {
+      ...state.restoredSteerReferencesByChatId,
+      [chatId]: [...(state.restoredSteerReferencesByChatId?.[chatId] || []), ...steer.references],
+    } } : {}),
     ...(chatId === currentChatId ? { composerDraft: draft } : {}),
   };
 }

@@ -13,6 +13,7 @@ export interface PendingSteer {
   createdAt: number;
   status: "queued" | "sending";
   submissionError?: string;
+  references?: unknown[];
 }
 
 export interface PendingSteerTarget {
@@ -22,6 +23,7 @@ export interface PendingSteerTarget {
 }
 
 export type ComposerSteerAction =
+  | { type: "SET_RESTORED_STEER_REFERENCES"; chatId: string; references: unknown[] }
   | { type: "ENQUEUE_PENDING_STEER"; steer: PendingSteer; chatId?: string }
   | ({ type: "UPDATE_PENDING_STEER_STATUS"; status: PendingSteer["status"] } & PendingSteerTarget)
   | ({ type: "REMOVE_PENDING_STEER" } & PendingSteerTarget)
@@ -39,6 +41,7 @@ export interface ComposerState {
   selectedSkills: ComposerRequiredSkill[];
   selectedSkillsByChatId: Record<string, ComposerRequiredSkill[]>;
   pendingSteers: Record<string, PendingSteer[]>;
+  restoredSteerReferencesByChatId: Record<string, unknown[]>;
 }
 
 export type ComposerDraftState = Pick<
@@ -64,6 +67,7 @@ export function createInitialComposerState(): ComposerState {
     selectedSkills: [],
     selectedSkillsByChatId: {},
     pendingSteers: {},
+    restoredSteerReferencesByChatId: {},
   };
 }
 

@@ -300,3 +300,5 @@ make dev
 - 脱离可访问的 AGW / AGENT API 服务，无法完成核心联调。
 - 依赖方向固定为 `app/pages、app/layout → features/<domain> → shared`；页面不发数据请求，`shared` 不反向依赖应用层或领域层。
 - `npm run check:boundaries` 同时检查目录边界、Transport/Event 纯度和 feature 循环；构建与测试都会先执行该检查。
+
+运行中图片 steer 复用 `/api/upload` 与 `references`：待发送队列、取消/拒绝恢复、Run 结束自动转 query、实时与历史时间线均保留图片；文字仍必填。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。

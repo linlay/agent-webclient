@@ -186,3 +186,5 @@ Git 提交与推送规范：
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
 
 VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 继续兼容；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
+
+运行中图片 steer 复用 `/api/upload` 与 `references`：待发送队列、取消/拒绝恢复、Run 结束自动转 query、实时与历史时间线均保留图片；文字仍必填。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。

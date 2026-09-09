@@ -10,6 +10,7 @@ import type {
   BackgroundCommandParams,
   CompactChatParams,
   QueryLikeParams,
+  SteerParams,
   QueryStreamParams,
   BTWStreamParams,
 } from "@/shared/data/api/dto/commands";
@@ -39,12 +40,13 @@ type RunSubmitParams = {
   params: unknown;
 };
 
-export function buildRunControlPayload(options: QueryLikeParams): Record<string, unknown> {
+export function buildRunControlPayload(options: QueryLikeParams & { references?: unknown[] }): Record<string, unknown> {
   return compactPayload({
     requestId: options.requestId,
     chatId: options.chatId,
     runId: options.runId,
     steerId: options.steerId,
+    references: options.references,
     ...runOwnerPayload(options.owner),
     message: options.message,
   });
@@ -1024,7 +1026,7 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
-  steer: defineEndpoint<QueryLikeParams, Record<string, unknown>>({
+  steer: defineEndpoint<SteerParams, Record<string, unknown>>({
     key: "runs.steer",
     path: "/api/steer",
     method: "POST",

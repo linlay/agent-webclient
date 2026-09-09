@@ -1,4 +1,6 @@
 import React from "react";
+import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { Button, Typography } from "antd";
 import { SteerIcon } from "@/features/runs/components/SteerIcon";
@@ -42,6 +44,11 @@ export const SteerBar: React.FC<{
                 <SteerIcon />
               </div>
               <div className={STEER_PREVIEW_TEXT_CLASS}>
+                <div className="tw:flex tw:flex-wrap tw:gap-1">
+                  {normalizeTimelineAttachments(steer.references).map((attachment, index) => (
+                    <AttachmentCard key={attachment.id || index} attachment={attachment} variant="timeline" density="compact" thumbnailMode="inline" />
+                  ))}
+                </div>
                 <Typography.Text ellipsis={{tooltip: steer.message}}>{steer.message}</Typography.Text>
                 {steer.submissionError && (
                   <div role="status" title={steer.submissionError}>

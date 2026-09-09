@@ -303,6 +303,7 @@ export function reduceConversationState(
 		case "REMOVE_PENDING_STEER":
 		case "CONFIRM_PENDING_STEER":
 		case "SET_PENDING_STEER_ERROR":
+		case "SET_RESTORED_STEER_REFERENCES":
 		case "RESTORE_PENDING_STEER":
 		case "CLEAR_PENDING_STEERS": {
 			const updates = reduceComposerSteerState(state, action, state.chatId || "");

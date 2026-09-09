@@ -1,3 +1,4 @@
+import type { SteerParams } from "@/shared/data/api/dto/commands";
 import type {
   AccessLevelUpdateParams,
   AccessLevelUpdateResponse,
@@ -92,7 +93,7 @@ export interface RunTransport {
   interrupt(input: QueryLikeParams): Promise<ApiResponse>;
   submitAwaiting(input: AwaitingSubmitInput): Promise<ApiResponse>;
   submitTool(input: ToolSubmitInput): Promise<ApiResponse>;
-  steer(input: QueryLikeParams): Promise<ApiResponse>;
+  steer(input: SteerParams): Promise<ApiResponse>;
   updateAccessLevel(
     input: AccessLevelUpdateParams,
   ): Promise<ApiResponse<AccessLevelUpdateResponse>>;

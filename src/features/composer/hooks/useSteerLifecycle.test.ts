@@ -288,3 +288,37 @@ it('does not auto-send if the observed run changed during the running-to-idle tr
   expect(sendEvent).not.toHaveBeenCalled();
   expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
 });
+
+const imageReferences = [{ id: 'image-a', type: 'file', name: 'image.png', mimeType: 'image/png', url: 'image.png' }];
+
+it('sends image references and restores them on an explicit rejection', async () => {
+  mockSteer.mockResolvedValue({ data: { accepted: false, status: 'invalid_reference', detail: 'not supported' } });
+  const h = mount();
+  h.stateRef.current.pendingSteers['chat-a'][0].references = imageReferences;
+  await h.submit();
+  expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({ references: imageReferences }));
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(imageReferences);
+  expect(h.stateRef.current.composerDraft).toBe('message from A');
+});
+
+it('cancellation restores images once to their original chat', () => {
+  const h = mount();
+  h.stateRef.current.pendingSteers['chat-a'][0].references = imageReferences;
+  h.cancel(); h.cancel();
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(imageReferences);
+  h.dispatch({ type: 'SET_CHAT_ID', chatId: 'chat-b' });
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(imageReferences);
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-b']).toBeUndefined();
+});
+
+it('carries queued images into a query when the run completes', () => {
+  const h = mount();
+  h.stateRef.current.pendingSteers['chat-a'][0].references = imageReferences;
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { currentChatActiveRun: null, streaming: false,
+    chatTransition: { seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '' } } });
+  h.render(false);
+  expect((sendEvent.mock.calls[0][0] as CustomEvent).detail).toEqual(expect.objectContaining({
+    chatId: 'chat-a', references: imageReferences, attachments: [expect.objectContaining({ name: 'image.png', url: 'image.png' })],
+  }));
+});
