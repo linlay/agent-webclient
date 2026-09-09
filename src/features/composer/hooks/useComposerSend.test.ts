@@ -611,12 +611,14 @@ describe('useComposerSend active run gate', () => {
     createRequestIdMock.mockImplementation((prefix: string) => `${prefix}_request`);
   });
 
-  it('clears the persisted composer draft before dispatching a new-chat message', () => {
+  it('clears the composer text and Skill selection while sending the selected Skills with a new-chat message', () => {
     const state = createInitialState();
     state.pendingNewChatAgentKey = 'agent-a';
     state.composerDraft = 'hello';
     state.composerDraftByChatId = { '': 'hello' };
     const operationOrder: string[] = [];
+    const clearMustUseSkills = jest.fn(() => operationOrder.push('clear-skills'));
+    const sendMessage = jest.fn();
     const dispatch = jest.fn((action) => {
       if (action.type === 'SET_COMPOSER_DRAFT' && action.draft === '') {
         operationOrder.push('clear-draft');
@@ -639,6 +641,7 @@ describe('useComposerSend active run gate', () => {
         dispatchEvent: jest.fn((event: Event) => {
           if (event.type === 'agent:send-message') {
             operationOrder.push('send-message');
+            sendMessage((event as CustomEvent).detail);
           }
           return true;
         }),
@@ -670,7 +673,7 @@ describe('useComposerSend active run gate', () => {
           compactError: '',
         },
         clearComposerAttachments: jest.fn(),
-        clearMustUseSkills: jest.fn(),
+        clearMustUseSkills,
         closeMention,
         controlParams: {},
         dispatch,
@@ -707,8 +710,8 @@ describe('useComposerSend active run gate', () => {
         isVoiceMode: false,
         mainChatRunning: false,
         modelOverride: {},
-        mustUseSkillsAgentKey: '',
-        mustUseSkills: [],
+        mustUseSkillsAgentKey: 'agent-a',
+        mustUseSkills: ['code-review'],
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
@@ -747,7 +750,14 @@ describe('useComposerSend active run gate', () => {
       type: 'SET_COMPOSER_DRAFT',
       draft: '',
     });
-    expect(operationOrder).toEqual(['clear-draft', 'send-message']);
+    expect(clearMustUseSkills).toHaveBeenCalledTimes(1);
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'hello',
+      agentKey: 'agent-a',
+      mustUseSkillsAgentKey: 'agent-a',
+      mustUseSkills: ['code-review'],
+    }));
+    expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
   });
 
   it('queues a steer instead of sending a new query when the main chat has activeRun but streaming is false', () => {

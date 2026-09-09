@@ -1,6 +1,11 @@
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
-import type { PendingSteer } from "@/features/composer/lib/composerState";
+import {
+	switchComposerChat,
+	updateComposerDraft,
+	updateComposerSelectedSkills,
+	type PendingSteer,
+} from "@/features/composer/lib/composerState";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
 import { bindRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { appendVisibleDebugEvent } from "@/features/events/lib/debugEventDisplay";
@@ -135,27 +140,9 @@ export function reduceConversationState(
 					? { ...state.planningModeByChatId, [action.chatId]: true }
 					: state.planningModeByChatId;
 
-			// Save current draft for old chat
-			let nextDraftByChatId = state.composerDraftByChatId;
-			if (state.chatId !== action.chatId) {
-				nextDraftByChatId = { ...nextDraftByChatId, [state.chatId]: state.composerDraft };
-			}
-			// Restore draft for new chat
-			const nextComposerDraft = nextDraftByChatId[action.chatId] ?? "";
-
-			// Save current selected skills for old chat
-			let nextSkillsByChatId = state.selectedSkillsByChatId;
-			if (state.chatId !== action.chatId) {
-				nextSkillsByChatId = {
-					...nextSkillsByChatId,
-					[state.chatId]: state.selectedSkills,
-				};
-			}
-			// Restore selected skills for new chat
-			const nextSelectedSkills = nextSkillsByChatId[action.chatId] ?? [];
-
 			return {
 				...state,
+				...switchComposerChat(state, state.chatId, action.chatId),
 				chatId: action.chatId,
 				currentChatActiveRun: isNewChatId ? null : state.currentChatActiveRun,
 				pendingNewChatAgentKey: action.chatId
@@ -164,10 +151,6 @@ export function reduceConversationState(
 				planningMode: nextPlanningMode,
 				planningModeByChatId: nextByChatId,
 				editingMode: isNewChatId ? false : state.editingMode,
-				composerDraft: nextComposerDraft,
-				composerDraftByChatId: nextDraftByChatId,
-				selectedSkills: nextSelectedSkills,
-				selectedSkillsByChatId: nextSkillsByChatId,
 			};
 		}
 		case "SET_CURRENT_CHAT_ACTIVE_RUN": {
@@ -304,22 +287,15 @@ export function reduceConversationState(
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
 		case "SET_COMPOSER_DRAFT": {
-			const { chatId, composerDraftByChatId } = state;
 			return {
 				...state,
-				composerDraft: action.draft,
-				composerDraftByChatId: { ...composerDraftByChatId, [chatId]: action.draft },
+				...updateComposerDraft(state, state.chatId, action.draft),
 			};
 		}
 		case "SET_SELECTED_SKILLS": {
-			const { chatId, selectedSkillsByChatId } = state;
 			return {
 				...state,
-				selectedSkills: action.skills,
-				selectedSkillsByChatId: {
-					...selectedSkillsByChatId,
-					[chatId]: action.skills,
-				},
+				...updateComposerSelectedSkills(state, state.chatId, action.skills),
 			};
 		}
 		case "ENQUEUE_PENDING_STEER": {

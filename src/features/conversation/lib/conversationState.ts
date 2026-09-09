@@ -97,35 +97,3 @@ export function createInitialConversationState(): ConversationState {
     downvotedRunKeys: new Set(),
   };
 }
-
-export function reduceConversationState(
-  state: ConversationState,
-  action: ConversationAction,
-): ConversationState {
-  switch (action.type) {
-    case "SET_CHAT_ID": return { ...state, chatId: action.chatId };
-    case "BEGIN_CHAT_TRANSITION": return { ...state, chatTransition: action.transition };
-    case "CLEAR_CHAT_TRANSITION": return { ...state, chatTransition: null };
-    case "SET_CHAT_SURFACE_BLOCKED": return { ...state, chatSurfaceBlocked: action.blocked };
-    case "SET_RUN_ID": return { ...state, runId: action.runId };
-    case "SET_CURRENT_RUN_AGENT_KEY": return { ...state, currentRunAgentKey: action.agentKey };
-    case "SET_REQUEST_ID": return { ...state, requestId: action.requestId };
-    case "SET_STREAMING": return { ...state, streaming: action.streaming };
-    case "SET_ABORT_CONTROLLER": return { ...state, abortController: action.controller };
-    case "PUSH_EVENT": return { ...state, events: [...state.events, action.event] };
-    case "CLEAR_EVENTS": return { ...state, events: [] };
-    case "SET_EDITING_MODE": return { ...state, editingMode: action.enabled };
-    case "SET_MESSAGE": return { ...state, messagesById: new Map(state.messagesById).set(action.id, action.message) };
-    case "SET_MESSAGE_ORDER": return { ...state, messageOrder: action.order };
-    case "SET_CHAT_AGENT_BY_ID": return { ...state, chatAgentById: new Map(state.chatAgentById).set(action.chatId, action.agentKey) };
-    case "SET_RUN_AGENT_BY_ID": return { ...state, runAgentById: new Map(state.runAgentById).set(action.runId, action.agentKey) };
-    case "REQUEST_CONVERSATION_SCROLL": return { ...state, conversationScrollRequest: { id: (state.conversationScrollRequest?.id || 0) + 1, chatId: action.chatId, target: "bottom", reason: action.reason } };
-    case "SET_CHAT_TRANSITION_DISPLAY_MODE":
-    case "ADVANCE_CHAT_TRANSITION":
-    case "FAIL_CHAT_TRANSITION":
-    case "SET_PLANNING_MODE":
-    case "TOGGLE_RUN_DOWNVOTE":
-    case "SET_RUN_DOWNVOTED":
-      return state;
-  }
-}

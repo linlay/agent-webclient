@@ -66,21 +66,3 @@ export type ChatsAction =
 export function createInitialChatsState(): ChatsState {
   return { chats: [], currentChatActiveRun: null };
 }
-
-export function reduceChatsState(state: ChatsState, action: ChatsAction): ChatsState {
-  switch (action.type) {
-    case "SET_CHATS": return { ...state, chats: action.chats };
-    case "UPSERT_CHAT": {
-      const index = state.chats.findIndex((chat) => chat.chatId === action.chat.chatId);
-      if (index < 0) return { ...state, chats: [...state.chats, action.chat as Chat] };
-      const chats = [...state.chats];
-      chats[index] = { ...chats[index], ...action.chat };
-      return { ...state, chats };
-    }
-    case "CHAT_DELETED":
-    case "CHAT_ARCHIVED": return { ...state, chats: state.chats.filter((chat) => chat.chatId !== action.chatId) };
-    case "CHAT_RENAMED": return { ...state, chats: state.chats.map((chat) => chat.chatId === action.chatId ? { ...chat, chatName: action.chatName } : chat) };
-    case "MARK_AGENT_CHATS_READ": return { ...state, chats: state.chats.map((chat) => chat.agentKey === action.agentKey ? { ...chat, read: { isRead: true } } : chat) };
-    case "SET_CURRENT_CHAT_ACTIVE_RUN": return { ...state, currentChatActiveRun: action.activeRun };
-  }
-}

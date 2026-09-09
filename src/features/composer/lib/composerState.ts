@@ -25,6 +25,11 @@ export interface ComposerState {
   pendingSteers: Record<string, PendingSteer[]>;
 }
 
+export type ComposerDraftState = Pick<
+  ComposerState,
+  "composerDraft" | "composerDraftByChatId" | "selectedSkills" | "selectedSkillsByChatId"
+>;
+
 export type ComposerAction =
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
   | { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
@@ -49,16 +54,46 @@ export function createInitialComposerState(): ComposerState {
   };
 }
 
-export function reduceComposerState(state: ComposerState, action: ComposerAction): ComposerState {
-  switch (action.type) {
-    case "SET_COMPOSER_DRAFT": return { ...state, composerDraft: action.draft };
-    case "SET_SELECTED_SKILLS": return { ...state, selectedSkills: action.skills };
-    case "SET_MENTION_OPEN": return { ...state, mentionOpen: action.open };
-    case "SET_MENTION_SUGGESTIONS": return { ...state, mentionSuggestions: action.agents };
-    case "SET_MENTION_ACTIVE_INDEX": return { ...state, mentionActiveIndex: action.index };
-    case "CLEAR_PENDING_STEERS": return { ...state, pendingSteers: {} };
-    case "ENQUEUE_PENDING_STEER":
-    case "UPDATE_PENDING_STEER_STATUS":
-    case "REMOVE_PENDING_STEER": return state;
-  }
+export function updateComposerDraft(
+  state: ComposerDraftState,
+  chatId: string,
+  draft: string,
+): Pick<ComposerDraftState, "composerDraft" | "composerDraftByChatId"> {
+  return {
+    composerDraft: draft,
+    composerDraftByChatId: { ...state.composerDraftByChatId, [chatId]: draft },
+  };
+}
+
+export function updateComposerSelectedSkills(
+  state: ComposerDraftState,
+  chatId: string,
+  skills: ComposerRequiredSkill[],
+): Pick<ComposerDraftState, "selectedSkills" | "selectedSkillsByChatId"> {
+  return {
+    selectedSkills: skills,
+    selectedSkillsByChatId: { ...state.selectedSkillsByChatId, [chatId]: skills },
+  };
+}
+
+export function switchComposerChat(
+  state: ComposerDraftState,
+  sourceChatId: string,
+  targetChatId: string,
+): ComposerDraftState {
+  // The empty chat ID is shared by all new conversations, including across Agents.
+  const chatChanged = sourceChatId !== targetChatId;
+  const composerDraftByChatId = chatChanged
+    ? { ...state.composerDraftByChatId, [sourceChatId]: state.composerDraft }
+    : state.composerDraftByChatId;
+  const selectedSkillsByChatId = chatChanged
+    ? { ...state.selectedSkillsByChatId, [sourceChatId]: state.selectedSkills }
+    : state.selectedSkillsByChatId;
+
+  return {
+    composerDraft: composerDraftByChatId[targetChatId] ?? "",
+    composerDraftByChatId,
+    selectedSkills: selectedSkillsByChatId[targetChatId] ?? [],
+    selectedSkillsByChatId,
+  };
 }
