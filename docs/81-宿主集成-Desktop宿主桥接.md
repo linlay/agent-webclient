@@ -47,7 +47,7 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 - Agents、Agent、Chats、Archives、Memory 等 capability 标记为 Platform WS 的数据请求复用 Frame Port；Automations、Admin/Registries、Project、上传下载和资源 Blob 保持普通 HTTP。Desktop 不再传递 `wsSource`。
 - Program manifest 只保留显式 HTTP `/api` 与独立可选 `/api/voice`；主 Platform request/response/stream/push 统一走 Main Broker Frame Port，guest 不声明 `/auth`、主 `/ws` 或 query/attach SSE。
 - Desktop 负责把 WebView 容器铺满主内容区，WebClient 的独立管理路由负责用页面布局填满 guest viewport；宿主不得注入 CSS 修补 guest 页面高度。
-- Desktop 的 Main Chat WorkPanel 按钮、presentation visibility 和 hide/show 语义属于宿主；WebClient 不维护 workspace/tab/visible 状态，也不借 Copilot Dock 代替该入口。
+- Desktop 的 Main Chat WorkPanel 按钮、presentation visibility 和 hide/show 语义属于宿主；WebClient 不维护 workspace/tab/visible 状态，也不借 Copilot Dock 代替该入口。Agent Chat 顶栏保留由 Debug 功能开关控制的调试按钮，通过既有 openTarget/WorkPanel bridge 打开当前 Chat 的 Debug item；它不承担整个 WorkPanel 的显隐控制。Settings Menu 与 Quick Actions 在 Desktop 模式下始终隐藏。
 - Program Bundle 的静态托管由 Desktop main process 负责，不在前端启动服务。
 - File、Artifact 与 Reference 的 Workspace、ChatScope、canonical path、symlink 和越界访问权限以 Platform 为唯一权威；WebClient 与 Desktop 仅做 descriptor/URL 结构校验，不复制权限规则。
 - `identity-center` 是 Desktop 侧的 token 签发基础，不作为 webclient 与 Desktop 的 postMessage 协议名称。

@@ -314,6 +314,30 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
       tab,
     });
   };
+  const debugButton = debugPanelEnabled ? (
+    <UiButton
+      className={TOP_NAV_DEBUG_BUTTON_CLASS}
+      size="sm"
+      variant="ghost"
+      iconOnly
+      aria-label={
+        surface !== "root"
+          ? t("copilot.panel.debug")
+          : ui.rightSidebarOpen
+            ? t("topNav.debug.close")
+            : t("topNav.debug.open")
+      }
+      active={
+        surface === "root" &&
+        state.rightSidebarOpen &&
+        state.rightSidebarOpenTab === "debug"
+      }
+      onClick={() => toggleRightSidebar("debug")}
+    >
+      <MaterialIcon name="bug_report" />
+    </UiButton>
+  ) : null;
+
   const statusLabel = t(statusText);
   const presentation = useConversationSurface();
   const statusTitle = statusDetail
@@ -352,7 +376,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
         </div>
 
         {hideDesktopAgentActions ? (
-          <div className={NAV_GROUP_CLASS} />
+          <div className={NAV_GROUP_CLASS}>{debugButton}</div>
         ) : (
           <div className={NAV_GROUP_CLASS}>
             {showProjectButton ? (
@@ -442,29 +466,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
               </UiButton>
             ) : null}
             <Divider type="vertical" />
-            {debugPanelEnabled ? (
-              <UiButton
-                className={TOP_NAV_DEBUG_BUTTON_CLASS}
-                size="sm"
-                variant="ghost"
-                iconOnly
-                aria-label={
-                  surface !== "root"
-                    ? t("copilot.panel.debug")
-                    : ui.rightSidebarOpen
-                      ? t("topNav.debug.close")
-                      : t("topNav.debug.open")
-                }
-                active={
-                  surface === "root" &&
-                  state.rightSidebarOpen &&
-                  state.rightSidebarOpenTab === "debug"
-                }
-                onClick={() => toggleRightSidebar("debug")}
-              >
-                <MaterialIcon name="bug_report" />
-              </UiButton>
-            ) : null}
+            {debugButton}
             {showTerminalButton ? (
               <UiButton
                 className={[
