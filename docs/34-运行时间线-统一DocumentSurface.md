@@ -21,7 +21,7 @@ Resource metadata 缺少权威 `X-Document-Kind` 时不把“缺字段”解释�
 - Markdown、文本和代码使用 Monaco。具备可视化预览的文档在首次打开或切换文档时默认进入预览。Markdown 只保留预览和源码两种模式：源码使用 Monaco 直接编辑，预览用于阅读和选区批注，不提供分屏，不执行 MDX 或内联 HTML 脚本。
 - 源码文本批注以 revision、line/column range 和 selected-text hash 锚定；Markdown 预览选区在能唯一对应原文时同时保留 line/column，格式化后无法直接对应的选区保留脱敏原文和 hash。本地编辑期间由 Monaco decoration 跟随，外部 revision 变更后显式失效。
 - PDF 使用本地 PDF.js 只读 Viewer，支持页码、缩放与搜索。
-- Office 可预览时只读预览，否则显示元信息和显式操作。音视频使用媒体播放器。压缩包和未知二进制不读为文本，也不自动下载。
+- DOCX 使用随 WebClient 分发的 docx-preview 与 JSZip 提供只读正文、表格、内嵌图片、分页和缩放。预览在不含 allow-same-origin 的 sandbox iframe 中执行，只允许带本次 nonce 的内置脚本；文档脚本、HTML altChunk、远端资源、表单和顶层导航均不可用。父页面通过当前 frame source 与随机 token 校验的窄消息通道交付鉴权读取的文件字节、页码和缩放命令；不向 iframe 暴露服务凭据或 Desktop bridge。压缩包预检约束原始/展开体积、条目数和加密状态，关闭或换文件取消读取并销毁 frame。原始文件下载与其他文档共用同一能力，Reference 原件不被修改。其他 Office 格式仍显示元信息和显式操作；DOCX 的复杂排版、特殊字体和自动分页不保证与 Word 完全一致。音视频使用媒体播放器。压缩包和未知二进制不读为文本，也不自动下载。
 - Standalone HTML 提供源码和 sandbox 预览；Standalone 图片对 PNG/JPEG/WebP 提供基础 Canvas 编辑和区域批注，其他格式保持只读。
 
 文档内容区不复用浏览器地址栏。文件名只显示在 WorkPanel Tab；Markdown 工具栏只包含预览/源码、预览选区批注和保存，文本/代码只包含批注和保存。保存统一先询问保存方式：Workspace File 默认并且只能覆盖原文件，Artifact 默认新建产物且可明确选择覆盖，Reference 只能新建产物。重新加载权威 revision 位于同一行的更多菜单，存在 dirty 修改时先确认丢弃。普通 Web、WebApp 与 loopback 实时网站仍保留刷新和地址栏。
@@ -35,3 +35,5 @@ Document Surface 向 Desktop 宿主只提交当前可信 WorkPanel item 的 dirt
 File descriptor 标题固定使用“显式 title > path basename > `file`”。basename 同时识别 POSIX、Windows 和 UNC 分隔符，但不对路径做 URL decode；标题仍通过既有空白、控制字符和长度清理。
 
 Desktop bridge v6 的 `openDocument` 只有在明确返回 `unsupported_native_type` 时才允许回退 WebClient。授权、缺失、路径、身份和 revision 错误全部 fail closed。`DESKTOP_APP=true` 且 canonical contract 不兼容时阻断业务 Surface，不降级 Standalone。
+
+上传 Reference 的语义相对路径允许 Chat 根目录的单个文件名，也兼容 `references/` 下的资源；来源身份不依赖必须存在某个目录前缀。非 Reference 不接受根目录路径，所有来源仍须经过 owner Chat、路径规范化和 realpath 边界校验。根目录 HTML Reference 只可读取自身，不因此获得其他 Chat 文件或相邻资源的读取权限。

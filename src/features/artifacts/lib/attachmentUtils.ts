@@ -104,6 +104,11 @@ export function getAttachmentKindLabel(
   attachment: AttachmentLike,
   t: Translate = runtimeT,
 ): string {
+  const extension = getAttachmentExtension(attachment.name);
+  if (["doc", "docx", "docm", "dotx"].includes(extension)) return "Word";
+  if (["xls", "xlsx", "xlsm"].includes(extension)) return "Excel";
+  if (["ppt", "pptx", "pptm"].includes(extension)) return "PowerPoint";
+  if (extension === "pdf") return "PDF";
   return t(
     isImageAttachment(attachment)
       ? "attachments.kind.image"

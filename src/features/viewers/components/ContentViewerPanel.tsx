@@ -43,6 +43,7 @@ import { DocumentTextEditor } from "@/features/viewers/components/DocumentTextEd
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
 import { StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
 import { isAppMode } from "@/shared/utils/routing";
+import { isDocxDocument } from "@/features/viewers/lib/docxPreview";
 import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
@@ -54,6 +55,11 @@ const PdfDocumentViewer = process.env.NODE_ENV === "test"
       const module = await import("@/features/viewers/components/PdfDocumentViewer");
       return { default: module.PdfDocumentViewer };
     });
+
+const DocxDocumentViewer = React.lazy(async () => {
+  const module = await import("@/features/viewers/components/DocxDocumentViewer");
+  return { default: module.DocxDocumentViewer };
+});
 
 const CONTENT_VIEWER_PANEL_CLASS_NAME =
   "content-viewer-panel tw:flex tw:h-full tw:flex-col";
@@ -300,7 +306,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   surfaceContext,
 }) => {
   const appState = useAppState();
-  const chatId = String(surfaceContext?.chatId ?? appState.chatId ?? "").trim();
+  const chatId = String(surfaceContext?.chatId ?? (target.type === "resource" ? target.source?.chatId : undefined) ?? appState.chatId ?? "").trim();
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
   const teamChat = surfaceContext?.teamChat ?? Boolean(
     currentChat?.owner?.kind === "orchestrated-team"
@@ -365,6 +371,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   });
   const mediaUrl = authenticatedResource.url;
   const viewerName = workspaceFileResponse?.name || target.name;
+  const docxPreview = documentKind === "document-office" && isDocxDocument(viewerName);
   const fileHtml = resolveFileViewerHtml(
     workspaceFileResponse,
   );
@@ -690,11 +697,11 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     () => buildViewerTextLines(textContent, targetLine),
     [targetLine, textContent],
   );
-  const metadataOnly = documentKind === "document-office" ||
+  const metadataOnly = (documentKind === "document-office" && !docxPreview) ||
     documentKind === "document-archive" || documentKind === "document-binary";
   const unsupportedTextEncoding = documentKind === "document-binary" &&
     isKnownTextDocumentName(viewerName);
-  const viewable = isViewerContentSupported(contentKind) || metadataOnly;
+  const viewable = isViewerContentSupported(contentKind) || metadataOnly || docxPreview;
   const desktopLocalResourceIdentity = target.type === "resource"
     ? resolveDesktopCurrentResourceIdentity(chatId, target.url)
     : null;
@@ -731,10 +738,17 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
 
   return (
     <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
-      {localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+      {!docxPreview && localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
         ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} />
         : null}
       {viewable ? <div key={documentReloadRequest} className={CONTENT_VIEWER_BODY_CLASS_NAME}>
+        {docxPreview ? (
+          viewerUrl ? <React.Suspense fallback={<div role="status" className={CONTENT_VIEWER_STATUS_CLASS_NAME}>{t("contentViewer.docx.loading")}</div>}>
+            <DocxDocumentViewer key={`${chatId}:${viewerUrl}`} url={viewerUrl} name={viewerName} chatId={chatId} teamChat={teamChat}
+              sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
+              onDownload={handleDownload} />
+          </React.Suspense> : <div role={textError ? "alert" : "status"} className={CONTENT_VIEWER_STATUS_CLASS_NAME}>{textError || t("contentViewer.docx.loading")}</div>
+        ) : null}
         {contentKind === "image" && mediaUrl && browserImageEditable && imageCommitSource ? (
           <BrowserImageEditor
             url={mediaUrl}

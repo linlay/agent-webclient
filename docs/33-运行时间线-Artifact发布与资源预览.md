@@ -20,7 +20,7 @@ Desktop 的展示所有权按权威内容类型分流：Main Chat、Project、Ar
 
 Artifact、Reference、普通附件和回答 Markdown 中的文件链接都以 Viewer 为唯一左键入口。`artifacts/...`、`docs/...`、普通文件名等安全相对路径按当前 `chatId` 解释为 ChatScope 资源，打开 Resource Viewer；绝对 Workspace 路径仍打开 File Viewer。原链接、卡片、Viewer 根节点和 Viewer Tab 暴露右键下载 capability，Viewer 内不显示下载工具栏。左键打开失败、内容加载失败或文件类型不受支持时都不得自动触发下载。
 
-Markdown、文本与代码使用 Monaco，PDF 使用 PDF.js，音视频使用浏览器媒体播放器。Office、压缩包和其他未知二进制保留只读元信息状态，不发起伪文本预览。Desktop 中的 Document Surface 可渲染“在 Finder/文件资源管理器中显示”和“用默认应用打开”，纯浏览器不渲染 Desktop-only 操作。宿主请求不携带绝对路径，并由 owner Chat 和当前可信 descriptor 双重校验。
+Markdown、文本与代码使用 Monaco，PDF 使用 PDF.js，音视频使用浏览器媒体播放器。DOCX 使用统一 Document Surface 的隔离只读查看器；其他 Office、压缩包和未知二进制保留元信息状态，不发起伪文本预览。Desktop 中的 Document Surface 可渲染“在 Finder/文件资源管理器中显示”和“用默认应用打开”，纯浏览器不渲染 Desktop-only 操作。宿主请求不携带绝对路径，并由 owner Chat 和当前可信 descriptor 双重校验。
 
 Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器中显示、用默认应用打开 / 关闭”分组，以分隔线区分；打开菜单时隐藏标签悬浮提示，提示只保留文件名和大小。元信息卡展示名称、易读的文件大小与 MIME，大小按十进制单位换算（如 36,800 字节显示为 36.8 kB），不显示“Office 文档（只读）”副标题或本地副本说明。MIME 标签与值同行，值保持单行，超长时省略并可悬停查看完整值。四个按钮位于信息卡片内的下方，以适中宽度居中排列，不撑满卡片，依次为“在线预览（规划中）”、下载、Finder（其他系统使用相应文件管理器）、默认应用，每行一个；在线预览为禁用占位。两个本机操作复用 WebClient 本机文件服务，不依赖 Desktop 桥接。刷新重新读取文件与元信息，并更新媒体 Blob；存在未保存的编辑或批注时先确认丢弃，取消则保留当前内容。
 

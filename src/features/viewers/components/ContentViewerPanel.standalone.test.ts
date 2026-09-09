@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { DocxDocumentViewer } from "./DocxDocumentViewer";
 import { ContentViewerPanel } from "./ContentViewerPanel";
 import { DocumentTextEditor } from "./DocumentTextEditor";
 import { getAgentFile } from "@/shared/data";
@@ -14,6 +15,7 @@ jest.mock("@/app/state/AppContext", () => ({ useAppState: () => ({ chatId: "chat
 jest.mock("@/shared/data", () => ({ getAgentFile: jest.fn() }));
 jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({ useAuthenticatedResourceUrl: jest.fn(() => ({ url: "", loading: false, error: null })) }));
 jest.mock("./DocumentTextEditor", () => ({ DocumentTextEditor: jest.fn(() => null) }));
+jest.mock("./DocxDocumentViewer", () => ({ DocxDocumentViewer: jest.fn(() => null) }));
 jest.mock("./BrowserImageEditor", () => ({ BrowserImageEditor: () => null }));
 jest.mock("@/features/viewers/lib/viewerRuntime", () => ({
   downloadViewerTarget: jest.fn(), openStandaloneViewerTarget: jest.fn(), readViewerResourceMetadata: jest.fn(),
@@ -23,8 +25,8 @@ jest.mock("@/shared/data/standalone/standaloneFileActions", () => ({
 }));
 
 const target: ViewerTarget = {
-  type: "resource", name: "项目立项建议书.docx", url: "artifacts/report.docx",
-  downloadUrl: "artifacts/report.docx", contentKind: "office",
+  type: "resource", name: "项目立项建议书.doc", url: "artifacts/report.doc",
+  downloadUrl: "artifacts/report.doc", contentKind: "office",
 };
 const capabilities = { token: "token", platform: "darwin" as const, maxBytes: 1024 };
 
@@ -55,6 +57,17 @@ describe("standalone document panel", () => {
       React.createElement(ContentViewerPanel, { target: nextTarget, refreshRequest }),
     )));
   }
+
+  it("opens uploaded DOCX in the shared readonly viewer using its owning Chat", async () => {
+    const reference: ViewerTarget = {
+      type: "resource", name: "申请表.docx", url: "申请表.docx", downloadUrl: "申请表.docx", contentKind: "office",
+      source: { kind: "reference", agentKey: "agent-1", chatId: "upload-chat", resourceId: "upload-1", relativePath: "申请表.docx" },
+    };
+    await render(0, reference);
+    expect(jest.mocked(DocxDocumentViewer).mock.calls.at(-1)![0]).toMatchObject({ url: "申请表.docx", chatId: "upload-chat", name: "申请表.docx" });
+    expect(container.textContent).not.toContain("在线预览（规划中）");
+    expect(readViewerResourceMetadata).toHaveBeenCalledWith("申请表.docx", "upload-chat", expect.any(AbortSignal), false);
+  });
 
   it("offers a planned preview and routes all three working buttons to the selected file", async () => {
     await render();

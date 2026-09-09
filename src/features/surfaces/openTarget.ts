@@ -513,7 +513,8 @@ function decodeNativeResourceRelativePath(
     segments.push(segment);
   }
   const expectedRoot = profile === "artifact" ? "artifacts" : "references";
-  return segments.length >= 2 && segments[0] === expectedRoot ? segments.join("/") : "";
+  const rootReference = profile === "reference" && segments.length === 1;
+  return rootReference || (segments.length >= 2 && segments[0] === expectedRoot) ? segments.join("/") : "";
 }
 
 export function buildDesktopNativeResourceRequest(

@@ -104,10 +104,23 @@
 }
 
 .attachment-card-title {
+    display: flex;
     font-size: 13px;
     font-weight: 700;
     line-height: 1.2;
     color: var(--ink-1);
+}
+
+.attachment-card-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.attachment-card-extension { flex: 0 0 auto; }
+.attachment-card.is-interactive:hover .attachment-card-file-shell {
+    border-color: var(--accent-electric);
+}
+.attachment-card-composer:focus-within .attachment-card-remove {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: scale(1);
 }
 
 .attachment-card-subtitle {
