@@ -386,6 +386,17 @@ export async function fetchAdminSkillIcon(
   if (!/^\/api\/admin\/skills\/file\/download(?:[?#]|$)/.test(path)) {
     throw new ApiError("skill icon URL is invalid");
   }
+  return fetchSkillIcon(path, options);
+}
+
+export async function fetchSkillIcon(
+  url: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<Blob> {
+  const path = url.trim();
+  if (path.includes("#") || ![dataEndpoints.agentSkillIcon.path, dataEndpoints.adminSkillFileDownload.path].includes(path.split("?", 1)[0])) {
+    throw new ApiError("skill icon URL is invalid");
+  }
   const response = await requestWithAuth(path, {
     method: "GET",
     signal: options.signal,

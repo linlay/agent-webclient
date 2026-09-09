@@ -10,6 +10,7 @@ import type { DataQueryStatus } from "@/shared/data/query/serverState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
+import { SkillIcon } from "@/features/skills/components/SkillIcon";
 
 const SLASH_COMMAND_POPOVER_CLASS =
   "slash-command-popover tw:max-h-[min(360px,calc(100vh-120px))] tw:overflow-auto tw:rounded-panel tw:border tw:border-line-soft tw:bg-bg-base";
@@ -156,10 +157,7 @@ export const SlashPaletteContent: React.FC<{
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onSelectSkill(skill)}
             >
-              <MaterialIcon
-                name="skills"
-                className="ui-icon-hover-24 tw:text-accent"
-              />
+              <SkillIcon icon={skill.icon} size={24} />
               <span className={SLASH_COMMAND_LABEL_CLASS}>{skill.label}</span>
               <Typography.Text
                 className={SLASH_COMMAND_DESCRIPTION_CLASS}

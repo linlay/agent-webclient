@@ -54,6 +54,7 @@ export interface AgentDetailResponse {
 export interface AgentSkill {
   key: string;
   name: string;
+  icon?: string;
   description?: string;
   agentHasSkill: boolean;
 }

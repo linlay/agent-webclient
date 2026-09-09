@@ -19,6 +19,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
+import { SkillIcon } from "@/features/skills/components/SkillIcon";
 
 type Section = "files" | "mode" | "skills" | "connectors" | "commands" | "chat" | "site";
 export interface AddMenuTriggerProps {
@@ -247,7 +248,7 @@ const AddMenuSectionDetail: React.FC<
           {filteredSkills.map((skill) =>
             item(
               <>
-                <MaterialIcon name="skills" />
+                <SkillIcon icon={skill.icon} />
                 <span className="composer-add-menu-item-copy">
                   <b>{skill.name || skill.key}</b>
                   <small>

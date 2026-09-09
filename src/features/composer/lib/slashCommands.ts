@@ -200,6 +200,7 @@ export function getFilteredSlashSkills(
       kind: 'skill',
       key,
       name: name || key,
+      ...(skill.icon ? { icon: skill.icon } : {}),
       label: name || key,
       description,
       agentHasSkill: skill.agentHasSkill === true,
