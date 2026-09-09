@@ -6,6 +6,18 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./StandaloneDocumentPanel.module.css";
 
+function formatFileSize(sizeBytes: number | undefined, locale: string): string {
+  if (sizeBytes === undefined || !Number.isFinite(sizeBytes) || sizeBytes < 0) return "–";
+  const units = ["B", "kB", "MB", "GB", "TB", "PB"];
+  let value = sizeBytes;
+  let unit = 0;
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000;
+    unit += 1;
+  }
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)} ${units[unit]}`;
+}
+
 export const StandaloneDocumentPanel: React.FC<{
   target: ViewerTarget;
   chatId: string;
@@ -19,7 +31,7 @@ export const StandaloneDocumentPanel: React.FC<{
   const { t, locale } = useI18n();
   const localActions = useStandaloneViewerActions(target, chatId, teamChat);
   const [downloading, setDownloading] = React.useState(false);
-  const size = sizeBytes === undefined ? "–" : new Intl.NumberFormat(locale).format(sizeBytes);
+  const size = formatFileSize(sizeBytes, locale);
   const download = async () => {
     setDownloading(true);
     try { await onDownload(); }
@@ -36,7 +48,7 @@ export const StandaloneDocumentPanel: React.FC<{
           </div>
         </div>
         <dl className={styles.metadata}>
-          <dt>{t("contentViewer.metadata.size")}</dt><dd>{size}</dd>
+          <dt>{t("contentViewer.metadata.fileSize")}</dt><dd>{size}</dd>
           <dt>MIME</dt><dd className={styles.mime} title={mimeType}>{mimeType}</dd>
         </dl>
         {note ? <p className={styles.note}>{note}</p> : null}

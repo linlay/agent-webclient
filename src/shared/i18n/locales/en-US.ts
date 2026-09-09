@@ -776,6 +776,7 @@ export const enUSMessages = {
   "contentViewer.save.conflict": "The file changed elsewhere. Reload it before saving again.",
   "contentViewer.metadata.type": "Type",
   "contentViewer.metadata.size": "Size (bytes)",
+  "contentViewer.metadata.fileSize": "Size",
   "contentViewer.metadata.document-office": "Office document (read-only)",
   "contentViewer.metadata.document-archive": "Archive (read-only)",
   "contentViewer.metadata.document-binary": "Binary file (read-only)",

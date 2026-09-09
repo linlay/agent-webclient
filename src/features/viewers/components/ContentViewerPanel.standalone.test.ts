@@ -63,7 +63,7 @@ describe("standalone document panel", () => {
       "在线预览（规划中）", "下载", "在 Finder 中显示", "用默认应用打开",
     ]);
     expect(buttons[0].disabled).toBe(true);
-    expect(container.textContent).toContain("36,800");
+    expect(container.textContent).toContain("36.8 kB");
     await act(async () => buttons[1].click());
     expect(downloadViewerTarget).toHaveBeenCalledWith(target, { chatId: "chat-1", teamChat: false });
     for (const [index, action] of [[2, "reveal"], [3, "open-default"]] as const) {
@@ -77,7 +77,7 @@ describe("standalone document panel", () => {
     jest.mocked(readViewerResourceMetadata).mockResolvedValue({ documentKind: "document-office", sizeBytes: 41000 } as never);
     await render(1);
     expect(readViewerResourceMetadata).toHaveBeenCalledTimes(2);
-    expect(container.textContent).toContain("41,000");
+    expect(container.textContent).toContain("41 kB");
     expect(jest.mocked(useAuthenticatedResourceUrl).mock.calls.at(-1)![2]!.refreshKey).toBeTruthy();
     await render(1);
     expect(readViewerResourceMetadata).toHaveBeenCalledTimes(2);

@@ -43,9 +43,9 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px 16px;
-  margin: 20px 0;
-  padding: 16px 0;
-  border-block: 1px solid var(--line-soft);
+  margin: 20px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line-soft);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -53,6 +53,6 @@
 .metadata dt { color: var(--ink-muted); }
 .metadata dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .mime { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-muted); }
-.actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; width: min(100%, 240px); margin: 24px auto 0; }
 .actions :global(.ant-btn) { height: auto; min-height: 36px; padding: 7px 10px; font-size: 13px; white-space: normal; }
-.note { margin: 0 0 16px; color: var(--ink-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.note { margin: 16px 0 0; color: var(--ink-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }

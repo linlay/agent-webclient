@@ -776,6 +776,7 @@ export const zhCNMessages = {
   "contentViewer.save.conflict": "文件已在其他位置修改，请重新加载后再保存。",
   "contentViewer.metadata.type": "类型",
   "contentViewer.metadata.size": "大小（字节）",
+  "contentViewer.metadata.fileSize": "大小",
   "contentViewer.metadata.document-office": "Office 文档（只读）",
   "contentViewer.metadata.document-archive": "压缩包（只读）",
   "contentViewer.metadata.document-binary": "二进制文件（只读）",

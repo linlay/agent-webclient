@@ -22,7 +22,7 @@ Artifact、Reference、普通附件和回答 Markdown 中的文件链接都以 V
 
 Markdown、文本与代码使用 Monaco，PDF 使用 PDF.js，音视频使用浏览器媒体播放器。Office、压缩包和其他未知二进制保留只读元信息状态，不发起伪文本预览。Desktop 中的 Document Surface 可渲染“在 Finder/文件资源管理器中显示”和“用默认应用打开”，纯浏览器不渲染 Desktop-only 操作。宿主请求不携带绝对路径，并由 owner Chat 和当前可信 descriptor 双重校验。
 
-Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器中显示、用默认应用打开 / 关闭”分组，以分隔线区分；打开菜单时隐藏标签悬浮提示，提示只保留文件名和大小。元信息卡展示名称、字节大小与 MIME，不显示“Office 文档（只读）”副标题或本地副本说明。MIME 标签与值同行，值保持单行，超长时省略并可悬停查看完整值。四个按钮依次为“在线预览（规划中）”、下载、Finder（其他系统使用相应文件管理器）、默认应用，每行一个；在线预览为禁用占位。两个本机操作复用 WebClient 本机文件服务，不依赖 Desktop 桥接。刷新重新读取文件与元信息，并更新媒体 Blob；存在未保存的编辑或批注时先确认丢弃，取消则保留当前内容。
+Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器中显示、用默认应用打开 / 关闭”分组，以分隔线区分；打开菜单时隐藏标签悬浮提示，提示只保留文件名和大小。元信息卡展示名称、易读的文件大小与 MIME，大小按十进制单位换算（如 36,800 字节显示为 36.8 kB），不显示“Office 文档（只读）”副标题或本地副本说明。MIME 标签与值同行，值保持单行，超长时省略并可悬停查看完整值。四个按钮位于信息卡片内的下方，以适中宽度居中排列，不撑满卡片，依次为“在线预览（规划中）”、下载、Finder（其他系统使用相应文件管理器）、默认应用，每行一个；在线预览为禁用占位。两个本机操作复用 WebClient 本机文件服务，不依赖 Desktop 桥接。刷新重新读取文件与元信息，并更新媒体 Blob；存在未保存的编辑或批注时先确认丢弃，取消则保留当前内容。
 
 Artifact、普通附件和回答 Markdown 中的受保护图片、PDF、音视频先使用 Bearer/Cookie fetch 获得后端原始 MIME Blob，再创建短生命周期 object URL 交给媒体元素；卸载或 URL 变化时通过 effect cleanup revoke，同时用 AbortController 取消过期请求。HTML Resource Viewer 则通过同一鉴权 API 读取完整文本并以不带 `allow-same-origin` 的 sandbox `srcDoc` 展示，使 Desktop 可注入受限的元素批注消息桥而不放宽 iframe 隔离；HTML iframe 使用无内边距内容槽贴边展示，页面本身的 body margin 仍按原文保留。受 CORS 限制而无法读取文本的外部 HTML 仍可回退到原 sandbox URL 只读预览，但不声明批注 capability。新 `publishedArtifacts[].url` 形如 `artifacts/run_01/poster.png`。历史 `/api/resource?file=...` Markdown 被分类为非法，不再预览或下载；外部 HTTP(S) 图片继续直接使用外链，跨域下载不发送平台 Bearer，`data:` 与 `blob:` 原样展示。
 
