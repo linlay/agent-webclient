@@ -237,6 +237,13 @@ export function getSkillOrder(): Promise<ApiResponse<SkillOrderResponse>> {
 	return routeEndpoint(dataEndpoints.skillOrder, undefined, getSkillOrderHttp);
 }
 
+export function invalidateAgentSkills(agentKey: string): void {
+	dataQueryCache.invalidate(createRouteCacheKey(
+		dataEndpoints.agentSkills,
+		resolveEndpointPayload(dataEndpoints.agentSkills, agentKey),
+	));
+}
+
 export function putSkillOrder(params: UpdateSkillOrderRequest): Promise<ApiResponse<SkillOrderResponse>> {
 	return routeEndpoint(dataEndpoints.skillOrderUpdate, params, () => putSkillOrderHttp(params));
 }

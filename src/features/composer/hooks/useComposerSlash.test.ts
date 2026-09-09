@@ -4,8 +4,8 @@ import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 
 const useAgentSkillsQueryMock = jest.fn();
 
-jest.mock("@/shared/data/query/queries", () => ({
-  useAgentSkillsQuery: (...args: unknown[]) => useAgentSkillsQueryMock(...args),
+jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
+  useComposerSkillMenuQuery: (...args: unknown[]) => useAgentSkillsQueryMock(...args),
 }));
 
 function renderSlashHook(input: { inputValue: string; currentAgentKey: string }) {

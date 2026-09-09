@@ -25,8 +25,8 @@ const skills = [
   { key: "slides", name: "Slides", description: "Create documents", agentHasSkill: false },
 ];
 
-jest.mock("@/shared/data/query/queries", () => ({
-  useAgentSkillsQuery: () => ({ status: "success", data: { skills }, error: null, refetch: jest.fn() }),
+jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
+  useComposerSkillMenuQuery: () => ({ status: "success", data: { skills }, error: null, refetch: jest.fn() }),
 }));
 jest.mock("@/features/connectors/components/AgentConnectorPicker", () => ({ AgentConnectorPicker: () => null }));
 jest.mock("@/features/skills/components/SkillIcon", () => ({ SkillIcon: () => null }));
