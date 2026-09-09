@@ -41,6 +41,8 @@ import {
 } from "@/shared/data/desktop/desktopCurrentResourceAction";
 import { DocumentTextEditor } from "@/features/viewers/components/DocumentTextEditor";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
+import { StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
+import { isAppMode } from "@/shared/utils/routing";
 import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
@@ -107,6 +109,7 @@ interface ContentViewerPanelProps {
   target: ViewerTarget;
   showLineNumbers?: boolean;
   fullscreenRequest?: number;
+  refreshRequest?: number;
   enableDesktopCurrentResourceDownload?: boolean;
   enableDesktopLocalResourceActions?: boolean;
   enableDesktopPreviewReview?: boolean;
@@ -290,6 +293,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   target,
   showLineNumbers = false,
   fullscreenRequest,
+  refreshRequest = 0,
   enableDesktopCurrentResourceDownload = false,
   enableDesktopLocalResourceActions = false,
   enableDesktopPreviewReview = false,
@@ -355,7 +359,10 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const mediaSource = ["image", "pdf", "html", "audio", "video"].includes(contentKind)
     ? viewerUrl
     : "";
-  const authenticatedResource = useAuthenticatedResourceUrl(mediaSource, chatId, { teamChat });
+  const authenticatedResource = useAuthenticatedResourceUrl(mediaSource, chatId, {
+    teamChat,
+    refreshKey: documentReloadRequest ? `${contextTargetId}:${documentReloadRequest}` : undefined,
+  });
   const mediaUrl = authenticatedResource.url;
   const viewerName = workspaceFileResponse?.name || target.name;
   const fileHtml = resolveFileViewerHtml(
@@ -588,11 +595,19 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     Boolean(imageCommitSource && documentRevision);
   const documentDirty = editableTextDocument && textContent !== savedTextContent;
   const handleDocumentReload = React.useCallback(() => {
-    if (documentDirty && !window.confirm(t("contentViewer.reload.confirmDiscard"))) {
+    if (documentSaving || browserImageState.busy) return;
+    if ((documentDirty || browserImageState.dirty || documentAnnotationCount > 0 || browserImageState.annotationCount > 0)
+      && !window.confirm(t("contentViewer.reload.confirmDiscard"))) {
       return;
     }
     setDocumentReloadRequest((current) => current + 1);
-  }, [documentDirty]);
+  }, [documentDirty, documentSaving, documentAnnotationCount, browserImageState]);
+  const lastRefreshRequest = React.useRef(refreshRequest);
+  React.useEffect(() => {
+    if (lastRefreshRequest.current === refreshRequest) return;
+    lastRefreshRequest.current = refreshRequest;
+    handleDocumentReload();
+  }, [refreshRequest, handleDocumentReload]);
   const canSaveDocument = editableTextDocument && !textTruncated && Boolean(
     documentRevision && (target.type === "file" || resourceSource),
   );
@@ -719,7 +734,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
       {localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
         ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} />
         : null}
-      {viewable ? <div className={CONTENT_VIEWER_BODY_CLASS_NAME}>
+      {viewable ? <div key={documentReloadRequest} className={CONTENT_VIEWER_BODY_CLASS_NAME}>
         {contentKind === "image" && mediaUrl && browserImageEditable && imageCommitSource ? (
           <BrowserImageEditor
             url={mediaUrl}
@@ -748,6 +763,16 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
         ) : null}
 
         {metadataOnly ? (
+          !isAppMode() ? <StandaloneDocumentPanel
+            target={target}
+            chatId={chatId}
+            teamChat={teamChat}
+            name={viewerName}
+            mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
+            sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
+            note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
+            onDownload={handleDownload}
+          /> :
           <div className="tw:flex tw:min-h-[360px] tw:flex-1 tw:items-center tw:justify-center tw:p-6">
             <div className="tw:w-full tw:max-w-md tw:rounded-xl tw:border tw:border-line-soft tw:bg-bg-elev-1 tw:p-5">
               <div className="tw:mb-4 tw:text-base tw:font-semibold tw:text-ink-1">{viewerName}</div>

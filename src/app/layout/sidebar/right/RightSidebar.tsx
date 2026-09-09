@@ -98,16 +98,12 @@ function getWebUrlFromTabKey(key: string): string {
 }
 
 const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
-  const typeLabel = target.type === "resource" ? target.mimeType || "" : "";
   const sizeBytes = target.type === "resource" ? target.sizeBytes : undefined;
   const sizeLabel = useMemo(() => formatAttachmentSize(sizeBytes), [sizeBytes]);
   return (
-    <div>
+    <div className="tw:max-w-[280px] tw:break-words tw:[overflow-wrap:anywhere]">
       <div>{target.name}</div>
-      <Flex gap={10}>
-        {typeLabel ? <div>{typeLabel}</div> : null}
-        {sizeLabel ? <div>{sizeLabel}</div> : null}
-      </Flex>
+      {sizeLabel ? <div className="tw:mt-1 tw:text-xs tw:opacity-70">{sizeLabel}</div> : null}
     </div>
   );
 };
@@ -194,6 +190,8 @@ export const RightSidebar: React.FC = () => {
   const [tabFullscreenRequests, setTabFullscreenRequests] = React.useState<
     Record<string, number>
   >({});
+  const [tabRefreshRequests, setTabRefreshRequests] = React.useState<Record<string, number>>({});
+  const [viewerContextMenuKey, setViewerContextMenuKey] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -229,6 +227,7 @@ export const RightSidebar: React.FC = () => {
         }
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
       } else if (typeof key === "string" && key.startsWith("viewer:")) {
+        setViewerContextMenuKey(null);
         const viewerKeyToRemove = key.slice("viewer:".length);
         const remaining = viewerTabs.filter(
           (target) => getViewerTargetKey(target) !== viewerKeyToRemove,
@@ -436,6 +435,9 @@ export const RightSidebar: React.FC = () => {
           <Tooltip
             title={<ViewerTabTooltip target={target} />}
             placement="rightTop"
+            open={viewerContextMenuKey ? false : undefined}
+            mouseEnterDelay={0.4}
+            zIndex={1000}
           >
             <Flex align="center" gap={4}>
               <MaterialIcon name="visibility" />
@@ -449,6 +451,7 @@ export const RightSidebar: React.FC = () => {
           <ContentViewerPanel
             target={target}
             enableDesktopLocalResourceActions
+            refreshRequest={tabRefreshRequests[`viewer:${viewerKey}`] ?? 0}
             fullscreenRequest={
               tabFullscreenRequests[`viewer:${viewerKey}`] ?? 0
             }
@@ -513,6 +516,8 @@ export const RightSidebar: React.FC = () => {
     skillTabs,
     state.webPreviewRefreshRevisionByUrl,
     tabFullscreenRequests,
+    tabRefreshRequests,
+    viewerContextMenuKey,
   ]);
 
   const handleTabChange = React.useCallback(
@@ -606,6 +611,14 @@ export const RightSidebar: React.FC = () => {
                       chatId={state.chatId}
                       teamChat={teamChat}
                       onDownload={() => handleViewerDownload(target)}
+                      onRefresh={() => {
+                        setTabRefreshRequests((prev) => ({
+                          ...prev,
+                          [tabKey]: (prev[tabKey] ?? 0) + 1,
+                        }));
+                      }}
+                      onOpenChange={(open) => setViewerContextMenuKey((current) =>
+                        open ? tabKey : current === tabKey ? null : current)}
                       onFullscreen={() => {
                         setTabFullscreenRequests((prev) => ({
                           ...prev,

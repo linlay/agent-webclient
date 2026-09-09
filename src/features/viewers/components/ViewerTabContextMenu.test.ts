@@ -21,7 +21,7 @@ const target: ViewerTarget = {
   downloadUrl: "artifacts/run-1/manual.docx", contentKind: "office",
 };
 const capabilities = { token: "token", platform: "darwin" as const, maxBytes: 1024 };
-const callbacks = { onDownload: jest.fn(), onFullscreen: jest.fn(), onClose: jest.fn() };
+const callbacks = { onDownload: jest.fn(), onRefresh: jest.fn(), onFullscreen: jest.fn(), onClose: jest.fn(), onOpenChange: jest.fn() };
 function dropdown() { return jest.mocked(Dropdown).mock.calls.at(-1)![0]; }
 function items() {
   return dropdown().menu!.items as Array<{
@@ -72,20 +72,23 @@ describe("standalone viewer tab menu", () => {
     jest.mocked(getStandaloneFileCapabilities).mockReturnValue(checking.promise);
     await render();
     await openMenu();
-    expect(items().map((entry) => entry.key)).toEqual(["download", "reveal", "open-default", "fullscreen", "close"]);
+    expect(items().map((entry) => entry.key)).toEqual(["refresh", "fullscreen", "external-divider", "reveal", "open-default", "close-divider", "close"]);
+    expect(item("external-divider")).toMatchObject({ type: "divider" });
+    expect(item("close-divider")).toMatchObject({ type: "divider" });
     expect(item("reveal").disabled).toBe(true);
     expect(item("reveal").title).toContain("正在连接");
     await act(async () => checking.resolve(capabilities));
     expect(item("reveal").label).toBe("在 Finder 中显示");
     expect(item("open-default").label).toBe("用默认应用打开");
     expect(item("reveal").disabled).toBe(false);
-    expect(item("reveal").title).toContain("本地副本");
+    expect(item("reveal").title).toBeUndefined();
     for (const action of ["reveal", "open-default"]) {
       await act(async () => item(action).onClick());
       expect(openStandaloneViewerTarget).toHaveBeenLastCalledWith(action, target, { chatId: "chat-1", teamChat: true }, capabilities);
     }
-    ["download", "fullscreen", "close"].forEach((key) => item(key).onClick());
-    Object.values(callbacks).forEach((callback) => expect(callback).toHaveBeenCalledTimes(1));
+    ["refresh", "fullscreen", "close"].forEach((key) => item(key).onClick());
+    [callbacks.onRefresh, callbacks.onFullscreen, callbacks.onClose].forEach((callback) => expect(callback).toHaveBeenCalledTimes(1));
+    expect(callbacks.onDownload).not.toHaveBeenCalled();
   });
 
   it.each(["win32", "linux"] as const)("uses the service platform %s for the label", async (platform) => {
@@ -102,6 +105,19 @@ describe("standalone viewer tab menu", () => {
     await openMenu();
     expect(items().map((entry) => entry.key)).toEqual(["download", "fullscreen", "close"]);
     expect(getStandaloneFileCapabilities).not.toHaveBeenCalled();
+  });
+
+  it("coordinates hover suppression on opening, selection, and dismissal", async () => {
+    await render();
+    await openMenu();
+    expect(dropdown().open).toBe(true);
+    expect(callbacks.onOpenChange).toHaveBeenLastCalledWith(true);
+    await act(async () => dropdown().menu!.onClick!({ key: "fullscreen" } as never));
+    expect(dropdown().open).toBe(false);
+    expect(callbacks.onOpenChange).toHaveBeenLastCalledWith(false);
+    await openMenu();
+    await openMenu(false);
+    expect(callbacks.onOpenChange).toHaveBeenLastCalledWith(false);
   });
 
   it("keeps actions visible with an explanation if the service needs restarting", async () => {
