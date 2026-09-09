@@ -198,7 +198,7 @@ describe("whole conversation surface navigation", () => {
   });
   function expectMasked() {
     expect(container.querySelector(".conversation-transition-overlay")).not.toBeNull();
-    expect(container.querySelector('[data-conversation-skeleton="artifacts"]')).not.toBeNull();
+    expect(container.querySelector('[data-conversation-skeleton="artifacts"]')).toBeNull();
     expect(container.querySelector('[data-conversation-skeleton="plan-tasks"]')).not.toBeNull();
     expect(container.querySelector(".floating-artifact")).toBeNull();
     expect(container.querySelector(".floating-plan")).toBeNull();

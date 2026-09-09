@@ -36,10 +36,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 		<div className={BOTTOM_DOCK_CLASS_BY_MODE[mode]}>
 			<div className={BOTTOM_DOCK_INNER_CLASS_BY_MODE[mode]}>
 				<div className={BOTTOM_DOCK_STACK_CLASS_BY_MODE[mode]}>
-					{transitionBlocking && !presentation?.error && <>
-						<ConversationRegionSkeleton region="artifacts" phase={presentation?.phase} />
+					{transitionBlocking && !presentation?.error && (
 						<ConversationRegionSkeleton region="plan-tasks" phase={presentation?.phase} />
-					</>}
+					)}
 					{!transitionBlocking && (
 						<div className="bottom-dock-artifact-rail">
 							<ArtifactPanel />

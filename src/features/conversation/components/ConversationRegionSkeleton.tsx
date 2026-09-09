@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./ConversationSurface.module.css";
 
 export function ConversationRegionSkeleton({ region, phase = "visible" }: {
-  region: "artifacts" | "plan-tasks" | "header";
+  region: "plan-tasks" | "header";
   phase?: "visible" | "exiting";
 }) {
   return <div className={styles.skeleton} data-conversation-skeleton={region}
