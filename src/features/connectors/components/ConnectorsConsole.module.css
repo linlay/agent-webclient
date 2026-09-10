@@ -43,6 +43,7 @@
 .formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
 .jsonEditor { height: clamp(320px, 55vh, 640px); min-width: 0; position: relative; overflow: hidden; border-radius: 6px; }
+.deleteAction { margin-left: auto; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 0; }
 .error { color: var(--accent-danger); font-size: 12px; line-height: 1.6; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 8px; overflow-wrap: anywhere; }
 .notice { color: var(--ink-1); background: var(--bg-hover); padding: 10px 12px; border-radius: 8px; font-size: 12px; }

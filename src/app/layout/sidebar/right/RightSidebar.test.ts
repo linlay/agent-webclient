@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { I18nProvider } from "@/shared/i18n";
+import { getDocumentPreviewTabKey, type DocumentPreviewTabState } from "@/features/viewers/lib/documentPreview";
+import { getViewerTargetKey, type ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
@@ -78,6 +80,10 @@ jest.mock("@/features/skills/components/SkillDetailView", () => ({
 
 jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({
   ContentViewerPanel: () => React.createElement("div", null, "viewer tab"),
+}));
+
+jest.mock("@/features/viewers/components/OnlineDocumentPreviewTab", () => ({
+  OnlineDocumentPreviewTab: () => React.createElement("div", null, "online preview tab"),
 }));
 
 jest.mock("@/features/viewers/components/ViewerTabContextMenu", () => ({
@@ -185,6 +191,33 @@ describe("RightSidebar", () => {
     expect(html).toContain("概览");
     expect(html).not.toContain("调试");
     expect(html).not.toContain("debug tab");
+  });
+
+  it("opens a separate online preview tab and routes selection, back and close independently", () => {
+    const target: ViewerTarget = { type: "file", name: "report.xlsx", agentKey: "coder", path: "report.xlsx", contentKind: "office" };
+    const preview: DocumentPreviewTabState = {
+      key: getDocumentPreviewTabKey(target, "chat"), target, chatId: "chat",
+      result: { previewId: "p1", sourceRevision: "r1", openMode: "iframe", url: "https://docs.test/s/p1", expiresAt: 12345 },
+    };
+    useAppState.mockReturnValue({ ...createInitialState(), rightSidebarOpen: true, rightSidebarOpenTab: "documentPreview",
+      viewerTabs: [target], documentPreviewTabs: [preview], activeDocumentPreviewKey: preview.key });
+    const html = renderRightSidebar();
+    expect(html).toContain("report.xlsx · 在线预览");
+    const tabs = mockTabsState.current;
+    const fileKey = `viewer:${getViewerTargetKey(target)}`;
+    const previewKey = `documentPreview:${preview.key}`;
+    expect(tabs.activeKey).toBe(previewKey);
+    expect(tabs.items.map((item: any) => item.key)).toEqual(["overview", fileKey, previewKey]);
+    tabs.items.find((item: any) => item.key === fileKey).children.props.onOpenOnlinePreview(preview);
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "OPEN_DOCUMENT_PREVIEW", preview });
+    tabs.items.find((item: any) => item.key === previewKey).children.props.onBack();
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", viewerTarget: target });
+    tabs.onChange(previewKey);
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "ACTIVATE_DOCUMENT_PREVIEW", key: preview.key });
+    tabs.onEdit(fileKey, "remove");
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "OPEN_RIGHT_SIDEBAR", tab: "documentPreview", removeViewerKey: getViewerTargetKey(target) });
+    tabs.onEdit(previewKey, "remove");
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "CLOSE_DOCUMENT_PREVIEW", key: preview.key });
   });
 
   it("only reserves the minimum main-content width when sizing the sidebar", () => {

@@ -1458,6 +1458,19 @@ describe('appReducer conversation reset behavior', () => {
     expect(next.rightSidebarOpenTab).toBeNull();
   });
 
+  it.each(['RESET_CONVERSATION', 'RESET_ACTIVE_CONVERSATION'] as const)('clears online preview links on %s', (type) => {
+    const target = { type: 'file' as const, name: 'report.xlsx', agentKey: 'coder', path: 'report.xlsx', contentKind: 'office' as const };
+    const state = appReducer(createInitialState(), { type: 'OPEN_DOCUMENT_PREVIEW', preview: {
+      key: 'source', target, chatId: 'owner', result: {
+        previewId: 'p1', sourceRevision: 'r1', openMode: 'iframe', url: 'https://docs.test/s/p1', expiresAt: 12345,
+      },
+    } });
+    const next = appReducer(state, { type });
+    expect(next.documentPreviewTabs).toEqual([]);
+    expect(next.activeDocumentPreviewKey).toBe('');
+    expect(next.rightSidebarOpenTab).toBeNull();
+  });
+
   it.each(['overview', 'debug'] as const)(
     'preserves the stable %s sidebar selection during conversation reset',
     (rightSidebarOpenTab) => {

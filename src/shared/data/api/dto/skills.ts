@@ -103,6 +103,19 @@ export interface AdminSkillDetailResponse {
   openedFile?: AdminSkillTextFile;
 }
 
+export interface AdminSkillPackageSummary {
+  id: string;
+  name?: string;
+  version: string;
+  sha256: string;
+  skills: Array<{ id: string; version?: string }>;
+  installedAt: number;
+}
+
+export type AdminSkillImportResponse =
+  | (AdminSkillDetailResponse & { kind?: "skill" })
+  | { kind: "skill-package"; package: AdminSkillPackageSummary };
+
 export interface AdminSkillCreateFileRequest {
   key: string;
   path: string;

@@ -62,7 +62,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
       setSkillsConnectorId(null);
     },
   });
-  const busy = runtime.saving || runtime.importing;
+  const busy = runtime.saving || runtime.importing || runtime.deleting;
   const items = sortPinnedItems(filterConnectors(runtime.items, search, filter), pinnedKeys, item => item.id);
   const hasFilter = filter !== "all" || Boolean(search.trim());
   const selected = runtime.selected;
@@ -152,6 +152,14 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
                 {!runtime.readOnly && <UiButton variant="primary" size="sm" loading={runtime.saving} disabled={busy || !runtime.dirty || runtime.detailLoading || !runtime.detail?.sha256} onClick={() => void runtime.save()}>{t("connectors.action.save")}</UiButton>}
                 <UiButton variant="ghost" size="sm" disabled={busy || runtime.detailLoading} onClick={runtime.reload}>{t("connectors.action.reload")}</UiButton>
                 {runtime.dirty && <span className={styles.hint}>{t("connectors.config.dirty")}</span>}
+                {runtime.canDelete && <UiButton variant="danger" size="sm" className={styles.deleteAction} loading={runtime.deleting} disabled={busy} onClick={async () => {
+                  const id = await runtime.remove();
+                  if (!id) return;
+                  setSkillsConnectorId(null);
+                  setShowUnassigned(false);
+                  void refreshPins().catch(() => undefined);
+                  void messageApi.success({ key: "connector-delete", content: t("connectors.delete.success", { id }), duration: 3 });
+                }}>{t("connectors.delete.action")}</UiButton>}
               </footer>
             </section>
             {view === "config" && <ConnectorComponents item={selected} tools={tools} />}

@@ -1,5 +1,29 @@
 export type ResourceUrlKind = "chat" | "absolute" | "external" | "inline" | "invalid";
 
+export type DocumentPreviewSource =
+  | { kind: "workspace-file"; agentKey: string; path: string }
+  | { kind: "chat-resource"; chatId: string; relativePath: string };
+
+export interface DocumentPreviewCapabilities {
+  enabled: boolean;
+  supportedExtensions: string[];
+  maxFileBytes: number;
+  openMode: "iframe" | "external";
+}
+
+export interface DocumentPreviewRequest {
+  requestId: string;
+  source: DocumentPreviewSource;
+}
+
+export interface DocumentPreviewResponse {
+  previewId: string;
+  sourceRevision: string;
+  openMode: "iframe" | "external";
+  url: string;
+  expiresAt: number;
+}
+
 export interface ResourceUrlClassification {
 	kind: ResourceUrlKind;
 	source: string;

@@ -849,6 +849,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
               >
                 <ComposerAttachments
                   attachments={attachments}
+                  attachmentChatId={state.chatId || attachmentChatId}
                   attachmentViewportRef={attachmentViewportRef}
                   useUnifiedComposerAttachmentRow={
                     useUnifiedComposerAttachmentRow

@@ -566,7 +566,7 @@ type SkillCreateMode = "direct" | "zip";
 type SkillKeyValidationCode = "" | "required" | "invalid" | "exists";
 type SkillArchiveFileValidationCode = "" | "type" | "empty" | "size";
 
-export const ADMIN_SKILL_IMPORT_MAX_BYTES = 32 * 1024 * 1024;
+export const ADMIN_SKILL_IMPORT_MAX_BYTES = 512 * 1024 * 1024;
 
 export interface SkillImportDiagnostic {
   severity?: string;
@@ -601,11 +601,6 @@ export function validateNewSkillKey(
     return "exists";
   }
   return "";
-}
-
-export function suggestSkillKeyFromArchiveName(filename: string): string {
-  const name = filename.trim().split(/[\\/]/).pop() || "";
-  return name.replace(/\.zip$/i, "").trim();
 }
 
 export function validateSkillArchiveFile(
@@ -686,7 +681,9 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
   }, [open]);
 
   const currentKey = mode === "direct" ? directKey : zipKey;
-  const keyValidation = validateNewSkillKey(currentKey, existingKeys);
+  const keyValidation = mode === "direct"
+    ? validateNewSkillKey(currentKey, existingKeys)
+    : currentKey ? validateNewSkillKey(currentKey) : "";
   const keyError =
     serverKeyError ||
     (keyValidation && (keyTouched || Boolean(currentKey))
@@ -710,8 +707,6 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       return;
     }
     setZipFile(file as File);
-    setZipKey(suggestSkillKeyFromArchiveName((file as File).name));
-    setKeyTouched(true);
   };
 
   const handleSubmit = async () => {
@@ -729,7 +724,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       const importedDiagnostics = skillImportDiagnostics(error);
       setDiagnostics(importedDiagnostics);
       const status = (error as { status?: unknown } | null)?.status;
-      if (status === 409) {
+      if (status === 409 && mode === "direct") {
         setServerKeyError(t("skillConsole.import.error.exists"));
       } else {
         notification.error({
@@ -832,6 +827,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
         onDrop={(event) => {
           event.preventDefault();
           setDragActive(false);
+          if (submitting) return;
           acceptArchive(event.dataTransfer.files?.[0] || null);
         }}
       >
@@ -856,12 +852,13 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
         htmlFor="skill-import-key"
       >
         <span className="tw:text-sm tw:font-medium tw:text-ink-1">
-          {t("skillConsole.field.key")}
+          {t("skillConsole.import.keyOptional")}
         </span>
         <Input
           id="skill-import-key"
           value={zipKey}
-          placeholder="skill-key"
+          disabled={submitting}
+          placeholder={t("skillConsole.import.keyPlaceholder")}
           status={keyError ? "error" : undefined}
           aria-describedby={keyError ? "skill-import-key-error" : undefined}
           onChange={(event) => {
@@ -920,6 +917,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       <Tabs
         activeKey={mode}
         onChange={(key) => {
+          if (submitting) return;
           setMode(key as SkillCreateMode);
           setKeyTouched(false);
           resetError();
@@ -2235,8 +2233,32 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleZipImport = async (key: string, file: File): Promise<boolean> => {
     if (!(await confirmDiscardBeforeAdding())) return false;
-    const response = await importAdminSkill({ key, file });
-    completeSkillCreation(response.data);
+    const response = await importAdminSkill({ ...(key ? { key } : {}), file });
+    if (response.data.kind === "skill-package") {
+      const installed = response.data.package;
+      const nextKey = installed.skills.some((skill) => skill.id === selectedSkillKey)
+        ? selectedSkillKey
+        : installed.skills[0]?.id;
+      pendingSelectionRef.current = nextKey || null;
+      suppressAutoSelectAfterDeleteRef.current = !nextKey;
+      setCreateModalOpen(false);
+      setDirtyFiles(new Set());
+      setSearchText("");
+      setStatusFilter("all");
+      notification.success({
+        message: t("skillConsole.import.packageSuccess", {
+          name: installed.name || installed.id,
+          count: installed.skills.length,
+        }),
+      });
+      await loadSkills();
+      if (nextKey) {
+        if (nextKey === selectedSkillKey) await loadDetail(nextKey);
+        else onSelectSkillKey(nextKey);
+      }
+    } else {
+      completeSkillCreation(response.data);
+    }
     return true;
   };
 

@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { DocxDocumentViewer } from "./DocxDocumentViewer";
 import { ContentViewerPanel } from "./ContentViewerPanel";
 import { DocumentTextEditor } from "./DocumentTextEditor";
 import { getAgentFile } from "@/shared/data";
@@ -9,11 +10,14 @@ import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { canUseStandaloneFileActions, getStandaloneFileCapabilities } from "@/shared/data/standalone/standaloneFileActions";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { I18nProvider } from "@/shared/i18n";
+import { getDocumentPreviewCapabilities, prepareDocumentPreview } from "@/shared/data/api/requests/documentPreview";
 
 jest.mock("@/app/state/AppContext", () => ({ useAppState: () => ({ chatId: "chat-1", chats: [] }) }));
 jest.mock("@/shared/data", () => ({ getAgentFile: jest.fn() }));
 jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({ useAuthenticatedResourceUrl: jest.fn(() => ({ url: "", loading: false, error: null })) }));
+jest.mock("@/shared/data/api/requests/documentPreview", () => ({ getDocumentPreviewCapabilities: jest.fn(async () => ({ data: { enabled: false } })), prepareDocumentPreview: jest.fn() }));
 jest.mock("./DocumentTextEditor", () => ({ DocumentTextEditor: jest.fn(() => null) }));
+jest.mock("./DocxDocumentViewer", () => ({ DocxDocumentViewer: jest.fn(() => null) }));
 jest.mock("./BrowserImageEditor", () => ({ BrowserImageEditor: () => null }));
 jest.mock("@/features/viewers/lib/viewerRuntime", () => ({
   downloadViewerTarget: jest.fn(), openStandaloneViewerTarget: jest.fn(), readViewerResourceMetadata: jest.fn(),
@@ -23,8 +27,8 @@ jest.mock("@/shared/data/standalone/standaloneFileActions", () => ({
 }));
 
 const target: ViewerTarget = {
-  type: "resource", name: "项目立项建议书.docx", url: "artifacts/report.docx",
-  downloadUrl: "artifacts/report.docx", contentKind: "office",
+  type: "resource", name: "项目立项建议书.doc", url: "artifacts/report.doc",
+  downloadUrl: "artifacts/report.doc", contentKind: "office",
 };
 const capabilities = { token: "token", platform: "darwin" as const, maxBytes: 1024 };
 
@@ -56,11 +60,22 @@ describe("standalone document panel", () => {
     )));
   }
 
-  it("offers a planned preview and routes all three working buttons to the selected file", async () => {
+  it("opens uploaded DOCX in the shared readonly viewer using its owning Chat", async () => {
+    const reference: ViewerTarget = {
+      type: "resource", name: "申请表.docx", url: "申请表.docx", downloadUrl: "申请表.docx", contentKind: "office",
+      source: { kind: "reference", agentKey: "agent-1", chatId: "upload-chat", resourceId: "upload-1", relativePath: "申请表.docx" },
+    };
+    await render(0, reference);
+    expect(jest.mocked(DocxDocumentViewer).mock.calls.at(-1)![0]).toMatchObject({ url: "申请表.docx", chatId: "upload-chat", name: "申请表.docx" });
+    expect(container.textContent).not.toContain("在线预览（规划中）");
+    expect(readViewerResourceMetadata).toHaveBeenCalledWith("申请表.docx", "upload-chat", expect.any(AbortSignal), false);
+  });
+
+  it("offers an online preview and routes all three working buttons to the selected file", async () => {
     await render();
     const buttons = Array.from(container.querySelectorAll("button"));
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "在线预览（规划中）", "下载", "在 Finder 中显示", "用默认应用打开",
+      "在线预览", "下载", "在 Finder 中显示", "用默认应用打开",
     ]);
     expect(buttons[0].disabled).toBe(true);
     expect(container.textContent).toContain("36.8 kB");
@@ -70,6 +85,24 @@ describe("standalone document panel", () => {
       await act(async () => buttons[index].click());
       expect(openStandaloneViewerTarget).toHaveBeenLastCalledWith(action, target, { chatId: "chat-1", teamChat: false }, capabilities);
     }
+  });
+
+  it("keeps the original document panel when its host opens preview in a separate tab", async () => {
+    const onOpenOnlinePreview = jest.fn();
+    const officeTarget: ViewerTarget = { ...target, name: "report.xlsx", url: "artifacts/report.xlsx", downloadUrl: "artifacts/report.xlsx" };
+    const result = { previewId: "p1", sourceRevision: "r1", openMode: "iframe", url: "https://docs.test/s/p1", expiresAt: Date.now() + 86400000 };
+    jest.mocked(getDocumentPreviewCapabilities).mockResolvedValueOnce({ data: {
+      enabled: true, supportedExtensions: ["xlsx"], maxFileBytes: 52428800, openMode: "iframe",
+    } } as never);
+    jest.mocked(prepareDocumentPreview).mockResolvedValueOnce({ data: result } as never);
+    await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(ContentViewerPanel, { target: officeTarget, onOpenOnlinePreview }))));
+    const button = Array.from(container.querySelectorAll("button")).find((item) => item.textContent === "在线预览");
+    await act(async () => button!.click());
+    expect(onOpenOnlinePreview).toHaveBeenCalledWith(expect.objectContaining({ target: officeTarget, chatId: "chat-1", result }));
+    expect(container.querySelector("iframe")).toBeNull();
+    expect(container.textContent).toContain("report.xlsx");
+    expect(container.textContent).toContain("在 Finder 中显示");
   });
 
   it("reloads metadata once per refresh and uses a fresh media cache lease", async () => {

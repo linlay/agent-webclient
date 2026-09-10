@@ -11,6 +11,7 @@ import {
   type TabsProps,
 } from "antd";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
+import { OnlineDocumentPreviewTab } from "@/features/viewers/components/OnlineDocumentPreviewTab";
 import { ViewerTabContextMenu } from "@/features/viewers/components/ViewerTabContextMenu";
 import { DebugTab } from "@/features/debug/components/DebugTab";
 import { OverviewTab } from "@/features/overview/components/OverviewTab";
@@ -114,6 +115,7 @@ export const RightSidebar: React.FC = () => {
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
   const viewerTabs = state.viewerTabs;
+  const documentPreviewTabs = state.documentPreviewTabs;
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
   const webPreviews = state.webPreviews;
@@ -132,6 +134,9 @@ export const RightSidebar: React.FC = () => {
       ? "debug"
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
+        : state.rightSidebarOpenTab === "documentPreview" && documentPreviewTabs.length > 0
+          ? `documentPreview:${documentPreviewTabs.find((preview) => preview.key === state.activeDocumentPreviewKey)?.key
+              || documentPreviewTabs[documentPreviewTabs.length - 1].key}`
         : state.rightSidebarOpenTab === "viewer" && viewerTabs.length > 0
           ? `viewer:${
               state.activeViewerKey &&
@@ -170,6 +175,8 @@ export const RightSidebar: React.FC = () => {
   const activePanel: RightSidebarTabKey =
     selectedPanel === "debug"
       ? "debug"
+      : selectedPanel.startsWith("documentPreview:")
+        ? "documentPreview"
       : selectedPanel.startsWith("viewer:")
         ? "viewer"
         : selectedPanel.startsWith("planningPreview:")
@@ -226,6 +233,8 @@ export const RightSidebar: React.FC = () => {
           discardBTW(state.chatId);
         }
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
+      } else if (typeof key === "string" && key.startsWith("documentPreview:")) {
+        dispatch({ type: "CLOSE_DOCUMENT_PREVIEW", key: key.slice("documentPreview:".length) });
       } else if (typeof key === "string" && key.startsWith("viewer:")) {
         setViewerContextMenuKey(null);
         const viewerKeyToRemove = key.slice("viewer:".length);
@@ -234,7 +243,7 @@ export const RightSidebar: React.FC = () => {
         );
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
-          tab: remaining.length > 0 ? "viewer" : "overview",
+          tab: activePanel === "viewer" ? (remaining.length > 0 ? "viewer" : "overview") : activePanel,
           removeViewerKey: viewerKeyToRemove,
         });
       } else if (
@@ -284,6 +293,7 @@ export const RightSidebar: React.FC = () => {
       planningPreviews,
       webPreviews,
       skillTabs,
+      activePanel,
     ],
   );
 
@@ -450,6 +460,7 @@ export const RightSidebar: React.FC = () => {
         children: (
           <ContentViewerPanel
             target={target}
+            onOpenOnlinePreview={(preview) => dispatch({ type: "OPEN_DOCUMENT_PREVIEW", preview })}
             enableDesktopLocalResourceActions
             refreshRequest={tabRefreshRequests[`viewer:${viewerKey}`] ?? 0}
             fullscreenRequest={
@@ -457,6 +468,24 @@ export const RightSidebar: React.FC = () => {
             }
           />
         ),
+      });
+    }
+
+    for (const preview of documentPreviewTabs) {
+      const label = t("contentViewer.preview.tabTitle", { name: preview.target.name });
+      items.push({
+        key: `documentPreview:${preview.key}`,
+        label: (
+          <Tooltip title={label} placement="rightTop">
+            <Flex align="center" gap={4}>
+              <MaterialIcon name="preview" />
+              <Typography.Text ellipsis className="tw:!max-w-[160px]">{label}</Typography.Text>
+            </Flex>
+          </Tooltip>
+        ),
+        children: <OnlineDocumentPreviewTab tab={preview} onBack={() => dispatch({
+          type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", viewerTarget: preview.target,
+        })} />,
       });
     }
 
@@ -509,6 +538,8 @@ export const RightSidebar: React.FC = () => {
   }, [
     hasBTWSession,
     viewerTabs,
+    documentPreviewTabs,
+    dispatch,
     sourceDetail,
     planningPreviews,
     t,
@@ -522,7 +553,9 @@ export const RightSidebar: React.FC = () => {
 
   const handleTabChange = React.useCallback(
     (key: string) => {
-      if (key.startsWith("viewer:")) {
+      if (key.startsWith("documentPreview:")) {
+        dispatch({ type: "ACTIVATE_DOCUMENT_PREVIEW", key: key.slice("documentPreview:".length) });
+      } else if (key.startsWith("viewer:")) {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "viewer",

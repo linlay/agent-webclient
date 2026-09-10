@@ -3,7 +3,7 @@ import { useBlocker } from "react-router-dom";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { fetchConnectorCatalog, isConnectorCatalogUpdate } from "@/features/connectors/lib/connectorCatalog";
 import { parseConnectorDefinition } from "@/features/connectors/lib/connectorDefinition";
-import { ApiError, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
+import { ApiError, deleteConnector, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
 import type { AdminToolSummary, ConnectorDefinition, ConnectorDefinitionFile, ConnectorSummary } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 
@@ -21,6 +21,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [revision, setRevision] = useState(0);
@@ -33,26 +34,28 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   selectionRef.current = selected;
   const selectedId = selected?.id || "";
   const readOnly = selected?.readOnly === true || selected?.builtin === true;
+  const canDelete = !!selected && selected.canDelete !== false && !readOnly;
   const activeFile = dirty && detail?.id === selectedId ? detail.file : (file === "mcp.json" && !selected?.hasMcp) || (file === "cli.json" && !selected?.hasCli) || (file === "view.json" && !selected?.hasView) ? "connector.json" : file;
   const catalogRequest = useRef(0);
   const detailRequest = useRef(0);
   const catalogBusy = useRef(false);
   const savingRef = useRef(false);
   const importingRef = useRef(false);
+  const deletingRef = useRef(false);
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
 
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    currentLocation.pathname !== nextLocation.pathname && (dirtyRef.current || savingRef.current || importingRef.current),
+    currentLocation.pathname !== nextLocation.pathname && (dirtyRef.current || savingRef.current || importingRef.current || deletingRef.current),
   );
   useEffect(() => {
     if (blocker.state !== "blocked") return;
-    if (!savingRef.current && !importingRef.current && window.confirm(t("connectors.confirm.discard"))) blocker.proceed();
+    if (!savingRef.current && !importingRef.current && !deletingRef.current && window.confirm(t("connectors.confirm.discard"))) blocker.proceed();
     else blocker.reset();
   }, [blocker, t]);
 
   const refreshCatalog = useCallback(async (silent = false) => {
-    if (silent && (catalogBusy.current || savingRef.current || importingRef.current)) return;
+    if (silent && (catalogBusy.current || savingRef.current || importingRef.current || deletingRef.current)) return;
     const request = ++catalogRequest.current;
     catalogBusy.current = true;
     if (!silent) setLoading(true);
@@ -122,7 +125,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (!dirtyRef.current && !savingRef.current && !importingRef.current) return;
+      if (!dirtyRef.current && !savingRef.current && !importingRef.current && !deletingRef.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
@@ -131,7 +134,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   }, []);
 
   const selectFile = (next: ConnectorDefinitionFile) => {
-    if (savingRef.current || importingRef.current) return false;
+    if (savingRef.current || importingRef.current || deletingRef.current) return false;
     if (next === activeFile) return true;
     if (dirty && !window.confirm(t("connectors.confirm.discard"))) return false;
     setDetail(null);
@@ -140,12 +143,12 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     return true;
   };
   const reload = () => {
-    if (savingRef.current || importingRef.current || (dirty && !window.confirm(t("connectors.confirm.discard")))) return;
+    if (savingRef.current || importingRef.current || deletingRef.current || (dirty && !window.confirm(t("connectors.confirm.discard")))) return;
     setRevision(value => value + 1);
     void refreshCatalog();
   };
   const save = async () => {
-    if (!detail || readOnly || detailLoading || savingRef.current || importingRef.current || !dirty || detail.id !== selectedId || detail.file !== activeFile) return;
+    if (!detail || readOnly || detailLoading || savingRef.current || importingRef.current || deletingRef.current || !dirty || detail.id !== selectedId || detail.file !== activeFile) return;
     setError("");
     setMessage("");
     try { parseConnectorDefinition(draft); }
@@ -170,7 +173,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   };
 
   const importArchive = async (archive: File, overwrite: boolean): Promise<string | null> => {
-    if (savingRef.current || importingRef.current) return null;
+    if (savingRef.current || importingRef.current || deletingRef.current) return null;
     if (dirtyRef.current && !window.confirm(t("connectors.import.confirmDraft"))) return null;
     importingRef.current = true;
     setImporting(true);
@@ -194,10 +197,50 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     }
   };
 
+  const remove = async (): Promise<string | null> => {
+    if (!selected || !canDelete || savingRef.current || importingRef.current || deletingRef.current) return null;
+    const id = selected.id;
+    const prompt = t("connectors.delete.confirm", { name: selected.name, id })
+      + (dirtyRef.current ? "\n\n" + t("connectors.delete.unsaved") : "");
+    if (!window.confirm(prompt)) return null;
+    deletingRef.current = true;
+    setDeleting(true);
+    setError("");
+    setMessage("");
+    // Reject catalog requests started before the deletion, including slow polling responses.
+    catalogRequest.current += 1;
+    catalogBusy.current = false;
+    try {
+      await deleteConnector(id);
+      detailRequest.current += 1;
+      dirtyRef.current = false;
+      selectionRef.current = undefined;
+      setDetail(null);
+      setDraft("");
+      setFile("connector.json");
+      setItems(previous => previous.filter(item => item.id !== id));
+      await refreshCatalog();
+      deletingRef.current = false;
+      onRouteIdChange("");
+      return id;
+    } catch (cause) {
+      const agentKeys = cause instanceof ApiError && cause.status === 409
+        && cause.data && typeof cause.data === "object" && "agentKeys" in cause.data
+        && Array.isArray(cause.data.agentKeys) ? cause.data.agentKeys.filter((key): key is string => typeof key === "string") : [];
+      setError(agentKeys.length ? t("connectors.delete.inUse", { agents: agentKeys.join(", ") })
+        : cause instanceof Error ? cause.message : String(cause));
+      return null;
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+      setLoading(false);
+    }
+  };
+
   return {
     items, tools, loading, catalogError, catalogErrorStatus, selected, file: activeFile, detail, draft, dirty, readOnly,
-    detailLoading, saving, importing, error, message, refreshCatalog, selectFile, reload, save, importArchive,
-    selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && id !== selectedId) onRouteIdChange(id); },
-    updateDraft: (value: string) => { if (!readOnly && !importingRef.current) { setDraft(value); setMessage(""); setError(""); } },
+    detailLoading, saving, importing, deleting, canDelete, remove, error, message, refreshCatalog, selectFile, reload, save, importArchive,
+    selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && !deletingRef.current && id !== selectedId) onRouteIdChange(id); },
+    updateDraft: (value: string) => { if (!readOnly && !savingRef.current && !importingRef.current && !deletingRef.current) { setDraft(value); setMessage(""); setError(""); } },
   };
 }

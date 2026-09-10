@@ -76,6 +76,11 @@ export interface UpdateConnectorDefinitionRequest extends ConnectorDefinitionTar
   baseSha256: string;
 }
 
+export interface DeleteConnectorResponse {
+  id: string;
+  deleted: boolean;
+}
+
 export interface ImportConnectorArchiveRequest {
   file: File;
   overwrite?: boolean;

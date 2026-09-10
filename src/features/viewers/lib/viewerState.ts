@@ -1,12 +1,14 @@
 import { getViewerTargetKey } from "@/features/viewers/lib/viewerTarget";
 import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import type { TimelineSource } from "@/features/timeline/lib/timelineState";
+import type { DocumentPreviewTabState } from "./documentPreview";
 
 export type RightSidebarTabKey =
   | "overview"
   | "btw"
   | "debug"
   | "viewer"
+  | "documentPreview"
   | "sourceDetail"
   | "planningPreview"
   | "web"
@@ -40,16 +42,21 @@ export interface ViewersState {
   skillTabs: SkillViewerState[];
   activeSkillKey: string;
   viewerTabs: ViewerTarget[];
+  documentPreviewTabs: DocumentPreviewTabState[];
+  activeDocumentPreviewKey: string;
 }
 
 export type ViewersAction =
+  | { type: "OPEN_DOCUMENT_PREVIEW"; preview: DocumentPreviewTabState }
+  | { type: "CLOSE_DOCUMENT_PREVIEW"; key: string }
+  | { type: "ACTIVATE_DOCUMENT_PREVIEW"; key: string }
   | { type: "OPEN_RIGHT_SIDEBAR"; tab?: RightSidebarTabKey; viewerTarget?: ViewerTarget | null; removeViewerKey?: string; sourceDetail?: TimelineSource | null; planningPreview?: PlanningPreviewState | null; removePlanningPreviewNodeId?: string; webPreview?: WebPreviewState | null; activeWebPreviewUrl?: string; removeWebPreviewUrl?: string; activeViewerKey?: string; activePlanningPreviewNodeId?: string; skillPreview?: SkillViewerState | null; removeSkillKey?: string; activeSkillKey?: string }
   | { type: "REFRESH_WEB_PREVIEW"; url: string }
   | { type: "CLOSE_WEB_PREVIEW"; url: string }
   | { type: "CLOSE_RIGHT_SIDEBAR" };
 
 export function createInitialViewersState(): ViewersState {
-  return { rightSidebarOpen: false, rightSidebarOpenTab: null, activeSourceDetail: null, planningPreviews: [], webPreviews: [], webPreviewRefreshRevisionByUrl: new Map(), activeWebPreviewUrl: "", activeViewerKey: "", activePlanningPreviewNodeId: "", skillTabs: [], activeSkillKey: "", viewerTabs: [] };
+  return { rightSidebarOpen: false, rightSidebarOpenTab: null, activeSourceDetail: null, planningPreviews: [], webPreviews: [], webPreviewRefreshRevisionByUrl: new Map(), activeWebPreviewUrl: "", activeViewerKey: "", activePlanningPreviewNodeId: "", skillTabs: [], activeSkillKey: "", viewerTabs: [], documentPreviewTabs: [], activeDocumentPreviewKey: "" };
 }
 
 export function reduceViewersState<S extends ViewersState>(state: S, action: ViewersAction): S;
@@ -57,6 +64,36 @@ export function reduceViewersState<S extends ViewersState>(state: S, action: { t
 export function reduceViewersState<S extends ViewersState>(state: S, input: { type: string }): S | null {
   const action = input as ViewersAction;
   switch (action.type) {
+    case "OPEN_DOCUMENT_PREVIEW": {
+      const previews = state.documentPreviewTabs;
+      const index = previews.findIndex((preview) => preview.key === action.preview.key);
+      const documentPreviewTabs = index < 0
+        ? [...previews, action.preview]
+        : previews.map((preview, i) => i === index ? action.preview : preview);
+      return { ...state, documentPreviewTabs, activeDocumentPreviewKey: action.preview.key,
+        rightSidebarOpen: true, rightSidebarOpenTab: "documentPreview" };
+    }
+    case "ACTIVATE_DOCUMENT_PREVIEW":
+      return state.documentPreviewTabs.some((preview) => preview.key === action.key)
+        ? { ...state, activeDocumentPreviewKey: action.key, rightSidebarOpen: true, rightSidebarOpenTab: "documentPreview" }
+        : state;
+    case "CLOSE_DOCUMENT_PREVIEW": {
+      const closed = state.documentPreviewTabs.find((preview) => preview.key === action.key);
+      if (!closed) return state;
+      const documentPreviewTabs = state.documentPreviewTabs.filter((preview) => preview.key !== action.key);
+      const wasActive = state.activeDocumentPreviewKey === action.key;
+      const activeDocumentPreviewKey = wasActive
+        ? documentPreviewTabs[documentPreviewTabs.length - 1]?.key || ""
+        : state.activeDocumentPreviewKey;
+      const originalKey = getViewerTargetKey(closed.target);
+      const originalExists = state.viewerTabs.some((target) => getViewerTargetKey(target) === originalKey);
+      const returnToFile = wasActive && state.rightSidebarOpenTab === "documentPreview" && !activeDocumentPreviewKey;
+      return { ...state, documentPreviewTabs, activeDocumentPreviewKey,
+        ...(returnToFile ? {
+          rightSidebarOpenTab: originalExists ? "viewer" as const : "overview" as const,
+          activeViewerKey: originalExists ? originalKey : state.activeViewerKey,
+        } : {}) };
+    }
     case "REFRESH_WEB_PREVIEW": {
       if (!state.webPreviews.some((preview) => preview.url === action.url)) {
         return state;

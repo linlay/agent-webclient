@@ -11,6 +11,19 @@ import {
 import { buildSurfaceRoute, SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
 
 describe("canonical independent Surface targets", () => {
+  it.each(["申请表.docx", "references/申请表.docx"])("preserves the uploaded Reference identity for %s", (path) => {
+    const result = buildDesktopNativeResourceRequest({
+      version: 1, kind: "reference", agentKey: "agent-1", chatId: "chat-1", referenceId: "upload-1",
+      resourceTarget: { type: "resource", name: "申请表.docx", url: path.split("/").map(encodeURIComponent).join("/"), downloadUrl: "", contentKind: "office" },
+    });
+    expect(result).toMatchObject({ profile: "reference", resourceId: "upload-1", relativePath: path });
+  });
+  it.each(["../notes.txt", "%252e%252e", "artifacts/run/notes.txt", "uploads/notes.txt", "C:/notes.txt"])("does not relax the Reference boundary for %s", (url) => {
+    expect(buildDesktopNativeResourceRequest({
+      version: 1, kind: "reference", agentKey: "agent-1", chatId: "chat-1", referenceId: "upload-1",
+      resourceTarget: { type: "resource", name: "notes.txt", url, downloadUrl: "", contentKind: "text" },
+    })).toBeNull();
+  });
   it("uses explicit title, raw cross-platform basename, and bounded file fallback", () => {
     expect(resolveWorkPanelFileTitle("/tmp/report.md", "  Report  ")).toBe("Report");
     expect(resolveWorkPanelFileTitle("C:\\Users\\demo\\notes.txt")).toBe("notes.txt");

@@ -26,8 +26,9 @@ export const StandaloneDocumentPanel: React.FC<{
   mimeType: string;
   sizeBytes?: number;
   note?: string;
+  previewAction: React.ReactNode;
   onDownload: () => Promise<void>;
-}> = ({ target, chatId, teamChat, name, mimeType, sizeBytes, note, onDownload }) => {
+}> = ({ target, chatId, teamChat, name, mimeType, sizeBytes, note, previewAction, onDownload }) => {
   const { t, locale } = useI18n();
   const localActions = useStandaloneViewerActions(target, chatId, teamChat);
   const [downloading, setDownloading] = React.useState(false);
@@ -53,9 +54,7 @@ export const StandaloneDocumentPanel: React.FC<{
         </dl>
         {note ? <p className={styles.note}>{note}</p> : null}
         <div className={styles.actions}>
-          <Button disabled icon={<MaterialIcon name="visibility" />}>
-            {t("contentViewer.action.previewPlanned")}
-          </Button>
+          {previewAction}
           <Button type="primary" loading={downloading} icon={<MaterialIcon name="download" />} onClick={() => void download()}>
             {t("contentViewer.action.download")}
           </Button>

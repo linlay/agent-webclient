@@ -2,7 +2,7 @@ import type { ApiResponse } from "@/shared/data/api/dto/common";
 import type {
   ConnectorDefinition, ConnectorDefinitionTarget, ConnectorListResponse,
   ConnectorOrderResponse, UpdateConnectorOrderRequest,
-  UpdateConnectorDefinitionRequest,
+  UpdateConnectorDefinitionRequest, DeleteConnectorResponse,
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
   ConnectorSkillListResponse, ConnectorSkillDetail,
   ConnectorAuthSession, ConnectorAuthActionResult,
@@ -45,6 +45,13 @@ export function updateConnectorDefinition(params: UpdateConnectorDefinitionReque
   return requestJson<ConnectorDefinition>(dataEndpoints.adminConnectorUpdate.path, {
     method: "PUT",
     body: JSON.stringify(params),
+  });
+}
+
+export function deleteConnector(id: string): Promise<ApiResponse<DeleteConnectorResponse>> {
+  const endpoint = dataEndpoints.adminConnectorDelete;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
+    method: endpoint.method, cache: "no-store",
   });
 }
 

@@ -19,6 +19,7 @@ import type { GetAgentsOptions } from "@/shared/data/api/dto/agents";
 import type {
   AgentFileRequest,
   DocumentCommitRequest,
+  DocumentPreviewRequest,
   ProjectChangesRequest,
   ProjectDiffRequest,
   ProjectTreeRequest,
@@ -333,6 +334,13 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/admin/connectors/detail",
     method: "PUT",
     transport: "http",
+  }),
+  adminConnectorDelete: defineEndpoint({
+    key: "admin.connectors.delete",
+    path: "/api/admin/connectors/detail",
+    method: "DELETE",
+    transport: "http",
+    payload: (id: string) => ({ id }),
   }),
   adminConnectorImport: defineEndpoint({
     key: "admin.connectors.import",
@@ -864,6 +872,14 @@ export const dataEndpoints = createEndpointRegistry({
         path: params.path,
         encoding: params.encoding,
       }),
+  }),
+  documentPreviewCapabilities: defineEndpoint<Record<string, never>, Record<string, never>>({
+    key: "document.preview.capabilities", path: "/api/document/preview/capabilities", method: "GET", transport: "http",
+    payload: (params) => params,
+  }),
+  documentPreview: defineEndpoint<DocumentPreviewRequest, DocumentPreviewRequest>({
+    key: "document.preview", path: "/api/document/preview", method: "POST", transport: "http",
+    payload: (params) => params,
   }),
   documentCommit: defineEndpoint<DocumentCommitRequest, DocumentCommitRequest>({
     key: "document.commit",

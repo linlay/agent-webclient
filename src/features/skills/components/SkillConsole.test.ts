@@ -15,7 +15,6 @@ import {
   SkillConsole,
   SkillListItemStatus,
   skillVersionLabel,
-  suggestSkillKeyFromArchiveName,
   toggleSkillExpandedDir,
   updateSkillDirtyFiles,
   validateSkillArchiveFile,
@@ -366,20 +365,20 @@ describe("SkillConsole", () => {
     expect(html.match(/skillConsole\.import\.select/g)).toHaveLength(1);
   });
 
-  it("validates new skill keys and derives an import key from the ZIP filename", () => {
+  it("validates keys for directly created skills", () => {
     expect(validateNewSkillKey("", [])).toBe("required");
     expect(validateNewSkillKey("../bad", [])).toBe("invalid");
     expect(validateNewSkillKey("hidden.example", [])).toBe("invalid");
     expect(validateNewSkillKey("Demo", ["demo"])).toBe("exists");
     expect(validateNewSkillKey("new-skill", ["demo"])).toBe("");
-    expect(suggestSkillKeyFromArchiveName("Demo Skill.ZIP")).toBe("Demo Skill");
   });
 
   it("rejects invalid, empty, and oversized ZIP selections before upload", () => {
     expect(validateSkillArchiveFile({ name: "skill.txt", size: 10 })).toBe("type");
     expect(validateSkillArchiveFile({ name: "skill.zip", size: 0 })).toBe("empty");
-    expect(validateSkillArchiveFile({ name: "skill.zip", size: 32 * 1024 * 1024 + 1 })).toBe("size");
-    expect(validateSkillArchiveFile({ name: "skill.ZIP", size: 32 * 1024 * 1024 })).toBe("");
+    expect(validateSkillArchiveFile({ name: "skill.zip", size: 512 * 1024 * 1024 + 1 })).toBe("size");
+    expect(validateSkillArchiveFile({ name: "skill.ZIP", size: 512 * 1024 * 1024 })).toBe("");
+    expect(validateSkillArchiveFile({ name: "package.zip", size: 32 * 1024 * 1024 + 1 })).toBe("");
   });
 
   it("reads file-level diagnostics from an import API error", () => {

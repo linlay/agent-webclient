@@ -26,7 +26,7 @@ Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `
 
 ## Skills 管理契约
 
-Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契约。列表和详情返回 `AdminSkillSummary`、`AdminSkillDetailResponse`；文本内容通过 `getAdminSource`、`updateAdminSource` 读写，创建文件/目录、重命名、删除、上传、下载、校验、创建和 ZIP 导入使用对应的 `AdminSkill*` DTO 与语义化 client 函数。完整 ZIP 通过 `importAdminSkill` 以 multipart `key/file` 发送到 `POST /api/admin/skills/import`，成功后复用 `AdminSkillDetailResponse` 并直接进入新技能；409 重名和 422 文件级诊断留在新建弹窗中处理。
+Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契约。列表和详情返回 `AdminSkillSummary`、`AdminSkillDetailResponse`；文本内容通过 `getAdminSource`、`updateAdminSource` 读写，创建文件/目录、重命名、删除、上传、下载、校验、创建和 ZIP 导入使用对应的 `AdminSkill*` DTO 与语义化 client 函数。统一 ZIP 导入通过 `importAdminSkill` 向 `POST /api/admin/skills/import` 发送 multipart `file` 与可选 `key`；前端不解压、不从文件名猜身份，也不选择单技能或技能包类型。Platform 读取根 `manifest.json` 识别技能包，否则沿用单技能规则；单技能缺省 Key 从 `SKILL.md` 的 `key/name` 读取，包身份始终由 manifest 的 `id/version` 决定。`AdminSkillImportResponse` 通过 `kind` 区分：`skill` 保留原顶层 `AdminSkillDetailResponse` 字段；`skill-package` 返回 `package`（包 ID、名称、版本、成员、归档摘要与安装时间）。旧单技能响应省略 kind 仍兼容。包导入后重新加载全部技能、清除列表过滤，并进入一个已安装成员；当前成员被更新时强制刷新详情。ZIP 上传上限 512 MiB，识别为单技能后由 Platform 执行原 32 MiB 限额。409 保留服务端具体冲突消息，422 文件级诊断留在导入弹窗中。
 
 后端只在发现 `skills-center/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
 
