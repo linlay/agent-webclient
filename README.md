@@ -12,9 +12,9 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 `agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不包含智能体后端，也不定义模型、工具、调度、记忆或权限的最终语义；它消费上游 `/api/*` 与 `/ws` 能力，为智能体平台提供统一前端。
 
-公开对话分享不由本项目运行或代理。Desktop 常驻 Worker 从 Agent Platform 获取 `ConversationSnapshotV1`、从本项目正在运行的 HTTP Host 获取模板并创建 HTML，Tunnel 在公开 `/share/{shareId}` 直接返回已存储的字节；WebClient 不参与匿名访问热路径。
+公开对话分享不由本项目运行或代理。Desktop 只向 Tunnel 上传 `ConversationSnapshotV1`；Tunnel 保存 Snapshot，并在公开 `/share/{shareId}` 使用当前分享渲染包生成 HTML。
 
-对话静态 HTML 使用 `src/export/` 的独立只读组件树和严格 `ConversationSnapshotV1` parser。生产构建生成轻量 `frontend/dist/export/conversation.template.html` 和内容寻址的 `conversation-export-assets/<hash>`：模板只保留唯一 Snapshot JSON、初始 DOM、外部 CSS link 和外部 deferred runtime script，不包含内联样式或可执行脚本。资源路径固定到内容哈希，但 origin 不在构建时写死；浏览器使用 Blob parts，Desktop 使用 Worker 字节算法注入 Snapshot、CSS/JS 与 CSP 地址。React、ReactDOM 与 KaTeX 进入主 JS/CSS，ECharts 与 Mermaid 只在命中对应代码块时从同一不可变资产目录按需加载；所有入口资源带 SRI。Tunnel 托管不可变的内容寻址资产，WebClient 与 Desktop 都不参与匿名访问热路径。
+对话静态 HTML 使用 `src/export/` 的独立只读组件树和严格 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并整体替换 Tunnel 当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI，Tunnel 只托管当前资源集合。浏览器和 Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件。
 
 接入以后，一个智能体后端可以快速拥有：
 
@@ -133,7 +133,7 @@ make test
 make build
 ```
 
-构建产物输出到 `dist/`；`dist/export/` 同时生成由 WebClient Host 提供的轻量模板、资产 manifest 和待同步到 Tunnel 的内容寻址资产集合。模板随 WebClient Program Bundle 发布，不再同步到 Agent Platform；`npm run sync:conversation-export` 只追加当前 Tunnel 资产集，不删除或覆盖历史资产。
+普通构建产物输出到 `dist/`，不构建分享渲染包。需要更新 Tunnel 渲染资源时单独执行 `npm run release:conversation-export`；该命令构建并校验 `dist/export/`，然后整体替换 Tunnel 的模板、manifest 和当前唯一 asset-set。
 
 ## Desktop Program Bundle 发布
 
