@@ -17,15 +17,15 @@ export function OnlinePreviewAction({ preview }: { preview: OnlineDocumentPrevie
   </div>;
 }
 
-export function OnlineDocumentPreview({ preview, name, onDownload, onBack }: {
-  preview: OnlineDocumentPreviewState; name: string; onDownload: () => Promise<void>; onBack?: () => void;
+export function OnlineDocumentPreview({ preview, name, onDownload }: {
+  preview: OnlineDocumentPreviewState; name: string; onDownload?: () => Promise<void>;
 }) {
   const { t } = useI18n();
   const [downloading, setDownloading] = React.useState(false);
   const result = preview.result;
   return <section className={styles.surface} aria-label={name}>
-    <div className={styles.toolbar}>
-      <Button onClick={onBack || preview.dismiss}>{t("contentViewer.preview.back")}</Button>
+    {onDownload ? <div className={styles.toolbar}>
+      <Button onClick={preview.dismiss}>{t("contentViewer.preview.back")}</Button>
       <Button disabled={preview.pending || Boolean(preview.reason)} title={preview.reason || undefined} onClick={() => void preview.prepare()}>
         {t(preview.expired ? "contentViewer.preview.renew" : "contentViewer.preview.reload")}
       </Button>
@@ -35,12 +35,21 @@ export function OnlineDocumentPreview({ preview, name, onDownload, onBack }: {
       <Button loading={downloading} onClick={() => {
         setDownloading(true); void onDownload().finally(() => setDownloading(false));
       }}>{t("contentViewer.action.download")}</Button>
-    </div>
+    </div> : null}
     {preview.pending ? <p role="status">{t("contentViewer.preview.preparing")}</p>
       : !result ? <OnlinePreviewAction preview={preview} />
-      : preview.expired ? <p role="status">{t("contentViewer.preview.expired")}</p>
+      : preview.expired ? <div className={styles.status}>
+        <p role="status">{t("contentViewer.preview.expired")}</p>
+        {!onDownload ? <Button disabled={Boolean(preview.reason)} title={preview.reason || undefined}
+          onClick={() => void preview.prepare()}>{t("contentViewer.preview.renew")}</Button> : null}
+      </div>
       : result?.openMode === "iframe" ? <iframe className={styles.frame}
         src={result.url} title={name} sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer" />
-      : <p role="status">{t("contentViewer.preview.externalReady")}</p>}
+      : <div className={styles.status}>
+        <p role="status">{t("contentViewer.preview.externalReady")}</p>
+        {!onDownload ? <a href={result.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
+          {t("contentViewer.preview.open")}
+        </a> : null}
+      </div>}
   </section>;
 }

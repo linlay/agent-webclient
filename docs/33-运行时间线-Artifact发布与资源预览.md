@@ -38,7 +38,7 @@ DOCX 保留本地只读查看器，并提供在线预览入口；PPTX、XLSX 从
 
 Platform 在 `configs/runtime.yml` 的 `document-preview` 中管理当前 document-hub、认证和打开方式。WebClient 仅消费 `previewId/sourceRevision/openMode/url/expiresAt`，不接收内部 API 地址或服务凭据。右侧栏准备好链接后新建“文件名 · 在线预览”标签并选中，保留原文件标签；同一来源重复打开复用预览标签，来源按 Workspace 的 `agentKey + path` 或 Chat 资源的 owner `chatId + relativePath` 区分，不按临时 URL 或文件名判断。独立 Document Surface 沿用容器内展示。`iframe` 模式展示只读分享 URL，sandbox 仅允许脚本和服务自身 origin，使用 `no-referrer`；不向 iframe 注入 Platform token 或 Desktop bridge。iframe 的预览 origin 必须与 WebClient 不同（同一主机的不同端口满足要求），同 origin 部署使用 `external`，避免脚本通过同源窗口访问宿主。外部浏览器入口始终保留，`external` 模式只显示用户点击的链接，不在异步响应后自动弹窗。Desktop 复用系统浏览器入口。
 
-工具栏提供返回文件、重新加载、浏览器打开和原文件下载。右侧栏“返回文件”切回原文件标签，原标签已关闭时重新打开；关闭预览只移除预览标签，切换会话清空预览与链接。重新加载重新请求 Platform 检查文件版本；原文件刷新、目标切换和卸载中止旧请求，迟到响应不覆盖当前目标或新建标签；到期移除 iframe 并提示重新获取。链接只存在于临时展示状态，不改变文件标签身份。iframe load 不代表编辑器渲染成功，不依据 load 自动切换模式。
+右侧栏独立预览标签不显示内容工具栏，iframe 直接占满内容区；关闭使用标签自身的操作，重新加载和浏览器打开位于标签右键菜单，下载从原文件标签操作。独立 Document Surface 仍保留容器内的工具栏。关闭预览只移除预览标签，切换会话清空预览与链接。重新加载重新请求 Platform 检查文件版本，浏览器打开使用最近一次准备成功且未过期的链接；原文件刷新、目标切换和卸载中止旧请求，迟到响应不覆盖当前目标或新建标签；到期移除 iframe 并显示重新获取入口，失败时显示重试入口，external 模式显示明确的打开链接。链接只存在于临时展示状态，不改变文件标签身份。iframe load 不代表编辑器渲染成功，不依据 load 自动切换模式。
 
 本地联调统一 `127.0.0.1`，document-hub 配置 `EDITOR_EMBED_ORIGINS` 并发布浏览器可达的 ONLYOFFICE 地址。跨站 Cookie 受限时在 Platform 配置 `open-mode: external`。上传/只读链接及副本回收由 Platform 完成，下载保持现有鉴权链路。
 

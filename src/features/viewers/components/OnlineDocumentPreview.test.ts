@@ -7,11 +7,9 @@ import type { DocumentPreviewResponse } from "@/shared/data/api/dto/resources";
 import type { ViewerTarget } from "../lib/viewerTarget";
 import { useOnlineDocumentPreview } from "../hooks/useOnlineDocumentPreview";
 import { OnlineDocumentPreview, OnlinePreviewAction } from "./OnlineDocumentPreview";
-import { OnlineDocumentPreviewTab } from "./OnlineDocumentPreviewTab";
-import { downloadViewerTarget } from "../lib/viewerRuntime";
+import { OnlineDocumentPreviewTab, type OnlineDocumentPreviewTabActions } from "./OnlineDocumentPreviewTab";
 
 jest.mock("@/shared/data/api/requests/documentPreview", () => ({ getDocumentPreviewCapabilities: jest.fn(), prepareDocumentPreview: jest.fn() }));
-jest.mock("../lib/viewerRuntime", () => ({ downloadViewerTarget: jest.fn(async () => {}) }));
 
 const target: ViewerTarget = { type: "file", agentKey: "coder", path: "report.xlsx", name: "report.xlsx", contentKind: "office" };
 const response = (mode: "iframe" | "external" = "iframe"): DocumentPreviewResponse => ({
@@ -35,7 +33,7 @@ describe("online document preview", () => {
     jest.mocked(prepareDocumentPreview).mockResolvedValue({ code: 0, data: response() } as never);
     container = document.createElement("div"); document.body.appendChild(container); root = createRoot(container);
   });
-  afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); });
+  afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); jest.restoreAllMocks(); });
   async function render(props: React.ComponentProps<typeof Harness> = {}) {
     await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false }, React.createElement(Harness, props))));
   }
@@ -82,26 +80,56 @@ describe("online document preview", () => {
     expect(onReady).not.toHaveBeenCalled();
   });
 
-  it("a separate tab keeps its source for reload and download and can recover from reload failure", async () => {
-    const onBack = jest.fn();
+  it("a separate tab fills the content area and its tab actions use the latest preview after reload", async () => {
+    const ref = React.createRef<OnlineDocumentPreviewTabActions>();
+    const open = jest.spyOn(window, "open").mockReturnValue(null);
     await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
       React.createElement(OnlineDocumentPreviewTab, {
-        tab: { key: "source-key", target, chatId: "owner-chat", teamChat: true, result: response() }, onBack,
+        tab: { key: "source-key", target, chatId: "owner-chat", teamChat: true, result: response() }, ref,
       }))));
     expect(container.querySelector("iframe")?.getAttribute("src")).toBe(response().url);
     expect(prepareDocumentPreview).not.toHaveBeenCalled();
-    await click("返回文件"); expect(onBack).toHaveBeenCalledTimes(1);
-    await click("下载");
-    expect(downloadViewerTarget).toHaveBeenCalledWith(target, { chatId: "owner-chat", teamChat: true });
+    expect(container.querySelector("button")).toBeNull();
+    expect(container.querySelector("a")).toBeNull();
+    expect(ref.current?.canReload).toBe(true);
 
     jest.mocked(prepareDocumentPreview).mockRejectedValueOnce(new Error("服务不可用"));
-    await click("重新加载");
+    await act(async () => ref.current!.reload());
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.querySelector('[role="alert"]')?.textContent).toBe("服务不可用");
+    expect(ref.current?.canOpenInBrowser).toBe(false);
     jest.mocked(prepareDocumentPreview).mockResolvedValue({ data: { ...response(), sourceRevision: "r2", url: "https://docs.example.test/s/updated" } } as never);
     await click("在线预览");
     expect(container.querySelector("iframe")?.getAttribute("src")).toBe("https://docs.example.test/s/updated");
     expect(jest.mocked(prepareDocumentPreview).mock.calls[1][0].source).toEqual({ kind: "workspace-file", agentKey: "coder", path: "report.xlsx" });
+    expect(ref.current?.canOpenInBrowser).toBe(true);
+    ref.current!.openInBrowser();
+    expect(open).toHaveBeenCalledWith("https://docs.example.test/s/updated", "_blank", "noopener,noreferrer");
+  });
+
+  it.each(["iframe", "external"] as const)("a toolbar-free %s tab can renew an expired link", async (mode) => {
+    jest.useFakeTimers();
+    const ref = React.createRef<OnlineDocumentPreviewTabActions>();
+    const open = jest.spyOn(window, "open").mockReturnValue(null);
+    await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(OnlineDocumentPreviewTab, {
+        tab: { key: "source-key", target, chatId: "owner-chat", result: { ...response(mode), expiresAt: Date.now() + 1000 } }, ref,
+      }))));
+    if (mode === "external") {
+      expect(container.querySelector("iframe")).toBeNull();
+      expect(container.querySelector("a")?.textContent).toBe("打开在线预览");
+      expect(container.querySelector("a")?.rel).toBe("noopener noreferrer");
+    }
+    expect(open).not.toHaveBeenCalled();
+    await act(async () => jest.advanceTimersByTime(1001));
+    expect(container.querySelector("iframe")).toBeNull();
+    expect(container.querySelector("a")).toBeNull();
+    expect(ref.current?.canOpenInBrowser).toBe(false);
+    ref.current!.openInBrowser(); expect(open).not.toHaveBeenCalled();
+    await click("重新获取预览");
+    expect(prepareDocumentPreview).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("iframe")).not.toBeNull();
+    expect(container.querySelector("button")).toBeNull();
   });
 
   it("aborts on file switch and ignores a late successful response", async () => {

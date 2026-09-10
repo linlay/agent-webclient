@@ -84,6 +84,7 @@ jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({
 
 jest.mock("@/features/viewers/components/OnlineDocumentPreviewTab", () => ({
   OnlineDocumentPreviewTab: () => React.createElement("div", null, "online preview tab"),
+  OnlineDocumentPreviewTabContextMenu: jest.fn(({ children }) => children),
 }));
 
 jest.mock("@/features/viewers/components/ViewerTabContextMenu", () => ({
@@ -193,7 +194,7 @@ describe("RightSidebar", () => {
     expect(html).not.toContain("debug tab");
   });
 
-  it("opens a separate online preview tab and routes selection, back and close independently", () => {
+  it("opens a separate online preview tab and routes selection and close independently", () => {
     const target: ViewerTarget = { type: "file", name: "report.xlsx", agentKey: "coder", path: "report.xlsx", contentKind: "office" };
     const preview: DocumentPreviewTabState = {
       key: getDocumentPreviewTabKey(target, "chat"), target, chatId: "chat",
@@ -210,8 +211,7 @@ describe("RightSidebar", () => {
     expect(tabs.items.map((item: any) => item.key)).toEqual(["overview", fileKey, previewKey]);
     tabs.items.find((item: any) => item.key === fileKey).children.props.onOpenOnlinePreview(preview);
     expect(dispatch).toHaveBeenLastCalledWith({ type: "OPEN_DOCUMENT_PREVIEW", preview });
-    tabs.items.find((item: any) => item.key === previewKey).children.props.onBack();
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", viewerTarget: target });
+    expect(tabs.items.find((item: any) => item.key === previewKey).children.props.onBack).toBeUndefined();
     tabs.onChange(previewKey);
     expect(dispatch).toHaveBeenLastCalledWith({ type: "ACTIVATE_DOCUMENT_PREVIEW", key: preview.key });
     tabs.onEdit(fileKey, "remove");

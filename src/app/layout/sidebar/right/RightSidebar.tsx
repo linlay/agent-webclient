@@ -11,7 +11,11 @@ import {
   type TabsProps,
 } from "antd";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
-import { OnlineDocumentPreviewTab } from "@/features/viewers/components/OnlineDocumentPreviewTab";
+import {
+  OnlineDocumentPreviewTab,
+  OnlineDocumentPreviewTabContextMenu,
+  type OnlineDocumentPreviewTabActions,
+} from "@/features/viewers/components/OnlineDocumentPreviewTab";
 import { ViewerTabContextMenu } from "@/features/viewers/components/ViewerTabContextMenu";
 import { DebugTab } from "@/features/debug/components/DebugTab";
 import { OverviewTab } from "@/features/overview/components/OverviewTab";
@@ -199,6 +203,20 @@ export const RightSidebar: React.FC = () => {
   >({});
   const [tabRefreshRequests, setTabRefreshRequests] = React.useState<Record<string, number>>({});
   const [viewerContextMenuKey, setViewerContextMenuKey] = React.useState<string | null>(null);
+  const documentPreviewRefs = React.useRef(new Map<string, React.RefObject<OnlineDocumentPreviewTabActions>>());
+  const getDocumentPreviewRef = React.useCallback((key: string) => {
+    let ref = documentPreviewRefs.current.get(key);
+    if (!ref) {
+      ref = React.createRef<OnlineDocumentPreviewTabActions>();
+      documentPreviewRefs.current.set(key, ref);
+    }
+    return ref;
+  }, []);
+  React.useEffect(() => {
+    for (const key of documentPreviewRefs.current.keys()) {
+      if (!documentPreviewTabs.some((preview) => preview.key === key)) documentPreviewRefs.current.delete(key);
+    }
+  }, [documentPreviewTabs]);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -483,9 +501,7 @@ export const RightSidebar: React.FC = () => {
             </Flex>
           </Tooltip>
         ),
-        children: <OnlineDocumentPreviewTab tab={preview} onBack={() => dispatch({
-          type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", viewerTarget: preview.target,
-        })} />,
+        children: <OnlineDocumentPreviewTab tab={preview} ref={getDocumentPreviewRef(preview.key)} />,
       });
     }
 
@@ -539,6 +555,7 @@ export const RightSidebar: React.FC = () => {
     hasBTWSession,
     viewerTabs,
     documentPreviewTabs,
+    getDocumentPreviewRef,
     dispatch,
     sourceDetail,
     planningPreviews,
@@ -627,6 +644,12 @@ export const RightSidebar: React.FC = () => {
             <DefaultTabBar {...tabBarProps}>
               {(node) => {
                 if (node.key === "overview" || !node.key) return node;
+                if (node.key.startsWith("documentPreview:")) {
+                  const tabKey = node.key;
+                  return <OnlineDocumentPreviewTabContextMenu key={tabKey}
+                    previewRef={getDocumentPreviewRef(tabKey.slice("documentPreview:".length))}
+                    onClose={() => handleCloseTab(tabKey)}>{node}</OnlineDocumentPreviewTabContextMenu>;
+                }
                 const isWebTab = node.key.startsWith("web:");
                 const isViewerTab = node.key.startsWith("viewer:");
 
