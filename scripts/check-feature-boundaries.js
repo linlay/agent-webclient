@@ -52,6 +52,7 @@ function importedFeature(importedPath) {
   return match ? match[1] : "";
 }
 
+// Rule paths use forward slashes; filesystem operations keep native paths (Windows/macOS).
 const violations = [];
 const featureNames = fs.existsSync(featuresRoot)
   ? fs.readdirSync(featuresRoot, { withFileTypes: true })
@@ -63,7 +64,7 @@ const featureGraph = new Map(featureNames.map((name) => [name, new Set()]));
 
 for (const feature of featureNames) {
   for (const file of walk(path.join(featuresRoot, feature))) {
-    const relativeFile = path.relative(repoRoot, file);
+    const relativeFile = path.relative(repoRoot, file).split(path.sep).join("/");
     const source = fs.readFileSync(file, "utf8");
     const imports = readImports(source);
     if (feature === "workers") {
@@ -85,7 +86,7 @@ for (const feature of featureNames) {
     }
     if (
       !isTestFile(file) &&
-      /\/features\/[^/]+\/lib\/[^/]+\.ts$/.test(file) &&
+      /\/features\/[^/]+\/lib\/[^/]+\.ts$/.test(relativeFile) &&
       /(?:from\s+["']react["']|require\s*\(\s*["']react["']\s*\)|react\/jsx-runtime)/.test(source)
     ) {
       violations.push(`${relativeFile}: feature lib/*.ts must stay React-free; move presenters to components/*.tsx`);
@@ -118,7 +119,7 @@ for (const feature of featureNames) {
 }
 
 for (const file of walk(sharedRoot)) {
-  const relativeFile = path.relative(repoRoot, file);
+  const relativeFile = path.relative(repoRoot, file).split(path.sep).join("/");
   for (const importedPath of readImports(fs.readFileSync(file, "utf8"))) {
     if (importedPath.startsWith("@/app/") || importedPath.startsWith("@/features/")) {
       violations.push(`${relativeFile}: shared must not import ${importedPath}`);
@@ -127,7 +128,7 @@ for (const file of walk(sharedRoot)) {
 }
 
 for (const file of walk(pagesRoot)) {
-  const relativeFile = path.relative(repoRoot, file);
+  const relativeFile = path.relative(repoRoot, file).split(path.sep).join("/");
   for (const importedPath of readImports(fs.readFileSync(file, "utf8"))) {
     if (importedPath.startsWith("@/shared/data")) {
       violations.push(`${relativeFile}: app page must not import ${importedPath}`);
@@ -139,7 +140,7 @@ const appStateTypesImport = "@/app/state/types";
 const appStateRoot = path.join(sourceRoot, "app", "state") + path.sep;
 for (const file of walk(sourceRoot).filter((candidate) => !isTestFile(candidate))) {
   if (file.startsWith(appStateRoot)) continue;
-  const relativeFile = path.relative(repoRoot, file);
+  const relativeFile = path.relative(repoRoot, file).split(path.sep).join("/");
   if (readImports(fs.readFileSync(file, "utf8")).includes(appStateTypesImport)) {
     violations.push(`${relativeFile}: import state types from their owning feature, not ${appStateTypesImport}`);
   }
@@ -164,7 +165,7 @@ for (const file of sharedGlobalStyles) {
   const match = source.match(domainSelectorPattern);
   if (match) {
     violations.push(
-      `${path.relative(repoRoot, file)}: domain selector ${match[0]} must live in its app/feature CSS Module`,
+      `${path.relative(repoRoot, file).split(path.sep).join("/")}: domain selector ${match[0]} must live in its app/feature CSS Module`,
     );
   }
 }
@@ -229,7 +230,7 @@ const desktopForbiddenTransportPaths = [
   "@/features/transport/lib/standaloneWsClient",
 ];
 for (const file of walk(sourceRoot).filter((candidate) => !isTestFile(candidate))) {
-  const relativeFile = path.relative(repoRoot, file);
+  const relativeFile = path.relative(repoRoot, file).split(path.sep).join("/");
   const isTransport = relativeFile.startsWith("src/features/transport/");
   const isDesktopTransport = isTransport && /^desktop[^/]*\.(?:ts|tsx)$/iu.test(path.basename(file));
   for (const importedPath of readImports(fs.readFileSync(file, "utf8"))) {
