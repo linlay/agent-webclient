@@ -72,6 +72,10 @@ export function createDocumentAppearanceTarget(root = document.documentElement) 
       // One continuous veil covers the main chat, including its gutters and
       // composer. Only a faint trace of the host picture should remain visible.
       set("--main-chat-surface", decorated ? readableSurface(read("--shell-content-bg"), solidBase, 0.94) : solidBase);
+      // Management pages share one faint picture layer, including when a skin
+      // supplies an opaque shell color. Never fade their text or controls.
+      const managementColor = colorChannels(read("--shell-content-bg")) || colorChannels(solidBase)!;
+      set("--management-page-surface", decorated ? `rgba(${managementColor.slice(0, 3).join(", ")}, 0.94)` : solidBase);
       set("--reading-surface", decorated ? readableSurface(read("--shell-content-bg"), solidBase) : solidBase);
       set("--shell-sidebar-bg", readableSurface(read("--shell-sidebar-bg"), solidBase));
       set("--panel-surface", read("--surface-strong"));

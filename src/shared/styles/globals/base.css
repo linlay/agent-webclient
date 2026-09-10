@@ -580,8 +580,8 @@ textarea {
 select { background: var(--control-select-bg); }
 .ant-dropdown .ant-dropdown-menu { background: var(--sidebar-operation-menu-bg); border-color: var(--sidebar-operation-menu-border); border-radius: var(--overlay-radius); }
 
-.ui-btn.is-icon-only { color: var(--control-icon-color); }
-.ui-btn.is-icon-only:hover:not(:disabled) { color: var(--control-icon-hover-color); }
+.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):not(:disabled) { color: var(--control-icon-color); }
+.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):hover:not(:disabled) { color: var(--control-icon-hover-color); }
 .ant-btn:disabled { opacity: var(--control-disabled-opacity); }
 .ant-message .ant-message-notice-content, .ant-notification .ant-notification-notice {
     background: var(--control-popover-bg);

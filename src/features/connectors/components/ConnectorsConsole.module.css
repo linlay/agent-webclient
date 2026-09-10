@@ -13,13 +13,14 @@
 .hint { color: var(--ink-muted); font-size: 12px; line-height: 1.6; }
 .files { display: flex; flex-wrap: wrap; gap: 4px; }
 .files button { border: 1px solid transparent; border-radius: 7px; color: var(--ink-muted); background: transparent; padding: 7px 12px; font: inherit; font-size: 12px; cursor: pointer; }
-.files button[aria-pressed="true"] { color: var(--ink-1); background: var(--bg-hover); border-color: var(--line-soft); }
+.files button[aria-pressed="true"] { color: var(--nav-selected-text); background: var(--bg-selected); border-color: var(--control-border); }
 .console button:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
 .listScroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .listItem { display: flex; flex-direction: column; gap: 5px; width: 100%; text-align: left; padding: 8px 10px; margin-bottom: 6px; color: var(--ink-1); background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
-.listItem:hover, .listItem[aria-current="true"] { background: var(--bg-hover); border-color: var(--line-soft); }
+.listItem:hover { background: var(--bg-hover); border-color: var(--control-border); }
+.listItem[aria-current="true"] { background: var(--bg-selected); border-color: color-mix(in srgb, var(--accent) 40%, var(--line-soft)); color: var(--nav-selected-text); }
 .listItem strong { font-size: 13px; }
-.description { color: var(--ink-muted); font-size: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.description { color: var(--ink-2); font-size: 12px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .badges { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .detail { min-width: 0; overflow: auto; padding: 0 8px 16px 0; display: flex; flex-direction: column; gap: 16px; }
 .bodySkills .detail { min-height: 0; overflow: hidden; padding-bottom: 0; }
@@ -33,7 +34,7 @@
 .stack, .config { display: flex; flex-direction: column; gap: 12px; }
 .group { display: flex; flex-direction: column; gap: 10px; padding: 0; font-size: 13px; overflow-wrap: anywhere; }
 .metadata { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: 12px; }
-.metadata dt { color: var(--ink-muted); }
+.metadata dt { color: var(--ink-2); }
 .metadata dd { margin: 0; overflow-wrap: anywhere; }
 .manifest { display: flex; flex-direction: column; gap: 16px; }
 .manifestMetadata { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; }
@@ -82,7 +83,8 @@
 .skillList { display: flex; flex-direction: column; gap: 4px; }
 .skillItem { display: flex; flex: 0 0 auto; flex-direction: column; gap: 5px; width: 100%; padding: 8px; text-align: left; background: transparent; color: var(--ink-1); border: 0; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
 .skillItem strong { font-size: 13px; }
-.skillItem[aria-current], .skillItem:hover { background: var(--bg-hover); }
+.skillItem:hover { background: var(--bg-hover); }
+.skillItem[aria-current] { background: var(--bg-selected); color: var(--nav-selected-text); }
 .skillDetail:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
 .skillDescription { font-size: 13px; color: var(--ink-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .documentHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; font-size: 12px; }

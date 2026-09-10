@@ -5,6 +5,8 @@ import enUS from "antd/locale/en_US";
 import { useI18n } from "@/shared/i18n";
 import { createAppearanceController, type AppearanceController } from "../lib/controller";
 import { readDocumentAntAppearanceTheme } from "../lib/antdTheme";
+import { CodeEditorThemeContext } from "@/shared/ui/CodeEditorThemeContext";
+import { createCodeEditorAppearanceTheme } from "../lib/codeEditorTheme";
 
 const Context = createContext<AppearanceController | null>(null);
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
@@ -16,9 +18,15 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   // and business children across every appearance update.
   const palette = JSON.stringify(snapshot.skin.tokens[snapshot.resolvedTheme]);
   const componentTheme = useMemo(() => readDocumentAntAppearanceTheme(snapshot.resolvedTheme), [snapshot.resolvedTheme, palette]);
+  const editorTheme = useMemo(() => {
+    const styles = window.getComputedStyle(document.documentElement);
+    return createCodeEditorAppearanceTheme(snapshot.resolvedTheme, name => styles.getPropertyValue(name).trim());
+  }, [snapshot.resolvedTheme, palette]);
   return <Context.Provider value={controller}>
     <ConfigProvider locale={locale === "en-US" ? enUS : zhCN} theme={componentTheme}>
-      <AntdApp>{children}</AntdApp>
+      <CodeEditorThemeContext.Provider value={editorTheme}>
+        <AntdApp>{children}</AntdApp>
+      </CodeEditorThemeContext.Provider>
     </ConfigProvider>
   </Context.Provider>;
 }

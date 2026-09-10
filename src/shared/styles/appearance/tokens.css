@@ -117,6 +117,7 @@ html[data-theme="dark"] {
     --page-tint: transparent;
     --reading-surface: var(--bg-base);
     --main-chat-surface: var(--bg-base);
+    --management-page-surface: var(--bg-base);
     --panel-surface: var(--surface-strong);
     /* Compatibility names are projections, never separate palettes. */
     --bg-elev-1: var(--surface-soft);

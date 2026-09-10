@@ -17,6 +17,7 @@
     "check:desktop-contract": "node ./scripts/check-agent-webclient-contract.js",
     "check:conversation-export": "node ./scripts/check-conversation-export-template.js",
     "check:i18n": "node ./scripts/check-i18n.js",
+    "preview:management": "webpack serve --config qa/webpack.management.cjs --mode development",
     "preview:appearance": "webpack serve --config qa/webpack.appearance.cjs --mode development",
     "build:appearance-preview": "webpack --config qa/webpack.appearance.cjs --mode development"
   },

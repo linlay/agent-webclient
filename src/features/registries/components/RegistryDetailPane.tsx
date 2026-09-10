@@ -29,7 +29,7 @@ const DETAIL_HEAD_CLASS_NAME =
 const DETAIL_ACTIONS_CLASS_NAME =
   "automation-detail-actions tw:flex tw:flex-wrap tw:items-center tw:gap-2";
 const META_GRID_CLASS_NAME =
-  "registry-meta-grid tw:mb-3 tw:grid tw:grid-cols-2 tw:gap-2 tw:text-[11px] tw:text-ink-muted tw:max-[860px]:grid-cols-1 tw:[&>span]:min-w-0 tw:[&>span]:[overflow-wrap:anywhere]";
+  "registry-meta-grid tw:mb-3 tw:grid tw:grid-cols-2 tw:gap-2 tw:text-[11px] tw:text-ink-2 tw:max-[860px]:grid-cols-1 tw:[&>span]:min-w-0 tw:[&>span]:[overflow-wrap:anywhere]";
 const REQUEST_BOX_CLASS_NAME =
   "automation-request-box tw:mt-3.5 tw:rounded-control tw:border tw:border-line-soft tw:p-3 registry-summary tw:[&_div]:min-h-[18px] tw:[&_div]:[overflow-wrap:anywhere] tw:[&_div]:text-xs tw:[&_div]:text-ink-2";
 const DIAGNOSTICS_CLASS_NAME =

@@ -82,10 +82,10 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => (
           </div>
         )}
       >
-        <button type="button" className="archive-bulk-trigger tw:relative tw:flex tw:h-8 tw:flex-none tw:items-center tw:gap-1 tw:rounded-control tw:border tw:px-2 tw:py-1 tw:text-lg tw:text-text-muted tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))] tw:hover:bg-[color-mix(in_srgb,var(--bg-hover)_60%,transparent)] tw:hover:text-ink-1">
+        <button type="button" className="archive-bulk-trigger tw:relative tw:flex tw:h-8 tw:flex-none tw:items-center tw:gap-1 tw:rounded-control tw:border tw:px-2 tw:py-1 tw:text-lg tw:text-text-muted tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[var(--control-input-bg)] tw:hover:bg-bg-hover tw:hover:text-ink-1">
           <MaterialIcon name="archive" />
           {props.bulkCandidateCount > 0 ? (
-            <span className="archive-bulk-badge tw:absolute tw:-right-1.5 tw:-top-1 tw:flex tw:h-4 tw:min-w-4 tw:items-center tw:justify-center tw:rounded-pill tw:bg-accent-electric tw:px-1 tw:text-[10px] tw:font-bold tw:leading-none tw:text-white">
+            <span className="archive-bulk-badge tw:absolute tw:-right-1.5 tw:-top-1 tw:flex tw:h-4 tw:min-w-4 tw:items-center tw:justify-center tw:rounded-pill tw:bg-accent-electric tw:px-1 tw:text-[10px] tw:font-bold tw:leading-none tw:text-[var(--accent-on)]">
               {props.bulkCandidateCount}
             </span>
           ) : null}
@@ -105,7 +105,7 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => (
           <button
             key={item.chatId}
             type="button"
-            className={`archive-list-item tw:w-full tw:rounded-[10px] tw:border-0 tw:bg-transparent tw:px-3 tw:py-[11px] tw:text-left tw:text-ink-1 tw:hover:bg-bg-base tw:[&.is-active]:bg-bg-base ${item.chatId === props.selectedChatId ? "is-active" : ""}`}
+            className={`archive-list-item tw:w-full tw:rounded-[10px] tw:border-0 tw:bg-transparent tw:px-3 tw:py-[11px] tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)] ${item.chatId === props.selectedChatId ? "is-active" : ""}`}
             onClick={() => props.onSelect(item.chatId)}
           >
             <span className="archive-list-item-head tw:flex tw:items-center tw:justify-between tw:gap-2.5 tw:[&>span]:flex-none tw:[&>span]:text-[11px] tw:[&>span]:text-ink-muted tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:whitespace-nowrap tw:[&>strong]:text-[13px]">

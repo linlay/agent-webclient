@@ -235,7 +235,7 @@ const SKILL_LIST_SCROLL_CLASS_NAME =
 const SKILL_LIST_ITEMS_CLASS_NAME =
   "skill-console-list-items tw:flex tw:flex-col";
 const SKILL_LIST_ITEM_CLASS_NAME =
-  "skill-console-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-none tw:border tw:!border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-bg-hover";
+  "skill-console-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-none tw:border tw:!border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)]";
 const SKILL_LIST_ITEM_HEAD_CLASS_NAME =
   "skill-console-list-item-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-tag]:flex-none";
 const SKILL_LIST_ITEM_ICON_CLASS_NAME =

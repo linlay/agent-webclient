@@ -150,10 +150,15 @@
     opacity: 0.55;
 }
 
-:global(.agent-console-list-item):hover,
-:global(.agent-console-list-item):global(.is-active) {
-    border-color: color-mix(in srgb, var(--accent-soft) 58%, var(--line-soft));
+:global(.agent-console-list-item):hover {
+    border-color: var(--control-border);
     background: var(--bg-hover);
+}
+
+:global(.agent-console-list-item):global(.is-active) {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--line-soft));
+    background: var(--bg-selected);
+    color: var(--nav-selected-text);
 }
 
 :global(.agent-console-list-item):global(.is-invalid) {

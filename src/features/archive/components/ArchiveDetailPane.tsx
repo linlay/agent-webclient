@@ -54,7 +54,7 @@ export const ArchiveDetailPane: React.FC<ArchiveDetailPaneProps> = (props) => (
           {props.previewLines.length === 0 ? (
             <div className="command-empty-state">{t("archive.empty.detail")}</div>
           ) : props.previewLines.map((line) => (
-            <div className="archive-preview-line tw:rounded-[10px] tw:border tw:p-2.5 tw:px-3 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-input)_62%,var(--bg-elev-2))]" key={line.key}>
+            <div className="archive-preview-line tw:rounded-[10px] tw:border tw:p-2.5 tw:px-3 tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[var(--control-input-bg)]" key={line.key}>
               <div className="archive-preview-label tw:mb-1.5 tw:font-code tw:text-[11px] tw:font-semibold tw:leading-[1.2] tw:text-ink-muted">{line.label}</div>
               <div className="archive-preview-text tw:whitespace-pre-wrap tw:break-words tw:text-[13px] tw:leading-[1.55] tw:text-ink-1">{line.text}</div>
             </div>

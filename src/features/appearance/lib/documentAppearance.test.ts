@@ -42,3 +42,17 @@ it.each(["light", "dark"] as const)("keeps a continuous faint host background in
   }
   expect(root.style.getPropertyValue("--main-chat-surface")).toBe("");
 });
+
+it.each(["host", "standalone"] as const)("reveals pictures behind management pages even with an opaque skin in %s", backgroundMode => {
+  const root = document.documentElement;
+  const target = createDocumentAppearanceTarget(root);
+  const skin = { id: "photo", tokens: { light: { "--bg-base": "#edf3ed", "--shell-content-bg": "#f6faf2" }, dark: {} } };
+  try {
+    target.apply({ resolvedTheme: "light", skin, backgroundMode, imageUrl: backgroundMode === "standalone" ? "blob:photo" : undefined });
+    expect(root.style.getPropertyValue("--management-page-surface")).toBe("rgba(246, 250, 242, 0.94)");
+    expect(root.style.getPropertyValue("--bg-base")).toBe("rgb(237, 243, 237)");
+    target.apply({ resolvedTheme: "light", skin, backgroundMode: "host-fallback" });
+    expect(root.style.getPropertyValue("--management-page-surface")).toBe("rgb(237, 243, 237)");
+  } finally { target.dispose(); }
+  expect(root.style.getPropertyValue("--management-page-surface")).toBe("");
+});

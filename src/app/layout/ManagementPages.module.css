@@ -96,6 +96,15 @@
     min-height: 0;
 }
 
+/* A single background covers the complete page and its gutters. */
+:global(.agents-page),
+:global(.skills-page),
+:global(.connectors-page),
+:global(.registries-page),
+:global(.archives-page) {
+    background: var(--management-page-surface);
+}
+
 @media (max-width: 860px) {
     :global(.skills-page) :global(.skill-console-body) {
         grid-template-columns: 1fr;
