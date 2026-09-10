@@ -20,7 +20,7 @@ Desktop 的展示所有权按权威内容类型分流：Main Chat、Project、Ar
 
 Artifact、Reference、普通附件和回答 Markdown 中的文件链接都以 Viewer 为唯一左键入口。`artifacts/...`、`docs/...`、普通文件名等安全相对路径按当前 `chatId` 解释为 ChatScope 资源，打开 Resource Viewer；绝对 Workspace 路径仍打开 File Viewer。原链接、卡片、Viewer 根节点和 Viewer Tab 暴露右键下载 capability，Viewer 内不显示下载工具栏。左键打开失败、内容加载失败或文件类型不受支持时都不得自动触发下载。
 
-Markdown、文本与代码使用 Monaco，PDF 使用 PDF.js，音视频使用浏览器媒体播放器。DOCX 使用统一 Document Surface 的隔离只读查看器；其他 Office、压缩包和未知二进制保留元信息状态，不发起伪文本预览。Desktop 中的 Document Surface 可渲染“在 Finder/文件资源管理器中显示”和“用默认应用打开”，纯浏览器不渲染 Desktop-only 操作。宿主请求不携带绝对路径，并由 owner Chat 和当前可信 descriptor 双重校验。
+Markdown、文本与代码使用 Monaco，PDF 使用 PDF.js，音视频使用浏览器媒体播放器。Office（包括 DOCX）、压缩包和未知二进制默认显示元信息，不发起客户端正文或伪文本预览；支持的 Office 格式可通过在线预览服务查看。Desktop 中的 Document Surface 可渲染“在 Finder/文件资源管理器中显示”和“用默认应用打开”，纯浏览器不渲染 Desktop-only 操作。宿主请求不携带绝对路径，并由 owner Chat 和当前可信 descriptor 双重校验。
 
 Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器中显示、用默认应用打开 / 关闭”分组，以分隔线区分；打开菜单时隐藏标签悬浮提示，提示只保留文件名和大小。元信息卡展示名称、易读的文件大小与 MIME，大小按十进制单位换算（如 36,800 字节显示为 36.8 kB），不显示“Office 文档（只读）”副标题或本地副本说明。MIME 标签与值同行，值保持单行，超长时省略并可悬停查看完整值。四个按钮位于信息卡片内的下方，以适中宽度居中排列，不撑满卡片，依次为“在线预览”、下载、Finder（其他系统使用相应文件管理器）、默认应用，每行一个；在线预览按 Platform 能力、文件格式和大小启用，禁用时显示原因。两个本机操作复用 WebClient 本机文件服务，不依赖 Desktop 桥接。刷新重新读取文件与元信息，并更新媒体 Blob；存在未保存的编辑或批注时先确认丢弃，取消则保留当前内容。
 
@@ -34,7 +34,7 @@ Desktop 原生图片稳定后，WebClient 的 preview-review 只保留 HTML Reso
 
 ## Office 在线预览
 
-DOCX 保留本地只读查看器，并提供在线预览入口；PPTX、XLSX 从元信息卡进入。`features/viewers` 读取普通 HTTP `GET /api/document/preview/capabilities`，点击后提交 `POST /api/document/preview` 的 `requestId + source`。Workspace 提交 `agentKey + path`，Chat 资源提交 owner `chatId + relativePath`，前端不上传 Blob，也不启动 Agent Run。配置缺失、旧 Platform 无接口、格式不支持或超限时显示原因。
+DOCX、PPTX、XLSX 统一从元信息卡进入在线预览，不提供内置 DOCX 正文渲染。未配置服务时显示“未配置在线预览服务”，保留文件信息、下载和当前环境可用的系统操作。Desktop 嵌入和 Standalone 使用相同的服务能力判断与预览流程。`features/viewers` 读取普通 HTTP `GET /api/document/preview/capabilities`，点击后提交 `POST /api/document/preview` 的 `requestId + source`。Workspace 提交 `agentKey + path`，Chat 资源提交 owner `chatId + relativePath`，前端不上传 Blob，也不启动 Agent Run。配置缺失、旧 Platform 无接口、格式不支持或超限时显示原因。
 
 Platform 在 `configs/runtime.yml` 的 `document-preview` 中管理当前 document-hub、认证和打开方式。WebClient 仅消费 `previewId/sourceRevision/openMode/url/expiresAt`，不接收内部 API 地址或服务凭据。右侧栏准备好链接后新建“文件名 · 在线预览”标签并选中，保留原文件标签；同一来源重复打开复用预览标签，来源按 Workspace 的 `agentKey + path` 或 Chat 资源的 owner `chatId + relativePath` 区分，不按临时 URL 或文件名判断。独立 Document Surface 沿用容器内展示。`iframe` 模式展示只读分享 URL，sandbox 仅允许脚本和服务自身 origin，使用 `no-referrer`；不向 iframe 注入 Platform token 或 Desktop bridge。iframe 的预览 origin 必须与 WebClient 不同（同一主机的不同端口满足要求），同 origin 部署使用 `external`，避免脚本通过同源窗口访问宿主。外部浏览器入口始终保留，`external` 模式只显示用户点击的链接，不在异步响应后自动弹窗。Desktop 复用系统浏览器入口。
 

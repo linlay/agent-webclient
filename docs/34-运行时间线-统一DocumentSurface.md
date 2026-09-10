@@ -21,7 +21,7 @@ Resource metadata 缺少权威 `X-Document-Kind` 时不把“缺字段”解释�
 - Markdown、文本和代码使用 Monaco。具备可视化预览的文档在首次打开或切换文档时默认进入预览。Markdown 只保留预览和源码两种模式：源码使用 Monaco 直接编辑，预览用于阅读和选区批注，不提供分屏，不执行 MDX 或内联 HTML 脚本。
 - 源码文本批注以 revision、line/column range 和 selected-text hash 锚定；Markdown 预览选区在能唯一对应原文时同时保留 line/column，格式化后无法直接对应的选区保留脱敏原文和 hash。本地编辑期间由 Monaco decoration 跟随，外部 revision 变更后显式失效。
 - PDF 使用本地 PDF.js 只读 Viewer，支持页码、缩放与搜索。
-- DOCX 使用随 WebClient 分发的 docx-preview 与 JSZip 提供只读正文、表格、内嵌图片、分页和缩放。预览在不含 allow-same-origin 的 sandbox iframe 中执行，只允许带本次 nonce 的内置脚本；文档脚本、HTML altChunk、远端资源、表单和顶层导航均不可用。父页面通过当前 frame source 与随机 token 校验的窄消息通道交付鉴权读取的文件字节、页码和缩放命令；不向 iframe 暴露服务凭据或 Desktop bridge。压缩包预检约束原始/展开体积、条目数和加密状态，关闭或换文件取消读取并销毁 frame。原始文件下载与其他文档共用同一能力，Reference 原件不被修改。其他 Office 格式仍显示元信息和显式操作；DOCX 的复杂排版、特殊字体和自动分页不保证与 Word 完全一致。音视频使用媒体播放器。压缩包和未知二进制不读为文本，也不自动下载。
+- Office 文档（含 DOCX、PPTX、XLSX）统一显示文件元信息、下载及当前环境可用的系统打开/定位操作。正文仅通过现有在线预览服务展示；未配置服务时显示“未配置在线预览服务”，不读取或渲染客户端 DOCX 正文。已配置时按 Platform 能力、格式和大小启用在线预览，沿用共享请求与展示流程，Desktop 嵌入和 Standalone 行为一致，详见 [Office 在线预览](33-运行时间线-Artifact发布与资源预览.md#office-在线预览)。Reference 原件不被修改。音视频使用媒体播放器；压缩包和未知二进制不读为文本，也不自动下载。
 - Standalone HTML 提供源码和 sandbox 预览；Standalone 图片对 PNG/JPEG/WebP 提供基础 Canvas 编辑和区域批注，其他格式保持只读。
 
 文档内容区不复用浏览器地址栏。文件名只显示在 WorkPanel Tab；Markdown 工具栏只包含预览/源码、预览选区批注和保存，文本/代码只包含批注和保存。保存统一先询问保存方式：Workspace File 默认并且只能覆盖原文件，Artifact 默认新建产物且可明确选择覆盖，Reference 只能新建产物。重新加载权威 revision 位于同一行的更多菜单，存在 dirty 修改时先确认丢弃。普通 Web、WebApp 与 loopback 实时网站仍保留刷新和地址栏。

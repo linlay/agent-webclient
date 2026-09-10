@@ -46,7 +46,6 @@ import { OnlineDocumentPreview, OnlinePreviewAction } from "./OnlineDocumentPrev
 import { useOnlineDocumentPreview } from "../hooks/useOnlineDocumentPreview";
 import { getDocumentPreviewTabKey, type DocumentPreviewTabState } from "../lib/documentPreview";
 import { isAppMode } from "@/shared/utils/routing";
-import { isDocxDocument } from "@/features/viewers/lib/docxPreview";
 import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
@@ -58,11 +57,6 @@ const PdfDocumentViewer = process.env.NODE_ENV === "test"
       const module = await import("@/features/viewers/components/PdfDocumentViewer");
       return { default: module.PdfDocumentViewer };
     });
-
-const DocxDocumentViewer = React.lazy(async () => {
-  const module = await import("@/features/viewers/components/DocxDocumentViewer");
-  return { default: module.DocxDocumentViewer };
-});
 
 const CONTENT_VIEWER_PANEL_CLASS_NAME =
   "content-viewer-panel tw:flex tw:h-full tw:flex-col";
@@ -376,7 +370,6 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   });
   const mediaUrl = authenticatedResource.url;
   const viewerName = workspaceFileResponse?.name || target.name;
-  const docxPreview = documentKind === "document-office" && isDocxDocument(viewerName);
   const onlinePreview = useOnlineDocumentPreview({
     target, chatId, name: viewerName,
     sizeBytes: workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined),
@@ -714,11 +707,11 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     () => buildViewerTextLines(textContent, targetLine),
     [targetLine, textContent],
   );
-  const metadataOnly = (documentKind === "document-office" && !docxPreview) ||
+  const metadataOnly = documentKind === "document-office" ||
     documentKind === "document-archive" || documentKind === "document-binary";
   const unsupportedTextEncoding = documentKind === "document-binary" &&
     isKnownTextDocumentName(viewerName);
-  const viewable = isViewerContentSupported(contentKind) || metadataOnly || docxPreview;
+  const viewable = isViewerContentSupported(contentKind) || metadataOnly;
   const desktopLocalResourceIdentity = target.type === "resource"
     ? resolveDesktopCurrentResourceIdentity(chatId, target.url)
     : null;
@@ -761,18 +754,10 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
 
   return (
     <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
-      {docxPreview ? <OnlinePreviewAction preview={onlinePreview} /> : null}
-      {!docxPreview && localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+      {localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
         ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} />
         : null}
       {viewable ? <div key={documentReloadRequest} className={CONTENT_VIEWER_BODY_CLASS_NAME}>
-        {docxPreview ? (
-          viewerUrl ? <React.Suspense fallback={<div role="status" className={CONTENT_VIEWER_STATUS_CLASS_NAME}>{t("contentViewer.docx.loading")}</div>}>
-            <DocxDocumentViewer key={`${chatId}:${viewerUrl}`} url={viewerUrl} name={viewerName} chatId={chatId} teamChat={teamChat}
-              sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
-              onDownload={handleDownload} />
-          </React.Suspense> : <div role={textError ? "alert" : "status"} className={CONTENT_VIEWER_STATUS_CLASS_NAME}>{textError || t("contentViewer.docx.loading")}</div>
-        ) : null}
         {contentKind === "image" && mediaUrl && browserImageEditable && imageCommitSource ? (
           <BrowserImageEditor
             url={mediaUrl}
