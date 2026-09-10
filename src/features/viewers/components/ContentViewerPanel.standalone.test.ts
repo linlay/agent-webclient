@@ -3,6 +3,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ContentViewerPanel } from "./ContentViewerPanel";
 import { DocumentTextEditor } from "./DocumentTextEditor";
+import { canUseDesktopCurrentResourceActions, checkDesktopCurrentResourceActionsAvailable, requestDesktopCurrentResourceAction } from "@/shared/data/desktop/desktopCurrentResourceAction";
 import { isAppMode } from "@/shared/utils/routing";
 import { getAgentFile } from "@/shared/data";
 import { downloadViewerTarget, openStandaloneViewerTarget, readViewerResourceMetadata, readViewerResourceDocument } from "@/features/viewers/lib/viewerRuntime";
@@ -12,6 +13,12 @@ import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourc
 import { I18nProvider } from "@/shared/i18n";
 import { getDocumentPreviewCapabilities, prepareDocumentPreview } from "@/shared/data/api/requests/documentPreview";
 
+jest.mock("@/shared/data/desktop/desktopCurrentResourceAction", () => ({
+  ...jest.requireActual("@/shared/data/desktop/desktopCurrentResourceAction"),
+  canUseDesktopCurrentResourceActions: jest.fn(() => false),
+  checkDesktopCurrentResourceActionsAvailable: jest.fn(async () => true),
+  requestDesktopCurrentResourceAction: jest.fn(async () => ({ ok: true })),
+}));
 jest.mock("@/shared/utils/routing", () => ({ ...jest.requireActual("@/shared/utils/routing"), isAppMode: jest.fn(() => false) }));
 jest.mock("@/app/state/AppContext", () => ({ useAppState: () => ({ chatId: "chat-1", chats: [] }) }));
 jest.mock("@/shared/data", () => ({ getAgentFile: jest.fn() }));
@@ -39,6 +46,7 @@ describe("standalone document panel", () => {
     (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
     jest.clearAllMocks();
     jest.mocked(isAppMode).mockReturnValue(false);
+    jest.mocked(canUseDesktopCurrentResourceActions).mockReturnValue(false);
     jest.mocked(canUseStandaloneFileActions).mockReturnValue(true);
     jest.mocked(getStandaloneFileCapabilities).mockResolvedValue(capabilities);
     jest.mocked(readViewerResourceMetadata).mockResolvedValue({ documentKind: "document-office", mimeType: "application/test", sizeBytes: 36800 } as never);
@@ -61,6 +69,33 @@ describe("standalone document panel", () => {
     )));
   }
 
+  it.each(["MacIntel", "Win32"])("keeps Desktop actions in the card and uses the host bridge on %s", async (platform) => {
+    jest.spyOn(window.navigator, "platform", "get").mockReturnValue(platform);
+    jest.spyOn(window.navigator, "userAgent", "get").mockReturnValue(platform === "MacIntel" ? "Mozilla/5.0 (Macintosh)" : "Mozilla/5.0 (Windows NT 10.0)");
+    jest.mocked(isAppMode).mockReturnValue(true);
+    jest.mocked(canUseDesktopCurrentResourceActions).mockReturnValue(true);
+    await act(async () => root.render(React.createElement(
+      I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(ContentViewerPanel, { target, enableDesktopLocalResourceActions: true }),
+    )));
+    const card = container.querySelector("section")!;
+    const buttons = Array.from(card.querySelectorAll("button"));
+    expect(buttons).toHaveLength(4);
+    expect(container.querySelectorAll("button")).toHaveLength(4);
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "在线预览", "下载", platform === "MacIntel" ? "在访达中显示" : "在文件资源管理器中显示", "用默认应用打开",
+    ]);
+    expect(checkDesktopCurrentResourceActionsAvailable).toHaveBeenCalled();
+    expect(getStandaloneFileCapabilities).not.toHaveBeenCalled();
+    for (const [index, action] of [[2, "reveal"], [3, "open-default"]] as const) {
+      await act(async () => buttons[index].click());
+      expect(requestDesktopCurrentResourceAction).toHaveBeenLastCalledWith(action, {
+        chatId: "chat-1", profile: "artifact", relativePath: "artifacts/report.doc",
+      });
+    }
+    expect(openStandaloneViewerTarget).not.toHaveBeenCalled();
+  });
+
   describe.each([false, true])("Office preview in Desktop mode %s", (desktop) => {
     const reference = (extension: string): Extract<ViewerTarget, { type: "resource" }> => ({
       type: "resource", name: `申请表.${extension}`, url: `申请表.${extension}`, downloadUrl: `申请表.${extension}`, contentKind: "office",
@@ -74,7 +109,7 @@ describe("standalone document panel", () => {
       expect(container.textContent).toContain("未配置在线预览服务");
       expect(container.textContent).toContain(file.name);
       expect(container.textContent).toContain("application/test");
-      expect(container.textContent).toContain(desktop ? "36800" : "36.8 kB");
+      expect(container.textContent).toContain("36.8 kB");
       const buttons = Array.from(container.querySelectorAll("button"));
       expect(buttons.find((button) => button.textContent === "在线预览")?.disabled).toBe(true);
       expect(container.querySelector("iframe")).toBeNull();

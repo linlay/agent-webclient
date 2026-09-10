@@ -18,19 +18,20 @@ function formatFileSize(sizeBytes: number | undefined, locale: string): string {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)} ${units[unit]}`;
 }
 
-export const StandaloneDocumentPanel: React.FC<{
-  target: ViewerTarget;
-  chatId: string;
-  teamChat?: boolean;
+interface DocumentMetadataPanelProps {
   name: string;
   mimeType: string;
   sizeBytes?: number;
   note?: string;
   previewAction: React.ReactNode;
   onDownload: () => Promise<void>;
-}> = ({ target, chatId, teamChat, name, mimeType, sizeBytes, note, previewAction, onDownload }) => {
+  localActions: React.ReactNode;
+}
+
+export const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
+  name, mimeType, sizeBytes, note, previewAction, onDownload, localActions,
+}) => {
   const { t, locale } = useI18n();
-  const localActions = useStandaloneViewerActions(target, chatId, teamChat);
   const [downloading, setDownloading] = React.useState(false);
   const size = formatFileSize(sizeBytes, locale);
   const download = async () => {
@@ -58,6 +59,21 @@ export const StandaloneDocumentPanel: React.FC<{
           <Button type="primary" loading={downloading} icon={<MaterialIcon name="download" />} onClick={() => void download()}>
             {t("contentViewer.action.download")}
           </Button>
+          {localActions}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export const StandaloneDocumentPanel: React.FC<Omit<DocumentMetadataPanelProps, "localActions"> & {
+  target: ViewerTarget;
+  chatId: string;
+  teamChat?: boolean;
+}> = ({ target, chatId, teamChat, ...props }) => {
+  const { t } = useI18n();
+  const localActions = useStandaloneViewerActions(target, chatId, teamChat);
+  return <DocumentMetadataPanel {...props} localActions={<>
           <Button disabled={localActions.disabled} loading={localActions.pending === "reveal"}
             title={localActions.hint} icon={<MaterialIcon name="folder_open" />} onClick={() => void localActions.run("reveal")}>
             {localActions.revealLabel}
@@ -66,8 +82,5 @@ export const StandaloneDocumentPanel: React.FC<{
             title={localActions.hint} icon={<MaterialIcon name="open_in_new" />} onClick={() => void localActions.run("open-default")}>
             {t("contentViewer.localAction.openDefault")}
           </Button>
-        </div>
-      </section>
-    </div>
-  );
+  </>} />;
 };

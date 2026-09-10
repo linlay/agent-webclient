@@ -41,10 +41,11 @@ import {
 } from "@/shared/data/desktop/desktopCurrentResourceAction";
 import { DocumentTextEditor } from "@/features/viewers/components/DocumentTextEditor";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
-import { StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
+import { DocumentMetadataPanel, StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
 import { OnlineDocumentPreview, OnlinePreviewAction } from "./OnlineDocumentPreview";
 import { useOnlineDocumentPreview } from "../hooks/useOnlineDocumentPreview";
 import { getDocumentPreviewTabKey, type DocumentPreviewTabState } from "../lib/documentPreview";
+import documentPanelStyles from "./StandaloneDocumentPanel.module.css";
 import { isAppMode } from "@/shared/utils/routing";
 import {
   hasDesktopHostBridge,
@@ -222,7 +223,8 @@ export function shouldRequestDesktopLocalResourceActions(input: {
 
 export const DesktopLocalResourceActions: React.FC<{
   resource: DesktopCurrentResourceIdentity;
-}> = ({ resource }) => {
+  compact?: boolean;
+}> = ({ resource, compact = false }) => {
   const [pendingAction, setPendingAction] =
     React.useState<DesktopCurrentResourceAction | null>(null);
   const [actionError, setActionError] = React.useState("");
@@ -255,9 +257,9 @@ export const DesktopLocalResourceActions: React.FC<{
   }, [pendingAction, resource]);
 
   return (
-    <div className={CONTENT_VIEWER_LOCAL_ACTIONS_CLASS_NAME}>
+    <div className={compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_CLASS_NAME}>
       <div
-        className={CONTENT_VIEWER_LOCAL_ACTIONS_GROUP_CLASS_NAME}
+        className={compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_GROUP_CLASS_NAME}
         role="group"
         aria-label={t("contentViewer.desktopAction.groupLabel")}
       >
@@ -272,7 +274,7 @@ export const DesktopLocalResourceActions: React.FC<{
         </Button>
         <Button
           block
-          type="primary"
+          type={compact ? "default" : "primary"}
           disabled={pendingAction !== null}
           icon={<MaterialIcon name="open_in_new" />}
           loading={pendingAction !== null}
@@ -754,7 +756,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
 
   return (
     <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
-      {localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+      {!metadataOnly && localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
         ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} />
         : null}
       {viewable ? <div key={documentReloadRequest} className={CONTENT_VIEWER_BODY_CLASS_NAME}>
@@ -797,30 +799,17 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             previewAction={<OnlinePreviewAction preview={onlinePreview} />}
             onDownload={handleDownload}
           /> :
-          <div className="tw:flex tw:min-h-[360px] tw:flex-1 tw:items-center tw:justify-center tw:p-6">
-            <div className="tw:w-full tw:max-w-md tw:rounded-xl tw:border tw:border-line-soft tw:bg-bg-elev-1 tw:p-5">
-              <div className="tw:mb-4 tw:text-base tw:font-semibold tw:text-ink-1">{viewerName}</div>
-              <dl className="tw:grid tw:grid-cols-[auto_1fr] tw:gap-x-4 tw:gap-y-2 tw:text-sm">
-                <dt className="tw:text-ink-muted">{t("contentViewer.metadata.type")}</dt>
-                <dd>{t(unsupportedTextEncoding
-                  ? "contentViewer.metadata.unsupportedTextEncoding"
-                  : `contentViewer.metadata.${documentKind}`)}</dd>
-                <dt className="tw:text-ink-muted">MIME</dt>
-                <dd className="tw:break-all">{workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}</dd>
-                <dt className="tw:text-ink-muted">{t("contentViewer.metadata.size")}</dt>
-                <dd>{workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined) ?? "–"}</dd>
-              </dl>
-              {unsupportedTextEncoding ? (
-                <p className="tw:mt-4 tw:text-sm tw:text-ink-muted">
-                  {t("contentViewer.metadata.unsupportedTextEncodingDetail")}
-                </p>
-              ) : null}
-              <OnlinePreviewAction preview={onlinePreview} />
-              <Button className="tw:mt-5" type="primary" onClick={() => void handleDownload()}>
-                {t("contentViewer.action.download")}
-              </Button>
-            </div>
-          </div>
+          <DocumentMetadataPanel
+            name={viewerName}
+            mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
+            sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
+            note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
+            previewAction={<OnlinePreviewAction preview={onlinePreview} />}
+            onDownload={handleDownload}
+            localActions={localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+              ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} compact />
+              : null}
+          />
         ) : null}
 
         {contentKind === "html" ? (

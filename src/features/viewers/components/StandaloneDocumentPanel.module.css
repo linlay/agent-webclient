@@ -54,5 +54,7 @@
 .metadata dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .mime { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-muted); }
 .actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; width: min(100%, 240px); margin: 24px auto 0; }
-.actions :global(.ant-btn) { height: auto; min-height: 36px; padding: 7px 10px; font-size: 13px; white-space: normal; }
+.actions :global(.ant-btn) { width: 100%; height: auto; min-height: 36px; padding: 7px 10px; font-size: 13px; white-space: normal; }
 .note { margin: 16px 0 0; color: var(--ink-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+
+.localActions { display: grid; gap: 10px; min-width: 0; width: 100%; }
