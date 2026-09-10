@@ -334,6 +334,13 @@ export const dataEndpoints = createEndpointRegistry({
     method: "PUT",
     transport: "http",
   }),
+  adminConnectorDelete: defineEndpoint({
+    key: "admin.connectors.delete",
+    path: "/api/admin/connectors/detail",
+    method: "DELETE",
+    transport: "http",
+    payload: (id: string) => ({ id }),
+  }),
   adminConnectorImport: defineEndpoint({
     key: "admin.connectors.import",
     path: "/api/admin/connectors/import",

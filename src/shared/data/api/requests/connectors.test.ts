@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
+import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
 import { getAgentConnectors, setAgentConnector } from "./connectors";
 jest.mock("@/shared/data/api/http", () => ({
@@ -86,4 +86,10 @@ it("scopes connector skill queries to the admin connector and original skill nam
   await getConnectorSkillDetail("builtin.dbx", "query&report");
   expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/connectors/skills?id=builtin.dbx");
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/skills/detail?id=builtin.dbx&name=query%26report");
+});
+
+
+it("deletes the installed package through the detail endpoint with an encoded id", async () => {
+  await deleteConnector("demo & other");
+  expect(requestJson).toHaveBeenCalledWith("/api/admin/connectors/detail?id=demo+%26+other", { method: "DELETE", cache: "no-store" });
 });

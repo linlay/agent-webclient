@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { ApiError, getAdminConnectors, getAdminTools, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, updateConnectorDefinition } from "@/shared/data";
+import { deleteConnector, ApiError, getAdminConnectors, getAdminTools, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, updateConnectorDefinition } from "@/shared/data";
 import type { ConnectorSummary } from "@/shared/data";
 import { I18nProvider } from "@/shared/i18n";
 import { ConnectorsConsole } from "./ConnectorsConsole";
@@ -27,7 +27,7 @@ jest.mock("@/shared/ui/CodeEditor", () => ({
 }));
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
-  getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), updateConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(),
+  deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), updateConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(),
   getConnectorSkills: jest.fn(), getConnectorSkillDetail: jest.fn(),
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
 }));
@@ -173,6 +173,7 @@ it("keeps built-in fields and the Monaco JSON source read-only", async () => {
   expect(basics.textContent).toContain("只读");
   expect(basics.textContent).not.toContain("可在 JSON 源码中编辑");
   expect(button("保存配置")).toBeUndefined();
+  expect(button("删除连接器")).toBeUndefined();
   await click("JSON 源码");
   const editor = basics.querySelector("textarea")!;
   expect(editor.value).toContain(item.id);
@@ -352,4 +353,34 @@ it("preserves connector order on save failure and reads remote pins when focused
   await act(async () => window.dispatchEvent(new Event("focus")));
   expect(container.querySelector("aside strong")?.textContent).toBe("Other connector");
   expect(container.textContent).not.toContain("无法同步连接器置顶");
+});
+
+
+it("confirms the package identity before deleting and leaves the list usable after deleting the last item", async () => {
+  await mount();
+  jest.spyOn(window, "confirm").mockReturnValue(false);
+  await click("删除连接器");
+  expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("Demo connector"));
+  expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("demo"));
+  expect(deleteConnector).not.toHaveBeenCalled();
+  jest.mocked(window.confirm).mockReturnValue(true);
+  jest.mocked(deleteConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { id: "demo", deleted: true } });
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [] } });
+  await click("删除连接器");
+  expect(deleteConnector).toHaveBeenCalledWith("demo");
+  expect(container.textContent).not.toContain("找不到连接器");
+  expect(container.querySelectorAll("aside strong")).toHaveLength(0);
+  expect(button("删除连接器")).toBeUndefined();
+  expect(container.querySelector('button[aria-label="导入"]')).not.toBeNull();
+});
+
+it("displays the blocking Agent names without discarding the selected connector", async () => {
+  await mount();
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("in use", { status: 409, data: { agentKeys: ["researcher", "coder"] } }));
+  await click("删除连接器");
+  expect(detail().querySelector('[role="alert"]')?.textContent).toContain("researcher, coder");
+  expect(detail().textContent).toContain("取消挂载");
+  expect(button("删除连接器").disabled).toBe(false);
+  expect(container.querySelector("aside strong")?.textContent).toBe(item.name);
 });

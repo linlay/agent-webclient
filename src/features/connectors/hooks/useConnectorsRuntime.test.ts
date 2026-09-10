@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { useConnectorsRuntime } from "./useConnectorsRuntime";
-import { ApiError, getAdminConnectors, getAdminTools, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
+import { deleteConnector, ApiError, getAdminConnectors, getAdminTools, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
 import type { ConnectorDefinition, ConnectorSummary } from "@/shared/data";
 
 const push = { subscribe: jest.fn(() => jest.fn()) };
@@ -11,8 +11,8 @@ jest.mock("react-router-dom", () => ({ useBlocker: () => blocker }));
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/data", () => ({
-  ApiError: class extends Error { status: number; constructor(message: string, { status }: { status: number }) { super(message); this.status = status; } },
-  getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(), updateConnectorDefinition: jest.fn(),
+  ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
+  deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(), updateConnectorDefinition: jest.fn(),
 }));
 
 const item: ConnectorSummary = { id: "demo", name: "Demo", version: "1.0.0", type: "cli", auth_mode: "none", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
@@ -146,4 +146,78 @@ it("preserves HTTP 401 diagnostics for the catalog entry point and clears them a
   await act(async () => current.refreshCatalog());
   expect(current.catalogErrorStatus).toBeNull();
   expect(current.catalogError).toBe("");
+});
+
+
+it("preserves the selected draft when deletion is canceled or rejected as in use", async () => {
+  await mount();
+  await act(async () => current.updateDraft('{"name":"Unsaved"}'));
+  jest.spyOn(window, "confirm").mockReturnValue(false);
+  await act(async () => expect(current.remove()).resolves.toBeNull());
+  expect(deleteConnector).not.toHaveBeenCalled();
+  expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("connectors.delete.unsaved"));
+  jest.mocked(window.confirm).mockReturnValue(true);
+  jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("in use", { status: 409, data: { agentKeys: ["worker"] } }));
+  await act(async () => expect(current.remove()).resolves.toBeNull());
+  expect(current.error).toBe("connectors.delete.inUse");
+  expect(current.draft).toBe('{"name":"Unsaved"}');
+  expect(current.selected?.id).toBe("demo");
+  expect(current.deleting).toBe(false);
+  expect(onRouteIdChange).not.toHaveBeenCalled();
+});
+
+it("blocks duplicate deletion and other mutations until it finishes, then clears the draft and route", async () => {
+  await mount();
+  await act(async () => current.updateDraft('{"name":"Unsaved"}'));
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  let resolveDelete!: (value: any) => void;
+  jest.mocked(deleteConnector).mockImplementationOnce(() => new Promise(resolve => { resolveDelete = resolve; }));
+  let pending!: Promise<string | null>;
+  await act(async () => { pending = current.remove(); });
+  expect(current.deleting).toBe(true);
+  await act(async () => {
+    await current.remove();
+    await current.save();
+    await current.importArchive(new File(["zip"], "demo.zip"), true);
+    current.selectConnector("other");
+    current.selectFile("cli.json");
+    current.updateDraft("{}");
+  });
+  expect(deleteConnector).toHaveBeenCalledTimes(1);
+  expect(updateConnectorDefinition).not.toHaveBeenCalled();
+  expect(importConnectorArchive).not.toHaveBeenCalled();
+  expect(onRouteIdChange).not.toHaveBeenCalled();
+  expect(current.draft).toBe('{"name":"Unsaved"}');
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, id: "other" }] } });
+  await act(async () => { resolveDelete({ code: 0, msg: "", data: { id: "demo", deleted: true } }); await pending; });
+  expect(current.items.map(item => item.id)).toEqual(["other"]);
+  expect(current.dirty).toBe(false);
+  expect(current.deleting).toBe(false);
+  expect(onRouteIdChange).toHaveBeenCalledWith("");
+});
+
+it("keeps successful deletion when its catalog refresh fails and ignores older catalog responses", async () => {
+  await mount();
+  let resolveOld!: (value: any) => void;
+  jest.mocked(getAdminConnectors).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
+  let oldRefresh!: Promise<void>;
+  await act(async () => { oldRefresh = current.refreshCatalog(); });
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  jest.mocked(deleteConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { id: "demo", deleted: true } });
+  jest.mocked(getAdminConnectors).mockRejectedValueOnce(new Error("refresh unavailable"));
+  await act(async () => expect(current.remove()).resolves.toBe("demo"));
+  await act(async () => { resolveOld({ code: 0, msg: "", data: { connectors: [item] } }); await oldRefresh; });
+  expect(current.items.some(item => item.id === "demo")).toBe(false);
+  expect(current.catalogError).toBe("refresh unavailable");
+  expect(onRouteIdChange).toHaveBeenCalledWith("");
+});
+
+it.each([{ builtin: true }, { readOnly: true }, { canDelete: false }])("rejects deleting protected connectors: %p", async protection => {
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, ...protection }] } });
+  await mount();
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  expect(current.canDelete).toBe(false);
+  await act(async () => expect(current.remove()).resolves.toBeNull());
+  expect(window.confirm).not.toHaveBeenCalled();
+  expect(deleteConnector).not.toHaveBeenCalled();
 });
