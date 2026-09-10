@@ -819,9 +819,12 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
   }, [open]);
 
   const currentKey = mode === "direct" ? directKey : zipKey;
-  const keyValidation = mode === "direct"
-    ? validateNewSkillKey(currentKey, existingKeys)
-    : currentKey ? validateNewSkillKey(currentKey) : "";
+  const keyValidation =
+    mode === "direct"
+      ? validateNewSkillKey(currentKey, existingKeys)
+      : currentKey
+        ? validateNewSkillKey(currentKey)
+        : "";
   const keyError =
     serverKeyError ||
     (keyValidation && (keyTouched || Boolean(currentKey))
@@ -2471,7 +2474,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     const response = await importAdminSkill({ ...(key ? { key } : {}), file });
     if (response.data.kind === "skill-package") {
       const installed = response.data.package;
-      const nextKey = installed.skills.some((skill) => skill.id === selectedSkillKey)
+      const nextKey = installed.skills.some(
+        (skill) => skill.id === selectedSkillKey,
+      )
         ? selectedSkillKey
         : installed.skills[0]?.id;
       pendingSelectionRef.current = nextKey || null;
@@ -2533,9 +2538,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
       <div
         className={SKILL_BODY_CLASS_NAME}
-        style={
-          { "--skill-list-col": `${listWidth}px` } as React.CSSProperties
-        }
+        style={{ "--skill-list-col": `${listWidth}px` } as React.CSSProperties}
       >
         <div className={SKILL_LIST_CLASS_NAME}>
           <div className={SKILL_TOOLBAR_CLASS_NAME}>
@@ -2572,7 +2575,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             <UiButton
               size="sm"
               variant="primary"
-              className="ui-icon-hover-24"
+              className="ui-icon-hover-24 tw:!text-[var(--accent-on)]"
               iconOnly
               onClick={() => setCreateModalOpen(true)}
               disabled={deletingSkill}
@@ -2648,7 +2651,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                               >
                                 <Typography.Text
                                   className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-focus-within:pe-[22px]"
-                                  ellipsis={{ tooltip: item.name || item.key }}
+                                  ellipsis
+                                  title={item.name || item.key}
                                 >
                                   <strong>{item.name || item.key}</strong>
                                 </Typography.Text>
@@ -2669,7 +2673,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                               >
                                 <Typography.Text
                                   className={SKILL_LIST_ITEM_META_CLASS_NAME}
-                                  ellipsis={{ tooltip: item.key }}
+                                  ellipsis
+                                  title={item.key}
                                 >
                                   {item.key}
                                 </Typography.Text>
