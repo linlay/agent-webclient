@@ -1,0 +1,43 @@
+/* SkillConsole 拖拽手柄：样式仿照 RightSidebar 的 resize-handle。 */
+:global(.skill-console-resize-handle) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+    width: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+:global(.skill-console-resize-handle)::after {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 4px;
+    width: 0;
+    border-radius: 999px;
+    background: transparent;
+    transition: outline 0.15s ease;
+    outline: 4px solid transparent;
+}
+
+:global(.skill-console-resize-handle):hover::after,
+:global(.skill-console-resize-handle):focus-visible::after,
+:global(.panel-resizing-horizontal) :global(.skill-console-resize-handle)::after {
+    outline-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+:global(.skill-console-resize-handle):focus-visible {
+    outline: none;
+}
+
+@media (max-width: 860px) {
+    :global(.skill-console-resize-handle) {
+        display: none;
+    }
+}

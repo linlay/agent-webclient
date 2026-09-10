@@ -34,7 +34,15 @@ const mount = async () => act(async () => root.render(React.createElement(I18nPr
   React.createElement(ComposerOrderObserver),
 )));
 const names = () => Array.from(container.querySelectorAll(".skill-console-list-item strong")).map(node => node.textContent);
-const clickPin = async (name: string, pinned = false) => act(async () => container.querySelector<HTMLButtonElement>(`[aria-label="${pinned ? "取消置顶" : "置顶"} ${name}"]`)!.click());
+const clickPin = async (name: string, pinned = false) => {
+  const wrap = Array.from(container.querySelectorAll(".skill-console-list-item-wrap"))
+    .find(node => node.querySelector("strong")?.textContent === name);
+  act(() => { wrap!.querySelector<HTMLButtonElement>('[aria-label="更多"]')!.click(); });
+  const label = pinned ? "取消置顶" : "置顶";
+  const menuItem = Array.from(document.querySelectorAll(".ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item"))
+    .find(node => node.textContent === label) as HTMLElement;
+  await act(async () => { menuItem.click(); });
+};
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.clearAllMocks();

@@ -3,12 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
   Dropdown,
+  Flex,
   Input,
   Modal,
   notification,
   Spin,
   Tabs,
-  Tooltip,
   Typography,
 } from "antd";
 import type { MenuProps } from "antd";
@@ -40,17 +40,17 @@ import type {
   AdminSourceResponse,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { FileIcon } from "@/shared/components/file-icon";
 import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { sortPinnedItems } from "@/features/catalog-order/lib/pinnedOrder";
-import { PinnableItem } from "@/shared/ui/PinnableItem";
-import { UiTag } from "@/shared/ui/UiTag";
 import { requestSkillDeletion } from "@/features/skills/lib/skillDeletion";
 import { useOptionalAppContext } from "@/app/state/AppContext";
+import { usePanelResize } from "@/shared/ui/usePanelResize";
+import "./SkillConsole.module.css";
 
 type StatusFilter = "all" | AdminSkillStatus;
 
@@ -224,17 +224,18 @@ export const SkillBinaryImagePreview: React.FC<{
 const SKILL_CONSOLE_CLASS_NAME =
   "skill-console tw:flex tw:flex-auto tw:flex-col tw:min-h-0 tw:gap-3 tw:overflow-hidden";
 const SKILL_BODY_CLASS_NAME =
-  "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[240px_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+  "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[var(--skill-list-col,260px)_minmax(0,1fr)] tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
 const SKILL_LIST_CLASS_NAME =
-  "skill-console-list tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px]";
+  "skill-console-list tw:relative tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px] tw:border-r tw:border-line-soft";
+const SKILL_RESIZE_HANDLE_CLASS_NAME = "skill-console-resize-handle";
 const SKILL_TOOLBAR_CLASS_NAME =
-  "skill-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2";
+  "skill-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:p-[6px]";
 const SKILL_LIST_SCROLL_CLASS_NAME =
-  "skill-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto tw:pr-0.5";
+  "skill-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto";
 const SKILL_LIST_ITEMS_CLASS_NAME =
-  "skill-console-list-items tw:flex tw:flex-col tw:gap-1.5";
+  "skill-console-list-items tw:flex tw:flex-col";
 const SKILL_LIST_ITEM_CLASS_NAME =
-  "skill-console-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-control tw:border tw:border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:hover:bg-bg-hover tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:[&.is-active]:bg-bg-hover";
+  "skill-console-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-none tw:border tw:!border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-bg-hover";
 const SKILL_LIST_ITEM_HEAD_CLASS_NAME =
   "skill-console-list-item-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-tag]:flex-none";
 const SKILL_LIST_ITEM_ICON_CLASS_NAME =
@@ -243,12 +244,18 @@ const SKILL_LIST_ITEM_TITLE_CLASS_NAME =
   "skill-console-list-item-title tw:inline-flex tw:flex-col tw:min-w-0 tw:flex-1 tw:items-baseline tw:overflow-hidden tw:whitespace-nowrap tw:[&>strong]:min-w-0 tw:[&>strong]:overflow-hidden tw:[&>strong]:text-ellipsis tw:[&>strong]:text-[13px] tw:[&>strong]:leading-[1.35]";
 const SKILL_LIST_ITEM_META_CLASS_NAME =
   "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
+const SKILL_LIST_ITEM_WRAP_CLASS_NAME =
+  "skill-console-list-item-wrap tw:group tw:relative tw:min-w-0";
+const SKILL_LIST_ITEM_PINNED_CLASS_NAME =
+  "skill-console-list-item-pinned tw:pointer-events-none tw:absolute tw:top-0 tw:left-0";
+const SKILL_LIST_ITEM_MORE_CLASS_NAME =
+  "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
-  "skill-console-list-item-status tw:flex tw:flex-none tw:items-center tw:gap-1";
+  "skill-console-list-item-status tw:flex-none tw:pointer-events-none";
 const SKILL_LIST_ITEM_VERSION_CLASS_NAME =
   "skill-console-list-item-version tw:font-code tw:text-[10px] tw:leading-none tw:text-ink-muted";
 const SKILL_COUNT_CLASS_NAME =
-  "skill-console-count tw:text-xs tw:text-ink-muted";
+  "skill-console-count tw:text-xs tw:text-ink-muted tw:px-[6px]";
 const SKILL_DETAIL_CLASS_NAME =
   "skill-console-detail tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:overflow-visible";
 const SKILL_DETAIL_ACTIONS_CLASS_NAME =
@@ -256,31 +263,31 @@ const SKILL_DETAIL_ACTIONS_CLASS_NAME =
 const SKILL_FILE_TREE_ACTIONS_CLASS_NAME =
   "skill-console-file-tree-actions tw:flex tw:flex-none tw:flex-nowrap tw:items-center tw:gap-2";
 const SKILL_FILE_PANELS_CLASS_NAME =
-  "skill-console-file-panels tw:grid tw:min-h-0 tw:h-full tw:grid-cols-[minmax(220px,286px)_minmax(0,1fr)] tw:gap-4 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-visible";
+  "skill-console-file-panels tw:flex tw:h-full tw:min-h-0 tw:overflow-hidden tw:max-[860px]:flex-col tw:max-[860px]:overflow-auto";
 const SKILL_FILE_TREE_PANEL_CLASS_NAME =
-  "skill-console-file-tree-panel tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
+  "skill-console-file-tree-panel tw:relative tw:flex tw:min-h-0 tw:w-[var(--skill-file-tree-col,280px)] tw:flex-none tw:flex-col tw:overflow-hidden tw:max-[860px]:w-full tw:max-[860px]:max-h-[260px] tw:border-l tw:border-line-soft";
 const SKILL_FILE_TREE_TOOLBAR_CLASS_NAME =
-  "skill-console-file-tree-toolbar tw:flex tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-btn-label]:gap-1";
+  "skill-console-file-tree-toolbar tw:flex tw:items-center tw:justify-between tw:gap-2 tw:[&_.ui-btn-label]:gap-1 tw:p-[10px]";
 const SKILL_FILE_TREE_CLASS_NAME =
-  "skill-console-file-tree tw:min-h-0 tw:flex-auto tw:overflow-auto tw:rounded-control tw:border tw:p-1.5 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]";
+  "skill-console-file-tree tw:min-h-0 tw:flex-auto tw:overflow-auto";
 const SKILL_FILE_EDITOR_CLASS_NAME =
-  "skill-console-file-editor tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:overflow-visible";
+  "skill-console-file-editor tw:flex tw:min-h-0 tw:min-w-0 tw:flex-1 tw:flex-col tw:overflow-hidden tw:max-[860px]:overflow-visible";
 const SKILL_FILE_EDITOR_HEAD_CLASS_NAME =
-  "skill-console-file-editor-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:text-[11px] tw:text-ink-muted";
+  "skill-console-file-editor-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:text-[11px] tw:text-ink-muted tw:p-[10px]";
 const SKILL_FILE_EDITOR_META_CLASS_NAME =
   "skill-console-file-editor-meta tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-2";
 const SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME =
   "skill-console-file-editor-head-path tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-ink-1";
 const SKILL_EDITOR_CLASS_NAME =
-  "skill-console-editor tw:min-h-[520px] tw:flex-auto tw:rounded-control tw:border tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:max-[860px]:min-h-80";
+  "skill-console-editor tw:min-h-[520px] tw:flex-auto tw:max-[860px]:min-h-80";
 const SKILL_BINARY_PANEL_CLASS_NAME =
-  "skill-console-binary-panel tw:flex tw:flex-col tw:gap-3 tw:rounded-control tw:border tw:p-3 tw:text-sm tw:text-ink-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]";
+  "skill-console-binary-panel tw:flex tw:flex-col tw:gap-3 tw:p-3 tw:text-sm tw:text-ink-1";
 const SKILL_BINARY_GRID_CLASS_NAME =
   "skill-console-binary-grid tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:gap-x-3 tw:gap-y-2 tw:text-xs tw:[&>span:nth-child(odd)]:text-ink-muted tw:[&>span:nth-child(even)]:min-w-0 tw:[&>span:nth-child(even)]:overflow-hidden tw:[&>span:nth-child(even)]:text-ellipsis tw:[&>span:nth-child(even)]:whitespace-nowrap";
 const SKILL_DIRTY_CLASS_NAME =
-  "skill-console-dirty tw:text-xs tw:text-ink-muted";
+  "skill-console-dirty tw:text-xs tw:text-accent-warn";
 const SKILL_BINARY_PREVIEW_CLASS_NAME =
-  "skill-console-binary-preview tw:flex tw:min-h-0 tw:items-center tw:justify-center tw:gap-2 tw:overflow-hidden tw:rounded-control tw:border tw:bg-bg-hover tw:p-2 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]";
+  "skill-console-binary-preview tw:flex tw:min-h-0 tw:items-center tw:justify-center tw:gap-2 tw:overflow-hidden tw:rounded-control tw:bg-bg-hover tw:p-2";
 const SKILL_BINARY_PREVIEW_IMG_CLASS_NAME =
   "skill-console-binary-preview-img tw:max-h-[320px] tw:max-w-full tw:rounded-md tw:object-contain";
 const SKILL_BINARY_PREVIEW_LOADING_CLASS_NAME =
@@ -290,10 +297,18 @@ const SKILL_BINARY_PREVIEW_ERROR_CLASS_NAME =
 
 /* ---- helpers ---- */
 
-function statusTone(status: AdminSkillStatus): "accent" | "danger" | "muted" {
-  if (status === "invalid") return "danger";
-  if (status === "disabled") return "muted";
-  return "accent";
+function statusVisual(status: AdminSkillStatus): {
+  dotColor: string;
+  textClassName: string;
+} {
+  if (status === "invalid")
+    return {
+      dotColor: "var(--accent-danger)",
+      textClassName: "tw:text-accent-danger",
+    };
+  if (status === "disabled")
+    return { dotColor: "var(--ink-muted)", textClassName: "tw:text-ink-muted" };
+  return { dotColor: "var(--ok)", textClassName: "tw:text-ink-2" };
 }
 
 export function skillVersionLabel(version?: string): string {
@@ -304,19 +319,136 @@ export function skillVersionLabel(version?: string): string {
 
 export const SkillListItemStatus: React.FC<{
   status: AdminSkillStatus;
-  version?: string;
   statusLabel: string;
-}> = ({ status, version, statusLabel }) => {
-  const versionLabel = skillVersionLabel(version);
+}> = ({ status, statusLabel }) => {
+  const visual = statusVisual(status);
   return (
-    <span className={SKILL_LIST_ITEM_STATUS_CLASS_NAME}>
-      <UiTag tone={statusTone(status)}>{statusLabel}</UiTag>
-      {versionLabel ? (
-        <span className={SKILL_LIST_ITEM_VERSION_CLASS_NAME}>
-          {versionLabel}
-        </span>
-      ) : null}
+    <span
+      className={`${SKILL_LIST_ITEM_STATUS_CLASS_NAME} tw:flex tw:items-center tw:gap-1`}
+    >
+      <span
+        className="tw:inline-block tw:h-[6px] tw:w-[6px] tw:flex-none tw:rounded-full"
+        style={{ backgroundColor: visual.dotColor }}
+        aria-hidden
+      />
+      <span
+        className={`tw:text-[10px] tw:leading-none tw:font-medium ${visual.textClassName}`}
+      >
+        {statusLabel}
+      </span>
     </span>
+  );
+};
+
+export const SkillListItemVersion: React.FC<{ version?: string }> = ({
+  version,
+}) => {
+  const versionLabel = skillVersionLabel(version);
+  if (!versionLabel) return null;
+  return (
+    <span className={SKILL_LIST_ITEM_VERSION_CLASS_NAME}>{versionLabel}</span>
+  );
+};
+
+export const SkillListItemActions: React.FC<{
+  item: AdminSkillSummary;
+  pinned: boolean;
+  busy: boolean;
+  pinsDisabled: boolean;
+  t: SkillConsoleTranslate;
+  onTogglePin: (skillKey: string) => void;
+  onValidateSkill: (skillKey: string) => void;
+  onDownloadSkill: (skillKey: string) => void;
+  onDeleteSkill: (item: AdminSkillSummary) => void;
+}> = ({
+  item,
+  pinned,
+  busy,
+  pinsDisabled,
+  t,
+  onTogglePin,
+  onValidateSkill,
+  onDownloadSkill,
+  onDeleteSkill,
+}) => {
+  const moreLabel = t("skillConsole.action.more");
+  const menuItems: MenuProps["items"] = [
+    {
+      key: "pin",
+      className: "ui-icon-hover-24",
+      icon: (
+        <MaterialIcon name="push_pin" className="ui-icon-hover-24-target" />
+      ),
+      label: t(
+        pinned ? "skillConsole.action.unpin" : "skillConsole.action.pin",
+      ),
+      disabled: pinsDisabled,
+    },
+    {
+      key: "validate",
+      className: "ui-icon-hover-24",
+      icon: <MaterialIcon name="rule" className="ui-icon-hover-24-target" />,
+      label: t("skillConsole.action.validateSkill"),
+      disabled: busy,
+    },
+    {
+      key: "download",
+      className: "ui-icon-hover-24",
+      icon: (
+        <MaterialIcon name="download" className="ui-icon-hover-24-target" />
+      ),
+      label: t("skillConsole.action.downloadSkill"),
+      disabled: busy,
+    },
+    { type: "divider" },
+    {
+      key: "delete",
+      className: "ui-icon-hover-24",
+      icon: <MaterialIcon name="delete" className="ui-icon-hover-24-target" />,
+      label: t("skillConsole.action.deleteSkill"),
+      danger: true,
+      disabled: busy,
+    },
+  ];
+
+  const onMenuClick: MenuProps["onClick"] = ({ domEvent, key }) => {
+    domEvent.stopPropagation();
+    if (key === "pin") {
+      onTogglePin(item.key);
+    } else if (key === "validate") {
+      onValidateSkill(item.key);
+    } else if (key === "download") {
+      onDownloadSkill(item.key);
+    } else if (key === "delete") {
+      onDeleteSkill(item);
+    }
+  };
+
+  return (
+    <Dropdown
+      trigger={["click"]}
+      menu={{ items: menuItems, onClick: onMenuClick }}
+      getPopupContainer={(trigger) => trigger.parentElement || trigger}
+    >
+      <button
+        type="button"
+        className={SKILL_LIST_ITEM_MORE_CLASS_NAME}
+        aria-label={moreLabel}
+        title={moreLabel}
+        aria-haspopup="menu"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={(event) => event.stopPropagation()}
+        style={{
+          background:
+            "linear-gradient(to left, var(--bg-base) 40%, transparent)",
+        }}
+      >
+        <MaterialIcon
+          name="more_horiz"
+          className="tw:h-[14px] tw:w-[14px] tw:text-[14px]"
+        />
+      </button>
+    </Dropdown>
   );
 };
 
@@ -502,15 +634,20 @@ export function joinSkillPath(parent: string, name: string): string {
   return `${normalizedParent}/${normalizedName}`;
 }
 
-export function iconForEntry(
-  entry: AdminSkillFileEntry,
-  isExpanded = false,
-): MaterialIconName {
-  if (entry.kind === "directory") return isExpanded ? "folder_open" : "folder";
-  if (isSkillImageEntry(entry)) return "image";
-  if (entry.contentKind === "binary") return "folder_zip";
-  return "description";
-}
+export const SkillFileEntryIcon: React.FC<{
+  entry: AdminSkillFileEntry;
+  expanded?: boolean;
+}> = ({ entry, expanded = false }) => {
+  if (entry.kind === "directory") {
+    return (
+      <MaterialIcon
+        name={expanded ? "folder_open_fill" : "folder_fill"}
+        className="tw:text-yellow-400"
+      />
+    );
+  }
+  return <FileIcon filename={entry.name} size={20} />;
+};
 
 function applyOpenedFileState(
   file: AdminSkillTextFile,
@@ -962,25 +1099,21 @@ interface SkillFileWorkspaceProps {
   expandedDirs: Set<string>;
   isFileDirty: boolean;
   saving: boolean;
-  validating: boolean;
-  deleteSkillUnavailable?: boolean;
   deletingSkill?: boolean;
-  downloadingSkill?: boolean;
   downloadingFile?: boolean;
+  fileTreeOpen?: boolean;
+  onToggleFileTree?: () => void;
   t: SkillConsoleTranslate;
   onCreateFile: () => void;
   onCreateDir: () => void;
   onCreateSubdir: () => void;
   onUploadFile: (file: File) => void;
-  onDeleteSkill?: () => void;
-  onDownloadSkill?: () => void;
-  onValidate: () => void;
+  onDownloadEntry?: (entry: AdminSkillFileEntry) => void;
+  onReplaceEntry?: (entry: AdminSkillFileEntry, file: File) => void;
+  onRenameEntry?: (entry: AdminSkillFileEntry) => void;
+  onDeleteEntry?: (entry: AdminSkillFileEntry) => void;
   onRefreshFile: () => void;
   onSave: () => void;
-  onRenameFile: () => void;
-  onDeleteFile: () => void;
-  onDownloadFile: () => void;
-  onReplaceFile: (file: File) => void;
   onFileChange: (value: string) => void;
   onSelectFileEntry: (entry: AdminSkillFileEntry) => void | Promise<void>;
 }
@@ -995,31 +1128,43 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   expandedDirs,
   isFileDirty,
   saving,
-  validating,
-  deleteSkillUnavailable = false,
   deletingSkill = false,
-  downloadingSkill = false,
   downloadingFile = false,
+  fileTreeOpen = true,
+  onToggleFileTree = () => {},
   t,
   onCreateFile,
   onCreateDir,
   onCreateSubdir,
   onUploadFile,
-  onDeleteSkill = () => {},
-  onDownloadSkill = () => {},
-  onValidate,
+  onDownloadEntry,
+  onReplaceEntry,
+  onRenameEntry,
+  onDeleteEntry,
   onRefreshFile,
   onSave,
-  onRenameFile,
-  onDeleteFile,
-  onDownloadFile,
-  onReplaceFile,
   onFileChange,
   onSelectFileEntry,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const replaceTargetRef = useRef<AdminSkillFileEntry | null>(null);
   const appContext = useOptionalAppContext();
+
+  // 右侧文件树列宽；拖拽手柄在面板左缘，向左拖变宽
+  const [fileTreeWidth, setFileTreeWidth] = useState(280);
+  const fileTreeStartWidthRef = useRef(280);
+  const { handlePointerDown: handleFileTreeResize } = usePanelResize({
+    axis: "horizontal",
+    invert: true,
+    onResizeStart: () => {
+      fileTreeStartWidthRef.current = fileTreeWidth;
+    },
+    onResize: (delta) =>
+      setFileTreeWidth(
+        Math.max(200, Math.min(520, fileTreeStartWidthRef.current + delta)),
+      ),
+  });
   const entries = detail.fileManifest.entries || [];
   const selectedEntry = findEntryByPath(entries, selectedFilePath);
   const visibleEntries = entries.filter((entry) =>
@@ -1028,17 +1173,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   const isTextSelected = selectedEntry?.contentKind === "text";
   const isBinarySelected = selectedEntry?.contentKind === "binary";
   const isDirSelected = selectedEntry?.contentKind === "directory";
-  const canDownloadSkill = detail.capabilities.canDownload;
-  const canDeleteSkill = detail.capabilities.canDelete;
   const interactionLocked = deletingSkill;
-  const deleteSkillDisabled =
-    !canDeleteSkill ||
-    deleteSkillUnavailable ||
-    deletingSkill ||
-    saving ||
-    validating ||
-    downloadingSkill ||
-    downloadingFile;
 
   const fileAddMenu: MenuProps = {
     onClick: (info) => {
@@ -1051,7 +1186,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
     items: [
       {
         key: "upload",
-        icon: <MaterialIcon name="image" />,
+        icon: <MaterialIcon name="upload" />,
         label: t("skillConsole.action.uploadFile"),
       },
       {
@@ -1087,169 +1222,14 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
 
   return (
     <div className={SKILL_FILE_PANELS_CLASS_NAME}>
-      <div className={SKILL_FILE_TREE_PANEL_CLASS_NAME}>
-        <div className={SKILL_FILE_TREE_TOOLBAR_CLASS_NAME}>
-          <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted">
-            {t("skillConsole.fileTree.root")}
-          </span>
-          <div className={SKILL_FILE_TREE_ACTIONS_CLASS_NAME}>
-            <input
-              ref={uploadInputRef}
-              type="file"
-              accept="image/*,.pdf,.txt,.md,.json,.yaml,.yml,.csv,.zip"
-              disabled={interactionLocked}
-              className="tw:hidden"
-              aria-label={t("skillConsole.action.uploadFile")}
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                event.currentTarget.value = "";
-                if (file) onUploadFile(file);
-              }}
-            />
-            <Dropdown
-              menu={fileAddMenu}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <UiButton
-                size="sm"
-                variant="ghost"
-                className="ui-icon-hover-24"
-                disabled={interactionLocked}
-                iconOnly
-                aria-label={t("skillConsole.action.addFile")}
-              >
-                <MaterialIcon name="description" />
-              </UiButton>
-            </Dropdown>
-            <Dropdown
-              menu={dirAddMenu}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <UiButton
-                size="sm"
-                variant="ghost"
-                className="ui-icon-hover-24"
-                iconOnly
-                disabled={interactionLocked}
-                aria-label={t("skillConsole.action.createDir")}
-              >
-                <MaterialIcon name="create_new_folder" />
-              </UiButton>
-            </Dropdown>
-            <Tooltip title={t("skillConsole.action.validate")}>
-              <UiButton
-                size="sm"
-                variant="ghost"
-                className="ui-icon-hover-24"
-                iconOnly
-                onClick={onValidate}
-                disabled={validating || interactionLocked}
-              >
-                <MaterialIcon name="rule" />
-              </UiButton>
-            </Tooltip>
-            <UiButton
-              size="sm"
-              variant="ghost"
-              className="ui-icon-hover-24"
-              iconOnly
-              onClick={onDownloadSkill}
-              disabled={
-                downloadingSkill || !canDownloadSkill || interactionLocked
-              }
-              loading={downloadingSkill}
-              aria-label={
-                downloadingSkill
-                  ? t("skillConsole.action.downloadingSkill")
-                  : t("skillConsole.action.downloadSkill")
-              }
-            >
-              <MaterialIcon name="download" />
-            </UiButton>
-            <UiButton
-              size="sm"
-              variant="ghost"
-              className="ui-icon-hover-24 tw:!text-danger"
-              iconOnly
-              onClick={onDeleteSkill}
-              disabled={deleteSkillDisabled}
-              loading={deletingSkill}
-              aria-label={
-                deletingSkill
-                  ? t("skillConsole.action.deletingSkill")
-                  : t("skillConsole.action.delete")
-              }
-            >
-              <MaterialIcon name="delete" />
-            </UiButton>
-          </div>
-        </div>
-
-        <div className={SKILL_FILE_TREE_CLASS_NAME}>
-          {visibleEntries.length > 0 ? (
-            visibleEntries.map((entry) => {
-              const isSelected = entry.path === selectedFilePath;
-              const isDirty = dirtyFiles.has(entry.path);
-              const paddingLeft = 8 + entry.depth * 16;
-              return (
-                <div key={entry.path}>
-                  <button
-                    type="button"
-                    className={`tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:py-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:hover:bg-bg-hover ${
-                      isSelected ? "tw:bg-bg-selected tw:font-medium" : ""
-                    }`}
-                    style={{
-                      paddingLeft,
-                      paddingRight: 8,
-                      ...(isSelected
-                        ? { backgroundColor: "var(--bg-selected)" }
-                        : null),
-                    }}
-                    disabled={interactionLocked}
-                    onClick={() => {
-                      void onSelectFileEntry(entry);
-                    }}
-                  >
-                    <MaterialIcon
-                      name={iconForEntry(entry, expandedDirs.has(entry.path))}
-                    />
-                    <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-                      {entry.name}
-                    </span>
-                    {isDirty && (
-                      <span
-                        className="tw:inline-block tw:h-2 tw:w-2 tw:flex-none tw:rounded-full"
-                        style={{
-                          backgroundColor: "var(--accent-warning, #ff7d00)",
-                        }}
-                        title={t("skillConsole.message.unsaved")}
-                      />
-                    )}
-                  </button>
-                </div>
-              );
-            })
-          ) : (
-            <div className="tw:text-[11px] tw:text-ink-muted tw:p-1">
-              {t("skillConsole.fileTree.empty")}
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className={SKILL_FILE_EDITOR_CLASS_NAME}>
         {selectedEntry ? (
           <>
             <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
               <div className={SKILL_FILE_EDITOR_META_CLASS_NAME}>
-                <MaterialIcon
-                  name={iconForEntry(
-                    selectedEntry,
-                    expandedDirs.has(selectedEntry.path),
-                  )}
-                  style={{ fontSize: 16 }}
+                <SkillFileEntryIcon
+                  entry={selectedEntry}
+                  expanded={expandedDirs.has(selectedEntry.path)}
                 />
                 <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
                   {selectedEntry.path}
@@ -1280,11 +1260,11 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                 >
                   <MaterialIcon name="refresh" />
                 </UiButton>
-                {isTextSelected && (
+                {isTextSelected && isFileDirty && (
                   <UiButton
                     size="sm"
-                    variant="primary"
-                    className="ui-icon-hover-24"
+                    variant="ghost"
+                    className="ui-icon-hover-24 tw:!text-accent"
                     iconOnly
                     onClick={onSave}
                     disabled={saving || !isFileDirty || interactionLocked}
@@ -1293,73 +1273,16 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                     <MaterialIcon name="save" />
                   </UiButton>
                 )}
-                {isBinarySelected && (
+                {!fileTreeOpen && (
                   <UiButton
                     size="sm"
                     variant="ghost"
                     className="ui-icon-hover-24"
                     iconOnly
-                    onClick={onDownloadFile}
-                    disabled={
-                      downloadingFile ||
-                      !selectedEntry.downloadable ||
-                      interactionLocked
-                    }
-                    aria-label={t("skillConsole.action.download")}
+                    onClick={onToggleFileTree}
+                    aria-label={t("skillConsole.action.expandFileTree")}
                   >
-                    <MaterialIcon name="download" />
-                  </UiButton>
-                )}
-                {isBinarySelected && (
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      disabled={interactionLocked}
-                      className="tw:hidden"
-                      onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-                        event.currentTarget.value = "";
-                        if (file) onReplaceFile(file);
-                      }}
-                    />
-                    <UiButton
-                      size="sm"
-                      variant="ghost"
-                      className="ui-icon-hover-24"
-                      iconOnly
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={interactionLocked}
-                      aria-label={t("skillConsole.action.replaceFile")}
-                    >
-                      <MaterialIcon name="article" />
-                    </UiButton>
-                  </>
-                )}
-                {selectedEntry.renamable && (
-                  <UiButton
-                    size="sm"
-                    variant="ghost"
-                    className="ui-icon-hover-24"
-                    iconOnly
-                    onClick={onRenameFile}
-                    disabled={interactionLocked}
-                    aria-label={t("skillConsole.action.rename")}
-                  >
-                    <MaterialIcon name="edit" />
-                  </UiButton>
-                )}
-                {selectedEntry.deletable && (
-                  <UiButton
-                    size="sm"
-                    variant="ghost"
-                    className="ui-icon-hover-24"
-                    iconOnly
-                    onClick={onDeleteFile}
-                    disabled={interactionLocked}
-                    aria-label={t("skillConsole.action.delete")}
-                  >
-                    <MaterialIcon name="delete" />
+                    <MaterialIcon name="dock_to_left" />
                   </UiButton>
                 )}
               </div>
@@ -1420,11 +1343,276 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             )}
           </>
         ) : (
-          <div className="command-empty-state">
-            {t("skillConsole.fileTree.empty")}
-          </div>
+          <>
+            <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
+              {!fileTreeOpen && (
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  className="ui-icon-hover-24"
+                  iconOnly
+                  onClick={onToggleFileTree}
+                  aria-label={t("skillConsole.action.expandFileTree")}
+                >
+                  <MaterialIcon name="dock_to_left" />
+                </UiButton>
+              )}
+            </div>
+            <div className="command-empty-state">
+              {t("skillConsole.fileTree.empty")}
+            </div>
+          </>
         )}
       </div>
+
+      {fileTreeOpen ? (
+        <div
+          className={SKILL_FILE_TREE_PANEL_CLASS_NAME}
+          style={
+            {
+              "--skill-file-tree-col": `${fileTreeWidth}px`,
+            } as React.CSSProperties
+          }
+        >
+          <button
+            type="button"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={t("skillConsole.resize.fileTreeAriaLabel")}
+            title={t("skillConsole.resize.fileTreeTitle")}
+            className={SKILL_RESIZE_HANDLE_CLASS_NAME}
+            style={{ left: -4 }}
+            onPointerDown={handleFileTreeResize}
+          />
+          <div className={SKILL_FILE_TREE_TOOLBAR_CLASS_NAME}>
+            <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted">
+              {t("skillConsole.fileTree.root")}
+            </span>
+            <div className={SKILL_FILE_TREE_ACTIONS_CLASS_NAME}>
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*,.pdf,.txt,.md,.json,.yaml,.yml,.csv,.zip"
+                disabled={interactionLocked}
+                className="tw:hidden"
+                aria-label={t("skillConsole.action.uploadFile")}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  event.currentTarget.value = "";
+                  if (file) onUploadFile(file);
+                }}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                disabled={interactionLocked}
+                className="tw:hidden"
+                aria-label={t("skillConsole.action.replaceFile")}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  event.currentTarget.value = "";
+                  if (file && replaceTargetRef.current) {
+                    onReplaceEntry?.(replaceTargetRef.current, file);
+                    replaceTargetRef.current = null;
+                  }
+                }}
+              />
+              <Dropdown
+                menu={fileAddMenu}
+                trigger={["click"]}
+                placement="bottomLeft"
+              >
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  className="ui-icon-hover-24"
+                  disabled={interactionLocked}
+                  iconOnly
+                  aria-label={t("skillConsole.action.addFile")}
+                >
+                  <MaterialIcon name="upload" />
+                </UiButton>
+              </Dropdown>
+              <Dropdown
+                menu={dirAddMenu}
+                trigger={["click"]}
+                placement="bottomLeft"
+              >
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  className="ui-icon-hover-24"
+                  iconOnly
+                  disabled={interactionLocked}
+                  aria-label={t("skillConsole.action.createDir")}
+                >
+                  <MaterialIcon name="create_new_folder" />
+                </UiButton>
+              </Dropdown>
+              <UiButton
+                size="sm"
+                variant="ghost"
+                className="ui-icon-hover-24"
+                iconOnly
+                onClick={onToggleFileTree}
+                aria-label={t("skillConsole.action.collapseFileTree")}
+              >
+                <MaterialIcon name="dock_to_right" />
+              </UiButton>
+            </div>
+          </div>
+
+          <div className={SKILL_FILE_TREE_CLASS_NAME}>
+            {visibleEntries.length > 0 ? (
+              visibleEntries.map((entry) => {
+                const isSelected = entry.path === selectedFilePath;
+                const isDirty = dirtyFiles.has(entry.path);
+                const paddingLeft = 8 + entry.depth * 16;
+                const moreLabel = t("skillConsole.action.more");
+                const entryMenuItems: MenuProps["items"] = [
+                  entry.downloadable
+                    ? {
+                        key: "download",
+                        className: "ui-icon-hover-24",
+                        icon: (
+                          <MaterialIcon
+                            name="download"
+                            className="ui-icon-hover-24-target"
+                          />
+                        ),
+                        label: t("skillConsole.action.download"),
+                        disabled: downloadingFile || interactionLocked,
+                      }
+                    : null,
+                  entry.uploadable && entry.contentKind === "binary"
+                    ? {
+                        key: "replace",
+                        className: "ui-icon-hover-24",
+                        icon: (
+                          <MaterialIcon
+                            name="article"
+                            className="ui-icon-hover-24-target"
+                          />
+                        ),
+                        label: t("skillConsole.action.replaceFile"),
+                        disabled: interactionLocked,
+                      }
+                    : null,
+                  entry.renamable
+                    ? {
+                        key: "rename",
+                        className: "ui-icon-hover-24",
+                        icon: (
+                          <MaterialIcon
+                            name="rename"
+                            className="ui-icon-hover-24-target"
+                          />
+                        ),
+                        label: t("skillConsole.action.rename"),
+                        disabled: interactionLocked,
+                      }
+                    : null,
+                  entry.deletable ? { type: "divider" as const } : null,
+                  entry.deletable
+                    ? {
+                        key: "delete",
+                        className: "ui-icon-hover-24",
+                        icon: (
+                          <MaterialIcon
+                            name="delete"
+                            className="ui-icon-hover-24-target"
+                          />
+                        ),
+                        label: t("skillConsole.action.delete"),
+                        danger: true,
+                        disabled: interactionLocked,
+                      }
+                    : null,
+                ].filter(Boolean);
+                const hasEntryActions = entryMenuItems.length > 0;
+                return (
+                  <div key={entry.path} className="tw:group tw:relative">
+                    <button
+                      type="button"
+                      className={`tw:rounded-none tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:py-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:hover:bg-bg-hover ${
+                        isSelected ? "tw:bg-bg-selected tw:font-medium" : ""
+                      }`}
+                      style={{
+                        paddingLeft,
+                        paddingRight: 8,
+                        ...(isSelected
+                          ? { backgroundColor: "var(--bg-selected)" }
+                          : null),
+                      }}
+                      disabled={interactionLocked}
+                      onClick={() => {
+                        void onSelectFileEntry(entry);
+                      }}
+                    >
+                      <SkillFileEntryIcon
+                        entry={entry}
+                        expanded={expandedDirs.has(entry.path)}
+                      />
+                      <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap group-hover:tw:pe-[18px]">
+                        {entry.name}
+                      </span>
+                      {isDirty && (
+                        <span
+                          className="tw:inline-block tw:h-2 tw:w-2 tw:flex-none tw:rounded-full"
+                          style={{
+                            backgroundColor: "var(--accent-warning, #ff7d00)",
+                          }}
+                          title={t("skillConsole.message.unsaved")}
+                        />
+                      )}
+                    </button>
+                    {hasEntryActions && (
+                      <Dropdown
+                        trigger={["click"]}
+                        placement="bottomRight"
+                        getPopupContainer={(trigger) =>
+                          trigger.parentElement || trigger
+                        }
+                        menu={{
+                          items: entryMenuItems,
+                          onClick: ({ domEvent, key }) => {
+                            domEvent.stopPropagation();
+                            if (key === "download") onDownloadEntry?.(entry);
+                            else if (key === "replace") {
+                              replaceTargetRef.current = entry;
+                              fileInputRef.current?.click();
+                            } else if (key === "rename") onRenameEntry?.(entry);
+                            else if (key === "delete") onDeleteEntry?.(entry);
+                          },
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="tw:absolute tw:top-1/2 tw:right-1 tw:flex tw:h-5 tw:w-5 tw:-translate-y-1/2 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-focus-within:opacity-100 tw:group-focus-within:pointer-events-auto"
+                          aria-label={moreLabel}
+                          title={moreLabel}
+                          aria-haspopup="menu"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <MaterialIcon
+                            name="more_horiz"
+                            className="tw:h-[14px] tw:w-[14px] tw:text-[14px]"
+                          />
+                        </button>
+                      </Dropdown>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="tw:text-[11px] tw:text-ink-muted tw:p-1">
+                {t("skillConsole.fileTree.empty")}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -1444,13 +1632,41 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 }) => {
   const { t } = useI18n();
   const { modal } = AntdApp.useApp();
-  const { pinnedSkillKeys, toggleSkillPin, pinsDisabled, pinError, refreshPins } = usePinnedSkills(true);
+  const {
+    pinnedSkillKeys,
+    toggleSkillPin,
+    pinsDisabled,
+    pinError,
+    refreshPins,
+  } = usePinnedSkills(true);
 
   const [skills, setSkills] = useState<AdminSkillSummary[]>([]);
   const [listLoading, setListLoading] = useState(false);
+  const [fileTreeOpen, setFileTreeOpen] = useState(() => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return true;
+    return !window.matchMedia("(max-width: 860px)").matches;
+  });
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+
+  // 左侧 skill 列表列宽；拖拽手柄在列表右缘，向右拖变宽
+  const [listWidth, setListWidth] = useState(260);
+  const listStartWidthRef = useRef(240);
+  const { handlePointerDown: handleListResize } = usePanelResize({
+    axis: "horizontal",
+    onResizeStart: () => {
+      listStartWidthRef.current = listWidth;
+    },
+    onResize: (delta) =>
+      setListWidth(
+        Math.max(180, Math.min(480, listStartWidthRef.current + delta)),
+      ),
+  });
 
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<AdminSkillDetailResponse | null>(null);
@@ -1490,20 +1706,23 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const filteredSkills = useMemo(() => {
     const needle = searchText.trim().toLowerCase();
-    return sortPinnedItems(skills, pinnedSkillKeys, item => item.key).filter((item) => {
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
-      if (!needle) return true;
-      const haystack = [
-        item.key,
-        item.name,
-        item.description || "",
-        item.source?.path || "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(needle);
-    });
+    return sortPinnedItems(skills, pinnedSkillKeys, (item) => item.key).filter(
+      (item) => {
+        if (statusFilter !== "all" && item.status !== statusFilter)
+          return false;
+        if (!needle) return true;
+        const haystack = [
+          item.key,
+          item.name,
+          item.description || "",
+          item.source?.path || "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(needle);
+      },
+    );
   }, [skills, searchText, statusFilter, pinnedSkillKeys]);
 
   const applyOpenedFile = useCallback((file: AdminSkillTextFile) => {
@@ -1799,14 +2018,27 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   };
 
-  const handleValidate = async () => {
-    if (!detail) return;
+  const handleValidateSkillKey = async (skillKey: string) => {
     setValidating(true);
     try {
-      const response = await validateAdminSkill(detail.skill.key);
+      const response = await validateAdminSkill(skillKey);
       const result = response.data;
+      setSkills((prev) =>
+        prev.map((item) =>
+          item.key === skillKey
+            ? {
+                ...item,
+                status: result.status,
+                updatedAt: result.updatedAt ?? item.updatedAt,
+                size: result.size ?? item.size,
+                diagnosticCount:
+                  result.diagnostics?.length ?? item.diagnosticCount,
+              }
+            : item,
+        ),
+      );
       setDetail((prev) => {
-        if (!prev) return prev;
+        if (!prev || prev.skill.key !== skillKey) return prev;
         const next = {
           ...prev,
           skill: {
@@ -1978,15 +2210,16 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     });
   };
 
-  const handleRenameFile = () => {
-    if (!detail || !selectedEntry || !selectedEntry.renamable) return;
-    let inputValue = selectedFilePath;
+  const handleRenameEntry = (entry?: AdminSkillFileEntry) => {
+    const target = entry ?? selectedEntry;
+    if (!detail || !target || !target.renamable) return;
+    let inputValue = target.path;
     modal.confirm({
       title: t("skillConsole.fileOp.rename"),
       content: (
         <Input
           autoFocus
-          defaultValue={selectedFilePath}
+          defaultValue={target.path}
           onChange={(e) => {
             inputValue = e.target.value;
           }}
@@ -1994,15 +2227,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       ),
       onOk: async () => {
         const newPath = inputValue.trim();
-        if (
-          !newPath ||
-          !isFilePathSafe(newPath) ||
-          newPath === selectedFilePath
-        )
+        if (!newPath || !isFilePathSafe(newPath) || newPath === target.path)
           return;
         const response = await renameAdminSkillFile({
           key: detail.skill.key,
-          fromPath: selectedFilePath,
+          fromPath: target.path,
           toPath: newPath,
         });
         await applyMutation(response.data);
@@ -2010,21 +2239,22 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     });
   };
 
-  const handleDeleteFile = () => {
-    if (!detail || !selectedEntry || !selectedEntry.deletable) return;
+  const handleDeleteEntry = (entry?: AdminSkillFileEntry) => {
+    const target = entry ?? selectedEntry;
+    if (!detail || !target || !target.deletable) return;
     modal.confirm({
       title: t("skillConsole.fileOp.deleteConfirm", {
         type: t("skillConsole.fileTree.root"),
-        name: selectedFilePath,
+        name: target.path,
       }),
       okButtonProps: { danger: true },
       onOk: async () => {
         const response = await deleteAdminSkillFile({
           key: detail.skill.key,
-          path: selectedFilePath,
-          recursive: selectedEntry.kind === "directory",
+          path: target.path,
+          recursive: target.kind === "directory",
           baseSha256:
-            selectedEntry.contentKind === "text"
+            target.path === selectedFilePath && target.contentKind === "text"
               ? fileSha256 || undefined
               : undefined,
         });
@@ -2033,11 +2263,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     });
   };
 
-  const handleDownloadFile = async () => {
-    if (!detail || !selectedFilePath || !selectedEntry?.downloadable) return;
+  const handleDownloadEntry = async (entry?: AdminSkillFileEntry) => {
+    const target = entry ?? selectedEntry;
+    if (!detail || !target?.downloadable) return;
     setDownloadingFile(true);
     try {
-      await downloadAdminSkillFile(detail.skill.key, selectedFilePath);
+      await downloadAdminSkillFile(detail.skill.key, target.path);
     } catch (err) {
       notification.error({
         message: err instanceof Error ? err.message : String(err),
@@ -2047,11 +2278,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   };
 
-  const handleDownloadSkill = async () => {
-    if (!detail || !detail.capabilities.canDownload) return;
+  const handleDownloadSkillByKey = async (skillKey: string) => {
     setDownloadingSkill(true);
     try {
-      await downloadAdminSkill(detail.skill.key);
+      await downloadAdminSkill(skillKey);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       notification.error({
@@ -2062,21 +2292,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   };
 
-  const handleDeleteSkill = () => {
-    if (
-      !detail ||
-      !detail.capabilities.canDelete ||
-      detailLoading ||
-      deletingSkill ||
-      saving ||
-      validating ||
-      downloadingSkill ||
-      downloadingFile
-    )
-      return;
-    const skillKey = detail.skill.key;
-    const skillName = detail.skill.name || skillKey;
-    const hasUnsavedChanges = dirtyFiles.size > 0;
+  const handleDeleteSkillByKey = (
+    skillKey: string,
+    skillName: string,
+    hasUnsavedChanges: boolean,
+  ) => {
+    if (deletingSkill) return;
     modal.confirm({
       title: t("skillConsole.delete.title"),
       content: (
@@ -2135,13 +2356,25 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     });
   };
 
-  const handleReplaceFile = async (file: File) => {
-    if (!detail || !selectedFilePath) return;
+  const handleDeleteSkillListItem = (item: AdminSkillSummary) => {
+    handleDeleteSkillByKey(
+      item.key,
+      item.name || item.key,
+      detail?.skill.key === item.key && dirtyFiles.size > 0,
+    );
+  };
+
+  const handleReplaceEntryFile = async (
+    entry: AdminSkillFileEntry,
+    file: File,
+  ) => {
+    if (!detail || !(entry.uploadable && entry.contentKind === "binary"))
+      return;
     setSaving(true);
     try {
       const response = await uploadAdminSkillFile({
         key: detail.skill.key,
-        path: selectedFilePath,
+        path: entry.path,
         file,
         overwrite: true,
       });
@@ -2298,7 +2531,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         onZipImport={handleZipImport}
       />
 
-      <div className={SKILL_BODY_CLASS_NAME}>
+      <div
+        className={SKILL_BODY_CLASS_NAME}
+        style={
+          { "--skill-list-col": `${listWidth}px` } as React.CSSProperties
+        }
+      >
         <div className={SKILL_LIST_CLASS_NAME}>
           <div className={SKILL_TOOLBAR_CLASS_NAME}>
             <SearchFilterBar
@@ -2322,7 +2560,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               variant="ghost"
               className="ui-icon-hover-24"
               iconOnly
-              onClick={() => { void loadSkills(); void refreshPins().catch(() => undefined); }}
+              onClick={() => {
+                void loadSkills();
+                void refreshPins().catch(() => undefined);
+              }}
               disabled={listLoading || deletingSkill}
               aria-label={t("skillConsole.action.refresh")}
             >
@@ -2345,10 +2586,20 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             {t("skillConsole.list.count", { count: filteredSkills.length })}
           </div>
 
-          {pinError && <div role="alert" className="tw:text-xs tw:text-danger">
-            {t("composer.addMenu.skill.pinFailed")}
-            <UiButton variant="ghost" size="sm" onClick={() => { void refreshPins().catch(() => undefined); }}>{t("slashPalette.skills.retry")}</UiButton>
-          </div>}
+          {pinError && (
+            <div role="alert" className="tw:text-xs tw:text-danger">
+              {t("composer.addMenu.skill.pinFailed")}
+              <UiButton
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  void refreshPins().catch(() => undefined);
+                }}
+              >
+                {t("slashPalette.skills.retry")}
+              </UiButton>
+            </div>
+          )}
           <div className={SKILL_LIST_SCROLL_CLASS_NAME}>
             <Spin spinning={listLoading}>
               {filteredSkills.length === 0 ? (
@@ -2369,40 +2620,109 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 </div>
               ) : (
                 <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
-                  {filteredSkills.map((item) => (
-                    <PinnableItem key={item.key} pinned={pinnedSkillKeys.includes(item.key.toLowerCase())}
-                      label={t(pinnedSkillKeys.includes(item.key.toLowerCase()) ? "composer.addMenu.skill.unpin" : "composer.addMenu.skill.pin", { name: item.name || item.key })}
-                      disabled={pinsDisabled} onToggle={() => { void toggleSkillPin(item.key); }}>
-                    <button
-                      type="button"
-                      className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
-                        item.key === selectedSkillKey ? "is-active" : ""
-                      }`}
-                      disabled={deletingSkill}
-                      onClick={() => handleSelectSkill(item)}
-                    >
-                      <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
-                        <SkillListIcon icon={item.icon} />
-                        <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
-                          <Typography.Text data-pin-title className="tw:w-full"
-                            ellipsis={{ tooltip: item.name || item.key }}
-                          >
-                            <strong>{item.name || item.key}</strong>
-                          </Typography.Text>
-                          <span className="tw:flex tw:w-full tw:min-w-0 tw:items-center tw:justify-between tw:gap-1">
-                            <Typography.Text className={SKILL_LIST_ITEM_META_CLASS_NAME} ellipsis={{ tooltip: item.key }}>{item.key}</Typography.Text>
-                            <SkillListItemStatus status={item.status} version={item.version}
-                              statusLabel={translateWithFallback(t, `skillConsole.status.${item.status}`, item.status)} />
+                  {filteredSkills.map((item) => {
+                    const itemPinned = pinnedSkillKeys.includes(
+                      item.key.toLowerCase(),
+                    );
+                    return (
+                      <div
+                        key={item.key}
+                        className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}
+                        data-pinned={itemPinned || undefined}
+                      >
+                        <button
+                          type="button"
+                          className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
+                            item.key === selectedSkillKey ? "is-active" : ""
+                          }`}
+                          disabled={deletingSkill}
+                          onClick={() => handleSelectSkill(item)}
+                        >
+                          <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
+                            <SkillListIcon icon={item.icon} />
+                            <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
+                              <Flex
+                                gap={6}
+                                align="center"
+                                className="tw:w-full"
+                              >
+                                <Typography.Text
+                                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-focus-within:pe-[22px]"
+                                  ellipsis={{ tooltip: item.name || item.key }}
+                                >
+                                  <strong>{item.name || item.key}</strong>
+                                </Typography.Text>
+                                <SkillListItemStatus
+                                  status={item.status}
+                                  statusLabel={translateWithFallback(
+                                    t,
+                                    `skillConsole.status.${item.status}`,
+                                    item.status,
+                                  )}
+                                />
+                              </Flex>
+                              <Flex
+                                justify="space-between"
+                                align="center"
+                                className="tw:w-full"
+                                gap={10}
+                              >
+                                <Typography.Text
+                                  className={SKILL_LIST_ITEM_META_CLASS_NAME}
+                                  ellipsis={{ tooltip: item.key }}
+                                >
+                                  {item.key}
+                                </Typography.Text>
+                                <SkillListItemVersion version={item.version} />
+                              </Flex>
+                            </span>
                           </span>
-                        </span>
-                      </span>
-                    </button>
-                    </PinnableItem>
-                  ))}
+                        </button>
+                        {itemPinned && (
+                          <span
+                            className={SKILL_LIST_ITEM_PINNED_CLASS_NAME}
+                            aria-label={t("skillConsole.action.pin")}
+                          >
+                            <MaterialIcon
+                              name="keep_fill"
+                              className="tw:text-accent"
+                            />
+                          </span>
+                        )}
+                        <SkillListItemActions
+                          item={item}
+                          pinned={itemPinned}
+                          busy={validating || downloadingSkill || deletingSkill}
+                          pinsDisabled={pinsDisabled}
+                          t={t}
+                          onTogglePin={(skillKey) => {
+                            void toggleSkillPin(skillKey);
+                          }}
+                          onValidateSkill={(skillKey) => {
+                            void handleValidateSkillKey(skillKey);
+                          }}
+                          onDownloadSkill={(skillKey) => {
+                            void handleDownloadSkillByKey(skillKey);
+                          }}
+                          onDeleteSkill={handleDeleteSkillListItem}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </Spin>
           </div>
+          <button
+            type="button"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={t("skillConsole.resize.listAriaLabel")}
+            title={t("skillConsole.resize.listTitle")}
+            className={SKILL_RESIZE_HANDLE_CLASS_NAME}
+            style={{ right: -6 }}
+            onPointerDown={handleListResize}
+          />
         </div>
 
         <div className={SKILL_DETAIL_CLASS_NAME}>
@@ -2425,25 +2745,21 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 expandedDirs={expandedDirs}
                 isFileDirty={isFileDirty}
                 saving={saving}
-                validating={validating}
-                deleteSkillUnavailable={detailLoading}
                 deletingSkill={deletingSkill}
-                downloadingSkill={downloadingSkill}
                 downloadingFile={downloadingFile}
+                fileTreeOpen={fileTreeOpen}
+                onToggleFileTree={() => setFileTreeOpen((open) => !open)}
                 t={t}
                 onCreateFile={handleCreateFile}
                 onCreateDir={handleCreateDir}
                 onCreateSubdir={handleCreateSubdir}
                 onUploadFile={handleUploadFile}
-                onDeleteSkill={handleDeleteSkill}
-                onDownloadSkill={handleDownloadSkill}
-                onValidate={handleValidate}
+                onDownloadEntry={handleDownloadEntry}
+                onReplaceEntry={handleReplaceEntryFile}
+                onRenameEntry={handleRenameEntry}
+                onDeleteEntry={handleDeleteEntry}
                 onRefreshFile={handleRefreshFile}
                 onSave={handleSave}
-                onRenameFile={handleRenameFile}
-                onDeleteFile={handleDeleteFile}
-                onDownloadFile={handleDownloadFile}
-                onReplaceFile={handleReplaceFile}
                 onFileChange={handleFileChange}
                 onSelectFileEntry={selectFileEntry}
               />

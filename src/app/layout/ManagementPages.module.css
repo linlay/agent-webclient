@@ -82,7 +82,6 @@
     margin: 0;
     height: 100vh;
     min-height: 0;
-    padding: 10px;
     background: var(--bg-base);
     color: var(--ink-1);
     overflow: hidden;
@@ -95,11 +94,6 @@
 :global(.skills-page)>:global(.skill-console) {
     flex: 1 1 auto;
     min-height: 0;
-}
-
-/* Skills 页的列表在宽屏保持固定宽度，在窄屏切换为单列。 */
-:global(.skills-page) :global(.skill-console-body) {
-    grid-template-columns: 240px minmax(0, 1fr);
 }
 
 @media (max-width: 860px) {

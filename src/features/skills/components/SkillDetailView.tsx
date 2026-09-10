@@ -8,13 +8,12 @@ import type {
 import { useI18n } from "@/shared/i18n";
 import { useHighlightCode } from "@/shared/ui/markdown-code/useHighlight";
 import "@/shared/ui/markdown-code/highlight-theme.css";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import {
   findPreferredSkillFileEntry,
-  iconForEntry,
   isSkillEntryVisible,
   isSkillImageEntry,
   SkillBinaryImagePreview,
+  SkillFileEntryIcon,
 } from "@/features/skills/components/SkillConsole";
 
 const SKILL_DETAIL_VIEW_CLASS =
@@ -224,8 +223,9 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
                 style={{ paddingLeft, paddingRight: 8 }}
                 onClick={() => handleSelectEntry(entry)}
               >
-                <MaterialIcon
-                  name={iconForEntry(entry, expandedDirs.has(entry.path))}
+                <SkillFileEntryIcon
+                  entry={entry}
+                  expanded={expandedDirs.has(entry.path)}
                 />
                 <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
                   {entry.name}
@@ -240,12 +240,9 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
         {selectedEntry ? (
           <>
             <div className={SKILL_DETAIL_CONTENT_HEAD_CLASS}>
-              <MaterialIcon
-                name={iconForEntry(
-                  selectedEntry,
-                  expandedDirs.has(selectedEntry.path),
-                )}
-                style={{ fontSize: 16 }}
+              <SkillFileEntryIcon
+                entry={selectedEntry}
+                expanded={expandedDirs.has(selectedEntry.path)}
               />
               <span className={SKILL_DETAIL_PATH_CLASS}>
                 {selectedEntry.path}
