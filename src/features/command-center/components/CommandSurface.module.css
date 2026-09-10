@@ -218,8 +218,6 @@
 }
 
 :global(.command-empty-state) {
-    border: 1px dashed color-mix(in srgb, var(--line-strong) 76%, transparent);
-    border-radius: 14px;
     padding: 24px 16px;
     text-align: center;
     font-size: 13px;
