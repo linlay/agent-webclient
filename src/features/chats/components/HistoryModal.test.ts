@@ -50,6 +50,7 @@ jest.mock("@/shared/ui/UiButton", () => {
 jest.mock("antd", () => {
   const React = require("react");
   return {
+    App: { useApp: () => ({ modal: jest.requireMock("antd").Modal }) },
     Flex: ({ children, className }: any) =>
       React.createElement("div", { className }, children),
     Input: React.forwardRef(({ prefix, className, variant, ...props }: any, ref: any) =>

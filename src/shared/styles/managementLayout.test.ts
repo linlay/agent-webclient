@@ -26,7 +26,7 @@ function readRule(css: string, selector: string): string {
 
 describe("management layout contracts", () => {
   it("shares icon, control, and form spacing tokens across management pages", () => {
-    const baseCss = readStyle("base.css");
+    const baseCss = readStyle("base.css") + readStyle("../appearance/tokens.css");
 
     expect(baseCss).toMatch(/--ui-icon-size-sm:\s*16px;/);
     expect(baseCss).toMatch(/--ui-icon-hit-size-sm:\s*24px;/);

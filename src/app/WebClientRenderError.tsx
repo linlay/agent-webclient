@@ -81,8 +81,8 @@ export const WebClientRenderErrorFallback: React.FC<{
     >
       <section
         style={{
-          background: "var(--bg-elevated, #202124)",
-          border: "1px solid var(--border-muted, rgba(255,255,255,0.12))",
+          background: "var(--control-popover-bg, #202124)",
+          border: "1px solid var(--control-border, rgba(255,255,255,0.12))",
           borderRadius: 12,
           boxShadow: "0 18px 60px rgba(0,0,0,0.28)",
           maxWidth: 720,
@@ -96,7 +96,7 @@ export const WebClientRenderErrorFallback: React.FC<{
         </p>
         <pre
           style={{
-            background: "rgba(0,0,0,0.24)",
+            background: "var(--bg-input)",
             borderRadius: 8,
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
             fontSize: 12,

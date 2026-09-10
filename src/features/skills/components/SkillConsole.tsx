@@ -1,3 +1,4 @@
+import { App as AntdApp } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
@@ -1442,6 +1443,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   onClearSelection,
 }) => {
   const { t } = useI18n();
+  const { modal } = AntdApp.useApp();
   const { pinnedSkillKeys, toggleSkillPin, pinsDisabled, pinError, refreshPins } = usePinnedSkills(true);
 
   const [skills, setSkills] = useState<AdminSkillSummary[]>([]);
@@ -1633,7 +1635,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
       if (isFileDirty && selectedFilePath !== entry.path) {
         const ok = await new Promise<boolean>((resolve) => {
-          Modal.confirm({
+          modal.confirm({
             title: t("skillConsole.confirm.switchFile"),
             onOk: () => resolve(true),
             onCancel: () => resolve(false),
@@ -1692,7 +1694,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onSelectSkillKey(item.key);
     };
     if (dirtyFiles.size > 0) {
-      Modal.confirm({
+      modal.confirm({
         title: t("skillConsole.confirm.switchSkill"),
         onOk: select,
       });
@@ -1745,7 +1747,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (!detail || !selectedFilePath || !selectedEntry) return;
     if (isFileDirty) {
       const ok = await new Promise<boolean>((resolve) => {
-        Modal.confirm({
+        modal.confirm({
           title: t("skillConsole.confirm.switchFile"),
           onOk: () => resolve(true),
           onCancel: () => resolve(false),
@@ -1844,7 +1846,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (!detail) return;
     const anchor = skillAnchorPath(selectedEntry);
     let inputValue = "";
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.createFile"),
       content: (
         <div className="tw:flex tw:flex-col tw:gap-2">
@@ -1886,7 +1888,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (!detail) return;
     const anchor = skillSiblingPath(selectedEntry);
     let inputValue = "";
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.createDir"),
       content: (
         <div className="tw:flex tw:flex-col tw:gap-2">
@@ -1933,7 +1935,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (!detail || selectedEntry?.kind !== "directory") return;
     const anchor = selectedEntry.path;
     let inputValue = "";
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.createSubdir"),
       content: (
         <div className="tw:flex tw:flex-col tw:gap-2">
@@ -1979,7 +1981,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleRenameFile = () => {
     if (!detail || !selectedEntry || !selectedEntry.renamable) return;
     let inputValue = selectedFilePath;
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.rename"),
       content: (
         <Input
@@ -2010,7 +2012,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleDeleteFile = () => {
     if (!detail || !selectedEntry || !selectedEntry.deletable) return;
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.fileOp.deleteConfirm", {
         type: t("skillConsole.fileTree.root"),
         name: selectedFilePath,
@@ -2075,7 +2077,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     const skillKey = detail.skill.key;
     const skillName = detail.skill.name || skillKey;
     const hasUnsavedChanges = dirtyFiles.size > 0;
-    Modal.confirm({
+    modal.confirm({
       title: t("skillConsole.delete.title"),
       content: (
         <div className="tw:flex tw:flex-col tw:gap-2">
@@ -2193,7 +2195,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const confirmDiscardBeforeAdding = async (): Promise<boolean> => {
     if (dirtyFiles.size === 0) return true;
     return new Promise<boolean>((resolve) => {
-      Modal.confirm({
+      modal.confirm({
         title: t("skillConsole.confirm.createWithUnsaved"),
         content: t("skillConsole.confirm.createWithUnsavedDescription"),
         onOk: () => resolve(true),

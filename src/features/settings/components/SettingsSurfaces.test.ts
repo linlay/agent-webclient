@@ -16,6 +16,11 @@ import { SettingsDrawer } from "./SettingsDrawer";
 import { SettingsTtsDebug } from "./SettingsTtsDebug";
 import { SettingsAsrDebug } from "./SettingsAsrDebug";
 
+jest.mock("@/features/appearance/components/AppearanceProvider", () => ({
+  useAppearance: jest.fn(() => ({ preference: "system", selectedSkinId: "default", installedSkins: [],
+    controller: { setThemePreference: jest.fn(), setSkinId: jest.fn() } })),
+}));
+
 jest.mock("antd", () => {
   const React = require("react");
   const surface = ({ open, children, onCancel, onClose, title, className }: any) =>
@@ -24,7 +29,10 @@ jest.mock("antd", () => {
       React.createElement("button", { onClick: onCancel || onClose }, "Close"),
       children,
     ) : null;
-  return { Modal: jest.fn(surface), Drawer: jest.fn(surface) };
+  return { Modal: jest.fn(surface), Drawer: jest.fn(surface),
+    Button: ({ children, ...props }: any) => React.createElement("button", props, children),
+    Select: ({ id, value, options, onChange }: any) => React.createElement("select", { id, value, onChange: (event: any) => onChange(event.target.value) }, options.map((option: any) => React.createElement("option", { key: option.value, value: option.value }, option.label))),
+  };
 });
 jest.mock("@/app/state/AppContext", () => ({
   ...jest.requireActual("@/app/state/AppContext"),
@@ -193,11 +201,11 @@ describe.each([
   it("applies theme and language immediately and retains refresh and clear actions", () => {
     const events = jest.spyOn(window, "dispatchEvent");
     render();
-    click("Dark");
-    expect(dispatch).toHaveBeenCalledWith({ type: "SET_THEME_MODE", themeMode: "dark" });
-    state = { ...state, themeMode: "dark" };
-    render();
-    expect(container.querySelector('[aria-label="Theme"] [aria-selected="true"]')!.textContent).toBe("Dark");
+    change("appearance-theme", "dark");
+    const { useAppearance } = jest.requireMock("@/features/appearance/components/AppearanceProvider");
+    const appearance = useAppearance.mock.results.at(-1).value;
+    expect(appearance.controller.setThemePreference).toHaveBeenCalledWith("dark");
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "SET_THEME_MODE" }));
     click("Refresh agents");
     click("Refresh teams");
     click("Clear logs");

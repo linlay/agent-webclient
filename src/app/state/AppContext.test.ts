@@ -88,7 +88,7 @@ describe('appReducer conversation reset behavior', () => {
     expect(state.accessToken).toBe('app-token');
   });
 
-  it('hydrates the initial theme from the html attribute when no stored value exists', () => {
+  it('uses the shared boot fallback instead of treating a stale html attribute as a preference', () => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
@@ -114,7 +114,7 @@ describe('appReducer conversation reset behavior', () => {
 
     const state = createInitialState();
 
-    expect(state.themeMode).toBe('dark');
+    expect(state.themeMode).toBe('light');
   });
 
   it('hydrates the initial theme from hostTheme when embedded in desktop', () => {

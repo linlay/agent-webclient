@@ -1,0 +1,21 @@
+.scenarios { padding: 12px 20px; display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; align-items: center; background: var(--panel-surface); border-bottom: 1px solid var(--line); }
+.scenarios a { color: var(--accent); }
+.scenarios span { margin-right: auto; color: var(--ink-soft); }
+.shell { display: grid; grid-template-rows: auto minmax(0,1fr) auto; height: calc(100dvh - 44px); background: var(--shell-page-bg); }
+.dense { background: var(--panel-surface); max-width: 720px; margin: auto; border-inline: 1px solid var(--line); }
+.dense:has(:global(.readonly-run-surface)) { display: block; }
+.dense :global(.readonly-run-surface-content) { display: grid; grid-template-rows: auto minmax(0,1fr) auto; overflow: hidden; padding: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--reading-surface); border-bottom: 1px solid var(--line); }
+.messages { overflow: auto; padding: 28px 24px; }
+.column { display: grid; gap: 20px; max-width: 770px; margin: auto; }
+.column > :global(.timeline-user-bubble) { justify-self: end; max-width: 85%; }
+.reading { background: var(--reading-surface); border: 1px solid var(--line); border-radius: var(--control-radius-lg); padding: 24px; line-height: 1.7; }
+.reading h1 { font-size: 27px; letter-spacing: -.7px; margin: 6px 0 12px; }
+.reading p { margin: 10px 0; }
+.reading pre { overflow: auto; padding: 16px; border-radius: var(--control-radius); background: var(--control-input-bg); font-size: 12px; }
+.eyebrow { color: var(--accent); font-size: 10px; letter-spacing: 2px; font-weight: 700; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.composer { width: min(770px,calc(100% - 48px)); justify-self: center; border: 1px solid var(--control-border); background: var(--control-input-bg); border-radius: var(--control-radius-lg); padding: 12px; margin: 0 0 20px; }
+.composer .actions { margin-top: 8px; justify-content: space-between; }
+.composer [data-testid="status"], .attachment { font-size: 12px; color: var(--ink-soft); }
+.attachment { display: inline-block; background: var(--surface-soft); padding: 4px 8px; margin-bottom: 4px; border: 1px solid var(--line); border-radius: var(--control-radius-sm); }

@@ -1,3 +1,4 @@
+@import "./appearance/tokens.css";
 /* Tailwind uses the tw: prefix and scans src only to avoid legacy class collisions. */
 @import "tailwindcss/theme" prefix(tw);
 

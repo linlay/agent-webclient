@@ -1,3 +1,4 @@
+import { App as AntdApp } from "antd";
 import React, {
   useCallback,
   useEffect,
@@ -15,7 +16,6 @@ import {
   Flex,
   Input,
   message,
-  Modal,
   Popover,
   Spin,
 } from "antd";
@@ -112,6 +112,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   renderSettingsMenu,
   settingsSummary,
 }) => {
+  const { modal } = AntdApp.useApp();
   const { state, stateRef, dispatch, querySessionsRef } = useAppContext();
   const { t } = useI18n();
   const terminalAgentStatuses = useTerminalAgentStatuses();
@@ -317,7 +318,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     currentName: string,
   ) => {
     let nextName = currentName;
-    Modal.confirm({
+    modal.confirm({
       title: t("leftSidebar.renameAgent"),
       content: (
         <Input
@@ -416,7 +417,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
       state.workerIndexByKey.get(workerKey) ||
       state.workerRows.find((item) => item.key === workerKey);
     const name = row?.displayName || agentKey;
-    Modal.confirm({
+    modal.confirm({
       title: t("leftSidebar.deleteAgent"),
       content: t("leftSidebar.deleteAgentConfirm", { name }),
       okText: t("chatActions.delete.ok"),

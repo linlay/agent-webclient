@@ -16,7 +16,6 @@ import type { LiveQuerySession } from "@/features/conversation/lib/conversationS
 import { getAppAccessToken, refreshAppAccessToken } from "@/shared/data/auth/appAuth";
 import { setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
-import { syncThemeMode } from "@/shared/styles/theme";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import { persistComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
 import { dataQueryCache } from "@/shared/data/query/serverState";
@@ -138,9 +137,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		[state, dispatch],
 	);
 
-	useEffect(() => {
-		syncThemeMode(state.themeMode);
-	}, [state.themeMode]);
 
 	useEffect(() => {
 		syncApiAccessToken(state);

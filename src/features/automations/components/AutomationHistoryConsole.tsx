@@ -1,5 +1,5 @@
+import { App as AntdApp } from "antd";
 import { useState } from "react";
-import { Modal } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Team } from "@/features/workers/lib/workerState";
 import { useAppState } from "@/app/state/AppContext";
@@ -30,6 +30,7 @@ export function AutomationHistoryConsole({
   onClose,
   titleBarVariant = "default",
 }: AutomationHistoryConsoleProps) {
+  const { modal } = AntdApp.useApp();
   const { t } = useI18n();
   const state = useAppState();
   const effectiveAgents = agents.length ? agents : state.agents;
@@ -46,7 +47,7 @@ export function AutomationHistoryConsole({
 
   const deleteSelected = () => {
     if (!runtime.selected || runtime.actionBusy) return;
-    Modal.confirm({
+    modal.confirm({
       title: t("automationConsole.confirm.deleteTitle"),
       content: runtime.selected.name || runtime.selected.id,
       okText: t("automationConsole.confirm.deleteOk"),

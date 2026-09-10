@@ -5,7 +5,7 @@
     min-height: 0;
     flex-direction: column;
     overflow: hidden;
-    background: var(--bg-base);
+    background: var(--panel-surface);
     color: var(--ink-1);
 }
 

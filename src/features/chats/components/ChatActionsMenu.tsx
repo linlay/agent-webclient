@@ -1,5 +1,6 @@
+import { App as AntdApp } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import { Dropdown, Input, Modal, message, type MenuProps } from "antd";
+import { Dropdown, Input, message, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
@@ -31,6 +32,7 @@ export const ChatActionsMenu: React.FC<{
   onArchived,
   onDeleted,
 }) => {
+  const { modal } = AntdApp.useApp();
   const { state, dispatch } = useAppContext();
   const { pending, archive, remove, rename, exportChat } = useChatOperations(
     state.chatId, dispatch, t,
@@ -64,7 +66,7 @@ export const ChatActionsMenu: React.FC<{
   const handleRename = () => {
     if (!normalizedChatId || pending) return;
     let nextName = String(chatName || "").trim();
-    Modal.confirm({
+    modal.confirm({
       title: t("chatActions.rename.title"),
       content: (
         <Input
@@ -91,7 +93,7 @@ export const ChatActionsMenu: React.FC<{
 
   const handleDelete = () => {
     if (!normalizedChatId || pending) return;
-    Modal.confirm({
+    modal.confirm({
       title: t("chatActions.delete.title"),
       content: chatName || normalizedChatId,
       okText: t("chatActions.delete.ok"),

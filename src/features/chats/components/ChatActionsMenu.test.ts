@@ -53,6 +53,7 @@ jest.mock("@/shared/ui/CopyInfoModal", () => ({
 jest.mock("antd", () => {
 	const React = require("react");
 	return {
+        App: { useApp: () => ({ modal: { confirm: mockModalConfirm } }) },
 		Button: ({ children, className }: { children?: React.ReactNode; className?: string }) =>
 			React.createElement("button", { className }, children),
 		Dropdown: ({

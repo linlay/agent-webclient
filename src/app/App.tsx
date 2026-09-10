@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { ConfigProvider, Spin, theme as antdTheme, App as AntdApp } from "antd";
+import React, { useEffect, useLayoutEffect } from "react";
+import { Spin } from "antd";
 import {
   createBrowserRouter,
   useLocation,
@@ -23,23 +23,17 @@ import {
   type I18nProviderProps,
   useI18n,
 } from "@/shared/i18n";
-import {
-  readThemeModeFromUrl,
-  resolveInitialThemeMode,
-  syncThemeMode,
-} from "@/shared/styles/theme";
+import { AppearanceProvider, useAppearance } from "@/features/appearance/components/AppearanceProvider";
 import { APP_UI_BASE } from "@/shared/utils/routing";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import { BtwProvider } from "@/features/btw/components/BtwProvider";
 import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
-import zhCN from "antd/locale/zh_CN";
-import enUS from "antd/locale/en_US";
 import { GatewayAuthBoundary } from "@/features/auth/components/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { useStandaloneDesktopActionRuntime } from "@/features/conversation/hooks/useStandaloneWorkPanelActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
-import { WebClientRouteErrorPage } from "@/app/WebClientRenderError";
+import { WebClientRouteErrorPage, WebClientRenderErrorBoundary } from "@/app/WebClientRenderError";
 import "@/app/layout/AppLayoutCompat.module.css";
 import "@/app/layout/CopilotLayout.module.css";
 import "@/app/layout/ManagementPages.module.css";
@@ -81,34 +75,9 @@ const defaultDocumentTitle =
 const BaseShell = () => {
   useDesktopRouteChange();
   const location = useLocation();
-  const { dispatch, stateRef } = useAppContext();
   const { locale, setLocale } = useI18n();
-  const hadUrlThemeOverrideRef = useRef(false);
-
-  useEffect(() => {
-    const urlThemeMode = readThemeModeFromUrl(location.search);
-    if (urlThemeMode) {
-      hadUrlThemeOverrideRef.current = true;
-      if (stateRef.current.themeMode === urlThemeMode) {
-        syncThemeMode(urlThemeMode);
-      } else {
-        dispatch({ type: "SET_THEME_MODE", themeMode: urlThemeMode });
-      }
-      return;
-    }
-
-    if (!hadUrlThemeOverrideRef.current) {
-      return;
-    }
-
-    hadUrlThemeOverrideRef.current = false;
-    const themeMode = resolveInitialThemeMode(location.search);
-    if (stateRef.current.themeMode === themeMode) {
-      syncThemeMode(themeMode);
-    } else {
-      dispatch({ type: "SET_THEME_MODE", themeMode });
-    }
-  }, [dispatch, location.search, stateRef]);
+  const { controller } = useAppearance();
+  useLayoutEffect(() => controller.setRouteSearch(location.search), [controller, location.search]);
 
   useEffect(() => {
     const routeLocale = readUrlLocale(location.search);
@@ -194,62 +163,14 @@ const DocumentTitleRoute: React.FC<{
   );
 };
 
-const ThemedShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AppearanceStateBridge = () => {
+  const { resolvedTheme } = useAppearance();
   const { themeMode } = useAppState();
-  const { locale } = useI18n();
-  const isDark = themeMode === "dark";
-
-  return (
-    <ConfigProvider
-      locale={locale === "en-US" ? enUS : zhCN}
-      theme={{
-        algorithm: isDark
-          ? antdTheme.darkAlgorithm
-          : antdTheme.defaultAlgorithm,
-        token: isDark
-          ? {
-              colorPrimary: "#4f88ff",
-              colorSuccess: "#27c346",
-              colorWarning: "#ff9a2e",
-              colorError: "#f76560",
-              colorInfo: "#a55eea",
-              colorBgBase: "#0d0e10",
-              colorBgLayout: "#0d0e10",
-              colorBgContainer: "#161719",
-              colorBgElevated: "#202020",
-              colorText: "#f2f3f5",
-              colorTextSecondary: "#c9cdd4",
-              colorTextTertiary: "#86909c",
-              colorBorder: "rgba(255, 255, 255, 0.08)",
-              colorBorderSecondary: "rgba(255, 255, 255, 0.14)",
-              borderRadius: 8,
-              controlHeight: 32,
-              fontFamily: "var(--font-sans)",
-            }
-          : {
-              colorPrimary: "#2663eb",
-              colorSuccess: "#00b42a",
-              colorWarning: "#ff7d00",
-              colorError: "#f53f3f",
-              colorInfo: "#722ed1",
-              colorBgBase: "#f2f3f5",
-              colorBgLayout: "#f2f3f5",
-              colorBgContainer: "#ffffff",
-              colorBgElevated: "#ffffff",
-              colorText: "#1d2129",
-              colorTextSecondary: "#4e5969",
-              colorTextTertiary: "#86909c",
-              colorBorder: "#e5e6eb",
-              colorBorderSecondary: "#c9cdd4",
-              borderRadius: 8,
-              controlHeight: 32,
-              fontFamily: "var(--font-sans)",
-            },
-      }}
-    >
-      <AntdApp>{children}</AntdApp>
-    </ConfigProvider>
-  );
+  const { dispatch } = useAppContext();
+  useLayoutEffect(() => {
+    if (themeMode !== resolvedTheme) dispatch({ type: "SET_THEME_MODE", themeMode: resolvedTheme });
+  }, [dispatch, resolvedTheme, themeMode]);
+  return null;
 };
 
 const router = createBrowserRouter(
@@ -521,15 +442,18 @@ const App: React.FC<AppProps> = ({ i18n }) => {
 
   return (
     <I18nProvider {...mergedI18n}>
-      <AppProvider>
-        <RealtimeTransportProvider>
-          <ThemedShell>
-            <GatewayAuthBoundary>
-              <RouterProvider router={router} />
-            </GatewayAuthBoundary>
-          </ThemedShell>
-        </RealtimeTransportProvider>
-      </AppProvider>
+      <AppearanceProvider>
+        <WebClientRenderErrorBoundary>
+          <AppProvider>
+            <AppearanceStateBridge />
+            <RealtimeTransportProvider>
+              <GatewayAuthBoundary>
+                <RouterProvider router={router} />
+              </GatewayAuthBoundary>
+            </RealtimeTransportProvider>
+          </AppProvider>
+        </WebClientRenderErrorBoundary>
+      </AppearanceProvider>
     </I18nProvider>
   );
 };

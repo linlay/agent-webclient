@@ -5,25 +5,14 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>AGENT Webclient</title>
-	<script>
-		(() => {
-			try {
-				const params = new URLSearchParams(window.location.search || "");
-				const routeTheme = params.get("theme");
-				if (routeTheme === "dark" || routeTheme === "light") {
-					document.documentElement.setAttribute("data-theme", routeTheme);
-					return;
-				}
-				const storedTheme = localStorage.getItem("agent-webclient.themeMode");
-				if (storedTheme === "dark" || storedTheme === "light") {
-					document.documentElement.setAttribute("data-theme", storedTheme);
-				}
-			} catch (_error) {
-				// Ignore storage access errors during boot.
-			}
-		})();
-	</script>
 	<script src="/runtime-config.js"></script>
+	<style>
+		<%= appearanceTokens %>
+		html, body { margin: 0; min-height: 100%; background: var(--bg-base); color: var(--ink); }
+		html { color-scheme: light; }
+		html[data-theme="dark"] { color-scheme: dark; }
+	</style>
+	<script><%= appearanceBootstrap %></script>
 </head>
 
 <body>
