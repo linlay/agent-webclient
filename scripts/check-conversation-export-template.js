@@ -228,17 +228,21 @@ for (const relativePath of auditedSources) {
 }
 assert(rawMarkupBoundaries === 1, "Export runtime must have one raw-markup boundary.");
 
-const configuredTunnelRoot = String(
-  process.env.CONVERSATION_EXPORT_TUNNEL_ASSET_ROOT || "",
-).trim();
-const tunnelAssetRoot = configuredTunnelRoot
+const configuredTunnelRoot = String(process.env.CONVERSATION_EXPORT_TUNNEL_ROOT || "").trim();
+const tunnelRoot = configuredTunnelRoot
   ? path.resolve(configuredTunnelRoot)
-  : path.resolve(
-      repoRoot,
-      `../tunnel-hub-server/internal/shareassets/files/${manifest.assetSet}`,
-    );
-const tunnelFilesRoot = path.dirname(tunnelAssetRoot);
+  : path.resolve(repoRoot, "../tunnel-hub-server/internal/shareassets");
+const tunnelFilesRoot = path.join(tunnelRoot, "files");
+const tunnelAssetRoot = path.join(tunnelFilesRoot, manifest.assetSet);
 if (configuredTunnelRoot || fs.existsSync(tunnelFilesRoot)) {
+  const publishedSets = fs.readdirSync(tunnelFilesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  assert(
+    JSON.stringify(publishedSets) === JSON.stringify([manifest.assetSet]),
+    "Tunnel must contain exactly the current conversation export asset set.",
+  );
   assert(fs.existsSync(tunnelAssetRoot), "Tunnel conversation asset set is missing.");
   for (const relativePath of manifestFiles) {
     assert(
@@ -248,6 +252,18 @@ if (configuredTunnelRoot || fs.existsSync(tunnelFilesRoot)) {
       `Tunnel conversation asset ${relativePath} is out of sync.`,
     );
   }
+  assert(
+    fs.readFileSync(templatePath).equals(
+      fs.readFileSync(path.join(tunnelRoot, "conversation.template.html")),
+    ),
+    "Tunnel conversation export template is out of sync.",
+  );
+  assert(
+    fs.readFileSync(manifestPath).equals(
+      fs.readFileSync(path.join(tunnelRoot, "conversation-assets.json")),
+    ),
+    "Tunnel conversation export manifest is out of sync.",
+  );
 }
 
 console.log("Conversation export template and immutable assets are valid.");

@@ -4,7 +4,7 @@ export const MAX_CONVERSATION_HTML_BYTES = 20 * 1024 * 1024;
 export const MAX_CONVERSATION_SNAPSHOT_BYTES = 20 * 1024 * 1024;
 export const MAX_CONVERSATION_TEMPLATE_BYTES = 256 * 1024;
 export const CONVERSATION_EXPORT_TEMPLATE_PATH =
-  "/export/conversation.template.html";
+  "/assets/conversation-export/conversation.template.html";
 export const CONVERSATION_EXPORT_SNAPSHOT_MARKER =
   "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__";
 export const CONVERSATION_EXPORT_ASSET_ORIGIN_MARKER =

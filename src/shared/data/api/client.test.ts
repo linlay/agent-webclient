@@ -1968,7 +1968,7 @@ describe('data client requests', () => {
     expect(click).toHaveBeenCalledTimes(1);
   });
 
-  it('assembles an HTML download from the Platform snapshot and WebClient template', async () => {
+  it('assembles an HTML download from the Platform snapshot and Tunnel template', async () => {
     const snapshot = '{"version":1,"title":"Conversation"}';
     const template = '<link href="__CONVERSATION_EXPORT_ASSET_ORIGIN__/runtime.css"><script type="application/json">__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__</script>';
     let downloadedBlob: Blob | undefined;
@@ -2031,7 +2031,10 @@ describe('data client requests', () => {
 
     expect(fetchMock.mock.calls[0][0]).toBe('/api/chat/export?chatId=chat_1&format=snapshot');
     expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Accept).toBe('application/json');
-    expect(fetchMock.mock.calls[1][0]).toBe('/export/conversation.template.html');
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'http://127.0.0.1:11961/assets/conversation-export/conversation.template.html',
+    );
+    expect(fetchMock.mock.calls[1][1]?.credentials).toBe('omit');
     expect(anchor.download).toBe('conversation.html');
     expect(anchor.click).toHaveBeenCalledTimes(1);
     await expect(downloadedBlob?.text()).resolves.toBe(

@@ -255,9 +255,9 @@ export async function downloadConversationHtmlExport(
         headers: { Accept: "application/json" },
       },
     ),
-    fetch(CONVERSATION_EXPORT_TEMPLATE_PATH, {
+    fetch(new URL(CONVERSATION_EXPORT_TEMPLATE_PATH, assetOrigin).toString(), {
       method: "GET",
-      credentials: "same-origin",
+      credentials: "omit",
       redirect: "error",
       cache: "no-store",
       headers: { Accept: "text/html" },

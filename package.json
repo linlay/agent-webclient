@@ -5,10 +5,11 @@
   "description": "AGENT protocol debugging web client",
   "scripts": {
     "start": "npm run start:web",
-    "start:web": "npm run build:conversation-export && dotenv -e .env -- webpack serve --mode development",
-    "build": "npm run check:boundaries && npm run check:desktop-contract && npm run build:web && npm run build:conversation-export && npm run check:conversation-export",
+    "start:web": "dotenv -e .env -- webpack serve --mode development",
+    "build": "npm run check:boundaries && npm run check:desktop-contract && npm run build:web",
     "build:web": "dotenv -e .env -- webpack --mode production",
     "build:conversation-export": "webpack --config webpack.export.config.js && node ./scripts/build-conversation-export-template.js",
+    "release:conversation-export": "npm run build:conversation-export && npm run check:conversation-export && npm run sync:conversation-export",
     "sync:conversation-export": "node ./scripts/sync-conversation-export-artifacts.js",
     "check:conversation-export-sync": "node ./scripts/sync-conversation-export-artifacts.js --check",
     "test": "npm run check:boundaries && npm run test:unit --",

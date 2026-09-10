@@ -41,8 +41,7 @@
       "__STOP_SCRIPT__",
       "__DEPLOY_SCRIPT__",
       "__PROGRAM_COMMON__",
-      "frontend/dist/index.html",
-      "frontend/dist/export/conversation.template.html"
+      "frontend/dist/index.html"
     ]
   },
   "web": {

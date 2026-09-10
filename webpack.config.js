@@ -294,11 +294,6 @@ module.exports = (env, argv) => {
           name: 'standalone-file-actions',
           middleware: createStandaloneFileActions(),
         });
-        devServer.app.get('/export/conversation.template.html', (_req, res) => {
-          res.setHeader('Content-Type', 'text/html; charset=utf-8');
-          res.setHeader('Cache-Control', 'no-store');
-          res.sendFile(path.resolve(__dirname, 'dist/export/conversation.template.html'));
-        });
         devServer.app.get('/runtime-config.js', (_req, res) => {
           res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
           res.setHeader('Cache-Control', 'no-store');
