@@ -22,7 +22,7 @@ Artifact、Reference、普通附件和回答 Markdown 中的文件链接都以 V
 
 Markdown、文本与代码使用 Monaco，PDF 使用 PDF.js，音视频使用浏览器媒体播放器。DOCX 使用统一 Document Surface 的隔离只读查看器；其他 Office、压缩包和未知二进制保留元信息状态，不发起伪文本预览。Desktop 中的 Document Surface 可渲染“在 Finder/文件资源管理器中显示”和“用默认应用打开”，纯浏览器不渲染 Desktop-only 操作。宿主请求不携带绝对路径，并由 owner Chat 和当前可信 descriptor 双重校验。
 
-Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器中显示、用默认应用打开 / 关闭”分组，以分隔线区分；打开菜单时隐藏标签悬浮提示，提示只保留文件名和大小。元信息卡展示名称、易读的文件大小与 MIME，大小按十进制单位换算（如 36,800 字节显示为 36.8 kB），不显示“Office 文档（只读）”副标题或本地副本说明。MIME 标签与值同行，值保持单行，超长时省略并可悬停查看完整值。四个按钮位于信息卡片内的下方，以适中宽度居中排列，不撑满卡片，依次为“在线预览（规划中）”、下载、Finder（其他系统使用相应文件管理器）、默认应用，每行一个；在线预览为禁用占位。两个本机操作复用 WebClient 本机文件服务，不依赖 Desktop 桥接。刷新重新读取文件与元信息，并更新媒体 Blob；存在未保存的编辑或批注时先确认丢弃，取消则保留当前内容。
+Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器中显示、用默认应用打开 / 关闭”分组，以分隔线区分；打开菜单时隐藏标签悬浮提示，提示只保留文件名和大小。元信息卡展示名称、易读的文件大小与 MIME，大小按十进制单位换算（如 36,800 字节显示为 36.8 kB），不显示“Office 文档（只读）”副标题或本地副本说明。MIME 标签与值同行，值保持单行，超长时省略并可悬停查看完整值。四个按钮位于信息卡片内的下方，以适中宽度居中排列，不撑满卡片，依次为“在线预览”、下载、Finder（其他系统使用相应文件管理器）、默认应用，每行一个；在线预览按 Platform 能力、文件格式和大小启用，禁用时显示原因。两个本机操作复用 WebClient 本机文件服务，不依赖 Desktop 桥接。刷新重新读取文件与元信息，并更新媒体 Blob；存在未保存的编辑或批注时先确认丢弃，取消则保留当前内容。
 
 Artifact、普通附件和回答 Markdown 中的受保护图片、PDF、音视频先使用 Bearer/Cookie fetch 获得后端原始 MIME Blob，再创建短生命周期 object URL 交给媒体元素；卸载或 URL 变化时通过 effect cleanup revoke，同时用 AbortController 取消过期请求。HTML Resource Viewer 则通过同一鉴权 API 读取完整文本并以不带 `allow-same-origin` 的 sandbox `srcDoc` 展示，使 Desktop 可注入受限的元素批注消息桥而不放宽 iframe 隔离；HTML iframe 使用无内边距内容槽贴边展示，页面本身的 body margin 仍按原文保留。受 CORS 限制而无法读取文本的外部 HTML 仍可回退到原 sandbox URL 只读预览，但不声明批注 capability。新 `publishedArtifacts[].url` 形如 `artifacts/run_01/poster.png`。历史 `/api/resource?file=...` Markdown 被分类为非法，不再预览或下载；外部 HTTP(S) 图片继续直接使用外链，跨域下载不发送平台 Bearer，`data:` 与 `blob:` 原样展示。
 
@@ -31,6 +31,16 @@ Artifact、普通附件和回答 Markdown 中的受保护图片、PDF、音视�
 Desktop 内容区右键语义只把资源名称、媒体类型和固定 open/download capability 返回宿主，不返回上述 object URL、资源 API URL 或鉴权信息。执行时重新定位当前 AttachmentCard、Markdown 链接或 Viewer，并复用左键的 `ViewerTarget` 构造或统一鉴权下载路径。WorkPanel 的 Artifact/Reference 外层 tab 另通过共享契约的版本化 `workPanel.resource.downloadCurrent` host action 请求下载；只有当前 Resource Viewer 注册处理器并复用同一 `downloadViewerTarget`，其他页面静默忽略，动作本身不携带 route、资源 URL、路径或凭据。
 
 Desktop 原生图片稳定后，WebClient 的 preview-review 只保留 HTML Resource Viewer 分支。HTML 仍位于不带 `allow-same-origin` 的 sandbox iframe，通过只接受当前 frame source 与运行期 token 的窄 postMessage 桥同步编辑状态、选择元素和重绘 XPath 编号框。PNG、JPEG、WebP 的批注、临时 PNG 合成和 Composer staged attachment 均由 Desktop 原生图片编辑器负责；PDF、音视频、文本与不支持格式不声明批注能力。
+
+## Office 在线预览
+
+DOCX 保留本地只读查看器，并提供在线预览入口；PPTX、XLSX 从元信息卡进入。`features/viewers` 读取普通 HTTP `GET /api/document/preview/capabilities`，点击后提交 `POST /api/document/preview` 的 `requestId + source`。Workspace 提交 `agentKey + path`，Chat 资源提交 owner `chatId + relativePath`，前端不上传 Blob，也不启动 Agent Run。配置缺失、旧 Platform 无接口、格式不支持或超限时显示原因。
+
+Platform 在 `configs/runtime.yml` 的 `document-preview` 中管理当前 document-hub、认证和打开方式。WebClient 仅消费 `previewId/sourceRevision/openMode/url/expiresAt`，不接收内部 API 地址或服务凭据。右侧栏准备好链接后新建“文件名 · 在线预览”标签并选中，保留原文件标签；同一来源重复打开复用预览标签，来源按 Workspace 的 `agentKey + path` 或 Chat 资源的 owner `chatId + relativePath` 区分，不按临时 URL 或文件名判断。独立 Document Surface 沿用容器内展示。`iframe` 模式展示只读分享 URL，sandbox 仅允许脚本和服务自身 origin，使用 `no-referrer`；不向 iframe 注入 Platform token 或 Desktop bridge。iframe 的预览 origin 必须与 WebClient 不同（同一主机的不同端口满足要求），同 origin 部署使用 `external`，避免脚本通过同源窗口访问宿主。外部浏览器入口始终保留，`external` 模式只显示用户点击的链接，不在异步响应后自动弹窗。Desktop 复用系统浏览器入口。
+
+工具栏提供返回文件、重新加载、浏览器打开和原文件下载。右侧栏“返回文件”切回原文件标签，原标签已关闭时重新打开；关闭预览只移除预览标签，切换会话清空预览与链接。重新加载重新请求 Platform 检查文件版本；原文件刷新、目标切换和卸载中止旧请求，迟到响应不覆盖当前目标或新建标签；到期移除 iframe 并提示重新获取。链接只存在于临时展示状态，不改变文件标签身份。iframe load 不代表编辑器渲染成功，不依据 load 自动切换模式。
+
+本地联调统一 `127.0.0.1`，document-hub 配置 `EDITOR_EMBED_ORIGINS` 并发布浏览器可达的 ONLYOFFICE 地址。跨站 Cookie 受限时在 Platform 配置 `open-mode: external`。上传/只读链接及副本回收由 Platform 完成，下载保持现有鉴权链路。
 
 ## 边界与非目标
 - Artifact 不负责用户上传；用户上传属于 Composer 附件链路。

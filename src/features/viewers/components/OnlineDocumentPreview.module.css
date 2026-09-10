@@ -1,0 +1,6 @@
+.surface { display: flex; flex: 1; flex-direction: column; min-height: 0; height: 100%; gap: 12px; }
+.toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px; }
+.frame { border: 0; width: 100%; flex: 1; min-height: 480px; }
+.action { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px; }
+.hint { color: var(--ink-muted); font-size: 12px; }
+.error { color: #cf1322; font-size: 12px; overflow-wrap: anywhere; }

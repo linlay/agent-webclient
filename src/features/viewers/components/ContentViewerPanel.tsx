@@ -42,6 +42,9 @@ import {
 import { DocumentTextEditor } from "@/features/viewers/components/DocumentTextEditor";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
 import { StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
+import { OnlineDocumentPreview, OnlinePreviewAction } from "./OnlineDocumentPreview";
+import { useOnlineDocumentPreview } from "../hooks/useOnlineDocumentPreview";
+import { getDocumentPreviewTabKey, type DocumentPreviewTabState } from "../lib/documentPreview";
 import { isAppMode } from "@/shared/utils/routing";
 import { isDocxDocument } from "@/features/viewers/lib/docxPreview";
 import {
@@ -119,6 +122,7 @@ interface ContentViewerPanelProps {
   enableDesktopCurrentResourceDownload?: boolean;
   enableDesktopLocalResourceActions?: boolean;
   enableDesktopPreviewReview?: boolean;
+  onOpenOnlinePreview?: (preview: DocumentPreviewTabState) => void;
   surfaceContext?: {
     chatId: string;
     teamChat?: boolean;
@@ -303,6 +307,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   enableDesktopCurrentResourceDownload = false,
   enableDesktopLocalResourceActions = false,
   enableDesktopPreviewReview = false,
+  onOpenOnlinePreview,
   surfaceContext,
 }) => {
   const appState = useAppState();
@@ -372,6 +377,18 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const mediaUrl = authenticatedResource.url;
   const viewerName = workspaceFileResponse?.name || target.name;
   const docxPreview = documentKind === "document-office" && isDocxDocument(viewerName);
+  const onlinePreview = useOnlineDocumentPreview({
+    target, chatId, name: viewerName,
+    sizeBytes: workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined),
+    refreshKey: documentReloadRequest,
+    onReady: onOpenOnlinePreview ? (result) => onOpenOnlinePreview({
+      key: getDocumentPreviewTabKey(target, chatId),
+      target: { ...target, name: viewerName },
+      chatId,
+      teamChat,
+      result,
+    }) : undefined,
+  });
   const fileHtml = resolveFileViewerHtml(
     workspaceFileResponse,
   );
@@ -736,8 +753,15 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     };
   }, [localActionsCandidate, localActionsSourceKey]);
 
+  if (onlinePreview.result) {
+    return <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
+      <OnlineDocumentPreview preview={onlinePreview} name={viewerName} onDownload={handleDownload} />
+    </div>;
+  }
+
   return (
     <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
+      {docxPreview ? <OnlinePreviewAction preview={onlinePreview} /> : null}
       {!docxPreview && localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
         ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} />
         : null}
@@ -785,6 +809,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
             sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
             note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
+            previewAction={<OnlinePreviewAction preview={onlinePreview} />}
             onDownload={handleDownload}
           /> :
           <div className="tw:flex tw:min-h-[360px] tw:flex-1 tw:items-center tw:justify-center tw:p-6">
@@ -805,6 +830,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
                   {t("contentViewer.metadata.unsupportedTextEncodingDetail")}
                 </p>
               ) : null}
+              <OnlinePreviewAction preview={onlinePreview} />
               <Button className="tw:mt-5" type="primary" onClick={() => void handleDownload()}>
                 {t("contentViewer.action.download")}
               </Button>
