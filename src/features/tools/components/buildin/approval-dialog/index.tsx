@@ -9,7 +9,10 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { AIAwaitApproval, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type {
+  AIAwaitApproval,
+  AIAwaitSubmitPayloadData,
+} from "@/shared/contracts/agentEvents";
 import type { ApprovalActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
@@ -522,7 +525,8 @@ const ApprovalQuestion = forwardRef<
           justify="space-between"
         >
           <div className={hitlDialogClassNames.questionHeading}>
-            {approval?.description}
+            {approval?.description ||
+              t("approvalDialog.descriptionFallback")}
           </div>
           {pagnation}
         </Flex>

@@ -886,6 +886,7 @@ export const zhCNMessages = {
   "approvalDialog.action.submit": "提交",
   "confirmDialog.action.cancel": "取消",
   "approvalDialog.loading": "等待审批加载中...",
+  "approvalDialog.descriptionFallback": "待审批",
   "approvalDialog.remoteAnswered": "已被其他终端提交",
   "approvalDialog.option.approve": "同意",
   "approvalDialog.option.approve.description": "只本次放行",

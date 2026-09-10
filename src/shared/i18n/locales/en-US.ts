@@ -886,6 +886,7 @@ export const enUSMessages = {
   "approvalDialog.action.submit": "Submit",
   "confirmDialog.action.cancel": "Cancel",
   "approvalDialog.loading": "Loading approval request...",
+  "approvalDialog.descriptionFallback": "Pending approval",
   "approvalDialog.remoteAnswered": "This request was already submitted from another client.",
   "approvalDialog.option.approve": "Approve",
   "approvalDialog.option.approve.description": "Allow this request once",
