@@ -69,6 +69,9 @@ export function createDocumentAppearanceTarget(root = document.documentElement) 
         set(name, flatten(read(name), solidBase));
       }
       const decorated = snapshot.backgroundMode === "host" || Boolean(snapshot.imageUrl);
+      // One continuous veil covers the main chat, including its gutters and
+      // composer. Only a faint trace of the host picture should remain visible.
+      set("--main-chat-surface", decorated ? readableSurface(read("--shell-content-bg"), solidBase, 0.94) : solidBase);
       set("--reading-surface", decorated ? readableSurface(read("--shell-content-bg"), solidBase) : solidBase);
       set("--shell-sidebar-bg", readableSurface(read("--shell-sidebar-bg"), solidBase));
       set("--panel-surface", read("--surface-strong"));

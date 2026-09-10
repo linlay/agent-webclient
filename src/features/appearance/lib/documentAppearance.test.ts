@@ -24,3 +24,21 @@ it("cleans only its own document properties and restores inline values on releas
   expect(root.dataset.theme).toBe("light");
   root.removeAttribute("style");
 });
+
+it.each(["light", "dark"] as const)("keeps a continuous faint host background in %s and removes it on fallback", (resolvedTheme) => {
+  const root = document.documentElement;
+  const target = createDocumentAppearanceTarget(root);
+  const color = resolvedTheme === "light" ? "246, 250, 242" : "20, 39, 29";
+  const skin = { id: "photo", tokens: { light: { "--shell-content-bg": `rgba(${color}, 0.25)` }, dark: { "--shell-content-bg": `rgba(${color}, 0.25)` } } };
+  try {
+    target.apply({ resolvedTheme, skin, backgroundMode: "host" });
+    expect(root.style.getPropertyValue("--main-chat-surface")).toBe(`rgba(${color}, 0.94)`);
+    expect(root.style.getPropertyValue("--page-bg")).toBe("transparent");
+    target.apply({ resolvedTheme, skin, backgroundMode: "host-fallback" });
+    expect(root.style.getPropertyValue("--main-chat-surface")).toBe(root.style.getPropertyValue("--bg-base"));
+    expect(root.style.getPropertyValue("--page-bg")).toBe("");
+  } finally {
+    target.dispose();
+  }
+  expect(root.style.getPropertyValue("--main-chat-surface")).toBe("");
+});

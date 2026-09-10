@@ -1,6 +1,24 @@
 /* ========================================
    Shell Brand & Shared Icon Buttons
    ======================================== */
+:global(.layout-desktop-fixed) {
+    position: relative;
+    isolation: isolate;
+}
+
+/* Both main-chat shells reserve grid column 2 for the entire conversation.
+   Keep the veil behind that column, independent of message length or scroll. */
+:global(.layout-desktop-fixed)::before {
+    content: "";
+    position: absolute;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--main-chat-surface);
+}
+
 :global(.brand-text) {
     display: flex;
     flex-direction: column;

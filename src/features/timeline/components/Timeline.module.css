@@ -683,3 +683,11 @@
     background: var(--reading-surface);
     border-radius: var(--control-radius-lg);
 }
+
+/* Main chat uses one continuous shell veil, including the empty-state title. */
+:global(.layout-desktop-fixed) :global(.conversation-stage-virtuoso) > div,
+:global(.layout-desktop-fixed) :global(.timeline-stack),
+:global(.layout-desktop-fixed) :global(.conversation-transition-skeleton),
+:global(.layout-desktop-fixed) :global(.timeline-empty) {
+    background: transparent;
+}
