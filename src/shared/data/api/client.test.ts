@@ -813,6 +813,16 @@ describe('data client requests', () => {
     expect(formData.get('file')).toBe(archive);
   });
 
+  it('uploads a ZIP without a key so Platform can identify a skill or package', async () => {
+    const archive = new File(['zip'], 'wecomcli-suite.zip', { type: 'application/zip' });
+    await importAdminSkill({ file: archive });
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/admin/skills/import');
+    const form = options.body as FormData;
+    expect(form.get('key')).toBeNull();
+    expect(form.get('file')).toBe(archive);
+  });
+
   it('imports an Agent ZIP without a client-supplied key and only sends overwrite when confirmed', async () => {
     const archive = new File(['zip'], 'portable-agent.zip', { type: 'application/zip' });
 

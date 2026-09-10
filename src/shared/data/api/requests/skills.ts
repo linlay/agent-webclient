@@ -4,6 +4,7 @@ import type {
 import type {
   AdminSkillSummary,
   AdminSkillDetailResponse,
+  AdminSkillImportResponse,
   AdminSkillCreateFileRequest,
   AdminSkillMutationResponse,
   AdminSkillMkdirRequest,
@@ -110,13 +111,13 @@ export function createAdminSkill(
 }
 
 export function importAdminSkill(params: {
-  key: string;
+  key?: string;
   file: File;
-}): Promise<ApiResponse<AdminSkillDetailResponse>> {
+}): Promise<ApiResponse<AdminSkillImportResponse>> {
   const form = new FormData();
-  form.append("key", params.key);
+  if (params.key?.trim()) form.append("key", params.key.trim());
   form.append("file", params.file);
-  return requestJson<AdminSkillDetailResponse>(dataEndpoints.adminSkillImport.path, {
+  return requestJson<AdminSkillImportResponse>(dataEndpoints.adminSkillImport.path, {
     method: "POST",
     body: form,
     jsonContentType: false,
