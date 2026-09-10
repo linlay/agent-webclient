@@ -49,21 +49,12 @@
 
 :global(.right-sidebar-resize-handle):hover::after,
 :global(.right-sidebar-resize-handle):focus-visible::after,
-:global(.right-sidebar-resizing) :global(.right-sidebar-resize-handle)::after {
+:global(.panel-resizing-horizontal) :global(.right-sidebar-resize-handle)::after {
     outline-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 :global(.right-sidebar-resize-handle):focus-visible {
     outline: none;
-}
-
-:global(.right-sidebar-resizing) {
-    cursor: col-resize;
-    user-select: none;
-}
-
-:global(.right-sidebar-resizing) * {
-    cursor: col-resize !important;
 }
 
 :global(.sidebar):global(.is-open) {

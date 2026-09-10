@@ -525,6 +525,25 @@ textarea {
     color: var(--accent);
 }
 
+/* Compat owner: usePanelResize drag state. Applied to <body> while a resize handle drag is active. */
+.panel-resizing-horizontal {
+    cursor: col-resize;
+    user-select: none;
+}
+
+.panel-resizing-horizontal * {
+    cursor: col-resize !important;
+}
+
+.panel-resizing-vertical {
+    cursor: row-resize;
+    user-select: none;
+}
+
+.panel-resizing-vertical * {
+    cursor: row-resize !important;
+}
+
 /* Compat owner: browser scrollbar pseudo-elements. Component-scoped scrollbars use Tailwind arbitrary variants. */
 ::-webkit-scrollbar {
     width: 4px;

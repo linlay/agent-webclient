@@ -27,6 +27,7 @@ import { useBTW } from "@/features/btw/components/BtwProvider";
 import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
+import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
@@ -244,6 +245,22 @@ export const RightSidebar: React.FC = () => {
     return nextWidth;
   }, []);
 
+  const resizeStartWidthRef = React.useRef(sidebarWidth);
+  const { handlePointerDown: handleResizePointerDown } = usePanelResize({
+    axis: "horizontal",
+    invert: true,
+    onResizeStart: () => {
+      resizeStartWidthRef.current = sidebarWidth;
+    },
+    onResize: (delta) =>
+      updateSidebarWidth(resizeStartWidthRef.current + delta),
+    onResizeEnd: (delta) => {
+      persistRightSidebarWidth(
+        updateSidebarWidth(resizeStartWidthRef.current + delta),
+      );
+    },
+  });
+
   const handleCloseTab = React.useCallback(
     (key: React.Key) => {
       if (key === "btw") {
@@ -343,38 +360,6 @@ export const RightSidebar: React.FC = () => {
       })();
     },
     [state.chatId, teamChat, t],
-  );
-
-  const handleResizePointerDown = React.useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
-      if (event.button !== 0) return;
-
-      event.preventDefault();
-      const handle = event.currentTarget;
-      handle.setPointerCapture(event.pointerId);
-      document.body.classList.add("right-sidebar-resizing");
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        updateSidebarWidth(window.innerWidth - moveEvent.clientX);
-      };
-
-      const finishResize = (upEvent: PointerEvent) => {
-        handle.releasePointerCapture(upEvent.pointerId);
-        document.body.classList.remove("right-sidebar-resizing");
-        const nextWidth = updateSidebarWidth(
-          window.innerWidth - upEvent.clientX,
-        );
-        persistRightSidebarWidth(nextWidth);
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", finishResize);
-        window.removeEventListener("pointercancel", finishResize);
-      };
-
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", finishResize);
-      window.addEventListener("pointercancel", finishResize);
-    },
-    [updateSidebarWidth],
   );
 
   const handleResizeKeyDown = React.useCallback(
