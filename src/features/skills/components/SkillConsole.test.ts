@@ -125,6 +125,7 @@ jest.mock("antd", () => {
       : null;
   Modal.confirm = jest.fn();
   return {
+    App: { useApp: () => ({ modal: jest.requireMock("antd").Modal }) },
     Input,
     Spin: ({ children }: { children: React.ReactNode }) =>
       ReactMod.createElement(React.Fragment, null, children),

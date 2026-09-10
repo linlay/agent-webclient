@@ -199,9 +199,9 @@ export function isAgentRouteAuthenticationError(error: unknown): boolean {
 const NEW_CHAT_CREATED_EVENT = "agent:new-chat-created";
 
 const AGENT_ROUTE_LOADING_PAGE_CLASS =
-  "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
+  "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-[var(--shell-page-bg)] tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_OVERLAY_CLASS =
-  "agent-route-loading-page agent-route-loading-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
+  "agent-route-loading-page agent-route-loading-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:bg-[var(--shell-page-bg)] tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_CARD_CLASS =
   "agent-route-loading-card tw:inline-flex tw:min-w-[min(320px,100%)] tw:items-center tw:gap-3.5 tw:px-5 tw:py-[18px]";
 const AGENT_ROUTE_LOADING_SPINNER_CLASS =
@@ -209,7 +209,7 @@ const AGENT_ROUTE_LOADING_SPINNER_CLASS =
 const AGENT_ROUTE_LOADING_COPY_CLASS =
   "agent-route-loading-copy tw:flex tw:min-w-0 tw:flex-col tw:gap-1 tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-xs tw:[&_span]:text-ink-muted tw:[&_strong]:text-sm tw:[&_strong]:font-bold";
 const AGENT_ROUTE_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden";
+  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden";
 const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",

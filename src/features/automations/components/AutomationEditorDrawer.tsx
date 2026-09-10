@@ -1,5 +1,6 @@
+import { App as AntdApp } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { Drawer, Modal } from "antd";
+import { Drawer } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Team } from "@/features/workers/lib/workerState";
 import { AutomationEditor } from "@/features/automations/components/AutomationEditor";
@@ -29,6 +30,7 @@ export function AutomationEditorDrawer({
   onSaved,
   onDeleted,
 }: AutomationEditorDrawerProps) {
+  const { modal } = AntdApp.useApp();
   const { t } = useI18n();
   const [dirty, setDirty] = useState(false);
 
@@ -41,7 +43,7 @@ export function AutomationEditorDrawer({
       onClose();
       return;
     }
-    Modal.confirm({
+    modal.confirm({
       title: t("automationHistory.editor.discardTitle"),
       content: t("automationHistory.editor.discardContent"),
       okText: t("automationHistory.action.discard"),

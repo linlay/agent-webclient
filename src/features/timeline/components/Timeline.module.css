@@ -675,3 +675,11 @@
         transform: translateY(0);
     }
 }
+
+:global(.conversation-stage-virtuoso) > div {
+    background: var(--reading-surface);
+}
+:global(.timeline-stack), :global(.conversation-transition-skeleton), :global(.timeline-empty) {
+    background: var(--reading-surface);
+    border-radius: var(--control-radius-lg);
+}

@@ -6,7 +6,7 @@ import {
 import { Modal, Drawer } from "antd";
 import { MaterialIcon } from "@/shared/icons/material";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/app/state/constants";
-import type { ThemeMode } from "@/shared/styles/theme";
+import { AppearanceSettings } from "@/features/appearance/components/AppearanceSettings";
 import type { VoiceClientGateConfig } from "@/features/voice/lib/voiceState";
 import { getCurrentAccessToken, setAccessToken } from "@/shared/data";
 import { isAppMode, isDesktopAppMode } from "@/shared/utils/routing";
@@ -137,13 +137,6 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
     );
   };
 
-  const handleThemeChange = useCallback(
-    (themeMode: ThemeMode) => {
-      dispatch({ type: "SET_THEME_MODE", themeMode });
-    },
-    [dispatch],
-  );
-
   const handleLanguageChange = useCallback(
     (nextLocale: Locale) => {
       setLocale(nextLocale);
@@ -232,40 +225,7 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
             : "settings-preferences-grid"
         }
       >
-        {!isDesktopApp && (
-          <div className="field-group">
-            <label>{t("settings.theme.label")}</label>
-            <div
-              className="settings-segmented"
-              role="tablist"
-              aria-label={t("settings.theme.label")}
-            >
-              <UiButton
-                variant="ghost"
-                size="sm"
-                className={`settings-segmented-btn ${state.themeMode === "light" ? "is-active" : ""}`}
-                role="tab"
-                aria-selected={state.themeMode === "light"}
-                active={state.themeMode === "light"}
-                onClick={() => handleThemeChange("light")}
-              >
-                {t("settings.theme.light")}
-              </UiButton>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                className={`settings-segmented-btn ${state.themeMode === "dark" ? "is-active" : ""}`}
-                role="tab"
-                aria-selected={state.themeMode === "dark"}
-                active={state.themeMode === "dark"}
-                onClick={() => handleThemeChange("dark")}
-              >
-                {t("settings.theme.dark")}
-              </UiButton>
-            </div>
-            <p className="settings-hint">{t("settings.theme.hint")}</p>
-          </div>
-        )}
+        {!isDesktopApp && <AppearanceSettings />}
 
         <div className="field-group">
           <label>{t("settings.language.label")}</label>

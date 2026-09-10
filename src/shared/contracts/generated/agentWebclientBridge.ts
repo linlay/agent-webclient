@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:2a14ee41c46705c4adf943c9625f6b9935a8d87f85ea9d77ac17496347880da7
+// sha256:05c7cd930a561526ea37dd5b8ae423b74e4a87d08d6198ba2c311507bdf003dc
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -15,6 +15,91 @@ export const AGENT_WEBCLIENT_PLATFORM_FRAME_PORT_GLOBAL =
   "__AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_BRIDGE_GLOBAL =
   "__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__" as const;
+// Appearance has its own version and revision; it is never a navigation or
+// Platform Frame Port operation. No wallpaper bytes or filesystem paths cross it.
+export const AGENT_WEBCLIENT_APPEARANCE_GLOBAL = "__AGENT_WEBCLIENT_APPEARANCE__" as const;
+export const AGENT_WEBCLIENT_APPEARANCE_REQUEST_CHANNEL = "desktop:service-webview:appearance:request" as const;
+export const AGENT_WEBCLIENT_APPEARANCE_SNAPSHOT_CHANNEL = "desktop:service-webview:appearance:snapshot" as const;
+export const AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS = [
+  "--bg-base", "--surface", "--surface-strong", "--surface-soft", "--surface-sidebar",
+  "--ink", "--ink-soft", "--ink-muted", "--line", "--line-strong",
+  "--accent", "--accent-strong", "--accent-soft", "--accent-on",
+  "--control-button-bg", "--control-select-bg", "--control-input-bg", "--control-border",
+  "--control-hover-bg", "--control-active-bg", "--control-disabled-bg",
+  "--control-icon-color", "--control-icon-hover-color", "--control-primary-bg",
+  "--control-primary-hover", "--control-primary-active", "--control-popover-bg",
+  "--control-tab-strip-bg", "--control-tab-active-bg", "--control-tab-hover-bg",
+  "--nav-hover-bg", "--nav-selected-bg", "--nav-selected-text", "--nav-accent-selected-bg",
+  "--desktop-overlay-panel-bg", "--sidebar-operation-menu-bg", "--sidebar-operation-menu-border",
+  "--modal-mask-bg", "--shell-sidebar-bg", "--shell-content-bg", "--shell-titlebar-bg", "--shell-background-tint"
+] as const;
+export const AGENT_WEBCLIENT_APPEARANCE_RADIUS_TOKENS = [
+  "--control-radius", "--control-radius-sm", "--control-radius-lg", "--overlay-radius"
+] as const;
+export type AgentWebclientAppearanceToken =
+  | typeof AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS[number]
+  | typeof AGENT_WEBCLIENT_APPEARANCE_RADIUS_TOKENS[number]
+  | "--control-disabled-opacity";
+export type AgentWebclientAppearanceTokens = Partial<Record<AgentWebclientAppearanceToken, string>>;
+export type AgentWebclientAppearanceSnapshot = {
+  schemaVersion: 1;
+  revision: number;
+  resolvedTheme: "light" | "dark";
+  skinId: string;
+  tokens: AgentWebclientAppearanceTokens;
+  background: { mode: "host" | "opaque" };
+};
+export type AgentWebclientAppearanceBridge = {
+  readonly version: 1;
+  getSnapshot(): Promise<AgentWebclientAppearanceSnapshot | null>;
+  subscribe(listener: (snapshot: AgentWebclientAppearanceSnapshot | null) => void): () => void;
+};
+
+function appearanceRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+// Shared by the ZIP manifest parser and live bridge. Derived values such as
+// --accent-rgb are owned by each renderer and are intentionally not transmitted.
+export function parseAgentWebclientAppearanceTokens(value: unknown): AgentWebclientAppearanceTokens | null {
+  if (!appearanceRecord(value) || Object.keys(value).length > 47) return null;
+  const tokens: AgentWebclientAppearanceTokens = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw !== "string" || raw.length > 64 || /[\x00-\x1f\x7f]/.test(raw)) return null;
+    const color = (AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS as readonly string[]).includes(key);
+    if (color) {
+      const text = raw.trim();
+      if (text !== "transparent" && !/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.test(text)) {
+        const match = /^(rgb|rgba)\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d{1,4}))?\s*\)$/.exec(text);
+        if (!match || [match[2], match[3], match[4]].some((part) => Number(part) > 255) ||
+          (match[1] === "rgba") !== (match[5] !== undefined)) return null;
+      }
+      tokens[key as AgentWebclientAppearanceToken] = text;
+    } else if ((AGENT_WEBCLIENT_APPEARANCE_RADIUS_TOKENS as readonly string[]).includes(key)) {
+      if (!/^\d{1,2}px$/.test(raw) || Number.parseInt(raw) > 32) return null;
+      tokens[key as AgentWebclientAppearanceToken] = raw;
+    } else if (key === "--control-disabled-opacity") {
+      if (!/^(0|1|0?\.\d{1,3})$/.test(raw)) return null;
+      tokens[key] = raw;
+    } else return null;
+  }
+  return tokens;
+}
+
+export function parseAgentWebclientAppearanceSnapshot(value: unknown): AgentWebclientAppearanceSnapshot | null {
+  if (!appearanceRecord(value) || value.schemaVersion !== 1 ||
+    !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 ||
+    (value.resolvedTheme !== "light" && value.resolvedTheme !== "dark") ||
+    typeof value.skinId !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,95}$/.test(value.skinId) ||
+    Object.keys(value).some((key) => !["schemaVersion", "revision", "resolvedTheme", "skinId", "tokens", "background"].includes(key)) ||
+    !appearanceRecord(value.background) || Object.keys(value.background).length !== 1 ||
+    (value.background.mode !== "host" && value.background.mode !== "opaque")) return null;
+  const tokens = parseAgentWebclientAppearanceTokens(value.tokens);
+  return tokens ? {
+    schemaVersion: 1, revision: Number(value.revision), resolvedTheme: value.resolvedTheme,
+    skinId: value.skinId, tokens, background: { mode: value.background.mode }
+  } : null;
+}
 export const AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION =
   "workPanel.resource.downloadCurrent" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION = 1 as const;

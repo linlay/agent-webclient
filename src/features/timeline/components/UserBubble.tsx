@@ -12,17 +12,17 @@ interface UserBubbleProps {
 const USER_BUBBLE_COLLAPSED_MAX_HEIGHT = 300;
 
 const USER_BUBBLE_CLASS_NAME =
-	"timeline-user-bubble tw:rounded-[14px_14px_4px_14px] tw:bg-accent tw:px-3.5 tw:py-2.5 tw:text-[#f8fcff] tw:shadow-[0_6px_16px_rgba(38,99,235,0.18)] tw:[html[data-theme=dark]_&]:border tw:[html[data-theme=dark]_&]:border-[color-mix(in_srgb,var(--accent-electric)_60%,transparent)] tw:[html[data-theme=dark]_&]:bg-[linear-gradient(140deg,#2558cf,#1d4ed8)] tw:[html[data-theme=dark]_&]:shadow-[0_6px_18px_rgba(8,24,56,0.28)]";
+	"timeline-user-bubble tw:rounded-[14px_14px_4px_14px] tw:bg-accent tw:px-3.5 tw:py-2.5 tw:text-[var(--accent-on)] tw:shadow-[0_6px_16px_rgba(38,99,235,0.18)] tw:[html[data-theme=dark]_&]:border tw:[html[data-theme=dark]_&]:border-[color-mix(in_srgb,var(--accent-electric)_60%,transparent)]  tw:[html[data-theme=dark]_&]:shadow-[0_6px_18px_rgba(8,24,56,0.28)]";
 const USER_BUBBLE_COMMAND_CLASS_NAME =
 	"is-command tw:w-fit tw:max-w-[min(100%,720px)]";
 const USER_BUBBLE_TEXT_CLASS_NAME =
-	"timeline-text tw:whitespace-pre-wrap tw:break-all tw:text-[14px] tw:leading-[1.58] tw:text-[#f8fcff]";
+	"timeline-text tw:whitespace-pre-wrap tw:break-all tw:text-[14px] tw:leading-[1.58] tw:text-[var(--accent-on)]";
 const USER_BUBBLE_TEXT_CLAMP_CLASS_NAME =
 	"timeline-text-clamp tw:relative tw:max-h-[300px] tw:overflow-hidden";
 const USER_BUBBLE_TEXT_FADE_CLASS_NAME =
-	"timeline-text-fade tw:pointer-events-none tw:absolute tw:inset-x-0 tw:bottom-0 tw:h-12 tw:bg-[linear-gradient(to_bottom,transparent,var(--accent))] tw:[html[data-theme=dark]_&]:bg-[linear-gradient(to_bottom,transparent,#1d4ed8)]";
+	"timeline-text-fade tw:pointer-events-none tw:absolute tw:inset-x-0 tw:bottom-0 tw:h-12 tw:bg-[linear-gradient(to_bottom,transparent,var(--accent))] ";
 const USER_BUBBLE_TOGGLE_CLASS_NAME =
-	"timeline-user-bubble-toggle tw:mt-1 tw:block tw:ml-auto tw:w-fit tw:cursor-pointer tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0 tw:text-xs tw:font-medium tw:text-[#f8fcff] tw:opacity-80 tw:shadow-none tw:hover:opacity-100";
+	"timeline-user-bubble-toggle tw:mt-1 tw:block tw:ml-auto tw:w-fit tw:cursor-pointer tw:rounded-full tw:border-0 tw:bg-transparent tw:p-0 tw:text-xs tw:font-medium tw:text-[var(--accent-on)] tw:opacity-80 tw:shadow-none tw:hover:opacity-100";
 
 export const UserBubble: React.FC<UserBubbleProps> = ({
 	text,

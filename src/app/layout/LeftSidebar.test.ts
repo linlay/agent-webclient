@@ -231,6 +231,7 @@ jest.mock("antd", () => {
     React.createElement(React.Fragment, null, children);
 
   return {
+    App: { useApp: () => ({ modal: jest.requireMock("antd").Modal }) },
     Button,
     Badge,
     Checkbox,

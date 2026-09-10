@@ -81,3 +81,7 @@ Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraf
 - `../src/features/transport/lib/desktopPlatformFrameClientRegistry.ts`
 - `../src/features/transport/lib/platformFrameClient.ts`
 - `../src/features/transport/lib/desktopWorkPanelTransport.ts`
+
+## 外观快照 v1
+
+固定只读 `__AGENT_WEBCLIENT_APPEARANCE__` 提供 getSnapshot/subscribe，复用 canonical mirror 的受控解析器；版本与 routeRevision、WorkPanel v6、Frame Port v2 分离。`DESKTOP_APP=true` 只决定背景归属，仍需有效 `background.mode=host` 才启用透明；失效或旧宿主保留明暗实色回退。不分发壁纸、不操作业务导航或 transport。宿主先确认 guest 消费桥，再停止旧 URL 主题更新；最新快照优先于 URL。契约、竞态和双方发布检查见[皮肤与背景协作](82-界面基础-皮肤与背景协作.md)。

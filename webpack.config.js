@@ -3,6 +3,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const ts = require('typescript');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
@@ -212,6 +213,10 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './public/index.html',
         title: 'AGENT Webclient',
+        templateParameters: () => ({
+          appearanceBootstrap: `(() => { const exports = {}; ${ts.transpileModule(fs.readFileSync(path.resolve(__dirname, 'src/shared/styles/appearance/bootstrap.ts'), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS } }).outputText} exports.applyBootAppearance(); })();`,
+          appearanceTokens: fs.readFileSync(path.resolve(__dirname, 'src/shared/styles/appearance/tokens.css'), 'utf8'),
+        }),
       }),
       ...(isProd
         ? [

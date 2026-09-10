@@ -38,6 +38,7 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 - `docs/`：中文专题文档，按两位编号和模块分段组织，覆盖前端协议消费、运行态 UI、管理台、页面能力与部署专题
 - `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`；`app/pages` 只保留路由参数适配、页面 `<main>` 和 feature 装配，不实现 CRUD、表单、数据加载或领域校验
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
+- `src/features/appearance/`：主题偏好、皮肤资源、文档语义 token、Ant Design 配色与独立 Desktop appearance v1 消费；`AppState.themeMode` 只投影最终明暗，宿主临时外观不持久化
 - `src/features/agents/`：Agent 管理台、创建、CRUD、排序、ZIP 导入、专属 Skill、模型/工具配置、源码编辑和项目创建能力
 - `src/features/model-config/`：Composer 与 Agent 管理台共用的模型菜单 presenter，以及模型、reasoning、service tier 的 React-free 归一化逻辑
 - `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
@@ -181,6 +182,7 @@ Git 提交与推送规范：
 - [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)
 - [80-界面基础-样式主题基础UI与国际化](docs/80-界面基础-样式主题基础UI与国际化.md)
 - [81-宿主集成-Desktop宿主桥接](docs/81-宿主集成-Desktop宿主桥接.md)
+- [82-界面基础-皮肤与背景协作](docs/82-界面基础-皮肤与背景协作.md)
 - [90-交付运维-开发代理与Desktop托管](docs/90-交付运维-开发代理与生产反向代理.md)
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)

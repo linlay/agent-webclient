@@ -105,7 +105,7 @@ describe("theme helpers", () => {
 		expect(readThemeModeFromUrl("?theme=system&hostTheme=dark")).toBe("dark");
 	});
 
-	it("syncs the resolved URL theme to storage and the document", () => {
+	it("syncs an explicitly selected local theme to storage and the document", () => {
 		const stored = new Map<string, string>([[THEME_STORAGE_KEY, "light"]]);
 		const documentElement = {
 			theme: "light",
@@ -132,9 +132,7 @@ describe("theme helpers", () => {
 			value: { documentElement },
 		});
 
-		const themeMode = syncThemeMode(
-			resolveInitialThemeMode("?theme=dark&hostTheme=light"),
-		);
+		const themeMode = syncThemeMode("dark");
 
 		expect(themeMode).toBe("dark");
 		expect(stored.get(THEME_STORAGE_KEY)).toBe("dark");
