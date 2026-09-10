@@ -63,7 +63,8 @@ const featureGraph = new Map(featureNames.map((name) => [name, new Set()]));
 
 for (const feature of featureNames) {
   for (const file of walk(path.join(featuresRoot, feature))) {
-    const relativeFile = path.relative(repoRoot, file);
+    const relativeFile = path.relative(repoRoot, file).replace(/\\/g, "/");
+    const normalizedFile = file.replace(/\\/g, "/");
     const source = fs.readFileSync(file, "utf8");
     const imports = readImports(source);
     if (feature === "workers") {
@@ -85,7 +86,7 @@ for (const feature of featureNames) {
     }
     if (
       !isTestFile(file) &&
-      /\/features\/[^/]+\/lib\/[^/]+\.ts$/.test(file) &&
+      /\/features\/[^/]+\/lib\/[^/]+\.ts$/.test(normalizedFile) &&
       /(?:from\s+["']react["']|require\s*\(\s*["']react["']\s*\)|react\/jsx-runtime)/.test(source)
     ) {
       violations.push(`${relativeFile}: feature lib/*.ts must stay React-free; move presenters to components/*.tsx`);
@@ -229,7 +230,7 @@ const desktopForbiddenTransportPaths = [
   "@/features/transport/lib/standaloneWsClient",
 ];
 for (const file of walk(sourceRoot).filter((candidate) => !isTestFile(candidate))) {
-  const relativeFile = path.relative(repoRoot, file);
+  const relativeFile = path.relative(repoRoot, file).replace(/\\/g, "/");
   const isTransport = relativeFile.startsWith("src/features/transport/");
   const isDesktopTransport = isTransport && /^desktop[^/]*\.(?:ts|tsx)$/iu.test(path.basename(file));
   for (const importedPath of readImports(fs.readFileSync(file, "utf8"))) {
