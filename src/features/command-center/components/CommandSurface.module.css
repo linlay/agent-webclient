@@ -18,6 +18,8 @@
     gap: 6px;
     min-width: 0;
     line-height: 1.25;
+    height: 45px;
+    padding: 0 10px;
 }
 
 :global(.command-modal-title)>span {
@@ -81,6 +83,10 @@
     flex: 0 0 auto;
 }
 
+:global(.modal-title-bar-drawer) {
+    padding-right: 40px;
+}
+
 :global(.modal-title-bar-drawer) :global(.modal-title-bar-title) {
     margin-left: 2px;
 }
@@ -88,7 +94,6 @@
 :global(.command-modal-section) {
     display: flex;
     flex-direction: column;
-    gap: 10px;
     height: 100%;
 }
 
@@ -114,7 +119,6 @@
     display: flex;
     flex-direction: column;
     overflow: auto;
-    padding-right: 4px;
     gap: 2px;
 }
 
@@ -162,10 +166,10 @@
     color: var(--accent-electric) !important;
 }
 
-:global(.command-list-item) {
+:global(.command-list-item.ui-list-item) {
     width: 100%;
     border: 0;
-    border-radius: 14px;
+    border-radius: 0;
     padding: 8px 12px;
     text-align: left;
     position: relative;
@@ -226,33 +230,20 @@
 }
 
 :global(.command-switch-toolbar) {
-    display: grid;
-    gap: 12px;
-}
-
-:global(.command-scope-group) {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
+    padding: 0 2px 10px 10px;
 }
 
-:global(.command-scope-btn) {
-    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
-    border-radius: 999px;
-    padding: 7px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--ink-muted);
-    background: color-mix(in srgb, var(--bg-input) 72%, var(--bg-elev-2));
-    box-shadow: none;
+:global(.command-switch-toolbar) :global(.ui-input) {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
-:global(.command-scope-btn):global(.is-active) {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 52%,
-            var(--line-soft));
-    color: var(--accent-electric-strong);
-    background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+:global(.command-scope-filter.ui-btn) {
+    flex: 0 0 auto;
+    padding: 6px;
 }
 
 :global(.command-switch-compact-row) {
@@ -267,18 +258,30 @@
     flex: 0 0 auto;
 }
 
-:global(.command-switch-compact-main) {
+:global(.command-switch-compact-name) {
     min-width: 0;
     flex: 1 1 auto;
-    display: grid;
-    gap: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: bold;
 }
 
-:global(.command-switch-compact) :global(.command-list-head) {
-    justify-content: flex-start;
+:global(.command-switch-compact-role) {
+    flex: 0 0 auto;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--ink-muted);
 }
 
-:global(.command-switch-compact) :global(.command-list-head) strong,
+:global(.command-switch-compact-row)> :global(.ui-tag) {
+    flex: 0 0 auto;
+}
+
 :global(.history-list-title) {
     min-width: 0;
     overflow: hidden;
