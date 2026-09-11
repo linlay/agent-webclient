@@ -44,27 +44,74 @@
   white-space: nowrap;
 }
 
-.status, .duration {
+.duration {
   flex: none;
   font-size: 11px;
   color: var(--ink-muted);
   white-space: nowrap;
 }
 
+.status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+}
+
 .status[data-status="running"], .status[data-status="starting"] {
   color: var(--accent-electric-strong);
+  background: color-mix(in srgb, var(--accent-electric) 15%, transparent);
 }
 
 .status[data-status="completed"] {
   color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 15%, transparent);
 }
 
 .status[data-status="error"] {
   color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.status[data-status="cancelled"] {
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
 }
 
 .status[data-status="question"], .status[data-status="approval"], .status[data-status="form"], .status[data-status="plan"] {
   color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.statusDot[data-status="running"], .statusDot[data-status="starting"] {
+  animation: statusDotPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes statusDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
 }
 
 .details {
@@ -115,40 +162,80 @@
   color: var(--ink-muted);
 }
 
-.context > span {
+.contextHead {
   display: flex;
   justify-content: space-between;
-  gap: 6px;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.contextValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .percent {
+  flex: none;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-muted);
 }
 
-.context progress {
+.percent[data-level="ok"] {
+  color: var(--ok);
+}
+
+.percent[data-level="warn"] {
+  color: var(--warn);
+}
+
+.percent[data-level="danger"] {
+  color: var(--danger);
+}
+
+.progress {
   display: block;
   appearance: none;
   width: 100%;
-  height: 3px;
-  margin-top: 5px;
+  height: 4px;
+  margin-top: 6px;
   border: 0;
-  border-radius: 2px;
+  border-radius: 999px;
   overflow: hidden;
-  background: var(--line-soft);
+  background: color-mix(in srgb, var(--ink-muted) 18%, transparent);
 }
 
-.context progress::-webkit-progress-bar {
-  background: var(--line-soft);
+.progress::-webkit-progress-bar {
+  background: transparent;
 }
 
-.context progress::-webkit-progress-value {
-  background: var(--accent-electric);
-  border-radius: 2px;
+.progress::-webkit-progress-value {
+  background: var(--ok);
+  border-radius: 999px;
+  transition: width 0.3s ease;
 }
 
-.context progress::-moz-progress-bar {
-  background: var(--accent-electric);
-  border-radius: 2px;
+.progress[data-level="warn"]::-webkit-progress-value {
+  background: var(--warn);
+}
+
+.progress[data-level="danger"]::-webkit-progress-value {
+  background: var(--danger);
+}
+
+.progress::-moz-progress-bar {
+  background: var(--ok);
+  border-radius: 999px;
+}
+
+.progress[data-level="warn"]::-moz-progress-bar {
+  background: var(--warn);
+}
+
+.progress[data-level="danger"]::-moz-progress-bar {
+  background: var(--danger);
 }
 
 .identifiers {
@@ -156,6 +243,8 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
 }
 
 .identifier {
