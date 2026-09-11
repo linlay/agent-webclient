@@ -1,18 +1,21 @@
 import React from "react";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useAppState } from "@/app/state/AppContext";
-import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
-import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
+import { formatAttachmentSize, getAttachmentKind } from "@/features/artifacts/lib/attachmentUtils";
+import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { FileDiffView } from "@/features/project/components/FileDiffView";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
-import { Collapse, Flex, Typography } from "antd";
+import { Collapse, Flex, Tooltip, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
 import { TextCountUp } from "@/shared/components/text-count-up";
 import { OverviewRunInfoSection } from "./OverviewRunInfo";
-import { buildOverviewRunInfo, type OverviewRunInfo } from "@/features/overview/lib/overviewRunInfo";
+import {
+  buildOverviewRunInfo,
+  type OverviewRunInfo,
+} from "@/features/overview/lib/overviewRunInfo";
 import {
   buildFileChangeAnimationSignatures,
   buildFileChangeKey,
@@ -21,12 +24,14 @@ import {
   buildOverviewFileChangeItems,
   resolveAnimatedFileChangePaths,
   toggleExpandedFileChangeKey,
+  type OverviewArtifactItem,
   type OverviewFileChangeItem,
 } from "@/features/overview/lib/overviewViewModel";
 import {
   useFileHistory,
   type FileHistoryCacheEntry,
 } from "@/features/overview/hooks/useFileHistory";
+import { UiButton } from "@/shared/ui/UiButton";
 
 export * from "@/features/overview/lib/overviewViewModel";
 export {
@@ -93,6 +98,15 @@ const PLANNING_ITEM_ICON_CLASS_NAME =
 const PLANNING_ITEM_TEXT_CLASS_NAME =
   "right-sidebar-planning-item-text tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[12px] tw:leading-[1.35] tw:text-ink-1";
 
+const PLANNING_ITEM_TIME_CLASS_NAME =
+  "right-sidebar-planning-item-time tw:flex-none tw:whitespace-nowrap tw:text-[10px] tw:leading-[1.2] tw:text-ink-muted";
+
+const PLANNING_SORT_BUTTON_CLASS_NAME =
+  "right-sidebar-planning-sort ui-icon-hover-24";
+
+const PLANNING_SORT_BUTTON_ICON_CLASS_NAME =
+  "right-sidebar-planning-sort-icon tw:text-[14px]";
+
 const TASK_LIST_CLASS_NAME =
   "right-sidebar-task-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:px-0";
 
@@ -109,10 +123,22 @@ const TASK_ITEM_RUNNING_CLASS_NAME =
   "tw:bg-[color-mix(in_srgb,var(--accent-soft)_30%,transparent)]";
 
 const ARTIFACT_DRAWER_LIST_CLASS_NAME =
-  "artifact-drawer-list right-sidebar-artifact-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:gap-2.5 tw:overflow-visible tw:px-[10px]";
+  "artifact-drawer-list right-sidebar-artifact-list tw:m-0 tw:flex tw:list-none tw:flex-col tw:overflow-visible tw:px-0";
 
-const ARTIFACT_DRAWER_ITEM_CLASS_NAME =
-  "artifact-drawer-item tw:min-w-0 tw:list-none tw:[&_.attachment-card-file-shell]:flex-nowrap";
+const ARTIFACT_ITEM_CLASS_NAME =
+  "right-sidebar-artifact-item tw:flex tw:w-full tw:min-w-0 tw:cursor-pointer tw:items-center tw:gap-2.5 tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-inherit tw:hover:bg-[var(--bg-hover)]";
+
+const ARTIFACT_ITEM_COPY_CLASS_NAME =
+  "right-sidebar-artifact-item-copy tw:flex tw:min-w-0 tw:flex-1 tw:flex-col tw:gap-0.5";
+
+const ARTIFACT_ITEM_NAME_CLASS_NAME =
+  "right-sidebar-artifact-item-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[12px] tw:leading-[1.35] tw:text-ink-1";
+
+const ARTIFACT_ITEM_SUBTITLE_CLASS_NAME =
+  "right-sidebar-artifact-item-subtitle tw:text-[10px] tw:leading-[1.2] tw:text-ink-muted";
+
+const ARTIFACT_ITEM_TIME_CLASS_NAME =
+  "right-sidebar-artifact-item-time tw:flex-none tw:self-start tw:whitespace-nowrap tw:text-[10px] tw:leading-[1.2] tw:text-ink-muted";
 
 function formatLineCount(value: number): string {
   return Math.max(0, value || 0).toLocaleString();
@@ -121,6 +147,22 @@ function formatLineCount(value: number): string {
 function displayFileName(filePath: string): string {
   const normalized = filePath.replace(/\\/g, "/");
   return normalized.split("/").pop() || filePath;
+}
+
+function formatOverviewTime(ts: number, nowDate: Date = new Date()): string {
+  if (!ts || ts <= 0) return "--";
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return "--";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const hhmm = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const isSameDay =
+    date.getFullYear() === nowDate.getFullYear() &&
+    date.getMonth() === nowDate.getMonth() &&
+    date.getDate() === nowDate.getDate();
+  if (isSameDay) return hhmm;
+  const md = `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const isSameYear = date.getFullYear() === nowDate.getFullYear();
+  return isSameYear ? `${md} ${hhmm}` : `${date.getFullYear()}-${md} ${hhmm}`;
 }
 
 function renderFileChangeStats(
@@ -133,8 +175,14 @@ function renderFileChangeStats(
   }
   return (
     <span key={options.animationKey} className={FILE_CHANGE_STATS_CLASS_NAME}>
-      <TextCountUp className={FILE_CHANGE_ADD_CLASS_NAME} text={"+" + formatLineCount(addedLines)} />
-      <TextCountUp className={FILE_CHANGE_DELETE_CLASS_NAME} text={"-" + formatLineCount(deletedLines)} />
+      <TextCountUp
+        className={FILE_CHANGE_ADD_CLASS_NAME}
+        text={"+" + formatLineCount(addedLines)}
+      />
+      <TextCountUp
+        className={FILE_CHANGE_DELETE_CLASS_NAME}
+        text={"-" + formatLineCount(deletedLines)}
+      />
     </span>
   );
 }
@@ -159,23 +207,33 @@ function renderFileHistoryPanel(
       </div>
     );
   }
-  return <FileDiffView filePath={filePath} original={entry.original} current={entry.current} />;
+  return (
+    <FileDiffView
+      filePath={filePath}
+      original={entry.original}
+      current={entry.current}
+    />
+  );
 }
 
 const OverviewSection: React.FC<{
   title: string;
   count: React.ReactNode;
+  action?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ title, count, children }) => {
+}> = ({ title, count, action, children }) => {
   return (
     <section className={RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME}>
       <div className={RIGHT_SIDEBAR_OVERVIEW_SECTION_HEAD_CLASS_NAME}>
         <h3 className={RIGHT_SIDEBAR_OVERVIEW_SECTION_TITLE_CLASS_NAME}>
           {title}
         </h3>
-        <div className={RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME}>
-          {count}
-        </div>
+        <Flex align="center" gap={6}>
+          {action}
+          <div className={RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME}>
+            {count}
+          </div>
+        </Flex>
       </div>
       {children}
     </section>
@@ -234,6 +292,14 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
     () => buildOverviewArtifactItems(state.artifacts),
     [state.artifacts],
   );
+  const [artifactSortDirection, setArtifactSortDirection] = React.useState<
+    "asc" | "desc"
+  >("desc");
+  const sortedArtifacts = React.useMemo(
+    () =>
+      artifactSortDirection === "asc" ? artifacts.slice().reverse() : artifacts,
+    [artifacts, artifactSortDirection],
+  );
   const fileChanges = React.useMemo(
     () => buildOverviewFileChangeItems(state.fileChanges),
     [state.fileChanges],
@@ -281,18 +347,48 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
         now,
         isConversationActive,
       ),
-    [state.plan, state.planRuntimeByTaskId, state.taskItemsById, now, t, isConversationActive],
+    [
+      state.plan,
+      state.planRuntimeByTaskId,
+      state.taskItemsById,
+      now,
+      t,
+      isConversationActive,
+    ],
   );
 
+  const [planningSortDirection, setPlanningSortDirection] = React.useState<
+    "asc" | "desc"
+  >("desc");
+
   const planningNodes = React.useMemo(() => {
-    const nodes: { id: string; planningId: string; text: string; status: string }[] = [];
+    const nodes: {
+      id: string;
+      planningId: string;
+      text: string;
+      status: string;
+      ts: number;
+    }[] = [];
     for (const [id, node] of state.timelineNodes) {
       if (node.kind === "planning" && node.text) {
-        nodes.push({ id, planningId: node.planningId || "", text: node.text, status: node.status || "" });
+        nodes.push({
+          id,
+          planningId: node.planningId || "",
+          text: node.text,
+          status: node.status || "",
+          ts: node.ts,
+        });
       }
     }
     return nodes;
   }, [state.timelineNodes]);
+
+  const sortedPlanningNodes = React.useMemo(() => {
+    return planningNodes.slice().sort((a, b) => {
+      const delta = a.ts - b.ts;
+      return planningSortDirection === "asc" ? delta : -delta;
+    });
+  }, [planningNodes, planningSortDirection]);
 
   const handlePlanningClick = React.useCallback(
     (planningId: string, nodeId: string, label: string) => {
@@ -307,6 +403,34 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
       });
     },
     [openTarget, state.chatId],
+  );
+
+  const handleArtifactClick = React.useCallback(
+    (item: OverviewArtifactItem) => {
+      const sourceUrl = String(item.artifact.url || "").trim();
+      if (!sourceUrl) return;
+      const resourceTarget = buildResourceViewerTarget({
+        name: item.artifact.name,
+        url: sourceUrl,
+        downloadUrl: sourceUrl,
+        sizeBytes: item.artifact.sizeBytes,
+        resourceType: item.artifact.type,
+        mimeType: item.artifact.mimeType,
+        contentKind:
+          getAttachmentKind(item.artifact) === "image" ? "image" : undefined,
+      });
+      if (!resourceTarget) return;
+      openTarget({
+        version: 1,
+        kind: "artifact",
+        artifactId: item.artifactId,
+        chatId: state.chatId,
+        agentKey,
+        resourceTarget,
+        toggle: false,
+      });
+    },
+    [openTarget, state.chatId, agentKey],
   );
 
   React.useEffect(() => {
@@ -424,7 +548,11 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
                   ),
                   children: (
                     <div onClick={(e) => e.stopPropagation()}>
-                      {renderFileHistoryPanel(item.filePath, fileHistoryCache[cacheKey], t)}
+                      {renderFileHistoryPanel(
+                        item.filePath,
+                        fileHistoryCache[cacheKey],
+                        t,
+                      )}
                     </div>
                   ),
                 };
@@ -441,6 +569,38 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
         <OverviewSection
           title={t("rightSidebar.overview.planning.title")}
           count={planningNodes.length}
+          action={
+            <Tooltip
+              title={
+                planningSortDirection === "asc"
+                  ? t("rightSidebar.overview.planning.sortAsc")
+                  : t("rightSidebar.overview.planning.sortDesc")
+              }
+            >
+              <UiButton
+                className={PLANNING_SORT_BUTTON_CLASS_NAME}
+                variant="ghost"
+                iconOnly
+                size="sm"
+                onClick={() =>
+                  setPlanningSortDirection((current) =>
+                    current === "asc" ? "desc" : "asc",
+                  )
+                }
+                aria-label={
+                  planningSortDirection === "asc"
+                    ? t("rightSidebar.overview.planning.sortAsc")
+                    : t("rightSidebar.overview.planning.sortDesc")
+                }
+              >
+                <MaterialIcon
+                  name="list_arrow"
+                  className={`${PLANNING_SORT_BUTTON_ICON_CLASS_NAME} ${planningSortDirection === "asc" ? "tw:scale-y-[-1]" : ""}`}
+                  aria-hidden="true"
+                />
+              </UiButton>
+            </Tooltip>
+          }
         >
           {planningNodes.length === 0 ? (
             <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
@@ -448,7 +608,7 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
             </div>
           ) : (
             <ul className={PLANNING_LIST_CLASS_NAME}>
-              {planningNodes.map((item) => {
+              {sortedPlanningNodes.map((item) => {
                 const previewText =
                   item.text.length > 120
                     ? item.text.slice(0, 120) + "..."
@@ -457,13 +617,16 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
                   item.text.length > 30
                     ? item.text.slice(0, 30) + "..."
                     : item.text;
+                const timeLabel = formatOverviewTime(item.ts);
                 return (
                   <li key={item.id}>
                     <button
                       type="button"
                       className={PLANNING_ITEM_CLASS_NAME}
                       disabled={!item.planningId}
-                      onClick={() => handlePlanningClick(item.planningId, item.id, tabLabel)}
+                      onClick={() =>
+                        handlePlanningClick(item.planningId, item.id, tabLabel)
+                      }
                     >
                       <MaterialIcon
                         name="assignment"
@@ -476,6 +639,11 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
                       >
                         {previewText}
                       </span>
+                      {timeLabel !== "--" ? (
+                        <span className={PLANNING_ITEM_TIME_CLASS_NAME}>
+                          {timeLabel}
+                        </span>
+                      ) : null}
                     </button>
                   </li>
                 );
@@ -544,6 +712,38 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
         <OverviewSection
           title={t("rightSidebar.overview.artifacts.title")}
           count={artifacts.length}
+          action={
+            <Tooltip
+              title={
+                artifactSortDirection === "asc"
+                  ? t("rightSidebar.overview.artifacts.sortAsc")
+                  : t("rightSidebar.overview.artifacts.sortDesc")
+              }
+            >
+              <UiButton
+                className={PLANNING_SORT_BUTTON_CLASS_NAME}
+                variant="ghost"
+                iconOnly
+                size="sm"
+                onClick={() =>
+                  setArtifactSortDirection((current) =>
+                    current === "asc" ? "desc" : "asc",
+                  )
+                }
+                aria-label={
+                  artifactSortDirection === "asc"
+                    ? t("rightSidebar.overview.artifacts.sortAsc")
+                    : t("rightSidebar.overview.artifacts.sortDesc")
+                }
+              >
+                <MaterialIcon
+                  name="list_arrow"
+                  className={`${PLANNING_SORT_BUTTON_ICON_CLASS_NAME} ${artifactSortDirection === "asc" ? "tw:scale-y-[-1]" : ""}`}
+                  aria-hidden="true"
+                />
+              </UiButton>
+            </Tooltip>
+          }
         >
           {artifacts.length === 0 ? (
             <div className={RIGHT_SIDEBAR_EMPTY_CLASS_NAME}>
@@ -551,24 +751,39 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
             </div>
           ) : (
             <ul className={ARTIFACT_DRAWER_LIST_CLASS_NAME}>
-              {artifacts.map((item) => (
-                <li
-                  key={item.artifactId}
-                  className={ARTIFACT_DRAWER_ITEM_CLASS_NAME}
-                >
-                  <AttachmentCard
-                    attachment={item.artifact}
-                    artifactId={item.artifactId}
-                    variant="composer"
-                    displayMode="file"
-                    density="compact"
-                    subtitle={formatAttachmentSize(item.artifact.sizeBytes)}
-                    activateMode="alwaysOpen"
-                    surfaceContext={{ chatId: state.chatId, agentKey, teamChat }}
-                    style={{ width: "100%" }}
-                  />
-                </li>
-              ))}
+              {sortedArtifacts.map((item) => {
+                const timeLabel = formatOverviewTime(item.timestamp);
+                const sizeLabel = formatAttachmentSize(item.artifact.sizeBytes);
+                return (
+                  <li key={item.artifactId}>
+                    <button
+                      type="button"
+                      className={ARTIFACT_ITEM_CLASS_NAME}
+                      onClick={() => handleArtifactClick(item)}
+                    >
+                      <FileIcon filename={item.artifact.name} size={16} />
+                      <span className={ARTIFACT_ITEM_COPY_CLASS_NAME}>
+                        <span
+                          className={ARTIFACT_ITEM_NAME_CLASS_NAME}
+                          title={item.artifact.name}
+                        >
+                          {item.artifact.name}
+                        </span>
+                        {sizeLabel ? (
+                          <span className={ARTIFACT_ITEM_SUBTITLE_CLASS_NAME}>
+                            {sizeLabel}
+                          </span>
+                        ) : null}
+                      </span>
+                      {timeLabel !== "--" ? (
+                        <span className={ARTIFACT_ITEM_TIME_CLASS_NAME}>
+                          {timeLabel}
+                        </span>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </OverviewSection>
@@ -601,18 +816,24 @@ export const OverviewContent: React.FC = () => {
   );
   const isCoder = React.useMemo(() => {
     if (!currentWorker || currentWorker.type !== "agent") return false;
-    return String(
-      (currentWorker.raw as Record<string, unknown> | null)?.["mode"] || "",
-    ).toUpperCase() === "CODER";
+    return (
+      String(
+        (currentWorker.raw as Record<string, unknown> | null)?.["mode"] || "",
+      ).toUpperCase() === "CODER"
+    );
   }, [currentWorker]);
   const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
-  const runInfo = React.useMemo(() => buildOverviewRunInfo({
-    ...state,
-    chat: currentChat,
-  }), [state, currentChat]);
+  const runInfo = React.useMemo(
+    () =>
+      buildOverviewRunInfo({
+        ...state,
+        chat: currentChat,
+      }),
+    [state, currentChat],
+  );
   const teamChat = Boolean(
     currentChat?.owner?.kind === "orchestrated-team" ||
-      String(currentChat?.teamId || "").trim(),
+    String(currentChat?.teamId || "").trim(),
   );
   return (
     <OverviewContentView
