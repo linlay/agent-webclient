@@ -19,6 +19,17 @@
     background: var(--main-chat-surface);
 }
 
+/* Existing empty-state layout ends when the conversation receives its chat ID. */
+:global(.layout-desktop-fixed):global(.timeline-empty-layout)::before {
+    background: var(--new-chat-surface);
+}
+
+/* Fade only the landing cards' paint, never their text or child controls. */
+:global(.layout-desktop-fixed):global(.timeline-empty-layout) :global(.composer-pill),
+:global(.layout-desktop-fixed):global(.timeline-empty-layout) :global(.composer-wonder-card) {
+    background: var(--new-chat-input-surface);
+}
+
 :global(.brand-text) {
     display: flex;
     flex-direction: column;

@@ -33,14 +33,17 @@ it.each(["light", "dark"] as const)("keeps a continuous faint host background in
   try {
     target.apply({ resolvedTheme, skin, backgroundMode: "host" });
     expect(root.style.getPropertyValue("--main-chat-surface")).toBe(`rgba(${color}, 0.94)`);
+    expect(root.style.getPropertyValue("--new-chat-surface")).toBe(`rgba(${color}, 0.06)`);
     expect(root.style.getPropertyValue("--page-bg")).toBe("transparent");
     target.apply({ resolvedTheme, skin, backgroundMode: "host-fallback" });
     expect(root.style.getPropertyValue("--main-chat-surface")).toBe(root.style.getPropertyValue("--bg-base"));
+    expect(root.style.getPropertyValue("--new-chat-surface")).toBe(root.style.getPropertyValue("--bg-base"));
     expect(root.style.getPropertyValue("--page-bg")).toBe("");
   } finally {
     target.dispose();
   }
   expect(root.style.getPropertyValue("--main-chat-surface")).toBe("");
+  expect(root.style.getPropertyValue("--new-chat-surface")).toBe("");
 });
 
 it.each(["host", "standalone"] as const)("reveals pictures behind management pages even with an opaque skin in %s", backgroundMode => {
@@ -50,6 +53,8 @@ it.each(["host", "standalone"] as const)("reveals pictures behind management pag
   try {
     target.apply({ resolvedTheme: "light", skin, backgroundMode, imageUrl: backgroundMode === "standalone" ? "blob:photo" : undefined });
     expect(root.style.getPropertyValue("--management-page-surface")).toBe("rgba(246, 250, 242, 0.94)");
+    expect(root.style.getPropertyValue("--new-chat-surface")).toBe("rgba(246, 250, 242, 0.06)");
+    expect(root.style.getPropertyValue("--main-chat-surface")).toBe("rgba(246, 250, 242, 1)");
     expect(root.style.getPropertyValue("--bg-base")).toBe("rgb(237, 243, 237)");
     target.apply({ resolvedTheme: "light", skin, backgroundMode: "host-fallback" });
     expect(root.style.getPropertyValue("--management-page-surface")).toBe("rgb(237, 243, 237)");

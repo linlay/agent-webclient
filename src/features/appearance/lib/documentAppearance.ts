@@ -70,8 +70,15 @@ export function createDocumentAppearanceTarget(root = document.documentElement) 
       }
       const decorated = snapshot.backgroundMode === "host" || Boolean(snapshot.imageUrl);
       // One continuous veil covers the main chat, including its gutters and
-      // composer. Only a faint trace of the host picture should remain visible.
+      // composer. Active conversations keep the host picture faint.
       set("--main-chat-surface", decorated ? readableSurface(read("--shell-content-bg"), solidBase, 0.94) : solidBase);
+      // The new-chat landing surface reveals the picture even for opaque skins.
+      const shellColor = colorChannels(read("--shell-content-bg")) || colorChannels(solidBase)!;
+      set("--new-chat-surface", decorated ? `rgba(${shellColor.slice(0, 3).join(", ")}, 0.06)` : solidBase);
+      // Only the new-chat composer/cards reveal a little wallpaper; ordinary
+      // inputs and portals keep the already-flattened opaque control color.
+      const inputColor = colorChannels(read("--control-input-bg")) || colorChannels(solidBase)!;
+      set("--new-chat-input-surface", decorated ? `rgba(${inputColor.slice(0, 3).join(", ")}, 0.92)` : read("--control-input-bg"));
       // Management pages share one faint picture layer, including when a skin
       // supplies an opaque shell color. Never fade their text or controls.
       const managementColor = colorChannels(read("--shell-content-bg")) || colorChannels(solidBase)!;
