@@ -770,10 +770,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         onAction={selectionActions.handleAction}
       />
       {!isDesktopAppMode() ? (
-        <BrowserSelectionPanels
-          explanation={selectionActions.explanation}
-          onCloseExplanation={selectionActions.closeExplanation}
-        />
+        <BrowserSelectionPanels />
       ) : null}
       {content}
     </>

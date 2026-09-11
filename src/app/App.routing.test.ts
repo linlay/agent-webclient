@@ -1,11 +1,19 @@
 import React from "react";
 import { APP_UI_BASE } from "@/shared/utils/routing";
 
+let mockDesktopMode = false;
+
+jest.mock("@/shared/utils/routing", () => ({
+  ...jest.requireActual("@/shared/utils/routing"),
+  isDesktopAppMode: () => mockDesktopMode,
+}));
+
 const createBrowserRouterMock = jest.fn(() => ({ kind: "router" }));
 
 jest.mock("react-router-dom", () => ({
   createBrowserRouter: (...args: unknown[]) => createBrowserRouterMock(...args),
   RouterProvider: () => null,
+  Navigate: () => null,
 }));
 
 jest.mock("antd", () => ({
@@ -41,6 +49,7 @@ describe("App routing", () => {
   beforeEach(() => {
     jest.resetModules();
     createBrowserRouterMock.mockClear();
+    mockDesktopMode = false;
   });
 
   it("mounts the Desktop app routes at the root basename", async () => {
@@ -76,7 +85,6 @@ describe("App routing", () => {
         "/overview/:chatId",
         "/debug/:chatId",
         "/btw/:chatId",
-        "/selection-explain/:chatId",
         "/source-viewer/:sourceId",
         "/planning-viewer/:planningId",
         "/resource-viewer/:agentKey",
@@ -102,6 +110,20 @@ describe("App routing", () => {
       "/project",
       "/agent",
     ]));
+  });
+
+  it.each([false, true])("redirects legacy browser explanation links while retaining the Desktop route (%s)", async (desktopMode) => {
+    mockDesktopMode = desktopMode;
+    await import("./App");
+    const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{ children?: Array<{ path: string; element: React.ReactElement }> }>;
+    const children = routes.flatMap((route) => route.children || []);
+    const explanation = children.find((route) => route.path === "/selection-explain/:chatId")!;
+    if (desktopMode) expect(explanation.element.props.titleKey).toBe("selection.explain.title");
+    else {
+      expect(explanation.element.type).toBe(jest.requireMock("react-router-dom").Navigate);
+      expect(explanation.element.props).toMatchObject({ to: "/", replace: true });
+    }
+    expect(children.map((route) => route.path)).toContain("/btw/:chatId");
   });
 
   it("registers localized document title keys for agents, archives, automations, and registries", async () => {

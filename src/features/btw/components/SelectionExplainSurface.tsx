@@ -6,10 +6,13 @@ import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 import styles from "./SelectionExplainSurface.module.css";
 
-export const SelectionExplainSurface: React.FC<{ chatId: string; runId: string; embedded?: boolean }> = ({
+type SelectionExplainSurfaceProps = { chatId: string; runId: string; embedded?: boolean };
+
+const DesktopSelectionExplainSurface: React.FC<SelectionExplainSurfaceProps> = ({
   chatId,
   runId,
   embedded = false,
@@ -19,6 +22,7 @@ export const SelectionExplainSurface: React.FC<{ chatId: string; runId: string; 
   const runtime = useStandaloneBtwRuntime({
     chatId,
     initialRunId: runId,
+    transportPurpose: "selection-explain",
     owner: chatRuntime.snapshot?.owner || null,
   });
   const latestAnswer = useMemo(() => {
@@ -73,4 +77,12 @@ export const SelectionExplainSurface: React.FC<{ chatId: string; runId: string; 
       </section>
     </IndependentSurfaceFrame>
   );
+};
+
+export const SelectionExplainSurface: React.FC<SelectionExplainSurfaceProps> = (props) => {
+  const { t } = useI18n();
+  if (!isDesktopAppMode()) {
+    return <IndependentSurfaceFrame kind="selection-explain" embedded={props.embedded} error={t("selection.explain.desktopOnly")} />;
+  }
+  return <DesktopSelectionExplainSurface {...props} />;
 };

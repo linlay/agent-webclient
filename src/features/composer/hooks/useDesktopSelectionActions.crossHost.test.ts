@@ -197,7 +197,6 @@ it("Desktop side questions keep the WorkPanel transfer handshake and do not touc
   await expect(action).resolves.toEqual({ ok: true });
   expect(mockBtw.openBTW).not.toHaveBeenCalled();
   expect(mockBtw.addDraftSelection).not.toHaveBeenCalled();
-  expect(h.actions.explanation).toBeNull();
 });
 
 it("cancels a Desktop transfer when WorkPanel refuses the target", async () => {
@@ -209,42 +208,42 @@ it("cancels a Desktop transfer when WorkPanel refuses the target", async () => {
   expect(mockBtw.openBTW).not.toHaveBeenCalled();
 });
 
-it("returns the accepted Desktop explanation identity as a handoff without creating browser explanation state", async () => {
+it.each(["MacIntel", "Win32"])("Desktop %s starts explanation once on its dedicated purpose and returns only canonical identity", async (platform) => {
   mockDesktopMode = true;
-  const run = execution();
-  mockStartBtw.mockReturnValue(run.value);
-  const h = mount();
-  const action = mockHostHandler.mock.calls.at(-1)![0]({ action: "more-details", fragment });
-  expect(mockStartBtw).toHaveBeenCalledTimes(1);
-  expect(h.actions.explanation).toBeNull();
-  await act(async () => run.identity.resolve(identity("run-host", "canonical-chat")));
-  await expect(action).resolves.toEqual({ ok: true, handoff: { chatId: "canonical-chat", runId: "run-host" } });
-  expect(h.actions.explanation).toBeNull();
-  expect(mockOpenTarget).not.toHaveBeenCalled();
-  expect(mockBtw.openBTW).not.toHaveBeenCalled();
-});
-
-it("a browser click starts exactly one BTW run through pending and ready, including under StrictMode", async () => {
+  jest.spyOn(window.navigator, "platform", "get").mockReturnValue(platform);
   const run = execution();
   mockStartBtw.mockReturnValue(run.value);
   const h = mount({ strict: true });
   const action = h.clickExplain();
-  expect(h.actions.explanation).toEqual({ requestId: "selection_explain-1", chatId: "chat-a", status: "pending" });
   expect(mockStartBtw).toHaveBeenCalledTimes(1);
-  expect(mockStartBtw).toHaveBeenCalledWith(expect.objectContaining({ requestId: "selection_explain-1", chatId: "chat-a",
+  expect(mockStartBtw).toHaveBeenCalledWith(expect.objectContaining({
+    requestId: "selection_explain-1", chatId: "chat-a", transportPurpose: "selection-explain",
     message: "selection.explain.prompt", accessLevel: "default", model, references: [fragment.reference], stream: true,
-    owner: { kind: "agent", agentKey: "agent-a" } }));
-  await act(async () => { run.identity.resolve(identity()); await action; });
-  expect(h.actions.explanation).toEqual({ requestId: "selection_explain-1", chatId: "chat-a", status: "ready", runId: "explain-run" });
+    owner: { kind: "agent", agentKey: "agent-a" },
+  }));
+  await act(async () => { run.identity.resolve(identity("run-host", "canonical-chat")); await action; });
+  await expect(action).resolves.toEqual({ ok: true, handoff: { chatId: "canonical-chat", runId: "run-host" } });
   await act(async () => run.completion.resolve({ reason: "complete", lastSeq: 5 }));
   h.render();
   expect(mockStartBtw).toHaveBeenCalledTimes(1);
-  expect(mockStageTransfer).not.toHaveBeenCalled();
   expect(mockOpenTarget).not.toHaveBeenCalled();
+  expect(mockBtw.openBTW).not.toHaveBeenCalled();
+});
+
+it.each(["MacIntel", "Win32"])("browser %s rejects detailed explanation before any transport or surface request", async (platform) => {
+  jest.spyOn(window.navigator, "platform", "get").mockReturnValue(platform);
+  const h = mount({ strict: true });
+  await expect(h.clickExplain()).resolves.toEqual({ ok: false, code: "surface_not_ready" });
+  expect(mockStartBtw).not.toHaveBeenCalled();
+  expect(mockRuns.subscribe).not.toHaveBeenCalled();
+  expect(mockRuns.interrupt).not.toHaveBeenCalled();
+  expect(mockOpenTarget).not.toHaveBeenCalled();
+  expect(mockBtw.openBTW).not.toHaveBeenCalled();
   expect(mockHostHandler.mock.calls.every(([handler]) => handler === null)).toBe(true);
 });
 
-it.each(["synchronous", "asynchronous"])("shows a recoverable browser explanation error after a %s start failure", async (failure) => {
+it.each(["synchronous", "asynchronous"])("keeps a recoverable Desktop error after a %s start failure", async (failure) => {
+  mockDesktopMode = true;
   const run = execution();
   if (failure === "synchronous") mockStartBtw.mockImplementation(() => { throw new Error("offline"); });
   else mockStartBtw.mockReturnValue(run.value);
@@ -254,15 +253,13 @@ it.each(["synchronous", "asynchronous"])("shows a recoverable browser explanatio
     if (failure === "asynchronous") run.identity.reject(new Error("connection failed before acceptance"));
     expect(await action).toEqual({ ok: false, code: "run_start_failed" });
   });
-  expect(h.actions.explanation).toMatchObject({ chatId: "chat-a", status: "error", message: "The request failed. Please try again." });
   expect(mockStartBtw).toHaveBeenCalledTimes(1);
   expect(mockMessageApi.error).toHaveBeenCalledWith("The request failed. Please try again.");
-  act(() => h.actions.closeExplanation());
-  expect(h.actions.explanation).toBeNull();
+  expect(mockOpenTarget).not.toHaveBeenCalled();
 });
 
-it.each([false, true])("keeps a readable Platform rejection in the browser while returning only a stable action error on desktopMode=%s", async (desktopMode) => {
-  mockDesktopMode = desktopMode;
+it("keeps a readable Platform rejection while returning only a stable Desktop action error", async () => {
+  mockDesktopMode = true;
   const run = execution();
   mockStartBtw.mockReturnValue(run.value);
   const h = mount();
@@ -274,41 +271,11 @@ it.each([false, true])("keeps a readable Platform rejection in the browser while
     expect(await action).toEqual({ ok: false, code: "run_start_failed" });
   });
   expect(mockMessageApi.error).toHaveBeenLastCalledWith(message);
-  if (desktopMode) expect(h.actions.explanation).toBeNull();
-  else expect(h.actions.explanation).toEqual({ requestId: "selection_explain-1", chatId: "chat-a", status: "error", message });
   expect(mockStartBtw).toHaveBeenCalledTimes(1);
 });
 
-it.each(["accepted", "rejected"])("closing a pending explanation prevents a late %s identity from reopening it", async (outcome) => {
-  const run = execution();
-  mockStartBtw.mockReturnValue(run.value);
-  const h = mount();
-  const action = h.clickExplain();
-  act(() => h.actions.closeExplanation());
-  await act(async () => {
-    if (outcome === "accepted") run.identity.resolve(identity()); else run.identity.reject(new Error("late failure"));
-    await action;
-  });
-  expect(h.actions.explanation).toBeNull();
-  expect(mockStartBtw).toHaveBeenCalledTimes(1);
-});
-
-it("changing Chat invalidates a pending explanation and an older request cannot replace the new Chat's result", async () => {
-  const oldRun = execution(), newRun = execution();
-  mockStartBtw.mockReturnValueOnce(oldRun.value).mockReturnValueOnce(newRun.value);
-  const h = mount();
-  const oldAction = h.clickExplain();
-  mockState = { ...mockState, chatId: "chat-b", chats: [...mockState.chats, { chatId: "chat-b", agentKey: "agent-b" }] };
-  h.render();
-  expect(h.actions.explanation).toBeNull();
-  const newAction = h.clickExplain();
-  await act(async () => { newRun.identity.resolve(identity("run-b", "chat-b")); await newAction; });
-  await act(async () => { oldRun.identity.resolve(identity("run-a", "chat-a")); await oldAction; });
-  expect(h.actions.explanation).toEqual({ requestId: "selection_explain-2", chatId: "chat-b", status: "ready", runId: "run-b" });
-  expect(mockStartBtw).toHaveBeenCalledTimes(2);
-});
-
-it("unmounting while acceptance is pending leaves no popup or transport retry when the identity arrives", async () => {
+it("unmounting a Desktop publisher does not restart its accepted explanation", async () => {
+  mockDesktopMode = true;
   const run = execution();
   mockStartBtw.mockReturnValue(run.value);
   const h = mount();
@@ -322,7 +289,12 @@ it("unmounting while acceptance is pending leaves no popup or transport retry wh
   expect(mockOpenTarget).not.toHaveBeenCalled();
 });
 
-it.each(["more-details", "ask-in-side-chat"] as const)("requires an existing Chat for %s without opening a fallback surface", async (action) => {
+it.each([
+  { action: "more-details" as const, desktopMode: true },
+  { action: "ask-in-side-chat" as const, desktopMode: true },
+  { action: "ask-in-side-chat" as const, desktopMode: false },
+])("requires an existing Chat for $action / desktop=$desktopMode", async ({ action, desktopMode }) => {
+  mockDesktopMode = desktopMode;
   mockState.chatId = "";
   const h = mount();
   await expect(h.actions.handleAction({ action, fragment })).resolves.toEqual({ ok: false, code: "chat_required" });

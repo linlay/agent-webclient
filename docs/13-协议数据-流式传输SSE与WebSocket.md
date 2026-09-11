@@ -6,6 +6,10 @@ WebClient 业务层只依赖 `RealtimeTransport`，门面固定提供 `runs`、`
 
 主 Run query、BTW、attach 和控制由 `RunTransport` 统一承接。 Standalone 的 BTW 启动在发送前明确选择平台公开 `POST /api/btw` SSE 入口，并适配到同一 RunExecution 身份、完成与取消观察逻辑；它不是 WS 失败后的重试，不新增物理 WebSocket。BTW 的后续 attach、detach 与 interrupt 继续使用既有 WS。Desktop 的 BTW 始终走宿主 Frame Port 与专用 BTW lane，不走浏览器 HTTP。Voice query 进入同一 Run 门面，浏览器 ASR/TTS 的 Voice WebSocket 保持独立。Admin/Registries、Automation、Project、上传下载、resource Blob 与语音 HTTP 使用各自的专用 HTTP 路径。
 
+Desktop 的“详细解释”在 macOS 和 Windows 上都使用独立的 `selection-explain` WebSocket lane，普通 WorkPanel BTW 保持原 lane。主 Chat 发起首次解释前就声明 `transportPurpose=selection-explain`，解释窗口的 attach、续问、interrupt 和执行对象内建 detach 沿用相同 purpose；不能先在普通 BTW lane 启动，再跨 lane 接管。Desktop adapter 只在 Frame Port payload 中附带 `_desktopTransportPurpose`；宿主根据可信 Surface 校验并移除此元数据后路由，不把它作为 Platform BTW 业务参数转发。关闭解释观察者不取消主 Chat 或 WorkPanel BTW，也不自动 interrupt 后台 Run。
+
+Standalone 不提供详细解释，不配置解释 transport；即使调用者直接传入解释 purpose，start、attach 和 interrupt 都在发送前拒绝，不能回退到普通 BTW SSE 或主 WebSocket。浏览器的“添加到对话”和“在顺便问中提问”继续可用。
+
 ## 领域接口
 
 - `RunTransport`：`startQuery`、`startBtw`、`subscribe`、`interrupt`、awaiting/tool submit、`steer`、access level。
@@ -57,6 +61,7 @@ Desktop 收到 `reconnecting` 时保留已接受 stream 和原订阅者，不 re
 - `../src/features/transport/lib/standaloneTerminalTransport.ts`
 - `../src/features/transport/lib/desktopRealtimeTransport.ts`
 - `../src/features/transport/lib/platformFrameClient.ts`
+- `../src/features/transport/lib/desktopSelectionExplainClient.ts`
 - `../src/features/transport/lib/desktopFramePortDriver.ts`
 - `../src/features/transport/lib/desktopPlatformFrameClientRegistry.ts`
 - `../src/features/transport/lib/wsClient.ts`

@@ -13,7 +13,7 @@ import {
 import { applyLiveEventCommand } from "@/features/conversation/lib/liveEventDispatch";
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
-import type { RunExecution } from "@/features/transport/contracts/realtimeTransport";
+import type { RunExecution, RunTransportPurpose } from "@/features/transport/contracts/realtimeTransport";
 import {
   createRequestId,
   type ApiResponse,
@@ -85,6 +85,7 @@ export function useStandaloneBtwRuntime(input: {
   initialRunId?: string;
   owner: RunOwner | null;
   onBtwId?: (btwId: string) => void;
+  transportPurpose?: RunTransportPurpose;
 }): {
   session: BTWSessionState;
   send: (selectionOnlyPrompt?: string) => void;
@@ -98,6 +99,7 @@ export function useStandaloneBtwRuntime(input: {
   const chatId = String(input.chatId || "").trim();
   const initialBtwId = String(input.initialBtwId || "").trim();
   const initialRunId = String(input.initialRunId || "").trim();
+  const transportPurpose = input.transportPurpose;
   const runs = useRunTransport();
   const [session, setSession] = useState(() =>
     createStandaloneBtwSession(chatId, initialBtwId, input.owner),
@@ -126,7 +128,7 @@ export function useStandaloneBtwRuntime(input: {
     cacheRef.current = createLocalCacheFromState(next.projection);
     publish(next);
     attachedInitialRunKeyRef.current = "";
-  }, [chatId, initialRunId, publish]);
+  }, [chatId, initialRunId, publish, transportPurpose]);
 
   useEffect(() => {
     if (!input.owner) return;
@@ -202,7 +204,7 @@ export function useStandaloneBtwRuntime(input: {
 
   useEffect(() => {
     const owner = input.owner;
-    const key = [chatId, initialRunId].join("\u0000");
+    const key = [chatId, initialRunId, transportPurpose].join("\u0000");
     if (!chatId || !initialRunId || !owner || attachedInitialRunKeyRef.current === key) {
       return;
     }
@@ -222,6 +224,7 @@ export function useStandaloneBtwRuntime(input: {
       owner,
       lastSeq: 0,
       role: "btw",
+      ...(transportPurpose ? { transportPurpose } : {}),
       onEvent: (event) => handleEvent(generation, event, "replay"),
     });
     executionRef.current = execution;
@@ -261,7 +264,7 @@ export function useStandaloneBtwRuntime(input: {
       active.interruptPending = false;
       publish(active);
     });
-  }, [chatId, handleEvent, initialRunId, input.owner, publish, runs]);
+  }, [chatId, handleEvent, initialRunId, input.owner, publish, runs, transportPurpose]);
 
   const send = useCallback((selectionOnlyPrompt = "") => {
     const current = sessionRef.current;
@@ -325,6 +328,7 @@ export function useStandaloneBtwRuntime(input: {
     const execution = runs.startBtw({
       ...params,
       owner,
+      ...(transportPurpose ? { transportPurpose } : {}),
       onEvent: (event) => handleEvent(generation, event),
     });
     executionRef.current = execution;
@@ -372,7 +376,7 @@ export function useStandaloneBtwRuntime(input: {
       active.interruptPending = false;
       publish(active);
     });
-  }, [chatId, handleEvent, input.owner, publish, runs]);
+  }, [chatId, handleEvent, input.owner, publish, runs, transportPurpose]);
 
   const setDraft = useCallback((draft: string) => {
     const current = sessionRef.current;
@@ -448,6 +452,7 @@ export function useStandaloneBtwRuntime(input: {
       owner,
       message: "",
       planningMode: false,
+      ...(transportPurpose ? { transportPurpose } : {}),
     }) as Promise<ApiResponse<BTWInterruptResponse>>)
       .then((response) => {
         if (generationRef.current !== generation) return;
@@ -475,7 +480,7 @@ export function useStandaloneBtwRuntime(input: {
         appendSystemError(active, display.message);
         publish(active);
       });
-  }, [chatId, input.owner, publish, runs]);
+  }, [chatId, input.owner, publish, runs, transportPurpose]);
 
   return {
     session,

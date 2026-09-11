@@ -291,4 +291,15 @@ describe("Standalone BTW HTTP/SSE transport", () => {
     expect(mockEnsureWs).not.toHaveBeenCalled();
     client.dispose();
   });
+
+  it("rejects a forged browser explanation purpose without HTTP or WebSocket requests", async () => {
+    const value = transport();
+    const execution = start(value, { transportPurpose: "selection-explain" });
+    await expect(execution.identity).rejects.toMatchObject({ code: "unsupported_in_current_view" });
+    const subscription = value.runs.subscribe({ chatId: "chat-1", runId: "run-1", owner, transportPurpose: "selection-explain", onEvent: jest.fn() });
+    await expect(subscription.identity).rejects.toMatchObject({ code: "unsupported_in_current_view" });
+    await expect(value.runs.interrupt({ runId: "run-1", owner, transportPurpose: "selection-explain" })).rejects.toMatchObject({ code: "unsupported_in_current_view" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockEnsureWs).not.toHaveBeenCalled();
+  });
 });

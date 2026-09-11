@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import type { MessageInstance } from "antd/es/message/interface";
 import { useAppState } from "@/app/state/AppContext";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
@@ -20,11 +20,6 @@ import {
   stageSelectedTextTransfer,
 } from "@/features/selection/lib/selectionTransfer";
 
-export type SelectionExplanationState =
-  | { requestId: string; chatId: string; status: "pending" }
-  | { requestId: string; chatId: string; status: "ready"; runId: string }
-  | { requestId: string; chatId: string; status: "error"; message: string };
-
 export function useDesktopSelectionActions(input: {
   addMainFragment: (fragment: SelectedTextFragment) => boolean;
   model: QueryModelOverride;
@@ -37,18 +32,7 @@ export function useDesktopSelectionActions(input: {
   const openTarget = useOpenTarget();
   const desktopMode = isDesktopAppMode();
   const btw = useOptionalBTW();
-  const [explanation, setExplanation] = useState<SelectionExplanationState | null>(null);
-  const activeExplanationRequestRef = useRef<string | null>(null);
   const explanationExecutionsRef = useRef(new Map<string, RunExecution>());
-
-  const closeExplanation = useCallback(() => {
-    activeExplanationRequestRef.current = null;
-    setExplanation(null);
-  }, []);
-  useEffect(() => {
-    closeExplanation();
-  }, [closeExplanation, state.chatId]);
-  useEffect(() => () => { activeExplanationRequestRef.current = null; }, []);
 
   const handleAction = useCallback(async ({
     action,
@@ -57,6 +41,9 @@ export function useDesktopSelectionActions(input: {
     action: "add-to-chat" | "more-details" | "ask-in-side-chat";
     fragment: SelectedTextFragment;
   }) => {
+    if (action === "more-details" && !desktopMode) {
+      return { ok: false, code: "surface_not_ready" as const };
+    }
     if (action === "add-to-chat") {
       addMainFragment(fragment);
       window.dispatchEvent(new CustomEvent("agent:focus-composer"));
@@ -118,10 +105,6 @@ export function useDesktopSelectionActions(input: {
     }
 
     const requestId = createRequestId("selection_explain");
-    if (!desktopMode) {
-      activeExplanationRequestRef.current = requestId;
-      setExplanation({ requestId, chatId, status: "pending" });
-    }
     try {
       const execution = runs.startBtw({
         requestId,
@@ -132,6 +115,7 @@ export function useDesktopSelectionActions(input: {
         references: [fragment.reference],
         stream: true,
         owner,
+        transportPurpose: "selection-explain",
         onEvent: () => undefined,
       });
       explanationExecutionsRef.current.set(requestId, execution);
@@ -142,14 +126,6 @@ export function useDesktopSelectionActions(input: {
       };
       void execution.completion.then(forgetExecution, forgetExecution);
       const identity = await execution.identity;
-      if (!desktopMode && activeExplanationRequestRef.current === requestId) {
-        setExplanation({
-          requestId,
-          chatId: identity.chatId || chatId,
-          runId: identity.runId,
-          status: "ready",
-        });
-      }
       return {
         ok: true,
         handoff: {
@@ -160,9 +136,6 @@ export function useDesktopSelectionActions(input: {
     } catch (cause) {
       explanationExecutionsRef.current.delete(requestId);
       const display = formatPlatformErrorForDisplay(cause);
-      if (!desktopMode && activeExplanationRequestRef.current === requestId) {
-        setExplanation({ requestId, chatId, status: "error", message: display.message });
-      }
       void messageApi.error(display.message);
       return { ok: false, code: "run_start_failed" as const };
     }
@@ -184,5 +157,5 @@ export function useDesktopSelectionActions(input: {
   // Browser clicks use the same action handler directly; only a Desktop guest
   // registers it with the host bridge.
   useDesktopSelectionActionHandler(desktopMode ? handleAction : null);
-  return { handleAction, explanation, closeExplanation };
+  return { handleAction };
 }

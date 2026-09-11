@@ -5,6 +5,7 @@ import {
   useLocation,
   useNavigate,
   Outlet,
+  Navigate,
   RouterProvider,
 } from "react-router-dom";
 import {
@@ -298,11 +299,11 @@ const router = createBrowserRouter(
         },
         {
           path: SURFACE_ROUTE_PATHS.selectionExplain,
-          element: (
+          element: isDesktopAppMode() ? (
             <DocumentTitleRoute titleKey="selection.explain.title">
               <SelectionExplainPage />
             </DocumentTitleRoute>
-          ),
+          ) : <Navigate to="/" replace />,
         },
         {
           path: SURFACE_ROUTE_PATHS.source,

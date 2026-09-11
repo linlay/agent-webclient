@@ -29,7 +29,6 @@ export type BrowserSelectionToolbarProps = {
 
 const ACTIONS = [
   { id: "add-to-chat", label: "selection.toolbar.addToChat", icon: "add" },
-  { id: "more-details", label: "selection.toolbar.moreDetails", icon: "info" },
   { id: "ask-in-side-chat", label: "selection.toolbar.askInSideChat", icon: "question_answer" },
 ] as const;
 const VIEWPORT_MARGIN = 8;

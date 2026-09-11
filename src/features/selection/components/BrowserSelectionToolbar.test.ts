@@ -103,10 +103,11 @@ describe("BrowserSelectionToolbar DOM interaction", () => {
   });
 
   it.each([
-    [0, "add-to-chat"], [1, "more-details"], [2, "ask-in-side-chat"],
+    [0, "add-to-chat"], [1, "ask-in-side-chat"],
   ])("keeps the DOM selection on click and dispatches only action %s / %s", async (index, action) => {
     render(); select(); await flushFrames();
-    expect(buttons()).toHaveLength(3);
+    expect(buttons()).toHaveLength(2);
+    expect(document.querySelector('[aria-label="selection.toolbar.moreDetails"]')).toBeNull();
     expect(toolbar()?.textContent).not.toContain("selected text");
     const button = buttons()[Number(index)];
     const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 });
@@ -199,9 +200,9 @@ describe("BrowserSelectionToolbar DOM interaction", () => {
     act(() => buttons()[0].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "ArrowRight" })));
     expect(document.activeElement).toBe(buttons()[1]);
     act(() => buttons()[1].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "End" })));
-    expect(document.activeElement).toBe(buttons()[2]);
+    expect(document.activeElement).toBe(buttons()[1]);
     expect(document.getSelection()?.toString()).toBe("selected text");
-    act(() => buttons()[2].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" })));
+    act(() => buttons()[1].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" })));
     expect(toolbar()).toBeNull();
     expect(onAction).not.toHaveBeenCalled();
   });

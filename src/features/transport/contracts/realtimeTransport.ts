@@ -11,6 +11,7 @@ import type { AIAwaitSubmitParamData, AgentEvent } from "@/shared/contracts/agen
 import type { RunOwner } from "@/shared/data/runOwner";
 
 export type RealtimeTransportKind = "standalone" | "desktop";
+export type RunTransportPurpose = "selection-explain";
 export type RealtimeConnectionStatus =
   | "disconnected"
   | "connecting"
@@ -57,6 +58,7 @@ export type StartBtwInput = Omit<BTWStreamParams, "signal"> &
   RunStartCallbacks & {
     owner: RunOwner;
     signal?: AbortSignal;
+    transportPurpose?: RunTransportPurpose;
   };
 
 export interface RunSubscribeInput extends RunStartCallbacks {
@@ -67,7 +69,10 @@ export interface RunSubscribeInput extends RunStartCallbacks {
   lastSeq?: number;
   role?: "main" | "overview" | "debug" | "btw";
   signal?: AbortSignal;
+  transportPurpose?: RunTransportPurpose;
 }
+
+export type RunControlInput = QueryLikeParams & { transportPurpose?: RunTransportPurpose };
 
 export interface AwaitingSubmitInput {
   chatId?: string;
@@ -90,7 +95,7 @@ export interface RunTransport {
   startQuery(input: StartQueryInput): RunExecution;
   startBtw(input: StartBtwInput): RunExecution;
   subscribe(input: RunSubscribeInput): RunExecution;
-  interrupt(input: QueryLikeParams): Promise<ApiResponse>;
+  interrupt(input: RunControlInput): Promise<ApiResponse>;
   submitAwaiting(input: AwaitingSubmitInput): Promise<ApiResponse>;
   submitTool(input: ToolSubmitInput): Promise<ApiResponse>;
   steer(input: SteerParams): Promise<ApiResponse>;

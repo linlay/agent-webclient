@@ -648,6 +648,7 @@ export const zhCNMessages = {
   "selection.action.chatRequired": "请先进入一个已建立的对话。",
   "selection.action.failed": "处理所选文本失败，请重新选择后再试。",
   "selection.explain.prompt": "请详细解释所选内容，并结合当前对话补充必要背景。",
+  "selection.explain.desktopOnly": "详细解释仅在桌面应用中提供。",
   "selection.explain.title": "告诉我更多相关信息",
   "selection.explain.preparing": "正在准备解释…",
   "selection.explain.copy": "复制最新回答",

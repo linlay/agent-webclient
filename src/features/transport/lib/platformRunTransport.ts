@@ -15,6 +15,7 @@ import type {
   RunExecution,
   RunSubscribeInput,
   RunTransport,
+  RunTransportPurpose,
   StartBtwInput,
   StartQueryInput,
 } from "@/features/transport/contracts/realtimeTransport";
@@ -304,8 +305,22 @@ export class PlatformRunTransport implements RunTransport {
     private readonly options: {
       supportsBtw?: boolean;
       ensureBtwClient?: () => Promise<RunStreamClient>;
+      ensureSelectionExplainClient?: () => Promise<RunStreamClient>;
     } = {},
   ) {}
+
+  private getRunClient(
+    purpose?: RunTransportPurpose,
+    fallback: () => Promise<RunStreamClient> = this.ensureClient,
+  ): Promise<RunStreamClient> {
+    if (purpose === undefined) return fallback();
+    if (purpose !== "selection-explain" || !this.options.ensureSelectionExplainClient) {
+      return Promise.reject(new RealtimeTransportError(
+        "unsupported_in_current_view", "Selection explanation requires its Desktop transport",
+      ));
+    }
+    return this.options.ensureSelectionExplainClient();
+  }
 
   setSurfaceActive(active: boolean): void {
     if (this.surfaceActive === active) return;
@@ -354,7 +369,7 @@ export class PlatformRunTransport implements RunTransport {
       onEvent: input.onEvent,
       signal: input.signal,
       detachRemote: true,
-      ensureClient: this.options.ensureBtwClient || this.ensureClient,
+      ensureClient: () => this.getRunClient(input.transportPurpose, this.options.ensureBtwClient || this.ensureClient),
       registerLifecycle: this.registerLifecycle,
     });
   }
@@ -376,13 +391,13 @@ export class PlatformRunTransport implements RunTransport {
       signal: input.signal,
       acceptOnStart: true,
       detachRemote: true,
-      ensureClient: this.ensureClient,
+      ensureClient: () => this.getRunClient(input.transportPurpose),
       registerLifecycle: this.registerLifecycle,
     });
   }
 
   interrupt: RunTransport["interrupt"] = async (input) =>
-    (await this.ensureClient()).request({
+    (await this.getRunClient(input.transportPurpose)).request({
       type: dataEndpoints.interrupt.path,
       payload: buildRunControlPayload(input),
     });

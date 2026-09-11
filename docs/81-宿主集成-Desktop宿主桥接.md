@@ -64,7 +64,7 @@ WorkPanel 评审批注复用同一 service action channel，但使用独立版�
 
 Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraft`。草稿为空时填入，非空时追加分隔符；可选 PNG 先转为本地 `staged` 附件，不在动作处理时上传，也不自动发送。WebClient 通过共享 preview-review page event 返回一次 ack，Desktop 只有收到成功 ack 才清理运行期 ReviewSession。vendored contract hash、Desktop mirror 与 Program Bundle 必须原子发布，缺少新能力时保持只读。
 
-划词动作使用 bridge v6 的 `selectionToolbar.execute`。Desktop 只提供 request/selection/target ID、动作枚举与首尾坐标；WebClient 按坐标、DOM Selection 和语义 target 三重核对后创建最多 50,000 字符的 `type=selection` reference，正文只存在于 `meta.text` 并沿用 Platform 不可信引用边界。动作结果只允许稳定错误码或 `chatId/runId` handoff，禁止把正文、Prompt、凭据或 URL 回传 Desktop。Standalone 浏览器不注册该 host action，而是在主对话的消息与代码区域安装页面工具条，并把通过同等安全校验的引用交给同一个动作处理器。Desktop 模式始终禁用页面工具条和浏览器弹窗，保留宿主原有展示，防止重复入口与重复请求。
+划词动作使用 bridge v6 的 `selectionToolbar.execute`。Desktop 只提供 request/selection/target ID、动作枚举与首尾坐标；WebClient 按坐标、DOM Selection 和语义 target 三重核对后创建最多 50,000 字符的 `type=selection` reference，正文只存在于 `meta.text` 并沿用 Platform 不可信引用边界。动作结果只允许稳定错误码或 `chatId/runId` handoff，禁止把正文、Prompt、凭据或 URL 回传 Desktop。Standalone 使用本地工具条提供添加引用与侧边提问，不注册 Desktop host action，也不提供详细解释。Desktop 详细解释首发、订阅、续问与控制携带显式解释 purpose，由 Frame Port adapter 转为宿主专用元数据；宿主校验、剥离后统一路由到独立解释 lane，不能与普通 WorkPanel BTW 混用。该能力在 macOS 和 Windows 上一致。
 
 ## 相关文件
 - `../src/shared/data/desktop/desktopHostBridge.ts`

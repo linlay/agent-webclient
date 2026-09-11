@@ -648,6 +648,7 @@ export const enUSMessages = {
   "selection.action.chatRequired": "Open an established chat first.",
   "selection.action.failed": "Could not use the selected text. Select it again and retry.",
   "selection.explain.prompt": "Explain the selected content in detail and add any necessary context from this conversation.",
+  "selection.explain.desktopOnly": "Detailed explanations are available in the desktop app.",
   "selection.explain.title": "Tell me more",
   "selection.explain.preparing": "Preparing explanation…",
   "selection.explain.copy": "Copy latest answer",
