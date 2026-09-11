@@ -1,8 +1,6 @@
 .section {
   flex: none;
   min-width: 0;
-  margin: 0 10px;
-  border-bottom: 1px solid var(--line-soft);
 }
 
 .header {
@@ -11,13 +9,14 @@
   gap: 4px;
   width: 100%;
   min-height: 32px;
-  padding: 0;
+  padding: 0 4px;
   border: 0;
   background: transparent;
   color: var(--ink-1);
   font: inherit;
   text-align: left;
   cursor: pointer;
+  border-radius: 0;
 }
 
 .header:hover {
@@ -27,7 +26,6 @@
 .header:focus-visible, .identifier:focus-visible {
   outline: 2px solid var(--accent-electric);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .header > :first-child {
@@ -115,7 +113,7 @@
 }
 
 .details {
-  padding: 5px 0 10px;
+  padding: 10px;
 }
 
 .properties {
@@ -242,9 +240,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
+  padding-top: 10px;
 }
 
 .identifier {
