@@ -1,6 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BtwTab } from "@/features/btw/components/BtwTab";
+import { resolveBTWSendMessage } from "@/features/btw/lib/btwSend";
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: jest.fn(() => jest.fn()),
@@ -197,5 +198,19 @@ describe("BtwTab composer controls", () => {
 
     expect(button).not.toContain("disabled");
     expect(button).not.toContain("is-loading");
+  });
+
+  it("uses a safe prompt when a selection is sent without a typed question", () => {
+    expect(
+      resolveBTWSendMessage("", 1, "Please explain the selected text."),
+    ).toBe("Please explain the selected text.");
+    expect(
+      resolveBTWSendMessage(
+        "  What does this mean?  ",
+        1,
+        "Please explain the selected text.",
+      ),
+    ).toBe("What does this mean?");
+    expect(resolveBTWSendMessage("", 0, "fallback")).toBe("");
   });
 });

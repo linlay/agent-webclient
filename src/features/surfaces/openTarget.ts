@@ -30,7 +30,15 @@ type AgentIntent = { agentKey?: string };
 
 export type OpenTargetIntent =
   | ({ version: 1; kind: "overview" | "debug"; chatId: string; toggle?: boolean } & AgentIntent)
-  | ({ version: 1; kind: "btw"; chatId: string; btwId?: string; title?: string } & AgentIntent)
+  | ({
+      version: 1;
+      kind: "btw";
+      chatId: string;
+      btwId?: string;
+      instanceId?: string;
+      selectionTransferTarget?: string;
+      title?: string;
+    } & AgentIntent)
   | ({
       version: 1;
       kind: "source";
@@ -160,7 +168,12 @@ function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteIntent | nu
     return { kind: intent.kind, chatId: intent.chatId };
   }
   if (intent.kind === "btw") {
-    return { kind: "btw", chatId: intent.chatId, btwId: intent.btwId };
+    return {
+      kind: "btw",
+      chatId: intent.chatId,
+      btwId: intent.btwId,
+      selectionTransferTarget: intent.selectionTransferTarget,
+    };
   }
   if (intent.kind === "source") {
     return {
@@ -343,7 +356,12 @@ export function buildDesktopWorkPanelDescriptor(
       kind: "webclient",
       module: "btw",
       route,
-      context: { agentKey, chatId, ...(clean(intent.btwId) ? { btwId: clean(intent.btwId) } : {}) },
+      context: {
+        agentKey,
+        chatId,
+        ...(clean(intent.btwId) ? { btwId: clean(intent.btwId) } : {}),
+        ...(clean(intent.instanceId) ? { instanceId: clean(intent.instanceId) } : {}),
+      },
       ...(intent.title ? { title: intent.title } : {}),
     };
   }

@@ -5,6 +5,7 @@ import {
   useLocation,
   useNavigate,
   Outlet,
+  Navigate,
   RouterProvider,
 } from "react-router-dom";
 import {
@@ -15,6 +16,7 @@ import {
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { initializeDesktopQueryContextBridge } from "@/shared/data/desktop/desktopQueryContext";
 import {
   I18nProvider,
@@ -65,6 +67,7 @@ const FileViewerPage = lazyPage(() => import("./pages/surfaces/FileViewerPage"),
 const OverviewViewerPage = lazyPage(() => import("./pages/surfaces/OverviewViewerPage"), (m) => m.OverviewViewerPage);
 const PlanningViewerPage = lazyPage(() => import("./pages/surfaces/PlanningViewerPage"), (m) => m.PlanningViewerPage);
 const ResourceViewerPage = lazyPage(() => import("./pages/surfaces/ResourceViewerPage"), (m) => m.ResourceViewerPage);
+const SelectionExplainPage = lazyPage(() => import("./pages/surfaces/SelectionExplainPage"), (m) => m.SelectionExplainPage);
 const SkillViewerPage = lazyPage(() => import("./pages/surfaces/SkillViewerPage"), (m) => m.SkillViewerPage);
 const SourceViewerPage = lazyPage(() => import("./pages/surfaces/SourceViewerPage"), (m) => m.SourceViewerPage);
 const WebViewerPage = lazyPage(() => import("./pages/surfaces/WebViewerPage"), (m) => m.WebViewerPage);
@@ -94,7 +97,7 @@ const InteractiveRoute: React.FC<{
   children: React.ReactNode;
   btwEnabled?: boolean;
 }> = ({ children, btwEnabled = true }) => (
-  <BtwProvider enabled={btwEnabled}>{children}</BtwProvider>
+  <BtwProvider enabled={btwEnabled || !isDesktopAppMode()}>{children}</BtwProvider>
 );
 
 const AutomationConversationIntentBridge: React.FC = () => {
@@ -293,6 +296,14 @@ const router = createBrowserRouter(
               <BtwViewerPage />
             </DocumentTitleRoute>
           ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.selectionExplain,
+          element: isDesktopAppMode() ? (
+            <DocumentTitleRoute titleKey="selection.explain.title">
+              <SelectionExplainPage />
+            </DocumentTitleRoute>
+          ) : <Navigate to="/" replace />,
         },
         {
           path: SURFACE_ROUTE_PATHS.source,

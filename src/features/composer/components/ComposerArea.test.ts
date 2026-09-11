@@ -247,6 +247,11 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
     interruptCurrentRun: jest.fn(),
   }),
 }));
+jest.mock("@/features/composer/hooks/useDesktopSelectionActions", () => ({
+  useDesktopSelectionActions: () => ({ handleAction: jest.fn() }),
+}));
+jest.mock("@/features/selection/components/BrowserSelectionToolbar", () => ({ BrowserSelectionToolbar: () => null }));
+jest.mock("@/features/composer/components/BrowserSelectionPanels", () => ({ BrowserSelectionPanels: () => null }));
 
 const mockUseComposerSlash = jest.fn(
   (_input: Record<string, unknown>) => ({

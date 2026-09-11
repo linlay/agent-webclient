@@ -401,7 +401,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     const message = inputValue.trim();
-    if (!message) return;
+    if (!message && sendReferences.length === 0) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
@@ -468,6 +468,8 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
+        // Selection references remain in the Composer until a normal query accepts them.
+        if (!message) return;
         if (mustUseSkills.length > 0) {
           dispatch({
             type: "APPEND_DEBUG",
@@ -489,7 +491,10 @@ export function useComposerSend(input: UseComposerSendInput) {
             runId: activeRunId,
             createdAt: Date.now(),
             status: "queued",
-            references: structuredClone(sendReferences),
+            references: structuredClone(sendReferences.filter((reference) =>
+              !reference || typeof reference !== "object" ||
+              (reference as { type?: unknown }).type !== "selection",
+            )),
           },
         });
         setInputValue("");

@@ -23,6 +23,8 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
+import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import type { AgentSkill } from "@/shared/data/api/client";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
@@ -293,8 +295,15 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           Boolean(String(attachment?.name || "").trim()),
         )
       : [];
+    const selectedTextFragments = attachmentItems.flatMap((attachment) => {
+      const fragment = selectedTextFragmentFromAttachment(attachment);
+      return fragment ? [fragment] : [];
+    });
+    const visibleAttachmentItems = attachmentItems.filter(
+      (attachment) => attachment.type !== "selection",
+    );
     const hasText = Boolean(String(node.text || "").trim());
-    const hasMultipleAttachments = attachmentItems.length > 1;
+    const hasMultipleAttachments = visibleAttachmentItems.length > 1;
 
     return (
       <div
@@ -305,14 +314,18 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_USER_STACK_CLASS_NAME}>
-          {attachmentItems.length > 0 && (
+          <SelectedTextFragmentsPill
+            fragments={selectedTextFragments}
+            variant="segments"
+          />
+          {visibleAttachmentItems.length > 0 && (
             <div
               className={[
                 TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME,
                 TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME,
               ].join(" ")}
             >
-              {attachmentItems.map((attachment, index) =>
+              {visibleAttachmentItems.map((attachment, index) =>
                 attachment.type === "chat" || attachment.type === "site" ? (
                   <ReferenceCard
                     key={`${attachment.type}_${attachment.id || attachment.name}_${index}`}

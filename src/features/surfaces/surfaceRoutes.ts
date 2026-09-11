@@ -7,6 +7,7 @@ export const SURFACE_ROUTE_PATHS = {
   overview: "/overview/:chatId",
   debug: "/debug/:chatId",
   btw: "/btw/:chatId",
+  selectionExplain: "/selection-explain/:chatId",
   source: "/source-viewer/:sourceId",
   planning: "/planning-viewer/:planningId",
   resource: "/resource-viewer/:agentKey",
@@ -21,7 +22,12 @@ export const SURFACE_ROUTE_PATHS = {
 
 export type SurfaceRouteIntent =
   | { kind: "overview" | "debug"; chatId: string }
-  | { kind: "btw"; chatId: string; btwId?: string }
+  | {
+      kind: "btw";
+      chatId: string;
+      btwId?: string;
+      selectionTransferTarget?: string;
+    }
   | { kind: "source"; sourceId: string; chatId: string; chunkId?: string }
   | { kind: "planning"; planningId: string; chatId: string }
   | {
@@ -122,6 +128,7 @@ export function buildSurfaceRoute(
     if (!chatId) return "";
     pathname = `/btw/${chatId}`;
     set(params, "btwId", intent.btwId);
+    set(params, "selectionTransferTarget", intent.selectionTransferTarget);
   } else if (intent.kind === "source") {
     const sourceId = pathSegment(intent.sourceId);
     if (!sourceId || !clean(intent.chatId)) return "";

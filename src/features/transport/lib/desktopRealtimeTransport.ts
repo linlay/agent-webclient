@@ -10,6 +10,7 @@ import { PlatformPushTransport } from "@/features/transport/lib/platformPushTran
 import { PlatformRunTransport } from "@/features/transport/lib/platformRunTransport";
 import { UnsupportedTerminalTransport } from "@/features/transport/lib/unsupportedTerminalTransport";
 import { DesktopFramePortDriver } from "@/features/transport/lib/desktopFramePortDriver";
+import { createDesktopSelectionExplainClient } from "@/features/transport/lib/desktopSelectionExplainClient";
 import { registerDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
 import {
   DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
@@ -43,7 +44,11 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
     this.client = new DesktopFramePortDriver(platformFramePort.createSession());
     this.unregisterPlatformFrameClient = registerDesktopPlatformFrameClient(this.client);
     const ensureClient = async () => this.client;
-    this.runs = new PlatformRunTransport(ensureClient, { supportsBtw: true });
+    const selectionExplainClient = createDesktopSelectionExplainClient(this.client);
+    this.runs = new PlatformRunTransport(ensureClient, {
+      supportsBtw: true,
+      ensureSelectionExplainClient: async () => selectionExplainClient,
+    });
     this.push = new PlatformPushTransport(
       ensureClient,
       (listener) => this.client.subscribePush(listener),

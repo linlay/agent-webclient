@@ -44,6 +44,11 @@ import type {
   PersistedBTWSession,
 } from "@/features/btw/lib/btwTypes";
 import {
+  addSelectedTextFragment,
+  selectedTextReferenceToAttachment,
+  type SelectedTextFragment,
+} from "@/features/selection/lib/selectedTextReference";
+import {
   claimRestoredBTWRun,
   discardBTWSessionRegistry,
   isAcceptedBTWInterrupt,
@@ -65,6 +70,8 @@ interface BTWContextValue {
   openBTW: (options?: OpenBTWOptions) => boolean;
   sendBTW: (parentChatId: string, message?: string, options?: OpenBTWOptions) => Promise<boolean>;
   setDraft: (parentChatId: string, draft: string) => void;
+  addDraftSelection: (parentChatId: string, fragment: SelectedTextFragment) => boolean;
+  removeDraftSelection: (parentChatId: string, referenceId: string) => void;
   patchTimelineNode: (parentChatId: string, node: TimelineNode) => void;
   newBranch: (parentChatId: string) => boolean;
   selectBranch: (parentChatId: string, btwId: string, agentKey?: string) => boolean;
@@ -152,6 +159,7 @@ function createSession(
     ),
     interruptPending: false,
     draft: persisted?.draft || "",
+    draftSelections: [],
     error: "",
     focusToken: 0,
     lastSeq: persisted?.lastSeq || 0,
@@ -348,7 +356,16 @@ export const BtwProvider: React.FC<{
       if (!normalizedChatId) return false;
       const runtime = getRuntime(normalizedChatId);
       const message = String(explicitMessage ?? runtime.session.draft).trim();
-      if (!message) return false;
+      const selectedFragments = runtime.session.draftSelections;
+      const references = [
+        ...(options.references || []),
+        ...selectedFragments.map((fragment) => fragment.reference),
+      ];
+      const attachments = [
+        ...(options.attachments || []),
+        ...selectedFragments.map(selectedTextReferenceToAttachment),
+      ];
+      if (!message && references.length === 0) return false;
       if (runtime.session.status === "running") {
         runtime.session.draft = message;
         runtime.session.focusToken += 1;
@@ -389,7 +406,7 @@ export const BtwProvider: React.FC<{
         kind: "message",
         role: "user",
         text: message,
-        attachments: options.attachments,
+        attachments,
         ts: Date.now(),
       };
       runtime.session.projection = appReducer(runtime.session.projection, {
@@ -410,10 +427,7 @@ export const BtwProvider: React.FC<{
         chatId: normalizedChatId,
         btwId: runtime.session.btwId || undefined,
         message,
-        references:
-          options.references && options.references.length > 0
-            ? options.references
-            : undefined,
+        references: references.length > 0 ? references : undefined,
         accessLevel: runtime.session.config.accessLevel,
         model: runtime.session.config.model,
         params:
@@ -444,6 +458,7 @@ export const BtwProvider: React.FC<{
         runtime.session.agentKey = identity.owner.kind === "agent"
           ? identity.owner.agentKey
           : "";
+        runtime.session.draftSelections = [];
         runtime.session.interruptReady = true;
         publish(runtime);
         const completion = await execution.completion;
@@ -518,6 +533,34 @@ export const BtwProvider: React.FC<{
       const runtime = getExistingRuntime(parentChatId);
       if (!runtime) return;
       runtime.session.draft = draft;
+      publish(runtime);
+    },
+    [getExistingRuntime, publish],
+  );
+
+  const addDraftSelection = useCallback(
+    (parentChatId: string, fragment: SelectedTextFragment) => {
+      const normalizedChatId = String(parentChatId || "").trim();
+      if (!normalizedChatId) return false;
+      const runtime = getRuntime(normalizedChatId);
+      runtime.session.draftSelections = addSelectedTextFragment(
+        runtime.session.draftSelections,
+        fragment,
+      );
+      runtime.session.focusToken += 1;
+      publish(runtime);
+      return true;
+    },
+    [getRuntime, publish],
+  );
+
+  const removeDraftSelection = useCallback(
+    (parentChatId: string, referenceId: string) => {
+      const runtime = getExistingRuntime(parentChatId);
+      if (!runtime) return;
+      runtime.session.draftSelections = runtime.session.draftSelections.filter(
+        (fragment) => fragment.reference.id !== referenceId,
+      );
       publish(runtime);
     },
     [getExistingRuntime, publish],
@@ -864,6 +907,8 @@ export const BtwProvider: React.FC<{
       openBTW,
       sendBTW,
       setDraft,
+      addDraftSelection,
+      removeDraftSelection,
       patchTimelineNode,
       newBranch,
       selectBranch,
@@ -873,11 +918,13 @@ export const BtwProvider: React.FC<{
     }),
     [
       discardBTW,
+      addDraftSelection,
       interruptBTW,
       newBranch,
       openBTW,
       patchTimelineNode,
       sendBTW,
+      removeDraftSelection,
       sessions,
       setDraft,
       selectBranch,
@@ -895,4 +942,8 @@ export function useBTW(): BTWContextValue {
     throw new Error("useBTW must be used within BtwProvider");
   }
   return context;
+}
+
+export function useOptionalBTW(): BTWContextValue | null {
+  return useContext(BTWContext);
 }

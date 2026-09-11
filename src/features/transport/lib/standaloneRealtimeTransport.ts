@@ -7,6 +7,7 @@ import { StandaloneInboundRequestTransport } from "@/features/transport/lib/stan
 import { PlatformPushTransport } from "@/features/transport/lib/platformPushTransport";
 import { PlatformRunTransport } from "@/features/transport/lib/platformRunTransport";
 import { StandaloneTerminalTransport } from "@/features/transport/lib/standaloneTerminalTransport";
+import { StandaloneBtwStreamClient } from "@/features/transport/lib/standaloneBtwStreamClient";
 import {
   destroyWsClient,
   getWsClient,
@@ -15,7 +16,8 @@ import {
 
 export class StandaloneRealtimeTransport implements RealtimeTransport {
   readonly kind = "standalone" as const;
-  readonly runs = new PlatformRunTransport();
+  private readonly btwClient = new StandaloneBtwStreamClient();
+  readonly runs = new PlatformRunTransport(undefined, { ensureBtwClient: async () => this.btwClient });
   readonly push = new PlatformPushTransport();
   readonly inbound = new StandaloneInboundRequestTransport();
   readonly terminal = new StandaloneTerminalTransport();
@@ -38,6 +40,7 @@ export class StandaloneRealtimeTransport implements RealtimeTransport {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.btwClient.dispose();
     this.terminal.dispose();
     destroyWsClient();
   }
