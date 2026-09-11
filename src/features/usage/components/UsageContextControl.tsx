@@ -391,7 +391,7 @@ export const UsageContextControl: React.FC<{
                 </span>
               ) : null}
             </Flex>
-            <Flex align="center" gap={8}>
+            <Flex align="center" gap={15}>
               <div
                 className={USAGE_CACHE_HIT_INLINE_CLASS}
                 aria-label={t("topNav.usage.totalCost")}
@@ -502,7 +502,8 @@ export const UsageContextControl: React.FC<{
           height="auto"
           closable={false}
           destroyOnHidden
-          className={USAGE_DRAWER_ROOT_CLASS}
+          rootClassName={USAGE_DRAWER_ROOT_CLASS}
+          styles={{ mask: { background: "transparent" } }}
           onClose={handleCloseUsagePopover}
         >
           {detailContent}

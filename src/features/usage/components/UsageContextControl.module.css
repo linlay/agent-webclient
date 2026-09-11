@@ -55,16 +55,23 @@
     padding: 0;
 }
 
+.usage-drawer :global(.ant-drawer-content-wrapper) {
+    box-shadow: none;
+}
+
 .usage-drawer :global(.ant-drawer-content) {
-    border-radius: 0 0 12px 12px;
+    max-width: 420px;
+    margin: 0 auto;
+    border-radius: 12px;
     background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
     color: var(--ink-1);
 }
 
 .usage-drawer :global(.ant-drawer-body) {
     max-height: min(70vh, 620px);
     overflow: auto;
-    padding: 8px;
+    padding: 15px 8px 8px;
 }
 
 .usage-popover-header {
