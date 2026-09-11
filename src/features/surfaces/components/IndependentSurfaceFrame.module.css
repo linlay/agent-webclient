@@ -32,7 +32,6 @@
     min-height: 0;
     flex: 1;
     overflow: hidden;
-    padding: 12px;
 }
 
 .readonly-run-surface-content.is-flush {
