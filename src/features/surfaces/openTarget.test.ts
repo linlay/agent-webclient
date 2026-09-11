@@ -1,6 +1,7 @@
 import { matchPath } from "react-router-dom";
 import {
   buildDesktopNativeResourceRequest,
+  resolvePublishedArtifactIntent,
   buildDesktopWorkPanelDescriptor,
   buildStandaloneOpenTargetUrl,
   normalizeProjectRelativePath,
@@ -737,5 +738,33 @@ describe("canonical independent Surface targets", () => {
     expect(Object.values(SURFACE_ROUTE_PATHS).some(
       (path) => matchPath(path, url.pathname),
     )).toBe(false);
+  });
+});
+
+
+describe("published artifact resource links", () => {
+  const intent = { version: 1 as const, kind: "resource" as const, chatId: "chat-1", agentKey: "agent-1", file: "artifacts/run-1/dashboard.html" };
+  const published = { artifactId: "artifact-1", timestamp: 100, artifact: {
+    type: "file" as const, name: "dashboard.html", mimeType: "text/html", sha256: "", sizeBytes: 1, url: intent.file,
+  } };
+  it("opens a resource link through the canonical native document bridge", async () => {
+    const openNativeDocument = jest.fn().mockResolvedValue({ ok: true });
+    const openDescriptor = jest.fn();
+    expect(openDesktopWorkPanelTarget({
+      intent: resolvePublishedArtifactIntent(intent, "chat-1", [published]),
+      workPanel: { openDescriptor, supportsNativeDocument: () => true, openNativeDocument },
+    })).toBe(true);
+    await Promise.resolve();
+    expect(openNativeDocument).toHaveBeenCalledWith(expect.objectContaining({ source: {
+      kind: "artifact", chatId: "chat-1", agentKey: "agent-1", resourceId: "artifact-1", relativePath: intent.file,
+    } }));
+    expect(openDescriptor).not.toHaveBeenCalled();
+  });
+  it("does not invent an identity for missing, ambiguous or other Chat artifacts", () => {
+    expect(resolvePublishedArtifactIntent(intent, "chat-2", [published])).toBe(intent);
+    expect(resolvePublishedArtifactIntent(intent, "chat-1", [])).toBe(intent);
+    expect(resolvePublishedArtifactIntent(intent, "chat-1", [published, published])).toBe(intent);
+    const traversal = { ...intent, file: "artifacts/%252e%252e/dashboard.html" };
+    expect(resolvePublishedArtifactIntent(traversal, "chat-1", [published])).toBe(traversal);
   });
 });

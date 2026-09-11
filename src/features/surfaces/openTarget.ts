@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
 import type { TimelineSource } from "@/features/timeline/lib/timelineState";
 import { classifyResourceUrl } from "@/shared/data";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
@@ -660,6 +661,35 @@ function viewerTargetFromIntent(intent: OpenTargetIntent): ViewerTarget | null {
   return null;
 }
 
+// Resource links carry a URL, while native documents require the published identity.
+// Only recover it from the current Chat's authoritative artifact projection.
+export function resolvePublishedArtifactIntent(
+  intent: OpenTargetIntent,
+  ownerChatId: string,
+  artifacts: PublishedArtifact[],
+): OpenTargetIntent {
+  if (intent.kind !== "resource" || intent.chatId !== ownerChatId) return intent;
+  const requested = classifyResourceUrl(intent.file, ownerChatId);
+  if (requested.kind !== "chat" || !requested.resourceKey) return intent;
+  const relativePath = decodeNativeResourceRelativePath(requested.resourceKey, "artifact");
+  if (!relativePath) return intent;
+  const matches = artifacts.filter((entry) => {
+    const candidate = classifyResourceUrl(entry.artifact.url, ownerChatId);
+    return clean(entry.artifactId) && candidate.kind === "chat" &&
+      decodeNativeResourceRelativePath(candidate.resourceKey, "artifact") === relativePath;
+  });
+  if (matches.length !== 1) return intent;
+  const published = matches[0];
+  const target = buildResourceViewerTargetFromUrl(published.artifact.url);
+  if (!target) return intent;
+  return {
+    version: 1, kind: "artifact", artifactId: published.artifactId,
+    chatId: intent.chatId, agentKey: intent.agentKey,
+    title: intent.title, toggle: intent.toggle,
+    resourceTarget: { ...target, name: published.artifact.name, mimeType: published.artifact.mimeType },
+  };
+}
+
 export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
   const dispatch = useAppDispatch();
   const state = useAppState();
@@ -691,9 +721,12 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
         (currentWorker?.type === "agent" ? currentWorker.sourceId : ""),
       )
       : "";
-    const normalizedIntent = resolvedAgentKey && usesAgentIdentity(intent)
-      ? { ...intent, agentKey: resolvedAgentKey } as OpenTargetIntent
-      : intent;
+    const normalizedIntent = resolvePublishedArtifactIntent(
+      resolvedAgentKey && usesAgentIdentity(intent)
+        ? { ...intent, agentKey: resolvedAgentKey } as OpenTargetIntent
+        : intent,
+      state.chatId, state.artifacts,
+    );
 
     if (!desktopMode && pathname === "/") {
       if (normalizedIntent.kind === "overview" || normalizedIntent.kind === "debug") {

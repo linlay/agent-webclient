@@ -646,6 +646,25 @@ describe('useConversationEventHandler live chat binding', () => {
     jest.clearAllMocks();
   });
 
+  it.each(['run.complete', 'run.error', 'run.cancel'])('preserves successful tool results after %s', (type) => {
+    const state = createInitialState();
+    state.chatId = 'chat_1';
+    state.runId = 'run_1';
+    state.streaming = true;
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({ dispatch, stateRef: { current: state } });
+    let handler: ReturnType<typeof useConversationEventHandler> | null = null;
+    const Harness = () => { handler = useConversationEventHandler(); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    handler!.handleEvent({ type: 'tool.result', toolId: 'tool_1', result: 'done', timestamp: 100 });
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'SET_TIMELINE_NODE', node: expect.objectContaining({ status: 'success' }),
+    }));
+    dispatch.mockClear();
+    handler!.handleEvent({ type, chatId: 'chat_1', runId: 'run_1', timestamp: 200 });
+    expect(dispatch.mock.calls.filter(([action]) => action.type === 'SET_TIMELINE_NODE' && action.node.kind === 'tool')).toEqual([]);
+  });
+
   it('binds the visible chat when run.start is the first event carrying chatId', () => {
     const state = createInitialState();
     state.streaming = true;
