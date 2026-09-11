@@ -1,0 +1,26 @@
+.item { position: relative; min-width: 0; }
+.item .pin .icon { width: 14px; height: 14px; font-size: 14px; color: inherit; }
+.pin {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+}
+.item:hover .pin, .item:focus-within .pin, .pin[aria-pressed="true"] { opacity: 1; pointer-events: auto; }
+.pin[aria-pressed="true"] { color: var(--ink-1); }
+.pin:disabled { cursor: default; }
+.pin:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
+.item:hover :global([data-pin-title]), .item:focus-within :global([data-pin-title]), .item[data-pinned] :global([data-pin-title]) { padding-inline-end: 22px; }

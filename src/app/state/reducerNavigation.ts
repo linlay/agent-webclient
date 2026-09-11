@@ -1,5 +1,11 @@
+import { applyChatPinnedOrder } from "@/features/chats/lib/chatPinning";
+import { reduceChatPinningState } from "@/features/chats/lib/chatPinningState";
+import { reduceAgentsState } from "@/features/agents/lib/agentState";
+import { reduceWorkersState } from "@/features/workers/lib/workerState";
+import { reduceAutomationsState } from "@/features/automations/lib/automationsState";
 import type { AppAction } from "@/app/state/actions";
-import type { AppState, Chat } from "@/app/state/types";
+import type { AppState } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { upsertChatSummary } from "@/features/chats/lib/chatSummary";
 import { setMapValue } from "@/app/state/reducerHelpers";
 import {
@@ -69,37 +75,18 @@ export function reduceNavigationState(
 	action: AppAction,
 ): AppState | null {
 	switch (action.type) {
-		case "SET_AGENTS":
-			return { ...state, agents: action.agents };
-		case "SET_TEAMS":
-			return { ...state, teams: action.teams };
 		case "SET_CHATS":
 			return {
 				...state,
-				chats: action.chats,
+				chats: applyChatPinnedOrder(action.chats, state.chatPinnedOrder),
 				temporaryPinnedAgentKey: clearTemporaryPinForChats(state, action.chats),
 				chatAgentById: syncChatAgentBindings(
 					state.chatAgentById,
 					action.chats,
 				),
 			};
-		case "SET_AUTOMATIONS":
-			return { ...state, automations: action.automations };
-		case "START_SIDEBAR_REQUEST":
-			return {
-				...state,
-				sidebarPendingRequestCount: state.sidebarPendingRequestCount + 1,
-			};
-		case "FINISH_SIDEBAR_REQUEST":
-			return {
-				...state,
-				sidebarPendingRequestCount: Math.max(
-					0,
-					state.sidebarPendingRequestCount - 1,
-				),
-			};
 		case "UPSERT_CHAT": {
-			const chats = upsertChatSummary(state.chats, action.chat);
+			const chats = applyChatPinnedOrder(upsertChatSummary(state.chats, action.chat), state.chatPinnedOrder);
 			return {
 				...state,
 				chats,
@@ -116,6 +103,7 @@ export function reduceNavigationState(
 			return {
 				...state,
 				chats: state.chats.filter((chat) => String(chat.chatId || "") !== chatId),
+				chatPinnedOrder: state.chatPinnedOrder?.filter((id) => id !== chatId) ?? null,
 				workerRelatedChats: state.workerRelatedChats.filter(
 					(chat) => String(chat.chatId || "") !== chatId,
 				),
@@ -149,48 +137,6 @@ export function reduceNavigationState(
 				agents: upsertAgentUnreadCount(state.agents, agentKey, 0),
 			};
 		}
-		case "SET_CHAT_FILTER":
-			return { ...state, chatFilter: action.filter };
-		case "SET_WORKER_SELECTION_KEY":
-			return {
-				...state,
-				workerSelectionKey: action.workerKey,
-				editingMode:
-					action.workerKey === state.workerSelectionKey
-						? state.editingMode
-						: false,
-			};
-		case "SET_WORKER_ROWS": {
-			const workerIndexByKey = new Map(
-				action.rows.map((row) => [row.key, row]),
-			);
-			const workerSelectionKey = workerIndexByKey.has(
-				state.workerSelectionKey,
-			)
-				? state.workerSelectionKey
-				: "";
-			return {
-				...state,
-				workerRows: action.rows,
-				workerIndexByKey,
-				workerSelectionKey,
-			};
-		}
-		case "SET_WORKER_ORDER_KEYS":
-			return { ...state, workerOrderKeys: action.workerOrderKeys };
-		case "SET_WORKER_RELATED_CHATS":
-			return { ...state, workerRelatedChats: action.chats };
-		case "SET_WORKER_CHAT_PANEL_COLLAPSED":
-			return { ...state, workerChatPanelCollapsed: action.collapsed };
-		case "SET_PENDING_NEW_CHAT_AGENT_KEY":
-			return { ...state, pendingNewChatAgentKey: action.agentKey };
-		case "SET_WORKER_PRIORITY_KEY":
-			return { ...state, workerPriorityKey: action.workerKey };
-		case "SET_TEMPORARY_PINNED_AGENT_KEY":
-			return {
-				...state,
-				temporaryPinnedAgentKey: String(action.agentKey || "").trim(),
-			};
 		case "SET_CHAT_AGENT_BY_ID":
 			return {
 				...state,
@@ -200,7 +146,22 @@ export function reduceNavigationState(
 					action.agentKey,
 				),
 			};
+		case "SET_WORKER_SELECTION_KEY":
+			return {
+				...reduceWorkersState(state, action),
+				editingMode:
+					action.workerKey === state.workerSelectionKey
+						? state.editingMode
+						: false,
+			};
+		case "SET_CHAT_PINNING": {
+			const next = reduceChatPinningState(state, action)!;
+			return { ...next, chatAgentById: syncChatAgentBindings(state.chatAgentById, next.chats) };
+		}
 		default:
-			return null;
+			return reduceChatPinningState(state, action)
+				?? reduceAgentsState(state, action)
+				?? reduceWorkersState(state, action)
+				?? reduceAutomationsState(state, action);
 	}
 }

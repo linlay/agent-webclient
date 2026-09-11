@@ -1,20 +1,10 @@
-import type { AgentEvent, ChatActiveRunSummary } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { ChatActiveRunSummary } from "@/features/chats/lib/chatState";
 import type { RunSession } from "@/features/runs/lib/runSession";
+import { readExplicitEditingMode } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 
-export function readExplicitEditingMode(value: unknown): boolean | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  const record = value as Record<string, unknown>;
-  if (
-    !Object.prototype.hasOwnProperty.call(record, "editingMode") ||
-    typeof record.editingMode !== "boolean"
-  ) {
-    return undefined;
-  }
-  return record.editingMode;
-}
+export { readExplicitEditingMode } from "@/features/events/lib/eventFields";
 
 export function resolveRunEditingMode(input: {
   runId: string;

@@ -1,3 +1,4 @@
+import { matchPath } from "react-router-dom";
 import {
   buildDesktopNativeResourceRequest,
   buildDesktopWorkPanelDescriptor,
@@ -7,9 +8,22 @@ import {
   openDesktopWorkPanelTarget,
   resolveWorkPanelFileTitle,
 } from "@/features/surfaces/openTarget";
-import { buildSurfaceRoute, parseSurfaceRoute } from "@/features/surfaces/surfaceRoutes";
+import { buildSurfaceRoute, SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
 
 describe("canonical independent Surface targets", () => {
+  it.each(["申请表.docx", "references/申请表.docx"])("preserves the uploaded Reference identity for %s", (path) => {
+    const result = buildDesktopNativeResourceRequest({
+      version: 1, kind: "reference", agentKey: "agent-1", chatId: "chat-1", referenceId: "upload-1",
+      resourceTarget: { type: "resource", name: "申请表.docx", url: path.split("/").map(encodeURIComponent).join("/"), downloadUrl: "", contentKind: "office" },
+    });
+    expect(result).toMatchObject({ profile: "reference", resourceId: "upload-1", relativePath: path });
+  });
+  it.each(["../notes.txt", "%252e%252e", "artifacts/run/notes.txt", "uploads/notes.txt", "C:/notes.txt"])("does not relax the Reference boundary for %s", (url) => {
+    expect(buildDesktopNativeResourceRequest({
+      version: 1, kind: "reference", agentKey: "agent-1", chatId: "chat-1", referenceId: "upload-1",
+      resourceTarget: { type: "resource", name: "notes.txt", url, downloadUrl: "", contentKind: "text" },
+    })).toBeNull();
+  });
   it("uses explicit title, raw cross-platform basename, and bounded file fallback", () => {
     expect(resolveWorkPanelFileTitle("/tmp/report.md", "  Report  ")).toBe("Report");
     expect(resolveWorkPanelFileTitle("C:\\Users\\demo\\notes.txt")).toBe("notes.txt");
@@ -712,7 +726,7 @@ describe("canonical independent Surface targets", () => {
     expect(normalizeWorkspaceFileRequestPath("a".repeat(2_049))).toBe("");
   });
 
-  it("round-trips every canonical route through the strict parser", () => {
+  it("builds canonical routes matched by the production React Router paths", () => {
     const intents = [
       { kind: "overview", chatId: "chat-1" },
       { kind: "debug", chatId: "chat-1" },
@@ -735,16 +749,26 @@ describe("canonical independent Surface targets", () => {
     for (const intent of intents) {
       const route = buildSurfaceRoute(intent);
       const url = new URL(route, "https://local.invalid");
-      expect(parseSurfaceRoute(url.pathname, url.search)).toEqual(intent);
+      const match = matchPath(SURFACE_ROUTE_PATHS[intent.kind], url.pathname);
+      expect(match).not.toBeNull();
+      for (const [key, value] of Object.entries(intent)) {
+        if (key === "kind") continue;
+        expect(match?.params[key] ?? url.searchParams.get(key)).toBe(String(value));
+      }
     }
   });
 
-  it("rejects removed no-agent and legacy query routes", () => {
-    expect(parseSurfaceRoute("/overview", "?agentKey=agent-1&chatId=chat-1")).toBeNull();
-    expect(parseSurfaceRoute("/debug", "?agentKey=agent-1&chatId=chat-1")).toBeNull();
-    expect(parseSurfaceRoute("/overview", "?view=planning&nodeId=plan-1")).toBeNull();
-    expect(parseSurfaceRoute("/agent", "?agentKey=agent-1&history=1")).toBeNull();
-    expect(parseSurfaceRoute("/artifact-view/agent-1", "?chatId=chat-1&artifactId=art-1")).toBeNull();
-    expect(parseSurfaceRoute("/reference-view/agent-1", "?chatId=chat-1&referenceId=ref-1")).toBeNull();
+  it.each([
+    "/overview?agentKey=agent-1&chatId=chat-1",
+    "/debug?agentKey=agent-1&chatId=chat-1",
+    "/overview?view=planning&nodeId=plan-1",
+    "/agent?agentKey=agent-1&history=1",
+    "/artifact-view/agent-1?chatId=chat-1&artifactId=art-1",
+    "/reference-view/agent-1?chatId=chat-1&referenceId=ref-1",
+  ])("does not match removed route %s", (route) => {
+    const url = new URL(route, "https://local.invalid");
+    expect(Object.values(SURFACE_ROUTE_PATHS).some(
+      (path) => matchPath(path, url.pathname),
+    )).toBe(false);
   });
 });

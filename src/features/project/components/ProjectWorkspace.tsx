@@ -1,7 +1,8 @@
 import React from "react";
 import { Select, Spin } from "antd";
-import type { Chat } from "@/app/state/navigationTypes";
-import { FileDiffView } from "@/app/layout/sidebar/right/FileDiffView";
+import type { Chat } from "@/features/chats/lib/chatState";
+import "./ProjectWorkspace.module.css";
+import { FileDiffView } from "@/features/project/components/FileDiffView";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
 import {
   buildFileViewerTarget,
@@ -22,6 +23,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { usePanelResize } from "@/shared/ui/usePanelResize";
 import type { ProjectRouteState, ProjectView } from "@/features/project/lib/projectRoute";
 import {
   projectRefreshVisible,
@@ -541,18 +543,17 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
     label: `${item.runId} · ${item.fileCount}`,
   }));
 
-  const startResize = (event: React.PointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const originX = event.clientX;
-    const originWidth = treeWidth;
-    const move = (moveEvent: PointerEvent) => setTreeWidth(Math.max(220, Math.min(520, originWidth + moveEvent.clientX - originX)));
-    const stop = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stop);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", stop);
-  };
+  const resizeStartWidthRef = React.useRef(treeWidth);
+  const { handlePointerDown: startResize } = usePanelResize({
+    axis: "horizontal",
+    onResizeStart: () => {
+      resizeStartWidthRef.current = treeWidth;
+    },
+    onResize: (delta) =>
+      setTreeWidth(
+        Math.max(220, Math.min(520, resizeStartWidthRef.current + delta)),
+      ),
+  });
 
   const fileTabs = (
     <div className="project-open-tabs" role="tablist" aria-label={t("project.tabs.openFiles")}>

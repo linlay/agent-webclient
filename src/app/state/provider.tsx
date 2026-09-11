@@ -7,7 +7,7 @@ import React, {
 	useReducer,
 	useRef,
 } from "react";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import { appReducer } from "@/app/state/reducer";
@@ -16,7 +16,6 @@ import type { LiveQuerySession } from "@/features/conversation/lib/conversationS
 import { getAppAccessToken, refreshAppAccessToken } from "@/shared/data/auth/appAuth";
 import { setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
-import { syncThemeMode } from "@/shared/styles/theme";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import { persistComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
 import { dataQueryCache } from "@/shared/data/query/serverState";
@@ -138,9 +137,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		[state, dispatch],
 	);
 
-	useEffect(() => {
-		syncThemeMode(state.themeMode);
-	}, [state.themeMode]);
 
 	useEffect(() => {
 		syncApiAccessToken(state);
@@ -209,6 +205,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 					agents: [],
 					teams: [],
 					chats: [],
+					chatPinnedOrder: null,
+					chatPinningPending: false,
 					automations: [],
 				},
 			});

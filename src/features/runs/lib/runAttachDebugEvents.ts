@@ -1,6 +1,7 @@
-import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AgentEvent, AppState } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { ActionDispatch } from "@/shared/contracts/stateInterop";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import { isDebugRunObservationEnabled } from "@/shared/config/featureFlags";
 import { toText } from "@/shared/utils/eventUtils";
@@ -56,7 +57,7 @@ export function readRunAttachDebugSnapshot(input: {
 }
 
 export function dispatchRunAttachDebugEvent(
-	dispatch: Dispatch<AppAction>,
+	dispatch: ActionDispatch<AppAction>,
 	input: RunAttachDebugInput,
 ): void {
 	if (!isDebugRunObservationEnabled()) {

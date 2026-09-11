@@ -9,6 +9,17 @@ import {
 const mockUiButtonProps: Array<Record<string, any>> = [];
 const mockDiscardBTW = jest.fn();
 const mockOpenCommandOverlay = jest.fn();
+const mockOnFeedback = jest.fn();
+let mockStageOnFeedback: unknown;
+jest.mock("@/features/conversation/hooks/useRunFeedbackAction", () => ({
+  useRunFeedbackAction: () => mockOnFeedback,
+}));
+
+const mockDeriveChatAction = { isDisabled: jest.fn(), execute: jest.fn() };
+let mockStageDeriveChatAction: unknown;
+jest.mock("@/features/conversation/hooks/useDeriveChatAction", () => ({
+  useDeriveChatAction: () => mockDeriveChatAction,
+}));
 
 jest.mock("react-router-dom", () => ({
   useLocation: jest.fn(),
@@ -36,8 +47,12 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
     showEmptyState?: boolean;
     surfaceMode?: string;
     expectedChatId?: string;
-  }) =>
-    React.createElement(
+    deriveChatAction: unknown;
+    onFeedback: unknown;
+  }) => {
+    mockStageDeriveChatAction = props.deriveChatAction;
+    mockStageOnFeedback = props.onFeedback;
+    return React.createElement(
       "main",
       {
         className: "conversation-stage",
@@ -46,7 +61,8 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
         "data-expected-chat-id": props.expectedChatId,
       },
       "stage",
-    ),
+    );
+  },
 }));
 
 jest.mock("@/app/layout/BottomDock", () => ({
@@ -107,17 +123,17 @@ jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({
     }),
 }));
 
-jest.mock("@/app/layout/sidebar/right/DebugTab", () => ({
+jest.mock("@/features/debug/components/DebugTab", () => ({
   DebugTab: () =>
     React.createElement("div", { className: "debug-tab" }, "debug tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/OverviewTab", () => ({
+jest.mock("@/features/overview/components/OverviewTab", () => ({
   OverviewTab: () =>
     React.createElement("div", { className: "overview-tab" }, "overview tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/SourceDetailTab", () => ({
+jest.mock("@/features/source/components/SourceDetailTab", () => ({
   SourceDetailTab: () =>
     React.createElement(
       "div",
@@ -126,7 +142,7 @@ jest.mock("@/app/layout/sidebar/right/SourceDetailTab", () => ({
     ),
 }));
 
-jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
+jest.mock("@/features/plan/components/PlanningPreviewTab", () => ({
   PlanningPreviewTab: () =>
     React.createElement(
       "div",
@@ -165,12 +181,12 @@ jest.mock("@/features/settings/components/SettingsModal", () => ({
     React.createElement("div", { className: "settings-modal" }, "settings"),
 }));
 
-jest.mock("@/features/settings/components/MemoryInfoModal", () => ({
-  MemoryInfoModal: () =>
+jest.mock("@/features/memory/components/MemoryModal", () => ({
+  MemoryModal: () =>
     React.createElement("div", { className: "memory-info-modal" }, "memory"),
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   CommandOverlayProvider: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),
   useCommandOverlayActions: () => ({
@@ -181,7 +197,7 @@ jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
   useCommandOverlayOpen: () => false,
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayHost", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayHost", () => ({
   CommandOverlayHost: (props: { variant?: string }) =>
     React.createElement(
       "div",
@@ -197,11 +213,11 @@ jest.mock("@/features/search/components/GlobalSearchOverlay", () => ({
   GlobalSearchOverlay: () => null,
 }));
 
-jest.mock("@/features/workers/hooks/useGlobalShortcuts", () => ({
+jest.mock("@/features/shortcuts/components/GlobalShortcutLayer", () => ({
   GlobalShortcutLayer: () => null,
 }));
 
-jest.mock("@/app/modals/EventPopover", () => ({
+jest.mock("@/features/debug/components/EventPopover", () => ({
   EventPopover: () =>
     React.createElement("div", { className: "event-popover" }, "event"),
 }));
@@ -288,6 +304,8 @@ describe("CopilotShell", () => {
   const navigate = jest.fn();
 
   beforeEach(() => {
+    mockStageDeriveChatAction = undefined;
+    mockStageOnFeedback = undefined;
     globalWithStorage.window = {
       addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
@@ -350,6 +368,8 @@ describe("CopilotShell", () => {
     expect(html).toContain("layout-copilot");
     expect(html).toContain("copilot-topbar");
     expect(html).toContain("conversation-stage");
+    expect(mockStageDeriveChatAction).toBe(mockDeriveChatAction);
+    expect(mockStageOnFeedback).toBe(mockOnFeedback);
     expect(html).toContain("bottom-dock");
     expect(html).toContain('data-show-empty-state="false"');
     expect(html).toContain('data-surface-mode="copilot"');
@@ -359,6 +379,7 @@ describe("CopilotShell", () => {
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
     expect(useAppRuntimes).toHaveBeenCalledWith({
       initialWorkerRefreshEnabled: true,
+      targetChatId: "", routeReady: true,
     });
   });
 
@@ -614,7 +635,7 @@ describe("CopilotShell", () => {
       dispatchEvent.mock.calls.filter(
         ([event]) => (event as Event).type === "agent:load-chat",
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
 
     useEffectSpy.mockRestore();
   });
@@ -864,6 +885,7 @@ describe("CopilotShell", () => {
     expect(getAgent).toHaveBeenCalledWith("missing-agent");
     expect(useAppRuntimes).toHaveBeenCalledWith({
       initialWorkerRefreshEnabled: false,
+      targetChatId: "", routeReady: false,
     });
 
     useEffectSpy.mockRestore();
@@ -937,15 +959,10 @@ describe("CopilotShell", () => {
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
-    expect(dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:load-chat",
-        detail: {
-          chatId: "chat-123",
-          focusComposerOnComplete: true,
-        },
-      }),
-    );
+    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({
+      targetChatId: "chat-123",
+    }));
+    expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: "agent:load-chat" }));
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",

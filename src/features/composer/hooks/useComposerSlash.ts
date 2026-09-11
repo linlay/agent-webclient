@@ -6,8 +6,10 @@ import {
   shouldShowSlashCommandPalette,
   type SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
-import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposerSkillMenuQuery";
 import { useComposerFilter } from "@/features/composer/hooks/useComposerFilter";
+import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
+import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 interface UseComposerSlashInput {
   composerPillRef: RefObject<HTMLDivElement>;
@@ -51,10 +53,11 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     !commandOverlayOpen &&
     !addMenuOpen &&
     !slashDismissed;
-  const skillQuery = useAgentSkillsQuery(currentAgentKey, {
+  const skillQuery = useComposerSkillMenuQuery(currentAgentKey, {
     enabled: skillQueryEnabled,
   });
   const hasSkillSection = Boolean(String(currentAgentKey || "").trim());
+  const { pinnedSkillKeys } = usePinnedSkills(skillQueryEnabled);
 
   // 初步显示判断（不含 items 检查），用于 useComposerFilter 记录起始位置
   const prelimShowSlash =
@@ -82,11 +85,14 @@ export function useComposerSlash(input: UseComposerSlashInput) {
   );
   const slashSkills = useMemo(
     () =>
-      getFilteredSlashSkills(
-        filterText,
-        hasSkillSection ? skillQuery.data?.skills || [] : [],
+      sortPinnedSkills(
+        getFilteredSlashSkills(
+          filterText,
+          hasSkillSection ? skillQuery.data?.skills || [] : [],
+        ),
+        pinnedSkillKeys,
       ),
-    [hasSkillSection, filterText, skillQuery.data],
+    [hasSkillSection, filterText, skillQuery.data, pinnedSkillKeys],
   );
   const slashItems = useMemo<SlashPaletteItem[]>(
     () => [...slashCommands, ...slashSkills],

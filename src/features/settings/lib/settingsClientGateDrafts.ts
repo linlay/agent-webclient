@@ -1,4 +1,4 @@
-import type { VoiceClientGateConfig } from "@/app/state/types";
+import type { VoiceClientGateConfig } from "@/features/voice/lib/voiceState";
 
 export type ClientGateDraftField =
 	| "rmsThreshold"

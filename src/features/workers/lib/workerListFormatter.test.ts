@@ -1,4 +1,6 @@
-import type { Agent, Chat, Team } from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team } from "@/features/workers/lib/workerState";
 import { buildWorkerRows } from '@/features/workers/lib/workerListFormatter';
 
 describe('buildWorkerRows', () => {

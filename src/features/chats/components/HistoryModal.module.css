@@ -1,0 +1,173 @@
+:global(.history-modal-title) {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+:global(.history-modal-title) :global(.ant-input-affix-wrapper) {
+    flex: 1 1 140px;
+    min-width: 120px;
+}
+
+:global(.history-list-container) :global(.ant-divider) {
+    margin: 6px 0;
+    border-color: var(--border);
+}
+
+:global(.history-list-item) {
+    position: relative;
+    padding-right: 150px;
+}
+
+:global(.history-list-item) :global(.history-list-summary) {
+    min-width: 0;
+}
+
+:global(.history-list-agent-name) {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+:global(.history-list-action-time) {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+:global(.history-list-actions) {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--bg-base) 40%);
+    padding-left: 8px;
+}
+
+:global(.history-list-item):hover :global(.history-list-actions),
+:global(.history-list-item):focus-within :global(.history-list-actions) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+:global(.history-list-summary) {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+:global(.history-list-title) {
+    flex: 1 1 auto;
+}
+
+:global(.history-list-status) {
+    flex: 0 0 auto;
+    margin-inline-end: 0 !important;
+}
+
+:global(.history-worker-selector) {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: min(220px, 40vw);
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    background: var(--bg-base);
+    color: var(--ink-1);
+    cursor: pointer;
+    text-align: start;
+}
+
+:global(.history-worker-selector.is-filtered) {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: transparent;
+}
+
+:global(.history-worker-selector):hover,
+:global(.history-worker-selector):focus-visible {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+:global(.history-worker-selector):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+:global(.history-worker-selector-name),
+:global(.history-worker-option-name) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+:global(.history-worker-selector-name) {
+    flex: 0 1 auto;
+}
+
+:global(.history-worker-selector-icon),
+:global(.history-worker-option-icon) {
+    flex: 0 0 auto;
+    border-radius: 6px;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+}
+
+:global(.history-worker-selector-chevron) {
+    flex: 0 0 auto;
+    color: var(--ink-muted);
+    font-size: 18px;
+}
+
+:global(.history-worker-option) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding-block: 3px;
+}
+
+:global(.history-worker-option-check) {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: var(--accent);
+    font-size: 16px;
+}
+
+:global(.history-agent-menu) :global(.ant-dropdown-menu) {
+    width: min(260px, calc(100vw - 48px));
+    max-height: min(360px, 60vh);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+:global(.history-agent-menu) :global(.ant-dropdown-menu-title-content) {
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    :global(.history-modal-title:not(.modal-title-bar-drawer)) :global(.ant-input-affix-wrapper) {
+        flex-basis: calc(100% - 40px);
+        order: -1;
+    }
+
+    :global(.history-modal-title:not(.modal-title-bar-drawer)) > :global(.ui-btn):last-child {
+        order: -1;
+    }
+
+    :global(.history-modal-title:not(.modal-title-bar-drawer)) :global(.history-worker-selector) {
+        max-width: min(220px, 55vw);
+        margin-right: auto;
+    }
+}

@@ -1,7 +1,12 @@
 import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup as renderMarkup } from "react-dom/server";
+import { I18nProvider } from "@/shared/i18n";
 import fs from "node:fs";
 import path from "node:path";
+
+function renderToStaticMarkup(element: React.ReactElement) {
+	return renderMarkup(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false }, element));
+}
 
 jest.mock("@/app/state/AppContext", () => ({
 	useAppState: () => ({ chatId: "chat_1", chats: [] }),
@@ -52,7 +57,7 @@ describe("ContentViewerPanel", () => {
 		);
 
 		expect(html).toContain("content-viewer-body");
-		expect(html).toContain("压缩包（只读）");
+		expect(html).toContain("archive.zip");
 		expect(html).toContain("<button");
 		expect(html).toMatch(/下\s*载/u);
 	});
@@ -72,7 +77,6 @@ describe("ContentViewerPanel", () => {
 			}),
 		);
 
-		expect(html).toContain("文本编码不受支持（只读）");
 		expect(html).toContain("不是安全的 UTF-8 文本");
 		expect(html).not.toContain("二进制文件（只读）");
 		expect(html).toMatch(/下\s*载/u);

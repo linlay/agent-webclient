@@ -1,4 +1,4 @@
-import type { AIAwaitPlanDecision } from "@/app/state/types";
+import type { AIAwaitPlanDecision } from "@/shared/contracts/agentEvents";
 
 export function isPlanDecision(value: unknown): value is AIAwaitPlanDecision {
   return value === "approve" || value === "reject";

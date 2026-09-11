@@ -1,6 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
+import { AppShell } from "@/app/layout/AppShell";
 import {
   AgentChatShell,
   claimNewChatAgentRefresh,
@@ -16,7 +17,20 @@ import {
   resolveNewChatResendRouteAction,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
-import type { Chat, WorkerRow } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
+
+const mockOnFeedback = jest.fn();
+let mockStageOnFeedback: unknown;
+jest.mock("@/features/conversation/hooks/useRunFeedbackAction", () => ({
+  useRunFeedbackAction: () => mockOnFeedback,
+}));
+
+const mockDeriveChatAction = { isDisabled: jest.fn(), execute: jest.fn() };
+let mockStageDeriveChatAction: unknown;
+jest.mock("@/features/conversation/hooks/useDeriveChatAction", () => ({
+  useDeriveChatAction: () => mockDeriveChatAction,
+}));
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(),
@@ -43,12 +57,18 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
     showEmptyState,
     surfaceMode,
     expectedChatId,
+    deriveChatAction,
+    onFeedback,
   }: {
     showEmptyState?: boolean;
     surfaceMode?: string;
     expectedChatId?: string;
-  }) =>
-    React.createElement(
+    deriveChatAction: unknown;
+    onFeedback: unknown;
+  }) => {
+    mockStageDeriveChatAction = deriveChatAction;
+    mockStageOnFeedback = onFeedback;
+    return React.createElement(
       "main",
       {
         className: "conversation-stage",
@@ -57,7 +77,8 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
         "data-expected-chat-id": expectedChatId,
       },
       "stage",
-    ),
+    );
+  },
 }));
 
 jest.mock("@/app/layout/BottomDock", () => ({
@@ -70,7 +91,7 @@ jest.mock("@/app/layout/LeftSidebar", () => ({
     React.createElement("aside", { className: "left-sidebar" }, "left"),
 }));
 
-jest.mock("@/app/layout/sidebar/SidebarHistorySection", () => ({
+jest.mock("@/features/chats/components/SidebarHistorySection", () => ({
   SidebarHistorySection: ({ open }: any) =>
     open
       ? React.createElement(
@@ -112,12 +133,12 @@ jest.mock("@/features/settings/components/SettingsModal", () => ({
     React.createElement("div", { className: "settings-modal" }, "settings"),
 }));
 
-jest.mock("@/features/settings/components/MemoryInfoModal", () => ({
-  MemoryInfoModal: () =>
+jest.mock("@/features/memory/components/MemoryModal", () => ({
+  MemoryModal: () =>
     React.createElement("div", { className: "memory-info-modal" }, "memory"),
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   CommandOverlayProvider: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),
   useCommandOverlayActions: () => ({
@@ -142,12 +163,12 @@ jest.mock("@/features/search/components/GlobalSearchOverlay", () => ({
   GlobalSearchOverlay: () => null,
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayHost", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayHost", () => ({
   CommandOverlayHost: () =>
     React.createElement("div", { className: "command-modal" }, "command"),
 }));
 
-jest.mock("@/app/modals/EventPopover", () => ({
+jest.mock("@/features/debug/components/EventPopover", () => ({
   EventPopover: () =>
     React.createElement("div", { className: "event-popover" }, "event"),
 }));
@@ -239,6 +260,8 @@ describe("AgentChatShell", () => {
   const navigateMock = jest.fn();
 
   beforeEach(() => {
+    mockStageDeriveChatAction = undefined;
+    mockStageOnFeedback = undefined;
     globalWithDom.window = {
       addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
@@ -316,6 +339,7 @@ describe("AgentChatShell", () => {
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
     expect(useAppRuntimes).toHaveBeenCalledWith({
       initialWorkerRefreshEnabled: false,
+      targetChatId: "", routeReady: false,
     });
   });
 
@@ -469,12 +493,21 @@ describe("AgentChatShell", () => {
     expect(html).toContain("layout-agent-route");
     expect(html).toContain("top-nav");
     expect(html).toContain("conversation-stage");
+    expect(mockStageDeriveChatAction).toBe(mockDeriveChatAction);
+    expect(mockStageOnFeedback).toBe(mockOnFeedback);
     expect(html).toContain('data-show-empty-state="true"');
     expect(html).toContain("bottom-dock");
     expect(html).not.toContain("right-sidebar");
     expect(html).not.toContain("terminal-dock");
     expect(html).not.toContain('<aside class="left-sidebar"');
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
+  });
+
+  it("injects the same conversation action into the main shell stage", () => {
+    const html = renderToStaticMarkup(React.createElement(AppShell));
+    expect(html).toContain("conversation-stage");
+    expect(mockStageDeriveChatAction).toBe(mockDeriveChatAction);
+    expect(mockStageOnFeedback).toBe(mockOnFeedback);
   });
 
   it("does not start a blank conversation for a bare agent route", () => {
@@ -917,15 +950,10 @@ describe("AgentChatShell", () => {
       type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
       agentKey: "demo-agent",
     });
-    expect(dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:load-chat",
-        detail: {
-          chatId: "chat-123",
-          focusComposerOnComplete: true,
-        },
-      }),
-    );
+    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({
+      targetChatId: "chat-123",
+    }));
+    expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: "agent:load-chat" }));
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "agent:start-new-conversation",
@@ -997,7 +1025,7 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("does not cover visible timeline content when route chat id and state chat id diverge", () => {
+  it("keeps the timeline mounted for the shared surface to mask when route and state diverge", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
@@ -1015,7 +1043,7 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("waits for agent hydration before activating a direct chat route", async () => {
+  it("registers the direct Chat target while waiting for Agent hydration", async () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -1039,8 +1067,8 @@ describe("AgentChatShell", () => {
         type: "agent:load-chat",
       }),
     );
-    expect(html).toContain("Loading agent");
-    expect(html).not.toContain("Loading conversation");
+    expect(html).toContain("conversation-stage");
+    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({ targetChatId: "chat-123", routeReady: false }));
 
     await flushPromises();
 

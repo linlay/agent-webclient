@@ -1,5 +1,5 @@
 import React from "react";
-import type { TimelineNode, TimelineSource } from "@/app/state/types";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { Flex } from "antd";

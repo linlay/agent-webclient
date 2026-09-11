@@ -3,9 +3,12 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { createInitialState } from "@/app/state/state";
-import type { AppState, ChatTransition, TimelineNode } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { ChatTransition } from "@/features/conversation/lib/conversationState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   clearConversationScrollBookmarks,
+  getConversationScrollBookmark,
   setConversationScrollBookmark,
 } from "@/features/timeline/lib/conversationScrollBookmark";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
@@ -69,7 +72,7 @@ jest.mock("@/shared/ui/MaterialIcon", () => ({
 }));
 
 jest.mock("@/shared/ui/UiButton", () => ({
-  UiButton: ({ children, ...props }: any) =>
+  UiButton: ({ children, iconOnly: _iconOnly, ...props }: any) =>
     React.createElement("button", props, children),
 }));
 
@@ -77,17 +80,8 @@ jest.mock("@/shared/components/logo-loading", () => ({
   LogoLoading: () => React.createElement("span"),
 }));
 
-jest.mock("@/shared/components/dot-loading", () => ({
-  DotLoading: () => React.createElement("span"),
-}));
-
 jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
-}));
-
-jest.mock("@/shared/data", () => ({
-  deriveChat: jest.fn(),
-  submitFeedback: jest.fn(),
 }));
 
 jest.mock("antd", () => {
@@ -129,6 +123,7 @@ jest.mock("react-virtuoso", () => {
       return () => props.scrollerRef?.(null);
     }, [props.scrollerRef]);
     const Item = props.components?.Item || "div";
+    const Footer = props.components?.Footer;
     return React.createElement(
       "div",
       { ref: scrollerRef, className: props.className, id: props.id },
@@ -146,6 +141,7 @@ jest.mock("react-virtuoso", () => {
           props.itemContent(index, item),
         ),
       ),
+      Footer ? React.createElement(Footer, { key: "footer" }) : null,
     );
   });
   return { Virtuoso };
@@ -192,6 +188,8 @@ describe("ConversationStage scroll restoration", () => {
   let container: HTMLDivElement;
   let root: Root;
   let rafId = 0;
+  let autoFlushAnimationFrames = true;
+  const animationFrameCallbacks = new Map<number, FrameRequestCallback>();
   let reducedMotion = false;
 
   beforeEach(() => {
@@ -218,17 +216,23 @@ describe("ConversationStage scroll restoration", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    autoFlushAnimationFrames = true;
+    animationFrameCallbacks.clear();
     Object.defineProperty(window, "requestAnimationFrame", {
       configurable: true,
       value: (callback: FrameRequestCallback) => {
         const id = ++rafId;
-        callback(0);
+        if (autoFlushAnimationFrames) {
+          callback(0);
+        } else {
+          animationFrameCallbacks.set(id, callback);
+        }
         return id;
       },
     });
     Object.defineProperty(window, "cancelAnimationFrame", {
       configurable: true,
-      value: jest.fn(),
+      value: jest.fn((id: number) => animationFrameCallbacks.delete(id)),
     });
     reducedMotion = false;
     Object.defineProperty(window, "matchMedia", {
@@ -258,11 +262,71 @@ describe("ConversationStage scroll restoration", () => {
       root.render(
         React.createElement(ConversationStage, {
           surfaceMode: "main",
+          onFeedback: async () => undefined,
+          deriveChatAction: { isDisabled: () => false, execute: async () => undefined },
           expectedChatId,
         }),
       );
     });
   }
+
+  function flushAnimationFrame() {
+    const next = animationFrameCallbacks.entries().next().value as
+      | [number, FrameRequestCallback]
+      | undefined;
+    if (!next) return;
+    const [id, callback] = next;
+    animationFrameCallbacks.delete(id);
+    callback(0);
+  }
+
+  function seedCompatibleBookmark(
+    overrides: Partial<NonNullable<ReturnType<typeof getConversationScrollBookmark>>>,
+  ) {
+    renderStage();
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+    act(() => root.unmount());
+    const captured = getConversationScrollBookmark({
+      surfaceMode: "main",
+      chatId: "chat-target",
+    });
+    expect(captured).not.toBeNull();
+    setConversationScrollBookmark(
+      { surfaceMode: "main", chatId: "chat-target" },
+      { ...captured!, ...overrides },
+    );
+    root = createRoot(container);
+    mockDispatch.mockReset();
+    mockScrollToIndex.mockReset();
+    mockScrollBy.mockReset();
+  }
+
+  it("marks the focusable Main Chat message scroller for workspace arrow keys", () => {
+    renderStage();
+
+    expect(mockVirtuosoProps.id).toBe("messages");
+    expect(
+      mockVirtuosoProps["data-desktop-workspace-arrow-keys"],
+    ).toBe("allow");
+  });
+
+  it("does not cover live output at the bottom and shows a down arrow after scrolling away", () => {
+    mockState = { ...createChatState(), streaming: true };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).toBeNull();
+
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+
+    const button = container.querySelector(
+      ".conversation-stage-scroll-to-bottom",
+    );
+    expect(button).not.toBeNull();
+    expect(button?.querySelector('[data-icon="arrow_downward"]')).not.toBeNull();
+  });
 
   it("immediately overlays source content when the route targets another chat", () => {
     renderStage("chat-next");
@@ -272,7 +336,7 @@ describe("ConversationStage scroll restoration", () => {
     expect(mockVirtuosoProps.followOutput(true)).toBe(false);
   });
 
-  it("keeps a fast blocking history skeleton for 320ms and fades it for 180ms", () => {
+  it("keeps a fast blocking history skeleton for 160ms and fades it for 80ms", () => {
     mockState = createChatState(createTransition("loading"));
     mockStateRef.current = mockState;
     renderStage();
@@ -291,7 +355,7 @@ describe("ConversationStage scroll restoration", () => {
     );
     expect(overlay?.getAttribute("aria-busy")).toBe("false");
 
-    act(() => jest.advanceTimersByTime(319));
+    act(() => jest.advanceTimersByTime(159));
     expect(
       container.querySelector<HTMLElement>(".conversation-transition-overlay")
         ?.dataset.transitionPhase,
@@ -303,7 +367,7 @@ describe("ConversationStage scroll restoration", () => {
         ?.dataset.transitionPhase,
     ).toBe("exiting");
 
-    act(() => jest.advanceTimersByTime(179));
+    act(() => jest.advanceTimersByTime(79));
     expect(
       container.querySelector(".conversation-transition-overlay"),
     ).not.toBeNull();
@@ -327,7 +391,7 @@ describe("ConversationStage scroll restoration", () => {
       container.querySelector<HTMLElement>(".conversation-transition-overlay")
         ?.dataset.transitionPhase,
     ).toBe("exiting");
-    act(() => jest.advanceTimersByTime(179));
+    act(() => jest.advanceTimersByTime(79));
     expect(
       container.querySelector(".conversation-transition-overlay"),
     ).not.toBeNull();
@@ -344,7 +408,7 @@ describe("ConversationStage scroll restoration", () => {
     mockState = createChatState(createTransition("ready"));
     mockStateRef.current = mockState;
     renderStage();
-    act(() => jest.advanceTimersByTime(320));
+    act(() => jest.advanceTimersByTime(160));
 
     const overlay = container.querySelector<HTMLElement>(
       ".conversation-transition-overlay",
@@ -400,7 +464,7 @@ describe("ConversationStage scroll restoration", () => {
     mockStateRef.current = mockState;
     renderStage("chat-c");
 
-    act(() => jest.advanceTimersByTime(220));
+    act(() => jest.advanceTimersByTime(60));
     expect(
       container.querySelector<HTMLElement>(".conversation-transition-overlay")
         ?.dataset.transitionPhase,
@@ -440,7 +504,7 @@ describe("ConversationStage scroll restoration", () => {
     mockState = createChatState(createTransition("ready", { seq: 2 }));
     mockStateRef.current = mockState;
     renderStage();
-    act(() => jest.advanceTimersByTime(319));
+    act(() => jest.advanceTimersByTime(159));
     expect(
       container.querySelector<HTMLElement>(".conversation-transition-overlay")
         ?.dataset.transitionPhase,
@@ -459,6 +523,9 @@ describe("ConversationStage scroll restoration", () => {
     act(() => jest.advanceTimersByTime(100));
 
     mockState = createChatState(createTransition("restoring", {
+      sourceChatId: "chat-target",
+      targetChatId: "chat-target",
+      kind: "same-chat-reload",
       displayMode: "background",
     }));
     mockStateRef.current = mockState;
@@ -469,7 +536,7 @@ describe("ConversationStage scroll restoration", () => {
     ).toBeNull();
   });
 
-  it("keeps reduced-motion skeletons opaque for the full 500ms", () => {
+  it("keeps reduced-motion skeletons opaque for the full 160ms", () => {
     reducedMotion = true;
     mockState = createChatState(createTransition("loading"));
     mockStateRef.current = mockState;
@@ -478,7 +545,7 @@ describe("ConversationStage scroll restoration", () => {
     mockStateRef.current = mockState;
     renderStage();
 
-    act(() => jest.advanceTimersByTime(499));
+    act(() => jest.advanceTimersByTime(159));
     expect(
       container.querySelector<HTMLElement>(".conversation-transition-overlay")
         ?.dataset.transitionPhase,
@@ -489,7 +556,7 @@ describe("ConversationStage scroll restoration", () => {
     ).toBeNull();
   });
 
-  it("keeps the live timeline visible while its canonical route binding catches up", () => {
+  it("masks an uncommitted live handoff until its data belongs to the Router target", () => {
     mockState = {
       ...createChatState(createTransition("loading", {
         sourceChatId: "chat-source",
@@ -511,10 +578,11 @@ describe("ConversationStage scroll restoration", () => {
 
     renderStage("chat-next");
 
-    expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
+    expect(container.querySelector(".conversation-transition-overlay")).not.toBeNull();
+    expect(container.querySelector("[data-conversation-content]")?.getAttribute("aria-hidden")).toBe("true");
     expect(container.querySelector('[data-node-id="query-1"]')).not.toBeNull();
-    expect(mockVirtuosoProps.followOutput(true)).toBe("smooth");
-    expect(mockDispatch).toHaveBeenCalledWith({
+    expect(mockVirtuosoProps.followOutput(true)).toBe(false);
+    expect(mockDispatch).not.toHaveBeenCalledWith({
       type: "CLEAR_CHAT_TRANSITION",
     });
   });
@@ -580,15 +648,26 @@ describe("ConversationStage scroll restoration", () => {
     expect(mockVirtuosoProps.followOutput(true)).toBe("smooth");
   });
 
-  it("does not flash the skeleton when the active run completes during restoration", () => {
+  it("does not open the history skeleton when an active run completes after restoration", () => {
     mockState = createChatState(createTransition("restoring", {
       displayMode: "background",
     }));
-    mockState.currentChatActiveRun = null;
+    mockState.currentChatActiveRun = {
+      chatId: "chat-target",
+      runId: "run-attach",
+    };
     mockStateRef.current = mockState;
 
     renderStage();
 
+    expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
+
+    mockState = createChatState(createTransition("ready", {
+      displayMode: "background",
+    }));
+    mockState.currentChatActiveRun = null;
+    mockStateRef.current = mockState;
+    renderStage();
     expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
     expect(container.querySelector('[data-node-id="query-1"]')).not.toBeNull();
   });
@@ -607,25 +686,20 @@ describe("ConversationStage scroll restoration", () => {
   });
 
   it("restores a middle anchor with auto scrolling and only then marks ready", () => {
+    seedCompatibleBookmark({
+      anchorItemKey: "query_query-1",
+      anchorIndex: 0,
+      previousItemKey: null,
+      nextItemKey: null,
+      anchorOffset: 0,
+      atBottom: false,
+      snapshot: undefined,
+    });
     const transition = createTransition("restoring", {
       focusComposerOnReady: true,
     });
     mockState = createChatState(transition);
     mockStateRef.current = mockState;
-    setConversationScrollBookmark(
-      { surfaceMode: "main", chatId: "chat-target" },
-      {
-        anchorItemKey: "query_query-1",
-        anchorIndex: 0,
-        previousItemKey: null,
-        nextItemKey: null,
-        anchorOffset: 0,
-        atBottom: false,
-        dataSignature: "stale-data",
-        layoutSignature: "stale-layout",
-        savedAt: Date.now(),
-      },
-    );
     const focusListener = jest.fn();
     window.addEventListener("agent:focus-composer", focusListener);
 
@@ -645,6 +719,11 @@ describe("ConversationStage scroll restoration", () => {
       targetChatId: "chat-target",
       phase: "ready",
     });
+    act(() => jest.advanceTimersByTime(2_000));
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "APPEND_DEBUG",
+      line: expect.stringContaining("chat-scroll-restore-timeout"),
+    }));
     expect(focusListener).toHaveBeenCalledTimes(1);
     window.removeEventListener("agent:focus-composer", focusListener);
   });
@@ -683,5 +762,339 @@ describe("ConversationStage scroll restoration", () => {
 
     act(() => mockVirtuosoProps.atBottomStateChange(false));
     expect(mockVirtuosoProps.followOutput(true)).toBe(false);
+    act(() => jest.advanceTimersByTime(2_000));
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "APPEND_DEBUG",
+      line: expect.stringContaining("chat-scroll-restore-timeout"),
+    }));
+  });
+
+  it("marks an empty timeline ready without producing a timeout diagnostic", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockState = {
+      ...mockState,
+      timelineNodes: new Map(),
+      timelineOrder: [],
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "ADVANCE_CHAT_TRANSITION",
+      seq: 1,
+      targetChatId: "chat-target",
+      phase: "ready",
+    });
+    act(() => jest.advanceTimersByTime(2_000));
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "APPEND_DEBUG",
+      line: expect.stringContaining("chat-scroll-restore-timeout"),
+    }));
+  });
+
+  it("times out a history skeleton when the bottom position never stabilizes", () => {
+    autoFlushAnimationFrames = false;
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    setConversationScrollBookmark(
+      { surfaceMode: "main", chatId: "chat-target" },
+      {
+        anchorItemKey: null,
+        anchorIndex: -1,
+        previousItemKey: null,
+        nextItemKey: null,
+        anchorOffset: 0,
+        atBottom: true,
+        dataSignature: "stale-data",
+        layoutSignature: "stale-layout",
+        savedAt: Date.now(),
+      },
+    );
+
+    renderStage();
+    const scroller = container.querySelector<HTMLElement>("#messages");
+    let scrollTop = 0;
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, get: () => 300 },
+      scrollHeight: { configurable: true, get: () => 1_000 },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value;
+        },
+      },
+    });
+
+    act(() => flushAnimationFrame());
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "ADVANCE_CHAT_TRANSITION",
+      phase: "ready",
+    }));
+    expect(container.querySelector(".conversation-transition-overlay")).not.toBeNull();
+    act(() => jest.advanceTimersByTime(1_999));
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "ADVANCE_CHAT_TRANSITION",
+      phase: "ready",
+    }));
+    expect(container.querySelector(".conversation-transition-overlay")).not.toBeNull();
+    act(() => jest.advanceTimersByTime(1));
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "APPEND_DEBUG",
+      line: "[chat-scroll-restore-timeout] chatId=chat-target transitionSeq=1 mode=bottom targetIndex=0 targetKey=query_query-1 scrollTop=0 remainingErrorPx=700 elapsedMs=2000",
+    });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "ADVANCE_CHAT_TRANSITION",
+      seq: 1,
+      targetChatId: "chat-target",
+      phase: "ready",
+    });
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "ADVANCE_CHAT_TRANSITION",
+      phase: "error",
+    }));
+    expect(mockDispatch.mock.calls.filter(([action]) =>
+      action.type === "ADVANCE_CHAT_TRANSITION" &&
+      action.seq === 1 &&
+      action.targetChatId === "chat-target" &&
+      action.phase === "ready"
+    )).toHaveLength(1);
+    mockState = createChatState(createTransition("ready"));
+    mockStateRef.current = mockState;
+    renderStage();
+    expect(
+      container.querySelector<HTMLElement>(".conversation-transition-overlay")
+        ?.dataset.transitionPhase,
+    ).toBe("exiting");
+    act(() => jest.advanceTimersByTime(80));
+    expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
+  });
+
+  it("re-enters the same restoration after dependency cleanup and completes when stable", () => {
+    autoFlushAnimationFrames = false;
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    const changedNode = {
+      ...mockState.timelineNodes.get("query-1")!,
+      text: "hello after replay projection update",
+    };
+    mockState = {
+      ...mockState,
+      timelineNodes: new Map([[changedNode.id, changedNode]]),
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    act(() => flushAnimationFrame());
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "ADVANCE_CHAT_TRANSITION",
+      phase: "ready",
+    }));
+    act(() => flushAnimationFrame());
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "ADVANCE_CHAT_TRANSITION",
+      seq: 1,
+      targetChatId: "chat-target",
+      phase: "ready",
+    });
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "APPEND_DEBUG",
+      line: expect.stringContaining("chat-scroll-restore-timeout"),
+    }));
+  });
+
+  it("does not restart the 2000ms deadline when restoration dependencies keep changing", () => {
+    autoFlushAnimationFrames = false;
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+    const scroller = container.querySelector<HTMLElement>("#messages");
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, get: () => 300 },
+      scrollHeight: { configurable: true, get: () => 1_000 },
+      scrollTop: { configurable: true, get: () => 0 },
+    });
+
+    act(() => jest.advanceTimersByTime(700));
+    const changedNode = {
+      ...mockState.timelineNodes.get("query-1")!,
+      text: "first dependency update",
+    };
+    mockState = {
+      ...mockState,
+      timelineNodes: new Map([[changedNode.id, changedNode]]),
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    act(() => jest.advanceTimersByTime(700));
+    mockState = {
+      ...mockState,
+      themeMode: mockState.themeMode === "dark" ? "light" : "dark",
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    act(() => jest.advanceTimersByTime(599));
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "ADVANCE_CHAT_TRANSITION",
+      phase: "ready",
+    }));
+    act(() => jest.advanceTimersByTime(1));
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "APPEND_DEBUG",
+      line: "[chat-scroll-restore-timeout] chatId=chat-target transitionSeq=1 mode=bottom targetIndex=0 targetKey=query_query-1 scrollTop=0 remainingErrorPx=700 elapsedMs=2000",
+    });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "ADVANCE_CHAT_TRANSITION",
+      seq: 1,
+      targetChatId: "chat-target",
+      phase: "ready",
+    });
+  });
+
+  it("keeps only the remaining millisecond when cleanup happens at 1999ms", () => {
+    autoFlushAnimationFrames = false;
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+    const scroller = container.querySelector<HTMLElement>("#messages");
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, get: () => 300 },
+      scrollHeight: { configurable: true, get: () => 1_000 },
+      scrollTop: { configurable: true, get: () => 0 },
+    });
+
+    act(() => jest.advanceTimersByTime(1_999));
+    const changedNode = {
+      ...mockState.timelineNodes.get("query-1")!,
+      text: "dependency update at the deadline",
+    };
+    mockState = {
+      ...mockState,
+      timelineNodes: new Map([[changedNode.id, changedNode]]),
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "ADVANCE_CHAT_TRANSITION",
+      phase: "ready",
+    }));
+    act(() => jest.advanceTimersByTime(1));
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "APPEND_DEBUG",
+      line: "[chat-scroll-restore-timeout] chatId=chat-target transitionSeq=1 mode=bottom targetIndex=0 targetKey=query_query-1 scrollTop=0 remainingErrorPx=700 elapsedMs=2000",
+    });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "ADVANCE_CHAT_TRANSITION",
+      seq: 1,
+      targetChatId: "chat-target",
+      phase: "ready",
+    });
+  });
+
+  it("completes once when the timeout races a pending second stable frame", () => {
+    autoFlushAnimationFrames = false;
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+    const scroller = container.querySelector<HTMLElement>("#messages");
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, get: () => 300 },
+      scrollHeight: { configurable: true, get: () => 1_000 },
+      scrollTop: { configurable: true, get: () => 700 },
+    });
+
+    act(() => flushAnimationFrame());
+    const pendingFrame = animationFrameCallbacks.entries().next().value as
+      | [number, FrameRequestCallback]
+      | undefined;
+    expect(pendingFrame).toBeDefined();
+    act(() => jest.advanceTimersByTime(2_000));
+    act(() => pendingFrame?.[1](2_000));
+
+    expect(mockDispatch.mock.calls.filter(([action]) =>
+      action.type === "ADVANCE_CHAT_TRANSITION" &&
+      action.seq === 1 &&
+      action.targetChatId === "chat-target" &&
+      action.phase === "ready"
+    )).toHaveLength(1);
+  });
+
+  it("falls back to the final item when the bookmark signature is stale", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    setConversationScrollBookmark(
+      { surfaceMode: "main", chatId: "chat-target" },
+      {
+        anchorItemKey: "query_query-1",
+        anchorIndex: 0,
+        previousItemKey: null,
+        nextItemKey: null,
+        anchorOffset: 0,
+        atBottom: false,
+        dataSignature: "stale-data",
+        layoutSignature: "stale-layout",
+        savedAt: Date.now(),
+      },
+    );
+
+    renderStage();
+
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "auto",
+      align: "end",
+    });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "APPEND_DEBUG",
+      line: "[chat-scroll-restore-fallback-bottom] chatId=chat-target transitionSeq=1 reason=signature-mismatch",
+    });
+  });
+
+  it("cancels an older scroll restoration when a newer target replaces it", () => {
+    autoFlushAnimationFrames = false;
+    mockState = createChatState(createTransition("restoring", {
+      targetChatId: "chat-b",
+    }));
+    mockState.chatId = "chat-b";
+    mockStateRef.current = mockState;
+    renderStage("chat-b");
+
+    mockState = createChatState(createTransition("restoring", {
+      seq: 2,
+      sourceChatId: "chat-b",
+      targetChatId: "chat-c",
+    }));
+    mockState.chatId = "chat-c";
+    mockStateRef.current = mockState;
+    renderStage("chat-c");
+
+    act(() => flushAnimationFrame());
+    act(() => flushAnimationFrame());
+    act(() => jest.advanceTimersByTime(2_000));
+
+    expect(mockDispatch).not.toHaveBeenCalledWith({
+      type: "ADVANCE_CHAT_TRANSITION",
+      seq: 1,
+      targetChatId: "chat-b",
+      phase: "ready",
+    });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: "ADVANCE_CHAT_TRANSITION",
+      seq: 2,
+      targetChatId: "chat-c",
+      phase: "ready",
+    });
   });
 });

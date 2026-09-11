@@ -7,7 +7,7 @@ const path = require("node:path");
 const repoRoot = path.resolve(__dirname, "..");
 const vendoredPath = path.join(
   repoRoot,
-  "src/features/transport/contracts/generated/agentWebclientBridge.ts",
+  "src/shared/contracts/generated/agentWebclientBridge.ts",
 );
 const configuredDesktopMirror = process.env.AGENT_WEBCLIENT_CONTRACT_PATH;
 const desktopMirrorPath = configuredDesktopMirror
@@ -19,7 +19,7 @@ const desktopMirrorPath = configuredDesktopMirror
 
 const normalizeContractText = (value) => value.replace(/\r\n/gu, "\n");
 const vendored = normalizeContractText(fs.readFileSync(vendoredPath, "utf8"));
-const expectedMirrorHash = "9f9634282f96053f23b64435f10a3507707e1c66c79ba80e402827fe75c9dd95";
+const expectedMirrorHash = "1ac42787e7503ba6c0e249ba68f074a363c76d9d3fc55574a02c3e62ce7c1552";
 const actualHash = crypto.createHash("sha256").update(vendored).digest("hex");
 
 if (actualHash !== expectedMirrorHash) {

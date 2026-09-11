@@ -1,20 +1,19 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Dropdown, Input, Modal, message, type MenuProps } from "antd";
+import { App as AntdApp } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Dropdown, Input, message, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
 import {
-  archiveChats,
-  deleteChat,
-  downloadChatExport,
-  downloadConversationHtmlExport,
   getChat,
-  renameChat,
   type ChatDetailResponse,
 } from "@/shared/data";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import { buildChatCopyInfoGroups } from "@/features/chats/lib/chatCopyInfo";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
+
+import { useChatPinActions } from "@/features/chats/hooks/useChatPinActions";
 
 export const ChatActionsMenu: React.FC<{
   chatId: string;
@@ -33,8 +32,14 @@ export const ChatActionsMenu: React.FC<{
   onArchived,
   onDeleted,
 }) => {
+  const { modal } = AntdApp.useApp();
   const { state, dispatch } = useAppContext();
-  const [pending, setPending] = useState(false);
+  const { pending, archive, remove, rename, exportChat } = useChatOperations(
+    state.chatId, dispatch, t,
+  );
+  const pinActions = useChatPinActions();
+  const isPinned = state.chatPinnedOrder?.includes(chatId) ?? false;
+  const pinningSupported = Array.isArray(state.chatPinnedOrder);
   const [copyInfoOpen, setCopyInfoOpen] = useState(false);
   const [copyInfoDetail, setCopyInfoDetail] =
     useState<ChatDetailResponse | null>(null);
@@ -58,21 +63,10 @@ export const ChatActionsMenu: React.FC<{
   const menuItemClassName = iconHover24 ? "ui-icon-hover-24" : undefined;
   const menuIconClassName = iconHover24 ? "ui-icon-hover-24-target" : undefined;
 
-  const clearActiveChatIfNeeded = () => {
-    if (String(state.chatId || "") !== normalizedChatId) {
-      return;
-    }
-    dispatch({ type: "SET_CHAT_ID", chatId: "" });
-    dispatch({ type: "SET_RUN_ID", runId: "" });
-    dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
-    window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-    window.dispatchEvent(new CustomEvent("agent:voice-reset"));
-  };
-
   const handleRename = () => {
     if (!normalizedChatId || pending) return;
     let nextName = String(chatName || "").trim();
-    Modal.confirm({
+    modal.confirm({
       title: t("chatActions.rename.title"),
       content: (
         <Input
@@ -92,121 +86,47 @@ export const ChatActionsMenu: React.FC<{
         if (!chatName) {
           throw new Error(t("chatActions.rename.required"));
         }
-        setPending(true);
-        try {
-          const response = await renameChat({
-            chatId: normalizedChatId,
-            chatName,
-          });
-          const renamedName =
-            String(response.data?.chatName || "").trim() || chatName;
-          dispatch({
-            type: "CHAT_RENAMED",
-            chatId: normalizedChatId,
-            chatName: renamedName,
-          });
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[rename chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await rename(normalizedChatId, chatName);
       },
     });
   };
 
   const handleDelete = () => {
     if (!normalizedChatId || pending) return;
-    Modal.confirm({
+    modal.confirm({
       title: t("chatActions.delete.title"),
       content: chatName || normalizedChatId,
       okText: t("chatActions.delete.ok"),
       okButtonProps: { danger: true },
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
-        setPending(true);
-        try {
-          await deleteChat({ chatId: normalizedChatId });
-          dispatch({ type: "CHAT_DELETED", chatId: normalizedChatId });
-          onDeleted?.(normalizedChatId);
-          clearActiveChatIfNeeded();
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[delete chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await remove(normalizedChatId, onDeleted);
       },
     });
   };
 
-  const runArchive = useCallback(async () => {
-    if (!normalizedChatId || pending) return;
-    setPending(true);
-    try {
-      const response = await archiveChats({ chatIds: [normalizedChatId] });
-      const result = response.data?.results?.[0];
-      if (!result?.success) {
-        throw new Error(result?.error || t("chatActions.archive.failed"));
-      }
-      dispatch({ type: "CHAT_ARCHIVED", chatId: normalizedChatId });
-      onArchived?.(normalizedChatId);
-      clearActiveChatIfNeeded();
-    } catch (error) {
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[archive chat error] ${(error as Error).message}`,
-      });
-      message.error(t("chatActions.archive.failed"));
-    } finally {
-      setPending(false);
-    }
-  }, [
-    clearActiveChatIfNeeded,
-    dispatch,
-    normalizedChatId,
-    onArchived,
-    pending,
-    t,
-  ]);
-
   const handleArchive = () => {
     if (!normalizedChatId || pending) return;
-    void runArchive();
+    void archive(normalizedChatId, onArchived).catch(() => {
+      message.error(t("chatActions.archive.failed"));
+    });
   };
 
   const handleExport = async (format: "markdown" | "html") => {
     if (!normalizedChatId || pending) return;
-    setPending(true);
     try {
-      if (format === "html") {
-        await downloadConversationHtmlExport(normalizedChatId);
-      } else {
-        await downloadChatExport(normalizedChatId);
-      }
+      await exportChat(normalizedChatId, format);
       message.success(
         t(format === "html"
           ? "chatActions.exportHtml.success"
           : "chatActions.export.success"),
       );
-    } catch (error) {
+    } catch {
       message.error(
         t(format === "html"
           ? "chatActions.exportHtml.failed"
           : "chatActions.export.failed"),
       );
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[export chat ${format} error] ${(error as Error).message}`,
-      });
-    } finally {
-      setPending(false);
     }
   };
 
@@ -256,6 +176,11 @@ export const ChatActionsMenu: React.FC<{
   const handleMenuClick: MenuProps["onClick"] = (info) => {
     info.domEvent.stopPropagation();
     switch (info.key) {
+      case "pin":
+        if (!normalizedChatId || pinActions.pending || !pinningSupported) return;
+        void pinActions.update({ operation: "set_pinned", chatId: normalizedChatId, pinned: !isPinned })
+          .catch(() => message.error(t("chatActions.pin.failed")));
+        break;
       case "export":
         void handleExport("markdown");
         break;
@@ -278,17 +203,30 @@ export const ChatActionsMenu: React.FC<{
   };
 
   const items: MenuProps["items"] = [
+    ...(pinningSupported ? [{
+      key: "pin",
+      className: menuItemClassName,
+      icon: <MaterialIcon name="push_pin" className={menuIconClassName} />,
+      label: t(isPinned ? "chatActions.unpin" : "chatActions.pin"),
+      disabled: pending || pinActions.pending,
+    }] : []),
     {
-      key: "export",
+      key: "exportGroup",
       className: menuItemClassName,
       icon: <MaterialIcon name="export" className={menuIconClassName} />,
-      label: t("chatActions.export"),
-    },
-    {
-      key: "exportHtml",
-      className: menuItemClassName,
-      icon: <MaterialIcon name="html" className={menuIconClassName} />,
-      label: t("chatActions.exportHtml"),
+      label: t("chatActions.export.menu"),
+      children: [
+        {
+          key: "export",
+          className: menuItemClassName,
+          label: t("chatActions.export"),
+        },
+        {
+          key: "exportHtml",
+          className: menuItemClassName,
+          label: t("chatActions.exportHtml"),
+        },
+      ],
     },
     {
       key: "rename",
@@ -322,6 +260,11 @@ export const ChatActionsMenu: React.FC<{
       <Dropdown
         menu={{ items, onClick: handleMenuClick }}
         trigger={["click"]}
+        onOpenChange={(open) => {
+          if (open && !pinningSupported) {
+            window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+          }
+        }}
         placement="bottomRight"
       >
         <UiButton

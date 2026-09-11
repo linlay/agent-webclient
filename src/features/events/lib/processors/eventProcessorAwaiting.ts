@@ -1,9 +1,10 @@
-import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types";
+import { isAwaitingAnswerStreamEvent } from "@/shared/contracts/agentEvents";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import {
 	getAwaitingItemMeta,
 	maskAwaitingAnswerParams,
-} from "@/features/tools/lib/awaitingQuestionMeta";
-import { readAwaitingAnswerErrorInfo } from "@/features/tools/lib/awaitingAnswerError";
+} from "@/features/events/lib/awaitingQuestionMeta";
+import { readAwaitingAnswerErrorInfo } from "@/features/events/lib/awaitingAnswerError";
 import { t } from "@/shared/i18n";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 
@@ -114,7 +115,7 @@ export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
 export function readAwaitingAnswerText(event: AgentEvent): string {
 	const rawRecord = event as Record<string, unknown>;
 	return pickEventText(
-		formatStructuredEventText(buildAwaitingAnswerEnvelope(event)),
+		formatAwaitingAnswerText(buildAwaitingAnswerEnvelope(event)),
 		event.text,
 		rawRecord.answers,
 		rawRecord.approvals,
@@ -159,7 +160,7 @@ function pickEventText(...candidates: Array<unknown>): string {
 	return "";
 }
 
-function formatStructuredEventText(value: unknown): string {
+function formatAwaitingAnswerText(value: unknown): string {
 	if (value === null || value === undefined) {
 		return "";
 	}

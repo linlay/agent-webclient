@@ -10,21 +10,23 @@
 - 为上传、下载、资源文本读取和 viewport 读取提供专门 helper。
 
 ## 核心流程
-业务模块从 `src/shared/data` 导入具体函数，不直接拼接 URL。新增接口时先在 `endpoints.ts` 注册端点，再在 `client.ts` 或 `routedClient.ts` 暴露语义化函数，最后由 feature hook 或页面调用。
+普通数据业务从 `src/shared/data` 导入语义化函数，不直接拼接 URL。Run 生命周期由 `RunTransport` 使用 `endpoints.ts` 的 payload builder 和端点定义统一发送；管理源文件通过 Admin Source 读写，语音能力与 voice 列表通过 flexible voice helper 读取。
 
-Agent 顺序有两条 HTTP-only 数据边界：普通客户端通过 `GET/PUT /api/agents/order` 读取和提交全部有效 runtime Agent 的 catalog 顺序；Agent 管理台继续使用 `/api/admin/agents/order` 处理包含 invalid Agent 的完整 admin 顺序。两者复用 `AgentOrderResponse { version, order, updatedAt? }`，其中未生成顺序文件时 `updatedAt` 可以省略；前端不把 public endpoint 注册为 WebSocket route，也不把管理台切到 public mutation。
+`ChatDetailResponse` 继承完整 `ChatSummaryResponse`：`/api/chat` 除 replay 数据外必须提供 `agentKey`/`teamId`、`lastRunId`、`lastRunContent` 与 `read { isRead, readAt?, readRunId? }`。`markChatRead` 是 WebClient Main Chat 的单 Chat read 请求函数；Desktop 模式仍通过通用 Frame Port `/api/read` 转发，Desktop 宿主不暴露或调用单 Chat read 业务 IPC。Agent 级批量已读属于宿主的显式用户命令，不由 WebClient 的自动 read hook 代发。
 
-静态 HTML 导出并行请求 `GET /api/chat/export?chatId=...&format=snapshot` 与同源 `/export/conversation.template.html`。Snapshot 保持 Blob，service 层只解析小体积模板并用 Blob parts 组装完整文档；Platform 不提供 HTML 格式。`src/shared/data/conversationSharePath.ts` 只负责将事件中的合法 `shareId` 构造成 `/share/{id}` 路径，不发起匿名请求，也不读取运行时配置。
+Agent 顺序有两条 HTTP-only 数据边界：普通客户端通过 `GET/PUT /api/agents/order` 读取和提交全部有效 runtime Agent 的 catalog 顺序；Agent 管理台从 `/api/admin/agents` 的列表顺序初始化，并通过 `PUT /api/admin/agents/order` 提交包含 invalid Agent 的完整 admin 顺序。两者复用 `AgentOrderResponse { version, order, updatedAt? }`，其中未生成顺序文件时 `updatedAt` 可以省略；前端不把 public endpoint 注册为 WebSocket route，也不把管理台切到 public mutation。
+
+静态 HTML 导出并行请求 `GET /api/chat/export?chatId=...&format=snapshot` 与 `CONVERSATION_EXPORT_ASSET_ORIGIN/assets/conversation-export/conversation.template.html`。Snapshot 保持 Blob，service 层只解析小体积模板并用 Blob parts 组装完整文档；Platform 不提供 HTML 格式。公开分享由 Desktop 直接向 Tunnel 上传 Snapshot，Tunnel 使用同一当前模板生成页面。`src/shared/data/conversationSharePath.ts` 只负责将合法 `shareId` 构造成 `/share/{id}` 路径。
 
 Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `chatId` 的 `<relativePath>` ChatScope 引用，前端统一通过 `classifyResourceUrl` 分类，并由 `URLSearchParams` 转换为 `GET /api/resource?file=<chatId>/<relativePath>`。POSIX 绝对路径转换为 `GET /api/resource?chatId=<chatId>&file=<absolutePath>`，其中 `/tmp/...` 与 Team Chat 都走同一请求分支，是否允许由 Platform 判定。HTTP(S)、`data:`、`blob:` 直接使用且不接收平台 Bearer；同源 `/api/resource`、`file://`、Windows/UNC、当前 chatId 前缀、query/fragment、反斜线、空段、`.`/`..` 与编码后路径分隔符都作为 URL 结构非法而不发起 fetch。`downloadResource`、`getResourceText`、`getResourceBlob` 只对 ChatScope 和结构合法的绝对路径使用 Bearer/Cookie，组件不手工拼接真实资源请求。
 
-`runs.btw` 固定注册为 `POST /api/btw` 的 SSE 端点。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父对话继承。
+`RunTransport.startBtw` 通过 Platform stream 向 `/api/btw` 发起 BTW Run。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父对话继承。
 
 对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 Platform-only `auto`：Platform 模式向 `/api/skills` 发送 `{agentKey}` request frame，Gateway 因未暴露该 WS route 而在请求前选择 HTTP；WS 连接或传输故障不回退 HTTP。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
 
 ## Skills 管理契约
 
-Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文件操作契约，不保留 `/v2`、`skillKey` 或通用 `file-op` 兼容分支。列表响应为 `AdminSkillSummary[]`；详情、文本文件、保存、创建文件/目录、重命名、删除、上传、下载、校验、创建、ZIP 导入和删除均使用同一组 `AdminSkill*` DTO 与语义化 client 函数。完整 ZIP 通过 `importAdminSkill` 以 multipart `key/file` 发送到 `POST /api/admin/skills/import`，成功后复用 `AdminSkillDetailResponse` 并直接进入新技能；409 重名和 422 文件级诊断留在新建弹窗中处理。
+Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契约。列表和详情返回 `AdminSkillSummary`、`AdminSkillDetailResponse`；文本内容通过 `getAdminSource`、`updateAdminSource` 读写，创建文件/目录、重命名、删除、上传、下载、校验、创建和 ZIP 导入使用对应的 `AdminSkill*` DTO 与语义化 client 函数。统一 ZIP 导入通过 `importAdminSkill` 向 `POST /api/admin/skills/import` 发送 multipart `file` 与可选 `key`；前端不解压、不从文件名猜身份，也不选择单技能或技能包类型。Platform 读取根 `manifest.json` 识别技能包，否则沿用单技能规则；单技能缺省 Key 从 `SKILL.md` 的 `key/name` 读取，包身份始终由 manifest 的 `id/version` 决定。`AdminSkillImportResponse` 通过 `kind` 区分：`skill` 保留原顶层 `AdminSkillDetailResponse` 字段；`skill-package` 返回 `package`（包 ID、名称、版本、成员、归档摘要与安装时间）。旧单技能响应省略 kind 仍兼容。包导入后重新加载全部技能、清除列表过滤，并进入一个已安装成员；当前成员被更新时强制刷新详情。ZIP 上传上限 512 MiB，识别为单技能后由 Platform 执行原 32 MiB 限额。409 保留服务端具体冲突消息，422 文件级诊断留在导入弹窗中。
 
 后端只在发现 `skills-center/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
 
@@ -67,4 +69,11 @@ Skills 管理接口统一使用 `/api/admin/skills/*` 的新版 manifest 与文�
 - `../src/shared/data/api/client.ts`
 - `../src/shared/data/index.ts`
 - `../src/shared/data/api/client.test.ts`
+- `../src/shared/data/api/endpoints.test.ts`
 - `../src/shared/data/conversationSharePath.ts`
+
+## Chat 置顶
+
+- GET `/api/chats/order`：读取 `sortMode`、`pinnedOrder` 和 `updatedAt`；PUT 或 WS 同路径使用 `{operation:"set_pinned",chatId,pinned}`，排序使用 `{operation:"move",chatId,beforeChatId}` 或 `afterChatId`。置顶组移动不修改普通列表排序。
+- Chat 摘要/详情增加可选 `pinned`；GET `/api/chats` 支持 `pinned` 和 `limit`，GET `/api/agents` 支持 `chatsPinned`。`false` 必须在 HTTP query 与 WS payload 中保留，筛选发生在后端 limit/includeChats 之前。
+- `chats.order.changed` push 要求 `updatedAt` 为 epoch 毫秒整数。客户端收到后同时使 agents/chats 查询缓存失效并重新加载；WS 重连同样对账。归档、删除清理内存置顶 ID，恢复不继承旧置顶。

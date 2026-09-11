@@ -1,9 +1,5 @@
-import type {
-	AppState,
-	Chat,
-	ChatActiveRunSummary,
-	CurrentChatActiveRun,
-} from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat, ChatActiveRunSummary, CurrentChatActiveRun } from "@/features/chats/lib/chatState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import { sameRunOwner, type RunOwner } from "@/shared/data/runOwner";

@@ -1,6 +1,5 @@
 import {
 	ApiError,
-	createQueryStream,
 	downloadResource,
 	setAccessToken,
 	uploadFile,
@@ -77,24 +76,6 @@ describe("API client backend authentication modes", () => {
 		);
 		expect(options.headers).not.toHaveProperty("Authorization");
 		expect(options.body).toBeInstanceOf(FormData);
-	});
-
-	it("routes a gateway SSE handshake 401 through the coordinator", async () => {
-		runtime.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { BACKEND_MODE: "gateway" };
-		const navigate = jest.fn();
-		setAuthCoordinatorNavigationForTests(navigate);
-		global.fetch = jest.fn().mockResolvedValue(
-			jsonResponse({ code: 401, msg: "Unauthorized" }, 401),
-		) as typeof fetch;
-
-		const response = await createQueryStream({
-			requestId: "req-1",
-			owner: { kind: "agent", agentKey: "public-agent" },
-			message: "hello",
-		});
-
-		expect(response.status).toBe(401);
-		expect(navigate).toHaveBeenCalledTimes(1);
 	});
 
 	it("keeps platform download token 401 as an error without navigation", async () => {

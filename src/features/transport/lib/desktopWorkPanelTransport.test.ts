@@ -1,7 +1,7 @@
 import type {
   AgentWebclientWorkPanelBridge,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
-import { AGENT_WEBCLIENT_BRIDGE_VERSION } from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
+import { AGENT_WEBCLIENT_BRIDGE_VERSION } from "@/shared/contracts/generated/agentWebclientBridge";
 import { DesktopWorkPanelTransport } from "@/features/transport/lib/desktopWorkPanelTransport";
 
 describe("DesktopWorkPanelTransport", () => {

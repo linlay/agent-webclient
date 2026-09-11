@@ -1,4 +1,5 @@
 import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export function parseFeatureFlag(value: unknown): boolean {
   if (typeof value === "boolean") return value;
@@ -19,11 +20,11 @@ export function isDeltaLogsEnabled(): boolean {
 }
 
 export function isSettingsMenuEnabled(): boolean {
-  return parseFeatureFlag(readRuntimeConfigValue("SETTINGS_MENU_ENABLED"));
+  return !isDesktopAppMode() && parseFeatureFlag(readRuntimeConfigValue("SETTINGS_MENU_ENABLED"));
 }
 
 export function isQuickActionsEnabled(): boolean {
-  return parseFeatureFlag(readRuntimeConfigValue("QUICK_ACTIONS_ENABLED"));
+  return !isDesktopAppMode() && parseFeatureFlag(readRuntimeConfigValue("QUICK_ACTIONS_ENABLED"));
 }
 
 export function isVoiceEnabled(): boolean {

@@ -41,6 +41,12 @@ import {
 } from "@/shared/data/desktop/desktopCurrentResourceAction";
 import { DocumentTextEditor } from "@/features/viewers/components/DocumentTextEditor";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
+import { DocumentMetadataPanel, StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
+import { OnlineDocumentPreview, OnlinePreviewAction } from "./OnlineDocumentPreview";
+import { useOnlineDocumentPreview } from "../hooks/useOnlineDocumentPreview";
+import { getDocumentPreviewTabKey, type DocumentPreviewTabState } from "../lib/documentPreview";
+import documentPanelStyles from "./StandaloneDocumentPanel.module.css";
+import { isAppMode } from "@/shared/utils/routing";
 import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
@@ -107,9 +113,11 @@ interface ContentViewerPanelProps {
   target: ViewerTarget;
   showLineNumbers?: boolean;
   fullscreenRequest?: number;
+  refreshRequest?: number;
   enableDesktopCurrentResourceDownload?: boolean;
   enableDesktopLocalResourceActions?: boolean;
   enableDesktopPreviewReview?: boolean;
+  onOpenOnlinePreview?: (preview: DocumentPreviewTabState) => void;
   surfaceContext?: {
     chatId: string;
     teamChat?: boolean;
@@ -215,7 +223,8 @@ export function shouldRequestDesktopLocalResourceActions(input: {
 
 export const DesktopLocalResourceActions: React.FC<{
   resource: DesktopCurrentResourceIdentity;
-}> = ({ resource }) => {
+  compact?: boolean;
+}> = ({ resource, compact = false }) => {
   const [pendingAction, setPendingAction] =
     React.useState<DesktopCurrentResourceAction | null>(null);
   const [actionError, setActionError] = React.useState("");
@@ -248,9 +257,9 @@ export const DesktopLocalResourceActions: React.FC<{
   }, [pendingAction, resource]);
 
   return (
-    <div className={CONTENT_VIEWER_LOCAL_ACTIONS_CLASS_NAME}>
+    <div className={compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_CLASS_NAME}>
       <div
-        className={CONTENT_VIEWER_LOCAL_ACTIONS_GROUP_CLASS_NAME}
+        className={compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_GROUP_CLASS_NAME}
         role="group"
         aria-label={t("contentViewer.desktopAction.groupLabel")}
       >
@@ -265,7 +274,7 @@ export const DesktopLocalResourceActions: React.FC<{
         </Button>
         <Button
           block
-          type="primary"
+          type={compact ? "default" : "primary"}
           disabled={pendingAction !== null}
           icon={<MaterialIcon name="open_in_new" />}
           loading={pendingAction !== null}
@@ -290,13 +299,15 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   target,
   showLineNumbers = false,
   fullscreenRequest,
+  refreshRequest = 0,
   enableDesktopCurrentResourceDownload = false,
   enableDesktopLocalResourceActions = false,
   enableDesktopPreviewReview = false,
+  onOpenOnlinePreview,
   surfaceContext,
 }) => {
   const appState = useAppState();
-  const chatId = String(surfaceContext?.chatId ?? appState.chatId ?? "").trim();
+  const chatId = String(surfaceContext?.chatId ?? (target.type === "resource" ? target.source?.chatId : undefined) ?? appState.chatId ?? "").trim();
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
   const teamChat = surfaceContext?.teamChat ?? Boolean(
     currentChat?.owner?.kind === "orchestrated-team"
@@ -355,9 +366,24 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const mediaSource = ["image", "pdf", "html", "audio", "video"].includes(contentKind)
     ? viewerUrl
     : "";
-  const authenticatedResource = useAuthenticatedResourceUrl(mediaSource, chatId, { teamChat });
+  const authenticatedResource = useAuthenticatedResourceUrl(mediaSource, chatId, {
+    teamChat,
+    refreshKey: documentReloadRequest ? `${contextTargetId}:${documentReloadRequest}` : undefined,
+  });
   const mediaUrl = authenticatedResource.url;
   const viewerName = workspaceFileResponse?.name || target.name;
+  const onlinePreview = useOnlineDocumentPreview({
+    target, chatId, name: viewerName,
+    sizeBytes: workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined),
+    refreshKey: documentReloadRequest,
+    onReady: onOpenOnlinePreview ? (result) => onOpenOnlinePreview({
+      key: getDocumentPreviewTabKey(target, chatId),
+      target: { ...target, name: viewerName },
+      chatId,
+      teamChat,
+      result,
+    }) : undefined,
+  });
   const fileHtml = resolveFileViewerHtml(
     workspaceFileResponse,
   );
@@ -588,15 +614,25 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     Boolean(imageCommitSource && documentRevision);
   const documentDirty = editableTextDocument && textContent !== savedTextContent;
   const handleDocumentReload = React.useCallback(() => {
-    if (documentDirty && !window.confirm(t("contentViewer.reload.confirmDiscard"))) {
+    if (documentSaving || browserImageState.busy) return;
+    if ((documentDirty || browserImageState.dirty || documentAnnotationCount > 0 || browserImageState.annotationCount > 0)
+      && !window.confirm(t("contentViewer.reload.confirmDiscard"))) {
       return;
     }
     setDocumentReloadRequest((current) => current + 1);
-  }, [documentDirty]);
+  }, [documentDirty, documentSaving, documentAnnotationCount, browserImageState]);
+  const lastRefreshRequest = React.useRef(refreshRequest);
+  React.useEffect(() => {
+    if (lastRefreshRequest.current === refreshRequest) return;
+    lastRefreshRequest.current = refreshRequest;
+    handleDocumentReload();
+  }, [refreshRequest, handleDocumentReload]);
   const canSaveDocument = editableTextDocument && !textTruncated && Boolean(
     documentRevision && (target.type === "file" || resourceSource),
   );
-  const canOverwriteArtifact = resourceSource?.kind === "artifact";
+  const documentSaveProfile = target.type === "file"
+    ? "workspace-file" as const
+    : resourceSource?.kind || "reference";
   const handleDocumentSave = React.useCallback(async (
     mode: "overwrite" | "new-artifact",
   ) => {
@@ -712,12 +748,18 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     };
   }, [localActionsCandidate, localActionsSourceKey]);
 
+  if (onlinePreview.result) {
+    return <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
+      <OnlineDocumentPreview preview={onlinePreview} name={viewerName} onDownload={handleDownload} />
+    </div>;
+  }
+
   return (
     <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
-      {localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+      {!metadataOnly && localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
         ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} />
         : null}
-      {viewable ? <div className={CONTENT_VIEWER_BODY_CLASS_NAME}>
+      {viewable ? <div key={documentReloadRequest} className={CONTENT_VIEWER_BODY_CLASS_NAME}>
         {contentKind === "image" && mediaUrl && browserImageEditable && imageCommitSource ? (
           <BrowserImageEditor
             url={mediaUrl}
@@ -746,29 +788,28 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
         ) : null}
 
         {metadataOnly ? (
-          <div className="tw:flex tw:min-h-[360px] tw:flex-1 tw:items-center tw:justify-center tw:p-6">
-            <div className="tw:w-full tw:max-w-md tw:rounded-xl tw:border tw:border-line-soft tw:bg-bg-elev-1 tw:p-5">
-              <div className="tw:mb-4 tw:text-base tw:font-semibold tw:text-ink-1">{viewerName}</div>
-              <dl className="tw:grid tw:grid-cols-[auto_1fr] tw:gap-x-4 tw:gap-y-2 tw:text-sm">
-                <dt className="tw:text-ink-muted">{t("contentViewer.metadata.type")}</dt>
-                <dd>{t(unsupportedTextEncoding
-                  ? "contentViewer.metadata.unsupportedTextEncoding"
-                  : `contentViewer.metadata.${documentKind}`)}</dd>
-                <dt className="tw:text-ink-muted">MIME</dt>
-                <dd className="tw:break-all">{workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}</dd>
-                <dt className="tw:text-ink-muted">{t("contentViewer.metadata.size")}</dt>
-                <dd>{workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined) ?? "–"}</dd>
-              </dl>
-              {unsupportedTextEncoding ? (
-                <p className="tw:mt-4 tw:text-sm tw:text-ink-muted">
-                  {t("contentViewer.metadata.unsupportedTextEncodingDetail")}
-                </p>
-              ) : null}
-              <Button className="tw:mt-5" type="primary" onClick={() => void handleDownload()}>
-                {t("contentViewer.action.download")}
-              </Button>
-            </div>
-          </div>
+          !isAppMode() ? <StandaloneDocumentPanel
+            target={target}
+            chatId={chatId}
+            teamChat={teamChat}
+            name={viewerName}
+            mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
+            sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
+            note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
+            previewAction={<OnlinePreviewAction preview={onlinePreview} />}
+            onDownload={handleDownload}
+          /> :
+          <DocumentMetadataPanel
+            name={viewerName}
+            mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
+            sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
+            note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
+            previewAction={<OnlinePreviewAction preview={onlinePreview} />}
+            onDownload={handleDownload}
+            localActions={localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+              ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} compact />
+              : null}
+          />
         ) : null}
 
         {contentKind === "html" ? (
@@ -803,7 +844,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               saving={documentSaving}
               dirty={documentDirty}
               canSave={canSaveDocument}
-              canOverwriteArtifact={canOverwriteArtifact}
+              saveProfile={documentSaveProfile}
               revision={documentRevision}
               onAnnotationCountChange={setDocumentAnnotationCount}
               onChange={setTextContent}
@@ -845,7 +886,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               saving={documentSaving}
               dirty={documentDirty}
               canSave={canSaveDocument}
-              canOverwriteArtifact={canOverwriteArtifact}
+              saveProfile={documentSaveProfile}
               revision={documentRevision}
               onAnnotationCountChange={setDocumentAnnotationCount}
               onChange={setTextContent}

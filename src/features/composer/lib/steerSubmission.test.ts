@@ -4,7 +4,7 @@ import {
 } from "@/features/composer/lib/steerSubmission";
 
 describe("normalizeSteerSubmissionResponse", () => {
-  it("rejects steer responses that do not provide a boolean accepted field", () => {
+  it("treats steer responses without a boolean accepted field as unconfirmed", () => {
     expect(
       normalizeSteerSubmissionResponse({
         status: 200,
@@ -13,7 +13,7 @@ describe("normalizeSteerSubmissionResponse", () => {
         data: { steered: true },
       }),
     ).toMatchObject({
-      accepted: false,
+      accepted: null,
       status: "invalid_response",
     });
   });

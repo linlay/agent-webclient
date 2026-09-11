@@ -1,5 +1,5 @@
 import type { StateSnapshot } from "react-virtuoso";
-import type { ConversationSurfaceMode } from "@/app/state/types";
+import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
 import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
 import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
 
@@ -190,6 +190,6 @@ export function resolveConversationRestoreIndex(
   }
   const fallback = Number.isFinite(bookmark.anchorIndex)
     ? Math.floor(bookmark.anchorIndex)
-    : 0;
-  return Math.max(0, Math.min(itemKeys.length - 1, fallback));
+    : -1;
+  return fallback >= 0 && fallback < itemKeys.length ? fallback : -1;
 }

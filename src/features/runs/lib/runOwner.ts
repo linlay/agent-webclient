@@ -1,4 +1,6 @@
-import type { AppState, Chat, Team } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team } from "@/features/workers/lib/workerState";
 import {
   toRunOwner,
   type RunOwner,

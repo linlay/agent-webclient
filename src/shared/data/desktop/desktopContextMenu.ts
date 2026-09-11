@@ -13,12 +13,12 @@ import {
   type AgentWebclientSelectionActionErrorCode,
   type AgentWebclientSelectionActionId,
   type AgentWebclientWorkPanelPreviewReviewAction,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import {
   SELECTED_TEXT_MAX_CHARACTERS,
   createSelectedTextFragment,
   type SelectedTextFragment,
-} from "@/features/selection/lib/selectedTextReference";
+} from "@/shared/contracts/selectedTextReference";
 
 export const SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL =
   "desktop:service-webview:action";

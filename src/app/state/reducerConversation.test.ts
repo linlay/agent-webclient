@@ -324,6 +324,78 @@ describe("reduceConversationState – selectedSkillsByChatId", () => {
 	});
 });
 
+describe("Composer drafts across conversation changes", () => {
+	it("shares the blank-chat text and Skills across Agents while preserving history drafts", () => {
+		const sharedSkills = [{ key: "shared", label: "Shared" }];
+		const historySkills = [{ key: "history", label: "History" }];
+		let state = buildState({ workerSelectionKey: "agent:a" });
+		state = appReducer(state, { type: "SET_COMPOSER_DRAFT", draft: "shared draft" });
+		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: sharedSkills });
+		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_a" });
+		expect(state.composerDraft).toBe("");
+		expect(state.selectedSkills).toEqual([]);
+		state = appReducer(state, { type: "SET_COMPOSER_DRAFT", draft: "history draft" });
+		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: historySkills });
+		state = appReducer(state, { type: "SET_WORKER_SELECTION_KEY", workerKey: "agent:b" });
+		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "" });
+		state = appReducer(state, { type: "RESET_ACTIVE_CONVERSATION" });
+		expect(state.workerSelectionKey).toBe("agent:b");
+		expect(state.composerDraft).toBe("shared draft");
+		expect(state.selectedSkills).toEqual(sharedSkills);
+		expect(state.composerDraftByChatId).toEqual({ "": "shared draft", chat_a: "history draft" });
+		expect(state.selectedSkillsByChatId).toEqual({ "": sharedSkills, chat_a: historySkills });
+
+		state = appReducer(state, { type: "SET_WORKER_SELECTION_KEY", workerKey: "agent:c" });
+		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "" });
+		state = appReducer(state, { type: "RESET_ACTIVE_CONVERSATION" });
+		expect(state.composerDraft).toBe("shared draft");
+		expect(state.selectedSkills).toEqual(sharedSkills);
+
+		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_a" });
+		expect(state.composerDraft).toBe("history draft");
+		expect(state.selectedSkills).toEqual(historySkills);
+	});
+
+	it.each(["chat_a", ""])("does not resurrect cleared text or removed Skills for chat %p", (chatId) => {
+		const otherSkills = [{ key: "other", label: "Other" }];
+		const original = buildState({
+			chatId,
+			composerDraft: "old draft",
+			composerDraftByChatId: { [chatId]: "old draft", chat_b: "other draft" },
+			selectedSkills: [{ key: "old", label: "Old" }],
+			selectedSkillsByChatId: { [chatId]: [{ key: "old", label: "Old" }], chat_b: otherSkills },
+		});
+		let state = appReducer(original, { type: "SET_COMPOSER_DRAFT", draft: "" });
+		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: [] });
+		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_b" });
+		expect(state.composerDraft).toBe("other draft");
+		expect(state.selectedSkills).toEqual(otherSkills);
+		state = appReducer(state, { type: "SET_CHAT_ID", chatId });
+		expect(state.composerDraft).toBe("");
+		expect(state.selectedSkills).toEqual([]);
+		expect(state.composerDraftByChatId).toEqual({ [chatId]: "", chat_b: "other draft" });
+		expect(state.selectedSkillsByChatId).toEqual({ [chatId]: [], chat_b: otherSkills });
+		expect(original.composerDraftByChatId[chatId]).toBe("old draft");
+		expect(original.selectedSkillsByChatId[chatId]).toEqual([{ key: "old", label: "Old" }]);
+	});
+
+	it.each(["chat_a", ""])("preserves draft records when selecting the same chat %p", (chatId) => {
+		const skills = [{ key: "review", label: "Review" }];
+		const state = buildState({
+			chatId,
+			composerDraft: "draft",
+			composerDraftByChatId: { [chatId]: "draft" },
+			selectedSkills: skills,
+			selectedSkillsByChatId: { [chatId]: skills },
+		});
+		const next = appReducer(state, { type: "SET_CHAT_ID", chatId });
+		expect(next.composerDraft).toBe("draft");
+		expect(next.selectedSkills).toBe(skills);
+		expect(next.composerDraftByChatId).toBe(state.composerDraftByChatId);
+		expect(next.selectedSkillsByChatId).toBe(state.selectedSkillsByChatId);
+	});
+});
+
 describe("reduceConversationState – chat transition", () => {
 	it("advances only the matching transition and rejects stale work", () => {
 		const started = appReducer(buildState(), {

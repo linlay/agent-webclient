@@ -38,7 +38,4 @@ export async function ensureStandaloneWsClient(): Promise<WsClient> {
   return initWsClient(options);
 }
 
-/** Infrastructure-only compatibility access for legacy runtime tests. */
-export const getStandaloneWsClient = getWsClient;
-export const initializeStandaloneWsClient = initWsClient;
 export const destroyStandaloneWsClient = destroyWsClient;

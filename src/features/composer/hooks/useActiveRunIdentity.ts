@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { resolvePreferredAgentKey } from "@/features/composer/lib/queryRouting";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";

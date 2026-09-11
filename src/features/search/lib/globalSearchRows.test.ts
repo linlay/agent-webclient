@@ -1,6 +1,8 @@
 import { buildGlobalRows } from "@/features/search/lib/globalSearchRows";
 import type { GlobalRow } from "@/features/search/lib/globalSearchRows";
-import type { Agent, Chat, WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 
 function t(key: string): string {
   return key;

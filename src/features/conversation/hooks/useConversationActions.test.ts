@@ -1,10 +1,15 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { appReducer } from '@/app/state/reducer';
 import { createInitialState } from '@/app/state/state';
-import type { Agent, AgentEvent, Chat, Team, WorkerRow } from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team, WorkerRow } from "@/features/workers/lib/workerState";
 import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDisplay';
 import {
   createReplayState,
+  buildLoadedChatSummary,
   normalizeStartNewConversationDetail,
   reconcileReplayAwaiting,
   replayEvent,
@@ -19,6 +24,7 @@ import {
 } from '@/features/conversation/lib/conversationPayload';
 import {
   getAutoReadTriggerKey,
+  isChatContentCommitted,
   shouldAutoMarkChatRead,
 } from '@/features/chats/hooks/useChatReadSync';
 import { useWorkerConversationSelection } from '@/features/workers/hooks/useWorkerConversationSelection';
@@ -230,6 +236,36 @@ describe('replayEvent tool migration', () => {
     return state;
   }
 
+  it('reconciles missed steer confirmations on history load without clearing unrelated pending entries', async () => {
+    const state = createInitialState();
+    const steer = { steerId: 'confirmed', runId: 'run-1', requestId: 'req-steer', message: 'steering', status: 'sending' as const, createdAt: 1 };
+    state.pendingSteers = {
+      'chat-1': [steer, { ...steer, steerId: 'unconfirmed' }, { ...steer, steerId: 'malformed' }],
+      'chat-2': [{ ...steer }],
+    };
+    state.composerDraftByChatId = { 'chat-1': 'saved draft' };
+    const stateRef = { current: state };
+    const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
+    useAppContext.mockReturnValue({
+      state, stateRef, dispatch, querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() }, activeQuerySessionRequestIdRef: { current: '' },
+    });
+    const event = { type: 'request.steer', runId: 'run-1', steerId: 'confirmed', message: 'steering', timestamp: EPOCH_MS };
+    getChat.mockResolvedValue({ data: {
+      chatId: 'chat-1', agentKey: 'agent-alpha', createdAt: EPOCH_MS, updatedAt: EPOCH_MS + 1,
+      events: [event, { ...event }, { ...event, steerId: 'unconfirmed', runId: 'another-run' },
+        { ...event, steerId: 'malformed', message: '' }], runs: [],
+    } });
+    let actions: ReturnType<typeof useTestConversationActions>;
+    const Harness = () => { actions = useTestConversationActions(); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    await actions!.loadChat('chat-1');
+    expect(stateRef.current.pendingSteers['chat-1'].map(item => item.steerId)).toEqual(['unconfirmed', 'malformed']);
+    expect(stateRef.current.pendingSteers['chat-2']).toEqual([steer]);
+    expect(stateRef.current.composerDraft).toBe('saved draft');
+    expect(stateRef.current.timelineOrder.filter(id => id === 'steer_confirmed')).toHaveLength(1);
+  });
+
   it('commits loaded chat id and replayed timeline state atomically', async () => {
     const state = createInitialState();
     const dispatchRecords: Array<{ type: string; insideFlushSync: boolean }> = [];
@@ -249,6 +285,14 @@ describe('replayEvent tool migration', () => {
     });
     getChat.mockResolvedValue({
       data: {
+		chatId: 'chat-1',
+		agentKey: 'agent-alpha',
+		chatName: 'Authoritative chat',
+		createdAt: EPOCH_MS,
+		updatedAt: EPOCH_MS + 1,
+		lastRunId: 'run-1',
+		lastRunContent: 'authoritative answer',
+		read: { isRead: false, readRunId: '' },
         events: [
           {
             type: 'request.query',
@@ -274,10 +318,21 @@ describe('replayEvent tool migration', () => {
     expect(dispatchRecords).toEqual(
       expect.arrayContaining([
         { type: 'SET_CHAT_ID', insideFlushSync: true },
+        { type: 'UPSERT_CHAT', insideFlushSync: true },
         { type: 'RESET_CONVERSATION', insideFlushSync: true },
         { type: 'BATCH_UPDATE', insideFlushSync: true },
       ]),
     );
+		expect(dispatch).toHaveBeenCalledWith({
+			type: 'UPSERT_CHAT',
+			chat: expect.objectContaining({
+				chatId: 'chat-1',
+				agentKey: 'agent-alpha',
+				lastRunId: 'run-1',
+				lastRunContent: 'authoritative answer',
+				read: { isRead: false },
+			}),
+		});
   });
 
   it('keeps the source conversation mounted behind the transition overlay while loading another chat', async () => {
@@ -313,6 +368,41 @@ describe('replayEvent tool migration', () => {
     }));
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_EVENTS' });
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_CONVERSATION_OVERVIEW' });
+  });
+
+  it('starts a cross-chat transition as blocking until /api/chat classifies the target', async () => {
+    const state = createInitialState();
+    state.chatId = 'chat_old';
+    state.currentChatActiveRun = {
+      chatId: 'chat_new',
+      runId: 'stale-local-run',
+    };
+    const { actions, dispatch } = renderChatActions(state);
+    getChat.mockResolvedValue({
+      data: {
+        events: [],
+        activeRun: { runId: '   ' },
+        runs: [],
+      },
+    });
+
+    await actions?.loadChat('chat_new');
+
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'BEGIN_CHAT_TRANSITION',
+      transition: expect.objectContaining({
+        sourceChatId: 'chat_old',
+        targetChatId: 'chat_new',
+        kind: 'history-switch',
+        displayMode: 'blocking',
+      }),
+    }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'SET_CHAT_TRANSITION_DISPLAY_MODE',
+      seq: 1,
+      targetChatId: 'chat_new',
+      displayMode: 'blocking',
+    });
   });
 
   it('captures before beginning a same-chat reload transaction', async () => {
@@ -1254,7 +1344,7 @@ describe('replayEvent tool migration', () => {
           readRunId: 'run_0',
         },
       }),
-    ).toBe('chat_unread|run_1|123|111|run_0');
+    ).toBe('chat_unread|run_1|run_0');
 
     expect(
       getAutoReadTriggerKey({
@@ -1269,6 +1359,44 @@ describe('replayEvent tool migration', () => {
       }),
     ).toBe('');
   });
+
+	it('waits for the requested chat content commit before auto-read', () => {
+		expect(isChatContentCommitted({
+			chatId: 'chat_1', blocked: true,
+			transition: { targetChatId: 'chat_1', phase: 'ready' },
+		})).toBe(false);
+		expect(isChatContentCommitted({
+			chatId: 'chat_1',
+			transition: { targetChatId: 'chat_1', phase: 'applying' },
+		})).toBe(false);
+		expect(isChatContentCommitted({
+			chatId: 'chat_1',
+			transition: { targetChatId: 'chat_1', phase: 'ready' },
+		})).toBe(true);
+		expect(isChatContentCommitted({
+			chatId: 'chat_1',
+			transition: null,
+		})).toBe(true);
+	});
+
+	it('normalizes authoritative /api/chat summary fields for an uncached route target', () => {
+		expect(buildLoadedChatSummary('route-chat', {
+			chatId: 'route-chat',
+			agentKey: 'agent-alpha',
+			chatName: 'Route chat',
+			createdAt: EPOCH_MS,
+			updatedAt: EPOCH_MS + 1,
+			lastRunId: 'run-2',
+			lastRunContent: 'Visible answer',
+			read: { isRead: false, readAt: EPOCH_MS - 1, readRunId: 'run-1' },
+		})).toEqual(expect.objectContaining({
+			chatId: 'route-chat',
+			agentKey: 'agent-alpha',
+			lastRunId: 'run-2',
+			lastRunContent: 'Visible answer',
+			read: { isRead: false, readAt: EPOCH_MS - 1, readRunId: 'run-1' },
+		}));
+	});
 
   it('loads the latest worker chat when preferNewChat sees pending awaiting', async () => {
     const state = createWorkerConversationState({
@@ -1556,11 +1684,7 @@ describe('replayEvent tool migration', () => {
       type: 'SET_CHAT_TRANSITION_DISPLAY_MODE',
       seq: 1,
       targetChatId: 'chat-active',
-      displayMode: 'background',
-    });
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'APPEND_DEBUG',
-      line: '[chat transition] active-run background chatId=chat-active runId=run_active transitionSeq=1 phase=applying displayMode=background',
+      displayMode: 'blocking',
     });
   });
 
@@ -1596,6 +1720,74 @@ describe('replayEvent tool migration', () => {
       targetChatId: 'chat-active',
       displayMode: 'background',
     });
+  });
+
+  it.each([
+    { label: 'waiting for the first response', runState: 'RUNNING', events: [] },
+    {
+      label: 'streaming reasoning without content',
+      runState: 'RUNNING',
+      events: [{ type: 'reasoning.delta', reasoningId: 'reasoning-1', delta: 'Thinking' }],
+    },
+    {
+      label: 'running a tool without content',
+      runState: 'RUNNING',
+      events: [{ type: 'tool.start', toolId: 'tool-1', toolName: 'bash' }],
+    },
+    { label: 'waiting for user input', runState: 'WAITING_SUBMIT', events: [] },
+  ])('does not poll chat history while $label', async ({ runState, events }) => {
+    jest.useFakeTimers();
+    try {
+      const state = createInitialState();
+      const { actions, dispatch } = renderChatActions(state);
+      getChat.mockResolvedValue({
+        data: {
+          chatId: 'chat-active',
+          events: events.map((event, index) => ({
+            ...event,
+            chatId: 'chat-active',
+            runId: 'run-active',
+            timestamp: EPOCH_MS + index,
+          })),
+          activeRun: {
+            runId: 'run-active',
+            agentKey: 'askUser.demo',
+            state: runState,
+            lastSeq: 7,
+          },
+          runs: [],
+        },
+      });
+      // Mirror the worker listener so a timer-triggered reload makes a real
+      // getChat call and can reproduce the recursive refresh fan-out.
+      globalWithBrowserApis.window!.dispatchEvent.mockImplementation((event: CustomEvent) => {
+        if (event.type === 'agent:load-chat') void actions!.loadChat(event.detail.chatId);
+        return true;
+      });
+
+      await actions!.loadChat('chat-active');
+      Object.assign(state, dispatch.mock.calls.find(([action]) => action.type === 'BATCH_UPDATE')![0].updates);
+
+      expect(globalWithBrowserApis.window!.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'agent:attach-run',
+          detail: expect.objectContaining({ chatId: 'chat-active', runId: 'run-active', lastSeq: 7 }),
+        }),
+      );
+      await jest.advanceTimersByTimeAsync(10_000);
+      expect(getChat).toHaveBeenCalledTimes(1);
+
+      // An explicit reload still works, and must not start a new timer chain.
+      await actions!.loadChat('chat-active', { forceReload: true });
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(getChat).toHaveBeenCalledTimes(2);
+      expect(globalWithBrowserApis.window!.dispatchEvent).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'agent:load-chat' }),
+      );
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
   });
 
   it('does not schedule another history refresh after the attached active run completes', async () => {

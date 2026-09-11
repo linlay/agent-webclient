@@ -1,14 +1,31 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   XMarkdown as Markdown,
   type ComponentProps,
   type XMarkdownProps,
 } from "@ant-design/x-markdown";
-import Latex from "@ant-design/x-markdown/plugins/Latex";
 import { removeEmptyMarkdownTables } from "./markdownPreprocess";
 import styles from "./ConversationMarkdown.module.css";
 
 type MarkdownComponents = NonNullable<XMarkdownProps["components"]>;
+
+type LatexExtensions = ReturnType<
+  (typeof import("@ant-design/x-markdown/plugins/Latex"))["default"]
+>;
+
+let latexExtensionsPromise: Promise<LatexExtensions> | null = null;
+
+function loadLatexExtensions(): Promise<LatexExtensions> {
+  if (!latexExtensionsPromise) {
+    latexExtensionsPromise = import("@ant-design/x-markdown/plugins/Latex").then(
+      (mod) => mod.default(),
+    );
+  }
+  return latexExtensionsPromise;
+}
+
+const MATH_PATTERN =
+  /\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^\s$][^$\n]*?\$/;
 
 export type ConversationMarkdownElementProps<
   T extends Record<string, unknown> = Record<string, unknown>,
@@ -62,13 +79,38 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
   components,
   codeComponent,
 }) => {
+  const processedContent = useMemo(
+    () => removeEmptyMarkdownTables(content || ""),
+    [content],
+  );
+  const needsLatex = useMemo(
+    () => MATH_PATTERN.test(processedContent),
+    [processedContent],
+  );
+  const [latexExtensions, setLatexExtensions] = useState<LatexExtensions | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!needsLatex || latexExtensions) return;
+    let cancelled = false;
+    void loadLatexExtensions().then((extensions) => {
+      if (!cancelled) {
+        setLatexExtensions(extensions);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [needsLatex, latexExtensions]);
+
   const markdownConfig = useMemo(
     () => ({
       gfm: true,
       breaks: true,
-      extensions: Latex(),
+      ...(latexExtensions ? { extensions: latexExtensions } : {}),
     }),
-    [],
+    [latexExtensions],
   );
   const markdownComponents = useMemo<MarkdownComponents>(
     () => ({
@@ -77,10 +119,6 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
       pre: MarkdownPre,
     }),
     [codeComponent, components],
-  );
-  const processedContent = useMemo(
-    () => removeEmptyMarkdownTables(content || ""),
-    [content],
   );
 
   if (!processedContent) return null;

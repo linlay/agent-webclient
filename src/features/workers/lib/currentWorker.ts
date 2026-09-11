@@ -1,67 +1,12 @@
-import type { TranslateParams } from "@/shared/i18n/types";
-import type {
-  Agent,
-  AppState,
-  Chat,
-  Team,
-  WorkerConversationRow,
-  WorkerRow,
-} from '@/app/state/types';
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { Team, WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
 import { toText } from '@/shared/utils/eventUtils';
 
 function toDisplayName(primary: unknown, fallback: unknown): string {
   return toText(primary) || toText(fallback) || '--';
-}
-
-function splitTokens(value: string): string[] {
-  return value
-    .split(/[,\n\uFF0C]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function collectStrings(value: unknown): string[] {
-  if (value === null || value === undefined) return [];
-  if (typeof value === 'string') return splitTokens(value);
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return [String(value)];
-  }
-  if (Array.isArray(value)) {
-    return Array.from(new Set(value.flatMap((item) => collectStrings(item)).filter(Boolean)));
-  }
-  if (typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    const preferredKeys = [
-      'name',
-      'label',
-      'key',
-      'id',
-      'agentKey',
-      'teamId',
-      'toolName',
-      'toolKey',
-      'skillName',
-      'skillKey',
-      'model',
-      'modelName',
-      'llm',
-      'model_id',
-      'role',
-    ];
-    const values = preferredKeys
-      .map((key) => record[key])
-      .flatMap((item) => collectStrings(item))
-      .filter(Boolean);
-    return Array.from(new Set(values));
-  }
-  return [];
-}
-
-function collectFromKeys(raw: Record<string, unknown> | null, keys: string[]): string[] {
-  if (!raw) return [];
-  const values = keys.flatMap((key) => collectStrings(raw[key])).filter(Boolean);
-  return Array.from(new Set(values));
 }
 
 function findAgentByKey(agents: Agent[], agentKey: string): Agent | null {
@@ -155,19 +100,6 @@ export interface CurrentWorkerSummary {
   relatedChats: WorkerConversationRow[];
 }
 
-export interface CurrentWorkerDetailView {
-  kindLabel: string;
-  title: string;
-  identifierLabel: string;
-  identifierValue: string;
-  role: string;
-  model: string;
-  skills: string[];
-  tools: string[];
-  members: string[];
-  rawJson: string;
-}
-
 export function isDedicatedKbaseWorker(
   worker: CurrentWorkerSummary | null | undefined,
 ): boolean {
@@ -239,32 +171,6 @@ export function resolveCurrentWorkerSummary(
   };
 }
 
-export function buildCurrentWorkerDetailView(summary: CurrentWorkerSummary, t: (key: string, params?: TranslateParams) => string): CurrentWorkerDetailView {
-  const raw = summary.raw;
-  const model = collectFromKeys(raw, ['model', 'modelName', 'llm', 'model_id'])[0] || '--';
-  const skills = collectFromKeys(raw, ['skills', 'skillKeys', 'skillNames']);
-  const tools = collectFromKeys(raw, ['tools', 'toolKeys', 'toolNames']);
-  const members = summary.type === 'team'
-    ? collectFromKeys(raw, ['agentKey', 'agentKeys', 'agents', 'members'])
-    : [];
-  const fallbackMembers = summary.type === 'team'
-    ? summary.row.teamAgentLabels.filter((item) => toText(item) && item !== '--')
-    : [];
-
-  return {
-    kindLabel: summary.type === 'team' ? t('worker.kindLabel.team') : t('worker.kindLabel.agent'),
-    title: summary.displayName,
-    identifierLabel: summary.type === 'team' ? t('worker.view.identifierTeamId') : t('worker.view.identifierKey'),
-    identifierValue: summary.sourceId,
-    role: summary.role || '--',
-    model,
-    skills,
-    tools,
-    members: members.length > 0 ? members : fallbackMembers,
-    rawJson: raw ? JSON.stringify(raw, null, 2) : '{}',
-  };
-}
-
 export function buildWorkerSwitchRows(
   rows: WorkerRow[],
   scope: 'all' | 'agent' | 'team',
@@ -281,18 +187,4 @@ export function buildWorkerSwitchRows(
 export function isCoderAgent(summary: CurrentWorkerSummary | null): boolean {
   if (!summary || summary.type !== 'agent') return false;
   return String((summary.raw as Record<string, unknown> | null)?.['mode'] || '').toUpperCase() === 'CODER';
-}
-
-export function buildAutomationDraft(summary: CurrentWorkerSummary, task: string, automationRule: string, t: (key: string, params?: TranslateParams) => string): string {
-  const kindLabel = summary.type === 'team' ? t('worker.kindLabel.team') : t('worker.kindLabel.agent');
-  const roleText = toText(summary.role);
-  return [
-    t('automation.draft.template.title', { kindLabel }),
-    t('automation.draft.template.name', { name: summary.displayName }),
-    t('automation.draft.template.id', { idLabel: summary.type === 'team' ? 'teamId' : 'agentKey', id: summary.sourceId }),
-    t('automation.draft.template.role', { role: roleText || '--' }),
-    t('automation.draft.template.taskContent', { task: toText(task) }),
-    t('automation.draft.template.rule', { rule: toText(automationRule) }),
-    t('automation.draft.template.confirm'),
-  ].join('\n');
 }

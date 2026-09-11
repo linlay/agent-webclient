@@ -1,0 +1,45 @@
+:root {
+    --voice-assistant-accent-default: #e1a05d;
+    --voice-listening-accent: #1f9a56;
+    --voice-listening-strong: #1d9c57;
+    --voice-listening-status: #208a46;
+    --voice-speaking-accent: #d97a23;
+    --voice-speaking-strong: #e07016;
+    --voice-speaking-status: #d7670f;
+}
+
+@keyframes :global(voice-eq) {
+
+    0%,
+    100% {
+        transform: scaleY(0.42);
+        opacity: 0.5;
+    }
+
+    35% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+
+    70% {
+        transform: scaleY(0.66);
+        opacity: 0.7;
+    }
+}
+
+@keyframes :global(voice-orb-pulse) {
+    0% {
+        opacity: 0.28;
+        transform: scale(0.92);
+    }
+
+    72% {
+        opacity: 0;
+        transform: scale(1.14);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.14);
+    }
+}

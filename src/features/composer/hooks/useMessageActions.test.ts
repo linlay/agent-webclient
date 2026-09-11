@@ -1,5 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
 import {
   canProjectLiveQuerySession,
@@ -11,7 +12,7 @@ import {
   syncLiveSessionTerminalState,
   useMessageActions,
 } from "@/features/composer/hooks/useMessageActions";
-import type { WorkerRow } from "@/app/state/types";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 
 const startQuery = jest.fn();
 
@@ -131,6 +132,47 @@ describe("useMessageActions temporary pin", () => {
       completion: Promise.resolve({ reason: "done", lastSeq: 1 }),
       detach: jest.fn(),
     });
+  });
+
+  it("acknowledges background query steering without projecting the background timeline", async () => {
+    const state = createInitialState();
+    state.chatId = "chat_1";
+    state.chats = [{ chatId: "chat_1", agentKey: "agent-coder" }];
+    const stateRef = { current: state };
+    const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
+    const activeQuerySessionRequestIdRef = { current: "" };
+    useAppContext.mockReturnValue({
+      state, stateRef, dispatch, activeQuerySessionRequestIdRef,
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+    });
+    let onEvent: (event: Record<string, unknown>) => void;
+    let complete: (result: { reason: string; lastSeq: number }) => void;
+    const completion = new Promise(resolve => { complete = resolve; });
+    startQuery.mockImplementation(input => {
+      onEvent = input.onEvent;
+      return {
+        identity: Promise.resolve({ requestId: 'req_1', chatId: 'chat_1', runId: 'run_1', owner: { kind: 'agent', agentKey: 'agent-coder' } }),
+        completion, detach: jest.fn(),
+      };
+    });
+    const onAgentEvent = jest.fn();
+    let actions: ReturnType<typeof useMessageActions>;
+    const Harness = () => { actions = useMessageActions({ onAgentEvent }); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    const sending = actions!.sendMessage('hello');
+    await Promise.resolve();
+    dispatch({ type: 'ENQUEUE_PENDING_STEER', chatId: 'chat_1', steer: {
+      steerId: 'steer-1', runId: 'run_1', requestId: 'req-steer', message: 'steering', status: 'sending', createdAt: 1,
+    } });
+    dispatch({ type: 'SET_CHAT_ID', chatId: 'chat_2' });
+    activeQuerySessionRequestIdRef.current = '';
+    onEvent!({ type: 'request.steer', chatId: 'chat_1', runId: 'run_1', steerId: 'steer-1', message: 'steering', timestamp: Date.now() });
+    expect(stateRef.current.pendingSteers['chat_1']).toBeUndefined();
+    expect(stateRef.current.chatId).toBe('chat_2');
+    expect(onAgentEvent).not.toHaveBeenCalled();
+    complete!({ reason: 'done', lastSeq: 1 });
+    await sending;
   });
 
   it("clears a matching temporary pinned agent when the first query starts", async () => {
@@ -404,19 +446,20 @@ describe("useMessageActions temporary pin", () => {
     );
   });
 
-  it("blocks every direct query entry while a chat transition is active", async () => {
+  it.each(["loading", "ready", "error"] as const)("blocks direct query entry during %s, including the shared exit animation", async (phase) => {
     const state = createInitialState();
     state.chatId = "chat_old";
     state.chatTransition = {
       seq: 1,
       sourceChatId: "chat_old",
       targetChatId: "chat_new",
-      phase: "loading",
+      phase,
       kind: "history-switch",
       displayMode: "blocking",
       focusComposerOnReady: false,
       error: "",
     };
+    state.chatSurfaceBlocked = true;
     const dispatch = jest.fn();
     useAppContext.mockReturnValue({
       state,

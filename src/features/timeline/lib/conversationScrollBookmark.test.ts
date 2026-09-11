@@ -100,7 +100,7 @@ describe("conversation scroll signatures and fallback", () => {
     expect(first).not.toBe(second);
   });
 
-  it("falls back through anchor, next, previous, then clamped index", () => {
+  it("falls back through anchor, next, previous, then a valid index", () => {
     const base = bookmark();
     expect(resolveConversationRestoreIndex(base, ["item-0", "item-1", "item-2"])).toBe(1);
     expect(resolveConversationRestoreIndex(base, ["item-0", "item-2"])).toBe(1);
@@ -110,6 +110,6 @@ describe("conversation scroll signatures and fallback", () => {
         { ...base, previousItemKey: null, nextItemKey: null, anchorIndex: 8 },
         ["only", "last"],
       ),
-    ).toBe(1);
+    ).toBe(-1);
   });
 });

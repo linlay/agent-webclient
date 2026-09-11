@@ -4,6 +4,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { useI18n } from "@/shared/i18n";
+import styles from "./GlobalSearchPanel.module.css";
 
 interface GlobalSearchPanelProps {
   searchText: string;
@@ -42,38 +43,41 @@ const GROUP_LABEL_KEYS: Record<string, string> = {
   history: "globalSearch.group.history",
 };
 
-const GLOBAL_SEARCH_PANEL_CLASS = "global-search-panel tw:flex tw:flex-col";
-const GLOBAL_SEARCH_BOX_CLASS = "global-search-box tw:flex-none";
+const withModuleClass = (semanticClass: string, utilityClasses = "") =>
+  `${semanticClass} ${styles[semanticClass]} ${utilityClasses}`.trim();
+
+const GLOBAL_SEARCH_PANEL_CLASS = withModuleClass("global-search-panel", "tw:flex tw:flex-col");
+const GLOBAL_SEARCH_BOX_CLASS = withModuleClass("global-search-box", "tw:flex-none");
 const GLOBAL_SEARCH_INPUT_CLASS =
-  "global-search-input tw:w-full tw:border-0 tw:bg-transparent tw:p-2.5 tw:text-sm tw:text-ink-1 tw:outline-none tw:placeholder:text-ink-muted";
+  withModuleClass("global-search-input", "tw:w-full tw:border-0 tw:bg-transparent tw:p-2.5 tw:text-sm tw:text-ink-1 tw:outline-none tw:placeholder:text-ink-muted");
 const GLOBAL_SEARCH_EMPTY_CLASS =
-  "global-search-empty tw:px-4 tw:py-6 tw:text-center tw:text-[13px] tw:text-ink-muted";
+  withModuleClass("global-search-empty", "tw:px-4 tw:py-6 tw:text-center tw:text-[13px] tw:text-ink-muted");
 const GLOBAL_SEARCH_LIST_CLASS =
-  "global-search-list tw:flex tw:max-h-[60vh] tw:flex-col tw:gap-0.5 tw:overflow-auto";
+  withModuleClass("global-search-list", "tw:flex tw:max-h-[60vh] tw:flex-col tw:gap-0.5 tw:overflow-auto");
 const GLOBAL_SEARCH_GROUP_CLASS =
-  "global-search-group tw:flex tw:flex-col tw:gap-0.5";
+  withModuleClass("global-search-group", "tw:flex tw:flex-col tw:gap-0.5");
 const GLOBAL_SEARCH_GROUP_LABEL_CLASS =
-  "global-search-group-label tw:px-2 tw:py-1 tw:text-ink-muted";
+  withModuleClass("global-search-group-label", "tw:px-2 tw:py-1 tw:text-ink-muted");
 const GLOBAL_SEARCH_ROW_CLASS =
-  "global-search-row tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:rounded-2xl tw:border-0 tw:bg-transparent tw:p-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:outline-none tw:hover:bg-bg-hover tw:focus:bg-[color-mix(in_srgb,var(--accent-soft)_30%,var(--bg-hover))]";
+  withModuleClass("global-search-row", "tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:rounded-2xl tw:border-0 tw:bg-transparent tw:p-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:outline-none tw:hover:bg-bg-hover tw:focus:bg-[color-mix(in_srgb,var(--accent-soft)_30%,var(--bg-hover))]");
 const GLOBAL_SEARCH_ICON_CLASS =
-  "global-search-icon tw:flex tw:size-6 tw:flex-none tw:items-center tw:justify-center tw:text-ink-muted";
+  withModuleClass("global-search-icon", "tw:flex tw:size-6 tw:flex-none tw:items-center tw:justify-center tw:text-ink-muted");
 const GLOBAL_SEARCH_LABEL_CLASS =
-  "global-search-label tw:flex-1 tw:min-w-[100px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
+  withModuleClass("global-search-label", "tw:flex-1 tw:min-w-[100px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap");
 const GLOBAL_SEARCH_ROLE_CLASS =
-  "global-search-role tw:max-w-[36%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
+  withModuleClass("global-search-role", "tw:max-w-[36%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden");
 const GLOBAL_SEARCH_SNIPPET_CLASS =
-  "global-search-snippet  tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:max-[640px]:hidden";
+  withModuleClass("global-search-snippet", "tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:max-[640px]:hidden");
 const GLOBAL_SEARCH_SOURCE_CLASS =
   "global-search-source tw:max-w-[30%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
 const GLOBAL_SEARCH_UNREAD_DOT_CLASS =
   "global-search-unread-dot tw:mx-1 tw:size-1.5 tw:flex-none tw:rounded-full tw:bg-accent";
 const GLOBAL_SEARCH_AWAITING_CLASS =
-  "global-search-awaiting tw:flex-none tw:whitespace-nowrap tw:rounded tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-px tw:text-[10px] tw:leading-[1.4] tw:text-accent-warn tw:max-[640px]:hidden";
+  withModuleClass("global-search-awaiting", "tw:flex-none tw:whitespace-nowrap tw:rounded tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-px tw:text-[10px] tw:leading-[1.4] tw:text-accent-warn tw:max-[640px]:hidden");
 const GLOBAL_SEARCH_LOADING_CLASS =
-  "global-search-loading tw:flex-none tw:animate-ui-spin tw:text-xs tw:text-text-sub";
+  withModuleClass("global-search-loading", "tw:flex-none tw:animate-ui-spin tw:text-xs tw:text-text-sub");
 const GLOBAL_SEARCH_TIME_CLASS =
-  "global-search-time tw:ml-auto tw:flex-none tw:pl-1 tw:font-code tw:text-[10px] tw:text-ink-muted tw:max-[640px]:hidden";
+  withModuleClass("global-search-time", "tw:ml-auto tw:flex-none tw:pl-1 tw:font-code tw:text-[10px] tw:text-ink-muted tw:max-[640px]:hidden");
 
 export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   searchText,

@@ -44,3 +44,10 @@ describe('contentSegments', () => {
     ]);
   });
 });
+
+test("parses scoped VIEW blocks and preserves invalid refs as text", () => {
+  const text = '```view\n' + JSON.stringify({ view: { connectorId: 'crm', key: 'card', hash: 'a'.repeat(64) }, payload: { count: 3 } }) + '\n```';
+  const segments = parseContentSegments('message', text);
+  expect(segments[0]).toMatchObject({ kind: 'view', view: { connectorId: 'crm', key: 'card' }, payloadRaw: '{"count":3}' });
+  expect(parseContentSegments('message', text.replace('crm', '../crm'))[0].kind).toBe('text');
+});

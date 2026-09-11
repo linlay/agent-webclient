@@ -1,5 +1,11 @@
 import type { AppAction } from "@/app/state/actions";
-import type { AppState, PendingSteer } from "@/app/state/types";
+import type { AppState } from "@/app/state/types";
+import {
+	switchComposerChat,
+	updateComposerDraft,
+	updateComposerSelectedSkills,
+} from "@/features/composer/lib/composerState";
+import { reduceComposerSteerState } from "@/features/composer/lib/pendingSteers";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
 import { bindRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import { appendVisibleDebugEvent } from "@/features/events/lib/debugEventDisplay";
@@ -29,6 +35,7 @@ export function reduceConversationState(
 			const transition = state.chatTransition;
 			if (
 				!transition ||
+				transition.phase === "error" ||
 				transition.seq !== action.seq ||
 				transition.targetChatId !== action.targetChatId ||
 				(transition.displayMode === "background" &&
@@ -49,6 +56,8 @@ export function reduceConversationState(
 			const transition = state.chatTransition;
 			if (
 				!transition ||
+				transition.phase === "error" ||
+				transition.phase === "ready" ||
 				transition.seq !== action.seq ||
 				transition.targetChatId !== action.targetChatId
 			) {
@@ -83,6 +92,9 @@ export function reduceConversationState(
 		}
 		case "CLEAR_CHAT_TRANSITION":
 			return state.chatTransition ? { ...state, chatTransition: null } : state;
+		case "SET_CHAT_SURFACE_BLOCKED":
+			return state.chatSurfaceBlocked === action.blocked
+				? state : { ...state, chatSurfaceBlocked: action.blocked };
 		case "REQUEST_CONVERSATION_SCROLL": {
 			const id = (state.conversationScrollRequest?.id || 0) + 1;
 			return {
@@ -128,27 +140,9 @@ export function reduceConversationState(
 					? { ...state.planningModeByChatId, [action.chatId]: true }
 					: state.planningModeByChatId;
 
-			// Save current draft for old chat
-			let nextDraftByChatId = state.composerDraftByChatId;
-			if (state.chatId !== action.chatId) {
-				nextDraftByChatId = { ...nextDraftByChatId, [state.chatId]: state.composerDraft };
-			}
-			// Restore draft for new chat
-			const nextComposerDraft = nextDraftByChatId[action.chatId] ?? "";
-
-			// Save current selected skills for old chat
-			let nextSkillsByChatId = state.selectedSkillsByChatId;
-			if (state.chatId !== action.chatId) {
-				nextSkillsByChatId = {
-					...nextSkillsByChatId,
-					[state.chatId]: state.selectedSkills,
-				};
-			}
-			// Restore selected skills for new chat
-			const nextSelectedSkills = nextSkillsByChatId[action.chatId] ?? [];
-
 			return {
 				...state,
+				...switchComposerChat(state, state.chatId, action.chatId),
 				chatId: action.chatId,
 				currentChatActiveRun: isNewChatId ? null : state.currentChatActiveRun,
 				pendingNewChatAgentKey: action.chatId
@@ -157,10 +151,6 @@ export function reduceConversationState(
 				planningMode: nextPlanningMode,
 				planningModeByChatId: nextByChatId,
 				editingMode: isNewChatId ? false : state.editingMode,
-				composerDraft: nextComposerDraft,
-				composerDraftByChatId: nextDraftByChatId,
-				selectedSkills: nextSelectedSkills,
-				selectedSkillsByChatId: nextSkillsByChatId,
 			};
 		}
 		case "SET_CURRENT_CHAT_ACTIVE_RUN": {
@@ -297,69 +287,27 @@ export function reduceConversationState(
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
 		case "SET_COMPOSER_DRAFT": {
-			const { chatId, composerDraftByChatId } = state;
 			return {
 				...state,
-				composerDraft: action.draft,
-				composerDraftByChatId: { ...composerDraftByChatId, [chatId]: action.draft },
+				...updateComposerDraft(state, state.chatId, action.draft),
 			};
 		}
 		case "SET_SELECTED_SKILLS": {
-			const { chatId, selectedSkillsByChatId } = state;
 			return {
 				...state,
-				selectedSkills: action.skills,
-				selectedSkillsByChatId: {
-					...selectedSkillsByChatId,
-					[chatId]: action.skills,
-				},
+				...updateComposerSelectedSkills(state, state.chatId, action.skills),
 			};
 		}
-		case "ENQUEUE_PENDING_STEER": {
-			const chatId = state.chatId || "";
-			const existing = state.pendingSteers[chatId] || [];
-			return {
-				...state,
-				pendingSteers: { ...state.pendingSteers, [chatId]: [...existing, action.steer] },
-			};
-		}
-		case "UPDATE_PENDING_STEER_STATUS": {
-			const next: Record<string, PendingSteer[]> = {};
-			let changed = false;
-			for (const cid of Object.keys(state.pendingSteers)) {
-				const updated = state.pendingSteers[cid].map((steer) =>
-					steer.steerId === action.steerId
-						? ((changed = true), { ...steer, status: action.status })
-						: steer,
-				);
-				next[cid] = changed ? updated : state.pendingSteers[cid];
-			}
-			if (!changed) return state;
-			return { ...state, pendingSteers: next };
-		}
-		case "REMOVE_PENDING_STEER": {
-			const next: Record<string, PendingSteer[]> = {};
-			let removed = false;
-			for (const cid of Object.keys(state.pendingSteers)) {
-				const filtered = state.pendingSteers[cid].filter(
-					(steer) => steer.steerId !== action.steerId,
-				);
-				if (filtered.length < state.pendingSteers[cid].length) {
-					removed = true;
-				}
-				if (filtered.length === 0) continue;
-				next[cid] = filtered;
-			}
-			if (!removed) return state;
-			return { ...state, pendingSteers: next };
-		}
+		case "ENQUEUE_PENDING_STEER":
+		case "UPDATE_PENDING_STEER_STATUS":
+		case "REMOVE_PENDING_STEER":
+		case "CONFIRM_PENDING_STEER":
+		case "SET_PENDING_STEER_ERROR":
+		case "SET_RESTORED_STEER_REFERENCES":
+		case "RESTORE_PENDING_STEER":
 		case "CLEAR_PENDING_STEERS": {
-			const chatId = state.chatId || "";
-			const existing = state.pendingSteers[chatId];
-			if (!existing || existing.length === 0) {
-				return state;
-			}
-			return { ...state, pendingSteers: { ...state.pendingSteers, [chatId]: [] } };
+			const updates = reduceComposerSteerState(state, action, state.chatId || "");
+			return updates ? { ...state, ...updates } : state;
 		}
 		case "TOGGLE_RUN_DOWNVOTE":
 			return {

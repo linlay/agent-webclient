@@ -1,4 +1,4 @@
-import type { TimelineNode } from '@/app/state/types';
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   SLASH_COMMANDS,
   getFilteredSlashCommands,
@@ -63,6 +63,7 @@ describe('slashCommands', () => {
       {
         key: 'mock-skill',
         name: 'Mock Skill',
+        icon: '/api/skills/icon?agentKey=zenmi&key=mock-skill',
         description: 'Skill description',
         agentHasSkill: true,
       },
@@ -75,7 +76,7 @@ describe('slashCommands', () => {
     ];
 
     expect(getFilteredSlashSkills('', skills)).toMatchObject([
-      { kind: 'skill', command: '/mock-skill', agentHasSkill: true },
+      { kind: 'skill', command: '/mock-skill', agentHasSkill: true, icon: skills[0].icon },
       { kind: 'skill', command: '/pdf', agentHasSkill: false },
     ]);
     expect(getFilteredSlashSkills('pdf', skills).map((item) => item.key)).toEqual(['pdf']);

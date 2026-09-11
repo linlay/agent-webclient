@@ -1,8 +1,14 @@
 import React, { createContext, useContext } from "react";
-import type { TimelineNode, TimelineSource } from "@/app/state/types";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 
 export interface TimelineInteractionValue {
   conversationActive?: boolean;
+  readOnly?: boolean;
+  surfaceContext?: {
+    chatId: string;
+    agentKey?: string;
+    teamChat?: boolean;
+  };
   patchNode?: (node: TimelineNode) => void;
   openSource?: (source: TimelineSource, node?: TimelineNode) => void;
 }

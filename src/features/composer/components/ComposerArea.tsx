@@ -48,7 +48,7 @@ import { useRuntimeAccessLevel } from "@/features/composer/hooks/useRuntimeAcces
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
-import { useCommandOverlayOpen } from "@/features/workers/components/CommandOverlayProvider";
+import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
@@ -59,13 +59,16 @@ import type {
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
-import { isChatTransitionBlockingInteractions } from "@/features/conversation/lib/chatTransition";
+import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
+import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useHostRequiredSkills } from "@/features/composer/components/HostRequiredSkillsContext";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
-import { useDesktopSelectionActions } from "@/features/selection/hooks/useDesktopSelectionActions";
+import { useDesktopSelectionActions } from "@/features/composer/hooks/useDesktopSelectionActions";
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
+import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 
 interface ComposerAreaProps {
   emptyInputMinRows?: number;
@@ -80,12 +83,13 @@ const COMPOSER_LAYOUT_CLASS =
 const COMPOSER_STACK_CLASS =
   "composer-stack tw:flex tw:min-w-0 tw:flex-1 tw:flex-col";
 const COMPOSER_PILL_CLASS =
-  "composer-pill tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:gap-[2px] tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:rounded-xl tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[16px]";
+  "composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:gap-[2px] tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[16px]";
 const COMPOSER_PILL_FRONTEND_CLASS = "tw:hidden";
 const COMPOSER_PILL_VOICE_CLASS =
   "tw:!border-[color-mix(in_srgb,var(--accent-electric)_16%,var(--line-soft))] tw:!bg-[radial-gradient(circle_at_0%_0%,rgba(94,165,255,0.1),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(13,191,143,0.08),transparent_36%),color-mix(in_srgb,var(--bg-elev-2)_97%,transparent)] tw:!py-1.5 tw:!pr-1.5 tw:!pl-3";
 const VOICE_HINT_CLASS =
   "voice-hint tw:mt-1 tw:px-2 tw:py-0 tw:text-[10px] tw:text-ink-muted";
+const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 export const ComposerArea: React.FC<ComposerAreaProps> = ({
   emptyInputMinRows = 5,
@@ -172,6 +176,34 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     const forcedIdentities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
     return selectedSkills.filter((skill) => !forcedIdentities.has(skill.key.trim().toLowerCase()));
   }, [forcedSkills, selectedSkills]);
+  const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
+    enabled: Boolean(currentAgentKey && effectiveSkills.length > 0),
+  });
+  const activeAgentSkills = skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;
+  const displayedForcedSkills = useMemo(
+    () =>
+      forcedSkills.map((skill) => ({
+        ...skill,
+        label: resolveSkillDisplayName(
+          activeAgentSkills,
+          skill.key,
+          skill.label,
+        ),
+      })),
+    [activeAgentSkills, forcedSkills],
+  );
+  const displayedManualSkills = useMemo(
+    () =>
+      effectiveManualSkills.map((skill) => ({
+        ...skill,
+        label: resolveSkillDisplayName(
+          activeAgentSkills,
+          skill.key,
+          skill.label,
+        ),
+      })),
+    [activeAgentSkills, effectiveManualSkills],
+  );
 
   // Restore: 当 state.selectedSkills 被 reducer 更改（SET_CHAT_ID 恢复）时，同步到局部
   useEffect(() => {
@@ -199,9 +231,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     querySessionsRef,
   );
   const isMainChatRunning = mainChatRuntime.running;
-  const chatTransitionBlocking = isChatTransitionBlockingInteractions(
-    state.chatTransition,
-  );
+  const presentation = useConversationSurface();
+  const chatTransitionBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "")
@@ -251,6 +282,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     activeAwaiting: state.activeAwaiting,
     dispatch,
     state,
+    stateRef,
   });
 
   const {
@@ -271,6 +303,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     hasComposerAttachmentOverflow,
     hasStagedAttachments,
     hasUploadingAttachments,
+    hasFailedAttachments,
     isCapturingDesktopScreenshot,
     openFilePicker,
     scrollComposerAttachments,
@@ -513,7 +546,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     handleSend: handleSendImmediately,
     handleSteer,
     interruptCurrentRun,
-    steerSubmitting,
   } = useComposerSend({
     attachmentChatId,
     accessLevel,
@@ -551,6 +583,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       toggleVoiceMode,
     },
     hasUploadingAttachments,
+    hasFailedAttachments,
     inputValue,
     isAwaitingActive,
     isVoiceMode,
@@ -650,7 +683,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isFrontendActive ||
     isAwaitingActive ||
     hasUploadingAttachments ||
-    !inputValue.trim() && selectedText.fragments.length === 0;
+    hasFailedAttachments ||
+    (!inputValue.trim() && (isMainChatRunning || selectedText.fragments.length === 0));
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,
@@ -792,7 +826,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             pendingSteers={
               state.pendingSteers[String(state.chatId || "")] || []
             }
-            steerSubmitting={steerSubmitting}
             mainChatRunning={isMainChatRunning}
             onSubmit={(steerId) => void handleSteer(steerId)}
             onCancel={handleCancelSteer}
@@ -839,6 +872,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
               >
                 <ComposerAttachments
                   attachments={attachments}
+                  attachmentChatId={state.chatId || attachmentChatId}
                   attachmentViewportRef={attachmentViewportRef}
                   useUnifiedComposerAttachmentRow={
                     useUnifiedComposerAttachmentRow
@@ -854,7 +888,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onRemove={selectedText.removeFragment}
                 />
                 <Flex wrap gap={4}>
-                  {forcedSkills.map((skill) => (
+                  {displayedForcedSkills.map((skill) => (
                     <UiButton
                       key={`forced:${skill.key.toLowerCase()}`}
                       variant="ghost"
@@ -870,7 +904,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                       </Flex>
                     </UiButton>
                   ))}
-                  {effectiveManualSkills.map((skill) => (
+                  {displayedManualSkills.map((skill) => (
                     <UiButton
                       key={skill.key.toLowerCase()}
                       variant="ghost"
@@ -969,10 +1003,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   currentAgentKey={currentAgentKey}
                   isMainChatRunning={isMainChatRunning}
                   selectedSkillKeys={effectiveSkills.map((skill) => skill.key)}
-                  slashCommands={slashCommands}
-                  slashAvailability={slashAvailability}
                   onSelectSkill={handleSelectSlashSkill}
-                  onSelectCommand={(commandId) => void executeSlashCommand(commandId)}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>

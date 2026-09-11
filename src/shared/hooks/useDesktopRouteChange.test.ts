@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   buildDesktopRouteTarget,
   buildRouterLocationTarget,
-  PAGE_TO_PRELOAD_ROUTE_ACK_EVENT,
+  PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT,
   resetDesktopRouteChangeBridgeForTests,
   SERVICE_WEBVIEW_BRIDGE_ROUTE_CHANNEL,
   subscribeDesktopRouteChanges,
@@ -109,6 +109,15 @@ describe("useDesktopRouteChange bridge", () => {
       search: "?newChat=1788308765045",
       hash: "#timeline",
     })).toBe("/agent/demo?newChat=1788308765045#timeline");
+    expect(buildDesktopRouteTarget({ pathname: "//example.test/chat" })).toBeNull();
+    expect(buildDesktopRouteTarget({ pathname: "/agent\\demo" })).toBeNull();
+    expect(buildDesktopRouteTarget({
+      pathname: "/agent/demo",
+      search: "?chatId=bad\u0000value",
+    })).toBeNull();
+    expect(buildDesktopRouteTarget({
+      pathname: `/${"a".repeat(8_192)}`,
+    })).toBeNull();
   });
 
   it("navigates when the physical URL is current but React Router is stale", () => {
@@ -117,7 +126,7 @@ describe("useDesktopRouteChange bridge", () => {
       callbacks.push(callback);
     });
     const navigate = jest.fn();
-    const acknowledgements: unknown[] = [];
+    const statuses: unknown[] = [];
     installMockWindow(onFromMain);
     window.history.replaceState(
       {},
@@ -130,10 +139,12 @@ describe("useDesktopRouteChange bridge", () => {
       search: "?chatId=bootstrap-chat",
       hash: "",
     });
-    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_ACK_EVENT, (event) => {
-      acknowledgements.push((event as CustomEvent<unknown>).detail);
-    }, { once: true });
+    const statusListener = (event: Event) => {
+      statuses.push((event as CustomEvent<unknown>).detail);
+    };
+    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
     renderHookProbe();
+    statuses.length = 0;
 
     act(() => {
       callbacks[0]?.({}, {
@@ -147,9 +158,9 @@ describe("useDesktopRouteChange bridge", () => {
     expect(window.location.pathname).toBe("/agent/cutej");
     expect(navigate).toHaveBeenCalledWith(
       "/agent/cutej?newChat=1788308765045",
-      { replace: true },
+      { replace: true, flushSync: true },
     );
-    expect(acknowledgements).toEqual([]);
+    expect(statuses).toEqual([]);
 
     useLocationMock.mockReturnValue({
       pathname: "/agent/cutej",
@@ -158,11 +169,12 @@ describe("useDesktopRouteChange bridge", () => {
     });
     rerenderHookProbe();
 
-    expect(acknowledgements).toEqual([{
+    expect(statuses).toEqual([{
       type: "desktopRouteApplied",
       routeRevision: 7,
       routerLocation: "/agent/cutej?newChat=1788308765045",
     }]);
+    window.removeEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
   });
 
   it("ignores a duplicate payload only when React Router already matches", () => {
@@ -171,7 +183,7 @@ describe("useDesktopRouteChange bridge", () => {
       callbacks.push(callback);
     });
     const navigate = jest.fn();
-    const acknowledgements: unknown[] = [];
+    const statuses: unknown[] = [];
     installMockWindow(onFromMain);
     useNavigateMock.mockReturnValue(navigate);
     useLocationMock.mockReturnValue({
@@ -179,10 +191,12 @@ describe("useDesktopRouteChange bridge", () => {
       search: "?newChat=1788308765045",
       hash: "",
     });
-    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_ACK_EVENT, (event) => {
-      acknowledgements.push((event as CustomEvent<unknown>).detail);
-    }, { once: true });
+    const statusListener = (event: Event) => {
+      statuses.push((event as CustomEvent<unknown>).detail);
+    };
+    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
     renderHookProbe();
+    statuses.length = 0;
 
     act(() => {
       callbacks[0]?.({}, {
@@ -194,20 +208,21 @@ describe("useDesktopRouteChange bridge", () => {
     });
 
     expect(navigate).not.toHaveBeenCalled();
-    expect(acknowledgements).toEqual([{
+    expect(statuses).toEqual([{
       type: "desktopRouteApplied",
       routeRevision: 8,
       routerLocation: "/agent/cutej?newChat=1788308765045",
     }]);
+    window.removeEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
   });
 
-  it("keeps legacy route payloads working without emitting an unbound ACK", () => {
+  it("rejects Main Chat route payloads without a positive revision", () => {
     const callbacks: RouteCallback[] = [];
     const onFromMain = jest.fn((_channel: string, callback: RouteCallback) => {
       callbacks.push(callback);
     });
     const navigate = jest.fn();
-    const acknowledgements: unknown[] = [];
+    const statuses: unknown[] = [];
     installMockWindow(onFromMain);
     useNavigateMock.mockReturnValue(navigate);
     useLocationMock.mockReturnValue({
@@ -215,10 +230,12 @@ describe("useDesktopRouteChange bridge", () => {
       search: "",
       hash: "",
     });
-    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_ACK_EVENT, (event) => {
-      acknowledgements.push((event as CustomEvent<unknown>).detail);
-    }, { once: true });
+    const statusListener = (event: Event) => {
+      statuses.push((event as CustomEvent<unknown>).detail);
+    };
+    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
     renderHookProbe();
+    statuses.length = 0;
 
     act(() => {
       callbacks[0]?.({}, {
@@ -227,8 +244,115 @@ describe("useDesktopRouteChange bridge", () => {
       });
     });
 
-    expect(navigate).toHaveBeenCalledWith("/agent/cutej", { replace: true });
-    expect(acknowledgements).toEqual([]);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(statuses).toEqual([]);
+    window.removeEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
+  });
+
+  it("reports Router READY only after the shared host listener is registered", () => {
+    const callOrder: string[] = [];
+    const onFromMain = jest.fn(() => {
+      callOrder.push("listener");
+      return undefined;
+    });
+    const statuses: unknown[] = [];
+    installMockWindow(onFromMain);
+    useNavigateMock.mockReturnValue(jest.fn());
+    useLocationMock.mockReturnValue({
+      pathname: "/agent/current",
+      search: "?chatId=chat-current",
+      hash: "",
+    });
+    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, (event) => {
+      callOrder.push("ready");
+      statuses.push((event as CustomEvent<unknown>).detail);
+    }, { once: true });
+
+    renderHookProbe();
+
+    expect(callOrder).toEqual(["listener", "ready"]);
+    expect(statuses).toEqual([{
+      type: "desktopRouteReady",
+      routerLocation: "/agent/current?chatId=chat-current",
+    }]);
+  });
+
+  it("lets the latest A-to-B-to-C revision replace an older pending render", () => {
+    const callbacks: RouteCallback[] = [];
+    const onFromMain = jest.fn((_channel: string, callback: RouteCallback) => {
+      callbacks.push(callback);
+    });
+    const navigate = jest.fn();
+    const statuses: unknown[] = [];
+    const statusListener = (event: Event) => {
+      statuses.push((event as CustomEvent<unknown>).detail);
+    };
+    installMockWindow(onFromMain);
+    useNavigateMock.mockReturnValue(navigate);
+    useLocationMock.mockReturnValue({
+      pathname: "/agent/demo",
+      search: "?chatId=chat-a",
+      hash: "",
+    });
+    window.addEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
+    renderHookProbe();
+    statuses.length = 0;
+
+    act(() => {
+      callbacks[0]?.({}, {
+        type: "desktopRouteChanged",
+        pathname: "/agent/demo",
+        search: "?chatId=chat-b",
+        routeRevision: 9,
+      });
+      callbacks[0]?.({}, {
+        type: "desktopRouteChanged",
+        pathname: "/agent/demo",
+        search: "?chatId=chat-c",
+        routeRevision: 10,
+      });
+    });
+
+    useLocationMock.mockReturnValue({
+      pathname: "/agent/demo",
+      search: "?chatId=chat-b",
+      hash: "",
+    });
+    rerenderHookProbe();
+    expect(statuses).toEqual([]);
+
+    useLocationMock.mockReturnValue({
+      pathname: "/agent/demo",
+      search: "?chatId=chat-c",
+      hash: "",
+    });
+    rerenderHookProbe();
+    expect(statuses).toEqual([{
+      type: "desktopRouteApplied",
+      routeRevision: 10,
+      routerLocation: "/agent/demo?chatId=chat-c",
+    }]);
+    expect(navigate).toHaveBeenNthCalledWith(
+      1,
+      "/agent/demo?chatId=chat-b",
+      { replace: true, flushSync: true },
+    );
+    expect(navigate).toHaveBeenNthCalledWith(
+      2,
+      "/agent/demo?chatId=chat-c",
+      { replace: true, flushSync: true },
+    );
+    act(() => {
+      for (const routeRevision of [9, 10]) {
+        callbacks[0]?.({}, {
+          type: "desktopRouteChanged", pathname: "/agent/demo",
+          search: "?chatId=chat-b", routeRevision,
+        });
+      }
+    });
+    expect(navigate).toHaveBeenCalledTimes(2); // Neither stale nor conflicting revision wins.
+    expect(statuses).toHaveLength(1);
+    window.removeEventListener(PAGE_TO_PRELOAD_ROUTE_STATUS_EVENT, statusListener);
   });
 
   it("registers the host listener only once for multiple subscribers", () => {
@@ -252,6 +376,7 @@ describe("useDesktopRouteChange bridge", () => {
     callbacks[0]?.({}, {
       type: "desktopRouteChanged",
       pathname: "/agent/model-mimo",
+      routeRevision: 1,
     });
 
     expect(firstTargets).toEqual(["/agent/model-mimo"]);
@@ -276,6 +401,7 @@ describe("useDesktopRouteChange bridge", () => {
       type: "desktopRouteChanged",
       pathname: "/copilot/demo-agent",
       search: "chatId=chat_1",
+      routeRevision: 2,
     });
 
     expect(onFromMain).toHaveBeenCalledTimes(1);
@@ -301,6 +427,14 @@ describe("useDesktopRouteChange bridge", () => {
       type: "desktopRouteChanged",
       pathname: "",
     });
+    (callbacks[0] as unknown as (event: unknown, payload: unknown) => void)?.(
+      {},
+      null,
+    );
+    (callbacks[0] as unknown as (event: unknown, payload: unknown) => void)?.(
+      {},
+      [],
+    );
 
     expect(targets).toEqual([]);
   });

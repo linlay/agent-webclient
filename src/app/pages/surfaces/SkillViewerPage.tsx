@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useI18n } from "@/shared/i18n";
-import { IndependentSurfaceFrame } from "./SurfaceFrame";
+import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 
 export const SkillViewerPage: React.FC = () => {

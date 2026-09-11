@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Input, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import type { VoiceChatStatus } from "@/app/state/types";
+import type { VoiceChatStatus } from "@/features/voice/lib/voiceState";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import "@/features/voice/components/VoiceEffects.module.css";
+import "./ComposerCompat.module.css";
 
 interface ComposerInputProps {
   isVoiceMode: boolean;

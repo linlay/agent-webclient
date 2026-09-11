@@ -11,16 +11,23 @@ import {
   type TabsProps,
 } from "antd";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
-import { DebugTab } from "@/app/layout/sidebar/right/DebugTab";
-import { OverviewTab } from "@/app/layout/sidebar/right/OverviewTab";
-import { SourceDetailTab } from "@/app/layout/sidebar/right/SourceDetailTab";
-import { PlanningPreviewTab } from "@/app/layout/sidebar/right/PlanningPreviewTab";
+import {
+  OnlineDocumentPreviewTab,
+  OnlineDocumentPreviewTabContextMenu,
+  type OnlineDocumentPreviewTabActions,
+} from "@/features/viewers/components/OnlineDocumentPreviewTab";
+import { ViewerTabContextMenu } from "@/features/viewers/components/ViewerTabContextMenu";
+import { DebugTab } from "@/features/debug/components/DebugTab";
+import { OverviewTab } from "@/features/overview/components/OverviewTab";
+import { SourceDetailTab } from "@/features/source/components/SourceDetailTab";
+import { PlanningPreviewTab } from "@/features/plan/components/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
 import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 import { useBTW } from "@/features/btw/components/BtwProvider";
-import type { RightSidebarTabKey } from "@/app/state/uiTypes";
+import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
+import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
@@ -97,16 +104,12 @@ function getWebUrlFromTabKey(key: string): string {
 }
 
 const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
-  const typeLabel = target.type === "resource" ? target.mimeType || "" : "";
   const sizeBytes = target.type === "resource" ? target.sizeBytes : undefined;
   const sizeLabel = useMemo(() => formatAttachmentSize(sizeBytes), [sizeBytes]);
   return (
-    <div>
+    <div className="tw:max-w-[280px] tw:break-words tw:[overflow-wrap:anywhere]">
       <div>{target.name}</div>
-      <Flex gap={10}>
-        {typeLabel ? <div>{typeLabel}</div> : null}
-        {sizeLabel ? <div>{sizeLabel}</div> : null}
-      </Flex>
+      {sizeLabel ? <div className="tw:mt-1 tw:text-xs tw:opacity-70">{sizeLabel}</div> : null}
     </div>
   );
 };
@@ -117,6 +120,7 @@ export const RightSidebar: React.FC = () => {
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
   const viewerTabs = state.viewerTabs;
+  const documentPreviewTabs = state.documentPreviewTabs;
   const sourceDetail = state.activeSourceDetail;
   const planningPreviews = state.planningPreviews;
   const webPreviews = state.webPreviews;
@@ -135,6 +139,9 @@ export const RightSidebar: React.FC = () => {
       ? "debug"
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
+        : state.rightSidebarOpenTab === "documentPreview" && documentPreviewTabs.length > 0
+          ? `documentPreview:${documentPreviewTabs.find((preview) => preview.key === state.activeDocumentPreviewKey)?.key
+              || documentPreviewTabs[documentPreviewTabs.length - 1].key}`
         : state.rightSidebarOpenTab === "viewer" && viewerTabs.length > 0
           ? `viewer:${
               state.activeViewerKey &&
@@ -173,6 +180,8 @@ export const RightSidebar: React.FC = () => {
   const activePanel: RightSidebarTabKey =
     selectedPanel === "debug"
       ? "debug"
+      : selectedPanel.startsWith("documentPreview:")
+        ? "documentPreview"
       : selectedPanel.startsWith("viewer:")
         ? "viewer"
         : selectedPanel.startsWith("planningPreview:")
@@ -193,6 +202,22 @@ export const RightSidebar: React.FC = () => {
   const [tabFullscreenRequests, setTabFullscreenRequests] = React.useState<
     Record<string, number>
   >({});
+  const [tabRefreshRequests, setTabRefreshRequests] = React.useState<Record<string, number>>({});
+  const [viewerContextMenuKey, setViewerContextMenuKey] = React.useState<string | null>(null);
+  const documentPreviewRefs = React.useRef(new Map<string, React.RefObject<OnlineDocumentPreviewTabActions>>());
+  const getDocumentPreviewRef = React.useCallback((key: string) => {
+    let ref = documentPreviewRefs.current.get(key);
+    if (!ref) {
+      ref = React.createRef<OnlineDocumentPreviewTabActions>();
+      documentPreviewRefs.current.set(key, ref);
+    }
+    return ref;
+  }, []);
+  React.useEffect(() => {
+    for (const key of documentPreviewRefs.current.keys()) {
+      if (!documentPreviewTabs.some((preview) => preview.key === key)) documentPreviewRefs.current.delete(key);
+    }
+  }, [documentPreviewTabs]);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty(
@@ -220,6 +245,22 @@ export const RightSidebar: React.FC = () => {
     return nextWidth;
   }, []);
 
+  const resizeStartWidthRef = React.useRef(sidebarWidth);
+  const { handlePointerDown: handleResizePointerDown } = usePanelResize({
+    axis: "horizontal",
+    invert: true,
+    onResizeStart: () => {
+      resizeStartWidthRef.current = sidebarWidth;
+    },
+    onResize: (delta) =>
+      updateSidebarWidth(resizeStartWidthRef.current + delta),
+    onResizeEnd: (delta) => {
+      persistRightSidebarWidth(
+        updateSidebarWidth(resizeStartWidthRef.current + delta),
+      );
+    },
+  });
+
   const handleCloseTab = React.useCallback(
     (key: React.Key) => {
       if (key === "btw") {
@@ -227,14 +268,17 @@ export const RightSidebar: React.FC = () => {
           discardBTW(state.chatId);
         }
         dispatch({ type: "OPEN_RIGHT_SIDEBAR", tab: "overview" });
+      } else if (typeof key === "string" && key.startsWith("documentPreview:")) {
+        dispatch({ type: "CLOSE_DOCUMENT_PREVIEW", key: key.slice("documentPreview:".length) });
       } else if (typeof key === "string" && key.startsWith("viewer:")) {
+        setViewerContextMenuKey(null);
         const viewerKeyToRemove = key.slice("viewer:".length);
         const remaining = viewerTabs.filter(
           (target) => getViewerTargetKey(target) !== viewerKeyToRemove,
         );
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
-          tab: remaining.length > 0 ? "viewer" : "overview",
+          tab: activePanel === "viewer" ? (remaining.length > 0 ? "viewer" : "overview") : activePanel,
           removeViewerKey: viewerKeyToRemove,
         });
       } else if (
@@ -284,6 +328,7 @@ export const RightSidebar: React.FC = () => {
       planningPreviews,
       webPreviews,
       skillTabs,
+      activePanel,
     ],
   );
 
@@ -315,38 +360,6 @@ export const RightSidebar: React.FC = () => {
       })();
     },
     [state.chatId, teamChat, t],
-  );
-
-  const handleResizePointerDown = React.useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
-      if (event.button !== 0) return;
-
-      event.preventDefault();
-      const handle = event.currentTarget;
-      handle.setPointerCapture(event.pointerId);
-      document.body.classList.add("right-sidebar-resizing");
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        updateSidebarWidth(window.innerWidth - moveEvent.clientX);
-      };
-
-      const finishResize = (upEvent: PointerEvent) => {
-        handle.releasePointerCapture(upEvent.pointerId);
-        document.body.classList.remove("right-sidebar-resizing");
-        const nextWidth = updateSidebarWidth(
-          window.innerWidth - upEvent.clientX,
-        );
-        persistRightSidebarWidth(nextWidth);
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", finishResize);
-        window.removeEventListener("pointercancel", finishResize);
-      };
-
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", finishResize);
-      window.addEventListener("pointercancel", finishResize);
-    },
-    [updateSidebarWidth],
   );
 
   const handleResizeKeyDown = React.useCallback(
@@ -435,6 +448,9 @@ export const RightSidebar: React.FC = () => {
           <Tooltip
             title={<ViewerTabTooltip target={target} />}
             placement="rightTop"
+            open={viewerContextMenuKey ? false : undefined}
+            mouseEnterDelay={0.4}
+            zIndex={1000}
           >
             <Flex align="center" gap={4}>
               <MaterialIcon name="visibility" />
@@ -447,12 +463,30 @@ export const RightSidebar: React.FC = () => {
         children: (
           <ContentViewerPanel
             target={target}
+            onOpenOnlinePreview={(preview) => dispatch({ type: "OPEN_DOCUMENT_PREVIEW", preview })}
             enableDesktopLocalResourceActions
+            refreshRequest={tabRefreshRequests[`viewer:${viewerKey}`] ?? 0}
             fullscreenRequest={
               tabFullscreenRequests[`viewer:${viewerKey}`] ?? 0
             }
           />
         ),
+      });
+    }
+
+    for (const preview of documentPreviewTabs) {
+      const label = t("contentViewer.preview.tabTitle", { name: preview.target.name });
+      items.push({
+        key: `documentPreview:${preview.key}`,
+        label: (
+          <Tooltip title={label} placement="rightTop">
+            <Flex align="center" gap={4}>
+              <MaterialIcon name="preview" />
+              <Typography.Text ellipsis className="tw:!max-w-[160px]">{label}</Typography.Text>
+            </Flex>
+          </Tooltip>
+        ),
+        children: <OnlineDocumentPreviewTab tab={preview} ref={getDocumentPreviewRef(preview.key)} />,
       });
     }
 
@@ -505,6 +539,9 @@ export const RightSidebar: React.FC = () => {
   }, [
     hasBTWSession,
     viewerTabs,
+    documentPreviewTabs,
+    getDocumentPreviewRef,
+    dispatch,
     sourceDetail,
     planningPreviews,
     t,
@@ -512,11 +549,15 @@ export const RightSidebar: React.FC = () => {
     skillTabs,
     state.webPreviewRefreshRevisionByUrl,
     tabFullscreenRequests,
+    tabRefreshRequests,
+    viewerContextMenuKey,
   ]);
 
   const handleTabChange = React.useCallback(
     (key: string) => {
-      if (key.startsWith("viewer:")) {
+      if (key.startsWith("documentPreview:")) {
+        dispatch({ type: "ACTIVATE_DOCUMENT_PREVIEW", key: key.slice("documentPreview:".length) });
+      } else if (key.startsWith("viewer:")) {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "viewer",
@@ -588,8 +629,49 @@ export const RightSidebar: React.FC = () => {
             <DefaultTabBar {...tabBarProps}>
               {(node) => {
                 if (node.key === "overview" || !node.key) return node;
+                if (node.key.startsWith("documentPreview:")) {
+                  const tabKey = node.key;
+                  return <OnlineDocumentPreviewTabContextMenu key={tabKey}
+                    previewRef={getDocumentPreviewRef(tabKey.slice("documentPreview:".length))}
+                    onClose={() => handleCloseTab(tabKey)}>{node}</OnlineDocumentPreviewTabContextMenu>;
+                }
                 const isWebTab = node.key.startsWith("web:");
                 const isViewerTab = node.key.startsWith("viewer:");
+
+                if (isViewerTab) {
+                  const tabKey = node.key;
+                  const viewerKey = tabKey.slice("viewer:".length);
+                  const target = viewerTabs.find(
+                    (item) => getViewerTargetKey(item) === viewerKey,
+                  );
+                  if (!target) return node;
+                  return (
+                    <ViewerTabContextMenu
+                      key={tabKey}
+                      target={target}
+                      chatId={state.chatId}
+                      teamChat={teamChat}
+                      onDownload={() => handleViewerDownload(target)}
+                      onRefresh={() => {
+                        setTabRefreshRequests((prev) => ({
+                          ...prev,
+                          [tabKey]: (prev[tabKey] ?? 0) + 1,
+                        }));
+                      }}
+                      onOpenChange={(open) => setViewerContextMenuKey((current) =>
+                        open ? tabKey : current === tabKey ? null : current)}
+                      onFullscreen={() => {
+                        setTabFullscreenRequests((prev) => ({
+                          ...prev,
+                          [tabKey]: (prev[tabKey] ?? 0) + 1,
+                        }));
+                      }}
+                      onClose={() => handleCloseTab(tabKey)}
+                    >
+                      {node}
+                    </ViewerTabContextMenu>
+                  );
+                }
 
                 const menuitems = [
                   ...(isWebTab
@@ -640,49 +722,7 @@ export const RightSidebar: React.FC = () => {
                           },
                         },
                       ]
-                    : isViewerTab
-                      ? [
-                          {
-                            key: "download",
-                            label: t("contentViewer.action.download"),
-                            icon: (
-                              <MaterialIcon
-                                name="download"
-                                className="tw:opacity-[0.5]"
-                              />
-                            ),
-                            onClick: () => {
-                              const viewerKey = (node.key as string).slice(
-                                "viewer:".length,
-                              );
-                              const target = viewerTabs.find(
-                                (item) =>
-                                  getViewerTargetKey(item) === viewerKey,
-                              );
-                              if (target) {
-                                handleViewerDownload(target);
-                              }
-                            },
-                          },
-                          {
-                            key: "fullscreen",
-                            label: t("rightSidebar.web.contextMenu.fullscreen"),
-                            icon: (
-                              <MaterialIcon
-                                name="crop_free"
-                                className="tw:opacity-[0.5]"
-                              />
-                            ),
-                            onClick: () => {
-                              const tabKey = node.key as string;
-                              setTabFullscreenRequests((prev) => ({
-                                ...prev,
-                                [tabKey]: (prev[tabKey] ?? 0) + 1,
-                              }));
-                            },
-                          },
-                        ]
-                      : []),
+                    : []),
                   {
                     key: "close",
                     label: t("rightSidebar.web.contextMenu.close"),

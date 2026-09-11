@@ -41,8 +41,7 @@
       "__STOP_SCRIPT__",
       "__DEPLOY_SCRIPT__",
       "__PROGRAM_COMMON__",
-      "frontend/dist/index.html",
-      "frontend/dist/export/conversation.template.html"
+      "frontend/dist/index.html"
     ]
   },
   "web": {
@@ -85,11 +84,12 @@
         "/debug/",
         "/btw/",
         "/selection-explain/",
-        "/source-view/",
-        "/planning-view/",
-        "/resource-view/",
-        "/file-view/",
-        "/web-view",
+        "/source-viewer/",
+        "/planning-viewer/",
+        "/resource-viewer/",
+        "/file-viewer/",
+        "/web-viewer",
+        "/skill-viewer/",
         "/history",
         "/terminal/",
         "/project/",

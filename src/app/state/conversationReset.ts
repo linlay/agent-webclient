@@ -70,6 +70,8 @@ export function buildConversationResetState(
 		webPreviewRefreshRevisionByUrl: new Map(),
 		activeWebPreviewUrl: "",
 		viewerTabs: [],
+		documentPreviewTabs: [],
+		activeDocumentPreviewKey: "",
 		activeViewerKey: "",
 		inputMode: "text",
 		voiceChat: {

@@ -5,11 +5,12 @@ import { Collapse, Flex, Tooltip } from "antd";
 import { ContentBlock } from "../ContentBlock";
 import { copyText } from "@/shared/utils/copy";
 import useApp from "antd/es/app/useApp";
-import { TimelineNode } from "@/app/state/timelineTypes";
+import { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { useAppState } from "@/app/state/AppContext";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useTimelineInteraction } from "../TimelineInteractionContext";
 
 interface PlanningTimelineProps {
   node: TimelineNode;
@@ -22,6 +23,8 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
   const { t } = useI18n();
   const state = useAppState();
   const openTarget = useOpenTarget();
+  const interaction = useTimelineInteraction();
+  const chatId = String(interaction?.surfaceContext?.chatId || state.chatId).trim();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -53,7 +56,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                     openTarget({
                       version: 1,
                       kind: "planning",
-                      chatId: state.chatId,
+                      chatId,
                       planningId: node.planningId || "",
                       nodeId: node.id,
                       label: node.text || node.id,

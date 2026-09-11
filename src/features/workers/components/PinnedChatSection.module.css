@@ -1,0 +1,21 @@
+:global(.pinned-chat-section) { margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+:global(.pinned-chat-heading) { display: flex; width: 100%; align-items: center; gap: 5px; padding: 6px 2px; border: 0; background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer; }
+:global(.pinned-chat-heading) :global(.material-icon) { font-size: 16px; }
+:global(.pinned-chat-count) { margin-left: auto; padding-right: 8px; font-size: 11px; }
+:global(.pinned-chat-row) { display: flex; position: relative; align-items: center; border-radius: 6px; }
+:global(.pinned-chat-row[data-dragging]) { z-index: 2; background: var(--bg-card); box-shadow: var(--shadow-soft); }
+:global(.pinned-chat-row) :global(.worker-chat-item) { flex: 1; min-width: 0; }
+:global(.pinned-chat-owner) { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--text-sub); font-size: 10px; line-height: 15px; }
+:global(.pinned-chat-handle) { display: inline-flex; flex: 0 0 16px; width: 16px; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: var(--text-muted); opacity: 0; cursor: grab; touch-action: none; }
+:global(.pinned-chat-handle) :global(.material-icon) { font-size: 16px; }
+:global(.pinned-chat-row:hover) :global(.pinned-chat-handle), :global(.pinned-chat-row:focus-within) :global(.pinned-chat-handle) { opacity: 1; }
+:global(.pinned-chat-handle:disabled) { cursor: default; opacity: 0.25; }
+:global(.pinned-chat-rail) { display: flex; justify-content: center; padding: 4px 0 10px; }
+:global(.pinned-chat-rail-button) { display: inline-flex; padding: 5px; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
+:global(.pinned-chat-rail-button:hover) { background: var(--bg-hover); }
+:global(.pinned-chat-list) { max-height: 50vh; overflow-y: auto; }
+:global(.worker-chat-item:focus-within) :global(.chat-actions-trigger) { display: inline-flex; }
+@media (hover: none) {
+  :global(.pinned-chat-handle) { opacity: 0.6; }
+  :global(.pinned-chat-row) :global(.chat-actions-trigger) { display: inline-flex; }
+}

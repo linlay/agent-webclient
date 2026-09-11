@@ -4,6 +4,11 @@ import { createInitialState } from "@/app/state/AppContext";
 import { SettingsModal } from "@/features/settings/components/SettingsModal";
 import { I18nProvider } from "@/shared/i18n";
 
+jest.mock("@/features/appearance/components/AppearanceProvider", () => ({
+  useAppearance: jest.fn(() => ({ preference: "system", selectedSkinId: "default", installedSkins: [],
+    controller: { setThemePreference: jest.fn(), setSkinId: jest.fn() } })),
+}));
+
 jest.mock("antd", () => {
   const actual = jest.requireActual("antd");
   const React = require("react");

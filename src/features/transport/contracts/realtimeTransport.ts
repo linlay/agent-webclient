@@ -1,3 +1,4 @@
+import type { SteerParams } from "@/shared/data/api/dto/commands";
 import type {
   AccessLevelUpdateParams,
   AccessLevelUpdateResponse,
@@ -6,7 +7,7 @@ import type {
   QueryLikeParams,
   QueryStreamParams,
 } from "@/shared/data/api/client";
-import type { AIAwaitSubmitParamData, AgentEvent } from "@/app/state/types";
+import type { AIAwaitSubmitParamData, AgentEvent } from "@/shared/contracts/agentEvents";
 import type { RunOwner } from "@/shared/data/runOwner";
 
 export type RealtimeTransportKind = "standalone" | "desktop";
@@ -92,7 +93,7 @@ export interface RunTransport {
   interrupt(input: QueryLikeParams): Promise<ApiResponse>;
   submitAwaiting(input: AwaitingSubmitInput): Promise<ApiResponse>;
   submitTool(input: ToolSubmitInput): Promise<ApiResponse>;
-  steer(input: QueryLikeParams): Promise<ApiResponse>;
+  steer(input: SteerParams): Promise<ApiResponse>;
   updateAccessLevel(
     input: AccessLevelUpdateParams,
   ): Promise<ApiResponse<AccessLevelUpdateResponse>>;

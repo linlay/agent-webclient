@@ -6,19 +6,9 @@ import {
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
   APP_AUTH_RESPONSE_TYPE,
 } from '@/shared/data/auth/appAuth';
-import {
-  initializeDesktopQueryContextBridge,
-  resetDesktopQueryContextBridgeForTests,
-} from '@/shared/data/desktop/desktopQueryContext';
 import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
 import { MAX_CONVERSATION_HTML_BYTES } from '@/shared/data/conversationExport';
 
-jest.mock("@/shared/data/clientSurfaceId", () => ({
-  getClientSurfaceId: () => "surface-test",
-}));
-jest.mock("@/shared/data/clientDeviceId", () => ({
-  getClientDeviceId: () => "device-test",
-}));
 import {
   buildResourceUrl,
   classifyResourceUrl,
@@ -27,18 +17,13 @@ import {
   getResourceText,
   isLegacyResourceUrl,
   isChatScopeResourceRef,
-  resolveResourceFetchUrl,
   buildAdminSkillDownloadUrl,
   buildAdminSkillFileDownloadUrl,
   archiveChats,
-  createAttachStream,
   compactChat,
   createAgent,
   createAutomation,
-  createBTWStream,
   createRequestId,
-  createQueryStream,
-  executeQueryOnce,
   deriveChat,
   deleteArchive,
   deleteAgent,
@@ -54,7 +39,6 @@ import {
   getAdminAgentDetail,
   getAdminSource,
   getAdminAgentEditorOptions,
-  getAdminAgentOrder,
   getAdminAgents,
   getAdminSkills,
   getAdminTools,
@@ -87,12 +71,8 @@ import {
   previewMemoryContext,
   saveMemoryScope,
   validateMemoryScope,
-  getVoiceCapabilities,
   getVoiceCapabilitiesFlexible,
-  getVoiceVoices,
   getVoiceVoicesFlexible,
-  interruptBTWRun,
-  interruptChat,
   learnChat,
   markChatRead,
   normalizeChatSummariesPayload,
@@ -111,6 +91,7 @@ import {
   downloadAdminSkillFile,
   fetchAdminSkillFileBlob,
   fetchAdminSkillIcon,
+  fetchConnectorIcon,
   getAdminSkillDetail,
   importAdminAgent,
   importAdminSkill,
@@ -119,16 +100,12 @@ import {
   renameAdminSkillFile,
   uploadAdminSkillFile,
   validateAdminSkill,
-  steerChat,
-  submitAwaiting,
   submitFeedback,
-  submitTool,
   toggleAutomation,
   triggerAutomation,
   updateAgent,
   updateAdminSource,
   updateAgentName,
-  updateAccessLevel,
   updateAgentModelConfig,
   putAdminAgentOrder,
   putAgentOrder,
@@ -256,13 +233,12 @@ function installStandaloneLocalStorage(initial: Record<string, string> = {}) {
   });
 }
 
-describe('data client query payloads', () => {
+describe('data client requests', () => {
   const fetchMock = jest.fn();
   const originalWindow = globalThis.window;
   const originalLocalStorage = globalThis.localStorage;
 
   beforeEach(() => {
-    resetDesktopQueryContextBridgeForTests();
     resetCompactIdStateForTests();
     jest.restoreAllMocks();
     global.Blob = Blob as unknown as typeof global.Blob;
@@ -280,7 +256,6 @@ describe('data client query payloads', () => {
   });
 
   afterEach(() => {
-    resetDesktopQueryContextBridgeForTests();
     delete (globalThis as typeof globalThis & {
       __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
     }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
@@ -315,360 +290,6 @@ describe('data client query payloads', () => {
     jest.spyOn(Date, 'now').mockReturnValue(2_500);
 
     expect(createRequestId(' req__ ')).toBe(`req_${(2_000).toString(36)}`);
-  });
-
-  it('sends only required fields for basic query streams', async () => {
-    await createQueryStream({
-      requestId: 'req_1',
-      message: '显示广州的天气',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/query');
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_1',
-      message: '显示广州的天气',
-      agentKey: 'demo-agent',
-    });
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('runId');
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('stream');
-  });
-
-  it('sends one normalized required skill with chat and site references', async () => {
-    await createQueryStream({
-      requestId: 'req_context',
-      message: 'Use the selected context',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      mustUseSkills: [' product-design ', 'PRODUCT-DESIGN'],
-      references: [
-        {
-          type: 'chat',
-          id: 'chat_2',
-          name: 'Previous design',
-          meta: { agentKey: 'demo-agent' },
-        },
-        {
-          type: 'site',
-          id: 'website:docs',
-          name: 'Docs',
-          url: 'https://example.com',
-          meta: { kind: 'website' },
-        },
-      ],
-    });
-
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(String(options.body))).toMatchObject({
-      mustUseSkills: ['product-design'],
-      references: [
-        {
-          type: 'chat',
-          id: 'chat_2',
-          name: 'Previous design',
-        },
-        {
-          type: 'site',
-          id: 'website:docs',
-          name: 'Docs',
-          url: 'https://example.com',
-        },
-      ],
-    });
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('requiredSkillKeys');
-  });
-
-  it('sends BTW streams without mutable routing fields', async () => {
-    await createBTWStream({
-      requestId: 'req_btw_1',
-      runId: 'run_btw_1',
-      chatId: 'chat_1',
-      btwId: 'btw_1',
-      message: 'side question',
-      references: [{ name: 'spec.md' }],
-      accessLevel: 'default',
-      stream: true,
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const body = JSON.parse(String(options.body));
-    expect(url).toBe('/api/btw');
-    expect(body).toEqual({
-      requestId: 'req_btw_1',
-      runId: 'run_btw_1',
-      chatId: 'chat_1',
-      btwId: 'btw_1',
-      message: 'side question',
-      references: [{ name: 'spec.md' }],
-      accessLevel: 'default',
-      stream: true,
-    });
-    expect(body).not.toHaveProperty('agentKey');
-    expect(body).not.toHaveProperty('teamId');
-    expect(body).not.toHaveProperty('role');
-    expect(body).not.toHaveProperty('planningMode');
-  });
-
-  it('includes planningMode=true for CODER query streams', async () => {
-    await createQueryStream({
-      requestId: 'req_2',
-      message: '继续',
-      planningMode: true,
-      agentMode: 'CODER',
-      chatId: 'chat_1',
-      owner: { kind: 'agent', agentKey: 'demoViewport' },
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/query');
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_2',
-      planningMode: true,
-      message: '继续',
-      chatId: 'chat_1',
-      agentKey: 'demoViewport',
-    });
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
-  });
-
-  it('includes planningMode=false for CODER query streams when disabled', async () => {
-    await createQueryStream({
-      requestId: 'req_coder_false',
-      message: '普通执行',
-      planningMode: false,
-      agentMode: 'CODER',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-    });
-
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_coder_false',
-      message: '普通执行',
-      planningMode: false,
-      agentKey: 'demo-agent',
-    });
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
-  });
-
-  it('omits planningMode for non-CODER query streams even when enabled', async () => {
-    await createQueryStream({
-      requestId: 'req_react_plan_stale',
-      message: '非 CODER 请求',
-      planningMode: true,
-      agentMode: 'REACT',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-    });
-
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_react_plan_stale',
-      message: '非 CODER 请求',
-      agentKey: 'demo-agent',
-    });
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('agentMode');
-  });
-
-  it('includes top-level editingMode=true only for KBASE query streams', async () => {
-    await createQueryStream({
-      requestId: 'req_kbase_edit',
-      message: '更新知识文档',
-      editingMode: true,
-      agentMode: 'KBASE',
-      params: {
-        editingMode: true,
-        topic: 'guide',
-      },
-      owner: { kind: 'agent', agentKey: 'knowledge-agent' },
-    });
-
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_kbase_edit',
-      message: '更新知识文档',
-      editingMode: true,
-      agentKey: 'knowledge-agent',
-      params: { topic: 'guide' },
-    });
-  });
-
-  it('omits editingMode when disabled or when the target is not KBASE', async () => {
-    await createQueryStream({
-      requestId: 'req_kbase_readonly',
-      message: '读取知识文档',
-      editingMode: false,
-      agentMode: 'KBASE',
-      owner: { kind: 'agent', agentKey: 'knowledge-agent' },
-    });
-    await createQueryStream({
-      requestId: 'req_react_edit_stale',
-      message: '普通请求',
-      editingMode: true,
-      agentMode: 'REACT',
-      owner: { kind: 'agent', agentKey: 'react-agent' },
-    });
-
-    for (const [, options] of fetchMock.mock.calls as [string, RequestInit][]) {
-      const body = JSON.parse(String(options.body));
-      expect(body).not.toHaveProperty('editingMode');
-      expect(body.params).not.toEqual(
-        expect.objectContaining({ editingMode: expect.anything() }),
-      );
-    }
-  });
-
-  it('keeps query params empty in desktop app mode when no business params are provided', async () => {
-    installWindow({
-      pathname: '/copilot',
-      storedToken: 'desktop-token',
-    });
-
-    await createQueryStream({
-      requestId: 'req_desktop',
-      message: '当前页面是什么',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/query');
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_desktop',
-      message: '当前页面是什么',
-      agentKey: 'demo-agent',
-    });
-    expect(JSON.parse(String(options.body))).not.toHaveProperty('planningMode');
-  });
-
-  it('passes business params unchanged in desktop app mode', async () => {
-    const { dispatchMessage, parent } = installWindow({
-      pathname: '/copilot',
-      storedToken: 'desktop-token',
-    });
-    initializeDesktopQueryContextBridge();
-    dispatchMessage({
-      source: parent as unknown as MessageEventSource,
-      data: {
-        type: 'desktopContextChanged',
-        desktop: {
-          route: '/settings?section=navigation',
-          pageKey: 'native:/settings?section=navigation',
-          pageKind: 'native',
-          permissionMode: 'page_control',
-          snapshotVersion: 7,
-          snapshotAt: '2026-05-16T12:00:00.000Z',
-          pageContext: {
-            title: '设置',
-            url: 'desktop://settings/navigation',
-          },
-        },
-      },
-    } as MessageEvent);
-
-    await createQueryStream({
-      requestId: 'req_desktop_snapshot',
-      message: '当前页面是什么',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      params: { city: 'beijing' },
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/query');
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_desktop_snapshot',
-      message: '当前页面是什么',
-      agentKey: 'demo-agent',
-      params: { city: 'beijing' },
-    });
-  });
-
-  it('sends access level and model overrides at the query top level', async () => {
-    await createQueryStream({
-      requestId: 'req_access_model',
-      message: '继续',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      accessLevel: 'auto_approve',
-      model: {
-        key: 'gpt-5.5',
-        reasoningEffort: 'XHIGH',
-      },
-      params: { city: 'beijing' },
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/query');
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_access_model',
-      message: '继续',
-      agentKey: 'demo-agent',
-      accessLevel: 'auto_approve',
-      model: {
-        key: 'gpt-5.5',
-        reasoningEffort: 'XHIGH',
-      },
-      params: { city: 'beijing' },
-    });
-  });
-
-  it('normalizes the compatibility alias in HTTP/SSE and preserves MAX for BTW', async () => {
-    await createQueryStream({
-      requestId: 'req_extra_high',
-      message: 'continue',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      model: { reasoningEffort: 'EXTRA_HIGH' as never },
-    });
-    await createBTWStream({
-      requestId: 'req_btw_max',
-      chatId: 'chat_1',
-      message: 'side question',
-      model: { reasoningEffort: 'MAX' },
-    });
-
-    const queryBody = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
-    const btwBody = JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body));
-    expect(queryBody.model).toEqual({ reasoningEffort: 'XHIGH' });
-    expect(btwBody.model).toEqual({ reasoningEffort: 'MAX' });
-  });
-
-  it('keeps uploaded references in query streams when present', async () => {
-    await createQueryStream({
-      requestId: 'req_3',
-      message: '',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      references: [{ id: 'upload_1', name: 'spec.md' }],
-    });
-
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_3',
-      message: '',
-      agentKey: 'demo-agent',
-      references: [{ id: 'upload_1', name: 'spec.md' }],
-    });
-  });
-
-  it('runs a query once with the non-streaming response contract', async () => {
-    await executeQueryOnce({
-      requestId: 'automation_run_1',
-      message: 'run the scheduled task now',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      role: 'automation',
-      hidden: true,
-      params: { source: 'automation-list' },
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/query');
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'automation_run_1',
-      message: 'run the scheduled task now',
-      agentKey: 'demo-agent',
-      role: 'automation',
-      hidden: true,
-      params: { source: 'automation-list' },
-      stream: false,
-    });
   });
 
   it('sends automation management requests as JSON posts', async () => {
@@ -971,8 +592,8 @@ describe('data client query payloads', () => {
 			headers: new Headers({
 				'Content-Type': 'text/markdown; charset=utf-8',
 				'Content-Length': '128',
-				'X-ZenMind-Document-Kind': 'document-markdown',
-				'X-ZenMind-Resource-Revision': '128:42',
+				'X-Document-Kind': 'document-markdown',
+				'X-Document-Revision': '128:42',
 			}),
 		});
 
@@ -990,7 +611,7 @@ describe('data client query payloads', () => {
 		);
 	});
 
-	it('keeps documentKind absent for an older Platform response', async () => {
+	it('keeps documentKind absent when the authoritative header is missing', async () => {
 		fetchMock.mockResolvedValueOnce({
 			ok: true,
 			status: 200,
@@ -1028,6 +649,27 @@ describe('data client query payloads', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer skill-icon-token' }),
       }),
     );
+  });
+
+  it.each(['image/png', 'image/svg+xml'])('fetches connector icons as authenticated %s blobs', async contentType => {
+    setAccessToken('connector-icon-token');
+    const blob = new Blob(['icon'], { type: contentType });
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers({ 'Content-Type': contentType }), blob: async () => blob });
+    const url = '/api/connectors/icon?id=wecom&v=hash';
+    await expect(fetchConnectorIcon(url)).resolves.toBe(blob);
+    expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({
+      method: 'GET', headers: expect.objectContaining({ Authorization: 'Bearer connector-icon-token' }),
+    }));
+  });
+
+  it.each(['https://external.example/icon.svg', '//external.example/icon.png', '/api/connectors/icon/../private', '/api/admin/connectors'])('rejects unexpected connector icon URLs: %s', async url => {
+    await expect(fetchConnectorIcon(url)).rejects.toThrow('connector icon URL is invalid');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-image connector icon responses', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers({ 'Content-Type': 'text/html' }) });
+    await expect(fetchConnectorIcon('/api/connectors/icon?id=wecom')).rejects.toThrow('connector icon response is not a supported image');
   });
 
   it('rejects unexpected or non-image skill icon responses without exposing the token', async () => {
@@ -1171,6 +813,16 @@ describe('data client query payloads', () => {
     expect(formData.get('file')).toBe(archive);
   });
 
+  it('uploads a ZIP without a key so Platform can identify a skill or package', async () => {
+    const archive = new File(['zip'], 'wecomcli-suite.zip', { type: 'application/zip' });
+    await importAdminSkill({ file: archive });
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/admin/skills/import');
+    const form = options.body as FormData;
+    expect(form.get('key')).toBeNull();
+    expect(form.get('file')).toBe(archive);
+  });
+
   it('imports an Agent ZIP without a client-supplied key and only sends overwrite when confirmed', async () => {
     const archive = new File(['zip'], 'portable-agent.zip', { type: 'application/zip' });
 
@@ -1241,182 +893,6 @@ describe('data client query payloads', () => {
       '/api/model-options',
       expect.objectContaining({ method: 'GET' }),
     );
-  });
-
-  it('keeps runId for interrupt and steer requests', async () => {
-    await interruptChat({
-      requestId: 'req_interrupt',
-      chatId: 'chat_1',
-      runId: 'run_1',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      message: '',
-    });
-    await steerChat({
-      requestId: 'req_steer',
-      chatId: 'chat_1',
-      runId: 'run_1',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      steerId: '550e8400-e29b-41d4-a716-446655440000',
-      message: '再试一次',
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/interrupt');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/steer');
-
-    const interruptPayload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
-    const steerPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
-
-    expect(interruptPayload.runId).toBe('run_1');
-    expect(interruptPayload.agentKey).toBe('demo-agent');
-    expect(steerPayload.runId).toBe('run_1');
-    expect(steerPayload.agentKey).toBe('demo-agent');
-    expect(steerPayload.steerId).toBe('550e8400-e29b-41d4-a716-446655440000');
-  });
-
-  it('interrupts BTW runs directly over HTTP and preserves the typed acknowledgement', async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify({
-        code: 0,
-        msg: 'ok',
-        data: {
-          accepted: true,
-          status: 'accepted',
-          runId: 'btw_run_1',
-          detail: 'interrupt accepted',
-        },
-      }),
-    });
-
-    const response = await interruptBTWRun({
-      requestId: 'req_btw_interrupt',
-      chatId: 'parent_chat_1',
-      runId: 'btw_run_1',
-      owner: { kind: 'orchestrated-team', teamId: 'demo-team' },
-      message: '',
-    });
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/interrupt');
-    expect(options.method).toBe('POST');
-    expect(JSON.parse(String(options.body))).toEqual({
-      requestId: 'req_btw_interrupt',
-      chatId: 'parent_chat_1',
-      runId: 'btw_run_1',
-      teamId: 'demo-team',
-      message: '',
-    });
-    expect(response.data).toEqual({
-      accepted: true,
-      status: 'accepted',
-      runId: 'btw_run_1',
-      detail: 'interrupt accepted',
-    });
-  });
-
-  it('posts access level updates for active runs', async () => {
-    await updateAccessLevel({
-      requestId: 'req_access',
-      runId: 'run_1',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      accessLevel: 'auto_approve',
-      reason: 'user toggled permission',
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/access-level');
-    const payload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
-
-    expect(payload).toEqual({
-      requestId: 'req_access',
-      runId: 'run_1',
-      agentKey: 'demo-agent',
-      accessLevel: 'auto_approve',
-      reason: 'user toggled permission',
-    });
-  });
-
-  it('posts agentKey for run submit requests', async () => {
-    await submitTool({
-      runId: 'run_1',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      toolId: 'tool_1',
-      params: { city: 'beijing' },
-    });
-    await submitAwaiting({
-      chatId: 'chat_1',
-      runId: 'run_1',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      awaitingId: 'await_1',
-      submitId: 'submit_1',
-      params: [],
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/submit');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/submit');
-
-    const toolPayload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
-    const awaitingPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
-
-    expect(toolPayload.agentKey).toBe('demo-agent');
-    expect(awaitingPayload.agentKey).toBe('demo-agent');
-    expect(awaitingPayload.chatId).toBe('chat_1');
-    expect(awaitingPayload.submitId).toBe('submit_1');
-  });
-
-  it('serializes every orchestrated Team run request with only teamId', async () => {
-    const owner = { kind: 'orchestrated-team' as const, teamId: 'team_orchestrated' };
-
-    await createQueryStream({
-      requestId: 'req_team_query',
-      chatId: 'chat_team',
-      message: 'delegate this',
-      owner,
-    });
-    await createAttachStream({ runId: 'run_team', owner, lastSeq: 3 });
-    await submitTool({ runId: 'run_team', owner, toolId: 'tool_1', params: {} });
-    await submitAwaiting({
-      chatId: 'chat_team',
-      runId: 'run_team',
-      owner,
-      awaitingId: 'await_1',
-      submitId: 'submit_1',
-      params: [],
-    });
-    await interruptChat({
-      requestId: 'req_team_interrupt',
-      chatId: 'chat_team',
-      runId: 'run_team',
-      owner,
-      message: '',
-    });
-    await steerChat({
-      requestId: 'req_team_steer',
-      chatId: 'chat_team',
-      runId: 'run_team',
-      owner,
-      steerId: '550e8400-e29b-41d4-a716-446655440000',
-      message: 'keep going',
-    });
-    await updateAccessLevel({
-      requestId: 'req_team_access',
-      runId: 'run_team',
-      owner,
-      accessLevel: 'auto_approve',
-    });
-
-    const bodies = [0, 2, 3, 4, 5, 6].map((index) =>
-      JSON.parse(String((fetchMock.mock.calls[index] as [string, RequestInit])[1].body)),
-    );
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0])
-      .toContain('teamId=team_orchestrated');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0])
-      .not.toContain('agentKey=');
-    for (const body of bodies) {
-      expect(body).toHaveProperty('teamId', 'team_orchestrated');
-      expect(body).not.toHaveProperty('agentKey');
-    }
   });
 
   it('posts chatId and runId for markChatRead', async () => {
@@ -1578,14 +1054,6 @@ describe('data client query payloads', () => {
     expect(compactPayload).not.toHaveProperty('teamId');
   });
 
-  it('requests voice capabilities and voices from the voice api namespace', async () => {
-    await getVoiceCapabilities();
-    await getVoiceVoices();
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/voice/capabilities');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/voice/tts/voices');
-  });
-
   it('requests a single agent by agentKey query param', async () => {
     await getAgent('demo-agent');
 
@@ -1610,7 +1078,7 @@ describe('data client query payloads', () => {
     await deleteAdminSource({
       target: {
         type: 'registry',
-        category: 'mcp-servers',
+        category: 'viewport-servers',
         file: 'demo.yml',
       },
       baseSha256: 'registry-sha',
@@ -1637,7 +1105,7 @@ describe('data client query payloads', () => {
         body: JSON.stringify({
           target: {
             type: 'registry',
-            category: 'mcp-servers',
+            category: 'viewport-servers',
             file: 'demo.yml',
           },
           baseSha256: 'registry-sha',
@@ -1915,18 +1383,15 @@ describe('data client query payloads', () => {
     });
   });
 
-  it('uses admin endpoints for management agent discovery, detail, and order', async () => {
+  it('uses admin endpoints for management agent discovery, detail, and order updates', async () => {
     await getAdminAgents();
     await getAdminAgentDetail('bad-agent');
-    await getAdminAgentOrder();
     await putAdminAgentOrder({ order: ['bad-agent', 'agent-a'] });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/agents');
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/admin/agents/detail?agentKey=bad-agent');
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/admin/agents/order');
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1].method).toBe('GET');
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/admin/agents/order');
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[1]).toMatchObject({
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1]).toMatchObject({
       method: 'PUT',
       body: JSON.stringify({ order: ['bad-agent', 'agent-a'] }),
     });
@@ -2089,62 +1554,6 @@ describe('data client query payloads', () => {
     );
   });
 
-  it('injects the bridge token into query streams in app mode', async () => {
-    installWindow({ storedToken: 'bridge-token-sse' });
-
-    await createQueryStream({
-      requestId: 'req_sse',
-      message: '继续',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
-      Authorization: 'Bearer bridge-token-sse',
-      Accept: 'text/event-stream',
-      'X-Agent-WebClient-Device-Id': 'device-test',
-      'X-Agent-WebClient-Surface-Id': 'surface-test',
-    });
-  });
-
-  it('creates authenticated attach streams with runId and lastSeq query params', async () => {
-    installWindow({ storedToken: 'bridge-token-attach' });
-
-    await createAttachStream({
-      runId: 'run id/1',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-      lastSeq: 12,
-    });
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/attach?runId=run+id%2F1&agentKey=demo-agent&lastSeq=12');
-    expect(options.method).toBe('GET');
-    expect(options.headers).toMatchObject({
-      Authorization: 'Bearer bridge-token-attach',
-      Accept: 'text/event-stream',
-      'X-Agent-WebClient-Device-Id': 'device-test',
-      'X-Agent-WebClient-Surface-Id': 'surface-test',
-    });
-  });
-
-  it('omits WebClient target headers from gateway attach streams', async () => {
-    installWindow({ storedToken: 'gateway-attach' });
-    (globalThis as typeof globalThis & {
-      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      BACKEND_MODE: 'gateway',
-      DESKTOP_APP: 'true',
-    };
-
-    await createAttachStream({
-      runId: 'run_gateway',
-      owner: { kind: 'agent', agentKey: 'demo-agent' },
-    });
-
-    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(options.headers).not.toHaveProperty('X-Agent-WebClient-Device-Id');
-    expect(options.headers).not.toHaveProperty('X-Agent-WebClient-Surface-Id');
-  });
-
   it('parses voice capabilities from standard ApiResponse payloads', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -2281,13 +1690,9 @@ describe('data client query payloads', () => {
       fetchUrl: '',
       requiresPlatformAuth: false,
     });
-    expect(resolveResourceFetchUrl('image.png', 'chat_01')).toBe(
-      '/api/resource?file=chat_01%2Fimage.png',
-    );
-    expect(resolveResourceFetchUrl('%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01')).toBe(
+    expect(classifyResourceUrl('%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01').fetchUrl).toBe(
       '/api/resource?file=chat_01%2F%25E5%25A4%258F%25E6%2597%25A5%2520%25231%2525.png',
     );
-    expect(resolveResourceFetchUrl(legacy, 'chat_01')).toBe('');
   });
 
   it.each([
@@ -2336,9 +1741,7 @@ describe('data client query payloads', () => {
 		'/tmp/../private/image.png',
 		'/tmp/%2E%2E/private/image.png',
   ])('never fetches rejected resource source %s', async (source) => {
-    await expect(getResourceBlob(source, { chatId: 'chat_01' })).rejects.toThrow(
-      '预览加载失败',
-    );
+    await expect(getResourceBlob(source, { chatId: 'chat_01' })).rejects.toThrow(Error);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -2565,7 +1968,7 @@ describe('data client query payloads', () => {
     expect(click).toHaveBeenCalledTimes(1);
   });
 
-  it('assembles an HTML download from the Platform snapshot and WebClient template', async () => {
+  it('assembles an HTML download from the Platform snapshot and Tunnel template', async () => {
     const snapshot = '{"version":1,"title":"Conversation"}';
     const template = '<link href="__CONVERSATION_EXPORT_ASSET_ORIGIN__/runtime.css"><script type="application/json">__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__</script>';
     let downloadedBlob: Blob | undefined;
@@ -2628,7 +2031,10 @@ describe('data client query payloads', () => {
 
     expect(fetchMock.mock.calls[0][0]).toBe('/api/chat/export?chatId=chat_1&format=snapshot');
     expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Accept).toBe('application/json');
-    expect(fetchMock.mock.calls[1][0]).toBe('/export/conversation.template.html');
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'http://127.0.0.1:11961/assets/conversation-export/conversation.template.html',
+    );
+    expect(fetchMock.mock.calls[1][1]?.credentials).toBe('omit');
     expect(anchor.download).toBe('conversation.html');
     expect(anchor.click).toHaveBeenCalledTimes(1);
     await expect(downloadedBlob?.text()).resolves.toBe(

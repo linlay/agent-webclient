@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import type { WsPushFrame } from "@/features/transport/lib/wsClient";
 import {
   usePushTransport,

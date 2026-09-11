@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { AgentConsole } from "@/features/workers/components/AgentConsole";
+import { AgentConsole } from "@/features/agents/components/AgentConsole";
 
 export const AgentsPage = () => {
   const navigate = useNavigate();

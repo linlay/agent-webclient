@@ -97,6 +97,33 @@ describe("featureFlags", () => {
     expect(isQuickActionsEnabled()).toBe(false);
   });
 
+  it.each([true, "true"])("keeps Debug configurable and suppresses website menus in Desktop mode (%s)", (desktopMode) => {
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: desktopMode,
+      DEBUG_PANEL_ENABLED: "true",
+      SETTINGS_MENU_ENABLED: "true",
+      QUICK_ACTIONS_ENABLED: "true",
+    };
+
+    expect(isDebugPanelEnabled()).toBe(true);
+    expect(isSettingsMenuEnabled()).toBe(false);
+    expect(isQuickActionsEnabled()).toBe(false);
+
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__.DEBUG_PANEL_ENABLED = "false";
+    expect(isDebugPanelEnabled()).toBe(false);
+  });
+
+  it.each([undefined, false, "false"])("honors enabled website menus outside Desktop mode (%s)", (desktopMode) => {
+    globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      DESKTOP_APP: desktopMode,
+      SETTINGS_MENU_ENABLED: true,
+      QUICK_ACTIONS_ENABLED: true,
+    };
+
+    expect(isSettingsMenuEnabled()).toBe(true);
+    expect(isQuickActionsEnabled()).toBe(true);
+  });
+
   it("reads the memory flag from runtime config", () => {
     expect(isMemoryEnabled()).toBe(false);
 

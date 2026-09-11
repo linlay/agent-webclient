@@ -2,10 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { useAppState } from "@/app/state/AppContext";
-import type {
-  TimelineNode,
-  TimelineSource,
-} from "@/app/state/types";
+import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import { useBTW } from "@/features/btw/components/BtwProvider";
 import {
   TimelineInteractionProvider,
@@ -245,11 +242,15 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
           )}
         </div>
         <div className={BTW_COMPOSER_CLASS}>
-          <SelectedTextFragmentsPill
-            fragments={session?.draftSelections || []}
-            variant="segments"
-            onRemove={onRemoveDraftSelection}
-          />
+          {session?.draftSelections?.length ? (
+            <div className="tw:mb-1.5">
+              <SelectedTextFragmentsPill
+                fragments={session.draftSelections}
+                variant="segments"
+                onRemove={onRemoveDraftSelection}
+              />
+            </div>
+          ) : null}
           <div className={BTW_COMPOSER_INNER_CLASS}>
             <Input.TextArea
               ref={textareaRef}

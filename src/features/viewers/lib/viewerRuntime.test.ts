@@ -1,17 +1,24 @@
 const mockDownloadResource = jest.fn();
 const mockGetAgentFile = jest.fn();
 const mockGetResourceText = jest.fn();
+const mockGetResourceBlob = jest.fn();
+const mockLocalAction = jest.fn();
 
 jest.mock("@/shared/data", () => ({
   downloadResource: (...args: unknown[]) => mockDownloadResource(...args),
   getAgentFile: (...args: unknown[]) => mockGetAgentFile(...args),
   getResourceText: (...args: unknown[]) => mockGetResourceText(...args),
+  getResourceBlob: (...args: unknown[]) => mockGetResourceBlob(...args),
+}));
+jest.mock("@/shared/data/standalone/standaloneFileActions", () => ({
+  requestStandaloneFileAction: (...args: unknown[]) => mockLocalAction(...args),
 }));
 
 import {
   downloadViewerTarget,
   limitViewerText,
   readViewerResourceText,
+  openStandaloneViewerTarget,
 } from "@/features/viewers/lib/viewerRuntime";
 
 describe("viewerRuntime", () => {
@@ -19,11 +26,35 @@ describe("viewerRuntime", () => {
     mockDownloadResource.mockReset();
     mockGetAgentFile.mockReset();
     mockGetResourceText.mockReset();
+    mockGetResourceBlob.mockReset().mockResolvedValue(new Blob(["file bytes"]));
+    mockLocalAction.mockReset().mockResolvedValue(undefined);
     mockDownloadResource.mockResolvedValue(undefined);
     mockGetResourceText.mockResolvedValue("preview");
     mockGetAgentFile.mockResolvedValue({
       data: { contentUrl: "artifacts/workspace/main.ts" },
     });
+  });
+
+  it.each([
+    { type: "resource", name: "report.docx", url: "artifacts/report.docx", downloadUrl: "artifacts/report.docx", contentKind: "office" },
+    { type: "resource", name: "source.docx", url: "references/source.docx", downloadUrl: "references/source.docx", contentKind: "office" },
+    { type: "file", name: "workspace.docx", agentKey: "coder", path: "workspace.docx", contentKind: "office" },
+  ] as const)("reads authorized bytes before opening $type $name locally", async (target) => {
+    const capabilities = { token: "token", platform: "darwin" as const, maxBytes: 1024 };
+    const options = { chatId: "chat_01", teamChat: true };
+    await openStandaloneViewerTarget("open-default", target, options, capabilities);
+    expect(mockGetResourceBlob).toHaveBeenCalledWith(
+      target.type === "file" ? "artifacts/workspace/main.ts" : target.downloadUrl, options,
+    );
+    expect(mockLocalAction).toHaveBeenCalledWith("open-default", target.name, expect.any(Blob), capabilities);
+  });
+
+  it("does not send a local action when the resource read is denied", async () => {
+    mockGetResourceBlob.mockRejectedValue(new Error("access denied"));
+    await expect(openStandaloneViewerTarget("reveal", {
+      type: "resource", name: "report.docx", url: "artifacts/report.docx", downloadUrl: "artifacts/report.docx", contentKind: "office",
+    }, { chatId: "chat_01" }, { token: "token", platform: "darwin", maxBytes: 1024 })).rejects.toThrow("access denied");
+    expect(mockLocalAction).not.toHaveBeenCalled();
   });
 
   it("downloads ChatScope and Workspace Viewer resources through one runtime", async () => {

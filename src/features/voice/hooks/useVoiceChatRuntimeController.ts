@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, MutableRefObject } from "react";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState, VoiceCapabilities } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
+import type { VoiceCapabilities } from "@/features/voice/lib/voiceState";
 import {
 	dataEndpoints,
 	ensureAccessToken,

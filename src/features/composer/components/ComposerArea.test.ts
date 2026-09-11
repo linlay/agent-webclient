@@ -62,7 +62,7 @@ jest.mock("@/features/composer/components/SteerBar", () => ({
   SteerBar: () => React.createElement("div", null, "steer"),
 }));
 
-jest.mock("@/features/workers/components/CommandOverlayProvider", () => ({
+jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayOpen: () => false,
 }));
 
@@ -102,6 +102,14 @@ const mockComposerInputProps: Array<Record<string, any>> = [];
 const mockComposerActionsProps: Array<Record<string, any>> = [];
 const mockResolveCurrentWorkerSummary = jest.fn(() => null);
 const mockIsDedicatedKbaseWorker = jest.fn(() => false);
+const mockUseAgentSkillsQuery = jest.fn(() => ({
+  data: null,
+  status: "idle",
+}));
+const mockHostRequiredSkills = {
+  agentKey: "",
+  skills: [] as string[],
+};
 const mockComposerAttachmentsState = {
   sendAttachmentMeta: [] as unknown[],
   sendReferences: [] as unknown[],
@@ -135,7 +143,14 @@ jest.mock("@/features/workers/lib/currentWorker", () => ({
   resolveCurrentWorkerSummary: () => mockResolveCurrentWorkerSummary(),
   isDedicatedKbaseWorker: () => mockIsDedicatedKbaseWorker(),
   supportsActiveRunContextCompact: () => true,
-  buildCurrentWorkerDetailView: () => ({ skills: [] }),
+}));
+
+jest.mock("@/shared/data/query/queries", () => ({
+  useAgentSkillsQuery: (...args: unknown[]) => mockUseAgentSkillsQuery(...args),
+}));
+
+jest.mock("@/features/composer/components/HostRequiredSkillsContext", () => ({
+  useHostRequiredSkills: () => mockHostRequiredSkills,
 }));
 
 jest.mock("@/features/composer/lib/slashCommands", () => ({
@@ -230,10 +245,9 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
     handleSend: jest.fn(),
     handleSteer: jest.fn(),
     interruptCurrentRun: jest.fn(),
-    steerSubmitting: false,
   }),
 }));
-jest.mock("@/features/selection/hooks/useDesktopSelectionActions", () => ({
+jest.mock("@/features/composer/hooks/useDesktopSelectionActions", () => ({
   useDesktopSelectionActions: () => undefined,
 }));
 
@@ -319,6 +333,10 @@ describe("ComposerArea", () => {
     mockResolveCurrentWorkerSummary.mockReturnValue(null);
     mockIsDedicatedKbaseWorker.mockReset();
     mockIsDedicatedKbaseWorker.mockReturnValue(false);
+    mockUseAgentSkillsQuery.mockReset();
+    mockUseAgentSkillsQuery.mockReturnValue({ data: null, status: "idle" });
+    mockHostRequiredSkills.agentKey = "";
+    mockHostRequiredSkills.skills = [];
     mockUseComposerSlash.mockClear();
     const initialState = createInitialState();
     useAppDispatch.mockReturnValue(jest.fn());
@@ -494,6 +512,41 @@ describe("ComposerArea", () => {
         currentAgentKey: "knowledge",
       }),
     );
+  });
+
+  it("shows the skills-center name for a selected skill key", () => {
+    const state = createInitialState();
+    mockResolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent",
+      sourceId: "cutej",
+      displayName: "小君",
+      relatedChats: [],
+      raw: { mode: "REACT" },
+    });
+    mockHostRequiredSkills.agentKey = "cutej";
+    mockHostRequiredSkills.skills = ["skill-creator"];
+    mockUseAgentSkillsQuery.mockReturnValue({
+      data: {
+        agentKey: "cutej",
+        skills: [
+          {
+            key: "skill-creator",
+            name: "技能创建",
+            agentHasSkill: true,
+          },
+        ],
+      },
+      status: "success",
+    });
+    useAppState.mockReturnValue(state);
+    useAppContext.mockReturnValue({ stateRef: { current: state } });
+
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+
+    expect(html).toContain("技能创建");
+    expect(mockUseAgentSkillsQuery).toHaveBeenCalledWith("cutej", {
+      enabled: true,
+    });
   });
 
   it("mounts slash palette popover outside clipped composer containers", () => {

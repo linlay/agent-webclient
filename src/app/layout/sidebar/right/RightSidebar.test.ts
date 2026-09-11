@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/AppContext";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
 import { I18nProvider } from "@/shared/i18n";
+import { getDocumentPreviewTabKey, type DocumentPreviewTabState } from "@/features/viewers/lib/documentPreview";
+import { getViewerTargetKey, type ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
@@ -27,6 +29,7 @@ jest.mock("antd", () => {
     },
     Flex: ({ children, gap, ...props }: any) =>
       React.createElement("div", { ...props, "data-gap": gap }, children),
+    Tooltip: ({ children }: any) => children,
     Typography: {
       Text: ({ children, ellipsis: _ellipsis, ...props }: any) =>
         React.createElement("span", props, children),
@@ -55,24 +58,41 @@ jest.mock("antd", () => {
   };
 });
 
-jest.mock("@/app/layout/sidebar/right/OverviewTab", () => ({
+jest.mock("@/features/overview/components/OverviewTab", () => ({
   OverviewTab: () => React.createElement("div", null, "overview tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/DebugTab", () => ({
+jest.mock("@/features/debug/components/DebugTab", () => ({
   DebugTab: () => React.createElement("div", null, "debug tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/SourceDetailTab", () => ({
+jest.mock("@/features/source/components/SourceDetailTab", () => ({
   SourceDetailTab: () => React.createElement("div", null, "source detail tab"),
 }));
 
-jest.mock("@/app/layout/sidebar/right/PlanningPreviewTab", () => ({
+jest.mock("@/features/plan/components/PlanningPreviewTab", () => ({
   PlanningPreviewTab: () => React.createElement("div", null, "planning preview tab"),
+}));
+
+jest.mock("@/features/skills/components/SkillDetailView", () => ({
+  SkillDetailView: () => React.createElement("div", null, "skill detail view"),
 }));
 
 jest.mock("@/features/viewers/components/ContentViewerPanel", () => ({
   ContentViewerPanel: () => React.createElement("div", null, "viewer tab"),
+}));
+
+jest.mock("@/features/viewers/components/OnlineDocumentPreviewTab", () => ({
+  OnlineDocumentPreviewTab: () => React.createElement("div", null, "online preview tab"),
+  OnlineDocumentPreviewTabContextMenu: jest.fn(({ children }) => children),
+}));
+
+jest.mock("@/features/viewers/components/ViewerTabContextMenu", () => ({
+  ViewerTabContextMenu: jest.fn(({ children }) => children),
+}));
+
+jest.mock("@/features/viewers/lib/viewerRuntime", () => ({
+  downloadViewerTarget: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("@/features/web-preview/components/WebPreviewPanel", () => ({
@@ -172,6 +192,32 @@ describe("RightSidebar", () => {
     expect(html).toContain("概览");
     expect(html).not.toContain("调试");
     expect(html).not.toContain("debug tab");
+  });
+
+  it("opens a separate online preview tab and routes selection and close independently", () => {
+    const target: ViewerTarget = { type: "file", name: "report.xlsx", agentKey: "coder", path: "report.xlsx", contentKind: "office" };
+    const preview: DocumentPreviewTabState = {
+      key: getDocumentPreviewTabKey(target, "chat"), target, chatId: "chat",
+      result: { previewId: "p1", sourceRevision: "r1", openMode: "iframe", url: "https://docs.test/s/p1", expiresAt: 12345 },
+    };
+    useAppState.mockReturnValue({ ...createInitialState(), rightSidebarOpen: true, rightSidebarOpenTab: "documentPreview",
+      viewerTabs: [target], documentPreviewTabs: [preview], activeDocumentPreviewKey: preview.key });
+    const html = renderRightSidebar();
+    expect(html).toContain("report.xlsx · 在线预览");
+    const tabs = mockTabsState.current;
+    const fileKey = `viewer:${getViewerTargetKey(target)}`;
+    const previewKey = `documentPreview:${preview.key}`;
+    expect(tabs.activeKey).toBe(previewKey);
+    expect(tabs.items.map((item: any) => item.key)).toEqual(["overview", fileKey, previewKey]);
+    tabs.items.find((item: any) => item.key === fileKey).children.props.onOpenOnlinePreview(preview);
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "OPEN_DOCUMENT_PREVIEW", preview });
+    expect(tabs.items.find((item: any) => item.key === previewKey).children.props.onBack).toBeUndefined();
+    tabs.onChange(previewKey);
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "ACTIVATE_DOCUMENT_PREVIEW", key: preview.key });
+    tabs.onEdit(fileKey, "remove");
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "OPEN_RIGHT_SIDEBAR", tab: "documentPreview", removeViewerKey: getViewerTargetKey(target) });
+    tabs.onEdit(previewKey, "remove");
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "CLOSE_DOCUMENT_PREVIEW", key: preview.key });
   });
 
   it("only reserves the minimum main-content width when sizing the sidebar", () => {
@@ -344,6 +390,43 @@ describe("RightSidebar", () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: "REFRESH_WEB_PREVIEW",
       url: "https://www.baidu.com/",
+    });
+  });
+
+  it("binds the viewer menu to the right-clicked tab even when another viewer is active", () => {
+    const activeTarget = {
+      type: "resource", name: "active.pdf", url: "artifacts/active.pdf",
+      downloadUrl: "artifacts/active.pdf", contentKind: "pdf",
+    };
+    const clickedTarget = {
+      type: "resource", name: "manual.docx", url: "references/manual.docx",
+      downloadUrl: "references/manual.docx", contentKind: "office",
+    };
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "viewer",
+      viewerTabs: [activeTarget, clickedTarget],
+      activeViewerKey: "resource:artifacts/active.pdf",
+    });
+    renderRightSidebar();
+    const DefaultTabBar = ({ children }: any) => children(React.createElement(
+      "span", { key: "viewer:resource:references/manual.docx" }, "manual.docx",
+    ));
+    renderToStaticMarkup(mockTabsState.current.renderTabBar({}, DefaultTabBar));
+    const { ViewerTabContextMenu } = jest.requireMock(
+      "@/features/viewers/components/ViewerTabContextMenu",
+    );
+    const props = ViewerTabContextMenu.mock.calls.at(-1)[0];
+    expect(props.target).toBe(clickedTarget);
+    expect(props.chatId).toBe("chat_1");
+    props.onDownload();
+    expect(jest.requireMock("@/features/viewers/lib/viewerRuntime").downloadViewerTarget)
+      .toHaveBeenCalledWith(clickedTarget, { chatId: "chat_1", teamChat: false });
+    props.onClose();
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", removeViewerKey: "resource:references/manual.docx",
     });
   });
 });

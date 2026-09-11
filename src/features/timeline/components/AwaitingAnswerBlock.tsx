@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useAppDispatch } from "@/app/state/AppContext";
 import { Flex } from "antd";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useI18n } from "@/shared/i18n";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
 
 interface AwaitingAnswerBlockProps {
   node: TimelineNode;
@@ -181,6 +182,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   node,
 }) => {
   const dispatch = useAppDispatch();
+  const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const expanded = Boolean(node.expanded);
   const envelope = useMemo(
@@ -215,6 +217,13 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
     <TimelineCollapse
       expanded={expanded}
       onExpand={() => {
+        if (interaction?.patchNode) {
+          interaction.patchNode({
+            ...node,
+            expanded: !expanded,
+          });
+          return;
+        }
         dispatch({
           type: "SET_TIMELINE_NODE",
           id: node.id,

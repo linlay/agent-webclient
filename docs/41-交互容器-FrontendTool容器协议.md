@@ -10,7 +10,7 @@ Frontend Tool 是运行中工具事件触发的前端 iframe 工具容器。前�
 - 接收 iframe `frontend_submit`、`close`、`done` 消息并提交或关闭容器。
 
 ## 核心流程
-tool processor 将工具事件中的 viewportKey 和 params 写入 tool state。运行时识别 active frontend tool 后，`FrontendToolContainer` 调用 `getViewport`，iframe load 后 postMessage 初始化数据。iframe 提交时前端调用 `submitTool({ runId, agentKey, toolId, params })`。
+tool processor 将工具事件中的 viewportKey 和 params 写入 tool state。运行时识别 active frontend tool 后，`FrontendToolContainer` 调用 `getViewport`，iframe load 后 postMessage 初始化数据。iframe 提交时前端调用 `runs.submitTool({ runId, owner, toolId, params })`，由 `RunTransport` 负责 owner 序列化和请求发送。
 
 ## 边界与非目标
 - Frontend Tool 容器不同于 HITL awaiting；它基于 toolId 提交。
@@ -23,4 +23,4 @@ tool processor 将工具事件中的 viewportKey 和 params 写入 tool state。
 - `../src/features/events/lib/processors/eventProcessorTool.ts`
 - `../src/features/events/lib/toolEvent.ts`
 - `../src/app/state/toolTypes.ts`
-- `../src/shared/data/api/routedClient.ts`
+- `../src/features/transport/contracts/realtimeTransport.ts`

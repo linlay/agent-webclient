@@ -1,7 +1,8 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { ContentBlock } from "@/features/timeline/components/ContentBlock";
+import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
 
 const mockDispatch = jest.fn();
 let mockChatId = "chat_01";
@@ -27,6 +28,7 @@ jest.mock("@/app/state/AppContext", () => ({
 const mockMarkdownContentProps: Array<{
 	content: string;
 	chatId?: string;
+	teamChat?: boolean;
 	onWorkspaceFileLinkClick?: (link: {
 		href: string;
 		filePath: string;
@@ -49,13 +51,14 @@ const mockMarkdownContentProps: Array<{
 	}) => void;
 }> = [];
 
-jest.mock("@/shared/ui/MarkdownContent", () => {
+jest.mock("@/features/viewers/components/MarkdownContent", () => {
 	const ReactRuntime = require("react");
 
 	return {
 		MarkdownContent: (props: {
 			content: string;
 			chatId?: string;
+			teamChat?: boolean;
 			onWorkspaceFileLinkClick?: (link: {
 				href: string;
 				filePath: string;
@@ -108,6 +111,39 @@ describe("ContentBlock", () => {
 		expect(mockMarkdownContentProps[0]).toMatchObject({
 			content: "![preview](image.png)",
 			chatId: "chat_01",
+		});
+	});
+
+	it("uses the explicit read-only surface context instead of the main chat", () => {
+		const node: TimelineNode = {
+			id: "content_history",
+			kind: "content",
+			role: "assistant",
+			text: "Historical answer",
+			ts: 100,
+		};
+
+		renderToStaticMarkup(
+			React.createElement(
+				TimelineInteractionProvider,
+				{
+					value: {
+						readOnly: true,
+						surfaceContext: {
+							chatId: "chat_history",
+							agentKey: "history-agent",
+							teamChat: true,
+						},
+					},
+				},
+				React.createElement(ContentBlock, { node }),
+			),
+		);
+
+		expect(mockMarkdownContentProps[0]).toMatchObject({
+			content: "Historical answer",
+			chatId: "chat_history",
+			teamChat: true,
 		});
 	});
 

@@ -1,3 +1,4 @@
+import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
 import React, {
   useCallback,
   useEffect,
@@ -10,17 +11,19 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   useAppDispatch,
   useAppState,
-  useOptionalAppContext,
 } from "@/app/state/AppContext";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
-import { CommandOverlayProvider } from "@/features/workers/components/CommandOverlayProvider";
+import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
+import { CommandOverlayProvider } from "@/features/command-center/components/CommandOverlayProvider";
 import { GlobalSearchOverlayProvider } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
+import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
+import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { getAgent } from "@/shared/data";
 import { ApiError } from "@/shared/data/api/client";
 import { useI18n } from "@/shared/i18n";
@@ -30,10 +33,7 @@ import {
   canPrepareDesktopNewChat,
   prepareDesktopNewChat,
 } from "@/shared/data/desktop/desktopNewChat";
-import {
-  isMainChatRuntimeObservedByLiveQuery,
-  resolveMainChatRuntime,
-} from "@/features/runs/lib/runRuntimeState";
+import { initializeDesktopWorkspaceArrowKeys } from "@/shared/data/desktop/desktopWorkspaceArrowKeys";
 
 export function parseNewChatTimestamp(rawValue: unknown): string {
   const timestamp = String(rawValue || "").trim();
@@ -199,9 +199,9 @@ export function isAgentRouteAuthenticationError(error: unknown): boolean {
 const NEW_CHAT_CREATED_EVENT = "agent:new-chat-created";
 
 const AGENT_ROUTE_LOADING_PAGE_CLASS =
-  "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
+  "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-[var(--shell-page-bg)] tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_OVERLAY_CLASS =
-  "agent-route-loading-page agent-route-loading-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:bg-bg-base tw:p-6 tw:text-ink-1";
+  "agent-route-loading-page agent-route-loading-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:bg-[var(--shell-page-bg)] tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_CARD_CLASS =
   "agent-route-loading-card tw:inline-flex tw:min-w-[min(320px,100%)] tw:items-center tw:gap-3.5 tw:px-5 tw:py-[18px]";
 const AGENT_ROUTE_LOADING_SPINNER_CLASS =
@@ -209,7 +209,7 @@ const AGENT_ROUTE_LOADING_SPINNER_CLASS =
 const AGENT_ROUTE_LOADING_COPY_CLASS =
   "agent-route-loading-copy tw:flex tw:min-w-0 tw:flex-col tw:gap-1 tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-xs tw:[&_span]:text-ink-muted tw:[&_strong]:text-sm tw:[&_strong]:font-bold";
 const AGENT_ROUTE_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-bg-base tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden";
+  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden";
 const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
@@ -312,16 +312,23 @@ const AgentRouteErrorPage: React.FC<{
 );
 
 export const AgentChatShell: React.FC = () => {
+  const [params] = useSearchParams();
+  return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
+    <AgentChatShellContent />
+  </ConversationSurfaceProvider>;
+};
+
+const AgentChatShellContent: React.FC = () => {
   const state = useAppState();
+  const deriveChatAction = useDeriveChatAction();
+  const onFeedback = useRunFeedbackAction();
   const dispatch = useAppDispatch();
-  const appContext = useOptionalAppContext();
   const { t } = useI18n();
   const navigate = useNavigate();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const stateRef = useRef(state);
   const lastInitializedAgentKeyRef = useRef("");
-  const lastLoadedChatKeyRef = useRef("");
   const refreshedNewChatAgentRouteKeysRef = useRef<Set<string>>(new Set());
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
   const pendingNewChatResendRef = useRef<PendingNewChatResend | null>(null);
@@ -334,6 +341,8 @@ export const AgentChatShell: React.FC = () => {
   const [hydrationRetryCount, setHydrationRetryCount] = useState(0);
   const [pendingNewChatResendVersion, setPendingNewChatResendVersion] =
     useState(0);
+
+  useEffect(() => initializeDesktopWorkspaceArrowKeys(), []);
   const agentKey = useMemo(
     () => String(params.agentKey || "").trim(),
     [params.agentKey],
@@ -383,6 +392,8 @@ export const AgentChatShell: React.FC = () => {
     (!agentKey || state.workerSelectionKey === routeWorkerKey);
   const { loadAgents, startNewConversation } = useAppRuntimes({
     initialWorkerRefreshEnabled: false,
+    targetChatId: chatId,
+    routeReady: routeAgentHydrated,
   });
 
   useEffect(() => {
@@ -688,48 +699,14 @@ export const AgentChatShell: React.FC = () => {
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
 
     if (chatId) {
-      const routeKey = createChatRouteKey(agentKey, chatId);
-      if (lastLoadedChatKeyRef.current === routeKey) {
-        return;
-      }
-      lastLoadedChatKeyRef.current = routeKey;
       lastInitializedAgentKeyRef.current = "";
-      if (
-        consumeLiveSessionPromotion(
-          promotedLiveChatRouteKeysRef.current,
-          agentKey,
-          chatId,
-        )
-      ) {
-        return;
-      }
-      const mainRuntime = appContext
-        ? resolveMainChatRuntime(
-            appContext.stateRef,
-            appContext.activeQuerySessionRequestIdRef,
-            appContext.querySessionsRef,
-          )
-        : null;
-      if (
-        mainRuntime &&
-        isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)
-      ) {
-        return;
-      }
-      window.dispatchEvent(
-        new CustomEvent("agent:load-chat", {
-          detail: {
-            chatId,
-            focusComposerOnComplete: true,
-          },
-        }),
-      );
+      // Promotion is metadata only. The conversation coordinator owns loading.
+      consumeLiveSessionPromotion(promotedLiveChatRouteKeysRef.current, agentKey, chatId);
       return;
     }
 
     if (!routeNewChatTimestamp) {
       lastInitializedAgentKeyRef.current = "";
-      lastLoadedChatKeyRef.current = "";
       window.dispatchEvent(new CustomEvent("agent:focus-composer"));
       return;
     }
@@ -768,7 +745,6 @@ export const AgentChatShell: React.FC = () => {
       return;
     }
     lastInitializedAgentKeyRef.current = routeNewChatKey;
-    lastLoadedChatKeyRef.current = "";
     const startDetail = {
       agentKey,
       preserveWorkerContext: true,
@@ -806,7 +782,6 @@ export const AgentChatShell: React.FC = () => {
     sendPreparedResend();
   }, [
     agentKey,
-    appContext,
     chatId,
     composerPrefillPayload,
     dispatch,
@@ -822,7 +797,7 @@ export const AgentChatShell: React.FC = () => {
 
   const isTimelineEmpty = useMemo(() => !state.chatId, [state.chatId]);
 
-  if (!routeAgentReady) {
+  if (!routeAgentReady && !chatId) {
     if (routeAgentLoadError) {
       return <AgentRouteErrorPage
         message={routeAgentLoadError}
@@ -839,6 +814,7 @@ export const AgentChatShell: React.FC = () => {
     : AGENT_ROUTE_ROW_CLASS_BY_STATE.default;
 
   return (
+    <MemoryOverlayProvider>
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
         <GlobalSearchOverlayProvider>
@@ -854,6 +830,8 @@ export const AgentChatShell: React.FC = () => {
           <TopNav surface="agent" />
           <ConversationStage
             surfaceMode="agent"
+            deriveChatAction={deriveChatAction}
+            onFeedback={onFeedback}
             expectedChatId={chatId || undefined}
             showEmptyState={!chatId}
             onResendInNewChat={handleResendInNewChat}
@@ -864,5 +842,6 @@ export const AgentChatShell: React.FC = () => {
       </GlobalSearchOverlayProvider>
       </CommandOverlayProvider>
     </SettingsOverlayProvider>
+    </MemoryOverlayProvider>
   );
 };

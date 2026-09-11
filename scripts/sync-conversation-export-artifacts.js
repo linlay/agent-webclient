@@ -5,18 +5,15 @@ const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const exportRoot = path.join(repoRoot, "dist/export");
-const manifest = JSON.parse(
-  fs.readFileSync(path.join(exportRoot, "conversation-assets.json"), "utf8"),
-);
-const assetSource = path.join(
-  exportRoot,
-  "assets",
-  manifest.assetSet,
-);
-const tunnelAssetRoot = path.resolve(
-  repoRoot,
-  `../tunnel-hub-server/internal/shareassets/files/${manifest.assetSet}`,
-);
+const manifestPath = path.join(exportRoot, "conversation-assets.json");
+const templatePath = path.join(exportRoot, "conversation.template.html");
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const assetSource = path.join(exportRoot, "assets", manifest.assetSet);
+const tunnelRoot = path.resolve(repoRoot, "../tunnel-hub-server/internal/shareassets");
+const tunnelFilesRoot = path.join(tunnelRoot, "files");
+const tunnelAssetRoot = path.join(tunnelFilesRoot, manifest.assetSet);
+const tunnelManifestPath = path.join(tunnelRoot, "conversation-assets.json");
+const tunnelTemplatePath = path.join(tunnelRoot, "conversation.template.html");
 const checkOnly = process.argv.includes("--check");
 
 function assertFile(pathname, message) {
@@ -34,33 +31,48 @@ function filesUnder(root, current = root) {
   });
 }
 
+function assertSameFile(source, destination, message) {
+  assertFile(destination, message);
+  if (!fs.readFileSync(source).equals(fs.readFileSync(destination))) {
+    throw new Error(message);
+  }
+}
+
+assertFile(templatePath, "Build the conversation export template first.");
 if (!fs.statSync(assetSource, { throwIfNoEntry: false })?.isDirectory()) {
   throw new Error("Build the conversation export asset set first.");
 }
 
-if (fs.existsSync(tunnelAssetRoot)) {
+if (checkOnly) {
+  const publishedSets = fs.readdirSync(tunnelFilesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  if (JSON.stringify(publishedSets) !== JSON.stringify([manifest.assetSet])) {
+    throw new Error("Tunnel must contain exactly the current conversation export asset set.");
+  }
   const sourceFiles = filesUnder(assetSource).sort();
   const destinationFiles = filesUnder(tunnelAssetRoot).sort();
   if (JSON.stringify(sourceFiles) !== JSON.stringify(destinationFiles)) {
-    throw new Error("Existing Tunnel asset set does not exactly match the build output.");
+    throw new Error("Tunnel conversation export assets are incomplete.");
   }
   for (const relativePath of sourceFiles) {
-    const source = path.join(assetSource, relativePath);
-    const destination = path.join(tunnelAssetRoot, relativePath);
-    assertFile(destination, `Existing Tunnel asset set is incomplete: ${relativePath}`);
-    if (!fs.readFileSync(source).equals(fs.readFileSync(destination))) {
-      throw new Error(
-        `Refusing to overwrite immutable Tunnel asset: ${relativePath}`,
-      );
-    }
+    assertSameFile(
+      path.join(assetSource, relativePath),
+      path.join(tunnelAssetRoot, relativePath),
+      `Tunnel conversation export asset is out of sync: ${relativePath}`,
+    );
   }
-} else if (checkOnly) {
-  throw new Error("Current conversation export asset set is missing from Tunnel.");
+  assertSameFile(manifestPath, tunnelManifestPath, "Tunnel conversation export manifest is out of sync.");
+  assertSameFile(templatePath, tunnelTemplatePath, "Tunnel conversation export template is out of sync.");
 } else {
-  fs.mkdirSync(path.dirname(tunnelAssetRoot), { recursive: true });
-  fs.cpSync(assetSource, tunnelAssetRoot, { recursive: true, errorOnExist: true });
+  fs.rmSync(tunnelFilesRoot, { recursive: true, force: true });
+  fs.mkdirSync(tunnelFilesRoot, { recursive: true });
+  fs.cpSync(assetSource, tunnelAssetRoot, { recursive: true });
+  fs.copyFileSync(manifestPath, tunnelManifestPath);
+  fs.copyFileSync(templatePath, tunnelTemplatePath);
 }
 
 console.log(
-  `${checkOnly ? "Verified" : "Synced"} conversation export asset set ${manifest.assetSet}.`,
+  `${checkOnly ? "Verified" : "Published"} conversation export renderer ${manifest.assetSet}.`,
 );

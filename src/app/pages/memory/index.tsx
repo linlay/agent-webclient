@@ -1,5 +1,5 @@
-import { MemoryInfoConsole } from "@/features/settings/components/MemoryInfoModal";
-import { useMemoryRecordsInitialization } from "@/features/settings/hooks/useMemoryRecordsInitialization";
+import { MemoryInfoConsole } from "@/features/memory/components/MemoryConsole";
+import { useMemoryRecordsInitialization } from "@/features/memory/hooks/useMemoryRecordsInitialization";
 
 export const MemoryPage = () => {
   useMemoryRecordsInitialization();

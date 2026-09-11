@@ -1,4 +1,4 @@
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type {
   BTWSessionState,
   BTWTranscriptItem,
@@ -218,22 +218,6 @@ function toPersistedSession(session: BTWSessionState): PersistedBTWSession {
     transcript: buildBTWTranscript(session),
     ...(sourceNodes.length > 0 ? { sourceNodes } : {}),
   };
-}
-
-export function findPersistedBTWSource(input: {
-  agentKey?: string;
-  parentChatId: string;
-  btwId: string;
-  publishId: string;
-  sourceId: string;
-}) {
-  const session = findPersistedBTWSession(input);
-  const node = session?.sourceNodes?.find(
-    (candidate) => candidate.sourcePublishId === String(input.publishId || "").trim(),
-  );
-  return node?.sources?.find(
-    (source) => source.id === String(input.sourceId || "").trim(),
-  ) || null;
 }
 
 function encodedEnvelope(sessions: PersistedBTWSession[]): string {

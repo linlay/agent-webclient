@@ -227,31 +227,6 @@ export async function loginWithGatewayCredentials(input: {
 	return refreshGatewaySession();
 }
 
-export async function logoutGatewaySession(): Promise<GatewaySession> {
-	const session = currentSession || (await initializeGatewaySession());
-	if (!session) {
-		throw new GatewaySessionError("Gateway session is unavailable");
-	}
-	const response = await fetch(session.auth.logoutUrl, {
-		method: "POST",
-		credentials: "same-origin",
-		headers: {
-			Accept: "application/json",
-			"X-CSRF-Token": session.csrfToken,
-		},
-	});
-	const body = await readResponse(response);
-	if (!response.ok) {
-		const details = errorDetails(body);
-		throw new GatewaySessionError(
-			details.message || `Gateway logout failed (HTTP ${response.status})`,
-			response.status,
-			details.code,
-		);
-	}
-	return refreshGatewaySession();
-}
-
 export function resetGatewaySessionForTests(): void {
 	currentSession = null;
 	bootstrapPromise = null;

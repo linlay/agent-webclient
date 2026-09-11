@@ -1,0 +1,156 @@
+:global(.automation-agent-filter-option) {
+    display: inline-flex;
+    align-items: center;
+}
+
+:global(.automation-agent-filter-trigger-icon) :global(.material-icon),
+:global(.automation-agent-filter-option) :global(.material-icon) {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    flex: 0 0 auto;
+}
+
+:global(.automation-console) :global(.material-icon),
+:global(.automation-menu-icon):global(.material-icon) {
+    width: 16px;
+    height: 16px;
+    font-size: 16px !important;
+}
+
+:global(.automation-agent-filter-option) {
+    min-width: 0;
+    gap: 8px;
+}
+
+/* Automation detail 中「智能体」下拉选项：图标 + 名称 + 角色小字淡色。 */
+:global(.automation-agent-option) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+:global(.automation-agent-option-icon) {
+    flex: 0 0 auto;
+    border-radius: 6px;
+}
+
+:global(.automation-agent-option-text) {
+    min-width: 0;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.4;
+}
+
+:global(.automation-agent-option-name) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-1);
+}
+
+:global(.automation-agent-option-role) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    color: var(--ink-muted);
+    opacity: .85;
+}
+
+:global(.automation-agent-option):global(.is-compact) :global(.automation-agent-option-name) {
+    font-weight: 500;
+}
+
+:global(.filter-indicator) {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--accent-electric);
+}
+
+:global(.automation-basic-form-grid) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+:global(.automation-chat-row) {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+:global(.automation-chat-row):global(.is-existing) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:global(.automation-form-grid) :global(.field-group),
+:global(.automation-basic-form-grid) :global(.field-group) {
+    margin-bottom: 0;
+}
+
+:global(.automation-additional-fields) {
+    grid-column: 1 / -1;
+}
+
+:global(.automation-cron-control) {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+}
+
+:global(.automation-cron-title-row) {
+    display: flex;
+    min-height: 24px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+:global(.automation-cron-title-row)>span {
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+:global(.automation-cron-preset-trigger):global(.ui-btn) {
+    height: 24px;
+    min-height: 24px;
+    padding: 0 6px;
+    font-size: 11px;
+}
+
+:global(.automation-cron-part) {
+    min-width: 0;
+}
+
+:global(.automation-cron-part) :global(.ant-input) {
+    padding-inline: 4px;
+    text-align: center;
+    font-family: var(--font-mono);
+}
+
+:global(.automation-cron-part)>span {
+    display: block;
+    margin-top: 3px;
+    color: var(--ink-muted);
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+}
+
+:global(.automation-runs-field)>label {
+    min-height: 24px;
+}

@@ -4,7 +4,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 
 /**
- * CommandModal / CommandDrawer 内嵌控制台（HistoryModal、AutomationModal、AgentConsole）
+ * CommandModal / CommandDrawer 内嵌控制台（HistoryModal、AutomationHistoryConsole、AgentConsole）
  * 的标题栏。默认在标题右侧渲染 esc 关闭按钮；Drawer 场景（variant="drawer"）在左侧
  * 渲染收起箭头，点击均调用 onClose。
  */

@@ -18,7 +18,7 @@ import {
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 
 type FakeElement = {
   parentElement: FakeElement | null;

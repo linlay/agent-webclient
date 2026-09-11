@@ -7,11 +7,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { AppAction } from "@/app/state/actions";
 import { useAppContext } from "@/app/state/AppContext";
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
-import type { AgentEvent, TimelineNode } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
   createLocalCacheFromState,
   createLiveProcessorState,
@@ -30,7 +30,7 @@ import {
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
-import { readEventTeamId } from "@/shared/utils/eventFieldReaders";
+import { readEventTeamId } from "@/features/events/lib/eventFields";
 import {
   BTW_SESSION_STORAGE_KEY,
   findPersistedBTWSession,
@@ -342,28 +342,6 @@ export const BtwProvider: React.FC<{
       }
       publish(runtime);
     },
-    [isCurrentRuntime, publish],
-  );
-
-  const buildStreamDispatch = useCallback(
-    (runtime: BTWRuntime, generation: number): React.Dispatch<AppAction> =>
-      (action) => {
-        if (!isCurrentRuntime(runtime, generation)) return;
-        if (action.type === "SET_REQUEST_ID") {
-          runtime.session.requestId = action.requestId;
-        } else if (action.type === "SET_STREAMING") {
-          if (action.streaming) {
-            runtime.session.status = "running";
-          } else if (runtime.session.status === "running") {
-            runtime.session.status = "idle";
-            runtime.session.interruptReady = false;
-            runtime.session.interruptPending = false;
-          }
-        } else if (action.type === "SET_ABORT_CONTROLLER") {
-          runtime.session.projection = appReducer(runtime.session.projection, action);
-        }
-        publish(runtime);
-      },
     [isCurrentRuntime, publish],
   );
 

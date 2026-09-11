@@ -53,7 +53,7 @@ import {
   useBackgroundCommandActions,
 } from '@/features/composer/hooks/useBackgroundCommandActions';
 import { useComposerSend } from '@/features/composer/hooks/useComposerSend';
-import type { AIUsageSnapshotEvent } from '@/app/state/types';
+import type { AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
 import { compactChat, createRequestId } from '@/shared/data';
 
 const compactChatMock = compactChat as jest.Mock;
@@ -80,7 +80,13 @@ function testT(key: string, params?: Record<string, unknown>): string {
     return `Tool result summaries: ${String(params?.count || '')}`;
   }
   if (key === 'contextCompact.reduction') {
-    return `Context remaining ${String(params?.remaining || '')}% / released ${String(params?.released || '')}%`;
+    return `Compacted ${String(params?.released || '')}%`;
+  }
+  if (key === 'contextCompact.reductionTokens') {
+    return `Compacted ${String(params?.released || '')}% (${String(params?.tokens || '')} tokens)`;
+  }
+  if (key === 'contextCompact.currentTokens') {
+    return `Current context: approximately ${String(params?.tokens || '')} tokens`;
   }
   return key;
 }
@@ -199,6 +205,14 @@ describe('runBackgroundCommand compact behavior', () => {
         toolsCleared: 0,
         toolsKept: 2,
         tokensFreed: 3604,
+        boundaryRunId: 'run-boundary',
+        generation: 2,
+        toolDigestCount: 3,
+        compactedRunCount: 4,
+        digestedRunIds: ['run-old-1', 'run-old-2'],
+        projectedMessages: 5,
+        cacheMetrics: { hits: 2 },
+        elapsedMs: 840,
         originalMessages: 10,
         postCompactEstimatedTokens: 5396,
         compactionUsage: {
@@ -257,11 +271,20 @@ describe('runBackgroundCommand compact behavior', () => {
         type: 'context.compact.complete',
         requestId: 'server_request',
         chatId: 'chat-1',
+        runId: 'run-boundary',
         compactId: 'compact-1',
         level: 'summary',
         toolsCleared: 0,
         toolsKept: 2,
         tokensFreed: 3604,
+        generation: 2,
+        toolDigestCount: 3,
+        compactedRunCount: 4,
+        digestedRunIds: ['run-old-1', 'run-old-2'],
+        originalMessages: 10,
+        projectedMessages: 5,
+        cacheMetrics: { hits: 2 },
+        elapsedMs: 840,
         compactionUsage: {
           promptTokens: 100,
           completionTokens: 20,
@@ -299,7 +322,7 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(scheduleCommandStatusOverlayHide).toHaveBeenCalledTimes(1);
   });
 
-  it('submits L1 explicitly and renders released and remaining percentages', async () => {
+  it('submits L1 explicitly and renders the reduction and current context', async () => {
     compactChatMock.mockResolvedValue({
       data: {
         accepted: true,
@@ -335,7 +358,7 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'SET_TIMELINE_NODE',
       node: expect.objectContaining({
-        text: expect.stringContaining('Context remaining 1.18% / released 98.82%'),
+        text: expect.stringContaining('Compacted 98.82% · Current context: approximately 2,334 tokens'),
       }),
     }));
   });
@@ -393,13 +416,9 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: 'SET_TIMELINE_NODE',
     }));
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'SET_USAGE_SNAPSHOT',
-      snapshot: expect.objectContaining({
-        chatId: 'chat-1',
-        contextWindow: expect.objectContaining({ currentSize: 3200 }),
-      }),
-    });
+    // The live event handler already applied this completion. A late API
+    // response must not overwrite newer usage from the resumed model turn.
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_USAGE_SNAPSHOT' }));
   });
 
   it('does not write a success timeline node or usage update when compact is skipped', async () => {
@@ -437,6 +456,36 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: 'SET_TIMELINE_NODE',
     }));
+  });
+
+  it('does not apply a late compact response to another chat', async () => {
+    compactChatMock.mockResolvedValue({ data: { accepted: true, status: 'completed', chatId: 'a', compactId: 'c', postCompactEstimatedTokens: 123 } });
+    const dispatch = jest.fn();
+    const hide = jest.fn();
+    await runBackgroundCommand({
+      chatId: 'a', commandType: 'compact', dispatch, events: [], isCurrentChat: () => false,
+      scheduleCommandStatusOverlayHide: hide, t: testT,
+      texts: { pending: 'waiting', error: 'failed' }, usageSnapshot: null,
+    });
+    expect(dispatch).toHaveBeenCalledTimes(1); // initial waiting only
+    expect(hide).not.toHaveBeenCalled();
+  });
+
+  it('keeps an independent automatic L2 cycle pending after the manual response arrives', async () => {
+    const data = { accepted: true, status: 'completed', chatId: 'a', compactId: 'manual', postCompactEstimatedTokens: 9100 };
+    compactChatMock.mockResolvedValue({ data });
+    const dispatch = jest.fn();
+    await runBackgroundCommand({
+      chatId: 'a', commandType: 'compact', dispatch, events: [],
+      getEvents: () => [
+        { type: 'context.compact.complete', chatId: 'a', compactId: 'manual' },
+        { type: 'context.compact.complete', chatId: 'a', runId: 'r', compactId: 'auto-l1', cycleId: 'auto', cycleComplete: false, level: 'l1_tools' },
+      ],
+      scheduleCommandStatusOverlayHide: jest.fn(), t: testT,
+      texts: { pending: 'waiting', error: 'failed', summaryCompacting: 'L2 pending' }, usageSnapshot: null,
+    });
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'SHOW_COMMAND_STATUS_OVERLAY', commandType: 'compact', phase: 'pending', text: 'L2 pending' });
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_USAGE_SNAPSHOT' }));
   });
 
   it('shows a retry error without completion state when compact history changed', async () => {
@@ -562,12 +611,14 @@ describe('useComposerSend active run gate', () => {
     createRequestIdMock.mockImplementation((prefix: string) => `${prefix}_request`);
   });
 
-  it('clears the persisted composer draft before dispatching a new-chat message', () => {
+  it('clears the composer text and Skill selection while sending the selected Skills with a new-chat message', () => {
     const state = createInitialState();
     state.pendingNewChatAgentKey = 'agent-a';
     state.composerDraft = 'hello';
     state.composerDraftByChatId = { '': 'hello' };
     const operationOrder: string[] = [];
+    const clearMustUseSkills = jest.fn(() => operationOrder.push('clear-skills'));
+    const sendMessage = jest.fn();
     const dispatch = jest.fn((action) => {
       if (action.type === 'SET_COMPOSER_DRAFT' && action.draft === '') {
         operationOrder.push('clear-draft');
@@ -590,6 +641,7 @@ describe('useComposerSend active run gate', () => {
         dispatchEvent: jest.fn((event: Event) => {
           if (event.type === 'agent:send-message') {
             operationOrder.push('send-message');
+            sendMessage((event as CustomEvent).detail);
           }
           return true;
         }),
@@ -621,7 +673,7 @@ describe('useComposerSend active run gate', () => {
           compactError: '',
         },
         clearComposerAttachments: jest.fn(),
-        clearMustUseSkills: jest.fn(),
+        clearMustUseSkills,
         closeMention,
         controlParams: {},
         dispatch,
@@ -658,8 +710,8 @@ describe('useComposerSend active run gate', () => {
         isVoiceMode: false,
         mainChatRunning: false,
         modelOverride: {},
-        mustUseSkillsAgentKey: '',
-        mustUseSkills: [],
+        mustUseSkillsAgentKey: 'agent-a',
+        mustUseSkills: ['code-review'],
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
@@ -698,10 +750,17 @@ describe('useComposerSend active run gate', () => {
       type: 'SET_COMPOSER_DRAFT',
       draft: '',
     });
-    expect(operationOrder).toEqual(['clear-draft', 'send-message']);
+    expect(clearMustUseSkills).toHaveBeenCalledTimes(1);
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'hello',
+      agentKey: 'agent-a',
+      mustUseSkillsAgentKey: 'agent-a',
+      mustUseSkills: ['code-review'],
+    }));
+    expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
   });
 
-  it('queues a steer instead of sending a new query when the main chat has activeRun but streaming is false', () => {
+  it.each(['hello', ''])('keeps selections out of active-run steering and requires text (%s)', (inputValue) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
     state.currentChatActiveRun = {
@@ -761,7 +820,7 @@ describe('useComposerSend active run gate', () => {
           toggleVoiceMode: jest.fn(),
         },
         hasUploadingAttachments: false,
-        inputValue: 'hello',
+        inputValue,
         isAwaitingActive: false,
         isVoiceMode: false,
         modelOverride: {},
@@ -770,7 +829,10 @@ describe('useComposerSend active run gate', () => {
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
-        sendReferences: [],
+        sendReferences: [
+          { id: 'image-1', type: 'image' },
+          { id: 'selection-1', type: 'selection', meta: { text: 'selected text' } },
+        ],
         setInputValue,
         setSlashDismissed,
         showSlashPalette: false,
@@ -787,13 +849,23 @@ describe('useComposerSend active run gate', () => {
     renderToStaticMarkup(React.createElement(Harness));
     actions?.handleSend();
 
+    if (!inputValue) {
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+        type: 'ENQUEUE_PENDING_STEER',
+      }));
+      expect(setInputValue).not.toHaveBeenCalled();
+      return;
+    }
+
     expect(dispatch).toHaveBeenCalledWith({
       type: 'ENQUEUE_PENDING_STEER',
+      chatId: 'chat-1',
       steer: expect.objectContaining({
         message: 'hello',
         requestId: 'req_request',
         runId: 'run-active',
         status: 'queued',
+        references: [{ id: 'image-1', type: 'image' }],
       }),
     });
     expect(setInputValue).toHaveBeenCalledWith('');

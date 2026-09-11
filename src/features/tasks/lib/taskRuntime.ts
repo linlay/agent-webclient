@@ -1,4 +1,5 @@
-import type { AgentEvent, TaskItemMeta } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import { toText } from "@/shared/utils/eventUtils";
 import { readSubAgentKey, readTaskGroupId } from "@/features/tasks/lib/taskEventProtocol";
 

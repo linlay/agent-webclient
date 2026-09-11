@@ -1,4 +1,4 @@
-import type { Chat } from '@/app/state/types';
+import type { Chat } from "@/features/chats/lib/chatState";
 import {
   mergeChatSummary,
   mergeFetchedChats,
@@ -88,5 +88,54 @@ describe('chatSummary helpers', () => {
       'chat_local',
     ]);
   });
+
+	it('does not let an older detail response overwrite a newer read push', () => {
+		const merged = mergeChatSummary(
+			{
+				chatId: 'chat_1',
+				updatedAt: 200,
+				lastRunId: 'run-2',
+				lastRunContent: 'new answer',
+				read: { isRead: true, readAt: 220, readRunId: 'run-2' },
+			},
+			{
+				chatId: 'chat_1',
+				updatedAt: 100,
+				lastRunId: 'run-1',
+				lastRunContent: 'old answer',
+				read: { isRead: false, readAt: 90, readRunId: '' },
+			},
+		);
+
+		expect(merged).toMatchObject({
+			updatedAt: 200,
+			lastRunId: 'run-2',
+			lastRunContent: 'new answer',
+			read: { isRead: true, readAt: 220, readRunId: 'run-2' },
+		});
+	});
+
+	it('allows a newer run unread state after the previous run was read', () => {
+		const merged = mergeChatSummary(
+			{
+				chatId: 'chat_1',
+				updatedAt: 100,
+				lastRunId: 'run-1',
+				read: { isRead: true, readAt: 110, readRunId: 'run-1' },
+			},
+			{
+				chatId: 'chat_1',
+				updatedAt: 200,
+				lastRunId: 'run-2',
+				read: { isRead: false, readRunId: 'run-1' },
+			},
+		);
+
+		expect(merged.read).toEqual({
+			isRead: false,
+			readAt: 110,
+			readRunId: 'run-1',
+		});
+	});
 
 });

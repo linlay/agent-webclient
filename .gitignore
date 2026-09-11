@@ -44,3 +44,6 @@ Thumbs.db
 # .doc/local/
 # .doc/tmp/
 <!-- xgraph:end -->
+
+# Isolated appearance preview build and verification output
+/build/appearance/

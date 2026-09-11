@@ -1,12 +1,7 @@
-import type {
-  AgentEvent,
-  AIUsageSnapshotEvent,
-  AIUsageStats,
-  ArtifactFile,
-  Plan,
-  PublishedArtifact,
-} from "@/app/state/types";
-import { AIUsageEventTypeEnum } from "@/app/state/types";
+import type { AgentEvent, AIUsageSnapshotEvent, AIUsageStats } from "@/shared/contracts/agentEvents";
+import type { ArtifactFile, PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
+import type { Plan } from "@/features/plan/lib/planState";
+import { AIUsageEventTypeEnum } from "@/shared/contracts/agentEvents";
 import {
   readEpochMillis,
   readRequiredPlatformEventTimestamp,
@@ -225,7 +220,8 @@ export function normalizeLoadedChatUsageStats(
 function getLatestUsageSnapshotEvent(
   events: AgentEvent[],
 ): AIUsageSnapshotEvent | null {
-  for (const event of events.slice().reverse()) {
+  for (let eventIndex = events.length - 1; eventIndex >= 0; eventIndex--) {
+    const event = events[eventIndex];
     if (event.type !== AIUsageEventTypeEnum.Snapshot) continue;
     return event as AIUsageSnapshotEvent;
   }
@@ -256,20 +252,36 @@ function normalizeLoadedChatContextWindow(
 }
 
 interface LoadedUsageSnapshotResult {
+  eventIndex: number;
   snapshot: AIUsageSnapshotEvent;
+}
+
+function compareLoadedEventOrder(events: AgentEvent[], left: number, right: number): number {
+  const a = events[left];
+  const b = events[right];
+  // Sequence is authoritative. Old exports can be unsorted and have no seq;
+  // timestamps order those, with array order breaking equal/missing times.
+  if (typeof a.seq === "number" && typeof b.seq === "number" && a.seq !== b.seq) return a.seq - b.seq;
+  if (typeof a.timestamp === "number" && typeof b.timestamp === "number" && a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+  return left - right;
 }
 
 function latestLoadedUsageSnapshotFromEvents(
   chatId: string,
   events: AgentEvent[],
 ): LoadedUsageSnapshotResult | null {
-  for (const event of events.slice().reverse()) {
+  let latest: LoadedUsageSnapshotResult | null = null;
+  for (let eventIndex = events.length - 1; eventIndex >= 0; eventIndex--) {
+    const event = events[eventIndex];
+    if (event.chatId && event.chatId !== chatId) continue;
     if (event.type !== AIUsageEventTypeEnum.Snapshot) {
       continue;
     }
     const snapshot = event as unknown as AIUsageSnapshotEvent;
     if (!snapshot.contextWindow && !snapshot.usage) continue;
-    return {
+    if (latest && compareLoadedEventOrder(events, eventIndex, latest.eventIndex) <= 0) continue;
+    latest = {
+      eventIndex,
       snapshot: {
         ...snapshot,
         type: AIUsageEventTypeEnum.Snapshot,
@@ -277,32 +289,25 @@ function latestLoadedUsageSnapshotFromEvents(
       },
     };
   }
-  return null;
+  return latest;
 }
 
 function latestCompactPostTokensAfterSnapshot(
   events: AgentEvent[],
   snapshot: LoadedUsageSnapshotResult,
 ): number | undefined {
-  const snapshotTimestamp = readEpochMillis(snapshot.snapshot.timestamp);
-  if (snapshotTimestamp === undefined) {
-    return undefined;
-  }
-  let bestRank = -1;
   let bestTokens: number | undefined;
-  for (let index = 0; index < events.length; index += 1) {
+  let bestIndex = snapshot.eventIndex;
+  for (let index = 0; index < events.length; index++) {
     const event = events[index];
-    if (event.type !== "context.compact.complete") {
-      continue;
-    }
+    if (event.type !== "context.compact.complete") continue;
+    if (compareLoadedEventOrder(events, index, bestIndex) <= 0) continue;
+    if (event.chatId && event.chatId !== snapshot.snapshot.chatId) continue;
+    if (event.scope !== "history" && event.runId && snapshot.snapshot.runId && event.runId !== snapshot.snapshot.runId) continue;
     const postTokens = readUsageNumber(event.postCompactEstimatedTokens);
-    if (postTokens === undefined) continue;
-    const eventTimestamp = readEpochMillis(event.timestamp);
-    if (eventTimestamp === undefined || eventTimestamp <= snapshotTimestamp)
-      continue;
-    if (eventTimestamp >= bestRank) {
-      bestRank = eventTimestamp;
+    if (postTokens !== undefined) {
       bestTokens = postTokens;
+      bestIndex = index;
     }
   }
   return bestTokens;

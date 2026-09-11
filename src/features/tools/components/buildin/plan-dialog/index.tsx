@@ -9,12 +9,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type {
-  AIAwaitPlan,
-  AIAwaitPlanDecision,
-  AIAwaitSubmitPayloadData,
-  PlanActiveAwaiting,
-} from "@/app/state/types";
+import type { AIAwaitPlan, AIAwaitPlanDecision, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { PlanActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/confirm-dialog/state";
 import { buildPlanSubmitParam } from "@/features/tools/components/buildin/plan-dialog/state";

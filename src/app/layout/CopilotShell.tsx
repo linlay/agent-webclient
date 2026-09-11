@@ -1,3 +1,6 @@
+import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
+import { ConversationRegionSkeleton } from "@/features/conversation/components/ConversationRegionSkeleton";
+import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useLocation,
@@ -10,23 +13,27 @@ import {
   useAppState,
   useOptionalAppContext,
 } from "@/app/state/AppContext";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import {
   resolveStatusPillClassName,
   resolveTopNavStatus,
 } from "@/app/layout/TopNav";
+import { UsageContextControl } from "@/features/usage/components/UsageContextControl";
 import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
-import { GlobalShortcutLayer } from "@/features/workers/hooks/useGlobalShortcuts";
+import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
+import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
+import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import {
   SettingsOverlayProvider,
   useSettingsOverlayActions,
 } from "@/features/settings/components/SettingsOverlayProvider";
+import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
 import {
   CommandOverlayProvider,
   useCommandOverlayActions,
-} from "@/features/workers/components/CommandOverlayProvider";
+} from "@/features/command-center/components/CommandOverlayProvider";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
@@ -42,9 +49,9 @@ import {
 } from "@/features/composer/components/HostRequiredSkillsContext";
 
 const COPILOT_SHELL_CLASS =
-  "app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-bg-base tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0";
+  "app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-[var(--panel-surface)] tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0";
 const COPILOT_TOPBAR_CLASS =
-  "copilot-topbar tw:relative tw:z-30 tw:row-start-1 tw:flex tw:min-w-0 tw:items-stretch tw:border-b tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-card)_96%,var(--bg-base))] tw:px-2 tw:py-2 tw:shadow-elevated tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]";
+  "copilot-topbar tw:relative tw:z-30 tw:row-start-1 tw:flex tw:min-w-0 tw:items-stretch tw:border-b tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-card)_96%,var(--bg-base))] tw:px-2 tw:py-[3px] tw:shadow-elevated tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]";
 const COPILOT_TOPBAR_ROW_CLASS =
   "copilot-topbar-row tw:flex tw:w-full tw:min-w-0 tw:items-center tw:justify-between tw:gap-1.5";
 const COPILOT_TITLE_BLOCK_CLASS =
@@ -128,6 +135,7 @@ const CopilotTopBar: React.FC = () => {
   );
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const statusLabel = t(statusText);
+  const presentation = useConversationSurface();
   const statusTitle = statusDetail
     ? `${statusLabel}: ${statusDetail}`
     : statusLabel;
@@ -149,7 +157,7 @@ const CopilotTopBar: React.FC = () => {
   return (
     <header className={COPILOT_TOPBAR_CLASS}>
       <div className={COPILOT_TOPBAR_ROW_CLASS}>
-        <div className={COPILOT_TITLE_BLOCK_CLASS}>
+        {presentation?.blocked ? <ConversationRegionSkeleton region="header" phase={presentation.phase} /> : <div className={COPILOT_TITLE_BLOCK_CLASS}>
           <strong className={COPILOT_WORKER_NAME_CLASS}>
             {currentWorker?.displayName || t("topNav.noSelection")}
           </strong>
@@ -172,7 +180,8 @@ const CopilotTopBar: React.FC = () => {
           >
             {statusLabel}
           </span>
-        </div>
+          <UsageContextControl presentation="drawer" />
+        </div>}
         <div className={COPILOT_TOPBAR_ACTIONS_CLASS}>
           <UiButton
             className={`${COPILOT_ACTION_BTN_CLASS} ui-icon-hover-20`}
@@ -216,7 +225,16 @@ const CopilotTopBar: React.FC = () => {
 };
 
 export const CopilotShell: React.FC = () => {
+  const [params] = useSearchParams();
+  return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
+    <CopilotShellContent />
+  </ConversationSurfaceProvider>;
+};
+
+const CopilotShellContent: React.FC = () => {
   const state = useAppState();
+  const deriveChatAction = useDeriveChatAction();
+  const onFeedback = useRunFeedbackAction();
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
@@ -254,6 +272,8 @@ export const CopilotShell: React.FC = () => {
 
   useAppRuntimes({
     initialWorkerRefreshEnabled: !requestedAgentKey,
+    targetChatId: routeChatId,
+    routeReady: !requestedAgentKey || routeAgentHydratedKey === requestedAgentKey,
   });
 
   useEffect(() => {
@@ -324,17 +344,7 @@ export const CopilotShell: React.FC = () => {
       });
     }
 
-    if (routeChatId) {
-      window.dispatchEvent(
-        new CustomEvent("agent:load-chat", {
-          detail: {
-            chatId: routeChatId,
-            focusComposerOnComplete: true,
-          },
-        }),
-      );
-      return;
-    }
+    if (routeChatId) return;
 
     window.dispatchEvent(
       new CustomEvent("agent:start-new-conversation", {
@@ -461,6 +471,7 @@ export const CopilotShell: React.FC = () => {
 
   return (
     <HostRequiredSkillsProvider {...hostRequiredSkills}>
+      <MemoryOverlayProvider>
       <SettingsOverlayProvider>
         <CommandOverlayProvider>
           <GlobalShortcutLayer />
@@ -473,12 +484,12 @@ export const CopilotShell: React.FC = () => {
             <CopilotTopBar />
             <ConversationStage
               surfaceMode="copilot"
+              deriveChatAction={deriveChatAction}
+              onFeedback={onFeedback}
               expectedChatId={routeChatId || undefined}
               showEmptyState={false}
             />
-            {(!requestedAgentKey || routeAgentHydratedKey === requestedAgentKey) && (
-              <BottomDock mode="copilot" />
-            )}
+            <BottomDock mode="copilot" />
             <ShellOverlays
               commandOverlayVariant="copilot"
               settingsOverlayVariant="copilot"
@@ -486,6 +497,7 @@ export const CopilotShell: React.FC = () => {
           </div>
         </CommandOverlayProvider>
       </SettingsOverlayProvider>
+      </MemoryOverlayProvider>
     </HostRequiredSkillsProvider>
   );
 };

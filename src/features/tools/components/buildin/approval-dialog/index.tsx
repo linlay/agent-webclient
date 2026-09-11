@@ -12,8 +12,8 @@ import React, {
 import type {
   AIAwaitApproval,
   AIAwaitSubmitPayloadData,
-  ApprovalActiveAwaiting,
-} from "@/app/state/types";
+} from "@/shared/contracts/agentEvents";
+import type { ApprovalActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
   clampAwaitingIndex,
@@ -29,7 +29,7 @@ import {
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Pager } from "@/shared/ui/Pager";
 import {
@@ -525,13 +525,18 @@ const ApprovalQuestion = forwardRef<
           justify="space-between"
         >
           <div className={hitlDialogClassNames.questionHeading}>
-            {approval?.description}
+            {approval?.description ||
+              t("approvalDialog.descriptionFallback")}
           </div>
           {pagnation}
         </Flex>
-        <div className={hitlDialogClassNames.approvalDetails}>
+        <Typography.Paragraph
+          className={hitlDialogClassNames.approvalDetails}
+          ellipsis={{ rows: 5 }}
+          title={approval?.command}
+        >
           {approval?.command}
-        </div>
+        </Typography.Paragraph>
         <Radio.Group
           className={hitlDialogClassNames.radioGroup}
           value={decision}

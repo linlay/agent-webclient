@@ -3,6 +3,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const ts = require('typescript');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
@@ -212,6 +213,10 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './public/index.html',
         title: 'AGENT Webclient',
+        templateParameters: () => ({
+          appearanceBootstrap: `(() => { const exports = {}; ${ts.transpileModule(fs.readFileSync(path.resolve(__dirname, 'src/shared/styles/appearance/bootstrap.ts'), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS } }).outputText} exports.applyBootAppearance(); })();`,
+          appearanceTokens: fs.readFileSync(path.resolve(__dirname, 'src/shared/styles/appearance/tokens.css'), 'utf8'),
+        }),
       }),
       ...(isProd
         ? [
@@ -284,10 +289,10 @@ module.exports = (env, argv) => {
         },
       ],
       setupMiddlewares: (middlewares, devServer) => {
-        devServer.app.get('/export/conversation.template.html', (_req, res) => {
-          res.setHeader('Content-Type', 'text/html; charset=utf-8');
-          res.setHeader('Cache-Control', 'no-store');
-          res.sendFile(path.resolve(__dirname, 'dist/export/conversation.template.html'));
+        const { createStandaloneFileActions } = require('./scripts/standalone-file-actions.cjs');
+        middlewares.unshift({
+          name: 'standalone-file-actions',
+          middleware: createStandaloneFileActions(),
         });
         devServer.app.get('/runtime-config.js', (_req, res) => {
           res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
@@ -297,7 +302,7 @@ module.exports = (env, argv) => {
         return middlewares;
       },
     },
-    devtool: isProd ? 'source-map' : 'eval-cheap-module-source-map',
+    devtool: isProd ? false : 'eval-cheap-module-source-map',
     performance: {
       hints: isProd ? 'warning' : false,
     },

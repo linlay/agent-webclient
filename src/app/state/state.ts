@@ -1,203 +1,64 @@
-import type { AppState, VoiceChatState } from "@/app/state/types";
+import type { AppState } from "@/app/state/types";
 import { getAppAccessToken } from "@/shared/data/auth/appAuth";
 import { readStoredAccessToken } from "@/shared/data/auth/accessTokenStorage";
-import {
-	createDefaultMemoryConsoleTab,
-	createDefaultMemoryInfoFilters,
-	createDefaultMemoryPreferenceMode,
-} from "@/shared/data/memory/memoryTypes";
 import { isAppMode } from "@/shared/utils/routing";
-import { resolveDefaultVoiceAsrDefaults } from "@/features/voice/lib/voiceAsrProtocol";
 import { resolveInitialThemeMode } from "@/shared/styles/theme";
 import { restoreTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import { restoreComposerDrafts } from "@/shared/data/auth/composerDraftPersistence";
-
-function createInitialVoiceChatState(): VoiceChatState {
-	return {
-		status: "idle",
-		sessionActive: false,
-		partialUserText: "",
-		partialAssistantText: "",
-		activeAssistantContentId: "",
-		activeRequestId: "",
-		activeTtsTaskId: "",
-		ttsCommitted: false,
-		error: "",
-		wsStatus: "idle",
-		capabilities: null,
-		capabilitiesLoaded: false,
-		capabilitiesError: "",
-		voices: [],
-		voicesLoaded: false,
-		voicesError: "",
-		selectedVoice: "",
-		speechRate: 1.2,
-		clientGate: resolveDefaultVoiceAsrDefaults().clientGate,
-		clientGateCustomized: false,
-		currentAgentKey: "",
-		currentAgentName: "",
-	};
-}
+import { createInitialAppChromeState } from "@/app/state/appChromeState";
+import { createInitialAgentsState } from "@/features/agents/lib/agentState";
+import { createInitialArtifactsState } from "@/features/artifacts/lib/artifactsState";
+import { createInitialAutomationsState } from "@/features/automations/lib/automationsState";
+import { createInitialChatsState } from "@/features/chats/lib/chatState";
+import { createInitialComposerState } from "@/features/composer/lib/composerState";
+import { createInitialConversationState } from "@/features/conversation/lib/conversationState";
+import { createInitialDebugState } from "@/features/debug/lib/debugState";
+import { createInitialMemoryState } from "@/features/memory/lib/memoryState";
+import { createInitialOverviewState } from "@/features/overview/lib/overviewState";
+import { createInitialPlanState } from "@/features/plan/lib/planState";
+import { createInitialTasksState } from "@/features/tasks/lib/tasksState";
+import { createInitialTimelineState } from "@/features/timeline/lib/timelineState";
+import { createInitialToolsState } from "@/features/tools/lib/toolsState";
+import { createInitialUsageState } from "@/features/usage/lib/usageState";
+import { createInitialViewersState } from "@/features/viewers/lib/viewerState";
+import { createInitialVoiceState } from "@/features/voice/lib/voiceState";
+import { createInitialWorkersState } from "@/features/workers/lib/workerState";
 
 export function createInitialState(): AppState {
-	const appMode = isAppMode();
-	const gatewayMode = isGatewayBackendMode();
-	const storedToken = gatewayMode
-		? ""
-		: appMode
-		? getAppAccessToken() || ""
-		: readStoredAccessToken();
-	const restoredDrafts = gatewayMode ? restoreComposerDrafts() : null;
-	const themeMode = resolveInitialThemeMode();
+  const appMode = isAppMode();
+  const gatewayMode = isGatewayBackendMode();
+  const accessToken = gatewayMode
+    ? ""
+    : appMode
+      ? getAppAccessToken() || ""
+      : readStoredAccessToken();
+  const restoredDrafts = gatewayMode ? restoreComposerDrafts() : null;
 
-	return {
-		agents: [],
-		teams: [],
-		chats: [],
-		automations: [],
-		sidebarPendingRequestCount: 0,
-		chatAgentById: new Map(),
-		runAgentById: new Map(),
-		currentRunAgentKey: "",
-		pendingNewChatAgentKey: "",
-		workerPriorityKey: "",
-		temporaryPinnedAgentKey: "",
-		chatId: "",
-		currentChatActiveRun: null,
-		runId: "",
-		requestId: "",
-		streaming: false,
-		abortController: null,
-		messagesById: new Map(),
-		messageOrder: [],
-		events: [],
-		debugEvents: [],
-		debugLines: [],
-		artifacts: [],
-		fileChanges: [],
-		plan: null,
-		planRuntimeByTaskId: new Map(),
-		taskItemsById: new Map(),
-		activeTaskIds: new Set(),
-		planCurrentRunningTaskId: "",
-		planLastTouchedTaskId: "",
-		toolStates: new Map(),
-		toolNodeById: new Map(),
-		contentNodeById: new Map(),
-		pendingTools: new Map(),
-		reasoningNodeById: new Map(),
-		reasoningCollapseTimers: new Map(),
-		actionStates: new Map(),
-		executedActionIds: new Set(),
-		timelineNodes: new Map(),
-		timelineOrder: [],
-		timelineNodeByMessageId: new Map(),
-		timelineDomCache: new Map(),
-		timelineCounter: 0,
-		renderQueue: {
-			dirtyNodeIds: new Set(),
-			scheduled: false,
-			stickToBottomRequested: false,
-			fullSyncNeeded: false,
-		},
-		activeReasoningKey: "",
-		chatFilter: "",
-		workerSelectionKey: "",
-		workerRows: [],
-		workerOrderKeys: [],
-		workerIndexByKey: new Map(),
-		workerRelatedChats: [],
-		workerChatPanelCollapsed: true,
-		chatLoadSeq: 0,
-		chatTransition: null,
-		conversationScrollRequest: null,
-		memoryConsoleTab: createDefaultMemoryConsoleTab(),
-		memoryInfoLoading: false,
-		memoryInfoError: "",
-		memoryInfoRecords: [],
-		memoryInfoSelectedRecordId: "",
-		memoryInfoDetail: null,
-		memoryInfoDetailLoading: false,
-		memoryInfoDetailError: "",
-		memoryInfoFilters: createDefaultMemoryInfoFilters(),
-		memoryInfoNextCursor: "",
-		memoryMeta: null,
-		memoryPreferenceScopes: [],
-		memoryPreferenceActiveScopeType: "agent",
-		memoryPreferenceActiveScopeKey: "",
-		memoryPreferenceLabel: "AGENT",
-		memoryPreferenceFileName: "AGENT.md",
-		memoryPreferenceMeta: null,
-		memoryPreferenceLoading: false,
-		memoryPreferenceError: "",
-		memoryPreferenceMode: createDefaultMemoryPreferenceMode(),
-		memoryPreferenceMarkdownDraft: "",
-		memoryPreferenceRecordsDraft: [],
-		memoryPreferenceSelectedRecordId: "",
-		memoryPreferenceDirty: false,
-		memoryPreferenceSaving: false,
-		memoryPreferenceSaveSummary: null,
-		memoryPreferenceValidation: null,
-		memoryPreviewDraft: "",
-		memoryPreviewLoading: false,
-		memoryPreviewError: "",
-		memoryPreviewResult: null,
-		memoryPreviewPromptLayer: "stable",
-		leftDrawerOpen: true,
-		rightSidebarOpen: false,
-		rightSidebarOpenTab: null,
-		activeSourceDetail: null,
-		planningPreviews: [],
-		webPreviews: [],
-		webPreviewRefreshRevisionByUrl: new Map(),
-		activeWebPreviewUrl: "",
-		activeViewerKey: "",
-		activePlanningPreviewNodeId: "",
-		skillTabs: [],
-		activeSkillKey: "",
-		terminalDockOpen: restoreTerminalDockOpen(),
-		viewerTabs: [],
-		artifactExpanded: false,
-		artifactManualOverride: null,
-		artifactAutoCollapseTimer: null,
-		planExpanded: false,
-		planManualOverride: null,
-		planAutoCollapseTimer: null,
-		mentionOpen: false,
-		mentionSuggestions: [],
-		mentionActiveIndex: 0,
-		activeFrontendTool: null,
-		activeAwaiting: null,
-		pendingAwaitings: [],
-		themeMode,
-		wsStatus: "disconnected",
-		wsErrorMessage: "",
-		accessToken: storedToken,
-		audioMuted: false,
-		ttsDebugStatus: "idle",
-		planningMode: false,
-		planningModeByChatId: {},
-		editingMode: false,
-		usageSnapshot: null,
-		usagePopoverOpen: false,
-		inputMode: "text",
-		voiceChat: createInitialVoiceChatState(),
-		composerDraft: restoredDrafts?.composerDraft || "",
-		composerDraftByChatId: restoredDrafts?.composerDraftByChatId || {},
-		selectedSkills: [],
-		selectedSkillsByChatId: {},
-		pendingSteers: {},
-		downvotedRunKeys: new Set(),
-		eventPopoverIndex: -1,
-		eventPopoverEventRef: null,
-		eventPopoverAnchor: null,
-		commandStatusOverlay: {
-			visible: false,
-			commandType: null,
-			phase: "success",
-			text: "",
-			timer: null,
-		},
-	};
+  return {
+    ...createInitialAgentsState(),
+    ...createInitialWorkersState(),
+    ...createInitialChatsState(),
+    ...createInitialConversationState(),
+    ...createInitialTimelineState(),
+    ...createInitialToolsState(),
+    ...createInitialPlanState(),
+    ...createInitialTasksState(),
+    ...createInitialArtifactsState(),
+    ...createInitialOverviewState(),
+    ...createInitialViewersState(),
+    ...createInitialComposerState(),
+    ...createInitialMemoryState(),
+    ...createInitialVoiceState(),
+    ...createInitialUsageState(),
+    ...createInitialAutomationsState(),
+    ...createInitialDebugState(),
+    ...createInitialAppChromeState({
+      themeMode: resolveInitialThemeMode(),
+      accessToken,
+      terminalDockOpen: restoreTerminalDockOpen(),
+    }),
+    composerDraft: restoredDrafts?.composerDraft || "",
+    composerDraftByChatId: restoredDrafts?.composerDraftByChatId || {},
+  };
 }

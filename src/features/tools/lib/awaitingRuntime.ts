@@ -1,21 +1,7 @@
-import type {
-  ActiveAwaiting,
-  AgentEvent,
-  AIAwaitApproval,
-  AIAwaitApprovalDecision,
-  AIAwaitForm,
-  AIAwaitMode,
-  AIAwaitPlan,
-  AIAwaitPlanDecision,
-  AIAwaitQuestion,
-  FormActiveAwaiting,
-} from '@/app/state/types';
-import {
-  AIAwaitQuestionType,
-  ViewportTypeEnum,
-  isAwaitingAnswerStreamEvent,
-  isAwaitingAskStreamEvent,
-} from '@/app/state/types';
+import { readViewReference } from "@/shared/contracts/view";
+import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
+import type { AgentEvent, AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitForm, AIAwaitMode, AIAwaitPlan, AIAwaitPlanDecision, AIAwaitQuestion } from "@/shared/contracts/agentEvents";
+import { AIAwaitQuestionType, ViewportTypeEnum, isAwaitingAnswerStreamEvent, isAwaitingAskStreamEvent } from "@/shared/contracts/agentEvents";
 import { toText } from '@/shared/utils/eventUtils';
 import { readEpochMillis } from '@/shared/utils/platformTime';
 import {
@@ -23,8 +9,8 @@ import {
   registerAwaitingApprovalMeta,
   registerAwaitingFormMeta,
   registerAwaitingQuestionMeta,
-} from '@/features/tools/lib/awaitingQuestionMeta';
-import { isAwaitingAnswerTimeoutError } from '@/features/tools/lib/awaitingAnswerError';
+} from '@/features/events/lib/awaitingQuestionMeta';
+import { isAwaitingAnswerTimeoutError } from '@/features/events/lib/awaitingAnswerError';
 import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
 
 export const BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY = 'confirm_dialog';
@@ -527,9 +513,10 @@ function reduceSingleActiveAwaiting(
     }
 
     if (nextMode === 'form') {
-      const viewportKey = toText(event.viewportKey);
+      const view = readViewReference(event.view);
+      const viewportKey = view?.key || toText(event.viewportKey);
       const viewportType = toText(event.viewportType);
-      if (!viewportKey || viewportType !== ViewportTypeEnum.Html) {
+      if (!viewportKey || (!view && viewportType !== ViewportTypeEnum.Html)) {
         return current;
       }
       const nextForms = normalizeForms(event.forms);
@@ -552,6 +539,7 @@ function reduceSingleActiveAwaiting(
             : current?.key === key && current.mode === 'form'
             ? cloneForms(current.forms)
             : [],
+        ...(view ? { view, chatId: toText(event.chatId), viewError: toText(event.viewError) } : {}),
         viewportKey,
         viewportType: ViewportTypeEnum.Html,
         ...runtime,

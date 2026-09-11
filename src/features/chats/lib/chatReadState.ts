@@ -1,4 +1,6 @@
-import type { Agent, Chat, ChatReadState, Team, WorkerConversationRow, WorkerRow } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { Chat, ChatReadState } from "@/features/chats/lib/chatState";
+import type { Team, WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { toText } from "@/shared/utils/eventUtils";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 
@@ -19,6 +21,92 @@ export function normalizeChatReadState(value: unknown): ChatReadState | undefine
 		isRead,
 		...(readAt !== undefined ? { readAt } : {}),
 		...(readRunId ? { readRunId } : {}),
+	};
+}
+
+function parseRunIdMillis(runId: string): number | undefined {
+	const normalized = toText(runId).toLowerCase();
+	if (!normalized || !/^[0-9a-z]+$/.test(normalized)) {
+		return undefined;
+	}
+	const millis = Number.parseInt(normalized, 36);
+	return Number.isSafeInteger(millis) ? millis : undefined;
+}
+
+/** Mirrors Agent Platform's chat.RunIDAfter ordering contract. */
+export function isRunIdAfter(runId: string, cursor: string): boolean {
+	const normalizedRunId = toText(runId);
+	const normalizedCursor = toText(cursor);
+	const runMillis = parseRunIdMillis(normalizedRunId);
+	const cursorMillis = parseRunIdMillis(normalizedCursor);
+	if (runMillis !== undefined && cursorMillis !== undefined && runMillis !== cursorMillis) {
+		return runMillis > cursorMillis;
+	}
+	return normalizedRunId.localeCompare(normalizedCursor) > 0;
+}
+
+export function mergeChatReadState(input: {
+	existing?: ChatReadState;
+	incoming?: ChatReadState;
+	existingLastRunId?: string;
+	incomingLastRunId?: string;
+	existingUpdatedAt?: number;
+	incomingUpdatedAt?: number;
+}): ChatReadState | undefined {
+	const { existing, incoming } = input;
+	if (!incoming) return existing;
+	if (!existing) return incoming;
+
+	const existingLastRunId = toText(input.existingLastRunId);
+	const incomingLastRunId = toText(input.incomingLastRunId) || existingLastRunId;
+	const existingReadRunId = toText(existing.readRunId);
+	const incomingReadRunId = toText(incoming.readRunId);
+
+	if (incoming.isRead) {
+		if (incomingReadRunId) {
+			if (existingLastRunId && isRunIdAfter(existingLastRunId, incomingReadRunId)) {
+				return existing;
+			}
+			if (existingReadRunId && isRunIdAfter(existingReadRunId, incomingReadRunId)) {
+				return existing;
+			}
+			if (
+				existing.isRead &&
+				existingReadRunId === incomingReadRunId &&
+				(existing.readAt ?? 0) > (incoming.readAt ?? 0)
+			) {
+				return existing;
+			}
+			return incoming;
+		}
+		if ((existing.readAt ?? 0) > (incoming.readAt ?? 0)) {
+			return existing;
+		}
+		return incoming;
+	}
+
+	if (incomingLastRunId) {
+		if (incomingReadRunId && !isRunIdAfter(incomingLastRunId, incomingReadRunId)) {
+			return existing;
+		}
+		if (existingLastRunId && isRunIdAfter(existingLastRunId, incomingLastRunId)) {
+			return existing;
+		}
+		if (existing.isRead && existingReadRunId && !isRunIdAfter(incomingLastRunId, existingReadRunId)) {
+			return existing;
+		}
+	} else if (
+		existing.isRead &&
+		(existing.readAt ?? 0) >= (input.incomingUpdatedAt ?? 0)
+	) {
+		return existing;
+	}
+
+	return {
+		...incoming,
+		...(incoming.readAt === undefined && existing.readAt !== undefined
+			? { readAt: existing.readAt }
+			: {}),
 	};
 }
 

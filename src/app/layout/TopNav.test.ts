@@ -982,16 +982,30 @@ describe("TopNav", () => {
 		expect(html).toContain("bug_report");
 	});
 
-	it("leaves the Desktop Agent action group empty for the host-owned WorkPanel entry", () => {
+	it.each([true, "true"])("renders only the Debug action for Desktop Agent when enabled (%s)", (desktopMode) => {
 		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-			DESKTOP_APP: "true",
+			DESKTOP_APP: desktopMode,
 			DEBUG_PANEL_ENABLED: "true",
+			VOICE_ENABLED: "true",
 		};
 
 		const html = renderToStaticMarkup(React.createElement(TopNav, { surface: "agent" }));
 
-		expect(html).not.toContain("Open debug panel");
-		expect(html).not.toContain("Open overview");
+		expect(html.match(/bug_report/g)).toHaveLength(1);
+		expect(html).not.toContain("open_in_new");
+		expect(html).not.toContain("folder_open");
+		expect(html).not.toContain('aria-label="Open terminal"');
+		expect(html).not.toContain("volume_up");
+	});
+
+	it.each([undefined, false, "false", ""])("hides the Desktop Agent Debug button when disabled (%s)", (debugFlag) => {
+		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+			DESKTOP_APP: "true",
+			DEBUG_PANEL_ENABLED: debugFlag,
+		};
+
+		const html = renderToStaticMarkup(React.createElement(TopNav, { surface: "agent" }));
+
 		expect(html).not.toContain("bug_report");
 		expect(html).not.toContain("open_in_new");
 	});

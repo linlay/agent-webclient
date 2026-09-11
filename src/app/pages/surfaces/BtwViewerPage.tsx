@@ -1,31 +1,20 @@
 import React from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { BtwTabView } from "@/features/btw/components/BtwTab";
-import { useStandaloneBtwRuntime } from "@/features/btw/hooks/useStandaloneBtwRuntime";
-import { useChatSurfaceReplay } from "@/features/surfaces/useChatSurfaceReplay";
-import { useI18n } from "@/shared/i18n";
+import { BtwViewerSurface } from "@/features/btw/components/BtwViewerSurface";
 import {
   isSelectionTransferTarget,
-  receiveSelectedTextTransfers,
   SELECTION_TRANSFER_TARGET_QUERY_PARAM,
 } from "@/features/selection/lib/selectionTransfer";
-import { IndependentSurfaceFrame } from "./SurfaceFrame";
 
 export const BtwViewerPage: React.FC = () => {
-  const { chatId: routeChatId } = useParams<{ chatId: string }>();
+  const { chatId = "" } = useParams<{ chatId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const chatId = String(routeChatId || "").trim();
-  const initialBtwId = String(searchParams.get("btwId") || "").trim();
   const rawSelectionTransferTarget = String(
     searchParams.get(SELECTION_TRANSFER_TARGET_QUERY_PARAM) || "",
   ).trim();
-  const selectionTransferTarget = isSelectionTransferTarget(
-    rawSelectionTransferTarget,
-  )
+  const selectionTransferTarget = isSelectionTransferTarget(rawSelectionTransferTarget)
     ? rawSelectionTransferTarget
     : "";
-  const { t } = useI18n();
-  const chatRuntime = useChatSurfaceReplay({ chatId });
   const updateBtwId = React.useCallback((btwId: string) => {
     const normalized = String(btwId || "").trim();
     if (!normalized || normalized === searchParams.get("btwId")) return;
@@ -33,53 +22,18 @@ export const BtwViewerPage: React.FC = () => {
     next.set("btwId", normalized);
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
-  const runtime = useStandaloneBtwRuntime({
-    chatId,
-    initialBtwId,
-    owner: chatRuntime.snapshot?.owner || null,
-    onBtwId: updateBtwId,
-  });
-  const acceptTransferredFragment = React.useCallback((fragment: Parameters<
-    typeof runtime.addDraftSelection
-  >[0]) => {
-    return runtime.addDraftSelection(fragment);
-  }, [runtime.addDraftSelection]);
-  React.useEffect(() => {
-    if (!selectionTransferTarget || !chatId) return;
-    return receiveSelectedTextTransfers({
-      targetId: selectionTransferTarget,
-      chatId,
-      onFragment: acceptTransferredFragment,
-    });
-  }, [acceptTransferredFragment, chatId, selectionTransferTarget]);
-  const invalid = !chatId;
-  const missingOwner = chatRuntime.status === "ready" && !chatRuntime.snapshot?.owner;
+  const clearBtwId = React.useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("btwId");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
   return (
-    <IndependentSurfaceFrame
-      kind="btw"
-      loading={!invalid && chatRuntime.status === "loading"}
-      error={invalid || missingOwner
-        ? t("platformError.code.invalid_request")
-        : chatRuntime.error}
-    >
-      <BtwTabView
-        parentChatId={chatId}
-        session={runtime.session}
-        onSend={() => runtime.send(t("btw.selectionOnlyPrompt"))}
-        onDraftChange={runtime.setDraft}
-        onRemoveDraftSelection={runtime.removeDraftSelection}
-        onInterrupt={runtime.interrupt}
-        onNewBranch={() => {
-          const created = runtime.newBranch();
-          if (created) {
-            const next = new URLSearchParams(searchParams);
-            next.delete("btwId");
-            setSearchParams(next, { replace: true });
-          }
-          return created;
-        }}
-        onPatchTimelineNode={runtime.patchTimelineNode}
-      />
-    </IndependentSurfaceFrame>
+    <BtwViewerSurface
+      chatId={chatId.trim()}
+      initialBtwId={String(searchParams.get("btwId") || "").trim()}
+      selectionTransferTarget={selectionTransferTarget}
+      onBtwIdChange={updateBtwId}
+      onBtwIdClear={clearBtwId}
+    />
   );
 };

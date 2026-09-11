@@ -1,4 +1,5 @@
-import { isAwaitingAnswerStreamEvent, type AgentEvent } from "@/app/state/types";
+import { isAwaitingAnswerStreamEvent } from "@/shared/contracts/agentEvents";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type {
 	EventCommand,
 	EventProcessorConfig,
@@ -73,6 +74,7 @@ export function processStreamEvent(
 		type === "tool.start" ||
 		type === "tool.snapshot" ||
 		type === "tool.args" ||
+		type === "tool.output" ||
 		type === "tool.result" ||
 		type === "tool.end" ||
 		type.startsWith("action.") ||

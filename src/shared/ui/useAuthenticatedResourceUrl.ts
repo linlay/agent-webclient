@@ -24,6 +24,8 @@ interface InternalAuthenticatedResourceUrlState
 export interface AuthenticatedResourceUrlOptions
   extends ResourceUrlClassificationOptions {
   blobMimeTypeFallback?: string;
+  /** A new value fetches a fresh Blob without invalidating other viewers' leases. */
+  refreshKey?: string | number;
 }
 
 function createRequestKey(
@@ -31,7 +33,8 @@ function createRequestKey(
   chatId: string,
   options: AuthenticatedResourceUrlOptions,
 ): string {
-  return `${chatId}\u0000${options.teamChat ? "team" : "agent"}\u0000${options.blobMimeTypeFallback || ""}\u0000${source}`;
+  const base = `${chatId}\u0000${options.teamChat ? "team" : "agent"}\u0000${options.blobMimeTypeFallback || ""}\u0000${source}`;
+  return options.refreshKey ? `${base}\u0000refresh:${options.refreshKey}` : base;
 }
 
 function getImmediateState(
@@ -65,12 +68,13 @@ export function useAuthenticatedResourceUrl(
 ): AuthenticatedResourceUrlState {
   const normalized = String(source || "").trim();
   const teamChat = Boolean(options.teamChat);
+  const refreshKey = options.refreshKey;
   const blobMimeTypeFallback = String(options.blobMimeTypeFallback || "")
     .trim()
     .toLowerCase();
   const requestOptions = React.useMemo(
-    () => ({ teamChat, blobMimeTypeFallback }),
-    [blobMimeTypeFallback, teamChat],
+    () => ({ teamChat, blobMimeTypeFallback, refreshKey }),
+    [blobMimeTypeFallback, teamChat, refreshKey],
   );
   const classificationOptions = React.useMemo(
     () => ({ teamChat }),

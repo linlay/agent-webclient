@@ -3,10 +3,12 @@ import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { ReferenceCard } from "@/features/artifacts/components/ReferenceCard";
 import type { ComposerAttachment } from "@/features/composer/lib/composerAttachments";
 import { getComposerAttachmentSubtitle } from "@/features/composer/lib/composerAttachments";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface ComposerAttachmentsProps {
+  attachmentChatId?: string;
   attachments: ComposerAttachment[];
   attachmentViewportRef: React.RefObject<HTMLDivElement>;
   useUnifiedComposerAttachmentRow: boolean;
@@ -37,6 +39,7 @@ const COMPOSER_ATTACHMENTS_NAV_SIDE_CLASS = {
 } as const;
 
 export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
+  attachmentChatId,
   attachments,
   attachmentViewportRef,
   useUnifiedComposerAttachmentRow,
@@ -72,7 +75,9 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
             ) : (
               <AttachmentCard
                 key={attachment.id}
+                surfaceContext={attachmentChatId ? { chatId: attachmentChatId } : undefined}
                 attachment={{
+                  id: normalizeTimelineAttachments(attachment.references)[0]?.id,
                   name: attachment.name,
                   size: attachment.size,
                   type: attachment.type,

@@ -1,0 +1,44 @@
+/* ---- SearchFilterBar (VSCode-style) ---- */
+:global(.search-filter-bar) {
+    display: flex;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-input) 92%, var(--bg-elev-2));
+    overflow: hidden;
+}
+
+:global(.search-filter-bar) :global(.ant-input-affix-wrapper) {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+:global(.search-filter-bar) :global(.ant-input-affix-wrapper):global(.ant-input-affix-wrapper-focused) {
+    box-shadow: none !important;
+}
+
+:global(.filter-trigger) {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px;
+    height: 26px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-muted);
+    flex: 0 0 auto;
+}
+
+:global(.filter-trigger):hover {
+    color: var(--ink-1);
+    background: color-mix(in srgb, var(--bg-hover) 92%, transparent);
+}
+
+:global(.filter-trigger):global(.is-active) {
+    color: var(--accent-electric-strong);
+}

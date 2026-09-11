@@ -1,4 +1,5 @@
 import React from "react";
+import { message } from "antd";
 import { useAppState } from "@/app/state/AppContext";
 import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
@@ -15,6 +16,7 @@ import { useI18n } from "@/shared/i18n";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
+import styles from "./AttachmentCard.module.css";
 
 interface AttachmentCardData extends AttachmentLike {
   name: string;
@@ -42,6 +44,13 @@ interface AttachmentCardProps {
   };
 }
 
+function withModuleClasses(...classNames: string[]): string {
+  return [
+    ...classNames,
+    ...classNames.map((className) => styles[className]).filter(Boolean),
+  ].filter(Boolean).join(" ");
+}
+
 export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   attachment,
   artifactId,
@@ -55,7 +64,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   onRemove,
   removeLabel,
   style,
-  activateMode = "toggle",
+  activateMode = "alwaysOpen",
   surfaceContext,
 }) => {
   const { t } = useI18n();
@@ -68,8 +77,13 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     || String(currentChat?.teamId || "").trim(),
   );
   const attachmentKind = getAttachmentKind(attachment);
-  const sourceUrl = getAttachmentUrl(attachment);
-  const authenticatedSource = useAuthenticatedResourceUrl(sourceUrl, chatId, { teamChat });
+  // Keep a local thumbnail, but open the durable uploaded resource once ready.
+  const sourceUrl = attachment.url?.trim() || getAttachmentUrl(attachment);
+  const authenticatedSource = useAuthenticatedResourceUrl(
+    attachmentKind === "image" ? attachment.previewUrl || sourceUrl : "",
+    chatId,
+    { teamChat },
+  );
   const downloadUrl = getAttachmentDownloadUrl(attachment);
   const resourceTarget = React.useMemo(
     () => buildResourceViewerTarget({
@@ -108,11 +122,10 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     Boolean(authenticatedSource.url) &&
     !imageFailed;
   const canActivate =
-    Boolean(sourceUrl) &&
     status !== "uploading" &&
     status !== "error" &&
     !downloading;
-  const classes = [
+  const semanticClasses = [
     "attachment-card",
     `attachment-card-${variant}`,
     `attachment-card-${density}`,
@@ -120,8 +133,8 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     canActivate ? "is-interactive" : "",
     status ? `is-${status}` : "",
   ]
-    .filter(Boolean)
-    .join(" ");
+    .filter(Boolean) as string[];
+  const classes = withModuleClasses(...semanticClasses);
 
   const triggerDownload = React.useCallback(() => {
     if (!downloadUrl || downloading) {
@@ -139,7 +152,11 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   }, [attachment.name, chatId, downloadUrl, downloading, teamChat]);
 
   const handleActivate = React.useCallback(() => {
-    if (!canActivate || !resourceTarget) {
+    if (!canActivate) {
+      return;
+    }
+    if (!resourceTarget) {
+      void message.error(t("attachments.error.resourceUnavailable"));
       return;
     }
     if (artifactId) {
@@ -173,7 +190,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
         toggle: activateMode === "toggle",
       });
     }
-  }, [activateMode, artifactId, attachment.id, canActivate, chatId, openTarget, resourceTarget, surfaceContext?.agentKey]);
+  }, [activateMode, artifactId, attachment.id, canActivate, chatId, openTarget, resourceTarget, surfaceContext?.agentKey, t]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,
@@ -189,7 +206,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (!canActivate) {
+      if (!canActivate || event.target !== event.currentTarget) {
         return;
       }
 
@@ -206,6 +223,8 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       ref={contextTargetRef}
       className={classes}
       data-attachment-kind={attachmentKind}
+      title={canActivate ? t("attachments.action.view") : undefined}
+      aria-label={canActivate ? `${t("attachments.action.view")} ${attachment.name}` : undefined}
       role={canActivate ? "button" : undefined}
       tabIndex={canActivate ? 0 : undefined}
       onClick={canActivate ? handleActivate : undefined}
@@ -213,24 +232,24 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
       style={style}
     >
       {hasImagePreview ? (
-        <div className="attachment-card-image-shell">
+        <div className={withModuleClasses("attachment-card-image-shell")}>
           <img
-            className="attachment-card-image"
+            className={withModuleClasses("attachment-card-image")}
             src={authenticatedSource.url}
             alt={attachment.name}
             loading="lazy"
             onError={() => setImageFailed(true)}
           />
           {subtitle ? (
-            <span className="attachment-card-image-badge">{subtitle}</span>
+            <span className={withModuleClasses("attachment-card-image-badge")}>{subtitle}</span>
           ) : null}
         </div>
       ) : (
-        <div className="attachment-card-file-shell">
+        <div className={withModuleClasses("attachment-card-file-shell")}>
           {hasInlineThumbnail ? (
-            <span className="attachment-card-file-icon is-thumbnail">
+            <span className={withModuleClasses("attachment-card-file-icon", "is-thumbnail")}>
               <img
-                className="attachment-card-file-thumb"
+                className={withModuleClasses("attachment-card-file-thumb")}
                 src={authenticatedSource.url}
                 alt={attachment.name}
                 loading="lazy"
@@ -240,25 +259,26 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
           ) : (
             <FileIcon filename={attachment.name} />
           )}
-          <span className="attachment-card-file-copy">
-            <span className="attachment-card-title" title={attachment.name}>
-              {attachment.name}
+          <span className={withModuleClasses("attachment-card-file-copy")}>
+            <span className={withModuleClasses("attachment-card-title")} title={attachment.name}>
+              <span className={withModuleClasses("attachment-card-name")}>{attachment.name.lastIndexOf(".") > 0 ? attachment.name.slice(0, attachment.name.lastIndexOf(".")) : attachment.name}</span>
+              {attachment.name.lastIndexOf(".") > 0 ? <span className={withModuleClasses("attachment-card-extension")}>{attachment.name.slice(attachment.name.lastIndexOf("."))}</span> : null}
             </span>
             {subtitle ? (
-              <span className="attachment-card-subtitle" title={subtitle}>
+              <span className={withModuleClasses("attachment-card-subtitle")} title={subtitle}>
                 {subtitle}
               </span>
             ) : null}
           </span>
           {trailingNode ? (
-            <span className="attachment-card-trailing">{trailingNode}</span>
+            <span className={withModuleClasses("attachment-card-trailing")}>{trailingNode}</span>
           ) : null}
         </div>
       )}
       {onRemove ? (
         <button
           type="button"
-          className="attachment-card-remove"
+          className={withModuleClasses("attachment-card-remove")}
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();

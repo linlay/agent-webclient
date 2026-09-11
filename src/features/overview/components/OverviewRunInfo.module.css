@@ -1,0 +1,199 @@
+.section {
+  flex: none;
+  min-width: 0;
+  margin: 0 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.header:hover {
+  background: var(--bg-hover);
+}
+
+.header:focus-visible, .identifier:focus-visible {
+  outline: 2px solid var(--accent-electric);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.header > :first-child {
+  flex: none;
+  font-size: 16px;
+  color: var(--ink-muted);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status, .duration {
+  flex: none;
+  font-size: 11px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.status[data-status="running"], .status[data-status="starting"] {
+  color: var(--accent-electric-strong);
+}
+
+.status[data-status="completed"] {
+  color: var(--ok);
+}
+
+.status[data-status="error"] {
+  color: var(--danger);
+}
+
+.status[data-status="question"], .status[data-status="approval"], .status[data-status="form"], .status[data-status="plan"] {
+  color: var(--warn);
+}
+
+.details {
+  padding: 5px 0 10px;
+}
+
+.properties {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 8px;
+}
+
+.row dt {
+  color: var(--ink-muted);
+}
+
+.row dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.model {
+  display: flex;
+}
+
+.modelName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reasoning {
+  flex: none;
+  color: var(--ink-muted);
+}
+
+.context > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.percent {
+  color: var(--ink-muted);
+}
+
+.context progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  margin-top: 5px;
+  border: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--line-soft);
+}
+
+.context progress::-webkit-progress-bar {
+  background: var(--line-soft);
+}
+
+.context progress::-webkit-progress-value {
+  background: var(--accent-electric);
+  border-radius: 2px;
+}
+
+.context progress::-moz-progress-bar {
+  background: var(--accent-electric);
+  border-radius: 2px;
+}
+
+.identifiers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.identifier {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.identifier:hover:enabled {
+  color: var(--accent-electric-strong);
+}
+
+.identifier:disabled {
+  cursor: default;
+}
+
+.idLabel {
+  flex: none;
+}
+
+.idValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-code, monospace);
+}
+
+.identifier > :last-child:not(.idValue) {
+  flex: none;
+  margin-left: auto;
+  font-size: 12px;
+}

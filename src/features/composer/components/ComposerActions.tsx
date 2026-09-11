@@ -38,7 +38,7 @@ const VOICE_BUTTON_STATE_CLASS = {
     "is-listening tw:!border-[color-mix(in_srgb,var(--accent-danger)_56%,var(--line-soft))] tw:!bg-[color-mix(in_srgb,var(--accent-danger)_12%,var(--bg-elev-2))] tw:!shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-danger)_22%,transparent)]",
 } as const;
 const SEND_BUTTON_CLASS =
-  "send-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:!place-items-center tw:self-center tw:!rounded-lg tw:!border-0 tw:!bg-accent-electric tw:!p-0 tw:!text-base tw:!font-bold tw:!text-white tw:!shadow-[0_6px_16px_rgba(38,99,235,0.22)] tw:!transition-[transform,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:!scale-[1.03] tw:hover:!bg-[color-mix(in_srgb,var(--accent-electric)_88%,#0b4aa2)] tw:hover:!shadow-[0_6px_12px_rgba(22,119,255,0.28)] tw:active:!scale-[0.97] tw:[&_.material-icon]:text-[17px]";
+  "send-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:!place-items-center tw:self-center tw:!rounded-lg tw:!border-0 tw:!bg-accent-electric tw:!p-0 tw:!text-base tw:!font-bold tw:!text-[var(--accent-on)] tw:!shadow-[0_6px_16px_color-mix(in_srgb,var(--accent)_22%,transparent)] tw:!transition-[transform,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:!scale-[1.03] tw:hover:!bg-[var(--control-primary-hover)] tw:hover:!shadow-[0_6px_12px_color-mix(in_srgb,var(--accent)_28%,transparent)] tw:active:!scale-[0.97] tw:[&_.material-icon]:text-[17px]";
 const INTERRUPT_BUTTON_CLASS =
   "interrupt-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:self-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-[11px] tw:!font-bold tw:hover:!bg-[color-mix(in_srgb,var(--accent-danger)_10%,transparent)] tw:disabled:opacity-60";
 
@@ -99,10 +99,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   currentAgentKey,
   isMainChatRunning,
   selectedSkillKeys,
-  slashCommands,
-  slashAvailability,
   onSelectSkill,
-  onSelectCommand,
 }) => {
   const { t } = useI18n();
   const {
@@ -172,14 +169,11 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             canUseEditingMode={canUseEditingMode}
             isMainChatRunning={isMainChatRunning}
             selectedSkillKeys={selectedSkillKeys}
-            slashCommands={slashCommands}
-            slashAvailability={slashAvailability}
             onOpenFilePicker={openFilePicker}
             onAddReference={onAddReference}
             onTogglePlanningMode={onTogglePlanningMode}
             onEditingModeChange={onEditingModeChange}
             onSelectSkill={onSelectSkill}
-            onSelectCommand={onSelectCommand}
           />
           {canCaptureDesktopScreenshot ? (
             <UiButton

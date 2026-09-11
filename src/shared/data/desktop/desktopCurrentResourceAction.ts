@@ -125,10 +125,10 @@ export function resolveDesktopCurrentResourceIdentity(
 
   const profile = segments[0] === "artifacts"
     ? "artifact"
-    : segments[0] === "references"
+    : segments[0] === "references" || segments.length === 1
       ? "reference"
       : null;
-  if (!profile || segments.length < 2) return null;
+  if (!profile || (profile === "artifact" && segments.length < 2)) return null;
   return {
     chatId,
     profile,

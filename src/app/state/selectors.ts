@@ -47,14 +47,3 @@ export function selectConversationState(state: AppState) {
     planningMode: state.planningMode,
   };
 }
-
-export function selectTimelineState(state: AppState) {
-  return {
-    timelineNodes: state.timelineNodes,
-    timelineOrder: state.timelineOrder,
-    contentNodeById: state.contentNodeById,
-    reasoningNodeById: state.reasoningNodeById,
-    toolNodeById: state.toolNodeById,
-    toolStates: state.toolStates,
-  };
-}

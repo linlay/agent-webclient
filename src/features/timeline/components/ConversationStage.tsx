@@ -1,3 +1,4 @@
+import { useConversationSurface, useConversationPresentationClock } from "@/shared/ui/ConversationSurfaceContext";
 import React, {
   useRef,
   useEffect,
@@ -6,6 +7,7 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import "./TimelineCompat.module.css";
 
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -18,6 +20,7 @@ import {
   TimelineRow,
   formatTimelineTime,
 } from "@/features/timeline/components/TimelineRow";
+import { TimelineRenderEntryView } from "@/features/timeline/components/TimelineRenderEntryView";
 import {
   buildTimelineDisplayItems,
   buildRunRenderEntries,
@@ -33,7 +36,6 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { deriveChat, submitFeedback } from "@/shared/data";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import {
@@ -48,18 +50,15 @@ import {
   Tooltip,
 } from "antd";
 import type { InputRef } from "antd";
-import {
-  type Agent,
-  type ConversationSurfaceMode,
-  type TimelineNode,
-  type WorkerRow,
-} from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
+import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { LogoLoading } from "@/shared/components/logo-loading";
+import { DotLoading } from "@/shared/components/dot-loading";
 import {
-  isMainChatRuntimeObservedByLiveQuery,
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
-import { DotLoading } from "@/shared/components/dot-loading";
 import { Virtuoso } from "react-virtuoso";
 import type {
   ItemProps,
@@ -75,8 +74,12 @@ import {
   setConversationScrollBookmark,
   type ConversationScrollBookmark,
 } from "@/features/timeline/lib/conversationScrollBookmark";
+import type { AgentSkill } from "@/shared/data/api/client";
+import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import "./Timeline.module.css";
 
 type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
+const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 type VirtualListItem =
   | {
@@ -148,17 +151,27 @@ const VIRTUOSO_CLASS_NAME = [
 ].join(" ");
 const CONVERSATION_TRANSITION_OVERLAY_CLASS_NAME =
   "conversation-transition-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:overflow-hidden tw:bg-bg-base tw:px-6";
-const CONVERSATION_TRANSITION_OVERLAY_HOLD_MS = 320;
-const CONVERSATION_TRANSITION_OVERLAY_FADE_MS = 180;
-const CONVERSATION_TRANSITION_OVERLAY_REDUCED_MOTION_HOLD_MS =
-  CONVERSATION_TRANSITION_OVERLAY_HOLD_MS +
-  CONVERSATION_TRANSITION_OVERLAY_FADE_MS;
-const CONVERSATION_TRANSITION_REDUCED_MOTION_QUERY =
-  "(prefers-reduced-motion: reduce)";
+const CONVERSATION_SCROLL_RESTORE_TIMEOUT_MS = 2_000;
 const CONVERSATION_TRANSITION_SKELETON_CLASS_NAME =
-  "conversation-transition-skeleton tw:flex tw:w-full tw:max-w-[760px] tw:flex-col tw:gap-5";
-const CONVERSATION_TRANSITION_SKELETON_ROW_CLASS_NAME =
-  "tw:h-16 tw:animate-pulse tw:rounded-xl tw:bg-[color-mix(in_srgb,var(--line-soft)_58%,transparent)]";
+  "conversation-transition-skeleton";
+const CONVERSATION_TRANSITION_SKELETON_BLOCK_CLASS_NAME =
+  "conversation-transition-skeleton-block";
+const CONVERSATION_TRANSITION_SKELETON_QUERY_BLOCK_CLASS_NAME =
+  "conversation-transition-skeleton-block is-query";
+const CONVERSATION_TRANSITION_SKELETON_RUN_BLOCK_CLASS_NAME =
+  "conversation-transition-skeleton-block is-run";
+const CONVERSATION_TRANSITION_SKELETON_CAPTION_CLASS_NAME =
+  "conversation-transition-skeleton-caption";
+const CONVERSATION_TRANSITION_SKELETON_LINE_CLASS_NAME =
+  "conversation-transition-skeleton-line";
+const CONVERSATION_TRANSITION_SKELETON_SMALL_LINE_CLASS_NAME =
+  "conversation-transition-skeleton-line is-small";
+const CONVERSATION_TRANSITION_SKELETON_QUERY_PILL_CLASS_NAME =
+  "conversation-transition-skeleton-query-pill";
+const CONVERSATION_TRANSITION_SKELETON_DOT_CLASS_NAME =
+  "conversation-transition-skeleton-dot";
+const CONVERSATION_TRANSITION_SKELETON_CARD_CLASS_NAME =
+  "conversation-transition-skeleton-card";
 const CONVERSATION_TRANSITION_ERROR_CLASS_NAME =
   "conversation-transition-error tw:flex tw:max-w-[420px] tw:flex-col tw:items-center tw:gap-3 tw:text-center";
 const TIMELINE_STACK_CLASS_NAME =
@@ -193,46 +206,13 @@ const TIMELINE_META_BUTTON_CLASS_NAME =
 const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
   "is-downvoted tw:bg-[color-mix(in_srgb,var(--accent-danger)_12%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--ink-1))]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
-  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[10px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 const TIMELINE_RUN_GROUP_CLASS_NAME =
   "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:before:absolute tw:before:bottom-0 tw:before:left-2 tw:before:top-0 tw:before:w-px tw:before:bg-line-soft tw:before:content-['']";
 const TIMELINE_RUN_ITEMS_CLASS_NAME =
   "timeline-run-items tw:flex tw:flex-col tw:gap-[12px]";
 const TIMELINE_RUN_TIME_CLASS_NAME =
-  "timeline-run-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[10px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
-const TIMELINE_TASK_GROUP_CLASS_NAME =
-  "timeline-task-group tw:flex tw:flex-col tw:gap-2";
-const TIMELINE_TASK_GROUP_HEADER_CLASS_NAME =
-  "timeline-task-group-header tw:group tw:cursor-pointer tw:appearance-none tw:py-[5px]";
-const TIMELINE_TASK_GROUP_HEADER_EXPANDED_CLASS_NAME = "is-expanded";
-const TIMELINE_TASK_GROUP_AGENT_CLASS_NAME =
-  "timeline-task-group-agent tw:inline-flex tw:max-w-[160px] tw:shrink-0 tw:items-center tw:gap-[5px] tw:min-w-0";
-const TIMELINE_TASK_GROUP_AGENT_AVATAR_CLASS_NAME =
-  "timeline-task-group-agent-avatar tw:shrink-0";
-const TIMELINE_TASK_GROUP_AGENT_NAME_CLASS_NAME =
-  "timeline-task-group-agent-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-semibold";
-const TIMELINE_TASK_GROUP_TITLE_CLASS_NAME =
-  "timeline-task-group-title tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-semibold";
-const TIMELINE_TASK_GROUP_STATUS_BASE_CLASS_NAME =
-  "timeline-task-group-status tw:h-[7px] tw:w-[7px] tw:shrink-0 tw:rounded-full tw:bg-[color-mix(in_srgb,var(--ink-muted)_84%,transparent)]";
-const TIMELINE_TASK_GROUP_STATUS_CLASS_BY_STATUS: Record<string, string> = {
-  running:
-    "tw:animate-[timeline-task-status-flash_1s_infinite] tw:bg-accent-electric",
-  completed: "tw:bg-accent-lime",
-  success: "tw:bg-accent-lime",
-  failed: "tw:bg-accent-danger",
-  error: "tw:bg-accent-danger",
-  canceled: "tw:bg-accent-warn",
-};
-const TIMELINE_TASK_GROUP_DURATION_CLASS_NAME =
-  "timeline-task-group-duration tw:shrink-0 tw:text-[11px] tw:leading-none tw:text-ink-muted";
-const TIMELINE_TASK_GROUP_ICON_CLASS_NAME =
-  "tw:shrink-0 tw:text-lg tw:opacity-0 tw:group-hover:opacity-100";
-const TIMELINE_TASK_GROUP_ICON_EXPANDED_CLASS_NAME = "tw:opacity-100";
-const TIMELINE_TASK_GROUP_ERROR_CLASS_NAME =
-  "timeline-task-group-error tw:ml-[34px] tw:break-words tw:text-xs tw:leading-[1.45] tw:text-[color-mix(in_srgb,var(--accent-danger)_82%,var(--ink-1))]";
-const TIMELINE_TASK_GROUP_BODY_CLASS_NAME =
-  "timeline-task-group-body tw:flex tw:flex-col tw:gap-2";
+  "timeline-run-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 
 export interface TimelineAgentOption {
   key: string;
@@ -251,41 +231,6 @@ function normalizeSearchText(value: unknown): string {
 
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
-}
-
-export function isDeriveChatActionDisabled(input: {
-  chatId?: unknown;
-  runId?: unknown;
-  streaming?: boolean;
-  activeAwaiting?: unknown;
-}): boolean {
-  return (
-    !String(input.chatId || "").trim() ||
-    !String(input.runId || "").trim() ||
-    input.streaming === true ||
-    Boolean(input.activeAwaiting)
-  );
-}
-
-export function dispatchDerivedChatNavigation(chatId: string): void {
-  const normalizedChatId = String(chatId || "").trim();
-  if (
-    !normalizedChatId ||
-    typeof window === "undefined" ||
-    typeof window.dispatchEvent !== "function"
-  ) {
-    return;
-  }
-
-  window.dispatchEvent(new CustomEvent("agent:refresh-chats"));
-  window.dispatchEvent(
-    new CustomEvent("agent:load-chat", {
-      detail: {
-        chatId: normalizedChatId,
-        focusComposerOnComplete: true,
-      },
-    }),
-  );
 }
 
 function buildQueryAnchorId(nodeId: string): string {
@@ -468,42 +413,6 @@ export function dispatchTimelineAgentSwitch(option: TimelineAgentOption): void {
   const event = new Event("agent:select-worker") as CustomEvent<typeof detail>;
   Object.defineProperty(event, "detail", { value: detail });
   window.dispatchEvent(event);
-}
-
-function formatTaskStatus(
-  status: string,
-  t: (key: string, params?: Record<string, unknown>) => string,
-): string {
-  switch (status) {
-    case "running":
-      return t("timeline.taskStatus.running");
-    case "completed":
-      return t("timeline.taskStatus.completed");
-    case "failed":
-      return t("timeline.taskStatus.failed");
-    case "canceled":
-      return t("timeline.taskStatus.canceled");
-    default:
-      return status || t("timeline.taskStatus.default");
-  }
-}
-
-function resolveTaskGroupAgent(
-  entry: Extract<TimelineRenderEntry, { kind: "task-group" }>,
-  agents: Agent[],
-  currentWorker: ReturnType<typeof resolveCurrentWorkerSummary>,
-): Agent | null {
-  const fallbackAgentKey =
-    currentWorker?.type === "agent" ? currentWorker.sourceId : "";
-  const agentKey = String(entry.subAgentKey || fallbackAgentKey || "").trim();
-  if (!agentKey) return null;
-
-  return (
-    agents.find((agent) => String(agent?.key || "").trim() === agentKey) || {
-      key: agentKey,
-      name: agentKey,
-    }
-  );
 }
 
 const RunElapsedTime: React.FC<{ startTimeMs: number | null }> = ({
@@ -777,6 +686,11 @@ function findConversationItemElement(
   return null;
 }
 
+function isConversationScrollerAtBottom(scroller: HTMLElement): boolean {
+  const maximumScrollTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+  return maximumScrollTop - scroller.scrollTop <= 1;
+}
+
 function ConversationTransitionOverlay({
   busy,
   error,
@@ -817,17 +731,91 @@ function ConversationTransitionOverlay({
           aria-hidden="true"
         >
           <div
-            className={`${CONVERSATION_TRANSITION_SKELETON_ROW_CLASS_NAME} tw:w-2/3`}
-          />
+            className={CONVERSATION_TRANSITION_SKELETON_QUERY_BLOCK_CLASS_NAME}
+          >
+            <div
+              className={CONVERSATION_TRANSITION_SKELETON_QUERY_PILL_CLASS_NAME}
+            />
+            <div
+              className={`${CONVERSATION_TRANSITION_SKELETON_SMALL_LINE_CLASS_NAME} tw:w-24 tw:mr-[10px]`}
+            />
+          </div>
+          <div className={CONVERSATION_TRANSITION_SKELETON_BLOCK_CLASS_NAME}>
+            <div
+              className={CONVERSATION_TRANSITION_SKELETON_CAPTION_CLASS_NAME}
+            >
+              <span
+                className={CONVERSATION_TRANSITION_SKELETON_DOT_CLASS_NAME}
+              />
+              <span
+                className={`${CONVERSATION_TRANSITION_SKELETON_LINE_CLASS_NAME} tw:w-20`}
+              />
+            </div>
+          </div>
           <div
-            className={`${CONVERSATION_TRANSITION_SKELETON_ROW_CLASS_NAME} tw:ml-auto tw:w-5/6`}
-          />
+            className={CONVERSATION_TRANSITION_SKELETON_RUN_BLOCK_CLASS_NAME}
+          >
+            <div className={CONVERSATION_TRANSITION_SKELETON_CARD_CLASS_NAME}>
+              <div
+                className={`${CONVERSATION_TRANSITION_SKELETON_SMALL_LINE_CLASS_NAME} tw:w-[38%]`}
+              />
+              <div
+                className={`${CONVERSATION_TRANSITION_SKELETON_SMALL_LINE_CLASS_NAME} tw:w-[56%]`}
+              />
+              <div
+                className={`${CONVERSATION_TRANSITION_SKELETON_SMALL_LINE_CLASS_NAME} tw:w-[48%]`}
+              />
+            </div>
+          </div>
+          <div className={CONVERSATION_TRANSITION_SKELETON_BLOCK_CLASS_NAME}>
+            <div
+              className={CONVERSATION_TRANSITION_SKELETON_CAPTION_CLASS_NAME}
+            >
+              <span
+                className={`${CONVERSATION_TRANSITION_SKELETON_DOT_CLASS_NAME} dot-blue`}
+              />
+              <span
+                className={`${CONVERSATION_TRANSITION_SKELETON_LINE_CLASS_NAME} tw:w-20`}
+              />
+            </div>
+          </div>
           <div
-            className={`${CONVERSATION_TRANSITION_SKELETON_ROW_CLASS_NAME} tw:w-3/4`}
-          />
+            className={CONVERSATION_TRANSITION_SKELETON_RUN_BLOCK_CLASS_NAME}
+          >
+            <div
+              className={`${CONVERSATION_TRANSITION_SKELETON_CARD_CLASS_NAME} tw:h-[70px]`}
+            />
+            <div
+              className={`${CONVERSATION_TRANSITION_SKELETON_CARD_CLASS_NAME} tw:h-[70px]`}
+            />
+          </div>
+
+          <div className={CONVERSATION_TRANSITION_SKELETON_BLOCK_CLASS_NAME}>
+            <div
+              className={CONVERSATION_TRANSITION_SKELETON_CAPTION_CLASS_NAME}
+            >
+              <span
+                className={`${CONVERSATION_TRANSITION_SKELETON_DOT_CLASS_NAME} dot-green`}
+              />
+              <span
+                className={`${CONVERSATION_TRANSITION_SKELETON_LINE_CLASS_NAME} tw:w-[70%]`}
+              />
+            </div>
+          </div>
+
           <div
-            className={`${CONVERSATION_TRANSITION_SKELETON_ROW_CLASS_NAME} tw:ml-auto tw:w-1/2`}
-          />
+            className={CONVERSATION_TRANSITION_SKELETON_RUN_BLOCK_CLASS_NAME}
+          >
+            <span
+              className={`${CONVERSATION_TRANSITION_SKELETON_LINE_CLASS_NAME} tw:w-[90%]`}
+            />
+            <span
+              className={`${CONVERSATION_TRANSITION_SKELETON_LINE_CLASS_NAME} tw:w-[80%]`}
+            />
+            <span
+              className={`${CONVERSATION_TRANSITION_SKELETON_LINE_CLASS_NAME} tw:w-[40%]`}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -836,6 +824,11 @@ function ConversationTransitionOverlay({
 
 interface ConversationStageProps {
   surfaceMode: ConversationSurfaceMode;
+  deriveChatAction: {
+    isDisabled: (runId: string) => boolean;
+    execute: (runId: string) => Promise<void>;
+  };
+  onFeedback: (runId: string, downvoted: boolean, comment?: string) => Promise<void>;
   expectedChatId?: string;
   showEmptyState?: boolean;
   onResendInNewChat?: (message: string) => void;
@@ -843,6 +836,8 @@ interface ConversationStageProps {
 
 export const ConversationStage: React.FC<ConversationStageProps> = ({
   surfaceMode,
+  deriveChatAction,
+  onFeedback,
   expectedChatId,
   showEmptyState = true,
   onResendInNewChat,
@@ -870,10 +865,19 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const [containerWidth, setContainerWidth] = useState(0);
   const isAtBottomRef = useRef(true);
   const restoringRef = useRef(false);
+  const restoreTargetModeRef = useRef<"anchor" | "bottom" | null>(null);
+  const restoreAtBottomObservedRef = useRef(false);
   const rangeRef = useRef<ListRange>({ startIndex: 0, endIndex: 0 });
   const saveTimerRef = useRef<number | null>(null);
-  const restoreTimeoutRef = useRef<number | null>(null);
-  const restoredTransitionSeqRef = useRef(0);
+  const restoredTransitionRef = useRef<{
+    seq: number;
+    targetChatId: string;
+  } | null>(null);
+  const restoreAttemptRef = useRef<{
+    seq: number;
+    targetChatId: string;
+    startedAt: number;
+  } | null>(null);
   const lastScrollRequestIdRef = useRef(
     state.conversationScrollRequest?.id || 0,
   );
@@ -907,6 +911,18 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       .map((id) => state.timelineNodes.get(id))
       .filter((node): node is NonNullable<typeof node> => Boolean(node));
   }, [state.timelineOrder, state.timelineNodes]);
+  const currentAgentKey =
+    currentWorker?.type === "agent"
+      ? String(currentWorker.sourceId || "").trim()
+      : "";
+  const hasRequiredSkills = useMemo(
+    () => timelineEntries.some((node) => Boolean(node.mustUseSkills?.length)),
+    [timelineEntries],
+  );
+  const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
+    enabled: Boolean(currentAgentKey && hasRequiredSkills),
+  });
+  const activeAgentSkills = skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;
   const displayItems = useMemo(() => {
     return buildTimelineDisplayItems(
       timelineEntries,
@@ -1004,221 +1020,20 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     [dataSignature, layoutSignature, state.chatId, surfaceMode],
   );
   const transition = state.chatTransition;
-  const transitionPending = Boolean(
-    transition &&
-    (transition.phase === "loading" ||
-      transition.phase === "applying" ||
-      transition.phase === "restoring"),
-  );
-  const normalizedExpectedChatId = String(expectedChatId || "").trim();
-  const routeTargetMismatch = Boolean(
-    normalizedExpectedChatId && normalizedExpectedChatId !== state.chatId,
-  );
-  const overlayTargetChatId = String(
-    transition?.targetChatId || normalizedExpectedChatId,
-  ).trim();
-  const liveQueryOwnsOverlayTarget = Boolean(
-    mainChatRuntime &&
-      overlayTargetChatId &&
-      isMainChatRuntimeObservedByLiveQuery(
-        mainChatRuntime,
-        overlayTargetChatId,
-      ),
-  );
-  const liveQueryTakesDisplayPriority = Boolean(
-    liveQueryOwnsOverlayTarget && transition?.kind !== "same-chat-reload",
-  );
-  const backgroundTransitionOwnsDisplayedChat = Boolean(
-    transition?.displayMode === "background" &&
-      transition.targetChatId &&
-      transition.targetChatId === state.chatId &&
-      (!normalizedExpectedChatId ||
-        transition.targetChatId === normalizedExpectedChatId),
-  );
-  const transitionError = transition?.phase === "error" ? transition.error : "";
-  const transitionOverlayVisible =
-    Boolean(transitionError) ||
-    (!liveQueryTakesDisplayPriority &&
-      !backgroundTransitionOwnsDisplayedChat &&
-      (routeTargetMismatch || transitionPending));
-  const transitionOverlayIdentity = transition
-    ? `${transition.seq}:${transition.targetChatId}`
-    : `route:${normalizedExpectedChatId}`;
-  const transitionOverlayImmediateDismiss = Boolean(
-    !transitionError &&
-      (liveQueryTakesDisplayPriority ||
-        backgroundTransitionOwnsDisplayedChat ||
-        !overlayTargetChatId),
-  );
-  const [transitionOverlayPresentation, setTransitionOverlayPresentation] =
-    useState<{ identity: string; phase: "visible" | "exiting" } | null>(
-      null,
-    );
-  const transitionOverlayIdentityRef = useRef("");
-  const transitionOverlayShownAtRef = useRef(0);
-  const transitionOverlayHoldTimerRef = useRef<number | null>(null);
-  const transitionOverlayUnmountTimerRef = useRef<number | null>(null);
-  const clearTransitionOverlayTimers = useCallback(() => {
-    if (transitionOverlayHoldTimerRef.current !== null) {
-      window.clearTimeout(transitionOverlayHoldTimerRef.current);
-      transitionOverlayHoldTimerRef.current = null;
-    }
-    if (transitionOverlayUnmountTimerRef.current !== null) {
-      window.clearTimeout(transitionOverlayUnmountTimerRef.current);
-      transitionOverlayUnmountTimerRef.current = null;
-    }
-  }, []);
-  const finishTransitionOverlayPresentation = useCallback(
-    (identity: string) => {
-      if (transitionOverlayIdentityRef.current !== identity) return;
-      clearTransitionOverlayTimers();
-      transitionOverlayIdentityRef.current = "";
-      transitionOverlayShownAtRef.current = 0;
-      setTransitionOverlayPresentation((current) =>
-        current?.identity === identity ? null : current,
-      );
-    },
-    [clearTransitionOverlayTimers],
-  );
-  const beginTransitionOverlayExit = useCallback(
-    (identity: string, reducedMotion: boolean) => {
-      if (transitionOverlayIdentityRef.current !== identity) return;
-      if (transitionOverlayHoldTimerRef.current !== null) {
-        window.clearTimeout(transitionOverlayHoldTimerRef.current);
-        transitionOverlayHoldTimerRef.current = null;
-      }
-      if (transitionOverlayUnmountTimerRef.current !== null) {
-        window.clearTimeout(transitionOverlayUnmountTimerRef.current);
-        transitionOverlayUnmountTimerRef.current = null;
-      }
-      if (reducedMotion) {
-        finishTransitionOverlayPresentation(identity);
-        return;
-      }
-      setTransitionOverlayPresentation((current) =>
-        current?.identity === identity
-          ? { ...current, phase: "exiting" }
-          : current,
-      );
-      transitionOverlayUnmountTimerRef.current = window.setTimeout(
-        () => finishTransitionOverlayPresentation(identity),
-        CONVERSATION_TRANSITION_OVERLAY_FADE_MS,
-      );
-    },
-    [finishTransitionOverlayPresentation],
-  );
-
-  useIsomorphicLayoutEffect(() => {
-    if (transitionOverlayImmediateDismiss) {
-      const activeIdentity = transitionOverlayIdentityRef.current;
-      if (activeIdentity) {
-        finishTransitionOverlayPresentation(activeIdentity);
-      }
-      return;
-    }
-
-    if (transitionOverlayVisible) {
-      clearTransitionOverlayTimers();
-      if (
-        transitionOverlayIdentityRef.current !== transitionOverlayIdentity
-      ) {
-        transitionOverlayIdentityRef.current = transitionOverlayIdentity;
-        transitionOverlayShownAtRef.current = window.performance.now();
-      }
-      setTransitionOverlayPresentation((current) =>
-        current?.identity === transitionOverlayIdentity &&
-        current.phase === "visible"
-          ? current
-          : { identity: transitionOverlayIdentity, phase: "visible" },
-      );
-      return;
-    }
-
-    const activeIdentity = transitionOverlayIdentityRef.current;
-    if (!activeIdentity) return;
-    if (
-      transitionOverlayHoldTimerRef.current !== null ||
-      transitionOverlayUnmountTimerRef.current !== null
-    ) {
-      return;
-    }
-    const reducedMotion = Boolean(
-      window.matchMedia?.(CONVERSATION_TRANSITION_REDUCED_MOTION_QUERY).matches,
-    );
-    const holdMs = reducedMotion
-      ? CONVERSATION_TRANSITION_OVERLAY_REDUCED_MOTION_HOLD_MS
-      : CONVERSATION_TRANSITION_OVERLAY_HOLD_MS;
-    const elapsedMs = Math.max(
-      0,
-      window.performance.now() - transitionOverlayShownAtRef.current,
-    );
-    const remainingHoldMs = Math.max(0, holdMs - elapsedMs);
-    if (remainingHoldMs === 0) {
-      beginTransitionOverlayExit(activeIdentity, reducedMotion);
-      return;
-    }
-    transitionOverlayHoldTimerRef.current = window.setTimeout(
-      () => beginTransitionOverlayExit(activeIdentity, reducedMotion),
-      remainingHoldMs,
-    );
-  }, [
-    beginTransitionOverlayExit,
-    clearTransitionOverlayTimers,
-    finishTransitionOverlayPresentation,
-    transitionOverlayIdentity,
-    transitionOverlayImmediateDismiss,
-    transitionOverlayVisible,
-  ]);
-
-  useEffect(
-    () => () => {
-      clearTransitionOverlayTimers();
-    },
-    [clearTransitionOverlayTimers],
-  );
-
-  const handleTransitionOverlayTransitionEnd = useCallback(
-    (event: React.TransitionEvent<HTMLDivElement>) => {
-      if (
-        event.target !== event.currentTarget ||
-        event.propertyName !== "opacity" ||
-        transitionOverlayPresentation?.phase !== "exiting"
-      ) {
-        return;
-      }
-      finishTransitionOverlayPresentation(
-        transitionOverlayPresentation.identity,
-      );
-    },
-    [finishTransitionOverlayPresentation, transitionOverlayPresentation],
-  );
-  const restorationReady =
-    liveQueryTakesDisplayPriority ||
-    backgroundTransitionOwnsDisplayedChat ||
-    (!transitionOverlayVisible &&
-      (!transition ||
-        transition.phase === "ready" ||
-        transition.targetChatId !== state.chatId));
-  useEffect(() => {
-    if (
-      !liveQueryTakesDisplayPriority ||
-      !transition ||
-      transition.kind === "same-chat-reload" ||
-      transition.targetChatId !== overlayTargetChatId
-    ) {
-      return;
-    }
-    // A route-driven history transaction can race with canonical new-Chat
-    // promotion. Once the original query owns the target, cancel the stale
-    // transaction so it cannot keep Composer interactions blocked or apply a
-    // late history response over live deltas.
-    dispatch({ type: "CLEAR_CHAT_TRANSITION" });
-  }, [
-    dispatch,
-    liveQueryTakesDisplayPriority,
-    overlayTargetChatId,
-    transition,
-  ]);
+  const sharedPresentation = useConversationSurface();
+  // Local fallback for independently mounted timelines; shells share one clock.
+  const targetChatId = expectedChatId || transition?.targetChatId || state.chatId;
+  const matchingTransition = transition?.targetChatId === targetChatId ? transition : null;
+  const mismatch = Boolean(targetChatId && targetChatId !== state.chatId);
+  const background = !mismatch && matchingTransition?.displayMode === "background";
+  const localPresentation = useConversationPresentationClock({
+    targetChatId, identity: `${targetChatId}:${matchingTransition?.seq || "route"}`,
+    pending: mismatch || (!background && Boolean(matchingTransition && ["loading", "applying", "restoring"].includes(matchingTransition.phase))),
+    error: matchingTransition?.phase === "error" ? matchingTransition.error : "",
+    background,
+  }, !sharedPresentation);
+  const presentation = sharedPresentation || localPresentation;
+  const restorationReady = presentation.restorationReady;
   const matchingSnapshot = Boolean(
     currentBookmark?.snapshot &&
     currentBookmark.dataSignature === dataSignature &&
@@ -1262,48 +1077,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       }
     },
     [flashActionStatus, t],
-  );
-
-  const handleDownvote = useCallback(
-    async (runId: string, nextDownvoted: boolean) => {
-      const chatId = String(state.chatId || "").trim();
-      const normalizedRunId = String(runId || "").trim();
-      if (!chatId || !normalizedRunId) {
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: "[feedback error] missing chatId or runId",
-        });
-        return;
-      }
-      dispatch({
-        type: "SET_RUN_DOWNVOTED",
-        runKey: normalizedRunId,
-        downvoted: nextDownvoted,
-      });
-      try {
-        await submitFeedback({
-          chatId,
-          runId: normalizedRunId,
-          type: nextDownvoted ? "thumbs_down" : "clear",
-        });
-        message.success(
-          nextDownvoted
-            ? t("timeline.feedback.downvoted")
-            : t("timeline.feedback.cleared"),
-        );
-      } catch (error) {
-        dispatch({
-          type: "SET_RUN_DOWNVOTED",
-          runKey: normalizedRunId,
-          downvoted: !nextDownvoted,
-        });
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[feedback error] ${(error as Error).message}`,
-        });
-      }
-    },
-    [dispatch, state.chatId, t],
   );
 
   const handleResend = useCallback(
@@ -1351,40 +1124,16 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const handleDeriveChat = useCallback(
     async (runId: string) => {
-      const sourceChatId = String(state.chatId || "").trim();
-      const sourceRunId = String(runId || "").trim();
-      if (
-        isDeriveChatActionDisabled({
-          chatId: sourceChatId,
-          runId: sourceRunId,
-          streaming: isMainChatRunning,
-          activeAwaiting: state.activeAwaiting,
-        })
-      ) {
-        return;
-      }
+      if (deriveChatAction.isDisabled(runId)) return;
 
-      setDerivingRunId(sourceRunId);
+      setDerivingRunId(runId);
       try {
-        const response = await deriveChat({ sourceChatId, sourceRunId });
-        const derivedChatId = String(response.data?.chatId || "").trim();
-        if (!derivedChatId) {
-          throw new Error("derive response missing chatId");
-        }
-        dispatchDerivedChatNavigation(derivedChatId);
-        message.success(t("timeline.run.deriveChatSuccess"));
-      } catch (error) {
-        const errorMessage = (error as Error)?.message || String(error);
-        message.error(t("timeline.run.deriveChatFailed"));
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[deriveChat error] ${errorMessage}`,
-        });
+        await deriveChatAction.execute(runId);
       } finally {
-        setDerivingRunId((current) => (current === sourceRunId ? "" : current));
+        setDerivingRunId((current) => (current === runId ? "" : current));
       }
     },
-    [dispatch, isMainChatRunning, state.activeAwaiting, state.chatId, t],
+    [deriveChatAction],
   );
 
   const toggleTaskGroup = useCallback((key: string) => {
@@ -1402,109 +1151,24 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   }, []);
 
   const renderEntry = useCallback(
-    (entry: TimelineRenderEntry) => {
-      if (entry.kind === "node") {
-        if (entry.node.kind === "agent-group") return null;
-        return <TimelineRow key={entry.key} node={entry.node} />;
-      }
-      if (entry.kind === "task-group") {
-        const expanded = Boolean(expandedTaskGroups[entry.key]);
-        const taskDuration = formatResponseDuration(entry.durationMs, t);
-        const statusText = formatTaskStatus(entry.status, t);
-        const taskAgent = resolveTaskGroupAgent(
-          entry,
-          state.agents,
-          currentWorker,
-        );
-        return (
-          <section key={entry.key} className={TIMELINE_TASK_GROUP_CLASS_NAME}>
-            <Flex
-              className={[
-                TIMELINE_TASK_GROUP_HEADER_CLASS_NAME,
-                expanded ? TIMELINE_TASK_GROUP_HEADER_EXPANDED_CLASS_NAME : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              align="center"
-              gap={8}
-              aria-expanded={expanded}
-              onClick={() => toggleTaskGroup(entry.key)}
-            >
-              {taskAgent && (
-                <span className={TIMELINE_TASK_GROUP_AGENT_CLASS_NAME}>
-                  <AgentIcon
-                    icon={taskAgent.icon}
-                    type="agent"
-                    props={{
-                      icon: {
-                        className: TIMELINE_TASK_GROUP_AGENT_AVATAR_CLASS_NAME,
-                        width: 20,
-                        height: 20,
-                      },
-                      avatar: {
-                        className: TIMELINE_TASK_GROUP_AGENT_AVATAR_CLASS_NAME,
-                        size: 20,
-                      },
-                    }}
-                  />
-                  <span className={TIMELINE_TASK_GROUP_AGENT_NAME_CLASS_NAME}>
-                    {taskAgent.name || taskAgent.key}
-                  </span>
-                </span>
-              )}
-              <span className={TIMELINE_TASK_GROUP_TITLE_CLASS_NAME}>
-                {entry.taskName || entry.taskId}
-              </span>
-              <span
-                className={[
-                  TIMELINE_TASK_GROUP_STATUS_BASE_CLASS_NAME,
-                  TIMELINE_TASK_GROUP_STATUS_CLASS_BY_STATUS[
-                    entry.status || "unknown"
-                  ] || "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                aria-label={statusText}
-                title={statusText}
-              />
-              {taskDuration && (
-                <span className={TIMELINE_TASK_GROUP_DURATION_CLASS_NAME}>
-                  {taskDuration}
-                </span>
-              )}
-              <MaterialIcon
-                className={[
-                  TIMELINE_TASK_GROUP_ICON_CLASS_NAME,
-                  expanded ? TIMELINE_TASK_GROUP_ICON_EXPANDED_CLASS_NAME : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                name={expanded ? "expand_more" : "chevron_right"}
-              />
-            </Flex>
-            {entry.error && (
-              <div className={TIMELINE_TASK_GROUP_ERROR_CLASS_NAME}>
-                {entry.error}
-              </div>
-            )}
-            {expanded && (
-              <div className={TIMELINE_TASK_GROUP_BODY_CLASS_NAME}>
-                {entry.renderEntries.map((childEntry) =>
-                  renderEntry(childEntry),
-                )}
-              </div>
-            )}
-          </section>
-        );
-      }
-      return <TimelineRow key={entry.key} toolGroup={entry} />;
-    },
+    (entry: TimelineRenderEntry) => (
+      <TimelineRenderEntryView
+        key={entry.key}
+        entry={entry}
+        agents={state.agents}
+        skills={activeAgentSkills}
+        fallbackAgentKey={
+          currentWorker?.type === "agent" ? currentWorker.sourceId : ""
+        }
+        expandedTaskGroups={expandedTaskGroups}
+        onToggleTaskGroup={toggleTaskGroup}
+      />
+    ),
     [
       currentWorker,
+      activeAgentSkills,
       expandedTaskGroups,
-      isMainChatRunning,
       state.agents,
-      t,
       toggleTaskGroup,
     ],
   );
@@ -1602,7 +1266,12 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   }, []);
 
   const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
-    if (restoringRef.current) return;
+    if (restoringRef.current) {
+      if (restoreTargetModeRef.current === "bottom") {
+        restoreAtBottomObservedRef.current = atBottom;
+      }
+      return;
+    }
     isAtBottomRef.current = atBottom;
     setIsAtBottom(atBottom);
   }, []);
@@ -1694,45 +1363,135 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       !transition ||
       transition.phase !== "restoring" ||
       transition.targetChatId !== state.chatId ||
-      restoredTransitionSeqRef.current === transition.seq
+      (restoredTransitionRef.current?.seq === transition.seq &&
+        restoredTransitionRef.current.targetChatId === transition.targetChatId)
     ) {
       return;
     }
 
-    restoredTransitionSeqRef.current = transition.seq;
     restoringRef.current = true;
+    const existingAttempt = restoreAttemptRef.current;
+    const restoreAttempt =
+      existingAttempt?.seq === transition.seq &&
+      existingAttempt.targetChatId === transition.targetChatId
+        ? existingAttempt
+        : {
+            seq: transition.seq,
+            targetChatId: transition.targetChatId,
+            startedAt: Date.now(),
+          };
+    restoreAttemptRef.current = restoreAttempt;
     const bookmark = currentBookmark;
-    const shouldRestoreBottom = bookmark?.atBottom ?? true;
+    const bookmarkMatchesCurrentTimeline = Boolean(
+      bookmark &&
+        bookmark.dataSignature === dataSignature &&
+        bookmark.layoutSignature === layoutSignature,
+    );
+    const restorableBookmark = bookmarkMatchesCurrentTimeline ? bookmark : null;
+    const resolvedBookmarkIndex = restorableBookmark && !restorableBookmark.atBottom
+      ? resolveConversationRestoreIndex(restorableBookmark, virtualItemKeys)
+      : -1;
+    const shouldRestoreBottom = Boolean(
+      !restorableBookmark ||
+        restorableBookmark.atBottom ||
+        resolvedBookmarkIndex < 0,
+    );
     isAtBottomRef.current = shouldRestoreBottom;
     setIsAtBottom(shouldRestoreBottom);
+    restoreTargetModeRef.current = shouldRestoreBottom ? "bottom" : "anchor";
+    restoreAtBottomObservedRef.current = false;
     let cancelled = false;
     let frameId = 0;
     let stableFrameCount = 0;
     let issuedIndexScroll = false;
-    const targetIndex = bookmark
-      ? resolveConversationRestoreIndex(bookmark, virtualItemKeys)
-      : virtualItemKeys.length - 1;
+    const targetIndex = shouldRestoreBottom
+      ? virtualItemKeys.length - 1
+      : resolvedBookmarkIndex;
     const targetItemKey = targetIndex >= 0 ? virtualItemKeys[targetIndex] : "";
+    const restoreStartedAt = restoreAttempt.startedAt;
+    const fallbackReason = !bookmark
+      ? "missing-bookmark"
+      : !bookmarkMatchesCurrentTimeline
+        ? "signature-mismatch"
+        : !bookmark.atBottom && resolvedBookmarkIndex < 0
+          ? "unresolved-anchor"
+          : "";
+    dispatch({
+      type: "APPEND_DEBUG",
+      line: `[chat-scroll-restore-start] chatId=${transition.targetChatId} transitionSeq=${transition.seq} mode=${shouldRestoreBottom ? "bottom" : "anchor"} targetIndex=${targetIndex} targetKey=${targetItemKey || "none"} targetOffset=${restorableBookmark?.anchorOffset || 0}`,
+    });
+    if (fallbackReason) {
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[chat-scroll-restore-fallback-bottom] chatId=${transition.targetChatId} transitionSeq=${transition.seq} reason=${fallbackReason}`,
+      });
+    }
 
     const isStillCurrent = () => {
       const latest = appContext?.stateRef.current.chatTransition;
       return Boolean(
         latest &&
         latest.seq === transition.seq &&
-        latest.targetChatId === transition.targetChatId,
+        latest.targetChatId === transition.targetChatId &&
+        latest.phase === "restoring",
       );
     };
     if (!isStillCurrent()) {
       restoringRef.current = false;
+      restoreTargetModeRef.current = null;
+      restoreAtBottomObservedRef.current = false;
       return;
     }
-    const finish = () => {
-      if (cancelled || !isStillCurrent()) return;
-      if (restoreTimeoutRef.current !== null) {
-        window.clearTimeout(restoreTimeoutRef.current);
-        restoreTimeoutRef.current = null;
+    let timeoutId: number | null = null;
+    let completed = false;
+    const finish = (reason: "empty" | "stable" | "timeout") => {
+      if (cancelled || completed || !isStillCurrent()) return;
+      completed = true;
+      restoredTransitionRef.current = {
+        seq: transition.seq,
+        targetChatId: transition.targetChatId,
+      };
+      if (
+        restoreAttemptRef.current?.seq === transition.seq &&
+        restoreAttemptRef.current.targetChatId === transition.targetChatId
+      ) {
+        restoreAttemptRef.current = null;
+      }
+      window.cancelAnimationFrame(frameId);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
       }
       restoringRef.current = false;
+      restoreTargetModeRef.current = null;
+      restoreAtBottomObservedRef.current = false;
+      const scroller = scrollerRef.current;
+      const elapsedMs = Math.max(0, Date.now() - restoreStartedAt);
+      if (reason === "timeout") {
+        const scrollTop = scroller?.scrollTop || 0;
+        const remainingErrorPx = shouldRestoreBottom && scroller
+          ? Math.max(0, scroller.scrollHeight - scroller.clientHeight - scrollTop)
+          : (() => {
+              const element =
+                targetItemKey && scroller
+                  ? findConversationItemElement(scroller, targetItemKey)
+                  : null;
+              if (!element || !scroller) return "unknown";
+              return Math.abs(
+                element.getBoundingClientRect().top -
+                  scroller.getBoundingClientRect().top -
+                  (restorableBookmark?.anchorOffset || 0),
+              );
+            })();
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[chat-scroll-restore-timeout] chatId=${transition.targetChatId} transitionSeq=${transition.seq} mode=${shouldRestoreBottom ? "bottom" : "anchor"} targetIndex=${targetIndex} targetKey=${targetItemKey || "none"} scrollTop=${scrollTop} remainingErrorPx=${remainingErrorPx} elapsedMs=${elapsedMs}`,
+        });
+      }
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[chat-scroll-restore-ready] chatId=${transition.targetChatId} transitionSeq=${transition.seq} mode=${shouldRestoreBottom ? "bottom" : "anchor"} targetIndex=${targetIndex} targetKey=${targetItemKey || "none"} targetOffset=${restorableBookmark?.anchorOffset || 0} scrollTop=${scroller?.scrollTop || 0} elapsedMs=${elapsedMs}`,
+      });
       dispatch({
         type: "ADVANCE_CHAT_TRANSITION",
         seq: transition.seq,
@@ -1748,7 +1507,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     const settle = () => {
       if (cancelled || !isStillCurrent()) return;
       if (virtualItemKeys.length === 0) {
-        finish();
+        finish("empty");
         return;
       }
       if (shouldRestoreBottom) {
@@ -1760,7 +1519,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
             align: "end",
           });
         }
-        stableFrameCount += 1;
+        const scroller = scrollerRef.current;
+        const bottomReached = restoreAtBottomObservedRef.current ||
+          Boolean(scroller && isConversationScrollerAtBottom(scroller));
+        stableFrameCount = bottomReached ? stableFrameCount + 1 : 0;
       } else {
         const scroller = scrollerRef.current;
         const element =
@@ -1781,7 +1543,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           const delta =
             element.getBoundingClientRect().top -
             scroller.getBoundingClientRect().top -
-            (bookmark?.anchorOffset || 0);
+            (restorableBookmark?.anchorOffset || 0);
           if (Math.abs(delta) <= 1) {
             stableFrameCount += 1;
           } else {
@@ -1794,7 +1556,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         }
       }
       if (stableFrameCount >= 2) {
-        finish();
+        finish("stable");
         return;
       }
       frameId = window.requestAnimationFrame(settle);
@@ -1808,21 +1570,30 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         align: "start",
       });
     }
-    restoreTimeoutRef.current = window.setTimeout(finish, 800);
+    const timeoutDelayMs = Math.max(
+      0,
+      CONVERSATION_SCROLL_RESTORE_TIMEOUT_MS -
+        Math.max(0, Date.now() - restoreStartedAt),
+    );
+    timeoutId = window.setTimeout(() => finish("timeout"), timeoutDelayMs);
     frameId = window.requestAnimationFrame(settle);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(frameId);
-      if (restoreTimeoutRef.current !== null) {
-        window.clearTimeout(restoreTimeoutRef.current);
-        restoreTimeoutRef.current = null;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
       }
       restoringRef.current = false;
+      restoreTargetModeRef.current = null;
+      restoreAtBottomObservedRef.current = false;
     };
   }, [
     appContext?.stateRef,
     currentBookmark,
+    dataSignature,
     dispatch,
+    layoutSignature,
     matchingSnapshot,
     state.chatId,
     transition,
@@ -1835,9 +1606,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       statusTimerRef.current.clear();
       if (saveTimerRef.current !== null) {
         window.clearTimeout(saveTimerRef.current);
-      }
-      if (restoreTimeoutRef.current !== null) {
-        window.clearTimeout(restoreTimeoutRef.current);
       }
     };
   }, []);
@@ -1912,17 +1680,28 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           onClick={handleScrollToBottomClick}
         >
           {running ? (
-            <DotLoading color="primary" height={15} />
+            <DotLoading
+              color="primary"
+              height={15}
+              ariaLabel={t("leftSidebar.loading")}
+            />
           ) : (
             <MaterialIcon name="arrow_downward" />
           )}
         </UiButton>
       </Tooltip>
     );
-  }, [isAtBottom, isMainChatRunning, runStartedAt, state.streaming]);
+  }, [isAtBottom, isMainChatRunning, runStartedAt, state.streaming, t]);
 
   return (
     <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}>
+      <div
+        className="tw:absolute tw:inset-0 tw:flex tw:flex-col"
+        data-conversation-content="timeline"
+        aria-hidden={presentation.blocked || undefined}
+        {...(presentation.blocked ? { inert: "" } : {})}
+        style={{ visibility: presentation.blocked ? "hidden" : undefined }}
+      >
       {queryAnchorItems.length > 0 && queryAnchorsEnabled && (
         <nav
           ref={anchorRef}
@@ -2037,15 +1816,16 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
             !restoringRef.current &&
             isAtBottomRef.current &&
             atBottom
-              ? "smooth"
+              ? "auto"
               : false
           }
-          atBottomThreshold={50}
+          atBottomThreshold={200}
           atBottomStateChange={handleAtBottomStateChange}
           rangeChanged={handleRangeChanged}
           isScrolling={handleIsScrolling}
           className={VIRTUOSO_CLASS_NAME}
           id="messages"
+          data-desktop-workspace-arrow-keys="allow"
           components={{
             Footer,
             Item: ConversationVirtualItem,
@@ -2067,6 +1847,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                 >
                   <TimelineRow
                     node={item.node}
+                    skills={activeAgentSkills}
                     metaNode={
                       <div className={TIMELINE_META_ROW_CLASS_NAME}>
                         <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
@@ -2159,12 +1940,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
               );
               const runCopyStatus =
                 actionStatus[runCopyKey] || t("timeline.toolPill.copy.action");
-              const deriveChatDisabled = isDeriveChatActionDisabled({
-                chatId: state.chatId,
-                runId,
-                streaming: isMainChatRunning,
-                activeAwaiting: state.activeAwaiting,
-              });
+              const deriveChatDisabled = deriveChatAction.isDisabled(runId);
               const deriveChatTitle = t("timeline.run.deriveChat");
 
               const lastContentNode = findLastRunContentNode(item);
@@ -2252,7 +2028,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             title={t("timeline.feedback.clearDownvote")}
                             aria-label={t("timeline.feedback.clearDownvote")}
                             disabled={!runId}
-                            onClick={() => handleDownvote(runId, false)}
+                            onClick={() => onFeedback(runId, false)}
                           >
                             <MaterialIcon name="thumb_down" />
                           </UiButton>
@@ -2262,8 +2038,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             trigger={["click"]}
                             content={
                               <FeedbackModal
-                                onFinish={() => {
-                                  handleDownvote(runId, true);
+                                onFinish={({ reason }) => {
+                                  void onFeedback(runId, true, reason);
                                 }}
                               />
                             }
@@ -2305,7 +2081,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           }
                         >
                           {time.short}
-                          {responseDuration ? ` · ${responseDuration}` : ""}
+                          {responseDuration
+                            ? ` · ${t("timeline.run.duration", { duration: responseDuration })}`
+                            : ""}
                         </div>
                       )}
                     </div>
@@ -2317,16 +2095,17 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           }}
         />
       )}
-      {transitionOverlayPresentation ? (
+      </div>
+      {presentation.blocked ? (
         <ConversationTransitionOverlay
-          busy={Boolean(transitionOverlayVisible && !transitionError)}
-          error={transitionError}
-          phase={transitionOverlayPresentation.phase}
+          busy={presentation.busy}
+          error={presentation.error}
+          phase={presentation.phase}
           retryLabel={t("surface.retry")}
-          onTransitionEnd={handleTransitionOverlayTransitionEnd}
+          onTransitionEnd={presentation.onTransitionEnd}
           onRetry={() => {
             const targetChatId = String(
-              transition?.targetChatId || normalizedExpectedChatId,
+              presentation.targetChatId,
             ).trim();
             if (!targetChatId) return;
             window.dispatchEvent(
@@ -2346,7 +2125,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 };
 
 const FeedbackModal: React.FC<{
-  onFinish: (values: any) => void;
+  onFinish: (values: { reason?: string }) => void;
 }> = (props) => {
   const { onFinish } = props;
   const { t } = useI18n();

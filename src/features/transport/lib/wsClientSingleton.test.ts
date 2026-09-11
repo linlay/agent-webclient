@@ -165,7 +165,7 @@ describe("wsClientSingleton", () => {
 		const frame = {
 			frame: "push",
 			type: "catalog.updated",
-			data: { reason: "mcp-servers", updatedAt: 1786000000000 },
+			data: { reason: "connectors", updatedAt: 1786000000000 },
 		};
 		options.onPush?.(frame);
 

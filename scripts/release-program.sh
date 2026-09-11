@@ -4,10 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DESKTOP_CONTRACT_CHECKER="$REPO_ROOT/scripts/check-agent-webclient-contract.js"
-CONVERSATION_EXPORT_WEBPACK_CONFIG="$REPO_ROOT/webpack.export.config.js"
-CONVERSATION_EXPORT_BUILDER="$REPO_ROOT/scripts/build-conversation-export-template.js"
-CONVERSATION_EXPORT_CHECKER="$REPO_ROOT/scripts/check-conversation-export-template.js"
-CONVERSATION_EXPORT_CDN_ASSETS="$REPO_ROOT/scripts/conversation-export-cdn-assets.json"
+FEATURE_BOUNDARY_CHECKER="$REPO_ROOT/scripts/check-feature-boundaries.js"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/release-common.sh"
@@ -25,11 +22,13 @@ require_file "$REPO_ROOT/scripts/release-assets/program/windows/start.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/stop.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1"
 require_file "$DESKTOP_CONTRACT_CHECKER"
-require_file "$CONVERSATION_EXPORT_WEBPACK_CONFIG"
-require_file "$CONVERSATION_EXPORT_BUILDER"
-require_file "$CONVERSATION_EXPORT_CHECKER"
-require_file "$CONVERSATION_EXPORT_CDN_ASSETS"
+require_file "$FEATURE_BOUNDARY_CHECKER"
 require_file "$REPO_ROOT/package.json"
+require_file "$REPO_ROOT/webpack.config.js"
+require_file "$REPO_ROOT/tsconfig.json"
+require_file "$REPO_ROOT/postcss.config.js"
+[[ -d "$REPO_ROOT/src" ]] || die "required release input directory is missing: src"
+[[ -d "$REPO_ROOT/public" ]] || die "required release input directory is missing: public"
 
 cd "$REPO_ROOT"
 
@@ -64,15 +63,12 @@ prepare_build_root() {
   cp "$REPO_ROOT/package.json" "$BUILD_ROOT/package.json"
   copy_file_if_exists "$REPO_ROOT/package-lock.json" "$BUILD_ROOT/package-lock.json"
   cp "$REPO_ROOT/webpack.config.js" "$BUILD_ROOT/webpack.config.js"
-  cp "$CONVERSATION_EXPORT_WEBPACK_CONFIG" "$BUILD_ROOT/webpack.export.config.js"
   cp "$REPO_ROOT/tsconfig.json" "$BUILD_ROOT/tsconfig.json"
   cp "$REPO_ROOT/postcss.config.js" "$BUILD_ROOT/postcss.config.js"
   cp "$REPO_ROOT/.env.example" "$BUILD_ROOT/.env.example"
   copy_file_if_exists "$REPO_ROOT/.env" "$BUILD_ROOT/.env"
   cp "$DESKTOP_CONTRACT_CHECKER" "$BUILD_ROOT/scripts/check-agent-webclient-contract.js"
-  cp "$CONVERSATION_EXPORT_BUILDER" "$BUILD_ROOT/scripts/build-conversation-export-template.js"
-  cp "$CONVERSATION_EXPORT_CHECKER" "$BUILD_ROOT/scripts/check-conversation-export-template.js"
-  cp "$CONVERSATION_EXPORT_CDN_ASSETS" "$BUILD_ROOT/scripts/conversation-export-cdn-assets.json"
+  cp "$FEATURE_BOUNDARY_CHECKER" "$BUILD_ROOT/scripts/check-feature-boundaries.js"
 
   if [[ ! -f "$BUILD_ROOT/.env" ]]; then
     cp "$BUILD_ROOT/.env.example" "$BUILD_ROOT/.env"
@@ -102,8 +98,6 @@ build_frontend_dist() {
     npm run build
   )
   require_file "$BUILD_ROOT/dist/index.html"
-  require_file "$BUILD_ROOT/dist/export/conversation.template.html"
-  require_file "$BUILD_ROOT/dist/export/conversation-assets.json"
 }
 
 build_program_bundle() {
@@ -119,6 +113,7 @@ build_program_bundle() {
 
   archive_format="$(archive_format_for_os "$target_os")"
   bundle_archive="$RELEASE_DIR/$(program_bundle_filename "$VERSION" "$target_os" "$target_arch" "$archive_format")"
+  [[ ! -e "$bundle_archive" ]] || die "release already exists: $bundle_archive; choose a new VERSION"
 
   echo "[release] program VERSION=$VERSION TARGET_OS=$target_os ARCH=$target_arch"
 
@@ -135,8 +130,6 @@ build_program_bundle() {
 
   echo "[release] assembling program bundle for $target_os..."
   cp -R "$BUILD_ROOT/dist/." "$frontend_dir/dist/"
-  rm -rf "$frontend_dir/dist/export/assets"
-  rm -f "$frontend_dir/dist/export/conversation-assets.json"
   cp "$REPO_ROOT/.env.example" "$bundle_root/.env.example"
   if [[ "$target_os" == "windows" ]]; then
     cp "$REPO_ROOT/scripts/release-assets/program/windows/deploy.ps1" "$bundle_root/deploy.ps1"
@@ -162,6 +155,12 @@ build_program_bundle() {
 
   echo "[release] done: $bundle_archive"
 }
+
+while read -r target_os target_arch; do
+  [[ -n "$target_os" ]] || continue
+  target_archive="$RELEASE_DIR/$(program_bundle_filename "$VERSION" "$target_os" "$target_arch" "$(archive_format_for_os "$target_os")")"
+  [[ ! -e "$target_archive" ]] || die "release already exists: $target_archive; choose a new VERSION"
+done < <(parse_program_target_matrix)
 
 prepare_build_root
 install_build_dependencies

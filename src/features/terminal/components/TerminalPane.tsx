@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import type { AgentEvent } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import {
   reportTerminalTeardownError,
   terminalErrorMessage,
@@ -13,6 +13,7 @@ import type { TerminalAvailability } from "@/features/terminal/lib/terminalWorks
 import { notifyTerminalActivityChanged } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { toText } from "@/shared/utils/eventUtils";
 import "@xterm/xterm/css/xterm.css";
+import styles from "./TerminalWorkspace.module.css";
 
 const INPUT_FLUSH_DELAY_MS = 12;
 const RESIZE_DEBOUNCE_MS = 120;
@@ -289,7 +290,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   return (
     <div
       ref={containerRef}
-      className="terminal-pane"
+      className={`terminal-pane ${styles["terminal-pane"]}`}
       style={{
         display: isActive ? "block" : "none",
         width: "100%",

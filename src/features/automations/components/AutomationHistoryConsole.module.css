@@ -1,0 +1,25 @@
+.console {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--bg-elev-1);
+  color: var(--ink-1);
+}
+
+.console button {
+  font: inherit;
+}
+
+
+@media (max-width: 860px) {
+  .console {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(190px, 31vh) minmax(0, 1fr);
+    overflow: hidden;
+  }
+}

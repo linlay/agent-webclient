@@ -1,19 +1,16 @@
-import type {
-  AgentEvent,
-  FileChangeSummary,
-  Plan,
-  PlanRuntime,
-  TaskItemMeta,
-  TimelineNode,
-  ToolState,
-} from '@/app/state/types';
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import type { ToolState } from "@/features/tools/lib/toolsState";
 import type { EventCommand, EventProcessorState } from '@/features/events/lib/eventProcessorTypes';
 import { processStreamEvent } from '@/features/events/lib/eventProcessor';
 import {
   clearAllAwaitingQuestionMeta,
   registerAwaitingApprovalMeta,
   registerAwaitingQuestionMeta,
-} from '@/features/tools/lib/awaitingQuestionMeta';
+} from '@/features/events/lib/awaitingQuestionMeta';
 
 type TestState = {
   timelineNodes: Map<string, TimelineNode>;
@@ -247,6 +244,14 @@ describe('processStreamEvent', () => {
       toolsCleared: 0,
       toolsKept: 0,
       tokensFreed: 0,
+      generation: 3,
+      toolDigestCount: 2,
+      compactedRunCount: 4,
+      digestedRunIds: ['run-1', 'run-2'],
+      originalMessages: 12,
+      projectedMessages: 5,
+      elapsedMs: 840,
+      cacheMetrics: { hits: 2 },
       timestamp: 123,
     }, 'replay', false);
 
@@ -255,10 +260,12 @@ describe('processStreamEvent', () => {
       id: 'compact_compact-1',
       kind: 'message',
       role: 'system',
-      text: expect.stringContaining('上下文剩余 44.44% / 已释放 55.56%'),
-      tooltip: expect.stringContaining('本次压缩范围'),
+      text: expect.stringContaining('本次压缩 55.56%（5,000 tokens） · 当前上下文约 4,000 tokens'),
+      tooltip: expect.stringContaining('本次压缩前'),
       ts: 123,
     });
+    expect(state.timelineNodes.get('compact_compact-1')?.text).toContain('历史消息：12');
+    expect(state.timelineNodes.get('compact_compact-1')?.text).toContain('工具结果摘要：2');
 
     const duplicateCommands = processAndApply(state, {
       type: 'context.compact.complete',
@@ -270,6 +277,25 @@ describe('processStreamEvent', () => {
 
     expect(duplicateCommands).toEqual([]);
     expect(state.timelineOrder).toEqual(['compact_compact-1']);
+  });
+
+  it('shows the incident reduction and current tokens without treating retained context as free capacity', () => {
+    const state = createState();
+    processAndApply(state, {
+      type: 'context.compact.complete', compactId: 'incident', level: 'l1_tools', scope: 'run',
+      preCompactEstimatedTokens: 552203, postCompactEstimatedTokens: 546551,
+      remainingRatio: 98.97646336582743, releasedRatio: 1.0235366341725727, tokensFreed: 5652,
+    }, 'live', false);
+    expect(state.timelineNodes.get('compact_incident')?.text).toBe(
+      '已压缩工具上下文 · 本次压缩 1.02%（5,652 tokens） · 当前上下文约 546,551 tokens',
+    );
+    processAndApply(state, {
+      type: 'context.compact.failed', compactId: 'incident-summary', level: 'summary',
+      detail: 'summary_input_too_large',
+    }, 'live', false);
+    expect(state.timelineNodes.get('compact_failed_incident-summary')?.text).toBe(
+      '上下文压缩失败：待摘要的上下文超过单次摘要输入上限（summary_input_too_large）',
+    );
   });
 
   it('creates request.query user nodes only during replay', () => {
@@ -601,6 +627,49 @@ describe('processStreamEvent', () => {
     expect(node?.reasoningLabel).toBe('分析问题');
   });
 
+  it.each([true, false])('preserves manual reasoning expansion %s across deltas', (expanded) => {
+    const state = createState();
+    const defaultExpanded = !expanded;
+
+    processAndApply(state, {
+      type: 'reasoning.start',
+      reasoningId: 'reasoning_1',
+      text: 'thinking',
+    }, 'live', defaultExpanded);
+    const node = state.timelineNodes.get('thinking_0')!;
+    expect(node.expanded).toBe(defaultExpanded);
+    state.timelineNodes.set(node.id, { ...node, expanded });
+
+    for (const delta of [' more', ' details']) {
+      processAndApply(state, {
+        type: 'reasoning.delta',
+        reasoningId: 'reasoning_1',
+        delta,
+      }, 'live', defaultExpanded);
+      expect(state.timelineNodes.get(node.id)?.expanded).toBe(expanded);
+    }
+    expect(state.timelineNodes.get(node.id)?.text).toBe('thinking more details');
+  });
+
+  it.each(['reasoning.end', 'reasoning.snapshot'])('still collapses reasoning on %s', (type) => {
+    const state = createState();
+    processAndApply(state, {
+      type: 'reasoning.start',
+      reasoningId: 'reasoning_1',
+      text: 'thinking',
+    }, 'live', false);
+    const node = state.timelineNodes.get('thinking_0')!;
+    state.timelineNodes.set(node.id, { ...node, expanded: true });
+
+    processAndApply(state, { type, reasoningId: 'reasoning_1' } as AgentEvent, 'live', false);
+
+    expect(state.timelineNodes.get(node.id)).toMatchObject({
+      text: 'thinking',
+      status: 'completed',
+      expanded: false,
+    });
+  });
+
   it('uses the reasoning.start event timestamp as the node start time', () => {
     const state = createState();
     const startedAt = 1_787_538_153_749;
@@ -890,6 +959,108 @@ describe('processStreamEvent', () => {
 
     expect(state.toolStates.get('tool_1')?.toolParams).toEqual({ foo: 'bar' });
     expect(state.timelineNodes.get('tool_0')?.argsText).toBe('{\n  "foo": "bar"\n}');
+  });
+
+  it('projects tool.output into a running node and replaces it with tool.result', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.output',
+      runId: 'run_1',
+      taskId: 'task_1',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stdout',
+      delta: 'scan ',
+      chunkIndex: 0,
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.output',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stdout',
+      delta: 'QR\n',
+      chunkIndex: 1,
+      timestamp: 101,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.output',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stderr',
+      delta: 'waiting\n',
+      chunkIndex: 2,
+      timestamp: 102,
+    }, 'live', true);
+
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      toolId: 'tool_live',
+      toolName: 'bash',
+      taskId: 'task_1',
+      status: 'running',
+      startedAt: 100,
+      toolOutput: {
+        lastChunkIndex: 2,
+        truncated: false,
+        segments: [
+          { stream: 'stdout', text: 'scan QR\n' },
+          { stream: 'stderr', text: 'waiting\n' },
+        ],
+      },
+    });
+
+    processAndApply(state, {
+      type: 'tool.output',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      stream: 'stdout',
+      delta: 'duplicate',
+      chunkIndex: 2,
+      timestamp: 103,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')?.toolOutput?.segments).toHaveLength(2);
+
+    processAndApply(state, {
+      type: 'tool.result',
+      toolId: 'tool_live',
+      toolName: 'bash',
+      result: 'scan QR\ndone\n',
+      timestamp: 120,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')).toMatchObject({
+      status: 'success',
+      result: { text: 'scan QR\ndone\n', isCode: false },
+      endedAt: 120,
+      durationMs: 20,
+    });
+    expect(state.timelineNodes.get('tool_0')?.toolOutput).toBeUndefined();
+  });
+
+  it('keeps tool.end and tool.snapshot non-terminal until tool.result', () => {
+    const state = createState();
+
+    processAndApply(state, {
+      type: 'tool.start',
+      toolId: 'tool_lifecycle',
+      toolName: 'bash',
+      timestamp: 100,
+    }, 'live', true);
+    processAndApply(state, {
+      type: 'tool.end',
+      toolId: 'tool_lifecycle',
+      timestamp: 101,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('running');
+    expect(state.timelineNodes.get('tool_0')?.endedAt).toBeUndefined();
+    processAndApply(state, {
+      type: 'tool.snapshot',
+      toolId: 'tool_lifecycle',
+      toolName: 'bash',
+      arguments: '{"command":"login"}',
+      timestamp: 102,
+    }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('running');
   });
 
   it('marks incomplete tool args when the run ends before buffered args form valid JSON', () => {

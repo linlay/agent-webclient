@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
-import type { AgentEvent, TimelineNode } from "@/app/state/types";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { BTWSessionState } from "@/features/btw/lib/btwTypes";
 import { resolveBTWSendMessage } from "@/features/btw/lib/btwSend";
 import {

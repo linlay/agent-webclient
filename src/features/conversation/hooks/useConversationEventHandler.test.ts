@@ -1,7 +1,8 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/AppContext';
-import type { AgentEvent, TimelineNode } from '@/app/state/types';
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventCommand } from '@/features/events/lib/eventProcessorTypes';
 import {
   reduceActiveAwaiting,
@@ -12,7 +13,6 @@ import {
   buildAwaitingPlanningModeAction,
   createLiveProcessorState,
   createLocalCacheFromState,
-  findMatchingPendingSteer,
   resolveAwaitingSubmitRuntimeContext,
   shouldSyncLiveCache,
   useConversationEventHandler,
@@ -109,69 +109,6 @@ function installSessionStorage(): () => void {
     });
   };
 }
-
-describe('findMatchingPendingSteer', () => {
-  beforeEach(() => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: {
-        getItem: () => '',
-      },
-    });
-  });
-
-  it('matches only when steerId exists in pending steers', () => {
-    const state = {
-      ...createInitialState(),
-      pendingSteers: {
-        '': [
-          {
-            steerId: '55a9ce3e-0ae2-4cbd-8224-0e0dd4d62c34',
-            message: '突然计划去北京。',
-            requestId: 'req_1773506656934_drp9ko',
-            runId: 'mmqk2gej',
-            createdAt: 100,
-          },
-        ],
-      },
-    };
-
-    const matched = findMatchingPendingSteer(state, {
-      type: 'request.steer',
-      steerId: '55a9ce3e-0ae2-4cbd-8224-0e0dd4d62c34',
-      requestId: 'req_1773506656934_drp9ko',
-      message: '突然计划去北京。',
-    });
-
-    expect(matched?.message).toBe('突然计划去北京。');
-  });
-
-  it('does not fallback to requestId when steerId does not match', () => {
-    const state = {
-      ...createInitialState(),
-      pendingSteers: {
-        '': [
-          {
-            steerId: 'pending_steer_id',
-            message: '突然计划去北京。',
-            requestId: 'req_1773506656934_drp9ko',
-            runId: 'mmqk2gej',
-            createdAt: 100,
-          },
-        ],
-      },
-    };
-
-    const matched = findMatchingPendingSteer(state, {
-      type: 'request.steer',
-      steerId: '55a9ce3e-0ae2-4cbd-8224-0e0dd4d62c34',
-      requestId: 'req_1773506656934_drp9ko',
-      message: '突然计划去北京。',
-    });
-
-    expect(matched).toBeNull();
-  });
-});
 
 describe('shouldSyncLiveCache', () => {
   beforeEach(() => {
@@ -1028,6 +965,67 @@ describe('createLiveProcessorState', () => {
         status: 'running',
       }),
     });
+  });
+
+  it.each([true, false])('keeps manual reasoning expansion %s while streaming cache is ahead of React state', (expanded) => {
+    const state = createInitialState();
+    const thinkingNode: TimelineNode = {
+      id: 'thinking_0',
+      kind: 'thinking',
+      text: 'ab',
+      status: 'running',
+      expanded: !expanded,
+      ts: 100,
+      startedAt: 100,
+    };
+    state.chatId = 'chat_1';
+    state.runId = 'run_1';
+    state.streaming = true;
+    state.timelineCounter = 1;
+    state.timelineNodes.set(thinkingNode.id, thinkingNode);
+    state.timelineOrder.push(thinkingNode.id);
+    state.reasoningNodeById.set('reasoning_1', thinkingNode.id);
+    state.activeReasoningKey = 'reasoning_1';
+
+    const cache = createLocalCacheFromState(state);
+    cache.nodeText.set(thinkingNode.id, 'abc');
+    cache.nodeById.set(thinkingNode.id, {
+      ...thinkingNode,
+      text: 'abc',
+      reasoningLabel: '最新思考标题',
+      ts: 200,
+    });
+    // A click updates React state while newer stream text remains in the cache.
+    state.timelineNodes.set(thinkingNode.id, { ...thinkingNode, expanded });
+    expect(shouldSyncLiveCache(cache, state, true)).toBe(false);
+
+    let expectedText = 'abc';
+    for (const delta of ['d', 'e']) {
+      const commands = processStreamEvent(
+        { type: 'reasoning.delta', reasoningId: 'reasoning_1', delta },
+        createLiveProcessorState(cache, state),
+        { mode: 'live', reasoningExpandedDefault: !expanded },
+      );
+      expectedText += delta;
+      expect(commands).toContainEqual({
+        cmd: 'SET_TIMELINE_NODE',
+        id: thinkingNode.id,
+        node: expect.objectContaining({
+          text: expectedText,
+          expanded,
+          status: 'running',
+          reasoningLabel: '最新思考标题',
+          startedAt: 100,
+        }),
+      });
+      // Keep React state behind, as with consecutive batched stream events.
+      for (const command of commands) {
+        if (command.cmd === 'SET_TIMELINE_NODE') {
+          cache.nodeById.set(command.id, command.node);
+          cache.nodeText.set(command.id, command.node.text || '');
+        }
+      }
+    }
   });
 
   it('allocates a new content node when cache already marks the current node completed', () => {

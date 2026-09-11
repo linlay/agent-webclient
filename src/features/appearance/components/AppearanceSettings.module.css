@@ -1,0 +1,7 @@
+.settings { display: grid; gap: 10px; min-width: 0; }
+.settings label { font-weight: 600; }
+.settings p { color: var(--ink-soft); font-size: 12px; margin: 0; line-height: 1.6; }
+.settings p[role="alert"] { color: var(--accent-danger); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.preview { height: 96px; border: 1px solid var(--line); border-radius: var(--control-radius-lg); background-color: var(--bg-base); background-position: center; background-size: cover; display: flex; align-items: flex-end; padding: 8px; }
+.preview span { background: var(--control-popover-bg); color: var(--ink); border-radius: var(--control-radius-sm); padding: 4px 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }

@@ -1,0 +1,137 @@
+:global(.awaiting-answer-item) {
+    gap: 4px;
+}
+
+:global(.awaiting-answer-question) {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+:global(.awaiting-answer-value) {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-main);
+    white-space: pre-wrap;
+}
+
+/* Standalone management routes own the full guest viewport. Modal and drawer
+   consoles use command-modal-section instead and keep their viewport cap. */
+:global(.management-page-console) {
+    display: flex;
+    gap: 10px;
+    flex: 1 1 auto;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+
+:global(.agents-page) {
+    max-width: none;
+    margin: 0;
+    height: 100vh;
+    padding: 10px;
+    background: var(--bg-base);
+    color: var(--ink-1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.archives-page) {
+    max-width: none;
+    margin: 0;
+    height: 100vh;
+    padding: 10px;
+    background: var(--bg-base);
+    color: var(--ink-1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.archives-page)>:global(.archive-console) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+:global(.automations-page) {
+    max-width: none;
+    margin: 0;
+    min-height: 100vh;
+    padding: 10px;
+    background: var(--bg-base);
+    color: var(--ink-1);
+    overflow: auto;
+}
+
+:global(.automations-console-page),
+:global(.registries-page),
+:global(.connectors-page) {
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.skills-page) {
+    max-width: none;
+    margin: 0;
+    height: 100vh;
+    min-height: 0;
+    background: var(--bg-base);
+    color: var(--ink-1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.automations-console-page)>:global(.automation-console),
+:global(.registries-page)>:global(.registry-console),
+:global(.skills-page)>:global(.skill-console) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* A single background covers the complete page and its gutters. */
+:global(.agents-page),
+:global(.skills-page),
+:global(.connectors-page),
+:global(.registries-page),
+:global(.archives-page) {
+    background: var(--management-page-surface);
+}
+
+@media (max-width: 860px) {
+    :global(.skills-page) :global(.skill-console-body) {
+        grid-template-columns: 1fr;
+    }
+
+    :global(.skills-page) :global(.skill-console-list) {
+        width: auto;
+        min-width: 0;
+    }
+}
+
+:global(.agents-page-head) {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 16px;
+}
+
+:global(.agents-page-head) h1 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+:global(.agents-page-head) p {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--ink-2);
+}

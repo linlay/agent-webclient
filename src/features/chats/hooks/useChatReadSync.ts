@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
-import type { Chat } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { markChatRead } from "@/shared/data";
 import {
 	normalizeChatReadState,
@@ -30,10 +30,22 @@ export function getAutoReadTriggerKey(
 	return [
 		String(chat?.chatId || "").trim(),
 		String(chat?.lastRunId || "").trim(),
-		String(chat?.updatedAt ?? "").trim(),
-		String(chat?.read?.readAt ?? "").trim(),
 		String(chat?.read?.readRunId || "").trim(),
 	].join("|");
+}
+
+export function isChatContentCommitted(input: {
+	chatId: string;
+	blocked?: boolean;
+	transition: { targetChatId?: string; phase?: string } | null | undefined;
+}): boolean {
+	const chatId = String(input.chatId || "").trim();
+	if (!chatId || input.blocked) return false;
+	if (!input.transition) return true;
+	return (
+		String(input.transition.targetChatId || "").trim() === chatId &&
+		input.transition.phase === "ready"
+	);
 }
 
 export function useChatReadSync(): void {
@@ -97,8 +109,14 @@ export function useChatReadSync(): void {
 		[state.chatId, state.chats],
 	);
 	const autoReadTriggerKey = useMemo(
-		() => getAutoReadTriggerKey(activeChat),
-		[activeChat],
+		() => isChatContentCommitted({
+			chatId: String(state.chatId || ""),
+			blocked: state.chatSurfaceBlocked,
+			transition: state.chatTransition,
+		})
+			? getAutoReadTriggerKey(activeChat)
+			: "",
+		[activeChat, state.chatId, state.chatSurfaceBlocked, state.chatTransition],
 	);
 
 	useEffect(() => {

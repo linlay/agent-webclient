@@ -1,0 +1,23 @@
+.skeleton {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  opacity: 1;
+  transition: opacity 80ms ease-out;
+}
+.skeleton[data-transition-phase="exiting"] { opacity: 0; }
+.skeleton span {
+  display: block;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ink-muted) 12%, transparent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.skeleton[data-conversation-skeleton="plan-tasks"] { flex-direction: column; gap: 8px; }
+.skeleton[data-conversation-skeleton="plan-tasks"] span { width: 85%; height: 12px; }
+.skeleton[data-conversation-skeleton="plan-tasks"] span:last-child { width: 65%; }
+.skeleton[data-conversation-skeleton="header"] span { width: 70px; height: 18px; }
+@keyframes pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { transition: none; }
+  .skeleton span { animation: none; }
+}

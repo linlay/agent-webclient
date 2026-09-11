@@ -1,0 +1,55 @@
+:global(.automation-console):global(.is-editor-only) :global(.automation-console-error) {
+    margin-bottom: 8px;
+}
+
+:global(.automation-console-body):global(.is-editor-only) {
+    display: block;
+    overflow: auto;
+}
+
+:global(.automation-console-body):global(.is-editor-only) :global(.automation-console-detail) {
+    height: 100%;
+    padding: 0 4px;
+}
+
+/* MCP 连接器页：宽屏时左侧列表固定为 280px，窄屏时转为单列。 */
+:global(.automation-executions-head) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+:global(.automation-executions) {
+    margin: 0;
+}
+
+:global(.automation-executions-head) {
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+:global(.automation-execution-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+:global(.automation-execution-row) {
+    display: grid;
+    grid-template-columns: 82px 1.1fr 70px minmax(120px, 1fr);
+    gap: 8px;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--bg-input) 55%, transparent);
+    padding: 7px 8px;
+    font-size: 11px;
+    color: var(--ink-muted);
+}
+
+:global(.automation-execution-row) span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

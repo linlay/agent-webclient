@@ -1,0 +1,233 @@
+import { useMemo } from "react";
+import type { AppState } from "@/app/state/AppContext";
+import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
+import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
+import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
+import { resolveWorkerUnreadCount } from "@/features/chats/lib/chatReadState";
+import { readEpochMillis } from "@/shared/utils/platformTime";
+
+type AgentIconConfig = string | {
+  color?: string;
+  name?: string;
+};
+
+export type WorkerSortMode = "byName" | "byTime";
+
+export function createWorkerChatOrderByKey(
+  chats: AppState["chats"],
+): Map<string, number> {
+  const sortedChats = chats.slice().sort((a, b) => {
+    const updatedAtA = readEpochMillis(a?.updatedAt) ?? 0;
+    const updatedAtB = readEpochMillis(b?.updatedAt) ?? 0;
+
+    if (updatedAtA !== updatedAtB) return updatedAtB - updatedAtA;
+
+    return String(a?.chatId || "").localeCompare(String(b?.chatId || ""));
+  });
+
+  const orderByKey = new Map<string, number>();
+  for (const chat of sortedChats) {
+    const workerKey = createWorkerKeyFromChat(chat);
+    if (!workerKey || orderByKey.has(workerKey)) continue;
+    orderByKey.set(workerKey, orderByKey.size);
+  }
+  return orderByKey;
+}
+
+export function sortWorkerRowsForMode(
+  rows: AppState["workerRows"],
+  options: {
+    agentOrderByKey: Map<string, number>;
+    temporaryPinnedAgentKey?: string;
+    workerBaseOrderByKey: Map<string, number>;
+    workerChatOrderByKey: Map<string, number>;
+    workerSortMode: WorkerSortMode;
+  },
+): AppState["workerRows"] {
+  const temporaryPinnedWorkerKey = options.temporaryPinnedAgentKey
+    ? `agent:${String(options.temporaryPinnedAgentKey || "").trim()}`
+    : "";
+
+  const compareTemporaryPinnedWorker = (
+    a: AppState["workerRows"][number],
+    b: AppState["workerRows"][number],
+  ): number => {
+    if (!temporaryPinnedWorkerKey || temporaryPinnedWorkerKey === "agent:") {
+      return 0;
+    }
+    const pinnedA = a.key === temporaryPinnedWorkerKey;
+    const pinnedB = b.key === temporaryPinnedWorkerKey;
+    if (pinnedA === pinnedB) return 0;
+    return pinnedA ? -1 : 1;
+  };
+
+  if (options.workerSortMode === "byName") {
+    return rows.slice().sort((a, b) => {
+      const temporaryPinnedComparison = compareTemporaryPinnedWorker(a, b);
+      if (temporaryPinnedComparison !== 0) return temporaryPinnedComparison;
+
+      const agentOrderA = options.agentOrderByKey.get(a.key);
+      const agentOrderB = options.agentOrderByKey.get(b.key);
+      const hasAgentOrderA = agentOrderA !== undefined;
+      const hasAgentOrderB = agentOrderB !== undefined;
+
+      if (hasAgentOrderA && hasAgentOrderB) return agentOrderA - agentOrderB;
+      if (hasAgentOrderA !== hasAgentOrderB) return hasAgentOrderA ? -1 : 1;
+
+      return (
+        (options.workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+        (options.workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+      );
+    });
+  }
+
+  return rows.slice().sort((a, b) => {
+    const temporaryPinnedComparison = compareTemporaryPinnedWorker(a, b);
+    if (temporaryPinnedComparison !== 0) return temporaryPinnedComparison;
+
+    const chatOrderA = options.workerChatOrderByKey.get(a.key);
+    const chatOrderB = options.workerChatOrderByKey.get(b.key);
+    const hasChatA = chatOrderA !== undefined;
+    const hasChatB = chatOrderB !== undefined;
+
+    if (hasChatA && hasChatB) return chatOrderA - chatOrderB;
+    if (hasChatA !== hasChatB) return hasChatA ? -1 : 1;
+
+    return (
+      (options.workerBaseOrderByKey.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+      (options.workerBaseOrderByKey.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+    );
+  });
+}
+
+export function useWorkerSidebarData({
+  agents,
+  chatFilter,
+  chats,
+  teams,
+  temporaryPinnedAgentKey,
+  workerRows,
+  workerSortMode = "byTime",
+}: Pick<
+  AppState,
+  | "agents"
+  | "chatFilter"
+  | "chats"
+  | "teams"
+  | "temporaryPinnedAgentKey"
+  | "workerRows"
+> & {
+  workerSortMode?: WorkerSortMode;
+}) {
+  const workerBaseOrderByKey = useMemo(
+    () => new Map(workerRows.map((row, index) => [row.key, index])),
+    [workerRows],
+  );
+
+  const agentOrderByKey = useMemo(
+    () =>
+      new Map(
+        agents
+          .map((agent, index) => [`agent:${String(agent?.key || "").trim()}`, index] as const)
+          .filter(([key]) => key !== "agent:"),
+      ),
+    [agents],
+  );
+
+  const workerChatOrderByKey = useMemo(
+    () => createWorkerChatOrderByKey(chats),
+    [chats],
+  );
+
+  const filteredWorkerRows = useMemo(() => {
+    const filter = chatFilter.toLowerCase().trim();
+    const rows = !filter
+      ? workerRows
+      : workerRows.filter((row) => String(row.searchText || "").includes(filter));
+
+    return sortWorkerRowsForMode(rows, {
+      agentOrderByKey,
+      temporaryPinnedAgentKey,
+      workerBaseOrderByKey,
+      workerChatOrderByKey,
+      workerSortMode,
+    });
+  }, [
+    agentOrderByKey,
+    workerRows,
+    chatFilter,
+    workerBaseOrderByKey,
+    workerChatOrderByKey,
+    workerSortMode,
+    temporaryPinnedAgentKey,
+  ]);
+
+  const workerIconsByKey = useMemo(() => {
+    const icons = new Map<string, AgentIconConfig>();
+    for (const agent of agents) {
+      if (!agent?.key || !agent.icon) continue;
+      icons.set(`agent:${agent.key}`, agent.icon);
+    }
+    for (const team of teams) {
+      if (!team?.teamId || !team.icon) continue;
+      icons.set(`team:${team.teamId}`, team.icon);
+    }
+    return icons;
+  }, [agents, teams]);
+
+  const workerChatsByKey = useMemo(() => {
+    const chatsByKey = new Map<string, WorkerConversationRow[]>();
+    for (const row of workerRows) {
+      chatsByKey.set(
+        row.key,
+        buildWorkerConversationRows({
+          chats,
+          worker: row,
+        }),
+      );
+    }
+    return chatsByKey;
+  }, [chats, workerRows]);
+
+  const workerUnreadCountByKey = useMemo(() => {
+    const unreadCounts = new Map<string, number>();
+    for (const row of workerRows) {
+      unreadCounts.set(row.key, resolveWorkerUnreadCount(row, agents, teams, chats));
+    }
+    return unreadCounts;
+  }, [agents, chats, teams, workerRows]);
+
+  const workerTotalCountByKey = useMemo(() => {
+    const totalCounts = new Map<string, number>();
+    for (const agent of agents) {
+      const agentKey = String(agent?.key || "").trim();
+      if (!agentKey) continue;
+      const totalCount = Number(agent?.stats?.totalCount);
+      if (Number.isFinite(totalCount)) {
+        totalCounts.set(`agent:${agentKey}`, totalCount);
+      }
+    }
+    for (const team of teams) {
+      const teamId = String(team?.teamId || "").trim();
+      if (!teamId) continue;
+      const totalCount = Number(team?.stats?.totalCount);
+      if (Number.isFinite(totalCount)) {
+        totalCounts.set(`team:${teamId}`, totalCount);
+      }
+    }
+    for (const row of workerRows) {
+      if (totalCounts.has(row.key)) continue;
+      totalCounts.set(row.key, workerChatsByKey.get(row.key)?.length || 0);
+    }
+    return totalCounts;
+  }, [agents, teams, workerChatsByKey, workerRows]);
+
+  return {
+    filteredWorkerRows,
+    workerBaseOrderByKey,
+    workerIconsByKey,
+    workerChatsByKey,
+    workerUnreadCountByKey,
+    workerTotalCountByKey,
+  };
+}

@@ -1,9 +1,6 @@
-import type {
-  AIUsageSnapshotEvent,
-  AppState,
-  TimelineAttachment,
-  TimelineNode,
-} from "@/app/state/types";
+import type { AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { TimelineAttachment, TimelineNode } from "@/features/timeline/lib/timelineState";
 import type {
   QueryAccessLevel,
   QueryModelOverride,

@@ -1,7 +1,8 @@
 import React from "react";
 import { useI18n } from "@/shared/i18n";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
-import type { Chat, WorkerConversationRow } from "@/app/state/types";
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 
 export const UnreadDot: React.FC<{ chat: Chat | WorkerConversationRow }> = ({
   chat,

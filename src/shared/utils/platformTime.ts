@@ -66,6 +66,7 @@ export const DESKTOP_PUSH_TIME_CONTRACT: Record<string, PushTimeContract> = {
     },
   },
   "archive.deleted": {},
+  "chats.order.changed": { required: ["updatedAt"] },
   "catalog.updated": { required: ["updatedAt"] },
   "awaiting.asking": { required: ["createdAt"] },
   "awaiting.answered": { required: ["answeredAt"] },
@@ -194,11 +195,6 @@ export function readRequiredPlatformEventTimestamp(value: unknown): number | und
     return undefined;
   }
   return readEpochMillis((value as Record<string, unknown>).timestamp);
-}
-
-/** Internal sort sentinel only; never use this to populate a platform DTO. */
-export function readEpochMillisOrZero(value: unknown): number {
-  return readEpochMillis(value) ?? 0;
 }
 
 export function formatEpochMillisLocal(

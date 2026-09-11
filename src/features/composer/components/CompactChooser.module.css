@@ -1,0 +1,140 @@
+.dialog :global(.ant-modal-content) {
+    padding: 24px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-xl);
+    background: var(--bg-base);
+    box-shadow: var(--shadow-strong);
+}
+
+.dialog :global(.ant-modal-confirm-paragraph) {
+    width: 100%;
+    max-width: 100%;
+    row-gap: 0;
+}
+
+.dialog :global(.ant-modal-confirm-title) {
+    padding-inline-end: 36px;
+    color: var(--ink-1);
+    font-size: 18px;
+    font-weight: 650;
+    line-height: 28px;
+}
+
+.dialog :global(.ant-modal-close) {
+    top: 20px;
+    inset-inline-end: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    color: var(--ink-2);
+}
+
+.content {
+    min-width: 0;
+    color: var(--ink-1);
+    font-family: var(--font-sans);
+}
+
+.intro {
+    margin: 6px 0 20px;
+    color: var(--ink-2);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+    padding: 18px 16px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    background: var(--bg-elev-2);
+    color: var(--ink-1);
+    font: inherit;
+    text-align: start;
+    white-space: normal;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.option:hover,
+.option:focus-visible {
+    border-color: var(--accent-electric);
+    background: color-mix(in srgb, var(--accent-soft) 45%, var(--bg-base));
+}
+
+.option:focus-visible {
+    outline: 2px solid var(--accent-electric);
+    outline-offset: 3px;
+}
+
+.badge {
+    display: grid;
+    flex: 0 0 40px;
+    place-items: center;
+    height: 40px;
+    border: 1px solid color-mix(in srgb, var(--accent-electric) 12%, transparent);
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent-electric-strong);
+    font: 650 14px/1 var(--font-mono);
+}
+
+.copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.optionTitle {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.description {
+    color: var(--ink-2);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.arrow {
+    flex: 0 0 auto;
+    color: var(--ink-muted);
+    font-size: 18px;
+}
+
+.option:hover .arrow,
+.option:focus-visible .arrow {
+    color: var(--accent-electric);
+}
+
+.hint {
+    margin: 16px 0 0;
+    color: var(--ink-2);
+    font-size: 11px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .dialog :global(.ant-modal-content) { padding: 20px; }
+    .dialog :global(.ant-modal-close) { top: 16px; inset-inline-end: 16px; }
+    .option { gap: 12px; padding: 16px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .option { transition: none; }
+}

@@ -1,12 +1,11 @@
-import { createElement, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
-import { App as AntdApp, Button } from "antd";
+import { App as AntdApp } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import type { AppAction } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import {
   createRequestId,
-  type CompactLevel,
   type QueryAccessLevel,
   type QueryModelOverride,
 } from "@/shared/data";
@@ -28,13 +27,18 @@ import {
   normalizeSteerSubmissionResponse,
   resolveActiveRunId,
 } from "@/features/composer/lib/steerSubmission";
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
+import { findPendingSteer } from "@/features/composer/lib/pendingSteers";
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
+import { useCompactChooser } from "@/features/composer/hooks/useCompactChooser";
 import { useI18n } from "@/shared/i18n";
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import {
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
+import { resolveCurrentWorkerSummary, supportsActiveRunContextCompact } from "@/features/workers/lib/currentWorker";
+import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
 
 export {
@@ -82,6 +86,7 @@ interface UseComposerSendInput {
     compactSummaryCompacting?: string;
   };
   hasUploadingAttachments: boolean;
+  hasFailedAttachments?: boolean;
   inputValue: string;
   isAwaitingActive: boolean;
   isVoiceMode: boolean;
@@ -138,6 +143,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     executeSlashCommandInput,
     backgroundCommandText,
     hasUploadingAttachments,
+    hasFailedAttachments,
     inputValue,
     isAwaitingActive,
     isVoiceMode,
@@ -163,9 +169,8 @@ export function useComposerSend(input: UseComposerSendInput) {
   } = input;
   const { t } = useI18n();
   const runs = useRunTransport();
-  const { message: messageApi, modal } = AntdApp.useApp();
+  const { message: messageApi } = AntdApp.useApp();
   const { openBTW } = useBTW();
-  const [steerSubmitting, setSteerSubmitting] = useState(false);
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
   const interruptSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -174,6 +179,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     submitLearnCommand,
     submitCompactCommand,
   } = useBackgroundCommandActions({
+    canCompact: !mainChatRunning || supportsActiveRunContextCompact(resolveCurrentWorkerSummary(stateRef.current)),
     dispatch,
     state: {
       chatId: state.chatId,
@@ -200,25 +206,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     },
   });
 
-  const openCompactChooser = useCallback(async () => {
-    let dialog: ReturnType<typeof modal.confirm>;
-    const run = (level: CompactLevel) => {
-      dialog.destroy();
-      void submitCompactCommand(level);
-    };
-    dialog = modal.confirm({
-      title: t("contextCompact.chooser.title"),
-      content: t("contextCompact.chooser.description"),
-      icon: null,
-      footer: () => createElement(
-        "div",
-        { style: { display: "flex", justifyContent: "flex-end", gap: 8 } },
-        createElement(Button, { onClick: () => dialog.destroy() }, t("contextCompact.chooser.cancel")),
-        createElement(Button, { onClick: () => run("l1_tools") }, t("topNav.usage.compactTools")),
-        createElement(Button, { type: "primary", onClick: () => run("summary") }, t("topNav.usage.compactSummary")),
-      ),
-    });
-  }, [modal, submitCompactCommand, t]);
+  const openCompactChooser = useCompactChooser(submitCompactCommand);
 
   useEffect(() => {
     const message = inputValue.trim();
@@ -241,23 +229,26 @@ export function useComposerSend(input: UseComposerSendInput) {
     };
   }, []);
 
-  const prevMainChatRunningRef = useRef(mainChatRunning);
+  const prevMainRuntimeRef = useRef({ chatId: state.chatId, runId: state.runId, running: mainChatRunning });
   useEffect(() => {
-    const wasRunning = prevMainChatRunningRef.current;
-    prevMainChatRunningRef.current = mainChatRunning;
-    const steers = state.pendingSteers[String(state.chatId || "")] || [];
-    if (!wasRunning || mainChatRunning || steers.length === 0) {
-      return;
-    }
-    const firstQueued = steers.find((s) => s.status === "queued");
+    const currentState = stateRef.current;
+    const runtime = resolveMainChatRuntime(currentState, activeQuerySessionRequestIdRef, querySessionsRef);
+    const previous = prevMainRuntimeRef.current;
+    prevMainRuntimeRef.current = { chatId: currentState.chatId, runId: runtime.runId || currentState.runId, running: mainChatRunning };
+    if (!previous.running || mainChatRunning || runtime.running || previous.chatId !== currentState.chatId ||
+      (runtime.runId && runtime.runId !== previous.runId) ||
+      (currentState.chatTransition && currentState.chatTransition.phase !== "ready")) return;
+    const firstQueued = currentState.pendingSteers[currentState.chatId]?.find(
+      steer => steer.status === "queued",
+    );
     if (!firstQueued) return;
-    dispatch({ type: "REMOVE_PENDING_STEER", steerId: firstQueued.steerId });
+    dispatch({ type: "REMOVE_PENDING_STEER", chatId: currentState.chatId, runId: firstQueued.runId, steerId: firstQueued.steerId });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
-        detail: { message: firstQueued.message },
+        detail: { message: firstQueued.message, chatId: currentState.chatId, ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
       }),
     );
-  }, [mainChatRunning, state.pendingSteers, state.chatId, dispatch]);
+  }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef]);
 
   const resolveCurrentRunId = useCallback(() => {
     const currentState = stateRef.current || state;
@@ -350,7 +341,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         type: "APPEND_DEBUG",
         line: `[interrupt] failed: ${(error as Error).message}`,
       });
-      // interruptChat 失败时立即 abort 流作为回退
+      // 中断请求失败时立即 abort 流作为回退
       state.abortController?.abort();
       window.dispatchEvent(
         new CustomEvent("agent:voice-stop-all", {
@@ -411,7 +402,7 @@ export function useComposerSend(input: UseComposerSendInput) {
 
     const message = inputValue.trim();
     if (!message && sendReferences.length === 0) return;
-    if (hasUploadingAttachments) return;
+    if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
     }
@@ -423,6 +414,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         void messageApi.warning(t("contextCompact.noChat"));
         return;
       }
+      if (!canSubmitCompact(activeChatId, mainChatRunning, supportsActiveRunContextCompact(resolveCurrentWorkerSummary(stateRef.current)), Boolean(resolveCompactPhase(currentState.events, activeChatId)))) return;
       setInputValue("");
       setSlashDismissed(false);
       closeMention();
@@ -476,10 +468,12 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
-        if (sendReferences.length > 0 || mustUseSkills.length > 0) {
+        // Selection references remain in the Composer until a normal query accepts them.
+        if (!message) return;
+        if (mustUseSkills.length > 0) {
           dispatch({
             type: "APPEND_DEBUG",
-            line: "[send] references and required skills are not supported while steering an active run",
+            line: "[send] required skills are not supported while steering an active run",
           });
           return;
         }
@@ -489,6 +483,7 @@ export function useComposerSend(input: UseComposerSendInput) {
             : createRequestId("steer");
         dispatch({
           type: "ENQUEUE_PENDING_STEER",
+          chatId: activeChatId,
           steer: {
             steerId,
             message,
@@ -496,9 +491,15 @@ export function useComposerSend(input: UseComposerSendInput) {
             runId: activeRunId,
             createdAt: Date.now(),
             status: "queued",
+            references: structuredClone(sendReferences.filter((reference) =>
+              !reference || typeof reference !== "object" ||
+              (reference as { type?: unknown }).type !== "selection",
+            )),
           },
         });
         setInputValue("");
+        dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
+        clearComposerAttachments();
         setSlashDismissed(false);
         closeMention();
         return;
@@ -575,6 +576,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch,
     executeSlashCommand,
     hasUploadingAttachments,
+    hasFailedAttachments,
     inputValue,
     isAwaitingActive,
     isVoiceMode,
@@ -609,49 +611,26 @@ export function useComposerSend(input: UseComposerSendInput) {
     t,
   ]);
 
-  const restoreMessageToComposer = useCallback(
-    (message: string) => {
-      setInputValue(message);
-      setSlashDismissed(false);
-      updateMentionSuggestions(message);
-      window.requestAnimationFrame(() => {
-        const el = textareaRef.current?.resizableTextArea?.textArea;
-        if (!el) return;
-        el.focus();
-        const caret = message.length;
-        el.setSelectionRange(caret, caret);
-      });
-    },
-    [
-      setInputValue,
-      setSlashDismissed,
-      textareaRef,
-      updateMentionSuggestions,
-    ],
-  );
-
   const handleSteer = useCallback(async (steerId: string) => {
-    const steer = (state.pendingSteers[String(state.chatId || "")] || []).find(
-      (s) => s.steerId === steerId && s.status === "queued",
-    );
-    if (!steer || steerSubmitting) return;
+    const currentState = stateRef.current;
+    const chatId = String(currentState.chatId || "").trim();
+    const steer = findPendingSteer(currentState.pendingSteers, { chatId, steerId })?.steer;
+    if (!steer || steer.status !== "queued") return;
 
-    const chatId = String(state.chatId || "").trim();
+    const target = { chatId, runId: steer.runId, steerId };
     const owner = resolveCurrentOwner();
     if (!chatId || !steer.runId || !owner) {
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[steer] skipped: missing chatId/runId/owner (chatId=${chatId || "-"}, runId=${steer.runId || "-"})`,
-      });
-      dispatch({ type: "REMOVE_PENDING_STEER", steerId });
-      restoreMessageToComposer(steer.message);
+      dispatch({ type: "RESTORE_PENDING_STEER", ...target });
       void messageApi.warning(t("composer.steer.unavailable"));
       return;
     }
 
-    setSteerSubmitting(true);
-    dispatch({ type: "UPDATE_PENDING_STEER_STATUS", steerId, status: "sending" });
-
+    dispatch({ type: "UPDATE_PENDING_STEER_STATUS", ...target, status: "sending" });
+    const retainForConfirmation = (detail: string) => {
+      if (!findPendingSteer(stateRef.current.pendingSteers, target)) return;
+      dispatch({ type: "SET_PENDING_STEER_ERROR", ...target, error: detail });
+      dispatch({ type: "APPEND_DEBUG", line: `[steer] awaiting confirmation for chatId=${chatId}, steerId=${steerId}: ${detail}` });
+    };
     try {
       const response = await runs.steer({
         requestId: steer.requestId,
@@ -660,67 +639,43 @@ export function useComposerSend(input: UseComposerSendInput) {
         steerId: steer.steerId,
         owner,
         message: steer.message,
-        planningMode: Boolean(state.planningMode),
+        references: steer.references,
+        planningMode: Boolean(currentState.planningMode),
       });
+      // The stream can acknowledge the message before the control response.
+      if (!findPendingSteer(stateRef.current.pendingSteers, target)) return;
       const result = normalizeSteerSubmissionResponse(response);
-      if (!result.accepted) {
-        dispatch({ type: "REMOVE_PENDING_STEER", steerId });
-        dispatch({
-          type: "APPEND_DEBUG",
-          line: `[steer] rejected: status=${result.status || "-"}, detail=${result.detail || "-"}`,
-        });
-        restoreMessageToComposer(steer.message);
-        void messageApi.warning(
-          t("composer.steer.rejected", {
-            detail: result.detail || result.status || "unmatched",
-          }),
-        );
+      if (result.accepted === null) {
+        retainForConfirmation(result.detail || result.status);
         return;
       }
-
+      if (!result.accepted) {
+        dispatch({ type: "RESTORE_PENDING_STEER", ...target });
+        dispatch({ type: "APPEND_DEBUG", line: `[steer] rejected: status=${result.status || "-"}, detail=${result.detail || "-"}` });
+        if (stateRef.current.chatId === chatId) {
+          void messageApi.warning(t("composer.steer.rejected", { detail: result.detail || result.status || "unmatched" }));
+        }
+        return;
+      }
       dispatch({
         type: "APPEND_DEBUG",
         line: `[steer] submitted for chatId=${chatId}, runId=${steer.runId}, requestId=${steer.requestId}`,
       });
     } catch (error) {
-      dispatch({ type: "REMOVE_PENDING_STEER", steerId });
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[steer] failed: ${(error as Error).message}`,
-      });
-      restoreMessageToComposer(steer.message);
-      void messageApi.error(
-        t("composer.steer.failed", {
-          detail: (error as Error).message,
-        }),
-      );
-    } finally {
-      setSteerSubmitting(false);
+      // A lost response does not establish whether the server accepted the steer.
+      retainForConfirmation(error instanceof Error ? error.message : String(error));
     }
-  }, [
-    dispatch,
-    resolveCurrentOwner,
-    restoreMessageToComposer,
-    runs,
-    messageApi,
-    state.chatId,
-    state.planningMode,
-    state.pendingSteers,
-    steerSubmitting,
-    t,
-  ]);
+  }, [dispatch, resolveCurrentOwner, runs, messageApi, stateRef, t]);
 
   const handleCancelSteer = useCallback((steerId: string) => {
-    const steer = (state.pendingSteers[String(state.chatId || "")] || []).find((s) => s.steerId === steerId);
+    const currentState = stateRef.current;
+    const chatId = currentState.chatId;
+    const steer = findPendingSteer(currentState.pendingSteers, { chatId, steerId })?.steer;
     if (!steer) return;
-    dispatch({ type: "REMOVE_PENDING_STEER", steerId });
-    restoreMessageToComposer(steer.message);
-  }, [
-    dispatch,
-    restoreMessageToComposer,
-    state.pendingSteers,
-    state.chatId,
-  ]);
+    const runtime = resolveMainChatRuntime(currentState, activeQuerySessionRequestIdRef, querySessionsRef);
+    if (steer.status === "sending" && runtime.running) return;
+    dispatch({ type: "RESTORE_PENDING_STEER", chatId, runId: steer.runId, steerId });
+  }, [dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef]);
 
   const applyComposerDraft = useCallback(
     (draft: string) => {
@@ -752,7 +707,5 @@ export function useComposerSend(input: UseComposerSendInput) {
     pendingSentMessageRef,
     pendingSendRef,
     resetForNewConversation,
-    setSteerSubmitting,
-    steerSubmitting,
   };
 }

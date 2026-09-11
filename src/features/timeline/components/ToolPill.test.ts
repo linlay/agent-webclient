@@ -1,13 +1,17 @@
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
 	buildToolPillRecords,
+	buildToolPillCopyText,
 	canExpandToolPill,
+	claimToolOutputAutoExpand,
 	formatToolArgumentsInline,
 	formatToolDuration,
 	formatToolPillTitle,
 	getToolPillDurationText,
 	getExpandableToolPillRecords,
 	resolveKbaseIndexSummary,
+	shouldCollapseCompletedToolOutput,
+	shouldRenderToolOutputTerminal,
 } from "@/features/timeline/components/ToolPill";
 
 function createToolNode(
@@ -235,6 +239,102 @@ describe("ToolPill helpers", () => {
 		});
 		expect(canExpandToolPill(argsNode)).toBe(true);
 		expect(canExpandToolPill(resultNode)).toBe(true);
+	});
+
+	it("uses live output as details and auto-expands each tool only once", () => {
+		const node = createToolNode({
+			id: "tool_live",
+			kind: "tool",
+			ts: 100,
+			status: "running",
+			toolOutput: {
+				lastChunkIndex: 0,
+				truncated: false,
+				segments: [{ stream: "stdout", text: "scan qr\n" }],
+			},
+		});
+		const records = buildToolPillRecords(node);
+		const claimed = new Set<string>();
+
+		expect(records[0]).toMatchObject({
+			hasDetails: true,
+			toolOutput: node.toolOutput,
+		});
+		expect(canExpandToolPill(node)).toBe(true);
+		expect(claimToolOutputAutoExpand(records, claimed)).toBe(true);
+		// A manual collapse does not clear the claim, so later chunks for the
+		// same invocation cannot force the pill open again.
+		expect(claimToolOutputAutoExpand(records, claimed)).toBe(false);
+	});
+
+	it("collapses an auto-expanded live output after its final result replaces it", () => {
+		const liveRecords = buildToolPillRecords(
+			createToolNode({
+				id: "tool_live",
+				kind: "tool",
+				ts: 100,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 0,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "working\n" }],
+				},
+			}),
+		).filter((record) => Boolean(record.toolOutput));
+		const claimed = new Set<string>();
+
+		expect(claimToolOutputAutoExpand(liveRecords, claimed)).toBe(true);
+		expect(shouldCollapseCompletedToolOutput(liveRecords, claimed)).toBe(false);
+		expect(shouldCollapseCompletedToolOutput([], claimed)).toBe(true);
+	});
+
+	it("keeps an output-expanded group open while another live output remains", () => {
+		const claimed = new Set(["tool_1", "tool_2"]);
+		const remainingLiveRecords = buildToolPillRecords(
+			createToolNode({
+				id: "tool_2",
+				kind: "tool",
+				ts: 110,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 1,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "still working\n" }],
+				},
+			}),
+		).filter((record) => Boolean(record.toolOutput));
+
+		expect(
+			shouldCollapseCompletedToolOutput(remainingLiveRecords, claimed),
+		).toBe(false);
+	});
+
+	it("lets a final result replace even stale live terminal state", () => {
+		const liveRecord = buildToolPillRecords(
+			createToolNode({
+				id: "tool_live",
+				kind: "tool",
+				ts: 100,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 0,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "working\n" }],
+				},
+			}),
+		)[0];
+		const completedRecord = {
+			...liveRecord,
+			status: "success",
+			result: { text: "done\n", isCode: false },
+		};
+
+		expect(shouldRenderToolOutputTerminal(liveRecord)).toBe(true);
+		expect(shouldRenderToolOutputTerminal(completedRecord)).toBe(false);
+		expect(buildToolPillCopyText(liveRecord, "")).toBe("working\n");
+		expect(buildToolPillCopyText(completedRecord, "done\n")).toBe(
+			"\n\ndone\n",
+		);
 	});
 
 	it("keeps grouped pills collapsed when all records only have description", () => {

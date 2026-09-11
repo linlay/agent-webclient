@@ -1,3 +1,4 @@
+import styles from "./SelectedTextFragmentsPill.module.css";
 import React, { useMemo } from "react";
 import { Popover } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -13,6 +14,12 @@ export function removeAllSelectedTextFragments(
   }
 }
 
+
+function withModuleClasses(...classNames: string[]): string {
+  return [...classNames, ...classNames.map((name) => styles[name]).filter(Boolean)]
+    .filter(Boolean).join(" ");
+}
+
 export const SelectedTextFragmentsPill: React.FC<{
   fragments: readonly SelectedTextFragment[];
   variant: "annotations" | "segments";
@@ -25,10 +32,10 @@ export const SelectedTextFragmentsPill: React.FC<{
     if (onRemove) removeAllSelectedTextFragments(fragments, onRemove);
   }, [fragments, onRemove]);
   const content = useMemo(() => (
-    <div className="selected-text-fragments-popover">
+    <div className={withModuleClasses("selected-text-fragments-popover")}>
       {fragments.map((fragment, index) => (
-        <div className="selected-text-fragment-row" key={fragment.reference.id}>
-          <div className="selected-text-fragment-copy">
+        <div className={withModuleClasses("selected-text-fragment-row")} key={fragment.reference.id}>
+          <div className={withModuleClasses("selected-text-fragment-copy")}>
             <strong>{t("selection.fragment.item", { index: index + 1 })}</strong>
             <span>{fragment.reference.meta.text}</span>
           </div>
@@ -57,7 +64,7 @@ export const SelectedTextFragmentsPill: React.FC<{
     >
       <button
         type="button"
-        className={`selected-text-fragments-pill ${variant === "annotations" && onRemove ? "has-dismiss" : ""}`}
+        className={withModuleClasses("selected-text-fragments-pill", variant === "annotations" && onRemove ? "has-dismiss" : "")}
       >
         <MaterialIcon name="question_answer" />
         <span>{t(
@@ -71,11 +78,11 @@ export const SelectedTextFragmentsPill: React.FC<{
   );
   if (variant !== "annotations" || !onRemove) return pill;
   return (
-    <span className="selected-text-fragments-pill-wrap">
+    <span className={withModuleClasses("selected-text-fragments-pill-wrap")}>
       {pill}
       <button
         type="button"
-        className="selected-text-fragments-pill-dismiss"
+        className={withModuleClasses("selected-text-fragments-pill-dismiss")}
         aria-label={t("selection.fragment.removeAnnotations")}
         title={t("selection.fragment.removeAnnotations")}
         onClick={handleDismissAnnotations}

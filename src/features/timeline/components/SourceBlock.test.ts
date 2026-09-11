@@ -1,6 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { SourceBlock } from "@/features/timeline/components/SourceBlock";
 import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
 import { I18nProvider } from "@/shared/i18n";

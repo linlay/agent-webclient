@@ -1,8 +1,9 @@
 import React from "react";
-import type { TimelineAttachment } from "@/app/state/types";
+import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
+import styles from "./ReferenceCard.module.css";
 
 interface ReferenceCardProps {
   reference: TimelineAttachment;
@@ -13,6 +14,13 @@ interface ReferenceCardProps {
 
 function referenceIcon(type: string): MaterialIconName {
   return type === "chat" ? "question_answer" : "open_in_new";
+}
+
+function withModuleClasses(...classNames: string[]): string {
+  return [
+    ...classNames,
+    ...classNames.map((className) => styles[className]).filter(Boolean),
+  ].filter(Boolean).join(" ");
 }
 
 export const ReferenceCard: React.FC<ReferenceCardProps> = ({
@@ -27,28 +35,29 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
     type === "chat"
       ? t("composer.reference.kind.chat")
       : t("composer.reference.kind.site");
-  const classes = [
+  const semanticClasses = [
     "context-reference-card",
     `context-reference-card-${variant}`,
     `context-reference-card-${density}`,
     `is-${type}`,
-  ].join(" ");
+  ];
+  const classes = withModuleClasses(...semanticClasses);
 
   return (
     <div className={classes} data-reference-type={type}>
-      <span className="context-reference-card-icon" aria-hidden="true">
+      <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
         <MaterialIcon name={referenceIcon(type)} />
       </span>
-      <span className="context-reference-card-copy">
-        <span className="context-reference-card-title" title={reference.name}>
+      <span className={withModuleClasses("context-reference-card-copy")}>
+        <span className={withModuleClasses("context-reference-card-title")} title={reference.name}>
           {reference.name}
         </span>
-        <span className="context-reference-card-subtitle">{subtitle}</span>
+        <span className={withModuleClasses("context-reference-card-subtitle")}>{subtitle}</span>
       </span>
       {onRemove ? (
         <button
           type="button"
-          className="context-reference-card-remove"
+          className={withModuleClasses("context-reference-card-remove")}
           onClick={onRemove}
           aria-label={t("composer.reference.remove", {
             name: reference.name,

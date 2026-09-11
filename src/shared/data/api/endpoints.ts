@@ -3,29 +3,31 @@ import {
   createEndpointRegistry,
   defineEndpoint,
 } from "@/shared/data/api/endpointRegistry";
+import type { ArchivesRequest } from "@/shared/data/api/dto/archives";
 import type {
-  ArchivesRequest,
   AttachStreamParams,
-  DeriveChatRequest,
-  GetAgentsOptions,
-  GetChatsOptions,
-  AgentFileRequest,
-  DocumentCommitRequest,
-  ProjectChangesRequest,
-  ProjectDiffRequest,
-  ProjectTreeRequest,
-  ChatSystemPromptRequest,
-  GetMemoryRecordsParams,
   AccessLevelUpdateParams,
-  AdminSourceTarget,
   BackgroundCommandParams,
   CompactChatParams,
   QueryLikeParams,
-  QueryModelOverride,
-  QueryServiceTier,
+  SteerParams,
   QueryStreamParams,
   BTWStreamParams,
-} from "@/shared/data/api/client";
+} from "@/shared/data/api/dto/commands";
+import type { DeriveChatRequest, GetChatsOptions, ChatSystemPromptRequest } from "@/shared/data/api/dto/chats";
+import type { GetAgentsOptions } from "@/shared/data/api/dto/agents";
+import type {
+  AgentFileRequest,
+  DocumentCommitRequest,
+  DocumentPreviewRequest,
+  ProjectChangesRequest,
+  ProjectDiffRequest,
+  ProjectTreeRequest,
+} from "@/shared/data/api/dto/resources";
+import type { GetMemoryRecordsParams } from "@/shared/data/memory/memoryTypes";
+import type { AdminSourceTarget } from "@/shared/data/api/dto/admin";
+import type { ConnectorDefinitionTarget } from "@/shared/data/api/dto/connectors";
+import type { QueryModelOverride, QueryServiceTier } from "@/shared/data/api/dto/models";
 import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import { runOwnerPayload } from "@/shared/data/runOwner";
 
@@ -39,12 +41,13 @@ type RunSubmitParams = {
   params: unknown;
 };
 
-export function buildRunControlPayload(options: QueryLikeParams): Record<string, unknown> {
+export function buildRunControlPayload(options: QueryLikeParams & { references?: unknown[] }): Record<string, unknown> {
   return compactPayload({
     requestId: options.requestId,
     chatId: options.chatId,
     runId: options.runId,
     steerId: options.steerId,
+    references: options.references,
     ...runOwnerPayload(options.owner),
     message: options.message,
   });
@@ -231,6 +234,19 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     payload: (agentKey: string) => ({ agentKey }),
   }),
+  adminAgentConnectors: defineEndpoint({
+    key: "admin.agents.connectors",
+    path: "/api/admin/agents/connectors",
+    method: "GET",
+    transport: "http",
+    payload: (agentKey: string) => ({ agentKey }),
+  }),
+  adminAgentConnectorUpdate: defineEndpoint({
+    key: "admin.agents.connectors.update",
+    path: "/api/admin/agents/connectors",
+    method: "PUT",
+    transport: "http",
+  }),
   adminSource: defineEndpoint({
     key: "admin.source",
     path: "/api/admin/source",
@@ -263,12 +279,6 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     cache: { ttlMs: 60_000, dedupe: true },
   }),
-  adminAgentOrder: defineEndpoint({
-    key: "admin.agents.order",
-    path: "/api/admin/agents/order",
-    method: "GET",
-    transport: "http",
-  }),
   adminAgentOrderUpdate: defineEndpoint({
     key: "admin.agents.order.update",
     path: "/api/admin/agents/order",
@@ -300,19 +310,85 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
-  adminServices: defineEndpoint({
-    key: "admin.services.list",
-    path: "/api/admin/services",
+  adminConnectors: defineEndpoint({
+    key: "admin.connectors.list",
+    path: "/api/admin/connectors",
     method: "GET",
     transport: "http",
   }),
-  adminRegistryDetail: defineEndpoint({
-    key: "admin.registries.detail",
-    path: "/api/admin/registries/detail",
+  connectorIcon: defineEndpoint({
+    key: "connectors.icon",
+    path: "/api/connectors/icon",
+    method: "GET",
+    transport: "resource",
+  }),
+  adminConnectorDetail: defineEndpoint({
+    key: "admin.connectors.detail",
+    path: "/api/admin/connectors/detail",
     method: "GET",
     transport: "http",
-    payload: (params: { category: string; file: string }) =>
-      compactPayload(params),
+    payload: (target: ConnectorDefinitionTarget) => ({ id: target.id, file: target.file }),
+  }),
+  adminConnectorUpdate: defineEndpoint({
+    key: "admin.connectors.update",
+    path: "/api/admin/connectors/detail",
+    method: "PUT",
+    transport: "http",
+  }),
+  adminConnectorDelete: defineEndpoint({
+    key: "admin.connectors.delete",
+    path: "/api/admin/connectors/detail",
+    method: "DELETE",
+    transport: "http",
+    payload: (id: string) => ({ id }),
+  }),
+  adminConnectorImport: defineEndpoint({
+    key: "admin.connectors.import",
+    path: "/api/admin/connectors/import",
+    method: "POST",
+    transport: "http",
+  }),
+  adminConnectorSkills: defineEndpoint<{ id: string }, { id: string }>({
+    key: "admin.connectors.skills",
+    path: "/api/admin/connectors/skills",
+    method: "GET",
+    transport: "http",
+    payload: ({ id }) => ({ id }),
+  }),
+  adminConnectorSkillDetail: defineEndpoint<{ id: string; name: string }, { id: string; name: string }>({
+    key: "admin.connectors.skills.detail",
+    path: "/api/admin/connectors/skills/detail",
+    method: "GET",
+    transport: "http",
+    payload: ({ id, name }) => ({ id, name }),
+  }),
+  adminConnectorAuthStatus: defineEndpoint({
+    key: "admin.connectors.auth.status",
+    path: "/api/admin/connectors/auth",
+    method: "GET",
+    transport: "http",
+    payload: (id: string) => ({ id }),
+  }),
+  adminConnectorAuthStart: defineEndpoint({
+    key: "admin.connectors.auth.start",
+    path: "/api/admin/connectors/auth",
+    method: "POST",
+    transport: "http",
+    payload: (id: string) => ({ id }),
+  }),
+  adminConnectorAuthCancel: defineEndpoint({
+    key: "admin.connectors.auth.cancel",
+    path: "/api/admin/connectors/auth/cancel",
+    method: "POST",
+    transport: "http",
+    payload: (id: string) => ({ id }),
+  }),
+  adminConnectorAuthLogout: defineEndpoint({
+    key: "admin.connectors.auth.logout",
+    path: "/api/admin/connectors/auth",
+    method: "DELETE",
+    transport: "http",
+    payload: (id: string) => ({ id }),
   }),
   adminRegistryValidate: defineEndpoint({
     key: "admin.registries.validate",
@@ -338,22 +414,6 @@ export const dataEndpoints = createEndpointRegistry({
       key: params.key,
       ...(params.openPath ? { openPath: params.openPath } : {}),
     }),
-  }),
-  adminSkillFile: defineEndpoint<
-    { key: string; path: string },
-    { key: string; path: string }
-  >({
-    key: "admin.skills.file",
-    path: "/api/admin/skills/file",
-    method: "GET",
-    transport: "http",
-    payload: (params) => ({ key: params.key, path: params.path }),
-  }),
-  adminSkillSaveFile: defineEndpoint({
-    key: "admin.skills.saveFile",
-    path: "/api/admin/skills/file",
-    method: "PUT",
-    transport: "http",
   }),
   adminSkillCreateFile: defineEndpoint({
     key: "admin.skills.createFile",
@@ -441,6 +501,12 @@ export const dataEndpoints = createEndpointRegistry({
     cache: { ttlMs: 30_000, dedupe: true },
     payload: (agentKey) => ({ agentKey }),
   }),
+  agentSkillIcon: defineEndpoint({
+    key: "agent.skill.icon",
+    path: "/api/skills/icon",
+    method: "GET",
+    transport: "http",
+  }),
   agentSkills: defineEndpoint<string, { agentKey: string }>({
     key: "agent.skills",
     path: "/api/skills",
@@ -449,6 +515,34 @@ export const dataEndpoints = createEndpointRegistry({
     wsBackends: PLATFORM_WS_BACKENDS,
     cache: { ttlMs: 30_000, dedupe: true },
     payload: (agentKey) => ({ agentKey: String(agentKey || "").trim() }),
+  }),
+  connectorOrder: defineEndpoint({
+    key: "connectors.order",
+    path: "/api/connectors/order",
+    method: "GET",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
+  connectorOrderUpdate: defineEndpoint({
+    key: "connectors.order.update",
+    path: "/api/connectors/order",
+    method: "PUT",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
+  skillOrder: defineEndpoint({
+    key: "skills.order",
+    path: "/api/skills/order",
+    method: "GET",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
+  skillOrderUpdate: defineEndpoint({
+    key: "skills.order.update",
+    path: "/api/skills/order",
+    method: "PUT",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   agentModelConfig: defineEndpoint({
     key: "agent.modelConfig.update",
@@ -485,6 +579,7 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (options = {}) =>
       compactPayload({
         includeChats: options.includeChats,
+        chatsPinned: options.chatsPinned,
         includeTeam: options.includeTeam,
         scope: options.scope,
         mode: options.mode,
@@ -686,6 +781,20 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
+  chatOrder: defineEndpoint({
+    key: "chats.order",
+    path: "/api/chats/order",
+    method: "GET",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
+  chatOrderUpdate: defineEndpoint({
+    key: "chats.order.update",
+    path: "/api/chats/order",
+    method: "PUT",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+  }),
   chats: defineEndpoint<GetChatsOptions, Record<string, unknown>>({
     key: "chats.list",
     path: "/api/chats",
@@ -697,6 +806,8 @@ export const dataEndpoints = createEndpointRegistry({
       compactPayload({
         agentKey: options.agentKey,
         mode: options.mode,
+        pinned: options.pinned,
+        limit: options.limit,
       }),
   }),
   compact: defineEndpoint<CompactChatParams, Record<string, unknown>>({
@@ -761,6 +872,14 @@ export const dataEndpoints = createEndpointRegistry({
         path: params.path,
         encoding: params.encoding,
       }),
+  }),
+  documentPreviewCapabilities: defineEndpoint<Record<string, never>, Record<string, never>>({
+    key: "document.preview.capabilities", path: "/api/document/preview/capabilities", method: "GET", transport: "http",
+    payload: (params) => params,
+  }),
+  documentPreview: defineEndpoint<DocumentPreviewRequest, DocumentPreviewRequest>({
+    key: "document.preview", path: "/api/document/preview", method: "POST", transport: "http",
+    payload: (params) => params,
   }),
   documentCommit: defineEndpoint<DocumentCommitRequest, DocumentCommitRequest>({
     key: "document.commit",
@@ -923,7 +1042,7 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
-  steer: defineEndpoint<QueryLikeParams, Record<string, unknown>>({
+  steer: defineEndpoint<SteerParams, Record<string, unknown>>({
     key: "runs.steer",
     path: "/api/steer",
     method: "POST",
@@ -994,6 +1113,14 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/upload",
     method: "POST",
     transport: "http",
+  }),
+  view: defineEndpoint<import("@/shared/contracts/view").ViewRequest>({
+    key: "view.detail",
+    path: "/api/view",
+    method: "GET",
+    transport: "auto",
+    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
+    payload: (params) => ({ ...params }),
   }),
   viewport: defineEndpoint<string, { viewportKey: string }>({
     key: "viewport.detail",

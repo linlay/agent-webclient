@@ -1,9 +1,9 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { Agent } from "@/app/state/types";
+import type { Agent } from "@/features/agents/lib/agentState";
 import {
   agentSummaryFromModelConfig,
-  buildModelMenuItems,
+  
   buildPersistedModelConfigOverride,
   clearCoderModelOptionsCacheForTest,
   getCachedCoderModelOptions,
@@ -18,6 +18,7 @@ import {
   shouldRetryModelOptionsOnOpen,
   toAgentConfigKey,
 } from "@/features/composer/components/QuerySettingsControls";
+import { buildModelMenuItems } from "@/features/model-config/components/ModelMenuPresenter";
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppContext: jest.fn(() => ({ state: { agents: [] }, dispatch: jest.fn() })),

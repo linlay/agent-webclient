@@ -1,15 +1,10 @@
-import type {
-  ActiveAwaiting,
-  AgentEvent,
-  FileChangeSummary,
-  PublishedArtifact,
-  TimelineNode,
-  Plan,
-  PlanRuntime,
-  TaskItemMeta,
-  ToolState,
-  TtsVoiceBlock,
-} from '@/app/state/types';
+import type { ActiveAwaiting, ToolState } from "@/features/tools/lib/toolsState";
+import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
+import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
+import type { TimelineNode, TtsVoiceBlock } from "@/features/timeline/lib/timelineState";
+import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
+import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import {
   cloneActiveAwaiting,
   cloneActiveAwaitingQueue,
@@ -387,6 +382,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         id: command.nodeId,
         kind: 'message',
         role: 'system',
+        systemMessageLevel: command.cmd === 'SYSTEM_ERROR' ? 'error' : 'info',
         text: command.text,
         ...(command.cmd === 'SYSTEM_ERROR' && command.errorDetail
           ? { errorDetail: command.errorDetail }

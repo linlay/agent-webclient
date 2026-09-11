@@ -99,45 +99,11 @@ function normalizeIdentityText(value: unknown): string {
   return String(value || "").trim().toLowerCase();
 }
 
-function getModelFallbackIdentityText(model: ModelIdentity): string {
-  return [model.name, model.modelId, model.key]
-    .map(normalizeIdentityText)
-    .filter(Boolean)
-    .join(" ");
-}
-
-function resolveModelIconFamilyFromText(identity: string): ModelIconFamily {
-  if (identity.includes("glm")) return "glm";
-  if (identity.includes("claude") || identity.includes("opus")) {
-    return "claude";
-  }
-  if (identity.includes("chatgpt") || identity.includes("gpt")) {
-    return "chatgpt";
-  }
-
-  if (identity.includes("gemini")) return "gemini";
-  if (identity.includes("kimi")) return "kimi";
-  if (identity.includes("qwen")) return "qwen";
-  if (identity.includes("deepseek") || /\bds\s*v\d/.test(identity)) {
-    return "deepseek";
-  }
-  if (identity.includes("grok")) return "grok";
-  if (identity.includes("mimo")) return "mimo";
-  if (identity.includes("minimax") || /\bmax\s*m\d/.test(identity)) {
-    return "minimax";
-  }
-  if (identity.includes("step")) return "step";
-  if (identity.includes("bge")) return "bge";
-
-  return "default";
-}
-
 export function resolveModelIconFamily(model: ModelIdentity): ModelIconFamily {
-  const iconFamily = resolveModelIconFamilyFromText(
-    normalizeIdentityText(model.icon),
-  );
-  if (iconFamily !== "default") return iconFamily;
-  return resolveModelIconFamilyFromText(getModelFallbackIdentityText(model));
+  const icon = normalizeIdentityText(model.icon);
+  return Object.prototype.hasOwnProperty.call(iconByFamily, icon)
+    ? icon as ModelIconFamily
+    : "default";
 }
 
 export function getModelProviderLabel(

@@ -1,6 +1,6 @@
 import React from "react";
 import { Flex } from "antd";
-import type { TimelineNode } from "@/app/state/types";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import {
   formatAttachmentSize,
@@ -25,6 +25,10 @@ import { PlanningTimeline } from "./planning";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
+import type { AgentSkill } from "@/shared/data/api/client";
+import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
+import { SteerIcon } from "@/features/runs/components/SteerIcon";
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -36,7 +40,10 @@ interface TimelineRowProps {
   toolGroup?: ToolGroupRenderEntry;
   showTime?: boolean;
   metaNode?: React.ReactNode;
+  skills?: readonly AgentSkill[];
 }
+
+const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 const TIMELINE_ROW_BASE_CLASS_NAME = "timeline-row tw:relative";
 const TIMELINE_ROW_USER_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
@@ -59,6 +66,7 @@ const NODE_ICON_CLASS_BY_KIND: Record<string, string> = {
   content: "node-icon-content tw:text-accent-lime",
   source: "node-icon-source tw:text-accent-electric-strong",
   alert: "node-icon-alert tw:text-accent-danger",
+  info: "node-icon-info tw:text-ink-muted",
   assistant: "node-icon-assistant tw:text-accent-electric",
 };
 const TIMELINE_FLOW_CONTENT_CLASS_NAME =
@@ -68,7 +76,7 @@ const TIMELINE_CONTENT_FLOW_CLASS_NAME =
 const TIMELINE_SOURCE_FLOW_CLASS_NAME =
   "tw:w-[min(100%,760px)] tw:max-w-[760px]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
-  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[10px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 const TIMELINE_COMMAND_LABEL_CLASS_NAME =
   "timeline-command-label tw:mt-[9px] tw:font-code tw:text-[11px] tw:font-bold tw:leading-none tw:tracking-[0.06em] tw:text-accent-electric-strong tw:uppercase tw:empty:hidden";
 
@@ -151,10 +159,6 @@ export function formatTimelineTime(
   };
 }
 
-export const SteerIcon: React.FC = () => {
-  return <MaterialIcon name="reply" />;
-};
-
 function isCommandMessageVariant(
   variant?: TimelineNode["messageVariant"],
 ): variant is "steer" | "remember" | "learn" {
@@ -197,7 +201,8 @@ const NodeIcon: React.FC<{
   kind: string;
   role?: string;
   messageVariant?: TimelineNode["messageVariant"];
-}> = ({ kind, role, messageVariant }) => {
+  systemMessageLevel?: TimelineNode["systemMessageLevel"];
+}> = ({ kind, role, messageVariant, systemMessageLevel }) => {
   if (isCommandMessageVariant(messageVariant)) {
     return (
       <span className={NODE_ICON_STEER_CLASS_NAME}>
@@ -232,8 +237,9 @@ const NodeIcon: React.FC<{
       break;
     default:
       if (role === "system") {
-        className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.alert}`;
-        iconName = "warning";
+        const isInfo = systemMessageLevel === "info";
+        className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND[isInfo ? "info" : "alert"]}`;
+        iconName = isInfo ? "info" : "warning";
       } else {
         className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.assistant}`;
         iconName = "smart_toy";
@@ -252,9 +258,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   toolGroup,
   showTime = false,
   metaNode,
+  skills,
 }) => {
   const { locale, t } = useI18n();
+  const activeAgentSkills = skills ?? EMPTY_AGENT_SKILLS;
   const openTarget = useOpenTarget();
+  const interaction = useTimelineInteraction();
+  const surfaceContext = interaction?.surfaceContext;
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
   const taskID =
@@ -336,6 +346,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                       t,
                       hasMultipleAttachments,
                     )}
+                    surfaceContext={surfaceContext}
                   />
                 ),
               )}
@@ -343,30 +354,33 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           )}
           {node.mustUseSkills && node.mustUseSkills.length > 0 && (
             <Flex wrap gap={4} justify="flex-end">
-              {node.mustUseSkills.map((key) => (
-                <UiButton
-                  key={key.toLowerCase()}
-                  variant="ghost"
-                  className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
-                  size="sm"
-                  onClick={() =>
-                    openTarget({
-                      version: 1,
-                      kind: "skill",
-                      key,
-                      label: key,
-                    })
-                  }
-                >
-                  <Flex gap={4} align="center">
-                    <MaterialIcon
-                      name="skills"
-                      className="tw:text-accent tw:text-[14px]"
-                    />
-                    <span className="tw:text-text-sub">{key}</span>
-                  </Flex>
-                </UiButton>
-              ))}
+              {node.mustUseSkills.map((key) => {
+                const label = resolveSkillDisplayName(activeAgentSkills, key);
+                return (
+                  <UiButton
+                    key={key.toLowerCase()}
+                    variant="ghost"
+                    className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
+                    size="sm"
+                    onClick={() =>
+                      openTarget({
+                        version: 1,
+                        kind: "skill",
+                        key,
+                        label,
+                      })
+                    }
+                  >
+                    <Flex gap={4} align="center">
+                      <MaterialIcon
+                        name="skills"
+                        className="tw:text-accent tw:text-[14px]"
+                      />
+                      <span className="tw:text-text-sub">{label}</span>
+                    </Flex>
+                  </UiButton>
+                );
+              })}
             </Flex>
           )}
           {hasText && <UserBubble text={node.text || ""} targetId={node.id} />}
@@ -402,6 +416,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
             {getCommandMessageLabel(node.messageVariant)}
           </div>
+          <div className="tw:flex tw:flex-wrap tw:gap-1">
+            {(node.attachments || []).map((attachment, index) => (
+              <AttachmentCard key={attachment.id || index} attachment={attachment} variant="timeline" surfaceContext={surfaceContext} />
+            ))}
+          </div>
           <UserBubble
             text={node.text || ""}
             targetId={node.id}
@@ -413,7 +432,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
     );
   }
 
-  /* System alerts */
+  /* System messages */
   if (node && node.kind === "message" && node.role === "system") {
     return (
       <div
@@ -424,10 +443,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="message" role="system" />
+          <NodeIcon kind="message" role="system" systemMessageLevel={node.systemMessageLevel} />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           <SystemAlert
+            level={node.systemMessageLevel}
             text={node.text || ""}
             tooltip={node.tooltip}
             errorDetail={node.errorDetail}

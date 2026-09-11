@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import { useAppContext } from "@/app/state/AppContext";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import type { RunOwner } from "@/shared/data/runOwner";
 import {
@@ -103,6 +103,8 @@ function activateMainChatRun(
 	decision: Extract<MainChatRunActivationDecision, { shouldActivate: true }>,
 	pathname: string,
 ): void {
+  const transition = options.stateRef.current.chatTransition;
+  if (transition && transition.phase !== "ready") return;
 	const observation = resolveActiveObservation(options, decision, pathname);
 	if (observation.blocked) {
 		dispatchRunAttachDebugEvent(options.dispatch, {
@@ -130,6 +132,7 @@ function activateMainChatRun(
 	options.handledRunKeysRef.current.add(key);
 
 	if (decision.switchChat) {
+		options.dispatch({ type: "CLEAR_CHAT_TRANSITION" });
 		options.dispatch({ type: "SET_CHAT_ID", chatId: decision.chatId });
 		options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
 		if (

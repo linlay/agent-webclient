@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
-import {
-  isAwaitingAnswerLike,
-  isAwaitingAskLike,
-  type AgentEvent,
-  type AIUsageSnapshotEvent,
-  type AppState,
-  type UiTimerHandle,
-} from "@/app/state/types";
-import type { TimelineNode } from "@/app/state/timelineTypes";
+import { isAwaitingAnswerLike, isAwaitingAskLike } from "@/shared/contracts/agentEvents";
+import type { AgentEvent, AIUsageSnapshotEvent } from "@/shared/contracts/agentEvents";
+import type { AppState } from "@/app/state/AppContext";
+import type { UiTimerHandle } from "@/shared/contracts/ui";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/lib/chatSummaryLive";
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
-import { isPlanViewEventType } from "@/features/plan/lib/planViewEvents";
+import { isPlanViewEventType } from "@/features/events/lib/planViewEvents";
 import {
   readEventTeamId,
   readRequestQueryText,
-} from "@/shared/utils/eventFieldReaders";
+  readSteerConfirmation,
+} from "@/features/events/lib/eventFields";
 import { isTerminalStatus, toText } from "@/shared/utils/eventUtils";
 import {
   ARTIFACT_AUTO_COLLAPSE_MS,
@@ -68,7 +65,6 @@ export {
   createLocalCacheFromState,
   shouldSyncLiveCache,
 } from "@/features/conversation/lib/liveEventCache";
-export { findMatchingPendingSteer } from "@/features/conversation/lib/liveEventDispatch";
 
 export function buildAwaitingPlanningModeAction(input: {
   event: AgentEvent;
@@ -313,6 +309,15 @@ export function useConversationEventHandler(): {
       const state = stateRef.current;
       let cache = cacheRef.current;
       const type = toText(event.type);
+      const steerConfirmation = readSteerConfirmation(event);
+      if (steerConfirmation) {
+        dispatch({ type: "CONFIRM_PENDING_STEER", ...steerConfirmation });
+      }
+      const targetChatId = state.chatTransition?.targetChatId || state.chatId;
+      // Background sessions retain their own events; this sink only projects
+      // the selected conversation. A late source event must not switch it back.
+      if (targetChatId && event.chatId && toText(event.chatId) !== targetChatId) return;
+      if (state.chatTransition?.phase === "error" && state.chatTransition.targetChatId !== state.chatId) return;
       const mainRuntime = resolveMainChatRuntime(
         stateRef,
         activeQuerySessionRequestIdRef,
@@ -375,6 +380,25 @@ export function useConversationEventHandler(): {
             agentKey: runAgentBinding.agentKey,
           });
           cache.agentKey = runAgentBinding.agentKey;
+        }
+      }
+
+      if (type === "context.compact.complete") {
+        const tokens = Number(event.postCompactEstimatedTokens);
+        const previous = state.usageSnapshot;
+        const sameRun = !event.runId || !previous?.runId || event.runId === previous.runId || event.scope === "history";
+        const duplicate = state.events.some((old) => old.type === type && old.compactId && old.compactId === event.compactId);
+        const newerUsage = Number(previous?.timestamp || 0) > Number(event.timestamp || 0);
+        if (Number.isFinite(tokens) && tokens >= 0 && sameRun && !duplicate && !newerUsage) {
+          dispatch({
+            type: "SET_USAGE_SNAPSHOT",
+            snapshot: {
+              ...previous, type: "usage.snapshot" as AIUsageSnapshotEvent["type"],
+              chatId: eventChatId, runId: toText(event.runId) || previous?.runId || "",
+              timestamp: event.timestamp, seq: event.seq,
+              contextWindow: { ...previous?.contextWindow, currentSize: tokens, estimatedNextCallSize: tokens },
+            },
+          });
         }
       }
 
@@ -501,7 +525,6 @@ export function useConversationEventHandler(): {
           });
           return;
         }
-        dispatch({ type: "REMOVE_PENDING_STEER", steerId });
       }
 
       const previousActiveReasoningKey =

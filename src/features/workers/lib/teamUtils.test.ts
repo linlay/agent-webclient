@@ -1,4 +1,4 @@
-import type { Team } from '@/app/state/types';
+import type { Team } from "@/features/workers/lib/workerState";
 import { readTeamAgentKeys } from '@/features/workers/lib/teamUtils';
 
 describe('readTeamAgentKeys', () => {

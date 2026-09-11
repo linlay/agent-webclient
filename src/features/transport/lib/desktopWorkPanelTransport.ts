@@ -6,8 +6,8 @@ import type {
   WorkPanelOpenDocumentResult,
   WorkPanelOpenResourceInput,
   WorkPanelOpenResourceResult,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
-import { AGENT_WEBCLIENT_BRIDGE_VERSION } from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
+import { AGENT_WEBCLIENT_BRIDGE_VERSION } from "@/shared/contracts/generated/agentWebclientBridge";
 import { fromDesktopBridgeError } from "@/features/transport/contracts/realtimeTransportErrors";
 import { supportsDesktopNativeDocument, supportsDesktopNativeResource } from "@/features/transport/lib/desktopBridge";
 import { t } from "@/shared/i18n";

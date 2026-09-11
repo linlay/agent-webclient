@@ -1,3 +1,15 @@
+export interface GetMemoryRecordsParams {
+  agentKey?: string;
+  keyword?: string;
+  kind?: string;
+  scopeType?: string;
+  status?: string;
+  category?: string;
+  limit?: number;
+  cursor?: string;
+  chatId?: string;
+}
+
 export interface MemoryRecordListItem {
   id: string;
   requestId?: string;

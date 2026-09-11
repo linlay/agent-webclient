@@ -1,4 +1,5 @@
-import type { Chat } from '@/app/state/types';
+import type { Chat } from "@/features/chats/lib/chatState";
+import { mergeChatReadState } from '@/features/chats/lib/chatReadState';
 
 export type ChatSummaryPatch = Partial<Chat> & Pick<Chat, 'chatId'>;
 
@@ -14,13 +15,35 @@ export function mergeChatSummary(
     ...(existing || {}),
     chatId: patch.chatId,
   };
+	const incomingIsOlder =
+		typeof existing?.updatedAt === 'number' &&
+		typeof patch.updatedAt === 'number' &&
+		patch.updatedAt < existing.updatedAt;
 
   for (const [key, value] of Object.entries(patch)) {
-    if (key === 'chatId' || !hasOwn(patch, key) || value === undefined) {
+    if (
+		key === 'chatId' ||
+		key === 'read' ||
+		!hasOwn(patch, key) ||
+		value === undefined ||
+		(incomingIsOlder && ['updatedAt', 'lastRunId', 'lastRunContent'].includes(key))
+	) {
       continue;
     }
     next[key] = value;
   }
+
+	const read = mergeChatReadState({
+		existing: existing?.read,
+		incoming: patch.read,
+		existingLastRunId: existing?.lastRunId,
+		incomingLastRunId: patch.lastRunId,
+		existingUpdatedAt: existing?.updatedAt,
+		incomingUpdatedAt: patch.updatedAt,
+	});
+	if (read) {
+		next.read = read;
+	}
 
   if (next.owner?.kind === 'orchestrated-team' || next.teamId) {
     // Team-owned chats may retain an old agentKey in persisted data.  It is

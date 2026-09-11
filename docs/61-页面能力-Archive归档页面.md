@@ -3,6 +3,8 @@
 ## 当前状态
 Archive 页面由 `/archives` 和 `/archives/:chatId` 路由进入，页面入口是 `src/app/pages/archives/index.tsx`，主体复用 `ArchiveConsole`。它面向归档对话列表、搜索、详情预览、恢复、删除和批量归档操作。
 
+Archive 是独立 `features/archive` 领域，不归 Settings。现有组件/runtime/view-model 分层保持不变：Console 负责编排，List/Detail Pane 负责展示，`useArchiveRuntime` 负责加载与写操作，`archiveViewModel` 保持 React-free。
+
 ## 核心职责
 - 展示归档对话列表，并支持按 agentKey 过滤和加载更多。
 - 支持归档搜索、详情读取、事件摘要预览和原始消息开关。
@@ -15,11 +17,16 @@ Archive 页面由 `/archives` 和 `/archives/:chatId` 路由进入，页面入�
 ## 边界与非目标
 - 归档索引、归档存储和恢复语义由后端负责。
 - Archive 页面不维护 Memory records，也不调度 Automation。
+- `/archives` 路由名称和后端 archive API 保持不变。
 - 前端只展示归档详情和操作结果，不修复归档数据内容。
 
 ## 相关文件
 - `../src/app/pages/archives/index.tsx`
-- `../src/features/settings/components/ArchiveConsole.tsx`
+- `../src/features/archive/components/ArchiveConsole.tsx`
+- `../src/features/archive/components/ArchiveListPane.tsx`
+- `../src/features/archive/components/ArchiveDetailPane.tsx`
+- `../src/features/archive/hooks/useArchiveRuntime.ts`
+- `../src/features/archive/lib/archiveViewModel.ts`
 - `../src/shared/data/api/client.ts`
 - `../src/shared/data/api/routedClient.ts`
 - `../src/shared/data/api/endpoints.ts`

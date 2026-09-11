@@ -1,4 +1,5 @@
-import type { Chat, WorkerConversationRow, WorkerRow } from '@/app/state/types';
+import type { Chat } from "@/features/chats/lib/chatState";
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { isChatActiveRun } from '@/features/chats/lib/chatRunState';
 import { normalizeChatReadState } from '@/features/chats/lib/chatReadState';
 import { toText } from '@/shared/utils/eventUtils';
@@ -40,24 +41,7 @@ export function buildWorkerConversationRows(input: { chats: Chat[]; worker: Work
   return matchedChats
     .slice()
     .sort(compareChatFreshness)
-    .map((chat) => {
-      const read = normalizeChatReadState(chat?.read);
-      return {
-        chatId: toText(chat?.chatId),
-        chatName: toText(chat?.chatName),
-        agentKey: toText(chat?.agentKey || chat?.firstAgentKey) || undefined,
-        teamId: toText(chat?.teamId) || undefined,
-        source: toText(chat?.source) || undefined,
-        updatedAt: normalizeUpdatedAt(chat?.updatedAt),
-        lastRunId: toText(chat?.lastRunId),
-        lastRunContent: toText(chat?.lastRunContent),
-        read,
-        isRead: read?.isRead ?? true,
-        hasPendingAwaiting: Boolean(chat?.hasPendingAwaiting),
-        awaitingMode: (chat as any)?.awaiting?.mode || undefined,
-        hasActiveRun: isChatActiveRun(chat),
-      };
-    })
+    .map(toWorkerConversationRow)
     .filter((row) => row.chatId);
 }
 
@@ -73,4 +57,24 @@ export function buildSelectedWorkerConversationRows(input: {
     chats: input.chats,
     worker: selectedWorker,
   });
+}
+
+export function toWorkerConversationRow(chat: Chat): WorkerConversationRow {
+  const read = normalizeChatReadState(chat?.read);
+  return {
+    ...(chat.pinned ? { pinned: true } : {}),
+    chatId: toText(chat?.chatId),
+    chatName: toText(chat?.chatName),
+    agentKey: toText(chat?.agentKey || chat?.firstAgentKey) || undefined,
+    teamId: toText(chat?.teamId) || undefined,
+    source: toText(chat?.source) || undefined,
+    updatedAt: normalizeUpdatedAt(chat?.updatedAt),
+    lastRunId: toText(chat?.lastRunId),
+    lastRunContent: toText(chat?.lastRunContent),
+    read,
+    isRead: read?.isRead ?? true,
+    hasPendingAwaiting: Boolean(chat?.hasPendingAwaiting),
+    awaitingMode: (chat as any)?.awaiting?.mode || undefined,
+    hasActiveRun: isChatActiveRun(chat),
+  };
 }

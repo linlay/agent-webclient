@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import type { MutableRefObject } from "react";
-import type { AppState } from "@/app/state/types";
+import type { AppState } from "@/app/state/AppContext";
 import { ReadyCuePlayer } from "@/features/voice/lib/voiceChatAudio";
 import {
 	createVoiceAudioCaptureState,

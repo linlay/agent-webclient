@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
-import type { TimelineSource } from "@/app/state/types";
+import type { TimelineSource } from "@/features/timeline/lib/timelineState";
 import { classifyResourceUrl } from "@/shared/data";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
@@ -16,7 +16,7 @@ import type {
   WorkPanelOpenDocumentResult,
   WorkPanelOpenResourceInput,
   WorkPanelOpenResourceResult,
-} from "@/features/transport/contracts/generated/agentWebclientBridge";
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import {
@@ -531,7 +531,8 @@ function decodeNativeResourceRelativePath(
     segments.push(segment);
   }
   const expectedRoot = profile === "artifact" ? "artifacts" : "references";
-  return segments.length >= 2 && segments[0] === expectedRoot ? segments.join("/") : "";
+  const rootReference = profile === "reference" && segments.length === 1;
+  return rootReference || (segments.length >= 2 && segments[0] === expectedRoot) ? segments.join("/") : "";
 }
 
 export function buildDesktopNativeResourceRequest(

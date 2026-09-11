@@ -1,5 +1,7 @@
 # agent-webclient Project Conventions
 
+Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebClient 的 `chatPinnedOrder` 仅为内存投影。`features/chats` 维护协议响应解释、mutation 和状态 reducer，`features/workers` 装配统一 Pinned 列表。导航用 `chatsPinned:false` 请求每个 Worker 的 5 条预览，Pinned 全量独立加载；History 保留全部会话。
+
 ## 0. 回复与交付规范
 - 请用中文回复用户。
 - 给用户看的内容不要生成 `.md` 文件；需要生成面向人阅读的交付物时，优先生成 HTML 来替代 Markdown，让人类看效果更好。
@@ -7,6 +9,8 @@
 
 ## 1. 项目概览
 `agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示对话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
+
+工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；运行期使用只读 xterm 按实际缓冲内容完整增高展示并解释换行、回车、退格和 ANSI 控制，`tool.result` 是唯一终态并销毁、替换过程终端。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
 
 ## 2. 技术栈
 - 框架：React 18
@@ -19,12 +23,12 @@
 - 发布：Desktop Program Bundle，交付 `frontend/dist` 与 manifest；HTTP 托管在 Desktop main process 中实现
 
 ## 3. 架构设计
-应用采用单页前端结构，`src/app/App.tsx` 负责装配 Ant Design 主题与应用上下文，`src/app/index.tsx` 负责入口挂载与全局样式引入。全局状态由 `src/app/state/AppContext.tsx` 统一导出，状态初始化、reducer、provider 和类型定义拆分在 `src/app/state/` 下；消息输入、流式事件消费、语音播放、计划面板、前端工具渲染等能力继续按 `features/*/{components,hooks,lib}` 组织。
+应用采用单页前端结构，`src/app/App.tsx` 负责装配 Ant Design 主题与应用上下文，`src/app/index.tsx` 负责入口挂载与全局样式引入。全局状态由 `src/app/state/AppContext.tsx` 统一导出，领域状态、action、初始值和单领域 reducer 由对应 feature 所有，`src/app/state/` 只负责扁平 `AppState`、`AppAction`、初始状态和跨领域 reducer 的组合；消息输入、流式事件消费、语音播放、计划面板、前端工具渲染等能力继续按 `features/*/{components,hooks,lib}` 组织。
 
 核心调用链如下：
 - 用户在 Composer 区输入消息
-- `src/features/composer/hooks/useMessageActions.ts` 发起 `/api/query` 请求，按运行模式消费 SSE 或 WebSocket 返回
-- `src/features/transport/lib/queryStreamRuntime.sse.ts`、`src/features/transport/lib/queryStreamRuntime.ws.ts` 只负责传输事件，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
+- `src/features/composer/hooks/useMessageActions.ts` 通过 `RunTransport.startQuery` 发起 `/api/query` Run
+- `src/features/transport/lib/platformRunTransport.ts` 与 `src/features/transport/lib/platformFrameClient.ts` 统一传输 Run stream 和控制请求，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
 - `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前对话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
 - `src/features/voice/lib/voiceRuntime.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责 TTS / 语音聊天链路
@@ -32,8 +36,18 @@
 ## 4. 目录结构
 - `public/`：HTML 模板等静态入口资源
 - `docs/`：中文专题文档，按两位编号和模块分段组织，覆盖前端协议消费、运行态 UI、管理台、页面能力与部署专题
-- `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`
+- `src/app/`：应用壳层，包含入口装配、布局、模态框、effects 与 `state/`；`app/pages` 只保留路由参数适配、页面 `<main>` 和 feature 装配，不实现 CRUD、表单、数据加载或领域校验
 - `src/features/`：按业务域拆分的功能模块；每个域按 `components/`、`hooks/`、`lib/` 分层
+- `src/features/appearance/`：主题偏好、皮肤资源、文档语义 token、Ant Design 配色与独立 Desktop appearance v1 消费；`AppState.themeMode` 只投影最终明暗，宿主临时外观不持久化
+- `src/features/agents/`：Agent 管理台、创建、CRUD、排序、ZIP 导入、专属 Skill、模型/工具配置、源码编辑和项目创建能力
+- `src/features/model-config/`：Composer 与 Agent 管理台共用的模型菜单 presenter，以及模型、reasoning、service tier 的 React-free 归一化逻辑
+- `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
+- `src/features/registries/`：providers/models 与非 MCP tools 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑；VIEW 统一在连接器管理，旧 viewport-servers 不进入此管理台
+- `src/features/connectors/`：MCP/CLI/VIEW 连接器安装包目录、ZIP 导入、外部包删除确认与占用诊断、组件概览、JSON 配置编辑与同步状态
+- `src/features/archive/` / `src/features/memory/`：归档与记忆管理页面、内嵌面板及各自运行时；不再归入 Settings
+- `src/features/command-center/` / `src/features/shortcuts/`：跨领域命令容器与全局快捷键装配
+- `src/features/debug/` / `src/features/overview/` / `src/features/source/`：右栏内容与独立 Viewer Surface
+- `src/features/surfaces/` / `src/features/viewers/`：独立窗口外壳、路由目标与带鉴权/跳转行为的内容渲染
 - `src/features/chats/`：历史聊天目录、摘要、未读状态和聊天 CRUD UI
 - `src/features/conversation/`：当前对话加载、切换、live/replay 事件编排与 session 快照
 - `src/features/events/`：AGENT 协议事件到 `EventCommand` 的纯投影，不依赖 React 或 transport
@@ -41,20 +55,23 @@
 - `src/features/timeline/`：时间线 view model、展示组件和仅与展示有关的交互
 - `src/features/transport/`：SSE/WebSocket 客户端、帧处理、重试和 executor，不解释业务事件
 - `src/shared/data/`：统一数据管理模块，包含接口注册、API 客户端、鉴权封装、请求路由与轻量 server-state 查询缓存
-- `src/shared/styles/`：全局主题变量、样式入口与主题工具；当前统一入口为 `globals.css`
+- `src/shared/styles/`：全局 token、reset、基础排版、可访问性入口与主题工具；领域样式由 app/feature 自有 CSS Modules 承担
 - `src/shared/ui/`：通用基础 UI 组件
 - `src/shared/utils/`：通用工具函数
 - `scripts/`：Program Bundle、协议同步和构建辅助脚本
 - `Makefile`：本地开发、测试、构建与 Program Bundle 发布入口
 - `webpack.config.js` / `tsconfig.json`：当前 TypeScript + Webpack 构建链必需配置
 
+`features/**`（含测试）不得反向导入 `@/app/pages/**`、`@/app/modals/**` 或 `@/app/layout/**`；可依赖 `app/state` 的组合上下文，但领域类型必须直接从所属 feature 或 `shared/contracts` 导入。`shared/**` 不得导入 `app/**` 或 `features/**`，`app/pages/**` 不得直接导入 `shared/data`。`features/**/lib/*.ts` 保持 React-free，React presenter 放在 `components/*.tsx`。领域数据加载时机、刷新策略和响应解释归 feature，`shared/data` 只保留端点、DTO 与请求执行契约。`npm run check:boundaries` 会检查运行时 feature DAG、状态类型所有权、workers 管理职责和 shared 全局样式选择器，任意循环依赖或反向依赖都会失败。
+
 ## 5. 数据结构
-主要数据结构集中在 [`src/app/state/types.ts`](./src/app/state/types.ts)：
-- `AgentEvent`：后端流式事件的统一前端表示
-- `TimelineNode`：消息、thinking、tool、content 等时间线节点
-- `ToolState` / `ActionState`：工具与动作执行态
-- `PlanItem` / `PlanRuntime`：规划模式下的计划状态
-- `Agent`、`Team`、`Chat`、`WorkerRow`：对话、团队与 worker 选择器相关实体
+领域类型由所属模块维护，`src/app/state/types.ts` 只组合扁平 `AppState`：
+- `src/shared/contracts/agentEvents.ts`：wire event、awaiting 和 usage 协议类型
+- `src/features/agents/lib/agentState.ts`：`Agent` 与 Agent 管理状态
+- `src/features/workers/lib/workerState.ts`、`src/features/chats/lib/chatState.ts`：`Team`、`WorkerRow`、`Chat` 与导航摘要
+- `src/features/conversation/lib/conversationState.ts`、`src/features/timeline/lib/timelineState.ts`：会话、run/session 与时间线节点
+- `src/features/tools/lib/toolsState.ts`、`src/features/plan/lib/planState.ts`、`src/features/tasks/lib/tasksState.ts`：工具、awaiting、plan 与 task runtime
+- 其余拥有全局字段的 feature 在各自 `lib/<domain>State.ts` 维护状态、action、初始值和 reducer
 
 这些结构服务于事件回放、实时流式更新、工具渲染、语音联动和调试面板展示。历史 replay 后必须以 `/api/chat.awaiting` 校准唯一可操作 HITL；孤立 `awaiting.ask` 只保留为历史事件。
 
@@ -90,7 +107,7 @@
 - Desktop Program Bundle 只交付 `frontend/dist` 和 manifest；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 Desktop main process 托管。
 - Desktop main process 负责 Program Bundle 的静态托管和代理；WebClient 仓库不维护第二套生产发布链。
 - 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition`、音频采集能力与后端 WebSocket 能力，浏览器兼容性需单独验证。
-- `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为全局样式入口，其他全局样式通过该文件集中导入。
+- `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为真正的全局样式入口；领域组件自行引入 `*.module.css`，Ant Design portal 通过局部 `:global(...)` 兼容，不得把领域选择器放回 shared globals。
 
 ## 8. 开发流程
 本地开发流程：
@@ -108,6 +125,8 @@ Git 提交与推送规范：
 - 完成后报告 commit、远端分支同步状态，以及仍保留的未跟踪或无关改动。
 
 ## 9. 已知约束与注意事项
+
+- Compact 消费两级协议：80% 尝试 L1、硬保留最近 5 次完整工具调用，L1 后仍达 90% 才执行 L2。自动阶段按 Chat/Run/cycleId 跟踪，cycleComplete:false 不提前关闭等待；旧事件继续按单次操作回放。
 - 本仓库是后端协议的消费方，不在前端定义或修改后端协议语义。
 - 本地开发依赖外部 AGENT API / 语音服务，脱离后端无法完成核心联调。
 - 若上游返回非标准 JSON、SSE 帧格式异常或 WebSocket 事件不完整，前端会以错误态显示，但无法替代后端修复协议问题。
@@ -151,7 +170,7 @@ Git 提交与推送规范：
 - [50-Worker管理-AgentTeam选择与Worker列表](docs/50-Worker管理-AgentTeam选择与Worker列表.md)
 - [51-Worker管理-Agent管理台](docs/51-Worker管理-Agent管理台.md)
 - [52-Worker管理-Registry管理台与工具目录](docs/52-Worker管理-Registry管理台与工具目录.md)
-- [53-Worker管理-MCP连接器](docs/53-Worker管理-MCP连接器.md)
+- [53-Worker管理-连接器](docs/53-Worker管理-连接器.md)
 
 ### 60 页面能力
 - [60-页面能力-Memory页面](docs/60-页面能力-Memory页面.md)
@@ -163,6 +182,11 @@ Git 提交与推送规范：
 - [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)
 - [80-界面基础-样式主题基础UI与国际化](docs/80-界面基础-样式主题基础UI与国际化.md)
 - [81-宿主集成-Desktop宿主桥接](docs/81-宿主集成-Desktop宿主桥接.md)
+- [82-界面基础-皮肤与背景协作](docs/82-界面基础-皮肤与背景协作.md)
 - [90-交付运维-开发代理与Desktop托管](docs/90-交付运维-开发代理与生产反向代理.md)
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
+
+VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 继续兼容；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
+
+运行中图片 steer 复用 `/api/upload` 与 `references`：待发送队列、取消/拒绝恢复、Run 结束自动转 query、实时与历史时间线均保留图片；文字仍必填。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。

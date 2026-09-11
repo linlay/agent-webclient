@@ -5,9 +5,10 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { DatePicker, Flex, Input, InputRef, Popover, Tag, Tooltip } from "antd";
-import dayjs from "dayjs";
-import type { AppState, Chat } from "@/app/state/types";
+import "./HistoryModal.module.css";
+import { Flex, Input, InputRef, Tag, Tooltip } from "antd";
+import type { AppState } from "@/app/state/AppContext";
+import type { Chat } from "@/features/chats/lib/chatState";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import {
@@ -20,10 +21,6 @@ import { UiButton } from "@/shared/ui/UiButton";
 import useApp from "antd/es/app/useApp";
 import { useI18n } from "@/shared/i18n";
 import {
-  archiveChats,
-  deleteChat,
-  downloadChatExport,
-  downloadConversationHtmlExport,
   getChats,
   markChatRead,
   searchGlobal,
@@ -33,6 +30,7 @@ import { useAppContext } from "@/app/state/provider";
 import { AgentSelector } from "@/features/chats/components/AgentSelector";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { readEpochMillis } from "@/shared/utils/platformTime";
+import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
 
 const HISTORY_MODAL_TITLE_TAG_CLASS =
   "history-modal-title-tag tw:rounded-[10px] tw:bg-accent-soft tw:px-1.5 tw:py-0.5 tw:text-xs tw:font-normal tw:text-accent";
@@ -53,22 +51,12 @@ function getAwaitingStatusKey(mode?: string): string {
   }
 }
 
-function isChatForAgents(chat: Chat, agentKeys: string[]): boolean {
-  if (agentKeys.length === 0) return true;
+function isChatForAgent(chat: Chat, agentKey: string): boolean {
+  if (!agentKey) return true;
   const chatAgentKey = String(
     chat?.agentKey || chat?.firstAgentKey || "",
   ).trim();
-  if (!chatAgentKey) return false;
-  return agentKeys.some((key) => String(key || "").trim() === chatAgentKey);
-}
-
-function isChatWithinUpdatedRange(
-  chat: Chat,
-  range: [number, number] | null,
-): boolean {
-  if (!range) return true;
-  const updated = readEpochMillis(chat.updatedAt) ?? 0;
-  return updated >= range[0] && updated <= range[1];
+  return chatAgentKey === agentKey;
 }
 
 function resolveCurrentAgentKey(
@@ -120,19 +108,17 @@ export const HistoryModal: React.FC<{
   const historyItemRefs = useRef<Array<HTMLElement | null>>([]);
   const { state, dispatch } = useAppContext();
   const { t } = useI18n();
-  const [pending, setPending] = useState(false);
+  const { pending, archive, remove, exportChat } = useChatOperations(
+    state.chatId, dispatch, t,
+  );
   const [remoteHistoryRows, setRemoteHistoryRows] = useState<Chat[] | null>(
     null,
   );
   const [historySearch, setHistorySearch] = useState("");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedAgentKeys, setSelectedAgentKeys] = useState<string[]>(() => {
-    const agentKey = resolveCurrentAgentKey(state);
-    return agentKey ? [agentKey] : [];
-  });
-  const [updatedRange, setUpdatedRange] = useState<[number, number] | null>(
-    null,
+  const [selectedAgentKey, setSelectedAgentKey] = useState(
+    () => resolveCurrentAgentKey(state),
   );
   const defaultSelectionAppliedRef = useRef(false);
   const chatsRef = useRef(state.chats);
@@ -164,55 +150,47 @@ export const HistoryModal: React.FC<{
     return chats
       .filter(
         (chat) =>
-          isChatForAgents(chat, selectedAgentKeys) &&
-          isChatWithinUpdatedRange(chat, updatedRange) &&
+          isChatForAgent(chat, selectedAgentKey) &&
           String(chat?.chatId || ""),
       )
       .slice()
       .sort(compareChatFreshness);
-  }, [state.chats, selectedAgentKeys, updatedRange]);
+  }, [state.chats, selectedAgentKey]);
 
   useEffect(() => {
     const query = historySearch.trim();
-    if (selectedAgentKeys.length === 0 || !query) {
-      setRemoteHistoryRows(null);
-      return;
-    }
+    setRemoteHistoryRows(null);
+    if (!selectedAgentKey || !query) return;
+    let disposed = false;
     const timer = window.setTimeout(() => {
-      void Promise.all(
-        selectedAgentKeys.map((agentKey) =>
-          searchGlobal({ query, agentKey, limit: 30 }),
-        ),
-      )
-        .then((responses) => {
+      void searchGlobal({ query, agentKey: selectedAgentKey, limit: 30 })
+        .then((response) => {
+          if (disposed) return;
           const seenChatIds = new Set<string>();
           const rows: Chat[] = [];
-          responses.forEach((response) => {
-            const results = Array.isArray(response.data?.results)
-              ? response.data.results
-              : [];
-            results.forEach((result) => {
-              const chat: Chat = {
-                chatId: String(result.chatId || ""),
-                chatName: String(result.chatName || ""),
-                agentKey: result.agentKey,
-                teamId: result.teamId,
-                updatedAt: readEpochMillis(result.timestamp) ?? 0,
-                lastRunId: String(result.runId || ""),
-                lastRunContent: String(result.snippet || ""),
-                searchSnippet: String(result.snippet || ""),
-                isRead: true,
-              };
-              if (!chat.chatId || seenChatIds.has(chat.chatId)) return;
-              seenChatIds.add(chat.chatId);
-              rows.push(chat);
-            });
+          const results = Array.isArray(response.data?.results)
+            ? response.data.results
+            : [];
+          results.forEach((result) => {
+            const chat: Chat = {
+              chatId: String(result.chatId || ""),
+              chatName: String(result.chatName || ""),
+              agentKey: result.agentKey,
+              teamId: result.teamId,
+              updatedAt: readEpochMillis(result.timestamp) ?? 0,
+              lastRunId: String(result.runId || ""),
+              lastRunContent: String(result.snippet || ""),
+              searchSnippet: String(result.snippet || ""),
+              isRead: true,
+            };
+            if (!chat.chatId || seenChatIds.has(chat.chatId)) return;
+            seenChatIds.add(chat.chatId);
+            rows.push(chat);
           });
-          setRemoteHistoryRows(
-            rows.filter((chat) => isChatWithinUpdatedRange(chat, updatedRange)),
-          );
+          setRemoteHistoryRows(rows);
         })
         .catch((error) => {
+          if (disposed) return;
           dispatch({
             type: "APPEND_DEBUG",
             line: `[search error] ${(error as Error).message}`,
@@ -220,8 +198,11 @@ export const HistoryModal: React.FC<{
           setRemoteHistoryRows([]);
         });
     }, 250);
-    return () => window.clearTimeout(timer);
-  }, [dispatch, historySearch, selectedAgentKeys, updatedRange]);
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+    };
+  }, [dispatch, historySearch, selectedAgentKey]);
 
   const historyRows = useMemo(() => {
     if (remoteHistoryRows) return remoteHistoryRows;
@@ -244,40 +225,33 @@ export const HistoryModal: React.FC<{
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
-  }, [selectedAgentKeys]);
+  }, [selectedAgentKey]);
 
   const loadChats = useCallback(
-    async (agentKeys: string[], options?: { replace?: boolean }) => {
-      if (agentKeys.length === 0) return;
+    async (agentKey: string, options?: { replace?: boolean }) => {
       setRefreshing(true);
       try {
-        const responses = await Promise.all(
-          agentKeys.map((agentKey) => getChats({ agentKey })),
+        const response = await getChats(agentKey ? { agentKey } : {});
+        const fetchedChats = Array.isArray(response.data)
+          ? (response.data as Chat[])
+          : [];
+        let chats = mergeFetchedChats(
+          options?.replace ? [] : chatsRef.current,
+          fetchedChats,
         );
-        let chats = options?.replace
-          ? []
-          : chatsRef.current;
-        responses.forEach((response) => {
-          const fetchedChats = Array.isArray(response.data)
-            ? (response.data as Chat[])
-            : [];
-          chats = mergeFetchedChats(chats, fetchedChats);
-        });
-        if (options?.replace) {
-          // 刷新时丢弃本地已删除 / 已归档但仍在 state.chats 里的旧记录
+        if (options?.replace && agentKey) {
+          // 单 Agent 刷新只替换自身目录，保留其他 Agent 的本地摘要。
           const fetchedChatIds = new Set(
             chats.map((chat) => String(chat?.chatId || "")),
           );
-          chats = chats.filter((chat) => fetchedChatIds.has(String(chat?.chatId || "")));
-          // 合并未被本次请求覆盖的其他 agent 的 chat，避免误删
           chatsRef.current.forEach((chat) => {
             const chatId = String(chat?.chatId || "");
             if (!chatId || fetchedChatIds.has(chatId)) return;
-            const agentKey = String(chat?.agentKey || chat?.firstAgentKey || "").trim();
-            if (agentKeys.includes(agentKey)) return;
+            if (isChatForAgent(chat, agentKey)) return;
             chats = [chat, ...chats];
           });
         }
+        chatsRef.current = chats;
         dispatch({ type: "SET_CHATS", chats });
       } catch (error) {
         dispatch({
@@ -292,13 +266,12 @@ export const HistoryModal: React.FC<{
   );
 
   useEffect(() => {
-    if (selectedAgentKeys.length === 0 || historySearch.trim()) return;
-    void loadChats(selectedAgentKeys);
-  }, [historySearch, loadChats, selectedAgentKeys]);
+    void loadChats(selectedAgentKey);
+  }, [loadChats, selectedAgentKey]);
 
   useEffect(() => {
     defaultSelectionAppliedRef.current = false;
-  }, [selectedAgentKeys, updatedRange]);
+  }, [selectedAgentKey]);
 
   useEffect(() => {
     if (historySearch) {
@@ -355,27 +328,22 @@ export const HistoryModal: React.FC<{
     }
   };
 
-  const handleAgentsChange = (agentKeys: string[]) => {
-    setSelectedAgentKeys(agentKeys);
+  const handleAgentChange = (agentKey: string) => {
+    setSelectedAgentKey(agentKey);
+    setRemoteHistoryRows(null);
     setHistoryIndex(0);
   };
 
   const handleRefresh = () => {
     setHistorySearch("");
-    const agentKeys =
-      selectedAgentKeys.length > 0
-        ? selectedAgentKeys
-        : agents
-            .map((agent) => String(agent?.key || "").trim())
-            .filter(Boolean);
-    void loadChats(agentKeys, { replace: true });
+    void loadChats(selectedAgentKey, { replace: true });
   };
 
   const handleMarkAllRead = async (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
     const agentKeys =
-      selectedAgentKeys.length > 0
-        ? selectedAgentKeys
+      selectedAgentKey
+        ? [selectedAgentKey]
         : agents
             .map((agent) => String(agent?.key || "").trim())
             .filter(Boolean);
@@ -398,17 +366,12 @@ export const HistoryModal: React.FC<{
 
   const handleExport = async (chatId: string, format: "markdown" | "html") => {
     if (!chatId || pending) return;
-    setPending(true);
     try {
-      if (format === "html") {
-        await downloadConversationHtmlExport(chatId);
-      } else {
-        await downloadChatExport(chatId);
-      }
+      await exportChat(chatId, format);
       message.success(
         t(format === "html" ? "history.exportedHtml" : "history.exported"),
       );
-    } catch (error) {
+    } catch {
       message.error(
         t(
           format === "html"
@@ -416,12 +379,6 @@ export const HistoryModal: React.FC<{
             : "history.exportFailed",
         ),
       );
-      dispatch({
-        type: "APPEND_DEBUG",
-        line: `[export chat ${format} error] ${(error as Error).message}`,
-      });
-    } finally {
-      setPending(false);
     }
   };
   const handleArchive = (chat: Chat) => {
@@ -432,37 +389,9 @@ export const HistoryModal: React.FC<{
       okText: t("chatActions.archive.ok"),
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
-        setPending(true);
-        try {
-          const response = await archiveChats({ chatIds: [chat.chatId] });
-          const result = response.data?.results?.[0];
-          if (!result?.success) {
-            throw new Error(result?.error || t("chatActions.archive.failed"));
-          }
-          dispatch({ type: "CHAT_ARCHIVED", chatId: chat.chatId });
-          removeRemoteHistoryRow(chat.chatId);
-          clearActiveChatIfNeeded(chat.chatId);
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[archive chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await archive(chat.chatId, removeRemoteHistoryRow);
       },
     });
-  };
-  const clearActiveChatIfNeeded = (chatId: string) => {
-    if (String(state.chatId || "") !== chatId) {
-      return;
-    }
-    dispatch({ type: "SET_CHAT_ID", chatId: "" });
-    dispatch({ type: "SET_RUN_ID", runId: "" });
-    dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
-    window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-    window.dispatchEvent(new CustomEvent("agent:voice-reset"));
   };
   const handleDelete = (chat: Chat) => {
     if (!chat || !chat?.chatId || pending) return;
@@ -473,26 +402,12 @@ export const HistoryModal: React.FC<{
       okButtonProps: { danger: true },
       cancelText: t("chatActions.cancel"),
       onOk: async () => {
-        setPending(true);
-        try {
-          await deleteChat({ chatId: chat.chatId });
-          dispatch({ type: "CHAT_DELETED", chatId: chat.chatId });
-          removeRemoteHistoryRow(chat.chatId);
-          clearActiveChatIfNeeded(chat.chatId);
-        } catch (error) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: `[delete chat error] ${(error as Error).message}`,
-          });
-          throw error;
-        } finally {
-          setPending(false);
-        }
+        await remove(chat.chatId, removeRemoteHistoryRow);
       },
     });
   };
   return (
-    <div className="command-modal-section" onKeyDown={handleHistoryKeyDown}>
+    <div className="command-modal-section">
       <ModalTitleBar
         variant={titleBarVariant}
         onClose={() => onClose?.()}
@@ -510,73 +425,18 @@ export const HistoryModal: React.FC<{
           variant="borderless"
           placeholder={t("history.searchPlaceholder")}
           value={historySearch}
+          onKeyDown={handleHistoryKeyDown}
           onChange={(event) => {
             setHistorySearch(event.target.value);
+            setRemoteHistoryRows(null);
             setHistoryIndex(0);
           }}
         />
         {titleBarVariant === "drawer" ? null : (
-        <Popover
-          trigger="click"
-          placement="bottomLeft"
-          arrow={false}
-          content={
-            <div className="history-filter-popover">
-              <div className="history-filter-row">
-                <span className="history-filter-row-label">
-                  {t("history.filter.agents")}
-                </span>
-                <AgentSelector
-                  value={selectedAgentKeys}
-                  onChange={handleAgentsChange}
-                />
-              </div>
-              <div className="history-filter-row">
-                <span className="history-filter-row-label">
-                  {t("history.filter.updatedAt")}
-                </span>
-                <DatePicker.RangePicker
-                  allowClear
-                  format="YYYY-MM-DD"
-                  aria-label={t("history.global.date.ariaLabel")}
-                  placeholder={[
-                    t("history.global.date.start"),
-                    t("history.global.date.end"),
-                  ]}
-                  value={
-                    updatedRange
-                      ? [dayjs(updatedRange[0]), dayjs(updatedRange[1])]
-                      : null
-                  }
-                  onChange={(values) => {
-                    if (!values?.[0] || !values?.[1]) {
-                      setUpdatedRange(null);
-                      return;
-                    }
-                    setUpdatedRange([
-                      values[0].startOf("day").valueOf(),
-                      values[1].endOf("day").valueOf(),
-                    ]);
-                  }}
-                />
-              </div>
-            </div>
-          }
-        >
-          <button
-            type="button"
-            className="history-filter-trigger"
-            aria-label={t("history.filter")}
-          >
-            <MaterialIcon name="filter_list" />
-            <span className="history-filter-trigger-label">
-              {t("history.filter")}
-            </span>
-            <span className="history-filter-trigger-count">
-              {selectedAgentKeys.length}/{agents.length}
-            </span>
-          </button>
-        </Popover>
+          <AgentSelector
+            value={selectedAgentKey}
+            onChange={handleAgentChange}
+          />
         )}
         <Tooltip title={t("history.refresh")}>
           <UiButton
@@ -585,6 +445,7 @@ export const HistoryModal: React.FC<{
             variant="ghost"
             iconOnly
             loading={refreshing}
+            aria-label={t("history.refresh")}
             onClick={handleRefresh}
           >
             <MaterialIcon name="refresh" />
@@ -617,6 +478,7 @@ export const HistoryModal: React.FC<{
           tabIndex={0}
           role="listbox"
           aria-label={t("history.ariaLabel")}
+          onKeyDown={handleHistoryKeyDown}
         >
           {historyRows.map((chat, index) => {
             const historyTitle = getHistoryTitle(chat);

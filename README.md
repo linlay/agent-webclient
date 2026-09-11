@@ -4,13 +4,17 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 后端负责智能体如何运行；AGW Web Client 负责把运行过程展示清楚，并提供操作、调试和交付界面。
 
+独立 WebClient 侧栏支持跨普通 Agent、CODER、KBASE 与 Team 的统一 Pinned：菜单置顶/取消置顶，组内拖动或键盘排序，收起侧栏仍可打开置顶列表。状态复用 Platform 的 `chat-pinned.json`，不写浏览器独立副本；各 Worker 的 5 条预览在后端截取前排除置顶项，历史总数保持完整。
+
+Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 Desktop v1 ZIP 皮肤。`DESKTOP_APP=true` 且宿主明确声明透明合成能力时，主聊天复用 Desktop 唯一壁纸；否则使用匹配明暗的实色。演示运行 `npm run preview:appearance`，详见[皮肤与背景协作](docs/82-界面基础-皮肤与背景协作.md)。
+
 ## 这个项目是什么
 
 `agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不包含智能体后端，也不定义模型、工具、调度、记忆或权限的最终语义；它消费上游 `/api/*` 与 `/ws` 能力，为智能体平台提供统一前端。
 
-公开对话分享不由本项目运行或代理。Desktop 常驻 Worker 从 Agent Platform 获取 `ConversationSnapshotV1`、从本项目正在运行的 HTTP Host 获取模板并创建 HTML，Tunnel 在公开 `/share/{shareId}` 直接返回已存储的字节；WebClient 不参与匿名访问热路径。
+公开对话分享不由本项目运行或代理。Desktop 只向 Tunnel 上传 `ConversationSnapshotV1`；Tunnel 保存 Snapshot，并在公开 `/share/{shareId}` 使用当前分享渲染包生成 HTML。
 
-对话静态 HTML 使用 `src/export/` 的独立只读组件树和严格 `ConversationSnapshotV1` parser。生产构建生成轻量 `frontend/dist/export/conversation.template.html` 和内容寻址的 `conversation-export-assets/<hash>`：模板只保留唯一 Snapshot JSON、初始 DOM、外部 CSS link 和外部 deferred runtime script，不包含内联样式或可执行脚本。资源路径固定到内容哈希，但 origin 不在构建时写死；浏览器使用 Blob parts，Desktop 使用 Worker 字节算法注入 Snapshot、CSS/JS 与 CSP 地址。React、ReactDOM 与 KaTeX 进入主 JS/CSS，ECharts 与 Mermaid 只在命中对应代码块时从同一不可变资产目录按需加载；所有入口资源带 SRI。Tunnel 托管不可变的内容寻址资产，WebClient 与 Desktop 都不参与匿名访问热路径。
+对话静态 HTML 使用 `src/export/` 的独立只读组件树和严格 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并整体替换 Tunnel 当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI，Tunnel 只托管当前资源集合。浏览器和 Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件。
 
 接入以后，一个智能体后端可以快速拥有：
 
@@ -30,6 +34,8 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 ### 运行过程可观测
 
 运行中的每个事件都会进入时间轴：消息内容、推理、规划、工具调用、来源、产物、等待用户输入和错误状态都能按顺序展示。结构化计划会进入计划面板，展示任务状态、进度、耗时和任务关联的运行内容。
+
+工具卡片支持 live-only `tool.output`：Native Host Bash 可在命令结束前通过只读终端展示 stdout / stderr（包括完整扫码二维码），终端会解释换行、回车、退格和 ANSI 控制并随全部已保留内容增高；最终仍由 `tool.result` 销毁过程终端、替换并收口。旧后端或没有过程输出的工具保持原有展示。
 
 ![运行时间轴](docs/images/screenshots/timeline-events.png)
 
@@ -55,7 +61,7 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 ### 业务视图容器
 
-支持 Viewport HTML 和 Frontend Tool iframe 容器。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
+支持 VIEW 连接器的 HTML/QLC 结果展示与 HITL 表单，管理页并列展示 MCP / CLI / VIEW。新 VIEW 使用隔离 iframe 和 Chat 快照；旧 Viewport HTML 和 Frontend Tool 容器保持兼容。接入契约见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
 
 Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<relativePath>` URL。前端统一分类：ChatScope 在内部加当前 chatId 后转为 `GET /api/resource?file=...`，普通 Agent 的 Workspace POSIX 绝对路径与 `/tmp/...` 转为带 `chatId` 的鉴权请求，Team 拒绝全部绝对路径；HTTP(S)、`data:`、`blob:` 原样使用。真实 `/api/resource`、`file://`、`<currentChatId>/<relativePath>` 和 traversal 都不是 Markdown 地址，不发起请求；历史 endpoint Markdown 不迁移且不再预览。
 
@@ -63,7 +69,7 @@ Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<rel
 
 ### 侧边栏与管理入口
 
-左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model、viewport server 与非 MCP tools，MCP 连接器及所属工具由独立页面管理。
+左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model 与非 MCP tools，MCP/CLI/VIEW 连接器安装包、附带技能和组件工具由独立 `/connectors` 页面管理，支持 ZIP 导入和外部包删除；删除前确认并检查 Agent 占用，内置包保持只读。
 
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 
@@ -127,7 +133,7 @@ make test
 make build
 ```
 
-构建产物输出到 `dist/`；`dist/export/` 同时生成由 WebClient Host 提供的轻量模板、资产 manifest 和待同步到 Tunnel 的内容寻址资产集合。模板随 WebClient Program Bundle 发布，不再同步到 Agent Platform；`npm run sync:conversation-export` 只追加当前 Tunnel 资产集，不删除或覆盖历史资产。
+普通构建产物输出到 `dist/`，不构建分享渲染包。需要更新 Tunnel 渲染资源时单独执行 `npm run release:conversation-export`；该命令构建并校验 `dist/export/`，然后整体替换 Tunnel 的模板、manifest 和当前唯一 asset-set。
 
 ## Desktop Program Bundle 发布
 
@@ -294,3 +300,7 @@ make dev
 - 前端不定义后端协议的最终语义，只消费和展示后端事件。
 - 模型、工具、权限、记忆、任务调度和资源存储以后端服务为事实源。
 - 脱离可访问的 AGW / AGENT API 服务，无法完成核心联调。
+- 依赖方向固定为 `app/pages、app/layout → features/<domain> → shared`；页面不发数据请求，`shared` 不反向依赖应用层或领域层。
+- `npm run check:boundaries` 同时检查目录边界、Transport/Event 纯度和 feature 循环；构建与测试都会先执行该检查。
+
+运行中图片 steer 复用 `/api/upload` 与 `references`：待发送队列、取消/拒绝恢复、Run 结束自动转 query、实时与历史时间线均保留图片；文字仍必填。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。

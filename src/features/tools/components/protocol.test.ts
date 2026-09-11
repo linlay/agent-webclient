@@ -1,8 +1,5 @@
-import { ViewportTypeEnum } from '@/app/state/types';
-import type {
-  ActiveAwaiting,
-  FormActiveAwaiting,
-} from '@/app/state/types';
+import { ViewportTypeEnum } from "@/shared/contracts/agentEvents";
+import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import {
   buildAwaitingCollectMessage,
   buildAwaitingInitMessage,

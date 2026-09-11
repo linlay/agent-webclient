@@ -26,7 +26,11 @@ export const RunTerminalNotice: React.FC<{
         className="tw:text-[16px]"
         aria-hidden="true"
       />
-      <span>{t("timeline.run.interrupted", { duration })}</span>
+      <span>
+        {duration
+          ? t("timeline.run.interrupted", { duration })
+          : t("timeline.run.interruptedNeutral")}
+      </span>
     </Flex>
   );
 };

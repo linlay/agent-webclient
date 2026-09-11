@@ -2,17 +2,18 @@
 
 ## 定位与入口
 
-Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器。独立页面使用 `/project/:agentKey`；普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。Dialog 的“在完整页面打开”会带上当前选择状态和全部已打开文件。
+Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器。页面使用 `/project/:agentKey`；普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。
 
 ## 组件边界
 
-- `src/features/project/components/ProjectWorkspace.tsx`：Dialog 与页面共享的目录、上下文选择、内容与 Diff 主组件。
-- `src/features/project/components/ProjectWorkspaceDialog.tsx`：仅负责 Modal 壳和完整页面跳转。
-- `src/app/pages/project/index.tsx`：加载 CODER/KBASE Agent，处理 URL 状态和无 Agent 选择器。
+- `src/features/project/components/ProjectWorkspace.tsx`：页面使用的目录、上下文选择、内容与 Diff 主组件。
+- `src/app/pages/project/index.tsx`：只负责 `ProjectRouteState` 与 URL 双向适配。
+- `src/features/project/components/ProjectConsole.tsx`：Agent 选择器、空状态和 Workspace 装配。
+- `src/features/project/hooks/useProjectAgents.ts`：加载 CODER/KBASE Agent 与最近会话。
 - `src/features/project/lib/projectRoute.ts`：Project 查询参数的读写纯函数。
 - `src/features/project/lib/projectTabs.ts`：多文件标签的去重打开与相邻关闭选择规则。
 - `src/features/viewers/components/ContentViewerPanel.tsx`：消费 `FileViewerTarget`，复用 Workspace 文本、图片、PDF、HTML、音视频展示。
-- `src/app/layout/sidebar/right/FileDiffView.tsx`：复用两侧文本 Diff。
+- `src/features/project/components/FileDiffView.tsx`：Project 与 Overview 复用的两侧文本 Diff。
 
 ## 数据与刷新
 
@@ -23,11 +24,11 @@ Project 数据固定走 HTTP：
 - `/api/project/diff` 一次读取原始与当前文本快照。
 - `/api/file` 和 `response=content` 继续承担实时内容与媒体字节。
 
-对话 Dialog 以当前 `fileChanges` 投影作为失效键，只刷新变更文件对应的已加载父目录、变更列表和命中的选中文件，不清空展开集合。独立页面只在可见状态下每 5 秒刷新，并在窗口重新聚焦时立即刷新；切换 Agent 会主动取消旧的 tree/changes/diff HTTP 请求，generation 校验再阻止迟到结果落入当前视图。
+页面只在可见状态下每 5 秒刷新，并在窗口重新聚焦时立即刷新；刷新时只更新变更文件对应的已加载父目录、变更列表和命中的选中文件，不清空展开集合。切换 Agent 会主动取消旧的 tree/changes/diff HTTP 请求，generation 校验再阻止迟到结果落入当前视图。
 
 ## 交互与边界
 
-桌面端目录树默认 280px，可在 220–520px 之间拖动；小屏使用可展开侧栏。目录树支持名称过滤、懒加载、分页、变更徽标与手动刷新。点击文件会追加到右侧多文件标签栏；标签支持切换和关闭，关闭当前标签后选择相邻文件。文件标签、MIME/大小、下载图标和“内容 / Diff”页签共用一行，Dialog 与独立页的 Agent/Chat/Run/刷新动作也使用单行紧凑工具栏。
+桌面端目录树默认 280px，可在 220–520px 之间拖动；小屏使用可展开侧栏。目录树支持名称过滤、懒加载、分页、变更徽标与手动刷新。点击文件会追加到右侧多文件标签栏；标签支持切换和关闭，关闭当前标签后选择相邻文件。文件标签、MIME/大小、下载图标和“内容 / Diff”页签共用一行，Agent/Chat/Run/刷新动作使用单行紧凑工具栏。
 
 Project 文本 Viewer 固定显示行号；图片继续通过 `/api/file?response=content` 和现有鉴权资源链路显示。Project 不展示 Content Viewer 的通用说明，但保留真正发生截断时的提示。二进制、超限、无 Run 快照等 Diff 错误以明确空态展示，不回退为伪 Diff。
 
@@ -40,4 +41,4 @@ npm test -- --runInBand src/features/project/lib/projectRoute.test.ts src/featur
 npm run build
 ```
 
-手工回归需覆盖直接访问 `/project/:agentKey`、Chat/Run 切换、无 Run 的目录与文件内容、浏览器前进后退、Dialog 到完整页面、目录分页与过滤、媒体预览、Diff 必填身份、页面隐藏暂停刷新，以及切换 Agent 后旧请求不再落入当前视图。
+手工回归需覆盖直接访问 `/project/:agentKey`、Chat/Run 切换、无 Run 的目录与文件内容、浏览器前进后退、目录分页与过滤、媒体预览、Diff 必填身份、页面隐藏暂停刷新，以及切换 Agent 后旧请求不再落入当前视图。

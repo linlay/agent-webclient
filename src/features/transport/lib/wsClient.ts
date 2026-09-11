@@ -16,7 +16,7 @@ import {
 	PlatformFrameClient,
 	PlatformRequestTimeoutError,
 } from "@/features/transport/lib/platformFrameClient";
-import type { AgentPlatformRequestFrame } from "@/features/transport/contracts/generated/agentWebclientBridge";
+import type { AgentPlatformRequestFrame } from "@/shared/contracts/generated/agentWebclientBridge";
 import type { InboundRequestMetadata } from "@/features/transport/contracts/realtimeTransport";
 
 export type WsConnectionStatus =
@@ -217,15 +217,6 @@ export class WsClientDisconnectedError extends Error {
 }
 
 export { PlatformRequestTimeoutError as WsClientRequestTimeoutError };
-
-export function isWsTransportError(
-	error: unknown,
-): error is WsClientDisconnectedError | PlatformRequestTimeoutError {
-	return (
-		error instanceof WsClientDisconnectedError ||
-		error instanceof PlatformRequestTimeoutError
-	);
-}
 
 export interface WsConnectionErrorOptions {
 	appMode?: boolean;

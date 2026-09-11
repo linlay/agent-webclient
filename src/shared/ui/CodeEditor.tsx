@@ -1,14 +1,22 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Editor, { loader, type Monaco } from "@monaco-editor/react";
 import type * as MonacoTypes from "monaco-editor";
-import * as monacoNs from "monaco-editor";
 import { Input, Button, Space, Flex } from "antd";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "./MaterialIcon";
 import { UiButton } from "./UiButton";
+import { CODE_EDITOR_SKIN_THEME, CodeEditorThemeContext } from "./CodeEditorThemeContext";
 
-// 使用本地打包的 monaco-editor，避免运行时从 CDN 加载
-loader.config({ monaco: monacoNs });
+// monaco 体积近 10MB，首次打开编辑器时异步加载；加载后注入本地包，避免 @monaco-editor/react 回退 CDN
+let monacoLoaderPromise: Promise<void> | null = null;
+function ensureMonacoConfigured(): Promise<void> {
+  if (!monacoLoaderPromise) {
+    monacoLoaderPromise = import("monaco-editor").then((monacoNs) => {
+      loader.config({ monaco: monacoNs });
+    });
+  }
+  return monacoLoaderPromise;
+}
 
 export interface CodeEditorProps {
   value: string;
@@ -412,6 +420,33 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     null,
   );
   const [find, setFind] = useState<FindState>(EMPTY_FIND);
+  const [monacoReady, setMonacoReady] = useState(false);
+  const skinTheme = useContext(CodeEditorThemeContext);
+  const skinThemeRef = useRef(skinTheme);
+  skinThemeRef.current = skinTheme;
+  const monacoRef = useRef<Monaco | null>(null);
+  const editorThemeName = skinTheme ? CODE_EDITOR_SKIN_THEME : theme === "dark" ? "vs-dark" : "vs";
+
+  const prepareTheme = (monaco: Monaco) => {
+    monacoRef.current = monaco;
+    if (skinThemeRef.current) monaco.editor.defineTheme(CODE_EDITOR_SKIN_THEME, skinThemeRef.current);
+  };
+  useLayoutEffect(() => {
+    const monaco = monacoRef.current;
+    if (!monaco) return;
+    if (skinTheme) monaco.editor.defineTheme(CODE_EDITOR_SKIN_THEME, skinTheme);
+    monaco.editor.setTheme(editorThemeName);
+  }, [skinTheme, editorThemeName]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ensureMonacoConfigured().then(() => {
+      if (!cancelled) setMonacoReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const closeFind = () => {
     const editor = editorRef.current;
@@ -497,6 +532,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  if (!monacoReady) return null;
+
   return (
     <>
       <Editor
@@ -504,7 +541,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         value={value}
         language={language}
         path={path}
-        theme={theme === "dark" ? "vs-dark" : "vs"}
+        theme={editorThemeName}
+        beforeMount={prepareTheme}
         onChange={(next) => onChange?.(next ?? "")}
         onMount={handleMount}
         options={{
