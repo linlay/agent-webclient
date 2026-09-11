@@ -6,8 +6,9 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { renderToStaticMarkup } from "react-dom/server";
+import dayjs from "dayjs";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
-import type { AgentSelector } from "@/features/chats/components/AgentSelector";
+import type { HistoryFilter } from "@/features/chats/components/HistoryFilter";
 import type { Chat } from "@/features/chats/lib/chatState";
 import { I18nProvider, type Locale } from "@/shared/i18n";
 
@@ -22,7 +23,7 @@ const mockError = jest.fn();
 const mockButtons: Array<Record<string, any>> = [];
 const mockGetChats = jest.fn();
 const mockSearchGlobal = jest.fn();
-let mockSelectorProps: React.ComponentProps<typeof AgentSelector>;
+let mockFilterProps: React.ComponentProps<typeof HistoryFilter>;
 let mockActiveChatId = "";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -97,13 +98,18 @@ jest.mock("@/app/state/provider", () => ({
   }),
 }));
 
-jest.mock("@/features/chats/components/AgentSelector", () => ({
-  AgentSelector: (props: React.ComponentProps<typeof AgentSelector>) => {
-    mockSelectorProps = props;
+jest.mock("@/features/chats/components/HistoryFilter", () => ({
+  HistoryFilter: (props: React.ComponentProps<typeof HistoryFilter>) => {
+    mockFilterProps = props;
     return React.createElement(
       "button",
-      { type: "button", className: "history-worker-selector" },
-      props.value,
+      {
+        type: "button",
+        className: "history-filter-trigger",
+        "data-filtered-count": props.filteredCount,
+        "data-total-count": props.totalCount,
+      },
+      props.agentKey,
     );
   },
 }));
@@ -215,16 +221,16 @@ describe("HistoryModal", () => {
     expect(html).not.toContain("management-page-console");
   });
 
-  it("renders the agent selector directly beside search without a nested filter or date range", () => {
+  it("renders the filter trigger directly beside search", () => {
     const html = renderHistoryModal([createHistoryChat()]);
 
     expect(html).toContain("history-modal-title");
     expect(html).toContain('placeholder="搜索对话"');
-    expect(html).not.toContain("history-filter-trigger");
-    expect(html).not.toContain("1/2");
+    expect(html).toContain("history-filter-trigger");
+    expect(html).toContain('data-filtered-count="1"');
+    expect(html).toContain('data-total-count="1"');
     expect(html).not.toContain("history-filter-popover");
     expect(html).not.toContain("ant-range-picker");
-    expect(html).toContain("history-worker-selector");
     expect(html).toContain('data-material-icon="refresh"');
     expect(html).toContain("共 1 条对话");
   });
@@ -260,16 +266,51 @@ describe("HistoryModal", () => {
       expect(mockGetChats).toHaveBeenLastCalledWith({ agentKey: "alpha" });
       expect(container.textContent).not.toContain("Beta history");
 
-      await act(async () => mockSelectorProps.onChange("beta"));
+      await act(async () => mockFilterProps.onAgentChange("beta"));
       expect(mockGetChats).toHaveBeenLastCalledWith({ agentKey: "beta" });
       expect(container.textContent).toContain("Beta history");
       expect(container.textContent).not.toContain("A compact history title");
 
-      await act(async () => mockSelectorProps.onChange(""));
+      await act(async () => mockFilterProps.onAgentChange(""));
       expect(mockGetChats).toHaveBeenLastCalledWith({});
       expect(container.textContent).toContain("Beta history");
       expect(container.textContent).toContain("A compact history title");
       expect(container.textContent).toContain("共 2 条对话");
+    } finally {
+      act(() => root.unmount());
+      HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    }
+  });
+
+  it("filters chats by update date range", async () => {
+    const base = dayjs("2026-01-10");
+    stateChats.splice(0, stateChats.length,
+      createHistoryChat({ chatId: "chat-old", chatName: "Older chat", updatedAt: base.subtract(3, "day").valueOf() }),
+      createHistoryChat({ chatId: "chat-new", chatName: "Newer chat", updatedAt: base.valueOf() }),
+    );
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    const scrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = jest.fn();
+    try {
+      await act(async () => root.render(React.createElement(I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(HistoryModal, { onSelectChat: jest.fn() }),
+      )));
+      expect(container.textContent).toContain("Older chat");
+      expect(container.textContent).toContain("Newer chat");
+
+      await act(async () => mockFilterProps.onDateRangeChange([base, null]));
+      expect(container.textContent).not.toContain("Older chat");
+      expect(container.textContent).toContain("Newer chat");
+
+      await act(async () => mockFilterProps.onDateRangeChange([null, base.subtract(1, "day")]));
+      expect(container.textContent).toContain("Older chat");
+      expect(container.textContent).not.toContain("Newer chat");
+
+      await act(async () => mockFilterProps.onReset());
+      expect(container.textContent).toContain("Older chat");
+      expect(container.textContent).toContain("Newer chat");
     } finally {
       act(() => root.unmount());
       HTMLElement.prototype.scrollIntoView = scrollIntoView;
@@ -295,14 +336,14 @@ describe("HistoryModal", () => {
       } as unknown as React.ChangeEvent<HTMLInputElement>));
       act(() => jest.advanceTimersByTime(250));
       expect(mockSearchGlobal).toHaveBeenLastCalledWith({ query: "search", agentKey: "alpha", limit: 30 });
-      await act(async () => mockSelectorProps.onChange("beta"));
+      await act(async () => mockFilterProps.onAgentChange("beta"));
       act(() => jest.advanceTimersByTime(250));
       await act(async () => pendingSearches[0]({ data: { results: [
         { chatId: "stale-alpha", chatName: "Stale alpha search", agentKey: "alpha" },
       ] } }));
       expect(container.textContent).not.toContain("Stale alpha search");
 
-      await act(async () => mockSelectorProps.onChange(""));
+      await act(async () => mockFilterProps.onAgentChange(""));
       expect(mockGetChats).toHaveBeenLastCalledWith({});
       await act(async () => pendingSearches[1]({ data: { results: [
         { chatId: "stale-beta", chatName: "Stale beta search", agentKey: "beta" },
@@ -348,7 +389,6 @@ describe("HistoryModal", () => {
 
     expect(html).not.toContain("history-filter-trigger");
     expect(html).not.toContain("history-filter-popover");
-    expect(html).not.toContain("history-worker-selector");
     expect(html).toContain("history-modal-title");
   });
 

@@ -584,9 +584,11 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
         info={runInfo}
         hasContent={overviewSections.some((section) => section.hasData)}
       />
-      {overviewSections.map((section) => (
-        <React.Fragment key={section.key}>{section.node}</React.Fragment>
-      ))}
+      {overviewSections
+        .filter((section) => section.hasData)
+        .map((section) => (
+          <React.Fragment key={section.key}>{section.node}</React.Fragment>
+        ))}
     </div>
   );
 };

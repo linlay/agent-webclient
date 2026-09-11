@@ -27,7 +27,10 @@ import {
 } from "@/shared/data";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useAppContext } from "@/app/state/provider";
-import { AgentSelector } from "@/features/chats/components/AgentSelector";
+import {
+  HistoryFilter,
+  type HistoryDateRange,
+} from "@/features/chats/components/HistoryFilter";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
@@ -57,6 +60,19 @@ function isChatForAgent(chat: Chat, agentKey: string): boolean {
     chat?.agentKey || chat?.firstAgentKey || "",
   ).trim();
   return chatAgentKey === agentKey;
+}
+
+function isChatInDateRange(
+  chat: Chat,
+  dateRange: HistoryDateRange,
+): boolean {
+  if (!dateRange) return true;
+  const [start, end] = dateRange;
+  const updatedAt = readEpochMillis(chat.updatedAt);
+  if (updatedAt === undefined) return false;
+  if (start && updatedAt < start.startOf("day").valueOf()) return false;
+  if (end && updatedAt > end.endOf("day").valueOf()) return false;
+  return true;
 }
 
 function resolveCurrentAgentKey(
@@ -120,6 +136,7 @@ export const HistoryModal: React.FC<{
   const [selectedAgentKey, setSelectedAgentKey] = useState(
     () => resolveCurrentAgentKey(state),
   );
+  const [dateRange, setDateRange] = useState<HistoryDateRange>(null);
   const defaultSelectionAppliedRef = useRef(false);
   const chatsRef = useRef(state.chats);
 
@@ -151,11 +168,19 @@ export const HistoryModal: React.FC<{
       .filter(
         (chat) =>
           isChatForAgent(chat, selectedAgentKey) &&
+          isChatInDateRange(chat, dateRange) &&
           String(chat?.chatId || ""),
       )
       .slice()
       .sort(compareChatFreshness);
-  }, [state.chats, selectedAgentKey]);
+  }, [state.chats, selectedAgentKey, dateRange]);
+
+  const totalChatCount = useMemo(() => {
+    const chats = Array.isArray(state.chats) ? state.chats : [];
+    return chats.filter((chat) => String(chat?.chatId || "")).length;
+  }, [state.chats]);
+
+  const filteredChatCount = localHistoryRows.length;
 
   useEffect(() => {
     const query = historySearch.trim();
@@ -334,6 +359,18 @@ export const HistoryModal: React.FC<{
     setHistoryIndex(0);
   };
 
+  const handleDateRangeChange = (range: HistoryDateRange) => {
+    setDateRange(range);
+    setHistoryIndex(0);
+  };
+
+  const handleResetFilters = () => {
+    setSelectedAgentKey("");
+    setDateRange(null);
+    setRemoteHistoryRows(null);
+    setHistoryIndex(0);
+  };
+
   const handleRefresh = () => {
     setHistorySearch("");
     void loadChats(selectedAgentKey, { replace: true });
@@ -433,9 +470,15 @@ export const HistoryModal: React.FC<{
           }}
         />
         {titleBarVariant === "drawer" ? null : (
-          <AgentSelector
-            value={selectedAgentKey}
-            onChange={handleAgentChange}
+          <HistoryFilter
+            agentKey={selectedAgentKey}
+            agents={agents}
+            dateRange={dateRange}
+            filteredCount={filteredChatCount}
+            totalCount={totalChatCount}
+            onAgentChange={handleAgentChange}
+            onDateRangeChange={handleDateRangeChange}
+            onReset={handleResetFilters}
           />
         )}
         <Tooltip title={t("history.refresh")}>

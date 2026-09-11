@@ -10,6 +10,8 @@ import { UiListItem } from "@/shared/ui/UiListItem";
 import { UiTag } from "@/shared/ui/UiTag";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/icons/material";
+import { Dropdown } from "antd";
+import type { MenuProps } from "antd";
 
 export const SWITCH_SCOPES = [
   { key: "all", labelKey: "switch.scope.all" },
@@ -57,6 +59,17 @@ export const SwitchModal: React.FC<{
   const currentWorker = resolveCurrentWorkerSummary(state);
   const isCopilot = variant === "copilot";
 
+  const activeScope = SWITCH_SCOPES.find((item) => item.key === scope);
+  const scopeMenu: MenuProps = {
+    items: SWITCH_SCOPES.map((item) => ({
+      key: item.key,
+      label: t(item.labelKey),
+    })),
+    selectable: true,
+    selectedKeys: [scope],
+    onClick: ({ key }) => onScopeChange(key as WorkerSwitchScope),
+  };
+
   return (
     <div
       className={`command-modal-section ${isCopilot ? "command-switch-compact" : ""}`}
@@ -92,24 +105,18 @@ export const SwitchModal: React.FC<{
           value={searchText}
           onChange={(event) => onSearchChange(event.target.value)}
         />
-        <div
-          className="command-scope-group"
-          role="tablist"
-          aria-label={t("switch.scopeLabel")}
-        >
-          {SWITCH_SCOPES.map((item) => (
-            <button
-              key={item.key}
-              className={`command-scope-btn ${scope === item.key ? "is-active" : ""}`}
-              type="button"
-              role="tab"
-              aria-selected={scope === item.key}
-              onClick={() => onScopeChange(item.key)}
-            >
-              {t(item.labelKey)}
-            </button>
-          ))}
-        </div>
+        <Dropdown menu={scopeMenu} trigger={["click"]}>
+          <UiButton
+            className="command-scope-filter"
+            size="sm"
+            variant="ghost"
+            aria-label={t("switch.scopeLabel")}
+            title={t("switch.scopeLabel")}
+          >
+            <MaterialIcon name="filter_list" />
+            <span>{activeScope ? t(activeScope.labelKey) : ""}</span>
+          </UiButton>
+        </Dropdown>
       </div>
 
       {switchRows.length === 0 ? (
@@ -152,19 +159,17 @@ export const SwitchModal: React.FC<{
                       },
                     }}
                   />
-                  <div className="command-switch-compact-main">
-                    <div className="command-list-head">
-                      <strong>{row.displayName}</strong>
-                      <UiTag tone={row.type === "team" ? "default" : "accent"}>
-                        {row.type === "team"
-                          ? t("switch.workerType.team")
-                          : t("switch.workerType.agent")}
-                      </UiTag>
-                    </div>
-                    <div className="command-list-meta">
-                      <span>{row.role || "--"}</span>
-                    </div>
-                  </div>
+                  <strong className="command-switch-compact-name">
+                    {row.displayName}
+                  </strong>
+                  <span className="command-switch-compact-role">
+                    {row.role || "--"}
+                  </span>
+                  <UiTag tone={row.type === "team" ? "default" : "accent"}>
+                    {row.type === "team"
+                      ? t("switch.workerType.team")
+                      : t("switch.workerType.agent")}
+                  </UiTag>
                 </div>
               ) : (
                 <>
