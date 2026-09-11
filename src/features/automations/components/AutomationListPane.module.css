@@ -288,3 +288,8 @@
   }
 
 }
+
+/* Route pages share one reading veil; embedded consoles retain their surfaces. */
+:global(.automations-page) .sidebar {
+  background: transparent;
+}

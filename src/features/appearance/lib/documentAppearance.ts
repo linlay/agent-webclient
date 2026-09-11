@@ -78,7 +78,7 @@ export function createDocumentAppearanceTarget(root = document.documentElement) 
       // Only the new-chat composer/cards reveal a little wallpaper; ordinary
       // inputs and portals keep the already-flattened opaque control color.
       const inputColor = colorChannels(read("--control-input-bg")) || colorChannels(solidBase)!;
-      set("--new-chat-input-surface", decorated ? `rgba(${inputColor.slice(0, 3).join(", ")}, 0.92)` : read("--control-input-bg"));
+      set("--new-chat-input-surface", decorated ? `rgba(${inputColor.slice(0, 3).join(", ")}, 0.64)` : read("--control-input-bg"));
       // Management pages share one faint picture layer, including when a skin
       // supplies an opaque shell color. Never fade their text or controls.
       const managementColor = colorChannels(read("--shell-content-bg")) || colorChannels(solidBase)!;
