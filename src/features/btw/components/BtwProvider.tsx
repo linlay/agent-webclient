@@ -943,3 +943,7 @@ export function useBTW(): BTWContextValue {
   }
   return context;
 }
+
+export function useOptionalBTW(): BTWContextValue | null {
+  return useContext(BTWContext);
+}

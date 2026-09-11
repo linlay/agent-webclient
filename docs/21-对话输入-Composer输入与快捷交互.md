@@ -12,11 +12,13 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 ## 核心流程
 用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。历史 Chat 的文本草稿按 `chatId` 保存和恢复；未获得稳定 `chatId` 的 New Chat 统一使用空 key，因此不同 Agent 的 New Chat 共享同一份运行期草稿。普通 Chat 或 Agent 切换只切换当前草稿，不清空已保存内容；用户发送时清空该草稿，宿主提供显式一次性预填时则覆盖它。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的“必须使用”标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
 
-Desktop 划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条注释`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，也不进入 active Run steer。普通 query 可以只发送选中文本 reference；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
+跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条注释`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，也不进入 active Run steer。普通 query 可以只发送选中文本 reference；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
 
 Side question Tab 默认不显示。`/btw` 会先为当前 chat 创建一个空 session，再显示并激活该 Tab；`/btw 问题` 会在主 query/steer 路由前被识别，并把问题作为全新隐藏只读分支的首次请求发送，不能携带此前已关闭分支的 `btwId`。BTW 可以和主 run 并行；没有有效 `chatId` 时命令不可用。
 
 Desktop 划词“在顺便问中提问”只打开并聚焦宿主 WorkPanel 中当前 Chat 的单例“侧边对话”子 Surface，`AgentChatShell` 不再嵌入第二层 RightSidebar。来源页与 `/btw/:chatId` 使用同源 `BroadcastChannel` 完成有界、一次性的内存态交付：Desktop descriptor 只包含固定 target 与 Chat ID，不包含选区正文。子 Surface 保留已有文字草稿与分支，追加片段并聚合显示 `N 个已选文本片段`，但不自动发送。用户在没有文字问题时显式点击发送，WebClient 会使用不包含选区正文的本地化最小问题，以满足 BTW 的非空 `message` 契约；选区仍只通过标准 `references` 传递。BTW identity 接受后才清理片段。划词“详细解释”不改写可见 BTW 草稿，而以默认访问级别发起一次隐藏 BTW Run，只把 canonical `chatId/runId` 交给 Desktop 小窗；小窗页面 attach 该 Run 并可继续同一 `btwId` 分支。
+
+Standalone 划词与 Desktop 共用引用、动作处理、BtwProvider、BtwTab 和 SelectionExplainSurface。根网站复用已有 RightSidebar；Agent/Copilot 页面使用同一旁聊状态的页内侧栏，不额外打开浏览器标签。详细解释使用单例页内弹窗，准备、成功和失败均有可见状态；只传 Chat/Run 身份给解释视图，不把选区正文放入 URL。关闭准备中的解释弹窗或切换 Chat 后，迟到的运行身份不得重新打开弹窗。浏览器不注册 Desktop 动作监听，Desktop 不安装网页工具条。
 
 Side question 在回答中也允许关闭。桌面右侧 Tab 的关闭按钮和 Copilot BTW 面板的关闭按钮都执行永久前端丢弃：清除当前 chat 的内容、续接身份和持久化记录，界面回到 Overview，旧分支不能从前端恢复；再次执行 `/btw` 会创建空白新分支。右侧栏最外层的关闭按钮仍只收起侧栏，不丢弃 BTW。丢弃不会中断后端 run 或终止其 SSE，后台请求会自然结束，迟到事件也不能让 Tab 复活。
 

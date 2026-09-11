@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MessageInstance } from "antd/es/message/interface";
 import { useAppState } from "@/app/state/AppContext";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
@@ -10,12 +10,20 @@ import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopSelectionActionHandler } from "@/shared/data/desktop/desktopContextMenu";
+import { isDesktopAppMode } from "@/shared/utils/routing";
+import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
+import { useOptionalBTW } from "@/features/btw/components/BtwProvider";
 import type { SelectedTextFragment } from "@/features/selection/lib/selectedTextReference";
 import {
   cancelSelectedTextTransfer,
   DESKTOP_SELECTION_BTW_TARGET,
   stageSelectedTextTransfer,
 } from "@/features/selection/lib/selectionTransfer";
+
+export type SelectionExplanationState =
+  | { requestId: string; chatId: string; status: "pending" }
+  | { requestId: string; chatId: string; status: "ready"; runId: string }
+  | { requestId: string; chatId: string; status: "error"; message: string };
 
 export function useDesktopSelectionActions(input: {
   addMainFragment: (fragment: SelectedTextFragment) => boolean;
@@ -27,7 +35,20 @@ export function useDesktopSelectionActions(input: {
   const { t } = useI18n();
   const runs = useRunTransport();
   const openTarget = useOpenTarget();
+  const desktopMode = isDesktopAppMode();
+  const btw = useOptionalBTW();
+  const [explanation, setExplanation] = useState<SelectionExplanationState | null>(null);
+  const activeExplanationRequestRef = useRef<string | null>(null);
   const explanationExecutionsRef = useRef(new Map<string, RunExecution>());
+
+  const closeExplanation = useCallback(() => {
+    activeExplanationRequestRef.current = null;
+    setExplanation(null);
+  }, []);
+  useEffect(() => {
+    closeExplanation();
+  }, [closeExplanation, state.chatId]);
+  useEffect(() => () => { activeExplanationRequestRef.current = null; }, []);
 
   const handleAction = useCallback(async ({
     action,
@@ -49,6 +70,15 @@ export function useDesktopSelectionActions(input: {
     }
 
     if (action === "ask-in-side-chat") {
+      if (!desktopMode) {
+        if (!btw?.openBTW({ parentChatId: chatId, model, accessLevel: "default" })) {
+          void messageApi.error(t("selection.action.failed"));
+          return { ok: false, code: "surface_not_ready" as const };
+        }
+        return btw.addDraftSelection(chatId, fragment)
+          ? { ok: true } as const
+          : { ok: false, code: "surface_not_ready" as const };
+      }
       const transfer = stageSelectedTextTransfer({
         targetId: DESKTOP_SELECTION_BTW_TARGET,
         chatId,
@@ -88,25 +118,38 @@ export function useDesktopSelectionActions(input: {
     }
 
     const requestId = createRequestId("selection_explain");
-    const execution = runs.startBtw({
-      requestId,
-      chatId,
-      message: t("selection.explain.prompt"),
-      accessLevel: "default",
-      model,
-      references: [fragment.reference],
-      stream: true,
-      owner,
-      onEvent: () => undefined,
-    });
-    explanationExecutionsRef.current.set(requestId, execution);
-    void execution.completion.finally(() => {
-      if (explanationExecutionsRef.current.get(requestId) === execution) {
-        explanationExecutionsRef.current.delete(requestId);
-      }
-    });
+    if (!desktopMode) {
+      activeExplanationRequestRef.current = requestId;
+      setExplanation({ requestId, chatId, status: "pending" });
+    }
     try {
+      const execution = runs.startBtw({
+        requestId,
+        chatId,
+        message: t("selection.explain.prompt"),
+        accessLevel: "default",
+        model,
+        references: [fragment.reference],
+        stream: true,
+        owner,
+        onEvent: () => undefined,
+      });
+      explanationExecutionsRef.current.set(requestId, execution);
+      const forgetExecution = () => {
+        if (explanationExecutionsRef.current.get(requestId) === execution) {
+          explanationExecutionsRef.current.delete(requestId);
+        }
+      };
+      void execution.completion.then(forgetExecution, forgetExecution);
       const identity = await execution.identity;
+      if (!desktopMode && activeExplanationRequestRef.current === requestId) {
+        setExplanation({
+          requestId,
+          chatId: identity.chatId || chatId,
+          runId: identity.runId,
+          status: "ready",
+        });
+      }
       return {
         ok: true,
         handoff: {
@@ -114,13 +157,19 @@ export function useDesktopSelectionActions(input: {
           runId: identity.runId,
         },
       } as const;
-    } catch {
+    } catch (cause) {
       explanationExecutionsRef.current.delete(requestId);
-      void messageApi.error(t("selection.action.failed"));
+      const display = formatPlatformErrorForDisplay(cause);
+      if (!desktopMode && activeExplanationRequestRef.current === requestId) {
+        setExplanation({ requestId, chatId, status: "error", message: display.message });
+      }
+      void messageApi.error(display.message);
       return { ok: false, code: "run_start_failed" as const };
     }
   }, [
     addMainFragment,
+    btw,
+    desktopMode,
     messageApi,
     model,
     openTarget,
@@ -132,5 +181,8 @@ export function useDesktopSelectionActions(input: {
     t,
   ]);
 
-  useDesktopSelectionActionHandler(handleAction);
+  // Browser clicks use the same action handler directly; only a Desktop guest
+  // registers it with the host bridge.
+  useDesktopSelectionActionHandler(desktopMode ? handleAction : null);
+  return { handleAction, explanation, closeExplanation };
 }

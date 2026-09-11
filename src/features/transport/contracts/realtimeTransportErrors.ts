@@ -9,6 +9,12 @@ export type RealtimeTransportErrorCode =
   | "desktop_bridge_incompatible"
   | "transport_disposed"
   | "early_event_buffer_overflow"
+  | "invalid_stream_event"
+  | "time_contract_violation"
+  | "unsupported_request_type"
+  | "stream_unavailable"
+  | "stream_interrupted"
+  | "stream_frame_too_large"
   | "run_identity_missing"
   | "terminal_identity_missing"
   | "terminal_unsupported";

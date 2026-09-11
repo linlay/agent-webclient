@@ -9,9 +9,10 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 import styles from "./SelectionExplainSurface.module.css";
 
-export const SelectionExplainSurface: React.FC<{ chatId: string; runId: string }> = ({
+export const SelectionExplainSurface: React.FC<{ chatId: string; runId: string; embedded?: boolean }> = ({
   chatId,
   runId,
+  embedded = false,
 }) => {
   const { t } = useI18n();
   const chatRuntime = useChatSurfaceReplay({ chatId });
@@ -37,6 +38,7 @@ export const SelectionExplainSurface: React.FC<{ chatId: string; runId: string }
   return (
     <IndependentSurfaceFrame
       kind="selection-explain"
+      embedded={embedded}
       flushContent
       loading={!invalid && chatRuntime.status === "loading"}
       error={invalid || missingOwner

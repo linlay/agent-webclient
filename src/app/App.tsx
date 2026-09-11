@@ -15,6 +15,7 @@ import {
 import { AppShell } from "@/app/layout/AppShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { initializeDesktopQueryContextBridge } from "@/shared/data/desktop/desktopQueryContext";
 import {
   I18nProvider,
@@ -95,7 +96,7 @@ const InteractiveRoute: React.FC<{
   children: React.ReactNode;
   btwEnabled?: boolean;
 }> = ({ children, btwEnabled = true }) => (
-  <BtwProvider enabled={btwEnabled}>{children}</BtwProvider>
+  <BtwProvider enabled={btwEnabled || !isDesktopAppMode()}>{children}</BtwProvider>
 );
 
 const AutomationConversationIntentBridge: React.FC = () => {

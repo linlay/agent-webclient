@@ -24,6 +24,7 @@ import type { PlatformFrameClient } from "@/features/transport/lib/platformFrame
 import { createWsFrameId } from "@/features/transport/lib/wsClient";
 
 const EARLY_EVENT_BUFFER_LIMIT = 256;
+type RunStreamClient = Pick<PlatformFrameClient, "stream" | "request">;
 
 type StreamStartOptions = {
   requestId: string;
@@ -37,7 +38,7 @@ type StreamStartOptions = {
   signal?: AbortSignal;
   acceptOnStart?: boolean;
   detachRemote?: boolean;
-  ensureClient: () => Promise<PlatformFrameClient>;
+  ensureClient: () => Promise<RunStreamClient>;
   registerLifecycle?: (control: RunSurfaceLifecycleControl) => () => void;
 };
 
@@ -62,7 +63,7 @@ function eventSeq(event: AgentEvent): number {
 
 function startStreamExecution(options: StreamStartOptions): RunExecution {
   let streamAbort: (() => void) | null = null;
-  let client: PlatformFrameClient | null = null;
+  let client: RunStreamClient | null = null;
   let identitySettled = false;
   let completionSettled = false;
   let detached = false;
@@ -208,6 +209,14 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
           onDone: (reason, finalSeq) => {
             if (generation !== launchGeneration) return;
             lastSeq = Math.max(lastSeq, Number(finalSeq) || 0);
+            if (reason === "detached") {
+              if (!identitySettled) {
+                identitySettled = true;
+                rejectIdentity(new DOMException("The operation was detached.", "AbortError"));
+              }
+              settleCompletion({ reason: "detached", lastSeq });
+              return;
+            }
             if (!identitySettled) {
               settleIdentity();
               if (!identitySettled) {
@@ -292,7 +301,10 @@ export class PlatformRunTransport implements RunTransport {
 
   constructor(
     private readonly ensureClient: () => Promise<PlatformFrameClient> = ensureStandaloneWsClient,
-    private readonly options: { supportsBtw?: boolean } = {},
+    private readonly options: {
+      supportsBtw?: boolean;
+      ensureBtwClient?: () => Promise<RunStreamClient>;
+    } = {},
   ) {}
 
   setSurfaceActive(active: boolean): void {
@@ -342,7 +354,7 @@ export class PlatformRunTransport implements RunTransport {
       onEvent: input.onEvent,
       signal: input.signal,
       detachRemote: true,
-      ensureClient: this.ensureClient,
+      ensureClient: this.options.ensureBtwClient || this.ensureClient,
       registerLifecycle: this.registerLifecycle,
     });
   }
