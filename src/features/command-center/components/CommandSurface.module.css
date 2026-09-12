@@ -97,6 +97,20 @@
     height: 100%;
 }
 
+:global(.command-modal):global(.is-automation-console):not(:global(.copilot-modal)) :global(.ant-modal-content) {
+    padding: 8px 10px;
+}
+
+:global(.command-modal):global(.is-automation-console):not(:global(.copilot-modal)) :global(.modal-title-bar) {
+    flex: 0 0 28px;
+    height: 28px;
+}
+
+:global(.command-modal):global(.is-automation-console):not(:global(.copilot-modal)) :global(.modal-title-bar-title) {
+    font-size: 14px;
+    font-weight: 600;
+}
+
 :global(.command-modal):global(.is-automation-console) :global(.ant-modal-body) {
     height: min(76vh, 720px);
     overflow: hidden;
