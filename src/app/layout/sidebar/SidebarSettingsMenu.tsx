@@ -10,7 +10,6 @@ import { isMemoryEnabled } from "@/shared/config/featureFlags";
 export interface SettingsSummaryBadge {
   key: "theme";
   icon: MaterialIconName;
-  label: string;
   title: string;
 }
 
@@ -51,10 +50,6 @@ export function resolveSettingsSummaryBadges(input: {
     {
       key: "theme",
       icon: input.themeMode === "dark" ? "dark_mode" : "light_mode",
-      label:
-        input.themeMode === "dark"
-          ? t("settingsMenu.summary.theme.darkLabel")
-          : t("settingsMenu.summary.theme.lightLabel"),
       title:
         input.themeMode === "dark"
           ? t("settingsMenu.summary.theme.darkTitle")

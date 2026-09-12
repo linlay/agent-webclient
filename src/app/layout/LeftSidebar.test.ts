@@ -612,7 +612,9 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain('id="settings-btn"');
     expect(html).toContain("打开设置菜单");
-    expect(html).toContain(">夜<");
+    expect(html).not.toContain(">夜<");
+    expect(html).not.toContain(">日<");
+    expect(html).toContain('data-material-icon="dark_mode"');
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");
     expect(html).toContain("icon-btn ui-icon-hover-24");

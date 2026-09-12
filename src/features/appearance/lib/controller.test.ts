@@ -37,15 +37,15 @@ describe("appearance controller", () => {
     expect(appearanceAssetStore).not.toHaveBeenCalled();
     expect(location.href).toBe(initialUrl); stop();
   });
-  it("restores standalone preferences and tracks system changes without persisting resolved colors", async () => {
+  it.each(["gold", "blue", "mist", "purple"])("restores %s and tracks system changes without persisting resolved colors", async (skinId) => {
     const controller = createAppearanceController(); const stop = controller.start(); await flush();
-    controller.setThemePreference("system"); controller.setSkinId("mist");
+    controller.setThemePreference("system"); controller.setSkinId(skinId);
     system.matches = true; system.addEventListener.mock.calls[0][1]();
-    expect(controller.getSnapshot()).toMatchObject({ preference: "system", resolvedTheme: "dark", selectedSkinId: "mist" });
+    expect(controller.getSnapshot()).toMatchObject({ preference: "system", resolvedTheme: "dark", selectedSkinId: skinId });
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("system");
     stop();
     const restored = createAppearanceController();
-    expect(restored.getSnapshot()).toMatchObject({ preference: "system", selectedSkinId: "mist" });
+    expect(restored.getSnapshot()).toMatchObject({ preference: "system", selectedSkinId: skinId });
   });
   it("keeps URL appearance temporary and returns to the stored preference when it disappears", async () => {
     localStorage.setItem(THEME_STORAGE_KEY, "dark");

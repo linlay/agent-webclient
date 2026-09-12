@@ -19,7 +19,7 @@ describe("resolveSettingsSummaryBadges", () => {
     ).toEqual([
       expect.objectContaining({
         key: "theme",
-        label: "夜",
+        icon: "dark_mode",
       }),
     ]);
   });

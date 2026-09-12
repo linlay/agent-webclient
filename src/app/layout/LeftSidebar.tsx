@@ -65,9 +65,10 @@ export const LeftSidebar: React.FC = () => {
               key={badge.key}
               className="settings-summary-chip"
               title={badge.title}
+              role="img"
+              aria-label={badge.title}
             >
               <MaterialIcon name={badge.icon} />
-              <span>{badge.label}</span>
             </span>
           ))}
         </span>

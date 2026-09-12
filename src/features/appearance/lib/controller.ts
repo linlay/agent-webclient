@@ -21,7 +21,7 @@ export type AppearanceSnapshot = AppearancePresentation & {
 function readSkinPreference(): string {
   try {
     const value = JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) || "null");
-    return typeof value?.skinId === "string" && /^(default|mist|pack:[a-z][a-z0-9.-]{0,63})$/.test(value.skinId) ? value.skinId : "default";
+    return typeof value?.skinId === "string" && (findDesktopSkin(value.skinId) || /^pack:[a-z][a-z0-9.-]{0,63}$/.test(value.skinId)) ? value.skinId : "default";
   } catch { return "default"; }
 }
 
