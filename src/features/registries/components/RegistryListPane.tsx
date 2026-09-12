@@ -1,3 +1,4 @@
+import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useMemo } from "react";
 import { Spin } from "antd";
 import type { MenuProps } from "antd";
@@ -68,6 +69,7 @@ export interface RegistryListPaneProps {
   statusFilter: RegistryStatusFilter;
   toolsLoading: boolean;
   onCreate: () => void;
+  onCreateConversation?: () => void;
   onRefresh: () => void;
   onSearchChange: (value: string) => void;
   onSelect: (item: AdminRegistryListItem) => void;
@@ -173,15 +175,7 @@ export function RegistryListPane(props: RegistryListPaneProps) {
             <MaterialIcon name="refresh" />
           </UiButton>
           {!props.isToolsTab ? (
-            <UiButton
-              size="sm"
-              variant="primary"
-              iconOnly
-              onClick={props.onCreate}
-              aria-label={t("registryConsole.action.new")}
-            >
-              <MaterialIcon name="add" />
-            </UiButton>
+            <CreateMenuButton label={t("registryConsole.action.new")} onManual={props.onCreate} onConversation={props.onCreateConversation} />
           ) : null}
         </div>
         <div className="automation-console-count tw:text-xs tw:text-ink-muted">

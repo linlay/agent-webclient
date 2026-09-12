@@ -64,3 +64,7 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 - `../src/features/model-config/lib/modelOptions.ts`
 - `../src/shared/data/api/client.ts`
 - `../src/shared/data/api/routedClient.ts`
+
+## 对话辅助入口
+
+手工创建、编辑、保存与对话方式并存。独立的「通过对话创建／修改」入口使用默认 Chat 智能体，预选 `platform-admin` 并填写草稿，不自动发送。保留原有表单、源码编辑、ZIP 导入及只读边界；连接器手工新增沿用 ZIP 导入。详见[资源对话创建与修改](01-应用基础-应用入口路由与布局壳层.md#资源对话创建与修改)。

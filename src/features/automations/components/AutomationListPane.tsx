@@ -1,3 +1,4 @@
+import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useMemo } from "react";
 import { Input, Spin, Tooltip } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
@@ -40,6 +41,7 @@ export interface AutomationListPaneProps {
   selectedId: string;
   teams: Team[];
   onCreate: () => void;
+  onCreateConversation?: () => void;
   onRetry: () => void;
   onSearchChange: (value: string) => void;
   onSelect: (id: string) => void;
@@ -54,6 +56,7 @@ export function AutomationListPane({
   selectedId,
   teams,
   onCreate,
+  onCreateConversation,
   onRetry,
   onSearchChange,
   onSelect,
@@ -156,18 +159,7 @@ export function AutomationListPane({
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={t("automationConsole.searchPlaceholder")}
           />
-          <Tooltip title={t("automationConsole.action.new")}>
-            <UiButton
-              size="sm"
-              variant="primary"
-              iconOnly
-              className={`${styles.newButton} ui-icon-hover-24`}
-              aria-label={t("automationConsole.action.new")}
-              onClick={onCreate}
-            >
-              <MaterialIcon name="add" />
-            </UiButton>
-          </Tooltip>
+          <CreateMenuButton label={t("automationConsole.action.new")} className={`${styles.newButton} ui-icon-hover-24`} onManual={onCreate} onConversation={onCreateConversation} />
         </div>
       </div>
       <div className={styles.automationList}>

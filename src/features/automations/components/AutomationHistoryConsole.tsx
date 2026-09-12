@@ -1,3 +1,4 @@
+import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import { App as AntdApp } from "antd";
 import { useState } from "react";
 import type { Agent } from "@/features/agents/lib/agentState";
@@ -33,6 +34,7 @@ export function AutomationHistoryConsole({
   const { modal } = AntdApp.useApp();
   const { t } = useI18n();
   const state = useAppState();
+  const assistant = useResourceAssistant();
   const effectiveAgents = agents.length ? agents : state.agents;
   const effectiveTeams = teams.length ? teams : state.teams;
   const runtime = useAutomationHistoryRuntime(effectiveAgents.length > 0);
@@ -76,6 +78,7 @@ export function AutomationHistoryConsole({
           selectedId={runtime.selectedId}
           teams={effectiveTeams}
           onCreate={openCreate}
+          onCreateConversation={() => { if (!runtime.actionBusy && !assistant.opening) void assistant.open({ kind: "automation" }, onClose); }}
           onRetry={() => void runtime.loadAutomationList(runtime.selectedId)}
           onSearchChange={setSearch}
           onSelect={runtime.selectAutomation}
@@ -97,6 +100,7 @@ export function AutomationHistoryConsole({
           onCreate={openCreate}
           onDelete={deleteSelected}
           onDuplicate={() => void runtime.duplicateSelected()}
+          onEditConversation={() => { if (runtime.selected && !assistant.opening) void assistant.open({ kind: "automation", target: { id: runtime.selected.id, name: runtime.selected.name } }, onClose); }}
           onEdit={() => {
             if (!runtime.selected) return;
             setEditorAutomationId(runtime.selected.id);

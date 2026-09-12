@@ -9,6 +9,7 @@
 
 :global(.command-modal-card):global(.is-automation-console) {
     width: 100%;
+    gap: 0;
 }
 
 :global(.command-modal-title) {

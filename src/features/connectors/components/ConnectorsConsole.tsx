@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { EditMenuButton, focusEditableField } from "@/shared/ui/EditMenuButton";
+import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
+import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { message, Spin } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import type { ConnectorType } from "@/shared/data";
@@ -31,6 +34,8 @@ export interface ConnectorsConsoleProps {
 
 export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsoleProps) {
   const { t } = useI18n();
+  const assistant = useResourceAssistant();
+  const editorRegion = useRef<HTMLDivElement>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
   const appContext = useOptionalAppContext();
   const runtime = useConnectorsRuntime(routeId, onRouteIdChange);
@@ -95,7 +100,9 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
                 items: (["all", "mcp", "cli", "view"] as const).map(type => ({ key: type, label: type === "all" ? t("connectors.filter.all") : type.toUpperCase() })),
               },
             }]} />
-          <UiButton size="sm" variant="primary" iconOnly aria-label={t("connectors.import.action")} title={t("connectors.import.action")} disabled={busy || runtime.detailLoading} onClick={importer.show}><MaterialIcon name="add" /></UiButton>
+          <CreateMenuButton label={t("resourceAssistant.new")} manualLabel={t("resourceAssistant.import")} disabled={busy || runtime.detailLoading || assistant.opening}
+            onManual={importer.show}
+            onConversation={() => { if (!runtime.dirty || window.confirm(t("connectors.confirm.discard"))) void assistant.open({ kind: "connector" }); }} />
           <UiButton size="sm" variant="ghost" iconOnly aria-label={t("connectors.action.refresh")} disabled={runtime.loading || busy} onClick={() => { void runtime.refreshCatalog(); refreshStatuses(); void refreshPins().catch(() => undefined); }}><MaterialIcon name="refresh" /></UiButton>
         </div>
         <p className={styles.hint}>{runtime.catalogError && !runtime.items.length ? t("connectors.list.unavailable") : t(hasFilter ? "connectors.list.count.filtered" : "connectors.list.count", { count: items.length })}</p>
@@ -145,10 +152,13 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
               </div>}
               {runtime.error && <div className={styles.error} role="alert">{runtime.error}</div>}
               {runtime.message && <p className={styles.notice} role="status">{runtime.message}</p>}
-              <Spin spinning={runtime.detailLoading}>
+              <div ref={editorRegion}><Spin spinning={runtime.detailLoading}>
                 {runtime.detail && runtime.detail.id === selected.id && runtime.detail.file === runtime.file && <ConnectorConfigEditor key={`${selected.id}/${runtime.file}`} connectorId={selected.id} file={runtime.file} theme={appContext?.state.themeMode ?? "light"} draft={runtime.draft} disabled={busy} readOnly={runtime.readOnly} onChange={runtime.updateDraft} />}
-              </Spin>
+              </Spin></div>
               <footer className={styles.actions}>
+                {!runtime.readOnly && <EditMenuButton label={t("resourceAssistant.editConnector")} disabled={busy || runtime.detailLoading || assistant.opening}
+                  onManual={() => focusEditableField(editorRegion.current)}
+                  onConversation={() => { if (!runtime.dirty || window.confirm(t("connectors.confirm.discard"))) void assistant.open({ kind: "connector", target: { id: selected.id, name: selected.name } }); }} />}
                 {!runtime.readOnly && <UiButton variant="primary" size="sm" loading={runtime.saving} disabled={busy || !runtime.dirty || runtime.detailLoading || !runtime.detail?.sha256} onClick={() => void runtime.save()}>{t("connectors.action.save")}</UiButton>}
                 <UiButton variant="ghost" size="sm" disabled={busy || runtime.detailLoading} onClick={runtime.reload}>{t("connectors.action.reload")}</UiButton>
                 {runtime.dirty && <span className={styles.hint}>{t("connectors.config.dirty")}</span>}

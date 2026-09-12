@@ -1,3 +1,4 @@
+import { EditMenuButton } from "@/shared/ui/EditMenuButton";
 import { useEffect, useMemo, useState } from "react";
 import { Dropdown, Spin, Tooltip } from "antd";
 import {
@@ -40,6 +41,7 @@ export interface AutomationExecutionHistoryProps {
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  onEditConversation?: () => void;
   onLoadMore: () => void;
   onRefresh: () => void;
   onRetryExecutions: () => void;
@@ -62,6 +64,7 @@ export function AutomationExecutionHistory({
   onDelete,
   onDuplicate,
   onEdit,
+  onEditConversation,
   onLoadMore,
   onRefresh,
   onRetryExecutions,
@@ -161,18 +164,7 @@ export function AutomationExecutionHistory({
           </div>
         </div>
         <div className={styles.headerActions}>
-          <Tooltip title={t("automationHistory.action.edit")} arrow={false}>
-            <UiButton
-              size="sm"
-              variant="secondary"
-              className="ui-icon-hover-24"
-              iconOnly
-              aria-label={t("automationHistory.action.edit")}
-              onClick={onEdit}
-            >
-              <MaterialIcon name="edit" />
-            </UiButton>
-          </Tooltip>
+          <EditMenuButton label={t("resourceAssistant.editAutomation")} disabled={actionBusy} onManual={onEdit} onConversation={onEditConversation} />
           <Tooltip
             title={
               selected.enabled

@@ -98,3 +98,23 @@ it("retains the visible skill order on write failure and reloads remote changes 
   expect(container.querySelector('output')?.textContent).toBe("pdf");
   expect(container.textContent).not.toContain("无法同步技能置顶");
 });
+
+const mockOpenAssistant = jest.fn();
+jest.mock("@/features/resource-assistant/hooks/useResourceAssistant", () => ({ useResourceAssistant: () => ({ open: mockOpenAssistant, opening: false }) }));
+
+it.each(["直接编辑", "通过对话编辑"])("edits the clicked skill from its item menu: %s", async (label) => {
+  await mount();
+  onSelect.mockClear();
+  expect(container.querySelector('button[aria-label="编辑技能"]')).toBeNull();
+  const wrap = Array.from(container.querySelectorAll(".skill-console-list-item-wrap")).find(node => node.querySelector("strong")?.textContent === "PDF")!;
+  await act(async () => wrap.querySelector<HTMLButtonElement>('[aria-label="更多"]')!.click());
+  const menuItem = Array.from(document.querySelectorAll<HTMLElement>(".ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item")).find(node => node.textContent === label)!;
+  await act(async () => menuItem.click());
+  if (label === "直接编辑") {
+    expect(onSelect).toHaveBeenCalledWith("pdf");
+    expect(mockOpenAssistant).not.toHaveBeenCalled();
+  } else {
+    expect(mockOpenAssistant).toHaveBeenCalledWith({ kind: "skill", target: { id: "pdf", name: "PDF" } });
+    expect(onSelect).not.toHaveBeenCalled();
+  }
+});

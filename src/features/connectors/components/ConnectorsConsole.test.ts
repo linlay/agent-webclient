@@ -255,7 +255,7 @@ it("uses compact name/version and status/type rows without exposing the connecto
   expect(footer.firstElementChild?.textContent).toBe("v1.0");
   expect(footer.children[1]?.textContent).toBe("未登录");
   expect(footer.lastElementChild?.textContent).toBe("CLIMCP");
-  expect(container.querySelector('aside button[aria-label="导入"]')?.getAttribute("title")).toBe("导入");
+  expect(container.querySelector('aside button[aria-label="新增连接器"]')?.getAttribute("title")).toBe("新增连接器");
   expect(container.textContent).not.toContain("可通过 ZIP 导入外部连接器");
 });
 
@@ -371,7 +371,7 @@ it("confirms the package identity before deleting and leaves the list usable aft
   expect(container.textContent).not.toContain("找不到连接器");
   expect(container.querySelectorAll("aside strong")).toHaveLength(0);
   expect(button("删除连接器")).toBeUndefined();
-  expect(container.querySelector('button[aria-label="导入"]')).not.toBeNull();
+  expect(container.querySelector('button[aria-label="新增连接器"]')).not.toBeNull();
 });
 
 it("displays the blocking Agent names without discarding the selected connector", async () => {
@@ -383,4 +383,17 @@ it("displays the blocking Agent names without discarding the selected connector"
   expect(detail().textContent).toContain("取消挂载");
   expect(button("删除连接器").disabled).toBe(false);
   expect(container.querySelector("aside strong")?.textContent).toBe(item.name);
+});
+
+const mockOpenAssistant = jest.fn();
+jest.mock("@/features/resource-assistant/hooks/useResourceAssistant", () => ({ useResourceAssistant: () => ({ open: mockOpenAssistant, opening: false }) }));
+
+it("keeps the writable configuration and save action beside conversation editing", async () => {
+  await mount();
+  expect(button("保存配置")).toBeDefined();
+  await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="编辑连接器"]')!.click());
+  const conversation = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(item => item.textContent === "通过对话编辑")!;
+  await act(async () => conversation.click());
+  expect(mockOpenAssistant).toHaveBeenCalledWith({ kind: "connector", target: { id: "demo", name: "Demo connector" } });
+  expect(updateConnectorDefinition).not.toHaveBeenCalled();
 });

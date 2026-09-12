@@ -168,3 +168,17 @@ it("ends loading and displays initialization failures under StrictMode", async (
   expect(container.textContent).toContain("Initialization failed");
   expect(container.textContent).toContain("agentConsole.action.retry");
 });
+
+const mockOpenAssistant = jest.fn();
+jest.mock("@/features/resource-assistant/hooks/useResourceAssistant", () => ({ useResourceAssistant: () => ({ open: mockOpenAssistant, opening: false }) }));
+
+it("keeps manual editing available beside conversation creation", async () => {
+  await render();
+  const edit = Array.from(container.querySelectorAll("button")).find(button => button.textContent?.includes("resourceAssistant.editAgent"))!;
+  await act(async () => edit.click());
+  expect(editor().isReadOnly).toBe(false);
+  await act(async () => list().onCreateConversation?.());
+  expect(mockOpenAssistant).toHaveBeenCalledWith({ kind: "agent" }, undefined);
+});
+
+jest.mock("@/shared/ui/EditMenuButton", () => ({ EditMenuButton: ({ label, onManual }: any) => React.createElement("button", { onClick: onManual }, label) }));

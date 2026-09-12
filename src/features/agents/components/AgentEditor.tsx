@@ -203,6 +203,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                                     {t("agentConsole.field.iconImage")}
                                   </label>
                                   <Input
+                          readOnly={isReadOnly}
                                     id="agent-icon-image-input"
                                     placeholder={t("agentConsole.placeholder.iconImage")}
                                     value={form.iconImage}
@@ -234,6 +235,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           {t("agentConsole.field.name")}
                         </label>
                         <Input
+                          readOnly={isReadOnly}
                           id="agent-name-input"
                           value={form.name}
                           onChange={(event) =>
@@ -246,6 +248,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           {t("agentConsole.field.role")}
                         </label>
                         <Input
+                          readOnly={isReadOnly}
                           id="agent-role-input"
                           value={form.role}
                           onChange={(event) =>
@@ -259,6 +262,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {t("agentConsole.field.description")}
                       </label>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-description-input"
                         className="agent-description-textarea"
                         rows={4}
@@ -292,6 +296,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                             className={`agent-choice-card ${form.mode === option.value ? "is-selected" : ""}`}
                           >
                             <input
+                              disabled={isReadOnly}
                               type="radio"
                               name="agent-mode"
                               value={option.value}
@@ -329,6 +334,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                               className={`agent-choice-card ${checked ? "is-selected" : ""}`}
                             >
                               <input
+                              disabled={isReadOnly}
                                 type="checkbox"
                                 value={option.value}
                                 checked={checked}
@@ -373,6 +379,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         </Tooltip>
                       </div>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-soul-input"
                         className={AGENT_PROMPT_TEXTAREA_CLASS_NAME}
                         rows={10}
@@ -391,6 +398,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         </Tooltip>
                       </div>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-agents-input"
                         className={AGENT_PROMPT_TEXTAREA_CLASS_NAME}
                         rows={10}
@@ -410,6 +418,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {(greetingEntries.length ? greetingEntries : [""]).map((entry, index) => (
                           <div className="agent-prompt-entry" key={`greeting-${index}`}>
                             <Input
+                          readOnly={isReadOnly}
                               id={index === 0 ? "agent-greetings-input" : undefined}
                               aria-label={t("agentConsole.prompt.greetings.item", { index: index + 1 })}
                               placeholder={t("agentConsole.prompt.greetings.placeholder")}
@@ -437,6 +446,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {(wonderEntries.length ? wonderEntries : [""]).map((entry, index) => (
                           <div className="agent-prompt-entry" key={`wonder-${index}`}>
                             <Input
+                          readOnly={isReadOnly}
                               id={index === 0 ? "agent-wonders-input" : undefined}
                               aria-label={t("agentConsole.prompt.wonders.item", { index: index + 1 })}
                               placeholder={t("agentConsole.prompt.wonders.placeholder")}
@@ -546,6 +556,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {t("agentConsole.field.controls")}
                       </label>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-controls-input"
                         className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                         rows={5}
@@ -560,6 +571,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {t("agentConsole.field.runtimeConfig")}
                       </label>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-runtime-input"
                         className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                         rows={5}
@@ -612,6 +624,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         )}
                       </div>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-budget-input"
                         className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                         rows={7}
@@ -628,6 +641,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           {t("agentConsole.field.acpProxyConfig")}
                         </label>
                         <Input.TextArea
+                          readOnly={isReadOnly}
                           id="agent-proxy-input"
                           className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                           rows={5}

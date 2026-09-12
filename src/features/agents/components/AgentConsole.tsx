@@ -1,3 +1,5 @@
+import { EditMenuButton } from "@/shared/ui/EditMenuButton";
+import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import React, {
   useCallback,
   useEffect,
@@ -194,6 +196,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
 }) => {
   const { t } = useI18n();
   const { state, dispatch } = useAppContext();
+  const assistant = useResourceAssistant();
   const [internalSelectedKey, setInternalSelectedKey] = useState("");
   const effectiveSelectedKey = selectedAgentKey || internalSelectedKey;
   const [localAgents, setLocalAgents] = useState<Agent[]>([]);
@@ -1352,6 +1355,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           onSearchTextChange={setSearchText}
           onRefresh={() => void loadAgents(effectiveSelectedKey)}
           onCreate={openCreateModal}
+          onCreateConversation={() => { if (!savingForm && !assistant.opening && confirmDiscardChanges()) void assistant.open({ kind: "agent" }, onClose); }}
           onSelect={selectAgent}
           onDraggingAgentKeyChange={setDraggingAgentKey}
           onMove={handleMoveAgent}
@@ -1385,20 +1389,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 </div>
               )}
               <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
-                {isReadOnly ? (
-                  (canEditStructuredAgent || Boolean(detailSourcePath)) && (
-                    <>
-                      <UiButton
-                        size="sm"
-                        variant="primary"
-                        onClick={startEditing}
-                      >
-                        <MaterialIcon name="edit" />
-                        <span>{t("agentConsole.action.edit")}</span>
-                      </UiButton>
-                    </>
-                  )
-                ) : (
+
+                {effectiveSelectedKey && <EditMenuButton label={t("resourceAssistant.editAgent")}
+                  disabled={assistant.opening || savingForm || deleting}
+                  manualDisabled={!canEditStructuredAgent && !detailSourcePath}
+                  onManual={startEditing}
+                  onConversation={() => { if (confirmDiscardChanges()) void assistant.open({ kind: "agent", target: { id: effectiveSelectedKey, name: form.name } }, onClose); }} />}
+                {!isReadOnly && (
                   <>
                     {canEditSourceAgent && (
                       <Tooltip
