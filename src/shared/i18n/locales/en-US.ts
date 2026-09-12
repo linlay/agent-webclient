@@ -72,6 +72,8 @@ export const enUSMessages = {
   "connectors.auth.error.timeout": "The request timed out. Check the server status again.",
   "connectors.auth.error.url": "The server returned an unsafe authorization link, so it cannot be opened. Cancel and retry, or check the connector configuration.",
   "connectors.auth.expires": "This login expires at {time}",
+  "connectors.auth.embedHint": "Complete authorization in the embedded page. If it is blank or cannot load, retry. No external browser will open automatically.",
+  "connectors.auth.embedFailed": "Unable to open embedded authorization. Retry or cancel.",
   "connectors.auth.open": "Open authorization page",
   "connectors.auth.openHint": "The link opens in a new page. If blocked by your browser, allow it or click the link again. Return here after authorization to wait for confirmation.",
   "connectors.auth.login": "Sign in",

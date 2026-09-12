@@ -72,6 +72,8 @@ export const zhCNMessages = {
   "connectors.auth.error.timeout": "请求超时，请重新检查服务端状态。",
   "connectors.auth.error.url": "服务端返回的授权链接不安全，已禁止打开。请取消后重试或检查连接器配置。",
   "connectors.auth.expires": "本次登录有效期至 {time}",
+  "connectors.auth.embedHint": "请在内嵌页面完成授权。如果页面空白或无法加载，请重试；不会自动打开外部浏览器。",
+  "connectors.auth.embedFailed": "无法打开内嵌授权页面，请重试或取消授权。",
   "connectors.auth.open": "打开授权页面",
   "connectors.auth.openHint": "链接在新页面打开；若浏览器拦截，请允许本次打开或再次点击链接。完成授权后返回此页等待确认。",
   "connectors.auth.login": "登录",

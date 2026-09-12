@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { ConnectorAuthBrowser } from "./ConnectorAuthBrowser";
 import type { ConnectorSummary } from "@/shared/data";
 import { useConnectorAuth, type ConnectorAuthRuntime } from "../hooks/useConnectorAuth";
 import type { createConnectorAuthChecks } from "../lib/connectorAuthChecks";
@@ -20,5 +21,5 @@ export function ConnectorAuthObserver({ item, checks, onChange, onCredentialsCha
     checkStatus: checks.request, observe: true, onCredentialsChange });
   useEffect(() => { onChange(identity, auth); }, [identity, auth, onChange]);
   useEffect(() => () => onChange(identity, null), [identity, onChange]);
-  return null;
+  return <ConnectorAuthBrowser auth={auth} />;
 }

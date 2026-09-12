@@ -99,7 +99,7 @@ function ConnectorPickerRow({ item, auth, selected, saving, disabled, selectionD
         onChange={checked => onSelectionChange(item, checked)} /> : authorizationAction}
     </div>
     {selected && !available && <div className={styles.authAction}>{authorizationAction}</div>}
-    {url && <a className={styles.authorization} href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><MaterialIcon name="open_in_new" />{t("connectors.auth.open")}</a>}
+    {url && (auth?.session?.authBrowser === "embedded" ? <UiButton size="sm" onClick={auth.openBrowser}>{t("connectors.auth.open")}</UiButton> : <a className={styles.authorization} href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><MaterialIcon name="open_in_new" />{t("connectors.auth.open")}</a>)}
     {auth?.error && <p className={styles.error} role="alert">{t("connectors.auth.checkFailed")}</p>}
     {!auth?.error && ["failed", "expired", "setup_required"].includes(status) && <p className={styles.hint}>{t(`connectors.auth.description.${status}`)}</p>}
   </div>;

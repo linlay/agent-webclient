@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ConnectorAuthBrowser } from "./ConnectorAuthBrowser";
 import { ApiError } from "@/shared/data";
 import type { ConnectorSummary } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
@@ -26,7 +27,7 @@ export function ConnectorAuthPanel(props: Props) {
 function StandaloneConnectorAuthPanel(props: Props) {
   const { item, onCredentialsChange, onStatusChange } = props;
   const auth = useConnectorAuth({ id: item.id, mode: item.auth_mode, readOnly: item.builtin === true || item.readOnly === true, onCredentialsChange, onStatusChange });
-  return <ConnectorAuthPanelContent {...props} auth={auth} />;
+  return <><ConnectorAuthPanelContent {...props} auth={auth} /><ConnectorAuthBrowser auth={auth} /></>;
 }
 
 function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props & { auth: ConnectorAuthRuntime }) {
@@ -60,9 +61,9 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props 
       {active && deadline !== null && status !== "expired" && <p className={styles.hint}>{t("connectors.auth.expires", { time: new Date(deadline).toLocaleString(locale) })}</p>}
       {url && <div className={styles.stack}>
         <div className={styles.authActions}>
-          <a className="ui-btn ui-btn-primary ui-btn-sm" href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><MaterialIcon name="open_in_new" />{t("connectors.auth.open")}</a>
+          {auth.session?.authBrowser === "embedded" ? <UiButton size="sm" variant="primary" onClick={auth.openBrowser}>{t("connectors.auth.open")}</UiButton> : <a className="ui-btn ui-btn-primary ui-btn-sm" href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><MaterialIcon name="open_in_new" />{t("connectors.auth.open")}</a>}
         </div>
-        <p className={styles.hint}>{t("connectors.auth.openHint")}</p>
+        <p className={styles.hint}>{t(auth.session?.authBrowser === "embedded" ? "connectors.auth.embedHint" : "connectors.auth.openHint")}</p>
       </div>}
       <div className={styles.authActions}>
         {interactive && !readOnly && !active && ["unauthorized", "setup_required", "failed", "canceled", "expired"].includes(status) && <UiButton size="sm" variant="primary" disabled={busy} loading={auth.operation === "start"} onClick={() => void auth.start()}>{t(["failed", "canceled", "expired"].includes(status) ? "connectors.auth.retry" : "connectors.auth.login")}</UiButton>}

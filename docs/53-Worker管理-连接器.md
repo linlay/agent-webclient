@@ -105,3 +105,9 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 设置入口与独立页面标题统一使用“连接器中心”。每个连接器名称右侧支持独立的置顶按钮，未置顶时悬停或键盘聚焦显示灰色小图标，已置顶时常显主题正文色。按钮透明、无独立列宽；置顶不切换选中项，不修改配置、授权或编辑草稿。内置只读连接器也可以置顶。
 
 使用 `GET /api/connectors/order` 和 `PUT /api/connectors/order` 的 `{key,pinned}` 保存到平台 `runtime/connectors-center/order.json`；平台 WebSocket 同路径支持读取与单项更新。偏好按用户区分、跨 Agent 共享，与技能置顶彼此独立。前端仅保留内存缓存，打开页面、手工刷新和窗口重新聚焦时重新读取；保存成功后才排序，失败保留现有顺序并提供重试。
+
+## 连接器内嵌授权
+
+Platform 从 `connector.json.auth_browser` 固定会话展示策略，start/status 的 `authBrowser` 为唯一运行时事实源；省略保持 system。WebClient 不读取 CLI 配置。只有当前观察器发起或显式继续的授权会话展示弹窗，列表后台检查不自动弹窗。
+
+Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth Browser bridge，通过 connectorId/sessionId 请求宿主重新校验会话并打开隔离 WebView。缺失 bridge 或嵌入失败不降级外部浏览器。授权成功只依据 Platform 状态。用户关闭弹窗通过带 sessionId 的取消接口取消当前会话；页面卸载只关闭展示与观察，不注销凭据。
