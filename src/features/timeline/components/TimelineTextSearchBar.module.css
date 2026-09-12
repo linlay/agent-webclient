@@ -1,0 +1,28 @@
+.bar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 78%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-2) 94%, var(--bg-base));
+  box-shadow: 0 8px 24px rgba(8, 24, 56, 0.16);
+}
+
+.input {
+  width: 240px;
+}
+
+.count {
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--ink-2);
+  white-space: nowrap;
+}

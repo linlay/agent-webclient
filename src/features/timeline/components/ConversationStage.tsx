@@ -21,6 +21,8 @@ import {
   formatTimelineTime,
 } from "@/features/timeline/components/TimelineRow";
 import { TimelineRenderEntryView } from "@/features/timeline/components/TimelineRenderEntryView";
+import { TimelineTextSearchBar } from "@/features/timeline/components/TimelineTextSearchBar";
+import { useTimelineTextSearch } from "@/features/timeline/hooks/useTimelineTextSearch";
 import {
   buildTimelineDisplayItems,
   buildRunRenderEntries,
@@ -937,9 +939,32 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     state.events,
     state.taskItemsById,
     state.currentChatActiveRun,
-  ]);
+	]);
 
-  const runStartedAt = useMemo(() => {
+	const expandRunCollapse = useCallback((key: string) => {
+		setExpandedRunCollapses((current) =>
+			current[key] ? current : { ...current, [key]: true },
+		);
+	}, []);
+
+	const expandTaskGroup = useCallback((key: string) => {
+		setExpandedTaskGroups((current) =>
+			current[key] ? current : { ...current, [key]: true },
+		);
+	}, []);
+
+	const textSearch = useTimelineTextSearch({
+		nodes: timelineEntries,
+		displayItems,
+		virtuosoRef,
+		expandedRunCollapses,
+		expandedTaskGroups,
+		onExpandRun: expandRunCollapse,
+		onExpandTaskGroup: expandTaskGroup,
+	});
+	const { refreshHighlights } = textSearch;
+
+	const runStartedAt = useMemo(() => {
     if (!isMainChatRunning && !state.streaming) return null;
     const lastQuery = displayItems?.findLast((event) => event.kind === "query");
     if (!lastQuery) return null;
@@ -1279,6 +1304,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const handleRangeChanged = useCallback(
     (range: ListRange) => {
       rangeRef.current = range;
+      refreshHighlights();
       if (!queryAnchorsEnabled) return;
       let activeAnchorId = "";
       for (let i = range.startIndex; i >= 0; i--) {
@@ -1292,7 +1318,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         current === activeAnchorId ? current : activeAnchorId,
       );
     },
-    [queryAnchorsEnabled, virtualItems],
+    [queryAnchorsEnabled, refreshHighlights, virtualItems],
   );
 
   const handleQueryAnchorClick = useCallback(
@@ -2096,6 +2122,17 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         />
       )}
       </div>
+      {textSearch.open && (
+        <TimelineTextSearchBar
+          query={textSearch.query}
+          onQueryChange={textSearch.setQuery}
+          total={textSearch.total}
+          activeIndex={textSearch.activeIndex}
+          onPrev={textSearch.goPrev}
+          onNext={textSearch.goNext}
+          onClose={textSearch.closeSearch}
+        />
+      )}
       {presentation.blocked ? (
         <ConversationTransitionOverlay
           busy={presentation.busy}
