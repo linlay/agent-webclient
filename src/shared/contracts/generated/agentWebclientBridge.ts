@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:652c82444fe235177dd4fb179e106b415c2df78c5f41841992f4f25eec7349dc
+// sha256:c7d23804841402bd64681ac289e98c9bf2ed298ceb346e71d55dd10ce5d0d14b
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -583,7 +583,9 @@ export const SKIN_VISUAL_SLOTS = [
 export type SkinVisualSlot = typeof SKIN_VISUAL_SLOTS[number];
 export type SkinVisualStyles = {
   unread?: string; unreadText?: string; pending?: string; pendingText?: string;
-  unreadShape?: "circle" | "heart" | "paw";
+  unreadShape?: "circle" | "heart";
+  /** Optional 3–64 polygon vertices in percentage coordinates; overrides unreadShape. */
+  unreadOutline?: [number, number][];
   badgeShape?: "round" | "pill";
   headingStyle?: "default" | "rounded";
 };
@@ -606,7 +608,12 @@ export function parseSkinVisuals(value: unknown, parseImage: (value: unknown) =>
       // Indicators must remain visible; alpha/transparent are intentionally excluded.
       if (!color || !/^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(color)) return null;
       result.styles[key as "unread"] = color;
-    } else if (key === "unreadShape" && typeof raw === "string" && ["circle", "heart", "paw"].includes(raw)) result.styles.unreadShape = raw as "circle" | "heart" | "paw";
+    } else if (key === "unreadShape" && typeof raw === "string" && ["circle", "heart"].includes(raw)) result.styles.unreadShape = raw as "circle" | "heart";
+    else if (key === "unreadOutline") {
+      if (!Array.isArray(raw) || raw.length < 3 || raw.length > 64 || raw.some(point =>
+        !Array.isArray(point) || point.length !== 2 || point.some(n => typeof n !== "number" || !Number.isFinite(n) || n < 0 || n > 100))) return null;
+      result.styles.unreadOutline = raw.map(point => [point[0], point[1]]);
+    }
     else if (key === "badgeShape" && typeof raw === "string" && ["round", "pill"].includes(raw)) result.styles.badgeShape = raw as "round" | "pill";
     else if (key === "headingStyle" && typeof raw === "string" && ["default", "rounded"].includes(raw)) result.styles.headingStyle = raw as "default" | "rounded";
     else return null;
@@ -621,10 +628,9 @@ export function skinVisualStyleVariables(styles: SkinVisualStyles): Record<strin
   if (styles.badgeShape) result["--skin-badge-radius"] = styles.badgeShape === "pill" ? "6px" : "999px";
   if (styles.badgeShape) result["--skin-badge-padding"] = "3px";
   if (styles.headingStyle === "rounded") result["--skin-heading-font"] = 'ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif';
-  if (styles.unreadShape) result["--skin-unread-clip"] = styles.unreadShape === "paw"
-    ? "polygon(12% 52%, 2% 40%, 0% 22%, 8% 12%, 20% 15%, 26% 35%, 27% 8%, 36% 0%, 45% 4%, 49% 30%, 53% 4%, 63% 0%, 73% 8%, 74% 35%, 80% 15%, 92% 12%, 100% 22%, 98% 40%, 88% 52%, 75% 45%, 65% 50%, 89% 73%, 91% 89%, 80% 100%, 50% 89%, 20% 100%, 9% 89%, 11% 73%, 35% 50%, 25% 45%)"
-    : styles.unreadShape === "heart"
+  if (styles.unreadShape) result["--skin-unread-clip"] = styles.unreadShape === "heart"
     ? "polygon(50% 95%, 5% 48%, 0% 25%, 12% 8%, 30% 5%, 50% 23%, 70% 5%, 88% 8%, 100% 25%, 95% 48%)" : "none";
+  if (styles.unreadOutline) result["--skin-unread-clip"] = `polygon(${styles.unreadOutline.map(([x, y]) => `${x}% ${y}%`).join(", ")})`;
   return result;
 }
 export const AGENT_WEBCLIENT_VISUALS_GLOBAL = "__AGENT_WEBCLIENT_VISUALS__" as const;
