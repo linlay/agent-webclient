@@ -200,7 +200,7 @@ const TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME =
 const TIMELINE_META_ROW_CLASS_NAME =
   "timeline-meta-row tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
 const TIMELINE_RUN_META_CLASS_NAME =
-  "timeline-run-meta tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
+  "timeline-run-meta tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3 tw:mt-[4px]";
 const TIMELINE_META_ACTIONS_CLASS_NAME =
   "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1";
 const TIMELINE_META_BUTTON_CLASS_NAME =
@@ -210,7 +210,7 @@ const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
 const TIMELINE_ROW_TIME_CLASS_NAME =
   "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 const TIMELINE_RUN_GROUP_CLASS_NAME =
-  "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:before:absolute tw:before:bottom-0 tw:before:left-2 tw:before:top-0 tw:before:w-px tw:before:bg-line-soft tw:before:content-['']";
+  "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]";
 const TIMELINE_RUN_ITEMS_CLASS_NAME =
   "timeline-run-items tw:flex tw:flex-col tw:gap-[12px]";
 const TIMELINE_RUN_TIME_CLASS_NAME =
