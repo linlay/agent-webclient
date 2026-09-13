@@ -59,6 +59,7 @@ const TerminalPage = lazyPage(() => import("./pages/terminal"), (m) => m.Termina
 const HistoryPage = lazyPage(() => import("./pages/history"), (m) => m.HistoryPage);
 
 // Surface 页面按文件粒度动态引入；走 barrel（./pages/surfaces）会把 9 个页面合并成一个 chunk
+const ChatPreviewPage = lazyPage(() => import("./pages/surfaces/ChatPreviewPage"), (m) => m.ChatPreviewPage);
 const BtwViewerPage = lazyPage(() => import("./pages/surfaces/BtwViewerPage"), (m) => m.BtwViewerPage);
 const DebugViewerPage = lazyPage(() => import("./pages/surfaces/DebugViewerPage"), (m) => m.DebugViewerPage);
 const FileViewerPage = lazyPage(() => import("./pages/surfaces/FileViewerPage"), (m) => m.FileViewerPage);
@@ -267,6 +268,14 @@ const router = createBrowserRouter(
           element: (
             <DocumentTitleRoute titleKey="route.title.skills">
               <SkillsPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.chatPreview,
+          element: (
+            <DocumentTitleRoute titleKey="chatPreview.title">
+              <ChatPreviewPage />
             </DocumentTitleRoute>
           ),
         },

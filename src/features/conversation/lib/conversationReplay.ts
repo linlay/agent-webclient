@@ -398,6 +398,15 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
 }
 
 export function replayEvent(rs: ReplayState, event: AgentEvent): void {
+  projectReadOnlyEvent(rs, event, 'replay');
+}
+
+/** Stream projection applies display commands only; it never runs effects or submits HITL. */
+export function applyReadOnlyStreamEvent(rs: ReplayState, event: AgentEvent): void {
+  projectReadOnlyEvent(rs, event, 'live');
+}
+
+function projectReadOnlyEvent(rs: ReplayState, event: AgentEvent, mode: 'live' | 'replay'): void {
   const binding = readRunAgentKeyFromEvent(event);
   if (binding) {
     rs.runAgentById = bindRunAgentKey(rs.runAgentById, binding.runId, binding.agentKey);
@@ -405,7 +414,7 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
       rs.currentRunAgentKey = binding.agentKey;
     }
   }
-  rs.events.push(event);
+  if (event.type !== "tool.output") rs.events.push(event);
   rs.debugEvents = appendVisibleDebugEvent(
     rs.debugEvents,
     event,
@@ -433,7 +442,8 @@ export function replayEvent(rs: ReplayState, event: AgentEvent): void {
   rs.activeAwaiting = nextAwaitingRuntime.activeAwaiting;
   rs.pendingAwaitings = nextAwaitingRuntime.pendingAwaitings;
   const commands = processStreamEvent(event, createReplayProcessorState(rs), {
-    mode: 'replay',
+    // Observers have no optimistic Composer message; render request.query from the stream.
+    mode: event.type === 'request.query' ? 'replay' : mode,
     reasoningExpandedDefault: false,
   });
   for (const command of commands) {

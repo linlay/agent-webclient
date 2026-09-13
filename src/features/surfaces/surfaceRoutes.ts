@@ -4,6 +4,7 @@ export type SurfacePresentationContext = {
 };
 
 export const SURFACE_ROUTE_PATHS = {
+  chatPreview: "/chat-preview/:chatId",
   overview: "/overview/:chatId",
   debug: "/debug/:chatId",
   btw: "/btw/:chatId",
@@ -20,6 +21,7 @@ export const SURFACE_ROUTE_PATHS = {
 } as const;
 
 export type SurfaceRouteIntent =
+  | { kind: "chat-preview"; chatId: string; live?: boolean }
   | { kind: "overview" | "debug"; chatId: string }
   | { kind: "btw"; chatId: string; btwId?: string }
   | { kind: "source"; sourceId: string; chatId: string; chunkId?: string }
@@ -113,6 +115,11 @@ export function buildSurfaceRoute(
     pathname = "/web-viewer";
     params.set("url", url);
     set(params, "title", intent.title);
+  } else if (intent.kind === "chat-preview") {
+    const chatId = pathSegment(intent.chatId);
+    if (!chatId) return "";
+    pathname = `/chat-preview/${chatId}`;
+    if (intent.live === false) params.set("live", "false");
   } else if (intent.kind === "overview" || intent.kind === "debug") {
     const chatId = pathSegment(intent.chatId);
     if (!chatId) return "";
@@ -189,4 +196,9 @@ export function buildSurfaceRoute(
 
 export function isAllowedWebSurfaceUrl(value: unknown): boolean {
   return Boolean(validWebUrl(value));
+}
+
+/** Only the explicit false value disables observation; this parameter conveys no authority. */
+export function readChatPreviewLive(search: string): boolean {
+  return new URLSearchParams(search).get("live") !== "false";
 }

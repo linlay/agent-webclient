@@ -13,6 +13,7 @@ jest.mock("@/app/state/AppContext", () => ({
 		chatId: mockChatId,
 		chatAgentById: new Map(),
 		chats: [],
+		artifacts: [],
 		pendingNewChatAgentKey: "coder-agent",
 		workerSelectionKey: "",
 		workerIndexByKey: new Map(),
@@ -284,4 +285,16 @@ describe("ContentBlock", () => {
 			},
 		});
 	});
+});
+
+it("retains voice text in read-only history without voice runtime controls", () => {
+  mockDispatch.mockClear();
+  const markup = renderToStaticMarkup(React.createElement(TimelineInteractionProvider, {
+    value: { readOnly: true, surfaceContext: { chatId: "preview" } },
+  }, React.createElement(ContentBlock, { node: {
+    id: "voice", kind: "content", text: "", segments: [{ kind: "ttsVoice", signature: "voice-1", text: "Spoken answer", closed: true }],
+  } })));
+  expect(markup).toContain("Spoken answer");
+  expect(markup).not.toContain("button");
+  expect(mockDispatch).not.toHaveBeenCalled();
 });

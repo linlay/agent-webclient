@@ -176,6 +176,8 @@ export interface RealtimeTransport {
   readonly push: PushTransport;
   readonly inbound?: InboundRequestTransport;
   readonly terminal: TerminalTransport;
+  /** Current guest visibility, projected from the existing host lifecycle. */
+  isSurfaceActive?(): boolean;
   getStatus(): RealtimeConnectionStatus;
   subscribeStatus(listener: StatusListener): () => void;
   dispose(): Promise<void> | void;

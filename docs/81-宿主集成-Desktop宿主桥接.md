@@ -91,3 +91,17 @@ Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraf
 Platform 从 `connector.json.auth_browser` 固定会话展示策略，start/status 的 `authBrowser` 为唯一运行时事实源；省略保持 system。WebClient 不读取 CLI 配置。只有当前观察器发起或显式继续的授权会话展示弹窗，列表后台检查不自动弹窗。
 
 Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth Browser bridge，通过 connectorId/sessionId 请求宿主重新校验会话并打开隔离 WebView。缺失 bridge 或嵌入失败不降级外部浏览器。授权成功只依据 Platform 状态。用户关闭弹窗通过带 sessionId 的取消接口取消当前会话；页面卸载只关闭展示与观察，不注销凭据。
+
+## Kanban ChatPreview 接入要求
+
+WebClient 提供 `/chat-preview/:chatId`（只读实时）及 `/chat-preview/:chatId?live=false`（只读历史快照），适合 Kanban issue detail 左侧 guest。右侧属性、人员、工作流、审核、运行记录和动态继续由 Desktop 持有。Desktop 以运行记录关联的 chatId 切换预览；in_progress 打开时选择当前 Run 关联 Chat。URL 是 Chat 级入口，不承诺单 Run 过滤。
+
+本次 WebClient 实现未修改 Desktop 仓库，也未新增 canonical wire 字段。Desktop 发布前必须完成以下登记与授权检查，不能仅加载新 URL 就视为集成完成：
+
+1. 将新 pathname 识别并登记为 Kanban 的只读 Chat 观察 Surface，绑定可信 ownerChatId、owner 和宿主既有 surface/generation 身份；身份不得由 guest URL 中的 agentKey 或 role 自授。
+2. 通过现有 Frame Port v2 Session/Main Broker 提供目标 Chat 的 `/api/chat` 读取、匹配 active Run 的 `/api/attach`、当前 observer 的 detach，以及授权范围内的 Chat push。快照模式不申请 live observer。宿主应拒绝该 Surface 的 query、BTW、submit、steer、interrupt、access-level 和终端写入/关闭等运行修改能力。
+3. 切换 Chat 时先使旧观察身份失效，再完成新身份登记与既有 `desktop:service-webview:route` 的 revision/READY/APPLIED 同步。APPLIED 仅表示 Router 提交，不代表 Chat 已 ready；不得在旧 ownerChatId 下放行新 Chat attach。
+4. hidden、退出 issue 和关闭 guest 继续经 `desktop:service-webview:surface-lifecycle` 下发 `desktopSurfaceActiveChanged`。释放 observer，不中断后台 Run；重新激活实时页后 WebClient 先 replay 再决定 attach。
+5. 页面只通过现有 WorkPanel/openDocument 路径请求资源预览，宿主按当前 Surface 和目标资源逐请求授权；无权打开时不得扩大权限。Frame Port/WorkPanel 缺失或不兼容继续稳定阻断，不回退 guest 直连。
+
+具体 Desktop 路由枚举和 Broker allowlist 的修改位置应在 Desktop 仓库核对，不能由 WebClient 推断为已经存在。若现有宿主登记模型必须扩展共享契约，应从 canonical 来源生成 mirror/hash，再同批发布双方与 Program Bundle，不手改本仓库 generated contract 绕过检查。

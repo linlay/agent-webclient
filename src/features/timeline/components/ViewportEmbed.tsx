@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getViewport } from "@/shared/data";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { useI18n } from "@/shared/i18n";
 
 interface ViewportEmbedProps {
@@ -62,6 +63,7 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
   payloadRaw,
 }) => {
   const { t } = useI18n();
+  const readOnly = useTimelineInteraction()?.readOnly === true;
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -153,7 +155,7 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
             ref={iframeRef}
             className={TIMELINE_CONTENT_VIEWPORT_FRAME_CLASS_NAME}
             srcDoc={html}
-            sandbox="allow-scripts allow-same-origin"
+            sandbox={readOnly ? "allow-scripts" : "allow-scripts allow-same-origin"}
             title={`viewport-${viewportKey}`}
           />
         )}

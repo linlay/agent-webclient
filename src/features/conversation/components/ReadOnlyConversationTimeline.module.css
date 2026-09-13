@@ -75,3 +75,17 @@
     padding-inline: 14px;
   }
 }
+
+.latest {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  padding: 6px 12px;
+  background: var(--bg-elev-2);
+  color: var(--ink-1);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}

@@ -167,3 +167,12 @@ describe("buildChatReplayProjection", () => {
     expect(replay.awaitingReconciliation).toEqual({ matched: false, diagnostic: "" });
   });
 });
+
+it("discards temporary tool output at the cold replay boundary", () => {
+  const result = buildChatReplayProjection("chat-1", { events: [{
+    type: "tool.output", timestamp: 1_710_000_000_000, chatId: "chat-1", runId: "run-1",
+    toolId: "tool", stream: "stdout", chunkIndex: 0, delta: "temporary",
+  }] });
+  expect(result.events).toEqual([]);
+  expect(result.state.timelineNodes.size).toBe(0);
+});

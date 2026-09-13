@@ -85,7 +85,7 @@ export function normalizeChatArtifactItems(
  * valid as well.
  */
 export function normalizeLoadedChatEvent(value: unknown): AgentEvent | null {
-  if (!isObjectRecord(value)) {
+  if (!isObjectRecord(value) || value.type === "tool.output") {
     return null;
   }
   const timestamp = readRequiredPlatformEventTimestamp(value);

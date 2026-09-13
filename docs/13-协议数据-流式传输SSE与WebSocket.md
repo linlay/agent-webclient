@@ -63,3 +63,9 @@ Desktop 收到 `reconnecting` 时保留已接受 stream 和原订阅者，不 re
 - `../src/features/conversation/hooks/useChatNotificationRuntime.ts`
 - `../src/features/conversation/hooks/useRunSubscriptionRuntime.ts`
 - `../src/features/conversation/hooks/useChatSurfaceReplay.ts`
+
+## ChatPreview 观察策略
+
+独立 `/chat-preview/:chatId` 通过现有 `runs.subscribe` 创建 attach execution，不传入冒充 Main Chat 的 role，不新增后端端点、WebSocket、SSE 或 Frame Port 消息。role 不是宿主授权凭据。其读快照模式 `?live=false` 不调用 subscribe，也不安装 Push 或状态观察者。
+
+Standalone 断线使用既有 transport 恢复，重新连接后 replay 再 attach；Desktop 物理 reconnecting 保留已接受 execution，由 Broker 接续 stream，guest 不额外重连或重复 attach。Desktop 重新连接时若当前没有 execution，可重新读取 Chat 以补齐断线期间产生的新 Run。Surface inactive/卸载调用幂等 detach 并隔离迟到回调；不调用 interrupt、submit、steer、query 或 terminal.close。Desktop adapter 的内部 isSurfaceActive() 仅暴露当前已投影的生命周期状态，供页面首次挂载判断，不是新增 wire 契约或授权标记。
