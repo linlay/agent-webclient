@@ -541,7 +541,7 @@ export const HistoryModal: React.FC<{
                 <Flex align="center" gap={6} className="history-list-summary">
                   <span className="history-list-title">{historyTitle}</span>
                   {isChatUnread(chat) ? (
-                    <Tag color="blue">{t("history.unread")}</Tag>
+                    <Tag color="blue" style={{ background: "var(--skin-unread)", color: "var(--skin-unread-text)", borderColor: "var(--skin-unread)" }}>{t("history.unread")}</Tag>
                   ) : null}
                   {isChatActiveRun(chat) ? (
                     <Tag color="processing" className="history-list-status">

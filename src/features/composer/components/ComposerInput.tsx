@@ -1,3 +1,4 @@
+import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useState } from "react";
 import { Input, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
@@ -253,10 +254,12 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
                   name="keyboard_arrow_up"
                   className={COMPOSER_INPUT_EXPAND_ARROW_CLASS}
                 />
-                <MaterialIcon
+                <SkinVisual slot={inputExpanded ? "chat.collapse" : "chat.expand"} className={COMPOSER_INPUT_EXPAND_ICON_CLASS}>
+                  <MaterialIcon
                   name={inputExpanded ? "collapse_content" : "expand_content"}
                   className={COMPOSER_INPUT_EXPAND_ICON_CLASS}
                 />
+                </SkinVisual>
               </UiButton>
             </Tooltip>
             <Input.TextArea

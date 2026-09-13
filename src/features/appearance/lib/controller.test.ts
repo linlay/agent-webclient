@@ -24,8 +24,8 @@ describe("appearance controller", () => {
     window.history.replaceState({}, "", "/agent/demo?chatId=fixture&theme=light");
     globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: "true" };
     let push!: (value: DesktopAppearanceSnapshot | null) => void;
-    const host: DesktopAppearanceSnapshot = { schemaVersion: 1, revision: 1, resolvedTheme: "dark", skinId: "mist", tokens: { "--accent": "#83c79a" }, background: { mode: "host" } };
-    windowWithBridge.__AGENT_WEBCLIENT_APPEARANCE__ = { version: 1, subscribe: (callback: typeof push) => { push = callback; return () => {}; }, getSnapshot: async () => host };
+    const host: DesktopAppearanceSnapshot = { schemaVersion: "1.1", revision: 1, resolvedTheme: "dark", skinId: "mist", tokens: { "--accent": "#83c79a" }, background: { mode: "host" } };
+    windowWithBridge.__AGENT_WEBCLIENT_APPEARANCE__ = { version: "1.1", subscribe: (callback: typeof push) => { push = callback; return () => {}; }, getSnapshot: async () => host };
     const initialUrl = location.href;
     const controller = createAppearanceController(); const stop = controller.start(); await flush();
     expect(controller.getSnapshot()).toMatchObject({ resolvedTheme: "dark", backgroundMode: "host", imageUrl: undefined });

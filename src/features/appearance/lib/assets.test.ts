@@ -2,7 +2,7 @@ import JSZip from "jszip";
 import { inspectSkinZip, normalizeAppearanceAssets, validateBackground } from "./assets";
 import { parseSkinPackageManifest, validateSkinResourcePath } from "@/shared/styles/appearance/skinPackage";
 import { parseAgentWebclientAppearanceTokens } from "@/shared/contracts/generated/agentWebclientBridge";
-const manifest = { schemaVersion: 1, id: "sample", name: "Sample", version: "1.0.0", variants: { light: { tokens: { "--accent": "#287653", "--control-radius": "10px" } }, dark: { tokens: { "--accent": "rgba(120, 210, 140, 1)" } } } };
+const manifest = { schemaVersion: "1.1", id: "sample", name: "Sample", version: "1.0.0", variants: { light: { tokens: { "--accent": "#287653", "--control-radius": "10px" } }, dark: { tokens: { "--accent": "rgba(120, 210, 140, 1)" } } } };
 it("shares Desktop v1 color/radius semantics", () => {
   const parsed = parseSkinPackageManifest(manifest);
   for (const variant of Object.values(parsed.variants)) expect(parseAgentWebclientAppearanceTokens(variant.tokens)).toEqual(variant.tokens);
@@ -41,4 +41,9 @@ it("rejects image headers with excessive dimensions before browser decoding", as
   view.setUint32(12, 0x49484452); view.setUint32(16, 16000); view.setUint32(20, 16000);
   await expect(validateBackground(new Blob([bytes]))).rejects.toThrow("image");
   await expect(validateBackground(new Blob(["<svg>not a raster</svg>"]))).rejects.toThrow("image");
+});
+
+
+test("appearance 1.1 rejects legacy package schemas", () => {
+  for (const schemaVersion of [1, 2, "1.0", "2.0"]) expect(() => parseSkinPackageManifest({ ...manifest, schemaVersion })).toThrow();
 });

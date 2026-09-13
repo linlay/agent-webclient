@@ -1,5 +1,6 @@
+import { SKIN_VISUAL_LIMITS } from "@/shared/contracts/generated/agentWebclientBridge";
 import JSZip from "jszip";
-import { parseSkinPackageManifest, SKIN_PACKAGE_LIMITS, validateSkinResourcePath, type SkinPackageManifest } from "@/shared/styles/appearance/skinPackage";
+import { skinPackageResources, parseSkinPackageManifest, SKIN_PACKAGE_LIMITS, validateSkinResourcePath, type SkinPackageManifest } from "@/shared/styles/appearance/skinPackage";
 
 export type InstalledSkin = { manifest: SkinPackageManifest; images: Record<string, Blob> };
 export type AppearanceAssets = { background: Blob | null; backgroundName: string; packages: InstalledSkin[] };
@@ -13,10 +14,16 @@ export function normalizeAppearanceAssets(value: unknown): AppearanceAssets {
     try {
       const manifest = parseSkinPackageManifest(entry.manifest);
       const images: Record<string, Blob> = {};
-      for (const path of [manifest.preview, manifest.variants.light.background?.path, manifest.variants.dark.background?.path]) {
+      const visualPaths = new Set(Object.values(manifest.variants).flatMap(variant => Object.values(variant.visuals?.images ?? {})));
+      let visualBytes = 0;
+      for (const path of skinPackageResources(manifest)) {
         if (!path) continue;
         const image = entry.images?.[path];
         if (!(image instanceof Blob) || !["image/png", "image/jpeg"].includes(image.type) || image.size > SKIN_PACKAGE_LIMITS.fileBytes) throw new Error("storage");
+        if (visualPaths.has(path)) {
+          visualBytes += image.size;
+          if (image.type !== "image/png" || image.size > SKIN_VISUAL_LIMITS.assetBytes || visualBytes > SKIN_VISUAL_LIMITS.totalBytes) throw new Error("storage");
+        }
         images[path] = image;
       }
       return [{ manifest, images }];
@@ -171,8 +178,25 @@ export async function importSkinArchive(file: File): Promise<InstalledSkin> {
     });
   }
   const manifest = parseSkinPackageManifest(JSON.parse(new TextDecoder().decode(await bytes("skin.json"))));
-  const paths = new Set([manifest.preview, manifest.variants.light.background?.path, manifest.variants.dark.background?.path].filter((p): p is string => Boolean(p)));
+  const paths = new Set(skinPackageResources(manifest).filter((p): p is string => Boolean(p)));
   const images: Record<string, Blob> = {};
-  for (const path of paths) images[path] = await validateBackground(new Blob([await bytes(path) as Uint8Array<ArrayBuffer>]));
+  const visualPaths = new Set(Object.values(manifest.variants).flatMap(variant => Object.values(variant.visuals?.images ?? {})));
+  let visualBytes = 0;
+  for (const path of paths) {
+    const image = await validateBackground(new Blob([await bytes(path) as Uint8Array<ArrayBuffer>]));
+    if (visualPaths.has(path)) {
+      const bitmap = await createImageBitmap(image);
+      try {
+        if (image.type !== "image/png" || bitmap.width > SKIN_VISUAL_LIMITS.maxDimension || bitmap.height > SKIN_VISUAL_LIMITS.maxDimension) throw new Error("package");
+        const canvas = document.createElement("canvas"); canvas.width = bitmap.width; canvas.height = bitmap.height;
+        const context = canvas.getContext("2d"); if (!context) throw new Error("package");
+        context.drawImage(bitmap, 0, 0);
+        images[path] = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("package")), "image/png"));
+        visualBytes += images[path].size;
+        if (images[path].size > SKIN_VISUAL_LIMITS.assetBytes || visualBytes > SKIN_VISUAL_LIMITS.totalBytes) throw new Error("package");
+      } finally { bitmap.close(); }
+    } else images[path] = image;
+  }
+  if ([...entries.keys()].some(path => path !== "skin.json" && !paths.has(path))) throw new Error("package");
   return { manifest, images };
 }

@@ -1,3 +1,4 @@
+import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { App as AntdApp, Button, Dropdown, Input, Modal, Select, Switch, Tooltip } from "antd";
@@ -27,11 +28,11 @@ const listeners = new Set<(value: AgentWebclientAppearanceSnapshot | null) => vo
 function host(mode: "light" | "dark", skinId = "mist", transparent = true) {
   const skin = DESKTOP_SKINS.find((entry) => entry.id === skinId)!;
   const tokens = Object.fromEntries(Object.entries(skin.tokens[mode]).filter(([key]) => (AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS as readonly string[]).includes(key)));
-  hostSnapshot = { schemaVersion: 1, revision: ++revision, resolvedTheme: mode, skinId, tokens, background: { mode: transparent ? "host" : "opaque" } };
+  hostSnapshot = { schemaVersion: "1.1", revision: ++revision, resolvedTheme: mode, skinId, tokens, background: { mode: transparent ? "host" : "opaque" } };
   listeners.forEach((listener) => listener(hostSnapshot));
 }
 if (desktop && !params.has("oldHost") && !(window as any).__AGENT_WEBCLIENT_APPEARANCE__) {
-  Object.defineProperty(window, "__AGENT_WEBCLIENT_APPEARANCE__", { value: { version: 1, getSnapshot: async () => hostSnapshot, subscribe: (listener: (value: AgentWebclientAppearanceSnapshot | null) => void) => { listeners.add(listener); return () => listeners.delete(listener); } } });
+  Object.defineProperty(window, "__AGENT_WEBCLIENT_APPEARANCE__", { value: { version: "1.1", getSnapshot: async () => hostSnapshot, subscribe: (listener: (value: AgentWebclientAppearanceSnapshot | null) => void) => { listeners.add(listener); return () => listeners.delete(listener); } } });
   host("light", "mist", surface === "main");
 }
 // Test controls exist only in this separate QA entry, never in the product bundle.
@@ -105,6 +106,7 @@ function Preview() {
       <span>隔离外观演示 · 无业务服务</span>
       <a href="/">Standalone</a><a href="/?mode=desktop">Desktop 主聊天</a><a href="/?mode=desktop&surface=copilot">Copilot</a><a href="/?mode=desktop&surface=panel">WorkPanel</a><a href="/?mode=desktop&oldHost&hostTheme=dark">旧宿主回退</a>
     </nav>
+    <div data-testid="visual-send"><SkinVisual slot="chat.send">↑</SkinVisual></div>
     <div className={`${styles.shell} ${surface !== "main" ? styles.dense : ""}`}>
       {surface === "panel" ? <IndependentSurfaceFrame kind="overview">{content}</IndependentSurfaceFrame> : content}
     </div>

@@ -132,6 +132,14 @@ export function createAppearanceController() {
   }
   return {
     getSnapshot: () => snapshot,
+    getLocalVisuals() {
+      if (snapshot.desktop) return undefined;
+      return assets.packages.find(entry => `pack:${entry.manifest.id}` === snapshot.selectedSkinId)?.manifest.variants[snapshot.resolvedTheme].visuals;
+    },
+    getLocalVisualAsset(path: string) {
+      if (snapshot.desktop) return null;
+      return assets.packages.find(entry => `pack:${entry.manifest.id}` === snapshot.selectedSkinId)?.images[path] ?? null;
+    },
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
     start() {
       refs++;

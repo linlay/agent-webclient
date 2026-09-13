@@ -1,3 +1,4 @@
+import { VisualAppearance } from "./VisualAppearance";
 import React, { createContext, useContext, useLayoutEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { App as AntdApp, ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
@@ -25,7 +26,7 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   return <Context.Provider value={controller}>
     <ConfigProvider locale={locale === "en-US" ? enUS : zhCN} theme={componentTheme}>
       <CodeEditorThemeContext.Provider value={editorTheme}>
-        <AntdApp>{children}</AntdApp>
+        <AntdApp><VisualAppearance controller={controller} appearance={snapshot}>{children}</VisualAppearance></AntdApp>
       </CodeEditorThemeContext.Provider>
     </ConfigProvider>
   </Context.Provider>;

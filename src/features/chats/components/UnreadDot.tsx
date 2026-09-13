@@ -17,6 +17,7 @@ export const UnreadDot: React.FC<{ chat: Chat | WorkerConversationRow }> = ({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={{ background: "var(--skin-unread, var(--accent))", clipPath: "var(--skin-unread-clip, none)" }}
       aria-label={t("leftSidebar.unread")}
     />
   );
