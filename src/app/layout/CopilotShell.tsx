@@ -325,6 +325,16 @@ const CopilotShellContent: React.FC = () => {
       return;
     }
 
+    // Worker rows can clear a selection while the route Agent is still loading.
+    // Apply the route only once its Agent is available (or loading has failed).
+    if (
+      requestedAgentKey &&
+      routeAgentHydratedKey !== requestedAgentKey &&
+      !state.agents.some((agent) => normalizeRouteValue(agent.key) === requestedAgentKey)
+    ) {
+      return;
+    }
+
     const routeTargetKey = createCopilotRouteTargetKey(
       resolvedAgentKey,
       routeChatId,
@@ -355,7 +365,7 @@ const CopilotShellContent: React.FC = () => {
         },
       }),
     );
-  }, [dispatch, resolvedAgentKey, routeChatId]);
+  }, [dispatch, resolvedAgentKey, routeChatId, requestedAgentKey, routeAgentHydratedKey, state.agents]);
 
   useEffect(() => {
     const navigateToHandledConversation = (

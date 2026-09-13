@@ -848,7 +848,7 @@ describe("CopilotShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("keeps the requested route agent when it is not in the worker list", () => {
+  it("waits for the requested route agent before selecting an initially missing worker", () => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithStorage.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -868,25 +868,36 @@ describe("CopilotShell", () => {
 
     renderToStaticMarkup(React.createElement(CopilotShell));
 
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:missing-agent",
-    });
-    expect(dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:start-new-conversation",
-        detail: {
-          agentKey: "missing-agent",
-          preserveWorkerContext: true,
-          focusComposerOnComplete: true,
-        },
-      }),
-    );
+    }));
+    expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "agent:start-new-conversation",
+    }));
     expect(getAgent).toHaveBeenCalledWith("missing-agent");
     expect(useAppRuntimes).toHaveBeenCalledWith({
       initialWorkerRefreshEnabled: false,
       targetChatId: "", routeReady: false,
     });
+
+    // Once the asynchronous detail has populated the catalog, apply the route.
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [{ key: "missing-agent", name: "Loaded Agent" }],
+    });
+    renderToStaticMarkup(React.createElement(CopilotShell));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "SET_WORKER_SELECTION_KEY",
+      workerKey: "agent:missing-agent",
+    });
+    expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
+      type: "agent:start-new-conversation",
+      detail: {
+        agentKey: "missing-agent",
+        preserveWorkerContext: true,
+        focusComposerOnComplete: true,
+      },
+    }));
 
     useEffectSpy.mockRestore();
   });
