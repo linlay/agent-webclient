@@ -2233,6 +2233,53 @@ describe('replayEvent tool migration', () => {
     }));
   });
 
+  it('routed Copilot ignores the old route after one New Chat and permits Back navigation', async () => {
+    const stateRef = { current: createInitialState() };
+    stateRef.current.chatId = 'chat_old';
+    const dispatch = jest.fn((action) => {
+      stateRef.current = appReducer(stateRef.current, action);
+    });
+    useAppContext.mockReturnValue({
+      state: stateRef.current, stateRef, dispatch,
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    let actions!: ReturnType<typeof useConversationActions>;
+    const Harness = () => { actions = useConversationActions(); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    actions.syncRouteTarget('chat_old');
+    actions.startNewConversation({ agentKey: 'agent_old', preserveWorkerContext: true, focusComposerOnComplete: false });
+    // Simulate the urgent reset rendering before the Router transition commits.
+    actions.syncRouteTarget('chat_old');
+    expect(actions.prepareChat('chat_old', { routeDriven: true })).toBeNull();
+    await actions.loadChat('chat_old', { routeDriven: true });
+    expect(getChat).not.toHaveBeenCalled();
+    expect(stateRef.current.chatId).toBe('');
+    // Repeated New Chat is harmless, and a confirmed route releases protection.
+    actions.startNewConversation({ agentKey: 'agent_old', preserveWorkerContext: true, focusComposerOnComplete: false });
+    actions.syncRouteTarget('');
+    actions.syncRouteTarget('chat_old');
+    expect(actions.prepareChat('chat_old', { routeDriven: true })?.targetChatId).toBe('chat_old');
+  });
+
+  it('standalone root can explicitly reopen history after New Chat without a routed target', () => {
+    const stateRef = { current: createInitialState() };
+    const dispatch = jest.fn((action) => { stateRef.current = appReducer(stateRef.current, action); });
+    useAppContext.mockReturnValue({
+      state: stateRef.current, stateRef, dispatch,
+      querySessionsRef: { current: new Map() },
+      chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: '' },
+    });
+    let actions!: ReturnType<typeof useConversationActions>;
+    const Harness = () => { actions = useConversationActions(); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    actions.syncRouteTarget(undefined);
+    actions.activateBlankConversation();
+    expect(actions.prepareChat('chat_history')?.targetChatId).toBe('chat_history');
+  });
+
   it('detaches the current active run when starting a blank conversation', () => {
     const state = createInitialState();
     state.chatId = 'chat_old';
