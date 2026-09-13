@@ -252,11 +252,8 @@
 
 :global(.timeline-agent-switcher-list) {
     display: grid;
-    gap: 4px;
     max-height: 248px;
-    margin-top: 8px;
     overflow-y: auto;
-    padding-right: 2px;
 }
 
 :global(.timeline-agent-switcher-option) {
@@ -267,8 +264,6 @@
     min-height: 32px;
     gap: 6px;
     padding: 6px;
-    border: 1px solid transparent;
-    border-radius: 8px;
     background: transparent;
     box-shadow: none;
     text-align: left;
@@ -277,7 +272,6 @@
 :global(.timeline-agent-switcher-option):hover,
 :global(.timeline-agent-switcher-option):focus-visible,
 :global(.timeline-agent-switcher-option):global(.is-active) {
-    border-color: color-mix(in srgb, var(--accent-electric) 28%, transparent);
     background: color-mix(in srgb, var(--accent-soft) 68%, transparent);
 }
 
