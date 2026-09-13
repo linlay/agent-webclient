@@ -8,7 +8,10 @@ const mockAntdMessage = {
   error: jest.fn(),
 };
 
+jest.mock("@/shared/icons/agent", () => ({ AgentIcon: () => React.createElement("span") }));
+
 jest.mock("antd", () => ({
+  Input: () => React.createElement("input"),
   App: {
     useApp: () => ({ message: mockAntdMessage }),
   },

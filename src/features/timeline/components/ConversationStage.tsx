@@ -1,3 +1,8 @@
+import { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
+import { buildTimelineAgentOptions } from "@/features/workers/lib/agentSelection";
+export { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
+export { buildTimelineAgentOptions, filterTimelineAgentOptions, dispatchTimelineAgentSwitch } from "@/features/workers/lib/agentSelection";
+export type { TimelineAgentOption } from "@/features/workers/lib/agentSelection";
 import { useConversationSurface, useConversationPresentationClock } from "@/shared/ui/ConversationSurfaceContext";
 import React, {
   useRef,
@@ -38,7 +43,6 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
-import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import {
   Button,
@@ -51,11 +55,8 @@ import {
   Popover,
   Tooltip,
 } from "antd";
-import type { InputRef } from "antd";
-import type { Agent } from "@/features/agents/lib/agentState";
 import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
-import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { LogoLoading } from "@/shared/components/logo-loading";
 import { DotLoading } from "@/shared/components/dot-loading";
 import {
@@ -80,7 +81,6 @@ import type { AgentSkill } from "@/shared/data/api/client";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import "./Timeline.module.css";
 
-type CurrentWorkerSummary = ReturnType<typeof resolveCurrentWorkerSummary>;
 const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 type VirtualListItem =
@@ -115,34 +115,6 @@ const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
 
 const TIMELINE_EMPTY_CLASS_NAME =
   "timeline-empty tw:relative tw:text-center tw:text-xl tw:font-bold tw:leading-[1.35]";
-const TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME =
-  "timeline-empty-agent-switcher tw:relative tw:inline-flex tw:align-baseline";
-const TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME =
-  "timeline-agent-switcher-trigger tw:m-0 tw:inline-flex tw:max-w-[min(300px,62vw)] tw:items-center tw:rounded-lg tw:border-0 tw:bg-transparent tw:px-[5px] tw:py-px tw:font-[inherit] tw:font-extrabold tw:leading-[1.25] tw:text-ink-1 tw:align-baseline tw:shadow-none tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:hover:text-accent-electric-strong tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:focus-visible:text-accent-electric-strong tw:focus-visible:outline-none tw:active:transform-none";
-const TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME =
-  "timeline-agent-switcher-trigger-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
-const TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME =
-  "timeline-agent-switcher-arrow tw:ml-px tw:shrink-0 tw:translate-y-px tw:text-[19px] tw:text-[color-mix(in_srgb,var(--ink-muted)_72%,transparent)] tw:opacity-[0.58]";
-const TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME =
-  "timeline-agent-switcher-menu tw:w-[min(340px,calc(100vw-40px))] tw:max-w-[calc(100vw-40px)]";
-const TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME =
-  "timeline-agent-switcher-search tw:w-full";
-const TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME =
-  "timeline-agent-switcher-empty tw:px-2.5 tw:pb-2.5 tw:pt-[18px] tw:text-[13px] tw:font-semibold tw:text-ink-muted";
-const TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME =
-  "timeline-agent-switcher-list tw:mt-2 tw:grid tw:max-h-[248px] tw:gap-1 tw:overflow-y-auto tw:pr-0.5";
-const TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME =
-  "timeline-agent-switcher-option tw:flex tw:min-h-8 tw:w-full tw:min-w-0 tw:items-center tw:gap-1.5 tw:rounded-lg tw:border tw:border-transparent tw:bg-transparent tw:p-1.5 tw:text-left tw:shadow-none tw:hover:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:outline-none tw:active:transform-none";
-const TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME =
-  "is-active tw:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)]";
-const TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME =
-  "timeline-agent-switcher-avatar tw:shrink-0";
-const TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME =
-  "timeline-agent-switcher-option-copy tw:flex tw:min-w-0 tw:items-baseline tw:gap-1.5 tw:leading-[1.2]";
-const TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME =
-  "tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px] tw:font-bold tw:text-ink-1";
-const TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME =
-  "tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted";
 const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:relative tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
@@ -216,21 +188,6 @@ const TIMELINE_RUN_ITEMS_CLASS_NAME =
 const TIMELINE_RUN_TIME_CLASS_NAME =
   "timeline-run-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 
-export interface TimelineAgentOption {
-  key: string;
-  name: string;
-  role: string;
-  hideRole?: boolean;
-  icon?: Agent["icon"];
-  searchText: string;
-}
-
-function normalizeSearchText(value: unknown): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
 }
@@ -261,162 +218,6 @@ function findLastRunContentNode(
   return null;
 }
 
-function buildTimelineAgentSearchText(input: {
-  key: string;
-  name: string;
-  role: string;
-  searchText?: string;
-}): string {
-  return [input.name, input.role, input.key, input.searchText]
-    .map(normalizeSearchText)
-    .filter(Boolean)
-    .join(" ");
-}
-
-function pushUniqueTimelineAgentOption(
-  options: TimelineAgentOption[],
-  option: {
-    key?: unknown;
-    name?: unknown;
-    role?: unknown;
-    hideRole?: boolean;
-    icon?: Agent["icon"];
-    searchText?: unknown;
-  },
-): void {
-  const key = String(option.key || "").trim();
-  if (!key || options.some((item) => item.key === key)) {
-    return;
-  }
-
-  const name = String(option.name || key).trim() || key;
-  const role = String(option.role || "").trim();
-  options.push({
-    key,
-    name,
-    role,
-    hideRole: option.hideRole,
-    icon: option.icon,
-    searchText: buildTimelineAgentSearchText({
-      key,
-      name,
-      role,
-      searchText: String(option.searchText || ""),
-    }),
-  });
-}
-
-export function buildTimelineAgentOptions(input: {
-  agents: Agent[];
-  workerRows: WorkerRow[];
-  currentWorker: CurrentWorkerSummary;
-}): TimelineAgentOption[] {
-  const iconByAgentKey = new Map<string, Agent["icon"]>();
-  for (const agent of Array.isArray(input.agents) ? input.agents : []) {
-    const key = String(agent?.key || "").trim();
-    if (key) {
-      iconByAgentKey.set(key, agent.icon);
-    }
-  }
-
-  const agentTypeByKey = new Map<string, WorkerRow["agentType"]>();
-  for (const row of Array.isArray(input.workerRows) ? input.workerRows : []) {
-    if (row?.type !== "agent") continue;
-    const key = String(row.sourceId || "").trim();
-    if (key && row.agentType) {
-      agentTypeByKey.set(key, row.agentType);
-    }
-  }
-
-  function shouldHide(agentKey: string): boolean {
-    const agentType = agentTypeByKey.get(agentKey);
-    return agentType === "coder" || agentType === "kbase";
-  }
-
-  const options: TimelineAgentOption[] = [];
-  if (input.currentWorker?.type === "agent") {
-    pushUniqueTimelineAgentOption(options, {
-      key: input.currentWorker.sourceId,
-      name: input.currentWorker.displayName,
-      role: input.currentWorker.role,
-      hideRole: shouldHide(input.currentWorker.sourceId),
-      icon: iconByAgentKey.get(input.currentWorker.sourceId),
-    });
-  }
-
-  const rows = Array.isArray(input.workerRows) ? input.workerRows : [];
-  for (const row of rows) {
-    if (row?.type !== "agent") continue;
-    pushUniqueTimelineAgentOption(options, {
-      key: row.sourceId,
-      name: row.displayName,
-      role: row.role,
-      hideRole: row.agentType === "coder" || row.agentType === "kbase",
-      icon: iconByAgentKey.get(row.sourceId),
-      searchText: row.searchText,
-    });
-  }
-
-  if (options.length <= 1) {
-    for (const agent of Array.isArray(input.agents) ? input.agents : []) {
-      const agentKey = String(agent?.key || "").trim();
-      pushUniqueTimelineAgentOption(options, {
-        key: agent?.key,
-        name: agent?.name,
-        role: agent?.role || "",
-        hideRole:
-          agent?.type === "coder" ||
-          String(agent?.mode || "").toUpperCase() === "CODER" ||
-          String(agent?.mode || "").toUpperCase() === "KBASE",
-        icon: agent?.icon,
-      });
-    }
-  }
-
-  return options;
-}
-
-export function filterTimelineAgentOptions(
-  options: TimelineAgentOption[],
-  searchText: string,
-): TimelineAgentOption[] {
-  const normalizedSearch = normalizeSearchText(searchText);
-  if (!normalizedSearch) {
-    return options;
-  }
-
-  return options.filter((option) =>
-    normalizeSearchText(option.searchText).includes(normalizedSearch),
-  );
-}
-
-export function dispatchTimelineAgentSwitch(option: TimelineAgentOption): void {
-  const agentKey = String(option?.key || "").trim();
-  if (
-    !agentKey ||
-    typeof window === "undefined" ||
-    typeof window.dispatchEvent !== "function"
-  ) {
-    return;
-  }
-
-  const detail = {
-    workerKey: `agent:${agentKey}`,
-    agentKey,
-    focusComposerOnComplete: true,
-    preferNewChat: true,
-  };
-
-  if (typeof CustomEvent === "function") {
-    window.dispatchEvent(new CustomEvent("agent:select-worker", { detail }));
-    return;
-  }
-
-  const event = new Event("agent:select-worker") as CustomEvent<typeof detail>;
-  Object.defineProperty(event, "detail", { value: detail });
-  window.dispatchEvent(event);
-}
-
 const RunElapsedTime: React.FC<{ startTimeMs: number | null }> = ({
   startTimeMs,
 }) => {
@@ -441,175 +242,6 @@ const RunElapsedTime: React.FC<{ startTimeMs: number | null }> = ({
         {t("timeline.run.processed", { duration })}
       </div>
     </Flex>
-  );
-};
-
-export const TimelineAgentSwitcher: React.FC<{
-  currentWorker: CurrentWorkerSummary;
-  options: TimelineAgentOption[];
-  initialOpen?: boolean;
-  initialSearchText?: string;
-}> = ({
-  currentWorker,
-  options,
-  initialOpen = false,
-  initialSearchText = "",
-}) => {
-  const { t } = useI18n();
-  const [open, setOpen] = useState(initialOpen);
-  const [searchText, setSearchText] = useState(initialSearchText);
-  const searchInputRef = useRef<InputRef>(null);
-  const currentAgentKey =
-    currentWorker?.type === "agent" ? currentWorker.sourceId : "";
-  const activeOption =
-    options.find((option) => option.key === currentAgentKey) || options[0];
-  const displayName =
-    currentWorker?.displayName || activeOption?.name || currentAgentKey;
-  const filteredOptions = useMemo(
-    () => filterTimelineAgentOptions(options, searchText),
-    [options, searchText],
-  );
-
-  useEffect(() => {
-    if (!open) return;
-    searchInputRef.current?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || typeof document === "undefined") return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
-
-  const handleSelectAgent = (option: TimelineAgentOption) => {
-    setOpen(false);
-    setSearchText("");
-    dispatchTimelineAgentSwitch(option);
-  };
-
-  return (
-    <span className={TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME}>
-      <Popover
-        open={open}
-        onOpenChange={setOpen}
-        trigger={["click"]}
-        placement="top"
-        arrow={false}
-        content={
-          <div className={TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME}>
-            <Input
-              ref={searchInputRef}
-              className={TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME}
-              size="small"
-              variant="filled"
-              value={searchText}
-              placeholder={t("timeline.agentSwitcher.searchPlaceholder")}
-              onChange={(event) => setSearchText(event.target.value)}
-            />
-            {filteredOptions.length === 0 ? (
-              <div className={TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME}>
-                {t("timeline.agentSwitcher.empty")}
-              </div>
-            ) : (
-              <div
-                className={TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME}
-                role="listbox"
-                aria-label={t("timeline.agentSwitcher.listAriaLabel")}
-              >
-                {filteredOptions.map((option) => {
-                  const selected = option.key === currentAgentKey;
-                  return (
-                    <button
-                      key={option.key}
-                      className={[
-                        TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME,
-                        selected
-                          ? TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME
-                          : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      onClick={() => handleSelectAgent(option)}
-                    >
-                      <AgentIcon
-                        icon={option.icon}
-                        type="agent"
-                        props={{
-                          icon: {
-                            className:
-                              TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                            width: 20,
-                            height: 20,
-                          },
-                          avatar: {
-                            className:
-                              TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                            size: 20,
-                          },
-                        }}
-                      />
-                      <span
-                        className={
-                          TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME
-                        }
-                      >
-                        <strong
-                          className={
-                            TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME
-                          }
-                        >
-                          {option.name}
-                        </strong>
-                        {!option.hideRole && (
-                          <span
-                            className={
-                              TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME
-                            }
-                          >
-                            {option.role || "--"}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        }
-      >
-        <button
-          className={TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME}
-          type="button"
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-label={t("timeline.agentSwitcher.ariaLabel", {
-            name: displayName,
-          })}
-        >
-          <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
-            {displayName}
-          </span>
-          <MaterialIcon
-            className={TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME}
-            name="keyboard_arrow_down"
-            aria-hidden="true"
-          />
-        </button>
-      </Popover>
-    </span>
   );
 };
 

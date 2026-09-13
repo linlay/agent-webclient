@@ -27,6 +27,7 @@ import { ComposerAttachments } from "@/features/composer/components/ComposerAtta
 import { ComposerInput } from "@/features/composer/components/ComposerInput";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
+import { ComposerContextBar } from "@/features/composer/components/ComposerContextBar";
 import {
   isDedicatedKbaseWorker,
   resolveCurrentWorkerSummary,
@@ -843,6 +844,25 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             ]}
           >
             <div className={COMPOSER_STACK_CLASS}>
+              {!isFrontendActive && (
+                <ComposerContextBar
+                  agents={state.agents}
+                  workerRows={state.workerRows}
+                  currentAgentKey={currentAgentKey}
+                  currentWorkerName={currentWorker?.displayName}
+                  isCoder={planningModeAvailable}
+                  disabled={chatTransitionBlocking || isVoiceMode}
+                  onSelectAgent={(agentKey) => {
+                    window.dispatchEvent(new CustomEvent("agent:select-worker", {
+                      detail: {
+                        workerKey: `agent:${agentKey}`,
+                        focusComposerOnComplete: true,
+                        preferNewChat: true,
+                      },
+                    }));
+                  }}
+                />
+              )}
               <div
                 ref={composerPillRef}
                 className={`${COMPOSER_PILL_CLASS} ${isFrontendActive ? COMPOSER_PILL_FRONTEND_CLASS : ""} ${isVoiceMode ? COMPOSER_PILL_VOICE_CLASS : ""}`}

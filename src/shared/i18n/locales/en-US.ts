@@ -1,6 +1,11 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "composer.context.label": "Conversation context",
+  "composer.context.selectAgent": "Select agent",
+  "composer.context.local": "Local",
+  "composer.context.branchUnavailable": "Branch unavailable",
+  "composer.context.branchPending": "Branch information is not connected yet",
   "resourceAssistant.editAutomation": "Edit automation",
   "resourceAssistant.directEdit": "Edit directly",
   "resourceAssistant.conversationEdit": "Edit through chat",

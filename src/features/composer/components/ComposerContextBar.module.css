@@ -1,0 +1,107 @@
+.bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  margin: 0 14px -12px;
+  padding: 6px 14px 18px;
+  border: 1px solid var(--line-soft);
+  border-bottom: 0;
+  border-radius: calc(var(--control-radius-lg) + 6px) calc(var(--control-radius-lg) + 6px) 0 0;
+  background: var(--bg-elev-2);
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.agent,
+.local,
+.branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.switcher {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 50%;
+}
+
+.agent {
+  position: relative;
+  flex: 0 1 auto;
+  max-width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--text-main);
+}
+
+.agent:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.agent:hover {
+  background: var(--bg-hover);
+}
+
+.agent:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.agentLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.local {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.branch {
+  color: var(--text-muted);
+}
+
+.branchLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar :global(.material-icon) {
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+@media (max-width: 480px) {
+  .bar {
+    gap: 10px;
+    margin-inline: 8px;
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+
+  .switcher {
+    max-width: 45%;
+  }
+
+  .agent,
+  .local,
+  .branch {
+    gap: 5px;
+  }
+
+  .bar :global(.material-icon) {
+    font-size: 16px;
+  }
+}

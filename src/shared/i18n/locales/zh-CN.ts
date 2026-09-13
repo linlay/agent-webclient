@@ -1,6 +1,11 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "composer.context.label": "对话上下文",
+  "composer.context.selectAgent": "选择智能体",
+  "composer.context.local": "本地",
+  "composer.context.branchUnavailable": "分支未提供",
+  "composer.context.branchPending": "分支信息待接入",
   "resourceAssistant.editAutomation": "编辑自动化",
   "resourceAssistant.directEdit": "直接编辑",
   "resourceAssistant.conversationEdit": "通过对话编辑",
