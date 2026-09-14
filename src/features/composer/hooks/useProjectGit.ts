@@ -5,11 +5,12 @@ import type { ProjectGitResponse } from "@/shared/data/api/dto/resources";
 type GitState = ProjectGitResponse | { agentKey: string; status: "loading"; commit?: never };
 
 // Scoped to the mounted New Chat context bar, never blocks Agent detail loading.
-export function useProjectGit(agentKey: string, workspaceDir?: string): GitState | null {
+export function useProjectGit(agentKey: string, workspaceDir?: string, refreshKey = 0, paused = false): GitState | null {
   const key = agentKey.trim();
   const [snapshot, setSnapshot] = useState<{ workspaceDir?: string; value: GitState } | null>(null);
   useEffect(() => {
     if (!key) { setSnapshot(null); return; }
+    if (paused) return;
     let disposed = false;
     let requestId = 0;
     let controller: AbortController | undefined;
@@ -46,7 +47,7 @@ export function useProjectGit(agentKey: string, workspaceDir?: string): GitState
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
-  }, [key, workspaceDir]);
+  }, [key, workspaceDir, refreshKey, paused]);
   if (!key) return null;
   // Do not expose the previous Agent even during the render preceding effect cleanup.
   if (snapshot?.value.agentKey !== key || snapshot.workspaceDir !== workspaceDir) return { agentKey: key, status: "loading" };

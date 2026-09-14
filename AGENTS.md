@@ -88,6 +88,7 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 - `GET /api/data`
 - `GET /api/file`
 - `GET /api/project/git`：按实际 Workspace 独立读取 Git 快照，不按 mode 筛选，不进入 Agent 列表/详情；只在主界面 New Chat 上框异步消费
+- `GET/POST /api/project/git/branches`：按需加载本地分支、校验 revision 后切换或新建并切换；保持 Git 本地改动保护，不修改 `expectedBranch` 配置
 - `GET /api/project/tree`
 - `GET /api/project/changes`
 - `GET /api/project/diff`

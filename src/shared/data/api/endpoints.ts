@@ -20,6 +20,7 @@ import type {
   AgentFileRequest,
   DocumentCommitRequest,
   DocumentPreviewRequest,
+  ProjectGitBranchRequest,
   ProjectChangesRequest,
   ProjectDiffRequest,
   ProjectTreeRequest,
@@ -886,6 +887,14 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/document/commit",
     method: "POST",
     transport: "http",
+    payload: (params) => params,
+  }),
+  projectGitBranches: defineEndpoint<{ agentKey: string }, { agentKey: string }>({
+    key: "project.git.branches", path: "/api/project/git/branches", method: "GET", transport: "http",
+    payload: ({ agentKey }) => ({ agentKey }),
+  }),
+  projectGitBranchChange: defineEndpoint<ProjectGitBranchRequest, ProjectGitBranchRequest>({
+    key: "project.git.branchChange", path: "/api/project/git/branches", method: "POST", transport: "http",
     payload: (params) => params,
   }),
   projectGit: defineEndpoint<{ agentKey: string }, { agentKey: string }>({

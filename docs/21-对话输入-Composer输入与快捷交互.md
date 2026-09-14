@@ -59,4 +59,8 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 - `detached` 显示“游离 HEAD · 短 SHA”；完整 SHA 保留在 title。
 - `not_repository`、`no_workspace`、请求加载中、`unavailable`、请求失败或不合法响应均隐藏整个分支项（图标与文字），不显示占位或错误提示。
 
-挂载、切换智能体、Workspace 路径变化、窗口聚焦或页面重新可见时刷新；不轮询，不缓存 Git 状态。切换时立即隐藏旧分支，取消旧请求，并校验响应身份与 effect 生命周期，防止迟到响应串线。没有智能体（例如 Team）不请求。只读展示，不提供分支切换、创建或 checkout。
+挂载、切换智能体、Workspace 路径变化、窗口聚焦或页面重新可见时刷新；不轮询，不缓存 Git 状态。切换时立即隐藏旧分支，取消旧请求，并校验响应身份与 effect 生命周期，防止迟到响应串线。没有智能体（例如 Team）不请求。点击有效分支项打开本地分支菜单，按需加载后可切换已有分支或输入名称“新建并切换”。
+
+分支菜单通过 `GET /api/project/git/branches?agentKey=...` 加载本地分支；提交使用同路径 POST `{agentKey,operation:"switch"|"create",branch,expectedRevision}`。revision 来自菜单打开时的 Git 快照，不使用配置期望分支代替。创建从当前 HEAD 开始并立即切换；不处理远端分支、重命名或删除。
+
+操作期间禁用重复提交并暂停该分支项的自动读取；成功后关闭菜单并刷新，失败保留菜单与 Git 原因并重新读取状态，不自动重试写入。切换智能体会卸载旧菜单，旧读取请求取消、旧 mutation 响应忽略；已发出的写操作不会因 UI 卸载被前端中止。`canChange:false` 时展示后端边界原因并禁用写操作：仓库子目录、包含 ChatsRoot 的 Workspace 或无工作树只读。CODER 配置 `expectedBranch` 时提示其运行约束，分支切换不会修改 Agent 配置。

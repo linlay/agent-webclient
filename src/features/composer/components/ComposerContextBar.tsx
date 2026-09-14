@@ -5,7 +5,7 @@ import { useI18n } from "@/shared/i18n";
 import { AgentSwitcherPopover } from "@/features/workers/components/AgentSwitcherPopover";
 import { buildTimelineAgentOptions } from "@/features/workers/lib/agentSelection";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
-import { useProjectGit } from "@/features/composer/hooks/useProjectGit";
+import { ComposerGitBranch } from "./ComposerGitBranch";
 import styles from "./ComposerContextBar.module.css";
 
 interface ComposerContextBarProps {
@@ -31,10 +31,6 @@ export function ComposerContextBar({
 }: ComposerContextBarProps) {
   const { t } = useI18n();
   const currentAgent = agents.find((agent) => agent.key === currentAgentKey);
-  const git = useProjectGit(currentAgentKey, currentAgent?.workspaceDir);
-  const branchLabel = git?.status === "branch" ? git.branch
-    : git?.status === "detached" ? `${t("composer.context.detachedHead")} · ${git.commit?.slice(0, 8)}`
-    : null;
   const displayName = currentAgent?.name || currentWorkerName || currentAgentKey || t("composer.context.selectAgent");
   const currentWorker = currentAgentKey ? {
     type: "agent" as const, sourceId: currentAgentKey, displayName,
@@ -76,12 +72,12 @@ export function ComposerContextBar({
         <MaterialIcon name="terminal" />
         {t("composer.context.local")}
       </span>
-      {branchLabel && (
-        <span className={styles.branch} title={git?.commit ? `${branchLabel} · ${git.commit}` : branchLabel} aria-live="polite">
-          <MaterialIcon name="branches" />
-          <span className={styles.branchLabel}>{branchLabel}</span>
-        </span>
-      )}
+      <ComposerGitBranch
+        key={`${currentAgentKey}:${currentAgent?.workspaceDir || ""}`}
+        agentKey={currentAgentKey}
+        workspaceDir={currentAgent?.workspaceDir}
+        disabled={disabled}
+      />
     </div>
   );
 }

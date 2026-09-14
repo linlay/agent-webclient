@@ -219,9 +219,25 @@ export interface ProjectDiffResponse {
 }
 
 export interface ProjectGitResponse {
+  revision?: string;
   agentKey: string;
   status: "branch" | "detached" | "not_repository" | "no_workspace" | "unavailable";
   branch?: string;
   commit?: string;
   reason?: "workspace_unavailable" | "git_unavailable" | "probe_failed" | "probe_timeout";
+}
+
+export interface ProjectGitBranchesResponse {
+  git: ProjectGitResponse;
+  branches: string[];
+  canChange: boolean;
+  blockedReason?: "workspace_not_repo_root" | "workspace_contains_chats" | "worktree_unavailable";
+  expectedBranch?: string;
+}
+
+export interface ProjectGitBranchRequest {
+  agentKey: string;
+  operation: "switch" | "create";
+  branch: string;
+  expectedRevision: string;
 }
