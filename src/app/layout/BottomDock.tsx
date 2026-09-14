@@ -58,6 +58,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 						aria-disabled={transitionBlocking} {...(transitionBlocking ? { inert: "" } : {})}
 						style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
 						<ComposerArea
+							enableNewChatContext={!isCopilot}
 							emptyInputMinRows={isCopilot ? 3 : undefined}
 							inputMaxRows={isCopilot ? 6 : undefined}
 							showWonders={!isCopilot}

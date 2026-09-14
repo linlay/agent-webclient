@@ -69,6 +69,7 @@ import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 
 interface ComposerAreaProps {
+  enableNewChatContext?: boolean;
   emptyInputMinRows?: number;
   inputMaxRows?: number;
   showWonders?: boolean;
@@ -90,6 +91,7 @@ const VOICE_HINT_CLASS =
 const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 export const ComposerArea: React.FC<ComposerAreaProps> = ({
+  enableNewChatContext = false,
   emptyInputMinRows = 5,
   inputMaxRows = 10,
   showWonders = true,
@@ -844,7 +846,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             ]}
           >
             <div className={COMPOSER_STACK_CLASS}>
-              {!isFrontendActive && (
+              {enableNewChatContext && isBlankConversation && !chatTransitionBlocking && !isFrontendActive && (
                 <ComposerContextBar
                   agents={state.agents}
                   workerRows={state.workerRows}
