@@ -66,3 +66,5 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 操作期间禁用重复提交并暂停该分支项的自动读取；成功后关闭菜单并刷新，失败保留菜单与 Git 原因并重新读取状态，不自动重试写入。切换智能体会卸载旧菜单，旧读取请求取消、旧 mutation 响应忽略；已发出的写操作不会因 UI 卸载被前端中止。`canChange:false` 时展示后端边界原因并禁用写操作：仓库子目录、包含 ChatsRoot 的 Workspace 或无工作树只读。CODER 配置 `expectedBranch` 时提示其运行约束，分支切换不会修改 Agent 配置。
 
 新会话通过 `useAgentWelcome` 共享 `/api/agent` 查询：`greetings` 随机选一条作为主标题，缺失或仅空白时回退“与 <agentName> 对话”；`introductions` 独立随机选一条作为输入框 placeholder，缺失时保留默认输入提示。标题与 Composer 复用查询缓存及并发去重，切换智能体按 key 隔离，普通重渲染保持文案稳定。
+
+`greetings` 支持固定占位符 `${agent}`：前端按字面标记拆分并嵌入现有智能体切换按钮；没有其他智能体可切换时显示名称文本。无标记时保留普通问候语，未知标记保持原文，不执行表达式或 HTML。`introductions` 不解析此占位符。

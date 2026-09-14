@@ -1325,7 +1325,14 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const emptyStateContent = !state.chatId && showEmptyState && (
     <div className={TIMELINE_EMPTY_CLASS_NAME}>
-      {greeting || (currentWorker?.displayName ? (
+      {greeting ? greeting.split("${agent}").map((part, index) => (
+        <React.Fragment key={index}>
+          {index > 0 && (canSwitchEmptyAgent ? (
+            <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
+          ) : currentWorker?.displayName)}
+          {part}
+        </React.Fragment>
+      )) : (currentWorker?.displayName ? (
         canSwitchEmptyAgent ? (
           <>
             {t("timeline.empty.withAgentPrefix")}

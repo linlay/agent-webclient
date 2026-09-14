@@ -410,8 +410,8 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                     <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
                       <div className="agent-prompt-field-heading">
                         <span id="agent-greetings-label" className="agent-prompt-field-label">{t("agentConsole.field.greetings")}</span>
-                        <Tooltip title={t("agentConsole.prompt.greetings.description")}>
-                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.greetings.description")}><MaterialIcon name="info" /></button>
+                        <Tooltip title={t("agentConsole.prompt.greetings.description", { agentToken: "${agent}" })}>
+                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.greetings.description", { agentToken: "${agent}" })}><MaterialIcon name="info" /></button>
                         </Tooltip>
                         {!isReadOnly && <UiButton className="agent-prompt-heading-action" size="sm" variant="ghost" onClick={() => updateForm({ greetingsText: promptEntriesToJson([...greetingEntries, ""]) })}><MaterialIcon name="add" />{t("agentConsole.prompt.addGreeting")}</UiButton>}
                       </div>
@@ -422,7 +422,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           readOnly={isReadOnly}
                               id={index === 0 ? "agent-greetings-input" : undefined}
                               aria-label={t("agentConsole.prompt.greetings.item", { index: index + 1 })}
-                              placeholder={t("agentConsole.prompt.greetings.placeholder")}
+                              placeholder={t("agentConsole.prompt.greetings.placeholder", { agentToken: "${agent}" })}
                               value={entry}
                               onChange={(event) => {
                                 const next = [...(greetingEntries.length ? greetingEntries : [""])];
