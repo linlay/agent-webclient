@@ -81,10 +81,10 @@ const LEFT_SIDEBAR_FILTER_ROW_CLASS = "tw:px-1.5";
 const SIDEBAR_STATIC_ICON_CLASS = "sidebar-static-icon";
 
 const CHAT_LIST_CLASS =
-  "chat-list tw:flex-1 tw:overflow-y-auto tw:p-1.5 tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
+  "chat-list tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
 
 const WORKER_COLLAPSE_CLASS =
-  "worker-collapse tw:flex tw:flex-col tw:gap-1.5 tw:[&_.ant-collapse-item-active_.worker-panel-icon]:scale-[0.8] tw:[&_.ant-collapse-item-active_.worker-panel-preview]:h-0 tw:[&_.ant-collapse-item-active>.ant-collapse-header_.ant-badge]:hidden tw:[&_.status-line]:border-0 tw:[&_.status-line]:bg-transparent tw:[&_.worker-collapse-history]:text-text-muted";
+  "worker-collapse tw:flex tw:flex-col tw:[&_.ant-collapse-item-active_.worker-panel-icon]:scale-[0.8] tw:[&_.ant-collapse-item-active_.worker-panel-preview]:h-0 tw:[&_.ant-collapse-item-active>.ant-collapse-header_.ant-badge]:hidden tw:[&_.status-line]:border-0 tw:[&_.status-line]:bg-transparent tw:[&_.worker-collapse-history]:text-text-muted";
 
 const WORKER_COLLAPSED_ICON_BASE_CLASS =
   "worker-collapsed-icon tw:flex tw:h-auto tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-0.5 tw:border-0 tw:bg-transparent tw:!p-0.5 tw:text-ink-2 tw:shadow-none tw:hover:!bg-accent-soft";
