@@ -57,7 +57,6 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 
 - `branch` 显示真实 `branch`；空仓库也可有分支，`commit` 可省略。
 - `detached` 显示“游离 HEAD · 短 SHA”；完整 SHA 保留在 title。
-- `not_repository` 显示“非 Git 仓库”；`no_workspace` 隐藏分支项。
-- 请求中显示“读取分支中…”；`unavailable`、请求失败或不合法响应显示“分支读取失败”。
+- `not_repository`、`no_workspace`、请求加载中、`unavailable`、请求失败或不合法响应均隐藏整个分支项（图标与文字），不显示占位或错误提示。
 
 挂载、切换智能体、Workspace 路径变化、窗口聚焦或页面重新可见时刷新；不轮询，不缓存 Git 状态。切换时立即隐藏旧分支，取消旧请求，并校验响应身份与 effect 生命周期，防止迟到响应串线。没有智能体（例如 Team）不请求。只读展示，不提供分支切换、创建或 checkout。

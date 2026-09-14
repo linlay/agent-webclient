@@ -32,12 +32,9 @@ export function ComposerContextBar({
   const { t } = useI18n();
   const currentAgent = agents.find((agent) => agent.key === currentAgentKey);
   const git = useProjectGit(currentAgentKey, currentAgent?.workspaceDir);
-  const branchLabel = !git || git.status === "no_workspace" ? null
-    : git.status === "branch" ? git.branch
-    : git.status === "detached" ? `${t("composer.context.detachedHead")} · ${git.commit?.slice(0, 8)}`
-    : git.status === "not_repository" ? t("composer.context.notRepository")
-    : git.status === "loading" ? t("composer.context.branchLoading")
-    : t("composer.context.branchUnavailable");
+  const branchLabel = git?.status === "branch" ? git.branch
+    : git?.status === "detached" ? `${t("composer.context.detachedHead")} · ${git.commit?.slice(0, 8)}`
+    : null;
   const displayName = currentAgent?.name || currentWorkerName || currentAgentKey || t("composer.context.selectAgent");
   const currentWorker = currentAgentKey ? {
     type: "agent" as const, sourceId: currentAgentKey, displayName,
@@ -80,7 +77,7 @@ export function ComposerContextBar({
         {t("composer.context.local")}
       </span>
       {branchLabel && (
-        <span className={styles.branch} title={git?.commit ? `${branchLabel} · ${git.commit}` : branchLabel} aria-live="polite" aria-busy={git?.status === "loading"}>
+        <span className={styles.branch} title={git?.commit ? `${branchLabel} · ${git.commit}` : branchLabel} aria-live="polite">
           <MaterialIcon name="branches" />
           <span className={styles.branchLabel}>{branchLabel}</span>
         </span>

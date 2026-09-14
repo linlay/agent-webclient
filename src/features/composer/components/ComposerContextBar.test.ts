@@ -45,15 +45,16 @@ describe("ComposerContextBar", () => {
     expect(container.textContent).not.toContain("feature/actual");
     expect(container.querySelector('[aria-live="polite"]')).toBeNull();
   });
-  it.each([
-    [{ status: "loading" }, "读取分支中…"],
-    [{ status: "not_repository" }, "非 Git 仓库"],
-    [{ status: "unavailable" }, "分支读取失败"],
-    [{ status: "detached", commit: "1234567890abcdef" }, "游离 HEAD · 12345678"],
-  ])("renders Git state %o", (state, label) => {
-    jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", ...state } as ReturnType<typeof useProjectGit>);
+  it.each(["loading", "not_repository", "no_workspace", "unavailable"] as const)("hides the entire branch item for %s", (status) => {
+    jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status });
     render(false);
-    expect(container.textContent).toContain(label);
+    expect(container.querySelector('[aria-live="polite"]')).toBeNull();
+    expect(container.textContent).toContain("本地");
+  });
+  it("shows the actual detached HEAD", () => {
+    jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status: "detached", commit: "1234567890abcdef" });
+    render(false);
+    expect(container.textContent).toContain("游离 HEAD · 12345678");
     expect(container.textContent).not.toContain("main");
   });
   it("requests the selected agent without mutating the current selection", () => {
