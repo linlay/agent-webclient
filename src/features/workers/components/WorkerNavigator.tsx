@@ -585,12 +585,11 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 <UiButton
                   size="sm"
                   variant="ghost"
-                  className="ui-icon-hover-24"
                   onClick={() => onOpenCommand("automation")}
                 >
                   <MaterialIcon
                     name="schedule"
-                    className="ui-icon-hover-24-target"
+                    className="tw:text-[16px]"
                   />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.automation")}</span>
@@ -601,12 +600,11 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   <UiButton
                     size="sm"
                     variant="ghost"
-                    className="ui-icon-hover-24"
                     onClick={onOpenMemory}
                   >
                     <MaterialIcon
                       name="psychology"
-                      className="ui-icon-hover-24-target"
+                      className="tw:text-[16px]"
                     />
                     <Flex gap={2} align="center">
                       <span>{t("leftSidebar.quickActions.memory")}</span>
@@ -617,12 +615,11 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 <UiButton
                   size="sm"
                   variant="ghost"
-                  className="ui-icon-hover-24"
                   onClick={() => onOpenCommand("agents")}
                 >
                   <MaterialIcon
-                    name="smart_toy"
-                    className="ui-icon-hover-24-target"
+                    name="agent_type"
+                    className="tw:text-[16px]"
                   />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>

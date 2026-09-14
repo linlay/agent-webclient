@@ -8,6 +8,7 @@ import "@/shared/styles/globals.css";
 const agents = [
   { key: "assistant", name: "通用助手", mode: "GENERAL" },
   { key: "coder", name: "编程助手", mode: "CODER" },
+  { key: "kbase", name: "知识库助手", mode: "KBASE" },
   { key: "long", name: "一个名称非常长的项目代码审查智能体", mode: "CODER" },
 ];
 function Preview() {
@@ -20,7 +21,7 @@ function Preview() {
       <h1 style={{ fontSize: 24, marginBottom: 12 }}>输入框上下文栏</h1>
       <p style={{ color: "var(--text-muted)", marginBottom: 32 }}>可切换智能体，检查 CODER 分支显示与长名称。</p>
       <button onClick={() => setDark(!dark)} style={{ marginBottom: 32 }}>切换{dark ? "浅色" : "深色"}</button>
-      <ComposerContextBar agents={agents} currentAgentKey={key} currentWorkerName={agent.name} isCoder={agent.mode === "CODER"} onSelectAgent={setKey} />
+      <ComposerContextBar agents={agents} currentAgentKey={key} currentWorkerName={agent.name} isCoder={agent.mode === "CODER"} isKbase={agent.mode === "KBASE"} onSelectAgent={setKey} />
       <div className="composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:relative tw:flex tw:flex-col tw:border tw:border-border tw:p-1.5">
         <textarea aria-label="消息" placeholder="输入消息，开始对话…" style={{ background: "transparent", color: "inherit", border: 0, outline: 0, resize: "none", padding: 6, height: 100, fontSize: 13 }} />
         <div style={{ display: "flex", justifyContent: "space-between", padding: 6, color: "var(--text-muted)", fontSize: 12 }}>

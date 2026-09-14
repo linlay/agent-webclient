@@ -79,7 +79,7 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
         {
           key: "open-registries",
           label: t("settingsMenu.registries"),
-          icon: "hub",
+          icon: "tune",
           action: { type: "open-registries" },
         },
         {

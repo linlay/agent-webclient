@@ -1,4 +1,5 @@
 export const materialIconSymbolIds = {
+  agent_type: "material-symbol-agent-type",
   add: "material-symbol-add",
   archive: "material-symbol-archive",
   arrow_downward: "material-symbol-arrow-downward",

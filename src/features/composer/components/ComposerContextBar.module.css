@@ -80,8 +80,31 @@
 
 .bar :global(.material-icon) {
   flex-shrink: 0;
-  font-size: 18px;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
 }
+
+.bar .typeIcon,
+.typeIcon :global(.material-icon-svg),
+.kbaseIcon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.kbaseIcon {
+  background: currentColor;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
+.kbaseIcon {
+  mask-image: url("./kbase-outline.svg");
+}
+
 
 @media (max-width: 480px) {
   .bar {

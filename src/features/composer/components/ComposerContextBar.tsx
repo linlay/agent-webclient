@@ -13,6 +13,7 @@ interface ComposerContextBarProps {
   currentAgentKey: string;
   currentWorkerName?: string;
   isCoder: boolean;
+  isKbase?: boolean;
   disabled?: boolean;
   onSelectAgent: (agentKey: string) => void;
 }
@@ -23,6 +24,7 @@ export function ComposerContextBar({
   currentAgentKey,
   currentWorkerName,
   isCoder,
+  isKbase = false,
   disabled = false,
   onSelectAgent,
 }: ComposerContextBarProps) {
@@ -53,7 +55,13 @@ export function ComposerContextBar({
             aria-expanded={open}
             title={displayName}
           >
-            <MaterialIcon name={isCoder ? "code" : "smart_toy"} />
+            {isKbase ? (
+              <span className={styles.kbaseIcon} data-agent-type-icon="kbase" aria-hidden="true" />
+            ) : isCoder ? (
+              <MaterialIcon name="code" className={styles.typeIcon} />
+            ) : (
+              <MaterialIcon name="agent_type" className={styles.typeIcon} />
+            )}
             <span className={styles.agentLabel}>{displayName}</span>
             <MaterialIcon name="expand_more" />
           </button>

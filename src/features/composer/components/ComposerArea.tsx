@@ -853,6 +853,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   currentAgentKey={currentAgentKey}
                   currentWorkerName={currentWorker?.displayName}
                   isCoder={planningModeAvailable}
+                  isKbase={editingModeAvailable}
                   disabled={chatTransitionBlocking || isVoiceMode}
                   onSelectAgent={(agentKey) => {
                     window.dispatchEvent(new CustomEvent("agent:select-worker", {

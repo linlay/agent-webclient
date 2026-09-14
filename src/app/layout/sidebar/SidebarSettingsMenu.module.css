@@ -5,8 +5,11 @@
 }
 
 :global(#settings-btn)>:global(.ui-btn-label) {
+    display: inline-flex;
+    align-items: center;
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 8px;
 }
 
 :global(#settings-btn) :global(.material-icon),
