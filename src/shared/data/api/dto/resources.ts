@@ -217,3 +217,11 @@ export interface ProjectDiffResponse {
   original: ProjectDiffVersion;
   current: ProjectDiffVersion;
 }
+
+export interface ProjectGitResponse {
+  agentKey: string;
+  status: "branch" | "detached" | "not_repository" | "no_workspace" | "unavailable";
+  branch?: string;
+  commit?: string;
+  reason?: "workspace_unavailable" | "git_unavailable" | "probe_failed" | "probe_timeout";
+}

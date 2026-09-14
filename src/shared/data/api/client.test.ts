@@ -50,6 +50,7 @@ import {
   getProjectChanges,
   getProjectDiff,
   getProjectTree,
+  getProjectGit,
   getAgentOrder,
   getAgents,
   getChatLLMTraceRaw,
@@ -1143,6 +1144,15 @@ describe('data client requests', () => {
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
       '/api/file?agentKey=knowledge-agent&path=docs%2Fguide.md',
     );
+  });
+
+  it('requests live Git state independently with abort and no HTTP cache', async () => {
+    const controller = new AbortController();
+    await getProjectGit('knowledge agent', { signal: controller.signal });
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/project/git?agentKey=knowledge+agent');
+    expect(options.signal).toBe(controller.signal);
+    expect(options.cache).toBe('no-store');
   });
 
   it('requests project tree, changes, and diff over fixed HTTP endpoints', async () => {

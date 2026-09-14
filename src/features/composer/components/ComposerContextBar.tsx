@@ -5,6 +5,7 @@ import { useI18n } from "@/shared/i18n";
 import { AgentSwitcherPopover } from "@/features/workers/components/AgentSwitcherPopover";
 import { buildTimelineAgentOptions } from "@/features/workers/lib/agentSelection";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
+import { useProjectGit } from "@/features/composer/hooks/useProjectGit";
 import styles from "./ComposerContextBar.module.css";
 
 interface ComposerContextBarProps {
@@ -30,6 +31,13 @@ export function ComposerContextBar({
 }: ComposerContextBarProps) {
   const { t } = useI18n();
   const currentAgent = agents.find((agent) => agent.key === currentAgentKey);
+  const git = useProjectGit(currentAgentKey, currentAgent?.workspaceDir);
+  const branchLabel = !git || git.status === "no_workspace" ? null
+    : git.status === "branch" ? git.branch
+    : git.status === "detached" ? `${t("composer.context.detachedHead")} · ${git.commit?.slice(0, 8)}`
+    : git.status === "not_repository" ? t("composer.context.notRepository")
+    : git.status === "loading" ? t("composer.context.branchLoading")
+    : t("composer.context.branchUnavailable");
   const displayName = currentAgent?.name || currentWorkerName || currentAgentKey || t("composer.context.selectAgent");
   const currentWorker = currentAgentKey ? {
     type: "agent" as const, sourceId: currentAgentKey, displayName,
@@ -71,10 +79,10 @@ export function ComposerContextBar({
         <MaterialIcon name="terminal" />
         {t("composer.context.local")}
       </span>
-      {isCoder && (
-        <span className={styles.branch} title={t("composer.context.branchPending")}>
+      {branchLabel && (
+        <span className={styles.branch} title={git?.commit ? `${branchLabel} · ${git.commit}` : branchLabel} aria-live="polite" aria-busy={git?.status === "loading"}>
           <MaterialIcon name="branches" />
-          <span className={styles.branchLabel}>{t("composer.context.branchUnavailable")}</span>
+          <span className={styles.branchLabel}>{branchLabel}</span>
         </span>
       )}
     </div>

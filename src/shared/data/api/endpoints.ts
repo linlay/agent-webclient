@@ -888,6 +888,13 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     payload: (params) => params,
   }),
+  projectGit: defineEndpoint<{ agentKey: string }, { agentKey: string }>({
+    key: "project.git",
+    path: "/api/project/git",
+    method: "GET",
+    transport: "http",
+    payload: ({ agentKey }) => ({ agentKey }),
+  }),
   projectTree: defineEndpoint<ProjectTreeRequest, Record<string, unknown>>({
     key: "project.tree",
     path: "/api/project/tree",

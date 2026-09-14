@@ -7,6 +7,7 @@ import type {
   AgentFileResponse,
   DocumentCommitRequest,
   DocumentCommitResponse,
+  ProjectGitResponse,
   ProjectTreeRequest,
   ProjectTreeResponse,
   ProjectChangesRequest,
@@ -98,5 +99,17 @@ export function getProjectDiff(
   return requestJson<ProjectDiffResponse>(withQuery(dataEndpoints.projectDiff.path, query), {
     method: "GET",
     signal: options.signal,
+  });
+}
+
+export function getProjectGit(
+  agentKey: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResponse<ProjectGitResponse>> {
+  const query = endpointQuery(dataEndpoints.projectGit, { agentKey });
+  return requestJson<ProjectGitResponse>(withQuery(dataEndpoints.projectGit.path, query), {
+    method: "GET",
+    signal: options.signal,
+    cache: "no-store",
   });
 }

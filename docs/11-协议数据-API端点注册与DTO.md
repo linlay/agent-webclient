@@ -77,3 +77,7 @@ Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契�
 - GET `/api/chats/order`：读取 `sortMode`、`pinnedOrder` 和 `updatedAt`；PUT 或 WS 同路径使用 `{operation:"set_pinned",chatId,pinned}`，排序使用 `{operation:"move",chatId,beforeChatId}` 或 `afterChatId`。置顶组移动不修改普通列表排序。
 - Chat 摘要/详情增加可选 `pinned`；GET `/api/chats` 支持 `pinned` 和 `limit`，GET `/api/agents` 支持 `chatsPinned`。`false` 必须在 HTTP query 与 WS payload 中保留，筛选发生在后端 limit/includeChats 之前。
 - `chats.order.changed` push 要求 `updatedAt` 为 epoch 毫秒整数。客户端收到后同时使 agents/chats 查询缓存失效并重新加载；WS 重连同样对账。归档、删除清理内存置顶 ID，恢复不继承旧置顶。
+
+## Project Git 独立快照
+
+`project.git` 注册为 HTTP GET `/api/project/git`，仅传 `agentKey`。`ProjectGitResponse` 定义在 `shared/data/api/dto/resources.ts`，包含 `agentKey`、`status` 及可选 `branch/commit/reason`。`status` 为 `branch | detached | not_repository | no_workspace | unavailable`，`reason` 为 `workspace_unavailable | git_unavailable | probe_failed | probe_timeout`。响应沿用 `ApiResponse`；缺失参数、未知 Agent、权限错误使用既有错误包裹。请求支持 AbortSignal，并禁用 HTTP 缓存。它不进入 Agent 列表/详情 DTO，也不修改已有 Project tree/changes/diff 的范围。

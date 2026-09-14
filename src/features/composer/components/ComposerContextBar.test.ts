@@ -2,8 +2,10 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ComposerContextBar } from "./ComposerContextBar";
+import { useProjectGit } from "@/features/composer/hooks/useProjectGit";
 import { I18nProvider } from "@/shared/i18n";
 
+jest.mock("@/features/composer/hooks/useProjectGit", () => ({ useProjectGit: jest.fn() }));
 jest.mock("@/shared/icons/agent", () => ({ AgentIcon: () => React.createElement("span") }));
 jest.mock("antd", () => {
   const React = require("react");
@@ -25,6 +27,7 @@ describe("ComposerContextBar", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     onSelectAgent.mockClear();
+    jest.mocked(useProjectGit).mockReturnValue(null);
   });
   afterEach(() => { act(() => root.unmount()); container.remove(); });
   function render(isCoder: boolean, extra: Record<string, unknown> = {}) {
@@ -32,12 +35,26 @@ describe("ComposerContextBar", () => {
       React.createElement(ComposerContextBar, { agents, currentAgentKey: isCoder ? "coder" : "general", isCoder, onSelectAgent, ...extra }),
     })));
   }
-  it("shows branch status only for CODER, including when switching away", () => {
-    render(true);
-    expect(container.textContent).toContain("分支未提供");
-    render(false);
-    expect(container.textContent).not.toContain("分支未提供");
+  it.each([true, false])("shows the real branch for any mode (coder=%s)", (isCoder) => {
+    jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status: "branch", branch: "feature/actual" });
+    render(isCoder, { isKbase: !isCoder });
+    expect(container.textContent).toContain("feature/actual");
     expect(container.textContent).toContain("本地");
+    jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status: "no_workspace" });
+    render(isCoder);
+    expect(container.textContent).not.toContain("feature/actual");
+    expect(container.querySelector('[aria-live="polite"]')).toBeNull();
+  });
+  it.each([
+    [{ status: "loading" }, "读取分支中…"],
+    [{ status: "not_repository" }, "非 Git 仓库"],
+    [{ status: "unavailable" }, "分支读取失败"],
+    [{ status: "detached", commit: "1234567890abcdef" }, "游离 HEAD · 12345678"],
+  ])("renders Git state %o", (state, label) => {
+    jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", ...state } as ReturnType<typeof useProjectGit>);
+    render(false);
+    expect(container.textContent).toContain(label);
+    expect(container.textContent).not.toContain("main");
   });
   it("requests the selected agent without mutating the current selection", () => {
     render(false);

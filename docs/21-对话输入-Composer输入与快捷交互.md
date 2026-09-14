@@ -48,3 +48,16 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 - `../src/features/btw/components/BtwProvider.tsx`
 
 技能中心管理列表与 Composer 使用相同的技能置顶偏好。名称右侧的置顶按钮使用 14px 图标、透明背景和绝对定位，不独占列表列宽；未置顶时仅悬停或键盘聚焦显示灰色图标，已置顶时始终显示主题正文色（浅色近黑、深色浅色）。取消置顶恢复目录默认相对顺序，描述继续使用完整行宽。
+
+## New Chat 项目上下文与 Git 分支
+
+仅主界面 New Chat 的 `ComposerContextBar` 显示上方半框；已有会话及 Copilot（含新会话）不显示。智能体菜单复用 `AgentSwitcherPopover`，固定“本地”，系统大类图标与智能体自定义图标独立，上框图标保持 16×16 并跟随主题。
+
+`useProjectGit` 在半框挂载后通过独立 HTTP `GET /api/project/git?agentKey=...` 异步读取，不阻塞 `/api/agents` 或 `/api/agent`。是否有 Git 仓库由 Platform 按实际 Workspace 判定，不按 CODER/KBASE 筛选，也不使用 `projectConfig.git.expectedBranch` 作为当前分支。
+
+- `branch` 显示真实 `branch`；空仓库也可有分支，`commit` 可省略。
+- `detached` 显示“游离 HEAD · 短 SHA”；完整 SHA 保留在 title。
+- `not_repository` 显示“非 Git 仓库”；`no_workspace` 隐藏分支项。
+- 请求中显示“读取分支中…”；`unavailable`、请求失败或不合法响应显示“分支读取失败”。
+
+挂载、切换智能体、Workspace 路径变化、窗口聚焦或页面重新可见时刷新；不轮询，不缓存 Git 状态。切换时立即隐藏旧分支，取消旧请求，并校验响应身份与 effect 生命周期，防止迟到响应串线。没有智能体（例如 Team）不请求。只读展示，不提供分支切换、创建或 checkout。
