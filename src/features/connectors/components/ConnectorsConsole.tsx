@@ -150,7 +150,7 @@ export function ConnectorsConsole({ routeId, onRouteIdChange }: ConnectorsConsol
               {view === "config" && componentFiles.length > 1 && <div className={styles.files} aria-label={t("connectors.field.file")}>
                 {componentFiles.map(file => <button type="button" key={file} disabled={busy} aria-pressed={runtime.file === file} onClick={() => runtime.selectFile(file)}>{file}</button>)}
               </div>}
-              {runtime.error && <div className={styles.error} role="alert">{runtime.error}</div>}
+              {runtime.error && <div className={styles.error} role="alert">{runtime.error}{runtime.errorDetails && <details><summary>{t("connectors.error.details")}</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{runtime.errorDetails}</pre></details>}</div>}
               {runtime.message && <p className={styles.notice} role="status">{runtime.message}</p>}
               <div ref={editorRegion}><Spin spinning={runtime.detailLoading}>
                 {runtime.detail && runtime.detail.id === selected.id && runtime.detail.file === runtime.file && <ConnectorConfigEditor key={`${selected.id}/${runtime.file}`} connectorId={selected.id} file={runtime.file} theme={appContext?.state.themeMode ?? "light"} draft={runtime.draft} disabled={busy} readOnly={runtime.readOnly} onChange={runtime.updateDraft} />}

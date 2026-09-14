@@ -160,6 +160,7 @@ it("preserves the selected draft when deletion is canceled or rejected as in use
   jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("in use", { status: 409, data: { agentKeys: ["worker"] } }));
   await act(async () => expect(current.remove()).resolves.toBeNull());
   expect(current.error).toBe("connectors.delete.inUse");
+  expect(current.errorDetails).toContain("409 · in use");
   expect(current.draft).toBe('{"name":"Unsaved"}');
   expect(current.selected?.id).toBe("demo");
   expect(current.deleting).toBe(false);

@@ -1,3 +1,4 @@
+import { connectorErrorDetails } from "../lib/connectorError";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
@@ -22,7 +23,9 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorMessage] = useState("");
+  const [errorDetails, setErrorDetails] = useState("");
+  const setError = (message: string) => { setErrorMessage(message); setErrorDetails(""); };
   const [message, setMessage] = useState("");
   const [revision, setRevision] = useState(0);
   const dirty = !!detail && draft !== detail.content;
@@ -229,6 +232,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
         && Array.isArray(cause.data.agentKeys) ? cause.data.agentKeys.filter((key): key is string => typeof key === "string") : [];
       setError(agentKeys.length ? t("connectors.delete.inUse", { agents: agentKeys.join(", ") })
         : cause instanceof Error ? cause.message : String(cause));
+      setErrorDetails(connectorErrorDetails(cause));
       return null;
     } finally {
       deletingRef.current = false;
@@ -239,7 +243,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
 
   return {
     items, tools, loading, catalogError, catalogErrorStatus, selected, file: activeFile, detail, draft, dirty, readOnly,
-    detailLoading, saving, importing, deleting, canDelete, remove, error, message, refreshCatalog, selectFile, reload, save, importArchive,
+    detailLoading, saving, importing, deleting, canDelete, remove, error, errorDetails, message, refreshCatalog, selectFile, reload, save, importArchive,
     selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && !deletingRef.current && id !== selectedId) onRouteIdChange(id); },
     updateDraft: (value: string) => { if (!readOnly && !savingRef.current && !importingRef.current && !deletingRef.current) { setDraft(value); setMessage(""); setError(""); } },
   };

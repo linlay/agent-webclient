@@ -47,7 +47,7 @@ export function ConnectorImportModal({ runtime }: { runtime: ReturnType<typeof u
         <strong>{t("connectors.import.overwrite.title")}</strong>
         <p>{t("connectors.import.overwrite.description", { file: runtime.archive?.name || "" })}</p>
       </div>}
-      {runtime.error && <div role="alert" className={styles.error}>{runtime.error}</div>}
+      {runtime.error && <div role="alert" className={styles.error}>{runtime.error}{runtime.errorDetails && <details><summary>{t("connectors.error.details")}</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{runtime.errorDetails}</pre></details>}</div>}
       {runtime.submitting && <p role="status" className={styles.hint}>{t("connectors.import.uploading")}</p>}
     </div>
   </Modal>;

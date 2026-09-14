@@ -61,6 +61,7 @@ it("retains a failed archive and blocks both closing and duplicate submissions w
   expect(onImport).toHaveBeenCalledTimes(1);
   await act(async () => { reject(new Error("invalid connector package")); await request; });
   expect(current.error).toBe("invalid connector package");
+  expect(current.errorDetails).toContain("invalid connector package");
   expect(current.archive).toBe(file);
   expect(current.overwriteRequired).toBe(false);
 });
