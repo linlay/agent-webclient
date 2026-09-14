@@ -59,9 +59,7 @@ import type { ConversationSurfaceMode } from "@/features/conversation/lib/conver
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { LogoLoading } from "@/shared/components/logo-loading";
 import { DotLoading } from "@/shared/components/dot-loading";
-import {
-  resolveMainChatRuntime,
-} from "@/features/runs/lib/runRuntimeState";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { Virtuoso } from "react-virtuoso";
 import type {
   ItemProps,
@@ -172,7 +170,7 @@ const TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME =
 const TIMELINE_META_ROW_CLASS_NAME =
   "timeline-meta-row tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
 const TIMELINE_RUN_META_CLASS_NAME =
-  "timeline-run-meta tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3";
+  "timeline-run-meta tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3 tw:mt-[4px]";
 const TIMELINE_META_ACTIONS_CLASS_NAME =
   "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1";
 const TIMELINE_META_BUTTON_CLASS_NAME =
@@ -182,7 +180,7 @@ const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
 const TIMELINE_ROW_TIME_CLASS_NAME =
   "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 const TIMELINE_RUN_GROUP_CLASS_NAME =
-  "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:before:absolute tw:before:bottom-0 tw:before:left-2 tw:before:top-0 tw:before:w-px tw:before:bg-line-soft tw:before:content-['']";
+  "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]";
 const TIMELINE_RUN_ITEMS_CLASS_NAME =
   "timeline-run-items tw:flex tw:flex-col tw:gap-[12px]";
 const TIMELINE_RUN_TIME_CLASS_NAME =
@@ -321,7 +319,10 @@ function findConversationItemElement(
 }
 
 function isConversationScrollerAtBottom(scroller: HTMLElement): boolean {
-  const maximumScrollTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+  const maximumScrollTop = Math.max(
+    0,
+    scroller.scrollHeight - scroller.clientHeight,
+  );
   return maximumScrollTop - scroller.scrollTop <= 1;
 }
 
@@ -462,7 +463,11 @@ interface ConversationStageProps {
     isDisabled: (runId: string) => boolean;
     execute: (runId: string) => Promise<void>;
   };
-  onFeedback: (runId: string, downvoted: boolean, comment?: string) => Promise<void>;
+  onFeedback: (
+    runId: string,
+    downvoted: boolean,
+    comment?: string,
+  ) => Promise<void>;
   expectedChatId?: string;
   showEmptyState?: boolean;
   onResendInNewChat?: (message: string) => void;
@@ -556,7 +561,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
     enabled: Boolean(currentAgentKey && hasRequiredSkills),
   });
-  const activeAgentSkills = skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;
+  const activeAgentSkills =
+    skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;
   const displayItems = useMemo(() => {
     return buildTimelineDisplayItems(
       timelineEntries,
@@ -571,32 +577,32 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     state.events,
     state.taskItemsById,
     state.currentChatActiveRun,
-	]);
+  ]);
 
-	const expandRunCollapse = useCallback((key: string) => {
-		setExpandedRunCollapses((current) =>
-			current[key] ? current : { ...current, [key]: true },
-		);
-	}, []);
+  const expandRunCollapse = useCallback((key: string) => {
+    setExpandedRunCollapses((current) =>
+      current[key] ? current : { ...current, [key]: true },
+    );
+  }, []);
 
-	const expandTaskGroup = useCallback((key: string) => {
-		setExpandedTaskGroups((current) =>
-			current[key] ? current : { ...current, [key]: true },
-		);
-	}, []);
+  const expandTaskGroup = useCallback((key: string) => {
+    setExpandedTaskGroups((current) =>
+      current[key] ? current : { ...current, [key]: true },
+    );
+  }, []);
 
-	const textSearch = useTimelineTextSearch({
-		nodes: timelineEntries,
-		displayItems,
-		virtuosoRef,
-		expandedRunCollapses,
-		expandedTaskGroups,
-		onExpandRun: expandRunCollapse,
-		onExpandTaskGroup: expandTaskGroup,
-	});
-	const { refreshHighlights } = textSearch;
+  const textSearch = useTimelineTextSearch({
+    nodes: timelineEntries,
+    displayItems,
+    virtuosoRef,
+    expandedRunCollapses,
+    expandedTaskGroups,
+    onExpandRun: expandRunCollapse,
+    onExpandTaskGroup: expandTaskGroup,
+  });
+  const { refreshHighlights } = textSearch;
 
-	const runStartedAt = useMemo(() => {
+  const runStartedAt = useMemo(() => {
     if (!isMainChatRunning && !state.streaming) return null;
     const lastQuery = displayItems?.findLast((event) => event.kind === "query");
     if (!lastQuery) return null;
@@ -679,16 +685,32 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const transition = state.chatTransition;
   const sharedPresentation = useConversationSurface();
   // Local fallback for independently mounted timelines; shells share one clock.
-  const targetChatId = expectedChatId || transition?.targetChatId || state.chatId;
-  const matchingTransition = transition?.targetChatId === targetChatId ? transition : null;
+  const targetChatId =
+    expectedChatId || transition?.targetChatId || state.chatId;
+  const matchingTransition =
+    transition?.targetChatId === targetChatId ? transition : null;
   const mismatch = Boolean(targetChatId && targetChatId !== state.chatId);
-  const background = !mismatch && matchingTransition?.displayMode === "background";
-  const localPresentation = useConversationPresentationClock({
-    targetChatId, identity: `${targetChatId}:${matchingTransition?.seq || "route"}`,
-    pending: mismatch || (!background && Boolean(matchingTransition && ["loading", "applying", "restoring"].includes(matchingTransition.phase))),
-    error: matchingTransition?.phase === "error" ? matchingTransition.error : "",
-    background,
-  }, !sharedPresentation);
+  const background =
+    !mismatch && matchingTransition?.displayMode === "background";
+  const localPresentation = useConversationPresentationClock(
+    {
+      targetChatId,
+      identity: `${targetChatId}:${matchingTransition?.seq || "route"}`,
+      pending:
+        mismatch ||
+        (!background &&
+          Boolean(
+            matchingTransition &&
+            ["loading", "applying", "restoring"].includes(
+              matchingTransition.phase,
+            ),
+          )),
+      error:
+        matchingTransition?.phase === "error" ? matchingTransition.error : "",
+      background,
+    },
+    !sharedPresentation,
+  );
   const presentation = sharedPresentation || localPresentation;
   const restorationReady = presentation.restorationReady;
   const matchingSnapshot = Boolean(
@@ -1042,17 +1064,18 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     const bookmark = currentBookmark;
     const bookmarkMatchesCurrentTimeline = Boolean(
       bookmark &&
-        bookmark.dataSignature === dataSignature &&
-        bookmark.layoutSignature === layoutSignature,
+      bookmark.dataSignature === dataSignature &&
+      bookmark.layoutSignature === layoutSignature,
     );
     const restorableBookmark = bookmarkMatchesCurrentTimeline ? bookmark : null;
-    const resolvedBookmarkIndex = restorableBookmark && !restorableBookmark.atBottom
-      ? resolveConversationRestoreIndex(restorableBookmark, virtualItemKeys)
-      : -1;
+    const resolvedBookmarkIndex =
+      restorableBookmark && !restorableBookmark.atBottom
+        ? resolveConversationRestoreIndex(restorableBookmark, virtualItemKeys)
+        : -1;
     const shouldRestoreBottom = Boolean(
       !restorableBookmark ||
-        restorableBookmark.atBottom ||
-        resolvedBookmarkIndex < 0,
+      restorableBookmark.atBottom ||
+      resolvedBookmarkIndex < 0,
     );
     isAtBottomRef.current = shouldRestoreBottom;
     setIsAtBottom(shouldRestoreBottom);
@@ -1127,20 +1150,24 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       const elapsedMs = Math.max(0, Date.now() - restoreStartedAt);
       if (reason === "timeout") {
         const scrollTop = scroller?.scrollTop || 0;
-        const remainingErrorPx = shouldRestoreBottom && scroller
-          ? Math.max(0, scroller.scrollHeight - scroller.clientHeight - scrollTop)
-          : (() => {
-              const element =
-                targetItemKey && scroller
-                  ? findConversationItemElement(scroller, targetItemKey)
-                  : null;
-              if (!element || !scroller) return "unknown";
-              return Math.abs(
-                element.getBoundingClientRect().top -
-                  scroller.getBoundingClientRect().top -
-                  (restorableBookmark?.anchorOffset || 0),
-              );
-            })();
+        const remainingErrorPx =
+          shouldRestoreBottom && scroller
+            ? Math.max(
+                0,
+                scroller.scrollHeight - scroller.clientHeight - scrollTop,
+              )
+            : (() => {
+                const element =
+                  targetItemKey && scroller
+                    ? findConversationItemElement(scroller, targetItemKey)
+                    : null;
+                if (!element || !scroller) return "unknown";
+                return Math.abs(
+                  element.getBoundingClientRect().top -
+                    scroller.getBoundingClientRect().top -
+                    (restorableBookmark?.anchorOffset || 0),
+                );
+              })();
         dispatch({
           type: "APPEND_DEBUG",
           line: `[chat-scroll-restore-timeout] chatId=${transition.targetChatId} transitionSeq=${transition.seq} mode=${shouldRestoreBottom ? "bottom" : "anchor"} targetIndex=${targetIndex} targetKey=${targetItemKey || "none"} scrollTop=${scrollTop} remainingErrorPx=${remainingErrorPx} elapsedMs=${elapsedMs}`,
@@ -1178,7 +1205,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           });
         }
         const scroller = scrollerRef.current;
-        const bottomReached = restoreAtBottomObservedRef.current ||
+        const bottomReached =
+          restoreAtBottomObservedRef.current ||
           Boolean(scroller && isConversationScrollerAtBottom(scroller));
         stableFrameCount = bottomReached ? stableFrameCount + 1 : 0;
       } else {
@@ -1360,399 +1388,407 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         {...(presentation.blocked ? { inert: "" } : {})}
         style={{ visibility: presentation.blocked ? "hidden" : undefined }}
       >
-      {queryAnchorItems.length > 0 && queryAnchorsEnabled && (
-        <nav
-          ref={anchorRef}
-          className={TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME}
-          style={
-            {
-              "--hover-index": (queryAnchorItems.length + 999).toString(),
-            } as React.CSSProperties
-          }
-          onMouseLeave={() => {
-            if (!anchorRef.current) return;
-            anchorRef.current.style.setProperty(
-              "--hover-index",
-              (queryAnchorItems.length + 999).toString(),
-            );
-          }}
-        >
-          {queryAnchorItems.map((anchor, index) => {
-            const active = activeQueryAnchorId === anchor.anchorId;
-            return (
-              <Tooltip
-                key={anchor.key}
-                rootClassName={TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME}
-                trigger="hover"
-                placement="right"
-                title={
-                  <div>
-                    <div
-                      className={TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME}
-                    >
-                      {anchor.queryText}
-                    </div>
-                    <div
-                      className={
-                        TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME
-                      }
-                    >
-                      {anchor.lastRunContent}
-                    </div>
-                  </div>
-                }
-              >
-                <button
-                  className={[
-                    TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME,
-                    active ? TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  type="button"
-                  aria-current={active ? "location" : undefined}
-                  aria-label={t("conversationStage.queryAnchor", {
-                    index: index + 1,
-                  })}
-                  onMouseEnter={() => {
-                    if (!anchorRef.current) return;
-                    anchorRef.current.style.setProperty(
-                      "--hover-index",
-                      index.toString(),
-                    );
-                  }}
-                  onClick={() => handleQueryAnchorClick(anchor.anchorId)}
-                >
-                  <span
-                    className={TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME}
-                    aria-hidden="true"
-                    style={
-                      {
-                        "--index": index,
-                      } as React.CSSProperties
-                    }
-                  />
-                </button>
-              </Tooltip>
-            );
-          })}
-        </nav>
-      )}
-
-      {!state.chatId ? (
-        showEmptyState ? (
-          <div
-            className={[
-              TIMELINE_EMPTY_SCROLL_CLASS_NAME,
-              TIMELINE_STACK_CLASS_NAME,
-              TIMELINE_STACK_EMPTY_CLASS_NAME,
-            ].join(" ")}
+        {queryAnchorItems.length > 0 && queryAnchorsEnabled && (
+          <nav
+            ref={anchorRef}
+            className={TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME}
+            style={
+              {
+                "--hover-index": (queryAnchorItems.length + 999).toString(),
+              } as React.CSSProperties
+            }
+            onMouseLeave={() => {
+              if (!anchorRef.current) return;
+              anchorRef.current.style.setProperty(
+                "--hover-index",
+                (queryAnchorItems.length + 999).toString(),
+              );
+            }}
           >
-            {isMainChatRunning || state.streaming ? (
-              <LogoLoading text={t("logoLoading.text")} />
-            ) : (
-              emptyStateContent
-            )}
-          </div>
-        ) : null
-      ) : (
-        <Virtuoso
-          key={virtuosoInstanceKey}
-          ref={virtuosoRef}
-          data={virtualItems}
-          computeItemKey={(_index, item) => item.key}
-          restoreStateFrom={matchingSnapshot}
-          scrollerRef={(ref) => {
-            scrollerRef.current =
-              ref && typeof (ref as HTMLElement).querySelectorAll === "function"
-                ? (ref as HTMLElement)
-                : null;
-          }}
-          increaseViewportBy={window.innerHeight}
-          followOutput={(atBottom) =>
-            restorationReady &&
-            !restoringRef.current &&
-            isAtBottomRef.current &&
-            atBottom
-              ? "auto"
-              : false
-          }
-          atBottomThreshold={200}
-          atBottomStateChange={handleAtBottomStateChange}
-          rangeChanged={handleRangeChanged}
-          isScrolling={handleIsScrolling}
-          className={VIRTUOSO_CLASS_NAME}
-          id="messages"
-          data-desktop-workspace-arrow-keys="allow"
-          components={{
-            Footer,
-            Item: ConversationVirtualItem,
-          }}
-          itemContent={(_index, listItem) => {
-            if (listItem.kind === "query") {
-              const item = listItem.item;
-              const queryTime = formatTimelineTime(item.node.ts);
-              const queryCopyKey = `${item.key}:copy`;
-              const queryCopyStatus =
-                actionStatus[queryCopyKey] ||
-                t("timeline.toolPill.copy.action");
-              const queryAnchorId = listItem.anchorId;
+            {queryAnchorItems.map((anchor, index) => {
+              const active = activeQueryAnchorId === anchor.anchorId;
               return (
-                <div
-                  id={queryAnchorId}
-                  className="timeline-query-anchor-row tw:relative"
-                  data-query-anchor-id={queryAnchorId}
+                <Tooltip
+                  key={anchor.key}
+                  rootClassName={TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME}
+                  trigger="hover"
+                  placement="right"
+                  title={
+                    <div>
+                      <div
+                        className={
+                          TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME
+                        }
+                      >
+                        {anchor.queryText}
+                      </div>
+                      <div
+                        className={
+                          TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME
+                        }
+                      >
+                        {anchor.lastRunContent}
+                      </div>
+                    </div>
+                  }
                 >
-                  <TimelineRow
-                    node={item.node}
-                    skills={activeAgentSkills}
-                    metaNode={
-                      <div className={TIMELINE_META_ROW_CLASS_NAME}>
+                  <button
+                    className={[
+                      TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME,
+                      active
+                        ? TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    type="button"
+                    aria-current={active ? "location" : undefined}
+                    aria-label={t("conversationStage.queryAnchor", {
+                      index: index + 1,
+                    })}
+                    onMouseEnter={() => {
+                      if (!anchorRef.current) return;
+                      anchorRef.current.style.setProperty(
+                        "--hover-index",
+                        index.toString(),
+                      );
+                    }}
+                    onClick={() => handleQueryAnchorClick(anchor.anchorId)}
+                  >
+                    <span
+                      className={TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME}
+                      aria-hidden="true"
+                      style={
+                        {
+                          "--index": index,
+                        } as React.CSSProperties
+                      }
+                    />
+                  </button>
+                </Tooltip>
+              );
+            })}
+          </nav>
+        )}
+
+        {!state.chatId ? (
+          showEmptyState ? (
+            <div
+              className={[
+                TIMELINE_EMPTY_SCROLL_CLASS_NAME,
+                TIMELINE_STACK_CLASS_NAME,
+                TIMELINE_STACK_EMPTY_CLASS_NAME,
+              ].join(" ")}
+            >
+              {isMainChatRunning || state.streaming ? (
+                <LogoLoading text={t("logoLoading.text")} />
+              ) : (
+                emptyStateContent
+              )}
+            </div>
+          ) : null
+        ) : (
+          <Virtuoso
+            key={virtuosoInstanceKey}
+            ref={virtuosoRef}
+            data={virtualItems}
+            computeItemKey={(_index, item) => item.key}
+            restoreStateFrom={matchingSnapshot}
+            scrollerRef={(ref) => {
+              scrollerRef.current =
+                ref &&
+                typeof (ref as HTMLElement).querySelectorAll === "function"
+                  ? (ref as HTMLElement)
+                  : null;
+            }}
+            increaseViewportBy={window.innerHeight}
+            followOutput={(atBottom) =>
+              restorationReady &&
+              !restoringRef.current &&
+              isAtBottomRef.current &&
+              atBottom
+                ? "auto"
+                : false
+            }
+            atBottomThreshold={200}
+            atBottomStateChange={handleAtBottomStateChange}
+            rangeChanged={handleRangeChanged}
+            isScrolling={handleIsScrolling}
+            className={VIRTUOSO_CLASS_NAME}
+            id="messages"
+            data-desktop-workspace-arrow-keys="allow"
+            components={{
+              Footer,
+              Item: ConversationVirtualItem,
+            }}
+            itemContent={(_index, listItem) => {
+              if (listItem.kind === "query") {
+                const item = listItem.item;
+                const queryTime = formatTimelineTime(item.node.ts);
+                const queryCopyKey = `${item.key}:copy`;
+                const queryCopyStatus =
+                  actionStatus[queryCopyKey] ||
+                  t("timeline.toolPill.copy.action");
+                const queryAnchorId = listItem.anchorId;
+                return (
+                  <div
+                    id={queryAnchorId}
+                    className="timeline-query-anchor-row tw:relative"
+                    data-query-anchor-id={queryAnchorId}
+                  >
+                    <TimelineRow
+                      node={item.node}
+                      skills={activeAgentSkills}
+                      metaNode={
+                        <div className={TIMELINE_META_ROW_CLASS_NAME}>
+                          <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
+                            <UiButton
+                              className={TIMELINE_META_BUTTON_CLASS_NAME}
+                              variant="ghost"
+                              size="sm"
+                              iconOnly
+                              title={queryCopyStatus}
+                              aria-label={queryCopyStatus}
+                              onClick={() =>
+                                handleCopy(queryCopyKey, item.node.text || "")
+                              }
+                            >
+                              <MaterialIcon name="content_copy" />
+                            </UiButton>
+                            <Dropdown
+                              placement="bottomRight"
+                              menu={{
+                                onClick: (info) => {
+                                  if (info.key === "resend") {
+                                    handleResend(item.node.text || "");
+                                  } else if (info.key === "resendInNewChat") {
+                                    handleResendInNewChat(item.node.text || "");
+                                  }
+                                },
+                                items: [
+                                  {
+                                    key: "resend",
+                                    icon: (
+                                      <MaterialIcon
+                                        name="refresh"
+                                        className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm"
+                                      />
+                                    ),
+                                    label: t("timeline.query.resend"),
+                                  },
+                                  {
+                                    key: "resendInNewChat",
+                                    icon: (
+                                      <MaterialIcon
+                                        name="open_in_new"
+                                        className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm"
+                                      />
+                                    ),
+                                    label: t("timeline.query.resendInNewChat"),
+                                  },
+                                ],
+                              }}
+                            >
+                              <UiButton
+                                className={TIMELINE_META_BUTTON_CLASS_NAME}
+                                variant="ghost"
+                                size="sm"
+                                iconOnly
+                                disabled={isMainChatRunning}
+                                title={t("timeline.query.resend")}
+                                aria-label={t("timeline.query.resend")}
+                              >
+                                <MaterialIcon name="refresh" />
+                              </UiButton>
+                            </Dropdown>
+                          </div>
+                          {queryTime.short && (
+                            <div
+                              className={TIMELINE_ROW_TIME_CLASS_NAME}
+                              title={queryTime.full}
+                            >
+                              {queryTime.short}
+                            </div>
+                          )}
+                        </div>
+                      }
+                    />
+                  </div>
+                );
+              }
+              if (listItem.kind === "run") {
+                const item = listItem.item;
+                const isCompleted = Boolean(item.completedAt);
+                const time = formatTimelineTime(item.completedAt);
+                const responseDuration = formatResponseDuration(
+                  item.responseDurationMs,
+                  t,
+                );
+                const runCopyKey = `${item.key}:copy`;
+                const runId = String(item.runId || "").trim();
+                const isDownvoted = Boolean(
+                  runId && state.downvotedRunKeys.has(runId),
+                );
+                const runCopyStatus =
+                  actionStatus[runCopyKey] ||
+                  t("timeline.toolPill.copy.action");
+                const deriveChatDisabled = deriveChatAction.isDisabled(runId);
+                const deriveChatTitle = t("timeline.run.deriveChat");
+
+                const lastContentNode = findLastRunContentNode(item);
+                const shouldCollapse = isCompleted && item.nodes.length > 1;
+                return (
+                  <Flex vertical gap={8}>
+                    {shouldCollapse && (
+                      <Collapse
+                        ghost
+                        destroyOnHidden
+                        className="timeline-run-collapse"
+                        activeKey={
+                          expandedRunCollapses[item.key] ? ["run-entries"] : []
+                        }
+                        onChange={() => toggleRunCollapse(item.key)}
+                        items={[
+                          {
+                            key: "run-entries",
+                            label: t("timeline.run.processed", {
+                              duration: responseDuration,
+                            }),
+                            children: (
+                              <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
+                                {buildRunRenderEntries(
+                                  lastContentNode
+                                    ? item.nodes.slice(0, -1)
+                                    : item.nodes,
+                                  state.taskItemsById,
+                                ).map((entry) => renderEntry(entry))}
+                              </div>
+                            ),
+                          },
+                        ]}
+                      />
+                    )}
+                    <section className={TIMELINE_RUN_GROUP_CLASS_NAME}>
+                      {shouldCollapse ? (
+                        buildRunRenderEntries(
+                          lastContentNode ? [lastContentNode] : [],
+                        ).map((entry) => renderEntry(entry))
+                      ) : (
+                        <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
+                          {item.renderEntries.map((entry) =>
+                            renderEntry(entry),
+                          )}
+                        </div>
+                      )}
+                    </section>
+                    {!shouldCollapse && (
+                      <RunTerminalNotice
+                        terminalType={item.terminalType}
+                        duration={responseDuration}
+                      />
+                    )}
+                    {isCompleted && (
+                      <div className={TIMELINE_RUN_META_CLASS_NAME}>
                         <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
                           <UiButton
                             className={TIMELINE_META_BUTTON_CLASS_NAME}
                             variant="ghost"
                             size="sm"
                             iconOnly
-                            title={queryCopyStatus}
-                            aria-label={queryCopyStatus}
+                            title={runCopyStatus}
+                            aria-label={runCopyStatus}
                             onClick={() =>
-                              handleCopy(queryCopyKey, item.node.text || "")
+                              handleCopy(
+                                runCopyKey,
+                                serializeRunTranscript(
+                                  item.queryNode,
+                                  item.nodes,
+                                ),
+                              )
                             }
                           >
                             <MaterialIcon name="content_copy" />
                           </UiButton>
-                          <Dropdown
-                            placement="bottomRight"
-                            menu={{
-                              onClick: (info) => {
-                                if (info.key === "resend") {
-                                  handleResend(item.node.text || "");
-                                } else if (info.key === "resendInNewChat") {
-                                  handleResendInNewChat(item.node.text || "");
-                                }
-                              },
-                              items: [
-                                {
-                                  key: "resend",
-                                  icon: (
-                                    <MaterialIcon
-                                      name="refresh"
-                                      className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm"
-                                    />
-                                  ),
-                                  label: t("timeline.query.resend"),
-                                },
-                                {
-                                  key: "resendInNewChat",
-                                  icon: (
-                                    <MaterialIcon
-                                      name="open_in_new"
-                                      className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm"
-                                    />
-                                  ),
-                                  label: t("timeline.query.resendInNewChat"),
-                                },
-                              ],
-                            }}
-                          >
+                          {isDownvoted ? (
                             <UiButton
-                              className={TIMELINE_META_BUTTON_CLASS_NAME}
+                              className={[
+                                TIMELINE_META_BUTTON_CLASS_NAME,
+                                TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME,
+                              ].join(" ")}
                               variant="ghost"
                               size="sm"
                               iconOnly
-                              disabled={isMainChatRunning}
-                              title={t("timeline.query.resend")}
-                              aria-label={t("timeline.query.resend")}
-                            >
-                              <MaterialIcon name="refresh" />
-                            </UiButton>
-                          </Dropdown>
-                        </div>
-                        {queryTime.short && (
-                          <div
-                            className={TIMELINE_ROW_TIME_CLASS_NAME}
-                            title={queryTime.full}
-                          >
-                            {queryTime.short}
-                          </div>
-                        )}
-                      </div>
-                    }
-                  />
-                </div>
-              );
-            }
-            if (listItem.kind === "run") {
-              const item = listItem.item;
-              const isCompleted = Boolean(item.completedAt);
-              const time = formatTimelineTime(item.completedAt);
-              const responseDuration = formatResponseDuration(
-                item.responseDurationMs,
-                t,
-              );
-              const runCopyKey = `${item.key}:copy`;
-              const runId = String(item.runId || "").trim();
-              const isDownvoted = Boolean(
-                runId && state.downvotedRunKeys.has(runId),
-              );
-              const runCopyStatus =
-                actionStatus[runCopyKey] || t("timeline.toolPill.copy.action");
-              const deriveChatDisabled = deriveChatAction.isDisabled(runId);
-              const deriveChatTitle = t("timeline.run.deriveChat");
-
-              const lastContentNode = findLastRunContentNode(item);
-              const shouldCollapse = isCompleted && item.nodes.length > 1;
-              return (
-                <Flex vertical gap={8}>
-                  {shouldCollapse && (
-                    <Collapse
-                      ghost
-                      destroyOnHidden
-                      className="timeline-run-collapse"
-                      activeKey={
-                        expandedRunCollapses[item.key] ? ["run-entries"] : []
-                      }
-                      onChange={() => toggleRunCollapse(item.key)}
-                      items={[
-                        {
-                          key: "run-entries",
-                          label: t("timeline.run.processed", {
-                            duration: responseDuration,
-                          }),
-                          children: (
-                            <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
-                              {buildRunRenderEntries(
-                                lastContentNode
-                                  ? item.nodes.slice(0, -1)
-                                  : item.nodes,
-                                state.taskItemsById,
-                              ).map((entry) => renderEntry(entry))}
-                            </div>
-                          ),
-                        },
-                      ]}
-                    />
-                  )}
-                  <section className={TIMELINE_RUN_GROUP_CLASS_NAME}>
-                    {shouldCollapse ? (
-                      buildRunRenderEntries(
-                        lastContentNode ? [lastContentNode] : [],
-                      ).map((entry) => renderEntry(entry))
-                    ) : (
-                      <div className={TIMELINE_RUN_ITEMS_CLASS_NAME}>
-                        {item.renderEntries.map((entry) => renderEntry(entry))}
-                      </div>
-                    )}
-                  </section>
-                  {!shouldCollapse && (
-                    <RunTerminalNotice
-                      terminalType={item.terminalType}
-                      duration={responseDuration}
-                    />
-                  )}
-                  {isCompleted && (
-                    <div className={TIMELINE_RUN_META_CLASS_NAME}>
-                      <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
-                        <UiButton
-                          className={TIMELINE_META_BUTTON_CLASS_NAME}
-                          variant="ghost"
-                          size="sm"
-                          iconOnly
-                          title={runCopyStatus}
-                          aria-label={runCopyStatus}
-                          onClick={() =>
-                            handleCopy(
-                              runCopyKey,
-                              serializeRunTranscript(
-                                item.queryNode,
-                                item.nodes,
-                              ),
-                            )
-                          }
-                        >
-                          <MaterialIcon name="content_copy" />
-                        </UiButton>
-                        {isDownvoted ? (
-                          <UiButton
-                            className={[
-                              TIMELINE_META_BUTTON_CLASS_NAME,
-                              TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME,
-                            ].join(" ")}
-                            variant="ghost"
-                            size="sm"
-                            iconOnly
-                            active
-                            title={t("timeline.feedback.clearDownvote")}
-                            aria-label={t("timeline.feedback.clearDownvote")}
-                            disabled={!runId}
-                            onClick={() => onFeedback(runId, false)}
-                          >
-                            <MaterialIcon name="thumb_down" />
-                          </UiButton>
-                        ) : (
-                          <Popover
-                            destroyOnHidden
-                            trigger={["click"]}
-                            content={
-                              <FeedbackModal
-                                onFinish={({ reason }) => {
-                                  void onFeedback(runId, true, reason);
-                                }}
-                              />
-                            }
-                          >
-                            <UiButton
-                              className={TIMELINE_META_BUTTON_CLASS_NAME}
-                              variant="ghost"
-                              size="sm"
-                              iconOnly
-                              title={t("timeline.feedback.downvote")}
-                              aria-label={t("timeline.feedback.downvote")}
+                              active
+                              title={t("timeline.feedback.clearDownvote")}
+                              aria-label={t("timeline.feedback.clearDownvote")}
                               disabled={!runId}
+                              onClick={() => onFeedback(runId, false)}
                             >
                               <MaterialIcon name="thumb_down" />
                             </UiButton>
-                          </Popover>
-                        )}
-                        <UiButton
-                          className={TIMELINE_META_BUTTON_CLASS_NAME}
-                          variant="ghost"
-                          size="sm"
-                          iconOnly
-                          loading={derivingRunId === runId}
-                          title={deriveChatTitle}
-                          aria-label={deriveChatTitle}
-                          disabled={deriveChatDisabled}
-                          onClick={() => handleDeriveChat(runId)}
-                        >
-                          <MaterialIcon name="branches" />
-                        </UiButton>
-                      </div>
-                      {time.short && (
-                        <div
-                          className={TIMELINE_RUN_TIME_CLASS_NAME}
-                          title={
-                            responseDuration
-                              ? `${time.full} · ${t("timeline.run.responseDuration", { duration: responseDuration })}`
-                              : time.full
-                          }
-                        >
-                          {time.short}
-                          {responseDuration
-                            ? ` · ${t("timeline.run.duration", { duration: responseDuration })}`
-                            : ""}
+                          ) : (
+                            <Popover
+                              destroyOnHidden
+                              trigger={["click"]}
+                              content={
+                                <FeedbackModal
+                                  onFinish={({ reason }) => {
+                                    void onFeedback(runId, true, reason);
+                                  }}
+                                />
+                              }
+                            >
+                              <UiButton
+                                className={TIMELINE_META_BUTTON_CLASS_NAME}
+                                variant="ghost"
+                                size="sm"
+                                iconOnly
+                                title={t("timeline.feedback.downvote")}
+                                aria-label={t("timeline.feedback.downvote")}
+                                disabled={!runId}
+                              >
+                                <MaterialIcon name="thumb_down" />
+                              </UiButton>
+                            </Popover>
+                          )}
+                          <UiButton
+                            className={TIMELINE_META_BUTTON_CLASS_NAME}
+                            variant="ghost"
+                            size="sm"
+                            iconOnly
+                            loading={derivingRunId === runId}
+                            title={deriveChatTitle}
+                            aria-label={deriveChatTitle}
+                            disabled={deriveChatDisabled}
+                            onClick={() => handleDeriveChat(runId)}
+                          >
+                            <MaterialIcon name="branches" />
+                          </UiButton>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </Flex>
-              );
-            }
-            return renderEntry(listItem.item.renderEntry);
-          }}
-        />
-      )}
+                        {time.short && (
+                          <div
+                            className={TIMELINE_RUN_TIME_CLASS_NAME}
+                            title={
+                              responseDuration
+                                ? `${time.full} · ${t("timeline.run.responseDuration", { duration: responseDuration })}`
+                                : time.full
+                            }
+                          >
+                            {time.short}
+                            {responseDuration
+                              ? ` · ${t("timeline.run.duration", { duration: responseDuration })}`
+                              : ""}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Flex>
+                );
+              }
+              return renderEntry(listItem.item.renderEntry);
+            }}
+          />
+        )}
       </div>
       {textSearch.open && (
         <TimelineTextSearchBar
@@ -1773,9 +1809,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           retryLabel={t("surface.retry")}
           onTransitionEnd={presentation.onTransitionEnd}
           onRetry={() => {
-            const targetChatId = String(
-              presentation.targetChatId,
-            ).trim();
+            const targetChatId = String(presentation.targetChatId).trim();
             if (!targetChatId) return;
             window.dispatchEvent(
               new CustomEvent("agent:load-chat", {

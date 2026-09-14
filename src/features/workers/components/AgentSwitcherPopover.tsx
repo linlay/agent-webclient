@@ -22,9 +22,9 @@ const TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME =
 const TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME =
   "timeline-agent-switcher-empty tw:px-2.5 tw:pb-2.5 tw:pt-[18px] tw:text-[13px] tw:font-semibold tw:text-ink-muted";
 const TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME =
-  "timeline-agent-switcher-list tw:mt-2 tw:grid tw:max-h-[248px] tw:gap-1 tw:overflow-y-auto tw:pr-0.5";
+  "timeline-agent-switcher-list tw:grid tw:max-h-[248px] tw:overflow-y-auto";
 const TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME =
-  "timeline-agent-switcher-option tw:flex tw:min-h-8 tw:w-full tw:min-w-0 tw:items-center tw:gap-1.5 tw:rounded-lg tw:border tw:border-transparent tw:bg-transparent tw:p-1.5 tw:text-left tw:shadow-none tw:hover:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:outline-none tw:active:transform-none";
+  "timeline-agent-switcher-option tw:border-0 tw:flex tw:min-h-8 tw:w-full tw:min-w-0 tw:items-center tw:gap-1.5 tw:rounded-none tw:bg-transparent tw:p-[10px] tw:text-left tw:shadow-none tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)] tw:focus-visible:outline-none tw:active:transform-none";
 const TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME =
   "is-active tw:border-[color-mix(in_srgb,var(--accent-electric)_28%,transparent)] tw:bg-[color-mix(in_srgb,var(--accent-soft)_68%,transparent)]";
 const TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME =
@@ -104,16 +104,22 @@ export const AgentSwitcherPopover: React.FC<{
         trigger={["click"]}
         placement="top"
         arrow={false}
+        styles={{
+          body: {
+            padding: 0,
+            boxShadow: "var(--shadow-soft)",
+          },
+        }}
         content={
           <div className={TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME}>
             <Input
               ref={searchInputRef}
               className={TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME}
-              size="small"
-              variant="filled"
+              variant="borderless"
               value={searchText}
               placeholder={t("timeline.agentSwitcher.searchPlaceholder")}
               onChange={(event) => setSearchText(event.target.value)}
+              style={{ padding: "8px 10px" }}
             />
             {filteredOptions.length === 0 ? (
               <div className={TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME}>

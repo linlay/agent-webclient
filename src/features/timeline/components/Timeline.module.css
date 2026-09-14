@@ -352,15 +352,17 @@
     gap: 8px;
 }
 
-:global(.timeline-run-group)::before,
-:global(.timeline-run-collapse):global(.ant-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-content)>:global(.ant-collapse-content-box)::before {
+:global(.timeline-marker)::after {
     content: "";
     position: absolute;
     left: 8px;
-    top: 0;
-    bottom: 0;
     width: 1px;
     background: var(--line-soft);
+}
+
+:global(.timeline-marker)::after {
+    top: 20px;
+    bottom: -12px;
 }
 
 :global(.timeline-run-collapse):global(.ant-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-header) {

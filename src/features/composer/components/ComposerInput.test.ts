@@ -88,7 +88,7 @@ describe("ComposerInput", () => {
     renderComposerInput();
 
     expect(mockTextAreaProps[0].className).toContain("tw:!p-1.5");
-    expect(mockTextAreaProps[0].className).toContain("tw:!text-[13px]");
+    expect(mockTextAreaProps[0].className).toContain("tw:text-[15px]");
     expect(mockTextAreaProps[0].className).toContain("tw:!leading-[1.45]");
   });
 
