@@ -76,6 +76,7 @@ export interface AgentEditorProps {
   loadingOptions: boolean;
   visibilityScopeOptions: Array<{ value: string; label: string }>;
   greetingEntries: string[];
+  introductionEntries: string[];
   wonderEntries: string[];
   modelItems: MenuProps["items"];
   onModelMenuClick: NonNullable<MenuProps["onClick"]>;
@@ -107,7 +108,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
   const {
     isReadOnly, t, form, formError, selectedIconValue, iconEditorOpen, setIconEditorOpen,
     updateForm, modeOptions, setMode, loadingOptions, visibilityScopeOptions,
-    greetingEntries, wonderEntries, modelItems, onModelMenuClick,
+    greetingEntries, introductionEntries, wonderEntries, modelItems, onModelMenuClick,
     onModelMenuOpenChange, queryModelButtonStateClass, showFastBadge,
     selectedModelLabel, selectedReasoningLabel, contextTagOptions,
     filteredToolOptions, selectedTools, filteredSkillOptions, selectedSkills,
@@ -430,6 +431,34 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                               }}
                             />
                             {!isReadOnly && <UiButton size="mini" variant="ghost" aria-label={t("agentConsole.prompt.removeItem", { index: index + 1 })} onClick={() => updateForm({ greetingsText: promptEntriesToJson(greetingEntries.filter((_, entryIndex) => entryIndex !== index)) })}><MaterialIcon name="delete" /></UiButton>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
+                      <div className="agent-prompt-field-heading">
+                        <span id="agent-introductions-label" className="agent-prompt-field-label">{t("agentConsole.field.introductions")}</span>
+                        <Tooltip title={t("agentConsole.prompt.introductions.description")}>
+                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.introductions.description")}><MaterialIcon name="info" /></button>
+                        </Tooltip>
+                        {!isReadOnly && <UiButton className="agent-prompt-heading-action" size="sm" variant="ghost" onClick={() => updateForm({ introductionsText: promptEntriesToJson([...introductionEntries, ""]) })}><MaterialIcon name="add" />{t("agentConsole.prompt.addIntroduction")}</UiButton>}
+                      </div>
+                      <div className="agent-prompt-entry-list" role="group" aria-labelledby="agent-introductions-label">
+                        {(introductionEntries.length ? introductionEntries : [""]).map((entry, index) => (
+                          <div className="agent-prompt-entry" key={`introduction-${index}`}>
+                            <Input
+                          readOnly={isReadOnly}
+                              id={index === 0 ? "agent-introductions-input" : undefined}
+                              aria-label={t("agentConsole.prompt.introductions.item", { index: index + 1 })}
+                              placeholder={t("agentConsole.prompt.introductions.placeholder")}
+                              value={entry}
+                              onChange={(event) => {
+                                const next = [...(introductionEntries.length ? introductionEntries : [""])];
+                                next[index] = event.target.value;
+                                updateForm({ introductionsText: promptEntriesToJson(next) });
+                              }}
+                            />
+                            {!isReadOnly && <UiButton size="mini" variant="ghost" aria-label={t("agentConsole.prompt.removeItem", { index: index + 1 })} onClick={() => updateForm({ introductionsText: promptEntriesToJson(introductionEntries.filter((_, entryIndex) => entryIndex !== index)) })}><MaterialIcon name="delete" /></UiButton>}
                           </div>
                         ))}
                       </div>

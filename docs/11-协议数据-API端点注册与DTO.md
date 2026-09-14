@@ -14,6 +14,8 @@
 
 `ChatDetailResponse` 继承完整 `ChatSummaryResponse`：`/api/chat` 除 replay 数据外必须提供 `agentKey`/`teamId`、`lastRunId`、`lastRunContent` 与 `read { isRead, readAt?, readRunId? }`。`markChatRead` 是 WebClient Main Chat 的单 Chat read 请求函数；Desktop 模式仍通过通用 Frame Port `/api/read` 转发，Desktop 宿主不暴露或调用单 Chat read 业务 IPC。Agent 级批量已读属于宿主的显式用户命令，不由 WebClient 的自动 read hook 代发。
 
+`GET /api/agent?agentKey=...` 的 `AgentDetailResponse` 保留 `greetings?: string[]` 并新增 `introductions?: string[]`：分别供新会话主标题和输入框 placeholder 随机展示。两个字段不进入 `/api/agents` 列表摘要，管理台通过现有详情和保存接口读写同名配置数组。
+
 Agent 顺序有两条 HTTP-only 数据边界：普通客户端通过 `GET/PUT /api/agents/order` 读取和提交全部有效 runtime Agent 的 catalog 顺序；Agent 管理台从 `/api/admin/agents` 的列表顺序初始化，并通过 `PUT /api/admin/agents/order` 提交包含 invalid Agent 的完整 admin 顺序。两者复用 `AgentOrderResponse { version, order, updatedAt? }`，其中未生成顺序文件时 `updatedAt` 可以省略；前端不把 public endpoint 注册为 WebSocket route，也不把管理台切到 public mutation。
 
 静态 HTML 导出并行请求 `GET /api/chat/export?chatId=...&format=snapshot` 与 `CONVERSATION_EXPORT_ASSET_ORIGIN/assets/conversation-export/conversation.template.html`。Snapshot 保持 Blob，service 层只解析小体积模板并用 Blob parts 组装完整文档；Platform 不提供 HTML 格式。公开分享由 Desktop 直接向 Tunnel 上传 Snapshot，Tunnel 使用同一当前模板生成页面。`src/shared/data/conversationSharePath.ts` 只负责将合法 `shareId` 构造成 `/share/{id}` 路径。

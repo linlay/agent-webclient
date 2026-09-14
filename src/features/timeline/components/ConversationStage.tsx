@@ -1,3 +1,4 @@
+import { useAgentWelcome } from "@/features/agents/hooks/useAgentWelcome";
 import { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
 import { buildTimelineAgentOptions } from "@/features/workers/lib/agentSelection";
 export { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
@@ -112,7 +113,7 @@ const ConversationVirtualItem: React.FC<ItemProps<VirtualListItem>> = ({
 const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
 
 const TIMELINE_EMPTY_CLASS_NAME =
-  "timeline-empty tw:relative tw:text-center tw:text-xl tw:font-bold tw:leading-[1.35]";
+  "timeline-empty tw:relative tw:break-words tw:whitespace-pre-line tw:text-center tw:text-xl tw:font-bold tw:leading-[1.35]";
 const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:relative tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
@@ -555,6 +556,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     currentWorker?.type === "agent"
       ? String(currentWorker.sourceId || "").trim()
       : "";
+  const { greeting } = useAgentWelcome(currentAgentKey, !state.chatId && showEmptyState);
   const hasRequiredSkills = useMemo(
     () => timelineEntries.some((node) => Boolean(node.mustUseSkills?.length)),
     [timelineEntries],
@@ -1323,7 +1325,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const emptyStateContent = !state.chatId && showEmptyState && (
     <div className={TIMELINE_EMPTY_CLASS_NAME}>
-      {currentWorker?.displayName ? (
+      {greeting || (currentWorker?.displayName ? (
         canSwitchEmptyAgent ? (
           <>
             {t("timeline.empty.withAgentPrefix")}
@@ -1340,7 +1342,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         )
       ) : (
         t("timeline.empty.default")
-      )}
+      ))}
     </div>
   );
 

@@ -1,6 +1,13 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "agentConsole.field.introductions": "自我介绍",
+  "agentConsole.introductions.add": "添加自我介绍",
+  "agentConsole.introductions.remove": "删除自我介绍",
+  "agentConsole.prompt.introductions.description": "输入框为空时随机展示一条自我介绍。",
+  "agentConsole.prompt.introductions.placeholder": "例如：你好，我可以帮你检查数据库连接。",
+  "agentConsole.prompt.introductions.item": "自我介绍 {index}",
+  "agentConsole.prompt.addIntroduction": "添加自我介绍",
   "composer.context.label": "对话上下文",
   "composer.context.selectAgent": "选择智能体",
   "composer.git.select": "切换 Git 分支",
@@ -2058,8 +2065,8 @@ export const zhCNMessages = {
   "agentConsole.prompt.soul.description": "定义智能体的个性、语气和沟通方式。",
   "agentConsole.prompt.agents.label": "工作指令",
   "agentConsole.prompt.agents.description": "定义任务目标、执行规则和边界条件。",
-  "agentConsole.prompt.greetings.description": "智能体首次打开时展示的欢迎语，可添加多条。",
-  "agentConsole.prompt.greetings.placeholder": "例如：你好，我可以帮你检查数据库连接。",
+  "agentConsole.prompt.greetings.description": "新会话主标题随机展示一条；留空显示默认的与智能体对话标题。",
+  "agentConsole.prompt.greetings.placeholder": "例如：今天想让我帮你做点什么？",
   "agentConsole.prompt.greetings.item": "问候语 {index}",
   "agentConsole.prompt.wonders.description": "展示给用户的示例提问，帮助快速开始对话。",
   "agentConsole.prompt.wonders.placeholder": "例如：检查当前数据库连接是否可用",

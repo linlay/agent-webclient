@@ -5,7 +5,7 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 
 ## 核心职责
 - 管理文本输入、IME、键盘发送、换行和焦点。
-- 提供 slash 命令、Agent Skills 多选、agent mention、随机 greeting/wonders 和快捷操作。
+- 提供 slash 命令、Agent Skills 多选、agent mention、随机 introductions/wonders 和快捷操作。
 - 在 awaiting、voice、streaming、frontend tool 活跃时限制不安全输入。
 - 展示附件、语音、模型、访问级别和 planning mode 控件入口。
 
@@ -64,3 +64,5 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 分支菜单通过 `GET /api/project/git/branches?agentKey=...` 加载本地分支；提交使用同路径 POST `{agentKey,operation:"switch"|"create",branch,expectedRevision}`。revision 来自菜单打开时的 Git 快照，不使用配置期望分支代替。创建从当前 HEAD 开始并立即切换；不处理远端分支、重命名或删除。
 
 操作期间禁用重复提交并暂停该分支项的自动读取；成功后关闭菜单并刷新，失败保留菜单与 Git 原因并重新读取状态，不自动重试写入。切换智能体会卸载旧菜单，旧读取请求取消、旧 mutation 响应忽略；已发出的写操作不会因 UI 卸载被前端中止。`canChange:false` 时展示后端边界原因并禁用写操作：仓库子目录、包含 ChatsRoot 的 Workspace 或无工作树只读。CODER 配置 `expectedBranch` 时提示其运行约束，分支切换不会修改 Agent 配置。
+
+新会话通过 `useAgentWelcome` 共享 `/api/agent` 查询：`greetings` 随机选一条作为主标题，缺失或仅空白时回退“与 <agentName> 对话”；`introductions` 独立随机选一条作为输入框 placeholder，缺失时保留默认输入提示。标题与 Composer 复用查询缓存及并发去重，切换智能体按 key 隔离，普通重渲染保持文案稳定。

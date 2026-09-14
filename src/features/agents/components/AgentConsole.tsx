@@ -431,6 +431,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     () => promptEntriesFromJson(form.greetingsText),
     [form.greetingsText],
   );
+  const introductionEntries = useMemo(
+    () => promptEntriesFromJson(form.introductionsText),
+    [form.introductionsText],
+  );
   const wonderEntries = useMemo(
     () => promptEntriesFromJson(form.wondersText),
     [form.wondersText],
@@ -1544,6 +1548,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 loadingOptions={loadingOptions}
                 visibilityScopeOptions={visibilityScopeOptions}
                 greetingEntries={greetingEntries}
+                introductionEntries={introductionEntries}
                 wonderEntries={wonderEntries}
                 modelItems={modelItems}
                 onModelMenuClick={onModelMenuClick}

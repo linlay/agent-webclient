@@ -92,7 +92,7 @@ describe("ComposerInput", () => {
     expect(mockTextAreaProps[0].className).toContain("tw:!leading-[1.45]");
   });
 
-  it("uses a sampled greeting placeholder when provided", () => {
+  it("uses a sampled introduction placeholder when provided", () => {
     renderComposerInput({
       placeholder: "我可以帮你检查项目状态",
     });
@@ -100,7 +100,7 @@ describe("ComposerInput", () => {
     expect(mockTextAreaProps[0].placeholder).toBe("我可以帮你检查项目状态");
   });
 
-  it("keeps the frontend active placeholder above sampled greetings", () => {
+  it("keeps the frontend active placeholder above sampled introductions", () => {
     renderComposerInput({
       isFrontendActive: true,
       placeholder: "我可以帮你检查项目状态",

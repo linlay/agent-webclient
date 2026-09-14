@@ -1,6 +1,13 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "agentConsole.field.introductions": "Introductions",
+  "agentConsole.introductions.add": "Add introduction",
+  "agentConsole.introductions.remove": "Remove introduction",
+  "agentConsole.prompt.introductions.description": "A random self-introduction shown as the empty input placeholder.",
+  "agentConsole.prompt.introductions.placeholder": "For example: Hi, I can help check your database connection.",
+  "agentConsole.prompt.introductions.item": "Introduction {index}",
+  "agentConsole.prompt.addIntroduction": "Add introduction",
   "composer.context.label": "Conversation context",
   "composer.context.selectAgent": "Select agent",
   "composer.git.select": "Switch Git branch",
@@ -2059,8 +2066,8 @@ export const enUSMessages = {
   "agentConsole.prompt.soul.description": "Defines the agent's personality, tone, and communication style.",
   "agentConsole.prompt.agents.label": "Working instructions",
   "agentConsole.prompt.agents.description": "Defines task goals, execution rules, and boundaries.",
-  "agentConsole.prompt.greetings.description": "Welcome messages shown when the agent is first opened. Add more than one if needed.",
-  "agentConsole.prompt.greetings.placeholder": "For example: Hi, I can help check your database connection.",
+  "agentConsole.prompt.greetings.description": "A random greeting used as the new chat heading. Leave empty to use the default heading.",
+  "agentConsole.prompt.greetings.placeholder": "For example: What would you like to do today?",
   "agentConsole.prompt.greetings.item": "Greeting {index}",
   "agentConsole.prompt.wonders.description": "Example questions shown to help users start a conversation.",
   "agentConsole.prompt.wonders.placeholder": "For example: Check whether the current database connection is available",

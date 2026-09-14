@@ -13,6 +13,11 @@ import {
   TimelineAgentSwitcher,
 } from "@/features/timeline/components/ConversationStage";
 
+let mockGreeting = "";
+jest.mock("@/features/agents/hooks/useAgentWelcome", () => ({
+  useAgentWelcome: () => ({ greeting: mockGreeting }),
+}));
+
 const mockOnFeedback = jest.fn();
 const mockDeriveChatAction = { isDisabled: jest.fn(() => false), execute: jest.fn() };
 
@@ -175,6 +180,7 @@ describe("ConversationStage", () => {
   const originalCustomEvent = globalWithStorage.CustomEvent;
 
   beforeEach(() => {
+    mockGreeting = "";
     mockCurrentWorker = null;
     mockDeriveChatAction.isDisabled.mockReset().mockReturnValue(false);
     mockDeriveChatAction.execute.mockReset();
@@ -586,6 +592,38 @@ describe("ConversationStage", () => {
     );
 
     expect(html).toContain("与 小宅 对话");
+    expect(html).not.toContain("timeline-agent-switcher-trigger");
+  });
+  it("shows the configured greeting instead of the default heading", () => {
+    mockGreeting = "今天想做点什么？";
+    const state = createInitialState();
+    const currentRow = createAgentWorkerRow();
+    mockCurrentWorker = {
+      key: currentRow.key,
+      type: "agent",
+      sourceId: currentRow.sourceId,
+      displayName: currentRow.displayName,
+      role: currentRow.role,
+      raw: null,
+      row: currentRow,
+      relatedChats: [],
+    };
+    useAppState.mockReturnValue({
+      ...state,
+      agents: [{ key: "xiao-zhai", name: "小宅", role: "生活助理" }],
+      workerRows: [currentRow],
+      workerIndexByKey: new Map([[currentRow.key, currentRow]]),
+      workerSelectionKey: currentRow.key,
+      timelineNodes: new Map(),
+      timelineOrder: [],
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+    );
+
+    expect(html).toContain("今天想做点什么？");
+    expect(html).not.toContain("与 小宅 对话");
     expect(html).not.toContain("timeline-agent-switcher-trigger");
   });
 

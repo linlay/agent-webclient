@@ -639,7 +639,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const {
     currentAgentWonders,
     reshuffleWonders,
-    sampledGreeting,
+    sampledIntroduction,
     sampledWonders,
   } = useComposerWonders({
     agents: state.agents,
@@ -931,7 +931,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   disabled={chatTransitionBlocking}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
-                  placeholder={sampledGreeting}
+                  placeholder={sampledIntroduction}
                   currentWorkerName={
                     state.voiceChat.currentAgentName ||
                     currentWorker?.displayName ||
