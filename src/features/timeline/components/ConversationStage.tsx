@@ -118,7 +118,7 @@ const CONVERSATION_STAGE_CLASS_NAME =
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
   "conversation-stage-scroll-to-bottom tw:rounded-full tw:pointer-events-auto";
 const VIRTUOSO_CLASS_NAME = [
-  "conversation-stage-virtuoso tw:h-full tw:bg-transparent",
+  "conversation-stage-virtuoso tw:h-full tw:bg-[var(--reading-surface)]",
   SCROLLBAR_THIN_CLASS_NAME,
 ].join(" ");
 const CONVERSATION_TRANSITION_OVERLAY_CLASS_NAME =
