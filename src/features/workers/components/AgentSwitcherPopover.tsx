@@ -102,7 +102,7 @@ export const AgentSwitcherPopover: React.FC<{
         open={open && !disabled}
         onOpenChange={(next) => { if (!disabled) setOpen(next); }}
         trigger={["click"]}
-        placement="top"
+        placement="topLeft"
         arrow={false}
         styles={{
           body: {
