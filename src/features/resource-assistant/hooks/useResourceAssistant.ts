@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { message } from "antd";
 import { getAgents } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { firstChatAgent, resourceAssistantUrl, resourceComposerPrefill, type ResourceAssistantRequest } from "../lib/resourceAssistant";
 
 export function useResourceAssistant() {
   const { t } = useI18n();
+  const message = useAppMessage();
   const [opening, setOpening] = useState(false);
   const pending = useRef(false);
   const mounted = useRef(true);
@@ -38,6 +39,6 @@ export function useResourceAssistant() {
       pending.current = false;
       if (mounted.current) setOpening(false);
     }
-  }, [t]);
+  }, [message, t]);
   return { open, opening };
 }

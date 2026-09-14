@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { message, Modal } from "antd";
+import { Modal } from "antd";
 import type {
   AdminAgentDetailResponse,
   AdminAgentDiagnostic,
@@ -10,6 +10,7 @@ import {
   validateAgentArchiveFile,
   type AgentImportConflict,
 } from "@/features/agents/lib/agentImport";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 export type AgentCreateMode = "zip" | "direct";
 
@@ -50,6 +51,7 @@ function confirmAgentImportOverwrite(
 }
 
 export function useAgentImport(options: UseAgentImportOptions) {
+  const message = useAppMessage();
   const [mode, setMode] = useState<AgentCreateMode>("zip");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);

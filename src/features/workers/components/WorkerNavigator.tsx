@@ -15,11 +15,11 @@ import {
   Dropdown,
   Flex,
   Input,
-  message,
   Popover,
   Spin,
 } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
@@ -115,6 +115,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const { modal } = AntdApp.useApp();
   const { state, stateRef, dispatch, querySessionsRef } = useAppContext();
   const { t } = useI18n();
+  const message = useAppMessage();
   const terminalAgentStatuses = useTerminalAgentStatuses();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();

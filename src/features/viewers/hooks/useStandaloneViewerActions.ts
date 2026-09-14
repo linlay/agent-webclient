@@ -1,5 +1,4 @@
 import React from "react";
-import { message } from "antd";
 import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { openStandaloneViewerTarget } from "@/features/viewers/lib/viewerRuntime";
 import {
@@ -9,6 +8,7 @@ import {
   type StandaloneFileCapabilities,
 } from "@/shared/data/standalone/standaloneFileActions";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 export function useStandaloneViewerActions(
   target: ViewerTarget,
@@ -17,6 +17,7 @@ export function useStandaloneViewerActions(
   enabled = true,
 ) {
   const { t } = useI18n();
+  const message = useAppMessage();
   const [capabilities, setCapabilities] = React.useState<StandaloneFileCapabilities | null>(null);
   const [checking, setChecking] = React.useState(false);
   const [pending, setPending] = React.useState<StandaloneFileAction | null>(null);

@@ -1,4 +1,4 @@
-import { message, Radio, Typography } from "antd";
+import { Radio, Typography } from "antd";
 import { Button, CheckboxRef, Flex, Input } from "antd/es";
 import React, {
   forwardRef,
@@ -29,6 +29,7 @@ import {
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import debounce from "lodash/debounce";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Pager } from "@/shared/ui/Pager";
@@ -54,6 +55,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   onResolved,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const approvals = data.approvals;
   const approvalsRef = useRef<ApprovalRef[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -156,7 +158,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         buildApprovalSubmitParams(approvals, nextDecisions, nextReasons),
       );
     },
-    [approvals, decisions, reasons, submitPayload, t],
+    [approvals, decisions, message, reasons, submitPayload, t],
   );
 
   const doSkip = useCallback(async () => {

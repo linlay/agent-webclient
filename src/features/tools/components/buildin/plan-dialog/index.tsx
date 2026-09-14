@@ -1,4 +1,3 @@
-import { message } from "antd";
 import { Button, Checkbox, CheckboxRef, Flex, Input } from "antd/es";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import React, {
@@ -16,6 +15,7 @@ import { isEditableKeyboardTarget } from "@/features/tools/components/buildin/co
 import { buildPlanSubmitParam } from "@/features/tools/components/buildin/plan-dialog/state";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { hitlDialogClassNames } from "@/features/tools/components/buildin/dialogClassNames";
 
 interface PlanDialogProps {
@@ -35,6 +35,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
   onResolved,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const planQuestionRef = useRef<PlanQuestionRef>(null);
   const [submittingDecision, setSubmittingDecision] =
     useState<AIAwaitPlanDecision | null>(null);
@@ -74,7 +75,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
         setSubmittingDecision(null);
       }
     },
-    [data.awaitingId, data.runId, onSubmit, plan, readOnly, reason, t],
+    [data.awaitingId, data.runId, message, onSubmit, plan, readOnly, reason, t],
   );
 
   useKeyboard({

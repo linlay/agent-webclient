@@ -19,6 +19,9 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   // and business children across every appearance update.
   const palette = JSON.stringify(snapshot.skin.tokens[snapshot.resolvedTheme]);
   const componentTheme = useMemo(() => readDocumentAntAppearanceTheme(snapshot.resolvedTheme), [snapshot.resolvedTheme, palette]);
+  useLayoutEffect(() => {
+    ConfigProvider.config({ theme: componentTheme });
+  }, [componentTheme]);
   const editorTheme = useMemo(() => {
     const styles = window.getComputedStyle(document.documentElement);
     return createCodeEditorAppearanceTheme(snapshot.resolvedTheme, name => styles.getPropertyValue(name).trim());

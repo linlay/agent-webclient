@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Drawer, Spin, Tabs, message } from "antd";
+import { Drawer, Spin, Tabs } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Team } from "@/features/workers/lib/workerState";
 import type {
@@ -26,6 +26,7 @@ import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import styles from "./AutomationExecutionDrawer.module.css";
 
 const COMPACT_DRAWER_QUERY = "(max-width: 859px)";
@@ -100,6 +101,7 @@ export const AutomationExecutionDrawer: React.FC<
   onClose,
 }) => {
   const { locale, t } = useI18n();
+  const message = useAppMessage();
   const compact = useCompactDrawerLayout();
   const [activeTab, setActiveTab] = useState("execution");
   const [detailState, setDetailState] = useState<
@@ -289,7 +291,7 @@ export const AutomationExecutionDrawer: React.FC<
       await copyText(value);
       message.success(t("automationHistory.message.copied"));
     },
-    [t],
+    [message, t],
   );
 
   const renderPanelError = (error: string, onRetry: () => void) => (

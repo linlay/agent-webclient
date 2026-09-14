@@ -4,7 +4,6 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import {
   Dropdown,
   Flex,
-  message,
   Tabs,
   Tooltip,
   Typography,
@@ -29,6 +28,7 @@ import { isDebugPanelEnabled } from "@/shared/config/featureFlags";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { copyText } from "@/shared/utils/copy";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
 import { downloadViewerTarget } from "@/features/viewers/lib/viewerRuntime";
@@ -116,6 +116,7 @@ const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
 
 export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const dispatch = useAppDispatch();
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
@@ -359,7 +360,7 @@ export const RightSidebar: React.FC = () => {
         }
       })();
     },
-    [state.chatId, teamChat, t],
+    [state.chatId, teamChat, message, t],
   );
 
   const handleResizeKeyDown = React.useCallback(

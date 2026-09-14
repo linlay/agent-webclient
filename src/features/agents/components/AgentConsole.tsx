@@ -13,10 +13,10 @@ import {
   Popconfirm,
   Spin,
   Tooltip,
-  message,
   type MenuProps,
 } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type { Agent } from "@/features/agents/lib/agentState";
 import {
   createAgent,
@@ -195,6 +195,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   embedded = false,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const { state, dispatch } = useAppContext();
   const assistant = useResourceAssistant();
   const [internalSelectedKey, setInternalSelectedKey] = useState("");
@@ -738,7 +739,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         message.success(t(resultMessageKey));
       }
     },
-    [commitAgentSelection, loadAgents, refreshGlobalAgents, t],
+    [commitAgentSelection, loadAgents, message, refreshGlobalAgents, t],
   );
 
   const saveAgentOrder = useCallback(async (agents: Agent[]) => {

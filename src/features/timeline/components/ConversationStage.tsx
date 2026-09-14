@@ -51,7 +51,6 @@ import {
   Flex,
   Form,
   Input,
-  message,
   Popover,
   Tooltip,
 } from "antd";
@@ -60,6 +59,7 @@ import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { LogoLoading } from "@/shared/components/logo-loading";
 import { DotLoading } from "@/shared/components/dot-loading";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { Virtuoso } from "react-virtuoso";
 import type {
   ItemProps,
@@ -482,6 +482,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   onResendInNewChat,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
@@ -755,7 +756,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         message.error(t("timeline.toolPill.copy.failed"));
       }
     },
-    [flashActionStatus, t],
+    [flashActionStatus, message, t],
   );
 
   const handleResend = useCallback(

@@ -1,12 +1,13 @@
 import { useCallback } from "react";
-import { message } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { submitFeedback } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 export function useRunFeedbackAction() {
   const { state, dispatch } = useAppContext();
   const { t } = useI18n();
+  const message = useAppMessage();
 
   return useCallback(
     async (runId: string, nextDownvoted: boolean, comment?: string) => {
@@ -49,6 +50,6 @@ export function useRunFeedbackAction() {
         });
       }
     },
-    [dispatch, state.chatId, t],
+    [dispatch, message, state.chatId, t],
   );
 }
