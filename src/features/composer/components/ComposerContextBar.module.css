@@ -1,6 +1,10 @@
 .bar {
   display: flex;
   flex: 0 0 auto;
+  align-self: flex-start;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(calc(100% - 28px), max(50%, 320px));
   align-items: center;
   gap: 20px;
   min-width: 0;
@@ -16,7 +20,6 @@
 }
 
 .agent,
-.local,
 .branch {
   display: inline-flex;
   align-items: center;
@@ -27,7 +30,7 @@
 .switcher {
   display: inline-flex;
   min-width: 0;
-  max-width: 50%;
+  max-width: 100%;
 }
 
 .agent {
@@ -60,11 +63,6 @@
 .agentLabel {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.local {
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
@@ -110,16 +108,12 @@
   .bar {
     gap: 10px;
     margin-inline: 8px;
+    max-width: calc(100% - 16px);
     padding-inline: 8px;
     font-size: 12px;
   }
 
-  .switcher {
-    max-width: 45%;
-  }
-
   .agent,
-  .local,
   .branch {
     gap: 5px;
   }

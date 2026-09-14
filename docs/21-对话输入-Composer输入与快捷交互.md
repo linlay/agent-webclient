@@ -51,7 +51,7 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 
 ## New Chat 项目上下文与 Git 分支
 
-仅主界面 New Chat 的 `ComposerContextBar` 显示上方半框；已有会话及 Copilot（含新会话）不显示。智能体菜单复用 `AgentSwitcherPopover`，固定“本地”，系统大类图标与智能体自定义图标独立，上框图标保持 16×16 并跟随主题。
+仅主界面 New Chat 的 `ComposerContextBar` 显示上方半框；已有会话及 Copilot（含新会话）不显示。智能体菜单复用 `AgentSwitcherPopover`，当前不显示环境标识；系统大类图标与智能体自定义图标独立，上框图标保持 16×16 并跟随主题。
 
 `useProjectGit` 在半框挂载后通过独立 HTTP `GET /api/project/git?agentKey=...` 异步读取，不阻塞 `/api/agents` 或 `/api/agent`。是否有 Git 仓库由 Platform 按实际 Workspace 判定，不按 CODER/KBASE 筛选，也不使用 `projectConfig.git.expectedBranch` 作为当前分支。
 

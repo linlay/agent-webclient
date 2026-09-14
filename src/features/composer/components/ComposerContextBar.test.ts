@@ -39,7 +39,7 @@ describe("ComposerContextBar", () => {
     jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status: "branch", branch: "feature/actual" });
     render(isCoder, { isKbase: !isCoder });
     expect(container.textContent).toContain("feature/actual");
-    expect(container.textContent).toContain("本地");
+    expect(container.textContent).not.toContain("本地");
     jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status: "no_workspace" });
     render(isCoder);
     expect(container.textContent).not.toContain("feature/actual");
@@ -49,7 +49,7 @@ describe("ComposerContextBar", () => {
     jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status });
     render(false);
     expect(container.querySelector('[aria-live="polite"]')).toBeNull();
-    expect(container.textContent).toContain("本地");
+    expect(container.textContent).not.toContain("本地");
   });
   it("shows the actual detached HEAD", () => {
     jest.mocked(useProjectGit).mockReturnValue({ agentKey: "demo", status: "detached", commit: "1234567890abcdef" });

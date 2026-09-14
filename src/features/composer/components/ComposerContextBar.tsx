@@ -68,10 +68,6 @@ export function ComposerContextBar({
           </button>
         )}
       />
-      <span className={styles.local}>
-        <MaterialIcon name="terminal" />
-        {t("composer.context.local")}
-      </span>
       <ComposerGitBranch
         key={`${currentAgentKey}:${currentAgent?.workspaceDir || ""}`}
         agentKey={currentAgentKey}

@@ -3,7 +3,6 @@ import type { I18nMessages } from "@/shared/i18n/types";
 export const enUSMessages = {
   "composer.context.label": "Conversation context",
   "composer.context.selectAgent": "Select agent",
-  "composer.context.local": "Local",
   "composer.git.select": "Switch Git branch",
   "composer.git.name": "Search or enter a new branch name",
   "composer.git.loading": "Loading branches…",

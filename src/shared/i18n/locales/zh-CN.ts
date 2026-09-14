@@ -3,7 +3,6 @@ import type { I18nMessages } from "@/shared/i18n/types";
 export const zhCNMessages = {
   "composer.context.label": "对话上下文",
   "composer.context.selectAgent": "选择智能体",
-  "composer.context.local": "本地",
   "composer.git.select": "切换 Git 分支",
   "composer.git.name": "搜索或输入新分支名",
   "composer.git.loading": "加载分支…",
