@@ -9,7 +9,6 @@ import {
   InputNumber,
   Tooltip,
 } from "antd/es";
-import { message } from "antd";
 import React, {
   forwardRef,
   useCallback,
@@ -50,6 +49,7 @@ import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitin
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import debounce from "lodash/debounce";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Pager } from "@/shared/ui/Pager";
 import {
@@ -74,6 +74,7 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
   onResolved,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const [form] = Form.useForm<AIAwaitSubmitPayloadData>();
   const callbackRef = useRef<CallbackData>({});
   const questionsRef = useRef<QuestionRef[]>([]);
@@ -115,7 +116,7 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
       awaitingId: data?.awaitingId || "",
       params: buildQuestionSubmitParams(questions, params),
     });
-  }, [data?.awaitingId, data?.runId, form, questions, submitPayload]);
+  }, [data?.awaitingId, data?.runId, form, message, questions, submitPayload]);
 
   const doDismiss = useCallback(() => {
     void submitPayload(
@@ -148,7 +149,7 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
       return;
     }
     setCurIndex((prev) => Math.min(questions.length - 1, prev + 1));
-  }, [curIndex, doSubmit, form, questions]);
+  }, [curIndex, doSubmit, form, message, questions]);
 
   useKeyboard({
     enabled: currentQuestion ? isSelectQuestionType(currentQuestion) : false,

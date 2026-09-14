@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Input, Space, message } from "antd";
+import { Button, Input, Space } from "antd";
 import {
   commitDocument,
   type DocumentCommitSource,
@@ -9,6 +9,7 @@ import {
   postDesktopHostMessage,
 } from "@/shared/data/desktop/desktopHostBridge";
 import { t } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 type RegionAnnotation = {
   id: string;
@@ -45,6 +46,7 @@ export const BrowserImageEditor: React.FC<{
   onRevisionChange: (revision: string) => void;
   onStateChange: (state: { dirty: boolean; busy: boolean; annotationCount: number }) => void;
 }> = ({ url, name, mimeType, source, revision, onRevisionChange, onStateChange }) => {
+  const message = useAppMessage();
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const imageRef = React.useRef<HTMLImageElement | null>(null);
   const [dirty, setDirty] = React.useState(false);
@@ -75,7 +77,7 @@ export const BrowserImageEditor: React.FC<{
     image.onerror = () => message.error(t("contentViewer.error.image"));
     image.src = url;
     return () => { imageRef.current = null; };
-  }, [drawOriginal, url]);
+  }, [drawOriginal, message, url]);
 
   React.useEffect(() => {
     onStateChange({ dirty, busy, annotationCount: annotations.length });

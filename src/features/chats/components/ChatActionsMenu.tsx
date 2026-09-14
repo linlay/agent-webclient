@@ -1,6 +1,6 @@
 import { App as AntdApp } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import { Dropdown, Input, message, type MenuProps } from "antd";
+import { Dropdown, Input, type MenuProps } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { t } from "@/shared/i18n";
@@ -14,6 +14,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
 
 import { useChatPinActions } from "@/features/chats/hooks/useChatPinActions";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 export const ChatActionsMenu: React.FC<{
   chatId: string;
@@ -33,6 +34,7 @@ export const ChatActionsMenu: React.FC<{
   onDeleted,
 }) => {
   const { modal } = AntdApp.useApp();
+  const message = useAppMessage();
   const { state, dispatch } = useAppContext();
   const { pending, archive, remove, rename, exportChat } = useChatOperations(
     state.chatId, dispatch, t,

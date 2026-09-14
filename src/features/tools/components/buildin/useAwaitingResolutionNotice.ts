@@ -1,7 +1,7 @@
-import { message } from "antd";
 import { useEffect, useRef } from "react";
 import type { ActiveAwaitingResolutionReason } from "@/features/tools/lib/toolsState";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 export function resolveAwaitingResolutionNoticeKey(input: {
 	resolutionReason?: ActiveAwaitingResolutionReason;
@@ -21,6 +21,7 @@ export function useAwaitingResolutionNotice(input: {
 }): void {
 	const { resolutionReason, onResolved } = input;
 	const { t } = useI18n();
+	const message = useAppMessage();
 	const handledRef = useRef(false);
 
 	useEffect(() => {
@@ -37,5 +38,5 @@ export function useAwaitingResolutionNotice(input: {
 		handledRef.current = true;
 		void message.info(t(noticeKey));
 		onResolved?.();
-	}, [onResolved, resolutionReason, t]);
+	}, [message, onResolved, resolutionReason, t]);
 }

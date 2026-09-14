@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { message } from "antd";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { fetchAutomationAgentsForSelect } from "@/features/automations/lib/automationData";
 import { buildDuplicateAutomationPayload } from "@/features/automations/lib/automationForm";
@@ -19,6 +18,7 @@ import {
   type AutomationSummaryResponse,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 const EXECUTION_PAGE_SIZE = 20;
 const EXECUTION_PUSH_DEBOUNCE_MS = 160;
@@ -43,6 +43,7 @@ export function useAutomationHistoryRuntime(hasAgentData: boolean) {
   const { t } = useI18n();
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const message = useAppMessage();
   const push = usePushTransport();
   const [selectedId, setSelectedId] = useState("");
   const [executions, setExecutions] = useState<AutomationExecutionResponse[]>([]);
@@ -276,7 +277,7 @@ export function useAutomationHistoryRuntime(hasAgentData: boolean) {
     } finally {
       setActionBusy(false);
     }
-  }, [actionBusy, loadAutomationList, selected]);
+  }, [actionBusy, loadAutomationList, message, selected]);
 
   const duplicateSelected = useCallback(async () => {
     if (!selected || actionBusy) return;
@@ -298,7 +299,7 @@ export function useAutomationHistoryRuntime(hasAgentData: boolean) {
     } finally {
       setActionBusy(false);
     }
-  }, [actionBusy, loadAutomationList, selected, t]);
+  }, [actionBusy, loadAutomationList, message, selected, t]);
 
   const deleteSelected = useCallback(async () => {
     if (!selected || actionBusy) return;
@@ -342,7 +343,7 @@ export function useAutomationHistoryRuntime(hasAgentData: boolean) {
       triggeringIdsRef.current.delete(item.id);
       setTriggeringIds(new Set(triggeringIdsRef.current));
     }
-  }, [loadAutomationList, t]);
+  }, [loadAutomationList, message, t]);
 
   const openViewer = useCallback(
     (execution: AutomationExecutionResponse, trigger: HTMLElement) => {

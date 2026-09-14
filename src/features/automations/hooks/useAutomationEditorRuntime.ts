@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { message } from "antd";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import {
@@ -22,6 +21,7 @@ import {
   updateAutomation,
   type AdminSourceResponse,
 } from "@/shared/data";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 interface UseAutomationEditorRuntimeOptions {
   automationId: string;
@@ -42,6 +42,7 @@ export function useAutomationEditorRuntime({
 }: UseAutomationEditorRuntimeOptions) {
   const state = useAppState();
   const dispatch = useAppDispatch();
+  const message = useAppMessage();
   const normalizedId = String(automationId || "").trim();
   const [form, setForm] = useState<AutomationFormState>(() =>
     createInitialAutomationForm(currentWorker),
@@ -152,7 +153,7 @@ export function useAutomationEditorRuntime({
     } finally {
       setSaving(false);
     }
-  }, [form, normalizedId, onSaved, t]);
+  }, [form, message, normalizedId, onSaved, t]);
 
   const applySourceResponse = useCallback((response: AdminSourceResponse) => {
     setSourceDraft(response.content);

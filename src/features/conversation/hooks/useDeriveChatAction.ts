@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from "react";
-import { message } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import {
   deriveChatFromRun,
@@ -7,6 +6,7 @@ import {
 } from "@/features/chats/lib/chatDerivation";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 export function dispatchDerivedChatNavigation(chatId: string): void {
   const normalizedChatId = String(chatId || "").trim();
@@ -33,6 +33,7 @@ export function useDeriveChatAction() {
   const { state, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef } =
     useAppContext();
   const { t } = useI18n();
+  const message = useAppMessage();
   const running = resolveMainChatRuntime(
     stateRef,
     activeQuerySessionRequestIdRef,
@@ -66,7 +67,7 @@ export function useDeriveChatAction() {
         });
       }
     },
-    [dispatch, isDisabled, state.chatId, t],
+    [dispatch, isDisabled, message, state.chatId, t],
   );
 
   return useMemo(() => ({ isDisabled, execute }), [isDisabled, execute]);

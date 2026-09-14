@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { message } from "antd";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   useAppDispatch,
@@ -324,6 +324,7 @@ const AgentChatShellContent: React.FC = () => {
   const onFeedback = useRunFeedbackAction();
   const dispatch = useAppDispatch();
   const { t } = useI18n();
+  const message = useAppMessage();
   const navigate = useNavigate();
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
@@ -520,7 +521,7 @@ const AgentChatShellContent: React.FC = () => {
       });
       message.error(t("timeline.query.resendInNewChatFailed"));
     });
-  }, [agentKey, chatId, dispatch, navigate, searchParams, t]);
+  }, [agentKey, chatId, dispatch, message, navigate, searchParams, t]);
 
   useEffect(() => {
     const pending = pendingNewChatResendRef.current;
