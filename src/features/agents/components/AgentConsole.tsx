@@ -10,9 +10,7 @@ import React, {
 import "./AgentConsole.module.css";
 import {
   Modal,
-  Popconfirm,
   Spin,
-  Tooltip,
   type MenuProps,
 } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
@@ -58,6 +56,7 @@ import {
 import { AgentListPane } from "@/features/agents/components/AgentListPane";
 import { AgentSourceEditor } from "@/features/agents/components/AgentSourceEditor";
 import { useAgentConsoleRuntime } from "@/features/agents/hooks/useAgentConsoleRuntime";
+import { usePanelResize } from "@/shared/ui/usePanelResize";
 import {
   agentImportSuccessMessageKey,
   confirmAgentDraftDiscard,
@@ -161,7 +160,10 @@ const AGENT_CONSOLE_CLASS_NAME = "agent-console tw:overflow-hidden";
 const AGENT_ERROR_CLASS_NAME =
   "agent-console-error tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-control tw:border tw:px-2.5 tw:py-2 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_42%,var(--line-soft))]";
 const AGENT_BODY_CLASS_NAME =
-  "agent-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[280px_minmax(0,1fr)] tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+  "agent-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[var(--agent-list-col,280px)_minmax(0,1fr)] tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
+const AGENT_LIST_PANE_CLASS_NAME =
+  "agent-console-list-pane tw:relative tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px]";
+const AGENT_RESIZE_HANDLE_CLASS_NAME = "agent-console-resize-handle";
 const AGENT_DETAIL_CLASS_NAME =
   "agent-console-detail tw:min-h-0 tw:min-w-0 tw:overflow-auto tw:[&_.ant-select]:min-w-0 tw:[&_.ant-select]:w-full tw:[&_select]:min-h-8 tw:[&_select]:w-full tw:[&_select]:rounded-control tw:[&_select]:border tw:[&_select]:px-2 tw:[&_select]:py-1.5 tw:[&_select]:text-xs tw:[&_select]:text-ink-1 tw:[&_select]:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:[&_select]:bg-[color-mix(in_srgb,var(--bg-input)_92%,var(--bg-elev-2))]";
 const AGENT_DETAIL_ADMIN_META_CLASS_NAME =
@@ -180,8 +182,6 @@ const AGENT_SECTION_NAV_LINK_CLASS_NAME =
   "agent-section-nav-link tw:flex-none tw:whitespace-nowrap";
 const AGENT_SECTION_NAV_ACTIONS_CLASS_NAME =
   "agent-section-nav-actions tw:ml-auto tw:flex tw:flex-none tw:items-center tw:gap-1";
-const AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME =
-  "agent-section-nav-icon-button ui-icon-hover-24";
 const AGENT_SECTION_NAV_SAVE_CLASS_NAME = "agent-section-nav-save tw:flex-none";
 const AGENT_UNEDITABLE_CLASS_NAME =
   "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
@@ -202,6 +202,20 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const effectiveSelectedKey = selectedAgentKey || internalSelectedKey;
   const [localAgents, setLocalAgents] = useState<Agent[]>([]);
   const [searchText, setSearchText] = useState("");
+
+  // 左侧智能体列表列宽；拖拽手柄在列表右缘，向右拖变宽
+  const [listWidth, setListWidth] = useState(280);
+  const listStartWidthRef = useRef(280);
+  const { handlePointerDown: handleListResize } = usePanelResize({
+    axis: "horizontal",
+    onResizeStart: () => {
+      listStartWidthRef.current = listWidth;
+    },
+    onResize: (delta) =>
+      setListWidth(
+        Math.max(220, Math.min(520, listStartWidthRef.current + delta)),
+      ),
+  });
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
   const [editorMode, setEditorMode] = useState<AgentEditorMode>("structured");
   const [interactionMode, setInteractionMode] =
@@ -487,7 +501,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     formMode === "create" || hasEditableAdminDefinition(detail);
   const isReadOnly = formMode === "edit" && interactionMode === "view";
   const canEditSourceAgent =
-    formMode === "edit" && !isReadOnly && Boolean(detailSourcePath);
+    formMode === "edit" && Boolean(detailSourcePath);
   const hasUnsavedChanges = structuredDirty || sourceDirty;
   const canImportPrivateSkill =
     formMode === "edit" &&
@@ -1074,28 +1088,60 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     }
   };
 
-  const confirmDelete = async () => {
-    const key = form.key.trim();
-    if (!key || formMode !== "edit") return;
-    setDeleting(true);
-    setError("");
-    setFormError("");
-    try {
-      await deleteAgent({ key });
-      const remaining = localAgents.filter(
-        (agent) => toText(agent.key) !== key,
+  const deleteAgentByKey = useCallback(
+    async (agentKey: string) => {
+      const key = agentKey.trim();
+      if (!key) return;
+      setDeleting(true);
+      setError("");
+      setFormError("");
+      try {
+        await deleteAgent({ key });
+        const remaining = localAgents.filter(
+          (agent) => toText(agent.key) !== key,
+        );
+        setLocalAgents(remaining);
+        await refreshGlobalAgents();
+        const nextKey = remaining[0]?.key || "";
+        if (nextKey) commitAgentSelection(nextKey);
+        else resetToCreate();
+      } catch (error) {
+        setFormError((error as Error).message);
+      } finally {
+        setDeleting(false);
+      }
+    },
+    [commitAgentSelection, localAgents, refreshGlobalAgents, resetToCreate],
+  );
+
+  const handleDeleteAgent = useCallback(
+    (agent: Agent) => {
+      const key = toText(agent.key);
+      if (!key) return;
+      Modal.confirm({
+        title: t("agentConsole.confirm.deleteTitle"),
+        okText: t("agentConsole.confirm.deleteOk"),
+        cancelText: t("agentConsole.confirm.deleteCancel"),
+        okButtonProps: { danger: true },
+        onOk: () => deleteAgentByKey(key),
+      });
+    },
+    [deleteAgentByKey, t],
+  );
+
+  const handleEditConversation = useCallback(
+    (agent: Agent) => {
+      const key = toText(agent.key);
+      if (!key) return;
+      if (!confirmDiscardChanges()) return;
+      const name = toText(agent.name).trim() || key;
+      void assistant.open(
+        { kind: "agent", target: { id: key, name } },
+        onClose,
       );
-      setLocalAgents(remaining);
-      await refreshGlobalAgents();
-      const nextKey = remaining[0]?.key || "";
-      if (nextKey) commitAgentSelection(nextKey);
-      else resetToCreate();
-    } catch (error) {
-      setFormError((error as Error).message);
-    } finally {
-      setDeleting(false);
-    }
-  };
+    },
+    [assistant, confirmDiscardChanges, onClose],
+  );
 
   const setMode = (mode: string) => {
     if (mode === "PROXY" && !form.proxyConfigText.trim()) {
@@ -1137,11 +1183,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setFormError("");
   }, [detail, hasUnsavedChanges, t]);
 
-  const startEditing = useCallback(() => {
-    setInteractionMode("edit");
-    setFormError("");
-  }, []);
-
   const applySourceResponse = (response: AdminSourceResponse) => {
     setSourceDraft(response.content);
     setSourceSha256(response.sha256);
@@ -1150,15 +1191,20 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setSourceDirty(false);
   };
 
-  const toggleEditorMode = async () => {
-    if (isReadOnly || !canEditSourceAgent) return;
+  const switchEditorMode = async (target: "source" | "structured") => {
+    if (target === "source" && !canEditSourceAgent) return;
+    if (target === "structured" && !canEditStructuredAgent) return;
     if (
       hasUnsavedChanges &&
       !window.confirm(t("agentConsole.confirm.switchEditor"))
     ) {
       return;
     }
-    if (editorMode === "source") {
+    if (isReadOnly) {
+      setInteractionMode("edit");
+      setFormError("");
+    }
+    if (target === "structured") {
       setSourceDirty(false);
       setEditorMode("structured");
       return;
@@ -1342,29 +1388,45 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         </div>
       )}
 
-      <div className={AGENT_BODY_CLASS_NAME}>
-        <AgentListPane
-          agents={filteredAgents}
-          selectedAgentKey={effectiveSelectedKey}
-          draggingAgentKey={draggingAgentKey}
-          loading={loadingList || savingForm || deleting}
-          savingOrder={savingOrder}
-          searchText={searchText}
-          t={t}
-          getSummary={(agent) => {
-            const agentKey = toText(agent.key);
-            return buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
-          }}
-          getDiagnostic={firstAdminAgentDiagnosticMessage}
-          isInvalid={isInvalidAdminAgent}
-          onSearchTextChange={setSearchText}
-          onRefresh={() => void loadAgents(effectiveSelectedKey)}
-          onCreate={openCreateModal}
-          onCreateConversation={() => { if (!savingForm && !assistant.opening && confirmDiscardChanges()) void assistant.open({ kind: "agent" }, onClose); }}
-          onSelect={selectAgent}
-          onDraggingAgentKeyChange={setDraggingAgentKey}
-          onMove={handleMoveAgent}
-        />
+      <div
+        className={AGENT_BODY_CLASS_NAME}
+        style={{ "--agent-list-col": `${listWidth}px` } as React.CSSProperties}
+      >
+        <div className={AGENT_LIST_PANE_CLASS_NAME}>
+          <AgentListPane
+            agents={filteredAgents}
+            selectedAgentKey={effectiveSelectedKey}
+            draggingAgentKey={draggingAgentKey}
+            loading={loadingList || savingForm || deleting}
+            savingOrder={savingOrder}
+            searchText={searchText}
+            t={t}
+            getSummary={(agent) => {
+              const agentKey = toText(agent.key);
+              return buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
+            }}
+            getDiagnostic={firstAdminAgentDiagnosticMessage}
+            isInvalid={isInvalidAdminAgent}
+            onSearchTextChange={setSearchText}
+            onRefresh={() => void loadAgents(effectiveSelectedKey)}
+            onCreate={openCreateModal}
+            onCreateConversation={() => { if (!savingForm && !assistant.opening && confirmDiscardChanges()) void assistant.open({ kind: "agent" }, onClose); }}
+            onSelect={selectAgent}
+            onDraggingAgentKeyChange={setDraggingAgentKey}
+            onMove={handleMoveAgent}
+            onEditConversation={handleEditConversation}
+            onDelete={handleDeleteAgent}
+          />
+          <button
+            type="button"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={t("agentConsole.resize.listAriaLabel")}
+            title={t("agentConsole.resize.listTitle")}
+            className={AGENT_RESIZE_HANDLE_CLASS_NAME}
+            onPointerDown={handleListResize}
+          />
+        </div>
 
         <div
           ref={detailScrollRef}
@@ -1395,77 +1457,36 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               )}
               <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
 
-                {effectiveSelectedKey && <EditMenuButton label={t("resourceAssistant.editAgent")}
-                  disabled={assistant.opening || savingForm || deleting}
-                  manualDisabled={!canEditStructuredAgent && !detailSourcePath}
-                  onManual={startEditing}
-                  onConversation={() => { if (confirmDiscardChanges()) void assistant.open({ kind: "agent", target: { id: effectiveSelectedKey, name: form.name } }, onClose); }} />}
+                {effectiveSelectedKey && (
+                  <EditMenuButton
+                    label={t("resourceAssistant.editAgent")}
+                    disabled={assistant.opening || savingForm || deleting}
+                    onSource={() => void switchEditorMode("source")}
+                    onStructured={() => void switchEditorMode("structured")}
+                    activeEditMode={!isReadOnly ? editorMode : undefined}
+                    onCancelEdit={
+                      formMode === "edit" && !isReadOnly
+                        ? cancelEditing
+                        : undefined
+                    }
+                    cancelEditDisabled={savingForm || deleting}
+                    sourceDisabled={
+                      !canEditSourceAgent ||
+                      savingForm ||
+                      deleting ||
+                      loadingSource ||
+                      editorMode === "source"
+                    }
+                    structuredDisabled={
+                      !canEditStructuredAgent ||
+                      savingForm ||
+                      deleting ||
+                      (editorMode === "structured" && !isReadOnly)
+                    }
+                  />
+                )}
                 {!isReadOnly && (
                   <>
-                    {canEditSourceAgent && (
-                      <Tooltip
-                        title={
-                        editorMode === "source"
-                          ? t("agentConsole.action.structuredEdit")
-                          : t("agentConsole.action.sourceEdit")
-                        }
-                        arrow={false}
-                      >
-                        <UiButton
-                          className={AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME}
-                          size="sm"
-                          variant="ghost"
-                          iconOnly
-                          active={editorMode === "source"}
-                          onClick={() => {
-                            void toggleEditorMode();
-                          }}
-                          disabled={savingForm || deleting || loadingSource}
-                          loading={loadingSource}
-                          aria-label={
-                            editorMode === "source"
-                              ? t("agentConsole.action.structuredEdit")
-                              : t("agentConsole.action.sourceEdit")
-                          }
-                        >
-                          <MaterialIcon
-                            name={editorMode === "source" ? "tune" : "code"}
-                          />
-                        </UiButton>
-                      </Tooltip>
-                    )}
-                    {formMode === "edit" && (
-                      <Popconfirm
-                        title={t("agentConsole.confirm.deleteTitle")}
-                        okText={t("agentConsole.confirm.deleteOk")}
-                        cancelText={t("agentConsole.confirm.deleteCancel")}
-                        okButtonProps={{ danger: true }}
-                        onConfirm={confirmDelete}
-                        disabled={deleting}
-                      >
-                        <UiButton
-                          className={`${AGENT_SECTION_NAV_ICON_BUTTON_CLASS_NAME} tw:!text-danger`}
-                          size="sm"
-                          variant="ghost"
-                          iconOnly
-                          disabled={deleting || savingForm}
-                          loading={deleting}
-                          aria-label={t("agentConsole.action.delete")}
-                        >
-                          <MaterialIcon name="delete" />
-                        </UiButton>
-                      </Popconfirm>
-                    )}
-                    {formMode === "edit" && (
-                      <UiButton
-                        size="sm"
-                        variant="ghost"
-                        onClick={cancelEditing}
-                        disabled={savingForm || deleting}
-                      >
-                        {t("agentConsole.action.cancelEdit")}
-                      </UiButton>
-                    )}
                     <UiButton
                       className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
                       size="sm"

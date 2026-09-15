@@ -1,5 +1,5 @@
 import React from "react";
-import { Input } from "antd";
+import { CodeEditor } from "@/shared/ui/CodeEditor";
 
 export interface AgentSourceEditorProps {
   value: string;
@@ -17,19 +17,18 @@ export const AgentSourceEditor: React.FC<AgentSourceEditorProps> = ({
   onChange,
 }) => (
   <div className="agent-source-workspace">
-    <div className="field-group agent-source-field">
-      <label htmlFor="agent-source-editor">{t("agentConsole.field.sourceFile")}</label>
-      <Input.TextArea
-        id="agent-source-editor"
-        className="settings-textarea agent-source-editor"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </div>
+    <CodeEditor
+      value={value}
+      language="yaml"
+      onChange={onChange}
+      options={{ lineNumbers: "off" }}
+    />
     {error ? <div className="settings-error">{error}</div> : null}
     {dirty ? (
       <div className="agent-save-actions">
-        <span className="agent-source-dirty">{t("agentConsole.message.unsaved")}</span>
+        <span className="agent-source-dirty">
+          {t("agentConsole.message.unsaved")}
+        </span>
       </div>
     ) : null}
   </div>
