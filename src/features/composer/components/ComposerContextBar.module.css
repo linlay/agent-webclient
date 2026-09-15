@@ -9,7 +9,7 @@
   gap: 20px;
   min-width: 0;
   margin: 0 14px -12px;
-  padding: 6px 14px 18px;
+  padding: 2px 14px 14px;
   border: 1px solid var(--line-soft);
   border-bottom: 0;
   border-radius: calc(var(--control-radius-lg) + 6px) calc(var(--control-radius-lg) + 6px) 0 0;
@@ -47,7 +47,7 @@
   color: var(--text-main);
 }
 
-.agent:focus-within {
+.agent:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
