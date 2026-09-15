@@ -42,16 +42,28 @@ export {
 const FILE_CHANGE_JUMP_DURATION_MS = 560;
 
 const RIGHT_SIDEBAR_OVERVIEW_CLASS_NAME =
-  "right-sidebar-overview tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:gap-3.5 tw:overflow-y-auto tw:pb-[20px]";
+  "right-sidebar-overview tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:overflow-y-auto tw:pb-[20px]";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME =
-  "right-sidebar-overview-section tw:flex tw:min-w-0 tw:flex-col tw:gap-2";
+  "right-sidebar-overview-section tw:flex tw:min-w-0 tw:flex-col";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_HEAD_CLASS_NAME =
   "right-sidebar-overview-section-head tw:flex tw:items-center tw:justify-between tw:gap-2 tw:px-[10px]";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_TITLE_CLASS_NAME =
   "tw:m-0 tw:text-[13px] tw:font-bold tw:text-ink-1";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSIBLE_HEAD_CLASS_NAME =
+  "right-sidebar-overview-section-collapsible-head tw:rounded-none tw:flex tw:w-full tw:min-h-8 tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:px-1 tw:text-left tw:text-inherit tw:hover:bg-bg-hover tw:focus-visible:outline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-accent";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSIBLE_TITLE_CLASS_NAME =
+  "tw:min-w-0 tw:flex-1 tw:whitespace-nowrap tw:text-[13px] tw:font-bold tw:text-ink-1";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSE_ICON_CLASS_NAME =
+  "tw:flex-none tw:text-[16px] tw:text-ink-muted";
+
+const RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSIBLE_ACTION_CLASS_NAME =
+  "tw:flex tw:flex-none tw:items-center";
 
 const RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME =
   "right-sidebar-overview-section-count tw:text-[11px] tw:font-bold tw:text-accent-electric-strong";
@@ -221,7 +233,67 @@ const OverviewSection: React.FC<{
   count: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ title, count, action, children }) => {
+  collapsible?: boolean;
+  collapsed?: boolean;
+  onToggle?: () => void;
+}> = ({
+  title,
+  count,
+  action,
+  children,
+  collapsible = false,
+  collapsed = false,
+  onToggle,
+}) => {
+  const detailsId = React.useId();
+  if (collapsible) {
+    const handleKeyDown = (event: React.KeyboardEvent) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onToggle?.();
+      }
+    };
+    return (
+      <section className={RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME}>
+        <div
+          className={RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSIBLE_HEAD_CLASS_NAME}
+          role="button"
+          tabIndex={0}
+          aria-expanded={!collapsed}
+          aria-controls={detailsId}
+          onClick={onToggle}
+          onKeyDown={handleKeyDown}
+        >
+          <MaterialIcon
+            name={collapsed ? "chevron_right" : "expand_more"}
+            className={RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSE_ICON_CLASS_NAME}
+            aria-hidden="true"
+          />
+          <span
+            className={RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSIBLE_TITLE_CLASS_NAME}
+          >
+            {title}
+          </span>
+          {action ? (
+            <span
+              className={
+                RIGHT_SIDEBAR_OVERVIEW_SECTION_COLLAPSIBLE_ACTION_CLASS_NAME
+              }
+              onClick={(event) => event.stopPropagation()}
+            >
+              {action}
+            </span>
+          ) : null}
+          <div className={RIGHT_SIDEBAR_OVERVIEW_SECTION_COUNT_CLASS_NAME}>
+            {count}
+          </div>
+        </div>
+        <div id={detailsId} hidden={collapsed} className="tw:py-[10px]">
+          {children}
+        </div>
+      </section>
+    );
+  }
   return (
     <section className={RIGHT_SIDEBAR_OVERVIEW_SECTION_CLASS_NAME}>
       <div className={RIGHT_SIDEBAR_OVERVIEW_SECTION_HEAD_CLASS_NAME}>
@@ -281,6 +353,10 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
   const [expandedFileChangeKeys, setExpandedFileChangeKeys] = React.useState<
     Set<string>
   >(new Set());
+  const [fileChangesCollapsed, setFileChangesCollapsed] = React.useState(false);
+  const [planningCollapsed, setPlanningCollapsed] = React.useState(false);
+  const [tasksCollapsed, setTasksCollapsed] = React.useState(false);
+  const [artifactsCollapsed, setArtifactsCollapsed] = React.useState(false);
   const { cache: fileHistoryCache, load: loadFileHistory } = useFileHistory(
     state.chatId,
   );
@@ -492,6 +568,9 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
       hasData: fileChanges.length > 0,
       node: (
         <OverviewSection
+          collapsible
+          collapsed={fileChangesCollapsed}
+          onToggle={() => setFileChangesCollapsed((current) => !current)}
           title={
             isCoder
               ? t("rightSidebar.overview.fileChanges.titleCoder")
@@ -567,6 +646,9 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
       hasData: planningNodes.length > 0,
       node: (
         <OverviewSection
+          collapsible
+          collapsed={planningCollapsed}
+          onToggle={() => setPlanningCollapsed((current) => !current)}
           title={t("rightSidebar.overview.planning.title")}
           count={planningNodes.length}
           action={
@@ -658,6 +740,9 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
       hasData: Boolean(taskSummary && taskSummary.totalTasks > 0),
       node: (
         <OverviewSection
+          collapsible
+          collapsed={tasksCollapsed}
+          onToggle={() => setTasksCollapsed((current) => !current)}
           title={t("rightSidebar.overview.tasks.title")}
           count={
             taskSummary
@@ -710,6 +795,9 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
       hasData: artifacts.length > 0,
       node: (
         <OverviewSection
+          collapsible
+          collapsed={artifactsCollapsed}
+          onToggle={() => setArtifactsCollapsed((current) => !current)}
           title={t("rightSidebar.overview.artifacts.title")}
           count={artifacts.length}
           action={
