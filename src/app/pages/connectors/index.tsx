@@ -6,7 +6,7 @@ export function ConnectorsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams<{ connectorId?: string; serverKey?: string }>();
-  return <main className="automations-page connectors-page">
+  return <main className="automations-page connectors-page tw:p-0">
     <ConnectorsConsole routeId={String(params.connectorId || params.serverKey || "").trim()} onRouteIdChange={id => navigate(connectorsRoutePath(id, location.search))} />
   </main>;
 }
