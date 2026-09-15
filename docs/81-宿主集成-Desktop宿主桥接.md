@@ -105,3 +105,5 @@ WebClient 提供 `/chat-preview/:chatId`（只读实时）及 `/chat-preview/:ch
 5. 页面只通过现有 WorkPanel/openDocument 路径请求资源预览，宿主按当前 Surface 和目标资源逐请求授权；无权打开时不得扩大权限。Frame Port/WorkPanel 缺失或不兼容继续稳定阻断，不回退 guest 直连。
 
 具体 Desktop 路由枚举和 Broker allowlist 的修改位置应在 Desktop 仓库核对，不能由 WebClient 推断为已经存在。若现有宿主登记模型必须扩展共享契约，应从 canonical 来源生成 mirror/hash，再同批发布双方与 Program Bundle，不手改本仓库 generated contract 绕过检查。
+
+Chat Preview 仅提供会话内容与必要的加载、错误重试、等待确认提示，不渲染 Chat 标题或只读历史状态栏。嵌入 Kanban 时，“问题详情 / 历史记录”导航栏由 Desktop 原生 UI 持有，切换离开预览仍按既有生命周期释放观察者。
