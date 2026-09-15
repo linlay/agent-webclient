@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:c7d23804841402bd64681ac289e98c9bf2ed298ceb346e71d55dd10ce5d0d14b
+// sha256:ee35c7752c5ef3bbd1c2619df3997953e2cfd4e1c75b036dc1ddcd96318a4e3c
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -577,6 +577,7 @@ export const SKIN_VISUAL_SLOTS = [
   "navigation.refresh", "navigation.more_actions", "entry.kanban", "entry.automation", "entry.new_chat", "entry.new_project",
   "entry.chat", "entry.project", "entry.website", "chat.send", "chat.stop", "chat.attach", "chat.expand", "chat.collapse", "chat.voice", "chat.screenshot",
   "agent.default", "agent.terminal", "agent.database", "agent.library", "agent.folder", "agent.coder", "agent.kbase",
+  "heading.pinned.zh-CN", "heading.pinned.en-US",
   "heading.chats.zh-CN", "heading.projects.zh-CN", "heading.websites.zh-CN",
   "heading.chats.en-US", "heading.projects.en-US", "heading.websites.en-US"
 ] as const;
