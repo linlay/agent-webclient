@@ -70,6 +70,15 @@ describe("canonical independent Surface targets", () => {
     })).toBe("/btw/chat-1?btwId=btw-1");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
+      kind: "btw",
+      agentKey: "agent-1",
+      chatId: "chat-1",
+      selectionTransferTarget: "selection-actions-v1",
+    })).toBe(
+      "/btw/chat-1?selectionTransferTarget=selection-actions-v1",
+    );
+    expect(buildStandaloneOpenTargetUrl({
+      version: 1,
       kind: "source",
       agentKey: "agent-1",
       chatId: "chat-1",
@@ -228,6 +237,25 @@ describe("canonical independent Surface targets", () => {
       module: "overview",
       route: "/overview/chat-1",
       context: { chatId: "chat-1", agentKey: "agent-1" },
+    });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
+      kind: "btw",
+      chatId: "chat-1",
+      agentKey: "agent-1",
+      instanceId: "selection-actions-v1",
+      selectionTransferTarget: "selection-actions-v1",
+      title: "Side chat",
+    })).toEqual({
+      kind: "webclient",
+      module: "btw",
+      route: "/btw/chat-1?selectionTransferTarget=selection-actions-v1",
+      context: {
+        agentKey: "agent-1",
+        chatId: "chat-1",
+        instanceId: "selection-actions-v1",
+      },
+      title: "Side chat",
     });
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
@@ -703,7 +731,12 @@ describe("canonical independent Surface targets", () => {
     const intents = [
       { kind: "overview", chatId: "chat-1" },
       { kind: "debug", chatId: "chat-1" },
-      { kind: "btw", chatId: "chat-1", btwId: "btw-1" },
+      {
+        kind: "btw",
+        chatId: "chat-1",
+        btwId: "btw-1",
+        selectionTransferTarget: "selection-actions-v1",
+      },
       { kind: "source", chatId: "chat-1", sourceId: "src-1", chunkId: "chunk-1" },
       { kind: "planning", chatId: "chat-1", planningId: "plan-1" },
       { kind: "resource", agentKey: "agent-1", chatId: "chat-1", file: "/resources/art-1.txt" },

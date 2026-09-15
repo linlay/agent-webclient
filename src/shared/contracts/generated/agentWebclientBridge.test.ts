@@ -13,6 +13,7 @@ import {
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
   isAgentWebclientSurfaceKind,
+  parseAgentWebclientVisualSnapshot,
 } from "./agentWebclientBridge";
 
 describe("generated Agent WebClient bridge contract", () => {
@@ -39,11 +40,21 @@ describe("generated Agent WebClient bridge contract", () => {
     );
     expect(isAgentWebclientSurfaceKind("agent-management")).toBe(true);
     expect(source).toContain(
-      "sha256:05c7cd930a561526ea37dd5b8ae423b74e4a87d08d6198ba2c311507bdf003dc",
+      "sha256:c502de2716a0192554bd44750657a5e00cbe8a265132c9e20888a618f96c51e7",
     );
     expect(createHash("sha256").update(canonicalSource).digest("hex")).toBe(
-      "41dc473e1fd72068d3d1128cde57970bb89c601baa169b9375ef7528836ab450",
+      "d288a45a2c6bcff58e7b8e7f15a721f4ed72b02d98d443bdde83915e435318c2",
     );
+  });
+
+  it("retains pinned skin visuals alongside the selection explanation role", () => {
+    const snapshot = {
+      schemaVersion: "1.1", revision: 1,
+      resourceSet: "12345678-1234-1234-1234-123456789012",
+      visuals: { images: { "heading.pinned.zh-CN": "heading.pinned.zh-CN", "heading.pinned.en-US": "heading.pinned.en-US" }, styles: {} },
+    };
+    expect(parseAgentWebclientVisualSnapshot(snapshot)).toEqual(snapshot);
+    expect(isAgentWebclientSurfaceKind("agent-selection-explain")).toBe(true);
   });
 
   it("accepts CRLF vendored and Desktop mirror copies", () => {

@@ -44,6 +44,7 @@ import {
 } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
+import { SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT } from "@/features/selection/lib/selectedTextReference";
 
 interface SendMessageEventDetail {
   message?: unknown;
@@ -74,6 +75,29 @@ function notifyNewChatCreated(input: { chatId: string; agentKey: string }): void
       detail: input,
     }),
   );
+}
+
+function notifySelectedTextReferencesAccepted(references: unknown[]) {
+  if (
+    typeof window === "undefined" ||
+    typeof window.dispatchEvent !== "function" ||
+    typeof CustomEvent === "undefined"
+  ) return;
+  const referenceIds = getAcceptedSelectedTextReferenceIds(references);
+  if (referenceIds.length === 0) return;
+  window.dispatchEvent(new CustomEvent(SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT, {
+    detail: { referenceIds },
+  }));
+}
+
+export function getAcceptedSelectedTextReferenceIds(references: unknown[]) {
+  return references.flatMap((reference) => {
+    if (!reference || typeof reference !== "object" || Array.isArray(reference)) return [];
+    const record = reference as Record<string, unknown>;
+    return record.type === "selection" && typeof record.id === "string" && record.id.trim()
+      ? [record.id.trim()]
+      : [];
+  });
 }
 
 function isTerminalRunEventType(type: string): boolean {
@@ -728,6 +752,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         });
         const identity = await execution.identity;
         queryAccepted = true;
+        notifySelectedTextReferencesAccepted(normalizedReferences);
         session.chatId = identity.chatId;
         session.runId = identity.runId;
         session.owner = identity.owner;
@@ -860,7 +885,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             .map((key) => String(key || "").trim())
             .filter(Boolean)
         : [];
-      if (message) {
+      if (hasSendableComposerMessage(message, references)) {
         void sendMessage(
           message,
           references,
@@ -882,4 +907,14 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
   }, [sendMessage]);
 
   return { sendMessage, abortStream };
+}
+
+export function hasSendableComposerMessage(
+  message: unknown,
+  references: unknown,
+) {
+  return Boolean(
+    String(message || "").trim() ||
+    (Array.isArray(references) && references.some((reference) => reference != null)),
+  );
 }

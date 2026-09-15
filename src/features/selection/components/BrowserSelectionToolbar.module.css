@@ -1,0 +1,40 @@
+.toolbar {
+  position: fixed;
+  z-index: 1100;
+  display: flex;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--control-radius-lg, 10px);
+  background: var(--bg-elev-1, var(--bg-base));
+  box-shadow: 0 4px 16px rgb(0 0 0 / 14%);
+  padding: 4px;
+  user-select: none;
+}
+
+.action {
+  max-width: 100%;
+  flex: 0 1 auto;
+}
+
+.action :global(.ui-btn-label) {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.action :global(.ui-btn-label) > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action :global(.material-icon) {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}

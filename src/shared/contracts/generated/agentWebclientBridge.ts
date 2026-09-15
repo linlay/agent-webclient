@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:ee35c7752c5ef3bbd1c2619df3997953e2cfd4e1c75b036dc1ddcd96318a4e3c
+// sha256:c502de2716a0192554bd44750657a5e00cbe8a265132c9e20888a618f96c51e7
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -111,6 +111,53 @@ export const AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT =
 export const AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION =
   "workPanel.composer.insertDraft" as const;
 export const AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION = 1 as const;
+export const AGENT_WEBCLIENT_SELECTION_ACTION =
+  "selectionToolbar.execute" as const;
+export const AGENT_WEBCLIENT_SELECTION_ACTION_VERSION = 1 as const;
+export const AGENT_WEBCLIENT_SELECTION_ACTION_RESULT_PAGE_EVENT =
+  "__agentWebclientSelectionActionResult" as const;
+
+export type AgentWebclientSelectionActionId =
+  | "add-to-chat"
+  | "more-details"
+  | "ask-in-side-chat";
+
+export type AgentWebclientSelectionTargetKind = "message" | "code";
+
+export type AgentWebclientSelectionPoint = {
+  x: number;
+  y: number;
+};
+
+export type AgentWebclientSelectionAction = {
+  action: typeof AGENT_WEBCLIENT_SELECTION_ACTION;
+  version: typeof AGENT_WEBCLIENT_SELECTION_ACTION_VERSION;
+  requestId: string;
+  selectionId: string;
+  operation: AgentWebclientSelectionActionId;
+  targetId: string;
+  targetKind: AgentWebclientSelectionTargetKind;
+  start: AgentWebclientSelectionPoint;
+  end: AgentWebclientSelectionPoint;
+};
+
+export type AgentWebclientSelectionActionErrorCode =
+  | "stale_selection"
+  | "chat_required"
+  | "selection_too_large"
+  | "surface_not_ready"
+  | "run_start_failed";
+
+export type AgentWebclientSelectionActionResult = {
+  version: typeof AGENT_WEBCLIENT_SELECTION_ACTION_VERSION;
+  requestId: string;
+  ok: boolean;
+  code?: AgentWebclientSelectionActionErrorCode;
+  handoff?: {
+    chatId: string;
+    runId: string;
+  };
+};
 
 export type AgentWebclientWorkPanelResourceDownloadAction = {
   action: typeof AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION;
@@ -193,6 +240,7 @@ export type AgentWebclientSurfaceKind =
   | "agent-overview"
   | "agent-debug"
   | "agent-btw"
+  | "agent-selection-explain"
   | "agent-project"
   | "agent-management";
 
@@ -532,7 +580,9 @@ export type AgentWebclientWorkPanelBridge = {
   closeItem(input: WorkPanelItemTargetInput): Promise<WorkPanelBridgeResult>;
 };
 
-export function isAgentWebclientBridgeVersion(value: unknown): value is 6 {
+export function isAgentWebclientBridgeVersion(
+  value: unknown,
+): value is typeof AGENT_WEBCLIENT_BRIDGE_VERSION {
   return value === AGENT_WEBCLIENT_BRIDGE_VERSION;
 }
 
@@ -547,6 +597,7 @@ export function isAgentWebclientSurfaceKind(value: unknown): value is AgentWebcl
     "agent-overview",
     "agent-debug",
     "agent-btw",
+    "agent-selection-explain",
     "agent-project",
     "agent-management",
   ].includes(String(value));

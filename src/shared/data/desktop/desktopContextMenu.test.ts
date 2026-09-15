@@ -2,6 +2,7 @@ import {
   initializeDesktopContextMenuBridge,
   registerDesktopCurrentResourceDownload,
   registerDesktopCurrentPreviewReview,
+  registerDesktopSelectionActionHandler,
   registerDesktopContextMenuTarget,
   resolveDesktopContextMenuTargetAt,
   SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL,
@@ -10,6 +11,9 @@ import {
 import {
   AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION,
   AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION,
+  AGENT_WEBCLIENT_SELECTION_ACTION,
+  AGENT_WEBCLIENT_SELECTION_ACTION_RESULT_PAGE_EVENT,
+  AGENT_WEBCLIENT_SELECTION_ACTION_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
@@ -23,12 +27,18 @@ type FakeElement = {
 describe("Desktop context menu semantic bridge", () => {
   const originalWindow = (globalThis as { window?: unknown }).window;
   const originalDocument = (globalThis as { document?: unknown }).document;
+  const originalElement = (globalThis as { Element?: unknown }).Element;
+  const originalCustomEvent = (globalThis as { CustomEvent?: unknown }).CustomEvent;
 
   afterEach(() => {
     if (originalWindow === undefined) Reflect.deleteProperty(globalThis, "window");
     else Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
     if (originalDocument === undefined) Reflect.deleteProperty(globalThis, "document");
     else Object.defineProperty(globalThis, "document", { configurable: true, value: originalDocument });
+    if (originalElement === undefined) Reflect.deleteProperty(globalThis, "Element");
+    else Object.defineProperty(globalThis, "Element", { configurable: true, value: originalElement });
+    if (originalCustomEvent === undefined) Reflect.deleteProperty(globalThis, "CustomEvent");
+    else Object.defineProperty(globalThis, "CustomEvent", { configurable: true, value: originalCustomEvent });
   });
 
   it("resolves the nearest registered ancestor and unregisters without DOM attributes", () => {
@@ -174,6 +184,105 @@ describe("Desktop context menu semantic bridge", () => {
     cleanup();
     expect((globalThis.window as unknown as { addEventListener: jest.Mock }).addEventListener)
       .not.toHaveBeenCalled();
+  });
+
+  it("revalidates a live selection and returns only bounded action metadata", async () => {
+    class TestElement {
+      parentElement: TestElement | null;
+      constructor(parentElement: TestElement | null = null) {
+        this.parentElement = parentElement;
+      }
+    }
+    Object.defineProperty(globalThis, "Element", {
+      configurable: true,
+      value: TestElement,
+    });
+    const target = new TestElement();
+    registerDesktopContextMenuTarget(target as unknown as Element, {
+      targetId: "message:live",
+      kind: "message",
+      handlers: { "copy-content": jest.fn() },
+    });
+    let hostListener: ((event: unknown, payload: Record<string, unknown>) => void) | undefined;
+    const dispatched: Array<{ type: string; detail: Record<string, unknown> }> = [];
+    Object.defineProperty(globalThis, "CustomEvent", {
+      configurable: true,
+      value: class TestCustomEvent {
+        type: string;
+        detail: Record<string, unknown>;
+        constructor(type: string, init: { detail: Record<string, unknown> }) {
+          this.type = type;
+          this.detail = init.detail;
+        }
+      },
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        electronAPI: {
+          onFromMain: (_channel: string, listener: typeof hostListener) => {
+            hostListener = listener;
+          },
+        },
+        location: { href: "http://127.0.0.1/ui/" },
+        getSelection: () => ({
+          isCollapsed: false,
+          rangeCount: 1,
+          anchorNode: target,
+          focusNode: target,
+          toString: () => "  selected text  ",
+        }),
+        dispatchEvent: (event: { type: string; detail: Record<string, unknown> }) => {
+          dispatched.push(event);
+          return true;
+        },
+        postMessage: jest.fn(),
+      },
+    });
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: { elementFromPoint: () => target },
+    });
+    const handler = jest.fn(async () => ({
+      ok: true,
+      handoff: { chatId: "chat-1", runId: "run-1" },
+    }));
+    const unregister = registerDesktopSelectionActionHandler(handler);
+    initializeDesktopContextMenuBridge();
+    hostListener?.({}, {
+      action: AGENT_WEBCLIENT_SELECTION_ACTION,
+      version: AGENT_WEBCLIENT_SELECTION_ACTION_VERSION,
+      requestId: "selection-request-1",
+      selectionId: "selection-1",
+      operation: "more-details",
+      targetId: "message:live",
+      targetKind: "message",
+      start: { x: 10, y: 20 },
+      end: { x: 30, y: 40 },
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({
+      action: "more-details",
+      fragment: expect.objectContaining({
+        targetId: "message:live",
+        reference: expect.objectContaining({
+          type: "selection",
+          meta: { text: "selected text", sourceKind: "message" },
+        }),
+      }),
+    }));
+    expect(dispatched).toContainEqual({
+      type: AGENT_WEBCLIENT_SELECTION_ACTION_RESULT_PAGE_EVENT,
+      detail: {
+        version: AGENT_WEBCLIENT_SELECTION_ACTION_VERSION,
+        requestId: "selection-request-1",
+        ok: true,
+        handoff: { chatId: "chat-1", runId: "run-1" },
+      },
+    });
+    expect(JSON.stringify(dispatched)).not.toContain("selected text");
+    unregister();
   });
 
   it("downloads only through the Resource Viewer registered current-target handler", async () => {

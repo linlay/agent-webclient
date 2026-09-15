@@ -65,6 +65,12 @@ import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useHostRequiredSkills } from "@/features/composer/components/HostRequiredSkillsContext";
+import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
+import { useDesktopSelectionActions } from "@/features/composer/hooks/useDesktopSelectionActions";
+import { BrowserSelectionToolbar } from "@/features/selection/components/BrowserSelectionToolbar";
+import { BrowserSelectionPanels } from "@/features/composer/components/BrowserSelectionPanels";
+import { isDesktopAppMode } from "@/shared/utils/routing";
+import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 
@@ -322,6 +328,30 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     },
     state,
   });
+  const selectedText = useSelectedTextFragments(state.chatId);
+  const combinedSendReferences = useMemo(
+    () => [...sendReferences, ...selectedText.references],
+    [selectedText.references, sendReferences],
+  );
+  const combinedSendAttachmentMeta = useMemo(
+    () => [
+      ...sendAttachmentMeta,
+      ...selectedText.attachments.map((attachment) => ({
+        ...attachment,
+        size: attachment.size ?? 0,
+      })),
+    ],
+    [selectedText.attachments, sendAttachmentMeta],
+  );
+  const selectionActions = useDesktopSelectionActions({
+    addMainFragment: selectedText.addFragment,
+    model: modelOverride,
+    messageApi: message,
+  });
+  const [selectionScope, setSelectionScope] = useState<Element | null>(null);
+  useEffect(() => {
+    setSelectionScope(document.querySelector(".conversation-stage"));
+  }, [state.chatId, chatTransitionBlocking]);
 
   const {
     activeSlashIndex,
@@ -573,8 +603,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     mustUseSkills: effectiveSkills.map((skill) => skill.key),
     selectSlashItem,
     onSelectSlashSkill: handleSelectSlashSkill,
-    sendAttachmentMeta,
-    sendReferences,
+    sendAttachmentMeta: combinedSendAttachmentMeta,
+    sendReferences: combinedSendReferences,
     setInputValue,
     setSlashDismissed,
     showSlashPalette,
@@ -664,7 +694,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !inputValue.trim();
+    (!inputValue.trim() && (isMainChatRunning || selectedText.fragments.length === 0));
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,
@@ -735,9 +765,23 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     ],
   );
 
+  const withSelectionSurfaces = (content: React.ReactNode) => (
+    <>
+      <BrowserSelectionToolbar
+        enabled={!isDesktopAppMode() && !chatTransitionBlocking}
+        scopeElement={selectionScope}
+        onAction={selectionActions.handleAction}
+      />
+      {!isDesktopAppMode() ? (
+        <BrowserSelectionPanels />
+      ) : null}
+      {content}
+    </>
+  );
+
   if (!chatTransitionBlocking && isAwaitingActive && state.activeAwaiting) {
     if (state.activeAwaiting.mode === "form") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <AwaitingHtmlContainer
             data={state.activeAwaiting}
@@ -750,7 +794,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       );
     }
     if (state.activeAwaiting.mode === "approval") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <Buildin.ApprovalDialog
             data={state.activeAwaiting}
@@ -761,7 +805,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       );
     }
     if (state.activeAwaiting.mode === "plan") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <Buildin.PlanDialog
             data={state.activeAwaiting}
@@ -772,7 +816,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       );
     }
     if (state.activeAwaiting.mode === "question") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <Buildin.QuestionDialog
             data={state.activeAwaiting}
@@ -782,10 +826,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         </AwaitingShell>
       );
     }
-    return null;
+    return withSelectionSurfaces(null);
   }
 
-  return (
+  return withSelectionSurfaces(
     <ComposerProvider value={composerContextValue}>
       <div
         ref={composerRef}
@@ -881,6 +925,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   attachmentScrollState={attachmentScrollState}
                   onRemoveAttachment={handleRemoveAttachment}
                   onScroll={scrollComposerAttachments}
+                />
+                <SelectedTextFragmentsPill
+                  fragments={selectedText.fragments}
+                  variant="annotations"
+                  onRemove={selectedText.removeFragment}
                 />
                 <Flex wrap gap={4}>
                   {displayedForcedSkills.map((skill) => (

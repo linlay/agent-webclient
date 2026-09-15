@@ -9,6 +9,10 @@
     color: var(--ink-1);
 }
 
+.readonly-run-surface.is-embedded {
+    height: 100%;
+}
+
 .readonly-run-surface-header {
     display: flex;
     min-height: 44px;

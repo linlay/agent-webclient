@@ -760,7 +760,7 @@ describe('useComposerSend active run gate', () => {
     expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
   });
 
-  it('queues a steer instead of sending a new query when the main chat has activeRun but streaming is false', () => {
+  it.each(['hello', ''])('keeps selections out of active-run steering and requires text (%s)', (inputValue) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
     state.currentChatActiveRun = {
@@ -820,7 +820,7 @@ describe('useComposerSend active run gate', () => {
           toggleVoiceMode: jest.fn(),
         },
         hasUploadingAttachments: false,
-        inputValue: 'hello',
+        inputValue,
         isAwaitingActive: false,
         isVoiceMode: false,
         modelOverride: {},
@@ -829,7 +829,10 @@ describe('useComposerSend active run gate', () => {
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
-        sendReferences: [],
+        sendReferences: [
+          { id: 'image-1', type: 'image' },
+          { id: 'selection-1', type: 'selection', meta: { text: 'selected text' } },
+        ],
         setInputValue,
         setSlashDismissed,
         showSlashPalette: false,
@@ -846,6 +849,14 @@ describe('useComposerSend active run gate', () => {
     renderToStaticMarkup(React.createElement(Harness));
     actions?.handleSend();
 
+    if (!inputValue) {
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+        type: 'ENQUEUE_PENDING_STEER',
+      }));
+      expect(setInputValue).not.toHaveBeenCalled();
+      return;
+    }
+
     expect(dispatch).toHaveBeenCalledWith({
       type: 'ENQUEUE_PENDING_STEER',
       chatId: 'chat-1',
@@ -854,6 +865,7 @@ describe('useComposerSend active run gate', () => {
         requestId: 'req_request',
         runId: 'run-active',
         status: 'queued',
+        references: [{ id: 'image-1', type: 'image' }],
       }),
     });
     expect(setInputValue).toHaveBeenCalledWith('');

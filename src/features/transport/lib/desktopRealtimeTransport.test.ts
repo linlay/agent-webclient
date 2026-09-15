@@ -294,6 +294,78 @@ describe("DesktopRealtimeTransport", () => {
     transport.dispose();
   });
 
+  it("marks explanation start, attach, interrupt and detach while ordinary query and BTW stay independent", async () => {
+    const socket = new FakeDesktopPlatformSession();
+    const fetchSpy = jest.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected Desktop HTTP request"));
+    const transport = new DesktopRealtimeTransport({
+      transportVersion: 2,
+      createSession: () => { queueMicrotask(() => socket.connected()); return socket; },
+    });
+    const owner = { kind: "agent" as const, agentKey: "agent-a" };
+    const onMain = jest.fn();
+    const onSide = jest.fn();
+    const onExplanation = jest.fn();
+    try {
+      const main = transport.runs.startQuery({ requestId: "main", chatId: "chat-a", message: "main", owner, onEvent: onMain });
+      const side = transport.runs.startBtw({ requestId: "side", chatId: "chat-a", message: "side", owner, onEvent: onSide });
+      const explanation = transport.runs.startBtw({ requestId: "explanation", chatId: "chat-a", message: "explain", owner,
+        transportPurpose: "selection-explain", onEvent: jest.fn() });
+      await flush();
+      const starts = socket.sent.filter((item) => item.type === "/api/query" || item.type === "/api/btw");
+      expect(starts).toHaveLength(3);
+      const mainFrame = starts.find((item) => (item.payload as Record<string, unknown>).requestId === "main")!;
+      const sideFrame = starts.find((item) => (item.payload as Record<string, unknown>).requestId === "side")!;
+      const explanationFrame = starts.find((item) => (item.payload as Record<string, unknown>).requestId === "explanation")!;
+      expect(mainFrame.payload).not.toHaveProperty("_desktopTransportPurpose");
+      expect(sideFrame.payload).not.toHaveProperty("_desktopTransportPurpose");
+      expect(explanationFrame.payload).toMatchObject({ _desktopTransportPurpose: "selection-explain" });
+      for (const item of starts) {
+        const payload = item.payload as Record<string, unknown>;
+        expect(payload).not.toHaveProperty("transportPurpose");
+        socket.frame({ frame: "stream", id: item.id, event: {
+          type: "run.start", chatId: "chat-a", runId: `run-${payload.requestId}`, agentKey: "agent-a", seq: 1,
+          timestamp: 1_786_890_000_001,
+        } });
+      }
+      await Promise.all([main.identity, side.identity, explanation.identity]);
+      const viewer = transport.runs.subscribe({ chatId: "chat-a", runId: "run-explanation", owner, lastSeq: 0,
+        role: "btw", transportPurpose: "selection-explain", onEvent: onExplanation });
+      await viewer.identity;
+      await flush();
+      const attachFrame = socket.sent.find((item) => item.type === "/api/attach")!;
+      expect(attachFrame.payload).toMatchObject({ runId: "run-explanation", _desktopTransportPurpose: "selection-explain" });
+      expect(socket.sent.filter((item) => item.type === "/api/btw" && (item.payload as Record<string, unknown>)._desktopTransportPurpose)).toHaveLength(1);
+
+      const stopping = transport.runs.interrupt({ runId: "run-explanation", owner, transportPurpose: "selection-explain" });
+      await flush();
+      const interruptFrame = socket.sent.find((item) => item.type === "/api/interrupt")!;
+      expect(interruptFrame.payload).toMatchObject({ runId: "run-explanation", _desktopTransportPurpose: "selection-explain" });
+      socket.frame({ frame: "response", id: interruptFrame.id, code: 0, data: { accepted: true } });
+      await stopping;
+      const detaching = viewer.detach();
+      await flush();
+      const detachFrame = socket.sent.find((item) => item.type === "/api/detach")!;
+      expect(detachFrame.payload).toMatchObject({ runId: "run-explanation", _desktopTransportPurpose: "selection-explain" });
+      socket.frame({ frame: "response", id: detachFrame.id, code: 0, data: { accepted: true } });
+      await detaching;
+      await expect(viewer.completion).resolves.toMatchObject({ reason: "detached" });
+      for (const item of [mainFrame, sideFrame, attachFrame]) {
+        socket.frame({ frame: "stream", id: item.id, event: {
+          type: "content.delta", contentId: "answer", delta: "still active", seq: 2, timestamp: 1_786_890_000_002,
+        } });
+      }
+      expect(onMain).toHaveBeenLastCalledWith(expect.objectContaining({ delta: "still active" }));
+      expect(onSide).toHaveBeenLastCalledWith(expect.objectContaining({ delta: "still active" }));
+      expect(onExplanation).not.toHaveBeenCalled();
+      for (const item of starts) socket.frame({ frame: "stream", id: item.id, reason: "complete", lastSeq: 2 });
+      await Promise.all([main.completion, side.completion, explanation.completion]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      transport.dispose();
+      fetchSpy.mockRestore();
+    }
+  });
+
   it("releases on host inactive and emits recovery lifecycle without reviving the old observer", async () => {
     const originalWindow = (globalThis as { window?: unknown }).window;
     const originalDocument = (globalThis as { document?: unknown }).document;
