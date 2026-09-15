@@ -335,7 +335,16 @@ export function openAgentDirectory(
 	return openAgentDirectoryHttp(params);
 }
 
-export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderModelOptionsResponse>> {
+export function getModelOptions(
+	agentKey?: string,
+	options: { force?: boolean } = {},
+): Promise<ApiResponse<CoderModelOptionsResponse>> {
+	if (options.force) {
+		dataQueryCache.invalidate(createRouteCacheKey(
+			dataEndpoints.modelOptions,
+			resolveEndpointPayload(dataEndpoints.modelOptions, agentKey),
+		));
+	}
 	return routeEndpoint<CoderModelOptionsResponse, string | undefined>(
 		dataEndpoints.modelOptions,
 		agentKey,

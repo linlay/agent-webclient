@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
@@ -291,6 +291,25 @@ export function shouldRetryModelOptionsOnOpen({
   );
 }
 
+export type ModelOptionsSource = "embedded" | "cache" | "fetch";
+
+export function resolveModelOptionsSource({
+  forceRefresh,
+  manualRefreshActive,
+  hasEmbeddedOptions,
+  hasCachedOptions,
+}: {
+  forceRefresh: boolean;
+  manualRefreshActive: boolean;
+  hasEmbeddedOptions: boolean;
+  hasCachedOptions: boolean;
+}): ModelOptionsSource {
+  if (forceRefresh) return "fetch";
+  if (!manualRefreshActive && hasEmbeddedOptions) return "embedded";
+  if (hasCachedOptions) return "cache";
+  return "fetch";
+}
+
 export function normalizeCoderModelOptionsResponse(response: unknown): {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
@@ -469,11 +488,15 @@ export function getCachedCoderModelOptions(
 
 export async function loadCoderModelOptions(
   agentKey = "",
+  options: { force?: boolean } = {},
 ): Promise<LoadedCoderModelOptions> {
   const cacheKey = modelOptionsCacheKey(agentKey);
-  const cachedOptions = cachedCoderModelOptions.get(cacheKey);
-  if (cachedOptions) {
-    return cachedOptions;
+  const force = options.force === true;
+  if (!force) {
+    const cachedOptions = cachedCoderModelOptions.get(cacheKey);
+    if (cachedOptions) {
+      return cachedOptions;
+    }
   }
   const pendingOptions = pendingCoderModelOptionsPromises.get(cacheKey);
   if (pendingOptions) {
@@ -481,7 +504,7 @@ export async function loadCoderModelOptions(
   }
 
   const requestAgentKey = toAgentConfigKey(agentKey) || undefined;
-  const nextPromise = getModelOptions(requestAgentKey)
+  const nextPromise = getModelOptions(requestAgentKey, { force })
     .then((rawResponse) => {
       const options = normalizeCoderModelOptionsResponse(rawResponse);
       if (!options.recognized) {
@@ -615,7 +638,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [modelConfigSaving, setModelConfigSaving] = useState(false);
   const [modelConfigError, setModelConfigError] = useState("");
+  const [modelRefreshFailed, setModelRefreshFailed] = useState(false);
   const appliedDefaultRef = useRef<AppliedDefaultModelOverride | null>(null);
+  const forceRefreshRef = useRef(false);
+  const manualRefreshAgentKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!showModelSelector) {
@@ -630,15 +656,28 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
 
   useEffect(() => {
     if (!shouldShowModelControls || !agentKey) {
+      forceRefreshRef.current = false;
+      manualRefreshAgentKeyRef.current = null;
       setModels([]);
       setReasoningEfforts([]);
       setServiceTiers(filterServiceTierOptions([]));
       setModelDefaults({});
       setModelsLoading(false);
       setModelOptionsStatus("idle");
+      setModelRefreshFailed(false);
       return;
     }
-    if (embeddedModelOptions) {
+    const forceRefresh = forceRefreshRef.current;
+    forceRefreshRef.current = false;
+    const manualRefreshActive = manualRefreshAgentKeyRef.current === agentKey;
+    const cachedOptions = getCachedCoderModelOptions(agentKey);
+    const source = resolveModelOptionsSource({
+      forceRefresh,
+      manualRefreshActive,
+      hasEmbeddedOptions: Boolean(embeddedModelOptions),
+      hasCachedOptions: Boolean(cachedOptions),
+    });
+    if (source === "embedded" && embeddedModelOptions) {
       setModels(embeddedModelOptions.models);
       setReasoningEfforts(embeddedModelOptions.reasoningEfforts);
       setServiceTiers(embeddedModelOptions.serviceTiers);
@@ -656,8 +695,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       );
       return;
     }
-    const cachedOptions = getCachedCoderModelOptions(agentKey);
-    if (cachedOptions) {
+    if (source === "cache" && cachedOptions) {
       setModels(cachedOptions.models);
       setReasoningEfforts(cachedOptions.reasoningEfforts);
       setServiceTiers(cachedOptions.serviceTiers);
@@ -677,8 +715,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     }
     let cancelled = false;
     setModelsLoading(true);
-    setModelOptionsStatus("idle");
-    void loadCoderModelOptions(agentKey)
+    if (!forceRefresh) {
+      setModelOptionsStatus("idle");
+    }
+    void loadCoderModelOptions(agentKey, { force: forceRefresh })
       .then((options) => {
         if (cancelled) return;
         setModels(options.models);
@@ -694,9 +734,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             ? "loaded"
             : "empty",
         );
+        if (forceRefresh) {
+          manualRefreshAgentKeyRef.current = agentKey;
+        }
+        setModelRefreshFailed(false);
       })
       .catch(() => {
         if (cancelled) return;
+        if (forceRefresh) {
+          setModelRefreshFailed(true);
+          return;
+        }
         setModels([]);
         setReasoningEfforts([]);
         setServiceTiers(filterServiceTierOptions([]));
@@ -818,6 +866,16 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const queryModelButtonStateClass = modelsLoading
     ? QUERY_MODEL_BUTTON_STATE_CLASS.loading
     : QUERY_MODEL_BUTTON_STATE_CLASS.idle;
+  const modelErrorText =
+    modelConfigError ||
+    (modelRefreshFailed ? t("composer.query.model.refreshFailed") : "");
+
+  const handleRefreshModels = useCallback(() => {
+    if (!agentKey || modelsLoading || disabled) return;
+    setModelRefreshFailed(false);
+    forceRefreshRef.current = true;
+    setLoadAttempt((attempt) => attempt + 1);
+  }, [agentKey, disabled, modelsLoading]);
 
   const persistModelConfig = async (nextOverride: QueryModelOverride) => {
     const nextModelKey = String(nextOverride.key || "").trim();
@@ -879,9 +937,21 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         selectedServiceTier,
         modelsLoading,
         status: modelOptionsStatus,
+        modelListAction:
+          shouldShowModelControls && agentKey
+            ? {
+                label: t("composer.query.model.refresh"),
+                busy: modelsLoading,
+                disabled: modelConfigSaving,
+                onTrigger: handleRefreshModels,
+              }
+            : undefined,
         t,
       }),
     [
+      agentKey,
+      handleRefreshModels,
+      modelConfigSaving,
       modelOverride,
       modelOptionsStatus,
       models,
@@ -892,6 +962,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       selectedReasoningEffort,
       selectedServiceTier,
       serviceTiers,
+      shouldShowModelControls,
       t,
     ],
   );
@@ -1043,7 +1114,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             variant="ghost"
             size="sm"
             disabled={disabled || modelConfigSaving}
-            title={modelConfigError || t("composer.query.model.title")}
+            title={modelErrorText || t("composer.query.model.title")}
             onClick={(event) => event.preventDefault()}
           >
             {showFastBadge ? <MaterialIcon name="bolt" /> : null}
@@ -1059,8 +1130,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           </UiButton>
         </Dropdown>
       ) : null}
-      {shouldShowModelControls && modelConfigError ? (
-        <span className={QUERY_MODEL_ERROR_CLASS}>{modelConfigError}</span>
+      {shouldShowModelControls && modelErrorText ? (
+        <span className={QUERY_MODEL_ERROR_CLASS}>{modelErrorText}</span>
       ) : null}
     </div>
   );

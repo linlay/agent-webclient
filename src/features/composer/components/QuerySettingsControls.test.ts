@@ -13,6 +13,7 @@ import {
   QuerySettingsControls,
   resolveCoderAgentDefaultModelOverride,
   resolveEmbeddedCoderModelOptions,
+  resolveModelOptionsSource,
   shouldApplyCoderDefaultModelOverride,
   shouldClearModelOverride,
   shouldRetryModelOptionsOnOpen,
@@ -44,6 +45,8 @@ jest.mock("@/shared/i18n", () => ({
         "composer.query.model.group": "模型",
         "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
         "composer.query.model.loading": "正在加载模型...",
+        "composer.query.model.refresh": "刷新模型列表",
+        "composer.query.model.refreshFailed": "刷新模型列表失败",
         "composer.query.model.saving": "保存中...",
         "composer.query.model.title": "选择模型和思考深度",
         "composer.query.reasoning.group": "思考深度",
@@ -79,6 +82,61 @@ type TestMenuItem = {
 function getModelMenuChildren(items: TestMenuItem[]): TestMenuItem[] {
   const modelSubmenu = items.find((item) => item.key === "model-submenu");
   return modelSubmenu?.children?.[0]?.children || [];
+}
+
+function getModelGroupLabel(items: TestMenuItem[]): React.ReactNode {
+  const modelSubmenu = items.find((item) => item.key === "model-submenu");
+  return modelSubmenu?.children?.[0]?.label;
+}
+
+function modelMenuT(key: string): string {
+  const messages: Record<string, string> = {
+    "composer.query.model.empty": "暂无可选模型",
+    "composer.query.model.group": "模型",
+    "composer.query.model.loadFailed": "模型加载失败，重新打开可重试",
+    "composer.query.model.loading": "正在加载模型...",
+    "composer.query.model.refresh": "刷新模型列表",
+    "composer.query.reasoning.group": "思考深度",
+    "composer.query.serviceTier.group": "速度模式",
+  };
+  return messages[key] || key;
+}
+
+function buildTestModelMenu({
+  modelListAction,
+}: {
+  modelListAction?: {
+    label: string;
+    busy?: boolean;
+    disabled?: boolean;
+    onTrigger: () => void;
+  };
+} = {}): TestMenuItem[] {
+  return buildModelMenuItems({
+    models: [
+      {
+        key: "babelark-qwen3_5-plus",
+        name: "Qwen Coder Plus",
+        icon: "Qwen Coder Plus",
+        provider: "babelark",
+        modelId: "qwen3.5-plus",
+        protocol: "OPENAI",
+        isReasoner: true,
+        isVision: true,
+      },
+    ],
+    reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+    modelOverride: { key: "babelark-qwen3_5-plus", reasoningEffort: "HIGH" },
+    selectedModelKey: "babelark-qwen3_5-plus",
+    selectedModelLabel: "Qwen Coder Plus",
+    selectedReasoningEffort: "HIGH",
+    modelListAction,
+    t: modelMenuT,
+  }) as TestMenuItem[];
+}
+
+function renderNode(node: React.ReactNode): string {
+  return renderToStaticMarkup(React.createElement(React.Fragment, null, node));
 }
 
 describe("QuerySettingsControls", () => {
@@ -249,7 +307,7 @@ describe("QuerySettingsControls", () => {
       defaultModelKey: "coder-model",
       defaultReasoningEffort: "NONE",
     });
-    expect(getModelOptions).toHaveBeenCalledWith(undefined);
+    expect(getModelOptions).toHaveBeenCalledWith(undefined, { force: false });
   });
 
   it("loads and caches CODER model options by agent key", async () => {
@@ -276,8 +334,8 @@ describe("QuerySettingsControls", () => {
       models: [{ key: "codex-model", name: "Codex Model" }],
     });
 
-    expect(getModelOptions).toHaveBeenNthCalledWith(1, "claudeCoder");
-    expect(getModelOptions).toHaveBeenNthCalledWith(2, "codexCoder");
+    expect(getModelOptions).toHaveBeenNthCalledWith(1, "claudeCoder", { force: false });
+    expect(getModelOptions).toHaveBeenNthCalledWith(2, "codexCoder", { force: false });
     expect(getModelOptions).toHaveBeenCalledTimes(2);
   });
 
@@ -1112,6 +1170,143 @@ describe("QuerySettingsControls", () => {
       modelKey: "gpt-5.4",
       reasoningEffort: "MEDIUM",
       serviceTier: "FAST",
+    });
+  });
+
+  it("resolves model option sources with manual refresh precedence", () => {
+    expect(
+      resolveModelOptionsSource({
+        forceRefresh: false,
+        manualRefreshActive: false,
+        hasEmbeddedOptions: true,
+        hasCachedOptions: true,
+      }),
+    ).toBe("embedded");
+    expect(
+      resolveModelOptionsSource({
+        forceRefresh: true,
+        manualRefreshActive: true,
+        hasEmbeddedOptions: true,
+        hasCachedOptions: true,
+      }),
+    ).toBe("fetch");
+    expect(
+      resolveModelOptionsSource({
+        forceRefresh: false,
+        manualRefreshActive: true,
+        hasEmbeddedOptions: true,
+        hasCachedOptions: true,
+      }),
+    ).toBe("cache");
+    expect(
+      resolveModelOptionsSource({
+        forceRefresh: false,
+        manualRefreshActive: false,
+        hasEmbeddedOptions: false,
+        hasCachedOptions: false,
+      }),
+    ).toBe("fetch");
+  });
+
+  it("keeps the model list header plain when no refresh action is provided", () => {
+    const items = buildTestModelMenu();
+    const labelHtml = renderNode(getModelGroupLabel(items));
+
+    expect(labelHtml).toBe("模型");
+    expect(labelHtml).not.toContain("query-model-menu-refresh");
+    expect(labelHtml).not.toContain("<button");
+  });
+
+  it("renders the model list refresh button next to the model group title", () => {
+    const onTrigger = jest.fn();
+    const items = buildTestModelMenu({
+      modelListAction: {
+        label: modelMenuT("composer.query.model.refresh"),
+        onTrigger,
+      },
+    });
+    const labelHtml = renderNode(getModelGroupLabel(items));
+
+    expect(items.map((item) => item.key)).toEqual([
+      "reasoning",
+      "service-tier",
+      "model-submenu",
+    ]);
+    expect(getModelMenuChildren(items).map((item) => item.key)).toEqual([
+      "model:babelark-qwen3_5-plus",
+    ]);
+    expect(labelHtml).toContain("query-model-menu-group-title");
+    expect(labelHtml).toContain("模型");
+    expect(labelHtml).toContain('type="button"');
+    expect(labelHtml).toContain("query-model-menu-refresh");
+    expect(labelHtml).toContain('aria-label="刷新模型列表"');
+    expect(labelHtml).toContain('title="刷新模型列表"');
+    expect(labelHtml).toContain("query-model-menu-refresh-icon");
+    expect(labelHtml).not.toContain("is-spinning");
+    expect(labelHtml).not.toContain("disabled");
+    expect(onTrigger).not.toHaveBeenCalled();
+  });
+
+  it("disables and spins the model list refresh button while loading", () => {
+    const items = buildTestModelMenu({
+      modelListAction: {
+        label: modelMenuT("composer.query.model.refresh"),
+        busy: true,
+        onTrigger: jest.fn(),
+      },
+    });
+    const labelHtml = renderNode(getModelGroupLabel(items));
+
+    expect(labelHtml).toContain('aria-busy="true"');
+    expect(labelHtml).toContain("disabled");
+    expect(labelHtml).toContain("query-model-menu-refresh-icon is-spinning");
+  });
+
+  it("disables the model list refresh button while model config is saving", () => {
+    const items = buildTestModelMenu({
+      modelListAction: {
+        label: modelMenuT("composer.query.model.refresh"),
+        disabled: true,
+        onTrigger: jest.fn(),
+      },
+    });
+    const labelHtml = renderNode(getModelGroupLabel(items));
+
+    expect(labelHtml).toContain("disabled");
+    expect(labelHtml).not.toContain("is-spinning");
+  });
+
+  it("reloads model options on demand even when they are cached", async () => {
+    getModelOptions
+      .mockResolvedValueOnce({
+        data: {
+          models: [{ key: "cached-model", name: "Cached Coder", modelId: "qwen3-cached" }],
+          reasoningEfforts: [{ key: "MEDIUM", label: "MEDIUM" }],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          models: [{ key: "fresh-model", name: "Fresh Coder", modelId: "qwen3-fresh" }],
+          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
+        },
+      });
+
+    await expect(loadCoderModelOptions("coder")).resolves.toMatchObject({
+      models: [{ key: "cached-model", name: "Cached Coder" }],
+    });
+    await expect(
+      loadCoderModelOptions("coder", { force: true }),
+    ).resolves.toMatchObject({
+      models: [{ key: "fresh-model", name: "Fresh Coder" }],
+      reasoningEfforts: [{ key: "HIGH" }],
+    });
+    await expect(loadCoderModelOptions("coder")).resolves.toMatchObject({
+      models: [{ key: "fresh-model", name: "Fresh Coder" }],
+    });
+
+    expect(getModelOptions).toHaveBeenCalledTimes(2);
+    expect(getCachedCoderModelOptions("coder")).toMatchObject({
+      models: [{ key: "fresh-model", name: "Fresh Coder" }],
     });
   });
 });
