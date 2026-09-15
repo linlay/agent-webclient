@@ -56,6 +56,11 @@
   line-height: 1.3;
 }
 
+.copyRun {
+  margin-right: auto;
+  flex-shrink: 0;
+}
+
 .runMeta time {
   flex: 0 0 auto;
 }

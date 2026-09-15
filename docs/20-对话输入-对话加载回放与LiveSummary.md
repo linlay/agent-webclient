@@ -77,3 +77,5 @@ Push 只提示同一 Chat 的新 Run，需要重新读取可信 Chat 后才能�
 ### 新会话与路由提交竞争
 
 新会话动作同步登记正在离开的路由目标并使所有旧加载失效，再清空会话；Router 尚未提交时，旧目标的自动加载不得重新创建事务。路由确认变化后释放旧目标保护，允许历史导航与浏览器前进后退重新打开该 Chat。请求应用还必须匹配本地加载 epoch，因此新会话之后迟到的响应不能恢复旧内容或观察者。Standalone 根页面未声明路由 Chat 时继续使用显式历史动作；Standalone Agent/Copilot 与 Desktop guest 共用此规则，不依赖新增宿主 bridge。离开只 detach 观察，不 interrupt 后台 Run。
+
+只读时间线在已结束 Run 下保留复制按钮，与主时间线复用 `serializeRunTranscript`，复制该轮 Query、Thinking、Tools 参数/结果和 Answer；不复制其他 Run 或临时 tool.output，不显示点踩和分支入口。该能力同时适用于 ChatPreview 的实时/快照模式及其他只读时间线容器。

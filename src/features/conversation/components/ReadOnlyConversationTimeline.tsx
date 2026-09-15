@@ -17,6 +17,11 @@ import {
   TimelineInteractionProvider,
   type TimelineInteractionValue,
 } from "@/features/timeline/components/TimelineInteractionContext";
+import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
+import { copyText } from "@/shared/utils/copy";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { UiButton } from "@/shared/ui/UiButton";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { RunTerminalNotice } from "@/features/timeline/components/RunTerminalNotice";
 import { formatResponseDuration } from "@/shared/utils/formatResponseDuration";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
@@ -48,6 +53,7 @@ export const ReadOnlyConversationTimeline: React.FC<
 }) => {
   const { locale, t } = useI18n();
   const openTarget = useOpenTarget();
+  const message = useAppMessage();
   const virtuoso = useRef<VirtuosoHandle>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Map<string, boolean>>(
@@ -132,6 +138,15 @@ export const ReadOnlyConversationTimeline: React.FC<
     [agentKey, chatId, openSource, patchNode, teamChat],
   );
 
+  const copyRun = useCallback(async (item: Extract<TimelineDisplayItem, { kind: "run" }>) => {
+    try {
+      await copyText(serializeRunTranscript(item.queryNode, item.nodes));
+      message.success(t("timeline.toolPill.copy.copied"));
+    } catch {
+      message.error(t("timeline.toolPill.copy.failed"));
+    }
+  }, [message, t]);
+
   const toggleTaskGroup = useCallback((key: string) => {
     setExpandedTaskGroups((current) => ({
       ...current,
@@ -215,11 +230,22 @@ export const ReadOnlyConversationTimeline: React.FC<
                         duration={duration}
                       />
                     ) : null}
-                    {time.short ? (
+                    {item.completedAt ? (
                       <div className={styles.runMeta}>
-                        <time title={time.full}>
+                        <UiButton
+                          className={styles.copyRun}
+                          variant="ghost"
+                          size="sm"
+                          iconOnly
+                          title={t("timeline.toolPill.copy.action")}
+                          aria-label={t("timeline.toolPill.copy.action")}
+                          onClick={() => void copyRun(item)}
+                        >
+                          <MaterialIcon name="content_copy" />
+                        </UiButton>
+                        {time.short ? <time title={time.full}>
                           {time.short}{duration ? ` · ${duration}` : ""}
-                        </time>
+                        </time> : null}
                       </div>
                     ) : null}
                   </section>
