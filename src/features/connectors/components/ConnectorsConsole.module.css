@@ -69,8 +69,6 @@
 
 .listToolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; min-height: var(--connector-toolbar-height); }
 /* Share the top-row height so search and detail tabs have the same text center. */
-.listToolbar :global(.search-filter-bar) { box-sizing: border-box; height: var(--connector-toolbar-height); }
-.listToolbar :global(.search-filter-bar) :global(.ant-input-affix-wrapper) { height: 100%; padding-block: 0; align-items: center; }
 .itemHeading, .itemFooter { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; width: 100%; }
 .itemHeading strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .version { flex-shrink: 0; color: var(--ink-muted); font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; }
