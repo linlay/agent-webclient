@@ -1786,7 +1786,7 @@ export const enUSMessages = {
   "platformError.code.connector_exists": "A connector with this ID is already installed. Confirm replacement or use another connector ID.",
   "platformError.code.invalid_connector": "The connector operation failed validation or could not complete. Check the error details, package, configuration, and file permissions.",
   "connectors.error.details": "Error details",
-  "platformError.generic": "The operation failed. Please try again later.",
+  "platformError.generic": "The operation failed. Please check the error details.",
   "platformError.retryableHint": "You can try again later.",
   "platformError.special.channelNotConnected": "The service channel is not connected. Check the backend channel status.",
   "platformError.technicalDetails": "Technical details",

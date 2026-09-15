@@ -1785,7 +1785,7 @@ export const zhCNMessages = {
   "platformError.code.connector_exists": "同名连接器已安装。请确认是否覆盖，或使用不同的连接器 ID。",
   "platformError.code.invalid_connector": "连接器操作未通过校验或无法完成。请查看错误详情，检查安装包、配置和文件访问权限。",
   "connectors.error.details": "错误详情",
-  "platformError.generic": "操作失败，请稍后重试。",
+  "platformError.generic": "操作失败，请查看错误详情。",
   "platformError.retryableHint": "可以稍后重试。",
   "platformError.special.channelNotConnected": "服务通道未连接，请检查后端通道状态。",
   "platformError.technicalDetails": "技术详情",

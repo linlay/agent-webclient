@@ -1937,7 +1937,7 @@ describe('data client requests', () => {
     });
 
     await expect(downloadResource('private.txt', { chatId: 'chat_01' })).rejects.toMatchObject({
-      message: '操作失败，请稍后重试。',
+      message: '操作失败，请查看错误详情。',
       status: 403,
       code: 40301,
       platformError: expect.objectContaining({
@@ -2246,7 +2246,7 @@ describe('data client requests', () => {
     });
 
     await expect(getChatRawJsonl('missing')).rejects.toMatchObject({
-      message: '操作失败，请稍后重试。',
+      message: '操作失败，请查看错误详情。',
       status: 404,
       code: 404,
       platformError: expect.objectContaining({
