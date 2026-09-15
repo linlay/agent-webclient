@@ -51,7 +51,7 @@ import {
 const COPILOT_SHELL_CLASS =
   "app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-[var(--panel-surface)] tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0";
 const COPILOT_TOPBAR_CLASS =
-  "copilot-topbar tw:relative tw:z-30 tw:row-start-1 tw:flex tw:min-w-0 tw:items-stretch tw:border-b tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-card)_96%,var(--bg-base))] tw:px-2 tw:py-[3px] tw:shadow-elevated tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]";
+  "copilot-topbar tw:relative tw:z-30 tw:row-start-1 tw:flex tw:min-w-0 tw:items-stretch tw:border-b tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-card)_96%,var(--bg-base))] tw:px-2 tw:h-[45px] tw:shadow-elevated tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]";
 const COPILOT_TOPBAR_ROW_CLASS =
   "copilot-topbar-row tw:flex tw:w-full tw:min-w-0 tw:items-center tw:justify-between tw:gap-1.5";
 const COPILOT_TITLE_BLOCK_CLASS =
@@ -325,6 +325,16 @@ const CopilotShellContent: React.FC = () => {
       return;
     }
 
+    // Worker rows can clear a selection while the route Agent is still loading.
+    // Apply the route only once its Agent is available (or loading has failed).
+    if (
+      requestedAgentKey &&
+      routeAgentHydratedKey !== requestedAgentKey &&
+      !state.agents.some((agent) => normalizeRouteValue(agent.key) === requestedAgentKey)
+    ) {
+      return;
+    }
+
     const routeTargetKey = createCopilotRouteTargetKey(
       resolvedAgentKey,
       routeChatId,
@@ -355,7 +365,7 @@ const CopilotShellContent: React.FC = () => {
         },
       }),
     );
-  }, [dispatch, resolvedAgentKey, routeChatId]);
+  }, [dispatch, resolvedAgentKey, routeChatId, requestedAgentKey, routeAgentHydratedKey, state.agents]);
 
   useEffect(() => {
     const navigateToHandledConversation = (

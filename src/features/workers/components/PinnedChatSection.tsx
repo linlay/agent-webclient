@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { Badge, message, Popover } from "antd";
+import { Badge, Popover } from "antd";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useAppContext } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { selectPinnedChats, buildPinnedChatMove } from "@/features/chats/lib/chatPinning";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { useChatPinActions } from "@/features/chats/hooks/useChatPinActions";
@@ -42,6 +43,7 @@ export function PinnedChatSection({ collapsed, onSelectChat, getChatLoading }: {
 }) {
   const { state } = useAppContext();
   const { t } = useI18n();
+  const message = useAppMessage();
   const { update, pending } = useChatPinActions();
   const [expanded, setExpanded] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);

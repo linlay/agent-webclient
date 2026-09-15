@@ -16,6 +16,7 @@ export interface ConnectorSummary {
   name: string;
   version: string;
   type: ConnectorType;
+  auth_browser?: "system" | "embedded";
   auth_mode: "none" | "cli" | "mcp" | "token" | "oneid-token" | "oauth" | null;
   description?: string;
   icon?: string;
@@ -101,6 +102,7 @@ export interface ConnectorAuthSession {
   sessionId: string;
   status: ConnectorAuthStatus;
   authorizationUrl?: string;
+  authBrowser?: "system" | "embedded";
   message?: string;
   expiresAt: string;
 }

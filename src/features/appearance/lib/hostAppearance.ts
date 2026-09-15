@@ -4,7 +4,7 @@ export const HOST_APPEARANCE_TIMEOUT = 2000;
 
 export function readAppearanceBridge(): DesktopAppearanceBridge | null {
   const value = (window as Window & { __AGENT_WEBCLIENT_APPEARANCE__?: DesktopAppearanceBridge }).__AGENT_WEBCLIENT_APPEARANCE__;
-  return value?.version === 1 && typeof value.getSnapshot === "function" && typeof value.subscribe === "function" ? value : null;
+  return value?.version === "1.1" && typeof value.getSnapshot === "function" && typeof value.subscribe === "function" ? value : null;
 }
 
 // Not a navigation protocol. The host is discovered independently, including

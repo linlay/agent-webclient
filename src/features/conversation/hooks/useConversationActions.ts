@@ -216,6 +216,9 @@ export function useConversationActions() {
     conversationViewportRef,
   } = useAppContext();
   const localLoadSeqRef = useRef(0);
+  const loadEpochRef = useRef(0);
+  const observedRouteChatIdRef = useRef<string | undefined>(undefined);
+  const blankIntentRouteRef = useRef<string | null>(null);
   const loadsRef = useRef(new Map<number, Promise<void>>());
   const cancelLoadsRef = useRef(new Map<number, () => void>());
   const { t } = useI18n();
@@ -229,6 +232,24 @@ export function useConversationActions() {
       if (state.chatTransition?.seq !== seq || state.chatTransition.phase === 'error') cancel();
     }
   }, [state.chatTransition]);
+
+  const invalidateChatLoads = useCallback(() => {
+    loadEpochRef.current += 1;
+    for (const cancel of cancelLoadsRef.current.values()) cancel();
+  }, []);
+
+  const syncRouteTarget = useCallback((targetChatId: string | undefined) => {
+    // Undefined belongs to the standalone root, whose history is action-driven.
+    const next = targetChatId === undefined ? undefined : targetChatId.trim();
+    if (observedRouteChatIdRef.current === next) return;
+    const previous = observedRouteChatIdRef.current;
+    observedRouteChatIdRef.current = next;
+    blankIntentRouteRef.current = null;
+    if (previous && !next) {
+      invalidateChatLoads();
+      dispatch({ type: 'CLEAR_CHAT_TRANSITION' });
+    }
+  }, [dispatch, invalidateChatLoads]);
 
   const clearPlanAutoCollapseTimer = useCallback(() => {
     const timer = stateRef.current.planAutoCollapseTimer;
@@ -332,6 +353,10 @@ export function useConversationActions() {
     preserveWorkerContext?: boolean;
     focusComposerOnComplete?: boolean;
   } = {}) => {
+    // Synchronous intent prevents an urgent state reset from letting the old
+    // Router render start another load before navigation commits.
+    blankIntentRouteRef.current = observedRouteChatIdRef.current || null;
+    invalidateChatLoads();
     const preserveWorkerContext = Boolean(options.preserveWorkerContext);
     const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
 
@@ -359,7 +384,7 @@ export function useConversationActions() {
     if (focusComposerOnComplete) {
       focusComposerSoon();
     }
-  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, conversationViewportRef, detachActiveConversationSession, dispatch, dispatchDetachActiveRun, focusComposerSoon, stateRef]);
+  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, conversationViewportRef, detachActiveConversationSession, dispatch, dispatchDetachActiveRun, focusComposerSoon, invalidateChatLoads, stateRef]);
 
   const startNewConversation = useCallback((
     input: StartNewConversationDetail | null | undefined,
@@ -394,9 +419,11 @@ export function useConversationActions() {
 
   const prepareChat = useCallback((chatId: string, options: {
     focusComposerOnComplete?: boolean; forceReload?: boolean; retryError?: boolean; acceptReady?: boolean;
+    routeDriven?: boolean;
   } = {}): ChatTransition | null => {
     chatId = String(chatId || '').trim();
     if (!chatId) return null;
+    if (options.routeDriven && blankIntentRouteRef.current === chatId) return null;
     const current = stateRef.current;
     const existing = current.chatTransition;
     if (existing?.targetChatId === chatId) {
@@ -464,6 +491,7 @@ export function useConversationActions() {
       focusComposerOnComplete?: boolean;
       forceReload?: boolean;
       throwOnError?: boolean;
+      routeDriven?: boolean;
     } = {}): Promise<void> => {
       chatId = String(chatId || '').trim();
       if (!chatId) return Promise.resolve();
@@ -487,8 +515,9 @@ export function useConversationActions() {
       if (transition.phase !== 'loading') return Promise.resolve();
       const transitionStartsInBackground = transition.displayMode === 'background';
       const scope = { cancelled: false };
+      const loadEpoch = loadEpochRef.current;
       const isLoadCurrent = () => {
-        if (scope.cancelled) return false;
+        if (scope.cancelled || loadEpoch !== loadEpochRef.current) return false;
         const latestState = stateRef.current;
         if (transition.deadlineAt && Date.now() >= transition.deadlineAt) return false;
         if (latestState.chatLoadSeq >= seq) {
@@ -769,6 +798,7 @@ export function useConversationActions() {
 
   return {
     activateBlankConversation,
+    syncRouteTarget,
     prepareChat,
     loadChat,
     startNewConversation,

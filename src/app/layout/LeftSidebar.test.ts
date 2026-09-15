@@ -612,7 +612,9 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain('id="settings-btn"');
     expect(html).toContain("打开设置菜单");
-    expect(html).toContain(">夜<");
+    expect(html).not.toContain(">夜<");
+    expect(html).not.toContain(">日<");
+    expect(html).toContain('data-material-icon="dark_mode"');
     expect(html).toContain("aria-haspopup=\"menu\"");
     expect(html).toContain("settings-summary-chip");
     expect(html).toContain("icon-btn ui-icon-hover-24");
@@ -751,14 +753,14 @@ describe("LeftSidebar", () => {
     expect(html).toContain("记忆");
     expect(html).toContain("智能体");
     expect(html).not.toContain('data-badge-count="6"');
-    expect(html).toContain('data-material-icon="smart_toy"');
+    expect(html).toContain('data-material-icon="agent_type"');
     expect(html).not.toContain('data-material-icon="robot_2"');
-    expect(html).toMatch(
-      /class="[^\"]*\bui-icon-hover-24-target\b[^\"]*" data-material-icon="psychology"/,
-    );
-    expect(html).toMatch(
-      /class="[^\"]*\bui-icon-hover-24-target\b[^\"]*" data-material-icon="smart_toy"/,
-    );
+    for (const name of ["schedule", "psychology", "agent_type"]) {
+      const icon = html.match(new RegExp(`<span[^>]*data-material-icon="${name}"[^>]*>`))?.[0];
+      expect(icon).toBeDefined();
+      expect(icon).not.toContain("ui-icon-hover-24-target");
+      expect(icon).toContain("tw:text-[16px]");
+    }
     expect(html).toContain("sidebar-static-icon");
     expect(html).toMatch(
       /class="ui-icon-hover-24"[^>]*><span class="material-icon" data-material-icon="list_arrow"/,

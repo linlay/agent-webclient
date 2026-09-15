@@ -27,6 +27,7 @@ import { ComposerAttachments } from "@/features/composer/components/ComposerAtta
 import { ComposerInput } from "@/features/composer/components/ComposerInput";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
+import { ComposerContextBar } from "@/features/composer/components/ComposerContextBar";
 import {
   isDedicatedKbaseWorker,
   resolveCurrentWorkerSummary,
@@ -74,6 +75,7 @@ import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 
 interface ComposerAreaProps {
+  enableNewChatContext?: boolean;
   emptyInputMinRows?: number;
   inputMaxRows?: number;
   showWonders?: boolean;
@@ -86,7 +88,7 @@ const COMPOSER_LAYOUT_CLASS =
 const COMPOSER_STACK_CLASS =
   "composer-stack tw:flex tw:min-w-0 tw:flex-1 tw:flex-col";
 const COMPOSER_PILL_CLASS =
-  "composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:gap-[2px] tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:text-[13px] tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[16px]";
+  "composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:gap-[2px] tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[10px]";
 const COMPOSER_PILL_FRONTEND_CLASS = "tw:hidden";
 const COMPOSER_PILL_VOICE_CLASS =
   "tw:!border-[color-mix(in_srgb,var(--accent-electric)_16%,var(--line-soft))] tw:!bg-[radial-gradient(circle_at_0%_0%,rgba(94,165,255,0.1),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(13,191,143,0.08),transparent_36%),color-mix(in_srgb,var(--bg-elev-2)_97%,transparent)] tw:!py-1.5 tw:!pr-1.5 tw:!pl-3";
@@ -95,6 +97,7 @@ const VOICE_HINT_CLASS =
 const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 export const ComposerArea: React.FC<ComposerAreaProps> = ({
+  enableNewChatContext = false,
   emptyInputMinRows = 5,
   inputMaxRows = 10,
   showWonders = true,
@@ -666,7 +669,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const {
     currentAgentWonders,
     reshuffleWonders,
-    sampledGreeting,
+    sampledIntroduction,
     sampledWonders,
   } = useComposerWonders({
     agents: state.agents,
@@ -887,6 +890,26 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             ]}
           >
             <div className={COMPOSER_STACK_CLASS}>
+              {enableNewChatContext && isBlankConversation && !chatTransitionBlocking && !isFrontendActive && (
+                <ComposerContextBar
+                  agents={state.agents}
+                  workerRows={state.workerRows}
+                  currentAgentKey={currentAgentKey}
+                  currentWorkerName={currentWorker?.displayName}
+                  isCoder={planningModeAvailable}
+                  isKbase={editingModeAvailable}
+                  disabled={chatTransitionBlocking || isVoiceMode}
+                  onSelectAgent={(agentKey) => {
+                    window.dispatchEvent(new CustomEvent("agent:select-worker", {
+                      detail: {
+                        workerKey: `agent:${agentKey}`,
+                        focusComposerOnComplete: true,
+                        preferNewChat: true,
+                      },
+                    }));
+                  }}
+                />
+              )}
               <div
                 ref={composerPillRef}
                 className={`${COMPOSER_PILL_CLASS} ${isFrontendActive ? COMPOSER_PILL_FRONTEND_CLASS : ""} ${isVoiceMode ? COMPOSER_PILL_VOICE_CLASS : ""}`}
@@ -957,7 +980,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   disabled={chatTransitionBlocking}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
-                  placeholder={sampledGreeting}
+                  placeholder={sampledIntroduction}
                   currentWorkerName={
                     state.voiceChat.currentAgentName ||
                     currentWorker?.displayName ||

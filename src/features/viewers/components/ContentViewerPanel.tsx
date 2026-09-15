@@ -21,7 +21,8 @@ import {
 } from "@/features/viewers/lib/viewerTarget";
 import type { DocumentContentKind } from "@/shared/types/document";
 import { t } from "@/shared/i18n";
-import { Button, Image, message } from "antd";
+import { Button, Image } from "antd";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useAppState } from "@/app/state/AppContext";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import {
@@ -307,6 +308,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   surfaceContext,
 }) => {
   const appState = useAppState();
+  const message = useAppMessage();
   const chatId = String(surfaceContext?.chatId ?? (target.type === "resource" ? target.source?.chatId : undefined) ?? appState.chatId ?? "").trim();
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
   const teamChat = surfaceContext?.teamChat ?? Boolean(
@@ -408,7 +410,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
           : t("contentViewer.error.download"),
       );
     }
-  }, [chatId, target, teamChat]);
+  }, [chatId, message, target, teamChat]);
   useDesktopCurrentResourceDownload(
     enableDesktopCurrentResourceDownload ? handleDownload : null,
   );
@@ -680,6 +682,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     documentKind,
     documentRevision,
     documentSaving,
+    message,
     resourceMimeType,
     resourceSource,
     target,

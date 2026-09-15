@@ -5,7 +5,7 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 
 ## 核心职责
 - 管理文本输入、IME、键盘发送、换行和焦点。
-- 提供 slash 命令、Agent Skills 多选、agent mention、随机 greeting/wonders 和快捷操作。
+- 提供 slash 命令、Agent Skills 多选、agent mention、随机 introductions/wonders 和快捷操作。
 - 在 awaiting、voice、streaming、frontend tool 活跃时限制不安全输入。
 - 展示附件、语音、模型、访问级别和 planning mode 控件入口。
 
@@ -54,3 +54,23 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 - `../src/features/btw/components/BtwProvider.tsx`
 
 技能中心管理列表与 Composer 使用相同的技能置顶偏好。名称右侧的置顶按钮使用 14px 图标、透明背景和绝对定位，不独占列表列宽；未置顶时仅悬停或键盘聚焦显示灰色图标，已置顶时始终显示主题正文色（浅色近黑、深色浅色）。取消置顶恢复目录默认相对顺序，描述继续使用完整行宽。
+
+## New Chat 项目上下文与 Git 分支
+
+仅主界面 New Chat 的 `ComposerContextBar` 显示上方半框；已有会话及 Copilot（含新会话）不显示。智能体菜单复用 `AgentSwitcherPopover`，当前不显示环境标识；系统大类图标与智能体自定义图标独立，上框图标保持 16×16 并跟随主题。
+
+`useProjectGit` 在半框挂载后通过独立 HTTP `GET /api/project/git?agentKey=...` 异步读取，不阻塞 `/api/agents` 或 `/api/agent`。是否有 Git 仓库由 Platform 按实际 Workspace 判定，不按 CODER/KBASE 筛选，也不使用 `projectConfig.git.expectedBranch` 作为当前分支。
+
+- `branch` 显示真实 `branch`；空仓库也可有分支，`commit` 可省略。
+- `detached` 显示“游离 HEAD · 短 SHA”；完整 SHA 保留在 title。
+- `not_repository`、`no_workspace`、请求加载中、`unavailable`、请求失败或不合法响应均隐藏整个分支项（图标与文字），不显示占位或错误提示。
+
+挂载、切换智能体、Workspace 路径变化、窗口聚焦或页面重新可见时刷新；不轮询，不缓存 Git 状态。切换时立即隐藏旧分支，取消旧请求，并校验响应身份与 effect 生命周期，防止迟到响应串线。没有智能体（例如 Team）不请求。点击有效分支项打开本地分支菜单，按需加载后可切换已有分支或输入名称“新建并切换”。
+
+分支菜单通过 `GET /api/project/git/branches?agentKey=...` 加载本地分支；提交使用同路径 POST `{agentKey,operation:"switch"|"create",branch,expectedRevision}`。revision 来自菜单打开时的 Git 快照，不使用配置期望分支代替。创建从当前 HEAD 开始并立即切换；不处理远端分支、重命名或删除。
+
+操作期间禁用重复提交并暂停该分支项的自动读取；成功后关闭菜单并刷新，失败保留菜单与 Git 原因并重新读取状态，不自动重试写入。切换智能体会卸载旧菜单，旧读取请求取消、旧 mutation 响应忽略；已发出的写操作不会因 UI 卸载被前端中止。`canChange:false` 时展示后端边界原因并禁用写操作：仓库子目录、包含 ChatsRoot 的 Workspace 或无工作树只读。CODER 配置 `expectedBranch` 时提示其运行约束，分支切换不会修改 Agent 配置。
+
+新会话通过 `useAgentWelcome` 共享 `/api/agent` 查询：`greetings` 随机选一条作为主标题，缺失或仅空白时回退“与 <agentName> 对话”；`introductions` 独立随机选一条作为输入框 placeholder，缺失时保留默认输入提示。标题与 Composer 复用查询缓存及并发去重，切换智能体按 key 隔离，普通重渲染保持文案稳定。
+
+`greetings` 支持固定占位符 `${agent}`：前端按字面标记拆分并嵌入现有智能体切换按钮；没有其他智能体可切换时显示名称文本。无标记时保留普通问候语，未知标记保持原文，不执行表达式或 HTML。`introductions` 不解析此占位符。

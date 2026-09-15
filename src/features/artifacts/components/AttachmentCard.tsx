@@ -1,5 +1,4 @@
 import React from "react";
-import { message } from "antd";
 import { useAppState } from "@/app/state/AppContext";
 import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
@@ -16,6 +15,7 @@ import { useI18n } from "@/shared/i18n";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import styles from "./AttachmentCard.module.css";
 
 interface AttachmentCardData extends AttachmentLike {
@@ -68,6 +68,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   surfaceContext,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const openTarget = useOpenTarget();
   const appState = useAppState();
   const chatId = String(surfaceContext?.chatId ?? appState.chatId ?? "").trim();
@@ -190,7 +191,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
         toggle: activateMode === "toggle",
       });
     }
-  }, [activateMode, artifactId, attachment.id, canActivate, chatId, openTarget, resourceTarget, surfaceContext?.agentKey, t]);
+  }, [activateMode, artifactId, attachment.id, canActivate, chatId, message, openTarget, resourceTarget, surfaceContext?.agentKey, t]);
 
   const contextTarget = React.useMemo(() => ({
     targetId: `attachment:${contextTargetId}`,

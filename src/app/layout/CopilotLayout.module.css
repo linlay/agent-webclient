@@ -3,7 +3,7 @@
 }
 
 :global(.layout-copilot):global(.is-desktop-copilot-host) :global(.copilot-topbar-actions) {
-    margin-right: 38px;
+    margin-right: 30px;
 }
 
 :global(.layout-copilot) :global(.timeline-stack) {
@@ -182,7 +182,6 @@
     grid-template-columns: 1fr;
 }
 
-:global(.layout-copilot) :global(.command-scope-group),
 :global(.layout-copilot) :global(.settings-segmented),
 :global(.layout-copilot) :global(.automation-console-toolbar),
 :global(.layout-copilot) :global(.automation-detail-actions),
@@ -202,19 +201,6 @@
 
 :global(.layout-copilot) :global(.command-switch-compact) :global(.command-list-item) {
     padding: 9px 10px;
-}
-
-:global(.layout-copilot) :global(.command-switch-compact) :global(.command-list-head) {
-    align-items: center;
-    gap: 8px;
-}
-
-:global(.layout-copilot) :global(.command-switch-compact) :global(.command-list-head) strong {
-    white-space: nowrap;
-}
-
-:global(.layout-copilot) :global(.command-switch-compact) :global(.command-list-meta) {
-    font-size: 12px;
 }
 
 :global(.layout-copilot) :global(.command-switch-worker-icon) {
@@ -287,7 +273,7 @@ html[data-theme="dark"] :global(.copilot-side-panel) {
 }
 
 :global(.copilot-drawer) :global(.ant-drawer-body) {
-    padding: 6px 10px 10px;
+    padding: 0;
 }
 
 :global(.copilot-drawer):global(.is-automation-console) :global(.ant-drawer-body) {

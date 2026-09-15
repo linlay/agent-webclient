@@ -69,6 +69,7 @@ export interface AgentFormState {
   tools: string[];
   skills: string[];
   greetingsText: string;
+  introductionsText: string;
   wondersText: string;
   contextTags: string[];
   visibilityScopes: string[];
@@ -97,6 +98,7 @@ export const EMPTY_FORM: AgentFormState = {
   tools: [],
   skills: [],
   greetingsText: "[]",
+  introductionsText: "[]",
   wondersText: "[]",
   contextTags: [],
   visibilityScopes: ["nav"],
@@ -619,6 +621,7 @@ export function fallbackDefinition(
   if (Array.isArray(detail.skills))
     definition.skillConfig = { skills: detail.skills };
   if (Array.isArray(detail.greetings)) definition.greetings = detail.greetings;
+  if (Array.isArray(detail.introductions)) definition.introductions = detail.introductions;
   if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
   if (Array.isArray(detail.controls)) definition.controls = detail.controls;
   if (Array.isArray(visibility.scopes))
@@ -666,6 +669,10 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
     skills: textListFromUnknown(skillConfig.skills || detail.skills),
     greetingsText: stringifyJson(
       definition.greetings ?? detail.greetings ?? [],
+      "[]",
+    ),
+    introductionsText: stringifyJson(
+      definition.introductions ?? detail.introductions ?? [],
       "[]",
     ),
     wondersText: stringifyJson(
@@ -755,6 +762,15 @@ export function buildDefinition(
   );
   if (greetings === undefined) delete definition.greetings;
   else definition.greetings = greetings;
+
+  const introductions = parseJsonField(
+    t("agentConsole.field.introductions"),
+    form.introductionsText,
+    t,
+    { expectArray: true },
+  );
+  if (introductions === undefined) delete definition.introductions;
+  else definition.introductions = introductions;
 
   const wonders = parseJsonField(
     t("agentConsole.field.wonders"),

@@ -47,18 +47,17 @@ const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 const TIMELINE_ROW_BASE_CLASS_NAME = "timeline-row tw:relative";
 const TIMELINE_ROW_USER_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
-const TIMELINE_ROW_FLOW_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-flow tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:items-start tw:gap-2.5`;
-const TIMELINE_ROW_PLANNING_CLASS_NAME = `${TIMELINE_ROW_FLOW_CLASS_NAME} tw:my-5`;
+const TIMELINE_ROW_FLOW_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-flow tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:items-start tw:gap-2.5 tw:mb-[2px]`;
 const TIMELINE_USER_STACK_CLASS_NAME =
   "timeline-user-stack tw:flex tw:flex-col tw:items-end tw:gap-2";
 const TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME =
   "timeline-user-attachments tw:w-full tw:justify-end";
 const TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME = "tw:flex tw:gap-2.5 tw:flex-wrap";
-const TIMELINE_MARKER_CLASS_NAME = "timeline-marker tw:flex";
+const TIMELINE_MARKER_CLASS_NAME = "timeline-marker tw:relative tw:flex tw:self-stretch";
 const NODE_ICON_BASE_CLASS_NAME =
-  "node-icon tw:relative tw:z-[2] tw:inline-flex tw:h-[18px] tw:w-[18px] tw:items-center tw:justify-center tw:[&_.material-icon]:text-lg tw:[&_svg]:block tw:[&_svg]:h-[18px] tw:[&_svg]:w-[18px] tw:[&_svg]:stroke-current tw:[&_svg]:stroke-[1.8] tw:[&_svg]:[stroke-linecap:round] tw:[&_svg]:[stroke-linejoin:round]  tw:bg-bg-base tw:outline tw:outline-3 tw:outline-bg-base";
+  "node-icon tw:relative tw:z-[2] tw:inline-flex tw:h-[18px] tw:w-[18px] tw:items-center tw:justify-center tw:[&_.material-icon]:text-lg tw:[&_svg]:block tw:[&_svg]:h-[18px] tw:[&_svg]:w-[18px] tw:[&_svg]:stroke-current tw:[&_svg]:stroke-[1.8] tw:[&_svg]:[stroke-linecap:round] tw:[&_svg]:[stroke-linejoin:round]";
 const NODE_ICON_STEER_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-steer tw:text-accent-electric`;
-const NODE_ICON_PLANNING_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-planning tw:text-accent-electric-strong`;
+const NODE_ICON_PLANNING_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-planning tw:text-accent-electric-strong tw:rounded-full`;
 const NODE_ICON_CLASS_BY_KIND: Record<string, string> = {
   thinking: "node-icon-thinking tw:text-accent-warn",
   "awaiting-answer": "node-icon-awaiting-answer tw:text-accent-warn",
@@ -205,7 +204,7 @@ const NodeIcon: React.FC<{
 }> = ({ kind, role, messageVariant, systemMessageLevel }) => {
   if (isCommandMessageVariant(messageVariant)) {
     return (
-      <span className={NODE_ICON_STEER_CLASS_NAME}>
+      <span className={`${NODE_ICON_STEER_CLASS_NAME} tw:rounded-full`}>
         <SteerIcon />
       </span>
     );
@@ -247,7 +246,7 @@ const NodeIcon: React.FC<{
   }
 
   return (
-    <span className={className}>
+    <span className={`${className} tw:rounded-full`}>
       <MaterialIcon name={iconName} />
     </span>
   );
@@ -566,7 +565,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   if (node && node.kind === "planning") {
     return (
       <div
-        className={TIMELINE_ROW_PLANNING_CLASS_NAME}
+        className={TIMELINE_ROW_FLOW_CLASS_NAME}
         data-kind="planning"
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}

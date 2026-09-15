@@ -1,3 +1,4 @@
+import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, {
   useCallback,
   useEffect,
@@ -199,7 +200,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                         : t("composer.actions.screenshot")
               }
             >
-              <MaterialIcon name="crop_free" />
+              <SkinVisual slot="chat.screenshot"><MaterialIcon name="crop_free" /></SkinVisual>
             </UiButton>
           ) : null}
           {planningMode && canUsePlanningMode && (
@@ -291,7 +292,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               onClick={() => void interruptCurrentRun()}
               aria-label={t("composer.actions.interrupt")}
             >
-              <MaterialIcon name="stop_circle" style={{ fontSize: 28 }} />
+              <SkinVisual slot="chat.stop" size={28}><MaterialIcon name="stop_circle" style={{ fontSize: 28 }} /></SkinVisual>
             </UiButton>
           </>
         ) : !isVoiceMode ? (
@@ -325,7 +326,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                     : speechStatus
                 }
               >
-                <MaterialIcon name="mic" />
+                <SkinVisual slot="chat.voice"><MaterialIcon name="mic" /></SkinVisual>
               </UiButton>
             ) : null}
             <UiButton
@@ -338,7 +339,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               onClick={handleSend}
               aria-label={t("composer.actions.send")}
             >
-              <MaterialIcon name="arrow_upward" />
+              <SkinVisual slot="chat.send"><MaterialIcon name="arrow_upward" /></SkinVisual>
             </UiButton>
           </>
         ) : null}

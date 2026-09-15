@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Modal, Spin, Tooltip, message } from "antd";
+import { Alert, Button, Modal, Spin, Tooltip } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { copyText } from "@/shared/utils/copy";
 import {
   buildCopyAllText,
@@ -34,6 +35,7 @@ export const CopyInfoModal: React.FC<{
   onClose,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const [copyFeedback, setCopyFeedback] = useState<Record<string, CopyFeedback>>({});
   const timersRef = useRef<Map<string, number>>(new Map());
 

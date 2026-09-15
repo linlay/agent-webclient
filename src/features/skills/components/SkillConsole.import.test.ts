@@ -60,6 +60,9 @@ async function selectZIP() {
   const openButton = container.querySelector<HTMLButtonElement>('button[aria-label="新建技能"]');
   expect(openButton).toBeDefined();
   await act(async () => openButton!.click());
+  const manual = Array.from(document.querySelectorAll('[role="menuitem"]')).find(item => item.textContent?.includes("手工创建")) as HTMLElement;
+  expect(manual).toBeDefined();
+  await act(async () => manual.click());
   const file = new File(["server detects the archive"], "download.zip", { type: "application/zip" });
   const input = document.body.querySelector<HTMLInputElement>('input[type="file"][accept=".zip,application/zip"]')!;
   await act(async () => Simulate.change(input, { target: { files: [file] } } as any));

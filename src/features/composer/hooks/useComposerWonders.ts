@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppState } from "@/app/state/AppContext";
-import { getAgent } from "@/shared/data";
+import { useAgentWelcome } from "@/features/agents/hooks/useAgentWelcome";
 import {
-  normalizeGreetings,
   normalizeWonders,
-  pickRandomGreeting,
   pickRandomWonders,
 } from "@/features/composer/lib/wonders";
 
@@ -25,17 +23,9 @@ export function shouldLoadComposerAgentDetails(
 export function useComposerWonders(input: UseComposerWondersInput) {
   const { agents, currentAgentKey, isBlankConversation, showWonders = true } = input;
   const blankWonderSignatureRef = useRef("");
-  const blankGreetingSignatureRef = useRef("");
   const wasBlankConversationRef = useRef(false);
-  const wasBlankGreetingConversationRef = useRef(false);
-  const [agentWonderCache, setAgentWonderCache] = useState<
-    Record<string, string[]>
-  >({});
-  const [agentGreetingCache, setAgentGreetingCache] = useState<
-    Record<string, string[]>
-  >({});
   const [sampledWonders, setSampledWonders] = useState<string[]>([]);
-  const [sampledGreeting, setSampledGreeting] = useState("");
+  const { introduction: sampledIntroduction, detail } = useAgentWelcome(currentAgentKey, isBlankConversation);
 
   const currentAgentWonders = useMemo(() => {
     if (!currentAgentKey) {
@@ -48,91 +38,8 @@ export function useComposerWonders(input: UseComposerWondersInput) {
     if (fromState.length > 0) {
       return fromState;
     }
-    return agentWonderCache[currentAgentKey] || [];
-  }, [agentWonderCache, agents, currentAgentKey]);
-
-  const currentAgentGreetings = useMemo(() => {
-    if (!currentAgentKey) {
-      return [];
-    }
-    return agentGreetingCache[currentAgentKey] || [];
-  }, [agentGreetingCache, currentAgentKey]);
-
-  useEffect(() => {
-    if (!shouldLoadComposerAgentDetails(currentAgentKey, isBlankConversation)) {
-      return;
-    }
-    if (
-      Object.prototype.hasOwnProperty.call(agentWonderCache, currentAgentKey)
-      && Object.prototype.hasOwnProperty.call(agentGreetingCache, currentAgentKey)
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    void getAgent(currentAgentKey)
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-        const payload = (response.data || {}) as {
-          greetings?: unknown;
-          wonders?: unknown;
-        };
-        const greetings = normalizeGreetings(payload.greetings);
-        const wonders = normalizeWonders(payload.wonders);
-        setAgentWonderCache((current) => {
-          if (Object.prototype.hasOwnProperty.call(current, currentAgentKey)) {
-            return current;
-          }
-          return {
-            ...current,
-            [currentAgentKey]: wonders,
-          };
-        });
-        setAgentGreetingCache((current) => {
-          if (Object.prototype.hasOwnProperty.call(current, currentAgentKey)) {
-            return current;
-          }
-          return {
-            ...current,
-            [currentAgentKey]: greetings,
-          };
-        });
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-        setAgentWonderCache((current) => {
-          if (Object.prototype.hasOwnProperty.call(current, currentAgentKey)) {
-            return current;
-          }
-          return {
-            ...current,
-            [currentAgentKey]: [],
-          };
-        });
-        setAgentGreetingCache((current) => {
-          if (Object.prototype.hasOwnProperty.call(current, currentAgentKey)) {
-            return current;
-          }
-          return {
-            ...current,
-            [currentAgentKey]: [],
-          };
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    agentGreetingCache,
-    agentWonderCache,
-    currentAgentKey,
-    isBlankConversation,
-  ]);
+    return normalizeWonders(detail?.wonders);
+  }, [detail, agents, currentAgentKey]);
 
   useEffect(() => {
     const signature = currentAgentKey
@@ -166,53 +73,11 @@ export function useComposerWonders(input: UseComposerWondersInput) {
     showWonders,
   ]);
 
-  useEffect(() => {
-    const signature = currentAgentKey
-      ? `${currentAgentKey}\u0000${currentAgentGreetings.join("\u0001")}`
-      : "";
-    const shouldShowGreeting =
-      isBlankConversation && signature !== "" && currentAgentGreetings.length > 0;
-
-    if (!shouldShowGreeting) {
-      if (sampledGreeting) {
-        setSampledGreeting("");
-      }
-      blankGreetingSignatureRef.current = "";
-      wasBlankGreetingConversationRef.current = false;
-      return;
-    }
-
-    if (
-      !wasBlankGreetingConversationRef.current ||
-      blankGreetingSignatureRef.current !== signature
-    ) {
-      setSampledGreeting(pickRandomGreeting(currentAgentGreetings));
-      blankGreetingSignatureRef.current = signature;
-    }
-    wasBlankGreetingConversationRef.current = true;
-  }, [
-    currentAgentGreetings,
-    currentAgentKey,
-    isBlankConversation,
-    sampledGreeting,
-  ]);
-
   const reshuffleWonders = useCallback(() => {
     if (currentAgentWonders.length > 0) {
       setSampledWonders(pickRandomWonders(currentAgentWonders, 3));
     }
   }, [currentAgentWonders]);
 
-  return {
-    agentGreetingCache,
-    agentWonderCache,
-    currentAgentWonders,
-    sampledGreeting,
-    sampledWonders,
-    setAgentGreetingCache,
-    setAgentWonderCache,
-    setSampledGreeting,
-    setSampledWonders,
-    reshuffleWonders,
-  };
+  return { currentAgentWonders, sampledIntroduction, sampledWonders, reshuffleWonders };
 }

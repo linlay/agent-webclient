@@ -812,6 +812,44 @@ describe("AgentConsole definition mapping", () => {
     ], null, 2));
   });
 
+  it("reads introductions from definition first and falls back to detail data", () => {
+    const withDefinition = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      introductions: ["detail introduction"],
+      meta: {},
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+        introductions: [" definition introduction ", ""],
+      },
+    });
+    const fromDetail = formFromDetail({
+      key: "agent-b",
+      name: "Agent B",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      introductions: [" detail fallback "],
+      meta: {},
+    });
+
+    expect(withDefinition.introductionsText).toBe(JSON.stringify([
+      " definition introduction ",
+      "",
+    ], null, 2));
+    expect(fromDetail.introductionsText).toBe(JSON.stringify([
+      " detail fallback ",
+    ], null, 2));
+  });
+
   it("preserves greetings and wonders JSON on save and removes blank fields", () => {
     const form = formFromDetail({
       key: "agent-a",
@@ -857,6 +895,53 @@ describe("AgentConsole definition mapping", () => {
     expect(normalized.greetings).toEqual([" Hello ", "", " Welcome back "]);
     expect(normalized.wonders).toEqual([" Try this ", "  "]);
     expect(cleared.greetings).toBeUndefined();
+    expect(cleared.wonders).toBeUndefined();
+  });
+  it("preserves introductions and wonders JSON on save and removes blank fields", () => {
+    const form = formFromDetail({
+      key: "agent-a",
+      name: "Agent A",
+      model: "gpt-5",
+      mode: "REACT",
+      tools: [],
+      skills: [],
+      controls: [],
+      meta: {},
+      definition: {
+        key: "agent-a",
+        name: "Agent A",
+        introductions: ["old introduction"],
+        wonders: ["old wonder"],
+      },
+    });
+    const normalized = buildDefinition(
+      {
+        ...form,
+        introductionsText: '[" Hello ", "", " Welcome back "]',
+        wondersText: '[" Try this ", "  "]',
+      },
+      {
+        key: "agent-a",
+        name: "Agent A",
+        introductions: ["old introduction"],
+        wonders: ["old wonder"],
+      },
+      translate,
+    );
+    const cleared = buildDefinition(
+      { ...form, introductionsText: "  ", wondersText: "" },
+      {
+        key: "agent-a",
+        name: "Agent A",
+        introductions: ["old introduction"],
+        wonders: ["old wonder"],
+      },
+      translate,
+    );
+
+    expect(normalized.introductions).toEqual([" Hello ", "", " Welcome back "]);
+    expect(normalized.wonders).toEqual([" Try this ", "  "]);
+    expect(cleared.introductions).toBeUndefined();
     expect(cleared.wonders).toBeUndefined();
   });
 

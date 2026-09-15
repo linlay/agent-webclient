@@ -17,5 +17,5 @@ export function toText(value: unknown): string {
 
 export function isTerminalStatus(status?: string): boolean {
   const value = String(status || '').trim().toLowerCase();
-  return value === 'completed' || value === 'failed' || value === 'canceled' || value === 'cancelled';
+  return value === 'success' || value === 'error' || value === 'completed' || value === 'failed' || value === 'canceled' || value === 'cancelled';
 }

@@ -8,6 +8,12 @@ import { formatCompactUsageNumber } from "@/features/usage/lib/usageMetrics";
 import { formatOverviewTime, type OverviewRunInfo } from "@/features/overview/lib/overviewRunInfo";
 import styles from "./OverviewRunInfo.module.css";
 
+function contextLevel(percent: number): "ok" | "warn" | "danger" {
+  if (percent >= 90) return "danger";
+  if (percent >= 70) return "warn";
+  return "ok";
+}
+
 export const OverviewRunInfoSection: React.FC<{
   info: OverviewRunInfo;
   hasContent: boolean;
@@ -56,6 +62,7 @@ export const OverviewRunInfoSection: React.FC<{
         <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} aria-hidden="true" />
         <span className={styles.title}>{t("rightSidebar.overview.runInfo.title")}</span>
         <span className={styles.status} data-status={info.status}>
+          <span className={styles.statusDot} data-status={info.status} aria-hidden="true" />
           {t(`rightSidebar.overview.runInfo.status.${info.status}`)}
         </span>
         {duration ? <span className={styles.duration}>· {duration}</span> : null}
@@ -77,11 +84,16 @@ export const OverviewRunInfoSection: React.FC<{
             <dt>{t("rightSidebar.overview.runInfo.context")}</dt>
             <dd className={styles.context}>
               {info.context ? <>
-                <span title={`${info.context.current.toLocaleString(locale)} / ${info.context.max.toLocaleString(locale)}`}>
-                  {formatCompactUsageNumber(info.context.current)} / {formatCompactUsageNumber(info.context.max)}
-                  <span className={styles.percent}>{info.context.percent}%</span>
-                </span>
-                <progress max={100} value={Math.min(100, info.context.percent)}
+                <div className={styles.contextHead}>
+                  <span className={styles.contextValue} title={`${info.context.current.toLocaleString(locale)} / ${info.context.max.toLocaleString(locale)}`}>
+                    {formatCompactUsageNumber(info.context.current)} / {formatCompactUsageNumber(info.context.max)}
+                  </span>
+                  <span className={styles.percent} data-level={contextLevel(info.context.percent)}>
+                    {info.context.percent}%
+                  </span>
+                </div>
+                <progress className={styles.progress} max={100} value={Math.min(100, info.context.percent)}
+                  data-level={contextLevel(info.context.percent)}
                   aria-label={t("rightSidebar.overview.runInfo.context")} />
               </> : "—"}
             </dd>

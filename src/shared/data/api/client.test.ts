@@ -50,6 +50,9 @@ import {
   getProjectChanges,
   getProjectDiff,
   getProjectTree,
+  getProjectGit,
+  getProjectGitBranches,
+  changeProjectGitBranch,
   getAgentOrder,
   getAgents,
   getChatLLMTraceRaw,
@@ -1143,6 +1146,25 @@ describe('data client requests', () => {
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
       '/api/file?agentKey=knowledge-agent&path=docs%2Fguide.md',
     );
+  });
+
+  it('loads local branches separately and posts the explicit branch mutation', async () => {
+    await getProjectGitBranches('knowledge');
+    await changeProjectGitBranch({ agentKey: 'knowledge', operation: 'create', branch: 'feature/new', expectedRevision: 'revision' });
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/project/git/branches?agentKey=knowledge');
+    const [url, options] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toBe('/api/project/git/branches');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body as string)).toEqual({ agentKey: 'knowledge', operation: 'create', branch: 'feature/new', expectedRevision: 'revision' });
+  });
+
+  it('requests live Git state independently with abort and no HTTP cache', async () => {
+    const controller = new AbortController();
+    await getProjectGit('knowledge agent', { signal: controller.signal });
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/project/git?agentKey=knowledge+agent');
+    expect(options.signal).toBe(controller.signal);
+    expect(options.cache).toBe('no-store');
   });
 
   it('requests project tree, changes, and diff over fixed HTTP endpoints', async () => {

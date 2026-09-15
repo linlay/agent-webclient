@@ -130,6 +130,8 @@ export class DataQueryCache {
     entry.abortController = null;
     entry.snapshot = {
       ...entry.snapshot,
+      status: entry.snapshot.status === "error" ? "idle" : entry.snapshot.status,
+      error: null,
       isStale: true,
     };
     this.emit(entry);
@@ -149,6 +151,8 @@ export class DataQueryCache {
       entry.abortController = null;
       entry.snapshot = {
         ...entry.snapshot,
+        status: entry.snapshot.status === "error" ? "idle" : entry.snapshot.status,
+        error: null,
         isStale: true,
       };
       this.emit(entry);
@@ -341,7 +345,7 @@ export function useDataQuery<TInput, TData>(
     if (!enabled) {
       return;
     }
-    if (snapshot.status === "idle" || snapshot.isStale) {
+    if (snapshot.status !== "error" && (snapshot.status === "idle" || snapshot.isStale)) {
       void refetch().catch(() => undefined);
     }
   }, [enabled, refetch, snapshot.isStale, snapshot.status]);

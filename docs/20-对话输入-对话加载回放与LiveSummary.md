@@ -63,3 +63,17 @@ Agent Copilot 使用相同的稳定对话身份规则：新对话收到稳定 `c
 - `../src/features/runs/lib/runAgentIdentity.ts`
 - `../src/app/layout/sidebar/WorkerConversationPreviewList.tsx`
 - `../src/app/layout/sidebar/WorkerChatPreviewItem.tsx`
+
+## 独立 ChatPreview 局部状态
+
+`useChatPreview` 装配 React-free `chatPreviewRuntime`，使用 `getChat`、`buildChatReplayProjection` 和统一 RunTransport。状态只属于当前预览页，不写入主会话、已读标记或 sessionStorage。路由 Chat 或 live 参数变化首帧隐藏旧投影，并销毁旧 runtime；请求 epoch 与订阅 epoch 使旧响应、identity/completion 和迟到事件全部失效。
+
+冷 replay 丢弃 `tool.output`。只读 stream 使用 `applyReadOnlyStreamEvent` 投影展示命令，保留从 stream 到达的 request.query（观察者没有 Composer 乐观消息），忽略有副作用的命令。工具临时输出只留在 live 节点，不进入 events；tool.result 替换并移除临时终端。
+
+事件按 Chat/Run/seq 校验、重复去重；序列缺口、seq_expired/replay_required 每个 Run/激活周期至多自动 replay 一次，再失败保留内容和稳定错误，显式重新加载可开启新恢复周期。关闭或 inactive 只 detach，恢复激活时重新读取服务端 Chat，再决定是否 attach。run.complete/error/cancel 投影后清除 activeRun 并释放观察者，结果继续显示。只有 stream completion 而没有协议终态时最多重新校准一次，不把传输完成伪装为运行完成。
+
+Push 只提示同一 Chat 的新 Run，需要重新读取可信 Chat 后才能订阅；不直接以 Push owner 建立授权。相同 Run 提示去重，读取期间到达的新 Run 提示在响应后校准，不轮询。`live=false` 完全跳过 Run/Push/重连观察，仅加载快照。
+
+### 新会话与路由提交竞争
+
+新会话动作同步登记正在离开的路由目标并使所有旧加载失效，再清空会话；Router 尚未提交时，旧目标的自动加载不得重新创建事务。路由确认变化后释放旧目标保护，允许历史导航与浏览器前进后退重新打开该 Chat。请求应用还必须匹配本地加载 epoch，因此新会话之后迟到的响应不能恢复旧内容或观察者。Standalone 根页面未声明路由 Chat 时继续使用显式历史动作；Standalone Agent/Copilot 与 Desktop guest 共用此规则，不依赖新增宿主 bridge。离开只 detach 观察，不 interrupt 后台 Run。

@@ -165,6 +165,7 @@ function invalidateRouteEndpoints(
 ): void {
 	for (const endpoint of endpoints) {
 		dataQueryCache.invalidatePrefix(createRouteCachePrefix(endpoint));
+		dataQueryCache.invalidatePrefix(`${endpoint.key}:`);
 	}
 }
 

@@ -2,7 +2,7 @@
 import { observeHostAppearance, HOST_APPEARANCE_TIMEOUT } from "./hostAppearance";
 import { parseDesktopAppearance, type DesktopAppearanceBridge, type DesktopAppearanceSnapshot } from "@/shared/contracts/desktopAppearance";
 
-const snapshot = (revision = 1, resolvedTheme: "light" | "dark" = "dark"): DesktopAppearanceSnapshot => ({ schemaVersion: 1, revision, resolvedTheme, skinId: "mist", tokens: { "--accent": "#83c79a" }, background: { mode: "host" } });
+const snapshot = (revision = 1, resolvedTheme: "light" | "dark" = "dark"): DesktopAppearanceSnapshot => ({ schemaVersion: "1.1", revision, resolvedTheme, skinId: "mist", tokens: { "--accent": "#83c79a" }, background: { mode: "host" } });
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
 describe("host appearance independent lifecycle", () => {
   beforeEach(() => jest.useFakeTimers());
@@ -12,7 +12,7 @@ describe("host appearance independent lifecycle", () => {
     let respond!: (value: DesktopAppearanceSnapshot) => void;
     const order: string[] = [];
     const bridge: DesktopAppearanceBridge = {
-      version: 1,
+      version: "1.1",
       subscribe: (listener) => { order.push("subscribe"); push = listener; return jest.fn(); },
       getSnapshot: jest.fn(() => { order.push("read"); return new Promise((resolve) => { respond = resolve; }); }),
     };
@@ -33,7 +33,7 @@ describe("host appearance independent lifecycle", () => {
     let bridge: DesktopAppearanceBridge | null = null;
     const changed = jest.fn();
     const stop = observeHostAppearance(changed, () => bridge);
-    bridge = { version: 1, subscribe: () => () => {}, getSnapshot: jest.fn(() => new Promise(() => {})) };
+    bridge = { version: "1.1", subscribe: () => () => {}, getSnapshot: jest.fn(() => new Promise(() => {})) };
     jest.advanceTimersByTime(1000); await flush();
     jest.advanceTimersByTime(HOST_APPEARANCE_TIMEOUT);
     expect(changed).toHaveBeenLastCalledWith(null);

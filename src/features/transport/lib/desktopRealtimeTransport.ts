@@ -94,6 +94,10 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
     }
   }
 
+  isSurfaceActive(): boolean {
+    return !this.disposed && this.effectiveSurfaceActive;
+  }
+
   getStatus(): RealtimeConnectionStatus {
     return this.disposed ? "disposed" : this.client.getStatus();
   }

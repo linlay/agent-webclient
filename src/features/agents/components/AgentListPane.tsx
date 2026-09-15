@@ -1,3 +1,4 @@
+import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import React, { useMemo } from "react";
 import {
   closestCenter,
@@ -41,6 +42,7 @@ export interface AgentListPaneProps {
   onSearchTextChange: (value: string) => void;
   onRefresh: () => void;
   onCreate: () => void;
+  onCreateConversation?: () => void;
   onSelect: (agentKey: string) => void;
   onDraggingAgentKeyChange: (agentKey: string) => void;
   onMove: (sourceKey: string, targetKey: string) => void | Promise<void>;
@@ -171,9 +173,7 @@ export const AgentListPane: React.FC<AgentListPaneProps> = (props) => {
         <UiButton size="sm" variant="ghost" iconOnly onClick={props.onRefresh} disabled={props.loading} loading={props.loading} aria-label={props.t("agentConsole.action.refresh")}>
           <MaterialIcon name="refresh" />
         </UiButton>
-        <UiButton size="sm" variant="primary" iconOnly aria-label={props.t("agentConsole.action.new")} onClick={props.onCreate}>
-          <MaterialIcon name="add" />
-        </UiButton>
+        <CreateMenuButton label={props.t("agentConsole.action.new")} onManual={props.onCreate} onConversation={props.onCreateConversation} />
       </div>
       <div className="agent-console-count">
         <span>{props.t("agentConsole.list.count", { count: props.agents.length })}</span>

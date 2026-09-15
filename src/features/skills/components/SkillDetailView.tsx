@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { notification, Spin } from "antd";
 import { getAdminSkillDetail, getAdminSource } from "@/shared/data";
 import type {
@@ -7,6 +7,9 @@ import type {
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { useHighlightCode } from "@/shared/ui/markdown-code/useHighlight";
+import { usePanelResize } from "@/shared/ui/usePanelResize";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { UiButton } from "@/shared/ui/UiButton";
 import "@/shared/ui/markdown-code/highlight-theme.css";
 import {
   findPreferredSkillFileEntry,
@@ -18,18 +21,23 @@ import {
 
 const SKILL_DETAIL_VIEW_CLASS =
   "skill-detail-view tw:flex  tw:min-h-0 tw:flex-col tw:gap-3 tw:overflow-hidden";
+const SKILL_DETAIL_RESIZE_HANDLE_CLASS = "skill-console-resize-handle";
 const SKILL_DETAIL_PANELS_CLASS =
-  "skill-detail-view-panels tw:grid tw:h-full tw:min-h-0 tw:flex-1 tw:grid-cols-[minmax(200px,260px)_minmax(0,1fr)] tw:gap-1 tw:p-1 tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
-const SKILL_DETAIL_TREE_CLASS =
-  "skill-detail-view-tree tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-auto";
+  "skill-detail-view-panels tw:flex tw:h-full tw:min-h-0 tw:flex-1 tw:overflow-hidden";
 const SKILL_DETAIL_CONTENT_CLASS =
-  "skill-detail-view-content tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden";
+  "skill-detail-view-content tw:flex tw:min-h-0 tw:min-w-0 tw:flex-1 tw:flex-col tw:overflow-hidden";
+const SKILL_DETAIL_TREE_CLASS =
+  "skill-detail-view-tree tw:relative tw:flex tw:min-h-0 tw:w-[var(--skill-detail-tree-col,280px)] tw:flex-none tw:flex-col tw:overflow-hidden tw:border-l tw:border-line-soft";
+const SKILL_DETAIL_TREE_TOOLBAR_CLASS =
+  "skill-detail-view-tree-toolbar tw:h-[45px] tw:flex tw:flex-none tw:items-center tw:justify-between tw:gap-2 tw:px-[10px]";
+const SKILL_DETAIL_TREE_LIST_CLASS =
+  "skill-detail-view-tree-list tw:min-h-0 tw:flex-auto tw:overflow-auto";
 const SKILL_DETAIL_CONTENT_HEAD_CLASS =
-  "skill-detail-view-content-head tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:text-[11px] tw:text-ink-muted";
+  "skill-detail-view-content-head tw:px-[10px] tw:h-[45px] tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-2 tw:text-[11px] tw:text-ink-muted";
 const SKILL_DETAIL_PATH_CLASS =
   "skill-detail-view-path tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:font-code tw:text-ink-1";
 const SKILL_DETAIL_PRE_CLASS =
-  "skill-detail-view-pre tw:min-h-0 tw:flex-1 tw:overflow-auto tw:rounded-control tw:border tw:p-3 tw:m-0 tw:font-code tw:text-[12px] tw:leading-[1.5] tw:text-ink-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)] tw:[tab-size:2]";
+  "skill-detail-view-pre tw:min-h-0 tw:flex-1 tw:overflow-auto tw:p-3 tw:m-0 tw:font-code tw:text-[12px] tw:leading-[1.5] tw:text-ink-1 tw:[tab-size:2]";
 const SKILL_DETAIL_META_CLASS =
   "skill-detail-view-meta tw:flex tw:flex-col tw:gap-3 tw:rounded-control tw:border tw:p-3 tw:text-sm tw:text-ink-1 tw:[border-color:color-mix(in_srgb,var(--line-soft)_82%,transparent)]";
 const SKILL_DETAIL_META_GRID_CLASS =
@@ -56,6 +64,30 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(
     new Set(["references", "scripts", "assets"]),
   );
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [fileTreeOpen, setFileTreeOpen] = useState(false);
+  const fileTreeInitializedRef = useRef(false);
+  const [fileTreeWidth, setFileTreeWidth] = useState(280);
+  const fileTreeStartWidthRef = useRef(280);
+  const { handlePointerDown: handleFileTreeResize } = usePanelResize({
+    axis: "horizontal",
+    invert: true,
+    onResizeStart: () => {
+      fileTreeStartWidthRef.current = fileTreeWidth;
+    },
+    onResize: (delta) =>
+      setFileTreeWidth(
+        Math.max(200, Math.min(520, fileTreeStartWidthRef.current + delta)),
+      ),
+  });
+
+  useLayoutEffect(() => {
+    if (fileTreeInitializedRef.current || !rootRef.current) return;
+    fileTreeInitializedRef.current = true;
+    if (rootRef.current.offsetWidth >= 800) {
+      setFileTreeOpen(true);
+    }
+  }, [detail]);
 
   const applyBinaryEntry = useCallback((entry: AdminSkillFileEntry) => {
     setSelectedFilePath(entry.path);
@@ -203,39 +235,7 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
   }
 
   return (
-    <div className={SKILL_DETAIL_PANELS_CLASS}>
-      <div className={SKILL_DETAIL_TREE_CLASS}>
-        {visibleEntries.length === 0 ? (
-          <div className="tw:text-[11px] tw:text-ink-muted tw:p-1">
-            {t("skillConsole.fileTree.empty")}
-          </div>
-        ) : (
-          visibleEntries.map((entry) => {
-            const isSelected = entry.path === selectedFilePath;
-            const paddingLeft = 8 + entry.depth * 16;
-            return (
-              <button
-                key={entry.path}
-                type="button"
-                className={`tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:py-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:hover:bg-bg-hover ${
-                  isSelected ? "tw:bg-bg-selected tw:font-medium" : ""
-                }`}
-                style={{ paddingLeft, paddingRight: 8 }}
-                onClick={() => handleSelectEntry(entry)}
-              >
-                <SkillFileEntryIcon
-                  entry={entry}
-                  expanded={expandedDirs.has(entry.path)}
-                />
-                <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-                  {entry.name}
-                </span>
-              </button>
-            );
-          })
-        )}
-      </div>
-
+    <div ref={rootRef} className={SKILL_DETAIL_PANELS_CLASS}>
       <div className={SKILL_DETAIL_CONTENT_CLASS}>
         {selectedEntry ? (
           <>
@@ -255,6 +255,18 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
                     : selectedEntry.mimeType || "Binary"}
               </span>
               {fileSize !== undefined && <span>{formatSize(fileSize)}</span>}
+              {!fileTreeOpen && (
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  className="ui-icon-hover-24"
+                  iconOnly
+                  onClick={() => setFileTreeOpen(true)}
+                  aria-label={t("skillConsole.action.expandFileTree")}
+                >
+                  <MaterialIcon name="dock_to_left" />
+                </UiButton>
+              )}
             </div>
 
             {selectedEntry.contentKind === "text" ? (
@@ -294,11 +306,95 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
             )}
           </>
         ) : (
-          <div className="command-empty-state">
-            {t("skillConsole.fileTree.empty")}
-          </div>
+          <>
+            <div className={SKILL_DETAIL_CONTENT_HEAD_CLASS}>
+              {!fileTreeOpen && (
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  className="ui-icon-hover-24"
+                  iconOnly
+                  onClick={() => setFileTreeOpen(true)}
+                  aria-label={t("skillConsole.action.expandFileTree")}
+                >
+                  <MaterialIcon name="dock_to_left" />
+                </UiButton>
+              )}
+            </div>
+            <div className="command-empty-state">
+              {t("skillConsole.fileTree.empty")}
+            </div>
+          </>
         )}
       </div>
+
+      {fileTreeOpen && (
+        <div
+          className={SKILL_DETAIL_TREE_CLASS}
+          style={
+            {
+              "--skill-detail-tree-col": `${fileTreeWidth}px`,
+            } as React.CSSProperties
+          }
+        >
+          <button
+            type="button"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={t("skillConsole.resize.fileTreeAriaLabel")}
+            title={t("skillConsole.resize.fileTreeTitle")}
+            className={SKILL_DETAIL_RESIZE_HANDLE_CLASS}
+            style={{ left: -4 }}
+            onPointerDown={handleFileTreeResize}
+          />
+          <div className={SKILL_DETAIL_TREE_TOOLBAR_CLASS}>
+            <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted">
+              {t("skillConsole.fileTree.root")}
+            </span>
+            <UiButton
+              size="sm"
+              variant="ghost"
+              className="ui-icon-hover-24"
+              iconOnly
+              onClick={() => setFileTreeOpen(false)}
+              aria-label={t("skillConsole.action.collapseFileTree")}
+            >
+              <MaterialIcon name="dock_to_right" />
+            </UiButton>
+          </div>
+          <div className={SKILL_DETAIL_TREE_LIST_CLASS}>
+            {visibleEntries.length === 0 ? (
+              <div className="tw:text-[11px] tw:text-ink-muted tw:p-1">
+                {t("skillConsole.fileTree.empty")}
+              </div>
+            ) : (
+              visibleEntries.map((entry) => {
+                const isSelected = entry.path === selectedFilePath;
+                const paddingLeft = 8 + entry.depth * 16;
+                return (
+                  <button
+                    key={entry.path}
+                    type="button"
+                    className={`tw:rounded-none tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:border-0 tw:bg-transparent tw:py-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:hover:bg-bg-hover ${
+                      isSelected ? "tw:bg-bg-selected tw:font-medium" : ""
+                    }`}
+                    style={{ paddingLeft, paddingRight: 8 }}
+                    onClick={() => handleSelectEntry(entry)}
+                  >
+                    <SkillFileEntryIcon
+                      entry={entry}
+                      expanded={expandedDirs.has(entry.path)}
+                    />
+                    <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
+                      {entry.name}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

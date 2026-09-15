@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Virtuoso } from "react-virtuoso";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import type { ChatDetailResponse } from "@/shared/data";
@@ -29,6 +29,9 @@ export interface ReadOnlyConversationTimelineProps {
   agents: Agent[];
   agentKey?: string;
   teamChat?: boolean;
+  startAtBottom?: boolean;
+  ariaLabel?: string;
+  emptyLabel?: string;
 }
 
 export const ReadOnlyConversationTimeline: React.FC<
@@ -39,9 +42,14 @@ export const ReadOnlyConversationTimeline: React.FC<
   agents,
   agentKey = "",
   teamChat = false,
+  startAtBottom = false,
+  ariaLabel,
+  emptyLabel,
 }) => {
   const { locale, t } = useI18n();
   const openTarget = useOpenTarget();
+  const virtuoso = useRef<VirtuosoHandle>(null);
+  const [atBottom, setAtBottom] = useState(true);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Map<string, boolean>>(
     () => new Map(),
   );
@@ -52,6 +60,7 @@ export const ReadOnlyConversationTimeline: React.FC<
   const activeRunId = String(chat.activeRun?.runId || "").trim();
 
   useEffect(() => {
+    setAtBottom(true);
     setExpandedNodeIds(new Map());
     setExpandedTaskGroups({});
   }, [chatId]);
@@ -77,6 +86,12 @@ export const ReadOnlyConversationTimeline: React.FC<
       ),
     [activeRunId, projection, timelineEntries],
   );
+  useEffect(() => {
+    if (!startAtBottom || !atBottom) return;
+    const frame = requestAnimationFrame(() => virtuoso.current?.autoscrollToBottom());
+    return () => cancelAnimationFrame(frame);
+  }, [projection, startAtBottom, atBottom]);
+
   const patchNode = useCallback((node: TimelineNode) => {
     setExpandedNodeIds((current) => {
       const next = new Map(current);
@@ -146,7 +161,7 @@ export const ReadOnlyConversationTimeline: React.FC<
   if (displayItems.length === 0) {
     return (
       <div className={styles.empty} role="status">
-        {t("automationHistory.chat.empty")}
+        {emptyLabel || t("automationHistory.chat.empty")}
       </div>
     );
   }
@@ -156,9 +171,13 @@ export const ReadOnlyConversationTimeline: React.FC<
       <div
         className={styles.root}
         role="region"
-        aria-label={t("automationHistory.panel.chat")}
+        aria-label={ariaLabel || t("automationHistory.panel.chat")}
       >
         <Virtuoso
+          ref={startAtBottom ? virtuoso : undefined}
+          initialTopMostItemIndex={startAtBottom ? { index: "LAST", align: "end" } : undefined}
+          followOutput={startAtBottom ? "auto" : false}
+          atBottomStateChange={startAtBottom ? setAtBottom : undefined}
           className={styles.virtuoso}
           data={displayItems}
           computeItemKey={(_index, item) => item.key}
@@ -221,6 +240,10 @@ export const ReadOnlyConversationTimeline: React.FC<
             );
           }}
         />
+        {startAtBottom && !atBottom && <button type="button" className={styles.latest}
+          onClick={() => virtuoso.current?.scrollToIndex({ index: "LAST", align: "end", behavior: "auto" })}>
+          {t("chatPreview.latest")}
+        </button>}
       </div>
     </TimelineInteractionProvider>
   );

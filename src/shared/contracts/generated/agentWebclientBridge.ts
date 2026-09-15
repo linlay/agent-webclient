@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:e740b86c0e6465df40535aa8a97640f8a776432ff9ed9b6c8298134c547558bc
+// sha256:dcd8ac1f077b5a45999abc1f0f9bf5b3a8f4ccb128c7af517a7ed368baf919a6
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -42,7 +42,7 @@ export type AgentWebclientAppearanceToken =
   | "--control-disabled-opacity";
 export type AgentWebclientAppearanceTokens = Partial<Record<AgentWebclientAppearanceToken, string>>;
 export type AgentWebclientAppearanceSnapshot = {
-  schemaVersion: 1;
+  schemaVersion: "1.1";
   revision: number;
   resolvedTheme: "light" | "dark";
   skinId: string;
@@ -50,7 +50,7 @@ export type AgentWebclientAppearanceSnapshot = {
   background: { mode: "host" | "opaque" };
 };
 export type AgentWebclientAppearanceBridge = {
-  readonly version: 1;
+  readonly version: "1.1";
   getSnapshot(): Promise<AgentWebclientAppearanceSnapshot | null>;
   subscribe(listener: (snapshot: AgentWebclientAppearanceSnapshot | null) => void): () => void;
 };
@@ -87,7 +87,7 @@ export function parseAgentWebclientAppearanceTokens(value: unknown): AgentWebcli
 }
 
 export function parseAgentWebclientAppearanceSnapshot(value: unknown): AgentWebclientAppearanceSnapshot | null {
-  if (!appearanceRecord(value) || value.schemaVersion !== 1 ||
+  if (!appearanceRecord(value) || value.schemaVersion !== "1.1" ||
     !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 ||
     (value.resolvedTheme !== "light" && value.resolvedTheme !== "dark") ||
     typeof value.skinId !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,95}$/.test(value.skinId) ||
@@ -96,7 +96,7 @@ export function parseAgentWebclientAppearanceSnapshot(value: unknown): AgentWebc
     (value.background.mode !== "host" && value.background.mode !== "opaque")) return null;
   const tokens = parseAgentWebclientAppearanceTokens(value.tokens);
   return tokens ? {
-    schemaVersion: 1, revision: Number(value.revision), resolvedTheme: value.resolvedTheme,
+    schemaVersion: "1.1", revision: Number(value.revision), resolvedTheme: value.resolvedTheme,
     skinId: value.skinId, tokens, background: { mode: value.background.mode }
   } : null;
 }
@@ -601,4 +601,116 @@ export function isAgentWebclientSurfaceKind(value: unknown): value is AgentWebcl
     "agent-project",
     "agent-management",
   ].includes(String(value));
+}
+// Connector authorization is independent of WorkPanel and Platform Frame Port versions.
+export const CONNECTOR_AUTH_BROWSER_GLOBAL = "__AGENT_WEBCLIENT_CONNECTOR_AUTH_BROWSER__";
+export const CONNECTOR_AUTH_BROWSER_CHANNEL = "connectorAuth.browser";
+export const CONNECTOR_AUTH_BROWSER_EVENT = "connectorAuth.browser.event";
+export const CONNECTOR_AUTH_BROWSER_HOST_EVENT = "connectorAuth.browser.host";
+export const CONNECTOR_AUTH_BROWSER_HOST_CLOSE = "connectorAuth.browser.hostClose";
+export interface ConnectorAuthBrowserIdentity { connectorId: string; sessionId: string; }
+export interface ConnectorAuthBrowserBridge {
+  readonly version: 1;
+  open(input: ConnectorAuthBrowserIdentity): Promise<void>;
+  close(input: ConnectorAuthBrowserIdentity): Promise<void>;
+  subscribe(listener: (event: ConnectorAuthBrowserIdentity) => void): () => void;
+}
+export interface ConnectorAuthBrowserDialog extends ConnectorAuthBrowserIdentity {
+  dialogId: string;
+  url: string;
+  partition: string;
+}
+
+// Appearance 1.1 transfers visual metadata separately from on-demand PNG bytes.
+// Only current trusted documents may read the active skin resources.
+export const SKIN_VISUAL_SLOTS = [
+  "navigation.search", "navigation.back", "navigation.forward", "navigation.sidebar_left", "navigation.sidebar_right",
+  "navigation.refresh", "navigation.more_actions", "entry.kanban", "entry.automation", "entry.new_chat", "entry.new_project",
+  "entry.chat", "entry.project", "entry.website", "chat.send", "chat.stop", "chat.attach", "chat.expand", "chat.collapse", "chat.voice", "chat.screenshot",
+  "agent.default", "agent.terminal", "agent.database", "agent.library", "agent.folder", "agent.coder", "agent.kbase",
+  "heading.chats.zh-CN", "heading.projects.zh-CN", "heading.websites.zh-CN",
+  "heading.chats.en-US", "heading.projects.en-US", "heading.websites.en-US"
+] as const;
+export type SkinVisualSlot = typeof SKIN_VISUAL_SLOTS[number];
+export type SkinVisualStyles = {
+  unread?: string; unreadText?: string; pending?: string; pendingText?: string;
+  unreadShape?: "circle" | "heart";
+  /** Optional 3–64 polygon vertices in percentage coordinates; overrides unreadShape. */
+  unreadOutline?: [number, number][];
+  badgeShape?: "round" | "pill";
+  headingStyle?: "default" | "rounded";
+};
+export type SkinVisuals = { images: Partial<Record<SkinVisualSlot, string>>; styles: SkinVisualStyles };
+export const SKIN_VISUAL_LIMITS = { assetBytes: 256 * 1024, totalBytes: 4 * 1024 * 1024, maxDimension: 1024 } as const;
+export function parseSkinVisuals(value: unknown, parseImage: (value: unknown) => string | null): SkinVisuals | null {
+  if (!appearanceRecord(value) || Object.keys(value).some(key => !["images", "styles"].includes(key))) return null;
+  const images = value.images ?? {}, styles = value.styles ?? {};
+  if (!appearanceRecord(images) || !appearanceRecord(styles) || Object.keys(images).length > SKIN_VISUAL_SLOTS.length) return null;
+  const result: SkinVisuals = { images: {}, styles: {} };
+  for (const [key, raw] of Object.entries(images)) {
+    if (!(SKIN_VISUAL_SLOTS as readonly string[]).includes(key)) return null;
+    const image = parseImage(raw);
+    if (!image) return null;
+    result.images[key as SkinVisualSlot] = image;
+  }
+  for (const [key, raw] of Object.entries(styles)) {
+    if (["unread", "unreadText", "pending", "pendingText"].includes(key)) {
+      const color = parseAgentWebclientAppearanceTokens({ "--accent": raw })?.["--accent"];
+      // Indicators must remain visible; alpha/transparent are intentionally excluded.
+      if (!color || !/^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(color)) return null;
+      result.styles[key as "unread"] = color;
+    } else if (key === "unreadShape" && typeof raw === "string" && ["circle", "heart"].includes(raw)) result.styles.unreadShape = raw as "circle" | "heart";
+    else if (key === "unreadOutline") {
+      if (!Array.isArray(raw) || raw.length < 3 || raw.length > 64 || raw.some(point =>
+        !Array.isArray(point) || point.length !== 2 || point.some(n => typeof n !== "number" || !Number.isFinite(n) || n < 0 || n > 100))) return null;
+      result.styles.unreadOutline = raw.map(point => [point[0], point[1]]);
+    }
+    else if (key === "badgeShape" && typeof raw === "string" && ["round", "pill"].includes(raw)) result.styles.badgeShape = raw as "round" | "pill";
+    else if (key === "headingStyle" && typeof raw === "string" && ["default", "rounded"].includes(raw)) result.styles.headingStyle = raw as "default" | "rounded";
+    else return null;
+  }
+  return result;
+}
+export function skinVisualStyleVariables(styles: SkinVisualStyles): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key of ["unread", "unreadText", "pending", "pendingText"] as const) {
+    if (styles[key]) result[`--skin-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`] = styles[key]!;
+  }
+  if (styles.badgeShape) result["--skin-badge-radius"] = styles.badgeShape === "pill" ? "6px" : "999px";
+  if (styles.badgeShape) result["--skin-badge-padding"] = "3px";
+  if (styles.headingStyle === "rounded") result["--skin-heading-font"] = 'ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif';
+  if (styles.unreadShape) result["--skin-unread-clip"] = styles.unreadShape === "heart"
+    ? "polygon(50% 95%, 5% 48%, 0% 25%, 12% 8%, 30% 5%, 50% 23%, 70% 5%, 88% 8%, 100% 25%, 95% 48%)" : "none";
+  if (styles.unreadOutline) result["--skin-unread-clip"] = `polygon(${styles.unreadOutline.map(([x, y]) => `${x}% ${y}%`).join(", ")})`;
+  return result;
+}
+export const AGENT_WEBCLIENT_VISUALS_GLOBAL = "__AGENT_WEBCLIENT_VISUALS__" as const;
+export const AGENT_WEBCLIENT_VISUALS_CHANNEL = "desktop:service-webview:visuals" as const;
+export const AGENT_WEBCLIENT_VISUAL_ASSET_CHANNEL = "desktop:service-webview:visual-asset" as const;
+export type AgentWebclientVisualSnapshot = { schemaVersion: "1.1"; revision: number; resourceSet: string; visuals: SkinVisuals };
+export type AgentWebclientVisualBridge = {
+  readonly version: "1.1";
+  getSnapshot(): Promise<AgentWebclientVisualSnapshot | null>;
+  subscribe(listener: (value: AgentWebclientVisualSnapshot | null) => void): () => void;
+  getAsset(resourceSet: string, slot: SkinVisualSlot): Promise<string | null>;
+};
+export function parseAgentWebclientVisualSnapshot(value: unknown): AgentWebclientVisualSnapshot | null {
+  if (!appearanceRecord(value) || value.schemaVersion !== "1.1" || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 ||
+    typeof value.resourceSet !== "string" || !/^[a-f\d-]{36}$/i.test(value.resourceSet) ||
+    Object.keys(value).some(key => !["schemaVersion", "revision", "resourceSet", "visuals"].includes(key))) return null;
+  const visuals = parseSkinVisuals(value.visuals, raw => typeof raw === "string" && (SKIN_VISUAL_SLOTS as readonly string[]).includes(raw) ? raw : null);
+  if (!visuals || Object.entries(visuals.images).some(([slot, id]) => slot !== id)) return null;
+  return { schemaVersion: "1.1", revision: Number(value.revision), resourceSet: value.resourceSet, visuals };
+}
+export function isSkinVisualDataUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > Math.ceil(SKIN_VISUAL_LIMITS.assetBytes / 3) * 4 + 22 ||
+    (value.length - 22) % 4 !== 0 || !/^data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/]*={0,2}$/.test(value)) return false;
+  try {
+    // Inspect the PNG header before an image element can allocate a bitmap.
+    const header = atob(value.slice(22, 66));
+    if (header.length < 33 || header.slice(12, 16) !== "IHDR") return false;
+    const integer = (offset: number) => [0, 1, 2, 3].reduce((total, index) => total * 256 + header.charCodeAt(offset + index), 0);
+    const width = integer(16), height = integer(20);
+    return integer(8) === 13 && width > 0 && height > 0 && width <= SKIN_VISUAL_LIMITS.maxDimension && height <= SKIN_VISUAL_LIMITS.maxDimension;
+  } catch { return false; }
 }

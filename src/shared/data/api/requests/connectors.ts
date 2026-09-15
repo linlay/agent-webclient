@@ -81,9 +81,9 @@ export function startConnectorAuth(id: string, signal?: AbortSignal): Promise<Ap
   });
 }
 
-export function cancelConnectorAuth(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthActionResult>> {
+export function cancelConnectorAuth(id: string, signal?: AbortSignal, sessionId?: string): Promise<ApiResponse<ConnectorAuthActionResult>> {
   const endpoint = dataEndpoints.adminConnectorAuthCancel;
-  return requestJson<ConnectorAuthActionResult>(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
+  return requestJson<ConnectorAuthActionResult>(withQuery(endpoint.path, endpointQuery(endpoint, id) + (sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : "")), {
     method: endpoint.method, cache: "no-store", signal,
   });
 }

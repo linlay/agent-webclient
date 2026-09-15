@@ -1,3 +1,4 @@
+import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Input, Popover, Typography } from "antd";
 import type { InputRef } from "antd";
@@ -490,7 +491,7 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
         aria-label={t("composer.addMenu.open")}
         title={t("composer.addMenu.open")}
       >
-        <MaterialIcon name="add" />
+        <SkinVisual slot="chat.attach"><MaterialIcon name="add" /></SkinVisual>
       </UiButton>
     </Popover>
   );

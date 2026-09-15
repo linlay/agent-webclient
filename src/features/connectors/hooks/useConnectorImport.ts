@@ -1,3 +1,4 @@
+import { connectorErrorDetails } from "../lib/connectorError";
 import { useRef, useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { connectorImportErrorKey, isConnectorImportConflict, validateConnectorArchive } from "@/features/connectors/lib/connectorImport";
@@ -13,7 +14,9 @@ export function useConnectorImport({ onImport, onImported }: Options) {
   const [archive, setArchive] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [overwriteRequired, setOverwriteRequired] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setErrorMessage] = useState("");
+  const [errorDetails, setErrorDetails] = useState("");
+  const setError = (message: string) => { setErrorMessage(message); setErrorDetails(""); };
   const submittingRef = useRef(false);
 
   const acceptFiles = (files: File[]) => {
@@ -40,7 +43,10 @@ export function useConnectorImport({ onImport, onImported }: Options) {
       const conflict = isConnectorImportConflict(cause);
       setOverwriteRequired(conflict);
       const errorKey = connectorImportErrorKey(cause);
-      if (!conflict) setError(errorKey ? t(errorKey) : cause instanceof Error ? cause.message : String(cause));
+      if (!conflict) {
+        setError(errorKey ? t(errorKey) : cause instanceof Error ? cause.message : String(cause));
+        setErrorDetails(connectorErrorDetails(cause));
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -48,7 +54,7 @@ export function useConnectorImport({ onImport, onImported }: Options) {
   };
 
   return {
-    open, archive, submitting, overwriteRequired, error, acceptFiles, submit,
+    open, archive, submitting, overwriteRequired, error, errorDetails, acceptFiles, submit,
     show: () => {
       if (submittingRef.current) return;
       setArchive(null);

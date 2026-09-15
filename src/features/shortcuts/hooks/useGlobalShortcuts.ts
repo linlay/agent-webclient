@@ -59,10 +59,9 @@ export function useGlobalShortcuts(): void {
       if (isAnyOverlayOpen || isMemoryOpen || isCommandOverlayOpen || isGlobalSearchOpen)
         return;
 
-      /* Guard: active frontend tool or awaiting */
+      /* Guard: active frontend tool */
       const currentState = stateRef.current;
-      if (currentState.activeFrontendTool || currentState.activeAwaiting)
-        return;
+      if (currentState.activeFrontendTool) return;
 
       const code = event.code;
 

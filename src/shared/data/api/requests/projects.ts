@@ -7,6 +7,9 @@ import type {
   AgentFileResponse,
   DocumentCommitRequest,
   DocumentCommitResponse,
+  ProjectGitResponse,
+  ProjectGitBranchesResponse,
+  ProjectGitBranchRequest,
   ProjectTreeRequest,
   ProjectTreeResponse,
   ProjectChangesRequest,
@@ -98,5 +101,31 @@ export function getProjectDiff(
   return requestJson<ProjectDiffResponse>(withQuery(dataEndpoints.projectDiff.path, query), {
     method: "GET",
     signal: options.signal,
+  });
+}
+
+export function getProjectGit(
+  agentKey: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<ApiResponse<ProjectGitResponse>> {
+  const query = endpointQuery(dataEndpoints.projectGit, { agentKey });
+  return requestJson<ProjectGitResponse>(withQuery(dataEndpoints.projectGit.path, query), {
+    method: "GET",
+    signal: options.signal,
+    cache: "no-store",
+  });
+}
+
+export function getProjectGitBranches(agentKey: string, options: { signal?: AbortSignal } = {}): Promise<ApiResponse<ProjectGitBranchesResponse>> {
+  const endpoint = dataEndpoints.projectGitBranches;
+  return requestJson<ProjectGitBranchesResponse>(withQuery(endpoint.path, endpointQuery(endpoint, { agentKey })), {
+    method: "GET", signal: options.signal, cache: "no-store",
+  });
+}
+
+export function changeProjectGitBranch(request: ProjectGitBranchRequest): Promise<ApiResponse<ProjectGitResponse>> {
+  // A dispatched mutation must complete even if its UI unmounts; no automatic retry.
+  return requestJson<ProjectGitResponse>(dataEndpoints.projectGitBranchChange.path, {
+    method: "POST", body: JSON.stringify(request),
   });
 }

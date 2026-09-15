@@ -5,4 +5,5 @@
     width: 100%;
     max-height: min(82vh, 860px);
     overflow: auto;
+    padding: 0 10px 10px;
 }

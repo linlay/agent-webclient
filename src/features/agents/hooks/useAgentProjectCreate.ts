@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { message } from "antd";
 import {
   ACP_PROXY_OPTIONS,
   buildCoderAgentCreateRequest,
@@ -9,12 +8,14 @@ import {
 } from "@/features/agents/lib/agentCreate";
 import { createAgent } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 
 export function useAgentProjectCreate(options: {
   onCreated?: (agentKey: string) => Promise<void> | void;
   onError?: (error: unknown) => void;
 } = {}) {
   const { t } = useI18n();
+  const message = useAppMessage();
   const [open, setOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [workspaceDir, setWorkspaceDir] = useState("");

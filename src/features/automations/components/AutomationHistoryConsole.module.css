@@ -23,3 +23,8 @@
     overflow: hidden;
   }
 }
+
+/* Route pages share one reading veil; embedded consoles retain their surfaces. */
+:global(.automations-page) .console {
+  background: transparent;
+}

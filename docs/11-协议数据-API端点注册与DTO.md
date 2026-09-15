@@ -14,6 +14,8 @@
 
 `ChatDetailResponse` 继承完整 `ChatSummaryResponse`：`/api/chat` 除 replay 数据外必须提供 `agentKey`/`teamId`、`lastRunId`、`lastRunContent` 与 `read { isRead, readAt?, readRunId? }`。`markChatRead` 是 WebClient Main Chat 的单 Chat read 请求函数；Desktop 模式仍通过通用 Frame Port `/api/read` 转发，Desktop 宿主不暴露或调用单 Chat read 业务 IPC。Agent 级批量已读属于宿主的显式用户命令，不由 WebClient 的自动 read hook 代发。
 
+`GET /api/agent?agentKey=...` 的 `AgentDetailResponse` 保留 `greetings?: string[]` 并新增 `introductions?: string[]`：分别供新会话主标题和输入框 placeholder 随机展示。两个字段不进入 `/api/agents` 列表摘要，管理台通过现有详情和保存接口读写同名配置数组。
+
 Agent 顺序有两条 HTTP-only 数据边界：普通客户端通过 `GET/PUT /api/agents/order` 读取和提交全部有效 runtime Agent 的 catalog 顺序；Agent 管理台从 `/api/admin/agents` 的列表顺序初始化，并通过 `PUT /api/admin/agents/order` 提交包含 invalid Agent 的完整 admin 顺序。两者复用 `AgentOrderResponse { version, order, updatedAt? }`，其中未生成顺序文件时 `updatedAt` 可以省略；前端不把 public endpoint 注册为 WebSocket route，也不把管理台切到 public mutation。
 
 静态 HTML 导出并行请求 `GET /api/chat/export?chatId=...&format=snapshot` 与 `CONVERSATION_EXPORT_ASSET_ORIGIN/assets/conversation-export/conversation.template.html`。Snapshot 保持 Blob，service 层只解析小体积模板并用 Blob parts 组装完整文档；Platform 不提供 HTML 格式。公开分享由 Desktop 直接向 Tunnel 上传 Snapshot，Tunnel 使用同一当前模板生成页面。`src/shared/data/conversationSharePath.ts` 只负责将合法 `shareId` 构造成 `/share/{id}` 路径。
@@ -77,3 +79,9 @@ Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契�
 - GET `/api/chats/order`：读取 `sortMode`、`pinnedOrder` 和 `updatedAt`；PUT 或 WS 同路径使用 `{operation:"set_pinned",chatId,pinned}`，排序使用 `{operation:"move",chatId,beforeChatId}` 或 `afterChatId`。置顶组移动不修改普通列表排序。
 - Chat 摘要/详情增加可选 `pinned`；GET `/api/chats` 支持 `pinned` 和 `limit`，GET `/api/agents` 支持 `chatsPinned`。`false` 必须在 HTTP query 与 WS payload 中保留，筛选发生在后端 limit/includeChats 之前。
 - `chats.order.changed` push 要求 `updatedAt` 为 epoch 毫秒整数。客户端收到后同时使 agents/chats 查询缓存失效并重新加载；WS 重连同样对账。归档、删除清理内存置顶 ID，恢复不继承旧置顶。
+
+## Project Git 独立快照
+
+`project.git` 注册为 HTTP GET `/api/project/git`，仅传 `agentKey`。`ProjectGitResponse` 定义在 `shared/data/api/dto/resources.ts`，包含 `agentKey`、`status` 及可选 `branch/commit/reason`。`status` 为 `branch | detached | not_repository | no_workspace | unavailable`，`reason` 为 `workspace_unavailable | git_unavailable | probe_failed | probe_timeout`。响应沿用 `ApiResponse`；缺失参数、未知 Agent、权限错误使用既有错误包裹。请求支持 AbortSignal，并禁用 HTTP 缓存。它不进入 Agent 列表/详情 DTO，也不修改已有 Project tree/changes/diff 的范围。
+
+Git 快照增加可选 `revision`，仅有效分支/游离 HEAD 返回。`project.git.branches` 为同域 HTTP GET `/api/project/git/branches`，响应 `{git,branches,canChange,blockedReason?,expectedBranch?}`；`project.git.branchChange` 为同路径 POST，请求 `{agentKey,operation,branch,expectedRevision}`，成功返回最新 Git 快照。新建与切换统一复用原 HTTP 鉴权及错误封装，不新增 WebSocket 路由。POST 不设置 UI AbortSignal，也不自动重试；超时或连接中断后先刷新确认实际状态。

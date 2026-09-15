@@ -1,4 +1,4 @@
-.console { color: var(--ink-1); }
+.console { --connector-toolbar-height: var(--ui-control-height-sm, 32px); color: var(--ink-1); }
 .body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; flex: 1; min-height: 0; overflow: hidden; }
 .list { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 0; }
 .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -25,8 +25,8 @@
 .detail { min-width: 0; overflow: auto; padding: 0 8px 16px 0; display: flex; flex-direction: column; gap: 16px; }
 .bodySkills .detail { min-height: 0; overflow: hidden; padding-bottom: 0; }
 .bodySkills .tabs { flex-shrink: 0; }
-.tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; min-height: 40px; }
-.tabs button { position: relative; padding: 9px 2px 12px; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--ink-muted); font: inherit; font-size: 13px; font-weight: 600; line-height: 20px; white-space: nowrap; cursor: pointer; transition: color .16s ease; }
+.tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; min-height: var(--connector-toolbar-height); }
+.tabs button { position: relative; display: inline-flex; align-items: center; height: var(--connector-toolbar-height); padding: 0 2px; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--ink-muted); font: inherit; font-size: 13px; font-weight: 600; line-height: 20px; white-space: nowrap; cursor: pointer; transition: color .16s ease; }
 .tabs button::after { content: ""; position: absolute; right: 2px; bottom: 0; left: 2px; height: 2px; border-radius: var(--radius-pill); background: var(--accent-electric); opacity: 0; transition: opacity .16s ease; }
 .tabs button:hover:not(:disabled), .tabs button[aria-current] { color: var(--ink-1); }
 .tabs button[aria-current]::after { opacity: 1; }
@@ -67,7 +67,10 @@
   .formGrid { grid-template-columns: 1fr; }
 }
 
-.listToolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; }
+.listToolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; min-height: var(--connector-toolbar-height); }
+/* Share the top-row height so search and detail tabs have the same text center. */
+.listToolbar :global(.search-filter-bar) { box-sizing: border-box; height: var(--connector-toolbar-height); }
+.listToolbar :global(.search-filter-bar) :global(.ant-input-affix-wrapper) { height: 100%; padding-block: 0; align-items: center; }
 .itemHeading, .itemFooter { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; width: 100%; }
 .itemHeading strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .version { flex-shrink: 0; color: var(--ink-muted); font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; }

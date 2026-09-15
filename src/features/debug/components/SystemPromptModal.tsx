@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { message, Modal } from "antd";
+import { Modal } from "antd";
 import {
 	MaterialIcon,
 	type MaterialIconName,
 } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { copyText } from "@/shared/utils/copy";
 import type { SystemPromptLoadState } from "@/features/debug/lib/systemPromptTrace";
 
@@ -58,6 +59,7 @@ export const SystemPromptModal: React.FC<SystemPromptModalProps> = ({
 	onClose,
 }) => {
 	const { t } = useI18n();
+	const message = useAppMessage();
 	const copyTimerRef = useRef<number | null>(null);
 	const [copyFeedback, setCopyFeedback] =
 		useState<SystemPromptCopyFeedback>("idle");

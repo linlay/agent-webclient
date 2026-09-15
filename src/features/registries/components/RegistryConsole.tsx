@@ -1,3 +1,4 @@
+import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import { RegistryDetailPane } from "@/features/registries/components/RegistryDetailPane";
 import {
@@ -23,6 +24,8 @@ export function RegistryConsole() {
   const { t } = useI18n();
   const appContext = useOptionalAppContext();
   const runtime = useRegistryConsoleRuntime();
+  const assistant = useResourceAssistant();
+  const canLeaveDraft = () => !runtime.dirty || window.confirm(t("registryConsole.confirm.discard"));
   const refresh = () => {
     if (runtime.isToolsTab || runtime.detail) {
       runtime.refreshCurrent();
@@ -67,6 +70,7 @@ export function RegistryConsole() {
           statusFilter={runtime.statusFilter}
           toolsLoading={runtime.toolsLoading}
           onCreate={runtime.startNew}
+          onCreateConversation={() => { if (!runtime.saving && !assistant.opening && canLeaveDraft()) void assistant.open({ kind: "registry", category: runtime.activeCategory }); }}
           onRefresh={refresh}
           onSearchChange={runtime.setSearchText}
           onSelect={runtime.selectItem}
@@ -84,6 +88,10 @@ export function RegistryConsole() {
           selectedTool={runtime.selectedTool}
           theme={appContext?.state.themeMode ?? "light"}
           validating={runtime.validating}
+          onEditConversation={() => {
+            const detail = runtime.detail;
+            if (detail && !runtime.saving && !assistant.opening && canLeaveDraft()) void assistant.open({ kind: "registry", category: detail.category, target: { id: detail.file, name: detail.name || detail.key } });
+          }}
           onDraftChange={runtime.updateDraft}
           onRefresh={runtime.refreshCurrent}
           onSave={() => void runtime.saveDraft()}

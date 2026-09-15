@@ -1,3 +1,6 @@
+import { focusEditableField } from "@/shared/ui/EditMenuButton";
+import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
+import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import { App as AntdApp } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
@@ -360,6 +363,8 @@ export const SkillListItemActions: React.FC<{
   onValidateSkill: (skillKey: string) => void;
   onDownloadSkill: (skillKey: string) => void;
   onDeleteSkill: (item: AdminSkillSummary) => void;
+  onEditSkill?: (item: AdminSkillSummary) => void;
+  onEditSkillConversation?: (item: AdminSkillSummary) => void;
 }> = ({
   item,
   pinned,
@@ -370,9 +375,13 @@ export const SkillListItemActions: React.FC<{
   onValidateSkill,
   onDownloadSkill,
   onDeleteSkill,
+  onEditSkill,
+  onEditSkillConversation,
 }) => {
   const moreLabel = t("skillConsole.action.more");
   const menuItems: MenuProps["items"] = [
+    ...(onEditSkill ? [{ key: "edit", icon: <MaterialIcon name="edit" />, label: t("resourceAssistant.directEdit"), disabled: busy }] : []),
+    ...(onEditSkillConversation ? [{ key: "edit-conversation", icon: <MaterialIcon name="question_answer" />, label: t("resourceAssistant.conversationEdit"), disabled: busy }] : []),
     {
       key: "pin",
       className: "ui-icon-hover-24",
@@ -413,7 +422,11 @@ export const SkillListItemActions: React.FC<{
 
   const onMenuClick: MenuProps["onClick"] = ({ domEvent, key }) => {
     domEvent.stopPropagation();
-    if (key === "pin") {
+    if (key === "edit") {
+      onEditSkill?.(item);
+    } else if (key === "edit-conversation") {
+      onEditSkillConversation?.(item);
+    } else if (key === "pin") {
       onTogglePin(item.key);
     } else if (key === "validate") {
       onValidateSkill(item.key);
@@ -1069,11 +1082,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
             label: t("skillConsole.create.mode.zip"),
             children: zipContent,
           },
-          {
-            key: "direct",
-            label: t("skillConsole.create.mode.direct"),
-            children: directContent,
-          },
+          { key: "direct", label: t("skillConsole.create.mode.direct"), children: directContent },
         ]}
       />
       {diagnostics.length > 0 && (
@@ -1635,6 +1644,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 }) => {
   const { t } = useI18n();
   const { modal } = AntdApp.useApp();
+  const assistant = useResourceAssistant();
+  const editorRegion = useRef<HTMLDivElement>(null);
   const {
     pinnedSkillKeys,
     toggleSkillPin,
@@ -2572,17 +2583,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             >
               <MaterialIcon name="refresh" />
             </UiButton>
-            <UiButton
-              size="sm"
-              variant="primary"
-              className="ui-icon-hover-24 tw:!text-[var(--accent-on)]"
-              iconOnly
-              onClick={() => setCreateModalOpen(true)}
-              disabled={deletingSkill}
-              aria-label={t("skillConsole.action.createSkill")}
-            >
-              <MaterialIcon name="add" />
-            </UiButton>
+            <CreateMenuButton label={t("skillConsole.action.createSkill")} disabled={deletingSkill || assistant.opening}
+              onManual={() => setCreateModalOpen(true)}
+              onConversation={async () => { if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill" }); }} />
           </div>
 
           <div className={SKILL_COUNT_CLASS_NAME}>
@@ -2697,7 +2700,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                         <SkillListItemActions
                           item={item}
                           pinned={itemPinned}
-                          busy={validating || downloadingSkill || deletingSkill}
+                          busy={validating || downloadingSkill || deletingSkill || assistant.opening}
                           pinsDisabled={pinsDisabled}
                           t={t}
                           onTogglePin={(skillKey) => {
@@ -2710,6 +2713,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                             void handleDownloadSkillByKey(skillKey);
                           }}
                           onDeleteSkill={handleDeleteSkillListItem}
+                          onEditSkill={(item) => {
+                            if (item.key === selectedSkillKey) focusEditableField(editorRegion.current);
+                            else handleSelectSkill(item);
+                          }}
+                          onEditSkillConversation={async (item) => {
+                            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: item.name } });
+                          }}
                         />
                       </div>
                     );
@@ -2730,7 +2740,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           />
         </div>
 
-        <div className={SKILL_DETAIL_CLASS_NAME}>
+        <div ref={editorRegion} className={SKILL_DETAIL_CLASS_NAME}>
+
           <Spin
             spinning={detailLoading}
             wrapperClassName="tw:h-full tw:min-h-0 tw:[&_.ant-spin-container]:h-full tw:[&_.ant-spin-container]:min-h-0"

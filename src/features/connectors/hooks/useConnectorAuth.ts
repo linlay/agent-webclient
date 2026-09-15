@@ -4,13 +4,15 @@ import type { ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
 import { connectorAuthDeadline, connectorAuthViewStatus, isConnectorAuthActive, readConnectorAuthAction, readConnectorAuthSession, supportsConnectorAuthCheck, supportsConnectorLogin } from "../lib/connectorAuth";
 import type { ConnectorAuthViewStatus } from "../lib/connectorAuth";
 
-type AuthAction = "check" | "start" | "cancel" | "logout";
+type AuthAction = "check" | "start" | "cancel" | "logout" | "open";
 interface AuthState {
   identity: string;
+  browserSessionId: string | null;
+  browserRequestRevision: number;
   session: ConnectorAuthSession | null;
   status: ConnectorAuthViewStatus;
   checking: boolean;
-  operation: Exclude<AuthAction, "check"> | null;
+  operation: Exclude<AuthAction, "check" | "open"> | null;
   error: Error | null;
 }
 interface Options {
@@ -26,7 +28,7 @@ interface Options {
 export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange, checkStatus = getConnectorAuthStatus, observe = false }: Options) {
   const enabled = supportsConnectorAuthCheck(mode);
   const identity = `${id}/${mode}/${readOnly}`;
-  const initial = (): AuthState => ({ identity, session: null, status: mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null });
+  const initial = (): AuthState => ({ identity, browserRequestRevision: 0, browserSessionId: null, session: null, status: mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null });
   const [state, setState] = useState<AuthState>(initial);
   const callbacks = useRef({ onStatusChange, onCredentialsChange });
   callbacks.current = { onStatusChange, onCredentialsChange };
@@ -34,6 +36,8 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
 
   useEffect(() => {
     let disposed = false;
+    let browserSessionId: string | null = null;
+    let browserRequestRevision = 0;
     let session: ConnectorAuthSession | null = null;
     let operation: AuthState["operation"] = null;
     let error: Error | null = null;
@@ -58,7 +62,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
     const publish = () => {
       if (disposed) return;
       const status = mode === "none" ? "not_required" : connectorAuthViewStatus(session);
-      setState({ identity, session, status, checking: !!request && !operation, operation, error });
+      setState({ identity, browserRequestRevision, browserSessionId, session, status, checking: !!request && !operation, operation, error });
       if (reportedStatus !== status) {
         reportedStatus = status;
         callbacks.current.onStatusChange?.(id, status);
@@ -78,6 +82,10 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
       if (action === "cancel" && !isConnectorAuthActive(session)) return;
       if (action === "logout" && session?.status !== "authorized") return;
 
+      if (action === "open") {
+        if (session?.status === "pending" && !expired) { browserSessionId = session.sessionId; browserRequestRevision += 1; publish(); }
+        return;
+      }
       // A user action supersedes an in-flight poll. Its late response cannot restore an old link.
       clearTimeout(pollTimer);
       clearTimeout(requestTimer);
@@ -97,12 +105,12 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
       try {
         let next: ConnectorAuthSession;
         if (action === "cancel" || action === "logout") {
-          const response = await (action === "cancel" ? cancelConnectorAuth : logoutConnectorAuth)(id, controller.signal);
+          const response = await (action === "cancel" ? cancelConnectorAuth(id, controller.signal, session?.sessionId) : logoutConnectorAuth(id, controller.signal));
           next = readConnectorAuthAction(response.data, id, action === "cancel" ? "canceled" : "unauthorized");
         } else {
           // Start is idempotent for active sessions. Explicitly cancel an expired session before retrying it.
           if (action === "start" && expired && isConnectorAuthActive(session)) {
-            const canceled = await cancelConnectorAuth(id, controller.signal);
+            const canceled = await cancelConnectorAuth(id, controller.signal, session?.sessionId);
             if (!current() || controller.signal.aborted) return;
             session = readConnectorAuthAction(canceled.data, id, "canceled");
           }
@@ -112,6 +120,8 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
         if (!current() || controller.signal.aborted) return;
         const previousStatus = session?.status;
         session = next;
+        if (action === "start") { browserSessionId = next.sessionId; browserRequestRevision += 1; }
+        if (action === "cancel" || action === "logout") browserSessionId = null;
         publish();
         if ((next.status === "authorized" && previousStatus !== "authorized" && (!observe || previousStatus !== undefined)) || (previousStatus === "authorized" && next.status !== "authorized") || action === "logout" || action === "cancel") {
           callbacks.current.onCredentialsChange?.();
@@ -155,6 +165,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
   return useMemo(() => ({
     ...(state.identity === identity ? state : initial()),
     start: () => perform("start"),
+    openBrowser: () => perform("open"),
     cancel: () => perform("cancel"),
     logout: () => perform("logout"),
     refresh: () => perform("check"),

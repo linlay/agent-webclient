@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { Button, Select } from "antd";
 import { useI18n } from "@/shared/i18n";
+import { DESKTOP_SKINS } from "../lib/skins";
 import { useAppearance } from "./AppearanceProvider";
 import type { ThemePreference } from "@/shared/styles/appearance/bootstrap";
 import styles from "./AppearanceSettings.module.css";
@@ -14,8 +15,7 @@ export function AppearanceSettings() {
   if (appearance.desktop) return null;
   const disabled = appearance.busy || appearance.assetsLoading;
   const options = [
-    { value: "default", label: t("appearance.skin.default") },
-    { value: "mist", label: t("appearance.skin.mist") },
+    ...DESKTOP_SKINS.map((skin) => ({ value: skin.id, label: t(`appearance.skin.${skin.id}`) })),
     ...appearance.installedSkins.map((skin) => ({ value: skin.id, label: skin.name })),
   ];
   return <section className={styles.settings} aria-label={t("appearance.title")}>

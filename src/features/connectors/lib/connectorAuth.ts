@@ -41,6 +41,7 @@ const statuses: ConnectorAuthStatus[] = ["not_required", "delegated", "setup_req
 
 export function readConnectorAuthSession(value: ConnectorAuthSession, id: string): ConnectorAuthSession {
   if (!value || value.connectorId !== id || !statuses.includes(value.status) || typeof value.sessionId !== "string" || typeof value.expiresAt !== "string"
+    || (value.authBrowser !== undefined && value.authBrowser !== "system" && value.authBrowser !== "embedded")
     || (value.authorizationUrl !== undefined && typeof value.authorizationUrl !== "string") || (value.message !== undefined && typeof value.message !== "string")) {
     throw new Error("connectors.auth.error.response");
   }

@@ -8,7 +8,10 @@ const mockAntdMessage = {
   error: jest.fn(),
 };
 
+jest.mock("@/shared/icons/agent", () => ({ AgentIcon: () => React.createElement("span") }));
+
 jest.mock("antd", () => ({
+  Input: () => React.createElement("input"),
   App: {
     useApp: () => ({ message: mockAntdMessage }),
   },
@@ -279,7 +282,7 @@ jest.mock("@/features/composer/hooks/useComposerSlash", () => ({
 
 jest.mock("@/features/composer/hooks/useComposerWonders", () => ({
   useComposerWonders: jest.fn(() => ({
-    sampledGreeting: "Greeting from detail",
+    sampledIntroduction: "Introduction from detail",
     sampledWonders: ["Try this"],
   })),
 }));
@@ -367,9 +370,29 @@ describe("ComposerArea", () => {
     expect(html).not.toContain("composer-wonders");
     expect(mockComposerInputProps[0].emptyInputMinRows).toBe(1);
     expect(mockComposerInputProps[0].inputMaxRows).toBe(6);
-    expect(mockComposerInputProps[0].placeholder).toBe("Greeting from detail");
+    expect(mockComposerInputProps[0].placeholder).toBe("Introduction from detail");
     expect(useComposerWonders.mock.calls[0][0].isBlankConversation).toBe(true);
     expect(useComposerWonders.mock.calls[0][0].showWonders).toBe(false);
+  });
+
+  it.each([
+    [true, "", true],
+    [true, "existing-chat", false],
+    [false, "", false],
+    [false, "existing-chat", false],
+  ])("limits the context bar to an enabled new chat (%s, %s)", (enabled, chatId, visible) => {
+    const state = { ...createInitialState(), chatId };
+    useAppState.mockReturnValue(state);
+    useAppContext.mockReturnValue({ stateRef: { current: state } });
+    const html = renderToStaticMarkup(React.createElement(ComposerArea, {
+      enableNewChatContext: enabled,
+    }));
+    expect(html.includes('aria-label="composer.context.label"')).toBe(visible);
+  });
+
+  it("does not opt other composer surfaces into the context bar by default", () => {
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+    expect(html).not.toContain('aria-label="composer.context.label"');
   });
 
   it("disables the composer and hides stale awaiting UI during a chat transition", () => {

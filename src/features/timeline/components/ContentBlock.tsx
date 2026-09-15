@@ -196,6 +196,13 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				}
 
 				if (segment.kind === "ttsVoice") {
+					if (interaction?.readOnly) {
+						return (
+							<div key={segment.signature || idx} className={markdownClassName}>
+								<MarkdownContent content={segment.text || ""} chatId={chatId} teamChat={teamChat} />
+							</div>
+						);
+					}
 					if (!voiceEnabled) {
 						return null;
 					}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="160" y1="0" x2="1540" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E6DFCE"/><stop offset=".48" stop-color="#F1ECDF"/><stop offset="1" stop-color="#CFC2A3"/>
+    </linearGradient>
+    <radialGradient id="light" cx="0" cy="0" r="1" gradientTransform="translate(1360 200) rotate(110) scale(850 1000)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7E4" stop-opacity=".85"/><stop offset="1" stop-color="#FFF7E4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ridge" x1="0" y1="730" x2="1920" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#AE9762" stop-opacity=".32"/><stop offset="1" stop-color="#D8CDB4" stop-opacity=".65"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h1920v1200H0z"/>
+  <path fill="url(#light)" d="M0 0h1920v1200H0z"/>
+  <path d="M-100 720C230 410 460 905 880 647s720-349 1140-92v645H-100Z" fill="#CEC0A0" fill-opacity=".28"/>
+  <path d="M-100 960C180 653 485 610 890 900s725-440 1130-170v470H-100Z" fill="url(#ridge)"/>
+  <path d="M-90 1190C330 880 610 1080 1010 979s530-86 1010 141v80H-90Z" fill="#A28B54" fill-opacity=".18"/>
+  <path d="M-70 875C310 566 575 964 970 740s655-278 1050-71" stroke="#FFFCF4" stroke-opacity=".35" stroke-width="2"/>
+</svg>

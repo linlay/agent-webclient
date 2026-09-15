@@ -1,3 +1,4 @@
+import type { SkinVisuals } from "@/shared/contracts/generated/agentWebclientBridge";
 export type ResolvedThemeMode = "light" | "dark";
 
 // Skin overrides are visual properties only; layout and guest surfaces retain
@@ -69,5 +70,6 @@ export type DesktopSkinDefinition = Readonly<{
   author?: string;
   previewImageUrl?: string;
   tokens: Readonly<Record<ResolvedThemeMode, Readonly<Partial<Record<DesktopSkinToken, string>>>>>;
+  visuals?: Readonly<Partial<Record<ResolvedThemeMode, SkinVisuals>>>;
   backgrounds?: Readonly<Partial<Record<ResolvedThemeMode, DesktopSkinBackground>>>;
 }>;

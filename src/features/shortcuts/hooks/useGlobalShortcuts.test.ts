@@ -375,8 +375,9 @@ describe("useGlobalShortcuts", () => {
     expect(mockOpenCommandOverlay).not.toHaveBeenCalled();
   });
 
-  it("does not trigger when activeAwaiting is set", () => {
+  it("still triggers when activeAwaiting is set", () => {
     mockAppState.activeAwaiting = { id: "await-1" };
+    mockOpenGlobalSearch.mockClear();
     renderToStaticMarkup(React.createElement(GlobalShortcutLayer));
     const event = createFakeEvent({
       code: "KeyK",
@@ -386,7 +387,7 @@ describe("useGlobalShortcuts", () => {
       shiftKey: false,
     });
     currentHandler?.(event);
-    expect(mockOpenCommandOverlay).not.toHaveBeenCalled();
+    expect(mockOpenGlobalSearch).toHaveBeenCalled();
   });
 
   it("does not trigger with Ctrl+Alt+K (wrong modifier)", () => {

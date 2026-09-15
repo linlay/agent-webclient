@@ -81,6 +81,15 @@ describe("routedClient capability routing", () => {
 		mockGetBackendMode.mockReturnValue("platform");
 	});
 
+	it("invalidates welcome query snapshots after editing an agent", async () => {
+		const routed = await import("./routedClient");
+		const { dataQueryCache } = await import("@/shared/data/query/serverState");
+		await dataQueryCache.fetch('agent.detail:"agent-1"', async () => ({ greetings: ["Old"] }), { ttlMs: 30000 });
+		mockUpdateAgentName.mockResolvedValue(ok({ key: "agent-1", name: "New" }));
+		await routed.updateAgentName({ agentKey: "agent-1", name: "New" });
+		expect(dataQueryCache.getSnapshot('agent.detail:"agent-1"', 30000).isStale).toBe(true);
+	});
+
 	it("routes Platform agent lists over WS with payload caching and dedupe", async () => {
 		mockRequestPlatformData.mockResolvedValue(ok([{ key: "agent-1" }]));
 		const routed = await import("./routedClient");

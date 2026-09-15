@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Button, Flex, Input, message, Radio } from "antd";
+import { Button, Flex, Input, Radio } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { AIAwaitFormSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
 import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
@@ -23,6 +23,7 @@ import {
 } from "@/features/tools/components/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
 import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { RadioRef } from "antd/es/radio";
 import "./hitlCompat.module.css";
@@ -408,6 +409,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   onResolved,
 }) => {
   const { t } = useI18n();
+  const message = useAppMessage();
   const appContext = useOptionalAppContext();
   const viewChatId = data.chatId || appContext?.state.chatId || "";
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -625,6 +627,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   }, [
     clearCollectTimeout,
     data.resolutionReason,
+    message,
     onResolved,
     t,
   ]);

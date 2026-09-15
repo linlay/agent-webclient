@@ -37,6 +37,7 @@ export interface AgentDetailResponse {
   description?: string;
   role?: string;
   greetings?: string[];
+  introductions?: string[];
   wonders?: string[];
   model: string;
   mode: string;

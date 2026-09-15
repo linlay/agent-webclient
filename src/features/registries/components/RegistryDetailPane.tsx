@@ -1,3 +1,5 @@
+import { EditMenuButton, focusEditableField } from "@/shared/ui/EditMenuButton";
+import { useRef } from "react";
 import { Spin } from "antd";
 import {
   readToolKind,
@@ -54,6 +56,7 @@ export interface RegistryDetailPaneProps {
   onDraftChange: (value: string) => void;
   onRefresh: () => void;
   onSave: () => void;
+  onEditConversation?: () => void;
   onValidate: () => void;
 }
 
@@ -71,9 +74,11 @@ export function RegistryDetailPane({
   onDraftChange,
   onRefresh,
   onSave,
+  onEditConversation,
   onValidate,
 }: RegistryDetailPaneProps) {
   const { locale, t } = useI18n();
+  const editorRegion = useRef<HTMLDivElement>(null);
   const toolKind = selectedTool ? readToolKind(selectedTool) : "";
   const toolSourceType = selectedTool ? readToolSourceType(selectedTool) : "";
   const toolSourceCategory = selectedTool
@@ -138,6 +143,7 @@ export function RegistryDetailPane({
                 <span>{detail.source?.path || `${detail.category}/${detail.file}`}</span>
               </div>
               <div className={DETAIL_ACTIONS_CLASS_NAME}>
+                {!newDraft && <EditMenuButton label={t("resourceAssistant.editRegistry")} disabled={saving || detailLoading} onManual={() => focusEditableField(editorRegion.current)} onConversation={onEditConversation} />}
                 <UiTag tone={registryStatusTone(detail.status)}>
                   {translateWithFallback(
                     t,
@@ -194,7 +200,7 @@ export function RegistryDetailPane({
               <legend>{t("registryConsole.section.summary")}</legend>
               <div>{summaryLine(detail.summary) || "--"}</div>
             </fieldset>
-            <div className="field-group registry-editor-field tw:mt-3.5">
+            <div ref={editorRegion} className="field-group registry-editor-field tw:mt-3.5">
               <span id="registry-yaml-editor-label">{t("registryConsole.editor.label")}</span>
               <div
                 className={styles.yamlEditor}

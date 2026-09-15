@@ -97,6 +97,7 @@
 }
 
 /* A single background covers the complete page and its gutters. */
+:global(.automations-page),
 :global(.agents-page),
 :global(.skills-page),
 :global(.connectors-page),

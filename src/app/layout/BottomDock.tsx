@@ -15,7 +15,7 @@ interface BottomDockProps {
 const BOTTOM_DOCK_CLASS_BY_MODE = {
 	desktop: "bottom-dock",
 	copilot:
-		"bottom-dock tw:relative tw:bottom-auto tw:z-[22] tw:row-start-3 tw:min-w-0 tw:border-t tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[var(--reading-surface)] tw:px-2 tw:pt-1.5 tw:[html[data-theme=dark]_&]:bg-[var(--reading-surface)]",
+		"bottom-dock tw:relative tw:bottom-auto tw:z-[22] tw:row-start-3 tw:min-w-0 tw:px-2 tw:pt-1.5",
 } as const;
 const BOTTOM_DOCK_INNER_CLASS_BY_MODE = {
 	desktop: "bottom-dock-inner",
@@ -58,6 +58,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 						aria-disabled={transitionBlocking} {...(transitionBlocking ? { inert: "" } : {})}
 						style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
 						<ComposerArea
+							enableNewChatContext={!isCopilot}
 							emptyInputMinRows={isCopilot ? 3 : undefined}
 							inputMaxRows={isCopilot ? 6 : undefined}
 							showWonders={!isCopilot}

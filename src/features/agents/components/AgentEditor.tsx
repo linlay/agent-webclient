@@ -76,6 +76,7 @@ export interface AgentEditorProps {
   loadingOptions: boolean;
   visibilityScopeOptions: Array<{ value: string; label: string }>;
   greetingEntries: string[];
+  introductionEntries: string[];
   wonderEntries: string[];
   modelItems: MenuProps["items"];
   onModelMenuClick: NonNullable<MenuProps["onClick"]>;
@@ -107,7 +108,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
   const {
     isReadOnly, t, form, formError, selectedIconValue, iconEditorOpen, setIconEditorOpen,
     updateForm, modeOptions, setMode, loadingOptions, visibilityScopeOptions,
-    greetingEntries, wonderEntries, modelItems, onModelMenuClick,
+    greetingEntries, introductionEntries, wonderEntries, modelItems, onModelMenuClick,
     onModelMenuOpenChange, queryModelButtonStateClass, showFastBadge,
     selectedModelLabel, selectedReasoningLabel, contextTagOptions,
     filteredToolOptions, selectedTools, filteredSkillOptions, selectedSkills,
@@ -203,6 +204,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                                     {t("agentConsole.field.iconImage")}
                                   </label>
                                   <Input
+                          readOnly={isReadOnly}
                                     id="agent-icon-image-input"
                                     placeholder={t("agentConsole.placeholder.iconImage")}
                                     value={form.iconImage}
@@ -234,6 +236,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           {t("agentConsole.field.name")}
                         </label>
                         <Input
+                          readOnly={isReadOnly}
                           id="agent-name-input"
                           value={form.name}
                           onChange={(event) =>
@@ -246,6 +249,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           {t("agentConsole.field.role")}
                         </label>
                         <Input
+                          readOnly={isReadOnly}
                           id="agent-role-input"
                           value={form.role}
                           onChange={(event) =>
@@ -259,6 +263,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {t("agentConsole.field.description")}
                       </label>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-description-input"
                         className="agent-description-textarea"
                         rows={4}
@@ -292,6 +297,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                             className={`agent-choice-card ${form.mode === option.value ? "is-selected" : ""}`}
                           >
                             <input
+                              disabled={isReadOnly}
                               type="radio"
                               name="agent-mode"
                               value={option.value}
@@ -329,6 +335,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                               className={`agent-choice-card ${checked ? "is-selected" : ""}`}
                             >
                               <input
+                              disabled={isReadOnly}
                                 type="checkbox"
                                 value={option.value}
                                 checked={checked}
@@ -373,6 +380,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         </Tooltip>
                       </div>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-soul-input"
                         className={AGENT_PROMPT_TEXTAREA_CLASS_NAME}
                         rows={10}
@@ -391,6 +399,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         </Tooltip>
                       </div>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-agents-input"
                         className={AGENT_PROMPT_TEXTAREA_CLASS_NAME}
                         rows={10}
@@ -401,8 +410,8 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                     <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
                       <div className="agent-prompt-field-heading">
                         <span id="agent-greetings-label" className="agent-prompt-field-label">{t("agentConsole.field.greetings")}</span>
-                        <Tooltip title={t("agentConsole.prompt.greetings.description")}>
-                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.greetings.description")}><MaterialIcon name="info" /></button>
+                        <Tooltip title={t("agentConsole.prompt.greetings.description", { agentToken: "${agent}" })}>
+                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.greetings.description", { agentToken: "${agent}" })}><MaterialIcon name="info" /></button>
                         </Tooltip>
                         {!isReadOnly && <UiButton className="agent-prompt-heading-action" size="sm" variant="ghost" onClick={() => updateForm({ greetingsText: promptEntriesToJson([...greetingEntries, ""]) })}><MaterialIcon name="add" />{t("agentConsole.prompt.addGreeting")}</UiButton>}
                       </div>
@@ -410,9 +419,10 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {(greetingEntries.length ? greetingEntries : [""]).map((entry, index) => (
                           <div className="agent-prompt-entry" key={`greeting-${index}`}>
                             <Input
+                          readOnly={isReadOnly}
                               id={index === 0 ? "agent-greetings-input" : undefined}
                               aria-label={t("agentConsole.prompt.greetings.item", { index: index + 1 })}
-                              placeholder={t("agentConsole.prompt.greetings.placeholder")}
+                              placeholder={t("agentConsole.prompt.greetings.placeholder", { agentToken: "${agent}" })}
                               value={entry}
                               onChange={(event) => {
                                 const next = [...(greetingEntries.length ? greetingEntries : [""])];
@@ -421,6 +431,34 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                               }}
                             />
                             {!isReadOnly && <UiButton size="mini" variant="ghost" aria-label={t("agentConsole.prompt.removeItem", { index: index + 1 })} onClick={() => updateForm({ greetingsText: promptEntriesToJson(greetingEntries.filter((_, entryIndex) => entryIndex !== index)) })}><MaterialIcon name="delete" /></UiButton>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
+                      <div className="agent-prompt-field-heading">
+                        <span id="agent-introductions-label" className="agent-prompt-field-label">{t("agentConsole.field.introductions")}</span>
+                        <Tooltip title={t("agentConsole.prompt.introductions.description")}>
+                          <button type="button" className="agent-prompt-help" aria-label={t("agentConsole.prompt.introductions.description")}><MaterialIcon name="info" /></button>
+                        </Tooltip>
+                        {!isReadOnly && <UiButton className="agent-prompt-heading-action" size="sm" variant="ghost" onClick={() => updateForm({ introductionsText: promptEntriesToJson([...introductionEntries, ""]) })}><MaterialIcon name="add" />{t("agentConsole.prompt.addIntroduction")}</UiButton>}
+                      </div>
+                      <div className="agent-prompt-entry-list" role="group" aria-labelledby="agent-introductions-label">
+                        {(introductionEntries.length ? introductionEntries : [""]).map((entry, index) => (
+                          <div className="agent-prompt-entry" key={`introduction-${index}`}>
+                            <Input
+                          readOnly={isReadOnly}
+                              id={index === 0 ? "agent-introductions-input" : undefined}
+                              aria-label={t("agentConsole.prompt.introductions.item", { index: index + 1 })}
+                              placeholder={t("agentConsole.prompt.introductions.placeholder")}
+                              value={entry}
+                              onChange={(event) => {
+                                const next = [...(introductionEntries.length ? introductionEntries : [""])];
+                                next[index] = event.target.value;
+                                updateForm({ introductionsText: promptEntriesToJson(next) });
+                              }}
+                            />
+                            {!isReadOnly && <UiButton size="mini" variant="ghost" aria-label={t("agentConsole.prompt.removeItem", { index: index + 1 })} onClick={() => updateForm({ introductionsText: promptEntriesToJson(introductionEntries.filter((_, entryIndex) => entryIndex !== index)) })}><MaterialIcon name="delete" /></UiButton>}
                           </div>
                         ))}
                       </div>
@@ -437,6 +475,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {(wonderEntries.length ? wonderEntries : [""]).map((entry, index) => (
                           <div className="agent-prompt-entry" key={`wonder-${index}`}>
                             <Input
+                          readOnly={isReadOnly}
                               id={index === 0 ? "agent-wonders-input" : undefined}
                               aria-label={t("agentConsole.prompt.wonders.item", { index: index + 1 })}
                               placeholder={t("agentConsole.prompt.wonders.placeholder")}
@@ -546,6 +585,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {t("agentConsole.field.controls")}
                       </label>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-controls-input"
                         className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                         rows={5}
@@ -560,6 +600,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         {t("agentConsole.field.runtimeConfig")}
                       </label>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-runtime-input"
                         className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                         rows={5}
@@ -612,6 +653,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         )}
                       </div>
                       <Input.TextArea
+                          readOnly={isReadOnly}
                         id="agent-budget-input"
                         className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                         rows={7}
@@ -628,6 +670,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           {t("agentConsole.field.acpProxyConfig")}
                         </label>
                         <Input.TextArea
+                          readOnly={isReadOnly}
                           id="agent-proxy-input"
                           className={AGENT_MONO_TEXTAREA_CLASS_NAME}
                           rows={5}
