@@ -71,11 +71,10 @@ export function createDocumentAppearanceTarget(root = document.documentElement) 
       const decorated = snapshot.backgroundMode === "host" || Boolean(snapshot.imageUrl);
       // One continuous veil covers the main chat, including its gutters and
       // composer, with theme-specific opacity over the host picture.
-      const shellColor = colorChannels(read("--shell-content-bg")) || colorChannels(solidBase)!;
       const dark = snapshot.resolvedTheme === "dark";
-      set("--main-chat-surface", decorated ? (dark ? "rgba(16, 16, 16, 0.72)" : `rgba(${shellColor.slice(0, 3).join(", ")}, 0.82)`) : solidBase);
+      set("--main-chat-surface", decorated ? (dark ? "rgba(16, 16, 16, 0.85)" : "rgba(255, 255, 255, 0.8)") : solidBase);
       // The new-chat landing surface reveals the picture even for opaque skins.
-      set("--new-chat-surface", decorated ? (dark ? "rgba(64, 64, 64, 0.06)" : `rgba(${shellColor.slice(0, 3).join(", ")}, 0.06)`) : solidBase);
+      set("--new-chat-surface", decorated ? (dark ? "rgba(16, 16, 16, 0.2)" : "transparent") : solidBase);
       // Only the new-chat composer/cards reveal a little wallpaper; ordinary
       // inputs and portals keep the already-flattened opaque control color.
       const inputColor = colorChannels(read("--control-input-bg")) || colorChannels(solidBase)!;
@@ -91,7 +90,6 @@ export function createDocumentAppearanceTarget(root = document.documentElement) 
       if (snapshot.backgroundMode === "standalone" && snapshot.imageUrl) {
         set("--page-image", `url(${JSON.stringify(snapshot.imageUrl)})`);
         set("--page-image-position", snapshot.imagePosition || "center");
-        set("--page-tint", read("--shell-background-tint") || "transparent");
       }
     },
     dispose() {

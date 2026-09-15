@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:ee35c7752c5ef3bbd1c2619df3997953e2cfd4e1c75b036dc1ddcd96318a4e3c
+// sha256:874e929ce963f0bc21ea90cc81c5da69fc7121dba3fbee1e47b4f9b0f8c645b6
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -31,7 +31,7 @@ export const AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS = [
   "--control-tab-strip-bg", "--control-tab-active-bg", "--control-tab-hover-bg",
   "--nav-hover-bg", "--nav-selected-bg", "--nav-selected-text", "--nav-accent-selected-bg",
   "--desktop-overlay-panel-bg", "--sidebar-operation-menu-bg", "--sidebar-operation-menu-border",
-  "--modal-mask-bg", "--shell-sidebar-bg", "--shell-content-bg", "--shell-titlebar-bg", "--shell-background-tint"
+  "--modal-mask-bg", "--shell-sidebar-bg", "--shell-content-bg", "--shell-titlebar-bg"
 ] as const;
 export const AGENT_WEBCLIENT_APPEARANCE_RADIUS_TOKENS = [
   "--control-radius", "--control-radius-sm", "--control-radius-lg", "--overlay-radius"
