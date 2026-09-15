@@ -59,10 +59,7 @@ export interface ToolPillRecord {
   durationMs?: number;
 }
 
-export type KbaseIndexSummaryKind =
-  | "success"
-  | "skipped"
-  | "failed";
+export type KbaseIndexSummaryKind = "success" | "skipped" | "failed";
 
 export interface KbaseIndexSummary {
   kind: KbaseIndexSummaryKind;
@@ -245,7 +242,13 @@ export function buildToolPillRecords(
       Boolean(toolOutputText(toolOutput));
     return {
       key: node.id,
-      ...(node.view ? { view: node.view, viewChatId: node.viewChatId, viewError: node.viewError } : {}),
+      ...(node.view
+        ? {
+            view: node.view,
+            viewChatId: node.viewChatId,
+            viewError: node.viewError,
+          }
+        : {}),
       title: translate("timeline.toolPill.runTitle", { index: index + 1 }),
       status,
       statusLabel: resolveStatusLabel(status, translate),
@@ -425,12 +428,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 
   useEffect(() => {
     const claimedKeys = autoExpandedOutputKeysRef.current;
-    if (
-      claimToolOutputAutoExpand(
-        outputRecords,
-        claimedKeys,
-      )
-    ) {
+    if (claimToolOutputAutoExpand(outputRecords, claimedKeys)) {
       setExpanded(true);
       return;
     }
@@ -483,24 +481,32 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         setExpanded(nextExpanded);
       }}
       label={
-        <Flex align="center" gap={6} className="tw:text-[13px]">
-          <span className="tool-pill-label" title={toolLabel}>
-            {toolLabel}
-          </span>
-          {isGrouped ? (
-            expandableRecords.map((record) => (
-              <span
-                key={record.key}
-                className="tool-status-dot"
-                data-tool-status={record.status}
-              />
-            ))
-          ) : (
-            <span className="tool-status-dot" data-tool-status={status} />
+        <Flex gap={6}>
+          <Flex
+            align="center"
+            gap={6}
+            className="tw:text-[13px] tw:overflow-hidden"
+          >
+            <span className="tool-pill-label" title={toolLabel}>
+              {toolLabel}
+            </span>
+            {isGrouped ? (
+              expandableRecords.map((record) => (
+                <span
+                  key={record.key}
+                  className="tool-status-dot"
+                  data-tool-status={record.status}
+                />
+              ))
+            ) : (
+              <span className="tool-status-dot" data-tool-status={status} />
+            )}
+          </Flex>
+          {displayDurationMs > 0 && (
+            <span className="tool-pill-duration">
+              {formatToolDuration(displayDurationMs, t)}
+            </span>
           )}
-          <span className="tool-pill-duration">
-            {displayDurationMs ? formatToolDuration(displayDurationMs, t) : ""}
-          </span>
         </Flex>
       }
     >
@@ -563,7 +569,14 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                     {t(record.kbaseIndexSummary.messageKey)}
                   </div>
                 ) : null}
-                {record.view && <ViewEmbed chatId={record.viewChatId || appContext?.state.chatId || ""} view={record.view} viewError={record.viewError} payloadRaw={resultText} />}
+                {record.view && (
+                  <ViewEmbed
+                    chatId={record.viewChatId || appContext?.state.chatId || ""}
+                    view={record.view}
+                    viewError={record.viewError}
+                    payloadRaw={resultText}
+                  />
+                )}
                 <Flex className="tool-call-copy" align="center" gap={4}>
                   {!!record.durationMs && (
                     <span style={{ marginRight: 4 }}>
@@ -592,9 +605,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                       >
                         <MaterialIcon
                           name={
-                            isWrap
-                              ? "format_text_wrap"
-                              : "format_text_overflow"
+                            isWrap ? "format_text_wrap" : "format_text_overflow"
                           }
                         />
                       </UiButton>
