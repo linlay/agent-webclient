@@ -34,6 +34,7 @@ const mount = async () => act(async () => root.render(React.createElement(I18nPr
   React.createElement(ComposerOrderObserver),
 )));
 const names = () => Array.from(container.querySelectorAll(".skill-console-list-item strong")).map(node => node.textContent);
+const groupHeaders = () => Array.from(container.querySelectorAll(".skill-console-list-group-header")).map(node => node.textContent);
 const clickPin = async (name: string, pinned = false) => {
   const wrap = Array.from(container.querySelectorAll(".skill-console-list-item-wrap"))
     .find(node => node.querySelector("strong")?.textContent === name);
@@ -69,6 +70,7 @@ it("shares center pins with Composer without changing the selected skill, and re
   await clickPin("PDF");
   await clickPin("Invalid");
   expect(names()).toEqual(["Invalid", "PDF", "Demo"]);
+  expect(groupHeaders()).toEqual(["置顶 2", "全部技能 1"]);
   expect(container.querySelector('output')?.textContent).toBe("invalid,pdf");
   expect(container.querySelector('.skill-console-list-item.is-active strong')?.textContent).toBe("Demo");
   expect(onSelect).not.toHaveBeenCalled();
@@ -79,6 +81,7 @@ it("shares center pins with Composer without changing the selected skill, and re
   expect(names()).toEqual(["Invalid", "PDF", "Demo"]);
   await clickPin("PDF", true);
   expect(names()).toEqual(["Invalid", "Demo", "PDF"]);
+  expect(groupHeaders()).toEqual(["置顶 1", "全部技能 2"]);
   const input = container.querySelector<HTMLInputElement>('input[placeholder="搜索技能..."]')!;
   act(() => Simulate.change(input, { target: { value: "PDF" } } as any));
   expect(names()).toEqual(["PDF"]);
