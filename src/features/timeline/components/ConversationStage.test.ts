@@ -559,7 +559,7 @@ describe("ConversationStage", () => {
     expect(html).toContain("timeline-empty");
     expect(html).toContain("timeline-agent-switcher-trigger");
     expect(html).toContain("小宅");
-    expect(html).toContain("keyboard_arrow_down");
+    expect(html).not.toContain("keyboard_arrow_down");
     expect(html).toContain("与 ");
     expect(html).toContain(" 对话");
 
@@ -570,6 +570,8 @@ describe("ConversationStage", () => {
     expect(custom).toContain("今天想和");
     expect(custom).toContain("一起做点什么？");
     expect(custom).toContain("timeline-agent-switcher-trigger");
+    expect(custom).toContain("timeline-agent-switcher-trigger-name");
+    expect(custom).not.toContain("keyboard_arrow_down");
     expect(custom).toContain("小宅");
     expect(custom).not.toContain("${agent}");
   });
