@@ -374,10 +374,13 @@ it("confirms the package identity before deleting and leaves the list usable aft
   expect(container.querySelector('button[aria-label="新增连接器"]')).not.toBeNull();
 });
 
-it("displays the blocking Agent names without discarding the selected connector", async () => {
+it.each([false, true])("displays blocking Agent names from an HTTP envelope (structured=%s)", async structured => {
   await mount();
   jest.spyOn(window, "confirm").mockReturnValue(true);
-  jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("in use", { status: 409, data: { agentKeys: ["researcher", "coder"] } }));
+  jest.mocked(deleteConnector).mockRejectedValueOnce(jest.requireActual("@/shared/data/api/http").createPlatformApiError({
+    code: 409, msg: "connector is still used by agents: researcher, coder",
+    data: { error: { agentKeys: ["researcher", "coder"], ...(structured ? { code: "connector_in_use", message: "connector is still used by agents: researcher, coder", status: 409 } : {}) } },
+  }, { status: 409, data: { error: { agentKeys: ["researcher", "coder"] } }, fallbackMessage: "HTTP 409" }));
   await click("删除连接器");
   expect(detail().querySelector('[role="alert"]')?.textContent).toContain("researcher, coder");
   expect(detail().textContent).toContain("取消挂载");

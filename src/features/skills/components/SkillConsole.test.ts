@@ -33,7 +33,6 @@ jest.mock("@/shared/i18n", () => {
       t: (key: string, params?: Record<string, unknown>) => {
         if (key === "skillConsole.message.validateInvalid") return `${params?.count || 0} issues`;
         if (key === "skillConsole.delete.confirm") return `Delete ${params?.name || ""}?`;
-        if (key === "skillConsole.list.count") return `Skills ${params?.count || 0}`;
         return key;
       },
       locale: "zh-CN",
@@ -313,18 +312,6 @@ describe("SkillConsole", () => {
       React.createElement(SkillListItemVersion, { version: undefined }),
     );
     expect(withoutVersion).not.toContain("skill-console-list-item-version");
-  });
-
-  it("shows the list count text", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(SkillConsole, {
-        selectedSkillKey: "",
-        onSelectSkillKey: onSelectSkillKeyMock,
-        onClearSelection: onClearSelectionMock,
-      }),
-    );
-    // After mount and async load, the count should appear
-    expect(html).toContain("skill-console-count");
   });
 
   it("shows empty state when no skills", () => {

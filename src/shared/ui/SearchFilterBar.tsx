@@ -32,17 +32,12 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   className = "",
 }) => {
   return (
-    <div className={`search-filter-bar ${className}`.trim()}>
-      <Input
-        prefix={
-          <MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />
-        }
-        variant="filled"
-        placeholder={searchPlaceholder}
-        value={searchText}
-        onChange={(event) => onSearchChange(event.target.value)}
-      />
-      {filters.map((filter) => (
+    <Input
+      className={className}
+      prefix={
+        <MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />
+      }
+      suffix={filters.map((filter) => (
         <Dropdown
           key={filter.key}
           menu={filter.menu}
@@ -62,6 +57,10 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           </button>
         </Dropdown>
       ))}
-    </div>
+      variant="filled"
+      placeholder={searchPlaceholder}
+      value={searchText}
+      onChange={(event) => onSearchChange(event.target.value)}
+    />
   );
 };

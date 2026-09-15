@@ -229,7 +229,7 @@ const SKILL_CONSOLE_CLASS_NAME =
 const SKILL_BODY_CLASS_NAME =
   "skill-console-body tw:grid tw:min-h-0 tw:flex-auto tw:grid-cols-[var(--skill-list-col,260px)_minmax(0,1fr)] tw:overflow-hidden tw:max-[860px]:grid-cols-1 tw:max-[860px]:overflow-auto";
 const SKILL_LIST_CLASS_NAME =
-  "skill-console-list tw:relative tw:flex tw:min-h-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px] tw:border-r tw:border-line-soft";
+  "skill-console-list tw:relative tw:flex tw:min-h-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:min-w-0 tw:max-[860px]:max-h-[260px] tw:border-r tw:border-line-soft";
 const SKILL_RESIZE_HANDLE_CLASS_NAME = "skill-console-resize-handle";
 const SKILL_TOOLBAR_CLASS_NAME =
   "skill-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:p-[6px]";
@@ -249,16 +249,14 @@ const SKILL_LIST_ITEM_META_CLASS_NAME =
   "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
 const SKILL_LIST_ITEM_WRAP_CLASS_NAME =
   "skill-console-list-item-wrap tw:group tw:relative tw:min-w-0";
-const SKILL_LIST_ITEM_PINNED_CLASS_NAME =
-  "skill-console-list-item-pinned tw:pointer-events-none tw:absolute tw:top-0 tw:left-0";
+const SKILL_LIST_GROUP_HEADER_CLASS_NAME =
+  "skill-console-list-group-header tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-medium tw:leading-none tw:text-ink-muted tw:sticky tw:top-0 tw:bg-[var(--management-page-surface)] tw:z-10";
 const SKILL_LIST_ITEM_MORE_CLASS_NAME =
   "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
   "skill-console-list-item-status tw:flex-none tw:pointer-events-none";
 const SKILL_LIST_ITEM_VERSION_CLASS_NAME =
   "skill-console-list-item-version tw:font-code tw:text-[10px] tw:leading-none tw:text-ink-muted";
-const SKILL_COUNT_CLASS_NAME =
-  "skill-console-count tw:text-xs tw:text-ink-muted tw:px-[6px]";
 const SKILL_DETAIL_CLASS_NAME =
   "skill-console-detail tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:overflow-visible";
 const SKILL_DETAIL_ACTIONS_CLASS_NAME =
@@ -1739,6 +1737,21 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     );
   }, [skills, searchText, statusFilter, pinnedSkillKeys]);
 
+  const pinnedSkills = useMemo(
+    () =>
+      filteredSkills.filter((item) =>
+        pinnedSkillKeys.includes(item.key.toLowerCase()),
+      ),
+    [filteredSkills, pinnedSkillKeys],
+  );
+  const otherSkills = useMemo(
+    () =>
+      filteredSkills.filter(
+        (item) => !pinnedSkillKeys.includes(item.key.toLowerCase()),
+      ),
+    [filteredSkills, pinnedSkillKeys],
+  );
+
   const applyOpenedFile = useCallback((file: AdminSkillTextFile) => {
     applyOpenedFileState(
       file,
@@ -2536,6 +2549,88 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     [t, statusFilter],
   );
 
+  const renderSkillItem = (item: AdminSkillSummary) => {
+    const itemPinned = pinnedSkillKeys.includes(item.key.toLowerCase());
+    return (
+      <div key={item.key} className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}>
+        <button
+          type="button"
+          className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
+            item.key === selectedSkillKey ? "is-active" : ""
+          }`}
+          disabled={deletingSkill}
+          onClick={() => handleSelectSkill(item)}
+        >
+          <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
+            <SkillListIcon icon={item.icon} />
+            <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
+              <Flex
+                gap={6}
+                align="center"
+                className="tw:w-full"
+              >
+                <Typography.Text
+                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-focus-within:pe-[22px]"
+                  ellipsis
+                  title={item.name || item.key}
+                >
+                  <strong>{item.name || item.key}</strong>
+                </Typography.Text>
+                <SkillListItemStatus
+                  status={item.status}
+                  statusLabel={translateWithFallback(
+                    t,
+                    `skillConsole.status.${item.status}`,
+                    item.status,
+                  )}
+                />
+              </Flex>
+              <Flex
+                justify="space-between"
+                align="center"
+                className="tw:w-full"
+                gap={10}
+              >
+                <Typography.Text
+                  className={SKILL_LIST_ITEM_META_CLASS_NAME}
+                  ellipsis
+                  title={item.key}
+                >
+                  {item.key}
+                </Typography.Text>
+                <SkillListItemVersion version={item.version} />
+              </Flex>
+            </span>
+          </span>
+        </button>
+        <SkillListItemActions
+          item={item}
+          pinned={itemPinned}
+          busy={validating || downloadingSkill || deletingSkill || assistant.opening}
+          pinsDisabled={pinsDisabled}
+          t={t}
+          onTogglePin={(skillKey) => {
+            void toggleSkillPin(skillKey);
+          }}
+          onValidateSkill={(skillKey) => {
+            void handleValidateSkillKey(skillKey);
+          }}
+          onDownloadSkill={(skillKey) => {
+            void handleDownloadSkillByKey(skillKey);
+          }}
+          onDeleteSkill={handleDeleteSkillListItem}
+          onEditSkill={(item) => {
+            if (item.key === selectedSkillKey) focusEditableField(editorRegion.current);
+            else handleSelectSkill(item);
+          }}
+          onEditSkillConversation={async (item) => {
+            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: item.name } });
+          }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className={SKILL_CONSOLE_CLASS_NAME}>
       <SkillCreateModal
@@ -2588,10 +2683,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               onConversation={async () => { if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill" }); }} />
           </div>
 
-          <div className={SKILL_COUNT_CLASS_NAME}>
-            {t("skillConsole.list.count", { count: filteredSkills.length })}
-          </div>
-
           {pinError && (
             <div role="alert" className="tw:text-xs tw:text-danger">
               {t("composer.addMenu.skill.pinFailed")}
@@ -2626,104 +2717,26 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 </div>
               ) : (
                 <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
-                  {filteredSkills.map((item) => {
-                    const itemPinned = pinnedSkillKeys.includes(
-                      item.key.toLowerCase(),
-                    );
-                    return (
-                      <div
-                        key={item.key}
-                        className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}
-                        data-pinned={itemPinned || undefined}
-                      >
-                        <button
-                          type="button"
-                          className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
-                            item.key === selectedSkillKey ? "is-active" : ""
-                          }`}
-                          disabled={deletingSkill}
-                          onClick={() => handleSelectSkill(item)}
-                        >
-                          <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
-                            <SkillListIcon icon={item.icon} />
-                            <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
-                              <Flex
-                                gap={6}
-                                align="center"
-                                className="tw:w-full"
-                              >
-                                <Typography.Text
-                                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-focus-within:pe-[22px]"
-                                  ellipsis
-                                  title={item.name || item.key}
-                                >
-                                  <strong>{item.name || item.key}</strong>
-                                </Typography.Text>
-                                <SkillListItemStatus
-                                  status={item.status}
-                                  statusLabel={translateWithFallback(
-                                    t,
-                                    `skillConsole.status.${item.status}`,
-                                    item.status,
-                                  )}
-                                />
-                              </Flex>
-                              <Flex
-                                justify="space-between"
-                                align="center"
-                                className="tw:w-full"
-                                gap={10}
-                              >
-                                <Typography.Text
-                                  className={SKILL_LIST_ITEM_META_CLASS_NAME}
-                                  ellipsis
-                                  title={item.key}
-                                >
-                                  {item.key}
-                                </Typography.Text>
-                                <SkillListItemVersion version={item.version} />
-                              </Flex>
-                            </span>
-                          </span>
-                        </button>
-                        {itemPinned && (
-                          <span
-                            className={SKILL_LIST_ITEM_PINNED_CLASS_NAME}
-                            aria-label={t("skillConsole.action.pin")}
-                          >
-                            <MaterialIcon
-                              name="keep_fill"
-                              className="tw:text-accent"
-                            />
-                          </span>
-                        )}
-                        <SkillListItemActions
-                          item={item}
-                          pinned={itemPinned}
-                          busy={validating || downloadingSkill || deletingSkill || assistant.opening}
-                          pinsDisabled={pinsDisabled}
-                          t={t}
-                          onTogglePin={(skillKey) => {
-                            void toggleSkillPin(skillKey);
-                          }}
-                          onValidateSkill={(skillKey) => {
-                            void handleValidateSkillKey(skillKey);
-                          }}
-                          onDownloadSkill={(skillKey) => {
-                            void handleDownloadSkillByKey(skillKey);
-                          }}
-                          onDeleteSkill={handleDeleteSkillListItem}
-                          onEditSkill={(item) => {
-                            if (item.key === selectedSkillKey) focusEditableField(editorRegion.current);
-                            else handleSelectSkill(item);
-                          }}
-                          onEditSkillConversation={async (item) => {
-                            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: item.name } });
-                          }}
-                        />
+                  {pinnedSkills.length > 0 && (
+                    <>
+                      <div className={SKILL_LIST_GROUP_HEADER_CLASS_NAME}>
+                        {t("skillConsole.list.pinnedGroup", {
+                          count: pinnedSkills.length,
+                        })}
                       </div>
-                    );
-                  })}
+                      {pinnedSkills.map(renderSkillItem)}
+                    </>
+                  )}
+                  {otherSkills.length > 0 && (
+                    <>
+                      <div className={SKILL_LIST_GROUP_HEADER_CLASS_NAME}>
+                        {t("skillConsole.list.otherGroup", {
+                          count: otherSkills.length,
+                        })}
+                      </div>
+                      {otherSkills.map(renderSkillItem)}
+                    </>
+                  )}
                 </div>
               )}
             </Spin>

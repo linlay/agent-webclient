@@ -161,7 +161,9 @@ export function createPlatformApiError(input: unknown, options: {
     ? {
         ...input,
         ...(options.status != null ? { status: options.status } : {}),
-        ...(options.fallbackMessage && !(typeof input.message === "string" && input.message.trim())
+        ...(options.fallbackMessage
+          && !(typeof input.message === "string" && input.message.trim())
+          && !(typeof input.msg === "string" && input.msg.trim())
           ? { message: options.fallbackMessage }
           : {}),
       }

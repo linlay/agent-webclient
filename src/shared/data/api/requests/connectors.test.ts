@@ -93,3 +93,27 @@ it("deletes the installed package through the detail endpoint with an encoded id
   await deleteConnector("demo & other");
   expect(requestJson).toHaveBeenCalledWith("/api/admin/connectors/detail?id=demo+%26+other", { method: "DELETE", cache: "no-store" });
 });
+
+
+it.each([false, true])("preserves delete conflict reasons and references through HTTP (structured=%s)", async structured => {
+  const originalFetch = globalThis.fetch;
+  const reason = "connector is still used by agents: worker";
+  const details = { agentKeys: ["worker"], ...(structured ? { code: "connector_in_use", message: reason, status: 409 } : {}) };
+  globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 409, text: async () => JSON.stringify({ code: 409, msg: reason, data: { error: details } }) });
+  jest.mocked(requestJson).mockImplementationOnce(jest.requireActual("@/shared/data/api/http").requestJson);
+  try {
+    await expect(deleteConnector("demo")).rejects.toMatchObject({
+      status: 409, data: { error: details }, platformError: { message: reason, ...(structured ? { code: "connector_in_use" } : {}) },
+    });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+it("keeps a busy conflict distinct from an Agent binding conflict", async () => {
+  const originalFetch = globalThis.fetch;
+  const reason = "connector preparation or mutation is in progress";
+  globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 409, text: async () => JSON.stringify({ code: 409, msg: reason, data: { error: { code: "connector_busy", message: reason, status: 409 } } }) });
+  jest.mocked(requestJson).mockImplementationOnce(jest.requireActual("@/shared/data/api/http").requestJson);
+  try {
+    await expect(deleteConnector("demo")).rejects.toMatchObject({ code: "connector_busy", platformError: { code: "connector_busy", message: reason } });
+  } finally { globalThis.fetch = originalFetch; }
+});

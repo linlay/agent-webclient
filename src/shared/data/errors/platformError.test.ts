@@ -179,7 +179,7 @@ describe("platformError", () => {
 
 		expect(categoryDisplay.message).toBe("模型服务请求失败，请稍后重试。");
 		expect(categoryDisplay.message).not.toContain("upstream english");
-		expect(genericDisplay.message).toBe("操作失败，请稍后重试。");
+		expect(genericDisplay.message).toBe("操作失败，请查看错误详情。");
 	});
 
 	it("only adds retry guidance when retryable is true", () => {

@@ -227,9 +227,10 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
       onRouteIdChange("");
       return id;
     } catch (cause) {
-      const agentKeys = cause instanceof ApiError && cause.status === 409
-        && cause.data && typeof cause.data === "object" && "agentKeys" in cause.data
-        && Array.isArray(cause.data.agentKeys) ? cause.data.agentKeys.filter((key): key is string => typeof key === "string") : [];
+      const data = cause instanceof ApiError && cause.status === 409 ? cause.data : null;
+      const details = data && typeof data === "object" && "error" in data ? data.error : data;
+      const agentKeys = details && typeof details === "object" && "agentKeys" in details
+        && Array.isArray(details.agentKeys) ? details.agentKeys.filter((key): key is string => typeof key === "string" && !!key.trim()) : [];
       setError(agentKeys.length ? t("connectors.delete.inUse", { agents: agentKeys.join(", ") })
         : cause instanceof Error ? cause.message : String(cause));
       setErrorDetails(connectorErrorDetails(cause));
