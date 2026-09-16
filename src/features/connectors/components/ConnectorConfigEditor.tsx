@@ -90,7 +90,7 @@ export function ConnectorConfigEditor({
   );
   return (
     <div className={styles.config}>
-      <div className={`${styles.toolbar} tw:px-[10px]`}>
+      <div className={`${styles.toolbar}${manifest ? "" : " tw:px-[10px]"}`}>
         <strong>{manifest ? t("connectors.section.basics") : file}</strong>
         {manifest && readOnly && (
           <span className={styles.hint}>{t("connectors.value.readOnly")}</span>
@@ -113,7 +113,7 @@ export function ConnectorConfigEditor({
         )}
       </div>
       {!(manifest && readOnly) && (
-        <p className={`${styles.hint} tw:px-[10px]`}>
+        <p className={`${styles.hint}${manifest ? "" : " tw:px-[10px]"}`}>
           {file === "view.json"
             ? "VIEW · HTML / QLC"
             : t(

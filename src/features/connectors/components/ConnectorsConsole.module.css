@@ -153,8 +153,9 @@
 
 .itemMore {
   position: absolute;
-  top: 4px;
+  top: 50%;
   right: 6px;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -588,17 +589,43 @@
 }
 
 .itemFooter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   margin-top: 3px;
-  align-items: flex-end;
+  align-items: center;
+  gap: 6px 8px;
 }
 
 .itemStatus {
   min-width: 0;
 }
 
+.itemStatus > :global(.ui-tag) {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemHeading .version {
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .itemFooter .badges {
+  grid-column: 2;
+  grid-row: 1;
   justify-content: flex-end;
   gap: 4px;
+}
+
+.itemFooter .badges > :global(.ui-tag) {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .tabCount {

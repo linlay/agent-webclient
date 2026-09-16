@@ -257,44 +257,43 @@ export function ConnectorsConsole({
           <span className={styles.itemHeading}>
             <ConnectorIcon item={item} />
             <strong>{item.name}</strong>
+            <span className={styles.version}>
+              {t("connectors.version", { version: item.version })}
+            </span>
           </span>
           {item.description && (
             <span className={styles.description}>{item.description}</span>
           )}
           <span className={styles.itemFooter}>
-            <span className={styles.version}>
-              {t("connectors.version", { version: item.version })}
+            <span className={styles.itemStatus}>
+              {(item.mcp || []).some(
+                (server) => server.status === "unavailable",
+              ) ? (
+                <UiTag tone="danger" title={t("connectors.sync.unavailable")}>
+                  {t("connectors.sync.unavailable")}
+                </UiTag>
+              ) : (
+                <UiTag
+                  title={authLabel}
+                  tone={
+                    auth?.error
+                      ? "danger"
+                      : authStatus === "authorized"
+                        ? "accent"
+                        : "muted"
+                  }
+                >
+                  {authLabel}
+                </UiTag>
+              )}
             </span>
-            <Flex gap={4}>
-              <span className={styles.itemStatus}>
-                {(item.mcp || []).some(
-                  (server) => server.status === "unavailable",
-                ) ? (
-                  <UiTag tone="danger">
-                    {t("connectors.sync.unavailable")}
-                  </UiTag>
-                ) : (
-                  <UiTag
-                    tone={
-                      auth?.error
-                        ? "danger"
-                        : authStatus === "authorized"
-                          ? "accent"
-                          : "muted"
-                    }
-                  >
-                    {authLabel}
-                  </UiTag>
-                )}
-              </span>
-              <span className={styles.badges}>
-                {item.hasView && <UiTag tone="accent">VIEW</UiTag>}
-                {item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}
-                {item.hasMcp && (
-                  <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>
-                )}
-              </span>
-            </Flex>
+            <span className={styles.badges}>
+              {item.hasView && <UiTag tone="accent">VIEW</UiTag>}
+              {item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}
+              {item.hasMcp && (
+                <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>
+              )}
+            </span>
           </span>
         </button>
         <Dropdown

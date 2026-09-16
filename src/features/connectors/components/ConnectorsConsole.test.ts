@@ -258,8 +258,8 @@ it("uses compact name/version and status/type rows without exposing the connecto
   expect(heading.querySelector("strong")?.textContent).toBe(item.name);
   expect(listItem.parentElement?.querySelector('button[aria-label="Demo connector 的更多操作"]')).toBeDefined();
   const footer = listItem.lastElementChild!;
-  expect(footer.firstElementChild?.textContent).toBe("v1.0");
-  expect(footer.children[1]?.textContent).toContain("未登录");
+  expect(heading.lastElementChild?.textContent).toBe("v1.0");
+  expect(footer.firstElementChild?.textContent).toContain("未登录");
   expect(footer.children[1]?.textContent).toContain("CLIMCP");
   expect(container.querySelector('aside button[aria-label="新增连接器"]')?.getAttribute("title")).toBe("新增连接器");
   expect(container.textContent).not.toContain("可通过 ZIP 导入外部连接器");
