@@ -364,6 +364,87 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
 
 
                 <AgentFormSection
+                  id={AGENT_FORM_SECTION_IDS[1]}
+                  icon="psychology"
+                  title={t("agentConsole.section.model")}
+                >
+                  <div className="agent-model-selector-card">
+                    <div className="agent-model-dropdown">
+                      <Dropdown
+                        menu={{
+                          className: "query-settings-menu",
+                          items: modelItems,
+                          onClick: onModelMenuClick,
+                        }}
+                        onOpenChange={onModelMenuOpenChange}
+                        placement="topRight"
+                        trigger={["click"]}
+                      >
+                        <UiButton
+                          className={`query-settings-btn tw:!min-h-8 tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap query-model-btn tw:overflow-hidden ${queryModelButtonStateClass}`.trim()}
+                          variant="ghost"
+                          size="sm"
+                          disabled={isReadOnly || loadingOptions}
+                          title={formError || t("composer.query.model.title")}
+                          onClick={(event) => event.preventDefault()}
+                        >
+                          {showFastBadge ? <MaterialIcon name="bolt" /> : null}
+                          <span className="query-model-label tw:text-text-main">
+                            {selectedModelLabel}
+                          </span>
+                          <span>{selectedReasoningLabel}</span>
+                          <MaterialIcon name="expand_more" />
+                        </UiButton>
+                      </Dropdown>
+                    </div>
+                  </div>
+                </AgentFormSection>
+
+                <AgentFormSection
+                  id={AGENT_FORM_SECTION_IDS[3]}
+                  icon="hub"
+                  title={t("agentConsole.section.capabilities")}
+                >
+                  <AgentCapabilitiesEditor
+                    readOnly={isReadOnly}
+                    contextOptions={contextTagOptions.map((option) => {
+                      const presentation = contextOptionPresentation(option.value);
+                      return {
+                        value: option.value,
+                        label: option.label,
+                        icon: presentation.icon,
+                        description: t(presentation.descriptionKey),
+                      };
+                    })}
+                    contextTags={form.contextTags}
+                    tools={form.tools}
+                    skills={form.skills}
+                    filteredTools={filteredToolOptions}
+                    selectedTools={selectedTools}
+                    filteredSkills={filteredSkillOptions}
+                    selectedSkills={selectedSkills}
+                    toolFilter={toolFilter}
+                    toolSearchText={toolSearchText}
+                    skillSearchText={skillSearchText}
+                    toolsExpanded={toolsExpanded}
+                    skillsExpanded={skillsExpanded}
+                    canImportPrivateSkill={canImportPrivateSkill}
+                    t={t}
+                    getToolCategory={toolFilterForOption}
+                    getToolSourceLabel={(tool) => toolSourceLabel(tool.sourceCategory, t) || tool.kind}
+                    onContextTagsChange={(contextTags) => updateForm({ contextTags })}
+                    onToolsChange={(tools) => updateForm({ tools })}
+                    onSkillsChange={(skills) => updateForm({ skills })}
+                    onToolFilterChange={setToolFilter}
+                    onToolSearchTextChange={setToolSearchText}
+                    onSkillSearchTextChange={setSkillSearchText}
+                    onToolsExpandedChange={setToolsExpanded}
+                    onSkillsExpandedChange={setSkillsExpanded}
+                    onImportPrivateSkill={openPrivateSkillImport}
+                  />
+                </AgentFormSection>
+
+                <AgentFormSection
                   id={AGENT_FORM_SECTION_IDS[2]}
                   icon="subject"
                   title={t("agentConsole.section.prompts")}
@@ -492,86 +573,6 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                       </div>
                     </div>
                   </div>
-                </AgentFormSection>
-                <AgentFormSection
-                  id={AGENT_FORM_SECTION_IDS[1]}
-                  icon="psychology"
-                  title={t("agentConsole.section.model")}
-                >
-                  <div className="agent-model-selector-card">
-                    <div className="agent-model-dropdown">
-                      <Dropdown
-                        menu={{
-                          className: "query-settings-menu",
-                          items: modelItems,
-                          onClick: onModelMenuClick,
-                        }}
-                        onOpenChange={onModelMenuOpenChange}
-                        placement="topRight"
-                        trigger={["click"]}
-                      >
-                        <UiButton
-                          className={`query-settings-btn tw:!min-h-8 tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap query-model-btn tw:overflow-hidden ${queryModelButtonStateClass}`.trim()}
-                          variant="ghost"
-                          size="sm"
-                          disabled={isReadOnly || loadingOptions}
-                          title={formError || t("composer.query.model.title")}
-                          onClick={(event) => event.preventDefault()}
-                        >
-                          {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-                          <span className="query-model-label tw:text-text-main">
-                            {selectedModelLabel}
-                          </span>
-                          <span>{selectedReasoningLabel}</span>
-                          <MaterialIcon name="expand_more" />
-                        </UiButton>
-                      </Dropdown>
-                    </div>
-                  </div>
-                </AgentFormSection>
-
-                <AgentFormSection
-                  id={AGENT_FORM_SECTION_IDS[3]}
-                  icon="hub"
-                  title={t("agentConsole.section.capabilities")}
-                >
-                  <AgentCapabilitiesEditor
-                    readOnly={isReadOnly}
-                    contextOptions={contextTagOptions.map((option) => {
-                      const presentation = contextOptionPresentation(option.value);
-                      return {
-                        value: option.value,
-                        label: option.label,
-                        icon: presentation.icon,
-                        description: t(presentation.descriptionKey),
-                      };
-                    })}
-                    contextTags={form.contextTags}
-                    tools={form.tools}
-                    skills={form.skills}
-                    filteredTools={filteredToolOptions}
-                    selectedTools={selectedTools}
-                    filteredSkills={filteredSkillOptions}
-                    selectedSkills={selectedSkills}
-                    toolFilter={toolFilter}
-                    toolSearchText={toolSearchText}
-                    skillSearchText={skillSearchText}
-                    toolsExpanded={toolsExpanded}
-                    skillsExpanded={skillsExpanded}
-                    canImportPrivateSkill={canImportPrivateSkill}
-                    t={t}
-                    getToolCategory={toolFilterForOption}
-                    getToolSourceLabel={(tool) => toolSourceLabel(tool.sourceCategory, t) || tool.kind}
-                    onContextTagsChange={(contextTags) => updateForm({ contextTags })}
-                    onToolsChange={(tools) => updateForm({ tools })}
-                    onSkillsChange={(skills) => updateForm({ skills })}
-                    onToolFilterChange={setToolFilter}
-                    onToolSearchTextChange={setToolSearchText}
-                    onSkillSearchTextChange={setSkillSearchText}
-                    onToolsExpandedChange={setToolsExpanded}
-                    onSkillsExpandedChange={setSkillsExpanded}
-                    onImportPrivateSkill={openPrivateSkillImport}
-                  />
                 </AgentFormSection>
 
                 <AgentFormSection
