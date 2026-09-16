@@ -33,6 +33,7 @@ export function useChatOperations(
 
   const clearActiveChatIfNeeded = (chatId: string) => {
     if (String(activeChatId || "") !== chatId) return;
+    dispatch({ type: "CLEAR_CHAT_TRANSITION" });
     dispatch({ type: "SET_CHAT_ID", chatId: "" });
     dispatch({ type: "SET_RUN_ID", runId: "" });
     dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
