@@ -43,8 +43,7 @@
     max-width: none;
     margin: 0;
     height: 100vh;
-    padding: 10px;
-    background: var(--bg-base);
+    background: var(--management-page-surface);
     color: var(--ink-1);
     overflow: hidden;
     display: flex;
