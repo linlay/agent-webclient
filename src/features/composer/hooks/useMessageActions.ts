@@ -44,7 +44,7 @@ import {
 } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
-import { SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT } from "@/features/selection/lib/selectedTextReference";
+import { notifySelectedTextReferencesAccepted, hasSelectedTextReference } from "@/features/selection/lib/selectedTextReference";
 
 interface SendMessageEventDetail {
   message?: unknown;
@@ -75,29 +75,6 @@ function notifyNewChatCreated(input: { chatId: string; agentKey: string }): void
       detail: input,
     }),
   );
-}
-
-function notifySelectedTextReferencesAccepted(references: unknown[]) {
-  if (
-    typeof window === "undefined" ||
-    typeof window.dispatchEvent !== "function" ||
-    typeof CustomEvent === "undefined"
-  ) return;
-  const referenceIds = getAcceptedSelectedTextReferenceIds(references);
-  if (referenceIds.length === 0) return;
-  window.dispatchEvent(new CustomEvent(SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT, {
-    detail: { referenceIds },
-  }));
-}
-
-export function getAcceptedSelectedTextReferenceIds(references: unknown[]) {
-  return references.flatMap((reference) => {
-    if (!reference || typeof reference !== "object" || Array.isArray(reference)) return [];
-    const record = reference as Record<string, unknown>;
-    return record.type === "selection" && typeof record.id === "string" && record.id.trim()
-      ? [record.id.trim()]
-      : [];
-  });
 }
 
 function isTerminalRunEventType(type: string): boolean {
@@ -915,6 +892,6 @@ export function hasSendableComposerMessage(
 ) {
   return Boolean(
     String(message || "").trim() ||
-    (Array.isArray(references) && references.some((reference) => reference != null)),
+    hasSelectedTextReference(references),
   );
 }

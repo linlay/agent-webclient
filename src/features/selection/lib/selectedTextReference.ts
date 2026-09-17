@@ -1,5 +1,6 @@
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 import {
+  SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT,
   normalizeSelectedText,
   selectedTextByteLength,
   type SelectedTextFragment,
@@ -45,4 +46,33 @@ export function selectedTextFragmentFromAttachment(
       meta: { text, sourceKind },
     },
   };
+}
+
+export function notifySelectedTextReferencesAccepted(references: unknown[]) {
+  if (
+    typeof window === "undefined" ||
+    typeof window.dispatchEvent !== "function" ||
+    typeof CustomEvent === "undefined"
+  ) return;
+  const referenceIds = getAcceptedSelectedTextReferenceIds(references);
+  if (referenceIds.length === 0) return;
+  window.dispatchEvent(new CustomEvent(SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT, {
+    detail: { referenceIds },
+  }));
+}
+
+export function getAcceptedSelectedTextReferenceIds(references: unknown[]) {
+  return references.flatMap((reference) => {
+    if (!reference || typeof reference !== "object" || Array.isArray(reference)) return [];
+    const record = reference as Record<string, unknown>;
+    return record.type === "selection" && typeof record.id === "string" && record.id.trim()
+      ? [record.id.trim()]
+      : [];
+  });
+}
+
+export function hasSelectedTextReference(references: unknown): boolean {
+  return Array.isArray(references) && references.some((reference) =>
+    reference != null && typeof reference === "object" && reference.type === "selection",
+  );
 }

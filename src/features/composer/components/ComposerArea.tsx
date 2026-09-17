@@ -73,6 +73,7 @@ import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
+import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
 interface ComposerAreaProps {
   enableNewChatContext?: boolean;
@@ -316,7 +317,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     stageReviewAttachment,
     sendAttachmentMeta,
     sendReferences,
-    useUnifiedComposerAttachmentRow,
     uploadStagedAttachments,
   } = useComposerAttachments({
     dispatch,
@@ -329,6 +329,21 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     state,
   });
   const selectedText = useSelectedTextFragments(state.chatId);
+  const selectedFragments = useMemo(() => [
+    ...sendAttachmentMeta.flatMap((attachment) => {
+      const fragment = selectedTextFragmentFromAttachment(attachment);
+      return fragment ? [fragment] : [];
+    }),
+    ...selectedText.fragments,
+  ], [sendAttachmentMeta, selectedText.fragments]);
+  const visibleAttachments = attachments.filter((attachment) => attachment.type !== "selection");
+  const removeSelectedFragment = (referenceId: string) => {
+    selectedText.removeFragment(referenceId);
+    const restored = attachments.find((attachment) => attachment.type === "selection" &&
+      attachment.references.some((reference) => reference && typeof reference === "object" &&
+        (reference as { id?: unknown }).id === referenceId));
+    if (restored) handleRemoveAttachment(restored.id);
+  };
   const combinedSendReferences = useMemo(
     () => [...sendReferences, ...selectedText.references],
     [selectedText.references, sendReferences],
@@ -694,7 +709,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    (!inputValue.trim() && (isMainChatRunning || selectedText.fragments.length === 0));
+    (!inputValue.trim() && (isMainChatRunning || selectedFragments.length === 0));
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,
@@ -915,11 +930,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 className={`${COMPOSER_PILL_CLASS} ${isFrontendActive ? COMPOSER_PILL_FRONTEND_CLASS : ""} ${isVoiceMode ? COMPOSER_PILL_VOICE_CLASS : ""}`}
               >
                 <ComposerAttachments
-                  attachments={attachments}
+                  attachments={visibleAttachments}
                   attachmentChatId={state.chatId || attachmentChatId}
                   attachmentViewportRef={attachmentViewportRef}
                   useUnifiedComposerAttachmentRow={
-                    useUnifiedComposerAttachmentRow
+                    visibleAttachments.length > 1
                   }
                   hasComposerAttachmentOverflow={hasComposerAttachmentOverflow}
                   attachmentScrollState={attachmentScrollState}
@@ -927,9 +942,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onScroll={scrollComposerAttachments}
                 />
                 <SelectedTextFragmentsPill
-                  fragments={selectedText.fragments}
+                  fragments={selectedFragments}
                   variant="annotations"
-                  onRemove={selectedText.removeFragment}
+                  onRemove={removeSelectedFragment}
                 />
                 <Flex wrap gap={4}>
                   {displayedForcedSkills.map((skill) => (

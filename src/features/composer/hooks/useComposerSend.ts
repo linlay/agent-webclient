@@ -40,6 +40,7 @@ import {
 import { resolveCurrentWorkerSummary, supportsActiveRunContextCompact } from "@/features/workers/lib/currentWorker";
 import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
+import { hasSelectedTextReference, notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
 
 export {
   buildCompactUsageSnapshot,
@@ -401,7 +402,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     const message = inputValue.trim();
-    if (!message && sendReferences.length === 0) return;
+    if (!message && !hasSelectedTextReference(sendReferences)) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
@@ -468,7 +469,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
-        // Selection references remain in the Composer until a normal query accepts them.
+        // Steering still requires an explicit instruction alongside references.
         if (!message) return;
         if (mustUseSkills.length > 0) {
           dispatch({
@@ -491,12 +492,12 @@ export function useComposerSend(input: UseComposerSendInput) {
             runId: activeRunId,
             createdAt: Date.now(),
             status: "queued",
-            references: structuredClone(sendReferences.filter((reference) =>
-              !reference || typeof reference !== "object" ||
-              (reference as { type?: unknown }).type !== "selection",
-            )),
+            references: structuredClone(sendReferences),
           },
         });
+        // The queue now owns these references; cancellation restores them through
+        // the existing pending-steer reference state.
+        notifySelectedTextReferencesAccepted(sendReferences);
         setInputValue("");
         dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
         clearComposerAttachments();

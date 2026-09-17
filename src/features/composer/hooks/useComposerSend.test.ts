@@ -760,7 +760,7 @@ describe('useComposerSend active run gate', () => {
     expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
   });
 
-  it.each(['hello', ''])('keeps selections out of active-run steering and requires text (%s)', (inputValue) => {
+  it.each(['hello', ''])('queues selection references with active-run steering and requires text (%s)', (inputValue) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
     state.currentChatActiveRun = {
@@ -865,7 +865,10 @@ describe('useComposerSend active run gate', () => {
         requestId: 'req_request',
         runId: 'run-active',
         status: 'queued',
-        references: [{ id: 'image-1', type: 'image' }],
+        references: [
+          { id: 'image-1', type: 'image' },
+          { id: 'selection-1', type: 'selection', meta: { text: 'selected text' } },
+        ],
       }),
     });
     expect(setInputValue).toHaveBeenCalledWith('');

@@ -117,11 +117,13 @@ describe("App routing", () => {
     await import("./App");
     const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{ children?: Array<{ path: string; element: React.ReactElement }> }>;
     const children = routes.flatMap((route) => route.children || []);
-    const explanation = children.find((route) => route.path === "/selection-explain/:chatId")!;
+    for (const path of ["/explain/:chatId", "/selection-explain/:chatId"]) {
+    const explanation = children.find((route) => route.path === path)!;
     if (desktopMode) expect(explanation.element.props.titleKey).toBe("selection.explain.title");
     else {
       expect(explanation.element.type).toBe(jest.requireMock("react-router-dom").Navigate);
       expect(explanation.element.props).toMatchObject({ to: "/", replace: true });
+    }
     }
     expect(children.map((route) => route.path)).toContain("/btw/:chatId");
   });

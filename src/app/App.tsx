@@ -306,14 +306,14 @@ const router = createBrowserRouter(
             </DocumentTitleRoute>
           ),
         },
-        {
-          path: SURFACE_ROUTE_PATHS.selectionExplain,
+        ...[SURFACE_ROUTE_PATHS.selectionExplain, SURFACE_ROUTE_PATHS.legacySelectionExplain].map((path) => ({
+          path,
           element: isDesktopAppMode() ? (
             <DocumentTitleRoute titleKey="selection.explain.title">
               <SelectionExplainPage />
             </DocumentTitleRoute>
           ) : <Navigate to="/" replace />,
-        },
+        })),
         {
           path: SURFACE_ROUTE_PATHS.source,
           element: (

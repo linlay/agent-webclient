@@ -41,15 +41,6 @@ export function useSelectedTextFragments(chatKey: string) {
     });
   }, [normalizedChatKey]);
 
-  const clearFragments = useCallback(() => {
-    setByChat((current) => {
-      if (!current.has(normalizedChatKey)) return current;
-      const next = new Map(current);
-      next.delete(normalizedChatKey);
-      return next;
-    });
-  }, [normalizedChatKey]);
-
   useEffect(() => {
     const handleAccepted = (event: Event) => {
       const rawIds = (event as CustomEvent).detail?.referenceIds;
@@ -92,6 +83,5 @@ export function useSelectedTextFragments(chatKey: string) {
     attachments,
     addFragment,
     removeFragment,
-    clearFragments,
   };
 }

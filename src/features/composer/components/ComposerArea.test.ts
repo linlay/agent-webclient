@@ -513,6 +513,16 @@ describe("ComposerArea", () => {
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
   });
 
+  it("previews restored steer selections as references and permits resending without text when idle", () => {
+    const reference = { id: "selection-restored", type: "selection", name: "Selected text",
+      size: 12, mimeType: "text/plain", meta: { text: "restored text", sourceKind: "message" } };
+    mockComposerAttachmentsState.sendReferences = [reference];
+    mockComposerAttachmentsState.sendAttachmentMeta = [reference];
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+    expect(html).toContain("selection.fragment.annotations");
+    expect(mockComposerActionsProps[0].sendDisabled).toBe(false);
+  });
+
   it("enables the editing switch and slash command for a dedicated KBASE Agent", () => {
     mockResolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",

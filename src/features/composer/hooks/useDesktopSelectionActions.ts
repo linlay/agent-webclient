@@ -1,9 +1,8 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import type { MessageInstance } from "antd/es/message/interface";
 import { useAppState } from "@/app/state/AppContext";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
-import type { RunExecution } from "@/features/transport/contracts/realtimeTransport";
 import type { QueryModelOverride } from "@/shared/data";
 import { createRequestId } from "@/shared/data";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
@@ -32,7 +31,6 @@ export function useDesktopSelectionActions(input: {
   const openTarget = useOpenTarget();
   const desktopMode = isDesktopAppMode();
   const btw = useOptionalBTW();
-  const explanationExecutionsRef = useRef(new Map<string, RunExecution>());
 
   const handleAction = useCallback(async ({
     action,
@@ -118,13 +116,6 @@ export function useDesktopSelectionActions(input: {
         transportPurpose: "selection-explain",
         onEvent: () => undefined,
       });
-      explanationExecutionsRef.current.set(requestId, execution);
-      const forgetExecution = () => {
-        if (explanationExecutionsRef.current.get(requestId) === execution) {
-          explanationExecutionsRef.current.delete(requestId);
-        }
-      };
-      void execution.completion.then(forgetExecution, forgetExecution);
       const identity = await execution.identity;
       return {
         ok: true,
@@ -134,7 +125,6 @@ export function useDesktopSelectionActions(input: {
         },
       } as const;
     } catch (cause) {
-      explanationExecutionsRef.current.delete(requestId);
       const display = formatPlatformErrorForDisplay(cause);
       void messageApi.error(display.message);
       return { ok: false, code: "run_start_failed" as const };

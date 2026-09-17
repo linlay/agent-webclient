@@ -458,7 +458,10 @@ export const BtwProvider: React.FC<{
         runtime.session.agentKey = identity.owner.kind === "agent"
           ? identity.owner.agentKey
           : "";
-        runtime.session.draftSelections = [];
+        const acceptedIds = new Set(selectedFragments.map((fragment) => fragment.reference.id));
+        runtime.session.draftSelections = runtime.session.draftSelections.filter(
+          (fragment) => !acceptedIds.has(fragment.reference.id),
+        );
         runtime.session.interruptReady = true;
         publish(runtime);
         const completion = await execution.completion;
