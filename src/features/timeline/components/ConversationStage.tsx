@@ -49,6 +49,7 @@ import { useI18n } from "@/shared/i18n";
 import {
   Button,
   Collapse,
+  Divider,
   Dropdown,
   Flex,
   Form,
@@ -1717,6 +1718,22 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     {isCompleted && (
                       <div className={TIMELINE_RUN_META_CLASS_NAME}>
                         <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
+                          {item.terminalType === "run.complete" &&
+                            responseDuration && (
+                            <span
+                              className="timeline-run-duration tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1 tw:text-xs tw:leading-none tw:text-ink-muted"
+                              title={t("timeline.run.responseDuration", {
+                                duration: responseDuration,
+                              })}
+                            >
+                              <MaterialIcon
+                                name="stop_circle"
+                                aria-hidden="true"
+                              />
+                              <span>{responseDuration}</span>
+                              <Divider type="vertical" />
+                            </span>
+                          )}
                           <UiButton
                             className={TIMELINE_META_BUTTON_CLASS_NAME}
                             variant="ghost"
@@ -1795,16 +1812,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                         {time.short && (
                           <div
                             className={TIMELINE_RUN_TIME_CLASS_NAME}
-                            title={
-                              responseDuration
-                                ? `${time.full} · ${t("timeline.run.responseDuration", { duration: responseDuration })}`
-                                : time.full
-                            }
+                            title={time.full}
                           >
                             {time.short}
-                            {responseDuration
-                              ? ` · ${t("timeline.run.duration", { duration: responseDuration })}`
-                              : ""}
                           </div>
                         )}
                       </div>

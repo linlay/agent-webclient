@@ -23,7 +23,6 @@ export const RunTerminalNotice: React.FC<{
     >
       <MaterialIcon
         name="stop_circle"
-        className="tw:text-[16px]"
         aria-hidden="true"
       />
       <span>
