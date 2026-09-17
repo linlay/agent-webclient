@@ -1,5 +1,6 @@
 const mockGetAgents = jest.fn();
 const mockGetAgent = jest.fn();
+const mockGetModelOptions = jest.fn();
 const mockGetAgentFile = jest.fn();
 const mockGetAgentOrder = jest.fn();
 const mockGetChatOrder = jest.fn();
@@ -45,6 +46,7 @@ jest.mock("@/shared/data/api/client", () => ({
 	uploadFile: jest.fn(),
 	getAgents: (...args: unknown[]) => mockGetAgents(...args),
 	getAgent: (...args: unknown[]) => mockGetAgent(...args),
+	getModelOptions: (...args: unknown[]) => mockGetModelOptions(...args),
 	getAgentFile: (...args: unknown[]) => mockGetAgentFile(...args),
 	getAgentOrder: (...args: unknown[]) => mockGetAgentOrder(...args),
 	getChatOrder: (...args: unknown[]) => mockGetChatOrder(...args),
@@ -79,6 +81,25 @@ describe("routedClient capability routing", () => {
 		jest.resetModules();
 		jest.clearAllMocks();
 		mockGetBackendMode.mockReturnValue("platform");
+	});
+
+	it.each(["platform", "gateway"])("refreshes model options through %s on every forced request", async (backend) => {
+		mockGetBackendMode.mockReturnValue(backend);
+		const request = backend === "platform" ? mockRequestPlatformData : mockGetModelOptions;
+		request.mockResolvedValue(ok({ models: [{ key: "old" }] }));
+		const routed = await import("./routedClient");
+		await routed.getModelOptions("coder");
+		await routed.getModelOptions("other");
+		await routed.getModelOptions("coder");
+		expect(request).toHaveBeenCalledTimes(2);
+		for (const key of ["fresh-1", "fresh-2"]) {
+			request.mockResolvedValue(ok({ models: [{ key }] }));
+			expect((await routed.getModelOptions("coder", { force: true })).data.models).toEqual([{ key }]);
+		}
+		expect(request).toHaveBeenCalledTimes(4);
+		expect((await routed.getModelOptions("coder")).data.models).toEqual([{ key: "fresh-2" }]);
+		expect((await routed.getModelOptions("other")).data.models).toEqual([{ key: "old" }]);
+		expect(request).toHaveBeenCalledTimes(4);
 	});
 
 	it("invalidates welcome query snapshots after editing an agent", async () => {

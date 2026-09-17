@@ -17,14 +17,19 @@ import {
   asArchiveSummary,
   buildArchiveBulkCandidates,
   extractArchivePreviewLines,
+  filterArchives,
   formatArchiveUsageSummary,
   normalizeRestoredChat,
+  type ArchiveDateRange,
 } from "@/features/archive/lib/archiveViewModel";
 import { t } from "@/shared/i18n";
 
 const ARCHIVE_PAGE_SIZE = 30;
 
-export type RestoredArchiveChatSummary = Pick<ChatSummaryResponse, "agentKey" | "chatId">;
+export type RestoredArchiveChatSummary = Pick<
+  ChatSummaryResponse,
+  "agentKey" | "chatId"
+>;
 
 export interface UseArchiveRuntimeOptions {
   active: boolean;
@@ -38,9 +43,11 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
   const { state, dispatch } = useAppContext();
   const [query, setQuery] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
+  const [archivedRange, setArchivedRange] = useState<ArchiveDateRange>(null);
+  const [createdRange, setCreatedRange] = useState<ArchiveDateRange>(null);
+  const [lastRunRange, setLastRunRange] = useState<ArchiveDateRange>(null);
   const [items, setItems] = useState<ArchivedSummaryResponse[]>([]);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
   const [loadingList, setLoadingList] = useState(false);
   const [internalSelectedChatId, setInternalSelectedChatId] = useState("");
   const [detail, setDetail] = useState<ArchiveDetailResponse | null>(null);
@@ -49,33 +56,39 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
   const [bulkResult, setBulkResult] = useState("");
   const [actionResult, setActionResult] = useState("");
 
-  const selected = options.selectedChatId !== undefined
-    ? options.selectedChatId
-    : internalSelectedChatId;
+  const selected =
+    options.selectedChatId !== undefined
+      ? options.selectedChatId
+      : internalSelectedChatId;
   const currentWorker = state.workerIndexByKey.get(state.workerSelectionKey);
-  const scopedAgentKey = currentWorker?.type === "agent"
-    ? String(currentWorker.sourceId || "")
-    : "";
-  const archiveAgentKey = options.showAgentFilter ? agentFilter : scopedAgentKey;
+  const scopedAgentKey =
+    currentWorker?.type === "agent" ? String(currentWorker.sourceId || "") : "";
+  const archiveAgentKey = options.showAgentFilter
+    ? agentFilter
+    : scopedAgentKey;
   const bulkCandidates = useMemo(
-    () => buildArchiveBulkCandidates({
-      chats: state.chats,
-      workerRelatedChats: state.workerRelatedChats,
-      workerSelectionKey: state.workerSelectionKey,
-      days: bulkDays,
-    }),
+    () =>
+      buildArchiveBulkCandidates({
+        chats: state.chats,
+        workerRelatedChats: state.workerRelatedChats,
+        workerSelectionKey: state.workerSelectionKey,
+        days: bulkDays,
+      }),
     [bulkDays, state.chats, state.workerRelatedChats, state.workerSelectionKey],
   );
 
-  const updateSelected = useCallback((chatId: string) => {
-    if (options.onSelectedChatIdChange) {
-      options.onSelectedChatIdChange(chatId);
-    } else {
-      setInternalSelectedChatId(chatId);
-    }
-  }, [options.onSelectedChatIdChange]);
+  const updateSelected = useCallback(
+    (chatId: string) => {
+      if (options.onSelectedChatIdChange) {
+        options.onSelectedChatIdChange(chatId);
+      } else {
+        setInternalSelectedChatId(chatId);
+      }
+    },
+    [options.onSelectedChatIdChange],
+  );
 
-  const loadArchives = useCallback(async (nextOffset = 0, append = false) => {
+  const loadArchives = useCallback(async () => {
     if (!options.active) return;
     setLoadingList(true);
     try {
@@ -96,45 +109,61 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
         );
         setItems(results);
         setTotal(response.data?.count || results.length);
-        setOffset(results.length);
         return;
       }
-      const response = await getArchives({
-        agentKey: archiveAgentKey || undefined,
-        limit: ARCHIVE_PAGE_SIZE,
-        offset: nextOffset,
-      });
-      const nextItems = response.data?.items || [];
-      setItems((current) => append ? [...current, ...nextItems] : nextItems);
-      setTotal(response.data?.total || nextItems.length);
-      setOffset(nextOffset + nextItems.length);
+      const accumulated: ArchivedSummaryResponse[] = [];
+      let offset = 0;
+      while (true) {
+        const response = await getArchives({
+          agentKey: archiveAgentKey || undefined,
+          limit: ARCHIVE_PAGE_SIZE,
+          offset,
+        });
+        const pageItems = response.data?.items || [];
+        accumulated.push(...pageItems);
+        const pageTotal = response.data?.total || pageItems.length;
+        offset += pageItems.length;
+        if (pageItems.length === 0 || offset >= pageTotal) break;
+      }
+      setItems(accumulated);
+      setTotal(accumulated.length);
     } catch (error) {
-      dispatch({ type: "APPEND_DEBUG", line: `[archive list error] ${(error as Error).message}` });
-      if (!append) setItems([]);
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[archive list error] ${(error as Error).message}`,
+      });
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoadingList(false);
     }
   }, [archiveAgentKey, dispatch, options.active, query]);
 
-  const loadArchiveDetail = useCallback(async (chatId: string, updateSelection = true) => {
-    const normalizedChatId = String(chatId || "").trim();
-    if (!normalizedChatId) return;
-    if (updateSelection) updateSelected(normalizedChatId);
-    setLoadingDetail(true);
-    try {
-      const response = await getArchive(normalizedChatId, false);
-      setDetail(response.data || null);
-    } catch (error) {
-      dispatch({ type: "APPEND_DEBUG", line: `[archive detail error] ${(error as Error).message}` });
-      setDetail(null);
-    } finally {
-      setLoadingDetail(false);
-    }
-  }, [dispatch, updateSelected]);
+  const loadArchiveDetail = useCallback(
+    async (chatId: string, updateSelection = true) => {
+      const normalizedChatId = String(chatId || "").trim();
+      if (!normalizedChatId) return;
+      if (updateSelection) updateSelected(normalizedChatId);
+      setLoadingDetail(true);
+      try {
+        const response = await getArchive(normalizedChatId, false);
+        setDetail(response.data || null);
+      } catch (error) {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[archive detail error] ${(error as Error).message}`,
+        });
+        setDetail(null);
+      } finally {
+        setLoadingDetail(false);
+      }
+    },
+    [dispatch, updateSelected],
+  );
 
   useEffect(() => {
     if (!options.active) return;
-    const timer = window.setTimeout(() => void loadArchives(0, false), 180);
+    const timer = window.setTimeout(() => void loadArchives(), 180);
     return () => window.clearTimeout(timer);
   }, [loadArchives, options.active]);
 
@@ -148,21 +177,25 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     void loadArchiveDetail(normalizedSelected, false);
   }, [loadArchiveDetail, options.active, selected]);
 
-  const removeArchiveItem = useCallback((chatId: string) => {
-    setItems((current) => current.filter((item) => item.chatId !== chatId));
-    setTotal((current) => Math.max(0, current - 1));
-    if (selected === chatId) {
-      updateSelected("");
-      setDetail(null);
-    }
-  }, [selected, updateSelected]);
+  const removeArchiveItem = useCallback(
+    (chatId: string) => {
+      setItems((current) => current.filter((item) => item.chatId !== chatId));
+      setTotal((current) => Math.max(0, current - 1));
+      if (selected === chatId) {
+        updateSelected("");
+        setDetail(null);
+      }
+    },
+    [selected, updateSelected],
+  );
 
   const deleteSelected = (chatId: string) => {
     const normalizedChatId = String(chatId || "").trim();
     if (!normalizedChatId) return;
+    const selectedItem = items.find((item) => item.chatId === normalizedChatId);
     Modal.confirm({
       title: t("archive.deleteConfirm.title"),
-      content: normalizedChatId,
+      content: `《${selectedItem?.chatName || normalizedChatId}》`,
       okText: t("archive.action.delete"),
       okButtonProps: { danger: true },
       cancelText: t("archive.action.cancel"),
@@ -180,18 +213,26 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     Modal.confirm({
       title: t("archive.restoreConfirm.title"),
       content: selectedItem?.chatName || normalizedChatId,
-      okText: openAfterRestore ? t("archive.action.restoreAndOpen") : t("archive.action.restore"),
+      okText: openAfterRestore
+        ? t("archive.action.restoreAndOpen")
+        : t("archive.action.restore"),
       cancelText: t("archive.action.cancel"),
       onOk: async () => {
         const response = await restoreArchives({ chatIds: [normalizedChatId] });
         const result = response.data?.results?.[0];
-        if (!result?.success) throw new Error(result?.error || t("archive.restore.failed"));
+        if (!result?.success)
+          throw new Error(result?.error || t("archive.restore.failed"));
         const restored = normalizeRestoredChat(result.summary, selectedItem);
-        if (restored.chatId) dispatch({ type: "UPSERT_CHAT", chat: restored as Partial<Chat> & Pick<Chat, "chatId"> });
+        if (restored.chatId)
+          dispatch({
+            type: "UPSERT_CHAT",
+            chat: restored as Partial<Chat> & Pick<Chat, "chatId">,
+          });
         window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
         removeArchiveItem(normalizedChatId);
         setActionResult(t("archive.restore.result"));
-        if (openAfterRestore && result.summary) options.onOpenRestoredChat?.(result.summary);
+        if (openAfterRestore && result.summary)
+          options.onOpenRestoredChat?.(result.summary);
       },
     });
   };
@@ -200,31 +241,65 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     if (bulkCandidates.length === 0) return;
     Modal.confirm({
       title: t("archive.bulk.confirmTitle"),
-      content: t("archive.bulk.confirmContent", { count: bulkCandidates.length, days: bulkDays }),
+      content: t("archive.bulk.confirmContent", {
+        count: bulkCandidates.length,
+        days: bulkDays,
+      }),
       okText: t("archive.action.archive"),
       cancelText: t("archive.action.cancel"),
       onOk: async () => {
-        const response = await archiveChats({ chatIds: bulkCandidates.map((item) => item.chatId) });
+        const response = await archiveChats({
+          chatIds: bulkCandidates.map((item) => item.chatId),
+        });
         const results = response.data?.results || [];
-        const succeeded = results.filter((result) => result.success).map((result) => result.chatId);
-        succeeded.forEach((chatId) => dispatch({ type: "CHAT_ARCHIVED", chatId }));
+        const succeeded = results
+          .filter((result) => result.success)
+          .map((result) => result.chatId);
+        succeeded.forEach((chatId) =>
+          dispatch({ type: "CHAT_ARCHIVED", chatId }),
+        );
         const failed = results.length - succeeded.length;
-        setBulkResult(failed > 0
-          ? t("archive.bulk.resultWithFailures", { success: succeeded.length, failed })
-          : t("archive.bulk.result", { success: succeeded.length }));
-        void loadArchives(0, false);
+        setBulkResult(
+          failed > 0
+            ? t("archive.bulk.resultWithFailures", {
+                success: succeeded.length,
+                failed,
+              })
+            : t("archive.bulk.result", { success: succeeded.length }),
+        );
+        void loadArchives();
       },
     });
   };
 
+  const filteredItems = useMemo(
+    () => filterArchives(items, { archivedRange, createdRange, lastRunRange }),
+    [archivedRange, createdRange, items, lastRunRange],
+  );
+
+  const resetFilters = useCallback(() => {
+    setAgentFilter("");
+    setArchivedRange(null);
+    setCreatedRange(null);
+    setLastRunRange(null);
+  }, []);
+
   const selectedItem = items.find((item) => item.chatId === selected);
   return {
+    agents: Array.isArray(state.agents) ? state.agents : [],
     query,
     setQuery,
     agentFilter,
     setAgentFilter,
-    items,
-    offset,
+    archivedRange,
+    setArchivedRange,
+    createdRange,
+    setCreatedRange,
+    lastRunRange,
+    setLastRunRange,
+    resetFilters,
+    items: filteredItems,
+    totalCount: total,
     loadingList,
     selected,
     detail,
@@ -236,8 +311,6 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     selectedItem,
     previewLines: extractArchivePreviewLines(detail),
     usageSummary: formatArchiveUsageSummary(selectedItem),
-    canLoadMore: !query.trim() && items.length < total,
-    loadArchives,
     loadArchiveDetail,
     deleteSelected,
     restoreSelected,

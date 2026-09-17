@@ -10,6 +10,7 @@ import type {
 } from "@/shared/data";
 import { resolveModelPresentation } from "@/shared/icons/model";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { UiButton } from "@/shared/ui/UiButton";
 import {
   filterServiceTierOptions,
   getModelDisplayName,
@@ -21,12 +22,61 @@ import {
 
 export type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
+export type ModelListAction = {
+  label: string;
+  busy?: boolean;
+  disabled?: boolean;
+  onTrigger: () => void;
+};
+
 const MENU_ITEM_CLASS =
   "query-settings-menu-item tw:inline-flex tw:items-center tw:justify-between tw:gap-1.5 tw:text-[13px] tw:[&_.material-icon]:text-sm";
 const MODEL_MENU_ITEM_CLASS = "query-model-menu-item";
+const MODEL_GROUP_TITLE_CLASS = "query-model-menu-group-title";
+const MODEL_REFRESH_BUTTON_CLASS =
+  "query-model-menu-refresh ui-icon-hover-20";
+const MODEL_REFRESH_ICON_CLASS = "query-model-menu-refresh-icon";
 
 function itemLabel(content: React.ReactNode): React.ReactElement {
   return React.createElement("span", { className: MENU_ITEM_CLASS }, content);
+}
+
+function modelGroupLabel(
+  groupLabel: string,
+  modelListAction?: ModelListAction,
+): React.ReactNode {
+  if (!modelListAction) {
+    return groupLabel;
+  }
+  const busy = Boolean(modelListAction.busy);
+  return React.createElement(
+    "span",
+    { className: MODEL_GROUP_TITLE_CLASS },
+    React.createElement("span", null, groupLabel),
+    React.createElement(
+      UiButton,
+      {
+        type: "button",
+        className: MODEL_REFRESH_BUTTON_CLASS,
+        variant: "ghost",
+        size: "mini",
+        iconOnly: true,
+        disabled: busy || Boolean(modelListAction.disabled),
+        title: modelListAction.label,
+        "aria-label": modelListAction.label,
+        "aria-busy": busy ? "true" : undefined,
+        onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+          event.preventDefault();
+          event.stopPropagation();
+          modelListAction.onTrigger();
+        },
+      },
+      React.createElement(MaterialIcon, {
+        name: "refresh",
+        className: `${MODEL_REFRESH_ICON_CLASS}${busy ? " is-spinning" : ""}`,
+      }),
+    ),
+  );
 }
 
 export function buildModelMenuItems({
@@ -40,6 +90,7 @@ export function buildModelMenuItems({
   selectedServiceTier,
   modelsLoading = false,
   status = "idle",
+  modelListAction,
   t,
 }: {
   models: CoderModelOption[];
@@ -52,6 +103,7 @@ export function buildModelMenuItems({
   selectedServiceTier?: QueryServiceTier;
   modelsLoading?: boolean;
   status?: ModelOptionsStatus;
+  modelListAction?: ModelListAction;
   t: (key: string) => string;
 }): MenuProps["items"] {
   const modelStatusItem = (() => {
@@ -135,7 +187,10 @@ export function buildModelMenuItems({
       children: [
         {
           key: "models",
-          label: t("composer.query.model.group"),
+          label: modelGroupLabel(
+            t("composer.query.model.group"),
+            modelListAction,
+          ),
           type: "group",
           children: modelMenuChildren,
         },

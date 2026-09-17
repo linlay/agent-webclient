@@ -37,6 +37,10 @@ let root: Root;
 const button = (text: string) => Array.from(container.querySelectorAll("button")).find(node => node.textContent?.replace(" •", "") === text)!;
 const click = async (text: string) => { expect(button(text)).toBeDefined(); await act(async () => button(text).click()); };
 const detail = () => container.querySelector('nav[aria-label="连接器详情"]')!.parentElement!;
+const moreButton = (name: string) => container.querySelector<HTMLButtonElement>(`button[aria-label="${name} 的更多操作"]`)!;
+const openMore = async (name: string) => { expect(moreButton(name)).toBeDefined(); await act(async () => moreButton(name).click()); };
+const menuItem = (text: string) => Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(node => node.textContent?.includes(text))!;
+const clickMenu = async (text: string) => { expect(menuItem(text)).toBeDefined(); await act(async () => menuItem(text).click()); };
 function Harness() {
   const [id, setId] = useState("demo");
   return React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false }, React.createElement(ConnectorsConsole, { routeId: id, onRouteIdChange: setId }));
@@ -174,6 +178,8 @@ it("keeps built-in fields and the Monaco JSON source read-only", async () => {
   expect(basics.textContent).not.toContain("可在 JSON 源码中编辑");
   expect(button("保存配置")).toBeUndefined();
   expect(button("删除连接器")).toBeUndefined();
+  await openMore("Demo connector");
+  expect(menuItem("删除").getAttribute("aria-disabled")).toBe("true");
   await click("JSON 源码");
   const editor = basics.querySelector("textarea")!;
   expect(editor.value).toContain(item.id);
@@ -225,7 +231,7 @@ it("shows three tabs, moves component details into configuration, and keeps skil
   expect(detail().textContent).toContain("Read connector records");
   expect(detail().textContent).toContain("2.0.0");
   expect(detail().textContent).toContain("Complete guide");
-  expect(button("保存配置")).toBeUndefined();
+  expect(button("保存配置")).toBeDefined();
   await click("源码");
   expect(detail().querySelector("pre")?.textContent).toContain("name: demo-guide");
 });
@@ -250,11 +256,11 @@ it("uses compact name/version and status/type rows without exposing the connecto
   expect(listItem.querySelector("code")).toBeNull();
   const heading = listItem.querySelector("strong")!.parentElement!;
   expect(heading.querySelector("strong")?.textContent).toBe(item.name);
-  expect(heading.hasAttribute("data-pin-title")).toBe(true);
+  expect(listItem.parentElement?.querySelector('button[aria-label="Demo connector 的更多操作"]')).toBeDefined();
   const footer = listItem.lastElementChild!;
-  expect(footer.firstElementChild?.textContent).toBe("v1.0");
-  expect(footer.children[1]?.textContent).toBe("未登录");
-  expect(footer.lastElementChild?.textContent).toBe("CLIMCP");
+  expect(heading.lastElementChild?.textContent).toBe("v1.0");
+  expect(footer.firstElementChild?.textContent).toContain("未登录");
+  expect(footer.children[1]?.textContent).toContain("CLIMCP");
   expect(container.querySelector('aside button[aria-label="新增连接器"]')?.getAttribute("title")).toBe("新增连接器");
   expect(container.textContent).not.toContain("可通过 ZIP 导入外部连接器");
 });
@@ -327,7 +333,8 @@ it("pins a read-only connector without changing selection or discarding a draft,
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
   const names = () => Array.from(container.querySelectorAll("aside strong")).map(node => node.textContent);
-  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="置顶 Other connector"]')!.click());
+  await openMore("Other connector");
+  await clickMenu("置顶");
   expect(putConnectorOrder).toHaveBeenLastCalledWith({ key: "builtin.other", pinned: true });
   expect(names()).toEqual(["Other connector", "Demo connector"]);
   expect(container.querySelector('aside button[aria-current="true"] strong')?.textContent).toBe(item.name);
@@ -337,7 +344,8 @@ it("pins a read-only connector without changing selection or discarding a draft,
   await act(async () => root.render(null));
   await mount();
   expect(names()[0]).toBe("Other connector");
-  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="取消置顶 Other connector"]')!.click());
+  await openMore("Other connector");
+  await clickMenu("取消置顶");
   expect(names()).toEqual(["Demo connector", "Other connector"]);
 });
 
@@ -346,7 +354,8 @@ it("preserves connector order on save failure and reads remote pins when focused
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item, other] } });
   await mount();
   jest.mocked(putConnectorOrder).mockRejectedValueOnce(new Error("offline"));
-  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="置顶 Other connector"]')!.click());
+  await openMore("Other connector");
+  await clickMenu("置顶");
   expect(container.querySelector("aside strong")?.textContent).toBe(item.name);
   expect(container.textContent).toContain("无法同步连接器置顶");
   serverOrder = ["other"];
@@ -359,18 +368,19 @@ it("preserves connector order on save failure and reads remote pins when focused
 it("confirms the package identity before deleting and leaves the list usable after deleting the last item", async () => {
   await mount();
   jest.spyOn(window, "confirm").mockReturnValue(false);
-  await click("删除连接器");
+  await openMore("Demo connector");
+  await clickMenu("删除");
   expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("Demo connector"));
   expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("demo"));
   expect(deleteConnector).not.toHaveBeenCalled();
   jest.mocked(window.confirm).mockReturnValue(true);
   jest.mocked(deleteConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { id: "demo", deleted: true } });
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [] } });
-  await click("删除连接器");
+  await openMore("Demo connector");
+  await clickMenu("删除");
   expect(deleteConnector).toHaveBeenCalledWith("demo");
   expect(container.textContent).not.toContain("找不到连接器");
   expect(container.querySelectorAll("aside strong")).toHaveLength(0);
-  expect(button("删除连接器")).toBeUndefined();
   expect(container.querySelector('button[aria-label="新增连接器"]')).not.toBeNull();
 });
 
@@ -381,10 +391,10 @@ it.each([false, true])("displays blocking Agent names from an HTTP envelope (str
     code: 409, msg: "connector is still used by agents: researcher, coder",
     data: { error: { agentKeys: ["researcher", "coder"], ...(structured ? { code: "connector_in_use", message: "connector is still used by agents: researcher, coder", status: 409 } : {}) } },
   }, { status: 409, data: { error: { agentKeys: ["researcher", "coder"] } }, fallbackMessage: "HTTP 409" }));
-  await click("删除连接器");
+  await openMore("Demo connector");
+  await clickMenu("删除");
   expect(detail().querySelector('[role="alert"]')?.textContent).toContain("researcher, coder");
   expect(detail().textContent).toContain("取消挂载");
-  expect(button("删除连接器").disabled).toBe(false);
   expect(container.querySelector("aside strong")?.textContent).toBe(item.name);
 });
 
@@ -394,9 +404,8 @@ jest.mock("@/features/resource-assistant/hooks/useResourceAssistant", () => ({ u
 it("keeps the writable configuration and save action beside conversation editing", async () => {
   await mount();
   expect(button("保存配置")).toBeDefined();
-  await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="编辑连接器"]')!.click());
-  const conversation = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(item => item.textContent === "通过对话编辑")!;
-  await act(async () => conversation.click());
+  await openMore("Demo connector");
+  await clickMenu("通过对话编辑");
   expect(mockOpenAssistant).toHaveBeenCalledWith({ kind: "connector", target: { id: "demo", name: "Demo connector" } });
   expect(updateConnectorDefinition).not.toHaveBeenCalled();
 });

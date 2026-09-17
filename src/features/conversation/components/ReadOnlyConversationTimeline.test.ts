@@ -7,6 +7,15 @@ import type { ChatDetailResponse } from "@/shared/data";
 import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
 import { ReadOnlyConversationTimeline } from "./ReadOnlyConversationTimeline";
 
+import { copyText } from "@/shared/utils/copy";
+
+const mockCopySuccess = jest.fn();
+const mockCopyError = jest.fn();
+jest.mock("@/shared/utils/copy", () => ({ copyText: jest.fn().mockResolvedValue(undefined) }));
+jest.mock("@/shared/ui/useAppMessage", () => ({
+  useAppMessage: () => ({ success: mockCopySuccess, error: mockCopyError }),
+}));
+
 const EPOCH = 1_710_000_000_000;
 
 jest.mock("react-virtuoso", () => {
@@ -330,6 +339,33 @@ describe("ReadOnlyConversationTimeline", () => {
     expect(
       container.querySelector('[data-current-execution="true"]'),
     ).toBeNull();
+  });
+
+  it("copies one complete Run including its query and process, without feedback or branch controls", async () => {
+    renderTimeline({ chatId: "chat-history", events: completedChatEvents() });
+    const runs = container.querySelectorAll("[data-run-id]");
+    expect(runs[0].querySelectorAll("button")).toHaveLength(1);
+    expect(runs[1].querySelectorAll("button")).toHaveLength(1);
+    await act(async () => (runs[0].querySelector("button") as HTMLButtonElement).click());
+    const first = jest.mocked(copyText).mock.calls[0][0];
+    expect(first).toContain("Query\nQuestion one");
+    expect(first).toContain("Thinking\nReasoning one");
+    expect(first).toContain("Tools\n1. search");
+    expect(first).toContain("Task answer");
+    expect(first).toContain("Answer one");
+    expect(first).not.toContain("Question two");
+    expect(first).not.toContain("Answer two");
+    expect(mockCopySuccess).toHaveBeenCalledWith("timeline.toolPill.copy.copied");
+    await act(async () => (runs[1].querySelector("button") as HTMLButtonElement).click());
+    expect(jest.mocked(copyText).mock.calls[1][0]).toBe("Query\nQuestion two\n\nAnswer\nAnswer two");
+  });
+
+  it("reports a clipboard failure without changing the conversation", async () => {
+    jest.mocked(copyText).mockRejectedValueOnce(new Error("Clipboard unavailable"));
+    renderTimeline({ chatId: "chat-history", events: completedChatEvents() });
+    await act(async () => (container.querySelector("[data-run-id] button") as HTMLButtonElement).click());
+    expect(mockCopyError).toHaveBeenCalledWith("timeline.toolPill.copy.failed");
+    expect(container.textContent).toContain("Answer one");
   });
 
   it("shows an empty history state without interactive controls", () => {

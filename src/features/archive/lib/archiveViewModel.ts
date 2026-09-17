@@ -125,3 +125,31 @@ export function formatArchiveUsageSummary(item: ArchivedSummaryResponse | undefi
   }
   return parts.join(" · ");
 }
+
+export type ArchiveDateRange = [number | null, number | null] | null;
+
+export interface ArchiveFilterRanges {
+  archivedRange: ArchiveDateRange;
+  createdRange: ArchiveDateRange;
+  lastRunRange: ArchiveDateRange;
+}
+
+function isWithinArchiveRange(value: number, range: ArchiveDateRange): boolean {
+  if (!range) return true;
+  const [start, end] = range;
+  if (start != null && value < start) return false;
+  if (end != null && value > end) return false;
+  return true;
+}
+
+export function filterArchives(
+  items: ArchivedSummaryResponse[],
+  ranges: ArchiveFilterRanges,
+): ArchivedSummaryResponse[] {
+  return items.filter((item) => {
+    if (!isWithinArchiveRange(toArchiveTimestamp(item.archivedAt), ranges.archivedRange)) return false;
+    if (!isWithinArchiveRange(toArchiveTimestamp(item.createdAt), ranges.createdRange)) return false;
+    if (!isWithinArchiveRange(archiveLastRunAt(item), ranges.lastRunRange)) return false;
+    return true;
+  });
+}

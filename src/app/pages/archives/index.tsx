@@ -33,7 +33,6 @@ export const ArchivesPage = () => {
 		<main className="archives-page">
 			<ArchiveConsole
 				active
-				surface="page"
 				showAgentFilter
 				selectedChatId={selectedChatId}
 				onSelectedChatIdChange={navigateToArchive}

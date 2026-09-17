@@ -33,19 +33,14 @@
 }
 
 :global(.timeline-agent-switcher-trigger-name) {
+    text-decoration-line: underline;
+    text-decoration-style: dashed;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-:global(.timeline-agent-switcher-arrow) {
-    flex: 0 0 auto;
-    margin-left: 1px;
-    color: color-mix(in srgb, var(--ink-muted) 72%, transparent);
-    font-size: 19px;
-    opacity: 0.58;
-    transform: translateY(1px);
 }
 
 :global(.timeline-agent-switcher-search):global(.ant-input) {

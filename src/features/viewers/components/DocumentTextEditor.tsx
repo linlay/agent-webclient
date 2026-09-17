@@ -415,7 +415,7 @@ export const DocumentTextEditor: React.FC<{
       {mode === "preview" ? (
         <div
           ref={previewRef}
-          className="tw:min-h-0 tw:flex-1 tw:overflow-auto tw:p-4"
+          className="tw:min-h-0 tw:flex-1 tw:overflow-auto"
           onMouseUp={capturePreviewSelection}
           onKeyUp={capturePreviewSelection}
         >
@@ -425,7 +425,7 @@ export const DocumentTextEditor: React.FC<{
       {mode === "split" ? (
         <div className="tw:grid tw:min-h-0 tw:flex-1 tw:grid-cols-2">
           {editor}
-          <div className="tw:min-h-0 tw:overflow-auto tw:border-l tw:border-line-soft tw:p-4">
+          <div className="tw:min-h-0 tw:overflow-auto tw:border-l tw:border-line-soft">
             {preview}
           </div>
         </div>

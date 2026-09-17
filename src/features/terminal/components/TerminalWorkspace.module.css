@@ -159,7 +159,6 @@
 
 .terminal-pane :global(.xterm) {
     height: 100%;
-    padding: 4px 8px;
 }
 
 /* ---- 空状态 ---- */

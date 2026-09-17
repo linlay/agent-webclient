@@ -182,7 +182,7 @@ describe("HistoryModal", () => {
     expect(Boolean(config.okButtonProps?.danger)).toBe(icon === "delete");
     await config.onOk();
     expect(mockDispatch.mock.calls.map(([action]) => action.type)).toEqual([
-      actionType, "SET_CHAT_ID", "SET_RUN_ID", "RESET_ACTIVE_CONVERSATION",
+      actionType, "CLEAR_CHAT_TRANSITION", "SET_CHAT_ID", "SET_RUN_ID", "RESET_ACTIVE_CONVERSATION",
     ]);
     if (icon === "delete") {
       expect(mockDeleteChat).toHaveBeenCalledWith({ chatId: "chat-1" });

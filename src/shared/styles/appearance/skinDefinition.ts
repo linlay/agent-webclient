@@ -55,8 +55,7 @@ export type DesktopSkinToken =
   | "--panel-shadow-hover"
   | "--shell-sidebar-bg"
   | "--shell-content-bg"
-  | "--shell-titlebar-bg"
-  | "--shell-background-tint";
+  | "--shell-titlebar-bg";
 
 export type DesktopSkinBackground = Readonly<{
   imageUrl: string;

@@ -537,7 +537,8 @@ describe("AgentConsole i18n rendering", () => {
     const embeddedHtml = renderConsole(true);
 
     expect(pageHtml).toContain("management-page-console");
-    expect(pageHtml).toContain("280px_minmax(0,1fr)");
+    expect(pageHtml).toContain("var(--agent-list-col,280px)_minmax(0,1fr)");
+    expect(pageHtml).toContain("--agent-list-col:280px");
     expect(pageHtml).not.toContain("command-modal-section");
     expect(embeddedHtml).toContain("command-modal-section");
     expect(embeddedHtml).toContain("is-embedded");
@@ -597,6 +598,16 @@ describe("AgentConsole i18n rendering", () => {
       html.indexOf(`id="${id}"`),
     );
     expect(positions.every((position) => position >= 0)).toBe(true);
+    const sectionOrder = Array.from(html.matchAll(/<section id="(agent-section-[^"]+)"/g), (match) => match[1]);
+    const navOrder = Array.from(html.matchAll(/href="#(agent-section-[^"]+)"/g), (match) => match[1]);
+    expect(sectionOrder).toEqual(navOrder);
+    expect(sectionOrder).toEqual([
+      "agent-section-basic",
+      "agent-section-model",
+      "agent-section-context-capabilities",
+      "agent-section-prompts",
+      "agent-section-advanced",
+    ]);
     expect(html.match(/href="#agent-section-/g)).toHaveLength(5);
     expect(html).not.toContain('role="tab"');
     expect(html).not.toContain('role="tabpanel"');
@@ -618,6 +629,18 @@ describe("AgentConsole i18n rendering", () => {
     ];
 
     expect(getActiveAgentSectionId(positions, 56)).toBe(
+      "agent-section-prompts",
+    );
+  });
+
+  it("selects the nearest section when an anchor target stops just below the sticky nav", () => {
+    const positions = [
+      { id: "agent-section-context-capabilities" as const, top: -520 },
+      { id: "agent-section-prompts" as const, top: 76 },
+      { id: "agent-section-advanced" as const, top: 980 },
+    ];
+
+    expect(getActiveAgentSectionId(positions, 64)).toBe(
       "agent-section-prompts",
     );
   });

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import {
   DESKTOP_LIVE_SURFACE_ACTIVE_EVENT,
@@ -30,21 +30,62 @@ export function useDesktopLiveSurfaceRecovery(
   loadChat: LoadChatForSurfaceRecovery,
   routeChatId?: string,
 ): void {
-  const { stateRef } = useAppContext();
+  const { state, stateRef, querySessionsRef, activeQuerySessionRequestIdRef } = useAppContext();
+  const pendingChatRef = useRef<string | null>(null);
+  const [activationRevision, setActivationRevision] = useState(0);
 
   useEffect(() => {
     const handleSurfaceActive = (event: Event) => {
       const detail = (event as CustomEvent<DesktopLiveSurfaceActiveEventDetail>).detail;
-      void recoverDesktopLiveSurface({
-        active: detail?.active === true,
-        chatId: String(stateRef.current.chatId || "").trim(),
-        routeChatId: routeChatId || "",
-        loadChat,
-      }).catch(() => undefined);
+      pendingChatRef.current = detail?.active === true
+        ? routeChatId?.trim() || null
+        : null;
+      setActivationRevision((revision) => revision + 1);
     };
     window.addEventListener(DESKTOP_LIVE_SURFACE_ACTIVE_EVENT, handleSurfaceActive);
     return () => {
+      pendingChatRef.current = null;
       window.removeEventListener(DESKTOP_LIVE_SURFACE_ACTIVE_EVENT, handleSurfaceActive);
     };
-  }, [loadChat, routeChatId, stateRef]);
+  }, [routeChatId]);
+
+  useEffect(() => {
+    const pendingChatId = pendingChatRef.current;
+    if (!pendingChatId) return;
+    if (pendingChatId !== routeChatId?.trim()) {
+      pendingChatRef.current = null;
+      return;
+    }
+    const current = stateRef.current;
+    const transition = current.chatTransition;
+    if (transition && (transition.targetChatId !== pendingChatId || transition.phase === "error")) {
+      pendingChatRef.current = null;
+      return;
+    }
+    // An inactive attach may already have completed as detached. Do not lose
+    // this activation while React commits the new Chat, or merge recovery into
+    // that still-pending load: it would never create a fresh observer.
+    if (current.chatId?.trim() !== pendingChatId ||
+        (transition && transition.phase !== "ready")) return;
+    let cancelled = false;
+    // Let transport completion retire an inactive observer before testing its
+    // health. React may flush this effect before that Promise callback runs.
+    void Promise.resolve().then(() => {
+      if (cancelled || pendingChatRef.current !== pendingChatId) return;
+      pendingChatRef.current = null;
+      const latest = stateRef.current;
+      const session = querySessionsRef.current.get(activeQuerySessionRequestIdRef.current);
+      // The route load may already have recovered a query/attach observer.
+      if (session?.streaming && session.chatId === pendingChatId &&
+          session.runId === (latest.currentChatActiveRun?.runId || latest.runId) &&
+          session.abortController && !session.abortController.signal.aborted) return;
+      return recoverDesktopLiveSurface({
+        active: true,
+        chatId: pendingChatId,
+        routeChatId: routeChatId || "",
+        loadChat,
+      });
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [activationRevision, loadChat, routeChatId, state.chatId, state.chatTransition, stateRef, querySessionsRef, activeQuerySessionRequestIdRef]);
 }

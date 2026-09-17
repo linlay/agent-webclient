@@ -1210,6 +1210,47 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
+  it("clears the chat route when a new conversation starts while a chat is open", () => {
+    const dispatch = jest.fn();
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("chatId=chat-123&lang=en"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+    useAppDispatch.mockReturnValue(dispatch);
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    const startNewConversationListener = globalWithDom.window?.addEventListener.mock.calls.find(
+      ([type]) => type === "agent:start-new-conversation",
+    )?.[1] as ((event: Event) => void) | undefined;
+    expect(startNewConversationListener).toEqual(expect.any(Function));
+
+    startNewConversationListener?.(
+      new CustomEvent("agent:start-new-conversation", {
+        detail: {
+          agentKey: "demo-agent",
+          preserveWorkerContext: true,
+          focusComposerOnComplete: true,
+        },
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith("/agent/demo-agent?lang=en");
+
+    useEffectSpy.mockRestore();
+  });
+
   it("leaves route theme query parameters to the base shell", () => {
     const dispatch = jest.fn();
     const useEffectSpy = jest

@@ -38,12 +38,11 @@ export function getActiveAgentSectionId<T extends string>(
   if (options.atScrollEnd) {
     return visualSections[visualSections.length - 1].id;
   }
-  return (
-    visualSections
-      .slice()
-      .reverse()
-      .find((section) => section.top <= anchorTop)?.id ?? visualSections[0].id
-  );
+  return visualSections.reduce((nearest, section) =>
+    Math.abs(section.top - anchorTop) < Math.abs(nearest.top - anchorTop)
+      ? section
+      : nearest,
+  ).id;
 }
 export type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse;
 

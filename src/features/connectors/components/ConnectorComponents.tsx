@@ -39,7 +39,7 @@ export function ConnectorComponents({ item, tools }: { item: ConnectorSummary; t
       <p className={styles.hint}>{t("connectors.field.bin")} · {t(item.hasBin ? "connectors.value.bundled" : "connectors.value.none")}</p>
     </section>}
     {item.hasMcp && <section className={styles.stack}>
-      <h3>{t("connectors.section.mcp")}</h3>
+      <h3 className="tw:px-[10px]">{t("connectors.section.mcp")}</h3>
       {(item.mcp || []).map(server => {
         const serverTools = tools.filter(tool => tool.serverKey === server.serverKey);
         return <div className={styles.group} key={server.serverKey}>

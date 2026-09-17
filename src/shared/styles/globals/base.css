@@ -23,7 +23,7 @@ body::before {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    background-image: linear-gradient(var(--page-tint), var(--page-tint)), var(--page-image);
+    background-image: var(--page-image);
     background-position: center, var(--page-image-position);
     background-size: cover;
     background-repeat: no-repeat;

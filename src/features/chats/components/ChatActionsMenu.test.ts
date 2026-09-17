@@ -235,7 +235,7 @@ describe("ChatActionsMenu", () => {
 			expect(mockDeleteChat).toHaveBeenCalledWith({ chatId: "chat_1" });
 			expect(onDeleted).toHaveBeenCalledWith("chat_1");
 			expect(mockDispatch.mock.calls.map(([action]) => action.type)).toEqual([
-				"CHAT_DELETED", "SET_CHAT_ID", "SET_RUN_ID", "RESET_ACTIVE_CONVERSATION",
+				"CHAT_DELETED", "CLEAR_CHAT_TRANSITION", "SET_CHAT_ID", "SET_RUN_ID", "RESET_ACTIVE_CONVERSATION",
 			]);
 			expect(resetEvents).toEqual(["agent:reset-event-cache", "agent:voice-reset"]);
 		} finally {

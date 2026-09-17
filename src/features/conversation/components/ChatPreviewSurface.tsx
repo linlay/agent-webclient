@@ -11,15 +11,7 @@ export function ChatPreviewSurface({ chatId, live }: { chatId: string; live: boo
   const snapshot = state?.snapshot;
   const owner = snapshot?.owner;
   const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
-  const status = !live ? "snapshot" : !state?.active ? "inactive"
-    : state.error ? "unavailable"
-    : state.connection !== "connected" ? "reconnecting"
-    : snapshot?.chat.activeRun ? "running" : "history";
   return <main className={styles.root} aria-label={t("chatPreview.title")}>
-    <header className={styles.header}>
-      <strong title={String(snapshot?.chat.chatName || chatId)}>{String(snapshot?.chat.chatName || t("chatPreview.title"))}</strong>
-      <span role="status">{t(`chatPreview.status.${status}`)}</span>
-    </header>
     {state?.error && <div className={styles.error} role="alert">
       <span>{state.error}</span>
       <UiButton size="sm" variant="ghost" onClick={reload} disabled={!state.active}>{t("chatPreview.reload")}</UiButton>

@@ -2,7 +2,6 @@ import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Input, Popover } from "antd";
 import type { InputRef } from "antd";
 import { AgentIcon } from "@/shared/icons/agent";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { CurrentWorkerSummary } from "../lib/currentWorker";
 import { filterTimelineAgentOptions, dispatchTimelineAgentSwitch, type TimelineAgentOption } from "../lib/agentSelection";
@@ -13,8 +12,6 @@ const TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME =
   "timeline-agent-switcher-trigger tw:m-0 tw:inline-flex tw:max-w-[min(300px,62vw)] tw:items-center tw:rounded-lg tw:border-0 tw:bg-transparent tw:px-[5px] tw:py-px tw:font-[inherit] tw:font-extrabold tw:leading-[1.25] tw:text-ink-1 tw:align-baseline tw:shadow-none tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:hover:text-accent-electric-strong tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:focus-visible:text-accent-electric-strong tw:focus-visible:outline-none tw:active:transform-none";
 const TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME =
   "timeline-agent-switcher-trigger-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
-const TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME =
-  "timeline-agent-switcher-arrow tw:ml-px tw:shrink-0 tw:translate-y-px tw:text-[19px] tw:text-[color-mix(in_srgb,var(--ink-muted)_72%,transparent)] tw:opacity-[0.58]";
 const TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME =
   "timeline-agent-switcher-menu tw:w-[min(340px,calc(100vw-40px))] tw:max-w-[calc(100vw-40px)]";
 const TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME =
@@ -209,11 +206,6 @@ export const AgentSwitcherPopover: React.FC<{
           <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
             {displayName}
           </span>
-          <MaterialIcon
-            className={TIMELINE_AGENT_SWITCHER_ARROW_CLASS_NAME}
-            name="keyboard_arrow_down"
-            aria-hidden="true"
-          />
         </button>}
       </Popover>
     </span>

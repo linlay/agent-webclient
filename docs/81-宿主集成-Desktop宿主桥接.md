@@ -38,6 +38,8 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 
 物理断线只产生 `reconnecting`，不会 close 逻辑 Session 或终止已接受 stream；Desktop Broker 恢复后从 `lastSeq` 继续向同一订阅者投递。`surface_inactive` 只解除观察者，不 interrupt 后台 Run。协议不兼容、身份失效、应用退出或显式 dispose 才永久关闭，所有未完成操作统一收到 `DESKTOP_FRAME_PORT_CLOSED`。Desktop Driver 不实现 WebSocket readyState、close code/reason、JSON 二次编码、heartbeat timeout 或重连循环。
 
+Desktop active 信号可能早于当前 Chat 的 React 状态提交。恢复钩子应保留当前 Router 目标的单次恢复意图，等待该 Chat 的加载、应用与滚动恢复事务结束，并让 inactive 观察者的完成通知落定后检查本地订阅。目标 Chat/Run 已有有效 query 或 attach 时直接保留；否则强制读取 `/api/chat` 并从服务端 `activeRun.lastSeq` 新建观察。不得把恢复合并进仍在进行的加载，否则 inactive 期间提前结束的 attach 不会重建。再次 inactive、目标路由变化、卸载或加载失败时取消该意图；不恢复旧 Chat，不轮询，不重发 query。
+
 ## 边界与非目标
 - APPLIED 仅表示 Router 提交，不代表历史数据 ready。页面拒绝更旧 revision 或同 revision 的冲突目标；会话阶段日志以对应目标的 route revision 与 transaction seq 关联。surface 激活恢复只消费 Router 提供的目标，不使用物理 URL 推断应恢复哪个 Chat。准备超时由 WebClient 展示错误，不触发 Desktop 再次 reload。
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
@@ -107,3 +109,5 @@ WebClient 提供 `/chat-preview/:chatId`（只读实时）及 `/chat-preview/:ch
 5. 页面只通过现有 WorkPanel/openDocument 路径请求资源预览，宿主按当前 Surface 和目标资源逐请求授权；无权打开时不得扩大权限。Frame Port/WorkPanel 缺失或不兼容继续稳定阻断，不回退 guest 直连。
 
 具体 Desktop 路由枚举和 Broker allowlist 的修改位置应在 Desktop 仓库核对，不能由 WebClient 推断为已经存在。若现有宿主登记模型必须扩展共享契约，应从 canonical 来源生成 mirror/hash，再同批发布双方与 Program Bundle，不手改本仓库 generated contract 绕过检查。
+
+Chat Preview 仅提供会话内容与必要的加载、错误重试、等待确认提示，不渲染 Chat 标题或只读历史状态栏。嵌入 Kanban 时，“问题详情 / 历史记录”导航栏由 Desktop 原生 UI 持有，切换离开预览仍按既有生命周期释放观察者。

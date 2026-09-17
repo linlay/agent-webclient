@@ -42,7 +42,6 @@ const light: SkinTokens = Object.freeze({
   "--shell-sidebar-bg": "rgba(231, 241, 230, 0.42)",
   "--shell-content-bg": "rgba(246, 250, 242, 0.88)",
   "--shell-titlebar-bg": "rgba(231, 241, 230, 0.84)",
-  "--shell-background-tint": "rgba(246, 250, 242, 0.06)"
 });
 
 const dark: SkinTokens = Object.freeze({
@@ -77,7 +76,6 @@ const dark: SkinTokens = Object.freeze({
   "--shell-sidebar-bg": "rgba(17, 38, 28, 0.4)",
   "--shell-content-bg": "rgba(20, 39, 29, 0.9)",
   "--shell-titlebar-bg": "rgba(20, 39, 29, 0.88)",
-  "--shell-background-tint": "rgba(9, 26, 20, 0.12)"
 });
 
 const MIST_DESKTOP_SKIN: DesktopSkinDefinition = Object.freeze({
@@ -124,7 +122,6 @@ const GOLD_DESKTOP_SKIN: DesktopSkinDefinition = Object.freeze({
       "--shell-sidebar-bg": "rgba(242, 238, 229, 0.42)",
       "--shell-content-bg": "rgba(250, 248, 242, 0.88)",
       "--shell-titlebar-bg": "rgba(242, 238, 229, 0.84)",
-      "--shell-background-tint": "rgba(250, 248, 242, 0.06)"
     }),
     dark: Object.freeze({
       "--bg-base": "#2A2314",
@@ -158,7 +155,6 @@ const GOLD_DESKTOP_SKIN: DesktopSkinDefinition = Object.freeze({
       "--shell-sidebar-bg": "rgba(38, 32, 17, 0.4)",
       "--shell-content-bg": "rgba(39, 33, 20, 0.9)",
       "--shell-titlebar-bg": "rgba(39, 33, 20, 0.88)",
-      "--shell-background-tint": "rgba(26, 21, 9, 0.12)"
 })
   }),
   backgrounds: Object.freeze({
@@ -202,7 +198,6 @@ const BLUE_DESKTOP_SKIN: DesktopSkinDefinition = Object.freeze({
       "--shell-sidebar-bg": "rgba(229, 235, 242, 0.42)",
       "--shell-content-bg": "rgba(242, 245, 250, 0.88)",
       "--shell-titlebar-bg": "rgba(229, 235, 242, 0.84)",
-      "--shell-background-tint": "rgba(242, 245, 250, 0.06)"
     }),
     dark: Object.freeze({
       "--bg-base": "#141E2A",
@@ -236,7 +231,6 @@ const BLUE_DESKTOP_SKIN: DesktopSkinDefinition = Object.freeze({
       "--shell-sidebar-bg": "rgba(17, 26, 38, 0.4)",
       "--shell-content-bg": "rgba(20, 28, 39, 0.9)",
       "--shell-titlebar-bg": "rgba(20, 28, 39, 0.88)",
-      "--shell-background-tint": "rgba(9, 16, 26, 0.12)"
 })
   }),
   backgrounds: Object.freeze({
@@ -280,7 +274,6 @@ const PURPLE_DESKTOP_SKIN: DesktopSkinDefinition = Object.freeze({
       "--shell-sidebar-bg": "rgba(236, 229, 242, 0.42)",
       "--shell-content-bg": "rgba(246, 242, 250, 0.88)",
       "--shell-titlebar-bg": "rgba(236, 229, 242, 0.84)",
-      "--shell-background-tint": "rgba(246, 242, 250, 0.06)"
     }),
     dark: Object.freeze({
       "--bg-base": "#20142A",
@@ -314,7 +307,6 @@ const PURPLE_DESKTOP_SKIN: DesktopSkinDefinition = Object.freeze({
       "--shell-sidebar-bg": "rgba(28, 17, 38, 0.4)",
       "--shell-content-bg": "rgba(30, 20, 39, 0.9)",
       "--shell-titlebar-bg": "rgba(30, 20, 39, 0.88)",
-      "--shell-background-tint": "rgba(18, 9, 26, 0.12)"
 })
   }),
   backgrounds: Object.freeze({

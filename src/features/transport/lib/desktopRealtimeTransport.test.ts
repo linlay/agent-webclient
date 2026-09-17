@@ -98,6 +98,33 @@ describe("DesktopRealtimeTransport", () => {
     expect(getDesktopPlatformFrameClient()).toBeNull();
   });
 
+  it("surfaces an orphaned connection_unavailable error frame as error status", async () => {
+    const session = new FakeDesktopPlatformSession();
+    const transport = new DesktopRealtimeTransport({
+      transportVersion: 2,
+      createSession: () => session,
+    });
+    session.connected();
+    await flush();
+    const statuses: string[] = [];
+    transport.subscribeStatus((status) => statuses.push(status));
+
+    session.frame({
+      frame: "error",
+      id: "pfr_mu2h8241",
+      type: "connection_unavailable",
+      code: 503,
+      status: 503,
+      msg: "Agent Platform is unavailable",
+      data: { code: "connection_unavailable", message: "Agent Platform is unavailable" },
+    });
+    await flush();
+
+    expect(transport.getStatus()).toBe("error");
+    expect(statuses).toContain("error");
+    transport.dispose();
+  });
+
   it("keeps one logical Frame Port session healthy across 120 seconds of business silence", async () => {
     jest.useFakeTimers();
     const session = new FakeDesktopPlatformSession();
