@@ -458,6 +458,41 @@ const AgentChatShellContent: React.FC = () => {
     };
   }, [agentKey, navigate, searchParams]);
 
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.addEventListener !== "function"
+    ) {
+      return;
+    }
+
+    const handleStartNewConversation = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        agentKey?: unknown;
+      };
+      const resolvedAgentKey = String(detail.agentKey || agentKey || "").trim();
+      if (!resolvedAgentKey || !chatId) {
+        return;
+      }
+
+      navigate(buildSurfaceRoute(
+        { kind: "agent", agentKey: resolvedAgentKey },
+        readSurfacePresentationContext(searchParams.toString()),
+      ));
+    };
+
+    window.addEventListener(
+      "agent:start-new-conversation",
+      handleStartNewConversation,
+    );
+    return () => {
+      window.removeEventListener(
+        "agent:start-new-conversation",
+        handleStartNewConversation,
+      );
+    };
+  }, [agentKey, chatId, navigate, searchParams]);
+
   const handleResendInNewChat = useCallback((text: string) => {
     const resendMessage = String(text || "").trim();
     const sourceChatId = String(chatId || "").trim();
