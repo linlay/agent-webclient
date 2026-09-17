@@ -124,6 +124,7 @@ function startStreamExecution(options: StreamStartOptions): RunExecution {
   };
 
   const deliverEvent = (event: AgentEvent) => {
+    if (detached || completionSettled) return;
     resolvedChatId = String(event.chatId || resolvedChatId || "").trim();
     resolvedRunId = String(event.runId || resolvedRunId || "").trim();
     resolvedOwner = eventOwner(event, resolvedOwner);

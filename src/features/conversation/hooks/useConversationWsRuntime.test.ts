@@ -949,10 +949,13 @@ describe("registerDetachRunListener", () => {
 				activeQuerySessionRequestIdRef: { current: session.requestId },
 				logMissing: true,
 			});
+			const controller = session.abortController;
 			mockWindow.dispatchEvent(new MockCustomEvent("agent:detach-run", { detail: { reason } }));
-			expect(session.abortController.signal.aborted).toBe(true);
+			expect(controller.signal.aborted).toBe(true);
+			expect(session.streaming).toBe(false);
+			expect(session.abortController).toBeNull();
 			expect(other.abortController.signal.aborted).toBe(false);
-			expect(dispatch).not.toHaveBeenCalled();
+			expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: false });
 			cleanup();
 		},
 	);

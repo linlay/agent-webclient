@@ -669,6 +669,10 @@ export function useConversationActions() {
       const existingLoad = loadsRef.current.get(seq);
       if (existingLoad) return existingLoad;
       if (transition.phase !== "loading") return Promise.resolve();
+      // A replay replaces the projection and its event cache. Retire the old
+      // observer first so its cursor cannot skip the prefix missing in replay.
+      dispatchDetachActiveRun("attach_switch");
+      detachActiveConversationSession();
       applyLoadedChatState(chatId);
       const transitionStartsInBackground =
         transition.displayMode === "background";

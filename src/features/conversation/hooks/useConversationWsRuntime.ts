@@ -485,6 +485,13 @@ function requestWsDetachRun(
 			&& (!target.chatId || String(session.chatId || "").trim() === target.chatId)
 		) {
 			session.abortController?.abort();
+			session.streaming = false;
+			session.abortController = null;
+			if (options.activeQuerySessionRequestIdRef.current === session.requestId) {
+				options.activeQuerySessionRequestIdRef.current = "";
+				options.dispatch({ type: "SET_STREAMING", streaming: false });
+				options.dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+			}
 			detached = true;
 		}
 	}
@@ -494,6 +501,9 @@ function requestWsDetachRun(
 		&& (!target.chatId || activeAttach.chatId === target.chatId)
 	) {
 		activeAttach.abort();
+		// Release local ownership synchronously; remote detach can finish after
+		// the next snapshot/attach. Its completion must not retire the new one.
+		if (options.activeAttachRef) options.activeAttachRef.current = null;
 		detached = true;
 	}
 	if (!detached && options.logMissing) {

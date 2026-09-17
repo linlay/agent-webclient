@@ -36,6 +36,8 @@
 
 new Chat 首次创建、数据归属一致的 canonical promotion 与有效同 Chat 后台恢复保留实时内容。只有原始 query 拥有目标且可见数据已经绑定该目标时，协调器才清除竞态创建的历史事务，使其迟到响应失效；时间线不再自行决定取消数据事务。失败时来源数据继续保留但不可见，重试创建新事务，不提交空目标会话。
 
+历史加载（包括 `same-chat-reload`）在重置展示与事件缓存前，必须同步解除旧 query/attach 的本地观察身份并停止事件投递，再读取快照、从其 `activeRun.lastSeq` 建立新 attach。远端 detach 的完成不得清除新观察者；旧执行的迟到事件不得写入新投影。已有订阅的游标不能用于跳过快照之后尚未展示的事件。该交接只 detach，不 interrupt 或重新 query。
+
 `forceReload` 使用 `same-chat-reload` 并执行同样的保存与恢复。新建空白对话会先保存来源位置、取消当前事务，再 reset；新 Chat 获得 canonical `chatId` 的 session promotion 仍须验证原始 live query 所有权和数据归属。共享展示层阻塞期间（包括退出动画与错误），Composer 及旧的 awaiting、plan、frontend tool 交互均不可提交；有效同 Chat 后台刷新不额外阻塞交互。聚焦 Composer 使用 `preventScroll`，不可使仍被遮蔽的内容获得焦点。
 
 导出与公开分享不复用上述 replay/live 状态。Markdown 直接请求 Agent Platform；WebClient HTML 导出并行请求 Platform Snapshot 与同源模板后用 Blob parts 组装，Desktop 分享则由常驻 Worker 请求 Snapshot 与 WebClient 模板。公开 `/share/` 由 Tunnel 直接返回已生成的 HTML 主文档。所有路径都不 attach active run，也不从当前 renderer timeline 重建快照。

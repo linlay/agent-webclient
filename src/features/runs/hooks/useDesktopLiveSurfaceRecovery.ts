@@ -30,7 +30,7 @@ export function useDesktopLiveSurfaceRecovery(
   loadChat: LoadChatForSurfaceRecovery,
   routeChatId?: string,
 ): void {
-  const { state, stateRef } = useAppContext();
+  const { state, stateRef, querySessionsRef, activeQuerySessionRequestIdRef } = useAppContext();
   const pendingChatRef = useRef<string | null>(null);
   const [activationRevision, setActivationRevision] = useState(0);
 
@@ -67,12 +67,25 @@ export function useDesktopLiveSurfaceRecovery(
     // that still-pending load: it would never create a fresh observer.
     if (current.chatId?.trim() !== pendingChatId ||
         (transition && transition.phase !== "ready")) return;
-    pendingChatRef.current = null;
-    void recoverDesktopLiveSurface({
-      active: true,
-      chatId: pendingChatId,
-      routeChatId: routeChatId || "",
-      loadChat,
+    let cancelled = false;
+    // Let transport completion retire an inactive observer before testing its
+    // health. React may flush this effect before that Promise callback runs.
+    void Promise.resolve().then(() => {
+      if (cancelled || pendingChatRef.current !== pendingChatId) return;
+      pendingChatRef.current = null;
+      const latest = stateRef.current;
+      const session = querySessionsRef.current.get(activeQuerySessionRequestIdRef.current);
+      // The route load may already have recovered a query/attach observer.
+      if (session?.streaming && session.chatId === pendingChatId &&
+          session.runId === (latest.currentChatActiveRun?.runId || latest.runId) &&
+          session.abortController && !session.abortController.signal.aborted) return;
+      return recoverDesktopLiveSurface({
+        active: true,
+        chatId: pendingChatId,
+        routeChatId: routeChatId || "",
+        loadChat,
+      });
     }).catch(() => undefined);
-  }, [activationRevision, loadChat, routeChatId, state.chatId, state.chatTransition, stateRef]);
+    return () => { cancelled = true; };
+  }, [activationRevision, loadChat, routeChatId, state.chatId, state.chatTransition, stateRef, querySessionsRef, activeQuerySessionRequestIdRef]);
 }
