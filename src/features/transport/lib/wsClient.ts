@@ -1173,6 +1173,10 @@ export class StandaloneSocketDriver extends PlatformFrameClient {
 		this.onStatusChange?.(status);
 	}
 
+	protected handleConnectionError(_error: Error): void {
+		this.setStatus("error");
+	}
+
 	private shouldRefreshTokenForClose(
 		event?: Pick<CloseEvent, "code" | "reason">,
 	): boolean {

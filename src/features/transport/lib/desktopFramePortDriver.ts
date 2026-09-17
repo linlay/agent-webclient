@@ -160,4 +160,8 @@ export class DesktopFramePortDriver extends PlatformFrameClient {
     this.status = status;
     for (const listener of this.statusListeners) listener(status);
   }
+
+  protected handleConnectionError(_error: Error): void {
+    this.setStatus("error");
+  }
 }

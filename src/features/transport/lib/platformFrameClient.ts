@@ -266,7 +266,17 @@ export abstract class PlatformFrameClient {
       this.transportErrorHandler?.(error, { id: frame.id, kind: "stream" });
       stream.options.onError?.(error);
       this.cleanupStream(frame.id);
+      return;
     }
+    // 请求/流已超时或中止，错误帧失去归属。对 connection_unavailable 这类
+    // 连接级错误做窄化兜底，避免静默丢弃；其余迟到/冗余应答帧仍保持忽略。
+    if (frame.type === "connection_unavailable") {
+      this.handleConnectionError(error);
+    }
+  }
+
+  protected handleConnectionError(_error: Error): void {
+    // 默认忽略；子类按自身连接语义处理（例如置为 error 状态）。
   }
 
   protected failPlatformFrames(error: Error): void {
