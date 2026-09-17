@@ -19,15 +19,9 @@ import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/li
 import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
 
 const APP_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:col-start-1 tw:[&_.left-sidebar]:row-[1/-1] tw:[&_.left-sidebar]:min-w-0 tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-[1/-1] tw:[&_.right-sidebar]:translate-x-0 tw:[&_.terminal-dock]:col-start-2 tw:[&_.terminal-dock]:row-start-4";
-const APP_SHELL_ROW_CLASS_BY_STATE = {
-  default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
-  terminal: "tw:grid-rows-[auto_minmax(0,1fr)_auto_auto]",
-  empty:
-    "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
-  emptyTerminal:
-    "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
-} as const;
+  "app-shell layout-desktop-fixed tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:grid-rows-[minmax(0,1fr)] tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:col-start-1 tw:[&_.left-sidebar]:row-start-1 tw:[&_.left-sidebar]:min-w-0 tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-start-1 tw:[&_.right-sidebar]:translate-x-0 tw:[&_.app-shell-center]:col-start-2 tw:[&_.app-shell-center]:row-start-1";
+const APP_SHELL_CENTER_CLASS =
+  "app-shell-center tw:relative tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col";
 const APP_SHELL_COLUMN_CLASS_BY_STATE = {
   closedDebug:
     "left-drawer-closed desktop-debug-enabled tw:grid-cols-[var(--left-sidebar-close-width)_minmax(420px,1fr)_var(--right-sidebar-width)]",
@@ -58,13 +52,7 @@ const AppShellContent: React.FC = () => {
   const effectiveTerminalDockOpen = state.terminalDockOpen && isCoderAgent(currentWorker);
   const desktopRightSidebarVisible = state.rightSidebarOpen;
 
-  const rowClass = !state.chatId
-    ? effectiveTerminalDockOpen
-      ? APP_SHELL_ROW_CLASS_BY_STATE.emptyTerminal
-      : APP_SHELL_ROW_CLASS_BY_STATE.empty
-    : effectiveTerminalDockOpen
-      ? APP_SHELL_ROW_CLASS_BY_STATE.terminal
-      : APP_SHELL_ROW_CLASS_BY_STATE.default;
+  const emptyLayoutClass = !state.chatId ? "timeline-empty-layout" : "";
   const columnClass = desktopRightSidebarVisible
     ? state.leftDrawerOpen
       ? APP_SHELL_COLUMN_CLASS_BY_STATE.openDebug
@@ -83,29 +71,31 @@ const AppShellContent: React.FC = () => {
             className={[
               APP_SHELL_BASE_CLASS,
               columnClass,
-              rowClass,
+              emptyLayoutClass,
               effectiveTerminalDockOpen ? "terminal-dock-open" : "",
             ]
               .filter(Boolean)
               .join(" ")}
             id="app"
           >
-            <TopNav />
             <LeftSidebar />
-            <ConversationStage
-              surfaceMode="main"
-              deriveChatAction={deriveChatAction}
-              onFeedback={onFeedback}
-            />
-            <RightSidebar />
-            <BottomDock />
-            {effectiveTerminalDockOpen && currentWorker ? (
-              <TerminalDock
-                agentKey={currentWorker.sourceId}
-                workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
-                worker={currentWorker}
+            <div className={APP_SHELL_CENTER_CLASS}>
+              <TopNav />
+              <ConversationStage
+                surfaceMode="main"
+                deriveChatAction={deriveChatAction}
+                onFeedback={onFeedback}
               />
-            ) : null}
+              <BottomDock />
+              {effectiveTerminalDockOpen && currentWorker ? (
+                <TerminalDock
+                  agentKey={currentWorker.sourceId}
+                  workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
+                  worker={currentWorker}
+                />
+              ) : null}
+            </div>
+            <RightSidebar />
             <ShellOverlays />
           </div>
         </GlobalSearchOverlayProvider>

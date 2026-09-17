@@ -13,6 +13,7 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import "./TimelineCompat.module.css";
 
 const useIsomorphicLayoutEffect =
@@ -494,6 +495,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const statusTimerRef = useRef<Map<string, number>>(new Map());
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
   const [queryAnchorsEnabled, setQueryAnchorsEnabled] = useState(false);
+  const [queryAnchorRailHost, setQueryAnchorRailHost] = useState<HTMLElement | null>(null);
   const [activeQueryAnchorId, setActiveQueryAnchorId] = useState("");
   const [derivingRunId, setDerivingRunId] = useState("");
   const [expandedTaskGroups, setExpandedTaskGroups] = useState<
@@ -1299,6 +1301,20 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     };
   }, []);
 
+  useIsomorphicLayoutEffect(() => {
+    const parent = containerRef.current?.parentElement;
+    if (!(parent instanceof HTMLElement)) {
+      setQueryAnchorRailHost(null);
+      return;
+    }
+    setQueryAnchorRailHost(
+      parent.classList.contains("app-shell-center") ||
+        parent.classList.contains("app-shell")
+        ? parent
+        : null,
+    );
+  }, []);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -1389,6 +1405,84 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     );
   }, [isAtBottom, isMainChatRunning, runStartedAt, state.streaming, t]);
 
+  const queryAnchorRail =
+    queryAnchorItems.length > 0 && queryAnchorsEnabled ? (
+      <nav
+        ref={anchorRef}
+        className={TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME}
+        style={
+          {
+            "--hover-index": (queryAnchorItems.length + 999).toString(),
+          } as React.CSSProperties
+        }
+        onMouseLeave={() => {
+          if (!anchorRef.current) return;
+          anchorRef.current.style.setProperty(
+            "--hover-index",
+            (queryAnchorItems.length + 999).toString(),
+          );
+        }}
+      >
+        {queryAnchorItems.map((anchor, index) => {
+          const active = activeQueryAnchorId === anchor.anchorId;
+          return (
+            <Tooltip
+              key={anchor.key}
+              rootClassName={TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME}
+              trigger="hover"
+              placement="right"
+              title={
+                <div>
+                  <div
+                    className={TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME}
+                  >
+                    {anchor.queryText}
+                  </div>
+                  <div
+                    className={TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME}
+                  >
+                    {anchor.lastRunContent}
+                  </div>
+                </div>
+              }
+            >
+              <button
+                className={[
+                  TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME,
+                  active ? TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                type="button"
+                aria-current={active ? "location" : undefined}
+                aria-label={t("conversationStage.queryAnchor", {
+                  index: index + 1,
+                })}
+                onMouseEnter={() => {
+                  if (!anchorRef.current) return;
+                  anchorRef.current.style.setProperty(
+                    "--hover-index",
+                    index.toString(),
+                  );
+                }}
+                onClick={() => handleQueryAnchorClick(anchor.anchorId)}
+              >
+                <span
+                  className={TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME}
+                  aria-hidden="true"
+                  style={
+                    {
+                      "--index": index,
+                    } as React.CSSProperties
+                  }
+                />
+              </button>
+            </Tooltip>
+          );
+        })}
+      </nav>
+    ) : null;
+
   return (
     <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}>
       <div
@@ -1398,88 +1492,11 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         {...(presentation.blocked ? { inert: "" } : {})}
         style={{ visibility: presentation.blocked ? "hidden" : undefined }}
       >
-        {queryAnchorItems.length > 0 && queryAnchorsEnabled && (
-          <nav
-            ref={anchorRef}
-            className={TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME}
-            style={
-              {
-                "--hover-index": (queryAnchorItems.length + 999).toString(),
-              } as React.CSSProperties
-            }
-            onMouseLeave={() => {
-              if (!anchorRef.current) return;
-              anchorRef.current.style.setProperty(
-                "--hover-index",
-                (queryAnchorItems.length + 999).toString(),
-              );
-            }}
-          >
-            {queryAnchorItems.map((anchor, index) => {
-              const active = activeQueryAnchorId === anchor.anchorId;
-              return (
-                <Tooltip
-                  key={anchor.key}
-                  rootClassName={TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME}
-                  trigger="hover"
-                  placement="right"
-                  title={
-                    <div>
-                      <div
-                        className={
-                          TIMELINE_QUERY_ANCHOR_PREVIEW_QUERY_CLASS_NAME
-                        }
-                      >
-                        {anchor.queryText}
-                      </div>
-                      <div
-                        className={
-                          TIMELINE_QUERY_ANCHOR_PREVIEW_CONTENT_CLASS_NAME
-                        }
-                      >
-                        {anchor.lastRunContent}
-                      </div>
-                    </div>
-                  }
-                >
-                  <button
-                    className={[
-                      TIMELINE_QUERY_ANCHOR_LINE_CLASS_NAME,
-                      active
-                        ? TIMELINE_QUERY_ANCHOR_LINE_ACTIVE_CLASS_NAME
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    type="button"
-                    aria-current={active ? "location" : undefined}
-                    aria-label={t("conversationStage.queryAnchor", {
-                      index: index + 1,
-                    })}
-                    onMouseEnter={() => {
-                      if (!anchorRef.current) return;
-                      anchorRef.current.style.setProperty(
-                        "--hover-index",
-                        index.toString(),
-                      );
-                    }}
-                    onClick={() => handleQueryAnchorClick(anchor.anchorId)}
-                  >
-                    <span
-                      className={TIMELINE_QUERY_ANCHOR_LINE_BAR_CLASS_NAME}
-                      aria-hidden="true"
-                      style={
-                        {
-                          "--index": index,
-                        } as React.CSSProperties
-                      }
-                    />
-                  </button>
-                </Tooltip>
-              );
-            })}
-          </nav>
-        )}
+        {queryAnchorRail
+          ? queryAnchorRailHost
+            ? createPortal(queryAnchorRail, queryAnchorRailHost)
+            : queryAnchorRail
+          : null}
 
         {!state.chatId ? (
           showEmptyState ? (

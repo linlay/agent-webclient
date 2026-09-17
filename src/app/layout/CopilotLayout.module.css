@@ -253,8 +253,7 @@
     min-width: 0;
 }
 
-html[data-theme="dark"] :global(.copilot-topbar),
-html[data-theme="dark"] :global(.layout-copilot) :global(.bottom-dock) {
+html[data-theme="dark"] :global(.copilot-topbar) {
     background: color-mix(in srgb, var(--bg-base) 94%, transparent);
 }
 
