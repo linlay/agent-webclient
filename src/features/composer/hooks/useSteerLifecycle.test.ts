@@ -322,3 +322,39 @@ it('carries queued images into a query when the run completes', () => {
     chatId: 'chat-a', references: imageReferences, attachments: [expect.objectContaining({ name: 'image.png', url: 'image.png' })],
   }));
 });
+
+const selectionReferences = [{ id: 'selection-a', type: 'selection', name: 'Selected text',
+  mimeType: 'text/plain', meta: { text: 'selected text', sourceKind: 'message' } }];
+
+it('restores rejected selections and preserves them when the queued steer becomes a query', async () => {
+  mockSteer.mockResolvedValue({ data: { accepted: false, status: 'invalid_reference' } });
+  const h = mount();
+  h.stateRef.current.pendingSteers['chat-a'][0].references = selectionReferences;
+  await h.submit();
+  expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({ references: selectionReferences }));
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(selectionReferences);
+  const next = mount();
+  next.stateRef.current.pendingSteers['chat-a'][0].references = selectionReferences;
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  next.dispatch({ type: 'BATCH_UPDATE', updates: { currentChatActiveRun: null, streaming: false,
+    chatTransition: { seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '' } } });
+  next.render(false);
+  expect((sendEvent.mock.calls[0][0] as CustomEvent).detail).toMatchObject({
+    references: selectionReferences, attachments: [expect.objectContaining({ type: 'selection', meta: selectionReferences[0].meta })],
+  });
+});
+
+it('restores canceled selections once and projects accepted selections in the timeline', async () => {
+  const canceled = mount();
+  canceled.stateRef.current.pendingSteers['chat-a'][0].references = selectionReferences;
+  canceled.cancel(); canceled.cancel();
+  expect(canceled.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(selectionReferences);
+  mockSteer.mockResolvedValue({ data: { accepted: true } });
+  const h = mount();
+  h.stateRef.current.pendingSteers['chat-a'][0].references = selectionReferences;
+  await h.submit();
+  h.ack({ references: selectionReferences });
+  expect(h.stateRef.current.timelineNodes.get('steer_steer-a')).toMatchObject({
+    attachments: [expect.objectContaining({ type: 'selection', meta: selectionReferences[0].meta })],
+  });
+});

@@ -250,6 +250,11 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
     interruptCurrentRun: jest.fn(),
   }),
 }));
+jest.mock("@/features/composer/hooks/useDesktopSelectionActions", () => ({
+  useDesktopSelectionActions: () => ({ handleAction: jest.fn() }),
+}));
+jest.mock("@/features/selection/components/BrowserSelectionToolbar", () => ({ BrowserSelectionToolbar: () => null }));
+jest.mock("@/features/composer/components/BrowserSelectionPanels", () => ({ BrowserSelectionPanels: () => null }));
 
 const mockUseComposerSlash = jest.fn(
   (_input: Record<string, unknown>) => ({
@@ -277,7 +282,7 @@ jest.mock("@/features/composer/hooks/useComposerSlash", () => ({
 
 jest.mock("@/features/composer/hooks/useComposerWonders", () => ({
   useComposerWonders: jest.fn(() => ({
-    sampledGreeting: "Greeting from detail",
+    sampledIntroduction: "Introduction from detail",
     sampledWonders: ["Try this"],
   })),
 }));
@@ -365,7 +370,7 @@ describe("ComposerArea", () => {
     expect(html).not.toContain("composer-wonders");
     expect(mockComposerInputProps[0].emptyInputMinRows).toBe(1);
     expect(mockComposerInputProps[0].inputMaxRows).toBe(6);
-    expect(mockComposerInputProps[0].placeholder).toBe("Greeting from detail");
+    expect(mockComposerInputProps[0].placeholder).toBe("Introduction from detail");
     expect(useComposerWonders.mock.calls[0][0].isBlankConversation).toBe(true);
     expect(useComposerWonders.mock.calls[0][0].showWonders).toBe(false);
   });
@@ -506,6 +511,16 @@ describe("ComposerArea", () => {
     renderToStaticMarkup(React.createElement(ComposerArea));
 
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
+  });
+
+  it("previews restored steer selections as references and permits resending without text when idle", () => {
+    const reference = { id: "selection-restored", type: "selection", name: "Selected text",
+      size: 12, mimeType: "text/plain", meta: { text: "restored text", sourceKind: "message" } };
+    mockComposerAttachmentsState.sendReferences = [reference];
+    mockComposerAttachmentsState.sendAttachmentMeta = [reference];
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+    expect(html).toContain("selection.fragment.annotations");
+    expect(mockComposerActionsProps[0].sendDisabled).toBe(false);
   });
 
   it("enables the editing switch and slash command for a dedicated KBASE Agent", () => {

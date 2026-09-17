@@ -44,6 +44,7 @@ import {
 } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
+import { notifySelectedTextReferencesAccepted, hasSelectedTextReference } from "@/features/selection/lib/selectedTextReference";
 
 interface SendMessageEventDetail {
   message?: unknown;
@@ -728,6 +729,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         });
         const identity = await execution.identity;
         queryAccepted = true;
+        notifySelectedTextReferencesAccepted(normalizedReferences);
         session.chatId = identity.chatId;
         session.runId = identity.runId;
         session.owner = identity.owner;
@@ -860,7 +862,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             .map((key) => String(key || "").trim())
             .filter(Boolean)
         : [];
-      if (message) {
+      if (hasSendableComposerMessage(message, references)) {
         void sendMessage(
           message,
           references,
@@ -882,4 +884,14 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
   }, [sendMessage]);
 
   return { sendMessage, abortStream };
+}
+
+export function hasSendableComposerMessage(
+  message: unknown,
+  references: unknown,
+) {
+  return Boolean(
+    String(message || "").trim() ||
+    hasSelectedTextReference(references),
+  );
 }

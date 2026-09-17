@@ -65,8 +65,15 @@ import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useHostRequiredSkills } from "@/features/composer/components/HostRequiredSkillsContext";
+import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
+import { useDesktopSelectionActions } from "@/features/composer/hooks/useDesktopSelectionActions";
+import { BrowserSelectionToolbar } from "@/features/selection/components/BrowserSelectionToolbar";
+import { BrowserSelectionPanels } from "@/features/composer/components/BrowserSelectionPanels";
+import { isDesktopAppMode } from "@/shared/utils/routing";
+import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
+import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
 interface ComposerAreaProps {
   enableNewChatContext?: boolean;
@@ -310,7 +317,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     stageReviewAttachment,
     sendAttachmentMeta,
     sendReferences,
-    useUnifiedComposerAttachmentRow,
     uploadStagedAttachments,
   } = useComposerAttachments({
     dispatch,
@@ -322,6 +328,45 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     },
     state,
   });
+  const selectedText = useSelectedTextFragments(state.chatId);
+  const selectedFragments = useMemo(() => [
+    ...sendAttachmentMeta.flatMap((attachment) => {
+      const fragment = selectedTextFragmentFromAttachment(attachment);
+      return fragment ? [fragment] : [];
+    }),
+    ...selectedText.fragments,
+  ], [sendAttachmentMeta, selectedText.fragments]);
+  const visibleAttachments = attachments.filter((attachment) => attachment.type !== "selection");
+  const removeSelectedFragment = (referenceId: string) => {
+    selectedText.removeFragment(referenceId);
+    const restored = attachments.find((attachment) => attachment.type === "selection" &&
+      attachment.references.some((reference) => reference && typeof reference === "object" &&
+        (reference as { id?: unknown }).id === referenceId));
+    if (restored) handleRemoveAttachment(restored.id);
+  };
+  const combinedSendReferences = useMemo(
+    () => [...sendReferences, ...selectedText.references],
+    [selectedText.references, sendReferences],
+  );
+  const combinedSendAttachmentMeta = useMemo(
+    () => [
+      ...sendAttachmentMeta,
+      ...selectedText.attachments.map((attachment) => ({
+        ...attachment,
+        size: attachment.size ?? 0,
+      })),
+    ],
+    [selectedText.attachments, sendAttachmentMeta],
+  );
+  const selectionActions = useDesktopSelectionActions({
+    addMainFragment: selectedText.addFragment,
+    model: modelOverride,
+    messageApi: message,
+  });
+  const [selectionScope, setSelectionScope] = useState<Element | null>(null);
+  useEffect(() => {
+    setSelectionScope(document.querySelector(".conversation-stage"));
+  }, [state.chatId, chatTransitionBlocking]);
 
   const {
     activeSlashIndex,
@@ -573,8 +618,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     mustUseSkills: effectiveSkills.map((skill) => skill.key),
     selectSlashItem,
     onSelectSlashSkill: handleSelectSlashSkill,
-    sendAttachmentMeta,
-    sendReferences,
+    sendAttachmentMeta: combinedSendAttachmentMeta,
+    sendReferences: combinedSendReferences,
     setInputValue,
     setSlashDismissed,
     showSlashPalette,
@@ -664,7 +709,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !inputValue.trim();
+    (!inputValue.trim() && (isMainChatRunning || selectedFragments.length === 0));
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,
@@ -735,9 +780,23 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     ],
   );
 
+  const withSelectionSurfaces = (content: React.ReactNode) => (
+    <>
+      <BrowserSelectionToolbar
+        enabled={!isDesktopAppMode() && !chatTransitionBlocking}
+        scopeElement={selectionScope}
+        onAction={selectionActions.handleAction}
+      />
+      {!isDesktopAppMode() ? (
+        <BrowserSelectionPanels />
+      ) : null}
+      {content}
+    </>
+  );
+
   if (!chatTransitionBlocking && isAwaitingActive && state.activeAwaiting) {
     if (state.activeAwaiting.mode === "form") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <AwaitingHtmlContainer
             data={state.activeAwaiting}
@@ -750,7 +809,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       );
     }
     if (state.activeAwaiting.mode === "approval") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <Buildin.ApprovalDialog
             data={state.activeAwaiting}
@@ -761,7 +820,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       );
     }
     if (state.activeAwaiting.mode === "plan") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <Buildin.PlanDialog
             data={state.activeAwaiting}
@@ -772,7 +831,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       );
     }
     if (state.activeAwaiting.mode === "question") {
-      return (
+      return withSelectionSurfaces(
         <AwaitingShell>
           <Buildin.QuestionDialog
             data={state.activeAwaiting}
@@ -782,10 +841,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         </AwaitingShell>
       );
     }
-    return null;
+    return withSelectionSurfaces(null);
   }
 
-  return (
+  return withSelectionSurfaces(
     <ComposerProvider value={composerContextValue}>
       <div
         ref={composerRef}
@@ -871,16 +930,21 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 className={`${COMPOSER_PILL_CLASS} ${isFrontendActive ? COMPOSER_PILL_FRONTEND_CLASS : ""} ${isVoiceMode ? COMPOSER_PILL_VOICE_CLASS : ""}`}
               >
                 <ComposerAttachments
-                  attachments={attachments}
+                  attachments={visibleAttachments}
                   attachmentChatId={state.chatId || attachmentChatId}
                   attachmentViewportRef={attachmentViewportRef}
                   useUnifiedComposerAttachmentRow={
-                    useUnifiedComposerAttachmentRow
+                    visibleAttachments.length > 1
                   }
                   hasComposerAttachmentOverflow={hasComposerAttachmentOverflow}
                   attachmentScrollState={attachmentScrollState}
                   onRemoveAttachment={handleRemoveAttachment}
                   onScroll={scrollComposerAttachments}
+                />
+                <SelectedTextFragmentsPill
+                  fragments={selectedFragments}
+                  variant="annotations"
+                  onRemove={removeSelectedFragment}
                 />
                 <Flex wrap gap={4}>
                   {displayedForcedSkills.map((skill) => (

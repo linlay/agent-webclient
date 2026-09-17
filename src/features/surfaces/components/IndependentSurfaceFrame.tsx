@@ -16,6 +16,7 @@ export const IndependentSurfaceFrame: React.FC<{
   notFound?: string;
   onRetry?: () => void;
   flushContent?: boolean;
+  embedded?: boolean;
   children?: React.ReactNode;
 }> = ({
   kind,
@@ -24,11 +25,12 @@ export const IndependentSurfaceFrame: React.FC<{
   notFound = "",
   onRetry,
   flushContent = false,
+  embedded = false,
   children,
 }) => {
   const { t } = useI18n();
   return (
-    <main className={withModuleClasses("readonly-run-surface", `readonly-run-surface-${kind}`)}>
+    <main className={withModuleClasses("readonly-run-surface", `readonly-run-surface-${kind}`, embedded ? "is-embedded" : "")}>
       {loading ? <div className="status-line">{t("surface.loading")}</div> : null}
       {error ? (
         <div className={`system-alert ${withModuleClasses("readonly-run-surface-error")}`} role="alert">

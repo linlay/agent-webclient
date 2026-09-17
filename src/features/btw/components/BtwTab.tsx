@@ -18,6 +18,8 @@ import { useI18n } from "@/shared/i18n";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { useOpenTarget } from "@/features/surfaces/openTarget";
 import type { BTWSessionState } from "@/features/btw/lib/btwTypes";
+import { resolveBTWSendMessage } from "@/features/btw/lib/btwSend";
+import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 
 const BTW_TAB_CLASS =
   "btw-tab tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:bg-bg-base";
@@ -61,6 +63,7 @@ export interface BtwTabViewProps {
   session: BTWSessionState | null;
   onSend: () => void;
   onDraftChange: (draft: string) => void;
+  onRemoveDraftSelection: (referenceId: string) => void;
   onInterrupt: () => void;
   onNewBranch: () => boolean;
   onPatchTimelineNode: (node: TimelineNode) => void;
@@ -73,6 +76,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   session,
   onSend,
   onDraftChange,
+  onRemoveDraftSelection,
   onInterrupt,
   onNewBranch,
   onPatchTimelineNode,
@@ -121,9 +125,13 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   }, [displayItems, running]);
 
   const handleSend = useCallback(() => {
-    if (!parentChatId || !draft.trim() || running) return;
+    if (
+      !parentChatId ||
+      (!draft.trim() && !(session?.draftSelections?.length)) ||
+      running
+    ) return;
     onSend();
-  }, [draft, onSend, parentChatId, running]);
+  }, [draft, onSend, parentChatId, running, session?.draftSelections?.length]);
 
   const handleInterrupt = useCallback(() => {
     if (!parentChatId || !running || !interruptReady || interruptPending) return;
@@ -234,6 +242,15 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
           )}
         </div>
         <div className={BTW_COMPOSER_CLASS}>
+          {session?.draftSelections?.length ? (
+            <div className="tw:mb-1.5">
+              <SelectedTextFragmentsPill
+                fragments={session.draftSelections}
+                variant="segments"
+                onRemove={onRemoveDraftSelection}
+              />
+            </div>
+          ) : null}
           <div className={BTW_COMPOSER_INNER_CLASS}>
             <Input.TextArea
               ref={textareaRef}
@@ -270,7 +287,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
                 variant="primary"
                 size="sm"
                 iconOnly
-                disabled={!draft.trim()}
+                disabled={!draft.trim() && !(session?.draftSelections?.length)}
                 aria-label={t("btw.send")}
                 title={t("btw.send")}
                 onClick={handleSend}
@@ -286,12 +303,14 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
 };
 
 export const BtwTab: React.FC = () => {
+  const { t } = useI18n();
   const state = useAppState();
   const openTarget = useOpenTarget();
   const {
     getSession,
     sendBTW,
     setDraft,
+    removeDraftSelection,
     patchTimelineNode,
     newBranch,
     interruptBTW,
@@ -303,9 +322,19 @@ export const BtwTab: React.FC = () => {
       parentChatId={parentChatId}
       session={session}
       onSend={() => {
-        void sendBTW(parentChatId, session?.draft || "");
+        const message = resolveBTWSendMessage(
+          session?.draft || "",
+          session?.draftSelections?.length || 0,
+          t("btw.selectionOnlyPrompt"),
+        );
+        if (message) {
+          void sendBTW(parentChatId, message);
+        }
       }}
       onDraftChange={(draft) => setDraft(parentChatId, draft)}
+      onRemoveDraftSelection={(referenceId) =>
+        removeDraftSelection(parentChatId, referenceId)
+      }
       onInterrupt={() => {
         void interruptBTW(parentChatId);
       }}

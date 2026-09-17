@@ -1,3 +1,4 @@
+import { getAcceptedSelectedTextReferenceIds } from "@/features/selection/lib/selectedTextReference";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { appReducer } from "@/app/state/reducer";
@@ -5,6 +6,7 @@ import { createInitialState } from "@/app/state/state";
 import {
   canProjectLiveQuerySession,
   canSendToTargetChat,
+  hasSendableComposerMessage,
   resolveDifferentChatDetachRunDetail,
   normalizeQueryModelOverride,
   syncLiveSessionTerminalState,
@@ -99,6 +101,22 @@ describe("normalizeQueryModelOverride", () => {
     expect(normalizeQueryModelOverride({ reasoningEffort: "NONE" })).toEqual({
       reasoningEffort: "NONE",
     });
+  });
+});
+
+describe("hasSendableComposerMessage", () => {
+  it("allows selection references without additional typed text", () => {
+    expect(hasSendableComposerMessage("", [{ type: "selection" }])).toBe(true);
+    expect(hasSendableComposerMessage("   ", [])).toBe(false);
+    expect(hasSendableComposerMessage("", [{ type: "file" }])).toBe(false);
+    expect(hasSendableComposerMessage("hello", [])).toBe(true);
+  });
+  it("clears only accepted selected-text references", () => {
+    expect(getAcceptedSelectedTextReferenceIds([
+      { id: "selection-1", type: "selection" },
+      { id: "file-1", type: "file" },
+      { id: "selection-2", type: "selection" },
+    ])).toEqual(["selection-1", "selection-2"]);
   });
 });
 

@@ -1,0 +1,160 @@
+.selected-text-fragments-pill {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-elev-2) 94%, transparent);
+  padding: 4px 10px;
+  color: var(--ink-1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.selected-text-fragments-pill-wrap {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-elev-2) 94%, transparent);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.selected-text-fragments-pill-wrap:hover,
+.selected-text-fragments-pill-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line-soft));
+  background: var(--bg-hover);
+}
+
+.selected-text-fragments-pill-wrap .selected-text-fragments-pill.has-dismiss {
+  min-height: 28px;
+  border: 0;
+  background: transparent;
+  padding: 3px 6px 3px 10px;
+}
+
+.selected-text-fragments-pill-wrap .selected-text-fragments-pill.has-dismiss:hover,
+.selected-text-fragments-pill-wrap .selected-text-fragments-pill.has-dismiss:focus-visible {
+  border-color: transparent;
+  background: transparent;
+}
+
+.selected-text-fragments-pill-dismiss {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  opacity: 0;
+  outline: none;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.selected-text-fragments-pill-wrap:hover .selected-text-fragments-pill-dismiss,
+.selected-text-fragments-pill-wrap:focus-within .selected-text-fragments-pill-dismiss {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.selected-text-fragments-pill-dismiss:hover,
+.selected-text-fragments-pill-dismiss:focus-visible {
+  background: var(--bg-hover);
+  color: var(--ink-1);
+}
+
+.selected-text-fragments-pill-dismiss :global(.material-icon) {
+  font-size: 15px;
+}
+
+.selected-text-fragments-pill:hover,
+.selected-text-fragments-pill:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line-soft));
+  background: var(--bg-hover);
+  outline: none;
+}
+
+.selected-text-fragments-pill :global(.material-icon) {
+  font-size: 16px;
+  color: var(--ink-muted);
+}
+
+.selected-text-fragments-popover {
+  display: grid;
+  width: min(380px, calc(100vw - 32px));
+  max-height: 320px;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.selected-text-fragment-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 4px 0 10px;
+}
+
+.selected-text-fragment-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.selected-text-fragment-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.selected-text-fragment-copy strong {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.selected-text-fragment-copy span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink-1);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.selected-text-fragment-row > button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.selected-text-fragment-row > button:hover,
+.selected-text-fragment-row > button:focus-visible {
+  background: var(--bg-hover);
+  color: var(--ink-1);
+  outline: none;
+}
