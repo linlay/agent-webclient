@@ -14,7 +14,6 @@
 :global(.pinned-chat-rail-button) { display: inline-flex; padding: 5px; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
 :global(.pinned-chat-rail-button:hover) { background: var(--bg-hover); }
 :global(.pinned-chat-list) { max-height: 50vh; overflow-y: auto; }
-:global(.worker-chat-item:focus-within) :global(.chat-actions-trigger) { display: inline-flex; }
 @media (hover: none) {
   :global(.pinned-chat-handle) { opacity: 0.6; }
   :global(.pinned-chat-row) :global(.chat-actions-trigger) { display: inline-flex; }
