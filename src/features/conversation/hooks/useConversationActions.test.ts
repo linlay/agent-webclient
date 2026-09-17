@@ -266,7 +266,7 @@ describe('replayEvent tool migration', () => {
     expect(stateRef.current.timelineOrder.filter(id => id === 'steer_confirmed')).toHaveLength(1);
   });
 
-  it('commits loaded chat id and replayed timeline state atomically', async () => {
+  it('sets the chat id and resets content at load start, committing replayed timeline state atomically', async () => {
     const state = createInitialState();
     const dispatchRecords: Array<{ type: string; insideFlushSync: boolean }> = [];
     const dispatch = jest.fn((action: { type: string }) => {
@@ -317,9 +317,9 @@ describe('replayEvent tool migration', () => {
 
     expect(dispatchRecords).toEqual(
       expect.arrayContaining([
-        { type: 'SET_CHAT_ID', insideFlushSync: true },
+        { type: 'SET_CHAT_ID', insideFlushSync: false },
         { type: 'UPSERT_CHAT', insideFlushSync: true },
-        { type: 'RESET_CONVERSATION', insideFlushSync: true },
+        { type: 'RESET_CONVERSATION', insideFlushSync: false },
         { type: 'BATCH_UPDATE', insideFlushSync: true },
       ]),
     );
@@ -449,7 +449,7 @@ describe('replayEvent tool migration', () => {
     expect(appliedChatIds).toEqual(['chat_c']);
   });
 
-  it('keeps the source chat and exposes a retryable transition error when switching fails', async () => {
+  it('sets the target chat id and resets content while exposing a retryable transition error when switching fails', async () => {
     const state = createInitialState();
     state.chatId = 'chat_old';
     const { actions, dispatch } = renderChatActions(state);
@@ -457,8 +457,8 @@ describe('replayEvent tool migration', () => {
 
     await actions?.loadChat('chat_new');
 
-    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat_new' });
-    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat_new' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_CONVERSATION' });
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'FAIL_CHAT_TRANSITION',
       targetChatId: 'chat_new',
@@ -466,7 +466,7 @@ describe('replayEvent tool migration', () => {
     }));
   });
 
-  it('keeps the current conversation intact when reloading the same chat fails', async () => {
+  it('sets the chat id and resets content when reloading the same chat fails', async () => {
     const state = createInitialState();
     state.chatId = 'chat_same';
     const { actions, dispatch } = renderChatActions(state);
@@ -474,8 +474,8 @@ describe('replayEvent tool migration', () => {
 
     await actions?.loadChat('chat_same');
 
-    expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat_same' });
-    expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_CONVERSATION' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat_same' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_CONVERSATION' });
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'FAIL_CHAT_TRANSITION',
       targetChatId: 'chat_same',

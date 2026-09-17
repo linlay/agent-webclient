@@ -1,53 +1,61 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { flushSync } from 'react-dom';
-import { readSteerConfirmation } from '@/features/events/lib/eventFields';
-import { useAppContext } from '@/app/state/AppContext';
-import { getChat } from '@/shared/data';
-import type { Chat, CurrentChatActiveRun } from "@/features/chats/lib/chatState";
+import { useCallback, useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
+import { readSteerConfirmation } from "@/features/events/lib/eventFields";
+import { useAppContext } from "@/app/state/AppContext";
+import { getChat } from "@/shared/data";
+import type {
+  Chat,
+  CurrentChatActiveRun,
+} from "@/features/chats/lib/chatState";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { ComposerRequiredSkill } from "@/features/composer/lib/composerState";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
-import { createWorkerKeyFromChat } from '@/features/workers/lib/workerListFormatter';
-import { buildWorkerConversationRows } from '@/features/workers/lib/workerConversationFormatter';
+import { createWorkerKeyFromChat } from "@/features/workers/lib/workerListFormatter";
+import { buildWorkerConversationRows } from "@/features/workers/lib/workerConversationFormatter";
 import {
   markSessionSnapshotApplied,
   snapshotConversationState,
-} from '@/features/conversation/lib/conversationSession';
+} from "@/features/conversation/lib/conversationSession";
 import {
   isMainChatRuntimeObservedByLiveQuery,
   resolveMainChatRuntime,
-} from '@/features/runs/lib/runRuntimeState';
-import { resolveRunOwner } from '@/features/runs/lib/runOwner';
-import { resolveRunEditingMode } from '@/features/runs/lib/editingMode';
-import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
+} from "@/features/runs/lib/runRuntimeState";
+import { resolveRunOwner } from "@/features/runs/lib/runOwner";
+import { resolveRunEditingMode } from "@/features/runs/lib/editingMode";
+import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
+import { buildLoadedChatUsageSnapshot } from "@/features/conversation/lib/conversationPayload";
+import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
 import {
-  buildLoadedChatUsageSnapshot,
-} from '@/features/conversation/lib/conversationPayload';
-import { buildChatReplayProjection } from '@/features/conversation/lib/chatReplayProjection';
-import { dispatchDetachRunEvent, type DetachRunReason } from '@/features/runs/lib/runControlEvents';
-import { CHAT_PREPARATION_TIMEOUT_MS, isChatTransitionPending, isCurrentChatTransition } from '@/features/conversation/lib/chatTransition';
-import { normalizeChatReadState } from '@/features/chats/lib/chatReadState';
-import type { ChatTransition } from '@/features/conversation/lib/conversationState';
-import { useI18n } from '@/shared/i18n';
-import { readEpochMillis } from '@/shared/utils/platformTime';
-import { readDesktopChatRouteRevision } from '@/shared/hooks/useDesktopRouteChange';
+  dispatchDetachRunEvent,
+  type DetachRunReason,
+} from "@/features/runs/lib/runControlEvents";
+import {
+  CHAT_PREPARATION_TIMEOUT_MS,
+  isChatTransitionPending,
+  isCurrentChatTransition,
+} from "@/features/conversation/lib/chatTransition";
+import { normalizeChatReadState } from "@/features/chats/lib/chatReadState";
+import type { ChatTransition } from "@/features/conversation/lib/conversationState";
+import { useI18n } from "@/shared/i18n";
+import { readEpochMillis } from "@/shared/utils/platformTime";
+import { readDesktopChatRouteRevision } from "@/shared/hooks/useDesktopRouteChange";
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
  * Avoids React batching issues by building up the full timeline locally,
  * then dispatching the complete result via BATCH_UPDATE.
  */
-export type { ReplayState } from '@/features/conversation/lib/conversationReplay';
+export type { ReplayState } from "@/features/conversation/lib/conversationReplay";
 export {
   createReplayState,
   reconcileReplayAwaiting,
   replayEvent,
   setReplayArtifacts,
   setReplayPlan,
-} from '@/features/conversation/lib/conversationReplay';
+} from "@/features/conversation/lib/conversationReplay";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object';
+  return value != null && typeof value === "object";
 }
 
 export interface StartNewConversationDetail {
@@ -63,7 +71,7 @@ function normalizeRequiredSkills(value: unknown): ComposerRequiredSkill[] {
   const seen = new Set<string>();
   return value.flatMap((candidate) => {
     if (!isObjectRecord(candidate)) return [];
-    const key = String(candidate.key || '').trim();
+    const key = String(candidate.key || "").trim();
     const label = String(candidate.label || key).trim();
     const identity = key.toLowerCase();
     if (!key || !label || seen.has(identity)) return [];
@@ -82,39 +90,48 @@ export function normalizeStartNewConversationDetail(
   selectedSkills: ComposerRequiredSkill[];
 } | null {
   if (!isObjectRecord(detail)) return null;
-  if (!Object.prototype.hasOwnProperty.call(detail, 'preserveWorkerContext')) {
+  if (!Object.prototype.hasOwnProperty.call(detail, "preserveWorkerContext")) {
     return null;
   }
-  if (!Object.prototype.hasOwnProperty.call(detail, 'focusComposerOnComplete')) {
+  if (
+    !Object.prototype.hasOwnProperty.call(detail, "focusComposerOnComplete")
+  ) {
     return null;
   }
 
-  const agentKey = String(detail.agentKey || '').trim();
+  const agentKey = String(detail.agentKey || "").trim();
   return {
     agentKey,
     preserveWorkerContext: detail.preserveWorkerContext === true,
     focusComposerOnComplete: detail.focusComposerOnComplete === true,
-    composerDraft: String(detail.composerDraft || '').trim(),
+    composerDraft: String(detail.composerDraft || "").trim(),
     selectedSkills: normalizeRequiredSkills(detail.selectedSkills),
   };
 }
 
-function dispatchAttachRunEvent(chatId: string, runId: string, lastSeq = 0, owner: RunOwner | null = null): void {
+function dispatchAttachRunEvent(
+  chatId: string,
+  runId: string,
+  lastSeq = 0,
+  owner: RunOwner | null = null,
+): void {
   if (
-    typeof window === 'undefined'
-    || typeof window.dispatchEvent !== 'function'
-    || typeof CustomEvent !== 'function'
+    typeof window === "undefined" ||
+    typeof window.dispatchEvent !== "function" ||
+    typeof CustomEvent !== "function"
   ) {
     return;
   }
   window.dispatchEvent(
-    new CustomEvent('agent:attach-run', {
+    new CustomEvent("agent:attach-run", {
       detail: {
         chatId,
         runId,
         lastSeq,
-        ...(owner?.kind === 'agent' ? { agentKey: owner.agentKey } : {}),
-        ...(owner?.kind === 'orchestrated-team' ? { teamId: owner.teamId } : {}),
+        ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
+        ...(owner?.kind === "orchestrated-team"
+          ? { teamId: owner.teamId }
+          : {}),
         ...(owner ? { owner } : {}),
       },
     }),
@@ -128,14 +145,14 @@ function maybeDispatchDetachRunEvent(detail: {
   owner?: RunOwner;
   reason: DetachRunReason;
 }): boolean {
-  const runId = String(detail.runId || '').trim();
+  const runId = String(detail.runId || "").trim();
   if (!runId) {
     return false;
   }
   dispatchDetachRunEvent({
-    chatId: String(detail.chatId || '').trim(),
+    chatId: String(detail.chatId || "").trim(),
     runId,
-    agentKey: String(detail.agentKey || '').trim(),
+    agentKey: String(detail.agentKey || "").trim(),
     owner: detail.owner,
     reason: detail.reason,
   });
@@ -152,8 +169,8 @@ function normalizeCurrentChatActiveRun(
   activeRun: Record<string, unknown> | null,
   owner: RunOwner | null,
 ): CurrentChatActiveRun | null {
-  const normalizedChatId = String(chatId || '').trim();
-  const runId = String(activeRun?.runId || '').trim();
+  const normalizedChatId = String(chatId || "").trim();
+  const runId = String(activeRun?.runId || "").trim();
   if (!normalizedChatId || !activeRun || !runId) {
     return null;
   }
@@ -161,39 +178,39 @@ function normalizeCurrentChatActiveRun(
     ...activeRun,
     chatId: normalizedChatId,
     runId,
-    ...(owner?.kind === 'agent' ? { agentKey: owner.agentKey } : {}),
-    ...(owner?.kind === 'orchestrated-team' ? { teamId: owner.teamId } : {}),
+    ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
+    ...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
     ...(owner ? { owner } : {}),
   };
 }
 
 export function buildLoadedChatSummary(
-	chatId: string,
-	value: unknown,
-): Partial<Chat> & Pick<Chat, 'chatId'> {
-	const data = isObjectRecord(value) ? value : {};
-	const normalizedChatId = String(data.chatId || chatId || '').trim();
-	const teamId = String(data.teamId || '').trim();
-	const agentKey = String(data.agentKey || data.firstAgentKey || '').trim();
-	const owner = toRunOwner({ teamId, agentKey });
-	const createdAt = readEpochMillis(data.createdAt);
-	const updatedAt = readEpochMillis(data.updatedAt);
-	const read = normalizeChatReadState(data.read);
-	return {
-		chatId: normalizedChatId || String(chatId || '').trim(),
-		chatName: String(data.chatName || '').trim() || undefined,
-		...(owner?.kind === 'agent'
-			? { agentKey: owner.agentKey, firstAgentKey: owner.agentKey }
-			: {}),
-		...(owner?.kind === 'orchestrated-team' ? { teamId: owner.teamId } : {}),
-		...(owner ? { owner } : {}),
-		source: String(data.source || '').trim() || undefined,
-		...(createdAt !== undefined ? { createdAt } : {}),
-		...(updatedAt !== undefined ? { updatedAt } : {}),
-		lastRunId: String(data.lastRunId || '').trim() || undefined,
-		lastRunContent: String(data.lastRunContent || '').trim() || undefined,
-		...(read ? { read } : {}),
-	};
+  chatId: string,
+  value: unknown,
+): Partial<Chat> & Pick<Chat, "chatId"> {
+  const data = isObjectRecord(value) ? value : {};
+  const normalizedChatId = String(data.chatId || chatId || "").trim();
+  const teamId = String(data.teamId || "").trim();
+  const agentKey = String(data.agentKey || data.firstAgentKey || "").trim();
+  const owner = toRunOwner({ teamId, agentKey });
+  const createdAt = readEpochMillis(data.createdAt);
+  const updatedAt = readEpochMillis(data.updatedAt);
+  const read = normalizeChatReadState(data.read);
+  return {
+    chatId: normalizedChatId || String(chatId || "").trim(),
+    chatName: String(data.chatName || "").trim() || undefined,
+    ...(owner?.kind === "agent"
+      ? { agentKey: owner.agentKey, firstAgentKey: owner.agentKey }
+      : {}),
+    ...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+    ...(owner ? { owner } : {}),
+    source: String(data.source || "").trim() || undefined,
+    ...(createdAt !== undefined ? { createdAt } : {}),
+    ...(updatedAt !== undefined ? { updatedAt } : {}),
+    lastRunId: String(data.lastRunId || "").trim() || undefined,
+    lastRunContent: String(data.lastRunContent || "").trim() || undefined,
+    ...(read ? { read } : {}),
+  };
 }
 
 const LOAD_CHAT_RETRY_DELAYS_MS = [180, 420, 800] as const;
@@ -224,12 +241,19 @@ export function useConversationActions() {
   const { t } = useI18n();
   const { state } = useAppContext();
 
-  useEffect(() => () => {
-    for (const cancel of cancelLoadsRef.current.values()) cancel();
-  }, []);
+  useEffect(
+    () => () => {
+      for (const cancel of cancelLoadsRef.current.values()) cancel();
+    },
+    [],
+  );
   useEffect(() => {
     for (const [seq, cancel] of cancelLoadsRef.current) {
-      if (state.chatTransition?.seq !== seq || state.chatTransition.phase === 'error') cancel();
+      if (
+        state.chatTransition?.seq !== seq ||
+        state.chatTransition.phase === "error"
+      )
+        cancel();
     }
   }, [state.chatTransition]);
 
@@ -238,24 +262,27 @@ export function useConversationActions() {
     for (const cancel of cancelLoadsRef.current.values()) cancel();
   }, []);
 
-  const syncRouteTarget = useCallback((targetChatId: string | undefined) => {
-    // Undefined belongs to the standalone root, whose history is action-driven.
-    const next = targetChatId === undefined ? undefined : targetChatId.trim();
-    if (observedRouteChatIdRef.current === next) return;
-    const previous = observedRouteChatIdRef.current;
-    observedRouteChatIdRef.current = next;
-    blankIntentRouteRef.current = null;
-    if (previous && !next) {
-      invalidateChatLoads();
-      dispatch({ type: 'CLEAR_CHAT_TRANSITION' });
-    }
-  }, [dispatch, invalidateChatLoads]);
+  const syncRouteTarget = useCallback(
+    (targetChatId: string | undefined) => {
+      // Undefined belongs to the standalone root, whose history is action-driven.
+      const next = targetChatId === undefined ? undefined : targetChatId.trim();
+      if (observedRouteChatIdRef.current === next) return;
+      const previous = observedRouteChatIdRef.current;
+      observedRouteChatIdRef.current = next;
+      blankIntentRouteRef.current = null;
+      if (previous && !next) {
+        invalidateChatLoads();
+        dispatch({ type: "CLEAR_CHAT_TRANSITION" });
+      }
+    },
+    [dispatch, invalidateChatLoads],
+  );
 
   const clearPlanAutoCollapseTimer = useCallback(() => {
     const timer = stateRef.current.planAutoCollapseTimer;
     if (timer) {
       window.clearTimeout(timer);
-      dispatch({ type: 'SET_PLAN_AUTO_COLLAPSE_TIMER', timer: null });
+      dispatch({ type: "SET_PLAN_AUTO_COLLAPSE_TIMER", timer: null });
     }
   }, [dispatch, stateRef]);
 
@@ -263,237 +290,356 @@ export function useConversationActions() {
     const timer = stateRef.current.artifactAutoCollapseTimer;
     if (timer) {
       window.clearTimeout(timer);
-      dispatch({ type: 'SET_ARTIFACT_AUTO_COLLAPSE_TIMER', timer: null });
+      dispatch({ type: "SET_ARTIFACT_AUTO_COLLAPSE_TIMER", timer: null });
     }
   }, [dispatch, stateRef]);
 
   const focusComposerSoon = useCallback(() => {
     window.requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent('agent:focus-composer'));
+      window.dispatchEvent(new CustomEvent("agent:focus-composer"));
     });
   }, []);
 
-  const applyLoadedChatState = useCallback((chatId: string) => {
-    dispatch({ type: 'SET_CHAT_ID', chatId });
-    clearArtifactAutoCollapseTimer();
-    clearPlanAutoCollapseTimer();
-    dispatch({ type: 'RESET_CONVERSATION' });
-    window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
-    window.dispatchEvent(new CustomEvent('agent:voice-reset'));
-  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, dispatch]);
+  const applyLoadedChatState = useCallback(
+    (chatId: string) => {
+      dispatch({ type: "SET_CHAT_ID", chatId });
+      clearArtifactAutoCollapseTimer();
+      clearPlanAutoCollapseTimer();
+      dispatch({ type: "RESET_CONVERSATION" });
+      window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+      window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+    },
+    [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, dispatch],
+  );
 
   const detachActiveConversationSession = useCallback(() => {
     const state = stateRef.current;
-    const activeRequestId = String(activeQuerySessionRequestIdRef.current || '').trim();
+    const activeRequestId = String(
+      activeQuerySessionRequestIdRef.current || "",
+    ).trim();
     if (!activeRequestId) {
       return null;
     }
 
     const hasActiveVoiceQuery =
-      state.inputMode === 'voice'
-      || state.voiceChat.sessionActive
-      || Boolean(String(state.voiceChat.activeRequestId || '').trim());
+      state.inputMode === "voice" ||
+      state.voiceChat.sessionActive ||
+      Boolean(String(state.voiceChat.activeRequestId || "").trim());
     if (hasActiveVoiceQuery) {
       state.abortController?.abort();
-      activeQuerySessionRequestIdRef.current = '';
+      activeQuerySessionRequestIdRef.current = "";
       return null;
     }
 
     const session = querySessionsRef.current.get(activeRequestId) || null;
     if (!session) {
-      activeQuerySessionRequestIdRef.current = '';
+      activeQuerySessionRequestIdRef.current = "";
       return null;
     }
 
     session.snapshot = snapshotConversationState(state);
-    session.chatId = session.chatId || String(state.chatId || '').trim();
-    session.runId = session.runId || String(state.runId || '').trim();
+    session.chatId = session.chatId || String(state.chatId || "").trim();
+    session.runId = session.runId || String(state.runId || "").trim();
     session.abortController = state.abortController;
     markSessionSnapshotApplied(session);
 
-    activeQuerySessionRequestIdRef.current = '';
+    activeQuerySessionRequestIdRef.current = "";
     return session;
   }, [activeQuerySessionRequestIdRef, querySessionsRef, stateRef]);
 
-  const dispatchDetachActiveRun = useCallback((reason: DetachRunReason, targetChatId = '') => {
-    const state = stateRef.current;
-    const activeRequestId = String(activeQuerySessionRequestIdRef.current || '').trim();
-    const session = activeRequestId
-      ? querySessionsRef.current.get(activeRequestId) || null
-      : null;
-    const chatId = String(session?.chatId || state.chatId || '').trim();
-    const normalizedTargetChatId = String(targetChatId || '').trim();
-    if (normalizedTargetChatId && chatId && normalizedTargetChatId === chatId) {
-      return;
-    }
-    if (!session?.streaming) {
-      return;
-    }
+  const dispatchDetachActiveRun = useCallback(
+    (reason: DetachRunReason, targetChatId = "") => {
+      const state = stateRef.current;
+      const activeRequestId = String(
+        activeQuerySessionRequestIdRef.current || "",
+      ).trim();
+      const session = activeRequestId
+        ? querySessionsRef.current.get(activeRequestId) || null
+        : null;
+      const chatId = String(session?.chatId || state.chatId || "").trim();
+      const normalizedTargetChatId = String(targetChatId || "").trim();
+      if (
+        normalizedTargetChatId &&
+        chatId &&
+        normalizedTargetChatId === chatId
+      ) {
+        return;
+      }
+      if (!session?.streaming) {
+        return;
+      }
 
-    const runId = String(session?.runId || state.runId || '').trim();
-    const owner = resolveRunOwner({
-      chatId,
-      chats: state.chats,
-      sessionOwner: session?.owner,
-      fallbackOwner: toRunOwner({
-        agentKey: session?.agentKey || state.runAgentById.get(runId) || state.currentRunAgentKey,
-      }),
-    });
-    if (owner && maybeDispatchDetachRunEvent({ chatId, runId, owner, ...(owner.kind === 'agent' ? { agentKey: owner.agentKey } : {}), reason })) {
-      return;
-    }
-
-    dispatch({
-      type: 'APPEND_DEBUG',
-      line: `[detach] skipped: missing runId or owner (chatId=${chatId || '-'})`,
-    });
-  }, [activeQuerySessionRequestIdRef, dispatch, querySessionsRef, stateRef]);
-
-  const activateBlankConversation = useCallback((options: {
-    preserveWorkerContext?: boolean;
-    focusComposerOnComplete?: boolean;
-  } = {}) => {
-    // Synchronous intent prevents an urgent state reset from letting the old
-    // Router render start another load before navigation commits.
-    blankIntentRouteRef.current = observedRouteChatIdRef.current || null;
-    invalidateChatLoads();
-    const preserveWorkerContext = Boolean(options.preserveWorkerContext);
-    const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
-
-    localLoadSeqRef.current = Math.max(
-      localLoadSeqRef.current + 1,
-      stateRef.current.chatLoadSeq + 1,
-    );
-    conversationViewportRef?.current?.captureCurrent();
-    dispatch({ type: 'CLEAR_CHAT_TRANSITION' });
-    dispatchDetachActiveRun('new_conversation');
-    detachActiveConversationSession();
-    clearArtifactAutoCollapseTimer();
-    clearPlanAutoCollapseTimer();
-    window.dispatchEvent(new CustomEvent('agent:reset-event-cache'));
-    window.dispatchEvent(new CustomEvent('agent:clear-composer-attachments'));
-    window.dispatchEvent(new CustomEvent('agent:voice-reset'));
-    dispatch({ type: 'SET_CHAT_ID', chatId: '' });
-    dispatch({ type: 'SET_RUN_ID', runId: '' });
-    dispatch({ type: 'SET_REQUEST_ID', requestId: '' });
-    dispatch({ type: 'SET_STREAMING', streaming: false });
-    dispatch({ type: 'SET_ABORT_CONTROLLER', controller: null });
-    dispatch({
-      type: preserveWorkerContext ? 'RESET_ACTIVE_CONVERSATION' : 'RESET_CONVERSATION',
-    });
-    if (focusComposerOnComplete) {
-      focusComposerSoon();
-    }
-  }, [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, conversationViewportRef, detachActiveConversationSession, dispatch, dispatchDetachActiveRun, focusComposerSoon, invalidateChatLoads, stateRef]);
-
-  const startNewConversation = useCallback((
-    input: StartNewConversationDetail | null | undefined,
-  ) => {
-    const detail = normalizeStartNewConversationDetail(input);
-    if (!detail) {
-      dispatch({
-        type: 'APPEND_DEBUG',
-        line: '[new conversation] ignored: missing explicit detail',
+      const runId = String(session?.runId || state.runId || "").trim();
+      const owner = resolveRunOwner({
+        chatId,
+        chats: state.chats,
+        sessionOwner: session?.owner,
+        fallbackOwner: toRunOwner({
+          agentKey:
+            session?.agentKey ||
+            state.runAgentById.get(runId) ||
+            state.currentRunAgentKey,
+        }),
       });
-      return;
-    }
-    if (detail.agentKey) {
-      const workerKey = `agent:${detail.agentKey}`;
-      dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey });
-      dispatch({ type: 'SET_WORKER_PRIORITY_KEY', workerKey });
-    }
-    activateBlankConversation({
-      preserveWorkerContext: detail.preserveWorkerContext,
-      focusComposerOnComplete: detail.focusComposerOnComplete,
-    });
-    if (detail.composerDraft) {
-      dispatch({ type: 'SET_COMPOSER_DRAFT', draft: detail.composerDraft });
-    }
-    if (detail.selectedSkills.length > 0) {
-      dispatch({ type: 'SET_SELECTED_SKILLS', skills: detail.selectedSkills });
-    }
-    if (detail.agentKey) {
-      dispatch({ type: 'SET_PENDING_NEW_CHAT_AGENT_KEY', agentKey: detail.agentKey });
-    }
-  }, [activateBlankConversation, dispatch]);
+      if (
+        owner &&
+        maybeDispatchDetachRunEvent({
+          chatId,
+          runId,
+          owner,
+          ...(owner.kind === "agent" ? { agentKey: owner.agentKey } : {}),
+          reason,
+        })
+      ) {
+        return;
+      }
 
-  const prepareChat = useCallback((chatId: string, options: {
-    focusComposerOnComplete?: boolean; forceReload?: boolean; retryError?: boolean; acceptReady?: boolean;
-    routeDriven?: boolean;
-  } = {}): ChatTransition | null => {
-    chatId = String(chatId || '').trim();
-    if (!chatId) return null;
-    if (options.routeDriven && blankIntentRouteRef.current === chatId) return null;
-    const current = stateRef.current;
-    const existing = current.chatTransition;
-    if (existing?.targetChatId === chatId) {
-      if (isChatTransitionPending(existing)) return existing;
-      if (existing.phase === 'error' && !options.retryError) return existing;
-    }
-    const currentChatId = String(current.chatId || '').trim();
-    const runtime = resolveMainChatRuntime(stateRef, activeQuerySessionRequestIdRef, querySessionsRef);
-    const liveOwnsTarget = isMainChatRuntimeObservedByLiveQuery(runtime, chatId);
-    if (!options.forceReload && currentChatId === chatId && existing?.phase !== 'error' &&
-      ((options.acceptReady && existing?.targetChatId === chatId && existing.phase === 'ready') ||
-        liveOwnsTarget)) {
-      if (existing && existing.targetChatId !== chatId) dispatch({ type: 'CLEAR_CHAT_TRANSITION' });
-      return null;
-    }
-    conversationViewportRef?.current?.captureCurrent();
-    const seq = Math.max(localLoadSeqRef.current + 1, current.chatLoadSeq + 1);
-    localLoadSeqRef.current = seq;
-    const startedAt = Date.now();
-    const transition: ChatTransition = {
-      seq, sourceChatId: currentChatId, targetChatId: chatId,
-      startedAt, deadlineAt: startedAt + CHAT_PREPARATION_TIMEOUT_MS,
-      phase: 'loading',
-      kind: options.forceReload && currentChatId === chatId
-        ? 'same-chat-reload' : currentChatId ? 'history-switch' : 'initial-load',
-      displayMode: currentChatId === chatId && (runtime.running || current.currentChatActiveRun?.runId)
-        ? 'background' : 'blocking',
-      focusComposerOnReady: Boolean(options.focusComposerOnComplete), error: '',
-    };
-    dispatch({ type: 'BEGIN_CHAT_TRANSITION', transition });
-    dispatch({ type: 'APPEND_DEBUG', line: `[chat transition] begin targetChatId=${chatId} actualChatId=${currentChatId} transitionSeq=${seq} deadlineAt=${transition.deadlineAt}` });
-    if (currentChatId !== chatId && !liveOwnsTarget) {
-      dispatchDetachActiveRun('chat_switch', chatId);
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[detach] skipped: missing runId or owner (chatId=${chatId || "-"})`,
+      });
+    },
+    [activeQuerySessionRequestIdRef, dispatch, querySessionsRef, stateRef],
+  );
+
+  const activateBlankConversation = useCallback(
+    (
+      options: {
+        preserveWorkerContext?: boolean;
+        focusComposerOnComplete?: boolean;
+      } = {},
+    ) => {
+      // Synchronous intent prevents an urgent state reset from letting the old
+      // Router render start another load before navigation commits.
+      blankIntentRouteRef.current = observedRouteChatIdRef.current || null;
+      invalidateChatLoads();
+      const preserveWorkerContext = Boolean(options.preserveWorkerContext);
+      const focusComposerOnComplete = Boolean(options.focusComposerOnComplete);
+
+      localLoadSeqRef.current = Math.max(
+        localLoadSeqRef.current + 1,
+        stateRef.current.chatLoadSeq + 1,
+      );
+      conversationViewportRef?.current?.captureCurrent();
+      dispatch({ type: "CLEAR_CHAT_TRANSITION" });
+      dispatchDetachActiveRun("new_conversation");
       detachActiveConversationSession();
-    }
-    return transition;
-  }, [activeQuerySessionRequestIdRef, conversationViewportRef, detachActiveConversationSession, dispatch, dispatchDetachActiveRun, querySessionsRef, stateRef]);
+      clearArtifactAutoCollapseTimer();
+      clearPlanAutoCollapseTimer();
+      window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
+      window.dispatchEvent(new CustomEvent("agent:clear-composer-attachments"));
+      window.dispatchEvent(new CustomEvent("agent:voice-reset"));
+      dispatch({ type: "SET_CHAT_ID", chatId: "" });
+      dispatch({ type: "SET_RUN_ID", runId: "" });
+      dispatch({ type: "SET_REQUEST_ID", requestId: "" });
+      dispatch({ type: "SET_STREAMING", streaming: false });
+      dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
+      dispatch({
+        type: preserveWorkerContext
+          ? "RESET_ACTIVE_CONVERSATION"
+          : "RESET_CONVERSATION",
+      });
+      if (focusComposerOnComplete) {
+        focusComposerSoon();
+      }
+    },
+    [
+      clearArtifactAutoCollapseTimer,
+      clearPlanAutoCollapseTimer,
+      conversationViewportRef,
+      detachActiveConversationSession,
+      dispatch,
+      dispatchDetachActiveRun,
+      focusComposerSoon,
+      invalidateChatLoads,
+      stateRef,
+    ],
+  );
+
+  const startNewConversation = useCallback(
+    (input: StartNewConversationDetail | null | undefined) => {
+      const detail = normalizeStartNewConversationDetail(input);
+      if (!detail) {
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: "[new conversation] ignored: missing explicit detail",
+        });
+        return;
+      }
+      if (detail.agentKey) {
+        const workerKey = `agent:${detail.agentKey}`;
+        dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+        dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey });
+      }
+      activateBlankConversation({
+        preserveWorkerContext: detail.preserveWorkerContext,
+        focusComposerOnComplete: detail.focusComposerOnComplete,
+      });
+      if (detail.composerDraft) {
+        dispatch({ type: "SET_COMPOSER_DRAFT", draft: detail.composerDraft });
+      }
+      if (detail.selectedSkills.length > 0) {
+        dispatch({
+          type: "SET_SELECTED_SKILLS",
+          skills: detail.selectedSkills,
+        });
+      }
+      if (detail.agentKey) {
+        dispatch({
+          type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
+          agentKey: detail.agentKey,
+        });
+      }
+    },
+    [activateBlankConversation, dispatch],
+  );
+
+  const prepareChat = useCallback(
+    (
+      chatId: string,
+      options: {
+        focusComposerOnComplete?: boolean;
+        forceReload?: boolean;
+        retryError?: boolean;
+        acceptReady?: boolean;
+        routeDriven?: boolean;
+      } = {},
+    ): ChatTransition | null => {
+      chatId = String(chatId || "").trim();
+      if (!chatId) return null;
+      if (options.routeDriven && blankIntentRouteRef.current === chatId)
+        return null;
+      const current = stateRef.current;
+      const existing = current.chatTransition;
+      if (existing?.targetChatId === chatId) {
+        if (isChatTransitionPending(existing)) return existing;
+        if (existing.phase === "error" && !options.retryError) return existing;
+      }
+      const currentChatId = String(current.chatId || "").trim();
+      const runtime = resolveMainChatRuntime(
+        stateRef,
+        activeQuerySessionRequestIdRef,
+        querySessionsRef,
+      );
+      const liveOwnsTarget = isMainChatRuntimeObservedByLiveQuery(
+        runtime,
+        chatId,
+      );
+      if (
+        !options.forceReload &&
+        currentChatId === chatId &&
+        existing?.phase !== "error" &&
+        ((options.acceptReady &&
+          existing?.targetChatId === chatId &&
+          existing.phase === "ready") ||
+          liveOwnsTarget)
+      ) {
+        if (existing && existing.targetChatId !== chatId)
+          dispatch({ type: "CLEAR_CHAT_TRANSITION" });
+        return null;
+      }
+      conversationViewportRef?.current?.captureCurrent();
+      const seq = Math.max(
+        localLoadSeqRef.current + 1,
+        current.chatLoadSeq + 1,
+      );
+      localLoadSeqRef.current = seq;
+      const startedAt = Date.now();
+      const transition: ChatTransition = {
+        seq,
+        sourceChatId: currentChatId,
+        targetChatId: chatId,
+        startedAt,
+        deadlineAt: startedAt + CHAT_PREPARATION_TIMEOUT_MS,
+        phase: "loading",
+        kind:
+          options.forceReload && currentChatId === chatId
+            ? "same-chat-reload"
+            : currentChatId
+              ? "history-switch"
+              : "initial-load",
+        displayMode:
+          currentChatId === chatId &&
+          (runtime.running || current.currentChatActiveRun?.runId)
+            ? "background"
+            : "blocking",
+        focusComposerOnReady: Boolean(options.focusComposerOnComplete),
+        error: "",
+      };
+      dispatch({ type: "BEGIN_CHAT_TRANSITION", transition });
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[chat transition] begin targetChatId=${chatId} actualChatId=${currentChatId} transitionSeq=${seq} deadlineAt=${transition.deadlineAt}`,
+      });
+      if (currentChatId !== chatId && !liveOwnsTarget) {
+        dispatchDetachActiveRun("chat_switch", chatId);
+        detachActiveConversationSession();
+      }
+      return transition;
+    },
+    [
+      activeQuerySessionRequestIdRef,
+      conversationViewportRef,
+      detachActiveConversationSession,
+      dispatch,
+      dispatchDetachActiveRun,
+      querySessionsRef,
+      stateRef,
+    ],
+  );
 
   useEffect(() => {
     const transition = state.chatTransition;
-    if (transition) dispatch({
-      type: 'APPEND_DEBUG',
-      line: `[chat transition] phase=${transition.phase} targetChatId=${transition.targetChatId} actualChatId=${stateRef.current.chatId} transitionSeq=${transition.seq} routeRevision=${readDesktopChatRouteRevision(transition.targetChatId) ?? 'standalone'} displayMode=${transition.displayMode}`,
-    });
-    if (!transition || !['loading', 'applying'].includes(transition.phase)) return;
-    const deadline = transition.deadlineAt || Date.now() + CHAT_PREPARATION_TIMEOUT_MS;
+    if (transition)
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[chat transition] phase=${transition.phase} targetChatId=${transition.targetChatId} actualChatId=${stateRef.current.chatId} transitionSeq=${transition.seq} routeRevision=${readDesktopChatRouteRevision(transition.targetChatId) ?? "standalone"} displayMode=${transition.displayMode}`,
+      });
+    if (!transition || !["loading", "applying"].includes(transition.phase))
+      return;
+    const deadline =
+      transition.deadlineAt || Date.now() + CHAT_PREPARATION_TIMEOUT_MS;
     const expire = () => {
       const current = stateRef.current.chatTransition;
-      if (!current || current.seq !== transition.seq || !['loading', 'applying'].includes(current.phase) || Date.now() < deadline) return;
-      dispatch({ type: 'FAIL_CHAT_TRANSITION', seq: current.seq, targetChatId: current.targetChatId, error: t('conversationStage.loadTimeout') });
-      dispatch({ type: 'APPEND_DEBUG', line: `[chat transition] timeout targetChatId=${current.targetChatId} actualChatId=${stateRef.current.chatId} transitionSeq=${current.seq} phase=${current.phase}` });
+      if (
+        !current ||
+        current.seq !== transition.seq ||
+        !["loading", "applying"].includes(current.phase) ||
+        Date.now() < deadline
+      )
+        return;
+      dispatch({
+        type: "FAIL_CHAT_TRANSITION",
+        seq: current.seq,
+        targetChatId: current.targetChatId,
+        error: t("conversationStage.loadTimeout"),
+      });
+      dispatch({
+        type: "APPEND_DEBUG",
+        line: `[chat transition] timeout targetChatId=${current.targetChatId} actualChatId=${stateRef.current.chatId} transitionSeq=${current.seq} phase=${current.phase}`,
+      });
     };
     const timer = setTimeout(expire, Math.max(0, deadline - Date.now()));
-    window.addEventListener('focus', expire);
-    document.addEventListener('visibilitychange', expire);
+    window.addEventListener("focus", expire);
+    document.addEventListener("visibilitychange", expire);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('focus', expire);
-      document.removeEventListener('visibilitychange', expire);
+      window.removeEventListener("focus", expire);
+      document.removeEventListener("visibilitychange", expire);
     };
   }, [dispatch, state.chatTransition, stateRef, t]);
 
   const loadChat = useCallback(
-    (chatId: string, options: {
-      focusComposerOnComplete?: boolean;
-      forceReload?: boolean;
-      throwOnError?: boolean;
-      routeDriven?: boolean;
-    } = {}): Promise<void> => {
-      chatId = String(chatId || '').trim();
+    (
+      chatId: string,
+      options: {
+        focusComposerOnComplete?: boolean;
+        forceReload?: boolean;
+        throwOnError?: boolean;
+        routeDriven?: boolean;
+      } = {},
+    ): Promise<void> => {
+      chatId = String(chatId || "").trim();
       if (!chatId) return Promise.resolve();
       const transition = prepareChat(chatId, { ...options, retryError: true });
       if (!transition) {
@@ -501,275 +647,335 @@ export function useConversationActions() {
         return Promise.resolve();
       }
       const { seq } = transition;
-      const mainRuntime = resolveMainChatRuntime(stateRef, activeQuerySessionRequestIdRef, querySessionsRef);
-      if (transition.kind !== 'same-chat-reload' && isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)) {
+      const mainRuntime = resolveMainChatRuntime(
+        stateRef,
+        activeQuerySessionRequestIdRef,
+        querySessionsRef,
+      );
+      if (
+        transition.kind !== "same-chat-reload" &&
+        isMainChatRuntimeObservedByLiveQuery(mainRuntime, chatId)
+      ) {
         // A live handoff may bypass replay, but never the transaction deadline.
         if (stateRef.current.chatId === chatId) {
-          dispatch({ type: 'CLEAR_CHAT_TRANSITION' });
+          dispatch({ type: "CLEAR_CHAT_TRANSITION" });
         }
-        dispatch({ type: 'APPEND_DEBUG', line: `[chat transition] live-handoff targetChatId=${chatId} actualChatId=${stateRef.current.chatId} transitionSeq=${seq}` });
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[chat transition] live-handoff targetChatId=${chatId} actualChatId=${stateRef.current.chatId} transitionSeq=${seq}`,
+        });
         return Promise.resolve();
       }
       const existingLoad = loadsRef.current.get(seq);
       if (existingLoad) return existingLoad;
-      if (transition.phase !== 'loading') return Promise.resolve();
-      const transitionStartsInBackground = transition.displayMode === 'background';
+      if (transition.phase !== "loading") return Promise.resolve();
+      applyLoadedChatState(chatId);
+      const transitionStartsInBackground =
+        transition.displayMode === "background";
       const scope = { cancelled: false };
       const loadEpoch = loadEpochRef.current;
       const isLoadCurrent = () => {
         if (scope.cancelled || loadEpoch !== loadEpochRef.current) return false;
         const latestState = stateRef.current;
-        if (transition.deadlineAt && Date.now() >= transition.deadlineAt) return false;
+        if (transition.deadlineAt && Date.now() >= transition.deadlineAt)
+          return false;
         if (latestState.chatLoadSeq >= seq) {
-          return isCurrentChatTransition(latestState, seq, chatId) &&
-            (latestState.chatTransition?.phase === 'loading' || latestState.chatTransition?.phase === 'applying');
+          return (
+            isCurrentChatTransition(latestState, seq, chatId) &&
+            (latestState.chatTransition?.phase === "loading" ||
+              latestState.chatTransition?.phase === "applying")
+          );
         }
         return localLoadSeqRef.current === seq;
       };
       const pending = (async () => {
-      let rejectCancellation!: (error: Error) => void;
-      const cancelled = new Promise<never>((_resolve, reject) => { rejectCancellation = reject; });
-      cancelLoadsRef.current.set(seq, () => {
-        scope.cancelled = true;
-        rejectCancellation(new Error('chat transition superseded'));
-      });
-      const deadlineTimer = setTimeout(() => rejectCancellation(new Error('chat preparation deadline exceeded')),
-        Math.max(0, (transition.deadlineAt || Date.now() + CHAT_PREPARATION_TIMEOUT_MS) - Date.now()));
-
-      const currentChat = stateRef.current.chats.find((chat) => String(chat?.chatId || '') === String(chatId));
-      const workerKey = createWorkerKeyFromChat((currentChat || {}) as Chat);
-      if (workerKey) {
-        dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey });
-        const worker = stateRef.current.workerIndexByKey.get(workerKey) as WorkerRow | undefined;
-        const workerChats = buildWorkerConversationRows({
-          chats: stateRef.current.chats,
-          worker: worker || null,
+        let rejectCancellation!: (error: Error) => void;
+        const cancelled = new Promise<never>((_resolve, reject) => {
+          rejectCancellation = reject;
         });
-        dispatch({ type: 'SET_WORKER_RELATED_CHATS', chats: workerChats });
-      }
-
-      try {
-        let response: Awaited<ReturnType<typeof getChat>> | null = null;
-        let lastLoadError: unknown = null;
-        for (let attempt = 0; attempt <= LOAD_CHAT_RETRY_DELAYS_MS.length; attempt += 1) {
-          if (!isLoadCurrent()) return;
-          try {
-            // Settle our waiter on timeout/switch without closing the shared transport.
-            response = await Promise.race([getChat(chatId, false), cancelled]);
-            lastLoadError = null;
-            break;
-          } catch (error) {
-            lastLoadError = error;
-            if (!isLoadCurrent() || attempt >= LOAD_CHAT_RETRY_DELAYS_MS.length) {
-              break;
-            }
-            await Promise.race([waitForLoadChatRetry(LOAD_CHAT_RETRY_DELAYS_MS[attempt]), cancelled]);
-          }
-        }
-        if (!response) {
-          throw lastLoadError instanceof Error ? lastLoadError : new Error(String(lastLoadError || 'failed to load chat'));
-        }
-        if (!isLoadCurrent()) return;
-
-        const chatData = response.data as Record<string, unknown>;
-		const loadedChatSummary = buildLoadedChatSummary(chatId, chatData);
-        const usageSnapshot = buildLoadedChatUsageSnapshot(chatId, chatData);
-        const replayProjection = buildChatReplayProjection(chatId, chatData);
-        const rs = replayProjection.state;
-        const events = replayProjection.events;
-        const awaitingReconciliation = replayProjection.awaitingReconciliation;
-        const activeRun = isObjectRecord(chatData.activeRun)
-          ? chatData.activeRun
-          : null;
-        const loadedOwner = resolveRunOwner({
-          chatId,
-          chats: stateRef.current.chats,
-          eventIdentity: {
-            teamId: activeRun?.teamId || chatData.teamId,
-            agentKey: activeRun?.agentKey || chatData.firstAgentKey || chatData.agentKey,
-          },
-        }) || toRunOwner(chatData);
-        const activeRunAgentKey = loadedOwner?.kind === 'agent' ? loadedOwner.agentKey : '';
-        let currentChatActiveRun = normalizeCurrentChatActiveRun(
-          chatId,
-          activeRun,
-          loadedOwner,
+        cancelLoadsRef.current.set(seq, () => {
+          scope.cancelled = true;
+          rejectCancellation(new Error("chat transition superseded"));
+        });
+        const deadlineTimer = setTimeout(
+          () =>
+            rejectCancellation(new Error("chat preparation deadline exceeded")),
+          Math.max(
+            0,
+            (transition.deadlineAt ||
+              Date.now() + CHAT_PREPARATION_TIMEOUT_MS) - Date.now(),
+          ),
         );
-        const activeRunId = String(currentChatActiveRun?.runId || '').trim();
-        const downvotedRunKeys = new Set<string>();
-        const runs = Array.isArray(chatData.runs) ? chatData.runs : [];
-        for (const rawRun of runs) {
-          if (!isObjectRecord(rawRun)) continue;
-          if (String(rawRun.feedbackType || '').trim() !== 'thumbs_down') continue;
-          const runId = String(rawRun.runId || '').trim();
-          if (runId) {
-            downvotedRunKeys.add(runId);
-          }
-        }
-        if (currentChatActiveRun) {
-          const restoredEditingMode = resolveRunEditingMode({
-            runId: String(currentChatActiveRun.runId || '').trim(),
-            activeRun: currentChatActiveRun,
-            events,
-          });
-          if (restoredEditingMode !== undefined) {
-            currentChatActiveRun = {
-              ...currentChatActiveRun,
-              editingMode: restoredEditingMode,
-            };
-          }
-        }
-        if (events.length !== replayProjection.rawEventCount) {
-          dispatch({
-            type: 'APPEND_DEBUG',
-            line: '[time_contract_violation] ignored malformed /api/chat replay event timestamp',
-          });
-        }
-        dispatch({
-          type: 'ADVANCE_CHAT_TRANSITION',
-          seq,
-          targetChatId: chatId,
-          phase: 'applying',
-        });
-        if (!isLoadCurrent()) return;
-        flushSync(() => {
-		  dispatch({ type: 'UPSERT_CHAT', chat: loadedChatSummary });
-          applyLoadedChatState(chatId);
 
-          for (const event of events) {
-            const confirmation = readSteerConfirmation(event);
-            if (confirmation) {
-              dispatch({ type: 'CONFIRM_PENDING_STEER', chatId, ...confirmation });
+        const currentChat = stateRef.current.chats.find(
+          (chat) => String(chat?.chatId || "") === String(chatId),
+        );
+        const workerKey = createWorkerKeyFromChat((currentChat || {}) as Chat);
+        if (workerKey) {
+          dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey });
+          const worker = stateRef.current.workerIndexByKey.get(workerKey) as
+            | WorkerRow
+            | undefined;
+          const workerChats = buildWorkerConversationRows({
+            chats: stateRef.current.chats,
+            worker: worker || null,
+          });
+          dispatch({ type: "SET_WORKER_RELATED_CHATS", chats: workerChats });
+        }
+
+        try {
+          let response: Awaited<ReturnType<typeof getChat>> | null = null;
+          let lastLoadError: unknown = null;
+          for (
+            let attempt = 0;
+            attempt <= LOAD_CHAT_RETRY_DELAYS_MS.length;
+            attempt += 1
+          ) {
+            if (!isLoadCurrent()) return;
+            try {
+              // Settle our waiter on timeout/switch without closing the shared transport.
+              response = await Promise.race([
+                getChat(chatId, false),
+                cancelled,
+              ]);
+              lastLoadError = null;
+              break;
+            } catch (error) {
+              lastLoadError = error;
+              if (
+                !isLoadCurrent() ||
+                attempt >= LOAD_CHAT_RETRY_DELAYS_MS.length
+              ) {
+                break;
+              }
+              await Promise.race([
+                waitForLoadChatRetry(LOAD_CHAT_RETRY_DELAYS_MS[attempt]),
+                cancelled,
+              ]);
             }
           }
-
-          /* Dispatch the complete replay result as a single batch update */
-          dispatch({
-            type: 'BATCH_UPDATE',
-            updates: {
-              chatId: rs.chatId,
-              currentChatActiveRun,
-              runId: activeRunId || rs.runId,
-              timelineNodes: rs.timelineNodes,
-              timelineOrder: rs.timelineOrder,
-              contentNodeById: rs.contentNodeById,
-              reasoningNodeById: rs.reasoningNodeById,
-              toolNodeById: rs.toolNodeById,
-              toolStates: rs.toolStates,
-              timelineCounter: rs.timelineCounter,
-              activeReasoningKey: rs.activeReasoningKey,
-              activeAwaiting: rs.activeAwaiting,
-              pendingAwaitings: rs.pendingAwaitings,
-              events: rs.events,
-              debugEvents: rs.debugEvents,
-              artifacts: rs.artifacts,
-              fileChanges: rs.fileChanges,
-              plan: rs.plan,
-              planRuntimeByTaskId: rs.planRuntimeByTaskId,
-              taskItemsById: rs.taskItemsById,
-              activeTaskIds: rs.activeTaskIds,
-              planCurrentRunningTaskId: rs.planCurrentRunningTaskId,
-              planLastTouchedTaskId: rs.planLastTouchedTaskId,
-              downvotedRunKeys,
-            },
-          });
-          dispatch({
-            type: 'SET_CHAT_TRANSITION_DISPLAY_MODE',
-            seq,
-            targetChatId: chatId,
-            displayMode:
-              transitionStartsInBackground
-                ? 'background'
-                : 'blocking',
-          });
-        });
-        if (currentChatActiveRun && transitionStartsInBackground) {
-          dispatch({
-            type: 'APPEND_DEBUG',
-            line: `[chat transition] active-run background chatId=${chatId} runId=${activeRunId} transitionSeq=${seq} phase=applying displayMode=background`,
-          });
-        }
-        if (awaitingReconciliation.diagnostic) {
-          dispatch({
-            type: 'APPEND_DEBUG',
-            line: awaitingReconciliation.diagnostic,
-          });
-        }
-        if (usageSnapshot) {
-          dispatch({ type: 'SET_USAGE_SNAPSHOT', snapshot: usageSnapshot });
-        }
-
-        /* Set agent for this chat */
-        const agentKey = loadedOwner?.kind === 'agent'
-          ? loadedOwner.agentKey
-          : '';
-        if (agentKey) {
-          dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId, agentKey });
-        }
-        // Also set any agents discovered during replay
-        if (loadedOwner?.kind !== 'orchestrated-team') {
-          rs.chatAgentById.forEach((agentKey, cid) => {
-            dispatch({ type: 'SET_CHAT_AGENT_BY_ID', chatId: cid, agentKey });
-          });
-        }
-        if (activeRunId) {
-          if (activeRunAgentKey) {
-            dispatch({
-              type: 'SET_RUN_AGENT_BY_ID',
-              runId: activeRunId,
-              agentKey: activeRunAgentKey,
-            });
-            dispatch({
-              type: 'SET_CURRENT_RUN_AGENT_KEY',
-              agentKey: activeRunAgentKey,
-            });
+          if (!response) {
+            throw lastLoadError instanceof Error
+              ? lastLoadError
+              : new Error(String(lastLoadError || "failed to load chat"));
           }
-          // Follow active runs through their event stream. Missing content is
-          // normal during reasoning, tools or HITL and must not trigger polling.
-          dispatchAttachRunEvent(
+          if (!isLoadCurrent()) return;
+
+          const chatData = response.data as Record<string, unknown>;
+          const loadedChatSummary = buildLoadedChatSummary(chatId, chatData);
+          const usageSnapshot = buildLoadedChatUsageSnapshot(chatId, chatData);
+          const replayProjection = buildChatReplayProjection(chatId, chatData);
+          const rs = replayProjection.state;
+          const events = replayProjection.events;
+          const awaitingReconciliation =
+            replayProjection.awaitingReconciliation;
+          const activeRun = isObjectRecord(chatData.activeRun)
+            ? chatData.activeRun
+            : null;
+          const loadedOwner =
+            resolveRunOwner({
+              chatId,
+              chats: stateRef.current.chats,
+              eventIdentity: {
+                teamId: activeRun?.teamId || chatData.teamId,
+                agentKey:
+                  activeRun?.agentKey ||
+                  chatData.firstAgentKey ||
+                  chatData.agentKey,
+              },
+            }) || toRunOwner(chatData);
+          const activeRunAgentKey =
+            loadedOwner?.kind === "agent" ? loadedOwner.agentKey : "";
+          let currentChatActiveRun = normalizeCurrentChatActiveRun(
             chatId,
-            activeRunId,
-            normalizeAttachLastSeq(activeRun?.lastSeq),
+            activeRun,
             loadedOwner,
           );
-        }
+          const activeRunId = String(currentChatActiveRun?.runId || "").trim();
+          const downvotedRunKeys = new Set<string>();
+          const runs = Array.isArray(chatData.runs) ? chatData.runs : [];
+          for (const rawRun of runs) {
+            if (!isObjectRecord(rawRun)) continue;
+            if (String(rawRun.feedbackType || "").trim() !== "thumbs_down")
+              continue;
+            const runId = String(rawRun.runId || "").trim();
+            if (runId) {
+              downvotedRunKeys.add(runId);
+            }
+          }
+          if (currentChatActiveRun) {
+            const restoredEditingMode = resolveRunEditingMode({
+              runId: String(currentChatActiveRun.runId || "").trim(),
+              activeRun: currentChatActiveRun,
+              events,
+            });
+            if (restoredEditingMode !== undefined) {
+              currentChatActiveRun = {
+                ...currentChatActiveRun,
+                editingMode: restoredEditingMode,
+              };
+            }
+          }
+          if (events.length !== replayProjection.rawEventCount) {
+            dispatch({
+              type: "APPEND_DEBUG",
+              line: "[time_contract_violation] ignored malformed /api/chat replay event timestamp",
+            });
+          }
+          dispatch({
+            type: "ADVANCE_CHAT_TRANSITION",
+            seq,
+            targetChatId: chatId,
+            phase: "applying",
+          });
+          if (!isLoadCurrent()) return;
+          flushSync(() => {
+            dispatch({ type: "UPSERT_CHAT", chat: loadedChatSummary });
+            for (const event of events) {
+              const confirmation = readSteerConfirmation(event);
+              if (confirmation) {
+                dispatch({
+                  type: "CONFIRM_PENDING_STEER",
+                  chatId,
+                  ...confirmation,
+                });
+              }
+            }
 
-        /* Restore planning mode from active run if no explicit user preference,
+            /* Dispatch the complete replay result as a single batch update */
+            dispatch({
+              type: "BATCH_UPDATE",
+              updates: {
+                chatId: rs.chatId,
+                currentChatActiveRun,
+                runId: activeRunId || rs.runId,
+                timelineNodes: rs.timelineNodes,
+                timelineOrder: rs.timelineOrder,
+                contentNodeById: rs.contentNodeById,
+                reasoningNodeById: rs.reasoningNodeById,
+                toolNodeById: rs.toolNodeById,
+                toolStates: rs.toolStates,
+                timelineCounter: rs.timelineCounter,
+                activeReasoningKey: rs.activeReasoningKey,
+                activeAwaiting: rs.activeAwaiting,
+                pendingAwaitings: rs.pendingAwaitings,
+                events: rs.events,
+                debugEvents: rs.debugEvents,
+                artifacts: rs.artifacts,
+                fileChanges: rs.fileChanges,
+                plan: rs.plan,
+                planRuntimeByTaskId: rs.planRuntimeByTaskId,
+                taskItemsById: rs.taskItemsById,
+                activeTaskIds: rs.activeTaskIds,
+                planCurrentRunningTaskId: rs.planCurrentRunningTaskId,
+                planLastTouchedTaskId: rs.planLastTouchedTaskId,
+                downvotedRunKeys,
+              },
+            });
+            dispatch({
+              type: "SET_CHAT_TRANSITION_DISPLAY_MODE",
+              seq,
+              targetChatId: chatId,
+              displayMode: transitionStartsInBackground
+                ? "background"
+                : "blocking",
+            });
+          });
+          if (currentChatActiveRun && transitionStartsInBackground) {
+            dispatch({
+              type: "APPEND_DEBUG",
+              line: `[chat transition] active-run background chatId=${chatId} runId=${activeRunId} transitionSeq=${seq} phase=applying displayMode=background`,
+            });
+          }
+          if (awaitingReconciliation.diagnostic) {
+            dispatch({
+              type: "APPEND_DEBUG",
+              line: awaitingReconciliation.diagnostic,
+            });
+          }
+          if (usageSnapshot) {
+            dispatch({ type: "SET_USAGE_SNAPSHOT", snapshot: usageSnapshot });
+          }
+
+          /* Set agent for this chat */
+          const agentKey =
+            loadedOwner?.kind === "agent" ? loadedOwner.agentKey : "";
+          if (agentKey) {
+            dispatch({ type: "SET_CHAT_AGENT_BY_ID", chatId, agentKey });
+          }
+          // Also set any agents discovered during replay
+          if (loadedOwner?.kind !== "orchestrated-team") {
+            rs.chatAgentById.forEach((agentKey, cid) => {
+              dispatch({ type: "SET_CHAT_AGENT_BY_ID", chatId: cid, agentKey });
+            });
+          }
+          if (activeRunId) {
+            if (activeRunAgentKey) {
+              dispatch({
+                type: "SET_RUN_AGENT_BY_ID",
+                runId: activeRunId,
+                agentKey: activeRunAgentKey,
+              });
+              dispatch({
+                type: "SET_CURRENT_RUN_AGENT_KEY",
+                agentKey: activeRunAgentKey,
+              });
+            }
+            // Follow active runs through their event stream. Missing content is
+            // normal during reasoning, tools or HITL and must not trigger polling.
+            dispatchAttachRunEvent(
+              chatId,
+              activeRunId,
+              normalizeAttachLastSeq(activeRun?.lastSeq),
+              loadedOwner,
+            );
+          }
+
+          /* Restore planning mode from active run if no explicit user preference,
            unless replay encountered awaiting.ask (agent is waiting for user input) */
-        if (rs.activeAwaiting && rs.activeAwaiting.mode !== 'plan') {
+          if (rs.activeAwaiting && rs.activeAwaiting.mode !== "plan") {
+            dispatch({
+              type: "SET_PLANNING_MODE",
+              chatId,
+              enabled: false,
+              persist: true,
+            });
+          } else if (
+            activeRun &&
+            activeRun.planningMode &&
+            stateRef.current.planningModeByChatId[chatId] === undefined
+          ) {
+            dispatch({
+              type: "SET_PLANNING_MODE",
+              chatId,
+              enabled: true,
+              persist: false,
+            });
+          }
+        } catch (error) {
+          if (!isLoadCurrent()) return;
           dispatch({
-            type: 'SET_PLANNING_MODE',
-            chatId,
-            enabled: false,
-            persist: true,
+            type: "APPEND_DEBUG",
+            line: `[loadChat error] ${(error as Error).message}`,
           });
-        } else if (activeRun && activeRun.planningMode && stateRef.current.planningModeByChatId[chatId] === undefined) {
           dispatch({
-            type: 'SET_PLANNING_MODE',
-            chatId,
-            enabled: true,
-            persist: false,
+            type: "FAIL_CHAT_TRANSITION",
+            seq,
+            targetChatId: chatId,
+            error: (error as Error).message || String(error),
           });
+          if (options.throwOnError) {
+            throw error;
+          }
+        } finally {
+          clearTimeout(deadlineTimer);
+          cancelLoadsRef.current.delete(seq);
         }
-      } catch (error) {
-        if (!isLoadCurrent()) return;
-        dispatch({ type: 'APPEND_DEBUG', line: `[loadChat error] ${(error as Error).message}` });
-        dispatch({
-          type: 'FAIL_CHAT_TRANSITION',
-          seq,
-          targetChatId: chatId,
-          error: (error as Error).message || String(error),
-        });
-        if (options.throwOnError) {
-          throw error;
-        }
-      } finally {
-        clearTimeout(deadlineTimer);
-        cancelLoadsRef.current.delete(seq);
-      }
       })();
       loadsRef.current.set(seq, pending);
-      void pending.finally(() => loadsRef.current.delete(seq)).catch(() => undefined);
+      void pending
+        .finally(() => loadsRef.current.delete(seq))
+        .catch(() => undefined);
       return pending;
     },
     [
@@ -783,17 +989,21 @@ export function useConversationActions() {
       applyLoadedChatState,
       querySessionsRef,
       stateRef,
-    ]
+    ],
   );
 
   useEffect(() => {
     const handler = (event: Event) => {
       startNewConversation(
-        (event as CustomEvent).detail as StartNewConversationDetail | null | undefined,
+        (event as CustomEvent).detail as
+          | StartNewConversationDetail
+          | null
+          | undefined,
       );
     };
-    window.addEventListener('agent:start-new-conversation', handler);
-    return () => window.removeEventListener('agent:start-new-conversation', handler);
+    window.addEventListener("agent:start-new-conversation", handler);
+    return () =>
+      window.removeEventListener("agent:start-new-conversation", handler);
   }, [startNewConversation]);
 
   return {

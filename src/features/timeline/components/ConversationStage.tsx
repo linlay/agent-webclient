@@ -125,7 +125,7 @@ const VIRTUOSO_CLASS_NAME = [
   SCROLLBAR_THIN_CLASS_NAME,
 ].join(" ");
 const CONVERSATION_TRANSITION_OVERLAY_CLASS_NAME =
-  "conversation-transition-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:overflow-hidden tw:bg-bg-base tw:px-6";
+  "conversation-transition-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:overflow-hidden tw:px-6";
 const CONVERSATION_SCROLL_RESTORE_TIMEOUT_MS = 2_000;
 const CONVERSATION_TRANSITION_SKELETON_CLASS_NAME =
   "conversation-transition-skeleton";
