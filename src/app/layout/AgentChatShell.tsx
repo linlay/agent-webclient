@@ -1,4 +1,5 @@
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
+import { TimelineTextSearchProvider } from "@/features/timeline/components/TimelineTextSearchProvider";
 import React, {
   useCallback,
   useEffect,
@@ -314,7 +315,9 @@ const AgentRouteErrorPage: React.FC<{
 export const AgentChatShell: React.FC = () => {
   const [params] = useSearchParams();
   return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
-    <AgentChatShellContent />
+    <TimelineTextSearchProvider>
+      <AgentChatShellContent />
+    </TimelineTextSearchProvider>
   </ConversationSurfaceProvider>;
 };
 

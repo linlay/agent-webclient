@@ -28,14 +28,21 @@ import {
   formatTimelineTime,
 } from "@/features/timeline/components/TimelineRow";
 import { TimelineRenderEntryView } from "@/features/timeline/components/TimelineRenderEntryView";
-import { TimelineTextSearchBar } from "@/features/timeline/components/TimelineTextSearchBar";
-import { useTimelineTextSearch } from "@/features/timeline/hooks/useTimelineTextSearch";
+import { useTimelineTextSearch } from "@/features/timeline/components/TimelineTextSearchProvider";
 import {
   buildTimelineDisplayItems,
   buildRunRenderEntries,
   type TimelineDisplayItem,
   type TimelineRenderEntry,
 } from "@/features/timeline/lib/timelineDisplay";
+import {
+  buildNodeCollapseTargets,
+  buildNodeVirtualIndexMap,
+} from "@/features/timeline/lib/timelineTextSearch";
+import {
+  clearHighlights,
+  waitForCurrentThenHighlightAll,
+} from "@/features/timeline/lib/timelineTextSearchDom";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import { RunTerminalNotice } from "@/features/timeline/components/RunTerminalNotice";
 import { copyText } from "@/shared/utils/copy";
@@ -597,16 +604,58 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     );
   }, []);
 
-  const textSearch = useTimelineTextSearch({
-    nodes: timelineEntries,
-    displayItems,
-    virtuosoRef,
+  const textSearch = useTimelineTextSearch();
+  const refreshHighlights =
+    textSearch?.refreshHighlights ?? (() => undefined);
+
+  const nodeVirtualIndexMap = useMemo(
+    () => buildNodeVirtualIndexMap(displayItems),
+    [displayItems],
+  );
+  const collapseTargets = useMemo(
+    () => buildNodeCollapseTargets(displayItems),
+    [displayItems],
+  );
+
+  useEffect(() => {
+    if (!textSearch || !textSearch.open) return;
+    clearHighlights();
+    if (textSearch.activeIndex < 0) return;
+    const match = textSearch.matches.matches[textSearch.activeIndex];
+    if (!match) return;
+
+    const runKey = collapseTargets.runKeyByNodeId.get(match.nodeId);
+    if (runKey && !expandedRunCollapses[runKey]) expandRunCollapse(runKey);
+    const taskGroupKey = collapseTargets.taskGroupKeyByNodeId.get(match.nodeId);
+    if (taskGroupKey && !expandedTaskGroups[taskGroupKey]) {
+      expandTaskGroup(taskGroupKey);
+    }
+
+    const virtualIndex = nodeVirtualIndexMap.get(match.nodeId);
+    if (virtualIndex != null) {
+      virtuosoRef.current?.scrollToIndex({
+        index: virtualIndex,
+        behavior: "smooth",
+        align: "center",
+      });
+    }
+    waitForCurrentThenHighlightAll(
+      match.nodeId,
+      textSearch.query,
+      textSearch.searchableNodeIds,
+      match.nodeId,
+      match.ordinalInNode,
+    );
+  }, [
+    collapseTargets,
     expandedRunCollapses,
     expandedTaskGroups,
-    onExpandRun: expandRunCollapse,
-    onExpandTaskGroup: expandTaskGroup,
-  });
-  const { refreshHighlights } = textSearch;
+    expandRunCollapse,
+    expandTaskGroup,
+    nodeVirtualIndexMap,
+    textSearch,
+    virtuosoRef,
+  ]);
 
   const runStartedAt = useMemo(() => {
     if (!isMainChatRunning && !state.streaming) return null;
@@ -1827,17 +1876,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
           />
         )}
       </div>
-      {textSearch.open && (
-        <TimelineTextSearchBar
-          query={textSearch.query}
-          onQueryChange={textSearch.setQuery}
-          total={textSearch.total}
-          activeIndex={textSearch.activeIndex}
-          onPrev={textSearch.goPrev}
-          onNext={textSearch.goNext}
-          onClose={textSearch.closeSearch}
-        />
-      )}
       {presentation.blocked ? (
         <ConversationTransitionOverlay
           busy={presentation.busy}

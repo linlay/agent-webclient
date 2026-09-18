@@ -1710,7 +1710,7 @@ export const enUSMessages = {
   "timeline.textSearch.previous": "Previous",
   "timeline.textSearch.next": "Next",
   "timeline.textSearch.close": "Close",
-  "timeline.textSearch.noResults": "No results",
+  "timeline.textSearch.open": "Search conversation",
   "timeline.systemAlert.copy.action": "Copy",
   "timeline.systemAlert.copy.copied": "Copied",
   "timeline.systemAlert.copy.failed": "Copy failed",

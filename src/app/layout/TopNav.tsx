@@ -22,6 +22,7 @@ import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformErro
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { TimelineTextSearchControl } from "@/features/timeline/components/TimelineTextSearchControl";
 import { Divider } from "antd";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
 import { useMemoryOverlayState } from "@/features/memory/components/MemoryOverlayProvider";
@@ -74,13 +75,13 @@ export function resolveStatusPillClassName(
   ].join(" ");
 }
 
-const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5";
+const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-[52px]";
 const TOP_NAV_INNER_CLASS =
   "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center";
-const NAV_GROUP_CLASS = "nav-group tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
+const NAV_GROUP_CLASS = "nav-group tw:relative tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
 const NAV_LEFT_CLASS = "nav-group nav-left tw:flex-[0_1_180px]";
 const NAV_CENTER_CLASS =
-  "nav-group nav-center tw:flex-[1_0_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center";
+  "nav-group nav-center tw:flex-[1_0_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:pr-[22px]";
 const CURRENT_WORKER_CARD_CLASS =
   "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-[7px]";
 const CURRENT_WORKER_NAME_CLASS =
@@ -88,9 +89,7 @@ const CURRENT_WORKER_NAME_CLASS =
 const KBASE_EDITING_BADGE_CLASS =
   "kbase-editing-badge tw:inline-flex tw:flex-none tw:items-center tw:whitespace-nowrap tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-warn)_14%,transparent)] tw:px-2 tw:py-1 tw:text-[10px] tw:font-semibold tw:text-accent-warn";
 const TOP_NAV_ICON_BUTTON_CLASS =
-  "top-nav-icon-btn ui-icon-hover-24 tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:h-4 tw:[&_.material-icon]:w-4 tw:[&_.material-icon]:text-base";
-const TOP_NAV_DEBUG_BUTTON_CLASS =
-  "top-nav-icon-btn ui-icon-hover-24 tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:h-4 tw:[&_.material-icon]:w-4 tw:[&_.material-icon]:text-base";
+  "top-nav-icon-btn tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:!max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px]";
 const CURRENT_WORKER_TOOL_BASE_CLASS =
   "current-worker-tool tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:text-lg";
 const VOICE_TOOL_CLASS_BY_MODE = {
@@ -316,7 +315,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   };
   const debugButton = debugPanelEnabled ? (
     <UiButton
-      className={TOP_NAV_DEBUG_BUTTON_CLASS}
+      className={TOP_NAV_ICON_BUTTON_CLASS}
       size="sm"
       variant="ghost"
       iconOnly
@@ -343,6 +342,11 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   const statusTitle = statusDetail
     ? `${statusLabel}: ${statusDetail}`
     : statusLabel;
+  const searchControl = (
+    <div style={{position: 'absolute', left: 0, transform: 'translateX(-100%)'}}>
+      <TimelineTextSearchControl buttonClassName={TOP_NAV_ICON_BUTTON_CLASS} />
+    </div>
+  );
   return (
     <nav className={TOP_NAV_CLASS}>
       <div className={TOP_NAV_INNER_CLASS}>
@@ -376,9 +380,13 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
         </div>
 
         {hideDesktopAgentActions ? (
-          <div className={NAV_GROUP_CLASS}>{debugButton}</div>
+          <div className={NAV_GROUP_CLASS}>
+            {searchControl}
+            {debugButton}
+          </div>
         ) : (
           <div className={NAV_GROUP_CLASS}>
+            {searchControl}
             {showProjectButton ? (
               <UiButton
                 className={TOP_NAV_ICON_BUTTON_CLASS}
@@ -472,7 +480,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
                 className={[
                   TOP_NAV_ICON_BUTTON_CLASS,
                   "current-worker-tool-terminal tw:relative",
-                  "ui-icon-hover-24",
                   isCurrentWorkerTerminalActive ? "has-terminal" : "",
                   isCurrentWorkerTerminalBusy ? "has-running-terminal" : "",
                 ]

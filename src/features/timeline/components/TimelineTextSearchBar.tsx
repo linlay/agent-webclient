@@ -32,7 +32,7 @@ export const TimelineTextSearchBar: React.FC<TimelineTextSearchBarProps> = ({
       <Input
         className={styles.input}
         size="small"
-        allowClear
+        variant="borderless"
         autoFocus
         value={query}
         placeholder={t("timeline.textSearch.placeholder")}
@@ -51,14 +51,13 @@ export const TimelineTextSearchBar: React.FC<TimelineTextSearchBarProps> = ({
         }}
       />
       <span className={styles.count}>
-        {hasMatches
-          ? `${activeIndex + 1} / ${total}`
-          : t("timeline.textSearch.noResults")}
+        {hasMatches && `${activeIndex + 1} / ${total}`}
       </span>
       <UiButton
         variant="ghost"
         size="sm"
         iconOnly
+        className="ui-icon-hover-20"
         disabled={!hasMatches}
         title={t("timeline.textSearch.previous")}
         aria-label={t("timeline.textSearch.previous")}
@@ -70,6 +69,7 @@ export const TimelineTextSearchBar: React.FC<TimelineTextSearchBarProps> = ({
         variant="ghost"
         size="sm"
         iconOnly
+        className="ui-icon-hover-20"
         disabled={!hasMatches}
         title={t("timeline.textSearch.next")}
         aria-label={t("timeline.textSearch.next")}
@@ -81,6 +81,7 @@ export const TimelineTextSearchBar: React.FC<TimelineTextSearchBarProps> = ({
         variant="ghost"
         size="sm"
         iconOnly
+        className="ui-icon-hover-20"
         title={t("timeline.textSearch.close")}
         aria-label={t("timeline.textSearch.close")}
         onClick={onClose}

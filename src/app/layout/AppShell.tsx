@@ -1,4 +1,5 @@
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
+import { TimelineTextSearchProvider } from "@/features/timeline/components/TimelineTextSearchProvider";
 import React, { useMemo } from "react";
 import { useAppState } from "@/app/state/AppContext";
 import { TopNav } from "@/app/layout/TopNav";
@@ -34,7 +35,11 @@ const APP_SHELL_COLUMN_CLASS_BY_STATE = {
 } as const;
 
 export const AppShell: React.FC = () => (
-  <ConversationSurfaceProvider><AppShellContent /></ConversationSurfaceProvider>
+  <ConversationSurfaceProvider>
+    <TimelineTextSearchProvider>
+      <AppShellContent />
+    </TimelineTextSearchProvider>
+  </ConversationSurfaceProvider>
 );
 
 const AppShellContent: React.FC = () => {

@@ -1,6 +1,7 @@
 import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { ConversationRegionSkeleton } from "@/features/conversation/components/ConversationRegionSkeleton";
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
+import { TimelineTextSearchProvider } from "@/features/timeline/components/TimelineTextSearchProvider";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   useLocation,
@@ -41,6 +42,7 @@ import { isSettingsMenuEnabled } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { TimelineTextSearchControl } from "@/features/timeline/components/TimelineTextSearchControl";
 import { getAgent } from "@/shared/data";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 import {
@@ -183,6 +185,7 @@ const CopilotTopBar: React.FC = () => {
           <UsageContextControl presentation="drawer" />
         </div>}
         <div className={COPILOT_TOPBAR_ACTIONS_CLASS}>
+          <TimelineTextSearchControl buttonClassName={COPILOT_ACTION_BTN_CLASS} />
           <UiButton
             className={`${COPILOT_ACTION_BTN_CLASS} ui-icon-hover-20`}
             variant="ghost"
@@ -227,7 +230,9 @@ const CopilotTopBar: React.FC = () => {
 export const CopilotShell: React.FC = () => {
   const [params] = useSearchParams();
   return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
-    <CopilotShellContent />
+    <TimelineTextSearchProvider>
+      <CopilotShellContent />
+    </TimelineTextSearchProvider>
   </ConversationSurfaceProvider>;
 };
 
