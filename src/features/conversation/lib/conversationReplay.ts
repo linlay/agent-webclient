@@ -10,7 +10,7 @@ import {
   cloneActiveAwaitingQueue,
   reduceAwaitingRuntime,
 } from '@/features/tools/lib/awaitingRuntime';
-import { bindRunAgentKey, readRunAgentKeyFromEvent } from '@/features/runs/lib/runAgentIdentity';
+import { readRunAgentKeyFromEvent } from '@/features/runs/lib/runAgentIdentity';
 import { parseContentSegments } from '@/features/events/lib/contentSegments';
 import type { EventCommand, EventProcessorState } from '@/features/events/lib/eventProcessorTypes';
 import { processStreamEvent } from '@/features/events/lib/eventProcessor';
@@ -413,7 +413,7 @@ export function applyReadOnlyStreamEvent(rs: ReplayState, event: AgentEvent): vo
 function projectReadOnlyEvent(rs: ReplayState, event: AgentEvent, mode: 'live' | 'replay'): void {
   const binding = readRunAgentKeyFromEvent(event);
   if (binding) {
-    rs.runAgentById = bindRunAgentKey(rs.runAgentById, binding.runId, binding.agentKey);
+    rs.runAgentById.set(binding.runId, binding.agentKey);
     if (!rs.runId || rs.runId === binding.runId) {
       rs.currentRunAgentKey = binding.agentKey;
     }

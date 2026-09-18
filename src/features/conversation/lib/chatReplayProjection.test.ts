@@ -176,3 +176,23 @@ it("discards temporary tool output at the cold replay boundary", () => {
   expect(result.events).toEqual([]);
   expect(result.state.timelineNodes.size).toBe(0);
 });
+
+it("projects a large multi-run chat within the history loading budget", () => {
+  const events = Array.from({ length: 20_000 }, (_, index) => ({
+    type: "content.snapshot",
+    timestamp: EPOCH + index,
+    chatId: "chat-large",
+    runId: `run-${index}`,
+    agentKey: `agent-${index}`,
+    contentId: `content-${index}`,
+    text: "x".repeat(128),
+  }));
+
+  const startedAt = performance.now();
+  const result = buildChatReplayProjection("chat-large", { events });
+  const elapsedMs = performance.now() - startedAt;
+
+  expect(result.state.runAgentById.size).toBe(events.length);
+  expect(result.state.timelineOrder).toHaveLength(events.length);
+  expect(elapsedMs).toBeLessThan(4_000);
+}, 30_000);
