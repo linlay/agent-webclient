@@ -831,7 +831,7 @@ describe('useComposerSend active run gate', () => {
         sendAttachmentMeta: [],
         sendReferences: [
           { id: 'image-1', type: 'image' },
-          { id: 'selection-1', type: 'selection', meta: { text: 'selected text' } },
+          { id: 'selection-1', type: 'selection', text: 'selected text' },
         ],
         setInputValue,
         setSlashDismissed,
@@ -859,7 +859,7 @@ describe('useComposerSend active run gate', () => {
         status: 'queued',
         references: [
           { id: 'image-1', type: 'image' },
-          { id: 'selection-1', type: 'selection', meta: { text: 'selected text' } },
+          { id: 'selection-1', type: 'selection', text: 'selected text' },
         ],
       }),
     });

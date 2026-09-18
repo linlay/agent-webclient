@@ -1,3 +1,4 @@
+import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
 import { hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import React, {
   useCallback,
@@ -344,6 +345,18 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       attachment.references.some((reference) => reference && typeof reference === "object" &&
         (reference as { id?: unknown }).id === referenceId));
     if (restored) handleRemoveAttachment(restored.id);
+  };
+  const updateSelectedAnnotation = (referenceId: string, annotation: string) => {
+    selectedText.updateAnnotation(referenceId, annotation);
+    const references = state.restoredSteerReferencesByChatId?.[state.chatId];
+    if (references) dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId,
+      references: references.map(reference => {
+        if (!reference || typeof reference !== "object" || Array.isArray(reference)) return reference;
+        const item = reference as Record<string, unknown>;
+        return item.type === "selection" && item.id === referenceId
+          ? { ...item, annotation: annotation.trim() ? annotation : undefined } : reference;
+      }),
+    });
   };
   const combinedSendReferences = useMemo(
     () => [...sendReferences, ...selectedText.references],
@@ -783,6 +796,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const withSelectionSurfaces = (content: React.ReactNode) => (
     <>
+      <SelectionAnnotations fragments={selectedFragments} onAnnotationChange={updateSelectedAnnotation} />
       <BrowserSelectionToolbar
         enabled={!isDesktopAppMode() && !chatTransitionBlocking}
         scopeElement={selectionScope}
@@ -946,6 +960,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   fragments={selectedFragments}
                   variant="annotations"
                   onRemove={removeSelectedFragment}
+                  onAnnotationChange={updateSelectedAnnotation}
                 />
                 <Flex wrap gap={4}>
                   {displayedForcedSkills.map((skill) => (

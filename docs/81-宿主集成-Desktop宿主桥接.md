@@ -66,7 +66,7 @@ WorkPanel 评审批注复用同一 service action channel，但使用独立版�
 
 Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraft`。草稿为空时填入，非空时追加分隔符；可选 PNG 先转为本地 `staged` 附件，不在动作处理时上传，也不自动发送。WebClient 通过共享 preview-review page event 返回一次 ack，Desktop 只有收到成功 ack 才清理运行期 ReviewSession。vendored contract hash、Desktop mirror 与 Program Bundle 必须原子发布，缺少新能力时保持只读。
 
-划词动作使用 bridge v6 的 `selectionToolbar.execute`。Desktop 只提供 request/selection/target ID、动作枚举与首尾坐标；WebClient 按坐标、DOM Selection 和语义 target 三重核对后创建最多 50,000 字符的 `type=selection` reference，正文只存在于 `meta.text` 并沿用 Platform 不可信引用边界。动作结果只允许稳定错误码或 `chatId/runId` handoff，禁止把正文、Prompt、凭据或 URL 回传 Desktop。Standalone 使用本地工具条提供添加引用与侧边提问，不注册 Desktop host action，也不提供详细解释。Desktop 详细解释首发、订阅、续问与控制携带显式解释 purpose，由 Frame Port adapter 转为宿主专用元数据；宿主校验、剥离后统一路由到独立解释 lane，不能与普通 WorkPanel BTW 混用。该能力在 macOS 和 Windows 上一致。
+划词动作使用 bridge v6 的 `selectionToolbar.execute`。Desktop 只提供 request/selection/target ID、动作枚举与首尾坐标；WebClient 按坐标、DOM Selection 和语义 target 三重核对后创建最多 50,000 字符的 `type=selection` reference，正文使用顶层 `text`，可选用户批注使用顶层 `annotation`；正文保持引用材料语义，批注属于用户指令。动作结果只允许稳定错误码或 `chatId/runId` handoff，禁止把正文、Prompt、凭据或 URL 回传 Desktop。Standalone 使用本地工具条提供添加引用与侧边提问，不注册 Desktop host action，也不提供详细解释。Desktop 详细解释首发、订阅、续问与控制携带显式解释 purpose，由 Frame Port adapter 转为宿主专用元数据；宿主校验、剥离后统一路由到独立解释 lane，不能与普通 WorkPanel BTW 混用。该能力在 macOS 和 Windows 上一致。
 
 ## 相关文件
 - `../src/shared/data/desktop/desktopHostBridge.ts`
@@ -111,3 +111,7 @@ WebClient 提供 `/chat-preview/:chatId`（只读实时）及 `/chat-preview/:ch
 具体 Desktop 路由枚举和 Broker allowlist 的修改位置应在 Desktop 仓库核对，不能由 WebClient 推断为已经存在。若现有宿主登记模型必须扩展共享契约，应从 canonical 来源生成 mirror/hash，再同批发布双方与 Program Bundle，不手改本仓库 generated contract 绕过检查。
 
 Chat Preview 仅提供会话内容与必要的加载、错误重试、等待确认提示，不渲染 Chat 标题或只读历史状态栏。嵌入 Kanban 时，“问题详情 / 历史记录”导航栏由 Desktop 原生 UI 持有，切换离开预览仍按既有生命周期释放观察者。
+
+划词引用弹层支持为每条原文编辑可选批注；清空后省略 `annotation`。主聊天、旁聊及独立旁聊共用编辑组件，发送后的时间线与待发送 steer 队列只读展示原文和批注。发送失败保留草稿。仅使用顶层 `text`，不读取 `meta.text`；服务端引用无需 name/sourceKind 即可回放。ID 保持原始值，由 Platform 在模型提示词中映射短编号。query 仍需输入消息文字，steer 可只提交有效划词引用。
+
+划词编号使用独立正整数 `annotationIndex`，与 Reference ID 分离，进入请求及历史记录。页面蓝色序号气泡和模型称呼 `Annotation N` 均采用该值，不按文件/图片引用排序；编辑或清空批注不改变编号。当前页面创建划词时递增分配，接收其他窗口引用时避免与当前草稿编号冲突。DOM Range 仅在内存保留；添加引用后在原文附近打开无语音入口的可选批注栏，Enter 收起、Shift+Enter 换行，点击序号再次编辑。原文 DOM 消失或改变时隐藏锚点，引用仍可在片段汇总弹层编辑。

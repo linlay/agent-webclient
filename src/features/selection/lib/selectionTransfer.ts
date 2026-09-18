@@ -1,6 +1,6 @@
 import {
   SELECTED_TEXT_MAX_CHARACTERS,
-  selectedTextByteLength,
+  reserveAnnotationIndex,
   type SelectedTextFragment,
 } from "@/features/selection/lib/selectedTextReference";
 
@@ -73,47 +73,27 @@ export function parseTransferredSelectedTextFragment(
     !targetId ||
     targetId.length > 128 ||
     !isRecord(reference) ||
-    !hasOnlyKeys(reference, ["id", "type", "name", "mimeType", "sizeBytes", "meta"])
+    !hasOnlyKeys(reference, ["id", "type", "text", "annotation", "annotationIndex", "meta"])
   ) {
     return null;
   }
   const id = typeof reference.id === "string" ? reference.id.trim() : "";
-  const name = typeof reference.name === "string" ? reference.name.trim() : "";
   const meta = reference.meta;
-  if (
-    !id ||
-    id.length > 128 ||
-    reference.type !== "selection" ||
-    !name ||
-    name.length > 256 ||
-    reference.mimeType !== "text/plain" ||
-    typeof reference.sizeBytes !== "number" ||
-    !Number.isSafeInteger(reference.sizeBytes) ||
-    reference.sizeBytes < 0 ||
-    !isRecord(meta) ||
-    !hasOnlyKeys(meta, ["text", "sourceKind"])
-  ) {
-    return null;
-  }
-  const text = typeof meta.text === "string" ? meta.text : "";
-  const sourceKind = meta.sourceKind;
-  if (
-    !text.trim() ||
-    text.length > SELECTED_TEXT_MAX_CHARACTERS ||
-    (sourceKind !== "message" && sourceKind !== "code") ||
-    reference.sizeBytes !== selectedTextByteLength(text)
-  ) {
-    return null;
-  }
+  const text = typeof reference.text === "string" ? reference.text : "";
+  const sourceKind = isRecord(meta) ? meta.sourceKind : "message";
+  if (!id || id.length > 128 || reference.type !== "selection" ||
+      !text.trim() || text.length > SELECTED_TEXT_MAX_CHARACTERS ||
+      (sourceKind !== "message" && sourceKind !== "code") ||
+      (meta !== undefined && (!isRecord(meta) || !hasOnlyKeys(meta, ["sourceKind"]))) ||
+      (reference.annotationIndex !== undefined && !reserveAnnotationIndex(reference.annotationIndex)) ||
+      (reference.annotation !== undefined && typeof reference.annotation !== "string")) return null;
   return {
     targetId,
     reference: {
-      id,
-      type: "selection",
-      name,
-      mimeType: "text/plain",
-      sizeBytes: reference.sizeBytes,
-      meta: { text, sourceKind },
+      id, type: "selection", text,
+      ...(reference.annotationIndex !== undefined ? { annotationIndex: Number(reference.annotationIndex) } : {}),
+      ...(typeof reference.annotation === "string" && reference.annotation.trim() ? { annotation: reference.annotation } : {}),
+      meta: { sourceKind },
     },
   };
 }

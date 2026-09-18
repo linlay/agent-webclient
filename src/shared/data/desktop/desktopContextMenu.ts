@@ -1,3 +1,4 @@
+import { rememberSelectedTextAnchor } from "./selectedTextAnchors";
 import { useCallback, useEffect, useRef } from "react";
 import {
   AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION,
@@ -398,11 +399,14 @@ export function resolveBrowserSelectedTextFragment(
 ): SelectedTextFragment | null {
   const current = readBrowserTextSelection(options);
   if (!current || !isSameBrowserTextSelection(previous, current)) return null;
-  return createSelectedTextFragment({
+  const fragment = createSelectedTextFragment({
     text: current.text,
     targetId: current.targetId,
     sourceKind: current.targetKind,
   });
+  const selection = current.targetElement.ownerDocument.getSelection();
+  if (fragment && selection?.rangeCount === 1) rememberSelectedTextAnchor(fragment.reference.id, selection.getRangeAt(0), current.text);
+  return fragment;
 }
 
 function readSelectionAction(payload: Record<string, unknown>) {
@@ -477,6 +481,7 @@ function readSelectionAction(payload: Record<string, unknown>) {
     sourceKind: payload.targetKind as "message" | "code",
   });
   if (!fragment) return null;
+  if (typeof selection.getRangeAt === "function") rememberSelectedTextAnchor(fragment.reference.id, selection.getRangeAt(0), text);
   return {
     action: payload as unknown as AgentWebclientSelectionAction,
     fragment,

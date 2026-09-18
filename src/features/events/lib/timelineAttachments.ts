@@ -1,3 +1,4 @@
+import { readSelectedText, reserveAnnotationIndex } from "@/shared/contracts/selectedTextReference";
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -14,7 +15,9 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
       return acc;
     }
 
-    const name = String(item.name || '').trim();
+    if (item.type === "selection" && !readSelectedText(item).trim()) return acc;
+
+    const name = String(item.name || (item.type === 'selection' ? 'Selected text' : '')).trim();
     if (!name) {
       return acc;
     }
@@ -38,6 +41,7 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
         : undefined;
     acc.push({
       name,
+      ...(item.type === "selection" ? { text: readSelectedText(item), ...(reserveAnnotationIndex(item.annotationIndex) ? { annotationIndex: Number(item.annotationIndex) } : {}), ...(typeof item.annotation === "string" ? { annotation: item.annotation } : {}) } : {}),
       ...(id ? { id } : {}),
       ...(Number.isFinite(rawSize) && rawSize >= 0 ? { size: rawSize } : {}),
       ...(type ? { type } : {}),
@@ -65,5 +69,5 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
 
 export function hasTimelineAttachmentContent(attachments: readonly TimelineAttachment[]): boolean {
   return attachments.some(item => Boolean(item.url?.trim()) ||
-    (item.type === 'selection' && typeof item.meta?.text === 'string' && Boolean(item.meta.text.trim())));
+    (item.type === 'selection' && Boolean(readSelectedText(item).trim())));
 }

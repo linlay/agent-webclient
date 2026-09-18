@@ -110,7 +110,7 @@ describe("Standalone BTW HTTP/SSE transport", () => {
       'data: [DONE]\r\n\r\n';
     fetchMock.mockResolvedValue(textResponse(raw, 1).response);
     const onEvent = jest.fn();
-    const execution = start(transport(), { onEvent, references: [{ type: "selection", meta: { text: "source text" } }] });
+    const execution = start(transport(), { onEvent, references: [{ type: "selection", text: "source text" }] });
 
     await expect(execution.identity).resolves.toMatchObject({ chatId: "chat-1", runId: "run-1", owner });
     await expect(execution.completion).resolves.toMatchObject({ reason: "done", lastSeq: 2 });
@@ -121,7 +121,7 @@ describe("Standalone BTW HTTP/SSE transport", () => {
     expect(url).toBe("/api/btw");
     expect(options).toMatchObject({ method: "POST", credentials: "same-origin" });
     expect(options.headers).toMatchObject({ Accept: "text/event-stream", "Content-Type": "application/json", Authorization: "Bearer test-only-platform-token" });
-    expect(JSON.parse(String(options.body))).toMatchObject({ requestId: "request-1", chatId: "chat-1", stream: true, references: [{ type: "selection", meta: { text: "source text" } }] });
+    expect(JSON.parse(String(options.body))).toMatchObject({ requestId: "request-1", chatId: "chat-1", stream: true, references: [{ type: "selection", text: "source text" }] });
     expect(mockEnsureWs).not.toHaveBeenCalled();
   });
 

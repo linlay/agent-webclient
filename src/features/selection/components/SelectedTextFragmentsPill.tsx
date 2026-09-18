@@ -1,6 +1,6 @@
 import styles from "./SelectedTextFragmentsPill.module.css";
 import React, { useMemo } from "react";
-import { Popover } from "antd";
+import { Input, Popover } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { SelectedTextFragment } from "@/features/selection/lib/selectedTextReference";
@@ -24,7 +24,8 @@ export const SelectedTextFragmentsPill: React.FC<{
   fragments: readonly SelectedTextFragment[];
   variant: "annotations" | "segments";
   onRemove?: (referenceId: string) => void;
-}> = ({ fragments, variant, onRemove }) => {
+  onAnnotationChange?: (referenceId: string, annotation: string) => void;
+}> = ({ fragments, variant, onRemove, onAnnotationChange }) => {
   const { t } = useI18n();
   const handleDismissAnnotations = React.useCallback((event: React.MouseEvent) => {
     event.preventDefault();
@@ -36,13 +37,31 @@ export const SelectedTextFragmentsPill: React.FC<{
       {fragments.map((fragment, index) => (
         <div className={withModuleClasses("selected-text-fragment-row")} key={fragment.reference.id}>
           <div className={withModuleClasses("selected-text-fragment-copy")}>
-            <strong>{t("selection.fragment.item", { index: index + 1 })}</strong>
-            <span>{fragment.reference.meta.text}</span>
+            <strong>{t("selection.fragment.item", { index: fragment.reference.annotationIndex ?? index + 1 })}</strong>
+            <span>{fragment.reference.text}</span>
+            {onAnnotationChange ? (
+              <label className={styles.annotation}>
+                <strong>{t("selection.fragment.annotation")}</strong>
+                <Input.TextArea
+                  aria-label={t("selection.fragment.annotationFor", { index: fragment.reference.annotationIndex ?? index + 1 })}
+                  placeholder={t("selection.fragment.annotationPlaceholder")}
+                  value={fragment.reference.annotation || ""}
+                  autoSize={{ minRows: 2, maxRows: 6 }}
+                  onChange={event => onAnnotationChange(fragment.reference.id, event.target.value)}
+                  onKeyDown={event => event.stopPropagation()}
+                />
+              </label>
+            ) : fragment.reference.annotation ? (
+              <div className={styles.annotation}>
+                <strong>{t("selection.fragment.annotation")}</strong>
+                <p>{fragment.reference.annotation}</p>
+              </div>
+            ) : null}
           </div>
           {onRemove ? (
             <button
               type="button"
-              aria-label={t("selection.fragment.remove", { index: index + 1 })}
+              aria-label={t("selection.fragment.remove", { index: fragment.reference.annotationIndex ?? index + 1 })}
               onClick={() => onRemove(fragment.reference.id)}
             >
               <MaterialIcon name="close" />
@@ -51,7 +70,7 @@ export const SelectedTextFragmentsPill: React.FC<{
         </div>
       ))}
     </div>
-  ), [fragments, onRemove, t]);
+  ), [fragments, onRemove, onAnnotationChange, t]);
 
   if (fragments.length === 0) return null;
   const pill = (

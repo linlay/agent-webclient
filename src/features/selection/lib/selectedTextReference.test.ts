@@ -15,10 +15,8 @@ describe("selected text references", () => {
     expect(fragment).not.toBeNull();
     expect(fragment?.reference).toMatchObject({
       type: "selection",
-      name: "Selected code",
-      mimeType: "text/plain",
+      text: "const value = 1;\n\nreturn value;",
       meta: {
-        text: "const value = 1;\n\nreturn value;",
         sourceKind: "code",
       },
     });
@@ -61,4 +59,31 @@ describe("selected text references", () => {
       sourceKind: "message",
     })).toBeNull();
   });
+});
+
+it("preserves optional annotations through attachments and name-free server references", () => {
+  const { updateSelectedTextAnnotation, selectedTextFragmentFromAttachment } = require("./selectedTextReference");
+  const { normalizeTimelineAttachments } = require("@/features/events/lib/timelineAttachments");
+  const original = createSelectedTextFragment({text:"quote",targetId:"m1",sourceKind:"message"})!;
+  const updated = updateSelectedTextAnnotation([original], original.reference.id, "rewrite\ncarefully")[0];
+  expect(original.reference.annotation).toBeUndefined();
+  const attachment = selectedTextReferenceToAttachment(updated);
+  expect(selectedTextFragmentFromAttachment(attachment)?.reference).toEqual(updated.reference);
+  const replay = normalizeTimelineAttachments([{id:original.reference.id,type:"selection",text:"quote",annotationIndex:original.reference.annotationIndex,annotation:"rewrite\ncarefully"}]);
+  expect(selectedTextFragmentFromAttachment(replay[0])?.reference).toEqual(updated.reference);
+  expect(updateSelectedTextAnnotation([updated], original.reference.id, " ")[0].reference).not.toHaveProperty("annotation");
+  expect(selectedTextFragmentFromAttachment({id:"legacy",name:"Selected text",type:"selection",meta:{text:"old"}})).toBeNull();
+});
+
+it("keeps annotation indices stable across edits and deletion, and resolves incoming collisions", () => {
+  const { updateSelectedTextAnnotation } = require("./selectedTextReference");
+  const first = createSelectedTextFragment({text:"one",targetId:"m1",sourceKind:"message"})!;
+  const second = createSelectedTextFragment({text:"two",targetId:"m2",sourceKind:"message"})!;
+  expect(second.reference.annotationIndex).toBeGreaterThan(first.reference.annotationIndex!);
+  const edited = updateSelectedTextAnnotation([second], second.reference.id, "comment");
+  expect(edited[0].reference.annotationIndex).toBe(second.reference.annotationIndex);
+  const incoming = {...first,reference:{...first.reference,annotationIndex:second.reference.annotationIndex}};
+  const merged = addSelectedTextFragment([second],incoming);
+  expect(merged[0].reference.annotationIndex).toBe(second.reference.annotationIndex);
+  expect(merged[1].reference.annotationIndex).toBeGreaterThan(second.reference.annotationIndex!);
 });

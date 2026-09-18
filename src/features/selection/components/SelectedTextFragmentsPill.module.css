@@ -158,3 +158,6 @@
   color: var(--ink-1);
   outline: none;
 }
+
+.annotation { display: grid; gap: 4px; margin-top: 6px; }
+.annotation p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; color: var(--ink-1); }

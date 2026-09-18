@@ -119,7 +119,7 @@ describe("BrowserSelectionToolbar DOM interaction", () => {
     expect(onAction).toHaveBeenCalledWith({
       action,
       fragment: expect.objectContaining({
-        targetId: "message-1", reference: expect.objectContaining({ meta: { text: "selected text", sourceKind: "message" } }),
+        targetId: "message-1", reference: expect.objectContaining({ text: "selected text", meta: { sourceKind: "message" } }),
       }),
     });
     expect(toolbar()).toBeNull();

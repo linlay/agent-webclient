@@ -129,6 +129,9 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
           ...(typeof primaryReference?.id === "string"
             ? { id: primaryReference.id }
             : {}),
+          ...(typeof primaryReference?.annotationIndex === "number" ? { annotationIndex: primaryReference.annotationIndex } : {}),
+          ...(typeof primaryReference?.text === "string" ? { text: primaryReference.text } : {}),
+          ...(typeof primaryReference?.annotation === "string" ? { annotation: primaryReference.annotation } : {}),
           name: attachment.name,
           size: attachment.size,
           type: attachment.type,

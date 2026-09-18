@@ -43,6 +43,7 @@ export const BtwViewerSurface: React.FC<{
         onSend={() => runtime.send(t("btw.selectionOnlyPrompt"))}
         onDraftChange={runtime.setDraft}
         onRemoveDraftSelection={runtime.removeDraftSelection}
+        onAnnotationChange={runtime.updateDraftAnnotation}
         onInterrupt={runtime.interrupt}
         onNewBranch={() => {
           const created = runtime.newBranch();

@@ -71,7 +71,7 @@ describe("browser selection semantic boundary", () => {
     const fragment = resolveBrowserSelectedTextFragment(snapshot!);
     expect(fragment).toMatchObject({
       targetId: "message-1",
-      reference: { type: "selection", meta: { text: "selected text", sourceKind: kind } },
+      reference: { type: "selection", text: "selected text", meta: { sourceKind: kind } },
     });
     expect(element.attributes.length).toBe(0);
   });

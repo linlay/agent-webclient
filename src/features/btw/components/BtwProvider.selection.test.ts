@@ -30,16 +30,18 @@ it.each([true, false])("preserves unsent selections while the pending request is
   try {
     act(() => root.render(React.createElement(BtwProvider, null, React.createElement(Harness))));
     act(() => { btw.addDraftSelection("chat-a", first); });
+    act(() => { btw.updateDraftAnnotation("chat-a", first.reference.id, "rewrite this"); });
+    const annotated = { ...first, reference: { ...first.reference, annotation: "rewrite this" } };
     let sending!: Promise<boolean>;
     act(() => { sending = btw.sendBTW("chat-a", "explain"); });
     act(() => { btw.addDraftSelection("chat-a", later); });
-    expect(mockRuns.startBtw).toHaveBeenLastCalledWith(expect.objectContaining({ references: [first.reference] }));
+    expect(mockRuns.startBtw).toHaveBeenLastCalledWith(expect.objectContaining({ references: [annotated.reference] }));
     await act(async () => {
       if (accepted) resolveIdentity({ requestId: "req-a", chatId: "chat-a", runId: "run-a", owner: { kind: "agent", agentKey: "agent-a" } });
       else rejectIdentity(new Error("not accepted"));
       await sending;
     });
-    expect(btw.getSession("chat-a")?.draftSelections).toEqual(accepted ? [later] : [first, later]);
+    expect(btw.getSession("chat-a")?.draftSelections).toEqual(accepted ? [later] : [annotated, later]);
   } finally {
     act(() => root.unmount());
     localStorage.clear();

@@ -165,6 +165,9 @@ export interface ResourceData {
 }
 
 export interface ReferenceData extends ResourceData {
+  text?: string;
+  annotation?: string;
+  annotationIndex?: number;
   id?: string;
   type?: string;
 }

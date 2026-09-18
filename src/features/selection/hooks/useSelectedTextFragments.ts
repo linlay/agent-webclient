@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   addSelectedTextFragment,
+  updateSelectedTextAnnotation,
   SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT,
   selectedTextReferenceToAttachment,
   type SelectedTextFragment,
@@ -25,6 +26,14 @@ export function useSelectedTextFragments(chatKey: string) {
       return next;
     });
     return true;
+  }, [normalizedChatKey]);
+
+  const updateAnnotation = useCallback((referenceId: string, annotation: string) => {
+    setByChat(current => {
+      const next = new Map(current);
+      next.set(normalizedChatKey, updateSelectedTextAnnotation(current.get(normalizedChatKey) || [], referenceId, annotation));
+      return next;
+    });
   }, [normalizedChatKey]);
 
   const removeFragment = useCallback((referenceId: string) => {
@@ -82,6 +91,7 @@ export function useSelectedTextFragments(chatKey: string) {
     references,
     attachments,
     addFragment,
+    updateAnnotation,
     removeFragment,
   };
 }

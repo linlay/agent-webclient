@@ -516,7 +516,7 @@ describe("ComposerArea", () => {
     const fragment = createSelectedTextFragment({ text: "selected passage", targetId: "message-a", sourceKind: "message" })!;
     const hook = jest.spyOn(selectedTextHooks, "useSelectedTextFragments").mockReturnValue({
       fragments: [fragment], references: [fragment.reference], attachments: [selectedTextReferenceToAttachment(fragment)],
-      addFragment: jest.fn(), removeFragment: jest.fn(),
+      addFragment: jest.fn(), removeFragment: jest.fn(), updateAnnotation: jest.fn(),
     });
     const state = { ...createInitialState(), chatId: "chat-a", streaming: running,
       currentChatActiveRun: running ? { chatId: "chat-a", runId: "run-a", agentKey: "agent-a" } : null };
@@ -530,7 +530,7 @@ describe("ComposerArea", () => {
 
   it("previews restored steer selections but requires query text when idle", () => {
     const reference = { id: "selection-restored", type: "selection", name: "Selected text",
-      size: 12, mimeType: "text/plain", meta: { text: "restored text", sourceKind: "message" } };
+      size: 12, mimeType: "text/plain", text: "restored text", meta: { sourceKind: "message" } };
     mockComposerAttachmentsState.sendReferences = [reference];
     mockComposerAttachmentsState.sendAttachmentMeta = [reference];
     const html = renderToStaticMarkup(React.createElement(ComposerArea));

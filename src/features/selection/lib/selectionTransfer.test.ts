@@ -120,3 +120,18 @@ describe("selected text cross-surface transfer", () => {
     await expect(staged!.delivered).resolves.toBe(false);
   });
 });
+
+it("transfers the top-level quote and optional annotation without file metadata", () => {
+  const fragment = createSelectedTextFragment({text:"quote",targetId:"m1",sourceKind:"message"})!;
+  fragment.reference.annotation = "make it shorter";
+  expect(parseTransferredSelectedTextFragment(fragment)).toEqual(fragment);
+  expect(parseTransferredSelectedTextFragment({...fragment,reference:{...fragment.reference,annotation:42}})).toBeNull();
+  expect(parseTransferredSelectedTextFragment({...fragment,reference:{...fragment.reference,path:"/tmp/file"}})).toBeNull();
+});
+
+it("rejects the removed meta.text shape instead of upgrading it", () => {
+  expect(parseTransferredSelectedTextFragment({
+    targetId: "message-1",
+    reference: { id: "r1", type: "selection", meta: { text: "old quote", sourceKind: "message" } },
+  })).toBeNull();
+});

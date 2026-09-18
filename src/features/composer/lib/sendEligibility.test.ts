@@ -12,10 +12,10 @@ it('rejects empty or unresolved steer content', () => {
 });
 
 it('allows nonempty selected text alone only for steer', () => {
-  const refs = [{ type: 'selection', meta: { text: 'selected passage' } }];
+  const refs = [{ type: 'selection', text: 'selected passage' }];
   expect(hasSendableContent('', refs, true)).toBe(true);
   expect(hasSendableContent('', refs)).toBe(false);
-  for (const meta of [undefined, {}, { text: '' }, { text: '  ' }, { text: 123 }]) {
+  for (const meta of [undefined, {}, { text: 'old quote' }, { text: '' }, { text: '  ' }, { text: 123 }]) {
     expect(hasSendableContent('', [{ type: 'selection', meta }], true)).toBe(false);
   }
 });

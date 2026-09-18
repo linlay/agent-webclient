@@ -1733,7 +1733,7 @@ it.each(['live', 'replay'] as const)('projects file-only steer in %s mode', mode
 });
 
 it.each(['live', 'replay'] as const)('projects selection-only steer in %s mode', mode => {
-  const references = [{ id: 'selected-a', type: 'selection', name: 'Selected text', meta: { text: 'passage', sourceKind: 'message' } }];
+  const references = [{ id: 'selected-a', type: 'selection', name: 'Selected text', text: 'passage', meta: { sourceKind: 'message' } }];
   const commands = processStreamEvent({ type: 'request.steer', steerId: 'selected-steer', chatId: 'chat-a', runId: 'run-a', message: '',
     references, timestamp: 1700000000000 }, buildProcessorState(createState()), { mode, reasoningExpandedDefault: false });
   expect(commands).toContainEqual(expect.objectContaining({ cmd: 'USER_MESSAGE', nodeId: 'steer_selected-steer', text: '',

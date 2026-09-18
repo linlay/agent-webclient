@@ -325,7 +325,7 @@ it('carries queued images into a query when the run completes', () => {
 });
 
 const selectionReferences = [{ id: 'selection-a', type: 'selection', name: 'Selected text',
-  mimeType: 'text/plain', meta: { text: 'selected text', sourceKind: 'message' } }];
+  mimeType: 'text/plain', text: 'selected text', meta: { sourceKind: 'message' } }];
 
 it('restores rejected selections and preserves them when the queued steer becomes a query', async () => {
   mockSteer.mockResolvedValue({ data: { accepted: false, status: 'invalid_reference' } });

@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 
 import React, { act } from "react";
+import { Simulate } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 import { createSelectedTextFragment, notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
@@ -8,7 +9,8 @@ import { createSelectedTextFragment, notifySelectedTextReferencesAccepted } from
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 
 jest.mock("antd", () => ({
-  Popover: ({ children }: { children: React.ReactNode }) => children,
+  Popover: ({ children, content }: { children: React.ReactNode; content: React.ReactNode }) => React.createElement("div", null, children, content),
+  Input: { TextArea: ({ autoSize, ...props }: any) => React.createElement("textarea", props) },
 }));
 
 jest.mock("@/shared/ui/MaterialIcon", () => ({
@@ -77,5 +79,29 @@ it("removes only references transferred to the queue and keeps other chats and l
     expect(current.fragments).toEqual([other]);
     act(() => root.render(React.createElement(Harness, { chatId: "chat-a" })));
     expect(current.fragments).toEqual([later]);
+  } finally { act(() => root.unmount()); }
+});
+
+it("edits an annotation in the quote popover and keeps it in the send snapshot", () => {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  let current!: ReturnType<typeof useSelectedTextFragments>;
+  const fragment = createSelectedTextFragment({text:"quoted passage",targetId:"m1",sourceKind:"message"})!;
+  function Harness() {
+    current = useSelectedTextFragments("chat-a");
+    return React.createElement(SelectedTextFragmentsPill, {
+      fragments: current.fragments, variant:"annotations", onAnnotationChange:current.updateAnnotation,
+    });
+  }
+  try {
+    act(() => root.render(React.createElement(Harness)));
+    act(() => { current.addFragment(fragment); });
+    const input = container.querySelector("textarea")!;
+    expect(input).not.toBeNull();
+    act(() => { input.value = "please simplify"; Simulate.change(input); });
+    expect(current.references[0]).toMatchObject({text:"quoted passage",annotation:"please simplify"});
+    expect(current.attachments[0].annotation).toBe("please simplify");
+    act(() => { input.value = ""; Simulate.change(input); });
+    expect(current.references[0]).not.toHaveProperty("annotation");
   } finally { act(() => root.unmount()); }
 });

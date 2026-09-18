@@ -1,3 +1,5 @@
+import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
+import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 import React from "react";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
@@ -33,6 +35,11 @@ export const SteerBar: React.FC<{
     <div className={STEER_BAR_CLASS}>
       <div className={STEER_QUEUE_CLASS} aria-live="polite">
         {pendingSteers.map((steer) => {
+          const attachments = normalizeTimelineAttachments(steer.references);
+          const selections = attachments.flatMap(attachment => {
+            const fragment = selectedTextFragmentFromAttachment(attachment);
+            return fragment ? [fragment] : [];
+          });
           const isSending = steer.status === "sending";
           return (
             <div
@@ -45,10 +52,11 @@ export const SteerBar: React.FC<{
               </div>
               <div className={STEER_PREVIEW_TEXT_CLASS}>
                 <div className="tw:flex tw:flex-wrap tw:gap-1">
-                  {normalizeTimelineAttachments(steer.references).map((attachment, index) => (
+                  {attachments.filter(attachment => attachment.type !== "selection").map((attachment, index) => (
                     <AttachmentCard key={attachment.id || index} attachment={attachment} variant="timeline" density="compact" thumbnailMode="inline" />
                   ))}
                 </div>
+                <SelectedTextFragmentsPill fragments={selections} variant="segments" />
                 <Typography.Text ellipsis={{tooltip: steer.message}}>{steer.message}</Typography.Text>
                 {steer.submissionError && (
                   <div role="status" title={steer.submissionError}>

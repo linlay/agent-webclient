@@ -45,6 +45,7 @@ import type {
 } from "@/features/btw/lib/btwTypes";
 import {
   addSelectedTextFragment,
+  updateSelectedTextAnnotation,
   selectedTextReferenceToAttachment,
   type SelectedTextFragment,
 } from "@/features/selection/lib/selectedTextReference";
@@ -71,6 +72,7 @@ interface BTWContextValue {
   sendBTW: (parentChatId: string, message?: string, options?: OpenBTWOptions) => Promise<boolean>;
   setDraft: (parentChatId: string, draft: string) => void;
   addDraftSelection: (parentChatId: string, fragment: SelectedTextFragment) => boolean;
+  updateDraftAnnotation: (parentChatId: string, referenceId: string, annotation: string) => void;
   removeDraftSelection: (parentChatId: string, referenceId: string) => void;
   patchTimelineNode: (parentChatId: string, node: TimelineNode) => void;
   newBranch: (parentChatId: string) => boolean;
@@ -557,6 +559,13 @@ export const BtwProvider: React.FC<{
     [getRuntime, publish],
   );
 
+  const updateDraftAnnotation = useCallback((parentChatId: string, referenceId: string, annotation: string) => {
+    const runtime = getExistingRuntime(parentChatId);
+    if (!runtime) return;
+    runtime.session.draftSelections = updateSelectedTextAnnotation(runtime.session.draftSelections, referenceId, annotation);
+    publish(runtime);
+  }, [getExistingRuntime, publish]);
+
   const removeDraftSelection = useCallback(
     (parentChatId: string, referenceId: string) => {
       const runtime = getExistingRuntime(parentChatId);
@@ -912,6 +921,7 @@ export const BtwProvider: React.FC<{
       setDraft,
       addDraftSelection,
       removeDraftSelection,
+      updateDraftAnnotation,
       patchTimelineNode,
       newBranch,
       selectBranch,
@@ -928,6 +938,7 @@ export const BtwProvider: React.FC<{
       patchTimelineNode,
       sendBTW,
       removeDraftSelection,
+      updateDraftAnnotation,
       sessions,
       setDraft,
       selectBranch,

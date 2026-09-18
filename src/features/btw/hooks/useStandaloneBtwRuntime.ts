@@ -25,6 +25,7 @@ import { sameRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import { toText } from "@/shared/utils/eventUtils";
 import {
   addSelectedTextFragment,
+  updateSelectedTextAnnotation,
   selectedTextReferenceToAttachment,
   type SelectedTextFragment,
 } from "@/features/selection/lib/selectedTextReference";
@@ -91,6 +92,7 @@ export function useStandaloneBtwRuntime(input: {
   send: (selectionOnlyPrompt?: string) => void;
   setDraft: (draft: string) => void;
   addDraftSelection: (fragment: SelectedTextFragment) => boolean;
+  updateDraftAnnotation: (referenceId: string, annotation: string) => void;
   removeDraftSelection: (referenceId: string) => void;
   interrupt: () => void;
   newBranch: () => boolean;
@@ -395,6 +397,12 @@ export function useStandaloneBtwRuntime(input: {
     return true;
   }, [publish]);
 
+  const updateDraftAnnotation = useCallback((referenceId: string, annotation: string) => {
+    const current = sessionRef.current;
+    current.draftSelections = updateSelectedTextAnnotation(current.draftSelections, referenceId, annotation);
+    publish(current);
+  }, [publish]);
+
   const removeDraftSelection = useCallback((referenceId: string) => {
     const normalizedReferenceId = String(referenceId || "").trim();
     if (!normalizedReferenceId) return;
@@ -488,6 +496,7 @@ export function useStandaloneBtwRuntime(input: {
     setDraft,
     addDraftSelection,
     removeDraftSelection,
+    updateDraftAnnotation,
     interrupt,
     newBranch,
     patchTimelineNode,

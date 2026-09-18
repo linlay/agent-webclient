@@ -32,6 +32,9 @@ export interface ToolOutputState {
 }
 
 export interface TimelineAttachment {
+  text?: string;
+  annotation?: string;
+  annotationIndex?: number;
 	id?: string;
 	name: string;
 	size?: number;

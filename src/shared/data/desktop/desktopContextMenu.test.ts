@@ -268,7 +268,7 @@ describe("Desktop context menu semantic bridge", () => {
         targetId: "message:live",
         reference: expect.objectContaining({
           type: "selection",
-          meta: { text: "selected text", sourceKind: "message" },
+          text: "selected text", meta: { sourceKind: "message" },
         }),
       }),
     }));

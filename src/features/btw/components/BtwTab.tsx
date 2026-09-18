@@ -1,3 +1,4 @@
+import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
@@ -63,6 +64,7 @@ export interface BtwTabViewProps {
   session: BTWSessionState | null;
   onSend: () => void;
   onDraftChange: (draft: string) => void;
+  onAnnotationChange?: (referenceId: string, annotation: string) => void;
   onRemoveDraftSelection: (referenceId: string) => void;
   onInterrupt: () => void;
   onNewBranch: () => boolean;
@@ -77,6 +79,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   onSend,
   onDraftChange,
   onRemoveDraftSelection,
+  onAnnotationChange,
   onInterrupt,
   onNewBranch,
   onPatchTimelineNode,
@@ -241,6 +244,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
             </div>
           )}
         </div>
+        {onAnnotationChange && !running ? <SelectionAnnotations fragments={session?.draftSelections || []} onAnnotationChange={onAnnotationChange} /> : null}
         <div className={BTW_COMPOSER_CLASS}>
           {session?.draftSelections?.length ? (
             <div className="tw:mb-1.5">
@@ -248,6 +252,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
                 fragments={session.draftSelections}
                 variant="segments"
                 onRemove={onRemoveDraftSelection}
+                onAnnotationChange={running ? undefined : onAnnotationChange}
               />
             </div>
           ) : null}
@@ -311,6 +316,7 @@ export const BtwTab: React.FC = () => {
     sendBTW,
     setDraft,
     removeDraftSelection,
+    updateDraftAnnotation,
     patchTimelineNode,
     newBranch,
     interruptBTW,
@@ -331,6 +337,7 @@ export const BtwTab: React.FC = () => {
           void sendBTW(parentChatId, message);
         }
       }}
+      onAnnotationChange={(id, annotation) => updateDraftAnnotation(parentChatId, id, annotation)}
       onDraftChange={(draft) => setDraft(parentChatId, draft)}
       onRemoveDraftSelection={(referenceId) =>
         removeDraftSelection(parentChatId, referenceId)

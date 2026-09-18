@@ -7,11 +7,10 @@ export type SelectedTextSourceKind = "message" | "code";
 export type SelectedTextReferenceV1 = {
   id: string;
   type: "selection";
-  name: string;
-  mimeType: "text/plain";
-  sizeBytes: number;
+  text: string;
+  annotation?: string;
+  annotationIndex?: number;
   meta: {
-    text: string;
     sourceKind: SelectedTextSourceKind;
   };
 };
@@ -20,6 +19,14 @@ export type SelectedTextFragment = {
   targetId: string;
   reference: SelectedTextReferenceV1;
 };
+
+let nextAnnotationIndex = 1;
+
+export function reserveAnnotationIndex(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) return undefined;
+  nextAnnotationIndex = Math.max(nextAnnotationIndex, value + 1);
+  return value;
+}
 
 function createSelectionId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -53,10 +60,9 @@ export function createSelectedTextFragment(input: {
     reference: {
       id: createSelectionId(),
       type: "selection",
-      name: input.sourceKind === "code" ? "Selected code" : "Selected text",
-      mimeType: "text/plain",
-      sizeBytes: selectedTextByteLength(text),
-      meta: { text, sourceKind: input.sourceKind },
+      annotationIndex: nextAnnotationIndex++,
+      text,
+      meta: { sourceKind: input.sourceKind },
     },
   };
 }
@@ -65,7 +71,7 @@ export function selectedTextFragmentIdentity(fragment: SelectedTextFragment) {
   return [
     fragment.targetId,
     fragment.reference.meta.sourceKind,
-    fragment.reference.meta.text,
+    fragment.reference.text,
   ].join("\u0000");
 }
 
@@ -74,7 +80,24 @@ export function addSelectedTextFragment(
   fragment: SelectedTextFragment,
 ) {
   const identity = selectedTextFragmentIdentity(fragment);
-  return current.some((candidate) => selectedTextFragmentIdentity(candidate) === identity)
-    ? [...current]
-    : [...current, fragment];
+  if (current.some(candidate => selectedTextFragmentIdentity(candidate) === identity)) return [...current];
+  current.forEach(candidate => reserveAnnotationIndex(candidate.reference.annotationIndex));
+  const incoming = reserveAnnotationIndex(fragment.reference.annotationIndex);
+  const index = incoming && !current.some(candidate => candidate.reference.annotationIndex === incoming)
+    ? incoming : nextAnnotationIndex++;
+  return [...current, { ...fragment, reference: { ...fragment.reference, annotationIndex: index } }];
+}
+
+export function readSelectedText(reference: { text?: unknown }): string {
+  return typeof reference.text === "string" ? reference.text : "";
+}
+
+export function updateSelectedTextAnnotation(
+  fragments: readonly SelectedTextFragment[], referenceId: string, annotation: string,
+): SelectedTextFragment[] {
+  return fragments.map(fragment => {
+    if (fragment.reference.id !== referenceId) return fragment;
+    const { annotation: previous, ...reference } = fragment.reference;
+    return { ...fragment, reference: { ...reference, ...(annotation.trim() ? { annotation } : {}) } };
+  });
 }
