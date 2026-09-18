@@ -49,6 +49,8 @@ describe('buildTimelineDisplayItems', () => {
         createNode({ id: 'content_1', kind: 'content', ts: 130 }),
       ],
       [{ type: 'request.query', timestamp: 100 }],
+      new Map(),
+      { hasActiveRun: true },
     );
 
     expect(items[1]).toMatchObject({ kind: 'run' });
@@ -477,6 +479,57 @@ describe('buildTimelineDisplayItems', () => {
           expect.objectContaining({ id: 'tool_2' }),
         ],
       },
+    ]);
+  });
+
+  it('matches terminals by node runId when nodes carry run ids', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', runId: 'run_1', ts: 130 }),
+        createNode({ id: 'user_2', kind: 'message', role: 'user', ts: 200 }),
+        createNode({ id: 'content_2', kind: 'content', runId: 'run_2', ts: 230 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'run.complete', runId: 'run_2', timestamp: 260 },
+        { type: 'request.query', timestamp: 200 },
+        { type: 'run.complete', runId: 'run_1', timestamp: 160 },
+      ],
+    );
+
+    const runs = items.filter((item) => item.kind === 'run');
+    expect(runs).toMatchObject([
+      { runId: 'run_1', terminalType: 'run.complete', completedAt: 160 },
+      { runId: 'run_2', terminalType: 'run.complete', completedAt: 260 },
+    ]);
+  });
+
+  it('falls back to the last node time when earlier terminal events are trimmed', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', runId: 'run_1', ts: 130 }),
+        createNode({ id: 'user_2', kind: 'message', role: 'user', ts: 200 }),
+        createNode({ id: 'content_2', kind: 'content', runId: 'run_2', ts: 230 }),
+        createNode({ id: 'user_3', kind: 'message', role: 'user', ts: 300 }),
+        createNode({ id: 'content_3', kind: 'content', runId: 'run_3', ts: 330 }),
+      ],
+      [
+        // run_1 的终态事件已被事件上限裁剪丢失
+        { type: 'request.query', timestamp: 100 },
+        { type: 'request.query', timestamp: 200 },
+        { type: 'run.complete', runId: 'run_2', timestamp: 260 },
+        { type: 'request.query', timestamp: 300 },
+        { type: 'run.complete', runId: 'run_3', timestamp: 360 },
+      ],
+    );
+
+    const runs = items.filter((item) => item.kind === 'run');
+    expect(runs).toMatchObject([
+      { runId: 'run_1', terminalType: 'run.complete', completedAt: 130 },
+      { runId: 'run_2', terminalType: 'run.complete', completedAt: 260 },
+      { runId: 'run_3', terminalType: 'run.complete', completedAt: 360 },
     ]);
   });
 });

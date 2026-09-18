@@ -113,6 +113,7 @@ export interface TimelineErrorDetail {
 export interface TimelineNode {
 	id: string;
 	kind: TimelineNodeKind;
+	runId?: string;
 	role?: TimelineRole;
 	messageVariant?: "default" | "steer" | "remember" | "learn" | "compact";
 	systemMessageLevel?: "info" | "error";

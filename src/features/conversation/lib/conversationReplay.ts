@@ -312,9 +312,13 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       return;
     case 'SET_TIMELINE_NODE': {
       const existing = rs.timelineNodes.get(command.id);
+      const runId = command.node.runId || rs.runId || '';
+      const baseNode: TimelineNode = runId
+        ? { ...command.node, runId }
+        : command.node;
       if (command.node.kind === 'content') {
         rs.timelineNodes.set(command.id, {
-          ...command.node,
+          ...baseNode,
           ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(
             command.node.segments || [],
             existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined,
@@ -322,7 +326,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         });
         return;
       }
-      rs.timelineNodes.set(command.id, command.node);
+      rs.timelineNodes.set(command.id, baseNode);
       return;
     }
     case 'SET_TOOL_STATE':

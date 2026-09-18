@@ -46,7 +46,6 @@
     border-top-right-radius: 7px;
 }
 
-:global(.layout-copilot) :global(.timeline-run-meta),
 :global(.layout-copilot) :global(.timeline-task-group) {
     margin-left: 20px;
 }

@@ -48,12 +48,16 @@ export function applyLiveEventCommand(input: {
 			return;
 		case "SET_TIMELINE_NODE": {
 			const existingNode = getCachedNode(cache, state, command.id);
+			const runId = command.node.runId || cache.runId || "";
+			const baseNode: TimelineNode = runId
+				? { ...command.node, runId }
+				: command.node;
 			const nextNode: TimelineNode = command.node.kind === "content"
 				? {
-						...command.node,
+						...baseNode,
 						ttsVoiceBlocks: existingNode?.kind === "content" ? (existingNode.ttsVoiceBlocks || {}) : {},
 					}
-				: command.node;
+				: baseNode;
 			cache.nodeById.set(command.id, nextNode);
 			cache.nodeText.set(command.id, nextNode.text || "");
 			dispatch({ type: "SET_TIMELINE_NODE", id: command.id, node: nextNode });

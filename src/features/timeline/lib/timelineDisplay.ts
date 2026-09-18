@@ -220,19 +220,30 @@ function buildRenderEntries(
   return entries;
 }
 
-function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
-  return events.flatMap((event) => {
+interface RunTerminalIndex {
+  ordered: RunTerminalInfo[];
+  byRunId: Map<string, RunTerminalInfo>;
+}
+
+function collectRunTerminals(events: AgentEvent[]): RunTerminalIndex {
+  const ordered: RunTerminalInfo[] = [];
+  const byRunId = new Map<string, RunTerminalInfo>();
+  for (const event of events) {
     const type = readRunTerminalType(event.type);
-    if (!type) return [];
-    return [
-      {
-        type,
-        runId: typeof event.runId === "string" ? event.runId : undefined,
-        timestamp:
-          typeof event.timestamp === "number" ? event.timestamp : undefined,
-      },
-    ];
-  });
+    if (!type) continue;
+    const runId = typeof event.runId === "string" ? event.runId : undefined;
+    const info: RunTerminalInfo = {
+      type,
+      runId,
+      timestamp:
+        typeof event.timestamp === "number" ? event.timestamp : undefined,
+    };
+    ordered.push(info);
+    if (runId && !byRunId.has(runId)) {
+      byRunId.set(runId, info);
+    }
+  }
+  return { ordered, byRunId };
 }
 
 export interface BuildTimelineDisplayItemsOptions {
@@ -273,11 +284,29 @@ export function buildTimelineDisplayItems(
     pendingStandaloneNodes = [];
   };
 
-  const flushRun = (): void => {
-    const terminal = runTerminals[runTerminalCursor];
+  const currentRunId = (): string => {
+    for (const node of pendingRunNodes) {
+      if (node.runId) return node.runId;
+    }
+    return activeQueryNode?.runId || "";
+  };
 
+  const consumeTerminal = (runId: string): RunTerminalInfo | undefined => {
+    if (runId && runTerminals.byRunId.has(runId)) {
+      return runTerminals.byRunId.get(runId);
+    }
+    // 节点带 runId 但终态已被裁剪时，不消费位置游标，避免错位到其它 run 的终态。
+    if (runId) return undefined;
+    // 旧数据（节点无 runId）回退位置游标，保持原有行为。
+    const terminal = runTerminals.ordered[runTerminalCursor];
+    if (terminal) runTerminalCursor += 1;
+    return terminal;
+  };
+
+  const flushRun = (isLastRun: boolean): void => {
     // 空 run：有 query 但没有任何 timeline 节点（例如 run.start → run.complete 中间无内容）
     if (pendingRunNodes.length === 0 && activeQueryNode) {
+      const terminal = consumeTerminal(currentRunId());
       if (terminal) {
         const completedAt =
           typeof terminal.timestamp === "number" ? terminal.timestamp : undefined;
@@ -286,8 +315,6 @@ export function buildTimelineDisplayItems(
           typeof activeQueryNode.ts === "number"
             ? Math.max(0, completedAt - activeQueryNode.ts)
             : undefined;
-
-        runTerminalCursor += 1;
 
         items.push({
           kind: "run",
@@ -312,21 +339,36 @@ export function buildTimelineDisplayItems(
       return;
     }
 
+    const resolvedRunId = currentRunId();
+    const terminal = consumeTerminal(resolvedRunId);
     const queryNode = activeQueryNode;
     const lastNode = pendingRunNodes[pendingRunNodes.length - 1];
-    const completedAt = terminal
-      ? typeof terminal.timestamp === "number"
-        ? terminal.timestamp
-        : lastNode?.ts
-      : undefined;
+
+    let completedAt: number | undefined;
+    let terminalType: RunTerminalType | undefined;
+    if (terminal) {
+      completedAt =
+        typeof terminal.timestamp === "number" ? terminal.timestamp : lastNode?.ts;
+      terminalType = terminal.type;
+    } else if (!isLastRun || !options.hasActiveRun) {
+      // 已结束的 run 缺失终态事件（终态可能被事件上限裁剪），用最后节点时间兜底，
+      // 并按节点内容推断终态类型，让 timeline-run-meta 的耗时图标也能正常显示。
+      // 活跃 run（isLastRun && hasActiveRun）保持未完成。
+      completedAt = lastNode?.ts;
+      terminalType = pendingRunNodes.some(
+        (node) => node.systemMessageLevel === "error",
+      )
+        ? "run.error"
+        : "run.complete";
+    } else {
+      completedAt = undefined;
+      terminalType = undefined;
+    }
+
     const responseDurationMs =
       typeof completedAt === "number" && typeof queryNode?.ts === "number"
         ? Math.max(0, completedAt - queryNode.ts)
         : undefined;
-
-    if (terminal) {
-      runTerminalCursor += 1;
-    }
 
     const runKeySource =
       queryNode?.id || pendingRunNodes[0]?.id || String(runTerminalCursor);
@@ -340,8 +382,8 @@ export function buildTimelineDisplayItems(
         taskItemsById,
         true,
       ),
-      runId: terminal?.runId,
-      terminalType: terminal?.type,
+      runId: terminal?.runId || resolvedRunId || undefined,
+      terminalType,
       completedAt,
       responseDurationMs,
     });
@@ -357,18 +399,22 @@ export function buildTimelineDisplayItems(
       node.messageVariant !== "steer" &&
       node.messageVariant !== "remember" &&
       node.messageVariant !== "learn";
-    const nextTerminal = runTerminals[runTerminalCursor];
+
+    // 早期 flush：节点 runId 变化说明进入了新的 run，不依赖会被裁剪的终态时间戳。
+    const nodeRunId = node.runId || "";
+    const activeRunId = currentRunId();
     if (
       pendingRunNodes.length > 0 &&
-      typeof nextTerminal?.timestamp === "number" &&
-      node.ts > nextTerminal.timestamp
+      nodeRunId &&
+      activeRunId &&
+      nodeRunId !== activeRunId
     ) {
-      flushRun();
+      flushRun(false);
     }
 
     if (isUserQuery) {
       flushStandalone();
-      flushRun();
+      flushRun(false);
       activeQueryNode = node;
       items.push({ kind: "query", key: `query_${node.id}`, node });
       continue;
@@ -380,7 +426,7 @@ export function buildTimelineDisplayItems(
       continue;
     }
 
-    if (runTerminalCursor < runTerminals.length || options.hasActiveRun) {
+    if (runTerminalCursor < runTerminals.ordered.length || options.hasActiveRun) {
       flushStandalone();
       pendingRunNodes.push(node);
       continue;
@@ -390,7 +436,7 @@ export function buildTimelineDisplayItems(
   }
 
   flushStandalone();
-  flushRun();
+  flushRun(true);
 
   return items;
 }
