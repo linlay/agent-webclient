@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { ArchiveDateRange } from "@/features/archive/lib/archiveViewModel";
+import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { t } from "@/shared/i18n";
@@ -53,6 +54,18 @@ const DateRangeField: React.FC<DateRangeFieldProps> = ({ label, range, onChange 
   );
 };
 
+const AGENT_ICON_PROPS = {
+  icon: {
+    className: "archive-filter-agent-icon",
+    width: 18,
+    height: 18,
+  },
+  avatar: {
+    className: "archive-filter-agent-icon",
+    size: 18,
+  },
+};
+
 export interface ArchiveFilterProps {
   agents: Agent[];
   agentFilter: string;
@@ -88,7 +101,17 @@ export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
   const agentOptions = useMemo(() => {
     const options = agents.map((agent) => ({
       value: String(agent.key || ""),
-      label: agent.name || agent.key,
+      label: (
+        <span className="archive-filter-agent-option">
+          <AgentIcon icon={agent.icon} type="agent" props={AGENT_ICON_PROPS} />
+          <span
+            className="archive-filter-agent-name"
+            title={agent.name || agent.key}
+          >
+            {agent.name || agent.key}
+          </span>
+        </span>
+      ),
     }));
     return [{ value: "", label: t("archive.filter.agentAll") }, ...options];
   }, [agents, t]);
@@ -104,6 +127,7 @@ export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
           value={agentFilter || undefined}
           placeholder={t("archive.filter.agentAll")}
           options={agentOptions}
+          allowClear
           aria-label={t("archive.filter.agent")}
           onChange={(value) => onAgentFilterChange(value ?? "")}
         />

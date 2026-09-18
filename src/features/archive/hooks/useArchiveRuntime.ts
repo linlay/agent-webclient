@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
+import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
 import {
   archiveChats,
   deleteArchive,
+  getAgents,
   getArchive,
   getArchives,
   restoreArchives,
@@ -42,6 +44,7 @@ export interface UseArchiveRuntimeOptions {
 export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
   const { state, dispatch } = useAppContext();
   const [query, setQuery] = useState("");
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [agentFilter, setAgentFilter] = useState("");
   const [archivedRange, setArchivedRange] = useState<ArchiveDateRange>(null);
   const [createdRange, setCreatedRange] = useState<ArchiveDateRange>(null);
@@ -160,6 +163,38 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     },
     [dispatch, updateSelected],
   );
+
+  useEffect(() => {
+    if (!options.active) return;
+    let disposed = false;
+    void getAgents({ includeTeam: false, scope: "nav" })
+      .then((response) => {
+        if (disposed) return;
+        const items = Array.isArray(response.data) ? (response.data as Agent[]) : [];
+        setAgents(
+          items.filter(
+            (item): item is Agent =>
+              Boolean(
+                item &&
+                  typeof item === "object" &&
+                  "key" in item &&
+                  String(item.key || "").trim(),
+              ),
+          ),
+        );
+      })
+      .catch((error) => {
+        if (disposed) return;
+        dispatch({
+          type: "APPEND_DEBUG",
+          line: `[archive agents error] ${(error as Error).message}`,
+        });
+        setAgents([]);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [dispatch, options.active]);
 
   useEffect(() => {
     if (!options.active) return;
@@ -286,7 +321,7 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
 
   const selectedItem = items.find((item) => item.chatId === selected);
   return {
-    agents: Array.isArray(state.agents) ? state.agents : [],
+    agents,
     query,
     setQuery,
     agentFilter,
