@@ -1,6 +1,6 @@
 import {
   SELECTED_TEXT_MAX_CHARACTERS,
-  reserveAnnotationIndex,
+  validAnnotationIndex,
   type SelectedTextFragment,
 } from "@/features/selection/lib/selectedTextReference";
 
@@ -85,7 +85,7 @@ export function parseTransferredSelectedTextFragment(
       !text.trim() || text.length > SELECTED_TEXT_MAX_CHARACTERS ||
       (sourceKind !== "message" && sourceKind !== "code") ||
       (meta !== undefined && (!isRecord(meta) || !hasOnlyKeys(meta, ["sourceKind"]))) ||
-      (reference.annotationIndex !== undefined && !reserveAnnotationIndex(reference.annotationIndex)) ||
+      (reference.annotationIndex !== undefined && !validAnnotationIndex(reference.annotationIndex)) ||
       (reference.annotation !== undefined && typeof reference.annotation !== "string")) return null;
   return {
     targetId,

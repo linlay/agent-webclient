@@ -162,6 +162,7 @@ function createSession(
     interruptPending: false,
     draft: persisted?.draft || "",
     draftSelections: [],
+    nextAnnotationIndex: 1,
     error: "",
     focusToken: 0,
     lastSeq: persisted?.lastSeq || 0,
@@ -551,7 +552,9 @@ export const BtwProvider: React.FC<{
       runtime.session.draftSelections = addSelectedTextFragment(
         runtime.session.draftSelections,
         fragment,
+        runtime.session.nextAnnotationIndex || 1,
       );
+      runtime.session.nextAnnotationIndex = Math.max(runtime.session.nextAnnotationIndex || 1, ...runtime.session.draftSelections.map(item => (item.reference.annotationIndex || 0) + 1));
       runtime.session.focusToken += 1;
       publish(runtime);
       return true;

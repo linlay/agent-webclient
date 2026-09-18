@@ -1,4 +1,4 @@
-import { readSelectedText, reserveAnnotationIndex } from "@/shared/contracts/selectedTextReference";
+import { readSelectedText, validAnnotationIndex } from "@/shared/contracts/selectedTextReference";
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -41,7 +41,7 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
         : undefined;
     acc.push({
       name,
-      ...(item.type === "selection" ? { text: readSelectedText(item), ...(reserveAnnotationIndex(item.annotationIndex) ? { annotationIndex: Number(item.annotationIndex) } : {}), ...(typeof item.annotation === "string" ? { annotation: item.annotation } : {}) } : {}),
+      ...(item.type === "selection" ? { text: readSelectedText(item), ...(validAnnotationIndex(item.annotationIndex) ? { annotationIndex: Number(item.annotationIndex) } : {}), ...(typeof item.annotation === "string" ? { annotation: item.annotation } : {}) } : {}),
       ...(id ? { id } : {}),
       ...(Number.isFinite(rawSize) && rawSize >= 0 ? { size: rawSize } : {}),
       ...(type ? { type } : {}),

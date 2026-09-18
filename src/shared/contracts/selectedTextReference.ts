@@ -20,11 +20,8 @@ export type SelectedTextFragment = {
   reference: SelectedTextReferenceV1;
 };
 
-let nextAnnotationIndex = 1;
-
-export function reserveAnnotationIndex(value: unknown): number | undefined {
+export function validAnnotationIndex(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) return undefined;
-  nextAnnotationIndex = Math.max(nextAnnotationIndex, value + 1);
   return value;
 }
 
@@ -60,7 +57,6 @@ export function createSelectedTextFragment(input: {
     reference: {
       id: createSelectionId(),
       type: "selection",
-      annotationIndex: nextAnnotationIndex++,
       text,
       meta: { sourceKind: input.sourceKind },
     },
@@ -78,13 +74,12 @@ export function selectedTextFragmentIdentity(fragment: SelectedTextFragment) {
 export function addSelectedTextFragment(
   current: readonly SelectedTextFragment[],
   fragment: SelectedTextFragment,
+  nextIndex = 1,
 ) {
   const identity = selectedTextFragmentIdentity(fragment);
   if (current.some(candidate => selectedTextFragmentIdentity(candidate) === identity)) return [...current];
-  current.forEach(candidate => reserveAnnotationIndex(candidate.reference.annotationIndex));
-  const incoming = reserveAnnotationIndex(fragment.reference.annotationIndex);
-  const index = incoming && !current.some(candidate => candidate.reference.annotationIndex === incoming)
-    ? incoming : nextAnnotationIndex++;
+  const index = current.reduce((next, candidate) => Math.max(next,
+    (validAnnotationIndex(candidate.reference.annotationIndex) || 0) + 1), nextIndex);
   return [...current, { ...fragment, reference: { ...fragment.reference, annotationIndex: index } }];
 }
 

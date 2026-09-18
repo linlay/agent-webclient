@@ -330,7 +330,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     },
     state,
   });
-  const selectedText = useSelectedTextFragments(state.chatId);
+  const selectedText = useSelectedTextFragments(state.chatId, sendReferences);
   const selectedFragments = useMemo(() => [
     ...sendAttachmentMeta.flatMap((attachment) => {
       const fragment = selectedTextFragmentFromAttachment(attachment);

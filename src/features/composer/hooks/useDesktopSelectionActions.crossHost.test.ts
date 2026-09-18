@@ -218,7 +218,7 @@ it.each(["MacIntel", "Win32"])("Desktop %s starts explanation once on its dedica
   expect(mockStartBtw).toHaveBeenCalledTimes(1);
   expect(mockStartBtw).toHaveBeenCalledWith(expect.objectContaining({
     requestId: "selection_explain-1", chatId: "chat-a", transportPurpose: "selection-explain",
-    message: "selection.explain.prompt", accessLevel: "default", model, references: [fragment.reference], stream: true,
+    message: "selection.explain.prompt", accessLevel: "default", model, references: [{ ...fragment.reference, annotationIndex: 1 }], stream: true,
     owner: { kind: "agent", agentKey: "agent-a" },
   }));
   await act(async () => { run.identity.resolve(identity("run-host", "canonical-chat")); await action; });

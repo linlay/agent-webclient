@@ -76,9 +76,9 @@ it("removes only references transferred to the queue and keeps other chats and l
     act(() => root.render(React.createElement(Harness, { chatId: "chat-b" })));
     act(() => { current.addFragment(other); });
     act(() => notifySelectedTextReferencesAccepted([first.reference]));
-    expect(current.fragments).toEqual([other]);
+    expect(current.fragments).toEqual([{ ...other, reference: { ...other.reference, annotationIndex: 1 } }]);
     act(() => root.render(React.createElement(Harness, { chatId: "chat-a" })));
-    expect(current.fragments).toEqual([later]);
+    expect(current.fragments).toEqual([{ ...later, reference: { ...later.reference, annotationIndex: 2 } }]);
   } finally { act(() => root.unmount()); }
 });
 
@@ -103,5 +103,32 @@ it("edits an annotation in the quote popover and keeps it in the send snapshot",
     expect(current.attachments[0].annotation).toBe("please simplify");
     act(() => { input.value = ""; Simulate.change(input); });
     expect(current.references[0]).not.toHaveProperty("annotation");
+  } finally { act(() => root.unmount()); }
+});
+
+it("isolates annotation numbering by chat and preserves each draft under StrictMode", () => {
+  const root = createRoot(document.createElement("div"));
+  let current!: ReturnType<typeof useSelectedTextFragments>;
+  const Harness = ({ chatId, restored = [] }: {chatId:string; restored?:unknown[]}) => { current = useSelectedTextFragments(chatId, restored); return null; };
+  const render = (chatId:string, restored:unknown[] = []) => act(() => root.render(React.createElement(React.StrictMode, null, React.createElement(Harness,{chatId,restored}))));
+  const add = (text:string) => act(() => { current.addFragment(createSelectedTextFragment({text,targetId:text,sourceKind:"message"})!); });
+  const indices = () => current.references.map(reference => reference.annotationIndex);
+  try {
+    render("chat-a"); add("first"); add("second");
+    expect(indices()).toEqual([1,2]);
+    const secondID = current.references[1].id;
+    act(() => current.updateAnnotation(secondID,"keep this comment"));
+    act(() => current.removeFragment(current.references[0].id));
+    render("chat-b"); add("third");
+    expect(indices()).toEqual([1]);
+    render("chat-a");
+    expect(indices()).toEqual([2]);
+    expect(current.references[0].annotation).toBe("keep this comment");
+    add("fourth"); expect(indices()).toEqual([2,3]);
+    act(() => { current.references.forEach(reference => current.removeFragment(reference.id)); });
+    add("fifth"); expect(indices()).toEqual([4]);
+    render("chat-c",[{type:"selection",annotationIndex:7}]); add("restored-next"); expect(indices()).toEqual([8]);
+    render(""); add("blank-one"); add("blank-two"); expect(indices()).toEqual([1,2]);
+    render("chat-b"); render(""); add("fresh-blank"); expect(indices()).toEqual([1]);
   } finally { act(() => root.unmount()); }
 });

@@ -110,7 +110,7 @@ export function useDesktopSelectionActions(input: {
         message: t("selection.explain.prompt"),
         accessLevel: "default",
         model,
-        references: [fragment.reference],
+        references: [{ ...fragment.reference, annotationIndex: 1 }],
         stream: true,
         owner,
         transportPurpose: "selection-explain",

@@ -36,6 +36,7 @@ export interface BTWSessionState {
   interruptPending: boolean;
   draft: string;
   draftSelections: SelectedTextFragment[];
+  nextAnnotationIndex?: number;
   error: string;
   focusToken: number;
   lastSeq: number;

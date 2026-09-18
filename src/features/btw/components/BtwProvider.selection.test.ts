@@ -31,7 +31,7 @@ it.each([true, false])("preserves unsent selections while the pending request is
     act(() => root.render(React.createElement(BtwProvider, null, React.createElement(Harness))));
     act(() => { btw.addDraftSelection("chat-a", first); });
     act(() => { btw.updateDraftAnnotation("chat-a", first.reference.id, "rewrite this"); });
-    const annotated = { ...first, reference: { ...first.reference, annotation: "rewrite this" } };
+    const annotated = { ...first, reference: { ...first.reference, annotation: "rewrite this", annotationIndex: 1 } };
     let sending!: Promise<boolean>;
     act(() => { sending = btw.sendBTW("chat-a", "explain"); });
     act(() => { btw.addDraftSelection("chat-a", later); });
@@ -41,9 +41,28 @@ it.each([true, false])("preserves unsent selections while the pending request is
       else rejectIdentity(new Error("not accepted"));
       await sending;
     });
-    expect(btw.getSession("chat-a")?.draftSelections).toEqual(accepted ? [later] : [annotated, later]);
+    const numberedLater = { ...later, reference: { ...later.reference, annotationIndex: 2 } };
+    expect(btw.getSession("chat-a")?.draftSelections).toEqual(accepted ? [numberedLater] : [annotated, numberedLater]);
   } finally {
     act(() => root.unmount());
     localStorage.clear();
   }
+});
+
+it("keeps separate counters for side chats and does not recycle deleted indices", () => {
+  localStorage.clear(); mockStateRef.current = createInitialState();
+  let btw!: ReturnType<typeof useBTW>;
+  const Harness = () => { btw = useBTW(); return null; };
+  const root = createRoot(document.createElement("div"));
+  const add = (chat:string,text:string) => act(() => { btw.addDraftSelection(chat,createSelectedTextFragment({text,targetId:text,sourceKind:"message"})!); });
+  try {
+    act(() => root.render(React.createElement(BtwProvider,null,React.createElement(Harness))));
+    add("chat-a","one"); add("chat-a","two"); add("chat-b","three");
+    expect(btw.getSession("chat-a")?.draftSelections.map(f=>f.reference.annotationIndex)).toEqual([1,2]);
+    expect(btw.getSession("chat-b")?.draftSelections.map(f=>f.reference.annotationIndex)).toEqual([1]);
+    const selections = btw.getSession("chat-a")!.draftSelections;
+    act(()=>selections.forEach(f=>btw.removeDraftSelection("chat-a",f.reference.id)));
+    add("chat-a","four");
+    expect(btw.getSession("chat-a")?.draftSelections[0].reference.annotationIndex).toBe(3);
+  } finally { act(()=>root.unmount()); localStorage.clear(); }
 });

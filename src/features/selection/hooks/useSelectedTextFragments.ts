@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   addSelectedTextFragment,
   updateSelectedTextAnnotation,
+  validAnnotationIndex,
   SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT,
   selectedTextReferenceToAttachment,
   type SelectedTextFragment,
@@ -9,43 +10,64 @@ import {
 
 const EMPTY_SELECTED_TEXT_FRAGMENTS: SelectedTextFragment[] = [];
 
-export function useSelectedTextFragments(chatKey: string) {
+type SelectionDraft = { fragments: SelectedTextFragment[]; nextIndex: number };
+
+export function useSelectedTextFragments(chatKey: string, restoredReferences: readonly unknown[] = []) {
   const normalizedChatKey = String(chatKey || "").trim() || "__new_chat__";
-  const [byChat, setByChat] = useState<Map<string, SelectedTextFragment[]>>(
+  const [byChat, setByChat] = useState<Map<string, SelectionDraft>>(
     () => new Map(),
   );
-  const fragments = byChat.get(normalizedChatKey) || EMPTY_SELECTED_TEXT_FRAGMENTS;
+  const fragments = byChat.get(normalizedChatKey)?.fragments || EMPTY_SELECTED_TEXT_FRAGMENTS;
+  const restoredNextIndex = restoredReferences.reduce<number>((next, value) => {
+    if (!value || typeof value !== "object") return next;
+    const ref = value as { type?: string; annotationIndex?: number };
+    return ref.type === "selection" ? Math.max(next, (validAnnotationIndex(ref.annotationIndex) || 0) + 1) : next;
+  }, 1);
 
   const addFragment = useCallback((fragment: SelectedTextFragment) => {
     setByChat((current) => {
-      const previous = current.get(normalizedChatKey) || [];
-      const nextFragments = addSelectedTextFragment(previous, fragment);
+      const draft = current.get(normalizedChatKey) || { fragments: [], nextIndex: 1 };
+      const previous = draft.fragments;
+      const nextFragments = addSelectedTextFragment(previous, fragment, Math.max(draft.nextIndex, restoredNextIndex));
       if (nextFragments.length === previous.length) return current;
       const next = new Map(current);
-      next.set(normalizedChatKey, nextFragments);
+      next.set(normalizedChatKey, { fragments: nextFragments, nextIndex: nextFragments[nextFragments.length - 1].reference.annotationIndex! + 1 });
       return next;
     });
     return true;
-  }, [normalizedChatKey]);
+  }, [normalizedChatKey, restoredNextIndex]);
 
   const updateAnnotation = useCallback((referenceId: string, annotation: string) => {
     setByChat(current => {
       const next = new Map(current);
-      next.set(normalizedChatKey, updateSelectedTextAnnotation(current.get(normalizedChatKey) || [], referenceId, annotation));
+      const draft = current.get(normalizedChatKey);
+      if (!draft) return current;
+      next.set(normalizedChatKey, { ...draft, fragments: updateSelectedTextAnnotation(draft.fragments, referenceId, annotation) });
       return next;
     });
   }, [normalizedChatKey]);
 
   const removeFragment = useCallback((referenceId: string) => {
     setByChat((current) => {
-      const previous = current.get(normalizedChatKey) || [];
+      const draft = current.get(normalizedChatKey);
+      if (!draft) return current;
+      const previous = draft.fragments;
       const nextFragments = previous.filter(
         (fragment) => fragment.reference.id !== referenceId,
       );
       if (nextFragments.length === previous.length) return current;
       const next = new Map(current);
-      if (nextFragments.length > 0) next.set(normalizedChatKey, nextFragments);
-      else next.delete(normalizedChatKey);
+      next.set(normalizedChatKey, { ...draft, fragments: nextFragments });
+      return next;
+    });
+  }, [normalizedChatKey]);
+
+  useEffect(() => {
+    if (normalizedChatKey !== "__new_chat__") return;
+    setByChat(current => {
+      if (!current.has(normalizedChatKey)) return current;
+      const next = new Map(current);
+      next.delete(normalizedChatKey);
       return next;
     });
   }, [normalizedChatKey]);
@@ -61,11 +83,12 @@ export function useSelectedTextFragments(chatKey: string) {
       if (ids.size === 0) return;
       setByChat((current) => {
         let changed = false;
-        const next = new Map<string, SelectedTextFragment[]>();
-        for (const [key, items] of current) {
+        const next = new Map<string, SelectionDraft>();
+        for (const [key, draft] of current) {
+          const items = draft.fragments;
           const retained = items.filter((item) => !ids.has(item.reference.id));
           if (retained.length !== items.length) changed = true;
-          if (retained.length > 0) next.set(key, retained);
+          next.set(key, { ...draft, fragments: retained });
         }
         return changed ? next : current;
       });

@@ -47,6 +47,7 @@ export function createStandaloneBtwSession(
     interruptPending: false,
     draft: "",
     draftSelections: [],
+    nextAnnotationIndex: 1,
     error: "",
     focusToken: 1,
     lastSeq: 0,
@@ -391,7 +392,9 @@ export function useStandaloneBtwRuntime(input: {
     current.draftSelections = addSelectedTextFragment(
       current.draftSelections,
       fragment,
+      current.nextAnnotationIndex || 1,
     );
+    current.nextAnnotationIndex = Math.max(current.nextAnnotationIndex || 1, ...current.draftSelections.map(item => (item.reference.annotationIndex || 0) + 1));
     current.focusToken += 1;
     publish(current);
     return true;

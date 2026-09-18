@@ -3,7 +3,7 @@ import {
   SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT,
   normalizeSelectedText,
   readSelectedText,
-  reserveAnnotationIndex,
+  validAnnotationIndex,
   selectedTextByteLength,
   type SelectedTextFragment,
 } from "@/shared/contracts/selectedTextReference";
@@ -45,7 +45,7 @@ export function selectedTextFragmentFromAttachment(
       id,
       type: "selection",
       text,
-      ...(reserveAnnotationIndex(attachment.annotationIndex) ? { annotationIndex: attachment.annotationIndex } : {}),
+      ...(validAnnotationIndex(attachment.annotationIndex) ? { annotationIndex: attachment.annotationIndex } : {}),
       ...(attachment.annotation ? { annotation: attachment.annotation } : {}),
       meta: { sourceKind },
     },

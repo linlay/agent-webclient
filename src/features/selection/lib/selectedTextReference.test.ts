@@ -75,15 +75,16 @@ it("preserves optional annotations through attachments and name-free server refe
   expect(selectedTextFragmentFromAttachment({id:"legacy",name:"Selected text",type:"selection",meta:{text:"old"}})).toBeNull();
 });
 
-it("keeps annotation indices stable across edits and deletion, and resolves incoming collisions", () => {
-  const { updateSelectedTextAnnotation } = require("./selectedTextReference");
+it("allocates only inside the destination draft without mutating captured references", () => {
+  const { updateSelectedTextAnnotation, validAnnotationIndex } = require("./selectedTextReference");
   const first = createSelectedTextFragment({text:"one",targetId:"m1",sourceKind:"message"})!;
   const second = createSelectedTextFragment({text:"two",targetId:"m2",sourceKind:"message"})!;
-  expect(second.reference.annotationIndex).toBeGreaterThan(first.reference.annotationIndex!);
-  const edited = updateSelectedTextAnnotation([second], second.reference.id, "comment");
-  expect(edited[0].reference.annotationIndex).toBe(second.reference.annotationIndex);
-  const incoming = {...first,reference:{...first.reference,annotationIndex:second.reference.annotationIndex}};
-  const merged = addSelectedTextFragment([second],incoming);
-  expect(merged[0].reference.annotationIndex).toBe(second.reference.annotationIndex);
-  expect(merged[1].reference.annotationIndex).toBeGreaterThan(second.reference.annotationIndex!);
+  expect(first.reference.annotationIndex).toBeUndefined();
+  const numbered = addSelectedTextFragment(addSelectedTextFragment([],first),second);
+  expect(numbered.map(f=>f.reference.annotationIndex)).toEqual([1,2]);
+  expect(updateSelectedTextAnnotation(numbered,second.reference.id,"comment")[1].reference.annotationIndex).toBe(2);
+  validAnnotationIndex(999);
+  const incoming = {...first,reference:{...first.reference,annotationIndex:100}};
+  expect(addSelectedTextFragment([],incoming)[0].reference.annotationIndex).toBe(1);
+  expect(addSelectedTextFragment([],first,3)[0].reference.annotationIndex).toBe(3);
 });
