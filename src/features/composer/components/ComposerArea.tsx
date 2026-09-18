@@ -710,7 +710,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !hasSendableContent(inputValue, sendReferences, isMainChatRunning);
+    !hasSendableContent(inputValue, combinedSendReferences, isMainChatRunning);
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,

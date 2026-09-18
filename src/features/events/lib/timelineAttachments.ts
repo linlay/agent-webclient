@@ -62,3 +62,8 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
 
   return latestAttachments.reverse();
 }
+
+export function hasTimelineAttachmentContent(attachments: readonly TimelineAttachment[]): boolean {
+  return attachments.some(item => Boolean(item.url?.trim()) ||
+    (item.type === 'selection' && typeof item.meta?.text === 'string' && Boolean(item.meta.text.trim())));
+}

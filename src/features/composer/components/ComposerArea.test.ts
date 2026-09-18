@@ -1,3 +1,5 @@
+import * as selectedTextHooks from "@/features/selection/hooks/useSelectedTextFragments";
+import { createSelectedTextFragment, selectedTextReferenceToAttachment } from "@/features/selection/lib/selectedTextReference";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
@@ -77,9 +79,6 @@ jest.mock("@/shared/config/featureFlags", () => ({
   isVoiceEnabled: () => false,
 }));
 
-jest.mock("@/features/runs/lib/runRuntimeState", () => ({
-  resolveMainChatRuntime: () => ({ running: false }),
-}));
 
 jest.mock("@/shared/ui/UiButton", () => ({
   UiButton: ({ children, ...rest }: Record<string, unknown>) =>
@@ -511,6 +510,22 @@ describe("ComposerArea", () => {
     renderToStaticMarkup(React.createElement(ComposerArea));
 
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
+  });
+
+  it.each([true, false])("uses fresh selection references for send eligibility (running=%s)", (running) => {
+    const fragment = createSelectedTextFragment({ text: "selected passage", targetId: "message-a", sourceKind: "message" })!;
+    const hook = jest.spyOn(selectedTextHooks, "useSelectedTextFragments").mockReturnValue({
+      fragments: [fragment], references: [fragment.reference], attachments: [selectedTextReferenceToAttachment(fragment)],
+      addFragment: jest.fn(), removeFragment: jest.fn(),
+    });
+    const state = { ...createInitialState(), chatId: "chat-a", streaming: running,
+      currentChatActiveRun: running ? { chatId: "chat-a", runId: "run-a", agentKey: "agent-a" } : null };
+    useAppState.mockReturnValue(state);
+    useAppContext.mockReturnValue({ stateRef: { current: state } });
+    try {
+      renderToStaticMarkup(React.createElement(ComposerArea));
+      expect(mockComposerActionsProps[0].sendDisabled).toBe(!running);
+    } finally { hook.mockRestore(); }
   });
 
   it("previews restored steer selections but requires query text when idle", () => {

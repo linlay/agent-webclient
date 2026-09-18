@@ -407,3 +407,40 @@ it('restores file-only entries even behind a text steer when the run ends', () =
  expect(messages).toHaveLength(1);
  expect((messages[0][0] as CustomEvent).detail.message).toBe('message from A');
 });
+
+it('queues a selection-only steer and confirms it with its reference intact', () => {
+  const h = mount({ sendReferences: selectionReferences });
+  h.stateRef.current.pendingSteers = {};
+  h.send();
+  const queued = h.stateRef.current.pendingSteers['chat-a'][0];
+  expect(queued).toMatchObject({ message: '', references: selectionReferences, status: 'queued' });
+  h.ack({ steerId: queued.steerId, message: '', references: selectionReferences });
+  expect(h.stateRef.current.timelineNodes.get('steer_' + queued.steerId)).toMatchObject({
+    text: '', attachments: [expect.objectContaining({ type: 'selection', meta: selectionReferences[0].meta })],
+  });
+});
+
+it('restores selection-only input when the run ends instead of starting an empty query', () => {
+  const h = mount();
+  Object.assign(h.stateRef.current.pendingSteers['chat-a'][0], { message: '', references: selectionReferences });
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { currentChatActiveRun: null, streaming: false,
+    chatTransition: { seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '' } } });
+  h.render(false);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(selectionReferences);
+  expect(sendEvent.mock.calls.some(([event]) => event.type === 'agent:send-message')).toBe(false);
+});
+
+it.each(['cancel', 'reject'] as const)('restores a selection-only steer after %s', async outcome => {
+  const h = mount();
+  Object.assign(h.stateRef.current.pendingSteers['chat-a'][0], { message: '', references: selectionReferences });
+  if (outcome === 'cancel') h.cancel();
+  else {
+    mockSteer.mockResolvedValue({ data: { accepted: false, status: 'invalid_reference' } });
+    await h.submit();
+    expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({ message: '', references: selectionReferences }));
+  }
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(selectionReferences);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+});

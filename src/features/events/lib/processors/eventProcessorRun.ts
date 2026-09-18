@@ -5,7 +5,7 @@ import type {
   EventProcessorConfig,
   EventProcessorState,
 } from "@/features/events/lib/eventProcessorTypes";
-import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
+import { hasTimelineAttachmentContent, normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 import { applyTaskBindingToNode } from "@/features/events/lib/processors/eventProcessorShared";
 import { t } from "@/shared/i18n";
@@ -51,7 +51,7 @@ export function processRunEvent(
   if (type === "request.steer") {
     const text = safeText(event.message);
     const attachments = normalizeTimelineAttachments(event.references);
-    if (!text.trim() && !attachments.some(item => item.url?.trim())) return commands;
+    if (!text.trim() && !hasTimelineAttachmentContent(attachments)) return commands;
     const counter = config.mode === "replay" ? state.nextCounter() : null;
     const variant = "steer";
     const prefix = "steer";

@@ -760,7 +760,7 @@ describe('useComposerSend active run gate', () => {
     expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
   });
 
-  it.each(['hello', ''])('queues selection references with active-run steering and requires text (%s)', (inputValue) => {
+  it.each(['hello', ''])('queues selection references with or without text during an active run (%s)', (inputValue) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
     state.currentChatActiveRun = {
@@ -849,19 +849,11 @@ describe('useComposerSend active run gate', () => {
     renderToStaticMarkup(React.createElement(Harness));
     actions?.handleSend();
 
-    if (!inputValue) {
-      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
-        type: 'ENQUEUE_PENDING_STEER',
-      }));
-      expect(setInputValue).not.toHaveBeenCalled();
-      return;
-    }
-
     expect(dispatch).toHaveBeenCalledWith({
       type: 'ENQUEUE_PENDING_STEER',
       chatId: 'chat-1',
       steer: expect.objectContaining({
-        message: 'hello',
+        message: inputValue,
         requestId: 'req_request',
         runId: 'run-active',
         status: 'queued',
