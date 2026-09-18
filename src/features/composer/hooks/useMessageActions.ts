@@ -1,4 +1,4 @@
-import { hasSendableContent } from "@/features/composer/lib/sendEligibility";
+import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import { useCallback, useEffect } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
@@ -285,7 +285,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         seenSkillKeys.add(identity);
         return [normalizedKey];
       });
-      if (!hasSendableContent(rawMessage, normalizedReferences)) return;
+      if (!hasSendableContent(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
       if (
         areConversationInteractionsBlocked(stateRef.current)
       ) {
@@ -396,7 +396,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       );
       const selectedAgentMode = String(selectedAgent?.mode || "").trim();
 
-      if (!hasSendableContent(cleanMessage, normalizedReferences)) return;
+      if (!hasSendableContent(cleanMessage, normalizedReferences, hasQueryHistory(stateRef.current, chatId))) return;
       if (!selectedOwner) {
         dispatch({
           type: "APPEND_DEBUG",
@@ -863,7 +863,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             .map((key) => String(key || "").trim())
             .filter(Boolean)
         : [];
-      if (hasSendableComposerMessage(message, references)) {
+      if (hasSendableComposerMessage(message, references, hasQueryHistory(stateRef.current, chatId || stateRef.current.chatId))) {
         void sendMessage(
           message,
           references,
@@ -890,6 +890,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 export function hasSendableComposerMessage(
   message: unknown,
   references: unknown,
+  hasHistory = false,
 ) {
-  return hasSendableContent(message, references);
+  return hasSendableContent(message, references, hasHistory);
 }

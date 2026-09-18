@@ -45,6 +45,7 @@ import type {
 } from "@/features/btw/lib/btwTypes";
 import {
   addSelectedTextFragment,
+  renumberSelectedTextFragments,
   updateSelectedTextAnnotation,
   selectedTextReferenceToAttachment,
   type SelectedTextFragment,
@@ -330,6 +331,12 @@ export const BtwProvider: React.FC<{
         });
       }
 
+      if (["run.complete", "run.cancel", "run.error"].includes(type) &&
+        runtime.session.annotationCompletedRunId !== String(event.runId || runtime.session.runId)) {
+        runtime.session.annotationCompletedRunId = String(event.runId || runtime.session.runId);
+        runtime.session.draftSelections = renumberSelectedTextFragments(runtime.session.draftSelections);
+        runtime.session.nextAnnotationIndex = runtime.session.draftSelections.length + 1;
+      }
       if (type === "usage.snapshot") {
         runtime.session.usage = event as BTWSessionState["usage"];
       } else if (type === "run.complete" || type === "run.cancel") {

@@ -96,3 +96,10 @@ export function updateSelectedTextAnnotation(
     return { ...fragment, reference: { ...reference, ...(annotation.trim() ? { annotation } : {}) } };
   });
 }
+
+/** A completed run starts a new numbering scope without changing reference IDs. */
+export function renumberSelectedTextFragments(fragments: readonly SelectedTextFragment[]): SelectedTextFragment[] {
+  return fragments.map((fragment, index) => ({
+    ...fragment, reference: { ...fragment.reference, annotationIndex: index + 1 },
+  }));
+}

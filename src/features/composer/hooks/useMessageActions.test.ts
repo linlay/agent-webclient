@@ -176,6 +176,25 @@ describe("useMessageActions temporary pin", () => {
     await sending;
   });
 
+  it.each([false, true])("gates reference-only query on confirmed history: %s", async hasHistory => {
+    const state = createInitialState();
+    state.chatId = "chat_1";
+    state.chats = [{ chatId: "chat_1", agentKey: "agent-coder", ...(hasHistory ? { lastRunId: "previous-run" } : {}) }];
+    state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
+    useAppContext.mockReturnValue({
+      state, stateRef: { current: state }, dispatch: jest.fn(),
+      querySessionsRef: { current: new Map() }, chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" },
+    });
+    let actions: ReturnType<typeof useMessageActions>;
+    const Harness = () => { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    const references = [{ type: "selection", text: "selected passage" }];
+    await actions!.sendMessage("", references);
+    if (hasHistory) expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({ message: "", references }));
+    else expect(startQuery).not.toHaveBeenCalled();
+  });
+
   it("clears a matching temporary pinned agent when the first query starts", async () => {
     const state = createInitialState();
     const worker: WorkerRow = {

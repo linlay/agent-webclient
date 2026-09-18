@@ -1,5 +1,5 @@
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
-import { hasSendableContent } from "@/features/composer/lib/sendEligibility";
+import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import React, {
   useCallback,
   useEffect,
@@ -330,7 +330,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     },
     state,
   });
-  const selectedText = useSelectedTextFragments(state.chatId, sendReferences);
+  const completedRun = [...state.events].reverse().find(event =>
+    ["run.complete", "run.cancel", "run.error"].includes(event.type) && !event.taskId &&
+    (!event.chatId || event.chatId === state.chatId),
+  );
+  const completedRunId = String(completedRun?.runId || (!isMainChatRunning &&
+    state.chats.find(chat => chat.chatId === state.chatId)?.lastRunId) || "");
+  const selectedText = useSelectedTextFragments(state.chatId, sendReferences, completedRunId);
   const selectedFragments = useMemo(() => [
     ...sendAttachmentMeta.flatMap((attachment) => {
       const fragment = selectedTextFragmentFromAttachment(attachment);
@@ -723,7 +729,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !hasSendableContent(inputValue, combinedSendReferences, isMainChatRunning);
+    !hasSendableContent(inputValue, combinedSendReferences, isMainChatRunning || hasQueryHistory(state));
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,

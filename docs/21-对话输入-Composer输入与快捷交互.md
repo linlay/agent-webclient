@@ -12,7 +12,7 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 ## 核心流程
 用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。历史 Chat 的文本草稿按 `chatId` 保存和恢复；未获得稳定 `chatId` 的 New Chat 统一使用空 key，因此不同 Agent 的 New Chat 共享同一份运行期草稿。普通 Chat 或 Agent 切换只切换当前草稿，不清空已保存内容；用户发送时清空该草稿，宿主提供显式一次性预填时则覆盖它。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的“必须使用”标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
 
-跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条注释`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，运行中发送时可独立或随文字一起进入 steer 队列；入队后由队列持有引用，取消或拒绝时恢复，Run 结束后有文字的排队项可转 query 并继续携带引用，纯选区排队项恢复输入区等待补充文字。普通 query 始终要求非空文字；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
+跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条批注`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，运行中发送时可独立或随文字一起进入 steer 队列；入队后由队列持有引用，取消或拒绝时恢复，Run 结束后，已有主 query 历史的纯选区排队项也可转 query 并继续携带引用；缺少历史确认时恢复输入区等待正文。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，正文和有效引用不能同时为空；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
 
 Side question Tab 默认不显示。`/btw` 会先为当前 chat 创建一个空 session，再显示并激活该 Tab；`/btw 问题` 会在主 query/steer 路由前被识别，并把问题作为全新隐藏只读分支的首次请求发送，不能携带此前已关闭分支的 `btwId`。BTW 可以和主 run 并行；没有有效 `chatId` 时命令不可用。
 

@@ -132,3 +132,25 @@ it("isolates annotation numbering by chat and preserves each draft under StrictM
     render("chat-b"); render(""); add("fresh-blank"); expect(indices()).toEqual([1]);
   } finally { act(() => root.unmount()); }
 });
+
+
+it("restarts numbering after each completed run while keeping unsent comments", () => {
+  const root = createRoot(document.createElement("div"));
+  let current!: ReturnType<typeof useSelectedTextFragments>;
+  const Harness = ({ run }: { run: string }) => { current = useSelectedTextFragments("chat-a", [], run); return null; };
+  const render = (run: string) => act(() => root.render(React.createElement(Harness, { run })));
+  const add = (text: string) => act(() => { current.addFragment(createSelectedTextFragment({ text, targetId: text, sourceKind: "message" })!); });
+  try {
+    render(""); add("first"); add("second");
+    act(() => current.removeFragment(current.references[0].id));
+    act(() => current.updateAnnotation(current.references[0].id, "keep"));
+    render("run-1");
+    expect(current.references[0]).toMatchObject({ annotationIndex: 1, annotation: "keep", text: "second" });
+    add("third"); expect(current.references.map(ref => ref.annotationIndex)).toEqual([1, 2]);
+    act(() => current.references.forEach(ref => current.removeFragment(ref.id)));
+    render("run-2"); add("fourth");
+    expect(current.references[0].annotationIndex).toBe(1);
+    render("run-2"); add("fifth");
+    expect(current.references.map(ref => ref.annotationIndex)).toEqual([1, 2]);
+  } finally { act(() => root.unmount()); }
+});

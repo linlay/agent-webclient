@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   addSelectedTextFragment,
+  renumberSelectedTextFragments,
   updateSelectedTextAnnotation,
   validAnnotationIndex,
   SELECTED_TEXT_REFERENCES_ACCEPTED_EVENT,
@@ -10,9 +11,9 @@ import {
 
 const EMPTY_SELECTED_TEXT_FRAGMENTS: SelectedTextFragment[] = [];
 
-type SelectionDraft = { fragments: SelectedTextFragment[]; nextIndex: number };
+type SelectionDraft = { fragments: SelectedTextFragment[]; nextIndex: number; completedRunId?: string };
 
-export function useSelectedTextFragments(chatKey: string, restoredReferences: readonly unknown[] = []) {
+export function useSelectedTextFragments(chatKey: string, restoredReferences: readonly unknown[] = [], completedRunId = "") {
   const normalizedChatKey = String(chatKey || "").trim() || "__new_chat__";
   const [byChat, setByChat] = useState<Map<string, SelectionDraft>>(
     () => new Map(),
@@ -24,18 +25,31 @@ export function useSelectedTextFragments(chatKey: string, restoredReferences: re
     return ref.type === "selection" ? Math.max(next, (validAnnotationIndex(ref.annotationIndex) || 0) + 1) : next;
   }, 1);
 
+  useEffect(() => {
+    if (!completedRunId) return;
+    setByChat(current => {
+      const draft = current.get(normalizedChatKey);
+      if (!draft || draft.completedRunId === completedRunId) return current;
+      // Keep unsent text and comments, but their numbers belong to the next run.
+      const fragments = renumberSelectedTextFragments(draft.fragments);
+      const next = new Map(current);
+      next.set(normalizedChatKey, { fragments, nextIndex: fragments.length + 1, completedRunId });
+      return next;
+    });
+  }, [normalizedChatKey, completedRunId]);
+
   const addFragment = useCallback((fragment: SelectedTextFragment) => {
     setByChat((current) => {
-      const draft = current.get(normalizedChatKey) || { fragments: [], nextIndex: 1 };
+      const draft = current.get(normalizedChatKey) || { fragments: [], nextIndex: 1, completedRunId };
       const previous = draft.fragments;
       const nextFragments = addSelectedTextFragment(previous, fragment, Math.max(draft.nextIndex, restoredNextIndex));
       if (nextFragments.length === previous.length) return current;
       const next = new Map(current);
-      next.set(normalizedChatKey, { fragments: nextFragments, nextIndex: nextFragments[nextFragments.length - 1].reference.annotationIndex! + 1 });
+      next.set(normalizedChatKey, { ...draft, fragments: nextFragments, nextIndex: nextFragments[nextFragments.length - 1].reference.annotationIndex! + 1 });
       return next;
     });
     return true;
-  }, [normalizedChatKey, restoredNextIndex]);
+  }, [normalizedChatKey, restoredNextIndex, completedRunId]);
 
   const updateAnnotation = useCallback((referenceId: string, annotation: string) => {
     setByChat(current => {

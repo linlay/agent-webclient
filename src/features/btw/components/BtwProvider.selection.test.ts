@@ -43,6 +43,14 @@ it.each([true, false])("preserves unsent selections while the pending request is
     });
     const numberedLater = { ...later, reference: { ...later.reference, annotationIndex: 2 } };
     expect(btw.getSession("chat-a")?.draftSelections).toEqual(accepted ? [numberedLater] : [annotated, numberedLater]);
+    if (accepted) {
+      act(() => mockRuns.startBtw.mock.calls.at(-1)![0].onEvent({ type: "run.complete", chatId: "chat-a", runId: "run-a" }));
+      expect(btw.getSession("chat-a")?.draftSelections[0].reference.annotationIndex).toBe(1);
+      act(() => btw.removeDraftSelection("chat-a", later.reference.id));
+      act(() => mockRuns.startBtw.mock.calls.at(-1)![0].onEvent({ type: "run.complete", chatId: "chat-a", runId: "run-b" }));
+      act(() => btw.addDraftSelection("chat-a", first));
+      expect(btw.getSession("chat-a")?.draftSelections[0].reference.annotationIndex).toBe(1);
+    }
   } finally {
     act(() => root.unmount());
     localStorage.clear();

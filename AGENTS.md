@@ -191,4 +191,4 @@ Git 提交与推送规范：
 
 VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 继续兼容；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
 
-运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。query 始终要求非空文字；Run 结束后有文字的排队项可转 query，纯附件恢复输入区等待补充文字。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
+运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，正文和有效引用不能同时为空；Run 结束后，已有主 query 历史的纯引用排队项也可转为后续 query；缺少历史确认时恢复输入区等待正文。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。

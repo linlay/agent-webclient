@@ -41,7 +41,7 @@ import { resolveCurrentWorkerSummary, supportsActiveRunContextCompact } from "@/
 import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
 import { notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
-import { hasSendableContent } from "@/features/composer/lib/sendEligibility";
+import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
 
 export {
   buildCompactUsageSnapshot,
@@ -175,6 +175,8 @@ export function useComposerSend(input: UseComposerSendInput) {
   const { openBTW } = useBTW();
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
+  const pendingSentReferencesRef = useRef("");
+  const referenceSignature = JSON.stringify(sendReferences);
   const interruptSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     submitRememberCommand,
@@ -231,6 +233,10 @@ export function useComposerSend(input: UseComposerSendInput) {
     };
   }, []);
 
+  useEffect(() => {
+    pendingSendRef.current = false;
+  }, [mainChatRunning, state.chatId, state.runId, referenceSignature]);
+
   const prevMainRuntimeRef = useRef({ chatId: state.chatId, runId: state.runId, running: mainChatRunning });
   useEffect(() => {
     const currentState = stateRef.current;
@@ -241,13 +247,14 @@ export function useComposerSend(input: UseComposerSendInput) {
       (runtime.runId && runtime.runId !== previous.runId) ||
       (currentState.chatTransition && currentState.chatTransition.phase !== "ready")) return;
     const queued = (currentState.pendingSteers[currentState.chatId] || []).filter(steer => steer.status === "queued");
-    const fileOnly = queued.filter(steer => !hasSendableContent(steer.message, steer.references));
-    for (const steer of fileOnly) {
-      // A file-only steer cannot start a new query. Keep the files in the draft.
+    const allowReferenceOnly = hasQueryHistory(currentState);
+    const needsText = queued.filter(steer => !hasSendableContent(steer.message, steer.references, allowReferenceOnly));
+    for (const steer of needsText) {
+      // Without confirmed query history, keep reference-only content in the draft.
       dispatch({ type: "RESTORE_PENDING_STEER", chatId: currentState.chatId, runId: steer.runId, steerId: steer.steerId });
     }
-    if (fileOnly.length) void messageApi.warning(t("composer.steer.addText"));
-    const firstQueued = queued.find(steer => hasSendableContent(steer.message, steer.references));
+    if (needsText.length) void messageApi.warning(t("composer.steer.addText"));
+    const firstQueued = queued.find(steer => hasSendableContent(steer.message, steer.references, allowReferenceOnly));
     if (!firstQueued) return;
     dispatch({ type: "REMOVE_PENDING_STEER", chatId: currentState.chatId, runId: firstQueued.runId, steerId: firstQueued.steerId });
     window.dispatchEvent(
@@ -410,7 +417,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     const message = inputValue.trim();
     if (!hasSendableContent(message, sendReferences, true)) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
-    if (pendingSendRef.current && pendingSentMessageRef.current === message) {
+    if (pendingSendRef.current && pendingSentMessageRef.current === message && pendingSentReferencesRef.current === referenceSignature) {
       return;
     }
     const currentState = stateRef.current || state;
@@ -510,9 +517,10 @@ export function useComposerSend(input: UseComposerSendInput) {
         return;
       }
     }
-    if (!hasSendableContent(message, sendReferences)) return;
+    if (!hasSendableContent(message, sendReferences, hasQueryHistory(currentState))) return;
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
+    pendingSentReferencesRef.current = referenceSignature;
     const pendingChatId = String(currentState.chatId || attachmentChatId || "").trim();
     const owner = resolvePreferredRunOwner(currentState, {
       chatId: pendingChatId,
@@ -599,6 +607,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     onSelectSlashSkill,
     sendAttachmentMeta,
     sendReferences,
+    referenceSignature,
     setInputValue,
     setSlashDismissed,
     showSlashPalette,

@@ -444,3 +444,44 @@ it.each(['cancel', 'reject'] as const)('restores a selection-only steer after %s
   expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(selectionReferences);
   expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
 });
+
+it.each([[imageReferences], [selectionReferences]])('starts a follow-up query with queued references after a confirmed run', references => {
+  const h = mount();
+  h.stateRef.current.events = [{ type: 'request.query', chatId: 'chat-a', runId: 'run-a' }, { type: 'run.complete', chatId: 'chat-a', runId: 'run-a' }];
+  Object.assign(h.stateRef.current.pendingSteers['chat-a'][0], { message: '', references });
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { currentChatActiveRun: null, streaming: false } });
+  h.render(false);
+  const messages = sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message');
+  expect(messages).toHaveLength(1);
+  expect((messages[0][0] as CustomEvent).detail).toMatchObject({ message: '', references, chatId: 'chat-a' });
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toBeUndefined();
+});
+
+it('allows reference-only send after the active run ends, using persisted history', () => {
+  const h = mount({ sendReferences: selectionReferences });
+  h.stateRef.current.pendingSteers = {};
+  h.stateRef.current.chats[0].lastRunId = 'run-a';
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { currentChatActiveRun: null, streaming: false, runId: '' } });
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  h.send();
+  const messages = sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message');
+  expect(messages).toHaveLength(1);
+  expect((messages[0][0] as CustomEvent).detail).toMatchObject({ message: '', references: selectionReferences });
+});
+
+
+it('allows consecutive reference-only queries across run boundaries but blocks a double click', () => {
+  const h = mount({ sendReferences: selectionReferences });
+  h.stateRef.current.pendingSteers = {};
+  h.stateRef.current.chats[0].lastRunId = 'run-a';
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { currentChatActiveRun: null, streaming: false } });
+  h.render(false);
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  h.send(); h.send();
+  expect(sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
+  h.render(true);
+  h.render(false);
+  h.send();
+  expect(sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(2);
+});

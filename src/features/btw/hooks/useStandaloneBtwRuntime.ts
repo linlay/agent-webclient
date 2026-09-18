@@ -25,6 +25,7 @@ import { sameRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import { toText } from "@/shared/utils/eventUtils";
 import {
   addSelectedTextFragment,
+  renumberSelectedTextFragments,
   updateSelectedTextAnnotation,
   selectedTextReferenceToAttachment,
   type SelectedTextFragment,
@@ -189,6 +190,12 @@ export function useStandaloneBtwRuntime(input: {
       });
     }
 
+    if (["run.complete", "run.cancel", "run.error"].includes(type) &&
+      current.annotationCompletedRunId !== String(event.runId || current.runId)) {
+      current.annotationCompletedRunId = String(event.runId || current.runId);
+      current.draftSelections = renumberSelectedTextFragments(current.draftSelections);
+      current.nextAnnotationIndex = current.draftSelections.length + 1;
+    }
     if (type === "usage.snapshot") {
       current.usage = event as BTWSessionState["usage"];
     } else if (type === "run.complete" || type === "run.cancel") {
