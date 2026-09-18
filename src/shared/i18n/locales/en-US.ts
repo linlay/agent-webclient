@@ -772,6 +772,7 @@ export const enUSMessages = {
   "composer.steer.waiting": "Waiting for confirmation",
   "composer.steer.rejected": "The current run did not accept steering ({detail}). Your text was restored to the input.",
   "composer.steer.submit": "Steer",
+  "composer.steer.addText": "The run ended. Your attachments were restored. Add text before sending a new message.",
   "composer.steer.unavailable": "The current run is no longer steerable. Your text was restored to the input.",
   "composer.tooltip.createPlan": "Create plan",
   "composer.tooltip.planShortcut": "to toggle",

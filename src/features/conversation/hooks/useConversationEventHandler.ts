@@ -516,12 +516,11 @@ export function useConversationEventHandler(): {
       }
 
       if (type === "request.steer") {
-        const text = toText(event.message);
         const steerId = toText(event.steerId);
-        if (!steerId || !text) {
+        if (!readSteerConfirmation(event)) {
           dispatch({
             type: "APPEND_DEBUG",
-            line: `[steer] ignored request.steer without valid steerId/text steerId=${steerId || "-"}`,
+            line: `[steer] ignored request.steer without valid steerId/content steerId=${steerId || "-"}`,
           });
           return;
         }

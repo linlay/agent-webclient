@@ -62,7 +62,7 @@ export function reduceComposerSteerState(
   if (action.type !== "RESTORE_PENDING_STEER") return { pendingSteers: nextPendingSteers };
 
   const currentDraft = chatId === currentChatId ? state.composerDraft : state.composerDraftByChatId[chatId] || "";
-  const draft = !currentDraft.trim() ? steer.message
+  const draft = !steer.message.trim() ? currentDraft : !currentDraft.trim() ? steer.message
     : currentDraft.trim() === steer.message.trim() ? currentDraft : `${currentDraft}\n\n${steer.message}`;
   return {
     pendingSteers: nextPendingSteers,

@@ -1,3 +1,4 @@
+import { normalizeTimelineAttachments } from "./timelineAttachments";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 
@@ -24,7 +25,7 @@ export function readSteerConfirmation(event: AgentEvent): {
   runId?: string;
 } | null {
   const steerId = toText(event.steerId);
-  if (event.type !== "request.steer" || !steerId || !toText(event.message)) return null;
+  if (event.type !== "request.steer" || !steerId || (!toText(event.message) && !normalizeTimelineAttachments(event.references).some(item => item.url?.trim()))) return null;
   const chatId = toText(event.chatId);
   const runId = toText(event.runId);
   return { steerId, ...(chatId ? { chatId } : {}), ...(runId ? { runId } : {}) };

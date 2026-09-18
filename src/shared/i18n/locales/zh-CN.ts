@@ -772,6 +772,7 @@ export const zhCNMessages = {
   "composer.steer.waiting": "等待确认",
   "composer.steer.rejected": "当前运行没有接受引导（{detail}），已把内容放回输入框。",
   "composer.steer.submit": "引导",
+  "composer.steer.addText": "运行已结束，附件已放回输入框，请补充文字后发送。",
   "composer.steer.unavailable": "当前运行已经不可引导，已把内容放回输入框。",
   "composer.tooltip.createPlan": "创建计划",
   "composer.tooltip.planShortcut": "切换",

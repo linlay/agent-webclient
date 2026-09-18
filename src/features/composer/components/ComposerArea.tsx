@@ -1,3 +1,4 @@
+import { hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import React, {
   useCallback,
   useEffect,
@@ -709,7 +710,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    (!inputValue.trim() && (isMainChatRunning || selectedFragments.length === 0));
+    !hasSendableContent(inputValue, sendReferences, isMainChatRunning);
 
   const handleKeyDown = useComposerKeyboard({
     closeMention,

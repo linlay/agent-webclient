@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 import React, { act } from 'react';
+import { serialize, deserialize } from 'node:v8';
 import { createRoot, type Root } from 'react-dom/client';
 import type { AgentEvent } from '@/shared/contracts/agentEvents';
 import { createInitialState } from '@/app/state/state';
@@ -31,7 +32,7 @@ jest.mock('@/features/terminal/lib/terminalDockPersistence', () => ({
 }));
 
 const roots: Root[] = [];
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true, structuredClone: (value: unknown) => deserialize(serialize(value)) });
 beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
@@ -42,7 +43,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function mount() {
+function mount(sendOverrides: Record<string, unknown> = {}) {
   const state = createInitialState();
   state.chatId = 'chat-a';
   state.runId = 'run-a';
@@ -74,7 +75,7 @@ function mount() {
       selectSlashItem: () => null, onSelectSlashSkill: jest.fn(), showSlashPalette: false,
       sendAttachmentMeta: [], sendReferences: [], setInputValue, setSlashDismissed: jest.fn(),
       speechListening: false, stopSpeechInput: jest.fn(), textareaRef: { current: null },
-      updateMentionSuggestions: jest.fn(), executeSlashCommandInput: {},
+      updateMentionSuggestions: jest.fn(), executeSlashCommandInput: {}, ...sendOverrides,
     } as any);
     events = useConversationEventHandler();
     return null;
@@ -90,7 +91,7 @@ function mount() {
     type: 'request.steer', chatId: 'chat-a', runId: 'run-a', agentKey: 'agent-a',
     steerId: 'steer-a', requestId: 'request-a', message: 'message from A', timestamp: Date.now(), ...overrides,
   });
-  return { stateRef, dispatch, setInputValue, submit: () => send.handleSteer('steer-a'), cancel: () => send.handleCancelSteer('steer-a'), ack, render };
+  return { stateRef, dispatch, setInputValue, send: () => send.handleSend(), submit: () => send.handleSteer('steer-a'), cancel: () => send.handleCancelSteer('steer-a'), ack, render };
 }
 
 it('accepted control response retains sending until request.steer projects the timeline node', async () => {
@@ -357,4 +358,52 @@ it('restores canceled selections once and projects accepted selections in the ti
   expect(h.stateRef.current.timelineNodes.get('steer_steer-a')).toMatchObject({
     attachments: [expect.objectContaining({ type: 'selection', meta: selectionReferences[0].meta })],
   });
+});
+
+it.each(['image.png','page.html','notes.md'])('queues and confirms a file-only steer: %s', url => {
+ const references = [{type:'file',name:url,url}];
+ const h=mount({sendReferences:references});
+ h.stateRef.current.pendingSteers={};
+ h.send();
+ const queued=h.stateRef.current.pendingSteers['chat-a'][0];
+ expect(queued).toMatchObject({message:'',references,status:'queued'});
+ h.ack({steerId:queued.steerId,message:'',references});
+ expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+ expect(h.stateRef.current.timelineNodes.get('steer_'+queued.steerId)).toMatchObject({text:'',attachments:[expect.objectContaining({url})]});
+});
+it('restores file-only queued steers when the run ends without starting a query', () => {
+ const h=mount();
+ const refs=[{type:'file',name:'page.html',url:'page.html'}];
+ h.stateRef.current.pendingSteers['chat-a'][0].message='';
+ h.stateRef.current.pendingSteers['chat-a'][0].references=refs;
+ const sendEvent=jest.spyOn(window,'dispatchEvent');
+ h.dispatch({type:'BATCH_UPDATE',updates:{currentChatActiveRun:null,streaming:false,
+ chatTransition:{seq:1,targetChatId:'chat-a',phase:'ready',displayMode:'background',error:''}}});
+ h.render(false);
+ expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+ expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(refs);
+ expect(sendEvent.mock.calls.some(([event]) => event.type==='agent:send-message')).toBe(false);
+ expect(mockMessageApi.warning).toHaveBeenCalledWith('composer.steer.addText');
+});
+it('does not convert file-only input to a query if the active run has ended before send', () => {
+ const h=mount({sendReferences:[{type:'file',name:'notes.md',url:'notes.md'}]});
+ h.stateRef.current.pendingSteers={};
+ h.dispatch({type:'BATCH_UPDATE',updates:{currentChatActiveRun:null,streaming:false,runId:''}});
+ const sendEvent=jest.spyOn(window,'dispatchEvent');
+ h.send();
+ expect(sendEvent.mock.calls.some(([event]) => event.type==='agent:send-message')).toBe(false);
+});
+
+it('restores file-only entries even behind a text steer when the run ends', () => {
+ const h=mount();
+ const refs=[{type:'file',name:'notes.md',url:'notes.md'}];
+ h.stateRef.current.pendingSteers['chat-a'].push({steerId:'files',runId:'run-a',requestId:'files',message:'',references:refs,status:'queued',createdAt:1});
+ const sendEvent=jest.spyOn(window,'dispatchEvent');
+ h.dispatch({type:'BATCH_UPDATE',updates:{currentChatActiveRun:null,streaming:false,
+ chatTransition:{seq:1,targetChatId:'chat-a',phase:'ready',displayMode:'background',error:''}}});
+ h.render(false);
+ expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(refs);
+ const messages=sendEvent.mock.calls.filter(([event])=>event.type==='agent:send-message');
+ expect(messages).toHaveLength(1);
+ expect((messages[0][0] as CustomEvent).detail.message).toBe('message from A');
 });

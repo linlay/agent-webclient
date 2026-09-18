@@ -1725,3 +1725,9 @@ describe('processStreamEvent', () => {
     expect(state.timelineNodes.get('source_src_pub_1')?.ts).toBe(120);
   });
 });
+
+it.each(['live', 'replay'] as const)('projects file-only steer in %s mode', mode => {
+ const commands=processStreamEvent({type:'request.steer',steerId:'file-steer',chatId:'chat-a',runId:'run-a',message:'',
+ references:[{type:'file',name:'notes.md',url:'notes.md'}],timestamp:1700000000000},buildProcessorState(createState()),{mode,reasoningExpandedDefault:false});
+ expect(commands).toContainEqual(expect.objectContaining({cmd:'USER_MESSAGE',nodeId:'steer_file-steer',text:'',attachments:[expect.objectContaining({url:'notes.md'})]}));
+});

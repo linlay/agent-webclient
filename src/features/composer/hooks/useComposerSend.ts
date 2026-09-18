@@ -40,7 +40,8 @@ import {
 import { resolveCurrentWorkerSummary, supportsActiveRunContextCompact } from "@/features/workers/lib/currentWorker";
 import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
-import { hasSelectedTextReference, notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
+import { notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
+import { hasSendableContent } from "@/features/composer/lib/sendEligibility";
 
 export {
   buildCompactUsageSnapshot,
@@ -239,9 +240,14 @@ export function useComposerSend(input: UseComposerSendInput) {
     if (!previous.running || mainChatRunning || runtime.running || previous.chatId !== currentState.chatId ||
       (runtime.runId && runtime.runId !== previous.runId) ||
       (currentState.chatTransition && currentState.chatTransition.phase !== "ready")) return;
-    const firstQueued = currentState.pendingSteers[currentState.chatId]?.find(
-      steer => steer.status === "queued",
-    );
+    const queued = (currentState.pendingSteers[currentState.chatId] || []).filter(steer => steer.status === "queued");
+    const fileOnly = queued.filter(steer => !hasSendableContent(steer.message, steer.references));
+    for (const steer of fileOnly) {
+      // A file-only steer cannot start a new query. Keep the files in the draft.
+      dispatch({ type: "RESTORE_PENDING_STEER", chatId: currentState.chatId, runId: steer.runId, steerId: steer.steerId });
+    }
+    if (fileOnly.length) void messageApi.warning(t("composer.steer.addText"));
+    const firstQueued = queued.find(steer => hasSendableContent(steer.message, steer.references));
     if (!firstQueued) return;
     dispatch({ type: "REMOVE_PENDING_STEER", chatId: currentState.chatId, runId: firstQueued.runId, steerId: firstQueued.steerId });
     window.dispatchEvent(
@@ -249,7 +255,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         detail: { message: firstQueued.message, chatId: currentState.chatId, ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
       }),
     );
-  }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef]);
+  }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, messageApi, t]);
 
   const resolveCurrentRunId = useCallback(() => {
     const currentState = stateRef.current || state;
@@ -402,7 +408,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     const message = inputValue.trim();
-    if (!message && !hasSelectedTextReference(sendReferences)) return;
+    if (!hasSendableContent(message, sendReferences, true)) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message) {
       return;
@@ -469,8 +475,6 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_STREAMING", streaming: false });
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
-        // Steering still requires an explicit instruction alongside references.
-        if (!message) return;
         if (mustUseSkills.length > 0) {
           dispatch({
             type: "APPEND_DEBUG",
@@ -506,6 +510,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         return;
       }
     }
+    if (!hasSendableContent(message, sendReferences)) return;
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
     const pendingChatId = String(currentState.chatId || attachmentChatId || "").trim();

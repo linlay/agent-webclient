@@ -50,7 +50,8 @@ export function processRunEvent(
 
   if (type === "request.steer") {
     const text = safeText(event.message);
-    if (!text) return commands;
+    const attachments = normalizeTimelineAttachments(event.references);
+    if (!text.trim() && !attachments.some(item => item.url?.trim())) return commands;
     const counter = config.mode === "replay" ? state.nextCounter() : null;
     const variant = "steer";
     const prefix = "steer";
@@ -66,7 +67,7 @@ export function processRunEvent(
       ts: timestamp,
       variant,
       steerId: variant === "steer" ? toText(event.steerId) || suffix : undefined,
-      attachments: normalizeTimelineAttachments((event as Record<string, unknown>).references),
+      attachments,
     });
     return commands;
   }

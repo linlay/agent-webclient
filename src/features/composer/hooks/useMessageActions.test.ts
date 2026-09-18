@@ -105,8 +105,8 @@ describe("normalizeQueryModelOverride", () => {
 });
 
 describe("hasSendableComposerMessage", () => {
-  it("allows selection references without additional typed text", () => {
-    expect(hasSendableComposerMessage("", [{ type: "selection" }])).toBe(true);
+  it("requires query text even when references are present", () => {
+    expect(hasSendableComposerMessage("", [{ type: "selection" }])).toBe(false);
     expect(hasSendableComposerMessage("   ", [])).toBe(false);
     expect(hasSendableComposerMessage("", [{ type: "file" }])).toBe(false);
     expect(hasSendableComposerMessage("hello", [])).toBe(true);

@@ -1,3 +1,4 @@
+import { hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import { useCallback, useEffect } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
@@ -44,7 +45,7 @@ import {
 } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
-import { notifySelectedTextReferencesAccepted, hasSelectedTextReference } from "@/features/selection/lib/selectedTextReference";
+import { notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
 
 interface SendMessageEventDetail {
   message?: unknown;
@@ -284,7 +285,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         seenSkillKeys.add(identity);
         return [normalizedKey];
       });
-      if (!rawMessage && normalizedReferences.length === 0) return;
+      if (!hasSendableContent(rawMessage, normalizedReferences)) return;
       if (
         areConversationInteractionsBlocked(stateRef.current)
       ) {
@@ -395,7 +396,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       );
       const selectedAgentMode = String(selectedAgent?.mode || "").trim();
 
-      if (!cleanMessage.trim() && normalizedReferences.length === 0) return;
+      if (!hasSendableContent(cleanMessage, normalizedReferences)) return;
       if (!selectedOwner) {
         dispatch({
           type: "APPEND_DEBUG",
@@ -890,8 +891,5 @@ export function hasSendableComposerMessage(
   message: unknown,
   references: unknown,
 ) {
-  return Boolean(
-    String(message || "").trim() ||
-    hasSelectedTextReference(references),
-  );
+  return hasSendableContent(message, references);
 }
