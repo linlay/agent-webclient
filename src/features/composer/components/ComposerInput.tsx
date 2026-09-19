@@ -284,7 +284,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
               value={inputValue}
               onChange={(event) => onInputChange(event.target.value)}
               onKeyDown={(e) => {
-                if (inputExpanded && e.key === "Enter") return;
+                if (inputExpanded && e.key === "Enter" && !(e.metaKey && !e.shiftKey && !e.altKey)) return;
                 if (inputExpanded && e.key === "Escape") {
                   setInputExpanded(false);
                   return;

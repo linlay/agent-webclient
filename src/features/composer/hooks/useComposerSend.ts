@@ -682,6 +682,18 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
   }, [dispatch, resolveCurrentOwner, runs, messageApi, stateRef, t]);
 
+  const handleSubmitQueuedSteer = useCallback(() => {
+    if (isAwaitingActive || isVoiceMode) return;
+    const currentState = stateRef.current;
+    const runtime = resolveMainChatRuntime(currentState, activeQuerySessionRequestIdRef, querySessionsRef);
+    if (!runtime.running) return;
+    const runId = runtime.runId || resolveCurrentRunId();
+    const queued = currentState.pendingSteers[currentState.chatId]?.find(
+      steer => steer.status === "queued" && steer.runId === runId,
+    );
+    if (queued) void handleSteer(queued.steerId);
+  }, [isAwaitingActive, isVoiceMode, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, resolveCurrentRunId, handleSteer]);
+
   const handleCancelSteer = useCallback((steerId: string) => {
     const currentState = stateRef.current;
     const chatId = currentState.chatId;
@@ -718,6 +730,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     handleCancelSteer,
     handleSend,
     handleSteer,
+    handleSubmitQueuedSteer,
     interruptCurrentRun,
     pendingSentMessageRef,
     pendingSendRef,

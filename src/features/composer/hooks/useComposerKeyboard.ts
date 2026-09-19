@@ -9,6 +9,7 @@ export function useComposerKeyboard({
   dispatch,
   onSelectSlashItem,
   handleSend,
+  onSubmitQueuedSteer,
   onTogglePlanningMode,
   canUsePlanningMode,
   isComposingRef,
@@ -27,6 +28,7 @@ export function useComposerKeyboard({
   dispatch: Dispatch<AppAction>;
   onSelectSlashItem: (item: SlashPaletteItem) => void;
   handleSend: () => void;
+  onSubmitQueuedSteer?: () => void;
   onTogglePlanningMode: () => void;
   canUsePlanningMode: boolean;
   isComposingRef: RefObject<boolean>;
@@ -48,6 +50,13 @@ export function useComposerKeyboard({
         return;
       }
       if (isImeEnterConfirming(event, Boolean(isComposingRef.current))) {
+        return;
+      }
+
+      if (event.key === "Enter" && event.metaKey && !event.shiftKey && !event.altKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!event.repeat) onSubmitQueuedSteer?.();
         return;
       }
 
@@ -130,6 +139,7 @@ export function useComposerKeyboard({
       dispatch,
       onSelectSlashItem,
       handleSend,
+      onSubmitQueuedSteer,
       onTogglePlanningMode,
       isComposingRef,
       isVoiceMode,

@@ -116,3 +116,47 @@ describe("useComposerKeyboard", () => {
     expect(onTogglePlanningMode).not.toHaveBeenCalled();
   });
 });
+
+
+describe("queued steer shortcut", () => {
+  const keyEvent = (overrides = {}) => ({
+    key: "Enter", metaKey: true, shiftKey: false, altKey: false, repeat: false,
+    preventDefault: jest.fn(), stopPropagation: jest.fn(), ...overrides,
+  } as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
+
+  it("submits queued steer with Cmd+Enter without sending the new draft or selecting suggestions", () => {
+    const onSubmitQueuedSteer = jest.fn();
+    const handleSend = jest.fn();
+    const onSelectSlashItem = jest.fn();
+    const event = keyEvent();
+    renderKeyboardHook({ onSubmitQueuedSteer, handleSend, showSlashPalette: true, onSelectSlashItem })(event);
+    expect(onSubmitQueuedSteer).toHaveBeenCalledTimes(1);
+    expect(handleSend).not.toHaveBeenCalled();
+    expect(onSelectSlashItem).not.toHaveBeenCalled();
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
+  });
+
+  it("keeps ordinary Enter on the existing enqueue path", () => {
+    const onSubmitQueuedSteer = jest.fn();
+    const handleSend = jest.fn();
+    renderKeyboardHook({ onSubmitQueuedSteer, handleSend })(keyEvent({ metaKey: false }));
+    expect(handleSend).toHaveBeenCalledTimes(1);
+    expect(onSubmitQueuedSteer).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { repeat: true }, { shiftKey: true }, { nativeEvent: { isComposing: true } },
+    { nativeEvent: { keyCode: 229 } },
+  ])("does not submit queued steer for %j", overrides => {
+    const onSubmitQueuedSteer = jest.fn();
+    renderKeyboardHook({ onSubmitQueuedSteer })(keyEvent(overrides));
+    expect(onSubmitQueuedSteer).not.toHaveBeenCalled();
+  });
+
+  it("does not send a draft when queued steering is unavailable", () => {
+    const handleSend = jest.fn();
+    renderKeyboardHook({ handleSend })(keyEvent());
+    expect(handleSend).not.toHaveBeenCalled();
+  });
+});

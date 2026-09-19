@@ -777,6 +777,7 @@ export const zhCNMessages = {
   "composer.steer.unknown": "提交结果尚未确认，正在等待运行消息。",
   "composer.steer.waiting": "等待确认",
   "composer.steer.rejected": "当前运行没有接受引导（{detail}），已把内容放回输入框。",
+  "composer.steer.shortcut": "在输入框按 ⌘Enter 引导",
   "composer.steer.submit": "引导",
   "composer.steer.addText": "运行已结束，附件已放回输入框，请补充文字后发送。",
   "composer.steer.unavailable": "当前运行已经不可引导，已把内容放回输入框。",

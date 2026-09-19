@@ -91,7 +91,7 @@ function mount(sendOverrides: Record<string, unknown> = {}) {
     type: 'request.steer', chatId: 'chat-a', runId: 'run-a', agentKey: 'agent-a',
     steerId: 'steer-a', requestId: 'request-a', message: 'message from A', timestamp: Date.now(), ...overrides,
   });
-  return { stateRef, dispatch, setInputValue, send: () => send.handleSend(), submit: () => send.handleSteer('steer-a'), cancel: () => send.handleCancelSteer('steer-a'), ack, render };
+  return { stateRef, dispatch, setInputValue, send: () => send.handleSend(), submitQueued: () => send.handleSubmitQueuedSteer(), submit: () => send.handleSteer('steer-a'), cancel: () => send.handleCancelSteer('steer-a'), ack, render };
 }
 
 it('accepted control response retains sending until request.steer projects the timeline node', async () => {
@@ -484,4 +484,36 @@ it('allows consecutive reference-only queries across run boundaries but blocks a
   h.render(false);
   h.send();
   expect(sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(2);
+});
+
+
+it('submits the first queued steer of the active run while preserving the new draft', async () => {
+  mockSteer.mockResolvedValue({ data: { accepted: true } });
+  const h = mount({ inputValue: 'new unsent draft' });
+  h.dispatch({ type: 'SET_COMPOSER_DRAFT', draft: 'new unsent draft' });
+  const first = h.stateRef.current.pendingSteers['chat-a'][0];
+  h.stateRef.current.pendingSteers['chat-a'] = [
+    { ...first, steerId: 'old-run', runId: 'old-run' },
+    { ...first, steerId: 'sending', status: 'sending' },
+    first,
+    { ...first, steerId: 'next-queued' },
+  ];
+  await act(async () => h.submitQueued());
+  expect(mockSteer).toHaveBeenCalledTimes(1);
+  expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({ steerId: 'steer-a', message: 'message from A' }));
+  expect(h.stateRef.current.pendingSteers['chat-a'][3].status).toBe('queued');
+  expect(h.stateRef.current.composerDraft).toBe('new unsent draft');
+  expect(h.setInputValue).not.toHaveBeenCalled();
+});
+
+it('does not submit queued steer after the run ends or when the queue is empty', () => {
+  const h = mount();
+  h.stateRef.current.pendingSteers = {};
+  h.submitQueued();
+  expect(mockSteer).not.toHaveBeenCalled();
+  h.stateRef.current.pendingSteers = { 'chat-a': [{ steerId: 'late', runId: 'run-a', requestId: 'late', message: 'late', status: 'queued', createdAt: 1 }] };
+  h.stateRef.current.streaming = false;
+  h.stateRef.current.currentChatActiveRun = null;
+  h.submitQueued();
+  expect(mockSteer).not.toHaveBeenCalled();
 });

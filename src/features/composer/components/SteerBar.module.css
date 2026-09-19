@@ -1,0 +1,16 @@
+.shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 7px;
+  background: var(--control-hover-bg);
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+}
+.shortcut > span { display: inline-flex; align-items: center; }
+.shortcut > :last-child { width: 14px; height: 14px; font-size: 14px; }

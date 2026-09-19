@@ -590,6 +590,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     handleCancelSteer,
     handleSend: handleSendImmediately,
     handleSteer,
+    handleSubmitQueuedSteer,
     interruptCurrentRun,
   } = useComposerSend({
     attachmentChatId,
@@ -732,6 +733,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     !hasSendableContent(inputValue, combinedSendReferences, isMainChatRunning || hasQueryHistory(state));
 
   const handleKeyDown = useComposerKeyboard({
+    onSubmitQueuedSteer: shouldShowSteerBar && !chatTransitionBlocking ? handleSubmitQueuedSteer : undefined,
     closeMention,
     dispatch,
     onSelectSlashItem: handleSelectSlashItem,
