@@ -1,4 +1,4 @@
-import { Radio, Typography } from "antd";
+import { Alert, Radio, Typography } from "antd";
 import { Button, CheckboxRef, Flex, Input } from "antd/es";
 import React, {
   forwardRef,
@@ -59,6 +59,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   const approvals = data.approvals;
   const approvalsRef = useRef<ApprovalRef[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [timeoutExpired, setTimeoutExpired] = useState(false);
   const [curIndex, setCurIndex] = useState(0);
   const [decisions, setDecisions] = useState<
@@ -98,6 +99,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
   });
 
   useEffect(() => {
+    setSubmitError("");
     setDecisions({});
     setReasons({});
     setCurIndex(0);
@@ -128,17 +130,26 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
         return;
       }
       setSubmitting(true);
+      setSubmitError("");
       try {
-        await onSubmit({
+        const result = await onSubmit({
           runId: data.runId,
           awaitingId: data.awaitingId,
           params,
         });
+        // Composer returns recoverable submit errors instead of rejecting.
+        if (result instanceof Error || (typeof result === "string" && result.trim())) {
+          throw result;
+        }
+      } catch (error) {
+        setSubmitError(t("awaiting.submit.failedWithDetail", {
+          detail: error instanceof Error ? error.message : String(error),
+        }));
       } finally {
         setSubmitting(false);
       }
     },
-    [data.awaitingId, data.runId, onSubmit, resolved, submitting],
+    [data.awaitingId, data.runId, onSubmit, resolved, submitting, t],
   );
 
   const submitDecision = useCallback(
@@ -343,6 +354,9 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   return ready ? (
     <div className={hitlDialogClassNames.surface}>
+      {submitError && !resolved && (
+        <Alert type="error" showIcon role="alert" message={submitError} />
+      )}
       <Pager
         index={curIndex}
         panels={approvals.map((approval, index) => (
