@@ -5,8 +5,7 @@ import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { Button, Typography } from "antd";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import styles from "./SteerBar.module.css";
+import { ShortcutHint } from "@/shared/ui/ShortcutHint";
 import { SteerIcon } from "@/features/runs/components/SteerIcon";
 import { useI18n } from "@/shared/i18n";
 
@@ -80,9 +79,7 @@ export const SteerBar: React.FC<{
                 >
                   {t(isSending ? "composer.steer.waiting" : "composer.steer.submit")}
                   {steer.steerId === shortcutSteerId && (
-                    <kbd className={styles.shortcut} aria-hidden="true">
-                      <span>⌘</span><MaterialIcon name="keyboard_return" />
-                    </kbd>
+                    <ShortcutHint keyLabel="Enter" />
                   )}
                 </Button>
                 <Button

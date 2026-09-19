@@ -4,6 +4,8 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { useI18n } from "@/shared/i18n";
+import { ShortcutHint } from "@/shared/ui/ShortcutHint";
+import { findGlobalSearchShortcut, GLOBAL_SEARCH_ACTION_SHORTCUTS, isMacShortcutPlatform } from "../lib/globalSearchShortcuts";
 import styles from "./GlobalSearchPanel.module.css";
 
 interface GlobalSearchPanelProps {
@@ -90,6 +92,7 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
 }) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
+  const isMac = isMacShortcutPlatform();
 
   const groupEntries = useMemo(() => {
     return GROUP_SECTIONS.map((section) => {
@@ -111,7 +114,15 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
       ref={hostRef}
       className={GLOBAL_SEARCH_PANEL_CLASS}
       onKeyDown={(event) => {
-        if (!rows.length) return;
+        if (event.defaultPrevented || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
+        const shortcutRow = findGlobalSearchShortcut(rows, event, isMac);
+        if (shortcutRow) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!event.repeat) onSelectRow(shortcutRow);
+          return;
+        }
+        if (event.metaKey || event.ctrlKey || event.altKey || !rows.length) return;
         const liArr: HTMLElement[] = Array.from(
           hostRef.current?.querySelectorAll(".global-search-row") || [],
         );
@@ -155,11 +166,13 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
               <div className={GLOBAL_SEARCH_GROUP_LABEL_CLASS}>{label}</div>
               {groupRows.map((row) => {
                 if (row.kind === "action") {
+                  const shortcut = GLOBAL_SEARCH_ACTION_SHORTCUTS[row.action];
                   return (
                     <button
                       key={row.key}
                       type="button"
                       className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-action`}
+                      aria-keyshortcuts={shortcut ? `${isMac ? "Meta" : "Control"}+${shortcut.key}` : undefined}
                       onClick={() => onSelectRow(row)}
                     >
                       <span
@@ -171,6 +184,7 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                       <span className={GLOBAL_SEARCH_LABEL_CLASS}>
                         {row.label}
                       </span>
+                      {shortcut && <ShortcutHint keyLabel={shortcut.key} modifier={isMac ? "Meta" : "Control"} />}
                     </button>
                   );
                 }
