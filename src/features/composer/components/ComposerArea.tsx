@@ -802,7 +802,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const withSelectionSurfaces = (content: React.ReactNode) => (
     <>
-      <SelectionAnnotations fragments={selectedFragments} onAnnotationChange={updateSelectedAnnotation} />
+      <SelectionAnnotations fragments={selectedFragments} onAnnotationChange={updateSelectedAnnotation} onRemove={removeSelectedFragment} />
       <BrowserSelectionToolbar
         enabled={!isDesktopAppMode() && !chatTransitionBlocking}
         scopeElement={selectionScope}

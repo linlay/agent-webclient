@@ -3,13 +3,15 @@ import { createPortal } from "react-dom";
 import type { SelectedTextFragment } from "@/shared/contracts/selectedTextReference";
 import { selectedTextAnchorRects } from "@/shared/data/desktop/selectedTextAnchors";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./SelectionAnnotations.module.css";
 
 type Marker = { id: string; number: number; rects: ReturnType<typeof selectedTextAnchorRects> };
 
-export function SelectionAnnotations({ fragments, onAnnotationChange }: {
+export function SelectionAnnotations({ fragments, onAnnotationChange, onRemove }: {
   fragments: readonly SelectedTextFragment[];
   onAnnotationChange: (id: string, annotation: string) => void;
+  onRemove: (id: string) => void;
 }) {
   const { t } = useI18n();
   const [markers, setMarkers] = useState<Marker[]>([]);
@@ -68,7 +70,7 @@ export function SelectionAnnotations({ fragments, onAnnotationChange }: {
   }, [activeId]);
 
   if (!markers.length) return null;
-  const width = Math.min(560, window.innerWidth - 24);
+  const width = Math.min(360, window.innerWidth - 24);
   const first = marker?.rects[0];
   const last = marker?.rects[marker.rects.length - 1];
   return createPortal(<>
@@ -82,7 +84,7 @@ export function SelectionAnnotations({ fragments, onAnnotationChange }: {
         onClick={()=>setActiveId(item.id)}>{item.number}</button>
     </React.Fragment>)}
     {active && marker && first && last ? <div ref={editor} className={styles.editor}
-      style={{width,left:Math.max(12,Math.min(window.innerWidth-width-12,first.left)),top:Math.max(8,Math.min(window.innerHeight-92,first.top >= 112 ? first.top-108 : last.bottom+12))}}
+      style={{width,left:Math.max(12,Math.min(window.innerWidth-width-12,first.left)),top:Math.max(8,Math.min(window.innerHeight-50,first.top >= 62 ? first.top-54 : last.bottom+12))}}
       role="dialog" aria-label={t("selection.fragment.annotationFor",{index:marker.number})}>
       <textarea ref={input} rows={1} value={active.reference.annotation || ""}
         aria-label={t("selection.fragment.annotationFor",{index:marker.number})}
@@ -94,6 +96,17 @@ export function SelectionAnnotations({ fragments, onAnnotationChange }: {
             event.preventDefault(); setActiveId(null);
           }
         }} />
+      <button type="button" className={styles.action}
+        aria-label={t("selection.fragment.confirmAnnotation")} title={t("selection.fragment.confirmAnnotation")}
+        onClick={() => setActiveId(null)}>
+        <MaterialIcon name="keyboard_return" />
+      </button>
+      <button type="button" className={`${styles.action} ${styles.remove}`}
+        aria-label={t("selection.fragment.remove", { index: marker.number })}
+        title={t("selection.fragment.remove", { index: marker.number })}
+        onClick={() => { onRemove(active.reference.id); setActiveId(null); }}>
+        <MaterialIcon name="delete" />
+      </button>
     </div> : null}
   </>,document.body);
 }

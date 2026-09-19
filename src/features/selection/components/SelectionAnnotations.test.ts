@@ -20,7 +20,8 @@ it("opens an anchored editor, saves a comment, and reopens the same annotation f
   fragment.reference.annotationIndex=7;
   rememberSelectedTextAnchor(fragment.reference.id,range,fragment.reference.text);
   const change=jest.fn();
-  const render=()=>root.render(React.createElement(SelectionAnnotations,{fragments:[fragment],onAnnotationChange:change}));
+  const remove=jest.fn();
+  const render=()=>root.render(React.createElement(SelectionAnnotations,{fragments:[fragment],onAnnotationChange:change,onRemove:remove}));
   try {
     act(render);
     let input=document.querySelector("textarea")!;
@@ -39,8 +40,15 @@ it("opens an anchored editor, saves a comment, and reopens the same annotation f
     input=document.querySelector("textarea")!;
     expect(input.value).toBe("comment");
     expect(badge.textContent).toBe("7");
+    act(()=>document.querySelector<HTMLButtonElement>('[aria-label="selection.fragment.confirmAnnotation "]')!.click());
+    expect(document.querySelector("textarea")).toBeNull();
+    act(()=>badge.click());
+    input=document.querySelector("textarea")!;
     act(()=>{input.value="";Simulate.change(input);});
     expect(change).toHaveBeenLastCalledWith(fragment.reference.id,"");
+    act(()=>document.querySelector<HTMLButtonElement>('[aria-label="selection.fragment.remove 7"]')!.click());
+    expect(remove).toHaveBeenCalledWith(fragment.reference.id);
+    expect(document.querySelector("textarea")).toBeNull();
   } finally {
     act(()=>root.unmount()); text.remove();
     if(previous) Object.defineProperty(Range.prototype,"getClientRects",previous);

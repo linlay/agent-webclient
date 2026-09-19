@@ -701,6 +701,7 @@ export const enUSMessages = {
   "selection.toolbar.addToChat": "Add to chat",
   "selection.toolbar.askInSideChat": "Ask in side chat",
   "selection.fragment.editAnnotation": "Edit Annotation {index}",
+  "selection.fragment.confirmAnnotation": "Confirm annotation (Enter)",
   "selection.fragment.inlinePlaceholder": "Add an optional comment…",
   "selection.fragment.annotation": "Annotation (optional)",
   "selection.fragment.annotationFor": "Annotation for fragment {index}",

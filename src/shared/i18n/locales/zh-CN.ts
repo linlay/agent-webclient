@@ -701,6 +701,7 @@ export const zhCNMessages = {
   "selection.toolbar.addToChat": "添加到对话",
   "selection.toolbar.askInSideChat": "在顺便问中提问",
   "selection.fragment.editAnnotation": "编辑批注 {index}",
+  "selection.fragment.confirmAnnotation": "确认批注（回车）",
   "selection.fragment.inlinePlaceholder": "添加批注（可选）…",
   "selection.fragment.annotation": "批注（可选）",
   "selection.fragment.annotationFor": "片段 {index} 的批注",

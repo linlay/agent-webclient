@@ -244,7 +244,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
             </div>
           )}
         </div>
-        {onAnnotationChange && !running ? <SelectionAnnotations fragments={session?.draftSelections || []} onAnnotationChange={onAnnotationChange} /> : null}
+        {onAnnotationChange && !running ? <SelectionAnnotations fragments={session?.draftSelections || []} onAnnotationChange={onAnnotationChange} onRemove={onRemoveDraftSelection} /> : null}
         <div className={BTW_COMPOSER_CLASS}>
           {session?.draftSelections?.length ? (
             <div className="tw:mb-1.5">
