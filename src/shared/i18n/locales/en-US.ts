@@ -1713,6 +1713,7 @@ export const enUSMessages = {
   "timeline.toolPill.copy.copied": "Copied",
   "timeline.toolPill.copy.failed": "Copy failed",
   "timeline.textSearch.placeholder": "Search conversation",
+  "timeline.textSearch.placeholderCompact": "Search",
   "timeline.textSearch.previous": "Previous",
   "timeline.textSearch.next": "Next",
   "timeline.textSearch.close": "Close",

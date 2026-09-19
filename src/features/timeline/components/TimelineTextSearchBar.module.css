@@ -20,3 +20,39 @@
   color: var(--ink-2);
   white-space: nowrap;
 }
+
+.expandable {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  z-index: 2;
+  width: 100px;
+  max-width: calc(100vw - 24px);
+  min-width: 0;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ink-2) 12%, transparent);
+  transition: width 180ms ease, border-color 180ms ease;
+  -webkit-app-region: no-drag;
+}
+
+.expandable.open {
+  width: 320px;
+}
+
+.expandable:focus-within {
+  border-color: color-mix(in srgb, var(--ink-2) 28%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink-2) 6%, transparent);
+}
+
+.expandable .input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expandable {
+    transition: none;
+  }
+}

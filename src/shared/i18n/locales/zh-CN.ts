@@ -1712,6 +1712,7 @@ export const zhCNMessages = {
   "timeline.toolPill.copy.copied": "已复制",
   "timeline.toolPill.copy.failed": "复制失败",
   "timeline.textSearch.placeholder": "搜索对话内容",
+  "timeline.textSearch.placeholderCompact": "搜索",
   "timeline.textSearch.previous": "上一个",
   "timeline.textSearch.next": "下一个",
   "timeline.textSearch.close": "关闭",

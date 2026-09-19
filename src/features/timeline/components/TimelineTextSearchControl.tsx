@@ -8,11 +8,12 @@ import { useTimelineTextSearch } from "@/features/timeline/components/TimelineTe
 
 export interface TimelineTextSearchControlProps {
   buttonClassName?: string;
+  appearance?: "button" | "input";
 }
 
 export const TimelineTextSearchControl: React.FC<
   TimelineTextSearchControlProps
-> = ({ buttonClassName }) => {
+> = ({ buttonClassName, appearance = "button" }) => {
   const { t } = useI18n();
   const search = useTimelineTextSearch();
 
@@ -22,7 +23,7 @@ export const TimelineTextSearchControl: React.FC<
   const shortcutLabel = isMac ? "⌘F" : "Ctrl+F";
   const ariaShortcut = isMac ? "Meta+F" : "Control+F";
 
-  if (!search.open) {
+  if (!search.open && appearance === "button") {
     return (
       <UiButton
         className={buttonClassName}
@@ -41,6 +42,11 @@ export const TimelineTextSearchControl: React.FC<
 
   return (
     <TimelineTextSearchBar
+      open={search.open}
+      onOpen={search.openSearch}
+      expandable={appearance === "input"}
+      ariaShortcut={ariaShortcut}
+      shortcutLabel={shortcutLabel}
       query={search.query}
       onQueryChange={search.setQuery}
       total={search.total}

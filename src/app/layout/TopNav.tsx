@@ -79,13 +79,13 @@ const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-[52px]
 const TOP_NAV_INNER_CLASS =
   "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center";
 const NAV_GROUP_CLASS = "nav-group tw:relative tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
-const NAV_LEFT_CLASS = "nav-group nav-left tw:flex-[0_1_180px]";
+const NAV_LEFT_CLASS = "nav-group nav-left tw:relative tw:h-8 tw:min-w-0 tw:flex-[0_1_180px]";
 const NAV_CENTER_CLASS =
-  "nav-group nav-center tw:flex-[1_0_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:pr-[22px]";
+  "nav-group nav-center tw:flex-[1_1_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:pr-[22px]";
 const CURRENT_WORKER_CARD_CLASS =
   "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-[7px]";
 const CURRENT_WORKER_NAME_CLASS =
-  "current-worker-name tw:whitespace-nowrap tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
+  "current-worker-name tw:min-w-0 tw:truncate tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
 const KBASE_EDITING_BADGE_CLASS =
   "kbase-editing-badge tw:inline-flex tw:flex-none tw:items-center tw:whitespace-nowrap tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-warn)_14%,transparent)] tw:px-2 tw:py-1 tw:text-[10px] tw:font-semibold tw:text-accent-warn";
 const TOP_NAV_ICON_BUTTON_CLASS =
@@ -342,15 +342,12 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   const statusTitle = statusDetail
     ? `${statusLabel}: ${statusDetail}`
     : statusLabel;
-  const searchControl = (
-    <div style={{position: 'absolute', left: 0, transform: 'translateX(-100%)'}}>
-      <TimelineTextSearchControl buttonClassName={TOP_NAV_ICON_BUTTON_CLASS} />
-    </div>
-  );
   return (
     <nav className={TOP_NAV_CLASS}>
       <div className={TOP_NAV_INNER_CLASS}>
-        <div className={NAV_LEFT_CLASS}></div>
+        <div className={NAV_LEFT_CLASS}>
+          <TimelineTextSearchControl appearance="input" />
+        </div>
 
         <div className={NAV_CENTER_CLASS}>
           {presentation?.blocked ? <ConversationRegionSkeleton region="header" phase={presentation.phase} /> :
@@ -381,12 +378,10 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
 
         {hideDesktopAgentActions ? (
           <div className={NAV_GROUP_CLASS}>
-            {searchControl}
             {debugButton}
           </div>
         ) : (
           <div className={NAV_GROUP_CLASS}>
-            {searchControl}
             {showProjectButton ? (
               <UiButton
                 className={TOP_NAV_ICON_BUTTON_CLASS}
