@@ -1,5 +1,6 @@
-.usage-trigger:global(.ui-btn) {
-    min-height: 30px;
+.usage-trigger:global(.ui-btn.ui-btn-sm) {
+    height: 32px;
+    min-height: 32px;
     padding: 0 8px;
     border-radius: 8px;
     color: var(--ink-2);

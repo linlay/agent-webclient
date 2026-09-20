@@ -75,15 +75,15 @@ export function resolveStatusPillClassName(
   ].join(" ");
 }
 
-const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-[52px]";
+const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-10";
 const TOP_NAV_INNER_CLASS =
-  "top-nav-inner tw:flex tw:min-h-[var(--top-nav-height)] tw:w-full tw:items-center";
+  "top-nav-inner tw:flex tw:h-full tw:min-h-0 tw:w-full tw:items-center";
 const NAV_GROUP_CLASS = "nav-group tw:relative tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
 const NAV_LEFT_CLASS = "nav-group nav-left tw:relative tw:h-8 tw:min-w-0 tw:flex-[0_1_180px]";
 const NAV_CENTER_CLASS =
   "nav-group nav-center tw:flex-[1_1_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:pr-[22px]";
 const CURRENT_WORKER_CARD_CLASS =
-  "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-[7px]";
+  "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-0";
 const CURRENT_WORKER_NAME_CLASS =
   "current-worker-name tw:min-w-0 tw:truncate tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
 const KBASE_EDITING_BADGE_CLASS =
