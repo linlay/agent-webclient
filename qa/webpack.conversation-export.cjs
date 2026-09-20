@@ -4,6 +4,7 @@ const webpackConfig = require("../webpack.export.config.js");
 
 const root = path.resolve(__dirname, "..");
 const shellPath = path.join(root, "public/conversation-export.html");
+const localSnapshotPath = path.join(root, ".local/share-preview/current.snapshot.json");
 const snapshotPath = process.env.CONVERSATION_PREVIEW_SNAPSHOT
   ? path.resolve(process.env.CONVERSATION_PREVIEW_SNAPSHOT)
   : null;
@@ -79,7 +80,7 @@ module.exports = {
     hot: false,
     liveReload: true,
     static: false,
-    watchFiles: [shellPath, path.join(__dirname, "conversation-export-fixtures.cjs"), ...(snapshotPath ? [snapshotPath] : [])],
+    watchFiles: [shellPath, path.join(__dirname, "conversation-export-fixtures.cjs"), localSnapshotPath, ...(snapshotPath ? [snapshotPath] : [])],
     setupMiddlewares(middlewares, server) {
       server.app.get("/", (_request, response) => response.redirect("/preview"));
       server.app.get("/preview", (request, response) => {

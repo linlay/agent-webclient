@@ -1,4 +1,17 @@
+const fs = require("node:fs");
+const path = require("node:path");
+
 const START = 1_700_000_000_000;
+const localSnapshotPath = path.resolve(__dirname, "../.local/share-preview/current.snapshot.json");
+
+function defaultSnapshot(fallback) {
+  if (!fs.existsSync(localSnapshotPath)) return fallback;
+  const raw = fs.readFileSync(localSnapshotPath, "utf8");
+  if (Buffer.byteLength(raw) > 20 * 1024 * 1024) {
+    throw new Error("Local preview snapshot exceeds the 20 MiB export limit.");
+  }
+  return JSON.parse(raw);
+}
 
 const user = (text, at) => ({ kind: "user", text, at });
 const thought = (text, label, at) => ({ kind: "reasoning", text, label, at });
@@ -14,31 +27,33 @@ function snapshot(title, turns) {
   };
 }
 
+const defaultFixture = snapshot("分享页本地预览：标题、身份与思考过程", [
+  {
+    startedAt: START + 1_000,
+    endedAt: START + 8_000,
+    outcome: "completed",
+    assistant: { name: "方案助手", iconName: "chat" },
+    items: [
+      user("请给出一个简洁的实施方案。", START + 1_000),
+      thought("先确认目标与约束。", "分析需求", START + 2_000),
+      thought("保留现有分享结构，控制变更范围。", "检查方案", START + 4_000),
+      answer("## 实施方案\n\n1. 统一标题与正文宽度。\n2. 展示智能体身份。\n3. 保持两级思考折叠。\n\n| 项目 | 结果 |\n| --- | --- |\n| 桌面 | 清晰 |\n| 手机 | 自适应 |\n\n```ts\nconst ready = true;\n```", START + 7_000),
+    ],
+  },
+  {
+    startedAt: START + 10_000,
+    endedAt: START + 13_000,
+    outcome: "completed",
+    assistant: { name: "审核助手", iconName: "unknown-icon" },
+    items: [
+      user("再检查一下兜底头像。", START + 10_000),
+      answer("未知内置图标应显示默认头像。", START + 12_000),
+    ],
+  },
+]);
+
 const fixtures = {
-  default: snapshot("分享页本地预览：标题、身份与思考过程", [
-    {
-      startedAt: START + 1_000,
-      endedAt: START + 8_000,
-      outcome: "completed",
-      assistant: { name: "方案助手", iconName: "chat" },
-      items: [
-        user("请给出一个简洁的实施方案。", START + 1_000),
-        thought("先确认目标与约束。", "分析需求", START + 2_000),
-        thought("保留现有分享结构，控制变更范围。", "检查方案", START + 4_000),
-        answer("## 实施方案\n\n1. 统一标题与正文宽度。\n2. 展示智能体身份。\n3. 保持两级思考折叠。\n\n| 项目 | 结果 |\n| --- | --- |\n| 桌面 | 清晰 |\n| 手机 | 自适应 |\n\n```ts\nconst ready = true;\n```", START + 7_000),
-      ],
-    },
-    {
-      startedAt: START + 10_000,
-      endedAt: START + 13_000,
-      outcome: "completed",
-      assistant: { name: "审核助手", iconName: "unknown-icon" },
-      items: [
-        user("再检查一下兜底头像。", START + 10_000),
-        answer("未知内置图标应显示默认头像。", START + 12_000),
-      ],
-    },
-  ]),
+  get default() { return defaultSnapshot(defaultFixture); },
   legacy: snapshot("旧分享：缺少智能体身份", [
     {
       startedAt: START + 1_000,
