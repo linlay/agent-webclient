@@ -7,16 +7,9 @@ import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import type { I18nContextValue } from "@/shared/i18n";
 export type AgentFormMode = "create" | "edit";
 export type AgentEditorMode = "structured" | "source";
-export type AgentInteractionMode = "view" | "edit";
 export type IconKind = "none" | "builtin" | "image";
 export type AgentToolFilter = "all" | "file" | "desktop" | "system";
 export type Translate = I18nContextValue["t"];
-
-export function initialAgentInteractionMode(
-  formMode: AgentFormMode,
-): AgentInteractionMode {
-  return formMode === "edit" ? "view" : "edit";
-}
 
 export function shouldReloadAgentDetail(
   loadedAgentKey: string,

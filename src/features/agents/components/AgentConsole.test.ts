@@ -125,7 +125,6 @@ import {
   buildDefinition,
   buildAgentListSummary,
   defaultReasoningEffort,
-  initialAgentInteractionMode,
   firstAdminAgentDiagnosticMessage,
   formFromDetail,
   getActiveAgentSectionId,
@@ -484,11 +483,6 @@ describe("AgentConsole i18n rendering", () => {
   it("does not reload the selected Agent detail when a list refresh keeps the same selection", () => {
     expect(shouldReloadAgentDetail("bootstrap", "bootstrap")).toBe(false);
     expect(shouldReloadAgentDetail("bootstrap", "desktop")).toBe(true);
-  });
-
-  it("opens existing agents in read-only mode while new agents remain editable", () => {
-    expect(initialAgentInteractionMode("edit")).toBe("view");
-    expect(initialAgentInteractionMode("create")).toBe("edit");
   });
 
   beforeEach(() => {

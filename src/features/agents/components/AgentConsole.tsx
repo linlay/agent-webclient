@@ -84,7 +84,6 @@ import {
   getActiveAgentSectionId,
   getModelReasoningEfforts,
   hasEditableAdminDefinition,
-  initialAgentInteractionMode,
   isInvalidAdminAgent,
   mergeAgentSkillOptions,
   normalizeModeForForm,
@@ -104,7 +103,6 @@ import {
   type AgentEditorMode,
   type AgentFormMode,
   type AgentFormState,
-  type AgentInteractionMode,
   type AgentToolFilter,
   type EditableAgentDetail,
 } from "@/features/agents/lib/agentDefinition";
@@ -119,7 +117,6 @@ export {
   getActiveAgentSectionId,
   getModelReasoningEfforts,
   hasEditableAdminDefinition,
-  initialAgentInteractionMode,
   isInvalidAdminAgent,
   mergeAgentSkillOptions,
   privateSkillsFromDetail,
@@ -218,8 +215,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   });
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
   const [editorMode, setEditorMode] = useState<AgentEditorMode>("structured");
-  const [interactionMode, setInteractionMode] =
-    useState<AgentInteractionMode>("edit");
   const [iconEditorOpen, setIconEditorOpen] = useState(false);
   const [form, setForm] = useState<AgentFormState>(createEmptyAgentForm);
   const [detail, setDetail] = useState<EditableAgentDetail | null>(null);
@@ -499,13 +494,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
   const canEditStructuredAgent =
     formMode === "create" || hasEditableAdminDefinition(detail);
-  const isReadOnly = formMode === "edit" && interactionMode === "view";
   const canEditSourceAgent =
     formMode === "edit" && Boolean(detailSourcePath);
   const hasUnsavedChanges = structuredDirty || sourceDirty;
   const canImportPrivateSkill =
     formMode === "edit" &&
-    !isReadOnly &&
     canEditStructuredAgent &&
     toText(detail?.source?.kind).toLowerCase() === "directory" &&
     !savingForm &&
@@ -617,7 +610,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     loadedDetailKeyRef.current = "";
     setFormMode("create");
     setEditorMode("structured");
-    setInteractionMode(initialAgentInteractionMode("create"));
     setForm(createEmptyAgentForm());
     setDetail(null);
     setSourceDraft("");
@@ -644,22 +636,11 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const selectAgent = useCallback(
     (agentKey: string) => {
       const key = agentKey.trim();
-      if (key === effectiveSelectedKey) {
-        if (isReadOnly) {
-          setInteractionMode("edit");
-          setFormError("");
-        }
-        return;
-      }
+      if (key === effectiveSelectedKey) return;
       if (!confirmDiscardChanges()) return;
       commitAgentSelection(key);
     },
-    [
-      commitAgentSelection,
-      confirmDiscardChanges,
-      effectiveSelectedKey,
-      isReadOnly,
-    ],
+    [commitAgentSelection, confirmDiscardChanges, effectiveSelectedKey],
   );
 
   const startDirectCreate = useCallback(() => {
@@ -835,7 +816,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     sourceLoadSeqRef.current += 1;
     setLoadingDetail(true);
     setEditorMode("structured");
-    setInteractionMode(initialAgentInteractionMode("edit"));
     setSourceDraft("");
     setSourceSha256("");
     setSourcePath("");
@@ -895,7 +875,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   }, [formMode, effectiveSelectedKey, loadingList, resetToCreate, localAgents.length]);
 
   const updateForm = (patch: Partial<AgentFormState>) => {
-    if (isReadOnly) return;
     setForm((current) => ({ ...current, ...patch }));
     setStructuredDirty(true);
     setFormError("");
@@ -1008,7 +987,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       setForm(formFromDetail(saved));
       setFormMode("edit");
       setEditorMode("structured");
-      setInteractionMode("edit");
       setSourceDraft("");
       setSourceSha256("");
       setSourcePath("");
@@ -1162,27 +1140,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     updateForm({ mode });
   };
 
-  const cancelEditing = useCallback(() => {
-    if (
-      hasUnsavedChanges &&
-      !window.confirm(t("agentConsole.confirm.cancelEdit"))
-    ) {
-      return;
-    }
-    sourceLoadSeqRef.current += 1;
-    if (detail) setForm(formFromDetail(detail));
-    setEditorMode("structured");
-    setInteractionMode("view");
-    setIconEditorOpen(false);
-    setSourceDraft("");
-    setSourceSha256("");
-    setSourcePath("");
-    setSourceLoadedKey("");
-    setSourceDirty(false);
-    setStructuredDirty(false);
-    setFormError("");
-  }, [detail, hasUnsavedChanges, t]);
-
   const applySourceResponse = (response: AdminSourceResponse) => {
     setSourceDraft(response.content);
     setSourceSha256(response.sha256);
@@ -1199,10 +1156,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       !window.confirm(t("agentConsole.confirm.switchEditor"))
     ) {
       return;
-    }
-    if (isReadOnly) {
-      setInteractionMode("edit");
-      setFormError("");
     }
     if (target === "structured") {
       setSourceDirty(false);
@@ -1260,7 +1213,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         setDetail(nextDetail);
         setForm(formFromDetail(nextDetail));
         setFormMode("edit");
-        setInteractionMode("edit");
         setStructuredDirty(false);
       }
     } catch (error) {
@@ -1463,13 +1415,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     disabled={assistant.opening || savingForm || deleting}
                     onSource={() => void switchEditorMode("source")}
                     onStructured={() => void switchEditorMode("structured")}
-                    activeEditMode={!isReadOnly ? editorMode : undefined}
-                    onCancelEdit={
-                      formMode === "edit" && !isReadOnly
-                        ? cancelEditing
-                        : undefined
-                    }
-                    cancelEditDisabled={savingForm || deleting}
+                    activeEditMode={editorMode}
                     sourceDisabled={
                       !canEditSourceAgent ||
                       savingForm ||
@@ -1481,41 +1427,39 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       !canEditStructuredAgent ||
                       savingForm ||
                       deleting ||
-                      (editorMode === "structured" && !isReadOnly)
+                      editorMode === "structured"
                     }
                   />
                 )}
-                {!isReadOnly && (
-                  <>
-                    <UiButton
-                      className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
-                      size="sm"
-                      variant="primary"
-                      onClick={() => {
-                        if (editorMode === "source") {
-                          void saveSource();
-                        } else {
-                          void saveForm();
-                        }
-                      }}
-                      disabled={
-                        editorMode === "source"
-                          ? sourceSaveDisabled
-                          : !canEditStructuredAgent || deleting
-                      }
-                      loading={savingForm}
-                    >
-                      <MaterialIcon name="save" />
-                      <span>
-                        {formMode === "create"
-                          ? t("agentConsole.action.create")
-                          : editorMode === "source"
-                            ? t("agentConsole.action.saveSource")
-                            : t("agentConsole.action.saveChanges")}
-                      </span>
-                    </UiButton>
-                  </>
-                )}
+                <UiButton
+                  className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
+                  size="sm"
+                  variant="primary"
+                  onClick={() => {
+                    if (editorMode === "source") {
+                      void saveSource();
+                    } else {
+                      void saveForm();
+                    }
+                  }}
+                  disabled={
+                    editorMode === "source"
+                      ? sourceSaveDisabled
+                      : !canEditStructuredAgent ||
+                        deleting ||
+                        !structuredDirty
+                  }
+                  loading={savingForm}
+                >
+                  <MaterialIcon name="save" />
+                  <span>
+                    {formMode === "create"
+                      ? t("agentConsole.action.create")
+                      : editorMode === "source"
+                        ? t("agentConsole.action.saveSource")
+                        : t("agentConsole.action.saveChanges")}
+                  </span>
+                </UiButton>
               </div>
             </nav>
 
@@ -1556,7 +1500,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               ) : null
             ) : canEditStructuredAgent ? (
               <AgentEditor
-                isReadOnly={isReadOnly}
                 t={t}
                 form={form}
                 formError={formError}

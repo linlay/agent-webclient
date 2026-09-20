@@ -11,7 +11,6 @@ import type {
 export type AgentToolFilter = "all" | "file" | "desktop" | "system";
 
 export interface AgentCapabilitiesEditorProps {
-  readOnly: boolean;
   contextOptions: Array<{
     value: string;
     label: string;
@@ -80,8 +79,7 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
     <section className="agent-context-block" aria-labelledby="agent-tools-heading">
       <div className="agent-context-block-heading">
         <h4 id="agent-tools-heading">{props.t("agentConsole.field.tools")}</h4>
-        {!props.readOnly ? (
-          <Popover
+        <Popover
             content={(
               <div id="agent-tools-manager" className="agent-capability-manager agent-capability-popover agent-capability-popover--compact">
                 <div className="agent-tool-list-toolbar">
@@ -111,7 +109,6 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
           >
             <UiButton size="sm" variant="ghost" aria-expanded={props.toolsExpanded} aria-controls="agent-tools-manager"><MaterialIcon name="tune" />{props.t("agentConsole.context.manageTools")}</UiButton>
           </Popover>
-        ) : null}
       </div>
       <div className="agent-tool-tag-list" aria-live="polite">
         <strong>{props.t("agentConsole.context.selectedCount", { count: props.tools.length })}</strong>
@@ -119,7 +116,7 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
           <span key={tool.key} className="agent-tool-tag">
             <MaterialIcon name={toolIcon(props.getToolCategory(tool))} />
             <span>{tool.label}</span>
-            {!props.readOnly ? <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: tool.label })} onClick={() => props.onToolsChange(props.tools.filter((key) => key !== tool.key))}><MaterialIcon name="close" /></button> : null}
+            <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: tool.label })} onClick={() => props.onToolsChange(props.tools.filter((key) => key !== tool.key))}><MaterialIcon name="close" /></button>
           </span>
         ))}
       </div>
@@ -128,10 +125,9 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
     <section className="agent-context-block" aria-labelledby="agent-skills-heading">
       <div className="agent-context-block-heading">
         <h4 id="agent-skills-heading">{props.t("agentConsole.field.skills")}</h4>
-        {!props.readOnly ? (
-          <span className="agent-context-heading-actions">
-            <UiButton size="sm" variant="ghost" onClick={props.onImportPrivateSkill} disabled={!props.canImportPrivateSkill} title={props.canImportPrivateSkill ? props.t("agentConsole.privateSkill.import.title") : props.t("agentConsole.privateSkill.import.disabled")}><MaterialIcon name="folder_zip" />{props.t("agentConsole.privateSkill.import.action")}</UiButton>
-            <Popover
+        <span className="agent-context-heading-actions">
+          <UiButton size="sm" variant="ghost" onClick={props.onImportPrivateSkill} disabled={!props.canImportPrivateSkill} title={props.canImportPrivateSkill ? props.t("agentConsole.privateSkill.import.title") : props.t("agentConsole.privateSkill.import.disabled")}><MaterialIcon name="folder_zip" />{props.t("agentConsole.privateSkill.import.action")}</UiButton>
+          <Popover
               content={(
                 <div id="agent-skills-manager" className="agent-capability-manager agent-capability-popover agent-capability-popover--compact agent-skill-manager-popover">
                   <Input className="agent-skill-search" aria-label={props.t("agentConsole.context.searchSkills")} prefix={<MaterialIcon name="search" />} placeholder={props.t("agentConsole.context.searchSkills")} value={props.skillSearchText} onChange={(event) => props.onSkillSearchTextChange(event.target.value)} />
@@ -156,8 +152,7 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
             >
               <UiButton size="sm" variant="ghost" aria-expanded={props.skillsExpanded} aria-controls="agent-skills-manager"><MaterialIcon name="tune" />{props.t("agentConsole.context.manageSkills")}</UiButton>
             </Popover>
-          </span>
-        ) : null}
+        </span>
       </div>
       <div className="agent-selected-skill-list" aria-live="polite">
         <strong>{props.t("agentConsole.context.selectedCount", { count: props.skills.length })}</strong>
@@ -167,7 +162,7 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
             <div key={skill.key} className="agent-selected-skill-row">
               <MaterialIcon name="skills" />
               <span className="agent-selected-skill-copy"><strong className="agent-skill-title">{skill.label}</strong><span className="agent-skill-inline-separator" aria-hidden="true">·</span><span className="agent-skill-description" title={description}>{description}</span></span>
-              {!props.readOnly ? <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: skill.label })} onClick={() => props.onSkillsChange(props.skills.filter((key) => key !== skill.key))}><MaterialIcon name="close" /></button> : null}
+              <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: skill.label })} onClick={() => props.onSkillsChange(props.skills.filter((key) => key !== skill.key))}><MaterialIcon name="close" /></button>
             </div>
           );
         })}

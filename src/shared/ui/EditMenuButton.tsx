@@ -25,8 +25,6 @@ interface EditMenuButtonProps {
   sourceDisabled?: boolean;
   structuredDisabled?: boolean;
   activeEditMode?: "source" | "structured";
-  onCancelEdit?: () => void;
-  cancelEditDisabled?: boolean;
 }
 
 export function EditMenuButton({
@@ -40,8 +38,6 @@ export function EditMenuButton({
   sourceDisabled,
   structuredDisabled,
   activeEditMode,
-  onCancelEdit,
-  cancelEditDisabled,
 }: EditMenuButtonProps) {
   const { t } = useI18n();
   const displayLabel =
@@ -101,24 +97,12 @@ export function EditMenuButton({
                 },
               ]
             : []),
-          ...(onCancelEdit
-            ? [
-                { type: "divider" as const },
-                {
-                  key: "cancelEdit",
-                  label: t("resourceAssistant.cancelEdit"),
-                  disabled: cancelEditDisabled,
-                  icon: <MaterialIcon name="close" />,
-                },
-              ]
-            : []),
         ],
         onClick: ({ key }) => {
           if (key === "manual") onManual?.();
           else if (key === "conversation") onConversation?.();
           else if (key === "source") onSource?.();
           else if (key === "structured") onStructured?.();
-          else if (key === "cancelEdit") onCancelEdit?.();
         },
       }}
     >
