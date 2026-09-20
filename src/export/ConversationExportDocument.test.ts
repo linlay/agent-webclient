@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { buildConversationCopyText } from "./conversationCopyText";
@@ -7,8 +5,10 @@ import { ConversationExportDocument } from "./ConversationExportDocument";
 import type { ConversationSnapshotV1 } from "./conversationSnapshot";
 
 jest.mock("./ConversationExportDocument.module.css", () => ({
-  finalResponse: "final-response",
   markdown: "markdown",
+  assistantAvatar: "assistant-avatar",
+  reasoning: "reasoning",
+  reasoningSegment: "reasoning-segment",
 }));
 jest.mock("@ant-design/x-markdown/plugins/Latex", () => ({
   __esModule: true,
@@ -67,30 +67,26 @@ describe("ConversationExportDocument", () => {
     );
   });
 
-  it("marks only a reasoning turn final response for the lead paragraph divider", () => {
-    const html = renderDocument("先说结论。\n\n# 正式内容", true);
-
-    expect(html).toContain("final-response");
-    expect(renderDocument("先说结论。\n\n后续正文", false)).not.toContain(
-      "final-response",
+  it("shows an agent name and avatar while keeping two collapsed disclosures", () => {
+    const value: ConversationSnapshotV1 = {
+      ...snapshot,
+      turns: [{ ...snapshot.turns[0], assistant: { name: "Writer", iconName: "chat" } }],
+    };
+    const html = renderToStaticMarkup(
+      React.createElement(ConversationExportDocument, { locale: "zh-CN", snapshot: value }),
     );
+    expect(html).toContain("Writer");
+    expect(html).toContain("assistant-avatar");
+    expect(html).toContain('class="reasoning"');
+    expect(html).toContain('class="reasoning-segment"');
+    expect(html).not.toContain("<details open");
+    expect(buildConversationCopyText(value, "zh-CN")).toContain("Writer\n\nReady");
   });
 
-  it("keeps the divider on a non-terminal lead paragraph without depending on headings", () => {
-    const css = fs.readFileSync(
-      path.join(
-        process.cwd(),
-        "src/export/ConversationExportDocument.module.css",
-      ),
-      "utf8",
-    );
-
-    expect(css).toMatch(
-      /\.finalResponse\s*>\s*:global\(p:first-child:not\(:last-child\)\)\s*\{[\s\S]*?border-bottom:\s*1px solid var\(--export-border\);/u,
-    );
-    expect(css).not.toMatch(
-      /\.finalResponse\s*\{[^}]*border-top:/u,
-    );
+  it("uses a localized fallback identity for old snapshots", () => {
+    const html = renderDocument("Answer", true);
+    expect(html).toContain("助手");
+    expect(html).toContain("assistant-avatar");
   });
 });
 

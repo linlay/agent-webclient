@@ -31,6 +31,22 @@ describe("conversationSnapshot", () => {
     expect(parseConversationSnapshot(JSON.stringify(snapshot()))).toEqual(snapshot());
   });
 
+  it("accepts optional public assistant identity and rejects invalid fields", () => {
+    const value = snapshot();
+    const turn = (value.turns as Array<Record<string, unknown>>)[0];
+    turn.assistant = { name: "Writer", iconName: "chat" };
+    expect(parseConversationSnapshot(JSON.stringify(value))?.turns[0].assistant).toEqual(turn.assistant);
+    for (const assistant of [
+      { name: " " },
+      { name: "Writer", iconName: "../secret" },
+      { name: "Writer", iconName: 123 },
+      { name: "Writer", key: "private-agent" },
+    ]) {
+      turn.assistant = assistant;
+      expect(parseConversationSnapshot(JSON.stringify(value))).toBeNull();
+    }
+  });
+
   it("accepts a running root turn without endedAt", () => {
     const value = snapshot();
     value.turns = [{

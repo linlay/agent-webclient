@@ -16,6 +16,8 @@ import {
 } from "@/shared/i18n/conversationExport";
 import { StaticMarkdownCode } from "./StaticMarkdownCode";
 import { buildConversationCopyText } from "./conversationCopyText";
+import { AssistantIdentity } from "./AssistantIdentity";
+import { ReasoningDisclosure } from "./ReasoningDisclosure";
 import styles from "./ConversationExportDocument.module.css";
 
 type MarkdownLinkProps = ConversationMarkdownElementProps<{
@@ -93,8 +95,8 @@ export const ConversationExportDocument: React.FC<
 
   return (
     <main className={styles.page}>
-      <div className={styles.shell}>
-        <header className={styles.header}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
           <div className={styles.headerTitle}>
             <h1 title={snapshot.title}>{snapshot.title}</h1>
           </div>
@@ -106,10 +108,20 @@ export const ConversationExportDocument: React.FC<
             data-state={copyState}
             onClick={() => void copyConversation()}
           >
-            {copyButtonLabel}
+            <span className={styles.copyIcon} aria-hidden="true">
+              {copyState === "copied" ? "✓" : copyState === "failed" ? "!" : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="8" y="8" width="12" height="12" rx="2" />
+                  <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                </svg>
+              )}
+            </span>
+            <span className={styles.copyLabel}>{copyButtonLabel}</span>
           </button>
-        </header>
+        </div>
+      </header>
 
+      <div className={styles.shell}>
         <div className={styles.notice}>
           <p>{copy.aiNotice}</p>
         </div>
@@ -177,6 +189,21 @@ function ExportTurn({
     turn.endedAt === undefined
       ? ""
       : formatDuration(turn.endedAt - turn.startedAt);
+  const reasoningLabel = [
+    copy.reasoning,
+    duration ? copy.turnDuration.replace("{duration}", duration) : "",
+    copy.outcome[turn.outcome],
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const statusIcon =
+    turn.outcome === "completed"
+      ? "✓"
+      : turn.outcome === "failed"
+        ? "!"
+        : turn.outcome === "cancelled"
+          ? "×"
+          : "·";
 
   return (
     <article className={styles.turn}>
@@ -186,64 +213,50 @@ function ExportTurn({
 
       {assistantItems.length > 0 ? (
         <section className={styles.assistantRow}>
-          <div className={styles.assistantIdentity}>
-            <strong>{copy.assistant}</strong>
-          </div>
+          <AssistantIdentity
+            assistant={turn.assistant}
+            fallbackName={copy.assistant}
+          />
           <div className={styles.assistantContent}>
             {traceItems.length > 0 ? (
-              <details className={styles.reasoning}>
-                <summary>
-                  {turn.outcome === "running"
-                    ? copy.reasoningSnapshot
-                    : duration
-                      ? copy.reasoningCompleted.replace("{duration}", duration)
-                      : copy.reasoningCompletedWithoutDuration}
-                </summary>
-                <div className={styles.reasoningBody}>
-                  {traceItems.map((item, index) =>
-                    item.kind === "reasoning" ? (
-                      <details
-                        className={styles.reasoningSegment}
-                        key={`${item.at}-${index}`}
-                      >
-                        <summary>
-                          {item.label || copy.untitledReasoning}
-                        </summary>
-                        <ConversationMarkdown
-                          className={styles.reasoningMarkdown}
-                          content={item.text}
-                          components={MARKDOWN_COMPONENTS}
-                          codeComponent={StaticMarkdownCode}
-                        />
-                      </details>
-                    ) : (
+              <ReasoningDisclosure label={reasoningLabel} statusIcon={statusIcon}>
+                {traceItems.map((item, index) =>
+                  item.kind === "reasoning" ? (
+                    <ReasoningDisclosure
+                      key={`${item.at}-${index}`}
+                      label={item.label || copy.untitledReasoning}
+                      segment
+                    >
                       <ConversationMarkdown
-                        className={styles.processMessage}
+                        className={styles.reasoningMarkdown}
                         content={item.text}
                         components={MARKDOWN_COMPONENTS}
                         codeComponent={StaticMarkdownCode}
-                        key={`${item.at}-${index}`}
                       />
-                    ),
-                  )}
-                </div>
-              </details>
+                    </ReasoningDisclosure>
+                  ) : (
+                    <ConversationMarkdown
+                      className={styles.processMessage}
+                      content={item.text}
+                      components={MARKDOWN_COMPONENTS}
+                      codeComponent={StaticMarkdownCode}
+                      key={`${item.at}-${index}`}
+                    />
+                  ),
+                )}
+              </ReasoningDisclosure>
             ) : null}
 
             {responseItems.map((item, index) => (
               <ConversationMarkdown
-                className={
-                  hasReasoning
-                    ? `${styles.markdown} ${styles.finalResponse}`
-                    : styles.markdown
-                }
+                className={styles.markdown}
                 content={item.text}
                 components={MARKDOWN_COMPONENTS}
                 codeComponent={StaticMarkdownCode}
                 key={`${item.at}-${index}`}
               />
             ))}
-            {turn.outcome !== "completed" ? (
+            {turn.outcome !== "completed" && traceItems.length === 0 ? (
               <p className={styles.turnStatus}>{copy.outcome[turn.outcome]}</p>
             ) : null}
           </div>

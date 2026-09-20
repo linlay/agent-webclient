@@ -4,6 +4,7 @@ export const MAX_CONVERSATION_SNAPSHOT_BYTES = 20 * 1024 * 1024;
 const MAX_SNAPSHOT_ITEMS = 2_000;
 const MAX_TITLE_BYTES = 300;
 const MAX_LABEL_BYTES = 300;
+const MAX_ICON_NAME_BYTES = 40;
 const UTF8_ENCODER = new TextEncoder();
 
 export type ConversationSnapshotOutcome =
@@ -27,6 +28,7 @@ export type ConversationSnapshotTurnV1 = Readonly<{
   startedAt: number;
   endedAt?: number;
   outcome: ConversationSnapshotOutcome;
+  assistant?: Readonly<{ name: string; iconName?: string }>;
   items: readonly [
     ConversationSnapshotUserItemV1,
     ...ConversationSnapshotAssistantItemV1[],
@@ -89,13 +91,19 @@ export function parseConversationSnapshot(
 function parseTurn(value: unknown): ConversationSnapshotTurnV1 | null {
   if (!isRecord(value)) return null;
   const hasEndedAt = Object.hasOwn(value, "endedAt");
-  const expectedKeys = hasEndedAt
-    ? ["startedAt", "endedAt", "outcome", "items"]
-    : ["startedAt", "outcome", "items"];
+  const hasAssistant = Object.hasOwn(value, "assistant");
+  const expectedKeys = [
+    "startedAt",
+    ...(hasEndedAt ? ["endedAt"] : []),
+    "outcome",
+    ...(hasAssistant ? ["assistant"] : []),
+    "items",
+  ];
   if (
     !hasExactKeys(value, expectedKeys) ||
     !isEpochMilliseconds(value.startedAt) ||
     !isOutcome(value.outcome) ||
+    (hasAssistant && !isAssistant(value.assistant)) ||
     !Array.isArray(value.items) ||
     value.items.length === 0 ||
     (value.outcome === "running" && hasEndedAt) ||
@@ -125,8 +133,22 @@ function parseTurn(value: unknown): ConversationSnapshotTurnV1 | null {
     startedAt: value.startedAt,
     ...(hasEndedAt ? { endedAt: value.endedAt as number } : {}),
     outcome: value.outcome,
+    ...(hasAssistant ? { assistant: value.assistant as ConversationSnapshotTurnV1["assistant"] } : {}),
     items,
   };
+}
+
+function isAssistant(value: unknown): value is NonNullable<ConversationSnapshotTurnV1["assistant"]> {
+  if (!isRecord(value)) return false;
+  const hasIconName = Object.hasOwn(value, "iconName");
+  return (
+    hasExactKeys(value, hasIconName ? ["name", "iconName"] : ["name"]) &&
+    isValidTrimmedText(value.name, MAX_TITLE_BYTES) &&
+    (!hasIconName ||
+      (typeof value.iconName === "string" &&
+        utf8Bytes(value.iconName) <= MAX_ICON_NAME_BYTES &&
+        /^[a-z0-9-]+$/u.test(value.iconName)))
+  );
 }
 
 function parseUserItem(value: unknown): ConversationSnapshotUserItemV1 | null {

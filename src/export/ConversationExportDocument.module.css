@@ -55,8 +55,8 @@ body {
 }
 
 .shell {
-  width: min(1040px, calc(100% - 48px));
-  min-height: 100vh;
+  width: min(866px, calc(100% - 48px));
+  min-height: calc(100vh - 56px);
   margin: 0 auto;
   padding-bottom: calc(112px + env(safe-area-inset-bottom));
 }
@@ -65,14 +65,20 @@ body {
   position: sticky;
   z-index: 10;
   top: 0;
-  display: flex;
-  min-height: 72px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  min-height: 56px;
   border-bottom: 1px solid var(--export-border);
   background: color-mix(in srgb, var(--export-bg) 92%, transparent);
   backdrop-filter: blur(14px);
+}
+
+.headerInner {
+  display: flex;
+  width: min(866px, calc(100% - 48px));
+  min-height: 55px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 auto;
 }
 
 .headerTitle,
@@ -87,24 +93,51 @@ body {
   margin: 0;
   overflow: hidden;
   color: var(--export-text-strong);
-  font-size: 18px;
-  line-height: 1.35;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .copyButton {
-  min-height: 36px;
+  display: inline-flex;
+  min-height: 32px;
   flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: 1px solid var(--export-border);
   border-radius: 9px;
   background: var(--export-surface);
   color: var(--export-text);
-  padding: 0 14px;
+  padding: 0 10px;
   font: inherit;
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
+}
+
+.copyIcon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.copyIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.copyButton[data-state="copied"] .copyIcon {
+  color: var(--export-accent);
+}
+
+.copyButton[data-state="failed"] .copyIcon {
+  color: #cf222e;
 }
 
 .copyButton:hover,
@@ -115,18 +148,18 @@ body {
 }
 
 .notice {
-  padding: 34px 0 46px;
+  padding: 24px 0 12px;
   color: var(--export-muted);
   text-align: center;
 }
 
 .notice p {
   margin: 0;
-  font-size: 15px;
+  font-size: 12px;
 }
 
 .content {
-  width: min(900px, 100%);
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -200,7 +233,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 42px;
-  padding: 12px 0 48px;
+  padding: 0 0 48px;
 }
 
 .turn {
@@ -234,9 +267,25 @@ body {
 }
 
 .assistantIdentity {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   color: var(--export-text-strong);
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.assistantIdentity strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.assistantAvatar {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .assistantContent {
@@ -248,35 +297,98 @@ body {
 
 .reasoning {
   color: var(--export-muted);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .reasoning > summary,
 .reasoningSegment > summary {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
   color: var(--export-muted);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.75;
+  list-style: none;
+}
+
+.reasoning > summary::-webkit-details-marker,
+.reasoningSegment > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reasoning > summary:hover,
+.reasoningSegment > summary:hover {
+  color: var(--export-text);
+}
+
+.reasoning > summary:focus-visible,
+.reasoningSegment > summary:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--export-accent);
+  outline-offset: 3px;
+}
+
+.reasoningStatusIcon {
+  display: inline-flex;
+  width: 14px;
+  flex: 0 0 14px;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.reasoningLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reasoningArrow {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 180ms ease;
+}
+
+.reasoning[open] > summary .reasoningArrow,
+.reasoningSegment[open] > summary .reasoningArrow {
+  transform: rotate(45deg);
 }
 
 .reasoningBody {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px 0 0 20px;
+  margin: 8px 0 4px 6px;
+  border-left: 2px solid var(--export-border);
+  padding: 2px 0 2px 12px;
 }
 
 .reasoningSegment {
   min-width: 0;
   margin: 0;
   color: var(--export-muted);
-  font-size: 13px;
+  font-size: 14px;
+}
+
+.reasoningSegment > summary {
+  font-size: 14px;
+}
+
+.reasoningSegmentBody {
+  margin: 8px 0 0 6px;
+  border-left: 2px solid var(--export-border);
+  padding-left: 12px;
 }
 
 .reasoningMarkdown {
-  border-left: 2px solid var(--export-border);
   color: var(--export-muted);
-  padding-left: 14px;
   font-size: 14px;
   line-height: 1.7;
   overflow-wrap: anywhere;
@@ -297,16 +409,6 @@ body {
   color: var(--export-text);
   font-size: 16px;
   line-height: 1.78;
-}
-
-.finalResponse {
-  margin-top: 4px;
-}
-
-.finalResponse > :global(p:first-child:not(:last-child)) {
-  margin-bottom: 28px;
-  border-bottom: 1px solid var(--export-border);
-  padding-bottom: 28px;
 }
 
 .markdown :global(p),
@@ -489,49 +591,22 @@ body {
 }
 
 @media (max-width: 640px) {
-  .shell {
-    width: calc(100% - 28px);
+  .shell,
+  .headerInner {
+    width: calc(100% - 32px);
   }
 
-  .header {
-    min-height: 62px;
+  .headerInner {
     gap: 10px;
   }
 
-  .headerTitle h1 {
-    font-size: 16px;
-  }
-
   .copyButton {
-    width: 38px;
-    overflow: hidden;
+    width: 32px;
     padding: 0;
-    color: transparent;
-    font-size: 0;
   }
 
-  .copyButton::before {
-    content: "⧉";
-    color: var(--export-text);
-    font-size: 18px;
-  }
-
-  .copyButton[data-state="copied"]::before {
-    content: "✓";
-    color: var(--export-accent);
-  }
-
-  .copyButton[data-state="failed"]::before {
-    content: "!";
-    color: #cf222e;
-  }
-
-  .notice {
-    padding: 26px 0 36px;
-  }
-
-  .notice p {
-    font-size: 13px;
+  .copyLabel {
+    display: none;
   }
 
   .transcript,
@@ -555,6 +630,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .reasoningArrow {
+    transition: none;
+  }
+
   .diagramLoadingSpinner,
   :global(.export-loading),
   :global(.export-loading-spinner) {
