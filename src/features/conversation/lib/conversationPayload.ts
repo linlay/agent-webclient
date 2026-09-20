@@ -49,6 +49,7 @@ function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
 
   return {
     artifactId,
+    source: "chat",
     artifact: {
       type: "file",
       name: String(value.name || artifactId).trim() || artifactId,

@@ -2891,6 +2891,7 @@ describe('replayEvent tool migration', () => {
     ).toEqual([
       {
         artifactId: 'artifact_1',
+        source: 'chat',
         timestamp: EPOCH_MS,
         artifact: {
           type: 'file',

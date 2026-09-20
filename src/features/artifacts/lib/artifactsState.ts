@@ -17,6 +17,8 @@ export interface PublishedArtifact {
   artifactId: string;
   artifact: ResourceFile;
   timestamp: number;
+  /** 标记为从 `/api/chat` 详情载荷恢复的产物，区别于实时运行事件产物。 */
+  source?: "chat";
 }
 
 export interface ArtifactsState {

@@ -88,13 +88,17 @@ function handleFloatingArtifactWheel(
 export const ArtifactPanel: React.FC = () => {
   const state = useAppState();
   const { t } = useI18n();
+  const visibleArtifacts = useMemo(
+    () => state.artifacts.filter((item) => item.source !== "chat"),
+    [state.artifacts],
+  );
   const summary = useMemo(
-    () => buildArtifactSummaryView(state.artifacts, t),
-    [state.artifacts, t],
+    () => buildArtifactSummaryView(visibleArtifacts, t),
+    [visibleArtifacts, t],
   );
   const [isCollapsed, setIsCollapsed] = useState(true);
 
-  if (state.artifacts.length === 0) return null;
+  if (visibleArtifacts.length === 0) return null;
 
   return isCollapsed ? (
     <div className={FLOATING_ARTIFACT_CLASS_NAME}>
