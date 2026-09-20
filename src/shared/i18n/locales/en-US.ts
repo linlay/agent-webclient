@@ -1714,7 +1714,7 @@ export const enUSMessages = {
   "timeline.toolPill.copy.action": "Copy",
   "timeline.toolPill.copy.copied": "Copied",
   "timeline.toolPill.copy.failed": "Copy failed",
-  "timeline.textSearch.placeholder": "Search conversation",
+  "timeline.textSearch.placeholder": "Search chat content",
   "timeline.textSearch.placeholderCompact": "Search",
   "timeline.textSearch.previous": "Previous",
   "timeline.textSearch.next": "Next",

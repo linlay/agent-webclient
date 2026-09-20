@@ -37,6 +37,8 @@
 
 .expandable.open {
   width: 320px;
+  /* An opaque theme surface masks header content beneath the expanded input. */
+  background: var(--bg-base);
 }
 
 .expandable:focus-within {

@@ -75,7 +75,7 @@ export function resolveStatusPillClassName(
   ].join(" ");
 }
 
-const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-10";
+const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-11 tw:pt-1";
 const TOP_NAV_INNER_CLASS =
   "top-nav-inner tw:flex tw:h-full tw:min-h-0 tw:w-full tw:items-center";
 const NAV_GROUP_CLASS = "nav-group tw:relative tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
