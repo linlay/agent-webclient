@@ -523,3 +523,15 @@
 :global(.layout-desktop-fixed) :global(.timeline-empty) {
     background: transparent;
 }
+
+.runActionButton:global(.ui-btn.is-icon-only) {
+    --ui-icon-hover-icon-size: 15px;
+    --ui-icon-hover-bg-size: 22px;
+    width: 22px;
+    min-width: 22px;
+    height: 22px;
+    min-height: 22px;
+    padding: 0;
+    border-radius: 8px;
+    color: var(--ink-muted);
+}

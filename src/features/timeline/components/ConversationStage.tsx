@@ -93,7 +93,7 @@ import {
 } from "@/features/timeline/lib/conversationScrollBookmark";
 import type { AgentSkill } from "@/shared/data/api/client";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
-import "./Timeline.module.css";
+import timelineStyles from "./Timeline.module.css";
 
 const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
@@ -191,6 +191,8 @@ const TIMELINE_META_ACTIONS_CLASS_NAME =
   "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1";
 const TIMELINE_META_BUTTON_CLASS_NAME =
   "timeline-meta-btn ui-icon-hover-20 tw:!h-5 tw:!min-h-5 tw:!w-5 tw:!min-w-5 tw:!rounded-lg tw:!p-0 tw:text-ink-muted tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
+const TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME =
+  `timeline-meta-btn ui-icon-hover-20 ${timelineStyles.runActionButton}`;
 const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
   "is-downvoted tw:bg-[color-mix(in_srgb,var(--accent-danger)_12%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--ink-1))]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
@@ -1817,7 +1819,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           className={`${TIMELINE_META_ACTIONS_CLASS_NAME} tw:ml-auto`}
                         >
                           <UiButton
-                            className={TIMELINE_META_BUTTON_CLASS_NAME}
+                            className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME}
                             variant="ghost"
                             size="sm"
                             iconOnly
@@ -1838,7 +1840,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           {isDownvoted ? (
                             <UiButton
                               className={[
-                                TIMELINE_META_BUTTON_CLASS_NAME,
+                                TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME,
                                 TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME,
                               ].join(" ")}
                               variant="ghost"
@@ -1865,7 +1867,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                               }
                             >
                               <UiButton
-                                className={TIMELINE_META_BUTTON_CLASS_NAME}
+                                className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME}
                                 variant="ghost"
                                 size="sm"
                                 iconOnly
@@ -1878,7 +1880,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             </Popover>
                           )}
                           <UiButton
-                            className={TIMELINE_META_BUTTON_CLASS_NAME}
+                            className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME}
                             variant="ghost"
                             size="sm"
                             iconOnly

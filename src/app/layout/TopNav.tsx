@@ -89,9 +89,9 @@ const CURRENT_WORKER_NAME_CLASS =
 const KBASE_EDITING_BADGE_CLASS =
   "kbase-editing-badge tw:inline-flex tw:flex-none tw:items-center tw:whitespace-nowrap tw:rounded-lg tw:bg-[color-mix(in_srgb,var(--accent-warn)_14%,transparent)] tw:px-2 tw:py-1 tw:text-[10px] tw:font-semibold tw:text-accent-warn";
 const TOP_NAV_ICON_BUTTON_CLASS =
-  "top-nav-icon-btn tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:!max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px]";
+  "top-nav-icon-btn ui-icon-hover-24 tw:h-6 tw:min-h-6 tw:w-6 tw:min-w-6 tw:rounded-lg tw:p-0";
 const CURRENT_WORKER_TOOL_BASE_CLASS =
-  "current-worker-tool tw:h-8 tw:min-h-8 tw:w-8 tw:min-w-8 tw:rounded-lg tw:p-0 tw:max-[1279px]:h-[34px] tw:max-[1279px]:min-h-[34px] tw:max-[1279px]:w-[34px] tw:max-[1279px]:min-w-[34px] tw:[&_.material-icon]:text-lg";
+  `${TOP_NAV_ICON_BUTTON_CLASS} current-worker-tool`;
 const VOICE_TOOL_CLASS_BY_MODE = {
   call: [
     CURRENT_WORKER_TOOL_BASE_CLASS,
