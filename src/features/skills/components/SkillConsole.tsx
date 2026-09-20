@@ -249,8 +249,8 @@ const SKILL_LIST_ITEM_META_CLASS_NAME =
   "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
 const SKILL_LIST_ITEM_WRAP_CLASS_NAME =
   "skill-console-list-item-wrap tw:group tw:relative tw:min-w-0";
-const SKILL_LIST_GROUP_HEADER_CLASS_NAME =
-  "skill-console-list-group-header tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-medium tw:leading-none tw:text-ink-muted tw:sticky tw:top-0 tw:bg-[var(--management-page-surface)] tw:z-10";
+const SKILL_LIST_HEADER_CLASS_NAME =
+  "skill-console-list-header tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-medium tw:leading-none tw:text-ink-muted tw:sticky tw:top-0 tw:bg-[var(--management-page-surface)] tw:z-10";
 const SKILL_LIST_ITEM_MORE_CLASS_NAME =
   "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
@@ -1737,21 +1737,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     );
   }, [skills, searchText, statusFilter, pinnedSkillKeys]);
 
-  const pinnedSkills = useMemo(
-    () =>
-      filteredSkills.filter((item) =>
-        pinnedSkillKeys.includes(item.key.toLowerCase()),
-      ),
-    [filteredSkills, pinnedSkillKeys],
-  );
-  const otherSkills = useMemo(
-    () =>
-      filteredSkills.filter(
-        (item) => !pinnedSkillKeys.includes(item.key.toLowerCase()),
-      ),
-    [filteredSkills, pinnedSkillKeys],
-  );
-
   const applyOpenedFile = useCallback((file: AdminSkillTextFile) => {
     applyOpenedFileState(
       file,
@@ -2576,6 +2561,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 >
                   <strong>{item.name || item.key}</strong>
                 </Typography.Text>
+                {itemPinned && (
+                  <MaterialIcon
+                    name="push_pin"
+                    className="tw:h-[14px] tw:w-[14px] tw:flex-none tw:text-[14px] tw:text-ink-muted"
+                    title={t("skillConsole.action.pin")}
+                    aria-label={t("skillConsole.action.pin")}
+                  />
+                )}
                 <SkillListItemStatus
                   status={item.status}
                   statusLabel={translateWithFallback(
@@ -2717,26 +2710,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 </div>
               ) : (
                 <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
-                  {pinnedSkills.length > 0 && (
-                    <>
-                      <div className={SKILL_LIST_GROUP_HEADER_CLASS_NAME}>
-                        {t("skillConsole.list.pinnedGroup", {
-                          count: pinnedSkills.length,
-                        })}
-                      </div>
-                      {pinnedSkills.map(renderSkillItem)}
-                    </>
-                  )}
-                  {otherSkills.length > 0 && (
-                    <>
-                      <div className={SKILL_LIST_GROUP_HEADER_CLASS_NAME}>
-                        {t("skillConsole.list.otherGroup", {
-                          count: otherSkills.length,
-                        })}
-                      </div>
-                      {otherSkills.map(renderSkillItem)}
-                    </>
-                  )}
+                  <div className={SKILL_LIST_HEADER_CLASS_NAME}>
+                    {t("skillConsole.list.title", {
+                      count: filteredSkills.length,
+                    })}
+                  </div>
+                  {filteredSkills.map(renderSkillItem)}
                 </div>
               )}
             </Spin>
