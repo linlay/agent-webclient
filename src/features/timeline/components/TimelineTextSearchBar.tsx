@@ -71,7 +71,7 @@ export const TimelineTextSearchBar: React.FC<TimelineTextSearchBarProps> = ({
         title={`${t("timeline.textSearch.open")} (${shortcutLabel})`}
         value={query}
         placeholder={t(open ? "timeline.textSearch.placeholder" : "timeline.textSearch.placeholderCompact")}
-        prefix={expandable ? undefined : <MaterialIcon name="search" />}
+        prefix={<MaterialIcon name="search" className="tw:text-text-muted" />}
         onChange={(event) => onQueryChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
