@@ -2,9 +2,16 @@ import { useAgentWelcome } from "@/features/agents/hooks/useAgentWelcome";
 import { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
 import { buildTimelineAgentOptions } from "@/features/workers/lib/agentSelection";
 export { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
-export { buildTimelineAgentOptions, filterTimelineAgentOptions, dispatchTimelineAgentSwitch } from "@/features/workers/lib/agentSelection";
+export {
+  buildTimelineAgentOptions,
+  filterTimelineAgentOptions,
+  dispatchTimelineAgentSwitch,
+} from "@/features/workers/lib/agentSelection";
 export type { TimelineAgentOption } from "@/features/workers/lib/agentSelection";
-import { useConversationSurface, useConversationPresentationClock } from "@/shared/ui/ConversationSurfaceContext";
+import {
+  useConversationSurface,
+  useConversationPresentationClock,
+} from "@/shared/ui/ConversationSurfaceContext";
 import React, {
   useRef,
   useEffect,
@@ -504,7 +511,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   const statusTimerRef = useRef<Map<string, number>>(new Map());
   const [actionStatus, setActionStatus] = useState<Record<string, string>>({});
   const [queryAnchorsEnabled, setQueryAnchorsEnabled] = useState(false);
-  const [queryAnchorRailHost, setQueryAnchorRailHost] = useState<HTMLElement | null>(null);
+  const [queryAnchorRailHost, setQueryAnchorRailHost] =
+    useState<HTMLElement | null>(null);
   const [activeQueryAnchorId, setActiveQueryAnchorId] = useState("");
   const [derivingRunId, setDerivingRunId] = useState("");
   const [expandedTaskGroups, setExpandedTaskGroups] = useState<
@@ -567,7 +575,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     currentWorker?.type === "agent"
       ? String(currentWorker.sourceId || "").trim()
       : "";
-  const { greeting } = useAgentWelcome(currentAgentKey, !state.chatId && showEmptyState);
+  const { greeting } = useAgentWelcome(
+    currentAgentKey,
+    !state.chatId && showEmptyState,
+  );
   const hasRequiredSkills = useMemo(
     () => timelineEntries.some((node) => Boolean(node.mustUseSkills?.length)),
     [timelineEntries],
@@ -606,8 +617,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   }, []);
 
   const textSearch = useTimelineTextSearch();
-  const refreshHighlights =
-    textSearch?.refreshHighlights ?? (() => undefined);
+  const refreshHighlights = textSearch?.refreshHighlights ?? (() => undefined);
 
   const nodeVirtualIndexMap = useMemo(
     () => buildNodeVirtualIndexMap(displayItems),
@@ -1392,14 +1402,22 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
 
   const emptyStateContent = !state.chatId && showEmptyState && (
     <div className={TIMELINE_EMPTY_CLASS_NAME}>
-      {greeting ? greeting.split("${agent}").map((part, index) => (
-        <React.Fragment key={index}>
-          {index > 0 && (canSwitchEmptyAgent ? (
-            <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
-          ) : currentWorker?.displayName)}
-          {part}
-        </React.Fragment>
-      )) : (currentWorker?.displayName ? (
+      {greeting ? (
+        greeting.split("${agent}").map((part, index) => (
+          <React.Fragment key={index}>
+            {index > 0 &&
+              (canSwitchEmptyAgent ? (
+                <TimelineAgentSwitcher
+                  currentWorker={currentWorker}
+                  options={timelineAgentOptions}
+                />
+              ) : (
+                currentWorker?.displayName
+              ))}
+            {part}
+          </React.Fragment>
+        ))
+      ) : currentWorker?.displayName ? (
         canSwitchEmptyAgent ? (
           <>
             {t("timeline.empty.withAgentPrefix")}
@@ -1416,7 +1434,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
         )
       ) : (
         t("timeline.empty.default")
-      ))}
+      )}
     </div>
   );
 
@@ -1768,8 +1786,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     {isCompleted && (
                       <div className={TIMELINE_RUN_META_CLASS_NAME}>
                         <div className={TIMELINE_RUN_INFO_CLASS_NAME}>
-                          {item.terminalType === "run.complete" &&
-                            responseDuration && (
+                          {responseDuration && (
                             <MaterialIcon
                               name="stop_circle"
                               aria-hidden="true"
@@ -1786,15 +1803,15 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                           )}
                           {item.terminalType === "run.complete" &&
                             responseDuration && (
-                            <span
-                              className="timeline-run-duration tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1 tw:text-xs tw:leading-none tw:text-ink-muted"
-                              title={t("timeline.run.responseDuration", {
-                                duration: responseDuration,
-                              })}
-                            >
-                              <span>{responseDuration}</span>
-                            </span>
-                          )}
+                              <span
+                                className="timeline-run-duration tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1 tw:text-xs tw:leading-none tw:text-ink-muted"
+                                title={t("timeline.run.responseDuration", {
+                                  duration: responseDuration,
+                                })}
+                              >
+                                <span>{responseDuration}</span>
+                              </span>
+                            )}
                         </div>
                         <div
                           className={`${TIMELINE_META_ACTIONS_CLASS_NAME} tw:ml-auto`}

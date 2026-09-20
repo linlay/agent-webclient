@@ -1,8 +1,6 @@
 import React from "react";
 import type { RunTerminalType } from "@/features/timeline/lib/timelineDisplay";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
-import { Flex } from "antd";
 
 const RUN_CANCEL_NOTICE_CLASS_NAME =
   "timeline-run-cancel-notice tw:text-ink-muted";
@@ -15,21 +13,13 @@ export const RunTerminalNotice: React.FC<{
   if (terminalType !== "run.cancel") return null;
 
   return (
-    <Flex
+    <div
       className={RUN_CANCEL_NOTICE_CLASS_NAME}
-      gap={4}
-      align="center"
       data-run-terminal="run.cancel"
     >
-      <MaterialIcon
-        name="stop_circle"
-        aria-hidden="true"
-      />
-      <span>
-        {duration
-          ? t("timeline.run.interrupted", { duration })
-          : t("timeline.run.interruptedNeutral")}
-      </span>
-    </Flex>
+      {duration
+        ? t("timeline.run.interrupted", { duration })
+        : t("timeline.run.interruptedNeutral")}
+    </div>
   );
 };
