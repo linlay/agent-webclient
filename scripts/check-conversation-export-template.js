@@ -192,6 +192,8 @@ for (const [key, filename] of [
 const auditedSources = [
   "src/export/index.tsx",
   "src/export/ConversationExportDocument.tsx",
+  "src/export/AssistantIdentity.tsx",
+  "src/export/ReasoningDisclosure.tsx",
   "src/export/conversationCopyText.ts",
   "src/export/DiagramPlaceholder.tsx",
   "src/export/StaticMarkdownCode.tsx",
@@ -202,6 +204,7 @@ const auditedSources = [
   "src/export/loadCdnScript.ts",
   "src/export/conversationSnapshot.ts",
   "src/shared/i18n/conversationExport.ts",
+  "src/shared/icons/agentIconAssets.ts",
   "src/shared/ui/ConversationMarkdown.tsx",
 ];
 let rawMarkupBoundaries = 0;

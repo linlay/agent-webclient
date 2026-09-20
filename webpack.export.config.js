@@ -51,6 +51,10 @@ module.exports = {
         use: [MiniCssExtractPlugin.loader, "css-loader"],
       },
       {
+        test: /\.svg$/u,
+        type: "asset/inline",
+      },
+      {
         test: /\.(?:woff2?|ttf|otf)$/u,
         type: "asset/resource",
         generator: {

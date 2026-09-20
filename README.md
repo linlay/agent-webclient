@@ -16,6 +16,8 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 对话静态 HTML 使用 `src/export/` 的独立只读组件树和严格 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并整体替换 Tunnel 当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI，Tunnel 只托管当前资源集合。浏览器和 Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件。
 
+本地调试分享页时运行 `npm run preview:conversation-export`，打开 `http://127.0.0.1:11959/preview`。预览直接构建 `src/export/`，修改组件、样式或模板后浏览器自动刷新，无需同步或发布 Tunnel。用 `?case=legacy`、`?case=states`、`?case=long` 切换旧快照、状态和长内容样例；默认样例包含思考、代码、表格与跨轮智能体身份。也可设置 `CONVERSATION_PREVIEW_SNAPSHOT=/absolute/path/snapshot.json` 加载本地真实 Snapshot V1（仅在本机读取，不上传）；此时忽略 `case` 参数。端口可通过 `PORT` 调整。预览仅监听 `127.0.0.1`，使用开发态资源路径和自动刷新连接；发布前仍需执行正式导出构建与资源一致性检查。
+
 接入以后，一个智能体后端可以快速拥有：
 
 - 面向用户的对话主界面。
