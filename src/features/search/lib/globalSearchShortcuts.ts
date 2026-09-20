@@ -2,10 +2,9 @@ import type { GlobalRow } from "./globalSearchRows";
 
 // Local to the open command palette, so browser/application shortcuts remain untouched elsewhere.
 export const GLOBAL_SEARCH_ACTION_SHORTCUTS: Readonly<Record<string, { key: string; code: string }>> = {
-  newConversation: { key: "N", code: "KeyN" },
+  // Cmd/Ctrl+N is reserved by browsers; the palette uses Cmd/Ctrl+Enter instead.
+  newConversation: { key: "Enter", code: "Enter" },
   history: { key: "H", code: "KeyH" },
-  settings: { key: ",", code: "Comma" },
-  debug: { key: "D", code: "KeyD" },
 };
 
 export function isMacShortcutPlatform(): boolean {

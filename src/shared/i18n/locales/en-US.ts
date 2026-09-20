@@ -1144,7 +1144,7 @@ export const enUSMessages = {
   "commandModal.switch.title": "Switch {agentLabel}",
   "globalSearch.placeholder": "Search agents, chats, or run commands",
   "globalSearch.empty": "No results",
-  "globalSearch.action.newConversation": "New Conversation",
+  "globalSearch.action.newConversation": "New chat",
   "globalSearch.action.history": "Chat History",
   "globalSearch.action.settings": "Settings",
   "globalSearch.action.debug": "Debug Panel",

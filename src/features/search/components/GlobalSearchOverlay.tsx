@@ -222,6 +222,7 @@ export const GlobalSearchOverlay: React.FC = () => {
       }}
     >
       <GlobalSearchPanel
+        active={isOpen}
         searchText={searchText}
         searchInputRef={searchInputRef}
         placeholder={t("globalSearch.placeholder")}

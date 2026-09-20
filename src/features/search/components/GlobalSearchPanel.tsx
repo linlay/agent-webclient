@@ -9,6 +9,7 @@ import { findGlobalSearchShortcut, GLOBAL_SEARCH_ACTION_SHORTCUTS, isMacShortcut
 import styles from "./GlobalSearchPanel.module.css";
 
 interface GlobalSearchPanelProps {
+  active?: boolean;
   searchText: string;
   searchInputRef: React.RefObject<HTMLInputElement>;
   placeholder: string;
@@ -82,6 +83,7 @@ const GLOBAL_SEARCH_TIME_CLASS =
   withModuleClass("global-search-time", "tw:ml-auto tw:flex-none tw:pl-1 tw:font-code tw:text-[10px] tw:text-ink-muted tw:max-[640px]:hidden");
 
 export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
+  active = true,
   searchText,
   searchInputRef,
   placeholder,
@@ -106,8 +108,24 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   }, [rows, t]);
 
   useEffect(() => {
+    if (!active) return;
     searchInputRef.current?.focus();
-  }, []);
+  }, [active, searchInputRef]);
+
+  useEffect(() => {
+    if (!active) return;
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
+      const row = findGlobalSearchShortcut(rows, event, isMac);
+      if (!row) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!event.repeat) onSelectRow(row);
+    };
+    // Capture while the palette is open, including focus on the modal shell or Composer.
+    window.addEventListener("keydown", handleShortcut, true);
+    return () => window.removeEventListener("keydown", handleShortcut, true);
+  }, [active, rows, isMac, onSelectRow]);
 
   return (
     <div
@@ -115,13 +133,6 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
       className={GLOBAL_SEARCH_PANEL_CLASS}
       onKeyDown={(event) => {
         if (event.defaultPrevented || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
-        const shortcutRow = findGlobalSearchShortcut(rows, event, isMac);
-        if (shortcutRow) {
-          event.preventDefault();
-          event.stopPropagation();
-          if (!event.repeat) onSelectRow(shortcutRow);
-          return;
-        }
         if (event.metaKey || event.ctrlKey || event.altKey || !rows.length) return;
         const liArr: HTMLElement[] = Array.from(
           hostRef.current?.querySelectorAll(".global-search-row") || [],
