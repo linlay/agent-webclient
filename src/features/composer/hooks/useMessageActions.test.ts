@@ -317,8 +317,15 @@ describe("useMessageActions temporary pin", () => {
     expect(chatQuerySessionIndexRef.current.get("chat_1")).toBeTruthy();
   });
 
-  it("does not promote a new-chat URL until canonical chat and Run identity is available", async () => {
+  it.each([
+    { label: "plain new Chat", prebound: false, search: "?newChat=1789895808848", nextSearch: "", expected: 1 },
+    { label: "upload-prebound new Chat", prebound: true, search: "?newChat=1789895808848", nextSearch: "", expected: 1 },
+    { label: "existing Chat", prebound: true, search: "?chatId=chat-canonical", nextSearch: "", expected: 0 },
+    { label: "changed new Chat nonce", prebound: true, search: "?newChat=1789895808848", nextSearch: "?newChat=1789895809999", expected: 0 },
+    { label: "navigation to another Chat", prebound: true, search: "?newChat=1789895808848", nextSearch: "?chatId=other-chat", expected: 0 },
+  ])("promotes $label only after canonical Chat/Run acceptance on the original route", async ({ prebound, search, nextSearch, expected }) => {
     const state = createInitialState();
+    if (prebound) state.chatId = "chat-canonical";
     state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
     const dispatch = jest.fn();
     useAppContext.mockReturnValue({
@@ -366,7 +373,10 @@ describe("useMessageActions temporary pin", () => {
     }
     Object.defineProperty(globalThis, "window", {
       configurable: true,
-      value: { dispatchEvent: (event: Event) => dispatchedWindowEvents.push(event) },
+      value: {
+        location: { pathname: "/agent/agent-coder", search },
+        dispatchEvent: (event: Event) => dispatchedWindowEvents.push(event),
+      },
     });
     Object.defineProperty(globalThis, "CustomEvent", {
       configurable: true,
@@ -393,12 +403,13 @@ describe("useMessageActions temporary pin", () => {
       );
       onEvent?.({
         seq: 1,
-        type: "chat.start",
+        type: prebound ? "request.query" : "chat.start",
         chatId: "chat-canonical",
         timestamp: 1_786_898_607_643,
       });
       expect(dispatchedWindowEvents).toHaveLength(0);
 
+      if (nextSearch) window.location.search = nextSearch;
       resolveIdentity?.({
         requestId: "req-canonical",
         chatId: "chat-canonical",
@@ -407,11 +418,13 @@ describe("useMessageActions temporary pin", () => {
       });
       await sending;
 
-      expect(dispatchedWindowEvents).toHaveLength(1);
-      expect((dispatchedWindowEvents[0] as TestCustomEvent).detail).toEqual({
-        chatId: "chat-canonical",
-        agentKey: "agent-coder",
-      });
+      expect(dispatchedWindowEvents).toHaveLength(expected);
+      if (expected) {
+        expect((dispatchedWindowEvents[0] as TestCustomEvent).detail).toEqual({
+          chatId: "chat-canonical",
+          agentKey: "agent-coder",
+        });
+      }
     } finally {
       if (originalWindow === undefined) {
         delete (globalThis as { window?: unknown }).window;

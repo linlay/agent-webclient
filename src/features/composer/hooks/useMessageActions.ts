@@ -62,6 +62,18 @@ interface SendMessageEventDetail {
   mustUseSkills?: unknown;
 }
 
+// Upload can allocate a Chat before its first query. Capture the route's nonce
+// separately from that Chat ID so acceptance still promotes the original page.
+function readPendingAgentChatRoute(): string {
+  if (typeof window === "undefined" || !window.location) return "";
+  const { pathname, search } = window.location;
+  const params = new URLSearchParams(search);
+  const nonces = params.getAll("newChat");
+  if (!/^\/agent\/[^/]+$/.test(pathname) || params.has("chatId") ||
+      nonces.length !== 1 || !/^[1-9]\d{12}$/.test(nonces[0])) return "";
+  return `${pathname}\u0000${nonces[0]}`;
+}
+
 function notifyNewChatCreated(input: { chatId: string; agentKey: string }): void {
   if (
     typeof window === "undefined" ||
@@ -495,6 +507,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         chatQuerySessionIndexRef.current.set(chatId, requestId);
       }
       activeQuerySessionRequestIdRef.current = requestId;
+      const pendingNewChatRoute = readPendingAgentChatRoute();
       let newChatRouteNotified = false;
       let queryAccepted = false;
 
@@ -516,7 +529,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const promoteCanonicalNewChat = (nextChatId: string) => {
         const normalizedChatId = toText(nextChatId);
         if (
-          chatId ||
+          (chatId && (!pendingNewChatRoute || chatId !== normalizedChatId)) ||
+          (pendingNewChatRoute && readPendingAgentChatRoute() !== pendingNewChatRoute) ||
           !normalizedChatId ||
           newChatRouteNotified ||
           !isSessionActive() ||
