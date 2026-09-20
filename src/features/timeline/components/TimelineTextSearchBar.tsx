@@ -8,6 +8,7 @@ import styles from "./TimelineTextSearchBar.module.css";
 
 export interface TimelineTextSearchBarProps {
   open: boolean;
+  disabled?: boolean;
   onOpen: () => void;
   expandable: boolean;
   ariaShortcut: string;
@@ -23,6 +24,7 @@ export interface TimelineTextSearchBarProps {
 
 export const TimelineTextSearchBar: React.FC<TimelineTextSearchBarProps> = ({
   open,
+  disabled = false,
   onOpen,
   expandable,
   ariaShortcut,
@@ -65,6 +67,7 @@ export const TimelineTextSearchBar: React.FC<TimelineTextSearchBarProps> = ({
         size="small"
         variant="borderless"
         ref={inputRef}
+        disabled={disabled}
         onFocus={onOpen}
         aria-label={t("timeline.textSearch.open")}
         aria-keyshortcuts={ariaShortcut}

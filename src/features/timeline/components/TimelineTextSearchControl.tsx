@@ -17,7 +17,10 @@ export const TimelineTextSearchControl: React.FC<
   const { t } = useI18n();
   const search = useTimelineTextSearch();
 
-  if (!search || search.searchableNodeIds.size === 0) return null;
+  if (!search) return null;
+  const disabled = search.searchableNodeIds.size === 0;
+  // The header input stays mounted while a chat has no searchable content.
+  if (disabled && appearance === "button") return null;
 
   const isMac = isMacPlatform();
   const shortcutLabel = isMac ? "⌘F" : "Ctrl+F";
@@ -42,7 +45,8 @@ export const TimelineTextSearchControl: React.FC<
 
   return (
     <TimelineTextSearchBar
-      open={search.open}
+      open={search.open && !disabled}
+      disabled={disabled}
       onOpen={search.openSearch}
       expandable={appearance === "input"}
       ariaShortcut={ariaShortcut}
