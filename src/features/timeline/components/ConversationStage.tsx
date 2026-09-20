@@ -56,7 +56,6 @@ import { useI18n } from "@/shared/i18n";
 import {
   Button,
   Collapse,
-  Divider,
   Dropdown,
   Flex,
   Form,
@@ -193,8 +192,10 @@ const TIMELINE_RUN_GROUP_CLASS_NAME =
   "timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]";
 const TIMELINE_RUN_ITEMS_CLASS_NAME =
   "timeline-run-items tw:flex tw:flex-col tw:gap-[12px]";
+const TIMELINE_RUN_INFO_CLASS_NAME =
+  "timeline-run-info tw:inline-flex tw:min-w-0 tw:shrink-0 tw:items-center tw:gap-2";
 const TIMELINE_RUN_TIME_CLASS_NAME =
-  "timeline-run-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+  "timeline-run-time tw:shrink-0 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
 
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
@@ -1766,7 +1767,23 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     )}
                     {isCompleted && (
                       <div className={TIMELINE_RUN_META_CLASS_NAME}>
-                        <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
+                        <div className={TIMELINE_RUN_INFO_CLASS_NAME}>
+                          {item.terminalType === "run.complete" &&
+                            responseDuration && (
+                            <MaterialIcon
+                              name="stop_circle"
+                              aria-hidden="true"
+                              className="tw:shrink-0 tw:leading-none tw:text-ink-muted"
+                            />
+                          )}
+                          {time.short && (
+                            <div
+                              className={TIMELINE_RUN_TIME_CLASS_NAME}
+                              title={time.full}
+                            >
+                              {time.short}
+                            </div>
+                          )}
                           {item.terminalType === "run.complete" &&
                             responseDuration && (
                             <span
@@ -1775,14 +1792,13 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                                 duration: responseDuration,
                               })}
                             >
-                              <MaterialIcon
-                                name="stop_circle"
-                                aria-hidden="true"
-                              />
                               <span>{responseDuration}</span>
-                              <Divider type="vertical" />
                             </span>
                           )}
+                        </div>
+                        <div
+                          className={`${TIMELINE_META_ACTIONS_CLASS_NAME} tw:ml-auto`}
+                        >
                           <UiButton
                             className={TIMELINE_META_BUTTON_CLASS_NAME}
                             variant="ghost"
@@ -1858,14 +1874,6 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                             <MaterialIcon name="branches" />
                           </UiButton>
                         </div>
-                        {time.short && (
-                          <div
-                            className={TIMELINE_RUN_TIME_CLASS_NAME}
-                            title={time.full}
-                          >
-                            {time.short}
-                          </div>
-                        )}
                       </div>
                     )}
                   </Flex>
