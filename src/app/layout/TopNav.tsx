@@ -346,7 +346,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
     <nav className={TOP_NAV_CLASS}>
       <div className={TOP_NAV_INNER_CLASS}>
         <div className={NAV_LEFT_CLASS}>
-          <TimelineTextSearchControl appearance="input" />
+          {state.chatId && <TimelineTextSearchControl appearance="input" />}
         </div>
 
         <div className={NAV_CENTER_CLASS}>
