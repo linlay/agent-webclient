@@ -1,55 +1,29 @@
-import { useEffect, useState } from "react";
-import { getProjectGit } from "@/shared/data/api/requests/projects";
-import type { ProjectGitResponse } from "@/shared/data/api/dto/resources";
-
-type GitState = ProjectGitResponse | { agentKey: string; status: "loading"; commit?: never };
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { projectGitCache, projectGitCacheKey } from "@/features/composer/lib/projectGitCache";
 
 // Scoped to the mounted New Chat context bar, never blocks Agent detail loading.
-export function useProjectGit(agentKey: string, workspaceDir?: string, refreshKey = 0, paused = false): GitState | null {
-  const key = agentKey.trim();
-  const [snapshot, setSnapshot] = useState<{ workspaceDir?: string; value: GitState } | null>(null);
+export function useProjectGit(agentKey: string, workspaceDir?: string, refreshKey = 0, paused = false) {
+  const agent = agentKey.trim();
+  const key = projectGitCacheKey(agent, workspaceDir);
+  const previousRefresh = useRef({ key, refreshKey });
+  const subscribe = useCallback((listener: () => void) => projectGitCache.subscribe(key, agent, listener), [key, agent]);
+  const snapshot = useCallback(() => projectGitCache.snapshot(key, agent), [key, agent]);
+  const git = useSyncExternalStore(subscribe, snapshot, snapshot);
   useEffect(() => {
-    if (!key) { setSnapshot(null); return; }
-    if (paused) return;
-    let disposed = false;
-    let requestId = 0;
-    let controller: AbortController | undefined;
-    let pending = false;
-    const refresh = async () => {
-      if (disposed || pending) return;
-      pending = true;
-      const id = ++requestId;
-      controller = new AbortController();
-      setSnapshot({ workspaceDir, value: { agentKey: key, status: "loading" } });
-      try {
-        const response = await getProjectGit(key, { signal: controller.signal });
-        const data = response.data;
-        if (!data || response.code !== 0 || data.agentKey !== key ||
-          !["branch", "detached", "not_repository", "no_workspace", "unavailable"].includes(data.status) ||
-          (data.status === "branch" && !data.branch?.trim()) ||
-          (data.status === "detached" && !data.commit?.trim())) {
-          throw new Error("Invalid project Git response");
-        }
-        if (!disposed && id === requestId) setSnapshot({ workspaceDir, value: data });
-      } catch {
-        if (!disposed && id === requestId) setSnapshot({ workspaceDir, value: { agentKey: key, status: "unavailable" } });
-      } finally {
-        if (id === requestId) pending = false;
-      }
+    const force = previousRefresh.current.key === key && previousRefresh.current.refreshKey !== refreshKey;
+    previousRefresh.current = { key, refreshKey };
+    if (!key || paused) return;
+    if (force) projectGitCache.invalidate(key);
+    const refresh = () => {
+      if (document.visibilityState !== "hidden") void projectGitCache.refresh(key, agent);
     };
-    const onFocus = () => { if (document.visibilityState !== "hidden") void refresh(); };
-    void refresh();
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
+    refresh();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
     return () => {
-      disposed = true;
-      controller?.abort();
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
     };
-  }, [key, workspaceDir, refreshKey, paused]);
-  if (!key) return null;
-  // Do not expose the previous Agent even during the render preceding effect cleanup.
-  if (snapshot?.value.agentKey !== key || snapshot.workspaceDir !== workspaceDir) return { agentKey: key, status: "loading" };
-  return snapshot.value;
+  }, [key, agent, refreshKey, paused]);
+  return git;
 }

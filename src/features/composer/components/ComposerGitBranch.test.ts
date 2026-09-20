@@ -4,10 +4,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { ComposerGitBranch } from "./ComposerGitBranch";
 import { I18nProvider } from "@/shared/i18n";
 import { useProjectGit } from "@/features/composer/hooks/useProjectGit";
-import { getProjectGitBranches, changeProjectGitBranch } from "@/shared/data/api/requests/projects";
+import { getProjectGitBranches, changeProjectGitBranch } from "@/shared/data/api/routedClient";
 
 jest.mock("@/features/composer/hooks/useProjectGit", () => ({ useProjectGit: jest.fn() }));
-jest.mock("@/shared/data/api/requests/projects", () => ({ getProjectGitBranches: jest.fn(), changeProjectGitBranch: jest.fn() }));
+jest.mock("@/shared/data/api/routedClient", () => ({ getProjectGitBranches: jest.fn(), changeProjectGitBranch: jest.fn() }));
 jest.mock("antd", () => ({ Popover: ({ open, onOpenChange, children, content }: any) =>
   React.createElement("div", null, React.cloneElement(children, { onClick: () => onOpenChange(!open) }), open ? content : null) }));
 let root: Root;
@@ -19,7 +19,7 @@ function button(text: string) {
 }
 async function render(agentKey = "demo") {
   await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false, children:
-    React.createElement(ComposerGitBranch, { key: agentKey, agentKey }),
+    React.createElement(ComposerGitBranch, { key: agentKey, agentKey, workspaceDir: "/workspace" }),
   })));
 }
 async function open() { await act(async () => container.querySelector<HTMLButtonElement>('[aria-haspopup="dialog"]')!.click()); }
@@ -38,7 +38,7 @@ it("loads branches only on opening and switches with the observed revision", asy
   await act(async () => button("feature").click());
   expect(changeProjectGitBranch).toHaveBeenCalledWith({ agentKey: "demo", operation: "switch", branch: "feature", expectedRevision: "observed-revision" });
   expect(container.querySelector('[role="dialog"]')).toBeNull();
-  expect(jest.mocked(useProjectGit).mock.calls.at(-1)?.[2]).toBe(1);
+  expect(jest.mocked(useProjectGit).mock.calls.at(-1)?.[2]).toBe(0);
 });
 it("creates and switches from the explicit new branch form", async () => {
   await render(); await open();

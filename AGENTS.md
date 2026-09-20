@@ -87,8 +87,8 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 - `GET /api/viewport`
 - `GET /api/data`
 - `GET /api/file`
-- `GET /api/project/git`：按实际 Workspace 独立读取 Git 快照，不按 mode 筛选，不进入 Agent 列表/详情；只在主界面 New Chat 上框异步消费
-- `GET/POST /api/project/git/branches`：按需加载本地分支、校验 revision 后切换或新建并切换；保持 Git 本地改动保护，不修改 `expectedBranch` 配置
+- `GET /api/project/git`：按实际 Workspace 独立读取 Git 快照，不按 mode 筛选，不进入 Agent 列表/详情；只在主界面 New Chat 上框按有效 workspaceDir 异步消费，Platform 走 WS、Gateway 保留 HTTP；实际 HEAD 缓存 30 秒、非仓库 5 分钟、临时失败退避 10 秒
+- `GET/POST /api/project/git/branches`：按需加载本地分支、校验 revision 后切换或新建并切换；Platform 同路径支持 WS 读写，保持 Git 本地改动保护，不修改 `expectedBranch` 配置；列表和写入响应直接更新快照缓存
 - `GET /api/project/tree`
 - `GET /api/project/changes`
 - `GET /api/project/diff`

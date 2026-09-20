@@ -59,17 +59,17 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 
 仅主界面 New Chat 的 `ComposerContextBar` 显示上方半框；已有会话及 Copilot（含新会话）不显示。智能体菜单复用 `AgentSwitcherPopover`，当前不显示环境标识；系统大类图标与智能体自定义图标独立，上框图标保持 16×16 并跟随主题。
 
-`useProjectGit` 在半框挂载后通过独立 HTTP `GET /api/project/git?agentKey=...` 异步读取，不阻塞 `/api/agents` 或 `/api/agent`。是否有 Git 仓库由 Platform 按实际 Workspace 判定，不按 CODER/KBASE 筛选，也不使用 `projectConfig.git.expectedBranch` 作为当前分支。
+`useProjectGit` 在半框挂载后先检查有效 `workspaceDir`（空值和 `@chat` 不请求），再通过独立 `/api/project/git` 异步读取；Platform 使用 WebSocket，Gateway 保留 HTTP GET，不阻塞 `/api/agents` 或 `/api/agent`。是否有 Git 仓库由 Platform 按实际 Workspace 判定，不按 CODER/KBASE 筛选，也不使用 `projectConfig.git.expectedBranch` 作为当前分支。
 
 - `branch` 显示真实 `branch`；空仓库也可有分支，`commit` 可省略。
 - `detached` 显示“游离 HEAD · 短 SHA”；完整 SHA 保留在 title。
 - `not_repository`、`no_workspace`、请求加载中、`unavailable`、请求失败或不合法响应均隐藏整个分支项（图标与文字），不显示占位或错误提示。
 
-挂载、切换智能体、Workspace 路径变化、窗口聚焦或页面重新可见时刷新；不轮询，不缓存 Git 状态。切换时立即隐藏旧分支，取消旧请求，并校验响应身份与 effect 生命周期，防止迟到响应串线。没有智能体（例如 Team）不请求。点击有效分支项打开本地分支菜单，按需加载后可切换已有分支或输入名称“新建并切换”。
+挂载、切换智能体、Workspace 路径变化、窗口聚焦或页面重新可见时按需刷新；不轮询。快照按后端模式、origin、Agent 和 Workspace 隔离并合并在途请求，实际分支/游离 HEAD 缓存 30 秒，非仓库/无 Workspace 缓存 5 分钟，临时失败退避 10 秒；刷新保留已有分支显示。切换时立即隐藏旧分支，取消旧请求，并校验响应身份与 effect 生命周期，防止迟到响应串线。没有智能体（例如 Team）不请求。点击有效分支项打开本地分支菜单，按需加载后可切换已有分支或输入名称“新建并切换”。
 
-分支菜单通过 `GET /api/project/git/branches?agentKey=...` 加载本地分支；提交使用同路径 POST `{agentKey,operation:"switch"|"create",branch,expectedRevision}`。revision 来自菜单打开时的 Git 快照，不使用配置期望分支代替。创建从当前 HEAD 开始并立即切换；不处理远端分支、重命名或删除。
+分支菜单通过 `/api/project/git/branches` 按需加载本地分支；Platform WS 读取 payload 为 `{agentKey}`，写入使用同路径并携带 operation；Gateway 保留 GET/POST。提交 payload 为 `{agentKey,operation:"switch"|"create",branch,expectedRevision}`。revision 来自菜单打开时的 Git 快照，不使用配置期望分支代替。创建从当前 HEAD 开始并立即切换；不处理远端分支、重命名或删除。
 
-操作期间禁用重复提交并暂停该分支项的自动读取；成功后关闭菜单并刷新，失败保留菜单与 Git 原因并重新读取状态，不自动重试写入。切换智能体会卸载旧菜单，旧读取请求取消、旧 mutation 响应忽略；已发出的写操作不会因 UI 卸载被前端中止。`canChange:false` 时展示后端边界原因并禁用写操作：仓库子目录、包含 ChatsRoot 的 Workspace 或无工作树只读。CODER 配置 `expectedBranch` 时提示其运行约束，分支切换不会修改 Agent 配置。
+菜单打开和操作期间暂停该分支项的自动读取；操作期间禁用重复提交。列表响应自带的 Git 快照直接更新缓存；成功后关闭菜单并复用 mutation 返回快照，不额外查询，失败保留菜单与 Git 原因并重新读取列表，不自动重试写入或因 WS 失败回退 HTTP。切换智能体会卸载旧菜单，旧读取请求取消、旧 mutation 响应只更新原缓存键，不影响当前 Agent；已发出的写操作不会因 UI 卸载被前端中止。`canChange:false` 时展示后端边界原因并禁用写操作：仓库子目录、包含 ChatsRoot 的 Workspace 或无工作树只读。CODER 配置 `expectedBranch` 时提示其运行约束，分支切换不会修改 Agent 配置。
 
 新会话通过 `useAgentWelcome` 共享 `/api/agent` 查询：`greetings` 随机选一条作为主标题，缺失或仅空白时回退“与 <agentName> 对话”；`introductions` 独立随机选一条作为输入框 placeholder，缺失时保留默认输入提示。标题与 Composer 复用查询缓存及并发去重，切换智能体按 key 隔离，普通重渲染保持文案稳定。
 

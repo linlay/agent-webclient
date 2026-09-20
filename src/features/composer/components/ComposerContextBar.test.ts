@@ -17,7 +17,7 @@ jest.mock("antd", () => {
 });
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-const agents = [{ key: "general", name: "通用助手" }, { key: "coder", name: "编程助手" }];
+const agents = [{ key: "general", name: "通用助手", workspaceDir: "/general" }, { key: "coder", name: "编程助手", workspaceDir: "/coder" }];
 describe("ComposerContextBar", () => {
   let container: HTMLDivElement;
   let root: Root;

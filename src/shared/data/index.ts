@@ -45,9 +45,6 @@ export {
   getProjectChanges,
   getProjectDiff,
   getProjectTree,
-  getProjectGit,
-  getProjectGitBranches,
-  changeProjectGitBranch,
 } from "@/shared/data/api/requests/projects";
 export * from "@/shared/data/api/requests/skills";
 export * from "@/shared/data/api/requests/documentPreview";

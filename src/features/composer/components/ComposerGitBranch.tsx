@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Popover } from "antd";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useI18n } from "@/shared/i18n";
-import { getProjectGitBranches, changeProjectGitBranch } from "@/shared/data/api/requests/projects";
+import { getProjectGitBranches, changeProjectGitBranch } from "@/shared/data/api/routedClient";
 import type { ProjectGitBranchesResponse } from "@/shared/data/api/dto/resources";
 import { useProjectGit } from "@/features/composer/hooks/useProjectGit";
+import { projectGitCache, projectGitCacheKey, isProjectGitSnapshot } from "@/features/composer/lib/projectGitCache";
 import styles from "./ComposerContextBar.module.css";
 
 export function ComposerGitBranch({ agentKey, workspaceDir, disabled = false }: {
@@ -20,26 +21,27 @@ export function ComposerGitBranch({ agentKey, workspaceDir, disabled = false }: 
   const [error, setError] = useState("");
   const alive = useRef(true);
   const mutating = useRef(false);
-  const git = useProjectGit(agentKey, workspaceDir, refreshKey, pending);
+  const cacheKey = projectGitCacheKey(agentKey, workspaceDir);
+  const git = useProjectGit(agentKey, workspaceDir, 0, pending || open);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useEffect(() => {
-    if (!open) return;
+    if (!open || !cacheKey) return;
     let active = true;
     const controller = new AbortController();
     setLoading(true);
     setData(null);
     void getProjectGitBranches(agentKey, { signal: controller.signal }).then(response => {
       const result = response.data;
-      if (response.code !== 0 || !result || result.git?.agentKey !== agentKey || !result.git.revision ||
+      if (response.code !== 0 || !result || !isProjectGitSnapshot(result.git, agentKey) || !result.git.revision ||
         !Array.isArray(result.branches) || !result.branches.every(branch => typeof branch === "string") || typeof result.canChange !== "boolean") {
         throw new Error(t("composer.git.failed"));
       }
-      if (active) setData(result);
+      if (active) { setData(result); projectGitCache.put(cacheKey, result.git); }
     }).catch(cause => {
       if (active) setError(cause instanceof Error ? cause.message : t("composer.git.failed"));
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; controller.abort(); };
-  }, [open, agentKey, workspaceDir, refreshKey, t]);
+  }, [open, agentKey, cacheKey, refreshKey, t]);
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape" && !mutating.current) setOpen(false); };
@@ -48,6 +50,7 @@ export function ComposerGitBranch({ agentKey, workspaceDir, disabled = false }: 
   }, [open]);
   const change = async (operation: "switch" | "create", branch: string) => {
     if (mutating.current || disabled || loading || !data?.canChange || !data.git.revision || !branch) return;
+    projectGitCache.invalidate(cacheKey);
     mutating.current = true;
     setPending(true);
     setError("");
@@ -56,17 +59,18 @@ export function ComposerGitBranch({ agentKey, workspaceDir, disabled = false }: 
       if (response.code !== 0 || response.data?.agentKey !== agentKey || response.data?.status !== "branch" || response.data.branch !== branch) {
         throw new Error(t("composer.git.failed"));
       }
+      projectGitCache.put(cacheKey, response.data);
       if (alive.current) { setOpen(false); setName(""); }
     } catch (cause) {
-      if (alive.current) setError(cause instanceof Error ? cause.message : t("composer.git.failed"));
+      if (alive.current) { setError(cause instanceof Error ? cause.message : t("composer.git.failed")); setRefreshKey(value => value + 1); }
     } finally {
       mutating.current = false;
-      if (alive.current) { setPending(false); setRefreshKey(value => value + 1); }
+      if (alive.current) setPending(false);
     }
   };
   const label = git?.status === "branch" ? git.branch
     : git?.status === "detached" ? `${t("composer.context.detachedHead")} · ${git.commit?.slice(0, 8)}` : null;
-  if (!label) return null;
+  if (!cacheKey || !label) return null;
   const blocked = pending || loading || disabled || !data?.canChange;
   const filtered = data?.branches.filter(branch => branch.toLocaleLowerCase().includes(name.toLocaleLowerCase())) || [];
   const blockedMessage = data?.blockedReason === "workspace_not_repo_root" ? t("composer.git.subdirectory")

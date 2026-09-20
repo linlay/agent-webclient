@@ -890,18 +890,19 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (params) => params,
   }),
   projectGitBranches: defineEndpoint<{ agentKey: string }, { agentKey: string }>({
-    key: "project.git.branches", path: "/api/project/git/branches", method: "GET", transport: "http",
+    key: "project.git.branches", path: "/api/project/git/branches", method: "GET", transport: "auto", wsBackends: PLATFORM_WS_BACKENDS,
     payload: ({ agentKey }) => ({ agentKey }),
   }),
   projectGitBranchChange: defineEndpoint<ProjectGitBranchRequest, ProjectGitBranchRequest>({
-    key: "project.git.branchChange", path: "/api/project/git/branches", method: "POST", transport: "http",
+    key: "project.git.branchChange", path: "/api/project/git/branches", method: "POST", transport: "auto", wsBackends: PLATFORM_WS_BACKENDS,
     payload: (params) => params,
   }),
   projectGit: defineEndpoint<{ agentKey: string }, { agentKey: string }>({
     key: "project.git",
     path: "/api/project/git",
     method: "GET",
-    transport: "http",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: ({ agentKey }) => ({ agentKey }),
   }),
   projectTree: defineEndpoint<ProjectTreeRequest, Record<string, unknown>>({

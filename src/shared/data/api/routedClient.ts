@@ -1,3 +1,5 @@
+import { getProjectGit as getProjectGitHttp, getProjectGitBranches as getProjectGitBranchesHttp, changeProjectGitBranch as changeProjectGitBranchHttp } from "@/shared/data/api/requests/projects";
+import type { ProjectGitBranchRequest } from "@/shared/data/api/dto/resources";
 import type { ConnectorOrderResponse, UpdateConnectorOrderRequest } from "@/shared/data/api/dto/connectors";
 import { getConnectorOrder as getConnectorOrderHttp, putConnectorOrder as putConnectorOrderHttp } from "@/shared/data/api/requests/connectors";
 import {
@@ -744,4 +746,18 @@ export function putChatOrder(params: UpdateChatOrderRequest): Promise<ApiRespons
     invalidateChatNavigationCache();
     return response;
   });
+}
+
+// Git snapshots are cached by the composer domain, not the transport layer.
+export function getProjectGit(agentKey: string, options: { signal?: AbortSignal } = {}) {
+  return routeEndpoint(dataEndpoints.projectGit, { agentKey }, () => getProjectGitHttp(agentKey, options));
+}
+
+export function getProjectGitBranches(agentKey: string, options: { signal?: AbortSignal } = {}) {
+  return routeEndpoint(dataEndpoints.projectGitBranches, { agentKey }, () => getProjectGitBranchesHttp(agentKey, options));
+}
+
+export function changeProjectGitBranch(request: ProjectGitBranchRequest) {
+  // Never retry a dispatched mutation or fall back after a WS transport failure.
+  return routeEndpoint(dataEndpoints.projectGitBranchChange, request, () => changeProjectGitBranchHttp(request));
 }
