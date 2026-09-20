@@ -1,3 +1,4 @@
+import { interactionDefaults } from "@/shared/contracts/interaction";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Agent } from "@/features/agents/lib/agentState";
@@ -1310,3 +1311,20 @@ describe("QuerySettingsControls", () => {
     });
   });
 });
+
+ describe("resolved interaction controls", () => {
+  it.each(["REACT", "CODER", "KBASE"])("honors %s detail flags", (mode) => {
+    resolveCurrentWorkerSummary.mockReturnValue({type:"agent", sourceId:"agent", raw:{mode}});
+    const html = renderToStaticMarkup(React.createElement(QuerySettingsControls, {
+      interactionConfig: interactionDefaults(mode), accessLevel:"default", modelOverride:{},
+      onAccessLevelChange:jest.fn(), onModelOverrideChange:jest.fn(),
+    }));
+    if (mode === "KBASE") {
+      expect(html).not.toContain("设置本次运行权限");
+      expect(html).not.toContain("选择模型和思考深度");
+    } else {
+      expect(html).toContain("设置本次运行权限");
+      expect(html).toContain("选择模型和思考深度");
+    }
+  });
+ });

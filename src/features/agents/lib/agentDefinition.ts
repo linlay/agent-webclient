@@ -45,6 +45,7 @@ export type ChoicePresentation = {
   description: string;
 };
 export interface AgentFormState {
+  interactionConfig?: import("@/shared/contracts/interaction").InteractionOverrides;
   key: string;
   name: string;
   iconKind: IconKind;
@@ -685,6 +686,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
       definition.controls || detail.controls || [],
       "[]",
     ),
+    interactionConfig: definition.interactionConfig as import("@/shared/contracts/interaction").InteractionOverrides | undefined,
     runtimeConfigText: stringifyJson(definition.runtimeConfig),
     memoryConfigText: stringifyJson(definition.memoryConfig),
     proxyConfigText: stringifyJson(definition.proxyConfig),
@@ -708,6 +710,8 @@ export function buildDefinition(
   definition.role = form.role.trim();
   definition.description = form.description.trim();
   definition.mode = normalizeModeForForm(form.mode);
+  if (form.interactionConfig) definition.interactionConfig = form.interactionConfig;
+  else delete definition.interactionConfig;
 
   const modelKey = form.modelKey.trim();
   if (modelKey) {

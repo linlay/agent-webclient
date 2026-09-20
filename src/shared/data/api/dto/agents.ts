@@ -28,6 +28,7 @@ export interface UpdateAgentOrderRequest {
 }
 
 export interface AgentDetailResponse {
+  interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
   key: string;
   name: string;
   type?: "agent" | "coder";

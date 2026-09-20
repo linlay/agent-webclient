@@ -45,6 +45,7 @@ interface QuerySettingsControlsProps {
   onAccessLevelChange: (value: QueryAccessLevel) => void;
   onModelOverrideChange: (value: QueryModelOverride) => void;
   showModelSelector?: boolean;
+  interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
 }
 
 const ACCESS_LEVELS: QueryAccessLevel[] = [
@@ -389,7 +390,7 @@ export function resolveEmbeddedCoderModelOptions(
   rawAgent: unknown,
 ): LoadedCoderModelOptions | null {
   const raw = getRecord(rawAgent);
-  if (!Object.prototype.hasOwnProperty.call(raw, "modelOptions")) {
+  if (!isRecord(raw.modelOptions)) {
     return null;
   }
   const options = normalizeCoderModelOptionsResponse(raw.modelOptions);
@@ -398,6 +399,7 @@ export function resolveEmbeddedCoderModelOptions(
       "[QuerySettingsControls] Unrecognized embedded model options response",
       raw.modelOptions,
     );
+    return null;
   }
   return toLoadedCoderModelOptions(options);
 }
@@ -600,6 +602,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   onAccessLevelChange,
   onModelOverrideChange,
   showModelSelector = true,
+  interactionConfig,
 }) => {
   const { state, dispatch } = useAppContext();
   const { t } = useI18n();
@@ -608,7 +611,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     currentWorker?.type === "agent" &&
     (isCoderMode(currentWorker.raw?.mode) ||
       currentWorker.row?.agentType === "coder");
-  const shouldShowModelControls = showModelSelector && isCoderAgent;
+  const modelAllowed = interactionConfig?.model ?? isCoderAgent;
+  const shouldShowModelControls = showModelSelector && modelAllowed;
   const agentKey =
     currentWorker?.type === "agent"
       ? toAgentConfigKey(currentWorker.sourceId) ||
@@ -647,12 +651,12 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (!showModelSelector) {
       return;
     }
-    if (!shouldClearModelOverride(isCoderAgent, modelOverride)) {
+    if (!shouldClearModelOverride(modelAllowed, modelOverride)) {
       return;
     }
     appliedDefaultRef.current = null;
     onModelOverrideChange({});
-  }, [isCoderAgent, modelOverride, onModelOverrideChange, showModelSelector]);
+  }, [modelAllowed, modelOverride, onModelOverrideChange, showModelSelector]);
 
   useEffect(() => {
     if (!shouldShowModelControls || !agentKey) {
@@ -856,12 +860,15 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         resolvedDefaultOverride.serviceTier ||
         modelDefaults.defaultServiceTier,
     ) || "STANDARD";
+  const loadingModelOptions = modelsLoading || modelOptionsStatus === "idle";
   const selectedModelLabel = selectedModelKey
     ? modelLabelByKey.get(selectedModelKey) || selectedModelKey
-    : t("composer.query.model.loading");
+    : t(loadingModelOptions ? "composer.query.model.loading"
+      : modelOptionsStatus === "failed" ? "composer.query.model.loadFailed"
+      : "composer.query.model.empty");
   const selectedReasoningLabel = selectedReasoningEffort
     ? t(`composer.query.reasoning.${selectedReasoningEffort}`)
-    : t("composer.query.model.loading");
+    : t(loadingModelOptions ? "composer.query.model.loading" : "composer.query.reasoning.default");
   const showFastBadge = selectedServiceTier === "FAST";
   const queryModelButtonStateClass = modelsLoading
     ? QUERY_MODEL_BUTTON_STATE_CLASS.loading
@@ -1072,7 +1079,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
 
   return (
     <div className={QUERY_SETTINGS_CONTROLS_CLASS}>
-      <Dropdown
+      {(interactionConfig?.accessLevel ?? true) && <Dropdown
         menu={{
           className: "query-settings-menu",
           items: accessItems,
@@ -1097,7 +1104,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           {!compact && <span>{accessLabel}</span>}
           <MaterialIcon name="expand_more" />
         </UiButton>
-      </Dropdown>
+      </Dropdown>}
       {shouldShowModelControls ? (
         <Dropdown
           menu={{

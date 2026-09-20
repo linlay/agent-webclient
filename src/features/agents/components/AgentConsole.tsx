@@ -464,6 +464,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         label: t("agentConsole.section.model"),
       },
       {
+        id: AGENT_FORM_SECTION_IDS[5],
+        label: t("agents.interaction.title"),
+      },
+      {
         id: AGENT_FORM_SECTION_IDS[3],
         label: t("agentConsole.section.capabilities"),
       },

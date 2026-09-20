@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { interactionDefaults } from "@/shared/contracts/interaction";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
@@ -18,7 +19,7 @@ jest.mock("@/shared/data", () => ({
 jest.mock("@/app/state/AppContext", () => ({
   useAppContext: () => ({ state: { agents: [] }, dispatch: jest.fn() }),
 }));
-const worker = {
+const worker: { type: string; sourceId: string; raw: Record<string, unknown> } = {
   type: "agent", sourceId: "coder",
   raw: { mode: "CODER", modelOptions: { models: [{ key: "embedded", name: "Embedded" }] } },
 };
@@ -35,6 +36,8 @@ describe("Composer model refresh click", () => {
     window.matchMedia = jest.fn().mockImplementation(() => ({ matches: false, addListener: jest.fn(), removeListener: jest.fn() }));
   });
   beforeEach(() => {
+    worker.sourceId = "coder";
+    worker.raw = {mode:"CODER",modelOptions:{models:[{key:"embedded",name:"Embedded"}]}};
     clearCoderModelOptionsCacheForTest();
     dataQueryCache.clear();
     mockRequest.mockReset().mockResolvedValue(response("cached"));
@@ -89,4 +92,30 @@ describe("Composer model refresh click", () => {
     expect(document.body.textContent).toContain("recovered");
     expect(document.body.textContent).not.toContain("composer.query.model.refreshFailed");
   });
+  it.each([undefined, null, {}])("loads cutej models when embedded options are %p", async (modelOptions) => {
+    worker.sourceId = "cutej";
+    worker.raw = {mode:"REACT", modelOptions};
+    mockRequest.mockResolvedValue({data:{models:[{key:"cutej-model",name:"Cutej Model"}], defaultModelKey:"cutej-model", defaultReasoningEffort:"HIGH"}});
+    await act(async () => root.render(React.createElement(QuerySettingsControls, {
+      accessLevel:"default", modelOverride:{}, interactionConfig:interactionDefaults("REACT"),
+      onAccessLevelChange:jest.fn(), onModelOverrideChange:jest.fn(),
+    })));
+    expect(mockRequest).toHaveBeenCalledWith("/api/model-options", {agentKey:"cutej"});
+    expect(container.textContent).toContain("Cutej Model");
+    expect(container.textContent).not.toContain("composer.query.model.loading");
+  });
+
+  it.each(["empty", "failed"])("does not display loading after a %s response", async (status) => {
+    worker.sourceId = "cutej";
+    worker.raw = {mode:"REACT", modelOptions:undefined};
+    if (status === "empty") mockRequest.mockResolvedValue({data:{models:[],reasoningEfforts:[]}});
+    else mockRequest.mockRejectedValue(new Error("unavailable"));
+    await act(async () => root.render(React.createElement(QuerySettingsControls, {
+      accessLevel:"default", modelOverride:{}, interactionConfig:interactionDefaults("REACT"),
+      onAccessLevelChange:jest.fn(), onModelOverrideChange:jest.fn(),
+    })));
+    expect(container.textContent).not.toContain("composer.query.model.loading");
+    expect(container.textContent).toContain(status === "empty" ? "composer.query.model.empty" : "composer.query.model.loadFailed");
+  });
+
 });

@@ -74,6 +74,7 @@ import { BrowserSelectionPanels } from "@/features/composer/components/BrowserSe
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteraction";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
@@ -155,21 +156,26 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     () => resolveCurrentWorkerSummary(state),
     [state],
   );
+  const interactionConfig = useAgentInteraction(currentWorker);
   const currentAgentKey = useMemo(() => {
     if (currentWorker?.type !== "agent") {
       return "";
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
+  useEffect(() => {
+    if (!interactionConfig.accessLevel) setAccessLevel("default");
+  }, [currentAgentKey, interactionConfig.accessLevel]);
   const hostRequiredSkills = useHostRequiredSkills();
   const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>(
     [],
   );
   const forcedSkills = useMemo<ComposerRequiredSkill[]>(() => {
-    if (hostRequiredSkills.agentKey !== currentAgentKey) return [];
+    if (!interactionConfig.mustUseSkills || hostRequiredSkills.agentKey !== currentAgentKey) return [];
     return hostRequiredSkills.skills.map((key) => ({ key, label: key }));
-  }, [currentAgentKey, hostRequiredSkills]);
+  }, [currentAgentKey, hostRequiredSkills, interactionConfig.mustUseSkills]);
   const effectiveSkills = useMemo(() => {
+    if (!interactionConfig.mustUseSkills) return [];
     const identities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
     return [
       ...forcedSkills,
@@ -180,11 +186,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         return true;
       }),
     ];
-  }, [forcedSkills, selectedSkills]);
+  }, [forcedSkills, selectedSkills, interactionConfig.mustUseSkills]);
   const effectiveManualSkills = useMemo(() => {
+    if (!interactionConfig.mustUseSkills) return [];
     const forcedIdentities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
     return selectedSkills.filter((skill) => !forcedIdentities.has(skill.key.trim().toLowerCase()));
-  }, [forcedSkills, selectedSkills]);
+  }, [forcedSkills, selectedSkills, interactionConfig.mustUseSkills]);
   const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
     enabled: Boolean(currentAgentKey && effectiveSkills.length > 0),
   });
@@ -321,6 +328,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     sendReferences,
     uploadStagedAttachments,
   } = useComposerAttachments({
+    interactionConfig,
     dispatch,
     isFrontendActive,
     isVoiceMode,
@@ -414,7 +422,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isVoiceMode,
     canUsePlanningMode: planningModeAvailable,
     canUseEditingMode: editingModeAvailable,
-    currentAgentKey,
+    currentAgentKey: interactionConfig.mustUseSkills ? currentAgentKey : "",
     addMenuOpen: false,
   });
 
@@ -429,7 +437,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const handleSelectSlashSkill = useCallback(
     (skill: AgentSkill) => {
-      if (isMainChatRunning) {
+      if (!interactionConfig.mustUseSkills || isMainChatRunning) {
         return;
       }
       const identity = skill.key.toLowerCase();
@@ -454,7 +462,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         textareaRef.current?.resizableTextArea?.textArea?.focus();
       });
     },
-    [closeMention, forcedSkills, isMainChatRunning, setSlashDismissed, filterStartIndex],
+    [closeMention, forcedSkills, isMainChatRunning, interactionConfig.mustUseSkills, setSlashDismissed, filterStartIndex],
   );
 
   const removeSelectedSkill = useCallback((skillKey: string) => {
@@ -594,7 +602,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     interruptCurrentRun,
   } = useComposerSend({
     attachmentChatId,
-    accessLevel,
+    accessLevel: interactionConfig.accessLevel ? accessLevel : "default",
     backgroundCommandText: {
       rememberPending: t("composer.background.remember.pending"),
       rememberError: t("composer.background.remember.error"),
@@ -634,7 +642,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive,
     isVoiceMode,
     mainChatRunning: isMainChatRunning,
-    modelOverride,
+    modelOverride: interactionConfig.model ? modelOverride : {},
     mustUseSkillsAgentKey: effectiveSkills.length > 0 ? currentAgentKey : "",
     mustUseSkills: effectiveSkills.map((skill) => skill.key),
     selectSlashItem,
@@ -692,7 +700,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     state.currentChatActiveRun?.chatId === state.chatId;
 
   const handleAccessLevelChange = useRuntimeAccessLevel({
-    accessLevel,
+    accessLevel: interactionConfig.accessLevel ? accessLevel : "default",
     activeRunId,
     activeRunOwner,
     isRunActive:
@@ -1058,6 +1066,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   textareaRef={textareaRef}
                 />
                 <ComposerActions
+                  interactionConfig={interactionConfig}
                   accessLevel={accessLevel}
                   isFrontendActive={isFrontendActive}
                   isVoiceMode={isVoiceMode}

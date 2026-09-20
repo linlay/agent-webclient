@@ -1,6 +1,16 @@
-import type { I18nMessages } from "@/shared/i18n/types";
+import type {
+ I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "agents.interaction.title": "对话输入",
+  "agents.interaction.description": "控制用户可在输入框选择的能力，不改变智能体已配置的工具与权限策略。",
+  "agents.interaction.model": "模型",
+  "agents.interaction.accessLevel": "权限级别",
+  "agents.interaction.mustUseSkills": "必用技能",
+  "agents.interaction.connectors": "连接器",
+  "agents.interaction.localFiles": "本地文件",
+  "agents.interaction.chatRecords": "聊天记录",
+  "agents.interaction.reset": "恢复类型默认值",
   "agentConsole.field.introductions": "自我介绍",
   "agentConsole.introductions.add": "添加自我介绍",
   "agentConsole.introductions.remove": "删除自我介绍",

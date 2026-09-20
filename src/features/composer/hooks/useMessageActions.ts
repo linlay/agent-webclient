@@ -407,6 +407,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         (agent) => toText(agent?.key) === selectedAgentKey,
       );
       const selectedAgentMode = String(selectedAgent?.mode || "").trim();
+      const interaction = selectedAgent?.interactionConfig as import("@/shared/contracts/interaction").InteractionConfig | undefined;
+      if (interaction?.model === false) model = undefined;
+      if (interaction?.accessLevel === false) accessLevel = "default";
 
       if (!hasSendableContent(cleanMessage, normalizedReferences, hasQueryHistory(stateRef.current, chatId))) return;
       if (!selectedOwner) {

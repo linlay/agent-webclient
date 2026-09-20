@@ -1,5 +1,6 @@
 import React from "react";
-import { Dropdown, Input, Popover, Select, Tooltip, type MenuProps } from "antd";
+import { interactionDefaults } from "@/shared/contracts/interaction";
+import { Dropdown, Input, Popover, Select, Switch, Tooltip, type MenuProps } from "antd";
 import { AgentCapabilitiesEditor } from "@/features/agents/components/AgentCapabilitiesEditor";
 import {
   BUDGET_PLACEHOLDER,
@@ -38,6 +39,7 @@ export const AGENT_FORM_SECTION_IDS = [
   "agent-section-prompts",
   "agent-section-context-capabilities",
   "agent-section-advanced",
+  "agent-section-interaction",
 ] as const;
 
 export type AgentFormSectionId = (typeof AGENT_FORM_SECTION_IDS)[number];
@@ -115,8 +117,11 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
     canImportPrivateSkill, setToolFilter, setToolSearchText, setSkillSearchText,
     setToolsExpanded, setSkillsExpanded, openPrivateSkillImport,
   } = props;
+  const interaction = interactionDefaults(form.mode);
+  const interactionFields = ["model", "accessLevel", "mustUseSkills", "connectors", "localFiles", "chatRecords"] as const;
   return (
     <div className="agent-editor-fieldset">
+
                 <AgentFormSection
                   id={AGENT_FORM_SECTION_IDS[0]}
                   icon="person"
@@ -393,6 +398,26 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                   </div>
                 </AgentFormSection>
 
+      <AgentFormSection id={AGENT_FORM_SECTION_IDS[5]} icon="tune" title={t("agents.interaction.title")}>
+        <p>{t("agents.interaction.description")}</p>
+        <div className={AGENT_FORM_GRID_CLASS_NAME}>
+          {interactionFields.map((key) => {
+            const attachment = key === "localFiles" || key === "chatRecords";
+            const checked = attachment
+              ? form.interactionConfig?.attachment?.[key] ?? interaction.attachment[key]
+              : form.interactionConfig?.[key] ?? interaction[key];
+            return <label className="field-group" key={key}>
+              <span>{t(`agents.interaction.${key}`)}</span>{" "}
+              <Switch checked={checked} aria-label={t(`agents.interaction.${key}`)} onChange={(value) => {
+                updateForm({interactionConfig: attachment
+                  ? {...form.interactionConfig, attachment: {...form.interactionConfig?.attachment, [key]: value}}
+                  : {...form.interactionConfig, [key]: value}});
+              }} />
+            </label>;
+          })}
+        </div>
+        <UiButton variant="ghost" size="sm" onClick={() => updateForm({interactionConfig: undefined})}>{t("agents.interaction.reset")}</UiButton>
+      </AgentFormSection>
                 <AgentFormSection
                   id={AGENT_FORM_SECTION_IDS[3]}
                   icon="hub"

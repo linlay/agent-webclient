@@ -46,3 +46,25 @@ it('allows pasting during a run, retains failed uploads, and isolates restored i
     expect(actions.attachments.some(item => item.status === 'error')).toBe(true);
   } finally { act(() => root.unmount()); }
 });
+
+ it('blocks disabled file ingress and chat references', async () => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  upload.mockClear();
+  let actions!: ReturnType<typeof useComposerAttachments>;
+  const config = {model:true, accessLevel:true, mustUseSkills:true, connectors:true, attachment:{localFiles:false, chatRecords:false}};
+  const state: any = {chatId:'chat-a',chatAgentById:new Map(),workerIndexByKey:{},workerSelectionKey:''};
+  const Harness = () => { actions = useComposerAttachments({dispatch:jest.fn(),state,mainChatRunning:false,isFrontendActive:false,isVoiceMode:false,interactionConfig:config}); return null; };
+  const root = createRoot(document.createElement('div'));
+  try {
+   act(() => root.render(React.createElement(Harness)));
+   const files = [new File(['text'],'test.txt',{type:'text/plain'})];
+   await act(async () => {
+    actions.handleFilePaste({clipboardData:{files},preventDefault:jest.fn()} as any);
+    actions.handleFileDrop({dataTransfer:{files},preventDefault:jest.fn()} as any);
+    actions.handleFileSelection({target:{files,value:''}} as any);
+   });
+   expect(upload).not.toHaveBeenCalled();
+   expect(actions.addContextReference({type:'chat',id:'other',name:'other'})).toBe(false);
+   expect(actions.sendReferences).toEqual([]);
+  } finally { act(() => root.unmount()); }
+ });

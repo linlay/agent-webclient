@@ -22,6 +22,7 @@ import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 type Section = "files" | "skills" | "connectors" | "chat" | "site";
 export interface AddMenuTriggerProps {
+  interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
   disabled: boolean;
   loading: boolean;
   currentChatId: string;
@@ -375,12 +376,18 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   }, [section]);
   // mode / site 在不可用时跳过，分割线条目保持原位
   const navEntries = sectionNav.filter((entry) => {
+    if (entry === "files" && props.interactionConfig?.attachment.localFiles === false) return false;
+    if (entry === "chat" && props.interactionConfig?.attachment.chatRecords === false) return false;
+    if (entry === "skills" && (!props.currentAgentKey || props.interactionConfig?.mustUseSkills === false)) return false;
+    if (entry === "connectors" && (!props.currentAgentKey || props.interactionConfig?.connectors === false)) return false;
     if (entry === "divider") return true;
     if (entry === "site") return canUseDesktopWebsBridge();
     if (entry === "mode")
       return props.canUsePlanningMode || props.canUseEditingMode;
     return true;
   });
+  const visibleEntries = navEntries.filter((entry, index) => entry !== "divider" || (index > 0 && index < navEntries.length - 1));
+  useEffect(() => { if (section && !navEntries.includes(section)) setSection(null); }, [section, navEntries.join(",")]);
   // A side-by-side submenu cannot fit narrow chat windows. Reuse the parent
   // popover for this picker so the search and switches stay within the viewport.
   if (compact && section === "connectors") {
@@ -393,7 +400,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   }
   return (
     <div className="composer-add-menu-nav" role="menu">
-      {navEntries.map((entry, index) =>
+      {visibleEntries.map((entry, index) =>
         entry === "divider" ? (
           <div
             key={`divider-${index}`}

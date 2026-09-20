@@ -579,7 +579,7 @@ describe("AgentConsole i18n rendering", () => {
     expect(html).toContain("agent-model-selector-card");
   });
 
-  it("renders five anchor-linked configuration sections", () => {
+  it("renders six anchor-linked configuration sections", () => {
     const html = renderToStaticMarkup(
       React.createElement(
         I18nProvider,
@@ -598,11 +598,12 @@ describe("AgentConsole i18n rendering", () => {
     expect(sectionOrder).toEqual([
       "agent-section-basic",
       "agent-section-model",
+      "agent-section-interaction",
       "agent-section-context-capabilities",
       "agent-section-prompts",
       "agent-section-advanced",
     ]);
-    expect(html.match(/href="#agent-section-/g)).toHaveLength(5);
+    expect(html.match(/href="#agent-section-/g)).toHaveLength(6);
     expect(html).not.toContain('role="tab"');
     expect(html).not.toContain('role="tabpanel"');
     expect(html).not.toContain(' hidden=""');

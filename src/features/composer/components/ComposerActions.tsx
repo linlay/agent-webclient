@@ -72,6 +72,7 @@ interface ComposerActionsProps extends Omit<AddMenuTriggerProps, "disabled" | "l
 }
 
 export const ComposerActions: React.FC<ComposerActionsProps> = ({
+  interactionConfig,
   accessLevel,
   isFrontendActive,
   isVoiceMode,
@@ -160,6 +161,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
       <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
         <div className={COMPOSER_PLUS_WRAP_CLASS}>
           <AddMenuTrigger
+            interactionConfig={interactionConfig}
             disabled={addMenuDisabled}
             loading={hasUploadingAttachments}
             currentChatId={currentChatId}
@@ -275,6 +277,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         {isStreaming ? (
           <>
             <QuerySettingsControls
+              interactionConfig={interactionConfig}
               accessLevel={accessLevel}
               disabled={true}
               compact={compact}
@@ -298,6 +301,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
         ) : !isVoiceMode ? (
           <>
             <QuerySettingsControls
+              interactionConfig={interactionConfig}
               accessLevel={accessLevel}
               disabled={interactionDisabled || isFrontendActive}
               compact={compact}

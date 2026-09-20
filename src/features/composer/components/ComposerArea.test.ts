@@ -1,3 +1,4 @@
+import { interactionDefaults } from "@/shared/contracts/interaction";
 import * as selectedTextHooks from "@/features/selection/hooks/useSelectedTextFragments";
 import { createSelectedTextFragment, selectedTextReferenceToAttachment } from "@/features/selection/lib/selectedTextReference";
 import React from "react";
@@ -544,7 +545,7 @@ describe("ComposerArea", () => {
       sourceId: "knowledge",
       displayName: "Knowledge",
       relatedChats: [],
-      raw: { mode: "KBASE" },
+      raw: { mode: "KBASE", interactionConfig: interactionDefaults("KBASE") },
     });
     mockIsDedicatedKbaseWorker.mockReturnValue(true);
 
@@ -571,7 +572,7 @@ describe("ComposerArea", () => {
       sourceId: "cutej",
       displayName: "小君",
       relatedChats: [],
-      raw: { mode: "REACT" },
+      raw: { mode: "REACT", interactionConfig: interactionDefaults("REACT") },
     });
     mockHostRequiredSkills.agentKey = "cutej";
     mockHostRequiredSkills.skills = ["skill-creator"];

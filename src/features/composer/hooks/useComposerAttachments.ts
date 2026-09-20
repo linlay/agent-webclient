@@ -21,6 +21,7 @@ import {
 } from "@/features/composer/lib/composerAttachments";
 
 interface UseComposerAttachmentsInput {
+  interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
   dispatch: Dispatch<AppAction>;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
@@ -56,12 +57,15 @@ function addTimestampToFilename(filename: string) {
 export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const {
     dispatch,
+    interactionConfig,
     isFrontendActive,
     isVoiceMode,
     mainChatRunning,
     onError,
     state,
   } = input;
+  const localFilesAllowed = interactionConfig?.attachment.localFiles ?? true;
+  const chatRecordsAllowed = interactionConfig?.attachment.chatRecords ?? true;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentViewportRef = useRef<HTMLDivElement>(null);
   const attachmentsRef = useRef<ComposerAttachment[]>([]);
@@ -154,8 +158,8 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const hasComposerAttachmentOverflow =
     attachmentScrollState.canScrollLeft || attachmentScrollState.canScrollRight;
   const canCaptureDesktopScreenshot = useMemo(
-    () => canUseDesktopScreenshotBridge(),
-    [],
+    () => (localFilesAllowed && canUseDesktopScreenshotBridge()),
+    [localFilesAllowed],
   );
 
   const updateComposerAttachmentScrollState = useCallback(() => {
@@ -213,15 +217,15 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   }, [dispatch, state.chatId, restoredReferences]);
 
   const openFilePicker = useCallback(() => {
-    if (isFrontendActive || isVoiceMode) {
+    if (!localFilesAllowed || isFrontendActive || isVoiceMode) {
       return;
     }
     fileInputRef.current?.click();
-  }, [isFrontendActive, isVoiceMode]);
+  }, [localFilesAllowed, isFrontendActive, isVoiceMode]);
 
   const addContextReference = useCallback(
     (reference: ComposerContextReferenceInput) => {
-      if (mainChatRunning || isFrontendActive || isVoiceMode) {
+      if ((reference.type === "chat" && !chatRecordsAllowed) || mainChatRunning || isFrontendActive || isVoiceMode) {
         return false;
       }
       const nextAttachment = createComposerContextAttachment(reference);
@@ -238,7 +242,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       ]);
       return true;
     },
-    [isFrontendActive, isVoiceMode, mainChatRunning],
+    [localFilesAllowed, chatRecordsAllowed, isFrontendActive, isVoiceMode, mainChatRunning],
   );
 
   const handleRemoveAttachment = useCallback(
@@ -277,7 +281,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   const uploadFiles = useCallback(
     (files: File[]) => {
-      if (files.length === 0 || isFrontendActive || isVoiceMode) {
+      if (!localFilesAllowed || files.length === 0 || isFrontendActive || isVoiceMode) {
         return false;
       }
 
@@ -337,6 +341,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [
       attachmentChatId,
       dispatch,
+      localFilesAllowed,
       isFrontendActive,
       isVoiceMode,
       state.chatAgentById,
@@ -387,7 +392,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const stageReviewAttachment = useCallback(
     (file: File) => {
       if (
-        !file ||
+        !localFilesAllowed || !file ||
         file.type !== "image/png" ||
         file.size <= 0 ||
         file.size > 12 * 1024 * 1024 ||
@@ -415,7 +420,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       });
       return true;
     },
-    [isFrontendActive, isVoiceMode, mainChatRunning],
+    [localFilesAllowed, chatRecordsAllowed, isFrontendActive, isVoiceMode, mainChatRunning],
   );
 
   const uploadStagedAttachments = useCallback(async () => {

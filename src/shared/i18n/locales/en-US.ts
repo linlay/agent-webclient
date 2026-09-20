@@ -1,6 +1,16 @@
-import type { I18nMessages } from "@/shared/i18n/types";
+import type {
+ I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "agents.interaction.title": "Conversation input",
+  "agents.interaction.description": "Choose which controls users can use in the composer. Configured tools and permission policies remain in effect.",
+  "agents.interaction.model": "Model",
+  "agents.interaction.accessLevel": "Access level",
+  "agents.interaction.mustUseSkills": "Required skills",
+  "agents.interaction.connectors": "Connectors",
+  "agents.interaction.localFiles": "Local files",
+  "agents.interaction.chatRecords": "Chat records",
+  "agents.interaction.reset": "Restore mode defaults",
   "agentConsole.field.introductions": "Introductions",
   "agentConsole.introductions.add": "Add introduction",
   "agentConsole.introductions.remove": "Remove introduction",
