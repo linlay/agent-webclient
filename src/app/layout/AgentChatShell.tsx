@@ -16,7 +16,7 @@ import {
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
-import { ConversationStage } from "@/features/timeline/components/ConversationStage";
+import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
 import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
@@ -867,7 +867,7 @@ const AgentChatShellContent: React.FC = () => {
           id="app"
         >
           <TopNav surface="agent" />
-          <ConversationStage
+          <ConnectedConversationStage
             surfaceMode="agent"
             deriveChatAction={deriveChatAction}
             onFeedback={onFeedback}

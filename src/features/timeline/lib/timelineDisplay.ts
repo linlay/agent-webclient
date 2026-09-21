@@ -55,7 +55,7 @@ export type TimelineDisplayItem =
       renderEntry: TimelineRenderEntry;
     };
 
-interface RunTerminalInfo {
+export interface RunTerminalInfo {
   type: RunTerminalType;
   runId?: string;
   timestamp?: number;
@@ -227,9 +227,8 @@ interface RunTerminalIndex {
   byRunId: Map<string, RunTerminalInfo>;
 }
 
-function collectRunTerminals(events: AgentEvent[]): RunTerminalIndex {
+export function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
   const ordered: RunTerminalInfo[] = [];
-  const byRunId = new Map<string, RunTerminalInfo>();
   for (const event of events) {
     const type = readRunTerminalType(event.type);
     if (!type) continue;
@@ -241,11 +240,8 @@ function collectRunTerminals(events: AgentEvent[]): RunTerminalIndex {
         typeof event.timestamp === "number" ? event.timestamp : undefined,
     };
     ordered.push(info);
-    if (runId && !byRunId.has(runId)) {
-      byRunId.set(runId, info);
-    }
   }
-  return { ordered, byRunId };
+  return ordered;
 }
 
 export interface BuildTimelineDisplayItemsOptions {
@@ -263,8 +259,30 @@ export function buildTimelineDisplayItems(
   taskItemsById: Map<string, TaskItemMeta> = new Map(),
   options: BuildTimelineDisplayItemsOptions = {},
 ): TimelineDisplayItem[] {
+  return buildTimelineDisplayItemsFromTerminals(
+    nodes,
+    collectRunTerminals(events),
+    taskItemsById,
+    options,
+  );
+}
+
+export function buildTimelineDisplayItemsFromTerminals(
+  nodes: TimelineNode[],
+  terminals: readonly RunTerminalInfo[],
+  taskItemsById: Map<string, TaskItemMeta> = new Map(),
+  options: BuildTimelineDisplayItemsOptions = {},
+): TimelineDisplayItem[] {
   const items: TimelineDisplayItem[] = [];
-  const runTerminals = collectRunTerminals(events);
+  const runTerminals: RunTerminalIndex = {
+    ordered: [...terminals],
+    byRunId: new Map(),
+  };
+  for (const terminal of terminals) {
+    if (terminal.runId && !runTerminals.byRunId.has(terminal.runId)) {
+      runTerminals.byRunId.set(terminal.runId, terminal);
+    }
+  }
   let pendingRunNodes: TimelineNode[] = [];
   let pendingStandaloneNodes: TimelineNode[] = [];
   let activeQueryNode: TimelineNode | null = null;

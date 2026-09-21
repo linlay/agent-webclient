@@ -12,18 +12,28 @@ jest.mock("@/features/btw/components/BtwProvider", () => ({
   useBTW: jest.fn(),
 }));
 
+jest.mock("@/features/btw/hooks/useBtwTimelineInteraction", () => ({
+  useBtwTimelineInteraction: jest.fn(() => ({
+    conversationActive: false,
+  })),
+}));
+
 jest.mock("@/features/timeline/components/TimelineInteractionContext", () => {
   const React = require("react");
   return {
-    TimelineInteractionProvider: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
+    TimelineInteractionProvider: ({
+      children,
+    }: {
+      children: React.ReactNode;
+    }) => React.createElement(React.Fragment, null, children),
   };
 });
 
 jest.mock("@/features/timeline/components/TimelineRow", () => {
   const React = require("react");
   return {
-    TimelineRow: () => React.createElement("div", { className: "timeline-row" }),
+    TimelineRow: () =>
+      React.createElement("div", { className: "timeline-row" }),
   };
 });
 
@@ -97,9 +107,7 @@ const sharedActions = {
   interruptBTW: jest.fn(),
 };
 
-function renderSession(
-  overrides: Record<string, unknown> = {},
-): string {
+function renderSession(overrides: Record<string, unknown> = {}): string {
   const session = {
     parentChatId: "chat_1",
     btwId: "btw_1",

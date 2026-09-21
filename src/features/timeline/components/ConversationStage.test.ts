@@ -6,12 +6,12 @@ import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import {
   buildTimelineAgentOptions,
-  ConversationStage,
+  ConnectedConversationStage,
   dispatchTimelineAgentSwitch,
   filterTimelineAgentOptions,
   shouldEnableQueryAnchors,
   TimelineAgentSwitcher,
-} from "@/features/timeline/components/ConversationStage";
+} from "@/features/timeline/components/ConnectedConversationStage";
 
 let mockGreeting = "";
 jest.mock("@/features/agents/hooks/useAgentWelcome", () => ({
@@ -274,7 +274,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("aria-label=\"派生新对话\"");
@@ -323,7 +323,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-query-anchor-row");
@@ -377,7 +377,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).not.toContain("timeline-query-anchor-rail");
@@ -429,7 +429,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-task-group-header");
@@ -485,7 +485,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-task-group-header");
@@ -505,7 +505,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction,
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction,
         surfaceMode: "main",
         showEmptyState: false,
       }),
@@ -553,7 +553,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("timeline-empty");
@@ -565,7 +565,7 @@ describe("ConversationStage", () => {
 
     mockGreeting = "今天想和${agent}一起做点什么？";
     const custom = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
     expect(custom).toContain("今天想和");
     expect(custom).toContain("一起做点什么？");
@@ -600,7 +600,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("与 小宅 对话");
@@ -631,7 +631,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain("今天想做点什么？");
@@ -668,7 +668,7 @@ describe("ConversationStage", () => {
     });
 
     const html = renderToStaticMarkup(
-      React.createElement(ConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
+      React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
     expect(html).toContain(expected);

@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
-import { useAppDispatch } from "@/app/state/AppContext";
 import { Flex } from "antd";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useI18n } from "@/shared/i18n";
@@ -181,7 +180,6 @@ function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
 export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   node,
 }) => {
-  const dispatch = useAppDispatch();
   const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const expanded = Boolean(node.expanded);
@@ -216,23 +214,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   return (
     <TimelineCollapse
       expanded={expanded}
-      onExpand={() => {
-        if (interaction?.patchNode) {
-          interaction.patchNode({
-            ...node,
-            expanded: !expanded,
-          });
-          return;
-        }
-        dispatch({
-          type: "SET_TIMELINE_NODE",
-          id: node.id,
-          node: {
-            ...node,
-            expanded: !expanded,
-          },
-        });
-      }}
+      onExpand={() => interaction?.setExpanded?.(node.id, !expanded)}
       label={summaryText}
     >
       <Flex vertical gap={10} className="awaiting-detail">

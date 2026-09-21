@@ -1,12 +1,16 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import "@/shared/styles/globals.css";
 import "katex/dist/katex.min.css";
-import { parseConversationSnapshot } from "./conversationSnapshot";
-import {
-  conversationExportMessages,
-  resolveConversationExportLocale,
-} from "@/shared/i18n/conversationExport";
+import { parseConversationSnapshotV1 } from "./conversationSnapshotV1";
+import { conversationExportMessages, resolveConversationExportLocale } from "@/shared/i18n/conversationExport";
+import { I18nProvider } from "@/shared/i18n";
 import { ConversationExportDocument } from "./ConversationExportDocument";
+import {
+  applyConversationExportFavicon,
+  readLocalExportBrandId,
+  readPublicShareBrand,
+} from "./publicShareBrand";
 
 const CONVERSATION_SNAPSHOT_ELEMENT_ID = "conversation-snapshot";
 const ROOT_ELEMENT_ID = "root";
@@ -32,9 +36,9 @@ const rootElement = document.getElementById(ROOT_ELEMENT_ID);
 if (!rootElement) throw new Error("export_root_missing");
 
 try {
-  const snapshot = parseConversationSnapshot(readSnapshot());
+  const snapshot = parseConversationSnapshotV1(readSnapshot());
   if (!snapshot) throw new Error("snapshot_invalid");
-  const locale = resolveConversationExportLocale();
+  const locale = snapshot.locale;
   const copy = conversationExportMessages[locale];
   document.documentElement.lang = locale;
   document.documentElement.dataset.theme = globalThis.matchMedia?.(
@@ -43,8 +47,12 @@ try {
     ? "dark"
     : "light";
   document.title = `${snapshot.title} - ${copy.snapshotBadge}`;
+  const publicBrand = readPublicShareBrand();
+  applyConversationExportFavicon(publicBrand?.id || readLocalExportBrandId());
   createRoot(rootElement).render(
-    <ConversationExportDocument locale={locale} snapshot={snapshot} />,
+    <I18nProvider locale={locale} persistLocale={false}>
+      <ConversationExportDocument snapshot={snapshot} publicBrand={publicBrand} />
+    </I18nProvider>,
   );
 } catch {
   showFailure(rootElement);

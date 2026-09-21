@@ -22,6 +22,7 @@ import {
 } from "@/shared/data/api/endpoints";
 import {
   resolveConversationExportAssetOrigin,
+  resolveConversationExportBrandId,
   CONVERSATION_EXPORT_TEMPLATE_PATH,
   MAX_CONVERSATION_SNAPSHOT_BYTES,
   conversationExportHtmlTooLargeError,
@@ -245,6 +246,7 @@ export async function downloadConversationHtmlExport(
   if (!normalizedChatId) throw new Error("chat_id_required");
 
   const assetOrigin = resolveConversationExportAssetOrigin();
+  const brandId = resolveConversationExportBrandId();
   const [snapshotResponse, templateResponse] = await Promise.all([
     requestWithAuth(
       `${dataEndpoints.chatExport.path}?chatId=${encodeURIComponent(normalizedChatId)}&format=snapshot`,
@@ -318,7 +320,7 @@ export async function downloadConversationHtmlExport(
     snapshotResponse.blob(),
     templateResponse.text(),
   ]);
-  const html = buildConversationHtmlBlob({ template, snapshot, assetOrigin });
+  const html = buildConversationHtmlBlob({ template, snapshot, assetOrigin, brandId });
   const filename =
     conversationHtmlFilename(
       filenameFromContentDisposition(snapshotResponse.headers.get("Content-Disposition")),

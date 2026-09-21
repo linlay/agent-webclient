@@ -1,9 +1,18 @@
 /* ========================================
    Tool Pill & Detail
    ======================================== */
+:global(.tool-pill-status-row) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
 :global(.tool-status-dot) {
+    display: inline-block;
     width: 7px;
     height: 7px;
+    vertical-align: middle;
     border-radius: 50%;
     background: color-mix(in srgb, var(--ink-muted) 84%, transparent);
     flex-shrink: 0;

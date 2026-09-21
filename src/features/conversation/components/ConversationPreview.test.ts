@@ -5,29 +5,28 @@ import { createRoot, type Root } from "react-dom/client";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { ChatDetailResponse } from "@/shared/data";
 import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
-import { ReadOnlyConversationTimeline } from "./ReadOnlyConversationTimeline";
+import { conversationPreviewDataFromReplay } from "@/features/conversation/lib/conversationPreviewData";
+import { ConversationPreview } from "./ConversationPreview";
 
 import { copyText } from "@/shared/utils/copy";
 
 const mockCopySuccess = jest.fn();
 const mockCopyError = jest.fn();
 jest.mock("@/shared/utils/copy", () => ({ copyText: jest.fn().mockResolvedValue(undefined) }));
-jest.mock("@/shared/ui/useAppMessage", () => ({
-  useAppMessage: () => ({ success: mockCopySuccess, error: mockCopyError }),
-}));
 
 const EPOCH = 1_710_000_000_000;
 
 jest.mock("react-virtuoso", () => {
   const ReactRuntime = require("react") as typeof React;
   return {
-    Virtuoso: (props: {
+    Virtuoso: ReactRuntime.forwardRef((props: {
       data?: unknown[];
       computeItemKey?: (index: number, item: unknown) => React.Key;
       itemContent: (index: number, item: unknown) => React.ReactNode;
       className?: string;
-    }) =>
-      ReactRuntime.createElement(
+    }, ref: React.Ref<unknown>) => {
+      ReactRuntime.useImperativeHandle(ref, () => ({ autoscrollToBottom: jest.fn(), scrollToIndex: jest.fn() }));
+      return ReactRuntime.createElement(
         "div",
         { className: props.className, "data-testid": "virtuoso" },
         ...(props.data || []).map((item, index) =>
@@ -37,16 +36,18 @@ jest.mock("react-virtuoso", () => {
             props.itemContent(index, item),
           ),
         ),
-      ),
+      );
+    }),
   };
 });
 
 jest.mock("@/features/timeline/components/TimelineRow", () => ({
-  TimelineRow: ({ node }: { node?: { kind?: string; text?: string } }) =>
+  TimelineRow: ({ node, metaNode }: { node?: { kind?: string; text?: string }; metaNode?: React.ReactNode }) =>
     React.createElement(
       "div",
       { "data-testid": "timeline-row", "data-node-kind": node?.kind || "tool-group" },
       node?.text || node?.kind || "tool-group",
+      metaNode,
     ),
   formatTimelineTime: () => ({ short: "", full: "" }),
 }));
@@ -88,9 +89,6 @@ jest.mock("@/features/timeline/components/RunTerminalNotice", () => ({
     React.createElement("div", { "data-terminal-type": terminalType }),
 }));
 
-jest.mock("@/features/surfaces/openTarget", () => ({
-  useOpenTarget: () => jest.fn(),
-}));
 
 jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({
@@ -190,7 +188,7 @@ function completedChatEvents(): AgentEvent[] {
   ];
 }
 
-describe("ReadOnlyConversationTimeline", () => {
+describe("ConversationPreview", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -211,19 +209,22 @@ describe("ReadOnlyConversationTimeline", () => {
     container.remove();
   });
 
-  const renderTimeline = (chat: ChatDetailResponse) => {
+  const renderTimeline = (chat: ChatDetailResponse, viewportMode: "container" | "document" = "container") => {
     const projection = buildChatReplayProjection(chat.chatId, chat);
     act(() => {
       root.render(
-        React.createElement(ReadOnlyConversationTimeline, {
-          chat,
-          projection,
+        React.createElement(ConversationPreview, {
+          data: conversationPreviewDataFromReplay(chat, projection),
+          onCopyResult: (success) => success
+            ? mockCopySuccess("timeline.toolPill.copy.copied")
+            : mockCopyError("timeline.toolPill.copy.failed"),
           agents: [
             { key: "agent-parent", name: "Parent" },
             { key: "agent-child", name: "Child" },
           ],
           agentKey: "agent-parent",
           teamChat: false,
+          viewportMode,
         }),
       );
     });
@@ -249,6 +250,7 @@ describe("ReadOnlyConversationTimeline", () => {
     expect(
       container.querySelectorAll('[data-testid="timeline-row"]'),
     ).toHaveLength(2);
+    act(() => (container.querySelector(".timeline-run-collapse [role=button]") as HTMLElement).click());
     expect(
       Array.from(container.querySelectorAll('[data-testid="render-entry"]')).map(
         (element) =>
@@ -283,6 +285,16 @@ describe("ReadOnlyConversationTimeline", () => {
     expect(container.textContent).not.toContain(
       "automationHistory.chat.currentExecution",
     );
+  });
+
+  it("omits user and answer metadata in the document share view", () => {
+    renderTimeline({ chatId: "chat-history", events: completedChatEvents() }, "document");
+
+    expect(container.querySelectorAll(".timeline-run-meta")).toHaveLength(0);
+    expect(container.querySelectorAll('[data-run-id] [aria-label="timeline.toolPill.copy.action"]')).toHaveLength(0);
+    expect(container.querySelectorAll('[aria-label="timeline.toolPill.copy.action"]')).toHaveLength(0);
+    expect(container.querySelectorAll(".timeline-row-time")).toHaveLength(0);
+    expect(container.textContent).toContain("Answer one");
   });
 
   it("keeps all user-visible runs when an automation query is hidden", () => {
@@ -344,9 +356,9 @@ describe("ReadOnlyConversationTimeline", () => {
   it("copies one complete Run including its query and process, without feedback or branch controls", async () => {
     renderTimeline({ chatId: "chat-history", events: completedChatEvents() });
     const runs = container.querySelectorAll("[data-run-id]");
-    expect(runs[0].querySelectorAll("button")).toHaveLength(1);
-    expect(runs[1].querySelectorAll("button")).toHaveLength(1);
-    await act(async () => (runs[0].querySelector("button") as HTMLButtonElement).click());
+    expect(runs[0].querySelector('[aria-label="timeline.feedback.downvote"]')).toBeNull();
+    expect(runs[0].querySelector('[aria-label="timeline.run.deriveChat"]')).toBeNull();
+    await act(async () => (runs[0].querySelector('[aria-label="timeline.toolPill.copy.action"]') as HTMLButtonElement).click());
     const first = jest.mocked(copyText).mock.calls[0][0];
     expect(first).toContain("Query\nQuestion one");
     expect(first).toContain("Thinking\nReasoning one");
@@ -356,14 +368,14 @@ describe("ReadOnlyConversationTimeline", () => {
     expect(first).not.toContain("Question two");
     expect(first).not.toContain("Answer two");
     expect(mockCopySuccess).toHaveBeenCalledWith("timeline.toolPill.copy.copied");
-    await act(async () => (runs[1].querySelector("button") as HTMLButtonElement).click());
+    await act(async () => (runs[1].querySelector('[aria-label="timeline.toolPill.copy.action"]') as HTMLButtonElement).click());
     expect(jest.mocked(copyText).mock.calls[1][0]).toBe("Query\nQuestion two\n\nAnswer\nAnswer two");
   });
 
   it("reports a clipboard failure without changing the conversation", async () => {
     jest.mocked(copyText).mockRejectedValueOnce(new Error("Clipboard unavailable"));
     renderTimeline({ chatId: "chat-history", events: completedChatEvents() });
-    await act(async () => (container.querySelector("[data-run-id] button") as HTMLButtonElement).click());
+    await act(async () => (container.querySelector('[data-run-id] [aria-label="timeline.toolPill.copy.action"]') as HTMLButtonElement).click());
     expect(mockCopyError).toHaveBeenCalledWith("timeline.toolPill.copy.failed");
     expect(container.textContent).toContain("Answer one");
   });

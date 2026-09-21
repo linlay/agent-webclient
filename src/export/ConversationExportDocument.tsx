@@ -1,321 +1,161 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  type ConversationSnapshotAssistantItemV1,
-  type ConversationSnapshotTurnV1,
-  type ConversationSnapshotV1,
-} from "./conversationSnapshot";
-import {
-  ConversationMarkdown,
-  type ConversationMarkdownComponents,
-  type ConversationMarkdownElementProps,
-} from "@/shared/ui/ConversationMarkdown";
-import {
-  conversationExportMessages,
-  resolveConversationExportLocale,
-  type ConversationExportLocale,
-} from "@/shared/i18n/conversationExport";
-import { StaticMarkdownCode } from "./StaticMarkdownCode";
-import { buildConversationCopyText } from "./conversationCopyText";
-import { AssistantIdentity } from "./AssistantIdentity";
-import { ReasoningDisclosure } from "./ReasoningDisclosure";
+import React, { useEffect, useMemo, useState } from "react";
+import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
+import { ConversationMarkdown, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
+import { ConversationMarkdownCode } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
+import { getAgentIconSource } from "@/shared/icons/agentIconAssets";
+import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
+import { conversationExportMessages } from "@/shared/i18n/conversationExport";
+import type { ConversationSnapshotV1, SnapshotAttachmentV1 } from "./conversationSnapshotV1";
+import { snapshotV1PreviewData } from "./conversationSnapshotV1";
+import { publicShareBrandIcon, type PublicShareBrand } from "./publicShareBrand";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./ConversationExportDocument.module.css";
 
-type MarkdownLinkProps = ConversationMarkdownElementProps<{
-  href?: string;
-  title?: string;
-}>;
+export type ConversationExportDocumentProps = { snapshot: ConversationSnapshotV1; publicBrand?: PublicShareBrand | null };
 
-type MarkdownImageProps = ConversationMarkdownElementProps<{
-  alt?: string;
-}>;
+type LinkProps = ConversationMarkdownElementProps<{ href?: string; title?: string }>;
 
-const MARKDOWN_COMPONENTS: ConversationMarkdownComponents = {
-  a: SafeExternalLink,
-  img: OmittedImage,
-};
-
-const COPY_FEEDBACK_DURATION_MS = 1_600;
-
-type CopyState = "idle" | "copied" | "failed";
-
-export type ConversationExportDocumentProps = {
-  locale: ConversationExportLocale;
-  snapshot: ConversationSnapshotV1;
-};
-
-export const ConversationExportDocument: React.FC<
-  ConversationExportDocumentProps
-> = ({ locale, snapshot }) => {
-  const copy = conversationExportMessages[locale];
-  const [copyState, setCopyState] = useState<CopyState>("idle");
-  const copyFeedbackTimer = useRef<number | null>(null);
-  const copyText = useMemo(
-    () => buildConversationCopyText(snapshot, locale),
-    [locale, snapshot],
-  );
-  const copyButtonLabel =
-    copyState === "copied"
-      ? copy.copyCopied
-      : copyState === "failed"
-        ? copy.copyFailed
-        : copy.copyAction;
-
-  useEffect(
-    () => () => {
-      if (copyFeedbackTimer.current !== null) {
-        window.clearTimeout(copyFeedbackTimer.current);
-      }
-    },
-    [],
-  );
-
-  const copyConversation = async (): Promise<void> => {
-    if (!copyText || !navigator.clipboard) {
-      showCopyFeedback("failed");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(copyText);
-      showCopyFeedback("copied");
-    } catch {
-      showCopyFeedback("failed");
-    }
-  };
-
-  const showCopyFeedback = (state: Exclude<CopyState, "idle">): void => {
-    setCopyState(state);
-    if (copyFeedbackTimer.current !== null) {
-      window.clearTimeout(copyFeedbackTimer.current);
-    }
-    copyFeedbackTimer.current = window.setTimeout(
-      () => setCopyState("idle"),
-      COPY_FEEDBACK_DURATION_MS,
-    );
-  };
-
-  return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.headerTitle}>
-            <h1 title={snapshot.title}>{snapshot.title}</h1>
-          </div>
-          <button
-            className={styles.copyButton}
-            type="button"
-            aria-label={copyButtonLabel}
-            aria-live="polite"
-            data-state={copyState}
-            onClick={() => void copyConversation()}
-          >
-            <span className={styles.copyIcon} aria-hidden="true">
-              {copyState === "copied" ? "✓" : copyState === "failed" ? "!" : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="8" y="8" width="12" height="12" rx="2" />
-                  <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-                </svg>
-              )}
-            </span>
-            <span className={styles.copyLabel}>{copyButtonLabel}</span>
-          </button>
-        </div>
-      </header>
-
-      <div className={styles.shell}>
-        <div className={styles.notice}>
-          <p>{copy.aiNotice}</p>
-        </div>
-
-        <article className={styles.content}>
-          <ExportTranscript copy={copy} turns={snapshot.turns} />
-        </article>
-
-        <footer className={styles.footer}>{copy.readOnly}</footer>
-      </div>
-    </main>
-  );
-};
-
-function ExportTranscript({
-  copy,
-  turns,
-}: {
-  copy: (typeof conversationExportMessages)[ConversationExportLocale];
-  turns: readonly ConversationSnapshotTurnV1[];
-}): React.ReactElement {
-  return (
-    <div className={styles.transcript}>
-      {turns.map((turn, index) => (
-        <ExportTurn
-          copy={copy}
-          key={`${turn.startedAt}-${index}`}
-          turn={turn}
-        />
-      ))}
-    </div>
-  );
+function attachmentRoute(id: string, action: "preview" | "download"): string {
+  const match = /^\/share\/([A-Za-z0-9_-]+)(?:\/|$)/u.exec(window.location.pathname);
+  return match ? `/share/${match[1]}/attachments/${id}/${action}` : "";
 }
 
-function ExportTurn({
-  copy,
-  turn,
-}: {
-  copy: (typeof conversationExportMessages)[ConversationExportLocale];
-  turn: ConversationSnapshotTurnV1;
-}): React.ReactElement {
-  const [userMessage, ...assistantItems] = turn.items;
-  const hasReasoning = assistantItems.some(
-    (item) => item.kind === "reasoning",
-  );
-  const lastAssistantItem = assistantItems.at(-1);
-  const finalResponse =
-    hasReasoning && lastAssistantItem?.kind === "assistant"
-      ? lastAssistantItem
-      : null;
-  const traceItems = hasReasoning
-    ? finalResponse
-      ? assistantItems.slice(0, -1)
-      : assistantItems
-    : [];
-  const responseItems = hasReasoning
-    ? finalResponse
-      ? [finalResponse]
-      : []
-    : assistantItems.filter(
-        (item): item is ConversationSnapshotAssistantItemV1 & { kind: "assistant" } =>
-          item.kind === "assistant",
-      );
-  const duration =
-    turn.endedAt === undefined
-      ? ""
-      : formatDuration(turn.endedAt - turn.startedAt);
-  const reasoningLabel = [
-    copy.reasoning,
-    duration ? copy.turnDuration.replace("{duration}", duration) : "",
-    copy.outcome[turn.outcome],
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  const statusIcon =
-    turn.outcome === "completed"
-      ? "✓"
-      : turn.outcome === "failed"
-        ? "!"
-        : turn.outcome === "cancelled"
-          ? "×"
-          : "·";
-
-  return (
-    <article className={styles.turn}>
-      <section className={styles.userRow}>
-        <div className={styles.userBubble}>{userMessage.text}</div>
-      </section>
-
-      {assistantItems.length > 0 ? (
-        <section className={styles.assistantRow}>
-          <AssistantIdentity
-            assistant={turn.assistant}
-            fallbackName={copy.assistant}
-          />
-          <div className={styles.assistantContent}>
-            {traceItems.length > 0 ? (
-              <ReasoningDisclosure label={reasoningLabel} statusIcon={statusIcon}>
-                {traceItems.map((item, index) =>
-                  item.kind === "reasoning" ? (
-                    <ReasoningDisclosure
-                      key={`${item.at}-${index}`}
-                      label={item.label || copy.untitledReasoning}
-                      segment
-                    >
-                      <ConversationMarkdown
-                        className={styles.reasoningMarkdown}
-                        content={item.text}
-                        components={MARKDOWN_COMPONENTS}
-                        codeComponent={StaticMarkdownCode}
-                      />
-                    </ReasoningDisclosure>
-                  ) : (
-                    <ConversationMarkdown
-                      className={styles.processMessage}
-                      content={item.text}
-                      components={MARKDOWN_COMPONENTS}
-                      codeComponent={StaticMarkdownCode}
-                      key={`${item.at}-${index}`}
-                    />
-                  ),
-                )}
-              </ReasoningDisclosure>
-            ) : null}
-
-            {responseItems.map((item, index) => (
-              <ConversationMarkdown
-                className={styles.markdown}
-                content={item.text}
-                components={MARKDOWN_COMPONENTS}
-                codeComponent={StaticMarkdownCode}
-                key={`${item.at}-${index}`}
-              />
-            ))}
-            {turn.outcome !== "completed" && traceItems.length === 0 ? (
-              <p className={styles.turnStatus}>{copy.outcome[turn.outcome]}</p>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-    </article>
-  );
-}
-
-function SafeExternalLink({
-  children,
-  href,
-  title,
-}: MarkdownLinkProps): React.ReactElement {
-  const safeHref = getSafeHref(href);
-  if (!safeHref) return <span title={title}>{children}</span>;
-  return (
-    <a
-      href={safeHref}
-      title={title}
-      target="_blank"
-      rel="noreferrer noopener"
-      referrerPolicy="no-referrer"
-    >
-      {children}
-    </a>
-  );
-}
-
-function OmittedImage({ alt }: MarkdownImageProps): React.ReactElement {
-  return (
-    <span className={styles.omittedImage} role="note">
-      {alt
-        ? `${conversationExportMessages[resolveConversationExportLocale()].imageOmitted}: ${alt}`
-        : conversationExportMessages[resolveConversationExportLocale()].imageOmitted}
-    </span>
-  );
-}
-
-function getSafeHref(value: unknown): string | null {
-  if (typeof value !== "string" || !value.trim()) return null;
+function findPublishedAttachment(href: string | undefined, attachments: Map<string, SnapshotAttachmentV1>): SnapshotAttachmentV1 | undefined {
+  if (!href) return undefined;
+  const direct = attachments.get(href);
+  if (direct) return direct;
   try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:"
-      ? url.toString()
-      : null;
-  } catch {
-    return null;
-  }
+    const parsed = new URL(href, window.location.origin);
+    if (parsed.pathname !== "/api/resource") return undefined;
+    const key = parsed.searchParams.get("file") || "";
+    for (const [sourceRef, attachment] of attachments) {
+      if (key.endsWith(`/${sourceRef}`)) return attachment;
+    }
+  } catch { return undefined; }
+  return undefined;
 }
 
-function formatDuration(durationMs: number): string {
-  if (!Number.isSafeInteger(durationMs) || durationMs < 0) return "";
-  if (durationMs < 1000) return `${durationMs}ms`;
-  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
-  if (totalSeconds < 60) return `${totalSeconds}s`;
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (totalMinutes < 60) return `${totalMinutes}m${seconds}s`;
-  const hours = Math.floor(totalMinutes / 60);
-  return `${hours}h${totalMinutes % 60}m`;
-}
+export const ConversationExportDocument: React.FC<ConversationExportDocumentProps> = ({ snapshot, publicBrand }) => {
+  const copy = conversationExportMessages[snapshot.locale];
+  const labels = snapshot.locale === "en-US"
+    ? { attachments: "Attachments", download: "Download", close: "Close", loading: "Loading…",
+      error: "Preview failed", retry: "Retry", unavailable: "Available only from the shared page" }
+    : { attachments: "附件", download: "下载", close: "关闭", loading: "加载中…",
+      error: "预览失败", retry: "重试", unavailable: "仅在线分享页面可预览" };
+  const [selected, setSelected] = useState<SnapshotAttachmentV1 | null>(null);
+  const [frameKey, setFrameKey] = useState(0);
+  const [frameState, setFrameState] = useState<"loading" | "ready" | "error">("loading");
+  const [verified, setVerified] = useState(false);
+  const [showBrandCta, setShowBrandCta] = useState(true);
+  const data = useMemo(() => snapshotV1PreviewData(snapshot), [snapshot]);
+  const assistantByRunId = useMemo(() => new Map(snapshot.turns.map((turn) =>
+    [turn.runId, turn.assistant])), [snapshot.turns]);
+  const agents = useMemo(() => snapshot.turns.flatMap((turn) => (turn.tasks || []).flatMap((task) =>
+    task.subAgentKey ? [{ key: task.subAgentKey, name: task.subAgentName || task.subAgentKey,
+      ...(task.subAgentIconName ? { icon: { name: task.subAgentIconName } } : {}) }] : [])), [snapshot]);
+  const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
+    [attachment.sourceRef, attachment])), [snapshot.attachments]);
+  const open = (attachment: SnapshotAttachmentV1) => {
+    if (!attachmentRoute(attachment.id, "preview")) return;
+    setSelected(attachment);
+    setFrameState("loading");
+    setVerified(false);
+    setFrameKey((current) => current + 1);
+  };
+  useEffect(() => {
+    if (!selected) return;
+    const controller = new AbortController();
+    void fetch(attachmentRoute(selected.id, "preview"), {
+      method: "HEAD", credentials: "same-origin", signal: controller.signal,
+    }).then((response) => {
+      if (!response.ok) throw new Error("attachment_unavailable");
+      setVerified(true);
+    }).catch(() => {
+      if (!controller.signal.aborted) setFrameState("error");
+    });
+    return () => controller.abort();
+  }, [selected, frameKey]);
+  const renderMarkdown = (props: MarkdownContentProps) => <ConversationMarkdown
+    content={props.content}
+    codeComponent={ConversationMarkdownCode}
+    components={{
+      a: ({ href, children, domNode: _domNode, ...rest }: LinkProps) => {
+        const attachment = findPublishedAttachment(href, attachments);
+        if (attachment) {
+          const route = attachmentRoute(attachment.id, "preview");
+          return route ? <a {...rest} href={route}
+            onClick={(event) => { event.preventDefault(); open(attachment); }}>{children}</a>
+            : <span title={labels.unavailable}>{children}</span>;
+        }
+        if (!href || !/^https?:\/\//iu.test(href)) return <span>{children}</span>;
+        return <a {...rest} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+      },
+      img: ({ alt }: ConversationMarkdownElementProps<{ alt?: string }>) => <span>[{alt || "image"}]</span>,
+    }}
+  />;
+  const renderRunHeader: NonNullable<ConversationPreviewProps["renderRunHeader"]> = (item) => {
+    const assistant = assistantByRunId.get(item.runId || "");
+    const fallbackIcon = getAgentIconSource();
+    return <div className={styles.assistantIdentity}>
+      <img src={getAgentIconSource(assistant?.iconName)} alt="" width={24} height={24}
+        onError={(event) => {
+          if (event.currentTarget.getAttribute("src") !== fallbackIcon) event.currentTarget.src = fallbackIcon;
+        }} />
+      <strong>{assistant?.name?.trim() || copy.assistant}</strong>
+    </div>;
+  };
+  return <main className={styles.page}>
+    <header className={styles.header}><div className={styles.headerInner}>
+      <h1 title={snapshot.title}>{snapshot.title}</h1>
+    </div></header>
+    <div className={`${styles.shell} ${publicBrand ? styles.shellWithBrand : ""}`}>
+      <div className={styles.notice}>{copy.aiNotice}</div>
+      <ConversationPreview data={data} agents={agents} viewportMode="document"
+        ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader} />
+      {snapshot.attachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
+        <h2>{labels.attachments}</h2>
+        {snapshot.attachments.map((attachment) => <button key={attachment.id} type="button"
+          disabled={!attachmentRoute(attachment.id, "preview")}
+          title={!attachmentRoute(attachment.id, "preview") ? labels.unavailable : undefined}
+          onClick={() => open(attachment)}>{attachment.name}</button>)}
+      </section>}
+      <footer className={styles.footer}>{copy.readOnly}</footer>
+    </div>
+    {publicBrand && showBrandCta && <div className={styles.brandCtaWrap}>
+      <div className={styles.brandCta}>
+        <a className={styles.brandCtaLink} href={publicBrand.openUrl}>
+          <img src={publicShareBrandIcon(publicBrand.id)} alt="" width={32} height={32}
+            onError={(event) => {
+              const fallback = publicShareBrandIcon("");
+              if (event.currentTarget.getAttribute("src") !== fallback) event.currentTarget.src = fallback;
+            }} />
+          <span>{snapshot.locale === "en-US"
+            ? `Continue in ${publicBrand.productName}`
+            : `在 ${publicBrand.productName} 继续聊`}</span>
+          <MaterialIcon name="chevron_right" aria-hidden="true" />
+        </a>
+        <button className={styles.brandCtaClose} type="button"
+          aria-label={snapshot.locale === "en-US" ? "Dismiss app link" : "关闭应用入口"}
+          onClick={() => setShowBrandCta(false)}>
+          <MaterialIcon name="close" aria-hidden="true" />
+        </button>
+      </div>
+    </div>}
+    {selected && <div className={styles.previewBackdrop} role="presentation" onClick={() => setSelected(null)}>
+      <aside className={styles.previewPanel} role="dialog" aria-modal="true" aria-label={selected.name}
+        onClick={(event) => event.stopPropagation()}>
+        <div className={styles.previewHeader}><strong>{selected.name}</strong>
+          <a href={attachmentRoute(selected.id, "download")}>{labels.download}</a>
+          <button type="button" onClick={() => setSelected(null)} aria-label={labels.close}>×</button>
+        </div>
+        {frameState === "loading" && <p role="status">{labels.loading}</p>}
+        {frameState === "error" && <div role="alert">{labels.error}
+          <button type="button" onClick={() => { setFrameState("loading"); setVerified(false); setFrameKey((current) => current + 1); }}>{labels.retry}</button>
+        </div>}
+        {verified && <iframe key={frameKey} title={selected.name} sandbox="" referrerPolicy="no-referrer"
+          src={attachmentRoute(selected.id, "preview")}
+          onLoad={() => setFrameState("ready")} onError={() => setFrameState("error")} />}
+      </aside>
+    </div>}
+  </main>;
+};

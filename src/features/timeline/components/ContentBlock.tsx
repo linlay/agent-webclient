@@ -1,28 +1,23 @@
-import { ViewEmbed } from "./ViewEmbed";
 import React from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
 	buildResourceViewerTargetFromUrl,
 } from "@/features/viewers/lib/viewerTarget";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { stripPendingSpecialFenceTail } from "@/features/events/lib/contentSegments";
-import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
-import {
-	MarkdownContent,
-	type MarkdownWebLink,
-	type ResourceFileLink,
-	type WorkspaceFileLink,
+import type {
+	MarkdownContentProps,
+	MarkdownWebLink,
+	ResourceFileLink,
+	WorkspaceFileLink,
 } from "@/features/viewers/components/MarkdownContent";
-import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
+import { ConversationMarkdown } from "@/shared/ui/ConversationMarkdown";
+import { ConversationMarkdownCode } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
-import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
-import { useTimelineInteraction } from "./TimelineInteractionContext";
-import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { useTimelineInteraction, useTimelineContextMenuTarget } from "./TimelineInteractionContext";
 import { copyText } from "@/shared/utils/copy";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
 
 interface ContentBlockProps {
 	node: TimelineNode;
@@ -54,9 +49,6 @@ const TTS_VOICE_TEXT_CLASS_NAME =
 
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const { t } = useI18n();
-	const dispatch = useAppDispatch();
-	const openTarget = useOpenTarget();
-	const state = useAppState();
 	const interaction = useTimelineInteraction();
 	const surfaceContext = interaction?.surfaceContext;
 	const voiceEnabled = isVoiceEnabled();
@@ -69,13 +61,9 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 			"copy-content": () => copyText(text),
 		},
 	}), [node.id, text]);
-	const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
-	const chatId = String(surfaceContext?.chatId ?? state.chatId ?? "").trim();
-	const currentChat = state.chats.find((chat) => chat.chatId === chatId);
-	const teamChat = surfaceContext?.teamChat ?? Boolean(
-		currentChat?.owner?.kind === "orchestrated-team"
-		|| String(currentChat?.teamId || "").trim(),
-	);
+	const contextTargetRef = useTimelineContextMenuTarget<HTMLDivElement>(contextTarget);
+	const chatId = String(surfaceContext?.chatId || "").trim();
+	const teamChat = Boolean(surfaceContext?.teamChat);
 	const markdownClassName = [
 		TIMELINE_TEXT_CLASS_NAME,
 		TIMELINE_MARKDOWN_CLASS_NAME,
@@ -86,17 +74,10 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 
 	const segments = node.segments;
 	const hasSpecialSegment = segments?.some((s) => s.kind !== "text");
-	const workspaceFileAgentKey = React.useMemo(
-		() => String(
-			surfaceContext
-				? surfaceContext.agentKey || ""
-				: resolvePreferredAgentKey(state),
-		).trim(),
-		[state, surfaceContext],
-	);
+	const workspaceFileAgentKey = String(surfaceContext?.agentKey || "").trim();
 	const handleWorkspaceFileLinkClick = React.useCallback(
 		(link: WorkspaceFileLink) => {
-			openTarget({
+			interaction?.openTarget?.({
 				version: 1,
 				kind: "file",
 				agentKey: workspaceFileAgentKey,
@@ -105,18 +86,18 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				toggle: true,
 			});
 		},
-		[openTarget, workspaceFileAgentKey],
+		[interaction, workspaceFileAgentKey],
 	);
 	const handleWebLinkClick = React.useCallback(
 		(link: MarkdownWebLink) => {
-			openTarget({
+			interaction?.openTarget?.({
 				version: 1,
 				kind: "web",
 				url: link.url,
 				title: link.title,
 			});
 		},
-		[openTarget],
+		[interaction],
 	);
 	const handleResourceFileLinkClick = React.useCallback(
 		(link: ResourceFileLink) => {
@@ -124,7 +105,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 			if (!resourceTarget) {
 				return;
 			}
-			openTarget({
+			interaction?.openTarget?.({
 				version: 1,
 				kind: "resource",
 				agentKey: workspaceFileAgentKey,
@@ -135,22 +116,22 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				toggle: true,
 			});
 		},
-		[chatId, openTarget, workspaceFileAgentKey],
+		[chatId, interaction, workspaceFileAgentKey],
 	);
+	const renderMarkdown = (props: MarkdownContentProps) => interaction?.renderMarkdown?.(props)
+		?? <ConversationMarkdown content={props.content} codeComponent={ConversationMarkdownCode} />;
 
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {
 		return (
 			<div ref={contextTargetRef} className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
 				<div className={markdownClassName}>
-					<MarkdownContent
-						content={streamingSafeText}
-						chatId={chatId}
-						teamChat={teamChat}
-						onWorkspaceFileLinkClick={handleWorkspaceFileLinkClick}
-						onResourceFileLinkClick={handleResourceFileLinkClick}
-						onWebLinkClick={handleWebLinkClick}
-					/>
+					{renderMarkdown({
+						content: streamingSafeText, chatId, teamChat,
+						onWorkspaceFileLinkClick: handleWorkspaceFileLinkClick,
+						onResourceFileLinkClick: handleResourceFileLinkClick,
+						onWebLinkClick: handleWebLinkClick,
+					})}
 				</div>
 			</div>
 		);
@@ -166,32 +147,22 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 							key={idx}
 							className={markdownClassName}
 						>
-							<MarkdownContent
-								content={segment.text || ""}
-								chatId={chatId}
-								teamChat={teamChat}
-								onWorkspaceFileLinkClick={
-									handleWorkspaceFileLinkClick
-								}
-								onResourceFileLinkClick={
-									handleResourceFileLinkClick
-								}
-								onWebLinkClick={handleWebLinkClick}
-							/>
+							{renderMarkdown({
+								content: segment.text || "", chatId, teamChat,
+								onWorkspaceFileLinkClick: handleWorkspaceFileLinkClick,
+								onResourceFileLinkClick: handleResourceFileLinkClick,
+								onWebLinkClick: handleWebLinkClick,
+							})}
 						</div>
 					);
 				}
 
-				if (segment.kind === "view" && segment.view) return <ViewEmbed key={segment.signature} chatId={chatId} view={segment.view} payloadRaw={segment.payloadRaw || "{}"} />;
+					if (segment.kind === "view" && segment.view) return <React.Fragment key={segment.signature}>{interaction?.renderContentView?.(segment, chatId)}</React.Fragment>;
 				if (segment.kind === "viewport") {
 					return (
-						<ViewportEmbed
-							key={segment.signature || idx}
-							viewportKey={segment.key || ""}
-							signature={segment.signature || ""}
-							payload={segment.payload}
-							payloadRaw={segment.payloadRaw}
-						/>
+						<React.Fragment key={segment.signature || idx}>
+							{interaction?.renderContentViewport?.(segment)}
+						</React.Fragment>
 					);
 				}
 
@@ -199,7 +170,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					if (interaction?.readOnly) {
 						return (
 							<div key={segment.signature || idx} className={markdownClassName}>
-								<MarkdownContent content={segment.text || ""} chatId={chatId} teamChat={teamChat} />
+								{renderMarkdown({ content: segment.text || "", chatId, teamChat })}
 							</div>
 						);
 					}
@@ -230,39 +201,10 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 									data-voice-status={status}
 									aria-expanded={expanded}
 									onClick={() => {
-										const blocks = {
-											...(node.ttsVoiceBlocks || {}),
-										};
-										const nextBlock =
-											blocks[signature] || {
-												signature,
-												text: String(
-													segment.text || "",
-												),
-												closed: Boolean(
-													segment.closed,
-												),
-												expanded: false,
-												status: "ready" as const,
-												error: "",
-											};
-										blocks[signature] = {
-											...nextBlock,
-											expanded: !expanded,
-										};
-						const nextNode = {
-							...node,
-							ttsVoiceBlocks: blocks,
-						};
-						if (interaction?.patchNode) {
-							interaction.patchNode(nextNode);
-						} else {
-							dispatch({
-								type: "SET_TIMELINE_NODE",
-								id: node.id,
-								node: nextNode,
-							});
-						}
+										interaction?.setVoiceBlockExpanded?.(
+											node.id, signature, !expanded,
+											String(segment.text || ""), Boolean(segment.closed),
+										);
 									}}
 								>
 									<span className={TTS_VOICE_LABEL_CLASS_NAME}>
@@ -284,18 +226,10 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 									title={t("contentBlock.replayVoice")}
 									aria-label={t("contentBlock.replayVoice")}
 									onClick={() => {
-										const runtime =
-											getVoiceRuntime();
-										if (!runtime) return;
-										void runtime
-											.replayTtsVoiceBlock(
-												node.contentId || "",
-												signature,
-												voiceBlock?.text ||
-													segment.text ||
-													"",
-											)
-											.catch(() => undefined);
+										interaction?.replayVoice?.(
+											node, signature,
+											voiceBlock?.text || segment.text || "",
+										);
 									}}
 								>
 									<MaterialIcon name="volume_up" />

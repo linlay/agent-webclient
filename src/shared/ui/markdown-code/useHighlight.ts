@@ -25,7 +25,7 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 
-// 与 src/export/StaticMarkdownCode.tsx 的语言集保持一致并适当扩充，
+// 与对话渲染使用同一套代码语言识别。
 // 全量注册（192 种语言约 1.5MB）对入口体积不可接受；未注册语言走下方纯文本回退
 hljs.registerLanguage("bash", bash);
 hljs.registerLanguage("c", c);

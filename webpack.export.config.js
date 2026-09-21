@@ -43,16 +43,20 @@ module.exports = {
               },
             },
           },
+          "postcss-loader",
         ],
       },
       {
         test: /\.css$/u,
         exclude: /\.module\.css$/u,
-        use: [MiniCssExtractPlugin.loader, "css-loader"],
+        use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
       },
       {
         test: /\.svg$/u,
-        type: "asset/inline",
+        type: "asset/resource",
+        generator: {
+          filename: "icons/[name][contenthash][ext]",
+        },
       },
       {
         test: /\.(?:woff2?|ttf|otf)$/u,

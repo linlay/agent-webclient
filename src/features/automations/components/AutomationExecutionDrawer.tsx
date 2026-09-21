@@ -19,7 +19,11 @@ import {
   automationExecutionDateTimeLabel,
   automationExecutionDurationLabel,
 } from "@/features/automations/lib/executionView";
-import { ReadOnlyConversationTimeline } from "@/features/conversation/components/ReadOnlyConversationTimeline";
+import { ConversationPreview } from "@/features/conversation/components/ConversationPreview";
+import { conversationPreviewDataFromReplay } from "@/features/conversation/lib/conversationPreviewData";
+import { useOpenTarget } from "@/features/surfaces/openTarget";
+import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
+import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { AgentIcon } from "@/shared/icons/agent";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
@@ -30,6 +34,7 @@ import { useAppMessage } from "@/shared/ui/useAppMessage";
 import styles from "./AutomationExecutionDrawer.module.css";
 
 const COMPACT_DRAWER_QUERY = "(max-width: 859px)";
+const renderAppMarkdown = (props: MarkdownContentProps) => <MarkdownContent {...props} />;
 
 const STATUS_ICON: Record<
   AutomationExecutionResponse["status"],
@@ -102,6 +107,7 @@ export const AutomationExecutionDrawer: React.FC<
 }) => {
   const { locale, t } = useI18n();
   const message = useAppMessage();
+  const openTarget = useOpenTarget();
   const compact = useCompactDrawerLayout();
   const [activeTab, setActiveTab] = useState("execution");
   const [detailState, setDetailState] = useState<
@@ -453,12 +459,20 @@ export const AutomationExecutionDrawer: React.FC<
                 <Spin size="small" />
               </div>
             ) : chatState.data ? (
-              <ReadOnlyConversationTimeline
-                chat={chatState.data.chat}
-                projection={chatState.data.projection}
+              <ConversationPreview
+                data={conversationPreviewDataFromReplay(chatState.data.chat, chatState.data.projection)}
                 agents={agents}
                 agentKey={agentKey}
                 teamChat={Boolean(teamId)}
+                openTarget={openTarget}
+                onCopyResult={(success) => success
+                  ? message.success(t("timeline.toolPill.copy.copied"))
+                  : message.error(t("timeline.toolPill.copy.failed"))}
+                renderMarkdown={renderAppMarkdown}
+                renderAttachment={(attachment, options) => <AttachmentCard
+                  attachment={attachment} variant="timeline" thumbnailMode="inline"
+                  surfaceContext={{ chatId: chatState.data!.chat.chatId, agentKey, teamChat: Boolean(teamId) }}
+                  {...options} />}
               />
             ) : null}
             {chatState.loading && chatState.data ? (

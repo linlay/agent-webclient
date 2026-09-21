@@ -5,8 +5,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
-const packageJson = require(path.join(repoRoot, "package.json"));
-const vendorAssets = require("./conversation-export-cdn-assets.json");
 const exportRoot = path.join(repoRoot, "dist/export");
 const templatePath = path.join(exportRoot, "conversation.template.html");
 const manifestPath = path.join(exportRoot, "conversation-assets.json");
@@ -15,8 +13,10 @@ const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const marker = "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__";
 const assetOriginMarker =
   "__CONVERSATION_EXPORT_ASSET_ORIGIN__";
+const localBrandIdMarker =
+  "__CONVERSATION_EXPORT_LOCAL_BRAND_ID__";
 const profile =
-  '<meta name="conversation-export-profile" content="conversation-snapshot-json-v1"';
+  '<meta name="conversation-export-profile" content="conversation-snapshot-json-v2"';
 const snapshotElementID = "conversation-snapshot";
 const runtimeElementID = "conversation-export-runtime";
 const brandCoupledProtocol =
@@ -73,11 +73,20 @@ for (const file of manifest.files) {
       `Conversation export asset ${file.path} contains a brand-coupled identifier.`,
     );
   }
+  if (/\.js$/iu.test(file.path)) {
+    assert(!/desktop:service-webview:action|agent:insert-workpanel-review-draft|SET_TIMELINE_NODE/u.test(content.toString("utf8")),
+      `Conversation export asset ${file.path} contains an application runtime.`);
+  }
 }
 
 assert(
   html.indexOf(marker) === html.lastIndexOf(marker) && html.includes(marker),
   "Snapshot marker must appear exactly once.",
+);
+assert(
+  html.indexOf(localBrandIdMarker) === html.lastIndexOf(localBrandIdMarker)
+    && html.includes(localBrandIdMarker),
+  "Local brand marker must appear exactly once.",
 );
 assert(
   !brandCoupledProtocol.test(html),
@@ -95,6 +104,11 @@ assert(
   "Export template asset-set declaration does not match the manifest.",
 );
 assert(!/<style\b/iu.test(html), "Export template contains an inline style element.");
+assert(
+  !html.includes("__CONVERSATION_EXPORT_ICON_SPRITE__")
+    && (html.match(/id="material-icon-sprite"/gu) || []).length === 1,
+  "Export template must contain exactly one local Material icon sprite.",
+);
 assert(
   !/\son[a-z]+\s*=/iu.test(html),
   "Export template contains an inline event handler.",
@@ -173,63 +187,38 @@ for (const match of externalAssets) {
   );
 }
 
-assert(
-  vendorAssets.echarts.version === packageJson.dependencies.echarts
-    && vendorAssets.mermaid.version === packageJson.dependencies.mermaid,
-  "Diagram asset versions do not match package.json.",
-);
-for (const [key, filename] of [
-  ["echarts", "echarts.min.js"],
-  ["mermaid", "mermaid.min.js"],
-]) {
-  const file = manifest.files.find((candidate) => candidate.path === filename);
-  assert(
-    file && file.integrity === vendorAssets[key].integrity,
-    `${key} asset is missing or does not match its pinned integrity.`,
-  );
-}
-
 const auditedSources = [
   "src/export/index.tsx",
   "src/export/ConversationExportDocument.tsx",
-  "src/export/AssistantIdentity.tsx",
-  "src/export/ReasoningDisclosure.tsx",
-  "src/export/conversationCopyText.ts",
-  "src/export/DiagramPlaceholder.tsx",
-  "src/export/StaticMarkdownCode.tsx",
-  "src/export/SanitizedMarkup.tsx",
-  "src/export/StaticECharts.tsx",
-  "src/export/StaticMermaid.tsx",
-  "src/export/cdnAssets.ts",
-  "src/export/loadCdnScript.ts",
-  "src/export/conversationSnapshot.ts",
+  "src/export/conversationSnapshotV1.ts",
+  "src/features/conversation/components/ConversationPreview.tsx",
+  "src/features/timeline/components/ConversationStage.tsx",
+  "src/features/timeline/components/ContentBlock.tsx",
+  "src/features/timeline/components/UserBubble.tsx",
+  "src/features/timeline/components/ToolPill.tsx",
   "src/shared/i18n/conversationExport.ts",
   "src/shared/icons/agentIconAssets.ts",
   "src/shared/ui/ConversationMarkdown.tsx",
 ];
-let rawMarkupBoundaries = 0;
 for (const relativePath of auditedSources) {
   const source = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+  const permittedAttachmentProbe = relativePath === "src/export/ConversationExportDocument.tsx"
+    && source.includes('fetch(attachmentRoute(selected.id, "preview"), {')
+    && source.includes('method: "HEAD"');
   assert(
-    !/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/u.test(source),
+    !/\b(?:XMLHttpRequest|WebSocket|EventSource)\b/u.test(source)
+      && (!/\bfetch\b/u.test(source) ||
+        (permittedAttachmentProbe && (source.match(/\bfetch\b/gu) || []).length === 1)),
     `${relativePath} contains a network API.`,
   );
   assert(
-    !/shared\/(?:data\/(?:api|auth|desktop)|config\/runtimeConfig)|src\/app|src\/features/u.test(
-      source,
-    ),
+    !/src\/app|ConnectedConversationStage|useOpenTarget|useAppMessage|useAppState/u.test(source),
     `${relativePath} crosses the export boundary.`,
   );
-  const rawMarkupMatches = source.match(/dangerouslySetInnerHTML/gu) || [];
-  rawMarkupBoundaries += rawMarkupMatches.length;
-  if (rawMarkupMatches.length > 0) {
-    assert(
-      relativePath === "src/export/SanitizedMarkup.tsx",
-      `${relativePath} bypasses the centralized sanitizer.`,
-    );
-  }
+  assert(!/useDesktopContextMenuTarget|registerDesktopContextMenuTarget/u.test(source),
+    `${relativePath} imports the Desktop context menu runtime.`);
+  assert(!source.includes("dangerouslySetInnerHTML"), `${relativePath} injects raw markup.`);
 }
-assert(rawMarkupBoundaries === 1, "Export runtime must have one raw-markup boundary.");
 
 const configuredTunnelRoot = String(process.env.CONVERSATION_EXPORT_TUNNEL_ROOT || "").trim();
 const tunnelRoot = configuredTunnelRoot
@@ -243,8 +232,8 @@ if (configuredTunnelRoot || fs.existsSync(tunnelFilesRoot)) {
     .map((entry) => entry.name)
     .sort();
   assert(
-    JSON.stringify(publishedSets) === JSON.stringify([manifest.assetSet]),
-    "Tunnel must contain exactly the current conversation export asset set.",
+    publishedSets.includes(manifest.assetSet),
+    "Tunnel must contain the current conversation export asset set.",
   );
   assert(fs.existsSync(tunnelAssetRoot), "Tunnel conversation asset set is missing.");
   for (const relativePath of manifestFiles) {

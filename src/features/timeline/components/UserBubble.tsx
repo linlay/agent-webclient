@@ -1,5 +1,5 @@
 import React from "react";
-import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { useTimelineContextMenuTarget } from "./TimelineInteractionContext";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 
@@ -41,7 +41,7 @@ export const UserBubble: React.FC<UserBubbleProps> = ({
 			"copy-content": () => copyText(text),
 		},
 	}), [fallbackId, targetId, text]);
-	const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
+	const contextTargetRef = useTimelineContextMenuTarget<HTMLDivElement>(contextTarget);
 
 	React.useLayoutEffect(() => {
 		const el = textRef.current;

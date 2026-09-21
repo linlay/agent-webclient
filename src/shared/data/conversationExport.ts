@@ -9,6 +9,28 @@ export const CONVERSATION_EXPORT_SNAPSHOT_MARKER =
   "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__";
 export const CONVERSATION_EXPORT_ASSET_ORIGIN_MARKER =
   "__CONVERSATION_EXPORT_ASSET_ORIGIN__";
+export const CONVERSATION_EXPORT_LOCAL_BRAND_ID_MARKER =
+  "__CONVERSATION_EXPORT_LOCAL_BRAND_ID__";
+
+const BRAND_ID_PATTERN = /^[a-z][a-z0-9-]*$/u;
+const RESERVED_BRAND_IDS = new Set([
+  "http",
+  "https",
+  "javascript",
+  "data",
+  "vbscript",
+  "file",
+  "blob",
+]);
+
+export function resolveConversationExportBrandId(): string {
+  const brandId =
+    String(readRuntimeConfigValue("BRAND_ID") || "").trim() || "cutej";
+  if (!BRAND_ID_PATTERN.test(brandId) || RESERVED_BRAND_IDS.has(brandId)) {
+    throw new Error("conversation_export_brand_id_invalid");
+  }
+  return brandId;
+}
 
 export function resolveConversationExportAssetOrigin(): string {
   const configured = String(
@@ -22,22 +44,21 @@ export function resolveConversationExportAssetOrigin(): string {
   }
   const hostname = parsed.hostname.toLowerCase();
   const loopback =
-    hostname === "localhost"
-    || hostname === "127.0.0.1"
-    || hostname === "[::1]";
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]";
   const forbiddenHostname =
-    (!loopback && hostname.endsWith(".localhost"))
-    || (!loopback && /^127(?:\.\d{1,3}){3}$/u.test(hostname))
-    || hostname === "0.0.0.0";
+    (!loopback && hostname.endsWith(".localhost")) ||
+    (!loopback && /^127(?:\.\d{1,3}){3}$/u.test(hostname)) ||
+    hostname === "0.0.0.0";
   if (
-    parsed.username
-    || parsed.password
-    || parsed.search
-    || parsed.hash
-    || forbiddenHostname
-    || (parsed.pathname !== "" && parsed.pathname !== "/")
-    || (parsed.protocol !== "https:"
-      && !(parsed.protocol === "http:" && loopback))
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    forbiddenHostname ||
+    (parsed.pathname !== "" && parsed.pathname !== "/") ||
+    (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && loopback))
   ) {
     throw new Error("conversation_export_asset_origin_invalid");
   }
@@ -48,6 +69,7 @@ export function buildConversationHtmlBlob(input: {
   template: string;
   snapshot: Blob;
   assetOrigin: string;
+  brandId: string;
 }): Blob {
   const templateBytes = new Blob([input.template]).size;
   if (templateBytes > MAX_CONVERSATION_TEMPLATE_BYTES) {
@@ -63,6 +85,7 @@ export function buildConversationHtmlBlob(input: {
   let cursor = 0;
   let snapshotMarkers = 0;
   let assetOriginMarkers = 0;
+  let brandIdMarkers = 0;
   while (cursor < input.template.length) {
     const snapshotIndex = input.template.indexOf(
       CONVERSATION_EXPORT_SNAPSHOT_MARKER,
@@ -72,25 +95,39 @@ export function buildConversationHtmlBlob(input: {
       CONVERSATION_EXPORT_ASSET_ORIGIN_MARKER,
       cursor,
     );
-    if (snapshotIndex < 0 && assetOriginIndex < 0) break;
+    const brandIdIndex = input.template.indexOf(
+      CONVERSATION_EXPORT_LOCAL_BRAND_ID_MARKER,
+      cursor,
+    );
+    const nextMarkers = [
+      { kind: "snapshot" as const, index: snapshotIndex },
+      { kind: "assetOrigin" as const, index: assetOriginIndex },
+      { kind: "brandId" as const, index: brandIdIndex },
+    ]
+      .filter((marker) => marker.index >= 0)
+      .sort((left, right) => left.index - right.index);
+    const nextMarker = nextMarkers[0];
+    if (!nextMarker) break;
 
-    const useSnapshot = snapshotIndex >= 0
-      && (assetOriginIndex < 0 || snapshotIndex < assetOriginIndex);
-    const markerIndex = useSnapshot ? snapshotIndex : assetOriginIndex;
+    const markerIndex = nextMarker.index;
     parts.push(input.template.slice(cursor, markerIndex));
-    if (useSnapshot) {
+    if (nextMarker.kind === "snapshot") {
       snapshotMarkers += 1;
       parts.push(input.snapshot);
       cursor = markerIndex + CONVERSATION_EXPORT_SNAPSHOT_MARKER.length;
-    } else {
+    } else if (nextMarker.kind === "assetOrigin") {
       assetOriginMarkers += 1;
       parts.push(input.assetOrigin);
       cursor = markerIndex + CONVERSATION_EXPORT_ASSET_ORIGIN_MARKER.length;
+    } else {
+      brandIdMarkers += 1;
+      parts.push(input.brandId);
+      cursor = markerIndex + CONVERSATION_EXPORT_LOCAL_BRAND_ID_MARKER.length;
     }
   }
   parts.push(input.template.slice(cursor));
 
-  if (snapshotMarkers !== 1 || assetOriginMarkers < 1) {
+  if (snapshotMarkers !== 1 || assetOriginMarkers < 1 || brandIdMarkers !== 1) {
     throw new Error("conversation_export_template_invalid");
   }
   const html = new Blob(parts, { type: "text/html;charset=utf-8" });
@@ -111,7 +148,9 @@ export function conversationHtmlFilename(
   return `${chatId.trim() || "conversation"}.html`;
 }
 
-export function conversationExportHtmlTooLargeError(actualBytes: number): Error {
+export function conversationExportHtmlTooLargeError(
+  actualBytes: number,
+): Error {
   return new Error(
     `conversation_export_html_too_large: actual=${actualBytes} limit=${MAX_CONVERSATION_HTML_BYTES} (20 MiB)`,
   );

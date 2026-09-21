@@ -6,7 +6,7 @@ import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { LeftSidebar } from "@/app/layout/LeftSidebar";
 import { RightSidebar } from "@/app/layout/sidebar/right/RightSidebar";
-import { ConversationStage } from "@/features/timeline/components/ConversationStage";
+import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
 import { ShellOverlays } from "@/app/layout/ShellOverlays";
 import { SettingsOverlayProvider } from "@/features/settings/components/SettingsOverlayProvider";
 import { MemoryOverlayProvider } from "@/features/memory/components/MemoryOverlayProvider";
@@ -86,7 +86,7 @@ const AppShellContent: React.FC = () => {
             <LeftSidebar />
             <div className={APP_SHELL_CENTER_CLASS}>
               <TopNav />
-              <ConversationStage
+              <ConnectedConversationStage
                 surfaceMode="main"
                 deriveChatAction={deriveChatAction}
                 onFeedback={onFeedback}

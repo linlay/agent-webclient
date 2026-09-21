@@ -1,7 +1,7 @@
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { Message } from "@/features/conversation/lib/messageState";
 
-export type ConversationSurfaceMode = "main" | "agent" | "copilot";
+export type ConversationSurfaceMode = "main" | "agent" | "copilot" | "preview";
 export type ChatTransitionPhase = "loading" | "applying" | "restoring" | "ready" | "error";
 export type ChatTransitionKind = "initial-load" | "history-switch" | "same-chat-reload";
 export type ChatTransitionDisplayMode = "blocking" | "background";

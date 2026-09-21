@@ -10,10 +10,11 @@ const buildRoot = path.join(repoRoot, "dist/export-build");
 const outputRoot = path.join(repoRoot, "dist/export");
 const templatePath = path.join(outputRoot, "conversation.template.html");
 const manifestPath = path.join(outputRoot, "conversation-assets.json");
-const vendorAssets = require("./conversation-export-cdn-assets.json");
 
 const ASSET_ORIGIN_MARKER =
   "__CONVERSATION_EXPORT_ASSET_ORIGIN__";
+const LOCAL_BRAND_ID_MARKER =
+  "__CONVERSATION_EXPORT_LOCAL_BRAND_ID__";
 const MAX_RUNTIME_BYTES = 2 * 1024 * 1024;
 const MAX_TEMPLATE_BYTES = 256 * 1024;
 
@@ -25,10 +26,6 @@ function replaceOnce(source, marker, replacement) {
   return (
     source.slice(0, first) + replacement + source.slice(first + marker.length)
   );
-}
-
-function packageRoot(name) {
-  return path.dirname(require.resolve(`${name}/package.json`));
 }
 
 function sha256Hex(content) {
@@ -53,6 +50,8 @@ function contentType(relativePath) {
       return "font/ttf";
     case ".txt":
       return "text/plain; charset=utf-8";
+    case ".svg":
+      return "image/svg+xml";
     default:
       return "application/octet-stream";
   }
@@ -76,32 +75,17 @@ for (const relativePath of walkFiles(buildRoot)) {
   assetFiles.set(relativePath, fs.readFileSync(path.join(buildRoot, relativePath)));
 }
 
-const localVendorSources = {
-  "echarts.min.js": path.join(packageRoot("echarts"), "dist/echarts.min.js"),
-  "mermaid.min.js": path.join(packageRoot("mermaid"), "dist/mermaid.min.js"),
-};
-for (const [filename, sourcePath] of Object.entries(localVendorSources)) {
-  assetFiles.set(filename, fs.readFileSync(sourcePath));
-}
-
 const runtime = assetFiles.get("runtime.js");
 const css = assetFiles.get("runtime.css");
 if (!runtime || !css) {
   throw new Error("Conversation export runtime.js or runtime.css is missing.");
 }
+if (!/\.ant-collapse-content-hidden\s*\{\s*display:\s*none\s*;/u.test(css.toString("utf8"))) {
+  throw new Error("Conversation export CSS must hide inactive collapse content.");
+}
 if (runtime.byteLength > MAX_RUNTIME_BYTES) {
   throw new Error("Conversation export runtime exceeds 2 MiB.");
 }
-for (const [key, filename] of [
-  ["echarts", "echarts.min.js"],
-  ["mermaid", "mermaid.min.js"],
-]) {
-  const content = assetFiles.get(filename);
-  if (!content || vendorAssets[key].integrity !== sha384Integrity(content)) {
-    throw new Error(`${key} asset does not match its pinned integrity.`);
-  }
-}
-
 const assetSetHash = crypto.createHash("sha256");
 assetSetHash.update("conversation-export-assets\0");
 for (const relativePath of [...assetFiles.keys()].sort()) {
@@ -125,21 +109,24 @@ const runtimeIntegrity = sha384Integrity(runtime);
 const cssIntegrity = sha384Integrity(css);
 const csp = [
   "default-src 'none'",
-  "connect-src 'none'",
-  "img-src data:",
+  "connect-src 'self'",
+  `img-src data: ${ASSET_ORIGIN_MARKER}`,
   `font-src ${ASSET_ORIGIN_MARKER}`,
   "style-src 'none'",
   `style-src-elem ${ASSET_ORIGIN_MARKER}`,
   "style-src-attr 'unsafe-inline'",
   `script-src ${ASSET_ORIGIN_MARKER}`,
   "object-src 'none'",
-  "frame-src 'none'",
+  "frame-src 'self'",
   "base-uri 'none'",
   "form-action 'none'",
 ].join("; ");
 
 let html = fs.readFileSync(shellPath, "utf8");
+const sprite = fs.readFileSync(path.join(repoRoot, "src/shared/icons/material/sprite.svg"), "utf8")
+  .replace("<svg ", '<svg id="material-icon-sprite" style="display:none" ');
 const replacements = new Map([
+  ["__CONVERSATION_EXPORT_ICON_SPRITE__", sprite],
   ["__CONVERSATION_EXPORT_ASSET_SET__", assetSet],
   ["__CONVERSATION_EXPORT_CSS_URL__", `${ASSET_ORIGIN_MARKER}${publicAssetSetPath}/runtime.css`],
   ["__CONVERSATION_EXPORT_CSS_INTEGRITY__", cssIntegrity],
@@ -149,6 +136,10 @@ const replacements = new Map([
 ]);
 for (const [marker, value] of replacements) {
   html = replaceOnce(html, marker, value);
+}
+if (html.indexOf(LOCAL_BRAND_ID_MARKER) < 0 ||
+    html.indexOf(LOCAL_BRAND_ID_MARKER) !== html.lastIndexOf(LOCAL_BRAND_ID_MARKER)) {
+  throw new Error("Expected exactly one local brand marker.");
 }
 if (Buffer.byteLength(html) > MAX_TEMPLATE_BYTES) {
   throw new Error("Conversation export template exceeds 256 KiB.");

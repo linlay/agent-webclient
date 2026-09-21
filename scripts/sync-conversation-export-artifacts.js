@@ -9,7 +9,10 @@ const manifestPath = path.join(exportRoot, "conversation-assets.json");
 const templatePath = path.join(exportRoot, "conversation.template.html");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const assetSource = path.join(exportRoot, "assets", manifest.assetSet);
-const tunnelRoot = path.resolve(repoRoot, "../tunnel-hub-server/internal/shareassets");
+const tunnelRoot = path.resolve(
+  repoRoot,
+  "../tunnel-hub-server/internal/shareassets",
+);
 const tunnelFilesRoot = path.join(tunnelRoot, "files");
 const tunnelAssetRoot = path.join(tunnelFilesRoot, manifest.assetSet);
 const tunnelManifestPath = path.join(tunnelRoot, "conversation-assets.json");
@@ -44,12 +47,15 @@ if (!fs.statSync(assetSource, { throwIfNoEntry: false })?.isDirectory()) {
 }
 
 if (checkOnly) {
-  const publishedSets = fs.readdirSync(tunnelFilesRoot, { withFileTypes: true })
+  const publishedSets = fs
+    .readdirSync(tunnelFilesRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  if (JSON.stringify(publishedSets) !== JSON.stringify([manifest.assetSet])) {
-    throw new Error("Tunnel must contain exactly the current conversation export asset set.");
+  if (publishedSets.length !== 1 || publishedSets[0] !== manifest.assetSet) {
+    throw new Error(
+      "Tunnel must contain only the current conversation export asset set.",
+    );
   }
   const sourceFiles = filesUnder(assetSource).sort();
   const destinationFiles = filesUnder(tunnelAssetRoot).sort();
@@ -63,11 +69,28 @@ if (checkOnly) {
       `Tunnel conversation export asset is out of sync: ${relativePath}`,
     );
   }
-  assertSameFile(manifestPath, tunnelManifestPath, "Tunnel conversation export manifest is out of sync.");
-  assertSameFile(templatePath, tunnelTemplatePath, "Tunnel conversation export template is out of sync.");
+  assertSameFile(
+    manifestPath,
+    tunnelManifestPath,
+    "Tunnel conversation export manifest is out of sync.",
+  );
+  assertSameFile(
+    templatePath,
+    tunnelTemplatePath,
+    "Tunnel conversation export template is out of sync.",
+  );
 } else {
-  fs.rmSync(tunnelFilesRoot, { recursive: true, force: true });
   fs.mkdirSync(tunnelFilesRoot, { recursive: true });
+  for (const entry of fs.readdirSync(tunnelFilesRoot, {
+    withFileTypes: true,
+  })) {
+    if (entry.isDirectory()) {
+      fs.rmSync(path.join(tunnelFilesRoot, entry.name), {
+        recursive: true,
+        force: true,
+      });
+    }
+  }
   fs.cpSync(assetSource, tunnelAssetRoot, { recursive: true });
   fs.copyFileSync(manifestPath, tunnelManifestPath);
   fs.copyFileSync(templatePath, tunnelTemplatePath);
