@@ -87,7 +87,7 @@ describe("ComposerActions", () => {
     expect(html).not.toContain("voice-btn");
   });
 
-  it("renders desktop screenshot action when the bridge is available", () => {
+  it("keeps the screenshot action out of the control row so the add menu owns it", () => {
     const html = renderToStaticMarkup(
       React.createElement(ComposerActions, {
         ...baseProps,
@@ -95,18 +95,7 @@ describe("ComposerActions", () => {
       }),
     );
 
-    expect(html).toContain("desktop-screenshot-btn");
-    expect(html).toContain("composer.actions.screenshot");
-  });
-
-  it("hides desktop screenshot action when the bridge is unavailable", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(ComposerActions, {
-        ...baseProps,
-        canCaptureDesktopScreenshot: false,
-      }),
-    );
-
+    expect(html).toContain("composer-plus-btn");
     expect(html).not.toContain("desktop-screenshot-btn");
   });
 

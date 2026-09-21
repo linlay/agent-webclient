@@ -43,7 +43,7 @@ const SEND_BUTTON_CLASS =
 const INTERRUPT_BUTTON_CLASS =
   "interrupt-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:self-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-[11px] tw:!font-bold tw:hover:!bg-[color-mix(in_srgb,var(--accent-danger)_10%,transparent)] tw:disabled:opacity-60";
 
-interface ComposerActionsProps extends Omit<AddMenuTriggerProps, "disabled" | "loading" | "planningMode" | "editingMode" | "canUsePlanningMode" | "canUseEditingMode" | "currentChatId" | "onOpenFilePicker" | "onAddReference" | "onTogglePlanningMode" | "onEditingModeChange"> {
+interface ComposerActionsProps extends Omit<AddMenuTriggerProps, "disabled" | "loading" | "planningMode" | "editingMode" | "canUsePlanningMode" | "canUseEditingMode" | "currentChatId" | "canCaptureDesktopScreenshot" | "isCapturingDesktopScreenshot" | "onOpenFilePicker" | "onCaptureScreenshot" | "screenshotDisabledReason" | "onAddReference" | "onTogglePlanningMode" | "onEditingModeChange"> {
   accessLevel: QueryAccessLevel;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
@@ -147,6 +147,16 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   const voiceButtonStateClass = speechListening
     ? VOICE_BUTTON_STATE_CLASS.listening
     : VOICE_BUTTON_STATE_CLASS.idle;
+  // 截屏入口位于 “+” 菜单的添加文件分组，这里只负责说明当前的禁用原因
+  const screenshotDisabledReason = isFrontendActive
+    ? t("composer.actions.screenshotDisabled.frontendActive")
+    : isVoiceMode
+      ? t("composer.actions.screenshotDisabled.voiceMode")
+      : isStreaming
+        ? t("composer.actions.screenshotDisabled.streaming")
+        : isCapturingDesktopScreenshot
+          ? t("composer.actions.screenshotCapturing")
+          : undefined;
 
   return (
     <Flex vertical style={{ width: "100%" }}>
@@ -171,40 +181,17 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             canUsePlanningMode={canUsePlanningMode}
             canUseEditingMode={canUseEditingMode}
             isMainChatRunning={isMainChatRunning}
+            canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
+            isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
             selectedSkillKeys={selectedSkillKeys}
             onOpenFilePicker={openFilePicker}
+            onCaptureScreenshot={() => void captureDesktopScreenshot()}
+            screenshotDisabledReason={screenshotDisabledReason}
             onAddReference={onAddReference}
             onTogglePlanningMode={onTogglePlanningMode}
             onEditingModeChange={onEditingModeChange}
             onSelectSkill={onSelectSkill}
           />
-          {canCaptureDesktopScreenshot ? (
-            <UiButton
-              className="desktop-screenshot-btn"
-              variant="ghost"
-              size="sm"
-              iconOnly
-              loading={isCapturingDesktopScreenshot}
-              disabled={
-                attachmentActionsDisabled || isCapturingDesktopScreenshot
-              }
-              onClick={() => void captureDesktopScreenshot()}
-              aria-label={t("composer.actions.screenshot")}
-              title={
-                isFrontendActive
-                  ? t("composer.actions.screenshotDisabled.frontendActive")
-                  : isVoiceMode
-                    ? t("composer.actions.screenshotDisabled.voiceMode")
-                    : isStreaming
-                      ? t("composer.actions.screenshotDisabled.streaming")
-                      : isCapturingDesktopScreenshot
-                        ? t("composer.actions.screenshotCapturing")
-                        : t("composer.actions.screenshot")
-              }
-            >
-              <SkinVisual slot="chat.screenshot"><MaterialIcon name="crop_free" /></SkinVisual>
-            </UiButton>
-          ) : null}
           {planningMode && canUsePlanningMode && (
             <Tooltip
               title={

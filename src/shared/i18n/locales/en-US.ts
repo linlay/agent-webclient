@@ -693,6 +693,7 @@ export const enUSMessages = {
   "composer.addMenu.section.chat": "Chats",
   "composer.addMenu.section.site": "Sites",
   "composer.addMenu.file": "Local files",
+  "composer.addMenu.screenshot": "Screenshot",
   "composer.addMenu.mode.planning": "Planning mode",
   "composer.addMenu.mode.editing": "Editing mode",
   "composer.requiredSkill.locked": "{skill} is required by the host",

@@ -766,6 +766,7 @@ export const zhCNMessages = {
   "composer.addMenu.section.chat": "对话",
   "composer.addMenu.section.site": "站点",
   "composer.addMenu.file": "本地文件",
+  "composer.addMenu.screenshot": "截屏",
   "composer.addMenu.mode.planning": "计划模式",
   "composer.addMenu.mode.editing": "编辑模式",
   "composer.requiredSkill.locked": "{skill} 由宿主强制启用",

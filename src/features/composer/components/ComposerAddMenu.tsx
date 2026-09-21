@@ -32,8 +32,13 @@ export interface AddMenuTriggerProps {
   canUsePlanningMode: boolean;
   canUseEditingMode: boolean;
   isMainChatRunning: boolean;
+  canCaptureDesktopScreenshot: boolean;
+  isCapturingDesktopScreenshot: boolean;
   selectedSkillKeys: string[];
   onOpenFilePicker: () => void;
+  onCaptureScreenshot: () => void;
+  /** 仅在截屏不可用时作为悬浮说明；可用时留空，标签本身已说明动作 */
+  screenshotDisabledReason?: string;
   onAddReference: (reference: ComposerContextReferenceInput) => void;
   onTogglePlanningMode: () => void;
   onEditingModeChange: (enabled: boolean) => void;
@@ -170,13 +175,15 @@ const AddMenuSectionDetail: React.FC<
   const item = (
     content: React.ReactNode,
     action: () => void,
-    disabled = false,
+    options: { disabled?: boolean; loading?: boolean; title?: string } = {},
   ) => (
     <UiButton
       variant="ghost"
       size="sm"
       className="composer-add-menu-detail-item"
-      disabled={disabled}
+      loading={options.loading}
+      disabled={options.disabled}
+      title={options.title}
       onClick={() => execute(action)}
     >
       {content}
@@ -201,14 +208,35 @@ const AddMenuSectionDetail: React.FC<
       )}
       {section === "connectors" && <AgentConnectorPicker key={props.currentAgentKey} agentKey={props.currentAgentKey}
         search={search} onSearchChange={onSearchChange} disabled={props.disabled} />}
-      {section === "files" &&
-        item(
-          <>
-            <MaterialIcon name="folder" />
-            <span>{t("composer.addMenu.file")}</span>
-          </>,
-          props.onOpenFilePicker,
-        )}
+      {section === "files" && (
+        <>
+          {item(
+            <>
+              <MaterialIcon name="folder" />
+              <span>{t("composer.addMenu.file")}</span>
+            </>,
+            props.onOpenFilePicker,
+          )}
+          {props.canCaptureDesktopScreenshot &&
+            item(
+              <>
+                <SkinVisual slot="chat.screenshot">
+                  <MaterialIcon name="crop_free" />
+                </SkinVisual>
+                <span>{t("composer.addMenu.screenshot")}</span>
+              </>,
+              props.onCaptureScreenshot,
+              {
+                disabled:
+                  props.disabled ||
+                  props.isMainChatRunning ||
+                  props.isCapturingDesktopScreenshot,
+                loading: props.isCapturingDesktopScreenshot,
+                title: props.screenshotDisabledReason,
+              },
+            )}
+        </>
+      )}
       {section === "skills" && (
         <div className="composer-add-menu-scroll">
           {pinError && (

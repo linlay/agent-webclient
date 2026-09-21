@@ -75,9 +75,10 @@ describe("Composer skill pins", () => {
     props = {
       disabled: false, loading: false, currentChatId: "chat", currentAgentKey: "agent-a",
       planningMode: false, editingMode: false, canUsePlanningMode: false, canUseEditingMode: false,
-      isMainChatRunning: false, selectedSkillKeys: [],
-      onOpenFilePicker: jest.fn(), onAddReference: jest.fn(), onTogglePlanningMode: jest.fn(),
-      onEditingModeChange: jest.fn(), onSelectSkill: jest.fn(),
+      isMainChatRunning: false, canCaptureDesktopScreenshot: false, isCapturingDesktopScreenshot: false,
+      selectedSkillKeys: [],
+      onOpenFilePicker: jest.fn(), onCaptureScreenshot: jest.fn(), onAddReference: jest.fn(),
+      onTogglePlanningMode: jest.fn(), onEditingModeChange: jest.fn(), onSelectSkill: jest.fn(),
     };
   });
   afterEach(() => {
