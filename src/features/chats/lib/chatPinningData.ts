@@ -1,21 +1,14 @@
-import { getChatOrder, getChats } from "@/shared/data";
+import { getChatOrder } from "@/shared/data";
 import type { Chat } from "./chatState";
 import type { ChatPinningSnapshot } from "./chatPinning";
 
 export async function readChatPinningSnapshot(): Promise<ChatPinningSnapshot> {
-  let response;
-  try {
-    response = await getChatOrder();
-  } catch (error) {
-    const status = Number((error as { status?: number; code?: number })?.status
-      || (error as { code?: number })?.code);
-    if (status === 404 || status === 501) return { order: null, chats: [] };
-    throw error;
+  const response = await getChatOrder();
+  if (!Array.isArray(response.data?.pinnedChats)) {
+    throw new Error("Invalid chat order snapshot: pinnedChats must be an array");
   }
-  if (!Array.isArray(response.data?.pinnedOrder)) return { order: null, chats: [] };
-  const result = await getChats({ pinned: true });
-  const chats = (Array.isArray(result.data) ? result.data as Chat[] : [])
+  const chats = (response.data.pinnedChats as Chat[])
     .filter((chat) => Boolean(chat?.chatId) && chat.pinned === true);
-  // The list is the later snapshot; its order is canonical and not capped.
+  // The server returns the full ordered snapshot; no second list request is needed.
   return { order: chats.map((chat) => chat.chatId), chats };
 }

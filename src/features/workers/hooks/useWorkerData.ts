@@ -256,7 +256,7 @@ export function useWorkerData(input: {
           return fetchAgentsWithScopeFallback(
             {
               ...buildAgentListRequestOptions(currentPathname(), INITIAL_AGENT_CHAT_LIMIT),
-              ...((pins ? pins.order : stateRef.current.chatPinnedOrder) != null ? { chatsPinned: false } : {}),
+              chatsPinned: false,
             },
           );
         },

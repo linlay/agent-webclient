@@ -6,6 +6,7 @@ import {
 import type {
   GetChatsOptions,
   ChatOrderResponse,
+  ChatOrderSnapshotResponse,
   UpdateChatOrderRequest,
   ChatDetailResponse,
   ChatSystemPromptRequest,
@@ -201,7 +202,7 @@ export function compactChat(
   });
 }
 
-export function getChatOrder(): Promise<ApiResponse<ChatOrderResponse>> {
+export function getChatOrder(): Promise<ApiResponse<ChatOrderSnapshotResponse>> {
   return requestJson(dataEndpoints.chatOrder.path);
 }
 

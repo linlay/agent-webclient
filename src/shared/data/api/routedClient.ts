@@ -100,6 +100,7 @@ import type {
 import type {
 	ChatDetailResponse,
 	ChatOrderResponse,
+	ChatOrderSnapshotResponse,
 	UpdateChatOrderRequest,
 	ChatSystemPromptRequest,
 	ChatSystemPromptResponse,
@@ -735,7 +736,7 @@ export function invalidateChatNavigationCache(): void {
   invalidateRouteEndpoints(dataEndpoints.chats, dataEndpoints.agents);
 }
 
-export function getChatOrder(): Promise<ApiResponse<ChatOrderResponse>> {
+export function getChatOrder(): Promise<ApiResponse<ChatOrderSnapshotResponse>> {
   return routeEndpoint(dataEndpoints.chatOrder, undefined, getChatOrderHttp);
 }
 

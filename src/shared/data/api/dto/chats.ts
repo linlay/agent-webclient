@@ -185,6 +185,10 @@ export interface ChatOrderResponse {
   updatedAt?: number;
 }
 
+export interface ChatOrderSnapshotResponse extends ChatOrderResponse {
+  pinnedChats: ChatSummaryResponse[];
+}
+
 export type UpdateChatOrderRequest =
   | { operation: "set_pinned"; chatId: string; pinned: boolean }
   | { operation: "move"; chatId: string; beforeChatId: string; afterChatId?: never }
