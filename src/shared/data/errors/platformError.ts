@@ -255,10 +255,11 @@ export function formatPlatformErrorForDisplay(
     (isChannelNotConnectedError(error)
       ? translateIfAvailable("platformError.special.channelNotConnected")
       : "") ||
-    explicitMsg ||
     translateIfAvailable(
       error.code ? `platformError.code.${error.code}` : "",
     ) ||
+    explicitMsg ||
+    error.message ||
     translateIfAvailable(
       error.category ? `platformError.category.${error.category}` : "",
     ) ||

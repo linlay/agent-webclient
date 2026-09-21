@@ -2268,7 +2268,7 @@ describe("data client requests", () => {
     expect(click).toHaveBeenCalledTimes(2);
   });
 
-  it("uses generic platform display text when resource downloads fail without structured codes", async () => {
+  it("shows the failure reason when resource downloads fail without structured codes", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 403,
@@ -2283,7 +2283,7 @@ describe("data client requests", () => {
     await expect(
       downloadResource("private.txt", { chatId: "chat_01" }),
     ).rejects.toMatchObject({
-      message: "操作失败，请查看错误详情。",
+      message: expect.stringContaining("下载失败"),
       status: 403,
       code: 40301,
       platformError: expect.objectContaining({
@@ -2625,7 +2625,7 @@ describe("data client requests", () => {
     });
   });
 
-  it("uses generic platform display text when raw chat jsonl loading fails without structured codes", async () => {
+  it("shows the failure reason when raw chat jsonl loading fails without structured codes", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -2638,7 +2638,7 @@ describe("data client requests", () => {
     });
 
     await expect(getChatRawJsonl("missing")).rejects.toMatchObject({
-      message: "操作失败，请查看错误详情。",
+      message: expect.stringContaining("加载资源文本失败"),
       status: 404,
       code: 404,
       platformError: expect.objectContaining({

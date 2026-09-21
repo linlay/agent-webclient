@@ -162,7 +162,7 @@ describe("platformError", () => {
 		expect(display.retryHint).toBe("");
 	});
 
-	it("falls back to category and then generic text for unknown codes", () => {
+	it("shows the actual message for unknown errors without opening technical details", () => {
 		const categoryDisplay = formatPlatformErrorForDisplay({
 			error: {
 				category: "model",
@@ -177,9 +177,9 @@ describe("platformError", () => {
 			},
 		});
 
-		expect(categoryDisplay.message).toBe("模型服务请求失败，请稍后重试。");
-		expect(categoryDisplay.message).not.toContain("upstream english");
-		expect(genericDisplay.message).toBe("操作失败，请查看错误详情。");
+		expect(categoryDisplay.message).toBe("very long upstream english error");
+		expect(categoryDisplay.message).toContain("upstream english");
+		expect(genericDisplay.message).toBe("very long upstream english error");
 	});
 
 	it("only adds retry guidance when retryable is true", () => {
@@ -200,5 +200,19 @@ describe("platformError", () => {
 
 		expect(retryable.message).toContain("可以稍后重试");
 		expect(notRetryable.message).not.toContain("可以稍后重试");
+	});
+
+	it("keeps active stream errors readable after decoding a frame into an Error", () => {
+		const frame = {
+			frame: "error", type: "active_stream_exists", code: 409,
+			msg: "detach the current run stream before starting or attaching another",
+		};
+		const first = formatPlatformErrorForDisplay(frame);
+		const wrapped = Object.assign(new Error(first.message), { platformError: first.error, status: 409 });
+		const display = formatPlatformErrorForDisplay(wrapped);
+		expect(display.message).toContain("上一条运行的连接尚未释放");
+		expect(display.code).toBe("active_stream_exists");
+		expect(display.status).toBe(409);
+		expect(display.error.message).toBe(frame.msg);
 	});
 });

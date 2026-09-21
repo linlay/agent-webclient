@@ -1804,6 +1804,7 @@ export const enUSMessages = {
   "platformError.category.request": "The request is invalid and cannot be processed.",
   "platformError.category.system": "The service hit an internal error. Please try again later.",
   "platformError.category.timeout": "The operation timed out. Please try again later.",
+  "platformError.code.active_stream_exists": "The previous run stream has not been released, so this request could not start. Try again shortly; if this persists, reopen the conversation.",
   "platformError.code.active_run_conflict": "This conversation already has a run in progress.",
   "platformError.code.editing_mode_unsupported": "This Agent does not support knowledge base editing. Select a KBASE Agent and try again.",
   "platformError.code.forbidden": "You do not have permission to perform this action.",
