@@ -132,6 +132,14 @@ textarea {
     opacity: 1;
 }
 
+/* Icon-only buttons get a transparent hover background (see the .ui-btn-ghost
+   rules below), so the plate is their only feedback. Every other button already
+   paints its own hover background, so the plate is suppressed to avoid stacking
+   two feedback layers. Dropdown rows are handled in the portal compat block. */
+.ui-btn:not(.is-icon-only):is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before {
+    content: none;
+}
+
 button {
     border: 1px solid var(--line-soft);
     border-radius: var(--radius-md);
@@ -489,6 +497,14 @@ textarea {
 
 .ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item-icon {
     font-size: 14px;
+}
+
+/* Dropdown rows already paint their own hover background, so the icon plate
+   would stack a second feedback layer on top of it.
+   The row class lands on .ant-dropdown-menu-item, or on .ant-dropdown-menu-submenu
+   for rows with children, hence the descendant selector. */
+.ant-dropdown .ant-dropdown-menu :is(.ui-icon-hover-24, .ui-icon-hover-20) :is(.ui-icon-hover-24-target, .ui-icon-hover-20-target)::before {
+    content: none;
 }
 
 .ant-dropdown .ant-dropdown-menu {
