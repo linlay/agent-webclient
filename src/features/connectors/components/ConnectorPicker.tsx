@@ -47,7 +47,7 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId,
     ? t(`connectors.auth.error.${catalog.error.status}`) : t("composer.addMenu.connectors.loadFailed");
 
   return <section className={styles.picker} aria-label={t("composer.addMenu.section.connectors")}>
-    {catalog.items.map(item => <ConnectorAuthObserver key={connectorAuthIdentity(item)} item={item} checks={checks} onChange={onAuthChange} onCredentialsChange={catalog.refresh} />)}
+    {catalog.items.filter(item => selectedIds.includes(item.id)).map(item => <ConnectorAuthObserver pollInactive={false} key={connectorAuthIdentity(item)} item={item} checks={checks} onChange={onAuthChange} onCredentialsChange={catalog.refresh} />)}
     <Input ref={searchRef} className={styles.search} variant="filled" prefix={<MaterialIcon name="search" />} value={search}
       aria-label={t("composer.addMenu.connectors.search")} placeholder={t("composer.addMenu.connectors.search")}
       onChange={event => onSearchChange(event.target.value)} />
@@ -58,7 +58,7 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId,
         <UiButton size="sm" variant="ghost" disabled={catalog.loading} onClick={() => void catalog.refresh()}>{t("connectors.action.retry")}</UiButton>
       </div>}
       {!catalog.loading && !catalog.error && !items.length && <div className={styles.status} role="status">{t(catalog.items.length ? "composer.addMenu.empty" : "composer.addMenu.connectors.empty")}</div>}
-      {items.map(item => <ConnectorPickerRow key={item.id} item={item} auth={authRuntimes[connectorAuthIdentity(item)]}
+      {items.map(item => <ConnectorPickerRow key={item.id} item={item} auth={selectedIds.includes(item.id) ? authRuntimes[connectorAuthIdentity(item)] : undefined}
         selected={selectedIds.includes(item.id)} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={onSelectionChange}
         onPrioritize={() => checks.prioritize(item.id)} />)}
     </div>
@@ -94,9 +94,9 @@ function ConnectorPickerRow({ item, auth, selected, saving, disabled, selectionD
     <div className={styles.row}>
       <ConnectorIcon item={item} size={18} className={styles.icon} />
       <span className={styles.name} title={item.description || item.name}>{item.name || item.id}</span>
-      {selected || available ? <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled}
+      <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled}
         aria-label={t("composer.addMenu.connectors.select", { name: item.name || item.id })}
-        onChange={checked => onSelectionChange(item, checked)} /> : authorizationAction}
+        onChange={checked => onSelectionChange(item, checked)} />
     </div>
     {selected && !available && <div className={styles.authAction}>{authorizationAction}</div>}
     {url && (auth?.session?.authBrowser === "embedded" ? <UiButton size="sm" onClick={auth.openBrowser}>{t("connectors.auth.open")}</UiButton> : <a className={styles.authorization} href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><MaterialIcon name="open_in_new" />{t("connectors.auth.open")}</a>)}

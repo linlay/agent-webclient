@@ -23,9 +23,11 @@ interface Options {
   onCredentialsChange?: () => void;
   checkStatus?: typeof getConnectorAuthStatus;
   observe?: boolean;
+  // The composer only follows active login sessions; the console also watches idle status.
+  pollInactive?: boolean;
 }
 
-export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange, checkStatus = getConnectorAuthStatus, observe = false }: Options) {
+export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange, checkStatus = getConnectorAuthStatus, observe = false, pollInactive = true }: Options) {
   const enabled = supportsConnectorAuthCheck(mode);
   const identity = `${id}/${mode}/${readOnly}`;
   const initial = (): AuthState => ({ identity, browserRequestRevision: 0, browserSessionId: null, session: null, status: mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null });
@@ -52,7 +54,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
     const schedulePoll = () => {
       clearTimeout(pollTimer);
       const active = isConnectorAuthActive(session) && connectorAuthViewStatus(session) !== "expired";
-      if (!enabled || permanentError() || (!active && !observe)) return;
+      if (!enabled || permanentError() || (!active && (!observe || !pollInactive))) return;
       pollTimer = setTimeout(() => {
         if (observe && document.visibilityState === "hidden") schedulePoll();
         else void perform("check");
@@ -147,7 +149,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
     const onVisible = () => {
       if (document.visibilityState === "visible" && Date.now() - lastCheckedAt >= 30_000 && !permanentError()) void perform("check");
     };
-    if (observe) document.addEventListener("visibilitychange", onVisible);
+    if (observe && pollInactive) document.addEventListener("visibilitychange", onVisible);
     return () => {
       disposed = true;
       sequence += 1;
@@ -155,11 +157,11 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
       clearTimeout(deadlineTimer);
       clearTimeout(requestTimer);
       request?.abort();
-      if (observe) document.removeEventListener("visibilitychange", onVisible);
+      if (observe && pollInactive) document.removeEventListener("visibilitychange", onVisible);
       scope.current = null;
       // Leaving this view only stops observation; it never cancels login or removes credentials.
     };
-  }, [id, mode, identity, enabled, readOnly, checkStatus, observe]);
+  }, [id, mode, identity, enabled, readOnly, checkStatus, observe, pollInactive]);
 
   const perform = useCallback((action: AuthAction) => scope.current?.identity === identity ? scope.current.perform(action) : Promise.resolve(), [identity]);
   return useMemo(() => ({

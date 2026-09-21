@@ -77,11 +77,14 @@ it("filters by name/id and keeps the selected switch state when the filter is cl
   expect(container.textContent).toContain("会议");
   await mount({ search: "文档" });
   expect(container.querySelector('[role="switch"]')?.getAttribute("aria-checked")).toBe("false");
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
 });
 
-it("connects once, keeps polling while filtered out, and exposes selection only after authorization", async () => {
+it("checks only after enabling, keeps active login polling while filtered out, and stops after authorization", async () => {
   await mount();
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].click());
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
   const connect = container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.connectors.connectNamed"]')!;
   await act(async () => { connect.click(); connect.click(); });
   expect(startConnectorAuth).toHaveBeenCalledTimes(1);
@@ -91,12 +94,15 @@ it("connects once, keeps polling while filtered out, and exposes selection only 
   await act(async () => jest.advanceTimersByTime(2_000));
   await mount();
   expect(container.querySelectorAll('[role="switch"]')).toHaveLength(2);
-  expect(onSelectionChange).not.toHaveBeenCalled();
+  expect(onSelectionChange).toHaveBeenCalledWith("login", true);
+  const checks = jest.mocked(getConnectorAuthStatus).mock.calls.length;
+  await act(async () => jest.advanceTimersByTime(60_000));
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(checks);
 });
 
 it("only exposes safe authorization links", async () => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("pending", { authorizationUrl: "javascript:alert(1)" }) as any);
-  await mount();
+  await mount({ initialIds: ["login"] });
   expect(container.querySelector("a")).toBeNull();
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("pending", { authorizationUrl: "https://example.com/authorize" }) as any);
   await act(async () => jest.advanceTimersByTime(2_000));
@@ -114,7 +120,7 @@ it("reports load failure, supports retry, and distinguishes an empty catalog", a
 });
 
 it("keeps login available when only Agent configuration selection is disabled", async () => {
-  await mount({ selectionDisabled: true });
+  await mount({ selectionDisabled: true, initialIds: ["login"] });
   expect(container.querySelector<HTMLButtonElement>('[role="switch"]')?.disabled).toBe(true);
   expect(container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.connectors.connectNamed"]')?.disabled).toBe(false);
 });
@@ -143,7 +149,41 @@ it("allows mounting builtin and delegated or identity-token packages without wai
   expect(switches[1].getAttribute("aria-checked")).toBe("false");
   await act(async () => switches[0].click());
   expect(onSelectionChange).toHaveBeenCalledWith("builtin.dbx", false);
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
   expect(startConnectorAuth).not.toHaveBeenCalled();
   expect(logoutConnectorAuth).not.toHaveBeenCalled();
+});
+
+
+it("does not probe unselected catalog entries even after timers and visibility changes", async () => {
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors:
+    Array.from({ length: 100 }, (_, i) => connector(`item-${i}`, `Item ${i}`, "oauth")),
+  } });
+  await mount({ initialIds: [] });
+  await act(async () => {
+    jest.advanceTimersByTime(60_000);
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  expect(container.querySelectorAll('[role="switch"]')).toHaveLength(100);
+});
+
+it.each(["authorized", "unauthorized", "failed", "canceled"])("does not poll settled %s state", async status => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session(status) as any);
+  await mount({ initialIds: ["login"] });
+  await act(async () => {
+    jest.advanceTimersByTime(60_000);
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+});
+
+it("stops active polling when disabled without logging out or restarting authorization", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("pending") as any);
+  await mount({ initialIds: ["login"] });
+  await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].click());
+  await act(async () => jest.advanceTimersByTime(60_000));
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+  expect(startConnectorAuth).not.toHaveBeenCalled();
 });

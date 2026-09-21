@@ -10,15 +10,16 @@ export function connectorAuthIdentity(item: ConnectorSummary): string {
 
 // Observers belong to the catalog, so filtering, tabs, and selection don't reset
 // the last known status or start duplicate detail requests.
-export function ConnectorAuthObserver({ item, checks, onChange, onCredentialsChange }: {
+export function ConnectorAuthObserver({ item, checks, onChange, onCredentialsChange, pollInactive = true }: {
   item: ConnectorSummary;
+  pollInactive?: boolean;
   checks: ReturnType<typeof createConnectorAuthChecks>;
   onChange: (identity: string, runtime: ConnectorAuthRuntime | null) => void;
   onCredentialsChange: () => void;
 }) {
   const identity = connectorAuthIdentity(item);
   const auth = useConnectorAuth({ id: item.id, mode: item.auth_mode, readOnly: item.builtin === true || item.readOnly === true,
-    checkStatus: checks.request, observe: true, onCredentialsChange });
+    checkStatus: checks.request, observe: true, pollInactive, onCredentialsChange });
   useEffect(() => { onChange(identity, auth); }, [identity, auth, onChange]);
   useEffect(() => () => onChange(identity, null), [identity, onChange]);
   return <ConnectorAuthBrowser auth={auth} />;
