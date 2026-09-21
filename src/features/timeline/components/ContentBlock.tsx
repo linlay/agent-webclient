@@ -34,7 +34,7 @@ const TIMELINE_TEXT_CLASS_NAME =
 	"timeline-text tw:break-words tw:text-[13px] tw:leading-[1.58] tw:text-ink-1";
 const TIMELINE_MARKDOWN_CLASS_NAME = "timeline-markdown tw:whitespace-normal";
 const TIMELINE_CONTENT_MARKDOWN_CLASS_NAME =
-	"tw:max-w-[74ch] tw:text-[15px] tw:leading-[1.72]";
+	"tw:text-[15px] tw:leading-[1.72]";
 const TTS_VOICE_SECTION_CLASS_NAME = "tw:my-2";
 const TTS_VOICE_TOOLBAR_CLASS_NAME = "tw:flex tw:items-center tw:gap-2";
 const TTS_VOICE_PILL_CLASS_NAME =

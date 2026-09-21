@@ -150,10 +150,6 @@ button:hover {
             var(--line-strong));
 }
 
-button:active {
-    transform: scale(0.995);
-}
-
 .ui-btn {
     border: 1px solid var(--line-soft);
     border-radius: var(--radius-md);

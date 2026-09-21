@@ -196,8 +196,7 @@ const TIMELINE_META_ACTIONS_CLASS_NAME =
   "timeline-meta-actions tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1";
 const TIMELINE_META_BUTTON_CLASS_NAME =
   "timeline-meta-btn ui-icon-hover-20 tw:!h-5 tw:!min-h-5 tw:!w-5 tw:!min-w-5 tw:!rounded-lg tw:!p-0 tw:text-ink-muted tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1";
-const TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME =
-  `timeline-meta-btn ui-icon-hover-20 ${timelineStyles.runActionButton}`;
+const TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME = `timeline-meta-btn ui-icon-hover-20 ${timelineStyles.runActionButton}`;
 const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
   "is-downvoted tw:bg-[color-mix(in_srgb,var(--accent-danger)_12%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--ink-1))]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
@@ -689,7 +688,8 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
   // 这里负责展开它所在的面板并把列表滚过去，随后由批注层把标记重新画出来。
   useEffect(() => {
     const reveal = (event: Event) => {
-      const detail = (event as CustomEvent<SelectedTextTargetRevealDetail>).detail;
+      const detail = (event as CustomEvent<SelectedTextTargetRevealDetail>)
+        .detail;
       if (!detail || detail.handled) return;
       // 立即跳转，避免虚拟列表的平滑滚动和引用自身的居中滚动互相打架。
       if (revealTimelineNode(detail.nodeId, "auto")) detail.handled = true;
@@ -1763,7 +1763,10 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                 const deriveChatTitle = t("timeline.run.deriveChat");
 
                 const lastContentNode = findLastRunContentNode(item);
-                const shouldCollapse = isCompleted && item.nodes.length > 1 && !item.nodes.some(isImageGenerationTool);
+                const shouldCollapse =
+                  isCompleted &&
+                  item.nodes.length > 1 &&
+                  !item.nodes.some(isImageGenerationTool);
                 return (
                   <Flex vertical gap={8}>
                     {shouldCollapse && (
@@ -1817,13 +1820,11 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                     {isCompleted && (
                       <div className={TIMELINE_RUN_META_CLASS_NAME}>
                         <div className={TIMELINE_RUN_INFO_CLASS_NAME}>
-                          {responseDuration && (
-                            <MaterialIcon
-                              name="stop_circle"
-                              aria-hidden="true"
-                              className="tw:shrink-0 tw:leading-none tw:text-ink-muted"
-                            />
-                          )}
+                          <MaterialIcon
+                            name="stop_circle"
+                            aria-hidden="true"
+                            className="tw:shrink-0 tw:leading-none tw:text-ink-muted"
+                          />
                           {time.short && (
                             <div
                               className={TIMELINE_RUN_TIME_CLASS_NAME}
@@ -1896,7 +1897,9 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                               }
                             >
                               <UiButton
-                                className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME}
+                                className={
+                                  TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME
+                                }
                                 variant="ghost"
                                 size="sm"
                                 iconOnly
