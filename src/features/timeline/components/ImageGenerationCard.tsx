@@ -114,8 +114,7 @@ export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
         const image = display.images.find(item => item.index === index && item.url);
         const showImage = image && display.status === 'success';
         return <div key={`${node.runId || ''}:${node.toolId || node.id}:${index}`} className={styles.tile}
-          data-tool-id={node.toolId || node.id} data-image-index={index} data-image-status={showImage ? 'success' : display.status}
-          style={{ aspectRatio: display.ratio }}>
+          data-tool-id={node.toolId || node.id} data-image-index={index} data-image-status={showImage ? 'success' : display.status}>
           {showImage ? <GeneratedImageTile key={`${chatId}:${image.url}`} image={image} surface={surface} /> :
             <div className={`${styles.placeholder} ${display.busy ? styles.busy : ''}`} role="status" aria-busy={display.busy}>
               <MaterialIcon name="image" />

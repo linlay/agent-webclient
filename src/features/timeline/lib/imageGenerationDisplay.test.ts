@@ -29,9 +29,9 @@ describe('image generation display', () => {
     expect(buildImageGenerationDisplay(call('a', 1, { argsText: '{"n":4' }), { active: true })).toMatchObject({ count: 1, status: 'preparing' });
     for (const n of [0, 5, -1, 1.5]) expect(buildImageGenerationDisplay(call('a', n), { active: true }).count).toBe(1);
   });
-  it('supports four images, editing, masks and dimensions', () => {
+  it('supports four images, editing and masks regardless of source dimensions', () => {
     const node = call('a', 4, { argsText: JSON.stringify({ n: 4, images: [{}], size: '1536x1024' }) });
-    expect(buildImageGenerationDisplay(node, { active: true })).toMatchObject({ count: 4, status: 'edit', ratio: 1.5 });
+    expect(buildImageGenerationDisplay(node, { active: true })).toMatchObject({ count: 4, status: 'edit' });
     expect(buildImageGenerationDisplay({ ...node, argsText: '{"images":[{}],"mask":{}}' }, { active: true }).status).toBe('inpainting');
   });
   it('restores history without animation and never uses internal paths as URLs', () => {

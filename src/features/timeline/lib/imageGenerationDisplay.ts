@@ -31,10 +31,6 @@ export function buildImageGenerationDisplay(node: TimelineNode, runtime: ImageGe
   const args = record(node.argsText);
   const result = record(node.result?.text);
   const count = typeof args?.n === 'number' && Number.isInteger(args.n) && args.n >= 1 && args.n <= 4 ? args.n : 1;
-  const size = typeof result?.size === 'string' ? result.size : args?.size;
-  const dimensions = typeof size === 'string' ? /^(\d+)x(\d+)$/.exec(size) : null;
-  const ratio = dimensions && Number(dimensions[1]) > 0 && Number(dimensions[2]) > 0
-    ? Math.max(0.25, Math.min(4, Number(dimensions[1]) / Number(dimensions[2]))) : 1;
   const operation = result?.operation === 'inpainting' || args?.mask ? 'inpainting'
     : result?.operation === 'edit' || (Array.isArray(args?.images) && args.images.length > 0) ? 'edit' : 'generation';
   const images: GeneratedImage[] = [];
@@ -58,6 +54,6 @@ export function buildImageGenerationDisplay(node: TimelineNode, runtime: ImageGe
   else if (runtime.terminal || !runtime.active) status = 'missing';
   else if (runtime.recovering) status = 'recovering';
   else status = args ? operation : 'preparing';
-  return { status, ratio, count: Math.max(count, ...images.map(image => image.index + 1)), images,
+  return { status, count: Math.max(count, ...images.map(image => image.index + 1)), images,
     busy: ['preparing', 'generation', 'edit', 'inpainting'].includes(status) };
 }

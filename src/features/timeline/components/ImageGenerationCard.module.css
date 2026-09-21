@@ -1,7 +1,7 @@
 .root { width: 100%; min-width: 0; padding: 8px 0; }
 .grid { display: grid; grid-auto-flow: column; grid-auto-columns: 180px; align-items: start; gap: 14px; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; }
 .grid:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
-.tile { position: relative; min-width: 0; max-width: 420px; overflow: hidden; border-radius: 20px; border: 1px solid var(--line-soft); background: var(--bg-elev-2); }
+.tile { width: 180px; height: 180px; box-sizing: border-box; position: relative; min-width: 0; max-width: 420px; overflow: hidden; border-radius: 20px; border: 1px solid var(--line-soft); background: var(--bg-elev-2); }
 .placeholder, .overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; height: 100%; box-sizing: border-box; text-align: center; color: var(--ink-muted); font-size: 14px; }
 .placeholder > *, .overlay > * { position: relative; z-index: 1; }
 .placeholder :global(.material-icon), .overlay :global(.material-icon) { width: 30px; height: 30px; font-size: 30px; }

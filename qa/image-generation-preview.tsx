@@ -11,12 +11,12 @@ import { buildRunRenderEntries } from '@/features/timeline/lib/timelineDisplay';
 import { applyBootAppearance } from '@/shared/styles/appearance/bootstrap';
 import '@/shared/styles/globals.css';
 applyBootAppearance();
-const fixtureImage = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="600" height="400" fill="#bcdec8"/><circle cx="420" cy="120" r="50" fill="#fff3c2"/><path d="M0 400L220 100L460 400M280 400L480 200L600 400" fill="#579176"/><text x="30" y="360" font-size="24" fill="white">Image preview fixture</text></svg>');
+const fixtureImage = (width: number, height: number) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 600 400"><rect width="${width}" height="${height}" viewBox="0 0 600 400" fill="#bcdec8"/><circle cx="420" cy="120" r="50" fill="#fff3c2"/><path d="M0 400L220 100L460 400M280 400L480 200L600 400" fill="#579176"/><text x="30" y="360" font-size="24" fill="white">Image preview fixture</text></svg>`);
 const initial: TimelineNode[] = ['a', 'b', 'c'].map(id => ({ id, toolId: id, runId: 'preview', kind: 'tool', toolName: 'image_generate', toolLabel: '图像生成', argsText: '{"prompt":"landscape","n":2}', status: 'running', ts: 1 }));
 function Preview() {
   const [nodes, setNodes] = useState(initial);
   const [active, setActive] = useState(true);
-  const finish = (id: string, fail = false) => setNodes(current => current.map(node => node.id === id ? { ...node, status: fail ? 'failed' : 'success', result: { isCode: true, text: JSON.stringify(fail ? { ok: false, message: 'Fixture failure' } : { ok: true, images: [0, 1].map(index => ({ index, url: fixtureImage, name: `landscape-${index}.svg`, mimeType: 'image/svg+xml' })) }) } } : node));
+  const finish = (id: string, fail = false) => setNodes(current => current.map(node => node.id === id ? { ...node, status: fail ? 'failed' : 'success', result: { isCode: true, text: JSON.stringify(fail ? { ok: false, message: 'Fixture failure' } : { ok: true, images: [0, 1].map(index => ({ index, url: fixtureImage(index === 0 ? 600 : 400, index === 0 ? 400 : 600), name: `landscape-${index}.svg`, mimeType: 'image/svg+xml' })) }) } } : node));
   const group = buildRunRenderEntries(nodes)[0];
   return <main style={{ maxWidth: 1000, margin: '40px auto', padding: 24, color: 'var(--ink-1)' }}>
     <h1>图像生成 · 三次并发，每次两张</h1>
