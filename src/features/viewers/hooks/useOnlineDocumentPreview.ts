@@ -1,4 +1,6 @@
 import React from "react";
+import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import type { DocumentPreviewCapabilities, DocumentPreviewResponse } from "@/shared/data/api/dto/resources";
 import { getDocumentPreviewCapabilities, prepareDocumentPreview } from "@/shared/data/api/requests/documentPreview";
 import { createRequestId } from "@/shared/data/api/http";
@@ -20,6 +22,7 @@ export function useOnlineDocumentPreview(input: {
   onReady?: (result: DocumentPreviewResponse) => void;
 }) {
   const { t } = useI18n();
+  const workPanel = useOptionalWorkPanelTransport();
   const source = resolveDocumentPreviewSource(input.target, input.chatId);
   const key = JSON.stringify([source, input.target, input.refreshKey, input.initialResult]);
   const currentKey = React.useRef(key);
@@ -66,7 +69,16 @@ export function useOnlineDocumentPreview(input: {
       const { data } = await prepareDocumentPreview({ source, requestId: createRequestId("preview") }, request.signal);
       if (!isValidDocumentPreview(data, window.location.origin)) throw new Error(t("contentViewer.preview.invalidResponse"));
       if (!request.signal.aborted && currentKey.current === key) {
-        if (input.onReady) {
+        // A cross-site iframe cannot send the preview service's SameSite=Strict
+        // CSRF cookie. Desktop hosts the share as a top-level WorkPanel web guest.
+        if (isDesktopAppMode() && data.openMode === "iframe") {
+          if (!workPanel) throw new Error(t("contentViewer.preview.failed"));
+          await workPanel.openDescriptor({
+            kind: "web", url: data.url,
+            title: t("contentViewer.preview.tabTitle", { name: input.name }),
+          });
+          if (!request.signal.aborted && currentKey.current === key) setState({ key });
+        } else if (input.onReady) {
           setState({ key });
           input.onReady(data);
         } else {

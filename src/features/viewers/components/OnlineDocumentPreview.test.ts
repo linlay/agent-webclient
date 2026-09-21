@@ -1,5 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
+import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { createRoot, type Root } from "react-dom/client";
 import { I18nProvider } from "@/shared/i18n";
 import { getDocumentPreviewCapabilities, prepareDocumentPreview } from "@/shared/data/api/requests/documentPreview";
@@ -10,6 +12,9 @@ import { OnlineDocumentPreview, OnlinePreviewAction } from "./OnlineDocumentPrev
 import { OnlineDocumentPreviewTab, type OnlineDocumentPreviewTabActions } from "./OnlineDocumentPreviewTab";
 
 jest.mock("@/shared/data/api/requests/documentPreview", () => ({ getDocumentPreviewCapabilities: jest.fn(), prepareDocumentPreview: jest.fn() }));
+
+jest.mock("@/features/transport/components/RealtimeTransportProvider", () => ({ useOptionalWorkPanelTransport: jest.fn(() => null) }));
+jest.mock("@/shared/utils/routing", () => ({ isDesktopAppMode: jest.fn(() => false) }));
 
 const target: ViewerTarget = { type: "file", agentKey: "coder", path: "report.xlsx", name: "report.xlsx", contentKind: "office" };
 const response = (mode: "iframe" | "external" = "iframe"): DocumentPreviewResponse => ({
@@ -29,6 +34,8 @@ describe("online document preview", () => {
   beforeEach(() => {
     (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
     jest.clearAllMocks();
+    jest.mocked(isDesktopAppMode).mockReturnValue(false);
+    jest.mocked(useOptionalWorkPanelTransport).mockReturnValue(null);
     jest.mocked(getDocumentPreviewCapabilities).mockResolvedValue({ code: 0, data: { enabled: true, supportedExtensions: ["docx", "pptx", "xlsx"], maxFileBytes: 1000, openMode: "iframe" } } as never);
     jest.mocked(prepareDocumentPreview).mockResolvedValue({ code: 0, data: response() } as never);
     container = document.createElement("div"); document.body.appendChild(container); root = createRoot(container);
@@ -50,6 +57,38 @@ describe("online document preview", () => {
     expect(container.querySelector("iframe")?.getAttribute("sandbox")).toBe("allow-scripts allow-same-origin");
     expect(container.querySelector("a")?.rel).toBe("noopener noreferrer");
     await click("返回文件"); expect(container.querySelector("iframe")).toBeNull();
+  });
+
+  it.each(["docx", "pptx", "xlsx"])("opens Desktop %s preview in a top-level WorkPanel web guest", async (extension) => {
+    jest.mocked(isDesktopAppMode).mockReturnValue(true);
+    const openDescriptor = jest.fn().mockResolvedValue({ ok: true });
+    jest.mocked(useOptionalWorkPanelTransport).mockReturnValue({ openDescriptor } as never);
+    const onReady = jest.fn();
+    await render({ file: { ...target, name: `report.${extension}`, path: `report.${extension}` }, onReady });
+    await click("在线预览");
+    expect(openDescriptor).toHaveBeenCalledWith({ kind: "web", url: response().url, title: `report.${extension} · 在线预览` });
+    expect(onReady).not.toHaveBeenCalled();
+    expect(container.querySelector("iframe")).toBeNull();
+  });
+
+  it("keeps a failed Desktop handoff retryable without embedding the share", async () => {
+    jest.mocked(isDesktopAppMode).mockReturnValue(true);
+    const openDescriptor = jest.fn().mockRejectedValue(new Error("WorkPanel unavailable"));
+    jest.mocked(useOptionalWorkPanelTransport).mockReturnValue({ openDescriptor } as never);
+    await render(); await click("在线预览");
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe("WorkPanel unavailable");
+    expect(container.querySelector("iframe")).toBeNull();
+    openDescriptor.mockResolvedValue({ ok: true });
+    await click("在线预览");
+    expect(openDescriptor).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it("does not embed when the Desktop WorkPanel bridge is missing", async () => {
+    jest.mocked(isDesktopAppMode).mockReturnValue(true);
+    await render(); await click("在线预览");
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(container.querySelector("iframe")).toBeNull();
   });
 
   it("external mode provides an explicit link without embedding or automatic popups", async () => {
