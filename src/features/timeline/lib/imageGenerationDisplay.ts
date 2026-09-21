@@ -2,6 +2,7 @@ import type { TimelineNode } from './timelineState';
 
 export interface GeneratedImage {
   index: number;
+  artifactId?: string;
   url: string;
   name: string;
   mimeType?: string;
@@ -42,7 +43,9 @@ export function buildImageGenerationDisplay(node: TimelineNode, runtime: ImageGe
     if (usedIndexes.has(index)) continue;
     usedIndexes.add(index);
     const url = typeof item?.url === 'string' ? item.url.trim() : '';
-    images.push({ index, url, name: typeof item?.name === 'string' ? item.name : url.split('/').pop() || `image-${index + 1}`,
+    images.push({ index, url,
+      artifactId: typeof item?.artifactId === 'string' ? item.artifactId.trim() || undefined : undefined,
+      name: typeof item?.name === 'string' ? item.name : url.split('/').pop() || `image-${index + 1}`,
       mimeType: typeof item?.mimeType === 'string' ? item.mimeType : undefined,
       sizeBytes: typeof item?.sizeBytes === 'number' ? item.sizeBytes : undefined });
   }

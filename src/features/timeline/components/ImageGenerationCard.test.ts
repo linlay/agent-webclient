@@ -9,7 +9,7 @@ jest.mock('@/app/state/provider', () => ({ useOptionalAppContext: () => null }))
 jest.mock('./ToolPill', () => ({ ToolPill: () => null }));
 const mockOpen = jest.fn();
 const mockResource = jest.fn((url: string, chatId: string, options: unknown) => ({ url, loading: false, error: null }));
-jest.mock('@/features/surfaces/openTarget', () => ({ useOpenTarget: () => mockOpen }));
+jest.mock('@/features/surfaces/openTarget', () => ({ ...jest.requireActual('@/features/surfaces/openTarget'), useOpenTarget: () => mockOpen }));
 jest.mock('@/shared/ui/useAuthenticatedResourceUrl', () => ({ useAuthenticatedResourceUrl: (url: string, chatId: string, options: unknown) => mockResource(url, chatId, options) }));
 jest.mock('@/shared/ui/useAppMessage', () => ({ useAppMessage: () => ({ error: jest.fn() }) }));
 jest.mock('@/shared/data/desktop/desktopContextMenu', () => ({ useDesktopContextMenuTarget: () => null }));
@@ -87,4 +87,33 @@ it('shows arrows only toward hidden images and updates them on scrolling and res
   left = 0; width = 1200;
   act(() => window.dispatchEvent(new Event('resize')));
   expect(arrows()).toHaveLength(0);
+});
+
+// Exercise the actual Desktop routing as well as the card click, without
+// relying on artifact.publish having populated the current Chat projection.
+it.each([
+  ['image_generate_run_0.png', 'reference'],
+  ['artifacts/run/image.png', 'artifact'],
+])('opens generated %s in the native editable image viewer', async (url, kind) => {
+  const done = { ...nodes[0], argsText: '{"n":1}', result: {
+    text: JSON.stringify({ ok: true, images: [{ url, artifactId: 'generated-1' }] }), isCode: true,
+  } };
+  render([done], false);
+  const img = container.querySelector('img')!;
+  act(() => img.dispatchEvent(new Event('load')));
+  act(() => (img.parentElement as HTMLButtonElement).click());
+  const intent = mockOpen.mock.calls[0][0];
+  expect(intent).toMatchObject({ kind, chatId: 'owner', resourceTarget: { url, contentKind: 'image' } });
+  const { openDesktopWorkPanelTarget } = jest.requireActual('@/features/surfaces/openTarget');
+  const openNativeDocument = jest.fn().mockResolvedValue({ ok: true });
+  const openDescriptor = jest.fn();
+  expect(openDesktopWorkPanelTarget({
+    intent: { ...intent, agentKey: 'agent-1' },
+    workPanel: { openDescriptor, supportsNativeDocument: () => true, openNativeDocument },
+  })).toBe(true);
+  await Promise.resolve();
+  expect(openNativeDocument).toHaveBeenCalledWith(expect.objectContaining({ source: {
+    kind, chatId: 'owner', agentKey: 'agent-1', resourceId: 'generated-1', relativePath: url,
+  } }));
+  expect(openDescriptor).not.toHaveBeenCalled();
 });

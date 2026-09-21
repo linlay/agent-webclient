@@ -7,7 +7,8 @@ import { useAuthenticatedResourceUrl } from '@/shared/ui/useAuthenticatedResourc
 import { useDesktopContextMenuTarget } from '@/shared/data/desktop/desktopContextMenu';
 import { buildResourceViewerTarget } from '@/features/viewers/lib/viewerTarget';
 import { downloadArtifactResource } from '@/features/artifacts/lib/artifactResourceRuntime';
-import { useOpenTarget } from '@/features/surfaces/openTarget';
+import { decodeNativeResourceRelativePath, useOpenTarget, type OpenTargetIntent } from '@/features/surfaces/openTarget';
+import { classifyResourceUrl } from '@/shared/data';
 import { useAppMessage } from '@/shared/ui/useAppMessage';
 import { useI18n } from '@/shared/i18n';
 import { MaterialIcon } from '@/shared/ui/MaterialIcon';
@@ -30,7 +31,23 @@ function GeneratedImageTile({ image, surface }: { image: GeneratedImage; surface
   const loaded = Boolean(source.url && loadedUrl === source.url && !failed);
   const target = useMemo(() => buildResourceViewerTarget({ ...image, contentKind: 'image' }), [image]);
   const open = () => {
-    if (target) openTarget({ version: 1, kind: 'resource', chatId: surface.chatId, agentKey: surface.agentKey, file: target.url, resourceTarget: target });
+    if (!target) return;
+    const common = { version: 1 as const, chatId: surface.chatId, agentKey: surface.agentKey, resourceTarget: target };
+    const resource = classifyResourceUrl(target.url, surface.chatId);
+    if (image.artifactId && resource.kind === 'chat') {
+      // Generated images can be flat Chat resources; use the same editor as
+      // artifacts while retaining reference semantics (save as a new artifact).
+      for (const intent of [
+        { ...common, kind: 'artifact', artifactId: image.artifactId },
+        { ...common, kind: 'reference', referenceId: image.artifactId },
+      ] satisfies OpenTargetIntent[]) {
+        if (decodeNativeResourceRelativePath(resource.resourceKey, intent.kind)) {
+          openTarget(intent);
+          return;
+        }
+      }
+    }
+    openTarget({ ...common, kind: 'resource', file: target.url });
   };
   const targetId = React.useId();
   const contextTarget = {

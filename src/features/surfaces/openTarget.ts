@@ -497,7 +497,7 @@ type DesktopWorkPanelTargetOpener = {
   ) => Promise<WorkPanelOpenResourceResult | null>;
 };
 
-function decodeNativeResourceRelativePath(
+export function decodeNativeResourceRelativePath(
   value: unknown,
   profile: "artifact" | "reference",
 ): string {
