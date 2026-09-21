@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { useAppState } from "@/app/state/AppContext";
-import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
+import type {
+  TimelineNode,
+  TimelineSource,
+} from "@/features/timeline/lib/timelineState";
 import { useBTW } from "@/features/btw/components/BtwProvider";
-import {
-  TimelineInteractionProvider,
-} from "@/features/timeline/components/TimelineInteractionContext";
+import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
 import { TimelineRow } from "@/features/timeline/components/TimelineRow";
 import {
   buildTimelineDisplayItems,
@@ -20,6 +21,7 @@ import { useOpenTarget } from "@/features/surfaces/openTarget";
 import type { BTWSessionState } from "@/features/btw/lib/btwTypes";
 import { resolveBTWSendMessage } from "@/features/btw/lib/btwSend";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
+import { useBtwTimelineInteraction } from "@/features/btw/hooks/useBtwTimelineInteraction";
 
 const BTW_TAB_CLASS =
   "btw-tab tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:bg-bg-base";
@@ -127,31 +129,26 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   const handleSend = useCallback(() => {
     if (
       !parentChatId ||
-      (!draft.trim() && !(session?.draftSelections?.length)) ||
+      (!draft.trim() && !session?.draftSelections?.length) ||
       running
-    ) return;
+    )
+      return;
     onSend();
   }, [draft, onSend, parentChatId, running, session?.draftSelections?.length]);
 
   const handleInterrupt = useCallback(() => {
-    if (!parentChatId || !running || !interruptReady || interruptPending) return;
+    if (!parentChatId || !running || !interruptReady || interruptPending)
+      return;
     onInterrupt();
-  }, [
-    interruptPending,
-    interruptReady,
-    onInterrupt,
-    parentChatId,
-    running,
-  ]);
+  }, [interruptPending, interruptReady, onInterrupt, parentChatId, running]);
 
-  const interaction = useMemo(
-    () => ({
-      conversationActive: running,
-      patchNode: onPatchTimelineNode,
-      ...(onOpenSource ? { openSource: onOpenSource } : {}),
-    }),
-    [onOpenSource, onPatchTimelineNode, running],
-  );
+  const interaction = useBtwTimelineInteraction({
+    parentChatId,
+    session,
+    running,
+    onPatchTimelineNode,
+    onOpenSource,
+  });
 
   if (!parentChatId) {
     return (
@@ -175,7 +172,9 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
               .join(" ")}
           >
             <MaterialIcon name={running ? "progress_activity" : "lock"} />
-            <span>{t(running ? "btw.status.running" : "btw.status.readOnly")}</span>
+            <span>
+              {t(running ? "btw.status.running" : "btw.status.readOnly")}
+            </span>
           </span>
           <Flex gap={2}>
             {session && onOpenStandalone ? (
@@ -290,7 +289,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
                 variant="primary"
                 size="sm"
                 iconOnly
-                disabled={!draft.trim() && !(session?.draftSelections?.length)}
+                disabled={!draft.trim() && !session?.draftSelections?.length}
                 aria-label={t("btw.send")}
                 title={t("btw.send")}
                 onClick={handleSend}
@@ -343,12 +342,17 @@ export const BtwTab: React.FC = () => {
       }}
       onNewBranch={() => newBranch(parentChatId)}
       onPatchTimelineNode={(node) => patchTimelineNode(parentChatId, node)}
-      onOpenStandalone={session ? () => openTarget({
-        version: 1,
-        kind: "btw",
-        chatId: parentChatId,
-        btwId: session.btwId || undefined,
-      }) : undefined}
+      onOpenStandalone={
+        session
+          ? () =>
+              openTarget({
+                version: 1,
+                kind: "btw",
+                chatId: parentChatId,
+                btwId: session.btwId || undefined,
+              })
+          : undefined
+      }
       onOpenSource={(source, node) => {
         const publishId = String(node?.sourcePublishId || "").trim();
         if (!publishId) return;

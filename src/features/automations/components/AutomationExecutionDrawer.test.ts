@@ -41,21 +41,25 @@ jest.mock(
 );
 
 jest.mock(
-  "@/features/conversation/components/ReadOnlyConversationTimeline",
+  "@/features/conversation/components/ConversationPreview",
   () => ({
-    ReadOnlyConversationTimeline: (props: {
-      chat: ChatDetailResponse;
+    ConversationPreview: (props: {
+      data: { chatId: string };
     }) =>
       React.createElement(
         "div",
         {
           "data-testid": "read-only-timeline",
-          "data-chat-id": props.chat.chatId,
+          "data-chat-id": props.data.chatId,
         },
-        `timeline:${props.chat.chatId}`,
+        `timeline:${props.data.chatId}`,
       ),
   }),
 );
+
+jest.mock("@/features/surfaces/openTarget", () => ({
+  useOpenTarget: () => jest.fn(),
+}));
 
 jest.mock("@/shared/icons/agent", () => ({
   AgentIcon: () => React.createElement("span", { "data-testid": "agent-icon" }),

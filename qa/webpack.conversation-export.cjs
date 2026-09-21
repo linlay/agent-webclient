@@ -10,21 +10,25 @@ const snapshotPath = process.env.CONVERSATION_PREVIEW_SNAPSHOT
   : null;
 const port = Number(process.env.PORT || 11959);
 const assetPath = "/assets/conversation-export/dev/";
+const previewBrands = {
+  zenmind: { id: "zenmind", productName: "ZenMind", openScheme: "zenmind" },
+  cutej: { id: "cutej", productName: "CuteJ", openScheme: "cutej" },
+};
 const markers = {
   __CONVERSATION_EXPORT_ASSET_SET__: "dev",
   __CONVERSATION_EXPORT_CSS_URL__: `${assetPath}runtime.css`,
   __CONVERSATION_EXPORT_RUNTIME_URL__: `${assetPath}runtime.js`,
   __CONVERSATION_EXPORT_CSP__: [
     "default-src 'none'",
-    `connect-src ws://127.0.0.1:${port}`,
-    "img-src data:",
+    `connect-src 'self' ws://127.0.0.1:${port}`,
+    "img-src data: 'self'",
     "font-src 'self'",
     "style-src 'none'",
     "style-src-elem 'self'",
     "style-src-attr 'unsafe-inline'",
     "script-src 'self'",
     "object-src 'none'",
-    "frame-src 'none'",
+    "frame-src 'self'",
     "base-uri 'none'",
     "form-action 'none'",
   ].join("; "),
@@ -47,8 +51,18 @@ function previewSnapshot(name) {
   return fixtures[name];
 }
 
-function previewHtml(snapshot) {
+function previewHtml(snapshot, brandName) {
   let html = fs.readFileSync(shellPath, "utf8");
+  if (brandName !== "none") {
+    const brand = previewBrands[brandName];
+    if (!brand) throw new Error("Unknown preview brand. Choose: zenmind, cutej, none.");
+    const content = JSON.stringify(brand).replace(/&/gu, "&amp;").replace(/"/gu, "&quot;").replace(/</gu, "&lt;");
+    html = html.replace('name="conversation-export-public-brand" content=""',
+      `name="conversation-export-public-brand" content="${content}"`);
+  }
+  const sprite = fs.readFileSync(path.join(root, "src/shared/icons/material/sprite.svg"), "utf8")
+    .replace("<svg ", '<svg id="material-icon-sprite" style="display:none" ');
+  html = html.replace("__CONVERSATION_EXPORT_ICON_SPRITE__", sprite);
   for (const [marker, value] of Object.entries(markers)) {
     if (!html.includes(marker)) throw new Error(`Missing template marker ${marker}.`);
     html = html.replace(marker, value);
@@ -86,19 +100,12 @@ module.exports = {
       server.app.get("/preview", (request, response) => {
         try {
           const name = typeof request.query.case === "string" ? request.query.case : "default";
-          response.set("Cache-Control", "no-store").type("html").send(previewHtml(previewSnapshot(name)));
+          const brand = typeof request.query.brand === "string" ? request.query.brand : "zenmind";
+          response.set("Cache-Control", "no-store").type("html").send(previewHtml(previewSnapshot(name), brand));
         } catch (error) {
           response.status(400).type("text").send(error.message);
         }
       });
-      for (const [filename, source] of [
-        ["echarts.min.js", "echarts/dist/echarts.min.js"],
-        ["mermaid.min.js", "mermaid/dist/mermaid.min.js"],
-      ]) {
-        server.app.get(`${assetPath}${filename}`, (_request, response) => {
-          response.type("js").sendFile(require.resolve(source));
-        });
-      }
       return middlewares;
     },
   },

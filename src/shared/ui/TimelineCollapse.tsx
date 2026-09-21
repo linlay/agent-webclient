@@ -1,6 +1,6 @@
 import { Collapse } from "antd";
 import Style from "./TimelineCollapse.module.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface TimelineCollapseProps {
   label: React.ReactNode;
@@ -22,17 +22,16 @@ export const TimelineCollapse: React.FC<TimelineCollapseProps> = ({
   expandIconPosition = "end",
   className,
 }) => {
-  const [activeKey, setActiveKey] = useState(expanded ? [KEY] : []);
-  useEffect(() => {
-    setActiveKey(expanded ? [KEY] : []);
-  }, [expanded]);
+  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(false);
+  const isExpanded = expanded ?? uncontrolledExpanded;
   return (
     <Collapse
       ghost
-      activeKey={activeKey}
+      activeKey={isExpanded ? [KEY] : []}
       onChange={(keys) => {
-        onExpand?.(keys.includes(KEY));
-        setActiveKey(keys);
+        const nextExpanded = keys.includes(KEY);
+        if (expanded === undefined) setUncontrolledExpanded(nextExpanded);
+        onExpand?.(nextExpanded);
       }}
       className={[Style.Collapse, className].filter(Boolean).join(" ")}
       destroyOnHidden={destroyOnHidden}

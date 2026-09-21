@@ -1,105 +1,89 @@
 const fs = require("node:fs");
 const path = require("node:path");
-
 const START = 1_700_000_000_000;
-const localSnapshotPath = path.resolve(__dirname, "../.local/share-preview/current.snapshot.json");
+const localSnapshotPath = path.resolve(
+  __dirname,
+  "../.local/share-preview/current.snapshot.json",
+);
 
-function defaultSnapshot(fallback) {
-  if (!fs.existsSync(localSnapshotPath)) return fallback;
+function localSnapshot() {
+  if (!fs.existsSync(localSnapshotPath)) return fixture;
   const raw = fs.readFileSync(localSnapshotPath, "utf8");
-  if (Buffer.byteLength(raw) > 20 * 1024 * 1024) {
-    throw new Error("Local preview snapshot exceeds the 20 MiB export limit.");
+  if (Buffer.byteLength(raw) > 20 * 1024 * 1024)
+    throw new Error("Local preview snapshot exceeds 20 MiB.");
+  const snapshot = JSON.parse(raw);
+  if (snapshot.version !== 1) {
+    throw new Error(
+      "当前本地快照不符合 Snapshot V1；请从原对话重新生成。可用 ?case=example 查看示例。",
+    );
   }
-  return JSON.parse(raw);
+  return snapshot;
 }
 
-const user = (text, at) => ({ kind: "user", text, at });
-const thought = (text, label, at) => ({ kind: "reasoning", text, label, at });
-const answer = (text, at) => ({ kind: "assistant", text, at });
-
-function snapshot(title, turns) {
-  return {
-    version: 1,
-    title,
-    createdAt: START,
-    capturedAt: START + 50_000,
-    turns,
-  };
-}
-
-const defaultFixture = snapshot("分享页本地预览：标题、身份与思考过程", [
-  {
-    startedAt: START + 1_000,
-    endedAt: START + 8_000,
-    outcome: "completed",
-    assistant: { name: "方案助手", iconName: "chat" },
-    items: [
-      user("请给出一个简洁的实施方案。", START + 1_000),
-      thought("先确认目标与约束。", "分析需求", START + 2_000),
-      thought("保留现有分享结构，控制变更范围。", "检查方案", START + 4_000),
-      answer("## 实施方案\n\n1. 统一标题与正文宽度。\n2. 展示智能体身份。\n3. 保持两级思考折叠。\n\n| 项目 | 结果 |\n| --- | --- |\n| 桌面 | 清晰 |\n| 手机 | 自适应 |\n\n```ts\nconst ready = true;\n```", START + 7_000),
-    ],
-  },
-  {
-    startedAt: START + 10_000,
-    endedAt: START + 13_000,
-    outcome: "completed",
-    assistant: { name: "审核助手", iconName: "unknown-icon" },
-    items: [
-      user("再检查一下兜底头像。", START + 10_000),
-      answer("未知内置图标应显示默认头像。", START + 12_000),
-    ],
-  },
-]);
-
-const fixtures = {
-  get default() { return defaultSnapshot(defaultFixture); },
-  legacy: snapshot("旧分享：缺少智能体身份", [
+const fixture = {
+  version: 1,
+  title: "统一对话预览 V2 示例",
+  locale: "zh-CN",
+  createdAt: START,
+  capturedAt: START + 500_000,
+  attachments: [],
+  turns: [
     {
-      startedAt: START + 1_000,
-      endedAt: START + 4_000,
+      runId: "example-run",
+      queryAt: START + 1_000,
+      startedAt: START + 1_050,
+      endedAt: START + 457_000,
       outcome: "completed",
-      items: [
-        user("旧快照如何展示？", START + 1_000),
-        answer("应显示“助手”和默认头像。", START + 3_000),
+      assistant: { name: "方案助手", iconName: "chat" },
+      nodes: [
+        {
+          id: "example-query",
+          kind: "message",
+          role: "user",
+          runId: "example-run",
+          at: START + 1_000,
+          text: "请给出实施方案。",
+        },
+        {
+          id: "example-thinking",
+          kind: "thinking",
+          role: "assistant",
+          runId: "example-run",
+          at: START + 2_000,
+          text: "先检查现有的组件和数据契约。",
+          reasoningLabel: "分析需求",
+        },
+        {
+          id: "example-tool",
+          kind: "tool",
+          role: "assistant",
+          runId: "example-run",
+          at: START + 3_000,
+          toolId: "tool-1",
+          toolName: "file_read",
+          argsText: '{"path":"README.md"}',
+          resultText: "found",
+          status: "success",
+          startedAt: START + 3_000,
+          endedAt: START + 4_000,
+          durationMs: 1_000,
+        },
+        {
+          id: "example-answer",
+          kind: "content",
+          role: "assistant",
+          runId: "example-run",
+          at: START + 5_000,
+          text: "## 实施方案\n\n统一使用 ConversationStage。\n\n| 阶段 | 内容 |\n| --- | --- |\n| 一 | 组件复用 |\n\n\x60\x60\x60ts\nconst ready = true;\n\x60\x60\x60",
+        },
       ],
     },
-  ]),
-  states: snapshot("状态预览：运行、失败、取消", [
-    {
-      startedAt: START + 1_000,
-      endedAt: START + 5_000,
-      outcome: "failed",
-      assistant: { name: "失败的助手" },
-      items: [user("失败状态", START + 1_000), thought("已完成的步骤", "检查", START + 2_000)],
-    },
-    {
-      startedAt: START + 10_000,
-      endedAt: START + 13_000,
-      outcome: "cancelled",
-      assistant: { name: "取消的助手" },
-      items: [user("取消状态", START + 10_000), thought("已记录的过程", "执行", START + 11_000)],
-    },
-    {
-      startedAt: START + 20_000,
-      outcome: "running",
-      assistant: { name: "运行中的助手" },
-      items: [user("运行中快照", START + 20_000), thought("正在处理", "思考", START + 21_000)],
-    },
-  ]),
-  long: snapshot("这是一段用于验证窄屏省略、提示和标题布局的很长很长的分享标题", [
-    {
-      startedAt: START + 1_000,
-      endedAt: START + 5_000,
-      outcome: "completed",
-      assistant: { name: "名称很长的智能体：用于检查多行换行和头像对齐" },
-      items: [
-        user("请展示较长的思考和正文。", START + 1_000),
-        thought("第一段思考。\n\n第二段思考，包含更多内容来检查窄屏排版。", "分析", START + 2_000),
-        answer("正文第一段。\n\n正文第二段包含一张表格：\n\n| 列一 | 列二 |\n| --- | --- |\n| 内容 | 更多内容 |", START + 4_000),
-      ],
-    },
-  ]),
+  ],
 };
 
-module.exports = fixtures;
+module.exports = {
+  get default() {
+    return localSnapshot();
+  },
+  example: fixture,
+};

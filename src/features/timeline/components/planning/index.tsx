@@ -8,8 +8,6 @@ import useApp from "antd/es/app/useApp";
 import { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
-import { useAppState } from "@/app/state/AppContext";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { useTimelineInteraction } from "../TimelineInteractionContext";
 
 interface PlanningTimelineProps {
@@ -21,10 +19,8 @@ const EXPAND_DIV_CLASS_NAME =
 export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
   const { message } = useApp();
   const { t } = useI18n();
-  const state = useAppState();
-  const openTarget = useOpenTarget();
   const interaction = useTimelineInteraction();
-  const chatId = String(interaction?.surfaceContext?.chatId || state.chatId).trim();
+  const chatId = String(interaction?.surfaceContext?.chatId || "").trim();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -53,7 +49,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                   disabled={!node.planningId}
                   onClick={(e) => {
                     e.stopPropagation();
-                    openTarget({
+                    interaction?.openTarget?.({
                       version: 1,
                       kind: "planning",
                       chatId,

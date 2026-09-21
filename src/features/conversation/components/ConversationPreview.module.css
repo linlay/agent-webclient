@@ -1,0 +1,127 @@
+.root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--ink-1);
+}
+
+.root :global(.conversation-stage-virtuoso) {
+  height: 100%;
+  background: transparent;
+}
+
+.document {
+  width: 100%;
+  color: var(--ink-1);
+}
+
+.document :global(.conversation-stage-virtuoso) {
+  height: auto;
+  background: transparent;
+}
+
+.document :global(.conversation-stage-virtuoso > div) {
+  width: 100%;
+  max-width: 100%;
+  left: 0;
+  transform: none;
+  padding-inline: 0;
+}
+
+.document :global(.timeline-row[data-kind="content"] .timeline-flow-content) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.document :global(.timeline-row[data-kind="content"] .timeline-content-stack),
+.document :global(.timeline-row[data-kind="content"] .timeline-markdown) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.document :global(.timeline-query-anchor-row),
+.document :global(.timeline-row-user),
+.document :global(.timeline-user-stack) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.document :global(.timeline-row-user) {
+  padding-left: 0;
+}
+
+.document :global(.timeline-user-bubble) {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.document :global(.timeline-row[data-kind="content"] .timeline-markdown) :is(pre, table, .markdown-mermaid, .markdown-echarts) {
+  max-width: 100%;
+}
+
+.document :global(.timeline-row[data-kind="content"] .timeline-marker)::after {
+  display: none;
+}
+
+.document :global(.ant-collapse > .ant-collapse-item > .ant-collapse-header) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.document :global(.ant-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-header-text) {
+  flex: 1;
+  min-width: 0;
+}
+
+.document :global(.ant-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-expand-icon) {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  order: 1;
+}
+
+.document :global(.timeline-run-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-expand-icon) {
+  order: 0;
+}
+
+.document :global(.timeline-run-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-header-text) {
+  flex: none;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.document :global(.timeline-run-collapse) {
+  margin-bottom: 16px;
+}
+
+.document :global(.ant-collapse-content-hidden) {
+  display: none;
+}
+
+.empty {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  padding: 20px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.latest {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  padding: 6px 12px;
+  background: var(--bg-elev-2);
+  color: var(--ink-1);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}

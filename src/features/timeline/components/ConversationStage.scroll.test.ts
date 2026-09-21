@@ -11,12 +11,12 @@ import {
   getConversationScrollBookmark,
   setConversationScrollBookmark,
 } from "@/features/timeline/lib/conversationScrollBookmark";
-import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import {
   AIRequestEventTypeEnum,
   AIRunEventTypeEnum,
 } from "@/shared/contracts/agentEvents";
 import { SELECTED_TEXT_TARGET_REVEAL_EVENT } from "@/shared/data/desktop/selectedTextLocate";
+import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
   .IS_REACT_ACT_ENVIRONMENT = true;
@@ -308,7 +308,7 @@ describe("ConversationStage scroll restoration", () => {
   function renderStage(expectedChatId = "chat-target") {
     act(() => {
       root.render(
-        React.createElement(ConversationStage, {
+        React.createElement(ConnectedConversationStage, {
           surfaceMode: "main",
           onFeedback: async () => undefined,
           deriveChatAction: { isDisabled: () => false, execute: async () => undefined },
@@ -358,14 +358,14 @@ describe("ConversationStage scroll restoration", () => {
     ).toBe("allow");
   });
 
-  it("does not cover live output at the bottom and shows a down arrow after scrolling away", () => {
+  it("shows the running indicator when scrolling away from live output", () => {
     mockState = { ...createChatState(), streaming: true };
     mockStateRef.current = mockState;
     renderStage();
 
     expect(
-      container.querySelector(".conversation-stage-scroll-to-bottom"),
-    ).toBeNull();
+      container.querySelector(".conversation-stage-scroll-to-bottom [aria-label=\"leftSidebar.loading\"]"),
+    ).not.toBeNull();
 
     act(() => mockVirtuosoProps.atBottomStateChange(false));
 
@@ -373,7 +373,7 @@ describe("ConversationStage scroll restoration", () => {
       ".conversation-stage-scroll-to-bottom",
     );
     expect(button).not.toBeNull();
-    expect(button?.querySelector('[data-icon="arrow_downward"]')).not.toBeNull();
+    expect(button?.querySelector('[aria-label="leftSidebar.loading"]')).not.toBeNull();
   });
 
   it("immediately overlays source content when the route targets another chat", () => {
@@ -693,7 +693,7 @@ describe("ConversationStage scroll restoration", () => {
 
     expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
     expect(container.querySelector('[data-node-id="query-1"]')).not.toBeNull();
-    expect(mockVirtuosoProps.followOutput(true)).toBe("smooth");
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
   });
 
   it("does not open the history skeleton when an active run completes after restoration", () => {
@@ -806,7 +806,7 @@ describe("ConversationStage scroll restoration", () => {
     mockState = createChatState(null);
     mockStateRef.current = mockState;
     renderStage();
-    expect(mockVirtuosoProps.followOutput(true)).toBe("smooth");
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
 
     act(() => mockVirtuosoProps.atBottomStateChange(false));
     expect(mockVirtuosoProps.followOutput(true)).toBe(false);

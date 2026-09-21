@@ -12,11 +12,11 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 `agent-webclient` 是 AGW / AGENT 协议的 Web 客户端。它不包含智能体后端，也不定义模型、工具、调度、记忆或权限的最终语义；它消费上游 `/api/*` 与 `/ws` 能力，为智能体平台提供统一前端。
 
-公开对话分享不由本项目运行或代理。Desktop 只向 Tunnel 上传 `ConversationSnapshotV1`；Tunnel 保存 Snapshot，并在公开 `/share/{shareId}` 使用当前分享渲染包生成 HTML。
+公开对话分享不由本项目运行或代理。Desktop 向 Tunnel 一次提交 `ConversationSnapshotV1` 和已发布的 HTML 附件；Tunnel 保存冻结副本，并在公开 `/share/{shareId}` 使用当前分享渲染包生成 HTML。
 
-对话静态 HTML 使用 `src/export/` 的独立只读组件树和严格 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并整体替换 Tunnel 当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI，Tunnel 只托管当前资源集合。浏览器和 Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件。
+对话静态 HTML 使用 `ConversationPreview → ConversationStage` 的统一展示链路和严格的 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并更新 Tunnel 的当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI；Tunnel 只发布当前资源集。Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件，附件预览仅在在线分享页可用。
 
-本地调试分享页时运行 `npm run preview:conversation-export`，打开 `http://127.0.0.1:11959/preview`。预览直接构建 `src/export/`，修改组件、样式或模板后浏览器自动刷新，无需同步或发布 Tunnel。默认读取忽略目录 `.local/share-preview/current.snapshot.json` 中的 Snapshot V1；文件不存在时使用内置样例。用 `?case=legacy`、`?case=states`、`?case=long` 切换固定样例。也可设置 `CONVERSATION_PREVIEW_SNAPSHOT=/absolute/path/snapshot.json` 显式加载本地 JSON，此时忽略 `case` 参数。修改当前快照文件会触发浏览器刷新；端口可通过 `PORT` 调整。预览仅监听 `127.0.0.1`，使用开发态资源路径和自动刷新连接；发布前仍需执行正式导出构建与资源一致性检查。
+本地调试分享页时运行 `npm run preview:conversation-export`，打开 `http://127.0.0.1:11959/preview`。预览直接构建 `src/export/`，修改组件、样式或模板后浏览器自动刷新，无需同步或发布 Tunnel。默认读取忽略目录 `.local/share-preview/current.snapshot.json` 中的 Snapshot V1；文件不存在时使用内置样例，`?case=example` 可强制查看内置样例。也可设置 `CONVERSATION_PREVIEW_SNAPSHOT=/absolute/path/snapshot.json` 显式加载本地 JSON，此时忽略 `case` 参数。修改当前快照文件会触发浏览器刷新；端口可通过 `PORT` 调整。预览仅监听 `127.0.0.1`，使用开发态资源路径和自动刷新连接；发布前仍需执行正式导出构建与资源一致性检查。
 
 接入以后，一个智能体后端可以快速拥有：
 

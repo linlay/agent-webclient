@@ -1,300 +1,75 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
-import { ContentBlock } from "@/features/timeline/components/ContentBlock";
-import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
+import { ContentBlock } from "./ContentBlock";
+import { TimelineInteractionProvider } from "./TimelineInteractionContext";
+import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 
-const mockDispatch = jest.fn();
-let mockChatId = "chat_01";
+const openTarget = jest.fn();
+const markdownProps: MarkdownContentProps[] = [];
 
-jest.mock("@/app/state/AppContext", () => ({
-	useAppDispatch: () => mockDispatch,
-	useAppState: () => ({
-		chatId: mockChatId,
-		chatAgentById: new Map(),
-		chats: [],
-		artifacts: [],
-		pendingNewChatAgentKey: "coder-agent",
-		workerSelectionKey: "",
-		workerIndexByKey: new Map(),
-		rightSidebarOpen: false,
-		rightSidebarOpenTab: null,
-		viewerTabs: [],
-		activeViewerKey: "",
-		webPreviews: [],
-		activeWebPreviewUrl: "",
-	}),
-}));
+function renderNode(node: TimelineNode, surface = { chatId: "chat_01", agentKey: "coder-agent", teamChat: false }) {
+  markdownProps.length = 0;
+  openTarget.mockClear();
+  return renderToStaticMarkup(React.createElement(TimelineInteractionProvider, {
+    value: {
+      readOnly: true,
+      surfaceContext: surface,
+      openTarget,
+      renderMarkdown: (props) => {
+        markdownProps.push(props);
+        return React.createElement("div", { className: "x-markdown" }, props.content);
+      },
+    },
+  }, React.createElement(ContentBlock, { node })));
+}
 
-const mockMarkdownContentProps: Array<{
-	content: string;
-	chatId?: string;
-	teamChat?: boolean;
-	onWorkspaceFileLinkClick?: (link: {
-		href: string;
-		filePath: string;
-		line?: number;
-	}) => void;
-	onResourceFileLinkClick?: (link: {
-		href: string;
-		name: string;
-		classification: {
-			kind: "chat";
-			source: string;
-			fetchUrl: string;
-			requiresPlatformAuth: boolean;
-		};
-	}) => void;
-	onWebLinkClick?: (link: {
-		href: string;
-		url: string;
-		title: string;
-	}) => void;
-}> = [];
+function content(text: string): TimelineNode {
+  return { id: "content-1", kind: "content", role: "assistant", text, ts: 100 };
+}
 
-jest.mock("@/features/viewers/components/MarkdownContent", () => {
-	const ReactRuntime = require("react");
+describe("ContentBlock presentation boundary", () => {
+  it("passes the selected chat and content to the host Markdown renderer", () => {
+    const html = renderNode(content("> 第一段\n>\n> 第二段"), {
+      chatId: "history", agentKey: "agent-1", teamChat: true,
+    });
+    expect(markdownProps[0]).toMatchObject({ chatId: "history", teamChat: true, content: "> 第一段\n>\n> 第二段" });
+    expect(html).toContain("timeline-markdown");
+    expect(html).toContain("tw:whitespace-normal");
+  });
 
-	return {
-		MarkdownContent: (props: {
-			content: string;
-			chatId?: string;
-			teamChat?: boolean;
-			onWorkspaceFileLinkClick?: (link: {
-				href: string;
-				filePath: string;
-				line?: number;
-			}) => void;
-			onResourceFileLinkClick?: (link: {
-				href: string;
-				name: string;
-				classification: {
-					kind: "chat";
-					source: string;
-					fetchUrl: string;
-					requiresPlatformAuth: boolean;
-				};
-			}) => void;
-			onWebLinkClick?: (link: {
-				href: string;
-				url: string;
-				title: string;
-			}) => void;
-		}) => {
-			mockMarkdownContentProps.push(props);
-			return ReactRuntime.createElement(
-				"div",
-				{ className: "x-markdown" },
-				props.content,
-			);
-		},
-	};
-});
+  it("routes workspace links through the host instead of the application store", () => {
+    renderNode(content("[a.ts](/Users/demo/project/src/a.ts:12)"));
+    markdownProps[0].onWorkspaceFileLinkClick?.({
+      href: "/Users/demo/project/src/a.ts:12", filePath: "/Users/demo/project/src/a.ts", line: 12,
+    });
+    expect(openTarget).toHaveBeenCalledWith(expect.objectContaining({
+      version: 1, kind: "file", agentKey: "coder-agent", path: "/Users/demo/project/src/a.ts", line: 12,
+    }));
+  });
 
-describe("ContentBlock", () => {
-	beforeEach(() => {
-		mockDispatch.mockClear();
-		mockMarkdownContentProps.length = 0;
-		mockChatId = "chat_01";
-	});
+  it("routes ChatScope resources through the host with the selected chat", () => {
+    const href = "artifacts/run/report.html";
+    renderNode(content(`[report](${href})`));
+    markdownProps[0].onResourceFileLinkClick?.({ href, name: "report.html",
+      classification: { kind: "chat", source: href, fetchUrl: "/api/resource?file=chat_01", requiresPlatformAuth: true },
+    });
+    expect(openTarget).toHaveBeenCalledWith(expect.objectContaining({
+      version: 1, kind: "resource", chatId: "chat_01", file: href, title: "report.html",
+    }));
+  });
 
-	it("passes the current chatId to Markdown resource rendering", () => {
-		const node: TimelineNode = {
-			id: "content_resource",
-			kind: "content",
-			role: "assistant",
-			text: "![preview](image.png)",
-			ts: 100,
-		};
+  it("routes web links through the host", () => {
+    renderNode(content("[site](https://example.com)"));
+    markdownProps[0].onWebLinkClick?.({ href: "https://example.com", url: "https://example.com/", title: "Site" });
+    expect(openTarget).toHaveBeenCalledWith({ version: 1, kind: "web", url: "https://example.com/", title: "Site" });
+  });
 
-		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
-
-		expect(mockMarkdownContentProps[0]).toMatchObject({
-			content: "![preview](image.png)",
-			chatId: "chat_01",
-		});
-	});
-
-	it("uses the explicit read-only surface context instead of the main chat", () => {
-		const node: TimelineNode = {
-			id: "content_history",
-			kind: "content",
-			role: "assistant",
-			text: "Historical answer",
-			ts: 100,
-		};
-
-		renderToStaticMarkup(
-			React.createElement(
-				TimelineInteractionProvider,
-				{
-					value: {
-						readOnly: true,
-						surfaceContext: {
-							chatId: "chat_history",
-							agentKey: "history-agent",
-							teamChat: true,
-						},
-					},
-				},
-				React.createElement(ContentBlock, { node }),
-			),
-		);
-
-		expect(mockMarkdownContentProps[0]).toMatchObject({
-			content: "Historical answer",
-			chatId: "chat_history",
-			teamChat: true,
-		});
-	});
-
-	it("keeps assistant markdown whitespace collapsed instead of pre-wrapped", () => {
-		const node: TimelineNode = {
-			id: "content_1",
-			kind: "content",
-			role: "assistant",
-			text: "> 第一段\n>\n> 第二段",
-			ts: 100,
-		};
-
-		const html = renderToStaticMarkup(
-			React.createElement(ContentBlock, { node }),
-		);
-
-		expect(html).toContain("timeline-markdown");
-		expect(html).toContain("tw:whitespace-normal");
-		expect(html).not.toContain("tw:whitespace-pre-wrap");
-	});
-
-	it("opens workspace file links in the right-sidebar Viewer", () => {
-		const node: TimelineNode = {
-			id: "content_1",
-			kind: "content",
-			role: "assistant",
-			text: "[a.ts](/Users/demo/project/src/a.ts:12)",
-			ts: 100,
-		};
-
-		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
-		mockMarkdownContentProps[0].onWorkspaceFileLinkClick?.({
-			href: "/Users/demo/project/src/a.ts:12",
-			filePath: "/Users/demo/project/src/a.ts",
-			line: 12,
-		});
-
-		expect(mockDispatch).toHaveBeenCalledWith({
-			type: "OPEN_RIGHT_SIDEBAR",
-			tab: "viewer",
-			viewerTarget: expect.objectContaining({
-				type: "file",
-				name: "a.ts",
-				contentKind: "text",
-				agentKey: "coder-agent",
-				path: "/Users/demo/project/src/a.ts",
-				line: 12,
-			}),
-		});
-	});
-
-	it("opens relative ChatScope files in the Resource Viewer", () => {
-		const href = "artifacts/msx9nzkm/%E7%81%AF%E4%B8%8B.md";
-		const node: TimelineNode = {
-			id: "content_resource_link",
-			kind: "content",
-			role: "assistant",
-			text: `[灯下.md](${href})`,
-			ts: 100,
-		};
-
-		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
-		mockMarkdownContentProps[0].onResourceFileLinkClick?.({
-			href,
-			name: "灯下.md",
-			classification: {
-				kind: "chat",
-				source: href,
-				fetchUrl: "/api/resource?file=chat_01%2Fartifacts",
-				requiresPlatformAuth: true,
-			},
-		});
-
-		expect(mockDispatch).toHaveBeenCalledWith({
-			type: "OPEN_RIGHT_SIDEBAR",
-			tab: "viewer",
-			viewerTarget: {
-				type: "resource",
-				name: "灯下.md",
-				url: href,
-				downloadUrl: href,
-				contentKind: "text",
-				documentKind: "document-markdown",
-			},
-		});
-	});
-
-	it("opens bare HTML file links with an HTML Viewer content kind", () => {
-		const node: TimelineNode = {
-			id: "content_html",
-			kind: "content",
-			role: "assistant",
-			text: "[report](china-gdp-2010-2024.html)",
-			ts: 100,
-		};
-
-		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
-		mockMarkdownContentProps[0].onWorkspaceFileLinkClick?.({
-			href: "china-gdp-2010-2024.html",
-			filePath: "china-gdp-2010-2024.html",
-		});
-
-		expect(mockDispatch).toHaveBeenCalledWith({
-			type: "OPEN_RIGHT_SIDEBAR",
-			tab: "viewer",
-			viewerTarget: expect.objectContaining({
-				type: "file",
-				name: "china-gdp-2010-2024.html",
-				contentKind: "html",
-				agentKey: "coder-agent",
-				path: "china-gdp-2010-2024.html",
-			}),
-		});
-	});
-
-	it("opens HTTP links in a right-sidebar web tab", () => {
-		const node: TimelineNode = {
-			id: "content_web",
-			kind: "content",
-			role: "assistant",
-			text: "[百度](https://www.baidu.com)",
-			ts: 100,
-		};
-
-		renderToStaticMarkup(React.createElement(ContentBlock, { node }));
-		mockMarkdownContentProps[0].onWebLinkClick?.({
-			href: "https://www.baidu.com",
-			url: "https://www.baidu.com/",
-			title: "百度",
-		});
-
-		expect(mockDispatch).toHaveBeenCalledWith({
-			type: "OPEN_RIGHT_SIDEBAR",
-			tab: "web",
-			webPreview: {
-				title: "百度",
-				url: "https://www.baidu.com/",
-			},
-		});
-	});
-});
-
-it("retains voice text in read-only history without voice runtime controls", () => {
-  mockDispatch.mockClear();
-  const markup = renderToStaticMarkup(React.createElement(TimelineInteractionProvider, {
-    value: { readOnly: true, surfaceContext: { chatId: "preview" } },
-  }, React.createElement(ContentBlock, { node: {
-    id: "voice", kind: "content", text: "", segments: [{ kind: "ttsVoice", signature: "voice-1", text: "Spoken answer", closed: true }],
-  } })));
-  expect(markup).toContain("Spoken answer");
-  expect(markup).not.toContain("button");
-  expect(mockDispatch).not.toHaveBeenCalled();
+  it("retains voice text in read-only history without voice controls", () => {
+    const html = renderNode({ id: "voice", kind: "content", text: "", segments: [
+      { kind: "ttsVoice", signature: "voice-1", text: "Spoken answer", closed: true },
+    ] });
+    expect(html).toContain("Spoken answer");
+    expect(html).not.toContain("button");
+  });
 });

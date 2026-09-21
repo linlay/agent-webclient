@@ -1,4 +1,3 @@
-import { ViewEmbed } from "./ViewEmbed";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
@@ -11,10 +10,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { Flex, Tooltip } from "antd";
-import { useOptionalAppContext } from "@/app/state/provider";
-import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
-import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { toolOutputText } from "@/features/events/lib/toolOutputState";
 import "@/features/tools/components/ToolTimeline.module.css";
@@ -349,18 +345,8 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const autoExpandedOutputKeysRef = useRef<Set<string>>(new Set());
   const source = toolGroup || node;
   const { t } = useI18n();
-  const appContext = useOptionalAppContext();
-  const themeMode = appContext?.state.themeMode || "light";
   const interaction = useTimelineInteraction();
-  const mainChatStreaming =
-    interaction?.conversationActive ??
-    (appContext
-      ? resolveMainChatRuntime(
-          appContext.stateRef,
-          appContext.activeQuerySessionRequestIdRef,
-          appContext.querySessionsRef,
-        ).streaming
-      : false);
+  const mainChatStreaming = Boolean(interaction?.conversationActive);
 
   const { isLive, startTimeMs } = useMemo(() => {
     const nodes = toolGroup?.nodes || (node ? [node] : []);
@@ -485,7 +471,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
           <Flex
             align="center"
             gap={6}
-            className="tw:text-[13px] tw:overflow-hidden"
+            className="tool-pill-status-row tw:text-[13px] tw:overflow-hidden"
           >
             <span className="tool-pill-label" title={toolLabel}>
               {toolLabel}
@@ -569,13 +555,11 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                     {t(record.kbaseIndexSummary.messageKey)}
                   </div>
                 ) : null}
-                {record.view && (
-                  <ViewEmbed
-                    chatId={record.viewChatId || appContext?.state.chatId || ""}
-                    view={record.view}
-                    viewError={record.viewError}
-                    payloadRaw={resultText}
-                  />
+                {record.view && interaction?.renderToolView?.(
+                  record.view,
+                  record.viewChatId || interaction.surfaceContext?.chatId || "",
+                  record.viewError,
+                  resultText,
                 )}
                 <Flex className="tool-call-copy" align="center" gap={4}>
                   {!!record.durationMs && (
@@ -637,10 +621,8 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                 </Flex>
                 {hasLiveOutput && record.toolOutput ? (
                   <div className="tool-call-live-output">
-                    <ToolOutputTerminal
-                      output={record.toolOutput}
-                      themeMode={themeMode}
-                    />
+                    {interaction?.renderToolOutput?.(record.toolOutput)
+                      ?? <code className={TOOL_CALL_RESULT_CLASS_NAME}>{liveOutputText}</code>}
                   </div>
                 ) : (
                   <code

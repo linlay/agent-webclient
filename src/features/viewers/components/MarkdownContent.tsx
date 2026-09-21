@@ -39,7 +39,7 @@ import { copyText } from "@/shared/utils/copy";
 export type { WorkspaceFileLink } from "@/shared/ui/markdownWorkspaceLinks";
 export type { MarkdownWebLink } from "@/shared/ui/markdownWebLinks";
 
-interface MarkdownContentProps {
+export interface MarkdownContentProps {
   content: string;
   chatId: string;
   teamChat?: boolean;

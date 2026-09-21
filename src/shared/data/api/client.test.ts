@@ -1,19 +1,19 @@
-import { Blob } from 'buffer';
-import { URL as NodeURL } from 'node:url';
-import { ACCESS_TOKEN_STORAGE_KEY } from '@/shared/data/auth/accessTokenStorage';
+import { Blob } from "buffer";
+import { URL as NodeURL } from "node:url";
+import { ACCESS_TOKEN_STORAGE_KEY } from "@/shared/data/auth/accessTokenStorage";
 import {
   AGENT_APP_AUTH_CONTEXT_STORAGE_KEY,
   AGENT_APP_ACCESS_TOKEN_STORAGE_KEY,
   APP_AUTH_RESPONSE_TYPE,
-} from '@/shared/data/auth/appAuth';
-import { resetCompactIdStateForTests } from '@/shared/utils/compactId';
-import { MAX_CONVERSATION_HTML_BYTES } from '@/shared/data/conversationExport';
+} from "@/shared/data/auth/appAuth";
+import { resetCompactIdStateForTests } from "@/shared/utils/compactId";
+import { MAX_CONVERSATION_HTML_BYTES } from "@/shared/data/conversationExport";
 
 import {
   buildResourceUrl,
   classifyResourceUrl,
   getResourceBlob,
-	getResourceDocumentMetadata,
+  getResourceDocumentMetadata,
   getResourceText,
   isLegacyResourceUrl,
   isChatScopeResourceRef,
@@ -45,8 +45,8 @@ import {
   getAdminRegistries,
   getArchive,
   getAgent,
-	getAgentSkills,
-	getAgentFile,
+  getAgentSkills,
+  getAgentFile,
   getProjectChanges,
   getProjectDiff,
   getProjectTree,
@@ -57,7 +57,7 @@ import {
   getAgents,
   getChatLLMTraceRaw,
   getChatRawJsonl,
-	getChatSystemPrompt,
+  getChatSystemPrompt,
   getArchives,
   getChats,
   getFileHistory,
@@ -115,7 +115,7 @@ import {
   updateAutomation,
   uploadFile,
   validateAdminRegistry,
-} from '@/shared/data/api/client';
+} from "@/shared/data/api/client";
 
 class MockFormData {
   private readonly values = new Map<string, unknown[]>();
@@ -169,17 +169,19 @@ function createMockStorage(initial: Record<string, string> = {}): MockStorage {
   };
 }
 
-function installWindow(options: {
-  pathname?: string;
-  search?: string;
-  storedToken?: string;
-} = {}) {
+function installWindow(
+  options: {
+    pathname?: string;
+    search?: string;
+    storedToken?: string;
+  } = {},
+) {
   const listeners = new Set<(event: MessageEvent) => void>();
   const sessionStorage = createMockStorage(
     options.storedToken
       ? {
           [AGENT_APP_ACCESS_TOKEN_STORAGE_KEY]: options.storedToken,
-          [AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]: 'desktop-auth-current',
+          [AGENT_APP_AUTH_CONTEXT_STORAGE_KEY]: "desktop-auth-current",
         }
       : {},
   );
@@ -188,21 +190,21 @@ function installWindow(options: {
   };
   const mockWindow = {
     location: {
-      pathname: options.pathname ?? '/',
-      search: options.search ?? '',
+      pathname: options.pathname ?? "/",
+      search: options.search ?? "",
     },
     parent,
     __AGENT_APP_AUTH_CONTEXT: options.storedToken
-      ? 'desktop-auth-current'
+      ? "desktop-auth-current"
       : undefined,
     sessionStorage,
     addEventListener: jest.fn((type: string, listener: EventListener) => {
-      if (type === 'message') {
+      if (type === "message") {
         listeners.add(listener as unknown as (event: MessageEvent) => void);
       }
     }),
     removeEventListener: jest.fn((type: string, listener: EventListener) => {
-      if (type === 'message') {
+      if (type === "message") {
         listeners.delete(listener as unknown as (event: MessageEvent) => void);
       }
     }),
@@ -213,10 +215,12 @@ function installWindow(options: {
   };
 
   (globalThis as unknown as { window?: typeof mockWindow }).window = mockWindow;
-  (globalThis as typeof globalThis & {
-    __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-  }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-    DESKTOP_APP: 'true',
+  (
+    globalThis as typeof globalThis & {
+      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+    }
+  ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+    DESKTOP_APP: "true",
   };
 
   return {
@@ -230,13 +234,13 @@ function installWindow(options: {
 }
 
 function installStandaloneLocalStorage(initial: Record<string, string> = {}) {
-  Object.defineProperty(globalThis, 'localStorage', {
+  Object.defineProperty(globalThis, "localStorage", {
     configurable: true,
     value: createMockStorage(initial),
   });
 }
 
-describe('data client requests', () => {
+describe("data client requests", () => {
   const fetchMock = jest.fn();
   const originalWindow = globalThis.window;
   const originalLocalStorage = globalThis.localStorage;
@@ -247,29 +251,32 @@ describe('data client requests', () => {
     global.Blob = Blob as unknown as typeof global.Blob;
     global.File = MockFile as unknown as typeof global.File;
     global.FormData = MockFormData as unknown as typeof global.FormData;
-    setAccessToken('');
+    setAccessToken("");
     fetchMock.mockReset();
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ code: 0, msg: 'ok', data: null }),
+      text: async () => JSON.stringify({ code: 0, msg: "ok", data: null }),
     });
     global.fetch = fetchMock as unknown as typeof fetch;
-    setAccessToken('');
+    setAccessToken("");
   });
 
   afterEach(() => {
-    delete (globalThis as typeof globalThis & {
-      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+    delete (
+      globalThis as typeof globalThis & {
+        __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+      }
+    ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
     if (originalWindow) {
-      (globalThis as unknown as { window?: Window & typeof globalThis }).window =
-        originalWindow;
+      (
+        globalThis as unknown as { window?: Window & typeof globalThis }
+      ).window = originalWindow;
     } else {
       delete (globalThis as Record<string, unknown>).window;
     }
     if (originalLocalStorage) {
-      Object.defineProperty(globalThis, 'localStorage', {
+      Object.defineProperty(globalThis, "localStorage", {
         configurable: true,
         value: originalLocalStorage,
       });
@@ -278,460 +285,525 @@ describe('data client requests', () => {
     }
   });
 
-  it('creates compact request ids from second-plus-counter', () => {
+  it("creates compact request ids from second-plus-counter", () => {
     const second = 1_776_474_697;
     const baseMs = second * 1000;
-    jest.spyOn(Date, 'now').mockReturnValue(baseMs + 581);
+    jest.spyOn(Date, "now").mockReturnValue(baseMs + 581);
 
-    expect(createRequestId('req')).toBe(`req_${(second * 1000).toString(36)}`);
-    expect(createRequestId('upload')).toBe(
+    expect(createRequestId("req")).toBe(`req_${(second * 1000).toString(36)}`);
+    expect(createRequestId("upload")).toBe(
       `upload_${(second * 1000 + 1).toString(36)}`,
     );
   });
 
-  it('normalizes request id prefixes before generation', () => {
-    jest.spyOn(Date, 'now').mockReturnValue(2_500);
+  it("normalizes request id prefixes before generation", () => {
+    jest.spyOn(Date, "now").mockReturnValue(2_500);
 
-    expect(createRequestId(' req__ ')).toBe(`req_${(2_000).toString(36)}`);
+    expect(createRequestId(" req__ ")).toBe(`req_${(2_000).toString(36)}`);
   });
 
-  it('sends automation management requests as JSON posts', async () => {
+  it("sends automation management requests as JSON posts", async () => {
     await getAutomations();
-    await getAutomation('daily-demo');
+    await getAutomation("daily-demo");
     await createAutomation({
-      name: 'Daily Demo',
-      description: 'Demo automation',
-      cron: '0 9 * * *',
-      agentKey: 'demo-agent',
+      name: "Daily Demo",
+      description: "Demo automation",
+      cron: "0 9 * * *",
+      agentKey: "demo-agent",
       enabled: true,
-      query: { message: 'hello', role: 'user' },
+      query: { message: "hello", role: "user" },
     });
     await updateAutomation({
-      id: 'daily-demo',
-      cron: '0 18 * * 1-5',
-      query: { message: 'updated' },
+      id: "daily-demo",
+      cron: "0 18 * * 1-5",
+      query: { message: "updated" },
     });
-    await toggleAutomation({ id: 'daily-demo', enabled: false });
-    await triggerAutomation({ id: 'daily-demo' });
-    await getAutomationExecutions({ id: 'daily-demo', limit: 20 });
-    await getAutomationExecution({ executionId: 'execution-1' });
-    await deleteAutomation({ id: 'daily-demo' });
+    await toggleAutomation({ id: "daily-demo", enabled: false });
+    await triggerAutomation({ id: "daily-demo" });
+    await getAutomationExecutions({ id: "daily-demo", limit: 20 });
+    await getAutomationExecution({ executionId: "execution-1" });
+    await deleteAutomation({ id: "daily-demo" });
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
-      body: JSON.parse(String((options as RequestInit).body || '{}')),
+      body: JSON.parse(String((options as RequestInit).body || "{}")),
     }));
     expect(calls).toEqual([
-      { url: '/api/automations', body: {} },
-      { url: '/api/automation', body: { id: 'daily-demo' } },
+      { url: "/api/automations", body: {} },
+      { url: "/api/automation", body: { id: "daily-demo" } },
       {
-        url: '/api/automation/create',
+        url: "/api/automation/create",
         body: {
-          name: 'Daily Demo',
-          description: 'Demo automation',
-          cron: '0 9 * * *',
-          agentKey: 'demo-agent',
+          name: "Daily Demo",
+          description: "Demo automation",
+          cron: "0 9 * * *",
+          agentKey: "demo-agent",
           enabled: true,
-          query: { message: 'hello', role: 'user' },
+          query: { message: "hello", role: "user" },
         },
       },
       {
-        url: '/api/automation/update',
+        url: "/api/automation/update",
         body: {
-          id: 'daily-demo',
-          cron: '0 18 * * 1-5',
-          query: { message: 'updated' },
+          id: "daily-demo",
+          cron: "0 18 * * 1-5",
+          query: { message: "updated" },
         },
       },
-      { url: '/api/automation/toggle', body: { id: 'daily-demo', enabled: false } },
-      { url: '/api/automation/trigger', body: { id: 'daily-demo' } },
-      { url: '/api/automation/executions', body: { id: 'daily-demo', limit: 20 } },
-      { url: '/api/automation/execution', body: { executionId: 'execution-1' } },
-      { url: '/api/automation/delete', body: { id: 'daily-demo' } },
+      {
+        url: "/api/automation/toggle",
+        body: { id: "daily-demo", enabled: false },
+      },
+      { url: "/api/automation/trigger", body: { id: "daily-demo" } },
+      {
+        url: "/api/automation/executions",
+        body: { id: "daily-demo", limit: 20 },
+      },
+      {
+        url: "/api/automation/execution",
+        body: { executionId: "execution-1" },
+      },
+      { url: "/api/automation/delete", body: { id: "daily-demo" } },
     ]);
   });
 
-  it('sends agent management requests as JSON posts', async () => {
+  it("sends agent management requests as JSON posts", async () => {
     await createAgent({
-      key: 'editable-agent',
+      key: "editable-agent",
       definition: {
-        key: 'editable-agent',
-        name: 'Editable Agent',
-        mode: 'REACT',
+        key: "editable-agent",
+        name: "Editable Agent",
+        mode: "REACT",
       },
-      soulPrompt: 'Soul v1',
-      agentsPrompt: 'Agents v1',
+      soulPrompt: "Soul v1",
+      agentsPrompt: "Agents v1",
     });
     await updateAgent({
-      key: 'editable-agent',
+      key: "editable-agent",
       definition: {
-        key: 'editable-agent',
-        name: 'Editable Agent',
-        mode: 'REACT',
-        description: 'updated',
+        key: "editable-agent",
+        name: "Editable Agent",
+        mode: "REACT",
+        description: "updated",
       },
     });
     await updateAgentName({
-      key: 'editable-agent',
-      name: 'Renamed Agent',
+      key: "editable-agent",
+      name: "Renamed Agent",
     });
     await updateAgentModelConfig({
-      agentKey: 'editable-agent',
-      modelKey: 'coder-model',
-      reasoningEffort: 'MAX',
+      agentKey: "editable-agent",
+      modelKey: "coder-model",
+      reasoningEffort: "MAX",
     });
-    await deleteAgent({ key: 'editable-agent' });
+    await deleteAgent({ key: "editable-agent" });
     await openAgentDirectory({
-      agentKey: 'editable-agent',
-      directoryType: 'config',
+      agentKey: "editable-agent",
+      directoryType: "config",
     });
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
-      body: JSON.parse(String((options as RequestInit).body || '{}')),
+      body: JSON.parse(String((options as RequestInit).body || "{}")),
     }));
     expect(calls).toEqual([
       {
-        url: '/api/admin/agents/create',
+        url: "/api/admin/agents/create",
         body: {
-          key: 'editable-agent',
+          key: "editable-agent",
           definition: {
-            key: 'editable-agent',
-            name: 'Editable Agent',
-            mode: 'REACT',
+            key: "editable-agent",
+            name: "Editable Agent",
+            mode: "REACT",
           },
-          soulPrompt: 'Soul v1',
-          agentsPrompt: 'Agents v1',
+          soulPrompt: "Soul v1",
+          agentsPrompt: "Agents v1",
         },
       },
       {
-        url: '/api/admin/agents/update',
+        url: "/api/admin/agents/update",
         body: {
-          key: 'editable-agent',
+          key: "editable-agent",
           definition: {
-            key: 'editable-agent',
-            name: 'Editable Agent',
-            mode: 'REACT',
-            description: 'updated',
+            key: "editable-agent",
+            name: "Editable Agent",
+            mode: "REACT",
+            description: "updated",
           },
         },
       },
       {
-        url: '/api/admin/agents/update-name',
+        url: "/api/admin/agents/update-name",
         body: {
-          key: 'editable-agent',
-          name: 'Renamed Agent',
+          key: "editable-agent",
+          name: "Renamed Agent",
         },
       },
       {
-        url: '/api/agent/model-config',
+        url: "/api/agent/model-config",
         body: {
-          agentKey: 'editable-agent',
-          modelKey: 'coder-model',
-          reasoningEffort: 'MAX',
+          agentKey: "editable-agent",
+          modelKey: "coder-model",
+          reasoningEffort: "MAX",
         },
       },
-      { url: '/api/admin/agents/delete', body: { key: 'editable-agent' } },
+      { url: "/api/admin/agents/delete", body: { key: "editable-agent" } },
       {
-        url: '/api/agent/open-directory',
+        url: "/api/agent/open-directory",
         body: {
-          agentKey: 'editable-agent',
-          directoryType: 'config',
+          agentKey: "editable-agent",
+          directoryType: "config",
         },
       },
     ]);
   });
 
-  it('loads admin agent editor options', async () => {
+  it("loads admin agent editor options", async () => {
     await getAdminAgentEditorOptions();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/admin/agents/editor-options',
-      expect.objectContaining({ method: 'GET' }),
+      "/api/admin/agents/editor-options",
+      expect.objectContaining({ method: "GET" }),
     );
   });
 
-  it('uses canonical skills admin manifest and generic source endpoints', async () => {
+  it("uses canonical skills admin manifest and generic source endpoints", async () => {
     await getAdminSkills();
-    await getAdminSkillDetail('demo-skill', 'SKILL.md');
-    await getAdminSource({ type: 'skill', key: 'demo-skill', path: 'SKILL.md' });
+    await getAdminSkillDetail("demo-skill", "SKILL.md");
+    await getAdminSource({
+      type: "skill",
+      key: "demo-skill",
+      path: "SKILL.md",
+    });
     await updateAdminSource({
-      target: { type: 'skill', key: 'demo-skill', path: 'SKILL.md' },
-      content: '# My Skill',
-      baseSha256: 'abc123',
+      target: { type: "skill", key: "demo-skill", path: "SKILL.md" },
+      content: "# My Skill",
+      baseSha256: "abc123",
     });
     await createAdminSkillFile({
-      key: 'demo-skill',
-      path: 'references/new.md',
-      content: '',
+      key: "demo-skill",
+      path: "references/new.md",
+      content: "",
     });
     await mkdirAdminSkillFile({
-      key: 'demo-skill',
-      path: 'assets',
+      key: "demo-skill",
+      path: "assets",
     });
     await renameAdminSkillFile({
-      key: 'demo-skill',
-      fromPath: 'old.md',
-      toPath: 'new.md',
+      key: "demo-skill",
+      fromPath: "old.md",
+      toPath: "new.md",
     });
     await deleteAdminSkillFile({
-      key: 'demo-skill',
-      path: 'old.md',
-      baseSha256: 'old-sha',
+      key: "demo-skill",
+      path: "old.md",
+      baseSha256: "old-sha",
     });
-    await validateAdminSkill('demo-skill');
+    await validateAdminSkill("demo-skill");
     await createAdminSkill({
-      key: 'new-skill',
-      skillMd: '---\nname: New Skill\n---\n',
+      key: "new-skill",
+      skillMd: "---\nname: New Skill\n---\n",
     });
-    await deleteAdminSkill('demo-skill');
+    await deleteAdminSkill("demo-skill");
 
     const calls = fetchMock.mock.calls.map(([url, options]) => ({
       url,
-      method: (options as RequestInit).method || 'GET',
-      body: JSON.parse(String((options as RequestInit).body || '{}')),
+      method: (options as RequestInit).method || "GET",
+      body: JSON.parse(String((options as RequestInit).body || "{}")),
     }));
 
     expect(calls).toEqual([
-      { url: '/api/admin/skills', method: 'GET', body: {} },
+      { url: "/api/admin/skills", method: "GET", body: {} },
       {
-        url: '/api/admin/skills/detail?key=demo-skill&openPath=SKILL.md',
-        method: 'GET',
+        url: "/api/admin/skills/detail?key=demo-skill&openPath=SKILL.md",
+        method: "GET",
         body: {},
       },
       {
-        url: '/api/admin/source?type=skill&key=demo-skill&path=SKILL.md',
-        method: 'GET',
+        url: "/api/admin/source?type=skill&key=demo-skill&path=SKILL.md",
+        method: "GET",
         body: {},
       },
       {
-        url: '/api/admin/source',
-        method: 'PUT',
+        url: "/api/admin/source",
+        method: "PUT",
         body: {
-          target: { type: 'skill', key: 'demo-skill', path: 'SKILL.md' },
-          content: '# My Skill',
-          baseSha256: 'abc123',
+          target: { type: "skill", key: "demo-skill", path: "SKILL.md" },
+          content: "# My Skill",
+          baseSha256: "abc123",
         },
       },
       {
-        url: '/api/admin/skills/file/create',
-        method: 'POST',
+        url: "/api/admin/skills/file/create",
+        method: "POST",
         body: {
-          key: 'demo-skill',
-          path: 'references/new.md',
-          content: '',
+          key: "demo-skill",
+          path: "references/new.md",
+          content: "",
         },
       },
       {
-        url: '/api/admin/skills/file/mkdir',
-        method: 'POST',
+        url: "/api/admin/skills/file/mkdir",
+        method: "POST",
         body: {
-          key: 'demo-skill',
-          path: 'assets',
+          key: "demo-skill",
+          path: "assets",
         },
       },
       {
-        url: '/api/admin/skills/file/rename',
-        method: 'POST',
+        url: "/api/admin/skills/file/rename",
+        method: "POST",
         body: {
-          key: 'demo-skill',
-          fromPath: 'old.md',
-          toPath: 'new.md',
+          key: "demo-skill",
+          fromPath: "old.md",
+          toPath: "new.md",
         },
       },
       {
-        url: '/api/admin/skills/file/delete',
-        method: 'POST',
+        url: "/api/admin/skills/file/delete",
+        method: "POST",
         body: {
-          key: 'demo-skill',
-          path: 'old.md',
-          baseSha256: 'old-sha',
+          key: "demo-skill",
+          path: "old.md",
+          baseSha256: "old-sha",
         },
       },
       {
-        url: '/api/admin/skills/validate',
-        method: 'POST',
-        body: { key: 'demo-skill' },
+        url: "/api/admin/skills/validate",
+        method: "POST",
+        body: { key: "demo-skill" },
       },
       {
-        url: '/api/admin/skills/create',
-        method: 'POST',
+        url: "/api/admin/skills/create",
+        method: "POST",
         body: {
-          key: 'new-skill',
-          skillMd: '---\nname: New Skill\n---\n',
+          key: "new-skill",
+          skillMd: "---\nname: New Skill\n---\n",
         },
       },
       {
-        url: '/api/admin/skills/delete',
-        method: 'POST',
-        body: { key: 'demo-skill' },
+        url: "/api/admin/skills/delete",
+        method: "POST",
+        body: { key: "demo-skill" },
       },
     ]);
 
-    expect(buildAdminSkillFileDownloadUrl('demo-skill', 'assets/blob.bin')).toBe(
-      '/api/admin/skills/file/download?key=demo-skill&path=assets%2Fblob.bin',
+    expect(
+      buildAdminSkillFileDownloadUrl("demo-skill", "assets/blob.bin"),
+    ).toBe(
+      "/api/admin/skills/file/download?key=demo-skill&path=assets%2Fblob.bin",
     );
-    expect(buildAdminSkillDownloadUrl('demo-skill')).toBe(
-      '/api/admin/skills/download?key=demo-skill',
+    expect(buildAdminSkillDownloadUrl("demo-skill")).toBe(
+      "/api/admin/skills/download?key=demo-skill",
     );
   });
 
-  it('encodes logical source target query values', async () => {
+  it("encodes logical source target query values", async () => {
     await getAdminSource({
-      type: 'skill',
-      key: 'demo skill',
-      path: 'references/a & b.md',
+      type: "skill",
+      key: "demo skill",
+      path: "references/a & b.md",
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/admin/source?type=skill&key=demo+skill&path=references%2Fa+%26+b.md',
+      "/api/admin/source?type=skill&key=demo+skill&path=references%2Fa+%26+b.md",
     );
   });
 
-	it('reads authoritative resource document metadata and size from HEAD', async () => {
-		fetchMock.mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			headers: new Headers({
-				'Content-Type': 'text/markdown; charset=utf-8',
-				'Content-Length': '128',
-				'X-Document-Kind': 'document-markdown',
-				'X-Document-Revision': '128:42',
-			}),
-		});
-
-		await expect(getResourceDocumentMetadata('artifacts/run_1/novel.md', {
-			chatId: 'chat_1',
-		})).resolves.toEqual({
-			documentKind: 'document-markdown',
-			mimeType: 'text/markdown',
-			revision: '128:42',
-			sizeBytes: 128,
-		});
-		expect(fetchMock).toHaveBeenCalledWith(
-			expect.stringContaining('/api/resource?'),
-			expect.objectContaining({ method: 'HEAD' }),
-		);
-	});
-
-	it('keeps documentKind absent when the authoritative header is missing', async () => {
-		fetchMock.mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			headers: new Headers({
-				'Content-Type': 'application/octet-stream',
-				'Content-Length': '12',
-			}),
-		});
-
-		await expect(getResourceDocumentMetadata('artifacts/run_1/novel.md', {
-			chatId: 'chat_1',
-		})).resolves.toEqual({
-			mimeType: 'application/octet-stream',
-			revision: '',
-			sizeBytes: 12,
-		});
-	});
-
-  it('fetches skill icons with bearer authentication', async () => {
-    setAccessToken('skill-icon-token');
-    const blob = new Blob(['png'], { type: 'image/png' });
+  it("reads authoritative resource document metadata and size from HEAD", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      headers: new Headers({ 'Content-Type': 'image/png' }),
+      headers: new Headers({
+        "Content-Type": "text/markdown; charset=utf-8",
+        "Content-Length": "128",
+        "X-Document-Kind": "document-markdown",
+        "X-Document-Revision": "128:42",
+      }),
+    });
+
+    await expect(
+      getResourceDocumentMetadata("artifacts/run_1/novel.md", {
+        chatId: "chat_1",
+      }),
+    ).resolves.toEqual({
+      documentKind: "document-markdown",
+      mimeType: "text/markdown",
+      revision: "128:42",
+      sizeBytes: 128,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/resource?"),
+      expect.objectContaining({ method: "HEAD" }),
+    );
+  });
+
+  it("keeps documentKind absent when the authoritative header is missing", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        "Content-Type": "application/octet-stream",
+        "Content-Length": "12",
+      }),
+    });
+
+    await expect(
+      getResourceDocumentMetadata("artifacts/run_1/novel.md", {
+        chatId: "chat_1",
+      }),
+    ).resolves.toEqual({
+      mimeType: "application/octet-stream",
+      revision: "",
+      sizeBytes: 12,
+    });
+  });
+
+  it("fetches skill icons with bearer authentication", async () => {
+    setAccessToken("skill-icon-token");
+    const blob = new Blob(["png"], { type: "image/png" });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Type": "image/png" }),
       blob: async () => blob,
     });
 
-    await expect(fetchAdminSkillIcon('/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png'))
-      .resolves.toBe(blob);
+    await expect(
+      fetchAdminSkillIcon(
+        "/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png",
+      ),
+    ).resolves.toBe(blob);
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png',
+      "/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png",
       expect.objectContaining({
-        method: 'GET',
-        headers: expect.objectContaining({ Authorization: 'Bearer skill-icon-token' }),
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer skill-icon-token",
+        }),
       }),
     );
   });
 
-  it.each(['image/png', 'image/svg+xml'])('fetches connector icons as authenticated %s blobs', async contentType => {
-    setAccessToken('connector-icon-token');
-    const blob = new Blob(['icon'], { type: contentType });
-    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers({ 'Content-Type': contentType }), blob: async () => blob });
-    const url = '/api/connectors/icon?id=wecom&v=hash';
-    await expect(fetchConnectorIcon(url)).resolves.toBe(blob);
-    expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({
-      method: 'GET', headers: expect.objectContaining({ Authorization: 'Bearer connector-icon-token' }),
-    }));
-  });
+  it.each(["image/png", "image/svg+xml"])(
+    "fetches connector icons as authenticated %s blobs",
+    async (contentType) => {
+      setAccessToken("connector-icon-token");
+      const blob = new Blob(["icon"], { type: contentType });
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "Content-Type": contentType }),
+        blob: async () => blob,
+      });
+      const url = "/api/connectors/icon?id=wecom&v=hash";
+      await expect(fetchConnectorIcon(url)).resolves.toBe(blob);
+      expect(fetchMock).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          method: "GET",
+          headers: expect.objectContaining({
+            Authorization: "Bearer connector-icon-token",
+          }),
+        }),
+      );
+    },
+  );
 
-  it.each(['https://external.example/icon.svg', '//external.example/icon.png', '/api/connectors/icon/../private', '/api/admin/connectors'])('rejects unexpected connector icon URLs: %s', async url => {
-    await expect(fetchConnectorIcon(url)).rejects.toThrow('connector icon URL is invalid');
+  it.each([
+    "https://external.example/icon.svg",
+    "//external.example/icon.png",
+    "/api/connectors/icon/../private",
+    "/api/admin/connectors",
+  ])("rejects unexpected connector icon URLs: %s", async (url) => {
+    await expect(fetchConnectorIcon(url)).rejects.toThrow(
+      "connector icon URL is invalid",
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects non-image connector icon responses', async () => {
-    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers({ 'Content-Type': 'text/html' }) });
-    await expect(fetchConnectorIcon('/api/connectors/icon?id=wecom')).rejects.toThrow('connector icon response is not a supported image');
+  it("rejects non-image connector icon responses", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Type": "text/html" }),
+    });
+    await expect(
+      fetchConnectorIcon("/api/connectors/icon?id=wecom"),
+    ).rejects.toThrow("connector icon response is not a supported image");
   });
 
-  it('rejects unexpected or non-image skill icon responses without exposing the token', async () => {
-    await expect(fetchAdminSkillIcon('https://example.com/demo.png')).rejects.toMatchObject({
-      message: 'skill icon URL is invalid',
+  it("rejects unexpected or non-image skill icon responses without exposing the token", async () => {
+    await expect(
+      fetchAdminSkillIcon("https://example.com/demo.png"),
+    ).rejects.toMatchObject({
+      message: "skill icon URL is invalid",
     });
     expect(fetchMock).not.toHaveBeenCalled();
 
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      headers: new Headers({ 'Content-Type': 'text/html' }),
-      blob: async () => new Blob(['not an image']),
+      headers: new Headers({ "Content-Type": "text/html" }),
+      blob: async () => new Blob(["not an image"]),
     });
-    await expect(fetchAdminSkillIcon('/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png'))
-      .rejects.toMatchObject({ message: 'skill icon response is not an image' });
+    await expect(
+      fetchAdminSkillIcon(
+        "/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png",
+      ),
+    ).rejects.toMatchObject({ message: "skill icon response is not an image" });
   });
 
-  it('fetches skill file blobs for previews with bearer authentication', async () => {
-    setAccessToken('skill-file-token');
-    const blob = new Blob(['png'], { type: 'image/png' });
+  it("fetches skill file blobs for previews with bearer authentication", async () => {
+    setAccessToken("skill-file-token");
+    const blob = new Blob(["png"], { type: "image/png" });
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      headers: new Headers({ 'Content-Type': 'image/png' }),
+      headers: new Headers({ "Content-Type": "image/png" }),
       blob: async () => blob,
     });
 
-    await expect(fetchAdminSkillFileBlob('demo-skill', 'assets/demo.png')).resolves.toBe(blob);
+    await expect(
+      fetchAdminSkillFileBlob("demo-skill", "assets/demo.png"),
+    ).resolves.toBe(blob);
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo.png',
+      "/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo.png",
       expect.objectContaining({
-        method: 'GET',
-        headers: expect.objectContaining({ Authorization: 'Bearer skill-file-token' }),
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer skill-file-token",
+        }),
       }),
     );
   });
 
-  it('rejects skill file blob responses that are not ok', async () => {
+  it("rejects skill file blob responses that are not ok", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 404,
-      headers: new Headers({ 'Content-Type': 'text/plain' }),
-      text: async () => 'not found',
-      blob: async () => new Blob(['']),
+      headers: new Headers({ "Content-Type": "text/plain" }),
+      text: async () => "not found",
+      blob: async () => new Blob([""]),
     });
 
-    await expect(fetchAdminSkillFileBlob('demo-skill', 'assets/missing.png')).rejects.toMatchObject({
+    await expect(
+      fetchAdminSkillFileBlob("demo-skill", "assets/missing.png"),
+    ).rejects.toMatchObject({
       status: 404,
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('downloads skill files and archives through authenticated Blob requests', async () => {
-    const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
-    const urlDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'URL');
+  it("downloads skill files and archives through authenticated Blob requests", async () => {
+    const documentDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "document",
+    );
+    const urlDescriptor = Object.getOwnPropertyDescriptor(globalThis, "URL");
     const click = jest.fn();
-    const anchor = { href: '', download: '', rel: '', click };
-    Object.defineProperty(globalThis, 'document', {
+    const anchor = { href: "", download: "", rel: "", click };
+    Object.defineProperty(globalThis, "document", {
       configurable: true,
       writable: true,
       value: {
@@ -739,763 +811,976 @@ describe('data client requests', () => {
         body: { appendChild: jest.fn(), removeChild: jest.fn() },
       },
     });
-    Object.defineProperty(globalThis, 'URL', {
+    Object.defineProperty(globalThis, "URL", {
       configurable: true,
       writable: true,
-      value: { createObjectURL: jest.fn(() => 'blob:skill'), revokeObjectURL: jest.fn() },
+      value: {
+        createObjectURL: jest.fn(() => "blob:skill"),
+        revokeObjectURL: jest.fn(),
+      },
     });
     jest.useFakeTimers();
-    setAccessToken('skill-download-token');
+    setAccessToken("skill-download-token");
     const response = (filename: string) => ({
       ok: true,
       status: 200,
-      headers: new Headers({ 'Content-Disposition': `attachment; filename="${filename}"` }),
-      blob: async () => new Blob(['zip']),
+      headers: new Headers({
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      }),
+      blob: async () => new Blob(["zip"]),
     });
-    fetchMock.mockResolvedValueOnce(response('asset.bin')).mockResolvedValueOnce(response('demo-skill.zip'));
+    fetchMock
+      .mockResolvedValueOnce(response("asset.bin"))
+      .mockResolvedValueOnce(response("demo-skill.zip"));
 
     try {
-      await downloadAdminSkillFile('demo-skill', 'assets/asset.bin');
-      await downloadAdminSkill('demo-skill');
+      await downloadAdminSkillFile("demo-skill", "assets/asset.bin");
+      await downloadAdminSkill("demo-skill");
       jest.runAllTimers();
     } finally {
       jest.useRealTimers();
-      if (documentDescriptor) Object.defineProperty(globalThis, 'document', documentDescriptor);
-      else Reflect.deleteProperty(globalThis, 'document');
-      if (urlDescriptor) Object.defineProperty(globalThis, 'URL', urlDescriptor);
-      else Reflect.deleteProperty(globalThis, 'URL');
+      if (documentDescriptor)
+        Object.defineProperty(globalThis, "document", documentDescriptor);
+      else Reflect.deleteProperty(globalThis, "document");
+      if (urlDescriptor)
+        Object.defineProperty(globalThis, "URL", urlDescriptor);
+      else Reflect.deleteProperty(globalThis, "URL");
     }
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      '/api/admin/skills/file/download?key=demo-skill&path=assets%2Fasset.bin',
-      '/api/admin/skills/download?key=demo-skill',
+      "/api/admin/skills/file/download?key=demo-skill&path=assets%2Fasset.bin",
+      "/api/admin/skills/download?key=demo-skill",
     ]);
-    for (const [, options] of fetchMock.mock.calls as Array<[string, RequestInit]>) {
-      expect(options.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer skill-download-token' }));
+    for (const [, options] of fetchMock.mock.calls as Array<
+      [string, RequestInit]
+    >) {
+      expect(options.headers).toEqual(
+        expect.objectContaining({
+          Authorization: "Bearer skill-download-token",
+        }),
+      );
     }
     expect(click).toHaveBeenCalledTimes(2);
-    expect(anchor.download).toBe('demo-skill.zip');
+    expect(anchor.download).toBe("demo-skill.zip");
   });
 
-  it('uploads skills admin files with multipart form data', async () => {
-    const blob = new Blob(['demo'], { type: 'text/plain' });
+  it("uploads skills admin files with multipart form data", async () => {
+    const blob = new Blob(["demo"], { type: "text/plain" });
 
     await uploadAdminSkillFile({
-      key: 'demo-skill',
-      path: 'assets/demo.txt',
+      key: "demo-skill",
+      path: "assets/demo.txt",
       file: blob,
       overwrite: true,
     });
 
-    const [uploadUrl, uploadOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(uploadUrl).toBe('/api/admin/skills/file/upload');
-    expect(uploadOptions.method).toBe('POST');
+    const [uploadUrl, uploadOptions] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(uploadUrl).toBe("/api/admin/skills/file/upload");
+    expect(uploadOptions.method).toBe("POST");
     expect(uploadOptions.headers).toEqual({});
     expect(uploadOptions.body).toBeInstanceOf(FormData);
 
     const formData = uploadOptions.body as FormData;
-    expect(formData.get('key')).toBe('demo-skill');
-    expect(formData.get('path')).toBe('assets/demo.txt');
-    expect(formData.get('overwrite')).toBe('true');
-    expect(formData.get('file')).toBe(blob);
+    expect(formData.get("key")).toBe("demo-skill");
+    expect(formData.get("path")).toBe("assets/demo.txt");
+    expect(formData.get("overwrite")).toBe("true");
+    expect(formData.get("file")).toBe(blob);
   });
 
-  it('imports a complete skill ZIP with multipart form data', async () => {
-    const archive = new File(['zip'], 'demo-skill.zip', { type: 'application/zip' });
+  it("imports a complete skill ZIP with multipart form data", async () => {
+    const archive = new File(["zip"], "demo-skill.zip", {
+      type: "application/zip",
+    });
 
-    await importAdminSkill({ key: 'demo-skill', file: archive });
+    await importAdminSkill({ key: "demo-skill", file: archive });
 
-    const [importUrl, importOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(importUrl).toBe('/api/admin/skills/import');
-    expect(importOptions.method).toBe('POST');
+    const [importUrl, importOptions] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(importUrl).toBe("/api/admin/skills/import");
+    expect(importOptions.method).toBe("POST");
     expect(importOptions.headers).toEqual({});
     expect(importOptions.body).toBeInstanceOf(FormData);
 
     const formData = importOptions.body as FormData;
-    expect(formData.get('key')).toBe('demo-skill');
-    expect(formData.get('file')).toBe(archive);
+    expect(formData.get("key")).toBe("demo-skill");
+    expect(formData.get("file")).toBe(archive);
   });
 
-  it('uploads a ZIP without a key so Platform can identify a skill or package', async () => {
-    const archive = new File(['zip'], 'wecomcli-suite.zip', { type: 'application/zip' });
+  it("uploads a ZIP without a key so Platform can identify a skill or package", async () => {
+    const archive = new File(["zip"], "wecomcli-suite.zip", {
+      type: "application/zip",
+    });
     await importAdminSkill({ file: archive });
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/admin/skills/import');
+    expect(url).toBe("/api/admin/skills/import");
     const form = options.body as FormData;
-    expect(form.get('key')).toBeNull();
-    expect(form.get('file')).toBe(archive);
+    expect(form.get("key")).toBeNull();
+    expect(form.get("file")).toBe(archive);
   });
 
-  it('imports an Agent ZIP without a client-supplied key and only sends overwrite when confirmed', async () => {
-    const archive = new File(['zip'], 'portable-agent.zip', { type: 'application/zip' });
+  it("imports an Agent ZIP without a client-supplied key and only sends overwrite when confirmed", async () => {
+    const archive = new File(["zip"], "portable-agent.zip", {
+      type: "application/zip",
+    });
 
     await importAdminAgent({ file: archive });
     await importAdminAgent({ file: archive, overwrite: true });
 
-    const [firstUrl, firstOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(firstUrl).toBe('/api/admin/agents/import');
-    expect(firstOptions.method).toBe('POST');
+    const [firstUrl, firstOptions] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(firstUrl).toBe("/api/admin/agents/import");
+    expect(firstOptions.method).toBe("POST");
     expect(firstOptions.headers).toEqual({});
     expect(firstOptions.body).toBeInstanceOf(FormData);
     const firstForm = firstOptions.body as FormData;
-    expect(firstForm.get('file')).toBe(archive);
-    expect(firstForm.get('overwrite')).toBeNull();
-    expect(firstForm.get('key')).toBeNull();
-    expect(firstForm.get('agentKey')).toBeNull();
+    expect(firstForm.get("file")).toBe(archive);
+    expect(firstForm.get("overwrite")).toBeNull();
+    expect(firstForm.get("key")).toBeNull();
+    expect(firstForm.get("agentKey")).toBeNull();
 
-    const [retryUrl, retryOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(retryUrl).toBe('/api/admin/agents/import');
+    const [retryUrl, retryOptions] = fetchMock.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
+    expect(retryUrl).toBe("/api/admin/agents/import");
     const retryForm = retryOptions.body as FormData;
-    expect(retryForm.get('file')).toBe(archive);
-    expect(retryForm.get('overwrite')).toBe('true');
+    expect(retryForm.get("file")).toBe(archive);
+    expect(retryForm.get("overwrite")).toBe("true");
   });
 
-  it('imports and deletes an Agent-private skill through the Agent admin routes', async () => {
-    const archive = new File(['zip'], 'private.zip', { type: 'application/zip' });
+  it("imports and deletes an Agent-private skill through the Agent admin routes", async () => {
+    const archive = new File(["zip"], "private.zip", {
+      type: "application/zip",
+    });
     await importAdminAgentPrivateSkill({
-      agentKey: 'demo-agent',
+      agentKey: "demo-agent",
       file: archive,
     });
-    await deleteAdminAgentPrivateSkill({ agentKey: 'demo-agent', key: 'private-skill' });
+    await deleteAdminAgentPrivateSkill({
+      agentKey: "demo-agent",
+      key: "private-skill",
+    });
 
-    const [importUrl, importOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(importUrl).toBe('/api/admin/agents/skills/import');
-    expect(importOptions.method).toBe('POST');
+    const [importUrl, importOptions] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(importUrl).toBe("/api/admin/agents/skills/import");
+    expect(importOptions.method).toBe("POST");
     expect(importOptions.body).toBeInstanceOf(FormData);
     const formData = importOptions.body as FormData;
-    expect(formData.get('agentKey')).toBe('demo-agent');
-    expect(formData.get('key')).toBeNull();
-    expect(formData.get('file')).toBe(archive);
-    expect(formData.get('confirmCenterOverride')).toBeNull();
+    expect(formData.get("agentKey")).toBe("demo-agent");
+    expect(formData.get("key")).toBeNull();
+    expect(formData.get("file")).toBe(archive);
+    expect(formData.get("confirmCenterOverride")).toBeNull();
 
-    const [deleteUrl, deleteOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(deleteUrl).toBe('/api/admin/agents/skills/delete');
+    const [deleteUrl, deleteOptions] = fetchMock.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
+    expect(deleteUrl).toBe("/api/admin/agents/skills/delete");
     expect(JSON.parse(String(deleteOptions.body))).toEqual({
-      agentKey: 'demo-agent',
-      key: 'private-skill',
+      agentKey: "demo-agent",
+      key: "private-skill",
     });
   });
 
-  it('keeps a non-JSON proxy failure readable to the user', async () => {
+  it("keeps a non-JSON proxy failure readable to the user", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 504,
-      text: async () => 'Error occurred while trying to proxy: 127.0.0.1:11948/api/admin/agents/skills/import',
+      text: async () =>
+        "Error occurred while trying to proxy: 127.0.0.1:11948/api/admin/agents/skills/import",
     });
 
     await expect(getAdminAgents()).rejects.toMatchObject({
       status: 504,
-      message: 'Error occurred while trying to proxy: 127.0.0.1:11948/api/admin/agents/skills/import',
+      message:
+        "Error occurred while trying to proxy: 127.0.0.1:11948/api/admin/agents/skills/import",
     });
   });
 
-  it('loads global model options', async () => {
+  it("loads global model options", async () => {
     await getModelOptions();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/model-options',
-      expect.objectContaining({ method: 'GET' }),
+      "/api/model-options",
+      expect.objectContaining({ method: "GET" }),
     );
   });
 
-  it('posts chatId and runId for markChatRead', async () => {
+  it("posts chatId and runId for markChatRead", async () => {
     await markChatRead({
-      chatId: 'chat_read',
-      runId: 'run_read',
+      chatId: "chat_read",
+      runId: "run_read",
     });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/read');
-    const payload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
-    expect(payload).toEqual({
-      chatId: 'chat_read',
-      runId: 'run_read',
-    });
-  });
-
-  it('posts agentKey for markChatRead all', async () => {
-    await markChatRead({ agentKey: 'agent_a' });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/read');
-    const payload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
-    expect(payload).toEqual({
-      agentKey: 'agent_a',
-    });
-  });
-
-  it('posts feedback, delete, and global search payloads', async () => {
-    await submitFeedback({
-      chatId: 'chat_1',
-      runId: 'run_1',
-      type: 'thumbs_down',
-      comment: 'bad',
-    });
-    await deleteChat({ chatId: 'chat_1' });
-    await renameChat({ chatId: 'chat_1', chatName: ' Renamed chat ' });
-    await searchGlobal({
-      query: 'needle',
-      agentKey: 'agent_a',
-      teamId: 'team_a',
-      limit: 7,
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/feedback');
-    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
-      chatId: 'chat_1',
-      runId: 'run_1',
-      type: 'thumbs_down',
-      comment: 'bad',
-    });
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/chat/delete?chatId=chat_1');
-    expect(JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body))).toEqual({
-    });
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/chat/rename?chatId=chat_1');
-    expect(JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body))).toEqual({
-      chatName: ' Renamed chat ',
-    });
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/chats/search');
-    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
-      query: 'needle',
-      agentKey: 'agent_a',
-      teamId: 'team_a',
-      limit: 7,
-    });
-  });
-
-  it('posts derive chat payload', async () => {
-    await deriveChat({
-      sourceChatId: 'chat_1',
-      sourceRunId: 'run_1',
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chat/derive');
-    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
-      sourceChatId: 'chat_1',
-      sourceRunId: 'run_1',
-    });
-  });
-
-  it('calls archive endpoints with expected payloads and query params', async () => {
-    await archiveChats({ chatIds: ['chat_1', 'chat_2'] });
-    await getArchives({ agentKey: 'agent_a', limit: 20, offset: 40 });
-    await getArchive('chat_1', true);
-    await searchArchives({ query: 'needle', agentKey: 'agent_a', limit: 5 });
-    await deleteArchive({ chatId: 'chat_1' });
-    await restoreArchives({ chatIds: ['chat_1'] });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chat/archive');
-    expect(JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body))).toEqual({
-      chatIds: ['chat_1', 'chat_2'],
-    });
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/archives?agentKey=agent_a&limit=20&offset=40');
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/archive?chatId=chat_1&includeRawMessages=true');
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/archives/search');
-    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
-      query: 'needle',
-      agentKey: 'agent_a',
-      limit: 5,
-    });
-    expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe('/api/archive/delete?chatId=chat_1');
-    expect(JSON.parse(String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body))).toEqual({
-    });
-    expect((fetchMock.mock.calls[5] as [string, RequestInit])[0]).toBe('/api/archive/restore');
-    expect(JSON.parse(String((fetchMock.mock.calls[5] as [string, RequestInit])[1].body))).toEqual({
-      chatIds: ['chat_1'],
-    });
-  });
-
-  it('posts remember, learn, and compact commands to their dedicated endpoints', async () => {
-    await rememberChat({
-      requestId: 'req_remember',
-      chatId: 'chat_1',
-    });
-    await learnChat({
-      requestId: 'req_learn',
-      chatId: 'chat_1',
-    });
-    await compactChat({
-      requestId: 'req_compact',
-      chatId: 'chat_1',
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/remember');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/learn');
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/compact');
-
-    const rememberPayload = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
-    const learnPayload = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
-    const compactPayload = JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body));
-
-    expect(rememberPayload).toEqual({
-      requestId: 'req_remember',
-      chatId: 'chat_1',
-    });
-    expect(learnPayload).toEqual({
-      requestId: 'req_learn',
-      chatId: 'chat_1',
-    });
-    expect(compactPayload).toEqual({
-      requestId: 'req_compact',
-      chatId: 'chat_1',
-      trigger: 'manual',
-      level: 'summary',
-    });
-
-    expect(rememberPayload).not.toHaveProperty('message');
-    expect(rememberPayload).not.toHaveProperty('planningMode');
-    expect(rememberPayload).not.toHaveProperty('runId');
-    expect(rememberPayload).not.toHaveProperty('agentKey');
-    expect(rememberPayload).not.toHaveProperty('teamId');
-    expect(learnPayload).not.toHaveProperty('message');
-    expect(learnPayload).not.toHaveProperty('planningMode');
-    expect(learnPayload).not.toHaveProperty('runId');
-    expect(learnPayload).not.toHaveProperty('agentKey');
-    expect(learnPayload).not.toHaveProperty('teamId');
-    expect(compactPayload).not.toHaveProperty('message');
-    expect(compactPayload).not.toHaveProperty('planningMode');
-    expect(compactPayload).not.toHaveProperty('runId');
-    expect(compactPayload).not.toHaveProperty('agentKey');
-    expect(compactPayload).not.toHaveProperty('teamId');
-  });
-
-  it('requests a single agent by agentKey query param', async () => {
-    await getAgent('demo-agent');
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agent?agentKey=demo-agent');
-  });
-
-  it('requests the slash skill catalog for one agent', async () => {
-    await getAgentSkills('mock-agent');
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/skills?agentKey=mock-agent',
+      "/api/read",
+    );
+    const payload = JSON.parse(
+      String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
+    );
+    expect(payload).toEqual({
+      chatId: "chat_read",
+      runId: "run_read",
+    });
+  });
+
+  it("posts agentKey for markChatRead all", async () => {
+    await markChatRead({ agentKey: "agent_a" });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/read",
+    );
+    const payload = JSON.parse(
+      String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
+    );
+    expect(payload).toEqual({
+      agentKey: "agent_a",
+    });
+  });
+
+  it("posts feedback, delete, and global search payloads", async () => {
+    await submitFeedback({
+      chatId: "chat_1",
+      runId: "run_1",
+      type: "thumbs_down",
+      comment: "bad",
+    });
+    await deleteChat({ chatId: "chat_1" });
+    await renameChat({ chatId: "chat_1", chatName: " Renamed chat " });
+    await searchGlobal({
+      query: "needle",
+      agentKey: "agent_a",
+      teamId: "team_a",
+      limit: 7,
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/feedback",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      chatId: "chat_1",
+      runId: "run_1",
+      type: "thumbs_down",
+      comment: "bad",
+    });
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      "/api/chat/delete?chatId=chat_1",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({});
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      "/api/chat/rename?chatId=chat_1",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      chatName: " Renamed chat ",
+    });
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
+      "/api/chats/search",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      query: "needle",
+      agentKey: "agent_a",
+      teamId: "team_a",
+      limit: 7,
+    });
+  });
+
+  it("posts derive chat payload", async () => {
+    await deriveChat({
+      sourceChatId: "chat_1",
+      sourceRunId: "run_1",
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/chat/derive",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      sourceChatId: "chat_1",
+      sourceRunId: "run_1",
+    });
+  });
+
+  it("calls archive endpoints with expected payloads and query params", async () => {
+    await archiveChats({ chatIds: ["chat_1", "chat_2"] });
+    await getArchives({ agentKey: "agent_a", limit: 20, offset: 40 });
+    await getArchive("chat_1", true);
+    await searchArchives({ query: "needle", agentKey: "agent_a", limit: 5 });
+    await deleteArchive({ chatId: "chat_1" });
+    await restoreArchives({ chatIds: ["chat_1"] });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/chat/archive",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      chatIds: ["chat_1", "chat_2"],
+    });
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      "/api/archives?agentKey=agent_a&limit=20&offset=40",
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      "/api/archive?chatId=chat_1&includeRawMessages=true",
+    );
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
+      "/api/archives/search",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      query: "needle",
+      agentKey: "agent_a",
+      limit: 5,
+    });
+    expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe(
+      "/api/archive/delete?chatId=chat_1",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({});
+    expect((fetchMock.mock.calls[5] as [string, RequestInit])[0]).toBe(
+      "/api/archive/restore",
+    );
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[5] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      chatIds: ["chat_1"],
+    });
+  });
+
+  it("posts remember, learn, and compact commands to their dedicated endpoints", async () => {
+    await rememberChat({
+      requestId: "req_remember",
+      chatId: "chat_1",
+    });
+    await learnChat({
+      requestId: "req_learn",
+      chatId: "chat_1",
+    });
+    await compactChat({
+      requestId: "req_compact",
+      chatId: "chat_1",
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/remember",
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      "/api/learn",
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      "/api/compact",
+    );
+
+    const rememberPayload = JSON.parse(
+      String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
+    );
+    const learnPayload = JSON.parse(
+      String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body),
+    );
+    const compactPayload = JSON.parse(
+      String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body),
+    );
+
+    expect(rememberPayload).toEqual({
+      requestId: "req_remember",
+      chatId: "chat_1",
+    });
+    expect(learnPayload).toEqual({
+      requestId: "req_learn",
+      chatId: "chat_1",
+    });
+    expect(compactPayload).toEqual({
+      requestId: "req_compact",
+      chatId: "chat_1",
+      trigger: "manual",
+      level: "summary",
+    });
+
+    expect(rememberPayload).not.toHaveProperty("message");
+    expect(rememberPayload).not.toHaveProperty("planningMode");
+    expect(rememberPayload).not.toHaveProperty("runId");
+    expect(rememberPayload).not.toHaveProperty("agentKey");
+    expect(rememberPayload).not.toHaveProperty("teamId");
+    expect(learnPayload).not.toHaveProperty("message");
+    expect(learnPayload).not.toHaveProperty("planningMode");
+    expect(learnPayload).not.toHaveProperty("runId");
+    expect(learnPayload).not.toHaveProperty("agentKey");
+    expect(learnPayload).not.toHaveProperty("teamId");
+    expect(compactPayload).not.toHaveProperty("message");
+    expect(compactPayload).not.toHaveProperty("planningMode");
+    expect(compactPayload).not.toHaveProperty("runId");
+    expect(compactPayload).not.toHaveProperty("agentKey");
+    expect(compactPayload).not.toHaveProperty("teamId");
+  });
+
+  it("requests a single agent by agentKey query param", async () => {
+    await getAgent("demo-agent");
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/agent?agentKey=demo-agent",
     );
   });
 
-  it('reads, updates, and deletes an admin source file through the typed management endpoint', async () => {
-    await getAdminSource({ type: 'agent', key: 'editable-agent' });
+  it("requests the slash skill catalog for one agent", async () => {
+    await getAgentSkills("mock-agent");
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/skills?agentKey=mock-agent",
+    );
+  });
+
+  it("reads, updates, and deletes an admin source file through the typed management endpoint", async () => {
+    await getAdminSource({ type: "agent", key: "editable-agent" });
     await updateAdminSource({
-      target: { type: 'agent', key: 'editable-agent' },
-      content: '# keep this comment\nkey: editable-agent\n',
-      baseSha256: 'source-sha',
+      target: { type: "agent", key: "editable-agent" },
+      content: "# keep this comment\nkey: editable-agent\n",
+      baseSha256: "source-sha",
     });
     await deleteAdminSource({
       target: {
-        type: 'registry',
-        category: 'viewport-servers',
-        file: 'demo.yml',
+        type: "registry",
+        category: "viewport-servers",
+        file: "demo.yml",
       },
-      baseSha256: 'registry-sha',
+      baseSha256: "registry-sha",
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/admin/source?type=agent&key=editable-agent',
+      "/api/admin/source?type=agent&key=editable-agent",
     );
     expect(fetchMock.mock.calls[1]).toEqual([
-      '/api/admin/source',
+      "/api/admin/source",
       expect.objectContaining({
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({
-          target: { type: 'agent', key: 'editable-agent' },
-          content: '# keep this comment\nkey: editable-agent\n',
-          baseSha256: 'source-sha',
+          target: { type: "agent", key: "editable-agent" },
+          content: "# keep this comment\nkey: editable-agent\n",
+          baseSha256: "source-sha",
         }),
       }),
     ]);
     expect(fetchMock.mock.calls[2]).toEqual([
-      '/api/admin/source',
+      "/api/admin/source",
       expect.objectContaining({
-        method: 'DELETE',
+        method: "DELETE",
         body: JSON.stringify({
           target: {
-            type: 'registry',
-            category: 'viewport-servers',
-            file: 'demo.yml',
+            type: "registry",
+            category: "viewport-servers",
+            file: "demo.yml",
           },
-          baseSha256: 'registry-sha',
+          baseSha256: "registry-sha",
         }),
       }),
     ]);
   });
 
-  it('serializes automation source targets by logical key', async () => {
-    await getAdminSource({ type: 'automation', key: 'daily-report' });
+  it("serializes automation source targets by logical key", async () => {
+    await getAdminSource({ type: "automation", key: "daily-report" });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/admin/source?type=automation&key=daily-report',
+      "/api/admin/source?type=automation&key=daily-report",
     );
   });
 
-  it('requests an agent workspace file with the typed file endpoint', async () => {
+  it("requests an agent workspace file with the typed file endpoint", async () => {
     await getAgentFile({
-      agentKey: 'coder-agent',
-      path: '/Users/demo/project/Dockerfile',
-      encoding: 'utf-8',
+      agentKey: "coder-agent",
+      path: "/Users/demo/project/Dockerfile",
+      encoding: "utf-8",
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2FDockerfile&encoding=utf-8',
+      "/api/file?agentKey=coder-agent&path=%2FUsers%2Fdemo%2Fproject%2FDockerfile&encoding=utf-8",
     );
   });
 
-  it('requests a KBASE file without requiring a frontend workspace root', async () => {
+  it("requests a KBASE file without requiring a frontend workspace root", async () => {
     await getAgentFile({
-      agentKey: 'knowledge-agent',
-      path: 'docs/guide.md',
+      agentKey: "knowledge-agent",
+      path: "docs/guide.md",
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/file?agentKey=knowledge-agent&path=docs%2Fguide.md',
+      "/api/file?agentKey=knowledge-agent&path=docs%2Fguide.md",
     );
   });
 
-  it('loads local branches separately and posts the explicit branch mutation', async () => {
-    await getProjectGitBranches('knowledge');
-    await changeProjectGitBranch({ agentKey: 'knowledge', operation: 'create', branch: 'feature/new', expectedRevision: 'revision' });
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/project/git/branches?agentKey=knowledge');
+  it("loads local branches separately and posts the explicit branch mutation", async () => {
+    await getProjectGitBranches("knowledge");
+    await changeProjectGitBranch({
+      agentKey: "knowledge",
+      operation: "create",
+      branch: "feature/new",
+      expectedRevision: "revision",
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/project/git/branches?agentKey=knowledge",
+    );
     const [url, options] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(url).toBe('/api/project/git/branches');
-    expect(options.method).toBe('POST');
-    expect(JSON.parse(options.body as string)).toEqual({ agentKey: 'knowledge', operation: 'create', branch: 'feature/new', expectedRevision: 'revision' });
+    expect(url).toBe("/api/project/git/branches");
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body as string)).toEqual({
+      agentKey: "knowledge",
+      operation: "create",
+      branch: "feature/new",
+      expectedRevision: "revision",
+    });
   });
 
-  it('requests live Git state independently with abort and no HTTP cache', async () => {
+  it("requests live Git state independently with abort and no HTTP cache", async () => {
     const controller = new AbortController();
-    await getProjectGit('knowledge agent', { signal: controller.signal });
+    await getProjectGit("knowledge agent", { signal: controller.signal });
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/project/git?agentKey=knowledge+agent');
+    expect(url).toBe("/api/project/git?agentKey=knowledge+agent");
     expect(options.signal).toBe(controller.signal);
-    expect(options.cache).toBe('no-store');
+    expect(options.cache).toBe("no-store");
   });
 
-  it('requests project tree, changes, and diff over fixed HTTP endpoints', async () => {
+  it("requests project tree, changes, and diff over fixed HTTP endpoints", async () => {
     await getProjectTree({
-      agentKey: 'coder-agent',
-      path: 'src/lib',
-      cursor: 'cursor one',
+      agentKey: "coder-agent",
+      path: "src/lib",
+      cursor: "cursor one",
       limit: 200,
     });
     await getProjectChanges({
-      agentKey: 'coder-agent',
-      chatId: 'chat-1',
-      runId: 'run-2',
+      agentKey: "coder-agent",
+      chatId: "chat-1",
+      runId: "run-2",
       limit: 1000,
     });
     await getProjectDiff({
-      agentKey: 'coder-agent',
-      chatId: 'chat-1',
-      runId: 'run-2',
-      path: 'src/App.tsx',
-      encoding: 'utf-8',
+      agentKey: "coder-agent",
+      chatId: "chat-1",
+      runId: "run-2",
+      path: "src/App.tsx",
+      encoding: "utf-8",
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/project/tree?agentKey=coder-agent&path=src%2Flib&cursor=cursor+one&limit=200',
+      "/api/project/tree?agentKey=coder-agent&path=src%2Flib&cursor=cursor+one&limit=200",
     );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      '/api/project/changes?agentKey=coder-agent&chatId=chat-1&runId=run-2&limit=1000',
+      "/api/project/changes?agentKey=coder-agent&chatId=chat-1&runId=run-2&limit=1000",
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
-      '/api/project/diff?agentKey=coder-agent&chatId=chat-1&runId=run-2&path=src%2FApp.tsx&encoding=utf-8',
+      "/api/project/diff?agentKey=coder-agent&chatId=chat-1&runId=run-2&path=src%2FApp.tsx&encoding=utf-8",
     );
   });
 
-  it('normalizes legacy null project collections to empty arrays', async () => {
+  it("normalizes legacy null project collections to empty arrays", async () => {
     fetchMock
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: async () => JSON.stringify({
-          code: 0,
-          msg: 'ok',
-          data: {
-            agentKey: 'coder-agent', mode: 'CODER', workspaceName: 'demo', path: '',
-            revision: 'tree-revision', entries: null,
-          },
-        }),
+        text: async () =>
+          JSON.stringify({
+            code: 0,
+            msg: "ok",
+            data: {
+              agentKey: "coder-agent",
+              mode: "CODER",
+              workspaceName: "demo",
+              path: "",
+              revision: "tree-revision",
+              entries: null,
+            },
+          }),
       })
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: async () => JSON.stringify({
-          code: 0,
-          msg: 'ok',
-          data: {
-            agentKey: 'coder-agent', chatId: 'chat-1', revision: 'changes-revision',
-            runs: null, items: null,
-          },
-        }),
+        text: async () =>
+          JSON.stringify({
+            code: 0,
+            msg: "ok",
+            data: {
+              agentKey: "coder-agent",
+              chatId: "chat-1",
+              revision: "changes-revision",
+              runs: null,
+              items: null,
+            },
+          }),
       });
 
-    const tree = await getProjectTree({ agentKey: 'coder-agent' });
-    const changes = await getProjectChanges({ agentKey: 'coder-agent', chatId: 'chat-1' });
+    const tree = await getProjectTree({ agentKey: "coder-agent" });
+    const changes = await getProjectChanges({
+      agentKey: "coder-agent",
+      chatId: "chat-1",
+    });
 
     expect(tree.data.entries).toEqual([]);
     expect(changes.data.runs).toEqual([]);
     expect(changes.data.items).toEqual([]);
   });
 
-  it('requests file history with encoded path and version', async () => {
+  it("requests file history with encoded path and version", async () => {
     await getFileHistory({
-      chatId: 'chat_1',
-      runId: 'run_1',
-      filePath: '/workspace/src/App.tsx',
-      version: 'current',
+      chatId: "chat_1",
+      runId: "run_1",
+      filePath: "/workspace/src/App.tsx",
+      version: "current",
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/file/history?chatId=chat_1&runId=run_1&filePath=%2Fworkspace%2Fsrc%2FApp.tsx&version=current',
+      "/api/file/history?chatId=chat_1&runId=run_1&filePath=%2Fworkspace%2Fsrc%2FApp.tsx&version=current",
     );
   });
 
-  it('requests memory records and detail over HTTP query params', async () => {
+  it("requests memory records and detail over HTTP query params", async () => {
     await getMemoryRecords({
-      agentKey: 'agent-a',
-      keyword: 'bugfix',
-      kind: 'fact',
-      scopeType: 'agent',
-      status: 'active',
-      category: 'general',
+      agentKey: "agent-a",
+      keyword: "bugfix",
+      kind: "fact",
+      scopeType: "agent",
+      status: "active",
+      category: "general",
       limit: 15,
     });
-    await getMemoryRecord('agent-a', 'mem_101');
+    await getMemoryRecord("agent-a", "mem_101");
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/memory/record/list?agentKey=agent-a&keyword=bugfix&kind=fact&scopeType=agent&status=active&category=general&limit=15',
+      "/api/memory/record/list?agentKey=agent-a&keyword=bugfix&kind=fact&scopeType=agent&status=active&category=general&limit=15",
     );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      '/api/memory/record/detail?agentKey=agent-a&recordId=mem_101',
+      "/api/memory/record/detail?agentKey=agent-a&recordId=mem_101",
     );
   });
 
-  it('requests memory scopes, scope detail, validate, and save over HTTP', async () => {
-    await getMemoryScopes('agent-a');
+  it("requests memory scopes, scope detail, validate, and save over HTTP", async () => {
+    await getMemoryScopes("agent-a");
     await getMemoryMeta();
-    await getMemoryScope('agent-a', 'agent', 'agent:agent-a');
-    await validateMemoryScope('agent-a', 'agent', '# AGENT');
+    await getMemoryScope("agent-a", "agent", "agent:agent-a");
+    await validateMemoryScope("agent-a", "agent", "# AGENT");
     await previewMemoryContext({
-      chatId: 'chat-preview',
-      message: 'desktop builtin 发布流程',
+      chatId: "chat-preview",
+      message: "desktop builtin 发布流程",
     });
     await saveMemoryScope({
-      agentKey: 'agent-a',
-      scopeType: 'agent',
-      scopeKey: 'agent:agent-a',
-      mode: 'records',
+      agentKey: "agent-a",
+      scopeType: "agent",
+      scopeKey: "agent:agent-a",
+      mode: "records",
       archiveMissing: true,
       records: [
         {
-          id: 'mem_1',
-          title: '偏好中文输出',
-          summary: 'Prefer Chinese output.',
-          category: 'general',
+          id: "mem_1",
+          title: "偏好中文输出",
+          summary: "Prefer Chinese output.",
+          category: "general",
           importance: 8,
           confidence: 0.95,
-          tags: ['preference'],
+          tags: ["preference"],
         },
       ],
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scope/list?agentKey=agent-a',
+      "/api/memory/scope/list?agentKey=agent-a",
     );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      '/api/memory/meta',
+      "/api/memory/meta",
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scope/detail?agentKey=agent-a&scopeType=agent&scopeKey=agent%3Aagent-a',
+      "/api/memory/scope/detail?agentKey=agent-a&scopeType=agent&scopeKey=agent%3Aagent-a",
     );
     expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scope/validate',
+      "/api/memory/scope/validate",
     );
-    expect(JSON.parse(String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body))).toEqual({
-      agentKey: 'agent-a',
-      scopeType: 'agent',
-      markdown: '# AGENT',
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[3] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      agentKey: "agent-a",
+      scopeType: "agent",
+      markdown: "# AGENT",
     });
     expect((fetchMock.mock.calls[4] as [string, RequestInit])[0]).toBe(
-      '/api/memory/context-preview',
+      "/api/memory/context-preview",
     );
-    expect(JSON.parse(String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body))).toEqual({
-      chatId: 'chat-preview',
-      message: 'desktop builtin 发布流程',
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[4] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      chatId: "chat-preview",
+      message: "desktop builtin 发布流程",
     });
     expect((fetchMock.mock.calls[5] as [string, RequestInit])[0]).toBe(
-      '/api/memory/scope/save',
+      "/api/memory/scope/save",
     );
-    expect(JSON.parse(String((fetchMock.mock.calls[5] as [string, RequestInit])[1].body))).toEqual({
-      agentKey: 'agent-a',
-      scopeType: 'agent',
-      scopeKey: 'agent:agent-a',
-      mode: 'records',
+    expect(
+      JSON.parse(
+        String((fetchMock.mock.calls[5] as [string, RequestInit])[1].body),
+      ),
+    ).toEqual({
+      agentKey: "agent-a",
+      scopeType: "agent",
+      scopeKey: "agent:agent-a",
+      mode: "records",
       archiveMissing: true,
       records: [
         {
-          id: 'mem_1',
-          title: '偏好中文输出',
-          summary: 'Prefer Chinese output.',
-          category: 'general',
+          id: "mem_1",
+          title: "偏好中文输出",
+          summary: "Prefer Chinese output.",
+          category: "general",
           importance: 8,
           confidence: 0.95,
-          tags: ['preference'],
+          tags: ["preference"],
         },
       ],
     });
   });
 
-  it('injects a bridge token into app mode api requests', async () => {
-    installWindow({ storedToken: 'bridge-token-1' });
+  it("injects a bridge token into app mode api requests", async () => {
+    installWindow({ storedToken: "bridge-token-1" });
 
     await getAgents();
 
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
-      Authorization: 'Bearer bridge-token-1',
+    expect(
+      (fetchMock.mock.calls[0] as [string, RequestInit])[1].headers,
+    ).toMatchObject({
+      Authorization: "Bearer bridge-token-1",
     });
   });
 
-  it('injects a stored standalone token into the first registry request', async () => {
+  it("injects a stored standalone token into the first registry request", async () => {
     installStandaloneLocalStorage({
-      [ACCESS_TOKEN_STORAGE_KEY]: 'stored-browser-token',
+      [ACCESS_TOKEN_STORAGE_KEY]: "stored-browser-token",
     });
 
     await getAdminRegistries();
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      '/api/admin/registries',
+      "/api/admin/registries",
     );
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
-      Authorization: 'Bearer stored-browser-token',
+    expect(
+      (fetchMock.mock.calls[0] as [string, RequestInit])[1].headers,
+    ).toMatchObject({
+      Authorization: "Bearer stored-browser-token",
     });
   });
 
-  it('prefers an explicit token over the stored standalone token', async () => {
+  it("prefers an explicit token over the stored standalone token", async () => {
     installStandaloneLocalStorage({
-      [ACCESS_TOKEN_STORAGE_KEY]: 'stored-browser-token',
+      [ACCESS_TOKEN_STORAGE_KEY]: "stored-browser-token",
     });
-    setAccessToken('manual-token');
+    setAccessToken("manual-token");
 
     await getAdminRegistries();
 
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
-      Authorization: 'Bearer manual-token',
+    expect(
+      (fetchMock.mock.calls[0] as [string, RequestInit])[1].headers,
+    ).toMatchObject({
+      Authorization: "Bearer manual-token",
     });
   });
 
-  it('keeps getAgents queryless by default and forwards mixed-list filters', async () => {
+  it("keeps getAgents queryless by default and forwards mixed-list filters", async () => {
     await getAgents();
     await getAgents({ includeChats: 5 });
-    await getAgents({ includeChats: 5, includeTeam: true, scope: 'copilot', mode: 'CODER' });
-    await getAgents({ includeChats: 20, scope: 'nav', mode: ['CODER', 'KBASE'] });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5');
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=5&includeTeam=true&scope=copilot&mode=CODER');
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe('/api/agents?includeChats=20&scope=nav&mode=CODER&mode=KBASE');
-  });
-
-  it('supports reading and writing agent order', async () => {
-    await getAgentOrder();
-    await putAgentOrder({ order: ['agent-b', 'agent-a'] });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/agents/order');
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].method).toBe('GET');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/agents/order');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[1]).toMatchObject({
-      method: 'PUT',
-      body: JSON.stringify({ order: ['agent-b', 'agent-a'] }),
+    await getAgents({
+      includeChats: 5,
+      includeTeam: true,
+      scope: "copilot",
+      mode: "CODER",
     });
-  });
-
-  it('uses admin endpoints for management agent discovery, detail, and order updates', async () => {
-    await getAdminAgents();
-    await getAdminAgentDetail('bad-agent');
-    await putAdminAgentOrder({ order: ['bad-agent', 'agent-a'] });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/agents');
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe('/api/admin/agents/detail?agentKey=bad-agent');
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe('/api/admin/agents/order');
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1]).toMatchObject({
-      method: 'PUT',
-      body: JSON.stringify({ order: ['bad-agent', 'agent-a'] }),
-    });
-  });
-
-  it('uses generic source endpoints for registry text and the registry validation endpoint', async () => {
-    await getAdminRegistries();
-    await getAdminSource({ type: 'registry', category: 'models', file: 'openai.yml' });
-    await updateAdminSource({
-      target: { type: 'registry', category: 'models', file: 'openai.yml' },
-      content: 'key: openai\n',
-    });
-    await validateAdminRegistry({
-      category: 'models',
-      file: 'openai.yml',
-      content: 'key: openai\n',
+    await getAgents({
+      includeChats: 20,
+      scope: "nav",
+      mode: ["CODER", "KBASE"],
     });
 
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/admin/registries');
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/agents",
+    );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      '/api/admin/source?type=registry&category=models&file=openai.yml',
+      "/api/agents?includeChats=5",
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
-      '/api/admin/source',
+      "/api/agents?includeChats=5&includeTeam=true&scope=copilot&mode=CODER",
     );
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1]).toMatchObject({
-      method: 'PUT',
-      body: JSON.stringify({
-        target: { type: 'registry', category: 'models', file: 'openai.yml' },
-        content: 'key: openai\n',
-      }),
-    });
     expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
-      '/api/admin/registries/validate',
+      "/api/agents?includeChats=20&scope=nav&mode=CODER&mode=KBASE",
     );
-    expect((fetchMock.mock.calls[3] as [string, RequestInit])[1]).toMatchObject({
-      method: 'POST',
-      body: JSON.stringify({
-        category: 'models',
-        file: 'openai.yml',
-        content: 'key: openai\n',
-      }),
+  });
+
+  it("supports reading and writing agent order", async () => {
+    await getAgentOrder();
+    await putAgentOrder({ order: ["agent-b", "agent-a"] });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/agents/order",
+    );
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].method).toBe(
+      "GET",
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      "/api/agents/order",
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[1]).toMatchObject(
+      {
+        method: "PUT",
+        body: JSON.stringify({ order: ["agent-b", "agent-a"] }),
+      },
+    );
+  });
+
+  it("uses admin endpoints for management agent discovery, detail, and order updates", async () => {
+    await getAdminAgents();
+    await getAdminAgentDetail("bad-agent");
+    await putAdminAgentOrder({ order: ["bad-agent", "agent-a"] });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/admin/agents",
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      "/api/admin/agents/detail?agentKey=bad-agent",
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      "/api/admin/agents/order",
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1]).toMatchObject(
+      {
+        method: "PUT",
+        body: JSON.stringify({ order: ["bad-agent", "agent-a"] }),
+      },
+    );
+  });
+
+  it("uses generic source endpoints for registry text and the registry validation endpoint", async () => {
+    await getAdminRegistries();
+    await getAdminSource({
+      type: "registry",
+      category: "models",
+      file: "openai.yml",
     });
+    await updateAdminSource({
+      target: { type: "registry", category: "models", file: "openai.yml" },
+      content: "key: openai\n",
+    });
+    await validateAdminRegistry({
+      category: "models",
+      file: "openai.yml",
+      content: "key: openai\n",
+    });
+
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/admin/registries",
+    );
+    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
+      "/api/admin/source?type=registry&category=models&file=openai.yml",
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
+      "/api/admin/source",
+    );
+    expect((fetchMock.mock.calls[2] as [string, RequestInit])[1]).toMatchObject(
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          target: { type: "registry", category: "models", file: "openai.yml" },
+          content: "key: openai\n",
+        }),
+      },
+    );
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
+      "/api/admin/registries/validate",
+    );
+    expect((fetchMock.mock.calls[3] as [string, RequestInit])[1]).toMatchObject(
+      {
+        method: "POST",
+        body: JSON.stringify({
+          category: "models",
+          file: "openai.yml",
+          content: "key: openai\n",
+        }),
+      },
+    );
   });
 
-  it('supports filtering getChats by agentKey', async () => {
-    await getChats({ agentKey: 'agent-a' });
+  it("supports filtering getChats by agentKey", async () => {
+    await getChats({ agentKey: "agent-a" });
 
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chats?agentKey=agent-a');
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/chats?agentKey=agent-a",
+    );
   });
 
-  it('normalizes chat runtime summaries while respecting explicit status flags', () => {
-    expect(normalizeChatSummariesPayload([
-      {
-        chatId: 'active-awaiting',
-        activeRun: { runId: 'run_1' },
-        awaiting: { awaitingId: 'await_1', mode: 'question' },
-      },
-      {
-        chatId: 'completed',
-        activeRun: { runId: 'stale_run' },
-        awaiting: { awaitingId: 'stale_await' },
-        hasActiveRun: false,
-        hasPendingAwaiting: false,
-      },
-      { chatId: 'legacy' },
-    ])).toEqual([
+  it("normalizes chat runtime summaries while respecting explicit status flags", () => {
+    expect(
+      normalizeChatSummariesPayload([
+        {
+          chatId: "active-awaiting",
+          activeRun: { runId: "run_1" },
+          awaiting: { awaitingId: "await_1", mode: "question" },
+        },
+        {
+          chatId: "completed",
+          activeRun: { runId: "stale_run" },
+          awaiting: { awaitingId: "stale_await" },
+          hasActiveRun: false,
+          hasPendingAwaiting: false,
+        },
+        { chatId: "legacy" },
+      ]),
+    ).toEqual([
       expect.objectContaining({
-        chatId: 'active-awaiting',
+        chatId: "active-awaiting",
         hasActiveRun: true,
         hasPendingAwaiting: true,
       }),
       expect.objectContaining({
-        chatId: 'completed',
+        chatId: "completed",
         hasActiveRun: false,
         hasPendingAwaiting: false,
       }),
-      { chatId: 'legacy', hasPendingAwaiting: false },
+      { chatId: "legacy", hasPendingAwaiting: false },
     ]);
   });
 
-  it('requests a bridge token when app mode starts without one', async () => {
+  it("requests a bridge token when app mode starts without one", async () => {
     const { parent, dispatchMessage } = installWindow();
 
     parent.postMessage.mockImplementation((payload: { requestId: string }) => {
@@ -1505,8 +1790,8 @@ describe('data client requests', () => {
           data: {
             type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
-            token: 'bridge-token-2',
-            desktopAuthContext: 'desktop-auth-current',
+            token: "bridge-token-2",
+            desktopAuthContext: "desktop-auth-current",
           },
         } as MessageEvent);
       });
@@ -1516,18 +1801,22 @@ describe('data client requests', () => {
 
     expect(parent.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        action: 'getAccessToken',
-        reason: 'missing',
+        action: "getAccessToken",
+        reason: "missing",
       }),
-      '*',
+      "*",
     );
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
-      Authorization: 'Bearer bridge-token-2',
+    expect(
+      (fetchMock.mock.calls[0] as [string, RequestInit])[1].headers,
+    ).toMatchObject({
+      Authorization: "Bearer bridge-token-2",
     });
   });
 
-  it('refreshes the bridge token once after a 401 response', async () => {
-    const { parent, dispatchMessage } = installWindow({ storedToken: 'stale-token' });
+  it("refreshes the bridge token once after a 401 response", async () => {
+    const { parent, dispatchMessage } = installWindow({
+      storedToken: "stale-token",
+    });
 
     parent.postMessage.mockImplementation((payload: { requestId: string }) => {
       queueMicrotask(() => {
@@ -1536,8 +1825,8 @@ describe('data client requests', () => {
           data: {
             type: APP_AUTH_RESPONSE_TYPE,
             requestId: payload.requestId,
-            token: 'fresh-token',
-            desktopAuthContext: 'desktop-auth-current',
+            token: "fresh-token",
+            desktopAuthContext: "desktop-auth-current",
           },
         } as MessageEvent);
       });
@@ -1547,12 +1836,13 @@ describe('data client requests', () => {
       .mockResolvedValueOnce({
         ok: false,
         status: 401,
-        text: async () => JSON.stringify({ code: 401, msg: 'expired', data: null }),
+        text: async () =>
+          JSON.stringify({ code: 401, msg: "expired", data: null }),
       })
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: async () => JSON.stringify({ code: 0, msg: 'ok', data: [] }),
+        text: async () => JSON.stringify({ code: 0, msg: "ok", data: [] }),
       });
 
     await expect(getAgents()).resolves.toMatchObject({
@@ -1561,49 +1851,53 @@ describe('data client requests', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).toMatchObject({
-      Authorization: 'Bearer stale-token',
+    expect(
+      (fetchMock.mock.calls[0] as [string, RequestInit])[1].headers,
+    ).toMatchObject({
+      Authorization: "Bearer stale-token",
     });
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[1].headers).toMatchObject({
-      Authorization: 'Bearer fresh-token',
+    expect(
+      (fetchMock.mock.calls[1] as [string, RequestInit])[1].headers,
+    ).toMatchObject({
+      Authorization: "Bearer fresh-token",
     });
     expect(parent.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        action: 'refreshAccessToken',
-        reason: 'unauthorized',
+        action: "refreshAccessToken",
+        reason: "unauthorized",
       }),
-      '*',
+      "*",
     );
   });
 
-  it('parses voice capabilities from standard ApiResponse payloads', async () => {
+  it("parses voice capabilities from standard ApiResponse payloads", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () =>
         JSON.stringify({
           code: 0,
-          msg: 'ok',
+          msg: "ok",
           data: {
-            websocketPath: '/api/voice/ws',
+            websocketPath: "/api/voice/ws",
             asr: { configured: true },
           },
         }),
     });
 
     await expect(getVoiceCapabilitiesFlexible()).resolves.toEqual({
-      websocketPath: '/api/voice/ws',
+      websocketPath: "/api/voice/ws",
       asr: { configured: true },
     });
   });
 
-  it('parses voice capabilities from bare json payloads', async () => {
+  it("parses voice capabilities from bare json payloads", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () =>
         JSON.stringify({
-          websocketPath: '/api/voice/ws',
+          websocketPath: "/api/voice/ws",
           asr: {
             defaults: {
               sampleRate: 16000,
@@ -1613,7 +1907,7 @@ describe('data client requests', () => {
     });
 
     await expect(getVoiceCapabilitiesFlexible()).resolves.toEqual({
-      websocketPath: '/api/voice/ws',
+      websocketPath: "/api/voice/ws",
       asr: {
         defaults: {
           sampleRate: 16000,
@@ -1622,53 +1916,45 @@ describe('data client requests', () => {
     });
   });
 
-  it('parses voice voices from standard ApiResponse payloads', async () => {
+  it("parses voice voices from standard ApiResponse payloads", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () =>
         JSON.stringify({
           code: 0,
-          msg: 'ok',
+          msg: "ok",
           data: {
-            defaultVoice: 'jarvis',
-            voices: [
-              { id: 'jarvis', displayName: 'Jarvis' },
-            ],
+            defaultVoice: "jarvis",
+            voices: [{ id: "jarvis", displayName: "Jarvis" }],
           },
         }),
     });
 
     await expect(getVoiceVoicesFlexible()).resolves.toEqual({
-      defaultVoice: 'jarvis',
-      voices: [
-        { id: 'jarvis', displayName: 'Jarvis' },
-      ],
+      defaultVoice: "jarvis",
+      voices: [{ id: "jarvis", displayName: "Jarvis" }],
     });
   });
 
-  it('parses voice voices from bare json payloads', async () => {
+  it("parses voice voices from bare json payloads", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () =>
         JSON.stringify({
-          defaultVoice: 'jarvis',
-          voices: [
-            { id: 'jarvis', displayName: 'Jarvis' },
-          ],
+          defaultVoice: "jarvis",
+          voices: [{ id: "jarvis", displayName: "Jarvis" }],
         }),
     });
 
     await expect(getVoiceVoicesFlexible()).resolves.toEqual({
-      defaultVoice: 'jarvis',
-      voices: [
-        { id: 'jarvis', displayName: 'Jarvis' },
-      ],
+      defaultVoice: "jarvis",
+      voices: [{ id: "jarvis", displayName: "Jarvis" }],
     });
   });
 
-  it('keeps regular endpoints on strict ApiResponse parsing', async () => {
+  it("keeps regular endpoints on strict ApiResponse parsing", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -1676,99 +1962,129 @@ describe('data client requests', () => {
     });
 
     await expect(getAgents()).rejects.toThrow(
-      'Response is not ApiResponse shape',
+      "Response is not ApiResponse shape",
     );
   });
 
-  it('builds resource urls from the new resource endpoint', () => {
-    expect(buildResourceUrl('reports/demo image.png')).toBe(
-      '/api/resource?file=reports%2Fdemo+image.png',
+  it("builds resource urls from the new resource endpoint", () => {
+    expect(buildResourceUrl("reports/demo image.png")).toBe(
+      "/api/resource?file=reports%2Fdemo+image.png",
     );
   });
 
-  it('classifies Markdown resources and hides the transport endpoint', () => {
-    const legacy = '/api/resource?file=chat_01%2Fold.png';
-    expect(buildResourceUrl('chat_01/old.png')).toBe(
-      '/api/resource?file=chat_01%2Fold.png',
+  it("classifies Markdown resources and hides the transport endpoint", () => {
+    const legacy = "/api/resource?file=chat_01%2Fold.png";
+    expect(buildResourceUrl("chat_01/old.png")).toBe(
+      "/api/resource?file=chat_01%2Fold.png",
     );
-    expect(buildResourceUrl('/Users/alice/demo.png', 'chat_01')).toBe(
-      '/api/resource?file=%2FUsers%2Falice%2Fdemo.png&chatId=chat_01',
+    expect(buildResourceUrl("/Users/alice/demo.png", "chat_01")).toBe(
+      "/api/resource?file=%2FUsers%2Falice%2Fdemo.png&chatId=chat_01",
     );
     expect(isLegacyResourceUrl(legacy)).toBe(true);
-    expect(isLegacyResourceUrl('https://example.com/api/resource?file=public.png')).toBe(false);
-    expect(isChatScopeResourceRef('artifacts/run_01/%E5%A4%8F%E6%97%A5.png', 'chat_01')).toBe(true);
-    expect(isChatScopeResourceRef('chat_01/image.png', 'chat_01')).toBe(false);
-    expect(isChatScopeResourceRef('/Users/alice/image.png', 'chat_01')).toBe(false);
-    expect(isChatScopeResourceRef('https://example.com/image.png', 'chat_01')).toBe(false);
-    expect(isChatScopeResourceRef('artifacts/%2E%2E/private.png', 'chat_01')).toBe(false);
-    expect(classifyResourceUrl('image.png', 'chat_01')).toMatchObject({
-      kind: 'chat',
-      resourceKey: 'image.png',
-      fetchUrl: '/api/resource?file=chat_01%2Fimage.png',
+    expect(
+      isLegacyResourceUrl("https://example.com/api/resource?file=public.png"),
+    ).toBe(false);
+    expect(
+      isChatScopeResourceRef(
+        "artifacts/run_01/%E5%A4%8F%E6%97%A5.png",
+        "chat_01",
+      ),
+    ).toBe(true);
+    expect(isChatScopeResourceRef("chat_01/image.png", "chat_01")).toBe(false);
+    expect(isChatScopeResourceRef("/Users/alice/image.png", "chat_01")).toBe(
+      false,
+    );
+    expect(
+      isChatScopeResourceRef("https://example.com/image.png", "chat_01"),
+    ).toBe(false);
+    expect(
+      isChatScopeResourceRef("artifacts/%2E%2E/private.png", "chat_01"),
+    ).toBe(false);
+    expect(classifyResourceUrl("image.png", "chat_01")).toMatchObject({
+      kind: "chat",
+      resourceKey: "image.png",
+      fetchUrl: "/api/resource?file=chat_01%2Fimage.png",
       requiresPlatformAuth: true,
     });
-    expect(classifyResourceUrl(legacy, 'chat_01')).toMatchObject({
-      kind: 'invalid',
-      fetchUrl: '',
+    expect(classifyResourceUrl(legacy, "chat_01")).toMatchObject({
+      kind: "invalid",
+      fetchUrl: "",
       requiresPlatformAuth: false,
     });
-    expect(classifyResourceUrl('%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01').fetchUrl).toBe(
-      '/api/resource?file=chat_01%2F%25E5%25A4%258F%25E6%2597%25A5%2520%25231%2525.png',
+    expect(
+      classifyResourceUrl("%E5%A4%8F%E6%97%A5%20%231%25.png", "chat_01")
+        .fetchUrl,
+    ).toBe(
+      "/api/resource?file=chat_01%2F%25E5%25A4%258F%25E6%2597%25A5%2520%25231%2525.png",
     );
   });
 
   it.each([
-    ['/Users/alice/image.png', 'absolute'],
-    ['/tmp/image.png', 'absolute'],
-		['/tmp/../private/image.png', 'invalid'],
-		['/tmp/%2E%2E/private/image.png', 'invalid'],
-		['/Users/alice//image.png', 'invalid'],
-    ['C:\\Users\\alice\\image.png', 'invalid'],
-    ['\\\\server\\share\\image.png', 'invalid'],
-    ['file:///tmp/image.png', 'invalid'],
-    ['ftp://example.com/image.png', 'invalid'],
-    ['/api/resource?file=chat_01%2Fimage.png', 'invalid'],
-    ['chat_01/image.png', 'invalid'],
-    ['artifacts//image.png', 'invalid'],
-    ['artifacts/./image.png', 'invalid'],
-    ['artifacts/../image.png', 'invalid'],
-    ['image.png?download=1', 'invalid'],
-    ['image.png#preview', 'invalid'],
-    ['https://example.com/image.png', 'external'],
-    ['http://example.com/image.png', 'external'],
-    ['data:image/png;base64,AAAA', 'inline'],
-    ['blob:https://example.com/id', 'inline'],
-  ])('classifies resource boundary %s as %s', (source, expectedKind) => {
-    expect(classifyResourceUrl(source, 'chat_01').kind).toBe(expectedKind);
+    ["/Users/alice/image.png", "absolute"],
+    ["/tmp/image.png", "absolute"],
+    ["/tmp/../private/image.png", "invalid"],
+    ["/tmp/%2E%2E/private/image.png", "invalid"],
+    ["/Users/alice//image.png", "invalid"],
+    ["C:\\Users\\alice\\image.png", "invalid"],
+    ["\\\\server\\share\\image.png", "invalid"],
+    ["file:///tmp/image.png", "invalid"],
+    ["ftp://example.com/image.png", "invalid"],
+    ["/api/resource?file=chat_01%2Fimage.png", "invalid"],
+    ["chat_01/image.png", "invalid"],
+    ["artifacts//image.png", "invalid"],
+    ["artifacts/./image.png", "invalid"],
+    ["artifacts/../image.png", "invalid"],
+    ["image.png?download=1", "invalid"],
+    ["image.png#preview", "invalid"],
+    ["https://example.com/image.png", "external"],
+    ["http://example.com/image.png", "external"],
+    ["data:image/png;base64,AAAA", "inline"],
+    ["blob:https://example.com/id", "inline"],
+  ])("classifies resource boundary %s as %s", (source, expectedKind) => {
+    expect(classifyResourceUrl(source, "chat_01").kind).toBe(expectedKind);
   });
 
-  it('constructs absolute fetches with chat context and delegates Team access to Platform', () => {
-    expect(classifyResourceUrl('/Users/alice/%E5%A4%8F%E6%97%A5%20%231%25.png', 'chat_01')).toMatchObject({
-      kind: 'absolute',
-      resourceKey: '/Users/alice/夏日 #1%.png',
-      fetchUrl: '/api/resource?file=%2FUsers%2Falice%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01',
+  it("constructs absolute fetches with chat context and delegates Team access to Platform", () => {
+    expect(
+      classifyResourceUrl(
+        "/Users/alice/%E5%A4%8F%E6%97%A5%20%231%25.png",
+        "chat_01",
+      ),
+    ).toMatchObject({
+      kind: "absolute",
+      resourceKey: "/Users/alice/夏日 #1%.png",
+      fetchUrl:
+        "/api/resource?file=%2FUsers%2Falice%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01",
       requiresPlatformAuth: true,
     });
-    expect(classifyResourceUrl('/tmp/image.png', 'chat_01', { teamChat: true }).kind).toBe('absolute');
-    expect(classifyResourceUrl('/Users/alice/image.png', 'chat_01', { teamChat: true }).kind).toBe('absolute');
+    expect(
+      classifyResourceUrl("/tmp/image.png", "chat_01", { teamChat: true }).kind,
+    ).toBe("absolute");
+    expect(
+      classifyResourceUrl("/Users/alice/image.png", "chat_01", {
+        teamChat: true,
+      }).kind,
+    ).toBe("absolute");
   });
 
   it.each([
-    'C:\\Users\\alice\\image.png',
-    '\\\\server\\share\\image.png',
-    'file:///tmp/image.png',
-    '/api/resource?file=chat_01%2Fimage.png',
-    'chat_01/image.png',
-    'artifacts/../image.png',
-		'/tmp/../private/image.png',
-		'/tmp/%2E%2E/private/image.png',
-  ])('never fetches rejected resource source %s', async (source) => {
-    await expect(getResourceBlob(source, { chatId: 'chat_01' })).rejects.toThrow(Error);
+    "C:\\Users\\alice\\image.png",
+    "\\\\server\\share\\image.png",
+    "file:///tmp/image.png",
+    "/api/resource?file=chat_01%2Fimage.png",
+    "chat_01/image.png",
+    "artifacts/../image.png",
+    "/tmp/../private/image.png",
+    "/tmp/%2E%2E/private/image.png",
+  ])("never fetches rejected resource source %s", async (source) => {
+    await expect(
+      getResourceBlob(source, { chatId: "chat_01" }),
+    ).rejects.toThrow(Error);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('uses current chatId for authenticated Blob and text resource reads', async () => {
-    const blob = new Blob(['image'], { type: 'image/png' });
+  it("uses current chatId for authenticated Blob and text resource reads", async () => {
+    const blob = new Blob(["image"], { type: "image/png" });
     fetchMock
       .mockResolvedValueOnce({
         ok: true,
@@ -1778,65 +2094,83 @@ describe('data client requests', () => {
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: async () => 'artifact text',
+        text: async () => "artifact text",
       });
-    setAccessToken('resource-token');
+    setAccessToken("resource-token");
 
-    await expect(getResourceBlob('image.png', { chatId: 'chat_01' })).resolves.toBe(blob);
-    await expect(getResourceText('report.txt', { chatId: 'chat_01' })).resolves.toBe('artifact text');
+    await expect(
+      getResourceBlob("image.png", { chatId: "chat_01" }),
+    ).resolves.toBe(blob);
+    await expect(
+      getResourceText("report.txt", { chatId: "chat_01" }),
+    ).resolves.toBe("artifact text");
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      '/api/resource?file=chat_01%2Fimage.png',
-      '/api/resource?file=chat_01%2Freport.txt',
+      "/api/resource?file=chat_01%2Fimage.png",
+      "/api/resource?file=chat_01%2Freport.txt",
     ]);
-    for (const [, options] of fetchMock.mock.calls as Array<[string, RequestInit]>) {
-      expect(options.headers).toEqual({ Authorization: 'Bearer resource-token' });
-      expect(options.credentials).toBe('same-origin');
+    for (const [, options] of fetchMock.mock.calls as Array<
+      [string, RequestInit]
+    >) {
+      expect(options.headers).toEqual({
+        Authorization: "Bearer resource-token",
+      });
+      expect(options.credentials).toBe("same-origin");
     }
   });
 
-  it('sends Workspace and tmp absolute paths with chat context so Platform decides access', async () => {
-    const blob = new Blob(['absolute'], { type: 'image/png' });
+  it("sends Workspace and tmp absolute paths with chat context so Platform decides access", async () => {
+    const blob = new Blob(["absolute"], { type: "image/png" });
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
       blob: async () => blob,
     });
-    setAccessToken('absolute-token');
+    setAccessToken("absolute-token");
 
-    await expect(getResourceBlob('/Users/alice/project/%E5%A4%8F%E6%97%A5%20%231%25.png', {
-      chatId: 'chat_01',
-    })).resolves.toBe(blob);
-    await expect(getResourceBlob('/tmp/poster.png', {
-      chatId: 'chat_01',
-    })).resolves.toBe(blob);
-    await expect(getResourceBlob('/tmp/team.png', {
-      chatId: 'chat_01',
-      teamChat: true,
-    })).resolves.toBe(blob);
+    await expect(
+      getResourceBlob("/Users/alice/project/%E5%A4%8F%E6%97%A5%20%231%25.png", {
+        chatId: "chat_01",
+      }),
+    ).resolves.toBe(blob);
+    await expect(
+      getResourceBlob("/tmp/poster.png", {
+        chatId: "chat_01",
+      }),
+    ).resolves.toBe(blob);
+    await expect(
+      getResourceBlob("/tmp/team.png", {
+        chatId: "chat_01",
+        teamChat: true,
+      }),
+    ).resolves.toBe(blob);
 
     expect(fetchMock.mock.calls.map(([requestUrl]) => requestUrl)).toEqual([
-      '/api/resource?file=%2FUsers%2Falice%2Fproject%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01',
-      '/api/resource?file=%2Ftmp%2Fposter.png&chatId=chat_01',
-      '/api/resource?file=%2Ftmp%2Fteam.png&chatId=chat_01',
+      "/api/resource?file=%2FUsers%2Falice%2Fproject%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01",
+      "/api/resource?file=%2Ftmp%2Fposter.png&chatId=chat_01",
+      "/api/resource?file=%2Ftmp%2Fteam.png&chatId=chat_01",
     ]);
-    for (const [, options] of fetchMock.mock.calls as Array<[string, RequestInit]>) {
-      expect(options.headers).toEqual({ Authorization: 'Bearer absolute-token' });
-      expect(options.credentials).toBe('same-origin');
+    for (const [, options] of fetchMock.mock.calls as Array<
+      [string, RequestInit]
+    >) {
+      expect(options.headers).toEqual({
+        Authorization: "Bearer absolute-token",
+      });
+      expect(options.credentials).toBe("same-origin");
     }
   });
 
-  it('downloads resources with auth headers and a browser blob download', async () => {
-    const createObjectURL = jest.fn(() => 'blob:download');
+  it("downloads resources with auth headers and a browser blob download", async () => {
+    const createObjectURL = jest.fn(() => "blob:download");
     const revokeObjectURL = jest.fn();
     const click = jest.fn();
     const appendChild = jest.fn();
     const removeChild = jest.fn();
     const createElement = jest.fn(() => ({
       click,
-      href: '',
-      download: '',
-      rel: '',
+      href: "",
+      download: "",
+      rel: "",
     }));
 
     global.document = {
@@ -1850,36 +2184,36 @@ describe('data client requests', () => {
       createObjectURL,
       revokeObjectURL,
     } as unknown as typeof global.URL;
-    setAccessToken('demo-token');
+    setAccessToken("demo-token");
 
-    const blob = new Blob(['demo']);
+    const blob = new Blob(["demo"]);
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       blob: async () => blob,
     });
 
-    await downloadResource('demo.txt', {
-      filename: 'demo.txt',
-      chatId: 'chat_1',
+    await downloadResource("demo.txt", {
+      filename: "demo.txt",
+      chatId: "chat_1",
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/resource?file=chat_1%2Fdemo.txt');
-    expect(options.method).toBe('GET');
+    expect(url).toBe("/api/resource?file=chat_1%2Fdemo.txt");
+    expect(options.method).toBe("GET");
     expect(options.headers).toEqual({
-      Authorization: 'Bearer demo-token',
+      Authorization: "Bearer demo-token",
     });
-    expect(options.credentials).toBe('same-origin');
-    expect(createElement).toHaveBeenCalledWith('a');
+    expect(options.credentials).toBe("same-origin");
+    expect(createElement).toHaveBeenCalledWith("a");
     expect(createObjectURL).toHaveBeenCalledWith(blob);
     expect(click).toHaveBeenCalledTimes(1);
     expect(appendChild).toHaveBeenCalledTimes(1);
     expect(removeChild).toHaveBeenCalledTimes(1);
   });
 
-  it('resolves ChatScope download urls with chatId and never sends Bearer cross-origin', async () => {
-    const createObjectURL = jest.fn(() => 'blob:download');
+  it("resolves ChatScope download urls with chatId and never sends Bearer cross-origin", async () => {
+    const createObjectURL = jest.fn(() => "blob:download");
     const revokeObjectURL = jest.fn();
     const click = jest.fn();
     global.document = {
@@ -1889,75 +2223,87 @@ describe('data client requests', () => {
       },
       createElement: jest.fn(() => ({
         click,
-        href: '',
-        download: '',
-        rel: '',
+        href: "",
+        download: "",
+        rel: "",
       })),
     } as unknown as Document;
     global.URL = {
       createObjectURL,
       revokeObjectURL,
     } as unknown as typeof global.URL;
-    setAccessToken('private-platform-token');
+    setAccessToken("private-platform-token");
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
-      blob: async () => new Blob(['demo']),
+      blob: async () => new Blob(["demo"]),
     });
 
-    await downloadResource('artifacts/run_01/image.png', {
-      filename: 'image.png',
-      chatId: 'chat_01',
+    await downloadResource("artifacts/run_01/image.png", {
+      filename: "image.png",
+      chatId: "chat_01",
     });
-    await downloadResource('https://cdn.example.com/public.png', {
-      filename: 'public.png',
-      chatId: 'chat_01',
+    await downloadResource("https://cdn.example.com/public.png", {
+      filename: "public.png",
+      chatId: "chat_01",
     });
 
-    const [logicalUrl, logicalOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const [externalUrl, externalOptions] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(logicalUrl).toBe('/api/resource?file=chat_01%2Fartifacts%2Frun_01%2Fimage.png');
-    expect(logicalOptions.headers).toEqual({ Authorization: 'Bearer private-platform-token' });
-    expect(externalUrl).toBe('https://cdn.example.com/public.png');
+    const [logicalUrl, logicalOptions] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    const [externalUrl, externalOptions] = fetchMock.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
+    expect(logicalUrl).toBe(
+      "/api/resource?file=chat_01%2Fartifacts%2Frun_01%2Fimage.png",
+    );
+    expect(logicalOptions.headers).toEqual({
+      Authorization: "Bearer private-platform-token",
+    });
+    expect(externalUrl).toBe("https://cdn.example.com/public.png");
     expect(externalOptions.headers).toEqual({});
     expect(externalOptions.credentials).toBeUndefined();
     expect(click).toHaveBeenCalledTimes(2);
   });
 
-  it('uses generic platform display text when resource downloads fail without structured codes', async () => {
+  it("uses generic platform display text when resource downloads fail without structured codes", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 403,
       text: async () =>
         JSON.stringify({
           code: 40301,
-          msg: 'token expired',
+          msg: "token expired",
           data: null,
         }),
     });
 
-    await expect(downloadResource('private.txt', { chatId: 'chat_01' })).rejects.toMatchObject({
-      message: '操作失败，请查看错误详情。',
+    await expect(
+      downloadResource("private.txt", { chatId: "chat_01" }),
+    ).rejects.toMatchObject({
+      message: "操作失败，请查看错误详情。",
       status: 403,
       code: 40301,
       platformError: expect.objectContaining({
         status: 403,
-        message: expect.stringContaining('下载失败'),
+        message: expect.stringContaining("下载失败"),
       }),
     });
   });
 
-  it('decodes RFC 5987 filenames from chat export content disposition', async () => {
-    const createObjectURL = jest.fn(() => 'blob:chat-export');
+  it("decodes RFC 5987 filenames from chat export content disposition", async () => {
+    const createObjectURL = jest.fn(() => "blob:chat-export");
     const revokeObjectURL = jest.fn();
     const click = jest.fn();
     const appendChild = jest.fn();
     const removeChild = jest.fn();
     const anchor = {
       click,
-      href: '',
-      download: '',
-      rel: '',
+      href: "",
+      download: "",
+      rel: "",
     };
 
     global.document = {
@@ -1977,24 +2323,25 @@ describe('data client requests', () => {
       status: 200,
       headers: {
         get: (key: string) =>
-          key.toLowerCase() === 'content-disposition'
+          key.toLowerCase() === "content-disposition"
             ? "attachment; filename*=UTF-8''%E4%BD%A0%E5%A5%BD.md"
             : null,
       },
-      blob: async () => new Blob(['demo']),
+      blob: async () => new Blob(["demo"]),
     });
 
-    await downloadChatExport('chat_1');
+    await downloadChatExport("chat_1");
 
-    expect(anchor.download).toBe('你好.md');
+    expect(anchor.download).toBe("你好.md");
     expect(click).toHaveBeenCalledTimes(1);
   });
 
-  it('assembles an HTML download from the Platform snapshot and Tunnel template', async () => {
+  it("assembles an HTML download from the Platform snapshot and Tunnel template", async () => {
     const snapshot = '{"version":1,"title":"Conversation"}';
-    const template = '<link href="__CONVERSATION_EXPORT_ASSET_ORIGIN__/runtime.css"><script type="application/json">__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__</script>';
+    const template =
+      '<meta name="conversation-export-local-brand" content="__CONVERSATION_EXPORT_LOCAL_BRAND_ID__"><link href="__CONVERSATION_EXPORT_ASSET_ORIGIN__/runtime.css"><script type="application/json">__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__</script>';
     let downloadedBlob: Blob | undefined;
-    const anchor = { click: jest.fn(), href: '', download: '', rel: '' };
+    const anchor = { click: jest.fn(), href: "", download: "", rel: "" };
     global.document = {
       body: { appendChild: jest.fn(), removeChild: jest.fn() },
       createElement: jest.fn(() => anchor),
@@ -2003,443 +2350,493 @@ describe('data client requests', () => {
     Object.assign(MockURL, {
       createObjectURL: jest.fn((blob: Blob) => {
         downloadedBlob = blob;
-        return 'blob:conversation-html';
+        return "blob:conversation-html";
       }),
       revokeObjectURL: jest.fn(),
     });
     global.URL = MockURL as typeof global.URL;
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: {
-        get: (key: string) => {
-          switch (key.toLowerCase()) {
-            case 'content-type':
-              return 'application/json; charset=utf-8';
-            case 'content-length':
-              return String(snapshot.length);
-            case 'content-disposition':
-              return 'attachment; filename="conversation.snapshot.json"';
-            default:
-              return null;
-          }
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (key: string) => {
+            switch (key.toLowerCase()) {
+              case "content-type":
+                return "application/json; charset=utf-8";
+              case "content-length":
+                return String(snapshot.length);
+              case "content-disposition":
+                return 'attachment; filename="conversation.snapshot.json"';
+              default:
+                return null;
+            }
+          },
         },
-      },
-      blob: async () => new Blob([snapshot], { type: 'application/json' }),
-    }).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: {
-        get: (key: string) => {
-          switch (key.toLowerCase()) {
-            case 'content-type':
-              return 'text/html; charset=utf-8';
-            case 'content-length':
-              return String(template.length);
-            default:
-              return null;
-          }
+        blob: async () => new Blob([snapshot], { type: "application/json" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (key: string) => {
+            switch (key.toLowerCase()) {
+              case "content-type":
+                return "text/html; charset=utf-8";
+              case "content-length":
+                return String(template.length);
+              default:
+                return null;
+            }
+          },
         },
-      },
-      text: async () => template,
-    });
-    (globalThis as typeof globalThis & {
-      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      CONVERSATION_EXPORT_ASSET_ORIGIN: 'http://127.0.0.1:11961',
+        text: async () => template,
+      });
+    (
+      globalThis as typeof globalThis & {
+        __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+      }
+    ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      CONVERSATION_EXPORT_ASSET_ORIGIN: "http://127.0.0.1:11961",
+      BRAND_ID: "cutej",
     };
 
-    await downloadConversationHtmlExport('chat_1');
+    await downloadConversationHtmlExport("chat_1");
 
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/chat/export?chatId=chat_1&format=snapshot');
-    expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Accept).toBe('application/json');
-    expect(fetchMock.mock.calls[1][0]).toBe(
-      'http://127.0.0.1:11961/assets/conversation-export/conversation.template.html',
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/chat/export?chatId=chat_1&format=snapshot",
     );
-    expect(fetchMock.mock.calls[1][1]?.credentials).toBe('omit');
-    expect(anchor.download).toBe('conversation.html');
+    expect(
+      (fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Accept,
+    ).toBe("application/json");
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      "http://127.0.0.1:11961/assets/conversation-export/conversation.template.html",
+    );
+    expect(fetchMock.mock.calls[1][1]?.credentials).toBe("omit");
+    expect(anchor.download).toBe("conversation.html");
     expect(anchor.click).toHaveBeenCalledTimes(1);
     await expect(downloadedBlob?.text()).resolves.toBe(
-      `<link href="http://127.0.0.1:11961/runtime.css"><script type="application/json">${snapshot}</script>`,
+      `<meta name="conversation-export-local-brand" content="cutej"><link href="http://127.0.0.1:11961/runtime.css"><script type="application/json">${snapshot}</script>`,
     );
   });
 
-  it('rejects HTML export when the runtime asset origin is missing', async () => {
-    await expect(downloadConversationHtmlExport('chat_1')).rejects.toThrow(
-      'conversation_export_asset_origin_invalid',
+  it("rejects HTML export when the runtime asset origin is missing", async () => {
+    await expect(downloadConversationHtmlExport("chat_1")).rejects.toThrow(
+      "conversation_export_asset_origin_invalid",
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects snapshot export early when Content-Length exceeds 20 MiB', async () => {
+  it("rejects snapshot export early when Content-Length exceeds 20 MiB", async () => {
     const blob = jest.fn();
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: {
-        get: (key: string) => {
-          switch (key.toLowerCase()) {
-            case 'content-type':
-              return 'application/json; charset=utf-8';
-            case 'content-length':
-              return String(MAX_CONVERSATION_HTML_BYTES + 1);
-            default:
-              return null;
-          }
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (key: string) => {
+            switch (key.toLowerCase()) {
+              case "content-type":
+                return "application/json; charset=utf-8";
+              case "content-length":
+                return String(MAX_CONVERSATION_HTML_BYTES + 1);
+              default:
+                return null;
+            }
+          },
         },
-      },
-      blob,
-    }).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: { get: (key: string) => key.toLowerCase() === 'content-type' ? 'text/html' : null },
-      text: async () => '__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN__',
-    });
-    (globalThis as typeof globalThis & {
-      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      CONVERSATION_EXPORT_ASSET_ORIGIN: 'http://127.0.0.1:11961',
+        blob,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (key: string) =>
+            key.toLowerCase() === "content-type" ? "text/html" : null,
+        },
+        text: async () =>
+          "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN____CONVERSATION_EXPORT_LOCAL_BRAND_ID__",
+      });
+    (
+      globalThis as typeof globalThis & {
+        __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+      }
+    ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      CONVERSATION_EXPORT_ASSET_ORIGIN: "http://127.0.0.1:11961",
+      BRAND_ID: "zenmind",
     };
 
-    await expect(downloadConversationHtmlExport('chat_1')).rejects.toThrow(
+    await expect(downloadConversationHtmlExport("chat_1")).rejects.toThrow(
       `actual=${MAX_CONVERSATION_HTML_BYTES + 1} limit=${MAX_CONVERSATION_HTML_BYTES}`,
     );
     expect(blob).not.toHaveBeenCalled();
   });
 
-  it('rejects an oversized assembled HTML Blob', async () => {
-    const template = '__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN__';
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: {
-        get: (key: string) =>
-          key.toLowerCase() === 'content-type'
-            ? 'application/json; charset=utf-8'
-            : null,
-      },
-      blob: async () =>
-        new Blob([Buffer.alloc(MAX_CONVERSATION_HTML_BYTES)], {
-          type: 'application/json',
-        }),
-    }).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: {
-        get: (key: string) => key.toLowerCase() === 'content-type' ? 'text/html; charset=utf-8' : null,
-      },
-      text: async () => template,
-    });
-    (globalThis as typeof globalThis & {
-      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      CONVERSATION_EXPORT_ASSET_ORIGIN: 'http://127.0.0.1:11961',
+  it("rejects an oversized assembled HTML Blob", async () => {
+    const template =
+      "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN____CONVERSATION_EXPORT_LOCAL_BRAND_ID__";
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (key: string) =>
+            key.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null,
+        },
+        blob: async () =>
+          new Blob([Buffer.alloc(MAX_CONVERSATION_HTML_BYTES)], {
+            type: "application/json",
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (key: string) =>
+            key.toLowerCase() === "content-type"
+              ? "text/html; charset=utf-8"
+              : null,
+        },
+        text: async () => template,
+      });
+    (
+      globalThis as typeof globalThis & {
+        __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+      }
+    ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      CONVERSATION_EXPORT_ASSET_ORIGIN: "http://127.0.0.1:11961",
+      BRAND_ID: "zenmind",
     };
 
-    await expect(downloadConversationHtmlExport('chat_1')).rejects.toThrow(
+    await expect(downloadConversationHtmlExport("chat_1")).rejects.toThrow(
       `limit=${MAX_CONVERSATION_HTML_BYTES}`,
     );
   });
 
-  it('loads raw chat jsonl as authenticated text', async () => {
-    setAccessToken('demo-token');
+  it("loads raw chat jsonl as authenticated text", async () => {
+    setAccessToken("demo-token");
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () => '{"_type":"query"}\n',
     });
 
-    await expect(getChatRawJsonl('chat_1')).resolves.toBe('{"_type":"query"}\n');
+    await expect(getChatRawJsonl("chat_1")).resolves.toBe(
+      '{"_type":"query"}\n',
+    );
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/chat/jsonl?chatId=chat_1');
-    expect(options.method).toBe('GET');
+    expect(url).toBe("/api/chat/jsonl?chatId=chat_1");
+    expect(options.method).toBe("GET");
     expect(options.headers).toEqual({
-      Authorization: 'Bearer demo-token',
+      Authorization: "Bearer demo-token",
     });
   });
 
-  it('loads raw llm trace json as authenticated text', async () => {
-    setAccessToken('demo-token');
+  it("loads raw llm trace json as authenticated text", async () => {
+    setAccessToken("demo-token");
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () => '{"runId":"run_1"}\n',
     });
 
-    await expect(getChatLLMTraceRaw('chat_1/.llm-records/run_1_001.json')).resolves.toBe('{"runId":"run_1"}\n');
+    await expect(
+      getChatLLMTraceRaw("chat_1/.llm-records/run_1_001.json"),
+    ).resolves.toBe('{"runId":"run_1"}\n');
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/chat/llm-trace?file=chat_1%2F.llm-records%2Frun_1_001.json');
-    expect(options.method).toBe('GET');
+    expect(url).toBe(
+      "/api/chat/llm-trace?file=chat_1%2F.llm-records%2Frun_1_001.json",
+    );
+    expect(options.method).toBe("GET");
     expect(options.headers).toEqual({
-      Authorization: 'Bearer demo-token',
+      Authorization: "Bearer demo-token",
     });
   });
 
-	it('loads a run system prompt using the replay-safe run identity', async () => {
-		setAccessToken('demo-token');
-		fetchMock.mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			text: async () =>
-				JSON.stringify({
-					code: 0,
-					msg: 'success',
-					data: {
-						chatId: 'chat_1',
-						runId: 'run_1',
-						agentKey: 'demo',
-						systemRef: { agentKey: 'demo', cacheKey: 'react:main', fingerprint: 'sha256:test' },
-						systemMessage: { role: 'system', content: 'stored prompt' },
-					},
-				}),
-		});
+  it("loads a run system prompt using the replay-safe run identity", async () => {
+    setAccessToken("demo-token");
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          code: 0,
+          msg: "success",
+          data: {
+            chatId: "chat_1",
+            runId: "run_1",
+            agentKey: "demo",
+            systemRef: {
+              agentKey: "demo",
+              cacheKey: "react:main",
+              fingerprint: "sha256:test",
+            },
+            systemMessage: { role: "system", content: "stored prompt" },
+          },
+        }),
+    });
 
-		await expect(getChatSystemPrompt({ chatId: 'chat_1', runId: 'run_1', agentKey: 'demo' })).resolves.toMatchObject({
-			data: { systemMessage: { content: 'stored prompt' } },
-		});
+    await expect(
+      getChatSystemPrompt({
+        chatId: "chat_1",
+        runId: "run_1",
+        agentKey: "demo",
+      }),
+    ).resolves.toMatchObject({
+      data: { systemMessage: { content: "stored prompt" } },
+    });
 
-		const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect(url).toBe('/api/chat/system-prompt?chatId=chat_1&runId=run_1&agentKey=demo');
-		expect(options.method).toBe('GET');
-		expect(options.headers).toEqual({
-			Authorization: 'Bearer demo-token',
-			'Content-Type': 'application/json',
-		});
-	});
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "/api/chat/system-prompt?chatId=chat_1&runId=run_1&agentKey=demo",
+    );
+    expect(options.method).toBe("GET");
+    expect(options.headers).toEqual({
+      Authorization: "Bearer demo-token",
+      "Content-Type": "application/json",
+    });
+  });
 
-	it('propagates errors when the persisted run system prompt is unavailable', async () => {
-		fetchMock.mockResolvedValueOnce({
-			ok: false,
-			status: 404,
-			text: async () =>
-				JSON.stringify({
-					code: 404,
-					msg: 'system prompt not found',
-					data: {},
-				}),
-		});
-
-		await expect(
-			getChatSystemPrompt({
-				chatId: 'chat_1',
-				runId: 'run_legacy',
-				agentKey: 'demo',
-			}),
-		).rejects.toMatchObject({
-			status: 404,
-			code: 404,
-		});
-	});
-
-  it('uses generic platform display text when raw chat jsonl loading fails without structured codes', async () => {
+  it("propagates errors when the persisted run system prompt is unavailable", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 404,
       text: async () =>
         JSON.stringify({
           code: 404,
-          msg: 'chat not found',
+          msg: "system prompt not found",
           data: {},
         }),
     });
 
-    await expect(getChatRawJsonl('missing')).rejects.toMatchObject({
-      message: '操作失败，请查看错误详情。',
+    await expect(
+      getChatSystemPrompt({
+        chatId: "chat_1",
+        runId: "run_legacy",
+        agentKey: "demo",
+      }),
+    ).rejects.toMatchObject({
+      status: 404,
+      code: 404,
+    });
+  });
+
+  it("uses generic platform display text when raw chat jsonl loading fails without structured codes", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      text: async () =>
+        JSON.stringify({
+          code: 404,
+          msg: "chat not found",
+          data: {},
+        }),
+    });
+
+    await expect(getChatRawJsonl("missing")).rejects.toMatchObject({
+      message: "操作失败，请查看错误详情。",
       status: 404,
       code: 404,
       platformError: expect.objectContaining({
         status: 404,
-        message: expect.stringContaining('加载资源文本失败'),
+        message: expect.stringContaining("加载资源文本失败"),
       }),
     });
   });
 
-  it('uploads files with a single multipart request', async () => {
+  it("uploads files with a single multipart request", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () =>
         JSON.stringify({
           code: 0,
-          msg: 'ok',
+          msg: "ok",
           data: {
-            requestId: 'upload_req_1',
-            chatId: 'chat_1',
+            requestId: "upload_req_1",
+            chatId: "chat_1",
             upload: {
-              id: 'r01',
-              type: 'file',
-              name: 'demo.txt',
-              mimeType: 'text/plain',
+              id: "r01",
+              type: "file",
+              name: "demo.txt",
+              mimeType: "text/plain",
               sizeBytes: 4,
-              url: '/api/resource?file=chat_1%2Fdemo.txt',
-              sha256: 'abc123',
+              url: "/api/resource?file=chat_1%2Fdemo.txt",
+              sha256: "abc123",
             },
           },
         }),
     });
 
-    const blob = new Blob(['demo'], { type: 'text/plain' });
+    const blob = new Blob(["demo"], { type: "text/plain" });
 
     await uploadFile({
       file: blob,
-      filename: 'demo.txt',
-      requestId: 'upload_req_1',
-      chatId: 'chat_1',
+      filename: "demo.txt",
+      requestId: "upload_req_1",
+      chatId: "chat_1",
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    const [uploadUrl, uploadOptions] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(uploadUrl).toBe('/api/upload');
-    expect(uploadOptions.method).toBe('POST');
+    const [uploadUrl, uploadOptions] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(uploadUrl).toBe("/api/upload");
+    expect(uploadOptions.method).toBe("POST");
     expect(uploadOptions.headers).toEqual({});
     expect(uploadOptions.body).toBeInstanceOf(FormData);
 
     const formData = uploadOptions.body as FormData;
-    expect(formData.get('requestId')).toBe('upload_req_1');
-    expect(formData.get('chatId')).toBe('chat_1');
-    expect(formData.get('sha256')).toBeNull();
-    const file = formData.get('file');
+    expect(formData.get("requestId")).toBe("upload_req_1");
+    expect(formData.get("chatId")).toBe("chat_1");
+    expect(formData.get("sha256")).toBeNull();
+    const file = formData.get("file");
     expect(file).toBeInstanceOf(File);
-    expect((file as File).name).toBe('demo.txt');
-    expect((file as File).type).toBe('text/plain');
-    await expect((file as File).text()).resolves.toBe('demo');
+    expect((file as File).name).toBe("demo.txt");
+    expect((file as File).type).toBe("text/plain");
+    await expect((file as File).text()).resolves.toBe("demo");
   });
 
-  it('exposes the uploaded chat id from the new upload response', async () => {
+  it("exposes the uploaded chat id from the new upload response", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () =>
         JSON.stringify({
           code: 0,
-          msg: 'ok',
+          msg: "ok",
           data: {
-            requestId: 'upload_req_2',
-            chatId: 'chat_generated',
+            requestId: "upload_req_2",
+            chatId: "chat_generated",
             upload: {
-              id: 'r01',
-              type: 'image',
-              name: 'photo.png',
-              path: '/workspace/photo.png',
-              mimeType: 'image/png',
+              id: "r01",
+              type: "image",
+              name: "photo.png",
+              path: "/workspace/photo.png",
+              mimeType: "image/png",
               sizeBytes: 3,
-              url: '/api/resource?file=chat_generated%2Fphoto.png',
-              sha256: 'def456',
+              url: "/api/resource?file=chat_generated%2Fphoto.png",
+              sha256: "def456",
             },
           },
         }),
     });
 
-    const blob = new Blob(['img'], { type: 'image/png' });
+    const blob = new Blob(["img"], { type: "image/png" });
     const response = await uploadFile({
       file: blob,
-      filename: 'photo.png',
-      requestId: 'upload_req_2',
+      filename: "photo.png",
+      requestId: "upload_req_2",
     });
 
-    expect(extractUploadChatId(response.data)).toBe('chat_generated');
+    expect(extractUploadChatId(response.data)).toBe("chat_generated");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('extracts upload references from the new upload response', () => {
+  it("extracts upload references from the new upload response", () => {
     expect(
       extractUploadReferences({
-        references: [{ id: 'ref_1' }],
+        references: [{ id: "ref_1" }],
       }),
-    ).toEqual([{ id: 'ref_1' }]);
+    ).toEqual([{ id: "ref_1" }]);
 
     expect(
       extractUploadReferences({
         upload: {
-          id: 'r02',
-          type: 'image',
-          name: 'photo.png',
-          path: '/workspace/photo.png',
-          mimeType: 'image/png',
+          id: "r02",
+          type: "image",
+          name: "photo.png",
+          path: "/workspace/photo.png",
+          mimeType: "image/png",
           sizeBytes: 3,
-          url: '/api/resource?file=chat_generated%2Fphoto.png',
-          sha256: 'def456',
+          url: "/api/resource?file=chat_generated%2Fphoto.png",
+          sha256: "def456",
         },
       }),
     ).toEqual([
       {
-        id: 'r02',
-        type: 'image',
-        name: 'photo.png',
-        path: '/workspace/photo.png',
-        mimeType: 'image/png',
+        id: "r02",
+        type: "image",
+        name: "photo.png",
+        path: "/workspace/photo.png",
+        mimeType: "image/png",
         sizeBytes: 3,
-        url: '/api/resource?file=chat_generated%2Fphoto.png',
-        sha256: 'def456',
+        url: "/api/resource?file=chat_generated%2Fphoto.png",
+        sha256: "def456",
       },
     ]);
 
     expect(extractUploadReferences(null)).toEqual([]);
   });
 
-  it('normalizes chat summaries from /api/chats into hasPendingAwaiting while preserving read state', async () => {
+  it("normalizes chat summaries from /api/chats into hasPendingAwaiting while preserving read state", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: async () =>
         JSON.stringify({
           code: 0,
-          msg: 'ok',
+          msg: "ok",
           data: [
             {
-              chatId: 'chat_1',
-              chatName: 'Need approval',
-              source: 'automation:daily',
+              chatId: "chat_1",
+              chatName: "Need approval",
+              source: "automation:daily",
               read: {
                 isRead: false,
                 readAt: 456,
-                readRunId: 'run_1',
+                readRunId: "run_1",
               },
               awaiting: {
-                awaitingId: 'await_1',
-                runId: 'run_1',
-                mode: 'approval',
+                awaitingId: "await_1",
+                runId: "run_1",
+                mode: "approval",
                 createdAt: 123,
               },
             },
             {
-              chatId: 'chat_2',
-              chatName: 'No waiting',
-              teamId: 'team_1',
+              chatId: "chat_2",
+              chatName: "No waiting",
+              teamId: "team_1",
             },
           ],
         }),
     });
 
-    const response = await getChats({ mode: 'CODER' });
+    const response = await getChats({ mode: "CODER" });
 
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe('/api/chats?mode=CODER');
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
+      "/api/chats?mode=CODER",
+    );
 
     expect(response.data).toEqual([
       {
-        chatId: 'chat_1',
-        chatName: 'Need approval',
-        source: 'automation:daily',
+        chatId: "chat_1",
+        chatName: "Need approval",
+        source: "automation:daily",
         read: {
           isRead: false,
           readAt: 456,
-          readRunId: 'run_1',
+          readRunId: "run_1",
         },
         awaiting: {
-          awaitingId: 'await_1',
-          runId: 'run_1',
-          mode: 'approval',
+          awaitingId: "await_1",
+          runId: "run_1",
+          mode: "approval",
           createdAt: 123,
         },
         hasPendingAwaiting: true,
       },
       {
-        chatId: 'chat_2',
-        chatName: 'No waiting',
-        teamId: 'team_1',
+        chatId: "chat_2",
+        chatName: "No waiting",
+        teamId: "team_1",
         hasPendingAwaiting: false,
       },
     ]);

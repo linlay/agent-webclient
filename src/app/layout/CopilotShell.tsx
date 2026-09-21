@@ -35,7 +35,7 @@ import {
   CommandOverlayProvider,
   useCommandOverlayActions,
 } from "@/features/command-center/components/CommandOverlayProvider";
-import { ConversationStage } from "@/features/timeline/components/ConversationStage";
+import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { isSettingsMenuEnabled } from "@/shared/config/featureFlags";
@@ -497,7 +497,7 @@ const CopilotShellContent: React.FC = () => {
             id="app"
           >
             <CopilotTopBar />
-            <ConversationStage
+            <ConnectedConversationStage
               surfaceMode="copilot"
               deriveChatAction={deriveChatAction}
               onFeedback={onFeedback}

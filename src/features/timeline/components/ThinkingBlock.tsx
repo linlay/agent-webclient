@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
-import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
@@ -31,32 +30,19 @@ function useThinkingDurationTick(active: boolean): number {
 }
 
 export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
-  const dispatch = useAppDispatch();
-  const state = useAppState();
   const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const expanded = Boolean(node.expanded);
-  const reasoningKey = useMemo(() => {
-    for (const [key, nodeId] of state.reasoningNodeById.entries()) {
-      if (nodeId === node.id) return key;
-    }
-    return "";
-  }, [node.id, state.reasoningNodeById]);
-
   const text = node.text || "";
-  const isLoading = useMemo(() => node.status === "running", [node.status]);
+  const isLoading = node.status === "running" && interaction?.capturedAt === undefined;
   const triggerLabel = isLoading
     ? node.reasoningLabel || t("timeline.thinking.inProgress")
     : t("timeline.thinking.title");
 
   const now = useThinkingDurationTick(isLoading);
-  const liveDurationMs = useMemo(
-    () =>
-      typeof node.startedAt === "number"
-        ? Math.floor(Math.max(0, now - node.startedAt) / 1000) * 1000
-        : undefined,
-    [node.startedAt, now],
-  );
+  const liveDurationMs = typeof node.startedAt === "number"
+    ? Math.floor(Math.max(0, (interaction?.capturedAt ?? now) - node.startedAt) / 1000) * 1000
+    : undefined;
   const durationLabel =
     typeof liveDurationMs === "number"
       ? formatToolDuration(liveDurationMs, t)
@@ -80,33 +66,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
       }
       expanded={expanded}
       destroyOnHidden
-      onExpand={() => {
-        if (interaction?.patchNode) {
-          interaction.patchNode({
-            ...node,
-            expanded: !expanded,
-          });
-          return;
-        }
-        if (reasoningKey) {
-          const timer = state.reasoningCollapseTimers.get(reasoningKey);
-          if (timer) {
-            clearTimeout(timer);
-            dispatch({
-              type: "CLEAR_REASONING_COLLAPSE_TIMER",
-              reasoningId: reasoningKey,
-            });
-          }
-        }
-        dispatch({
-          type: "SET_TIMELINE_NODE",
-          id: node.id,
-          node: {
-            ...node,
-            expanded: !expanded,
-          },
-        });
-      }}
+      onExpand={() => interaction?.setExpanded?.(node.id, !expanded)}
     >
       <div className={["thinking-detail", SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
         {text}

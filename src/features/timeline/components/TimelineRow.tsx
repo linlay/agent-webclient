@@ -10,7 +10,6 @@ import {
   getAttachmentKindLabel,
   getAttachmentSizeBytes,
 } from "@/features/artifacts/lib/attachmentUtils";
-import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { ReferenceCard } from "@/features/artifacts/components/ReferenceCard";
 import { UserBubble } from "@/features/timeline/components/UserBubble";
 import { ThinkingBlock } from "@/features/timeline/components/ThinkingBlock";
@@ -24,7 +23,6 @@ import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { t as runtimeT, useI18n, type Locale } from "@/shared/i18n";
 import { PlanningTimeline } from "./planning";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
@@ -263,9 +261,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 }) => {
   const { locale, t } = useI18n();
   const activeAgentSkills = skills ?? EMPTY_AGENT_SKILLS;
-  const openTarget = useOpenTarget();
   const interaction = useTimelineInteraction();
-  const surfaceContext = interaction?.surfaceContext;
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
   const taskID =
@@ -337,20 +333,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                     density={hasMultipleAttachments ? "compact" : "default"}
                   />
                 ) : (
-                  <AttachmentCard
-                    key={`${attachment.name}_${index}`}
-                    attachment={attachment}
-                    variant="timeline"
-                    density={hasMultipleAttachments ? "compact" : "default"}
-                    thumbnailMode="inline"
-                    displayMode={hasMultipleAttachments ? "file" : "auto"}
-                    subtitle={getTimelineAttachmentSubtitle(
-                      attachment,
-                      t,
-                      hasMultipleAttachments,
-                    )}
-                    surfaceContext={surfaceContext}
-                  />
+                  <React.Fragment key={`${attachment.name}_${index}`}>
+                    {interaction?.renderAttachment?.(attachment, {
+                      density: hasMultipleAttachments ? "compact" : "default",
+                      displayMode: hasMultipleAttachments ? "file" : "auto",
+                      subtitle: getTimelineAttachmentSubtitle(attachment, t, hasMultipleAttachments),
+                    }) ?? <span>{attachment.name}</span>}
+                  </React.Fragment>
                 ),
               )}
             </div>
@@ -366,7 +355,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                     className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
                     size="sm"
                     onClick={() =>
-                      openTarget({
+                      interaction?.openTarget?.({
                         version: 1,
                         kind: "skill",
                         key,
@@ -421,7 +410,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           </div>
           <div className="tw:flex tw:flex-wrap tw:gap-1">
             {(node.attachments || []).map((attachment, index) => (
-              <AttachmentCard key={attachment.id || index} attachment={attachment} variant="timeline" surfaceContext={surfaceContext} />
+              <React.Fragment key={attachment.id || index}>
+                {interaction?.renderAttachment?.(attachment, {}) ?? <span>{attachment.name}</span>}
+              </React.Fragment>
             ))}
           </div>
           <UserBubble
