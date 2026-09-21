@@ -1,3 +1,4 @@
+import { isImageGenerationTool } from "./imageGenerationDisplay";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
@@ -92,7 +93,7 @@ function buildToolRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
   const flushPendingTools = (): void => {
     if (pendingToolNodes.length === 0) return;
 
-    if (pendingToolNodes.length === 1) {
+    if (pendingToolNodes.length === 1 && !isImageGenerationTool(pendingToolNodes[0])) {
       const node = pendingToolNodes[0];
       entries.push({
         kind: "node",
@@ -132,7 +133,8 @@ function buildToolRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
     const shouldMerge =
       pendingToolNodes.length > 0 &&
       pendingToolName === nextToolName &&
-      pendingToolLabel === nextToolLabel;
+      pendingToolLabel === nextToolLabel &&
+      (!isImageGenerationTool(node) || pendingToolNodes[0].runId === node.runId);
 
     if (!shouldMerge) {
       flushPendingTools();

@@ -2,6 +2,20 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "timeline.image.title": "Image generation",
+  "timeline.image.preparing": "Preparing to draw…",
+  "timeline.image.generation": "Generating image…",
+  "timeline.image.edit": "Editing image…",
+  "timeline.image.inpainting": "Inpainting image…",
+  "timeline.image.recovering": "Waiting to reconnect…",
+  "timeline.image.missing": "No image result received",
+  "timeline.image.failed": "Image generation failed. See tool details.",
+  "timeline.image.canceled": "Run canceled",
+  "timeline.image.loading": "Loading image…",
+  "timeline.image.loadFailed": "Image failed to load",
+  "timeline.image.reload": "Reload image",
+  "timeline.image.downloadFailed": "Image download failed",
+
   "agents.interaction.title": "Conversation input",
   "agents.interaction.description": "Choose which controls users can use in the composer. Configured tools and permission policies remain in effect.",
   "agents.interaction.model": "Model",

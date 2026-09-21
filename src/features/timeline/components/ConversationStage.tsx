@@ -1,3 +1,4 @@
+import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
 import { useAgentWelcome } from "@/features/agents/hooks/useAgentWelcome";
 import { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
 import { buildTimelineAgentOptions } from "@/features/workers/lib/agentSelection";
@@ -1734,7 +1735,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
                 const deriveChatTitle = t("timeline.run.deriveChat");
 
                 const lastContentNode = findLastRunContentNode(item);
-                const shouldCollapse = isCompleted && item.nodes.length > 1;
+                const shouldCollapse = isCompleted && item.nodes.length > 1 && !item.nodes.some(isImageGenerationTool);
                 return (
                   <Flex vertical gap={8}>
                     {shouldCollapse && (

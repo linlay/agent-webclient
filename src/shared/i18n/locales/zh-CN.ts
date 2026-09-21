@@ -2,6 +2,20 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "timeline.image.title": "图像生成",
+  "timeline.image.preparing": "正在准备绘图…",
+  "timeline.image.generation": "正在生成图片…",
+  "timeline.image.edit": "正在编辑图片…",
+  "timeline.image.inpainting": "正在局部重绘…",
+  "timeline.image.recovering": "等待恢复连接…",
+  "timeline.image.missing": "未收到图片结果",
+  "timeline.image.failed": "图像生成失败，请查看工具详情",
+  "timeline.image.canceled": "运行已取消",
+  "timeline.image.loading": "正在加载图片…",
+  "timeline.image.loadFailed": "图片加载失败",
+  "timeline.image.reload": "重新加载图片",
+  "timeline.image.downloadFailed": "图片下载失败",
+
   "agents.interaction.title": "对话输入",
   "agents.interaction.description": "控制用户可在输入框选择的能力，不改变智能体已配置的工具与权限策略。",
   "agents.interaction.model": "模型",

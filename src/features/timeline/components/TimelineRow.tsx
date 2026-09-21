@@ -1,3 +1,5 @@
+import { ImageGenerationCard } from "./ImageGenerationCard";
+import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
 import React from "react";
 import { Flex } from "antd";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
@@ -510,7 +512,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <NodeIcon kind="tool" />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-          <ToolPill node={node} toolGroup={toolGroup} />
+          {(toolGroup?.nodes || (node ? [node] : [])).every(isImageGenerationTool) ? (
+            <ImageGenerationCard nodes={toolGroup?.nodes || [node!]} />
+          ) : <ToolPill node={node} toolGroup={toolGroup} />}
           {timeNode}
         </div>
       </div>

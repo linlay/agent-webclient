@@ -1037,6 +1037,22 @@ describe('processStreamEvent', () => {
     expect(state.timelineNodes.get('tool_0')?.toolOutput).toBeUndefined();
   });
 
+  it('preserves concurrent image results against late snapshots and duplicate results', () => {
+    const state = createState();
+    for (const id of ['image-a', 'image-b']) {
+      processAndApply(state, { type: 'tool.start', toolId: id, toolName: 'image_generate', arguments: '{"n":2}', runId: 'r1' }, 'live', true);
+    }
+    processAndApply(state, { type: 'tool.result', toolId: 'image-b', result: { ok: true, images: [{ url: 'b.png' }] } }, 'live', true);
+    for (const type of ['tool.snapshot', 'tool.args', 'tool.end', 'tool.result'] as const) {
+      processAndApply(state, { type, toolId: 'image-b', toolName: 'image_generate', delta: 'bad', result: { ok: false } }, 'live', true);
+    }
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('running');
+    expect(state.timelineNodes.get('tool_1')).toMatchObject({ status: 'success', result: { text: expect.stringContaining('b.png') } });
+    processAndApply(state, { type: 'tool.result', toolId: 'image-a', result: { ok: false, message: 'provider failed' } }, 'live', true);
+    expect(state.timelineNodes.get('tool_0')?.status).toBe('failed');
+    expect(state.timelineOrder).toHaveLength(2);
+  });
+
   it('keeps tool.end and tool.snapshot non-terminal until tool.result', () => {
     const state = createState();
 

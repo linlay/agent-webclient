@@ -145,6 +145,13 @@ export function processToolEvent(
   const timestamp = event.timestamp ?? 0;
   const type = toText(event.type);
 
+  // A terminal image call must not regress when attach re-delivers earlier events.
+  const priorNodeId = event.toolId ? state.getToolNodeId(event.toolId) : undefined;
+  const priorNode = priorNodeId ? state.getTimelineNode(priorNodeId) : undefined;
+  if (priorNode?.toolName === "image_generate" && priorNode.result && type.startsWith("tool.")) {
+    return commands;
+  }
+
   if ((type === "tool.start" || type === "tool.snapshot") && event.toolId) {
     const toolId = event.toolId;
     const existingToolState = state.getToolState(toolId);
@@ -388,7 +395,8 @@ export function processToolEvent(
       existingToolState?.toolName,
       event.toolName,
     );
-    const failed = isToolResultFailure(event, resultValue);
+    const failed = isToolResultFailure(event, resultValue) ||
+      (resolvedToolName === "image_generate" && parseResultObject(resultValue)?.ok === false);
     const resultRunId =
       toText(event.runId) || existingToolState?.runId || state.runId;
     const fileChange = failed
