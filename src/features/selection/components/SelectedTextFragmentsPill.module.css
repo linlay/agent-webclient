@@ -135,6 +135,13 @@
   background: var(--bg-hover);
 }
 
+/* 不可定位的引用（已发出、或待发送给顺便问）只是记录：行照常展示文本与批注，但不给"点一下跳回原文"的手感。 */
+.selected-text-fragment-row-static,
+.selected-text-fragment-row-static:hover {
+  background: transparent;
+  cursor: default;
+}
+
 .selected-text-fragment-row:focus-visible {
   background: var(--bg-hover);
   outline: 2px solid var(--accent);

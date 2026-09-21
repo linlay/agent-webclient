@@ -185,6 +185,48 @@ it("locates the marker of a clicked quote row, falling back to its source node",
   }
 });
 
+it("keeps a sent reference readable while its row stops locating", () => {
+  const previousScroll = HTMLElement.prototype.scrollIntoView;
+  const scroll = jest.fn();
+  HTMLElement.prototype.scrollIntoView = scroll;
+  const fragment = createSelectedTextFragment({text:"quoted passage",targetId:"message:node-7",sourceKind:"message"})!;
+  fragment.reference.annotationIndex = 3;
+  fragment.reference.annotation = "keep this wording";
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const requested: string[] = [];
+  const listener = (event: Event) =>
+    requested.push((event as CustomEvent<{referenceId:string}>).detail.referenceId);
+  window.addEventListener(SELECTED_TEXT_REFERENCE_FOCUS_EVENT, listener);
+  try {
+    act(() => root.render(React.createElement(SelectedTextFragmentsPill, {
+      fragments:[fragment], variant:"segments", locatable:false,
+    })));
+    const row = container.querySelector<HTMLElement>(".selected-text-fragment-row")!;
+    expect(row.className).toContain("selected-text-fragment-row-static");
+    // 不是按钮：role、tabIndex 和"定位到批注"的提示都不该再声明。
+    expect(row.getAttribute("role")).toBeNull();
+    expect(row.getAttribute("tabindex")).toBeNull();
+    expect(row.getAttribute("aria-label")).toBeNull();
+    expect(row.getAttribute("title")).toBeNull();
+    // 文本与批注照旧可读。
+    expect(row.textContent).toContain("quoted passage");
+    expect(row.textContent).toContain("keep this wording");
+
+    act(() => row.click());
+    act(() => row.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+
+    expect(requested).toEqual([]);
+    expect(scroll).not.toHaveBeenCalled();
+  } finally {
+    window.removeEventListener(SELECTED_TEXT_REFERENCE_FOCUS_EVENT, listener);
+    HTMLElement.prototype.scrollIntoView = previousScroll;
+    act(() => root.unmount());
+    container.remove();
+  }
+});
+
 it("removes a quote from its row button without locating it", () => {
   const onRemove = jest.fn();
   const fragment = createSelectedTextFragment({text:"quoted passage",targetId:"message-7",sourceKind:"message"})!;

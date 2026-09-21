@@ -45,6 +45,15 @@ jest.mock("@/shared/i18n", () => ({
   }),
 }));
 
+// 顺便问的划词只是待发送的引用：面板外的页面（主对话）不该再出现编号标记层。
+jest.mock("@/features/selection/components/SelectionAnnotations", () => {
+  const React = require("react");
+  return {
+    SelectionAnnotations: () =>
+      React.createElement("div", { "data-selection-annotations": "mounted" }),
+  };
+});
+
 jest.mock("antd", () => {
   const React = require("react");
   const Passthrough = ({ children }: { children: React.ReactNode }) =>
@@ -65,6 +74,8 @@ jest.mock("antd", () => {
         }),
     },
     Popconfirm: Passthrough,
+    // 引用列表用 Popover 收起细节：静态渲染只关心触发器，内容不参与断言。
+    Popover: Passthrough,
     Tooltip: Passthrough,
   };
 });
@@ -212,5 +223,25 @@ describe("BtwTab composer controls", () => {
       ),
     ).toBe("What does this mean?");
     expect(resolveBTWSendMessage("", 0, "fallback")).toBe("");
+  });
+
+  it("lists pending selections without mounting the page marker layer", () => {
+    const html = renderSession({
+      draftSelections: [
+        {
+          targetId: "message_1",
+          reference: {
+            id: "selection_1",
+            type: "selection",
+            text: "quoted text",
+            annotationIndex: 1,
+            meta: { sourceKind: "message" },
+          },
+        },
+      ],
+    });
+
+    expect(html).toContain("selection.fragment.segments");
+    expect(html).not.toContain("data-selection-annotations");
   });
 });

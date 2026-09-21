@@ -28,7 +28,12 @@ export const SelectedTextFragmentsPill: React.FC<{
   fragments: readonly SelectedTextFragment[];
   variant: "annotations" | "segments";
   onRemove?: (referenceId: string) => void;
-}> = ({ fragments, variant, onRemove }) => {
+  /**
+   * 已发出的引用只是一份记录：时间线里的用户消息关掉定位，列表继续可读，
+   * 但每行不再冒充"点了就跳回原文"的按钮。
+   */
+  locatable?: boolean;
+}> = ({ fragments, variant, onRemove, locatable = true }) => {
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const handleDismissAnnotations = React.useCallback(
@@ -50,21 +55,30 @@ export const SelectedTextFragmentsPill: React.FC<{
       <div className={withModuleClasses("selected-text-fragments-popover")}>
         {fragments.map((fragment, index) => {
           const label = fragment.reference.annotationIndex ?? index + 1;
+          // 定位收在同一处行属性里：不可定位时整行退回普通展示，连 role / title 都不再声明。
+          const locateProps: React.HTMLAttributes<HTMLDivElement> = locatable
+            ? {
+                role: "button",
+                tabIndex: 0,
+                "aria-label": t("selection.fragment.locate", { index: label }),
+                title: t("selection.fragment.locate", { index: label }),
+                onClick: () => handleLocate(fragment),
+                onKeyDown: (event) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  handleLocate(fragment);
+                },
+              }
+            : {};
           return (
             <div
-              className={withModuleClasses("selected-text-fragment-row")}
+              className={withModuleClasses(
+                "selected-text-fragment-row",
+                locatable ? "" : "selected-text-fragment-row-static",
+              )}
               key={fragment.reference.id}
-              role="button"
-              tabIndex={0}
-              aria-label={t("selection.fragment.locate", { index: label })}
-              title={t("selection.fragment.locate", { index: label })}
-              onClick={() => handleLocate(fragment)}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget) return;
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                handleLocate(fragment);
-              }}
+              {...locateProps}
             >
               <span
                 className={withModuleClasses("selected-text-fragment-index")}
@@ -110,7 +124,7 @@ export const SelectedTextFragmentsPill: React.FC<{
         })}
       </div>
     ),
-    [fragments, onRemove, handleLocate, t],
+    [fragments, locatable, onRemove, handleLocate, t],
   );
 
   if (fragments.length === 0) return null;

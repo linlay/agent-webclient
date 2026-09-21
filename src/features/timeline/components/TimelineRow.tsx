@@ -315,9 +315,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_USER_STACK_CLASS_NAME}>
+          {/* 消息发出后引用只是记录：可以回看文本与批注，但不再提供"跳回原文"的定位，避免把已读的这一行再滚走。 */}
           <SelectedTextFragmentsPill
             fragments={selectedTextFragments}
             variant="segments"
+            locatable={false}
           />
           {visibleAttachmentItems.length > 0 && (
             <div
