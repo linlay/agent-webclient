@@ -56,9 +56,15 @@ export class ProjectGitCache {
     return () => {
       entry.listeners.delete(listener);
       if (!entry.listeners.size) {
-        entry.request?.controller.abort();
-        entry.request = undefined;
-        this.prune();
+        // StrictMode re-subscribes synchronously after cleanup. Give it a
+        // microtask to reuse the request before cancelling an unused entry.
+        const request = entry.request;
+        void Promise.resolve().then(() => {
+          if (entry.listeners.size || entry.request !== request) return;
+          request?.controller.abort();
+          entry.request = undefined;
+          this.prune();
+        });
       }
     };
   }

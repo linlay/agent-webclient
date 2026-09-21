@@ -58,6 +58,17 @@ it("reuses real HEAD for 30 seconds across focus, visibility and remounts", asyn
   await render("");
   expect(current).toBeNull();
 });
+it("shares the pending request across StrictMode subscription replay", async () => {
+  let resolve!: (value: ReturnType<typeof response>) => void;
+  jest.mocked(getProjectGit).mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  await act(async () => root.render(React.createElement(React.StrictMode, null,
+    React.createElement(Harness, { agent: "one", workspace: "/workspace" }),
+  )));
+  expect(getProjectGit).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(getProjectGit).mock.calls[0][1]?.signal?.aborted).toBe(false);
+  await act(async () => resolve(response("one")));
+  expect(current).toMatchObject({ agentKey: "one", branch: "real" });
+});
 it.each(["not_repository", "no_workspace"] as const)("caches %s for five minutes", async status => {
   jest.mocked(getProjectGit).mockResolvedValue({ code: 0, msg: "ok", data: { agentKey: "one", status } });
   await render("one");
