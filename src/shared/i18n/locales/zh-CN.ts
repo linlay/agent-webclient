@@ -2,6 +2,8 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "timeline.image.previous": "查看前面的图片",
+  "timeline.image.next": "查看更多图片",
   "timeline.image.title": "图像生成",
   "timeline.image.preparing": "正在准备绘图…",
   "timeline.image.generation": "正在生成图片…",

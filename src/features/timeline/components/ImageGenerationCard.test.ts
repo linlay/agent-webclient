@@ -59,3 +59,32 @@ it('retries only image loading and remounts media when owner chat changes', () =
   render([done], true, 'other');
   expect(mockResource).toHaveBeenLastCalledWith('a.png', 'other', expect.objectContaining({ refreshKey: 0 }));
 });
+
+it('shows arrows only toward hidden images and updates them on scrolling and resizing', () => {
+  render(nodes);
+  const grid = container.querySelector<HTMLDivElement>('div[role="region"]')!;
+  let left = 0;
+  let width = 800;
+  Object.defineProperties(grid, {
+    clientWidth: { get: () => width },
+    scrollWidth: { get: () => 1200 },
+    scrollLeft: { get: () => left },
+  });
+  grid.scrollBy = jest.fn();
+  const arrows = () => Array.from(container.querySelectorAll<HTMLButtonElement>('button[aria-controls]'));
+  act(() => window.dispatchEvent(new Event('resize')));
+  expect(arrows()).toHaveLength(1);
+  const nextLabel = arrows()[0].getAttribute('aria-label');
+  act(() => arrows()[0].click());
+  expect(grid.scrollBy).toHaveBeenCalledWith(expect.objectContaining({ left: 814 }));
+  left = 200;
+  act(() => grid.dispatchEvent(new Event('scroll')));
+  expect(arrows()).toHaveLength(2);
+  left = 400;
+  act(() => grid.dispatchEvent(new Event('scroll')));
+  expect(arrows()).toHaveLength(1);
+  expect(arrows()[0].getAttribute('aria-label')).not.toBe(nextLabel);
+  left = 0; width = 1200;
+  act(() => window.dispatchEvent(new Event('resize')));
+  expect(arrows()).toHaveLength(0);
+});

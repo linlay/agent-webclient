@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { TimelineNode } from '../lib/timelineState';
 import { buildImageGenerationDisplay, type GeneratedImage } from '../lib/imageGenerationDisplay';
 import { useOptionalAppContext } from '@/app/state/provider';
@@ -75,8 +75,41 @@ export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
       recovering: Boolean(active && runtime?.hasActiveRun && !runtime.streaming),
       terminal: terminal === 'run.complete' || terminal === 'run.error' || terminal === 'run.cancel' ? terminal : undefined }) };
   });
+  const gridRef = useRef<HTMLDivElement>(null);
+  const gridId = React.useId();
+  const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
+  const slotCount = calls.reduce((count, call) => count + call.display.count, 0);
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const updateEdges = () => {
+      const left = grid.scrollLeft > 1;
+      const right = grid.scrollWidth - grid.clientWidth - grid.scrollLeft > 1;
+      setScrollEdges(current => current.left === left && current.right === right ? current : { left, right });
+    };
+    updateEdges();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateEdges);
+    observer?.observe(grid);
+    grid.addEventListener('scroll', updateEdges, { passive: true });
+    window.addEventListener('resize', updateEdges);
+    return () => {
+      observer?.disconnect();
+      grid.removeEventListener('scroll', updateEdges);
+      window.removeEventListener('resize', updateEdges);
+    };
+  }, [slotCount, chatId]);
+  const scrollImages = (direction: number) => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    grid.scrollBy({ left: direction * (grid.clientWidth + 14),
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
   return <section className={styles.root} aria-label={t('timeline.image.title')}>
-    <div className={`${styles.grid} ${SCROLLBAR_THIN_CLASS_NAME}`} tabIndex={0} role="region" aria-label={t('timeline.image.title')}>
+    <div className={styles.details}>
+      {nodes.map(node => <ToolPill key={node.id} node={node} />)}
+    </div>
+    <div className={styles.carousel}>
+    <div ref={gridRef} id={gridId} className={`${styles.grid} ${SCROLLBAR_THIN_CLASS_NAME}`} tabIndex={0} role="region" aria-label={t('timeline.image.title')}>
       {calls.flatMap(({ node, display }) => Array.from({ length: display.count }, (_, index) => {
         const image = display.images.find(item => item.index === index && item.url);
         const showImage = image && display.status === 'success';
@@ -92,8 +125,12 @@ export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
         </div>;
       }))}
     </div>
-    <div className={styles.details}>
-      {nodes.map(node => <ToolPill key={node.id} node={node} />)}
+    {scrollEdges.left && <button type="button" className={`${styles.scrollArrow} ${styles.scrollLeft}`}
+      aria-label={t('timeline.image.previous')} title={t('timeline.image.previous')} aria-controls={gridId}
+      onClick={() => scrollImages(-1)}><MaterialIcon name="chevron_left" /></button>}
+    {scrollEdges.right && <button type="button" className={`${styles.scrollArrow} ${styles.scrollRight}`}
+      aria-label={t('timeline.image.next')} title={t('timeline.image.next')} aria-controls={gridId}
+      onClick={() => scrollImages(1)}><MaterialIcon name="chevron_right" /></button>}
     </div>
   </section>;
 }

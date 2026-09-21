@@ -2,6 +2,8 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "timeline.image.previous": "View previous images",
+  "timeline.image.next": "View more images",
   "timeline.image.title": "Image generation",
   "timeline.image.preparing": "Preparing to draw…",
   "timeline.image.generation": "Generating image…",
