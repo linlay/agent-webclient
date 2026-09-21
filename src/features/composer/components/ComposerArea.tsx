@@ -919,9 +919,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     slashSkillError={slashSkillError}
                     activeSlashIndex={activeSlashIndex}
                     slashAvailability={slashAvailability}
-                    planningMode={state.planningMode}
-                    editingMode={state.editingMode}
-                    selectedSkillKeys={effectiveSkills.map((s) => s.key)}
                     skillsDisabled={isMainChatRunning}
                     onSelectCommand={(commandId) =>
                       void executeSlashCommand(commandId)
@@ -976,7 +973,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   fragments={selectedFragments}
                   variant="annotations"
                   onRemove={removeSelectedFragment}
-                  onAnnotationChange={updateSelectedAnnotation}
                 />
                 <Flex wrap gap={4}>
                   {displayedForcedSkills.map((skill) => (

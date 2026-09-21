@@ -45,9 +45,6 @@ export const SlashPaletteContent: React.FC<{
   slashSkillError: Error | null;
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
-  planningMode: boolean;
-  editingMode?: boolean;
-  selectedSkillKeys: string[];
   skillsDisabled: boolean;
   onSelectCommand: (commandId: ResolvedSlashCommandDefinition["id"]) => void;
   onSelectSkill: (skill: ResolvedSlashSkillDefinition) => void;
@@ -60,9 +57,6 @@ export const SlashPaletteContent: React.FC<{
   slashSkillError,
   activeSlashIndex,
   slashAvailability,
-  planningMode,
-  editingMode = false,
-  selectedSkillKeys,
   skillsDisabled,
   onSelectCommand,
   onSelectSkill,
@@ -70,13 +64,6 @@ export const SlashPaletteContent: React.FC<{
 }) => {
   const { t } = useI18n();
   const itemsRef = React.useRef<HTMLElement[]>([]);
-  const selectedSkillIdentities = new Set(
-    selectedSkillKeys.map((key) =>
-      String(key || "")
-        .trim()
-        .toLowerCase(),
-    ),
-  );
 
   useEffect(() => {
     itemsRef.current[activeSlashIndex]?.scrollIntoView({ block: "center" });
@@ -143,7 +130,6 @@ export const SlashPaletteContent: React.FC<{
         ) : null}
         {slashSkills.map((skill, skillIndex) => {
           const index = slashCommands.length + skillIndex;
-          const selected = selectedSkillIdentities.has(skill.key.toLowerCase());
           return (
             <UiButton
               key={`skill:${skill.key.toLowerCase()}`}

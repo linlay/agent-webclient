@@ -30,8 +30,10 @@ export const zhCNMessages = {
   "agentConsole.field.introductions": "自我介绍",
   "agentConsole.introductions.add": "添加自我介绍",
   "agentConsole.introductions.remove": "删除自我介绍",
-  "agentConsole.prompt.introductions.description": "输入框为空时随机展示一条自我介绍。",
-  "agentConsole.prompt.introductions.placeholder": "例如：你好，我可以帮你检查数据库连接。",
+  "agentConsole.prompt.introductions.description":
+    "输入框为空时随机展示一条自我介绍。",
+  "agentConsole.prompt.introductions.placeholder":
+    "例如：你好，我可以帮你检查数据库连接。",
   "agentConsole.prompt.introductions.item": "自我介绍 {index}",
   "agentConsole.prompt.addIntroduction": "添加自我介绍",
   "composer.context.label": "对话上下文",
@@ -40,10 +42,12 @@ export const zhCNMessages = {
   "composer.git.name": "搜索或输入新分支名",
   "composer.git.loading": "加载分支…",
   "composer.git.failed": "分支操作失败，请刷新后重试",
-  "composer.git.subdirectory": "项目目录是仓库子目录，请使用仓库根目录对应的项目切换分支。",
+  "composer.git.subdirectory":
+    "项目目录是仓库子目录，请使用仓库根目录对应的项目切换分支。",
   "composer.git.containsChats": "项目包含会话存储目录，无法在此切换分支。",
   "composer.git.readOnly": "当前目录无法切换分支。",
-  "composer.git.expected": "此智能体要求分支 {branch}，切换到其他分支后将无法启动任务。",
+  "composer.git.expected":
+    "此智能体要求分支 {branch}，切换到其他分支后将无法启动任务。",
   "composer.git.empty": "没有匹配的本地分支",
   "composer.git.changing": "处理中…",
   "composer.git.create": "新建并切换",
@@ -70,11 +74,14 @@ export const zhCNMessages = {
   "resourceAssistant.kind.connector": "连接器",
   "resourceAssistant.kind.registry": "注册配置",
   "resourceAssistant.category": "，分类：{category}",
-  "resourceAssistant.draft.create": "请帮我创建一个{resource}{category}。我的需求是「……」。请按所选技能的流程完成创建、校验，并在写入后回读确认结果。",
-  "resourceAssistant.draft.update": "请帮我修改{resource} {name}（唯一标识：{id}{category}）。请先读取当前内容，我的修改要求是「……」。请只修改相关内容，校验并在写入后回读确认结果。",
+  "resourceAssistant.draft.create":
+    "请帮我创建一个{resource}{category}。我的需求是「……」。请按所选技能的流程完成创建、校验，并在写入后回读确认结果。",
+  "resourceAssistant.draft.update":
+    "请帮我修改{resource} {name}（唯一标识：{id}{category}）。请先读取当前内容，我的修改要求是「……」。请只修改相关内容，校验并在写入后回读确认结果。",
   "resourceAssistant.invalidTarget": "无法确定要修改的资源，请刷新后重试。",
   "resourceAssistant.draftTooLong": "资源标识过长，无法填入对话草稿。",
-  "resourceAssistant.agentUnavailable": "默认 Chat 智能体不可用，请检查智能体设置后重试。",
+  "resourceAssistant.agentUnavailable":
+    "默认 Chat 智能体不可用，请检查智能体设置后重试。",
   "resourceAssistant.openFailed": "无法打开创建或修改对话，请重试。",
 
   "appearance.title": "外观与皮肤",
@@ -90,14 +97,19 @@ export const zhCNMessages = {
   "appearance.background.builtin": "皮肤默认背景",
   "appearance.background.import": "选择 PNG / JPEG 背景",
   "appearance.background.reset": "恢复皮肤背景",
-  "appearance.hint": "偏好保存在此浏览器。ZIP 使用 Desktop v1 格式；导入后从皮肤列表选择。自定义背景会保留，点击恢复可使用皮肤自带背景。",
+  "appearance.hint":
+    "偏好保存在此浏览器。ZIP 使用 Desktop v1 格式；导入后从皮肤列表选择。自定义背景会保留，点击恢复可使用皮肤自带背景。",
   "appearance.loading": "正在恢复皮肤资源…",
-  "appearance.error.storage": "浏览器无法保存或读取外观，请检查可用存储空间和站点权限。",
-  "appearance.error.image": "请选择有效的 PNG/JPEG，最大 16 MiB、8192 像素边长和 2400 万像素。",
-  "appearance.error.package": "皮肤包无效，或资源超过限制。请使用包含 skin.json 的 Desktop v1 ZIP。",
+  "appearance.error.storage":
+    "浏览器无法保存或读取外观，请检查可用存储空间和站点权限。",
+  "appearance.error.image":
+    "请选择有效的 PNG/JPEG，最大 16 MiB、8192 像素边长和 2400 万像素。",
+  "appearance.error.package":
+    "皮肤包无效，或资源超过限制。请使用包含 skin.json 的 Desktop v1 ZIP。",
   "appearance.error.duplicate": "此皮肤已安装，请先删除旧版本。",
   "appearance.error.limit": "最多保留 20 个导入皮肤，请先删除不再使用的皮肤。",
-  "appearance.error.backgroundMissing": "背景无法显示，已回退到皮肤背景或实色。可重新选择图片恢复。",
+  "appearance.error.backgroundMissing":
+    "背景无法显示，已回退到皮肤背景或实色。可重新选择图片恢复。",
   "appearance.error.packageMissing": "此皮肤资源已不可用，暂时使用默认皮肤。",
   "connectors.skills.tab": "技能",
   "connectors.skills.label": "连接器技能",
@@ -126,35 +138,54 @@ export const zhCNMessages = {
   "connectors.auth.status.failed": "登录失败",
   "connectors.auth.status.canceled": "已取消",
   "connectors.auth.status.expired": "登录已过期",
-  "connectors.auth.description.unknown": "正在确认服务端登录状态；如未能读取，请重新检查。",
+  "connectors.auth.description.unknown":
+    "正在确认服务端登录状态；如未能读取，请重新检查。",
   "connectors.auth.description.not_required": "此连接器无需账号授权。",
-  "connectors.auth.description.delegated": "账号认证由此连接器的技能或 CLI 自行处理，请按连接器技能说明完成。",
-  "connectors.auth.oneid": "此连接器复用 Desktop 登录身份。请在 Desktop 中登录或退出后，重新检查状态。",
-  "connectors.auth.description.setup_required": "登录前需要准备运行依赖。点击登录后，服务端会按连接器配置自动准备。",
-  "connectors.auth.description.unauthorized": "登录后可使用需要账号权限的连接器能力。",
-  "connectors.auth.description.preparing": "正在准备运行依赖并发起登录，请稍候。",
-  "connectors.auth.description.pending": "打开授权页面，完成扫码或账号确认。此处会自动检查登录结果。",
+  "connectors.auth.description.delegated":
+    "账号认证由此连接器的技能或 CLI 自行处理，请按连接器技能说明完成。",
+  "connectors.auth.oneid":
+    "此连接器复用 Desktop 登录身份。请在 Desktop 中登录或退出后，重新检查状态。",
+  "connectors.auth.description.setup_required":
+    "登录前需要准备运行依赖。点击登录后，服务端会按连接器配置自动准备。",
+  "connectors.auth.description.unauthorized":
+    "登录后可使用需要账号权限的连接器能力。",
+  "connectors.auth.description.preparing":
+    "正在准备运行依赖并发起登录，请稍候。",
+  "connectors.auth.description.pending":
+    "打开授权页面，完成扫码或账号确认。此处会自动检查登录结果。",
   "connectors.auth.description.authorized": "服务端已确认账号授权成功。",
   "connectors.auth.description.failed": "本次登录未完成，可重新登录。",
   "connectors.auth.description.canceled": "本次登录已取消，可随时重新登录。",
-  "connectors.auth.description.expired": "本次登录已超时，请重新登录以获取新的授权链接。",
-  "connectors.auth.token": "此连接器使用凭据配置。请在配置页按连接器声明设置凭据。",
-  "connectors.auth.shared": "账号授权在当前部署中共享。离开此页不会取消登录或退出账号。",
-  "connectors.auth.localCallback": "请在运行 Platform 的同一台机器上打开授权页面，以便完成本机回调。暂不支持远程机器浏览器回调。",
-  "connectors.auth.mcpAvailability": "账号授权与 MCP 工具可用性分别检查；工具同步结果见配置页的 MCP 组件。",
+  "connectors.auth.description.expired":
+    "本次登录已超时，请重新登录以获取新的授权链接。",
+  "connectors.auth.token":
+    "此连接器使用凭据配置。请在配置页按连接器声明设置凭据。",
+  "connectors.auth.shared":
+    "账号授权在当前部署中共享。离开此页不会取消登录或退出账号。",
+  "connectors.auth.localCallback":
+    "请在运行 Platform 的同一台机器上打开授权页面，以便完成本机回调。暂不支持远程机器浏览器回调。",
+  "connectors.auth.mcpAvailability":
+    "账号授权与 MCP 工具可用性分别检查；工具同步结果见配置页的 MCP 组件。",
   "connectors.auth.error.prefix": "无法更新登录状态。",
-  "connectors.auth.error.401": "Platform 身份认证未通过，请先登录平台或更新访问凭据，再重新检查。",
+  "connectors.auth.error.401":
+    "Platform 身份认证未通过，请先登录平台或更新访问凭据，再重新检查。",
   "connectors.auth.error.403": "当前 Platform 身份无权管理此连接器授权。",
-  "connectors.auth.error.404": "授权接口不可用，请确认 Platform 已更新到支持连接器授权的版本并已重启。",
-  "connectors.auth.error.405": "当前 Platform 不支持此授权操作，请更新并重启服务。",
-  "connectors.auth.error.response": "授权接口返回了不匹配或无法识别的会话，请重新检查。",
+  "connectors.auth.error.404":
+    "授权接口不可用，请确认 Platform 已更新到支持连接器授权的版本并已重启。",
+  "connectors.auth.error.405":
+    "当前 Platform 不支持此授权操作，请更新并重启服务。",
+  "connectors.auth.error.response":
+    "授权接口返回了不匹配或无法识别的会话，请重新检查。",
   "connectors.auth.error.timeout": "请求超时，请重新检查服务端状态。",
-  "connectors.auth.error.url": "服务端返回的授权链接不安全，已禁止打开。请取消后重试或检查连接器配置。",
+  "connectors.auth.error.url":
+    "服务端返回的授权链接不安全，已禁止打开。请取消后重试或检查连接器配置。",
   "connectors.auth.expires": "本次登录有效期至 {time}",
-  "connectors.auth.embedHint": "请在内嵌页面完成授权。如果页面空白或无法加载，请重试；不会自动打开外部浏览器。",
+  "connectors.auth.embedHint":
+    "请在内嵌页面完成授权。如果页面空白或无法加载，请重试；不会自动打开外部浏览器。",
   "connectors.auth.embedFailed": "无法打开内嵌授权页面，请重试或取消授权。",
   "connectors.auth.open": "打开授权页面",
-  "connectors.auth.openHint": "链接在新页面打开；若浏览器拦截，请允许本次打开或再次点击链接。完成授权后返回此页等待确认。",
+  "connectors.auth.openHint":
+    "链接在新页面打开；若浏览器拦截，请允许本次打开或再次点击链接。完成授权后返回此页等待确认。",
   "connectors.auth.login": "登录",
   "connectors.auth.retry": "重新登录",
   "connectors.auth.starting": "正在发起登录…",
@@ -167,7 +198,8 @@ export const zhCNMessages = {
   "connectors.auth.configuredCredentials": "凭据配置",
   "connectors.auth.checking": "检查中…",
   "connectors.auth.refresh": "重新检查状态",
-  "connectors.auth.logoutConfirm": "退出将清除此部署共享的连接器凭据，并影响使用此账号的智能体。确定退出？",
+  "connectors.auth.logoutConfirm":
+    "退出将清除此部署共享的连接器凭据，并影响使用此账号的智能体。确定退出？",
   "connectors.auth.logoutConfirmAction": "确认退出登录",
   "connectors.auth.keepLogin": "保留登录",
   "connectors.import.action": "导入",
@@ -177,19 +209,24 @@ export const zhCNMessages = {
   "connectors.import.cancel": "取消",
   "connectors.import.drop": "点击选择或拖入 ZIP 文件",
   "connectors.import.limit": "一次导入一个 ZIP，最大 64 MiB",
-  "connectors.import.layout": "connector.json 可位于 ZIP 根目录，或与连接器 ID 同名的顶层目录中；包内可包含 CLI、MCP、bin 和技能。",
+  "connectors.import.layout":
+    "connector.json 可位于 ZIP 根目录，或与连接器 ID 同名的顶层目录中；包内可包含 CLI、MCP、bin 和技能。",
   "connectors.import.uploading": "正在上传并校验安装包…",
   "connectors.import.success": "连接器 {id} 已导入。",
-  "connectors.import.confirmDraft": "当前配置有未保存修改。导入成功后将丢弃这些修改并打开导入的连接器，是否继续？",
+  "connectors.import.confirmDraft":
+    "当前配置有未保存修改。导入成功后将丢弃这些修改并打开导入的连接器，是否继续？",
   "connectors.import.overwrite.title": "该连接器已安装",
-  "connectors.import.overwrite.description": "“{file}”中的连接器 ID 已存在。覆盖导入会替换整个外部连接器包及现有配置，是否覆盖？",
+  "connectors.import.overwrite.description":
+    "“{file}”中的连接器 ID 已存在。覆盖导入会替换整个外部连接器包及现有配置，是否覆盖？",
   "connectors.import.overwrite.action": "确认覆盖导入",
   "connectors.import.error.type": "请选择 .zip 格式的连接器安装包。",
   "connectors.import.error.empty": "ZIP 文件为空，请重新选择。",
   "connectors.import.error.size": "ZIP 文件不能超过 64 MiB。",
   "connectors.import.error.multiple": "一次只能导入一个连接器 ZIP 包。",
-  "connectors.import.error.serverSize": "安装包超出服务端的文件大小、解压总量或文件数量限制。",
-  "connectors.import.error.builtin": "内置连接器不能通过 ZIP 导入覆盖，请使用外部连接器 ID。",
+  "connectors.import.error.serverSize":
+    "安装包超出服务端的文件大小、解压总量或文件数量限制。",
+  "connectors.import.error.builtin":
+    "内置连接器不能通过 ZIP 导入覆盖，请使用外部连接器 ID。",
   "connectors.value.builtin": "内置",
   "connectors.value.readOnly": "只读",
   "connectors.hint.readOnly": "此连接器由平台管理，配置只读，可查看和复制。",
@@ -203,10 +240,12 @@ export const zhCNMessages = {
   "settingsMenu.connectors": "连接器中心",
   "route.title.connectors": "连接器中心",
   "connectors.delete.action": "删除",
-  "connectors.delete.confirm": "确定删除连接器“{name}”（{id}）吗？将移除安装包及其组件、技能，可通过重新导入恢复。已有授权和 CLI 状态会保留；如需清除授权，请先退出登录。",
+  "connectors.delete.confirm":
+    "确定删除连接器“{name}”（{id}）吗？将移除安装包及其组件、技能，可通过重新导入恢复。已有授权和 CLI 状态会保留；如需清除授权，请先退出登录。",
   "connectors.delete.unsaved": "当前未保存的配置修改也会丢弃。",
   "connectors.delete.success": "连接器 {id} 已删除",
-  "connectors.delete.inUse": "连接器仍被以下 Agent 使用：{agents}。请先在 Agent 管理中取消挂载，并等待正在使用该连接器的运行或终端结束后重试。",
+  "connectors.delete.inUse":
+    "连接器仍被以下 Agent 使用：{agents}。请先在 Agent 管理中取消挂载，并等待正在使用该连接器的运行或终端结束后重试。",
   "connectors.action.refresh": "刷新列表",
   "connectors.action.retry": "重试",
   "connectors.action.reload": "重新加载配置",
@@ -217,7 +256,8 @@ export const zhCNMessages = {
   "connectors.action.form": "配置表单",
   "connectors.confirm.discard": "当前配置有未保存修改，确定丢弃吗？",
   "connectors.error.json": "JSON 格式错误：{message}",
-  "connectors.error.conflict": "配置已被其他操作更新，草稿已保留。请复制需要保留的修改，重新加载配置后再合并保存。",
+  "connectors.error.conflict":
+    "配置已被其他操作更新，草稿已保留。请复制需要保留的修改，重新加载配置后再合并保存。",
   "connectors.message.saved": "配置已保存并重新加载；MCP 工具将在后台同步。",
   "connectors.field.name": "显示名称",
   "connectors.field.version": "版本",
@@ -233,10 +273,14 @@ export const zhCNMessages = {
   "connectors.field.lastAttempt": "最近同步尝试",
   "connectors.field.lastSuccess": "最近同步成功",
   "connectors.field.file": "配置文件",
-  "connectors.hint.cli": "编辑 CLI 命令、初始化与认证声明。此处只修改配置，不执行命令或发起登录。",
-  "connectors.hint.mcp": "HTTP 使用完整 URL，不会自动追加 /mcp。请求头、环境变量及高级配置可在 JSON 源码中编辑；表单修改保留其他字段。",
-  "connectors.hint.manifest": "管理连接器名称、版本和描述；主类型与认证声明等完整配置可在 JSON 源码中编辑。",
-  "connectors.overview.cli": "挂载后可使用连接器命令及附带技能；包内 bin 会加入该 Agent 的 PATH。",
+  "connectors.hint.cli":
+    "编辑 CLI 命令、初始化与认证声明。此处只修改配置，不执行命令或发起登录。",
+  "connectors.hint.mcp":
+    "HTTP 使用完整 URL，不会自动追加 /mcp。请求头、环境变量及高级配置可在 JSON 源码中编辑；表单修改保留其他字段。",
+  "connectors.hint.manifest":
+    "管理连接器名称、版本和描述；主类型与认证声明等完整配置可在 JSON 源码中编辑。",
+  "connectors.overview.cli":
+    "挂载后可使用连接器命令及附带技能；包内 bin 会加入该 Agent 的 PATH。",
   "connectors.value.bundled": "已包含 bin",
   "connectors.value.none": "无",
   "connectors.list.label": "连接器列表",
@@ -261,12 +305,14 @@ export const zhCNMessages = {
   "connectors.tools.count": "{count} 个工具",
   "connectors.tools.search": "搜索工具名称或描述…",
   "connectors.tools.noResults": "没有匹配的工具",
-  "connectors.tools.snapshot": "当前保留上次成功同步的工具快照，后台将自动重试。",
+  "connectors.tools.snapshot":
+    "当前保留上次成功同步的工具快照，后台将自动重试。",
   "connectors.tools.unavailable": "暂无可用的工具快照，后台将自动重试。",
   "connectors.tools.empty": "同步成功，远端返回了 0 个工具。",
   "connectors.tools.pendingSnapshot": "工具摘要尚未就绪，刷新列表后重试。",
   "connectors.tools.unassigned": "未归属工具 · {count}",
-  "connectors.tools.unassignedHint": "这些 MCP 工具缺少 serverKey，或无法匹配已安装连接器的组件。",
+  "connectors.tools.unassignedHint":
+    "这些 MCP 工具缺少 serverKey，或无法匹配已安装连接器的组件。",
   "connectors.sync.ready": "同步就绪",
   "connectors.sync.pending": "等待同步",
   "connectors.sync.syncing": "同步中",
@@ -305,23 +351,28 @@ export const zhCNMessages = {
   "agentConsole.create.mode.zip": "ZIP 包导入",
   "agentConsole.create.mode.direct": "直接新增",
   "agentConsole.create.direct.title": "使用结构化表单新增",
-  "agentConsole.create.direct.description": "关闭弹窗并进入现有智能体创建表单，配置确认后再保存。",
+  "agentConsole.create.direct.description":
+    "关闭弹窗并进入现有智能体创建表单，配置确认后再保存。",
   "agentConsole.create.direct.submit": "开始新增",
   "agentConsole.import.select": "选择 ZIP",
   "agentConsole.import.replace": "更换文件",
   "agentConsole.import.drop": "拖拽 Agent ZIP 到这里，或选择文件",
-  "agentConsole.import.description": "Agent Key 自动读取自 agent.yml 或 agent.yaml；配置文件可位于 ZIP 根目录或唯一一层包装目录。最大 32 MiB。",
-  "agentConsole.import.trustWarning": "ZIP 会导入提示词、专属技能、.config、知识文件和其他资源；.config 可能包含敏感内容，请只上传可信 ZIP。",
+  "agentConsole.import.description":
+    "Agent Key 自动读取自 agent.yml 或 agent.yaml；配置文件可位于 ZIP 根目录或唯一一层包装目录。最大 32 MiB。",
+  "agentConsole.import.trustWarning":
+    "ZIP 会导入提示词、专属技能、.config、知识文件和其他资源；.config 可能包含敏感内容，请只上传可信 ZIP。",
   "agentConsole.import.uploading": "正在上传并校验 Agent 目录…",
   "agentConsole.import.submit": "导入智能体",
   "agentConsole.import.cancel": "取消",
   "agentConsole.import.success": "智能体已导入",
-  "agentConsole.import.invalid": "智能体已导入，但当前配置无效；请查看管理台诊断并继续修复。",
+  "agentConsole.import.invalid":
+    "智能体已导入，但当前配置无效；请查看管理台诊断并继续修复。",
   "agentConsole.import.error.type": "请选择 ZIP 文件。",
   "agentConsole.import.error.empty": "ZIP 文件不能为空。",
   "agentConsole.import.error.size": "ZIP 文件不能超过 32 MiB。",
   "agentConsole.import.overwrite.title": "覆盖现有智能体？",
-  "agentConsole.import.overwrite.description": "智能体“{name}”（{key}）已存在。继续后会整目录替换旧 .config、专属技能和全部资源，不会合并或保留旧文件。",
+  "agentConsole.import.overwrite.description":
+    "智能体“{name}”（{key}）已存在。继续后会整目录替换旧 .config、专属技能和全部资源，不会合并或保留旧文件。",
   "agentConsole.import.overwrite.confirm": "确认覆盖",
   "agentConsole.import.overwrite.cancel": "取消",
   "agentConsole.state.enabled": "已启用",
@@ -333,9 +384,12 @@ export const zhCNMessages = {
   "agentConsole.privateSkill.import.submit": "导入技能",
   "agentConsole.privateSkill.import.selectFile": "选择 ZIP",
   "agentConsole.privateSkill.import.noFile": "未选择文件",
-  "agentConsole.privateSkill.import.drop": "拖拽专属技能 ZIP 到这里，或选择文件",
-  "agentConsole.privateSkill.import.description": "ZIP 只会安装到当前智能体，不会出现在技能中心。技能 Key 自动读取自 SKILL.md 的 frontmatter（优先 key，否则 name）；支持 SKILL.md 位于 ZIP 根目录或唯一的顶层目录中。",
-  "agentConsole.privateSkill.import.disabled": "请先将此智能体保存为目录型智能体后再导入专属技能。",
+  "agentConsole.privateSkill.import.drop":
+    "拖拽专属技能 ZIP 到这里，或选择文件",
+  "agentConsole.privateSkill.import.description":
+    "ZIP 只会安装到当前智能体，不会出现在技能中心。技能 Key 自动读取自 SKILL.md 的 frontmatter（优先 key，否则 name）；支持 SKILL.md 位于 ZIP 根目录或唯一的顶层目录中。",
+  "agentConsole.privateSkill.import.disabled":
+    "请先将此智能体保存为目录型智能体后再导入专属技能。",
   "agentConsole.privateSkill.import.required": "请选择 ZIP 文件。",
   "agentConsole.privateSkill.import.success": "专属技能已导入并启用",
   "agentConsole.detail.createSubtitle": "保存后写入后端 agent 配置",
@@ -343,21 +397,27 @@ export const zhCNMessages = {
   "agentConsole.detail.titleCreate": "新建智能体",
   "agentConsole.detail.titleEdit": "编辑智能体",
   "agentConsole.diagnostics.title": "配置诊断",
-  "agentConsole.diagnostics.uneditable": "配置文件无法解析，暂不能用结构化表单保存。请先修复源文件。",
+  "agentConsole.diagnostics.uneditable":
+    "配置文件无法解析，暂不能用结构化表单保存。请先修复源文件。",
   "agentConsole.empty": "暂无匹配智能体。",
   "agentConsole.error.jsonArray": "{label} 必须是 JSON 数组。",
   "agentConsole.error.jsonInvalid": "{label} JSON 无效：{detail}",
   "agentConsole.error.jsonObject": "{label} 必须是 JSON 对象。",
   "agentConsole.error.keyRequired": "请填写 Agent Key。",
   "agentConsole.error.nameRequired": "请填写名称。",
-  "agentConsole.error.structuredSaveUnavailable": "配置源修复前，暂不能用结构化编辑器保存这个智能体。",
-  "agentConsole.confirm.close": "当前智能体有未保存的修改，确定放弃修改并关闭吗？",
-  "agentConsole.confirm.cancelEdit": "当前智能体有未保存的修改，确定放弃修改并退出编辑吗？",
+  "agentConsole.error.structuredSaveUnavailable":
+    "配置源修复前，暂不能用结构化编辑器保存这个智能体。",
+  "agentConsole.confirm.close":
+    "当前智能体有未保存的修改，确定放弃修改并关闭吗？",
+  "agentConsole.confirm.cancelEdit":
+    "当前智能体有未保存的修改，确定放弃修改并退出编辑吗？",
   "agentConsole.confirm.deleteTitle": "确定要删除该智能体吗？",
   "agentConsole.confirm.deleteOk": "删除",
   "agentConsole.confirm.deleteCancel": "取消",
-  "agentConsole.confirm.switch": "当前智能体有未保存的修改，确定放弃修改并切换吗？",
-  "agentConsole.confirm.switchEditor": "当前编辑器有未保存的修改，确定放弃修改并切换编辑方式吗？",
+  "agentConsole.confirm.switch":
+    "当前智能体有未保存的修改，确定放弃修改并切换吗？",
+  "agentConsole.confirm.switchEditor":
+    "当前编辑器有未保存的修改，确定放弃修改并切换编辑方式吗？",
   "agentConsole.field.description": "描述",
   "agentConsole.field.greetings": "问候语",
   "agentConsole.field.mode": "模式",
@@ -446,12 +506,14 @@ export const zhCNMessages = {
   "automationHistory.day.yesterday": "昨天",
   "automationHistory.drawer.title": "执行详情",
   "automationHistory.editor.createTitle": "新建自动化",
-  "automationHistory.editor.discardContent": "关闭后，本次未保存的修改将会丢失。",
+  "automationHistory.editor.discardContent":
+    "关闭后，本次未保存的修改将会丢失。",
   "automationHistory.editor.discardTitle": "放弃未保存的修改？",
   "automationHistory.editor.editTitle": "编辑自动化",
   "automationHistory.empty.automations": "还没有自动化",
   "automationHistory.empty.enabled": "启用后，最近触发会按时间顺序显示在这里。",
-  "automationHistory.empty.paused": "此自动化已暂停，恢复后会继续记录触发结果。",
+  "automationHistory.empty.paused":
+    "此自动化已暂停，恢复后会继续记录触发结果。",
   "automationHistory.empty.title": "暂无触发记录",
   "automationHistory.field.executionId": "Execution ID",
   "automationHistory.field.finishReason": "结束原因",
@@ -459,7 +521,8 @@ export const zhCNMessages = {
   "automationHistory.group.enabled": "启用中 · {count}",
   "automationHistory.group.paused": "已暂停 · {count}",
   "automationHistory.historyState.degraded": "执行历史服务降级",
-  "automationHistory.historyState.fallback": "自动化仍可使用，但执行历史暂时不可读取。",
+  "automationHistory.historyState.fallback":
+    "自动化仍可使用，但执行历史暂时不可读取。",
   "automationHistory.historyState.initializing": "正在准备执行历史",
   "automationHistory.historyState.ready": "执行历史可用",
   "automationHistory.historyState.unavailable": "执行历史不可用",
@@ -496,7 +559,8 @@ export const zhCNMessages = {
   "automationConsole.cron.atTimes": "{days} {times}",
   "automationConsole.cron.daily": "每天",
   "automationConsole.cron.everyHours": "每 {count} 小时",
-  "automationConsole.cron.everyHoursAtMinute": "每 {count} 小时的第 {minute} 分钟",
+  "automationConsole.cron.everyHoursAtMinute":
+    "每 {count} 小时的第 {minute} 分钟",
   "automationConsole.cron.everyMinute": "每分钟",
   "automationConsole.cron.everyMinutes": "每 {count} 分钟",
   "automationConsole.cron.hourly": "每小时整点",
@@ -530,7 +594,8 @@ export const zhCNMessages = {
   "automationConsole.cronPreset.placeholder": "常用",
   "automationConsole.cronPreset.weekdayNineThirty": "工作日 09:30",
   "automationConsole.cronPreset.weekendNine": "周末 09:00、21:00",
-  "automationConsole.detail.createSubtitle": "保存后立即写入后端 automation 配置",
+  "automationConsole.detail.createSubtitle":
+    "保存后立即写入后端 automation 配置",
   "automationConsole.detail.titleCreate": "新建自动化",
   "automationConsole.detail.titleEdit": "编辑自动化",
   "automationConsole.empty": "暂无匹配自动化。",
@@ -544,7 +609,8 @@ export const zhCNMessages = {
   "automationConsole.error.paramsObject": "Params 必须是 JSON 对象。",
   "automationConsole.error.remainingRunsPositive": "剩余次数必须是正整数。",
   "automationConsole.executions.empty": "暂无执行记录。",
-  "automationConsole.executions.emptyNoSelection": "保存或选择自动化后查看执行记录。",
+  "automationConsole.executions.emptyNoSelection":
+    "保存或选择自动化后查看执行记录。",
   "automationConsole.executions.title": "执行记录",
   "automationConsole.field.agent": "智能体",
   "automationConsole.field.agentPlaceholder": "请选择智能体",
@@ -583,7 +649,8 @@ export const zhCNMessages = {
   "automationConsole.message.copySuccess": "已创建“{name}”（默认停用）",
   "automationConsole.message.triggerAccepted": "“{name}”已触发",
   "automationConsole.message.triggerFailed": "立即触发失败：{detail}",
-  "automationConsole.message.triggerUnsupported": "当前 Platform 不支持立即触发，或该自动化已不存在",
+  "automationConsole.message.triggerUnsupported":
+    "当前 Platform 不支持立即触发，或该自动化已不存在",
   "automationConsole.searchPlaceholder": "搜索自动化...",
   "automationConsole.section.basic": "属性",
   "automationConsole.section.executions": "执行",
@@ -625,7 +692,8 @@ export const zhCNMessages = {
   "registryConsole.list.count.filtered": "筛选 {count} 个",
   "registryConsole.message.catalogUpdated": "配置已更新",
   "registryConsole.message.newDraft": "已创建草稿",
-  "registryConsole.message.savedWaiting": "已保存，watcher 会自动生效，可刷新查看",
+  "registryConsole.message.savedWaiting":
+    "已保存，watcher 会自动生效，可刷新查看",
   "registryConsole.message.unsaved": "未保存",
   "registryConsole.message.validationInvalid": "校验发现错误",
   "registryConsole.message.validationReady": "校验通过",
@@ -657,11 +725,14 @@ export const zhCNMessages = {
   "composer.actions.interrupt": "中断运行",
   "composer.actions.plan": "计划",
   "composer.editingMode.label": "编辑知识库",
-  "composer.editingMode.tooltip": "仅允许编辑知识目录内的 Markdown 文件，修改后会同步更新索引。",
+  "composer.editingMode.tooltip":
+    "仅允许编辑知识目录内的 Markdown 文件，修改后会同步更新索引。",
   "composer.actions.screenshot": "截屏",
   "composer.actions.screenshotCapturing": "正在截屏...",
-  "composer.actions.screenshotDisabled.frontendActive": "前端工具处理中，暂时不能截屏。",
-  "composer.actions.screenshotDisabled.streaming": "当前运行中，暂不支持追加截图。",
+  "composer.actions.screenshotDisabled.frontendActive":
+    "前端工具处理中，暂时不能截屏。",
+  "composer.actions.screenshotDisabled.streaming":
+    "当前运行中，暂不支持追加截图。",
   "composer.actions.screenshotDisabled.voiceMode": "请先切回文字输入再截屏。",
   "composer.actions.screenshotFailed": "截屏失败",
   "composer.actions.screenshotTimeout": "截屏超时，请重试。",
@@ -669,7 +740,8 @@ export const zhCNMessages = {
   "composer.actions.send": "发送",
   "composer.actions.stopVoiceInput": "停止语音输入",
   "composer.actions.upload": "上传文件",
-  "composer.actions.uploadDisabled.frontendActive": "前端工具处理中，暂时不能上传文件。",
+  "composer.actions.uploadDisabled.frontendActive":
+    "前端工具处理中，暂时不能上传文件。",
   "composer.actions.uploadDisabled.streaming": "当前运行中，暂不支持追加文件。",
   "composer.actions.uploadDisabled.voiceMode": "请先切回文字输入再上传文件。",
   "composer.addMenu.open": "添加上下文",
@@ -688,7 +760,8 @@ export const zhCNMessages = {
   "composer.addMenu.connectors.noAgent": "请先选择智能体",
   "composer.addMenu.connectors.configLoadFailed": "无法加载智能体的连接器配置",
   "composer.addMenu.connectors.saveFailed": "连接器配置保存失败",
-  "composer.addMenu.connectors.reloadPending": "配置已保存，正在等待智能体重新加载。",
+  "composer.addMenu.connectors.reloadPending":
+    "配置已保存，正在等待智能体重新加载。",
   "composer.addMenu.section.commands": "指令",
   "composer.addMenu.section.chat": "对话",
   "composer.addMenu.section.site": "站点",
@@ -696,8 +769,10 @@ export const zhCNMessages = {
   "composer.addMenu.mode.planning": "计划模式",
   "composer.addMenu.mode.editing": "编辑模式",
   "composer.requiredSkill.locked": "{skill} 由宿主强制启用",
-  "composer.addMenu.skill.btwUnsupported": "BTW 分支暂不支持指定必须使用的 Skill。",
-  "composer.addMenu.skill.routeMismatch": "消息将路由到其他智能体，请先移除或重新选择必须使用的 Skill。",
+  "composer.addMenu.skill.btwUnsupported":
+    "BTW 分支暂不支持指定必须使用的 Skill。",
+  "composer.addMenu.skill.routeMismatch":
+    "消息将路由到其他智能体，请先移除或重新选择必须使用的 Skill。",
   "composer.addMenu.chat.search": "搜索对话",
   "composer.addMenu.chat.empty": "没有可引用的对话",
   "composer.addMenu.site.search": "搜索站点",
@@ -713,12 +788,15 @@ export const zhCNMessages = {
   "composer.reference.kind.site": "Site 引用",
   "composer.reference.remove": "移除引用 {name}",
   "composer.actions.voiceInput": "语音输入",
-  "composer.actions.voiceInputDisabled.frontendActive": "前端工具处理中，暂时不能语音输入。",
+  "composer.actions.voiceInputDisabled.frontendActive":
+    "前端工具处理中，暂时不能语音输入。",
   "composer.actions.voiceUnavailable": "语音输入不可用",
   "composer.accessLevel.failed": "权限切换请求失败",
   "composer.accessLevel.failedWithDetail": "权限切换请求失败：{detail}",
-  "composer.accessLevel.rejected": "当前运行不支持动态切换权限，已恢复为原权限。",
-  "composer.accessLevel.rejectedWithDetail": "当前运行不支持动态切换权限（{detail}），已恢复为原权限。",
+  "composer.accessLevel.rejected":
+    "当前运行不支持动态切换权限，已恢复为原权限。",
+  "composer.accessLevel.rejectedWithDetail":
+    "当前运行不支持动态切换权限（{detail}），已恢复为原权限。",
   "composer.attachments.removeFile": "移除文件 {name}",
   "selection.fragment.annotations": "{count} 条批注",
   "selection.fragment.segments": "{count} 个已选文本片段",
@@ -728,16 +806,17 @@ export const zhCNMessages = {
   "selection.toolbar.askInSideChat": "在顺便问中提问",
   "selection.fragment.editAnnotation": "编辑批注 {index}",
   "selection.fragment.confirmAnnotation": "确认批注（回车）",
-  "selection.fragment.inlinePlaceholder": "添加批注（可选）…",
-  "selection.fragment.annotation": "批注（可选）",
+  "selection.fragment.inlinePlaceholder": "添加可选评论",
+  "selection.fragment.annotation": "用户评论：",
   "selection.fragment.annotationFor": "片段 {index} 的批注",
-  "selection.fragment.annotationPlaceholder": "希望如何处理这段原文？",
-  "selection.fragment.item": "片段 {index}",
+  "selection.fragment.item": "所选文本：",
+  "selection.fragment.locate": "定位到批注 {index}",
   "selection.fragment.remove": "移除片段 {index}",
   "selection.fragment.removeAnnotations": "移除全部批注",
   "selection.action.chatRequired": "请先进入一个已建立的对话。",
   "selection.action.failed": "处理所选文本失败，请重新选择后再试。",
-  "selection.explain.prompt": "请详细解释所选内容，并结合当前对话补充必要背景。",
+  "selection.explain.prompt":
+    "请详细解释所选内容，并结合当前对话补充必要背景。",
   "selection.explain.desktopOnly": "解读仅在桌面应用中提供。",
   "selection.explain.title": "解读",
   "selection.explain.copy": "复制最新回答",
@@ -763,9 +842,11 @@ export const zhCNMessages = {
   "composer.background.compact.summaryCompacting": "正在生成上下文摘要...",
   "composer.background.remember.error": "记忆失败",
   "composer.background.remember.pending": "正在记忆中...",
-  "composer.input.placeholder.default": "回复消息...（Enter 发送，Shift+Enter 换行）",
+  "composer.input.placeholder.default":
+    "回复消息...（Enter 发送，Shift+Enter 换行）",
   "composer.input.placeholder.expanded": "↵ 键仅用于换行，Esc 可收起输入框",
-  "composer.input.placeholder.frontendActive": "前端工具处理中，请在确认面板内提交",
+  "composer.input.placeholder.frontendActive":
+    "前端工具处理中，请在确认面板内提交",
   "composer.input.tooltip.collapse": "收起输入框，用 ↵ 键发送",
   "composer.input.tooltip.expand": "展开输入框，用 ↵ 键换行",
   "composer.query.access.auto_approve": "自动批准",
@@ -802,7 +883,8 @@ export const zhCNMessages = {
   "composer.steer.cancel": "取消",
   "composer.steer.unknown": "提交结果尚未确认，正在等待运行消息。",
   "composer.steer.waiting": "等待确认",
-  "composer.steer.rejected": "当前运行没有接受引导（{detail}），已把内容放回输入框。",
+  "composer.steer.rejected":
+    "当前运行没有接受引导（{detail}），已把内容放回输入框。",
   "composer.steer.shortcut": "在输入框按 ⌘Enter 引导",
   "composer.steer.submit": "引导",
   "composer.steer.addText": "运行已结束，附件已放回输入框，请补充文字后发送。",
@@ -889,9 +971,11 @@ export const zhCNMessages = {
   "rightSidebar.overview.fileChanges.diffLoading": "正在加载差异...",
   "rightSidebar.overview.fileChanges.diffUnavailable": "差异暂不可用",
   "rightSidebar.overview.fileChanges.openFile": "在本地打开文件",
-  "rightSidebar.overview.fileChanges.openFileUnavailable": "当前环境无法打开该文件",
+  "rightSidebar.overview.fileChanges.openFileUnavailable":
+    "当前环境无法打开该文件",
   "rightSidebar.overview.fileChanges.openFolder": "在本地打开文件夹",
-  "rightSidebar.overview.fileChanges.openFolderUnavailable": "当前环境无法打开该文件夹",
+  "rightSidebar.overview.fileChanges.openFolderUnavailable":
+    "当前环境无法打开该文件夹",
   "rightSidebar.overview.fileChanges.title": "文件修改",
   "rightSidebar.overview.fileChanges.titleCoder": "代码修改",
   "rightSidebar.overview.planning.title": "计划",
@@ -919,33 +1003,42 @@ export const zhCNMessages = {
   "contentViewer.preview.open": "打开在线预览",
   "contentViewer.preview.openBrowser": "在浏览器中打开",
   "contentViewer.preview.expired": "预览链接已过期，请重新获取预览。",
-  "contentViewer.preview.externalReady": "预览已准备好，点击“打开在线预览”查看。",
+  "contentViewer.preview.externalReady":
+    "预览已准备好，点击“打开在线预览”查看。",
   "contentViewer.action.previewPlanned": "在线预览（规划中）",
   "contentViewer.localAction.revealInFinder": "在 Finder 中显示",
   "contentViewer.localAction.revealInExplorer": "在文件资源管理器中显示",
   "contentViewer.localAction.revealInFileManager": "在文件管理器中显示",
   "contentViewer.localAction.openDefault": "用默认应用打开",
   "contentViewer.localAction.checking": "正在连接本机文件服务…",
-  "contentViewer.localAction.unavailable": "本机文件服务不可用，请重启 WebClient 的 make dev 服务。",
-  "contentViewer.localAction.localOnly": "请在运行 WebClient 服务的电脑上通过 localhost 访问后使用。",
-  "contentViewer.localAction.failed": "无法打开本地文件，请确认系统已安装对应应用。",
-  "contentViewer.localAction.tooLarge": "文件超过本地打开的大小限制（128 MiB），请下载后打开。",
-  "contentViewer.localAction.unsupportedType": "此文件类型不支持直接打开，请先在文件管理器中查看。",
+  "contentViewer.localAction.unavailable":
+    "本机文件服务不可用，请重启 WebClient 的 make dev 服务。",
+  "contentViewer.localAction.localOnly":
+    "请在运行 WebClient 服务的电脑上通过 localhost 访问后使用。",
+  "contentViewer.localAction.failed":
+    "无法打开本地文件，请确认系统已安装对应应用。",
+  "contentViewer.localAction.tooLarge":
+    "文件超过本地打开的大小限制（128 MiB），请下载后打开。",
+  "contentViewer.localAction.unsupportedType":
+    "此文件类型不支持直接打开，请先在文件管理器中查看。",
   "contentViewer.action.save": "保存",
   "contentViewer.action.saveOverwrite": "保存（覆盖）",
   "contentViewer.action.overwrite": "覆盖原产物",
   "contentViewer.action.saveNewArtifact": "另存为新产物",
   "contentViewer.action.more": "更多文档操作",
   "contentViewer.action.reload": "重新加载权威版本",
-  "contentViewer.reload.confirmDiscard": "重新加载会丢弃尚未保存的修改，是否继续？",
+  "contentViewer.reload.confirmDiscard":
+    "重新加载会丢弃尚未保存的修改，是否继续？",
   "contentViewer.markdown.source": "源码",
   "contentViewer.markdown.preview": "预览",
   "contentViewer.markdown.split": "分屏",
   "contentViewer.save.chooseTitle": "如何保存？",
   "contentViewer.save.cancel": "取消",
-  "contentViewer.save.workspace-file": "将修改保存到当前 Workspace 文件并覆盖原内容。",
+  "contentViewer.save.workspace-file":
+    "将修改保存到当前 Workspace 文件并覆盖原内容。",
   "contentViewer.save.artifact": "建议保存为新产物；也可以选择覆盖原产物。",
-  "contentViewer.save.reference": "Reference 只能保存为新产物，原文件不会更改。",
+  "contentViewer.save.reference":
+    "Reference 只能保存为新产物，原文件不会更改。",
   "contentViewer.save.success": "文档已保存",
   "contentViewer.save.conflict": "文件已在其他位置修改，请重新加载后再保存。",
   "contentViewer.metadata.type": "类型",
@@ -955,7 +1048,8 @@ export const zhCNMessages = {
   "contentViewer.metadata.document-archive": "压缩包（只读）",
   "contentViewer.metadata.document-binary": "二进制文件（只读）",
   "contentViewer.metadata.unsupportedTextEncoding": "文本编码不受支持（只读）",
-  "contentViewer.metadata.unsupportedTextEncodingDetail": "该文件不是安全的 UTF-8 文本，或包含 NUL 字节。请下载后使用支持其编码的工具打开。",
+  "contentViewer.metadata.unsupportedTextEncodingDetail":
+    "该文件不是安全的 UTF-8 文本，或包含 NUL 字节。请下载后使用支持其编码的工具打开。",
   "contentViewer.pdf.loading": "正在加载 PDF…",
   "contentViewer.pdf.failed": "PDF 预览失败，请下载查看。",
   "contentViewer.pdf.previous": "上一页",
@@ -1005,7 +1099,8 @@ export const zhCNMessages = {
   "approvalDialog.option.approve": "同意",
   "approvalDialog.option.approve.description": "只本次放行",
   "approvalDialog.option.approveRuleRun": "同意（本次运行同规则都放行）",
-  "approvalDialog.option.approveRuleRun.description": "本次 run 内同一规则命中的请求自动放行",
+  "approvalDialog.option.approveRuleRun.description":
+    "本次 run 内同一规则命中的请求自动放行",
   "approvalDialog.option.reject": "拒绝",
   "approvalDialog.rejectDefaultReason": "拒绝本次审批",
   "approvalDialog.rejectPlaceholder": "请告知如何调整",
@@ -1045,7 +1140,8 @@ export const zhCNMessages = {
   "archive.action.restore": "还原",
   "archive.action.restoreAndOpen": "还原并打开",
   "archive.bulk.button": "归档 {count} 条",
-  "archive.bulk.confirmContent": "将归档当前筛选范围内 {count} 条超过 {days} 天未更新的对话。",
+  "archive.bulk.confirmContent":
+    "将归档当前筛选范围内 {count} 条超过 {days} 天未更新的对话。",
   "archive.bulk.confirmTitle": "批量归档旧对话",
   "archive.bulk.days": "{days} 天",
   "archive.bulk.dayUnit": "天",
@@ -1181,14 +1277,17 @@ export const zhCNMessages = {
   "contextCompact.releasedTokens": "本次释放 {tokens} tokens",
   "contextCompact.currentTokens": "当前上下文约 {tokens} tokens",
   "contextCompact.historyTokens": "压缩后历史上下文约 {tokens} tokens",
-  "contextCompact.summaryInputTooLargeDetail": "待摘要的上下文超过单次摘要输入上限（summary_input_too_large）",
-  "contextCompact.reductionTooltip": "压缩比例以本次压缩前的上下文为基准；当前上下文为压缩后的 token 估算值。历史压缩仅统计历史范围。",
+  "contextCompact.summaryInputTooLargeDetail":
+    "待摘要的上下文超过单次摘要输入上限（summary_input_too_large）",
+  "contextCompact.reductionTooltip":
+    "压缩比例以本次压缩前的上下文为基准；当前上下文为压缩后的 token 估算值。历史压缩仅统计历史范围。",
   "contextCompact.failed": "上下文压缩失败：{detail}",
   "contextCompact.historyChanged": "对话历史已变化，请重试压缩",
   "contextCompact.noHistory": "没有可压缩的历史上下文",
   "contextCompact.noChat": "请先打开一个对话",
   "contextCompact.noTools": "没有可压缩的旧工具上下文（最近 5 次调用保持完整）",
-  "contextCompact.summaryInputTooLarge": "工具投影后的历史仍超过单次摘要预算，请使用更大上下文窗口的模型或减少保留输入",
+  "contextCompact.summaryInputTooLarge":
+    "工具投影后的历史仍超过单次摘要预算，请使用更大上下文窗口的模型或减少保留输入",
   "contextCompact.summaryFailed": "上下文摘要生成失败，请重试",
   "contextCompact.runInterrupted": "运行已中断，上下文压缩未完成",
   "contextCompact.unsupportedActiveRun": "当前运行后端不支持运行中压缩",
@@ -1199,10 +1298,11 @@ export const zhCNMessages = {
   "contextCompact.summarySource": "摘要来源：{source}",
   "contextCompact.toolDigestCount": "工具结果摘要：{count}",
   "contextCompact.unknownError": "未知错误",
-  "desktopFileSystem.browserPathPrompt": "由于浏览器限制，需要输入项目的绝对路径",
+  "desktopFileSystem.browserPathPrompt":
+    "由于浏览器限制，需要输入项目的绝对路径",
   "eventPopover.action.collectSnapshot": "收集事件快照",
-  "eventPopover.action.copyRawJsonl": '复制聊天 JSONL',
-  "eventPopover.label.rawJsonl": '原始 JSONL',
+  "eventPopover.action.copyRawJsonl": "复制聊天 JSONL",
+  "eventPopover.label.rawJsonl": "原始 JSONL",
   "eventPopover.action.systemPrompt": "系统提示词（System Prompt）",
   "eventPopover.close": "关闭事件详情",
   "eventPopover.copy.all": "复制全部",
@@ -1233,7 +1333,8 @@ export const zhCNMessages = {
   "eventPopover.systemPromptModal.copy": "复制 System Prompt",
   "eventPopover.systemPromptModal.copyFailed": "System Prompt 复制失败",
   "eventPopover.systemPromptModal.copySuccess": "System Prompt 已复制",
-  "eventPopover.systemPromptModal.empty": "没有找到当前调用的 system prompt 文本。",
+  "eventPopover.systemPromptModal.empty":
+    "没有找到当前调用的 system prompt 文本。",
   "eventPopover.systemPromptModal.error": "System Prompt 加载失败：{message}",
   "eventPopover.systemPromptModal.loading": "正在加载 System Prompt...",
   "eventPopover.systemPromptModal.timeout": "加载 System Prompt 超时。",
@@ -1246,13 +1347,15 @@ export const zhCNMessages = {
   "leftSidebar.awaitingStatus.form": "等待提交",
   "leftSidebar.automationSource": "自动化创建",
   "leftSidebar.browserFolderUnsupported": "当前浏览器不支持选择文件夹",
-  "leftSidebar.browserWorkspaceOpenUnavailable": "浏览器导入项目无法打开本机工作目录",
+  "leftSidebar.browserWorkspaceOpenUnavailable":
+    "浏览器导入项目无法打开本机工作目录",
   "leftSidebar.terminalActive": "该智能体有终端",
   "leftSidebar.terminalBusy": "该智能体的终端正在执行命令",
   "leftSidebar.importingProject": "正在导入项目...",
   "leftSidebar.filterWorkers": "按 名称 / key / teamId 过滤...",
   "leftSidebar.historyTitle": "历史对话",
-  "leftSidebar.historyTitleWithWorker": "{workerTypeLabel}历史对话 · {displayName}",
+  "leftSidebar.historyTitleWithWorker":
+    "{workerTypeLabel}历史对话 · {displayName}",
   "leftSidebar.latestConversationNoReply": "最新对话无答复",
   "leftSidebar.loading": "加载中...",
   "leftSidebar.markAllRead": "全部已读",
@@ -1280,7 +1383,8 @@ export const zhCNMessages = {
   "leftSidebar.editAgent": "编辑智能体",
   "leftSidebar.copyAgentInfo": "智能体信息",
   "leftSidebar.deleteAgent": "删除智能体",
-  "leftSidebar.deleteAgentConfirm": "确定要删除智能体「{name}」吗？此操作不可撤销。",
+  "leftSidebar.deleteAgentConfirm":
+    "确定要删除智能体「{name}」吗？此操作不可撤销。",
   "leftSidebar.createProject.title": "创建项目",
   "leftSidebar.createProject.projectName": "项目名称",
   "leftSidebar.createProject.projectNamePlaceholder": "请输入项目名称",
@@ -1297,14 +1401,16 @@ export const zhCNMessages = {
   "leftSidebar.createProject.creating": "创建中...",
   "leftSidebar.createProject.nameRequired": "请输入项目名称。",
   "leftSidebar.createProject.kbaseNotImplemented": "KBASE 创建尚未实现。",
-  "leftSidebar.createProject.acpRequired": "请选择一个正在运行的 ACP 代理，或关闭 ACP。",
+  "leftSidebar.createProject.acpRequired":
+    "请选择一个正在运行的 ACP 代理，或关闭 ACP。",
   "leftSidebar.createProject.directoryPlaceholder": "请输入或粘贴项目目录路径",
   "leftSidebar.createProject.directoryRequired": "请输入项目目录路径。",
   "leftSidebar.createProject.creatingProject": "正在创建项目...",
   "automation.action.generateDraft": "生成草稿",
   "automation.example.rule": "例如：每个工作日 18:00",
   "automation.example.task": "例如：每天整理客户日报",
-  "automation.hint": "确认后会生成带当前{agentLabel}上下文的草稿，按需再发送。支持 `Ctrl/Cmd + Enter` 快速确认。",
+  "automation.hint":
+    "确认后会生成带当前{agentLabel}上下文的草稿，按需再发送。支持 `Ctrl/Cmd + Enter` 快速确认。",
   "automation.label.rule": "执行时间 / 规则",
   "automation.label.task": "任务内容",
   "settings.actions.clearLogs": "清空日志",
@@ -1315,7 +1421,8 @@ export const zhCNMessages = {
   "settings.asr.fallbackNotice": "capabilities 获取失败，已回退到默认配置",
   "settings.asr.final": "最终转写",
   "settings.asr.finalPlaceholder": "等待 ASR final 文本...",
-  "settings.asr.hint": "该调试只验证麦克风音频是否打到 Voice ASR，并展示识别结果，不触发 TTS。",
+  "settings.asr.hint":
+    "该调试只验证麦克风音频是否打到 Voice ASR，并展示识别结果，不触发 TTS。",
   "settings.asr.interim": "实时转写",
   "settings.asr.interimPlaceholder": "等待 ASR interim 文本...",
   "settings.asr.label": "ASR Voice 调试",
@@ -1332,22 +1439,28 @@ export const zhCNMessages = {
   "settings.clientGate.field.openHoldMs": "打开保持（ms）",
   "settings.clientGate.field.preRollMs": "预卷（ms）",
   "settings.clientGate.field.rmsThreshold": "RMS 阈值",
-  "settings.clientGate.hint.primary": "rmsThreshold 越大越难触发，适合过滤轻声；open/close 控制开闭稳定性；preRoll 用于避免吞掉开头音节。",
-  "settings.clientGate.hint.secondary": "当前配置仅保留在本页对话内，ASR Debug 会立即使用；进行中的语聊会立即更新本地门限；下次 ASR 启动也会继续沿用该配置。",
+  "settings.clientGate.hint.primary":
+    "rmsThreshold 越大越难触发，适合过滤轻声；open/close 控制开闭稳定性；preRoll 用于避免吞掉开头音节。",
+  "settings.clientGate.hint.secondary":
+    "当前配置仅保留在本页对话内，ASR Debug 会立即使用；进行中的语聊会立即更新本地门限；下次 ASR 启动也会继续沿用该配置。",
   "settings.clientGate.label": "前端语音门限（Client Gate）",
   "settings.close": "关闭",
   "settings.language.enUS": "英文（English）",
-  "settings.language.hint": "选择默认界面语言。地址栏 lang 参数只临时覆盖当前页面。",
+  "settings.language.hint":
+    "选择默认界面语言。地址栏 lang 参数只临时覆盖当前页面。",
   "settings.language.label": "默认语言",
   "settings.language.zhCN": "中文",
   "settings.shared.errorWithDetail": "错误：{detail}",
   "settings.theme.dark": "深色",
-  "settings.theme.hint": "同步切换自定义界面样式和 Ant Design 组件主题，并记住当前选择。",
+  "settings.theme.hint":
+    "同步切换自定义界面样式和 Ant Design 组件主题，并记住当前选择。",
   "settings.theme.label": "界面主题",
   "settings.theme.light": "浅色",
   "settings.title": "设置",
-  "settings.token.hint.app": "App 模式下由宿主应用通过 Bridge 自动管理，用于 API Bearer 与 Voice WS query access_token。",
-  "settings.token.hint.web": "用于 API Bearer 与 Voice WS query access_token；仅保存在当前浏览器本地。",
+  "settings.token.hint.app":
+    "App 模式下由宿主应用通过 Bridge 自动管理，用于 API Bearer 与 Voice WS query access_token。",
+  "settings.token.hint.web":
+    "用于 API Bearer 与 Voice WS query access_token；仅保存在当前浏览器本地。",
   "settings.token.label": "访问令牌（Access Token）",
   "settings.token.placeholder.app": "Token 由宿主应用自动管理",
   "settings.token.placeholder.web": "输入访问令牌...",
@@ -1364,7 +1477,8 @@ export const zhCNMessages = {
   "settingsMenu.registries": "注册配置",
   "settingsMenu.registriesDescription": "管理 registry YAML 配置。",
   "settingsMenu.skills": "技能中心",
-  "settingsMenu.skillsDescription": "编辑技能目录、SKILL.md、references 与 scripts。",
+  "settingsMenu.skillsDescription":
+    "编辑技能目录、SKILL.md、references 与 scripts。",
   "settingsMenu.reserved.appearance": "外观偏好（即将开放）",
   "settingsMenu.reserved.connection": "连接设置（即将开放）",
   "settingsMenu.reserved.description": "预留菜单入口，后续补充。",
@@ -1420,7 +1534,8 @@ export const zhCNMessages = {
   "memoryInfo.loading.detail": "加载详情中...",
   "memoryInfo.loading.records": "加载记忆记录中...",
   "memoryInfo.panel.detail": "记录详情",
-  "memoryInfo.panel.detailHint": "查看选中记录的完整字段、embedding 与原始 JSON。",
+  "memoryInfo.panel.detailHint":
+    "查看选中记录的完整字段、embedding 与原始 JSON。",
   "memoryInfo.panel.records": "记忆记录",
   "memoryInfo.rawJson": "原始 JSON",
   "memoryInfo.subtitle": "当前智能体：{label}",
@@ -1437,18 +1552,22 @@ export const zhCNMessages = {
   "memoryPreview.empty.noItems": "这一层没有选中任何记忆。",
   "memoryPreview.empty.noMessage": "请输入当前问题后再预览记忆上下文。",
   "memoryPreview.empty.noPrompt": "这一层没有生成 prompt 文本。",
-  "memoryPreview.empty.noResult": "执行一次预览后，就可以查看本次注入的记忆 prompt。",
+  "memoryPreview.empty.noResult":
+    "执行一次预览后，就可以查看本次注入的记忆 prompt。",
   "memoryPreview.errors.load": "预览记忆上下文失败：{detail}",
   "memoryPreview.field.message": "当前问题",
-  "memoryPreview.field.messagePlaceholder": "默认带入当前 composer 输入，也可以在这里临时微调后再调试。",
+  "memoryPreview.field.messagePlaceholder":
+    "默认带入当前 composer 输入，也可以在这里临时微调后再调试。",
   "memoryPreview.layer.observation": "观察层（observation）",
   "memoryPreview.layer.session": "对话层（session）",
   "memoryPreview.layer.stable": "稳定层（stable）",
   "memoryPreview.loading.preview": "正在预览记忆上下文...",
   "memoryPreview.panel.input": "预览输入",
-  "memoryPreview.panel.inputHint": "这里走和真实 query 一致的 memory recall 路径，但不会调用模型。",
+  "memoryPreview.panel.inputHint":
+    "这里走和真实 query 一致的 memory recall 路径，但不会调用模型。",
   "memoryPreview.panel.prompt": "Prompt 预览",
-  "memoryPreview.panel.promptHint": "按层查看注入的 memory prompt，以及选中的记忆和选择决策。",
+  "memoryPreview.panel.promptHint":
+    "按层查看注入的 memory prompt，以及选中的记忆和选择决策。",
   "memoryPreview.section.decisions": "选择决策",
   "memoryPreview.section.selectedMemory": "选中的记忆",
   "memoryPreview.summary.chars": "{count} 字符",
@@ -1465,7 +1584,8 @@ export const zhCNMessages = {
   "memoryPreferences.editable.yes": "可编辑",
   "memoryPreferences.empty.noAgent": "请先选择一个智能体后再查看偏好设置。",
   "memoryPreferences.empty.noPreference": "当前 scope 暂无偏好记录。",
-  "memoryPreferences.empty.unselected": "从中间列表选择一条偏好，或点击“新增偏好”。",
+  "memoryPreferences.empty.unselected":
+    "从中间列表选择一条偏好，或点击“新增偏好”。",
   "memoryPreferences.errors.loadScope": "加载 scope 详情失败：{detail}",
   "memoryPreferences.errors.loadScopes": "加载 scope 列表失败：{detail}",
   "memoryPreferences.errors.save": "保存偏好失败：{detail}",
@@ -1485,31 +1605,38 @@ export const zhCNMessages = {
   "memoryPreferences.loading.scope": "加载偏好设置中...",
   "memoryPreferences.meta": "共 {count} 条 · {editable}",
   "memoryPreferences.metaEmpty": "当前 scope 元信息暂不可用。",
-  "memoryPreferences.markdown.hint": "Markdown 模式编辑的是 scope 的原始条目格式，不是自由文档。若要写多行说明、列表或代码块，请切到“结构化模式”编辑“内容”。",
+  "memoryPreferences.markdown.hint":
+    "Markdown 模式编辑的是 scope 的原始条目格式，不是自由文档。若要写多行说明、列表或代码块，请切到“结构化模式”编辑“内容”。",
   "memoryPreferences.markdown.switchToRecords": "切到结构化模式",
   "memoryPreferences.mode.markdown": "Markdown 编辑",
   "memoryPreferences.mode.records": "结构化模式",
   "memoryPreferences.newRecord": "新偏好",
-  "memoryPreferences.notice.unsaved": "当前有未保存更改，请先保存后再切换 scope。",
-  "memoryPreferences.notice.validationFailed": "Markdown 校验未通过，请先修正后再保存。",
+  "memoryPreferences.notice.unsaved":
+    "当前有未保存更改，请先保存后再切换 scope。",
+  "memoryPreferences.notice.validationFailed":
+    "Markdown 校验未通过，请先修正后再保存。",
   "memoryPreferences.panel.detail": "偏好详情",
-  "memoryPreferences.panel.detailHint": "查看当前选中偏好的 scope、状态与原始草稿字段。",
+  "memoryPreferences.panel.detailHint":
+    "查看当前选中偏好的 scope、状态与原始草稿字段。",
   "memoryPreferences.panel.editor": "偏好编辑",
   "memoryPreferences.panel.records": "偏好列表",
   "memoryPreferences.rawJson": "原始 JSON",
-  "memoryPreferences.saveSummary": "保存完成：新增 {created} 条，更新 {updated} 条，归档 {archived} 条，未变更 {unchanged} 条。",
+  "memoryPreferences.saveSummary":
+    "保存完成：新增 {created} 条，更新 {updated} 条，归档 {archived} 条，未变更 {unchanged} 条。",
   "memoryPreferences.scope.agent": "智能体（AGENT）",
   "memoryPreferences.scope.global": "全局（GLOBAL）",
   "memoryPreferences.scope.team": "团队（TEAM）",
   "memoryPreferences.scope.user": "用户（USER）",
   "memoryPreferences.tab": "偏好设置",
-  "memoryPreferences.validation.expectedKeyValue": "这一行不是受支持的字段格式。Markdown 模式只支持 `- [id] 标题` 和 `key: value`；多行说明、列表或代码块请切到“结构化模式”的“内容”里编辑。",
+  "memoryPreferences.validation.expectedKeyValue":
+    "这一行不是受支持的字段格式。Markdown 模式只支持 `- [id] 标题` 和 `key: value`；多行说明、列表或代码块请切到“结构化模式”的“内容”里编辑。",
   "memoryPreferences.validation.error": "第 {line} 行 {field}：{message}",
   "memoryPreferences.validation.field.entry": "条目",
   "memoryPreferences.validation.field.field": "字段格式",
   "memoryPreferences.validation.field.unknown": "未知位置",
   "memoryPreferences.validation.unknown": "未知校验错误",
-  "memoryPreferences.validation.warning": "提示 第 {line} 行 {field}：{message}",
+  "memoryPreferences.validation.warning":
+    "提示 第 {line} 行 {field}：{message}",
   "mermaid.status.failedWithDetail": "Mermaid 图表渲染失败：{detail}",
   "mermaid.status.parseFailed": "Mermaid 语法解析失败。",
   "mermaid.status.receiving": "Mermaid 图表接收中…",
@@ -1561,10 +1688,13 @@ export const zhCNMessages = {
   "skillConsole.confirm.switchFile": "当前文件有未保存的修改，是否放弃？",
   "skillConsole.confirm.switchSkill": "当前技能有未保存的修改，是否放弃？",
   "skillConsole.confirm.createWithUnsaved": "当前技能有未保存的修改",
-  "skillConsole.confirm.createWithUnsavedDescription": "继续创建或导入将切换到新技能，并放弃当前未保存的修改。",
-  "skillConsole.create.description": "填写技能 Key 和名称，将创建包含 SKILL.md 模板的技能目录。",
+  "skillConsole.confirm.createWithUnsavedDescription":
+    "继续创建或导入将切换到新技能，并放弃当前未保存的修改。",
+  "skillConsole.create.description":
+    "填写技能 Key 和名称，将创建包含 SKILL.md 模板的技能目录。",
   "skillConsole.create.keyError.required": "请输入 Skill Key。",
-  "skillConsole.create.keyError.invalid": "Key 不能包含路径字符、首尾空格，也不能使用隐藏或 .example 名称。",
+  "skillConsole.create.keyError.invalid":
+    "Key 不能包含路径字符、首尾空格，也不能使用隐藏或 .example 名称。",
   "skillConsole.create.keyError.exists": "该 Skill Key 已存在，请修改后重试。",
   "skillConsole.create.mode.direct": "直接创建",
   "skillConsole.create.mode.zip": "ZIP 包导入",
@@ -1573,9 +1703,12 @@ export const zhCNMessages = {
   "skillConsole.create.fileNamePlaceholder": "文件名（含扩展名）",
   "skillConsole.create.title": "新建技能",
   "skillConsole.delete.title": "删除技能？",
-  "skillConsole.delete.confirm": "确定要删除技能 {name} 及其整个目录中的所有文件吗？此操作不可撤销。",
-  "skillConsole.delete.unsavedWarning": "当前技能还有未保存的修改，删除后这些修改也无法恢复。",
-  "skillConsole.delete.blockedByAgents": "无法删除：该技能仍被以下 Agent 使用：{agents}。请先在 Agent 配置中移除该技能。",
+  "skillConsole.delete.confirm":
+    "确定要删除技能 {name} 及其整个目录中的所有文件吗？此操作不可撤销。",
+  "skillConsole.delete.unsavedWarning":
+    "当前技能还有未保存的修改，删除后这些修改也无法恢复。",
+  "skillConsole.delete.blockedByAgents":
+    "无法删除：该技能仍被以下 Agent 使用：{agents}。请先在 Agent 配置中移除该技能。",
   "skillConsole.detail.empty": "请在左侧选择一个技能查看详情。",
   "skillConsole.diagnostics.empty": "暂无诊断信息",
   "skillConsole.diagnostics.fileTitle": "文件诊断",
@@ -1635,13 +1768,18 @@ export const zhCNMessages = {
   "skillConsole.status.invalid": "无效",
   "skillConsole.status.disabled": "已禁用",
   "skillConsole.import.keyOptional": "单技能 Key（可选）",
-  "skillConsole.import.keyPlaceholder": "留空自动读取；技能包始终使用清单中的 ID",
-  "skillConsole.import.packageSuccess": "技能包 {name} 已导入，共 {count} 个技能",
-  "skillConsole.import.description": "支持单技能 ZIP 和技能包 ZIP，上传后自动识别。单技能最大 32 MiB，技能包最大 512 MiB；重新导入同一技能包会更新包内技能。",
+  "skillConsole.import.keyPlaceholder":
+    "留空自动读取；技能包始终使用清单中的 ID",
+  "skillConsole.import.packageSuccess":
+    "技能包 {name} 已导入，共 {count} 个技能",
+  "skillConsole.import.description":
+    "支持单技能 ZIP 和技能包 ZIP，上传后自动识别。单技能最大 32 MiB，技能包最大 512 MiB；重新导入同一技能包会更新包内技能。",
   "skillConsole.import.drop": "将 ZIP 包拖到这里，或选择文件",
   "skillConsole.import.error.empty": "ZIP 包不能为空。",
-  "skillConsole.import.error.exists": "该 Skill Key 已存在，请修改 Key 后重试。",
-  "skillConsole.import.error.size": "ZIP 包不能超过 512 MiB。单技能 ZIP 的 32 MiB 限额将在识别后校验。",
+  "skillConsole.import.error.exists":
+    "该 Skill Key 已存在，请修改 Key 后重试。",
+  "skillConsole.import.error.size":
+    "ZIP 包不能超过 512 MiB。单技能 ZIP 的 32 MiB 限额将在识别后校验。",
   "skillConsole.import.error.type": "请选择 .zip 文件。",
   "skillConsole.import.replace": "更换 ZIP",
   "skillConsole.import.select": "选择 ZIP",
@@ -1653,7 +1791,8 @@ export const zhCNMessages = {
   "btw.new.action": "新建顺便问",
   "btw.new.cancel": "取消",
   "btw.new.confirm": "新建",
-  "btw.new.confirmDescription": "当前分支仍保存在后端，但不会继续显示在这个面板中。",
+  "btw.new.confirmDescription":
+    "当前分支仍保存在后端，但不会继续显示在这个面板中。",
   "btw.new.confirmTitle": "开始新的顺便问？",
   "btw.new.created": "已开始新的顺便问",
   "btw.noChat": "请先进入一个已有对话",
@@ -1671,15 +1810,18 @@ export const zhCNMessages = {
   "slash.command.editing.label": "知识库编辑模式",
   "slash.command.history.description": "查看所有历史对话",
   "slash.command.history.label": "历史对话",
-  "slash.command.learn.description": "提炼当前对话中的经验、规则与做法，并提交到学习接口",
+  "slash.command.learn.description":
+    "提炼当前对话中的经验、规则与做法，并提交到学习接口",
   "slash.command.learn.label": "沉淀学习",
-  "slash.command.compact.description": "压缩当前对话的历史上下文，保留最近对话和审计记录",
+  "slash.command.compact.description":
+    "压缩当前对话的历史上下文，保留最近对话和审计记录",
   "slash.command.compact.label": "压缩上下文",
   "slash.command.new.description": "清空当前对话上下文，保留当前 worker 选择",
   "slash.command.new.label": "新对话",
   "slash.command.plan.description": "切换计划模式",
   "slash.command.plan.label": "计划模式",
-  "slash.command.remember.description": "记录长期偏好、事实或约束，并提交到记忆接口",
+  "slash.command.remember.description":
+    "记录长期偏好、事实或约束，并提交到记忆接口",
   "slash.command.remember.label": "记录记忆",
   "slash.command.automation.description": "管理自动化任务与执行记录",
   "slash.command.automation.label": "自动化",
@@ -1792,18 +1934,22 @@ export const zhCNMessages = {
   "timeline.feedback.downvoted": "已点踩",
   "timeline.feedback.cleared": "已取消点踩",
   "timeline.feedback.title": "反馈（选填）",
-  "timeline.feedback.placeholder": "我们想知道你对此回答不满意的原因，你认为更好的回答是什么？",
+  "timeline.feedback.placeholder":
+    "我们想知道你对此回答不满意的原因，你认为更好的回答是什么？",
   "timeline.feedback.submit": "提交",
-  "platformError.category.auth": "登录状态或权限校验失败，请重新登录或联系管理员。",
+  "platformError.category.auth":
+    "登录状态或权限校验失败，请重新登录或联系管理员。",
   "platformError.category.chat_run": "运行失败，请稍后重试。",
-  "platformError.code.context_window_uncompactable": "上下文无法压缩至模型可用范围，本次运行已停止。",
+  "platformError.code.context_window_uncompactable":
+    "上下文无法压缩至模型可用范围，本次运行已停止。",
   "platformError.category.model": "模型服务请求失败，请稍后重试。",
   "platformError.category.protocol": "连接协议异常，请稍后重试。",
   "platformError.category.request": "请求无效，服务无法处理当前请求。",
   "platformError.category.system": "服务内部错误，请稍后重试。",
   "platformError.category.timeout": "操作超时，请稍后重试。",
   "platformError.code.active_run_conflict": "当前对话已有运行正在进行。",
-  "platformError.code.editing_mode_unsupported": "当前 Agent 不支持知识库编辑，请重新选择 KBASE Agent",
+  "platformError.code.editing_mode_unsupported":
+    "当前 Agent 不支持知识库编辑，请重新选择 KBASE Agent",
   "platformError.code.forbidden": "没有权限执行该操作。",
   "platformError.code.internal_error": "服务内部错误，请稍后重试。",
   "platformError.code.invalid_request": "请求无效，服务无法处理当前请求。",
@@ -1825,15 +1971,22 @@ export const zhCNMessages = {
   "surface.loading": "加载中…",
   "surface.replayExpired": "实时视图回放已过期，请重试。",
   "surface.retry": "重试",
-  "platformError.code.provider_auth_failed": "模型服务鉴权失败，请联系管理员检查 API Key。",
+  "platformError.code.provider_auth_failed":
+    "模型服务鉴权失败，请联系管理员检查 API Key。",
   "platformError.code.provider_bad_response": "模型服务返回异常，请稍后重试。",
-  "platformError.code.provider_content_filter": "模型服务拒绝了当前内容，请调整输入后重试。",
-  "platformError.code.provider_context_length_exceeded": "上下文过长，已超过模型限制，请减少输入或开启压缩。",
-  "platformError.code.provider_model_not_found": "模型服务中不存在该模型，请切换模型或检查配置。",
+  "platformError.code.provider_content_filter":
+    "模型服务拒绝了当前内容，请调整输入后重试。",
+  "platformError.code.provider_context_length_exceeded":
+    "上下文过长，已超过模型限制，请减少输入或开启压缩。",
+  "platformError.code.provider_model_not_found":
+    "模型服务中不存在该模型，请切换模型或检查配置。",
   "platformError.code.provider_network_error": "连接模型服务失败，请稍后重试。",
-  "platformError.code.provider_permission_denied": "模型服务权限不足，请联系管理员检查模型或账号权限。",
-  "platformError.code.provider_quota_exhausted": "模型服务额度已用尽，请更换模型或联系管理员检查 API Key / 额度。",
-  "platformError.code.provider_rate_limited": "模型服务请求过于频繁，请稍后重试。",
+  "platformError.code.provider_permission_denied":
+    "模型服务权限不足，请联系管理员检查模型或账号权限。",
+  "platformError.code.provider_quota_exhausted":
+    "模型服务额度已用尽，请更换模型或联系管理员检查 API Key / 额度。",
+  "platformError.code.provider_rate_limited":
+    "模型服务请求过于频繁，请稍后重试。",
   "platformError.code.provider_request_failed": "模型服务请求失败。",
   "platformError.code.provider_timeout": "模型服务响应超时，请稍后重试。",
   "platformError.code.provider_unavailable": "模型服务暂时不可用，请稍后重试。",
@@ -1851,17 +2004,25 @@ export const zhCNMessages = {
   "platformError.detail.retryable": "可重试",
   "platformError.detail.scope": "范围",
   "platformError.detail.status": "状态码",
-  "platformError.code.connector_busy": "连接器正在初始化、授权或更新。请等待当前操作结束，再重试。",
-  "platformError.code.connector_reload_failed": "连接器变更后的目录刷新失败。请查看错误详情并检查服务日志，刷新列表确认当前状态。",
-  "platformError.code.connector_not_found": "连接器已不存在。请刷新列表后确认。",
-  "platformError.code.connector_in_use": "连接器仍被智能体使用。请先解除挂载，并等待相关运行结束后再删除。",
-  "platformError.code.builtin_connector_readonly": "内置连接器为只读，不能删除或覆盖。",
-  "platformError.code.connector_exists": "同名连接器已安装。请确认是否覆盖，或使用不同的连接器 ID。",
-  "platformError.code.invalid_connector": "连接器操作未通过校验或无法完成。请查看错误详情，检查安装包、配置和文件访问权限。",
+  "platformError.code.connector_busy":
+    "连接器正在初始化、授权或更新。请等待当前操作结束，再重试。",
+  "platformError.code.connector_reload_failed":
+    "连接器变更后的目录刷新失败。请查看错误详情并检查服务日志，刷新列表确认当前状态。",
+  "platformError.code.connector_not_found":
+    "连接器已不存在。请刷新列表后确认。",
+  "platformError.code.connector_in_use":
+    "连接器仍被智能体使用。请先解除挂载，并等待相关运行结束后再删除。",
+  "platformError.code.builtin_connector_readonly":
+    "内置连接器为只读，不能删除或覆盖。",
+  "platformError.code.connector_exists":
+    "同名连接器已安装。请确认是否覆盖，或使用不同的连接器 ID。",
+  "platformError.code.invalid_connector":
+    "连接器操作未通过校验或无法完成。请查看错误详情，检查安装包、配置和文件访问权限。",
   "connectors.error.details": "错误详情",
   "platformError.generic": "操作失败，请查看错误详情。",
   "platformError.retryableHint": "可以稍后重试。",
-  "platformError.special.channelNotConnected": "服务通道未连接，请检查后端通道状态。",
+  "platformError.special.channelNotConnected":
+    "服务通道未连接，请检查后端通道状态。",
   "platformError.technicalDetails": "技术详情",
   "topNav.audio.mute": "静音语音输出",
   "topNav.audio.unmute": "取消静音",
@@ -1886,11 +2047,14 @@ export const zhCNMessages = {
   "contextCompact.chooser.title": "选择压缩层级",
   "contextCompact.chooser.subtitle": "整理当前对话，释放上下文空间。",
   "contextCompact.chooser.tools.title": "压缩工具上下文",
-  "contextCompact.chooser.tools.description": "仅精简工具调用记录，保留最近 5 次完整工具调用。",
+  "contextCompact.chooser.tools.description":
+    "仅精简工具调用记录，保留最近 5 次完整工具调用。",
   "contextCompact.chooser.summary.title": "生成历史摘要",
-  "contextCompact.chooser.summary.description": "使用一次模型调用，将整体历史整理为摘要。",
+  "contextCompact.chooser.summary.description":
+    "使用一次模型调用，将整体历史整理为摘要。",
   "contextCompact.chooser.hint": "选择后立即开始压缩",
-  "contextCompact.chooser.description": "L1 只压缩工具记录；L2 使用一次模型调用生成整体历史摘要。",
+  "contextCompact.chooser.description":
+    "L1 只压缩工具记录；L2 使用一次模型调用生成整体历史摘要。",
   "contextCompact.chooser.cancel": "取消",
   "topNav.usage.contextWindow": "上下文窗口",
   "topNav.usage.estimatedNext": "预计下次调用 {value}",
@@ -1925,8 +2089,10 @@ export const zhCNMessages = {
   "voice.chat.error.invalidVoicesResponse": "语音后端音色列表返回格式异常",
   "voice.chat.error.linkRecoveryFailed": "语音链路恢复失败: {reason}",
   "voice.chat.error.noSelectedVoice": "当前语音后端未返回可用音色",
-  "voice.chat.error.reconnectStartAsrFailed": "语音 WebSocket 重连后无法启动 ASR",
-  "voice.chat.error.streamTtsNotEnabled": "当前语音后端未开启流式 TTS 输入，语聊模式不可用",
+  "voice.chat.error.reconnectStartAsrFailed":
+    "语音 WebSocket 重连后无法启动 ASR",
+  "voice.chat.error.streamTtsNotEnabled":
+    "当前语音后端未开启流式 TTS 输入，语聊模式不可用",
   "voice.chat.error.taskStopped": "语音识别任务已停止",
   "voice.chat.error.voiceSocketNotConnected": "语音 WebSocket 尚未连接",
   "agentRoute.loading.agent": "正在加载智能体",
@@ -1937,21 +2103,27 @@ export const zhCNMessages = {
   "agentRoute.error.networkHint": "请检查网络连接后重试",
   "agentRoute.error.retry": "重试",
   "renderError.title": "WebClient 页面渲染失败",
-  "renderError.description": "页面遇到未预期的渲染异常。可先重试当前视图；若仍然失败，请重新加载 WebClient。",
+  "renderError.description":
+    "页面遇到未预期的渲染异常。可先重试当前视图；若仍然失败，请重新加载 WebClient。",
   "renderError.details": "技术详情",
   "renderError.retry": "重试视图",
   "renderError.reload": "重新加载 WebClient",
   "leftSidebar.quickActions.agents": "智能体",
   "leftSidebar.quickActions.automation": "自动化",
   "leftSidebar.quickActions.memory": "记忆",
-  "voice.debug.defaultTtsText": "这是一条 TTS 调试语音。如果你能听到这句话，说明当前语音播放链路正常。",
+  "voice.debug.defaultTtsText":
+    "这是一条 TTS 调试语音。如果你能听到这句话，说明当前语音播放链路正常。",
   "ws.connectionFailedWithMessage": "WebSocket 连接失败：{message}",
   "ws.disconnected": "WebSocket 连接已断开，请稍后重试。",
-  "ws.handshakeFailed": "WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+  "ws.handshakeFailed":
+    "WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
   "ws.heartbeatTimeout": "WebSocket 心跳超时，连接已自动重连，请重试当前请求。",
-  "ws.missingAccessToken.browser": "缺少 Access Token，无法建立 WebSocket 连接。请先在设置中填写有效令牌。",
-  "ws.missingAccessToken.host": "缺少 Access Token，无法建立 WebSocket 连接。请确认宿主应用已提供有效令牌。",
-  "ws.transportNotInitialized": "WebSocket 传输尚未初始化，请先切换到 WebSocket 模式并确认连接成功。",
+  "ws.missingAccessToken.browser":
+    "缺少 Access Token，无法建立 WebSocket 连接。请先在设置中填写有效令牌。",
+  "ws.missingAccessToken.host":
+    "缺少 Access Token，无法建立 WebSocket 连接。请确认宿主应用已提供有效令牌。",
+  "ws.transportNotInitialized":
+    "WebSocket 传输尚未初始化，请先切换到 WebSocket 模式并确认连接成功。",
   "logoLoading.text": "加载中...",
   "agentConsole.field.key": "键",
   "agentConsole.field.modelKey": "模型",
@@ -2009,7 +2181,8 @@ export const zhCNMessages = {
   "attachments.error.uploadFailed": "上传失败",
   "attachments.kind.file": "文件",
   "attachments.action.view": "查看附件",
-  "attachments.error.resourceUnavailable": "该附件缺少可用的资源地址，请重新上传后查看。",
+  "attachments.error.resourceUnavailable":
+    "该附件缺少可用的资源地址，请重新上传后查看。",
   "attachments.kind.image": "图片",
   "attachments.status.uploading": "上传中...",
   "attachments.status.uploadingWithType": "{kind}上传中...",
@@ -2017,7 +2190,8 @@ export const zhCNMessages = {
   "terminal.defaultLabel": "终端",
   "terminal.singleAgentOnly": "终端仅支持单个 agent。",
   "voice.socket.closed": "语音 WebSocket 已关闭",
-  "voice.socket.closedDetail": "语音 WebSocket 已关闭 (code={code}, reason={reason}, {clean})",
+  "voice.socket.closedDetail":
+    "语音 WebSocket 已关闭 (code={code}, reason={reason}, {clean})",
   "voice.audioContextUnsupported": "当前浏览器不支持 AudioContext",
   "voice.asr.notConnected": "ASR 调试 WebSocket 尚未连接",
   "voice.asr.connectionFailed": "ASR 调试 WebSocket 连接失败",
@@ -2033,16 +2207,19 @@ export const zhCNMessages = {
   "automation.draft.template.role": "对象角色: {role}",
   "automation.draft.template.taskContent": "任务内容: {task}",
   "automation.draft.template.rule": "执行时间/规则: {rule}",
-  "automation.draft.template.confirm": "请先确认时间、触发方式与执行范围，再开始安排。",
+  "automation.draft.template.confirm":
+    "请先确认时间、触发方式与执行范围，再开始安排。",
   "composer.voice.asrNotConfigured": "当前语音后端未配置 ASR，语聊模式不可用",
-  "composer.voice.streamTtsNotEnabled": "当前语音后端未开启流式 TTS 输入，语聊模式不可用",
+  "composer.voice.streamTtsNotEnabled":
+    "当前语音后端未开启流式 TTS 输入，语聊模式不可用",
   "topNav.terminal.busy": "该智能体的终端正在执行命令",
   "topNav.terminal.active": "该智能体有终端",
   "leftSidebar.sort.byName": "按名称排序",
   "leftSidebar.sort.byTime": "按时间排序",
   "leftSidebar.historyCount": "共 {count} 条对话",
   "terminal.panelAria": "终端",
-  "terminal.desktopUnsupported": "Desktop Platform Frame Port 暂不支持终端会话。",
+  "terminal.desktopUnsupported":
+    "Desktop Platform Frame Port 暂不支持终端会话。",
   "terminal.new": "新建终端",
   "terminal.closeTab": "关闭 {name}",
   "terminal.emptyNew": "+ 新建终端",
@@ -2130,7 +2307,8 @@ export const zhCNMessages = {
   "project.tabs.openFiles": "已打开文件",
   "project.tree.toggle": "展开或收起目录树",
   "voice.microphoneInitFailed": "麦克风初始化失败：{detail}",
-  "worker.history.none": "[worker] {kind} {name} 暂无历史对话，发送首条消息将创建新对话",
+  "worker.history.none":
+    "[worker] {kind} {name} 暂无历史对话，发送首条消息将创建新对话",
   "worker.history.searchFailed": "历史搜索失败，请稍后重试。",
   "worker.history.loadFailed": "历史对话加载失败，请稍后重试。",
   "markdown.downloading": "下载中…",
@@ -2147,11 +2325,15 @@ export const zhCNMessages = {
   "agentConsole.prompt.soul.label": "角色与风格",
   "agentConsole.prompt.soul.description": "定义智能体的个性、语气和沟通方式。",
   "agentConsole.prompt.agents.label": "工作指令",
-  "agentConsole.prompt.agents.description": "定义任务目标、执行规则和边界条件。",
-  "agentConsole.prompt.greetings.description": "新会话主标题随机展示一条；{agentToken} 显示智能体名称并支持切换，留空使用默认标题。",
-  "agentConsole.prompt.greetings.placeholder": "例如：今天想和{agentToken}一起做点什么？",
+  "agentConsole.prompt.agents.description":
+    "定义任务目标、执行规则和边界条件。",
+  "agentConsole.prompt.greetings.description":
+    "新会话主标题随机展示一条；{agentToken} 显示智能体名称并支持切换，留空使用默认标题。",
+  "agentConsole.prompt.greetings.placeholder":
+    "例如：今天想和{agentToken}一起做点什么？",
   "agentConsole.prompt.greetings.item": "问候语 {index}",
-  "agentConsole.prompt.wonders.description": "展示给用户的示例提问，帮助快速开始对话。",
+  "agentConsole.prompt.wonders.description":
+    "展示给用户的示例提问，帮助快速开始对话。",
   "agentConsole.prompt.wonders.placeholder": "例如：检查当前数据库连接是否可用",
   "agentConsole.prompt.wonders.item": "推荐问题 {index}",
   "agentConsole.prompt.addGreeting": "添加问候语",
@@ -2176,7 +2358,8 @@ export const zhCNMessages = {
   "settings.tts.status.connecting": "正在连接 TTS...",
   "settings.tts.status.socketOpen": "TTS WebSocket 已连接",
   "settings.tts.status.started": "TTS 已启动",
-  "settings.tts.status.startedWithStats": "TTS 已启动（{frames} 帧，{bytes} 字节）",
+  "settings.tts.status.startedWithStats":
+    "TTS 已启动（{frames} 帧，{bytes} 字节）",
   "settings.tts.status.completed": "已完成",
   "settings.tts.status.stopped": "已停止",
   "settings.tts.status.noAudioFrames": "已连接，但未收到音频帧",
@@ -2184,8 +2367,9 @@ export const zhCNMessages = {
   "display.nationalDayGreeting": "欢度国庆",
   "display.error.unexpectedFields": "desktop.display 不接受这些字段：{fields}",
   "display.error.invalidKind": "kind 必须为 effect",
-  "display.error.invalidEffect": "effect 必须为 fireworks、snowfall 或 nationalDay",
-  "display.error.invalidDuration": "durationMs 必须是 {min} 到 {max} 之间的整数",
+  "display.error.invalidEffect":
+    "effect 必须为 fireworks、snowfall 或 nationalDay",
+  "display.error.invalidDuration":
+    "durationMs 必须是 {min} 到 {max} 之间的整数",
   "workPanel.error.openDenied": "当前 Desktop 页面无法打开 WorkPanel 项目",
-
 } satisfies I18nMessages;

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { Drawer, Spin } from "antd";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";

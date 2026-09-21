@@ -18,7 +18,6 @@ import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashComm
 import type {
   ResolvedSlashSkillDefinition,
   SlashCommandAvailability,
-  SlashCommandId,
   SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
 import { parseBTWSlashInput, parseCompactSlashInput } from "@/features/composer/lib/slashCommands";
@@ -290,7 +289,6 @@ export function useComposerSend(input: UseComposerSendInput) {
 
   const resetForNewConversation = useCallback(() => {
     clearComposerAttachments();
-    const currentState = stateRef.current || state;
     const owner = resolveCurrentOwner();
     const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
     window.dispatchEvent(

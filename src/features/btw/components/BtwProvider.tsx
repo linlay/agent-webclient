@@ -580,9 +580,13 @@ export const BtwProvider: React.FC<{
     (parentChatId: string, referenceId: string) => {
       const runtime = getExistingRuntime(parentChatId);
       if (!runtime) return;
-      runtime.session.draftSelections = runtime.session.draftSelections.filter(
+      const retained = runtime.session.draftSelections.filter(
         (fragment) => fragment.reference.id !== referenceId,
       );
+      if (retained.length === runtime.session.draftSelections.length) return;
+      // 删除后编号要连续，新增引用再接着末尾排。
+      runtime.session.draftSelections = renumberSelectedTextFragments(retained);
+      runtime.session.nextAnnotationIndex = runtime.session.draftSelections.length + 1;
       publish(runtime);
     },
     [getExistingRuntime, publish],

@@ -38,6 +38,10 @@ import {
 import { TimelineRenderEntryView } from "@/features/timeline/components/TimelineRenderEntryView";
 import { useTimelineTextSearch } from "@/features/timeline/components/TimelineTextSearchProvider";
 import {
+  SELECTED_TEXT_TARGET_REVEAL_EVENT,
+  type SelectedTextTargetRevealDetail,
+} from "@/shared/data/desktop/selectedTextLocate";
+import {
   buildTimelineDisplayItems,
   buildRunRenderEntries,
   type TimelineDisplayItem,
@@ -631,6 +635,39 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     [displayItems],
   );
 
+  /**
+   * 把某一行重新交给用户：先展开把它藏起来的运行/任务分组折叠面板，再让虚拟列表滚到它。
+   * 折叠面板是 `destroyOnHidden` 的，收起的行根本不在 DOM 里，光靠滚动找不到。
+   * 返回该节点是否属于当前时间线。
+   */
+  const revealTimelineNode = useCallback(
+    (nodeId: string, behavior: "auto" | "smooth" = "smooth"): boolean => {
+      const virtualIndex = nodeVirtualIndexMap.get(nodeId);
+      if (virtualIndex == null) return false;
+      const runKey = collapseTargets.runKeyByNodeId.get(nodeId);
+      if (runKey && !expandedRunCollapses[runKey]) expandRunCollapse(runKey);
+      const taskGroupKey = collapseTargets.taskGroupKeyByNodeId.get(nodeId);
+      if (taskGroupKey && !expandedTaskGroups[taskGroupKey]) {
+        expandTaskGroup(taskGroupKey);
+      }
+      virtuosoRef.current?.scrollToIndex({
+        index: virtualIndex,
+        behavior,
+        align: "center",
+      });
+      return true;
+    },
+    [
+      collapseTargets,
+      expandedRunCollapses,
+      expandedTaskGroups,
+      expandRunCollapse,
+      expandTaskGroup,
+      nodeVirtualIndexMap,
+      virtuosoRef,
+    ],
+  );
+
   useEffect(() => {
     if (!textSearch || !textSearch.open) return;
     clearHighlights();
@@ -638,21 +675,7 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
     const match = textSearch.matches.matches[textSearch.activeIndex];
     if (!match) return;
 
-    const runKey = collapseTargets.runKeyByNodeId.get(match.nodeId);
-    if (runKey && !expandedRunCollapses[runKey]) expandRunCollapse(runKey);
-    const taskGroupKey = collapseTargets.taskGroupKeyByNodeId.get(match.nodeId);
-    if (taskGroupKey && !expandedTaskGroups[taskGroupKey]) {
-      expandTaskGroup(taskGroupKey);
-    }
-
-    const virtualIndex = nodeVirtualIndexMap.get(match.nodeId);
-    if (virtualIndex != null) {
-      virtuosoRef.current?.scrollToIndex({
-        index: virtualIndex,
-        behavior: "smooth",
-        align: "center",
-      });
-    }
+    revealTimelineNode(match.nodeId);
     waitForCurrentThenHighlightAll(
       match.nodeId,
       textSearch.query,
@@ -660,16 +683,21 @@ export const ConversationStage: React.FC<ConversationStageProps> = ({
       match.nodeId,
       match.ordinalInNode,
     );
-  }, [
-    collapseTargets,
-    expandedRunCollapses,
-    expandedTaskGroups,
-    expandRunCollapse,
-    expandTaskGroup,
-    nodeVirtualIndexMap,
-    textSearch,
-    virtuosoRef,
-  ]);
+  }, [revealTimelineNode, textSearch]);
+
+  // 引用列表（pill）点某条引用时，若那条引用被折叠面板藏住，锚点就没有可以重建的地方：
+  // 这里负责展开它所在的面板并把列表滚过去，随后由批注层把标记重新画出来。
+  useEffect(() => {
+    const reveal = (event: Event) => {
+      const detail = (event as CustomEvent<SelectedTextTargetRevealDetail>).detail;
+      if (!detail || detail.handled) return;
+      // 立即跳转，避免虚拟列表的平滑滚动和引用自身的居中滚动互相打架。
+      if (revealTimelineNode(detail.nodeId, "auto")) detail.handled = true;
+    };
+    window.addEventListener(SELECTED_TEXT_TARGET_REVEAL_EVENT, reveal);
+    return () =>
+      window.removeEventListener(SELECTED_TEXT_TARGET_REVEAL_EVENT, reveal);
+  }, [revealTimelineNode]);
 
   const runStartedAt = useMemo(() => {
     if (!isMainChatRunning && !state.streaming) return null;

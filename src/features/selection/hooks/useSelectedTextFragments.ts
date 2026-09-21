@@ -66,15 +66,22 @@ export function useSelectedTextFragments(chatKey: string, restoredReferences: re
       const draft = current.get(normalizedChatKey);
       if (!draft) return current;
       const previous = draft.fragments;
-      const nextFragments = previous.filter(
+      const retained = previous.filter(
         (fragment) => fragment.reference.id !== referenceId,
       );
-      if (nextFragments.length === previous.length) return current;
+      if (retained.length === previous.length) return current;
+      // 删除后编号不能留空档：剩余草稿立刻重排成连续序号（没有历史引用时从 1 开始），
+      // 已恢复的历史引用仍占着它原来的编号，所以草稿接在它们之后。
+      const fragments = renumberSelectedTextFragments(retained, restoredNextIndex);
       const next = new Map(current);
-      next.set(normalizedChatKey, { ...draft, fragments: nextFragments });
+      next.set(normalizedChatKey, {
+        ...draft,
+        fragments,
+        nextIndex: restoredNextIndex + fragments.length,
+      });
       return next;
     });
-  }, [normalizedChatKey]);
+  }, [normalizedChatKey, restoredNextIndex]);
 
   useEffect(() => {
     if (normalizedChatKey !== "__new_chat__") return;

@@ -417,11 +417,13 @@ export function useStandaloneBtwRuntime(input: {
     const normalizedReferenceId = String(referenceId || "").trim();
     if (!normalizedReferenceId) return;
     const current = sessionRef.current;
-    const next = current.draftSelections.filter(
+    const retained = current.draftSelections.filter(
       (fragment) => fragment.reference.id !== normalizedReferenceId,
     );
-    if (next.length === current.draftSelections.length) return;
-    current.draftSelections = next;
+    if (retained.length === current.draftSelections.length) return;
+    // 删除后编号要连续，新增引用再接着末尾排。
+    current.draftSelections = renumberSelectedTextFragments(retained);
+    current.nextAnnotationIndex = current.draftSelections.length + 1;
     publish(current);
   }, [publish]);
 

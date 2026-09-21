@@ -12,6 +12,11 @@ import {
   setConversationScrollBookmark,
 } from "@/features/timeline/lib/conversationScrollBookmark";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
+import {
+  AIRequestEventTypeEnum,
+  AIRunEventTypeEnum,
+} from "@/shared/contracts/agentEvents";
+import { SELECTED_TEXT_TARGET_REVEAL_EVENT } from "@/shared/data/desktop/selectedTextLocate";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
   .IS_REACT_ACT_ENVIRONMENT = true;
@@ -88,6 +93,13 @@ jest.mock("antd", () => {
   const React = require("react");
   const passthrough = ({ children, ...props }: any) =>
     React.createElement("div", props, children);
+  // 折叠面板：把 activeKey 摊到 DOM 上，用例才能断言面板到底展开了没有。
+  const collapse = ({ children, activeKey, ...props }: any) =>
+    React.createElement(
+      "div",
+      { ...props, "data-active-keys": JSON.stringify(activeKey || []) },
+      children,
+    );
   const Form = Object.assign(passthrough, { Item: passthrough });
   const Input = Object.assign(
     (props: any) => React.createElement("input", props),
@@ -96,7 +108,7 @@ jest.mock("antd", () => {
   return {
     Button: ({ children, ...props }: any) =>
       React.createElement("button", props, children),
-    Collapse: passthrough,
+    Collapse: collapse,
     Dropdown: passthrough,
     Flex: passthrough,
     Form,
@@ -181,6 +193,42 @@ function createChatState(
     timelineOrder: [node.id],
     chatLoadSeq: transition?.seq || 0,
     chatTransition: transition,
+  };
+}
+
+/** 一个已结束、且正文不止一条节点的运行：时间线会把它折进折叠面板。 */
+function createCompletedRunState(): AppState {
+  const queryAt = 1_700_000_000_000;
+  const nodes: TimelineNode[] = [
+    { id: "user_1", kind: "message", role: "user", text: "hi", ts: queryAt },
+    {
+      id: "content_1",
+      kind: "content",
+      role: "assistant",
+      text: "answer",
+      ts: queryAt + 1_000,
+    },
+    {
+      id: "content_2",
+      kind: "content",
+      role: "assistant",
+      text: "more",
+      ts: queryAt + 2_000,
+    },
+  ];
+  return {
+    ...createInitialState(),
+    chatId: "chat-target",
+    events: [
+      { type: AIRequestEventTypeEnum.Query, timestamp: queryAt },
+      {
+        type: AIRunEventTypeEnum.Complete,
+        timestamp: queryAt + 61_000,
+        runId: "run_1",
+      },
+    ],
+    timelineNodes: new Map(nodes.map((node) => [node.id, node])),
+    timelineOrder: nodes.map((node) => node.id),
   };
 }
 
@@ -1096,5 +1144,45 @@ describe("ConversationStage scroll restoration", () => {
       targetChatId: "chat-c",
       phase: "ready",
     });
+  });
+
+  it("expands the collapsed run that hides a located quote and scrolls to its row", () => {
+    mockState = createCompletedRunState();
+    mockStateRef.current = mockState;
+    renderStage();
+
+    const collapseKeys = () =>
+      Array.from(container.querySelectorAll("[data-active-keys]")).map((node) =>
+        node.getAttribute("data-active-keys"),
+      );
+
+    // 运行已结束且正文不止一条节点：折进折叠面板，其中的行不在 DOM 里。
+    expect(collapseKeys()).toEqual(["[]"]);
+    mockScrollToIndex.mockReset();
+
+    const detail = { nodeId: "content_2", handled: false };
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(SELECTED_TEXT_TARGET_REVEAL_EVENT, { detail }),
+      );
+    });
+
+    expect(detail.handled).toBe(true);
+    expect(collapseKeys()).toEqual(['["run-entries"]']);
+    // 立即跳到运行分组，避免和引用自身的居中滚动互相打架。
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: 1,
+      behavior: "auto",
+      align: "center",
+    });
+
+    // 不属于当前时间线的节点不认领，交给引用自己的兜底。
+    const unknown = { nodeId: "content-missing", handled: false };
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(SELECTED_TEXT_TARGET_REVEAL_EVENT, { detail: unknown }),
+      );
+    });
+    expect(unknown.handled).toBe(false);
   });
 });

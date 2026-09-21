@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ViewReference } from "@/shared/contracts/view";
 import { getView } from "@/shared/data";
 import { viewDocumentHTML } from "@/shared/utils/viewDocument";

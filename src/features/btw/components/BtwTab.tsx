@@ -252,7 +252,6 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
                 fragments={session.draftSelections}
                 variant="segments"
                 onRemove={onRemoveDraftSelection}
-                onAnnotationChange={running ? undefined : onAnnotationChange}
               />
             </div>
           ) : null}

@@ -15,11 +15,12 @@
 }
 
 .selected-text-fragments-pill-wrap {
+  position: relative;
   display: inline-flex;
   min-height: 30px;
   align-items: center;
   border: 1px solid var(--line-soft);
-  border-radius: 999px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--bg-elev-2) 94%, transparent);
   transition:
     background-color 0.15s ease,
@@ -36,7 +37,7 @@
   min-height: 28px;
   border: 0;
   background: transparent;
-  padding: 3px 6px 3px 10px;
+  padding: 3px 10px;
 }
 
 .selected-text-fragments-pill-wrap .selected-text-fragments-pill.has-dismiss:hover,
@@ -45,18 +46,27 @@
   background: transparent;
 }
 
+.selected-text-fragments-pill-dismiss-wrap {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to left, var(--bg-base) 40%, transparent);
+  opacity: 0;
+  padding-left: 20px;
+  border-radius: 100%;
+  transition:
+    opacity 0.15s ease;
+}
+
 .selected-text-fragments-pill-dismiss {
-  display: grid;
-  width: 22px;
-  height: 22px;
-  margin-right: 4px;
-  place-items: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: 100%;
   background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
-  opacity: 0;
   outline: none;
   pointer-events: none;
   visibility: hidden;
@@ -66,16 +76,17 @@
     opacity 0.15s ease;
 }
 
+.selected-text-fragments-pill-wrap:hover .selected-text-fragments-pill-dismiss-wrap {
+  opacity: 1;
+}
 .selected-text-fragments-pill-wrap:hover .selected-text-fragments-pill-dismiss,
 .selected-text-fragments-pill-wrap:focus-within .selected-text-fragments-pill-dismiss {
-  opacity: 1;
   pointer-events: auto;
   visibility: visible;
 }
 
 .selected-text-fragments-pill-dismiss:hover,
 .selected-text-fragments-pill-dismiss:focus-visible {
-  background: var(--bg-hover);
   color: var(--ink-1);
 }
 
@@ -99,7 +110,6 @@
   display: grid;
   width: min(380px, calc(100vw - 32px));
   max-height: 320px;
-  gap: 8px;
   overflow-y: auto;
 }
 
@@ -108,7 +118,27 @@
   align-items: flex-start;
   gap: 8px;
   border-bottom: 1px solid var(--line-soft);
-  padding: 4px 0 10px;
+  padding: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  &:last-child {
+    border-radius: 0 0 8px 8px;
+  }
+}
+
+.selected-text-fragment-row:hover {
+  background: var(--bg-hover);
+}
+
+.selected-text-fragment-row:focus-visible {
+  background: var(--bg-hover);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .selected-text-fragment-row:last-child {
@@ -116,48 +146,43 @@
   padding-bottom: 4px;
 }
 
-.selected-text-fragment-copy {
-  display: grid;
+.selected-text-fragment-index {
+  width: 20px;
+  flex: none;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+  text-align: right;
+}
+
+.selected-text-fragment-text {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   flex: 1;
   gap: 3px;
 }
 
-.selected-text-fragment-copy strong {
-  font-size: 11px;
-  color: var(--ink-muted);
+.selected-text-fragment-remove:hover {
+  :global(.material-icon) {
+    color: var(--accent-danger);
+  }
 }
 
-.selected-text-fragment-copy span {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--ink-1);
+.selected-text-fragment-label {
+  color: var(--ink-muted);
   font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  line-height: 18px;
 }
 
-.selected-text-fragment-row > button {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  flex: none;
-  place-items: center;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--ink-muted);
+.selected-text-fragment-row>button {
   cursor: pointer;
-}
+  background: transparent;
+  border: 0;
 
-.selected-text-fragment-row > button:hover,
-.selected-text-fragment-row > button:focus-visible {
-  background: var(--bg-hover);
-  color: var(--ink-1);
-  outline: none;
+  :global(.material-icon) {
+    font-size: 14px;
+    color: var(--ink-muted);
+  }
 }
-
-.annotation { display: grid; gap: 4px; margin-top: 6px; }
-.annotation p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; color: var(--ink-1); }

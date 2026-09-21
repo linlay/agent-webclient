@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Popover } from "antd";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useI18n } from "@/shared/i18n";

@@ -1,9 +1,10 @@
 import styles from "./SelectedTextFragmentsPill.module.css";
 import React, { useMemo } from "react";
-import { Input, Popover } from "antd";
+import { Popover } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { SelectedTextFragment } from "@/features/selection/lib/selectedTextReference";
+import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 
 export function removeAllSelectedTextFragments(
   fragments: readonly SelectedTextFragment[],
@@ -14,84 +15,137 @@ export function removeAllSelectedTextFragments(
   }
 }
 
-
 function withModuleClasses(...classNames: string[]): string {
-  return [...classNames, ...classNames.map((name) => styles[name]).filter(Boolean)]
-    .filter(Boolean).join(" ");
+  return [
+    ...classNames,
+    ...classNames.map((name) => styles[name]).filter(Boolean),
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export const SelectedTextFragmentsPill: React.FC<{
   fragments: readonly SelectedTextFragment[];
   variant: "annotations" | "segments";
   onRemove?: (referenceId: string) => void;
-  onAnnotationChange?: (referenceId: string, annotation: string) => void;
-}> = ({ fragments, variant, onRemove, onAnnotationChange }) => {
+}> = ({ fragments, variant, onRemove }) => {
   const { t } = useI18n();
-  const handleDismissAnnotations = React.useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (onRemove) removeAllSelectedTextFragments(fragments, onRemove);
-  }, [fragments, onRemove]);
-  const content = useMemo(() => (
-    <div className={withModuleClasses("selected-text-fragments-popover")}>
-      {fragments.map((fragment, index) => (
-        <div className={withModuleClasses("selected-text-fragment-row")} key={fragment.reference.id}>
-          <div className={withModuleClasses("selected-text-fragment-copy")}>
-            <strong>{t("selection.fragment.item", { index: fragment.reference.annotationIndex ?? index + 1 })}</strong>
-            <span>{fragment.reference.text}</span>
-            {onAnnotationChange ? (
-              <label className={styles.annotation}>
-                <strong>{t("selection.fragment.annotation")}</strong>
-                <Input.TextArea
-                  aria-label={t("selection.fragment.annotationFor", { index: fragment.reference.annotationIndex ?? index + 1 })}
-                  placeholder={t("selection.fragment.annotationPlaceholder")}
-                  value={fragment.reference.annotation || ""}
-                  autoSize={{ minRows: 2, maxRows: 6 }}
-                  onChange={event => onAnnotationChange(fragment.reference.id, event.target.value)}
-                  onKeyDown={event => event.stopPropagation()}
-                />
-              </label>
-            ) : fragment.reference.annotation ? (
-              <div className={styles.annotation}>
-                <strong>{t("selection.fragment.annotation")}</strong>
-                <p>{fragment.reference.annotation}</p>
-              </div>
-            ) : null}
-          </div>
-          {onRemove ? (
-            <button
-              type="button"
-              aria-label={t("selection.fragment.remove", { index: fragment.reference.annotationIndex ?? index + 1 })}
-              onClick={() => onRemove(fragment.reference.id)}
+  const [open, setOpen] = React.useState(false);
+  const handleDismissAnnotations = React.useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (onRemove) removeAllSelectedTextFragments(fragments, onRemove);
+    },
+    [fragments, onRemove],
+  );
+  // 点一条引用就回到它的批注：持有锚点的批注层会认领这次请求并触发高亮；
+  // 如果这条引用被折叠面板藏了起来，先让时间线展开面板，再等标记回来。
+  const handleLocate = React.useCallback((fragment: SelectedTextFragment) => {
+    setOpen(false);
+    locateSelectedTextReference(fragment.reference.id, fragment.targetId);
+  }, []);
+  const content = useMemo(
+    () => (
+      <div className={withModuleClasses("selected-text-fragments-popover")}>
+        {fragments.map((fragment, index) => {
+          const label = fragment.reference.annotationIndex ?? index + 1;
+          return (
+            <div
+              className={withModuleClasses("selected-text-fragment-row")}
+              key={fragment.reference.id}
+              role="button"
+              tabIndex={0}
+              aria-label={t("selection.fragment.locate", { index: label })}
+              title={t("selection.fragment.locate", { index: label })}
+              onClick={() => handleLocate(fragment)}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                handleLocate(fragment);
+              }}
             >
-              <MaterialIcon name="close" />
-            </button>
-          ) : null}
-        </div>
-      ))}
-    </div>
-  ), [fragments, onRemove, onAnnotationChange, t]);
+              <span
+                className={withModuleClasses("selected-text-fragment-index")}
+                aria-hidden="true"
+              >
+                {label}.
+              </span>
+              <div className={withModuleClasses("selected-text-fragment-text")}>
+                <span
+                  className={withModuleClasses("selected-text-fragment-label")}
+                >
+                  {t("selection.fragment.item")}
+                </span>
+                <span>{fragment.reference.text}</span>
+                {fragment.reference.annotation ? (
+                  <>
+                    <span
+                      className={withModuleClasses(
+                        "selected-text-fragment-label",
+                      )}
+                    >
+                      {t("selection.fragment.annotation")}
+                    </span>
+                    <span>{fragment.reference.annotation}</span>
+                  </>
+                ) : null}
+              </div>
+              {onRemove ? (
+                <button
+                  type="button"
+                  aria-label={t("selection.fragment.remove", { index: label })}
+                  className={withModuleClasses("selected-text-fragment-remove")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onRemove(fragment.reference.id);
+                  }}
+                >
+                  <MaterialIcon name="delete" />
+                </button>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    ),
+    [fragments, onRemove, handleLocate, t],
+  );
 
   if (fragments.length === 0) return null;
   const pill = (
     <Popover
       content={content}
+      open={open}
+      onOpenChange={setOpen}
       trigger="click"
       placement="topLeft"
       destroyOnHidden
+      arrow={false}
       rootClassName="selected-text-fragments-overlay"
+      styles={{
+        body: {
+          padding: 4,
+        },
+      }}
     >
       <button
         type="button"
-        className={withModuleClasses("selected-text-fragments-pill", variant === "annotations" && onRemove ? "has-dismiss" : "")}
+        className={withModuleClasses(
+          "selected-text-fragments-pill",
+          variant === "annotations" && onRemove ? "has-dismiss" : "",
+        )}
       >
         <MaterialIcon name="question_answer" />
-        <span>{t(
-          variant === "annotations"
-            ? "selection.fragment.annotations"
-            : "selection.fragment.segments",
-          { count: fragments.length },
-        )}</span>
+        <span>
+          {t(
+            variant === "annotations"
+              ? "selection.fragment.annotations"
+              : "selection.fragment.segments",
+            { count: fragments.length },
+          )}
+        </span>
       </button>
     </Popover>
   );
@@ -99,15 +153,21 @@ export const SelectedTextFragmentsPill: React.FC<{
   return (
     <span className={withModuleClasses("selected-text-fragments-pill-wrap")}>
       {pill}
-      <button
-        type="button"
-        className={withModuleClasses("selected-text-fragments-pill-dismiss")}
-        aria-label={t("selection.fragment.removeAnnotations")}
-        title={t("selection.fragment.removeAnnotations")}
-        onClick={handleDismissAnnotations}
+      <div
+        className={withModuleClasses(
+          "selected-text-fragments-pill-dismiss-wrap",
+        )}
       >
-        <MaterialIcon name="close" />
-      </button>
+        <button
+          type="button"
+          className={withModuleClasses("selected-text-fragments-pill-dismiss")}
+          aria-label={t("selection.fragment.removeAnnotations")}
+          title={t("selection.fragment.removeAnnotations")}
+          onClick={handleDismissAnnotations}
+        >
+          <MaterialIcon name="close" />
+        </button>
+      </div>
     </span>
   );
 };

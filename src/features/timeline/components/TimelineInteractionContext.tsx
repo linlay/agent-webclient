@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from "react";
+import { createContext, useContext } from "react";
 import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 
 export interface TimelineInteractionValue {

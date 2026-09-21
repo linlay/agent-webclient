@@ -57,7 +57,7 @@ it.each([true, false])("preserves unsent selections while the pending request is
   }
 });
 
-it("keeps separate counters for side chats and does not recycle deleted indices", () => {
+it("keeps separate counters for side chats and renumbers drafts after a deletion", () => {
   localStorage.clear(); mockStateRef.current = createInitialState();
   let btw!: ReturnType<typeof useBTW>;
   const Harness = () => { btw = useBTW(); return null; };
@@ -69,8 +69,10 @@ it("keeps separate counters for side chats and does not recycle deleted indices"
     expect(btw.getSession("chat-a")?.draftSelections.map(f=>f.reference.annotationIndex)).toEqual([1,2]);
     expect(btw.getSession("chat-b")?.draftSelections.map(f=>f.reference.annotationIndex)).toEqual([1]);
     const selections = btw.getSession("chat-a")!.draftSelections;
-    act(()=>selections.forEach(f=>btw.removeDraftSelection("chat-a",f.reference.id)));
+    act(()=>btw.removeDraftSelection("chat-a",selections[0].reference.id));
+    expect(btw.getSession("chat-a")?.draftSelections.map(f=>f.reference.annotationIndex)).toEqual([1]);
+    act(()=>btw.removeDraftSelection("chat-a",selections[1].reference.id));
     add("chat-a","four");
-    expect(btw.getSession("chat-a")?.draftSelections[0].reference.annotationIndex).toBe(3);
+    expect(btw.getSession("chat-a")?.draftSelections[0].reference.annotationIndex).toBe(1);
   } finally { act(()=>root.unmount()); localStorage.clear(); }
 });

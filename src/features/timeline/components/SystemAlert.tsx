@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import { Button, Flex, Tooltip } from "antd";
+import { Flex, Tooltip } from "antd";
 import type { TimelineErrorDetail, TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";

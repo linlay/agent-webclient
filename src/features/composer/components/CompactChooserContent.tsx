@@ -1,4 +1,4 @@
-import React, { useId } from "react";
+import { useId } from "react";
 import type { CompactLevel } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";

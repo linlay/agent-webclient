@@ -97,9 +97,15 @@ export function updateSelectedTextAnnotation(
   });
 }
 
-/** A completed run starts a new numbering scope without changing reference IDs. */
-export function renumberSelectedTextFragments(fragments: readonly SelectedTextFragment[]): SelectedTextFragment[] {
+/**
+ * A completed run starts a new numbering scope without changing reference IDs.
+ * `startIndex` keeps a scope that still has restored references numbering after them.
+ */
+export function renumberSelectedTextFragments(
+  fragments: readonly SelectedTextFragment[],
+  startIndex = 1,
+): SelectedTextFragment[] {
   return fragments.map((fragment, index) => ({
-    ...fragment, reference: { ...fragment.reference, annotationIndex: index + 1 },
+    ...fragment, reference: { ...fragment.reference, annotationIndex: startIndex + index },
   }));
 }

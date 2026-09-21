@@ -74,9 +74,3 @@ export function getAcceptedSelectedTextReferenceIds(references: unknown[]) {
       : [];
   });
 }
-
-export function hasSelectedTextReference(references: unknown): boolean {
-  return Array.isArray(references) && references.some((reference) =>
-    reference != null && typeof reference === "object" && reference.type === "selection",
-  );
-}

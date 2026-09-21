@@ -1,4 +1,3 @@
-import React from "react";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { MaterialIcon } from "@/shared/icons/material";
 import { useI18n } from "@/shared/i18n";
