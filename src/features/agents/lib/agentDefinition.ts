@@ -477,6 +477,28 @@ export function visibilityPresentation(
   }
 }
 
+export function interactionPresentation(
+  key: string,
+  t: Translate,
+): ChoicePresentation {
+  switch (key) {
+    case "model":
+      return { icon: "psychology", label: t("agents.interaction.model"), description: t("agents.interaction.model.description") };
+    case "accessLevel":
+      return { icon: "verified_user", label: t("agents.interaction.accessLevel"), description: t("agents.interaction.accessLevel.description") };
+    case "mustUseSkills":
+      return { icon: "skills", label: t("agents.interaction.mustUseSkills"), description: t("agents.interaction.mustUseSkills.description") };
+    case "connectors":
+      return { icon: "hub", label: t("agents.interaction.connectors"), description: t("agents.interaction.connectors.description") };
+    case "localFiles":
+      return { icon: "folder", label: t("agents.interaction.localFiles"), description: t("agents.interaction.localFiles.description") };
+    case "chatRecords":
+      return { icon: "history", label: t("agents.interaction.chatRecords"), description: t("agents.interaction.chatRecords.description") };
+    default:
+      return { icon: "tune", label: key, description: "" };
+  }
+}
+
 export function iconFieldsFromValue(
   value: unknown,
 ): Pick<AgentFormState, "iconKind" | "iconName" | "iconImage"> {

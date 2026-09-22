@@ -1193,50 +1193,11 @@
     white-space: nowrap;
 }
 
-:global(.agent-context-tag-list),
 :global(.agent-tool-tag-list) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-}
-
-:global(.agent-context-tag) {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--line-soft);
-    border-radius: 999px;
-    background: var(--bg-elev-1);
-    color: var(--ink-muted);
-    cursor: pointer;
-    font-size: var(--agent-config-hint-size);
-    transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
-}
-
-:global(.agent-context-tag) input {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    opacity: 0;
-}
-
-:global(.agent-context-tag) :global(.material-icon) {
-    width: 16px;
-    height: 16px;
-}
-
-:global(.agent-context-tag):hover,
-:global(.agent-context-tag):has(input:focus-visible) {
-    border-color: color-mix(in srgb, var(--accent-electric) 58%, var(--line-soft));
-}
-
-:global(.agent-context-tag):global(.is-selected) {
-    border-color: color-mix(in srgb, var(--accent-electric) 64%, var(--line-soft));
-    background: color-mix(in srgb, var(--accent-electric) 9%, var(--bg-elev-1));
-    color: var(--accent-electric);
 }
 
 :global(.agent-tool-tag-list)>strong,
@@ -1366,7 +1327,13 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-:global(.field-group) label:global(.agent-choice-card) {
+:global(.agent-interaction-choice-grid),
+:global(.agent-context-choice-grid) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+:global(.field-group) label:global(.agent-choice-card),
+:global(.agent-choice-grid)>label:global(.agent-choice-card) {
     min-height: 60px;
     display: flex;
     align-items: center;
@@ -1384,12 +1351,14 @@
     transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
-:global(.field-group) label:global(.agent-choice-card):hover {
+:global(.field-group) label:global(.agent-choice-card):hover,
+:global(.agent-choice-grid)>label:global(.agent-choice-card):hover {
     background: var(--bg-hover);
     color: var(--ink-1);
 }
 
-:global(.field-group) label:global(.agent-choice-card):global(.is-selected) {
+:global(.field-group) label:global(.agent-choice-card):global(.is-selected),
+:global(.agent-choice-grid)>label:global(.agent-choice-card):global(.is-selected) {
     border-color: color-mix(in srgb, var(--accent-electric) 58%, transparent);
     background: color-mix(in srgb, var(--accent-soft) 54%, var(--bg-elev-1));
     color: var(--accent-electric);
@@ -1428,7 +1397,9 @@
     line-height: 1.35;
 }
 
-:global(.field-group) label:global(.agent-choice-card):has(input:focus-visible) {
+:global(.field-group) label:global(.agent-choice-card):has(input:focus-visible),
+:global(.agent-choice-grid)>label:global(.agent-choice-card):has(input:focus-visible),
+:global(.agent-choice-grid)>label:global(.agent-choice-card):has(:global(.ant-switch:focus-visible)) {
     outline: 2px solid color-mix(in srgb, var(--accent-electric) 55%, transparent);
     outline-offset: 1px;
 }
@@ -1441,11 +1412,26 @@
     accent-color: var(--accent-electric);
 }
 
+:global(.agent-choice-card)>:global(.ant-switch) {
+    order: 3;
+    flex: none;
+    margin-left: auto;
+}
+
+:global(.agent-interaction-reset) {
+    margin-top: var(--ui-form-gap);
+}
+
 @media (max-width: 1280px) {
 
     :global(.agent-mode-choice-grid),
     :global(.agent-visibility-choice-grid) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    :global(.agent-interaction-choice-grid),
+    :global(.agent-context-choice-grid) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 

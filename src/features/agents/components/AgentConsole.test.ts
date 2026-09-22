@@ -718,7 +718,7 @@ describe("AgentConsole i18n rendering", () => {
     expect(basic).toContain("Run mode");
     expect(advanced).not.toContain("agent-visibility-input");
     expect(context).toContain("agent-context-capabilities");
-    expect(context).toContain("agent-context-tag-list");
+    expect(context).toContain("agent-context-choice-grid");
     expect(context).toContain("agent-tool-tag-list");
     expect(context).toContain("agent-selected-skill-list");
     expect(context).toContain("Manage tools");

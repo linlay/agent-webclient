@@ -54,22 +54,36 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
   <div className="agent-context-capabilities">
     <section className="agent-context-block" aria-labelledby="agent-context-heading">
       <h4 id="agent-context-heading">{props.t("agentConsole.context.title")}</h4>
-      <div className="agent-context-tag-list" role="group" aria-labelledby="agent-context-heading">
+      <div
+        className="agent-choice-grid agent-context-choice-grid"
+        role="group"
+        aria-labelledby="agent-context-heading"
+      >
         {props.contextOptions.map((option) => {
           const checked = props.contextTags.includes(option.value);
           return (
-            <label key={option.value} className={`agent-context-tag ${checked ? "is-selected" : ""}`} title={option.description}>
+            <label
+              key={option.value}
+              className={`agent-choice-card ${checked ? "is-selected" : ""}`}
+            >
               <input
                 type="checkbox"
                 checked={checked}
-                onChange={() => props.onContextTagsChange(
-                  checked
-                    ? props.contextTags.filter((key) => key !== option.value)
-                    : [...props.contextTags, option.value],
-                )}
+                onChange={() =>
+                  props.onContextTagsChange(
+                    checked
+                      ? props.contextTags.filter((key) => key !== option.value)
+                      : [...props.contextTags, option.value],
+                  )
+                }
               />
               <MaterialIcon name={option.icon} />
-              <span>{option.label}</span>
+              <span className="agent-choice-card-copy">
+                <span className="agent-choice-card-title">{option.label}</span>
+                <span className="agent-choice-card-description">
+                  {option.description}
+                </span>
+              </span>
             </label>
           );
         })}
