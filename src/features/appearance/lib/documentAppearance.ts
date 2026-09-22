@@ -72,9 +72,11 @@ export function createDocumentAppearanceTarget(root = document.documentElement) 
       // One continuous veil covers the main chat, including its gutters and
       // composer, with theme-specific opacity over the host picture.
       const dark = snapshot.resolvedTheme === "dark";
-      set("--main-chat-surface", decorated ? (dark ? "rgba(16, 16, 16, 0.85)" : "rgba(255, 255, 255, 0.8)") : solidBase);
+      // Read this variant only, never the previous derived surface or CSS defaults.
+      const pageTokens = snapshot.skin.tokens[snapshot.resolvedTheme];
+      set("--main-chat-surface", decorated ? (pageTokens["--main-chat-surface"] ?? (dark ? "rgba(16, 16, 16, 0.85)" : "rgba(255, 255, 255, 0.8)")) : solidBase);
       // The new-chat landing surface reveals the picture even for opaque skins.
-      set("--new-chat-surface", decorated ? (dark ? "rgba(16, 16, 16, 0.2)" : "transparent") : solidBase);
+      set("--new-chat-surface", decorated ? (pageTokens["--new-chat-surface"] ?? (dark ? "rgba(16, 16, 16, 0.2)" : "transparent")) : solidBase);
       // Only the new-chat composer/cards reveal a little wallpaper; ordinary
       // inputs and portals keep the already-flattened opaque control color.
       const inputColor = colorChannels(read("--control-input-bg")) || colorChannels(solidBase)!;

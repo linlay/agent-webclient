@@ -54,6 +54,8 @@ export type DesktopSkinToken =
   | "--panel-shadow"
   | "--panel-shadow-hover"
   | "--shell-sidebar-bg"
+  | "--new-chat-surface"
+  | "--main-chat-surface"
   | "--shell-content-bg"
   | "--shell-titlebar-bg";
 

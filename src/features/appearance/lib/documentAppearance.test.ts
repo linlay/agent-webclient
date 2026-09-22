@@ -61,3 +61,38 @@ it.each(["host", "standalone"] as const)("reveals pictures behind management pag
   } finally { target.dispose(); }
   expect(root.style.getPropertyValue("--management-page-surface")).toBe("");
 });
+
+
+it.each(["host", "standalone"] as const)("uses per-theme RGBA veils and resets omitted values in %s", backgroundMode => {
+  const root = document.documentElement;
+  const target = createDocumentAppearanceTarget(root);
+  const skin = { id: "custom", tokens: {
+    light: { "--new-chat-surface": "rgba(240, 230, 220, 0)", "--main-chat-surface": "rgba(255, 240, 230, 0.3)" },
+    dark: { "--new-chat-surface": "rgba(10, 20, 30, 1)", "--main-chat-surface": "rgba(20, 30, 40, 0.5)" }
+  } };
+  const imageUrl = backgroundMode === "standalone" ? "blob:wallpaper" : undefined;
+  try {
+    for (const resolvedTheme of ["light", "dark"] as const) {
+      target.apply({ resolvedTheme, skin, backgroundMode, imageUrl });
+      for (const key of ["--new-chat-surface", "--main-chat-surface"] as const) {
+        expect(root.style.getPropertyValue(key)).toBe(skin.tokens[resolvedTheme][key]);
+      }
+      expect(root.style.getPropertyValue("--new-chat-input-surface")).toMatch(/, 0.64\)$/);
+      target.apply({ resolvedTheme, skin, backgroundMode: "host-fallback" });
+      expect(root.style.getPropertyValue("--main-chat-surface")).toBe(root.style.getPropertyValue("--bg-base"));
+      expect(root.style.getPropertyValue("--new-chat-surface")).toBe(root.style.getPropertyValue("--bg-base"));
+    }
+    const partial = { id: "partial", tokens: { light: { "--main-chat-surface": "transparent" }, dark: { "--new-chat-surface": "rgba(5, 6, 7, 0.4)" } } };
+    target.apply({ resolvedTheme: "light", skin: partial, backgroundMode, imageUrl });
+    expect(root.style.getPropertyValue("--new-chat-surface")).toBe("transparent");
+    expect(root.style.getPropertyValue("--main-chat-surface")).toBe("transparent");
+    target.apply({ resolvedTheme: "dark", skin: partial, backgroundMode, imageUrl });
+    expect(root.style.getPropertyValue("--new-chat-surface")).toBe("rgba(5, 6, 7, 0.4)");
+    expect(root.style.getPropertyValue("--main-chat-surface")).toBe("rgba(16, 16, 16, 0.85)");
+    target.apply({ resolvedTheme: "dark", skin: { id: "default", tokens: { light: {}, dark: {} } }, backgroundMode, imageUrl });
+    expect(root.style.getPropertyValue("--new-chat-surface")).toBe("rgba(16, 16, 16, 0.2)");
+    expect(root.style.getPropertyValue("--main-chat-surface")).toBe("rgba(16, 16, 16, 0.85)");
+  } finally { target.dispose(); }
+  expect(root.style.getPropertyValue("--new-chat-surface")).toBe("");
+  expect(root.style.getPropertyValue("--main-chat-surface")).toBe("");
+});

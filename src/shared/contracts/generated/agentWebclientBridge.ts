@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:cce889071d465fa93f36a442f048593d5f3076fbcfef927f79b67c5a3f829d5d
+// sha256:f68ca2540ecfc6c23edaf7789bce11cfb42fe288a6067406128c28e23d7799c5
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -31,7 +31,8 @@ export const AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS = [
   "--control-tab-strip-bg", "--control-tab-active-bg", "--control-tab-hover-bg",
   "--nav-hover-bg", "--nav-selected-bg", "--nav-selected-text", "--nav-accent-selected-bg",
   "--desktop-overlay-panel-bg", "--sidebar-operation-menu-bg", "--sidebar-operation-menu-border",
-  "--modal-mask-bg", "--shell-sidebar-bg", "--shell-content-bg", "--shell-titlebar-bg"
+  "--modal-mask-bg", "--shell-sidebar-bg", "--shell-content-bg", "--shell-titlebar-bg",
+  "--new-chat-surface", "--main-chat-surface"
 ] as const;
 export const AGENT_WEBCLIENT_APPEARANCE_RADIUS_TOKENS = [
   "--control-radius", "--control-radius-sm", "--control-radius-lg", "--overlay-radius"
@@ -62,7 +63,8 @@ function appearanceRecord(value: unknown): value is Record<string, unknown> {
 // Shared by the ZIP manifest parser and live bridge. Derived values such as
 // --accent-rgb are owned by each renderer and are intentionally not transmitted.
 export function parseAgentWebclientAppearanceTokens(value: unknown): AgentWebclientAppearanceTokens | null {
-  if (!appearanceRecord(value) || Object.keys(value).length > 47) return null;
+  if (!appearanceRecord(value) || Object.keys(value).length >
+    AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS.length + AGENT_WEBCLIENT_APPEARANCE_RADIUS_TOKENS.length + 1) return null;
   const tokens: AgentWebclientAppearanceTokens = {};
   for (const [key, raw] of Object.entries(value)) {
     if (typeof raw !== "string" || raw.length > 64 || /[\x00-\x1f\x7f]/.test(raw)) return null;
