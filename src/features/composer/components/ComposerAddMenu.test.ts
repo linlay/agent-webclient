@@ -13,20 +13,11 @@ jest.mock("@/shared/i18n", () => ({
 
 jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
   useComposerSkillMenuQuery: () => ({
+    pinnedSkillKeys: [], toggleSkillPin: jest.fn(), pinsDisabled: false, pinError: null, refreshPins: jest.fn(),
     status: "success",
     data: { skills: [] },
     error: null,
     refetch: jest.fn(),
-  }),
-}));
-
-jest.mock("@/features/skills/hooks/usePinnedSkills", () => ({
-  usePinnedSkills: () => ({
-    pinnedSkillKeys: [],
-    toggleSkillPin: jest.fn(),
-    pinsDisabled: false,
-    pinError: null,
-    refreshPins: jest.fn(),
   }),
 }));
 

@@ -203,7 +203,7 @@ export function getFilteredSlashSkills(
       ...(skill.icon ? { icon: skill.icon } : {}),
       label: name || key,
       description,
-      agentHasSkill: skill.agentHasSkill === true,
+      configured: skill.configured === true,
       command: `/${key}`,
     };
     if (!query) {

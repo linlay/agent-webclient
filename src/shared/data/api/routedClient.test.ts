@@ -134,12 +134,12 @@ describe("routedClient capability routing", () => {
 	});
 
 	it("invalidates only the selected agent skills and keeps concurrent reads deduplicated", async () => {
-		mockRequestPlatformData.mockImplementation(async (_path, payload) => ok({ agentKey: payload.agentKey, skills: [{ key: "a" }, { key: "b" }] }));
+		mockRequestPlatformData.mockImplementation(async (_path, payload) => ok({ agentKey: payload.agentKey, pinned: [], skills: [{ key: "a" }, { key: "b" }] }));
 		const routed = await import("./routedClient");
 		await routed.getAgentSkills("one");
 		await routed.getAgentSkills("two");
 		routed.invalidateAgentSkills("one");
-		mockRequestPlatformData.mockResolvedValue(ok({ agentKey: "one", skills: [{ key: "b" }, { key: "new" }] }));
+		mockRequestPlatformData.mockResolvedValue(ok({ agentKey: "one", pinned: [], skills: [{ key: "b" }, { key: "new" }] }));
 		const [first, second] = await Promise.all([routed.getAgentSkills("one"), routed.getAgentSkills("one")]);
 		expect(first.data.skills.map(skill => skill.key)).toEqual(["b", "new"]);
 		expect(second).toEqual(first);

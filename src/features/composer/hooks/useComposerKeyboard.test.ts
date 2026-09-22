@@ -47,7 +47,7 @@ describe("useComposerKeyboard", () => {
       name: "PDF",
       label: "PDF",
       description: "Read PDFs",
-      agentHasSkill: false,
+      configured: false,
       command: "/pdf" as const,
     };
     const preventDefault = jest.fn();

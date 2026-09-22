@@ -1708,7 +1708,7 @@ export const enUSMessages = {
   "switch.workerType.team": "{teamLabel}",
   "slashPalette.group.commands": "Commands",
   "slashPalette.group.skills": "Skills",
-  "slashPalette.skill.source.agent": "Configured",
+  "slashPalette.skill.source.agent": "Configured for agent",
   "slashPalette.skill.source.center": "Skill Center",
   "slashPalette.skill.noDescription": "No description",
   "slashPalette.skills.loading": "Loading skills...",

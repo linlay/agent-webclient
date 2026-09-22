@@ -17,7 +17,6 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { PinnableItem } from "@/shared/ui/PinnableItem";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
-import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 type Section = "files" | "skills" | "connectors" | "chat" | "site";
@@ -121,7 +120,7 @@ const AddMenuSectionDetail: React.FC<
     enabled: section === "skills",
   });
   const skills = skillQuery.data?.skills || [];
-  const { pinnedSkillKeys, toggleSkillPin, pinsDisabled, pinError, refreshPins } = usePinnedSkills(section === "skills");
+  const { pinnedSkillKeys, toggleSkillPin, pinsDisabled, pinError, refreshPins } = skillQuery;
   const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter((skill) =>
     matchKeyword(skill.name || skill.key, skill.key, skill.description || ""),
   );
@@ -239,7 +238,7 @@ const AddMenuSectionDetail: React.FC<
       )}
       {section === "skills" && (
         <div className="composer-add-menu-scroll">
-          {pinError && (
+          {pinError && skillQuery.status !== "error" && (
             <div className="composer-add-menu-status" role="alert" title={pinError.message}>
               {t("composer.addMenu.skill.pinFailed")}
               <UiButton variant="ghost" size="sm" onClick={() => { void refreshPins().catch(() => undefined); }}>
@@ -270,6 +269,7 @@ const AddMenuSectionDetail: React.FC<
                       {skill.description || t("slashPalette.skill.noDescription")}
                     </small>
                   </span>
+                  {skill.configured && <small>{t("slashPalette.skill.source.agent")}</small>}
                   {selected.has(skill.key.toLowerCase()) && (
                     <MaterialIcon name="check" className="composer-add-menu-skill-selected" />
                   )}
@@ -286,6 +286,7 @@ const AddMenuSectionDetail: React.FC<
             <div
               className="composer-add-menu-status"
               title={skillQuery.error?.message}
+              role="alert"
             >
               {t("slashPalette.skills.loadFailed")}
               <UiButton

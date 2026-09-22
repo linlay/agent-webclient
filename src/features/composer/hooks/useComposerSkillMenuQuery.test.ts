@@ -6,7 +6,7 @@ import { dataQueryCache } from "@/shared/data/query/serverState";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { useComposerSkillMenuQuery } from "./useComposerSkillMenuQuery";
 
-jest.mock("@/shared/data/api/routedClient", () => ({ getAgentSkills: jest.fn(), invalidateAgentSkills: jest.fn() }));
+jest.mock("@/shared/data/api/routedClient", () => ({ ...jest.requireActual("@/shared/data/api/routedClient"), getAgentSkills: jest.fn(), invalidateAgentSkills: jest.fn() }));
 let root: Root;
 let current: ReturnType<typeof useComposerSkillMenuQuery>;
 function Harness({ enabled, agent = "demo" }: { enabled: boolean; agent?: string }) {
@@ -24,7 +24,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   jest.clearAllMocks();
   dataQueryCache.clear();
-  jest.mocked(getAgentSkills).mockImplementation(async agentKey => ({ code: 0, msg: "", data: { agentKey, skills: [{ key: "a", name: "A", agentHasSkill: false }] } }));
+  jest.mocked(getAgentSkills).mockImplementation(async agentKey => ({ code: 0, msg: "", data: { agentKey, pinned: [], skills: [{ key: "a", name: "A", configured: false }] } }));
   root = createRoot(document.createElement("div"));
 });
 afterEach(async () => { await act(async () => root.unmount()); });
@@ -38,7 +38,7 @@ it("refreshes each opening inside TTL but not while typing or while closed", asy
   await render(true);
   expect(getAgentSkills).toHaveBeenCalledTimes(1);
   await render(false);
-  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", skills: [{ key: "new", name: "New", agentHasSkill: false }] } });
+  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ key: "new", name: "New", configured: false }] } });
   await render(true);
   expect(getAgentSkills).toHaveBeenCalledTimes(2);
   expect(current.data?.skills[0].key).toBe("new");
@@ -83,9 +83,21 @@ it("late results from a prior opening cannot replace the newly refreshed list", 
   jest.mocked(getAgentSkills).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
   await render(true);
   await render(false);
-  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", skills: [{ key: "new", name: "New", agentHasSkill: false }] } });
+  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ key: "new", name: "New", configured: false }] } });
   await render(true);
   expect(current.data?.skills[0].key).toBe("new");
-  await act(async () => resolveOld({ code: 0, msg: "", data: { agentKey: "demo", skills: [{ key: "old", name: "Old", agentHasSkill: false }] } }));
+  await act(async () => resolveOld({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ key: "old", name: "Old", configured: false }] } }));
   expect(current.data?.skills[0].key).toBe("new");
+});
+
+it("keeps newer pins when an earlier catalog response arrives late", async () => {
+  let resolveOld!: (response: Awaited<ReturnType<typeof getAgentSkills>>) => void;
+  jest.mocked(getAgentSkills).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
+  await render(true);
+  await render(false);
+  jest.mocked(getAgentSkills).mockResolvedValueOnce({ status: 200, code: 0, msg: "", data: { agentKey: "demo", skills: [], pinned: ["new"] } });
+  await render(true);
+  expect(current.pinnedSkillKeys).toEqual(["new"]);
+  await act(async () => resolveOld({ status: 200, code: 0, msg: "", data: { agentKey: "demo", skills: [], pinned: ["old"] } }));
+  expect(current.pinnedSkillKeys).toEqual(["new"]);
 });

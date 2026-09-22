@@ -6,14 +6,7 @@ import type {
 
 export type AdminSkillStatus = "ready" | "invalid" | "disabled";
 
-export interface SkillOrderResponse {
-  version: number;
-  /** Pinned skill keys, newest pin first; shared across the user's Agents. */
-  order: string[];
-  updatedAt?: number;
-}
-
-export interface UpdateSkillOrderRequest {
+export interface UpdateAgentSkillPinRequest {
   key: string;
   pinned: boolean;
 }

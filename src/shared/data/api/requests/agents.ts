@@ -73,11 +73,12 @@ export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailRespo
 }
 
 export function getAgentSkills(
-  agentKey: string,
+  agentKey: string = "",
 ): Promise<ApiResponse<AgentSkillsResponse>> {
   const query = endpointQuery(dataEndpoints.agentSkills, agentKey);
   return requestJson<AgentSkillsResponse>(
     withQuery(dataEndpoints.agentSkills.path, query),
+    { cache: "no-store" },
   );
 }
 

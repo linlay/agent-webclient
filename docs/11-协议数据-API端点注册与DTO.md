@@ -24,7 +24,7 @@ Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `
 
 `RunTransport.startBtw` 通过 Platform stream 向 `/api/btw` 发起 BTW Run。其 DTO 只发送父 `chatId`、可选 `btwId` 和 query 参数，不发送 agent/team/planning 路由字段；这些身份由后端从父对话继承。
 
-对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，每项只消费 `key/name/description/agentHasSkill`。该端点注册为 Platform-only `auto`：Platform 模式向 `/api/skills` 发送 `{agentKey}` request frame，Gateway 因未暴露该 WS route 而在请求前选择 HTTP；WS 连接或传输故障不回退 HTTP。结果按 Agent 缓存 30 秒并合并并发读取。该只读目录接口与 `/api/admin/skills` 管理接口职责分离。
+对话页通过 `GET /api/skills?agentKey=...` 读取 `AgentSkillsResponse`，响应含 `skills` 和用户级 `pinned`，每项消费 `key/name/description/icon/configured`。`agentKey` 可选，仅用于标记配置状态，不筛选全局目录；未提供时 configured 均为 false。该端点注册为 Platform-only `auto`：Platform 模式向 `/api/skills` 发送 `{agentKey}` request frame，Gateway 因未暴露该 WS route 而在请求前选择 HTTP；WS 连接或传输故障不回退 HTTP。结果按 Agent 缓存 30 秒并合并并发读取。置顶通过同路径 PUT `{key,pinned}` 写入；菜单一次查询同时获得目录和置顶，写入成功后同步用户级内存置顶投影并失效目录请求缓存。该接口与 `/api/admin/skills` 安装编辑管理接口职责分离。
 
 ## Skills 管理契约
 

@@ -9,25 +9,22 @@ import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 
 let serverOrder: string[] = [];
-const getSkillOrderMock = jest.fn();
-const putSkillOrderMock = jest.fn();
+const getAgentSkillsMock = jest.fn();
+const putAgentSkillPinMock = jest.fn();
 let sessionToken = "alice";
 jest.mock("@/shared/data/api/routedClient", () => ({
   ...jest.requireActual("@/shared/data/api/routedClient"),
   getCurrentAccessToken: () => sessionToken,
-  getSkillOrder: (...args: unknown[]) => getSkillOrderMock(...args),
-  putSkillOrder: (...args: unknown[]) => putSkillOrderMock(...args),
+  getAgentSkills: (...args: unknown[]) => getAgentSkillsMock(...args),
+  putAgentSkillPin: (...args: unknown[]) => putAgentSkillPinMock(...args),
 }));
 
 const skills = [
-  { key: "platform-admin", name: "Platform Admin", description: "Manage platform", agentHasSkill: true },
-  { key: "pdf", name: "PDF", description: "Read documents", agentHasSkill: false },
-  { key: "slides", name: "Slides", description: "Create documents", agentHasSkill: false },
+  { key: "platform-admin", name: "Platform Admin", description: "Manage platform", configured: true },
+  { key: "pdf", name: "PDF", description: "Read documents", configured: false },
+  { key: "slides", name: "Slides", description: "Create documents", configured: false },
 ];
 
-jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
-  useComposerSkillMenuQuery: () => ({ status: "success", data: { skills }, error: null, refetch: jest.fn() }),
-}));
 jest.mock("@/features/connectors/components/AgentConnectorPicker", () => ({ AgentConnectorPicker: () => null }));
 jest.mock("@/features/skills/components/SkillIcon", () => ({ SkillIcon: () => null }));
 jest.mock("@/shared/i18n", () => ({
@@ -63,11 +60,11 @@ describe("Composer skill pins", () => {
     dataQueryCache.clear();
     serverOrder = [];
     sessionToken = "alice";
-    getSkillOrderMock.mockReset().mockImplementation(async () => ({ data: { version: 1, order: [...serverOrder] } }));
-    putSkillOrderMock.mockReset().mockImplementation(async ({ key, pinned }: { key: string; pinned: boolean }) => {
+    getAgentSkillsMock.mockReset().mockImplementation(async () => ({ data: { agentKey: "agent-a", skills, pinned: [...serverOrder] } }));
+    putAgentSkillPinMock.mockReset().mockImplementation(async ({ key, pinned }: { key: string; pinned: boolean }) => {
       serverOrder = serverOrder.filter((item) => item !== key);
       if (pinned) serverOrder.unshift(key);
-      return { data: { version: 1, order: [...serverOrder] } };
+      return { data: { agentKey: "", skills: [], pinned: [...serverOrder] } };
     });
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -101,6 +98,9 @@ describe("Composer skill pins", () => {
   it("pins without selecting or closing, restores on remount, and unpins to catalog order", async () => {
     render();
     await openSkills();
+    expect(getAgentSkillsMock).toHaveBeenCalledTimes(1);
+    expect(getAgentSkillsMock).toHaveBeenCalledWith("agent-a");
+    expect(container.textContent).toContain("slashPalette.skill.source.agent");
     await pin("PDF");
     await pin("Slides");
     expect(names()).toEqual(["Slides", "PDF", "Platform Admin"]);
@@ -132,11 +132,11 @@ describe("Composer skill pins", () => {
     expect(names()).toEqual(["PDF", "Slides"]);
 
     props.currentAgentKey = "agent-b";
-    render();
+    await act(async () => render());
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(2);
     expect(names()).toEqual(["PDF", "Slides"]);
     props.currentAgentKey = "agent-a";
-    render();
+    await act(async () => render());
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(2);
   });
 
@@ -181,13 +181,13 @@ describe("Composer skill pins", () => {
     render();
     await openSkills();
     expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
-    putSkillOrderMock.mockRejectedValueOnce(new Error("offline"));
+    putAgentSkillPinMock.mockRejectedValueOnce(new Error("offline"));
     await pin("PDF");
     expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
     expect(container.querySelector('[role="alert"]')?.textContent).toContain("composer.addMenu.skill.pinFailed");
     await pin("PDF");
     expect(names()[0]).toBe("PDF");
-    expect(putSkillOrderMock).toHaveBeenLastCalledWith({ key: "pdf", pinned: true });
+    expect(putAgentSkillPinMock).toHaveBeenLastCalledWith({ key: "pdf", pinned: true });
     expect(localStorage.getItem("agent-webclient.pinnedSkills.v1:agent-a")).toBe('["slides"]');
   });
 
@@ -195,21 +195,21 @@ describe("Composer skill pins", () => {
     render();
     await openSkills();
     let confirm: (response: unknown) => void;
-    putSkillOrderMock.mockImplementationOnce(() => new Promise((resolve) => { confirm = resolve; }));
+    putAgentSkillPinMock.mockImplementationOnce(() => new Promise((resolve) => { confirm = resolve; }));
     click('[aria-label="composer.addMenu.skill.pin PDF"]');
     expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
     expect(container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.skill.pin PDF"]')!.disabled).toBe(true);
     click('[aria-label="composer.addMenu.skill.pin PDF"]');
-    expect(putSkillOrderMock).toHaveBeenCalledTimes(1);
-    await act(async () => confirm!({ data: { version: 1, order: ["pdf"] } }));
+    expect(putAgentSkillPinMock).toHaveBeenCalledTimes(1);
+    await act(async () => confirm!({ data: { agentKey: "", skills: [], pinned: ["pdf"] } }));
     expect(names()[0]).toBe("PDF");
   });
 
   it("disables pinning until the platform loads and does not reuse another user's cache", async () => {
-    getSkillOrderMock.mockRejectedValueOnce(new Error("offline"));
+    getAgentSkillsMock.mockRejectedValueOnce(new Error("offline"));
     render();
     await openSkills();
-    expect(container.querySelector<HTMLButtonElement>(".composer-add-menu-skill-row button[aria-pressed]")!.disabled).toBe(true);
+    expect(names()).toEqual([]);
     await act(async () => container.querySelector<HTMLButtonElement>('[role="alert"] button')!.click());
     await pin("Slides");
     expect(names()[0]).toBe("Slides");

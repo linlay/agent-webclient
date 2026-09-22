@@ -157,7 +157,7 @@ export const SlashPaletteContent: React.FC<{
                 {skill.description || t("slashPalette.skill.noDescription")}
               </Typography.Text>
               <Tag className={SLASH_SKILL_SOURCE_CLASS}>
-                {skill.agentHasSkill
+                {skill.configured
                   ? t("slashPalette.skill.source.agent")
                   : t("slashPalette.skill.source.center")}
               </Tag>

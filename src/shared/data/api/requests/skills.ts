@@ -1,3 +1,4 @@
+import type { AgentSkillsResponse } from "@/shared/data/api/dto/agents";
 import type {
   ApiResponse,
 } from "@/shared/data/api/dto/common";
@@ -13,8 +14,7 @@ import type {
   AdminSkillValidateResponse,
   AdminSkillCreateRequest,
   AdminSkillDeleteResponse,
-  SkillOrderResponse,
-  UpdateSkillOrderRequest,
+  UpdateAgentSkillPinRequest,
 } from "@/shared/data/api/dto/skills";
 import {
   requestJson,
@@ -32,12 +32,8 @@ export function getAdminSkills(): Promise<ApiResponse<AdminSkillSummary[]>> {
   return requestJson<AdminSkillSummary[]>(dataEndpoints.adminSkills.path);
 }
 
-export function getSkillOrder(): Promise<ApiResponse<SkillOrderResponse>> {
-  return requestJson<SkillOrderResponse>(dataEndpoints.skillOrder.path, { cache: "no-store" });
-}
-
-export function putSkillOrder(params: UpdateSkillOrderRequest): Promise<ApiResponse<SkillOrderResponse>> {
-  return requestJson<SkillOrderResponse>(dataEndpoints.skillOrderUpdate.path, {
+export function putAgentSkillPin(params: UpdateAgentSkillPinRequest): Promise<ApiResponse<AgentSkillsResponse>> {
+  return requestJson<AgentSkillsResponse>(dataEndpoints.skillPinUpdate.path, {
     method: "PUT",
     body: JSON.stringify(params),
   });

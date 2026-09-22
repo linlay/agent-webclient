@@ -7,7 +7,7 @@ import { SkillConsole } from "./SkillConsole";
 import { I18nProvider } from "@/shared/i18n";
 import { ApiError, getAdminSkills, getAdminSkillDetail, importAdminSkill } from "@/shared/data";
 import type { AdminSkillSummary, AdminSkillDetailResponse } from "@/shared/data";
-import { getSkillOrder } from "@/shared/data/api/routedClient";
+import { getAgentSkills } from "@/shared/data/api/routedClient";
 import { dataQueryCache } from "@/shared/data/query/serverState";
 
 jest.mock("@/shared/data", () => ({
@@ -15,7 +15,7 @@ jest.mock("@/shared/data", () => ({
   getAdminSkills: jest.fn(), getAdminSkillDetail: jest.fn(), importAdminSkill: jest.fn(),
 }));
 jest.mock("@/shared/data/api/routedClient", () => ({
-  ...jest.requireActual("@/shared/data/api/routedClient"), getSkillOrder: jest.fn(),
+  ...jest.requireActual("@/shared/data/api/routedClient"), getAgentSkills: jest.fn(),
 }));
 jest.mock("@/shared/ui/CodeEditor", () => ({ CodeEditor: () => null }));
 
@@ -43,7 +43,7 @@ beforeEach(async () => {
   jest.spyOn(notification, "error").mockImplementation(() => {});
   jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: oldSkills });
   jest.mocked(getAdminSkillDetail).mockResolvedValue({ code: 0, msg: "", data: detail() });
-  jest.mocked(getSkillOrder).mockResolvedValue({ code: 0, msg: "", data: { version: 1, order: [] } });
+  jest.mocked(getAgentSkills).mockResolvedValue({ code: 0, msg: "", data: { agentKey: "", skills: [], pinned: [] } });
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);

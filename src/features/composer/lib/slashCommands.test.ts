@@ -65,19 +65,19 @@ describe('slashCommands', () => {
         name: 'Mock Skill',
         icon: '/api/skills/icon?agentKey=zenmi&key=mock-skill',
         description: 'Skill description',
-        agentHasSkill: true,
+        configured: true,
       },
       {
         key: 'pdf',
         name: 'PDF',
         description: 'Read and manipulate PDF files',
-        agentHasSkill: false,
+        configured: false,
       },
     ];
 
     expect(getFilteredSlashSkills('', skills)).toMatchObject([
-      { kind: 'skill', command: '/mock-skill', agentHasSkill: true, icon: skills[0].icon },
-      { kind: 'skill', command: '/pdf', agentHasSkill: false },
+      { kind: 'skill', command: '/mock-skill', configured: true, icon: skills[0].icon },
+      { kind: 'skill', command: '/pdf', configured: false },
     ]);
     expect(getFilteredSlashSkills('pdf', skills).map((item) => item.key)).toEqual(['pdf']);
     expect(getFilteredSlashSkills('manipulate', skills).map((item) => item.key)).toEqual(['pdf']);

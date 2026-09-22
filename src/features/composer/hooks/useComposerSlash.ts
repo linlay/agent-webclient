@@ -8,7 +8,6 @@ import {
 } from "@/features/composer/lib/slashCommands";
 import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposerSkillMenuQuery";
 import { useComposerFilter } from "@/features/composer/hooks/useComposerFilter";
-import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 interface UseComposerSlashInput {
@@ -57,7 +56,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     enabled: skillQueryEnabled,
   });
   const hasSkillSection = Boolean(String(currentAgentKey || "").trim());
-  const { pinnedSkillKeys } = usePinnedSkills(skillQueryEnabled);
+  const { pinnedSkillKeys } = skillQuery;
 
   // 初步显示判断（不含 items 检查），用于 useComposerFilter 记录起始位置
   const prelimShowSlash =

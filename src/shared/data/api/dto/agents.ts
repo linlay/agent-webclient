@@ -59,10 +59,12 @@ export interface AgentSkill {
   name: string;
   icon?: string;
   description?: string;
-  agentHasSkill: boolean;
+  configured: boolean;
 }
 
 export interface AgentSkillsResponse {
+  /** User-level pins, newest first; independent of the selected Agent. */
+  pinned: string[];
   agentKey: string;
   skills: AgentSkill[];
 }

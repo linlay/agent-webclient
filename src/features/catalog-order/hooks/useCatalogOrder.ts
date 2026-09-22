@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getCurrentAccessToken, getSkillOrder, putSkillOrder, getConnectorOrder, putConnectorOrder } from "@/shared/data/api/routedClient";
+import { getCurrentAccessToken, getConnectorOrder, putConnectorOrder } from "@/shared/data/api/routedClient";
 import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
 import { getBackendMode } from "@/shared/config/backendMode";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
@@ -22,7 +22,6 @@ function currentSessionRevision(): number {
 }
 
 const catalogs = {
-  skills: { endpoint: dataEndpoints.skillOrder, read: getSkillOrder, write: putSkillOrder },
   connectors: { endpoint: dataEndpoints.connectorOrder, read: getConnectorOrder, write: putConnectorOrder },
 };
 

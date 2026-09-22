@@ -583,7 +583,7 @@ describe("ComposerArea", () => {
           {
             key: "skill-creator",
             name: "技能创建",
-            agentHasSkill: true,
+            configured: true,
           },
         ],
       },

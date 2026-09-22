@@ -531,16 +531,9 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_WS_BACKENDS,
   }),
-  skillOrder: defineEndpoint({
-    key: "skills.order",
-    path: "/api/skills/order",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-  }),
-  skillOrderUpdate: defineEndpoint({
-    key: "skills.order.update",
-    path: "/api/skills/order",
+  skillPinUpdate: defineEndpoint({
+    key: "skills.pins.update",
+    path: "/api/skills",
     method: "PUT",
     transport: "auto",
     wsBackends: PLATFORM_WS_BACKENDS,

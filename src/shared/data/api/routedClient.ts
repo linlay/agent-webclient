@@ -80,8 +80,8 @@ import type {
 	AgentFileResponse,
 } from "@/shared/data/api/dto/resources";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
-import type { SkillOrderResponse, UpdateSkillOrderRequest } from "@/shared/data/api/dto/skills";
-import { getSkillOrder as getSkillOrderHttp, putSkillOrder as putSkillOrderHttp } from "@/shared/data/api/requests/skills";
+import type { UpdateAgentSkillPinRequest } from "@/shared/data/api/dto/skills";
+import { putAgentSkillPin as putAgentSkillPinHttp } from "@/shared/data/api/requests/skills";
 import type {
 	CompactChatResponse,
 	CompactLevel,
@@ -228,17 +228,13 @@ export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailRespo
 }
 
 export function getAgentSkills(
-	agentKey: string,
+	agentKey: string = "",
 ): Promise<ApiResponse<AgentSkillsResponse>> {
 	return routeEndpoint(
 		dataEndpoints.agentSkills,
 		agentKey,
 		() => getAgentSkillsHttp(agentKey),
 	);
-}
-
-export function getSkillOrder(): Promise<ApiResponse<SkillOrderResponse>> {
-	return routeEndpoint(dataEndpoints.skillOrder, undefined, getSkillOrderHttp);
 }
 
 export function invalidateAgentSkills(agentKey: string): void {
@@ -248,8 +244,12 @@ export function invalidateAgentSkills(agentKey: string): void {
 	));
 }
 
-export function putSkillOrder(params: UpdateSkillOrderRequest): Promise<ApiResponse<SkillOrderResponse>> {
-	return routeEndpoint(dataEndpoints.skillOrderUpdate, params, () => putSkillOrderHttp(params));
+export function putAgentSkillPin(params: UpdateAgentSkillPinRequest): Promise<ApiResponse<AgentSkillsResponse>> {
+	return routeEndpoint<AgentSkillsResponse, UpdateAgentSkillPinRequest>(dataEndpoints.skillPinUpdate, params, () => putAgentSkillPinHttp(params))
+    .then(response => {
+      invalidateRouteEndpoints(dataEndpoints.agentSkills);
+      return response;
+    });
 }
 
 export function getAgentFile(
