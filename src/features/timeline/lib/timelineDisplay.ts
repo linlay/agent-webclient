@@ -287,6 +287,7 @@ export function buildTimelineDisplayItemsFromTerminals(
   let pendingStandaloneNodes: TimelineNode[] = [];
   let activeQueryNode: TimelineNode | null = null;
   let runTerminalCursor = 0;
+  const consumedTerminals = new Set<RunTerminalInfo>();
 
   const flushStandalone = (): void => {
     if (pendingStandaloneNodes.length === 0) return;
@@ -313,14 +314,22 @@ export function buildTimelineDisplayItemsFromTerminals(
 
   const consumeTerminal = (runId: string): RunTerminalInfo | undefined => {
     if (runId && runTerminals.byRunId.has(runId)) {
-      return runTerminals.byRunId.get(runId);
+      const terminal = runTerminals.byRunId.get(runId);
+      if (terminal) consumedTerminals.add(terminal);
+      return terminal;
     }
     // 节点带 runId 但终态已被裁剪时，不消费位置游标，避免错位到其它 run 的终态。
     if (runId) return undefined;
     // 旧数据（节点无 runId）回退位置游标，保持原有行为。
-    const terminal = runTerminals.ordered[runTerminalCursor];
-    if (terminal) runTerminalCursor += 1;
-    return terminal;
+    // 已被 runId 命中的终态不再复用：否则刚发出的 query（还没有节点、也没有 runId）
+    // 会借用上一个 run 的终态，让尚未结束的 run 显示出已完成时间和操作按钮。
+    while (runTerminalCursor < runTerminals.ordered.length) {
+      const terminal = runTerminals.ordered[runTerminalCursor];
+      runTerminalCursor += 1;
+      if (consumedTerminals.has(terminal)) continue;
+      return terminal;
+    }
+    return undefined;
   };
 
   const flushRun = (isLastRun: boolean): void => {

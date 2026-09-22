@@ -532,4 +532,50 @@ describe('buildTimelineDisplayItems', () => {
       { runId: 'run_3', terminalType: 'run.complete', completedAt: 360 },
     ]);
   });
+
+  it('does not reuse an earlier run terminal for an empty active run', () => {
+    // 复现：同一对话已有历史记录，新 query 只收到 run.start（还没有任何节点，
+    // 本地 user 节点也不带 runId），位置游标不得借用上一个 run 的终态。
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', runId: 'run_1', ts: 130 }),
+        createNode({ id: 'user_2', kind: 'message', role: 'user', ts: 200 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'run.complete', runId: 'run_1', timestamp: 160 },
+        { type: 'run.start', runId: 'run_2', timestamp: 210 },
+      ],
+      new Map(),
+      { hasActiveRun: true },
+    );
+
+    expect(items.map((item) => item.kind)).toEqual(['query', 'run', 'query']);
+  });
+
+  it('still shows an empty completed run after earlier runs consumed terminals by runId', () => {
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({ id: 'user_1', kind: 'message', role: 'user', ts: 100 }),
+        createNode({ id: 'content_1', kind: 'content', runId: 'run_1', ts: 130 }),
+        createNode({ id: 'user_2', kind: 'message', role: 'user', ts: 200 }),
+      ],
+      [
+        { type: 'request.query', timestamp: 100 },
+        { type: 'run.complete', runId: 'run_1', timestamp: 160 },
+        { type: 'run.start', runId: 'run_2', timestamp: 210 },
+        { type: 'run.cancel', runId: 'run_2', timestamp: 240 },
+      ],
+    );
+
+    const runs = items.filter((item) => item.kind === 'run');
+    expect(runs).toHaveLength(2);
+    expect(runs[1]).toMatchObject({
+      runId: 'run_2',
+      terminalType: 'run.cancel',
+      completedAt: 240,
+      nodes: [],
+    });
+  });
 });
