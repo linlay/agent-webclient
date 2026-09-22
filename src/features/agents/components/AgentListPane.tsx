@@ -188,6 +188,70 @@ const SortableAgentListItem: React.FC<{
       ) : null}
     </Flex>
   );
+  const itemNode = (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      role="button"
+      tabIndex={0}
+      className={`agent-console-list-item ${active ? "is-active" : ""} ${dragging ? "is-dragging" : ""} ${invalid ? "is-invalid" : ""}`}
+      onClick={() => onSelect(agentKey)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(agentKey);
+        }
+      }}
+    >
+      <span className="agent-console-list-item-icon-col">
+        <span
+          ref={setActivatorNodeRef}
+          className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
+          aria-label={t("agentConsole.list.dragHandle", { name })}
+          {...attributes}
+          {...listeners}
+        >
+          <AgentIcon
+            icon={agent.icon}
+            type="agent"
+            props={{
+              icon: {
+                width: 28,
+                height: 28,
+                className: "agent-console-list-item-svg",
+              },
+              avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
+            }}
+          />
+        </span>
+      </span>
+      <span className="agent-console-list-item-main">
+        <span className="agent-console-list-item-row agent-console-list-item-head">
+          <strong>{name}</strong>
+          {invalid || !isCoderMode ? (
+            <span className="agent-console-list-item-head-meta">
+              {invalid ? (
+                <Tag color="error" style={{ marginRight: 0 }}>
+                  {t("agentConsole.status.invalid")}
+                </Tag>
+              ) : !isCoderMode ? (
+                agentKey || "--"
+              ) : null}
+            </span>
+          ) : null}
+        </span>
+        <span className="agent-console-list-item-row agent-console-list-item-meta">
+          <span>{summary.modelKey}</span>
+          <span className="agent-console-list-item-counts">
+            <ModeBadge mode={summary.mode} />
+          </span>
+        </span>
+      </span>
+    </div>
+  );
+  // 选中项的详情已展开在右侧，不再叠加悬浮摘要
+  if (active) return itemNode;
   return (
     <Popover
       placement="rightTop"
@@ -201,66 +265,7 @@ const SortableAgentListItem: React.FC<{
         },
       }}
     >
-      <div
-        ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
-        role="button"
-        tabIndex={0}
-        className={`agent-console-list-item ${active ? "is-active" : ""} ${dragging ? "is-dragging" : ""} ${invalid ? "is-invalid" : ""}`}
-        onClick={() => onSelect(agentKey)}
-        onKeyDown={(event) => {
-          if (event.target !== event.currentTarget) return;
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onSelect(agentKey);
-          }
-        }}
-      >
-        <span className="agent-console-list-item-icon-col">
-          <span
-            ref={setActivatorNodeRef}
-            className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
-            aria-label={t("agentConsole.list.dragHandle", { name })}
-            {...attributes}
-            {...listeners}
-          >
-            <AgentIcon
-              icon={agent.icon}
-              type="agent"
-              props={{
-                icon: {
-                  width: 28,
-                  height: 28,
-                  className: "agent-console-list-item-svg",
-                },
-                avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
-              }}
-            />
-          </span>
-        </span>
-        <span className="agent-console-list-item-main">
-          <span className="agent-console-list-item-row agent-console-list-item-head">
-            <strong>{name}</strong>
-            {invalid || !isCoderMode ? (
-              <span className="agent-console-list-item-head-meta">
-                {invalid ? (
-                  <Tag color="error" style={{ marginRight: 0 }}>
-                    {t("agentConsole.status.invalid")}
-                  </Tag>
-                ) : !isCoderMode ? (
-                  agentKey || "--"
-                ) : null}
-              </span>
-            ) : null}
-          </span>
-          <span className="agent-console-list-item-row agent-console-list-item-meta">
-            <span>{summary.modelKey}</span>
-            <span className="agent-console-list-item-counts">
-              <ModeBadge mode={summary.mode} />
-            </span>
-          </span>
-        </span>
-      </div>
+      {itemNode}
     </Popover>
   );
 };
