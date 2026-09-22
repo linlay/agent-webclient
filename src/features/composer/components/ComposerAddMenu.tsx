@@ -575,7 +575,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
                 next ? entry : prev === entry ? null : prev,
               );
             }}
-            trigger="click"
+            trigger="hover"
             placement="rightBottom"
             arrow={false}
             destroyOnHidden
