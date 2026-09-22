@@ -10,6 +10,7 @@ import {
 	getToolPillDurationText,
 	getExpandableToolPillRecords,
 	resolveKbaseIndexSummary,
+	resolveToolPillAutoExpandedState,
 	shouldCollapseCompletedToolOutput,
 	shouldRenderToolOutputTerminal,
 } from "@/features/timeline/components/ToolPill";
@@ -307,6 +308,52 @@ describe("ToolPill helpers", () => {
 		expect(
 			shouldCollapseCompletedToolOutput(remainingLiveRecords, claimed),
 		).toBe(false);
+	});
+
+	it("lets a manual toggle take over both automatic expand and auto-collapse", () => {
+		const liveRecords = buildToolPillRecords(
+			createToolNode({
+				id: "tool_live",
+				kind: "tool",
+				ts: 100,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 0,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "working\n" }],
+				},
+			}),
+		).filter((record) => Boolean(record.toolOutput));
+		const claimed = new Set<string>();
+
+		// 手动收起之后，新来的 live 输出不再把 pill 顶开，也不占用认领额度。
+		expect(resolveToolPillAutoExpandedState(liveRecords, claimed, true)).toBe(null);
+		expect(claimed.size).toBe(0);
+		// 终态 result 替换掉 live 输出后也不再自动收起。
+		expect(resolveToolPillAutoExpandedState([], claimed, true)).toBe(null);
+	});
+
+	it("keeps the automatic flow intact while the user stays hands-off", () => {
+		const liveRecords = buildToolPillRecords(
+			createToolNode({
+				id: "tool_live",
+				kind: "tool",
+				ts: 100,
+				status: "running",
+				toolOutput: {
+					lastChunkIndex: 0,
+					truncated: false,
+					segments: [{ stream: "stdout", text: "working\n" }],
+				},
+			}),
+		).filter((record) => Boolean(record.toolOutput));
+		const claimed = new Set<string>();
+
+		expect(resolveToolPillAutoExpandedState(liveRecords, claimed, false)).toBe(true);
+		expect(claimed.has("tool_live")).toBe(true);
+		// 同一条调用只自动展开一次。
+		expect(resolveToolPillAutoExpandedState(liveRecords, claimed, false)).toBe(null);
+		expect(resolveToolPillAutoExpandedState([], claimed, false)).toBe(false);
 	});
 
 	it("lets a final result replace even stale live terminal state", () => {

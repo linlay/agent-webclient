@@ -304,6 +304,23 @@ export function shouldCollapseCompletedToolOutput(
   return claimedKeys.size > 0 && records.length === 0;
 }
 
+/**
+ * 收敛「要不要自动改变展开态」这一个决策：
+ * - 用户手动点过这个 pill（`userOverride`）就两个方向都不再自动动，把手动意图交还给用户；
+ * - 否则沿用原有行为：首个 live 输出被认领一次即自动展开，live 输出被终态 result 替换后自动收起。
+ * 返回 `null` 表示本次不改变状态（也用于避免无谓的 setState）。
+ */
+export function resolveToolPillAutoExpandedState(
+  records: ToolPillRecord[],
+  claimedKeys: Set<string>,
+  userOverride: boolean,
+): boolean | null {
+  if (userOverride) return null;
+  if (claimToolOutputAutoExpand(records, claimedKeys)) return true;
+  if (shouldCollapseCompletedToolOutput(records, claimedKeys)) return false;
+  return null;
+}
+
 export function canExpandToolPill(
   source: TimelineNode | ToolGroupRenderEntry,
 ): boolean {
@@ -343,6 +360,8 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
   const copyTimerRef = useRef<Map<string, number>>(new Map());
   const autoExpandedOutputKeysRef = useRef<Set<string>>(new Set());
+  // 用户手动展开或收起过这个 pill 之后，自动行为就停止接管展开态。
+  const userToggledRef = useRef(false);
   const source = toolGroup || node;
   const { t } = useI18n();
   const interaction = useTimelineInteraction();
@@ -413,14 +432,12 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   }, [source, t]);
 
   useEffect(() => {
-    const claimedKeys = autoExpandedOutputKeysRef.current;
-    if (claimToolOutputAutoExpand(outputRecords, claimedKeys)) {
-      setExpanded(true);
-      return;
-    }
-    if (shouldCollapseCompletedToolOutput(outputRecords, claimedKeys)) {
-      setExpanded(false);
-    }
+    const nextExpanded = resolveToolPillAutoExpandedState(
+      outputRecords,
+      autoExpandedOutputKeysRef.current,
+      userToggledRef.current,
+    );
+    if (nextExpanded != null) setExpanded(nextExpanded);
   }, [outputRecords]);
 
   if (!source) return null;
@@ -464,6 +481,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
       expanded={canExpand && expanded}
       onExpand={(nextExpanded) => {
         if (!canExpand) return;
+        userToggledRef.current = true;
         setExpanded(nextExpanded);
       }}
       label={
