@@ -119,18 +119,6 @@
   flex-direction: column;
 }
 
-.groupHeader {
-  padding: 10px;
-  color: var(--ink-muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-  position: sticky;
-  top: 0;
-  background: var(--management-page-surface);
-  z-index: 10;
-}
-
 .listItem {
   display: flex;
   flex-direction: column;
@@ -153,19 +141,15 @@
 
 .itemMore {
   position: absolute;
-  top: 50%;
-  right: 6px;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  margin: 0;
-  padding: 0;
+  width: 40px;
   border: 0;
-  border-radius: 3px;
-  background: transparent;
+  background: linear-gradient(to left, var(--bg-base) 40%, transparent);
   color: var(--ink-muted);
   cursor: pointer;
   opacity: 0;
@@ -173,7 +157,6 @@
 }
 
 .itemMore:hover {
-  background: var(--bg-hover);
   color: var(--ink-1);
 }
 
@@ -278,7 +261,7 @@
   padding: 0 20px;
 }
 
-.tabs > button {
+.tabs>button {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -298,7 +281,7 @@
   transition: color .16s ease;
 }
 
-.tabs > button::after {
+.tabs>button::after {
   content: "";
   position: absolute;
   right: 2px;
@@ -311,16 +294,16 @@
   transition: opacity .16s ease;
 }
 
-.tabs > button:hover:not(:disabled),
-.tabs > button[aria-current] {
+.tabs>button:hover:not(:disabled),
+.tabs>button[aria-current] {
   color: var(--ink-1);
 }
 
-.tabs > button[aria-current]::after {
+.tabs>button[aria-current]::after {
   opacity: 1;
 }
 
-.tabs > button:disabled {
+.tabs>button:disabled {
   cursor: default;
   opacity: .6;
 }
@@ -582,6 +565,14 @@
   white-space: nowrap;
 }
 
+/* Pinned rows are flagged by an inline icon instead of a separate group.
+   Raised to (0,2,0) so the shared .material-icon rules cannot win by import order. */
+.itemHeading .pinBadge {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
 .version {
   flex-shrink: 0;
   color: var(--ink-muted);
@@ -600,7 +591,7 @@
   min-width: 0;
 }
 
-.itemStatus > :global(.ui-tag) {
+.itemStatus> :global(.ui-tag) {
   display: block;
   width: fit-content;
   max-width: 100%;
@@ -623,7 +614,7 @@
   gap: 4px;
 }
 
-.itemFooter .badges > :global(.ui-tag) {
+.itemFooter .badges> :global(.ui-tag) {
   flex-shrink: 0;
   white-space: nowrap;
 }

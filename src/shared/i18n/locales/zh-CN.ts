@@ -292,7 +292,6 @@ export const zhCNMessages = {
   "connectors.list.label": "连接器列表",
   "connectors.resize.listAriaLabel": "调整连接器列表宽度",
   "connectors.resize.listTitle": "拖拽调整连接器列表宽度",
-  "connectors.list.pinnedGroup": "置顶 {count}",
   "connectors.list.count": "连接器 {count}",
   "connectors.list.unavailable": "连接器目录暂未加载，请恢复平台连接后重试。",
   "connectors.list.empty": "暂无匹配的连接器",

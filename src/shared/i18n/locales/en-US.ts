@@ -248,7 +248,6 @@ export const enUSMessages = {
   "connectors.list.label": "Connector list",
   "connectors.resize.listAriaLabel": "Resize connector list width",
   "connectors.resize.listTitle": "Drag to resize connector list width",
-  "connectors.list.pinnedGroup": "Pinned {count}",
   "connectors.list.count": "Connector {count}",
   "connectors.list.unavailable": "The connector catalog could not be loaded. Restore the Platform connection and retry.",
   "connectors.list.empty": "No matching connectors",

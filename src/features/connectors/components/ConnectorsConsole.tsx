@@ -1,12 +1,6 @@
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { message, Spin, Dropdown, Flex, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
@@ -121,18 +115,6 @@ export function ConnectorsConsole({
     filterConnectors(runtime.items, search, filter),
     pinnedKeys,
     (item) => item.id,
-  );
-  const pinnedItems = useMemo(
-    () =>
-      items.filter((item) => pinnedKeys.includes(item.id.trim().toLowerCase())),
-    [items, pinnedKeys],
-  );
-  const otherItems = useMemo(
-    () =>
-      items.filter(
-        (item) => !pinnedKeys.includes(item.id.trim().toLowerCase()),
-      ),
-    [items, pinnedKeys],
   );
   const selected = runtime.selected;
   const selectedAuth = selected
@@ -257,6 +239,14 @@ export function ConnectorsConsole({
           <span className={styles.itemHeading}>
             <ConnectorIcon item={item} />
             <strong>{item.name}</strong>
+            {itemPinned && (
+              <MaterialIcon
+                name="push_pin"
+                className={styles.pinBadge}
+                title={t("connectors.pin")}
+                aria-label={t("connectors.pin")}
+              />
+            )}
             <span className={styles.version}>
               {t("connectors.version", { version: item.version })}
             </span>
@@ -409,7 +399,9 @@ export function ConnectorsConsole({
           <p className={`${styles.hint} tw:px-[10px]`}>
             {runtime.catalogError && !runtime.items.length
               ? t("connectors.list.unavailable")
-              : null}
+              : items.length > 0
+                ? t("connectors.list.count", { count: items.length })
+                : null}
           </p>
           {pinError && (
             <div role="alert" className={styles.error}>
@@ -427,26 +419,7 @@ export function ConnectorsConsole({
           )}
           <div className={styles.listScroll}>
             <Spin spinning={runtime.loading}>
-              <div className={styles.listItems}>
-                {pinnedItems.length > 0 && (
-                  <>
-                    <div className={styles.groupHeader}>
-                      {t("connectors.list.pinnedGroup", {
-                        count: pinnedItems.length,
-                      })}
-                    </div>
-                    {pinnedItems.map(renderItem)}
-                  </>
-                )}
-                {otherItems.length > 0 && (
-                  <>
-                    <div className={styles.groupHeader}>
-                      {t("connectors.list.count", { count: otherItems.length })}
-                    </div>
-                    {otherItems.map(renderItem)}
-                  </>
-                )}
-              </div>
+              <div className={styles.listItems}>{items.map(renderItem)}</div>
               {!items.length && !runtime.loading && !runtime.catalogError && (
                 <p className={styles.empty}>{t("connectors.list.empty")}</p>
               )}

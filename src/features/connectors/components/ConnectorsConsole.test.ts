@@ -333,10 +333,14 @@ it("pins a read-only connector without changing selection or discarding a draft,
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
   const names = () => Array.from(container.querySelectorAll("aside strong")).map(node => node.textContent);
+  const rowNames = () => Array.from(container.querySelectorAll("aside button")).filter(node => node.querySelector("strong"));
+  const rowPin = (name: string) => rowNames().find(node => node.querySelector("strong")?.textContent === name)?.querySelector('[data-material-icon="push_pin"]');
   await openMore("Other connector");
   await clickMenu("置顶");
   expect(putConnectorOrder).toHaveBeenLastCalledWith({ key: "builtin.other", pinned: true });
   expect(names()).toEqual(["Other connector", "Demo connector"]);
+  expect(rowPin("Other connector")).not.toBeNull();
+  expect(rowPin("Demo connector")).toBeNull();
   expect(container.querySelector('aside button[aria-current="true"] strong')?.textContent).toBe(item.name);
   expect(input.value).toBe("Unsaved name");
   expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
@@ -344,9 +348,11 @@ it("pins a read-only connector without changing selection or discarding a draft,
   await act(async () => root.render(null));
   await mount();
   expect(names()[0]).toBe("Other connector");
+  expect(rowPin("Other connector")).not.toBeNull();
   await openMore("Other connector");
   await clickMenu("取消置顶");
   expect(names()).toEqual(["Demo connector", "Other connector"]);
+  expect(rowPin("Other connector")).toBeNull();
 });
 
 it("preserves connector order on save failure and reads remote pins when focused", async () => {
