@@ -17,6 +17,20 @@ import {
 } from "@/shared/contracts/agentEvents";
 import { SELECTED_TEXT_TARGET_REVEAL_EVENT } from "@/shared/data/desktop/selectedTextLocate";
 import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
+import {
+  TimelineTextSearchProvider,
+  useTimelineTextSearch,
+  type TimelineTextSearchContextValue,
+} from "@/features/timeline/components/TimelineTextSearchProvider";
+import { waitForCurrentThenHighlightAll } from "@/features/timeline/lib/timelineTextSearchDom";
+
+// 高亮会在 React 托管的文本节点上插 mark，用例只关心「谁在滚动」，
+// 这里整体替身掉 DOM 操作，避免污染和解基线。
+jest.mock("@/features/timeline/lib/timelineTextSearchDom", () => ({
+  clearHighlights: jest.fn(),
+  highlightAllRendered: jest.fn(),
+  waitForCurrentThenHighlightAll: jest.fn(),
+}));
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
   .IS_REACT_ACT_ENVIRONMENT = true;
@@ -231,6 +245,35 @@ function createCompletedRunState(): AppState {
     timelineOrder: nodes.map((node) => node.id),
   };
 }
+
+/** 一串用户消息：每条都是一个可搜索节点，便于断言命中落点。 */
+function createTextSearchState(texts: string[]): AppState {
+  const nodes: TimelineNode[] = texts.map((text, index) => ({
+    id: `u${index + 1}`,
+    kind: "message",
+    role: "user",
+    text,
+    ts: 1_700_000_000_000 + index,
+  }));
+  return {
+    ...createInitialState(),
+    chatId: "chat-target",
+    timelineNodes: new Map(nodes.map((node) => [node.id, node])),
+    timelineOrder: nodes.map((node) => node.id),
+  };
+}
+
+let textSearchHandle: TimelineTextSearchContextValue | null = null;
+
+const TextSearchHarness: React.FC = () => {
+  textSearchHandle = useTimelineTextSearch();
+  return React.createElement(ConnectedConversationStage, {
+    surfaceMode: "main",
+    onFeedback: async () => undefined,
+    deriveChatAction: { isDisabled: () => false, execute: async () => undefined },
+    expectedChatId: "chat-target",
+  });
+};
 
 describe("ConversationStage scroll restoration", () => {
   let container: HTMLDivElement;
@@ -1184,5 +1227,114 @@ describe("ConversationStage scroll restoration", () => {
       );
     });
     expect(unknown.handled).toBe(false);
+  });
+
+  describe("text search", () => {
+    const mockWaitForHighlight = waitForCurrentThenHighlightAll as jest.Mock;
+
+    function renderTextSearchStage() {
+      act(() => {
+        root.render(
+          React.createElement(
+            TimelineTextSearchProvider,
+            null,
+            React.createElement(TextSearchHarness),
+          ),
+        );
+      });
+    }
+
+    /** 打开搜索并输入命中多个节点的关键词。 */
+    function searchFor(query: string) {
+      renderTextSearchStage();
+      act(() => textSearchHandle?.openSearch());
+      act(() => textSearchHandle?.setQuery(query));
+    }
+
+    /** 用新时间线数据重渲染，模拟流式追加内容。 */
+    function pushTimeline(texts: string[]) {
+      mockState = { ...createTextSearchState(texts), streaming: true };
+      mockStateRef.current = mockState;
+      renderTextSearchStage();
+    }
+
+    beforeEach(() => {
+      textSearchHandle = null;
+      mockWaitForHighlight.mockClear();
+      mockScrollToIndex.mockReset();
+    });
+
+    it("reveals the first match once the query yields hits", () => {
+      searchFor("hello");
+
+      expect(mockScrollToIndex).toHaveBeenCalledWith({
+        index: 0,
+        behavior: "smooth",
+        align: "center",
+      });
+      expect(mockWaitForHighlight).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the viewport while streamed content lands on other nodes", () => {
+      mockState = createTextSearchState(["hello one", "hello two"]);
+      mockStateRef.current = mockState;
+      searchFor("hello");
+      mockScrollToIndex.mockReset();
+      mockWaitForHighlight.mockClear();
+
+      // 流式追加的节点不含命中词：时间线数据变了，但当前命中位置没变。
+      pushTimeline(["hello one", "hello two", "unrelated streamed text"]);
+
+      expect(textSearchHandle?.total).toBe(2);
+      expect(textSearchHandle?.activeIndex).toBe(0);
+      expect(mockScrollToIndex).not.toHaveBeenCalled();
+      expect(mockWaitForHighlight).not.toHaveBeenCalled();
+    });
+
+    it("keeps the active match when streaming adds more hits", () => {
+      mockState = createTextSearchState(["hello one", "hello two"]);
+      mockStateRef.current = mockState;
+      searchFor("hello");
+      act(() => textSearchHandle?.goNext());
+      expect(textSearchHandle?.activeIndex).toBe(1);
+      expect(mockScrollToIndex).toHaveBeenCalledWith({
+        index: 1,
+        behavior: "smooth",
+        align: "center",
+      });
+      mockScrollToIndex.mockReset();
+      mockWaitForHighlight.mockClear();
+
+      // 新增命中把 total 抬到 3，不能因此把当前命中退回第一条。
+      pushTimeline(["hello one", "hello two", "hello three"]);
+
+      expect(textSearchHandle?.total).toBe(3);
+      expect(textSearchHandle?.activeIndex).toBe(1);
+      expect(mockScrollToIndex).not.toHaveBeenCalled();
+      expect(mockWaitForHighlight).not.toHaveBeenCalled();
+    });
+
+    it("still reveals the next match when the user moves between hits", () => {
+      mockState = createTextSearchState(["hello one", "hello two"]);
+      mockStateRef.current = mockState;
+      searchFor("hello");
+      mockScrollToIndex.mockReset();
+      mockWaitForHighlight.mockClear();
+
+      act(() => textSearchHandle?.goNext());
+
+      expect(mockScrollToIndex).toHaveBeenCalledWith({
+        index: 1,
+        behavior: "smooth",
+        align: "center",
+      });
+      expect(mockWaitForHighlight).toHaveBeenCalledWith(
+        "u2",
+        "hello",
+        expect.any(Set),
+        "u2",
+        1,
+      );
+    });
   });
 });

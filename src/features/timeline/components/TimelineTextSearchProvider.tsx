@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useAppState } from "@/app/state/AppContext";
@@ -118,9 +119,18 @@ export const TimelineTextSearchProvider: React.FC<
     });
   }, [total]);
 
+  const previousQueryRef = useRef(query);
   useEffect(() => {
-    setActiveIndex(total > 0 ? 0 : -1);
-  }, [total]);
+    const queryChanged = previousQueryRef.current !== query;
+    previousQueryRef.current = query;
+    setActiveIndex((current) => {
+      if (total <= 0) return -1;
+      // 换关键词才回到第一条命中；命中数量只随流式内容增长时保留当前命中，
+      // 否则运行中每个 chunk 都会把视口拉回第一条命中，滚不到底部。
+      if (queryChanged) return 0;
+      return current >= 0 && current < total ? current : 0;
+    });
+  }, [query, total]);
 
   useEffect(() => {
     if (open && searchableNodeIds.size === 0) {

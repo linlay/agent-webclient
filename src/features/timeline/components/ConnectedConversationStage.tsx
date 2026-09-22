@@ -40,6 +40,7 @@ import {
 import {
   buildNodeCollapseTargets,
   buildNodeVirtualIndexMap,
+  buildTextSearchRevealKey,
 } from "@/features/timeline/lib/timelineTextSearch";
 import {
   clearHighlights,
@@ -626,10 +627,33 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     ],
   );
 
+  /** 当前命中位置（会话 + 关键词 + 节点 + 序数）的稳定标识，只由它决定要不要滚动。 */
+  const textSearchRevealKey = useMemo(() => {
+    if (!textSearch || !textSearch.open || textSearch.activeIndex < 0) return "";
+    return buildTextSearchRevealKey(
+      state.chatId,
+      textSearch.query,
+      textSearch.matches.matches[textSearch.activeIndex],
+    );
+  }, [state.chatId, textSearch]);
+
+  const revealedSearchKeyRef = useRef("");
+
   useEffect(() => {
-    if (!textSearch || !textSearch.open) return;
-    clearHighlights();
-    if (textSearch.activeIndex < 0) return;
+    if (!textSearch || !textSearch.open || !textSearchRevealKey) {
+      revealedSearchKeyRef.current = "";
+      clearHighlights();
+      return;
+    }
+
+    // 命中位置没变（只是流式更新换了 matches / searchableNodeIds 的身份）时只重建高亮：
+    // 否则运行中每个 chunk 都会把视口拖回命中处，用户根本滚不到底部。
+    if (revealedSearchKeyRef.current === textSearchRevealKey) {
+      refreshHighlights();
+      return;
+    }
+    revealedSearchKeyRef.current = textSearchRevealKey;
+
     const match = textSearch.matches.matches[textSearch.activeIndex];
     if (!match) return;
 
@@ -641,7 +665,13 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       match.nodeId,
       match.ordinalInNode,
     );
-  }, [revealTimelineNode, textSearch]);
+  }, [
+    refreshHighlights,
+    revealTimelineNode,
+    state.chatId,
+    textSearch,
+    textSearchRevealKey,
+  ]);
 
   useEffect(() => {
     const reveal = (event: Event) => {

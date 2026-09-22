@@ -153,6 +153,26 @@ function collectTaskGroupKeys(
   }
 }
 
+/**
+ * 文本搜索「当前命中」的稳定标识。
+ *
+ * `matches` / `searchableNodeIds` 在每次时间线数据变化（流式 chunk）时都会换新对象，
+ * 所以不能拿上下文对象当触发条件：只有这个标识变化时才应该滚动视口。
+ */
+export function buildTextSearchRevealKey(
+  chatId: string,
+  query: string,
+  match: TextSearchMatch | undefined,
+): string {
+  if (!match) return "";
+  return [
+    String(chatId || ""),
+    String(query || "").trim(),
+    match.nodeId,
+    String(match.ordinalInNode),
+  ].join("\u0000");
+}
+
 export function buildNodeCollapseTargets(
   displayItems: TimelineDisplayItem[],
 ): NodeCollapseTargets {

@@ -4,6 +4,7 @@ import {
   buildNodeCollapseTargets,
   buildNodeVirtualIndexMap,
   buildTextSearchMatches,
+  buildTextSearchRevealKey,
   getNodeSearchableText,
   isSearchableTextNode,
 } from "@/features/timeline/lib/timelineTextSearch";
@@ -231,5 +232,34 @@ describe("buildNodeCollapseTargets", () => {
 
     expect(taskGroupKeyByNodeId.get("c1")).toBe("task_group_t1_c1");
     expect(runKeyByNodeId.has("c1")).toBe(false);
+  });
+});
+
+describe("buildTextSearchRevealKey", () => {
+  const match = { nodeId: "c1", nodeIndex: 2, ordinalInNode: 3, start: 0, end: 5 };
+
+  it("is empty without an active match", () => {
+    expect(buildTextSearchRevealKey("chat-1", "hello", undefined)).toBe("");
+  });
+
+  it("stays stable while the same hit is active", () => {
+    expect(buildTextSearchRevealKey("chat-1", " hello ", match)).toBe(
+      buildTextSearchRevealKey("chat-1", "hello", { ...match }),
+    );
+  });
+
+  it("changes when the keyword, chat, node or ordinal moves", () => {
+    const base = buildTextSearchRevealKey("chat-1", "hello", match);
+    expect(buildTextSearchRevealKey("chat-1", "world", match)).not.toBe(base);
+    expect(buildTextSearchRevealKey("chat-2", "hello", match)).not.toBe(base);
+    expect(
+      buildTextSearchRevealKey("chat-1", "hello", { ...match, nodeId: "c2" }),
+    ).not.toBe(base);
+    expect(
+      buildTextSearchRevealKey("chat-1", "hello", {
+        ...match,
+        ordinalInNode: 4,
+      }),
+    ).not.toBe(base);
   });
 });
