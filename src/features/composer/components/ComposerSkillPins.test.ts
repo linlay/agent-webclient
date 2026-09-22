@@ -88,13 +88,10 @@ describe("Composer skill pins", () => {
 
   const render = () => act(() => root.render(React.createElement(AddMenuTrigger, props)));
   const click = (selector: string) => act(() => container.querySelector<HTMLButtonElement>(selector)!.click());
-  /** 技能行的复选框（antd Checkbox 的 input），按行序返回。 */
-  const rowCheckboxes = () => [
-    ...container.querySelectorAll<HTMLInputElement>(
-      '.composer-add-menu-skill-select input[type="checkbox"]',
-    ),
+  const skillRows = () => [
+    ...container.querySelectorAll<HTMLElement>('.composer-add-menu-skill-select'),
   ];
-  const clickSkillCheckbox = (index = 0) => act(() => rowCheckboxes()[index].click());
+  const clickSkillRow = (index = 0) => act(() => skillRows()[index].click());
   const openSkills = async () => {
     click('[aria-label="composer.addMenu.open"]');
     const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
@@ -124,7 +121,7 @@ describe("Composer skill pins", () => {
     await pin("Slides", true);
     expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
 
-    clickSkillCheckbox();
+    clickSkillRow();
     expect(props.onSelectSkill).toHaveBeenCalledWith(skills[0]);
     expect(names()).toEqual([]);
   });
@@ -156,28 +153,20 @@ describe("Composer skill pins", () => {
     await openSkills();
     await pin("PDF");
     expect(names()[0]).toBe("PDF");
-    const checkbox = rowCheckboxes()[0];
-    expect(checkbox.type).toBe("checkbox");
-    expect(checkbox.disabled).toBe(true);
-    expect(checkbox.checked).toBe(true);
-    clickSkillCheckbox();
+    expect(skillRows()[0].getAttribute("aria-disabled")).toBe("true");
+    clickSkillRow();
     expect(props.onSelectSkill).not.toHaveBeenCalled();
   });
 
-  it("keeps the checkbox always visible on the row right and the pin and configured tag next to the name", async () => {
+  it("renders direct skill actions without checkboxes and places pin at the right end of the title line", async () => {
     render();
     await openSkills();
 
-    const rows = [...container.querySelectorAll<HTMLLabelElement>(".composer-add-menu-skill-select")];
+    const rows = skillRows();
     expect(rows).toHaveLength(3);
-    for (const row of rows) expect(row.tagName).toBe("LABEL");
-
-    // 复选框常显，不随选中状态增删；无障碍名称跟随技能名
-    const boxes = rowCheckboxes();
-    expect(boxes).toHaveLength(3);
-    expect(boxes.map((box) => box.type)).toEqual(["checkbox", "checkbox", "checkbox"]);
-    expect(boxes.map((box) => box.checked)).toEqual([false, false, false]);
-    expect(boxes.map((box) => box.getAttribute("aria-label"))).toEqual([
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(rows.map((row) => row.getAttribute("role"))).toEqual(["button", "button", "button"]);
+    expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual([
       "composer.addMenu.skill.select Platform Admin",
       "composer.addMenu.skill.select PDF",
       "composer.addMenu.skill.select Slides",
@@ -187,17 +176,27 @@ describe("Composer skill pins", () => {
     const configuredNodes = [...configuredTitle.children];
     expect(configuredNodes).toHaveLength(3);
     expect(configuredNodes[0].tagName).toBe("B");
-    expect(configuredNodes[1].classList.contains("composer-add-menu-skill-pin")).toBe(true);
-    expect(configuredNodes[2].classList.contains("composer-add-menu-skill-tag")).toBe(true);
-    expect(configuredNodes[2].textContent).toBe("slashPalette.skill.source.agent");
+    expect(configuredNodes[1].classList.contains("composer-add-menu-skill-tag")).toBe(true);
+    expect(configuredNodes[1].textContent).toBe("slashPalette.skill.source.agent");
 
-    // 未配置的智能体技能只保留名称与置顶图标，不渲染来源标记
+    // 置顶按钮位于标题末端，不占用描述右侧的独立列。
     const plainTitle = rows[1].querySelector(".composer-add-menu-item-title")!;
     const plainNodes = [...plainTitle.children];
     expect(plainNodes).toHaveLength(2);
     expect(plainNodes[0].tagName).toBe("B");
-    expect(plainNodes[1].classList.contains("composer-add-menu-skill-pin")).toBe(true);
+    for (const row of rows) {
+      expect(row.querySelector(".composer-add-menu-item-title")?.lastElementChild?.classList.contains("composer-add-menu-skill-pin")).toBe(true);
+      expect(row.querySelector(".composer-add-menu-item-copy")?.lastElementChild?.tagName).toBe("SMALL");
+    }
     expect(plainTitle.querySelector(".composer-add-menu-skill-tag")).toBeNull();
+  });
+
+  it.each(["Enter", " "])("selects a skill with the %s key", async (key) => {
+    render();
+    await openSkills();
+    act(() => Simulate.keyDown(skillRows()[0], { key }));
+    expect(props.onSelectSkill).toHaveBeenCalledWith(skills[0]);
+    expect(names()).toEqual([]);
   });
 
   it("updates slash keyboard selection and refreshes changes from another client", async () => {
@@ -282,14 +281,14 @@ function readComposerStyleRule(selector: string): string {
 }
 
 describe("composer skill row layout", () => {
-  it("keeps the row a flex label with the checkbox pushed right and the title line inline", () => {
+  it("keeps the content full width and aligns the pin to the right of the title", () => {
     const row = readComposerStyleRule(".composer-add-menu-skill-row");
 
     expect(row).toMatch(/display:\s*flex;/);
     expect(row).toMatch(/align-items:\s*center;/);
-    // 中间文案列撑满剩余宽度，把行末的复选框顶到右侧常显
+    // 文案列占满图标右侧的剩余宽度。
     expect(readComposerStyleRule(".composer-add-menu-item-copy")).toMatch(/flex:\s*1;/);
-    // 名称、置顶图标与来源标记同处一行
+    // 名称、来源标记与置顶图标同处一行。
     expect(readComposerStyleRule(".composer-add-menu-item-title")).toMatch(/display:\s*flex;/);
   });
 });

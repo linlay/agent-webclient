@@ -1,6 +1,6 @@
 import { SkinVisual } from "@/shared/ui/SkinVisual";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Checkbox, Input, Popover, Typography } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Input, Popover, Typography } from "antd";
 import type { InputRef } from "antd";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
@@ -72,9 +72,10 @@ const sectionMeta: Record<
   },
 };
 // 一级面板导航条目："divider" 为分割线，可自由插入任意位置
-type NavEntry = Section | "mode" | "divider";
+type NavEntry = Section | "screenshot" | "mode" | "divider";
 const sectionNav: NavEntry[] = [
   "files",
+  "screenshot",
   "divider",
   "mode",
   "skills",
@@ -136,11 +137,6 @@ const AddMenuSectionDetail: React.FC<
   );
   const filteredSites = sites.filter((site) =>
     matchKeyword(site.label, site.url || "", site.entryKey),
-  );
-  const selected = useMemo(
-    () =>
-      new Set(props.selectedSkillKeys.map((key) => text(key).toLowerCase())),
-    [props.selectedSkillKeys],
   );
   const siteAvailable = canUseDesktopWebsBridge();
   useEffect(() => {
@@ -230,24 +226,7 @@ const AddMenuSectionDetail: React.FC<
             </>,
             props.onOpenFilePicker,
           )}
-          {props.canCaptureDesktopScreenshot &&
-            item(
-              <>
-                <SkinVisual slot="chat.screenshot">
-                  <MaterialIcon name="crop_free" />
-                </SkinVisual>
-                <span>{t("composer.addMenu.screenshot")}</span>
-              </>,
-              props.onCaptureScreenshot,
-              {
-                disabled:
-                  props.disabled ||
-                  props.isMainChatRunning ||
-                  props.isCapturingDesktopScreenshot,
-                loading: props.isCapturingDesktopScreenshot,
-                title: props.screenshotDisabledReason,
-              },
-            )}
+
         </>
       )}
       {section === "skills" && (
@@ -272,7 +251,6 @@ const AddMenuSectionDetail: React.FC<
           )}
           {filteredSkills.map((skill) => {
             const identity = text(skill.key).toLowerCase();
-            const isSelected = selected.has(identity);
             const pinned = pinnedSkillKeys.includes(identity);
             const skillName = skill.name || skill.key;
             const pinLabel = t(
@@ -283,16 +261,38 @@ const AddMenuSectionDetail: React.FC<
             );
             const selectDisabled = props.isMainChatRunning;
             return (
-              // 整行即选择控件：复选框常显在右侧，置顶图标与来源标记跟随名称
-              <label
+              // 点击整行选择，置顶按钮独立操作。
+              <div
                 key={skill.key}
                 className={`composer-add-menu-skill-row composer-add-menu-skill-select${selectDisabled ? " is-disabled" : ""}`}
                 data-pinned={pinned || undefined}
+                role="button"
+                tabIndex={selectDisabled ? -1 : 0}
+                aria-disabled={selectDisabled}
+                aria-label={t("composer.addMenu.skill.select", { name: skillName })}
+                onClick={() => {
+                  if (!selectDisabled) execute(() => props.onSelectSkill(skill));
+                }}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    if (!selectDisabled) execute(() => props.onSelectSkill(skill));
+                  }
+                }}
               >
                 <SkillIcon icon={skill.icon} />
                 <span className="composer-add-menu-item-copy">
                   <span className="composer-add-menu-item-title">
                     <b>{skillName}</b>
+                    {skill.configured && (
+                      <UiTag
+                        tone="muted"
+                        className="composer-add-menu-skill-tag"
+                      >
+                        {t("slashPalette.skill.source.agent")}
+                      </UiTag>
+                    )}
                     <button
                       type="button"
                       className="composer-add-menu-skill-pin"
@@ -312,28 +312,12 @@ const AddMenuSectionDetail: React.FC<
                         className="composer-add-menu-skill-pin-icon"
                       />
                     </button>
-                    {skill.configured && (
-                      <UiTag
-                        tone="muted"
-                        className="composer-add-menu-skill-tag"
-                      >
-                        {t("slashPalette.skill.source.agent")}
-                      </UiTag>
-                    )}
                   </span>
                   <small>
                     {skill.description || t("slashPalette.skill.noDescription")}
                   </small>
                 </span>
-                <Checkbox
-                  checked={isSelected}
-                  disabled={selectDisabled}
-                  aria-label={t("composer.addMenu.skill.select", {
-                    name: skillName,
-                  })}
-                  onChange={() => execute(() => props.onSelectSkill(skill))}
-                />
-              </label>
+              </div>
             );
           })}
           {skillQuery.status === "loading" && (
@@ -487,6 +471,9 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
       (!props.currentAgentKey || props.interactionConfig?.connectors === false)
     )
       return false;
+    if (entry === "screenshot")
+      return props.canCaptureDesktopScreenshot &&
+        props.interactionConfig?.attachment.localFiles !== false;
     if (entry === "divider") return true;
     if (entry === "site") return canUseDesktopWebsBridge();
     if (entry === "mode")
@@ -533,6 +520,28 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             className="composer-add-menu-divider"
             aria-hidden="true"
           />
+        ) : entry === "screenshot" ? (
+          <UiButton
+            key={entry}
+            variant="ghost"
+            size="sm"
+            role="menuitem"
+            className="composer-add-menu-nav-item"
+            disabled={props.disabled || props.isMainChatRunning || props.isCapturingDesktopScreenshot}
+            loading={props.isCapturingDesktopScreenshot}
+            title={props.screenshotDisabledReason}
+            onMouseEnter={() => setSection(null)}
+            onFocus={() => setSection(null)}
+            onClick={() => {
+              props.onCaptureScreenshot();
+              props.onClose();
+            }}
+          >
+            <SkinVisual slot="chat.screenshot">
+              <MaterialIcon name="crop_free" />
+            </SkinVisual>
+            <span>{t("composer.addMenu.screenshot")}</span>
+          </UiButton>
         ) : entry === "mode" ? (
           <UiButton
             key={entry}
@@ -575,7 +584,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
                 next ? entry : prev === entry ? null : prev,
               );
             }}
-            trigger="click"
+            trigger={["hover", "click"]}
             placement="rightBottom"
             arrow={false}
             destroyOnHidden

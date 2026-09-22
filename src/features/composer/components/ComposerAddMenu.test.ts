@@ -94,6 +94,9 @@ describe("AddMenuTrigger", () => {
       .find((button) => button.textContent?.includes("composer.addMenu.section.files"))!;
     act(() => section.click());
   };
+  const openMenu = () => click('[aria-label="composer.addMenu.open"]');
+  const screenshotItem = () => [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+    .find((button) => button.textContent?.includes("composer.addMenu.screenshot"));
   const fileItems = () => [...container.querySelectorAll<HTMLButtonElement>(".composer-add-menu-detail-item")];
   const fileItem = (label: string) =>
     fileItems().find((button) => button.textContent?.includes(label))!;
@@ -106,14 +109,14 @@ describe("AddMenuTrigger", () => {
     expect(trigger.querySelector('[data-material-icon="add"]')).not.toBeNull();
   });
 
-  it("keeps the screenshot action inside the files section of the add menu", () => {
+  it("shows screenshot directly in the add menu and keeps file picking in the files section", () => {
     render();
-    openFiles();
-
-    expect(fileItems().map((button) => button.textContent)).toEqual([
-      "composer.addMenu.file",
-      "composer.addMenu.screenshot",
-    ]);
+    openMenu();
+    expect(screenshotItem()).toBeDefined();
+    const files = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.files"))!;
+    act(() => files.click());
+    expect(fileItems().map((button) => button.textContent)).toEqual(["composer.addMenu.file"]);
 
     click(".composer-add-menu-detail-item");
     expect(props.onOpenFilePicker).toHaveBeenCalledTimes(1);
@@ -122,9 +125,9 @@ describe("AddMenuTrigger", () => {
 
   it("captures a screenshot and closes the menu without opening the file picker", () => {
     render();
-    openFiles();
+    openMenu();
 
-    act(() => fileItem("composer.addMenu.screenshot").click());
+    act(() => screenshotItem()!.click());
 
     expect(props.onCaptureScreenshot).toHaveBeenCalledTimes(1);
     expect(props.onOpenFilePicker).not.toHaveBeenCalled();
@@ -137,15 +140,16 @@ describe("AddMenuTrigger", () => {
     openFiles();
 
     expect(fileItems().map((button) => button.textContent)).toEqual(["composer.addMenu.file"]);
+    expect(screenshotItem()).toBeUndefined();
   });
 
   it("disables the screenshot action while a run is active or while capturing", () => {
     props.isMainChatRunning = true;
     props.screenshotDisabledReason = "composer.actions.screenshotDisabled.streaming";
     render();
-    openFiles();
+    openMenu();
 
-    const duringRun = fileItem("composer.addMenu.screenshot");
+    const duringRun = screenshotItem()!;
     expect(duringRun.disabled).toBe(true);
     expect(duringRun.getAttribute("title")).toBe("composer.actions.screenshotDisabled.streaming");
     act(() => duringRun.click());
@@ -156,9 +160,9 @@ describe("AddMenuTrigger", () => {
     props.isCapturingDesktopScreenshot = true;
     root = createRoot(container);
     render();
-    openFiles();
+    openMenu();
 
-    const capturing = fileItem("composer.addMenu.screenshot");
+    const capturing = screenshotItem()!;
     expect(capturing.disabled).toBe(true);
     expect(capturing.className).toContain("is-loading");
   });
