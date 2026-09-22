@@ -1,5 +1,7 @@
 /** @jest-environment jsdom */
 
+import fs from "node:fs";
+import path from "node:path";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
@@ -86,6 +88,13 @@ describe("Composer skill pins", () => {
 
   const render = () => act(() => root.render(React.createElement(AddMenuTrigger, props)));
   const click = (selector: string) => act(() => container.querySelector<HTMLButtonElement>(selector)!.click());
+  /** 技能行的复选框（antd Checkbox 的 input），按行序返回。 */
+  const rowCheckboxes = () => [
+    ...container.querySelectorAll<HTMLInputElement>(
+      '.composer-add-menu-skill-select input[type="checkbox"]',
+    ),
+  ];
+  const clickSkillCheckbox = (index = 0) => act(() => rowCheckboxes()[index].click());
   const openSkills = async () => {
     click('[aria-label="composer.addMenu.open"]');
     const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
@@ -115,7 +124,7 @@ describe("Composer skill pins", () => {
     await pin("Slides", true);
     expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
 
-    click(".composer-add-menu-skill-select");
+    clickSkillCheckbox();
     expect(props.onSelectSkill).toHaveBeenCalledWith(skills[0]);
     expect(names()).toEqual([]);
   });
@@ -147,11 +156,48 @@ describe("Composer skill pins", () => {
     await openSkills();
     await pin("PDF");
     expect(names()[0]).toBe("PDF");
-    const select = container.querySelector<HTMLButtonElement>(".composer-add-menu-skill-select")!;
-    expect(select.disabled).toBe(true);
-    expect(select.querySelector('[data-material-icon="check"]')).not.toBeNull();
-    click(".composer-add-menu-skill-select");
+    const checkbox = rowCheckboxes()[0];
+    expect(checkbox.type).toBe("checkbox");
+    expect(checkbox.disabled).toBe(true);
+    expect(checkbox.checked).toBe(true);
+    clickSkillCheckbox();
     expect(props.onSelectSkill).not.toHaveBeenCalled();
+  });
+
+  it("keeps the checkbox always visible on the row right and the pin and configured tag next to the name", async () => {
+    render();
+    await openSkills();
+
+    const rows = [...container.querySelectorAll<HTMLLabelElement>(".composer-add-menu-skill-select")];
+    expect(rows).toHaveLength(3);
+    for (const row of rows) expect(row.tagName).toBe("LABEL");
+
+    // 复选框常显，不随选中状态增删；无障碍名称跟随技能名
+    const boxes = rowCheckboxes();
+    expect(boxes).toHaveLength(3);
+    expect(boxes.map((box) => box.type)).toEqual(["checkbox", "checkbox", "checkbox"]);
+    expect(boxes.map((box) => box.checked)).toEqual([false, false, false]);
+    expect(boxes.map((box) => box.getAttribute("aria-label"))).toEqual([
+      "composer.addMenu.skill.select Platform Admin",
+      "composer.addMenu.skill.select PDF",
+      "composer.addMenu.skill.select Slides",
+    ]);
+
+    const configuredTitle = rows[0].querySelector(".composer-add-menu-item-title")!;
+    const configuredNodes = [...configuredTitle.children];
+    expect(configuredNodes).toHaveLength(3);
+    expect(configuredNodes[0].tagName).toBe("B");
+    expect(configuredNodes[1].classList.contains("composer-add-menu-skill-pin")).toBe(true);
+    expect(configuredNodes[2].classList.contains("composer-add-menu-skill-tag")).toBe(true);
+    expect(configuredNodes[2].textContent).toBe("slashPalette.skill.source.agent");
+
+    // 未配置的智能体技能只保留名称与置顶图标，不渲染来源标记
+    const plainTitle = rows[1].querySelector(".composer-add-menu-item-title")!;
+    const plainNodes = [...plainTitle.children];
+    expect(plainNodes).toHaveLength(2);
+    expect(plainNodes[0].tagName).toBe("B");
+    expect(plainNodes[1].classList.contains("composer-add-menu-skill-pin")).toBe(true);
+    expect(plainTitle.querySelector(".composer-add-menu-skill-tag")).toBeNull();
   });
 
   it("updates slash keyboard selection and refreshes changes from another client", async () => {
@@ -218,5 +264,32 @@ describe("Composer skill pins", () => {
     await act(async () => render());
     expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);
+  });
+});
+
+/** 读取本面板样式模块中的单条规则（与 managementLayout.test.ts 同法）。 */
+function readComposerStyleRule(selector: string): string {
+  const css = fs
+    .readFileSync(
+      path.join(process.cwd(), "src/features/composer/components/ComposerCompat.module.css"),
+      "utf8",
+    )
+    .replace(/:global\(([^)]+)\)/g, "$1");
+  const start = css.indexOf(`${selector} {`);
+  if (start < 0) return "";
+  const end = css.indexOf("}", start);
+  return end < 0 ? "" : css.slice(start, end + 1);
+}
+
+describe("composer skill row layout", () => {
+  it("keeps the row a flex label with the checkbox pushed right and the title line inline", () => {
+    const row = readComposerStyleRule(".composer-add-menu-skill-row");
+
+    expect(row).toMatch(/display:\s*flex;/);
+    expect(row).toMatch(/align-items:\s*center;/);
+    // 中间文案列撑满剩余宽度，把行末的复选框顶到右侧常显
+    expect(readComposerStyleRule(".composer-add-menu-item-copy")).toMatch(/flex:\s*1;/);
+    // 名称、置顶图标与来源标记同处一行
+    expect(readComposerStyleRule(".composer-add-menu-item-title")).toMatch(/display:\s*flex;/);
   });
 });

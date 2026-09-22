@@ -153,10 +153,17 @@
     font-size: 11px;
 }
 
+/* 技能行：整行是选框标签，复选框常显在行右侧，置顶图标与来源标记跟随名称 */
 :global(.composer-add-menu-skill-row) {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    padding: 6px;
     border-radius: 8px;
+    color: var(--text-main);
+    font-size: 12px;
+    cursor: pointer;
 }
 
 :global(.composer-add-menu-skill-row):hover,
@@ -164,22 +171,77 @@
     background: var(--bg-hover);
 }
 
-:global(.composer-add-menu-skill-select):global(.ui-btn) {
-    flex: 1;
+:global(.composer-add-menu-skill-row):global(.is-disabled) {
+    cursor: default;
+}
+
+:global(.composer-add-menu-item-title) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     min-width: 0;
-    width: 100%;
+}
+
+:global(.composer-add-menu-item-title)>b {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+:global(.composer-add-menu-skill-pin) {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
     background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, background-color 0.16s ease, color 0.16s ease;
 }
 
-:global(.composer-add-menu-skill-selected) {
-    position: absolute;
-    right: 10px;
-    bottom: 6px;
-    font-size: 12px;
+:global(.composer-add-menu-skill-row):hover :global(.composer-add-menu-skill-pin),
+:global(.composer-add-menu-skill-row):focus-within :global(.composer-add-menu-skill-pin),
+:global(.composer-add-menu-skill-pin)[aria-pressed="true"] {
+    opacity: 1;
+    pointer-events: auto;
 }
 
-:global(.composer-add-menu-skill-row):global(.is-selected) small {
-    padding-right: 18px;
+:global(.composer-add-menu-skill-pin)[aria-pressed="true"] {
+    color: var(--ink-1);
+}
+
+:global(.composer-add-menu-skill-pin):hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+}
+
+:global(.composer-add-menu-skill-pin):disabled {
+    cursor: default;
+}
+
+:global(.composer-add-menu-skill-pin):focus-visible {
+    outline: 2px solid var(--accent-electric);
+    outline-offset: 2px;
+}
+
+:global(.composer-add-menu-skill-row) :global(.composer-add-menu-skill-pin) :global(.material-icon) {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    color: inherit;
+}
+
+:global(.composer-add-menu-skill-row) :global(.composer-add-menu-skill-tag) {
+    flex: none;
+    padding: 1px 6px;
+    font-size: 10px;
+    margin-left: auto;
 }
 
 :global(.composer-add-menu-mode-switch) {

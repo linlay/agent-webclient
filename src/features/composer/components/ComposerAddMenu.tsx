@@ -1,6 +1,6 @@
 import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input, Popover, Typography } from "antd";
+import { Checkbox, Input, Popover, Typography } from "antd";
 import type { InputRef } from "antd";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
@@ -14,7 +14,7 @@ import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposer
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { PinnableItem } from "@/shared/ui/PinnableItem";
+import { UiTag } from "@/shared/ui/UiTag";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
@@ -120,9 +120,16 @@ const AddMenuSectionDetail: React.FC<
     enabled: section === "skills",
   });
   const skills = skillQuery.data?.skills || [];
-  const { pinnedSkillKeys, toggleSkillPin, pinsDisabled, pinError, refreshPins } = skillQuery;
-  const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter((skill) =>
-    matchKeyword(skill.name || skill.key, skill.key, skill.description || ""),
+  const {
+    pinnedSkillKeys,
+    toggleSkillPin,
+    pinsDisabled,
+    pinError,
+    refreshPins,
+  } = skillQuery;
+  const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter(
+    (skill) =>
+      matchKeyword(skill.name || skill.key, skill.key, skill.description || ""),
   );
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
@@ -205,8 +212,15 @@ const AddMenuSectionDetail: React.FC<
           style={{ marginBottom: 10 }}
         />
       )}
-      {section === "connectors" && <AgentConnectorPicker key={props.currentAgentKey} agentKey={props.currentAgentKey}
-        search={search} onSearchChange={onSearchChange} disabled={props.disabled} />}
+      {section === "connectors" && (
+        <AgentConnectorPicker
+          key={props.currentAgentKey}
+          agentKey={props.currentAgentKey}
+          search={search}
+          onSearchChange={onSearchChange}
+          disabled={props.disabled}
+        />
+      )}
       {section === "files" && (
         <>
           {item(
@@ -239,42 +253,87 @@ const AddMenuSectionDetail: React.FC<
       {section === "skills" && (
         <div className="composer-add-menu-scroll">
           {pinError && skillQuery.status !== "error" && (
-            <div className="composer-add-menu-status" role="alert" title={pinError.message}>
+            <div
+              className="composer-add-menu-status"
+              role="alert"
+              title={pinError.message}
+            >
               {t("composer.addMenu.skill.pinFailed")}
-              <UiButton variant="ghost" size="sm" onClick={() => { void refreshPins().catch(() => undefined); }}>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  void refreshPins().catch(() => undefined);
+                }}
+              >
                 {t("slashPalette.skills.retry")}
               </UiButton>
             </div>
           )}
           {filteredSkills.map((skill) => {
-            const pinned = pinnedSkillKeys.includes(text(skill.key).toLowerCase());
-            const pinLabel = t(pinned ? "composer.addMenu.skill.unpin" : "composer.addMenu.skill.pin", {
-              name: skill.name || skill.key,
-            });
+            const identity = text(skill.key).toLowerCase();
+            const isSelected = selected.has(identity);
+            const pinned = pinnedSkillKeys.includes(identity);
+            const skillName = skill.name || skill.key;
+            const pinLabel = t(
+              pinned
+                ? "composer.addMenu.skill.unpin"
+                : "composer.addMenu.skill.pin",
+              { name: skillName },
+            );
+            const selectDisabled = props.isMainChatRunning;
             return (
-              <PinnableItem key={skill.key} className={`composer-add-menu-skill-row ${selected.has(skill.key.toLowerCase()) ? "is-selected" : ""}`}
-                pinned={pinned} label={pinLabel} disabled={pinsDisabled}
-                onToggle={() => { void toggleSkillPin(skill.key); }}>
-                <UiButton
-                  variant="ghost"
-                  size="sm"
-                  className="composer-add-menu-detail-item composer-add-menu-skill-select"
-                  disabled={props.isMainChatRunning}
-                  onClick={() => execute(() => props.onSelectSkill(skill))}
-                >
-                  <SkillIcon icon={skill.icon} />
-                  <span className="composer-add-menu-item-copy">
-                    <b data-pin-title>{skill.name || skill.key}</b>
-                    <small>
-                      {skill.description || t("slashPalette.skill.noDescription")}
-                    </small>
+              // 整行即选择控件：复选框常显在右侧，置顶图标与来源标记跟随名称
+              <label
+                key={skill.key}
+                className={`composer-add-menu-skill-row composer-add-menu-skill-select${selectDisabled ? " is-disabled" : ""}`}
+                data-pinned={pinned || undefined}
+              >
+                <SkillIcon icon={skill.icon} />
+                <span className="composer-add-menu-item-copy">
+                  <span className="composer-add-menu-item-title">
+                    <b>{skillName}</b>
+                    <button
+                      type="button"
+                      className="composer-add-menu-skill-pin"
+                      aria-label={pinLabel}
+                      aria-pressed={pinned}
+                      title={pinLabel}
+                      disabled={pinsDisabled}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void toggleSkillPin(skill.key);
+                      }}
+                    >
+                      <MaterialIcon
+                        name="push_pin"
+                        className="composer-add-menu-skill-pin-icon"
+                      />
+                    </button>
+                    {skill.configured && (
+                      <UiTag
+                        tone="muted"
+                        className="composer-add-menu-skill-tag"
+                      >
+                        {t("slashPalette.skill.source.agent")}
+                      </UiTag>
+                    )}
                   </span>
-                  {skill.configured && <small>{t("slashPalette.skill.source.agent")}</small>}
-                  {selected.has(skill.key.toLowerCase()) && (
-                    <MaterialIcon name="check" className="composer-add-menu-skill-selected" />
-                  )}
-                </UiButton>
-              </PinnableItem>
+                  <small>
+                    {skill.description || t("slashPalette.skill.noDescription")}
+                  </small>
+                </span>
+                <Checkbox
+                  checked={isSelected}
+                  disabled={selectDisabled}
+                  aria-label={t("composer.addMenu.skill.select", {
+                    name: skillName,
+                  })}
+                  onChange={() => execute(() => props.onSelectSkill(skill))}
+                />
+              </label>
             );
           })}
           {skillQuery.status === "loading" && (
@@ -393,7 +452,9 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   const { t } = useI18n();
   const [section, setSection] = useState<Section | null>(null);
   const [search, setSearch] = useState("");
-  const [compact, setCompact] = useState(() => typeof window !== "undefined" && window.innerWidth < 560);
+  const [compact, setCompact] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 560,
+  );
   useEffect(() => {
     const updateCompact = () => setCompact(window.innerWidth < 560);
     window.addEventListener("resize", updateCompact);
@@ -405,27 +466,63 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   }, [section]);
   // mode / site 在不可用时跳过，分割线条目保持原位
   const navEntries = sectionNav.filter((entry) => {
-    if (entry === "files" && props.interactionConfig?.attachment.localFiles === false) return false;
-    if (entry === "chat" && props.interactionConfig?.attachment.chatRecords === false) return false;
-    if (entry === "skills" && (!props.currentAgentKey || props.interactionConfig?.mustUseSkills === false)) return false;
-    if (entry === "connectors" && (!props.currentAgentKey || props.interactionConfig?.connectors === false)) return false;
+    if (
+      entry === "files" &&
+      props.interactionConfig?.attachment.localFiles === false
+    )
+      return false;
+    if (
+      entry === "chat" &&
+      props.interactionConfig?.attachment.chatRecords === false
+    )
+      return false;
+    if (
+      entry === "skills" &&
+      (!props.currentAgentKey ||
+        props.interactionConfig?.mustUseSkills === false)
+    )
+      return false;
+    if (
+      entry === "connectors" &&
+      (!props.currentAgentKey || props.interactionConfig?.connectors === false)
+    )
+      return false;
     if (entry === "divider") return true;
     if (entry === "site") return canUseDesktopWebsBridge();
     if (entry === "mode")
       return props.canUsePlanningMode || props.canUseEditingMode;
     return true;
   });
-  const visibleEntries = navEntries.filter((entry, index) => entry !== "divider" || (index > 0 && index < navEntries.length - 1));
-  useEffect(() => { if (section && !navEntries.includes(section)) setSection(null); }, [section, navEntries.join(",")]);
+  const visibleEntries = navEntries.filter(
+    (entry, index) =>
+      entry !== "divider" || (index > 0 && index < navEntries.length - 1),
+  );
+  useEffect(() => {
+    if (section && !navEntries.includes(section)) setSection(null);
+  }, [section, navEntries.join(",")]);
   // A side-by-side submenu cannot fit narrow chat windows. Reuse the parent
   // popover for this picker so the search and switches stay within the viewport.
   if (compact && section === "connectors") {
-    return <div>
-      <UiButton variant="ghost" size="sm" className="composer-add-menu-detail-item" onClick={() => setSection(null)}>
-        <MaterialIcon name="chevron_left" />{t("composer.addMenu.connectors.back")}
-      </UiButton>
-      <AddMenuSectionDetail {...props} section="connectors" onClose={props.onClose} search={search} onSearchChange={setSearch} />
-    </div>;
+    return (
+      <div>
+        <UiButton
+          variant="ghost"
+          size="sm"
+          className="composer-add-menu-detail-item"
+          onClick={() => setSection(null)}
+        >
+          <MaterialIcon name="chevron_left" />
+          {t("composer.addMenu.connectors.back")}
+        </UiButton>
+        <AddMenuSectionDetail
+          {...props}
+          section="connectors"
+          onClose={props.onClose}
+          search={search}
+          onSearchChange={setSearch}
+        />
+      </div>
+    );
   }
   return (
     <div className="composer-add-menu-nav" role="menu">
@@ -442,7 +539,9 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             variant="ghost"
             size="sm"
             role="menuitemcheckbox"
-            aria-checked={props.canUsePlanningMode ? props.planningMode : props.editingMode}
+            aria-checked={
+              props.canUsePlanningMode ? props.planningMode : props.editingMode
+            }
             className="composer-add-menu-nav-item"
             onMouseEnter={() => setSection(null)}
             onFocus={() => setSection(null)}
@@ -453,8 +552,17 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             }}
           >
             <MaterialIcon name="checklist" />
-            <span>{t(props.canUsePlanningMode ? "composer.addMenu.mode.planning" : "composer.addMenu.mode.editing")}</span>
-            <span className="composer-add-menu-mode-switch" aria-hidden="true" />
+            <span>
+              {t(
+                props.canUsePlanningMode
+                  ? "composer.addMenu.mode.planning"
+                  : "composer.addMenu.mode.editing",
+              )}
+            </span>
+            <span
+              className="composer-add-menu-mode-switch"
+              aria-hidden="true"
+            />
           </UiButton>
         ) : (
           <Popover
@@ -467,7 +575,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
                 next ? entry : prev === entry ? null : prev,
               );
             }}
-            trigger="hover"
+            trigger="click"
             placement="rightBottom"
             arrow={false}
             destroyOnHidden
@@ -527,7 +635,9 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
         aria-label={t("composer.addMenu.open")}
         title={t("composer.addMenu.open")}
       >
-        <SkinVisual slot="chat.attach"><MaterialIcon name="add" /></SkinVisual>
+        <SkinVisual slot="chat.attach">
+          <MaterialIcon name="add" />
+        </SkinVisual>
       </UiButton>
     </Popover>
   );
