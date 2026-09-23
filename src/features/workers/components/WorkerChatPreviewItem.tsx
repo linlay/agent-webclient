@@ -6,6 +6,8 @@ import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import { UnreadDot } from "@/features/chats/components/UnreadDot";
 import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { AgentIcon } from "@/shared/icons/agent";
+import type { Agent } from "@/features/agents/lib/agentState";
 
 const WORKER_CHAT_ITEM_CLASS =
   "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
@@ -18,6 +20,14 @@ const WORKER_CHAT_NAME_CLASS =
 
 const WORKER_CHAT_SOURCE_ICON_CLASS =
   "worker-chat-source-icon tw:inline-flex tw:h-[9px] tw:w-[9px] tw:shrink-0 tw:text-text-sub";
+
+const PINNED_CHAT_OWNER_CLASS = "pinned-chat-owner";
+
+const PINNED_CHAT_OWNER_ICON_CLASS = "pinned-chat-owner-icon";
+
+const PINNED_CHAT_OWNER_LABEL_CLASS = "pinned-chat-owner-label";
+
+const PINNED_CHAT_OWNER_ICON_SIZE = 12;
 
 const WORKER_CHAT_SOURCE_ICON_SVG_CLASS =
   "tw:h-full tw:w-full";
@@ -93,7 +103,9 @@ export const WorkerChatPreviewItem: React.FC<{
   loading: boolean;
   onClick: () => void;
   ownerLabel?: string;
-}> = ({ chat, isActive, loading, onClick, ownerLabel }) => {
+  ownerType?: "agent" | "team";
+  ownerIcon?: Agent["icon"];
+}> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon }) => {
   const { t } = useI18n();
   const action = chat.hasPendingAwaiting ? "awaiting" : loading ? "loading" : "time";
   const isBusyAction = action !== "time";
@@ -134,7 +146,29 @@ export const WorkerChatPreviewItem: React.FC<{
         <UnreadDot chat={chat} />
         <span className={WORKER_CHAT_NAME_CLASS} title={ownerLabel ? previewText : undefined}>
           {previewText}
-          {ownerLabel && <span className="pinned-chat-owner" title={ownerLabel}>{ownerLabel}</span>}
+          {ownerLabel && (
+            <span className={PINNED_CHAT_OWNER_CLASS} title={ownerLabel}>
+              {ownerType && (
+                <AgentIcon
+                  icon={ownerIcon}
+                  type={ownerType}
+                  props={{
+                    icon: {
+                      className: PINNED_CHAT_OWNER_ICON_CLASS,
+                      width: PINNED_CHAT_OWNER_ICON_SIZE,
+                      height: PINNED_CHAT_OWNER_ICON_SIZE,
+                      style: { borderRadius: 3 },
+                    },
+                    avatar: {
+                      className: PINNED_CHAT_OWNER_ICON_CLASS,
+                      size: PINNED_CHAT_OWNER_ICON_SIZE,
+                    },
+                  }}
+                />
+              )}
+              <span className={PINNED_CHAT_OWNER_LABEL_CLASS}>{ownerLabel}</span>
+            </span>
+          )}
         </span>
         <span className={WORKER_CHAT_ACTION_CLASS} data-action={action}>
           {chat.hasPendingAwaiting && (

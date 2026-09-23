@@ -1188,7 +1188,7 @@ export const zhCNMessages = {
   "archive.tag.attachments": "附件",
   "archive.title": "归档",
   "leftSidebar.noUnpinnedConversations": "暂无未置顶对话",
-  "leftSidebar.pinned": "Pinned",
+  "leftSidebar.pinned": "置顶",
   "chatActions.pin": "置顶",
   "chatActions.unpin": "取消置顶",
   "chatActions.pin.failed": "更新置顶失败，请重试",
