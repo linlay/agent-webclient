@@ -478,6 +478,13 @@
     border: 1px solid var(--line-soft);
 }
 
+/* antd Image 的包裹层负责 hover 遮罩，需要跟圆角图片同形并贴底，避免基线留白。 */
+:global(.timeline-markdown) :global(.markdown-image) > :global(.ant-image) {
+    border-radius: 10px;
+    overflow: hidden;
+    vertical-align: bottom;
+}
+
 :global(.timeline-markdown) video:global(.markdown-video) {
     display: block;
     width: min(100%, 720px);
