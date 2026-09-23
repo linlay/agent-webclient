@@ -1,30 +1,322 @@
-.root { width: 100%; min-width: 0; padding: 8px 0; }
-.grid { display: grid; grid-auto-flow: column; grid-auto-columns: 180px; align-items: start; gap: 14px; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; }
-.grid:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
-.tile { width: 180px; height: 180px; box-sizing: border-box; position: relative; min-width: 0; max-width: 420px; overflow: hidden; border-radius: 20px; border: 1px solid var(--line-soft); background: var(--bg-elev-2); }
-.placeholder, .overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; height: 100%; box-sizing: border-box; text-align: center; color: var(--ink-muted); font-size: 14px; }
-.placeholder > *, .overlay > * { position: relative; z-index: 1; }
-.placeholder :global(.material-icon), .overlay :global(.material-icon) { width: 30px; height: 30px; font-size: 30px; }
-.busy { position: relative; isolation: isolate; color: var(--ink-1); background: color-mix(in srgb, var(--accent-lime) 12%, var(--bg-elev-2)); }
-.busy::before { content: ''; position: absolute; inset: -55%; z-index: 0; background: radial-gradient(ellipse at 30% 35%, color-mix(in srgb, var(--accent-lime) 42%, transparent), transparent 55%), radial-gradient(ellipse at 70% 65%, color-mix(in srgb, var(--accent-electric) 22%, transparent), transparent 50%); animation: drift 6s ease-in-out infinite alternate; }
-.busy::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 5px, color-mix(in srgb, var(--line-soft) 28%, transparent) 6px); }
-.image, .open { width: 100%; height: 100%; }
-.open { display: block; padding: 0; border: 0; background: transparent; cursor: pointer; }
-.open:focus-visible { outline: 3px solid var(--accent-electric); outline-offset: -4px; }
-.open:disabled { cursor: default; }
-.open img { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity 180ms ease; }
-.loadingImage { opacity: 0; }
-.loaded { opacity: 1; }
-.overlay { position: absolute; inset: 0; }
-.retry { cursor: pointer; border: 1px solid var(--line-soft); border-radius: 8px; padding: 6px 12px; color: var(--ink-1); background: var(--bg-elev-2); }
-.details { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-@keyframes drift { from { transform: translate(-8%, -5%) rotate(-12deg); } to { transform: translate(8%, 5%) rotate(12deg); } }
-@media (prefers-reduced-motion: reduce) { .busy::before { animation: none; } .open img { transition: none; } }
+.root {
+  width: 100%;
+  min-width: 0;
+}
 
-.carousel { position: relative; }
-.scrollArrow { position: absolute; top: calc(50% - 4px); transform: translateY(-50%); z-index: 2; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--ink-1); background: var(--bg-elev-2); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); cursor: pointer; }
-.scrollArrow:hover { background: var(--bg-input); }
-.scrollArrow:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
-.scrollArrow :global(.material-icon) { width: 22px; height: 22px; font-size: 22px; }
-.scrollLeft { left: 6px; }
-.scrollRight { right: 6px; }
+.grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 180px;
+  align-items: start;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+}
+
+.grid:focus-visible {
+  outline: 2px solid var(--accent-electric);
+  outline-offset: 2px;
+}
+
+.tile {
+  width: 180px;
+  height: 180px;
+  box-sizing: border-box;
+  position: relative;
+  min-width: 0;
+  max-width: 420px;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.placeholder,
+.overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.placeholder>*,
+.overlay>* {
+  position: relative;
+  z-index: 1;
+}
+
+.placeholder :global(.material-icon),
+.overlay :global(.material-icon) {
+  width: 30px;
+  height: 30px;
+  font-size: 30px;
+}
+
+.busy-ink1 {
+  width: 150%;
+  height: 150%;
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation-name: ImageInkFlow1;
+  animation-iteration-count: infinite;
+  animation-duration: 3s;
+  filter: blur(40px);
+  background: radial-gradient(65% 55% at 25% 30%, #64b4fffa 0%, #0000 55%);
+  position: absolute;
+  top: -25%;
+  left: -25%;
+
+  &::before {
+    content: "";
+    width: 150%;
+    height: 150%;
+    animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation-name: ImageInkFlow2;
+    animation-iteration-count: infinite;
+    animation-duration: 5s;
+    filter: blur(45px);
+    background: radial-gradient(60% 65% at 75% 45%, #b48cfff2 0%, #0000 50%);
+    animation-delay: -1s;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+  }
+
+  &::after {
+    content: "";
+    width: 150%;
+    height: 150%;
+    animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation-name: ImageInkFlow3;
+    animation-iteration-count: infinite;
+    animation-duration: 3.5s;
+    filter: blur(38px);
+    background: radial-gradient(55% 50% at 50% 70%, #64dcdce6 0%, #0000 45%);
+    animation-delay: -2s;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+  }
+}
+
+.busy-ink2 {
+  width: 150%;
+  height: 150%;
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation-name: ImageInkFlow3;
+  animation-iteration-count: infinite;
+  animation-duration: 4.5s;
+  filter: blur(42px);
+  background: radial-gradient(45% 40% at 60% 20%, #ff96c8e0 0%, #0000 45%);
+  animation-delay: -3s;
+  position: absolute;
+  top: -25%;
+  left: -25%;
+
+  &::before {
+    content: "";
+    width: 150%;
+    height: 150%;
+    animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation-name: ImageInkFlow1;
+    animation-iteration-count: infinite;
+    animation-duration: 5.5s;
+    filter: blur(35px);
+    background: radial-gradient(50% 55% at 20% 75%, #a0beffe0 0%, #0000 50%);
+    animation-delay: -2.5s;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+  }
+}
+
+@keyframes ImageInkFlow1 {
+  0% {
+    opacity: .8;
+    transform: translate(0%);
+  }
+
+  50% {
+    opacity: .5;
+    transform: translate(15%, -20%) scale(1.25);
+  }
+
+  100% {
+    opacity: .8;
+    transform: translate(0%);
+  }
+}
+
+@keyframes ImageInkFlow2 {
+  0% {
+    opacity: .7;
+    transform: translate(0%) scale(1.1);
+  }
+
+  50% {
+    opacity: .9;
+    transform: translate(-18%, 15%) scale(.85);
+  }
+
+  100% {
+    opacity: .7;
+    transform: translate(0%) scale(1.1);
+  }
+}
+
+@keyframes ImageInkFlow3 {
+  0% {
+    opacity: .65;
+    transform: translate(0%) scale(.85);
+  }
+
+  50% {
+    opacity: .8;
+    transform: translate(8%, 10%) scale(1.15);
+  }
+
+  100% {
+    opacity: .65;
+    transform: translate(0%) scale(.85);
+  }
+}
+
+.image,
+.open {
+  width: 100%;
+  height: 100%;
+}
+
+.open {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.open:focus-visible {
+  outline: 3px solid var(--accent-electric);
+  outline-offset: -4px;
+}
+
+.open:disabled {
+  cursor: default;
+}
+
+.open img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 180ms ease;
+}
+
+.loadingImage {
+  opacity: 0;
+}
+
+.loaded {
+  opacity: 1;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.retry {
+  cursor: pointer;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: var(--ink-1);
+  background: var(--bg-elev-2);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+@keyframes drift {
+  from {
+    transform: translate(-8%, -5%) rotate(-12deg);
+  }
+
+  to {
+    transform: translate(8%, 5%) rotate(12deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .busy::before {
+    animation: none;
+  }
+
+  .open img {
+    transition: none;
+  }
+}
+
+.carousel {
+  position: relative;
+}
+
+.scrollArrow {
+  position: absolute;
+  top: calc(50% - 4px);
+  transform: translateY(-50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink-1);
+  background: var(--bg-elev-2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.scrollArrow:hover {
+  background: var(--bg-input);
+}
+
+.scrollArrow:focus-visible {
+  outline: 2px solid var(--accent-electric);
+  outline-offset: 2px;
+}
+
+.scrollArrow :global(.material-icon) {
+  width: 22px;
+  height: 22px;
+  font-size: 22px;
+}
+
+.scrollLeft {
+  left: 6px;
+}
+
+.scrollRight {
+  right: 6px;
+}
