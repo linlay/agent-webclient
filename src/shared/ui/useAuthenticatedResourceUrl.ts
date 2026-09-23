@@ -58,6 +58,13 @@ function getImmediateState(
       error: new Error("Unsupported resource URL"),
     };
   }
+  // A warm entry already holds a live object URL. Reading it synchronously lets a
+  // remount (virtual list scroll, markdown re-render) paint the real resource in
+  // its first commit; the effect below still owns the lease and refresh semantics.
+  const cached = authenticatedResourceBlobCache.peek(requestKey);
+  if (cached) {
+    return { requestKey, ...cached };
+  }
   return { requestKey, url: "", loading: true, error: null };
 }
 
