@@ -1580,7 +1580,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         {time.short && <div className={TIMELINE_RUN_TIME_CLASS_NAME} title={time.full}>{time.short}</div>}
         {item.terminalType === "run.complete" && duration && <span className="timeline-run-duration tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1 tw:text-xs tw:leading-none tw:text-ink-muted" title={t("timeline.run.responseDuration", { duration })}>{duration}</span>}
       </div>
-      <div className={`${TIMELINE_META_ACTIONS_CLASS_NAME} tw:ml-auto`}>
+      <div className={`${TIMELINE_META_ACTIONS_CLASS_NAME}`}>
         <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly title={copyStatus} aria-label={copyStatus}
           onClick={() => handleCopy(copyKey, serializeRunTranscript(item.queryNode, item.nodes))}>
           <MaterialIcon name="content_copy" />

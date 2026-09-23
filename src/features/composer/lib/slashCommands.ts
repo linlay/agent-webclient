@@ -181,6 +181,28 @@ function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashComm
   };
 }
 
+/** 技能命中字段的排序优先级：name > description > key。 */
+const SLASH_SKILL_MATCH_FIELDS = ['name', 'description', 'key'] as const;
+
+interface SlashSkillMatchFields {
+  key: string;
+  name: string;
+  description: string;
+}
+
+/** 返回命中字段的优先级下标（越小越靠前），未命中返回 null。 */
+function getSlashSkillMatchRank(
+  fields: SlashSkillMatchFields,
+  query: string,
+): number | null {
+  for (let rank = 0; rank < SLASH_SKILL_MATCH_FIELDS.length; rank += 1) {
+    if (fields[SLASH_SKILL_MATCH_FIELDS[rank]].toLowerCase().includes(query)) {
+      return rank;
+    }
+  }
+  return null;
+}
+
 export function getFilteredSlashSkills(
   filterText: string,
   skills: AgentSkill[],
@@ -189,11 +211,16 @@ export function getFilteredSlashSkills(
     return [];
   }
   const query = filterText.trim().toLowerCase();
-  return skills.flatMap((skill) => {
+  const matches = skills.flatMap((skill) => {
     const key = String(skill?.key || '').trim();
     const name = String(skill?.name || '').trim();
     const description = String(skill?.description || '').trim();
     if (!key) {
+      return [];
+    }
+    // 无筛选文本时不参与命中排序，保持目录原始顺序。
+    const matchRank = query ? getSlashSkillMatchRank({ key, name, description }, query) : 0;
+    if (matchRank === null) {
       return [];
     }
     const resolved: ResolvedSlashSkillDefinition = {
@@ -206,12 +233,15 @@ export function getFilteredSlashSkills(
       configured: skill.configured === true,
       command: `/${key}`,
     };
-    if (!query) {
-      return [resolved];
-    }
-    const haystack = [key, name, description].join(' ').toLowerCase();
-    return haystack.includes(query) ? [resolved] : [];
+    return [{ resolved, matchRank }];
   });
+  if (!query) {
+    return matches.map((match) => match.resolved);
+  }
+  // 同优先级保持目录顺序（Array.prototype.sort 稳定），置顶排序在其后由调用方叠加。
+  return matches
+    .sort((a, b) => a.matchRank - b.matchRank)
+    .map((match) => match.resolved);
 }
 
 export function isSlashCommandFeatureEnabled(commandId: SlashCommandId): boolean {

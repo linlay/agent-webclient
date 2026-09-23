@@ -86,6 +86,34 @@ describe('slashCommands', () => {
     expect(getFilteredSlashSkills('use /pdf', skills)).toEqual([]);
   });
 
+  it('ranks skill matches by name, then description, then key', () => {
+    const skills = [
+      { key: 'doc-tool', name: 'Report', description: 'Writing', configured: false },
+      { key: 'aaa', name: 'Handler', description: 'doc pipeline', configured: false },
+      { key: 'bbb', name: 'Doc maker', description: '', configured: false },
+      { key: 'ccc', name: 'Documentation', description: '', configured: false },
+    ];
+
+    expect(getFilteredSlashSkills('doc', skills).map((item) => item.key)).toEqual([
+      'bbb',
+      'ccc',
+      'aaa',
+      'doc-tool',
+    ]);
+    expect(getFilteredSlashSkills('DOC', skills).map((item) => item.key)).toEqual([
+      'bbb',
+      'ccc',
+      'aaa',
+      'doc-tool',
+    ]);
+    expect(getFilteredSlashSkills('', skills).map((item) => item.key)).toEqual([
+      'doc-tool',
+      'aaa',
+      'bbb',
+      'ccc',
+    ]);
+  });
+
   it('parses only the canonical btw command and optional inline question', () => {
     expect(parseBTWSlashInput('/btw')).toBe('');
     expect(parseBTWSlashInput('/BTW  quick question')).toBe('quick question');
