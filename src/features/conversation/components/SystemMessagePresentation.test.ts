@@ -45,7 +45,7 @@ describe.each(["live", "replay"] as const)("%s system message presentation", mod
     expect(node.tooltip).toBeTruthy();
     const html = renderToStaticMarkup(React.createElement(TimelineRow, { node }));
     expect(html).toContain('data-level="info"');
-    expect(html).toContain('data-material-icon="info"');
+    expect(html).toContain('data-material-icon="compress"');
     expect(html).not.toContain('data-material-icon="warning"');
     expect(html).toContain("6,358");
   });

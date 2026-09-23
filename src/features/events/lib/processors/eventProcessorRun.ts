@@ -107,6 +107,7 @@ export function processRunEvent(
     textParts.push(...stats);
     commands.push({
       cmd: "SYSTEM_MESSAGE",
+      variant: "compact",
       nodeId,
       text: textParts.join(" · "),
       ...(stats.length > 0

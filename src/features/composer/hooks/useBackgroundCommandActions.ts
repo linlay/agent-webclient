@@ -348,6 +348,7 @@ export async function runBackgroundCommand(
             kind: "message",
             role: "system",
             messageVariant: "compact",
+            systemMessageLevel: "info",
             text,
             tooltip: t("contextCompact.reductionTooltip"),
             ts: now(),
