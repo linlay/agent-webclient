@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DESKTOP_CONTRACT_CHECKER="$REPO_ROOT/scripts/check-agent-webclient-contract.js"
 FEATURE_BOUNDARY_CHECKER="$REPO_ROOT/scripts/check-feature-boundaries.js"
+BUILD_WORKSPACE_PREPARER="$REPO_ROOT/scripts/prepare-release-build-cache.js"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/release-common.sh"
@@ -23,6 +24,7 @@ require_file "$REPO_ROOT/scripts/release-assets/program/windows/stop.ps1"
 require_file "$REPO_ROOT/scripts/release-assets/program/windows/program-common.ps1"
 require_file "$DESKTOP_CONTRACT_CHECKER"
 require_file "$FEATURE_BOUNDARY_CHECKER"
+require_file "$BUILD_WORKSPACE_PREPARER"
 require_file "$REPO_ROOT/package.json"
 require_file "$REPO_ROOT/webpack.config.js"
 require_file "$REPO_ROOT/tsconfig.json"
@@ -32,63 +34,21 @@ require_file "$REPO_ROOT/postcss.config.js"
 
 cd "$REPO_ROOT"
 
-BUILD_ROOT=""
+cache_base="${XDG_CACHE_HOME:-${HOME:-${TMPDIR:-/tmp}}/.cache}"
+BUILD_CACHE_ROOT="${AGENT_WEBCLIENT_BUILD_CACHE_DIR:-$cache_base/zenmind/build-cache/agent-webclient}"
+BUILD_ROOT="$BUILD_CACHE_ROOT/build"
 BUNDLE_TMP_DIRS=()
 
 cleanup_release_temps() {
-  if [[ -n "$BUILD_ROOT" ]]; then
-    rm -rf "$BUILD_ROOT"
-  fi
-
   if ((${#BUNDLE_TMP_DIRS[@]} > 0)); then
     rm -rf "${BUNDLE_TMP_DIRS[@]}"
   fi
 }
 
-copy_file_if_exists() {
-  local src="$1"
-  local dest="$2"
-
-  if [[ -f "$src" ]]; then
-    cp "$src" "$dest"
-  fi
-}
-
 prepare_build_root() {
-  BUILD_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/agent-webclient-program-build.XXXXXX")"
-  BUILD_ROOT="$(cd "$BUILD_ROOT" && pwd -P)"
   trap cleanup_release_temps EXIT
-
-  mkdir -p "$BUILD_ROOT/scripts"
-  cp "$REPO_ROOT/package.json" "$BUILD_ROOT/package.json"
-  copy_file_if_exists "$REPO_ROOT/package-lock.json" "$BUILD_ROOT/package-lock.json"
-  cp "$REPO_ROOT/webpack.config.js" "$BUILD_ROOT/webpack.config.js"
-  cp "$REPO_ROOT/tsconfig.json" "$BUILD_ROOT/tsconfig.json"
-  cp "$REPO_ROOT/postcss.config.js" "$BUILD_ROOT/postcss.config.js"
-  cp "$REPO_ROOT/.env.example" "$BUILD_ROOT/.env.example"
-  copy_file_if_exists "$REPO_ROOT/.env" "$BUILD_ROOT/.env"
-  cp "$DESKTOP_CONTRACT_CHECKER" "$BUILD_ROOT/scripts/check-agent-webclient-contract.js"
-  cp "$FEATURE_BOUNDARY_CHECKER" "$BUILD_ROOT/scripts/check-feature-boundaries.js"
-
-  if [[ ! -f "$BUILD_ROOT/.env" ]]; then
-    cp "$BUILD_ROOT/.env.example" "$BUILD_ROOT/.env"
-  fi
-
-  cp -R "$REPO_ROOT/public" "$BUILD_ROOT/public"
-  cp -R "$REPO_ROOT/src" "$BUILD_ROOT/src"
-}
-
-install_build_dependencies() {
-  echo "[release] installing isolated frontend dependencies..."
-  (
-    cd "$BUILD_ROOT"
-    if [[ -f package-lock.json ]]; then
-      npm ci
-    else
-      echo "[release] package-lock.json not found; using npm install without writing a lockfile."
-      npm install --no-package-lock
-    fi
-  )
+  echo "[release] preparing cached frontend workspace: $BUILD_ROOT"
+  node "$BUILD_WORKSPACE_PREPARER" --source "$REPO_ROOT" --build "$BUILD_ROOT"
 }
 
 build_frontend_dist() {
@@ -163,7 +123,6 @@ while read -r target_os target_arch; do
 done < <(parse_program_target_matrix)
 
 prepare_build_root
-install_build_dependencies
 build_frontend_dist
 
 while read -r target_os target_arch; do

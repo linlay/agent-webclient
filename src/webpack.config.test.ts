@@ -311,3 +311,62 @@ describe('html template asset paths', () => {
     expect(config.output?.clean?.keep).toEqual(/^release\//);
   });
 });
+
+describe('production build performance contract', () => {
+  const originalEnv = process.env;
+
+  afterEach(() => {
+    process.env = originalEnv;
+    jest.resetModules();
+  });
+
+  it('stores reusable compilation artifacts in the requested persistent cache directory', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path');
+    const cacheDirectory = path.resolve(__dirname, '../.tmp/webpack-cache-contract');
+    process.env = {
+      ...originalEnv,
+      AGENT_WEBCLIENT_WEBPACK_CACHE_DIR: cacheDirectory,
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+    const config = configFactory({}, { mode: 'production' });
+
+    expect(config.cache).toMatchObject({
+      type: 'filesystem',
+      cacheDirectory,
+    });
+    expect(config.cache?.buildDependencies?.config).toContain(
+      path.resolve(__dirname, '../webpack.config.js'),
+    );
+  });
+
+  it('transpiles and minifies the production bundle through esbuild', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const configFactory = require('../webpack.config.js');
+    const config = configFactory({}, { mode: 'production' });
+    const tsRule = config.module?.rules?.find(
+      (rule: { test?: RegExp }) => String(rule.test) === String(/\.tsx?$/),
+    );
+    const minimizers = config.optimization?.minimizer || [];
+
+    expect(tsRule?.use).toMatchObject({
+      loader: 'esbuild-loader',
+      options: { target: 'es2020' },
+    });
+    expect(minimizers).toEqual([
+      expect.objectContaining({ constructor: expect.objectContaining({ name: 'EsbuildPlugin' }) }),
+    ]);
+  });
+
+  it('keeps semantic TypeScript validation in the official production build', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const packageManifest = require('../package.json');
+
+    expect(packageManifest.scripts.typecheck).toBe('tsc --noEmit --pretty false');
+    expect(packageManifest.scripts.build).toBe(
+      'npm run check:boundaries && npm run check:desktop-contract && npm run typecheck && npm run build:web',
+    );
+  });
+});

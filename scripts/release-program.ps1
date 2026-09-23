@@ -16,6 +16,7 @@ $Renderer = Join-Path $ScriptDir "render-program-manifest.mjs"
 $DeployTestPath = Join-Path $ScriptDir "test-program-deploy.ps1"
 $DesktopContractChecker = Join-Path $ScriptDir "check-agent-webclient-contract.js"
 $FeatureBoundaryChecker = Join-Path $ScriptDir "check-feature-boundaries.js"
+$BuildWorkspacePreparer = Join-Path $ScriptDir "prepare-release-build-cache.js"
 $ReleaseDir = Join-Path $RepoRoot "dist/release"
 $Utf8NoBom = New-Object Text.UTF8Encoding($false)
 
@@ -47,11 +48,6 @@ function Get-Targets {
     return $resolved
 }
 
-function Copy-IfPresent {
-    param([string]$Source, [string]$Destination)
-    if (Test-Path -LiteralPath $Source -PathType Leaf) { Copy-Item -LiteralPath $Source -Destination $Destination }
-}
-
 function Test-Bundle {
     param([string]$BundleRoot, [string]$Archive)
     $manifest = Get-Content -LiteralPath (Join-Path $BundleRoot "manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -79,7 +75,7 @@ foreach ($command in @("node", "npm")) {
 if (-not (Test-Path -LiteralPath $FeatureBoundaryChecker -PathType Leaf)) {
     throw "Required release input is missing: $FeatureBoundaryChecker"
 }
-foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, $DesktopContractChecker, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
+foreach ($path in @($TemplatePath, $Renderer, $DeployTestPath, $DesktopContractChecker, $BuildWorkspacePreparer, (Join-Path $RepoRoot "package.json"), (Join-Path $RepoRoot ".env.example"), (Join-Path $RepoRoot "public"), (Join-Path $RepoRoot "src"))) {
     if (-not (Test-Path -LiteralPath $path)) { throw "Required release input is missing: $path" }
 }
 foreach ($name in @("webpack.config.js", "tsconfig.json", "postcss.config.js")) {
@@ -99,28 +95,22 @@ foreach ($pair in @(Get-Targets)) {
 & $DeployTestPath
 
 $Temporary = Join-Path ([IO.Path]::GetTempPath()) "$AppName-build.$([Guid]::NewGuid().ToString('N'))"
-$BuildRoot = Join-Path $Temporary "build"
+$ConfiguredBuildCacheRoot = [string]$env:AGENT_WEBCLIENT_BUILD_CACHE_DIR
+if ($ConfiguredBuildCacheRoot.Trim()) {
+    $BuildCacheRoot = [IO.Path]::GetFullPath($ConfiguredBuildCacheRoot.Trim())
+} else {
+    $LocalCacheRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+    if (-not $LocalCacheRoot) { $LocalCacheRoot = [IO.Path]::GetTempPath() }
+    $BuildCacheRoot = Join-Path $LocalCacheRoot "ZenMind/build-cache/$AppName"
+}
+$BuildRoot = Join-Path $BuildCacheRoot "build"
 try {
-    New-Item -ItemType Directory -Path $BuildRoot -Force | Out-Null
-    $BuildScriptsDir = Join-Path $BuildRoot "scripts"
-    New-Item -ItemType Directory -Path $BuildScriptsDir -Force | Out-Null
-    foreach ($name in @("package.json", "webpack.config.js", "tsconfig.json", "postcss.config.js", ".env.example")) {
-        Copy-Item -LiteralPath (Join-Path $RepoRoot $name) -Destination (Join-Path $BuildRoot $name)
-    }
-    Copy-Item -LiteralPath $DesktopContractChecker -Destination (Join-Path $BuildScriptsDir "check-agent-webclient-contract.js")
-    Copy-Item -LiteralPath $FeatureBoundaryChecker -Destination (Join-Path $BuildScriptsDir "check-feature-boundaries.js")
-    Copy-IfPresent -Source (Join-Path $RepoRoot "package-lock.json") -Destination (Join-Path $BuildRoot "package-lock.json")
-    Copy-IfPresent -Source (Join-Path $RepoRoot ".env") -Destination (Join-Path $BuildRoot ".env")
-    if (-not (Test-Path -LiteralPath (Join-Path $BuildRoot ".env"))) {
-        Copy-Item -LiteralPath (Join-Path $BuildRoot ".env.example") -Destination (Join-Path $BuildRoot ".env")
-    }
-    Copy-Item -LiteralPath (Join-Path $RepoRoot "public") -Destination $BuildRoot -Recurse
-    Copy-Item -LiteralPath (Join-Path $RepoRoot "src") -Destination $BuildRoot -Recurse
+    New-Item -ItemType Directory -Path $Temporary -Force | Out-Null
+    Write-Host "[release] preparing cached frontend workspace: $BuildRoot"
+    & node $BuildWorkspacePreparer --source $RepoRoot --build $BuildRoot
+    if ($LASTEXITCODE -ne 0) { throw "frontend build cache preparation failed" }
     Push-Location $BuildRoot
     try {
-        if (Test-Path -LiteralPath (Join-Path $BuildRoot "package-lock.json")) { & npm ci }
-        else { & npm install --no-package-lock }
-        if ($LASTEXITCODE -ne 0) { throw "npm dependency installation failed" }
         & npm run build
         if ($LASTEXITCODE -ne 0) { throw "npm build failed" }
     } finally { Pop-Location }
