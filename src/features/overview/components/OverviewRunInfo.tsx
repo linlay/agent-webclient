@@ -8,6 +8,13 @@ import { formatCompactUsageNumber } from "@/features/usage/lib/usageMetrics";
 import { formatOverviewTime, type OverviewRunInfo } from "@/features/overview/lib/overviewRunInfo";
 import styles from "./OverviewRunInfo.module.css";
 
+const awaitingStatusKeys: Partial<Record<OverviewRunInfo["status"], string>> = {
+  question: "leftSidebar.awaitingStatus.question",
+  approval: "leftSidebar.awaitingStatus.approval",
+  form: "leftSidebar.awaitingStatus.form",
+  plan: "leftSidebar.awaitingStatus.plan",
+};
+
 function contextLevel(percent: number): "ok" | "warn" | "danger" {
   if (percent >= 90) return "danger";
   if (percent >= 70) return "warn";
@@ -63,7 +70,7 @@ export const OverviewRunInfoSection: React.FC<{
         <span className={styles.title}>{t("rightSidebar.overview.runInfo.title")}</span>
         <span className={styles.status} data-status={info.status}>
           <span className={styles.statusDot} data-status={info.status} aria-hidden="true" />
-          {t(`rightSidebar.overview.runInfo.status.${info.status}`)}
+          {t(awaitingStatusKeys[info.status] ?? `rightSidebar.overview.runInfo.status.${info.status}`)}
         </span>
         {duration ? <span className={styles.duration}>· {duration}</span> : null}
       </button>
