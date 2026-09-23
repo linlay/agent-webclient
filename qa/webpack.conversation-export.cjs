@@ -11,8 +11,8 @@ const snapshotPath = process.env.CONVERSATION_PREVIEW_SNAPSHOT
 const port = Number(process.env.PORT || 11959);
 const assetPath = "/assets/conversation-export/dev/";
 const previewBrands = {
-  zenmind: { id: "zenmind", productName: "ZenMind", openScheme: "zenmind" },
-  cutej: { id: "cutej", productName: "CuteJ", openScheme: "cutej" },
+  zenmind: { id: "zenmind", productName: "ZenMind", openScheme: "zenmind", downloadPageUrl: "https://example.test/zenmind/download" },
+  cutej: { id: "cutej", productName: "CuteJ", openScheme: "cutej", downloadPageUrl: "https://example.test/cutej/download" },
 };
 const markers = {
   __CONVERSATION_EXPORT_ASSET_SET__: "dev",

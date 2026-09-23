@@ -9,8 +9,8 @@ export interface SnapshotAttachmentV1 {
   id: string;
   name: string;
   mimeType: string;
-  size?: number;
-  sha256?: string;
+  size: number;
+  sha256: string;
   sourceRef: string;
 }
 
@@ -197,22 +197,30 @@ export function parseConversationSnapshotV1(
       ids.add(node.id);
     }
   }
+  const resourceIds = new Set<string>();
   for (const attachment of value.attachments) {
     if (
       !record(attachment) ||
       typeof attachment.id !== "string" ||
       !/^[a-f0-9]{24}$/u.test(attachment.id) ||
+      resourceIds.has(attachment.id) ||
       typeof attachment.name !== "string" ||
       !attachment.name ||
+      typeof attachment.mimeType !== "string" ||
+      !/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/iu.test(
+        attachment.mimeType.trim(),
+      ) ||
+      attachment.mimeType !== attachment.mimeType.trim().toLowerCase() ||
+      !Number.isSafeInteger(attachment.size) ||
+      Number(attachment.size) < 0 ||
+      typeof attachment.sha256 !== "string" ||
+      !/^[a-f0-9]{64}$/u.test(attachment.sha256) ||
       typeof attachment.sourceRef !== "string" ||
-      !/^artifacts\/[^?#\\]+\.html?$/iu.test(attachment.sourceRef) ||
-      attachment.sourceRef
-        .split("/")
-        .some(
-          (segment) => segment === "" || segment === "." || segment === "..",
-        )
+      !attachment.sourceRef.trim() ||
+      attachment.sourceRef.length > 2_048
     )
       return null;
+    resourceIds.add(attachment.id);
   }
   return value as unknown as ConversationSnapshotV1;
 }

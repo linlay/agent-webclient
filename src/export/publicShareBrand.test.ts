@@ -35,11 +35,35 @@ describe("public share brand", () => {
   });
 
   it("accepts validated brand metadata and maps both packaged icons", () => {
-    setBrandMeta(JSON.stringify({ id: "zenmind", productName: "ZenMind", openScheme: "zenmind" }));
-    expect(readPublicShareBrand()).toEqual({ id: "zenmind", productName: "ZenMind", openUrl: "zenmind://open" });
+    setBrandMeta(JSON.stringify({
+      id: "zenmind", productName: "ZenMind", openScheme: "zenmind",
+      downloadPageUrl: "https://example.test/download?source=share#desktop",
+    }));
+    expect(readPublicShareBrand()).toEqual({
+      id: "zenmind", productName: "ZenMind", openUrl: "zenmind://open",
+      downloadPageUrl: "https://example.test/download?source=share#desktop",
+    });
     expect(publicShareBrandIcon("zenmind")).toBeTruthy();
     expect(publicShareBrandIcon("cutej")).toBeTruthy();
     expect(publicShareBrandIcon("unknown")).toBeTruthy();
+  });
+
+  it.each([
+    "http://example.test/download",
+    "javascript:alert(1)",
+    "/relative/download",
+    "https://user:secret@example.test/download",
+  ])("keeps the app entry but drops an unsafe download URL: %s", (downloadPageUrl) => {
+    setBrandMeta(JSON.stringify({ id: "zenmind", productName: "ZenMind", openScheme: "zenmind", downloadPageUrl }));
+    expect(readPublicShareBrand()).toEqual({ id: "zenmind", productName: "ZenMind", openUrl: "zenmind://open" });
+  });
+
+  it("allows an HTTP loopback download page for local development", () => {
+    setBrandMeta(JSON.stringify({
+      id: "zenmind", productName: "ZenMind", openScheme: "zenmind",
+      downloadPageUrl: "http://127.0.0.1:18080/download",
+    }));
+    expect(readPublicShareBrand()?.downloadPageUrl).toBe("http://127.0.0.1:18080/download");
   });
 
   it("applies the matching brand favicon and removes it for local exports", () => {

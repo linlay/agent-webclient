@@ -75,3 +75,46 @@ describe("parseConversationSnapshotV1 node limits", () => {
     ).toBeNull();
   });
 });
+
+describe("parseConversationSnapshotV1 attachments", () => {
+  const resource = {
+    id: "0123456789abcdef01234567",
+    name: "report.pdf",
+    mimeType: "application/pdf",
+    size: 42,
+    sha256: "a".repeat(64),
+    sourceRef: "artifacts/run-1/report.pdf",
+  };
+
+  it("accepts non-HTML resources from the canonical artifact directory", () => {
+    const parsed = parseConversationSnapshotV1(
+      JSON.stringify({
+        ...buildSnapshot([buildTurn("run-1", 1)]),
+        attachments: [resource],
+      }),
+    );
+    expect(parsed?.attachments).toEqual([resource]);
+  });
+
+  it("does not own resource-scope policy", () => {
+    const sourceRef = "future-resource-scheme/report.pdf";
+    const parsed = parseConversationSnapshotV1(
+      JSON.stringify({
+        ...buildSnapshot([buildTurn("run-1", 1)]),
+        attachments: [{ ...resource, sourceRef }],
+      }),
+    );
+    expect(parsed?.attachments[0]?.sourceRef).toBe(sourceRef);
+  });
+
+  it("rejects duplicate resource ids", () => {
+    expect(
+      parseConversationSnapshotV1(
+        JSON.stringify({
+          ...buildSnapshot([buildTurn("run-1", 1)]),
+          attachments: [resource, { ...resource, sourceRef: "artifacts/run-2/report.pdf" }],
+        }),
+      ),
+    ).toBeNull();
+  });
+});

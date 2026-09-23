@@ -7,8 +7,8 @@ import type { MarkdownContentProps } from "@/features/viewers/components/Markdow
 import { conversationExportMessages } from "@/shared/i18n/conversationExport";
 import type { ConversationSnapshotV1, SnapshotAttachmentV1 } from "./conversationSnapshotV1";
 import { snapshotV1PreviewData } from "./conversationSnapshotV1";
-import { publicShareBrandIcon, type PublicShareBrand } from "./publicShareBrand";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { PublicShareBrand } from "./publicShareBrand";
+import { PublicShareAppEntry } from "./PublicShareAppEntry";
 import styles from "./ConversationExportDocument.module.css";
 
 export type ConversationExportDocumentProps = { snapshot: ConversationSnapshotV1; publicBrand?: PublicShareBrand | null };
@@ -46,15 +46,16 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const [frameKey, setFrameKey] = useState(0);
   const [frameState, setFrameState] = useState<"loading" | "ready" | "error">("loading");
   const [verified, setVerified] = useState(false);
-  const [showBrandCta, setShowBrandCta] = useState(true);
   const data = useMemo(() => snapshotV1PreviewData(snapshot), [snapshot]);
   const assistantByRunId = useMemo(() => new Map(snapshot.turns.map((turn) =>
     [turn.runId, turn.assistant])), [snapshot.turns]);
   const agents = useMemo(() => snapshot.turns.flatMap((turn) => (turn.tasks || []).flatMap((task) =>
     task.subAgentKey ? [{ key: task.subAgentKey, name: task.subAgentName || task.subAgentKey,
       ...(task.subAgentIconName ? { icon: { name: task.subAgentIconName } } : {}) }] : [])), [snapshot]);
-  const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
-    [attachment.sourceRef, attachment])), [snapshot.attachments]);
+  const previewAttachments = useMemo(() => snapshot.attachments.filter((attachment) =>
+    attachment.mimeType.split(";", 1)[0]?.trim().toLowerCase() === "text/html"), [snapshot.attachments]);
+  const attachments = useMemo(() => new Map(previewAttachments.map((attachment) =>
+    [attachment.sourceRef, attachment])), [previewAttachments]);
   const open = (attachment: SnapshotAttachmentV1) => {
     if (!attachmentRoute(attachment.id, "preview")) return;
     setSelected(attachment);
@@ -112,35 +113,16 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       <div className={styles.notice}>{copy.aiNotice}</div>
       <ConversationPreview data={data} agents={agents} viewportMode="document"
         ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader} />
-      {snapshot.attachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
+      {previewAttachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
         <h2>{labels.attachments}</h2>
-        {snapshot.attachments.map((attachment) => <button key={attachment.id} type="button"
+        {previewAttachments.map((attachment) => <button key={attachment.id} type="button"
           disabled={!attachmentRoute(attachment.id, "preview")}
           title={!attachmentRoute(attachment.id, "preview") ? labels.unavailable : undefined}
           onClick={() => open(attachment)}>{attachment.name}</button>)}
       </section>}
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>
-    {publicBrand && showBrandCta && <div className={styles.brandCtaWrap}>
-      <div className={styles.brandCta}>
-        <a className={styles.brandCtaLink} href={publicBrand.openUrl}>
-          <img src={publicShareBrandIcon(publicBrand.id)} alt="" width={32} height={32}
-            onError={(event) => {
-              const fallback = publicShareBrandIcon("");
-              if (event.currentTarget.getAttribute("src") !== fallback) event.currentTarget.src = fallback;
-            }} />
-          <span>{snapshot.locale === "en-US"
-            ? `Continue in ${publicBrand.productName}`
-            : `在 ${publicBrand.productName} 继续聊`}</span>
-          <MaterialIcon name="chevron_right" aria-hidden="true" />
-        </a>
-        <button className={styles.brandCtaClose} type="button"
-          aria-label={snapshot.locale === "en-US" ? "Dismiss app link" : "关闭应用入口"}
-          onClick={() => setShowBrandCta(false)}>
-          <MaterialIcon name="close" aria-hidden="true" />
-        </button>
-      </div>
-    </div>}
+    {publicBrand && <PublicShareAppEntry brand={publicBrand} locale={snapshot.locale} />}
     {selected && <div className={styles.previewBackdrop} role="presentation" onClick={() => setSelected(null)}>
       <aside className={styles.previewPanel} role="dialog" aria-modal="true" aria-label={selected.name}
         onClick={(event) => event.stopPropagation()}>

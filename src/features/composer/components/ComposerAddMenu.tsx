@@ -537,9 +537,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
               props.onClose();
             }}
           >
-            <SkinVisual slot="chat.screenshot">
-              <MaterialIcon name="crop_free" />
-            </SkinVisual>
+            <MaterialIcon name="crop_free" />
             <span>{t("composer.addMenu.screenshot")}</span>
           </UiButton>
         ) : entry === "mode" ? (
