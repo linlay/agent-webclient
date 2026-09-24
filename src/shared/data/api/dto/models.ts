@@ -31,9 +31,6 @@ export interface CoderModelOptionsResponse {
   models: CoderModelOption[];
   reasoningEfforts: ReasoningEffortOption[];
   serviceTiers?: ServiceTierOption[];
-  defaultModelKey?: string;
-  defaultReasoningEffort: QueryReasoningEffort;
-  defaultServiceTier?: QueryServiceTier;
 }
 
 export type QueryReasoningEffort =

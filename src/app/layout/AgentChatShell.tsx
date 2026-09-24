@@ -231,16 +231,11 @@ function hasOwn(input: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(input, key);
 }
 
-function needsRouteAgentModelOptionsHydration(agent: Agent | undefined): boolean {
+function needsRouteAgentModelSelectionHydration(agent: Agent | undefined): boolean {
   if (!agent) return false;
-  const meta = isRecord(agent.meta) ? agent.meta : {};
-  const mode = String(agent.mode || meta.mode || "").trim().toUpperCase();
-  const type = String(agent.type || "").trim().toLowerCase();
-  const acpBridgeId = String(meta.acpBridgeId || agent.acpBridgeId || "").trim();
-  if (!acpBridgeId || (mode !== "CODER" && type !== "coder")) {
-    return false;
-  }
-  return !hasOwn(agent, "modelOptions");
+  const mode = String(agent.mode || "").toUpperCase();
+  return (mode === "REACT" || mode === "CODER") &&
+    (!hasOwn(agent, "modelKey") || !hasOwn(agent, "reasoningEffort"));
 }
 
 const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({ title, overlay = false }) => {
@@ -376,7 +371,7 @@ const AgentChatShellContent: React.FC = () => {
   );
   const routeAgentHasDetailSignal = hasRouteAgentDetailSignal(routeAgent);
   const routeAgentNeedsModelOptionsHydration =
-    needsRouteAgentModelOptionsHydration(routeAgent);
+    needsRouteAgentModelSelectionHydration(routeAgent);
   const routeAgentHydrated =
     !agentKey ||
     Boolean(

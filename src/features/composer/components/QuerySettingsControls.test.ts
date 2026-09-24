@@ -297,16 +297,16 @@ describe("QuerySettingsControls", () => {
       data: {
         models: [{ key: "coder-model", name: "Qwen Coder", modelId: "qwen3-coder" }],
         reasoningEfforts: [{ key: "NONE", label: "NONE" }],
-        defaultModelKey: "coder-model",
-        defaultReasoningEffort: "NONE",
+
+
       },
     });
 
     await expect(loadCoderModelOptions()).resolves.toMatchObject({
       models: [{ key: "coder-model", name: "Qwen Coder", modelId: "qwen3-coder" }],
       reasoningEfforts: [{ key: "NONE", label: "NONE" }],
-      defaultModelKey: "coder-model",
-      defaultReasoningEffort: "NONE",
+
+
     });
     expect(getModelOptions).toHaveBeenCalledWith(undefined, { force: false });
   });
@@ -429,32 +429,32 @@ describe("QuerySettingsControls", () => {
         { key: "FLEX", label: "Flex" },
         { key: "", label: "ignored" },
       ],
-      defaultModelKey: "default-coder-model",
-      defaultReasoningEffort: "HIGH",
+
+
     };
 
     expect(normalizeCoderModelOptionsResponse({ data: payload })).toMatchObject({
       models: [{ key: "coder-model", name: "Qwen Coder", icon: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
-      defaultModelKey: "default-coder-model",
-      defaultReasoningEffort: "HIGH",
+
+
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse({ data: { data: payload } })).toMatchObject({
       models: [{ key: "coder-model", name: "Qwen Coder", icon: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
-      defaultModelKey: "default-coder-model",
-      defaultReasoningEffort: "HIGH",
+
+
       recognized: true,
     });
     expect(normalizeCoderModelOptionsResponse(payload)).toMatchObject({
       models: [{ key: "coder-model", name: "Qwen Coder", icon: "Qwen Coder" }],
       reasoningEfforts: [{ key: "NONE" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FLEX" }],
-      defaultModelKey: "default-coder-model",
-      defaultReasoningEffort: "HIGH",
+
+
       recognized: true,
     });
   });
@@ -473,9 +473,9 @@ describe("QuerySettingsControls", () => {
         ],
         reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
         serviceTiers: [{ key: "FAST", label: "Fast" }],
-        defaultModelKey: "acp-model",
-        defaultReasoningEffort: "HIGH",
-        defaultServiceTier: "FAST",
+
+
+
       },
     });
 
@@ -483,9 +483,9 @@ describe("QuerySettingsControls", () => {
       models: [{ key: "acp-model", name: "ACP Model", icon: "ChatGPT" }],
       reasoningEfforts: [{ key: "HIGH" }],
       serviceTiers: [{ key: "STANDARD" }, { key: "FAST" }],
-      defaultModelKey: "acp-model",
-      defaultReasoningEffort: "HIGH",
-      defaultServiceTier: "FAST",
+
+
+
     });
     expect(getModelOptions).not.toHaveBeenCalled();
   });
@@ -503,9 +503,9 @@ describe("QuerySettingsControls", () => {
       models: [],
       reasoningEfforts: [],
       serviceTiers: [{ key: "STANDARD", label: "Standard" }],
-      defaultModelKey: "",
-      defaultReasoningEffort: undefined,
-      defaultServiceTier: "STANDARD",
+
+
+
     });
     expect(getModelOptions).not.toHaveBeenCalled();
   });
@@ -605,93 +605,22 @@ describe("QuerySettingsControls", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("uses agent model defaults before API defaults", () => {
-    expect(
-      resolveCoderAgentDefaultModelOverride(
-        {
-          raw: {
-            mode: "CODER",
-            meta: {
-              modelKey: "agent-model",
-              reasoningEffort: "LOW",
-            },
-          },
-        },
-        {
-          defaultModelKey: "api-model",
-          defaultReasoningEffort: "HIGH",
-        },
-      ),
-    ).toEqual({
-      key: "agent-model",
-      reasoningEffort: "LOW",
-    });
+  it("restores selection from agent detail and ignores legacy defaults", () => {
+    expect(resolveCoderAgentDefaultModelOverride({raw: {
+      modelKey: "saved-model", reasoningEffort: "HIGH",
+      defaultModelKey: "old-model", defaultReasoningEffort: "MEDIUM", modelConfig: {serviceTier: "FAST"},
+    }})).toEqual({key: "saved-model", reasoningEffort: "HIGH"});
   });
 
-  it("uses top-level agent default model fields before API defaults", () => {
-    expect(
-      resolveCoderAgentDefaultModelOverride(
-        {
-          raw: {
-            mode: "CODER",
-            defaultModelKey: "agent-default-model",
-            defaultReasoningEffort: "LOW",
-          },
-        },
-        {
-          defaultModelKey: "api-model",
-          defaultReasoningEffort: "HIGH",
-        },
-      ),
-    ).toEqual({
-      key: "agent-default-model",
-      reasoningEffort: "LOW",
-    });
+  it("does not invent selection when detail has none", () => {
+    expect(resolveCoderAgentDefaultModelOverride({raw: {mode: "CODER"}})).toEqual({});
   });
 
-  it("uses embedded agent modelConfig before API defaults", () => {
-    expect(
-      resolveCoderAgentDefaultModelOverride(
-        {
-          raw: {
-            mode: "CODER",
-            modelConfig: {
-              modelKey: "MiniMax-M2.7",
-              reasoning: { enabled: true, effort: "HIGH" },
-              serviceTier: "FAST",
-            },
-          },
-        },
-        {
-          defaultModelKey: "api-model",
-          defaultReasoningEffort: "MEDIUM",
-          defaultServiceTier: "STANDARD",
-        },
-      ),
-    ).toEqual({
-      key: "MiniMax-M2.7",
-      reasoningEffort: "HIGH",
-      serviceTier: "FAST",
-    });
-  });
-
-  it("falls back to API model defaults when the agent has none", () => {
-    expect(
-      resolveCoderAgentDefaultModelOverride(
-        {
-          raw: {
-            mode: "CODER",
-          },
-        },
-        {
-          defaultModelKey: "api-model",
-          defaultReasoningEffort: "MEDIUM",
-        },
-      ),
-    ).toEqual({
-      key: "api-model",
-      reasoningEffort: "MEDIUM",
-    });
+  it("ignores selection fields in model options", () => {
+    expect(normalizeCoderModelOptionsResponse({models: [], reasoningEfforts: [],
+      defaultModelKey: "stale", defaultReasoningEffort: "MEDIUM", defaultServiceTier: "FAST",
+      selectedModelKey: "also-stale", selectedReasoningEffort: "LOW",
+    })).toEqual({models: [], reasoningEfforts: [], serviceTiers: [{key: "STANDARD", label: "Standard"}], recognized: true});
   });
 
   it("loads nested model options returned by a wrapped response", async () => {
@@ -1093,85 +1022,11 @@ describe("QuerySettingsControls", () => {
     ).toBe(false);
   });
 
-  it("merges compact model config responses into existing agent summaries", () => {
-    const existing: Agent = {
-      key: "coder-agent",
-      name: "Coder Agent",
-      mode: "CODER",
-      source: { kind: "directory", path: "/tmp/agent.yml" },
-      controls: [{ key: "planningMode", type: "switch", icon: null, label: "Planning" }],
-      definition: {
-        key: "coder-agent",
-        name: "Coder Agent",
-        mode: "CODER",
-        runtimeConfig: { workspaceRoot: "/workspace" },
-        modelConfig: { modelKey: "old-model" },
-      },
-      meta: { workspace: { root: "/workspace" }, modelKey: "old-model" },
-    };
-
-    const merged = agentSummaryFromModelConfig(
-      existing,
-      {
-        key: "coder-agent",
-        modelConfig: {
-          modelKey: "new-model",
-          reasoning: { enabled: true, effort: "HIGH" },
-        },
-      },
-      { key: "new-model", reasoningEffort: "HIGH" },
-    );
-
-    expect(merged.name).toBe("Coder Agent");
-    expect(merged.mode).toBe("CODER");
-    expect(merged.source).toEqual(existing.source);
-    expect(merged.controls).toEqual(existing.controls);
-    expect(merged.modelKey).toBe("new-model");
-    expect(merged.defaultModelKey).toBe("new-model");
-    expect(merged.defaultReasoningEffort).toBe("HIGH");
-    expect(merged.defaultServiceTier).toBe("STANDARD");
-    expect(merged.definition).toEqual({
-      key: "coder-agent",
-      name: "Coder Agent",
-      mode: "CODER",
-      runtimeConfig: { workspaceRoot: "/workspace" },
-      modelConfig: {
-        modelKey: "new-model",
-        reasoning: { enabled: true, effort: "HIGH" },
-      },
-    });
-    expect(merged.meta).toEqual({
-      workspace: { root: "/workspace" },
-      modelKey: "new-model",
-      reasoningEffort: "HIGH",
-    });
-  });
-
-  it("preserves FAST as the default service tier when model config response includes it", () => {
-    const merged = agentSummaryFromModelConfig(
-      {
-        key: "coder-agent",
-        name: "Coder Agent",
-        mode: "CODER",
-        meta: {},
-      } as Agent,
-      {
-        key: "coder-agent",
-        modelConfig: {
-          modelKey: "gpt-5.4",
-          reasoning: { enabled: true, effort: "MEDIUM" },
-          serviceTier: "FAST",
-        },
-      },
-      { key: "gpt-5.4", reasoningEffort: "MEDIUM", serviceTier: "FAST" },
-    );
-
-    expect(merged.defaultServiceTier).toBe("FAST");
-    expect(merged.meta).toEqual({
-      modelKey: "gpt-5.4",
-      reasoningEffort: "MEDIUM",
-      serviceTier: "FAST",
-    });
+  it("projects flat saved model settings without modifying metadata", () => {
+    const existing = {key: "coder", name: "Coder", meta: {workspace: {root: "/workspace"}}};
+    const merged = agentSummaryFromModelConfig(existing, {agentKey: "coder", modelKey: "new", reasoningEffort: "NONE"}, {});
+    expect(merged).toEqual({...existing, modelKey: "new", reasoningEffort: "NONE", serviceTier: undefined});
+    expect(agentSummaryFromModelConfig(merged, {agentKey: "coder", modelKey: "new", reasoningEffort: "HIGH", serviceTier: "FAST"}, {}).serviceTier).toBe("FAST");
   });
 
   it("resolves model option sources with manual refresh precedence", () => {

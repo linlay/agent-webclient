@@ -398,12 +398,8 @@ describe("AgentChatShell", () => {
         role: "Worker",
         mode: "CODER",
         meta: { acpBridgeId: "codex" },
-        modelOptions: {
-          models: [{ key: "gpt-5.5", name: "GPT-5.5", modelId: "gpt-5.5" }],
-          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
-          defaultModelKey: "gpt-5.5",
-          defaultReasoningEffort: "HIGH",
-        },
+        modelKey: "gpt-5.5",
+        reasoningEffort: "HIGH",
       },
     });
     useAppState.mockReturnValue({
@@ -437,10 +433,8 @@ describe("AgentChatShell", () => {
           key: "demo-agent",
           mode: "CODER",
           meta: { acpBridgeId: "codex" },
-          modelOptions: expect.objectContaining({
-            defaultModelKey: "gpt-5.5",
-            models: [expect.objectContaining({ key: "gpt-5.5" })],
-          }),
+          modelKey: "gpt-5.5",
+          reasoningEffort: "HIGH",
         }),
       ],
     });

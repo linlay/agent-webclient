@@ -94,8 +94,8 @@ describe("Composer model refresh click", () => {
   });
   it.each([undefined, null, {}])("loads cutej models when embedded options are %p", async (modelOptions) => {
     worker.sourceId = "cutej";
-    worker.raw = {mode:"REACT", modelOptions};
-    mockRequest.mockResolvedValue({data:{models:[{key:"cutej-model",name:"Cutej Model"}], defaultModelKey:"cutej-model", defaultReasoningEffort:"HIGH"}});
+    worker.raw = {mode:"REACT", modelOptions, modelKey:"cutej-model", reasoningEffort:"HIGH", serviceTier:"STANDARD"};
+    mockRequest.mockResolvedValue({data:{models:[{key:"cutej-model",name:"Cutej Model"}]}});
     await act(async () => root.render(React.createElement(QuerySettingsControls, {
       accessLevel:"default", modelOverride:{}, interactionConfig:interactionDefaults("REACT"),
       onAccessLevelChange:jest.fn(), onModelOverrideChange:jest.fn(),
@@ -103,6 +103,29 @@ describe("Composer model refresh click", () => {
     expect(mockRequest).toHaveBeenCalledWith("/api/model-options", {agentKey:"cutej"});
     expect(container.textContent).toContain("Cutej Model");
     expect(container.textContent).not.toContain("composer.query.model.loading");
+  });
+
+  it.each(["REACT", "CODER"])("restores %s selection from detail despite stale options defaults", async mode => {
+    worker.sourceId = "saved-agent";
+    worker.raw = {mode, modelKey: "saved-model", reasoningEffort: "HIGH", serviceTier: "STANDARD"};
+    mockRequest.mockResolvedValue({data: {models: [{key: "saved-model", name: "Saved Model"}], reasoningEfforts: [{key: "HIGH", label: "HIGH"}], defaultModelKey: "stale-model", defaultReasoningEffort: "MEDIUM"}});
+    const onChange = jest.fn();
+    await act(async () => root.render(React.createElement(QuerySettingsControls, {
+      accessLevel: "default", modelOverride: {}, interactionConfig: interactionDefaults(mode),
+      onAccessLevelChange: jest.fn(), onModelOverrideChange: onChange,
+    })));
+    expect(onChange).toHaveBeenLastCalledWith({key: "saved-model", reasoningEffort: "HIGH"});
+    expect(container.textContent).toContain("Saved Model");
+    expect(container.textContent).toContain("composer.query.reasoning.HIGH");
+    expect(container.textContent).not.toContain("composer.query.reasoning.MEDIUM");
+    await act(async () => container.querySelector<HTMLButtonElement>('[title="composer.query.model.title"]')!.click());
+    await act(async () => {
+      Simulate.mouseEnter(document.querySelector('.ant-dropdown-menu-submenu-title')!);
+      await new Promise(resolve => setTimeout(resolve, 200));
+    });
+    await act(async () => button().click());
+    expect(onChange.mock.calls.every(([value]) => value.key === "saved-model" && value.reasoningEffort === "HIGH")).toBe(true);
+    expect(container.textContent).toContain("composer.query.reasoning.HIGH");
   });
 
   it.each(["empty", "failed"])("does not display loading after a %s response", async (status) => {

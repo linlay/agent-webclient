@@ -602,7 +602,7 @@ export function resolveModelKey(
   return (
     toText(modelConfig.modelKey) ||
     toText(meta.modelKey) ||
-    toText(detail.model)
+    toText(asRecord(detail).modelKey || asRecord(detail).model)
   );
 }
 
@@ -620,21 +620,23 @@ export function fallbackDefinition(
   const meta = asRecord(detail.meta);
   const visibility = asRecord(meta.visibility);
   const budget = asRecord(meta.budget);
-  const detailModelConfig = asRecord(detail.modelConfig);
+  const detailModelConfig = asRecord(asRecord(detail).modelConfig);
   const modelKey =
     toText(detailModelConfig.modelKey) ||
     toText(meta.modelKey) ||
-    toText(detail.model);
+    toText(detail.modelKey);
   if (modelKey || Object.keys(detailModelConfig).length > 0) {
     definition.modelConfig = {
       ...detailModelConfig,
       ...(modelKey ? { modelKey } : {}),
+      ...(asRecord(detail).reasoningEffort ? {reasoning: asRecord(detail).reasoningEffort === "NONE" ? {enabled: false} : {enabled: true, effort: asRecord(detail).reasoningEffort}} : {}),
+      ...(asRecord(detail).serviceTier ? {serviceTier: asRecord(detail).serviceTier} : {}),
     };
   }
   if (Array.isArray(detail.tools))
     definition.toolConfig = { tools: detail.tools };
   if (Array.isArray(detail.skills))
-    definition.skillConfig = { skills: detail.skills };
+    definition.skillConfig = { skills: detail.skills.map(skill => typeof skill === "string" ? skill : skill.key) };
   if (Array.isArray(detail.greetings)) definition.greetings = detail.greetings;
   if (Array.isArray(detail.introductions)) definition.introductions = detail.introductions;
   if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
@@ -681,7 +683,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
       (reasoning.enabled === true || Boolean(reasoningEffort)),
     reasoningEffort,
     tools: textListFromUnknown(toolConfig.tools || detail.tools),
-    skills: textListFromUnknown(skillConfig.skills || detail.skills),
+    skills: textListFromUnknown(skillConfig.skills || detail.skills?.map(skill => typeof skill === "string" ? skill : skill.key)),
     greetingsText: stringifyJson(
       definition.greetings ?? detail.greetings ?? [],
       "[]",

@@ -38,6 +38,9 @@ export interface Agent {
   role?: string;
   wonders?: string[];
   controls?: AgentControl[];
+  modelKey?: string;
+  reasoningEffort?: import("@/shared/data/api/dto/models").QueryReasoningEffort;
+  serviceTier?: string;
   modelConfig?: Record<string, unknown>;
   modelOptions?: Record<string, unknown>;
   stats?: AgentStats;
