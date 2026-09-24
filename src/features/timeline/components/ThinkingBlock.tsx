@@ -4,6 +4,7 @@ import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { formatToolDuration } from "@/features/timeline/lib/timelineDuration";
+import { buildReasoningPreviewText } from "@/features/timeline/lib/reasoningPreview";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 
@@ -47,11 +48,14 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
     typeof liveDurationMs === "number"
       ? formatToolDuration(liveDurationMs, t)
       : "";
+  // 运行中且折叠时，标题旁单行跟随最新思考内容；溢出从行首裁剪，保证露出尾部。
+  const showLivePreview = isLoading && !expanded && text.trim().length > 0;
+  const previewText = showLivePreview ? buildReasoningPreviewText(text) : "";
 
   return (
     <TimelineCollapse
       label={
-        <span className="tw:inline-flex tw:items-center tw:gap-1.5 tw:text-[13px]">
+        <span className="tw:inline-flex tw:items-center tw:gap-1.5 tw:text-[13px] tw:min-w-0 tw:max-w-full tw:whitespace-nowrap">
           {isLoading ? (
             <>
               <Skeleton active={true} text={triggerLabel} />
@@ -61,6 +65,14 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
             </>
           ) : (
             <span>{triggerLabel}</span>
+          )}
+          {previewText && (
+            <span
+              className="thinking-preview tw:min-w-0 tw:overflow-hidden tw:whitespace-nowrap tw:text-text-sub tw:text-[12px] tw:opacity-60"
+              title={previewText}
+            >
+              {previewText}
+            </span>
           )}
         </span>
       }

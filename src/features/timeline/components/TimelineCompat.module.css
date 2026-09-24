@@ -223,6 +223,14 @@ html[data-theme="dark"] :global(.timeline-markdown) a {
     overflow: auto;
 }
 
+/* 标题里的实时思考预览：RTL 让溢出从行首裁掉，尾部（最新内容）始终可见；
+   unicode-bidi: plaintext 保证中英混排仍按内容本身方向渲染。 */
+:global(.thinking-preview) {
+    direction: rtl;
+    text-align: left;
+    unicode-bidi: plaintext;
+}
+
 :global(.status-line) {
     border: 1px dashed color-mix(in srgb, var(--line-strong) 62%, transparent);
     border-radius: 10px;
