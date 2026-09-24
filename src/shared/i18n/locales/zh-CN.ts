@@ -857,7 +857,7 @@ export const zhCNMessages = {
   "composer.input.tooltip.collapse": "收起输入框，用 ↵ 键发送",
   "composer.input.tooltip.expand": "展开输入框，用 ↵ 键换行",
   "composer.query.access.auto_approve": "自动批准",
-  "composer.query.access.default": "默认权限",
+  "composer.query.access.default": "请求批准",
   "composer.query.access.full_access": "完全访问权限",
   "composer.query.access.title": "设置本次运行权限",
   "composer.query.model.default": "默认模型",

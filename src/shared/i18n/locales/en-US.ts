@@ -776,7 +776,7 @@ export const enUSMessages = {
   "composer.input.tooltip.collapse": "Collapse input. Enter sends.",
   "composer.input.tooltip.expand": "Expand input. Enter creates a new line.",
   "composer.query.access.auto_approve": "Auto approve",
-  "composer.query.access.default": "Default access",
+  "composer.query.access.default": "Ask for approval",
   "composer.query.access.full_access": "Full access",
   "composer.query.access.title": "Set access for this run",
   "composer.query.model.default": "Default model",

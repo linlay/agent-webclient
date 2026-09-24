@@ -39,7 +39,7 @@ jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => {
       const messages: Record<string, string> = {
-        "composer.query.access.default": "默认权限",
+        "composer.query.access.default": "请求批准",
         "composer.query.access.title": "设置本次运行权限",
         "composer.query.model.default": "默认模型",
         "composer.query.model.empty": "暂无可选模型",
@@ -165,7 +165,7 @@ describe("QuerySettingsControls", () => {
       }),
     );
 
-    expect(html).toContain("默认权限");
+    expect(html).toContain("请求批准");
   });
 
   it("builds complete persisted model config payloads from partial menu changes", () => {
@@ -264,7 +264,7 @@ describe("QuerySettingsControls", () => {
       }),
     );
 
-    expect(html).toContain("默认权限");
+    expect(html).toContain("请求批准");
     expect(html).not.toContain("正在加载模型");
   });
 
@@ -284,7 +284,7 @@ describe("QuerySettingsControls", () => {
       }),
     );
 
-    expect(html).toContain("默认权限");
+    expect(html).toContain("请求批准");
     expect(html).toContain("正在加载模型");
     expect(html).toContain("disabled=\"\"");
     expect(html).not.toContain(
