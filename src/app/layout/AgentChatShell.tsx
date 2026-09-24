@@ -61,6 +61,35 @@ export function parseComposerPrefillPayload(
   return { draft, skillKey };
 }
 
+/**
+ * Session-scoped record of route agents whose detail has been fetched once.
+ * `modelKey` / `reasoningEffort` are optional in `AgentDetailResponse`, so a
+ * completed detail fetch must unblock route readiness even when they are absent.
+ */
+const routeAgentDetailFetchedKeys = new Set<string>();
+
+export function markRouteAgentDetailFetched(agentKey: string): void {
+  const normalized = String(agentKey || "").trim();
+  if (normalized) {
+    routeAgentDetailFetchedKeys.add(normalized);
+  }
+}
+
+export function isRouteAgentDetailFetched(agentKey: string): boolean {
+  const normalized = String(agentKey || "").trim();
+  return Boolean(normalized) && routeAgentDetailFetchedKeys.has(normalized);
+}
+
+/** Without an agentKey, clears the whole record (used by tests). */
+export function resetRouteAgentDetailFetched(agentKey = ""): void {
+  const normalized = String(agentKey || "").trim();
+  if (normalized) {
+    routeAgentDetailFetchedKeys.delete(normalized);
+  } else {
+    routeAgentDetailFetchedKeys.clear();
+  }
+}
+
 let lastCreatedNewChatTimestamp = 0;
 
 export function createNewChatTimestamp(now = Date.now()): string {
@@ -223,10 +252,6 @@ function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
   );
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 function hasOwn(input: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(input, key);
 }
@@ -331,7 +356,6 @@ const AgentChatShellContent: React.FC = () => {
   const refreshedNewChatAgentRouteKeysRef = useRef<Set<string>>(new Set());
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
   const pendingNewChatResendRef = useRef<PendingNewChatResend | null>(null);
-  const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationRequestRef = useRef(0);
   const routeAgentLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -377,14 +401,14 @@ const AgentChatShellContent: React.FC = () => {
     Boolean(
       routeAgent &&
         ((routeAgentHasDetailSignal && !routeAgentNeedsModelOptionsHydration) ||
-          routeAgentHydratedWithoutSignalRef.current.has(agentKey) ||
+          isRouteAgentDetailFetched(agentKey) ||
           routeAgentHydrationFailedRef.current.has(agentKey)),
     );
   const routeAgentNeedsHydration =
     Boolean(agentKey) &&
     (!routeAgent ||
       ((!routeAgentHasDetailSignal || routeAgentNeedsModelOptionsHydration) &&
-        !routeAgentHydratedWithoutSignalRef.current.has(agentKey) &&
+        !isRouteAgentDetailFetched(agentKey) &&
         !routeAgentHydrationFailedRef.current.has(agentKey)));
   const routeAgentReady =
     routeAgentHydrated &&
@@ -622,7 +646,7 @@ const AgentChatShellContent: React.FC = () => {
 
   const handleRetryRouteAgent = useCallback(() => {
     routeAgentHydrationFailedRef.current.delete(agentKey);
-    routeAgentHydratedWithoutSignalRef.current.delete(agentKey);
+    resetRouteAgentDetailFetched(agentKey);
     setRouteAgentLoadError(null);
     setRouteAgentLoadErrorDescription("");
     setHydrationRetryCount((c) => c + 1);
@@ -675,11 +699,9 @@ const AgentChatShellContent: React.FC = () => {
           ...payload,
           key: resolvedAgentKey,
         };
-        if (!hasRouteAgentDetailSignal(patch as Agent)) {
-          routeAgentHydratedWithoutSignalRef.current.add(resolvedAgentKey);
-        } else {
-          routeAgentHydratedWithoutSignalRef.current.delete(resolvedAgentKey);
-        }
+        // Optional model-selection fields may be absent from the detail
+        // response; the completed fetch itself must unblock route readiness.
+        markRouteAgentDetailFetched(resolvedAgentKey);
 
         const mergedAgents = upsertAgentSummary(
           stateRef.current.agents,

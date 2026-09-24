@@ -174,4 +174,19 @@ describe("AddMenuTrigger", () => {
 
     expect(fileItem("composer.addMenu.file").disabled).toBe(false);
   });
+
+  it("closes the menu when the chat or agent changes so the popover cannot detach from the moved trigger", () => {
+    render();
+    openMenu();
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+
+    props.currentChatId = "chat-next";
+    render();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+
+    openMenu();
+    props.currentAgentKey = "agent-b";
+    render();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
 });
