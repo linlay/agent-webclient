@@ -1,5 +1,8 @@
 .root {
   overflow-wrap: anywhere;
+  /* Mermaid 图框的两段高度：loading 占位按它们求和，保证与出图后的高度一致。 */
+  --markdown-mermaid-toolbar-height: var(--ui-control-height-sm, 32px);
+  --markdown-mermaid-viewport-min-height: 160px;
 }
 
 .root :global(.katex-display) {
@@ -51,7 +54,7 @@
 .root :global(.markdown-mermaid-viewport) {
   display: block;
   width: 100%;
-  min-height: 160px;
+  min-height: var(--markdown-mermaid-viewport-min-height);
   max-height: min(72vh, 980px);
   overflow: auto;
   padding: 14px;
@@ -92,4 +95,38 @@
   align-items: center;
   justify-content: center;
   color: var(--text-muted, currentColor);
+}
+
+/**
+ * Mermaid 渲染占位（loading）：墨流由 `BusyInk` 提供，这里只负责盒子与文案层。
+ * 高度 = toolbar + viewport（出图后同样两段），所以从占位换成图不会整块跳动；
+ * 圆角 10px 与 `.markdown-echarts` 的接收态、markdown `pre` 对齐。
+ * `empty` 不走这里（纯文案盒，min-height 120px），两者文案、墨流、高度都不同。
+ */
+.root :global(.markdown-mermaid-busy) {
+  position: relative;
+  display: flex;
+  min-height: calc(
+    var(--markdown-mermaid-toolbar-height) +
+      var(--markdown-mermaid-viewport-min-height)
+  );
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--ink-muted, currentColor);
+  font-size: 14px;
+}
+
+.root :global(.markdown-mermaid-busy-label) {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.root :global(.markdown-mermaid-busy-label) :global(.material-icon) {
+  width: 30px;
+  height: 30px;
+  font-size: 30px;
 }

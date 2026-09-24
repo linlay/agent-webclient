@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import { BusyInk } from "../BusyInk";
 import { MaterialIcon } from "../MaterialIcon";
 import { UiButton } from "../UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -67,13 +68,12 @@ export function getVisibleMermaidRenderState(
   streamStatus?: "loading" | "done",
 ): VisibleRenderState {
   if (state.status === "ready") return state;
-  if (
-    streamStatus === "loading" &&
-    state.status !== "empty" &&
-    lastReadyState
-  ) {
-    return { ...lastReadyState, stale: true };
-  }
+  if (state.status === "empty" || !lastReadyState) return state;
+  // 手上已有旧图时，loading 一律继续显示旧图并标 stale：流式刷新、收尾重画、
+  // 主题切换都走这条路，中途不再插一帧墨流盒。
+  if (state.status === "loading") return { ...lastReadyState, stale: true };
+  // error 只在流未结束时兜底，流结束必须如实报错。
+  if (streamStatus === "loading") return { ...lastReadyState, stale: true };
   return state;
 }
 
@@ -107,7 +107,13 @@ export const MarkdownMermaid: React.FC<{
   const dragState = useRef<MermaidDragState | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const lastReadyState = useRef<ReadyRenderState | null>(null);
-  const [state, setState] = useState<RenderState>({ status: "loading" });
+  // 已成功出图那份源码的「主题 + 源码」指纹，用来判断一次 effect 重跑要不要真的重画。
+  const renderedKeyRef = useRef<string | null>(null);
+  // 初值必须和 effect 里的判空口径一致：否则空的 fence 会先渲染一帧墨流盒、
+  // 再被 effect 改成 empty 文案盒，看起来就是「闪一下」。
+  const [state, setState] = useState<RenderState>(() =>
+    code.trim() ? { status: "loading" } : { status: "empty" },
+  );
   const [theme, setTheme] = useState<"default" | "dark">(getMermaidTheme);
   const [zoom, setZoom] = useState(MERMAID_ZOOM_DEFAULT);
   const [isDragging, setIsDragging] = useState(false);
@@ -190,13 +196,27 @@ export const MarkdownMermaid: React.FC<{
     const source = code.trim();
     if (!source) {
       lastReadyState.current = null;
-      setState({ status: "empty" });
+      renderedKeyRef.current = null;
+      // 返回原引用时 React 会 bail out，省掉一次无视觉变化的空重渲染。
+      setState((current) =>
+        current.status === "empty" ? current : { status: "empty" },
+      );
+      return;
+    }
+
+    // 指纹没变却重跑，说明只是 streamStatus 之类的无关依赖在抖（流结束那一下、
+    // 英文文案 `t` 换引用等）：直接复用已画好的图，不闪回墨流、也不重复 render。
+    const renderKey = `${theme}\u0000${source}`;
+    if (renderedKeyRef.current === renderKey && lastReadyState.current) {
+      setState(lastReadyState.current);
       return;
     }
 
     let disposed = false;
     const renderDelay = getMermaidRenderDelay(streamStatus);
-    setState({ status: "loading" });
+    setState((current) =>
+      current.status === "loading" ? current : { status: "loading" },
+    );
 
     const renderTimer = window.setTimeout(() => {
       void import("mermaid")
@@ -224,13 +244,16 @@ export const MarkdownMermaid: React.FC<{
               svg: result.svg,
             };
             lastReadyState.current = readyState;
+            renderedKeyRef.current = renderKey;
             setState(readyState);
           }
         })
         .catch((error: unknown) => {
           if (disposed) return;
           if (streamStatus === "loading") {
-            setState({ status: "loading" });
+            setState((current) =>
+              current.status === "loading" ? current : { status: "loading" },
+            );
             return;
           }
           setState({
@@ -252,14 +275,16 @@ export const MarkdownMermaid: React.FC<{
     lastReadyState.current,
     streamStatus,
   );
+  const isStale = "stale" in visibleState;
 
   if (visibleState.status === "ready") {
     return (
       <div
-        className={`markdown-mermaid ${"stale" in visibleState ? "is-stale" : ""}`.trim()}
+        className={`markdown-mermaid ${isStale ? "is-stale" : ""}`.trim()}
+        data-mermaid-status={isStale ? "stale" : "ready"}
       >
         <div className="markdown-mermaid-toolbar">
-          {"stale" in visibleState && (
+          {isStale && (
             <span className="markdown-mermaid-render-status">
               {t("mermaid.status.updating")}
             </span>
@@ -332,14 +357,38 @@ export const MarkdownMermaid: React.FC<{
     );
   }
 
-  const text =
-    visibleState.status === "empty" || streamStatus === "loading"
-      ? t("mermaid.status.receiving")
-      : visibleState.status === "error"
-        ? t("mermaid.status.failedWithDetail", {
-            detail: visibleState.message,
-          })
-        : t("mermaid.status.rendering");
+  // loading 与 empty 是两件事：loading 已经拿到源码、只是在等 mermaid 出图，用墨流占位
+  // （与 `MarkdownECharts` 的接收态同一视觉语言）；empty 是连内容都还没有，只用一句文案。
+  if (visibleState.status === "loading") {
+    return (
+      <div
+        className="markdown-mermaid markdown-mermaid-busy"
+        data-mermaid-status="loading"
+        role="status"
+        aria-busy="true"
+      >
+        <BusyInk />
+        <span className="markdown-mermaid-busy-label">
+          <MaterialIcon name="hub" />
+          {t("mermaid.status.rendering")}
+        </span>
+      </div>
+    );
+  }
 
-  return <div className="markdown-mermaid markdown-mermaid-status">{text}</div>;
+  const text =
+    visibleState.status === "error"
+      ? t("mermaid.status.failedWithDetail", {
+          detail: visibleState.message,
+        })
+      : t("mermaid.status.receiving");
+
+  return (
+    <div
+      className="markdown-mermaid markdown-mermaid-status"
+      data-mermaid-status={visibleState.status}
+    >
+      {text}
+    </div>
+  );
 };
