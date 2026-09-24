@@ -623,6 +623,12 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
 export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  // 切换 chat/agent 会改变整壳布局（空会话与会话的 grid 行结构不同），
+  // 挂在 body 的 Popover 不会跟随 trigger 按钮重新对齐；且旧菜单数据
+  // （chat 列表、技能、连接器）按原 chat/agent 请求，切换后直接关闭。
+  useEffect(() => {
+    setOpen(false);
+  }, [props.currentChatId, props.currentAgentKey]);
   return (
     <Popover
       open={open}
