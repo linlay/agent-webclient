@@ -1910,6 +1910,8 @@ export const enUSMessages = {
   "topNav.usage.metric.reasoning": "Reasoning",
   "topNav.usage.metric.toolCalls": "Tool calls",
   "topNav.usage.metric.total": "Total",
+  "topNav.usage.metrics.showBars": "Switch to bar view",
+  "topNav.usage.metrics.showValues": "Switch to value view",
   "topNav.usage.modelUnknown": "Unknown model",
   "topNav.usage.open": "Open usage stats",
   "topNav.usage.section.chat": "Chat total",

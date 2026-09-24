@@ -1,10 +1,18 @@
 import type { AIUsageEstimatedCost, AIUsageSnapshotEvent, AIUsageStats } from "@/shared/contracts/agentEvents";
 import type { AppState } from "@/app/state/AppContext";
 
+export interface UsageMetricPercent {
+  label: string;
+  percent: number;
+  base: number;
+}
+
 export interface UsageMetric {
   key: string;
   label: string;
   value: unknown;
+  percent: UsageMetricPercent | null;
+  baseLabel: string | null;
 }
 
 export interface UsageHeaderStat {
@@ -136,17 +144,76 @@ export function hasUsageStatsData(stats?: AIUsageStats): boolean {
   return numericValues.some((value) => readUsageNumber(value) != null) || Boolean(stats.estimatedCost);
 }
 
+function buildUsageMetricPercent(
+  value: unknown,
+  base: number | null,
+): UsageMetricPercent | null {
+  const numberValue = readUsageNumber(value);
+  if (numberValue == null) return null;
+  if (base == null || base <= 0) return null;
+  const percent = (numberValue / base) * 100;
+  const label =
+    percent > 100
+      ? ">100%"
+      : percent > 0 && percent < 1
+        ? "<1%"
+        : `${Math.round(percent)}%`;
+  return {
+    label,
+    percent: Math.max(0, Math.min(100, percent)),
+    base,
+  };
+}
+
 export function buildUsageMetrics(
   t: (key: string) => string,
   stats?: AIUsageStats,
 ): UsageMetric[] {
+  const totalTokens = readUsageNumber(stats?.totalTokens);
+  const promptTokens = readUsageNumber(stats?.promptTokens);
+  const completionTokens = readUsageNumber(stats?.completionTokens);
+  const totalLabel = t("topNav.usage.metric.total");
+  const promptLabel = t("topNav.usage.metric.prompt");
+  const completionLabel = t("topNav.usage.metric.completion");
   return [
-    { key: "prompt", label: t("topNav.usage.metric.prompt"), value: stats?.promptTokens },
-    { key: "completion", label: t("topNav.usage.metric.completion"), value: stats?.completionTokens },
-    { key: "total", label: t("topNav.usage.metric.total"), value: stats?.totalTokens },
-    { key: "reasoning", label: t("topNav.usage.metric.reasoning"), value: getReasoningTokens(stats) },
-    { key: "cacheHit", label: t("topNav.usage.metric.cacheHit"), value: getCacheHitTokens(stats) },
-    { key: "cacheMiss", label: t("topNav.usage.metric.cacheMiss"), value: getCacheMissTokens(stats) },
+    {
+      key: "prompt",
+      label: promptLabel,
+      value: stats?.promptTokens,
+      percent: buildUsageMetricPercent(stats?.promptTokens, totalTokens),
+      baseLabel: totalLabel,
+    },
+    {
+      key: "completion",
+      label: completionLabel,
+      value: stats?.completionTokens,
+      percent: buildUsageMetricPercent(stats?.completionTokens, totalTokens),
+      baseLabel: totalLabel,
+    },
+    {
+      key: "reasoning",
+      label: t("topNav.usage.metric.reasoning"),
+      value: getReasoningTokens(stats),
+      percent: buildUsageMetricPercent(
+        getReasoningTokens(stats),
+        completionTokens,
+      ),
+      baseLabel: completionLabel,
+    },
+    {
+      key: "cacheHit",
+      label: t("topNav.usage.metric.cacheHit"),
+      value: getCacheHitTokens(stats),
+      percent: buildUsageMetricPercent(getCacheHitTokens(stats), promptTokens),
+      baseLabel: promptLabel,
+    },
+    {
+      key: "cacheMiss",
+      label: t("topNav.usage.metric.cacheMiss"),
+      value: getCacheMissTokens(stats),
+      percent: buildUsageMetricPercent(getCacheMissTokens(stats), promptTokens),
+      baseLabel: promptLabel,
+    },
   ];
 }
 

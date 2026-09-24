@@ -2073,6 +2073,8 @@ export const zhCNMessages = {
   "topNav.usage.metric.reasoning": "推理",
   "topNav.usage.metric.toolCalls": "工具调用",
   "topNav.usage.metric.total": "总计",
+  "topNav.usage.metrics.showBars": "切换为进度条展示",
+  "topNav.usage.metrics.showValues": "切换为数值展示",
   "topNav.usage.modelUnknown": "未知模型",
   "topNav.usage.open": "打开用量统计",
   "topNav.usage.section.chat": "对话累计",

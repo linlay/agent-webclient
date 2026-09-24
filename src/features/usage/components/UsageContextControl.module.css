@@ -142,12 +142,12 @@
     min-width: 0;
     display: inline-flex;
     flex: 1 1 auto;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 }
 
-.usage-context-copy span {
+.usage-context-label {
     flex: 0 0 auto;
     color: var(--ink-muted);
     font-size: 9px;
@@ -195,15 +195,8 @@
 }
 
 .usage-popover-section {
-    margin-top: 6px;
-}
-
-.usage-popover-section-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin: 0 4px 3px 0;
+    border-top: 1px solid var(--border);
+    padding: 6px 0;
 }
 
 .usage-popover-section h3 {
@@ -211,6 +204,15 @@
     color: var(--ink-2);
     font-size: 11px;
     font-weight: 700;
+}
+
+.usage-section-toggle:global(.ui-btn.is-icon-only) {
+    flex: 0 0 auto;
+    width: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    padding: 0;
+    border-radius: 7px;
 }
 
 .usage-section-call-counts {
@@ -249,17 +251,23 @@
 .usage-metric {
     min-width: 0;
     display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 3px 5px;
+}
+
+.usage-metric-head {
+    min-width: 0;
+    display: flex;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: space-between;
     gap: 4px;
-    padding: 3px 5px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
-    border-radius: 7px;
-    background: color-mix(in srgb, var(--bg-elev) 68%, transparent);
 }
 
-.usage-metric dt {
-    margin: 0;
+.usage-metric-label {
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     color: var(--ink-muted);
     font-size: 9px;
@@ -268,10 +276,31 @@
     white-space: nowrap;
 }
 
-.usage-metric dd {
-    margin: 0;
+.usage-metric-value {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
     color: var(--ink-1);
     font:
         700 10px/1.15 var(--font-mono);
     overflow-wrap: anywhere;
+}
+
+.usage-metric-bar {
+    flex: 0 0 auto;
+    width: 100%;
+    height: 4px;
+    margin-top: 1px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--line-soft) 76%, transparent);
+}
+
+.usage-metric-bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent-electric);
+    transition: width 0.2s ease;
 }
