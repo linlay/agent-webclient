@@ -8,6 +8,29 @@ import {
 } from "@/shared/data/api/endpoints";
 
 describe("endpoint payload builders", () => {
+  it("keeps Agent interaction capabilities out of query payloads", () => {
+    const options = {
+      requestId: "req_interaction",
+      message: "hello",
+      owner: { kind: "agent" as const, agentKey: "demo-agent" },
+      interactionConfig: {
+        model: true, accessLevel: true, mustUseSkills: true, connectors: true,
+        attachment: { localFiles: true, chatRecords: true },
+      },
+      model: { key: "selected-model" },
+      accessLevel: "default",
+      mustUseSkills: ["selected-skill"],
+    };
+    expect(buildQueryPayload(options)).toEqual({
+      requestId: "req_interaction",
+      message: "hello",
+      agentKey: "demo-agent",
+      model: { key: "selected-model" },
+      accessLevel: "default",
+      mustUseSkills: ["selected-skill"],
+    });
+  });
+
   it("builds the minimal Agent query payload", () => {
     expect(buildQueryPayload({
       requestId: "req_1",
