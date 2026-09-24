@@ -1,0 +1,31 @@
+/**
+ * MarkdownECharts 的流式接收占位。
+ *
+ * 高度与图表容器（`DEFAULT_ECHARTS_HEIGHT`）一致，出图时不会跳动；
+ * 圆角 10px 与 markdown 的 `pre` / `.markdown-image` 对齐。
+ * 墨流由 `BusyInk` 提供，这里只负责盒子与文案层。
+ */
+.busy {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 10px;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.busyLabel {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.busyLabel :global(.material-icon) {
+  width: 30px;
+  height: 30px;
+  font-size: 30px;
+}

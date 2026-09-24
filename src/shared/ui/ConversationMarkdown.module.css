@@ -91,5 +91,5 @@
   min-height: 120px;
   align-items: center;
   justify-content: center;
-  color: var(--markdown-muted, currentColor);
+  color: var(--text-muted, currentColor);
 }

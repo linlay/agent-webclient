@@ -7,6 +7,7 @@ import {
 import { useOptionalAppContext } from "@/app/state/provider";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
+import { BusyInk } from "@/shared/ui/BusyInk";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
@@ -291,12 +292,7 @@ export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
                           </small>
                         )}
                       </div>
-                      {display.busy && (
-                        <>
-                          <div className={styles["busy-ink1"]}></div>
-                          <div className={styles["busy-ink2"]}></div>
-                        </>
-                      )}
+                      {display.busy && <BusyInk />}
                     </>
                   )}
                 </div>
