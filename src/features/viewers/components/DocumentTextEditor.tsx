@@ -327,6 +327,7 @@ export const DocumentTextEditor: React.FC<{
     </React.Suspense>
   ) : (
     <iframe
+      key={value}
       className="tw:h-full tw:min-h-[420px] tw:w-full tw:border-0"
       srcDoc={value}
       title={name}
