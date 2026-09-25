@@ -724,12 +724,13 @@ const Question = forwardRef<
                 {tooltip && (
                   <Tooltip
                     title={<SelectOptionTooltipTitle option={option} />}
+                    arrow={false}
                     styles={{
                       body:
                         tooltip.kind === "preview" ? { padding: 0 } : undefined,
                     }}
                   >
-                    <MaterialIcon name="info" className="tw:text-xs" />
+                    <MaterialIcon name="info" className="tw:text-sm" />
                   </Tooltip>
                 )}
                 <span className={hitlDialogClassNames.selectedBadge}>
