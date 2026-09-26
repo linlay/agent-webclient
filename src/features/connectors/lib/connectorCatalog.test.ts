@@ -59,3 +59,11 @@ test("VIEW is a composable component and has its own definition tab", () => {
   const view = { ...mixed, type: "view" as const, hasView: true };
   expect(connectorFiles(view)).toContain("view.json");
 });
+
+it("lists native tools and native.json without granting CLI or MCP", () => {
+ const desktop: ConnectorSummary = { id: "builtin.desktop", name: "Desktop", version: "1.0.0", type: "native", auth_mode: null, builtin: true, readOnly: true, hasNative: true, nativeTools: ["desktop_action", "desktop_cdp"], hasMcp: false, hasCli: false, hasBin: false, skills: ["desktop-action", "desktop-cdp"] };
+ expect(filterConnectors([desktop, mixed], "", "native")).toEqual([desktop]);
+ expect(filterConnectors([desktop], "", "cli")).toEqual([]);
+ expect(connectorFiles(desktop)).toEqual(["connector.json", "native.json"]);
+ expect(toolsForConnector([tool("desktop_action", undefined, "platform"), tool("bash", undefined, "platform")], desktop).map(value => value.key)).toEqual(["desktop_action"]);
+});

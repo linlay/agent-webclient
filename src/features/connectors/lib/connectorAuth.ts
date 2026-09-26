@@ -37,7 +37,7 @@ export function safeConnectorAuthorizationUrl(value?: string): string | null {
   } catch { return null; }
 }
 
-const statuses: ConnectorAuthStatus[] = ["not_required", "delegated", "setup_required", "unauthorized", "preparing", "pending", "authorized", "failed", "canceled"];
+const statuses: ConnectorAuthStatus[] = ["configured","not_required", "delegated", "setup_required", "unauthorized", "preparing", "pending", "authorized", "failed", "canceled"];
 
 export function readConnectorAuthSession(value: ConnectorAuthSession, id: string): ConnectorAuthSession {
   if (!value || value.connectorId !== id || !statuses.includes(value.status) || typeof value.sessionId !== "string" || typeof value.expiresAt !== "string"

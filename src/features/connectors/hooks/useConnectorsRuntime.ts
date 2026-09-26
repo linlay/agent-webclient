@@ -39,7 +39,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const selectedId = selected?.id || "";
   const readOnly = selected?.readOnly === true || selected?.builtin === true;
   const canDelete = !!selected && selected.canDelete !== false && !readOnly;
-  const activeFile = dirty && detail?.id === selectedId ? detail.file : (file === "mcp.json" && !selected?.hasMcp) || (file === "cli.json" && !selected?.hasCli) || (file === "view.json" && !selected?.hasView) ? "connector.json" : file;
+  const activeFile = dirty && detail?.id === selectedId ? detail.file : (file === "mcp.json" && !selected?.hasMcp) || (file === "cli.json" && !selected?.hasCli) || (file === "view.json" && !selected?.hasView) || (file === "native.json" && !selected?.hasNative) ? "connector.json" : file;
   const catalogRequest = useRef(0);
   const detailRequest = useRef(0);
   const catalogBusy = useRef(false);

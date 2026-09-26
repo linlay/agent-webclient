@@ -2,13 +2,13 @@ import { getAdminConnectors, getAdminTools } from "@/shared/data";
 import type { AdminToolSummary, ConnectorDefinitionFile, ConnectorSummary, ConnectorType } from "@/shared/data";
 
 export function connectorFiles(item: ConnectorSummary): ConnectorDefinitionFile[] {
-  return ["connector.json", ...(item.hasMcp ? ["mcp.json"] : []), ...(item.hasCli ? ["cli.json"] : []), ...(item.hasView ? ["view.json"] : [])] as ConnectorDefinitionFile[];
+  return ["connector.json", ...(item.hasMcp ? ["mcp.json"] : []), ...(item.hasCli ? ["cli.json"] : []), ...(item.hasView ? ["view.json"] : []), ...(item.hasNative ? ["native.json"] : [])] as ConnectorDefinitionFile[];
 }
 
 export function filterConnectors(items: ConnectorSummary[], search: string, type: ConnectorType | "all"): ConnectorSummary[] {
   const needle = search.trim().toLowerCase();
   return items.filter(item =>
-    (type === "all" || (type === "cli" ? item.hasCli : type === "view" ? item.hasView : item.hasMcp)) &&
+    (type === "all" || (type === "native" ? item.hasNative : type === "cli" ? item.hasCli : type === "view" ? item.hasView : item.hasMcp)) &&
     [item.id, item.name, item.description, item.version, ...(item.skills || []), ...(item.mcp || []).map(server => server.serverKey)]
       .filter(Boolean).join(" ").toLowerCase().includes(needle),
   );
@@ -16,7 +16,7 @@ export function filterConnectors(items: ConnectorSummary[], search: string, type
 
 export function toolsForConnector(tools: AdminToolSummary[], item: ConnectorSummary): AdminToolSummary[] {
   const keys = new Set((item.mcp || []).map(server => server.serverKey));
-  return tools.filter(tool => tool.sourceCategory === "mcp" && keys.has(tool.serverKey || ""));
+  return tools.filter(tool => item.nativeTools?.includes(tool.key) || (tool.sourceCategory === "mcp" && keys.has(tool.serverKey || "")));
 }
 
 export function connectorToolDisplayName(tool: AdminToolSummary): string {
