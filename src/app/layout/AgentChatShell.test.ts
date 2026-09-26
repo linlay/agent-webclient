@@ -978,11 +978,11 @@ describe("AgentChatShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
       agentKey: "demo-agent",
     });
@@ -1079,94 +1079,21 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("unblocks the route chat load after a detail fetch without optional model fields", async () => {
+  it("loads existing Chat independently of missing route Agent metadata", () => {
     const dispatch = jest.fn();
-    const useEffectSpy = jest
-      .spyOn(React, "useEffect")
-      .mockImplementation((effect: React.EffectCallback) => {
-        effect();
-      });
-    useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
-    useAppDispatch.mockReturnValue(dispatch);
-    // 详情成功但缺少可选的 modelKey / reasoningEffort。
-    getAgent.mockResolvedValueOnce({
-      data: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
-    });
-
-    useAppState.mockReturnValue(createInitialState());
-    renderToStaticMarkup(React.createElement(AgentChatShell));
-    expect(useAppRuntimes).toHaveBeenLastCalledWith(expect.objectContaining({
-      targetChatId: "chat-123",
-      routeReady: false,
-    }));
-
-    await flushPromises();
-
-    // 模拟 SET_AGENTS 之后的重渲染：详情拉取过一次即视为水合完成，
-    // routeReady 放行，useConversationRouteLoad 才会发起 /api/chat。
-    useAppRuntimes.mockClear();
-    useAppState.mockReturnValue({
-      ...createInitialState(),
-      agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
-      ],
-    });
-    renderToStaticMarkup(React.createElement(AgentChatShell));
-
-    expect(useAppRuntimes).toHaveBeenLastCalledWith(expect.objectContaining({
-      targetChatId: "chat-123",
-      routeReady: true,
-    }));
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:demo-agent",
-    });
-
-    useEffectSpy.mockRestore();
-  });
-
-  it("registers the direct Chat target while waiting for Agent hydration", async () => {
-    const dispatch = jest.fn();
-    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
-    const useEffectSpy = jest
-      .spyOn(React, "useEffect")
-      .mockImplementation((effect: React.EffectCallback) => {
-        effect();
-      });
+    const effect = jest.spyOn(React, "useEffect").mockImplementation(callback => { callback(); });
     useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(dispatch);
-
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
-
-    expect(getAgent).toHaveBeenCalledWith("demo-agent");
-    expect(dispatch).not.toHaveBeenCalledWith({
-      type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:demo-agent",
-    });
-    expect(dispatchEvent).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:load-chat",
-      }),
-    );
     expect(html).toContain("conversation-stage");
-    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({ targetChatId: "chat-123", routeReady: false }));
-
-    await flushPromises();
-
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [
-        {
-          key: "demo-agent",
-          name: "Demo Agent",
-          role: "Worker",
-          mode: "CODER",
-        },
-      ],
-    });
-
-    useEffectSpy.mockRestore();
+    expect(useAppRuntimes).toHaveBeenLastCalledWith(expect.objectContaining({
+      targetChatId: "chat-123", routeReady: true,
+    }));
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "SET_AGENTS" }));
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "SET_WORKER_SELECTION_KEY" }));
+    effect.mockRestore();
   });
 
   it("renders the chat layout after the route chat is loaded", () => {

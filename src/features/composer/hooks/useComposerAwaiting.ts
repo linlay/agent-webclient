@@ -1,3 +1,4 @@
+import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback } from "react";
 import type { Dispatch } from "react";
 import { App as AntdApp } from "antd";
@@ -40,7 +41,7 @@ interface UseComposerAwaitingInput {
   state: Pick<
     AppState,
     "currentRunAgentKey" | "runAgentById" | "chatId" | "chatAgentById" | "chats"
-  > & Partial<Pick<AppState, "chatSurfaceBlocked">>;
+  > & Partial<Pick<AppState, "chatSurfaceBlocked" | "agentAvailability" | "workerSelectionKey">>;
   stateRef?: { current: AppState };
 }
 
@@ -171,7 +172,7 @@ export async function submitComposerAwaiting(
     state,
     t,
   } = input;
-  if (!activeAwaiting || state.chatSurfaceBlocked || input.isCurrent?.() === false) return;
+  if (!activeAwaiting || state.chatSurfaceBlocked || isAgentExecutionBlocked(state) || input.isCurrent?.() === false) return;
   let trackedRunId = "";
   let trackedAwaitingId = "";
   try {
@@ -298,6 +299,7 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
 
   const handleAwaitingSubmit = useCallback(
     async (payload: AIAwaitSubmitPayloadData) => {
+      if (input.stateRef?.current && isAgentExecutionBlocked(input.stateRef.current)) return;
       const isCurrent = () => {
         const latest = input.stateRef?.current;
         return !latest || (!areConversationInteractionsBlocked(latest) &&

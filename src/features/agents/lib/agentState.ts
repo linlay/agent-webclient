@@ -51,12 +51,16 @@ export interface Agent {
 
 export interface AgentsState {
   agents: Agent[];
+  agentAvailability: Record<string, AgentAvailability>;
 }
 
-export type AgentsAction = { type: "SET_AGENTS"; agents: Agent[] };
+export type AgentAvailability = "checking" | "available" | "unavailable" | "authentication_required" | "forbidden" | "error";
+
+export type AgentsAction = { type: "SET_AGENTS"; agents: Agent[] }
+  | { type: "SET_AGENT_AVAILABILITY"; agentKey: string; status: AgentAvailability };
 
 export function createInitialAgentsState(): AgentsState {
-  return { agents: [] };
+  return { agents: [], agentAvailability: {} };
 }
 
 export function reduceAgentsState<S extends AgentsState>(state: S, action: AgentsAction): S;
@@ -64,6 +68,8 @@ export function reduceAgentsState<S extends AgentsState>(state: S, action: { typ
 export function reduceAgentsState<S extends AgentsState>(state: S, input: { type: string }): S | null {
   const action = input as AgentsAction;
   switch (action.type) {
+    case "SET_AGENT_AVAILABILITY":
+      return { ...state, agentAvailability: { ...state.agentAvailability, [action.agentKey]: action.status } };
     case "SET_AGENTS":
       return { ...state, agents: action.agents };
     default: return null;

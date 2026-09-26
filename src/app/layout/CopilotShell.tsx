@@ -278,7 +278,7 @@ const CopilotShellContent: React.FC = () => {
   useAppRuntimes({
     initialWorkerRefreshEnabled: !requestedAgentKey,
     targetChatId: routeChatId,
-    routeReady: !requestedAgentKey || routeAgentHydratedKey === requestedAgentKey,
+    routeReady: Boolean(routeChatId) || !requestedAgentKey || routeAgentHydratedKey === requestedAgentKey,
   });
 
   useEffect(() => {
@@ -325,7 +325,7 @@ const CopilotShellContent: React.FC = () => {
   }, [dispatch, requestedAgentKey]);
 
   useEffect(() => {
-    if (!resolvedAgentKey) {
+    if (routeChatId || !resolvedAgentKey) {
       lastRouteTargetKeyRef.current = "";
       return;
     }

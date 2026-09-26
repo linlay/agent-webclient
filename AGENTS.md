@@ -7,6 +7,8 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 - 给用户看的内容不要生成 `.md` 文件；需要生成面向人阅读的交付物时，优先生成 HTML 来替代 Markdown，让人类看效果更好。
 - 本文件、`CLAUDE.md`、`README.md` 等仓库规范或项目文档属于项目约定文件，不受上一条“不要生成给人看的 `.md`”限制。
 
+已有 Chat 的 Agent/Copilot 路由独立读取 `/api/chat`，不等待当前 Agent hydration；composer 单独检查可用性，404 时显示 `/agents/:agentKey` 配置链接并禁用继续执行，历史 owner 不由路由或有效 Agent 目录覆盖。详见对话加载与 Composer 专题。
+
 ## 1. 项目概览
 `agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示对话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
 

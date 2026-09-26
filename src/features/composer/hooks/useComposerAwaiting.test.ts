@@ -146,6 +146,18 @@ describe("submitComposerAwaiting", () => {
 		expect(submitAwaitingImpl).not.toHaveBeenCalled();
 		expect(dispatch).not.toHaveBeenCalled();
 	});
+	it.each(["checking", "unavailable", "forbidden"] as const)("cannot resume historical approval when Agent is %s", async status => {
+    const submitAwaitingImpl = jest.fn();
+    await submitComposerAwaiting({
+      activeAwaiting: { key: "run_1#await_1", runId: "run_1", awaitingId: "await_1", agentKey: "demo", timeout: null, mode: "question", questions: [] },
+      clearActiveAwaiting: jest.fn(), dispatch: jest.fn(),
+      message: { info: jest.fn(), warning: jest.fn() },
+      payload: { runId: "run_1", awaitingId: "await_1", params: [] },
+      state: { ...createInitialState(), chatId: "A", chatAgentById: new Map([["A", "demo"]]), agentAvailability: { demo: status } },
+      t: key => key, submitAwaitingImpl,
+    });
+    expect(submitAwaitingImpl).not.toHaveBeenCalled();
+  });
 	it("does not let a late awaiting response clear the new conversation", async () => {
 		let resolve!: (response: any) => void;
 		let current = true;

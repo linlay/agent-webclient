@@ -1,3 +1,7 @@
+const mockAgentAvailability = { status: "available", retry: jest.fn() };
+jest.mock("@/features/composer/hooks/useAgentAvailability", () => ({
+  useAgentAvailability: () => mockAgentAvailability,
+}));
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import * as selectedTextHooks from "@/features/selection/hooks/useSelectedTextFragments";
 import { createSelectedTextFragment, selectedTextReferenceToAttachment } from "@/features/selection/lib/selectedTextReference";
@@ -322,6 +326,7 @@ describe("ComposerArea", () => {
   const originalLocalStorage = globalWithStorage.localStorage;
 
   beforeEach(() => {
+    mockAgentAvailability.status = "available";
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -356,6 +361,25 @@ describe("ComposerArea", () => {
       return;
     }
     delete globalWithStorage.localStorage;
+  });
+
+  it("replaces executable inputs and awaiting controls with an unavailable Agent configuration link", () => {
+    mockAgentAvailability.status = "unavailable";
+    mockResolveCurrentWorkerSummary.mockReturnValue({ type: "agent", sourceId: "deleted", relatedChats: [], raw: null });
+    mockComposerAwaitingState.isAwaitingActive = true;
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+    expect(html).toContain('href="/agents/deleted"');
+    expect(html).toContain("composer.agent.unavailable");
+    expect(html).not.toContain("awaiting-shell");
+    expect(mockComposerInputProps).toHaveLength(0);
+    expect(mockComposerActionsProps).toHaveLength(0);
+  });
+  it.each(["checking", "authentication_required", "forbidden", "error"])("renders %s separately from configuration failure", status => {
+    mockAgentAvailability.status = status;
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+    expect(html).toContain(`composer.agent.${status}`);
+    expect(html).not.toContain('href="/agents/');
+    expect(mockComposerInputProps).toHaveLength(0);
   });
 
   it("hides wonders and forwards compact input sizing when configured", () => {

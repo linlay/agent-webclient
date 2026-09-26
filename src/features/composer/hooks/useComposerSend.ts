@@ -1,3 +1,4 @@
+import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { App as AntdApp } from "antd";
@@ -397,6 +398,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   });
 
   const handleSend = useCallback(() => {
+    if (isAgentExecutionBlocked(stateRef.current)) return;
     if (isAwaitingActive || isVoiceMode) return;
     if (speechListening) {
       stopSpeechInput();
@@ -625,6 +627,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   ]);
 
   const handleSteer = useCallback(async (steerId: string) => {
+    if (isAgentExecutionBlocked(stateRef.current)) return;
     const currentState = stateRef.current;
     const chatId = String(currentState.chatId || "").trim();
     const steer = findPendingSteer(currentState.pendingSteers, { chatId, steerId })?.steer;

@@ -479,6 +479,24 @@ describe("useMessageActions temporary pin", () => {
     );
   });
 
+  it.each(["checking", "unavailable", "authentication_required", "forbidden", "error"] as const)("blocks programmatic sending when the historical Agent is %s", async status => {
+    const state = createInitialState();
+    state.chatId = "history";
+    state.chatAgentById.set("history", "deleted");
+    state.workerSelectionKey = "agent:healthy";
+    state.agentAvailability = { deleted: status, healthy: "available" };
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({ state, dispatch, stateRef: { current: state },
+      querySessionsRef: { current: new Map() }, chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" } });
+    let actions: ReturnType<typeof useMessageActions> | null = null;
+    const Harness = () => { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    await actions!.sendMessage("must not send");
+    expect(startQuery).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it.each(["loading", "ready", "error"] as const)("blocks direct query entry during %s, including the shared exit animation", async (phase) => {
     const state = createInitialState();
     state.chatId = "chat_old";

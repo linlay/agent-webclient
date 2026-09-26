@@ -78,6 +78,8 @@ import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteracti
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
+import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
+
 interface ComposerAreaProps {
   enableNewChatContext?: boolean;
   emptyInputMinRows?: number;
@@ -166,6 +168,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   useEffect(() => {
     if (!interactionConfig.accessLevel) setAccessLevel("default");
   }, [currentAgentKey, interactionConfig.accessLevel]);
+  const agentAvailability = useAgentAvailability(currentAgentKey, state.chatId);
+  const agentExecutionBlocked = agentAvailability.status !== "available";
   const hostRequiredSkills = useHostRequiredSkills();
   const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>(
     [],
@@ -248,7 +252,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
   const isMainChatRunning = mainChatRuntime.running;
   const presentation = useConversationSurface();
-  const chatTransitionBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
+  const chatTransitionBlocking = agentExecutionBlocked || (presentation?.blocked ?? areConversationInteractionsBlocked(state));
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "")
@@ -663,6 +667,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   });
 
   const handleSend = useCallback(() => {
+    if (chatTransitionBlocking) return;
     if (!hasStagedAttachments) {
       handleSendImmediately();
       return;
@@ -672,7 +677,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     void uploadStagedAttachments().then((succeeded) => {
       if (!succeeded) deferredSendRequestedRef.current = false;
     });
-  }, [handleSendImmediately, hasStagedAttachments, uploadStagedAttachments]);
+  }, [chatTransitionBlocking, handleSendImmediately, hasStagedAttachments, uploadStagedAttachments]);
 
   useEffect(() => {
     if (
@@ -824,6 +829,35 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       {content}
     </>
   );
+
+  if (agentExecutionBlocked) {
+    const unavailable = agentAvailability.status === "unavailable";
+    const checking = agentAvailability.status === "checking";
+    return (
+      <div className={COMPOSER_AREA_CLASS}>
+        <div className={COMPOSER_PILL_CLASS} aria-label={t("composer.agent.status")}>
+          <div role="status" className="tw:flex tw:items-center tw:gap-2 tw:p-3 tw:text-sm tw:text-text-sub">
+            <MaterialIcon name={checking ? "refresh" : "info"} />
+            {unavailable ? (
+              <a href={`/agents/${encodeURIComponent(currentAgentKey)}`} className="tw:underline">
+                {t("composer.agent.unavailable")}
+              </a>
+            ) : <span>{t(`composer.agent.${agentAvailability.status}`)}</span>}
+            {!checking && !unavailable && (
+              <UiButton variant="ghost" size="sm" onClick={agentAvailability.retry}>
+                {t("agentRoute.error.retry")}
+              </UiButton>
+            )}
+          </div>
+          {isMainChatRunning && activeRunId && (
+            <UiButton variant="ghost" size="sm" onClick={() => void interruptCurrentRun()}>
+              {t("composer.actions.interrupt")}
+            </UiButton>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (!chatTransitionBlocking && isAwaitingActive && state.activeAwaiting) {
     if (state.activeAwaiting.mode === "form") {

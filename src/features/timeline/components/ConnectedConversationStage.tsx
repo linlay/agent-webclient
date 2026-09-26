@@ -1,3 +1,4 @@
+import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useAgentWelcome } from "@/features/agents/hooks/useAgentWelcome";
 import { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
 import { buildTimelineAgentOptions } from "@/features/workers/lib/agentSelection";
@@ -841,20 +842,22 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     [flashActionStatus, message, t],
   );
 
+  const agentExecutionBlocked = isAgentExecutionBlocked(state);
+
   const handleResend = useCallback(
     (text: string) => {
-      if (isMainChatRunning || !text.trim()) return;
+      if (agentExecutionBlocked || isMainChatRunning || !text.trim()) return;
       window.dispatchEvent(
         new CustomEvent("agent:send-message", { detail: { message: text } }),
       );
     },
-    [isMainChatRunning],
+    [agentExecutionBlocked, isMainChatRunning],
   );
 
   const handleResendInNewChat = useCallback(
     (text: string) => {
       const messageText = text.trim();
-      if (isMainChatRunning || !messageText) return;
+      if (agentExecutionBlocked || isMainChatRunning || !messageText) return;
       if (onResendInNewChat) {
         onResendInNewChat(messageText);
         return;
@@ -881,7 +884,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         new CustomEvent("agent:send-message", { detail: sendDetail }),
       );
     },
-    [currentWorker, isMainChatRunning, onResendInNewChat],
+    [agentExecutionBlocked, currentWorker, isMainChatRunning, onResendInNewChat],
   );
 
   const handleDeriveChat = useCallback(
@@ -1559,7 +1562,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
           ],
         }}>
           <UiButton className={TIMELINE_META_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
-            disabled={isMainChatRunning} title={t("timeline.query.resend")} aria-label={t("timeline.query.resend")}>
+            disabled={agentExecutionBlocked || isMainChatRunning} title={t("timeline.query.resend")} aria-label={t("timeline.query.resend")}>
             <MaterialIcon name="refresh" />
           </UiButton>
         </Dropdown>

@@ -416,7 +416,7 @@ const AgentChatShellContent: React.FC = () => {
   const { loadAgents, startNewConversation } = useAppRuntimes({
     initialWorkerRefreshEnabled: false,
     targetChatId: chatId,
-    routeReady: routeAgentHydrated,
+    routeReady: Boolean(chatId) || routeAgentHydrated,
   });
 
   useEffect(() => {
@@ -657,7 +657,7 @@ const AgentChatShellContent: React.FC = () => {
       return;
     }
 
-    if (!routeAgentNeedsHydration) {
+    if (chatId || !routeAgentNeedsHydration) {
       return;
     }
 
@@ -743,23 +743,20 @@ const AgentChatShellContent: React.FC = () => {
         routeAgentLoadingTimeoutRef.current = null;
       }
     };
-  }, [agentKey, dispatch, routeAgentNeedsHydration, hydrationRetryCount, t]);
+  }, [agentKey, chatId, dispatch, routeAgentNeedsHydration, hydrationRetryCount, t]);
 
   useEffect(() => {
-    if (!agentKey || !routeAgentHydrated) {
+    if (chatId) {
+      lastInitializedAgentKeyRef.current = "";
+      // The persisted Chat, not the route Agent, owns history identity.
+      consumeLiveSessionPromotion(promotedLiveChatRouteKeysRef.current, agentKey, chatId);
       return;
     }
+    if (!agentKey || !routeAgentHydrated) return;
 
     dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
-
-    if (chatId) {
-      lastInitializedAgentKeyRef.current = "";
-      // Promotion is metadata only. The conversation coordinator owns loading.
-      consumeLiveSessionPromotion(promotedLiveChatRouteKeysRef.current, agentKey, chatId);
-      return;
-    }
 
     if (!routeNewChatTimestamp) {
       lastInitializedAgentKeyRef.current = "";
