@@ -5,7 +5,7 @@ import type {
   UpdateConnectorDefinitionRequest, DeleteConnectorResponse,
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
   ConnectorSkillListResponse, ConnectorSkillDetail,
-  ConnectorAuthSession, ConnectorAuthActionResult,
+  ConnectorAuthSession, ConnectorAuthActionResult, ConnectorConnection,
   AgentConnectorsResponse, SetAgentConnectorRequest,
 } from "@/shared/data/api/dto/connectors";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
@@ -103,4 +103,13 @@ export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<
   return requestJson(dataEndpoints.connectorOrderUpdate.path, {
     method: "PUT", body: JSON.stringify(params),
   });
+}
+
+export function getConnectorConnection(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorConnection>> {
+ const endpoint = dataEndpoints.connectorConnection;
+ return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {method: endpoint.method, cache: "no-store", signal});
+}
+export function updateNativeConnectorConnection(id: string, action: "connect" | "disconnect" | "check", signal?: AbortSignal): Promise<ApiResponse<unknown>> {
+ const endpoint = action === "connect" ? dataEndpoints.connectorConnect : action === "disconnect" ? dataEndpoints.connectorDisconnect : dataEndpoints.connectorCheck;
+ return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {method: endpoint.method, cache: "no-store", signal});
 }

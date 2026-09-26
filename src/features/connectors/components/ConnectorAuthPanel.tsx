@@ -1,3 +1,4 @@
+import { NativeConnectorPanel } from "./NativeConnectorPanel";
 import { useState } from "react";
 import { ConnectorAuthBrowser } from "./ConnectorAuthBrowser";
 import { ApiError } from "@/shared/data";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function ConnectorAuthPanel(props: Props) {
+ if (props.item.hasNative) return <NativeConnectorPanel id={props.item.id} disabled={props.disabled} onChange={props.onCredentialsChange} />;
   return props.auth ? <ConnectorAuthPanelContent {...props} auth={props.auth} /> : <StandaloneConnectorAuthPanel {...props} />;
 }
 
@@ -54,6 +56,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props 
     {checkable && <>
       {interactive && <p className={styles.hint}>{t("connectors.auth.shared")}</p>}
       {(item.auth_mode === "oauth" || item.auth_mode === "mcp") && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
+      {item.hasNative && <p className={styles.hint}>{t("connectors.native.hint")}</p>}
       {item.hasMcp && <p className={styles.hint}>{t("connectors.auth.mcpAvailability")}</p>}
       {auth.session?.message && ["failed", "setup_required", "canceled", "expired"].includes(status) && <p className={styles.hint}>{auth.session.message}</p>}
       {errorText && <div className={styles.error} role="alert">{t("connectors.auth.error.prefix")} {errorText}</div>}

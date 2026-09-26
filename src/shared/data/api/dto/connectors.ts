@@ -1,5 +1,5 @@
-export type ConnectorType = "cli" | "mcp" | "view";
-export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json" | "view.json";
+export type ConnectorType = "cli" | "mcp" | "view" | "native";
+export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json" | "view.json" | "native.json";
 
 export interface ConnectorMcpStatus {
   serverKey: string;
@@ -27,6 +27,8 @@ export interface ConnectorSummary {
   builtin?: boolean;
   readOnly?: boolean;
   canDelete?: boolean;
+  hasNative?: boolean;
+  nativeTools?: string[];
   hasMcp: boolean;
   hasCli: boolean;
   hasView?: boolean;
@@ -95,7 +97,7 @@ export interface ImportConnectorArchiveResponse {
   authMode: ConnectorSummary["auth_mode"];
 }
 
-export type ConnectorAuthStatus = "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
+export type ConnectorAuthStatus = "configured" | "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
 
 export interface ConnectorAuthSession {
   connectorId: string;
@@ -135,3 +137,5 @@ export interface UpdateConnectorOrderRequest {
   key: string;
   pinned: boolean;
 }
+
+export interface ConnectorConnection { connectorId: string; configured: boolean; readiness: string; }

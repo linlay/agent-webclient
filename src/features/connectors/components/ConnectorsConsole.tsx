@@ -148,7 +148,7 @@ export function ConnectorsConsole({
       authStatus && authStatus !== "unknown"
         ? t(`connectors.auth.status.${authStatus}`)
         : "";
-    const authLabel =
+    const authLabel = item.hasNative && authStatus === "unauthorized" ? t("connectors.native.unconfigured") :
       item.auth_mode === "none"
         ? t("connectors.auth.status.not_required")
         : item.auth_mode === "token"
@@ -279,6 +279,7 @@ export function ConnectorsConsole({
             </span>
             <span className={styles.badges}>
               {item.hasView && <UiTag tone="accent">VIEW</UiTag>}
+              {item.hasNative && <UiTag>{t("connectors.type.native")}</UiTag>}
               {item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}
               {item.hasMcp && (
                 <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>
@@ -355,7 +356,7 @@ export function ConnectorsConsole({
                     selectedKeys: [filter],
                     onClick: ({ key }) =>
                       setFilter(key as ConnectorType | "all"),
-                    items: (["all", "mcp", "cli", "view"] as const).map(
+                    items: (["all", "mcp", "cli", "view", "native"] as const).map(
                       (type) => ({
                         key: type,
                         label:
