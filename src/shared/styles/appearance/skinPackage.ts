@@ -1,5 +1,5 @@
 import type { DesktopSkinToken, ResolvedThemeMode } from "./skinDefinition";
-import { AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS, parseAgentWebclientAppearanceTokens, parseSkinVisuals, type SkinVisuals } from "@/shared/contracts/generated/agentWebclientBridge";
+import { parseAgentWebclientAppearanceTokens, parseSkinVisuals, type SkinVisuals } from "@/shared/contracts/generated/agentWebclientBridge";
 
 export const SKIN_PACKAGE_LIMITS = Object.freeze({
   archiveBytes: 32 * 1024 * 1024, expandedBytes: 48 * 1024 * 1024,
@@ -24,9 +24,6 @@ export class SkinPackageError extends Error {
   constructor(public readonly code: "invalidPackage" | "unsupportedPackageVersion" | "packageTooLarge" | "packageExists" | "tooManySkins") { super(code); }
 }
 
-// These are the public v1 controls. Values are parsed, never passed through as
-// arbitrary CSS. Derived RGB values and CSS expressions remain Desktop-owned.
-export const SKIN_COLOR_TOKENS = AGENT_WEBCLIENT_APPEARANCE_COLOR_TOKENS;
 function invalid(): never { throw new SkinPackageError("invalidPackage"); }
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
@@ -88,19 +85,6 @@ export function parseSkinPackageManifest(value: unknown): SkinPackageManifest {
     if (!/\.(png|jpe?g)$/i.test(manifest.preview)) invalid();
   }
   return manifest;
-}
-
-export function resolveSkinPackageTokens(tokens: SkinPackageManifest["variants"]["light"]["tokens"]) {
-  const result = { ...tokens };
-  // Accent alpha is irrelevant to this companion token; rgba consumers own it.
-  const accent = tokens["--accent"];
-  if (accent?.startsWith("#")) {
-    const hex = accent.length < 6 ? [...accent.slice(1)].map((digit) => digit + digit).join("") : accent.slice(1);
-    result["--accent-rgb"] = [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16)).join(", ");
-  } else if (accent?.startsWith("rgb")) {
-    result["--accent-rgb"] = accent.slice(accent.indexOf("(") + 1, -1).split(",").slice(0, 3).map((s) => s.trim()).join(", ");
-  }
-  return result;
 }
 
 export function skinPackageResources(manifest: SkinPackageManifest): string[] {

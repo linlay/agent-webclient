@@ -6,15 +6,6 @@ export function setMapValue<K, V>(source: Map<K, V>, key: K, value: V): Map<K, V
 	return next;
 }
 
-export function deleteMapValue<K, V>(source: Map<K, V>, key: K): Map<K, V> {
-	if (!source.has(key)) {
-		return source;
-	}
-	const next = new Map(source);
-	next.delete(key);
-	return next;
-}
-
 export function addSetValue<T>(source: Set<T>, value: T): Set<T> {
 	if (source.has(value)) {
 		return source;

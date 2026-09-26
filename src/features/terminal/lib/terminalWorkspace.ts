@@ -19,10 +19,6 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
-export function isChatWorkspaceKey(workspaceKey: string): boolean {
-  return toText(workspaceKey).toLowerCase() === "@chat";
-}
-
 export function resolveTerminalDockWorkspaceKey(
   worker: TerminalWorkerSummary | null,
 ): string {
