@@ -1,3 +1,4 @@
+import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
 import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import React, {
@@ -839,9 +840,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
           <div role="status" className="tw:flex tw:items-center tw:gap-2 tw:p-3 tw:text-sm tw:text-text-sub">
             <MaterialIcon name={checking ? "refresh" : "info"} />
             {unavailable ? (
-              <a href={`/agents/${encodeURIComponent(currentAgentKey)}`} className="tw:underline">
-                {t("composer.agent.unavailable")}
-              </a>
+              <AgentConfigurationLink key={currentAgentKey} agentKey={currentAgentKey} />
             ) : <span>{t(`composer.agent.${agentAvailability.status}`)}</span>}
             {!checking && !unavailable && (
               <UiButton variant="ghost" size="sm" onClick={agentAvailability.retry}>

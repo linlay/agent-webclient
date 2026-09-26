@@ -2290,6 +2290,7 @@ export const zhCNMessages = {
   "contentBlock.replayVoice": "重新朗读",
   "conversationStage.queryAnchor": "定位到第 {index} 个提问",
   "composer.agent.status": "Agent 状态",
+  "composer.agent.configurationOpenFailed": "无法打开 Agent 配置，请重试或从侧栏进入 Agent 管理。",
   "composer.agent.unavailable": "当前 Agent 不可用，点击查看配置",
   "composer.agent.checking": "正在检查 Agent 状态…",
   "composer.agent.authentication_required": "登录已失效，请重新登录",

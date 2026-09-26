@@ -2114,6 +2114,7 @@ export const enUSMessages = {
   "contentBlock.replayVoice": "Replay voice",
   "conversationStage.queryAnchor": "Go to question {index}",
   "composer.agent.status": "Agent status",
+  "composer.agent.configurationOpenFailed": "Could not open Agent configuration. Retry or open Agent management from the sidebar.",
   "composer.agent.unavailable": "This Agent is unavailable. Click to view its configuration.",
   "composer.agent.checking": "Checking Agent status…",
   "composer.agent.authentication_required": "Your session has expired. Please sign in again.",
