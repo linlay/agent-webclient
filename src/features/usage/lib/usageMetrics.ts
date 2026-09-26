@@ -191,6 +191,13 @@ export function buildUsageMetrics(
       baseLabel: totalLabel,
     },
     {
+      key: "total",
+      label: totalLabel,
+      value: stats?.totalTokens,
+      percent: null,
+      baseLabel: null,
+    },
+    {
       key: "reasoning",
       label: t("topNav.usage.metric.reasoning"),
       value: getReasoningTokens(stats),

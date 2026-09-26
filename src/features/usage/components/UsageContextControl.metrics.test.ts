@@ -65,7 +65,7 @@ describe("UsageContextControl metric presentation", () => {
 
   const renderControl = async () => {
     await act(async () => root.render(React.createElement(I18nProvider, { locale: "en-US", persistLocale: false },
-      React.createElement(ConfigProvider, { theme: { token: { motion: false } } },
+      React.createElement(ConfigProvider, { theme: { tokens: { motion: false } } },
         React.createElement(AntdApp, null, React.createElement(UsageContextControl)),
       ),
     )));
@@ -76,64 +76,39 @@ describe("UsageContextControl metric presentation", () => {
       (cell) => cell.querySelector(".usage-metric-label")?.textContent === label,
     );
 
-  it("shows percentages with bars and carries labelled usage/total for the tooltip", async () => {
+  it("shows two stacked bars with reasoning excluded from blue output", async () => {
     await renderControl();
-
-    const promptCell = metricCell("Prompt");
-    expect(promptCell).toBeDefined();
-    expect(promptCell!.querySelector(".usage-metric-value")?.textContent).toBe("60%");
-    expect(
-      promptCell!.querySelector<HTMLElement>(".usage-metric-bar-fill")?.style.width,
-    ).toBe("60%");
-    expect(promptCell!.dataset.metricValue).toBe("6,000 Prompt / 10,000 Total");
-    expect(promptCell!.dataset.metricPercent).toBe("60%");
-
-    const totalCells = Array.from(
-      document.querySelectorAll<HTMLElement>(".usage-metric"),
-    ).filter((cell) => cell.querySelector(".usage-metric-label")?.textContent === "Total");
-    expect(totalCells).toHaveLength(0);
-
-    const cacheHitCell = metricCell("Cache hit");
-    expect(cacheHitCell!.querySelector(".usage-metric-value")?.textContent).toBe("25%");
-    expect(cacheHitCell!.dataset.metricValue).toBe("1,500 Cache hit / 6,000 Prompt");
-
-    const reasoningCell = metricCell("Reasoning");
-    expect(reasoningCell!.querySelector(".usage-metric-value")?.textContent).toBe("20%");
-    expect(reasoningCell!.dataset.metricValue).toBe("800 Reasoning / 4,000 Completion");
-  });
-
-  it("keeps raw numbers in the cell and tooltip when no ratio base exists", async () => {
-    mockState.usageSnapshot = {
-      type: "usage.snapshot",
-      usage: { current: { promptTokens: 1_200 } },
-    } as ReturnType<typeof createInitialState>["usageSnapshot"];
-    await renderControl();
-
-    const promptCell = metricCell("Prompt");
-    expect(promptCell!.querySelector(".usage-metric-value")?.textContent).toBe("1,200");
-    expect(promptCell!.dataset.metricValue).toBe("1,200 Prompt");
-    expect(promptCell!.dataset.metricPercent).toBe("");
-    expect(
-      promptCell!.querySelector<HTMLElement>(".usage-metric-bar-fill")?.style.width,
-    ).toBe("0%");
-  });
-
-  it("omits the tooltip when a metric has no data", async () => {
-    mockState.usageSnapshot = {
-      type: "usage.snapshot",
-      usage: { current: { promptTokens: 1_200 } },
-    } as ReturnType<typeof createInitialState>["usageSnapshot"];
-    await renderControl();
-
-    const reasoningCell = metricCell("Reasoning");
-    expect(reasoningCell!.querySelector(".usage-metric-value")?.textContent).toBe("-");
-    const cacheHitCell = metricCell("Cache hit");
-    expect(cacheHitCell!.dataset.metricPercent).toBe("");
-    [reasoningCell, cacheHitCell].forEach((cell) => {
-      const trigger = cell!.closest(".ant-tooltip-open") ?? cell!.parentElement;
-      expect(trigger).not.toBeNull();
+    const section = metricCell("In")!.closest("section")!;
+    expect(section.querySelectorAll("[data-segment]")).toHaveLength(5);
+    const width = (key: string) => section.querySelector<HTMLElement>(`[data-segment="${key}"]`)!.style.width;
+    expect(width("prompt")).toBe("60%");
+    expect(width("output")).toBe("32%");
+    expect(width("reasoning")).toBe("8%");
+    expect(width("cacheHit")).toBe("25%");
+    expect(width("cacheMiss")).toBe("75%");
+    expect(metricCell("Cache miss")).toBeUndefined();
+    expect(section.querySelector<HTMLElement>('[data-segment="cacheHit"]')!.style.background).toBe("rgb(53, 105, 246)");
+    const group = section.querySelector<HTMLElement>('[role="group"]')!;
+    expect(group.getAttribute("aria-label")).toContain("Total tokens: 10,000");
+    expect(group.getAttribute("aria-label")).toContain("Completion tokens: 4,000");
+    expect(group.getAttribute("aria-label")).toContain("Of which reasoning tokens: 800");
+    await act(async () => {
+      group.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
     });
-    expect(reasoningCell!.querySelector(".usage-metric-bar")).toBeNull();
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 200)); });
+    const tooltip = Array.from(document.querySelectorAll('[role="tooltip"]')).find(node => node.textContent?.includes("Total token"));
+    expect(tooltip?.textContent).toContain("Total tokens10,000");
+    expect(tooltip?.textContent).toContain("Completion − Reasoning tokens3,200");
+  });
+
+  it("keeps unknown counts empty rather than inventing zero values", async () => {
+    mockState.usageSnapshot = {
+      type: "usage.snapshot", usage: { current: { promptTokens: 1200 } },
+    } as ReturnType<typeof createInitialState>["usageSnapshot"];
+    await renderControl();
+    expect(metricCell("In")!.textContent).toContain("1,200");
+    expect(metricCell("Rsn")!.textContent).toContain("-");
+    expect(document.querySelector<HTMLElement>('[data-segment="output"]')!.style.width).toBe("0%");
   });
 
   it("omits the context window tooltip when sizes are missing", async () => {
@@ -145,119 +120,44 @@ describe("UsageContextControl metric presentation", () => {
 
     const copy = document.querySelector<HTMLElement>(".usage-context-copy");
     expect(copy).not.toBeNull();
-    expect(copy!.querySelector("strong")?.textContent).toBe("-- / --");
-    expect(copy!.dataset.metricValue).toBe("- / -");
+    expect(copy!.querySelector("strong")?.textContent).toBe("-");
+    expect(copy!.dataset.metricValue).toBe("-");
     expect(copy!.closest(".ant-tooltip-open")).toBeNull();
   });
 
-  it("renders the context window as usage/total text without a tooltip", async () => {
+  it("renders only total capacity and exposes precise usage on the ring", async () => {
     await renderControl();
 
     const copy = document.querySelector<HTMLElement>(".usage-context-copy");
     expect(copy).not.toBeNull();
-    expect(copy!.querySelector("strong")?.textContent).toBe("26,214 / 262,144");
+    expect(copy!.querySelector("strong")?.textContent).toBe("262,144");
     expect(copy!.querySelector(".usage-context-bar")).toBeNull();
-    expect(copy!.dataset.metricValue).toBe("26,214 / 262,144");
+    expect(copy!.dataset.metricValue).toBe("262,144");
     expect(copy!.closest(".ant-tooltip-open")).toBeNull();
+    const ring = document.querySelector(".usage-context-ring")!;
+    expect(ring.getAttribute("aria-label")).toBe("Used: 26,214; Total: 262,144; Percentage: 10.00%");
   });
 
-  it("omits the section toggle when the section has no metric data", async () => {
-    mockState.usageSnapshot = {
-      type: "usage.snapshot",
-      usage: { current: { promptTokens: 1_200 } },
-    } as ReturnType<typeof createInitialState>["usageSnapshot"];
+  it("places a single global toggle beside the close button", async () => {
     await renderControl();
-
-    const sections = Array.from(
-      document.querySelectorAll<HTMLElement>("section"),
-    );
-    const sectionOf = (label: string) =>
-      sections.find(
-        (section) =>
-          section.querySelector(".usage-metric-label")?.textContent === label,
-      ) ?? null;
-
-    const currentSection = sectionOf("Prompt");
-    expect(currentSection).not.toBeNull();
-    expect(currentSection!.querySelector(".usage-section-toggle")).not.toBeNull();
-
-    const runSection = sections.find(
-      (section) => section !== currentSection && section.querySelector("h3"),
-    );
-    expect(runSection).toBeDefined();
-    expect(runSection!.querySelector(".usage-metric-value")?.textContent).toBe(
-      "-",
-    );
-    expect(runSection!.querySelector(".usage-section-toggle")).toBeNull();
+    expect(document.querySelectorAll(".usage-view-toggle")).toHaveLength(1);
+    const toggle = document.querySelector(".usage-view-toggle")!;
+    expect(toggle.closest("section")).toBeNull();
+    expect(toggle.parentElement!.querySelector(".usage-popover-close")).not.toBeNull();
   });
 
-  it("toggles each section independently to raw values without bars or tooltips", async () => {
+  it("toggles every section together and restores all six raw metrics", async () => {
     await renderControl();
-
-    const sectionOf = (label: string) => {
-      const cell = metricCell(label);
-      return cell?.closest("section") ?? null;
-    };
-    const sectionToggle = (section: HTMLElement | null) =>
-      section?.querySelector<HTMLButtonElement>(".usage-section-toggle") ?? null;
-
-    const currentSection = sectionOf("Prompt");
-    expect(currentSection).not.toBeNull();
-    expect(sectionOf("Reasoning")).toBe(currentSection);
-    const currentToggle = sectionToggle(currentSection);
-    expect(currentToggle).not.toBeNull();
-    expect(currentToggle!.getAttribute("aria-pressed")).toBe("false");
-    expect(currentToggle!.getAttribute("aria-label")).toBe(
-      "Switch to value view",
-    );
-    expect(currentToggle!.closest("section")).toBe(currentSection);
-
-    await act(async () => {
-      currentToggle!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(sectionToggle(currentSection)!.getAttribute("aria-pressed")).toBe(
-      "true",
-    );
-    expect(sectionToggle(currentSection)!.getAttribute("aria-label")).toBe(
-      "Switch to bar view",
-    );
-
-    const promptCell = metricCell("Prompt");
-    expect(promptCell).toBeDefined();
-    expect(promptCell!.querySelector(".usage-metric-value")?.textContent).toBe(
-      "6,000",
-    );
-    expect(promptCell!.querySelector(".usage-metric-bar")).toBeNull();
-    expect(promptCell!.dataset.metricValue).toBe("6,000 Prompt / 10,000 Total");
-
-    const reasoningCell = metricCell("Reasoning");
-    expect(reasoningCell!.querySelector(".usage-metric-value")?.textContent).toBe(
-      "800",
-    );
-    expect(reasoningCell!.querySelector(".usage-metric-bar")).toBeNull();
-
-    const cacheHitCell = metricCell("Cache hit");
-    expect(cacheHitCell!.querySelector(".usage-metric-value")?.textContent).toBe(
-      "1,500",
-    );
-    expect(cacheHitCell!.dataset.metricPercent).toBe("25%");
-    expect(cacheHitCell!.closest(".ant-tooltip-open")).toBeNull();
-
-    await act(async () => {
-      sectionToggle(currentSection)!.dispatchEvent(
-        new MouseEvent("click", { bubbles: true }),
-      );
-    });
-    expect(sectionToggle(currentSection)!.getAttribute("aria-pressed")).toBe(
-      "false",
-    );
-    expect(promptCell!.querySelector(".usage-metric-value")?.textContent).toBe(
-      "60%",
-    );
-    expect(
-      promptCell!.querySelector<HTMLElement>(".usage-metric-bar-fill")?.style
-        .width,
-    ).toBe("60%");
+    const toggle = document.querySelector<HTMLButtonElement>(".usage-view-toggle")!;
+    await act(async () => toggle.click());
+    expect(document.querySelectorAll("[data-segment]")).toHaveLength(0);
+    for (const group of Array.from(document.querySelectorAll("section"))) {
+      expect(group.querySelectorAll(".usage-metric")).toHaveLength(6);
+    }
+    expect(metricCell("Total")!.querySelector(".usage-metric-value")!.textContent).toBe("10,000");
+    expect(metricCell("Completion")!.querySelector(".usage-metric-value")!.textContent).toBe("4,000");
+    expect(metricCell("Reasoning")!.querySelector(".usage-metric-value")!.textContent).toBe("800");
+    await act(async () => toggle.click());
+    expect(document.querySelectorAll("[data-segment]")).toHaveLength(15);
   });
 });

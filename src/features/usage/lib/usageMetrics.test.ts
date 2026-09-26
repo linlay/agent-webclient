@@ -23,6 +23,7 @@ describe("buildUsageMetrics percent projection", () => {
     expect(metrics.map((metric) => metric.key)).toEqual([
       "prompt",
       "completion",
+      "total",
       "reasoning",
       "cacheHit",
       "cacheMiss",
@@ -89,7 +90,7 @@ describe("buildUsageMetrics percent projection", () => {
   it("keeps percent null for missing values", () => {
     const metrics = buildUsageMetrics(t, undefined);
 
-    expect(metrics).toHaveLength(5);
+    expect(metrics).toHaveLength(6);
     metrics.forEach((metric) => {
       expect(metric.percent).toBeNull();
       expect(metric.value).toBeUndefined();

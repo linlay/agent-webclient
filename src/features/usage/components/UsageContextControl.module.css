@@ -41,10 +41,10 @@
 }
 
 .usage-popover :global(.ant-popover-inner) {
-    width: min(420px, calc(100vw - 24px));
+    width: min(380px, calc(100vw - 24px));
     max-height: min(70vh, 620px);
     overflow: auto;
-    padding: 8px;
+    padding: 6px;
     border: 1px solid color-mix(in srgb, var(--line-soft) 82%, transparent);
     border-radius: 8px;
     background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
@@ -61,7 +61,7 @@
 }
 
 .usage-drawer :global(.ant-drawer-content) {
-    max-width: 420px;
+    max-width: 380px;
     margin: 0 auto;
     border-radius: 12px;
     background: color-mix(in srgb, var(--bg-elev-2) 98%, white);
@@ -72,7 +72,7 @@
 .usage-drawer :global(.ant-drawer-body) {
     max-height: min(70vh, 620px);
     overflow: auto;
-    padding: 15px 8px 8px;
+    padding: 8px 6px 6px;
 }
 
 .usage-popover-header {
@@ -162,6 +162,10 @@
 }
 
 .usage-context-compact-btn:global(.ui-btn.ui-btn-sm) {
+    border: 1px solid color-mix(in srgb, var(--accent-electric) 30%, var(--line-soft));
+    background: var(--bg-elev-2);
+    color: var(--accent-electric-strong);
+    font-weight: 600;
     flex: 0 0 auto;
     min-height: 18px;
     padding: 0 6px;
@@ -196,7 +200,7 @@
 
 .usage-popover-section {
     border-top: 1px solid var(--border);
-    padding: 6px 0;
+    padding: 0;
 }
 
 .usage-popover-section h3 {
@@ -206,7 +210,8 @@
     font-weight: 700;
 }
 
-.usage-section-toggle:global(.ui-btn.is-icon-only) {
+.usage-view-toggle:global(.ui-btn.is-icon-only) {
+    margin-right: -4px;
     flex: 0 0 auto;
     width: 20px;
     min-width: 20px;
@@ -244,7 +249,7 @@
 .usage-metric-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
+    gap: 0;
     margin: 0;
 }
 
@@ -303,4 +308,85 @@
     border-radius: inherit;
     background: var(--accent-electric);
     transition: width 0.2s ease;
+}
+.usage-compositions {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 6px;
+    padding: 2px 3px;
+}
+
+.usage-composition {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    outline-offset: 3px;
+}
+
+.usage-composition + .usage-composition {
+    padding-left: 7px;
+    border-left: 1px solid var(--border);
+}
+
+.usage-composition-legend {
+    display: flex;
+    justify-content: space-between;
+    gap: 3px;
+    margin-bottom: 3px;
+}
+
+.usage-composition-legend :global(.usage-metric) {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    flex-wrap: wrap;
+    font-size: 9px;
+    color: var(--ink-muted);
+}
+
+.usage-composition-legend i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex: none;
+}
+
+.usage-composition-legend strong {
+    font: 700 10px/1.2 var(--font-mono);
+    color: var(--ink-1);
+}
+
+.usage-composition-track {
+    margin-top: auto;
+    flex-shrink: 0;
+    height: 4px;
+    display: flex;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--line-soft) 76%, transparent);
+}
+
+.usage-composition-track span {
+    height: 100%;
+    flex-shrink: 0;
+    transition: width 0.2s ease;
+}
+
+.usage-detail {
+    min-width: 190px;
+    font-size: 12px;
+}
+
+.usage-detail > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.usage-detail strong { font-family: var(--font-mono); }
+
+@media (max-width: 360px) {
+    .usage-compositions { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .usage-composition + .usage-composition { padding-left: 0; border-left: 0; }
 }
