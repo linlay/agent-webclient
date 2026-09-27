@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AgentSkillOption, AgentToolOption } from "@/features/agents/lib/agentOptions";
 import { ACTIVE_QUERY_REASONING_EFFORTS, normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
@@ -341,7 +342,7 @@ export function mergeAgentSkillOptions(
     const centerExists = entries.has(key.toLowerCase());
     entries.set(key.toLowerCase(), {
       key,
-      label: toText(item.name) || key,
+      label: skillDisplayName(item) || key,
       description: toText(item.description) || undefined,
       source: "private",
       overridesCenter: item.overridesCenter || centerExists,

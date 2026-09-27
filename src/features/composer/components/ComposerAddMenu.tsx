@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useRef, useState } from "react";
 import { Input, Popover, Typography } from "antd";
@@ -130,7 +131,7 @@ const AddMenuSectionDetail: React.FC<
   } = skillQuery;
   const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter(
     (skill) =>
-      matchKeyword(skill.name || skill.key, skill.key, skill.description || ""),
+      matchKeyword(skillDisplayName(skill), skill.key, skill.description || ""),
   );
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
@@ -252,7 +253,7 @@ const AddMenuSectionDetail: React.FC<
           {filteredSkills.map((skill) => {
             const identity = text(skill.key).toLowerCase();
             const pinned = pinnedSkillKeys.includes(identity);
-            const skillName = skill.name || skill.key;
+            const skillName = skillDisplayName(skill);
             const pinLabel = t(
               pinned
                 ? "composer.addMenu.skill.unpin"

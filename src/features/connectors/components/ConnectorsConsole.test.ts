@@ -215,8 +215,8 @@ it("edits and saves CLI JSON through the Monaco editor without changing the file
 
 
 it("shows three tabs, moves component details into configuration, and keeps skill browsing read-only", async () => {
-  const skill = { name: "demo-guide", description: "Read connector records", version: "2.0.0", path: "skills/demo-guide/SKILL.md", size: 120, updatedAt: 0 };
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, skills: [skill.name], mcp: [{ serverKey: "demo", status: "unmounted", toolCount: 0 }] }] } });
+  const skill = { key: "demo-guide", displayName: "Demo Guide", description: "Read connector records", version: "2.0.0", path: "skills/demo-guide/SKILL.md", size: 120, updatedAt: 0 };
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, skills: [skill.key], mcp: [{ serverKey: "demo", status: "unmounted", toolCount: 0 }] }] } });
   jest.mocked(getConnectorSkills).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skills: [skill] } });
   jest.mocked(getConnectorSkillDetail).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skill, content: "---\nname: demo-guide\ndescription: Read connector records\n---\n# Complete guide\nQuery records with the CLI.", sha256: "skill-hash" } });
   await mount();
@@ -228,6 +228,7 @@ it("shows three tabs, moves component details into configuration, and keeps skil
   await click("技能1");
   expect(getConnectorSkills).toHaveBeenCalledWith("demo");
   expect(getConnectorSkillDetail).toHaveBeenCalledWith("demo", "demo-guide");
+  expect(detail().textContent).toContain("Demo Guide");
   expect(detail().textContent).toContain("Read connector records");
   expect(detail().textContent).toContain("2.0.0");
   expect(detail().textContent).toContain("Complete guide");

@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { focusEditableField } from "@/shared/ui/EditMenuButton";
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
@@ -1725,7 +1726,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         if (!needle) return true;
         const haystack = [
           item.key,
-          item.name,
+          skillDisplayName(item),
           item.description || "",
           item.source?.path || "",
         ]
@@ -2371,7 +2372,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleDeleteSkillListItem = (item: AdminSkillSummary) => {
     handleDeleteSkillByKey(
       item.key,
-      item.name || item.key,
+      skillDisplayName(item),
       detail?.skill.key === item.key && dirtyFiles.size > 0,
     );
   };
@@ -2461,7 +2462,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setCreateModalOpen(false);
     notification.success({
       message: t("skillConsole.message.createSuccess", {
-        name: created.skill.name || key,
+        name: skillDisplayName(created.skill),
       }),
     });
     onSelectSkillKey(key);
@@ -2472,7 +2473,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     name: string,
   ): Promise<boolean> => {
     if (!(await confirmDiscardBeforeAdding())) return false;
-    const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
+    const skillMd = `---\nname: ${JSON.stringify(key)}\ndisplayName: ${JSON.stringify(name)}\ndescription: \n---\n\n# ${name}\n`;
     const response = await createAdminSkill({ key, skillMd });
     completeSkillCreation(response.data);
     return true;
@@ -2557,9 +2558,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 <Typography.Text
                   className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-has-[:focus-visible]:pe-[22px]"
                   ellipsis
-                  title={item.name || item.key}
+                  title={skillDisplayName(item)}
                 >
-                  <strong>{item.name || item.key}</strong>
+                  <strong>{skillDisplayName(item)}</strong>
                 </Typography.Text>
                 {itemPinned && (
                   <MaterialIcon
@@ -2617,7 +2618,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             else handleSelectSkill(item);
           }}
           onEditSkillConversation={async (item) => {
-            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: item.name } });
+            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: skillDisplayName(item) } });
           }}
         />
       </div>

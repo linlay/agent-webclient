@@ -45,7 +45,7 @@ export interface AgentDetailResponse {
   wonders?: string[];
   mode: string;
   tools: string[];
-  skills: Array<{key: string; name: string}>;
+  skills: Array<{key: string; displayName?: string; name?: string; description?: string; version?: string; revision?: string}>;
   controls: Array<Record<string, unknown>>;
   meta: Record<string, unknown>;
   definition?: Record<string, unknown>;
@@ -56,7 +56,11 @@ export interface AgentDetailResponse {
 
 export interface AgentSkill {
   key: string;
-  name: string;
+  displayName?: string;
+  /** Legacy servers only. */
+  name?: string;
+  revision?: string;
+  version?: string;
   icon?: string;
   description?: string;
   configured: boolean;
@@ -111,7 +115,11 @@ export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "mod
 
 export interface AdminAgentPrivateSkill {
   key: string;
-  name: string;
+  displayName?: string;
+  /** Legacy servers only. */
+  name?: string;
+  revision?: string;
+  version?: string;
   description?: string;
   status: AdminSkillStatus;
   diagnostics?: AdminAgentDiagnostic[];

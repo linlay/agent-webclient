@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
 import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
@@ -459,7 +460,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             (item) => item.key.trim().toLowerCase() !== identity,
           );
         }
-        return [...current, { key: skill.key, label: skill.name || skill.key }];
+        return [...current, { key: skill.key, label: skillDisplayName(skill) }];
       });
       setInputValue((current) => current.slice(0, filterStartIndex - 1));
       setSlashDismissed(true);

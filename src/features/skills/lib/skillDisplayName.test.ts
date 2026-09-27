@@ -4,7 +4,7 @@ describe("resolveSkillDisplayName", () => {
   const skills = [
     {
       key: "skill-creator",
-      name: "技能创建",
+      displayName: "技能创建",
       configured: true,
     },
   ];

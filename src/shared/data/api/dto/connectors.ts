@@ -43,7 +43,11 @@ export interface ConnectorListResponse {
 }
 
 export interface ConnectorSkillSummary {
-  name: string;
+  key?: string;
+  displayName?: string;
+  /** Legacy servers only. */
+  name?: string;
+  revision?: string;
   description: string;
   version?: string;
   triggers?: string[];

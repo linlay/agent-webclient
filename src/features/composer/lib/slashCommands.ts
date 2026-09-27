@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { AgentSkill } from '@/shared/data';
 import { isDebugPanelEnabled, isMemoryEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
@@ -213,7 +214,7 @@ export function getFilteredSlashSkills(
   const query = filterText.trim().toLowerCase();
   const matches = skills.flatMap((skill) => {
     const key = String(skill?.key || '').trim();
-    const name = String(skill?.name || '').trim();
+    const name = skillDisplayName(skill);
     const description = String(skill?.description || '').trim();
     if (!key) {
       return [];

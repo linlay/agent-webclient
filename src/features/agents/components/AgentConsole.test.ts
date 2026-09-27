@@ -289,7 +289,7 @@ describe("AgentConsole private skill options", () => {
       [
         {
           key: "office",
-          name: "Private Office",
+          displayName: "Private Office",
           status: "ready",
           enabled: true,
           overridesCenter: true,
