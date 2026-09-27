@@ -17,7 +17,7 @@ export interface ConnectorSummary {
   version: string;
   type: ConnectorType;
   auth_browser?: "system" | "embedded";
-  auth_mode: "none" | "cli" | "mcp" | "token" | "oneid-token" | "oauth" | null;
+  auth_mode: "no_auth" | "none" | "cli" | "mcp" | "token" | "oneid-token" | "oauth" | null;
   description?: string;
   icon?: string;
   iconSha256?: string;
@@ -97,7 +97,7 @@ export interface ImportConnectorArchiveResponse {
   authMode: ConnectorSummary["auth_mode"];
 }
 
-export type ConnectorAuthStatus = "configured" | "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
+export type ConnectorAuthStatus = "no_auth" | "configured" | "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
 
 export interface ConnectorAuthSession {
   connectorId: string;
@@ -138,4 +138,20 @@ export interface UpdateConnectorOrderRequest {
   pinned: boolean;
 }
 
-export interface ConnectorConnection { connectorId: string; configured: boolean; readiness: string; }
+export interface ConnectorConnection {
+  connectorId: string;
+  configured: boolean;
+  configurationRequired: boolean;
+  readiness: string;
+  authentication: ConnectorAuthSession;
+  capabilities: {
+    canConnect: boolean;
+    canDisconnect: boolean;
+    canCheck: boolean;
+    authMode: ConnectorSummary["auth_mode"];
+    authBrowser: "" | "system" | "embedded";
+    hasCli: boolean;
+    hasMcp: boolean;
+  };
+  preparation?: { connectorId: string; status: string; message?: string };
+}

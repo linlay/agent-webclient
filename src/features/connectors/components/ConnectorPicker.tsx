@@ -78,17 +78,17 @@ function ConnectorPickerRow({ item, auth, selected, saving, disabled, selectionD
   const { t } = useI18n();
   const status = auth?.operation === "start" ? "preparing" : auth?.status || "unknown";
   const connecting = status === "preparing" || status === "pending";
-  const available = item.auth_mode == null || item.auth_mode === "none" || item.auth_mode === "token" || item.auth_mode === "oneid-token"
+  const available = item.auth_mode === "no_auth" || item.auth_mode == null || item.auth_mode === "none" || item.auth_mode === "token" || item.auth_mode === "oneid-token"
     || status === "authorized" || status === "not_required";
   const readOnly = item.builtin === true || item.readOnly === true;
   const url = status === "pending" ? safeConnectorAuthorizationUrl(auth?.session?.authorizationUrl) : null;
   const actionDisabled = disabled || readOnly || !!auth?.operation;
   const authorizationAction = connecting ? <span className={styles.connecting} role="status"><MaterialIcon name="progress_activity" className={styles.spinner} aria-hidden="true" />{t("composer.addMenu.connectors.connecting")}</span>
-    : status === "unknown" && !auth?.error ? <span className={styles.connecting} role="status"><MaterialIcon name="progress_activity" className={styles.spinner} aria-hidden="true" />{t("connectors.auth.checking")}</span>
+    : status === "unknown" && !auth?.error && (!auth || auth.checking) ? <span className={styles.connecting} role="status"><MaterialIcon name="progress_activity" className={styles.spinner} aria-hidden="true" />{t("connectors.auth.checking")}</span>
       : <UiButton className={styles.connect} size="sm" variant="ghost" disabled={actionDisabled}
         aria-label={t("composer.addMenu.connectors.connectNamed", { name: item.name || item.id })}
-        onClick={() => { onPrioritize(); void (auth?.error ? auth.refresh() : auth?.start()); }}>
-        <MaterialIcon name={auth?.error ? "refresh" : "sync_alt"} />{t(auth?.error ? "connectors.action.retry" : "composer.addMenu.connectors.connect")}
+        onClick={() => { onPrioritize(); void (auth?.error || status === "unknown" ? auth?.refresh() : auth?.start()); }}>
+        <MaterialIcon name={auth?.error || status === "unknown" ? "refresh" : "sync_alt"} />{t(auth?.error || status === "unknown" ? "connectors.action.retry" : "composer.addMenu.connectors.connect")}
       </UiButton>;
   return <div className={styles.rowGroup}>
     <div className={styles.row}>

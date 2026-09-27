@@ -109,7 +109,3 @@ export function getConnectorConnection(id: string, signal?: AbortSignal): Promis
  const endpoint = dataEndpoints.connectorConnection;
  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {method: endpoint.method, cache: "no-store", signal});
 }
-export function updateNativeConnectorConnection(id: string, action: "connect" | "disconnect" | "check", signal?: AbortSignal): Promise<ApiResponse<unknown>> {
- const endpoint = action === "connect" ? dataEndpoints.connectorConnect : action === "disconnect" ? dataEndpoints.connectorDisconnect : dataEndpoints.connectorCheck;
- return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {method: endpoint.method, cache: "no-store", signal});
-}

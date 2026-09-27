@@ -148,7 +148,7 @@ export function ConnectorsConsole({
       authStatus && authStatus !== "unknown"
         ? t(`connectors.auth.status.${authStatus}`)
         : "";
-    const authLabel = item.hasNative && authStatus === "unauthorized" ? t("connectors.native.unconfigured") :
+    const authLabel = item.auth_mode === "no_auth" ? t("connectors.auth.status.no_auth") :
       item.auth_mode === "none"
         ? t("connectors.auth.status.not_required")
         : item.auth_mode === "token"

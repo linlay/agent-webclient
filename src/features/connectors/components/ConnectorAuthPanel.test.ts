@@ -170,3 +170,14 @@ it("removes expired links while retaining an explicit retry action", async () =>
   expect(container.querySelector("a")).toBeNull();
   expect(button("重新登录")).toBeDefined();
 });
+
+it.each(["zh-CN","en-US"] as const)("Desktop no_auth has no configuration workflow in %s",async locale=>{
+ await mount({...item,id:"builtin.desktop",type:"native",hasNative:true,hasCli:false,auth_mode:"no_auth",builtin:true,readOnly:true},locale);
+ expect(container.textContent).toContain(locale==="zh-CN"?"无需配置":"No configuration required");
+ expect(container.textContent).not.toContain(locale==="zh-CN"?"检查中":"Checking");
+ expect(container.querySelectorAll("button")).toHaveLength(0);
+ await act(async()=>jest.advanceTimersByTime(90_000));
+ expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+ expect(startConnectorAuth).not.toHaveBeenCalled();
+ expect(logoutConnectorAuth).not.toHaveBeenCalled();
+});

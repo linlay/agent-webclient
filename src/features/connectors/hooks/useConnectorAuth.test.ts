@@ -297,3 +297,26 @@ it("does not refresh the catalog for each initially authorized row and stops aut
   await advance(90_000);
   expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
 });
+
+it("no_auth never checks, polls or performs authentication operations", async () => {
+ await mount({mode:"no_auth",observe:true});
+ expect(current.status).toBe("no_auth");
+ expect(current.checking).toBe(false);
+ await act(async()=>{await current.refresh();await current.start();await current.cancel();await current.logout();await current.openBrowser();});
+ await advance(90_000);
+ for(const request of [getConnectorAuthStatus,startConnectorAuth,cancelConnectorAuth,logoutConnectorAuth]) expect(request).not.toHaveBeenCalled();
+});
+
+it("switching to no_auth aborts the previous check and ignores its result",async()=>{
+ const pending=deferred<ApiResponse<ConnectorAuthSession>>();
+ jest.mocked(getConnectorAuthStatus).mockReturnValueOnce(pending.promise);
+ await mount({mode:"oauth",observe:true});
+ const signal=jest.mocked(getConnectorAuthStatus).mock.calls[0][1];
+ await mount({mode:"no_auth",observe:true});
+ expect(signal?.aborted).toBe(true);
+ await act(async()=>pending.resolve(response("authorized")));
+ await advance(90_000);
+ expect(current.status).toBe("no_auth");
+ expect(current.checking).toBe(false);
+ expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+});

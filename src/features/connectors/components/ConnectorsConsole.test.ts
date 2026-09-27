@@ -415,3 +415,13 @@ it("keeps the writable configuration and save action beside conversation editing
   expect(mockOpenAssistant).toHaveBeenCalledWith({ kind: "connector", target: { id: "demo", name: "Demo connector" } });
   expect(updateConnectorDefinition).not.toHaveBeenCalled();
 });
+
+it("no_auth list and detail consistently show no configuration required",async()=>{
+ const desktop:ConnectorSummary={...item,type:"native",hasNative:true,hasCli:false,hasMcp:false,auth_mode:"no_auth",builtin:true,readOnly:true};
+ jest.mocked(getAdminConnectors).mockResolvedValue({code:0,msg:"",data:{connectors:[desktop]}});
+ await act(async()=>root.render(React.createElement(Harness)));
+ expect(container.textContent).toContain("无需配置");
+ expect(container.textContent).not.toContain("检查中");
+ expect(container.textContent).not.toContain("完成配置");
+ expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+});

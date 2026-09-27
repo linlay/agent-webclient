@@ -31,3 +31,9 @@ it("rejects a mismatched connector or unknown protocol state", () => {
   expect(() => readConnectorAuthSession({ ...session, status: "success" } as unknown as ConnectorAuthSession, "demo")).toThrow();
   expect(readConnectorAuthSession(session, "demo")).toBe(session);
 });
+
+it("accepts no_auth as a terminal state without login or authentication checks",()=>{
+ expect(supportsConnectorAuthCheck("no_auth")).toBe(false);
+ expect(supportsConnectorLogin("no_auth")).toBe(false);
+ expect(readConnectorAuthSession({...session,status:"no_auth"},"demo").status).toBe("no_auth");
+});

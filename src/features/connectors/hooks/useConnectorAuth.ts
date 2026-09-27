@@ -30,7 +30,7 @@ interface Options {
 export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange, checkStatus = getConnectorAuthStatus, observe = false, pollInactive = true }: Options) {
   const enabled = supportsConnectorAuthCheck(mode);
   const identity = `${id}/${mode}/${readOnly}`;
-  const initial = (): AuthState => ({ identity, browserRequestRevision: 0, browserSessionId: null, session: null, status: mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null });
+  const initial = (): AuthState => ({ identity, browserRequestRevision: 0, browserSessionId: null, session: null, status: mode === "no_auth" ? "no_auth" : mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null });
   const [state, setState] = useState<AuthState>(initial);
   const callbacks = useRef({ onStatusChange, onCredentialsChange });
   callbacks.current = { onStatusChange, onCredentialsChange };
@@ -63,7 +63,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
 
     const publish = () => {
       if (disposed) return;
-      const status = mode === "none" ? "not_required" : connectorAuthViewStatus(session);
+      const status = mode === "no_auth" ? "no_auth" : mode === "none" ? "not_required" : connectorAuthViewStatus(session);
       setState({ identity, browserRequestRevision, browserSessionId, session, status, checking: !!request && !operation, operation, error });
       if (reportedStatus !== status) {
         reportedStatus = status;
