@@ -132,7 +132,7 @@ jest.mock("@/features/composer/components/ComposerInput", () => ({
 jest.mock("@/features/composer/components/ComposerActions", () => ({
   ComposerActions: (props: Record<string, any>) => {
     mockComposerActionsProps.push(props);
-    return React.createElement("div", { className: "composer-actions" });
+    return React.createElement("div", { className: "composer-actions" }, props.statusNotice);
   },
 }));
 
@@ -363,7 +363,7 @@ describe("ComposerArea", () => {
     delete globalWithStorage.localStorage;
   });
 
-  it("replaces executable inputs and awaiting controls with an unavailable Agent configuration link", () => {
+  it("keeps disabled inputs mounted and shows the unavailable link in the action row", () => {
     mockAgentAvailability.status = "unavailable";
     mockResolveCurrentWorkerSummary.mockReturnValue({ type: "agent", sourceId: "deleted", relatedChats: [], raw: null });
     mockComposerAwaitingState.isAwaitingActive = true;
@@ -371,15 +371,17 @@ describe("ComposerArea", () => {
     expect(html).toContain('href="/agents/deleted"');
     expect(html).toContain("composer.agent.unavailable");
     expect(html).not.toContain("awaiting-shell");
-    expect(mockComposerInputProps).toHaveLength(0);
-    expect(mockComposerActionsProps).toHaveLength(0);
+    expect(mockComposerInputProps[0].disabled).toBe(true);
+    expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
+    expect(mockComposerActionsProps[0].interruptDisabled).toBe(false);
   });
   it.each(["checking", "authentication_required", "forbidden", "error"])("renders %s separately from configuration failure", status => {
     mockAgentAvailability.status = status;
     const html = renderToStaticMarkup(React.createElement(ComposerArea));
     expect(html).toContain(`composer.agent.${status}`);
     expect(html).not.toContain('href="/agents/');
-    expect(mockComposerInputProps).toHaveLength(0);
+    expect(mockComposerInputProps[0].disabled).toBe(status !== "checking");
+    expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
   });
 
   it("hides wonders and forwards compact input sizing when configured", () => {

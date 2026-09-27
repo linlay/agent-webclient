@@ -6,6 +6,12 @@ import { createInitialState } from "@/app/state/state";
 import { appReducer } from "@/app/state/reducer";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useAgentAvailability } from "./useAgentAvailability";
+import { AgentConfigurationLink } from "../components/AgentConfigurationLink";
+import { openDesktopAgentConfiguration } from "@/shared/data/desktop/desktopAgentConfiguration";
+
+jest.mock("@/shared/data/desktop/desktopAgentConfiguration", () => ({ openDesktopAgentConfiguration: jest.fn() }));
+jest.mock("@/shared/utils/routing", () => ({ ...jest.requireActual("@/shared/utils/routing"), isDesktopAppMode: () => true }));
+jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 
 jest.mock("@/shared/data", () => ({ ...jest.requireActual("@/shared/data"), getAgent: jest.fn() }));
 jest.mock("@/shared/data/api/routedClient", () => ({ ...jest.requireActual("@/shared/data/api/routedClient"), invalidateAgentDetail: jest.fn() }));
@@ -13,6 +19,13 @@ const mockStateRef = { current: createInitialState() };
 const mockDispatch = jest.fn(action => { mockStateRef.current = appReducer(mockStateRef.current, action); });
 jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => ({ dispatch: mockDispatch, stateRef: mockStateRef }) }));
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+
+function ConfigurationProbe({ agentKey, chatId = "history" }: { agentKey: string; chatId?: string }) {
+  const { status } = useAgentAvailability(agentKey, chatId);
+  return status === "unavailable"
+    ? React.createElement(AgentConfigurationLink, { agentKey })
+    : React.createElement("span", null, status);
+}
 
 function Probe({ agentKey }: { agentKey: string }) {
   const { status, retry } = useAgentAvailability(agentKey, "history");
@@ -25,6 +38,7 @@ describe("current Agent availability independent of history", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.mocked(getAgent).mockReset();
+    jest.mocked(openDesktopAgentConfiguration).mockReset().mockResolvedValue();
     mockDispatch.mockClear();
     mockStateRef.current = { ...createInitialState(), chatId: "history", chatAgentById: new Map([["history", "old"]]) };
     container = document.createElement("div");
@@ -76,6 +90,95 @@ describe("current Agent availability independent of history", () => {
     await act(async () => resolveOld({ data: { key: "old", name: "Stale" } }));
     expect(container.textContent).toBe("available");
     expect(mockStateRef.current.agents.map(agent => agent.key)).toEqual(["new"]);
+  });
+  it("keeps the configuration button mounted when the first click focuses the guest", async () => {
+    jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
+    await act(async () => root.render(React.createElement(ConfigurationProbe, { agentKey: "old" })));
+    const button = container.querySelector("button")!;
+    expect(button).not.toBeNull();
+    let rejectRecheck!: (reason: unknown) => void;
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise((_, reject) => { rejectRecheck = reject; }));
+    // In Electron, focusing a previously unfocused guest happens before click.
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(getAgent).toHaveBeenCalledTimes(2);
+    expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(true);
+    expect(container.querySelector("button")).toBe(button);
+    await act(async () => button.click());
+    expect(openDesktopAgentConfiguration).toHaveBeenCalledTimes(1);
+    expect(openDesktopAgentConfiguration).toHaveBeenCalledWith("old");
+    await act(async () => rejectRecheck(new ApiError("still missing", { status: 404 })));
+    expect(container.querySelector("button")).toBe(button);
+    expect(mockStateRef.current.chatId).toBe("history");
+  });
+  it("applies a repaired definition after the background focus check", async () => {
+    jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
+    await render();
+    let resolveRecheck!: (value: any) => void;
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(resolve => { resolveRecheck = resolve; }));
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(container.textContent).toBe("unavailable");
+    await act(async () => resolveRecheck({ data: { key: "old", name: "Repaired" } }));
+    expect(container.textContent).toBe("available");
+    expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(false);
+  });
+  it("does not retain an unavailable configuration entry when switching Chat", async () => {
+    jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
+    await act(async () => root.render(React.createElement(ConfigurationProbe, { agentKey: "old" })));
+    expect(container.querySelector("button")).not.toBeNull();
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(() => {}));
+    await act(async () => root.render(React.createElement(ConfigurationProbe, { agentKey: "old", chatId: "other-history" })));
+    expect(container.querySelector("button")).toBeNull();
+    expect(container.textContent).toBe("checking");
+  });
+  it.each([401, 403, 500, "timeout"])("replaces the unavailable entry when a recheck ends in %s", async failure => {
+    jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
+    await render();
+    let rejectRecheck!: (reason: unknown) => void;
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise((_, reject) => { rejectRecheck = reject; }));
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(container.textContent).toBe("unavailable");
+    if (failure === "timeout") {
+      await act(async () => jest.advanceTimersByTime(15_000));
+    } else {
+      await act(async () => rejectRecheck(new ApiError("failed", { status: Number(failure) })));
+    }
+    const expected = failure === 401 ? "authentication_required" : failure === 403 ? "forbidden" : "error";
+    expect(container.textContent).toBe(expected);
+    expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(true);
+  });
+  it("keeps an available Composer mounted and executable during a focus recheck", async () => {
+    function InputProbe() {
+      const { status } = useAgentAvailability("old", "history");
+      return status === "available" ? React.createElement("textarea", { defaultValue: "draft" })
+        : React.createElement("span", null, status);
+    }
+    jest.mocked(getAgent).mockResolvedValueOnce({ data: { key: "old", name: "Agent" } } as any);
+    await act(async () => root.render(React.createElement(InputProbe)));
+    const input = container.querySelector("textarea")!;
+    input.value = "unsent draft";
+    let resolveRecheck!: (value: any) => void;
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(resolve => { resolveRecheck = resolve; }));
+    mockDispatch.mockClear();
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(getAgent).toHaveBeenCalledTimes(2);
+    expect(container.querySelector("textarea")).toBe(input);
+    expect(input.value).toBe("unsent draft");
+    expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(false);
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ status: "checking" }));
+    await act(async () => resolveRecheck({ data: { key: "old", name: "Updated" } }));
+    expect(container.querySelector("textarea")).toBe(input);
+  });
+  it.each([404, 403, "timeout"])("blocks execution when an available Agent recheck ends in %s", async failure => {
+    jest.mocked(getAgent).mockResolvedValueOnce({ data: { key: "old", name: "Agent" } } as any);
+    await render();
+    let rejectRecheck!: (reason: unknown) => void;
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise((_, reject) => { rejectRecheck = reject; }));
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(container.textContent).toBe("available");
+    if (failure === "timeout") await act(async () => jest.advanceTimersByTime(15_000));
+    else await act(async () => rejectRecheck(new ApiError("failed", { status: Number(failure) })));
+    expect(container.textContent).toBe(failure === 404 ? "unavailable" : failure === 403 ? "forbidden" : "error");
+    expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(true);
   });
   it("does not check Team metadata through the Agent endpoint", async () => {
     await render("");

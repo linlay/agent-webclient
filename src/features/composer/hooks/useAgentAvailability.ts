@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import { ApiError, getAgent } from "@/shared/data";
 import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
@@ -20,20 +20,29 @@ export function useAgentAvailability(agentKey: string, chatId: string) {
   const { dispatch, stateRef } = useAppContext();
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState<{ identity: string; status: AgentAvailability } | null>(null);
-  const identity = `${agentKey}\u0000${chatId}\u0000${revision}`;
+  const resultRef = useRef<typeof result>(null);
+  // A refresh is a new request, not a new Chat/Agent identity.
+  const identity = `${agentKey}\u0000${chatId}`;
   const retry = useCallback(() => {
     invalidateAgentDetail();
     setRevision(value => value + 1);
   }, []);
 
   useBrowserLayoutEffect(() => {
-    if (!agentKey) return;
+    if (!agentKey) {
+      resultRef.current = null;
+      setResult(null);
+      return;
+    }
     let settled = false;
     const publish = (status: AgentAvailability) => {
-      setResult({ identity, status });
+      resultRef.current = { identity, status };
+      setResult(resultRef.current);
       dispatch({ type: "SET_AGENT_AVAILABILITY", agentKey, status });
     };
-    publish("checking");
+    // A focus refresh must not replace the Composer or move the timeline.
+    // Keep the last confirmed result for this identity until the request settles.
+    if (resultRef.current?.identity !== identity) publish("checking");
     const timeout = setTimeout(() => {
       settled = true;
       publish("error");
@@ -59,7 +68,7 @@ export function useAgentAvailability(agentKey: string, chatId: string) {
       publish(classifyAgentAvailabilityError(error));
     });
     return () => { settled = true; clearTimeout(timeout); };
-  }, [agentKey, identity, dispatch, stateRef]);
+  }, [agentKey, identity, revision, dispatch, stateRef]);
 
   useEffect(() => {
     if (!agentKey) return;

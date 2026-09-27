@@ -253,7 +253,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
   const isMainChatRunning = mainChatRuntime.running;
   const presentation = useConversationSurface();
-  const chatTransitionBlocking = agentExecutionBlocked || (presentation?.blocked ?? areConversationInteractionsBlocked(state));
+  const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
+  const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "")
@@ -820,7 +821,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     <>
       <SelectionAnnotations fragments={selectedFragments} onAnnotationChange={updateSelectedAnnotation} onRemove={removeSelectedFragment} />
       <BrowserSelectionToolbar
-        enabled={!isDesktopAppMode() && !chatTransitionBlocking}
+        enabled={!isDesktopAppMode() && !conversationBlocking}
         scopeElement={selectionScope}
         onAction={selectionActions.handleAction}
       />
@@ -830,33 +831,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       {content}
     </>
   );
-
-  if (agentExecutionBlocked) {
-    const unavailable = agentAvailability.status === "unavailable";
-    const checking = agentAvailability.status === "checking";
-    return (
-      <div className={COMPOSER_AREA_CLASS}>
-        <div className={COMPOSER_PILL_CLASS} aria-label={t("composer.agent.status")}>
-          <div role="status" className="tw:flex tw:items-center tw:gap-2 tw:p-3 tw:text-sm tw:text-text-sub">
-            <MaterialIcon name={checking ? "refresh" : "info"} />
-            {unavailable ? (
-              <AgentConfigurationLink key={currentAgentKey} agentKey={currentAgentKey} />
-            ) : <span>{t(`composer.agent.${agentAvailability.status}`)}</span>}
-            {!checking && !unavailable && (
-              <UiButton variant="ghost" size="sm" onClick={agentAvailability.retry}>
-                {t("agentRoute.error.retry")}
-              </UiButton>
-            )}
-          </div>
-          {isMainChatRunning && activeRunId && (
-            <UiButton variant="ghost" size="sm" onClick={() => void interruptCurrentRun()}>
-              {t("composer.actions.interrupt")}
-            </UiButton>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   if (!chatTransitionBlocking && isAwaitingActive && state.activeAwaiting) {
     if (state.activeAwaiting.mode === "form") {
@@ -966,7 +940,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             ]}
           >
             <div className={COMPOSER_STACK_CLASS}>
-              {enableNewChatContext && isBlankConversation && !chatTransitionBlocking && !isFrontendActive && (
+              {enableNewChatContext && isBlankConversation && !conversationBlocking && !isFrontendActive && (
                 <ComposerContextBar
                   agents={state.agents}
                   workerRows={state.workerRows}
@@ -1053,7 +1027,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerInput
                   isVoiceMode={isVoiceMode}
                   isFrontendActive={isFrontendActive}
-                  disabled={chatTransitionBlocking}
+                  disabled={conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking")}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
                   placeholder={sampledIntroduction}
@@ -1101,6 +1075,19 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isVoiceMode={isVoiceMode}
                   isStreaming={isMainChatRunning}
                   interactionDisabled={chatTransitionBlocking}
+                  interruptDisabled={conversationBlocking || isFrontendActive}
+                  statusNotice={agentExecutionBlocked ? (
+                    <span role="status" className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:text-text-sub">
+                      {agentAvailability.status === "unavailable" ? (
+                        <AgentConfigurationLink key={currentAgentKey} agentKey={currentAgentKey} />
+                      ) : <span>{t(`composer.agent.${agentAvailability.status}`)}</span>}
+                      {agentAvailability.status !== "checking" && agentAvailability.status !== "unavailable" && (
+                        <UiButton variant="ghost" size="sm" onClick={agentAvailability.retry}>
+                          {t("agentRoute.error.retry")}
+                        </UiButton>
+                      )}
+                    </span>
+                  ) : undefined}
                   canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
                   isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
                   modelOverride={modelOverride}
