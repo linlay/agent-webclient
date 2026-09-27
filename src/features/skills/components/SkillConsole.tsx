@@ -252,7 +252,7 @@ const SKILL_LIST_ITEM_WRAP_CLASS_NAME =
 const SKILL_LIST_HEADER_CLASS_NAME =
   "skill-console-list-header tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-medium tw:leading-none tw:text-ink-muted tw:sticky tw:top-0 tw:bg-[var(--management-page-surface)] tw:z-10";
 const SKILL_LIST_ITEM_MORE_CLASS_NAME =
-  "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto";
+  "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-has-[:focus-visible]:opacity-100 tw:group-has-[:focus-visible]:pointer-events-auto";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
   "skill-console-list-item-status tw:flex-none tw:pointer-events-none";
 const SKILL_LIST_ITEM_VERSION_CLASS_NAME =
@@ -1598,7 +1598,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                       >
                         <button
                           type="button"
-                          className="tw:absolute tw:top-1/2 tw:right-1 tw:flex tw:h-5 tw:w-5 tw:-translate-y-1/2 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-focus-within:opacity-100 tw:group-focus-within:pointer-events-auto"
+                          className="tw:absolute tw:top-1/2 tw:right-1 tw:flex tw:h-5 tw:w-5 tw:-translate-y-1/2 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-has-[:focus-visible]:opacity-100 tw:group-has-[:focus-visible]:pointer-events-auto"
                           aria-label={moreLabel}
                           title={moreLabel}
                           aria-haspopup="menu"
@@ -2555,7 +2555,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 className="tw:w-full"
               >
                 <Typography.Text
-                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-focus-within:pe-[22px]"
+                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-has-[:focus-visible]:pe-[22px]"
                   ellipsis
                   title={item.name || item.key}
                 >

@@ -125,7 +125,7 @@ export const enUSMessages = {
   "connectors.auth.status.no_auth": "No configuration required",
   "connectors.auth.description.no_auth": "This connector requires no authentication. Mount it to use it; availability and permissions are checked on invocation.",
   "connectors.auth.status.not_required": "Not required",
-  "connectors.auth.status.delegated": "Managed by connector",
+  "connectors.auth.status.delegated": "Managed",
   "connectors.auth.status.setup_required": "Setup required",
   "connectors.auth.status.unauthorized": "Signed out",
   "connectors.auth.status.preparing": "Preparing login",

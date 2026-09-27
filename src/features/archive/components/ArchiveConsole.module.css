@@ -153,6 +153,7 @@
 }
 
 :global(.archive-list-item):hover :global(.archive-list-item-more),
-:global(.archive-list-item):focus-within :global(.archive-list-item-more) {
+:global(.archive-list-item):focus-visible :global(.archive-list-item-more),
+:global(.archive-list-item):has(:focus-visible) :global(.archive-list-item-more) {
     opacity: 1;
 }

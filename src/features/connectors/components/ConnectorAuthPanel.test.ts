@@ -134,7 +134,7 @@ it("shows the none mode without querying authorization", async () => {
 it.each(["zh-CN", "en-US"] as const)("displays delegated authentication without an endless spinner or login action in %s", async locale => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("delegated"));
   await mount({ ...item, auth_mode: null }, locale);
-  expect(container.textContent).toContain(locale === "zh-CN" ? "由连接器管理" : "Managed by connector");
+  expect(container.textContent).toContain(locale === "zh-CN" ? "由连接器管理" : "Managed");
   expect(container.textContent).not.toContain(locale === "zh-CN" ? "检查中" : "Checking");
   expect(button(locale === "zh-CN" ? "登录" : "Sign in")).toBeUndefined();
   expect(button(locale === "zh-CN" ? "重新检查状态" : "Check status again")).toBeDefined();
