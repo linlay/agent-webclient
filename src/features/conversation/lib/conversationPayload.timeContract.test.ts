@@ -1,3 +1,5 @@
+import type { AgentEvent } from '@/shared/contracts/agentEvents';
+import { normalizePublishedArtifacts } from '@/features/events/lib/processors/eventProcessorShared';
 import {
   normalizeChatArtifactItems,
   normalizeLoadedChatEvents,
@@ -48,5 +50,38 @@ describe('chat detail time contract', () => {
       expect.objectContaining({ artifactId: 'no-timestamp', timestamp: 0 }),
       expect.objectContaining({ artifactId: 'extra-time-fields', timestamp: EPOCH_MS }),
     ]);
+  });
+});
+
+
+describe('artifact publication time parity', () => {
+  const artifact = { artifactId: 'artifact-1', name: 'result.html', url: 'artifacts/run-1/result.html' };
+
+  it('restores the same timestamp and resource as the live publication', () => {
+    const live = normalizePublishedArtifacts({
+      type: 'artifact.publish', timestamp: EPOCH_MS, artifacts: [artifact],
+    } as AgentEvent);
+    const history = normalizeChatArtifactItems({ items: [{ ...artifact, publishedAt: EPOCH_MS }] });
+    expect(history).toEqual(live.map(item => ({ ...item, source: 'chat' })));
+  });
+
+  it('prefers publishedAt over the legacy timestamp', () => {
+    expect(normalizeChatArtifactItems({ items: [{
+      ...artifact, publishedAt: EPOCH_MS, timestamp: EPOCH_MS + 1,
+    }] })?.[0].timestamp).toBe(EPOCH_MS);
+  });
+
+  it.each([undefined, null, 0, -1, EPOCH_MS / 1000, String(EPOCH_MS), NaN, Infinity, EPOCH_MS + 0.5])(
+    'keeps the artifact without a display time for invalid publishedAt %s', publishedAt => {
+      expect(normalizeChatArtifactItems({ items: [{ ...artifact, publishedAt }] })).toEqual([
+        expect.objectContaining({ artifactId: artifact.artifactId, timestamp: 0 }),
+      ]);
+    },
+  );
+
+  it('accepts a valid legacy timestamp when publishedAt is invalid', () => {
+    expect(normalizeChatArtifactItems({ items: [{
+      ...artifact, publishedAt: 0, timestamp: EPOCH_MS,
+    }] })?.[0].timestamp).toBe(EPOCH_MS);
   });
 });

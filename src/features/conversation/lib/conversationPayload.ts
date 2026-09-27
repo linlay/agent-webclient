@@ -45,7 +45,7 @@ function normalizeArtifactFile(value: unknown): PublishedArtifact | null {
   }
 
   const sizeBytes = Number(value.sizeBytes ?? value.size);
-  const timestamp = readEpochMillis(value.timestamp) ?? 0;
+  const timestamp = readEpochMillis(value.publishedAt) ?? readEpochMillis(value.timestamp) ?? 0;
 
   return {
     artifactId,
