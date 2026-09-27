@@ -37,7 +37,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
   const isLoading = node.status === "running" && interaction?.capturedAt === undefined;
   const triggerLabel = isLoading
     ? node.reasoningLabel || t("timeline.thinking.inProgress")
-    : t("timeline.thinking.title");
+    : node.status === "failed" ? t("timeline.thinking.interrupted") : t("timeline.thinking.title");
 
   const now = useThinkingDurationTick(isLoading);
   const liveDurationMs = typeof node.startedAt === "number"
@@ -69,6 +69,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
       onExpand={() => interaction?.setExpanded?.(node.id, !expanded)}
     >
       <div className={["thinking-detail", SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
+        {node.errorDetail && <div role="status">{node.errorDetail.message}</div>}
         {text}
       </div>
     </TimelineCollapse>

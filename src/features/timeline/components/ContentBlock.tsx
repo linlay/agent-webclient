@@ -128,6 +128,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	if (!hasSpecialSegment) {
 		return (
 			<div ref={contextTargetRef} className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
+      {node.status === "failed" && <div role="status">{t("timeline.content.interrupted")}：{node.errorDetail?.message}</div>}
 				<div className={markdownClassName}>
 					{renderMarkdown({
 						content: streamingSafeText, chatId, teamChat,
@@ -143,6 +144,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	/* With viewport segments */
 	return (
 		<div ref={contextTargetRef} className={TIMELINE_CONTENT_STACK_CLASS_NAME}>
+      {node.status === "failed" && <div role="status">{t("timeline.content.interrupted")}：{node.errorDetail?.message}</div>}
 			{segments?.map((segment, idx) => {
 				if (segment.kind === "text") {
 					return (

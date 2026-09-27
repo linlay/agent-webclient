@@ -1755,3 +1755,45 @@ it.each(['live', 'replay'] as const)('projects selection-only steer in %s mode',
   expect(commands).toContainEqual(expect.objectContaining({ cmd: 'USER_MESSAGE', nodeId: 'steer_selected-steer', text: '',
     attachments: [expect.objectContaining({ type: 'selection', meta: references[0].meta })] }));
 });
+
+
+describe('failed stream block ends', () => {
+  const error = { code: 'provider_stream_failed', message: 'stream interrupted', category: 'model', scope: 'model', status: 502, retryable: true, userSafeMessageKey: 'provider_stream_failed' };
+  it.each(['reasoning', 'content', 'tool'])('keeps failed %s terminal through replay, duplicate end and late events', kind => {
+    const state = createState();
+    const idKey = `${kind}Id`;
+    const end = { type: `${kind}.end`, [idKey]: 'first', runId: 'run', taskId: 'task', status: 'failed', error,
+      text: 'partial output', arguments: '{"path":', toolName: 'file_write', startedAt: 100, timestamp: 500 } as AgentEvent;
+    processAndApply(state, end, 'replay', false);
+    const first = [...state.timelineNodes.values()][0];
+    expect(first.status).toBe('failed');
+    expect(first.errorDetail?.code).toBe(error.code);
+    expect(first.startedAt).toBe(100);
+    expect(first.endedAt).toBe(500);
+    for (const type of [`${kind}.snapshot`, `${kind}.start`, kind === 'tool' ? 'tool.args' : `${kind}.delta`]) {
+      processAndApply(state, { type, [idKey]: 'first', delta: 'late', text: 'partial output', timestamp: 600 } as AgentEvent, 'live', false);
+    }
+    processAndApply(state, { ...end, timestamp: 700 }, 'live', false);
+    const after = state.timelineNodes.get(first.id)!;
+    expect(after.status).toBe('failed');
+    expect(after.errorDetail?.code).toBe(error.code);
+    expect(after.endedAt).toBe(500);
+    expect(state.timelineOrder).toHaveLength(1);
+    processAndApply(state, { type: `${kind}.start`, [idKey]: 'second', timestamp: 800 } as AgentEvent, 'live', false);
+    expect(state.timelineOrder).toHaveLength(2);
+    expect(state.timelineNodes.get(first.id)?.status).toBe('failed');
+  });
+  it('keeps a continuous long reasoning in one node then ends it before retry', () => {
+    const state = createState();
+    processAndApply(state, {type:'reasoning.start', reasoningId:'r1', timestamp:100}, 'live', false);
+    const chunk = 'long reasoning '.repeat(6000);
+    processAndApply(state, {type:'reasoning.delta', reasoningId:'r1', delta:chunk}, 'live', false);
+    expect(state.timelineOrder).toHaveLength(1);
+    processAndApply(state, {type:'reasoning.end', reasoningId:'r1', status:'failed', error, timestamp:400}, 'live', false);
+    processAndApply(state, {type:'reasoning.start', reasoningId:'r2', timestamp:500}, 'live', false);
+    const nodes = [...state.timelineNodes.values()];
+    expect(nodes.map(node=>node.status)).toEqual(['failed','running']);
+    expect(nodes[0].text).toBe(chunk);
+    expect(nodes[1].startedAt).toBe(500);
+  });
+});
