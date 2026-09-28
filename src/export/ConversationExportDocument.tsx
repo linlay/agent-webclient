@@ -20,6 +20,10 @@ function attachmentRoute(id: string, action: "preview" | "download"): string {
   return match ? `/share/${match[1]}/attachments/${id}/${action}` : "";
 }
 
+function isHtmlAttachment(attachment: SnapshotAttachmentV1): boolean {
+  return attachment.mimeType.split(";", 1)[0]?.trim().toLowerCase() === "text/html";
+}
+
 function findPublishedAttachment(href: string | undefined, attachments: Map<string, SnapshotAttachmentV1>): SnapshotAttachmentV1 | undefined {
   if (!href) return undefined;
   const direct = attachments.get(href);
@@ -52,10 +56,8 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const agents = useMemo(() => snapshot.turns.flatMap((turn) => (turn.tasks || []).flatMap((task) =>
     task.subAgentKey ? [{ key: task.subAgentKey, name: task.subAgentName || task.subAgentKey,
       ...(task.subAgentIconName ? { icon: { name: task.subAgentIconName } } : {}) }] : [])), [snapshot]);
-  const previewAttachments = useMemo(() => snapshot.attachments.filter((attachment) =>
-    attachment.mimeType.split(";", 1)[0]?.trim().toLowerCase() === "text/html"), [snapshot.attachments]);
-  const attachments = useMemo(() => new Map(previewAttachments.map((attachment) =>
-    [attachment.sourceRef, attachment])), [previewAttachments]);
+  const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
+    [attachment.sourceRef, attachment])), [snapshot.attachments]);
   const open = (attachment: SnapshotAttachmentV1) => {
     if (!attachmentRoute(attachment.id, "preview")) return;
     setSelected(attachment);
@@ -83,10 +85,13 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       a: ({ href, children, domNode: _domNode, ...rest }: LinkProps) => {
         const attachment = findPublishedAttachment(href, attachments);
         if (attachment) {
-          const route = attachmentRoute(attachment.id, "preview");
-          return route ? <a {...rest} href={route}
-            onClick={(event) => { event.preventDefault(); open(attachment); }}>{children}</a>
-            : <span title={labels.unavailable}>{children}</span>;
+          const previewable = isHtmlAttachment(attachment);
+          const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
+          if (!route) return <span title={labels.unavailable}>{children}</span>;
+          return previewable
+            ? <a {...rest} href={route}
+              onClick={(event) => { event.preventDefault(); open(attachment); }}>{children}</a>
+            : <a {...rest} href={route}>{children}</a>;
         }
         if (!href || !/^https?:\/\//iu.test(href)) return <span>{children}</span>;
         return <a {...rest} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
@@ -113,12 +118,17 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       <div className={styles.notice}>{copy.aiNotice}</div>
       <ConversationPreview data={data} agents={agents} viewportMode="document"
         ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader} />
-      {previewAttachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
+      {snapshot.attachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
         <h2>{labels.attachments}</h2>
-        {previewAttachments.map((attachment) => <button key={attachment.id} type="button"
-          disabled={!attachmentRoute(attachment.id, "preview")}
-          title={!attachmentRoute(attachment.id, "preview") ? labels.unavailable : undefined}
-          onClick={() => open(attachment)}>{attachment.name}</button>)}
+        {snapshot.attachments.map((attachment) => {
+          const previewable = isHtmlAttachment(attachment);
+          const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
+          if (!route) return <span key={attachment.id} title={labels.unavailable}>{attachment.name}</span>;
+          return previewable
+            ? <a key={attachment.id} href={route}
+              onClick={(event) => { event.preventDefault(); open(attachment); }}>{attachment.name}</a>
+            : <a key={attachment.id} href={route}>{attachment.name}</a>;
+        })}
       </section>}
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>

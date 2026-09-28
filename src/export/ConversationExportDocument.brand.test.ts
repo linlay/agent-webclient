@@ -53,7 +53,8 @@ it("renders a dismissible app entry only when a public brand is supplied", () =>
   expect(html).toContain("关闭应用入口");
 });
 
-it("offers preview entry points only for HTML resources", () => {
+it("previews HTML resources and offers other formal resources for download", () => {
+  window.history.replaceState({}, "", "/share/share-1");
   const html = renderToStaticMarkup(React.createElement(ConversationExportDocument, {
     snapshot: {
       ...snapshot,
@@ -66,5 +67,7 @@ it("offers preview entry points only for HTML resources", () => {
     },
   }));
   expect(html).toContain("page.html");
-  expect(html).not.toContain("report.pdf");
+  expect(html).toContain('href="/share/share-1/attachments/0123456789abcdef01234567/preview"');
+  expect(html).toContain("report.pdf");
+  expect(html).toContain('href="/share/share-1/attachments/abcdef0123456789abcdef01/download"');
 });
