@@ -27,6 +27,11 @@ export function ConnectorComponents({ item, tools }: { item: ConnectorSummary; t
   const { t, locale } = useI18n();
   const time = (value?: number) => value ? new Date(value).toLocaleString(locale) : "—";
   return <div className={styles.stack}>
+    {item.hasNative && <section className={styles.group}>
+      <h3>{t("connectors.type.native")}</h3>
+      <p>{t("connectors.native.hint")}</p>
+      {(item.nativeTools || []).map(name => <div className={styles.tool} key={name}><strong>{name}</strong></div>)}
+    </section>}
     {item.hasView && <section className={styles.group}>
       <h3>VIEW</h3>
       {(item.views || []).map(view => <div className={styles.tool} key={view.key}>

@@ -51,6 +51,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, auth }: Props 
       {item.auth_mode !== "token" && <UiTag role="status" tone={status === "authorized" ? "accent" : ["failed", "expired"].includes(status) || auth.error ? "danger" : "muted"}>{t(status === "unknown" ? auth.error ? "connectors.auth.checkFailed" : "connectors.auth.checking" : `connectors.auth.status.${status}`)}</UiTag>}
     </div>
     <p>{t(item.auth_mode === "token" ? "connectors.auth.token" : status === "unknown" ? auth.error ? "connectors.auth.checkFailedHint" : "connectors.auth.checkingHint" : item.auth_mode === "oneid-token" ? "connectors.auth.oneid" : `connectors.auth.description.${status}`)}</p>
+    {item.hasNative && <p className={styles.hint}>{t("connectors.native.hint")}</p>}
     {checkable && <>
       {interactive && <p className={styles.hint}>{t("connectors.auth.shared")}</p>}
       {(item.auth_mode === "oauth" || item.auth_mode === "mcp") && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}

@@ -1,3 +1,5 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
+import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
 import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import React, {
@@ -77,6 +79,8 @@ import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteraction";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
+
+import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
 
 interface ComposerAreaProps {
   enableNewChatContext?: boolean;
@@ -166,6 +170,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   useEffect(() => {
     if (!interactionConfig.accessLevel) setAccessLevel("default");
   }, [currentAgentKey, interactionConfig.accessLevel]);
+  const agentAvailability = useAgentAvailability(currentAgentKey, state.chatId);
+  const agentExecutionBlocked = agentAvailability.status !== "available";
   const hostRequiredSkills = useHostRequiredSkills();
   const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>(
     [],
@@ -248,7 +254,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
   const isMainChatRunning = mainChatRuntime.running;
   const presentation = useConversationSurface();
-  const chatTransitionBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
+  const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
+  const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "")
@@ -453,7 +460,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             (item) => item.key.trim().toLowerCase() !== identity,
           );
         }
-        return [...current, { key: skill.key, label: skill.name || skill.key }];
+        return [...current, { key: skill.key, label: skillDisplayName(skill) }];
       });
       setInputValue((current) => current.slice(0, filterStartIndex - 1));
       setSlashDismissed(true);
@@ -663,6 +670,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   });
 
   const handleSend = useCallback(() => {
+    if (chatTransitionBlocking) return;
     if (!hasStagedAttachments) {
       handleSendImmediately();
       return;
@@ -672,7 +680,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     void uploadStagedAttachments().then((succeeded) => {
       if (!succeeded) deferredSendRequestedRef.current = false;
     });
-  }, [handleSendImmediately, hasStagedAttachments, uploadStagedAttachments]);
+  }, [chatTransitionBlocking, handleSendImmediately, hasStagedAttachments, uploadStagedAttachments]);
 
   useEffect(() => {
     if (
@@ -814,7 +822,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     <>
       <SelectionAnnotations fragments={selectedFragments} onAnnotationChange={updateSelectedAnnotation} onRemove={removeSelectedFragment} />
       <BrowserSelectionToolbar
-        enabled={!isDesktopAppMode() && !chatTransitionBlocking}
+        enabled={!isDesktopAppMode() && !conversationBlocking}
         scopeElement={selectionScope}
         onAction={selectionActions.handleAction}
       />
@@ -933,7 +941,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
             ]}
           >
             <div className={COMPOSER_STACK_CLASS}>
-              {enableNewChatContext && isBlankConversation && !chatTransitionBlocking && !isFrontendActive && (
+              {enableNewChatContext && isBlankConversation && !conversationBlocking && !isFrontendActive && (
                 <ComposerContextBar
                   agents={state.agents}
                   workerRows={state.workerRows}
@@ -1020,7 +1028,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerInput
                   isVoiceMode={isVoiceMode}
                   isFrontendActive={isFrontendActive}
-                  disabled={chatTransitionBlocking}
+                  disabled={conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking")}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
                   placeholder={sampledIntroduction}
@@ -1068,6 +1076,19 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isVoiceMode={isVoiceMode}
                   isStreaming={isMainChatRunning}
                   interactionDisabled={chatTransitionBlocking}
+                  interruptDisabled={conversationBlocking || isFrontendActive}
+                  statusNotice={agentExecutionBlocked ? (
+                    <span role="status" className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:text-text-sub">
+                      {agentAvailability.status === "unavailable" ? (
+                        <AgentConfigurationLink key={currentAgentKey} agentKey={currentAgentKey} />
+                      ) : <span>{t(`composer.agent.${agentAvailability.status}`)}</span>}
+                      {agentAvailability.status !== "checking" && agentAvailability.status !== "unavailable" && (
+                        <UiButton variant="ghost" size="sm" onClick={agentAvailability.retry}>
+                          {t("agentRoute.error.retry")}
+                        </UiButton>
+                      )}
+                    </span>
+                  ) : undefined}
                   canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
                   isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
                   modelOverride={modelOverride}

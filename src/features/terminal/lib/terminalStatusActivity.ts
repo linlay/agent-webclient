@@ -109,10 +109,6 @@ export function getTerminalAgentStatuses(): ReadonlyMap<
   return terminalAgentStatuses;
 }
 
-export function getActiveTerminalAgentKeys(): ReadonlySet<string> {
-  return new Set(terminalAgentStatuses.keys());
-}
-
 export function publishTerminalStatusEvent(event: TerminalStatusEventLike): void {
   if (toText(event.type) !== TERMINAL_STATUS_EVENT_TYPE) return;
   terminalAgentStatuses = terminalAgentStatusesFromStatusEvent(event);

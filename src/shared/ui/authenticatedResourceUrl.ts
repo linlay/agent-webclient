@@ -95,7 +95,8 @@ function snapshotEntry(entry: CacheEntry): AuthenticatedResourceCacheState {
  * only once while at least one consumer keeps it alive. Concurrent requests
  * for the same key are deduplicated, and idle entries are revoked after a
  * TTL. Failed loads are cached too, which prevents retry storms from
- * repeatedly failing sources.
+ * repeatedly failing sources. A lease alone still leaves the first committed
+ * frame of a remount empty, so `peek` exposes the entry state synchronously.
  */
 export class AuthenticatedResourceBlobCache {
   private readonly entries = new Map<string, CacheEntry>();
@@ -150,6 +151,19 @@ export class AuthenticatedResourceBlobCache {
 
   size(): number {
     return this.entries.size;
+  }
+
+  /**
+   * Side-effect-free read of the current entry state.
+   *
+   * Consumers use it from a render pass (state initializer) so a warm entry can
+   * be rendered in the first commit instead of flashing a loading placeholder
+   * while the effect subscribes. Returns null when the key is not cached.
+   */
+  peek(key: string): AuthenticatedResourceCacheState | null {
+    const entry = this.entries.get(key);
+    if (!entry || entry.disposed) return null;
+    return snapshotEntry(entry);
   }
 
   private startLoad(entry: CacheEntry, loader: () => Promise<Blob>): void {

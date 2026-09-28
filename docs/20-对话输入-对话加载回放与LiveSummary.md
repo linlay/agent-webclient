@@ -4,6 +4,14 @@
 
 历史聊天目录、live summary、未读状态和 CRUD UI 由 `src/features/chats/` 负责；当前对话加载、切换、快照和回放由 `src/features/conversation/` 负责。回放事件与实时事件共用 `src/features/events/` 的纯投影入口。
 
+## 历史读取与当前 Agent 状态
+
+已有 `chatId` 的 Agent/Copilot 路由立即启动 `/api/chat`，不等待 `/api/agent`。历史身份由详情的 `agentKey/teamId` 与 mode 决定，路由或当前选择不覆盖持久化 owner。失效、已删除或暂不可用的 Agent 不影响合法历史回放；401/403、Chat 404 与历史损坏仍是独立的历史加载错误。
+
+全局历史和 HistoryModal 使用 `/api/chats`；全局历史 owner 选项包含 Chat 记录中的缺失 Agent，以历史名称或 key 展示。不把 `/api/agents?includeChats=...` 的当前有效 Agent 预览当成完整历史。新 Chat 仍沿用当前 Agent 初始化流程。
+
+Composer 单独检查当前 Agent，内存 `agentAvailability` 不进入 Chat 历史或 query 参数。不可用时显示配置链接并封闭执行入口；页面加载期限只覆盖 Chat 加载与应用，不包含 Agent 详情检查。详见 [Composer](21-对话输入-Composer输入与快捷交互.md#当前-agent-不可用)。
+
 ## 核心职责
 
 - 加载对话摘要并合并运行中对话的 live patch。
@@ -26,7 +34,7 @@
 
 历史切换由 `AppState.chatTransition` 表示，阶段固定为 `loading → applying → restoring → ready`，失败进入 `error`。事务身份使用全局递增的 `chatLoadSeq`，所有请求结果、重试、原子应用和滚动恢复都必须同时匹配 `seq + targetChatId`；较早的 A→B 请求即使晚于 A→C 返回，也不能再修改可见状态。
 
-收到 Router 目标时就登记事务，而非等待 Agent 初始化或历史请求发出。准备期限覆盖初始化、请求重试、数据应用和 live 接管；重复渲染或同目标请求不得重置截止时间。超过期限进入当前目标的可重试错误态，旧请求结果失效且调用方等待结束，不销毁共享传输或中断其他 Chat 的 Run。重新激活按绝对截止时间校验；重试创建新事务，不自动回到来源 Chat。滚动恢复使用独立期限，不能把准备失败伪装成恢复成功。
+收到 Router 目标时就登记事务，而非等待 Agent 初始化或历史请求发出。准备期限覆盖 Chat 请求重试、数据应用和 live 接管；重复渲染或同目标请求不得重置截止时间。超过期限进入当前目标的可重试错误态，旧请求结果失效且调用方等待结束，不销毁共享传输或中断其他 Chat 的 Run。重新激活按绝对截止时间校验；重试创建新事务，不自动回到来源 Chat。滚动恢复使用独立期限，不能把准备失败伪装成恢复成功。
 
 会话 Surface 的共享展示层由 Router 目标、事务和实际 Chat 归属共同决定。timeline、artifact、plan-tasks 以及顶部 Chat 信息统一占位、保持和淡出；输入框保留但禁用，来源内容不可点击、聚焦或通过快捷键、语音、awaiting 提交。路由目标不匹配时首帧就遮蔽内容，即使旧事务已 ready/error 也不能覆盖新目标的判断。timeline 保持挂载以测量布局和恢复滚动；产物和计划真实面板在遮蔽期间不展示。自动已读同样等待共享遮蔽结束。共享 UI 时钟不拥有数据加载状态，领域模块不得通过依赖壳层形成反向依赖。
 

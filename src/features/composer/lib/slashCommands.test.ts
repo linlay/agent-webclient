@@ -62,14 +62,14 @@ describe('slashCommands', () => {
     const skills = [
       {
         key: 'mock-skill',
-        name: 'Mock Skill',
+        displayName: 'Mock Skill',
         icon: '/api/skills/icon?agentKey=zenmi&key=mock-skill',
         description: 'Skill description',
         configured: true,
       },
       {
         key: 'pdf',
-        name: 'PDF',
+        displayName: 'PDF',
         description: 'Read and manipulate PDF files',
         configured: false,
       },

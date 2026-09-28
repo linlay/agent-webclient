@@ -13,8 +13,6 @@ import {
 import { isAwaitingAnswerTimeoutError } from '@/features/events/lib/awaitingAnswerError';
 import { toRunOwner, type RunOwner } from '@/shared/data/runOwner';
 
-export const BUILTIN_CONFIRM_DIALOG_VIEWPORT_KEY = 'confirm_dialog';
-
 function cloneQuestions(questions: AIAwaitQuestion[]): AIAwaitQuestion[] {
   return questions.map((question) => ({
     ...question,

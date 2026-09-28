@@ -251,17 +251,29 @@ describe("whole conversation surface navigation", () => {
     await finishTransition();
     expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
   });
-  it("starts the deadline before Agent hydration and errors even when history was never requested", async () => {
+  it("loads persisted history while route Agent metadata is unavailable", async () => {
     getAgent.mockImplementation(() => new Promise(() => {}));
+    getChat.mockResolvedValueOnce({ data: { ...response("B").data, agentKey: "deleted", events: [
+      { type: "content.delta", messageId: "answer", delta: "preserved historical answer", timestamp: 1 },
+    ] } });
     await act(async () => navigate("/agent/missing?chatId=B"));
-    expectMasked();
-    expect(getChat).not.toHaveBeenCalled();
-    const seq = context.state.chatTransition.seq;
-    await act(async () => jest.advanceTimersByTime(10_000));
-    await act(async () => context.dispatch({ type: "APPEND_DEBUG", line: "unrelated update" }));
-    await act(async () => jest.advanceTimersByTime(5_000));
-    expect(context.state.chatTransition.seq).toBe(seq);
+    expect(getChat).toHaveBeenCalledWith("B", false);
+    expect(context.state.chatId).toBe("B");
+    expect(context.state.chatAgentById.get("B")).toBe("deleted");
+    expect(context.state.agents.some((agent: any) => agent.key === "deleted")).toBe(false);
+    await finishTransition();
+    await act(async () => jest.advanceTimersByTime(15_000));
+    expect(context.state.chatTransition?.phase).not.toBe("error");
+    expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
+  });
+  it.each([401, 403, 404, 409])("keeps Chat error %s separate from Agent availability", async (status) => {
+    const { ApiError } = require("@/shared/data");
+    getChat.mockRejectedValue(new ApiError(`history failure ${status}`, { status }));
+    await go("B");
+    for (const delay of [180, 420, 800]) await act(async () => jest.advanceTimersByTime(delay));
     expect(context.state.chatTransition.phase).toBe("error");
+    expect(context.state.chatTransition.error).toContain(`history failure ${status}`);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
   });
   it("does not treat a stale promotion marker as proof of a loaded conversation", async () => {
     await act(async () => navigate("/agent/demo?newChat=1788739200000"));

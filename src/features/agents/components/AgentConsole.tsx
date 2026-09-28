@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { EditMenuButton } from "@/shared/ui/EditMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import React, {
@@ -89,7 +90,6 @@ import {
   normalizeModeForForm,
   normalizeReasoningEffort,
   normalizeServiceTier,
-  optionLabel,
   privateSkillsFromDetail,
   promptEntriesFromJson,
   readAdminAgentDiagnostics,
@@ -797,8 +797,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             if (!key) return null;
             const description = toText(record.description);
             return description
-              ? { key, label: optionLabel(record) || key, description }
-              : { key, label: optionLabel(record) || key };
+              ? { key, label: skillDisplayName(item) || key, description }
+              : { key, label: skillDisplayName(item) || key };
           })
           .filter((item): item is { key: string; label: string; description?: string } =>
             Boolean(item),

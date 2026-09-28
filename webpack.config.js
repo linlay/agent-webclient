@@ -3,6 +3,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const { EsbuildPlugin } = require('esbuild-loader');
 const ts = require('typescript');
 
 const port = Number(process.env.PORT || 11948);
@@ -112,6 +113,7 @@ function isSseQueryRequest(req) {
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
+  const webpackCacheDirectory = String(process.env.AGENT_WEBCLIENT_WEBPACK_CACHE_DIR || '').trim();
 
   if (!isProd && !apiTarget) {
     throw new Error('BASE_URL is required for development. Copy .env.example to .env and set BASE_URL.');
@@ -135,6 +137,17 @@ module.exports = (env, argv) => {
   return {
     entry: './src/app/index.tsx',
     mode: isProd ? 'production' : 'development',
+    cache: isProd
+      ? {
+        type: 'filesystem',
+        cacheDirectory: webpackCacheDirectory
+          ? path.resolve(webpackCacheDirectory)
+          : path.resolve(__dirname, 'node_modules/.cache/webpack'),
+        buildDependencies: {
+          config: [__filename],
+        },
+      }
+      : { type: 'memory' },
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: isProd ? 'js/[name].[contenthash:8].js' : 'js/[name].js',
@@ -154,7 +167,12 @@ module.exports = (env, argv) => {
       rules: [
         {
           test: /\.tsx?$/,
-          use: 'ts-loader',
+          use: {
+            loader: 'esbuild-loader',
+            options: {
+              target: 'es2020',
+            },
+          },
           exclude: /node_modules/,
         },
         {
@@ -304,6 +322,13 @@ module.exports = (env, argv) => {
       },
     },
     devtool: isProd ? false : 'eval-cheap-module-source-map',
+    optimization: {
+      minimizer: [
+        new EsbuildPlugin({
+          target: 'es2020',
+        }),
+      ],
+    },
     performance: {
       hints: isProd ? 'warning' : false,
     },

@@ -187,3 +187,21 @@ it("stops active polling when disabled without logging out or restarting authori
   expect(logoutConnectorAuth).not.toHaveBeenCalled();
   expect(startConnectorAuth).not.toHaveBeenCalled();
 });
+
+it("Desktop no_auth mounts and unmounts without checking or connecting",async()=>{
+ jest.mocked(getAdminConnectors).mockResolvedValue({code:0,msg:"",data:{connectors:[{...connector("desktop","Desktop","no_auth"),type:"native",hasNative:true,builtin:true,readOnly:true,hasCli:false}]}});
+ await mount({initialIds:["desktop"]});
+ expect(container.textContent).not.toContain("connectors.auth.checking");
+ expect(container.querySelector('[role="status"]')).toBeNull();
+ const toggle=container.querySelector<HTMLButtonElement>('[role="switch"]')!;
+ expect(toggle.getAttribute("aria-checked")).toBe("true");
+ await act(async()=>toggle.click());
+ expect(onSelectionChange).toHaveBeenLastCalledWith("desktop",false);
+ await act(async()=>toggle.click());
+ expect(onSelectionChange).toHaveBeenLastCalledWith("desktop",true);
+ await mount({initialIds:["desktop"],search:"Desktop"});
+ await act(async()=>jest.advanceTimersByTime(90_000));
+ expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+ expect(startConnectorAuth).not.toHaveBeenCalled();
+ expect(container.textContent).not.toContain("connectors.auth.checking");
+});

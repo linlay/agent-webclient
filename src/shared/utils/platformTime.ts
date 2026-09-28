@@ -214,12 +214,3 @@ export function formatPlatformReadableTime(
   const text = String(value || "").trim();
   return text || "--";
 }
-
-export function formatPlatformReadableTimeWithFallback(
-  readable?: string | null,
-  fallbackEpochMillis?: number | null,
-  locale?: string,
-): string {
-  const text = formatPlatformReadableTime(readable);
-  return text !== "--" ? text : formatEpochMillisLocal(fallbackEpochMillis, locale);
-}

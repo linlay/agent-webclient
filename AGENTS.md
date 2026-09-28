@@ -7,6 +7,8 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 - 给用户看的内容不要生成 `.md` 文件；需要生成面向人阅读的交付物时，优先生成 HTML 来替代 Markdown，让人类看效果更好。
 - 本文件、`CLAUDE.md`、`README.md` 等仓库规范或项目文档属于项目约定文件，不受上一条“不要生成给人看的 `.md`”限制。
 
+已有 Chat 的 Agent/Copilot 路由独立读取 `/api/chat`，不等待当前 Agent hydration；composer 单独检查可用性，404 时显示 `/agents/:agentKey` 配置链接并禁用继续执行，历史 owner 不由路由或有效 Agent 目录覆盖。详见对话加载与 Composer 专题。
+
 ## 1. 项目概览
 `agent-webclient` 是 AGENT 协议调试前端，用于消费后端 `/api/*`、`/ws` 和 `/api/voice/*` 能力并展示对话、事件流、工具执行和调试信息。它不是业务官网或通用后台，而是面向协议联调、运行观察和前端交互验证的专用客户端。
 
@@ -193,3 +195,5 @@ Git 提交与推送规范：
 VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 继续兼容；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
 
 运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，正文和有效引用不能同时为空；Run 结束后，已有主 query 历史的纯引用排队项也可转为后续 query；缺少历史确认时恢复输入区等待正文。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
+
+连接器认证支持六种 auth_mode：no_auth、null、token、oneid-token、oauth、mcp。no_auth 在 Composer 与管理页直接显示无需配置，不请求认证接口；Desktop 复用通用展示，没有独立连接配置流程。详见 [连接器](docs/53-Worker管理-连接器.md)。

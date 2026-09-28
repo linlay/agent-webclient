@@ -338,7 +338,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">--%</span>");
-		expect(html).toContain("- / 200,000");
+		expect(html).toContain("Total: 200,000");
 		expect(html).toContain("--usage-context-percent:0%");
 	});
 
@@ -425,7 +425,7 @@ describe("TopNav", () => {
 		expect(html).toContain("Chat total");
 		expect(html).toContain("<span>Cache hit:</span><strong>--%</strong>");
 		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
-		expect(html).toContain("<dt>Prompt</dt><dd>-</dd>");
+		expect(html).toContain("<span class=\"usage-metric-label\">In</span><strong class=\"usage-metric-value\">-</strong>");
 		expect(html).not.toContain("Waiting for usage stats");
 	});
 
@@ -450,8 +450,8 @@ describe("TopNav", () => {
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
-		const contextValueIndex = html.indexOf("64,000 / 128,000");
-		const compactIndex = html.indexOf(">Compact</span>");
+		const contextValueIndex = html.indexOf(">128,000</strong>");
+		const compactIndex = html.indexOf(">Comp.</span>");
 
 		expect(html).toContain("usage-context-compact-btn");
 		expect(contextValueIndex).toBeGreaterThan(-1);
@@ -725,7 +725,7 @@ describe("TopNav", () => {
 		expect(html).toContain("Current call");
 		expect(html).toContain("Current call");
 		expect(html).toContain("usage-metric-grid");
-		expect(html).toContain("<dt>Prompt</dt><dd>-</dd>");
+		expect(html).toContain("<span class=\"usage-metric-label\">In</span><strong class=\"usage-metric-value\">-</strong>");
 		expect(html).toContain("Chat total");
 		expect(html).toContain("1,200");
 		expect(html).toContain("400");
@@ -766,7 +766,7 @@ describe("TopNav", () => {
 		expect(html).toContain("Tool calls");
 		expect(html).toContain("<strong>2</strong>");
 		expect(html).toContain("<strong>4</strong>");
-		expect(html).not.toContain("Output speed");
+		expect(html).not.toContain("Speed");
 	});
 
 	it("derives live output speed and shows zero tool calls when tool count is missing", () => {
@@ -822,11 +822,11 @@ describe("TopNav", () => {
 		expect(html).toContain("<strong>21.0/s</strong>");
 		expect(html).toContain("<strong>20.0/s</strong>");
 		expect(html).toContain("<strong>30.0/s</strong>");
-		expect(html.match(/First token/g)).toHaveLength(3);
+		expect(html.match(/First/g)).toHaveLength(3);
 		expect(html.match(/Tool calls/g)).toHaveLength(3);
 		expect(html.match(/<strong>0<\/strong>/g)).toHaveLength(3);
-		const firstTokenIndex = html.indexOf("First token");
-		const firstOutputSpeedIndex = html.indexOf("Output speed");
+		const firstTokenIndex = html.indexOf("First");
+		const firstOutputSpeedIndex = html.indexOf("Speed");
 		const firstToolCallsIndex = html.indexOf("Tool calls");
 		expect(firstTokenIndex).toBeGreaterThan(-1);
 		expect(firstTokenIndex).toBeLessThan(firstOutputSpeedIndex);
@@ -906,7 +906,7 @@ describe("TopNav", () => {
 		expect(html).toContain(">50%</span>");
 		expect(html).toContain("64,000");
 		expect(html).toContain("128,000");
-		expect(html).toContain("64,000 / 128,000");
+		expect(html).toContain("Used: 64,000; Total: 128,000; Percentage: 50.00%");
 		expect(html).toContain("Current call");
 		expect(html).toContain("Latest run");
 		expect(html).toContain("Chat total");
@@ -916,19 +916,19 @@ describe("TopNav", () => {
 		expect(html).toContain("Reasoning");
 		expect(html).toContain("Cache hit");
 		expect(html).toContain("Cache miss");
-		expect(html).toContain("First token");
+		expect(html).toContain("First");
 		expect(html).toContain("<strong>820ms</strong>");
 		expect(html).toContain("<strong>780ms</strong>");
 		expect(html).toContain("<strong>900ms</strong>");
-		expect(html.match(/First token/g)).toHaveLength(3);
-		expect(html.match(/Output speed/g)).toHaveLength(3);
+		expect(html.match(/First/g)).toHaveLength(3);
+		expect(html.match(/Speed/g)).toHaveLength(3);
 		expect(html).toContain("<strong>21.0/s</strong>");
 		expect(html).toContain("<strong>18.0/s</strong>");
 		expect(html).toContain("<strong>9.9/s</strong>");
 		expect(html.match(/LLM calls/g)).toHaveLength(3);
 		expect(html.match(/Tool calls/g)).toHaveLength(3);
-		const firstTokenIndex = html.indexOf("First token");
-		const firstOutputSpeedIndex = html.indexOf("Output speed");
+		const firstTokenIndex = html.indexOf("First");
+		const firstOutputSpeedIndex = html.indexOf("Speed");
 		const firstLlmCallsIndex = html.indexOf("LLM calls");
 		const firstToolCallsIndex = html.indexOf("Tool calls");
 		expect(firstTokenIndex).toBeGreaterThan(-1);

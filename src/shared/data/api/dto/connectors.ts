@@ -1,5 +1,5 @@
-export type ConnectorType = "cli" | "mcp" | "view";
-export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json" | "view.json";
+export type ConnectorType = "cli" | "mcp" | "view" | "native";
+export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json" | "view.json" | "native.json";
 
 export interface ConnectorMcpStatus {
   serverKey: string;
@@ -17,7 +17,7 @@ export interface ConnectorSummary {
   version: string;
   type: ConnectorType;
   auth_browser?: "system" | "embedded";
-  auth_mode: "none" | "cli" | "mcp" | "token" | "oneid-token" | "oauth" | null;
+  auth_mode: "no_auth" | "none" | "cli" | "mcp" | "token" | "oneid-token" | "oauth" | null;
   description?: string;
   icon?: string;
   iconSha256?: string;
@@ -27,6 +27,8 @@ export interface ConnectorSummary {
   builtin?: boolean;
   readOnly?: boolean;
   canDelete?: boolean;
+  hasNative?: boolean;
+  nativeTools?: string[];
   hasMcp: boolean;
   hasCli: boolean;
   hasView?: boolean;
@@ -41,7 +43,11 @@ export interface ConnectorListResponse {
 }
 
 export interface ConnectorSkillSummary {
-  name: string;
+  key?: string;
+  displayName?: string;
+  /** Legacy servers only. */
+  name?: string;
+  revision?: string;
   description: string;
   version?: string;
   triggers?: string[];
@@ -95,7 +101,7 @@ export interface ImportConnectorArchiveResponse {
   authMode: ConnectorSummary["auth_mode"];
 }
 
-export type ConnectorAuthStatus = "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
+export type ConnectorAuthStatus = "no_auth" | "configured" | "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
 
 export interface ConnectorAuthSession {
   connectorId: string;
@@ -134,4 +140,22 @@ export interface ConnectorOrderResponse {
 export interface UpdateConnectorOrderRequest {
   key: string;
   pinned: boolean;
+}
+
+export interface ConnectorConnection {
+  connectorId: string;
+  configured: boolean;
+  configurationRequired: boolean;
+  readiness: string;
+  authentication: ConnectorAuthSession;
+  capabilities: {
+    canConnect: boolean;
+    canDisconnect: boolean;
+    canCheck: boolean;
+    authMode: ConnectorSummary["auth_mode"];
+    authBrowser: "" | "system" | "embedded";
+    hasCli: boolean;
+    hasMcp: boolean;
+  };
+  preparation?: { connectorId: string; status: string; message?: string };
 }

@@ -50,6 +50,9 @@ const TTS_VOICE_TEXT_CLASS_NAME =
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const { t } = useI18n();
 	const interaction = useTimelineInteraction();
+	// Unrelated state/focus updates replace the context object. Depend on the
+	// stable operation so Markdown anchors keep their DOM through the click.
+	const openTarget = interaction?.openTarget;
 	const surfaceContext = interaction?.surfaceContext;
 	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
@@ -77,7 +80,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const workspaceFileAgentKey = String(surfaceContext?.agentKey || "").trim();
 	const handleWorkspaceFileLinkClick = React.useCallback(
 		(link: WorkspaceFileLink) => {
-			interaction?.openTarget?.({
+			openTarget?.({
 				version: 1,
 				kind: "file",
 				agentKey: workspaceFileAgentKey,
@@ -86,18 +89,18 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				toggle: true,
 			});
 		},
-		[interaction, workspaceFileAgentKey],
+		[openTarget, workspaceFileAgentKey],
 	);
 	const handleWebLinkClick = React.useCallback(
 		(link: MarkdownWebLink) => {
-			interaction?.openTarget?.({
+			openTarget?.({
 				version: 1,
 				kind: "web",
 				url: link.url,
 				title: link.title,
 			});
 		},
-		[interaction],
+		[openTarget],
 	);
 	const handleResourceFileLinkClick = React.useCallback(
 		(link: ResourceFileLink) => {
@@ -105,7 +108,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 			if (!resourceTarget) {
 				return;
 			}
-			interaction?.openTarget?.({
+			openTarget?.({
 				version: 1,
 				kind: "resource",
 				agentKey: workspaceFileAgentKey,
@@ -116,7 +119,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				toggle: true,
 			});
 		},
-		[chatId, interaction, workspaceFileAgentKey],
+		[chatId, openTarget, workspaceFileAgentKey],
 	);
 	const renderMarkdown = (props: MarkdownContentProps) => interaction?.renderMarkdown?.(props)
 		?? <ConversationMarkdown content={props.content} codeComponent={ConversationMarkdownCode} />;

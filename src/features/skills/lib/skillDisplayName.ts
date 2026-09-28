@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import type { AgentSkill } from "@/shared/data/api/client";
 
 export function resolveSkillDisplayName(
@@ -6,15 +7,14 @@ export function resolveSkillDisplayName(
   fallbackLabel = "",
 ): string {
   const normalizedKey = String(key || "").trim().toLowerCase();
-  const skillName = skills
+  const skill = skills
     .find(
       (skill) =>
         String(skill.key || "").trim().toLowerCase() === normalizedKey,
-    )
-    ?.name?.trim();
+    );
 
   return (
-    skillName ||
+    (skill ? skillDisplayName(skill) : "") ||
     String(fallbackLabel || "").trim() ||
     String(key || "").trim()
   );

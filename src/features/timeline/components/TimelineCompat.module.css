@@ -147,6 +147,8 @@ html[data-theme="dark"] :global(.timeline-markdown) a {
 
 :global(.system-alert-copy-btn):global(.ui-btn):global(.ui-btn-ghost) {
     color: var(--text-muted);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 :global(.system-alert)[data-level="info"] {

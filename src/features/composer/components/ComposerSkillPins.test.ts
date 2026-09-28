@@ -22,9 +22,9 @@ jest.mock("@/shared/data/api/routedClient", () => ({
 }));
 
 const skills = [
-  { key: "platform-admin", name: "Platform Admin", description: "Manage platform", configured: true },
-  { key: "pdf", name: "PDF", description: "Read documents", configured: false },
-  { key: "slides", name: "Slides", description: "Create documents", configured: false },
+  { key: "platform-admin", displayName: "Platform Admin", description: "Manage platform", configured: true },
+  { key: "pdf", displayName: "PDF", description: "Read documents", configured: false },
+  { key: "slides", displayName: "Slides", description: "Create documents", configured: false },
 ];
 
 jest.mock("@/features/connectors/components/AgentConnectorPicker", () => ({ AgentConnectorPicker: () => null }));
@@ -139,10 +139,13 @@ describe("Composer skill pins", () => {
 
     props.currentAgentKey = "agent-b";
     await act(async () => render());
+    await openSkills();
+    act(() => Simulate.change(container.querySelector("input")!, { target: { value: "documents" } } as any));
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(2);
     expect(names()).toEqual(["PDF", "Slides"]);
     props.currentAgentKey = "agent-a";
     await act(async () => render());
+    await openSkills();
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(2);
   });
 

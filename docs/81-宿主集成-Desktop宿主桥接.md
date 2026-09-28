@@ -115,3 +115,9 @@ Chat Preview 仅提供会话内容与必要的加载、错误重试、等待确�
 划词引用弹层支持为每条原文编辑可选批注；输入过程只改本地草稿，Enter 或确认按钮才把批注写回引用，点层外或 Escape 丢弃未确认内容；清空并确认后省略 `annotation`。主聊天、旁聊及独立旁聊共用编辑组件，发送后的时间线与待发送 steer 队列只读展示原文和批注。发送失败保留草稿。仅使用顶层 `text`，不读取 `meta.text`；服务端引用无需 name/sourceKind 即可回放。ID 保持原始值，由 Platform 在模型提示词中映射短编号。query 仍需输入消息文字，steer 可只提交有效划词引用。
 
 划词编号使用独立正整数 `annotationIndex`，与 Reference ID 分离，进入请求及历史记录。页面蓝色序号气泡和模型称呼 `Annotation N` 均采用该值，不按文件/图片引用排序；编辑或清空批注不改变编号。编号在划词加入目标对话草稿时分配，主聊天按 chatId、旁聊按 session 隔离，新对话从 1 开始；切回已有草稿保留编号，删除后剩余草稿立即重排为连续编号（已恢复的历史引用保持原编号，新草稿接在其后），新建空白对话重置。捕获选区、历史读取与跨窗口解析不推进计数。DOM Range 仅在内存保留；添加引用后在原文附近打开无语音入口的可选批注栏，Enter 收起、Shift+Enter 换行，点击序号再次编辑。原文 DOM 消失或改变时隐藏锚点，引用仍可在片段汇总弹层编辑；点击汇总里的某条引用会回到原文：能重建锚点时高亮该批注并打开编辑栏，行被折叠面板藏住时先由时间线展开面板滚到该行再重画标记，都不可达时退回滚动到引用来源。
+
+## Agent 不可用时的配置入口
+
+Composer 的配置入口按运行环境分流：Standalone 保留 `/agents/:agentKey` 链接；Desktop 使用受限 Service WebView 请求，请宿主打开当前 Main Chat 的 Agent 管理页，不先改变 guest Router 或物理 URL。宿主仅接受 active Main Chat 且与宿主路由 Agent 一致的请求，目标路径由宿主构造，不由 guest 提供 URL。该交接不依赖 Agent 当前是否可执行，也不修改历史 Chat 的读取与 owner。
+
+WebClient 等待匹配 requestId 的宿主响应；桥接缺失、拒绝、发送失败或超时均在入口显示可重试错误，不回退到 guest 跳转。此能力在 macOS 与 Windows 上使用同一 Service WebView 通道，WebClient 和 Desktop 必须配套更新；旧宿主会显示超时错误。

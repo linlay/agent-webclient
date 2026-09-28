@@ -238,7 +238,7 @@ const NodeIcon: React.FC<{
       if (role === "system") {
         const isInfo = systemMessageLevel === "info";
         className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND[isInfo ? "info" : "alert"]}`;
-        iconName = isInfo ? "info" : "warning";
+        iconName = isInfo ? (messageVariant === "compact" ? "compress" : "info") : "warning";
       } else {
         className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.assistant}`;
         iconName = "smart_toy";
@@ -437,7 +437,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="message" role="system" systemMessageLevel={node.systemMessageLevel} />
+          <NodeIcon kind="message" role="system" messageVariant={node.messageVariant} systemMessageLevel={node.systemMessageLevel} />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           <SystemAlert

@@ -1,13 +1,5 @@
 import { isWsConnectionFailure, type WsClient } from "@/features/transport/lib/wsClient";
 
-export const WS_STREAM_RETRY_DELAYS_MS = [
-	1_000,
-	4_000,
-	8_000,
-	16_000,
-	32_000,
-] as const;
-
 export function waitForRetryDelay(delayMs: number, signal: AbortSignal): Promise<boolean> {
 	if (signal.aborted) {
 		return Promise.resolve(false);

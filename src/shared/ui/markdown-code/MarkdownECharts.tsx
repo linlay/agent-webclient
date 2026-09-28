@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { EChartsOption, EChartsType } from "echarts";
 import { useI18n } from "@/shared/i18n";
+import { BusyInk } from "@/shared/ui/BusyInk";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import styles from "./MarkdownECharts.module.css";
 
 const DEFAULT_ECHARTS_HEIGHT = 320;
 
@@ -75,11 +78,27 @@ export const MarkdownECharts: React.FC<{
   );
 
   if (!payload.value) {
+    // 流式接收中 JSON 天然不完整，用墨流占位而不是报错盒子；
+    // 只有流真正结束仍解析不出来才算失败。
+    if (streamStatus === "loading") {
+      return (
+        <div
+          className={["markdown-echarts", styles.busy].filter(Boolean).join(" ")}
+          style={{ height: DEFAULT_ECHARTS_HEIGHT }}
+          role="status"
+          aria-busy="true"
+        >
+          <BusyInk />
+          <span className={styles.busyLabel}>
+            <MaterialIcon name="bar_chart" />
+            {t("markdown.echartsReceiving")}
+          </span>
+        </div>
+      );
+    }
     return (
       <div className="markdown-echarts markdown-echarts-error">
-        {streamStatus === "loading"
-          ? t("markdown.echartsReceiving")
-          : t("markdown.echartsParseFailed", { detail: payload.error })}
+        {t("markdown.echartsParseFailed", { detail: payload.error })}
       </div>
     );
   }

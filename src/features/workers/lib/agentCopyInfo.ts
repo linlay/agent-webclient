@@ -40,7 +40,7 @@ export function buildAgentCopyInfoGroups(input: {
         createCopyInfoRow("workspaceDir", t("agentCopy.field.workspaceDir"), detail?.workspaceDir || summary.workspaceDir),
         createCopyInfoRow("workspaceName", t("agentCopy.field.workspaceName"), detail?.workspaceName || summary.workspaceName),
         createCopyInfoRow("mode", t("agentCopy.field.mode"), detail?.mode),
-        createCopyInfoRow("model", t("agentCopy.field.model"), detail?.model),
+        createCopyInfoRow("model", t("agentCopy.field.model"), detail?.modelKey),
       ]),
     },
     {
@@ -49,7 +49,7 @@ export function buildAgentCopyInfoGroups(input: {
       rows: compactCopyInfoRows([
         createCopyInfoRow("tools", t("agentCopy.field.tools"), detail?.tools),
         createCopyInfoRow("skills", t("agentCopy.field.skills"), detail?.skills),
-        createCopyInfoRow("modelConfig", t("agentCopy.field.modelConfig"), detail?.modelConfig),
+        createCopyInfoRow("modelConfig", t("agentCopy.field.modelConfig"), detail ? {modelKey: detail.modelKey, reasoningEffort: detail.reasoningEffort, serviceTier: detail.serviceTier} : undefined),
         createCopyInfoRow("controls", t("agentCopy.field.controls"), detail?.controls),
         createCopyInfoRow("sourceKind", t("agentCopy.field.sourceKind"), source?.kind),
         createCopyInfoRow("sourcePath", t("agentCopy.field.sourcePath"), source?.path),

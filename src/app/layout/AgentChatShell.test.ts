@@ -14,6 +14,7 @@ import {
   isAgentRouteAuthenticationError,
   parseComposerPrefillPayload,
   parseNewChatTimestamp,
+  resetRouteAgentDetailFetched,
   resolveNewChatResendRouteAction,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/client";
@@ -81,9 +82,43 @@ jest.mock("@/features/timeline/components/ConversationStage", () => ({
   },
 }));
 
+jest.mock("@/features/timeline/components/ConnectedConversationStage", () => ({
+  ConnectedConversationStage: ({
+    showEmptyState,
+    surfaceMode,
+    expectedChatId,
+    deriveChatAction,
+    onFeedback,
+  }: {
+    showEmptyState?: boolean;
+    surfaceMode?: string;
+    expectedChatId?: string;
+    deriveChatAction: unknown;
+    onFeedback: unknown;
+  }) => {
+    mockStageDeriveChatAction = deriveChatAction;
+    mockStageOnFeedback = onFeedback;
+    return React.createElement(
+      "main",
+      {
+        className: "conversation-stage",
+        "data-show-empty-state": String(showEmptyState ?? true),
+        "data-surface-mode": surfaceMode,
+        "data-expected-chat-id": expectedChatId,
+      },
+      "stage",
+    );
+  },
+}));
+
 jest.mock("@/app/layout/BottomDock", () => ({
   BottomDock: () =>
     React.createElement("footer", { className: "bottom-dock" }, "dock"),
+}));
+
+jest.mock("@/features/timeline/components/TimelineTextSearchProvider", () => ({
+  TimelineTextSearchProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
 }));
 
 jest.mock("@/app/layout/LeftSidebar", () => ({
@@ -208,6 +243,12 @@ const refreshWorkerData = jest.fn(() => Promise.resolve());
 const loadAgents = jest.fn(() => Promise.resolve());
 const startNewConversation = jest.fn();
 
+/** 模型选择字段齐全的路由 Agent 摘要，无需再拉取详情即可激活路由。 */
+const routeReadyModelSelection = {
+  modelKey: "gpt-5.5",
+  reasoningEffort: "HIGH" as const,
+};
+
 const flushPromises = async () => {
   await Promise.resolve();
 };
@@ -262,6 +303,7 @@ describe("AgentChatShell", () => {
   beforeEach(() => {
     mockStageDeriveChatAction = undefined;
     mockStageOnFeedback = undefined;
+    resetRouteAgentDetailFetched();
     globalWithDom.window = {
       addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
@@ -334,7 +376,7 @@ describe("AgentChatShell", () => {
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
     expect(html).toContain("agent-route-loading-page");
-    expect(html).toContain("Loading agent");
+    expect(html).toContain("正在加载智能体");
     expect(html).not.toContain("conversation-stage");
     expect(useAppRuntimes).toHaveBeenCalledTimes(1);
     expect(useAppRuntimes).toHaveBeenCalledWith({
@@ -398,12 +440,8 @@ describe("AgentChatShell", () => {
         role: "Worker",
         mode: "CODER",
         meta: { acpBridgeId: "codex" },
-        modelOptions: {
-          models: [{ key: "gpt-5.5", name: "GPT-5.5", modelId: "gpt-5.5" }],
-          reasoningEfforts: [{ key: "HIGH", label: "HIGH" }],
-          defaultModelKey: "gpt-5.5",
-          defaultReasoningEffort: "HIGH",
-        },
+        modelKey: "gpt-5.5",
+        reasoningEffort: "HIGH",
       },
     });
     useAppState.mockReturnValue({
@@ -437,10 +475,8 @@ describe("AgentChatShell", () => {
           key: "demo-agent",
           mode: "CODER",
           meta: { acpBridgeId: "codex" },
-          modelOptions: expect.objectContaining({
-            defaultModelKey: "gpt-5.5",
-            models: [expect.objectContaining({ key: "gpt-5.5" })],
-          }),
+          modelKey: "gpt-5.5",
+          reasoningEffort: "HIGH",
         }),
       ],
     });
@@ -483,7 +519,7 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       ],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -521,7 +557,7 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -560,7 +596,7 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -602,8 +638,8 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
-        { key: "next-agent", name: "Next Agent", role: "Worker", mode: "CODER" },
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
+        { key: "next-agent", name: "Next Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -637,7 +673,7 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -671,7 +707,7 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       ],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -934,7 +970,7 @@ describe("AgentChatShell", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
       agents: [
-        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER" },
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -942,11 +978,11 @@ describe("AgentChatShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",
     });
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_PENDING_NEW_CHAT_AGENT_KEY",
       agentKey: "demo-agent",
     });
@@ -1043,48 +1079,21 @@ describe("AgentChatShell", () => {
     expect(html).not.toContain("agent-route-loading-page");
   });
 
-  it("registers the direct Chat target while waiting for Agent hydration", async () => {
+  it("loads existing Chat independently of missing route Agent metadata", () => {
     const dispatch = jest.fn();
-    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
-    const useEffectSpy = jest
-      .spyOn(React, "useEffect")
-      .mockImplementation((effect: React.EffectCallback) => {
-        effect();
-      });
+    const effect = jest.spyOn(React, "useEffect").mockImplementation(callback => { callback(); });
     useSearchParams.mockReturnValue([new URLSearchParams("chatId=chat-123")]);
     useAppState.mockReturnValue(createInitialState());
     useAppDispatch.mockReturnValue(dispatch);
-
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
-
-    expect(getAgent).toHaveBeenCalledWith("demo-agent");
-    expect(dispatch).not.toHaveBeenCalledWith({
-      type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:demo-agent",
-    });
-    expect(dispatchEvent).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "agent:load-chat",
-      }),
-    );
     expect(html).toContain("conversation-stage");
-    expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({ targetChatId: "chat-123", routeReady: false }));
-
-    await flushPromises();
-
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [
-        {
-          key: "demo-agent",
-          name: "Demo Agent",
-          role: "Worker",
-          mode: "CODER",
-        },
-      ],
-    });
-
-    useEffectSpy.mockRestore();
+    expect(useAppRuntimes).toHaveBeenLastCalledWith(expect.objectContaining({
+      targetChatId: "chat-123", routeReady: true,
+    }));
+    expect(getAgent).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "SET_AGENTS" }));
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "SET_WORKER_SELECTION_KEY" }));
+    effect.mockRestore();
   });
 
   it("renders the chat layout after the route chat is loaded", () => {
@@ -1143,7 +1152,7 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("history=1")]);
     useAppState.mockReturnValue({
       ...state,
-      agents: [{ key: "demo-agent", name: "Demo Agent", mode: "REACT" }],
+      agents: [{ key: "demo-agent", name: "Demo Agent", mode: "REACT", ...routeReadyModelSelection }],
       chats: [chat],
       workerSelectionKey: "agent:demo-agent",
       workerRows: [workerRow],

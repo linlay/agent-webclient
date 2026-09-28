@@ -1,5 +1,5 @@
 import React from "react";
-import { Drawer, Flex, Popover, Typography } from "antd";
+import { Drawer, Flex, Popover, Tooltip, Typography } from "antd";
 import {
   useAppDispatch,
   useAppState,
@@ -43,6 +43,7 @@ import {
   type UsageMetric,
 } from "@/features/usage/lib/usageMetrics";
 import styles from "./UsageContextControl.module.css";
+import { UsageStackedMetrics } from "./UsageStackedMetrics";
 import {
   canSubmitCompact,
   resolveCompactPhase,
@@ -57,7 +58,11 @@ const USAGE_CONTEXT_WINDOW_CLASS = withModuleClass(
 );
 const USAGE_CONTEXT_COPY_CLASS = withModuleClass(
   "usage-context-copy",
-  "tw:inline-flex tw:min-w-0 tw:flex-1 tw:flex-wrap tw:items-baseline tw:gap-2 tw:[&>small]:flex-none tw:[&>small]:text-[9px] tw:[&>small]:leading-[1.1] tw:[&>small]:text-ink-2 tw:[&>span]:flex-none tw:[&>span]:text-[9px] tw:[&>span]:leading-[1.1] tw:[&>span]:text-ink-muted tw:[&>strong]:flex-none tw:[&>strong]:[overflow-wrap:anywhere] tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1]",
+  "tw:inline-flex tw:min-w-0 tw:flex-1 tw:flex-wrap tw:items-center tw:gap-2 tw:[&>strong]:flex-none tw:[&>strong]:[overflow-wrap:anywhere] tw:[&>strong]:font-code tw:[&>strong]:text-[10px] tw:[&>strong]:font-bold tw:[&>strong]:leading-[1.1]",
+);
+const USAGE_CONTEXT_LABEL_CLASS = withModuleClass(
+  "usage-context-label",
+  "tw:flex-none tw:text-[9px] tw:leading-[1.1] tw:text-ink-muted",
 );
 const USAGE_CONTEXT_COMPACT_BTN_CLASS = withModuleClass(
   "usage-context-compact-btn",
@@ -73,19 +78,47 @@ const USAGE_TRIGGER_RING_CLASS = withModuleClass(
 );
 const USAGE_POPOVER_SECTION_CLASS = withModuleClass(
   "usage-popover-section",
-  "tw:mt-1.5 tw:[&_h3]:m-0 tw:[&_h3]:text-[11px] tw:[&_h3]:font-bold tw:[&_h3]:text-ink-2",
+  "tw:mt-1 tw:[&_h3]:m-0 tw:[&_h3]:text-[11px] tw:[&_h3]:font-bold tw:[&_h3]:text-ink-2",
 );
 const USAGE_POPOVER_SECTION_TITLE_CLASS = withModuleClass(
   "usage-popover-section-title",
-  "tw:mb-[3px] tw:mr-1 tw:flex tw:items-center tw:justify-between tw:gap-2",
+  "tw:mb-[3px] tw:mr-1 tw:flex tw:items-center tw:gap-2",
+);
+const USAGE_POPOVER_SECTION_HEADING_CLASS = withModuleClass(
+  "usage-popover-section-heading",
+  "tw:flex tw:min-w-0 tw:items-center tw:gap-1 tw:flex-1",
+);
+const USAGE_VIEW_TOGGLE_CLASS = withModuleClass(
+  "usage-view-toggle",
+  "ui-icon-hover-20",
 );
 const USAGE_METRIC_GRID_CLASS = withModuleClass(
   "usage-metric-grid",
-  "tw:m-0 tw:grid tw:grid-cols-3 tw:gap-1",
+  "tw:m-0 tw:grid tw:grid-cols-3",
 );
 const USAGE_METRIC_CLASS = withModuleClass(
   "usage-metric",
-  "tw:flex tw:min-w-0 tw:items-center tw:justify-between tw:gap-1 tw:rounded-[7px] tw:border tw:[border-color:color-mix(in_srgb,var(--line-soft)_72%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev)_68%,transparent)] tw:px-[5px] tw:py-[3px] tw:[&_dd]:m-0 tw:[&_dd]:[overflow-wrap:anywhere] tw:[&_dd]:font-code tw:[&_dd]:text-[10px] tw:[&_dd]:font-bold tw:[&_dd]:leading-[1.15] tw:[&_dd]:text-ink-1 tw:[&_dt]:m-0 tw:[&_dt]:overflow-hidden tw:[&_dt]:text-ellipsis tw:[&_dt]:whitespace-nowrap tw:[&_dt]:text-[9px] tw:[&_dt]:leading-[1.2] tw:[&_dt]:text-ink-muted",
+  "tw:flex tw:min-w-0 tw:flex-col tw:gap-[3px] tw:px-[5px] tw:py-[3px]",
+);
+const USAGE_METRIC_HEAD_CLASS = withModuleClass(
+  "usage-metric-head",
+  "tw:flex tw:min-w-0 tw:flex-none tw:items-center tw:justify-between tw:gap-1",
+);
+const USAGE_METRIC_LABEL_CLASS = withModuleClass(
+  "usage-metric-label",
+  "tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[9px] tw:leading-[1.2] tw:text-ink-muted",
+);
+const USAGE_METRIC_VALUE_CLASS = withModuleClass(
+  "usage-metric-value",
+  "tw:inline-flex tw:flex-none tw:items-baseline tw:justify-end tw:font-code tw:text-[10px] tw:font-bold tw:leading-[1.15] tw:text-ink-1 tw:[overflow-wrap:anywhere]",
+);
+const USAGE_METRIC_BAR_CLASS = withModuleClass(
+  "usage-metric-bar",
+  "tw:mt-px tw:h-1 tw:w-full tw:flex-none tw:overflow-hidden tw:rounded-full",
+);
+const USAGE_METRIC_BAR_FILL_CLASS = withModuleClass(
+  "usage-metric-bar-fill",
+  "tw:block tw:h-full tw:rounded-full",
 );
 const USAGE_SECTION_CALL_COUNTS_CLASS = withModuleClass(
   "usage-section-call-counts",
@@ -112,6 +145,8 @@ const USAGE_POPOVER_CLOSE_CLASS = withModuleClass(
 );
 const USAGE_POPOVER_COMPACT_QUERY = "(max-width: 620px)";
 
+type UsageMetricDisplayVariant = "bar" | "value";
+
 const UsageContextWindow: React.FC<{
   compactDisabled: boolean;
   onCompact: () => void;
@@ -120,19 +155,24 @@ const UsageContextWindow: React.FC<{
 }> = ({ compactDisabled, onCompact, snapshot, t }) => {
   const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
   const cacheHitLabel = formatUsagePercent(cacheHitPercent);
+  const maxSizeLabel = formatUsageNumber(snapshot?.contextWindow?.maxSize);
 
   return (
     <div className={USAGE_CONTEXT_WINDOW_CLASS}>
-      <div className={USAGE_CONTEXT_COPY_CLASS}>
-        <span>{t("topNav.usage.contextWindow")}</span>
+      <div
+        className={USAGE_CONTEXT_COPY_CLASS}
+        data-metric-value={maxSizeLabel}
+        aria-label={t("topNav.usage.contextWindow")}
+      >
+        <span className={USAGE_CONTEXT_LABEL_CLASS}>
+          {t("topNav.usage.contextWindow")}
+        </span>
         <strong>
-          {formatUsageNumber(snapshot?.contextWindow?.currentSize)}
-          {" / "}
-          {formatUsageNumber(snapshot?.contextWindow?.maxSize)}
+          {maxSizeLabel}
         </strong>
         <UiButton
           className={USAGE_CONTEXT_COMPACT_BTN_CLASS}
-          variant="ghost"
+          variant="secondary"
           size="sm"
           disabled={compactDisabled}
           aria-label={t("topNav.usage.compact")}
@@ -140,7 +180,7 @@ const UsageContextWindow: React.FC<{
           aria-haspopup="dialog"
           onClick={onCompact}
         >
-          {t("topNav.usage.compact")}
+          {t("topNav.usage.compactShort")}
         </UiButton>
       </div>
 
@@ -177,26 +217,88 @@ const UsageTriggerRing: React.FC<{
   );
 };
 
+const buildUsageRatioLabel = (
+  valueLabel: string,
+  baseLabel: string | null,
+  valueTitle: string,
+  baseTitle: string | null,
+): string => {
+  if (baseLabel == null) return `${valueLabel} ${valueTitle}`;
+  return `${valueLabel} ${valueTitle} / ${baseLabel} ${baseTitle ?? valueTitle}`;
+};
+
+const UsageMetricCell: React.FC<{
+  metric: UsageMetric;
+  variant: UsageMetricDisplayVariant;
+}> = ({ metric, variant }) => {
+  const valueLabel = formatUsageNumber(metric.value);
+  const percent = metric.percent;
+  const hasValue = readUsageNumber(metric.value) != null;
+  const hasBase =
+    percent != null && percent.base !== readUsageNumber(metric.value);
+  const baseLabel =
+    hasBase && percent != null ? formatUsageNumber(percent.base) : null;
+  const ratioLabel = buildUsageRatioLabel(
+    valueLabel,
+    baseLabel,
+    metric.label,
+    metric.baseLabel ?? null,
+  );
+  const useTooltip = variant === "bar" && hasValue;
+
+  return (
+    <Tooltip
+      title={useTooltip ? ratioLabel : ""}
+      placement="topRight"
+      arrow={false}
+      open={useTooltip ? undefined : false}
+    >
+      <div
+        className={USAGE_METRIC_CLASS}
+        data-metric-value={ratioLabel}
+        data-metric-percent={percent?.label ?? ""}
+      >
+        <div className={USAGE_METRIC_HEAD_CLASS}>
+          <span className={USAGE_METRIC_LABEL_CLASS}>{metric.label}</span>
+          <span className={USAGE_METRIC_VALUE_CLASS}>
+            {variant === "bar" ? (percent?.label ?? valueLabel) : valueLabel}
+          </span>
+        </div>
+        {variant === "bar" && hasValue ? (
+          <div className={USAGE_METRIC_BAR_CLASS} aria-hidden="true">
+            <span
+              className={USAGE_METRIC_BAR_FILL_CLASS}
+              style={{ width: `${percent?.percent ?? 0}%` }}
+            />
+          </div>
+        ) : null}
+      </div>
+    </Tooltip>
+  );
+};
+
 const UsageSection: React.FC<{
   title: string;
   metrics: UsageMetric[];
+  stats?: AIUsageStats;
   aside?: React.ReactNode;
-}> = ({ title, metrics, aside }) => (
-  <section className={USAGE_POPOVER_SECTION_CLASS}>
-    <div className={USAGE_POPOVER_SECTION_TITLE_CLASS}>
-      <h3>{title}</h3>
-      {aside}
-    </div>
-    <dl className={USAGE_METRIC_GRID_CLASS}>
-      {metrics.map((metric) => (
-        <div className={USAGE_METRIC_CLASS} key={metric.key}>
-          <dt>{metric.label}</dt>
-          <dd>{formatUsageNumber(metric.value)}</dd>
-        </div>
-      ))}
-    </dl>
-  </section>
-);
+  variant: UsageMetricDisplayVariant;
+}> = ({ title, metrics, stats, aside, variant }) => {
+
+  return (
+    <section className={USAGE_POPOVER_SECTION_CLASS}>
+      <div className={USAGE_POPOVER_SECTION_TITLE_CLASS}>
+        <h3 className={USAGE_POPOVER_SECTION_HEADING_CLASS}>{title}</h3>
+        {aside}
+      </div>
+      {variant === "bar" ? <UsageStackedMetrics stats={stats} /> : <div className={USAGE_METRIC_GRID_CLASS}>
+        {metrics.map((metric) => (
+          <UsageMetricCell key={metric.key} metric={metric} variant={variant} />
+        ))}
+      </div>}
+    </section>
+  );
+};
 
 const UsageCallCounts: React.FC<{
   t: (key: string) => string;
@@ -373,6 +475,15 @@ export const UsageContextControl: React.FC<{
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
+  const [metricVariant, setMetricVariant] = React.useState<UsageMetricDisplayVariant>("bar");
+  const metricVariantProps = {
+    variant: metricVariant,
+    onToggleVariant: () => setMetricVariant(previous => previous === "bar" ? "value" : "bar"),
+    toggleLabel: metricVariant === "bar"
+      ? t("topNav.usage.metrics.showValues")
+      : t("topNav.usage.metrics.showBars"),
+  };
+
   const handleUsagePopoverOpenChange = React.useCallback(
     (open: boolean) => {
       dispatch({ type: "SET_USAGE_POPOVER_OPEN", open });
@@ -394,22 +505,39 @@ export const UsageContextControl: React.FC<{
     return null;
   }
 
+  const contextUsed = usageSnapshot?.contextWindow?.currentSize;
+  const contextTotal = usageSnapshot?.contextWindow?.maxSize;
+  const contextRatio = typeof contextUsed === "number" && typeof contextTotal === "number" && contextTotal > 0
+    ? `${(contextUsed / contextTotal * 100).toFixed(2)}%` : "-";
+  const contextRows = [
+    { label: t("topNav.usage.contextUsed"), value: formatUsageNumber(contextUsed) },
+    { label: t("topNav.usage.contextTotal"), value: formatUsageNumber(contextTotal) },
+    { label: t("topNav.usage.contextPercent"), value: contextRatio },
+  ];
+  const contextDetails = contextRows.map(row => `${row.label}: ${row.value}`).join("; ");
+  const contextTooltip = <div className={styles["usage-detail"]}>
+    {contextRows.map(row => <div key={row.label}><span>{row.label}</span><strong>{row.value}</strong></div>)}
+  </div>;
+
   const detailContent = (
     <div role="dialog" aria-label={t("topNav.usage.title")}>
       <Flex gap={10} align="center">
+        <Tooltip title={contextTooltip} trigger={["hover", "focus"]} arrow={false}>
         <div
+          tabIndex={0}
           className={USAGE_CONTEXT_RING_CLASS}
           style={
             {
               "--usage-context-percent": `${contextPercent?.progress ?? 0}%`,
             } as React.CSSProperties
           }
-          aria-label={t("topNav.usage.contextWindow")}
+          aria-label={contextDetails}
         >
           <span>
             {contextPercent == null ? "--%" : `${contextPercent.label}%`}
           </span>
         </div>
+        </Tooltip>
         <Flex vertical style={{ flex: 1, overflow: "hidden" }}>
           <div className={USAGE_POPOVER_HEADER_CLASS}>
             <Flex
@@ -434,7 +562,7 @@ export const UsageContextControl: React.FC<{
                 </span>
               ) : null}
             </Flex>
-            <Flex align="center" gap={15}>
+            <Flex align="center" gap={4}>
               <div
                 className={USAGE_CACHE_HIT_INLINE_CLASS}
                 aria-label={t("topNav.usage.totalCost")}
@@ -442,9 +570,20 @@ export const UsageContextControl: React.FC<{
                 <span>{t("topNav.usage.totalCost")}:</span>
                 <strong>{estimatedCostLabel}</strong>
               </div>
-              {presentation === "drawer" ? (
-                <div className="tw:w-[20px]"></div>
-              ) : (
+              <Tooltip title={metricVariantProps.toggleLabel} arrow={false}>
+                <UiButton
+                  className={USAGE_VIEW_TOGGLE_CLASS}
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  active={metricVariant === "value"}
+                  aria-label={metricVariantProps.toggleLabel}
+                  aria-pressed={metricVariant === "value"}
+                  onClick={metricVariantProps.onToggleVariant}
+                >
+                  <MaterialIcon name="swap_horiz" style={{ fontSize: 12 }} />
+                </UiButton>
+              </Tooltip>
                 <UiButton
                   className={USAGE_POPOVER_CLOSE_CLASS}
                   variant="ghost"
@@ -456,7 +595,6 @@ export const UsageContextControl: React.FC<{
                 >
                   <MaterialIcon name="close" />
                 </UiButton>
-              )}
             </Flex>
           </div>
           <UsageContextWindow
@@ -470,6 +608,8 @@ export const UsageContextControl: React.FC<{
       <UsageSection
         title={t("topNav.usage.section.current")}
         metrics={buildUsageMetrics(t, usageSnapshot?.usage?.current)}
+        stats={usageSnapshot?.usage?.current}
+        variant={metricVariant}
         aside={
           <UsageCallCounts
             t={t}
@@ -482,6 +622,8 @@ export const UsageContextControl: React.FC<{
       <UsageSection
         title={t("topNav.usage.section.run")}
         metrics={buildUsageMetrics(t, usageSnapshot?.usage?.run)}
+        stats={usageSnapshot?.usage?.run}
+        variant={metricVariant}
         aside={
           <UsageCallCounts
             t={t}
@@ -494,6 +636,8 @@ export const UsageContextControl: React.FC<{
       <UsageSection
         title={t("topNav.usage.section.chat")}
         metrics={buildUsageMetrics(t, usageSnapshot?.usage?.chat)}
+        stats={usageSnapshot?.usage?.chat}
+        variant={metricVariant}
         aside={
           <UsageCallCounts
             t={t}
@@ -507,6 +651,8 @@ export const UsageContextControl: React.FC<{
         <UsageSection
           title={t("topNav.usage.section.compact")}
           metrics={buildUsageMetrics(t, compactUsage)}
+          stats={compactUsage}
+          variant={metricVariant}
           aside={<UsageCallCounts t={t} stats={compactUsage} />}
         />
       ) : null}

@@ -144,6 +144,38 @@ describe("AuthenticatedResourceBlobCache", () => {
     second.release();
   });
 
+  it("peeks the warm entry synchronously and stops after idle revocation", async () => {
+    const { cache, createObjectURL } = createHarness();
+    const loader = jest.fn(() => Promise.resolve(blobs(1)[0]));
+
+    expect(cache.peek("k")).toBeNull();
+
+    const subscription = cache.acquire("k", loader);
+    expect(cache.peek("k")).toEqual({ url: "", loading: true, error: null });
+
+    await flushMicrotasks();
+    expect(cache.peek("k")).toEqual({ url: "blob:0", loading: false, error: null });
+
+    subscription.release();
+    expect(cache.peek("k")).toEqual({ url: "blob:0", loading: false, error: null });
+    jest.advanceTimersByTime(IDLE_TTL_MS);
+    expect(cache.peek("k")).toBeNull();
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it("peeks a cached failure so a remount does not retry the request", async () => {
+    const { cache } = createHarness();
+    const error = new Error("load failed");
+    const loader = jest.fn(() => Promise.reject(error));
+
+    const subscription = cache.acquire("k", loader);
+    await flushMicrotasks();
+    subscription.release();
+
+    expect(cache.peek("k")).toEqual({ url: "", loading: false, error });
+    expect(loader).toHaveBeenCalledTimes(1);
+  });
+
   it("revokes the object URL after the idle TTL elapses", async () => {
     const { cache, revokeObjectURL } = createHarness();
     const loader = jest.fn(() => Promise.resolve(blobs(1)[0]));

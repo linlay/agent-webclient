@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getTerminalAgentStatuses,
   publishTerminalStatusEvent,
@@ -57,22 +57,4 @@ export function useTerminalAgentStatuses(enabled = true): ReadonlyMap<
   }, [enabled, terminal]);
 
   return agentStatuses;
-}
-
-export function useActiveTerminalAgents(): ReadonlySet<string> {
-  const agentStatuses = useTerminalAgentStatuses();
-  return useMemo(() => new Set(agentStatuses.keys()), [agentStatuses]);
-}
-
-export function useBusyTerminalAgents(): ReadonlySet<string> {
-  const agentStatuses = useTerminalAgentStatuses();
-  return useMemo(() => {
-    const next = new Set<string>();
-    for (const [agentKey, status] of agentStatuses) {
-      if (status === "busy") {
-        next.add(agentKey);
-      }
-    }
-    return next;
-  }, [agentStatuses]);
 }

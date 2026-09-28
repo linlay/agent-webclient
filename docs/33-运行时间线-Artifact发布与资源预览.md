@@ -26,7 +26,7 @@ Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器
 
 Artifact、普通附件和回答 Markdown 中的受保护图片、PDF、音视频先使用 Bearer/Cookie fetch 获得后端原始 MIME Blob，再创建短生命周期 object URL 交给媒体元素；卸载或 URL 变化时通过 effect cleanup revoke，同时用 AbortController 取消过期请求。HTML Resource Viewer 则通过同一鉴权 API 读取完整文本并以不带 `allow-same-origin` 的 sandbox `srcDoc` 展示，使 Desktop 可注入受限的元素批注消息桥而不放宽 iframe 隔离；HTML iframe 使用无内边距内容槽贴边展示，页面本身的 body margin 仍按原文保留。受 CORS 限制而无法读取文本的外部 HTML 仍可回退到原 sandbox URL 只读预览，但不声明批注 capability。新 `publishedArtifacts[].url` 形如 `artifacts/run_01/poster.png`。历史 `/api/resource?file=...` Markdown 被分类为非法，不再预览或下载；外部 HTTP(S) 图片继续直接使用外链，跨域下载不发送平台 Bearer，`data:` 与 `blob:` 原样展示。
 
-回答 Markdown 兼容 `![说明](artifacts/run_01/demo.mp4)` 类历史输出：当图片语法的资源名以 `.m4v`、`.mov`、`.mp4`、`.mpeg`、`.mpg`、`.ogv` 或 `.webm` 结尾时，`MarkdownContent` 将其升级为带 controls 的鉴权 video 渲染；普通图片继续使用 `img`。若受保护资源的 Blob MIME 为空或 `application/octet-stream`，则按已识别的视频扩展名补齐 `video/*`，已有具体 MIME 不会被覆盖。该后缀判断仅用于兼容 Markdown 无标准视频语法的边界，Artifact 面板仍优先按自身的 MIME/扩展名规则识别预览类型。
+回答 Markdown 兼容 `![说明](artifacts/run_01/demo.mp4)` 类历史输出：当图片语法的资源名以 `.m4v`、`.mov`、`.mp4`、`.mpeg`、`.mpg`、`.ogv` 或 `.webm` 结尾时，`MarkdownContent` 将其升级为带 controls 的鉴权 video 渲染；普通图片改用 antd `Image` 承载，鉴权 Blob URL 同时作为预览源，点击图片放大查看，宿主右键语义仍作用在同一张图上。若受保护资源的 Blob MIME 为空或 `application/octet-stream`，则按已识别的视频扩展名补齐 `video/*`，已有具体 MIME 不会被覆盖。该后缀判断仅用于兼容 Markdown 无标准视频语法的边界，Artifact 面板仍优先按自身的 MIME/扩展名规则识别预览类型。
 
 Desktop 内容区右键语义只把资源名称、媒体类型和固定 open/download capability 返回宿主，不返回上述 object URL、资源 API URL 或鉴权信息。执行时重新定位当前 AttachmentCard、Markdown 链接或 Viewer，并复用左键的 `ViewerTarget` 构造或统一鉴权下载路径。WorkPanel 的 Artifact/Reference 外层 tab 另通过共享契约的版本化 `workPanel.resource.downloadCurrent` host action 请求下载；只有当前 Resource Viewer 注册处理器并复用同一 `downloadViewerTarget`，其他页面静默忽略，动作本身不携带 route、资源 URL、路径或凭据。
 

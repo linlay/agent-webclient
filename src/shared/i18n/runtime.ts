@@ -43,10 +43,6 @@ let runtimeConfig: I18nRuntimeConfig = {
   terms: DEFAULT_TERMS[DEFAULT_LOCALE],
 };
 
-function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === "object";
-}
-
 export function normalizeLocale(
   value: unknown,
   locales: Partial<I18nLocaleMap> = DEFAULT_LOCALES,
@@ -249,14 +245,6 @@ export function buildI18nRuntimeConfig(input: {
     locales,
     terms: resolveI18nTerms(locale, input.terms),
   };
-}
-
-export function isHanTextAllowedFile(pathname: string, allowlist: string[]): boolean {
-  return allowlist.includes(pathname);
-}
-
-export function isLocaleMap(value: unknown): value is Partial<I18nLocaleMap> {
-  return isObjectRecord(value);
 }
 
 export { DEFAULT_LOCALES };

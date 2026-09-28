@@ -13,7 +13,10 @@ export interface UpdateAgentSkillPinRequest {
 
 export interface AdminSkillSummary {
   key: string;
-  name: string;
+  displayName?: string;
+  /** Legacy servers only. */
+  name?: string;
+  revision?: string;
   description?: string;
   icon?: string;
   meta?: Record<string, unknown>;

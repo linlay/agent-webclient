@@ -143,6 +143,20 @@ describe("Desktop activation during Chat transitions", () => {
     expect(loadChat).toHaveBeenCalledTimes(1);
   });
 
+  it("does not reload a completed Chat on ordinary window focus", async () => {
+    await render("B", "ready");
+    mockStateRef.current = { ...mockStateRef.current, runId: "", currentChatActiveRun: null };
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(loadChat).not.toHaveBeenCalled();
+  });
+
+  it("does force a completed Chat reload on an explicit Desktop activation", async () => {
+    await render("B", "ready");
+    mockStateRef.current = { ...mockStateRef.current, runId: "", currentChatActiveRun: null };
+    await activate(true);
+    expect(loadChat).toHaveBeenCalledWith("B", { forceReload: true, focusComposerOnComplete: false });
+  });
+
   it("does not recover without a Desktop activation signal", async () => {
     await render("A", "loading");
     await render("B", "ready");

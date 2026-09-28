@@ -18,7 +18,7 @@
 ## 展示与编辑
 列表按名称、id、技能和组件 serverKey 搜索。搜索框复用 /registries 的 SearchFilterBar，输入框右侧筛选菜单提供全部、MCP、CLI、VIEW；非全部筛选时高亮入口。组件筛选依据 hasMcp/hasCli/hasView，同一混合包可以出现在多种筛选结果中。管理列表和详情页签旁使用目录返回的 iconUrl 展示品牌图标；缺失、HTTP 失败或图片解码失败时回退 hub。图标通过带鉴权的 HTTP Blob 请求读取 /api/connectors/icon，不把凭据放在 URL，也不把 SVG 插入 DOM；URL 随版本变化后重新加载，切换或卸载时取消请求并释放 Blob URL。connector.json 的 icon 包内路径由表单编辑保留，也可在 JSON 源码中修改。
 
-列表不显示 ID：首行名称与版本两端对齐，底行左侧显示授权状态或同步失败，右侧显示 CLI/MCP 类型。目录加载完成后自动逐项异步检查授权，首次显示“检查中”，不依赖点击；检查失败时明确提示并保留上次已知状态。布局参考技能管理台，以标题和间距分组，减少嵌套边框。
+列表不显示 ID：首行名称与版本两端对齐，底行左侧显示授权状态或同步失败，右侧显示 CLI/MCP 类型。目录加载完成后对需要查询授权的模式逐项异步检查，首次显示“检查中”；no_auth 直接显示“无需配置”，不请求认证接口；检查失败时明确提示并保留上次已知状态。布局参考技能管理台，以标题和间距分组，减少嵌套边框。
 
 详情分为“概览 / 配置 / 技能（数量）”。概览保留基本信息与账号授权，配置展示 CLI/bin 说明、MCP 组件、工具及同步状态；CLI 的 init/versionCheck/登录声明不会由配置编辑页面执行，包内可执行文件可以随 ZIP 导入。
 
@@ -45,9 +45,9 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 输入框连接器列表统一显示启用开关，未启用项不创建授权观察器、不查询授权状态。启用成功后，仅对已启用且支持状态检查的连接器读取一次授权状态；需要登录时在开关下方展示授权入口。仅 preparing/pending 持续快速轮询，授权成功或失败、取消、过期后停止，不做普通状态的 30 秒巡检或页面恢复可见时的授权补查。搜索过滤不打断已启用项正在进行的授权；关闭开关或卸载菜单停止观察，不注销账号。重新打开菜单会重新确认已启用项的状态。管理台保持原有全目录观察策略。
 
 ## 账号授权
-现有详情页概览中的“账号授权”区域按目录返回的 `auth_mode` 决定交互：`null/oauth/mcp` 查询统一状态 API；`null` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid-token` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 引导到现有配置页。兼容旧服务返回的 `cli` 登录模式与 `none` 无需授权模式；当前 Platform 会将旧包中的 `cli/none` 规范化为目录中的 `null`，因此不能只检查旧字符串，也不能把 `null` 当成无需认证。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
+现有详情页概览中的“账号授权”区域按目录返回的 `auth_mode` 决定交互：`no_auth` 直接显示“无需配置”，不请求认证接口；`null/oauth/mcp` 查询统一状态 API；`null` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid-token` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 引导到现有配置页。兼容旧服务返回的 `cli` 登录模式与 `none` 无需授权模式；当前 Platform 会将旧包中的 `cli/none` 规范化为目录中的 `null`，因此不能只检查旧字符串，也不能把 `null` 当成无需认证。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
 
-列表与详情共用页面内的授权观察器，进入目录后自动读取 `null/cli/oauth/mcp/oneid-token` 的连接器状态，展示 not_required/delegated/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。旧 `none` 无需授权及 `token` 凭据配置类型不请求交互授权接口。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
+列表与详情共用页面内的授权观察器，进入目录后自动读取 `null/cli/oauth/mcp/oneid-token` 的连接器状态，展示 no_auth/not_required/delegated/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。`no_auth`、旧 `none` 无需授权及 `token` 凭据配置类型不请求交互授权接口。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
 
 pending 时展示后端返回的“打开授权页面”链接，只接受无用户名密码的显式 HTTP(S) URL，使用新页面、noopener/noreferrer 与 no-referrer。入口由用户直接点击，避免依赖异步自动弹窗；链接会保留供浏览器拦截后手动再次打开。页面仅在后端返回 authorized 后显示成功，扫码、打开链接或时间到达均不代表授权完成。
 
@@ -120,3 +120,21 @@ Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth
 ## 对话辅助入口
 
 手工创建、编辑、保存与对话方式并存。独立的「通过对话创建／修改」入口使用默认 Chat 智能体，预选 `platform-admin` 并填写草稿，不自动发送。保留原有表单、源码编辑、ZIP 导入及只读边界；连接器手工新增沿用 ZIP 导入。详见[资源对话创建与修改](01-应用基础-应用入口路由与布局壳层.md#资源对话创建与修改)。
+
+
+## 六种 auth_mode
+
+当前协议支持六种模式；旧字符串 none/cli 仅是历史别名，不作为独立模式计数。
+
+| 模式 | 语义与界面行为 |
+| --- | --- |
+| no_auth | 无需认证，挂载即可使用；显示“无需配置”，不检查、不轮询、不提供登录或断开认证按钮 |
+| null | 认证由连接器 Skill / CLI / SDK 管理；受管 CLI 支持登录，delegated 不显示登录退出 |
+| token | 手工配置凭据 |
+| oneid-token | 使用 Desktop SSO，连接器内不提供登录退出 |
+| oauth | 普通 OAuth 授权 |
+| mcp | MCP OAuth 授权 |
+
+Desktop 声明 no_auth，详情与列表复用通用认证展示，不保留 native 专用配置面板或 connection.json 操作。Composer “+”菜单只保留挂载开关，不显示“检查中”或“连接”；挂载不等于客户端在线，实际路由、权限和可用性由调用结果说明。取消使用通过移除 Agent 挂载完成。
+
+Connection DTO 接收 configurationRequired、authentication、capabilities 和独立 preparation。no_auth 的 configurationRequired=false、canConnect/canDisconnect/canCheck=false，configured=false 不能解释为未连接。认证 hook 依据清单 no_auth 直接进入终态，既不请求认证接口也不使用配置完成标记；CLI 安装准备与 MCP 同步状态独立于认证状态。

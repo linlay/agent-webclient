@@ -17,9 +17,9 @@ jest.mock("@/shared/data/api/routedClient", () => ({
 }));
 jest.mock("@/shared/ui/CodeEditor", () => ({ CodeEditor: () => null }));
 const skills = [
-  { key: "demo", name: "Demo", status: "ready" as const },
-  { key: "pdf", name: "PDF", status: "ready" as const },
-  { key: "invalid", name: "Invalid", status: "invalid" as const },
+  { key: "demo", displayName: "Demo", status: "ready" as const },
+  { key: "pdf", displayName: "PDF", status: "ready" as const },
+  { key: "invalid", displayName: "Invalid", status: "invalid" as const },
 ];
 let serverOrder: string[];
 let container: HTMLDivElement;

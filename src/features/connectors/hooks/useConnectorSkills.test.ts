@@ -5,7 +5,7 @@ import { getConnectorSkills, getConnectorSkillDetail } from "@/shared/data";
 import { useConnectorSkills } from "./useConnectorSkills";
 
 jest.mock("@/shared/data", () => ({ getConnectorSkills: jest.fn(), getConnectorSkillDetail: jest.fn() }));
-const skill = (name: string) => ({ name, description: name, path: `skills/${name}/SKILL.md`, size: 10, updatedAt: 0 });
+const skill = (name: string) => ({ key: name, displayName: `Display ${name}`, description: name, path: `skills/${name}/SKILL.md`, size: 10, updatedAt: 0 });
 const response = (connectorId: string, name: string) => ({ code: 0, msg: "", data: { connectorId, skill: skill(name), content: `${connectorId}/${name}`, sha256: name } });
 let current: ReturnType<typeof useConnectorSkills>;
 let root: Root;
@@ -54,5 +54,5 @@ it("ignores a previous connector's list response and clears a failed catalog on 
   expect(current.listError).toBe("Unavailable");
   await act(async () => current.reload());
   expect(current.listError).toBe("");
-  expect(current.skills.map(item => item.name)).toEqual(["one", "two"]);
+  expect(current.skills.map(item => item.key)).toEqual(["one", "two"]);
 });

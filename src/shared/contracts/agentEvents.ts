@@ -91,7 +91,6 @@ export const AWAITING_ASK_STREAM_EVENT_TYPE = "awaiting.ask";
 export const AWAITING_ASK_PUSH_EVENT_TYPE = "awaiting.asking";
 export const AWAITING_ANSWER_STREAM_EVENT_TYPE = "awaiting.answer";
 export const AWAITING_ANSWER_PUSH_EVENT_TYPE = "awaiting.answered";
-export const AWAITING_ANSWER_EVENT_TYPE = AWAITING_ANSWER_STREAM_EVENT_TYPE;
 
 export enum AIAwaitEventTypeEnum {
   Ask = "awaiting.ask",

@@ -75,6 +75,18 @@ describe("ComposerActions", () => {
     expect(html).toContain("interrupt-btn");
   });
 
+  it("shows an inline status while keeping Stop available for an existing run", () => {
+    const html = renderToStaticMarkup(React.createElement(ComposerActions, {
+      ...baseProps, isStreaming: true, interactionDisabled: true, interruptDisabled: false,
+      statusNotice: React.createElement("span", { role: "status" }, "Agent unavailable"),
+    }));
+    expect(html).toContain("Agent unavailable");
+    expect(html).not.toContain("composer-plus-btn");
+    const stop = html.match(/<button[^>]*id="interrupt-btn"[^>]*>/)?.[0];
+    expect(stop).toBeDefined();
+    expect(stop).not.toMatch(/\sdisabled(?:=|\s|>)/);
+  });
+
   it("hides send and voice controls while streaming", () => {
     const html = renderToStaticMarkup(
       React.createElement(ComposerActions, {

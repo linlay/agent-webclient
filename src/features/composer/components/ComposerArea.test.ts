@@ -1,3 +1,7 @@
+const mockAgentAvailability = { status: "available", retry: jest.fn() };
+jest.mock("@/features/composer/hooks/useAgentAvailability", () => ({
+  useAgentAvailability: () => mockAgentAvailability,
+}));
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import * as selectedTextHooks from "@/features/selection/hooks/useSelectedTextFragments";
 import { createSelectedTextFragment, selectedTextReferenceToAttachment } from "@/features/selection/lib/selectedTextReference";
@@ -128,7 +132,7 @@ jest.mock("@/features/composer/components/ComposerInput", () => ({
 jest.mock("@/features/composer/components/ComposerActions", () => ({
   ComposerActions: (props: Record<string, any>) => {
     mockComposerActionsProps.push(props);
-    return React.createElement("div", { className: "composer-actions" });
+    return React.createElement("div", { className: "composer-actions" }, props.statusNotice);
   },
 }));
 
@@ -322,6 +326,7 @@ describe("ComposerArea", () => {
   const originalLocalStorage = globalWithStorage.localStorage;
 
   beforeEach(() => {
+    mockAgentAvailability.status = "available";
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -356,6 +361,27 @@ describe("ComposerArea", () => {
       return;
     }
     delete globalWithStorage.localStorage;
+  });
+
+  it("keeps disabled inputs mounted and shows the unavailable link in the action row", () => {
+    mockAgentAvailability.status = "unavailable";
+    mockResolveCurrentWorkerSummary.mockReturnValue({ type: "agent", sourceId: "deleted", relatedChats: [], raw: null });
+    mockComposerAwaitingState.isAwaitingActive = true;
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+    expect(html).toContain('href="/agents/deleted"');
+    expect(html).toContain("composer.agent.unavailable");
+    expect(html).not.toContain("awaiting-shell");
+    expect(mockComposerInputProps[0].disabled).toBe(true);
+    expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
+    expect(mockComposerActionsProps[0].interruptDisabled).toBe(false);
+  });
+  it.each(["checking", "authentication_required", "forbidden", "error"])("renders %s separately from configuration failure", status => {
+    mockAgentAvailability.status = status;
+    const html = renderToStaticMarkup(React.createElement(ComposerArea));
+    expect(html).toContain(`composer.agent.${status}`);
+    expect(html).not.toContain('href="/agents/');
+    expect(mockComposerInputProps[0].disabled).toBe(status !== "checking");
+    expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
   });
 
   it("hides wonders and forwards compact input sizing when configured", () => {
@@ -582,7 +608,7 @@ describe("ComposerArea", () => {
         skills: [
           {
             key: "skill-creator",
-            name: "技能创建",
+            displayName: "技能创建",
             configured: true,
           },
         ],

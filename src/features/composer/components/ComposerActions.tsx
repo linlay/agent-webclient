@@ -49,6 +49,8 @@ interface ComposerActionsProps extends Omit<AddMenuTriggerProps, "disabled" | "l
   isVoiceMode: boolean;
   isStreaming: boolean;
   interactionDisabled?: boolean;
+  interruptDisabled?: boolean;
+  statusNotice?: React.ReactNode;
   canCaptureDesktopScreenshot: boolean;
   isCapturingDesktopScreenshot: boolean;
   modelOverride: QueryModelOverride;
@@ -78,6 +80,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   isVoiceMode,
   isStreaming,
   interactionDisabled = false,
+  interruptDisabled = interactionDisabled || isFrontendActive,
+  statusNotice,
   canCaptureDesktopScreenshot,
   isCapturingDesktopScreenshot,
   modelOverride,
@@ -170,6 +174,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
       )}
       <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
         <div className={COMPOSER_PLUS_WRAP_CLASS}>
+          {statusNotice ?? <>
           <AddMenuTrigger
             interactionConfig={interactionConfig}
             disabled={addMenuDisabled}
@@ -260,6 +265,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               onChange={onControlParamsChange}
             />
           )}
+          </>}
         </div>
         {isStreaming ? (
           <>
@@ -278,7 +284,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               variant="danger"
               size="sm"
               iconOnly
-              disabled={interactionDisabled || isFrontendActive}
+              disabled={interruptDisabled}
               onClick={() => void interruptCurrentRun()}
               aria-label={t("composer.actions.interrupt")}
             >

@@ -1,3 +1,4 @@
+import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { focusEditableField } from "@/shared/ui/EditMenuButton";
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
@@ -252,7 +253,7 @@ const SKILL_LIST_ITEM_WRAP_CLASS_NAME =
 const SKILL_LIST_HEADER_CLASS_NAME =
   "skill-console-list-header tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-medium tw:leading-none tw:text-ink-muted tw:sticky tw:top-0 tw:bg-[var(--management-page-surface)] tw:z-10";
 const SKILL_LIST_ITEM_MORE_CLASS_NAME =
-  "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto";
+  "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-has-[:focus-visible]:opacity-100 tw:group-has-[:focus-visible]:pointer-events-auto";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
   "skill-console-list-item-status tw:flex-none tw:pointer-events-none";
 const SKILL_LIST_ITEM_VERSION_CLASS_NAME =
@@ -1598,7 +1599,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                       >
                         <button
                           type="button"
-                          className="tw:absolute tw:top-1/2 tw:right-1 tw:flex tw:h-5 tw:w-5 tw:-translate-y-1/2 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-focus-within:opacity-100 tw:group-focus-within:pointer-events-auto"
+                          className="tw:absolute tw:top-1/2 tw:right-1 tw:flex tw:h-5 tw:w-5 tw:-translate-y-1/2 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-has-[:focus-visible]:opacity-100 tw:group-has-[:focus-visible]:pointer-events-auto"
                           aria-label={moreLabel}
                           title={moreLabel}
                           aria-haspopup="menu"
@@ -1725,7 +1726,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         if (!needle) return true;
         const haystack = [
           item.key,
-          item.name,
+          skillDisplayName(item),
           item.description || "",
           item.source?.path || "",
         ]
@@ -2371,7 +2372,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const handleDeleteSkillListItem = (item: AdminSkillSummary) => {
     handleDeleteSkillByKey(
       item.key,
-      item.name || item.key,
+      skillDisplayName(item),
       detail?.skill.key === item.key && dirtyFiles.size > 0,
     );
   };
@@ -2461,7 +2462,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setCreateModalOpen(false);
     notification.success({
       message: t("skillConsole.message.createSuccess", {
-        name: created.skill.name || key,
+        name: skillDisplayName(created.skill),
       }),
     });
     onSelectSkillKey(key);
@@ -2472,7 +2473,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     name: string,
   ): Promise<boolean> => {
     if (!(await confirmDiscardBeforeAdding())) return false;
-    const skillMd = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n`;
+    const skillMd = `---\nname: ${JSON.stringify(key)}\ndisplayName: ${JSON.stringify(name)}\ndescription: \n---\n\n# ${name}\n`;
     const response = await createAdminSkill({ key, skillMd });
     completeSkillCreation(response.data);
     return true;
@@ -2555,11 +2556,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 className="tw:w-full"
               >
                 <Typography.Text
-                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-focus-within:pe-[22px]"
+                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-has-[:focus-visible]:pe-[22px]"
                   ellipsis
-                  title={item.name || item.key}
+                  title={skillDisplayName(item)}
                 >
-                  <strong>{item.name || item.key}</strong>
+                  <strong>{skillDisplayName(item)}</strong>
                 </Typography.Text>
                 {itemPinned && (
                   <MaterialIcon
@@ -2617,7 +2618,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             else handleSelectSkill(item);
           }}
           onEditSkillConversation={async (item) => {
-            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: item.name } });
+            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: skillDisplayName(item) } });
           }}
         />
       </div>

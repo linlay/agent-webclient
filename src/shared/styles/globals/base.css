@@ -15,9 +15,18 @@ body {
     overflow-x: hidden;
 }
 
-html { color-scheme: light; }
-html[data-theme="dark"] { color-scheme: dark; }
-body { background: transparent; }
+html {
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+body {
+    background: transparent;
+}
+
 body::before {
     content: "";
     position: fixed;
@@ -28,7 +37,17 @@ body::before {
     background-size: cover;
     background-repeat: no-repeat;
 }
-#root { position: relative; min-height: 100vh; }
+
+#root {
+    position: relative;
+    min-height: 100vh;
+
+    /* 移除键盘聚焦轮廓线 */
+    .ant-collapse .ant-collapse-header:focus-visible,
+    button:focus-visible {
+        outline: none;
+    }
+}
 
 
 button,
@@ -578,27 +597,88 @@ textarea {
 ::-webkit-scrollbar-button {
     display: none;
 }
-/* Shared controls and body portals consume the same semantic skin values. */
-.ui-btn { border-color: var(--control-border); }
-.ui-btn:hover:not(:disabled) { background: var(--control-hover-bg); color: var(--ink); }
-.ui-btn:active:not(:disabled), .ui-btn.is-active { background: var(--control-active-bg); }
-.ui-btn.ui-btn-primary:hover:not(:disabled) { background: var(--control-primary-hover); color: var(--accent-on); }
-.ui-btn.ui-btn-primary:active:not(:disabled) { background: var(--control-primary-active); color: var(--accent-on); }
-.ui-btn:disabled { background: var(--control-disabled-bg); color: var(--ink-muted); opacity: var(--control-disabled-opacity); cursor: not-allowed; }
-.ui-btn:focus-visible, .ui-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.ui-input:focus { background: var(--control-input-bg); }
-.ui-input:hover:not(:disabled) { border-color: var(--accent); }
-.ui-input:disabled { background: var(--control-disabled-bg); color: var(--ink-muted); cursor: not-allowed; }
-select { background: var(--control-select-bg); }
-.ant-dropdown .ant-dropdown-menu { background: var(--sidebar-operation-menu-bg); border-color: var(--sidebar-operation-menu-border); border-radius: var(--overlay-radius); }
 
-.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):not(:disabled) { color: var(--control-icon-color); }
-.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):hover:not(:disabled) { color: var(--control-icon-hover-color); }
-.ant-btn:disabled { opacity: var(--control-disabled-opacity); }
-.ant-message .ant-message-notice-content, .ant-notification .ant-notification-notice {
+/* Shared controls and body portals consume the same semantic skin values. */
+.ui-btn {
+    border-color: var(--control-border);
+}
+
+.ui-btn:hover:not(:disabled) {
+    background: var(--control-hover-bg);
+    color: var(--ink);
+}
+
+.ui-btn:active:not(:disabled),
+.ui-btn.is-active {
+    background: var(--control-active-bg);
+}
+
+.ui-btn.ui-btn-primary:hover:not(:disabled) {
+    background: var(--control-primary-hover);
+    color: var(--accent-on);
+}
+
+.ui-btn.ui-btn-primary:active:not(:disabled) {
+    background: var(--control-primary-active);
+    color: var(--accent-on);
+}
+
+.ui-btn:disabled {
+    background: var(--control-disabled-bg);
+    color: var(--ink-muted);
+    opacity: var(--control-disabled-opacity);
+    cursor: not-allowed;
+}
+
+.ui-btn:focus-visible,
+.ui-input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.ui-input:focus {
+    background: var(--control-input-bg);
+}
+
+.ui-input:hover:not(:disabled) {
+    border-color: var(--accent);
+}
+
+.ui-input:disabled {
+    background: var(--control-disabled-bg);
+    color: var(--ink-muted);
+    cursor: not-allowed;
+}
+
+select {
+    background: var(--control-select-bg);
+}
+
+.ant-dropdown .ant-dropdown-menu {
+    background: var(--sidebar-operation-menu-bg);
+    border-color: var(--sidebar-operation-menu-border);
+    border-radius: var(--overlay-radius);
+}
+
+.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):not(:disabled) {
+    color: var(--control-icon-color);
+}
+
+.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):hover:not(:disabled) {
+    color: var(--control-icon-hover-color);
+}
+
+.ant-btn:disabled {
+    opacity: var(--control-disabled-opacity);
+}
+
+.ant-message .ant-message-notice-content,
+.ant-notification .ant-notification-notice {
     background: var(--control-popover-bg);
     color: var(--ink);
     border-radius: var(--overlay-radius);
 }
 
-.ui-btn.ui-btn-danger:hover:not(:disabled) { color: var(--accent-danger); }
+.ui-btn.ui-btn-danger:hover:not(:disabled) {
+    color: var(--accent-danger);
+}

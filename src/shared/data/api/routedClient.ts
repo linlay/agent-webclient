@@ -227,6 +227,10 @@ export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailRespo
 	return routeEndpoint(dataEndpoints.agent, agentKey, () => getAgentHttp(agentKey));
 }
 
+export function invalidateAgentDetail(): void {
+	invalidateRouteEndpoints(dataEndpoints.agent);
+}
+
 export function getAgentSkills(
 	agentKey: string = "",
 ): Promise<ApiResponse<AgentSkillsResponse>> {

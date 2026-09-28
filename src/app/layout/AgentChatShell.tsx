@@ -61,6 +61,35 @@ export function parseComposerPrefillPayload(
   return { draft, skillKey };
 }
 
+/**
+ * Session-scoped record of route agents whose detail has been fetched once.
+ * `modelKey` / `reasoningEffort` are optional in `AgentDetailResponse`, so a
+ * completed detail fetch must unblock route readiness even when they are absent.
+ */
+const routeAgentDetailFetchedKeys = new Set<string>();
+
+export function markRouteAgentDetailFetched(agentKey: string): void {
+  const normalized = String(agentKey || "").trim();
+  if (normalized) {
+    routeAgentDetailFetchedKeys.add(normalized);
+  }
+}
+
+export function isRouteAgentDetailFetched(agentKey: string): boolean {
+  const normalized = String(agentKey || "").trim();
+  return Boolean(normalized) && routeAgentDetailFetchedKeys.has(normalized);
+}
+
+/** Without an agentKey, clears the whole record (used by tests). */
+export function resetRouteAgentDetailFetched(agentKey = ""): void {
+  const normalized = String(agentKey || "").trim();
+  if (normalized) {
+    routeAgentDetailFetchedKeys.delete(normalized);
+  } else {
+    routeAgentDetailFetchedKeys.clear();
+  }
+}
+
 let lastCreatedNewChatTimestamp = 0;
 
 export function createNewChatTimestamp(now = Date.now()): string {
@@ -223,24 +252,15 @@ function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
   );
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 function hasOwn(input: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(input, key);
 }
 
-function needsRouteAgentModelOptionsHydration(agent: Agent | undefined): boolean {
+function needsRouteAgentModelSelectionHydration(agent: Agent | undefined): boolean {
   if (!agent) return false;
-  const meta = isRecord(agent.meta) ? agent.meta : {};
-  const mode = String(agent.mode || meta.mode || "").trim().toUpperCase();
-  const type = String(agent.type || "").trim().toLowerCase();
-  const acpBridgeId = String(meta.acpBridgeId || agent.acpBridgeId || "").trim();
-  if (!acpBridgeId || (mode !== "CODER" && type !== "coder")) {
-    return false;
-  }
-  return !hasOwn(agent, "modelOptions");
+  const mode = String(agent.mode || "").toUpperCase();
+  return (mode === "REACT" || mode === "CODER") &&
+    (!hasOwn(agent, "modelKey") || !hasOwn(agent, "reasoningEffort"));
 }
 
 const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({ title, overlay = false }) => {
@@ -336,7 +356,6 @@ const AgentChatShellContent: React.FC = () => {
   const refreshedNewChatAgentRouteKeysRef = useRef<Set<string>>(new Set());
   const promotedLiveChatRouteKeysRef = useRef<Set<string>>(new Set());
   const pendingNewChatResendRef = useRef<PendingNewChatResend | null>(null);
-  const routeAgentHydratedWithoutSignalRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationFailedRef = useRef<Set<string>>(new Set());
   const routeAgentHydrationRequestRef = useRef(0);
   const routeAgentLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -376,20 +395,20 @@ const AgentChatShellContent: React.FC = () => {
   );
   const routeAgentHasDetailSignal = hasRouteAgentDetailSignal(routeAgent);
   const routeAgentNeedsModelOptionsHydration =
-    needsRouteAgentModelOptionsHydration(routeAgent);
+    needsRouteAgentModelSelectionHydration(routeAgent);
   const routeAgentHydrated =
     !agentKey ||
     Boolean(
       routeAgent &&
         ((routeAgentHasDetailSignal && !routeAgentNeedsModelOptionsHydration) ||
-          routeAgentHydratedWithoutSignalRef.current.has(agentKey) ||
+          isRouteAgentDetailFetched(agentKey) ||
           routeAgentHydrationFailedRef.current.has(agentKey)),
     );
   const routeAgentNeedsHydration =
     Boolean(agentKey) &&
     (!routeAgent ||
       ((!routeAgentHasDetailSignal || routeAgentNeedsModelOptionsHydration) &&
-        !routeAgentHydratedWithoutSignalRef.current.has(agentKey) &&
+        !isRouteAgentDetailFetched(agentKey) &&
         !routeAgentHydrationFailedRef.current.has(agentKey)));
   const routeAgentReady =
     routeAgentHydrated &&
@@ -397,7 +416,7 @@ const AgentChatShellContent: React.FC = () => {
   const { loadAgents, startNewConversation } = useAppRuntimes({
     initialWorkerRefreshEnabled: false,
     targetChatId: chatId,
-    routeReady: routeAgentHydrated,
+    routeReady: Boolean(chatId) || routeAgentHydrated,
   });
 
   useEffect(() => {
@@ -627,7 +646,7 @@ const AgentChatShellContent: React.FC = () => {
 
   const handleRetryRouteAgent = useCallback(() => {
     routeAgentHydrationFailedRef.current.delete(agentKey);
-    routeAgentHydratedWithoutSignalRef.current.delete(agentKey);
+    resetRouteAgentDetailFetched(agentKey);
     setRouteAgentLoadError(null);
     setRouteAgentLoadErrorDescription("");
     setHydrationRetryCount((c) => c + 1);
@@ -638,7 +657,7 @@ const AgentChatShellContent: React.FC = () => {
       return;
     }
 
-    if (!routeAgentNeedsHydration) {
+    if (chatId || !routeAgentNeedsHydration) {
       return;
     }
 
@@ -680,11 +699,9 @@ const AgentChatShellContent: React.FC = () => {
           ...payload,
           key: resolvedAgentKey,
         };
-        if (!hasRouteAgentDetailSignal(patch as Agent)) {
-          routeAgentHydratedWithoutSignalRef.current.add(resolvedAgentKey);
-        } else {
-          routeAgentHydratedWithoutSignalRef.current.delete(resolvedAgentKey);
-        }
+        // Optional model-selection fields may be absent from the detail
+        // response; the completed fetch itself must unblock route readiness.
+        markRouteAgentDetailFetched(resolvedAgentKey);
 
         const mergedAgents = upsertAgentSummary(
           stateRef.current.agents,
@@ -726,23 +743,20 @@ const AgentChatShellContent: React.FC = () => {
         routeAgentLoadingTimeoutRef.current = null;
       }
     };
-  }, [agentKey, dispatch, routeAgentNeedsHydration, hydrationRetryCount, t]);
+  }, [agentKey, chatId, dispatch, routeAgentNeedsHydration, hydrationRetryCount, t]);
 
   useEffect(() => {
-    if (!agentKey || !routeAgentHydrated) {
+    if (chatId) {
+      lastInitializedAgentKeyRef.current = "";
+      // The persisted Chat, not the route Agent, owns history identity.
+      consumeLiveSessionPromotion(promotedLiveChatRouteKeysRef.current, agentKey, chatId);
       return;
     }
+    if (!agentKey || !routeAgentHydrated) return;
 
     dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
-
-    if (chatId) {
-      lastInitializedAgentKeyRef.current = "";
-      // Promotion is metadata only. The conversation coordinator owns loading.
-      consumeLiveSessionPromotion(promotedLiveChatRouteKeysRef.current, agentKey, chatId);
-      return;
-    }
 
     if (!routeNewChatTimestamp) {
       lastInitializedAgentKeyRef.current = "";

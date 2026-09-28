@@ -363,6 +363,10 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     payload: ({ id, name }) => ({ id, name }),
   }),
+  connectorConnection: defineEndpoint({ key: "connectorConnection", path: "/api/connectors/connection", method: "GET", transport: "http", payload: (id: string) => ({ id }) }),
+  connectorConnect: defineEndpoint({ key: "connectorConnect", path: "/api/connectors/connect", method: "POST", transport: "http", payload: (id: string) => ({ id }) }),
+  connectorDisconnect: defineEndpoint({ key: "connectorDisconnect", path: "/api/connectors/disconnect", method: "POST", transport: "http", payload: (id: string) => ({ id }) }),
+  connectorCheck: defineEndpoint({ key: "connectorCheck", path: "/api/connectors/check", method: "POST", transport: "http", payload: (id: string) => ({ id }) }),
   adminConnectorAuthStatus: defineEndpoint({
     key: "admin.connectors.auth.status",
     path: "/api/admin/connectors/auth",

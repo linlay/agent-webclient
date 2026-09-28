@@ -162,7 +162,7 @@
 }
 
 .itemWrap:hover .itemMore,
-.itemWrap:focus-within .itemMore {
+.itemWrap:has(:focus-visible) .itemMore {
   opacity: 1;
   pointer-events: auto;
 }

@@ -311,6 +311,7 @@ describe('runBackgroundCommand compact behavior', () => {
         kind: 'message',
         role: 'system',
         messageVariant: 'compact',
+        systemMessageLevel: 'info',
         text: expect.stringContaining('Context summary generated'),
         ts: 12345,
       }),

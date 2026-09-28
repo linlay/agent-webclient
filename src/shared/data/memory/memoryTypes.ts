@@ -296,15 +296,3 @@ export function createDefaultMemoryMeta(): MemoryMeta {
     sourceTypes: ["tool-write", "console-edit", "remember", "learn", "promote"],
   };
 }
-
-export function createDefaultMemoryPreviewPromptLayer(): MemoryContextPromptLayer {
-  return "stable";
-}
-
-export function createEmptyMemoryScopeValidationResult(): MemoryScopeValidationResult {
-  return {
-    valid: true,
-    errors: [],
-    warnings: [],
-  };
-}

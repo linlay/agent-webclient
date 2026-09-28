@@ -47,7 +47,8 @@
 }
 
 :global(.history-list-item):hover :global(.history-list-actions),
-:global(.history-list-item):focus-within :global(.history-list-actions) {
+:global(.history-list-item):focus-visible :global(.history-list-actions),
+:global(.history-list-item):has(:focus-visible) :global(.history-list-actions) {
     opacity: 1;
     pointer-events: auto;
 }

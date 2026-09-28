@@ -28,6 +28,9 @@ export interface UpdateAgentOrderRequest {
 }
 
 export interface AgentDetailResponse {
+  modelKey?: string;
+  reasoningEffort?: QueryReasoningEffort;
+  serviceTier?: QueryServiceTier;
   interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
   key: string;
   name: string;
@@ -40,14 +43,11 @@ export interface AgentDetailResponse {
   greetings?: string[];
   introductions?: string[];
   wonders?: string[];
-  model: string;
   mode: string;
   tools: string[];
-  skills: string[];
+  skills: Array<{key: string; displayName?: string; name?: string; description?: string; version?: string; revision?: string}>;
   controls: Array<Record<string, unknown>>;
   meta: Record<string, unknown>;
-  modelConfig?: Record<string, unknown>;
-  modelOptions?: CoderModelOptionsResponse;
   definition?: Record<string, unknown>;
   soulPrompt?: string;
   agentsPrompt?: string;
@@ -56,7 +56,11 @@ export interface AgentDetailResponse {
 
 export interface AgentSkill {
   key: string;
-  name: string;
+  displayName?: string;
+  /** Legacy servers only. */
+  name?: string;
+  revision?: string;
+  version?: string;
   icon?: string;
   description?: string;
   configured: boolean;
@@ -111,7 +115,11 @@ export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "mod
 
 export interface AdminAgentPrivateSkill {
   key: string;
-  name: string;
+  displayName?: string;
+  /** Legacy servers only. */
+  name?: string;
+  revision?: string;
+  version?: string;
   description?: string;
   status: AdminSkillStatus;
   diagnostics?: AdminAgentDiagnostic[];
@@ -145,16 +153,17 @@ export interface UpdateAgentNameRequest {
 }
 
 export interface UpdateAgentModelConfigRequest {
-  key?: string;
-  agentKey?: string;
-  modelKey: string;
+  agentKey: string;
+  modelKey?: string;
   reasoningEffort?: QueryReasoningEffort;
-  serviceTier?: QueryServiceTier;
+  serviceTier?: QueryServiceTier | null;
 }
 
 export interface AgentModelConfigResponse {
-  key: string;
-  modelConfig: Record<string, unknown>;
+  agentKey: string;
+  modelKey: string;
+  reasoningEffort: QueryReasoningEffort;
+  serviceTier?: QueryServiceTier;
 }
 
 export interface DeleteAgentRequest {

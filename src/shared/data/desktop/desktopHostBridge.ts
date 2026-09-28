@@ -1,7 +1,5 @@
 import { isAppMode } from "@/shared/utils/routing";
 
-export const DESKTOP_WEBVIEW_BRIDGE_FLAG = "__DESKTOP_WEBVIEW_BRIDGE__";
-
 export type DesktopBridgeWindow = Window & typeof globalThis & {
   __DESKTOP_WEBVIEW_BRIDGE__?: boolean;
 };

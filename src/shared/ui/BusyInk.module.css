@@ -1,0 +1,168 @@
+/**
+ * 墨流加载动效：5 个 radial-gradient 光斑分两层错相位漂移（3s~5.5s，负 delay 错峰）。
+ *
+ * 用法：放进一个已经定位、已经定尺寸的盒子里即可。
+ * 组件自带 overflow 裁剪 + border-radius:inherit，所以墨流不会溢出到相邻内容，
+ * 消费者不需要额外做裁剪或定位；想改圆角就设在外层盒子上。
+ * 同级的文案节点需要 `position: relative; z-index: 1` 才能压在墨流之上。
+ */
+.root {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.ink1 {
+  width: 150%;
+  height: 150%;
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation-name: BusyInkFlow1;
+  animation-iteration-count: infinite;
+  animation-duration: 3s;
+  filter: blur(40px);
+  background: radial-gradient(65% 55% at 25% 30%, #64b4fffa 0%, #0000 55%);
+  position: absolute;
+  top: -25%;
+  left: -25%;
+
+  &::before {
+    content: "";
+    width: 150%;
+    height: 150%;
+    animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation-name: BusyInkFlow2;
+    animation-iteration-count: infinite;
+    animation-duration: 5s;
+    filter: blur(45px);
+    background: radial-gradient(60% 65% at 75% 45%, #b48cfff2 0%, #0000 50%);
+    animation-delay: -1s;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+  }
+
+  &::after {
+    content: "";
+    width: 150%;
+    height: 150%;
+    animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation-name: BusyInkFlow3;
+    animation-iteration-count: infinite;
+    animation-duration: 3.5s;
+    filter: blur(38px);
+    background: radial-gradient(55% 50% at 50% 70%, #64dcdce6 0%, #0000 45%);
+    animation-delay: -2s;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+  }
+}
+
+.ink2 {
+  width: 150%;
+  height: 150%;
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation-name: BusyInkFlow3;
+  animation-iteration-count: infinite;
+  animation-duration: 4.5s;
+  filter: blur(42px);
+  background: radial-gradient(45% 40% at 60% 20%, #ff96c8e0 0%, #0000 45%);
+  animation-delay: -3s;
+  position: absolute;
+  top: -25%;
+  left: -25%;
+
+  &::before {
+    content: "";
+    width: 150%;
+    height: 150%;
+    animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation-name: BusyInkFlow1;
+    animation-iteration-count: infinite;
+    animation-duration: 5.5s;
+    filter: blur(35px);
+    background: radial-gradient(50% 55% at 20% 75%, #a0beffe0 0%, #0000 50%);
+    animation-delay: -2.5s;
+    position: absolute;
+    top: -25%;
+    left: -25%;
+  }
+}
+
+@keyframes BusyInkFlow1 {
+  0% {
+    opacity: .8;
+    transform: translate(0%);
+  }
+
+  50% {
+    opacity: .5;
+    transform: translate(15%, -20%) scale(1.25);
+  }
+
+  100% {
+    opacity: .8;
+    transform: translate(0%);
+  }
+}
+
+@keyframes BusyInkFlow2 {
+  0% {
+    opacity: .7;
+    transform: translate(0%) scale(1.1);
+  }
+
+  50% {
+    opacity: .9;
+    transform: translate(-18%, 15%) scale(.85);
+  }
+
+  100% {
+    opacity: .7;
+    transform: translate(0%) scale(1.1);
+  }
+}
+
+@keyframes BusyInkFlow3 {
+  0% {
+    opacity: .65;
+    transform: translate(0%) scale(.85);
+  }
+
+  50% {
+    opacity: .8;
+    transform: translate(8%, 10%) scale(1.15);
+  }
+
+  100% {
+    opacity: .65;
+    transform: translate(0%) scale(.85);
+  }
+}
+
+/* 降低动效偏好下停掉动画，并显式压暗到关键帧的中位亮度
+   （默认 opacity 是 1，比动起来更亮）。 */
+@media (prefers-reduced-motion: reduce) {
+
+  .ink1,
+  .ink1::before,
+  .ink1::after,
+  .ink2,
+  .ink2::before {
+    animation: none;
+    opacity: .7;
+  }
+}

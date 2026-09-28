@@ -35,6 +35,7 @@ import {
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { copyText } from "@/shared/utils/copy";
+import { Image } from "antd";
 
 export type { WorkspaceFileLink } from "@/shared/ui/markdownWorkspaceLinks";
 export type { MarkdownWebLink } from "@/shared/ui/markdownWebLinks";
@@ -311,7 +312,8 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
     }) : null,
     [alt, authenticatedResource, chatId, contextTargetId, src, teamChat],
   );
-  const contextTargetRef = useDesktopContextMenuTarget<HTMLImageElement>(contextTarget);
+  // antd Image 不转发 ref，宿主右键菜单目标登记在外层包裹元素上。
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLSpanElement>(contextTarget);
   if (resolved.error) {
     const fallback = t("contentViewer.error.image");
     return <span role="img" aria-label={alt || fallback}>{alt || fallback}</span>;
@@ -319,8 +321,19 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   if (!resolved.url) {
     return <span aria-busy={resolved.loading}>{alt || ""}</span>;
   }
-  const imageProps = sanitizeMarkdownImageProps(rendererProps);
-  return <img ref={contextTargetRef} {...imageProps} src={resolved.url} alt={alt || ""} />;
+  // antd Image 把点击收在包裹层用于打开预览，markdown 透传的 img onClick 不再适用。
+  const { onClick: _rendererOnClick, ...imageProps } = sanitizeMarkdownImageProps(rendererProps);
+  return (
+    <div ref={contextTargetRef} className="tw:inline-block">
+      <Image
+        {...imageProps}
+        src={resolved.url}
+        alt={alt || ""}
+        // 预览必须用鉴权后的 Blob URL，直接用 markdown src 会 401。
+        preview={{ src: resolved.url }}
+      />
+    </div>
+  );
 };
 
 type AuthVideoProps = MarkdownImageProps & {

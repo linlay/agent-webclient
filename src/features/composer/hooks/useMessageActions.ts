@@ -1,3 +1,4 @@
+import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import { useCallback, useEffect } from "react";
 import { useAppContext } from "@/app/state/AppContext";
@@ -299,7 +300,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       });
       if (!hasSendableContent(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
       if (
-        areConversationInteractionsBlocked(stateRef.current)
+        areConversationInteractionsBlocked(stateRef.current) || isAgentExecutionBlocked(stateRef.current, preferredAgentKey || undefined)
       ) {
         return;
       }
