@@ -1,6 +1,7 @@
 import type { ActiveAwaiting, ToolState } from "@/features/tools/lib/toolsState";
 import type { AppState } from "@/app/state/AppContext";
 import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
+import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventProcessorState } from "@/features/events/lib/eventProcessorTypes";
 import { cloneActiveAwaitingQueue } from "@/features/tools/lib/awaitingRuntime";
@@ -94,6 +95,7 @@ export function getCachedNode(
 	state: AppState,
 	nodeId: string,
 ): TimelineNode | undefined {
+	if (nodeId === MODEL_RETRY_NODE_ID) return cache.nodeById.get(nodeId);
 	const cachedNode = cache.nodeById.get(nodeId);
 	const stateNode = state.timelineNodes.get(nodeId);
 	if (cachedNode !== undefined) {

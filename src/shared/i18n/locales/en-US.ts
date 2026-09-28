@@ -1872,6 +1872,7 @@ export const enUSMessages = {
   "platformError.reason.stream_ended_before_output": "The model service closed the connection before returning usable output.",
   "platformError.reason.stream_ended_before_completion": "The connection ended before the model response completed.",
   "platformError.detail.reason": "Failure reason",
+  "platformError.reason.overloaded_error": "The model service is currently overloaded.",
   "modelRetry.waiting": "Retrying ({attempt}/{total}): waiting {seconds} seconds before sending the request.",
   "platformError.detail.message": "Platform message",
   "platformError.detail.retryable": "Retryable",

@@ -1,3 +1,4 @@
+import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
 import { readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
 import type {
@@ -29,10 +30,19 @@ export function processRunEvent(
     const maxAttempts = Number(retry?.maxAttempts);
     if (!Number.isFinite(delayMs) || delayMs <= 0 || !Number.isInteger(attempt) || attempt < 2 ||
         !Number.isInteger(maxAttempts) || maxAttempts < attempt) return commands;
-    const nodeId = `model_retry_${toText(event.runId) || state.runId}_${toText(event.taskId)}_${toText(event.runSeq)}_${attempt}`;
-    if (state.getTimelineNode(nodeId)) return commands;
-    commands.push({cmd: "SYSTEM_MESSAGE", nodeId, ts: timestamp,
-      text: t("modelRetry.waiting", {attempt: attempt - 1, total: maxAttempts - 1, seconds: delayMs / 1000})});
+    // Old Platform versions only provide reason; retain a useful code-based fallback.
+    const reason = toText(retry?.reason);
+    const error = retry?.error && typeof retry.error === "object"
+      ? retry.error as Record<string, unknown>
+      : {code: reason.startsWith("stream_ended_") ? "provider_stream_failed" : reason === "model_stream_idle_timeout" ? "provider_timeout" : reason,
+         diagnostics: {reason}};
+    const display = formatPlatformErrorForDisplay({...error, retryable: false});
+    commands.push({cmd: "SET_MODEL_RETRY", node: {
+      id: MODEL_RETRY_NODE_ID, kind: "message", role: "system", systemMessageLevel: "info",
+      runId: toText(event.runId) || state.runId, taskId: toText(event.taskId), ts: timestamp,
+      text: `${display.message} ${t("modelRetry.waiting", {attempt: attempt - 1, total: maxAttempts - 1, seconds: delayMs / 1000})}`,
+      tooltip: formatPlatformErrorForDisplay(error).technicalText,
+    }});
     return commands;
   }
 

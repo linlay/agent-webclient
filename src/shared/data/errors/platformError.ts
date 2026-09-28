@@ -256,7 +256,11 @@ export function formatPlatformErrorForDisplay(
     ? readString(diagnostics?.reason) : "";
   const streamReasonMessage = ["stream_ended_before_output", "stream_ended_before_completion"].includes(streamReason)
     ? translateIfAvailable(`platformError.reason.${streamReason}`) : "";
+  const overloadedMessage = error.code === "provider_unavailable" &&
+    [diagnostics?.upstreamCode, diagnostics?.upstreamType].includes("overloaded_error")
+    ? translateIfAvailable("platformError.reason.overloaded_error") : "";
   const baseMessage =
+    overloadedMessage ||
     streamReasonMessage ||
     (isChannelNotConnectedError(error)
       ? translateIfAvailable("platformError.special.channelNotConnected")

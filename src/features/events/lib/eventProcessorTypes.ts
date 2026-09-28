@@ -31,6 +31,7 @@ export interface EventProcessorConfig {
 }
 
 export type EventCommand =
+	| { cmd: "SET_MODEL_RETRY"; node?: TimelineNode }
 	| { cmd: "SET_CHAT_ID"; chatId: string }
 	| { cmd: "SET_RUN_ID"; runId: string }
 	| { cmd: "SET_CHAT_AGENT"; chatId: string; agentKey: string }

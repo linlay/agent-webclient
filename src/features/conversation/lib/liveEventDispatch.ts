@@ -1,5 +1,6 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/AppContext";
+import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventCommand } from "@/features/events/lib/eventProcessorTypes";
 import {
@@ -16,6 +17,16 @@ export function applyLiveEventCommand(input: {
 	const { command, cache, state, dispatch } = input;
 
 	switch (command.cmd) {
+    case "SET_MODEL_RETRY":
+      for (const id of cache.nodeById.keys()) {
+        if (id.startsWith("model_retry_")) {cache.nodeById.delete(id); cache.nodeText.delete(id);}
+      }
+      if (command.node) {
+        cache.nodeById.set(MODEL_RETRY_NODE_ID, command.node);
+        cache.nodeText.set(MODEL_RETRY_NODE_ID, command.node.text || "");
+      }
+      dispatch({type: "SET_MODEL_RETRY", node: command.node});
+      return;
 		case "SET_CHAT_ID":
 			cache.chatId = command.chatId;
 			dispatch({ type: "SET_CHAT_ID", chatId: command.chatId });

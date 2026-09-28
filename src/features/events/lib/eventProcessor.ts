@@ -1,3 +1,4 @@
+import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import { isAwaitingAnswerStreamEvent } from "@/shared/contracts/agentEvents";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type {
@@ -21,7 +22,23 @@ export type {
 	EventProcessorState,
 } from "@/features/events/lib/eventProcessorTypes";
 
-export function processStreamEvent(
+export function processStreamEvent(event: AgentEvent, state: EventProcessorState, config: EventProcessorConfig): EventCommand[] {
+  const commands = routeStreamEvent(event, state, config);
+  const current = state.getTimelineNode(MODEL_RETRY_NODE_ID);
+  if (!current) return commands;
+  const type = toText(event.type);
+  const sameRun = !event.runId || event.runId === current.runId;
+  const sameTask = toText(event.taskId) === toText(current.taskId);
+  const terminal = ["run.complete", "run.cancel", "run.error"].includes(type);
+  const resumed = (type === "run.activity" && event.phase === "model_call" && ["running", "completed"].includes(toText(event.status))) ||
+    ["content.delta", "reasoning.delta", "tool.args"].includes(type);
+  if (type === "run.start" || (sameRun && (terminal || (sameTask && resumed)))) {
+    return [{cmd: "SET_MODEL_RETRY"}, ...commands];
+  }
+  return commands;
+}
+
+function routeStreamEvent(
 	event: AgentEvent,
 	state: EventProcessorState,
 	config: EventProcessorConfig,

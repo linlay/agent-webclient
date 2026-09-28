@@ -1,6 +1,21 @@
 import type { ContentSegment } from "@/shared/contracts/contentSegments";
 import type { UiTimerHandle } from "@/shared/contracts/ui";
 
+import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
+
+// Retry is transient UI state, shared by all attempts in the current chat.
+export function setModelRetryTimeline<S extends Pick<TimelineState, "timelineNodes" | "timelineOrder">>(state: S, node?: TimelineNode): S {
+  const timelineNodes = new Map(state.timelineNodes);
+  const retryIds = new Set([...timelineNodes.keys()].filter(id => id.startsWith("model_retry_")));
+  for (const id of retryIds) timelineNodes.delete(id);
+  const timelineOrder = state.timelineOrder.filter(id => !retryIds.has(id) && !id.startsWith("model_retry_"));
+  if (node) {
+    timelineNodes.set(MODEL_RETRY_NODE_ID, {...node, id: MODEL_RETRY_NODE_ID});
+    timelineOrder.push(MODEL_RETRY_NODE_ID);
+  }
+  return {...state, timelineNodes, timelineOrder};
+}
+
 export type TimelineNodeKind =
 	| "message"
 	| "thinking"
@@ -187,6 +202,7 @@ export interface TimelineState {
 }
 
 export type TimelineAction =
+  | { type: "SET_MODEL_RETRY"; node?: TimelineNode }
   | { type: "SET_TIMELINE_NODE"; id: string; node: TimelineNode }
   | { type: "PATCH_CONTENT_TTS_VOICE_BLOCK"; nodeId: string; signature: string; patch: Partial<TtsVoiceBlock> }
   | { type: "REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS"; nodeId: string; activeSignatures: Set<string> }
@@ -214,6 +230,8 @@ export function reduceTimelineState<S extends TimelineState>(state: S, action: {
 export function reduceTimelineState<S extends TimelineState>(state: S, input: { type: string }): S | null {
   const action = input as TimelineAction;
   switch (action.type) {
+    case "SET_MODEL_RETRY":
+      return setModelRetryTimeline(state, action.node);
     case "SET_TIMELINE_NODE":
       return { ...state, timelineNodes: new Map(state.timelineNodes).set(action.id, action.node) };
     case "APPEND_TIMELINE_ORDER":

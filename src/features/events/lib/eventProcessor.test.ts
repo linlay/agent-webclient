@@ -1,3 +1,4 @@
+import { setModelRetryTimeline } from "@/features/timeline/lib/timelineState";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
 import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
@@ -200,6 +201,9 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           ts: command.ts,
         });
         state.timelineOrder.push(command.nodeId);
+        break;
+      case 'SET_MODEL_RETRY':
+        Object.assign(state, setModelRetryTimeline(state, command.node));
         break;
       case 'SYSTEM_MESSAGE':
         state.timelineNodes.set(command.nodeId, {
@@ -1805,12 +1809,60 @@ describe("model retry activity", () => {
       const commands = processStreamEvent({type: "run.activity", phase: "model_call", status: "retrying", runId: "r", runSeq: 2, timestamp: 1000,
         retry: {attempt: 2, maxAttempts: 6, delayMs: 500, retryAt: 1500}}, buildProcessorState(createState()), {mode, reasoningExpandedDefault: false});
       expect(commands).toHaveLength(1);
-      expect(commands[0]).toMatchObject({cmd: "SYSTEM_MESSAGE", nodeId: "model_retry_r__2_2"});
-      expect((commands[0] as {text: string}).text).toContain("0.5");
-      expect((commands[0] as {text: string}).text).toContain("1/5");
+      expect(commands[0]).toMatchObject({cmd: "SET_MODEL_RETRY", node: {id: "model_retry_current"}});
+      expect((commands[0] as {node: {text: string}}).node.text).toContain("0.5");
+      expect((commands[0] as {node: {text: string}}).node.text).toContain("1/5");
     }
   });
   it("does not turn normal activity into timeline messages", () => {
     expect(processStreamEvent({type: "run.activity", phase: "model_call", status: "running"}, buildProcessorState(createState()), {mode: "live", reasoningExpandedDefault: false})).toEqual([]);
+  });
+});
+
+
+describe("transient model retry status", () => {
+  const retry = (attempt: number, error: Record<string, unknown> = {code: "provider_rate_limited"}): AgentEvent => ({
+    type: "run.activity", phase: "model_call", status: "retrying", runId: "r", timestamp: attempt,
+    retry: {attempt, maxAttempts: 6, delayMs: attempt === 2 ? 500 : 2000, error},
+  });
+  it("replaces attempts and preserves unrelated messages", () => {
+    const state = createState();
+    state.timelineNodes.set("other", {id: "other", kind: "message", ts: 0});
+    state.timelineOrder.push("other");
+    for (const attempt of [2, 3, 3]) processAndApply(state, retry(attempt), "live", false);
+    expect(state.timelineOrder).toEqual(["other", "model_retry_current"]);
+    expect(state.timelineNodes.get("model_retry_current")?.text).toContain("2/5");
+    expect(state.timelineNodes.get("model_retry_current")?.text).toContain("限流");
+  });
+  it.each([
+    {type: "run.activity", phase: "model_call", status: "running"},
+    {type: "run.activity", phase: "model_call", status: "completed"},
+    {type: "content.delta", contentId: "c", delta: "hello"},
+    {type: "run.complete"}, {type: "run.cancel"}, {type: "run.error", error: {code: "provider_rate_limited"}},
+    {type: "run.start"},
+  ])("clears retry on $type $status", event => {
+    for (const mode of ["live", "replay"] as const) {
+      const state = createState();
+      processAndApply(state, retry(2), mode, false);
+      processAndApply(state, {...event, runId: "r"}, mode, false);
+      expect(state.timelineNodes.has("model_retry_current")).toBe(false);
+      expect(state.timelineOrder).not.toContain("model_retry_current");
+    }
+  });
+  it("keeps waiting status and ignores another task recovering", () => {
+    const state = createState();
+    processAndApply(state, retry(2), "live", false);
+    processAndApply(state, {type: "run.activity", phase: "model_call", status: "waiting", runId: "r"}, "live", false);
+    processAndApply(state, {type: "run.activity", phase: "model_call", status: "running", runId: "r", taskId: "other"}, "live", false);
+    expect(state.timelineOrder).toContain("model_retry_current");
+  });
+  it.each([
+    [{code: "provider_unavailable", diagnostics: {upstreamType: "overloaded_error"}}, "过载"],
+    [{code: "provider_timeout"}, "超时"],
+    [{code: "provider_stream_failed", diagnostics: {reason: "stream_ended_before_output"}}, "返回有效输出前结束"],
+  ])("shows structured cause %#", (error, expected) => {
+    const state = createState();
+    processAndApply(state, retry(2, error as Record<string, unknown>), "live", false);
+    expect(state.timelineNodes.get("model_retry_current")?.text).toContain(expected);
   });
 });

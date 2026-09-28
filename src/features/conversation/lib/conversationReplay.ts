@@ -1,3 +1,4 @@
+import { setModelRetryTimeline } from "@/features/timeline/lib/timelineState";
 import type { ActiveAwaiting, ToolState } from "@/features/tools/lib/toolsState";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
@@ -289,6 +290,9 @@ function buildHistoryTtsVoiceBlocks(
 
 function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
   switch (command.cmd) {
+    case 'SET_MODEL_RETRY':
+      Object.assign(rs, setModelRetryTimeline(rs, command.node));
+      return;
     case 'SET_CHAT_ID':
       rs.chatId = command.chatId;
       return;

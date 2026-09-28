@@ -2024,6 +2024,7 @@ export const zhCNMessages = {
   "platformError.reason.stream_ended_before_output": "模型服务在返回有效输出前结束了连接。",
   "platformError.reason.stream_ended_before_completion": "模型响应尚未完成，连接已提前结束。",
   "platformError.detail.reason": "失败原因",
+  "platformError.reason.overloaded_error": "模型服务当前过载。",
   "modelRetry.waiting": "正在重试（第 {attempt}/{total} 次），等待 {seconds} 秒后发起请求。",
   "platformError.detail.message": "平台提示",
   "platformError.detail.retryable": "可重试",
