@@ -79,6 +79,7 @@ export const SystemAlert: React.FC<{
     ? diagnostics as Record<string, unknown> : {};
   const rows = [
     ["code", errorDetail?.code],
+    ["reason", upstream.reason],
     ["upstreamCode", upstream.upstreamCode],
     ["upstreamType", upstream.upstreamType],
     ["upstreamMessage", upstream.upstreamMessage],

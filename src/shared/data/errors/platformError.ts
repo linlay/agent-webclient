@@ -251,7 +251,13 @@ export function formatPlatformErrorForDisplay(
     error.retryable === true
       ? translateIfAvailable("platformError.retryableHint")
       : "";
+  const diagnostics = isObjectRecord(error.diagnostics) ? error.diagnostics : null;
+  const streamReason = error.code === "provider_stream_failed"
+    ? readString(diagnostics?.reason) : "";
+  const streamReasonMessage = ["stream_ended_before_output", "stream_ended_before_completion"].includes(streamReason)
+    ? translateIfAvailable(`platformError.reason.${streamReason}`) : "";
   const baseMessage =
+    streamReasonMessage ||
     (isChannelNotConnectedError(error)
       ? translateIfAvailable("platformError.special.channelNotConnected")
       : "") ||
@@ -270,7 +276,6 @@ export function formatPlatformErrorForDisplay(
       ? `${baseMessage} ${retryHint}`
       : baseMessage;
 
-  const diagnostics = isObjectRecord(error.diagnostics) ? error.diagnostics : null;
   const attempt = readNumber(diagnostics?.attempt);
   const maxAttempts = readNumber(diagnostics?.maxAttempts);
   const attemptsHint =

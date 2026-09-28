@@ -28,6 +28,14 @@ describe("platformError", () => {
   expect(formatPlatformErrorForDisplay({...payload, diagnostics: {attempt: 1, maxAttempts: 1}}).message).not.toContain("次数已用尽");
  });
 
+ it("explains structured EOF reasons and keeps legacy errors readable", () => {
+  const error = {code: "provider_stream_failed", category: "model", retryable: true, message: "模型服务流式响应失败"};
+  expect(formatPlatformErrorForDisplay({...error, diagnostics: {reason: "stream_ended_before_output"}}).message).toContain("返回有效输出前");
+  expect(formatPlatformErrorForDisplay({...error, diagnostics: {reason: "stream_ended_before_completion"}}).message).toContain("响应尚未完成");
+  expect(formatPlatformErrorForDisplay(error).message).toContain("流式响应失败");
+  expect(formatPlatformErrorForDisplay({...error, diagnostics: {reason: "unknown"}}).message).toContain("流式响应失败");
+ });
+
 	it("normalizes HTTP, WS, and stream platform error payloads", () => {
 		const http = normalizePlatformError({
 			code: 429,
