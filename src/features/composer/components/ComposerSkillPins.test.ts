@@ -161,7 +161,7 @@ describe("Composer skill pins", () => {
     expect(props.onSelectSkill).not.toHaveBeenCalled();
   });
 
-  it("renders direct skill actions without checkboxes and places pin at the right end of the title line", async () => {
+  it("groups configured status and pin at the right end of the title line", async () => {
     render();
     await openSkills();
 
@@ -177,21 +177,32 @@ describe("Composer skill pins", () => {
 
     const configuredTitle = rows[0].querySelector(".composer-add-menu-item-title")!;
     const configuredNodes = [...configuredTitle.children];
-    expect(configuredNodes).toHaveLength(3);
+    expect(configuredNodes).toHaveLength(2);
     expect(configuredNodes[0].tagName).toBe("B");
-    expect(configuredNodes[1].classList.contains("composer-add-menu-skill-tag")).toBe(true);
-    expect(configuredNodes[1].textContent).toBe("slashPalette.skill.source.agent");
+    expect(configuredNodes[1].classList.contains("composer-add-menu-skill-actions")).toBe(true);
+    const configuredActions = [...configuredNodes[1].children];
+    expect(configuredActions.map((node) => node.className)).toEqual([
+      expect.stringContaining("composer-add-menu-skill-tag"),
+      "composer-add-menu-skill-pin",
+    ]);
+    expect(configuredActions[0].textContent).toBe("slashPalette.skill.source.agent");
 
     // 置顶按钮位于标题末端，不占用描述右侧的独立列。
     const plainTitle = rows[1].querySelector(".composer-add-menu-item-title")!;
     const plainNodes = [...plainTitle.children];
     expect(plainNodes).toHaveLength(2);
     expect(plainNodes[0].tagName).toBe("B");
+    expect(plainNodes[1].querySelectorAll(".composer-add-menu-skill-pin")).toHaveLength(1);
     for (const row of rows) {
-      expect(row.querySelector(".composer-add-menu-item-title")?.lastElementChild?.classList.contains("composer-add-menu-skill-pin")).toBe(true);
+      expect(row.querySelector(".composer-add-menu-item-title")?.lastElementChild?.classList.contains("composer-add-menu-skill-actions")).toBe(true);
       expect(row.querySelector(".composer-add-menu-item-copy")?.lastElementChild?.tagName).toBe("SMALL");
     }
     expect(plainTitle.querySelector(".composer-add-menu-skill-tag")).toBeNull();
+
+    await pin("Platform Admin");
+    const pinnedConfigured = skillRows()[0].querySelector(".composer-add-menu-skill-actions")!;
+    expect(pinnedConfigured.children[0].classList.contains("composer-add-menu-skill-tag")).toBe(true);
+    expect(pinnedConfigured.children[1].getAttribute("aria-pressed")).toBe("true");
   });
 
   it.each(["Enter", " "])("selects a skill with the %s key", async (key) => {
@@ -291,7 +302,9 @@ describe("composer skill row layout", () => {
     expect(row).toMatch(/align-items:\s*center;/);
     // 文案列占满图标右侧的剩余宽度。
     expect(readComposerStyleRule(".composer-add-menu-item-copy")).toMatch(/flex:\s*1;/);
-    // 名称、来源标记与置顶图标同处一行。
+    // 名称与状态操作组同处一行，状态和置顶图标紧邻靠右。
     expect(readComposerStyleRule(".composer-add-menu-item-title")).toMatch(/display:\s*flex;/);
+    expect(readComposerStyleRule(".composer-add-menu-skill-actions")).toMatch(/margin-left:\s*auto;/);
+    expect(readComposerStyleRule(".composer-add-menu-skill-pin")).toMatch(/width:\s*0;/);
   });
 });

@@ -286,33 +286,35 @@ const AddMenuSectionDetail: React.FC<
                 <span className="composer-add-menu-item-copy">
                   <span className="composer-add-menu-item-title">
                     <b>{skillName}</b>
-                    {skill.configured && (
-                      <UiTag
-                        tone="muted"
-                        className="composer-add-menu-skill-tag"
+                    <span className="composer-add-menu-skill-actions">
+                      {skill.configured && (
+                        <UiTag
+                          tone="muted"
+                          className="composer-add-menu-skill-tag"
+                        >
+                          {t("slashPalette.skill.source.agent")}
+                        </UiTag>
+                      )}
+                      <button
+                        type="button"
+                        className="composer-add-menu-skill-pin"
+                        aria-label={pinLabel}
+                        aria-pressed={pinned}
+                        title={pinLabel}
+                        disabled={pinsDisabled}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void toggleSkillPin(skill.key);
+                        }}
                       >
-                        {t("slashPalette.skill.source.agent")}
-                      </UiTag>
-                    )}
-                    <button
-                      type="button"
-                      className="composer-add-menu-skill-pin"
-                      aria-label={pinLabel}
-                      aria-pressed={pinned}
-                      title={pinLabel}
-                      disabled={pinsDisabled}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        void toggleSkillPin(skill.key);
-                      }}
-                    >
-                      <MaterialIcon
-                        name="push_pin"
-                        className="composer-add-menu-skill-pin-icon"
-                      />
-                    </button>
+                        <MaterialIcon
+                          name="push_pin"
+                          className="composer-add-menu-skill-pin-icon"
+                        />
+                      </button>
+                    </span>
                   </span>
                   <small>
                     {skill.description || t("slashPalette.skill.noDescription")}
