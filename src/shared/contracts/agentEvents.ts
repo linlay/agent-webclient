@@ -342,6 +342,25 @@ export interface AIAwaitSubmitPayloadData {
   awaitingId: string;
 }
 
+/** Public Platform error; reused by failed reasoning/content/tool end events. */
+export interface AIStreamError {
+  code: string;
+  message: string;
+  category: string;
+  scope: string;
+  status: number;
+  retryable: boolean;
+  userSafeMessageKey: string;
+  diagnostics?: Record<string, unknown>;
+}
+
+export interface AIStreamEndEvent extends AIEventCommonFields {
+  type: "reasoning.end" | "content.end" | "tool.end";
+  status?: "failed";
+  error?: AIStreamError;
+  startedAt?: number;
+}
+
 export interface AIEventCommonFields {
   seq?: number;
   chatId?: string;

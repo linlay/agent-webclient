@@ -3,6 +3,8 @@
 ## 当前状态
 Artifact 是运行中后端通过 `artifact.publish` 事件发布的资源文件。前端把事件中的 artifacts 归一为 `PublishedArtifact`，显示在底部浮动 Artifact 面板和右侧 Overview 中，并复用 `AttachmentCard` 与统一的 Content Viewer。
 
+右侧 Overview 的产物时间对 live 与历史使用同一显示规则：live 取 `artifact.publish.timestamp`，历史优先取 `/api/chat.data.artifact.items[].publishedAt`，兼容旧 `timestamp`，统一保存为 `PublishedArtifact.timestamp`。历史时间须为有效 epoch 毫秒整数；缺失或非法时保留产物并隐藏时间，不使用当前时间或 artifactId 推测。按本地时区，当天显示 `HH:mm`，同年显示 `MM-DD HH:mm`，跨年显示 `YYYY-MM-DD HH:mm`。
+
 ## 核心职责
 - 解析 `artifact.publish` 事件中的文件名、URL、mimeType、size、sha256。
 - 维护 `state.artifacts`，按 artifactId upsert。

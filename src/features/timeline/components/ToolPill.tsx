@@ -38,6 +38,7 @@ interface ToolPillProps {
 }
 
 export interface ToolPillRecord {
+  streamError?: string;
   view?: TimelineNode["view"];
   viewChatId?: string;
   viewError?: string;
@@ -233,11 +234,13 @@ export function buildToolPillRecords(
     const toolOutput = node.toolOutput;
     const kbaseIndexSummary = resolveKbaseIndexSummary(node);
     const hasDetails =
+      Boolean(node.errorDetail) ||
       Boolean(argsText.trim()) ||
       Boolean(result) ||
       Boolean(toolOutputText(toolOutput));
     return {
       key: node.id,
+      streamError: node.errorDetail?.message,
       ...(node.view
         ? {
             view: node.view,
@@ -651,7 +654,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                       className="input"
                       text={record.argsInlineText}
                     />
-                    <span>{resultText}</span>
+                    {record.streamError ? <span role="status">{t("timeline.toolPill.notExecuted")}：{record.streamError}</span> : <span>{resultText}</span>}
                   </code>
                 )}
               </div>

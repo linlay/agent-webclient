@@ -17,6 +17,25 @@ describe("platformError", () => {
 		);
 	});
 
+ it("shows normalized rate limits and exhausted attempts without interpreting upstream text", () => {
+  const payload = {code: "provider_rate_limited", category: "model", retryable: true,
+   diagnostics: {attempt: 6, maxAttempts: 6, upstreamMessage: "insufficient_quota"}};
+  const display = formatPlatformErrorForDisplay(payload);
+  expect(display.message).toContain("触发限流");
+  expect(display.message).toContain("已尝试 6 次");
+  expect(display.message).not.toContain("额度已用尽");
+  expect(formatPlatformErrorForDisplay({...payload, diagnostics: {attempt: 2, maxAttempts: 6}}).message).not.toContain("次数已用尽");
+  expect(formatPlatformErrorForDisplay({...payload, diagnostics: {attempt: 1, maxAttempts: 1}}).message).not.toContain("次数已用尽");
+ });
+
+ it("explains structured EOF reasons and keeps legacy errors readable", () => {
+  const error = {code: "provider_stream_failed", category: "model", retryable: true, message: "模型服务流式响应失败"};
+  expect(formatPlatformErrorForDisplay({...error, diagnostics: {reason: "stream_ended_before_output"}}).message).toContain("返回有效输出前");
+  expect(formatPlatformErrorForDisplay({...error, diagnostics: {reason: "stream_ended_before_completion"}}).message).toContain("响应尚未完成");
+  expect(formatPlatformErrorForDisplay(error).message).toContain("流式响应失败");
+  expect(formatPlatformErrorForDisplay({...error, diagnostics: {reason: "unknown"}}).message).toContain("流式响应失败");
+ });
+
 	it("normalizes HTTP, WS, and stream platform error payloads", () => {
 		const http = normalizePlatformError({
 			code: 429,

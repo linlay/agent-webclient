@@ -1,3 +1,4 @@
+import { streamEndFailure } from "./streamEndFailure";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
 import type { ToolState } from "@/features/tools/lib/toolsState";
@@ -148,6 +149,7 @@ export function processToolEvent(
   // A terminal image call must not regress when attach re-delivers earlier events.
   const priorNodeId = event.toolId ? state.getToolNodeId(event.toolId) : undefined;
   const priorNode = priorNodeId ? state.getTimelineNode(priorNodeId) : undefined;
+  if (priorNode?.status === "failed" && priorNode.errorDetail) return [];
   if (priorNode?.toolName === "image_generate" && priorNode.result && type.startsWith("tool.")) {
     return commands;
   }
@@ -451,6 +453,21 @@ export function processToolEvent(
     if (fileChange) {
       commands.push({ cmd: "UPSERT_FILE_CHANGE", fileChange });
     }
+    return commands;
+  }
+
+  if (type === "tool.end" && event.status === "failed" && event.toolId) {
+    const toolId = event.toolId;
+    const nodeId = ensureMappedNode({ reuseTerminal: true, currentNodeId: state.getToolNodeId(toolId), getNode: state.getTimelineNode,
+      setMapCommand: { cmd: "SET_TOOL_NODE_ID", toolId, nodeId: "" }, prefix: "tool", commands, state });
+    const existing = state.getTimelineNode(nodeId);
+    commands.push({ cmd: "SET_TIMELINE_NODE", id: nodeId, node: {
+      ...existing, id: nodeId, kind: "tool", ...applyTaskBindingToNode(event, state, existing),
+      toolId, toolName: event.toolName || existing?.toolName,
+      toolLabel: event.toolLabel || existing?.toolLabel,
+      argsText: readToolArgumentsText(event) || existing?.argsText || state.getToolState(toolId)?.argsBuffer || "",
+      ts: existing?.ts ?? timestamp, ...streamEndFailure(event, existing),
+    } });
     return commands;
   }
 

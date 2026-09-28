@@ -82,6 +82,7 @@ function resolveVisibleTaskBinding(
 }
 
 export function ensureMappedNode(params: {
+  reuseTerminal?: boolean;
   currentNodeId: string | undefined;
   getNode: (nodeId: string) => TimelineNode | undefined;
   setMapCommand: EventCommand;
@@ -92,7 +93,7 @@ export function ensureMappedNode(params: {
   const existingMappedNode = params.currentNodeId
     ? params.getNode(params.currentNodeId)
     : undefined;
-  if (params.currentNodeId && !isTerminalStatus(existingMappedNode?.status)) {
+  if (params.currentNodeId && (params.reuseTerminal || !isTerminalStatus(existingMappedNode?.status))) {
     return params.currentNodeId;
   }
 

@@ -251,7 +251,13 @@ export function formatPlatformErrorForDisplay(
     error.retryable === true
       ? translateIfAvailable("platformError.retryableHint")
       : "";
+  const diagnostics = isObjectRecord(error.diagnostics) ? error.diagnostics : null;
+  const streamReason = error.code === "provider_stream_failed"
+    ? readString(diagnostics?.reason) : "";
+  const streamReasonMessage = ["stream_ended_before_output", "stream_ended_before_completion"].includes(streamReason)
+    ? translateIfAvailable(`platformError.reason.${streamReason}`) : "";
   const baseMessage =
+    streamReasonMessage ||
     (isChannelNotConnectedError(error)
       ? translateIfAvailable("platformError.special.channelNotConnected")
       : "") ||
@@ -270,8 +276,18 @@ export function formatPlatformErrorForDisplay(
       ? `${baseMessage} ${retryHint}`
       : baseMessage;
 
+  const attempt = readNumber(diagnostics?.attempt);
+  const maxAttempts = readNumber(diagnostics?.maxAttempts);
+  const attemptsHint =
+    error.category === "model" && error.retryable === true &&
+    attempt != null && maxAttempts != null &&
+    Number.isInteger(attempt) && Number.isInteger(maxAttempts) &&
+    maxAttempts > 1 && attempt >= maxAttempts
+      ? t("platformError.attemptsExhausted", { count: attempt })
+      : "";
+
   return {
-    message,
+    message: attemptsHint ? `${message} ${attemptsHint}` : message,
     code: error.code,
     category: error.category,
     scope: error.scope,

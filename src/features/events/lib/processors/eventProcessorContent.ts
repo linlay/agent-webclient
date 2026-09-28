@@ -1,3 +1,4 @@
+import { streamEndFailure } from "./streamEndFailure";
 import { isAwaitingAnswerStreamEvent } from "@/shared/contracts/agentEvents";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type {
@@ -23,10 +24,15 @@ export function processContentEvent(
   const commands: EventCommand[] = [];
   const timestamp = event.timestamp ?? 0;
   const type = toText(event.type);
+  const priorId = typeof event.contentId === "string" ? state.getContentNodeId(event.contentId) : undefined;
+  const prior = priorId ? state.getTimelineNode(priorId) : undefined;
+  if (prior?.status === "failed" && prior.errorDetail) return [];
+
 
   if (type === "content.start" && event.contentId) {
     const contentId = String(event.contentId);
     const nodeId = ensureMappedNode({
+      reuseTerminal: event.status === "failed",
       currentNodeId: state.getContentNodeId(contentId),
       getNode: state.getTimelineNode,
       setMapCommand: { cmd: "SET_CONTENT_NODE_ID", contentId, nodeId: "" },
@@ -36,6 +42,7 @@ export function processContentEvent(
     });
     const text = typeof event.text === "string" ? event.text : "";
     const existing = state.getTimelineNode(nodeId);
+    if (existing?.status === "failed" || existing?.status === "completed") return [];
     commands.push({
       cmd: "SET_TIMELINE_NODE",
       id: nodeId,
@@ -55,6 +62,7 @@ export function processContentEvent(
   if (type === "content.delta" && event.contentId) {
     const contentId = String(event.contentId);
     const nodeId = ensureMappedNode({
+      reuseTerminal: event.status === "failed",
       currentNodeId: state.getContentNodeId(contentId),
       getNode: state.getTimelineNode,
       setMapCommand: { cmd: "SET_CONTENT_NODE_ID", contentId, nodeId: "" },
@@ -63,6 +71,7 @@ export function processContentEvent(
       state,
     });
     const existing = state.getTimelineNode(nodeId);
+    if (existing?.status === "failed" || existing?.status === "completed") return [];
     const newText = `${state.getNodeText(nodeId)}${
       typeof event.delta === "string" ? event.delta : ""
     }`;
@@ -85,6 +94,7 @@ export function processContentEvent(
   if (type === "content.end" && event.contentId) {
     const contentId = String(event.contentId);
     const nodeId = ensureMappedNode({
+      reuseTerminal: event.status === "failed",
       currentNodeId: state.getContentNodeId(contentId),
       getNode: state.getTimelineNode,
       setMapCommand: { cmd: "SET_CONTENT_NODE_ID", contentId, nodeId: "" },
@@ -93,6 +103,7 @@ export function processContentEvent(
       state,
     });
     const existing = state.getTimelineNode(nodeId);
+
     const finalText =
       typeof event.text === "string" && event.text.trim()
         ? event.text
@@ -108,6 +119,7 @@ export function processContentEvent(
         text: finalText,
         segments: parseContentSegments(contentId, finalText),
         status: "completed",
+        ...streamEndFailure(event, existing),
         ts: timestamp,
       },
     });
@@ -117,6 +129,7 @@ export function processContentEvent(
   if (type === "content.snapshot" && event.contentId) {
     const contentId = String(event.contentId);
     const nodeId = ensureMappedNode({
+      reuseTerminal: event.status === "failed",
       currentNodeId: state.getContentNodeId(contentId),
       getNode: state.getTimelineNode,
       setMapCommand: { cmd: "SET_CONTENT_NODE_ID", contentId, nodeId: "" },
@@ -126,6 +139,7 @@ export function processContentEvent(
     });
     const text = typeof event.text === "string" ? event.text : "";
     const existing = state.getTimelineNode(nodeId);
+
     commands.push({
       cmd: "SET_TIMELINE_NODE",
       id: nodeId,
@@ -137,6 +151,7 @@ export function processContentEvent(
         text,
         segments: parseContentSegments(contentId, text),
         status: "completed",
+        ...streamEndFailure(event, existing),
         ts: timestamp,
       },
     });
@@ -150,6 +165,7 @@ export function processContentEvent(
       ? `awaiting_answer_${runId || "run"}_${awaitingId}`
       : `awaiting_answer_${state.nextCounter()}`;
     const existing = state.getTimelineNode(nodeId);
+
     if (!existing) {
       commands.push({ cmd: "APPEND_TIMELINE_ORDER", nodeId });
     }
@@ -164,6 +180,7 @@ export function processContentEvent(
         title: awaitingAnswerTitle(event),
         text: readAwaitingAnswerText(event) || t("timeline.awaitingAnswer.noAnswer"),
         status: "completed",
+        ...streamEndFailure(event, existing),
         expanded: existing?.expanded ?? false,
         ts: timestamp,
       },

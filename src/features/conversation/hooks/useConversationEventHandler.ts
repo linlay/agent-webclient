@@ -772,7 +772,7 @@ export function useConversationEventHandler(): {
           );
         }
 
-        if (voiceStatus === "completed") {
+        if (voiceStatus === "completed" && event.status !== "failed") {
           upsertLiveChatSummary({
             event,
             cache,
