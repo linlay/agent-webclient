@@ -270,8 +270,19 @@ export function formatPlatformErrorForDisplay(
       ? `${baseMessage} ${retryHint}`
       : baseMessage;
 
+  const diagnostics = isObjectRecord(error.diagnostics) ? error.diagnostics : null;
+  const attempt = readNumber(diagnostics?.attempt);
+  const maxAttempts = readNumber(diagnostics?.maxAttempts);
+  const attemptsHint =
+    error.category === "model" && error.retryable === true &&
+    attempt != null && maxAttempts != null &&
+    Number.isInteger(attempt) && Number.isInteger(maxAttempts) &&
+    maxAttempts > 1 && attempt >= maxAttempts
+      ? t("platformError.attemptsExhausted", { count: attempt })
+      : "";
+
   return {
-    message,
+    message: attemptsHint ? `${message} ${attemptsHint}` : message,
     code: error.code,
     category: error.category,
     scope: error.scope,

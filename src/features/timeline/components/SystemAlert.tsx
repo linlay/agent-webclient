@@ -74,9 +74,18 @@ export const SystemAlert: React.FC<{
 }> = ({ text, tooltip, errorDetail, level = "error" }) => {
   const { t } = useI18n();
   const showDetails = hasTechnicalDetail(errorDetail);
+  const diagnostics = errorDetail?.diagnostics;
+  const upstream = diagnostics != null && typeof diagnostics === "object"
+    ? diagnostics as Record<string, unknown> : {};
   const rows = [
     ["code", errorDetail?.code],
+    ["upstreamCode", upstream.upstreamCode],
+    ["upstreamType", upstream.upstreamType],
+    ["upstreamMessage", upstream.upstreamMessage],
+    ["attempt", upstream.attempt],
+    ["maxAttempts", upstream.maxAttempts],
     ["status", errorDetail?.status],
+    ["upstreamStatus", upstream.upstreamStatus],
     ["category", errorDetail?.category],
     ["scope", errorDetail?.scope],
     ["retryable", errorDetail?.retryable],

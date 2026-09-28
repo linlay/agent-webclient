@@ -17,6 +17,17 @@ describe("platformError", () => {
 		);
 	});
 
+ it("shows normalized rate limits and exhausted attempts without interpreting upstream text", () => {
+  const payload = {code: "provider_rate_limited", category: "model", retryable: true,
+   diagnostics: {attempt: 6, maxAttempts: 6, upstreamMessage: "insufficient_quota"}};
+  const display = formatPlatformErrorForDisplay(payload);
+  expect(display.message).toContain("触发限流");
+  expect(display.message).toContain("已尝试 6 次");
+  expect(display.message).not.toContain("额度已用尽");
+  expect(formatPlatformErrorForDisplay({...payload, diagnostics: {attempt: 2, maxAttempts: 6}}).message).not.toContain("次数已用尽");
+  expect(formatPlatformErrorForDisplay({...payload, diagnostics: {attempt: 1, maxAttempts: 1}}).message).not.toContain("次数已用尽");
+ });
+
 	it("normalizes HTTP, WS, and stream platform error payloads", () => {
 		const http = normalizePlatformError({
 			code: 429,
