@@ -32,6 +32,7 @@ export function processStreamEvent(
 		type === "request.query" ||
 		type === "request.steer" ||
 		type === "run.start" ||
+		type === "run.activity" ||
 		type === "run.error" ||
 		type === "run.complete" ||
 		type === "run.cancel" ||

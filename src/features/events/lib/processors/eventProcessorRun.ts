@@ -21,6 +21,21 @@ export function processRunEvent(
   const timestamp = event.timestamp ?? 0;
   const type = toText(event.type);
 
+  if (type === "run.activity") {
+    if (event.phase !== "model_call" || event.status !== "retrying") return commands;
+    const retry = event.retry as Record<string, unknown> | undefined;
+    const delayMs = Number(retry?.delayMs);
+    const attempt = Number(retry?.attempt);
+    const maxAttempts = Number(retry?.maxAttempts);
+    if (!Number.isFinite(delayMs) || delayMs <= 0 || !Number.isInteger(attempt) || attempt < 2 ||
+        !Number.isInteger(maxAttempts) || maxAttempts < attempt) return commands;
+    const nodeId = `model_retry_${toText(event.runId) || state.runId}_${toText(event.taskId)}_${toText(event.runSeq)}_${attempt}`;
+    if (state.getTimelineNode(nodeId)) return commands;
+    commands.push({cmd: "SYSTEM_MESSAGE", nodeId, ts: timestamp,
+      text: t("modelRetry.waiting", {attempt: attempt - 1, total: maxAttempts - 1, seconds: delayMs / 1000})});
+    return commands;
+  }
+
   if (type === "request.query") {
     if (config.mode !== "replay") return commands;
     const hidden = event.hidden === true ||

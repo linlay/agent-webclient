@@ -1797,3 +1797,20 @@ describe('failed stream block ends', () => {
     expect(nodes[1].startedAt).toBe(500);
   });
 });
+
+
+describe("model retry activity", () => {
+  it("shows the exact backoff and retry number for live and replay", () => {
+    for (const mode of ["live", "replay"] as const) {
+      const commands = processStreamEvent({type: "run.activity", phase: "model_call", status: "retrying", runId: "r", runSeq: 2, timestamp: 1000,
+        retry: {attempt: 2, maxAttempts: 6, delayMs: 500, retryAt: 1500}}, buildProcessorState(createState()), {mode, reasoningExpandedDefault: false});
+      expect(commands).toHaveLength(1);
+      expect(commands[0]).toMatchObject({cmd: "SYSTEM_MESSAGE", nodeId: "model_retry_r__2_2"});
+      expect((commands[0] as {text: string}).text).toContain("0.5");
+      expect((commands[0] as {text: string}).text).toContain("1/5");
+    }
+  });
+  it("does not turn normal activity into timeline messages", () => {
+    expect(processStreamEvent({type: "run.activity", phase: "model_call", status: "running"}, buildProcessorState(createState()), {mode: "live", reasoningExpandedDefault: false})).toEqual([]);
+  });
+});
