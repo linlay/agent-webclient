@@ -27,7 +27,7 @@ export const zhCNMessages = {
   "packageComposer.all": "全选",
   "packageComposer.clear": "清空",
   "packageComposer.clearAll": "取消选择技能包 {name}",
-  "packageComposer.memberCount": "{count} 个技能 · 点击展开",
+  "packageComposer.memberCount": "{count} 个技能",
   "packageComposer.selectionCount": "已选 {selected}/{count} 个技能",
   "packageComposer.pinned": "置顶技能",
   "packageComposer.packages": "技能包",

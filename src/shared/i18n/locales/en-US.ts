@@ -27,7 +27,7 @@ export const enUSMessages = {
   "packageComposer.all": "Select all",
   "packageComposer.clear": "Clear",
   "packageComposer.clearAll": "Clear package {name}",
-  "packageComposer.memberCount": "{count} skills · Expand to view",
+  "packageComposer.memberCount": "{count} skills",
   "packageComposer.selectionCount": "{selected}/{count} skills selected",
   "packageComposer.pinned": "Pinned skills",
   "packageComposer.packages": "Skill packages",

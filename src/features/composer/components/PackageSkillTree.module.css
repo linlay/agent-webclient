@@ -7,7 +7,6 @@
 .tree[open] > .header .chevron { transform: rotate(90deg); }
 .check { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; min-height: 24px; margin-left: 6px; }
 .title { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; border-radius: 4px; }
-.folder { flex: 0 0 18px; width: 18px; height: 18px; color: var(--ink-muted); }
 .copy { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
 .name { font-size: 12px; font-weight: 600; line-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meta, .hasSelection { font-size: 11px; font-weight: 400; line-height: 16px; color: var(--ink-muted); }

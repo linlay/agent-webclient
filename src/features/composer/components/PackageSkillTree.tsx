@@ -40,7 +40,6 @@ export function PackageSkillTree({ pkg, skills, selectedKeys, lockedKeys = [], d
       <MaterialIcon name="chevron_right" className={styles.chevron} />
       <Popover content={preview} trigger={["hover", "focus"]} placement="right" mouseEnterDelay={0.35}>
         <span tabIndex={0} className={styles.title}>
-          <MaterialIcon name="folder" className={styles.folder} />
           <span className={styles.copy}>
             <span className={styles.name}>{skillPackageDisplayName(pkg)}</span>
             <small className={selectedCount ? styles.hasSelection : styles.meta}>
