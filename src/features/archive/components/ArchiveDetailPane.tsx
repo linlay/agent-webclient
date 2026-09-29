@@ -50,6 +50,9 @@ export const ArchiveDetailPane: React.FC<ArchiveDetailPaneProps> = (props) => (
             </p>
           </div>
         </div>
+        {props.detail?.artifactManifestUnavailable ? (
+          <p className="tw:text-xs tw:text-amber-600" role="note">{t("archive.detail.attachmentsUnavailable")}</p>
+        ) : null}
         <div className="archive-detail-content tw:flex tw:min-h-0 tw:max-h-[520px] tw:flex-col tw:gap-2.5 tw:overflow-auto">
           {props.previewLines.length === 0 ? (
             <div className="command-empty-state">{t("archive.empty.detail")}</div>

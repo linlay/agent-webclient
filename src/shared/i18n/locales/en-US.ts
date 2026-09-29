@@ -1064,6 +1064,7 @@ export const enUSMessages = {
   "archive.bulk.resultWithFailures": "Archived {success}, failed {failed}.",
   "archive.deleteConfirm.title": "Delete archive record",
   "archive.detail.archivedAt": "Archived at {time}",
+  "archive.detail.attachmentsUnavailable": "Attachment information is unavailable. The conversation is still viewable.",
   "archive.empty.detail": "No previewable content in this archive.",
   "archive.empty.list": "No archived conversations.",
   "archive.empty.preview": "(no preview)",

@@ -1,10 +1,12 @@
 /** @jest-environment jsdom */
 
-import React from "react";
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
 import type { ConversationSnapshotV1 } from "./conversationSnapshotV1";
 import { ConversationExportDocument } from "./ConversationExportDocument";
 
 Object.assign(globalThis, { TextEncoder: require("util").TextEncoder });
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const { renderToStaticMarkup } = require("react-dom/server") as typeof import("react-dom/server");
 
 jest.mock("./brand-icons/zenmind.svg", () => "zenmind-icon");
@@ -17,11 +19,14 @@ jest.mock("@/shared/icons/agentIconAssets", () => ({
 }));
 jest.mock("@/features/conversation/components/ConversationPreview", () => {
   const ReactRuntime = require("react") as typeof React;
-  return { ConversationPreview: ({ renderRunHeader }: { renderRunHeader: (run: { runId: string }) => React.ReactNode }) =>
+  return { ConversationPreview: ({ renderRunHeader, renderMarkdown }: {
+    renderRunHeader: (run: { runId: string }) => React.ReactNode;
+    renderMarkdown: (props: { content: string; chatId: string }) => React.ReactNode;
+  }) =>
     ReactRuntime.createElement("section", null,
-      renderRunHeader({ runId: "run-one" }), renderRunHeader({ runId: "run-two" })) };
+      renderRunHeader({ runId: "run-one" }), renderRunHeader({ runId: "run-two" }),
+      renderMarkdown({ chatId: "", content: "[HTML](artifacts/run-1/page.html) [PDF](artifacts/run-1/report.pdf) [OLD](/api/resource?file=chat/artifacts/run-1/page.html)" })) };
 });
-jest.mock("@/shared/ui/ConversationMarkdown", () => ({ ConversationMarkdown: () => null }));
 jest.mock("@/shared/ui/markdown-code/ConversationMarkdownCode", () => ({ ConversationMarkdownCode: () => null }));
 
 const snapshot: ConversationSnapshotV1 = {
@@ -70,4 +75,32 @@ it("previews HTML resources and offers other formal resources for download", () 
   expect(html).toContain('href="/share/share-1/attachments/0123456789abcdef01234567/preview"');
   expect(html).toContain("report.pdf");
   expect(html).toContain('href="/share/share-1/attachments/abcdef0123456789abcdef01/download"');
+  expect(html).toContain('>HTML</a>');
+  expect(html).toContain('>PDF</a>');
+  expect(html).toContain('>OLD</a>');
+});
+
+it("opens a legacy Markdown HTML link directly without a HEAD request", () => {
+  window.history.replaceState({}, "", "/share/share-1");
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  const previousFetch = globalThis.fetch;
+  const fetchSpy = jest.fn();
+  globalThis.fetch = fetchSpy as typeof fetch;
+  const page = { ...snapshot, attachments: [{
+    id: "0123456789abcdef01234567", name: "page.html", mimeType: "text/html",
+    sourceRef: "artifacts/run-1/page.html",
+  }] };
+  try {
+    act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: page })));
+    const link = Array.from(host.querySelectorAll("a")).find((item) => item.textContent === "OLD");
+    expect(link).toBeDefined();
+    act(() => link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
+    expect(host.querySelector("iframe")?.getAttribute("src"))
+      .toBe("/share/share-1/attachments/0123456789abcdef01234567/preview");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    act(() => root.unmount());
+    globalThis.fetch = previousFetch;
+  }
 });

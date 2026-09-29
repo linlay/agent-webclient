@@ -93,7 +93,9 @@ describe("parseConversationSnapshotV1 attachments", () => {
         attachments: [resource],
       }),
     );
-    expect(parsed?.attachments).toEqual([resource]);
+    expect(parsed?.attachments).toEqual([{
+      id: resource.id, name: resource.name, mimeType: resource.mimeType, sourceRef: resource.sourceRef,
+    }]);
   });
 
   it("does not own resource-scope policy", () => {
@@ -107,14 +109,18 @@ describe("parseConversationSnapshotV1 attachments", () => {
     expect(parsed?.attachments[0]?.sourceRef).toBe(sourceRef);
   });
 
-  it("rejects duplicate resource ids", () => {
-    expect(
-      parseConversationSnapshotV1(
-        JSON.stringify({
-          ...buildSnapshot([buildTurn("run-1", 1)]),
-          attachments: [resource, { ...resource, sourceRef: "artifacts/run-2/report.pdf" }],
-        }),
-      ),
-    ).toBeNull();
+  it("keeps the first valid resource and omits invalid optional metadata", () => {
+    const parsed = parseConversationSnapshotV1(JSON.stringify({
+      ...buildSnapshot([buildTurn("run-1", 1)]),
+      attachments: [
+        { ...resource, mimeType: "Text/HTML; Charset=UTF-8", size: undefined, sha256: undefined },
+        { ...resource, sourceRef: "artifacts/run-2/report.pdf" },
+        { ...resource, id: "abcdef0123456789abcdef01", name: "", sourceRef: "bad" },
+      ],
+    }));
+    expect(parsed?.attachments).toEqual([{
+      id: resource.id, name: resource.name, mimeType: "text/html", sourceRef: resource.sourceRef,
+    }]);
+    expect(parsed?.turns).toHaveLength(1);
   });
 });
