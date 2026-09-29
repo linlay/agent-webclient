@@ -2,7 +2,7 @@ import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillD
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
 import { groupSelectedPackages, setPackageSelection, skillIdentity } from "../lib/skillPackages";
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
-import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
+import { hasQueryHistory, hasSendableContent, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 import React, {
   useCallback,
   useEffect,
@@ -126,6 +126,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const textareaRef = useRef<TextAreaRef>(null);
   const isComposingRef = useRef(false);
   const deferredSendRequestedRef = useRef(false);
+  const deferredDirectSteerRef = useRef(false);
   const [inputValue, setInputValue] = useState("");
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
@@ -681,19 +682,21 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     updateMentionSuggestions,
   });
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback((directSteer = false) => {
     if (chatTransitionBlocking) return;
     if (hasInvalidSelectedSkills) { void message.error(t("packageComposer.invalidSelection")); return; }
     if (!hasStagedAttachments) {
-      handleSendImmediately();
+      if (directSteer) handleSubmitQueuedSteer();
+      else handleSendImmediately();
       return;
     }
     if (deferredSendRequestedRef.current) return;
+    deferredDirectSteerRef.current = directSteer;
     deferredSendRequestedRef.current = true;
     void uploadStagedAttachments().then((succeeded) => {
       if (!succeeded) deferredSendRequestedRef.current = false;
     });
-  }, [chatTransitionBlocking, handleSendImmediately, hasStagedAttachments, uploadStagedAttachments, hasInvalidSelectedSkills, message, t]);
+  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, uploadStagedAttachments, hasInvalidSelectedSkills, message, t]);
 
   useEffect(() => {
     if (
@@ -703,8 +706,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     ) return;
     deferredSendRequestedRef.current = false;
     if (chatTransitionBlocking || hasInvalidSelectedSkills) return;
-    handleSendImmediately();
-  }, [chatTransitionBlocking, handleSendImmediately, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills]);
+    if (deferredDirectSteerRef.current) handleSubmitQueuedSteer();
+    else handleSendImmediately();
+  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills]);
 
   const handleSelectSlashItem = useCallback(
     (item: SlashPaletteItem) => {
@@ -761,10 +765,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !hasSendableContent(inputValue, combinedSendReferences, isMainChatRunning || hasQueryHistory(state));
+    !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state)));
 
   const handleKeyDown = useComposerKeyboard({
-    onSubmitQueuedSteer: shouldShowSteerBar && !chatTransitionBlocking ? handleSubmitQueuedSteer : undefined,
+    onSubmitQueuedSteer: isMainChatRunning && !isFrontendActive && !chatTransitionBlocking ? () => handleSend(true) : undefined,
     closeMention,
     dispatch,
     onSelectSlashItem: handleSelectSlashItem,

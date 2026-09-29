@@ -1,4 +1,4 @@
-import { hasQueryHistory, hasSendableContent } from './sendEligibility';
+import { hasQueryHistory, hasSendableContent, hasSendableQuery } from './sendEligibility';
 it.each(['photo.png', 'page.html', 'notes.md'])('allows %s alone for steer or follow-up query', url => {
  const refs = [{type:'file', url}];
  expect(hasSendableContent(' ',refs)).toBe(false);
@@ -37,4 +37,12 @@ it('requires confirmed main-chat history, not an allocated chat or optimistic ru
   expect(hasQueryHistory(confirmed, 'b')).toBe(false);
   expect(hasQueryHistory({ ...state, chats: [{ chatId: 'a', lastRunId: 'accepted-run' }] })).toBe(true);
   expect(hasQueryHistory({ ...state, chatId: '', chats: [] })).toBe(false);
+});
+
+it('allows empty established query without allowing an empty steer or first query', () => {
+ expect(hasSendableQuery('', [], true)).toBe(true);
+ expect(hasSendableQuery('  ', undefined, true)).toBe(true);
+ expect(hasSendableQuery('', [], false)).toBe(false);
+ expect(hasSendableContent('', [], true)).toBe(false);
+ expect(hasSendableQuery('', [{type: 'file'}], true)).toBe(false);
 });

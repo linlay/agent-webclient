@@ -28,3 +28,9 @@ export function hasQueryHistory(
     (!event.lane || event.lane === "main") && event.hidden !== true,
   );
 }
+
+/** Empty continuation is exclusive to an established query, never steer. */
+export function hasSendableQuery(message: unknown, references: unknown, hasHistory = false): boolean {
+  return hasSendableContent(message, references, hasHistory) ||
+    (hasHistory && (!Array.isArray(references) || references.length === 0));
+}

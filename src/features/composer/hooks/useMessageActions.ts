@@ -1,5 +1,5 @@
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
-import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
+import { hasQueryHistory, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 import { useCallback, useEffect } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
@@ -298,7 +298,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         seenSkillKeys.add(identity);
         return [normalizedKey];
       });
-      if (!hasSendableContent(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
+      if (!hasSendableQuery(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
       if (
         areConversationInteractionsBlocked(stateRef.current) || isAgentExecutionBlocked(stateRef.current, preferredAgentKey || undefined)
       ) {
@@ -412,7 +412,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       if (interaction?.model === false) model = undefined;
       if (interaction?.accessLevel === false) accessLevel = "default";
 
-      if (!hasSendableContent(cleanMessage, normalizedReferences, hasQueryHistory(stateRef.current, chatId))) return;
+      if (!hasSendableQuery(cleanMessage, normalizedReferences, hasQueryHistory(stateRef.current, chatId))) return;
       if (!selectedOwner) {
         dispatch({
           type: "APPEND_DEBUG",
@@ -462,23 +462,25 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
       /* Add user message to timeline (mention prefix is routing metadata, not message body) */
       const userNodeId = `user_${Date.now()}`;
-      dispatch({
-        type: "SET_TIMELINE_NODE",
-        id: userNodeId,
-        node: {
+      if (cleanMessage || attachments.length > 0) {
+        dispatch({
+          type: "SET_TIMELINE_NODE",
           id: userNodeId,
-          kind: "message",
-          role: "user",
-          text: cleanMessage,
-          attachments: attachments.length > 0 ? attachments : undefined,
-          ts: Date.now(),
-          mustUseSkills:
-            normalizedMustUseSkills.length > 0
-              ? normalizedMustUseSkills
-              : undefined,
-        },
-      });
-      dispatch({ type: "APPEND_TIMELINE_ORDER", id: userNodeId });
+          node: {
+            id: userNodeId,
+            kind: "message",
+            role: "user",
+            text: cleanMessage,
+            attachments: attachments.length > 0 ? attachments : undefined,
+            ts: Date.now(),
+            mustUseSkills:
+              normalizedMustUseSkills.length > 0
+                ? normalizedMustUseSkills
+                : undefined,
+          },
+        });
+        dispatch({ type: "APPEND_TIMELINE_ORDER", id: userNodeId });
+      }
       dispatch({
         type: "REQUEST_CONVERSATION_SCROLL",
         chatId,
@@ -910,5 +912,5 @@ export function hasSendableComposerMessage(
   references: unknown,
   hasHistory = false,
 ) {
-  return hasSendableContent(message, references, hasHistory);
+  return hasSendableQuery(message, references, hasHistory);
 }

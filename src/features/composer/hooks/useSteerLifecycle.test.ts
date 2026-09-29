@@ -487,10 +487,9 @@ it('allows consecutive reference-only queries across run boundaries but blocks a
 });
 
 
-it('submits the first queued steer of the active run while preserving the new draft', async () => {
+it('submits the first queued steer of the active run when the draft is empty', async () => {
   mockSteer.mockResolvedValue({ data: { accepted: true } });
-  const h = mount({ inputValue: 'new unsent draft' });
-  h.dispatch({ type: 'SET_COMPOSER_DRAFT', draft: 'new unsent draft' });
+  const h = mount();
   const first = h.stateRef.current.pendingSteers['chat-a'][0];
   h.stateRef.current.pendingSteers['chat-a'] = [
     { ...first, steerId: 'old-run', runId: 'old-run' },
@@ -502,7 +501,7 @@ it('submits the first queued steer of the active run while preserving the new dr
   expect(mockSteer).toHaveBeenCalledTimes(1);
   expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({ steerId: 'steer-a', message: 'message from A' }));
   expect(h.stateRef.current.pendingSteers['chat-a'][3].status).toBe('queued');
-  expect(h.stateRef.current.composerDraft).toBe('new unsent draft');
+  expect(h.stateRef.current.composerDraft).toBe('');
   expect(h.setInputValue).not.toHaveBeenCalled();
 });
 
@@ -516,4 +515,59 @@ it('does not submit queued steer after the run ends or when the queue is empty',
   h.stateRef.current.currentChatActiveRun = null;
   h.submitQueued();
   expect(mockSteer).not.toHaveBeenCalled();
+});
+
+it('Cmd+Enter sends the draft directly and preserves existing waiting items', async () => {
+ mockSteer.mockResolvedValue({ data: { accepted: true } });
+ const h = mount({inputValue: 'direct instruction'});
+ await act(async () => { h.submitQueued(); h.submitQueued(); });
+ expect(mockSteer).toHaveBeenCalledTimes(1);
+ expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({message: 'direct instruction', runId: 'run-a'}));
+ expect(h.stateRef.current.pendingSteers['chat-a'][0]).toMatchObject({steerId: 'steer-a', status: 'queued'});
+ expect(h.stateRef.current.pendingSteers['chat-a'][1].status).toBe('sending');
+ expect(h.setInputValue).toHaveBeenCalledWith('');
+});
+it('Cmd+Enter sends attachment-only input without a waiting item', async () => {
+ mockSteer.mockResolvedValue({ data: { accepted: true } });
+ const references = [{type: 'selection', text: 'quote'}];
+ const h = mount({sendReferences: references});
+ h.stateRef.current.pendingSteers = {};
+ await act(async () => h.submitQueued());
+ expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({message: '', references}));
+});
+it.each([{hasUploadingAttachments:true}, {hasFailedAttachments:true}])('does not submit draft with unavailable attachments: %j', async flags => {
+ const h = mount({inputValue:'draft', ...flags});
+ await act(async () => h.submitQueued());
+ expect(mockSteer).not.toHaveBeenCalled();
+});
+it('Enter only stages the draft before Cmd+Enter submits it', async () => {
+ mockSteer.mockResolvedValue({ data: { accepted: true } });
+ const overrides = {inputValue:'two steps'};
+ const h = mount(overrides);
+ h.stateRef.current.pendingSteers = {};
+ h.send();
+ expect(mockSteer).not.toHaveBeenCalled();
+ overrides.inputValue = '';
+ h.render();
+ await act(async () => h.submitQueued());
+ expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({message:'two steps'}));
+});
+
+it('dispatches an empty follow-up query while keeping empty steer blocked', () => {
+ const h = mount();
+ h.stateRef.current.pendingSteers = {};
+ h.stateRef.current.chats[0].lastRunId = 'previous-run';
+ h.send();
+ expect(mockSteer).not.toHaveBeenCalled();
+ expect(h.stateRef.current.pendingSteers).toEqual({});
+ h.stateRef.current.streaming = false;
+ h.stateRef.current.currentChatActiveRun = null;
+ h.render(false);
+ const listener = jest.fn();
+ window.addEventListener('agent:send-message', listener);
+ try {
+  h.send();
+  expect(listener).toHaveBeenCalledTimes(1);
+  expect((listener.mock.calls[0][0] as CustomEvent).detail.message).toBe('');
+ } finally { window.removeEventListener('agent:send-message', listener); }
 });

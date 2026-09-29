@@ -12,7 +12,7 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 ## 核心流程
 用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。历史 Chat 的文本草稿按 `chatId` 保存和恢复；未获得稳定 `chatId` 的 New Chat 统一使用空 key，因此不同 Agent 的 New Chat 共享同一份运行期草稿。普通 Chat 或 Agent 切换只切换当前草稿，不清空已保存内容；用户发送时清空该草稿，宿主提供显式一次性预填时则覆盖它。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的“必须使用”标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
 
-跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条批注`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，运行中发送时可独立或随文字一起进入 steer 队列；入队后由队列持有引用，取消或拒绝时恢复，Run 结束后，已有主 query 历史的纯选区排队项也可转 query 并继续携带引用；缺少历史确认时恢复输入区等待正文。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，正文和有效引用不能同时为空；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
+跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条批注`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，运行中发送时可独立或随文字一起进入 steer 队列；入队后由队列持有引用，取消或拒绝时恢复，Run 结束后，已有主 query 历史的纯选区排队项也可转 query 并继续携带引用；缺少历史确认时恢复输入区等待正文。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，也允许正文和引用都为空，表示继续。空 query 保留空 message，仅模型输入补充 `Continue based on the current conversation context.`，时间线不生成空白用户气泡；空 steer 仍禁止；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
 
 Side question Tab 默认不显示。`/btw` 会先为当前 chat 创建一个空 session，再显示并激活该 Tab；`/btw 问题` 会在主 query/steer 路由前被识别，并把问题作为全新隐藏只读分支的首次请求发送，不能携带此前已关闭分支的 `btwId`。BTW 可以和主 run 并行；没有有效 `chatId` 时命令不可用。
 
@@ -94,3 +94,7 @@ Composer 按当前 Chat 的持久化 owner 独立请求 `/api/agent`；不依赖
 不可用期间保留输入框与草稿，禁用输入和继续执行，在原操作栏内显示原因、配置或重试入口；不增加聊天遮罩，也不触发历史重载。发送/重发、steer 与 awaiting 提交函数仍检查同一执行状态；已有 Run 的停止入口继续可用。历史阅读、复制和搜索继续可用。此状态是 UI 准入提示，服务端仍在每次 query/续聊时检查真实配置和权限。Team 仍使用其原有执行路径。
 
 连接器 no_auth（包括 Desktop）在“+”菜单挂载后无需认证检查，不显示连接或检查中；挂载开关不代表客户端在线。六种认证模式见 [连接器](53-Worker管理-连接器.md#六种-auth_mode)。
+
+### 运行中 steer 快捷键
+
+Enter 将当前文字或有效引用加入本地等待区；输入框为空时 Cmd+Enter 提交当前 Run 的第一条等待项。输入框有文字或有效引用时 Cmd+Enter 直接提交该内容到服务端 steer 队列，已有等待项保留。两条路径共享受理确认、失败恢复与防重复提交逻辑；输入框及等待区均为空时不执行操作。Shift+Enter 保持换行，输入法确认、上传中、附件失败和交互阻塞继续按原规则处理。
