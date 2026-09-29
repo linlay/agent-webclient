@@ -86,11 +86,11 @@ export interface AdminRegistryValidateResponse {
   parsed?: Record<string, unknown>;
 }
 
-export type AdminSourceType = "agent" | "skill" | "automation" | "registry";
+export type AdminSourceType = "agent" | "skill" | "skill-package" | "automation" | "registry";
 
 export type AdminSourceTarget =
   | {
-      type: "agent" | "automation";
+      type: "agent" | "automation" | "skill-package";
       key: string;
       path?: never;
       category?: never;

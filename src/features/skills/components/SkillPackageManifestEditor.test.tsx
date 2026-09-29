@@ -2,6 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
+import type { AdminSourceResponse } from "@/shared/data/api/dto/admin";
 import { SkillPackageManifestEditor } from "./SkillPackageManifestEditor";
 import { getAdminSkillPackageManifest, saveAdminSkillPackageManifest } from "@/shared/data/api/requests/skillPackages";
 jest.mock("@/shared/data/api/requests/skillPackages", () => ({ getAdminSkillPackageManifest: jest.fn(), saveAdminSkillPackageManifest: jest.fn() }));
@@ -16,43 +17,71 @@ let container: HTMLDivElement;
 let root: Root;
 const onClose = jest.fn();
 const onSaved = jest.fn().mockResolvedValue(undefined);
+const originalContent = JSON.stringify({ name: "office", skills: [{ key: "word" }, { key: "excel" }] });
+function source(content: string, sha256: string): AdminSourceResponse {
+  return { target: { type: "skill-package", key: "office" }, source: { kind: "skills-center", path: "office/package.json" }, content, sha256, encoding: "utf-8", size: content.length };
+}
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.clearAllMocks();
-  jest.mocked(getAdminSkillPackageManifest).mockResolvedValue({ code: 0, msg: "", data: { content: '{"name":"office"}', sha256: "old-hash" } });
-  jest.mocked(saveAdminSkillPackageManifest).mockResolvedValue({ code: 0, msg: "", data: { content: '{"name":"office","displayName":"Office"}', sha256: "new-hash" } });
+  jest.mocked(getAdminSkillPackageManifest).mockResolvedValue({ code: 0, msg: "", data: source(originalContent, "old-hash") });
+  jest.mocked(saveAdminSkillPackageManifest).mockResolvedValue({ code: 0, msg: "", data: source(originalContent, "new-hash") });
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); });
 async function mount() { await act(async () => root.render(<SkillPackageManifestEditor packageId="office" onClose={onClose} onSaved={onSaved} />)); }
 async function edit(value: string) { await act(async () => Simulate.change(container.querySelector("textarea")!, { target: { value } } as any)); }
 async function save() { await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "skillConsole.action.save")!.click()); }
-test("saves metadata using original hash and refreshes the package catalog", async () => {
+test("saves declared members in order using the original hash and refreshes the catalog", async () => {
   await mount();
-  await edit('{"name":"office","displayName":"Office"}');
+  const content = JSON.stringify({ name: "office", displayName: "Office", skills: [{ key: "excel" }, { key: "word" }] });
+  await edit(content);
   await save();
-  expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", '{"name":"office","displayName":"Office"}', "old-hash");
+  expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
   expect(onSaved).toHaveBeenCalledTimes(1);
   expect(onClose).toHaveBeenCalledTimes(1);
 });
-test("blocks identity changes and a hand-maintained member list", async () => {
+test("allows an explicitly empty package", async () => {
   await mount();
-  await edit('{"name":"other"}'); await save();
-  expect(saveAdminSkillPackageManifest).not.toHaveBeenCalled();
-  await edit('{"name":"office","skills":[]}'); await save();
+  const content = '{"name":"office","skills":[]}';
+  await edit(content); await save();
+  expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
+});
+test.each([
+  '{"name":"other","skills":[]}',
+  '{"name":"office"}',
+  '{"name":"office","skills":null}',
+  '{"name":"office","skills":["word"]}',
+  '{"name":"office","skills":[{}]}',
+  '{"name":"office","skills":[{"key":1}]}',
+  '{"name":"office","skills":[null]}',
+])("rejects changed identity or malformed membership: %s", async content => {
+  await mount(); await edit(content); await save();
   expect(saveAdminSkillPackageManifest).not.toHaveBeenCalled();
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("manifestInvalid");
 });
+test("Platform member validation failures preserve the draft and reviewed hash", async () => {
+  jest.mocked(saveAdminSkillPackageManifest).mockRejectedValueOnce(new Error("skills must contain unique, safe package-relative keys"));
+  await mount();
+  const content = '{"name":"office","skills":[{"key":"word"},{"key":"WORD"}]}';
+  await edit(content); await save();
+  expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
+  expect(container.querySelector("textarea")?.value).toBe(content);
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("unique, safe");
+  expect(getAdminSkillPackageManifest).toHaveBeenCalledTimes(1);
+  expect(onSaved).not.toHaveBeenCalled();
+  expect(onClose).not.toHaveBeenCalled();
+});
 test("conflicting save preserves the draft and never retries with a fresh hash", async () => {
   jest.mocked(saveAdminSkillPackageManifest).mockRejectedValueOnce(new Error("Conflict: manifest changed"));
-  await mount(); await edit('{"name":"office","description":"draft"}'); await save();
+  await mount(); await edit('{"name":"office","skills":[{"key":"word"}],"description":"draft"}'); await save();
   expect(onClose).not.toHaveBeenCalled();
   expect(container.querySelector("textarea")?.value).toContain("draft");
   expect(getAdminSkillPackageManifest).toHaveBeenCalledTimes(1);
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("Conflict");
 });
 test("closing a dirty manifest requires explicit discard", async () => {
-  await mount(); await edit('{"name":"office","description":"draft"}');
+  await mount(); await edit('{"name":"office","skills":[{"key":"word"}],"description":"draft"}');
   await act(async () => container.querySelector<HTMLButtonElement>("section button:last-child")!.click());
   expect(onClose).not.toHaveBeenCalled();
   await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "skillPackageEditor.discard")!.click());

@@ -4,7 +4,7 @@ import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { useI18n } from "@/shared/i18n";
 import { getAdminSkillPackageManifest, saveAdminSkillPackageManifest } from "@/shared/data/api/requests/skillPackages";
 
-/** A package manifest edits metadata only; its members are scanned from child SKILL.md files. */
+/** Edits package metadata and declared members; Platform validates membership and references. */
 export function SkillPackageManifestEditor({ packageId, onClose, onSaved }: {
   packageId: string;
   onClose: () => void;
@@ -33,7 +33,10 @@ export function SkillPackageManifestEditor({ packageId, onClose, onSaved }: {
     setError("");
     try {
       const manifest = JSON.parse(content);
-      if (!manifest || typeof manifest !== "object" || Array.isArray(manifest) || manifest.name !== packageId || "skills" in manifest) {
+      if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)
+        || manifest.name !== packageId || !Array.isArray(manifest.skills)
+        || manifest.skills.some((member: unknown) => !member || typeof member !== "object"
+          || Array.isArray(member) || !("key" in member) || typeof member.key !== "string")) {
         throw new Error(t("skillPackageEditor.manifestInvalid"));
       }
       setSaving(true);
