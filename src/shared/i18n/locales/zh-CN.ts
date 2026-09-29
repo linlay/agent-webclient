@@ -1160,6 +1160,7 @@ export const zhCNMessages = {
   "archive.bulk.resultWithFailures": "已归档 {success} 条，失败 {failed} 条。",
   "archive.deleteConfirm.title": "删除归档记录",
   "archive.detail.archivedAt": "归档于 {time}",
+  "archive.detail.attachmentsUnavailable": "附件信息暂不可用，对话内容仍可预览。",
   "archive.empty.detail": "该归档暂无可预览内容。",
   "archive.empty.list": "暂无归档对话。",
   "archive.empty.preview": "(无预览)",

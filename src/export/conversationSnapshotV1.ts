@@ -9,8 +9,8 @@ export interface SnapshotAttachmentV1 {
   id: string;
   name: string;
   mimeType: string;
-  size: number;
-  sha256: string;
+  size?: number;
+  sha256?: string;
   sourceRef: string;
 }
 
@@ -198,6 +198,7 @@ export function parseConversationSnapshotV1(
     }
   }
   const resourceIds = new Set<string>();
+  const attachments: SnapshotAttachmentV1[] = [];
   for (const attachment of value.attachments) {
     if (
       !record(attachment) ||
@@ -208,21 +209,22 @@ export function parseConversationSnapshotV1(
       !attachment.name ||
       typeof attachment.mimeType !== "string" ||
       !/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/iu.test(
-        attachment.mimeType.trim(),
+        attachment.mimeType.split(";", 1)[0].trim(),
       ) ||
-      attachment.mimeType !== attachment.mimeType.trim().toLowerCase() ||
-      !Number.isSafeInteger(attachment.size) ||
-      Number(attachment.size) < 0 ||
-      typeof attachment.sha256 !== "string" ||
-      !/^[a-f0-9]{64}$/u.test(attachment.sha256) ||
       typeof attachment.sourceRef !== "string" ||
       !attachment.sourceRef.trim() ||
       attachment.sourceRef.length > 2_048
     )
-      return null;
+      continue;
     resourceIds.add(attachment.id);
+    attachments.push({
+      id: attachment.id,
+      name: attachment.name,
+      mimeType: attachment.mimeType.split(";", 1)[0].trim().toLowerCase(),
+      sourceRef: attachment.sourceRef,
+    });
   }
-  return value as unknown as ConversationSnapshotV1;
+  return { ...value, attachments } as unknown as ConversationSnapshotV1;
 }
 
 export function snapshotV1PreviewData(

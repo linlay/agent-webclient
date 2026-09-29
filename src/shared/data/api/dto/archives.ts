@@ -84,6 +84,7 @@ export interface ArchiveDetailResponse {
   runs?: unknown[];
   plan?: unknown;
   artifact?: unknown;
+  artifactManifestUnavailable?: boolean;
   usage?: ChatUsageData;
   resourceTicket?: string;
 }

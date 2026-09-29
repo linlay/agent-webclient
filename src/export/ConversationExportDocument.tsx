@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
 import { ConversationMarkdown, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
 import { ConversationMarkdownCode } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
@@ -20,10 +20,6 @@ function attachmentRoute(id: string, action: "preview" | "download"): string {
   return match ? `/share/${match[1]}/attachments/${id}/${action}` : "";
 }
 
-function isHtmlAttachment(attachment: SnapshotAttachmentV1): boolean {
-  return attachment.mimeType.split(";", 1)[0]?.trim().toLowerCase() === "text/html";
-}
-
 function findPublishedAttachment(href: string | undefined, attachments: Map<string, SnapshotAttachmentV1>): SnapshotAttachmentV1 | undefined {
   if (!href) return undefined;
   const direct = attachments.get(href);
@@ -42,14 +38,9 @@ function findPublishedAttachment(href: string | undefined, attachments: Map<stri
 export const ConversationExportDocument: React.FC<ConversationExportDocumentProps> = ({ snapshot, publicBrand }) => {
   const copy = conversationExportMessages[snapshot.locale];
   const labels = snapshot.locale === "en-US"
-    ? { attachments: "Attachments", download: "Download", close: "Close", loading: "Loading…",
-      error: "Preview failed", retry: "Retry", unavailable: "Available only from the shared page" }
-    : { attachments: "附件", download: "下载", close: "关闭", loading: "加载中…",
-      error: "预览失败", retry: "重试", unavailable: "仅在线分享页面可预览" };
+    ? { attachments: "Attachments", download: "Download", close: "Close", unavailable: "Available only from the shared page" }
+    : { attachments: "附件", download: "下载", close: "关闭", unavailable: "仅在线分享页面可预览" };
   const [selected, setSelected] = useState<SnapshotAttachmentV1 | null>(null);
-  const [frameKey, setFrameKey] = useState(0);
-  const [frameState, setFrameState] = useState<"loading" | "ready" | "error">("loading");
-  const [verified, setVerified] = useState(false);
   const data = useMemo(() => snapshotV1PreviewData(snapshot), [snapshot]);
   const assistantByRunId = useMemo(() => new Map(snapshot.turns.map((turn) =>
     [turn.runId, turn.assistant])), [snapshot.turns]);
@@ -61,38 +52,21 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const open = (attachment: SnapshotAttachmentV1) => {
     if (!attachmentRoute(attachment.id, "preview")) return;
     setSelected(attachment);
-    setFrameState("loading");
-    setVerified(false);
-    setFrameKey((current) => current + 1);
   };
-  useEffect(() => {
-    if (!selected) return;
-    const controller = new AbortController();
-    void fetch(attachmentRoute(selected.id, "preview"), {
-      method: "HEAD", credentials: "same-origin", signal: controller.signal,
-    }).then((response) => {
-      if (!response.ok) throw new Error("attachment_unavailable");
-      setVerified(true);
-    }).catch(() => {
-      if (!controller.signal.aborted) setFrameState("error");
-    });
-    return () => controller.abort();
-  }, [selected, frameKey]);
+  const attachmentLink = (attachment: SnapshotAttachmentV1, children: React.ReactNode, props?: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+    const previewable = attachment.mimeType === "text/html";
+    const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
+    if (!route) return <span key={attachment.id} title={labels.unavailable}>{children}</span>;
+    return <a key={attachment.id} {...props} href={route}
+      onClick={previewable ? (event) => { event.preventDefault(); open(attachment); } : undefined}>{children}</a>;
+  };
   const renderMarkdown = (props: MarkdownContentProps) => <ConversationMarkdown
     content={props.content}
     codeComponent={ConversationMarkdownCode}
     components={{
-      a: ({ href, children, domNode: _domNode, ...rest }: LinkProps) => {
+      a: ({ href, children, domNode: _domNode, streamStatus: _streamStatus, ...rest }: LinkProps) => {
         const attachment = findPublishedAttachment(href, attachments);
-        if (attachment) {
-          const previewable = isHtmlAttachment(attachment);
-          const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
-          if (!route) return <span title={labels.unavailable}>{children}</span>;
-          return previewable
-            ? <a {...rest} href={route}
-              onClick={(event) => { event.preventDefault(); open(attachment); }}>{children}</a>
-            : <a {...rest} href={route}>{children}</a>;
-        }
+        if (attachment) return attachmentLink(attachment, children, rest);
         if (!href || !/^https?:\/\//iu.test(href)) return <span>{children}</span>;
         return <a {...rest} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
       },
@@ -120,15 +94,7 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
         ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader} />
       {snapshot.attachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
         <h2>{labels.attachments}</h2>
-        {snapshot.attachments.map((attachment) => {
-          const previewable = isHtmlAttachment(attachment);
-          const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
-          if (!route) return <span key={attachment.id} title={labels.unavailable}>{attachment.name}</span>;
-          return previewable
-            ? <a key={attachment.id} href={route}
-              onClick={(event) => { event.preventDefault(); open(attachment); }}>{attachment.name}</a>
-            : <a key={attachment.id} href={route}>{attachment.name}</a>;
-        })}
+        {snapshot.attachments.map((attachment) => attachmentLink(attachment, attachment.name))}
       </section>}
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>
@@ -140,13 +106,8 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
           <a href={attachmentRoute(selected.id, "download")}>{labels.download}</a>
           <button type="button" onClick={() => setSelected(null)} aria-label={labels.close}>×</button>
         </div>
-        {frameState === "loading" && <p role="status">{labels.loading}</p>}
-        {frameState === "error" && <div role="alert">{labels.error}
-          <button type="button" onClick={() => { setFrameState("loading"); setVerified(false); setFrameKey((current) => current + 1); }}>{labels.retry}</button>
-        </div>}
-        {verified && <iframe key={frameKey} title={selected.name} sandbox="" referrerPolicy="no-referrer"
-          src={attachmentRoute(selected.id, "preview")}
-          onLoad={() => setFrameState("ready")} onError={() => setFrameState("error")} />}
+        <iframe title={selected.name} sandbox="" referrerPolicy="no-referrer"
+          src={attachmentRoute(selected.id, "preview")} />
       </aside>
     </div>}
   </main>;
