@@ -1,5 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { I18nProvider } from "@/shared/i18n";
 import { createInitialState } from "@/app/state/state";
 import { AppShell } from "@/app/layout/AppShell";
 import {
@@ -376,7 +377,7 @@ describe("AgentChatShell", () => {
   });
 
   it("renders a loading page while the route agent is not ready", () => {
-    const html = renderToStaticMarkup(React.createElement(AgentChatShell));
+    const html = renderToStaticMarkup(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false }, React.createElement(AgentChatShell)));
 
     expect(html).toContain("agent-route-loading-page");
     expect(html).toContain("正在加载智能体");
