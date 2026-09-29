@@ -26,7 +26,7 @@ export function mergeChatSummary(
 		key === 'read' ||
 		!hasOwn(patch, key) ||
 		value === undefined ||
-		(incomingIsOlder && ['updatedAt', 'lastRunId', 'lastRunContent'].includes(key))
+		(incomingIsOlder && ['updatedAt', 'lastRunId', 'lastRunContent', 'canContinue'].includes(key))
 	) {
       continue;
     }
@@ -44,6 +44,10 @@ export function mergeChatSummary(
 	if (read) {
 		next.read = read;
 	}
+
+  if (patch.lastRunId && patch.lastRunId !== existing?.lastRunId && !incomingIsOlder && patch.canContinue === undefined) {
+    next.canContinue = false;
+  }
 
   if (next.owner?.kind === 'orchestrated-team' || next.teamId) {
     // Team-owned chats may retain an old agentKey in persisted data.  It is

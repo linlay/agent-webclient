@@ -1,5 +1,5 @@
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
-import { hasQueryHistory, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
+import { canContinueChat, hasQueryHistory, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 import { useCallback, useEffect } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
@@ -298,7 +298,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         seenSkillKeys.add(identity);
         return [normalizedKey];
       });
-      if (!hasSendableQuery(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
+      if (!hasSendableQuery(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId), canContinueChat(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
       if (
         areConversationInteractionsBlocked(stateRef.current) || isAgentExecutionBlocked(stateRef.current, preferredAgentKey || undefined)
       ) {
@@ -412,7 +412,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       if (interaction?.model === false) model = undefined;
       if (interaction?.accessLevel === false) accessLevel = "default";
 
-      if (!hasSendableQuery(cleanMessage, normalizedReferences, hasQueryHistory(stateRef.current, chatId))) return;
+      if (!hasSendableQuery(cleanMessage, normalizedReferences, hasQueryHistory(stateRef.current, chatId), canContinueChat(stateRef.current, chatId))) return;
       if (!selectedOwner) {
         dispatch({
           type: "APPEND_DEBUG",
@@ -883,7 +883,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             .map((key) => String(key || "").trim())
             .filter(Boolean)
         : [];
-      if (hasSendableComposerMessage(message, references, hasQueryHistory(stateRef.current, chatId || stateRef.current.chatId))) {
+      if (hasSendableComposerMessage(message, references, hasQueryHistory(stateRef.current, chatId || stateRef.current.chatId), canContinueChat(stateRef.current, chatId || stateRef.current.chatId))) {
         void sendMessage(
           message,
           references,
@@ -911,6 +911,7 @@ export function hasSendableComposerMessage(
   message: unknown,
   references: unknown,
   hasHistory = false,
+  canContinue = false,
 ) {
-  return hasSendableQuery(message, references, hasHistory);
+  return hasSendableQuery(message, references, hasHistory, canContinue);
 }

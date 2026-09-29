@@ -1,4 +1,4 @@
-import { hasQueryHistory, hasSendableContent, hasSendableQuery } from './sendEligibility';
+import { canContinueChat, hasQueryHistory, hasSendableContent, hasSendableQuery } from './sendEligibility';
 it.each(['photo.png', 'page.html', 'notes.md'])('allows %s alone for steer or follow-up query', url => {
  const refs = [{type:'file', url}];
  expect(hasSendableContent(' ',refs)).toBe(false);
@@ -40,9 +40,24 @@ it('requires confirmed main-chat history, not an allocated chat or optimistic ru
 });
 
 it('allows empty established query without allowing an empty steer or first query', () => {
- expect(hasSendableQuery('', [], true)).toBe(true);
- expect(hasSendableQuery('  ', undefined, true)).toBe(true);
+ expect(hasSendableQuery('', [], true, true)).toBe(true);
+ expect(hasSendableQuery('  ', undefined, true, true)).toBe(true);
  expect(hasSendableQuery('', [], false)).toBe(false);
  expect(hasSendableContent('', [], true)).toBe(false);
  expect(hasSendableQuery('', [{type: 'file'}], true)).toBe(false);
+});
+
+it('rejects empty queries after normal completion or unknown state without affecting references', () => {
+ expect(hasSendableQuery('', [], true)).toBe(false);
+ expect(hasSendableQuery('', [], true, false)).toBe(false);
+ expect(hasSendableQuery('', [], false, true)).toBe(false);
+ expect(hasSendableQuery('', [{type:'selection', text:'quote'}], true, false)).toBe(true);
+});
+it('requires matching server continuation eligibility and no active or awaiting run', () => {
+ const state = {chatId:'a', chats:[{chatId:'a', canContinue:true}]};
+ expect(canContinueChat(state)).toBe(true);
+ expect(canContinueChat(state, 'b')).toBe(false);
+ for (const flags of [{canContinue:false}, {hasActiveRun:true}, {activeRun:{runId:'r'}}, {hasPendingAwaiting:true}]) {
+  expect(canContinueChat({...state, chats:[{...state.chats[0], ...flags}]})).toBe(false);
+ }
 });

@@ -557,6 +557,7 @@ it('dispatches an empty follow-up query while keeping empty steer blocked', () =
  const h = mount();
  h.stateRef.current.pendingSteers = {};
  h.stateRef.current.chats[0].lastRunId = 'previous-run';
+ h.stateRef.current.chats[0].canContinue = true;
  h.send();
  expect(mockSteer).not.toHaveBeenCalled();
  expect(h.stateRef.current.pendingSteers).toEqual({});
@@ -570,4 +571,18 @@ it('dispatches an empty follow-up query while keeping empty steer blocked', () =
   expect(listener).toHaveBeenCalledTimes(1);
   expect((listener.mock.calls[0][0] as CustomEvent).detail.message).toBe('');
  } finally { window.removeEventListener('agent:send-message', listener); }
+});
+
+it('does not dispatch an empty query after a normally completed run', () => {
+ const h = mount();
+ h.stateRef.current.pendingSteers = {};
+ h.stateRef.current.chats[0].lastRunId = 'done';
+ h.stateRef.current.chats[0].canContinue = false;
+ h.stateRef.current.streaming = false;
+ h.stateRef.current.currentChatActiveRun = null;
+ h.render(false);
+ const listener = jest.fn();
+ window.addEventListener('agent:send-message', listener);
+ try { h.send(); expect(listener).not.toHaveBeenCalled(); }
+ finally { window.removeEventListener('agent:send-message', listener); }
 });

@@ -2,7 +2,7 @@ import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillD
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
 import { groupSelectedPackages, setPackageSelection, skillIdentity } from "../lib/skillPackages";
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
-import { hasQueryHistory, hasSendableContent, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
+import { canContinueChat, hasQueryHistory, hasSendableContent, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 import React, {
   useCallback,
   useEffect,
@@ -765,7 +765,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state)));
+    !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));
 
   const handleKeyDown = useComposerKeyboard({
     onSubmitQueuedSteer: isMainChatRunning && !isFrontendActive && !chatTransitionBlocking ? () => handleSend(true) : undefined,

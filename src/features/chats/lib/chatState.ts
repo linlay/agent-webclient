@@ -41,6 +41,7 @@ export interface Chat {
   updatedAt?: number;
   lastRunId?: string;
   lastRunContent?: string;
+  canContinue?: boolean;
   searchSnippet?: string;
   read?: ChatReadState;
   awaiting?: ChatAwaitingSummary | null;

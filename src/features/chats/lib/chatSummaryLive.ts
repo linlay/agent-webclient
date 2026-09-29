@@ -67,6 +67,17 @@ export function resolveChatSummaryPendingAwaiting(
   return undefined;
 }
 
+export function resolveChatCanContinue(event: AgentEvent): boolean | undefined {
+  if (event.taskId || event.hidden === true || (event.lane && event.lane !== 'main')) return undefined;
+  if (event.type === 'run.error' || event.type === 'run.cancel') return Boolean(toText(event.runId));
+  if (event.type === 'run.complete') {
+    // run.finished pushes normalize to run.complete but preserve finishReason.
+    return Boolean(toText(event.runId)) && ['error', 'cancel', 'cancelled', 'canceled', 'interrupted'].includes(toText(event.finishReason).toLowerCase());
+  }
+  if (event.type === 'request.query' || event.type === 'run.start' || isAwaitingAskLike(event.type)) return false;
+  return undefined;
+}
+
 export function upsertLiveChatSummary(input: {
   event: AgentEvent;
   cache: LiveChatSummaryCache;
@@ -78,6 +89,7 @@ export function upsertLiveChatSummary(input: {
   resolved: LiveChatSummaryCache;
 } | null {
   const { event, cache, state, selectedContext, lastRunContent } = input;
+  if (event.taskId || event.hidden === true || (event.lane && event.lane !== 'main')) return null;
   const chatId = toText(event.chatId) || cache.chatId || toText(state.chatId);
   if (!chatId) {
     return null;
@@ -123,6 +135,7 @@ export function upsertLiveChatSummary(input: {
       source: source || undefined,
       lastRunId: runId || undefined,
       lastRunContent,
+      canContinue: resolveChatCanContinue(event),
       updatedAt,
       hasPendingAwaiting,
       hasActiveRun,

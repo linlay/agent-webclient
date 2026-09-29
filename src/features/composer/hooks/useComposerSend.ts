@@ -42,7 +42,7 @@ import { resolveCurrentWorkerSummary, supportsActiveRunContextCompact } from "@/
 import { canSubmitCompact, resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import type { LiveQuerySession } from "@/features/conversation/lib/conversationSession";
 import { notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
-import { hasQueryHistory, hasSendableContent, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
+import { canContinueChat, hasQueryHistory, hasSendableContent, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 
 export {
   buildCompactUsageSnapshot,
@@ -484,7 +484,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     const message = inputValue.trim();
-    if (!hasSendableQuery(message, sendReferences, hasQueryHistory(stateRef.current)) && !hasSendableContent(message, sendReferences, true)) return;
+    if (!hasSendableQuery(message, sendReferences, hasQueryHistory(stateRef.current), canContinueChat(stateRef.current)) && !hasSendableContent(message, sendReferences, true)) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message && pendingSentReferencesRef.current === referenceSignature) {
       return;
@@ -583,7 +583,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         return;
       }
     }
-    if (!hasSendableQuery(message, sendReferences, hasQueryHistory(currentState))) return;
+    if (!hasSendableQuery(message, sendReferences, hasQueryHistory(currentState), canContinueChat(currentState))) return;
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
     pendingSentReferencesRef.current = referenceSignature;

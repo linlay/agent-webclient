@@ -139,3 +139,11 @@ describe('chatSummary helpers', () => {
 	});
 
 });
+
+it('does not carry continuation eligibility into a new run or restore it from an old snapshot', () => {
+ const old = {chatId:'a', lastRunId:'old', updatedAt:100, canContinue:true};
+ const current = mergeChatSummary(old, {chatId:'a', lastRunId:'new', updatedAt:200});
+ expect(current.canContinue).toBe(false);
+ expect(mergeChatSummary(current, old).canContinue).toBe(false);
+ expect(mergeChatSummary(current, {chatId:'a', lastRunId:'new', updatedAt:201, canContinue:true}).canContinue).toBe(true);
+});

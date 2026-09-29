@@ -30,7 +30,16 @@ export function hasQueryHistory(
 }
 
 /** Empty continuation is exclusive to an established query, never steer. */
-export function hasSendableQuery(message: unknown, references: unknown, hasHistory = false): boolean {
+export function hasSendableQuery(message: unknown, references: unknown, hasHistory = false, canContinue = false): boolean {
   return hasSendableContent(message, references, hasHistory) ||
-    (hasHistory && (!Array.isArray(references) || references.length === 0));
+    (hasHistory && canContinue && (!Array.isArray(references) || references.length === 0));
+}
+
+/** Missing or unknown server state never grants an empty continuation. */
+export function canContinueChat(state: {
+  chatId: string;
+  chats: { chatId: string; canContinue?: boolean; hasActiveRun?: boolean; hasPendingAwaiting?: boolean; activeRun?: unknown }[];
+}, chatId = state.chatId): boolean {
+  const chat = state.chats.find(item => item.chatId === chatId);
+  return Boolean(chat?.canContinue && !chat.hasActiveRun && !chat.activeRun && !chat.hasPendingAwaiting);
 }

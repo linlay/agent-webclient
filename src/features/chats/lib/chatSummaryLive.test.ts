@@ -1,6 +1,7 @@
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { Chat } from "@/features/chats/lib/chatState";
 import {
+  resolveChatCanContinue,
   resolveChatSummaryPendingAwaiting,
   resolveChatSummaryUpdatedAt,
   upsertLiveChatSummary,
@@ -214,4 +215,20 @@ describe('chatSummaryLive helpers', () => {
       owner: { kind: 'orchestrated-team', teamId: 'team_1' },
     });
   });
+});
+
+it.each([
+ ['run.error', undefined, true], ['run.cancel', undefined, true],
+ ['run.complete', 'stop', false], ['run.complete', 'complete', false],
+ ['run.complete', 'error', true], ['run.complete', 'cancel', true],
+ ['run.start', undefined, false], ['request.query', undefined, false],
+ ['awaiting.ask', undefined, false],
+])('projects continuation from %s/%s', (type, finishReason, expected) => {
+ expect(resolveChatCanContinue({type, runId:'r', finishReason} as AgentEvent)).toBe(expected);
+});
+it('does not grant continuation from child, hidden, side-lane or unidentified errors', () => {
+ for (const flags of [{taskId:'child'}, {hidden:true}, {lane:'btw'}, {lane:'explain'}]) {
+  expect(resolveChatCanContinue({type:'run.error',runId:'r',...flags} as AgentEvent)).toBeUndefined();
+ }
+ expect(resolveChatCanContinue({type:'run.error'} as AgentEvent)).toBe(false);
 });

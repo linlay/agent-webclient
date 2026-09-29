@@ -209,6 +209,7 @@ export function buildLoadedChatSummary(
     ...(updatedAt !== undefined ? { updatedAt } : {}),
     lastRunId: String(data.lastRunId || "").trim() || undefined,
     lastRunContent: String(data.lastRunContent || "").trim() || undefined,
+    canContinue: data.canContinue === true,
     ...(read ? { read } : {}),
   };
 }

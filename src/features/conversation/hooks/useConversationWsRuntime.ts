@@ -16,6 +16,7 @@ import {
 import { markDebugEventHidden } from "@/features/events/lib/debugEventDisplay";
 import { resolveChatSummaryActiveRun } from "@/features/chats/lib/chatRunState";
 import {
+	resolveChatCanContinue,
 	resolveChatSummaryPendingAwaiting,
 	resolveChatSummaryUpdatedAt,
 } from "@/features/chats/lib/chatSummaryLive";
@@ -140,6 +141,8 @@ function toChatPatchFromPushEvent(
 			? {}
 			: { updatedAt: resolveChatSummaryUpdatedAt(event) }),
 	};
+	const canContinue = resolveChatCanContinue(event);
+	if (canContinue !== undefined) chatPatch.canContinue = canContinue;
 	const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
 	if (hasPendingAwaiting !== undefined) {
 		chatPatch.hasPendingAwaiting = hasPendingAwaiting;

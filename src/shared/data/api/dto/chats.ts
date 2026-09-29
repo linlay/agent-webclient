@@ -96,6 +96,7 @@ export interface ChatSummaryResponse {
   updatedAt?: number;
   lastRunId?: string;
   lastRunContent?: string;
+  canContinue?: boolean;
   read?: {
     isRead?: boolean;
     readAt?: number;
