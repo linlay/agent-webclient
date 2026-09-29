@@ -1,0 +1,6 @@
+.filters { display: flex; flex-wrap: wrap; flex-shrink: 0; gap: 4px; padding: 4px 6px 8px; }
+.filter { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 9px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-muted); font: inherit; font-size: 12px; line-height: 20px; cursor: pointer; }
+.filter:hover { background: var(--bg-hover); color: var(--text-main); }
+.filter[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-electric); }
+.filter:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
+.count { font-size: 11px; font-variant-numeric: tabular-nums; opacity: .7; }

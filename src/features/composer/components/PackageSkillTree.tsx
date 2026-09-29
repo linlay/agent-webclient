@@ -13,13 +13,16 @@ interface Props {
   selectedKeys: readonly string[];
   lockedKeys?: readonly string[];
   disabled?: boolean;
+  pinned?: boolean;
+  pinsDisabled?: boolean;
   search?: string;
   defaultExpanded?: boolean;
   onSelect: (skills: AgentSkill[], selected: boolean) => void;
+  onTogglePin?: (packageId: string) => void;
 }
 
 /** Parent and member selection share concrete skill keys without visible checkboxes. */
-export function PackageSkillTree({ pkg, skills, selectedKeys, lockedKeys = [], disabled, search = "", defaultExpanded = false, onSelect }: Props) {
+export function PackageSkillTree({ pkg, skills, selectedKeys, lockedKeys = [], disabled, pinned = false, pinsDisabled, search = "", defaultExpanded = false, onSelect, onTogglePin }: Props) {
   const { t } = useI18n();
   const members = packageMembers(pkg, skills);
   const selected = new Set(selectedKeys.map(skillIdentity));
@@ -51,6 +54,13 @@ export function PackageSkillTree({ pkg, skills, selectedKeys, lockedKeys = [], d
         onClick={event => { event.preventDefault(); event.stopPropagation(); onSelect(members, !allSelected); }}>
         {t(allSelected ? "packageComposer.clear" : "packageComposer.all")}
       </button>
+      {onTogglePin && <button type="button" className={styles.pin}
+        aria-label={t(pinned ? "composer.addMenu.skill.unpin" : "composer.addMenu.skill.pin", { name: skillPackageDisplayName(pkg) })}
+        aria-pressed={pinned} disabled={pinsDisabled}
+        onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }}
+        onClick={event => { event.preventDefault(); event.stopPropagation(); onTogglePin(pkg.id); }}>
+        <MaterialIcon name="push_pin" className={styles.pinIcon} />
+      </button>}
     </summary>
     {!complete && <div role="status" className={styles.notice}>{t("packageComposer.incomplete")}</div>}
     <div className={styles.members}>

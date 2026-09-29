@@ -25,10 +25,14 @@
 .header[data-selection="all"] { background: color-mix(in srgb, var(--accent-electric) 13%, transparent); }
 .bulk { flex: none; padding: 4px 6px; border: 0; border-radius: 4px; color: var(--ink-muted); background: transparent; font: inherit; font-size: 11px; cursor: pointer; }
 .bulk:hover:not(:disabled) { color: var(--accent-electric); background: var(--bg-hover); }
-.bulk:disabled, .member:disabled { cursor: default; opacity: .5; }
+.pin { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 4px; color: var(--ink-muted); background: transparent; cursor: pointer; }
+.pin:hover:not(:disabled) { color: var(--accent-electric); background: var(--bg-hover); }
+.pin[aria-pressed="true"] { color: var(--accent-electric); background: color-mix(in srgb, var(--accent-electric) 10%, transparent); }
+.pinIcon { width: 14px; height: 14px; }
+.bulk:disabled, .member:disabled, .pin:disabled { cursor: default; opacity: .5; }
 .member { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
 .member[aria-pressed="true"] { background: color-mix(in srgb, var(--accent-electric) 15%, transparent); }
 .member[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--accent-electric) 20%, transparent); }
 .memberCopy { width: 100%; }
 .memberCopy > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.bulk:focus-visible, .member:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
+.bulk:focus-visible, .member:focus-visible, .pin:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }

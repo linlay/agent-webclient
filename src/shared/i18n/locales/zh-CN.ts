@@ -2,6 +2,7 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "skillCatalog.kindFilter": "技能类型筛选",
   "skillPackageEditor.editManifest": "编辑 package.json",
   "skillPackageEditor.manifestHint": "编辑技能包自身信息。name 不可修改；成员从包内技能目录自动读取，无需填写 skills。",
   "skillPackageEditor.manifestInvalid": "请保留原 name，且不要在 package.json 中填写 skills 成员清单。",

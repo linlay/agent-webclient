@@ -56,13 +56,22 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
-import { sortPinnedItems } from "@/features/catalog-order/lib/pinnedOrder";
+import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
+import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/lib/skillCatalogView";
 import { requestSkillDeletion } from "@/features/skills/lib/skillDeletion";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import "./SkillConsole.module.css";
 
 type StatusFilter = "all" | AdminSkillStatus;
+type SkillCatalogRow =
+  | {
+      kind: "package";
+      key: string;
+      label: string;
+      group: ReturnType<typeof groupAdminSkills>["packages"][number];
+    }
+  | { kind: "standalone"; key: string; label: string; skill: AdminSkillSummary };
 
 function adminSourceToSkillTextFile(
   source: AdminSourceResponse,
@@ -256,8 +265,6 @@ const SKILL_LIST_ITEM_META_CLASS_NAME =
   "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
 const SKILL_LIST_ITEM_WRAP_CLASS_NAME =
   "skill-console-list-item-wrap tw:group tw:relative tw:min-w-0";
-const SKILL_LIST_HEADER_CLASS_NAME =
-  "skill-console-list-header tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-medium tw:leading-none tw:text-ink-muted tw:sticky tw:top-0 tw:bg-[var(--management-page-surface)] tw:z-10";
 const SKILL_LIST_ITEM_MORE_CLASS_NAME =
   "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-has-[:focus-visible]:opacity-100 tw:group-has-[:focus-visible]:pointer-events-auto";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
@@ -1676,6 +1683,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   });
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [kindFilter, setKindFilter] = useState<SkillKindFilter>(null);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
   // 左侧 skill 列表列宽；拖拽手柄在列表右缘，向右拖变宽
@@ -1729,10 +1737,18 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const isFileDirty = dirtyFiles.has(selectedFilePath);
 
   const groupedSkills = useMemo(() => groupAdminSkills(
-    sortPinnedItems(skills, pinnedSkillKeys, (item) => item.key), packages, searchText, statusFilter,
-  ), [skills, packages, searchText, statusFilter, pinnedSkillKeys]);
-  const pinnedStandaloneSkills = groupedSkills.standalone.filter(skill => pinnedSkillKeys.includes(skill.key.toLowerCase()));
-  const unpinnedStandaloneSkills = groupedSkills.standalone.filter(skill => !pinnedSkillKeys.includes(skill.key.toLowerCase()));
+    skills, packages, searchText, statusFilter,
+  ), [skills, packages, searchText, statusFilter]);
+  const catalogRows = useMemo(() => orderSkillCatalogItems<SkillCatalogRow>([
+    ...groupedSkills.packages.map((group): SkillCatalogRow => ({
+      kind: "package", key: group.pack.id, label: skillPackageDisplayName(group.pack), group,
+    })),
+    ...groupedSkills.standalone.map((skill): SkillCatalogRow => ({
+      kind: "standalone", key: skill.key, label: skillDisplayName(skill), skill,
+    })),
+  ], pinnedSkillKeys, locale).filter((row) => kindFilter === null || row.kind === kindFilter),
+  [groupedSkills, pinnedSkillKeys, locale, kindFilter]);
+  const hasListFilter = Boolean(searchText.trim()) || statusFilter !== "all" || kindFilter !== null;
   const selectedPackage = packages.find((pack) => pack.id === selectedPackageId);
   const selectedSkillPackage = packages.find((pack) => pack.skills.some((member) => member.id === selectedSkillKey));
 
@@ -2506,6 +2522,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       setDirtyFiles(new Set());
       setSearchText("");
       setStatusFilter("all");
+      setKindFilter(null);
       notification.success({
         message: t("skillConsole.import.packageSuccess", {
           name: skillPackageDisplayName(installed),
@@ -2549,7 +2566,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const renderSkillItem = (item: AdminSkillSummary) => {
     const itemPinned = pinnedSkillKeys.includes(item.key.toLowerCase());
     return (
-      <div key={item.key} className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}>
+      <div key={`skill:${item.key}`} className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}>
         <button
           type="button"
           className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
@@ -2688,6 +2705,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               onConversation={async () => { if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill" }); }} />
           </div>
 
+          <SkillKindFilters
+            value={kindFilter}
+            onChange={setKindFilter}
+            packageCount={groupedSkills.packages.length}
+            standaloneCount={groupedSkills.standalone.length}
+          />
+
           {pinError && (
             <div role="alert" className="tw:text-xs tw:text-danger">
               {t("composer.addMenu.skill.pinFailed")}
@@ -2709,38 +2733,50 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 <UiButton size="sm" variant="ghost" onClick={() => void loadSkills()}>{t("skillPackageEditor.retry")}</UiButton>
               </div>}
               <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
-                {pinnedStandaloneSkills.length > 0 && <div className={SKILL_LIST_HEADER_CLASS_NAME}>{t("packageComposer.pinned")} {pinnedStandaloneSkills.length}</div>}
-                {pinnedStandaloneSkills.map(renderSkillItem)}
-                {groupedSkills.packages.length > 0 && <div className={SKILL_LIST_HEADER_CLASS_NAME}>{t("skillPackageEditor.packages")} {packages.length}</div>}
-                {groupedSkills.packages.map(({ pack, members }) => {
+                {catalogRows.map((row) => {
+                  if (row.kind === "standalone") return renderSkillItem(row.skill);
+                  const { pack, members } = row.group;
                   const expanded = expandedPackages.has(pack.id) || Boolean(searchText.trim());
-                  return <div key={pack.id}>
-                    <button type="button" className="skill-package-folder" aria-expanded={expanded} aria-current={selectedPackageId === pack.id} disabled={deletingSkill} onClick={() => {
-                      const select = () => {
-                        ++loadSeqRef.current;
-                        setDetailLoading(false);
-                        setDirtyFiles(new Set());
-                        setSelectedPackageId(pack.id);
-                        setExpandedPackages((prev) => toggleSkillExpandedDir(prev, pack.id));
-                      };
-                      if (dirtyFiles.size) modal.confirm({ title: t("skillConsole.confirm.switchSkill"), onOk: select });
-                      else select();
-                    }}>
-                      <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
-                      <MaterialIcon name="folder" />
-                      <strong>{skillPackageDisplayName(pack)}</strong><span>{pack.skills.length}</span>
-                    </button>
+                  const packagePinned = pinnedSkillKeys.includes(pack.id.trim().toLowerCase());
+                  return <div key={`package:${pack.id}`}>
+                    <div className="skill-package-row tw:flex tw:items-center tw:gap-1 tw:pr-2" data-selected={selectedPackageId === pack.id}>
+                      <button type="button" className="skill-package-folder tw:min-w-0 tw:flex-1" aria-expanded={expanded} aria-current={selectedPackageId === pack.id} disabled={deletingSkill} onClick={() => {
+                        const select = () => {
+                          ++loadSeqRef.current;
+                          setDetailLoading(false);
+                          setDirtyFiles(new Set());
+                          setSelectedPackageId(pack.id);
+                          setExpandedPackages((prev) => toggleSkillExpandedDir(prev, pack.id));
+                        };
+                        if (dirtyFiles.size) modal.confirm({ title: t("skillConsole.confirm.switchSkill"), onOk: select });
+                        else select();
+                      }}>
+                        <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+                        <MaterialIcon name="folder" />
+                        <strong>{skillPackageDisplayName(pack)}</strong><span>{pack.skills.length}</span>
+                      </button>
+                      <UiButton size="sm" variant="ghost" iconOnly
+                        className="skill-package-pin tw:flex-none"
+                        aria-label={t(packagePinned ? "composer.addMenu.skill.unpin" : "composer.addMenu.skill.pin", { name: skillPackageDisplayName(pack) })}
+                        aria-pressed={packagePinned} disabled={pinsDisabled || deletingSkill}
+                        onMouseDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void toggleSkillPin(pack.id);
+                        }}>
+                        <MaterialIcon name="push_pin" />
+                      </UiButton>
+                    </div>
                     {expanded && <div className="skill-package-members">{members.map(({ id, skill }) => skill
                       ? renderSkillItem(skill)
                       : <div key={id} className="skill-package-missing">{id} · {t("skillPackageEditor.missing")}</div>)}</div>}
                   </div>;
                 })}
-                {unpinnedStandaloneSkills.length > 0 && <div className={SKILL_LIST_HEADER_CLASS_NAME}>{t("skillPackageEditor.standalone")} {unpinnedStandaloneSkills.length}</div>}
-                {unpinnedStandaloneSkills.map(renderSkillItem)}
                 {packageError && skills.some((skill) => skill.packageId && !packages.some((pack) => pack.id === skill.packageId)) && <div className="skill-package-missing">{t("skillPackageEditor.unavailable")}</div>}
-                {!groupedSkills.packages.length && !groupedSkills.standalone.length && !packageError && <div className="command-empty-state">
-                  {searchText ? t("skillConsole.message.noMatch") : t("skillConsole.empty")}
-                  {!searchText && <UiButton size="sm" variant="primary" disabled={deletingSkill} onClick={() => setCreateModalOpen(true)}>{t("skillConsole.action.createSkill")}</UiButton>}
+                {!catalogRows.length && !packageError && <div className="command-empty-state">
+                  {hasListFilter ? t("skillConsole.message.noMatch") : t("skillConsole.empty")}
+                  {!hasListFilter && <UiButton size="sm" variant="primary" disabled={deletingSkill} onClick={() => setCreateModalOpen(true)}>{t("skillConsole.action.createSkill")}</UiButton>}
                 </div>}
               </div>
             </Spin>

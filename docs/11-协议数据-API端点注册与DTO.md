@@ -87,6 +87,8 @@ Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契�
 Git 快照增加可选 `revision`，仅有效分支/游离 HEAD 返回。`project.git.branches` 为同域 auto `/api/project/git/branches`（Platform WS / Gateway HTTP GET），响应 `{git,branches,canChange,blockedReason?,expectedBranch?}`；`project.git.branchChange` 为同路径 auto 写入（Platform WS / Gateway HTTP POST），请求 `{agentKey,operation,branch,expectedRevision}`，成功返回最新 Git 快照。WS 读取 payload 为 `{agentKey}`，存在任一写入字段时由 Platform 按 mutation 校验，与 HTTP 复用领域服务及错误语义。写入不设置 UI AbortSignal，也不自动重试或回退 HTTP；超时或连接中断后先刷新确认实际状态。
 
 
-## 技能包分组管理
+## 技能目录与技能包管理
 
 技能中心并行请求 `/api/admin/skills` 和 `/api/admin/skill-packages`，以包目录扫描结果及技能的 `packageId` 展示文件夹。独立技能 key 为 `skill`，包成员 key 为 `package/skill`，同短名两者独立选择、编辑、导入更新和删除，前端不得按 name 合并。包列表加载失败时独立显示可重试错误，已知包成员不降级为独立技能。点击包行展开成员并打开概览；概览允许编辑 `package.json`，通过 GET/PUT `/api/admin/skill-packages/manifest` 读取与保存 `{content,sha256}`，保存带 `{key,content,baseSha256}`，冲突保留草稿；name 不可修改，不维护 skills 清单。缺少 displayName 回退 name，缺少版本不显示。搜索成员保留父包并自动展开。成员继续使用原技能详情及文件接口编辑，切换包和技能沿用未保存修改确认。包内成员通过 `POST /api/admin/skill-packages/skills/delete` 删除，整包通过 `POST /api/admin/skill-packages/delete` 卸载，均接受 Platform 引用保护，成功后同时刷新两份目录。
+
+技能中心与 Composer 的顶层目录使用同一混合列表规则：技能包与独立技能共用用户置顶顺序，置顶项排在最前，其余技能包和独立技能按显示名称一起排序，不显示置顶、技能包或独立技能分区标题。包置顶使用包 ID，独立技能使用技能 key，仍通过 `PUT /api/skills {key,pinned}` 更新同一置顶序列；包作为整体移动，成员的 `package/skill` 置顶键不会提升所属包。包行置顶按钮只切换置顶状态，不触发展开、选择或文件编辑切换。技能包保留折叠展开层级，包成员只出现在所属包内。搜索框下方提供“技能包”和“独立技能”两个互斥的切换按钮，默认都不选中并显示全部，再次点击已选按钮恢复全部。类型筛选与现有搜索、状态条件取交集，按钮数量按当前搜索与状态条件统计，在类型筛选之前计算。筛选只改变列表可见项，不清空当前选择或编辑草稿，也不改写服务端目录和置顶存储。

@@ -42,8 +42,14 @@
     }
 }
 
-:global(.skill-package-folder) { display:flex; width:100%; align-items:center; gap:8px; min-height:44px; padding:10px 12px; border:0; border-radius:8px; background:transparent; color:var(--text-main); text-align:left; cursor:pointer; }
-:global(.skill-package-folder:hover), :global(.skill-package-folder[aria-current="true"]) { background:var(--bg-hover); }
+:global(.skill-package-folder) { display:flex; width:100%; align-items:center; gap:8px; min-height:44px; padding:10px 12px; border:0; border-radius:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+:global(.skill-package-row) { color:var(--text-main); }
+:global(.skill-package-row:hover) { background:var(--bg-hover); }
+:global(.skill-package-row[data-selected="true"]) { background:var(--bg-selected); color:var(--nav-selected-text); }
+:global(.skill-package-row) :global(.skill-package-pin.ui-btn.ui-btn-ghost),
+:global(.skill-package-row) :global(.skill-package-pin.ui-btn.ui-btn-ghost):is(:hover, :active, :focus-visible, :disabled) { background:transparent; box-shadow:none; }
+:global(.skill-package-pin[aria-pressed="true"]) { color:var(--accent-electric); }
+:global(.skill-package-pin) :global(.material-icon) { width:14px; height:14px; }
 :global(.skill-package-folder > strong) { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; }
 :global(.skill-package-members) { margin:2px 4px 8px 20px; padding-left:6px; }
 :global(.skill-package-missing) { padding:10px; color:var(--ink-muted); font-size:12px; }

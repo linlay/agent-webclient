@@ -20,7 +20,8 @@ import { AgentConnectorPicker } from "@/features/connectors/components/AgentConn
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { PackageSkillTree } from "./PackageSkillTree";
 import { packageMembers, skillIdentity } from "../lib/skillPackages";
-import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
+import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
+import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/lib/skillCatalogView";
 
 type Section = "files" | "skills" | "connectors" | "chat" | "site";
 export interface AddMenuTriggerProps {
@@ -110,10 +111,12 @@ const AddMenuSectionDetail: React.FC<
     onClose: () => void;
     search: string;
     onSearchChange: (value: string) => void;
+    onInteract?: () => void;
   }
 > = (props) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { section, search, onSearchChange } = props;
+  const [kindFilter, setKindFilter] = useState<SkillKindFilter>(null);
   const searchRef = useRef<InputRef>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [sites, setSites] = useState<DesktopWebEntry[]>([]);
@@ -137,12 +140,14 @@ const AddMenuSectionDetail: React.FC<
   const memberKeys = new Set(packages.flatMap(pkg => pkg.skills.map(member => skillIdentity(member.id))));
   const filteredPackages = packages.filter(pkg => matchKeyword(skillPackageDisplayName(pkg), pkg.id, ...(pkg.missingSkillIds || []),
     ...packageMembers(pkg, skills).flatMap(skill => [skillDisplayName(skill), skill.key, skill.description || ""])));
-  const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter(skill => !memberKeys.has(skillIdentity(skill.key))).filter(
+  const filteredSkills = skills.filter(skill => !memberKeys.has(skillIdentity(skill.key))).filter(
     (skill) =>
       matchKeyword(skillDisplayName(skill), skill.key, skill.description || ""),
   );
-  const pinnedStandalone = filteredSkills.filter(skill => pinnedSkillKeys.includes(skillIdentity(skill.key)));
-  const unpinnedStandalone = filteredSkills.filter(skill => !pinnedSkillKeys.includes(skillIdentity(skill.key)));
+  const catalogItems = orderSkillCatalogItems([
+    ...filteredPackages.map(pkg => ({ kind: "package" as const, key: pkg.id, label: skillPackageDisplayName(pkg), pkg })),
+    ...filteredSkills.map(skill => ({ kind: "standalone" as const, key: skill.key, label: skillDisplayName(skill), skill })),
+  ], pinnedSkillKeys, locale).filter(item => !kindFilter || item.kind === kindFilter);
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
   );
@@ -279,6 +284,15 @@ const AddMenuSectionDetail: React.FC<
   return (
     <div
       className="composer-add-menu-detail"
+      data-section={section}
+      onPointerDownCapture={section === "skills" ? props.onInteract : undefined}
+      onFocusCapture={section === "skills" ? props.onInteract : undefined}
+      onKeyDown={event => {
+        if (section === "skills" && event.key === "Escape") {
+          event.stopPropagation();
+          props.onClose();
+        }
+      }}
       style={{ width: `min(${detailWidth}px, calc(100vw - 24px))` }}
     >
       {searchable && (
@@ -292,6 +306,8 @@ const AddMenuSectionDetail: React.FC<
           style={{ marginBottom: 10 }}
         />
       )}
+      {section === "skills" && <SkillKindFilters value={kindFilter} onChange={setKindFilter}
+        packageCount={filteredPackages.length} standaloneCount={filteredSkills.length} />}
       {section === "connectors" && (
         <AgentConnectorPicker
           key={props.currentAgentKey}
@@ -333,15 +349,14 @@ const AddMenuSectionDetail: React.FC<
               </UiButton>
             </div>
           )}
-          {pinnedStandalone.length > 0 && <div className="composer-skill-group-label">{t("packageComposer.pinned")}</div>}
-          {pinnedStandalone.map(renderSkill)}
-          {filteredPackages.length > 0 && <div className="composer-skill-group-label">{t("packageComposer.packages")}</div>}
-          {filteredPackages.map(pkg => <PackageSkillTree key={pkg.id} pkg={pkg} skills={skills}
-            selectedKeys={props.selectedSkillKeys} lockedKeys={props.lockedSkillKeys} search={search}
-            disabled={props.disabled || props.isMainChatRunning || !props.onSelectSkills}
-            onSelect={(members, selected) => props.onSelectSkills?.(members, selected)} />)}
-          {(packages.length > 0 || pinnedStandalone.length > 0) && unpinnedStandalone.length > 0 && <div className="composer-skill-group-label">{t("packageComposer.standalone")}</div>}
-          {unpinnedStandalone.map(renderSkill)}
+          {catalogItems.map(item => item.kind === "package"
+            ? <PackageSkillTree key={`package:${item.key}`} pkg={item.pkg} skills={skills}
+              pinned={pinnedSkillKeys.includes(skillIdentity(item.pkg.id))} pinsDisabled={pinsDisabled}
+              onTogglePin={packageId => { void toggleSkillPin(packageId); }}
+              selectedKeys={props.selectedSkillKeys} lockedKeys={props.lockedSkillKeys} search={search}
+              disabled={props.disabled || props.isMainChatRunning || !props.onSelectSkills}
+              onSelect={(members, selected) => props.onSelectSkills?.(members, selected)} />
+            : renderSkill(item.skill))}
           {skillQuery.status === "loading" && (
             <div className="composer-add-menu-status">
               {t("slashPalette.skills.loading")}
@@ -371,8 +386,8 @@ const AddMenuSectionDetail: React.FC<
             </div>
           )}
           {skillQuery.status === "success" &&
-            !!skills.length &&
-            !filteredSkills.length && !filteredPackages.length && (
+            (skills.length > 0 || packages.length > 0) &&
+            !catalogItems.length && (
               <div className="composer-add-menu-status">
                 {t("composer.addMenu.empty")}
               </div>
@@ -458,6 +473,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   const { t } = useI18n();
   const [section, setSection] = useState<Section | null>(null);
   const [search, setSearch] = useState("");
+  const skillPickerInteracting = useRef(false);
   const [compact, setCompact] = useState(
     () => typeof window !== "undefined" && window.innerWidth < 560,
   );
@@ -469,6 +485,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   // 切换面板时重置搜索词，与原先面板销毁重建的行为保持一致
   useEffect(() => {
     setSearch("");
+    skillPickerInteracting.current = false;
   }, [section]);
   // mode / site 在不可用时跳过，分割线条目保持原位
   const navEntries = sectionNav.filter((entry) => {
@@ -598,8 +615,10 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             key={entry}
             open={section === entry}
             onOpenChange={(next) => {
-              // 搜索框有内容时不响应 hover 移出关闭，避免输入中被误关
-              if (!next && search.trim()) return;
+              // Keep an interactive picker open until selection, Escape, another
+              // section or the outer click-away closes it. Filtering must not
+              // turn popup realignment into a mouse-leave dismissal.
+              if (!next && (search.trim() || (entry === "skills" && skillPickerInteracting.current))) return;
               setSection((prev) =>
                 next ? entry : prev === entry ? null : prev,
               );
@@ -615,6 +634,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
               <AddMenuSectionDetail
                 {...props}
                 section={entry}
+                onInteract={() => { skillPickerInteracting.current = true; }}
                 onClose={props.onClose}
                 search={search}
                 onSearchChange={setSearch}

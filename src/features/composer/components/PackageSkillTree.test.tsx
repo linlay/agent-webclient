@@ -40,4 +40,44 @@ describe("PackageSkillTree", () => {
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.disabled).toBe(true);
     expect(container.querySelector("details")!.open).toBe(true);
   });
+  test.each([false, true])("pin button targets the whole package without expanding or selecting it (pinned=%s)", pinned => {
+    const onSelect = jest.fn();
+    const onTogglePin = jest.fn();
+    const onParentClick = jest.fn();
+    act(() => root.render(<div onClick={onParentClick}>
+      <PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word"]} pinned={pinned}
+        onSelect={onSelect} onTogglePin={onTogglePin} />
+    </div>));
+    const action = pinned ? "composer.addMenu.skill.unpin" : "composer.addMenu.skill.pin";
+    const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${action}"]`)!;
+    expect(button.getAttribute("aria-pressed")).toBe(String(pinned));
+    expect(container.querySelector("details")!.open).toBe(false);
+    const click = new MouseEvent("click", {bubbles: true, cancelable: true});
+    act(() => { button.dispatchEvent(click); });
+    expect(click.defaultPrevented).toBe(true);
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+    expect(onTogglePin).toHaveBeenCalledWith("office");
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onParentClick).not.toHaveBeenCalled();
+    expect(container.querySelector("details")!.open).toBe(false);
+    expect(container.querySelector("summary")!.dataset.selection).toBe("partial");
+    expect(container.querySelector("button button")).toBeNull();
+  });
+  test("pin availability is controlled separately from member selection", () => {
+    const onTogglePin = jest.fn();
+    const render = (pinsDisabled: boolean) => act(() => root.render(
+      <PackageSkillTree pkg={pkg} skills={skills} selectedKeys={[]} disabled pinsDisabled={pinsDisabled}
+        onSelect={jest.fn()} onTogglePin={onTogglePin} />,
+    ));
+    render(true);
+    const button = container.querySelector<HTMLButtonElement>('button[aria-label="composer.addMenu.skill.pin"]')!;
+    expect(button.disabled).toBe(true);
+    act(() => button.click());
+    expect(onTogglePin).not.toHaveBeenCalled();
+    render(false);
+    expect(button.disabled).toBe(false);
+    expect(container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.disabled).toBe(true);
+    act(() => button.click());
+    expect(onTogglePin).toHaveBeenCalledWith("office");
+  });
 });

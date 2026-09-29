@@ -527,3 +527,18 @@ html[data-theme="dark"] :global(.query-model-menu-icon):global(.is-monochrome) {
 @media (hover: none) {
     :global(.composer-skill-chip) :global(.composer-skill-chip-remove) { opacity: 1; }
 }
+
+/* A fixed viewport keeps type filters and package expansion under the pointer. */
+:global(.composer-add-menu-detail)[data-section="skills"] {
+    height: min(420px, calc(100dvh - 48px));
+    box-sizing: border-box;
+}
+:global(.composer-add-menu-detail)[data-section="skills"] > :global(.ant-input-affix-wrapper) {
+    flex-shrink: 0;
+}
+:global(.composer-add-menu-detail)[data-section="skills"] > :global(.composer-add-menu-scroll) {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    scrollbar-gutter: stable;
+}

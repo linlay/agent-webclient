@@ -2,6 +2,7 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "skillCatalog.kindFilter": "Filter skill types",
   "skillPackageEditor.editManifest": "Edit package.json",
   "skillPackageEditor.manifestHint": "Edit package metadata. Keep name unchanged; members are scanned from child skill directories, not a skills field.",
   "skillPackageEditor.manifestInvalid": "Keep the original name and omit the skills member list from package.json.",
