@@ -1,5 +1,6 @@
-import { skillDisplayName } from "@/shared/utils/skillDisplayName";
+import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
+import { groupSelectedPackages, setPackageSelection, skillIdentity } from "../lib/skillPackages";
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
 import { hasQueryHistory, hasSendableContent } from "@/features/composer/lib/sendEligibility";
 import React, {
@@ -10,7 +11,7 @@ import React, {
   useState,
 } from "react";
 import type { TextAreaRef } from "antd/es/input/TextArea";
-import { App as AntdApp, Flex } from "antd";
+import { App as AntdApp, Flex, Tooltip } from "antd";
 import {
   useAppContext,
   useAppDispatch,
@@ -75,7 +76,7 @@ import { BrowserSelectionToolbar } from "@/features/selection/components/Browser
 import { BrowserSelectionPanels } from "@/features/composer/components/BrowserSelectionPanels";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
-import { useAgentSkillsQuery } from "@/shared/data/query/queries";
+import { useComposerSkillMenuQuery } from "../hooks/useComposerSkillMenuQuery";
 import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteraction";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
@@ -198,7 +199,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     const forcedIdentities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
     return selectedSkills.filter((skill) => !forcedIdentities.has(skill.key.trim().toLowerCase()));
   }, [forcedSkills, selectedSkills, interactionConfig.mustUseSkills]);
-  const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
+  const skillCatalogQuery = useComposerSkillMenuQuery(currentAgentKey, {
     enabled: Boolean(currentAgentKey && effectiveSkills.length > 0),
   });
   const activeAgentSkills = skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;
@@ -226,6 +227,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       })),
     [activeAgentSkills, effectiveManualSkills],
   );
+
+  const invalidSelectedSkills = !agentExecutionBlocked && skillCatalogQuery.status === "success" && skillCatalogQuery.data?.agentKey === currentAgentKey
+    ? effectiveManualSkills.filter(skill => !activeAgentSkills.some(available => skillIdentity(available.key) === skillIdentity(skill.key)))
+    : [];
+  const hasInvalidSelectedSkills = invalidSelectedSkills.length > 0;
+  const groupedSkills = groupSelectedPackages(skillCatalogQuery.data?.packages || [], displayedManualSkills);
 
   // Restore: 当 state.selectedSkills 被 reducer 更改（SET_CHAT_ID 恢复）时，同步到局部
   useEffect(() => {
@@ -472,6 +479,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     [closeMention, forcedSkills, isMainChatRunning, interactionConfig.mustUseSkills, setSlashDismissed, filterStartIndex],
   );
 
+  const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean) => {
+    if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) return;
+    setSelectedSkills(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.key)));
+  }, [interactionConfig.mustUseSkills, isMainChatRunning, chatTransitionBlocking, forcedSkills]);
+
   const removeSelectedSkill = useCallback((skillKey: string) => {
     const identity = String(skillKey || "")
       .trim()
@@ -671,6 +683,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const handleSend = useCallback(() => {
     if (chatTransitionBlocking) return;
+    if (hasInvalidSelectedSkills) { void message.error(t("packageComposer.invalidSelection")); return; }
     if (!hasStagedAttachments) {
       handleSendImmediately();
       return;
@@ -680,7 +693,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     void uploadStagedAttachments().then((succeeded) => {
       if (!succeeded) deferredSendRequestedRef.current = false;
     });
-  }, [chatTransitionBlocking, handleSendImmediately, hasStagedAttachments, uploadStagedAttachments]);
+  }, [chatTransitionBlocking, handleSendImmediately, hasStagedAttachments, uploadStagedAttachments, hasInvalidSelectedSkills, message, t]);
 
   useEffect(() => {
     if (
@@ -689,8 +702,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       hasUploadingAttachments
     ) return;
     deferredSendRequestedRef.current = false;
+    if (chatTransitionBlocking || hasInvalidSelectedSkills) return;
     handleSendImmediately();
-  }, [handleSendImmediately, hasStagedAttachments, hasUploadingAttachments]);
+  }, [chatTransitionBlocking, handleSendImmediately, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills]);
 
   const handleSelectSlashItem = useCallback(
     (item: SlashPaletteItem) => {
@@ -741,6 +755,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       speechState === "error" ||
       speechState === "unsupported");
   const sendDisabled =
+    hasInvalidSelectedSkills ||
     chatTransitionBlocking ||
     isFrontendActive ||
     isAwaitingActive ||
@@ -982,6 +997,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   variant="annotations"
                   onRemove={removeSelectedFragment}
                 />
+                {hasInvalidSelectedSkills && <div role="alert">
+                  {t("packageComposer.invalidSelection")} {invalidSelectedSkills.map(skill => skill.label).join("、")}
+                  <UiButton variant="ghost" size="sm" onClick={() => {
+                    const ids = new Set(invalidSelectedSkills.map(skill => skillIdentity(skill.key)));
+                    setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.key))));
+                  }}>{t("packageComposer.removeUnavailable")}</UiButton>
+                </div>}
                 <Flex wrap gap={4}>
                   {displayedForcedSkills.map((skill) => (
                     <UiButton
@@ -999,30 +1021,34 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                       </Flex>
                     </UiButton>
                   ))}
-                  {displayedManualSkills.map((skill) => (
-                    <UiButton
-                      key={skill.key.toLowerCase()}
-                      variant="ghost"
-                      className="tw:group tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
-                      size="sm"
-                      onClick={() => openSkillViewer(skill)}
-                    >
-                      <Flex gap={4} align="center">
-                        <MaterialIcon
-                          name="skills"
-                          className="tw:group-hover:hidden tw:text-accent tw:text-[14px]"
-                        />
-                        <MaterialIcon
-                          name="close"
-                          className="tw:hidden tw:group-hover:inline-flex tw:text-text-muted tw:text-[14px]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeSelectedSkill(skill.key);
-                          }}
-                        />
-                        <span className="tw:text-text-sub">{skill.label}</span>
-                      </Flex>
-                    </UiButton>
+                  {groupedSkills.groups.map(({ pkg, members }) => (
+                    <Flex key={`package:${pkg.id}`} align="center" className="composer-skill-chip">
+                      <Tooltip placement="top" trigger={["hover", "focus"]} title={
+                        <div>{members.map(skill => <div key={skill.key}>{skill.label}</div>)}</div>
+                      }>
+                        <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" aria-label={t("packageComposer.members", { name: skillPackageDisplayName(pkg) })}>
+                          <MaterialIcon name="folder" /><span>{skillPackageDisplayName(pkg)} · {members.length}/{new Set([...pkg.skills.map(member => member.id), ...(pkg.missingSkillIds || [])]).size}</span>
+                        </UiButton>
+                      </Tooltip>
+                      <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}
+                        aria-label={t("packageComposer.remove", { name: skillPackageDisplayName(pkg) })}
+                        onClick={() => { const ids = new Set(members.map(skill => skillIdentity(skill.key))); setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.key)))); }}>
+                        <MaterialIcon name="close" />
+                      </UiButton>
+                    </Flex>
+                  ))}
+                  {groupedSkills.standalone.map((skill) => (
+                    <Flex key={skill.key.toLowerCase()} align="center" className="composer-skill-chip">
+                      <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" onClick={() => openSkillViewer(skill)}>
+                        <MaterialIcon name="skills" />
+                        <span>{skill.label}</span>
+                      </UiButton>
+                      <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}
+                        aria-label={t("composer.requiredSkill.remove", { skill: skill.label })}
+                        onClick={() => removeSelectedSkill(skill.key)}>
+                        <MaterialIcon name="close" />
+                      </UiButton>
+                    </Flex>
                   ))}
                 </Flex>
                 <ComposerInput
@@ -1113,6 +1139,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isMainChatRunning={isMainChatRunning}
                   selectedSkillKeys={effectiveSkills.map((skill) => skill.key)}
                   onSelectSkill={handleSelectSlashSkill}
+                  onSelectSkills={handleSelectPackageSkills}
+                  lockedSkillKeys={forcedSkills.map(skill => skill.key)}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { I18nProvider } from "@/shared/i18n";
 import { createInitialState } from "@/app/state/state";
 import { AppShell } from "@/app/layout/AppShell";
 import {
@@ -283,7 +284,10 @@ describe("AgentChatShell", () => {
       skillKey: "skill-creator",
     });
     expect(parseComposerPrefillPayload(new URLSearchParams(
-      "composerDraft=Create+a+Skill&composerSkill=bad%2Fkey",
+      "composerDraft=Use+meeting&composerSkill=wecom%2Fmeeting",
+    ))).toEqual({ draft: "Use meeting", skillKey: "wecom/meeting" });
+    expect(parseComposerPrefillPayload(new URLSearchParams(
+      "composerDraft=Create+a+Skill&composerSkill=bad%2F..%2Fkey",
     ))).toBeNull();
     expect(parseComposerPrefillPayload(new URLSearchParams(
       "composerDraft=Create+a+Skill",
@@ -373,7 +377,7 @@ describe("AgentChatShell", () => {
   });
 
   it("renders a loading page while the route agent is not ready", () => {
-    const html = renderToStaticMarkup(React.createElement(AgentChatShell));
+    const html = renderToStaticMarkup(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false }, React.createElement(AgentChatShell)));
 
     expect(html).toContain("agent-route-loading-page");
     expect(html).toContain("正在加载智能体");

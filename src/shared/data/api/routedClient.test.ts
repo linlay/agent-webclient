@@ -147,6 +147,30 @@ describe("routedClient capability routing", () => {
 		expect(mockRequestPlatformData).toHaveBeenCalledTimes(3);
 	});
 
+	it("scopes skill presentation and cached concurrent reads to the requesting UI locale", async () => {
+		const { configureI18nRuntime } = await import("@/shared/i18n/runtime");
+		const routed = await import("./routedClient");
+		let finishChinese!: (value: ReturnType<typeof ok>) => void;
+		mockRequestPlatformData.mockImplementation((_type, payload) => payload.locale === "zh-CN"
+			? new Promise(resolve => { finishChinese = resolve; })
+			: Promise.resolve(ok({ agentKey: "one", pinned: [], skills: [{ key: "office/word", displayName: "Word" }] })));
+		configureI18nRuntime({ locale: "zh-CN" });
+		const chinese = routed.getAgentSkills("one");
+		await Promise.resolve();
+		configureI18nRuntime({ locale: "en-US" });
+		const english = await routed.getAgentSkills("one");
+		expect(english.data.skills[0].displayName).toBe("Word");
+		finishChinese(ok({ agentKey: "one", pinned: [], skills: [{ key: "office/word", displayName: "文档" }] }));
+		await chinese;
+		expect((await routed.getAgentSkills("one")).data.skills[0].displayName).toBe("Word");
+		expect(mockRequestPlatformData).toHaveBeenCalledTimes(2);
+		expect(mockRequestPlatformData).toHaveBeenNthCalledWith(1, "/api/skills", { agentKey: "one", locale: "zh-CN" });
+		expect(mockRequestPlatformData).toHaveBeenNthCalledWith(2, "/api/skills", { agentKey: "one", locale: "en-US" });
+		await routed.putAgentSkillPin({ key: "office/word", pinned: true });
+		expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/skills", { key: "office/word", pinned: true, locale: "en-US" });
+		expect(mockRequestPlatformData.mock.calls.some(([type]) => type === "/api/locale")).toBe(false);
+	});
+
 	it("routes agent detail over WS with cached request dedupe", async () => {
 		mockRequestPlatformData.mockResolvedValue(ok({ key: "demo-agent" }));
 		const routed = await import("./routedClient");

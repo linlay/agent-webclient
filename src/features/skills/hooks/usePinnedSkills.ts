@@ -5,6 +5,7 @@ import { getBackendMode } from "@/shared/config/backendMode";
 import { createDataCacheKey } from "@/shared/data/api/endpointRegistry";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { dataQueryCache, useDataQuery } from "@/shared/data/query/serverState";
+import { useI18n } from "@/shared/i18n";
 
 const EMPTY_KEYS: readonly string[] = [];
 const TTL_MS = 30_000;
@@ -30,12 +31,13 @@ async function publishPins(key: string, pinned: string[]) {
 
 /** One remote read supplies both the global catalog and user pins. */
 export function usePinnedSkills(enabled: boolean, agentKey = "") {
+  const { locale } = useI18n();
   const revision = currentSessionRevision();
   const normalizedAgentKey = agentKey.trim();
   const endpoint = useMemo(() => ({
     ...dataEndpoints.agentSkills,
-    key: `skills.catalog:${revision}`,
-  }), [revision]);
+    key: `skills.catalog:${revision}:${locale}`,
+  }), [revision, locale]);
   // A shared in-memory projection, populated by catalog reads and pin writes only.
   const pinsEndpoint = useMemo(() => ({ ...dataEndpoints.agentSkills, key: `skills.pins:${revision}` }), [revision]);
   const pinsCacheKey = createDataCacheKey(pinsEndpoint, "");

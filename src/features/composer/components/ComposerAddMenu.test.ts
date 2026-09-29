@@ -2,20 +2,24 @@
 
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { Simulate } from "react-dom/test-utils";
 import {
   AddMenuTrigger,
   type AddMenuTriggerProps,
 } from "@/features/composer/components/ComposerAddMenu";
 
 jest.mock("@/shared/i18n", () => ({
-  useI18n: () => ({ t: (key: string) => key }),
+  useI18n: () => ({ t: (key: string) => key, locale: "en-US" }),
 }));
+
+let mockSkillData: any = { skills: [] };
+let mockPinnedSkillKeys: string[] = [];
 
 jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
   useComposerSkillMenuQuery: () => ({
-    pinnedSkillKeys: [], toggleSkillPin: jest.fn(), pinsDisabled: false, pinError: null, refreshPins: jest.fn(),
+    pinnedSkillKeys: mockPinnedSkillKeys, toggleSkillPin: jest.fn(), pinsDisabled: false, pinError: null, refreshPins: jest.fn(),
     status: "success",
-    data: { skills: [] },
+    data: mockSkillData,
     error: null,
     refetch: jest.fn(),
   }),
@@ -30,10 +34,10 @@ jest.mock("antd", () => {
   const actual = jest.requireActual("antd");
   return {
     ...actual,
-    Popover: ({ children, content, open, onOpenChange }: any) =>
+    Popover: ({ children, content, open, onOpenChange, trigger }: any) =>
       React.createElement(
         "div",
-        null,
+        { "data-popover-trigger": Array.isArray(trigger) ? trigger.join(",") : trigger, onMouseLeave: () => onOpenChange?.(false) },
         React.cloneElement(children, {
           onClick: (event: React.MouseEvent) => {
             children.props.onClick?.(event);
@@ -55,6 +59,8 @@ describe("AddMenuTrigger", () => {
   });
 
   beforeEach(() => {
+    mockSkillData = { skills: [] };
+    mockPinnedSkillKeys = [];
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -189,4 +195,112 @@ describe("AddMenuTrigger", () => {
     render();
     expect(container.querySelector('[role="menu"]')).toBeNull();
   });
+  it("groups package members under a tree without duplicate standalone rows", () => {
+    mockSkillData = {
+      skills: [{ key: "word", name: "Word", configured: false }, { key: "other", name: "Other", configured: false }],
+      packages: [{ id: "office", name: "Office", version: "1", skills: [{ id: "word" }], missingSkillIds: [], status: "ready" }],
+    };
+    props.onSelectSkills = jest.fn();
+    render();
+    openMenu();
+    const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => section.click());
+    expect(container.querySelector("summary")?.textContent).toContain("Office");
+    const standalone = [...container.querySelectorAll(".composer-add-menu-skill-row")].map(row => row.textContent);
+    expect(standalone).toHaveLength(1);
+    expect(standalone[0]).toContain("Other");
+    expect(standalone[0]).not.toContain("Word");
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.click());
+    expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]], true);
+  });
+
+  it("keeps pinned skills first in the mixed list and sorts unpinned items by name", () => {
+    mockSkillData = {
+      skills: [
+        { key: "first", displayName: "First", configured: false },
+        { key: "latest", displayName: "Latest", configured: false },
+        { key: "office/first", displayName: "Package member", configured: false },
+      ],
+      packages: [{ id: "office", displayName: "Office", skills: [{ id: "office/first" }], status: "ready" }],
+    };
+    mockPinnedSkillKeys = ["latest", "first", "office/first"];
+    render(); openMenu();
+    const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => section.click());
+    const rows = () => [...container.querySelectorAll('.composer-add-menu-skill-row, summary')].map(row => row.textContent);
+    expect(rows()[0]).toContain("Latest");
+    expect(rows()[1]).toContain("First");
+    expect(rows()[2]).toContain("Office");
+    expect(container.querySelectorAll('.composer-add-menu-skill-row')).toHaveLength(2);
+    mockPinnedSkillKeys = ["latest"];
+    render();
+    expect(rows()[0]).toContain("Latest");
+    expect(rows()[1]).toContain("First");
+    expect(rows()[2]).toContain("Office");
+  });
+
+  it("filters one mixed list by type and restores all when the active filter is cleared", () => {
+    mockSkillData = {
+      skills: [
+        {key:"solo",displayName:"Alpha",configured:false},
+        {key:"office/member",displayName:"Member",configured:false},
+      ],
+      packages: [{id:"office",displayName:"Office",skills:[{id:"office/member"}],status:"ready"}],
+    };
+    props.selectedSkillKeys = ["solo", "office/member"];
+    props.onSelectSkills = jest.fn();
+    render(); openMenu();
+    const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button=>button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(()=>section.click());
+    const filter = (kind: string) => container.querySelector<HTMLButtonElement>(`[data-skill-kind="${kind}"]`)!;
+    const entries = () => [...container.querySelectorAll('.composer-add-menu-skill-row, summary')];
+    expect(entries()).toHaveLength(2);
+    expect(entries()[0].textContent).toContain('Alpha');
+    expect(container.querySelector('.composer-skill-group-label')).toBeNull();
+    expect(filter('package').getAttribute('aria-pressed')).toBe('false');
+    expect(filter('standalone').getAttribute('aria-pressed')).toBe('false');
+    act(()=>filter('package').click());
+    expect(entries()).toHaveLength(1); expect(entries()[0].tagName).toBe('SUMMARY');
+    act(()=>filter('standalone').click());
+    expect(filter('package').getAttribute('aria-pressed')).toBe('false');
+    expect(entries()).toHaveLength(1); expect(entries()[0].textContent).toContain('Alpha');
+    act(()=>filter('standalone').click());
+    expect(entries()).toHaveLength(2);
+    const input=container.querySelector<HTMLInputElement>('input[placeholder="composer.addMenu.search.skills"]')!;
+    act(()=>Simulate.change(input,{target:{value:'Member'}} as any));
+    expect(entries()).toHaveLength(1); expect(entries()[0].tagName).toBe('SUMMARY');
+    act(()=>filter('standalone').click());
+    expect(entries()).toHaveLength(0);
+    expect(container.textContent).toContain('composer.addMenu.empty');
+    expect(props.onSelectSkills).not.toHaveBeenCalled();
+    expect(props.onSelectSkill).not.toHaveBeenCalled();
+  });
+
+  it("keeps the skill picker open after filtering and mouse leave, then closes with Escape", () => {
+    mockSkillData = {
+      skills: [{key:"office/member",displayName:"Member",configured:false}],
+      packages: [{id:"office",displayName:"Office",skills:[{id:"office/member"}],status:"ready"}],
+    };
+    props.onSelectSkills = jest.fn();
+    render(); openMenu();
+    const nav = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button=>button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(()=>nav.click());
+    const filter=container.querySelector<HTMLButtonElement>('[data-skill-kind="package"]')!;
+    act(()=>{ Simulate.pointerDown(filter); filter.click(); });
+    const submenu=nav.closest('[data-popover-trigger="hover,click"]')!;
+    act(()=>Simulate.mouseLeave(submenu));
+    expect(container.querySelector('[data-skill-kind="package"]')?.getAttribute('aria-pressed')).toBe('true');
+    const summary=container.querySelector('summary')!;
+    act(()=>summary.click());
+    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Member"]')!.click());
+    expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]],true);
+    expect(container.querySelector('[data-skill-kind="package"]')).not.toBeNull();
+    act(()=>Simulate.keyDown(filter,{key:'Escape'}));
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+
 });

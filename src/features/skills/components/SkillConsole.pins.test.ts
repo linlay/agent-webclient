@@ -90,7 +90,7 @@ it("retains the visible skill order on write failure and reloads remote changes 
   await mount();
   jest.mocked(putAgentSkillPin).mockRejectedValueOnce(new Error("offline"));
   await clickPin("PDF");
-  expect(names()).toEqual(["Demo", "PDF", "Invalid"]);
+  expect(names()).toEqual(["Demo", "Invalid", "PDF"]);
   expect(container.textContent).toContain("无法同步技能置顶");
   serverOrder = ["pdf"];
   await act(async () => window.dispatchEvent(new Event("focus")));

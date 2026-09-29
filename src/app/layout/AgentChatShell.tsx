@@ -54,7 +54,7 @@ export function parseComposerPrefillPayload(
   if (
     !draft ||
     draft.length > 2048 ||
-    !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u.test(skillKey)
+    !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/u.test(skillKey)
   ) {
     return null;
   }

@@ -401,6 +401,36 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  adminSkillPackages: defineEndpoint({
+    key: "admin.skillPackages.list",
+    path: "/api/admin/skill-packages",
+    method: "GET",
+    transport: "http",
+  }),
+  adminSkillPackageManifest: defineEndpoint({
+    key: "admin.skillPackages.manifest",
+    path: "/api/admin/skill-packages/manifest",
+    method: "GET",
+    transport: "http",
+  }),
+  adminSkillPackageManifestSave: defineEndpoint({
+    key: "admin.skillPackages.manifest.save",
+    path: "/api/admin/skill-packages/manifest",
+    method: "PUT",
+    transport: "http",
+  }),
+  adminSkillPackageDelete: defineEndpoint({
+    key: "admin.skillPackages.delete",
+    path: "/api/admin/skill-packages/delete",
+    method: "POST",
+    transport: "http",
+  }),
+  adminSkillPackageMemberDelete: defineEndpoint({
+    key: "admin.skillPackages.members.delete",
+    path: "/api/admin/skill-packages/skills/delete",
+    method: "POST",
+    transport: "http",
+  }),
   adminSkills: defineEndpoint<void, Record<string, unknown>>({
     key: "admin.skills.list",
     path: "/api/admin/skills",

@@ -1,0 +1,37 @@
+.tree { padding: 0; min-width: 0; color: var(--text-main); }
+.header { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 7px 8px 7px 4px; box-sizing: border-box; border-radius: 6px; cursor: pointer; list-style: none; background: transparent; }
+.header::-webkit-details-marker { display: none; }
+.header:hover { background: color-mix(in srgb, var(--bg-hover) 45%, transparent); }
+.header:focus-visible, .title:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
+.chevron { flex: 0 0 12px; width: 12px; height: 12px; color: var(--ink-muted); transition: transform 120ms ease; }
+.tree[open] > .header .chevron { transform: rotate(90deg); }
+.check { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; min-height: 24px; margin-left: 6px; }
+.title { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; border-radius: 4px; }
+.copy { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.name { font-size: 12px; font-weight: 600; line-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta, .hasSelection { font-size: 11px; font-weight: 400; line-height: 16px; color: var(--ink-muted); }
+.hasSelection { color: var(--accent-electric); }
+.members { display: flex; flex-direction: column; gap: 0; margin: 0 4px 8px 10px; padding: 2px 0 2px 16px; }
+.member { display: flex; align-items: flex-start; width: 100%; min-width: 0; margin: 0; padding: 7px 6px; box-sizing: border-box; border-radius: 6px; line-height: 20px; }
+.member:hover { background: color-mix(in srgb, var(--bg-hover) 45%, transparent); }
+.memberCopy { display: grid; min-width: 0; font-size: 12px; line-height: 20px; }
+.memberCopy small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; font-size: 11px; color: var(--ink-muted); line-height: 16px; overflow-wrap: anywhere; }
+.notice { padding: 4px 8px 6px 30px; color: var(--ink-muted); font-size: 11px; line-height: 18px; }
+.preview { max-height: 280px; max-width: 300px; overflow: auto; font-size: 12px; line-height: 1.8; }
+@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
+
+.header[data-selection="partial"] { background: color-mix(in srgb, var(--accent-electric) 6%, transparent); }
+.header[data-selection="all"] { background: color-mix(in srgb, var(--accent-electric) 13%, transparent); }
+.bulk { flex: none; padding: 4px 6px; border: 0; border-radius: 4px; color: var(--ink-muted); background: transparent; font: inherit; font-size: 11px; cursor: pointer; }
+.bulk:hover:not(:disabled) { color: var(--accent-electric); background: var(--bg-hover); }
+.pin { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 4px; color: var(--ink-muted); background: transparent; cursor: pointer; }
+.pin:hover:not(:disabled) { color: var(--accent-electric); background: var(--bg-hover); }
+.pin[aria-pressed="true"] { color: var(--accent-electric); background: color-mix(in srgb, var(--accent-electric) 10%, transparent); }
+.pinIcon { width: 14px; height: 14px; }
+.bulk:disabled, .member:disabled, .pin:disabled { cursor: default; opacity: .5; }
+.member { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
+.member[aria-pressed="true"] { background: color-mix(in srgb, var(--accent-electric) 15%, transparent); }
+.member[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--accent-electric) 20%, transparent); }
+.memberCopy { width: 100%; }
+.memberCopy > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bulk:focus-visible, .member:focus-visible, .pin:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }

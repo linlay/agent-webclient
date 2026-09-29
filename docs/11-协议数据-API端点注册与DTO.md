@@ -28,7 +28,7 @@ Chat 资源使用两层协议：后端新工具结果与 Markdown 提供不含 `
 
 ## Skills 管理契约
 
-Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契约。列表和详情返回 `AdminSkillSummary`、`AdminSkillDetailResponse`；文本内容通过 `getAdminSource`、`updateAdminSource` 读写，创建文件/目录、重命名、删除、上传、下载、校验、创建和 ZIP 导入使用对应的 `AdminSkill*` DTO 与语义化 client 函数。统一 ZIP 导入通过 `importAdminSkill` 向 `POST /api/admin/skills/import` 发送 multipart `file` 与可选 `key`；前端不解压、不从文件名猜身份，也不选择单技能或技能包类型。Platform 读取根 `manifest.json` 识别技能包，否则沿用单技能规则；单技能缺省 Key 从 `SKILL.md` 的 `key/name` 读取，包身份始终由 manifest 的 `id/version` 决定。`AdminSkillImportResponse` 通过 `kind` 区分：`skill` 保留原顶层 `AdminSkillDetailResponse` 字段；`skill-package` 返回 `package`（包 ID、名称、版本、成员、归档摘要与安装时间）。旧单技能响应省略 kind 仍兼容。包导入后重新加载全部技能、清除列表过滤，并进入一个已安装成员；当前成员被更新时强制刷新详情。ZIP 上传上限 512 MiB，识别为单技能后由 Platform 执行原 32 MiB 限额。409 保留服务端具体冲突消息，422 文件级诊断留在导入弹窗中。
+Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契约。列表和详情返回 `AdminSkillSummary`、`AdminSkillDetailResponse`；文本内容通过 `getAdminSource`、`updateAdminSource` 读写，创建文件/目录、重命名、删除、上传、下载、校验、创建和 ZIP 导入使用对应的 `AdminSkill*` DTO 与语义化 client 函数。统一 ZIP 导入通过 `importAdminSkill` 向 `POST /api/admin/skills/import` 发送 multipart `file` 与可选 `key`；前端不解压、不从文件名猜身份，也不选择单技能或技能包类型。Platform 读取包根 `package.json` 识别技能包，否则沿用单技能规则；单技能缺省 Key 从 `SKILL.md` 的 `key/name` 读取，包身份来自 `package.json.name`。包清单只维护自身元数据，成员由包内一层 `SKILL.md` 扫描得到。`AdminSkillImportResponse` 通过 `kind` 区分：`skill` 保留原顶层 `AdminSkillDetailResponse` 字段；`skill-package` 返回 `package`（包 ID、名称、版本、成员、归档摘要与安装时间）。旧单技能响应省略 kind 仍兼容。包导入后重新加载全部技能、清除列表过滤，并进入一个已安装成员；当前成员被更新时强制刷新详情。ZIP 上传上限 512 MiB，识别为单技能后由 Platform 执行原 32 MiB 限额。409 保留服务端具体冲突消息，422 文件级诊断留在导入弹窗中。
 
 后端只在发现 `skills-center/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
 
@@ -85,3 +85,10 @@ Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契�
 `project.git` 注册为 auto `/api/project/git`，Platform 走 WS，Gateway 保留 HTTP GET，仅传 `agentKey`。`ProjectGitResponse` 定义在 `shared/data/api/dto/resources.ts`，包含 `agentKey`、`status` 及可选 `branch/commit/reason`。`status` 为 `branch | detached | not_repository | no_workspace | unavailable`，`reason` 为 `workspace_unavailable | git_unavailable | probe_failed | probe_timeout`。响应沿用 `ApiResponse`；缺失参数、未知 Agent、权限错误使用既有错误包裹。HTTP 请求支持 AbortSignal 并禁用 HTTP 缓存；WS 迟到响应由领域生命周期保护丢弃。Composer 按 Workspace 准入，使用短期内存缓存与在途去重。它不进入 Agent 列表/详情 DTO，也不修改已有 Project tree/changes/diff 的范围。
 
 Git 快照增加可选 `revision`，仅有效分支/游离 HEAD 返回。`project.git.branches` 为同域 auto `/api/project/git/branches`（Platform WS / Gateway HTTP GET），响应 `{git,branches,canChange,blockedReason?,expectedBranch?}`；`project.git.branchChange` 为同路径 auto 写入（Platform WS / Gateway HTTP POST），请求 `{agentKey,operation,branch,expectedRevision}`，成功返回最新 Git 快照。WS 读取 payload 为 `{agentKey}`，存在任一写入字段时由 Platform 按 mutation 校验，与 HTTP 复用领域服务及错误语义。写入不设置 UI AbortSignal，也不自动重试或回退 HTTP；超时或连接中断后先刷新确认实际状态。
+
+
+## 技能目录与技能包管理
+
+技能中心并行请求 `/api/admin/skills` 和 `/api/admin/skill-packages`，以包目录扫描结果及技能的 `packageId` 展示文件夹。独立技能 key 为 `skill`，包成员 key 为 `package/skill`，同短名两者独立选择、编辑、导入更新和删除，前端不得按 name 合并。包列表加载失败时独立显示可重试错误，已知包成员不降级为独立技能。点击包行展开成员并打开概览；概览允许编辑 `package.json`，通过 GET/PUT `/api/admin/skill-packages/manifest` 读取与保存 `{content,sha256}`，保存带 `{key,content,baseSha256}`，冲突保留草稿；name 不可修改，不维护 skills 清单。缺少 displayName 回退 name，缺少版本不显示。搜索成员保留父包并自动展开。成员继续使用原技能详情及文件接口编辑，切换包和技能沿用未保存修改确认。包内成员通过 `POST /api/admin/skill-packages/skills/delete` 删除，整包通过 `POST /api/admin/skill-packages/delete` 卸载，均接受 Platform 引用保护，成功后同时刷新两份目录。
+
+技能中心与 Composer 的顶层目录使用同一混合列表规则：技能包与独立技能共用用户置顶顺序，置顶项排在最前，其余技能包和独立技能按显示名称一起排序，不显示置顶、技能包或独立技能分区标题。包置顶使用包 ID，独立技能使用技能 key，仍通过 `PUT /api/skills {key,pinned}` 更新同一置顶序列；包作为整体移动，成员的 `package/skill` 置顶键不会提升所属包。包行置顶按钮只切换置顶状态，不触发展开、选择或文件编辑切换。技能包保留折叠展开层级，包成员只出现在所属包内。搜索框下方提供“技能包”和“独立技能”两个互斥的切换按钮，默认都不选中并显示全部，再次点击已选按钮恢复全部。类型筛选与现有搜索、状态条件取交集，按钮数量按当前搜索与状态条件统计，在类型筛选之前计算。筛选只改变列表可见项，不清空当前选择或编辑草稿，也不改写服务端目录和置顶存储。

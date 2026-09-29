@@ -139,6 +139,7 @@ import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { dataQueryCache } from "@/shared/data/query/serverState";
 import { getBackendMode } from "@/shared/config/backendMode";
 import { requestDataThroughExecutor } from "@/shared/data/api/dataRequestExecutor";
+import { getI18nRuntimeConfig } from "@/shared/i18n/runtime";
 
 function emptyPayloadAsUndefined(payload: unknown): unknown {
 	if (
@@ -156,7 +157,10 @@ function createRouteCacheKey(
 	endpoint: Pick<EndpointDefinition, "key">,
 	payload: unknown,
 ): string {
-	return `request:${createDataCacheKey(endpoint, payload)}`;
+	const localizedEndpoint = endpoint.key === dataEndpoints.agentSkills.key
+		? { ...endpoint, key: `${endpoint.key}:${getI18nRuntimeConfig().locale}` }
+		: endpoint;
+	return `request:${createDataCacheKey(localizedEndpoint, payload)}`;
 }
 
 function createRouteCachePrefix(endpoint: Pick<EndpointDefinition, "key">): string {
@@ -185,7 +189,14 @@ function routeEndpoint<T, TInput>(
 			&& endpoint.wsBackends?.includes(backend) === true
 		);
 	const request = useWebSocket
-		? () => requestDataThroughExecutor<T>(endpoint.path, payload)
+		? (() => {
+			// Desktop surfaces share a physical connection. Scope presentation to
+			// this request instead of mutating /api/locale on that connection.
+			const requestPayload = endpoint.path === dataEndpoints.agentSkills.path
+				? { ...(payload as Record<string, unknown>), locale: getI18nRuntimeConfig().locale }
+				: payload;
+			return () => requestDataThroughExecutor<T>(endpoint.path, requestPayload);
+		})()
 		: fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
 	if (!cache) {
