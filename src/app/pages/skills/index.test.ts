@@ -40,6 +40,12 @@ describe("SkillsPage", () => {
     expect(navigateMock).toHaveBeenCalledWith("/skills/demo-skill?lang=en");
   });
 
+  it("encodes a package child key as one route segment", () => {
+    renderToStaticMarkup(React.createElement(SkillsPage));
+    skillConsoleProps.onSelectSkillKey?.("wecom/meeting");
+    expect(navigateMock).toHaveBeenCalledWith("/skills/wecom%2Fmeeting?lang=en");
+  });
+
   it("preserves the route query when clearing selection", () => {
     renderToStaticMarkup(React.createElement(SkillsPage));
 

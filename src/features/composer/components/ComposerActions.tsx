@@ -105,6 +105,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   currentAgentKey,
   isMainChatRunning,
   selectedSkillKeys,
+  lockedSkillKeys,
+  onSelectSkills,
   onSelectSkill,
 }) => {
   const { t } = useI18n();
@@ -189,6 +191,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
             isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
             selectedSkillKeys={selectedSkillKeys}
+            lockedSkillKeys={lockedSkillKeys}
+            onSelectSkills={onSelectSkills}
             onOpenFilePicker={openFilePicker}
             onCaptureScreenshot={() => void captureDesktopScreenshot()}
             screenshotDisabledReason={screenshotDisabledReason}

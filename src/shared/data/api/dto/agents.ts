@@ -66,7 +66,20 @@ export interface AgentSkill {
   configured: boolean;
 }
 
+export interface AgentSkillPackage {
+  id: string;
+  name?: string;
+  displayName?: string;
+  description?: string;
+  version?: string;
+  /** id is the full package/skill key, not the member basename. */
+  skills: Array<{ id: string; name?: string; displayName?: string; description?: string; version?: string }>;
+  missingSkillIds: string[];
+  status: "ready" | "incomplete";
+}
+
 export interface AgentSkillsResponse {
+  packages?: AgentSkillPackage[];
   /** User-level pins, newest first; independent of the selected Agent. */
   pinned: string[];
   agentKey: string;

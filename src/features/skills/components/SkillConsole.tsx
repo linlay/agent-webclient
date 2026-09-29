@@ -1,4 +1,6 @@
-import { skillDisplayName } from "@/shared/utils/skillDisplayName";
+import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
+import { SkillPackageOverview } from "./SkillPackageOverview";
+import { groupAdminSkills } from "@/features/skills/lib/skillPackageGroups";
 import { focusEditableField } from "@/shared/ui/EditMenuButton";
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
@@ -27,6 +29,9 @@ import {
   getAdminSkillDetail,
   getAdminSource,
   getAdminSkills,
+  getAdminSkillPackages,
+  deleteAdminSkillPackage,
+  deleteAdminSkillPackageMember,
   importAdminSkill,
   mkdirAdminSkillFile,
   renameAdminSkillFile,
@@ -36,6 +41,7 @@ import {
 } from "@/shared/data";
 import type {
   AdminSkillStatus,
+  AdminSkillPackageSummary,
   AdminSkillDetailResponse,
   AdminSkillFileEntry,
   AdminSkillMutationResponse,
@@ -1641,7 +1647,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   onSelectSkillKey,
   onClearSelection,
 }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { modal } = AntdApp.useApp();
   const assistant = useResourceAssistant();
   const editorRegion = useRef<HTMLDivElement>(null);
@@ -1654,6 +1660,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   } = usePinnedSkills(true);
 
   const [skills, setSkills] = useState<AdminSkillSummary[]>([]);
+  const [packages, setPackages] = useState<AdminSkillPackageSummary[]>([]);
+  const [packageError, setPackageError] = useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set());
+  const listSeqRef = useRef(0);
   const [listLoading, setListLoading] = useState(false);
   const [fileTreeOpen, setFileTreeOpen] = useState(() => {
     if (
@@ -1717,26 +1728,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   );
   const isFileDirty = dirtyFiles.has(selectedFilePath);
 
-  const filteredSkills = useMemo(() => {
-    const needle = searchText.trim().toLowerCase();
-    return sortPinnedItems(skills, pinnedSkillKeys, (item) => item.key).filter(
-      (item) => {
-        if (statusFilter !== "all" && item.status !== statusFilter)
-          return false;
-        if (!needle) return true;
-        const haystack = [
-          item.key,
-          skillDisplayName(item),
-          item.description || "",
-          item.source?.path || "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(needle);
-      },
-    );
-  }, [skills, searchText, statusFilter, pinnedSkillKeys]);
+  const groupedSkills = useMemo(() => groupAdminSkills(
+    sortPinnedItems(skills, pinnedSkillKeys, (item) => item.key), packages, searchText, statusFilter,
+  ), [skills, packages, searchText, statusFilter, pinnedSkillKeys]);
+  const pinnedStandaloneSkills = groupedSkills.standalone.filter(skill => pinnedSkillKeys.includes(skill.key.toLowerCase()));
+  const unpinnedStandaloneSkills = groupedSkills.standalone.filter(skill => !pinnedSkillKeys.includes(skill.key.toLowerCase()));
+  const selectedPackage = packages.find((pack) => pack.id === selectedPackageId);
+  const selectedSkillPackage = packages.find((pack) => pack.skills.some((member) => member.id === selectedSkillKey));
 
   const applyOpenedFile = useCallback((file: AdminSkillTextFile) => {
     applyOpenedFileState(
@@ -1770,18 +1768,18 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   }, []);
 
   const loadSkills = useCallback(async () => {
+    const seq = ++listSeqRef.current;
     setListLoading(true);
-    try {
-      const response = await getAdminSkills();
-      setSkills(response.data);
-    } catch (err) {
-      notification.error({
-        message: err instanceof Error ? err.message : String(err),
-      });
-    } finally {
-      setListLoading(false);
-    }
-  }, []);
+    const [skillResult, packageResult] = await Promise.allSettled([getAdminSkills(), getAdminSkillPackages()]);
+    if (seq !== listSeqRef.current) return;
+    if (skillResult.status === "fulfilled") setSkills(skillResult.value.data);
+    else notification.error({ message: String(skillResult.reason) });
+    if (packageResult.status === "fulfilled") {
+      setPackages(packageResult.value.data);
+      setPackageError(false);
+    } else setPackageError(true);
+    setListLoading(false);
+  }, [locale]);
 
   const loadFileByPath = useCallback(
     async (skillKey: string, path: string, seq?: number) => {
@@ -1892,12 +1890,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   useEffect(() => {
     void loadSkills();
+    return () => { ++listSeqRef.current; };
   }, [loadSkills]);
 
   useEffect(() => {
     if (selectedSkillKey) {
       pendingSelectionRef.current = null;
       suppressAutoSelectAfterDeleteRef.current = false;
+      setSelectedPackageId("");
       void loadDetail(selectedSkillKey);
       return;
     }
@@ -1907,6 +1907,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (
       skills.length === 0 ||
       selectedSkillKey ||
+      selectedPackageId ||
       pendingSelectionRef.current ||
       suppressAutoSelectAfterDeleteRef.current
     )
@@ -1916,11 +1917,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       pendingSelectionRef.current = firstReady.key;
       onSelectSkillKey(firstReady.key);
     }
-  }, [onSelectSkillKey, selectedSkillKey, skills]);
+  }, [onSelectSkillKey, selectedSkillKey, selectedPackageId, skills]);
 
   const handleSelectSkill = (item: AdminSkillSummary) => {
     if (deletingSkill) return;
     const select = () => {
+      setSelectedPackageId("");
+      if (selectedPackageId && item.key === selectedSkillKey) void loadDetail(item.key);
       pendingSelectionRef.current = item.key;
       suppressAutoSelectAfterDeleteRef.current = false;
       onSelectSkillKey(item.key);
@@ -2316,6 +2319,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       content: (
         <div className="tw:flex tw:flex-col tw:gap-2">
           <span>{t("skillConsole.delete.confirm", { name: skillName })}</span>
+          {skills.find((skill) => skill.key === skillKey)?.packageId && <span>{t("skillPackageEditor.deleteMember")}</span>}
           {hasUnsavedChanges && (
             <span className="tw:text-danger">
               {t("skillConsole.delete.unsavedWarning")}
@@ -2329,7 +2333,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         setDeletingSkill(true);
         try {
-          const outcome = await requestSkillDeletion(skillKey);
+          const owner = packages.find((pack) => pack.skills.some((member) => member.id === skillKey));
+          const outcome = await requestSkillDeletion(skillKey, owner ? async (key) => {
+            const result = await deleteAdminSkillPackageMember(owner.id, key);
+            return { ...result, data: { key, deleted: result.data.deleted } };
+          } : undefined);
           if (outcome.kind === "blocked") {
             notification.warning({
               message: t("skillConsole.delete.blockedByAgents", {
@@ -2352,6 +2360,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             clearFileState();
             onClearSelection();
           }
+          await loadSkills();
           notification.success({
             message: t("skillConsole.message.deleteSuccess", {
               name: skillName,
@@ -2484,6 +2493,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     const response = await importAdminSkill({ ...(key ? { key } : {}), file });
     if (response.data.kind === "skill-package") {
       const installed = response.data.package;
+      setSelectedPackageId("");
+      setExpandedPackages((previous) => new Set(previous).add(installed.id));
       const nextKey = installed.skills.some(
         (skill) => skill.id === selectedSkillKey,
       )
@@ -2497,7 +2508,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       setStatusFilter("all");
       notification.success({
         message: t("skillConsole.import.packageSuccess", {
-          name: installed.name || installed.id,
+          name: skillPackageDisplayName(installed),
           count: installed.skills.length,
         }),
       });
@@ -2542,7 +2553,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         <button
           type="button"
           className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
-            item.key === selectedSkillKey ? "is-active" : ""
+            !selectedPackageId && item.key === selectedSkillKey ? "is-active" : ""
           }`}
           disabled={deletingSkill}
           onClick={() => handleSelectSkill(item)}
@@ -2693,32 +2704,45 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           )}
           <div className={SKILL_LIST_SCROLL_CLASS_NAME}>
             <Spin spinning={listLoading}>
-              {filteredSkills.length === 0 ? (
-                <div className="command-empty-state">
-                  {searchText
-                    ? t("skillConsole.message.noMatch")
-                    : t("skillConsole.empty")}
-                  {!searchText && (
-                    <UiButton
-                      size="sm"
-                      variant="primary"
-                      onClick={() => setCreateModalOpen(true)}
-                      disabled={deletingSkill}
-                    >
-                      {t("skillConsole.action.createSkill")}
-                    </UiButton>
-                  )}
-                </div>
-              ) : (
-                <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
-                  <div className={SKILL_LIST_HEADER_CLASS_NAME}>
-                    {t("skillConsole.list.title", {
-                      count: filteredSkills.length,
-                    })}
-                  </div>
-                  {filteredSkills.map(renderSkillItem)}
-                </div>
-              )}
+              {packageError && <div role="alert" className="skill-package-missing">
+                {t("skillPackageEditor.loadFailed")}
+                <UiButton size="sm" variant="ghost" onClick={() => void loadSkills()}>{t("skillPackageEditor.retry")}</UiButton>
+              </div>}
+              <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
+                {pinnedStandaloneSkills.length > 0 && <div className={SKILL_LIST_HEADER_CLASS_NAME}>{t("packageComposer.pinned")} {pinnedStandaloneSkills.length}</div>}
+                {pinnedStandaloneSkills.map(renderSkillItem)}
+                {groupedSkills.packages.length > 0 && <div className={SKILL_LIST_HEADER_CLASS_NAME}>{t("skillPackageEditor.packages")} {packages.length}</div>}
+                {groupedSkills.packages.map(({ pack, members }) => {
+                  const expanded = expandedPackages.has(pack.id) || Boolean(searchText.trim());
+                  return <div key={pack.id}>
+                    <button type="button" className="skill-package-folder" aria-expanded={expanded} aria-current={selectedPackageId === pack.id} disabled={deletingSkill} onClick={() => {
+                      const select = () => {
+                        ++loadSeqRef.current;
+                        setDetailLoading(false);
+                        setDirtyFiles(new Set());
+                        setSelectedPackageId(pack.id);
+                        setExpandedPackages((prev) => toggleSkillExpandedDir(prev, pack.id));
+                      };
+                      if (dirtyFiles.size) modal.confirm({ title: t("skillConsole.confirm.switchSkill"), onOk: select });
+                      else select();
+                    }}>
+                      <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+                      <MaterialIcon name="folder" />
+                      <strong>{skillPackageDisplayName(pack)}</strong><span>{pack.skills.length}</span>
+                    </button>
+                    {expanded && <div className="skill-package-members">{members.map(({ id, skill }) => skill
+                      ? renderSkillItem(skill)
+                      : <div key={id} className="skill-package-missing">{id} · {t("skillPackageEditor.missing")}</div>)}</div>}
+                  </div>;
+                })}
+                {unpinnedStandaloneSkills.length > 0 && <div className={SKILL_LIST_HEADER_CLASS_NAME}>{t("skillPackageEditor.standalone")} {unpinnedStandaloneSkills.length}</div>}
+                {unpinnedStandaloneSkills.map(renderSkillItem)}
+                {packageError && skills.some((skill) => skill.packageId && !packages.some((pack) => pack.id === skill.packageId)) && <div className="skill-package-missing">{t("skillPackageEditor.unavailable")}</div>}
+                {!groupedSkills.packages.length && !groupedSkills.standalone.length && !packageError && <div className="command-empty-state">
+                  {searchText ? t("skillConsole.message.noMatch") : t("skillConsole.empty")}
+                  {!searchText && <UiButton size="sm" variant="primary" disabled={deletingSkill} onClick={() => setCreateModalOpen(true)}>{t("skillConsole.action.createSkill")}</UiButton>}
+                </div>}
+              </div>
             </Spin>
           </div>
           <button
@@ -2739,11 +2763,33 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             spinning={detailLoading}
             wrapperClassName="tw:h-full tw:min-h-0 tw:[&_.ant-spin-container]:h-full tw:[&_.ant-spin-container]:min-h-0"
           >
-            {!detail ? (
+            {selectedPackage ? <SkillPackageOverview key={selectedPackage.id} onSaved={loadSkills} pack={selectedPackage} skills={skills} busy={deletingSkill} onSelect={handleSelectSkill} onDelete={() => {
+              modal.confirm({
+                title: t("skillPackageEditor.delete"),
+                content: t("skillPackageEditor.deleteConfirm", { name: skillPackageDisplayName(selectedPackage) }),
+                okButtonProps: { danger: true },
+                onOk: async () => {
+                  setDeletingSkill(true);
+                  try {
+                    const result = await deleteAdminSkillPackage(selectedPackage.id);
+                    if (!result.data.deleted) throw new Error("Package deletion was not confirmed");
+                    setSelectedPackageId("");
+                    if (selectedPackage.skills.some((member) => member.id === selectedSkillKey)) {
+                      setDetail(null); detailRef.current = null; setDirtyFiles(new Set()); clearFileState();
+                      suppressAutoSelectAfterDeleteRef.current = true; onClearSelection();
+                    }
+                    await loadSkills();
+                  } catch (error) { notification.error({ message: error instanceof Error ? error.message : String(error) }); }
+                  finally { setDeletingSkill(false); }
+                },
+              });
+            }} /> : !detail ? (
               <div className="command-empty-state">
                 {t("skillConsole.detail.empty")}
               </div>
             ) : (
+              <>
+              {selectedSkillPackage && <div className="skill-package-breadcrumb">{skillPackageDisplayName(selectedSkillPackage)} / {skillDisplayName(detail.skill)}</div>}
               <SkillFileWorkspace
                 detail={detail}
                 selectedFilePath={selectedFilePath}
@@ -2772,6 +2818,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 onFileChange={handleFileChange}
                 onSelectFileEntry={selectFileEntry}
               />
+              </>
             )}
           </Spin>
         </div>

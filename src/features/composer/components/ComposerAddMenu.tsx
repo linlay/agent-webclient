@@ -1,4 +1,4 @@
-import { skillDisplayName } from "@/shared/utils/skillDisplayName";
+import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useRef, useState } from "react";
 import { Input, Popover, Typography } from "antd";
@@ -18,6 +18,8 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
+import { PackageSkillTree } from "./PackageSkillTree";
+import { packageMembers, skillIdentity } from "../lib/skillPackages";
 import { sortPinnedSkills } from "@/features/composer/lib/pinnedSkills";
 
 type Section = "files" | "skills" | "connectors" | "chat" | "site";
@@ -35,6 +37,8 @@ export interface AddMenuTriggerProps {
   canCaptureDesktopScreenshot: boolean;
   isCapturingDesktopScreenshot: boolean;
   selectedSkillKeys: string[];
+  lockedSkillKeys?: string[];
+  onSelectSkills?: (skills: AgentSkill[], selected: boolean) => void;
   onOpenFilePicker: () => void;
   onCaptureScreenshot: () => void;
   /** 仅在截屏不可用时作为悬浮说明；可用时留空，标签本身已说明动作 */
@@ -129,10 +133,16 @@ const AddMenuSectionDetail: React.FC<
     pinError,
     refreshPins,
   } = skillQuery;
-  const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter(
+  const packages = skillQuery.data?.packages || [];
+  const memberKeys = new Set(packages.flatMap(pkg => pkg.skills.map(member => skillIdentity(member.id))));
+  const filteredPackages = packages.filter(pkg => matchKeyword(skillPackageDisplayName(pkg), pkg.id, ...(pkg.missingSkillIds || []),
+    ...packageMembers(pkg, skills).flatMap(skill => [skillDisplayName(skill), skill.key, skill.description || ""])));
+  const filteredSkills = sortPinnedSkills(skills, pinnedSkillKeys).filter(skill => !memberKeys.has(skillIdentity(skill.key))).filter(
     (skill) =>
       matchKeyword(skillDisplayName(skill), skill.key, skill.description || ""),
   );
+  const pinnedStandalone = filteredSkills.filter(skill => pinnedSkillKeys.includes(skillIdentity(skill.key)));
+  const unpinnedStandalone = filteredSkills.filter(skill => !pinnedSkillKeys.includes(skillIdentity(skill.key)));
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
   );
@@ -192,6 +202,79 @@ const AddMenuSectionDetail: React.FC<
       {content}
     </UiButton>
   );
+  const renderSkill = (skill: AgentSkill) => {
+    const identity = text(skill.key).toLowerCase();
+    const pinned = pinnedSkillKeys.includes(identity);
+    const skillName = skillDisplayName(skill);
+    const pinLabel = t(
+      pinned
+        ? "composer.addMenu.skill.unpin"
+        : "composer.addMenu.skill.pin",
+      { name: skillName },
+    );
+    const selectDisabled = props.isMainChatRunning;
+    return (
+      // 点击整行选择，置顶按钮独立操作。
+      <div
+        key={skill.key}
+        className={`composer-add-menu-skill-row composer-add-menu-skill-select${selectDisabled ? " is-disabled" : ""}`}
+        data-pinned={pinned || undefined}
+        role="button"
+        tabIndex={selectDisabled ? -1 : 0}
+        aria-disabled={selectDisabled}
+        aria-label={t("composer.addMenu.skill.select", { name: skillName })}
+        onClick={() => {
+          if (!selectDisabled) execute(() => props.onSelectSkill(skill));
+        }}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            if (!selectDisabled) execute(() => props.onSelectSkill(skill));
+          }
+        }}
+      >
+        <SkillIcon icon={skill.icon} />
+        <span className="composer-add-menu-item-copy">
+          <span className="composer-add-menu-item-title">
+            <b>{skillName}</b>
+            <span className="composer-add-menu-skill-actions">
+              {skill.configured && (
+                <UiTag
+                  tone="muted"
+                  className="composer-add-menu-skill-tag"
+                >
+                  {t("slashPalette.skill.source.agent")}
+                </UiTag>
+              )}
+              <button
+                type="button"
+                className="composer-add-menu-skill-pin"
+                aria-label={pinLabel}
+                aria-pressed={pinned}
+                title={pinLabel}
+                disabled={pinsDisabled}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void toggleSkillPin(skill.key);
+                }}
+              >
+                <MaterialIcon
+                  name="push_pin"
+                  className="composer-add-menu-skill-pin-icon"
+                />
+              </button>
+            </span>
+          </span>
+          <small>
+            {skill.description || t("slashPalette.skill.noDescription")}
+          </small>
+        </span>
+      </div>
+    );
+  };
   const detailWidth = sectionMeta[section].detailWidth || DEFAULT_DETAIL_WIDTH;
   return (
     <div
@@ -250,79 +333,15 @@ const AddMenuSectionDetail: React.FC<
               </UiButton>
             </div>
           )}
-          {filteredSkills.map((skill) => {
-            const identity = text(skill.key).toLowerCase();
-            const pinned = pinnedSkillKeys.includes(identity);
-            const skillName = skillDisplayName(skill);
-            const pinLabel = t(
-              pinned
-                ? "composer.addMenu.skill.unpin"
-                : "composer.addMenu.skill.pin",
-              { name: skillName },
-            );
-            const selectDisabled = props.isMainChatRunning;
-            return (
-              // 点击整行选择，置顶按钮独立操作。
-              <div
-                key={skill.key}
-                className={`composer-add-menu-skill-row composer-add-menu-skill-select${selectDisabled ? " is-disabled" : ""}`}
-                data-pinned={pinned || undefined}
-                role="button"
-                tabIndex={selectDisabled ? -1 : 0}
-                aria-disabled={selectDisabled}
-                aria-label={t("composer.addMenu.skill.select", { name: skillName })}
-                onClick={() => {
-                  if (!selectDisabled) execute(() => props.onSelectSkill(skill));
-                }}
-                onKeyDown={(event) => {
-                  if (event.target !== event.currentTarget) return;
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    if (!selectDisabled) execute(() => props.onSelectSkill(skill));
-                  }
-                }}
-              >
-                <SkillIcon icon={skill.icon} />
-                <span className="composer-add-menu-item-copy">
-                  <span className="composer-add-menu-item-title">
-                    <b>{skillName}</b>
-                    <span className="composer-add-menu-skill-actions">
-                      {skill.configured && (
-                        <UiTag
-                          tone="muted"
-                          className="composer-add-menu-skill-tag"
-                        >
-                          {t("slashPalette.skill.source.agent")}
-                        </UiTag>
-                      )}
-                      <button
-                        type="button"
-                        className="composer-add-menu-skill-pin"
-                        aria-label={pinLabel}
-                        aria-pressed={pinned}
-                        title={pinLabel}
-                        disabled={pinsDisabled}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          void toggleSkillPin(skill.key);
-                        }}
-                      >
-                        <MaterialIcon
-                          name="push_pin"
-                          className="composer-add-menu-skill-pin-icon"
-                        />
-                      </button>
-                    </span>
-                  </span>
-                  <small>
-                    {skill.description || t("slashPalette.skill.noDescription")}
-                  </small>
-                </span>
-              </div>
-            );
-          })}
+          {pinnedStandalone.length > 0 && <div className="composer-skill-group-label">{t("packageComposer.pinned")}</div>}
+          {pinnedStandalone.map(renderSkill)}
+          {filteredPackages.length > 0 && <div className="composer-skill-group-label">{t("packageComposer.packages")}</div>}
+          {filteredPackages.map(pkg => <PackageSkillTree key={pkg.id} pkg={pkg} skills={skills}
+            selectedKeys={props.selectedSkillKeys} lockedKeys={props.lockedSkillKeys} search={search}
+            disabled={props.disabled || props.isMainChatRunning || !props.onSelectSkills}
+            onSelect={(members, selected) => props.onSelectSkills?.(members, selected)} />)}
+          {(packages.length > 0 || pinnedStandalone.length > 0) && unpinnedStandalone.length > 0 && <div className="composer-skill-group-label">{t("packageComposer.standalone")}</div>}
+          {unpinnedStandalone.map(renderSkill)}
           {skillQuery.status === "loading" && (
             <div className="composer-add-menu-status">
               {t("slashPalette.skills.loading")}
@@ -346,14 +365,14 @@ const AddMenuSectionDetail: React.FC<
               </UiButton>
             </div>
           )}
-          {skillQuery.status === "success" && !skills.length && (
+          {skillQuery.status === "success" && !skills.length && !packages.length && (
             <div className="composer-add-menu-status">
               {t("slashPalette.skills.empty")}
             </div>
           )}
           {skillQuery.status === "success" &&
             !!skills.length &&
-            !filteredSkills.length && (
+            !filteredSkills.length && !filteredPackages.length && (
               <div className="composer-add-menu-status">
                 {t("composer.addMenu.empty")}
               </div>

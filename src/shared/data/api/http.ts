@@ -29,6 +29,7 @@ import {
 import {
   createCompactId,
 } from "@/shared/utils/compactId";
+import { getI18nRuntimeConfig } from "@/shared/i18n/runtime";
 
 export const NativeURL = globalThis.URL;
 
@@ -79,12 +80,16 @@ function buildAuthHeaders(
     includeJsonContentType?: boolean;
     method?: string;
     sameOrigin?: boolean;
+    locale?: string;
   } = {},
 ): Record<string, string> {
   const includeJsonContentType = options.includeJsonContentType ?? true;
   const merged: Record<string, string> = {
     ...headers,
   };
+  if (options.locale && !hasHeader(merged, "X-Locale")) {
+    merged["X-Locale"] = options.locale;
+  }
   if (includeJsonContentType && !hasHeader(merged, "Content-Type")) {
     merged["Content-Type"] = "application/json";
   }
@@ -266,6 +271,8 @@ export async function requestWithAuth(
   } = options;
 
   const gatewayMode = isGatewayBackendMode();
+  // Capture before authentication awaits: retries belong to the same UI request.
+  const requestLocale = getI18nRuntimeConfig().locale;
   if (includePlatformAuth && !gatewayMode && isAppMode()) {
     await ensureAccessToken('missing');
   }
@@ -288,6 +295,7 @@ export async function requestWithAuth(
           includeJsonContentType: jsonContentType,
           method,
           sameOrigin,
+          locale: requestLocale,
         })
       : requestOptions.headers || {},
   });

@@ -465,3 +465,65 @@ html[data-theme="dark"] :global(.query-model-menu-icon):global(.is-monochrome) {
         }
     }
 }
+
+:global(.composer-skill-group-label) {
+    padding: 8px 6px 4px;
+    color: var(--ink-muted);
+    font-size: 10px;
+    line-height: 16px;
+    font-weight: 500;
+}
+
+:global(.composer-skill-chip) {
+    max-width: 100%;
+    min-height: 24px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+}
+:global(.composer-skill-chip) :global(.ui-btn) {
+    min-height: 24px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 12px;
+}
+:global(.composer-skill-chip-main) { min-width: 0; }
+:global(.composer-skill-chip-main) :global(.ui-btn-label) {
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+:global(.composer-skill-chip-main) :global(.ui-btn-label) > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+:global(.composer-skill-chip) :global(.material-icon) {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--accent-electric);
+}
+:global(.composer-skill-chip) :global(.composer-skill-chip-remove) {
+    flex-shrink: 0;
+    width: 22px;
+    padding: 0;
+    opacity: 0;
+}
+:global(.composer-skill-chip):hover :global(.composer-skill-chip-remove),
+:global(.composer-skill-chip):focus-within :global(.composer-skill-chip-remove) { opacity: 1; }
+/* The entire chip owns hover color; child buttons stay on that one surface. */
+:global(.composer-skill-chip):hover,
+:global(.composer-skill-chip):focus-within {
+    background: color-mix(in srgb, var(--accent-soft) 82%, var(--accent-electric));
+}
+:global(.composer-skill-chip) :global(.ui-btn.ui-btn-ghost):is(:hover, :active, :focus-visible, :disabled) {
+    background: transparent;
+    box-shadow: none;
+}
+:global(.composer-skill-chip-remove) :global(.material-icon) { color: var(--ink-muted); }
+@media (hover: none) {
+    :global(.composer-skill-chip) :global(.composer-skill-chip-remove) { opacity: 1; }
+}

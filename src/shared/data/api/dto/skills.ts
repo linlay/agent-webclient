@@ -27,6 +27,7 @@ export interface AdminSkillSummary {
   updatedAt?: number;
   size?: number;
   usedByAgents?: string[];
+  packageId?: string;
   source?: AgentSource;
 }
 
@@ -100,12 +101,18 @@ export interface AdminSkillDetailResponse {
 }
 
 export interface AdminSkillPackageSummary {
+  status?: "ready" | "incomplete";
+  missingSkillIds?: string[];
   id: string;
   name?: string;
-  version: string;
-  sha256: string;
-  skills: Array<{ id: string; version?: string }>;
-  installedAt: number;
+  displayName?: string;
+  description?: string;
+  meta?: Record<string, unknown>;
+  version?: string;
+  sha256?: string;
+  /** Members are scanned by Platform; id is the full package/skill key. */
+  skills: Array<{ id: string; name?: string; displayName?: string; description?: string; version?: string }>;
+  installedAt?: number;
 }
 
 export type AdminSkillImportResponse =

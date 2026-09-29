@@ -152,8 +152,8 @@ jest.mock("@/features/workers/lib/currentWorker", () => ({
   supportsActiveRunContextCompact: () => true,
 }));
 
-jest.mock("@/shared/data/query/queries", () => ({
-  useAgentSkillsQuery: (...args: unknown[]) => mockUseAgentSkillsQuery(...args),
+jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
+  useComposerSkillMenuQuery: (...args: unknown[]) => mockUseAgentSkillsQuery(...args),
 }));
 
 jest.mock("@/features/composer/components/HostRequiredSkillsContext", () => ({

@@ -2,3 +2,8 @@
 export function skillDisplayName(skill: { displayName?: string; name?: string; key?: string }): string {
   return skill.displayName?.trim() || skill.name?.trim() || skill.key?.trim() || "";
 }
+
+/** Platform localizes package displayName; name is the stable manifest identity. */
+export function skillPackageDisplayName(pack: { displayName?: string; name?: string; id: string }): string {
+  return pack.displayName?.trim() || pack.name?.trim() || pack.id;
+}

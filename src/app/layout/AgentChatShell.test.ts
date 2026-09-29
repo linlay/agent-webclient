@@ -283,7 +283,10 @@ describe("AgentChatShell", () => {
       skillKey: "skill-creator",
     });
     expect(parseComposerPrefillPayload(new URLSearchParams(
-      "composerDraft=Create+a+Skill&composerSkill=bad%2Fkey",
+      "composerDraft=Use+meeting&composerSkill=wecom%2Fmeeting",
+    ))).toEqual({ draft: "Use meeting", skillKey: "wecom/meeting" });
+    expect(parseComposerPrefillPayload(new URLSearchParams(
+      "composerDraft=Create+a+Skill&composerSkill=bad%2F..%2Fkey",
     ))).toBeNull();
     expect(parseComposerPrefillPayload(new URLSearchParams(
       "composerDraft=Create+a+Skill",

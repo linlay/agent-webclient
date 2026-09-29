@@ -11,11 +11,14 @@ jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
+let mockSkillData: any = { skills: [] };
+let mockPinnedSkillKeys: string[] = [];
+
 jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
   useComposerSkillMenuQuery: () => ({
-    pinnedSkillKeys: [], toggleSkillPin: jest.fn(), pinsDisabled: false, pinError: null, refreshPins: jest.fn(),
+    pinnedSkillKeys: mockPinnedSkillKeys, toggleSkillPin: jest.fn(), pinsDisabled: false, pinError: null, refreshPins: jest.fn(),
     status: "success",
-    data: { skills: [] },
+    data: mockSkillData,
     error: null,
     refetch: jest.fn(),
   }),
@@ -55,6 +58,8 @@ describe("AddMenuTrigger", () => {
   });
 
   beforeEach(() => {
+    mockSkillData = { skills: [] };
+    mockPinnedSkillKeys = [];
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -189,4 +194,50 @@ describe("AddMenuTrigger", () => {
     render();
     expect(container.querySelector('[role="menu"]')).toBeNull();
   });
+  it("groups package members under a tree without duplicate standalone rows", () => {
+    mockSkillData = {
+      skills: [{ key: "word", name: "Word", configured: false }, { key: "other", name: "Other", configured: false }],
+      packages: [{ id: "office", name: "Office", version: "1", skills: [{ id: "word" }], missingSkillIds: [], status: "ready" }],
+    };
+    props.onSelectSkills = jest.fn();
+    render();
+    openMenu();
+    const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => section.click());
+    expect(container.querySelector("summary")?.textContent).toContain("Office");
+    const standalone = [...container.querySelectorAll(".composer-add-menu-skill-row")].map(row => row.textContent);
+    expect(standalone).toHaveLength(1);
+    expect(standalone[0]).toContain("Other");
+    expect(standalone[0]).not.toContain("Word");
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.click());
+    expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]], true);
+  });
+
+  it("puts pinned standalone skills before packages and returns unpinned skills to their group", () => {
+    mockSkillData = {
+      skills: [
+        { key: "first", displayName: "First", configured: false },
+        { key: "latest", displayName: "Latest", configured: false },
+        { key: "office/first", displayName: "Package member", configured: false },
+      ],
+      packages: [{ id: "office", displayName: "Office", skills: [{ id: "office/first" }], status: "ready" }],
+    };
+    mockPinnedSkillKeys = ["latest", "first", "office/first"];
+    render(); openMenu();
+    const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => section.click());
+    const rows = () => [...container.querySelectorAll('.composer-add-menu-skill-row, summary')].map(row => row.textContent);
+    expect(rows()[0]).toContain("Latest");
+    expect(rows()[1]).toContain("First");
+    expect(rows()[2]).toContain("Office");
+    expect(container.querySelectorAll('.composer-add-menu-skill-row')).toHaveLength(2);
+    mockPinnedSkillKeys = ["latest"];
+    render();
+    expect(rows()[0]).toContain("Latest");
+    expect(rows()[1]).toContain("Office");
+    expect(rows()[2]).toContain("First");
+  });
+
 });
