@@ -6,6 +6,7 @@ export interface PublicShareBrand {
   id: string;
   productName: string;
   openUrl: string;
+  downloadPageUrl?: string;
 }
 
 const BRAND_META_NAME = "conversation-export-public-brand";
@@ -13,6 +14,21 @@ const LOCAL_BRAND_META_NAME = "conversation-export-local-brand";
 const BRAND_FAVICON_ATTRIBUTE = "data-conversation-export-brand-favicon";
 const BRAND_ID_PATTERN = /^[a-z][a-z0-9-]*$/u;
 const RESERVED_SCHEMES = new Set(["http", "https", "javascript", "data", "vbscript", "file", "blob"]);
+
+function validatedDownloadPageUrl(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  try {
+    const parsed = new URL(value.trim());
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/gu, "");
+    const loopback = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    if (parsed.username || parsed.password || (parsed.protocol !== "https:" && !(loopback && parsed.protocol === "http:"))) {
+      return undefined;
+    }
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}
 
 export function readPublicShareBrand(): PublicShareBrand | null {
   const raw = document.querySelector<HTMLMetaElement>(`meta[name="${BRAND_META_NAME}"]`)?.content;
@@ -25,10 +41,12 @@ export function readPublicShareBrand(): PublicShareBrand | null {
       typeof brand.productName !== "string" || !brand.productName.trim() ||
       typeof brand.openScheme !== "string" || brand.openScheme !== brand.id ||
       RESERVED_SCHEMES.has(brand.openScheme)) return null;
+  const downloadPageUrl = validatedDownloadPageUrl(brand.downloadPageUrl);
   return {
     id: brand.id,
     productName: brand.productName.trim(),
     openUrl: `${brand.openScheme}://open`,
+    ...(downloadPageUrl ? { downloadPageUrl } : {}),
   };
 }
 

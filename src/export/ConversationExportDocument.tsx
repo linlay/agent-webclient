@@ -7,8 +7,8 @@ import type { MarkdownContentProps } from "@/features/viewers/components/Markdow
 import { conversationExportMessages } from "@/shared/i18n/conversationExport";
 import type { ConversationSnapshotV1, SnapshotAttachmentV1 } from "./conversationSnapshotV1";
 import { snapshotV1PreviewData } from "./conversationSnapshotV1";
-import { publicShareBrandIcon, type PublicShareBrand } from "./publicShareBrand";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import type { PublicShareBrand } from "./publicShareBrand";
+import { PublicShareAppEntry } from "./PublicShareAppEntry";
 import styles from "./ConversationExportDocument.module.css";
 
 export type ConversationExportDocumentProps = { snapshot: ConversationSnapshotV1; publicBrand?: PublicShareBrand | null };
@@ -18,6 +18,10 @@ type LinkProps = ConversationMarkdownElementProps<{ href?: string; title?: strin
 function attachmentRoute(id: string, action: "preview" | "download"): string {
   const match = /^\/share\/([A-Za-z0-9_-]+)(?:\/|$)/u.exec(window.location.pathname);
   return match ? `/share/${match[1]}/attachments/${id}/${action}` : "";
+}
+
+function isHtmlAttachment(attachment: SnapshotAttachmentV1): boolean {
+  return attachment.mimeType.split(";", 1)[0]?.trim().toLowerCase() === "text/html";
 }
 
 function findPublishedAttachment(href: string | undefined, attachments: Map<string, SnapshotAttachmentV1>): SnapshotAttachmentV1 | undefined {
@@ -46,7 +50,6 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const [frameKey, setFrameKey] = useState(0);
   const [frameState, setFrameState] = useState<"loading" | "ready" | "error">("loading");
   const [verified, setVerified] = useState(false);
-  const [showBrandCta, setShowBrandCta] = useState(true);
   const data = useMemo(() => snapshotV1PreviewData(snapshot), [snapshot]);
   const assistantByRunId = useMemo(() => new Map(snapshot.turns.map((turn) =>
     [turn.runId, turn.assistant])), [snapshot.turns]);
@@ -82,10 +85,13 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       a: ({ href, children, domNode: _domNode, ...rest }: LinkProps) => {
         const attachment = findPublishedAttachment(href, attachments);
         if (attachment) {
-          const route = attachmentRoute(attachment.id, "preview");
-          return route ? <a {...rest} href={route}
-            onClick={(event) => { event.preventDefault(); open(attachment); }}>{children}</a>
-            : <span title={labels.unavailable}>{children}</span>;
+          const previewable = isHtmlAttachment(attachment);
+          const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
+          if (!route) return <span title={labels.unavailable}>{children}</span>;
+          return previewable
+            ? <a {...rest} href={route}
+              onClick={(event) => { event.preventDefault(); open(attachment); }}>{children}</a>
+            : <a {...rest} href={route}>{children}</a>;
         }
         if (!href || !/^https?:\/\//iu.test(href)) return <span>{children}</span>;
         return <a {...rest} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
@@ -114,33 +120,19 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
         ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader} />
       {snapshot.attachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
         <h2>{labels.attachments}</h2>
-        {snapshot.attachments.map((attachment) => <button key={attachment.id} type="button"
-          disabled={!attachmentRoute(attachment.id, "preview")}
-          title={!attachmentRoute(attachment.id, "preview") ? labels.unavailable : undefined}
-          onClick={() => open(attachment)}>{attachment.name}</button>)}
+        {snapshot.attachments.map((attachment) => {
+          const previewable = isHtmlAttachment(attachment);
+          const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
+          if (!route) return <span key={attachment.id} title={labels.unavailable}>{attachment.name}</span>;
+          return previewable
+            ? <a key={attachment.id} href={route}
+              onClick={(event) => { event.preventDefault(); open(attachment); }}>{attachment.name}</a>
+            : <a key={attachment.id} href={route}>{attachment.name}</a>;
+        })}
       </section>}
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>
-    {publicBrand && showBrandCta && <div className={styles.brandCtaWrap}>
-      <div className={styles.brandCta}>
-        <a className={styles.brandCtaLink} href={publicBrand.openUrl}>
-          <img src={publicShareBrandIcon(publicBrand.id)} alt="" width={32} height={32}
-            onError={(event) => {
-              const fallback = publicShareBrandIcon("");
-              if (event.currentTarget.getAttribute("src") !== fallback) event.currentTarget.src = fallback;
-            }} />
-          <span>{snapshot.locale === "en-US"
-            ? `Continue in ${publicBrand.productName}`
-            : `在 ${publicBrand.productName} 继续聊`}</span>
-          <MaterialIcon name="chevron_right" aria-hidden="true" />
-        </a>
-        <button className={styles.brandCtaClose} type="button"
-          aria-label={snapshot.locale === "en-US" ? "Dismiss app link" : "关闭应用入口"}
-          onClick={() => setShowBrandCta(false)}>
-          <MaterialIcon name="close" aria-hidden="true" />
-        </button>
-      </div>
-    </div>}
+    {publicBrand && <PublicShareAppEntry brand={publicBrand} locale={snapshot.locale} />}
     {selected && <div className={styles.previewBackdrop} role="presentation" onClick={() => setSelected(null)}>
       <aside className={styles.previewPanel} role="dialog" aria-modal="true" aria-label={selected.name}
         onClick={(event) => event.stopPropagation()}>

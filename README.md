@@ -14,7 +14,7 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 公开对话分享不由本项目运行或代理。Desktop 向 Tunnel 一次提交 `ConversationSnapshotV1` 和已发布的 HTML 附件；Tunnel 保存冻结副本，并在公开 `/share/{shareId}` 使用当前分享渲染包生成 HTML。
 
-对话静态 HTML 使用 `ConversationPreview → ConversationStage` 的统一展示链路和严格的 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并更新 Tunnel 的当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI；Tunnel 只发布当前资源集。Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件，附件预览仅在在线分享页可用。
+对话静态 HTML 使用 `ConversationPreview → ConversationStage` 的统一展示链路和严格的 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并更新 Tunnel 的当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI；Tunnel 使用当前资源集渲染新页面，同时保留历史资源集供已有 HTML 引用。Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件，附件预览仅在在线分享页可用。
 
 本地调试分享页时运行 `npm run preview:conversation-export`，打开 `http://127.0.0.1:11959/preview`。预览直接构建 `src/export/`，修改组件、样式或模板后浏览器自动刷新，无需同步或发布 Tunnel。默认读取忽略目录 `.local/share-preview/current.snapshot.json` 中的 Snapshot V1；文件不存在时使用内置样例，`?case=example` 可强制查看内置样例。也可设置 `CONVERSATION_PREVIEW_SNAPSHOT=/absolute/path/snapshot.json` 显式加载本地 JSON，此时忽略 `case` 参数。修改当前快照文件会触发浏览器刷新；端口可通过 `PORT` 调整。预览仅监听 `127.0.0.1`，使用开发态资源路径和自动刷新连接；发布前仍需执行正式导出构建与资源一致性检查。
 
@@ -135,7 +135,7 @@ make test
 make build
 ```
 
-普通构建产物输出到 `dist/`，不构建分享渲染包。需要更新 Tunnel 渲染资源时单独执行 `npm run release:conversation-export`；该命令构建并校验 `dist/export/`，然后整体替换 Tunnel 的模板、manifest 和当前唯一 asset-set。
+普通构建产物输出到 `dist/`，不构建分享渲染包。需要更新 Tunnel 渲染资源时单独执行 `npm run release:conversation-export`；该命令构建并校验 `dist/export/`，然后替换 Tunnel 的当前模板、manifest 和当前 asset-set，保留历史资源集。
 
 ## Desktop Program Bundle 发布
 

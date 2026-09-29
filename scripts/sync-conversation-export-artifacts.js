@@ -52,9 +52,9 @@ if (checkOnly) {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  if (publishedSets.length !== 1 || publishedSets[0] !== manifest.assetSet) {
+  if (!publishedSets.includes(manifest.assetSet)) {
     throw new Error(
-      "Tunnel must contain only the current conversation export asset set.",
+      "Tunnel must contain the current conversation export asset set.",
     );
   }
   const sourceFiles = filesUnder(assetSource).sort();
@@ -81,16 +81,7 @@ if (checkOnly) {
   );
 } else {
   fs.mkdirSync(tunnelFilesRoot, { recursive: true });
-  for (const entry of fs.readdirSync(tunnelFilesRoot, {
-    withFileTypes: true,
-  })) {
-    if (entry.isDirectory()) {
-      fs.rmSync(path.join(tunnelFilesRoot, entry.name), {
-        recursive: true,
-        force: true,
-      });
-    }
-  }
+  fs.rmSync(tunnelAssetRoot, { recursive: true, force: true });
   fs.cpSync(assetSource, tunnelAssetRoot, { recursive: true });
   fs.copyFileSync(manifestPath, tunnelManifestPath);
   fs.copyFileSync(templatePath, tunnelTemplatePath);

@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:f68ca2540ecfc6c23edaf7789bce11cfb42fe288a6067406128c28e23d7799c5
+// sha256:4f4a204f47b574aa4283a60ff8c0f80f612b5fcea78dedfb2c6f00ce3c999888
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -628,7 +628,7 @@ export interface ConnectorAuthBrowserDialog extends ConnectorAuthBrowserIdentity
 export const SKIN_VISUAL_SLOTS = [
   "navigation.search", "navigation.back", "navigation.forward", "navigation.sidebar_left", "navigation.sidebar_right",
   "navigation.refresh", "navigation.more_actions", "entry.kanban", "entry.automation", "entry.new_chat", "entry.new_project",
-  "entry.chat", "entry.project", "entry.website", "chat.send", "chat.stop", "chat.attach", "chat.expand", "chat.collapse", "chat.voice", "chat.screenshot",
+  "entry.chat", "entry.project", "entry.website", "chat.send", "chat.stop", "chat.attach", "chat.expand", "chat.collapse", "chat.voice",
   "agent.default", "agent.terminal", "agent.database", "agent.library", "agent.folder", "agent.coder", "agent.kbase",
   "heading.pinned.zh-CN", "heading.pinned.en-US",
   "heading.chats.zh-CN", "heading.projects.zh-CN", "heading.websites.zh-CN",
@@ -648,9 +648,11 @@ export const SKIN_VISUAL_LIMITS = { assetBytes: 256 * 1024, totalBytes: 4 * 1024
 export function parseSkinVisuals(value: unknown, parseImage: (value: unknown) => string | null): SkinVisuals | null {
   if (!appearanceRecord(value) || Object.keys(value).some(key => !["images", "styles"].includes(key))) return null;
   const images = value.images ?? {}, styles = value.styles ?? {};
-  if (!appearanceRecord(images) || !appearanceRecord(styles) || Object.keys(images).length > SKIN_VISUAL_SLOTS.length) return null;
+  if (!appearanceRecord(images) || !appearanceRecord(styles) || Object.keys(images).filter(key => key !== "chat.screenshot").length > SKIN_VISUAL_SLOTS.length) return null;
   const result: SkinVisuals = { images: {}, styles: {} };
   for (const [key, raw] of Object.entries(images)) {
+    // Screenshot is a native menu action; silently discard legacy skin overrides.
+    if (key === "chat.screenshot") continue;
     if (!(SKIN_VISUAL_SLOTS as readonly string[]).includes(key)) return null;
     const image = parseImage(raw);
     if (!image) return null;
