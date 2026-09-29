@@ -50,3 +50,5 @@
 .error { color: var(--accent-danger); }
 .notice { padding: 8px; color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
 .authAction { display: flex; justify-content: flex-end; padding: 0 8px 4px; }
+
+.selectionError { padding: 8px; margin-bottom: 8px; color: var(--accent-danger); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }

@@ -12,10 +12,13 @@ jest.mock("@/shared/data", () => ({
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
-jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("@/shared/ui/UiButton", () => ({ UiButton: ({ children, variant: _variant, size: _size, ...props }: any) => React.createElement("button", props, children) }));
+const mockMessageError = jest.fn();
+const mockMessageApi = { error: mockMessageError };
 jest.mock("antd", () => ({
+  message: { useMessage: () => [mockMessageApi, null] },
   Input: React.forwardRef(({ prefix: _prefix, variant: _variant, ...props }: any, ref: any) => React.createElement("input", { ...props, ref })),
   Spin: () => React.createElement("span", null, "loading"),
   Switch: ({ checked, disabled, onChange, "aria-label": label }: any) => React.createElement("button", { role: "switch", "aria-checked": checked, "aria-label": label, disabled, onClick: () => onChange(!checked) }),
@@ -26,9 +29,9 @@ const session = (status: string, extra = {}) => ({ code: 0, data: { connectorId:
 let root: Root;
 let container: HTMLDivElement;
 const onSelectionChange = jest.fn();
-function Harness({ search = "", selectionDisabled = false, initialIds = ["docs"] }: { search?: string; selectionDisabled?: boolean; initialIds?: string[] }) {
+function Harness({ search = "", selectionDisabled = false, initialIds = ["docs"], selectionError }: { search?: string; selectionDisabled?: boolean; initialIds?: string[]; selectionError?: Error }) {
   const [selectedIds, setSelectedIds] = useState(initialIds);
-  return React.createElement(ConnectorPicker, { search, onSearchChange: jest.fn(), selectedIds, selectionDisabled,
+  return React.createElement(ConnectorPicker, { search, onSearchChange: jest.fn(), selectedIds, selectionDisabled, selectionError,
     onSelectionChange: (item, selected) => { onSelectionChange(item.id, selected); setSelectedIds(ids => selected ? [...ids, item.id] : ids.filter(id => id !== item.id)); } });
 }
 const mount = async (props = {}) => { await act(async () => root.render(React.createElement(Harness, props))); };
@@ -204,4 +207,40 @@ it("Desktop no_auth mounts and unmounts without checking or connecting",async()=
  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
  expect(startConnectorAuth).not.toHaveBeenCalled();
  expect(container.textContent).not.toContain("connectors.auth.checking");
+});
+
+
+it.each([false, true])("reports one-sided conflicts without changing selection even when the selected item is filtered out (reverse=%s)", async reverse => {
+  const first = { ...connector("custom-first", "文档连接器"), mutuallyExclusiveWith: reverse ? ["custom-second"] : [] };
+  const second = { ...connector("custom-second", "网页连接器"), mutuallyExclusiveWith: reverse ? [] : ["custom-first"] };
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [first, second] } });
+  await mount({ initialIds: [first.id], search: "网页" });
+  const toggle = container.querySelector<HTMLButtonElement>('[role="switch"]')!;
+  expect(toggle.disabled).toBe(false);
+  await act(async () => toggle.click());
+  expect(onSelectionChange).not.toHaveBeenCalled();
+  expect(toggle.getAttribute("aria-checked")).toBe("false");
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("网页连接器: 文档连接器");
+  expect(mockMessageError).toHaveBeenCalledWith(expect.stringContaining("网页连接器: 文档连接器"));
+  // Deselecting the old choice is always allowed and clears the local conflict.
+  await mount({ search: "", initialIds: [first.id] });
+  await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[0].click());
+  expect(onSelectionChange).toHaveBeenCalledWith(first.id, false);
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].click());
+  expect(onSelectionChange).toHaveBeenCalledWith(second.id, true);
+});
+
+it("shows server conflicts when the local catalog is stale and reports other save failures", async () => {
+  const { ApiError } = jest.requireActual("@/shared/data/api/http");
+  const selectionError = new ApiError("conflict", { status: 400, data: { error: { code: "connector_selection_conflict", connectorId: "login", conflictingConnectorIds: ["docs"] } } });
+  await mount({ selectionError });
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("会议: 文档");
+  expect(mockMessageError).toHaveBeenCalledTimes(1);
+  await mount({ search: "meeting", selectionError });
+  expect(mockMessageError).toHaveBeenCalledTimes(1);
+  const offline = new Error("Connection lost");
+  await mount({ selectionError: offline });
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("Connection lost");
+  expect(mockMessageError).toHaveBeenLastCalledWith(expect.stringContaining("Connection lost"));
 });

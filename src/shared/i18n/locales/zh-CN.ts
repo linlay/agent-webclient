@@ -807,6 +807,7 @@ export const zhCNMessages = {
   "composer.addMenu.connectors.empty": "暂无可用连接器",
   "composer.addMenu.connectors.noAgent": "请先选择智能体",
   "composer.addMenu.connectors.configLoadFailed": "无法加载智能体的连接器配置",
+  "composer.addMenu.connectors.selectionConflict": "无法选择“{name}”：已选择与其互斥的“{conflicts}”。请先取消原选择。",
   "composer.addMenu.connectors.saveFailed": "连接器配置保存失败",
   "composer.addMenu.connectors.reloadPending":
     "配置已保存，正在等待智能体重新加载。",

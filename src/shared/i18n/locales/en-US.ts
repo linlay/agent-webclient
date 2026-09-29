@@ -735,6 +735,7 @@ export const enUSMessages = {
   "composer.addMenu.connectors.empty": "No connectors available",
   "composer.addMenu.connectors.noAgent": "Select an agent first",
   "composer.addMenu.connectors.configLoadFailed": "Could not load agent connectors",
+  "composer.addMenu.connectors.selectionConflict": "Cannot select “{name}”: it conflicts with the selected “{conflicts}”. Deselect the conflicting connector first.",
   "composer.addMenu.connectors.saveFailed": "Could not save agent connectors",
   "composer.addMenu.connectors.reloadPending": "Configuration saved. Waiting for the agent to reload.",
   "composer.addMenu.section.commands": "Commands",

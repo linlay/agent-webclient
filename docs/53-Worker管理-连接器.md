@@ -138,3 +138,11 @@ Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth
 Desktop 声明 no_auth，详情与列表复用通用认证展示，不保留 native 专用配置面板或 connection.json 操作。Composer “+”菜单只保留挂载开关，不显示“检查中”或“连接”；挂载不等于客户端在线，实际路由、权限和可用性由调用结果说明。取消使用通过移除 Agent 挂载完成。
 
 Connection DTO 接收 configurationRequired、authentication、capabilities 和独立 preparation。no_auth 的 configurationRequired=false、canConnect/canDisconnect/canCheck=false，configured=false 不能解释为未连接。认证 hook 依据清单 no_auth 直接进入终态，既不请求认证接口也不使用配置完成标记；CLI 安装准备与 MCP 同步状态独立于认证状态。
+
+## Agent 连接器互斥选择
+
+目录 DTO 接收包清单的可选 `mutuallyExclusiveWith`。Composer 选择器依据完整目录和当前 Agent 已选 ID 双向判断：任意一方声明即冲突，未声明不推导，搜索过滤不影响判断，源码不保留 Desktop ID 特例。
+
+冲突项保留可点击开关；点击时不发送保存请求，弹出中英文错误并在列表顶部显示“无法选择‘名称’：已选择与其互斥的‘冲突名称’。请先取消原选择。”原选择不变，不自动替换；取消原选择后可正常选择另一项。名称来自目录本地化值，找不到时回退 ID。
+
+服务端最终校验。`PUT /api/admin/agents/connectors` 失败中的 `data.error.code=connector_selection_conflict`、`connectorId` 和 `conflictingConnectorIds` 映射为相同提示；其他保存失败显示实际错误。HTTP 非 2xx 与 HTTP 200 业务失败都保留错误详情；失败重新读取来源，不乐观切换开关。加载错误位于列表之前。相关组件、hook 和 API 测试覆盖单向声明的两种选择顺序、搜索、取消后切换、过期目录和保存失败。

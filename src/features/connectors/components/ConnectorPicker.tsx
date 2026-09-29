@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Input, Spin, Switch } from "antd";
+import { Input, Spin, Switch, message } from "antd";
 import type { InputRef } from "antd";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -9,6 +9,7 @@ import { useConnectorPickerCatalog } from "../hooks/useConnectorPickerCatalog";
 import type { ConnectorAuthRuntime } from "../hooks/useConnectorAuth";
 import { createConnectorAuthChecks } from "../lib/connectorAuthChecks";
 import { filterConnectors } from "../lib/connectorCatalog";
+import { findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames } from "../lib/connectorSelection";
 import { safeConnectorAuthorizationUrl } from "../lib/connectorAuth";
 import { ConnectorAuthObserver, connectorAuthIdentity } from "./ConnectorAuthObserver";
 import { ConnectorIcon } from "./ConnectorIcon";
@@ -22,12 +23,39 @@ export interface ConnectorPickerProps {
   onSelectionChange: (item: ConnectorSummary, selected: boolean) => void;
   disabled?: boolean;
   selectionDisabled?: boolean;
+  selectionError?: Error | null;
 }
 
-export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId, onSelectionChange, disabled = false, selectionDisabled = false }: ConnectorPickerProps) {
+export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
   const { t } = useI18n();
   const catalog = useConnectorPickerCatalog();
   const searchRef = useRef<InputRef>(null);
+  const [messageApi, messageContextHolder] = message.useMessage();
+  const [attemptedId, setAttemptedId] = useState("");
+  const attemptedItem = catalog.items.find(item => item.id === attemptedId);
+  const localConflict = attemptedItem && !selectedIds.includes(attemptedId)
+    ? findConnectorSelectionConflict(attemptedItem, selectedIds, catalog.items) : null;
+  const serverConflict = connectorSelectionConflictFromError(selectionError);
+  const conflict = localConflict || serverConflict;
+  const selectionErrorText = conflict
+    ? t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(conflict, catalog.items))
+    : selectionError ? `${t("composer.addMenu.connectors.saveFailed")}: ${selectionError.message}` : "";
+  const reportedError = useRef<Error | null>(null);
+  useEffect(() => {
+    if (selectionError && reportedError.current !== selectionError) {
+      void messageApi.error(selectionErrorText);
+    }
+    reportedError.current = selectionError || null;
+  }, [selectionError, selectionErrorText, messageApi]);
+  const changeSelection: ConnectorPickerProps["onSelectionChange"] = (item, selected) => {
+    const nextConflict = selected ? findConnectorSelectionConflict(item, selectedIds, catalog.items) : null;
+    setAttemptedId(nextConflict ? item.id : "");
+    if (nextConflict) {
+      void messageApi.error(t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(nextConflict, catalog.items)));
+      return;
+    }
+    onSelectionChange(item, selected);
+  };
   const [checks] = useState(createConnectorAuthChecks);
   const [authRuntimes, setAuthRuntimes] = useState<Record<string, ConnectorAuthRuntime>>({});
   const onAuthChange = useCallback((identity: string, auth: ConnectorAuthRuntime | null) => {
@@ -47,6 +75,8 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId,
     ? t(`connectors.auth.error.${catalog.error.status}`) : t("composer.addMenu.connectors.loadFailed");
 
   return <section className={styles.picker} aria-label={t("composer.addMenu.section.connectors")}>
+    {messageContextHolder}
+    {selectionErrorText && <div className={styles.selectionError} role="alert">{selectionErrorText}</div>}
     {catalog.items.filter(item => selectedIds.includes(item.id)).map(item => <ConnectorAuthObserver pollInactive={false} key={connectorAuthIdentity(item)} item={item} checks={checks} onChange={onAuthChange} onCredentialsChange={catalog.refresh} />)}
     <Input ref={searchRef} className={styles.search} variant="filled" prefix={<MaterialIcon name="search" />} value={search}
       aria-label={t("composer.addMenu.connectors.search")} placeholder={t("composer.addMenu.connectors.search")}
@@ -59,7 +89,7 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId,
       </div>}
       {!catalog.loading && !catalog.error && !items.length && <div className={styles.status} role="status">{t(catalog.items.length ? "composer.addMenu.empty" : "composer.addMenu.connectors.empty")}</div>}
       {items.map(item => <ConnectorPickerRow key={item.id} item={item} auth={selectedIds.includes(item.id) ? authRuntimes[connectorAuthIdentity(item)] : undefined}
-        selected={selectedIds.includes(item.id)} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={onSelectionChange}
+        selected={selectedIds.includes(item.id)} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={changeSelection}
         onPrioritize={() => checks.prioritize(item.id)} />)}
     </div>
   </section>;

@@ -117,3 +117,16 @@ it("keeps a busy conflict distinct from an Agent binding conflict", async () => 
     await expect(deleteConnector("demo")).rejects.toMatchObject({ code: "connector_busy", platformError: { code: "connector_busy", message: reason } });
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+it.each([400, 200])("preserves connector selection errors for status %s", async status => {
+  const originalFetch = globalThis.fetch;
+  const reason = "所选连接器互斥，请先取消已选择的冲突连接器";
+  const details = { code: "connector_selection_conflict", message: reason, status: 400, connectorId: "custom-second", conflictingConnectorIds: ["custom-first"] };
+  globalThis.fetch = jest.fn().mockResolvedValue({ ok: status === 200, status, text: async () => JSON.stringify({ code: 400, msg: reason, data: { error: details } }) });
+  jest.mocked(requestJson).mockImplementationOnce(jest.requireActual("@/shared/data/api/http").requestJson);
+  try {
+    const { setAgentConnector } = jest.requireActual("./connectors");
+    await expect(setAgentConnector({ agentKey: "agent", connectorId: "custom-second", enabled: true })).rejects.toMatchObject({ message: reason, data: { error: details } });
+  } finally { globalThis.fetch = originalFetch; }
+});

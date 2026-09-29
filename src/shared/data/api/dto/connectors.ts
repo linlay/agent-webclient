@@ -29,6 +29,7 @@ export interface ConnectorSummary {
   canDelete?: boolean;
   hasNative?: boolean;
   nativeTools?: string[];
+  mutuallyExclusiveWith?: string[];
   hasMcp: boolean;
   hasCli: boolean;
   hasView?: boolean;
