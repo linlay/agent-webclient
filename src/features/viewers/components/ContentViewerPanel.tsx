@@ -43,7 +43,9 @@ import {
 import { DocumentTextEditor } from "@/features/viewers/components/DocumentTextEditor";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
 import { DocumentMetadataPanel, StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
-import { OnlineDocumentPreview, OnlinePreviewAction } from "./OnlineDocumentPreview";
+import { DesktopDocumentOpenActions } from "./DesktopDocumentOpenActions";
+import { isDesktopLocalOpenDocument } from "../lib/desktopDocumentOpen";
+import { OnlineDocumentPreview, OnlinePreviewAction, OnlinePreviewStatus } from "./OnlineDocumentPreview";
 import { useOnlineDocumentPreview } from "../hooks/useOnlineDocumentPreview";
 import { getDocumentPreviewTabKey, type DocumentPreviewTabState } from "../lib/documentPreview";
 import documentPanelStyles from "./StandaloneDocumentPanel.module.css";
@@ -225,7 +227,8 @@ export function shouldRequestDesktopLocalResourceActions(input: {
 export const DesktopLocalResourceActions: React.FC<{
   resource: DesktopCurrentResourceIdentity;
   compact?: boolean;
-}> = ({ resource, compact = false }) => {
+  allowOpenDefault?: boolean;
+}> = ({ resource, compact = false, allowOpenDefault = true }) => {
   const [pendingAction, setPendingAction] =
     React.useState<DesktopCurrentResourceAction | null>(null);
   const [actionError, setActionError] = React.useState("");
@@ -265,7 +268,9 @@ export const DesktopLocalResourceActions: React.FC<{
         aria-label={t("contentViewer.desktopAction.groupLabel")}
       >
         <Button
-          block
+          block={!compact}
+          size={compact ? "small" : undefined}
+          className={compact ? documentPanelStyles.secondaryButton : undefined}
           disabled={pendingAction !== null}
           icon={<MaterialIcon name="folder_open" />}
           loading={pendingAction !== null}
@@ -273,8 +278,10 @@ export const DesktopLocalResourceActions: React.FC<{
         >
           {revealLabel}
         </Button>
-        <Button
-          block
+        {allowOpenDefault ? <Button
+          block={!compact}
+          size={compact ? "small" : undefined}
+          className={compact ? documentPanelStyles.secondaryButton : undefined}
           type={compact ? "default" : "primary"}
           disabled={pendingAction !== null}
           icon={<MaterialIcon name="open_in_new" />}
@@ -282,7 +289,7 @@ export const DesktopLocalResourceActions: React.FC<{
           onClick={() => void handleAction("open-default")}
         >
           {t("contentViewer.desktopAction.openDefault")}
-        </Button>
+        </Button> : null}
         {actionError ? (
           <div
             className={CONTENT_VIEWER_LOCAL_ACTION_ERROR_CLASS_NAME}
@@ -784,6 +791,11 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
           </div>
         ) : null}
 
+        {contentKind === "pdf" && isAppMode() ? (
+          <DesktopDocumentOpenActions target={viewerName === target.name ? target : { ...target, name: viewerName }}
+            refreshKey={documentReloadRequest} layout="toolbar" />
+        ) : null}
+
         {contentKind === "pdf" && mediaUrl ? (
           <React.Suspense fallback={<div className={CONTENT_VIEWER_STATUS_CLASS_NAME}>{t("contentViewer.pdf.loading")}</div>}>
             <PdfDocumentViewer url={mediaUrl} title={viewerName} />
@@ -807,11 +819,17 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
             sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
             note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
-            previewAction={<OnlinePreviewAction preview={onlinePreview} />}
+            previewAction={<OnlinePreviewAction preview={onlinePreview} compact={isDesktopLocalOpenDocument(viewerName)} />}
+            previewStatus={isDesktopLocalOpenDocument(viewerName) ? <OnlinePreviewStatus preview={onlinePreview} /> : undefined}
             onDownload={handleDownload}
-            localActions={localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
-              ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} compact />
-              : null}
+            primaryAction={isDesktopLocalOpenDocument(viewerName) ? <DesktopDocumentOpenActions
+              target={viewerName === target.name ? target : { ...target, name: viewerName }} refreshKey={documentReloadRequest} /> : undefined}
+            localActions={<>
+              {localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+                ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} compact
+                    allowOpenDefault={!isDesktopLocalOpenDocument(viewerName)} />
+                : null}
+            </>}
           />
         ) : null}
 
