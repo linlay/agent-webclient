@@ -11,9 +11,13 @@ test('member deletion never reduces the key to its standalone basename', () => {
   deleteAdminSkillPackageMember('office', 'office/word');
   expect(postJson).toHaveBeenCalledWith('/api/admin/skill-packages/skills/delete', {packageId: 'office', skillId: 'office/word'});
 });
-test('manifest writes use PUT and bind the reviewed hash', () => {
+test('package source reads and writes use the shared endpoint and preserve member order and reviewed hash', () => {
   getAdminSkillPackageManifest('office');
-  expect(requestJson).toHaveBeenCalledWith('/api/admin/skill-packages/manifest?key=office');
-  saveAdminSkillPackageManifest('office', '{"name":"office"}', 'abc');
-  expect(requestJson).toHaveBeenLastCalledWith('/api/admin/skill-packages/manifest', {method: 'PUT', body: '{"key":"office","content":"{\\"name\\":\\"office\\"}","baseSha256":"abc"}'});
+  expect(requestJson).toHaveBeenCalledWith('/api/admin/source?type=skill-package&key=office');
+  const content = JSON.stringify({name: 'office', skills: [{key: 'word'}, {key: 'excel'}]});
+  saveAdminSkillPackageManifest('office', content, 'abc');
+  expect(requestJson).toHaveBeenLastCalledWith('/api/admin/source', {
+    method: 'PUT',
+    body: JSON.stringify({target: {type: 'skill-package', key: 'office'}, content, baseSha256: 'abc'}),
+  });
 });

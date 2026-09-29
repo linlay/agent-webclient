@@ -1,3 +1,5 @@
+import type { AdminSourceResponse } from "@/shared/data/api/dto/admin";
+import { getAdminSource, updateAdminSource } from "./admin";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
 import type { AdminSkillPackageSummary } from "@/shared/data/api/dto/skills";
 import { requestJson, postJson } from "@/shared/data/api/http";
@@ -15,14 +17,13 @@ export function deleteAdminSkillPackageMember(packageId: string, skillId: string
   return postJson(dataEndpoints.adminSkillPackageMemberDelete.path, { packageId, skillId });
 }
 
-export interface SkillPackageManifest { content: string; sha256: string }
-
-export function getAdminSkillPackageManifest(key: string): Promise<ApiResponse<SkillPackageManifest>> {
-  return requestJson(`${dataEndpoints.adminSkillPackageManifest.path}?${new URLSearchParams({ key })}`);
+/** Package metadata and ordered members use the shared source editing contract. */
+export function getAdminSkillPackageManifest(key: string): Promise<ApiResponse<AdminSourceResponse>> {
+  return getAdminSource({ type: "skill-package", key });
 }
 
-export function saveAdminSkillPackageManifest(key: string, content: string, baseSha256: string): Promise<ApiResponse<SkillPackageManifest>> {
-  return requestJson(dataEndpoints.adminSkillPackageManifestSave.path, {
-    method: "PUT", body: JSON.stringify({ key, content, baseSha256 }),
+export function saveAdminSkillPackageManifest(key: string, content: string, baseSha256: string): Promise<ApiResponse<AdminSourceResponse>> {
+  return updateAdminSource({
+    target: { type: "skill-package", key }, content, baseSha256,
   });
 }

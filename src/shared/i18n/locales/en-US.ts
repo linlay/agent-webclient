@@ -4,8 +4,8 @@ import type {
 export const enUSMessages = {
   "skillCatalog.kindFilter": "Filter skill types",
   "skillPackageEditor.editManifest": "Edit package.json",
-  "skillPackageEditor.manifestHint": "Edit package metadata. Keep name unchanged; members are scanned from child skill directories, not a skills field.",
-  "skillPackageEditor.manifestInvalid": "Keep the original name and omit the skills member list from package.json.",
+  "skillPackageEditor.manifestHint": "Edit package metadata and members. Keep name unchanged; list skills in order as {key: \"member-directory\"}, or [] for an empty package. Member names, descriptions and versions come from each SKILL.md. Removing an entry does not delete its files.",
+  "skillPackageEditor.manifestInvalid": "Keep the original name and provide a skills object array with a string key in each entry; use [] for an empty package.",
   "skillPackageEditor.discard": "Discard changes",
   "skillPackageEditor.discardHint": "Unsaved package.json changes will be lost when you close.",
   "skillPackageEditor.summary": "{id} · v{version} · {count} skills",

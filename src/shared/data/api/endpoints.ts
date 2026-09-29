@@ -407,18 +407,6 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
-  adminSkillPackageManifest: defineEndpoint({
-    key: "admin.skillPackages.manifest",
-    path: "/api/admin/skill-packages/manifest",
-    method: "GET",
-    transport: "http",
-  }),
-  adminSkillPackageManifestSave: defineEndpoint({
-    key: "admin.skillPackages.manifest.save",
-    path: "/api/admin/skill-packages/manifest",
-    method: "PUT",
-    transport: "http",
-  }),
   adminSkillPackageDelete: defineEndpoint({
     key: "admin.skillPackages.delete",
     path: "/api/admin/skill-packages/delete",

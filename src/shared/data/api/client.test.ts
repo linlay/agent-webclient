@@ -1,4 +1,5 @@
 import { Blob } from "buffer";
+import { configureI18nRuntime } from "@/shared/i18n/runtime";
 import { URL as NodeURL } from "node:url";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/shared/data/auth/accessTokenStorage";
 import {
@@ -246,6 +247,7 @@ describe("data client requests", () => {
   const originalLocalStorage = globalThis.localStorage;
 
   beforeEach(() => {
+    configureI18nRuntime({ locale: "zh-CN" });
     resetCompactIdStateForTests();
     jest.restoreAllMocks();
     global.Blob = Blob as unknown as typeof global.Blob;
@@ -880,7 +882,7 @@ describe("data client requests", () => {
     ];
     expect(uploadUrl).toBe("/api/admin/skills/file/upload");
     expect(uploadOptions.method).toBe("POST");
-    expect(uploadOptions.headers).toEqual({});
+    expect(uploadOptions.headers).toEqual({ "X-Locale": "zh-CN" });
     expect(uploadOptions.body).toBeInstanceOf(FormData);
 
     const formData = uploadOptions.body as FormData;
@@ -903,7 +905,7 @@ describe("data client requests", () => {
     ];
     expect(importUrl).toBe("/api/admin/skills/import");
     expect(importOptions.method).toBe("POST");
-    expect(importOptions.headers).toEqual({});
+    expect(importOptions.headers).toEqual({ "X-Locale": "zh-CN" });
     expect(importOptions.body).toBeInstanceOf(FormData);
 
     const formData = importOptions.body as FormData;
@@ -937,7 +939,7 @@ describe("data client requests", () => {
     ];
     expect(firstUrl).toBe("/api/admin/agents/import");
     expect(firstOptions.method).toBe("POST");
-    expect(firstOptions.headers).toEqual({});
+    expect(firstOptions.headers).toEqual({ "X-Locale": "zh-CN" });
     expect(firstOptions.body).toBeInstanceOf(FormData);
     const firstForm = firstOptions.body as FormData;
     expect(firstForm.get("file")).toBe(archive);
@@ -2113,6 +2115,7 @@ describe("data client requests", () => {
       [string, RequestInit]
     >) {
       expect(options.headers).toEqual({
+        "X-Locale": "zh-CN",
         Authorization: "Bearer resource-token",
       });
       expect(options.credentials).toBe("same-origin");
@@ -2154,6 +2157,7 @@ describe("data client requests", () => {
       [string, RequestInit]
     >) {
       expect(options.headers).toEqual({
+        "X-Locale": "zh-CN",
         Authorization: "Bearer absolute-token",
       });
       expect(options.credentials).toBe("same-origin");
@@ -2202,6 +2206,7 @@ describe("data client requests", () => {
     expect(url).toBe("/api/resource?file=chat_1%2Fdemo.txt");
     expect(options.method).toBe("GET");
     expect(options.headers).toEqual({
+      "X-Locale": "zh-CN",
       Authorization: "Bearer demo-token",
     });
     expect(options.credentials).toBe("same-origin");
@@ -2260,6 +2265,7 @@ describe("data client requests", () => {
       "/api/resource?file=chat_01%2Fartifacts%2Frun_01%2Fimage.png",
     );
     expect(logicalOptions.headers).toEqual({
+      "X-Locale": "zh-CN",
       Authorization: "Bearer private-platform-token",
     });
     expect(externalUrl).toBe("https://cdn.example.com/public.png");
@@ -2531,6 +2537,7 @@ describe("data client requests", () => {
     expect(url).toBe("/api/chat/jsonl?chatId=chat_1");
     expect(options.method).toBe("GET");
     expect(options.headers).toEqual({
+      "X-Locale": "zh-CN",
       Authorization: "Bearer demo-token",
     });
   });
@@ -2553,6 +2560,7 @@ describe("data client requests", () => {
     );
     expect(options.method).toBe("GET");
     expect(options.headers).toEqual({
+      "X-Locale": "zh-CN",
       Authorization: "Bearer demo-token",
     });
   });
@@ -2596,6 +2604,7 @@ describe("data client requests", () => {
     );
     expect(options.method).toBe("GET");
     expect(options.headers).toEqual({
+      "X-Locale": "zh-CN",
       Authorization: "Bearer demo-token",
       "Content-Type": "application/json",
     });
@@ -2689,7 +2698,7 @@ describe("data client requests", () => {
     ];
     expect(uploadUrl).toBe("/api/upload");
     expect(uploadOptions.method).toBe("POST");
-    expect(uploadOptions.headers).toEqual({});
+    expect(uploadOptions.headers).toEqual({ "X-Locale": "zh-CN" });
     expect(uploadOptions.body).toBeInstanceOf(FormData);
 
     const formData = uploadOptions.body as FormData;
