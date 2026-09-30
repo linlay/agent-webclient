@@ -5,6 +5,21 @@ import { useI18n } from "@/shared/i18n";
 import { getAdminSkillPackageManifest, saveAdminSkillPackageManifest } from "@/shared/data/api/requests/skillPackages";
 
 /** Edits package metadata and declared members; Platform validates membership and references. */
+function validMembers(skills: unknown): boolean {
+  if (!Array.isArray(skills)) return false;
+  const seen = new Set<string>();
+  return skills.every(member => {
+    if (!member || typeof member !== "object" || Array.isArray(member)) return false;
+    const key = member.key;
+    // Platform validates reserved names and member files; reject malformed paths here.
+    if (typeof key !== "string" || !key || key.trim() !== key || key === "." || key === ".." || /[/\\\u0000]/.test(key)) return false;
+    const folded = key.toLowerCase();
+    if (seen.has(folded)) return false;
+    seen.add(folded);
+    return true;
+  });
+}
+
 export function SkillPackageManifestEditor({ packageId, onClose, onSaved }: {
   packageId: string;
   onClose: () => void;
@@ -34,9 +49,7 @@ export function SkillPackageManifestEditor({ packageId, onClose, onSaved }: {
     try {
       const manifest = JSON.parse(content);
       if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)
-        || manifest.name !== packageId || !Array.isArray(manifest.skills)
-        || manifest.skills.some((member: unknown) => !member || typeof member !== "object"
-          || Array.isArray(member) || !("key" in member) || typeof member.key !== "string")) {
+        || manifest.name !== packageId || !validMembers(manifest.skills)) {
         throw new Error(t("skillPackageEditor.manifestInvalid"));
       }
       setSaving(true);

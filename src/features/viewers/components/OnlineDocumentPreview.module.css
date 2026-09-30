@@ -5,3 +5,13 @@
 .action { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; text-align: center; }
 .hint { color: var(--ink-muted); font-size: 12px; }
 .error { color: #cf1322; font-size: 12px; overflow-wrap: anywhere; }
+.compactAction { display: inline-flex; min-width: 0; }
+.compactButton { font-size: 12px; white-space: nowrap; }
+.prominentAction { display: grid; min-width: 0; }
+.prominentButton { width: 100%; min-width: 0; height: 40px; padding-inline: 14px; font-size: 13px; white-space: nowrap; }
+.previewNotice { margin-top: 14px; padding: 9px 11px; border-radius: 8px; background: color-mix(in srgb, var(--ink-muted) 6%, transparent); color: var(--ink-muted); font-size: 12px; line-height: 1.6; }
+.previewNotice summary { display: flex; align-items: center; gap: 6px; list-style: none; cursor: pointer; }
+.previewNotice summary::-webkit-details-marker { display: none; }
+.previewNotice summary:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 3px; border-radius: 4px; }
+.previewNotice p { margin: 8px 0 0; overflow-wrap: anywhere; }
+.noticeDetails { margin-left: auto; flex-shrink: 0; color: var(--accent-electric); }

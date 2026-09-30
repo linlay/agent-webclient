@@ -48,26 +48,42 @@ test("allows an explicitly empty package", async () => {
   expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
 });
 test.each([
-  '{"name":"other","skills":[]}',
-  '{"name":"office"}',
-  '{"name":"office","skills":null}',
-  '{"name":"office","skills":["word"]}',
-  '{"name":"office","skills":[{}]}',
-  '{"name":"office","skills":[{"key":1}]}',
-  '{"name":"office","skills":[null]}',
-])("rejects changed identity or malformed membership: %s", async content => {
-  await mount(); await edit(content); await save();
+  { name: "other", skills: [] },
+  { name: "office" },
+  { name: "office", skills: null },
+  { name: "office", skills: {} },
+  ...[null, [], "child", {}, { key: 1 }, { key: "" }, { key: " " }, { key: " child" },
+    { key: "." }, { key: ".." }, { key: "a/b" }, { key: "a\\b" }, { key: "a\u0000b" }]
+    .map(member => ({ name: "office", skills: [member] })),
+  { name: "office", skills: [{ key: "child" }, { key: "CHILD" }] },
+])("blocks invalid manifest %j without changing the draft", async manifest => {
+  await mount();
+  const content = JSON.stringify(manifest);
+  await edit(content); await save();
   expect(saveAdminSkillPackageManifest).not.toHaveBeenCalled();
+  expect(container.querySelector("textarea")?.value).toBe(content);
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("manifestInvalid");
 });
-test("Platform member validation failures preserve the draft and reviewed hash", async () => {
-  jest.mocked(saveAdminSkillPackageManifest).mockRejectedValueOnce(new Error("skills must contain unique, safe package-relative keys"));
+test.each([
+  { skills: [] },
+  { skills: [{ key: "child-dir" }] },
+  { skills: [{ key: "child-dir" }, { key: "中文 skill", extension: true }] },
+])("allows editing declared members without duplicating display metadata: %j", async ({ skills }) => {
   await mount();
-  const content = '{"name":"office","skills":[{"key":"word"},{"key":"WORD"}]}';
+  const content = JSON.stringify({ name: "office", displayName: "Office", skills });
+  await edit(content); await save();
+  expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
+  expect(onSaved).toHaveBeenCalledTimes(1);
+});
+
+test("Platform member validation failures preserve the draft and reviewed hash", async () => {
+  jest.mocked(saveAdminSkillPackageManifest).mockRejectedValueOnce(new Error("Declared member SKILL.md is missing"));
+  await mount();
+  const content = '{"name":"office","skills":[{"key":"missing-child"}]}';
   await edit(content); await save();
   expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
   expect(container.querySelector("textarea")?.value).toBe(content);
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain("unique, safe");
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("SKILL.md is missing");
   expect(getAdminSkillPackageManifest).toHaveBeenCalledTimes(1);
   expect(onSaved).not.toHaveBeenCalled();
   expect(onClose).not.toHaveBeenCalled();
