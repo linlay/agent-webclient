@@ -31,7 +31,7 @@ export const zhCNMessages = {
   "packageComposer.selectionCount": "已选 {selected}/{count} 个技能",
   "packageComposer.pinned": "置顶技能",
   "packageComposer.packages": "技能包",
-  "packageComposer.standalone": "独立技能",
+  "packageComposer.standalone": "技能",
   "packageComposer.unavailable": "不可用",
   "packageComposer.incomplete": "技能包不完整，请展开选择可用成员。",
   "packageComposer.select": "选择技能包 {name}",

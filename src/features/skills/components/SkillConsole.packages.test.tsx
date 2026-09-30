@@ -136,7 +136,7 @@ test.each([true, false])('mixes packages and standalone names with pins first an
   expect(kindButton('package').getAttribute('aria-pressed')).toBe('false');
   expect(kindButton('standalone').getAttribute('aria-pressed')).toBe('false');
   expect(kindButton('package').textContent).toBe('技能包2');
-  expect(kindButton('standalone').textContent).toBe('独立技能2');
+  expect(kindButton('standalone').textContent).toBe('技能2');
   expect(container.querySelector('.skill-console-list-header')).toBeNull();
   const folder = [...container.querySelectorAll<HTMLButtonElement>('.skill-package-folder')]
     .find(node => node.textContent?.includes('Zeta package'))!;
@@ -153,7 +153,7 @@ test('kind toggles are mutually exclusive and clicking the active kind restores 
   expect(topLevelNames()).toEqual(['企业微信']);
   expect(kindButton('package').getAttribute('aria-pressed')).toBe('true');
   expect(kindButton('standalone').getAttribute('aria-pressed')).toBe('false');
-  expect(kindButton('standalone').textContent).toBe('独立技能1');
+  expect(kindButton('standalone').textContent).toBe('技能1');
 
   await act(async () => kindButton('standalone').click());
   expect(topLevelNames()).toEqual(['独立']);
@@ -180,16 +180,16 @@ test('kind filtering intersects search and status while counts cover both matchi
   await search('会议');
   expect(topLevelNames()).toEqual(['会议报告', '企业微信']);
   expect(kindButton('package').textContent).toBe('技能包1');
-  expect(kindButton('standalone').textContent).toBe('独立技能1');
+  expect(kindButton('standalone').textContent).toBe('技能1');
   expect(container.querySelector('.skill-package-folder')?.getAttribute('aria-expanded')).toBe('true');
   expect(container.querySelector('.skill-package-members')?.textContent).toContain('会议');
 
   await act(async () => kindButton('package').click());
   expect(topLevelNames()).toEqual(['企业微信']);
-  expect(kindButton('standalone').textContent).toBe('独立技能1');
+  expect(kindButton('standalone').textContent).toBe('技能1');
   await filterStatus('就绪');
   expect(kindButton('package').textContent).toBe('技能包1');
-  expect(kindButton('standalone').textContent).toBe('独立技能0');
+  expect(kindButton('standalone').textContent).toBe('技能0');
   await act(async () => kindButton('standalone').click());
   expect(topLevelNames()).toEqual([]);
   expect(container.querySelector('.skill-console-list-scroll')?.textContent).toContain('无匹配技能');
@@ -212,13 +212,13 @@ test('empty packages remain visible in package filtering and respect search', as
   await act(async () => kindButton('package').click());
   expect(topLevelNames()).toEqual(['空技能包']);
   expect(kindButton('package').textContent).toBe('技能包1');
-  expect(kindButton('standalone').textContent).toBe('独立技能1');
+  expect(kindButton('standalone').textContent).toBe('技能1');
   await act(async () => container.querySelector<HTMLButtonElement>('.skill-package-folder')!.click());
   expect(container.querySelector('.skill-package-folder')?.getAttribute('aria-expanded')).toBe('true');
   expect(container.querySelectorAll('.skill-package-members .skill-console-list-item')).toHaveLength(0);
   await search('空技能包');
   expect(topLevelNames()).toEqual(['空技能包']);
-  expect(kindButton('standalone').textContent).toBe('独立技能0');
+  expect(kindButton('standalone').textContent).toBe('技能0');
   await search('missing');
   expect(topLevelNames()).toEqual([]);
   expect(kindButton('package').textContent).toBe('技能包0');
