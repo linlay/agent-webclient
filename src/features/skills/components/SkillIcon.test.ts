@@ -29,7 +29,7 @@ it("loads the supplied authenticated icon and releases its Blob when removed", a
   expect(container.querySelector("img")?.getAttribute("src")).toBe("blob:skill-icon");
   await render();
   expect(container.querySelector("img")).toBeNull();
-  expect(container.querySelector('[data-icon="skills"]')).not.toBeNull();
+  expect(container.querySelector('[data-icon="build"]')).not.toBeNull();
   expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:skill-icon");
   expect(jest.mocked(fetchSkillIcon).mock.calls[0][1]?.signal?.aborted).toBe(true);
 });
@@ -37,11 +37,11 @@ it("loads the supplied authenticated icon and releases its Blob when removed", a
 it("keeps the default when a request fails or an image cannot decode", async () => {
   jest.mocked(fetchSkillIcon).mockRejectedValueOnce(new Error("unavailable"));
   await render("/api/skills/icon?agentKey=zenmi&key=missing");
-  expect(container.querySelector('[data-icon="skills"]')).not.toBeNull();
+  expect(container.querySelector('[data-icon="build"]')).not.toBeNull();
   await render("/api/skills/icon?agentKey=zenmi&key=broken");
   await act(async () => container.querySelector("img")!.dispatchEvent(new Event("error")));
   expect(container.querySelector("img")).toBeNull();
-  expect(container.querySelector('[data-icon="skills"]')).not.toBeNull();
+  expect(container.querySelector('[data-icon="build"]')).not.toBeNull();
 });
 
 it("does not show an old skill icon after the candidate changes", async () => {

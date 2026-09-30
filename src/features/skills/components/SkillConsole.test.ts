@@ -1,8 +1,7 @@
 import React from "react";
+import { SkillIcon } from "./SkillIcon";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
-  DEFAULT_SKILL_ICON_URL,
-  fallbackSkillIcon,
   findPreferredSkillFileEntry,
   isSkillEntryVisible,
   isSkillImageEntry,
@@ -418,14 +417,9 @@ describe("SkillConsole", () => {
     expect(isSkillEntryVisible(entry, new Set())).toBe(false);
   });
 
-  it("falls back to the frontend default skill icon after an image error", () => {
-    const image = {
-      onerror: jest.fn(),
-      src: "/missing-custom-icon.png",
-    } as unknown as HTMLImageElement;
-    fallbackSkillIcon(image);
-    expect(image.onerror).toBeNull();
-    expect(image.src).toBe(DEFAULT_SKILL_ICON_URL);
+  it("uses the build icon as the default skill icon", () => {
+    const markup = renderToStaticMarkup(React.createElement(SkillIcon, { fallback: "build" }));
+    expect(markup).toContain('data-icon="build"');
   });
 
   it("renders the simplified file workspace without the old skill meta grid", () => {

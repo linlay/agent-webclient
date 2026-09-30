@@ -26,7 +26,6 @@ import {
   downloadAdminSkill,
   downloadAdminSkillFile,
   fetchAdminSkillFileBlob,
-  fetchAdminSkillIcon,
   getAdminSkillDetail,
   getAdminSource,
   getAdminSkills,
@@ -100,58 +99,9 @@ function translateWithFallback(
 
 const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 
-export const DEFAULT_SKILL_ICON_URL = "/default-skill.png";
-
-export function fallbackSkillIcon(target: HTMLImageElement): void {
-  target.onerror = null;
-  target.src = DEFAULT_SKILL_ICON_URL;
-}
-
-const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => {
-  const [src, setSrc] = useState(DEFAULT_SKILL_ICON_URL);
-  const iconURL = String(icon || "").trim();
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    let objectURL = "";
-    setSrc(DEFAULT_SKILL_ICON_URL);
-    if (
-      !iconURL ||
-      typeof URL === "undefined" ||
-      typeof URL.createObjectURL !== "function"
-    ) {
-      return () => controller.abort();
-    }
-    void fetchAdminSkillIcon(iconURL, { signal: controller.signal })
-      .then((blob) => {
-        if (!active) return;
-        objectURL = URL.createObjectURL(blob);
-        setSrc(objectURL);
-      })
-      .catch(() => {
-        if (active && !controller.signal.aborted) {
-          setSrc(DEFAULT_SKILL_ICON_URL);
-        }
-      });
-    return () => {
-      active = false;
-      controller.abort();
-      if (objectURL && typeof URL.revokeObjectURL === "function") {
-        URL.revokeObjectURL(objectURL);
-      }
-    };
-  }, [iconURL]);
-
-  return (
-    <img
-      className={SKILL_LIST_ITEM_ICON_CLASS_NAME}
-      src={src}
-      alt=""
-      onError={(event) => fallbackSkillIcon(event.currentTarget)}
-    />
-  );
-};
+const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => (
+  <SkillIcon icon={icon} fallback="build" size={28} />
+);
 
 const SKILL_IMAGE_EXTENSION_PATTERN =
   /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
