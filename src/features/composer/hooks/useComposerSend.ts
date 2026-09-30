@@ -108,6 +108,9 @@ interface UseComposerSendInput {
   state: Pick<
     AppState,
     | "abortController"
+    | "agentAvailability"
+    | "chatTransition"
+    | "chatSurfaceBlocked"
     | "chatAgentById"
     | "chatId"
     | "chats"
@@ -239,14 +242,34 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [mainChatRunning, state.chatId, state.runId, referenceSignature]);
 
   const prevMainRuntimeRef = useRef({ chatId: state.chatId, runId: state.runId, running: mainChatRunning });
+  const pendingQueueContinuationRef = useRef<{ chatId: string; runId: string } | null>(null);
   useEffect(() => {
     const currentState = stateRef.current;
     const runtime = resolveMainChatRuntime(currentState, activeQuerySessionRequestIdRef, querySessionsRef);
     const previous = prevMainRuntimeRef.current;
-    prevMainRuntimeRef.current = { chatId: currentState.chatId, runId: runtime.runId || currentState.runId, running: mainChatRunning };
-    if (!previous.running || mainChatRunning || runtime.running || previous.chatId !== currentState.chatId ||
-      (runtime.runId && runtime.runId !== previous.runId) ||
-      (currentState.chatTransition && currentState.chatTransition.phase !== "ready")) return;
+    const runId = runtime.runId || currentState.runId;
+    prevMainRuntimeRef.current = { chatId: currentState.chatId, runId, running: mainChatRunning };
+    // A temporary restore gate must not consume the running-to-idle edge.
+    // Keep its identity until we can send, or a chat/run change invalidates it.
+    if (previous.chatId !== currentState.chatId || mainChatRunning || runtime.running ||
+      (runId && runId !== previous.runId)) {
+      pendingQueueContinuationRef.current = null;
+      return;
+    }
+    if (previous.running) {
+      pendingQueueContinuationRef.current = { chatId: currentState.chatId, runId };
+    }
+    const continuation = pendingQueueContinuationRef.current;
+    if (!continuation) return;
+    if (continuation.chatId !== currentState.chatId || continuation.runId !== runId) {
+      pendingQueueContinuationRef.current = null;
+      return;
+    }
+    if ((currentState.chatTransition && currentState.chatTransition.phase !== "ready") ||
+      currentState.chatSurfaceBlocked || isAgentExecutionBlocked(currentState)) return;
+    // Claim before dispatching: synchronous updates and repeated effects must
+    // never start two queries for the same completion.
+    pendingQueueContinuationRef.current = null;
     const queued = (currentState.pendingSteers[currentState.chatId] || []).filter(steer => steer.status === "queued");
     const allowReferenceOnly = hasQueryHistory(currentState);
     const needsText = queued.filter(steer => !hasSendableContent(steer.message, steer.references, allowReferenceOnly));
@@ -263,7 +286,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         detail: { message: firstQueued.message, chatId: currentState.chatId, ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
       }),
     );
-  }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, messageApi, t]);
+  }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, state.chatTransition, state.chatSurfaceBlocked, state.agentAvailability, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, messageApi, t]);
 
   const resolveCurrentRunId = useCallback(() => {
     const currentState = stateRef.current || state;

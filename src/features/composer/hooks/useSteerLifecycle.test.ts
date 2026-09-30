@@ -5,14 +5,17 @@ import { createRoot, type Root } from 'react-dom/client';
 import type { AgentEvent } from '@/shared/contracts/agentEvents';
 import { createInitialState } from '@/app/state/state';
 import { appReducer } from '@/app/state/reducer';
+import { useMessageActions } from '@/features/composer/hooks/useMessageActions';
 import { useComposerSend } from '@/features/composer/hooks/useComposerSend';
 import { useConversationEventHandler } from '@/features/conversation/hooks/useConversationEventHandler';
 
 const mockSteer = jest.fn();
+const mockStartQuery = jest.fn();
+const mockRuns = { steer: mockSteer, interrupt: jest.fn(), startQuery: mockStartQuery };
 const mockMessageApi = { warning: jest.fn(), error: jest.fn() };
 let mockContext: any;
 jest.mock('@/features/transport/hooks/useRealtimeTransport', () => ({
-  useRunTransport: () => ({ steer: mockSteer, interrupt: jest.fn() }),
+  useRunTransport: () => mockRuns,
 }));
 jest.mock('@/shared/data', () => ({
   createRequestId: jest.fn(() => 'request'), compactChat: jest.fn(),
@@ -43,7 +46,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function mount(sendOverrides: Record<string, unknown> = {}) {
+function mount(sendOverrides: Record<string, unknown> = {}, connectQuery = false) {
   const state = createInitialState();
   state.chatId = 'chat-a';
   state.runId = 'run-a';
@@ -78,6 +81,7 @@ function mount(sendOverrides: Record<string, unknown> = {}) {
       updateMentionSuggestions: jest.fn(), executeSlashCommandInput: {}, ...sendOverrides,
     } as any);
     events = useConversationEventHandler();
+    if (connectQuery) useMessageActions({ onAgentEvent: events.handleEvent });
     return null;
   };
   const root = createRoot(document.createElement('div'));
@@ -91,7 +95,7 @@ function mount(sendOverrides: Record<string, unknown> = {}) {
     type: 'request.steer', chatId: 'chat-a', runId: 'run-a', agentKey: 'agent-a',
     steerId: 'steer-a', requestId: 'request-a', message: 'message from A', timestamp: Date.now(), ...overrides,
   });
-  return { stateRef, dispatch, setInputValue, send: () => send.handleSend(), submitQueued: () => send.handleSubmitQueuedSteer(), submit: () => send.handleSteer('steer-a'), cancel: () => send.handleCancelSteer('steer-a'), ack, render };
+  return { stateRef, dispatch, setInputValue, send: () => send.handleSend(), submitQueued: () => send.handleSubmitQueuedSteer(), submit: () => send.handleSteer('steer-a'), cancel: () => send.handleCancelSteer('steer-a'), ack, render, event: (event: AgentEvent) => events.handleEvent(event) };
 }
 
 it('accepted control response retains sending until request.steer projects the timeline node', async () => {
@@ -585,4 +589,92 @@ it('does not dispatch an empty query after a normally completed run', () => {
  window.addEventListener('agent:send-message', listener);
  try { h.send(); expect(listener).not.toHaveBeenCalled(); }
  finally { window.removeEventListener('agent:send-message', listener); }
+});
+
+const readyTransition = {
+  seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '',
+};
+
+it.each(['loading', 'applying', 'restoring'])('resumes a queued query once after %s becomes ready', phase => {
+  const h = mount();
+  const spy = jest.spyOn(window, 'dispatchEvent');
+  h.dispatch({ type: 'BATCH_UPDATE', updates: {
+    currentChatActiveRun: null, streaming: false, chatTransition: { ...readyTransition, phase },
+  } });
+  h.render(false);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+  expect(spy).not.toHaveBeenCalled();
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { chatTransition: readyTransition } });
+  h.render(false);
+  h.render(false);
+  expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+});
+
+it.each(['chat-switch', 'new-run'])('invalidates delayed continuation after %s', change => {
+  const h = mount();
+  const spy = jest.spyOn(window, 'dispatchEvent');
+  h.dispatch({ type: 'BATCH_UPDATE', updates: {
+    currentChatActiveRun: null, streaming: false,
+    chatTransition: { ...readyTransition, phase: 'restoring' },
+  } });
+  h.render(false);
+  h.dispatch({ type: 'BATCH_UPDATE', updates: change === 'chat-switch'
+    ? { chatId: 'chat-b', chatTransition: null }
+    : { runId: 'run-b', chatTransition: readyTransition } });
+  h.render(false);
+  // Returning to the old identity must not resurrect its consumed edge.
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { chatId: 'chat-a', runId: 'run-a', chatTransition: readyTransition } });
+  h.render(false);
+  expect(spy).not.toHaveBeenCalled();
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+});
+
+it('waits for the surface gate before removing the queued message', () => {
+  const h = mount();
+  const spy = jest.spyOn(window, 'dispatchEvent');
+  h.dispatch({ type: 'BATCH_UPDATE', updates: {
+    currentChatActiveRun: null, streaming: false, chatSurfaceBlocked: true,
+  } });
+  h.render(false);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+  expect(spy).not.toHaveBeenCalled();
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { chatSurfaceBlocked: false } });
+  h.render(false);
+  expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
+});
+
+it('starts one real query per completed run while draining multiple queued messages', async () => {
+  const completions: Array<() => void> = [];
+  mockStartQuery.mockImplementation(input => {
+    const runId = 'follow-up-' + mockStartQuery.mock.calls.length;
+    return {
+      identity: Promise.resolve({ chatId: 'chat-a', runId, owner: { kind: 'agent', agentKey: 'agent-a' } }),
+      completion: new Promise(resolve => completions.push(() => {
+        input.onEvent({ type: 'run.complete', chatId: 'chat-a', runId, timestamp: Date.now() });
+        resolve({ reason: 'done', lastSeq: 1 });
+      })),
+      detach: jest.fn(),
+    };
+  });
+  const h = mount({}, true);
+  h.dispatch({ type: 'ENQUEUE_PENDING_STEER', chatId: 'chat-a', steer: {
+    steerId: 'second', runId: 'run-a', requestId: 'second', message: 'second message', status: 'queued', createdAt: 2,
+  } });
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { chatTransition: { ...readyTransition, phase: 'restoring' } } });
+  h.event({ type: 'run.complete', chatId: 'chat-a', runId: 'run-a', timestamp: Date.now() });
+  h.render(false);
+  expect(mockStartQuery).not.toHaveBeenCalled();
+  h.dispatch({ type: 'BATCH_UPDATE', updates: { chatTransition: readyTransition } });
+  await act(async () => { h.render(false); });
+  expect(mockStartQuery).toHaveBeenCalledTimes(1);
+  expect(mockStartQuery).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'message from A', chatId: 'chat-a' }));
+  h.render(true);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+  await act(async () => { completions[0](); });
+  await act(async () => { h.render(false); });
+  expect(mockStartQuery).toHaveBeenCalledTimes(2);
+  expect(mockStartQuery).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'second message', chatId: 'chat-a' }));
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+  await act(async () => { completions[1](); });
 });
