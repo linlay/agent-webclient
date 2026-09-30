@@ -167,14 +167,13 @@ describe("standalone document panel", () => {
     expect(getStandaloneFileCapabilities).not.toHaveBeenCalled();
   });
 
-  it.each(["workspace", "reference"] as const)("keeps the %s PDF preview while opening directly in a local app", async (kind) => {
+  it.each(["workspace", "reference"] as const)("shows the %s PDF preview without a local-app toolbar in Desktop", async (kind) => {
     jest.mocked(isAppMode).mockReturnValue(true);
     jest.mocked(isDesktopAppMode).mockReturnValue(true);
     const reference = { kind: "reference" as const, agentKey: "coder", chatId: "chat-1", resourceId: "pdf-reference", relativePath: "guide.pdf" };
     const file: ViewerTarget = kind === "workspace"
       ? { type: "file", agentKey: "coder", path: "guide.pdf", name: "guide.pdf", contentKind: "pdf" }
       : { type: "resource", name: "guide.pdf", url: "guide.pdf", downloadUrl: "guide.pdf", contentKind: "pdf", source: reference };
-    const source = kind === "workspace" ? { kind: "workspace-file", agentKey: "coder", path: "guide.pdf" } : reference;
     jest.mocked(getAgentFile).mockResolvedValue({ data: {
       agentKey: "coder", requestedPath: "guide.pdf", path: "guide.pdf", name: "guide.pdf", contentKind: "binary", documentKind: "document-pdf", mimeType: "application/pdf",
     } } as never);
@@ -186,10 +185,9 @@ describe("standalone document panel", () => {
     expect(preview?.getAttribute("src")).toBe("blob:pdf-preview");
     expect(container.querySelector("section")).toBeNull();
     const button = Array.from(container.querySelectorAll("button")).find((entry) => entry.textContent === "用 预览 打开");
-    expect(button).toBeDefined();
-    await act(async () => button!.click());
-    expect(openDesktopDocumentInLocalApp).toHaveBeenCalledWith(source, "app-preview");
-    expect(container.querySelector('iframe[title="guide.pdf"]')).toBe(preview);
+    expect(button).toBeUndefined();
+    expect(getDesktopDocumentOpenOptions).not.toHaveBeenCalled();
+    expect(openDesktopDocumentInLocalApp).not.toHaveBeenCalled();
     expect(requestDesktopCurrentResourceAction).not.toHaveBeenCalled();
     expect(downloadViewerTarget).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain("在线预览");

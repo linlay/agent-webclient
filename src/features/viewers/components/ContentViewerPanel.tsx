@@ -792,11 +792,6 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
           </div>
         ) : null}
 
-        {contentKind === "pdf" && isAppMode() ? (
-          <DesktopDocumentOpenActions target={viewerName === target.name ? target : { ...target, name: viewerName }}
-            refreshKey={documentReloadRequest} layout="toolbar" />
-        ) : null}
-
         {contentKind === "pdf" && mediaUrl ? (
           <React.Suspense fallback={<div className={CONTENT_VIEWER_STATUS_CLASS_NAME}>{t("contentViewer.pdf.loading")}</div>}>
             <PdfDocumentViewer url={mediaUrl} title={viewerName} />

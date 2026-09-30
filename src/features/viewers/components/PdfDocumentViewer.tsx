@@ -5,11 +5,12 @@ import {
   getDocument,
   type PDFDocumentProxy,
   type RenderTask,
-} from "pdfjs-dist";
+} from "pdfjs-dist/legacy/build/pdf.mjs";
 import { t } from "@/shared/i18n";
 
 GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
+  // Desktop's Electron runtime also needs the worker's compatibility polyfills.
+  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
   import.meta.url,
 ).toString();
 

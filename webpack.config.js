@@ -326,6 +326,9 @@ module.exports = (env, argv) => {
       minimizer: [
         new EsbuildPlugin({
           target: 'es2020',
+          // Preserve external ESM assets (PDF.js worker); IIFE output removes
+          // the exports required when PDF.js falls back to a main-thread worker.
+          exclude: /\.mjs$/,
         }),
       ],
     },
