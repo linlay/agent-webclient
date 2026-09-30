@@ -228,7 +228,8 @@ export const DesktopLocalResourceActions: React.FC<{
   resource: DesktopCurrentResourceIdentity;
   compact?: boolean;
   allowOpenDefault?: boolean;
-}> = ({ resource, compact = false, allowOpenDefault = true }) => {
+  allowReveal?: boolean;
+}> = ({ resource, compact = false, allowOpenDefault = true, allowReveal = true }) => {
   const [pendingAction, setPendingAction] =
     React.useState<DesktopCurrentResourceAction | null>(null);
   const [actionError, setActionError] = React.useState("");
@@ -261,13 +262,13 @@ export const DesktopLocalResourceActions: React.FC<{
   }, [pendingAction, resource]);
 
   return (
-    <div className={compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_CLASS_NAME}>
+    <div className={!allowReveal ? documentPanelStyles.defaultOpenActions : compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_CLASS_NAME}>
       <div
-        className={compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_GROUP_CLASS_NAME}
+        className={!allowReveal ? documentPanelStyles.defaultOpenActions : compact ? documentPanelStyles.localActions : CONTENT_VIEWER_LOCAL_ACTIONS_GROUP_CLASS_NAME}
         role="group"
         aria-label={t("contentViewer.desktopAction.groupLabel")}
       >
-        <Button
+        {allowReveal ? <Button
           block={!compact}
           size={compact ? "small" : undefined}
           className={compact ? documentPanelStyles.secondaryButton : undefined}
@@ -277,12 +278,12 @@ export const DesktopLocalResourceActions: React.FC<{
           onClick={() => void handleAction("reveal")}
         >
           {revealLabel}
-        </Button>
+        </Button> : null}
         {allowOpenDefault ? <Button
           block={!compact}
           size={compact ? "small" : undefined}
-          className={compact ? documentPanelStyles.secondaryButton : undefined}
-          type={compact ? "default" : "primary"}
+          className={!allowReveal ? documentPanelStyles.defaultOpenButton : compact ? documentPanelStyles.secondaryButton : undefined}
+          type={!allowReveal || !compact ? "primary" : "default"}
           disabled={pendingAction !== null}
           icon={<MaterialIcon name="open_in_new" />}
           loading={pendingAction !== null}
@@ -811,10 +812,13 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
             sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
             note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
-            previewAction={<OnlinePreviewAction preview={onlinePreview} />}
+            compact={isDesktopLocalOpenDocument(viewerName)}
+            previewAction={<OnlinePreviewAction preview={onlinePreview} prominent={isDesktopLocalOpenDocument(viewerName)} />}
+            previewStatus={isDesktopLocalOpenDocument(viewerName) ? <OnlinePreviewStatus preview={onlinePreview} /> : undefined}
             onDownload={handleDownload}
           /> :
           <DocumentMetadataPanel
+            compact={isDesktopLocalOpenDocument(viewerName)}
             name={viewerName}
             mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
             sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
@@ -823,7 +827,9 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             previewStatus={isDesktopLocalOpenDocument(viewerName) ? <OnlinePreviewStatus preview={onlinePreview} /> : undefined}
             onDownload={handleDownload}
             primaryAction={isDesktopLocalOpenDocument(viewerName) ? <DesktopDocumentOpenActions
-              target={viewerName === target.name ? target : { ...target, name: viewerName }} refreshKey={documentReloadRequest} /> : undefined}
+              target={viewerName === target.name ? target : { ...target, name: viewerName }} refreshKey={documentReloadRequest}
+              fallback={localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
+                ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} allowReveal={false} /> : null} /> : undefined}
             localActions={<>
               {localActionsCandidate && desktopLocalActionsAvailable && desktopLocalResourceIdentity
                 ? <DesktopLocalResourceActions resource={desktopLocalResourceIdentity} compact

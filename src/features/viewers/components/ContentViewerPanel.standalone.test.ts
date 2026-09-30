@@ -117,6 +117,37 @@ describe("standalone document panel", () => {
     expect(downloadViewerTarget).not.toHaveBeenCalled();
   });
 
+  it("preserves default opening on an older Desktop without direct-open capability", async () => {
+    jest.mocked(isAppMode).mockReturnValue(true);
+    jest.mocked(isDesktopAppMode).mockReturnValue(true);
+    jest.mocked(canUseDesktopCurrentResourceActions).mockReturnValue(true);
+    jest.mocked(getDesktopDocumentOpenOptions).mockResolvedValue({ available: false });
+    await act(async () => root.render(React.createElement(
+      I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(ContentViewerPanel, { target, enableDesktopLocalResourceActions: true }),
+    )));
+    const buttons = Array.from(container.querySelectorAll("button"));
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "在线预览", "用默认应用打开", "下载", "在访达中显示",
+    ]);
+    await act(async () => buttons[1].click());
+    expect(requestDesktopCurrentResourceAction).toHaveBeenCalledWith("open-default", {
+      chatId: "chat-1", profile: "artifact", relativePath: "artifacts/report.doc",
+    });
+    expect(openDesktopDocumentInLocalApp).not.toHaveBeenCalled();
+    expect(openStandaloneViewerTarget).not.toHaveBeenCalled();
+  });
+
+  it("does not offer a default fallback when neither Desktop capability is available", async () => {
+    jest.mocked(isAppMode).mockReturnValue(true);
+    jest.mocked(isDesktopAppMode).mockReturnValue(true);
+    jest.mocked(getDesktopDocumentOpenOptions).mockResolvedValue({ available: false });
+    await render();
+    expect(Array.from(container.querySelectorAll("button")).map((button) => button.textContent))
+      .toEqual(["在线预览", "下载"]);
+    expect(container.querySelector("details")).not.toBeNull();
+  });
+
   it("opens a workspace Office file directly without a Resource Viewer identity", async () => {
     jest.mocked(isAppMode).mockReturnValue(true);
     jest.mocked(isDesktopAppMode).mockReturnValue(true);
@@ -189,8 +220,8 @@ describe("standalone document panel", () => {
       await render(0, file);
       expect(container.textContent).toContain("未配置在线预览服务");
       expect(container.textContent).toContain(file.name);
-      if (desktop) expect(container.textContent).toContain(extension.toUpperCase());
-      else expect(container.textContent).toContain("application/test");
+      expect(container.textContent).toContain(extension.toUpperCase());
+      expect(container.querySelector("details")).not.toBeNull();
       expect(container.textContent).toContain("36.8 kB");
       const buttons = Array.from(container.querySelectorAll("button"));
       expect(buttons.find((button) => button.textContent === "在线预览")?.disabled).toBe(true);
@@ -228,13 +259,17 @@ describe("standalone document panel", () => {
     await render();
     const buttons = Array.from(container.querySelectorAll("button"));
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "在线预览", "下载", "在 Finder 中显示", "用默认应用打开",
+      "在线预览", "用默认应用打开", "下载", "在 Finder 中显示",
     ]);
     expect(buttons[0].disabled).toBe(true);
     expect(container.textContent).toContain("36.8 kB");
-    await act(async () => buttons[1].click());
+    expect(getDesktopDocumentOpenOptions).not.toHaveBeenCalled();
+    expect(openDesktopDocumentInLocalApp).not.toHaveBeenCalled();
+    expect(buttons[0].parentElement?.parentElement).toBe(buttons[1].parentElement);
+    expect(buttons[2].parentElement).toBe(buttons[3].parentElement);
+    await act(async () => buttons[2].click());
     expect(downloadViewerTarget).toHaveBeenCalledWith(target, { chatId: "chat-1", teamChat: false });
-    for (const [index, action] of [[2, "reveal"], [3, "open-default"]] as const) {
+    for (const [index, action] of [[3, "reveal"], [1, "open-default"]] as const) {
       await act(async () => buttons[index].click());
       expect(openStandaloneViewerTarget).toHaveBeenLastCalledWith(action, target, { chatId: "chat-1", teamChat: false }, capabilities);
     }

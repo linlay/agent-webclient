@@ -26,17 +26,17 @@ interface DocumentMetadataPanelProps {
   previewAction: React.ReactNode;
   onDownload: () => Promise<void>;
   localActions: React.ReactNode;
+  compact?: boolean;
   primaryAction?: React.ReactNode;
   previewStatus?: React.ReactNode;
 }
 
 export const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
-  name, mimeType, sizeBytes, note, previewAction, onDownload, localActions, primaryAction, previewStatus,
+  name, mimeType, sizeBytes, note, previewAction, onDownload, localActions, primaryAction, previewStatus, compact = false,
 }) => {
   const { t, locale } = useI18n();
   const [downloading, setDownloading] = React.useState(false);
   const size = formatFileSize(sizeBytes, locale);
-  const compact = Boolean(primaryAction);
   const extension = name.match(/\.([^.]+)$/u)?.[1]?.toUpperCase() || t("contentViewer.metadata.file");
   const fileIcon = /\.pptx?$/iu.test(name) ? "slideshow" : /\.xlsx?$/iu.test(name) ? "table_chart" : "description";
   const download = async () => {
@@ -93,14 +93,18 @@ export const StandaloneDocumentPanel: React.FC<Omit<DocumentMetadataPanelProps, 
 }> = ({ target, chatId, teamChat, ...props }) => {
   const { t } = useI18n();
   const localActions = useStandaloneViewerActions(target, chatId, teamChat);
-  return <DocumentMetadataPanel {...props} localActions={<>
-          <Button disabled={localActions.disabled} loading={localActions.pending === "reveal"}
-            title={localActions.hint} icon={<MaterialIcon name="folder_open" />} onClick={() => void localActions.run("reveal")}>
-            {localActions.revealLabel}
-          </Button>
-          <Button disabled={localActions.disabled} loading={localActions.pending === "open-default"}
-            title={localActions.hint} icon={<MaterialIcon name="open_in_new" />} onClick={() => void localActions.run("open-default")}>
-            {t("contentViewer.localAction.openDefault")}
-          </Button>
+  const openButton = <Button type={props.compact ? "primary" : "default"}
+    className={props.compact ? styles.defaultOpenButton : undefined}
+    disabled={localActions.disabled} loading={localActions.pending === "open-default"}
+    title={localActions.hint} icon={<MaterialIcon name="open_in_new" />} onClick={() => void localActions.run("open-default")}>
+    {t("contentViewer.localAction.openDefault")}
+  </Button>;
+  return <DocumentMetadataPanel {...props} primaryAction={props.compact ? openButton : undefined} localActions={<>
+    <Button size={props.compact ? "small" : undefined} className={props.compact ? styles.secondaryButton : undefined}
+      disabled={localActions.disabled} loading={localActions.pending === "reveal"}
+      title={localActions.hint} icon={<MaterialIcon name="folder_open" />} onClick={() => void localActions.run("reveal")}>
+      {localActions.revealLabel}
+    </Button>
+    {!props.compact ? openButton : null}
   </>} />;
 };
