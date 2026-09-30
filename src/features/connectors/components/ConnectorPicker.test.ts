@@ -11,7 +11,6 @@ jest.mock("@/shared/data", () => ({
   fetchConnectorIcon: jest.fn(),
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
-jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }));
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
@@ -26,7 +25,6 @@ jest.mock("antd", () => ({
 }));
 
 const connector = (id: string, name: string, mode: ConnectorSummary["auth_mode"] = "none"): ConnectorSummary => ({ id, name, version: "1", type: "cli", auth_mode: mode, hasCli: true, hasMcp: false, hasBin: false, skills: [] });
-const session = (status: string, extra = {}) => ({ code: 0, data: { connectorId: "login", sessionId: "1", expiresAt: new Date(Date.now() + 90_000).toISOString(), status, ...extra } });
 let root: Root;
 let container: HTMLDivElement;
 const onSelectionChange = jest.fn();
@@ -42,8 +40,6 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("docs", "文档"), connector("login", "会议", "oauth")] } });
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("unauthorized") as any);
-  jest.mocked(startConnectorAuth).mockResolvedValue(session("preparing") as any);
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -84,34 +80,23 @@ it("filters by name/id and keeps the selected switch state when the filter is cl
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
 });
 
-it("checks only after enabling, keeps active login polling while filtered out, and stops after authorization", async () => {
+it("only exposes mounting switches while filtering or enabling authenticated packages", async () => {
   await mount();
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].click());
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
-  const connect = container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.connectors.connectNamed"]')!;
-  await act(async () => { connect.click(); connect.click(); });
-  expect(startConnectorAuth).toHaveBeenCalledTimes(1);
-  expect(container.textContent).toContain("composer.addMenu.connectors.connecting");
   await mount({ search: "docs" });
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("authorized") as any);
-  await act(async () => jest.advanceTimersByTime(2_000));
+  await act(async () => {
+    jest.advanceTimersByTime(60_000);
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
   await mount();
   expect(container.querySelectorAll('[role="switch"]')).toHaveLength(2);
   expect(onSelectionChange).toHaveBeenCalledWith("login", true);
-  const checks = jest.mocked(getConnectorAuthStatus).mock.calls.length;
-  await act(async () => jest.advanceTimersByTime(60_000));
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(checks);
-});
-
-it("only exposes safe authorization links", async () => {
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("pending", { authorizationUrl: "javascript:alert(1)" }) as any);
-  await mount({ initialIds: ["login"] });
+  expect(container.textContent).toBe("文档会议");
+  expect(container.querySelectorAll("button")).toHaveLength(2);
   expect(container.querySelector("a")).toBeNull();
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("pending", { authorizationUrl: "https://example.com/authorize" }) as any);
-  await act(async () => jest.advanceTimersByTime(2_000));
-  expect(container.querySelector("a")?.getAttribute("href")).toBe("https://example.com/authorize");
-  expect(container.querySelector("a")?.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  expect(startConnectorAuth).not.toHaveBeenCalled();
 });
 
 it("reports load failure, supports retry, and distinguishes an empty catalog", async () => {
@@ -123,10 +108,11 @@ it("reports load failure, supports retry, and distinguishes an empty catalog", a
   expect(container.textContent).toContain("composer.addMenu.connectors.empty");
 });
 
-it("keeps login available when only Agent configuration selection is disabled", async () => {
+it("disables switches when Agent configuration selection is disabled without extra actions", async () => {
   await mount({ selectionDisabled: true, initialIds: ["login"] });
   expect(container.querySelector<HTMLButtonElement>('[role="switch"]')?.disabled).toBe(true);
-  expect(container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.connectors.connectNamed"]')?.disabled).toBe(false);
+  expect(container.querySelectorAll("button")).toHaveLength(2);
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
 });
 
 it("keeps an already mounted connector switched on even when authorization is missing", async () => {
@@ -134,14 +120,14 @@ it("keeps an already mounted connector switched on even when authorization is mi
   const switches = container.querySelectorAll<HTMLButtonElement>('[role="switch"]');
   expect(switches).toHaveLength(2);
   expect(switches[1].getAttribute("aria-checked")).toBe("true");
-  expect(container.querySelector('[aria-label="composer.addMenu.connectors.connectNamed"]')).not.toBeNull();
+  expect(container.querySelectorAll("button")).toHaveLength(2);
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   await act(async () => switches[1].click());
   expect(onSelectionChange).toHaveBeenCalledWith("login", false);
   expect(logoutConnectorAuth).not.toHaveBeenCalled();
 });
 
 it("allows mounting builtin and delegated or identity-token packages without waiting for interactive login", async () => {
-  jest.mocked(getConnectorAuthStatus).mockReturnValue(new Promise(() => {}));
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
     { ...connector("builtin.dbx", "DBX", null), builtin: true, readOnly: true },
     connector("identity", "Identity", "oneid-token"),
@@ -153,7 +139,7 @@ it("allows mounting builtin and delegated or identity-token packages without wai
   expect(switches[1].getAttribute("aria-checked")).toBe("false");
   await act(async () => switches[0].click());
   expect(onSelectionChange).toHaveBeenCalledWith("builtin.dbx", false);
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(startConnectorAuth).not.toHaveBeenCalled();
   expect(logoutConnectorAuth).not.toHaveBeenCalled();
 });
@@ -172,22 +158,11 @@ it("does not probe unselected catalog entries even after timers and visibility c
   expect(container.querySelectorAll('[role="switch"]')).toHaveLength(100);
 });
 
-it.each(["authorized", "unauthorized", "failed", "canceled"])("does not poll settled %s state", async status => {
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session(status) as any);
-  await mount({ initialIds: ["login"] });
-  await act(async () => {
-    jest.advanceTimersByTime(60_000);
-    document.dispatchEvent(new Event("visibilitychange"));
-  });
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
-});
-
-it("stops active polling when disabled without logging out or restarting authorization", async () => {
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session("pending") as any);
+it("does not change account authorization when mounting is disabled", async () => {
   await mount({ initialIds: ["login"] });
   await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].click());
   await act(async () => jest.advanceTimersByTime(60_000));
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(logoutConnectorAuth).not.toHaveBeenCalled();
   expect(startConnectorAuth).not.toHaveBeenCalled();
 });
@@ -210,21 +185,16 @@ it("Desktop no_auth mounts and unmounts without checking or connecting",async()=
  expect(container.textContent).not.toContain("connectors.auth.checking");
 });
 
-it.each(["unauthorized", "setup_required"])("shows a managed CLI %s action from actual state rather than mode=null", async status => {
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("login", "Managed CLI", null)] } });
-  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session(status) as any);
-  await mount({ initialIds: ["login"] });
-  expect(container.querySelector('[aria-label="composer.addMenu.connectors.connectNamed"]')).not.toBeNull();
-  expect(container.textContent).toContain("connectors.configuration.open");
-  expect(container.querySelector('[role="switch"]')?.getAttribute("aria-checked")).toBe("true");
-});
-
-it("shows token private configuration and identity guidance independently from mounting", async () => {
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("login", "Token", "token"), connector("identity", "Identity", "oneid-token")] } });
-  jest.mocked(getConnectorAuthStatus).mockImplementation(async id => ({ ...session("unauthorized"), data: { ...session("unauthorized").data, connectorId: id } } as any));
-  await mount({ initialIds: ["login", "identity"] });
-  expect(container.textContent).toContain("connectors.credentials.configure"); expect(container.textContent).toContain("connectors.auth.oneid");
-  expect(container.querySelector('[aria-label="composer.addMenu.connectors.connectNamed"]')).toBeNull();
+it("keeps every authentication mode compact with icons, names and switches", async () => {
+  const modes: ConnectorSummary["auth_mode"][] = [null, "token", "oneid-token", "oauth", "mcp", "no_auth"];
+  const items = modes.map((mode, index) => connector(`item-${index}`, `Item ${index}`, mode));
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: items } });
+  await mount({ initialIds: items.map(item => item.id) });
+  expect(container.textContent).toBe(items.map(item => item.name).join(""));
+  expect(container.querySelectorAll('button[role="switch"]')).toHaveLength(items.length);
+  expect(container.querySelectorAll("button")).toHaveLength(items.length);
+  expect(container.querySelector("a, p, [role=dialog]")).toBeNull();
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(startConnectorAuth).not.toHaveBeenCalled();
 });
 

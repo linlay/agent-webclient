@@ -39,13 +39,13 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
-“+ → 连接器”使用 `GET /api/admin/agents/connectors?agentKey=<key>` 读取源配置中的 `connectorIds`，已挂载的连接器（例如 zenmi 的已有配置）首次打开即显示开启。`activeConnectorIds` 表示当前运行定义，`reloadPending` 表示它与已保存配置仍不一致。授权状态与挂载状态独立：已挂载但未授权时保留开启的开关，同时显示授权入口；关闭开关不注销部署共享账号。builtin 包只读不限制 Agent 挂载开关。
+“+ → 连接器”使用 `GET /api/admin/agents/connectors?agentKey=<key>` 读取源配置中的 `connectorIds`，已挂载的连接器（例如 zenmi 的已有配置）首次打开即显示开启。`activeConnectorIds` 表示当前运行定义，`reloadPending` 表示它与已保存配置仍不一致。授权状态与挂载状态独立：已挂载但未授权时保留开启的开关；关闭开关不注销部署共享账号。builtin 包只读不限制 Agent 挂载开关。
 
 切换通过 `PUT /api/admin/agents/connectors` 提交 `{agentKey, connectorId, enabled}`，由平台修改 `agent.yml` 的 `connectorConfig.connectors` 并重载。保存期间显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
 
 收到 `catalog.updated(reason=agents|connectors|config)` 或页面恢复可见时刷新配置；`reloadPending` 时显示已保存、等待重载提示，并每 2 秒确认一次，生效或读取失败后停止。活跃 Run、子调用、Team 成员或 Terminal 租约导致的延后生效由 Platform 现有发布规则处理。该配置作用于 Agent 的后续运行，不进入聊天 Query 参数。
 
-输入框连接器列表统一显示启用开关，未启用项不创建授权观察器、不查询授权状态。已启用的 null/受管 CLI、oneid-token、token 使用实际状态决定入口，不因模式本身显示已可用；setup_required 登录先显式准备 CLI，准备就绪后再 POST 登录。token 配置直接打开私有凭据弹窗；其他配置出口在 Desktop 仅由宿主接收安装包 ID 后打开管理页，缺失或拒绝桥接保留原页面并显示错误；Standalone 使用同源连接器详情路由。启用成功后，仅对已启用且支持状态检查的连接器读取一次授权状态；需要登录时在开关下方展示授权入口。仅 preparing/pending 持续快速轮询，授权成功或失败、取消、过期后停止，不做普通状态的 30 秒巡检或页面恢复可见时的授权补查。搜索过滤不打断已启用项正在进行的授权；关闭开关或卸载菜单停止观察，不注销账号。重新打开菜单会重新确认已启用项的状态。管理台保持原有全目录观察策略。
+输入框连接器列表每行只显示图标、名称和挂载开关，不显示配置按钮、登录操作、授权链接或认证说明，也不创建授权观察器。搜索、目录加载与重试、开关保存失败和互斥冲突提示、等待重载提示继续保留。需要账号授权、CLI 准备或 Token 凭据时进入独立连接器中心；管理台保持完整配置能力和全目录授权观察策略。挂载开关仅表示 Agent 源配置，不能推定连接器已授权或就绪。
 
 ## 账号授权
 现有详情页概览中的“账号授权”区域按目录返回的 `auth_mode` 决定交互：`no_auth` 直接显示“无需配置”，不请求认证接口；`null/oauth/mcp` 查询统一状态 API；`null` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid-token` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 使用独立私有凭据弹窗，字段仅来自清单 `token_schema`；实际值不进入 connector.json、cli.json、mcp.json 或对话草稿。兼容旧服务返回的 `cli` 登录模式与 `none` 无需授权模式；当前 Platform 会将旧包中的 `cli/none` 规范化为目录中的 `null`，因此不能只检查旧字符串，也不能把 `null` 当成无需认证。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
