@@ -1,3 +1,4 @@
+import { persistComposerAccessLevels } from "@/features/composer/lib/composerAccessLevel";
 import React, {
 	createContext,
 	useCallback,
@@ -60,6 +61,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 		undefined,
 		createInitialState,
 	);
+	useEffect(() => {
+		persistComposerAccessLevels(state);
+	}, [state.accessLevelByChatId, state.newChatAccessLevelByAgentKey]);
 	const stateRef = useRef(state);
 	const querySessionsRef = useRef(new Map<string, LiveQuerySession>());
 	const chatQuerySessionIndexRef = useRef(new Map<string, string>());

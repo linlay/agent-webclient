@@ -1,3 +1,4 @@
+import { composerAccessKey, readComposerAccessLevel, resolveComposerAccessScope } from "../lib/composerAccessLevel";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
 import { groupSelectedPackages, setPackageSelection, skillIdentity } from "../lib/skillPackages";
@@ -131,7 +132,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
   );
-  const [accessLevel, setAccessLevel] = useState<QueryAccessLevel>("default");
   const [modelOverride, setModelOverride] = useState<QueryModelOverride>({});
   const isRestoringDraftRef = useRef(false);
   const isRestoringSkillsRef = useRef(false);
@@ -169,9 +169,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
-  useEffect(() => {
-    if (!interactionConfig.accessLevel) setAccessLevel("default");
-  }, [currentAgentKey, interactionConfig.accessLevel]);
+  const accessScope = resolveComposerAccessScope(state.accessToken);
+  const accessAgentKey = currentAgentKey || (currentWorker?.type === "team" ? `team:${currentWorker.sourceId}` : "");
+  const accessTarget = useMemo(() => ({
+    scope: accessScope, chatId: state.chatId, agentKey: accessAgentKey,
+  }), [accessScope, state.chatId, accessAgentKey]);
+  const accessLevel = readComposerAccessLevel(state, accessTarget);
+  const setAccessLevel = useCallback((value: QueryAccessLevel) => {
+    dispatch({ type: "SET_COMPOSER_ACCESS_LEVEL", target: accessTarget, value });
+  }, [dispatch, accessTarget]);
   const agentAvailability = useAgentAvailability(currentAgentKey, state.chatId);
   const agentExecutionBlocked = agentAvailability.status !== "available";
   const hostRequiredSkills = useHostRequiredSkills();
@@ -726,6 +732,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     state.currentChatActiveRun?.chatId === state.chatId;
 
   const handleAccessLevelChange = useRuntimeAccessLevel({
+    accessScopeKey: JSON.stringify([Boolean(state.chatId), composerAccessKey(accessTarget)]),
     accessLevel: interactionConfig.accessLevel ? accessLevel : "default",
     activeRunId,
     activeRunOwner,

@@ -1,3 +1,4 @@
+import { resolveComposerAccessScope } from "@/features/composer/lib/composerAccessLevel";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { canContinueChat, hasQueryHistory, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 import { useCallback, useEffect } from "react";
@@ -385,6 +386,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         return;
       }
 
+      const accessScope = resolveComposerAccessScope(stateRef.current.accessToken);
+      const isNewChatQuery = !stateRef.current.chatId || Boolean(readPendingAgentChatRoute());
       const chatId = String(
         preferredChatId || stateRef.current.chatId || "",
       ).trim();
@@ -550,9 +553,19 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           agentKey: session.owner.agentKey,
         });
       };
+      const initializeChatAccess = (nextChatId: string) => {
+        if (!isNewChatQuery || !nextChatId) return;
+        dispatch({
+          type: "SET_COMPOSER_ACCESS_LEVEL",
+          target: { scope: accessScope, chatId: nextChatId, agentKey: "" },
+          value: accessLevel || "default",
+          initializeOnly: true,
+        });
+      };
       const bindSessionIdentity = (event: AgentEvent) => {
         const nextChatId = toText(event.chatId);
         if (nextChatId) {
+          initializeChatAccess(nextChatId);
           session.chatId = nextChatId;
           chatQuerySessionIndexRef.current.set(nextChatId, session.requestId);
           if (session.snapshot && !session.snapshot.chatId) {
@@ -749,6 +762,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           onEvent: sessionHandleEvent,
         });
         const identity = await execution.identity;
+        initializeChatAccess(identity.chatId);
         queryAccepted = true;
         notifySelectedTextReferencesAccepted(normalizedReferences);
         session.chatId = identity.chatId;

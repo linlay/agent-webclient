@@ -103,6 +103,7 @@ export async function applyRuntimeAccessLevelChange({
 }
 
 interface UseRuntimeAccessLevelInput {
+  accessScopeKey?: string;
   accessLevel: QueryAccessLevel;
   activeRunId: string;
   activeRunOwner: RunOwner | null;
@@ -113,6 +114,7 @@ interface UseRuntimeAccessLevelInput {
 }
 
 export function useRuntimeAccessLevel({
+  accessScopeKey = "",
   accessLevel,
   activeRunId,
   activeRunOwner,
@@ -121,13 +123,13 @@ export function useRuntimeAccessLevel({
   messageApi,
   t,
 }: UseRuntimeAccessLevelInput): (nextAccessLevel: QueryAccessLevel) => void {
-  const requestSeqRef = useRef(0);
+  const requestSeqRef = useRef(new Map<string, number>());
   const runs = useRunTransport();
 
   return useCallback(
     (nextAccessLevel: QueryAccessLevel) => {
-      requestSeqRef.current += 1;
-      const requestSeq = requestSeqRef.current;
+      const requestSeq = (requestSeqRef.current.get(accessScopeKey) || 0) + 1;
+      requestSeqRef.current.set(accessScopeKey, requestSeq);
       void applyRuntimeAccessLevelChange({
         previousAccessLevel: accessLevel,
         nextAccessLevel,
@@ -138,10 +140,11 @@ export function useRuntimeAccessLevel({
         messageApi,
         t,
         updateAccessLevel: runs.updateAccessLevel,
-        isLatestRequest: () => requestSeqRef.current === requestSeq,
+        isLatestRequest: () => requestSeqRef.current.get(accessScopeKey) === requestSeq,
       });
     },
     [
+      accessScopeKey,
       accessLevel,
       activeRunOwner,
       activeRunId,

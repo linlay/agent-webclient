@@ -1,3 +1,5 @@
+import type { QueryAccessLevel } from "@/shared/data";
+import { restoreComposerAccessLevels, type ComposerAccessState, type ComposerAccessTarget } from "./composerAccessLevel";
 import type { Agent } from "@/features/agents/lib/agentState";
 
 export interface ComposerRequiredSkill {
@@ -32,7 +34,7 @@ export type ComposerSteerAction =
   | { type: "RESTORE_PENDING_STEER"; chatId: string; runId: string; steerId: string }
   | { type: "CLEAR_PENDING_STEERS" };
 
-export interface ComposerState {
+export interface ComposerState extends ComposerAccessState {
   mentionOpen: boolean;
   mentionSuggestions: Agent[];
   mentionActiveIndex: number;
@@ -50,6 +52,7 @@ export type ComposerDraftState = Pick<
 >;
 
 export type ComposerAction =
+  | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
   | { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
   | ComposerSteerAction
@@ -59,6 +62,7 @@ export type ComposerAction =
 
 export function createInitialComposerState(): ComposerState {
   return {
+    ...restoreComposerAccessLevels(),
     mentionOpen: false,
     mentionSuggestions: [],
     mentionActiveIndex: 0,

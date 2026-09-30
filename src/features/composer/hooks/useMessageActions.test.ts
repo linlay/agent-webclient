@@ -396,7 +396,7 @@ describe("useMessageActions temporary pin", () => {
         [],
         [],
         {},
-        undefined,
+        "auto_approve",
         undefined,
         "",
         "agent-coder",
@@ -418,6 +418,14 @@ describe("useMessageActions temporary pin", () => {
       });
       await sending;
 
+      const accessWrites = dispatch.mock.calls.filter(([action]) => action.type === "SET_COMPOSER_ACCESS_LEVEL");
+      if (search.includes("newChat=")) {
+        expect(accessWrites.length).toBeGreaterThan(0);
+        expect(accessWrites.every(([action]) => action.target.chatId === "chat-canonical" &&
+          action.value === "auto_approve" && action.initializeOnly === true)).toBe(true);
+      } else {
+        expect(accessWrites).toHaveLength(0);
+      }
       expect(dispatchedWindowEvents).toHaveLength(expected);
       if (expected) {
         expect((dispatchedWindowEvents[0] as TestCustomEvent).detail).toEqual({

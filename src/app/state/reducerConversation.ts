@@ -1,3 +1,4 @@
+import { updateComposerAccessLevel } from "@/features/composer/lib/composerAccessLevel";
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
 import {
@@ -286,6 +287,8 @@ export function reduceConversationState(
 			};
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
+		case "SET_COMPOSER_ACCESS_LEVEL":
+			return { ...state, ...updateComposerAccessLevel(state, action.target, action.value, action.initializeOnly) };
 		case "SET_COMPOSER_DRAFT": {
 			return {
 				...state,
