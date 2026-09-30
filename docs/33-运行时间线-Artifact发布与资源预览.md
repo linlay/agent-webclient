@@ -36,6 +36,14 @@ Desktop 原生图片稳定后，WebClient 的 preview-review 只保留 HTML Reso
 
 ## Office 在线预览
 
+Desktop 中的 PPT/PPTX、DOC/DOCX、XLS/XLSX 元信息卡提供本机应用直接打开。只有宿主为当前已登记 File、Artifact 或 Reference 子 Surface 授予专用直接打开 capability 时才显示：宿主提前探测真实候选应用、默认项和图标，前端按返回值显示名称，有多个候选时提供下拉，无默认且多个候选时要求用户选择。未找到应用与检测失败分别展示，重新获得焦点时刷新；Standalone 沿用原有行为，不调用此能力。
+
+Standalone 与 Desktop Office 卡片共用布局；Standalone 保留原有本地服务的默认应用打开，不查询或选择应用，Desktop 使用宿主返回的指定应用。卡片布局不依赖本机打开能力是否存在。两端卡片上方依次展示在线预览和本机应用打开，两者等宽、等高，在线预览使用描边按钮，本机应用使用主色按钮；下载和定位收纳为下方一行可换行的次要操作。文件头只展示名称、格式标记和大小，完整 MIME 保留在格式提示中。在线预览不可用时显示简短状态，服务原因与结果未知等完整诊断留在底部可展开详情中。应用菜单限制尺寸并允许滚动，主按钮可使用 Office 产品短名，菜单与无障碍名称保留完整应用名；应用图标来自宿主系统。下载与定位按各自能力独立显示；Desktop Workspace 文件不伪造仅适用于 Chat 资源的定位操作。旧宿主没有直接打开 capability 时，仅在原有默认打开能力可用的情况下保留默认打开入口，不调用另存副本接口。
+
+PDF 在内嵌 PDF.js 预览上方的轻量操作行复用相同直接打开能力，可以使用宿主探测到的预览、Acrobat 等应用；仍保留分页、缩放、搜索与画布预览，不改成 Office 元信息卡，也不增加在线预览入口。外部操作不依赖 PDF 预览加载成功，来源授权和 Office 一致。
+
+点击本机应用后不触发下载或另存对话框。Desktop 对已授权的本地文件直接打开原件，远端文档由 Main 在后台准备受控缓存后打开。前端不传可执行路径、下载 URL 或目标绝对路径，不复制 Platform 权限判断。外部程序自行保存本地文件，缓存中的修改不会自动上传；UI 不宣称已保存副本或自动回传。请求成功仅说明已请求系统打开，不代表外部程序已显示或修改完成。同一来源禁止重复打开，切换目标或卸载后的迟到结果不更新新文档。
+
 DOCX、PPTX、XLSX 统一从元信息卡进入在线预览，不提供内置 DOCX 正文渲染。未配置服务时显示“未配置在线预览服务”，保留文件信息、下载和当前环境可用的系统操作。Desktop 嵌入和 Standalone 使用相同的服务能力判断与预览流程。`features/viewers` 读取普通 HTTP `GET /api/document/preview/capabilities`，点击后提交 `POST /api/document/preview` 的 `requestId + source`。Workspace 提交 `agentKey + path`，Chat 资源提交 owner `chatId + relativePath`，前端不上传 Blob，也不启动 Agent Run。配置缺失、旧 Platform 无接口、格式不支持或超限时显示原因。
 
 Platform 在 `configs/runtime.yml` 的 `document-preview` 中管理当前 document-hub、认证和打开方式。WebClient 仅消费 `previewId/sourceRevision/openMode/url/expiresAt`，不接收内部 API 地址或服务凭据。Standalone 右侧栏准备好链接后新建“文件名 · 在线预览”标签并选中，保留原文件标签；同一来源重复打开复用预览标签，来源按 Workspace 的 `agentKey + path` 或 Chat 资源的 owner `chatId + relativePath` 区分，不按临时 URL 或文件名判断。Standalone 独立 Document Surface 沿用容器内展示。`iframe` 模式展示只读分享 URL，sandbox 仅允许脚本和服务自身 origin，使用 `no-referrer`；不向 iframe 注入 Platform token 或 Desktop bridge。iframe 的预览 origin 必须与 WebClient 不同（同一主机的不同端口满足要求），同 origin 部署使用 `external`，避免脚本通过同源窗口访问宿主。外部浏览器入口始终保留，`external` 模式只显示用户点击的链接，不在异步响应后自动弹窗。Desktop 的 external 模式复用系统浏览器入口。Desktop 的 iframe 模式通过已有 WorkPanel bridge 将分享 URL 打开为 owner Chat 的独立普通网页 Tab，直接由顶层 WebView 加载，不再在 WebClient 中嵌套跨站 iframe，保证预览服务的 SameSite=Strict CSRF Cookie 正常工作。沿用普通网页的 URL 去重、导航、刷新和关闭规则；过期由分享服务拒绝，用户回到原文件重新获取链接。原文件 Tab 保留，bridge 缺失或拒绝时显示错误并允许重试，不能降级到跨站 iframe。分享页不获得 Platform token 或可信 WebClient bridge，服务端 CSRF 校验保持生效。

@@ -8,6 +8,7 @@ import { createSelectedTextFragment } from "@/features/selection/lib/selectedTex
 import { DESKTOP_SELECTION_BTW_TARGET } from "@/features/selection/lib/selectionTransfer";
 import { BtwProvider, useOptionalBTW } from "@/features/btw/components/BtwProvider";
 import { useDesktopSelectionActions } from "./useDesktopSelectionActions";
+import { rememberSelectedTextAnchor } from "@/shared/data/desktop/selectedTextAnchors";
 
 const mockStartBtw = jest.fn();
 const mockRuns = { startBtw: mockStartBtw, subscribe: jest.fn(), interrupt: jest.fn() };
@@ -148,6 +149,33 @@ it.each([false, true])("adds a selection without sending on desktopMode=%s and o
   expect(mockStartBtw).not.toHaveBeenCalled();
   expect(mockOpenTarget).not.toHaveBeenCalled();
   window.removeEventListener("agent:focus-composer", focus);
+});
+
+it.each([false, true])("leaves focus to the anchored annotation editor on desktopMode=%s", async (desktopMode) => {
+  mockDesktopMode = desktopMode;
+  const text = document.createElement("p");
+  text.textContent = "anchored selection";
+  document.body.append(text);
+  const range = document.createRange();
+  range.selectNodeContents(text);
+  const previous = Object.getOwnPropertyDescriptor(Range.prototype, "getClientRects");
+  Object.defineProperty(Range.prototype, "getClientRects", { configurable: true, value: () => [
+    { left: 10, top: 20, right: 110, bottom: 40, width: 100, height: 20 },
+  ] });
+  const anchored = createSelectedTextFragment({ text: text.textContent, targetId: "message-anchor", sourceKind: "message" })!;
+  rememberSelectedTextAnchor(anchored.reference.id, range, anchored.reference.text);
+  const focus = jest.fn();
+  window.addEventListener("agent:focus-composer", focus);
+  try {
+    const h = mount();
+    await expect(h.actions.handleAction({ action: "add-to-chat", fragment: anchored })).resolves.toEqual({ ok: true });
+    expect(mockAddMainFragment).toHaveBeenCalledWith(anchored);
+    expect(focus).not.toHaveBeenCalled();
+  } finally {
+    window.removeEventListener("agent:focus-composer", focus);
+    if (previous) Object.defineProperty(Range.prototype, "getClientRects", previous);
+    else delete (Range.prototype as any).getClientRects;
+  }
 });
 
 it("adds browser side questions to the existing real BTW draft without transfer, duplicate session, or automatic send", async () => {

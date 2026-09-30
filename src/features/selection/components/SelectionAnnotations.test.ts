@@ -10,6 +10,7 @@ import { createSelectedTextFragment } from "@/shared/contracts/selectedTextRefer
 jest.mock("@/shared/i18n",()=>({useI18n:()=>({t:(key:string,params?:{index:number})=>`${key} ${params?.index || ""}`})}));
 
 const mockForceAlignAnchors:string[]=[];
+let mockPopoverContentReady=true;
 
 jest.mock("antd",()=>({
   // 透传额外属性：Popover 把 data-popover-open 塞在 Tooltip 元素上，桩必须继续往下传。
@@ -23,11 +24,14 @@ jest.mock("antd",()=>({
   Input:{
     TextArea:React.forwardRef(function TextAreaMock(
       props:Record<string,unknown>,
-      ref:React.ForwardedRef<HTMLTextAreaElement>,
+      ref:React.ForwardedRef<{focus:(options?:FocusOptions)=>void}>,
     ){
+      const textarea=React.useRef<HTMLTextAreaElement>(null);
+      // 与 antd 一样，每次渲染都更新 imperative ref。
+      React.useImperativeHandle(ref,()=>({focus:(options?:FocusOptions)=>textarea.current?.focus(options)}));
       const {autoSize,variant,...rest}=props;
       void autoSize; void variant;
-      return React.createElement("textarea",{...rest,ref});
+      return React.createElement("textarea",{...rest,ref:textarea});
     }),
   },
   Popover:React.forwardRef(function PopoverMock(
@@ -39,7 +43,7 @@ jest.mock("antd",()=>({
     }));
     return React.createElement(React.Fragment,null,
       React.cloneElement(props.children,{"data-popover-open":String(!!props.open)}),
-      props.open?props.content:null);
+      props.open&&mockPopoverContentReady?props.content:null);
   }),
 }));
 
@@ -49,7 +53,7 @@ const openPopovers=()=>document.querySelectorAll('[data-popover-open="true"]').l
 const anchorLeft=(right:number)=>`${Math.min(window.innerWidth-30,Math.max(4,right-11))}px`;
 const anchorLeftNow=()=>document.querySelector<HTMLElement>("[data-selection-marker-anchor]")!.style.left;
 
-it("opens an anchored editor, commits the comment on Enter, and discards a draft on Escape", () => {
+it.each([false,true])("focuses the editor (delayed mount=%s), commits on Enter, and discards on Escape", (delayedMount) => {
   Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true});
   const text=document.createElement("p"); text.textContent="selected passage"; document.body.append(text);
   const root=createRoot(document.createElement("div"));
@@ -64,11 +68,25 @@ it("opens an anchored editor, commits the comment on Enter, and discards a draft
   const remove=jest.fn();
   const render=()=>root.render(React.createElement(SelectionAnnotations,{fragments:[fragment],onAnnotationChange:change,onRemove:remove}));
   try {
+    mockPopoverContentReady=!delayedMount;
     act(render);
+    if(delayedMount){
+      expect(openPopovers()).toBe(1);
+      expect(document.querySelector("textarea")).toBeNull();
+      mockPopoverContentReady=true;
+      act(render);
+    }
     let input=document.querySelector("textarea")!;
     expect(input).not.toBeNull();
     expect(document.activeElement).toBe(input);
     expect(openPopovers()).toBe(1);
+    const other=document.createElement("button"); document.body.append(other);
+    try {
+      other.focus();
+      act(render);
+      expect(document.activeElement).toBe(other);
+    } finally { other.remove(); }
+    input.focus();
     const badge=document.querySelector<HTMLButtonElement>("[data-selection-marker]")!;
     expect(badge.textContent).toBe("7");
     expect(document.querySelector('[data-material-icon="mic"]')).toBeNull();
@@ -87,6 +105,7 @@ it("opens an anchored editor, commits the comment on Enter, and discards a draft
     // 重新打开拿到的是已存批注（空），草稿已经丢掉。
     act(()=>badge.click());
     input=document.querySelector("textarea")!;
+    expect(document.activeElement).toBe(input);
     expect(input.value).toBe("");
     act(()=>{input.value="comment";Simulate.change(input);});
     expect(change).not.toHaveBeenCalled();
@@ -123,6 +142,7 @@ it("opens an anchored editor, commits the comment on Enter, and discards a draft
     expect(document.querySelector("textarea")).toBeNull();
     expect(highlightIds()).toEqual([]);
   } finally {
+    mockPopoverContentReady=true;
     act(()=>root.unmount()); text.remove();
     if(previous) Object.defineProperty(Range.prototype,"getClientRects",previous);
     else delete (Range.prototype as any).getClientRects;
