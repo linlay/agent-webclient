@@ -67,6 +67,7 @@ export interface AgentSkill {
 }
 
 export interface AgentSkillPackage {
+  icon?: string;
   id: string;
   name?: string;
   displayName?: string;

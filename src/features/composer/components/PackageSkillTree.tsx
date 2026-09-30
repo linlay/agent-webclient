@@ -1,3 +1,4 @@
+import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import React from "react";
 import { Popover } from "antd";
@@ -40,6 +41,7 @@ export function PackageSkillTree({ pkg, skills, selectedKeys, lockedKeys = [], d
       <MaterialIcon name="chevron_right" className={styles.chevron} />
       <Popover content={preview} trigger={["hover", "focus"]} placement="right" mouseEnterDelay={0.35}>
         <span tabIndex={0} className={styles.title}>
+          <SkillIcon icon={pkg.icon} fallback="folder" />
           <span className={styles.copy}>
             <span className={styles.name}>{skillPackageDisplayName(pkg)}</span>
             <small className={selectedCount ? styles.hasSelection : styles.meta}>

@@ -396,7 +396,7 @@ export async function fetchSkillIcon(
   options: { signal?: AbortSignal } = {},
 ): Promise<Blob> {
   const path = url.trim();
-  if (path.includes("#") || ![dataEndpoints.agentSkillIcon.path, dataEndpoints.adminSkillFileDownload.path].includes(path.split("?", 1)[0])) {
+  if (path.includes("#") || ![dataEndpoints.agentSkillIcon.path, dataEndpoints.skillPackageIcon.path, dataEndpoints.adminSkillFileDownload.path].includes(path.split("?", 1)[0])) {
     throw new ApiError("skill icon URL is invalid");
   }
   const response = await requestWithAuth(path, {

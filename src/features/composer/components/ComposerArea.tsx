@@ -1,4 +1,5 @@
 import { composerAccessKey, readComposerAccessLevel, resolveComposerAccessScope } from "../lib/composerAccessLevel";
+import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
 import { groupSelectedPackages, setPackageSelection, skillIdentity } from "../lib/skillPackages";
@@ -1038,7 +1039,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                         <div>{members.map(skill => <div key={skill.key}>{skill.label}</div>)}</div>
                       }>
                         <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" aria-label={t("packageComposer.members", { name: skillPackageDisplayName(pkg) })}>
-                          <MaterialIcon name="folder" /><span>{skillPackageDisplayName(pkg)} · {members.length}/{new Set([...pkg.skills.map(member => member.id), ...(pkg.missingSkillIds || [])]).size}</span>
+                          <SkillIcon icon={pkg.icon} fallback="folder" /><span>{skillPackageDisplayName(pkg)} · {members.length}/{new Set([...pkg.skills.map(member => member.id), ...(pkg.missingSkillIds || [])]).size}</span>
                         </UiButton>
                       </Tooltip>
                       <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}

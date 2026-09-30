@@ -1,10 +1,10 @@
+import { SkillIcon } from "./SkillIcon";
 import React, { useState } from "react";
 import { SkillPackageManifestEditor } from "./SkillPackageManifestEditor";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import type { AdminSkillPackageSummary, AdminSkillSummary } from "@/shared/data/api/dto/skills";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 export function SkillPackageOverview({ pack, skills, busy, onSelect, onDelete, onSaved }: {
   pack: AdminSkillPackageSummary;
@@ -20,7 +20,7 @@ export function SkillPackageOverview({ pack, skills, busy, onSelect, onDelete, o
   const missing = new Set(pack.missingSkillIds || []);
   return <section className="skill-package-overview">
     <div className="skill-package-overview-heading">
-      <MaterialIcon name="folder" />
+      <SkillIcon icon={pack.icon} fallback="folder" size={24} />
       <h2>{skillPackageDisplayName(pack)}</h2>
       <UiButton variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(true)}>{t("skillPackageEditor.editManifest")}</UiButton>
       <UiButton variant="ghost" size="sm" disabled={busy} onClick={onDelete}>{t("skillPackageEditor.delete")}</UiButton>

@@ -53,3 +53,13 @@ it("does not show an old skill icon after the candidate changes", async () => {
   expect(container.querySelector("img")).toBeNull();
   expect(URL.createObjectURL).not.toHaveBeenCalled();
 });
+
+
+it("loads package icons and falls back to a folder on decode failure", async () => {
+  const icon = "/api/skill-packages/icon?key=office";
+  await act(async () => root.render(React.createElement(SkillIcon, { icon, fallback: "folder" })));
+  expect(fetchSkillIcon).toHaveBeenCalledWith(icon, { signal: expect.any(AbortSignal) });
+  expect(container.querySelector("img")?.getAttribute("src")).toBe("blob:skill-icon");
+  await act(async () => container.querySelector("img")!.dispatchEvent(new Event("error")));
+  expect(container.querySelector('[data-icon="folder"]')).not.toBeNull();
+});

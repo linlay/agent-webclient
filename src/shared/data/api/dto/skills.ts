@@ -101,6 +101,7 @@ export interface AdminSkillDetailResponse {
 }
 
 export interface AdminSkillPackageSummary {
+  icon?: string;
   status?: "ready" | "incomplete";
   missingSkillIds?: string[];
   id: string;

@@ -1,3 +1,4 @@
+import { SkillIcon } from "./SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { SkillPackageOverview } from "./SkillPackageOverview";
 import { groupAdminSkills } from "@/features/skills/lib/skillPackageGroups";
@@ -2752,7 +2753,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                         else select();
                       }}>
                         <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
-                        <MaterialIcon name="folder" />
+                        <SkillIcon icon={pack.icon} fallback="folder" size={24} />
                         <strong>{skillPackageDisplayName(pack)}</strong><span>{pack.skills.length}</span>
                       </button>
                       <UiButton size="sm" variant="ghost" iconOnly

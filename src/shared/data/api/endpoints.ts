@@ -526,6 +526,12 @@ export const dataEndpoints = createEndpointRegistry({
     cache: { ttlMs: 30_000, dedupe: true },
     payload: (agentKey) => ({ agentKey }),
   }),
+  skillPackageIcon: defineEndpoint({
+    key: "skill.package.icon",
+    path: "/api/skill-packages/icon",
+    method: "GET",
+    transport: "http",
+  }),
   agentSkillIcon: defineEndpoint({
     key: "agent.skill.icon",
     path: "/api/skills/icon",
