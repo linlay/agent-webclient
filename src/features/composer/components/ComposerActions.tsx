@@ -337,7 +337,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               size="sm"
               iconOnly
               disabled={sendDisabled}
-              onClick={handleSend}
+              onClick={() => handleSend()}
               aria-label={t("composer.actions.send")}
             >
               <SkinVisual slot="chat.send"><MaterialIcon name="arrow_upward" /></SkinVisual>
