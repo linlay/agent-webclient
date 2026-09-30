@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
+import { ApiError, cancelConnectorAuth, connectConnector, getConnectorAuthStatus, getConnectorConnection, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
 import { I18nProvider } from "@/shared/i18n";
 import { ConnectorAuthPanel } from "./ConnectorAuthPanel";
@@ -10,6 +10,7 @@ import { ConnectorComponents } from "./ConnectorComponents";
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
+  getConnectorConnection: jest.fn(), connectConnector: jest.fn(),
 }));
 const item: ConnectorSummary = { id: "configured-cli", name: "Configured CLI", version: "1.0", type: "cli", auth_mode: "cli", hasCli: true, hasMcp: false, hasBin: true, skills: [] };
 const onConfigure = jest.fn();
@@ -34,6 +35,7 @@ beforeEach(() => {
   jest.mocked(startConnectorAuth).mockResolvedValue(response("pending", { authorizationUrl: "https://official.example/authorize?state=test" }));
   jest.mocked(cancelConnectorAuth).mockResolvedValue({ code: 0, msg: "", data: { id: item.id, status: "canceled" } });
   jest.mocked(logoutConnectorAuth).mockResolvedValue({ code: 0, msg: "", data: { id: item.id, status: "unauthorized" } });
+  jest.mocked(getConnectorConnection).mockImplementation(async id => ({ code: 0, msg: "", data: { connectorId: id, configured: false, configurationRequired: true, readiness: "configuration_required", authentication: { connectorId: id, sessionId: "", status: "delegated", expiresAt: "" }, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: null, authBrowser: "system", hasCli: false, hasMcp: false } } }));
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -115,13 +117,19 @@ it("distinguishes MCP tool availability from OAuth login in English", async () =
   expect(button("Sign out")).toBeDefined();
 });
 
-it("routes token mode to existing configuration and never presents interactive login", async () => {
+it("opens a separate token credential form without routing secrets to definition editing", async () => {
   await mount({ ...item, auth_mode: "token" });
   expect(container.textContent).toContain("凭据配置");
-  await click("配置");
-  expect(onConfigure).toHaveBeenCalledTimes(1);
-  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  await click("配置连接凭据");
+  expect(onConfigure).not.toHaveBeenCalled();
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("token_schema");
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
   expect(button("登录")).toBeUndefined();
+});
+it("never renders raw token diagnostics which may echo private credentials", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("failed", { message: "echo synthetic-test-token" }));
+  await mount({ ...item, auth_mode: "token" });
+  expect(container.textContent).not.toContain("synthetic-test-token");
 });
 
 it("shows the none mode without querying authorization", async () => {
@@ -150,6 +158,21 @@ it.each(["unauthorized", "authorized"] as const)("shows Desktop identity %s with
   expect(button("退出登录")).toBeUndefined();
   await click("重新检查状态");
   expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+});
+
+it.each([null, "oneid-token"] as const)("restores confirmation from real configured state after disconnect without remounting auth_mode=%s", async mode => {
+  const status = mode === null ? "delegated" : "authorized";
+  let configured = false;
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
+  jest.mocked(connectConnector).mockImplementation(async () => { configured = true; return response(status); });
+  jest.mocked(getConnectorConnection).mockImplementation(async id => ({ code: 0, msg: "", data: { connectorId: id, configured, configurationRequired: true, readiness: configured ? "ready" : "configuration_required", authentication: response(status).data, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: mode, authBrowser: "system", hasCli: false, hasMcp: false } } }));
+  await mount({ ...item, auth_mode: mode });
+  await click("确认连接");
+  expect(button("确认连接")).toBeUndefined();
+  configured = false;
+  await click("重新检查状态");
+  expect(button("确认连接")).toBeDefined();
+  await click("确认连接"); expect(connectConnector).toHaveBeenCalledTimes(2);
 });
 
 it.each([null, "oneid-token"] as const)("shows and recovers from canonical auth_mode=%s check errors", async mode => {

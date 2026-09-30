@@ -7,6 +7,7 @@ import { parseConnectorDefinition } from "@/features/connectors/lib/connectorDef
 import { ApiError, deleteConnector, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
 import type { AdminToolSummary, ConnectorDefinition, ConnectorDefinitionFile, ConnectorSummary } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { connectorNavigationPath, type ConnectorNavigationApproval } from "../lib/connectorNavigation";
 
 export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: string) => void) {
   const { t } = useI18n();
@@ -48,15 +49,42 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const deletingRef = useRef(false);
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
+  const navigationScope = useRef({ id: selectedId, file: activeFile, hash: detail?.sha256, draft, revision: 0 });
+  const navigationPermit = useRef<{ target: string; revision: number } | null>(null);
+  if (navigationScope.current.id !== selectedId || navigationScope.current.file !== activeFile
+    || navigationScope.current.hash !== detail?.sha256 || navigationScope.current.draft !== draft) {
+    navigationScope.current = { id: selectedId, file: activeFile, hash: detail?.sha256, draft, revision: navigationScope.current.revision + 1 };
+    navigationPermit.current = null;
+  }
+  const invalidateNavigation = () => { navigationScope.current.revision += 1; navigationPermit.current = null; };
 
-  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    currentLocation.pathname !== nextLocation.pathname && (dirtyRef.current || savingRef.current || importingRef.current || deletingRef.current),
-  );
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
+    const permit = navigationPermit.current;
+    // Every attempted route consumes the permit; it never approves another path
+    // or a later navigation after saving, editing, or returning to this page.
+    navigationPermit.current = null;
+    const approved = permit?.revision === navigationScope.current.revision && permit.target === connectorNavigationPath(nextLocation);
+    return currentLocation.pathname !== nextLocation.pathname && (savingRef.current || importingRef.current || deletingRef.current || dirtyRef.current && !approved);
+  });
   useEffect(() => {
     if (blocker.state !== "blocked") return;
     if (!savingRef.current && !importingRef.current && !deletingRef.current && window.confirm(t("connectors.confirm.discard"))) blocker.proceed();
     else blocker.reset();
   }, [blocker, t]);
+
+  const confirmNavigation = useCallback((): ConnectorNavigationApproval | null => {
+    if (savingRef.current || importingRef.current || deletingRef.current || dirtyRef.current && !window.confirm(t("connectors.confirm.discard"))) return null;
+    const revision = navigationScope.current.revision;
+    let granted = false;
+    return { permit: target => {
+      if (granted) return null;
+      granted = true;
+      if (revision !== navigationScope.current.revision || savingRef.current || importingRef.current || deletingRef.current) return null;
+      const permit = { target: connectorNavigationPath(new URL(target, window.location.href)), revision };
+      navigationPermit.current = permit;
+      return () => { if (navigationPermit.current === permit) navigationPermit.current = null; };
+    } };
+  }, [t]);
 
   const refreshCatalog = useCallback(async (silent = false) => {
     if (silent && (catalogBusy.current || savingRef.current || importingRef.current || deletingRef.current)) return;
@@ -141,6 +169,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     if (savingRef.current || importingRef.current || deletingRef.current) return false;
     if (next === activeFile) return true;
     if (dirty && !window.confirm(t("connectors.confirm.discard"))) return false;
+    invalidateNavigation();
     setDetail(null);
     setDraft("");
     setFile(next);
@@ -148,6 +177,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   };
   const reload = () => {
     if (savingRef.current || importingRef.current || deletingRef.current || (dirty && !window.confirm(t("connectors.confirm.discard")))) return;
+    invalidateNavigation();
     setRevision(value => value + 1);
     void refreshCatalog();
   };
@@ -254,8 +284,8 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
 
   return {
     items, tools, loading, catalogError, catalogErrorStatus, selected, file: activeFile, detail, draft, dirty, readOnly,
-    detailLoading, saving, importing, deleting, deletingId, canDelete, remove, error, errorDetails, message, refreshCatalog, selectFile, reload, save, importArchive,
+    detailLoading, saving, importing, deleting, deletingId, canDelete, remove, error, errorDetails, message, refreshCatalog, selectFile, reload, save, importArchive, confirmNavigation,
     selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && !deletingRef.current && id !== selectedId) onRouteIdChange(id); },
-    updateDraft: (value: string) => { if (!readOnly && !savingRef.current && !importingRef.current && !deletingRef.current) { setDraft(value); setMessage(""); setError(""); } },
+    updateDraft: (value: string) => { if (!readOnly && !savingRef.current && !importingRef.current && !deletingRef.current) { if (value !== navigationScope.current.draft) invalidateNavigation(); setDraft(value); setMessage(""); setError(""); } },
   };
 }

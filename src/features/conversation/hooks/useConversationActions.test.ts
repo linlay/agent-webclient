@@ -69,6 +69,29 @@ function useTestConversationActions() {
   };
 }
 
+function createConversationIntentHarness(state = createInitialState()) {
+  const stateRef = { current: state };
+  const dispatch = jest.fn((action) => {
+    stateRef.current = appReducer(stateRef.current, action);
+  });
+  useAppContext.mockReturnValue({
+    state,
+    dispatch,
+    stateRef,
+    querySessionsRef: { current: new Map() },
+    chatQuerySessionIndexRef: { current: new Map() },
+    activeQuerySessionRequestIdRef: { current: '' },
+  });
+  const actionsRef: { current: ReturnType<typeof useTestConversationActions> | null } = { current: null };
+  const Harness = () => {
+    actionsRef.current = useTestConversationActions();
+    return null;
+  };
+  renderToStaticMarkup(React.createElement(Harness));
+  if (!actionsRef.current) throw new Error('Conversation harness did not mount');
+  return { actions: actionsRef.current, stateRef, dispatch };
+}
+
 function createLiveSession(overrides: Record<string, unknown> = {}) {
   return {
     requestId: 'req_old',
@@ -1266,9 +1289,18 @@ describe('replayEvent tool migration', () => {
       agentKey: 'demo-agent',
       preserveWorkerContext: true,
       focusComposerOnComplete: true,
-      composerDraft: '',
-      selectedSkills: [],
     });
+  });
+
+  it('distinguishes omitted Composer intent from explicit empty draft and Skills', () => {
+    const base = { agentKey: 'demo-agent', preserveWorkerContext: true, focusComposerOnComplete: true };
+    expect(normalizeStartNewConversationDetail(base)).toEqual(base);
+    expect(normalizeStartNewConversationDetail({ ...base, composerDraft: '', selectedSkills: [] }))
+      .toEqual({ ...base, composerDraft: '', selectedSkills: [] });
+    expect(normalizeStartNewConversationDetail({ ...base, composerDraft: '' }))
+      .toEqual({ ...base, composerDraft: '' });
+    expect(normalizeStartNewConversationDetail({ ...base, selectedSkills: [] }))
+      .toEqual({ ...base, selectedSkills: [] });
   });
 
   it('normalizes one-shot Composer draft and required Skills', () => {
@@ -1305,8 +1337,6 @@ describe('replayEvent tool migration', () => {
       agentKey: '',
       preserveWorkerContext: false,
       focusComposerOnComplete: false,
-      composerDraft: '',
-      selectedSkills: [],
     });
   });
 
@@ -2353,6 +2383,78 @@ describe('replayEvent tool migration', () => {
     );
     expect(chatResetCall).toBeGreaterThanOrEqual(0);
     expect(draftResetCall).toBe(-1);
+  });
+
+  it.each(['请使用企业微信查询信息。', ''])('replaces the blank-chat draft %j and removes the previous Skill Creator selection', (draft) => {
+    const state = createInitialState();
+    const previousSkills = [{ key: 'skill-creator', label: '技能制作' }];
+    const historySkills = [{ key: 'history-skill', label: 'History Skill' }];
+    state.composerDraft = 'Create a Skill';
+    state.composerDraftByChatId = { '': state.composerDraft, chat_history: 'History draft' };
+    state.selectedSkills = previousSkills;
+    state.selectedSkillsByChatId = { '': previousSkills, chat_history: historySkills };
+    const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
+
+    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: draft, selectedSkills: [] });
+
+    expect(stateRef.current.composerDraft).toBe(draft);
+    expect(stateRef.current.composerDraftByChatId['']).toBe(draft);
+    expect(stateRef.current.selectedSkills).toEqual([]);
+    expect(stateRef.current.selectedSkillsByChatId['']).toEqual([]);
+    expect(stateRef.current.composerDraftByChatId.chat_history).toBe('History draft');
+    expect(stateRef.current.selectedSkillsByChatId.chat_history).toBe(historySkills);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_SELECTED_SKILLS', skills: [] });
+  });
+
+  it.each(['请介绍连接器权限。', ''])('preserves historical draft and Skills when applying connector draft %j to a new chat', (draft) => {
+    const state = createInitialState();
+    const historySkills = [{ key: 'history-skill', label: 'History Skill' }];
+    state.chatId = 'chat_history';
+    state.composerDraft = 'History draft';
+    state.composerDraftByChatId = { '': 'Old blank draft' };
+    state.selectedSkills = historySkills;
+    state.selectedSkillsByChatId = { '': [{ key: 'skill-creator', label: 'Skill Creator' }] };
+    const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
+
+    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: draft, selectedSkills: [] });
+    expect(stateRef.current.chatId).toBe('');
+    expect(stateRef.current.composerDraft).toBe(draft);
+    expect(stateRef.current.selectedSkills).toEqual([]);
+
+    dispatch({ type: 'SET_CHAT_ID', chatId: 'chat_history' });
+    expect(stateRef.current.composerDraft).toBe('History draft');
+    expect(stateRef.current.selectedSkills).toBe(historySkills);
+    expect(stateRef.current.composerDraftByChatId['']).toBe(draft);
+    expect(stateRef.current.selectedSkillsByChatId['']).toEqual([]);
+  });
+
+  it.each(['', 'chat_history'])('retains shared blank-chat draft and Skills for an ordinary new-chat intent from %j', (chatId) => {
+    const state = createInitialState();
+    const blankSkills = [{ key: 'selected-by-user', label: 'Selected by user' }];
+    state.chatId = chatId;
+    state.composerDraft = chatId ? 'History draft' : 'Shared blank draft';
+    state.composerDraftByChatId = { '': 'Shared blank draft' };
+    state.selectedSkills = chatId ? [{ key: 'history-skill', label: 'History Skill' }] : blankSkills;
+    state.selectedSkillsByChatId = { '': blankSkills };
+    const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
+
+    actions.startNewConversation({ agentKey: 'another-agent', preserveWorkerContext: true, focusComposerOnComplete: true });
+    expect(stateRef.current.composerDraft).toBe('Shared blank draft');
+    expect(stateRef.current.selectedSkills).toBe(blankSkills);
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_COMPOSER_DRAFT' || action.type === 'SET_SELECTED_SKILLS')).toBe(false);
+  });
+
+  it('replaces previous manual Skills with platform-admin for an explicit configuration prefill', () => {
+    const state = createInitialState();
+    state.selectedSkills = [{ key: 'skill-creator', label: 'Skill Creator' }];
+    state.selectedSkillsByChatId = { '': state.selectedSkills };
+    const { actions, stateRef } = createConversationIntentHarness(state);
+    const adminSkills = [{ key: 'platform-admin', label: 'platform-admin' }];
+
+    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: 'Edit connector configuration', selectedSkills: adminSkills });
+    expect(stateRef.current.composerDraft).toBe('Edit connector configuration');
+    expect(stateRef.current.selectedSkills).toEqual(adminSkills);
+    expect(stateRef.current.selectedSkillsByChatId['']).toEqual(adminSkills);
   });
 
   it('keeps the shared blank-chat draft when switching the selected agent', () => {

@@ -14,7 +14,7 @@ let container: HTMLDivElement;
 let actions: ReturnType<typeof useResourceAssistant>;
 const originalLocation = window.location;
 const assign = jest.fn();
-function Harness() { actions = useResourceAssistant(); return null; }
+function Harness({ navigate }: { navigate?: (target: string) => void } = {}) { actions = useResourceAssistant({ navigate }); return null; }
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.clearAllMocks();
@@ -29,6 +29,16 @@ it("uses the host default, never the edited Agent, without querying a model", as
   expect(assign).toHaveBeenCalledTimes(1);
   expect(assign.mock.calls[0][0]).toMatch(/^\/agent\/default\?newChat=/);
   expect(getAgents).not.toHaveBeenCalled();
+});
+it("uses a provided Standalone Router navigation so the editor's final dirty blocker confirms once", async () => {
+  const navigate = jest.fn();
+  jest.mocked(isDesktopAppMode).mockReturnValue(false);
+  jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "default", mode: "AGENT" }] } as any);
+  await act(async () => root.render(React.createElement(Harness, { navigate })));
+  await act(async () => actions.open({ kind: "connector", target: { id: "edited" } }));
+  expect(navigate).toHaveBeenCalledTimes(1); expect(assign).not.toHaveBeenCalled();
+  const target = new URL(navigate.mock.calls[0][0], "http://localhost");
+  expect(target.pathname).toBe("/agent/default"); expect(target.searchParams.get("composerSkill")).toBe("platform-admin");
 });
 it("fails visibly without a Desktop default and does not silently select another Agent", async () => {
   (window.location as any).href = "http://localhost/skills";

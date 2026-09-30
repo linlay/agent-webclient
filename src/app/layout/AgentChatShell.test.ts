@@ -286,12 +286,50 @@ describe("AgentChatShell", () => {
     expect(parseComposerPrefillPayload(new URLSearchParams(
       "composerDraft=Use+meeting&composerSkill=wecom%2Fmeeting",
     ))).toEqual({ draft: "Use meeting", skillKey: "wecom/meeting" });
-    expect(parseComposerPrefillPayload(new URLSearchParams(
-      "composerDraft=Create+a+Skill&composerSkill=bad%2F..%2Fkey",
-    ))).toBeNull();
+  });
+
+  it("accepts a standalone composer draft without selecting a Skill", () => {
     expect(parseComposerPrefillPayload(new URLSearchParams(
       "composerDraft=Create+a+Skill",
-    ))).toBeNull();
+    ))).toEqual({ draft: "Create a Skill" });
+  });
+
+  it("distinguishes an omitted draft from an explicit empty new-chat intent", () => {
+    expect(parseComposerPrefillPayload(new URLSearchParams())).toBeNull();
+    expect(parseComposerPrefillPayload(new URLSearchParams({ composerDraft: "" })))
+      .toEqual({ draft: "" });
+    expect(parseComposerPrefillPayload(new URLSearchParams({ composerDraft: "", composerSkill: "platform-admin" })))
+      .toBeNull();
+    expect(parseComposerPrefillPayload(new URLSearchParams({ composerDraft: "  " })))
+      .toBeNull();
+    expect(parseComposerPrefillPayload(new URLSearchParams("composerDraft=a&composerDraft=b")))
+      .toBeNull();
+    expect(parseComposerPrefillPayload(new URLSearchParams("composerDraft=a&composerSkill=skill-creator&composerSkill=platform-admin")))
+      .toBeNull();
+  });
+
+  it.each(["bad/../key", "", " ", "UPPERCASE"])(
+    "rejects an explicitly invalid composer Skill: %j",
+    (skillKey) => {
+      expect(parseComposerPrefillPayload(new URLSearchParams({
+        composerDraft: "Create a Skill",
+        composerSkill: skillKey,
+      }))).toBeNull();
+    },
+  );
+
+  it("rejects whitespace-only drafts and preserves the 2048-character limit", () => {
+    expect(parseComposerPrefillPayload(new URLSearchParams())).toBeNull();
+    expect(parseComposerPrefillPayload(new URLSearchParams({
+      composerDraft: "  ",
+      composerSkill: "skill-creator",
+    }))).toBeNull();
+    expect(parseComposerPrefillPayload(new URLSearchParams({
+      composerDraft: "a".repeat(2048),
+    }))).toEqual({ draft: "a".repeat(2048) });
+    expect(parseComposerPrefillPayload(new URLSearchParams({
+      composerDraft: "a".repeat(2049),
+    }))).toBeNull();
   });
 
   it("classifies only an API 401 as an authentication failure", () => {
@@ -695,7 +733,7 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("consumes create-skill into an editable draft with skill-creator selected", () => {
+  it.each(["skill-creator", "platform-admin"])("consumes an explicit draft with %s selected", (skillKey) => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -705,7 +743,7 @@ describe("AgentChatShell", () => {
       });
     useSearchParams.mockReturnValue([
       new URLSearchParams(
-        "newChat=1783680000000&composerDraft=Create+a+useful+Skill&composerSkill=skill-creator&lang=en",
+        `newChat=1783680000000&composerDraft=Create+a+useful+Skill&composerSkill=${skillKey}&lang=en`,
       ),
     ]);
     useAppState.mockReturnValue({
@@ -723,7 +761,7 @@ describe("AgentChatShell", () => {
       expect.objectContaining({
         composerDraft: "Create a useful Skill",
         selectedSkills: [
-          { key: "skill-creator", label: "skill-creator" },
+          { key: skillKey, label: skillKey },
         ],
       }),
     );
@@ -736,6 +774,105 @@ describe("AgentChatShell", () => {
     );
 
     useEffectSpy.mockRestore();
+  });
+
+  it.each(["请介绍「企业微信」能帮我完成哪些任务。\n请保留 a & b?#。", ""])("consumes connector draft %j once with an explicit empty manual Skill selection and no send", (draft) => {
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const searchParams = new URLSearchParams({
+      newChat: "1783680000000",
+      composerDraft: draft,
+      lang: "zh",
+    });
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+        effect();
+      });
+    useSearchParams.mockReturnValue([searchParams]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    expect(startNewConversation).toHaveBeenCalledTimes(1);
+    expect(startNewConversation).toHaveBeenCalledWith({
+      agentKey: "demo-agent",
+      preserveWorkerContext: true,
+      focusComposerOnComplete: true,
+      composerDraft: draft,
+      selectedSkills: [],
+    });
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "agent:send-message" }),
+    );
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/agent/demo-agent?lang=zh&newChat=1783680000000",
+      { replace: true },
+    );
+    expect(searchParams.get("composerDraft")).toBe(draft);
+
+    useEffectSpy.mockRestore();
+  });
+
+  it("keeps user edits after the same one-shot draft effect runs again", () => {
+    const effects: React.EffectCallback[] = [];
+    const useEffectSpy = jest.spyOn(React, "useEffect").mockImplementation((effect) => {
+      effects.push(effect);
+    });
+    let visibleDraft = "Previous draft";
+    let visibleSkills = [{ key: "skill-creator", label: "Skill Creator" }];
+    startNewConversation.mockImplementation((detail) => {
+      visibleDraft = detail.composerDraft;
+      visibleSkills = detail.selectedSkills;
+    });
+    useSearchParams.mockReturnValue([new URLSearchParams({ newChat: "1783680000000", composerDraft: "Use the connector" })]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection }],
+      workerSelectionKey: "agent:demo-agent",
+    });
+    try {
+      renderToStaticMarkup(React.createElement(AgentChatShell));
+      effects.forEach((effect) => effect());
+      expect(visibleDraft).toBe("Use the connector");
+      expect(visibleSkills).toEqual([]);
+
+      visibleDraft = "User's edited question";
+      visibleSkills = [{ key: "chosen-by-user", label: "Chosen by user" }];
+      effects.forEach((effect) => effect());
+      expect(startNewConversation).toHaveBeenCalledTimes(1);
+      expect(visibleDraft).toBe("User's edited question");
+      expect(visibleSkills).toEqual([{ key: "chosen-by-user", label: "Chosen by user" }]);
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+    } finally {
+      useEffectSpy.mockRestore();
+      startNewConversation.mockReset();
+    }
+  });
+
+  it.each(["", "true", "17836800000000"])("does not consume an explicit empty draft with invalid newChat=%j", (newChat) => {
+    const useEffectSpy = jest.spyOn(React, "useEffect").mockImplementation((effect) => { effect(); });
+    useSearchParams.mockReturnValue([new URLSearchParams({ newChat, composerDraft: "" })]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection }],
+      workerSelectionKey: "agent:demo-agent",
+    });
+    try {
+      renderToStaticMarkup(React.createElement(AgentChatShell));
+      expect(startNewConversation).not.toHaveBeenCalled();
+      expect(navigateMock).not.toHaveBeenCalled();
+      expect(globalWithDom.window?.dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: "agent:send-message" }));
+    } finally {
+      useEffectSpy.mockRestore();
+    }
   });
 
   it("replaces an explicit new chat route only after a stable chat id is reported", () => {
@@ -969,7 +1106,7 @@ describe("AgentChatShell", () => {
         effect();
       });
     useSearchParams.mockReturnValue([
-      new URLSearchParams("chatId=chat-123&newChat=1783680000000"),
+      new URLSearchParams("chatId=chat-123&newChat=1783680000000&composerDraft="),
     ]);
     useAppState.mockReturnValue({
       ...createInitialState(),
@@ -982,6 +1119,7 @@ describe("AgentChatShell", () => {
 
     const html = renderToStaticMarkup(React.createElement(AgentChatShell));
 
+    expect(startNewConversation).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalledWith({
       type: "SET_WORKER_SELECTION_KEY",
       workerKey: "agent:demo-agent",

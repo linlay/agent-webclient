@@ -45,6 +45,12 @@
   gap: 10px;
 }
 
+.credentialField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .authActions a:focus-visible {
   outline: 2px solid var(--accent-electric);
   outline-offset: 2px;

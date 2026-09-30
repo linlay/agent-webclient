@@ -2,11 +2,20 @@
 import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
 import { getAgentConnectors, setAgentConnector } from "./connectors";
+import { prepareConnector, saveConnectorCredentials } from "./connectors";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
   requestJson: jest.fn(),
 }));
 beforeEach(() => jest.clearAllMocks());
+
+it("sends private credentials and explicit preparation through uncached HTTP without mutation replay", async () => {
+  const controller = new AbortController();
+  await saveConnectorCredentials("installed-id", { API_KEY: "synthetic-test-token" }, controller.signal);
+  await prepareConnector("installed-id", controller.signal);
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/connectors/auth?id=installed-id", { method: "PUT", body: JSON.stringify({ credentials: { API_KEY: "synthetic-test-token" } }), cache: "no-store", signal: controller.signal, retryUnauthorized: false });
+  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/prepare?id=installed-id", { method: "POST", cache: "no-store", signal: controller.signal, retryUnauthorized: false });
+});
 
 it("reads configured Agent connectors without caching and sends only the single switch edit", async () => {
   await getAgentConnectors("zenmi & other");

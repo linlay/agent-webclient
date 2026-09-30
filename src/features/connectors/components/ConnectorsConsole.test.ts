@@ -15,7 +15,7 @@ jest.mock("@/shared/data/api/routedClient", () => ({
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 const blocker = { state: "unblocked" };
-jest.mock("react-router-dom", () => ({ useBlocker: () => blocker }));
+jest.mock("react-router-dom", () => ({ useBlocker: () => blocker, useNavigate: () => jest.fn() }));
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
 jest.mock("./ConnectorImportModal", () => ({ ConnectorImportModal: () => null }));
 jest.mock("@/shared/ui/CodeEditor", () => ({
