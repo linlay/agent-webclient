@@ -30,7 +30,9 @@ Desktop Main Chat 的普通 `←/→` 工作区快捷键由 WebClient 先做 DOM
 
 Main Chat 从已有 Chat 发起“新对话重问”时，WebClient 通过一次性 `desktop:agent-webclient:new-chat:prepare` 请求提交 `requestId + agentKey + sourceChatId + newChat`。只有匹配的 `desktop:agent-webclient:new-chat:prepared` 成功响应才允许重置和发送。响应表示 Desktop 已把外层 route 与 guest URL 切换到同一 `newChat`，并以无 `ownerChatId` 的 active Main Chat Surface 完成登记；它不表示 query 或 Chat 已创建。失败、超时、来源变化或重复事务不得降级为直接发送。
 
-Desktop 原生 Market 的创建技能入口复用普通新 Chat 路由，并通过一次性 URL 参数传入本地化 `composerDraft` 与 `composerSkill=skill-creator`。参数名声明能力类型，参数值声明具体选择；WebClient 校验后填入草稿并选中对应 Skill，随后立即从 URL 删除。非法 Skill key、缺少任一参数、已有 `chatId` 或无有效 `newChat` 时忽略。宿主不能借这些参数自动提交消息或绕过 Composer 确认。
+Desktop 原生 Market 的创建技能和连接器聊天入口复用普通新 Chat 路由，通过一次性 URL 参数传入本地化 `composerDraft`，并可选提供 `composerSkill`。未提供 `composerDraft` 是普通 New Chat，保留共享草稿与手动技能。明确提供 `composerDraft` 则替换空 Chat 槽位：连接器示例预填可编辑文本并清除旧手动技能，无示例的去对话入口以 `composerDraft=` 同时清空草稿与手动技能；历史 Chat 缓存和合法宿主强制技能保留。创建技能仍使用 `composerSkill=skill-creator`，管理创建或修改继续使用既有管理技能，并替换原手动选择。
+
+WebClient 仅在无 `chatId`、有有效 `newChat` 且预填参数唯一时消费；草稿不超过 2048 字符，仅空白文本无效，明确空字符串只在未提供技能时允许。显式提供 `composerSkill` 时必须是合法且非空的 Skill key，并具备非空草稿，否则忽略整份预填。消费后立即从 URL 删除 `composerDraft` 和 `composerSkill`，同一新对话入口只消费一次，后续渲染不覆盖用户编辑。宿主不能借这些参数自动提交消息或绕过 Composer 确认，执行仍等待用户发送。
 
 Desktop 原生 History dialog 不加载 WebClient、不登记 guest surface，也不使用 WebClient 宿主消息。`/history` 只保留 Standalone 基础筛选和页面 Router 导航；Desktop 通过自身受限 Assistant bridge 读取和操作 Chat，因此 WebClient surface 不能借 History 入口取得外层导航权或 live Run lease。
 

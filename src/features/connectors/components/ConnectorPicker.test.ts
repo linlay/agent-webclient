@@ -11,6 +11,7 @@ jest.mock("@/shared/data", () => ({
   fetchConnectorIcon: jest.fn(),
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
+jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }));
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
@@ -207,6 +208,24 @@ it("Desktop no_auth mounts and unmounts without checking or connecting",async()=
  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
  expect(startConnectorAuth).not.toHaveBeenCalled();
  expect(container.textContent).not.toContain("connectors.auth.checking");
+});
+
+it.each(["unauthorized", "setup_required"])("shows a managed CLI %s action from actual state rather than mode=null", async status => {
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("login", "Managed CLI", null)] } });
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(session(status) as any);
+  await mount({ initialIds: ["login"] });
+  expect(container.querySelector('[aria-label="composer.addMenu.connectors.connectNamed"]')).not.toBeNull();
+  expect(container.textContent).toContain("connectors.configuration.open");
+  expect(container.querySelector('[role="switch"]')?.getAttribute("aria-checked")).toBe("true");
+});
+
+it("shows token private configuration and identity guidance independently from mounting", async () => {
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("login", "Token", "token"), connector("identity", "Identity", "oneid-token")] } });
+  jest.mocked(getConnectorAuthStatus).mockImplementation(async id => ({ ...session("unauthorized"), data: { ...session("unauthorized").data, connectorId: id } } as any));
+  await mount({ initialIds: ["login", "identity"] });
+  expect(container.textContent).toContain("connectors.credentials.configure"); expect(container.textContent).toContain("connectors.auth.oneid");
+  expect(container.querySelector('[aria-label="composer.addMenu.connectors.connectNamed"]')).toBeNull();
+  expect(startConnectorAuth).not.toHaveBeenCalled();
 });
 
 

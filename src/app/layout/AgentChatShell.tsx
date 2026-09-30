@@ -43,22 +43,26 @@ export function parseNewChatTimestamp(rawValue: unknown): string {
 
 export type ComposerPrefillPayload = {
   draft: string;
-  skillKey: string;
+  skillKey?: string;
 };
 
 export function parseComposerPrefillPayload(
   searchParams: URLSearchParams,
 ): ComposerPrefillPayload | null {
-  const draft = String(searchParams.get("composerDraft") || "").trim();
+  if (searchParams.getAll("composerDraft").length !== 1) return null;
+  const rawDraft = String(searchParams.get("composerDraft") || "");
+  const draft = rawDraft.trim();
   const skillKey = String(searchParams.get("composerSkill") || "").trim();
   if (
-    !draft ||
+    (rawDraft !== "" && !draft) ||
     draft.length > 2048 ||
-    !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/u.test(skillKey)
+    searchParams.getAll("composerSkill").length > 1 ||
+    (searchParams.has("composerSkill") &&
+      (!draft || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/u.test(skillKey)))
   ) {
     return null;
   }
-  return { draft, skillKey };
+  return { draft, ...(skillKey ? { skillKey } : {}) };
 }
 
 /**
@@ -805,10 +809,12 @@ const AgentChatShellContent: React.FC = () => {
       ...(composerPrefillPayload
         ? {
             composerDraft: composerPrefillPayload.draft,
-            selectedSkills: [{
-              key: composerPrefillPayload.skillKey,
-              label: composerPrefillPayload.skillKey,
-            }],
+            selectedSkills: composerPrefillPayload.skillKey
+              ? [{
+                  key: composerPrefillPayload.skillKey,
+                  label: composerPrefillPayload.skillKey,
+                }]
+              : [],
           }
         : {}),
     };

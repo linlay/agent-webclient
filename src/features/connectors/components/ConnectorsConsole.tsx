@@ -1,6 +1,7 @@
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { message, Spin, Dropdown, Flex, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
@@ -8,11 +9,13 @@ import type { ConnectorType } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useCatalogOrder } from "@/features/catalog-order/hooks/useCatalogOrder";
 import { sortPinnedItems } from "@/features/catalog-order/lib/pinnedOrder";
 import { UiTag } from "@/shared/ui/UiTag";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { useConnectorsRuntime } from "@/features/connectors/hooks/useConnectorsRuntime";
+import { useConnectorChat } from "../hooks/useConnectorChat";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { useConnectorImport } from "@/features/connectors/hooks/useConnectorImport";
 import {
@@ -45,7 +48,8 @@ export function ConnectorsConsole({
   onRouteIdChange,
 }: ConnectorsConsoleProps) {
   const { t } = useI18n();
-  const assistant = useResourceAssistant();
+  const navigate = useNavigate();
+  const assistant = useResourceAssistant({ navigate });
   const editorRegion = useRef<HTMLDivElement>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
   const appContext = useOptionalAppContext();
@@ -138,6 +142,16 @@ export function ConnectorsConsole({
       componentFiles.find((file) => file === runtime.file) || componentFiles[0];
     if (next && runtime.selectFile(next)) setSkillsConnectorId(null);
   };
+  const connectorChat = useConnectorChat({
+    item: selected || null,
+    draft: runtime.draft,
+    dirty: runtime.dirty,
+    confirmLeave: () => window.confirm(t("connectors.confirm.discard")),
+    confirmNavigation: runtime.confirmNavigation,
+    onConfigurationRequired: () => {
+      if (!runtime.dirty && runtime.selectFile("connector.json")) setSkillsConnectorId(null);
+    },
+  });
   const tools = selected ? toolsForConnector(runtime.tools, selected) : [];
   const unassigned = unassignedConnectorTools(runtime.tools, runtime.items);
 
@@ -151,9 +165,7 @@ export function ConnectorsConsole({
     const authLabel = item.auth_mode === "no_auth" ? t("connectors.auth.status.no_auth") :
       item.auth_mode === "none"
         ? t("connectors.auth.status.not_required")
-        : item.auth_mode === "token"
-          ? t("connectors.auth.configuredCredentials")
-          : auth?.error
+        : auth?.error
             ? knownStatus
               ? t("connectors.auth.checkFailedWithStatus", {
                   status: knownStatus,
@@ -197,6 +209,7 @@ export function ConnectorsConsole({
         if (
           runtime.selected?.id === item.id &&
           runtime.dirty &&
+          isDesktopAppMode() &&
           !window.confirm(t("connectors.confirm.discard"))
         )
           return;
@@ -390,7 +403,7 @@ export function ConnectorsConsole({
               onManual={importer.show}
               onConversation={() => {
                 if (
-                  !runtime.dirty ||
+                  !runtime.dirty || !isDesktopAppMode() ||
                   window.confirm(t("connectors.confirm.discard"))
                 )
                   void assistant.open({ kind: "connector" });
@@ -513,6 +526,11 @@ export function ConnectorsConsole({
                   </span>
                 </button>
                 <div className={styles.tabActions}>
+                  <UiButton size="sm" variant="primary" loading={connectorChat.opening} disabled={busy || runtime.detailLoading || connectorChat.opening}
+                    onClick={() => void connectorChat.open()}>
+                    <MaterialIcon name="question_answer" />{t("connectors.chat.open")}
+                  </UiButton>
+                  {connectorChat.opening && <UiButton size="sm" variant="ghost" onClick={connectorChat.cancel}>{t("connectors.chat.cancel")}</UiButton>}
                   {runtime.dirty && (
                     <span className={styles.hint}>
                       {t("connectors.config.dirty")}
@@ -549,6 +567,8 @@ export function ConnectorsConsole({
                   </Tooltip>
                 </div>
               </nav>
+              {connectorChat.phase && <p className={styles.notice} role="status">{t(`connectors.chat.phase.${connectorChat.phase}`)}</p>}
+              {connectorChat.error && <p className={styles.error} role="alert">{t(connectorChat.error)}</p>}
               {view === "skills" ? (
                 <ConnectorSkills key={selected.id} item={selected} />
               ) : (
@@ -559,6 +579,7 @@ export function ConnectorsConsole({
                       item={selected}
                       disabled={busy}
                       onConfigure={selectConfig}
+                      onCredentialsChange={onCredentialsChange}
                       auth={selectedAuth}
                     />
                   )}

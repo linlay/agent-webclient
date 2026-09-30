@@ -9,7 +9,7 @@ export function supportsConnectorLogin(mode: ConnectorSummary["auth_mode"]): boo
 }
 
 export function supportsConnectorAuthCheck(mode: ConnectorSummary["auth_mode"]): boolean {
-  return supportsConnectorLogin(mode) || mode === "oneid-token";
+  return supportsConnectorLogin(mode) || mode === "oneid-token" || mode === "token";
 }
 
 export function isConnectorAuthActive(session: ConnectorAuthSession | null): boolean {
@@ -37,11 +37,12 @@ export function safeConnectorAuthorizationUrl(value?: string): string | null {
   } catch { return null; }
 }
 
-const statuses: ConnectorAuthStatus[] = ["no_auth", "configured","not_required", "delegated", "setup_required", "unauthorized", "preparing", "pending", "authorized", "failed", "canceled"];
+const statuses: ConnectorAuthStatus[] = ["no_auth", "configured", "pending_verification", "not_required", "delegated", "setup_required", "unauthorized", "preparing", "pending", "authorized", "failed", "canceled"];
 
 export function readConnectorAuthSession(value: ConnectorAuthSession, id: string): ConnectorAuthSession {
   if (!value || value.connectorId !== id || !statuses.includes(value.status) || typeof value.sessionId !== "string" || typeof value.expiresAt !== "string"
     || (value.authBrowser !== undefined && value.authBrowser !== "system" && value.authBrowser !== "embedded")
+    || (value.pendingVerification !== undefined && typeof value.pendingVerification !== "boolean")
     || (value.authorizationUrl !== undefined && typeof value.authorizationUrl !== "string") || (value.message !== undefined && typeof value.message !== "string")) {
     throw new Error("connectors.auth.error.response");
   }

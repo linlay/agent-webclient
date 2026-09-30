@@ -86,8 +86,8 @@ export function normalizeStartNewConversationDetail(
   agentKey: string;
   preserveWorkerContext: boolean;
   focusComposerOnComplete: boolean;
-  composerDraft: string;
-  selectedSkills: ComposerRequiredSkill[];
+  composerDraft?: string;
+  selectedSkills?: ComposerRequiredSkill[];
 } | null {
   if (!isObjectRecord(detail)) return null;
   if (!Object.prototype.hasOwnProperty.call(detail, "preserveWorkerContext")) {
@@ -104,8 +104,12 @@ export function normalizeStartNewConversationDetail(
     agentKey,
     preserveWorkerContext: detail.preserveWorkerContext === true,
     focusComposerOnComplete: detail.focusComposerOnComplete === true,
-    composerDraft: String(detail.composerDraft || "").trim(),
-    selectedSkills: normalizeRequiredSkills(detail.selectedSkills),
+    ...(Object.prototype.hasOwnProperty.call(detail, "composerDraft")
+      ? { composerDraft: String(detail.composerDraft || "").trim() }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(detail, "selectedSkills")
+      ? { selectedSkills: normalizeRequiredSkills(detail.selectedSkills) }
+      : {}),
   };
 }
 
@@ -476,10 +480,10 @@ export function useConversationActions() {
         preserveWorkerContext: detail.preserveWorkerContext,
         focusComposerOnComplete: detail.focusComposerOnComplete,
       });
-      if (detail.composerDraft) {
+      if (detail.composerDraft !== undefined) {
         dispatch({ type: "SET_COMPOSER_DRAFT", draft: detail.composerDraft });
       }
-      if (detail.selectedSkills.length > 0) {
+      if (detail.selectedSkills !== undefined) {
         dispatch({
           type: "SET_SELECTED_SKILLS",
           skills: detail.selectedSkills,

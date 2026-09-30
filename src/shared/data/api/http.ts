@@ -244,6 +244,7 @@ export async function requestJson<T = unknown>(
   options: RequestInit & {
     headers?: Record<string, string>;
     jsonContentType?: boolean;
+    retryUnauthorized?: boolean;
   } = {},
 ): Promise<ApiResponse<T>> {
   const response = await requestWithAuth(path, options);

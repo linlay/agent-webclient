@@ -10,7 +10,7 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 - 展示附件、语音、模型、访问级别和 planning mode 控件入口。
 
 ## 核心流程
-用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。历史 Chat 的文本草稿按 `chatId` 保存和恢复；未获得稳定 `chatId` 的 New Chat 统一使用空 key，因此不同 Agent 的 New Chat 共享同一份运行期草稿。普通 Chat 或 Agent 切换只切换当前草稿，不清空已保存内容；用户发送时清空该草稿，宿主提供显式一次性预填时则覆盖它。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的“必须使用”标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
+用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。历史 Chat 的文本草稿和手动技能选择按 `chatId` 保存和恢复；未获得稳定 `chatId` 的 New Chat 统一使用空 key，因此不同 Agent 的 New Chat 共享同一份运行期草稿与手动技能选择。普通 Chat、New Chat 或 Agent 切换只切换当前槽位，不清空已保存内容。用户发送时清空当前草稿和手动技能；宿主提供显式一次性预填时替换空 Chat 槽位的草稿与手动技能，纯文本预填清除旧手动技能，明确空草稿则同时清空两者；显式技能预填替换为指定技能。未提供预填字段的普通新聊天保留共享草稿与选择，历史 Chat 缓存和合法宿主强制技能不受影响。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的“必须使用”标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
 
 跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条批注`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，运行中发送时可独立或随文字一起进入 steer 队列；入队后由队列持有引用，取消或拒绝时恢复，Run 结束后，已有主 query 历史的纯选区排队项也可转 query 并继续携带引用；缺少历史确认时恢复输入区等待正文。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，仅最后一次主 Run 明确异常结束或取消、且服务端 canContinue 为 true 时允许正文和引用都为空，表示继续。空 query 保留空 message，仅模型输入补充 `Continue based on the current conversation context.`，时间线不生成空白用户气泡；空 steer 仍禁止；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
 

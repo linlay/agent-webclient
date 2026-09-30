@@ -191,7 +191,7 @@ export const zhCNMessages = {
   "connectors.auth.oneid":
     "此连接器复用 Desktop 登录身份。请在 Desktop 中登录或退出后，重新检查状态。",
   "connectors.auth.description.setup_required":
-    "登录前需要准备运行依赖。点击登录后，服务端会按连接器配置自动准备。",
+    "登录前需要准备运行依赖。点击登录后将先显式准备，准备就绪后再发起账号授权。",
   "connectors.auth.description.unauthorized":
     "登录后可使用需要账号权限的连接器能力。",
   "connectors.auth.description.preparing":
@@ -204,7 +204,7 @@ export const zhCNMessages = {
   "connectors.auth.description.expired":
     "本次登录已超时，请重新登录以获取新的授权链接。",
   "connectors.auth.token":
-    "此连接器使用凭据配置。请在配置页按连接器声明设置凭据。",
+    "此连接器使用私有凭据配置。点击“配置连接凭据”填写，连接器源码仅保留字段声明。",
   "connectors.auth.shared":
     "账号授权在当前部署中共享。离开此页不会取消登录或退出账号。",
   "connectors.auth.localCallback":
@@ -235,6 +235,7 @@ export const zhCNMessages = {
   "connectors.auth.retry": "重新登录",
   "connectors.auth.starting": "正在发起登录…",
   "connectors.auth.cancel": "取消登录",
+  "connectors.auth.cancelPreparation": "停止准备等待",
   "connectors.auth.logout": "退出登录",
   "connectors.auth.checkFailed": "检查失败",
   "connectors.auth.checkFailedHint": "暂时无法获取授权状态，请重新检查。",
@@ -275,6 +276,36 @@ export const zhCNMessages = {
   "connectors.value.builtin": "内置",
   "connectors.value.readOnly": "只读",
   "connectors.hint.readOnly": "此连接器由平台管理，配置只读，可查看和复制。",
+  "connectors.configuration.open": "打开连接器配置",
+  "connectors.configuration.openFailed": "无法打开连接器配置，请确认当前窗口支持此入口后重试。原页面已保留。",
+  "connectors.auth.confirmConnection": "确认连接",
+  "connectors.auth.status.pending_verification": "新配置待验证",
+  "connectors.auth.description.pending_verification": "新凭据仍在验证，请重新检查状态。",
+  "connectors.credentials.configure": "配置连接凭据",
+  "connectors.credentials.title": "连接 {name}",
+  "connectors.credentials.hint": "填写此连接器声明的连接凭据。凭据单独存入 Platform，不会写入连接器源码或聊天。",
+  "connectors.credentials.schemaInvalid": "此连接器缺少有效的凭据字段声明，请先完善连接器包中的 token_schema。不要将实际凭据写入 JSON 配置。",
+  "connectors.credentials.documentation": "查看配置说明",
+  "connectors.credentials.invalid": "请按声明填写必填字段，凭据须为单行且总长度不超过 64 KiB。",
+  "connectors.credentials.save": "保存并验证",
+  "connectors.credentials.pending": "新配置待验证，请重新检查。已有有效凭据会保留，仍可用于当前已就绪的连接。",
+  "connectors.credentials.checked": "已重新读取连接状态；如需修改，请重新填写全部凭据。",
+  "connectors.credentials.checkFailed": "无法确认连接状态，请重新检查。已有配置不会因检查失败被替换。",
+  "connectors.credentials.unknownResult": "无法确认本次保存结果。输入已清空，请先重新检查服务端状态，再决定是否重新填写。已有有效凭据会保留。",
+  "connectors.chat.open": "去对话",
+  "connectors.chat.cancel": "取消等待",
+  "connectors.chat.phase.preparing": "正在确认并准备连接器运行依赖…",
+  "connectors.chat.phase.mounting": "正在将连接器挂载到默认智能体，并等待运行配置生效…",
+  "connectors.chat.configurationRequired": "请先在概览中完成连接凭据配置或确认连接，再去对话。",
+  "connectors.chat.authorizationRequired": "此连接器尚未就绪，请在概览中完成账号授权或重新检查连接状态，再去对话。",
+  "connectors.chat.preparationFailed": "连接器运行依赖尚未准备完成，请检查连接器配置后重试。",
+  "connectors.chat.preparationTimeout": "运行依赖准备尚未完成，已停止等待。可稍后重新检查；离开页面不会自动取消服务端准备。",
+  "connectors.chat.reloadTimeout": "连接器已保存，但运行配置尚未生效。请等待当前任务结束后重新进入对话。",
+  "connectors.chat.invalidResponse": "连接器或智能体状态不匹配，请刷新目录后重试。",
+  "connectors.chat.draftChanged": "等待期间配置草稿发生了修改，已保留当前页面。请先保存或确认修改后再次进入对话。",
+  "connectors.chat.waitInterrupted": "已停止等待并保留当前页面，请重新检查服务端状态后重试。",
+  "connectors.chat.openFailed": "无法确认连接器的完整可用状态，已保留当前页面，请重新检查后重试。",
+  "connectors.chat.openTimeout": "确认连接器状态的请求超时，已保留当前页面。请重新检查；服务端正在进行的准备或挂载可能继续。",
   "connectors.auth.status.configured": "已配置",
   "connectors.auth.description.configured": "已配置",
   "connectors.type.native": "原生",

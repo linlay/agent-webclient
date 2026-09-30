@@ -1,13 +1,14 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
+import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, getConnectorConnection, prepareConnector, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ApiResponse, ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
 import { useConnectorAuth } from "./useConnectorAuth";
 
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
+  getConnectorConnection: jest.fn(), prepareConnector: jest.fn(),
 }));
 const onStatusChange = jest.fn();
 const onCredentialsChange = jest.fn();
@@ -204,12 +205,57 @@ it("does not start a new login if leaving during the expired-session cancellatio
   expect(startConnectorAuth).not.toHaveBeenCalled();
 });
 
-it.each(["none", "token"] as const)("does not request interactive authentication for %s", async mode => {
+it.each(["none"] as const)("does not request interactive authentication for %s", async mode => {
   await mount({ mode });
   await act(async () => { void current.start(); void current.refresh(); });
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(startConnectorAuth).not.toHaveBeenCalled();
   expect(jest.getTimerCount()).toBe(0);
+});
+
+it("reads token status without starting interactive login or periodic probing", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("configured"));
+  await mount({ mode: "token" });
+  await act(async () => { void current.start(); void current.refresh(); });
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(current.status).toBe("configured");
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+const preparationConnection = (status: "pending" | "preparing" | "ready" | "failed") => ({ code: 0, msg: "", data: {
+  connectorId: "demo", configured: false, configurationRequired: true, readiness: status === "ready" ? "configuration_required" : "preparing",
+  authentication: response("setup_required").data, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: null, authBrowser: "system", hasCli: true, hasMcp: false }, preparation: { connectorId: "demo", status },
+} });
+
+it("explicitly prepares setup_required CLI before starting login", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("setup_required"));
+  jest.mocked(getConnectorConnection).mockResolvedValueOnce(preparationConnection("pending") as any).mockResolvedValue(preparationConnection("ready") as any);
+  jest.mocked(prepareConnector).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", status: "ready" } });
+  await mount({ mode: null }); await act(async () => current.start());
+  expect(prepareConnector).toHaveBeenCalledTimes(1); expect(startConnectorAuth).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(prepareConnector).mock.invocationCallOrder[0]).toBeLessThan(jest.mocked(startConnectorAuth).mock.invocationCallOrder[0]);
+});
+
+it("keeps failed preparation separate from a login attempt", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("setup_required"));
+  jest.mocked(getConnectorConnection).mockResolvedValue(preparationConnection("pending") as any);
+  jest.mocked(prepareConnector).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", status: "failed" } });
+  await mount({ mode: null }); await act(async () => current.start());
+  expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(current.error?.message).toBe("connectors.chat.preparationFailed"); expect(current.preparingDependency).toBe(false);
+});
+
+it("stops its preparation observer and ignores late completion without canceling a shared job", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("setup_required"));
+  jest.mocked(getConnectorConnection).mockResolvedValueOnce(preparationConnection("pending") as any).mockResolvedValue(preparationConnection("preparing") as any);
+  jest.mocked(prepareConnector).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", status: "preparing" } });
+  await mount({ mode: null }); let result!: Promise<void>;
+  await act(async () => { result = current.start(); });
+  expect(current.preparingDependency).toBe(true); expect(startConnectorAuth).not.toHaveBeenCalled();
+  await act(async () => { await current.cancel(); await result; });
+  expect(cancelConnectorAuth).not.toHaveBeenCalled(); expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(current.preparingDependency).toBe(false); expect(current.operation).toBeNull();
 });
 
 it("finishes delegated authentication checks without starting or canceling connector-managed login", async () => {

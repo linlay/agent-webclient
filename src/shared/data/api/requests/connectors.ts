@@ -6,6 +6,7 @@ import type {
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
   ConnectorSkillListResponse, ConnectorSkillDetail,
   ConnectorAuthSession, ConnectorAuthActionResult, ConnectorConnection,
+  ConnectorPreparation,
   AgentConnectorsResponse, SetAgentConnectorRequest,
 } from "@/shared/data/api/dto/connectors";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
@@ -16,14 +17,14 @@ export function getAdminConnectors(): Promise<ApiResponse<ConnectorListResponse>
   return requestJson<ConnectorListResponse>(dataEndpoints.adminConnectors.path);
 }
 
-export function getAgentConnectors(agentKey: string): Promise<ApiResponse<AgentConnectorsResponse>> {
+export function getAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
   const endpoint = dataEndpoints.adminAgentConnectors;
-  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store" });
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
 }
 
-export function setAgentConnector(params: SetAgentConnectorRequest): Promise<ApiResponse<AgentConnectorsResponse>> {
+export function setAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
   const endpoint = dataEndpoints.adminAgentConnectorUpdate;
-  return requestJson(endpoint.path, { method: endpoint.method, body: JSON.stringify(params), cache: "no-store" });
+  return requestJson(endpoint.path, { method: endpoint.method, body: JSON.stringify(params), cache: "no-store", ...(signal ? { signal } : {}) });
 }
 
 export function getConnectorSkills(id: string): Promise<ApiResponse<ConnectorSkillListResponse>> {
@@ -108,4 +109,28 @@ export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<
 export function getConnectorConnection(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorConnection>> {
  const endpoint = dataEndpoints.connectorConnection;
  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {method: endpoint.method, cache: "no-store", signal});
+}
+
+export function prepareConnector(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorPreparation>> {
+  const endpoint = dataEndpoints.adminConnectorPrepare;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), { method: endpoint.method, cache: "no-store", signal, retryUnauthorized: false });
+}
+
+export function connectConnector(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthSession>> {
+  const endpoint = dataEndpoints.connectorConnect;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), { method: endpoint.method, cache: "no-store", signal, retryUnauthorized: false });
+}
+
+export function checkConnectorConnection(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthSession>> {
+  const endpoint = dataEndpoints.connectorCheck;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), { method: endpoint.method, cache: "no-store", signal, retryUnauthorized: false });
+}
+
+/** Direct HTTP keeps private values out of data-request debug frames and query caches.
+ * A lost write result must be checked explicitly, never replayed automatically. */
+export function saveConnectorCredentials(id: string, credentials: Record<string, string>, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthSession>> {
+  const endpoint = dataEndpoints.adminConnectorCredentials;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
+    method: endpoint.method, body: JSON.stringify({ credentials }), cache: "no-store", signal, retryUnauthorized: false,
+  });
 }

@@ -43,6 +43,24 @@ export interface ConnectorListResponse {
   connectors: ConnectorSummary[];
 }
 
+/** Public manifest metadata; credential values are never returned by Platform. */
+export interface ConnectorTokenField {
+  key: string;
+  label: string;
+  type: "text" | "password";
+  required: boolean;
+  placeholder?: string;
+  description?: string;
+  defaultValue?: string;
+}
+export interface ConnectorTokenSchema {
+  fields: ConnectorTokenField[];
+  title?: string;
+  description?: string;
+  docUrl?: string;
+  docLabel?: string;
+}
+
 export interface ConnectorSkillSummary {
   key?: string;
   displayName?: string;
@@ -102,7 +120,7 @@ export interface ImportConnectorArchiveResponse {
   authMode: ConnectorSummary["auth_mode"];
 }
 
-export type ConnectorAuthStatus = "no_auth" | "configured" | "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
+export type ConnectorAuthStatus = "no_auth" | "configured" | "pending_verification" | "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
 
 export interface ConnectorAuthSession {
   connectorId: string;
@@ -111,6 +129,8 @@ export interface ConnectorAuthSession {
   authorizationUrl?: string;
   authBrowser?: "system" | "embedded";
   message?: string;
+  /** Candidate credentials are being checked; existing active credentials may remain usable. */
+  pendingVerification?: boolean;
   expiresAt: string;
 }
 
@@ -158,5 +178,12 @@ export interface ConnectorConnection {
     hasCli: boolean;
     hasMcp: boolean;
   };
-  preparation?: { connectorId: string; status: string; message?: string };
+  preparation?: ConnectorPreparation;
+}
+
+export interface ConnectorPreparation {
+  connectorId: string;
+  status: "pending" | "preparing" | "ready" | "failed" | "canceled";
+  stage?: string;
+  message?: string;
 }
