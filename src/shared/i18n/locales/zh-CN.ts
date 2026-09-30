@@ -2017,7 +2017,10 @@ export const zhCNMessages = {
   "platformError.category.request": "请求无效，服务无法处理当前请求。",
   "platformError.category.system": "服务内部错误，请稍后重试。",
   "platformError.category.timeout": "操作超时，请稍后重试。",
-  "platformError.code.active_stream_exists": "上一条运行的连接尚未释放，本次请求未能开始。请稍后重试；如果持续出现，请重新打开对话。",
+  "platformError.activeStreamOwner": "通道：{lane}；占用运行：{run}；占用请求：{request}；来源：{source}。",
+  "platformError.streamReserving": "请求预留中（尚未取得 Run ID）",
+  "platformError.streamSourceUnknown": "未能关联，见技术详情",
+  "platformError.code.active_stream_exists": "上一条运行的连接尚未释放，本次请求未能开始。请查看占用信息和技术详情。",
   "platformError.code.active_run_conflict": "当前对话已有运行正在进行。",
   "platformError.code.editing_mode_unsupported":
     "当前 Agent 不支持知识库编辑，请重新选择 KBASE Agent",

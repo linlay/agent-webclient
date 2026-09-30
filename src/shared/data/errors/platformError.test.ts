@@ -235,3 +235,20 @@ describe("platformError", () => {
 		expect(display.error.message).toBe(frame.msg);
 	});
 });
+
+ it("shows the occupying stream and preserves diagnostics through Error wrapping", () => {
+  const diagnostics = { lane: "primary", activeStream: { runId: "run-old", requestId: "req-old", consumerId: "kanban:issue-1", state: "release_unconfirmed", lastDetachError: "detach timed out" } };
+  const frame = { frame: "error", type: "active_stream_exists", code: 409, data: { error: { code: "active_stream_exists", status: 409, retryable: false, diagnostics } } };
+  const initial = formatPlatformErrorForDisplay(frame);
+  const display = formatPlatformErrorForDisplay(Object.assign(new Error(initial.message), { platformError: initial.error }));
+  for (const value of ["primary", "run-old", "req-old", "kanban:issue-1"]) expect(display.message).toContain(value);
+  expect(display.message).not.toContain("稍后重试");
+  expect(display.technicalText).toContain("detach timed out");
+  expect(display.error.diagnostics).toEqual(diagnostics);
+ });
+ it("identifies a reservation without inventing a Run or consumer", () => {
+  const display = formatPlatformErrorForDisplay({ data: { error: { code: "active_stream_exists", diagnostics: { lane: "main", activeStream: { requestId: "pending-1", runId: "" } } } } });
+  expect(display.message).toContain("pending-1");
+  expect(display.message).toContain("尚未取得 Run ID");
+  expect(display.message).toContain("未能关联");
+ });

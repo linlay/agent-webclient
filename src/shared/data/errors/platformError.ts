@@ -275,10 +275,19 @@ export function formatPlatformErrorForDisplay(
     ) ||
     translateIfAvailable("platformError.generic") ||
     GENERIC_MESSAGE_ZH;
+  const activeStream = isObjectRecord(diagnostics?.activeStream) ? diagnostics.activeStream : null;
+  const occupancyHint = error.code === "active_stream_exists" && activeStream
+    ? t("platformError.activeStreamOwner", {
+        lane: readString(diagnostics?.lane) || readString(activeStream.lane) || "?",
+        run: readString(activeStream.runId) || t("platformError.streamReserving"),
+        request: readString(activeStream.requestId) || "?",
+        source: readString(activeStream.consumerId) || t("platformError.streamSourceUnknown"),
+      }) : "";
+  const describedMessage = occupancyHint ? `${baseMessage} ${occupancyHint}` : baseMessage;
   const message =
     retryHint && !includesRetryIntent(baseMessage)
-      ? `${baseMessage} ${retryHint}`
-      : baseMessage;
+      ? `${describedMessage} ${retryHint}`
+      : describedMessage;
 
   const attempt = readNumber(diagnostics?.attempt);
   const maxAttempts = readNumber(diagnostics?.maxAttempts);
