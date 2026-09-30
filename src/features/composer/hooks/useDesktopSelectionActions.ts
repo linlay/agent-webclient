@@ -9,6 +9,7 @@ import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
 import { useDesktopSelectionActionHandler } from "@/shared/data/desktop/desktopContextMenu";
+import { selectedTextAnchorRects } from "@/shared/data/desktop/selectedTextAnchors";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { useOptionalBTW } from "@/features/btw/components/BtwProvider";
@@ -44,7 +45,11 @@ export function useDesktopSelectionActions(input: {
     }
     if (action === "add-to-chat") {
       addMainFragment(fragment);
-      window.dispatchEvent(new CustomEvent("agent:focus-composer"));
+      // 当前页面有选区锚点时会打开批注，由批注框在挂载时接管焦点。
+      // 跨窗口传入、无法显示原文批注的引用仍聚焦主输入框。
+      if (!selectedTextAnchorRects(fragment.reference.id).length) {
+        window.dispatchEvent(new CustomEvent("agent:focus-composer"));
+      }
       return { ok: true } as const;
     }
 

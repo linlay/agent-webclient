@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Input, Popover, Tooltip } from "antd";
 import type { TooltipRef } from "antd/es/tooltip";
@@ -59,7 +59,6 @@ export function SelectionAnnotations({
   const [draftFor, setDraftFor] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
   const editor = useRef<HTMLDivElement>(null);
-  const input = useRef<TextAreaRef>(null);
   // 让定位请求也能立刻重算标记：它认领时就等于"这一刻画得出来"，不该再等下一次滚动。
   const scheduleRefresh = useRef<(settleMs?: number) => void>(() => undefined);
   // Popover 的 ref 用来手动触发重对齐。
@@ -158,9 +157,16 @@ export function SelectionAnnotations({
     }
     setActiveId(null);
   };
-  useEffect(() => {
-    if (openId && marker) input.current?.focus({ preventScroll: true });
-  }, [openId, Boolean(marker)]);
+  // Popover 内容可能晚于打开状态挂载；在输入框真正就绪时聚焦。
+  // antd 每次渲染都会更新 imperative ref，每次打开只聚焦一次。
+  const focusAnnotationInput = useMemo(() => {
+    let focused = false;
+    return (input: TextAreaRef | null) => {
+      if (!openId || !input || focused) return;
+      focused = true;
+      input.focus({ preventScroll: true });
+    };
+  }, [openId]);
   // Popover 只监听锚点祖先链上的滚动容器和 window；marker 挂在 body 下，
   // 消息列表却在 .messages-scroll 内部滚动，两者不相交，所以重对齐得自己驱动。
   useLayoutEffect(() => {
@@ -221,7 +227,7 @@ export function SelectionAnnotations({
         })}
       >
         <Input.TextArea
-          ref={input}
+          ref={focusAnnotationInput}
           rows={1}
           autoSize
           variant="borderless"
