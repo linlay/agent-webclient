@@ -19,5 +19,4 @@
 .menuLabel { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .applicationName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .defaultBadge { flex-shrink: 0; padding: 0 5px; border-radius: 4px; font-size: 10px; color: var(--ink-muted); background: var(--bg-input); line-height: 18px; }
-.hint { color: var(--ink-muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .error { color: var(--accent-danger); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }

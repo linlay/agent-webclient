@@ -17,7 +17,6 @@ interface OpenState {
   applications: WorkPanelLocalApplication[];
   queryError?: string;
   actionError?: string;
-  requestedApplication?: string;
 }
 
 const emptyState = (key: string): OpenState => ({ key, available: false, checking: false, busy: false, applications: [] });
@@ -73,12 +72,12 @@ export function useDesktopDocumentOpen(target: ViewerTarget, refreshKey = 0) {
     const application = active.applications.find((item) => item.id === applicationId);
     if (!enabled || !source || !active.available || pendingOpen.current || !application) return;
     pendingOpen.current = key;
-    setState((previous) => ({ ...previous, busy: true, actionError: undefined, requestedApplication: undefined }));
+    setState((previous) => ({ ...previous, busy: true, actionError: undefined }));
     try {
       const result = await openDesktopDocumentInLocalApp(source, applicationId);
       if (!live.current || currentKey.current !== key) return;
       setState((previous) => result.ok
-        ? { ...previous, busy: false, requestedApplication: result.status === "launch-requested" ? application.name : undefined }
+        ? { ...previous, busy: false }
         : { ...previous, busy: false, actionError: t(desktopDocumentOpenErrorKey(result.error, "open")) });
     } catch (error) {
       if (live.current && currentKey.current === key) setState((previous) => ({ ...previous, busy: false,

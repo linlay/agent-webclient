@@ -50,7 +50,7 @@ describe("Desktop document application actions", () => {
     expect(button).toBeDefined(); await act(async () => button!.click());
   }
 
-  it("shows the actual default application and its icon, then reports only a launch request", async () => {
+  it("shows the actual default application and keeps a successful launch silent", async () => {
     await render();
     expect(container.textContent).toContain("用 Keynote 打开");
     expect(container.querySelector("img")?.getAttribute("src")).toBe(keynote.iconDataUrl);
@@ -59,7 +59,8 @@ describe("Desktop document application actions", () => {
     expect(container.querySelector('button[aria-label="选择应用打开"]')).not.toBeNull();
     await click("用 Keynote 打开");
     expect(openDesktopDocumentInLocalApp).toHaveBeenCalledWith({ kind: "workspace-file", agentKey: "coder", path: "报告.pptx" }, keynote.id);
-    expect(container.querySelector('[role="status"]')?.textContent).toBe("已请求在 Keynote 中打开。");
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.textContent).not.toContain("已请求");
   });
   it("requires an explicit selection when several applications have no default", async () => {
     jest.mocked(getDesktopDocumentOpenOptions).mockResolvedValue(options([{ ...keynote, isDefault: false }, powerpoint]));

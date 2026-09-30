@@ -67,8 +67,5 @@ export function DesktopDocumentOpenActions({ target, refreshKey = 0, layout = "c
     {local.actionError ? <span className={styles.error} role="alert">{local.actionError}</span> : null}
     {!local.applications.length || local.queryError || local.actionError ?
       <Button size={size} type="link" disabled={disabled} onClick={() => void local.refresh()}>{t("contentViewer.localCopy.retry")}</Button> : null}
-    {local.requestedApplication ? <span className={styles.hint} role="status">
-      {t("contentViewer.localCopy.requested", { name: local.requestedApplication })}
-    </span> : null}
   </div>;
 }
