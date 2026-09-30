@@ -181,7 +181,7 @@ const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: <BaseShell />,
+      element: <WebClientRenderErrorBoundary><BaseShell /></WebClientRenderErrorBoundary>,
       errorElement: <WebClientRouteErrorPage />,
       children: [
         {

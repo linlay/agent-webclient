@@ -48,3 +48,6 @@ Thumbs.db
 
 # Isolated appearance preview build and verification output
 /build/appearance/
+
+# Private production source maps, grouped by diagnostic build ID
+/diagnostics/

@@ -219,6 +219,7 @@ module.exports = (env, argv) => {
       ],
     },
     plugins: [
+      ...require('./scripts/webpack-diagnostics.cjs')(__dirname, isProd),
       new MonacoWebpackPlugin({
         languages: [
           'markdown', 'json', 'yaml', 'javascript', 'typescript',

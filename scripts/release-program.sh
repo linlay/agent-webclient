@@ -48,7 +48,7 @@ cleanup_release_temps() {
 prepare_build_root() {
   trap cleanup_release_temps EXIT
   echo "[release] preparing cached frontend workspace: $BUILD_ROOT"
-  node "$BUILD_WORKSPACE_PREPARER" --source "$REPO_ROOT" --build "$BUILD_ROOT"
+  node "$BUILD_WORKSPACE_PREPARER" --source "$REPO_ROOT" --build "$BUILD_ROOT" --version "$VERSION"
 }
 
 build_frontend_dist() {

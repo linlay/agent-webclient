@@ -107,7 +107,7 @@ $BuildRoot = Join-Path $BuildCacheRoot "build"
 try {
     New-Item -ItemType Directory -Path $Temporary -Force | Out-Null
     Write-Host "[release] preparing cached frontend workspace: $BuildRoot"
-    & node $BuildWorkspacePreparer --source $RepoRoot --build $BuildRoot
+    & node $BuildWorkspacePreparer --source $RepoRoot --build $BuildRoot --version $Version
     if ($LASTEXITCODE -ne 0) { throw "frontend build cache preparation failed" }
     Push-Location $BuildRoot
     try {

@@ -112,11 +112,13 @@ function installDependencies(buildRoot, hasLockfile) {
   if (result.status !== 0) process.exit(result.status || 1);
 }
 
-function prepareWorkspace(sourceRoot, buildRoot) {
+function prepareWorkspace(sourceRoot, buildRoot, version) {
   assertSafeRoots(sourceRoot, buildRoot);
   for (const relativePath of [
     'package.json',
     'webpack.config.js',
+    'VERSION',
+    'scripts/webpack-diagnostics.cjs',
     'tsconfig.json',
     'postcss.config.js',
     '.env.example',
@@ -130,6 +132,8 @@ function prepareWorkspace(sourceRoot, buildRoot) {
   for (const relativePath of [
     'package.json',
     'webpack.config.js',
+    'VERSION',
+    'scripts/webpack-diagnostics.cjs',
     'tsconfig.json',
     'postcss.config.js',
     '.env.example',
@@ -138,6 +142,9 @@ function prepareWorkspace(sourceRoot, buildRoot) {
   ]) {
     copyFile(sourceRoot, buildRoot, relativePath);
   }
+  if (version) fs.writeFileSync(path.join(buildRoot, 'VERSION'), `${version}\n`);
+  const revision = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: sourceRoot, encoding: 'utf8' });
+  fs.writeFileSync(path.join(buildRoot, '.webclient-build-source.json'), JSON.stringify({ commit: revision.status === 0 ? revision.stdout.trim() : 'unknown' }));
   const hasLockfile = copyFile(sourceRoot, buildRoot, 'package-lock.json', false);
   copyFile(sourceRoot, buildRoot, '.npmrc', false);
   if (!copyFile(sourceRoot, buildRoot, '.env', false)) {
@@ -165,4 +172,4 @@ function prepareWorkspace(sourceRoot, buildRoot) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-prepareWorkspace(path.resolve(args.source), path.resolve(args.build));
+prepareWorkspace(path.resolve(args.source), path.resolve(args.build), args.version);

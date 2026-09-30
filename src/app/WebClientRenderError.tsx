@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { copyText } from "@/shared/utils/copy";
+import { createRenderDiagnosticReport } from "@/shared/utils/renderDiagnostics";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { useI18n } from "@/shared/i18n";
 
@@ -62,6 +64,22 @@ export const WebClientRenderErrorFallback: React.FC<{
 }> = ({ componentStack = "", error, onReload, onRetry }) => {
   const { t } = useI18n();
   const details = resolveWebClientRenderErrorDetails(error, componentStack);
+  const report = useMemo(
+    () => JSON.stringify(createRenderDiagnosticReport(details.message, details.stack), null, 2),
+    [details.message, details.stack],
+  );
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "copyFailed">("idle");
+  useEffect(() => {
+    console.error("[webclient-render-error]", report);
+  }, [report]);
+  const copyDiagnostics = async () => {
+    try {
+      await copyText(report);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("copyFailed");
+    }
+  };
   const reload = onReload ?? (() => window.location.reload());
 
   return (
@@ -111,8 +129,7 @@ export const WebClientRenderErrorFallback: React.FC<{
         >
           {details.message}
         </pre>
-        {details.stack ? (
-          <details style={{ marginTop: 12 }}>
+        <details style={{ marginTop: 12 }}>
             <summary style={{ cursor: "pointer" }}>{t("renderError.details")}</summary>
             <pre
               style={{
@@ -124,11 +141,14 @@ export const WebClientRenderErrorFallback: React.FC<{
                 whiteSpace: "pre-wrap",
               }}
             >
-              {details.stack}
+              {report}
             </pre>
-          </details>
-        ) : null}
+        </details>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 20 }}>
+          <button type="button" onClick={copyDiagnostics}>
+            {t("renderError.copy")}
+          </button>
+          {copyStatus !== "idle" ? <span role="status">{t(`renderError.${copyStatus}`)}</span> : null}
           {onRetry ? (
             <button type="button" onClick={onRetry}>
               {t("renderError.retry")}
@@ -158,7 +178,6 @@ export class WebClientRenderErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: unknown, info: React.ErrorInfo): void {
-    console.error("[webclient-render-error]", error, info.componentStack);
     this.setState({ componentStack: info.componentStack || "" });
   }
 

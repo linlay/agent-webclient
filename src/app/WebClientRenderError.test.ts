@@ -19,7 +19,7 @@ describe("WebClient render error fallback", () => {
     expect(html).toContain('data-webclient-render-error="true"');
     expect(html).toContain('role="alert"');
     expect(html).toContain("broken timeline node");
-    expect((html.match(/<button/g) || [])).toHaveLength(2);
+    expect((html.match(/<button/g) || [])).toHaveLength(3);
   });
 
   it("keeps the normal tree unchanged before an error", () => {

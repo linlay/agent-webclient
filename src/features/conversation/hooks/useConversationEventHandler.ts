@@ -1,3 +1,4 @@
+import { recordRenderBreadcrumb } from "@/shared/utils/renderDiagnostics";
 import { useCallback, useEffect, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import { isAwaitingAnswerLike, isAwaitingAskLike } from "@/shared/contracts/agentEvents";
@@ -309,6 +310,7 @@ export function useConversationEventHandler(): {
       const state = stateRef.current;
       let cache = cacheRef.current;
       const type = toText(event.type);
+      recordRenderBreadcrumb("event", type);
       const steerConfirmation = readSteerConfirmation(event);
       if (steerConfirmation) {
         dispatch({ type: "CONFIRM_PENDING_STEER", ...steerConfirmation });

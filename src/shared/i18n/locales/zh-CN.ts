@@ -2233,6 +2233,9 @@ export const zhCNMessages = {
   "renderError.title": "WebClient 页面渲染失败",
   "renderError.description":
     "页面遇到未预期的渲染异常。可先重试当前视图；若仍然失败，请重新加载 WebClient。",
+  "renderError.copy": "复制诊断信息",
+  "renderError.copied": "诊断信息已复制",
+  "renderError.copyFailed": "复制失败，请手动复制技术详情中的内容",
   "renderError.details": "技术详情",
   "renderError.retry": "重试视图",
   "renderError.reload": "重新加载 WebClient",
