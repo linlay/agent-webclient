@@ -4,7 +4,7 @@ import { readDesktopBridges } from "@/features/transport/lib/desktopBridge";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { configureI18nRuntime } from "@/shared/i18n";
 import {
-  getDesktopDocumentOpenOptions, isDesktopLocalOpenDocument, openDesktopDocumentCopy,
+  getDesktopDocumentOpenOptions, isDesktopLocalOpenDocument, openDesktopDocumentInLocalApp,
   resolveDesktopDocumentSource,
 } from "./desktopDocumentOpen";
 
@@ -19,10 +19,11 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-describe("Desktop document copy bridge", () => {
+describe("Desktop direct document opening bridge", () => {
   const bridge = () => ({
-    getCapabilities: jest.fn(async () => ({ ok: true, capabilities: ["workpanel.document.open-local"] })),
+    getCapabilities: jest.fn(async () => ({ ok: true, capabilities: ["workpanel.document.open-local-direct"] })),
     getDocumentOpenOptions: jest.fn(async () => ({ ok: true, applications })),
+    openDocumentInLocalApp: jest.fn(async () => ({ ok: true, status: "launch-requested" })),
     openDocumentCopy: jest.fn(async () => ({ ok: true, status: "launch-requested" })),
   });
   let host: ReturnType<typeof bridge>;
@@ -33,7 +34,10 @@ describe("Desktop document copy bridge", () => {
     host = bridge();
     jest.mocked(readDesktopBridges).mockReturnValue({ workPanel: host } as never);
   });
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => {
+    expect(host.openDocumentCopy).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
 
   it.each(["PPT", "pptx", "doc", "DOCX", "xls", "xlsx", "pdf", "PDF"])("supports the %s extension", (extension) => {
     expect(isDesktopLocalOpenDocument(`file.${extension}`)).toBe(true);
@@ -51,19 +55,30 @@ describe("Desktop document copy bridge", () => {
     jest.mocked(isDesktopAppMode).mockReturnValue(false);
     expect(await getDesktopDocumentOpenOptions(source)).toEqual({ available: false });
     expect(readDesktopBridges).not.toHaveBeenCalled();
-    await expect(openDesktopDocumentCopy(source, applications[0].id)).rejects.toThrow();
+    await expect(openDesktopDocumentInLocalApp(source, applications[0].id)).rejects.toThrow();
     expect(host.getCapabilities).not.toHaveBeenCalled();
   });
   it("requires both new methods and the dedicated capability", async () => {
-    jest.mocked(readDesktopBridges).mockReturnValue({ workPanel: { ...host, openDocumentCopy: undefined } } as never);
+    jest.mocked(readDesktopBridges).mockReturnValue({ workPanel: { ...host, openDocumentInLocalApp: undefined } } as never);
     expect(await getDesktopDocumentOpenOptions(source)).toEqual({ available: false });
     expect(host.getCapabilities).not.toHaveBeenCalled();
     jest.mocked(readDesktopBridges).mockReturnValue({ workPanel: host } as never);
     host.getCapabilities.mockResolvedValue({ ok: true, capabilities: ["workpanel.open"] });
     expect(await getDesktopDocumentOpenOptions(source)).toEqual({ available: false });
     expect(host.getDocumentOpenOptions).not.toHaveBeenCalled();
-    await expect(openDesktopDocumentCopy(source, applications[0].id)).rejects.toThrow();
-    expect(host.openDocumentCopy).not.toHaveBeenCalled();
+    await expect(openDesktopDocumentInLocalApp(source, applications[0].id)).rejects.toThrow();
+    expect(host.openDocumentInLocalApp).not.toHaveBeenCalled();
+  });
+  it("does not fall back to the legacy copy method or capability", async () => {
+    jest.mocked(readDesktopBridges).mockReturnValue({ workPanel: { ...host, openDocumentInLocalApp: undefined } } as never);
+    expect(await getDesktopDocumentOpenOptions(source)).toEqual({ available: false });
+    await expect(openDesktopDocumentInLocalApp(source, applications[0].id)).rejects.toThrow();
+    jest.mocked(readDesktopBridges).mockReturnValue({ workPanel: host } as never);
+    host.getCapabilities.mockResolvedValue({ ok: true, capabilities: ["workpanel.document.open-local"] });
+    expect(await getDesktopDocumentOpenOptions(source)).toEqual({ available: false });
+    await expect(openDesktopDocumentInLocalApp(source, applications[0].id)).rejects.toThrow();
+    expect(host.getDocumentOpenOptions).not.toHaveBeenCalled();
+    expect(host.openDocumentInLocalApp).not.toHaveBeenCalled();
   });
   it("coalesces concurrent queries for the same source without caching completed results", async () => {
     const gate = deferred<{ ok: boolean; applications: typeof applications }>();
@@ -110,21 +125,21 @@ describe("Desktop document copy bridge", () => {
     host.getDocumentOpenOptions.mockResolvedValueOnce({ ok: false, error: { code: "local_app_query_failed", message: "Host-internal detection failure" } } as never);
     expect(await getDesktopDocumentOpenOptions(source)).toEqual({ available: true, applications: [], error: "Could not detect local applications" });
   });
-  it("keeps the save dialog pending beyond the former 10-second timeout and coalesces duplicate opens", async () => {
+  it("keeps host preparation pending without a short timeout and coalesces duplicate opens", async () => {
     jest.useFakeTimers();
     const gate = deferred<{ ok: boolean; status: string }>();
-    host.openDocumentCopy.mockReturnValueOnce(gate.promise);
+    host.openDocumentInLocalApp.mockReturnValueOnce(gate.promise);
     let settled = false;
-    const first = openDesktopDocumentCopy(source, applications[0].id);
+    const first = openDesktopDocumentInLocalApp(source, applications[0].id);
     void first.then(() => { settled = true; });
-    const duplicate = openDesktopDocumentCopy({ ...source }, "another-opaque-id");
+    const duplicate = openDesktopDocumentInLocalApp({ ...source }, "another-opaque-id");
     expect(duplicate).toBe(first);
     await Promise.resolve();
     jest.advanceTimersByTime(60_000);
     await Promise.resolve();
     expect(settled).toBe(false);
-    expect(host.openDocumentCopy).toHaveBeenCalledTimes(1);
-    expect(host.openDocumentCopy).toHaveBeenCalledWith({ version: 6, source, applicationId: applications[0].id });
+    expect(host.openDocumentInLocalApp).toHaveBeenCalledTimes(1);
+    expect(host.openDocumentInLocalApp).toHaveBeenCalledWith({ version: 6, source, applicationId: applications[0].id });
     gate.resolve({ ok: true, status: "cancelled" });
     expect(await first).toEqual({ ok: true, status: "cancelled" });
   });

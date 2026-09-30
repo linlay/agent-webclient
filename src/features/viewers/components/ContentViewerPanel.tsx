@@ -819,7 +819,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}
             sizeBytes={workspaceFileResponse?.sizeBytes ?? resourceSizeBytes ?? (target.type === "resource" ? target.sizeBytes : undefined)}
             note={unsupportedTextEncoding ? t("contentViewer.metadata.unsupportedTextEncodingDetail") : undefined}
-            previewAction={<OnlinePreviewAction preview={onlinePreview} compact={isDesktopLocalOpenDocument(viewerName)} />}
+            previewAction={<OnlinePreviewAction preview={onlinePreview} prominent={isDesktopLocalOpenDocument(viewerName)} />}
             previewStatus={isDesktopLocalOpenDocument(viewerName) ? <OnlinePreviewStatus preview={onlinePreview} /> : undefined}
             onDownload={handleDownload}
             primaryAction={isDesktopLocalOpenDocument(viewerName) ? <DesktopDocumentOpenActions

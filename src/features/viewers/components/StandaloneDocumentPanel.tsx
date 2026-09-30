@@ -64,11 +64,13 @@ export const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
         </dl> : null}
         {note ? <p className={styles.note}>{note}</p> : null}
         {compact ? <>
-          <div className={styles.primaryAction}>{primaryAction}</div>
+          <div className={styles.primaryAction}>
+            {previewAction}
+            {primaryAction}
+          </div>
           <div className={styles.secondaryActions}>
             <Button className={styles.secondaryButton} size="small" loading={downloading}
               icon={<MaterialIcon name="download" />} onClick={() => void download()}>{t("contentViewer.action.download")}</Button>
-            {previewAction}
             {localActions}
           </div>
           {previewStatus}

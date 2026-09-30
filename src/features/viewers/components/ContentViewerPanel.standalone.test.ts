@@ -5,7 +5,7 @@ import { ContentViewerPanel } from "./ContentViewerPanel";
 import { DocumentTextEditor } from "./DocumentTextEditor";
 import { canUseDesktopCurrentResourceActions, checkDesktopCurrentResourceActionsAvailable, requestDesktopCurrentResourceAction } from "@/shared/data/desktop/desktopCurrentResourceAction";
 import { isAppMode, isDesktopAppMode } from "@/shared/utils/routing";
-import { getDesktopDocumentOpenOptions, openDesktopDocumentCopy } from "../lib/desktopDocumentOpen";
+import { getDesktopDocumentOpenOptions, openDesktopDocumentInLocalApp } from "../lib/desktopDocumentOpen";
 import { getAgentFile } from "@/shared/data";
 import { downloadViewerTarget, openStandaloneViewerTarget, readViewerResourceMetadata, readViewerResourceDocument } from "@/features/viewers/lib/viewerRuntime";
 import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
@@ -23,7 +23,7 @@ jest.mock("@/shared/data/desktop/desktopCurrentResourceAction", () => ({
 jest.mock("@/shared/utils/routing", () => ({ ...jest.requireActual("@/shared/utils/routing"), isAppMode: jest.fn(() => false), isDesktopAppMode: jest.fn(() => false) }));
 jest.mock("../lib/desktopDocumentOpen", () => ({
   ...jest.requireActual("../lib/desktopDocumentOpen"),
-  getDesktopDocumentOpenOptions: jest.fn(), openDesktopDocumentCopy: jest.fn(),
+  getDesktopDocumentOpenOptions: jest.fn(), openDesktopDocumentInLocalApp: jest.fn(),
 }));
 jest.mock("@/app/state/AppContext", () => ({ useAppState: () => ({ chatId: "chat-1", chats: [] }) }));
 jest.mock("@/shared/data", () => ({ getAgentFile: jest.fn() }));
@@ -54,7 +54,7 @@ describe("standalone document panel", () => {
     jest.mocked(isAppMode).mockReturnValue(false);
     jest.mocked(isDesktopAppMode).mockReturnValue(false);
     jest.mocked(getDesktopDocumentOpenOptions).mockResolvedValue({ available: true, applications: [{ id: "app-word", name: "Microsoft Word", isDefault: true }] });
-    jest.mocked(openDesktopDocumentCopy).mockResolvedValue({ ok: true, status: "launch-requested" });
+    jest.mocked(openDesktopDocumentInLocalApp).mockResolvedValue({ ok: true, status: "launch-requested" });
     jest.mocked(canUseDesktopCurrentResourceActions).mockReturnValue(false);
     jest.mocked(canUseStandaloneFileActions).mockReturnValue(true);
     jest.mocked(useAuthenticatedResourceUrl).mockReturnValue({ url: "", loading: false, error: null });
@@ -94,21 +94,30 @@ describe("standalone document panel", () => {
     expect(buttons).toHaveLength(4);
     expect(container.querySelectorAll("button")).toHaveLength(4);
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "用 Word 打开", "下载", "在线预览", platform === "MacIntel" ? "在访达中显示" : "在文件资源管理器中显示",
+      "在线预览", "用 Word 打开", "下载", platform === "MacIntel" ? "在访达中显示" : "在文件资源管理器中显示",
     ]);
+    expect(buttons.filter((button) => button.textContent === "在线预览")).toHaveLength(1);
+    expect(buttons[1].compareDocumentPosition(buttons[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(buttons[2].parentElement?.textContent).not.toContain("在线预览");
+    expect(buttons[2].parentElement?.contains(buttons[3])).toBe(true);
+    expect(card.querySelector("details")).not.toBeNull();
+    expect(buttons[2].compareDocumentPosition(card.querySelector("details")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(card.textContent).not.toContain("另存");
+    expect(card.textContent).not.toContain("副本");
     expect(checkDesktopCurrentResourceActionsAvailable).toHaveBeenCalled();
     expect(getStandaloneFileCapabilities).not.toHaveBeenCalled();
     await act(async () => buttons[3].click());
     expect(requestDesktopCurrentResourceAction).toHaveBeenLastCalledWith("reveal", {
       chatId: "chat-1", profile: "artifact", relativePath: "artifacts/report.doc",
     });
-    await act(async () => buttons[0].click());
-    expect(openDesktopDocumentCopy).toHaveBeenCalledWith(target.source, "app-word");
+    await act(async () => buttons[1].click());
+    expect(openDesktopDocumentInLocalApp).toHaveBeenCalledWith(target.source, "app-word");
     expect(requestDesktopCurrentResourceAction).not.toHaveBeenCalledWith("open-default", expect.anything());
     expect(openStandaloneViewerTarget).not.toHaveBeenCalled();
+    expect(downloadViewerTarget).not.toHaveBeenCalled();
   });
 
-  it("opens a workspace Office file through the same copy action without a Resource Viewer identity", async () => {
+  it("opens a workspace Office file directly without a Resource Viewer identity", async () => {
     jest.mocked(isAppMode).mockReturnValue(true);
     jest.mocked(isDesktopAppMode).mockReturnValue(true);
     const file: ViewerTarget = { type: "file", agentKey: "coder", path: "预算.xlsx", name: "预算.xlsx", contentKind: "office" };
@@ -121,13 +130,13 @@ describe("standalone document panel", () => {
     const button = Array.from(container.querySelectorAll("button")).find((entry) => entry.textContent === "用 Excel 打开");
     expect(button).toBeDefined();
     await act(async () => button!.click());
-    expect(openDesktopDocumentCopy).toHaveBeenCalledWith({ kind: "workspace-file", agentKey: "coder", path: "预算.xlsx" }, "app-excel");
+    expect(openDesktopDocumentInLocalApp).toHaveBeenCalledWith({ kind: "workspace-file", agentKey: "coder", path: "预算.xlsx" }, "app-excel");
     expect(checkDesktopCurrentResourceActionsAvailable).not.toHaveBeenCalled();
     expect(requestDesktopCurrentResourceAction).not.toHaveBeenCalled();
     expect(getStandaloneFileCapabilities).not.toHaveBeenCalled();
   });
 
-  it.each(["workspace", "reference"] as const)("keeps the %s PDF preview while opening a local copy", async (kind) => {
+  it.each(["workspace", "reference"] as const)("keeps the %s PDF preview while opening directly in a local app", async (kind) => {
     jest.mocked(isAppMode).mockReturnValue(true);
     jest.mocked(isDesktopAppMode).mockReturnValue(true);
     const reference = { kind: "reference" as const, agentKey: "coder", chatId: "chat-1", resourceId: "pdf-reference", relativePath: "guide.pdf" };
@@ -148,9 +157,11 @@ describe("standalone document panel", () => {
     const button = Array.from(container.querySelectorAll("button")).find((entry) => entry.textContent === "用 预览 打开");
     expect(button).toBeDefined();
     await act(async () => button!.click());
-    expect(openDesktopDocumentCopy).toHaveBeenCalledWith(source, "app-preview");
+    expect(openDesktopDocumentInLocalApp).toHaveBeenCalledWith(source, "app-preview");
     expect(container.querySelector('iframe[title="guide.pdf"]')).toBe(preview);
     expect(requestDesktopCurrentResourceAction).not.toHaveBeenCalled();
+    expect(downloadViewerTarget).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("在线预览");
   });
 
   it("retains PDF preview without a host document-open capability", async () => {
@@ -163,7 +174,7 @@ describe("standalone document panel", () => {
       source: { kind: "reference", agentKey: "coder", chatId: "chat-1", resourceId: "pdf-reference", relativePath: "guide.pdf" } });
     expect(container.querySelector('iframe[title="guide.pdf"]')).not.toBeNull();
     expect(container.querySelector("button")).toBeNull();
-    expect(openDesktopDocumentCopy).not.toHaveBeenCalled();
+    expect(openDesktopDocumentInLocalApp).not.toHaveBeenCalled();
   });
 
   describe.each([false, true])("Office preview in Desktop mode %s", (desktop) => {

@@ -5,16 +5,19 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { OnlineDocumentPreviewState } from "../hooks/useOnlineDocumentPreview";
 import styles from "./OnlineDocumentPreview.module.css";
 
-export function OnlinePreviewAction({ preview, compact = false }: { preview: OnlineDocumentPreviewState; compact?: boolean }) {
+export function OnlinePreviewAction({ preview, compact = false, prominent = false }: {
+  preview: OnlineDocumentPreviewState; compact?: boolean; prominent?: boolean;
+}) {
   const { t } = useI18n();
-  return <div className={compact ? styles.compactAction : styles.action}>
+  return <div className={prominent ? styles.prominentAction : compact ? styles.compactAction : styles.action}>
     <Button disabled={Boolean(preview.reason)} loading={preview.pending} title={preview.reason || undefined}
-      size={compact ? "small" : undefined} className={compact ? styles.compactButton : undefined}
+      size={compact && !prominent ? "small" : undefined}
+      className={prominent ? styles.prominentButton : compact ? styles.compactButton : undefined}
       icon={<MaterialIcon name="visibility" />} onClick={() => void preview.prepare()}>
       {t(preview.pending ? "contentViewer.preview.preparing" : "contentViewer.preview.action")}
     </Button>
-    {!compact && preview.reason ? <span className={styles.hint}>{preview.reason}</span> : null}
-    {!compact && preview.error ? <span className={styles.error} role="alert">{preview.error}</span> : null}
+    {!compact && !prominent && preview.reason ? <span className={styles.hint}>{preview.reason}</span> : null}
+    {!compact && !prominent && preview.error ? <span className={styles.error} role="alert">{preview.error}</span> : null}
   </div>;
 }
 

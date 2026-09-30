@@ -1,6 +1,13 @@
 .actions { display: grid; gap: 9px; min-width: 0; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; padding: 6px 8px; border-bottom: 1px solid var(--line-soft); }
 .split { display: flex; min-width: 0; }
+.actions .split { border-radius: var(--control-radius); overflow: hidden; background: var(--control-primary-bg); }
+.actions .split .openButton:not(:disabled), .actions .split .choiceButton:not(:disabled) {
+  background: transparent; border-color: transparent; box-shadow: none; transform: none; transition: none;
+}
+.actions .split:hover { background: var(--control-primary-hover); }
+.actions .split .choiceButton:not(:disabled) { border-inline-start-color: rgb(255 255 255 / 25%); }
+.openButton:focus-visible, .choiceButton:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -3px; }
 .openButton { min-width: 0; height: 40px; padding-inline: 14px; white-space: nowrap; font-size: 13px; }
 .split .openButton { flex: 1; border-start-end-radius: 0; border-end-end-radius: 0; }
 .choiceButton { flex: 0 0 38px; width: 38px; height: 40px; border-start-start-radius: 0; border-end-start-radius: 0; border-inline-start-color: rgb(255 255 255 / 25%); }

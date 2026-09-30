@@ -5,7 +5,7 @@ import { isDesktopAppMode } from "@/shared/utils/routing";
 import { DESKTOP_LIVE_SURFACE_ACTIVE_EVENT, type DesktopLiveSurfaceActiveEventDetail } from "@/shared/data/desktop/desktopSurfaceLifecycle";
 import {
   desktopDocumentSourceKey, desktopDocumentOpenErrorKey, getDesktopDocumentOpenOptions, isDesktopLocalOpenDocument,
-  openDesktopDocumentCopy, resolveDesktopDocumentSource,
+  openDesktopDocumentInLocalApp, resolveDesktopDocumentSource,
 } from "../lib/desktopDocumentOpen";
 import type { ViewerTarget } from "../lib/viewerTarget";
 
@@ -71,11 +71,11 @@ export function useDesktopDocumentOpen(target: ViewerTarget, refreshKey = 0) {
 
   const open = async (applicationId: string) => {
     const application = active.applications.find((item) => item.id === applicationId);
-    if (!enabled || !source || !active.available || active.checking || pendingOpen.current || !application) return;
+    if (!enabled || !source || !active.available || pendingOpen.current || !application) return;
     pendingOpen.current = key;
     setState((previous) => ({ ...previous, busy: true, actionError: undefined, requestedApplication: undefined }));
     try {
-      const result = await openDesktopDocumentCopy(source, applicationId);
+      const result = await openDesktopDocumentInLocalApp(source, applicationId);
       if (!live.current || currentKey.current !== key) return;
       setState((previous) => result.ok
         ? { ...previous, busy: false, requestedApplication: result.status === "launch-requested" ? application.name : undefined }

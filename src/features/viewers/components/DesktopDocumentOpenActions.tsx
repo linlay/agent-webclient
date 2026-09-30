@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Dropdown, Tooltip, type MenuProps } from "antd";
+import { Button, Dropdown, type MenuProps } from "antd";
 import type { WorkPanelLocalApplication } from "@/shared/contracts/generated/agentWebclientBridge";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -21,7 +21,8 @@ export function DesktopDocumentOpenActions({ target, refreshKey = 0, layout = "c
   if (!local.available) return null;
   const preferred = local.applications.find((application) => application.isDefault)
     || (local.applications.length === 1 ? local.applications[0] : undefined);
-  const disabled = local.busy || local.checking;
+  const initialChecking = local.checking && local.applications.length === 0;
+  const disabled = local.busy || initialChecking;
   const size = layout === "toolbar" ? "small" : undefined;
   const applicationName = (name: string) => name.replace(/^Microsoft (PowerPoint|Word|Excel)$/u, "$1");
   const items: MenuProps["items"] = local.applications.map((application) => ({
@@ -37,14 +38,12 @@ export function DesktopDocumentOpenActions({ target, refreshKey = 0, layout = "c
   const menu: MenuProps = { items, className: styles.applicationMenu, onClick: ({ key }) => { void local.open(key); } };
   const dropdownProps = { trigger: ["click"] as ("click")[], disabled, menu, placement: "bottomRight" as const,
     overlayStyle: { maxWidth: "calc(100vw - 32px)" } };
-  const button = preferred ? <Tooltip title={preferred.name !== applicationName(preferred.name)
-    ? t("contentViewer.localCopy.openIn", { name: preferred.name }) : undefined}>
-    <Button size={size} type={layout === "card" ? "primary" : "default"} className={styles.openButton}
-    disabled={disabled} loading={local.busy || local.checking}
+  const button = preferred ? <Button size={size} type={layout === "card" ? "primary" : "default"} className={styles.openButton}
+    disabled={disabled} loading={local.busy || initialChecking}
     aria-label={t("contentViewer.localCopy.openIn", { name: preferred.name })}
     icon={<ApplicationIcon application={preferred} />} onClick={() => void local.open(preferred.id)}>
     <span className={styles.buttonLabel}>{t("contentViewer.localCopy.openIn", { name: applicationName(preferred.name) })}</span>
-  </Button></Tooltip> : null;
+  </Button> : null;
 
   return <div className={layout === "toolbar" ? styles.toolbar : styles.actions}>
     {preferred ? local.applications.length > 1 ? <div className={styles.split}>
@@ -57,14 +56,13 @@ export function DesktopDocumentOpenActions({ target, refreshKey = 0, layout = "c
     </div> : button : local.applications.length > 1 ?
       <Dropdown {...dropdownProps}>
         <Button size={size} type={layout === "card" ? "primary" : "default"} className={styles.openButton}
-          disabled={disabled} loading={local.checking || local.busy} icon={<MaterialIcon name="expand_more" />}>
+          disabled={disabled} loading={initialChecking || local.busy} icon={<MaterialIcon name="expand_more" />}>
           {t("contentViewer.localCopy.chooseApplication")}
         </Button>
       </Dropdown> : <Button size={size} className={styles.openButton} disabled loading={local.checking} icon={<MaterialIcon name="open_in_new" />}>
         {t(local.checking ? "contentViewer.localCopy.checking" : local.queryError
           ? "contentViewer.localCopy.queryFailed" : "contentViewer.localCopy.noApplications")}
       </Button>}
-    {!local.requestedApplication ? <span className={styles.hint}>{t("contentViewer.localCopy.copyHint")}</span> : null}
     {local.queryError ? <span className={styles.error} role="alert">{local.queryError}</span> : null}
     {local.actionError ? <span className={styles.error} role="alert">{local.actionError}</span> : null}
     {!local.applications.length || local.queryError || local.actionError ?

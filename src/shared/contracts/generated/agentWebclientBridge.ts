@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:0502aa16fbb5164fb57e5f77eef899113a801b43dc2fe11b6362fd85a96fa88e
+// sha256:ff3384be5f70aaeffc567cf0c994fc433e7e0d5c22288110eb181e1a4aeb163d
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -597,6 +597,7 @@ export type WorkPanelBridgeResult =
 export type WorkPanelCapability =
   | "workpanel.open"
   | "workpanel.document.open-local"
+  | "workpanel.document.open-local-direct"
   | "workpanel.activate"
   | "workpanel.close";
 
@@ -608,6 +609,8 @@ export type AgentWebclientWorkPanelBridge = {
   getCapabilities(): Promise<WorkPanelCapabilityResult>;
   getDocumentOpenOptions?(input: WorkPanelDocumentOpenOptionsInput): Promise<WorkPanelDocumentOpenOptionsResult>;
   openDocumentCopy?(input: WorkPanelDocumentOpenCopyInput): Promise<WorkPanelDocumentOpenCopyResult>;
+  /** Opens a local original directly; remote resources use a host-owned cache without a save dialog. */
+  openDocumentInLocalApp?(input: WorkPanelDocumentOpenCopyInput): Promise<WorkPanelDocumentOpenCopyResult>;
   openDocument(input: WorkPanelOpenDocumentInput): Promise<WorkPanelOpenDocumentResult>;
   openResource(input: WorkPanelOpenResourceInput): Promise<WorkPanelOpenResourceResult>;
   openItem(input: WorkPanelOpenItemInput): Promise<WorkPanelBridgeResult>;

@@ -55,20 +55,20 @@ export function desktopDocumentOpenErrorKey(error: unknown, phase: "query" | "op
 
 type DocumentOpenBridge = AgentWebclientWorkPanelBridge & {
   getDocumentOpenOptions: NonNullable<AgentWebclientWorkPanelBridge["getDocumentOpenOptions"]>;
-  openDocumentCopy: NonNullable<AgentWebclientWorkPanelBridge["openDocumentCopy"]>;
+  openDocumentInLocalApp: NonNullable<AgentWebclientWorkPanelBridge["openDocumentInLocalApp"]>;
 };
 export type DesktopDocumentOpenOptions =
   | { available: false }
   | { available: true; applications: WorkPanelLocalApplication[]; error?: string };
-type OpenCopyResult = Awaited<ReturnType<DocumentOpenBridge["openDocumentCopy"]>>;
+type OpenDocumentResult = Awaited<ReturnType<DocumentOpenBridge["openDocumentInLocalApp"]>>;
 
 const optionRequests = new WeakMap<DocumentOpenBridge, Map<string, Promise<DesktopDocumentOpenOptions>>>();
-const openRequests = new WeakMap<DocumentOpenBridge, Map<string, Promise<OpenCopyResult>>>();
+const openRequests = new WeakMap<DocumentOpenBridge, Map<string, Promise<OpenDocumentResult>>>();
 
 function readBridge(): DocumentOpenBridge | null {
   if (!isDesktopAppMode()) return null;
   const bridge = readDesktopBridges().workPanel;
-  return bridge && typeof bridge.getDocumentOpenOptions === "function" && typeof bridge.openDocumentCopy === "function"
+  return bridge && typeof bridge.getDocumentOpenOptions === "function" && typeof bridge.openDocumentInLocalApp === "function"
     ? bridge as DocumentOpenBridge : null;
 }
 
@@ -101,7 +101,7 @@ export function getDesktopDocumentOpenOptions(source: WorkPanelDocumentSource): 
       if (!capability.ok) {
         return { available: true, applications: [], error: t(desktopDocumentOpenErrorKey(capability.error, "query")) };
       }
-      if (!capability.capabilities.includes("workpanel.document.open-local")) return { available: false };
+      if (!capability.capabilities.includes("workpanel.document.open-local-direct")) return { available: false };
       const result = await bridge.getDocumentOpenOptions({ version: AGENT_WEBCLIENT_BRIDGE_VERSION, source });
       return result.ok
         ? { available: true, applications: result.applications }
@@ -112,16 +112,16 @@ export function getDesktopDocumentOpenOptions(source: WorkPanelDocumentSource): 
   });
 }
 
-export function openDesktopDocumentCopy(source: WorkPanelDocumentSource, applicationId: string): Promise<OpenCopyResult> {
+export function openDesktopDocumentInLocalApp(source: WorkPanelDocumentSource, applicationId: string): Promise<OpenDocumentResult> {
   const bridge = readBridge();
   if (!bridge) return Promise.reject(Object.assign(new Error(t("contentViewer.localCopy.unavailable")), { code: "bridge_unavailable" }));
-  // Keep one native save dialog per source. Do not time out while the user is choosing a file.
+  // Keep one native launch per source, including any host-side preparation of remote content.
   return shareRequest(openRequests, bridge, desktopDocumentSourceKey(source), async () => {
     const capability = await bridge.getCapabilities();
     if (!capability.ok) return capability;
-    if (!capability.capabilities.includes("workpanel.document.open-local")) {
+    if (!capability.capabilities.includes("workpanel.document.open-local-direct")) {
       throw Object.assign(new Error(t("contentViewer.localCopy.unavailable")), { code: "capability_denied" });
     }
-    return bridge.openDocumentCopy({ version: AGENT_WEBCLIENT_BRIDGE_VERSION, source, applicationId });
+    return bridge.openDocumentInLocalApp({ version: AGENT_WEBCLIENT_BRIDGE_VERSION, source, applicationId });
   });
 }
