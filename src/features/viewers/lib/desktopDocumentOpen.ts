@@ -35,21 +35,21 @@ export function desktopDocumentSourceKey(source: WorkPanelDocumentSource): strin
 export function desktopDocumentOpenErrorKey(error: unknown, phase: "query" | "open") {
   const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
   switch (code) {
-    case "local_app_query_failed": return "contentViewer.localCopy.queryFailed";
-    case "local_app_unavailable": return "contentViewer.localCopy.error.applicationUnavailable";
+    case "local_app_query_failed": return "contentViewer.localOpen.queryFailed";
+    case "local_app_unavailable": return "contentViewer.localOpen.error.applicationUnavailable";
     case "capability_denied":
     case "surface_unavailable":
     case "target_unavailable":
-    case "invalid_request": return "contentViewer.localCopy.error.sourceUnavailable";
-    case "document_save_failed": return "contentViewer.localCopy.error.saveFailed";
+    case "invalid_request": return "contentViewer.localOpen.error.sourceUnavailable";
+    case "document_save_failed": return "contentViewer.localOpen.error.saveFailed";
     case "unsupported_document_type":
-    case "unsupported_native_type": return "contentViewer.localCopy.error.typeMismatch";
-    case "application_launch_failed": return "contentViewer.localCopy.error.launchFailed";
-    case "duplicate_id": return "contentViewer.localCopy.error.alreadyPending";
+    case "unsupported_native_type": return "contentViewer.localOpen.error.typeMismatch";
+    case "application_launch_failed": return "contentViewer.localOpen.error.launchFailed";
+    case "duplicate_id": return "contentViewer.localOpen.error.alreadyPending";
     case "bridge_unavailable":
     case "version_mismatch":
-    case "unsupported_in_current_view": return "contentViewer.localCopy.unavailable";
-    default: return phase === "query" ? "contentViewer.localCopy.queryFailed" : "contentViewer.localCopy.openFailed";
+    case "unsupported_in_current_view": return "contentViewer.localOpen.unavailable";
+    default: return phase === "query" ? "contentViewer.localOpen.queryFailed" : "contentViewer.localOpen.openFailed";
   }
 }
 
@@ -114,13 +114,13 @@ export function getDesktopDocumentOpenOptions(source: WorkPanelDocumentSource): 
 
 export function openDesktopDocumentInLocalApp(source: WorkPanelDocumentSource, applicationId: string): Promise<OpenDocumentResult> {
   const bridge = readBridge();
-  if (!bridge) return Promise.reject(Object.assign(new Error(t("contentViewer.localCopy.unavailable")), { code: "bridge_unavailable" }));
+  if (!bridge) return Promise.reject(Object.assign(new Error(t("contentViewer.localOpen.unavailable")), { code: "bridge_unavailable" }));
   // Keep one native launch per source, including any host-side preparation of remote content.
   return shareRequest(openRequests, bridge, desktopDocumentSourceKey(source), async () => {
     const capability = await bridge.getCapabilities();
     if (!capability.ok) return capability;
     if (!capability.capabilities.includes("workpanel.document.open-local-direct")) {
-      throw Object.assign(new Error(t("contentViewer.localCopy.unavailable")), { code: "capability_denied" });
+      throw Object.assign(new Error(t("contentViewer.localOpen.unavailable")), { code: "capability_denied" });
     }
     return bridge.openDocumentInLocalApp({ version: AGENT_WEBCLIENT_BRIDGE_VERSION, source, applicationId });
   });

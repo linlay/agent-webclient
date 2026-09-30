@@ -50,6 +50,16 @@ describe("Desktop document application actions", () => {
     expect(button).toBeDefined(); await act(async () => button!.click());
   }
 
+  it("waits for capability detection before showing the legacy default action", async () => {
+    const gate = deferred<{ available: false }>();
+    jest.mocked(getDesktopDocumentOpenOptions).mockReturnValueOnce(gate.promise);
+    await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(DesktopDocumentOpenActions, { target, fallback: React.createElement("button", null, "默认打开") }))));
+    expect(buttons()).toHaveLength(0);
+    await act(async () => gate.resolve({ available: false }));
+    expect(buttons().map((button) => button.textContent)).toEqual(["默认打开"]);
+  });
+
   it("shows the actual default application and keeps a successful launch silent", async () => {
     await render();
     expect(container.textContent).toContain("用 Keynote 打开");

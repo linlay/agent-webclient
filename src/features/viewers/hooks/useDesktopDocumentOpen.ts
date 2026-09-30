@@ -12,6 +12,7 @@ import type { ViewerTarget } from "../lib/viewerTarget";
 interface OpenState {
   key: string;
   available: boolean;
+  resolved: boolean;
   checking: boolean;
   busy: boolean;
   applications: WorkPanelLocalApplication[];
@@ -19,7 +20,7 @@ interface OpenState {
   actionError?: string;
 }
 
-const emptyState = (key: string): OpenState => ({ key, available: false, checking: false, busy: false, applications: [] });
+const emptyState = (key: string): OpenState => ({ key, available: false, resolved: false, checking: false, busy: false, applications: [] });
 
 export function useDesktopDocumentOpen(target: ViewerTarget, refreshKey = 0) {
   const { t } = useI18n();
@@ -46,8 +47,8 @@ export function useDesktopDocumentOpen(target: ViewerTarget, refreshKey = 0) {
     const result = await getDesktopDocumentOpenOptions(source);
     if (!live.current || currentKey.current !== key || querySequence.current !== sequence) return;
     setState((previous) => result.available
-      ? { ...previous, key, available: true, checking: false, applications: result.applications, queryError: result.error }
-      : emptyState(key));
+      ? { ...previous, key, available: true, resolved: true, checking: false, applications: result.applications, queryError: result.error }
+      : { ...emptyState(key), resolved: true });
   }, [enabled, key]);
 
   React.useEffect(() => {
