@@ -116,6 +116,13 @@ export class DataQueryCache {
     };
   }
 
+  /** A domain coordinator owns the request; retain data while showing its progress. */
+  markLoading(key: string): void {
+    const entry = this.ensureEntry(key);
+    entry.snapshot = { ...entry.snapshot, status: "loading", error: null };
+    this.emit(entry);
+  }
+
   invalidate(key: string): void {
     const entry = this.entries.get(key);
     if (!entry) {

@@ -252,3 +252,7 @@ describe("platformError", () => {
   expect(display.message).toContain("尚未取得 Run ID");
   expect(display.message).toContain("未能关联");
  });
+
+it("preserves a structured skillId without parsing the error message", () => {
+  expect(normalizePlatformError({ data: { error: { code: "must_use_skill_unavailable", message: "Unavailable", skillId: "office/pdf" } } }).skillId).toBe("office/pdf");
+});

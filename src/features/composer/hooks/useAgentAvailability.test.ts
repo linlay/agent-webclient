@@ -78,44 +78,20 @@ describe("current Agent availability independent of history", () => {
     await act(async () => container.querySelector("button")!.click());
     expect(getAgent).toHaveBeenCalledTimes(2);
     await act(async () => window.dispatchEvent(new Event("focus")));
-    expect(getAgent).toHaveBeenCalledTimes(3);
-  });
-  it.each(["no-session", "other-chat", "attach", "history-navigation", "other-agent"])(
-    "rechecks an empty-to-nonempty Chat transition for %s", async scenario => {
-      jest.mocked(getAgent).mockResolvedValue({ data: { key: "old", name: "Agent" } } as any);
-      await renderChat("");
-      const session = bindQuery();
-      if (scenario === "no-session") mockActiveQuerySessionRequestIdRef.current = "";
-      if (scenario === "other-chat") session.chatId = "other";
-      if (scenario === "attach") session.observationSource = "attach";
-      if (scenario === "history-navigation") mockStateRef.current.chatLoadSeq += 1;
-      jest.mocked(getAgent).mockImplementationOnce(() => new Promise(() => {}));
-      await renderChat("created", scenario === "other-agent" ? "new" : "old");
-      expect(getAgent).toHaveBeenCalledTimes(2);
-      expect(container.textContent).toBe("checking");
-    },
-  );
-  it("does not inherit failed availability during query identity promotion", async () => {
-    jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
-    await renderChat("");
-    bindQuery();
-    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(() => {}));
-    await renderChat("created");
     expect(getAgent).toHaveBeenCalledTimes(2);
-    expect(container.textContent).toBe("checking");
   });
-  it("does not skip a pending refresh when the query receives its Chat ID", async () => {
-    jest.mocked(getAgent).mockResolvedValueOnce({ data: { key: "old", name: "Agent" } } as any);
+  it("keeps the same Agent state across Chat navigation", async () => {
+    jest.mocked(getAgent).mockResolvedValue({ data: { key: "old", name: "Agent" } } as any);
     await renderChat("");
-    let resolveRefresh!: (value: any) => void;
-    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }));
+    await renderChat("history-two");
+    expect(getAgent).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toBe("available");
+  });
+  it("does not refresh while checking on focus", async () => {
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(() => {}));
+    await render();
     await act(async () => window.dispatchEvent(new Event("focus")));
-    bindQuery();
-    jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
-    await renderChat("created");
-    await act(async () => resolveRefresh({ data: { key: "old", name: "Stale" } }));
-    expect(getAgent).toHaveBeenCalledTimes(3);
-    expect(container.textContent).toBe("unavailable");
+    expect(getAgent).toHaveBeenCalledTimes(1);
   });
   it.each([[404, "unavailable"], [401, "authentication_required"], [403, "forbidden"], [500, "error"]])(
     "classifies %s without creating a fake Agent or changing history", async (status, expected) => {
@@ -143,7 +119,7 @@ describe("current Agent availability independent of history", () => {
     await render();
     expect(container.textContent).toBe("checking");
     jest.mocked(getAgent).mockRejectedValue(new ApiError("missing", { status: 404 }));
-    await act(async () => window.dispatchEvent(new Event("focus")));
+    await act(async () => window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey: "old" } })));
     await act(async () => resolveOld({ data: { key: "old", name: "Stale" } }));
     expect(container.textContent).toBe("unavailable");
     expect(mockStateRef.current.agents).toEqual([]);
@@ -190,14 +166,12 @@ describe("current Agent availability independent of history", () => {
     expect(container.textContent).toBe("available");
     expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(false);
   });
-  it("does not retain an unavailable configuration entry when switching Chat", async () => {
+  it("keeps unavailable state and repair entry when switching Chat for the same Agent", async () => {
     jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
     await act(async () => root.render(React.createElement(ConfigurationProbe, { agentKey: "old" })));
+    await act(async () => root.render(React.createElement(ConfigurationProbe, { agentKey: "old", chatId: "other" })));
     expect(container.querySelector("button")).not.toBeNull();
-    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(() => {}));
-    await act(async () => root.render(React.createElement(ConfigurationProbe, { agentKey: "old", chatId: "other-history" })));
-    expect(container.querySelector("button")).toBeNull();
-    expect(container.textContent).toBe("checking");
+    expect(getAgent).toHaveBeenCalledTimes(1);
   });
   it.each([401, 403, 500, "timeout"])("replaces the unavailable entry when a recheck ends in %s", async failure => {
     jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));
@@ -215,7 +189,7 @@ describe("current Agent availability independent of history", () => {
     expect(container.textContent).toBe(expected);
     expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(true);
   });
-  it("keeps an available Composer mounted and executable during a focus recheck", async () => {
+  it("keeps an available Composer mounted and executable during a catalog recheck", async () => {
     function InputProbe() {
       const { status } = useAgentAvailability("old", "history");
       return status === "available" ? React.createElement("textarea", { defaultValue: "draft" })
@@ -228,7 +202,7 @@ describe("current Agent availability independent of history", () => {
     let resolveRecheck!: (value: any) => void;
     jest.mocked(getAgent).mockImplementationOnce(() => new Promise(resolve => { resolveRecheck = resolve; }));
     mockDispatch.mockClear();
-    await act(async () => window.dispatchEvent(new Event("focus")));
+    await act(async () => window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey: "old" } })));
     expect(getAgent).toHaveBeenCalledTimes(2);
     expect(container.querySelector("textarea")).toBe(input);
     expect(input.value).toBe("unsent draft");
@@ -242,7 +216,7 @@ describe("current Agent availability independent of history", () => {
     await render();
     let rejectRecheck!: (reason: unknown) => void;
     jest.mocked(getAgent).mockImplementationOnce(() => new Promise((_, reject) => { rejectRecheck = reject; }));
-    await act(async () => window.dispatchEvent(new Event("focus")));
+    await act(async () => window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey: "old" } })));
     expect(container.textContent).toBe("available");
     if (failure === "timeout") await act(async () => jest.advanceTimersByTime(15_000));
     else await act(async () => rejectRecheck(new ApiError("failed", { status: Number(failure) })));
@@ -254,4 +228,24 @@ describe("current Agent availability independent of history", () => {
     expect(container.textContent).toBe("available");
     expect(getAgent).not.toHaveBeenCalled();
   });
+});
+
+it("a query rejection invalidates an older availability response", async () => {
+  const { rejectAgentCheck } = await import("@/features/agents/lib/agentRefresh");
+  const { invalidateAgentDetail } = await import("@/shared/data/api/routedClient");
+  mockStateRef.current = createInitialState();
+  let resolve!: (data: any) => void;
+  jest.mocked(getAgent).mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  const container = document.createElement("div"); const root = createRoot(container);
+  await act(async () => root.render(React.createElement(Probe, { agentKey: "old" })));
+  await act(async () => {
+    rejectAgentCheck(mockStateRef, "old");
+    mockDispatch({ type: "SET_AGENT_AVAILABILITY", agentKey: "old", status: "unavailable" });
+    root.render(React.createElement(Probe, { agentKey: "old" }));
+  });
+  await act(async () => resolve({ data: { key: "old", name: "Stale" } }));
+  expect(container.textContent).toBe("unavailable");
+  expect(mockStateRef.current.agents).toEqual([]);
+  expect(invalidateAgentDetail).toHaveBeenCalledWith("old");
+  await act(async () => root.unmount());
 });

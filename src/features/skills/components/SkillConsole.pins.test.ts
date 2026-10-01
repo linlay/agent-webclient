@@ -86,14 +86,14 @@ it("shares center pins with Composer without changing the selected skill, and re
   expect(input.value).toBe("PDF");
 });
 
-it("retains the visible skill order on write failure and reloads remote changes on focus", async () => {
+it("retains the visible skill order on write failure and reloads remote changes on a refresh signal", async () => {
   await mount();
   jest.mocked(putAgentSkillPin).mockRejectedValueOnce(new Error("offline"));
   await clickPin("PDF");
   expect(names()).toEqual(["Demo", "Invalid", "PDF"]);
   expect(container.textContent).toContain("无法同步技能置顶");
   serverOrder = ["pdf"];
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => window.dispatchEvent(new CustomEvent("agent:skills-refresh", { detail: { agentKey: "" } })));
   expect(names()[0]).toBe("PDF");
   expect(container.querySelector('output')?.textContent).toBe("pdf");
   expect(container.textContent).not.toContain("无法同步技能置顶");

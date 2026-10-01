@@ -236,6 +236,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       ) {
         return false;
       }
+      dispatch({ type: "TOUCH_COMPOSER" });
       setAttachments((current) => [
         ...current.filter((attachment) => attachment.id !== nextAttachment.id),
         nextAttachment,
@@ -247,6 +248,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   const handleRemoveAttachment = useCallback(
     (attachmentId: string) => {
+      dispatch({ type: "TOUCH_COMPOSER" });
       if (attachmentId.startsWith("restored-steer:")) {
         const index = Number(attachmentId.slice("restored-steer:".length));
         dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId, references: (restoredReferences || []).filter((_, i) => i !== index) });
@@ -285,6 +287,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
         return false;
       }
 
+      dispatch({ type: "TOUCH_COMPOSER" });
       const latestFiles = keepLatestFilesByName(files);
       if (latestFiles.length === 0) {
         return false;
@@ -404,6 +407,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       }
       const [pending] = createPendingComposerAttachments([file]);
       if (!pending) return false;
+      dispatch({ type: "TOUCH_COMPOSER" });
       const staged: ComposerAttachment = { ...pending, status: "staged" };
       const nameKey = getComposerAttachmentNameKey(staged);
       latestAttachmentIdByNameRef.current.set(nameKey, staged.id);

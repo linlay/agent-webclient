@@ -2,6 +2,13 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "composer.failedSubmission.title": "未发送的内容：",
+  "composer.failedSubmission.details": "引用 {references} 项，技能 {skills} 项",
+  "composer.failedSubmission.restore": "恢复到输入框",
+  "composer.failedSubmission.restoreHint": "切回原会话或智能体后恢复；保留输入框已有内容",
+  "composer.failedSubmission.discard": "丢弃",
+  "composer.skills.recheck": "重新检查",
+
   "skillCatalog.kindFilter": "技能类型筛选",
   "skillPackageEditor.editManifest": "编辑 package.json",
   "skillPackageEditor.manifestHint": "编辑技能包信息和成员清单。name 不可修改；skills 按顺序填写含 id（成员目录名）的对象，空包填写 []。成员名称、描述和版本来自各自的 SKILL.md；移除清单项不会删除文件。",

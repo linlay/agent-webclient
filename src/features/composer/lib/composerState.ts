@@ -36,7 +36,21 @@ export type ComposerSteerAction =
   | { type: "RESTORE_PENDING_STEER"; chatId: string; runId: string; steerId: string }
   | { type: "CLEAR_PENDING_STEERS" };
 
+export interface SubmissionDraft {
+  requestId: string;
+  chatId: string;
+  agentKey: string;
+  message: string;
+  references: unknown[];
+  skills: ComposerRequiredSkill[];
+  version: number;
+}
+
 export interface ComposerState extends ComposerAccessState {
+  composerEditVersion: number;
+  submissionDrafts: Record<string, SubmissionDraft>;
+  failedSubmissions: SubmissionDraft[];
+  skillRejection: { agentKey: string; skillId?: string; message: string } | null;
   mentionOpen: boolean;
   mentionSuggestions: Agent[];
   mentionActiveIndex: number;
@@ -54,6 +68,12 @@ export type ComposerDraftState = Pick<
 >;
 
 export type ComposerAction =
+  | { type: "TOUCH_COMPOSER" }
+  | { type: "BEGIN_COMPOSER_SUBMISSION"; draft: Omit<SubmissionDraft, "version"> }
+  | { type: "SETTLE_COMPOSER_SUBMISSION"; requestId: string; accepted: boolean }
+  | { type: "DISCARD_FAILED_SUBMISSION"; requestId: string }
+  | { type: "RESTORE_FAILED_SUBMISSION"; requestId: string }
+  | { type: "SET_SKILL_REJECTION"; rejection: ComposerState["skillRejection"] }
   | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
   | { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
@@ -65,6 +85,10 @@ export type ComposerAction =
 export function createInitialComposerState(): ComposerState {
   return {
     ...restoreComposerAccessLevels(),
+    composerEditVersion: 0,
+    submissionDrafts: {},
+    failedSubmissions: [],
+    skillRejection: null,
     mentionOpen: false,
     mentionSuggestions: [],
     mentionActiveIndex: 0,

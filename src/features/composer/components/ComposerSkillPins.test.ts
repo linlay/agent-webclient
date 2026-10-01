@@ -213,7 +213,7 @@ describe("Composer skill pins", () => {
     expect(names()).toEqual([]);
   });
 
-  it("updates slash keyboard selection and refreshes changes from another client", async () => {
+  it("updates slash keyboard selection and refreshes changes on explicit reload", async () => {
     let slash: ReturnType<typeof useComposerSlash>;
     let pins: ReturnType<typeof usePinnedSkills>;
     function Harness() {
@@ -232,6 +232,8 @@ describe("Composer skill pins", () => {
     expect(slash!.selectSlashItem(slash!.slashCommands.length)).toMatchObject({ id: "slides" });
     serverOrder = ["pdf"];
     await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(slash!.slashSkills[0].id).toBe("slides");
+    await act(async () => { await pins!.refreshPins(); });
     expect(slash!.slashSkills[0].id).toBe("pdf");
   });
 

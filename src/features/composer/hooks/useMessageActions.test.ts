@@ -744,3 +744,26 @@ describe("resolveDifferentChatDetachRunDetail", () => {
     })).toBeNull();
   });
 });
+
+it("maps a query admission rejection to Agent state and restores the captured submission", async () => {
+  const { ApiError } = jest.requireActual("@/shared/data");
+  const stateRef = { current: createInitialState() };
+  stateRef.current.agents = [{ key: "agent-coder", name: "Coder", mode: "CODER" }];
+  stateRef.current.agentAvailability = { "agent-coder": "available" };
+  stateRef.current = appReducer(stateRef.current, { type: "BEGIN_COMPOSER_SUBMISSION", draft: {
+    requestId: "rejected-request", chatId: "", agentKey: "agent-coder", message: "hello",
+    references: [{ type: "file", url: "resource://test" }], skills: [{ id: "pdf", label: "PDF" }],
+  } });
+  const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
+  useAppContext.mockReturnValue({ state: stateRef.current, stateRef, dispatch,
+    querySessionsRef: { current: new Map() }, chatQuerySessionIndexRef: { current: new Map() }, activeQuerySessionRequestIdRef: { current: "" } });
+  startQuery.mockImplementation(() => { throw new ApiError("Invalid agent", { status: 422, data: { error: { code: "agent_configuration_invalid", message: "Invalid agent" } } }); });
+  let actions!: ReturnType<typeof useMessageActions>;
+  function Probe() { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; }
+  renderToStaticMarkup(React.createElement(Probe));
+  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "agent-coder", "", false, [], "", "rejected-request");
+  expect(stateRef.current.agentAvailability["agent-coder"]).toBe("unavailable");
+  expect(stateRef.current.composerDraft).toBe("hello");
+  expect(stateRef.current.selectedSkills).toEqual([{ id: "pdf", label: "PDF" }]);
+  expect(stateRef.current.restoredSteerReferencesByChatId[""]).toHaveLength(1);
+});

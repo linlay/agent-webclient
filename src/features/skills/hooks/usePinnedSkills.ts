@@ -1,28 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { getAgentSkills, putAgentSkillPin, invalidateAgentSkills, getCurrentAccessToken } from "@/shared/data/api/routedClient";
-import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
+import { getAgentSkills, putAgentSkillPin, invalidateAgentSkills } from "@/shared/data/api/routedClient";
+import { getDataSessionRevision } from "@/shared/data/auth/dataSession";
+import { usePushSignal, useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
+import { skillRefresh, retainSkillRefresh, affectsSkillsCatalog, SKILLS_REFRESH_EVENT } from "@/features/skills/lib/skillRefresh";
 import { getBackendMode } from "@/shared/config/backendMode";
 import { createDataCacheKey } from "@/shared/data/api/endpointRegistry";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
-import { dataQueryCache, useDataQuery } from "@/shared/data/query/serverState";
+import { dataQueryCache } from "@/shared/data/query/serverState";
 import { useI18n } from "@/shared/i18n";
 
 const EMPTY_KEYS: readonly string[] = [];
 const TTL_MS = 30_000;
-let lastIdentity: string | undefined;
-let sessionRevision = 0;
 let pinRevision = 0;
 let readSequence = 0;
 let publishedReadSequence = 0;
-
-function currentSessionRevision() {
-  const identity = `${getBackendMode()}\0${getCurrentAccessToken()}\0${getGatewaySession()?.user?.subject || ""}`;
-  if (identity !== lastIdentity) {
-    lastIdentity = identity;
-    sessionRevision += 1;
-  }
-  return sessionRevision;
-}
 
 async function publishPins(key: string, pinned: string[]) {
   dataQueryCache.invalidate(key);
@@ -32,7 +23,7 @@ async function publishPins(key: string, pinned: string[]) {
 /** One remote read supplies both the global catalog and user pins. */
 export function usePinnedSkills(enabled: boolean, agentKey = "") {
   const { locale } = useI18n();
-  const revision = currentSessionRevision();
+  const revision = getDataSessionRevision();
   const normalizedAgentKey = agentKey.trim();
   const endpoint = useMemo(() => ({
     ...dataEndpoints.agentSkills,
@@ -46,35 +37,52 @@ export function usePinnedSkills(enabled: boolean, agentKey = "") {
     useCallback(() => dataQueryCache.getSnapshot<string[]>(pinsCacheKey), [pinsCacheKey]),
     useCallback(() => dataQueryCache.getSnapshot<string[]>(pinsCacheKey), [pinsCacheKey]),
   );
-  const read = useCallback(async (key: string) => {
-    const startedAt = pinRevision;
-    const sequence = ++readSequence;
-    const response = await getAgentSkills(key);
-    if (revision === sessionRevision && startedAt === pinRevision && sequence > publishedReadSequence) {
-      publishedReadSequence = sequence;
-      await publishPins(pinsCacheKey, response.data.pinned);
-    }
-    return response;
-  }, [revision, pinsCacheKey]);
-  const query = useDataQuery(endpoint, normalizedAgentKey, read, { enabled: false, ttlMs: TTL_MS });
+  const cacheKey = createDataCacheKey(endpoint, normalizedAgentKey);
+  const snapshot = useSyncExternalStore(
+    useCallback(listener => dataQueryCache.subscribe(cacheKey, listener), [cacheKey]),
+    useCallback(() => dataQueryCache.getSnapshot<import("@/shared/data/api/dto/agents").AgentSkillsResponse>(cacheKey, TTL_MS), [cacheKey]),
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<Error | null>(null);
   const pending = useRef(false);
-  const refreshPins = useCallback(() => {
+  const refreshPins = useCallback((changed = true) => {
     setSaveError(null);
-    invalidateAgentSkills(normalizedAgentKey);
-    query.invalidate();
-    return query.refetch();
-  }, [normalizedAgentKey, query.invalidate, query.refetch]);
-
+    const startedAt = pinRevision;
+    const sequence = ++readSequence;
+    return skillRefresh(cacheKey).read(
+      async () => { dataQueryCache.markLoading(cacheKey); return (await getAgentSkills(normalizedAgentKey)).data; },
+      () => { invalidateAgentSkills(normalizedAgentKey); dataQueryCache.invalidate(cacheKey); },
+      response => {
+        if (revision !== getDataSessionRevision()) return;
+        dataQueryCache.invalidate(cacheKey);
+        void dataQueryCache.fetch(cacheKey, () => Promise.resolve(response), { ttlMs: TTL_MS });
+        if (startedAt === pinRevision && sequence > publishedReadSequence) {
+          publishedReadSequence = sequence;
+          void publishPins(pinsCacheKey, response.pinned);
+        }
+      },
+      error => {
+        if (revision !== getDataSessionRevision()) return;
+        dataQueryCache.invalidate(cacheKey);
+        void dataQueryCache.fetch(cacheKey, () => Promise.reject(error)).catch(() => undefined);
+      }, changed,
+    );
+  }, [cacheKey, normalizedAgentKey, pinsCacheKey, revision]);
+  const query = { ...snapshot, refetch: refreshPins };
   useEffect(() => {
-    setSaveError(null);
     if (!enabled) return;
-    const refresh = () => { void refreshPins().catch(() => undefined); };
-    refresh();
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, [enabled, refreshPins]);
+    const release = retainSkillRefresh(cacheKey);
+    void refreshPins();
+    const focus = () => { if (getBackendMode() === "gateway") void refreshPins(false); };
+    const requested = (event: Event) => {
+      if ((event as CustomEvent).detail?.agentKey === normalizedAgentKey) void refreshPins();
+    };
+    window.addEventListener("focus", focus);
+    window.addEventListener(SKILLS_REFRESH_EVENT, requested);
+    return () => { release(); window.removeEventListener("focus", focus); window.removeEventListener(SKILLS_REFRESH_EVENT, requested); };
+  }, [enabled, normalizedAgentKey, refreshPins, cacheKey]);
+  usePushSignal("catalog.updated", frame => { if (affectsSkillsCatalog(frame)) void refreshPins(); }, enabled);
+  useReconnectSignal(() => { void refreshPins(); }, enabled);
 
   const pinnedSkillIds = pins.data ?? EMPTY_KEYS;
   const toggleSkillPin = useCallback(async (key: string) => {
@@ -84,11 +92,11 @@ export function usePinnedSkills(enabled: boolean, agentKey = "") {
     setSaveError(null);
     try {
       const response = await putAgentSkillPin({ id: key, pinned: !pinnedSkillIds.includes(key.trim().toLowerCase()) });
-      if (revision !== sessionRevision) return;
+      if (revision !== getDataSessionRevision()) return;
       pinRevision += 1;
       await publishPins(pinsCacheKey, response.data.pinned);
     } catch (error) {
-      if (revision === sessionRevision) setSaveError(error instanceof Error ? error : new Error(String(error)));
+      if (revision === getDataSessionRevision()) setSaveError(error instanceof Error ? error : new Error(String(error)));
     } finally {
       pending.current = false;
       setSaving(false);

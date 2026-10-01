@@ -1,3 +1,4 @@
+import { FailedSubmissions } from "./FailedSubmissions";
 import { composerAccessKey, readComposerAccessLevel, resolveComposerAccessScope } from "../lib/composerAccessLevel";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
@@ -240,7 +241,22 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const invalidSelectedSkills = !agentExecutionBlocked && skillCatalogQuery.status === "success" && skillCatalogQuery.data?.agentKey === currentAgentKey
     ? effectiveManualSkills.filter(skill => !activeAgentSkills.some(available => skillIdentity(available.id) === skillIdentity(skill.id)))
     : [];
-  const hasInvalidSelectedSkills = invalidSelectedSkills.length > 0;
+  const skillRejection = state.skillRejection?.agentKey === currentAgentKey ? state.skillRejection : null;
+  const hasInvalidSelectedSkills = invalidSelectedSkills.length > 0 || !!skillRejection;
+  const selectionSignature = JSON.stringify([currentAgentKey, effectiveSkills.map(skill => skill.id)]);
+  const priorSelection = useRef(selectionSignature);
+  const priorRejection = useRef(state.skillRejection);
+  const rejectionCatalog = useRef(skillCatalogQuery.data);
+  useEffect(() => {
+    if (state.skillRejection && ((priorSelection.current !== selectionSignature && priorRejection.current === state.skillRejection) ||
+      (priorRejection.current === state.skillRejection && skillCatalogQuery.status === "success" && skillCatalogQuery.data !== rejectionCatalog.current))) {
+      dispatch({ type: "SET_SKILL_REJECTION", rejection: null });
+    }
+    if (priorRejection.current !== state.skillRejection) rejectionCatalog.current = skillCatalogQuery.data;
+    priorSelection.current = selectionSignature;
+    priorRejection.current = state.skillRejection;
+  }, [selectionSignature, state.skillRejection, skillCatalogQuery.status, skillCatalogQuery.data, dispatch]);
+  useEffect(() => { dispatch({ type: "TOUCH_COMPOSER" }); }, [dispatch]);
   const groupedSkills = groupSelectedPackages(skillCatalogQuery.data?.packages || [], displayedManualSkills);
 
   // Restore: 当 state.selectedSkills 被 reducer 更改（SET_CHAT_ID 恢复）时，同步到局部
@@ -368,6 +384,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const completedRunId = String(completedRun?.runId || (!isMainChatRunning &&
     state.chats.find(chat => chat.chatId === state.chatId)?.lastRunId) || "");
   const selectedText = useSelectedTextFragments(state.chatId, sendReferences, completedRunId);
+  const selectionReferencesSignature = JSON.stringify(selectedText.references);
+  const previousReferencesSignature = useRef(selectionReferencesSignature);
+  useEffect(() => {
+    if (previousReferencesSignature.current !== selectionReferencesSignature) dispatch({ type: "TOUCH_COMPOSER" });
+    previousReferencesSignature.current = selectionReferencesSignature;
+  }, [selectionReferencesSignature, dispatch]);
   const selectedFragments = useMemo(() => [
     ...sendAttachmentMeta.flatMap((attachment) => {
       const fragment = selectedTextFragmentFromAttachment(attachment);
@@ -377,6 +399,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   ], [sendAttachmentMeta, selectedText.fragments]);
   const visibleAttachments = attachments.filter((attachment) => attachment.type !== "selection");
   const removeSelectedFragment = (referenceId: string) => {
+    dispatch({ type: "TOUCH_COMPOSER" });
     selectedText.removeFragment(referenceId);
     const restored = attachments.find((attachment) => attachment.type === "selection" &&
       attachment.references.some((reference) => reference && typeof reference === "object" &&
@@ -384,6 +407,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     if (restored) handleRemoveAttachment(restored.id);
   };
   const updateSelectedAnnotation = (referenceId: string, annotation: string) => {
+    dispatch({ type: "TOUCH_COMPOSER" });
     selectedText.updateAnnotation(referenceId, annotation);
     const references = state.restoredSteerReferencesByChatId?.[state.chatId];
     if (references) dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId,
@@ -991,6 +1015,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 ref={composerPillRef}
                 className={`${COMPOSER_PILL_CLASS} ${isFrontendActive ? COMPOSER_PILL_FRONTEND_CLASS : ""} ${isVoiceMode ? COMPOSER_PILL_VOICE_CLASS : ""}`}
               >
+                <FailedSubmissions agentKey={currentAgentKey} chatId={state.chatId} drafts={state.failedSubmissions || []}
+                  restore={requestId => dispatch({ type: "RESTORE_FAILED_SUBMISSION", requestId })}
+                  discard={requestId => dispatch({ type: "DISCARD_FAILED_SUBMISSION", requestId })} />
                 <ComposerAttachments
                   attachments={visibleAttachments}
                   attachmentChatId={state.chatId || attachmentChatId}
@@ -1009,7 +1036,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onRemove={removeSelectedFragment}
                 />
                 {hasInvalidSelectedSkills && <div role="alert">
-                  {t("packageComposer.invalidSelection")} {invalidSelectedSkills.map(skill => skill.label).join("、")}
+                  {skillRejection?.message || t("packageComposer.invalidSelection")} {skillRejection?.skillId || ""} {invalidSelectedSkills.map(skill => skill.label).join("、")}
+                  <AgentConfigurationLink agentKey={currentAgentKey} />
+                  <UiButton variant="ghost" size="sm" onClick={() => void skillCatalogQuery.refreshPins().then(response => { if (response) dispatch({ type: "SET_SKILL_REJECTION", rejection: null }); })}>{t("composer.skills.recheck")}</UiButton>
                   <UiButton variant="ghost" size="sm" onClick={() => {
                     const ids = new Set(invalidSelectedSkills.map(skill => skillIdentity(skill.id)));
                     setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.id))));
@@ -1081,6 +1110,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   emptyInputMinRows={emptyInputMinRows}
                   inputMaxRows={inputMaxRows}
                   onInputChange={(next) => {
+                    dispatch({ type: "SET_COMPOSER_DRAFT", draft: next });
                     setInputValue(next);
                     setSlashDismissed(false);
                     if (

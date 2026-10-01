@@ -101,3 +101,24 @@ it("keeps newer pins when an earlier catalog response arrives late", async () =>
   await act(async () => resolveOld({ status: 200, code: 0, msg: "", data: { agentKey: "demo", skills: [], pinned: ["old"] } }));
   expect(current.pinnedSkillIds).toEqual(["new"]);
 });
+
+it("ignores ordinary focus while a selected skill keeps the query enabled", async () => {
+  await render(true);
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(getAgentSkills).toHaveBeenCalledTimes(1);
+});
+
+it("coalesces readers and queues a replacement when configuration changes during a read", async () => {
+  let resolveOld!: (response: any) => void;
+  jest.mocked(getAgentSkills).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
+  await render(true);
+  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", skills: [{ id: "new", configured: true }], pinned: [] } });
+  await act(async () => {
+    window.dispatchEvent(new CustomEvent("agent:skills-refresh", { detail: { agentKey: "demo" } }));
+    window.dispatchEvent(new CustomEvent("agent:skills-refresh", { detail: { agentKey: "demo" } }));
+  });
+  expect(getAgentSkills).toHaveBeenCalledTimes(1);
+  await act(async () => resolveOld({ data: { agentKey: "demo", skills: [{ id: "old" }], pinned: [] } }));
+  expect(getAgentSkills).toHaveBeenCalledTimes(2);
+  expect(current.data?.skills[0].id).toBe("new");
+});

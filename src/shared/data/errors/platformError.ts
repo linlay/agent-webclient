@@ -1,6 +1,7 @@
 import { t } from "@/shared/i18n";
 
 export interface PlatformError {
+  skillId?: string;
   code: string;
   category: string;
   scope: string;
@@ -196,6 +197,7 @@ export function normalizePlatformError(input: unknown): PlatformError {
     readNumber(record?.status) ??
     readNumber(record?.code);
   const errorWithoutTechnicalText = {
+    ...(readString(structured?.skillId) ? { skillId: readString(structured?.skillId) } : {}),
     code,
     category: readString(structured?.category),
     scope: readString(structured?.scope),

@@ -645,16 +645,25 @@ export function useComposerSend(input: UseComposerSendInput) {
       }
     }
 
+    const submissionRequestId = createRequestId("req");
+    const submissionSkills = [...stateRef.current.selectedSkills];
     setInputValue("");
     dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
+    dispatch({ type: "SET_SELECTED_SKILLS", skills: [] });
     clearComposerAttachments();
     clearMustUseSkills();
     setSlashDismissed(false);
     closeMention();
+    dispatch({ type: "BEGIN_COMPOSER_SUBMISSION", draft: {
+      requestId: submissionRequestId, chatId: stateRef.current.chatId,
+      agentKey: owner?.kind === "agent" ? owner.agentKey : "", message,
+      references: [...sendReferences], skills: submissionSkills,
+    } });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
         detail: {
           message,
+          submissionRequestId,
           chatId: pendingChatId || undefined,
           ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
           ...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),

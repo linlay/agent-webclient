@@ -2,6 +2,13 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "composer.failedSubmission.title": "Unsent content:",
+  "composer.failedSubmission.details": "{references} references, {skills} skills",
+  "composer.failedSubmission.restore": "Restore to composer",
+  "composer.failedSubmission.restoreHint": "Return to the original conversation or agent to restore; existing input is kept",
+  "composer.failedSubmission.discard": "Discard",
+  "composer.skills.recheck": "Check again",
+
   "skillCatalog.kindFilter": "Filter skill types",
   "skillPackageEditor.editManifest": "Edit package.json",
   "skillPackageEditor.manifestHint": "Edit package metadata and members. Keep name unchanged; list skills in order as objects with an id (member directory), or [] for an empty package. Member names, descriptions and versions come from each SKILL.md. Removing an entry does not delete its files.",

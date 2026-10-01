@@ -41,3 +41,7 @@ Agent、Team 和 Worker 列表是左侧导航和对话入口的核心。前端�
 `chatPinnedOrder` 与同一份 `state.chats` 一起投影 UI，不修改对话 `updatedAt`、普通排序或浏览器持久化。修改成功使用后端返回的顺序，随后刷新并补齐原分组；失败提示并重新对账。并发刷新合并为串行重取，请求期间的 live push、重命名、已读与删除不会被较早的置顶摘要覆盖。读取响应缺少 `pinnedChats` 或接口失败均作为加载失败处理，保留当前置顶状态；空数组才表示无置顶。`updatedAt` 只标记展示偏好，不能用于跳过摘要刷新，实时 Push 仍继续更新运行态和未读状态。
 
 Desktop 内嵌 Agent/Copilot 页面继续由宿主提供外层侧栏；WebClient 不额外显示第二份导航。
+
+## 当前 Agent 可用性同步
+
+Composer 可用性以全局 agentAvailability 为唯一来源，按 Agent 隔离检查版本，历史 Chat owner 保持不变。query 准入拒绝会同时失效该 Agent 的详情缓存并阻止迟到检查覆盖。当前 Agent 的 catalog.updated、重连、认证恢复和显式重试负责重新校准状态，正常 Platform 窗口切换不产生详情请求。

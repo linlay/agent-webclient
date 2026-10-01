@@ -238,8 +238,9 @@ export function getAgent(agentKey: string): Promise<ApiResponse<AgentDetailRespo
 	return routeEndpoint(dataEndpoints.agent, agentKey, () => getAgentHttp(agentKey));
 }
 
-export function invalidateAgentDetail(): void {
-	invalidateRouteEndpoints(dataEndpoints.agent);
+export function invalidateAgentDetail(agentKey?: string): void {
+  if (agentKey) dataQueryCache.invalidate(createRouteCacheKey(dataEndpoints.agent, resolveEndpointPayload(dataEndpoints.agent, agentKey)));
+  else invalidateRouteEndpoints(dataEndpoints.agent);
 }
 
 export function getAgentSkills(

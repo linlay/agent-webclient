@@ -39,7 +39,7 @@ BTW Composer 在 idle 时于发送位显示 Send；running 时始终在同一位
 ## 技能置顶
 加号菜单的技能行右侧提供置顶/取消置顶按钮，悬停、键盘聚焦或触屏时可见，已置顶按钮持续高亮。选择菜单和技能中心共用混排规则：技能包和独立技能均可整体置顶，按同一置顶顺序靠前，其余项目按展示名称一起排序；不再为置顶或类型单独分区。包置顶保存包 ID，不展开成员，也不由成员置顶状态推导。取消置顶后按名称重新排序，不重复展示。置顶只调整候选顺序，不会选中技能或关闭菜单，运行中仍可调整；最近置顶的技能在前，取消后恢复接口顺序。搜索继续过滤所有候选，`/` 技能候选也共享置顶顺序。
 
-置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 mustUseSkills。技能中心可不传 agentKey 读取完整目录和置顶。前端只保留内存查询缓存，打开菜单、显示 slash 候选及窗口重新聚焦时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
+置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 mustUseSkills。技能中心可不传 agentKey 读取完整目录和置顶。前端只保留内存查询缓存，打开菜单、显示 slash 候选及目录变更或重连时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
 
 ## 连接器
 Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装目录和挂载配置，支持搜索；每行仅显示图标、名称和开关。账号授权、CLI 准备和 Token 凭据由独立连接器中心提供。开关初始值来自 Agent 源配置，切换后立即保存并触发平台重载；不随聊天草稿保存，也不进入 Query 请求。窄窗口在原弹层内展示列表和返回入口。具体接口和授权边界见 [连接器](53-Worker管理-连接器.md)。
@@ -100,3 +100,9 @@ Composer 按当前 Chat 的持久化 owner 独立请求 `/api/agent`；不依赖
 Enter 将当前文字或有效引用加入本地等待区；输入框为空时 Cmd+Enter 提交当前 Run 的第一条等待项。输入框有文字或有效引用时 Cmd+Enter 直接提交该内容到服务端 steer 队列，已有等待项保留。两条路径共享受理确认、失败恢复与防重复提交逻辑；输入框及等待区均为空时不执行操作。Shift+Enter 保持换行，输入法确认、上传中、附件失败和交互阻塞继续按原规则处理。
 
 空 query 的资格由 `/api/chat` 和 `/api/chats` 的 `canContinue` 提供，实时主 Run 的异常或取消终态更新为可继续，正常完成、新 query、Run 启动或等待人工交互时关闭。子任务、隐藏旁聊、旧快照和未知终态不授予资格；后端始终按持久化状态再次校验。仅附件续聊仍按已有历史校验。
+
+## Composer 目录同步
+
+Platform 正常聚焦不再刷新 `/api/agent` 和 `/api/skills`。Agent 根据 catalog.updated（除 viewports）、重连和显式重试刷新；仅 unavailable/forbidden/error 且无在途检查时允许 focus 强制恢复。checking 与 authentication_required 不响应 focus，认证凭证更新另行触发检查。界面和发送拦截统一读取全局 agentAvailability；同 Agent 的 Chat 切换沿用确认状态，后台刷新不替换输入区。
+
+Composer 技能候选及已选技能订阅 skills/agents/config/connectors 目录通知和重连。菜单打开与重新检查仍强制刷新，多个消费者共享请求；技能置顶由同一目录响应提供，跨窗口改置顶在下次打开菜单时同步。目录明确缺少的手动技能仍提示移除；服务端拒绝技能时保留错误提示、配置入口和重新检查，有 skillId 才展示精确 ID。

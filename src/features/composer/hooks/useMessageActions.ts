@@ -1,3 +1,6 @@
+import { rejectAgentCheck } from "@/features/agents/lib/agentRefresh";
+import { requestSkillsRefresh } from "@/features/skills/lib/skillRefresh";
+import { getDataSessionRevision } from "@/shared/data/auth/dataSession";
 import { resolveComposerAccessScope } from "@/features/composer/lib/composerAccessLevel";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { canContinueChat, hasQueryHistory, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
@@ -50,6 +53,7 @@ import { areConversationInteractionsBlocked } from "@/features/conversation/lib/
 import { notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
 
 interface SendMessageEventDetail {
+  submissionRequestId?: string;
   message?: unknown;
   references?: unknown;
   attachments?: unknown;
@@ -284,7 +288,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       editingMode = false,
       mustUseSkills: string[] = [],
       mustUseSkillsAgentKey = "",
+      submissionRequestId = "",
     ) => {
+      const submissionSession = getDataSessionRevision();
       const rawMessage = String(inputMessage ?? "").trim();
       const normalizedReferences = Array.isArray(references)
         ? references.filter((reference) => reference != null)
@@ -493,7 +499,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       getVoiceRuntime()?.resetVoiceRuntime();
 
       /* Start streaming */
-      const requestId = createRequestId("req");
+      const requestId = submissionRequestId || createRequestId("req");
       const abortController = new AbortController();
       if (chatId && selectedOwner?.kind === "agent") {
         dispatch({
@@ -764,6 +770,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         const identity = await execution.identity;
         initializeChatAccess(identity.chatId);
         queryAccepted = true;
+        dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: true });
         notifySelectedTextReferencesAccepted(normalizedReferences);
         session.chatId = identity.chatId;
         session.runId = identity.runId;
@@ -802,6 +809,24 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         const err = error as Error;
         if (err.name !== "AbortError") {
           const display = formatPlatformErrorForDisplay(err);
+          if (!queryAccepted && submissionSession === getDataSessionRevision()) {
+            const status = display.code === "agent_not_found" || display.code === "agent_configuration_invalid" ? "unavailable"
+              : display.status === 403 ? "forbidden"
+              : display.status === 401 ? "authentication_required" : null;
+            if (status && selectedAgentKey) {
+              rejectAgentCheck(stateRef, selectedAgentKey);
+              dispatch({ type: "SET_AGENT_AVAILABILITY", agentKey: selectedAgentKey, status });
+            }
+            if (display.code === "interaction_disabled") {
+              window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey: selectedAgentKey } }));
+            }
+            if (display.code === "must_use_skill_unavailable") {
+              requestSkillsRefresh(selectedAgentKey);
+              dispatch({ type: "SET_SKILL_REJECTION", rejection: { agentKey: selectedAgentKey, message: display.message,
+                ...(display.error.skillId ? { skillId: display.error.skillId } : {}) } });
+            }
+          }
+          if (!queryAccepted && submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: false });
           if (display.code === "editing_mode_unsupported") {
             session.editingMode = false;
             if (isSessionActive()) {
@@ -809,7 +834,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             }
           }
           if (isSessionActive()) {
-            if (!queryAccepted) {
+            if (!queryAccepted && !submissionRequestId) {
               dispatch({ type: "SET_COMPOSER_DRAFT", draft: cleanMessage });
             }
             dispatch({
@@ -911,7 +936,10 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           editingMode,
           mustUseSkills,
           mustUseSkillsAgentKey,
-        );
+          detail.submissionRequestId,
+        ).finally(() => {
+          if (detail.submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId: detail.submissionRequestId, accepted: false });
+        });
       }
     };
     window.addEventListener("agent:send-message", handler);
