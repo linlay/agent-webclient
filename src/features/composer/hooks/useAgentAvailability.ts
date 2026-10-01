@@ -17,9 +17,14 @@ export function classifyAgentAvailabilityError(error: unknown): AgentAvailabilit
 
 /** Check current execution metadata independently of persisted Chat replay. */
 export function useAgentAvailability(agentKey: string, chatId: string) {
-  const { dispatch, stateRef } = useAppContext();
+  const { dispatch, stateRef, querySessionsRef, activeQuerySessionRequestIdRef } = useAppContext();
   const [revision, setRevision] = useState(0);
-  const [result, setResult] = useState<{ identity: string; status: AgentAvailability } | null>(null);
+  const [result, setResult] = useState<{
+    identity: string;
+    status: AgentAvailability;
+    chatLoadSeq: number;
+    revision: number;
+  } | null>(null);
   const resultRef = useRef<typeof result>(null);
   // A refresh is a new request, not a new Chat/Agent identity.
   const identity = `${agentKey}\u0000${chatId}`;
@@ -36,10 +41,24 @@ export function useAgentAvailability(agentKey: string, chatId: string) {
     }
     let settled = false;
     const publish = (status: AgentAvailability) => {
-      resultRef.current = { identity, status };
+      resultRef.current = { identity, status, chatLoadSeq: stateRef.current.chatLoadSeq, revision };
       setResult(resultRef.current);
       dispatch({ type: "SET_AGENT_AVAILABILITY", agentKey, status });
     };
+    // A locally started query receiving its first Chat ID is still the same
+    // conversation. Keep the confirmed definition through the URL promotion.
+    // History navigation advances chatLoadSeq, even when returning to a live run.
+    const previous = resultRef.current;
+    if (chatId && previous?.identity === `${agentKey}\u0000` &&
+        previous.status === "available" && previous.revision === revision &&
+        previous.chatLoadSeq === stateRef.current.chatLoadSeq) {
+      const session = querySessionsRef.current.get(activeQuerySessionRequestIdRef.current);
+      if (session?.observationSource === "query" && session.chatId === chatId &&
+          session.agentKey === agentKey) {
+        publish("available");
+        return;
+      }
+    }
     // A focus refresh must not replace the Composer or move the timeline.
     // Keep the last confirmed result for this identity until the request settles.
     if (resultRef.current?.identity !== identity) publish("checking");
@@ -68,7 +87,7 @@ export function useAgentAvailability(agentKey: string, chatId: string) {
       publish(classifyAgentAvailabilityError(error));
     });
     return () => { settled = true; clearTimeout(timeout); };
-  }, [agentKey, identity, revision, dispatch, stateRef]);
+  }, [agentKey, chatId, identity, revision, dispatch, stateRef, querySessionsRef, activeQuerySessionRequestIdRef]);
 
   useEffect(() => {
     if (!agentKey) return;

@@ -12,6 +12,8 @@
 
 Composer 单独检查当前 Agent，内存 `agentAvailability` 不进入 Chat 历史或 query 参数。不可用时显示配置链接并封闭执行入口；页面加载期限只覆盖 Chat 加载与应用，不包含 Agent 详情检查。详见 [Composer](21-对话输入-Composer输入与快捷交互.md#当前-agent-不可用)。
 
+本地 query 首次取得正式 `chatId` 时，若当前 query session 的 Agent 与 Chat 匹配、期间未启动历史加载且没有待完成的新一轮可用性刷新，Composer 沿用同一 Agent 已确认可用的结果，不因 URL 升级再次请求 `/api/agent`。历史会话切换、Agent 切换、主动重试和焦点刷新仍执行检查；失败或未确认的结果不复用。
+
 ## 核心职责
 
 - 加载对话摘要并合并运行中对话的 live patch。
