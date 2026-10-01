@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Input, Spin, Switch, message } from "antd";
 import type { InputRef } from "antd";
 import { useI18n } from "@/shared/i18n";
@@ -27,12 +27,7 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId,
   const catalog = useConnectorPickerCatalog();
   const searchRef = useRef<InputRef>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
-  const [attemptedId, setAttemptedId] = useState("");
-  const attemptedItem = catalog.items.find(item => item.id === attemptedId);
-  const localConflict = attemptedItem && !selectedIds.includes(attemptedId)
-    ? findConnectorSelectionConflict(attemptedItem, selectedIds, catalog.items) : null;
-  const serverConflict = connectorSelectionConflictFromError(selectionError);
-  const conflict = localConflict || serverConflict;
+  const conflict = connectorSelectionConflictFromError(selectionError);
   const selectionErrorText = conflict
     ? t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(conflict, catalog.items))
     : selectionError ? `${t("composer.addMenu.connectors.saveFailed")}: ${selectionError.message}` : "";
@@ -45,7 +40,6 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId,
   }, [selectionError, selectionErrorText, messageApi]);
   const changeSelection: ConnectorPickerProps["onSelectionChange"] = (item, selected) => {
     const nextConflict = selected ? findConnectorSelectionConflict(item, selectedIds, catalog.items) : null;
-    setAttemptedId(nextConflict ? item.id : "");
     if (nextConflict) {
       void messageApi.error(t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(nextConflict, catalog.items)));
       return;
@@ -62,7 +56,6 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, savingId,
 
   return <section className={styles.picker} aria-label={t("composer.addMenu.section.connectors")}>
     {messageContextHolder}
-    {selectionErrorText && <div className={styles.selectionError} role="alert">{selectionErrorText}</div>}
     <Input ref={searchRef} className={styles.search} variant="filled" prefix={<MaterialIcon name="search" />} value={search}
       aria-label={t("composer.addMenu.connectors.search")} placeholder={t("composer.addMenu.connectors.search")}
       onChange={event => onSearchChange(event.target.value)} />

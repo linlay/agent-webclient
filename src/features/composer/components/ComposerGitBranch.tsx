@@ -82,8 +82,16 @@ export function ComposerGitBranch({ agentKey, workspaceDir, disabled = false }: 
       align={{ overflow: { adjustX: true, adjustY: true, shiftX: 8, shiftY: 8 } }} content={
       <div className={styles.branchMenu} role="dialog" aria-label={t("composer.git.select")}>
         <form onSubmit={event => { event.preventDefault(); void change("create", name.trim()); }}>
-          <input className={styles.branchInput} aria-label={t("composer.git.name")} placeholder={t("composer.git.name")}
-            value={name} onChange={event => setName(event.target.value)} disabled={pending} maxLength={255} />
+          <div className={styles.branchSearch}>
+            <input className={styles.branchInput} aria-label={t("composer.git.name")} placeholder={t("composer.git.name")}
+              value={name} onChange={event => setName(event.target.value)} disabled={pending} maxLength={255} />
+            <button type="submit" className={styles.branchCreate}
+              aria-label={pending ? t("composer.git.changing") : t("composer.git.create")}
+              title={pending ? t("composer.git.changing") : t("composer.git.create")}
+              aria-busy={pending} disabled={blocked || !name.trim() || data?.branches.includes(name.trim())}>
+              <MaterialIcon name="add" />
+            </button>
+          </div>
           {loading && <div role="status">{t("composer.git.loading")}</div>}
           {error && <div role="alert" className={styles.branchError}>{error}</div>}
           {data && !data.canChange && <p>{blockedMessage}</p>}
@@ -95,9 +103,6 @@ export function ComposerGitBranch({ agentKey, workspaceDir, disabled = false }: 
             </button>)}
             {data && filtered.length === 0 && <p>{t("composer.git.empty")}</p>}
           </div>
-          <button type="submit" className={styles.branchCreate} disabled={blocked || !name.trim() || data?.branches.includes(name.trim())}>
-            {pending ? t("composer.git.changing") : t("composer.git.create")}
-          </button>
           {error && !pending && <button type="button" className={styles.branchOption} onClick={() => { setError(""); setRefreshKey(value => value + 1); }}>{t("composer.git.retry")}</button>}
         </form>
       </div>

@@ -38,5 +38,3 @@
 .toggle:global(.ant-switch-checked):hover:not(:disabled) { background: #00a98d; }
 .status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 20px 8px; color: var(--ink-muted); font-size: 12px; }
 .notice { padding: 8px; color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
-
-.selectionError { padding: 8px; margin-bottom: 8px; color: var(--accent-danger); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }

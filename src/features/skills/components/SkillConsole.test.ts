@@ -290,16 +290,20 @@ describe("SkillConsole", () => {
     expect(skillVersionLabel("0.0.0")).toBe("v0.0.0");
   });
 
-  it("renders the status tag and the version label separately", () => {
+  it("hides ready status and keeps exceptional status separate from the version", () => {
     const statusHtml = renderToStaticMarkup(
       React.createElement(SkillListItemStatus, {
         status: "ready",
         statusLabel: "就绪",
       }),
     );
-    expect(statusHtml).toContain("就绪");
-    expect(statusHtml).toContain("skill-console-list-item-status");
-    expect(statusHtml).not.toContain("skill-console-list-item-version");
+    expect(statusHtml).toBe("");
+    for (const status of ["invalid", "disabled"] as const) {
+      const html = renderToStaticMarkup(React.createElement(SkillListItemStatus, { status, statusLabel: status }));
+      expect(html).toContain("skill-console-list-item-status");
+      expect(html).toContain(status);
+      expect(html).not.toContain("skill-console-list-item-version");
+    }
 
     const withVersion = renderToStaticMarkup(
       React.createElement(SkillListItemVersion, { version: "1.0.0" }),

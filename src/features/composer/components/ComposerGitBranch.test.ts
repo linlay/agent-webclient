@@ -15,7 +15,7 @@ let container: HTMLDivElement;
 const snapshot = (agentKey = "demo", branch = "base") => ({ agentKey, status: "branch" as const, branch, revision: "observed-revision" });
 const listing = (agentKey = "demo") => ({ code: 0, msg: "ok", data: { git: snapshot(agentKey), branches: ["base", "feature"], canChange: true } });
 function button(text: string) {
-  return Array.from(container.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')).find(node => node.textContent === text)!;
+  return Array.from(container.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')).find(node => node.textContent === text || node.getAttribute("aria-label") === text)!;
 }
 async function render(agentKey = "demo") {
   await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false, children:

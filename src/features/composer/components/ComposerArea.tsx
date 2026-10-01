@@ -459,23 +459,18 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const handleSelectSlashSkill = useCallback(
     (skill: AgentSkill) => {
-      if (!interactionConfig.mustUseSkills || isMainChatRunning) {
+      if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) {
         return;
       }
-      const identity = skill.key.toLowerCase();
-      if (forcedSkills.some((item) => item.key.toLowerCase() === identity)) {
+      const identity = skillIdentity(skill.key);
+      if (forcedSkills.some((item) => skillIdentity(item.key) === identity)) {
         return;
       }
       setSelectedSkills((current) => {
-        const selected = current.some(
-          (item) => item.key.trim().toLowerCase() === identity,
-        );
-        if (selected) {
-          return current.filter(
-            (item) => item.key.trim().toLowerCase() !== identity,
-          );
-        }
-        return [...current, { key: skill.key, label: skillDisplayName(skill) }];
+        const lockedKeys = forcedSkills.map(item => item.key);
+        const manual = current.filter(item => !lockedKeys.some(key => skillIdentity(key) === skillIdentity(item.key)));
+        const selected = manual.length === 1 && !manual[0].selectedViaPackageId && skillIdentity(manual[0].key) === identity;
+        return setPackageSelection(current, [skill], !selected, lockedKeys);
       });
       setInputValue((current) => current.slice(0, filterStartIndex - 1));
       setSlashDismissed(true);
@@ -484,12 +479,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         textareaRef.current?.resizableTextArea?.textArea?.focus();
       });
     },
-    [closeMention, forcedSkills, isMainChatRunning, interactionConfig.mustUseSkills, setSlashDismissed, filterStartIndex],
+    [closeMention, forcedSkills, isMainChatRunning, chatTransitionBlocking, interactionConfig.mustUseSkills, setSlashDismissed, filterStartIndex],
   );
 
-  const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean) => {
+  const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean, packageId?: string) => {
     if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) return;
-    setSelectedSkills(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.key)));
+    setSelectedSkills(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.key), packageId));
   }, [interactionConfig.mustUseSkills, isMainChatRunning, chatTransitionBlocking, forcedSkills]);
 
   const removeSelectedSkill = useCallback((skillKey: string) => {
@@ -1039,7 +1034,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                         <div>{members.map(skill => <div key={skill.key}>{skill.label}</div>)}</div>
                       }>
                         <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" aria-label={t("packageComposer.members", { name: skillPackageDisplayName(pkg) })}>
-                          <SkillIcon icon={pkg.icon} fallback="folder" /><span>{skillPackageDisplayName(pkg)} · {members.length}/{new Set([...pkg.skills.map(member => member.id), ...(pkg.missingSkillIds || [])]).size}</span>
+                          <SkillIcon icon={pkg.icon} fallback="folder" /><span>{skillPackageDisplayName(pkg)}</span>
                         </UiButton>
                       </Tooltip>
                       <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}
@@ -1150,6 +1145,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   currentAgentKey={currentAgentKey}
                   isMainChatRunning={isMainChatRunning}
                   selectedSkillKeys={effectiveSkills.map((skill) => skill.key)}
+                  selectedPackageId={effectiveManualSkills.find(skill => skill.selectedViaPackageId)?.selectedViaPackageId}
                   onSelectSkill={handleSelectSlashSkill}
                   onSelectSkills={handleSelectPackageSkills}
                   lockedSkillKeys={forcedSkills.map(skill => skill.key)}

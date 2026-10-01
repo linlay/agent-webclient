@@ -21,7 +21,7 @@ describe("PackageSkillTree", () => {
     act(() => container.querySelector("summary")!.click());
     expect(onSelect).not.toHaveBeenCalled();
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.click());
-    expect(onSelect).toHaveBeenLastCalledWith(skills, true);
+    expect(onSelect).toHaveBeenLastCalledWith(skills, true, pkg.id);
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.click());
     expect(onSelect).toHaveBeenLastCalledWith([skills[0]], true);
   });
@@ -34,11 +34,30 @@ describe("PackageSkillTree", () => {
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.getAttribute("aria-pressed")).toBe("true");
     expect([...container.querySelectorAll<HTMLButtonElement>("button")].find(b => b.textContent?.includes("slides"))!.disabled).toBe(true);
   });
+  test("choosing a member of the selected package replaces the package; repeating the sole member clears it", () => {
+    const onSelect = jest.fn();
+    act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word", "excel"]} selectedPackageId={pkg.id} onSelect={onSelect} />));
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.click());
+    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], true);
+    act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word", "forced"]} lockedKeys={["forced"]} onSelect={onSelect} />));
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.click());
+    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], false);
+  });
   test("forced members cannot be removed, and search retains matching member within its package", () => {
     act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word"]} lockedKeys={["word"]} search="word" onSelect={jest.fn()} />));
     expect(container.querySelectorAll("button")).toHaveLength(2);
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.disabled).toBe(true);
     expect(container.querySelector("details")!.open).toBe(true);
+  });
+  test("a sole member and its package remain separate choices", () => {
+    const onSelect = jest.fn();
+    const single = { ...pkg, skills: [{ id: "word" }] };
+    act(() => root.render(<PackageSkillTree pkg={single} skills={skills} selectedKeys={["word"]} onSelect={onSelect} />));
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.click());
+    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], true, pkg.id);
+    act(() => root.render(<PackageSkillTree pkg={single} skills={skills} selectedKeys={["word"]} selectedPackageId={pkg.id} onSelect={onSelect} />));
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.click());
+    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], true);
   });
   test.each([false, true])("pin button targets the whole package without expanding or selecting it (pinned=%s)", pinned => {
     const onSelect = jest.fn();

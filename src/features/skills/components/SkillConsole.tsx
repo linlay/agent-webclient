@@ -287,6 +287,7 @@ export const SkillListItemStatus: React.FC<{
   status: AdminSkillStatus;
   statusLabel: string;
 }> = ({ status, statusLabel }) => {
+  if (status === "ready") return null;
   const visual = statusVisual(status);
   return (
     <span
@@ -2703,9 +2704,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                         else select();
                       }}>
                         <SkillIcon icon={pack.icon} fallback="folder" size={28} />
-                        <strong>{skillPackageDisplayName(pack)}</strong>
-                        <span className="skill-package-count" aria-label={t("packageComposer.memberCount", { count: pack.skills.length })}>
-                          {pack.skills.length}
+                        <span className="skill-package-copy">
+                          <strong>{skillPackageDisplayName(pack)}</strong>
+                          <span className="skill-package-count">{t("skillConsole.packageContains", { count: pack.skills.length })}</span>
+                        </span>
+                        <span className="skill-package-expand" aria-hidden="true">
                           <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
                         </span>
                       </button>

@@ -5,6 +5,8 @@ import type { Agent } from "@/features/agents/lib/agentState";
 export interface ComposerRequiredSkill {
   key: string;
   label: string;
+  /** UI selection origin only; requests still use the concrete skill key. */
+  selectedViaPackageId?: string;
 }
 
 export interface PendingSteer {

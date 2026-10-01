@@ -16,13 +16,15 @@ export function packageMembers(pkg: AgentSkillPackage, skills: readonly AgentSki
   });
 }
 
-/** Keeps the wire selection as concrete skill IDs, and never removes host-required skills. */
-export function setPackageSelection(current: ComposerRequiredSkill[], members: readonly AgentSkill[], selected: boolean, lockedKeys: readonly string[]) {
+/** One manual choice (a skill or a whole package), serialized as concrete skill IDs. */
+export function setPackageSelection(current: ComposerRequiredSkill[], members: readonly AgentSkill[], selected: boolean, lockedKeys: readonly string[], selectedViaPackageId?: string) {
   const locked = new Set(lockedKeys.map(skillIdentity));
   const editable = members.filter(member => !locked.has(skillIdentity(member.key)));
   const ids = new Set(editable.map(skill => skillIdentity(skill.key)));
-  const next = current.filter(skill => !ids.has(skillIdentity(skill.key)));
-  if (selected) next.push(...editable.map(skill => ({ key: skill.key, label: skillDisplayName(skill) })));
+  const next = current.filter(skill => selected
+    ? locked.has(skillIdentity(skill.key))
+    : !ids.has(skillIdentity(skill.key)));
+  if (selected) next.push(...editable.map(skill => ({ key: skill.key, label: skillDisplayName(skill), ...(selectedViaPackageId ? { selectedViaPackageId } : {}) })));
   const seen = new Set<string>();
   return next.filter(skill => {
     const id = skillIdentity(skill.key);
@@ -39,7 +41,7 @@ export function groupSelectedPackages(packages: readonly AgentSkillPackage[], se
     for (const member of pkg.skills) {
       const id = skillIdentity(member.id);
       const skill = remaining.get(id);
-      if (skill) { members.push(skill); remaining.delete(id); }
+      if (skill?.selectedViaPackageId === pkg.id) { members.push(skill); remaining.delete(id); }
     }
     return members.length ? [{ pkg, members }] : [];
   });

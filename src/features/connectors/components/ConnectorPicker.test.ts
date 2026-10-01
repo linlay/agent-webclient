@@ -209,7 +209,7 @@ it.each([false, true])("reports one-sided conflicts without changing selection e
   await act(async () => toggle.click());
   expect(onSelectionChange).not.toHaveBeenCalled();
   expect(toggle.getAttribute("aria-checked")).toBe("false");
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain("网页连接器: 文档连接器");
+  expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(mockMessageError).toHaveBeenCalledWith(expect.stringContaining("网页连接器: 文档连接器"));
   // Deselecting the old choice is always allowed and clears the local conflict.
   await mount({ search: "", initialIds: [first.id] });
@@ -224,12 +224,13 @@ it("shows server conflicts when the local catalog is stale and reports other sav
   const { ApiError } = jest.requireActual("@/shared/data/api/http");
   const selectionError = new ApiError("conflict", { status: 400, data: { error: { code: "connector_selection_conflict", connectorId: "login", conflictingConnectorIds: ["docs"] } } });
   await mount({ selectionError });
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain("会议: 文档");
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  expect(mockMessageError).toHaveBeenCalledWith(expect.stringContaining("login: docs"));
   expect(mockMessageError).toHaveBeenCalledTimes(1);
   await mount({ search: "meeting", selectionError });
   expect(mockMessageError).toHaveBeenCalledTimes(1);
   const offline = new Error("Connection lost");
   await mount({ selectionError: offline });
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain("Connection lost");
+  expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(mockMessageError).toHaveBeenLastCalledWith(expect.stringContaining("Connection lost"));
 });

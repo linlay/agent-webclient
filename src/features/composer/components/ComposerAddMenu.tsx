@@ -38,8 +38,9 @@ export interface AddMenuTriggerProps {
   canCaptureDesktopScreenshot: boolean;
   isCapturingDesktopScreenshot: boolean;
   selectedSkillKeys: string[];
+  selectedPackageId?: string;
   lockedSkillKeys?: string[];
-  onSelectSkills?: (skills: AgentSkill[], selected: boolean) => void;
+  onSelectSkills?: (skills: AgentSkill[], selected: boolean, packageId?: string) => void;
   onOpenFilePicker: () => void;
   onCaptureScreenshot: () => void;
   /** 仅在截屏不可用时作为悬浮说明；可用时留空，标签本身已说明动作 */
@@ -353,9 +354,9 @@ const AddMenuSectionDetail: React.FC<
             ? <PackageSkillTree key={`package:${item.key}`} pkg={item.pkg} skills={skills}
               pinned={pinnedSkillKeys.includes(skillIdentity(item.pkg.id))} pinsDisabled={pinsDisabled}
               onTogglePin={packageId => { void toggleSkillPin(packageId); }}
-              selectedKeys={props.selectedSkillKeys} lockedKeys={props.lockedSkillKeys} search={search}
+              selectedKeys={props.selectedSkillKeys} selectedPackageId={props.selectedPackageId} lockedKeys={props.lockedSkillKeys} search={search}
               disabled={props.disabled || props.isMainChatRunning || !props.onSelectSkills}
-              onSelect={(members, selected) => props.onSelectSkills?.(members, selected)} />
+              onSelect={(members, selected, packageId) => execute(() => props.onSelectSkills?.(members, selected, packageId))} />
             : renderSkill(item.skill))}
           {skillQuery.status === "loading" && (
             <div className="composer-add-menu-status">

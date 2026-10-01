@@ -212,7 +212,7 @@ describe("AddMenuTrigger", () => {
     expect(standalone[0]).toContain("Other");
     expect(standalone[0]).not.toContain("Word");
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.click());
-    expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]], true);
+    expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]], true, "office");
   });
 
   it("keeps pinned skills first in the mixed list and sorts unpinned items by name", () => {
@@ -279,7 +279,7 @@ describe("AddMenuTrigger", () => {
     expect(props.onSelectSkill).not.toHaveBeenCalled();
   });
 
-  it("keeps the skill picker open after filtering and mouse leave, then closes with Escape", () => {
+  it.each(["Member", "packageComposer.select"])("keeps the skill picker open while browsing, then closes after selecting %s", (choice) => {
     mockSkillData = {
       skills: [{key:"office/member",displayName:"Member",configured:false}],
       packages: [{id:"office",displayName:"Office",skills:[{id:"office/member"}],status:"ready"}],
@@ -296,10 +296,9 @@ describe("AddMenuTrigger", () => {
     expect(container.querySelector('[data-skill-kind="package"]')?.getAttribute('aria-pressed')).toBe('true');
     const summary=container.querySelector('summary')!;
     act(()=>summary.click());
-    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Member"]')!.click());
-    expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]],true);
-    expect(container.querySelector('[data-skill-kind="package"]')).not.toBeNull();
-    act(()=>Simulate.keyDown(filter,{key:'Escape'}));
+    act(()=>container.querySelector<HTMLButtonElement>(`button[aria-label="${choice}"]`)!.click());
+    expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]],true,choice === "packageComposer.select" ? "office" : undefined);
+    expect(container.querySelector('[data-skill-kind="package"]')).toBeNull();
     expect(container.querySelector('[role="menu"]')).toBeNull();
   });
 
