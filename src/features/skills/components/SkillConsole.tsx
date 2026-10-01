@@ -2702,9 +2702,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                         if (dirtyFiles.size) modal.confirm({ title: t("skillConsole.confirm.switchSkill"), onOk: select });
                         else select();
                       }}>
-                        <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
-                        <SkillIcon icon={pack.icon} fallback="folder" size={24} />
-                        <strong>{skillPackageDisplayName(pack)}</strong><span>{pack.skills.length}</span>
+                        <SkillIcon icon={pack.icon} fallback="folder" size={28} />
+                        <strong>{skillPackageDisplayName(pack)}</strong>
+                        <span className="skill-package-count" aria-label={t("packageComposer.memberCount", { count: pack.skills.length })}>
+                          {pack.skills.length}
+                          <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+                        </span>
                       </button>
                       <UiButton size="sm" variant="ghost" iconOnly
                         className="skill-package-pin tw:flex-none"

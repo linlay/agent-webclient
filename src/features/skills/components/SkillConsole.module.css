@@ -42,7 +42,7 @@
     }
 }
 
-:global(.skill-package-folder) { display:flex; width:100%; align-items:center; gap:8px; min-height:44px; padding:10px 12px; border:0; border-radius:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+:global(.skill-package-folder) { display:flex; width:100%; align-items:center; gap:8px; min-height:52px; padding:8px 0 8px 10px; border:1px solid transparent; border-radius:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
 :global(.skill-package-row) { color:var(--text-main); }
 :global(.skill-package-row:hover) { background:var(--bg-hover); }
 :global(.skill-package-row[data-selected="true"]) { background:var(--bg-selected); color:var(--nav-selected-text); }
@@ -51,7 +51,7 @@
 :global(.skill-package-pin[aria-pressed="true"]) { color:var(--accent-electric); }
 :global(.skill-package-pin) :global(.material-icon) { width:14px; height:14px; }
 :global(.skill-package-folder > strong) { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; }
-:global(.skill-package-members) { margin:2px 4px 8px 20px; padding-left:6px; }
+:global(.skill-package-members) { margin:2px 4px 10px 24px; padding-left:3px; border-left:1px solid color-mix(in srgb, var(--ink-muted) 24%, transparent); }
 :global(.skill-package-missing) { padding:10px; color:var(--ink-muted); font-size:12px; }
 :global(.skill-package-overview) { padding:24px; height:100%; box-sizing:border-box; overflow:auto; }
 :global(.skill-package-overview-heading) { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
@@ -62,6 +62,8 @@
 :global(.skill-package-member-list button:disabled) { opacity:.55; cursor:default; }
 :global(.skill-package-breadcrumb) { padding:6px 12px; font-size:12px; color:var(--ink-muted); }
 
-:global(.skill-package-folder > span:last-child) { flex:none; min-width:22px; padding:1px 6px; border-radius:6px; font-size:11px; background:var(--bg-hover); color:var(--ink-muted); text-align:center; }
+:global(.skill-package-count) { display:inline-flex; flex:none; align-items:center; justify-content:center; gap:3px; min-width:34px; height:24px; padding:0 5px 0 7px; border:1px solid color-mix(in srgb, var(--ink-muted) 18%, transparent); border-radius:999px; font-size:11px; font-variant-numeric:tabular-nums; color:var(--ink-muted); }
+:global(.skill-package-count) :global(.material-icon) { width:14px; height:14px; font-size:14px; }
+:global(.skill-package-folder:hover .skill-package-count), :global(.skill-package-folder:focus-visible .skill-package-count) { color:inherit; background:var(--bg-hover); }
 :global(.skill-package-folder:focus-visible), :global(.skill-package-member-list button:focus-visible) { outline:2px solid var(--accent-electric); outline-offset:-2px; }
 :global(.skill-package-member-list button:hover:not(:disabled)) { background:var(--bg-hover); }
