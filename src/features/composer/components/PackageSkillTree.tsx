@@ -59,7 +59,10 @@ export function PackageSkillTree({ pkg, skills, selectedKeys, selectedPackageId,
         onClick={event => { event.preventDefault(); event.stopPropagation(); onTogglePin(pkg.id); }}>
         <MaterialIcon name="push_pin" className={styles.pinIcon} />
       </button>}
-      <MaterialIcon name="chevron_right" className={styles.chevron} aria-hidden="true" />
+      <span className={styles.folderToggle} aria-hidden="true">
+        <MaterialIcon name="folder" className={styles.folderClosed} />
+        <MaterialIcon name="folder_open" className={styles.folderOpen} />
+      </span>
     </summary>
     {!complete && <div role="status" className={styles.notice}>{t("packageComposer.incomplete")}</div>}
     <div className={styles.members}>

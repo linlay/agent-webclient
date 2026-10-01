@@ -43,6 +43,8 @@
 }
 
 :global(.skill-package-folder) { display:flex; width:100%; align-items:center; gap:8px; min-height:52px; padding:8px 48px 8px 10px; border:1px solid transparent; border-radius:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+/* Override the global button:hover accent border for this list row. */
+:global(.skill-package-folder:is(:hover, :active, :focus)) { border-color:transparent; }
 :global(.skill-package-row) { position:relative; color:var(--text-main); }
 :global(.skill-package-row:hover) { background:var(--bg-hover); }
 :global(.skill-package-row[data-selected="true"]) { background:var(--bg-hover); }

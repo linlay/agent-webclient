@@ -3,8 +3,11 @@
 .header::-webkit-details-marker { display: none; }
 .header:hover { background: color-mix(in srgb, var(--bg-hover) 45%, transparent); }
 .header:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
-.chevron { position: absolute; right: 9px; bottom: 8px; width: 14px; height: 14px; color: var(--ink-muted); transition: transform 120ms ease; }
-.tree[open] > .header .chevron { transform: rotate(90deg); }
+.folderToggle { position: absolute; right: 9px; bottom: 8px; display: flex; width: 14px; height: 14px; }
+.tree .folderToggle :global(.material-icon) { width: 14px; height: 14px; font-size: 14px; color: var(--ink-muted); }
+.folderToggle .folderOpen { display: none; }
+.tree[open] > .header .folderClosed { display: none; }
+.tree[open] > .header .folderOpen { display: inline-flex; }
 .title { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; border-radius: 4px; }
 .copy { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
 .name { font-size: 12px; font-weight: 600; line-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -16,7 +19,6 @@
 .memberCopy { display: grid; min-width: 0; font-size: 12px; line-height: 20px; }
 .memberCopy small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; font-size: 11px; color: var(--ink-muted); line-height: 16px; overflow-wrap: anywhere; }
 .notice { padding: 4px 8px 6px 30px; color: var(--ink-muted); font-size: 11px; line-height: 18px; }
-@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
 
 .header[data-selection="partial"] { background: color-mix(in srgb, var(--accent-electric) 6%, transparent); }
 .header[data-selection="all"] { background: color-mix(in srgb, var(--accent-electric) 13%, transparent); }
@@ -28,7 +30,7 @@
 .pin:not([aria-pressed="true"]) { opacity: 0; pointer-events: none; }
 .header:hover .pin, .header:focus-within .pin { opacity: 1; pointer-events: auto; }
 @media (hover: none) { .pin:not([aria-pressed="true"]) { opacity: 1; pointer-events: auto; } }
-.pinIcon { width: 14px; height: 14px; }
+.header .pin .pinIcon { width: 14px; height: 14px; font-size: 14px; color: inherit; }
 .bulk:disabled, .member:disabled, .pin:disabled { cursor: default; opacity: .5; }
 .member { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
 .member[aria-pressed="true"] { background: color-mix(in srgb, var(--accent-electric) 15%, transparent); }

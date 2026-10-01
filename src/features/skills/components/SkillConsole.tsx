@@ -2709,7 +2709,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                           <span className="skill-package-count">{t("skillConsole.packageContains", { count: pack.skills.length })}</span>
                         </span>
                         <span className="skill-package-expand" aria-hidden="true">
-                          <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+                          <MaterialIcon name={expanded ? "folder_open" : "folder"} />
                         </span>
                       </button>
                       <UiButton size="sm" variant="ghost" iconOnly
