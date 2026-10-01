@@ -16,7 +16,9 @@ import type {
   DeleteAgentResponse,
   OpenAgentDirectoryRequest,
   OpenAgentDirectoryResponse,
+  AgentCreationOptionsResponse,
   AgentEditorOptionsResponse,
+  HostDirectoryListResponse,
 } from "@/shared/data/api/dto/agents";
 import type {
   ApiResponse,
@@ -159,6 +161,26 @@ export function openAgentDirectory(
 
 export function getAdminAgentEditorOptions(): Promise<ApiResponse<AgentEditorOptionsResponse>> {
   return requestJson<AgentEditorOptionsResponse>(dataEndpoints.adminAgentEditorOptions.path);
+}
+
+// Skills and connectors can change at any time, so creation options are never
+// served from a cache.
+export function getAdminAgentCreationOptions(): Promise<ApiResponse<AgentCreationOptionsResponse>> {
+  return requestJson<AgentCreationOptionsResponse>(
+    dataEndpoints.adminAgentCreationOptions.path,
+    { cache: "no-store" },
+  );
+}
+
+export function listHostDirectories(
+  path = "",
+): Promise<ApiResponse<HostDirectoryListResponse>> {
+  const query = new URLSearchParams();
+  if (path) query.set("path", path);
+  return requestJson<HostDirectoryListResponse>(
+    withQuery(dataEndpoints.adminHostDirectories.path, query.toString()),
+    { cache: "no-store" },
+  );
 }
 
 export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderModelOptionsResponse>> {

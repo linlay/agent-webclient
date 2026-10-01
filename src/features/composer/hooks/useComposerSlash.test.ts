@@ -34,6 +34,17 @@ function renderSlashHook(input: { inputValue: string; currentAgentKey: string })
 }
 
 describe("useComposerSlash", () => {
+  it("includes pinned packages in the same keyboard selection order as visible skills", () => {
+    const skill = { id: "office/word", displayName: "文档", configured: false };
+    useAgentSkillsQueryMock.mockReturnValue({
+      pinnedSkillIds: ["office"], status: "success", error: null, refetch: jest.fn(),
+      data: { skills: [skill], packages: [{ id: "office", displayName: "办公", status: "ready", skills: [{ id: skill.id }], missingSkillIds: [] }] },
+    });
+    const result = renderSlashHook({ inputValue: "/", currentAgentKey: "demo" });
+    expect(result.slashSkills.map(item => item.kind)).toEqual(["package", "skill"]);
+    expect(result.selectSlashItem(result.slashCommands.length)).toMatchObject({ kind: "package", members: [skill] });
+    expect(result.selectSlashItem(result.slashCommands.length + 1)).toMatchObject({ kind: "skill", id: skill.id });
+  });
   beforeEach(() => {
     useAgentSkillsQueryMock.mockReset();
     useAgentSkillsQueryMock.mockReturnValue({

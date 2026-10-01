@@ -1019,6 +1019,7 @@ describe("LeftSidebar", () => {
       definition: {
         name: "ACP Coder",
         mode: "CODER",
+        engine: "acp",
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Project/acp-coder",
           acpBridgeId: "proxy-acp-codex",

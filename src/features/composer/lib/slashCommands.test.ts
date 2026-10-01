@@ -3,6 +3,7 @@ import {
   SLASH_COMMANDS,
   getFilteredSlashCommands,
   getFilteredSlashSkills,
+  getFilteredSlashPackages,
   getLatestQueryText,
   isSlashCommandDisabled,
   parseBTWSlashInput,
@@ -58,7 +59,7 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('switch')).toEqual([]);
   });
 
-  it('filters agent and Skill Center skills by id, name, and description', () => {
+  it('filters agent and Skill Center skills by key, name, and description', () => {
     const skills = [
       {
         id: 'mock-skill',
@@ -86,7 +87,7 @@ describe('slashCommands', () => {
     expect(getFilteredSlashSkills('use /pdf', skills)).toEqual([]);
   });
 
-  it('ranks skill matches by name, then description, then id', () => {
+  it('ranks skill matches by name, then description, then key', () => {
     const skills = [
       { id: 'doc-tool', name: 'Report', description: 'Writing', configured: false },
       { id: 'aaa', name: 'Handler', description: 'doc pipeline', configured: false },
@@ -322,5 +323,24 @@ describe('slashCommands', () => {
     ];
 
     expect(getLatestQueryText(nodes)).toBe('latest');
+  });
+});
+
+
+describe('slash package entries', () => {
+  const skill = { id: 'office/word', displayName: '文档编辑', configured: false };
+  const pkg = { id: 'office', displayName: '办公技能包', status: 'ready' as const, skills: [{ id: skill.id }], missingSkillIds: [] };
+  it('matches package or member names and carries concrete members separately from the package identity', () => {
+    for (const query of ['', '办公', '文档', 'OFFICE']) {
+      expect(getFilteredSlashPackages(query, [pkg], [skill])).toEqual([
+        expect.objectContaining({ kind: 'package', id: 'office', label: '办公技能包', members: [skill], disabled: false }),
+      ]);
+    }
+    expect(getFilteredSlashPackages('unrelated', [pkg], [skill])).toEqual([]);
+  });
+  it('disables empty, incomplete and unresolved packages without synthesizing members', () => {
+    expect(getFilteredSlashPackages('', [pkg], [])[0]).toMatchObject({ disabled: true, members: [] });
+    expect(getFilteredSlashPackages('', [{ ...pkg, status: 'incomplete' }], [skill])[0].disabled).toBe(true);
+    expect(getFilteredSlashPackages('', [{ ...pkg, skills: [] }], [skill])[0].disabled).toBe(true);
   });
 });

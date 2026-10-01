@@ -3,7 +3,7 @@ import { Tag, Typography } from "antd";
 import type {
   SlashCommandAvailability,
   ResolvedSlashCommandDefinition,
-  ResolvedSlashSkillDefinition,
+  SlashSkillItem,
 } from "@/features/composer/lib/slashCommands";
 import { isSlashCommandDisabled } from "@/features/composer/lib/slashCommands";
 import type { DataQueryStatus } from "@/shared/data/query/serverState";
@@ -40,14 +40,14 @@ function itemStateClass(active: boolean): string {
 export const SlashPaletteContent: React.FC<{
   slashPaletteRef: React.RefObject<HTMLDivElement>;
   slashCommands: ResolvedSlashCommandDefinition[];
-  slashSkills: ResolvedSlashSkillDefinition[];
+  slashSkills: SlashSkillItem[];
   slashSkillStatus: DataQueryStatus;
   slashSkillError: Error | null;
   activeSlashIndex: number;
   slashAvailability: SlashCommandAvailability;
   skillsDisabled: boolean;
   onSelectCommand: (commandId: ResolvedSlashCommandDefinition["id"]) => void;
-  onSelectSkill: (skill: ResolvedSlashSkillDefinition) => void;
+  onSelectSkill: (skill: SlashSkillItem) => void;
   onRetrySkills: () => void;
 }> = ({
   slashPaletteRef,
@@ -132,18 +132,18 @@ export const SlashPaletteContent: React.FC<{
           const index = slashCommands.length + skillIndex;
           return (
             <UiButton
-              key={`skill:${skill.id.toLowerCase()}`}
+              key={`${skill.kind}:${skill.id.toLowerCase()}`}
               ref={(ref) => ref && (itemsRef.current[index] = ref)}
               className={`${SLASH_COMMAND_ITEM_CLASS} ${itemStateClass(index === activeSlashIndex)}`}
               variant="ghost"
               size="sm"
-              disabled={skillsDisabled}
+              disabled={skillsDisabled || (skill.kind === "package" && skill.disabled)}
               role="option"
               aria-selected={index === activeSlashIndex}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onSelectSkill(skill)}
             >
-              <SkillIcon icon={skill.icon} size={24} />
+              <SkillIcon icon={skill.icon} size={24} fallback={skill.kind === "package" ? "folder" : "build"} />
               <span className={SLASH_COMMAND_LABEL_CLASS}>{skill.label}</span>
               <Typography.Text
                 className={SLASH_COMMAND_DESCRIPTION_CLASS}
@@ -154,10 +154,10 @@ export const SlashPaletteContent: React.FC<{
                   },
                 }}
               >
-                {skill.description || t("slashPalette.skill.noDescription")}
+                {skill.kind === "package" ? t(skill.disabled ? "packageComposer.incomplete" : "skillConsole.packageContains", { count: skill.pkg.skills.length }) : skill.description || t("slashPalette.skill.noDescription")}
               </Typography.Text>
               <Tag className={SLASH_SKILL_SOURCE_CLASS}>
-                {skill.configured
+                {skill.kind === "package" ? t("skillPackageEditor.packages") : skill.configured
                   ? t("slashPalette.skill.source.agent")
                   : t("slashPalette.skill.source.center")}
               </Tag>

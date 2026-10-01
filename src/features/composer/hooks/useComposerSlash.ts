@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 import {
   getFilteredSlashCommands,
   getFilteredSlashSkills,
+  getFilteredSlashPackages,
   shouldShowSlashCommandPalette,
   type SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
@@ -85,10 +86,10 @@ export function useComposerSlash(input: UseComposerSlashInput) {
   const slashSkills = useMemo(
     () =>
       sortPinnedSkills(
-        getFilteredSlashSkills(
-          filterText,
-          hasSkillSection ? skillQuery.data?.skills || [] : [],
-        ),
+        [
+          ...getFilteredSlashPackages(filterText, hasSkillSection ? skillQuery.data?.packages || [] : [], skillQuery.data?.skills || []),
+          ...getFilteredSlashSkills(filterText, hasSkillSection ? skillQuery.data?.skills || [] : []),
+        ],
         pinnedSkillIds,
       ),
     [hasSkillSection, filterText, skillQuery.data, pinnedSkillIds],

@@ -18,7 +18,7 @@ import {
 } from "@/features/runs/lib/runOwner";
 import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashCommandExecution";
 import type {
-  ResolvedSlashSkillDefinition,
+  SlashSkillItem,
   SlashCommandAvailability,
   SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
@@ -98,7 +98,7 @@ interface UseComposerSendInput {
   mustUseSkillsAgentKey: string;
   mustUseSkills: string[];
   selectSlashItem: () => SlashPaletteItem | null;
-  onSelectSlashSkill: (skill: ResolvedSlashSkillDefinition) => void;
+  onSelectSlashSkill: (skill: SlashSkillItem) => void;
   showSlashPalette: boolean;
   sendAttachmentMeta: ComposerSendAttachmentMeta[];
   sendReferences: unknown[];

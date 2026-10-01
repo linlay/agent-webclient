@@ -52,10 +52,12 @@ export * from "@/shared/data/api/requests/documentPreview";
 export {
   deleteAdminAgentPrivateSkill,
   getAdminAgentDetail,
+  getAdminAgentCreationOptions,
   getAdminAgentEditorOptions,
   getAdminAgents,
   importAdminAgent,
   importAdminAgentPrivateSkill,
+  listHostDirectories,
   putAdminAgentOrder,
 } from "@/shared/data/api/requests/agents";
 export * from "@/shared/data/api/requests/admin";

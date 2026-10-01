@@ -1,10 +1,5 @@
 export type AgentProjectType = "coder" | "kbase";
 
-export const ACP_PROXY_OPTIONS = [
-  { value: "proxy-acp-claudecode", label: "claude" },
-  { value: "proxy-acp-codex", label: "codex" },
-];
-
 export function workspaceNameFromPath(path: string): string {
   const normalized = String(path || "").trim();
   return normalized.split(/[\\/]+/).filter(Boolean).pop() || "project";
@@ -21,6 +16,8 @@ export function buildCoderAgentCreateRequest(
     definition: {
       ...(name ? { name } : {}),
       mode: "CODER",
+      // Platform never infers the engine from acpBridgeId; it must be explicit.
+      ...(options.acpBridgeId ? { engine: "acp" } : {}),
       runtimeConfig,
     },
   };

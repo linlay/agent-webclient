@@ -50,12 +50,12 @@
 :global(.skill-package-row[data-selected="true"]) { background:var(--bg-hover); }
 :global(.skill-package-row) :global(.skill-package-pin.ui-btn.ui-btn-ghost),
 :global(.skill-package-row) :global(.skill-package-pin.ui-btn.ui-btn-ghost):is(:hover, :active, :focus-visible, :disabled) { background:transparent; box-shadow:none; }
-:global(.skill-package-row) :global(.skill-package-pin.ui-btn) { position:absolute; top:5px; right:10px; width:20px; height:20px; min-height:20px; padding:0; color:var(--ink-muted); opacity:0; pointer-events:none; }
+:global(.skill-package-row) :global(.skill-package-pin.ui-btn) { position:absolute; top:8px; right:8px; width:20px; min-width:20px; height:20px; min-height:20px; padding:0; color:var(--ink-muted); opacity:0; pointer-events:none; }
 :global(.skill-package-row:hover) :global(.skill-package-pin.ui-btn),
 :global(.skill-package-row:focus-within) :global(.skill-package-pin.ui-btn),
 :global(.skill-package-row) :global(.skill-package-pin.ui-btn[aria-pressed="true"]) { opacity:1; pointer-events:auto; }
 @media (hover:none) { :global(.skill-package-row) :global(.skill-package-pin.ui-btn) { opacity:1; pointer-events:auto; } }
-:global(.skill-package-pin) :global(.material-icon) { width:14px; height:14px; }
+:global(.skill-package-pin) :global(.material-icon) { width:14px; height:14px; font-size:14px; }
 :global(.skill-package-copy) { display:flex; flex-direction:column; flex:1; min-width:0; gap:2px; }
 :global(.skill-package-copy > strong) { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; line-height:1.35; }
 :global(.skill-package-members) { margin:2px 4px 10px 24px; padding-left:3px; border-left:1px solid color-mix(in srgb, var(--ink-muted) 24%, transparent); }
@@ -70,7 +70,7 @@
 :global(.skill-package-breadcrumb) { padding:6px 12px; font-size:12px; color:var(--ink-muted); }
 
 :global(.skill-package-count) { font-size:11px; line-height:1.35; font-variant-numeric:tabular-nums; color:var(--ink-muted); }
-:global(.skill-package-expand) { position:absolute; right:13px; bottom:9px; display:flex; color:var(--ink-muted); }
+:global(.skill-package-expand) { position:absolute; right:11px; bottom:9px; display:flex; color:var(--ink-muted); }
 :global(.skill-package-expand) :global(.material-icon) { width:14px; height:14px; font-size:14px; }
 :global(.skill-package-folder:focus:not(:focus-visible)) { outline:none; }
 :global(.skill-package-folder:focus-visible), :global(.skill-package-member-list button:focus-visible) { outline:2px solid var(--ink-muted); outline-offset:-2px; }

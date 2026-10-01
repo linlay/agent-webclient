@@ -83,7 +83,7 @@ export const EMPTY_FORM: AgentFormState = {
   iconImage: "",
   role: "",
   description: "",
-  mode: "REACT",
+  mode: "GENERAL",
   modelKey: "",
   serviceTier: "STANDARD",
   reasoningConfigured: false,
@@ -435,8 +435,11 @@ export function normalizeModeForForm(value: unknown): string {
     case "PLAN_EXECUTE":
       return "PLAN_EXECUTE";
     case "ONESHOT":
+    // REACT is the spelling used before the general type was renamed; Agent
+    // Platform still accepts it and older agent files may carry it.
+    case "REACT":
     case "":
-      return "REACT";
+      return "GENERAL";
     default:
       return toText(value).toUpperCase();
   }
@@ -448,7 +451,7 @@ export function modePresentation(
   t: Translate,
 ): ChoicePresentation {
   switch (normalizeModeForForm(mode)) {
-    case "REACT":
+    case "GENERAL":
       return { icon: "refresh", label: t("agentConsole.mode.react.label"), description: t("agentConsole.mode.react.description") };
     case "CODER":
       return { icon: "code", label: t("agentConsole.mode.coder.label"), description: t("agentConsole.mode.coder.description") };
@@ -670,7 +673,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
     role: toText(definition.role) || detail.role || "",
     description: toText(definition.description) || detail.description || "",
     mode: normalizeModeForForm(
-      toText(definition.mode) || detail.mode || "REACT",
+      toText(definition.mode) || detail.mode || "GENERAL",
     ),
     modelKey:
       toText(modelConfig.modelKey) || resolveModelKey(detail, definition),

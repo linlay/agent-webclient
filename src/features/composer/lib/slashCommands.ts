@@ -1,6 +1,7 @@
-import { skillDisplayName } from "@/shared/utils/skillDisplayName";
+import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
-import type { AgentSkill } from '@/shared/data';
+import type { AgentSkill, AgentSkillPackage } from '@/shared/data';
+import { packageMembers, skillIdentity } from './skillPackages';
 import { isDebugPanelEnabled, isMemoryEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';
 import type { MaterialIconName } from '@/shared/ui/MaterialIcon';
@@ -41,9 +42,30 @@ export interface ResolvedSlashSkillDefinition extends AgentSkill {
   label: string;
 }
 
+export interface ResolvedSlashPackageDefinition extends Omit<ResolvedSlashSkillDefinition, 'kind'> {
+  kind: 'package';
+  pkg: AgentSkillPackage;
+  members: AgentSkill[];
+  disabled: boolean;
+}
+
+export type SlashSkillItem = ResolvedSlashSkillDefinition | ResolvedSlashPackageDefinition;
+
+export function getFilteredSlashPackages(filterText: string, packages: readonly AgentSkillPackage[], skills: AgentSkill[]): ResolvedSlashPackageDefinition[] {
+  const query = filterText.trim().toLowerCase();
+  return packages.flatMap(pkg => {
+    const members = packageMembers(pkg, skills);
+    const label = skillPackageDisplayName(pkg);
+    if (query && ![pkg.id, label, pkg.description || '', ...members.flatMap(skill => [skill.id, skillDisplayName(skill)])].some(value => value.toLowerCase().includes(query))) return [];
+    return [{ kind: 'package' as const, id: pkg.id, label, name: label, icon: pkg.icon,
+      command: `/${pkg.id}` as const, description: pkg.description, configured: false, pkg, members,
+      disabled: pkg.status !== 'ready' || !!pkg.missingSkillIds?.length || !members.length || members.length !== new Set(pkg.skills.map(member => skillIdentity(member?.id))).size }];
+  });
+}
+
 export type SlashPaletteItem =
   | ResolvedSlashCommandDefinition
-  | ResolvedSlashSkillDefinition;
+  | SlashSkillItem;
 
 export interface SlashCommandAvailability {
   streaming: boolean;
@@ -182,7 +204,7 @@ function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashComm
   };
 }
 
-/** 技能命中字段的排序优先级：name > description > id。 */
+/** 技能命中字段的排序优先级：name > description > key。 */
 const SLASH_SKILL_MATCH_FIELDS = ['name', 'description', 'id'] as const;
 
 interface SlashSkillMatchFields {
@@ -213,26 +235,26 @@ export function getFilteredSlashSkills(
   }
   const query = filterText.trim().toLowerCase();
   const matches = skills.flatMap((skill) => {
-    const id = String(skill?.id || '').trim();
+    const key = String(skill?.id || '').trim();
     const name = skillDisplayName(skill);
     const description = String(skill?.description || '').trim();
-    if (!id) {
+    if (!key) {
       return [];
     }
     // 无筛选文本时不参与命中排序，保持目录原始顺序。
-    const matchRank = query ? getSlashSkillMatchRank({ id, name, description }, query) : 0;
+    const matchRank = query ? getSlashSkillMatchRank({ id: key, name, description }, query) : 0;
     if (matchRank === null) {
       return [];
     }
     const resolved: ResolvedSlashSkillDefinition = {
       kind: 'skill',
-      id,
-      name: name || id,
+      id: key,
+      name: name || key,
       ...(skill.icon ? { icon: skill.icon } : {}),
-      label: name || id,
+      label: name || key,
       description,
       configured: skill.configured === true,
-      command: `/${id}`,
+      command: `/${key}`,
     };
     return [{ resolved, matchRank }];
   });

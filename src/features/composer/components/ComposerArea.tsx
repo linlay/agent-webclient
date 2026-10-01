@@ -44,6 +44,7 @@ import type { ComposerRequiredSkill } from "@/features/composer/lib/composerAtta
 import {
   getLatestQueryText,
   type SlashPaletteItem,
+  type ResolvedSlashPackageDefinition,
 } from "@/features/composer/lib/slashCommands";
 import { useSpeechInput } from "@/features/composer/components/useSpeechInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
@@ -187,7 +188,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
   const forcedSkills = useMemo<ComposerRequiredSkill[]>(() => {
     if (!interactionConfig.mustUseSkills || hostRequiredSkills.agentKey !== currentAgentKey) return [];
-    return hostRequiredSkills.skills.map((key) => ({ id: key, label: key }));
+    return hostRequiredSkills.skills.map((id) => ({ id, label: id }));
   }, [currentAgentKey, hostRequiredSkills, interactionConfig.mustUseSkills]);
   const effectiveSkills = useMemo(() => {
     if (!interactionConfig.mustUseSkills) return [];
@@ -458,16 +459,19 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     });
 
   const handleSelectSlashSkill = useCallback(
-    (skill: AgentSkill) => {
+    (skill: AgentSkill | ResolvedSlashPackageDefinition) => {
       if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) {
         return;
       }
+      const packageChoice = "kind" in skill && skill.kind === "package" ? skill as ResolvedSlashPackageDefinition : null;
+      if (packageChoice?.disabled) return;
       const identity = skillIdentity(skill.id);
-      if (forcedSkills.some((item) => skillIdentity(item.id) === identity)) {
+      if (!packageChoice && forcedSkills.some((item) => skillIdentity(item.id) === identity)) {
         return;
       }
       setSelectedSkills((current) => {
         const lockedKeys = forcedSkills.map(item => item.id);
+        if (packageChoice) return setPackageSelection(current, packageChoice.members, true, lockedKeys, packageChoice.pkg.id);
         const manual = current.filter(item => !lockedKeys.some(key => skillIdentity(key) === skillIdentity(item.id)));
         const selected = manual.length === 1 && !manual[0].selectedViaPackageId && skillIdentity(manual[0].id) === identity;
         return setPackageSelection(current, [skill], !selected, lockedKeys);

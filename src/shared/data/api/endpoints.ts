@@ -281,6 +281,18 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     cache: { ttlMs: 60_000, dedupe: true },
   }),
+  adminAgentCreationOptions: defineEndpoint({
+    key: "admin.agents.creationOptions",
+    path: "/api/admin/agents/creation-options",
+    method: "GET",
+    transport: "http",
+  }),
+  adminHostDirectories: defineEndpoint({
+    key: "admin.host.directories",
+    path: "/api/admin/host/directories",
+    method: "GET",
+    transport: "http",
+  }),
   adminAgentOrderUpdate: defineEndpoint({
     key: "admin.agents.order.update",
     path: "/api/admin/agents/order",

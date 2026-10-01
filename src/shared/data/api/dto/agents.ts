@@ -146,6 +146,66 @@ export interface CreateAgentRequest {
   definition: Record<string, unknown>;
   soulPrompt?: string;
   agentsPrompt?: string;
+  /**
+   * Capability group keys. Present (even when empty) asks Agent Platform to
+   * create a project agent from its creation template; absent keeps the
+   * definition exactly as sent.
+   */
+  capabilityGroups?: string[];
+}
+
+export type AgentCreationTypeKey = "general" | "coder" | "kbase" | "acp";
+
+/** GET /api/admin/agents/creation-options */
+export interface AgentCreationTypeOption {
+  key: AgentCreationTypeKey;
+  label: string;
+  mode: string;
+  engine: string;
+  available: boolean;
+  unavailableReason?: string;
+  workspaceRequired: boolean;
+  modelRequired: boolean;
+  defaultModelKey?: string;
+  defaultModelAvailable: boolean;
+  defaultReasoningEffort?: string;
+  supportsGroups: boolean;
+  groupsUnsupportedReason?: string;
+  baseTools: string[];
+  defaultGroups: string[];
+  acpBridges?: Array<{ id: string }>;
+}
+
+export interface AgentCreationMember {
+  key: string;
+  name: string;
+}
+
+export interface AgentCreationGroupOption {
+  key: string;
+  name: string;
+  description?: string;
+  skills: AgentCreationMember[];
+  tools: string[];
+  connectors: AgentCreationMember[];
+  available: boolean;
+  unavailableReason?: string;
+}
+
+export interface AgentCreationOptionsResponse {
+  types: AgentCreationTypeOption[];
+  groups: AgentCreationGroupOption[];
+  models: Array<{ key: string; name?: string }>;
+}
+
+/** GET /api/admin/host/directories: directories on the Agent Platform host. */
+export interface HostDirectoryListResponse {
+  path: string;
+  parent?: string;
+  home?: string;
+  separator: string;
+  entries: Array<{ name: string; path: string }>;
+  truncated: boolean;
 }
 
 export interface ImportAgentArchiveRequest {

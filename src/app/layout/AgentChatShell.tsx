@@ -263,7 +263,8 @@ function hasOwn(input: object, key: string): boolean {
 function needsRouteAgentModelSelectionHydration(agent: Agent | undefined): boolean {
   if (!agent) return false;
   const mode = String(agent.mode || "").toUpperCase();
-  return (mode === "REACT" || mode === "CODER") &&
+  // GENERAL is the current spelling; REACT is what older Platforms return.
+  return (mode === "GENERAL" || mode === "REACT" || mode === "CODER") &&
     (!hasOwn(agent, "modelKey") || !hasOwn(agent, "reasoningEffort"));
 }
 
