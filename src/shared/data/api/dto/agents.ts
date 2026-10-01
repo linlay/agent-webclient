@@ -45,7 +45,7 @@ export interface AgentDetailResponse {
   wonders?: string[];
   mode: string;
   tools: string[];
-  skills: Array<{key: string; displayName?: string; name?: string; description?: string; version?: string; revision?: string}>;
+  skills: Array<{id: string; displayName?: string; name?: string; description?: string; version?: string; revision?: string}>;
   controls: Array<Record<string, unknown>>;
   meta: Record<string, unknown>;
   definition?: Record<string, unknown>;
@@ -55,7 +55,7 @@ export interface AgentDetailResponse {
 }
 
 export interface AgentSkill {
-  key: string;
+  id: string;
   displayName?: string;
   /** Legacy servers only. */
   name?: string;
@@ -73,7 +73,7 @@ export interface AgentSkillPackage {
   displayName?: string;
   description?: string;
   version?: string;
-  /** id is the full package/skill key, not the member basename. */
+  /** id is the full package/skill ID, not the member basename. */
   skills: Array<{ id: string; name?: string; displayName?: string; description?: string; version?: string }>;
   missingSkillIds: string[];
   status: "ready" | "incomplete";
@@ -128,7 +128,7 @@ export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "mod
 }
 
 export interface AdminAgentPrivateSkill {
-  key: string;
+  id: string;
   displayName?: string;
   /** Legacy servers only. */
   name?: string;

@@ -7,12 +7,12 @@ import type {
 export type AdminSkillStatus = "ready" | "invalid" | "disabled";
 
 export interface UpdateAgentSkillPinRequest {
-  key: string;
+  id: string;
   pinned: boolean;
 }
 
 export interface AdminSkillSummary {
-  key: string;
+  id: string;
   displayName?: string;
   /** Legacy servers only. */
   name?: string;
@@ -82,7 +82,7 @@ export interface AdminSkillFileManifest {
 }
 
 export interface AdminSkillTextFile {
-  key: string;
+  id: string;
   path: string;
   content: string;
   encoding: "utf-8" | string;
@@ -111,7 +111,7 @@ export interface AdminSkillPackageSummary {
   meta?: Record<string, unknown>;
   version?: string;
   sha256?: string;
-  /** Members follow package.json declarations; id is the full package/skill key. */
+  /** Members follow package.json declarations; id is the full package/skill ID. */
   skills: Array<{ id: string; name?: string; displayName?: string; description?: string; version?: string }>;
   installedAt?: number;
 }
@@ -121,33 +121,33 @@ export type AdminSkillImportResponse =
   | { kind: "skill-package"; package: AdminSkillPackageSummary };
 
 export interface AdminSkillCreateFileRequest {
-  key: string;
+  id: string;
   path: string;
   content?: string;
   encoding?: string;
 }
 
 export interface AdminSkillMkdirRequest {
-  key: string;
+  id: string;
   path: string;
 }
 
 export interface AdminSkillRenameRequest {
-  key: string;
+  id: string;
   fromPath: string;
   toPath: string;
   overwrite?: boolean;
 }
 
 export interface AdminSkillDeleteFileRequest {
-  key: string;
+  id: string;
   path: string;
   recursive?: boolean;
   baseSha256?: string;
 }
 
 export interface AdminSkillMutationResponse {
-  key: string;
+  id: string;
   action: "create" | "save" | "mkdir" | "rename" | "delete" | "upload";
   selectedPath?: string;
   entry?: AdminSkillFileEntry;
@@ -159,7 +159,7 @@ export interface AdminSkillMutationResponse {
 }
 
 export interface AdminSkillValidateResponse {
-  key: string;
+  id: string;
   status: AdminSkillStatus;
   diagnostics?: AdminRegistryDiagnostic[];
   updatedAt?: number;
@@ -167,13 +167,13 @@ export interface AdminSkillValidateResponse {
 }
 
 export interface AdminSkillCreateRequest {
-  key: string;
+  id: string;
   skillMd: string;
   files?: Array<{ path: string; content: string; encoding?: string }>;
 }
 
 export interface AdminSkillDeleteResponse {
-  key: string;
+  id: string;
   deleted: boolean;
   usedByAgents?: string[];
 }

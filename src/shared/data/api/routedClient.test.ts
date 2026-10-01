@@ -134,16 +134,16 @@ describe("routedClient capability routing", () => {
 	});
 
 	it("invalidates only the selected agent skills and keeps concurrent reads deduplicated", async () => {
-		mockRequestPlatformData.mockImplementation(async (_path, payload) => ok({ agentKey: payload.agentKey, pinned: [], skills: [{ key: "a" }, { key: "b" }] }));
+		mockRequestPlatformData.mockImplementation(async (_path, payload) => ok({ agentKey: payload.agentKey, pinned: [], skills: [{ id: "a" }, { id: "b" }] }));
 		const routed = await import("./routedClient");
 		await routed.getAgentSkills("one");
 		await routed.getAgentSkills("two");
 		routed.invalidateAgentSkills("one");
-		mockRequestPlatformData.mockResolvedValue(ok({ agentKey: "one", pinned: [], skills: [{ key: "b" }, { key: "new" }] }));
+		mockRequestPlatformData.mockResolvedValue(ok({ agentKey: "one", pinned: [], skills: [{ id: "b" }, { id: "new" }] }));
 		const [first, second] = await Promise.all([routed.getAgentSkills("one"), routed.getAgentSkills("one")]);
-		expect(first.data.skills.map(skill => skill.key)).toEqual(["b", "new"]);
+		expect(first.data.skills.map(skill => skill.id)).toEqual(["b", "new"]);
 		expect(second).toEqual(first);
-		expect((await routed.getAgentSkills("two")).data.skills.map(skill => skill.key)).toEqual(["a", "b"]);
+		expect((await routed.getAgentSkills("two")).data.skills.map(skill => skill.id)).toEqual(["a", "b"]);
 		expect(mockRequestPlatformData).toHaveBeenCalledTimes(3);
 	});
 
@@ -153,21 +153,21 @@ describe("routedClient capability routing", () => {
 		let finishChinese!: (value: ReturnType<typeof ok>) => void;
 		mockRequestPlatformData.mockImplementation((_type, payload) => payload.locale === "zh-CN"
 			? new Promise(resolve => { finishChinese = resolve; })
-			: Promise.resolve(ok({ agentKey: "one", pinned: [], skills: [{ key: "office/word", displayName: "Word" }] })));
+			: Promise.resolve(ok({ agentKey: "one", pinned: [], skills: [{ id: "office/word", displayName: "Word" }] })));
 		configureI18nRuntime({ locale: "zh-CN" });
 		const chinese = routed.getAgentSkills("one");
 		await Promise.resolve();
 		configureI18nRuntime({ locale: "en-US" });
 		const english = await routed.getAgentSkills("one");
 		expect(english.data.skills[0].displayName).toBe("Word");
-		finishChinese(ok({ agentKey: "one", pinned: [], skills: [{ key: "office/word", displayName: "文档" }] }));
+		finishChinese(ok({ agentKey: "one", pinned: [], skills: [{ id: "office/word", displayName: "文档" }] }));
 		await chinese;
 		expect((await routed.getAgentSkills("one")).data.skills[0].displayName).toBe("Word");
 		expect(mockRequestPlatformData).toHaveBeenCalledTimes(2);
 		expect(mockRequestPlatformData).toHaveBeenNthCalledWith(1, "/api/skills", { agentKey: "one", locale: "zh-CN" });
 		expect(mockRequestPlatformData).toHaveBeenNthCalledWith(2, "/api/skills", { agentKey: "one", locale: "en-US" });
-		await routed.putAgentSkillPin({ key: "office/word", pinned: true });
-		expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/skills", { key: "office/word", pinned: true, locale: "en-US" });
+		await routed.putAgentSkillPin({ id: "office/word", pinned: true });
+		expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/skills", { id: "office/word", pinned: true, locale: "en-US" });
 		expect(mockRequestPlatformData.mock.calls.some(([type]) => type === "/api/locale")).toBe(false);
 	});
 

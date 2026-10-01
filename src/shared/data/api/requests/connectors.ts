@@ -31,8 +31,8 @@ export function getConnectorSkills(id: string): Promise<ApiResponse<ConnectorSki
   return requestJson(withQuery(dataEndpoints.adminConnectorSkills.path, endpointQuery(dataEndpoints.adminConnectorSkills, { id })));
 }
 
-export function getConnectorSkillDetail(id: string, name: string): Promise<ApiResponse<ConnectorSkillDetail>> {
-  return requestJson(withQuery(dataEndpoints.adminConnectorSkillDetail.path, endpointQuery(dataEndpoints.adminConnectorSkillDetail, { id, name })));
+export function getConnectorSkillDetail(id: string, skillId: string): Promise<ApiResponse<ConnectorSkillDetail>> {
+  return requestJson(withQuery(dataEndpoints.adminConnectorSkillDetail.path, endpointQuery(dataEndpoints.adminConnectorSkillDetail, { id, skillId })));
 }
 
 export function getConnectorDefinition(target: ConnectorDefinitionTarget): Promise<ApiResponse<ConnectorDefinition>> {

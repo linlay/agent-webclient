@@ -267,7 +267,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: "/skills/:skillKey",
+          path: "/skills/:skillId",
           element: (
             <DocumentTitleRoute titleKey="route.title.skills">
               <SkillsPage />

@@ -43,7 +43,7 @@ describe("useComposerKeyboard", () => {
     const onSelectSlashItem = jest.fn();
     const selectedSkill = {
       kind: "skill" as const,
-      key: "pdf",
+      id: "pdf",
       name: "PDF",
       label: "PDF",
       description: "Read PDFs",

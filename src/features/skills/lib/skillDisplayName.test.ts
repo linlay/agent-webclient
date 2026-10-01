@@ -3,7 +3,7 @@ import { resolveSkillDisplayName } from "./skillDisplayName";
 describe("resolveSkillDisplayName", () => {
   const skills = [
     {
-      key: "skill-creator",
+      id: "skill-creator",
       displayName: "技能创建",
       configured: true,
     },
@@ -14,7 +14,7 @@ describe("resolveSkillDisplayName", () => {
     expect(resolveSkillDisplayName(skills, "SKILL-CREATOR")).toBe("技能创建");
   });
 
-  it("falls back to an existing label and then the stable key", () => {
+  it("falls back to an existing label and then the stable id", () => {
     expect(resolveSkillDisplayName([], "skill-creator", "Skill Creator")).toBe(
       "Skill Creator",
     );

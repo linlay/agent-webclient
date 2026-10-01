@@ -4,15 +4,15 @@ import { SkillsPage } from "@/app/pages/skills";
 
 const navigateMock = jest.fn();
 let skillConsoleProps: {
-  selectedSkillKey?: string;
-  onSelectSkillKey?: (skillKey: string) => void;
+  selectedSkillId?: string;
+  onSelectSkillId?: (skillId: string) => void;
   onClearSelection?: () => void;
 } = {};
 
 jest.mock("react-router-dom", () => ({
   useLocation: () => ({ search: "?lang=en" }),
   useNavigate: () => navigateMock,
-  useParams: () => ({ skillKey: "" }),
+  useParams: () => ({ skillId: "" }),
 }));
 
 jest.mock("@/features/skills/components/SkillConsole", () => ({
@@ -36,13 +36,13 @@ describe("SkillsPage", () => {
   it("preserves the route query when selecting a skill", () => {
     renderToStaticMarkup(React.createElement(SkillsPage));
 
-    skillConsoleProps.onSelectSkillKey?.("demo-skill");
+    skillConsoleProps.onSelectSkillId?.("demo-skill");
     expect(navigateMock).toHaveBeenCalledWith("/skills/demo-skill?lang=en");
   });
 
   it("encodes a package child key as one route segment", () => {
     renderToStaticMarkup(React.createElement(SkillsPage));
-    skillConsoleProps.onSelectSkillKey?.("wecom/meeting");
+    skillConsoleProps.onSelectSkillId?.("wecom/meeting");
     expect(navigateMock).toHaveBeenCalledWith("/skills/wecom%2Fmeeting?lang=en");
   });
 

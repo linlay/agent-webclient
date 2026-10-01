@@ -37,13 +37,13 @@ describe("useComposerSlash", () => {
   beforeEach(() => {
     useAgentSkillsQueryMock.mockReset();
     useAgentSkillsQueryMock.mockReturnValue({
-      pinnedSkillKeys: [],
+      pinnedSkillIds: [],
       status: "success",
       data: {
         agentKey: "mock-agent",
         skills: [
           {
-            key: "pdf",
+            id: "pdf",
             name: "PDF",
             description: "Read PDFs",
             configured: false,
@@ -64,9 +64,9 @@ describe("useComposerSlash", () => {
     expect(result.showSlashPalette).toBe(true);
     expect(result.slashCommands.length).toBeGreaterThan(0);
     expect(result.slashSkills).toMatchObject([
-      { kind: "skill", key: "pdf", configured: false },
+      { kind: "skill", id: "pdf", configured: false },
     ]);
-    expect(result.slashItems.at(-1)).toMatchObject({ kind: "skill", key: "pdf" });
+    expect(result.slashItems.at(-1)).toMatchObject({ kind: "skill", id: "pdf" });
   });
 
   it("does not enable the skills query for a Team", () => {
@@ -79,7 +79,7 @@ describe("useComposerSlash", () => {
 
   it("keeps the palette open while a skill-only query is loading", () => {
     useAgentSkillsQueryMock.mockReturnValue({
-      pinnedSkillKeys: [],
+      pinnedSkillIds: [],
       status: "loading",
       data: null,
       error: null,

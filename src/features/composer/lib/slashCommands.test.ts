@@ -58,17 +58,17 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('switch')).toEqual([]);
   });
 
-  it('filters agent and Skill Center skills by key, name, and description', () => {
+  it('filters agent and Skill Center skills by id, name, and description', () => {
     const skills = [
       {
-        key: 'mock-skill',
+        id: 'mock-skill',
         displayName: 'Mock Skill',
-        icon: '/api/skills/icon?agentKey=zenmi&key=mock-skill',
+        icon: '/api/skills/icon?agentKey=zenmi&id=mock-skill',
         description: 'Skill description',
         configured: true,
       },
       {
-        key: 'pdf',
+        id: 'pdf',
         displayName: 'PDF',
         description: 'Read and manipulate PDF files',
         configured: false,
@@ -79,34 +79,34 @@ describe('slashCommands', () => {
       { kind: 'skill', command: '/mock-skill', configured: true, icon: skills[0].icon },
       { kind: 'skill', command: '/pdf', configured: false },
     ]);
-    expect(getFilteredSlashSkills('pdf', skills).map((item) => item.key)).toEqual(['pdf']);
-    expect(getFilteredSlashSkills('manipulate', skills).map((item) => item.key)).toEqual(['pdf']);
-    expect(getFilteredSlashSkills('Mock', skills).map((item) => item.key)).toEqual(['mock-skill']);
+    expect(getFilteredSlashSkills('pdf', skills).map((item) => item.id)).toEqual(['pdf']);
+    expect(getFilteredSlashSkills('manipulate', skills).map((item) => item.id)).toEqual(['pdf']);
+    expect(getFilteredSlashSkills('Mock', skills).map((item) => item.id)).toEqual(['mock-skill']);
     expect(getFilteredSlashSkills('missing', skills)).toEqual([]);
     expect(getFilteredSlashSkills('use /pdf', skills)).toEqual([]);
   });
 
-  it('ranks skill matches by name, then description, then key', () => {
+  it('ranks skill matches by name, then description, then id', () => {
     const skills = [
-      { key: 'doc-tool', name: 'Report', description: 'Writing', configured: false },
-      { key: 'aaa', name: 'Handler', description: 'doc pipeline', configured: false },
-      { key: 'bbb', name: 'Doc maker', description: '', configured: false },
-      { key: 'ccc', name: 'Documentation', description: '', configured: false },
+      { id: 'doc-tool', name: 'Report', description: 'Writing', configured: false },
+      { id: 'aaa', name: 'Handler', description: 'doc pipeline', configured: false },
+      { id: 'bbb', name: 'Doc maker', description: '', configured: false },
+      { id: 'ccc', name: 'Documentation', description: '', configured: false },
     ];
 
-    expect(getFilteredSlashSkills('doc', skills).map((item) => item.key)).toEqual([
+    expect(getFilteredSlashSkills('doc', skills).map((item) => item.id)).toEqual([
       'bbb',
       'ccc',
       'aaa',
       'doc-tool',
     ]);
-    expect(getFilteredSlashSkills('DOC', skills).map((item) => item.key)).toEqual([
+    expect(getFilteredSlashSkills('DOC', skills).map((item) => item.id)).toEqual([
       'bbb',
       'ccc',
       'aaa',
       'doc-tool',
     ]);
-    expect(getFilteredSlashSkills('', skills).map((item) => item.key)).toEqual([
+    expect(getFilteredSlashSkills('', skills).map((item) => item.id)).toEqual([
       'doc-tool',
       'aaa',
       'bbb',

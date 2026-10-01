@@ -19,7 +19,7 @@ export function ConnectorSkills({ item }: { item: ConnectorSummary }) {
       {!runtime.listLoading && !runtime.listError && !runtime.skills.length && <p className={styles.empty}>{t("connectors.skills.empty")}</p>}
       {!!runtime.skills.length && <div className={styles.skillsLayout}>
         <nav className={styles.skillList} aria-label={t("connectors.skills.list")}>
-          {runtime.skills.map(skill => <button type="button" key={(skill.key || skill.name)} className={styles.skillItem} aria-current={runtime.name === (skill.key || skill.name) ? "true" : undefined} onClick={() => runtime.select(skill.key || skill.name || "")}>
+          {runtime.skills.map(skill => <button type="button" key={(skill.id || skill.name)} className={styles.skillItem} aria-current={runtime.name === (skill.id || skill.name) ? "true" : undefined} onClick={() => runtime.select(skill.id || skill.name || "")}>
             <strong>{skillDisplayName(skill)}</strong>
             <span className={styles.description}>{skill.description}</span>
           </button>)}

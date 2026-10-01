@@ -18,11 +18,11 @@ import {
   toggleSkillExpandedDir,
   updateSkillDirtyFiles,
   validateSkillArchiveFile,
-  validateNewSkillKey,
+  validateNewSkillId,
 } from "@/features/skills/components/SkillConsole";
 import type { AdminSkillDetailResponse, AdminSkillFileEntry } from "@/shared/data";
 
-const onSelectSkillKeyMock = jest.fn();
+const onSelectSkillIdMock = jest.fn();
 const onClearSelectionMock = jest.fn();
 
 jest.mock("@/shared/i18n", () => {
@@ -42,7 +42,7 @@ jest.mock("@/shared/i18n", () => {
 });
 
 jest.mock("@/shared/data", () => ({
-  buildAdminSkillFileDownloadUrl: jest.fn(() => "/api/admin/skills/file/download?key=demo-skill&path=asset.bin"),
+  buildAdminSkillFileDownloadUrl: jest.fn(() => "/api/admin/skills/file/download?id=demo-skill&path=asset.bin"),
   createAdminSkillFile: jest.fn(),
   createAdminSkill: jest.fn(),
   deleteAdminSkillFile: jest.fn(),
@@ -245,7 +245,7 @@ describe("SkillConsole", () => {
       msg: "ok",
       data: [
         {
-          key: "demo-skill",
+          id: "demo-skill",
           name: "Demo Skill",
           description: "A demo skill",
           status: "ready",
@@ -253,13 +253,13 @@ describe("SkillConsole", () => {
           source: { kind: "skills-center", path: "/skills/demo-skill" },
         },
         {
-          key: "broken-skill",
+          id: "broken-skill",
           name: "Broken Skill",
           status: "invalid",
           diagnostic: { severity: "error", code: "E001", message: "Bad config" },
         },
         {
-          key: "disabled-skill",
+          id: "disabled-skill",
           name: "Disabled",
           status: "disabled",
         },
@@ -270,8 +270,8 @@ describe("SkillConsole", () => {
   it("renders the skill console shell", () => {
     const html = renderToStaticMarkup(
       React.createElement(SkillConsole, {
-        selectedSkillKey: "",
-        onSelectSkillKey: onSelectSkillKeyMock,
+        selectedSkillId: "",
+        onSelectSkillId: onSelectSkillIdMock,
         onClearSelection: onClearSelectionMock,
       }),
     );
@@ -321,8 +321,8 @@ describe("SkillConsole", () => {
     // Simulate empty state
     const html = renderToStaticMarkup(
       React.createElement(SkillConsole, {
-        selectedSkillKey: "",
-        onSelectSkillKey: onSelectSkillKeyMock,
+        selectedSkillId: "",
+        onSelectSkillId: onSelectSkillIdMock,
         onClearSelection: onClearSelectionMock,
       }),
     );
@@ -357,11 +357,11 @@ describe("SkillConsole", () => {
   });
 
   it("validates keys for directly created skills", () => {
-    expect(validateNewSkillKey("", [])).toBe("required");
-    expect(validateNewSkillKey("../bad", [])).toBe("invalid");
-    expect(validateNewSkillKey("hidden.example", [])).toBe("invalid");
-    expect(validateNewSkillKey("Demo", ["demo"])).toBe("exists");
-    expect(validateNewSkillKey("new-skill", ["demo"])).toBe("");
+    expect(validateNewSkillId("", [])).toBe("required");
+    expect(validateNewSkillId("../bad", [])).toBe("invalid");
+    expect(validateNewSkillId("hidden.example", [])).toBe("invalid");
+    expect(validateNewSkillId("Demo", ["demo"])).toBe("exists");
+    expect(validateNewSkillId("new-skill", ["demo"])).toBe("");
   });
 
   it("rejects invalid, empty, and oversized ZIP selections before upload", () => {
@@ -429,7 +429,7 @@ describe("SkillConsole", () => {
   it("renders the simplified file workspace without the old skill meta grid", () => {
     const detail: AdminSkillDetailResponse = {
       skill: {
-        key: "demo-skill",
+        id: "demo-skill",
         name: "Demo Skill",
         status: "ready",
         source: { kind: "skills-center", path: "/skills/demo-skill" },
@@ -505,7 +505,7 @@ describe("SkillConsole", () => {
 
   it("locks the workspace while a skill deletion is pending", () => {
     const detail: AdminSkillDetailResponse = {
-      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      skill: { id: "demo-skill", name: "Demo Skill", status: "ready" },
       capabilities: {
         maxTextBytes: 1048576,
         maxUploadBytes: 33554432,
@@ -556,7 +556,7 @@ describe("SkillConsole", () => {
 
   it("renders binary files as metadata instead of a text editor", () => {
     const detail: AdminSkillDetailResponse = {
-      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      skill: { id: "demo-skill", name: "Demo Skill", status: "ready" },
       capabilities: {
         maxTextBytes: 1048576,
         maxUploadBytes: 33554432,
@@ -672,7 +672,7 @@ describe("SkillConsole", () => {
       deletable: true,
     };
     const detail: AdminSkillDetailResponse = {
-      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      skill: { id: "demo-skill", name: "Demo Skill", status: "ready" },
       capabilities: {
         maxTextBytes: 1048576,
         maxUploadBytes: 33554432,
@@ -744,7 +744,7 @@ describe("SkillConsole", () => {
 
   it("renders a directory info view when a directory is selected", () => {
     const detail: AdminSkillDetailResponse = {
-      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      skill: { id: "demo-skill", name: "Demo Skill", status: "ready" },
       capabilities: {
         maxTextBytes: 1048576,
         maxUploadBytes: 33554432,
@@ -826,7 +826,7 @@ describe("SkillConsole", () => {
 
   it("renders the add-file dropdown trigger and an image-capable upload input", () => {
     const detail: AdminSkillDetailResponse = {
-      skill: { key: "demo-skill", name: "Demo Skill", status: "ready" },
+      skill: { id: "demo-skill", name: "Demo Skill", status: "ready" },
       capabilities: {
         maxTextBytes: 1048576,
         maxUploadBytes: 33554432,

@@ -1311,9 +1311,9 @@ describe('replayEvent tool migration', () => {
         focusComposerOnComplete: true,
         composerDraft: '  Create a useful Skill.  ',
         selectedSkills: [
-          { key: 'skill-creator', label: 'Skill Creator' },
-          { key: 'SKILL-CREATOR', label: 'Duplicate' },
-          { key: '', label: 'Invalid' },
+          { id: 'skill-creator', label: 'Skill Creator' },
+          { id: 'SKILL-CREATOR', label: 'Duplicate' },
+          { id: '', label: 'Invalid' },
         ],
       }),
     ).toEqual({
@@ -1321,7 +1321,7 @@ describe('replayEvent tool migration', () => {
       preserveWorkerContext: true,
       focusComposerOnComplete: true,
       composerDraft: 'Create a useful Skill.',
-      selectedSkills: [{ key: 'skill-creator', label: 'Skill Creator' }],
+      selectedSkills: [{ id: 'skill-creator', label: 'Skill Creator' }],
     });
   });
 
@@ -2387,8 +2387,8 @@ describe('replayEvent tool migration', () => {
 
   it.each(['请使用企业微信查询信息。', ''])('replaces the blank-chat draft %j and removes the previous Skill Creator selection', (draft) => {
     const state = createInitialState();
-    const previousSkills = [{ key: 'skill-creator', label: '技能制作' }];
-    const historySkills = [{ key: 'history-skill', label: 'History Skill' }];
+    const previousSkills = [{ id: 'skill-creator', label: '技能制作' }];
+    const historySkills = [{ id: 'history-skill', label: 'History Skill' }];
     state.composerDraft = 'Create a Skill';
     state.composerDraftByChatId = { '': state.composerDraft, chat_history: 'History draft' };
     state.selectedSkills = previousSkills;
@@ -2408,12 +2408,12 @@ describe('replayEvent tool migration', () => {
 
   it.each(['请介绍连接器权限。', ''])('preserves historical draft and Skills when applying connector draft %j to a new chat', (draft) => {
     const state = createInitialState();
-    const historySkills = [{ key: 'history-skill', label: 'History Skill' }];
+    const historySkills = [{ id: 'history-skill', label: 'History Skill' }];
     state.chatId = 'chat_history';
     state.composerDraft = 'History draft';
     state.composerDraftByChatId = { '': 'Old blank draft' };
     state.selectedSkills = historySkills;
-    state.selectedSkillsByChatId = { '': [{ key: 'skill-creator', label: 'Skill Creator' }] };
+    state.selectedSkillsByChatId = { '': [{ id: 'skill-creator', label: 'Skill Creator' }] };
     const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
 
     actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: draft, selectedSkills: [] });
@@ -2430,11 +2430,11 @@ describe('replayEvent tool migration', () => {
 
   it.each(['', 'chat_history'])('retains shared blank-chat draft and Skills for an ordinary new-chat intent from %j', (chatId) => {
     const state = createInitialState();
-    const blankSkills = [{ key: 'selected-by-user', label: 'Selected by user' }];
+    const blankSkills = [{ id: 'selected-by-user', label: 'Selected by user' }];
     state.chatId = chatId;
     state.composerDraft = chatId ? 'History draft' : 'Shared blank draft';
     state.composerDraftByChatId = { '': 'Shared blank draft' };
-    state.selectedSkills = chatId ? [{ key: 'history-skill', label: 'History Skill' }] : blankSkills;
+    state.selectedSkills = chatId ? [{ id: 'history-skill', label: 'History Skill' }] : blankSkills;
     state.selectedSkillsByChatId = { '': blankSkills };
     const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
 
@@ -2446,10 +2446,10 @@ describe('replayEvent tool migration', () => {
 
   it('replaces previous manual Skills with platform-admin for an explicit configuration prefill', () => {
     const state = createInitialState();
-    state.selectedSkills = [{ key: 'skill-creator', label: 'Skill Creator' }];
+    state.selectedSkills = [{ id: 'skill-creator', label: 'Skill Creator' }];
     state.selectedSkillsByChatId = { '': state.selectedSkills };
     const { actions, stateRef } = createConversationIntentHarness(state);
-    const adminSkills = [{ key: 'platform-admin', label: 'platform-admin' }];
+    const adminSkills = [{ id: 'platform-admin', label: 'platform-admin' }];
 
     actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: 'Edit connector configuration', selectedSkills: adminSkills });
     expect(stateRef.current.composerDraft).toBe('Edit connector configuration');

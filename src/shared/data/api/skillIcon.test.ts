@@ -11,7 +11,7 @@ it("reads agent and admin icons with authentication and cancellation", async () 
   const blob = new Blob(["icon"], { type: "image/png" });
   fetchMock.mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "Content-Type": "image/png" }), blob: async () => blob });
   const controller = new AbortController();
-  for (const url of ["/api/skill-packages/icon?key=office", "/api/skills/icon?agentKey=zenmi&key=pdf", "/api/admin/skills/file/download?key=pdf&path=assets%2Fpdf.png"]) {
+  for (const url of ["/api/skill-packages/icon?id=office", "/api/skills/icon?agentKey=zenmi&id=pdf", "/api/admin/skills/file/download?id=pdf&path=assets%2Fpdf.png"]) {
     await expect(fetchSkillIcon(url, { signal: controller.signal })).resolves.toBe(blob);
     expect(fetchMock).toHaveBeenLastCalledWith(url, expect.objectContaining({ signal: controller.signal, headers: expect.objectContaining({ Authorization: "Bearer skill-test-token" }) }));
   }
@@ -23,5 +23,5 @@ it("rejects other destinations and non-image responses", async () => {
   }
   expect(fetchMock).not.toHaveBeenCalled();
   fetchMock.mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "Content-Type": "text/html" }) });
-  await expect(fetchSkillIcon("/api/skills/icon?agentKey=zenmi&key=pdf")).rejects.toThrow("skill icon response is not an image");
+  await expect(fetchSkillIcon("/api/skills/icon?agentKey=zenmi&id=pdf")).rejects.toThrow("skill icon response is not an image");
 });

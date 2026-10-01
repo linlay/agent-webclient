@@ -94,7 +94,7 @@ it("scopes connector skill queries to the admin connector and original skill nam
   await getConnectorSkills("builtin.dbx");
   await getConnectorSkillDetail("builtin.dbx", "query&report");
   expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/connectors/skills?id=builtin.dbx");
-  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/skills/detail?id=builtin.dbx&name=query%26report");
+  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/skills/detail?id=builtin.dbx&skillId=query%26report");
 });
 
 

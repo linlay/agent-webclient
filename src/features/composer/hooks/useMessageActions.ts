@@ -289,14 +289,14 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const normalizedReferences = Array.isArray(references)
         ? references.filter((reference) => reference != null)
         : [];
-      const seenSkillKeys = new Set<string>();
+      const seenSkillIds = new Set<string>();
       const normalizedMustUseSkills = mustUseSkills.flatMap((key) => {
         const normalizedKey = String(key || "").trim();
         const identity = normalizedKey.toLowerCase();
-        if (!normalizedKey || seenSkillKeys.has(identity)) {
+        if (!normalizedKey || seenSkillIds.has(identity)) {
           return [];
         }
-        seenSkillKeys.add(identity);
+        seenSkillIds.add(identity);
         return [normalizedKey];
       });
       if (!hasSendableQuery(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId), canContinueChat(stateRef.current, preferredChatId || stateRef.current.chatId))) return;

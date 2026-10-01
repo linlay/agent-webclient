@@ -1,6 +1,6 @@
-/** Display metadata is localized by Platform; identity always remains the key. */
-export function skillDisplayName(skill: { displayName?: string; name?: string; key?: string }): string {
-  return skill.displayName?.trim() || skill.name?.trim() || skill.key?.trim() || "";
+/** Display metadata is localized by Platform; identity always remains the id. */
+export function skillDisplayName(skill: { displayName?: string; name?: string; id?: string }): string {
+  return skill.displayName?.trim() || skill.name?.trim() || skill.id?.trim() || "";
 }
 
 /** Platform localizes package displayName; name is the stable manifest identity. */

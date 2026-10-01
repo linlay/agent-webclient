@@ -3,19 +3,19 @@ import type { AgentSkill } from "@/shared/data/api/client";
 
 export function resolveSkillDisplayName(
   skills: readonly AgentSkill[],
-  key: string,
+  id: string,
   fallbackLabel = "",
 ): string {
-  const normalizedKey = String(key || "").trim().toLowerCase();
+  const normalizedId = String(id || "").trim().toLowerCase();
   const skill = skills
     .find(
       (skill) =>
-        String(skill.key || "").trim().toLowerCase() === normalizedKey,
+        String(skill.id || "").trim().toLowerCase() === normalizedId,
     );
 
   return (
     (skill ? skillDisplayName(skill) : "") ||
     String(fallbackLabel || "").trim() ||
-    String(key || "").trim()
+    String(id || "").trim()
   );
 }

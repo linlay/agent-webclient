@@ -280,8 +280,8 @@ describe("reduceConversationState – composerDraftByChatId", () => {
 
 describe("reduceConversationState – selectedSkillsByChatId", () => {
 	it("switching chat saves current selectedSkills and restores saved skills", () => {
-		const skillsA = [{ key: "a", label: "A" }];
-		const skillsB = [{ key: "b", label: "B" }];
+		const skillsA = [{ id: "a", label: "A" }];
+		const skillsB = [{ id: "b", label: "B" }];
 		const state = buildState({
 			chatId: "chat_a",
 			selectedSkills: skillsA,
@@ -298,7 +298,7 @@ describe("reduceConversationState – selectedSkillsByChatId", () => {
 	it("new chat with no saved skills gets empty array", () => {
 		const state = buildState({
 			chatId: "chat_a",
-			selectedSkills: [{ key: "a", label: "A" }],
+			selectedSkills: [{ id: "a", label: "A" }],
 			selectedSkillsByChatId: {},
 		});
 		const next = appReducer(state, {
@@ -309,7 +309,7 @@ describe("reduceConversationState – selectedSkillsByChatId", () => {
 	});
 
 	it("SET_SELECTED_SKILLS also writes to selectedSkillsByChatId", () => {
-		const skills = [{ key: "a", label: "A" }];
+		const skills = [{ id: "a", label: "A" }];
 		const state = buildState({
 			chatId: "chat_x",
 			selectedSkills: [],
@@ -326,8 +326,8 @@ describe("reduceConversationState – selectedSkillsByChatId", () => {
 
 describe("Composer drafts across conversation changes", () => {
 	it("shares the blank-chat text and Skills across Agents while preserving history drafts", () => {
-		const sharedSkills = [{ key: "shared", label: "Shared" }];
-		const historySkills = [{ key: "history", label: "History" }];
+		const sharedSkills = [{ id: "shared", label: "Shared" }];
+		const historySkills = [{ id: "history", label: "History" }];
 		let state = buildState({ workerSelectionKey: "agent:a" });
 		state = appReducer(state, { type: "SET_COMPOSER_DRAFT", draft: "shared draft" });
 		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: sharedSkills });
@@ -357,13 +357,13 @@ describe("Composer drafts across conversation changes", () => {
 	});
 
 	it.each(["chat_a", ""])("does not resurrect cleared text or removed Skills for chat %p", (chatId) => {
-		const otherSkills = [{ key: "other", label: "Other" }];
+		const otherSkills = [{ id: "other", label: "Other" }];
 		const original = buildState({
 			chatId,
 			composerDraft: "old draft",
 			composerDraftByChatId: { [chatId]: "old draft", chat_b: "other draft" },
-			selectedSkills: [{ key: "old", label: "Old" }],
-			selectedSkillsByChatId: { [chatId]: [{ key: "old", label: "Old" }], chat_b: otherSkills },
+			selectedSkills: [{ id: "old", label: "Old" }],
+			selectedSkillsByChatId: { [chatId]: [{ id: "old", label: "Old" }], chat_b: otherSkills },
 		});
 		let state = appReducer(original, { type: "SET_COMPOSER_DRAFT", draft: "" });
 		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: [] });
@@ -376,11 +376,11 @@ describe("Composer drafts across conversation changes", () => {
 		expect(state.composerDraftByChatId).toEqual({ [chatId]: "", chat_b: "other draft" });
 		expect(state.selectedSkillsByChatId).toEqual({ [chatId]: [], chat_b: otherSkills });
 		expect(original.composerDraftByChatId[chatId]).toBe("old draft");
-		expect(original.selectedSkillsByChatId[chatId]).toEqual([{ key: "old", label: "Old" }]);
+		expect(original.selectedSkillsByChatId[chatId]).toEqual([{ id: "old", label: "Old" }]);
 	});
 
 	it.each(["chat_a", ""])("preserves draft records when selecting the same chat %p", (chatId) => {
-		const skills = [{ key: "review", label: "Review" }];
+		const skills = [{ id: "review", label: "Review" }];
 		const state = buildState({
 			chatId,
 			composerDraft: "draft",

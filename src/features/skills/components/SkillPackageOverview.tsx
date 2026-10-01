@@ -16,7 +16,7 @@ export function SkillPackageOverview({ pack, skills, busy, onSelect, onDelete, o
 }) {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
-  const byKey = new Map(skills.map((skill) => [skill.key, skill]));
+  const byKey = new Map(skills.map((skill) => [skill.id, skill]));
   const missing = new Set(pack.missingSkillIds || []);
   return <section className="skill-package-overview">
     <div className="skill-package-overview-heading">

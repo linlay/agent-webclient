@@ -23,13 +23,13 @@ export function readHostRequiredSkills(
   const identities = new Set<string>();
   const skills: string[] = [];
   for (const value of searchParams.getAll("mustUseSkill")) {
-    const skillKey = value.trim();
-    const identity = skillKey.toLowerCase();
-    if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u.test(skillKey) || identities.has(identity)) {
+    const skillId = value.trim();
+    const identity = skillId.toLowerCase();
+    if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u.test(skillId) || identities.has(identity)) {
       continue;
     }
     identities.add(identity);
-    skills.push(skillKey);
+    skills.push(skillId);
     if (skills.length >= 16) break;
   }
   return skills.length > 0

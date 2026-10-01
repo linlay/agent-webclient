@@ -132,7 +132,7 @@ export const SlashPaletteContent: React.FC<{
           const index = slashCommands.length + skillIndex;
           return (
             <UiButton
-              key={`skill:${skill.key.toLowerCase()}`}
+              key={`skill:${skill.id.toLowerCase()}`}
               ref={(ref) => ref && (itemsRef.current[index] = ref)}
               className={`${SLASH_COMMAND_ITEM_CLASS} ${itemStateClass(index === activeSlashIndex)}`}
               variant="ghost"

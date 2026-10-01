@@ -12,7 +12,7 @@ export function useConnectorSkills(id: string, catalogKey: string) {
   const [detailError, setDetailError] = useState("");
   const [revision, setRevision] = useState(0);
   const skills = catalog?.connectorId === id ? catalog.skills : [];
-  const name = (selection.id === id && skills.some(skill => (skill.key || skill.name) === selection.name) ? selection.name : (skills[0]?.key || skills[0]?.name)) || "";
+  const name = (selection.id === id && skills.some(skill => (skill.id || skill.name) === selection.name) ? selection.name : (skills[0]?.id || skills[0]?.name)) || "";
 
   useEffect(() => {
     let active = true;
@@ -42,7 +42,7 @@ export function useConnectorSkills(id: string, catalogKey: string) {
 
   return {
     skills, name, listLoading, detailLoading, listError, detailError,
-    detail: detail?.connectorId === id && (detail.skill.key || detail.skill.name) === name ? detail : null,
+    detail: detail?.connectorId === id && (detail.skill.id || detail.skill.name) === name ? detail : null,
     select: (name: string) => setSelection({ id, name }),
     reload: () => setRevision(value => value + 1),
   };

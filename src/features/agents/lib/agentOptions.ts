@@ -6,7 +6,7 @@ export interface AgentToolOption {
 }
 
 export interface AgentSkillOption {
-  key: string;
+  id: string;
   label: string;
   description?: string;
   source: "center" | "private";

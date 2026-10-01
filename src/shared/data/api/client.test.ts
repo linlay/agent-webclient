@@ -474,36 +474,36 @@ describe("data client requests", () => {
     await getAdminSkillDetail("demo-skill", "SKILL.md");
     await getAdminSource({
       type: "skill",
-      key: "demo-skill",
+      id: "demo-skill",
       path: "SKILL.md",
     });
     await updateAdminSource({
-      target: { type: "skill", key: "demo-skill", path: "SKILL.md" },
+      target: { type: "skill", id: "demo-skill", path: "SKILL.md" },
       content: "# My Skill",
       baseSha256: "abc123",
     });
     await createAdminSkillFile({
-      key: "demo-skill",
+      id: "demo-skill",
       path: "references/new.md",
       content: "",
     });
     await mkdirAdminSkillFile({
-      key: "demo-skill",
+      id: "demo-skill",
       path: "assets",
     });
     await renameAdminSkillFile({
-      key: "demo-skill",
+      id: "demo-skill",
       fromPath: "old.md",
       toPath: "new.md",
     });
     await deleteAdminSkillFile({
-      key: "demo-skill",
+      id: "demo-skill",
       path: "old.md",
       baseSha256: "old-sha",
     });
     await validateAdminSkill("demo-skill");
     await createAdminSkill({
-      key: "new-skill",
+      id: "new-skill",
       skillMd: "---\nname: New Skill\n---\n",
     });
     await deleteAdminSkill("demo-skill");
@@ -517,12 +517,12 @@ describe("data client requests", () => {
     expect(calls).toEqual([
       { url: "/api/admin/skills", method: "GET", body: {} },
       {
-        url: "/api/admin/skills/detail?key=demo-skill&openPath=SKILL.md",
+        url: "/api/admin/skills/detail?id=demo-skill&openPath=SKILL.md",
         method: "GET",
         body: {},
       },
       {
-        url: "/api/admin/source?type=skill&key=demo-skill&path=SKILL.md",
+        url: "/api/admin/source?type=skill&id=demo-skill&path=SKILL.md",
         method: "GET",
         body: {},
       },
@@ -530,7 +530,7 @@ describe("data client requests", () => {
         url: "/api/admin/source",
         method: "PUT",
         body: {
-          target: { type: "skill", key: "demo-skill", path: "SKILL.md" },
+          target: { type: "skill", id: "demo-skill", path: "SKILL.md" },
           content: "# My Skill",
           baseSha256: "abc123",
         },
@@ -539,7 +539,7 @@ describe("data client requests", () => {
         url: "/api/admin/skills/file/create",
         method: "POST",
         body: {
-          key: "demo-skill",
+          id: "demo-skill",
           path: "references/new.md",
           content: "",
         },
@@ -548,7 +548,7 @@ describe("data client requests", () => {
         url: "/api/admin/skills/file/mkdir",
         method: "POST",
         body: {
-          key: "demo-skill",
+          id: "demo-skill",
           path: "assets",
         },
       },
@@ -556,7 +556,7 @@ describe("data client requests", () => {
         url: "/api/admin/skills/file/rename",
         method: "POST",
         body: {
-          key: "demo-skill",
+          id: "demo-skill",
           fromPath: "old.md",
           toPath: "new.md",
         },
@@ -565,7 +565,7 @@ describe("data client requests", () => {
         url: "/api/admin/skills/file/delete",
         method: "POST",
         body: {
-          key: "demo-skill",
+          id: "demo-skill",
           path: "old.md",
           baseSha256: "old-sha",
         },
@@ -573,42 +573,42 @@ describe("data client requests", () => {
       {
         url: "/api/admin/skills/validate",
         method: "POST",
-        body: { key: "demo-skill" },
+        body: { id: "demo-skill" },
       },
       {
         url: "/api/admin/skills/create",
         method: "POST",
         body: {
-          key: "new-skill",
+          id: "new-skill",
           skillMd: "---\nname: New Skill\n---\n",
         },
       },
       {
         url: "/api/admin/skills/delete",
         method: "POST",
-        body: { key: "demo-skill" },
+        body: { id: "demo-skill" },
       },
     ]);
 
     expect(
       buildAdminSkillFileDownloadUrl("demo-skill", "assets/blob.bin"),
     ).toBe(
-      "/api/admin/skills/file/download?key=demo-skill&path=assets%2Fblob.bin",
+      "/api/admin/skills/file/download?id=demo-skill&path=assets%2Fblob.bin",
     );
     expect(buildAdminSkillDownloadUrl("demo-skill")).toBe(
-      "/api/admin/skills/download?key=demo-skill",
+      "/api/admin/skills/download?id=demo-skill",
     );
   });
 
   it("encodes logical source target query values", async () => {
     await getAdminSource({
       type: "skill",
-      key: "demo skill",
+      id: "demo skill",
       path: "references/a & b.md",
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      "/api/admin/source?type=skill&key=demo+skill&path=references%2Fa+%26+b.md",
+      "/api/admin/source?type=skill&id=demo+skill&path=references%2Fa+%26+b.md",
     );
   });
 
@@ -673,11 +673,11 @@ describe("data client requests", () => {
 
     await expect(
       fetchAdminSkillIcon(
-        "/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png",
+        "/api/admin/skills/file/download?id=demo&path=assets%2Fdemo.png",
       ),
     ).resolves.toBe(blob);
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png",
+      "/api/admin/skills/file/download?id=demo&path=assets%2Fdemo.png",
       expect.objectContaining({
         method: "GET",
         headers: expect.objectContaining({
@@ -751,7 +751,7 @@ describe("data client requests", () => {
     });
     await expect(
       fetchAdminSkillIcon(
-        "/api/admin/skills/file/download?key=demo&path=assets%2Fdemo.png",
+        "/api/admin/skills/file/download?id=demo&path=assets%2Fdemo.png",
       ),
     ).rejects.toMatchObject({ message: "skill icon response is not an image" });
   });
@@ -770,7 +770,7 @@ describe("data client requests", () => {
       fetchAdminSkillFileBlob("demo-skill", "assets/demo.png"),
     ).resolves.toBe(blob);
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/admin/skills/file/download?key=demo-skill&path=assets%2Fdemo.png",
+      "/api/admin/skills/file/download?id=demo-skill&path=assets%2Fdemo.png",
       expect.objectContaining({
         method: "GET",
         headers: expect.objectContaining({
@@ -850,8 +850,8 @@ describe("data client requests", () => {
     }
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      "/api/admin/skills/file/download?key=demo-skill&path=assets%2Fasset.bin",
-      "/api/admin/skills/download?key=demo-skill",
+      "/api/admin/skills/file/download?id=demo-skill&path=assets%2Fasset.bin",
+      "/api/admin/skills/download?id=demo-skill",
     ]);
     for (const [, options] of fetchMock.mock.calls as Array<
       [string, RequestInit]
@@ -870,7 +870,7 @@ describe("data client requests", () => {
     const blob = new Blob(["demo"], { type: "text/plain" });
 
     await uploadAdminSkillFile({
-      key: "demo-skill",
+      id: "demo-skill",
       path: "assets/demo.txt",
       file: blob,
       overwrite: true,
@@ -886,7 +886,7 @@ describe("data client requests", () => {
     expect(uploadOptions.body).toBeInstanceOf(FormData);
 
     const formData = uploadOptions.body as FormData;
-    expect(formData.get("key")).toBe("demo-skill");
+    expect(formData.get("id")).toBe("demo-skill");
     expect(formData.get("path")).toBe("assets/demo.txt");
     expect(formData.get("overwrite")).toBe("true");
     expect(formData.get("file")).toBe(blob);
@@ -897,7 +897,7 @@ describe("data client requests", () => {
       type: "application/zip",
     });
 
-    await importAdminSkill({ key: "demo-skill", file: archive });
+    await importAdminSkill({ id: "demo-skill", file: archive });
 
     const [importUrl, importOptions] = fetchMock.mock.calls[0] as [
       string,
@@ -909,11 +909,11 @@ describe("data client requests", () => {
     expect(importOptions.body).toBeInstanceOf(FormData);
 
     const formData = importOptions.body as FormData;
-    expect(formData.get("key")).toBe("demo-skill");
+    expect(formData.get("id")).toBe("demo-skill");
     expect(formData.get("file")).toBe(archive);
   });
 
-  it("uploads a ZIP without a key so Platform can identify a skill or package", async () => {
+  it("uploads a ZIP without a id so Platform can identify a skill or package", async () => {
     const archive = new File(["zip"], "wecomcli-suite.zip", {
       type: "application/zip",
     });
@@ -921,7 +921,7 @@ describe("data client requests", () => {
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/admin/skills/import");
     const form = options.body as FormData;
-    expect(form.get("key")).toBeNull();
+    expect(form.get("id")).toBeNull();
     expect(form.get("file")).toBe(archive);
   });
 
@@ -967,7 +967,7 @@ describe("data client requests", () => {
     });
     await deleteAdminAgentPrivateSkill({
       agentKey: "demo-agent",
-      key: "private-skill",
+      id: "private-skill",
     });
 
     const [importUrl, importOptions] = fetchMock.mock.calls[0] as [
@@ -979,7 +979,7 @@ describe("data client requests", () => {
     expect(importOptions.body).toBeInstanceOf(FormData);
     const formData = importOptions.body as FormData;
     expect(formData.get("agentKey")).toBe("demo-agent");
-    expect(formData.get("key")).toBeNull();
+    expect(formData.get("id")).toBeNull();
     expect(formData.get("file")).toBe(archive);
     expect(formData.get("confirmCenterOverride")).toBeNull();
 
@@ -990,7 +990,7 @@ describe("data client requests", () => {
     expect(deleteUrl).toBe("/api/admin/agents/skills/delete");
     expect(JSON.parse(String(deleteOptions.body))).toEqual({
       agentKey: "demo-agent",
-      key: "private-skill",
+      id: "private-skill",
     });
   });
 

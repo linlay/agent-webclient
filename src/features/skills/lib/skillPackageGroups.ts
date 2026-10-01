@@ -8,22 +8,22 @@ export function groupAdminSkills(
   status: string,
 ) {
   const needle = searchText.trim().toLowerCase();
-  const byKey = new Map(skills.map((skill) => [skill.key, skill]));
+  const byId = new Map(skills.map((skill) => [skill.id, skill]));
   const owned = new Set(packages.flatMap((pack) => pack.skills.map((member) => member.id)));
   const matchesStatus = (skill: AdminSkillSummary) => status === "all" || skill.status === status;
   const matchesText = (skill: AdminSkillSummary) =>
-    [skill.key, skill.name, skillDisplayName(skill), skill.description, skill.source?.path].join(" ").toLowerCase().includes(needle);
+    [skill.id, skill.name, skillDisplayName(skill), skill.description, skill.source?.path].join(" ").toLowerCase().includes(needle);
   return {
     packages: packages.map((pack) => {
       const packageMatches = [pack.id, pack.name, skillPackageDisplayName(pack), pack.description].join(" ").toLowerCase().includes(needle);
       const members = pack.skills.filter((member) => {
-        const skill = byKey.get(member.id);
+        const skill = byId.get(member.id);
         return skill
           ? matchesStatus(skill) && (packageMatches || matchesText(skill))
           : (status === "all" || status === "invalid") && (packageMatches || member.id.toLowerCase().includes(needle));
-      }).map((member) => ({ ...member, skill: byKey.get(member.id) }));
+      }).map((member) => ({ ...member, skill: byId.get(member.id) }));
       return { pack, members, packageMatches };
     }).filter(({ pack, members, packageMatches }) => members.length > 0 || (packageMatches && status === "all" && pack.skills.length === 0)).map(({ pack, members }) => ({ pack, members })),
-    standalone: skills.filter((skill) => !skill.packageId && !owned.has(skill.key) && matchesStatus(skill) && matchesText(skill)),
+    standalone: skills.filter((skill) => !skill.packageId && !owned.has(skill.id) && matchesStatus(skill) && matchesText(skill)),
   };
 }

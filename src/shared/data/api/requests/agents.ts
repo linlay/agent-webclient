@@ -146,7 +146,7 @@ export function importAdminAgentPrivateSkill(params: {
 
 export function deleteAdminAgentPrivateSkill(params: {
   agentKey: string;
-  key: string;
+  id: string;
 }): Promise<ApiResponse<AdminAgentDetailResponse>> {
   return postJson<AdminAgentDetailResponse>(dataEndpoints.adminAgentPrivateSkillDelete.path, params);
 }

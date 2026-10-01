@@ -59,7 +59,7 @@ describe("canonical independent Surface targets", () => {
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
       kind: "skill",
-      key: "pdf",
+      id: "pdf",
     })).toBe("/skill-viewer/pdf");
     expect(buildStandaloneOpenTargetUrl({
       version: 1,
@@ -291,19 +291,19 @@ describe("canonical independent Surface targets", () => {
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
       kind: "skill",
-      key: "pdf",
+      id: "pdf",
       label: "PDF",
     })).toEqual({
       kind: "webclient",
       module: "skill",
       route: "/skill-viewer/pdf",
-      context: { key: "pdf" },
+      context: { id: "pdf" },
       title: "PDF",
     });
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,
       kind: "skill",
-      key: " ",
+      id: " ",
     })).toBeNull();
     expect(buildDesktopWorkPanelDescriptor({
       version: 1,

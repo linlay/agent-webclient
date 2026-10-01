@@ -19,7 +19,7 @@
     { "text": "WebSocket", "reason": "传输协议名称。" }
   ],
   "src/features/skills/components/SkillConsole.tsx": [
-    { "text": "skill-key", "reason": "技能键的格式示例。" }
+    { "text": "skill-id", "reason": "技能 ID 的格式示例。" }
   ],
   "src/features/workers/components/AgentConsole.tsx": [
     { "text": "{\"environmentId\":\"shell\",\"level\":\"RUN\"}", "reason": "JSON 配置示例。" },

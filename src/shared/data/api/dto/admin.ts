@@ -90,15 +90,17 @@ export type AdminSourceType = "agent" | "skill" | "skill-package" | "automation"
 
 export type AdminSourceTarget =
   | {
-      type: "agent" | "automation" | "skill-package";
+      type: "agent" | "automation";
       key: string;
+      id?: never;
       path?: never;
       category?: never;
       file?: never;
     }
+  | { type: "skill-package"; id: string; key?: never; path?: never; category?: never; file?: never }
   | {
       type: "skill";
-      key: string;
+      id: string; key?: never;
       path: string;
       category?: never;
       file?: never;
@@ -106,6 +108,7 @@ export type AdminSourceTarget =
   | {
       type: "registry";
       key?: never;
+      id?: never;
       path?: never;
       category: AdminRegistryCategory;
       file: string;

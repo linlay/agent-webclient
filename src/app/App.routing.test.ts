@@ -81,7 +81,7 @@ describe("App routing", () => {
         "/mcp-servers",
         "/mcp-servers/:serverKey",
         "/skills",
-        "/skills/:skillKey",
+        "/skills/:skillId",
         "/overview/:chatId",
         "/debug/:chatId",
         "/btw/:chatId",

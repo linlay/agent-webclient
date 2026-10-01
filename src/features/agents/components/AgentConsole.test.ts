@@ -283,12 +283,12 @@ describe("Agent creation modal", () => {
 });
 
 describe("AgentConsole private skill options", () => {
-  it("prefers the Agent-private source when it has the same key as the center", () => {
+  it("prefers the Agent-private source when it has the same id as the center", () => {
     const options = mergeAgentSkillOptions(
-      [{ key: "office", label: "Office" }],
+      [{ id: "office", label: "Office" }],
       [
         {
-          key: "office",
+          id: "office",
           displayName: "Private Office",
           status: "ready",
           enabled: true,
@@ -301,7 +301,7 @@ describe("AgentConsole private skill options", () => {
 
     expect(options).toEqual([
       expect.objectContaining({
-        key: "office",
+        id: "office",
         label: "Private Office · agentConsole.privateSkill.source.private",
         source: "private",
         overridesCenter: true,
@@ -309,12 +309,12 @@ describe("AgentConsole private skill options", () => {
     ]);
   });
 
-  it("renders a short private acronym without repeating its key", () => {
+  it("renders a short private acronym without repeating its id", () => {
     const options = mergeAgentSkillOptions(
-      [{ key: "cdp", label: "cdp" }],
+      [{ id: "cdp", label: "cdp" }],
       [
         {
-          key: "cdp",
+          id: "cdp",
           name: "cdp",
           status: "ready",
           enabled: true,
@@ -342,7 +342,7 @@ describe("AgentConsole private skill options", () => {
         status: "ready",
         privateSkills: [
           {
-            key: "private",
+            id: "private",
             name: "Private",
             status: "ready",
             enabled: true,

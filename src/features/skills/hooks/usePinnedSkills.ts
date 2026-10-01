@@ -76,14 +76,14 @@ export function usePinnedSkills(enabled: boolean, agentKey = "") {
     return () => window.removeEventListener("focus", refresh);
   }, [enabled, refreshPins]);
 
-  const pinnedSkillKeys = pins.data ?? EMPTY_KEYS;
+  const pinnedSkillIds = pins.data ?? EMPTY_KEYS;
   const toggleSkillPin = useCallback(async (key: string) => {
     if (pending.current || pins.status !== "success" || (enabled && query.status !== "success")) return;
     pending.current = true;
     setSaving(true);
     setSaveError(null);
     try {
-      const response = await putAgentSkillPin({ key, pinned: !pinnedSkillKeys.includes(key.trim().toLowerCase()) });
+      const response = await putAgentSkillPin({ id: key, pinned: !pinnedSkillIds.includes(key.trim().toLowerCase()) });
       if (revision !== sessionRevision) return;
       pinRevision += 1;
       await publishPins(pinsCacheKey, response.data.pinned);
@@ -93,12 +93,12 @@ export function usePinnedSkills(enabled: boolean, agentKey = "") {
       pending.current = false;
       setSaving(false);
     }
-  }, [pins.status, pinnedSkillKeys, revision, pinsCacheKey, enabled, query.status]);
+  }, [pins.status, pinnedSkillIds, revision, pinsCacheKey, enabled, query.status]);
 
   return {
     ...query,
     refetch: refreshPins,
-    pinnedSkillKeys,
+    pinnedSkillIds,
     toggleSkillPin,
     refreshPins,
     pinsDisabled: saving || pins.status !== "success" || (enabled && query.status !== "success"),

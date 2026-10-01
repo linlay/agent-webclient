@@ -11,7 +11,7 @@ const resourceRequests: Array<[string, () => Promise<unknown>]> = [
   ["chat export", () => client.downloadChatExport("chat-1")],
   ["skill archive", () => client.downloadAdminSkill("skill-1")],
   ["skill file", () => client.downloadAdminSkillFile("skill-1", "SKILL.md")],
-  ["skill icon", () => client.fetchAdminSkillIcon("/api/admin/skills/file/download?key=skill-1&path=icon.png")],
+  ["skill icon", () => client.fetchAdminSkillIcon("/api/admin/skills/file/download?id=skill-1&path=icon.png")],
   ["skill blob", () => client.fetchAdminSkillFileBlob("skill-1", "SKILL.md")],
 ];
 

@@ -115,14 +115,14 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
     body.editingMode = true;
   }
   if (Array.isArray(options.mustUseSkills)) {
-    const seenSkillKeys = new Set<string>();
+    const seenSkillIds = new Set<string>();
     const mustUseSkills = options.mustUseSkills.flatMap((key) => {
       const normalizedKey = String(key || "").trim();
       const identity = normalizedKey.toLowerCase();
-      if (!normalizedKey || seenSkillKeys.has(identity)) {
+      if (!normalizedKey || seenSkillIds.has(identity)) {
         return [];
       }
-      seenSkillKeys.add(identity);
+      seenSkillIds.add(identity);
       return [normalizedKey];
     });
     if (mustUseSkills.length > 0) {
@@ -256,6 +256,7 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (target: AdminSourceTarget) => ({
       type: target.type,
       ...(target.key ? { key: target.key } : {}),
+      ...(target.id ? { id: target.id } : {}),
       ...(target.path ? { path: target.path } : {}),
       ...(target.category ? { category: target.category } : {}),
       ...(target.file ? { file: target.file } : {}),
@@ -356,12 +357,12 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     payload: ({ id }) => ({ id }),
   }),
-  adminConnectorSkillDetail: defineEndpoint<{ id: string; name: string }, { id: string; name: string }>({
+  adminConnectorSkillDetail: defineEndpoint<{ id: string; skillId: string }, { id: string; skillId: string }>({
     key: "admin.connectors.skills.detail",
     path: "/api/admin/connectors/skills/detail",
     method: "GET",
     transport: "http",
-    payload: ({ id, name }) => ({ id, name }),
+    payload: ({ id, skillId }) => ({ id, skillId }),
   }),
   connectorConnection: defineEndpoint({ key: "connectorConnection", path: "/api/connectors/connection", method: "GET", transport: "http", payload: (id: string) => ({ id }) }),
   adminConnectorPrepare: defineEndpoint({ key: "admin.connectors.prepare", path: "/api/admin/connectors/prepare", method: "POST", transport: "http", payload: (id: string) => ({ id }) }),
@@ -428,15 +429,15 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
   }),
   adminSkillDetail: defineEndpoint<
-    { key: string; openPath?: string },
-    { key: string; openPath?: string }
+    { id: string; openPath?: string },
+    { id: string; openPath?: string }
   >({
     key: "admin.skills.detail",
     path: "/api/admin/skills/detail",
     method: "GET",
     transport: "http",
     payload: (params) => ({
-      key: params.key,
+      id: params.id,
       ...(params.openPath ? { openPath: params.openPath } : {}),
     }),
   }),
@@ -471,21 +472,21 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
   }),
   adminSkillFileDownload: defineEndpoint<
-    { key: string; path: string },
-    { key: string; path: string }
+    { id: string; path: string },
+    { id: string; path: string }
   >({
     key: "admin.skills.file.download",
     path: "/api/admin/skills/file/download",
     method: "GET",
     transport: "http",
-    payload: (params) => ({ key: params.key, path: params.path }),
+    payload: (params) => ({ id: params.id, path: params.path }),
   }),
-  adminSkillDownload: defineEndpoint<{ key: string }, { key: string }>({
+  adminSkillDownload: defineEndpoint<{ id: string }, { id: string }>({
     key: "admin.skills.download",
     path: "/api/admin/skills/download",
     method: "GET",
     transport: "http",
-    payload: (params) => ({ key: params.key }),
+    payload: (params) => ({ id: params.id }),
   }),
   adminSkillValidate: defineEndpoint({
     key: "admin.skills.validate",

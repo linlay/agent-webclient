@@ -187,15 +187,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
   const forcedSkills = useMemo<ComposerRequiredSkill[]>(() => {
     if (!interactionConfig.mustUseSkills || hostRequiredSkills.agentKey !== currentAgentKey) return [];
-    return hostRequiredSkills.skills.map((key) => ({ key, label: key }));
+    return hostRequiredSkills.skills.map((key) => ({ id: key, label: key }));
   }, [currentAgentKey, hostRequiredSkills, interactionConfig.mustUseSkills]);
   const effectiveSkills = useMemo(() => {
     if (!interactionConfig.mustUseSkills) return [];
-    const identities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
+    const identities = new Set(forcedSkills.map((skill) => skill.id.toLowerCase()));
     return [
       ...forcedSkills,
       ...selectedSkills.filter((skill) => {
-        const identity = skill.key.trim().toLowerCase();
+        const identity = skill.id.trim().toLowerCase();
         if (!identity || identities.has(identity)) return false;
         identities.add(identity);
         return true;
@@ -204,8 +204,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   }, [forcedSkills, selectedSkills, interactionConfig.mustUseSkills]);
   const effectiveManualSkills = useMemo(() => {
     if (!interactionConfig.mustUseSkills) return [];
-    const forcedIdentities = new Set(forcedSkills.map((skill) => skill.key.toLowerCase()));
-    return selectedSkills.filter((skill) => !forcedIdentities.has(skill.key.trim().toLowerCase()));
+    const forcedIdentities = new Set(forcedSkills.map((skill) => skill.id.toLowerCase()));
+    return selectedSkills.filter((skill) => !forcedIdentities.has(skill.id.trim().toLowerCase()));
   }, [forcedSkills, selectedSkills, interactionConfig.mustUseSkills]);
   const skillCatalogQuery = useComposerSkillMenuQuery(currentAgentKey, {
     enabled: Boolean(currentAgentKey && effectiveSkills.length > 0),
@@ -217,7 +217,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         ...skill,
         label: resolveSkillDisplayName(
           activeAgentSkills,
-          skill.key,
+          skill.id,
           skill.label,
         ),
       })),
@@ -229,7 +229,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         ...skill,
         label: resolveSkillDisplayName(
           activeAgentSkills,
-          skill.key,
+          skill.id,
           skill.label,
         ),
       })),
@@ -237,7 +237,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
 
   const invalidSelectedSkills = !agentExecutionBlocked && skillCatalogQuery.status === "success" && skillCatalogQuery.data?.agentKey === currentAgentKey
-    ? effectiveManualSkills.filter(skill => !activeAgentSkills.some(available => skillIdentity(available.key) === skillIdentity(skill.key)))
+    ? effectiveManualSkills.filter(skill => !activeAgentSkills.some(available => skillIdentity(available.id) === skillIdentity(skill.id)))
     : [];
   const hasInvalidSelectedSkills = invalidSelectedSkills.length > 0;
   const groupedSkills = groupSelectedPackages(skillCatalogQuery.data?.packages || [], displayedManualSkills);
@@ -462,14 +462,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) {
         return;
       }
-      const identity = skillIdentity(skill.key);
-      if (forcedSkills.some((item) => skillIdentity(item.key) === identity)) {
+      const identity = skillIdentity(skill.id);
+      if (forcedSkills.some((item) => skillIdentity(item.id) === identity)) {
         return;
       }
       setSelectedSkills((current) => {
-        const lockedKeys = forcedSkills.map(item => item.key);
-        const manual = current.filter(item => !lockedKeys.some(key => skillIdentity(key) === skillIdentity(item.key)));
-        const selected = manual.length === 1 && !manual[0].selectedViaPackageId && skillIdentity(manual[0].key) === identity;
+        const lockedKeys = forcedSkills.map(item => item.id);
+        const manual = current.filter(item => !lockedKeys.some(key => skillIdentity(key) === skillIdentity(item.id)));
+        const selected = manual.length === 1 && !manual[0].selectedViaPackageId && skillIdentity(manual[0].id) === identity;
         return setPackageSelection(current, [skill], !selected, lockedKeys);
       });
       setInputValue((current) => current.slice(0, filterStartIndex - 1));
@@ -484,15 +484,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean, packageId?: string) => {
     if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) return;
-    setSelectedSkills(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.key), packageId));
+    setSelectedSkills(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.id), packageId));
   }, [interactionConfig.mustUseSkills, isMainChatRunning, chatTransitionBlocking, forcedSkills]);
 
-  const removeSelectedSkill = useCallback((skillKey: string) => {
-    const identity = String(skillKey || "")
+  const removeSelectedSkill = useCallback((skillId: string) => {
+    const identity = String(skillId || "")
       .trim()
       .toLowerCase();
     setSelectedSkills((current) =>
-      current.filter((item) => item.key.trim().toLowerCase() !== identity),
+      current.filter((item) => item.id.trim().toLowerCase() !== identity),
     );
   }, []);
 
@@ -501,7 +501,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       openTarget({
         version: 1,
         kind: "skill",
-        key: skill.key,
+        id: skill.id,
         label: skill.label,
       });
     },
@@ -666,7 +666,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     mainChatRunning: isMainChatRunning,
     modelOverride: interactionConfig.model ? modelOverride : {},
     mustUseSkillsAgentKey: effectiveSkills.length > 0 ? currentAgentKey : "",
-    mustUseSkills: effectiveSkills.map((skill) => skill.key),
+    mustUseSkills: effectiveSkills.map((skill) => skill.id),
     selectSlashItem,
     onSelectSlashSkill: handleSelectSlashSkill,
     sendAttachmentMeta: combinedSendAttachmentMeta,
@@ -1007,14 +1007,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 {hasInvalidSelectedSkills && <div role="alert">
                   {t("packageComposer.invalidSelection")} {invalidSelectedSkills.map(skill => skill.label).join("、")}
                   <UiButton variant="ghost" size="sm" onClick={() => {
-                    const ids = new Set(invalidSelectedSkills.map(skill => skillIdentity(skill.key)));
-                    setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.key))));
+                    const ids = new Set(invalidSelectedSkills.map(skill => skillIdentity(skill.id)));
+                    setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.id))));
                   }}>{t("packageComposer.removeUnavailable")}</UiButton>
                 </div>}
                 <Flex wrap gap={4}>
                   {displayedForcedSkills.map((skill) => (
                     <UiButton
-                      key={`forced:${skill.key.toLowerCase()}`}
+                      key={`forced:${skill.id.toLowerCase()}`}
                       variant="ghost"
                       className="tw:!cursor-default tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
                       size="sm"
@@ -1031,7 +1031,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   {groupedSkills.groups.map(({ pkg, members }) => (
                     <Flex key={`package:${pkg.id}`} align="center" className="composer-skill-chip">
                       <Tooltip placement="top" trigger={["hover", "focus"]} title={
-                        <div>{members.map(skill => <div key={skill.key}>{skill.label}</div>)}</div>
+                        <div>{members.map(skill => <div key={skill.id}>{skill.label}</div>)}</div>
                       }>
                         <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" aria-label={t("packageComposer.members", { name: skillPackageDisplayName(pkg) })}>
                           <SkillIcon icon={pkg.icon} fallback="folder" /><span>{skillPackageDisplayName(pkg)}</span>
@@ -1039,20 +1039,20 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                       </Tooltip>
                       <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}
                         aria-label={t("packageComposer.remove", { name: skillPackageDisplayName(pkg) })}
-                        onClick={() => { const ids = new Set(members.map(skill => skillIdentity(skill.key))); setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.key)))); }}>
+                        onClick={() => { const ids = new Set(members.map(skill => skillIdentity(skill.id))); setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.id)))); }}>
                         <MaterialIcon name="close" />
                       </UiButton>
                     </Flex>
                   ))}
                   {groupedSkills.standalone.map((skill) => (
-                    <Flex key={skill.key.toLowerCase()} align="center" className="composer-skill-chip">
+                    <Flex key={skill.id.toLowerCase()} align="center" className="composer-skill-chip">
                       <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" onClick={() => openSkillViewer(skill)}>
                         <MaterialIcon name="skills" />
                         <span>{skill.label}</span>
                       </UiButton>
                       <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}
                         aria-label={t("composer.requiredSkill.remove", { skill: skill.label })}
-                        onClick={() => removeSelectedSkill(skill.key)}>
+                        onClick={() => removeSelectedSkill(skill.id)}>
                         <MaterialIcon name="close" />
                       </UiButton>
                     </Flex>
@@ -1144,11 +1144,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onAddReference={addContextReference}
                   currentAgentKey={currentAgentKey}
                   isMainChatRunning={isMainChatRunning}
-                  selectedSkillKeys={effectiveSkills.map((skill) => skill.key)}
+                  selectedSkillIds={effectiveSkills.map((skill) => skill.id)}
                   selectedPackageId={effectiveManualSkills.find(skill => skill.selectedViaPackageId)?.selectedViaPackageId}
                   onSelectSkill={handleSelectSlashSkill}
                   onSelectSkills={handleSelectPackageSkills}
-                  lockedSkillKeys={forcedSkills.map(skill => skill.key)}
+                  lockedSkillIds={forcedSkills.map(skill => skill.id)}
                 />
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>

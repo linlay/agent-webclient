@@ -25,19 +25,19 @@ it("routes user-level pin reads and writes through the Platform WebSocket", asyn
   const response = { code: 0, msg: "success", data: { agentKey: "", skills: [], pinned: ["pdf"] } };
   jest.mocked(requestDataThroughExecutor).mockResolvedValue(response);
   await expect(getAgentSkills()).resolves.toEqual(response);
-  await expect(putAgentSkillPin({ key: "pdf", pinned: true })).resolves.toEqual(response);
+  await expect(putAgentSkillPin({ id: "pdf", pinned: true })).resolves.toEqual(response);
   expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(1, "/api/skills", { agentKey: "" });
-  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/skills", { key: "pdf", pinned: true });
+  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/skills", { id: "pdf", pinned: true });
   expect(requestJson).not.toHaveBeenCalled();
 });
 
 it("uses uncached HTTP reads and PUT without Agent or user overrides in gateway mode", async () => {
   jest.mocked(getBackendMode).mockReturnValue("gateway");
   await getAgentSkills();
-  await putAgentSkillPin({ key: "pdf", pinned: false });
+  await putAgentSkillPin({ id: "pdf", pinned: false });
   expect(requestJson).toHaveBeenNthCalledWith(1, "/api/skills", { cache: "no-store" });
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/skills", {
-    method: "PUT", body: '{"key":"pdf","pinned":false}',
+    method: "PUT", body: '{"id":"pdf","pinned":false}',
   });
   expect(requestDataThroughExecutor).not.toHaveBeenCalled();
 });

@@ -5,17 +5,17 @@ import {
 } from "@/features/skills/lib/skillDeletion";
 
 describe("skill deletion", () => {
-  it("returns the confirmed deleted key", async () => {
+  it("returns the confirmed deleted id", async () => {
     const request = jest.fn().mockResolvedValue({
       status: 200,
       code: 0,
       msg: "success",
-      data: { key: "demo-skill", deleted: true },
+      data: { id: "demo-skill", deleted: true },
     });
 
     await expect(requestSkillDeletion(" demo-skill ", request)).resolves.toEqual({
       kind: "deleted",
-      key: "demo-skill",
+      id: "demo-skill",
     });
     expect(request).toHaveBeenCalledWith("demo-skill");
   });
@@ -60,7 +60,7 @@ describe("skill deletion", () => {
       status: 200,
       code: 0,
       msg: "success",
-      data: { key: "demo-skill", deleted: false },
+      data: { id: "demo-skill", deleted: false },
     });
 
     await expect(requestSkillDeletion("demo-skill", request)).rejects.toThrow(

@@ -5,16 +5,16 @@ import { IndependentSurfaceFrame } from "@/features/surfaces/components/Independ
 import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 
 export const SkillViewerPage: React.FC = () => {
-  const { key: routeKey } = useParams<{ key: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
   const { t } = useI18n();
-  const key = String(routeKey || "").trim();
+  const key = String(routeId || "").trim();
   const invalid = !key;
   return (
     <IndependentSurfaceFrame
       kind="skill"
       error={invalid ? t("platformError.code.invalid_request") : ""}
     >
-      {invalid ? null : <SkillDetailView skillKey={key} />}
+      {invalid ? null : <SkillDetailView skillId={key} />}
     </IndependentSurfaceFrame>
   );
 };

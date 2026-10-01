@@ -182,11 +182,11 @@ function resolveSlashCommand(command: SlashCommandDefinition): ResolvedSlashComm
   };
 }
 
-/** 技能命中字段的排序优先级：name > description > key。 */
-const SLASH_SKILL_MATCH_FIELDS = ['name', 'description', 'key'] as const;
+/** 技能命中字段的排序优先级：name > description > id。 */
+const SLASH_SKILL_MATCH_FIELDS = ['name', 'description', 'id'] as const;
 
 interface SlashSkillMatchFields {
-  key: string;
+  id: string;
   name: string;
   description: string;
 }
@@ -213,26 +213,26 @@ export function getFilteredSlashSkills(
   }
   const query = filterText.trim().toLowerCase();
   const matches = skills.flatMap((skill) => {
-    const key = String(skill?.key || '').trim();
+    const id = String(skill?.id || '').trim();
     const name = skillDisplayName(skill);
     const description = String(skill?.description || '').trim();
-    if (!key) {
+    if (!id) {
       return [];
     }
     // 无筛选文本时不参与命中排序，保持目录原始顺序。
-    const matchRank = query ? getSlashSkillMatchRank({ key, name, description }, query) : 0;
+    const matchRank = query ? getSlashSkillMatchRank({ id, name, description }, query) : 0;
     if (matchRank === null) {
       return [];
     }
     const resolved: ResolvedSlashSkillDefinition = {
       kind: 'skill',
-      key,
-      name: name || key,
+      id,
+      name: name || id,
       ...(skill.icon ? { icon: skill.icon } : {}),
-      label: name || key,
+      label: name || id,
       description,
       configured: skill.configured === true,
-      command: `/${key}`,
+      command: `/${id}`,
     };
     return [{ resolved, matchRank }];
   });

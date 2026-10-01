@@ -25,7 +25,7 @@ export interface WebPreviewState {
 }
 
 export interface SkillViewerState {
-  key: string;
+  id: string;
   label: string;
 }
 
@@ -40,7 +40,7 @@ export interface ViewersState {
   activeViewerKey: string;
   activePlanningPreviewNodeId: string;
   skillTabs: SkillViewerState[];
-  activeSkillKey: string;
+  activeSkillId: string;
   viewerTabs: ViewerTarget[];
   documentPreviewTabs: DocumentPreviewTabState[];
   activeDocumentPreviewKey: string;
@@ -50,13 +50,13 @@ export type ViewersAction =
   | { type: "OPEN_DOCUMENT_PREVIEW"; preview: DocumentPreviewTabState }
   | { type: "CLOSE_DOCUMENT_PREVIEW"; key: string }
   | { type: "ACTIVATE_DOCUMENT_PREVIEW"; key: string }
-  | { type: "OPEN_RIGHT_SIDEBAR"; tab?: RightSidebarTabKey; viewerTarget?: ViewerTarget | null; removeViewerKey?: string; sourceDetail?: TimelineSource | null; planningPreview?: PlanningPreviewState | null; removePlanningPreviewNodeId?: string; webPreview?: WebPreviewState | null; activeWebPreviewUrl?: string; removeWebPreviewUrl?: string; activeViewerKey?: string; activePlanningPreviewNodeId?: string; skillPreview?: SkillViewerState | null; removeSkillKey?: string; activeSkillKey?: string }
+  | { type: "OPEN_RIGHT_SIDEBAR"; tab?: RightSidebarTabKey; viewerTarget?: ViewerTarget | null; removeViewerKey?: string; sourceDetail?: TimelineSource | null; planningPreview?: PlanningPreviewState | null; removePlanningPreviewNodeId?: string; webPreview?: WebPreviewState | null; activeWebPreviewUrl?: string; removeWebPreviewUrl?: string; activeViewerKey?: string; activePlanningPreviewNodeId?: string; skillPreview?: SkillViewerState | null; removeSkillId?: string; activeSkillId?: string }
   | { type: "REFRESH_WEB_PREVIEW"; url: string }
   | { type: "CLOSE_WEB_PREVIEW"; url: string }
   | { type: "CLOSE_RIGHT_SIDEBAR" };
 
 export function createInitialViewersState(): ViewersState {
-  return { rightSidebarOpen: false, rightSidebarOpenTab: null, activeSourceDetail: null, planningPreviews: [], webPreviews: [], webPreviewRefreshRevisionByUrl: new Map(), activeWebPreviewUrl: "", activeViewerKey: "", activePlanningPreviewNodeId: "", skillTabs: [], activeSkillKey: "", viewerTabs: [], documentPreviewTabs: [], activeDocumentPreviewKey: "" };
+  return { rightSidebarOpen: false, rightSidebarOpenTab: null, activeSourceDetail: null, planningPreviews: [], webPreviews: [], webPreviewRefreshRevisionByUrl: new Map(), activeWebPreviewUrl: "", activeViewerKey: "", activePlanningPreviewNodeId: "", skillTabs: [], activeSkillId: "", viewerTabs: [], documentPreviewTabs: [], activeDocumentPreviewKey: "" };
 }
 
 export function reduceViewersState<S extends ViewersState>(state: S, action: ViewersAction): S;
@@ -157,10 +157,10 @@ export function reduceViewersState<S extends ViewersState>(state: S, input: { ty
         "activePlanningPreviewNodeId",
       );
       const hasSkillPreview = Object.prototype.hasOwnProperty.call(action, "skillPreview");
-      const removeSkillKey = Object.prototype.hasOwnProperty.call(action, "removeSkillKey")
-        ? action.removeSkillKey
+      const removeSkillId = Object.prototype.hasOwnProperty.call(action, "removeSkillId")
+        ? action.removeSkillId
         : undefined;
-      const hasActiveSkillKey = Object.prototype.hasOwnProperty.call(action, "activeSkillKey");
+      const hasActiveSkillId = Object.prototype.hasOwnProperty.call(action, "activeSkillId");
       let nextViewerTabs = state.viewerTabs;
       if (removeViewerKey) {
         nextViewerTabs = nextViewerTabs.filter(
@@ -280,17 +280,17 @@ export function reduceViewersState<S extends ViewersState>(state: S, input: { ty
           : nextActiveWebPreviewUrl;
       }
       let nextSkillTabs = state.skillTabs;
-      let nextActiveSkillKey = state.activeSkillKey;
-      if (removeSkillKey) {
-        nextSkillTabs = nextSkillTabs.filter((s) => s.key !== removeSkillKey);
-        if (nextActiveSkillKey === removeSkillKey) {
-          nextActiveSkillKey = nextSkillTabs[nextSkillTabs.length - 1]?.key || "";
+      let nextActiveSkillId = state.activeSkillId;
+      if (removeSkillId) {
+        nextSkillTabs = nextSkillTabs.filter((s) => s.id !== removeSkillId);
+        if (nextActiveSkillId === removeSkillId) {
+          nextActiveSkillId = nextSkillTabs[nextSkillTabs.length - 1]?.id || "";
         }
       } else {
         const incomingSkillPreview = hasSkillPreview ? action.skillPreview : undefined;
         if (incomingSkillPreview) {
           const existingIndex = nextSkillTabs.findIndex(
-            (s) => s.key === incomingSkillPreview.key,
+            (s) => s.id === incomingSkillPreview.id,
           );
           if (existingIndex >= 0) {
             nextSkillTabs = [...nextSkillTabs];
@@ -298,16 +298,16 @@ export function reduceViewersState<S extends ViewersState>(state: S, input: { ty
           } else {
             nextSkillTabs = [...nextSkillTabs, incomingSkillPreview];
           }
-          nextActiveSkillKey = incomingSkillPreview.key;
+          nextActiveSkillId = incomingSkillPreview.id;
         } else if (hasSkillPreview) {
           nextSkillTabs = [];
-          nextActiveSkillKey = "";
+          nextActiveSkillId = "";
         }
       }
-      if (hasActiveSkillKey) {
-        const requestedActiveKey = String(action.activeSkillKey || "");
-        if (nextSkillTabs.some((s) => s.key === requestedActiveKey)) {
-          nextActiveSkillKey = requestedActiveKey;
+      if (hasActiveSkillId) {
+        const requestedActiveKey = String(action.activeSkillId || "");
+        if (nextSkillTabs.some((s) => s.id === requestedActiveKey)) {
+          nextActiveSkillId = requestedActiveKey;
         }
       }
       return {
@@ -326,7 +326,7 @@ export function reduceViewersState<S extends ViewersState>(state: S, input: { ty
         activeViewerKey: nextActiveViewerKey,
         activePlanningPreviewNodeId: nextActivePlanningPreviewNodeId,
         skillTabs: nextSkillTabs,
-        activeSkillKey: nextActiveSkillKey,
+        activeSkillId: nextActiveSkillId,
       };
     }
     case "CLOSE_RIGHT_SIDEBAR":

@@ -15,7 +15,7 @@ jest.mock('@/shared/ui/CodeEditor', () => ({
     <textarea aria-label="skill-editor" value={value} onChange={event => onChange(event.target.value)} />
   ),
 }));
-const skills = [{ key: 'meeting', name: '会议', status: 'ready' as const, packageId: 'wecom' }, { key: 'solo', name: '独立', status: 'ready' as const }];
+const skills = [{ id: 'meeting', name: '会议', status: 'ready' as const, packageId: 'wecom' }, { id: 'solo', name: '独立', status: 'ready' as const }];
 const packages = [{ id: 'wecom', name: '企业微信', version: '1', sha256: '', installedAt: 0, skills: [{ id: 'meeting' }, { id: 'lost' }], status: 'incomplete' as const, missingSkillIds: ['lost'] }];
 let container: HTMLDivElement;
 let root: Root;
@@ -40,10 +40,10 @@ beforeEach(() => {
   container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
 });
 afterEach(async () => {await act(async () => root.unmount()); container.remove();});
-async function mount(selectedSkillKey = 'meeting') {
+async function mount(selectedSkillId = 'meeting') {
   await act(async () => root.render(
     <I18nProvider locale="zh-CN" persistLocale={false}>
-      <SkillConsole selectedSkillKey={selectedSkillKey} onSelectSkillKey={onSelect} onClearSelection={onClear} />
+      <SkillConsole selectedSkillId={selectedSkillId} onSelectSkillId={onSelect} onClearSelection={onClear} />
     </I18nProvider>,
   ));
 }
@@ -102,9 +102,9 @@ test('package fetch error is explicit and retry restores grouping', async () => 
   expect(container.querySelector('[role="alert"]')).toBeNull();
 });
 
-test('a packaged skill opens its qualified key without affecting standalone namesake', async () => {
-  const nested = { key: 'wecom/meeting', name: 'meeting', displayName: '包内会议', status: 'ready' as const, packageId: 'wecom' };
-  jest.mocked(getAdminSkills).mockResolvedValue({code: 0, msg: '', data: [nested, {key: 'meeting', displayName: '独立会议', status: 'ready'}]});
+test('a packaged skill opens its qualified id without affecting standalone namesake', async () => {
+  const nested = { id: 'wecom/meeting', name: 'meeting', displayName: '包内会议', status: 'ready' as const, packageId: 'wecom' };
+  jest.mocked(getAdminSkills).mockResolvedValue({code: 0, msg: '', data: [nested, {id: 'meeting', displayName: '独立会议', status: 'ready'}]});
   jest.mocked(getAdminSkillPackages).mockResolvedValue({code: 0, msg: '', data: [{id: 'wecom', name: 'wecom', displayName: '企业微信', skills: [{id: 'wecom/meeting'}]}]});
   await mount();
   expect(container.querySelector('.skill-console-list-scroll')?.textContent).toContain('独立会议');
@@ -112,15 +112,15 @@ test('a packaged skill opens its qualified key without affecting standalone name
   expect(container.querySelector('.skill-package-overview')?.textContent).toContain('企业微信');
   await act(async () => container.querySelector<HTMLButtonElement>('.skill-package-members .skill-console-list-item')!.click());
   expect(onSelect).toHaveBeenLastCalledWith('wecom/meeting');
-  await act(async () => root.render(<I18nProvider locale="zh-CN" persistLocale={false}><SkillConsole selectedSkillKey="wecom/meeting" onSelectSkillKey={onSelect} onClearSelection={jest.fn()} /></I18nProvider>));
+  await act(async () => root.render(<I18nProvider locale="zh-CN" persistLocale={false}><SkillConsole selectedSkillId="wecom/meeting" onSelectSkillId={onSelect} onClearSelection={jest.fn()} /></I18nProvider>));
   expect(getAdminSkillDetail).toHaveBeenLastCalledWith('wecom/meeting', 'SKILL.md');
 });
 
 test.each([true, false])('mixes packages and standalone names with pins first and no duplicate members (pinned=%s)', async (pinned) => {
   jest.mocked(getAdminSkills).mockResolvedValue({code: 0, msg: '', data: [
     skills[0],
-    {key: 'omega', displayName: 'Omega skill', status: 'ready'},
-    {key: 'beta', displayName: 'Beta skill', status: 'ready'},
+    {id: 'omega', displayName: 'Omega skill', status: 'ready'},
+    {id: 'beta', displayName: 'Beta skill', status: 'ready'},
   ]});
   jest.mocked(getAdminSkillPackages).mockResolvedValue({code: 0, msg: '', data: [
     {...packages[0], displayName: 'Zeta package'},
@@ -174,7 +174,7 @@ test('kind toggles are mutually exclusive and clicking the active kind restores 
 
 test('kind filtering intersects search and status while counts cover both matching kinds', async () => {
   jest.mocked(getAdminSkills).mockResolvedValue({code: 0, msg: '', data: [
-    ...skills, {key: 'report', displayName: '会议报告', status: 'invalid'},
+    ...skills, {id: 'report', displayName: '会议报告', status: 'invalid'},
   ]});
   await mount();
   await search('会议');
@@ -230,7 +230,7 @@ test('filtering and package pinning preserve the selected skill and its unsaved 
     path: 'SKILL.md', name: 'SKILL.md', kind: 'file', parentPath: '', depth: 0, order: 0,
     contentKind: 'text', editable: true, downloadable: true, uploadable: true, renamable: false, deletable: false,
   }];
-  detail.openedFile = {key: 'solo', path: 'SKILL.md', content: 'original', encoding: 'utf-8', sha256: '1', size: 8, editable: true};
+  detail.openedFile = {id: 'solo', path: 'SKILL.md', content: 'original', encoding: 'utf-8', sha256: '1', size: 8, editable: true};
   jest.mocked(getAdminSkillDetail).mockResolvedValue({code: 0, msg: '', data: detail});
   await mount('solo');
   const editor = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="skill-editor"]')!;
@@ -239,7 +239,7 @@ test('filtering and package pinning preserve the selected skill and its unsaved 
 
   jest.mocked(putAgentSkillPin).mockResolvedValue({code: 0, msg: '', data: {agentKey: '', skills: [], pinned: ['wecom']}});
   await act(async () => container.querySelector<HTMLButtonElement>('.skill-package-pin')!.click());
-  expect(putAgentSkillPin).toHaveBeenCalledWith({key: 'wecom', pinned: true});
+  expect(putAgentSkillPin).toHaveBeenCalledWith({id: 'wecom', pinned: true});
   expect(editor.value).toBe('unsaved draft');
   expect(container.querySelector('.skill-console-dirty')).not.toBeNull();
 
@@ -262,8 +262,8 @@ test('pinning a package moves the intact row in the shared order without opening
   let pinned = ['solo'];
   jest.mocked(getAgentSkills).mockImplementation(async () => ({code: 0, msg: '', data: {agentKey: '', skills: [], pinned: [...pinned]}}));
   jest.mocked(putAgentSkillPin).mockImplementation(async request => {
-    pinned = pinned.filter(key => key !== request.key);
-    if (request.pinned) pinned.unshift(request.key);
+    pinned = pinned.filter(id => id !== request.id);
+    if (request.pinned) pinned.unshift(request.id);
     return {code: 0, msg: '', data: {agentKey: '', skills: [], pinned: [...pinned]}};
   });
   await mount('solo');
@@ -273,7 +273,7 @@ test('pinning a package moves the intact row in the shared order without opening
   expect(pinButton.getAttribute('aria-pressed')).toBe('false');
   await act(async () => pinButton.click());
   expect(putAgentSkillPin).toHaveBeenCalledTimes(1);
-  expect(putAgentSkillPin).toHaveBeenLastCalledWith({key: 'wecom', pinned: true});
+  expect(putAgentSkillPin).toHaveBeenLastCalledWith({id: 'wecom', pinned: true});
   expect(topLevelNames()).toEqual(['企业微信', '独立']);
   expect(pinButton.getAttribute('aria-pressed')).toBe('true');
   expect(folder.getAttribute('aria-expanded')).toBe('false');
@@ -284,7 +284,7 @@ test('pinning a package moves the intact row in the shared order without opening
 
   await act(async () => pinButton.click());
   expect(putAgentSkillPin).toHaveBeenCalledTimes(2);
-  expect(putAgentSkillPin).toHaveBeenLastCalledWith({key: 'wecom', pinned: false});
+  expect(putAgentSkillPin).toHaveBeenLastCalledWith({id: 'wecom', pinned: false});
   expect(topLevelNames()).toEqual(['独立', '企业微信']);
   expect(pinButton.getAttribute('aria-pressed')).toBe('false');
   expect(onSelect).not.toHaveBeenCalled();

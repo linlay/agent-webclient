@@ -49,8 +49,8 @@ function formatSize(value: number | undefined): string {
   return `${(value / 1024).toFixed(1)} KB`;
 }
 
-export const SkillDetailView: React.FC<{ skillKey: string }> = ({
-  skillKey,
+export const SkillDetailView: React.FC<{ skillId: string }> = ({
+  skillId,
 }) => {
   const { t } = useI18n();
 
@@ -102,7 +102,7 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
     try {
       const response = await getAdminSource({
         type: "skill",
-        key,
+        id: key,
         path: normalizedPath,
       });
       const data = response.data;
@@ -150,7 +150,7 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
           setFileSha256(d.openedFile.sha256 || null);
           setFileSize(d.openedFile.size);
         } else if (targetEntry?.contentKind === "text") {
-          await loadFileContent(d.skill.key, targetEntry.path);
+          await loadFileContent(d.skill.id, targetEntry.path);
         } else if (targetEntry) {
           applyBinaryEntry(targetEntry);
         }
@@ -164,8 +164,8 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
   );
 
   useEffect(() => {
-    void loadDetail(skillKey);
-  }, [loadDetail, skillKey]);
+    void loadDetail(skillId);
+  }, [loadDetail, skillId]);
 
   const entries = detail?.fileManifest.entries || [];
   const selectedEntry = useMemo(
@@ -198,7 +198,7 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
         return;
       }
       if (entry.contentKind === "text") {
-        void loadFileContent(detail.skill.key, entry.path);
+        void loadFileContent(detail.skill.id, entry.path);
       } else {
         applyBinaryEntry(entry);
       }
@@ -278,7 +278,7 @@ export const SkillDetailView: React.FC<{ skillKey: string }> = ({
               <div className={SKILL_DETAIL_META_CLASS}>
                 {isSkillImageEntry(selectedEntry) && (
                   <SkillBinaryImagePreview
-                    skillKey={detail.skill.key}
+                    skillId={detail.skill.id}
                     entry={selectedEntry}
                     t={t}
                   />

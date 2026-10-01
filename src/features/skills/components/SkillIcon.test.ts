@@ -23,7 +23,7 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke; });
 
 it("loads the supplied authenticated icon and releases its Blob when removed", async () => {
-  const icon = "/api/skills/icon?agentKey=zenmi&key=pdf";
+  const icon = "/api/skills/icon?agentKey=zenmi&id=pdf";
   await render(icon);
   expect(fetchSkillIcon).toHaveBeenCalledWith(icon, { signal: expect.any(AbortSignal) });
   expect(container.querySelector("img")?.getAttribute("src")).toBe("blob:skill-icon");
@@ -36,9 +36,9 @@ it("loads the supplied authenticated icon and releases its Blob when removed", a
 
 it("keeps the default when a request fails or an image cannot decode", async () => {
   jest.mocked(fetchSkillIcon).mockRejectedValueOnce(new Error("unavailable"));
-  await render("/api/skills/icon?agentKey=zenmi&key=missing");
+  await render("/api/skills/icon?agentKey=zenmi&id=missing");
   expect(container.querySelector('[data-icon="build"]')).not.toBeNull();
-  await render("/api/skills/icon?agentKey=zenmi&key=broken");
+  await render("/api/skills/icon?agentKey=zenmi&id=broken");
   await act(async () => container.querySelector("img")!.dispatchEvent(new Event("error")));
   expect(container.querySelector("img")).toBeNull();
   expect(container.querySelector('[data-icon="build"]')).not.toBeNull();
@@ -47,7 +47,7 @@ it("keeps the default when a request fails or an image cannot decode", async () 
 it("does not show an old skill icon after the candidate changes", async () => {
   let complete!: (blob: Blob) => void;
   jest.mocked(fetchSkillIcon).mockReturnValueOnce(new Promise(resolve => { complete = resolve; }));
-  await render("/api/skills/icon?agentKey=old&key=pdf");
+  await render("/api/skills/icon?agentKey=old&id=pdf");
   await render();
   await act(async () => complete(new Blob(["old"])));
   expect(container.querySelector("img")).toBeNull();
@@ -56,7 +56,7 @@ it("does not show an old skill icon after the candidate changes", async () => {
 
 
 it("loads package icons and falls back to a folder on decode failure", async () => {
-  const icon = "/api/skill-packages/icon?key=office";
+  const icon = "/api/skill-packages/icon?id=office";
   await act(async () => root.render(React.createElement(SkillIcon, { icon, fallback: "folder" })));
   expect(fetchSkillIcon).toHaveBeenCalledWith(icon, { signal: expect.any(AbortSignal) });
   expect(container.querySelector("img")?.getAttribute("src")).toBe("blob:skill-icon");

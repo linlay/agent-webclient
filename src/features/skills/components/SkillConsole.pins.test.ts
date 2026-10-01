@@ -17,20 +17,20 @@ jest.mock("@/shared/data/api/routedClient", () => ({
 }));
 jest.mock("@/shared/ui/CodeEditor", () => ({ CodeEditor: () => null }));
 const skills = [
-  { key: "demo", displayName: "Demo", status: "ready" as const },
-  { key: "pdf", displayName: "PDF", status: "ready" as const },
-  { key: "invalid", displayName: "Invalid", status: "invalid" as const },
+  { id: "demo", displayName: "Demo", status: "ready" as const },
+  { id: "pdf", displayName: "PDF", status: "ready" as const },
+  { id: "invalid", displayName: "Invalid", status: "invalid" as const },
 ];
 let serverOrder: string[];
 let container: HTMLDivElement;
 let root: Root;
 const onSelect = jest.fn();
 function ComposerOrderObserver() {
-  const { pinnedSkillKeys } = usePinnedSkills(false);
-  return React.createElement("output", { "aria-label": "Composer order" }, pinnedSkillKeys.join(","));
+  const { pinnedSkillIds } = usePinnedSkills(false);
+  return React.createElement("output", { "aria-label": "Composer order" }, pinnedSkillIds.join(","));
 }
 const mount = async () => act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
-  React.createElement(SkillConsole, { selectedSkillKey: "demo", onSelectSkillKey: onSelect, onClearSelection: jest.fn() }),
+  React.createElement(SkillConsole, { selectedSkillId: "demo", onSelectSkillId: onSelect, onClearSelection: jest.fn() }),
   React.createElement(ComposerOrderObserver),
 )));
 const names = () => Array.from(container.querySelectorAll(".skill-console-list-item strong")).map(node => node.textContent);
@@ -49,9 +49,9 @@ beforeEach(() => {
   dataQueryCache.clear();
   serverOrder = [];
   jest.mocked(getAgentSkills).mockImplementation(async () => ({ code: 0, msg: "", data: { agentKey: "", skills: [], pinned: [...serverOrder] } }));
-  jest.mocked(putAgentSkillPin).mockImplementation(async ({ key, pinned }) => {
-    serverOrder = serverOrder.filter(id => id !== key);
-    if (pinned) serverOrder.unshift(key);
+  jest.mocked(putAgentSkillPin).mockImplementation(async ({ id, pinned }) => {
+    serverOrder = serverOrder.filter(entry => entry !== id);
+    if (pinned) serverOrder.unshift(id);
     return { code: 0, msg: "", data: { agentKey: "", skills: [], pinned: [...serverOrder] } };
   });
   jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: skills });

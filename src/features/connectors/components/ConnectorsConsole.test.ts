@@ -51,9 +51,9 @@ beforeEach(() => {
   dataQueryCache.clear();
   serverOrder = [];
   jest.mocked(getConnectorOrder).mockImplementation(async () => ({ code: 0, msg: "", data: { version: 1, order: [...serverOrder] } }));
-  jest.mocked(putConnectorOrder).mockImplementation(async ({ key, pinned }) => {
-    serverOrder = serverOrder.filter(id => id !== key);
-    if (pinned) serverOrder.unshift(key);
+  jest.mocked(putConnectorOrder).mockImplementation(async ({ id, pinned }) => {
+    serverOrder = serverOrder.filter(id => id !== id);
+    if (pinned) serverOrder.unshift(id);
     return { code: 0, msg: "", data: { version: 1, order: [...serverOrder] } };
   });
   push.subscribe.mockImplementation(() => jest.fn());
@@ -215,8 +215,8 @@ it("edits and saves CLI JSON through the Monaco editor without changing the file
 
 
 it("shows three tabs, moves component details into configuration, and keeps skill browsing read-only", async () => {
-  const skill = { key: "demo-guide", displayName: "Demo Guide", description: "Read connector records", version: "2.0.0", path: "skills/demo-guide/SKILL.md", size: 120, updatedAt: 0 };
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, skills: [skill.key], mcp: [{ serverKey: "demo", status: "unmounted", toolCount: 0 }] }] } });
+  const skill = { id: "demo-guide", displayName: "Demo Guide", description: "Read connector records", version: "2.0.0", path: "skills/demo-guide/SKILL.md", size: 120, updatedAt: 0 };
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, skills: [skill.id], mcp: [{ serverKey: "demo", status: "unmounted", toolCount: 0 }] }] } });
   jest.mocked(getConnectorSkills).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skills: [skill] } });
   jest.mocked(getConnectorSkillDetail).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skill, content: "---\nname: demo-guide\ndescription: Read connector records\n---\n# Complete guide\nQuery records with the CLI.", sha256: "skill-hash" } });
   await mount();
@@ -338,7 +338,7 @@ it("pins a read-only connector without changing selection or discarding a draft,
   const rowPin = (name: string) => rowNames().find(node => node.querySelector("strong")?.textContent === name)?.querySelector('[data-material-icon="push_pin"]');
   await openMore("Other connector");
   await clickMenu("置顶");
-  expect(putConnectorOrder).toHaveBeenLastCalledWith({ key: "builtin.other", pinned: true });
+  expect(putConnectorOrder).toHaveBeenLastCalledWith({ id: "builtin.other", pinned: true });
   expect(names()).toEqual(["Other connector", "Demo connector"]);
   expect(rowPin("Other connector")).not.toBeNull();
   expect(rowPin("Demo connector")).toBeNull();

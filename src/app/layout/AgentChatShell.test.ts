@@ -281,11 +281,11 @@ describe("AgentChatShell", () => {
       "composerDraft=Create+a+Skill&composerSkill=skill-creator",
     ))).toEqual({
       draft: "Create a Skill",
-      skillKey: "skill-creator",
+      skillId: "skill-creator",
     });
     expect(parseComposerPrefillPayload(new URLSearchParams(
       "composerDraft=Use+meeting&composerSkill=wecom%2Fmeeting",
-    ))).toEqual({ draft: "Use meeting", skillKey: "wecom/meeting" });
+    ))).toEqual({ draft: "Use meeting", skillId: "wecom/meeting" });
   });
 
   it("accepts a standalone composer draft without selecting a Skill", () => {
@@ -310,10 +310,10 @@ describe("AgentChatShell", () => {
 
   it.each(["bad/../key", "", " ", "UPPERCASE"])(
     "rejects an explicitly invalid composer Skill: %j",
-    (skillKey) => {
+    (skillId) => {
       expect(parseComposerPrefillPayload(new URLSearchParams({
         composerDraft: "Create a Skill",
-        composerSkill: skillKey,
+        composerSkill: skillId,
       }))).toBeNull();
     },
   );
@@ -733,7 +733,7 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it.each(["skill-creator", "platform-admin"])("consumes an explicit draft with %s selected", (skillKey) => {
+  it.each(["skill-creator", "platform-admin"])("consumes an explicit draft with %s selected", (skillId) => {
     const dispatch = jest.fn();
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const useEffectSpy = jest
@@ -743,7 +743,7 @@ describe("AgentChatShell", () => {
       });
     useSearchParams.mockReturnValue([
       new URLSearchParams(
-        `newChat=1783680000000&composerDraft=Create+a+useful+Skill&composerSkill=${skillKey}&lang=en`,
+        `newChat=1783680000000&composerDraft=Create+a+useful+Skill&composerSkill=${skillId}&lang=en`,
       ),
     ]);
     useAppState.mockReturnValue({
@@ -761,7 +761,7 @@ describe("AgentChatShell", () => {
       expect.objectContaining({
         composerDraft: "Create a useful Skill",
         selectedSkills: [
-          { key: skillKey, label: skillKey },
+          { id: skillId, label: skillId },
         ],
       }),
     );
@@ -827,7 +827,7 @@ describe("AgentChatShell", () => {
       effects.push(effect);
     });
     let visibleDraft = "Previous draft";
-    let visibleSkills = [{ key: "skill-creator", label: "Skill Creator" }];
+    let visibleSkills = [{ id: "skill-creator", label: "Skill Creator" }];
     startNewConversation.mockImplementation((detail) => {
       visibleDraft = detail.composerDraft;
       visibleSkills = detail.selectedSkills;

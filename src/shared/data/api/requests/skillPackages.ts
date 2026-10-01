@@ -9,8 +9,8 @@ export function getAdminSkillPackages(): Promise<ApiResponse<AdminSkillPackageSu
   return requestJson<AdminSkillPackageSummary[]>(dataEndpoints.adminSkillPackages.path);
 }
 
-export function deleteAdminSkillPackage(key: string): Promise<ApiResponse<{ key: string; deleted: boolean }>> {
-  return postJson(dataEndpoints.adminSkillPackageDelete.path, { key });
+export function deleteAdminSkillPackage(id: string): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
+  return postJson(dataEndpoints.adminSkillPackageDelete.path, { id });
 }
 
 export function deleteAdminSkillPackageMember(packageId: string, skillId: string): Promise<ApiResponse<{ packageId: string; skillId: string; deleted: boolean }>> {
@@ -18,12 +18,12 @@ export function deleteAdminSkillPackageMember(packageId: string, skillId: string
 }
 
 /** Package metadata and ordered members use the shared source editing contract. */
-export function getAdminSkillPackageManifest(key: string): Promise<ApiResponse<AdminSourceResponse>> {
-  return getAdminSource({ type: "skill-package", key });
+export function getAdminSkillPackageManifest(id: string): Promise<ApiResponse<AdminSourceResponse>> {
+  return getAdminSource({ type: "skill-package", id });
 }
 
-export function saveAdminSkillPackageManifest(key: string, content: string, baseSha256: string): Promise<ApiResponse<AdminSourceResponse>> {
+export function saveAdminSkillPackageManifest(id: string, content: string, baseSha256: string): Promise<ApiResponse<AdminSourceResponse>> {
   return updateAdminSource({
-    target: { type: "skill-package", key }, content, baseSha256,
+    target: { type: "skill-package", id }, content, baseSha256,
   });
 }

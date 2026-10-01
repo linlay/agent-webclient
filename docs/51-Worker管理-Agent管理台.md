@@ -18,7 +18,7 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 
 工具栏加号和空列表“创建智能体”统一打开专用新建弹窗。弹窗提供“ZIP 包导入”和“直接新增”两个页签，默认进入 ZIP 导入；直接新增确认后关闭弹窗并进入原有结构化创建表单，不改变 `/api/admin/agents/create` 契约。真正进入直接新增或提交 ZIP 前才执行现有未保存修改确认，取消后保留当前编辑状态。
 
-ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空及 32 MiB 上限。页面不显示或发送 Agent Key；Key 固定由 Platform 从包内 `agent.yml` / `agent.yaml` 读取。说明区明确 ZIP 可以携带 prompt、专属 Skills、`.config`、知识文件和其他资源，且 `.config` 可能包含敏感内容，只应上传可信包。
+ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空及 32 MiB 上限。页面不显示或发送 Agent ID；ID 固定由 Platform 从包内 `agent.yml` / `agent.yaml` 读取。说明区明确 ZIP 可以携带 prompt、专属 Skills、`.config`、知识文件和其他资源，且 `.config` 可能包含敏感内容，只应上传可信包。
 
 `importAdminAgent` 以 multipart `file` 和可选 `overwrite` 调用 `POST /api/admin/agents/import`。首次提交不发送 `overwrite`；收到 409 且 `data.error.overwriteRequired=true` 时，弹出二次危险确认，说明旧 `.config`、专属 Skills 和资源将被整目录替换。确认后复用同一个 `File` 并以 `overwrite=true` 重试，取消则保留原编辑状态和已选文件。422 的文件级 diagnostics 在弹窗内展示。
 
@@ -40,7 +40,7 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 
 ## 专属技能
 
-已保存的目录型 Agent 可在“技能”行导入 ZIP 形式的专属 Skill。页面不要求手填 Key，后端从 ZIP 的 `SKILL.md` frontmatter 读取 `key`（没有则 `name`）。导入自动启用，文件只属于当前 Agent；下拉选项使用简短的“名称 · 技能中心”或“名称 · 专属”标签，专属管理行以“[专属] 名称”显示且危险按钮只写“删除”。导入请求不查询技能中心，同 Key 技能中心版本不会阻止导入；运行时仅当前 Agent 优先使用专属版本。Select 标签的移除只停止启用，文件仍可再次启用；真实删除必须点击专属 Skill 行的危险操作并二次确认。新建 Agent、非目录 Agent、有未保存修改或正在执行保存/删除时，导入入口禁用。页面不提供专属 Skill 的文件树编辑，也不在基础属性中追加目录操作。
+已保存的目录型 Agent 可在“技能”行导入 ZIP 形式的专属 Skill。页面不要求手填 ID，后端从 ZIP 的 `SKILL.md` frontmatter 读取 `id`（兼容旧 `key`，都没有则 `name`）。导入自动启用，文件只属于当前 Agent；下拉选项使用简短的“名称 · 技能中心”或“名称 · 专属”标签，专属管理行以“[专属] 名称”显示且危险按钮只写“删除”。导入请求不查询技能中心，同 ID 技能中心版本不会阻止导入；运行时仅当前 Agent 优先使用专属版本。Select 标签的移除只停止启用，文件仍可再次启用；真实删除必须点击专属 Skill 行的危险操作并二次确认。新建 Agent、非目录 Agent、有未保存修改或正在执行保存/删除时，导入入口禁用。页面不提供专属 Skill 的文件树编辑，也不在基础属性中追加目录操作。
 
 ## 边界与非目标
 - Agent 管理台编辑的是后端 agent 定义，不负责运行中的 query stream。

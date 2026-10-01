@@ -71,12 +71,12 @@ function normalizeRequiredSkills(value: unknown): ComposerRequiredSkill[] {
   const seen = new Set<string>();
   return value.flatMap((candidate) => {
     if (!isObjectRecord(candidate)) return [];
-    const key = String(candidate.key || "").trim();
-    const label = String(candidate.label || key).trim();
-    const identity = key.toLowerCase();
-    if (!key || !label || seen.has(identity)) return [];
+    const id = String(candidate.id || "").trim();
+    const label = String(candidate.label || id).trim();
+    const identity = id.toLowerCase();
+    if (!id || !label || seen.has(identity)) return [];
     seen.add(identity);
-    return [{ key, label }];
+    return [{ id, label }];
   });
 }
 

@@ -20,8 +20,8 @@ jest.mock("@/shared/data/api/routedClient", () => ({
 jest.mock("@/shared/ui/CodeEditor", () => ({ CodeEditor: () => null }));
 
 const oldSkills: AdminSkillSummary[] = [
-  { key: "member-a", name: "Member A", status: "ready", version: "1" },
-  { key: "removed", name: "Removed member", status: "ready", version: "1" },
+  { id: "member-a", name: "Member A", status: "ready", version: "1" },
+  { id: "removed", name: "Removed member", status: "ready", version: "1" },
 ];
 function detail(skill = oldSkills[0]): AdminSkillDetailResponse {
   return {
@@ -48,7 +48,7 @@ beforeEach(async () => {
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
-    React.createElement(SkillConsole, { selectedSkillKey: "member-a", onSelectSkillKey: onSelect, onClearSelection: onClear }))));
+    React.createElement(SkillConsole, { selectedSkillId: "member-a", onSelectSkillId: onSelect, onClearSelection: onClear }))));
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -66,7 +66,7 @@ async function selectZIP() {
   const file = new File(["server detects the archive"], "download.zip", { type: "application/zip" });
   const input = document.body.querySelector<HTMLInputElement>('input[type="file"][accept=".zip,application/zip"]')!;
   await act(async () => Simulate.change(input, { target: { files: [file] } } as any));
-  expect(document.body.querySelector<HTMLInputElement>("#skill-import-key")?.value).toBe("");
+  expect(document.body.querySelector<HTMLInputElement>("#skill-import-id")?.value).toBe("");
   return file;
 }
 async function submitZIP() {
@@ -76,14 +76,14 @@ async function submitZIP() {
   await act(async () => submit.click());
 }
 
-it("imports packages without a key, replaces the complete list and reloads an updated selected member", async () => {
+it("imports packages without a id, replaces the complete list and reloads an updated selected member", async () => {
   const file = await selectZIP();
   const newSkills: AdminSkillSummary[] = [
-    { ...oldSkills[0], version: "2" }, { key: "member-b", name: "Member B", status: "ready" },
+    { ...oldSkills[0], version: "2" }, { id: "member-b", name: "Member B", status: "ready" },
   ];
   jest.mocked(importAdminSkill).mockResolvedValue({ code: 0, msg: "", data: {
     kind: "skill-package", package: { id: "office-pack", name: "办公技能包", version: "2", sha256: "zip-sha", installedAt: 1,
-      skills: newSkills.map((skill) => ({ id: skill.key, version: skill.version })) },
+      skills: newSkills.map((skill) => ({ id: skill.id, version: skill.version })) },
   } });
   jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: newSkills });
   jest.mocked(getAdminSkillDetail).mockResolvedValue({ code: 0, msg: "", data: detail(newSkills[0]) });
@@ -98,17 +98,17 @@ it("imports packages without a key, replaces the complete list and reloads an up
 
 it("continues to open the returned skill for legacy single-skill responses", async () => {
   await selectZIP();
-  jest.mocked(importAdminSkill).mockResolvedValue({ code: 0, msg: "", data: detail({ key: "detected", name: "Detected", status: "ready" }) });
+  jest.mocked(importAdminSkill).mockResolvedValue({ code: 0, msg: "", data: detail({ id: "detected", name: "Detected", status: "ready" }) });
   await submitZIP();
   expect(onSelect).toHaveBeenCalledWith("detected");
   expect(container.textContent).toContain("Detected");
 });
 
-it("preserves a package conflict message instead of treating every 409 as a duplicate skill key", async () => {
+it("preserves a package conflict message instead of treating every 409 as a duplicate skill ID", async () => {
   await selectZIP();
   jest.mocked(importAdminSkill).mockRejectedValue(new ApiError("skill member-a is used by agents", { status: 409 }));
   await submitZIP();
   expect(notification.error).toHaveBeenCalledWith({ message: "skill member-a is used by agents" });
-  expect(document.body.querySelector("#skill-import-key")).not.toBeNull();
+  expect(document.body.querySelector("#skill-import-id")).not.toBeNull();
   expect(onSelect).not.toHaveBeenCalled();
 });

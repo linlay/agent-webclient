@@ -20,19 +20,19 @@ it("routes user-level pin reads and writes through the Platform WebSocket", asyn
   const response = { code: 0, msg: "success", data: { version: 1, order: ["demo"] } };
   jest.mocked(requestDataThroughExecutor).mockResolvedValue(response);
   await expect(getConnectorOrder()).resolves.toEqual(response);
-  await expect(putConnectorOrder({ key: "demo", pinned: true })).resolves.toEqual(response);
+  await expect(putConnectorOrder({ id: "demo", pinned: true })).resolves.toEqual(response);
   expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(1, "/api/connectors/order", undefined);
-  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/connectors/order", { key: "demo", pinned: true });
+  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/connectors/order", { id: "demo", pinned: true });
   expect(requestJson).not.toHaveBeenCalled();
 });
 
 it("uses uncached HTTP reads and PUT without Agent or user overrides in gateway mode", async () => {
   jest.mocked(getBackendMode).mockReturnValue("gateway");
   await getConnectorOrder();
-  await putConnectorOrder({ key: "demo", pinned: false });
+  await putConnectorOrder({ id: "demo", pinned: false });
   expect(requestJson).toHaveBeenNthCalledWith(1, "/api/connectors/order", { cache: "no-store" });
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/connectors/order", {
-    method: "PUT", body: '{"key":"demo","pinned":false}',
+    method: "PUT", body: '{"id":"demo","pinned":false}',
   });
   expect(requestDataThroughExecutor).not.toHaveBeenCalled();
 });

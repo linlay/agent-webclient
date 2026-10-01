@@ -149,8 +149,8 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
                     {props.filteredSkills.map((skill) => {
                       const description = skill.description || props.t(skill.source === "private" ? "agentConsole.privateSkill.source.private" : "agentConsole.privateSkill.source.center");
                       return (
-                        <label key={skill.key} className="agent-selectable-row agent-skill-row agent-skill-row--single-line">
-                          <input type="checkbox" checked={props.skills.includes(skill.key)} onChange={(event) => props.onSkillsChange(event.target.checked ? [...props.skills, skill.key] : props.skills.filter((key) => key !== skill.key))} />
+                        <label key={skill.id} className="agent-selectable-row agent-skill-row agent-skill-row--single-line">
+                          <input type="checkbox" checked={props.skills.includes(skill.id)} onChange={(event) => props.onSkillsChange(event.target.checked ? [...props.skills, skill.id] : props.skills.filter((key) => key !== skill.id))} />
                           <MaterialIcon name="skills" />
                           <span className="agent-selectable-row-copy"><strong className="agent-skill-title">{skill.label}</strong><Tooltip title={description} placement="right" mouseEnterDelay={0.35} overlayClassName="agent-skill-description-tooltip"><span className="agent-skill-description-help" tabIndex={0} aria-label={description}><MaterialIcon name="info" /></span></Tooltip></span>
                         </label>
@@ -173,10 +173,10 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
         {props.selectedSkills.map((skill) => {
           const description = skill.description || props.t(skill.source === "private" ? "agentConsole.privateSkill.source.private" : "agentConsole.privateSkill.source.center");
           return (
-            <div key={skill.key} className="agent-selected-skill-row">
+            <div key={skill.id} className="agent-selected-skill-row">
               <MaterialIcon name="skills" />
               <span className="agent-selected-skill-copy"><strong className="agent-skill-title">{skill.label}</strong><span className="agent-skill-inline-separator" aria-hidden="true">·</span><span className="agent-skill-description" title={description}>{description}</span></span>
-              <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: skill.label })} onClick={() => props.onSkillsChange(props.skills.filter((key) => key !== skill.key))}><MaterialIcon name="close" /></button>
+              <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: skill.label })} onClick={() => props.onSkillsChange(props.skills.filter((key) => key !== skill.id))}><MaterialIcon name="close" /></button>
             </div>
           );
         })}

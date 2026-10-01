@@ -6,7 +6,7 @@ import type { AdminSourceResponse } from "@/shared/data/api/dto/admin";
 import { SkillPackageManifestEditor } from "./SkillPackageManifestEditor";
 import { getAdminSkillPackageManifest, saveAdminSkillPackageManifest } from "@/shared/data/api/requests/skillPackages";
 jest.mock("@/shared/data/api/requests/skillPackages", () => ({ getAdminSkillPackageManifest: jest.fn(), saveAdminSkillPackageManifest: jest.fn() }));
-jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (id: string) => id }) }));
 jest.mock("antd", () => ({
   Modal: ({ open, title, children, onOk, onCancel, okText, okButtonProps }: any) => open ? <section aria-label={title}>{children}<button disabled={okButtonProps?.disabled} onClick={onOk}>{okText}</button><button onClick={onCancel}>close</button></section> : null,
   Spin: ({ children }: any) => children,
@@ -17,9 +17,9 @@ let container: HTMLDivElement;
 let root: Root;
 const onClose = jest.fn();
 const onSaved = jest.fn().mockResolvedValue(undefined);
-const originalContent = JSON.stringify({ name: "office", skills: [{ key: "word" }, { key: "excel" }] });
+const originalContent = JSON.stringify({ name: "office", skills: [{ id: "word" }, { id: "excel" }] });
 function source(content: string, sha256: string): AdminSourceResponse {
-  return { target: { type: "skill-package", key: "office" }, source: { kind: "skills-center", path: "office/package.json" }, content, sha256, encoding: "utf-8", size: content.length };
+  return { target: { type: "skill-package", id: "office" }, source: { kind: "skills-center", path: "office/package.json" }, content, sha256, encoding: "utf-8", size: content.length };
 }
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -34,7 +34,7 @@ async function edit(value: string) { await act(async () => Simulate.change(conta
 async function save() { await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "skillConsole.action.save")!.click()); }
 test("saves declared members in order using the original hash and refreshes the catalog", async () => {
   await mount();
-  const content = JSON.stringify({ name: "office", displayName: "Office", skills: [{ key: "excel" }, { key: "word" }] });
+  const content = JSON.stringify({ name: "office", displayName: "Office", skills: [{ id: "excel" }, { id: "word" }] });
   await edit(content);
   await save();
   expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
@@ -52,10 +52,10 @@ test.each([
   { name: "office" },
   { name: "office", skills: null },
   { name: "office", skills: {} },
-  ...[null, [], "child", {}, { key: 1 }, { key: "" }, { key: " " }, { key: " child" },
-    { key: "." }, { key: ".." }, { key: "a/b" }, { key: "a\\b" }, { key: "a\u0000b" }]
+  ...[null, [], "child", {}, { id: 1 }, { id: "" }, { id: " " }, { id: " child" },
+    { id: "." }, { id: ".." }, { id: "a/b" }, { id: "a\\b" }, { id: "a\u0000b" }]
     .map(member => ({ name: "office", skills: [member] })),
-  { name: "office", skills: [{ key: "child" }, { key: "CHILD" }] },
+  { name: "office", skills: [{ id: "child" }, { id: "CHILD" }] },
 ])("blocks invalid manifest %j without changing the draft", async manifest => {
   await mount();
   const content = JSON.stringify(manifest);
@@ -66,8 +66,8 @@ test.each([
 });
 test.each([
   { skills: [] },
-  { skills: [{ key: "child-dir" }] },
-  { skills: [{ key: "child-dir" }, { key: "中文 skill", extension: true }] },
+  { skills: [{ id: "child-dir" }] },
+  { skills: [{ id: "child-dir" }, { id: "中文 skill", extension: true }] },
 ])("allows editing declared members without duplicating display metadata: %j", async ({ skills }) => {
   await mount();
   const content = JSON.stringify({ name: "office", displayName: "Office", skills });
@@ -79,7 +79,7 @@ test.each([
 test("Platform member validation failures preserve the draft and reviewed hash", async () => {
   jest.mocked(saveAdminSkillPackageManifest).mockRejectedValueOnce(new Error("Declared member SKILL.md is missing"));
   await mount();
-  const content = '{"name":"office","skills":[{"key":"missing-child"}]}';
+  const content = '{"name":"office","skills":[{"id":"missing-child"}]}';
   await edit(content); await save();
   expect(saveAdminSkillPackageManifest).toHaveBeenCalledWith("office", content, "old-hash");
   expect(container.querySelector("textarea")?.value).toBe(content);
@@ -90,14 +90,14 @@ test("Platform member validation failures preserve the draft and reviewed hash",
 });
 test("conflicting save preserves the draft and never retries with a fresh hash", async () => {
   jest.mocked(saveAdminSkillPackageManifest).mockRejectedValueOnce(new Error("Conflict: manifest changed"));
-  await mount(); await edit('{"name":"office","skills":[{"key":"word"}],"description":"draft"}'); await save();
+  await mount(); await edit('{"name":"office","skills":[{"id":"word"}],"description":"draft"}'); await save();
   expect(onClose).not.toHaveBeenCalled();
   expect(container.querySelector("textarea")?.value).toContain("draft");
   expect(getAdminSkillPackageManifest).toHaveBeenCalledTimes(1);
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("Conflict");
 });
 test("closing a dirty manifest requires explicit discard", async () => {
-  await mount(); await edit('{"name":"office","skills":[{"key":"word"}],"description":"draft"}');
+  await mount(); await edit('{"name":"office","skills":[{"id":"word"}],"description":"draft"}');
   await act(async () => container.querySelector<HTMLButtonElement>("section button:last-child")!.click());
   expect(onClose).not.toHaveBeenCalled();
   await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "skillPackageEditor.discard")!.click());

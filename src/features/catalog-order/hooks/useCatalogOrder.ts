@@ -58,7 +58,7 @@ export function useCatalogOrder(catalog: keyof typeof catalogs, enabled: boolean
     setSaving(true);
     setSaveError(null);
     try {
-      const response = await config.write({ key, pinned: !pinnedKeys.includes(key.trim().toLowerCase()) });
+      const response = await config.write({ id: key, pinned: !pinnedKeys.includes(key.trim().toLowerCase()) });
       const cacheKey = createDataCacheKey(endpoint);
       dataQueryCache.invalidate(cacheKey);
       await dataQueryCache.fetch(cacheKey, () => Promise.resolve(response.data), { ttlMs: TTL_MS });

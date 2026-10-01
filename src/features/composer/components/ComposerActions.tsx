@@ -104,8 +104,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   onAddReference,
   currentAgentKey,
   isMainChatRunning,
-  selectedSkillKeys,
-  lockedSkillKeys,
+  selectedSkillIds,
+  lockedSkillIds,
   onSelectSkills,
   onSelectSkill,
 }) => {
@@ -190,8 +190,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             isMainChatRunning={isMainChatRunning}
             canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
             isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
-            selectedSkillKeys={selectedSkillKeys}
-            lockedSkillKeys={lockedSkillKeys}
+            selectedSkillIds={selectedSkillIds}
+            lockedSkillIds={lockedSkillIds}
             onSelectSkills={onSelectSkills}
             onOpenFilePicker={openFilePicker}
             onCaptureScreenshot={() => void captureDesktopScreenshot()}

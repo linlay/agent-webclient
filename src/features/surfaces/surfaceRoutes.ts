@@ -15,7 +15,7 @@ export const SURFACE_ROUTE_PATHS = {
   resource: "/resource-viewer/:agentKey",
   file: "/file-viewer/:agentKey",
   web: "/web-viewer",
-  skill: "/skill-viewer/:key",
+  skill: "/skill-viewer/:id",
   history: "/history",
   project: "/project/:agentKey",
   terminal: "/terminal/:agentKey",
@@ -56,7 +56,7 @@ export type SurfaceRouteIntent =
   | { kind: "history" }
   | { kind: "agent"; agentKey: string; chatId?: string }
   | { kind: "web"; url: string; title?: string }
-  | { kind: "skill"; key: string };
+  | { kind: "skill"; id: string };
 
 function clean(value: unknown): string {
   return String(value || "").trim();
@@ -149,7 +149,7 @@ export function buildSurfaceRoute(
     pathname = `/planning-viewer/${planningId}`;
     params.set("chatId", clean(intent.chatId));
   } else if (intent.kind === "skill") {
-    const key = pathSegment(intent.key);
+    const key = pathSegment(intent.id);
     if (!key) return "";
     pathname = `/skill-viewer/${key}`;
   } else {

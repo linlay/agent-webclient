@@ -56,7 +56,7 @@ export function useComposerSlash(input: UseComposerSlashInput) {
     enabled: skillQueryEnabled,
   });
   const hasSkillSection = Boolean(String(currentAgentKey || "").trim());
-  const { pinnedSkillKeys } = skillQuery;
+  const { pinnedSkillIds } = skillQuery;
 
   // 初步显示判断（不含 items 检查），用于 useComposerFilter 记录起始位置
   const prelimShowSlash =
@@ -89,9 +89,9 @@ export function useComposerSlash(input: UseComposerSlashInput) {
           filterText,
           hasSkillSection ? skillQuery.data?.skills || [] : [],
         ),
-        pinnedSkillKeys,
+        pinnedSkillIds,
       ),
-    [hasSkillSection, filterText, skillQuery.data, pinnedSkillKeys],
+    [hasSkillSection, filterText, skillQuery.data, pinnedSkillIds],
   );
   const slashItems = useMemo<SlashPaletteItem[]>(
     () => [...slashCommands, ...slashSkills],

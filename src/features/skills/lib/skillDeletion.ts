@@ -6,11 +6,11 @@ import {
 } from "@/shared/data";
 
 export type SkillDeleteOutcome =
-  | { kind: "deleted"; key: string }
+  | { kind: "deleted"; id: string }
   | { kind: "blocked"; usedByAgents: string[] };
 
 type DeleteSkillRequest = (
-  key: string,
+  id: string,
 ) => Promise<ApiResponse<AdminSkillDeleteResponse>>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,18 +33,18 @@ export function skillDeleteBlockedAgents(error: unknown): string[] {
 }
 
 export async function requestSkillDeletion(
-  rawKey: string,
+  rawId: string,
   request: DeleteSkillRequest = deleteAdminSkill,
 ): Promise<SkillDeleteOutcome> {
-  const key = rawKey.trim();
+  const id = rawId.trim();
   try {
-    const response = await request(key);
+    const response = await request(id);
     if (!response.data.deleted) {
       throw new Error("skill deletion was not confirmed by the server");
     }
     return {
       kind: "deleted",
-      key: response.data.key.trim() || key,
+      id: response.data.id.trim() || id,
     };
   } catch (error) {
     const usedByAgents = skillDeleteBlockedAgents(error);

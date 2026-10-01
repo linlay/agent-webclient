@@ -3,13 +3,13 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { PackageSkillTree } from "./PackageSkillTree";
 import type { AgentSkillPackage } from "@/shared/data/api/dto/agents";
-jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (id: string) => id }) }));
 jest.mock("antd", () => ({
   Checkbox: ({ children, checked, disabled, indeterminate, onChange, ...rest }: any) => <label><input {...rest} type="checkbox" checked={checked || false} disabled={disabled} data-mixed={indeterminate || undefined} onChange={onChange} />{children}</label>,
   Popover: ({ children }: any) => children,
 }));
 const pkg: AgentSkillPackage = { id: "office", name: "Office", version: "1", skills: [{ id: "word" }, { id: "excel" }], missingSkillIds: [], status: "ready" };
-const skills = [{ key: "word", name: "Word", configured: false }, { key: "excel", name: "Excel", configured: false }];
+const skills = [{ id: "word", name: "Word", configured: false }, { id: "excel", name: "Excel", configured: false }];
 describe("PackageSkillTree", () => {
   let container: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;

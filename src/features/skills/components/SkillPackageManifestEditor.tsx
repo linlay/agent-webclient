@@ -10,10 +10,11 @@ function validMembers(skills: unknown): boolean {
   const seen = new Set<string>();
   return skills.every(member => {
     if (!member || typeof member !== "object" || Array.isArray(member)) return false;
-    const key = member.key;
+    const id = member.id ?? member.key;
+    if (member.id !== undefined && member.key !== undefined && member.id !== member.key) return false;
     // Platform validates reserved names and member files; reject malformed paths here.
-    if (typeof key !== "string" || !key || key.trim() !== key || key === "." || key === ".." || /[/\\\u0000]/.test(key)) return false;
-    const folded = key.toLowerCase();
+    if (typeof id !== "string" || !id || id.trim() !== id || id === "." || id === ".." || /[/\\\u0000]/.test(id)) return false;
+    const folded = id.toLowerCase();
     if (seen.has(folded)) return false;
     seen.add(folded);
     return true;

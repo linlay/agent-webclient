@@ -231,7 +231,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [skillsExpanded, setSkillsExpanded] = useState(false);
   const [skillSearchText, setSkillSearchText] = useState("");
   const [skillOptions, setSkillOptions] = useState<
-    Array<{ key: string; label: string; description?: string }>
+    Array<{ id: string; label: string; description?: string }>
   >([]);
   const [savingForm, setSavingForm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -419,8 +419,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     () =>
       form.skills.map(
         (key) =>
-          agentSkillOptions.find((skill) => skill.key === key) || {
-            key,
+          agentSkillOptions.find((skill) => skill.id === key) || {
+            id: key,
             label: key,
             source: "center" as const,
           },
@@ -431,7 +431,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     const query = skillSearchText.trim().toLowerCase();
     if (!query) return agentSkillOptions;
     return agentSkillOptions.filter((skill) =>
-      `${skill.key} ${skill.label} ${skill.description || ""}`
+      `${skill.id} ${skill.label} ${skill.description || ""}`
         .toLowerCase()
         .includes(query),
     );
@@ -793,14 +793,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         (Array.isArray(skillsResponse.data) ? skillsResponse.data : [])
           .map((item) => {
             const record = asRecord(item);
-            const key = toText(record.key);
-            if (!key) return null;
+            const id = toText(record.id);
+            if (!id) return null;
             const description = toText(record.description);
             return description
-              ? { key, label: skillDisplayName(item) || key, description }
-              : { key, label: skillDisplayName(item) || key };
+              ? { id, label: skillDisplayName(item) || id, description }
+              : { id, label: skillDisplayName(item) || id };
           })
-          .filter((item): item is { key: string; label: string; description?: string } =>
+          .filter((item): item is { id: string; label: string; description?: string } =>
             Boolean(item),
           ),
       );

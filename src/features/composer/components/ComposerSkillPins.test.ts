@@ -22,9 +22,9 @@ jest.mock("@/shared/data/api/routedClient", () => ({
 }));
 
 const skills = [
-  { key: "platform-admin", displayName: "Platform Admin", description: "Manage platform", configured: true },
-  { key: "pdf", displayName: "PDF", description: "Read documents", configured: false },
-  { key: "slides", displayName: "Slides", description: "Create documents", configured: false },
+  { id: "platform-admin", displayName: "Platform Admin", description: "Manage platform", configured: true },
+  { id: "pdf", displayName: "PDF", description: "Read documents", configured: false },
+  { id: "slides", displayName: "Slides", description: "Create documents", configured: false },
 ];
 
 jest.mock("@/features/connectors/components/AgentConnectorPicker", () => ({ AgentConnectorPicker: () => null }));
@@ -63,9 +63,9 @@ describe("Composer skill pins", () => {
     serverOrder = [];
     sessionToken = "alice";
     getAgentSkillsMock.mockReset().mockImplementation(async () => ({ data: { agentKey: "agent-a", skills, pinned: [...serverOrder] } }));
-    putAgentSkillPinMock.mockReset().mockImplementation(async ({ key, pinned }: { key: string; pinned: boolean }) => {
-      serverOrder = serverOrder.filter((item) => item !== key);
-      if (pinned) serverOrder.unshift(key);
+    putAgentSkillPinMock.mockReset().mockImplementation(async ({ id, pinned }: { id: string; pinned: boolean }) => {
+      serverOrder = serverOrder.filter((item) => item !== id);
+      if (pinned) serverOrder.unshift(id);
       return { data: { agentKey: "", skills: [], pinned: [...serverOrder] } };
     });
     container = document.createElement("div");
@@ -75,7 +75,7 @@ describe("Composer skill pins", () => {
       disabled: false, loading: false, currentChatId: "chat", currentAgentKey: "agent-a",
       planningMode: false, editingMode: false, canUsePlanningMode: false, canUseEditingMode: false,
       isMainChatRunning: false, canCaptureDesktopScreenshot: false, isCapturingDesktopScreenshot: false,
-      selectedSkillKeys: [],
+      selectedSkillIds: [],
       onOpenFilePicker: jest.fn(), onCaptureScreenshot: jest.fn(), onAddReference: jest.fn(),
       onTogglePlanningMode: jest.fn(), onEditingModeChange: jest.fn(), onSelectSkill: jest.fn(),
     };
@@ -151,7 +151,7 @@ describe("Composer skill pins", () => {
 
   it("allows pinning during a run while skill selection stays disabled", async () => {
     props.isMainChatRunning = true;
-    props.selectedSkillKeys = ["pdf"];
+    props.selectedSkillIds = ["pdf"];
     render();
     await openSkills();
     await pin("PDF");
@@ -228,11 +228,11 @@ describe("Composer skill pins", () => {
     }
     await act(async () => root.render(React.createElement(Harness)));
     await act(async () => pins!.toggleSkillPin("slides"));
-    expect(slash!.slashSkills[0].key).toBe("slides");
-    expect(slash!.selectSlashItem(slash!.slashCommands.length)).toMatchObject({ key: "slides" });
+    expect(slash!.slashSkills[0].id).toBe("slides");
+    expect(slash!.selectSlashItem(slash!.slashCommands.length)).toMatchObject({ id: "slides" });
     serverOrder = ["pdf"];
     await act(async () => window.dispatchEvent(new Event("focus")));
-    expect(slash!.slashSkills[0].key).toBe("pdf");
+    expect(slash!.slashSkills[0].id).toBe("pdf");
   });
 
   it("does not change pins on save failure and ignores legacy local preferences", async () => {
@@ -246,7 +246,7 @@ describe("Composer skill pins", () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain("composer.addMenu.skill.pinFailed");
     await pin("PDF");
     expect(names()[0]).toBe("PDF");
-    expect(putAgentSkillPinMock).toHaveBeenLastCalledWith({ key: "pdf", pinned: true });
+    expect(putAgentSkillPinMock).toHaveBeenLastCalledWith({ id: "pdf", pinned: true });
     expect(localStorage.getItem("agent-webclient.pinnedSkills.v1:agent-a")).toBe('["slides"]');
   });
 

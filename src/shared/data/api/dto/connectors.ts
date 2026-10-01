@@ -62,7 +62,7 @@ export interface ConnectorTokenSchema {
 }
 
 export interface ConnectorSkillSummary {
-  key?: string;
+  id?: string;
   displayName?: string;
   /** Legacy servers only. */
   name?: string;
@@ -159,7 +159,7 @@ export interface ConnectorOrderResponse {
 }
 
 export interface UpdateConnectorOrderRequest {
-  key: string;
+  id: string;
   pinned: boolean;
 }
 

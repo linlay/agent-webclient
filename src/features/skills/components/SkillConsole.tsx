@@ -67,17 +67,17 @@ type StatusFilter = "all" | AdminSkillStatus;
 type SkillCatalogRow =
   | {
       kind: "package";
-      key: string;
+      id: string;
       label: string;
       group: ReturnType<typeof groupAdminSkills>["packages"][number];
     }
-  | { kind: "standalone"; key: string; label: string; skill: AdminSkillSummary };
+  | { kind: "standalone"; id: string; label: string; skill: AdminSkillSummary };
 
 function adminSourceToSkillTextFile(
   source: AdminSourceResponse,
 ): AdminSkillTextFile {
   return {
-    key: source.target.key || "",
+    id: source.target.id || "",
     path: source.target.path || "",
     content: source.content,
     encoding: source.encoding,
@@ -121,10 +121,10 @@ type SkillBinaryPreviewState =
   | { status: "error" };
 
 export const SkillBinaryImagePreview: React.FC<{
-  skillKey: string;
+  skillId: string;
   entry: AdminSkillFileEntry;
   t: SkillConsoleTranslate;
-}> = ({ skillKey, entry, t }) => {
+}> = ({ skillId, entry, t }) => {
   const [state, setState] = useState<SkillBinaryPreviewState>({
     status: "loading",
   });
@@ -141,7 +141,7 @@ export const SkillBinaryImagePreview: React.FC<{
       setState({ status: "error" });
       return () => controller.abort();
     }
-    void fetchAdminSkillFileBlob(skillKey, entry.path, {
+    void fetchAdminSkillFileBlob(skillId, entry.path, {
       signal: controller.signal,
     })
       .then((blob) => {
@@ -161,7 +161,7 @@ export const SkillBinaryImagePreview: React.FC<{
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [skillKey, entry.path, entry.sha256]);
+  }, [skillId, entry.path, entry.sha256]);
 
   if (state.status === "loading") {
     return (
@@ -323,9 +323,9 @@ export const SkillListItemActions: React.FC<{
   busy: boolean;
   pinsDisabled: boolean;
   t: SkillConsoleTranslate;
-  onTogglePin: (skillKey: string) => void;
-  onValidateSkill: (skillKey: string) => void;
-  onDownloadSkill: (skillKey: string) => void;
+  onTogglePin: (skillId: string) => void;
+  onValidateSkill: (skillId: string) => void;
+  onDownloadSkill: (skillId: string) => void;
   onDeleteSkill: (item: AdminSkillSummary) => void;
   onEditSkill?: (item: AdminSkillSummary) => void;
   onEditSkillConversation?: (item: AdminSkillSummary) => void;
@@ -391,11 +391,11 @@ export const SkillListItemActions: React.FC<{
     } else if (key === "edit-conversation") {
       onEditSkillConversation?.(item);
     } else if (key === "pin") {
-      onTogglePin(item.key);
+      onTogglePin(item.id);
     } else if (key === "validate") {
-      onValidateSkill(item.key);
+      onValidateSkill(item.id);
     } else if (key === "download") {
-      onDownloadSkill(item.key);
+      onDownloadSkill(item.id);
     } else if (key === "delete") {
       onDeleteSkill(item);
     }
@@ -678,7 +678,7 @@ type SkillConsoleTranslate = (
 ) => string;
 
 type SkillCreateMode = "direct" | "zip";
-type SkillKeyValidationCode = "" | "required" | "invalid" | "exists";
+type SkillIdValidationCode = "" | "required" | "invalid" | "exists";
 type SkillArchiveFileValidationCode = "" | "type" | "empty" | "size";
 
 export const ADMIN_SKILL_IMPORT_MAX_BYTES = 512 * 1024 * 1024;
@@ -690,14 +690,14 @@ export interface SkillImportDiagnostic {
   sourcePath?: string;
 }
 
-export function validateNewSkillKey(
-  rawKey: string,
-  existingKeys: readonly string[] = [],
-): SkillKeyValidationCode {
-  const key = rawKey.trim();
+export function validateNewSkillId(
+  rawId: string,
+  existingIds: readonly string[] = [],
+): SkillIdValidationCode {
+  const key = rawId.trim();
   if (!key) return "required";
   if (
-    key !== rawKey ||
+    key !== rawId ||
     key === "." ||
     key === ".." ||
     key.startsWith(".") ||
@@ -709,7 +709,7 @@ export function validateNewSkillKey(
     return "invalid";
   }
   if (
-    existingKeys.some(
+    existingIds.some(
       (candidate) => candidate.toLowerCase() === key.toLowerCase(),
     )
   ) {
@@ -754,7 +754,7 @@ export function skillImportDiagnostics(
 
 interface SkillCreateModalProps {
   open: boolean;
-  existingKeys: readonly string[];
+  existingIds: readonly string[];
   t: SkillConsoleTranslate;
   onCancel: () => void;
   onDirectCreate: (key: string, name: string) => Promise<boolean>;
@@ -763,54 +763,54 @@ interface SkillCreateModalProps {
 
 export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
   open,
-  existingKeys,
+  existingIds,
   t,
   onCancel,
   onDirectCreate,
   onZipImport,
 }) => {
   const [mode, setMode] = useState<SkillCreateMode>("zip");
-  const [directKey, setDirectKey] = useState("");
+  const [directId, setDirectId] = useState("");
   const [directName, setDirectName] = useState("");
-  const [zipKey, setZipKey] = useState("");
+  const [zipId, setZipId] = useState("");
   const [zipFile, setZipFile] = useState<File | null>(null);
-  const [keyTouched, setKeyTouched] = useState(false);
+  const [idTouched, setIdTouched] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [serverKeyError, setServerKeyError] = useState("");
+  const [serverIdError, setServerIdError] = useState("");
   const [diagnostics, setDiagnostics] = useState<SkillImportDiagnostic[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setMode("zip");
-    setDirectKey("");
+    setDirectId("");
     setDirectName("");
-    setZipKey("");
+    setZipId("");
     setZipFile(null);
-    setKeyTouched(false);
+    setIdTouched(false);
     setDragActive(false);
     setSubmitting(false);
-    setServerKeyError("");
+    setServerIdError("");
     setDiagnostics([]);
   }, [open]);
 
-  const currentKey = mode === "direct" ? directKey : zipKey;
-  const keyValidation =
+  const currentId = mode === "direct" ? directId : zipId;
+  const idValidation =
     mode === "direct"
-      ? validateNewSkillKey(currentKey, existingKeys)
-      : currentKey
-        ? validateNewSkillKey(currentKey)
+      ? validateNewSkillId(currentId, existingIds)
+      : currentId
+        ? validateNewSkillId(currentId)
         : "";
-  const keyError =
-    serverKeyError ||
-    (keyValidation && (keyTouched || Boolean(currentKey))
-      ? t(`skillConsole.create.keyError.${keyValidation}`)
+  const idError =
+    serverIdError ||
+    (idValidation && (idTouched || Boolean(currentId))
+      ? t(`skillConsole.create.idError.${idValidation}`)
       : "");
-  const canSubmit = !keyValidation && (mode === "direct" || Boolean(zipFile));
+  const canSubmit = !idValidation && (mode === "direct" || Boolean(zipFile));
 
   const resetError = () => {
-    setServerKeyError("");
+    setServerIdError("");
     setDiagnostics([]);
   };
 
@@ -832,7 +832,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
     resetError();
     setSubmitting(true);
     try {
-      const key = currentKey.trim();
+      const key = currentId.trim();
       const completed =
         mode === "direct"
           ? await onDirectCreate(key, directName.trim() || key)
@@ -843,7 +843,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       setDiagnostics(importedDiagnostics);
       const status = (error as { status?: unknown } | null)?.status;
       if (status === 409 && mode === "direct") {
-        setServerKeyError(t("skillConsole.import.error.exists"));
+        setServerIdError(t("skillConsole.import.error.exists"));
       } else {
         notification.error({
           message: error instanceof Error ? error.message : String(error),
@@ -858,32 +858,32 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
     <div className="tw:flex tw:flex-col tw:gap-4 tw:pt-1">
       <label
         className="tw:flex tw:flex-col tw:gap-1.5"
-        htmlFor="skill-create-key"
+        htmlFor="skill-create-id"
       >
         <span className="tw:text-sm tw:font-medium tw:text-ink-1">
-          {t("skillConsole.field.key")}
+          {t("skillConsole.field.id")}
         </span>
         <Input
-          id="skill-create-key"
+          id="skill-create-id"
           autoFocus={mode === "direct"}
-          value={directKey}
-          placeholder="skill-key"
-          status={keyError ? "error" : undefined}
-          aria-describedby={keyError ? "skill-create-key-error" : undefined}
+          value={directId}
+          placeholder="skill-id"
+          status={idError ? "error" : undefined}
+          aria-describedby={idError ? "skill-create-id-error" : undefined}
           onChange={(event) => {
-            setDirectKey(event.target.value);
-            setKeyTouched(true);
+            setDirectId(event.target.value);
+            setIdTouched(true);
             resetError();
           }}
           onPressEnter={() => void handleSubmit()}
         />
-        {keyError && (
+        {idError && (
           <span
-            id="skill-create-key-error"
+            id="skill-create-id-error"
             role="alert"
             className="tw:text-xs tw:text-danger"
           >
-            {keyError}
+            {idError}
           </span>
         )}
       </label>
@@ -967,32 +967,32 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
       </button>
       <label
         className="tw:flex tw:flex-col tw:gap-1.5"
-        htmlFor="skill-import-key"
+        htmlFor="skill-import-id"
       >
         <span className="tw:text-sm tw:font-medium tw:text-ink-1">
-          {t("skillConsole.import.keyOptional")}
+          {t("skillConsole.import.idOptional")}
         </span>
         <Input
-          id="skill-import-key"
-          value={zipKey}
+          id="skill-import-id"
+          value={zipId}
           disabled={submitting}
-          placeholder={t("skillConsole.import.keyPlaceholder")}
-          status={keyError ? "error" : undefined}
-          aria-describedby={keyError ? "skill-import-key-error" : undefined}
+          placeholder={t("skillConsole.import.idPlaceholder")}
+          status={idError ? "error" : undefined}
+          aria-describedby={idError ? "skill-import-id-error" : undefined}
           onChange={(event) => {
-            setZipKey(event.target.value);
-            setKeyTouched(true);
+            setZipId(event.target.value);
+            setIdTouched(true);
             resetError();
           }}
           onPressEnter={() => void handleSubmit()}
         />
-        {keyError && (
+        {idError && (
           <span
-            id="skill-import-key-error"
+            id="skill-import-id-error"
             role="alert"
             className="tw:text-xs tw:text-danger"
           >
-            {keyError}
+            {idError}
           </span>
         )}
       </label>
@@ -1037,7 +1037,7 @@ export const SkillCreateModal: React.FC<SkillCreateModalProps> = ({
         onChange={(key) => {
           if (submitting) return;
           setMode(key as SkillCreateMode);
-          setKeyTouched(false);
+          setIdTouched(false);
           resetError();
         }}
         items={[
@@ -1299,7 +1299,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
               <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
                 {isSkillImageEntry(selectedEntry) && (
                   <SkillBinaryImagePreview
-                    skillKey={detail.skill.key}
+                    skillId={detail.skill.id}
                     entry={selectedEntry}
                     t={t}
                   />
@@ -1596,14 +1596,14 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
 /* ---- component ---- */
 
 export interface SkillConsoleProps {
-  selectedSkillKey: string;
-  onSelectSkillKey: (skillKey: string) => void;
+  selectedSkillId: string;
+  onSelectSkillId: (skillId: string) => void;
   onClearSelection: () => void;
 }
 
 export const SkillConsole: React.FC<SkillConsoleProps> = ({
-  selectedSkillKey,
-  onSelectSkillKey,
+  selectedSkillId,
+  onSelectSkillId,
   onClearSelection,
 }) => {
   const { t, locale } = useI18n();
@@ -1611,7 +1611,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const assistant = useResourceAssistant();
   const editorRegion = useRef<HTMLDivElement>(null);
   const {
-    pinnedSkillKeys,
+    pinnedSkillIds,
     toggleSkillPin,
     pinsDisabled,
     pinError,
@@ -1693,16 +1693,16 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   ), [skills, packages, searchText, statusFilter]);
   const catalogRows = useMemo(() => orderSkillCatalogItems<SkillCatalogRow>([
     ...groupedSkills.packages.map((group): SkillCatalogRow => ({
-      kind: "package", key: group.pack.id, label: skillPackageDisplayName(group.pack), group,
+      kind: "package", id: group.pack.id, label: skillPackageDisplayName(group.pack), group,
     })),
     ...groupedSkills.standalone.map((skill): SkillCatalogRow => ({
-      kind: "standalone", key: skill.key, label: skillDisplayName(skill), skill,
+      kind: "standalone", id: skill.id, label: skillDisplayName(skill), skill,
     })),
-  ], pinnedSkillKeys, locale).filter((row) => kindFilter === null || row.kind === kindFilter),
-  [groupedSkills, pinnedSkillKeys, locale, kindFilter]);
+  ], pinnedSkillIds, locale).filter((row) => kindFilter === null || row.kind === kindFilter),
+  [groupedSkills, pinnedSkillIds, locale, kindFilter]);
   const hasListFilter = Boolean(searchText.trim()) || statusFilter !== "all" || kindFilter !== null;
   const selectedPackage = packages.find((pack) => pack.id === selectedPackageId);
-  const selectedSkillPackage = packages.find((pack) => pack.skills.some((member) => member.id === selectedSkillKey));
+  const selectedSkillPackage = packages.find((pack) => pack.skills.some((member) => member.id === selectedSkillId));
 
   const applyOpenedFile = useCallback((file: AdminSkillTextFile) => {
     applyOpenedFileState(
@@ -1750,14 +1750,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   }, [locale]);
 
   const loadFileByPath = useCallback(
-    async (skillKey: string, path: string, seq?: number) => {
+    async (skillId: string, path: string, seq?: number) => {
       const normalizedPath = path.trim();
-      if (!skillKey || !normalizedPath) return null;
+      if (!skillId || !normalizedPath) return null;
       const token = seq ?? ++loadSeqRef.current;
       try {
         const response = await getAdminSource({
           type: "skill",
-          key: skillKey,
+          id: skillId,
           path: normalizedPath,
         });
         if (token !== loadSeqRef.current) return null;
@@ -1776,15 +1776,15 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   );
 
   const loadDetail = useCallback(
-    async (skillKey: string, preferredFilePath = "") => {
-      const normalizedSkillKey = skillKey.trim();
-      if (!normalizedSkillKey) return;
+    async (skillId: string, preferredFilePath = "") => {
+      const normalizedSkillId = skillId.trim();
+      if (!normalizedSkillId) return;
       const seq = ++loadSeqRef.current;
       setDetailLoading(true);
       try {
         const requestedOpenPath = preferredFilePath || "SKILL.md";
         const response = await getAdminSkillDetail(
-          normalizedSkillKey,
+          normalizedSkillId,
           requestedOpenPath,
         );
         if (seq !== loadSeqRef.current) return;
@@ -1804,7 +1804,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         ) {
           applyOpenedFile(d.openedFile);
         } else if (targetEntry?.contentKind === "text") {
-          await loadFileByPath(d.skill.key, targetEntry.path, seq);
+          await loadFileByPath(d.skill.id, targetEntry.path, seq);
         } else if (targetEntry?.contentKind === "binary") {
           applyBinaryEntry(targetEntry);
         } else {
@@ -1848,7 +1848,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       }
 
       if (entry.contentKind === "text") {
-        await loadFileByPath(currentDetail.skill.key, entry.path);
+        await loadFileByPath(currentDetail.skill.id, entry.path);
       } else {
         applyBinaryEntry(entry);
       }
@@ -1862,19 +1862,19 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   }, [loadSkills]);
 
   useEffect(() => {
-    if (selectedSkillKey) {
+    if (selectedSkillId) {
       pendingSelectionRef.current = null;
       suppressAutoSelectAfterDeleteRef.current = false;
       setSelectedPackageId("");
-      void loadDetail(selectedSkillKey);
+      void loadDetail(selectedSkillId);
       return;
     }
-  }, [loadDetail, selectedSkillKey]);
+  }, [loadDetail, selectedSkillId]);
 
   useEffect(() => {
     if (
       skills.length === 0 ||
-      selectedSkillKey ||
+      selectedSkillId ||
       selectedPackageId ||
       pendingSelectionRef.current ||
       suppressAutoSelectAfterDeleteRef.current
@@ -1882,19 +1882,19 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       return;
     const firstReady = skills.find((s) => s.status === "ready");
     if (firstReady) {
-      pendingSelectionRef.current = firstReady.key;
-      onSelectSkillKey(firstReady.key);
+      pendingSelectionRef.current = firstReady.id;
+      onSelectSkillId(firstReady.id);
     }
-  }, [onSelectSkillKey, selectedSkillKey, selectedPackageId, skills]);
+  }, [onSelectSkillId, selectedSkillId, selectedPackageId, skills]);
 
   const handleSelectSkill = (item: AdminSkillSummary) => {
     if (deletingSkill) return;
     const select = () => {
       setSelectedPackageId("");
-      if (selectedPackageId && item.key === selectedSkillKey) void loadDetail(item.key);
-      pendingSelectionRef.current = item.key;
+      if (selectedPackageId && item.id === selectedSkillId) void loadDetail(item.id);
+      pendingSelectionRef.current = item.id;
       suppressAutoSelectAfterDeleteRef.current = false;
-      onSelectSkillKey(item.key);
+      onSelectSkillId(item.id);
     };
     if (dirtyFiles.size > 0) {
       modal.confirm({
@@ -1916,7 +1916,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       if (mutation.skill) {
         setSkills((prev) =>
           prev.map((item) =>
-            item.key === mutation.skill?.key ? mutation.skill : item,
+            item.id === mutation.skill?.id ? mutation.skill : item,
           ),
         );
       }
@@ -1930,7 +1930,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         nextDetail.fileManifest.defaultOpenPath,
       );
       if (targetEntry?.contentKind === "text") {
-        await loadFileByPath(nextDetail.skill.key, targetEntry.path);
+        await loadFileByPath(nextDetail.skill.id, targetEntry.path);
       } else if (targetEntry?.contentKind === "binary") {
         applyBinaryEntry(targetEntry);
       } else {
@@ -1964,9 +1964,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       });
     }
     if (selectedEntry.contentKind === "text") {
-      await loadFileByPath(detail.skill.key, selectedFilePath);
+      await loadFileByPath(detail.skill.id, selectedFilePath);
     } else {
-      await loadDetail(detail.skill.key, selectedFilePath);
+      await loadDetail(detail.skill.id, selectedFilePath);
     }
   };
 
@@ -1983,14 +1983,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       const response = await updateAdminSource({
         target: {
           type: "skill",
-          key: detail.skill.key,
+          id: detail.skill.id,
           path: selectedFilePath,
         },
         content: fileContent,
         baseSha256: fileSha256 || undefined,
       });
       applyOpenedFile(adminSourceToSkillTextFile(response.data));
-      await loadDetail(detail.skill.key, selectedFilePath);
+      await loadDetail(detail.skill.id, selectedFilePath);
       notification.success({ message: t("skillConsole.message.saveSuccess") });
     } catch (err) {
       notification.error({ message: t("skillConsole.message.saveFailed") });
@@ -2002,14 +2002,14 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   };
 
-  const handleValidateSkillKey = async (skillKey: string) => {
+  const handleValidateSkillId = async (skillId: string) => {
     setValidating(true);
     try {
-      const response = await validateAdminSkill(skillKey);
+      const response = await validateAdminSkill(skillId);
       const result = response.data;
       setSkills((prev) =>
         prev.map((item) =>
-          item.key === skillKey
+          item.id === skillId
             ? {
                 ...item,
                 status: result.status,
@@ -2022,7 +2022,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         ),
       );
       setDetail((prev) => {
-        if (!prev || prev.skill.key !== skillKey) return prev;
+        if (!prev || prev.skill.id !== skillId) return prev;
         const next = {
           ...prev,
           skill: {
@@ -2084,7 +2084,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         const name = inputValue.trim();
         if (!name || !isFilePathSafe(name)) return;
         const response = await createAdminSkillFile({
-          key: detail.skill.key,
+          id: detail.skill.id,
           path: joinSkillPath(anchor, name),
           content: "",
         });
@@ -2127,7 +2127,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         if (!name || !isFilePathSafe(name)) return;
         const path = joinSkillPath(anchor, name);
         const response = await mkdirAdminSkillFile({
-          key: detail.skill.key,
+          id: detail.skill.id,
           path,
         });
         setExpandedDirs((prev) => {
@@ -2174,7 +2174,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         if (!name || !isFilePathSafe(name)) return;
         const path = joinSkillPath(anchor, name);
         const response = await mkdirAdminSkillFile({
-          key: detail.skill.key,
+          id: detail.skill.id,
           path,
         });
         setExpandedDirs((prev) => {
@@ -2214,7 +2214,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         if (!newPath || !isFilePathSafe(newPath) || newPath === target.path)
           return;
         const response = await renameAdminSkillFile({
-          key: detail.skill.key,
+          id: detail.skill.id,
           fromPath: target.path,
           toPath: newPath,
         });
@@ -2234,7 +2234,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       okButtonProps: { danger: true },
       onOk: async () => {
         const response = await deleteAdminSkillFile({
-          key: detail.skill.key,
+          id: detail.skill.id,
           path: target.path,
           recursive: target.kind === "directory",
           baseSha256:
@@ -2252,7 +2252,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     if (!detail || !target?.downloadable) return;
     setDownloadingFile(true);
     try {
-      await downloadAdminSkillFile(detail.skill.key, target.path);
+      await downloadAdminSkillFile(detail.skill.id, target.path);
     } catch (err) {
       notification.error({
         message: err instanceof Error ? err.message : String(err),
@@ -2262,10 +2262,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     }
   };
 
-  const handleDownloadSkillByKey = async (skillKey: string) => {
+  const handleDownloadSkillById = async (skillId: string) => {
     setDownloadingSkill(true);
     try {
-      await downloadAdminSkill(skillKey);
+      await downloadAdminSkill(skillId);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       notification.error({
@@ -2277,7 +2277,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   };
 
   const handleDeleteSkillByKey = (
-    skillKey: string,
+    skillId: string,
     skillName: string,
     hasUnsavedChanges: boolean,
   ) => {
@@ -2287,7 +2287,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       content: (
         <div className="tw:flex tw:flex-col tw:gap-2">
           <span>{t("skillConsole.delete.confirm", { name: skillName })}</span>
-          {skills.find((skill) => skill.key === skillKey)?.packageId && <span>{t("skillPackageEditor.deleteMember")}</span>}
+          {skills.find((skill) => skill.id === skillId)?.packageId && <span>{t("skillPackageEditor.deleteMember")}</span>}
           {hasUnsavedChanges && (
             <span className="tw:text-danger">
               {t("skillConsole.delete.unsavedWarning")}
@@ -2301,10 +2301,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       onOk: async () => {
         setDeletingSkill(true);
         try {
-          const owner = packages.find((pack) => pack.skills.some((member) => member.id === skillKey));
-          const outcome = await requestSkillDeletion(skillKey, owner ? async (key) => {
+          const owner = packages.find((pack) => pack.skills.some((member) => member.id === skillId));
+          const outcome = await requestSkillDeletion(skillId, owner ? async (key) => {
             const result = await deleteAdminSkillPackageMember(owner.id, key);
-            return { ...result, data: { key, deleted: result.data.deleted } };
+            return { ...result, data: { id: key, deleted: result.data.deleted } };
           } : undefined);
           if (outcome.kind === "blocked") {
             notification.warning({
@@ -2317,10 +2317,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
           setSkills((prev) =>
             prev.filter(
-              (item) => item.key !== skillKey && item.key !== outcome.key,
+              (item) => item.id !== skillId && item.id !== outcome.id,
             ),
           );
-          if (detailRef.current?.skill.key === skillKey) {
+          if (detailRef.current?.skill.id === skillId) {
             suppressAutoSelectAfterDeleteRef.current = true;
             setDetail(null);
             detailRef.current = null;
@@ -2348,9 +2348,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const handleDeleteSkillListItem = (item: AdminSkillSummary) => {
     handleDeleteSkillByKey(
-      item.key,
+      item.id,
       skillDisplayName(item),
-      detail?.skill.key === item.key && dirtyFiles.size > 0,
+      detail?.skill.id === item.id && dirtyFiles.size > 0,
     );
   };
 
@@ -2363,7 +2363,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setSaving(true);
     try {
       const response = await uploadAdminSkillFile({
-        key: detail.skill.key,
+        id: detail.skill.id,
         path: entry.path,
         file,
         overwrite: true,
@@ -2385,7 +2385,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setSaving(true);
     try {
       const response = await uploadAdminSkillFile({
-        key: detail.skill.key,
+        id: detail.skill.id,
         path,
         file,
         overwrite: false,
@@ -2402,7 +2402,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         (entry) => entry.path === path,
       );
       if (uploadedEntry?.contentKind === "text") {
-        await loadFileByPath(detail.skill.key, path);
+        await loadFileByPath(detail.skill.id, path);
       } else if (uploadedEntry) {
         applyBinaryEntry(uploadedEntry);
       }
@@ -2428,12 +2428,12 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   };
 
   const completeSkillCreation = (created: AdminSkillDetailResponse) => {
-    const key = created.skill.key;
+    const key = created.skill.id;
     pendingSelectionRef.current = key;
     suppressAutoSelectAfterDeleteRef.current = false;
     setSkills((prev) =>
-      [...prev.filter((item) => item.key !== key), created.skill].sort((a, b) =>
-        a.key.localeCompare(b.key),
+      [...prev.filter((item) => item.id !== key), created.skill].sort((a, b) =>
+        a.id.localeCompare(b.id),
       ),
     );
     setCreateModalOpen(false);
@@ -2442,7 +2442,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         name: skillDisplayName(created.skill),
       }),
     });
-    onSelectSkillKey(key);
+    onSelectSkillId(key);
   };
 
   const handleDirectCreate = async (
@@ -2451,25 +2451,25 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   ): Promise<boolean> => {
     if (!(await confirmDiscardBeforeAdding())) return false;
     const skillMd = `---\nname: ${JSON.stringify(key)}\ndisplayName: ${JSON.stringify(name)}\ndescription: \n---\n\n# ${name}\n`;
-    const response = await createAdminSkill({ key, skillMd });
+    const response = await createAdminSkill({ id: key, skillMd });
     completeSkillCreation(response.data);
     return true;
   };
 
   const handleZipImport = async (key: string, file: File): Promise<boolean> => {
     if (!(await confirmDiscardBeforeAdding())) return false;
-    const response = await importAdminSkill({ ...(key ? { key } : {}), file });
+    const response = await importAdminSkill({ ...(key ? { id: key } : {}), file });
     if (response.data.kind === "skill-package") {
       const installed = response.data.package;
       setSelectedPackageId("");
       setExpandedPackages((previous) => new Set(previous).add(installed.id));
-      const nextKey = installed.skills.some(
-        (skill) => skill.id === selectedSkillKey,
+      const nextId = installed.skills.some(
+        (skill) => skill.id === selectedSkillId,
       )
-        ? selectedSkillKey
+        ? selectedSkillId
         : installed.skills[0]?.id;
-      pendingSelectionRef.current = nextKey || null;
-      suppressAutoSelectAfterDeleteRef.current = !nextKey;
+      pendingSelectionRef.current = nextId || null;
+      suppressAutoSelectAfterDeleteRef.current = !nextId;
       setCreateModalOpen(false);
       setDirtyFiles(new Set());
       setSearchText("");
@@ -2482,9 +2482,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         }),
       });
       await loadSkills();
-      if (nextKey) {
-        if (nextKey === selectedSkillKey) await loadDetail(nextKey);
-        else onSelectSkillKey(nextKey);
+      if (nextId) {
+        if (nextId === selectedSkillId) await loadDetail(nextId);
+        else onSelectSkillId(nextId);
       }
     } else {
       completeSkillCreation(response.data);
@@ -2516,13 +2516,13 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   );
 
   const renderSkillItem = (item: AdminSkillSummary) => {
-    const itemPinned = pinnedSkillKeys.includes(item.key.toLowerCase());
+    const itemPinned = pinnedSkillIds.includes(item.id.toLowerCase());
     return (
-      <div key={`skill:${item.key}`} className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}>
+      <div key={`skill:${item.id}`} className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}>
         <button
           type="button"
           className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
-            !selectedPackageId && item.key === selectedSkillKey ? "is-active" : ""
+            !selectedPackageId && item.id === selectedSkillId ? "is-active" : ""
           }`}
           disabled={deletingSkill}
           onClick={() => handleSelectSkill(item)}
@@ -2568,9 +2568,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 <Typography.Text
                   className={SKILL_LIST_ITEM_META_CLASS_NAME}
                   ellipsis
-                  title={item.key}
+                  title={item.id}
                 >
-                  {item.key}
+                  {item.id}
                 </Typography.Text>
                 <SkillListItemVersion version={item.version} />
               </Flex>
@@ -2583,22 +2583,22 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           busy={validating || downloadingSkill || deletingSkill || assistant.opening}
           pinsDisabled={pinsDisabled}
           t={t}
-          onTogglePin={(skillKey) => {
-            void toggleSkillPin(skillKey);
+          onTogglePin={(skillId) => {
+            void toggleSkillPin(skillId);
           }}
-          onValidateSkill={(skillKey) => {
-            void handleValidateSkillKey(skillKey);
+          onValidateSkill={(skillId) => {
+            void handleValidateSkillId(skillId);
           }}
-          onDownloadSkill={(skillKey) => {
-            void handleDownloadSkillByKey(skillKey);
+          onDownloadSkill={(skillId) => {
+            void handleDownloadSkillById(skillId);
           }}
           onDeleteSkill={handleDeleteSkillListItem}
           onEditSkill={(item) => {
-            if (item.key === selectedSkillKey) focusEditableField(editorRegion.current);
+            if (item.id === selectedSkillId) focusEditableField(editorRegion.current);
             else handleSelectSkill(item);
           }}
           onEditSkillConversation={async (item) => {
-            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.key, name: skillDisplayName(item) } });
+            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.id, name: skillDisplayName(item) } });
           }}
         />
       </div>
@@ -2609,7 +2609,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     <div className={SKILL_CONSOLE_CLASS_NAME}>
       <SkillCreateModal
         open={createModalOpen}
-        existingKeys={skills.map((item) => item.key)}
+        existingIds={skills.map((item) => item.id)}
         t={t}
         onCancel={() => setCreateModalOpen(false)}
         onDirectCreate={handleDirectCreate}
@@ -2689,7 +2689,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                   if (row.kind === "standalone") return renderSkillItem(row.skill);
                   const { pack, members } = row.group;
                   const expanded = expandedPackages.has(pack.id) || Boolean(searchText.trim());
-                  const packagePinned = pinnedSkillKeys.includes(pack.id.trim().toLowerCase());
+                  const packagePinned = pinnedSkillIds.includes(pack.id.trim().toLowerCase());
                   return <div key={`package:${pack.id}`}>
                     <div className="skill-package-row tw:flex tw:items-center tw:gap-1 tw:pr-2" data-selected={selectedPackageId === pack.id}>
                       <button type="button" className="skill-package-folder tw:min-w-0 tw:flex-1" aria-expanded={expanded} aria-current={selectedPackageId === pack.id} disabled={deletingSkill} onClick={() => {
@@ -2767,7 +2767,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                     const result = await deleteAdminSkillPackage(selectedPackage.id);
                     if (!result.data.deleted) throw new Error("Package deletion was not confirmed");
                     setSelectedPackageId("");
-                    if (selectedPackage.skills.some((member) => member.id === selectedSkillKey)) {
+                    if (selectedPackage.skills.some((member) => member.id === selectedSkillId)) {
                       setDetail(null); detailRef.current = null; setDirtyFiles(new Set()); clearFileState();
                       suppressAutoSelectAfterDeleteRef.current = true; onClearSelection();
                     }

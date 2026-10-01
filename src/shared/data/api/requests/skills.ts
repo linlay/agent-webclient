@@ -40,11 +40,11 @@ export function putAgentSkillPin(params: UpdateAgentSkillPinRequest): Promise<Ap
 }
 
 export function getAdminSkillDetail(
-  key: string,
+  id: string,
   openPath?: string,
 ): Promise<ApiResponse<AdminSkillDetailResponse>> {
   const query = endpointQuery(dataEndpoints.adminSkillDetail, {
-    key,
+    id,
     ...(openPath ? { openPath } : {}),
   });
   return requestJson<AdminSkillDetailResponse>(
@@ -77,13 +77,13 @@ export function deleteAdminSkillFile(
 }
 
 export function uploadAdminSkillFile(params: {
-  key: string;
+  id: string;
   path: string;
   file: File | Blob;
   overwrite?: boolean;
 }): Promise<ApiResponse<AdminSkillMutationResponse>> {
   const form = new FormData();
-  form.append("key", params.key);
+  form.append("id", params.id);
   form.append("path", params.path);
   if (params.overwrite !== undefined) {
     form.append("overwrite", String(params.overwrite));
@@ -96,8 +96,8 @@ export function uploadAdminSkillFile(params: {
   });
 }
 
-export function validateAdminSkill(key: string): Promise<ApiResponse<AdminSkillValidateResponse>> {
-  return postJson<AdminSkillValidateResponse>(dataEndpoints.adminSkillValidate.path, { key });
+export function validateAdminSkill(id: string): Promise<ApiResponse<AdminSkillValidateResponse>> {
+  return postJson<AdminSkillValidateResponse>(dataEndpoints.adminSkillValidate.path, { id });
 }
 
 export function createAdminSkill(
@@ -107,11 +107,11 @@ export function createAdminSkill(
 }
 
 export function importAdminSkill(params: {
-  key?: string;
+  id?: string;
   file: File;
 }): Promise<ApiResponse<AdminSkillImportResponse>> {
   const form = new FormData();
-  if (params.key?.trim()) form.append("key", params.key.trim());
+  if (params.id?.trim()) form.append("id", params.id.trim());
   form.append("file", params.file);
   return requestJson<AdminSkillImportResponse>(dataEndpoints.adminSkillImport.path, {
     method: "POST",
@@ -120,6 +120,6 @@ export function importAdminSkill(params: {
   });
 }
 
-export function deleteAdminSkill(key: string): Promise<ApiResponse<AdminSkillDeleteResponse>> {
-  return postJson<AdminSkillDeleteResponse>(dataEndpoints.adminSkillDelete.path, { key });
+export function deleteAdminSkill(id: string): Promise<ApiResponse<AdminSkillDeleteResponse>> {
+  return postJson<AdminSkillDeleteResponse>(dataEndpoints.adminSkillDelete.path, { id });
 }

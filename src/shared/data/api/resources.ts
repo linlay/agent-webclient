@@ -342,13 +342,13 @@ function requireConversationExportLength(
   }
 }
 
-export function buildAdminSkillFileDownloadUrl(key: string, path: string): string {
-  const query = endpointQuery(dataEndpoints.adminSkillFileDownload, { key, path });
+export function buildAdminSkillFileDownloadUrl(id: string, path: string): string {
+  const query = endpointQuery(dataEndpoints.adminSkillFileDownload, { id, path });
   return withQuery(dataEndpoints.adminSkillFileDownload.path, query);
 }
 
-export function buildAdminSkillDownloadUrl(key: string): string {
-  const query = endpointQuery(dataEndpoints.adminSkillDownload, { key });
+export function buildAdminSkillDownloadUrl(id: string): string {
+  const query = endpointQuery(dataEndpoints.adminSkillDownload, { id });
   return withQuery(dataEndpoints.adminSkillDownload.path, query);
 }
 
@@ -365,19 +365,19 @@ async function readAdminSkillDownload(path: string, fallbackFilename: string, si
 }
 
 export async function downloadAdminSkillFile(
-  key: string,
+  id: string,
   path: string,
   options: { signal?: AbortSignal } = {},
 ): Promise<void> {
   const filename = path.split("/").filter(Boolean).at(-1) || "skill-file";
-  return readAdminSkillDownload(buildAdminSkillFileDownloadUrl(key, path), filename, options.signal);
+  return readAdminSkillDownload(buildAdminSkillFileDownloadUrl(id, path), filename, options.signal);
 }
 
 export async function downloadAdminSkill(
-  key: string,
+  id: string,
   options: { signal?: AbortSignal } = {},
 ): Promise<void> {
-  return readAdminSkillDownload(buildAdminSkillDownloadUrl(key), `${key || "skill"}.zip`, options.signal);
+  return readAdminSkillDownload(buildAdminSkillDownloadUrl(id), `${id || "skill"}.zip`, options.signal);
 }
 
 export async function fetchAdminSkillIcon(
@@ -434,11 +434,11 @@ export async function fetchConnectorIcon(
 }
 
 export async function fetchAdminSkillFileBlob(
-  key: string,
+  id: string,
   path: string,
   options: { signal?: AbortSignal } = {},
 ): Promise<Blob> {
-  const response = await requestWithAuth(buildAdminSkillFileDownloadUrl(key, path), {
+  const response = await requestWithAuth(buildAdminSkillFileDownloadUrl(id, path), {
     method: "GET",
     signal: options.signal,
     jsonContentType: false,

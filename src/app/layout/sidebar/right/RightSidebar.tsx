@@ -126,7 +126,7 @@ export const RightSidebar: React.FC = () => {
   const planningPreviews = state.planningPreviews;
   const webPreviews = state.webPreviews;
   const skillTabs = state.skillTabs;
-  const activeSkillKey = state.activeSkillKey;
+  const activeSkillId = state.activeSkillId;
   const hasBTWSession = Boolean(state.chatId && getSession(state.chatId));
   const debugPanelEnabled = isDebugPanelEnabled();
   const currentChat = state.chats?.find((chat) => chat.chatId === state.chatId);
@@ -172,10 +172,10 @@ export const RightSidebar: React.FC = () => {
                   )
                 : state.rightSidebarOpenTab === "skill" && skillTabs.length > 0
                   ? `skill:${
-                      activeSkillKey &&
-                      skillTabs.some((s) => s.key === activeSkillKey)
-                        ? activeSkillKey
-                        : skillTabs[skillTabs.length - 1].key
+                      activeSkillId &&
+                      skillTabs.some((s) => s.id === activeSkillId)
+                        ? activeSkillId
+                        : skillTabs[skillTabs.length - 1].id
                     }`
                   : "overview";
   const activePanel: RightSidebarTabKey =
@@ -306,12 +306,12 @@ export const RightSidebar: React.FC = () => {
           removeWebPreviewUrl: urlToRemove,
         });
       } else if (typeof key === "string" && key.startsWith("skill:")) {
-        const skillKeyToRemove = key.slice("skill:".length);
-        const remaining = skillTabs.filter((s) => s.key !== skillKeyToRemove);
+        const skillIdToRemove = key.slice("skill:".length);
+        const remaining = skillTabs.filter((s) => s.id !== skillIdToRemove);
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: remaining.length > 0 ? "skill" : "overview",
-          removeSkillKey: skillKeyToRemove,
+          removeSkillId: skillIdToRemove,
         });
       } else if (key === "sourceDetail") {
         dispatch({
@@ -525,14 +525,14 @@ export const RightSidebar: React.FC = () => {
 
     for (const skill of skillTabs) {
       items.push({
-        key: `skill:${skill.key}`,
+        key: `skill:${skill.id}`,
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="skills" />
-            <span>{skill.label || skill.key}</span>
+            <span>{skill.label || skill.id}</span>
           </Flex>
         ),
-        children: <SkillDetailView skillKey={skill.key} />,
+        children: <SkillDetailView skillId={skill.id} />,
       });
     }
 
@@ -580,7 +580,7 @@ export const RightSidebar: React.FC = () => {
         dispatch({
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "skill",
-          activeSkillKey: key.slice("skill:".length),
+          activeSkillId: key.slice("skill:".length),
         });
       } else {
         dispatch({

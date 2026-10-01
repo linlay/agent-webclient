@@ -591,7 +591,7 @@ describe("ComposerArea", () => {
     );
   });
 
-  it("shows the skills-center name for a selected skill key", () => {
+  it("shows the skills-center name for a selected skill ID", () => {
     const state = createInitialState();
     mockResolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
@@ -607,7 +607,7 @@ describe("ComposerArea", () => {
         agentKey: "cutej",
         skills: [
           {
-            key: "skill-creator",
+            id: "skill-creator",
             displayName: "技能创建",
             configured: true,
           },

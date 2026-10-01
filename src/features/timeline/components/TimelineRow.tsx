@@ -358,7 +358,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                       interaction?.openTarget?.({
                         version: 1,
                         kind: "skill",
-                        key,
+                        id: key,
                         label,
                       })
                     }

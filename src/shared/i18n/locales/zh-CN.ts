@@ -4,8 +4,8 @@ import type {
 export const zhCNMessages = {
   "skillCatalog.kindFilter": "技能类型筛选",
   "skillPackageEditor.editManifest": "编辑 package.json",
-  "skillPackageEditor.manifestHint": "编辑技能包信息和成员清单。name 不可修改；skills 按顺序填写 {key: \"成员目录名\"}，空包填写 []。成员名称、描述和版本来自各自的 SKILL.md；移除清单项不会删除文件。",
-  "skillPackageEditor.manifestInvalid": "请保留原 name 并填写 skills 数组。每个成员必须是包含非空、单段子目录 key 的对象，key 不可重复（忽略大小写）。",
+  "skillPackageEditor.manifestHint": "编辑技能包信息和成员清单。name 不可修改；skills 按顺序填写含 id（成员目录名）的对象，空包填写 []。成员名称、描述和版本来自各自的 SKILL.md；移除清单项不会删除文件。",
+  "skillPackageEditor.manifestInvalid": "请保留原 name 并填写 skills 数组。每个成员必须是包含非空、单段子目录 id 的对象，id 不可重复（忽略大小写）。",
   "skillPackageEditor.discard": "放弃修改",
   "skillPackageEditor.discardHint": "关闭后未保存的 package.json 修改将丢失。",
   "skillPackageEditor.summary": "{id} · v{version} · {count} 个技能",
@@ -468,7 +468,7 @@ export const zhCNMessages = {
   "agentConsole.privateSkill.import.drop":
     "拖拽专属技能 ZIP 到这里，或选择文件",
   "agentConsole.privateSkill.import.description":
-    "ZIP 只会安装到当前智能体，不会出现在技能中心。技能 Key 自动读取自 SKILL.md 的 frontmatter（优先 key，否则 name）；支持 SKILL.md 位于 ZIP 根目录或唯一的顶层目录中。",
+    "ZIP 只会安装到当前智能体，不会出现在技能中心。技能 ID 自动读取自 SKILL.md 的 frontmatter（优先 id，兼容旧 key，否则 name）；支持 SKILL.md 位于 ZIP 根目录或唯一的顶层目录中。",
   "agentConsole.privateSkill.import.disabled":
     "请先将此智能体保存为目录型智能体后再导入专属技能。",
   "agentConsole.privateSkill.import.required": "请选择 ZIP 文件。",
@@ -1791,14 +1791,14 @@ export const zhCNMessages = {
   "skillConsole.confirm.createWithUnsavedDescription":
     "继续创建或导入将切换到新技能，并放弃当前未保存的修改。",
   "skillConsole.create.description":
-    "填写技能 Key 和名称，将创建包含 SKILL.md 模板的技能目录。",
-  "skillConsole.create.keyError.required": "请输入 Skill Key。",
-  "skillConsole.create.keyError.invalid":
+    "填写技能 ID 和名称，将创建包含 SKILL.md 模板的技能目录。",
+  "skillConsole.create.idError.required": "请输入 Skill ID。",
+  "skillConsole.create.idError.invalid":
     "Key 不能包含路径字符、首尾空格，也不能使用隐藏或 .example 名称。",
-  "skillConsole.create.keyError.exists": "该 Skill Key 已存在，请修改后重试。",
+  "skillConsole.create.idError.exists": "该 Skill ID 已存在，请修改后重试。",
   "skillConsole.create.mode.direct": "直接创建",
   "skillConsole.create.mode.zip": "ZIP 包导入",
-  "skillConsole.create.namePlaceholder": "技能名称（留空则使用 Key）",
+  "skillConsole.create.namePlaceholder": "技能名称（留空则使用 ID）",
   "skillConsole.create.submit": "创建技能",
   "skillConsole.create.fileNamePlaceholder": "文件名（含扩展名）",
   "skillConsole.create.title": "新建技能",
@@ -1818,7 +1818,7 @@ export const zhCNMessages = {
   "skillConsole.editor.untitled": "未命名",
   "skillConsole.empty": "暂无技能。",
   "skillConsole.field.fileCount": "文件数",
-  "skillConsole.field.key": "键（key）",
+  "skillConsole.field.id": "标识（ID）",
   "skillConsole.field.name": "名称",
   "skillConsole.field.path": "路径",
   "skillConsole.field.size": "大小",
@@ -1867,8 +1867,8 @@ export const zhCNMessages = {
   "skillConsole.status.ready": "就绪",
   "skillConsole.status.invalid": "无效",
   "skillConsole.status.disabled": "已禁用",
-  "skillConsole.import.keyOptional": "单技能 Key（可选）",
-  "skillConsole.import.keyPlaceholder":
+  "skillConsole.import.idOptional": "单技能 ID（可选）",
+  "skillConsole.import.idPlaceholder":
     "留空自动读取；技能包始终使用清单中的 ID",
   "skillConsole.import.packageSuccess":
     "技能包 {name} 已导入，共 {count} 个技能",
@@ -1877,7 +1877,7 @@ export const zhCNMessages = {
   "skillConsole.import.drop": "将 ZIP 包拖到这里，或选择文件",
   "skillConsole.import.error.empty": "ZIP 包不能为空。",
   "skillConsole.import.error.exists":
-    "该 Skill Key 已存在，请修改 Key 后重试。",
+    "该 Skill ID 已存在，请修改 ID 后重试。",
   "skillConsole.import.error.size":
     "ZIP 包不能超过 512 MiB。单技能 ZIP 的 32 MiB 限额将在识别后校验。",
   "skillConsole.import.error.type": "请选择 .zip 文件。",

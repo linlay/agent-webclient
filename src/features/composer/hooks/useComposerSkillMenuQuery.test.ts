@@ -24,7 +24,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   jest.clearAllMocks();
   dataQueryCache.clear();
-  jest.mocked(getAgentSkills).mockImplementation(async agentKey => ({ code: 0, msg: "", data: { agentKey, pinned: [], skills: [{ key: "a", name: "A", configured: false }] } }));
+  jest.mocked(getAgentSkills).mockImplementation(async agentKey => ({ code: 0, msg: "", data: { agentKey, pinned: [], skills: [{ id: "a", name: "A", configured: false }] } }));
   root = createRoot(document.createElement("div"));
 });
 afterEach(async () => { await act(async () => root.unmount()); });
@@ -38,10 +38,10 @@ it("refreshes each opening inside TTL but not while typing or while closed", asy
   await render(true);
   expect(getAgentSkills).toHaveBeenCalledTimes(1);
   await render(false);
-  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ key: "new", name: "New", configured: false }] } });
+  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ id: "new", name: "New", configured: false }] } });
   await render(true);
   expect(getAgentSkills).toHaveBeenCalledTimes(2);
-  expect(current.data?.skills[0].key).toBe("new");
+  expect(current.data?.skills[0].id).toBe("new");
   expect(invalidateAgentSkills).toHaveBeenCalledTimes(2);
 });
 
@@ -83,11 +83,11 @@ it("late results from a prior opening cannot replace the newly refreshed list", 
   jest.mocked(getAgentSkills).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
   await render(true);
   await render(false);
-  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ key: "new", name: "New", configured: false }] } });
+  jest.mocked(getAgentSkills).mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ id: "new", name: "New", configured: false }] } });
   await render(true);
-  expect(current.data?.skills[0].key).toBe("new");
-  await act(async () => resolveOld({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ key: "old", name: "Old", configured: false }] } }));
-  expect(current.data?.skills[0].key).toBe("new");
+  expect(current.data?.skills[0].id).toBe("new");
+  await act(async () => resolveOld({ code: 0, msg: "", data: { agentKey: "demo", pinned: [], skills: [{ id: "old", name: "Old", configured: false }] } }));
+  expect(current.data?.skills[0].id).toBe("new");
 });
 
 it("keeps newer pins when an earlier catalog response arrives late", async () => {
@@ -97,7 +97,7 @@ it("keeps newer pins when an earlier catalog response arrives late", async () =>
   await render(false);
   jest.mocked(getAgentSkills).mockResolvedValueOnce({ status: 200, code: 0, msg: "", data: { agentKey: "demo", skills: [], pinned: ["new"] } });
   await render(true);
-  expect(current.pinnedSkillKeys).toEqual(["new"]);
+  expect(current.pinnedSkillIds).toEqual(["new"]);
   await act(async () => resolveOld({ status: 200, code: 0, msg: "", data: { agentKey: "demo", skills: [], pinned: ["old"] } }));
-  expect(current.pinnedSkillKeys).toEqual(["new"]);
+  expect(current.pinnedSkillIds).toEqual(["new"]);
 });

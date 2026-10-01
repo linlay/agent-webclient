@@ -3,9 +3,9 @@ import { restoreComposerAccessLevels, type ComposerAccessState, type ComposerAcc
 import type { Agent } from "@/features/agents/lib/agentState";
 
 export interface ComposerRequiredSkill {
-  key: string;
+  id: string;
   label: string;
-  /** UI selection origin only; requests still use the concrete skill key. */
+  /** UI selection origin only; requests still use the concrete skill ID. */
   selectedViaPackageId?: string;
 }
 

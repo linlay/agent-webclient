@@ -91,7 +91,7 @@ export type OpenTargetIntent =
   | ({ version: 1; kind: "file-diff"; chatId: string; runId: string; relativePath: string; title?: string } & AgentIntent)
   | { version: 1; kind: "history" }
   | { version: 1; kind: "web"; url: string; title?: string }
-  | { version: 1; kind: "skill"; key: string; label?: string; title?: string };
+  | { version: 1; kind: "skill"; id: string; label?: string; title?: string };
 
 function clean(value: unknown): string {
   return String(value || "").trim();
@@ -163,7 +163,7 @@ function resourceRouteIntent(input: {
 function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteIntent | null {
   if (intent.kind === "web") return { kind: "web", url: intent.url, title: intent.title };
   if (intent.kind === "history") return { kind: "history" };
-  if (intent.kind === "skill") return { kind: "skill", key: clean(intent.key) };
+  if (intent.kind === "skill") return { kind: "skill", id: clean(intent.id) };
   if (intent.kind === "overview" || intent.kind === "debug") {
     return { kind: intent.kind, chatId: intent.chatId };
   }
@@ -310,13 +310,13 @@ export function buildDesktopWorkPanelDescriptor(
   if (!route) return null;
 
   if (intent.kind === "skill") {
-    const key = clean(intent.key);
+    const key = clean(intent.id);
     if (!key) return null;
     return {
       kind: "webclient",
       module: "skill",
       route,
-      context: { key },
+      context: { id: key },
       ...(intent.title || intent.label
         ? { title: intent.title || intent.label }
         : {}),
@@ -808,8 +808,8 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
           type: "OPEN_RIGHT_SIDEBAR",
           tab: "skill",
           skillPreview: {
-            key: normalizedIntent.key,
-            label: normalizedIntent.label || normalizedIntent.key,
+            id: normalizedIntent.id,
+            label: normalizedIntent.label || normalizedIntent.id,
           },
         });
         return true;

@@ -37,9 +37,9 @@ export interface AddMenuTriggerProps {
   isMainChatRunning: boolean;
   canCaptureDesktopScreenshot: boolean;
   isCapturingDesktopScreenshot: boolean;
-  selectedSkillKeys: string[];
+  selectedSkillIds: string[];
   selectedPackageId?: string;
-  lockedSkillKeys?: string[];
+  lockedSkillIds?: string[];
   onSelectSkills?: (skills: AgentSkill[], selected: boolean, packageId?: string) => void;
   onOpenFilePicker: () => void;
   onCaptureScreenshot: () => void;
@@ -131,7 +131,7 @@ const AddMenuSectionDetail: React.FC<
   });
   const skills = skillQuery.data?.skills || [];
   const {
-    pinnedSkillKeys,
+    pinnedSkillIds,
     toggleSkillPin,
     pinsDisabled,
     pinError,
@@ -140,15 +140,15 @@ const AddMenuSectionDetail: React.FC<
   const packages = skillQuery.data?.packages || [];
   const memberKeys = new Set(packages.flatMap(pkg => pkg.skills.map(member => skillIdentity(member.id))));
   const filteredPackages = packages.filter(pkg => matchKeyword(skillPackageDisplayName(pkg), pkg.id, ...(pkg.missingSkillIds || []),
-    ...packageMembers(pkg, skills).flatMap(skill => [skillDisplayName(skill), skill.key, skill.description || ""])));
-  const filteredSkills = skills.filter(skill => !memberKeys.has(skillIdentity(skill.key))).filter(
+    ...packageMembers(pkg, skills).flatMap(skill => [skillDisplayName(skill), skill.id, skill.description || ""])));
+  const filteredSkills = skills.filter(skill => !memberKeys.has(skillIdentity(skill.id))).filter(
     (skill) =>
-      matchKeyword(skillDisplayName(skill), skill.key, skill.description || ""),
+      matchKeyword(skillDisplayName(skill), skill.id, skill.description || ""),
   );
   const catalogItems = orderSkillCatalogItems([
-    ...filteredPackages.map(pkg => ({ kind: "package" as const, key: pkg.id, label: skillPackageDisplayName(pkg), pkg })),
-    ...filteredSkills.map(skill => ({ kind: "standalone" as const, key: skill.key, label: skillDisplayName(skill), skill })),
-  ], pinnedSkillKeys, locale).filter(item => !kindFilter || item.kind === kindFilter);
+    ...filteredPackages.map(pkg => ({ kind: "package" as const, id: pkg.id, label: skillPackageDisplayName(pkg), pkg })),
+    ...filteredSkills.map(skill => ({ kind: "standalone" as const, id: skill.id, label: skillDisplayName(skill), skill })),
+  ], pinnedSkillIds, locale).filter(item => !kindFilter || item.kind === kindFilter);
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
   );
@@ -209,8 +209,8 @@ const AddMenuSectionDetail: React.FC<
     </UiButton>
   );
   const renderSkill = (skill: AgentSkill) => {
-    const identity = text(skill.key).toLowerCase();
-    const pinned = pinnedSkillKeys.includes(identity);
+    const identity = text(skill.id).toLowerCase();
+    const pinned = pinnedSkillIds.includes(identity);
     const skillName = skillDisplayName(skill);
     const pinLabel = t(
       pinned
@@ -222,7 +222,7 @@ const AddMenuSectionDetail: React.FC<
     return (
       // 点击整行选择，置顶按钮独立操作。
       <div
-        key={skill.key}
+        key={skill.id}
         className={`composer-add-menu-skill-row composer-add-menu-skill-select${selectDisabled ? " is-disabled" : ""}`}
         data-pinned={pinned || undefined}
         role="button"
@@ -264,7 +264,7 @@ const AddMenuSectionDetail: React.FC<
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  void toggleSkillPin(skill.key);
+                  void toggleSkillPin(skill.id);
                 }}
               >
                 <MaterialIcon
@@ -351,10 +351,10 @@ const AddMenuSectionDetail: React.FC<
             </div>
           )}
           {catalogItems.map(item => item.kind === "package"
-            ? <PackageSkillTree key={`package:${item.key}`} pkg={item.pkg} skills={skills}
-              pinned={pinnedSkillKeys.includes(skillIdentity(item.pkg.id))} pinsDisabled={pinsDisabled}
+            ? <PackageSkillTree key={`package:${item.id}`} pkg={item.pkg} skills={skills}
+              pinned={pinnedSkillIds.includes(skillIdentity(item.pkg.id))} pinsDisabled={pinsDisabled}
               onTogglePin={packageId => { void toggleSkillPin(packageId); }}
-              selectedKeys={props.selectedSkillKeys} selectedPackageId={props.selectedPackageId} lockedKeys={props.lockedSkillKeys} search={search}
+              selectedKeys={props.selectedSkillIds} selectedPackageId={props.selectedPackageId} lockedKeys={props.lockedSkillIds} search={search}
               disabled={props.disabled || props.isMainChatRunning || !props.onSelectSkills}
               onSelect={(members, selected, packageId) => execute(() => props.onSelectSkills?.(members, selected, packageId))} />
             : renderSkill(item.skill))}

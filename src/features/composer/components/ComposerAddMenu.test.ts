@@ -13,11 +13,11 @@ jest.mock("@/shared/i18n", () => ({
 }));
 
 let mockSkillData: any = { skills: [] };
-let mockPinnedSkillKeys: string[] = [];
+let mockPinnedSkillIds: string[] = [];
 
 jest.mock("@/features/composer/hooks/useComposerSkillMenuQuery", () => ({
   useComposerSkillMenuQuery: () => ({
-    pinnedSkillKeys: mockPinnedSkillKeys, toggleSkillPin: jest.fn(), pinsDisabled: false, pinError: null, refreshPins: jest.fn(),
+    pinnedSkillIds: mockPinnedSkillIds, toggleSkillPin: jest.fn(), pinsDisabled: false, pinError: null, refreshPins: jest.fn(),
     status: "success",
     data: mockSkillData,
     error: null,
@@ -60,7 +60,7 @@ describe("AddMenuTrigger", () => {
 
   beforeEach(() => {
     mockSkillData = { skills: [] };
-    mockPinnedSkillKeys = [];
+    mockPinnedSkillIds = [];
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -76,7 +76,7 @@ describe("AddMenuTrigger", () => {
       isMainChatRunning: false,
       canCaptureDesktopScreenshot: true,
       isCapturingDesktopScreenshot: false,
-      selectedSkillKeys: [],
+      selectedSkillIds: [],
       onOpenFilePicker: jest.fn(),
       onCaptureScreenshot: jest.fn(),
       onAddReference: jest.fn(),
@@ -197,7 +197,7 @@ describe("AddMenuTrigger", () => {
   });
   it("groups package members under a tree without duplicate standalone rows", () => {
     mockSkillData = {
-      skills: [{ key: "word", name: "Word", configured: false }, { key: "other", name: "Other", configured: false }],
+      skills: [{ id: "word", name: "Word", configured: false }, { id: "other", name: "Other", configured: false }],
       packages: [{ id: "office", name: "Office", version: "1", skills: [{ id: "word" }], missingSkillIds: [], status: "ready" }],
     };
     props.onSelectSkills = jest.fn();
@@ -218,13 +218,13 @@ describe("AddMenuTrigger", () => {
   it("keeps pinned skills first in the mixed list and sorts unpinned items by name", () => {
     mockSkillData = {
       skills: [
-        { key: "first", displayName: "First", configured: false },
-        { key: "latest", displayName: "Latest", configured: false },
-        { key: "office/first", displayName: "Package member", configured: false },
+        { id: "first", displayName: "First", configured: false },
+        { id: "latest", displayName: "Latest", configured: false },
+        { id: "office/first", displayName: "Package member", configured: false },
       ],
       packages: [{ id: "office", displayName: "Office", skills: [{ id: "office/first" }], status: "ready" }],
     };
-    mockPinnedSkillKeys = ["latest", "first", "office/first"];
+    mockPinnedSkillIds = ["latest", "first", "office/first"];
     render(); openMenu();
     const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
       .find(button => button.textContent?.includes("composer.addMenu.section.skills"))!;
@@ -234,7 +234,7 @@ describe("AddMenuTrigger", () => {
     expect(rows()[1]).toContain("First");
     expect(rows()[2]).toContain("Office");
     expect(container.querySelectorAll('.composer-add-menu-skill-row')).toHaveLength(2);
-    mockPinnedSkillKeys = ["latest"];
+    mockPinnedSkillIds = ["latest"];
     render();
     expect(rows()[0]).toContain("Latest");
     expect(rows()[1]).toContain("First");
@@ -244,12 +244,12 @@ describe("AddMenuTrigger", () => {
   it("filters one mixed list by type and restores all when the active filter is cleared", () => {
     mockSkillData = {
       skills: [
-        {key:"solo",displayName:"Alpha",configured:false},
-        {key:"office/member",displayName:"Member",configured:false},
+        {id:"solo",displayName:"Alpha",configured:false},
+        {id:"office/member",displayName:"Member",configured:false},
       ],
       packages: [{id:"office",displayName:"Office",skills:[{id:"office/member"}],status:"ready"}],
     };
-    props.selectedSkillKeys = ["solo", "office/member"];
+    props.selectedSkillIds = ["solo", "office/member"];
     props.onSelectSkills = jest.fn();
     render(); openMenu();
     const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
@@ -281,7 +281,7 @@ describe("AddMenuTrigger", () => {
 
   it.each(["Member", "packageComposer.select"])("keeps the skill picker open while browsing, then closes after selecting %s", (choice) => {
     mockSkillData = {
-      skills: [{key:"office/member",displayName:"Member",configured:false}],
+      skills: [{id:"office/member",displayName:"Member",configured:false}],
       packages: [{id:"office",displayName:"Office",skills:[{id:"office/member"}],status:"ready"}],
     };
     props.onSelectSkills = jest.fn();

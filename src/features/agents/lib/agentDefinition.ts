@@ -320,28 +320,28 @@ export function agentSkillDisplayName(label: string, key: string): string {
 }
 
 export function mergeAgentSkillOptions(
-  centerSkills: Array<{ key: string; label: string; description?: string }>,
+  centerSkills: Array<{ id: string; label: string; description?: string }>,
   privateSkills: AdminAgentPrivateSkill[],
   selectedSkills: string[],
   t: Translate,
 ): AgentSkillOption[] {
   const entries = new Map<string, AgentSkillOption>();
   for (const item of centerSkills) {
-    const key = toText(item.key);
+    const key = toText(item.id);
     if (!key) continue;
     entries.set(key.toLowerCase(), {
-      key,
+      id: key,
       label: item.label || key,
       description: item.description,
       source: "center",
     });
   }
   for (const item of privateSkills) {
-    const key = toText(item.key);
+    const key = toText(item.id);
     if (!key) continue;
     const centerExists = entries.has(key.toLowerCase());
     entries.set(key.toLowerCase(), {
-      key,
+      id: key,
       label: skillDisplayName(item) || key,
       description: toText(item.description) || undefined,
       source: "private",
@@ -351,17 +351,17 @@ export function mergeAgentSkillOptions(
   for (const rawKey of selectedSkills) {
     const key = toText(rawKey);
     if (!key || entries.has(key.toLowerCase())) continue;
-    entries.set(key.toLowerCase(), { key, label: key, source: "center" });
+    entries.set(key.toLowerCase(), { id: key, label: key, source: "center" });
   }
   return [...entries.values()]
     .map((item) => ({
       ...item,
       label:
         item.source === "private"
-          ? `${agentSkillDisplayName(item.label, item.key)} · ${t(
+          ? `${agentSkillDisplayName(item.label, item.id)} · ${t(
               "agentConsole.privateSkill.source.private",
             )}`
-          : `${item.label}${item.label === item.key ? "" : ` · ${item.key}`} · ${t(
+          : `${item.label}${item.label === item.id ? "" : ` · ${item.id}`} · ${t(
               "agentConsole.privateSkill.source.center",
             )}`,
     }))
@@ -637,7 +637,7 @@ export function fallbackDefinition(
   if (Array.isArray(detail.tools))
     definition.toolConfig = { tools: detail.tools };
   if (Array.isArray(detail.skills))
-    definition.skillConfig = { skills: detail.skills.map(skill => typeof skill === "string" ? skill : skill.key) };
+    definition.skillConfig = { skills: detail.skills.map(skill => typeof skill === "string" ? skill : skill.id) };
   if (Array.isArray(detail.greetings)) definition.greetings = detail.greetings;
   if (Array.isArray(detail.introductions)) definition.introductions = detail.introductions;
   if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
@@ -684,7 +684,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
       (reasoning.enabled === true || Boolean(reasoningEffort)),
     reasoningEffort,
     tools: textListFromUnknown(toolConfig.tools || detail.tools),
-    skills: textListFromUnknown(skillConfig.skills || detail.skills?.map(skill => typeof skill === "string" ? skill : skill.key)),
+    skills: textListFromUnknown(skillConfig.skills || detail.skills?.map(skill => typeof skill === "string" ? skill : skill.id)),
     greetingsText: stringifyJson(
       definition.greetings ?? detail.greetings ?? [],
       "[]",
