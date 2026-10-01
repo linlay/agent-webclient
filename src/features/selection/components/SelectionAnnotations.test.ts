@@ -11,6 +11,8 @@ jest.mock("@/shared/i18n",()=>({useI18n:()=>({t:(key:string,params?:{index:numbe
 
 const mockForceAlignAnchors:string[]=[];
 let mockPopoverContentReady=true;
+let mockInputFocusable=true;
+let mockAfterOpenChange: ((open: boolean) => void) | undefined;
 
 jest.mock("antd",()=>({
   // 透传额外属性：Popover 把 data-popover-open 塞在 Tooltip 元素上，桩必须继续往下传。
@@ -28,16 +30,20 @@ jest.mock("antd",()=>({
     ){
       const textarea=React.useRef<HTMLTextAreaElement>(null);
       // 与 antd 一样，每次渲染都更新 imperative ref。
-      React.useImperativeHandle(ref,()=>({focus:(options?:FocusOptions)=>textarea.current?.focus(options)}));
+      React.useImperativeHandle(ref,()=>({
+        resizableTextArea: { textArea: textarea.current },
+        focus:(options?:FocusOptions)=>{ if(mockInputFocusable) textarea.current?.focus(options); },
+      }));
       const {autoSize,variant,...rest}=props;
       void autoSize; void variant;
       return React.createElement("textarea",{...rest,ref:textarea});
     }),
   },
   Popover:React.forwardRef(function PopoverMock(
-    props:{open?:boolean;content?:React.ReactNode;children:React.ReactElement<Record<string,unknown>>},
+    props:{open?:boolean;afterOpenChange?:(open:boolean)=>void;content?:React.ReactNode;children:React.ReactElement<Record<string,unknown>>},
     ref:React.ForwardedRef<{forceAlign:()=>void}>,
   ){
+    if(props.open) mockAfterOpenChange=props.afterOpenChange;
     React.useImperativeHandle(ref,()=>({
       forceAlign:()=>{mockForceAlignAnchors.push(document.querySelector<HTMLElement>("[data-selection-marker-anchor]")?.style.left || "");},
     }));
@@ -53,7 +59,7 @@ const openPopovers=()=>document.querySelectorAll('[data-popover-open="true"]').l
 const anchorLeft=(right:number)=>`${Math.min(window.innerWidth-30,Math.max(4,right-11))}px`;
 const anchorLeftNow=()=>document.querySelector<HTMLElement>("[data-selection-marker-anchor]")!.style.left;
 
-it.each([false,true])("focuses the editor (delayed mount=%s), commits on Enter, and discards on Escape", (delayedMount) => {
+it.each([[false,false],[true,false],[false,true]])("focuses the editor (delayed mount=%s, initially hidden=%s), commits on Enter, and discards on Escape", (delayedMount, initiallyHidden) => {
   Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true});
   const text=document.createElement("p"); text.textContent="selected passage"; document.body.append(text);
   const root=createRoot(document.createElement("div"));
@@ -69,12 +75,18 @@ it.each([false,true])("focuses the editor (delayed mount=%s), commits on Enter, 
   const render=()=>root.render(React.createElement(SelectionAnnotations,{fragments:[fragment],onAnnotationChange:change,onRemove:remove}));
   try {
     mockPopoverContentReady=!delayedMount;
+    mockInputFocusable=!initiallyHidden;
     act(render);
     if(delayedMount){
       expect(openPopovers()).toBe(1);
       expect(document.querySelector("textarea")).toBeNull();
       mockPopoverContentReady=true;
       act(render);
+    }
+    if(initiallyHidden){
+      expect(document.activeElement).not.toBe(document.querySelector("textarea"));
+      mockInputFocusable=true;
+      act(()=>mockAfterOpenChange?.(true));
     }
     let input=document.querySelector("textarea")!;
     expect(input).not.toBeNull();
@@ -84,6 +96,7 @@ it.each([false,true])("focuses the editor (delayed mount=%s), commits on Enter, 
     try {
       other.focus();
       act(render);
+      act(()=>mockAfterOpenChange?.(true));
       expect(document.activeElement).toBe(other);
     } finally { other.remove(); }
     input.focus();
@@ -143,6 +156,7 @@ it.each([false,true])("focuses the editor (delayed mount=%s), commits on Enter, 
     expect(highlightIds()).toEqual([]);
   } finally {
     mockPopoverContentReady=true;
+    mockInputFocusable=true;
     act(()=>root.unmount()); text.remove();
     if(previous) Object.defineProperty(Range.prototype,"getClientRects",previous);
     else delete (Range.prototype as any).getClientRects;

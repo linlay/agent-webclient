@@ -59,6 +59,7 @@ export function SelectionAnnotations({
   const [draftFor, setDraftFor] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
   const editor = useRef<HTMLDivElement>(null);
+  const annotationInput = useRef<TextAreaRef | null>(null);
   // 让定位请求也能立刻重算标记：它认领时就等于"这一刻画得出来"，不该再等下一次滚动。
   const scheduleRefresh = useRef<(settleMs?: number) => void>(() => undefined);
   // Popover 的 ref 用来手动触发重对齐。
@@ -162,9 +163,11 @@ export function SelectionAnnotations({
   const focusAnnotationInput = useMemo(() => {
     let focused = false;
     return (input: TextAreaRef | null) => {
+      annotationInput.current = input;
       if (!openId || !input || focused) return;
-      focused = true;
       input.focus({ preventScroll: true });
+      // 挂载时弹层可能仍隐藏，只有实际拿到焦点才算完成。
+      focused = document.activeElement === input.resizableTextArea?.textArea;
     };
   }, [openId]);
   // Popover 只监听锚点祖先链上的滚动容器和 window；marker 挂在 body 下，
@@ -324,6 +327,9 @@ export function SelectionAnnotations({
               // 只有打开的那个需要重对齐句柄。
               ref={isOpen ? popover : undefined}
               open={isOpen}
+              afterOpenChange={(visible) => {
+                if (visible) focusAnnotationInput(annotationInput.current);
+              }}
               // 打开完全由 activeId 驱动：点同一个 marker 落在 onClick 上，不会被当成 toggle 关掉。
               trigger={[]}
               placement="right"
