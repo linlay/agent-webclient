@@ -3,6 +3,7 @@ import { UiListItem } from "@/shared/ui/UiListItem";
 import { useI18n } from "@/shared/i18n";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
+import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { UnreadDot } from "@/features/chats/components/UnreadDot";
 import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -10,7 +11,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import type { Agent } from "@/features/agents/lib/agentState";
 
 const WORKER_CHAT_ITEM_CLASS =
-  "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
+  "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:pl-3 tw:pr-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
 
 const WORKER_CHAT_ITEM_HEAD_CLASS =
   "worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5";
@@ -33,10 +34,10 @@ const WORKER_CHAT_SOURCE_ICON_SVG_CLASS =
   "tw:h-full tw:w-full";
 
 const WORKER_CHAT_ACTION_CLASS =
-  "worker-chat-action tw:relative tw:inline-flex tw:min-h-4 tw:flex-[0_0_30px] tw:items-center tw:justify-end";
+  "worker-chat-action tw:relative tw:inline-flex tw:min-h-6 tw:flex-[0_0_44px] tw:items-center tw:justify-end";
 
 const WORKER_CHAT_LOADING_CLASS =
-  "worker-chat-loading tw:absolute tw:inset-y-0 tw:right-[5px] tw:my-auto tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin";
+  "worker-chat-loading tw:absolute tw:inset-y-0 tw:right-1 tw:my-auto tw:text-base tw:text-text-sub tw:animate-ui-spin";
 
 const WORKER_PANEL_TIME_LABEL_CLASS =
   "worker-panel-time-label tw:min-w-0 tw:max-w-full tw:whitespace-nowrap tw:text-right tw:text-[11px] tw:text-text-muted";
@@ -107,8 +108,8 @@ export const WorkerChatPreviewItem: React.FC<{
   ownerIcon?: Agent["icon"];
 }> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon }) => {
   const { t } = useI18n();
-  const action = chat.hasPendingAwaiting ? "awaiting" : loading ? "loading" : "time";
-  const isBusyAction = action !== "time";
+  const action = chat.hasPendingAwaiting ? "awaiting" : loading ? "loading" : isChatUnread(chat) ? "unread" : "time";
+  const isBusyAction = action === "awaiting" || action === "loading";
   const itemClassName = isActive
     ? `${WORKER_CHAT_ITEM_CLASS} is-active`
     : WORKER_CHAT_ITEM_CLASS;
@@ -143,7 +144,6 @@ export const WorkerChatPreviewItem: React.FC<{
       }}
     >
       <div className={WORKER_CHAT_ITEM_HEAD_CLASS}>
-        <UnreadDot chat={chat} />
         <span className={WORKER_CHAT_NAME_CLASS} title={ownerLabel ? previewText : undefined}>
           {previewText}
           {ownerLabel && (
@@ -170,10 +170,15 @@ export const WorkerChatPreviewItem: React.FC<{
             </span>
           )}
         </span>
+        {chat.hasPendingAwaiting && (
+          <span className={CHAT_AWAITING_STATUS_CLASS}>
+            {t(getAwaitingStatusKey(chat.awaitingMode))}
+          </span>
+        )}
         <span className={WORKER_CHAT_ACTION_CLASS} data-action={action}>
-          {chat.hasPendingAwaiting && (
-            <span className={CHAT_AWAITING_STATUS_CLASS}>
-              {t(getAwaitingStatusKey(chat.awaitingMode))}
+          {action === "unread" && (
+            <span className="worker-chat-unread tw:absolute tw:inset-y-0 tw:right-0 tw:flex tw:w-6 tw:items-center tw:justify-center">
+              <UnreadDot chat={chat} />
             </span>
           )}
           <MaterialIcon

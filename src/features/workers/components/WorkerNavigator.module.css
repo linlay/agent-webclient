@@ -214,9 +214,10 @@
     position: absolute;
     padding: 0;
     top: 0;
-    right: 5px;
+    right: 4px;
     bottom: 0;
     margin-block: auto;
+    margin-right: 0;
     transition: none;
     display: none;
 }
@@ -248,11 +249,17 @@
     color: var(--text-muted);
 }
 
-:global(.worker-chat-item):hover [data-action]:not([data-action="loading"]):not([data-action="awaiting"]) :global(.chat-actions-trigger) {
-    display: unset;
+:global(.worker-chat-item):hover [data-action]:not([data-action="loading"]):not([data-action="awaiting"]) :global(.chat-actions-trigger),
+:global(.worker-chat-item):focus-within [data-action]:not([data-action="loading"]):not([data-action="awaiting"]) :global(.chat-actions-trigger) {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
 }
 
-:global(.worker-chat-item):hover :global(.worker-panel-time-label) {
+:global(.worker-chat-item):hover :global(.worker-panel-time-label),
+:global(.worker-chat-item):focus-within :global(.worker-panel-time-label),
+:global(.worker-chat-item):hover :global(.worker-chat-unread),
+:global(.worker-chat-item):focus-within :global(.worker-chat-unread) {
     opacity: 0;
 }
 
@@ -275,5 +282,21 @@
 @keyframes ui-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@media (hover: none) {
+    :global(.worker-chat-item) [data-action]:not([data-action="loading"]):not([data-action="awaiting"]) :global(.chat-actions-trigger) {
+        display: inline-flex;
+        width: 24px;
+        height: 24px;
+    }
+
+    :global(.worker-chat-item) :global(.worker-panel-time-label) {
+        opacity: 0;
+    }
+
+    :global(.worker-chat-item) :global(.worker-chat-unread) {
+        right: 24px;
     }
 }

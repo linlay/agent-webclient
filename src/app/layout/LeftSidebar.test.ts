@@ -1892,8 +1892,8 @@ describe("LeftSidebar", () => {
     expect(html).toMatch(
       /class="[^"]*\bworker-chat-action\b[^"]*" data-action="loading"/,
     );
-    expect(html).toContain("worker-chat-action tw:relative tw:inline-flex tw:min-h-4 tw:flex-[0_0_30px]");
-    expect(html).toContain("worker-chat-loading tw:absolute tw:inset-y-0 tw:right-[5px] tw:my-auto");
+    expect(html).toContain("worker-chat-action tw:relative tw:inline-flex tw:min-h-6 tw:flex-[0_0_44px]");
+    expect(html).toContain("worker-chat-loading tw:absolute tw:inset-y-0 tw:right-1 tw:my-auto");
     expect(html).toMatch(
       /class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,
     );
@@ -1910,7 +1910,7 @@ describe("LeftSidebar", () => {
       /\.worker-chat-item:hover,[\s\S]*?\.worker-chat-item\.is-selected\s*\{[\s\S]*?background-color:\s*transparent;[\s\S]*?color:\s*var\(--text-main\);/,
     );
     expect(workerStyles).toMatch(
-      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*position:\s*absolute;[^}]*top:\s*0;[^}]*right:\s*5px;[^}]*bottom:\s*0;[^}]*margin-block:\s*auto;[^}]*display:\s*none;/,
+      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*position:\s*absolute;[^}]*top:\s*0;[^}]*right:\s*4px;[^}]*bottom:\s*0;[^}]*margin-block:\s*auto;[^}]*display:\s*none;/,
     );
     expect(workerStyles).not.toMatch(
       /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*transform:/,
@@ -1925,7 +1925,7 @@ describe("LeftSidebar", () => {
       /\[data-action\]\s+\.chat-actions-trigger,\s*\n\[data-action\]\s+\.worker-chat-loading/,
     );
     expect(workerStyles).toMatch(
-      /\.worker-chat-item:hover\s+\[data-action\]:not\(\[data-action="loading"\]\):not\(\[data-action="awaiting"\]\)\s+\.chat-actions-trigger\s*\{[\s\S]*?display:\s*unset;/,
+      /\.worker-chat-item:hover\s+\[data-action\]:not\(\[data-action="loading"\]\):not\(\[data-action="awaiting"\]\)\s+\.chat-actions-trigger,[\s\S]*?display:\s*inline-flex;/,
     );
   });
 
@@ -1942,7 +1942,7 @@ describe("LeftSidebar", () => {
       '<div class="worker-panel-preview"><span>Chat 6</span><span class="chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn">等待审批</span><span class="material-icon worker-chat-loading tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin" data-material-icon="progress_activity">',
     );
     expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="awaiting"><span class="[^"]*\bchat-awaiting-status\b[^"]*">等待审批<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*" data-material-icon="progress_activity">/,
+      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><span class="[^"]*\bchat-awaiting-status\b[^"]*">等待审批<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="awaiting"><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*" data-material-icon="progress_activity">/,
     );
     expect(html).toMatch(
       /data-action="awaiting"[\s\S]*class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,
