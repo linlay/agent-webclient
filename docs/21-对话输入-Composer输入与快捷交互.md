@@ -39,7 +39,7 @@ BTW Composer 在 idle 时于发送位显示 Send；running 时始终在同一位
 ## 技能置顶
 加号菜单的技能行右侧提供置顶/取消置顶按钮，悬停、键盘聚焦或触屏时可见，已置顶按钮持续高亮。选择菜单和技能中心共用混排规则：技能包和独立技能均可整体置顶，按同一置顶顺序靠前，其余项目按展示名称一起排序；不再为置顶或类型单独分区。包置顶保存包 ID，不展开成员，也不由成员置顶状态推导。取消置顶后按名称重新排序，不重复展示。置顶只调整候选顺序，不会选中技能或关闭菜单，运行中仍可调整；最近置顶的技能在前，取消后恢复接口顺序。搜索继续过滤所有候选，`/` 技能候选也共享置顶顺序。
 
-置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 mustUseSkills。技能中心可不传 agentKey 读取完整目录和置顶。前端只保留内存查询缓存，打开菜单、显示 slash 候选及目录变更或重连时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
+置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 mustUseSkills。技能中心改用 HTTP `GET /api/admin/skills` 读取管理目录和置顶，HTTP `PUT /api/admin/skills/pin` 写入；与使用侧共用存储，但不调用 `/api/skills`。前端只保留内存查询缓存，打开菜单、显示 slash 候选及窗口重新聚焦时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
 
 ## 连接器
 Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装目录和挂载配置，支持搜索；每行仅显示图标、名称和开关。账号授权、CLI 准备和 Token 凭据由独立连接器中心提供。开关初始值来自 Agent 源配置，切换后立即保存并触发平台重载；不随聊天草稿保存，也不进入 Query 请求。窄窗口在原弹层内展示列表和返回入口。具体接口和授权边界见 [连接器](53-Worker管理-连接器.md)。
@@ -59,7 +59,7 @@ Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装
 - `../src/features/btw/components/BtwTab.tsx`
 - `../src/features/btw/components/BtwProvider.tsx`
 
-技能中心管理列表与 Composer 使用相同的技能置顶偏好。名称右侧的置顶按钮使用 14px 图标、透明背景和绝对定位，不独占列表列宽；未置顶时仅悬停或键盘聚焦显示灰色图标，已置顶时始终显示主题正文色（浅色近黑、深色浅色）。取消置顶恢复目录默认相对顺序，描述继续使用完整行宽。
+技能中心管理列表与 Composer 使用相同的技能置顶偏好，但各自使用管理端与使用端接口和独立查询状态。管理端写入不主动触发 Composer 请求，Composer 下次打开菜单等既有刷新时机重新读取。名称右侧的置顶按钮使用 14px 图标、透明背景和绝对定位，不独占列表列宽；未置顶时仅悬停或键盘聚焦显示灰色图标，已置顶时始终显示主题正文色（浅色近黑、深色浅色）。取消置顶恢复目录默认相对顺序，描述继续使用完整行宽。
 
 ## New Chat 项目上下文与 Git 分支
 

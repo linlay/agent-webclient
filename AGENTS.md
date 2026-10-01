@@ -83,7 +83,8 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 - `GET /api/teams`
 - `GET /api/agent`
 - `GET/PUT /api/skills`：GET 返回全局有效技能目录与用户级 `pinned`，可选 `agentKey` 仅计算 `configured`；PUT 单条 `{id,pinned}` 更新置顶。Composer 一次查询获得列表与置顶。
-- `GET /api/admin/skills`
+- `GET /api/admin/skills`：HTTP 返回 `{skills,packages,pinned}` 聚合管理目录；管理页不请求 `/api/skills` 或业务 WS。
+- `PUT /api/admin/skills/pin`：HTTP `{id,pinned}` 返回 `{pinned}`，与使用端共用用户级置顶存储；旧包列表 GET 仅在 Platform 保留供 Desktop。
 - `GET /api/admin/tools`
 - `GET /api/chats`
 - `GET /api/chat`

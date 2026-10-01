@@ -3,7 +3,8 @@ import type {
   ApiResponse,
 } from "@/shared/data/api/dto/common";
 import type {
-  AdminSkillSummary,
+  AdminSkillsResponse,
+  AdminSkillPinResponse,
   AdminSkillDetailResponse,
   AdminSkillImportResponse,
   AdminSkillCreateFileRequest,
@@ -28,8 +29,14 @@ import {
   withQuery,
 } from "@/shared/data/api/queryParams";
 
-export function getAdminSkills(): Promise<ApiResponse<AdminSkillSummary[]>> {
-  return requestJson<AdminSkillSummary[]>(dataEndpoints.adminSkills.path);
+export function getAdminSkills(): Promise<ApiResponse<AdminSkillsResponse>> {
+  return requestJson<AdminSkillsResponse>(dataEndpoints.adminSkills.path);
+}
+
+export function putAdminSkillPin(params: UpdateAgentSkillPinRequest): Promise<ApiResponse<AdminSkillPinResponse>> {
+  return requestJson<AdminSkillPinResponse>(dataEndpoints.adminSkillPinUpdate.path, {
+    method: "PUT", body: JSON.stringify(params),
+  });
 }
 
 export function putAgentSkillPin(params: UpdateAgentSkillPinRequest): Promise<ApiResponse<AgentSkillsResponse>> {

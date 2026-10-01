@@ -96,7 +96,7 @@ beforeEach(() => {
   jest.mocked(getAdminAgentDetail).mockResolvedValue(response(agent));
   jest.mocked(getAdminAgentEditorOptions).mockResolvedValue(response(options));
   jest.mocked(getAdminTools).mockResolvedValue(response([]));
-  jest.mocked(getAdminSkills).mockResolvedValue(response([]));
+  jest.mocked(getAdminSkills).mockResolvedValue(response({ skills: [], packages: [], pinned: [] }));
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);

@@ -1,4 +1,4 @@
-import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
+import { usePinnedSkills } from "@/features/composer/hooks/usePinnedSkills";
 
 /** Agent context only annotates configured skills; the catalog is global. */
 export function useComposerSkillMenuQuery(

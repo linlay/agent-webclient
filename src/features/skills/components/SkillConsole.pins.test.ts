@@ -3,14 +3,13 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { SkillConsole } from "./SkillConsole";
-import { usePinnedSkills } from "../hooks/usePinnedSkills";
 import { I18nProvider } from "@/shared/i18n";
-import { getAdminSkills, getAdminSkillDetail } from "@/shared/data";
+import { getAdminSkills, getAdminSkillDetail, putAdminSkillPin } from "@/shared/data";
 import { getAgentSkills, putAgentSkillPin } from "@/shared/data/api/routedClient";
 import { dataQueryCache } from "@/shared/data/query/serverState";
 
 jest.mock("@/shared/data", () => ({
-  ...jest.requireActual("@/shared/data"), getAdminSkills: jest.fn(), getAdminSkillDetail: jest.fn(),
+  ...jest.requireActual("@/shared/data"), getAdminSkills: jest.fn(), getAdminSkillDetail: jest.fn(), putAdminSkillPin: jest.fn(),
 }));
 jest.mock("@/shared/data/api/routedClient", () => ({
   ...jest.requireActual("@/shared/data/api/routedClient"), getAgentSkills: jest.fn(), putAgentSkillPin: jest.fn(),
@@ -24,14 +23,10 @@ const skills = [
 let serverOrder: string[];
 let container: HTMLDivElement;
 let root: Root;
+let socketConstructor: jest.SpyInstance;
 const onSelect = jest.fn();
-function ComposerOrderObserver() {
-  const { pinnedSkillIds } = usePinnedSkills(false);
-  return React.createElement("output", { "aria-label": "Composer order" }, pinnedSkillIds.join(","));
-}
 const mount = async () => act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
   React.createElement(SkillConsole, { selectedSkillId: "demo", onSelectSkillId: onSelect, onClearSelection: jest.fn() }),
-  React.createElement(ComposerOrderObserver),
 )));
 const names = () => Array.from(container.querySelectorAll(".skill-console-list-item strong")).map(node => node.textContent);
 const clickPin = async (name: string, pinned = false) => {
@@ -46,15 +41,16 @@ const clickPin = async (name: string, pinned = false) => {
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.clearAllMocks();
+  socketConstructor = jest.spyOn(window, "WebSocket").mockImplementation(() => { throw new Error("Management must not open a WebSocket"); });
   dataQueryCache.clear();
   serverOrder = [];
   jest.mocked(getAgentSkills).mockImplementation(async () => ({ code: 0, msg: "", data: { agentKey: "", skills: [], pinned: [...serverOrder] } }));
-  jest.mocked(putAgentSkillPin).mockImplementation(async ({ id, pinned }) => {
+  jest.mocked(putAdminSkillPin).mockImplementation(async ({ id, pinned }) => {
     serverOrder = serverOrder.filter(entry => entry !== id);
     if (pinned) serverOrder.unshift(id);
-    return { code: 0, msg: "", data: { agentKey: "", skills: [], pinned: [...serverOrder] } };
+    return { code: 0, msg: "", data: { pinned: [...serverOrder] } };
   });
-  jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: skills });
+  jest.mocked(getAdminSkills).mockImplementation(async () => ({ code: 0, msg: "", data: { skills, packages: [], pinned: [...serverOrder] } }));
   jest.mocked(getAdminSkillDetail).mockResolvedValue({ code: 0, msg: "", data: {
     skill: skills[0], diagnostics: [],
     capabilities: { maxTextBytes: 1024, maxUploadBytes: 1024, canCreate: true, canRename: true, canDelete: true, canUpload: true, canDownload: true },
@@ -62,14 +58,13 @@ beforeEach(() => {
   } });
   container = document.createElement("div"); document.body.appendChild(container); root = createRoot(container);
 });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
+afterEach(async () => { expect(socketConstructor).not.toHaveBeenCalled(); socketConstructor.mockRestore(); expect(getAgentSkills).not.toHaveBeenCalled(); expect(putAgentSkillPin).not.toHaveBeenCalled(); await act(async () => root.unmount()); container.remove(); });
 
-it("shares center pins with Composer without changing the selected skill, and restores on remount", async () => {
+it("persists management pins without usage requests or changing the selected skill", async () => {
   await mount();
   await clickPin("PDF");
   await clickPin("Invalid");
   expect(names()).toEqual(["Invalid", "PDF", "Demo"]);
-  expect(container.querySelector('output')?.textContent).toBe("invalid,pdf");
   expect(container.querySelector('.skill-console-list-item.is-active strong')?.textContent).toBe("Demo");
   expect(onSelect).not.toHaveBeenCalled();
   expect(getAdminSkillDetail).toHaveBeenCalledTimes(1);
@@ -86,16 +81,20 @@ it("shares center pins with Composer without changing the selected skill, and re
   expect(input.value).toBe("PDF");
 });
 
-it("retains the visible skill order on write failure and reloads remote changes on a refresh signal", async () => {
+it("retains the visible skill order on write failure and reloads remote changes only on explicit refresh", async () => {
   await mount();
-  jest.mocked(putAgentSkillPin).mockRejectedValueOnce(new Error("offline"));
+  jest.mocked(putAdminSkillPin).mockRejectedValueOnce(new Error("offline"));
   await clickPin("PDF");
   expect(names()).toEqual(["Demo", "Invalid", "PDF"]);
   expect(container.textContent).toContain("无法同步技能置顶");
   serverOrder = ["pdf"];
-  await act(async () => window.dispatchEvent(new CustomEvent("agent:skills-refresh", { detail: { agentKey: "" } })));
+  const readCount = jest.mocked(getAdminSkills).mock.calls.length;
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(getAdminSkills).toHaveBeenCalledTimes(readCount);
+  expect(names()).toEqual(["Demo", "Invalid", "PDF"]);
+  await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="刷新"]')!.click());
+  expect(getAdminSkills).toHaveBeenCalledTimes(readCount + 1);
   expect(names()[0]).toBe("PDF");
-  expect(container.querySelector('output')?.textContent).toBe("pdf");
   expect(container.textContent).not.toContain("无法同步技能置顶");
 });
 

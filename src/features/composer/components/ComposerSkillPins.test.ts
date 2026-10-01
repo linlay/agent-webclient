@@ -7,7 +7,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { AddMenuTrigger, type AddMenuTriggerProps } from "./ComposerAddMenu";
 import { dataQueryCache } from "@/shared/data/query/serverState";
-import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
+import { usePinnedSkills } from "@/features/composer/hooks/usePinnedSkills";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 
 let serverOrder: string[] = [];
@@ -119,10 +119,10 @@ describe("Composer skill pins", () => {
     expect(names()).toEqual(["Slides", "PDF", "Platform Admin"]);
     await pin("PDF", true);
     await pin("Slides", true);
-    expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
+    expect(names()).toEqual(["PDF", "Platform Admin", "Slides"]);
 
     clickSkillRow();
-    expect(props.onSelectSkill).toHaveBeenCalledWith(skills[0]);
+    expect(props.onSelectSkill).toHaveBeenCalledWith(skills[1]);
     expect(names()).toEqual([]);
   });
 
@@ -170,12 +170,12 @@ describe("Composer skill pins", () => {
     expect(container.querySelector('input[type="checkbox"]')).toBeNull();
     expect(rows.map((row) => row.getAttribute("role"))).toEqual(["button", "button", "button"]);
     expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual([
-      "composer.addMenu.skill.select Platform Admin",
       "composer.addMenu.skill.select PDF",
+      "composer.addMenu.skill.select Platform Admin",
       "composer.addMenu.skill.select Slides",
     ]);
 
-    const configuredTitle = rows[0].querySelector(".composer-add-menu-item-title")!;
+    const configuredTitle = rows[1].querySelector(".composer-add-menu-item-title")!;
     const configuredNodes = [...configuredTitle.children];
     expect(configuredNodes).toHaveLength(2);
     expect(configuredNodes[0].tagName).toBe("B");
@@ -188,7 +188,7 @@ describe("Composer skill pins", () => {
     expect(configuredActions[0].textContent).toBe("slashPalette.skill.source.agent");
 
     // 置顶按钮位于标题末端，不占用描述右侧的独立列。
-    const plainTitle = rows[1].querySelector(".composer-add-menu-item-title")!;
+    const plainTitle = rows[0].querySelector(".composer-add-menu-item-title")!;
     const plainNodes = [...plainTitle.children];
     expect(plainNodes).toHaveLength(2);
     expect(plainNodes[0].tagName).toBe("B");
@@ -209,7 +209,7 @@ describe("Composer skill pins", () => {
     render();
     await openSkills();
     act(() => Simulate.keyDown(skillRows()[0], { key }));
-    expect(props.onSelectSkill).toHaveBeenCalledWith(skills[0]);
+    expect(props.onSelectSkill).toHaveBeenCalledWith(skills[1]);
     expect(names()).toEqual([]);
   });
 
@@ -241,10 +241,10 @@ describe("Composer skill pins", () => {
     localStorage.setItem("agent-webclient.pinnedSkills.v1:agent-a", '["slides"]');
     render();
     await openSkills();
-    expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
+    expect(names()).toEqual(["PDF", "Platform Admin", "Slides"]);
     putAgentSkillPinMock.mockRejectedValueOnce(new Error("offline"));
     await pin("PDF");
-    expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
+    expect(names()).toEqual(["PDF", "Platform Admin", "Slides"]);
     expect(container.querySelector('[role="alert"]')?.textContent).toContain("composer.addMenu.skill.pinFailed");
     await pin("PDF");
     expect(names()[0]).toBe("PDF");
@@ -258,7 +258,7 @@ describe("Composer skill pins", () => {
     let confirm: (response: unknown) => void;
     putAgentSkillPinMock.mockImplementationOnce(() => new Promise((resolve) => { confirm = resolve; }));
     click('[aria-label="composer.addMenu.skill.pin PDF"]');
-    expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
+    expect(names()).toEqual(["PDF", "Platform Admin", "Slides"]);
     expect(container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.skill.pin PDF"]')!.disabled).toBe(true);
     click('[aria-label="composer.addMenu.skill.pin PDF"]');
     expect(putAgentSkillPinMock).toHaveBeenCalledTimes(1);
@@ -277,7 +277,7 @@ describe("Composer skill pins", () => {
     sessionToken = "bob";
     serverOrder = [];
     await act(async () => render());
-    expect(names()).toEqual(["Platform Admin", "PDF", "Slides"]);
+    expect(names()).toEqual(["PDF", "Platform Admin", "Slides"]);
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);
   });
 });

@@ -1,13 +1,8 @@
 import type { AdminSourceResponse } from "@/shared/data/api/dto/admin";
 import { getAdminSource, updateAdminSource } from "./admin";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
-import type { AdminSkillPackageSummary } from "@/shared/data/api/dto/skills";
-import { requestJson, postJson } from "@/shared/data/api/http";
+import { postJson } from "@/shared/data/api/http";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
-
-export function getAdminSkillPackages(): Promise<ApiResponse<AdminSkillPackageSummary[]>> {
-  return requestJson<AdminSkillPackageSummary[]>(dataEndpoints.adminSkillPackages.path);
-}
 
 export function deleteAdminSkillPackage(id: string): Promise<ApiResponse<{ id: string; deleted: boolean }>> {
   return postJson(dataEndpoints.adminSkillPackageDelete.path, { id });

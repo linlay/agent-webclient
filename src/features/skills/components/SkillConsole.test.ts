@@ -243,7 +243,7 @@ describe("SkillConsole", () => {
       status: 200,
       code: 0,
       msg: "ok",
-      data: [
+      data: {skills: [
         {
           id: "demo-skill",
           name: "Demo Skill",
@@ -263,7 +263,7 @@ describe("SkillConsole", () => {
           name: "Disabled",
           status: "disabled",
         },
-      ],
+      ], packages: [], pinned: []},
     });
   });
 

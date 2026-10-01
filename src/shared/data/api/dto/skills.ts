@@ -4,6 +4,13 @@ import type {
   AgentSource,
 } from "@/shared/data/api/dto/admin";
 
+export interface AdminSkillsResponse {
+  skills: AdminSkillSummary[];
+  packages: AdminSkillPackageSummary[];
+  pinned: string[];
+}
+export interface AdminSkillPinResponse { pinned: string[]; }
+
 export type AdminSkillStatus = "ready" | "invalid" | "disabled";
 
 export interface UpdateAgentSkillPinRequest {

@@ -790,7 +790,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           .filter((item): item is AgentToolOption => Boolean(item)),
       );
       setSkillOptions(
-        (Array.isArray(skillsResponse.data) ? skillsResponse.data : [])
+        (Array.isArray(skillsResponse.data.skills) ? skillsResponse.data.skills : [])
           .map((item) => {
             const record = asRecord(item);
             const id = toText(record.id);

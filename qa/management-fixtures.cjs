@@ -1,7 +1,7 @@
 const when = 1789027200000;
 const source = { kind: 'file', path: '/demo/config.yml' };
 const agent = { key: 'demo', name: '旅行助手', description: '规划行程、整理资料，协助完成日常工作。', mode: 'REACT', status: 'ready', icon: 'smart_toy', source };
-const skill = { key: 'demo', name: '行程规划', description: '根据目的地整理路线、天气与出行清单。', status: 'ready', source: { kind: 'skills-center', path: '/demo/skills/travel' }, updatedAt: when };
+const skill = { id: 'demo', name: '行程规划', description: '根据目的地整理路线、天气与出行清单。', status: 'ready', source: { kind: 'skills-center', path: '/demo/skills/travel' }, updatedAt: when };
 const content = '# 行程规划\n\n根据用户的目的地，整理一份清晰的出行计划。\n\n## 工作步骤\n\n1. 确认出行日期与目的地\n2. 查询天气和交通\n3. 整理每日行程与注意事项\n';
 const openedFile = { path: 'SKILL.md', content, sha256: 'demo-sha', size: 256, encoding: 'utf-8', updatedAt: when };
 const yaml = 'key: demo\nicon: default\nbaseUrl: https://api.example.com\ndefaultModel: demo-model\nprotocols:\n  OPENAI:\n    endpointPath: /v1/chat/completions\n    compat:\n      messages:\n        developerRole: true\n      response:\n        usage:\n          promptTokensDetails:\n            cachedTokens: true\n';
@@ -12,7 +12,7 @@ module.exports = function fixture(path, query) {
   if (path === '/api/admin/agents' || path === '/api/agents') return [agent, { ...agent, key: 'second', name: '文档助手' }];
   if (path === '/api/admin/agents/editor-options') return { modes: [{key:'REACT',label:'REACT'}], models: [{key:'demo-model',label:'Demo model'}], tools: [], skills: [] };
   if (path === '/api/admin/agents/detail') return { ...agent, definition: { ...agent, model: 'demo-model', prompt: '帮助用户整理行程，清晰地说明每个步骤。', tools: [], skills: ['demo'] }, privateSkills: [], diagnostics: [] };
-  if (path === '/api/admin/skills') return [skill, { ...skill, key: 'second', name: '资料整理' }];
+  if (path === '/api/admin/skills') return { skills: [skill, { ...skill, id: 'second', name: '资料整理' }], packages: [], pinned: [] };
   if (path === '/api/admin/skills/detail') return { skill, capabilities: { maxTextBytes: 1048576, maxUploadBytes: 33554432, canCreate: true, canUpload: true, canEdit: true }, fileManifest: { defaultOpenPath: 'SKILL.md', counts: { files: 1, directories: 0, textFiles: 1, binaryFiles: 0, totalSize: 256 }, entries: [{ path: 'SKILL.md', name: 'SKILL.md', kind: 'file', parentPath: '', depth: 0, order: 0, size: 256, sha256: 'demo-sha', contentKind: 'text', language: 'markdown', role: 'skillMd', editable: true, downloadable: true }] }, openedFile };
   if (path === '/api/admin/registries') return { items: ['demo', 'backup'].map(key => ({ category: 'providers', file: key + '.yml', key, name: key, status: 'ready', summary: { baseUrl: 'https://api.example.com', defaultModel: 'demo-model' }, source })) };
   if (path === '/api/admin/source') return { target: query, source, content: query.type === 'skill' ? content : yaml, encoding: 'utf-8', sha256: 'demo-sha', updatedAt: when, size: 512 };

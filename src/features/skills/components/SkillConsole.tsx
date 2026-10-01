@@ -28,8 +28,6 @@ import {
   fetchAdminSkillFileBlob,
   getAdminSkillDetail,
   getAdminSource,
-  getAdminSkills,
-  getAdminSkillPackages,
   deleteAdminSkillPackage,
   deleteAdminSkillPackageMember,
   importAdminSkill,
@@ -55,7 +53,7 @@ import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
-import { usePinnedSkills } from "@/features/skills/hooks/usePinnedSkills";
+import { useAdminSkillCatalog } from "@/features/skills/hooks/useAdminSkillCatalog";
 import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
 import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/lib/skillCatalogView";
 import { requestSkillDeletion } from "@/features/skills/lib/skillDeletion";
@@ -1611,20 +1609,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const assistant = useResourceAssistant();
   const editorRegion = useRef<HTMLDivElement>(null);
   const {
-    pinnedSkillIds,
-    toggleSkillPin,
-    pinsDisabled,
-    pinError,
-    refreshPins,
-  } = usePinnedSkills(true);
-
-  const [skills, setSkills] = useState<AdminSkillSummary[]>([]);
-  const [packages, setPackages] = useState<AdminSkillPackageSummary[]>([]);
-  const [packageError, setPackageError] = useState(false);
+    skills, setSkills, packages, pinnedSkillIds, toggleSkillPin, pinsDisabled,
+    pinError, listError, listLoading, refresh: loadSkills,
+  } = useAdminSkillCatalog();
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set());
-  const listSeqRef = useRef(0);
-  const [listLoading, setListLoading] = useState(false);
   const [fileTreeOpen, setFileTreeOpen] = useState(() => {
     if (
       typeof window === "undefined" ||
@@ -1735,20 +1724,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     setFileUpdatedAt(undefined);
   }, []);
 
-  const loadSkills = useCallback(async () => {
-    const seq = ++listSeqRef.current;
-    setListLoading(true);
-    const [skillResult, packageResult] = await Promise.allSettled([getAdminSkills(), getAdminSkillPackages()]);
-    if (seq !== listSeqRef.current) return;
-    if (skillResult.status === "fulfilled") setSkills(skillResult.value.data);
-    else notification.error({ message: String(skillResult.reason) });
-    if (packageResult.status === "fulfilled") {
-      setPackages(packageResult.value.data);
-      setPackageError(false);
-    } else setPackageError(true);
-    setListLoading(false);
-  }, [locale]);
-
   const loadFileByPath = useCallback(
     async (skillId: string, path: string, seq?: number) => {
       const normalizedPath = path.trim();
@@ -1855,11 +1830,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     },
     [applyBinaryEntry, isFileDirty, loadFileByPath, selectedFilePath, t],
   );
-
-  useEffect(() => {
-    void loadSkills();
-    return () => { ++listSeqRef.current; };
-  }, [loadSkills]);
 
   useEffect(() => {
     if (selectedSkillId) {
@@ -2645,7 +2615,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               iconOnly
               onClick={() => {
                 void loadSkills();
-                void refreshPins().catch(() => undefined);
               }}
               disabled={listLoading || deletingSkill}
               aria-label={t("skillConsole.action.refresh")}
@@ -2670,9 +2639,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               <UiButton
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  void refreshPins().catch(() => undefined);
-                }}
+                onClick={() => { void loadSkills(); }}
               >
                 {t("slashPalette.skills.retry")}
               </UiButton>
@@ -2680,8 +2647,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           )}
           <div className={SKILL_LIST_SCROLL_CLASS_NAME}>
             <Spin spinning={listLoading}>
-              {packageError && <div role="alert" className="skill-package-missing">
-                {t("skillPackageEditor.loadFailed")}
+              {listError && <div role="alert" className="skill-package-missing">
+                {listError.message}
                 <UiButton size="sm" variant="ghost" onClick={() => void loadSkills()}>{t("skillPackageEditor.retry")}</UiButton>
               </div>}
               <div className={SKILL_LIST_ITEMS_CLASS_NAME}>
@@ -2730,8 +2697,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                       : <div key={id} className="skill-package-missing">{id} · {t("skillPackageEditor.missing")}</div>)}</div>}
                   </div>;
                 })}
-                {packageError && skills.some((skill) => skill.packageId && !packages.some((pack) => pack.id === skill.packageId)) && <div className="skill-package-missing">{t("skillPackageEditor.unavailable")}</div>}
-                {!catalogRows.length && !packageError && <div className="command-empty-state">
+                {!catalogRows.length && !listError && <div className="command-empty-state">
                   {hasListFilter ? t("skillConsole.message.noMatch") : t("skillConsole.empty")}
                   {!hasListFilter && <UiButton size="sm" variant="primary" disabled={deletingSkill} onClick={() => setCreateModalOpen(true)}>{t("skillConsole.action.createSkill")}</UiButton>}
                 </div>}

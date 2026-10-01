@@ -41,7 +41,7 @@ beforeEach(async () => {
   dataQueryCache.clear();
   jest.spyOn(notification, "success").mockImplementation(() => {});
   jest.spyOn(notification, "error").mockImplementation(() => {});
-  jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: oldSkills });
+  jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: {skills: oldSkills, packages: [], pinned: []} });
   jest.mocked(getAdminSkillDetail).mockResolvedValue({ code: 0, msg: "", data: detail() });
   jest.mocked(getAgentSkills).mockResolvedValue({ code: 0, msg: "", data: { agentKey: "", skills: [], pinned: [] } });
   container = document.createElement("div");
@@ -85,7 +85,7 @@ it("imports packages without a id, replaces the complete list and reloads an upd
     kind: "skill-package", package: { id: "office-pack", name: "办公技能包", version: "2", sha256: "zip-sha", installedAt: 1,
       skills: newSkills.map((skill) => ({ id: skill.id, version: skill.version })) },
   } });
-  jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: newSkills });
+  jest.mocked(getAdminSkills).mockResolvedValue({ code: 0, msg: "", data: {skills: newSkills, packages: [], pinned: []} });
   jest.mocked(getAdminSkillDetail).mockResolvedValue({ code: 0, msg: "", data: detail(newSkills[0]) });
   await submitZIP();
   expect(importAdminSkill).toHaveBeenCalledWith({ file });
