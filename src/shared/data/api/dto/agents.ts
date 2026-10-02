@@ -27,7 +27,16 @@ export interface UpdateAgentOrderRequest {
   order: string[];
 }
 
+export interface AgentToolBinding {
+  name: string;
+  source: "preset" | "agent" | "connector" | "runtime";
+  removable: boolean;
+  excluded: boolean;
+  active: boolean;
+}
+
 export interface AgentDetailResponse {
+  toolBindings?: AgentToolBinding[];
   modelKey?: string;
   reasoningEffort?: QueryReasoningEffort;
   serviceTier?: QueryServiceTier;

@@ -63,6 +63,7 @@ import {
   confirmAgentDraftDiscard,
   formatAgentArchiveSize,
 } from "@/features/agents/lib/agentImport";
+import { withAgentToolBindings } from "@/features/agents/lib/agentOptions";
 import type {
   AgentSkillOption,
   AgentToolOption,
@@ -391,9 +392,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     () => mergeAgentSkillOptions(skillOptions, privateSkills, form.skills, t),
     [form.skills, privateSkills, skillOptions, t],
   );
+  const displayToolOptions = useMemo(
+    () => withAgentToolBindings(toolOptions, formMode === "edit" ? detail?.toolBindings : []),
+    [toolOptions, formMode, detail?.toolBindings],
+  );
   const filteredToolOptions = useMemo(() => {
     const query = toolSearchText.trim().toLowerCase();
-    return toolOptions.filter((tool) => {
+    return displayToolOptions.filter((tool) => {
       if (toolFilter !== "all" && toolFilterForOption(tool) !== toolFilter) {
         return false;
       }
@@ -402,18 +407,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         .toLowerCase()
         .includes(query);
     });
-  }, [toolFilter, toolOptions, toolSearchText]);
+  }, [toolFilter, displayToolOptions, toolSearchText]);
   const selectedTools = useMemo(
     () =>
-      form.tools.map((key) =>
-        toolOptions.find((tool) => tool.key === key) || {
+      Array.from(new Set([...displayToolOptions.filter(tool => tool.binding && (!tool.binding.removable || tool.binding.excluded)).map(tool => tool.key), ...form.tools])).map((key) =>
+        displayToolOptions.find((tool) => tool.key === key) || {
           key,
           label: key,
           sourceCategory: "",
           kind: "",
         },
       ),
-    [form.tools, toolOptions],
+    [form.tools, displayToolOptions],
   );
   const selectedSkills = useMemo(
     () =>

@@ -107,10 +107,10 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
                 <div className="agent-selectable-list agent-capability-scroll" role="group" aria-label={props.t("agentConsole.field.tools")}>
                   {props.filteredTools.filter(tool => !["desktop_action", "desktop_cdp"].includes(tool.key)).map((tool) => (
                     <label key={tool.key} className="agent-selectable-row">
-                      <input type="checkbox" checked={props.tools.includes(tool.key)} onChange={(event) => props.onToolsChange(event.target.checked ? [...props.tools, tool.key] : props.tools.filter((key) => key !== tool.key))} />
+                      <input type="checkbox" disabled={tool.binding?.removable === false} checked={tool.binding?.removable === false ? tool.binding.active : props.tools.includes(tool.key)} onChange={(event) => props.onToolsChange(event.target.checked ? [...props.tools, tool.key] : props.tools.filter((key) => key !== tool.key))} />
                       <MaterialIcon name={toolIcon(props.getToolCategory(tool))} />
                       <span className="agent-selectable-row-copy"><strong>{tool.label}</strong>{tool.label !== tool.key ? <span>· {tool.key}</span> : null}</span>
-                      <span className="agent-selectable-row-meta">{props.getToolSourceLabel(tool) || tool.kind}</span>
+                      <span className="agent-selectable-row-meta">{tool.binding?.source === "preset" ? props.t("agentConsole.tools.preset") : props.getToolSourceLabel(tool) || tool.kind}</span>
                     </label>
                   ))}
                 </div>
@@ -125,12 +125,14 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
           </Popover>
       </div>
       <div className="agent-tool-tag-list" aria-live="polite">
-        <strong>{props.t("agentConsole.context.selectedCount", { count: props.tools.length })}</strong>
+        <strong>{props.t("agentConsole.context.selectedCount", { count: props.selectedTools.length })}</strong>
         {props.selectedTools.map((tool) => (
-          <span key={tool.key} className="agent-tool-tag">
+          <span key={tool.key} className="agent-tool-tag" title={tool.binding?.removable === false ? props.t(tool.binding.source === "preset" ? "agentConsole.tools.presetManaged" : "agentConsole.tools.autoManaged") : undefined}>
             <MaterialIcon name={toolIcon(props.getToolCategory(tool))} />
             <span>{tool.label}</span>
-            <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: tool.label })} onClick={() => props.onToolsChange(props.tools.filter((key) => key !== tool.key))}><MaterialIcon name="close" /></button>
+            {tool.binding?.source === "preset" && <span>{props.t("agentConsole.tools.preset")}</span>}
+            {tool.binding?.excluded && <span>{props.t(tool.binding.active ? "agentConsole.tools.excludedButActive" : "agentConsole.tools.excluded")}</span>}
+            {tool.binding?.removable === false ? <MaterialIcon name="lock" /> : <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: tool.label })} onClick={() => props.onToolsChange(props.tools.filter((key) => key !== tool.key))}><MaterialIcon name="close" /></button>}
           </span>
         ))}
       </div>

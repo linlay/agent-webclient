@@ -686,7 +686,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
       reasoning.enabled !== false &&
       (reasoning.enabled === true || Boolean(reasoningEffort)),
     reasoningEffort,
-    tools: textListFromUnknown(toolConfig.tools || detail.tools),
+    tools: textListFromUnknown(detail.definition ? toolConfig.tools : (detail.toolBindings ? detail.toolBindings.filter(tool => tool.source === "agent").map(tool => tool.name) : detail.tools)),
     skills: textListFromUnknown(skillConfig.skills || detail.skills?.map(skill => typeof skill === "string" ? skill : skill.id)),
     greetingsText: stringifyJson(
       definition.greetings ?? detail.greetings ?? [],
@@ -769,8 +769,9 @@ export function buildDefinition(
   } else delete definition.modelConfig;
 
   const tools = form.tools.map((item) => item.trim()).filter(Boolean);
-  if (tools.length > 0)
-    definition.toolConfig = { ...asRecord(definition.toolConfig), tools };
+  const originalToolConfig = asRecord(definition.toolConfig);
+  if (tools.length > 0 || Object.keys(originalToolConfig).length > 0)
+    definition.toolConfig = { ...originalToolConfig, tools };
   else delete definition.toolConfig;
 
   const skills = form.skills.map((item) => item.trim()).filter(Boolean);

@@ -8,3 +8,8 @@ it("maps runtime skill objects to editor skill IDs and NONE to disabled reasonin
  expect(definition.modelConfig).toEqual({modelKey:"model-a",reasoning:{enabled:false}});
  expect(formFromDetail(detail)).toMatchObject({modelKey:"model-a",reasoningEnabled:false,skills:["platform-admin"]});
 });
+
+ it("does not copy effective presets into an empty Agent declaration", () => {
+ const detail: AgentDetailResponse = {key:"demo",name:"demo",mode:"GENERAL",tools:["datetime"],skills:[],controls:[],meta:{},definition:{key:"demo",mode:"GENERAL",toolConfig:{excludeTools:["sleep"]}},toolBindings:[{name:"datetime",source:"preset",removable:false,excluded:false,active:true}]};
+ expect(formFromDetail(detail).tools).toEqual([]);
+ });
