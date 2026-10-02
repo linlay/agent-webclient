@@ -7,7 +7,8 @@ import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/d
 
 export interface TimelineInteractionValue {
   conversationActive?: boolean;
-  skipWait?: (runId:string,toolId:string)=>Promise<unknown>;
+  /** Ends a root-Run wait early with a blank steer; resolves false when not accepted. */
+  continueWait?: (runId: string) => Promise<boolean>;
   readOnly?: boolean;
   surfaceContext?: {
     chatId: string;

@@ -1,4 +1,3 @@
-import { WaitCard } from "./WaitCard";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
@@ -515,8 +514,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
               <span className="tool-status-dot" data-tool-status={status} />
             )}
           </Flex>
-          {node?.toolWait && <WaitCard node={node} now={liveNow} active={isLive} />}
-          {!node?.toolWait && displayDurationMs > 0 && (
+          {displayDurationMs > 0 && (
             <span className="tool-pill-duration">
               {formatToolDuration(displayDurationMs, t)}
             </span>

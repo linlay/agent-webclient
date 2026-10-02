@@ -415,9 +415,6 @@ export class PlatformRunTransport implements RunTransport {
       payload: buildRunSubmitPayload(input),
     });
 
-  skipWait: NonNullable<RunTransport["skipWait"]> = async (input) =>
-    (await this.ensureClient()).request({type:dataEndpoints.waitSkip.path,payload:input});
-
   steer: RunTransport["steer"] = async (input) =>
     (await this.ensureClient()).request({
       type: dataEndpoints.steer.path,

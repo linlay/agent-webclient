@@ -64,6 +64,8 @@ import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { useI18n } from "@/shared/i18n";
+import { createRequestId } from "@/shared/data";
+import { resolvePreferredRunOwner, resolveRunOwner } from "@/features/runs/lib/runOwner";
 import {
   Button,
   Dropdown,
@@ -1609,7 +1611,23 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   const waitTransport = useRunTransport();
   const interaction = useMemo<TimelineInteractionValue>(() => ({
-    skipWait: waitTransport.skipWait ? (runId,toolId) => waitTransport.skipWait!({runId,toolId}) : undefined,
+    // "Continue now" is a blank steer, which Platform treats as "continue"; a
+    // request.steer without content renders no user message.
+    continueWait: async (runId) => {
+      const chatId = String(state.chatId || "").trim();
+      const owner = resolveRunOwner({ chatId, chats: state.chats, fallbackOwner: resolvePreferredRunOwner(state) });
+      if (!chatId || !owner || isAgentExecutionBlocked(state)) return false;
+      const response = await waitTransport.steer({
+        requestId: createRequestId("req"),
+        chatId,
+        runId,
+        owner,
+        message: "",
+        references: [],
+        planningMode: Boolean(state.planningMode),
+      });
+      return (response?.data as { accepted?: unknown } | null | undefined)?.accepted === true;
+    },
     conversationActive: isMainChatRunning || state.streaming,
     readOnly: false,
     registerContextMenuTarget: registerDesktopContextMenuTarget,

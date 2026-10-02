@@ -14,7 +14,7 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 
 工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；运行期使用只读 xterm 按实际缓冲内容完整增高展示并解释换行、回车、退格和 ANSI 控制，`tool.result` 是唯一终态并销毁、替换过程终端。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
 
-Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，卡片按绝对期限本地倒计时并通过 `/api/wait/skip` 提前结束。等待中的发送直接 steer；attach 的 `seq:0` 快照不修改续传 cursor，冷回放与导出不保留等待过程。
+Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间线使用独立小卡片按绝对期限本地倒计时，不显示参数表或折叠控件。说明只取本次调用的 description（实时事件优先，其次调用参数），不回退工具定义说明；结束后按结果 `reason` 显示结束原因并移除倒计时、进度条和按钮。“立即继续”仅在根 Run 等待的卡片 hover、键盘聚焦或提交中显示，不经过输入框，直接向 `/api/steer` 发送空白 steer；Platform 把它当作正文为空的普通 steer，回显的 `request.steer` 没有内容，沿用既有规则不渲染用户消息，结果带 `continued: true` 时卡片显示“已立即继续”。等待中的输入框发送仍直接 steer；attach 的 `seq:0` 快照不修改续传 cursor，冷回放与导出不保留等待过程。
 
 ## 2. 技术栈
 - 框架：React 18
