@@ -486,6 +486,7 @@ describe("ToolPill helpers", () => {
 				"timeline.toolPill.duration.hours":
 					"{hours}h {minutes}m {seconds}s",
 				"timeline.toolPill.runTitle": "Run {index}",
+                "timeline.toolPill.executeCommand": "Run command",
 				"timeline.toolPill.status.success": "Done",
 			};
 			return (messages[key] || key).replace(
@@ -511,7 +512,7 @@ describe("ToolPill helpers", () => {
 		};
 
 		expect(formatToolDuration(3_725_000, translate)).toBe("1h 2m 5s");
-		expect(formatToolPillTitle(group)).toBe("Run command");
+		expect(formatToolPillTitle(group, translate)).toBe("Run command");
 		expect(buildToolPillRecords(group, translate)[0]).toEqual(
 			expect.objectContaining({
 				title: "Run 1",
@@ -616,4 +617,54 @@ describe("ToolPill helpers", () => {
 			}),
 		).toBe("1.5秒");
 	});
+});
+
+describe("bash description titles", () => {
+  const bash = (argsText: string, id = 'bash') => createToolNode({
+    id, kind: 'tool', ts: 1, toolName: '_sandbox_bash_', argsText,
+  });
+
+  it('waits for a complete description string, but not later arguments', () => {
+    const prefix = '{"command":"echo ok","description":"写入文件';
+    expect(formatToolPillTitle(bash(prefix))).toBe('执行命令');
+    expect(formatToolPillTitle(bash(prefix + '","accessPolicy":{'))).toBe('写入文件');
+    expect(formatToolPillTitle(bash(prefix + '"}'))).toBe('写入文件');
+  });
+
+  it('ignores nested descriptions and text embedded in commands', () => {
+    expect(formatToolPillTitle(bash(JSON.stringify({
+      command: 'echo "description": "wrong"', options: { description: 'nested' },
+    })))).toBe('执行命令');
+    expect(formatToolPillTitle(bash('{"description":null}'))).toBe('执行命令');
+    expect(formatToolPillTitle(bash('{"description":"  "}'))).toBe('执行命令');
+  });
+
+  it('decodes escaped strings without accepting incomplete escapes', () => {
+    expect(formatToolPillTitle(bash('{"description":"写入 \\"file\\""}'))).toBe('写入 "file"');
+    expect(formatToolPillTitle(bash('{"description":"写入 \\u4'))).toBe('执行命令');
+  });
+
+  it('replaces earlier descriptions as the latest invocation streams and completes', () => {
+    const group = {
+      kind: 'tool-group' as const, key: 'group', toolName: '_sandbox_bash_', toolLabel: '执行命令', count: 1,
+      nodes: [bash('{"description":"等待 5 秒"}', 'a')],
+    };
+    expect(formatToolPillTitle(group)).toBe('等待 5 秒');
+
+    group.nodes.push(bash('', 'b'));
+    group.count = 2;
+    expect(formatToolPillTitle(group)).toBe('执行命令');
+    group.nodes[1].argsText = '{"description":"再次读取 a.txt';
+    expect(formatToolPillTitle(group)).toBe('执行命令');
+    group.nodes[1].argsText += '"';
+    expect(formatToolPillTitle(group)).toBe('再次读取 a.txt');
+    group.nodes[1].argsText += '}';
+    group.nodes[1].status = 'success';
+    expect(formatToolPillTitle(group)).toBe('再次读取 a.txt');
+  });
+
+  it('uses the translated fallback and leaves other tools unchanged', () => {
+    expect(formatToolPillTitle(bash(''), key => key === 'timeline.toolPill.executeCommand' ? 'Run command' : '; ')).toBe('Run command');
+    expect(formatToolPillTitle({ ...bash('{"description":"ignore"}'), toolName: 'file_read', toolLabel: 'Read file' })).toBe('Read file');
+  });
 });

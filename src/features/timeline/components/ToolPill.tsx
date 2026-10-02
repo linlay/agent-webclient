@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
-import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
+import { isBashTool, readBashDescription, resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
 import { formatToolDuration as formatToolDurationFromLib } from "@/features/timeline/lib/timelineDuration";
 import type { TranslateFn } from "@/features/timeline/lib/timelineDuration";
 import { t as runtimeT, useI18n } from "@/shared/i18n";
@@ -206,6 +206,11 @@ export function formatToolPillTitle(
   source: TimelineNode | ToolGroupRenderEntry,
   translate: TranslateFn = runtimeT,
 ): string {
+  if (isBashTool(source)) {
+    const nodes = "kind" in source && source.kind === "tool-group" ? source.nodes : [source];
+    const latestNode = nodes[nodes.length - 1];
+    return readBashDescription(latestNode?.argsText) || translate("timeline.toolPill.executeCommand");
+  }
   if ("kind" in source && source.kind === "tool-group") {
     const baseLabel = resolveToolLabel({
       toolLabel: source.toolLabel,

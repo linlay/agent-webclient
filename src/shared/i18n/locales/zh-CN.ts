@@ -2020,6 +2020,7 @@ export const zhCNMessages = {
   "timeline.toolPill.duration.minutes": "{minutes}分{seconds}秒",
   "timeline.toolPill.duration.seconds": "{count}秒",
   "timeline.toolPill.empty": "空",
+  "timeline.toolPill.executeCommand": "执行命令",
   "timeline.toolPill.groupTitle": "{label}",
   "timeline.toolPill.kbase.failed": "文件已保存，但索引更新失败",
   "timeline.toolPill.kbase.skipped": "文件已保存，但被索引配置排除",

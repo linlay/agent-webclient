@@ -1880,6 +1880,7 @@ export const enUSMessages = {
   "timeline.toolPill.duration.minutes": "{minutes}m {seconds}s",
   "timeline.toolPill.duration.seconds": "{count}s",
   "timeline.toolPill.empty": "Empty",
+  "timeline.toolPill.executeCommand": "Run command",
   "timeline.toolPill.groupTitle": "{label}",
   "timeline.toolPill.kbase.failed": "File saved, but the knowledge base index update failed",
   "timeline.toolPill.kbase.skipped": "File saved, but it is excluded by the index configuration",
