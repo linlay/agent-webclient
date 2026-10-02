@@ -855,7 +855,7 @@ describe("ConversationStage", () => {
     );
   });
 
- it("keeps related chat cards visible below the reply when tool history is collapsed", () => {
+ it("collapses related chat cards with their tool calls instead of duplicating them below the reply", () => {
   const state = createInitialState();
   const nodes: TimelineNode[] = [
     { id: "q", kind: "message", role: "user", text: "start", runId: "run", ts: 1700000000000 },
@@ -868,9 +868,8 @@ describe("ConversationStage", () => {
     timelineNodes: createTimelineMap(nodes), timelineOrder: nodes.map(node => node.id),
   });
   const html = renderToStaticMarkup(React.createElement(ConnectedConversationStage, { surfaceMode: "main", deriveChatAction: mockDeriveChatAction, onFeedback: mockOnFeedback }));
-  expect(html).toContain("独立讨论");
-  expect(html).toContain("chatId=child");
-  expect(html.indexOf("独立讨论")).toBeGreaterThan(html.indexOf("已发起"));
+  expect(html).not.toContain("chatId=child");
+  expect(html).toContain("已发起");
 });
 
 });

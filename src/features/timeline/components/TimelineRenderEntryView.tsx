@@ -101,7 +101,7 @@ export const TimelineRenderEntryView: React.FC<
 
   if (entry.kind === "node") {
     if (entry.node.kind === "agent-group") return null;
-    return <TimelineRow node={entry.node} skills={activeAgentSkills} />;
+    return <TimelineRow node={entry.node} agents={agents} skills={activeAgentSkills} />;
   }
 
   if (entry.kind === "tool-group") {

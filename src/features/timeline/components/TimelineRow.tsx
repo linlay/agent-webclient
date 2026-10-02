@@ -1,3 +1,5 @@
+import { RelatedChatCards } from "./RelatedChatCards";
+import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
 import { WaitCard } from "./WaitCard";
 import { ImageGenerationCard } from "./ImageGenerationCard";
@@ -38,6 +40,7 @@ type ToolGroupRenderEntry = Extract<
 >;
 
 interface TimelineRowProps {
+  agents?: Agent[];
   node?: TimelineNode;
   toolGroup?: ToolGroupRenderEntry;
   showTime?: boolean;
@@ -260,6 +263,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   showTime = false,
   metaNode,
   skills,
+  agents = [],
 }) => {
   const { locale, t } = useI18n();
   const activeAgentSkills = skills ?? EMPTY_AGENT_SKILLS;
@@ -512,6 +516,8 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           {node?.toolName === "wait" ? <WaitCard node={node} active={Boolean(interaction?.conversationActive)} /> : (toolGroup?.nodes || (node ? [node] : [])).every(isImageGenerationTool) ? (
             <ImageGenerationCard nodes={toolGroup?.nodes || [node!]} />
+          ) : node?.toolName === "run_query" && node.relatedChat && node.relatedChat.chatId !== interaction?.surfaceContext?.chatId ? (
+            <RelatedChatCards nodes={[node]} agents={agents} />
           ) : <ToolPill node={node} toolGroup={toolGroup} />}
           {timeNode}
         </div>

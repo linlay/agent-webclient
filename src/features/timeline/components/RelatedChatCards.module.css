@@ -1,8 +1,9 @@
-.cards { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.cards { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 10px; color: var(--text-main); background: var(--bg-elev-2); text-decoration: none; }
-.card:hover { border-color: var(--accent); color: var(--text-main); }
+.card:hover { color: var(--text-main); }
+.card:hover .action,
+.card:focus-visible .action { color: var(--accent); }
 .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.icon { width: 18px; height: 18px; flex: none; color: var(--text-muted); }
 .copy { flex: 1; min-width: 0; }
 .title { display: block; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .action { flex: none; color: var(--text-muted); font-size: 12px; white-space: nowrap; }

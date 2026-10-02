@@ -133,6 +133,7 @@ function buildToolRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
     const shouldMerge =
       pendingToolNodes.length > 0 &&
       nextToolName !== "wait" &&
+      nextToolName !== "run_query" &&
       pendingToolName === nextToolName &&
       pendingToolLabel === nextToolLabel &&
       (!isImageGenerationTool(node) || pendingToolNodes[0].runId === node.runId);

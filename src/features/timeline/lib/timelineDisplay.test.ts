@@ -579,3 +579,13 @@ describe('buildTimelineDisplayItems', () => {
     });
   });
 });
+
+it('keeps consecutive run_query calls as separate timeline tool rows', () => {
+  const nodes: TimelineNode[] = [
+    { id: 'query', kind: 'message', role: 'user', ts: 100 },
+    { id: 'first', kind: 'tool', toolName: 'run_query', ts: 110, relatedChat: { chatId: 'child' } },
+    { id: 'second', kind: 'tool', toolName: 'run_query', ts: 120, status: 'running' },
+  ];
+  const run = buildTimelineDisplayItems(nodes, []).find(item => item.kind === 'run');
+  expect(run?.kind === 'run' ? run.renderEntries.map(entry => entry.kind) : []).toEqual(['node', 'node']);
+});
