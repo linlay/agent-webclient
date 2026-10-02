@@ -1,3 +1,4 @@
+import { TimelineToolIcon } from "./TimelineToolIcon";
 import { ImageGenerationCard } from "./ImageGenerationCard";
 import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
 import React from "react";
@@ -502,7 +503,10 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="tool" />
+          <TimelineToolIcon
+            toolNames={(toolGroup?.nodes || (node ? [node] : [])).map((item) => item.toolName)}
+            className={`${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.tool} tw:rounded-full`}
+          />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           {(toolGroup?.nodes || (node ? [node] : [])).every(isImageGenerationTool) ? (
