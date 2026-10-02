@@ -7,6 +7,7 @@ import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/d
 
 export interface TimelineInteractionValue {
   conversationActive?: boolean;
+  skipWait?: (runId:string,toolId:string)=>Promise<unknown>;
   readOnly?: boolean;
   surfaceContext?: {
     chatId: string;

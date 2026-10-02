@@ -2,6 +2,14 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "timeline.wait.any": "Any condition",
+  "timeline.wait.all": "All conditions",
+  "timeline.wait.remaining": "Remaining",
+  "timeline.wait.maximum": "Wait up to",
+  "timeline.wait.resume": "Continue now",
+  "timeline.wait.resuming": "Continuing…",
+  "timeline.wait.error": "Could not end the wait. Try again.",
+  "timeline.wait.pending": "Confirming completion…",
   "composer.failedSubmission.title": "Unsent content:",
   "composer.failedSubmission.details": "{references} references, {skills} skills",
   "composer.failedSubmission.restore": "Restore to composer",

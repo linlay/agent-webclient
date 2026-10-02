@@ -14,6 +14,8 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 
 工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；运行期使用只读 xterm 按实际缓冲内容完整增高展示并解释换行、回车、退格和 ANSI 控制，`tool.result` 是唯一终态并销毁、替换过程终端。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
 
+Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，卡片按绝对期限本地倒计时并通过 `/api/wait/skip` 提前结束。等待中的发送直接 steer；attach 的 `seq:0` 快照不修改续传 cursor，冷回放与导出不保留等待过程。
+
 ## 2. 技术栈
 - 框架：React 18
 - 语言：TypeScript

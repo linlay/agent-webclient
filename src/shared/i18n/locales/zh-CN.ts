@@ -2,6 +2,14 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "timeline.wait.any": "任一满足即可",
+  "timeline.wait.all": "等待全部满足",
+  "timeline.wait.remaining": "剩余",
+  "timeline.wait.maximum": "最多再等",
+  "timeline.wait.resume": "立即继续",
+  "timeline.wait.resuming": "正在继续…",
+  "timeline.wait.error": "无法提前结束等待，请重试",
+  "timeline.wait.pending": "正在确认完成…",
   "composer.failedSubmission.title": "未发送的内容：",
   "composer.failedSubmission.details": "引用 {references} 项，技能 {skills} 项",
   "composer.failedSubmission.restore": "恢复到输入框",

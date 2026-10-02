@@ -305,6 +305,25 @@ export function processToolEvent(
     return commands;
   }
 
+  if ((type === "tool.wait" || type === "tool.wait.update") && event.toolId) {
+    const startedAt = Number(event.startedAt), deadlineAt = Number(event.deadlineAt);
+    if (!Number.isFinite(startedAt) || !Number.isFinite(deadlineAt) || startedAt <= 0 || deadlineAt <= 0) return commands;
+    const toolId = event.toolId;
+    const mappedNodeId = state.getToolNodeId(toolId);
+    const existing = mappedNodeId ? state.getTimelineNode(mappedNodeId) : undefined;
+    if (existing && ["success", "failed", "error", "canceled"].includes(existing.status || "")) return commands;
+    const nodeId = ensureMappedNode({ currentNodeId:mappedNodeId, getNode:state.getTimelineNode,
+      setMapCommand:{cmd:"SET_TOOL_NODE_ID",toolId,nodeId:""}, prefix:"tool",commands,state });
+    const conditions = Array.isArray(event.conditions) ? event.conditions.filter((v): v is {index:number;satisfied:boolean;status:string;condition:Record<string,unknown>} => Boolean(v && typeof v === "object" && typeof v.satisfied === "boolean")) : [];
+    commands.push({cmd:"SET_TIMELINE_NODE",id:nodeId,node:{
+      ...existing, id:nodeId, kind:"tool", ...applyTaskBindingToNode(event,state,existing),
+      toolId,toolName:"wait",toolLabel:existing?.toolLabel || "wait",runId:event.runId || existing?.runId,
+      status:"running",ts:existing?.ts ?? timestamp,startedAt,endedAt:undefined,result:null,
+      toolWait:{startedAt,deadlineAt,description:typeof event.description === "string" ? event.description : "",match:event.match === "all" ? "all" : "any",conditions},
+    }});
+    return commands;
+  }
+
   if (type === "tool.output" && event.toolId) {
     const toolId = event.toolId;
     const stream = event.stream;

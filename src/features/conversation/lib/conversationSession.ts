@@ -122,6 +122,7 @@ function cloneTimelineNode(node: TimelineNode): TimelineNode {
         )
       : undefined,
     result: node.result ? { ...node.result } : node.result,
+    toolWait: node.toolWait ? {...node.toolWait,conditions:node.toolWait.conditions.map(c=>({...c,condition:{...c.condition}}))} : undefined,
     toolOutput: node.toolOutput
       ? {
           ...node.toolOutput,

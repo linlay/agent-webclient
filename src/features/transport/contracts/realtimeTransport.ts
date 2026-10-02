@@ -92,6 +92,7 @@ export interface ToolSubmitInput {
 }
 
 export interface RunTransport {
+  skipWait?: (input:{runId:string;toolId:string;requestId?:string})=>Promise<unknown>;
   startQuery(input: StartQueryInput): RunExecution;
   startBtw(input: StartBtwInput): RunExecution;
   subscribe(input: RunSubscribeInput): RunExecution;

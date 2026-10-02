@@ -490,6 +490,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [dispatch, resolveCurrentOwner, runs, messageApi, stateRef, t]);
 
   const handleSend = useCallback((directSteer = false) => {
+    directSteer = directSteer || Array.from(stateRef.current.timelineNodes.values()).some(node => node.runId === stateRef.current.runId && node.toolWait && node.status === "running" && !node.result);
     if (isAgentExecutionBlocked(stateRef.current)) return;
     if (isAwaitingActive || isVoiceMode) return;
     if (speechListening) {

@@ -1866,3 +1866,15 @@ describe("transient model retry status", () => {
     expect(state.timelineNodes.get("model_retry_current")?.text).toContain(expected);
   });
 });
+
+it('projects wait updates and ignores a late wait after its unique result', () => {
+ const state=createState();
+ processAndApply(state,{type:'tool.wait',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:100,startedAt:100,deadlineAt:60100,description:'deployment',conditions:[],match:'any'},'live',true);
+ expect(state.timelineNodes.get('tool_0')).toMatchObject({status:'running',toolWait:{deadlineAt:60100,description:'deployment'}});
+ processAndApply(state,{type:'tool.wait.update',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:101,startedAt:100,deadlineAt:60100,conditions:[{index:0,satisfied:true,status:'completed',condition:{type:'run.terminal',runId:'target'}}]},'live',true);
+ expect(state.timelineNodes.get('tool_0')?.toolWait?.conditions[0].satisfied).toBe(true);
+ processAndApply(state,{type:'tool.result',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:102,result:{reason:'event'}},'live',true);
+ expect(state.timelineNodes.get('tool_0')?.toolWait).toBeUndefined();
+ processAndApply(state,{type:'tool.wait',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:103,startedAt:100,deadlineAt:60100},'live',true);
+ expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
+});

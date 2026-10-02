@@ -1,3 +1,4 @@
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useAgentWelcome } from "@/features/agents/hooks/useAgentWelcome";
 import { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/workers/components/AgentSwitcherPopover";
@@ -1606,7 +1607,9 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     </div>;
   };
 
+  const waitTransport = useRunTransport();
   const interaction = useMemo<TimelineInteractionValue>(() => ({
+    skipWait: waitTransport.skipWait ? (runId,toolId) => waitTransport.skipWait!({runId,toolId}) : undefined,
     conversationActive: isMainChatRunning || state.streaming,
     readOnly: false,
     registerContextMenuTarget: registerDesktopContextMenuTarget,
@@ -1673,7 +1676,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       openTarget({ version: 1, kind: "source", chatId: state.chatId,
         publishId, sourceId: source.id, source, title: source.title || source.name });
     },
-  }), [currentWorker, dispatch, isMainChatRunning, openTarget, state]);
+  }), [currentWorker, dispatch, isMainChatRunning, openTarget, state, waitTransport]);
 
   return (
     <TimelineInteractionProvider value={interaction}>

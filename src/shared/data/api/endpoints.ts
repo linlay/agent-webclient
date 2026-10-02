@@ -1092,6 +1092,7 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
   }),
+  waitSkip: defineEndpoint<{runId:string;toolId:string;requestId?:string}>({key:"runs.waitSkip",path:"/api/wait/skip",method:"POST",transport:"auto",wsBackends:PLATFORM_AND_GATEWAY_WS_BACKENDS}),
   steer: defineEndpoint<SteerParams, Record<string, unknown>>({
     key: "runs.steer",
     path: "/api/steer",

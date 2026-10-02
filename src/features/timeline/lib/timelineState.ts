@@ -163,6 +163,7 @@ export interface TimelineNode {
 	argsText?: string;
 	result?: ToolResultPayload | null;
 	toolOutput?: ToolOutputState;
+ toolWait?: { startedAt: number; deadlineAt: number; description: string; match: string; conditions: {index:number; satisfied:boolean; status:string; condition:Record<string,unknown>}[] };
 	startedAt?: number;
 	endedAt?: number;
 	durationMs?: number;

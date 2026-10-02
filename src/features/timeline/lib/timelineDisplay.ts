@@ -132,6 +132,7 @@ function buildToolRenderEntries(nodes: TimelineNode[]): TimelineRenderEntry[] {
     const nextToolLabel = normalizeToolGroupValue(node.toolLabel);
     const shouldMerge =
       pendingToolNodes.length > 0 &&
+      nextToolName !== "wait" &&
       pendingToolName === nextToolName &&
       pendingToolLabel === nextToolLabel &&
       (!isImageGenerationTool(node) || pendingToolNodes[0].runId === node.runId);
