@@ -53,6 +53,9 @@ export function useAgentProjectCreate(options: {
   const [browserLoading, setBrowserLoading] = useState(false);
   const [browserError, setBrowserError] = useState("");
   const [browserListing, setBrowserListing] = useState<HostDirectoryListResponse | null>(null);
+  // Only the latest directory request may update the browser; a slower earlier
+  // response, or one that arrives after the browser was closed, is dropped.
+  const browseSeq = useRef(0);
 
   const loadOptions = async () => {
     const seq = ++loadSeq.current;
@@ -79,7 +82,8 @@ export function useAgentProjectCreate(options: {
     setProjectName("");
     setProjectNameTouched(false);
     setError("");
-    setBrowserOpen(false);
+    closeBrowser();
+    setBrowserListing(null);
     setOpen(true);
     void loadOptions();
   };
@@ -106,17 +110,33 @@ export function useAgentProjectCreate(options: {
   // The directory lives on the Agent Platform host, which may not be this
   // machine, so it is browsed through the platform instead of a local picker.
   const browseTo = async (path: string) => {
+    const seq = ++browseSeq.current;
     setBrowserLoading(true);
     setBrowserError("");
     try {
       const response = await listHostDirectories(path);
+      if (seq !== browseSeq.current) return;
       setBrowserListing(response.data);
     } catch (browseError) {
+      if (seq !== browseSeq.current) return;
+      // The previous listing stays visible so the user can navigate elsewhere,
+      // but it can no longer be confirmed: the error is about another directory.
       setBrowserError(errorMessage(browseError));
     } finally {
-      setBrowserLoading(false);
+      if (seq === browseSeq.current) setBrowserLoading(false);
     }
   };
+
+  const closeBrowser = () => {
+    browseSeq.current += 1;
+    setBrowserLoading(false);
+    setBrowserError("");
+    setBrowserOpen(false);
+  };
+
+  // The listing is the directory the user is looking at only when no request
+  // is pending and the last one succeeded.
+  const browserCanChoose = Boolean(browserListing) && !browserLoading && !browserError;
 
   const problem = creationOptions && selection
     ? projectCreationProblem(creationOptions, selection, workspaceDir)
@@ -162,6 +182,7 @@ export function useAgentProjectCreate(options: {
     browserLoading,
     browserError,
     browserListing,
+    browserCanChoose,
     begin,
     close: () => setOpen(false),
     submit,
@@ -181,12 +202,12 @@ export function useAgentProjectCreate(options: {
       setBrowserOpen(true);
       void browseTo(workspaceDir.trim());
     },
-    closeBrowser: () => setBrowserOpen(false),
+    closeBrowser,
     browseTo: (path: string) => void browseTo(path),
     chooseBrowsedDirectory: () => {
-      if (!browserListing) return;
+      if (!browserCanChoose || !browserListing) return;
       setWorkspaceDir(browserListing.path);
-      setBrowserOpen(false);
+      closeBrowser();
     },
   };
 }

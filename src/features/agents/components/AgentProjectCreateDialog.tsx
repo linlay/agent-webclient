@@ -197,7 +197,10 @@ export const AgentProjectCreateDialog: React.FC<{
                   disabled={runtime.submitting}
                   onChange={(event) => runtime.setWorkspaceDir(event.target.value)}
                 />
-                <Button disabled={runtime.submitting} onClick={runtime.openBrowser}>
+                <Button
+                  disabled={runtime.submitting || runtime.browserLoading}
+                  onClick={runtime.openBrowser}
+                >
                   {t("leftSidebar.createProject.browse")}
                 </Button>
               </Flex>
@@ -279,7 +282,12 @@ const HostDirectoryBrowser: React.FC<{ runtime: AgentProjectCreateRuntime }> = (
         <Button size="small" onClick={runtime.closeBrowser}>
           {t("leftSidebar.createProject.cancel")}
         </Button>
-        <Button size="small" type="primary" disabled={!listing} onClick={runtime.chooseBrowsedDirectory}>
+        <Button
+          size="small"
+          type="primary"
+          disabled={!runtime.browserCanChoose}
+          onClick={runtime.chooseBrowsedDirectory}
+        >
           {t("leftSidebar.createProject.browseChoose")}
         </Button>
       </Flex>
