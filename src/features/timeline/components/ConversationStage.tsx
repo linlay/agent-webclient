@@ -1,3 +1,4 @@
+import { RelatedChatCards } from "./RelatedChatCards";
 import React from "react";
 import { Collapse, Flex } from "antd";
 import { Virtuoso, type ListRange, type StateSnapshot, type VirtuosoHandle } from "react-virtuoso";
@@ -116,6 +117,7 @@ export function ConversationStage({
             {collapse ? buildRunRenderEntries(final ? [final] : []).map(renderEntry)
               : <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{item.renderEntries.map(renderEntry)}</div>}
           </section>
+          <RelatedChatCards nodes={item.nodes} agents={agents} />
           {!collapse && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
           {item.completedAt && runMeta?.(item, duration)}
         </Flex>;

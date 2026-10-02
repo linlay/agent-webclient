@@ -101,7 +101,7 @@ const InteractiveRoute: React.FC<{
   <BtwProvider enabled={btwEnabled || !isDesktopAppMode()}>{children}</BtwProvider>
 );
 
-const AutomationConversationIntentBridge: React.FC = () => {
+const ConversationIntentBridge: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -109,7 +109,7 @@ const AutomationConversationIntentBridge: React.FC = () => {
     const routeState = location.state as
       | { automationConversation?: { chatId?: unknown } }
       | null;
-    const chatId = String(routeState?.automationConversation?.chatId || "").trim();
+    const chatId = String(routeState?.automationConversation?.chatId || new URLSearchParams(location.search).get("chatId") || "").trim();
     if (!chatId) return undefined;
     const frame = window.requestAnimationFrame(() => {
       window.dispatchEvent(
@@ -117,6 +117,7 @@ const AutomationConversationIntentBridge: React.FC = () => {
           detail: { chatId, focusComposerOnComplete: false },
         }),
       );
+      if (!routeState?.automationConversation) return;
       navigate(`${location.pathname}${location.search}`, {
         replace: true,
         state: null,
@@ -133,7 +134,7 @@ const RootInteractiveRoute: React.FC = () => {
   return (
     <InteractiveRoute>
       <AppShell />
-      <AutomationConversationIntentBridge />
+      <ConversationIntentBridge />
     </InteractiveRoute>
   );
 };

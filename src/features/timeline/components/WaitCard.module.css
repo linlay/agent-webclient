@@ -1,38 +1,39 @@
 .card {
-  width: 320px;
-  max-width: 100%;
+  width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid var(--line-soft);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--bg-elev-2);
   color: var(--text-main);
 }
-.body { display: flex; align-items: center; gap: 12px; padding: 8px 12px; }
+.body { display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-width: 0; }
 .copy { flex: 1; min-width: 0; }
-.caption { color: var(--text-muted); font-size: 11px; line-height: 18px; font-weight: 400; }
-.description { margin-top: 3px; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
-.conditions { margin-top: 5px; color: var(--text-sub); font-size: 11px; line-height: 17px; }
-.clock { position: relative; min-width: 64px; display: flex; flex: none; flex-direction: column; align-items: flex-end; max-width: 105px; }
-.digits { font-size: 22px; line-height: 28px; font-weight: 500; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.description { display: block; font-size: 13px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clock { display: grid; align-items: center; justify-items: end; flex: none; min-width: 84px; max-width: 45%; }
+.clock > * { grid-area: 1 / 1; min-width: 0; max-width: 100%; }
+.caption { color: var(--text-muted); font-size: 12px; line-height: 20px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.digits { font-size: 14px; line-height: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+/* The transparent timer shares the action cell; it must never intercept clicks. */
+.time { overflow: hidden; white-space: nowrap; pointer-events: none; }
 .track { height: 2px; background: var(--line-soft); }
 .fill { height: 100%; background: var(--accent); transform-origin: left; transition: transform 1s linear; opacity: 0.65; }
 .card[data-wait-state="failed"] .caption { color: var(--accent-danger); }
 @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
-
-.time { display: flex; flex-direction: column; align-items: flex-end; }
 .resume {
-  position: absolute;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  text-align: right;
   padding: 0;
   border: 0;
   border-radius: 3px;
   background: var(--bg-elev-2);
   color: var(--accent);
   font: inherit;
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 12px;
+  line-height: 20px;
   white-space: nowrap;
   cursor: pointer;
   opacity: 0;
@@ -41,6 +42,9 @@
 .card:hover .resume,
 .card:focus-within .resume,
 .card[data-continue-pending] .resume { opacity: 1; pointer-events: auto; }
+.card:hover .clock[data-can-continue] .time,
+.card:focus-within .clock[data-can-continue] .time,
+.card[data-continue-pending] .clock[data-can-continue] .time { opacity: 0; }
 .resume:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .resume:disabled { cursor: default; color: var(--text-muted); }
 .error { padding: 0 12px 8px; color: var(--accent-danger); font-size: 11px; line-height: 17px; }

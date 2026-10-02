@@ -1630,6 +1630,9 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     },
     conversationActive: isMainChatRunning || state.streaming,
     readOnly: false,
+    openChat: ({ chatId, agentKey }) => {
+      window.dispatchEvent(new CustomEvent("agent:load-chat", { detail: { chatId, agentKey } }));
+    },
     registerContextMenuTarget: registerDesktopContextMenuTarget,
     surfaceContext: {
       chatId: state.chatId,

@@ -2,11 +2,14 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "timeline.relatedChat.untitled": "新对话",
+  "timeline.relatedChat.open": "打开对话",
   "timeline.wait.waiting": "等待中",
   "timeline.wait.finished": "等待结束",
   "timeline.wait.elapsed": "等待时间已到",
   "timeline.wait.event": "等待条件已满足",
   "timeline.wait.timeout": "等待超时",
+  "timeline.wait.steeredShort": "已继续",
   "timeline.wait.steered": "收到新指令，已结束等待",
   "timeline.wait.continued": "已立即继续",
   "timeline.wait.failed": "等待失败",

@@ -128,7 +128,15 @@ export interface TimelineErrorDetail {
 	technicalText: string;
 }
 
+export interface RelatedChat {
+	chatId: string;
+	agentKey?: string;
+	teamId?: string;
+	title?: string;
+}
+
 export interface TimelineNode {
+	relatedChat?: RelatedChat;
 	id: string;
 	kind: TimelineNodeKind;
 	runId?: string;

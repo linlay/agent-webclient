@@ -2,11 +2,14 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "timeline.relatedChat.untitled": "New conversation",
+  "timeline.relatedChat.open": "Open chat",
   "timeline.wait.waiting": "Waiting",
   "timeline.wait.finished": "Wait ended",
   "timeline.wait.elapsed": "Wait time reached",
   "timeline.wait.event": "Wait condition met",
   "timeline.wait.timeout": "Wait timed out",
+  "timeline.wait.steeredShort": "Continued",
   "timeline.wait.steered": "New instruction received, wait ended",
   "timeline.wait.continued": "Continued now",
   "timeline.wait.failed": "Wait failed",

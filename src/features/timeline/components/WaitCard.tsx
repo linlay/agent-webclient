@@ -38,6 +38,9 @@ export function WaitCard({ node, now, active }: { node: TimelineNode; now?: numb
     : node.status === "canceled" ? "canceled"
     : terminal ? "finished" : "idle";
   const conditions = wait?.conditions || [];
+  const conditionSummary = conditions.length
+    ? `${conditions.filter(c => c.satisfied).length}/${conditions.length} · ${t(wait?.match === "all" ? "timeline.wait.all" : "timeline.wait.any")}`
+    : "";
   // Steer only wakes a root-Run wait; a sub-task wait cannot be ended this way.
   const canContinue = ticking && !node.taskId && !interaction?.readOnly && Boolean(interaction?.continueWait && node.runId);
   const continueNow = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -57,17 +60,18 @@ export function WaitCard({ node, now, active }: { node: TimelineNode; now?: numb
   return (
     <div className={styles.card} data-wait-state={state} data-continue-pending={pending || undefined}>
       <div className={styles.body}>
-        <div className={styles.copy}>
-          <div className={styles.caption}>{t(`timeline.wait.${state}`)}</div>
-          {description && <div className={styles.description}>{description}</div>}
-          {conditions.length > 0 && <div className={styles.conditions}>{conditions.filter(c => c.satisfied).length}/{conditions.length} · {t(wait?.match === "all" ? "timeline.wait.all" : "timeline.wait.any")}</div>}
+        <div className={styles.copy} title={[description, conditionSummary].filter(Boolean).join(" · ")}>
+          <span className={styles.description}>{description || t("timeline.wait.idle")}</span>
         </div>
-        {ticking && <div className={styles.clock}>
-          <div role="timer" aria-live="off" className={styles.time}>
-          {seconds > 0 ? <><span className={styles.digits}>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span><span className={styles.caption}>{t(conditions.length ? "timeline.wait.maximum" : "timeline.wait.remaining")}</span></> : <span className={styles.caption}>{t("timeline.wait.pending")}</span>}
-          </div>
+        <div className={styles.clock} data-can-continue={canContinue || undefined}>
+          {ticking ? <div role="timer" aria-live="off" className={styles.time}
+            title={[t(conditions.length ? "timeline.wait.maximum" : "timeline.wait.remaining"), conditionSummary].filter(Boolean).join(" · ")}>
+            {seconds > 0
+              ? <span className={styles.digits}>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span>
+              : <span className={styles.caption}>{t("timeline.wait.pending")}</span>}
+          </div> : <span className={styles.caption} title={t(`timeline.wait.${state}`)}>{t(state === "steered" ? "timeline.wait.steeredShort" : `timeline.wait.${state}`)}</span>}
           {canContinue && <button type="button" className={styles.resume} disabled={pending} onClick={continueNow}>{t(pending ? "timeline.wait.resuming" : "timeline.wait.resume")}</button>}
-        </div>}
+        </div>
       </div>
       {error && ticking && <div className={styles.error} role="alert">{t("timeline.wait.error")}</div>}
       {ticking && <div className={styles.track} aria-hidden="true"><div className={styles.fill} style={{ transform: `scaleX(${fraction})` }} /></div>}

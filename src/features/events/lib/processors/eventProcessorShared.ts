@@ -294,6 +294,7 @@ export function buildToolTimelineNode(input: {
   return {
     id: nodeId,
     kind: "tool",
+    relatedChat: existing?.relatedChat,
     ...taskBinding,
     toolId:
       toText(event.toolId) ||

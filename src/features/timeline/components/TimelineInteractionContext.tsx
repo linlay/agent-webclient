@@ -7,6 +7,7 @@ import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/d
 
 export interface TimelineInteractionValue {
   conversationActive?: boolean;
+  openChat?: (chat: import("../lib/timelineState").RelatedChat) => void;
   /** Ends a root-Run wait early with a blank steer; resolves false when not accepted. */
   continueWait?: (runId: string) => Promise<boolean>;
   readOnly?: boolean;

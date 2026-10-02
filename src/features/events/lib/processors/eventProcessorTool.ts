@@ -466,6 +466,20 @@ export function processToolEvent(
           durationMs,
           state,
         }),
+        relatedChat: (() => {
+          if (failed || resolvedToolName !== "run_query") return undefined;
+          const result = parseResultObject(resultValue);
+          const run = parseResultObject(result?.run);
+          const chatId = typeof run?.chatId === "string" ? run.chatId.trim() : "";
+          if (result?.accepted !== true || result.action !== "query" || !chatId || chatId === state.chatId) return undefined;
+          const args = parseResultObject(argsText);
+          return {
+            chatId,
+            agentKey: typeof run?.agentKey === "string" ? run.agentKey.trim() || undefined : undefined,
+            teamId: typeof run?.teamId === "string" ? run.teamId.trim() || undefined : undefined,
+            title: typeof args?.chatName === "string" ? args.chatName.trim() || undefined : undefined,
+          };
+        })(),
         toolOutput: undefined,
       },
     });

@@ -13,6 +13,10 @@ import {
   TimelineAgentSwitcher,
 } from "@/features/timeline/components/ConnectedConversationStage";
 
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
+  useRunTransport: () => ({ steer: jest.fn() }),
+}));
+
 let mockGreeting = "";
 jest.mock("@/features/agents/hooks/useAgentWelcome", () => ({
   useAgentWelcome: () => ({ greeting: mockGreeting }),
@@ -850,4 +854,23 @@ describe("ConversationStage", () => {
       }),
     );
   });
+
+ it("keeps related chat cards visible below the reply when tool history is collapsed", () => {
+  const state = createInitialState();
+  const nodes: TimelineNode[] = [
+    { id: "q", kind: "message", role: "user", text: "start", runId: "run", ts: 1700000000000 },
+    { id: "tool", kind: "tool", toolName: "run_query", runId: "run", ts: 1700000000001,
+      relatedChat: { chatId: "child", title: "独立讨论" } },
+    { id: "answer", kind: "content", text: "已发起", runId: "run", ts: 1700000000002 },
+  ];
+  useAppState.mockReturnValue({ ...state, chatId: "parent",
+    events: [{ type: "run.complete", runId: "run", timestamp: 1700000000003 }],
+    timelineNodes: createTimelineMap(nodes), timelineOrder: nodes.map(node => node.id),
+  });
+  const html = renderToStaticMarkup(React.createElement(ConnectedConversationStage, { surfaceMode: "main", deriveChatAction: mockDeriveChatAction, onFeedback: mockOnFeedback }));
+  expect(html).toContain("独立讨论");
+  expect(html).toContain("chatId=child");
+  expect(html.indexOf("独立讨论")).toBeGreaterThan(html.indexOf("已发起"));
+});
+
 });
