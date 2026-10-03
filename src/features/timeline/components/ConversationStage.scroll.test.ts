@@ -40,6 +40,10 @@ let mockStateRef: { current: AppState };
 let mockAppContext: any;
 let mockVirtuosoProps: any;
 let mockMainChatRuntime: any;
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
+  useRunTransport: () => ({ steer: jest.fn() }),
+}));
+
 const mockDispatch = jest.fn();
 const mockScrollToIndex = jest.fn();
 const mockScrollBy = jest.fn();

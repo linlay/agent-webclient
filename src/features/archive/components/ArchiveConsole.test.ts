@@ -1,7 +1,7 @@
 import {
 	buildArchiveBulkCandidates,
 	extractArchivePreviewLines,
-} from "@/features/archive/components/ArchiveConsole";
+} from "@/features/archive/lib/archiveViewModel";
 
 describe("buildArchiveBulkCandidates", () => {
 	it("selects chats older than the cutoff", () => {

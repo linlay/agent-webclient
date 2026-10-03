@@ -44,7 +44,7 @@ describe("management page shells", () => {
       onRouteIdChange: (connectorId: string) => void;
     };
 
-    expect(html).toContain('<main class="automations-page connectors-page">');
+    expect(html).toContain('<main class="automations-page connectors-page tw:p-0">');
     expect(props.routeId).toBe("server/a");
     props.onRouteIdChange("next/server");
     expect(navigate).toHaveBeenCalledWith(

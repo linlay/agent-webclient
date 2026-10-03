@@ -81,6 +81,7 @@
         "/agents/",
         "/automations",
         "/copilot/",
+        "/chat-preview/",
         "/overview/",
         "/debug/",
         "/btw/",

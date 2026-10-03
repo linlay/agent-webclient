@@ -22,7 +22,7 @@ describe("RunTerminalNotice", () => {
 
     expect(html).toContain('data-run-terminal="run.cancel"');
     expect(html).toContain("本次运行已中断");
-    expect(html).toContain('data-material-icon="stop_circle"');
+    expect(html).not.toContain('data-material-icon=');
     expect(html.match(/timeline-run-cancel-notice/g)).toHaveLength(1);
     expect(html).not.toContain("accent-danger");
   });

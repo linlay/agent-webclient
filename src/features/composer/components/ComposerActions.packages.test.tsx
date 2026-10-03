@@ -51,9 +51,14 @@ test("Actions forwards bulk selection and locked member IDs to the real package 
     const parent = container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!;
     expect(parent).not.toBeNull();
     expect(parent.disabled).toBe(false);
-    act(() => parent.click());
-    expect(onSelectSkills).toHaveBeenCalledWith(skills, true);
     const word = container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!;
+    expect(word).not.toBeNull();
     expect(word.disabled).toBe(true);
+    act(() => word.click());
+    expect(onSelectSkills).not.toHaveBeenCalled();
+    act(() => parent.click());
+    expect(onSelectSkills).toHaveBeenCalledTimes(1);
+    expect(onSelectSkills).toHaveBeenCalledWith(skills, true, "office");
+    expect(container.querySelector('button[aria-label="packageComposer.select"]')).toBeNull();
   } finally { act(() => root.unmount()); container.remove(); }
 });

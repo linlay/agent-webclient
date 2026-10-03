@@ -98,7 +98,7 @@ describe("MarkdownContent resource image", () => {
     expect(html).toContain('href="/Users/alice/project/poster.png"');
     // antd Image：renderer className 仍落在 img 上，外层是右键菜单目标与预览遮罩。
     expect(html).toMatch(/class="ant-image-img[^"]*safe-image/);
-    expect(html).toContain('class="markdown-image"');
+    expect(html).toMatch(/<div class="tw:inline-block"><div class="ant-image /);
     expect(html).toContain("ant-image-mask");
     expect(html).not.toContain("children");
     expect(html).not.toContain("domNode");

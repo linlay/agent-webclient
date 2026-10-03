@@ -282,7 +282,7 @@ it.each(["synchronous", "asynchronous"])("keeps a recoverable Desktop error afte
     expect(await action).toEqual({ ok: false, code: "run_start_failed" });
   });
   expect(mockStartBtw).toHaveBeenCalledTimes(1);
-  expect(mockMessageApi.error).toHaveBeenCalledWith("The request failed. Please try again.");
+  expect(mockMessageApi.error).toHaveBeenCalledWith(failure === "synchronous" ? "offline" : "connection failed before acceptance");
   expect(mockOpenTarget).not.toHaveBeenCalled();
 });
 

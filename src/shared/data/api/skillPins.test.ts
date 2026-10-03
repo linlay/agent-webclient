@@ -1,8 +1,14 @@
+import { configureI18nRuntime, getI18nRuntimeConfig } from "@/shared/i18n/runtime";
+
 import { dataQueryCache } from "@/shared/data/query/serverState";
 import { getAgentSkills, putAgentSkillPin } from "@/shared/data";
 import { requestJson } from "@/shared/data/api/http";
 import { requestDataThroughExecutor } from "@/shared/data/api/dataRequestExecutor";
 import { getBackendMode } from "@/shared/config/backendMode";
+
+const originalI18n = getI18nRuntimeConfig();
+beforeEach(() => { configureI18nRuntime({ locale: "en-US" }); });
+afterEach(() => { configureI18nRuntime(originalI18n); });
 
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
@@ -26,8 +32,8 @@ it("routes user-level pin reads and writes through the Platform WebSocket", asyn
   jest.mocked(requestDataThroughExecutor).mockResolvedValue(response);
   await expect(getAgentSkills()).resolves.toEqual(response);
   await expect(putAgentSkillPin({ id: "pdf", pinned: true })).resolves.toEqual(response);
-  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(1, "/api/skills", { agentKey: "" });
-  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/skills", { id: "pdf", pinned: true });
+  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(1, "/api/skills", { agentKey: "", locale: "en-US" });
+  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/skills", { id: "pdf", pinned: true, locale: "en-US" });
   expect(requestJson).not.toHaveBeenCalled();
 });
 

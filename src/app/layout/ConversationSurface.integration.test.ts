@@ -9,6 +9,22 @@ const { AgentChatShell } = require("./AgentChatShell");
 const { getChat, getAgent, deriveChat, submitFeedback } = require("@/shared/data");
 const { message } = require("antd");
 const { I18nProvider } = require("@/shared/i18n");
+const { RealtimeTransportProvider } = require("@/features/transport/components/RealtimeTransportProvider");
+const unexpectedTransportCall = () => { throw new Error("Unexpected transport operation in navigation test"); };
+const createTestTransport = () => ({
+  kind: "standalone",
+  runs: {
+    startQuery: unexpectedTransportCall, startBtw: unexpectedTransportCall,
+    subscribe: unexpectedTransportCall, interrupt: unexpectedTransportCall,
+    submitAwaiting: unexpectedTransportCall, submitTool: unexpectedTransportCall,
+    steer: unexpectedTransportCall, updateAccessLevel: unexpectedTransportCall,
+  },
+  push: { subscribe: () => () => undefined },
+  terminal: { open: unexpectedTransportCall, subscribeStatus: () => () => undefined },
+  getStatus: () => "disconnected",
+  subscribeStatus: () => () => undefined,
+  dispose: () => undefined,
+});
 let mockConversationActions: any;
 
 // Keep the real Router, AppProvider/reducer, route coordinator, replay loader,
@@ -66,7 +82,14 @@ function deferred() {
   const promise = new Promise<any>(r => { resolve = r; });
   return { promise, resolve };
 }
-function response(chatId: string) { return { data: { chatId, agentKey: "demo", events: [], artifacts: [] } }; }
+function response(chatId: string) { return { data: { chatId, agentKey: "demo", events: [] } }; }
+function artifactResponse(chatId: string, name: string) {
+  return { data: { ...response(chatId).data, events: [{
+    type: "artifact.publish", runId: `run-${chatId}`, timestamp: 1_776_474_697_581,
+    artifactCount: 1, artifacts: [{ artifactId: name, type: "file", name,
+      mimeType: "text/plain", sizeBytes: 100, url: `${chatId}/artifacts/${name}` }],
+  }] } };
+}
 
 describe("whole conversation surface navigation", () => {
   let container: HTMLDivElement;
@@ -77,15 +100,17 @@ describe("whole conversation surface navigation", () => {
     Object.defineProperty(window, "matchMedia", { configurable: true, value: () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }) });
     (globalThis as any).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
     getAgent.mockResolvedValue({ data: { key: "demo", name: "Demo", mode: "CODER", modelOptions: [] } });
+    getChat.mockReset();
     getChat.mockImplementation(() => new Promise(() => {}));
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
     await act(async () => {
-      root.render(React.createElement(I18nProvider, null, React.createElement(AppProvider, null,
+      root.render(React.createElement(I18nProvider, null,
+        React.createElement(RealtimeTransportProvider, { standaloneFactory: createTestTransport }, React.createElement(AppProvider, null,
         React.createElement(MemoryRouter, { initialEntries: ["/agent/demo"] },
           React.createElement(Probe),
-          React.createElement(Routes, null, React.createElement(Route, { path: "/agent/:agentKey", element: React.createElement(AgentChatShell) }))))));
+          React.createElement(Routes, null, React.createElement(Route, { path: "/agent/:agentKey", element: React.createElement(AgentChatShell) })))))));
     });
     await act(async () => {
       context.dispatch({ type: "BATCH_UPDATE", updates: {
@@ -113,7 +138,7 @@ describe("whole conversation surface navigation", () => {
 
   async function completedRunDeriveButton() {
     await act(async () => context.dispatch({ type: "BATCH_UPDATE", updates: {
-      events: [{ type: "request.query", timestamp: 1 }, { type: "run.complete", runId: "run_1", timestamp: 3 }],
+      events: [{ type: "request.query", timestamp: 1_776_474_697_581 }, { type: "run.complete", runId: "run_1", timestamp: 3 }],
       timelineOrder: ["query", "answer"],
       timelineNodes: new Map([
         ["query", { id: "query", kind: "message", role: "user", text: "question", ts: 1 }],
@@ -231,8 +256,12 @@ describe("whole conversation surface navigation", () => {
     await act(async () => jest.advanceTimersByTime(15_000));
     expect(context.state.chatTransition.phase).toBe("error");
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
-    await act(async () => first.resolve(response("B")));
-    expect(context.state.chatId).toBe("A");
+    // Loading selects B immediately; a late response must not apply its content.
+    expect(context.state.chatId).toBe("B");
+    const timedOutState = context.state;
+    await act(async () => first.resolve(artifactResponse("B", "late-artifact.txt")));
+    expect(context.state).toBe(timedOutState);
+    expect(context.state.artifacts).toEqual([]);
     expect(context.state.chatTransition.phase).toBe("error");
     getChat.mockResolvedValueOnce(response("B"));
     await act(async () => (container.querySelector('.conversation-transition-overlay button') as HTMLButtonElement).click());
@@ -254,7 +283,7 @@ describe("whole conversation surface navigation", () => {
   it("loads persisted history while route Agent metadata is unavailable", async () => {
     getAgent.mockImplementation(() => new Promise(() => {}));
     getChat.mockResolvedValueOnce({ data: { ...response("B").data, agentKey: "deleted", events: [
-      { type: "content.delta", messageId: "answer", delta: "preserved historical answer", timestamp: 1 },
+      { type: "content.delta", messageId: "answer", delta: "preserved historical answer", timestamp: 1_776_474_697_581 },
     ] } });
     await act(async () => navigate("/agent/missing?chatId=B"));
     expect(getChat).toHaveBeenCalledWith("B", false);
@@ -321,7 +350,7 @@ describe("whole conversation surface navigation", () => {
     await act(async () => (container.querySelector('.conversation-transition-overlay button') as HTMLButtonElement).click());
     await finishTransition();
     const seq = context.state.chatTransition.seq;
-    await act(async () => old.resolve({ data: { ...response("B").data, artifacts: [{ artifactId: "stale", artifact: { name: "stale attempt" } }] } }));
+    await act(async () => old.resolve(artifactResponse("B", "stale-attempt.txt")));
     expect(context.state.chatTransition.seq).toBe(seq);
     expect(context.state.chatTransition.phase).toBe("ready");
     expect(context.state.artifacts).toEqual([]);
@@ -343,11 +372,21 @@ describe("whole conversation surface navigation", () => {
     await finishTransition();
     expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
   });
-  it("does not mask the live surface during a valid same-chat background refresh", async () => {
+  it("keeps same-chat refresh unmasked while resetting and replacing its content", async () => {
+    const refresh = deferred();
+    getChat.mockReturnValueOnce(refresh.promise);
     await act(async () => context.dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: { chatId: "A", runId: "run-A" } }));
     await act(async () => { void mockConversationActions.loadChat("A", { forceReload: true }); });
     expect(context.state.chatTransition.displayMode).toBe("background");
     expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
-    expect(container.textContent).toContain("old-artifact-A.txt");
+    expect(context.state.chatId).toBe("A");
+    expect(context.state.artifacts).toEqual([]);
+    expect(container.textContent).not.toContain("old-artifact-A.txt");
+    expect((container.querySelector("fieldset") as HTMLFieldSetElement).disabled).toBe(false);
+    await act(async () => refresh.resolve(artifactResponse("A", "fresh-artifact-A.txt")));
+    expect(context.state.chatTransition.displayMode).toBe("background");
+    expect(container.querySelector(".conversation-transition-overlay")).toBeNull();
+    expect(context.state.artifacts).toHaveLength(1);
+    expect(container.textContent).toContain("fresh-artifact-A.txt");
   });
 });

@@ -1,4 +1,10 @@
+import { configureI18nRuntime, getI18nRuntimeConfig } from "@/shared/i18n/runtime";
+
 import * as client from "@/shared/data/api/client";
+
+const originalI18n = getI18nRuntimeConfig();
+beforeEach(() => { configureI18nRuntime({ locale: "en-US" }); });
+afterEach(() => { configureI18nRuntime(originalI18n); });
 
 const resourceOptions = { chatId: "chat-1" };
 const resourceRequests: Array<[string, () => Promise<unknown>]> = [
@@ -77,7 +83,7 @@ describe("resource response compatibility", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/resource?file=chat-1%2Fprivate.txt", expect.objectContaining({
       method: "GET",
       signal: controller.signal,
-      headers: { Authorization: "Bearer resource-token" },
+      headers: { Authorization: "Bearer resource-token", "X-Locale": "en-US" },
     }));
     expect(text).toHaveBeenCalledTimes(1);
   });

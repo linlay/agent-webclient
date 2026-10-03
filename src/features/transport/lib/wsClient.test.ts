@@ -1,3 +1,5 @@
+import { configureI18nRuntime, getI18nRuntimeConfig } from "@/shared/i18n/runtime";
+
 import { resetCompactIdStateForTests } from "@/shared/utils/compactId";
 import {
 	createWsFrameId,
@@ -12,6 +14,10 @@ import {
 	resetAuthCoordinatorForTests,
 	setAuthCoordinatorNavigationForTests,
 } from "@/shared/data/auth/authCoordinator";
+
+const originalI18n = getI18nRuntimeConfig();
+beforeEach(() => { configureI18nRuntime({ locale: "en-US" }); });
+afterEach(() => { configureI18nRuntime(originalI18n); });
 
 jest.mock("@/shared/data/clientDeviceId", () => ({
 	getClientDeviceId: () => "device-test",
@@ -816,7 +822,9 @@ describe("WsClient", () => {
 
 		expect(onError).toHaveBeenCalledWith(
 			expect.objectContaining({
-				message: "model request failed with status 429",
+				message: "The model service quota is exhausted. Switch models or contact an administrator to check the API key or quota.",
+				status: 429,
+				code: "provider_quota_exhausted",
 				platformError: expect.objectContaining({
 					code: "provider_quota_exhausted",
 					message: "model request failed with status 429: quota exhausted",

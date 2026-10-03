@@ -23,7 +23,7 @@ describe("independent conversation surface layout contracts", () => {
     );
 
     expect(copilotStyles).toMatch(
-      /:global\(\.layout-copilot\):global\(\.is-desktop-copilot-host\) :global\(\.copilot-topbar-actions\)\s*\{[\s\S]*?margin-right:\s*38px;/,
+      /:global\(\.layout-copilot\):global\(\.is-desktop-copilot-host\) :global\(\.copilot-topbar-actions\)\s*\{[\s\S]*?margin-right:\s*30px;/,
     );
   });
 });

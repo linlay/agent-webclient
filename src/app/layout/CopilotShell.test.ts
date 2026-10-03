@@ -42,8 +42,17 @@ jest.mock("@/shared/data", () => ({
   getAgent: jest.fn(),
 }));
 
-jest.mock("@/features/timeline/components/ConversationStage", () => ({
-  ConversationStage: (props: {
+// Shell routing tests run effects synchronously; isolate search state, which has
+// its own provider/control tests and must not set React state during SSR.
+jest.mock("@/features/timeline/components/TimelineTextSearchProvider", () => ({
+  TimelineTextSearchProvider: ({ children }: React.PropsWithChildren) => children,
+}));
+jest.mock("@/features/timeline/components/TimelineTextSearchControl", () => ({
+  TimelineTextSearchControl: () => null,
+}));
+
+jest.mock("@/features/timeline/components/ConnectedConversationStage", () => ({
+  ConnectedConversationStage: (props: {
     showEmptyState?: boolean;
     surfaceMode?: string;
     expectedChatId?: string;
@@ -302,6 +311,8 @@ describe("CopilotShell", () => {
   const originalCustomEvent = globalWithStorage.CustomEvent;
   const originalLocalStorage = globalWithStorage.localStorage;
   const navigate = jest.fn();
+
+  afterEach(() => { jest.restoreAllMocks(); });
 
   beforeEach(() => {
     mockStageDeriveChatAction = undefined;
@@ -966,10 +977,9 @@ describe("CopilotShell", () => {
 
     renderToStaticMarkup(React.createElement(CopilotShell));
 
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: "SET_WORKER_SELECTION_KEY",
-      workerKey: "agent:demo-agent",
-    });
+    }));
     expect(useAppRuntimes).toHaveBeenCalledWith(expect.objectContaining({
       targetChatId: "chat-123",
     }));

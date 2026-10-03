@@ -30,12 +30,13 @@ import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("antd", () => {
   const React = require("react");
-  const Input = ({ prefix, ...props }: any) =>
+  const Input = ({ prefix, suffix, ...props }: any) =>
     React.createElement(
       "div",
       { className: "mock-input" },
       prefix,
       React.createElement("input", props),
+      suffix,
     );
   Input.TextArea = (props: any) => React.createElement("textarea", props);
   return {

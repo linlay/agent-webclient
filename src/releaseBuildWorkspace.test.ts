@@ -26,6 +26,8 @@ function createReleaseSource(root: string, sourceValue: string): void {
   };
   writeFixtureFile(root, 'package.json', `${JSON.stringify(manifest, null, 2)}\n`);
   writeFixtureFile(root, 'package-lock.json', `${JSON.stringify(lock, null, 2)}\n`);
+  writeFixtureFile(root, 'VERSION', 'v1.0.0\n');
+  writeFixtureFile(root, 'scripts/webpack-diagnostics.cjs', 'module.exports = {};\n');
   writeFixtureFile(root, 'webpack.config.js', 'module.exports = {};\n');
   writeFixtureFile(root, 'tsconfig.json', '{}\n');
   writeFixtureFile(root, 'postcss.config.js', 'module.exports = {};\n');
@@ -53,6 +55,10 @@ describe('release build workspace cache', () => {
       createReleaseSource(source, 'first');
       const first = prepareReleaseWorkspace(source, build);
       expect({ status: first.status, stderr: first.stderr }).toEqual({ status: 0, stderr: '' });
+
+      expect(readFileSync(join(build, 'VERSION'), 'utf8')).toBe('v1.0.0\n');
+      expect(readFileSync(join(build, 'scripts/webpack-diagnostics.cjs'), 'utf8')).toBe('module.exports = {};\n');
+      expect(existsSync(join(build, 'scripts/check-feature-boundaries.js'))).toBe(true);
 
       const sentinel = join(build, 'node_modules/cache-sentinel.txt');
       writeFixtureFile(build, 'node_modules/cache-sentinel.txt', 'preserved\n');

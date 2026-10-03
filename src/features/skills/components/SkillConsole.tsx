@@ -1527,7 +1527,7 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                         entry={entry}
                         expanded={expandedDirs.has(entry.path)}
                       />
-                      <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap group-hover:tw:pe-[18px]">
+                      <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:group-hover:pe-[18px]">
                         {entry.name}
                       </span>
                       {isDirty && (

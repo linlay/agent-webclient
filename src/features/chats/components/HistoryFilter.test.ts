@@ -16,6 +16,7 @@ jest.mock("antd", () => {
     Popover: ({ children, content }: any) =>
       React.createElement(React.Fragment, null, children, content),
     Select: () => React.createElement("div"),
+    Flex: ({ children }: any) => React.createElement("div", null, children),
     DatePicker: (props: any) => {
       datePickerProps.push(props);
       return React.createElement("div");
