@@ -15,7 +15,6 @@ export function resolveSkillDisplayName(
 
   return (
     (skill ? skillDisplayName(skill) : "") ||
-    String(fallbackLabel || "").trim() ||
-    String(id || "").trim()
+    String(fallbackLabel || "").trim()
   );
 }

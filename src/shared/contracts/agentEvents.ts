@@ -477,21 +477,12 @@ export interface AIContextCompactEvent extends AIBaseEvent {
   toolsCleared?: number;
   toolsKept?: number;
   tokensFreed?: number;
-  // Legacy fields remain optional so archived compact events can still replay.
-  generation?: number;
-  toolDigestCount?: number;
-  compactedRunCount?: number;
-  digestedRunIds?: string[];
-  originalMessages?: number;
-  projectedMessages?: number;
   preCompactEstimatedTokens?: number;
   postCompactEstimatedTokens?: number;
   compressionRatio?: number;
   remainingRatio?: number;
   releasedRatio?: number;
-  elapsedMs?: number;
   compactionUsage?: AIUsageStats;
-  cacheMetrics?: Record<string, unknown>;
 }
 
 export interface AIContentEvent extends AIBaseTaskEvent {

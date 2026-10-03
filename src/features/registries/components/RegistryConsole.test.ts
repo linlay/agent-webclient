@@ -90,13 +90,6 @@ const registryItems: AdminRegistryListItem[] = [
       isFunction: false,
     },
   },
-  {
-    category: "viewport-servers",
-    file: "preview.yml",
-    key: "preview",
-    status: "ready",
-    summary: { baseUrl: "http://localhost:11970" },
-  },
 ];
 
 function renderRegistryConsole(locale: Locale) {

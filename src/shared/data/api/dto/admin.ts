@@ -6,10 +6,9 @@ export interface AgentSource {
 
 export type AdminRegistryCategory =
   | "providers"
-  | "models"
-  | "viewport-servers";
+  | "models";
 
-export type RegistryConsoleTab = Exclude<AdminRegistryCategory, "viewport-servers"> | "tools";
+export type RegistryConsoleTab = AdminRegistryCategory | "tools";
 
 export type AdminRegistryStatus = "ready" | "invalid" | "disabled";
 

@@ -802,8 +802,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             if (!id) return null;
             const description = toText(record.description);
             return description
-              ? { id, label: skillDisplayName(item) || id, description }
-              : { id, label: skillDisplayName(item) || id };
+              ? { id, label: skillDisplayName(item), description }
+              : { id, label: skillDisplayName(item) };
           })
           .filter((item): item is { id: string; label: string; description?: string } =>
             Boolean(item),

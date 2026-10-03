@@ -1425,11 +1425,9 @@ export const zhCNMessages = {
   "contextCompact.runInterrupted": "运行已中断，上下文压缩未完成",
   "contextCompact.unsupportedActiveRun": "当前运行后端不支持运行中压缩",
   "contextCompact.compactInProgress": "已有上下文压缩请求正在进行",
-  "contextCompact.originalMessages": "历史消息：{count}",
   "contextCompact.source.deterministicFallback": "规则兜底",
   "contextCompact.source.model": "模型",
   "contextCompact.summarySource": "摘要来源：{source}",
-  "contextCompact.toolDigestCount": "工具结果摘要：{count}",
   "contextCompact.unknownError": "未知错误",
   "desktopFileSystem.browserPathPrompt":
     "由于浏览器限制，需要输入项目的绝对路径",

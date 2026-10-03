@@ -120,16 +120,6 @@ function compactTimelineText(
   if (level === "summary") {
     parts.push(t("contextCompact.summarySource", { source }));
   }
-  if (typeof data.originalMessages === "number" && data.originalMessages > 0) {
-    parts.push(
-      t("contextCompact.originalMessages", { count: data.originalMessages }),
-    );
-  }
-  if (typeof data.toolDigestCount === "number" && data.toolDigestCount > 0) {
-    parts.push(
-      t("contextCompact.toolDigestCount", { count: data.toolDigestCount }),
-    );
-  }
   parts.push(...formatCompactStats(data, t));
   return parts.join(" · ");
 }
@@ -175,7 +165,7 @@ export function buildCompactUsageSnapshot(
   return {
     type: AIUsageEventTypeEnum.Snapshot,
     chatId: data.chatId || previous?.chatId || "",
-    runId: data.runId || previous?.runId || data.boundaryRunId || "",
+    runId: data.runId || previous?.runId || "",
     ...(previous?.model ? { model: previous.model } : {}),
     contextWindow: {
       ...previousContext,
@@ -198,7 +188,7 @@ function buildCompactCompleteEvent(
     type: AIContextEventTypeEnum.CompactComplete,
     requestId: data.requestId || requestId,
     chatId: data.chatId || chatId,
-    runId: data.runId || data.boundaryRunId,
+    runId: data.runId,
     compactId: data.compactId,
     cycleId: data.cycleId,
     cycleComplete: data.cycleComplete,
@@ -211,20 +201,12 @@ function buildCompactCompleteEvent(
     toolsCleared: data.toolsCleared,
     toolsKept: data.toolsKept,
     tokensFreed: data.tokensFreed,
-    generation: data.generation,
-    toolDigestCount: data.toolDigestCount,
-    compactedRunCount: data.compactedRunCount,
-    digestedRunIds: data.digestedRunIds,
-    originalMessages: data.originalMessages,
-    projectedMessages: data.projectedMessages,
     preCompactEstimatedTokens: data.preCompactEstimatedTokens,
     postCompactEstimatedTokens: data.postCompactEstimatedTokens,
     compressionRatio: data.compressionRatio,
     remainingRatio: data.remainingRatio,
     releasedRatio: data.releasedRatio,
-    elapsedMs: data.elapsedMs,
     compactionUsage: data.compactionUsage as AIContextCompactEvent["compactionUsage"],
-    cacheMetrics: data.cacheMetrics,
   };
 }
 

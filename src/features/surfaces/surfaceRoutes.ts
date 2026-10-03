@@ -9,7 +9,6 @@ export const SURFACE_ROUTE_PATHS = {
   debug: "/debug/:chatId",
   btw: "/btw/:chatId",
   selectionExplain: "/explain/:chatId",
-  legacySelectionExplain: "/selection-explain/:chatId",
   source: "/source-viewer/:sourceId",
   planning: "/planning-viewer/:planningId",
   resource: "/resource-viewer/:agentKey",

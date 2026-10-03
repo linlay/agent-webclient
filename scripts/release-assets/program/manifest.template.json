@@ -86,7 +86,6 @@
         "/debug/",
         "/btw/",
         "/explain/",
-        "/selection-explain/",
         "/source-viewer/",
         "/planning-viewer/",
         "/resource-viewer/",

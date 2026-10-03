@@ -14,10 +14,10 @@ describe("resolveSkillDisplayName", () => {
     expect(resolveSkillDisplayName(skills, "SKILL-CREATOR")).toBe("技能创建");
   });
 
-  it("falls back to an existing label and then the stable id", () => {
+  it("falls back to an existing label without displaying the stable id", () => {
     expect(resolveSkillDisplayName([], "skill-creator", "Skill Creator")).toBe(
       "Skill Creator",
     );
-    expect(resolveSkillDisplayName([], "skill-creator")).toBe("skill-creator");
+    expect(resolveSkillDisplayName([], "skill-creator")).toBe("");
   });
 });

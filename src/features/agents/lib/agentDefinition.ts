@@ -342,7 +342,7 @@ export function mergeAgentSkillOptions(
     const centerExists = entries.has(key.toLowerCase());
     entries.set(key.toLowerCase(), {
       id: key,
-      label: skillDisplayName(item) || key,
+      label: skillDisplayName(item),
       description: toText(item.description) || undefined,
       source: "private",
       overridesCenter: item.overridesCenter || centerExists,

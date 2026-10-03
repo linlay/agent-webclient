@@ -1279,7 +1279,7 @@ describe("data client requests", () => {
     await deleteAdminSource({
       target: {
         type: "registry",
-        category: "viewport-servers",
+        category: "models",
         file: "demo.yml",
       },
       baseSha256: "registry-sha",
@@ -1306,7 +1306,7 @@ describe("data client requests", () => {
         body: JSON.stringify({
           target: {
             type: "registry",
-            category: "viewport-servers",
+            category: "models",
             file: "demo.yml",
           },
           baseSha256: "registry-sha",

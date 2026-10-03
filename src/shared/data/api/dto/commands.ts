@@ -81,18 +81,6 @@ export interface CompactChatResponse {
   toolsKept?: number;
   tokensFreed?: number;
   detail?: string;
-  // Legacy fields remain optional so archived compact events can still replay.
-  boundaryRunId?: string;
-  boundarySeq?: number;
-  generation?: number;
-  keptRunCount?: number;
-  compactedRunCount?: number;
-  toolDigestCount?: number;
-  digestedRunIds?: string[];
-  originalMessages?: number;
-  projectedMessages?: number;
-  cacheMetrics?: Record<string, unknown>;
-  elapsedMs?: number;
 }
 
 export interface QueryStreamParams {

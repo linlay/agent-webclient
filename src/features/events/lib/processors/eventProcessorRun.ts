@@ -103,8 +103,6 @@ export function processRunEvent(
     if (state.getTimelineNode(nodeId)) return commands;
     const source = toText(event.summarySource) || "unknown";
     const level = toText(event.level) || "summary";
-    const digestCount = Number((event as Record<string, unknown>).toolDigestCount ?? 0);
-    const originalMessages = Number((event as Record<string, unknown>).originalMessages ?? 0);
     const textParts = [
       level === "l1_tools"
         ? t("contextCompact.toolsCompleted")
@@ -117,16 +115,6 @@ export function processRunEvent(
             ? t("contextCompact.source.deterministicFallback")
             : t("contextCompact.source.model"),
       }));
-    }
-    if (Number.isFinite(originalMessages) && originalMessages > 0) {
-      textParts.push(
-        t("contextCompact.originalMessages", { count: originalMessages }),
-      );
-    }
-    if (Number.isFinite(digestCount) && digestCount > 0) {
-      textParts.push(
-        t("contextCompact.toolDigestCount", { count: digestCount }),
-      );
     }
     const stats = formatCompactStats(event as AIContextCompactEvent, t);
     textParts.push(...stats);

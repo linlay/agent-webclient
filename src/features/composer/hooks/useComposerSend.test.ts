@@ -73,12 +73,6 @@ function testT(key: string, params?: Record<string, unknown>): string {
   if (key === 'contextCompact.summarySource') {
     return `Summary source: ${String(params?.source || '')}`;
   }
-  if (key === 'contextCompact.originalMessages') {
-    return `Original messages: ${String(params?.count || '')}`;
-  }
-  if (key === 'contextCompact.toolDigestCount') {
-    return `Tool result summaries: ${String(params?.count || '')}`;
-  }
   if (key === 'contextCompact.reduction') {
     return `Compacted ${String(params?.released || '')}%`;
   }
@@ -205,15 +199,7 @@ describe('runBackgroundCommand compact behavior', () => {
         toolsCleared: 0,
         toolsKept: 2,
         tokensFreed: 3604,
-        boundaryRunId: 'run-boundary',
-        generation: 2,
-        toolDigestCount: 3,
-        compactedRunCount: 4,
-        digestedRunIds: ['run-old-1', 'run-old-2'],
-        projectedMessages: 5,
-        cacheMetrics: { hits: 2 },
-        elapsedMs: 840,
-        originalMessages: 10,
+        runId: 'run-1',
         postCompactEstimatedTokens: 5396,
         compactionUsage: {
           promptTokens: 100,
@@ -271,20 +257,12 @@ describe('runBackgroundCommand compact behavior', () => {
         type: 'context.compact.complete',
         requestId: 'server_request',
         chatId: 'chat-1',
-        runId: 'run-boundary',
+        runId: 'run-1',
         compactId: 'compact-1',
         level: 'summary',
         toolsCleared: 0,
         toolsKept: 2,
         tokensFreed: 3604,
-        generation: 2,
-        toolDigestCount: 3,
-        compactedRunCount: 4,
-        digestedRunIds: ['run-old-1', 'run-old-2'],
-        originalMessages: 10,
-        projectedMessages: 5,
-        cacheMetrics: { hits: 2 },
-        elapsedMs: 840,
         compactionUsage: {
           promptTokens: 100,
           completionTokens: 20,

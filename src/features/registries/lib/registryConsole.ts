@@ -16,7 +16,7 @@ import {
 } from "@/shared/icons/model";
 
 export type RegistryStatusFilter = "all" | AdminRegistryStatus;
-export type RegistryEditableCategory = Exclude<AdminRegistryCategory, "viewport-servers">;
+export type RegistryEditableCategory = AdminRegistryCategory;
 export type RegistryTranslate = (
   key: string,
   params?: Record<string, unknown>,
@@ -26,7 +26,7 @@ export const REGISTRY_CATEGORIES: RegistryEditableCategory[] = [
   "providers",
   "models",
 ];
-// Legacy API categories remain in the transport DTO, but cannot be edited here.
+// Only supported registry categories can be edited here.
 export function isRegistryEditableCategory(category: string): category is RegistryEditableCategory {
   return REGISTRY_CATEGORIES.some(item => item === category);
 }
