@@ -124,7 +124,8 @@ make dev
 
 开发模式下，Webpack Dev Server 会代理：
 
-- `/api/*` 到 `BASE_URL`
+- 普通 `/api/*` 到 `BASE_URL`
+- 设置 `VOICE_BASE_URL` 时，语音 HTTP 与 `/api/voice/ws` 代理到该独立上游；未设置时语音功能关闭
 - `/ws` 到 `BASE_URL`
 - `/auth/*` 到 `BASE_URL`，供 Gateway OIDC/SSO 使用
 
@@ -170,9 +171,19 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | --- | --- | --- |
 | `PORT` | 否 | 本地开发端口；Program Bundle 运行时由 Desktop 宿主注入 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
+| `VOICE_BASE_URL` | 否 | 独立语音服务地址；未设置时关闭语音代理路由与 UI 入口 |
 | `BACKEND_MODE` | 否 | `platform`（默认）保留 Token 认证；`gateway` 使用 Session Cookie、CSRF 与登录回跳 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |
+| `QUICK_ACTIONS_ENABLED` | 否 | 是否启用快捷操作，默认关闭 |
+| `DEBUG_RUN_OBSERVATION_ENABLED` | 否 | 是否启用 Run 观察调试，默认关闭 |
+| `DELTA_LOGS_ENABLED` | 否 | 是否记录增量事件日志，默认关闭 |
+| `BRAND_ID` | 否 | HTML 导出品牌标识，默认 `cutej` |
+| `VOICE_ASR_CLIENT_GATE_ENABLED` | 否 | 浏览器 ASR 音频门控，默认 `true` |
+| `VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD` | 否 | 音频门控 RMS 阈值，默认 `0.008` |
+| `VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS` | 否 | 音频门控开启保持时间，默认 `120` 毫秒 |
+| `VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS` | 否 | 音频门控关闭保持时间，默认 `480` 毫秒 |
+| `VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS` | 否 | 音频门控预留音频长度，默认 `240` 毫秒 |
 | `CONVERSATION_EXPORT_ASSET_ORIGIN` | HTML 导出时是 | Tunnel 资源 origin；生产必须为 HTTPS，本地开发可使用 loopback HTTP，例如 `http://127.0.0.1:11961` |
 
 本地开发和 Program Bundle 构建复用同一组变量名。`.env` 是本地真实配置，不提交版本库。
@@ -189,6 +200,7 @@ AGW Web Client 需要一个可访问的上游智能体服务。常用入口包�
 - `POST /api/submit`
 - `POST /api/interrupt`
 - `POST /api/steer`
+- `GET /api/view`：VIEW 连接器视图；HTTP/WS 共享契约，旧 viewport 继续兼容
 - `GET /api/viewport`
 - `GET /api/resource`
 - `GET /ws`
@@ -241,6 +253,7 @@ scripts/                Program Bundle、协议同步和构建辅助脚本
 - [31-运行时间线-Reasoning与Planning节点](docs/31-运行时间线-Reasoning与Planning节点.md)
 - [32-运行时间线-计划事件与任务视图](docs/32-运行时间线-计划事件与任务视图.md)
 - [33-运行时间线-Artifact发布与资源预览](docs/33-运行时间线-Artifact发布与资源预览.md)
+- [34-运行时间线-统一DocumentSurface](docs/34-运行时间线-统一DocumentSurface.md)
 
 ### 40 交互容器
 
@@ -251,12 +264,14 @@ scripts/                Program Bundle、协议同步和构建辅助脚本
 - [44-交互容器-HITL-Approval审批交互](docs/44-交互容器-HITL-Approval审批交互.md)
 - [45-交互容器-HITL-Form表单HTML交互](docs/45-交互容器-HITL-Form表单HTML交互.md)
 - [46-交互容器-HITL-Plan计划决策](docs/46-交互容器-HITL-Plan计划决策.md)
+- [46-交互容器-VIEW连接器](docs/46-交互容器-VIEW连接器.md)
 
 ### 50 Worker管理
 
 - [50-Worker管理-AgentTeam选择与Worker列表](docs/50-Worker管理-AgentTeam选择与Worker列表.md)
 - [51-Worker管理-Agent管理台](docs/51-Worker管理-Agent管理台.md)
 - [52-Worker管理-Registry管理台与工具目录](docs/52-Worker管理-Registry管理台与工具目录.md)
+- [53-Worker管理-连接器](docs/53-Worker管理-连接器.md)
 
 ### 60 页面能力
 
@@ -270,6 +285,7 @@ scripts/                Program Bundle、协议同步和构建辅助脚本
 - [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)
 - [80-界面基础-样式主题基础UI与国际化](docs/80-界面基础-样式主题基础UI与国际化.md)
 - [81-宿主集成-Desktop宿主桥接](docs/81-宿主集成-Desktop宿主桥接.md)
+- [82-界面基础-皮肤与背景协作](docs/82-界面基础-皮肤与背景协作.md)
 - [90-交付运维-开发代理与Desktop托管](docs/90-交付运维-开发代理与生产反向代理.md)
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
@@ -305,4 +321,4 @@ make dev
 - 依赖方向固定为 `app/pages、app/layout → features/<domain> → shared`；页面不发数据请求，`shared` 不反向依赖应用层或领域层。
 - `npm run check:boundaries` 同时检查目录边界、Transport/Event 纯度和 feature 循环；构建与测试都会先执行该检查。
 
-运行中图片 steer 复用 `/api/upload` 与 `references`：待发送队列、取消/拒绝恢复、Run 结束自动转 query、实时与历史时间线均保留图片；文字仍必填。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
+运行中附件 steer 复用 `/api/upload` 与 `references`，支持纯图片、HTML/MD 等普通文件及混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 首次 query 要求非空正文，后续 query 可只带有效文件或选区引用。Run 结束后，已有主 query 历史的纯引用排队项可转为后续 query；缺少历史确认时恢复输入区等待正文。空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。

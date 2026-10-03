@@ -23,5 +23,5 @@ Reasoning 与 Planning 是 timeline 中的可展开思考/规划节点。Reasoni
 - `../src/features/timeline/lib/reasoningAutoCollapse.ts`
 - `../src/features/timeline/components/ThinkingBlock.tsx`
 - `../src/features/timeline/components/planning/index.tsx`
-- `../src/app/state/timelineTypes.ts`
+- `../src/features/timeline/lib/timelineState.ts`
 

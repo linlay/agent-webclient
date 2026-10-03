@@ -90,6 +90,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `GET /api/admin/tools`
 - `GET /api/chats`
 - `GET /api/chat`
+- `GET /api/view`：VIEW 连接器视图；HTTP/WS 共享契约，旧 viewport 继续兼容
 - `GET /api/viewport`
 - `GET /api/data`
 - `GET /api/file`
@@ -164,6 +165,7 @@ Git 提交与推送规范：
 - [31-运行时间线-Reasoning与Planning节点](docs/31-运行时间线-Reasoning与Planning节点.md)
 - [32-运行时间线-计划事件与任务视图](docs/32-运行时间线-计划事件与任务视图.md)
 - [33-运行时间线-Artifact发布与资源预览](docs/33-运行时间线-Artifact发布与资源预览.md)
+- [34-运行时间线-统一DocumentSurface](docs/34-运行时间线-统一DocumentSurface.md)
 
 ### 40 交互容器
 - [40-交互容器-Viewport视图容器](docs/40-交互容器-Viewport视图容器.md)
@@ -173,6 +175,7 @@ Git 提交与推送规范：
 - [44-交互容器-HITL-Approval审批交互](docs/44-交互容器-HITL-Approval审批交互.md)
 - [45-交互容器-HITL-Form表单HTML交互](docs/45-交互容器-HITL-Form表单HTML交互.md)
 - [46-交互容器-HITL-Plan计划决策](docs/46-交互容器-HITL-Plan计划决策.md)
+- [46-交互容器-VIEW连接器](docs/46-交互容器-VIEW连接器.md)
 
 ### 50 Worker管理
 - [50-Worker管理-AgentTeam选择与Worker列表](docs/50-Worker管理-AgentTeam选择与Worker列表.md)
@@ -197,7 +200,7 @@ Git 提交与推送规范：
 
 VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 继续兼容；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
 
-运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，正文和有效引用不能同时为空；Run 结束后，已有主 query 历史的纯引用排队项也可转为后续 query；缺少历史确认时恢复输入区等待正文。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
+运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用；空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许；Run 结束后，已有主 query 历史的纯引用排队项也可转为后续 query；缺少历史确认时恢复输入区等待正文。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
 
 连接器认证支持六种 auth_mode：no_auth、null、token、oneid-token、oauth、mcp。no_auth 在 Composer 与管理页直接显示无需配置，不请求认证接口；Desktop 复用通用展示，没有独立连接配置流程。详见 [连接器](docs/53-Worker管理-连接器.md)。
 

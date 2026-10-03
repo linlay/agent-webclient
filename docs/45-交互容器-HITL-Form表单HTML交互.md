@@ -20,7 +20,7 @@ Form awaiting 使用后端 viewport HTML 渲染交互表单。前端要求 `view
 ## 相关文件
 - `../src/features/tools/components/AwaitingHtmlContainer.tsx`
 - `../src/features/tools/lib/awaitingRuntime.ts`
-- `../src/features/tools/lib/viewportParser.ts`
+- `../src/features/events/lib/viewportParser.ts`
 - `../src/features/tools/components/protocol.ts`
 - `../src/shared/data/api/routedClient.ts`
-- `../src/app/state/toolTypes.ts`
+- `../src/features/tools/lib/toolsState.ts`

@@ -79,7 +79,6 @@ Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraf
 - `../src/shared/data/desktop/desktopFileSystem.ts`
 - `../src/shared/data/desktop/desktopQueryContext.ts`
 - `../src/shared/hooks/useDesktopRouteChange.ts`
-- `../src/shared/hooks/agentPage/useDesktopAction.ts`
 - `../src/shared/data/desktop/desktopContextMenu.ts`
 - `../src/features/transport/components/RealtimeTransportProvider.tsx`
 - `../src/features/transport/contracts/realtimeTransport.ts`
