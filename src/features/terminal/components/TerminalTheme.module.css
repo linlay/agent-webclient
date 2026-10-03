@@ -1,0 +1,15 @@
+/* Local presentation classes; global descendants belong to shared UI or third-party markup. */
+
+:global(#root) :where(.terminal-theme) :global(.xterm) :global(.xterm-viewport) {
+    background-color: var(--bg-base);
+}
+
+html[data-theme="light"] :where(.terminal-theme) :global(.xterm) :global(.composition-view) {
+    background: #fafafa;
+    color: #1d2129;
+}
+
+html[data-theme="dark"] :where(.terminal-theme) :global(.xterm) :global(.composition-view) {
+    background: #181818;
+    color: #f2f3f5;
+}

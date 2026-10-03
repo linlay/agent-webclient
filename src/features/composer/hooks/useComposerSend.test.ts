@@ -12,7 +12,7 @@ jest.mock('@/features/transport/hooks/useRealtimeTransport', () => ({
   }),
 }));
 
-jest.mock('@/features/surfaces/openTarget', () => ({
+jest.mock('@/features/surfaces/hooks/useOpenTarget', () => ({
   useOpenTarget: () => jest.fn(),
 }));
 

@@ -27,7 +27,7 @@ let mockContext: any;
 let mockBtw: any;
 
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ useRunTransport: () => mockRuns }));
-jest.mock("@/features/surfaces/openTarget", () => ({ useOpenTarget: () => mockOpenTarget }));
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({ useOpenTarget: () => mockOpenTarget }));
 jest.mock("@/app/state/AppContext", () => ({
   useAppState: () => mockState,
   useAppContext: () => mockContext,

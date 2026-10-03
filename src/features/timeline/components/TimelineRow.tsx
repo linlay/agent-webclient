@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { RelatedChatCards } from "./RelatedChatCards";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
@@ -30,9 +32,11 @@ import { PlanningTimeline } from "./planning";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
-import type { AgentSkill } from "@/shared/data/api/client";
+import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { SteerIcon } from "@/features/runs/components/SteerIcon";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -50,7 +54,7 @@ interface TimelineRowProps {
 
 const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
-const TIMELINE_ROW_BASE_CLASS_NAME = "timeline-row tw:relative";
+const TIMELINE_ROW_BASE_CLASS_NAME = presentationClasses("timeline-row tw:relative");
 const TIMELINE_ROW_USER_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
 const TIMELINE_ROW_FLOW_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-flow tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:items-start tw:gap-2.5 tw:mb-[2px]`;
 const TIMELINE_USER_STACK_CLASS_NAME =
@@ -80,7 +84,7 @@ const TIMELINE_CONTENT_FLOW_CLASS_NAME =
 const TIMELINE_SOURCE_FLOW_CLASS_NAME =
   "tw:w-[min(100%,760px)] tw:max-w-[760px]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
-  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+  presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]");
 const TIMELINE_COMMAND_LABEL_CLASS_NAME =
   "timeline-command-label tw:mt-[9px] tw:font-code tw:text-[11px] tw:font-bold tw:leading-none tw:tracking-[0.06em] tw:text-accent-electric-strong tw:uppercase tw:empty:hidden";
 

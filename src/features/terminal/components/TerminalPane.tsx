@@ -1,3 +1,4 @@
+import terminalTheme from "./TerminalTheme.module.css";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -290,7 +291,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`terminal-pane ${styles["terminal-pane"]}`}
+      className={`terminal-pane ${styles["terminal-pane"]} ${terminalTheme["terminal-theme"]}`}
       style={{
         display: isActive ? "block" : "none",
         width: "100%",

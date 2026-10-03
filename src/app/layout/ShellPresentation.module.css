@@ -1,0 +1,159 @@
+/* Local presentation classes; global descendants belong to shared UI or third-party markup. */
+
+.layout-desktop-fixed {
+    position: relative;
+    isolation: isolate;
+}
+.layout-desktop-fixed::before {
+    content: "";
+    position: absolute;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--main-chat-surface);
+}
+.layout-desktop-fixed:global(.timeline-empty-layout)::before {
+    background: var(--new-chat-surface);
+}
+.layout-desktop-fixed:global(.timeline-empty-layout) :global(.composer-pill),
+.layout-desktop-fixed:global(.timeline-empty-layout) :global(.composer-wonder-card) {
+    background: var(--new-chat-input-surface);
+}
+
+.top-nav :global(.icon-btn):global(.ui-btn):global(.is-icon-only),
+.top-nav .current-worker-tool:global(.ui-btn) {
+    width: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    border-radius: 8px;
+}
+
+.top-nav :global(.top-nav-icon-btn):global(.ui-btn):focus-visible {
+    outline: none;
+}
+
+.top-nav :global(.icon-btn) :global(.material-icon),
+.top-nav .current-worker-tool :global(.material-icon) {
+    font-size: 18px;
+}
+
+.top-nav :global(.current-worker-tool-terminal) {
+    position: relative;
+}
+
+.current-worker-terminal-dot {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    width: 7px;
+    height: 7px;
+    border: 1px solid var(--bg-elev-1);
+    border-radius: 50%;
+    background: var(--accent-electric-strong);
+}
+
+.current-worker-terminal-dot:global(.is-busy) {
+    animation: status-pulse 1s ease-in-out infinite;
+    background: var(--accent-lime);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-lime) 16%, transparent);
+}
+
+.current-worker-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+}
+
+.current-worker-tool:global(.ui-btn):global(.is-active) {
+    border-color: color-mix(in srgb,
+            var(--accent-electric) 36%,
+            var(--line-soft));
+    background: color-mix(in srgb, var(--accent-soft) 84%, var(--bg-elev-2));
+    color: var(--accent-electric-strong);
+}
+
+.current-worker-tool-voice:global(.ui-btn):global(.is-call) {
+    color: #2f7c49;
+}
+
+.current-worker-tool-voice:global(.ui-btn):global(.is-hangup) {
+    border-color: color-mix(in srgb, #f06b67 44%, var(--line-soft));
+    background: color-mix(in srgb, #fff0ef 86%, var(--bg-elev-2));
+    color: #d53f3f;
+}
+
+.current-worker-tool-voice:global(.ui-btn):global(.is-hangup):hover:not(:disabled) {
+    border-color: color-mix(in srgb, #e4564f 52%, var(--line-soft));
+    box-shadow: 0 8px 18px rgba(229, 86, 79, 0.18);
+}
+
+.current-worker-tool:global(.ui-btn):global(.is-muted):global(.is-active) {
+    border-color: color-mix(in srgb, #ff945f 38%, var(--line-soft));
+    background: color-mix(in srgb, #fff0e6 84%, var(--bg-elev-2));
+    color: #cf5f18;
+}
+
+@keyframes status-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
+}
+.bottom-dock {
+    padding: 0 16px;
+}
+
+.bottom-dock-inner {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.bottom-dock-stack {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+}
+
+.bottom-dock-artifact-rail,
+.bottom-dock-plan-rail {
+    z-index: 5;
+    padding-bottom: 4px;
+}
+
+.bottom-dock-tool-rail,
+.bottom-dock-composer-rail {
+    position: relative;
+}
+
+.bottom-dock-composer-rail {
+    overflow: hidden;
+    z-index: 2;
+}
+
+.app-shell:global(.timeline-empty-layout) :global(.conversation-stage) {
+    flex: 2 2 0;
+    min-height: 0;
+}
+
+.app-shell:global(.timeline-empty-layout) .bottom-dock {
+    flex: 3 3 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.layout-copilot :global(.query-model-label) {
+    max-width: 50px;
+}

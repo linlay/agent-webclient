@@ -7,7 +7,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { TimelineRow } from "./TimelineRow";
-import type { AgentSkill } from "@/shared/data/api/client";
+import type { AgentSkill } from "@/shared/data/api/dto/agents";
 
 const TASK_GROUP_CLASS_NAME = "timeline-task-group tw:flex tw:flex-col tw:gap-2";
 const TASK_GROUP_HEADER_CLASS_NAME =

@@ -45,7 +45,6 @@ export interface ConversationState {
   conversationScrollRequest: ConversationScrollRequest | null;
   planningMode: boolean;
   planningModeByChatId: Record<string, boolean>;
-  editingMode: boolean;
   downvotedRunKeys: Set<string>;
 }
 
@@ -67,7 +66,6 @@ export type ConversationAction =
   | { type: "PUSH_EVENT"; event: AgentEvent }
   | { type: "CLEAR_EVENTS" }
   | { type: "SET_PLANNING_MODE"; chatId: string; enabled: boolean; persist?: boolean }
-  | { type: "SET_EDITING_MODE"; enabled: boolean }
   | { type: "TOGGLE_RUN_DOWNVOTE"; runKey: string }
   | { type: "SET_RUN_DOWNVOTED"; runKey: string; downvoted: boolean }
   | { type: "SET_MESSAGE"; id: string; message: Message }
@@ -93,7 +91,6 @@ export function createInitialConversationState(): ConversationState {
     conversationScrollRequest: null,
     planningMode: false,
     planningModeByChatId: {},
-    editingMode: false,
     downvotedRunKeys: new Set(),
   };
 }

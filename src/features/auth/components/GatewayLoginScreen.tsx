@@ -1,3 +1,4 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { Alert, Button, Card, Form, Input, Typography } from "antd";
 import {
@@ -15,10 +16,10 @@ export const GatewayLoginScreen: React.FC<{ returnTo: string }> = ({ returnTo })
       <Card className={styles.card} bordered={false}>
         <div className={styles.brand}>
           {session?.tenant.logoUrl ? <img src={session.tenant.logoUrl} alt="" className={styles.logo} /> : null}
-          <Typography.Title level={2} className={styles.title}>
+          <Typography.Title level={2} className={[libraryPresentation.typography, styles.title].filter(Boolean).join(" ")}>
             {session?.tenant.displayName || t("auth.login.defaultTenant")}
           </Typography.Title>
-          <Typography.Text type="secondary">{t("auth.login.subtitle")}</Typography.Text>
+          <Typography.Text type="secondary" className={libraryPresentation.typography}>{t("auth.login.subtitle")}</Typography.Text>
         </div>
         {error ? <Alert type="error" showIcon message={error} /> : null}
         {session?.auth.mode === "local" ? (

@@ -1,9 +1,13 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import React, { useMemo } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { Flex } from "antd";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 interface AwaitingAnswerBlockProps {
   node: TimelineNode;
@@ -217,7 +221,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
       onExpand={() => interaction?.setExpanded?.(node.id, !expanded)}
       label={summaryText}
     >
-      <Flex vertical gap={10} className="awaiting-detail">
+      <Flex vertical gap={10} className={presentationClasses("awaiting-detail")}>
         {items.map((item) => (
           <Flex vertical key={item.key} className="awaiting-answer-item">
             <div className="awaiting-answer-question">{item.title}</div>

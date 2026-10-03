@@ -1,4 +1,4 @@
-import { awaitingViewFrame, acceptsViewSubmit, wrapViewFrameSubmit } from "./viewFrame";
+import { awaitingViewFrame, acceptsViewSubmit, wrapViewFrameSubmit } from "@/features/tools/lib/viewFrame";
 import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 const ref = { connectorId: "member", key: "edit", hash: "a".repeat(64), renderer: "html" };
 const data = { key: "root:wait", runId: "root", awaitingId: "wait", mode: "form", forms: [

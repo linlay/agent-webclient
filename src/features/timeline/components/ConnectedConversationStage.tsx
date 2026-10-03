@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useAgentWelcome } from "@/features/agents/hooks/useAgentWelcome";
@@ -16,7 +18,6 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import "./TimelineCompat.module.css";
 
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -29,7 +30,7 @@ import { formatTimelineTime } from "@/features/timeline/components/TimelineRow";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
 import { TimelineInteractionProvider, type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
 import { registerDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useTimelineTextSearch } from "@/features/timeline/components/TimelineTextSearchProvider";
 import {
   SELECTED_TEXT_TARGET_REVEAL_EVENT,
@@ -94,9 +95,11 @@ import {
   setConversationScrollBookmark,
   type ConversationScrollBookmark,
 } from "@/features/timeline/lib/conversationScrollBookmark";
-import type { AgentSkill } from "@/shared/data/api/client";
+import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import timelineStyles from "./Timeline.module.css";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
@@ -125,7 +128,7 @@ const TIMELINE_EMPTY_CLASS_NAME =
 const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:relative tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
-  "conversation-stage-scroll-to-bottom tw:rounded-full tw:pointer-events-auto";
+  presentationClasses("conversation-stage-scroll-to-bottom tw:rounded-full tw:pointer-events-auto");
 const CONVERSATION_TRANSITION_OVERLAY_CLASS_NAME =
   "conversation-transition-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:overflow-hidden tw:px-6";
 const CONVERSATION_SCROLL_RESTORE_TIMEOUT_MS = 2_000;
@@ -185,7 +188,7 @@ const TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME =
 const TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME =
   "is-downvoted tw:bg-[color-mix(in_srgb,var(--accent-danger)_12%,transparent)] tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--ink-1))]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
-  "timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+  presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]");
 const TIMELINE_RUN_INFO_CLASS_NAME =
   "timeline-run-info tw:inline-flex tw:min-w-0 tw:shrink-0 tw:items-center tw:gap-2";
 const TIMELINE_RUN_TIME_CLASS_NAME =

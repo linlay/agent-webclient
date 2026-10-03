@@ -1,3 +1,4 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
 import { useI18n } from "@/shared/i18n";
@@ -76,7 +77,7 @@ export const ComposerWonders: React.FC<ComposerWondersProps> = ({
             <span className={COMPOSER_WONDER_INDEX_CLASS}>
               {t("composer.wonders.itemLabel", { index: index + 1 })}
             </span>
-            <Typography.Paragraph ellipsis={{ rows: 3, tooltip: wonder }}>
+            <Typography.Paragraph ellipsis={{ rows: 3, tooltip: wonder }} className={libraryPresentation.typography}>
               <span className={COMPOSER_WONDER_TEXT_CLASS}>{wonder}</span>
             </Typography.Paragraph>
           </button>

@@ -14,7 +14,7 @@ import { FileIcon } from "@/shared/components/file-icon";
 import { useI18n } from "@/shared/i18n";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import styles from "./AttachmentCard.module.css";
 

@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const postcss = require("postcss");
 
 const repoRoot = path.resolve(__dirname, "..");
 const sourceRoot = path.join(repoRoot, "src");
@@ -121,6 +122,12 @@ for (const feature of featureNames) {
 for (const file of walk(sharedRoot)) {
   const relativeFile = path.relative(repoRoot, file).split(path.sep).join("/");
   for (const importedPath of readImports(fs.readFileSync(file, "utf8"))) {
+    if (!isTestFile(file) && relativeFile.startsWith("src/shared/data/") && (
+      importedPath === "@/shared/data" || importedPath === "@/shared/data/index" ||
+      (importedPath.startsWith(".") && path.resolve(path.dirname(file), importedPath).replace(/\.tsx?$/, "") === path.join(sharedRoot, "data", "index"))
+    )) {
+      violations.push(`${relativeFile}: data internals must import the owning module, not the public data entry point`);
+    }
     if (importedPath.startsWith("@/app/") || importedPath.startsWith("@/features/")) {
       violations.push(`${relativeFile}: shared must not import ${importedPath}`);
     }
@@ -137,6 +144,11 @@ for (const file of walk(pagesRoot)) {
 }
 
 const appStateTypesImport = "@/app/state/types";
+for (const file of walk(sourceRoot)) {
+  if (readImports(fs.readFileSync(file, "utf8")).some((name) => name === "@/shared/data/api/client")) {
+    violations.push(`${path.relative(repoRoot, file)}: the compatibility API entry point was removed; import the owning request, HTTP or DTO module`);
+  }
+}
 const appStateRoot = path.join(sourceRoot, "app", "state") + path.sep;
 for (const file of walk(sourceRoot).filter((candidate) => !isTestFile(candidate))) {
   if (file.startsWith(appStateRoot)) continue;
@@ -155,6 +167,22 @@ if (fs.existsSync(appStateTypesFile)) {
 }
 
 const domainSelectorPattern = /\.(?:agent|memory|archive|automation|registry|search|worker|project|composer|timeline|tool|voice|desktop-display|layout-copilot|copilot|sidebar|right-sidebar|floating-plan)[a-zA-Z0-9_-]*/;
+// These migrated modules must retain a local anchor. Third-party descendants and
+// state hooks can remain global; selectors nested under a local rule inherit it.
+for (const file of walkStyles(sourceRoot).filter((file) => /(?:Presentation|SettingsOverlay|ModelMenu|TransportStatus|TerminalTheme)\.module\.css$/.test(file))) {
+  postcss.parse(fs.readFileSync(file, "utf8")).walkRules((rule) => {
+    let parent = rule.parent;
+    while (parent && parent.type !== "root") {
+      if (parent.type === "rule" || (parent.type === "atrule" && /keyframes$/.test(parent.name))) return;
+      parent = parent.parent;
+    }
+    for (const selector of postcss.list.comma(rule.selector)) {
+      if (!/\.[a-zA-Z_][\w-]*/.test(selector.replace(/:global\([^)]*\)/g, ""))) {
+        violations.push(`${path.relative(repoRoot, file)}: migrated selector needs a local anchor: ${selector}`);
+      }
+    }
+  });
+}
 const globalStylesRoot = path.join(sharedRoot, "styles", "globals");
 const sharedGlobalStyles = [
   path.join(sharedRoot, "styles", "globals.css"),

@@ -1,3 +1,4 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { Drawer, Flex, Popover, Tooltip, Typography } from "antd";
 import {
@@ -550,7 +551,7 @@ export const UsageContextControl: React.FC<{
                   tooltip:
                     usageSnapshot?.contextWindow?.modelKey ||
                     usageSnapshot?.model?.key,
-                }}
+                }} className={libraryPresentation.typography}
               >
                 {usageSnapshot?.contextWindow?.modelKey ||
                   usageSnapshot?.model?.key ||

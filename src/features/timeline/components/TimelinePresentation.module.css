@@ -1,0 +1,153 @@
+/* Local presentation classes; global descendants belong to shared UI or third-party markup. */
+
+.timeline-row:global(.is-debug-target) {
+    border-radius: 18px;
+    background: color-mix(in srgb, #f7e4a3 18%, transparent);
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, #e2c66c 72%, transparent),
+        0 14px 28px color-mix(in srgb, #e2c66c 16%, transparent);
+    transform: translateY(-1px);
+}
+
+.timeline-row[data-kind="content"] .timeline-markdown p {
+    margin: 0 0 12px;
+}
+
+.timeline-row[data-kind="content"] .timeline-markdown ul,
+.timeline-row[data-kind="content"] .timeline-markdown ol {
+    margin: 0 0 12px;
+}
+
+.timeline-row[data-kind="content"] .timeline-markdown pre,
+.timeline-row[data-kind="content"] .timeline-markdown table,
+.timeline-row[data-kind="content"] .timeline-markdown :global(.markdown-mermaid),
+.timeline-row[data-kind="content"] .timeline-markdown :global(.markdown-echarts) {
+    max-width: min(100%, 820px);
+}
+
+.timeline-row[data-kind="source"] :global(.timeline-flow-content) {
+    width: min(100%, 760px);
+    max-width: 760px;
+}
+
+.timeline-row-time {
+    font-size: 12px;
+    line-height: 1;
+    color: var(--ink-muted);
+    letter-spacing: 0.02em;
+}
+
+@keyframes timeline-task-status-flash {
+
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+
+    25%,
+    75% {
+        opacity: 0;
+    }
+}
+
+html[data-theme="dark"] .timeline-markdown :global(.markdown-mermaid) {
+    border-color: color-mix(in srgb, var(--line-soft) 88%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 96%, transparent);
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .timeline-markdown :global(.markdown-mermaid-toolbar) {
+    border-bottom-color: color-mix(in srgb, var(--line-soft) 88%, transparent);
+    background: color-mix(in srgb, var(--bg-input) 74%, var(--bg-elev-2));
+}
+
+html[data-theme="dark"] .tool-call-inline,
+html[data-theme="dark"] .tool-call-result {
+    background: color-mix(in srgb, var(--bg-elev-1) 92%, var(--bg-elev-2));
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme="dark"] .send-btn {
+    box-shadow: 0 6px 16px rgba(10, 24, 56, 0.34);
+}
+
+html[data-theme="dark"] .timeline-markdown table,
+html[data-theme="dark"] .timeline-markdown pre,
+html[data-theme="dark"] .timeline-markdown blockquote {
+    background: color-mix(in srgb, var(--bg-elev-1) 94%, var(--bg-elev-2));
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme="dark"] .timeline-markdown th,
+html[data-theme="dark"] .timeline-markdown td,
+html[data-theme="dark"] .timeline-markdown img,
+html[data-theme="dark"] .timeline-markdown video:global(.markdown-video) {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+}
+
+html[data-theme="dark"] .timeline-markdown :global(.markdown-echarts) {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+    background: rgba(255, 255, 255, 0.035);
+}
+
+html[data-theme="dark"] .timeline-markdown thead th {
+    background: color-mix(in srgb, var(--bg-elev-1) 100%, var(--bg-elev-2));
+}
+
+html[data-theme="dark"] .timeline-markdown code:not(pre code) {
+    padding: 0.15em 0.42em;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-elev-1) 100%, var(--bg-elev-2));
+    color: var(--ink);
+}
+
+html[data-theme="dark"] .timeline-markdown a {
+    color: var(--accent-strong);
+}
+.thinking-detail,
+.awaiting-detail {
+    color: var(--ink-2);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.thinking-detail {
+    font-size: 12px;
+    max-height: 50vh;
+    overflow: auto;
+}
+
+.timeline-planning-collapse {
+    background-color: color-mix(in srgb, var(--bg-input) 86%, var(--bg-elev-2));
+}
+
+.timeline-planning-collapse :global(.ant-collapse-extra) :global(.material-icon) {
+    font-size: 14px;
+}
+
+.timeline-planning-collapse :global(.ant-collapse-extra) :global(.ui-btn):global(.is-icon-only) {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+}
+
+.timeline-planning-collapse :global(.ant-collapse-extra) :global(.ui-btn):global(.ui-btn-sm) {
+    min-height: 20px;
+}
+
+.timeline-planning-collapse:global(.ant-collapse):global(.ant-collapse-icon-position-end)>:global(.ant-collapse-item)>:global(.ant-collapse-header) :global(.ant-collapse-expand-icon) {
+    padding-left: 6px;
+}
+
+.timeline-planning-collapse:global(.ant-collapse) :global(.ant-collapse-content)>:global(.ant-collapse-content-box) {
+    padding: 0 16px 16px;
+    position: relative;
+}
+
+.conversation-stage-scroll-to-bottom {
+    &:global(.ui-btn):global(.ui-btn-secondary) {
+        background-color: var(--bg-base) !important;
+    }
+}

@@ -33,4 +33,4 @@ Memory 页面由 `/memory` 路由进入，页面入口是 `src/app/pages/memory/
 - `../src/features/memory/lib/memoryInfo.ts`
 - `../src/features/memory/lib/memoryState.ts`
 - `../src/shared/data/memory/memoryTypes.ts`
-- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/http.ts`

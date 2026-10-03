@@ -19,14 +19,6 @@ export function reduceUiState(
 			}
 			return next;
 		}
-		case "SET_EDITING_MODE":
-			return { ...state, editingMode: action.enabled };
-		case "SET_MENTION_OPEN":
-			return { ...state, mentionOpen: action.open };
-		case "SET_MENTION_SUGGESTIONS":
-			return { ...state, mentionSuggestions: action.agents };
-		case "SET_MENTION_ACTIVE_INDEX":
-			return { ...state, mentionActiveIndex: action.index };
 		case "SET_ACCESS_TOKEN":
 			return { ...reduceAppChromeState(state, action), wsErrorMessage: "" };
 		case "CLOSE_RIGHT_SIDEBAR":

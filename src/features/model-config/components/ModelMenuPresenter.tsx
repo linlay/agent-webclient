@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import modelPresentation from "@/features/model-config/components/ModelMenu.module.css";
 import React from "react";
 import type { MenuProps } from "antd";
 import type {
@@ -19,6 +21,8 @@ import {
   toModelOptionText,
   translatedModelOptionLabel,
 } from "@/features/model-config/lib/modelOptions";
+const presentationClasses = bindCssModuleClasses({ ...modelPresentation });
+
 
 export type ModelOptionsStatus = "idle" | "loaded" | "empty" | "failed";
 
@@ -31,11 +35,11 @@ export type ModelListAction = {
 
 const MENU_ITEM_CLASS =
   "query-settings-menu-item tw:inline-flex tw:items-center tw:justify-between tw:gap-1.5 tw:text-[13px] tw:[&_.material-icon]:text-sm";
-const MODEL_MENU_ITEM_CLASS = "query-model-menu-item";
-const MODEL_GROUP_TITLE_CLASS = "query-model-menu-group-title";
+const MODEL_MENU_ITEM_CLASS = presentationClasses("query-model-menu-item");
+const MODEL_GROUP_TITLE_CLASS = presentationClasses("query-model-menu-group-title");
 const MODEL_REFRESH_BUTTON_CLASS =
-  "query-model-menu-refresh ui-icon-hover-20";
-const MODEL_REFRESH_ICON_CLASS = "query-model-menu-refresh-icon";
+  presentationClasses("query-model-menu-refresh ui-icon-hover-20");
+const MODEL_REFRESH_ICON_CLASS = presentationClasses("query-model-menu-refresh-icon");
 
 function itemLabel(content: React.ReactNode): React.ReactElement {
   return React.createElement("span", { className: MENU_ITEM_CLASS }, content);
@@ -132,16 +136,16 @@ export function buildModelMenuItems({
           "span",
           { className: MODEL_MENU_ITEM_CLASS },
           React.createElement("img", {
-            className: `query-model-menu-icon${presentation.isMonochrome ? " is-monochrome" : ""}`,
+            className: presentationClasses(`query-model-menu-icon${presentation.isMonochrome ? " is-monochrome" : ""}`),
             src: presentation.icon,
             alt: "",
             "aria-hidden": true,
           }),
           React.createElement(
             "span",
-            { className: "query-model-menu-copy" },
-            React.createElement("span", { className: "query-model-menu-name" }, getModelDisplayName(model)),
-            React.createElement("span", { className: "query-model-menu-provider" }, presentation.provider),
+            { className: presentationClasses("query-model-menu-copy") },
+            React.createElement("span", { className: presentationClasses("query-model-menu-name") }, getModelDisplayName(model)),
+            React.createElement("span", { className: presentationClasses("query-model-menu-provider") }, presentation.provider),
           ),
         ),
         extra: activeModelKey === key ? React.createElement(MaterialIcon, { name: "check" }) : null,
@@ -182,7 +186,7 @@ export function buildModelMenuItems({
     },
     {
       key: "model-submenu",
-      popupClassName: "query-settings-submenu",
+      popupClassName: presentationClasses("query-settings-submenu"),
       label: itemLabel(selectedModelLabel || activeModelKey || ""),
       children: [
         {

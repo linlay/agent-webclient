@@ -1,0 +1,8 @@
+/* Local presentation classes; global descendants belong to shared UI or third-party markup. */
+
+.settings-card {
+    width: 100%;
+    max-height: min(82vh, 860px);
+    overflow: auto;
+    padding: 0 10px 10px;
+}

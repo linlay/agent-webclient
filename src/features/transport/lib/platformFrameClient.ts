@@ -15,7 +15,7 @@ import {
   decodePlatformApiError,
   decodePlatformApiResponse,
 } from "@/features/transport/lib/platformFrameCodec";
-import type { ApiResponse } from "@/shared/data/api/client";
+import type { ApiResponse } from "@/shared/data/api/dto/common";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { createCompactId } from "@/shared/utils/compactId";
 

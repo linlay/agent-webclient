@@ -5,7 +5,7 @@ import { AttachmentCard } from './AttachmentCard';
 import { message } from 'antd';
 import { useAuthenticatedResourceUrl } from '@/shared/ui/useAuthenticatedResourceUrl';
 const open = jest.fn();
-jest.mock('@/features/surfaces/openTarget', () => ({ useOpenTarget: () => open }));
+jest.mock('@/features/surfaces/hooks/useOpenTarget', () => ({ useOpenTarget: () => open }));
 jest.mock('@/app/state/AppContext', () => ({ useAppState: () => ({ chatId: 'chat-1', chats: [] }) }));
 jest.mock('@/shared/ui/useAuthenticatedResourceUrl', () => ({ useAuthenticatedResourceUrl: jest.fn(() => ({ url: '', loading: false, error: null })) }));
 describe('uploaded attachment activation', () => {

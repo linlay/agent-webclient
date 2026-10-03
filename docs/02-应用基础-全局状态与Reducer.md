@@ -14,6 +14,8 @@
 
 AGENT wire event、awaiting 和 usage 协议类型位于 `src/shared/contracts/agentEvents.ts`，可供 transport、events 和 tools 共同依赖。业务生产代码不再从 `@/app/state/types` 获取领域类型。
 
+跨领域更新使用明确的协调 action：`CLEAR_GATEWAY_IDENTITY_STATE` 一次清理身份相关目录及置顶状态；`APPLY_CONVERSATION_REPLAY` 在既有 `flushSync` 中一次应用完整回放快照。快照字段由 `ConversationReplaySnapshot` 限定，root reducer 只写入这些字段，不接收任意全局状态补丁。请求是否仍有效、awaiting 校准及回放内容解释继续由 conversation 负责。
+
 ## 边界与非目标
 - reducer 不发起网络请求，也不直接操作 DOM。
 - AppState 是前端渲染状态，不等同于后端存储模型。

@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, {
   useCallback,
@@ -16,6 +18,8 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Tooltip } from "antd";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 const COMPOSER_CONTROL_ROW_CLASS =
   "composer-control-row tw:flex tw:w-full tw:items-center tw:gap-2.5 tw:overflow-hidden";
@@ -39,7 +43,7 @@ const VOICE_BUTTON_STATE_CLASS = {
     "is-listening tw:!border-[color-mix(in_srgb,var(--accent-danger)_56%,var(--line-soft))] tw:!bg-[color-mix(in_srgb,var(--accent-danger)_12%,var(--bg-elev-2))] tw:!shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-danger)_22%,transparent)]",
 } as const;
 const SEND_BUTTON_CLASS =
-  "send-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:!place-items-center tw:self-center tw:!rounded-lg tw:!border-0 tw:!bg-accent-electric tw:!p-0 tw:!text-base tw:!font-bold tw:!text-[var(--accent-on)] tw:!shadow-[0_6px_16px_color-mix(in_srgb,var(--accent)_22%,transparent)] tw:!transition-[transform,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:!scale-[1.03] tw:hover:!bg-[var(--control-primary-hover)] tw:hover:!shadow-[0_6px_12px_color-mix(in_srgb,var(--accent)_28%,transparent)] tw:active:!scale-[0.97] tw:[&_.material-icon]:text-[17px]";
+  presentationClasses("send-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:!place-items-center tw:self-center tw:!rounded-lg tw:!border-0 tw:!bg-accent-electric tw:!p-0 tw:!text-base tw:!font-bold tw:!text-[var(--accent-on)] tw:!shadow-[0_6px_16px_color-mix(in_srgb,var(--accent)_22%,transparent)] tw:!transition-[transform,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:!scale-[1.03] tw:hover:!bg-[var(--control-primary-hover)] tw:hover:!shadow-[0_6px_12px_color-mix(in_srgb,var(--accent)_28%,transparent)] tw:active:!scale-[0.97] tw:[&_.material-icon]:text-[17px]");
 const INTERRUPT_BUTTON_CLASS =
   "interrupt-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:self-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-[11px] tw:!font-bold tw:hover:!bg-[color-mix(in_srgb,var(--accent-danger)_10%,transparent)] tw:disabled:opacity-60";
 
@@ -332,7 +336,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             ) : null}
             <UiButton
               className={SEND_BUTTON_CLASS}
-              id="send-btn"
+              id={presentationClasses("send-btn")}
               variant="primary"
               size="sm"
               iconOnly

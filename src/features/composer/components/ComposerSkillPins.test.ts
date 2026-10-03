@@ -286,7 +286,7 @@ describe("Composer skill pins", () => {
 function readComposerStyleRule(selector: string): string {
   const css = fs
     .readFileSync(
-      path.join(process.cwd(), "src/features/composer/components/ComposerCompat.module.css"),
+      path.join(process.cwd(), "src/features/composer/components/ComposerPresentation.module.css"),
       "utf8",
     )
     .replace(/:global\(([^)]+)\)/g, "$1");

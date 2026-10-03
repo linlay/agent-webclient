@@ -1,4 +1,4 @@
-import { buildSurfaceRoute, readChatPreviewLive } from "./surfaceRoutes";
+import { buildSurfaceRoute, readChatPreviewLive } from "@/features/surfaces/lib/surfaceRoutes";
 
 describe("Chat preview routes", () => {
   it("builds a Chat-level live or explicit snapshot URL", () => {

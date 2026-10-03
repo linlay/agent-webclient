@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { getViewport } from "@/shared/data";
@@ -6,6 +8,8 @@ import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 const FRONTEND_TOOL_CONTAINER_CLASS_NAME =
 	"frontend-tool-container tw:mb-0 tw:overflow-hidden tw:rounded-2xl tw:border tw:[border-color:color-mix(in_srgb,var(--accent-electric)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_96%,transparent)] tw:shadow-elevated tw:[.layout-copilot_&]:rounded-[10px]";
@@ -200,12 +204,12 @@ export const FrontendToolContainer: React.FC = () => {
 			</div>
 
 			{tool.loading && (
-				<div className="status-line tw:m-2">
+				<div className={presentationClasses("status-line tw:m-2")}>
 					{t("frontendTool.loading")}
 				</div>
 			)}
 			{tool.loadError && (
-				<div className="system-alert tw:m-2">
+				<div className={presentationClasses("system-alert tw:m-2")}>
 					{tool.loadError}
 				</div>
 			)}

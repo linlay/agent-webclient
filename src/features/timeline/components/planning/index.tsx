@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { Skeleton } from "@/shared/components/skeleton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -9,6 +11,8 @@ import { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "../TimelineInteractionContext";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 interface PlanningTimelineProps {
   node: TimelineNode;
@@ -27,7 +31,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
     <Collapse
       defaultActiveKey="planning"
       expandIconPosition="end"
-      className="timeline-planning-collapse"
+      className={presentationClasses("timeline-planning-collapse")}
       ghost
       items={[
         {

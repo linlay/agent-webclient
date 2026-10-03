@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { Button, Input, InputNumber, Space } from "antd";
 import {
@@ -7,6 +9,8 @@ import {
   type RenderTask,
 } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { t } from "@/shared/i18n";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 GlobalWorkerOptions.workerSrc = new URL(
   // Desktop's Electron runtime also needs the worker's compatibility polyfills.
@@ -146,7 +150,7 @@ export const PdfDocumentViewer: React.FC<{
           <Button size="small" loading={searching} onClick={() => void search()}>{t("contentViewer.pdf.searchAction")}</Button>
         </Space.Compact>
       </div>
-      {error ? <div role="alert" className="status-line tw:m-2.5">{error}</div> : null}
+      {error ? <div role="alert" className={presentationClasses("status-line tw:m-2.5")}>{error}</div> : null}
       {status ? <div aria-live="polite" className="tw:px-3 tw:py-1 tw:text-xs tw:text-ink-muted">{status}</div> : null}
       <div className="tw:min-h-0 tw:flex-1 tw:overflow-auto tw:bg-[color-mix(in_srgb,var(--bg-input)_70%,#808080)] tw:p-4">
         <canvas ref={canvasRef} className="tw:mx-auto tw:block tw:bg-white tw:shadow-lg" />

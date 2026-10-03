@@ -1,3 +1,4 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 import React from "react";
@@ -59,7 +60,7 @@ export const SteerBar: React.FC<{
                   ))}
                 </div>
                 <SelectedTextFragmentsPill fragments={selections} variant="segments" />
-                <Typography.Text ellipsis={{tooltip: steer.message}}>{steer.message}</Typography.Text>
+                <Typography.Text ellipsis={{tooltip: steer.message}} className={libraryPresentation.typography}>{steer.message}</Typography.Text>
                 {steer.submissionError && (
                   <div role="status" title={steer.submissionError}>
                     {t("composer.steer.unknown")}

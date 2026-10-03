@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { Button, DatePicker, Input, Select, Spin } from "antd";
 import type { Chat } from "@/features/chats/lib/chatState";
@@ -9,6 +11,8 @@ import {
 import { useGlobalHistoryRuntime } from "@/features/chats/hooks/useGlobalHistoryRuntime";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 function chatAgentKey(chat: Chat): string {
   return String(chat.agentKey || chat.firstAgentKey || "").trim();
@@ -85,7 +89,7 @@ export const GlobalHistoryConsole: React.FC<GlobalHistoryConsoleProps> = ({
           </div>
         ) : null}
         {error ? (
-          <div className="system-alert" role="alert">
+          <div className={presentationClasses("system-alert")} role="alert">
             {error}
           </div>
         ) : null}

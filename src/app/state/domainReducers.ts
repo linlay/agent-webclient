@@ -2,14 +2,13 @@ import type { AppState } from "@/app/state/types";
 import type { AppAction } from "@/app/state/actions";
 import { reduceConversationState } from "@/app/state/reducerConversation";
 import { reduceNavigationState } from "@/app/state/reducerNavigation";
-import { reduceTasksState } from "@/app/state/reducerTasks";
+import { reduceTasksState } from "@/features/tasks/lib/tasksState";
 import { reduceTimelineState } from "@/app/state/reducerTimeline";
 import { reduceUiState } from "@/app/state/reducerUi";
-import {
-  reduceMemoryDomain,
-  reducePlanDomain,
-  reduceVoiceDomain,
-} from "@/app/state/domainSliceReducers";
+import { reduceMemoryState } from "@/features/memory/lib/memoryState";
+import { reducePlanState } from "@/features/plan/lib/planState";
+import { reduceVoiceState } from "@/features/voice/lib/voiceState";
+import { reduceComposerInteractionState } from "@/features/composer/lib/composerState";
 
 export type DomainReducer = (
 	state: AppState,
@@ -19,10 +18,11 @@ export type DomainReducer = (
 export const domainReducers: DomainReducer[] = [
 	reduceNavigationState,
 	reduceConversationState,
-	reduceMemoryDomain,
-	reducePlanDomain,
+	reduceMemoryState,
+	reducePlanState,
 	reduceTasksState,
 	reduceTimelineState,
-	reduceVoiceDomain,
+	reduceVoiceState,
+	reduceComposerInteractionState,
 	reduceUiState,
 ];

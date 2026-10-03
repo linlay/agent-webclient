@@ -8,7 +8,7 @@ import type { ApprovalActiveAwaiting } from "@/features/tools/lib/toolsState";
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string, params?: any) => params?.detail ? `Submit failed: ${params.detail}` : key }) }));
 jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ warning: jest.fn() }) }));
 jest.mock("@/shared/utils/useKeyboard", () => ({ useKeyboard: () => {} }));
-jest.mock("@/features/tools/components/awaitingTimeout", () => ({ useAwaitingTimeoutCountdown: () => ({ label: "" }) }));
+jest.mock("@/features/tools/hooks/useAwaitingTimeoutCountdown", () => ({ useAwaitingTimeoutCountdown: () => ({ label: "" }) }));
 jest.mock("@/features/tools/components/buildin/useAwaitingResolutionNotice", () => ({ useAwaitingResolutionNotice: () => {} }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("@/shared/ui/Pager", () => ({ Pager: ({ panels, index }: any) => panels[index] }));

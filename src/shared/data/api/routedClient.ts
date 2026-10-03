@@ -1,64 +1,77 @@
-import { getProjectGit as getProjectGitHttp, getProjectGitBranches as getProjectGitBranchesHttp, changeProjectGitBranch as changeProjectGitBranchHttp } from "@/shared/data/api/requests/projects";
+import {
+  getProjectGit as getProjectGitHttp,
+  getProjectGitBranches as getProjectGitBranchesHttp,
+  changeProjectGitBranch as changeProjectGitBranchHttp,
+} from "@/shared/data/api/requests/projects";
 import type { ProjectGitBranchRequest } from "@/shared/data/api/dto/resources";
 import type { ConnectorOrderResponse, UpdateConnectorOrderRequest } from "@/shared/data/api/dto/connectors";
-import { getConnectorOrder as getConnectorOrderHttp, putConnectorOrder as putConnectorOrderHttp } from "@/shared/data/api/requests/connectors";
 import {
-	buildResourceUrl,
-	archiveChats as archiveChatsHttp,
-	createAgent as createAgentHttp,
-	deriveChat as deriveChatHttp,
-	deleteAgent as deleteAgentHttp,
-	deleteArchive as deleteArchiveHttp,
-	deleteChat as deleteChatHttp,
-	downloadResource,
-	downloadChatExport,
-	ensureAccessToken,
-	getArchive as getArchiveHttp,
-	getArchives as getArchivesHttp,
-	searchGlobal as searchGlobalHttp,
-	searchArchives as searchArchivesHttp,
-	getAgent as getAgentHttp,
-	getAgentSkills as getAgentSkillsHttp,
-	getAgentFile as getAgentFileHttp,
-	getAgentOrder as getAgentOrderHttp,
-	getAgents as getAgentsHttp,
-	getChatLLMTraceRaw as getChatLLMTraceRawHttp,
-	getChatRawJsonl as getChatRawJsonlHttp,
-	getChat as getChatHttp,
-	getChatSystemPrompt as getChatSystemPromptHttp,
-	getChats as getChatsHttp,
-	getChatOrder as getChatOrderHttp,
-	putChatOrder as putChatOrderHttp,
-	getCurrentAccessToken,
-	getMemoryMeta as getMemoryMetaHttp,
-	getMemoryRecord as getMemoryRecordHttp,
-	getMemoryRecords as getMemoryRecordsHttp,
-	getMemoryScope as getMemoryScopeHttp,
-	getMemoryScopes as getMemoryScopesHttp,
-	getModelOptions as getModelOptionsHttp,
-	normalizeChatSummariesPayload,
-	previewMemoryContext as previewMemoryContextHttp,
-	getResourceText,
-	getTeams as getTeamsHttp,
-	getViewport as getViewportHttp,
-	getView as getViewHttp,
-	compactChat as compactChatHttp,
-	learnChat as learnChatHttp,
-	markChatRead as markChatReadHttp,
-	openAgentDirectory as openAgentDirectoryHttp,
-	rememberChat as rememberChatHttp,
-	renameChat as renameChatHttp,
-	restoreArchives as restoreArchivesHttp,
-	saveMemoryScope as saveMemoryScopeHttp,
-	setAccessToken,
-	submitFeedback as submitFeedbackHttp,
-	updateAgent as updateAgentHttp,
-	updateAgentName as updateAgentNameHttp,
-	updateAgentModelConfig as updateAgentModelConfigHttp,
-	putAgentOrder as putAgentOrderHttp,
-	uploadFile,
-	validateMemoryScope as validateMemoryScopeHttp,
-} from "@/shared/data/api/client";
+  getConnectorOrder as getConnectorOrderHttp,
+  putConnectorOrder as putConnectorOrderHttp,
+} from "@/shared/data/api/requests/connectors";
+import { buildResourceUrl } from "@/shared/data/api/resources/urls";
+import {
+  archiveChats as archiveChatsHttp,
+  deleteArchive as deleteArchiveHttp,
+  getArchive as getArchiveHttp,
+  getArchives as getArchivesHttp,
+  searchArchives as searchArchivesHttp,
+  restoreArchives as restoreArchivesHttp,
+} from "@/shared/data/api/requests/archives";
+import {
+  createAgent as createAgentHttp,
+  deleteAgent as deleteAgentHttp,
+  getAgent as getAgentHttp,
+  getAgentSkills as getAgentSkillsHttp,
+  getAgentOrder as getAgentOrderHttp,
+  getAgents as getAgentsHttp,
+  getModelOptions as getModelOptionsHttp,
+  getTeams as getTeamsHttp,
+  openAgentDirectory as openAgentDirectoryHttp,
+  updateAgent as updateAgentHttp,
+  updateAgentName as updateAgentNameHttp,
+  updateAgentModelConfig as updateAgentModelConfigHttp,
+  putAgentOrder as putAgentOrderHttp,
+} from "@/shared/data/api/requests/agents";
+import {
+  deriveChat as deriveChatHttp,
+  deleteChat as deleteChatHttp,
+  searchGlobal as searchGlobalHttp,
+  getChat as getChatHttp,
+  getChatSystemPrompt as getChatSystemPromptHttp,
+  getChats as getChatsHttp,
+  getChatOrder as getChatOrderHttp,
+  putChatOrder as putChatOrderHttp,
+  normalizeChatSummariesPayload,
+  getViewport as getViewportHttp,
+  compactChat as compactChatHttp,
+  learnChat as learnChatHttp,
+  markChatRead as markChatReadHttp,
+  rememberChat as rememberChatHttp,
+  renameChat as renameChatHttp,
+  submitFeedback as submitFeedbackHttp,
+} from "@/shared/data/api/requests/chats";
+import {
+  downloadResource,
+  downloadChatExport,
+  getChatLLMTraceRaw as getChatLLMTraceRawHttp,
+  getChatRawJsonl as getChatRawJsonlHttp,
+  getResourceText,
+} from "@/shared/data/api/resources";
+import { ensureAccessToken, getCurrentAccessToken, setAccessToken } from "@/shared/data/api/http";
+import { getAgentFile as getAgentFileHttp } from "@/shared/data/api/requests/projects";
+import {
+  getMemoryMeta as getMemoryMetaHttp,
+  getMemoryRecord as getMemoryRecordHttp,
+  getMemoryRecords as getMemoryRecordsHttp,
+  getMemoryScope as getMemoryScopeHttp,
+  getMemoryScopes as getMemoryScopesHttp,
+  previewMemoryContext as previewMemoryContextHttp,
+  saveMemoryScope as saveMemoryScopeHttp,
+  validateMemoryScope as validateMemoryScopeHttp,
+} from "@/shared/data/api/requests/memory";
+import { getView as getViewHttp } from "@/shared/data/api/requests/views";
+import { uploadFile } from "@/shared/data/api/requests/uploads";
 import type {
 	AgentDetailResponse,
 	AgentSkillsResponse,
@@ -556,16 +569,16 @@ export function getViewport(viewportKey: string): Promise<ApiResponse> {
 
 // HTTP-only Automation methods share the raw client's function identities.
 export {
-	createAutomation,
-	deleteAutomation,
-	getAutomation,
-	getAutomationExecution,
-	getAutomationExecutions,
-	getAutomations,
-	toggleAutomation,
-	triggerAutomation,
-	updateAutomation,
-} from "@/shared/data/api/client";
+  createAutomation,
+  deleteAutomation,
+  getAutomation,
+  getAutomationExecution,
+  getAutomationExecutions,
+  getAutomations,
+  toggleAutomation,
+  triggerAutomation,
+  updateAutomation,
+} from "@/shared/data/api/requests/automations";
 
 export function getMemoryRecords(
 	params: GetMemoryRecordsParams,

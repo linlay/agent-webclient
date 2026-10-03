@@ -1,3 +1,6 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
@@ -14,12 +17,14 @@ import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Modal, Tabs, Tag, Tooltip, Typography } from "antd";
-import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/surfaceRoutes";
+import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
 import {
   DEBUG_EVENT_TABS,
   buildDebugEventGroups,
   type DebugTabKey,
 } from "@/features/debug/lib/debugPanelModel";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 export {
   DEBUG_EVENT_TABS,
@@ -317,7 +322,7 @@ const EventRow: React.FC<{
           </Tooltip>
         </Flex>
         <Typography.Text
-          className={EVENT_ROW_TIME_CLASS_NAME}
+          className={[libraryPresentation.typography, EVENT_ROW_TIME_CLASS_NAME].filter(Boolean).join(" ")}
           ellipsis={{ tooltip: id }}
         >
           {id}
@@ -494,7 +499,7 @@ export const DebugPanelContent: React.FC<{
     <div className={DEBUG_PANEL_CLASS_NAME}>
       <div className={DEBUG_EVENT_LIST_CLASS_NAME} id="events-list">
         {visibleEvents.length === 0 ? (
-          <div className="status-line">{t("rightSidebar.debug.empty")}</div>
+          <div className={presentationClasses("status-line")}>{t("rightSidebar.debug.empty")}</div>
         ) : (
           <Tabs
             size="small"

@@ -1,4 +1,4 @@
-import { ensureAccessToken, getCurrentAccessToken } from "@/shared/data/api/client";
+import { ensureAccessToken, getCurrentAccessToken } from "@/shared/data/api/http";
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import {
 	destroyWsClient,

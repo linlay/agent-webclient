@@ -8,10 +8,10 @@ import {
   SELECT_DIRECTORY_RESPONSE_TYPE,
   selectProjectFolder,
 } from "@/shared/data/desktop/desktopFileSystem";
-import { openAgentDirectory } from "@/shared/data/api/client";
+import { openAgentDirectory } from "@/shared/data/api/requests/agents";
 
-jest.mock("@/shared/data/api/client", () => ({
-  openAgentDirectory: jest.fn(),
+jest.mock("@/shared/data/api/requests/agents", () => ({
+openAgentDirectory: jest.fn()
 }));
 
 const openAgentDirectoryMock = openAgentDirectory as jest.MockedFunction<

@@ -80,7 +80,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 这些结构服务于事件回放、实时流式更新、工具渲染、语音联动和调试面板展示。历史 replay 后必须以 `/api/chat.awaiting` 校准唯一可操作 HITL；孤立 `awaiting.ask` 只保留为历史事件。
 
 ## 6. API 定义
-接口消费封装位于 [`src/shared/data/`](./src/shared/data/)，其中 [`src/shared/data/api/endpoints.ts`](./src/shared/data/api/endpoints.ts) 统一注册接口，[`src/shared/data/api/client.ts`](./src/shared/data/api/client.ts) 与 [`src/shared/data/api/routedClient.ts`](./src/shared/data/api/routedClient.ts) 负责请求执行和传输路由，当前使用的主要接口包括：
+接口消费封装位于 [`src/shared/data/`](./src/shared/data/)，其中 [`src/shared/data/api/endpoints.ts`](./src/shared/data/api/endpoints.ts) 统一注册接口，[`src/shared/data/api/http.ts`](./src/shared/data/api/http.ts) 与 [`src/shared/data/api/routedClient.ts`](./src/shared/data/api/routedClient.ts) 负责请求执行和传输路由，当前使用的主要接口包括：
 - `GET /api/agents`
 - `GET /api/teams`
 - `GET /api/agent`

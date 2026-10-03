@@ -4,7 +4,7 @@ import {
   getErrorMessageFromText,
   requestWithAuth,
 } from "@/shared/data/api/http";
-import type { ApiResponse } from "@/shared/data/api/client";
+import type { ApiResponse } from "@/shared/data/api/dto/common";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
 import { decodePlatformAgentEvent } from "@/features/transport/lib/platformFrameCodec";

@@ -22,6 +22,6 @@ Approval awaiting 用于命令、规则或高风险动作审批。前端支持 a
 - `../src/features/tools/lib/awaitingQuestionMeta.ts`
 - `../src/features/tools/components/buildin/approval-dialog/index.tsx`
 - `../src/features/tools/components/buildin/approval-dialog/state.ts`
-- `../src/features/tools/components/protocol.ts`
+- `../src/features/tools/lib/protocol.ts`
 - `../src/features/events/lib/processors/eventProcessorAwaiting.ts`
 

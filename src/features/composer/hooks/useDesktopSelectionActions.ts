@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { MessageInstance } from "antd/es/message/interface";
 import { useAppState } from "@/app/state/AppContext";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import type { QueryModelOverride } from "@/shared/data";
 import { createRequestId } from "@/shared/data";

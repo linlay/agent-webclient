@@ -43,7 +43,7 @@ import { readDesktopChatRouteRevision } from "@/shared/hooks/useDesktopRouteChan
 /**
  * Replay state — mutable structure used during synchronous event replay.
  * Avoids React batching issues by building up the full timeline locally,
- * then dispatching the complete result via BATCH_UPDATE.
+ * then dispatching the complete result via APPLY_CONVERSATION_REPLAY.
  */
 export type { ReplayState } from "@/features/conversation/lib/conversationReplay";
 export {
@@ -851,10 +851,10 @@ export function useConversationActions() {
               }
             }
 
-            /* Dispatch the complete replay result as a single batch update */
+            /* Dispatch the complete replay result as a single replay transaction */
             dispatch({
-              type: "BATCH_UPDATE",
-              updates: {
+              type: "APPLY_CONVERSATION_REPLAY",
+              snapshot: {
                 chatId: rs.chatId,
                 currentChatActiveRun,
                 runId: activeRunId || rs.runId,

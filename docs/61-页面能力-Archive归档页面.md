@@ -27,7 +27,7 @@ Archive 是独立 `features/archive` 领域，不归 Settings。现有组件/run
 - `../src/features/archive/components/ArchiveDetailPane.tsx`
 - `../src/features/archive/hooks/useArchiveRuntime.ts`
 - `../src/features/archive/lib/archiveViewModel.ts`
-- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/http.ts`
 - `../src/shared/data/api/routedClient.ts`
 - `../src/shared/data/api/endpoints.ts`
 - `../src/shared/data/api/client.test.ts`

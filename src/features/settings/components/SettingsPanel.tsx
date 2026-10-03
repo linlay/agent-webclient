@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import settingsPresentation from "@/features/settings/components/SettingsOverlay.module.css";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   useAppState,
@@ -30,10 +32,11 @@ import { SettingsTtsDebug } from "@/features/settings/components/SettingsTtsDebu
 import { SettingsAsrDebug } from "@/features/settings/components/SettingsAsrDebug";
 import "./Settings.module.css";
 import "./SettingsFields.module.css";
-import "./SettingsOverlayCompat.module.css";
+const presentationClasses = bindCssModuleClasses({ ...settingsPresentation });
+
 
 const SETTINGS_CARD_CLASS_NAME =
-  "settings-card tw:max-h-[min(82vh,860px)] tw:w-full tw:overflow-auto";
+  presentationClasses("settings-card tw:max-h-[min(82vh,860px)] tw:w-full tw:overflow-auto");
 const SETTINGS_PREFERENCES_GRID_CLASS_NAME =
   "settings-preferences-grid tw:grid tw:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] tw:gap-4 tw:[&_.field-group]:mb-0";
 
@@ -216,7 +219,7 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
 
   const content = (
     <div
-      className={surface === "modal" ? SETTINGS_CARD_CLASS_NAME : "settings-card"}
+      className={surface === "modal" ? SETTINGS_CARD_CLASS_NAME : presentationClasses("settings-card")}
     >
       <div
         className={

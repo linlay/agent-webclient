@@ -819,57 +819,55 @@ describe('appReducer conversation reset behavior', () => {
   });
 
   it('clears right sidebar overview data on conversation overview reset', () => {
-    const populated = appReducer(createInitialState(), {
-      type: 'BATCH_UPDATE',
-      updates: {
-        artifacts: [
-          {
-            artifactId: 'artifact_1',
-            artifact: {
-              mimeType: 'application/pdf',
-              name: 'report.pdf',
-              sha256: 'abc',
-              sizeBytes: 10,
-              type: 'file',
-              url: 'https://example.com/report.pdf',
-            },
-            timestamp: 100,
+    const populated: ReturnType<typeof createInitialState> = {
+      ...createInitialState(),
+      artifacts: [
+        {
+          artifactId: 'artifact_1',
+          artifact: {
+            mimeType: 'application/pdf',
+            name: 'report.pdf',
+            sha256: 'abc',
+            sizeBytes: 10,
+            type: 'file',
+            url: 'https://example.com/report.pdf',
           },
-        ],
-        fileChanges: [
+          timestamp: 100,
+        },
+      ],
+      fileChanges: [
+        {
+          runId: 'run_1',
+          filePath: 'src/index.ts',
+          addedLines: 2,
+          deletedLines: 1,
+          editedLines: 0,
+          operationCount: 1,
+          lastUpdatedAt: 100,
+        },
+      ],
+      plan: { planId: 'plan_1', plan: [] },
+      planRuntimeByTaskId: new Map([
+        ['task_1', { status: 'running', updatedAt: 100, error: '' }],
+      ]),
+      taskItemsById: new Map([
+        [
+          'task_1',
           {
+            taskId: 'task_1',
+            taskName: 'Build docs',
+            taskGroupId: 'group_1',
             runId: 'run_1',
-            filePath: 'src/index.ts',
-            addedLines: 2,
-            deletedLines: 1,
-            editedLines: 0,
-            operationCount: 1,
-            lastUpdatedAt: 100,
+            status: 'running',
+            updatedAt: 100,
+            error: '',
           },
         ],
-        plan: { planId: 'plan_1', plan: [] },
-        planRuntimeByTaskId: new Map([
-          ['task_1', { status: 'running', updatedAt: 100, error: '' }],
-        ]),
-        taskItemsById: new Map([
-          [
-            'task_1',
-            {
-              taskId: 'task_1',
-              taskName: 'Build docs',
-              taskGroupId: 'group_1',
-              runId: 'run_1',
-              status: 'running',
-              updatedAt: 100,
-              error: '',
-            },
-          ],
-        ]),
-        activeTaskIds: new Set(['task_1']),
-        planCurrentRunningTaskId: 'task_1',
-        planLastTouchedTaskId: 'task_1',
-      },
-    });
+      ]),
+      activeTaskIds: new Set(['task_1']),
+      planCurrentRunningTaskId: 'task_1',
+      planLastTouchedTaskId: 'task_1',
+    };
 
     const cleared = appReducer(populated, { type: 'CLEAR_CONVERSATION_OVERVIEW' });
 

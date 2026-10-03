@@ -4,7 +4,7 @@ import {
   normalizeAwaitingTimeoutMs,
   resetAwaitingTimeoutEntries,
   resolveAwaitingTimeoutEntry,
-} from "@/features/tools/components/awaitingTimeout";
+} from "@/features/tools/lib/awaitingTimeout";
 
 describe("awaiting timeout helpers", () => {
   afterEach(() => {

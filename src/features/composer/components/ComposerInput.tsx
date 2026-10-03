@@ -7,7 +7,6 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import "@/features/voice/components/VoiceEffects.module.css";
-import "./ComposerCompat.module.css";
 
 interface ComposerInputProps {
   isVoiceMode: boolean;

@@ -2,11 +2,11 @@ import type { SteerParams } from "@/shared/data/api/dto/commands";
 import type {
   AccessLevelUpdateParams,
   AccessLevelUpdateResponse,
-  ApiResponse,
   BTWStreamParams,
   QueryLikeParams,
   QueryStreamParams,
-} from "@/shared/data/api/client";
+} from "@/shared/data/api/dto/commands";
+import type { ApiResponse } from "@/shared/data/api/dto/common";
 import type { AIAwaitSubmitParamData, AgentEvent } from "@/shared/contracts/agentEvents";
 import type { RunOwner } from "@/shared/data/runOwner";
 

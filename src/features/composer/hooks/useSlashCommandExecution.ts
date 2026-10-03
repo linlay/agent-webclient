@@ -9,7 +9,7 @@ import {
 } from "@/features/composer/lib/slashCommands";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
 import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import type { CompactLevel } from "@/shared/data";
 
 export function useSlashCommandExecution(input: {

@@ -1,3 +1,6 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import { App as AntdApp } from "antd";
 import React, {
   useCallback,
@@ -61,6 +64,8 @@ import {
 } from "@/features/agents/lib/agentOperations";
 import { PinnedChatSection } from "./PinnedChatSection";
 import "./WorkerNavigator.module.css";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 const LEFT_SIDEBAR_BASE_CLASS =
   "sidebar left-sidebar is-open tw:!relative tw:gap-1.5 tw:px-0 tw:py-1.5";
@@ -547,14 +552,14 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
               gap={12}
               className={LEFT_SIDEBAR_TOP_ROW_CLASS}
             >
-              <div className="brand-text">
+              <div className={presentationClasses("brand-text")}>
                 <strong>AGENT</strong>
                 <span>Webclient</span>
               </div>
               <Flex gap={4}>
                 <UiButton
                   id="top-nav-new-chat-btn"
-                  className="icon-btn top-nav-new-chat-btn ui-icon-hover-24"
+                  className={presentationClasses("icon-btn top-nav-new-chat-btn ui-icon-hover-24")}
                   size="sm"
                   aria-label={t("topNav.newProject")}
                   title={t("topNav.newProject")}
@@ -594,7 +599,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.automation")}</span>
-                    <Badge count={state.automations?.length} />
+                    <Badge count={state.automations?.length} className={libraryPresentation.badge} />
                   </Flex>
                 </UiButton>
                 {memoryEnabled && (
@@ -609,7 +614,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     />
                     <Flex gap={2} align="center">
                       <span>{t("leftSidebar.quickActions.memory")}</span>
-                      <Badge count={state.memoryInfoRecords?.length || 0} />
+                      <Badge count={state.memoryInfoRecords?.length || 0} className={libraryPresentation.badge} />
                     </Flex>
                   </UiButton>
                 )}
@@ -624,7 +629,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   />
                   <Flex gap={2} align="center">
                     <span>{t("leftSidebar.quickActions.agents")}</span>
-                    <Badge count={state.agents?.length || 0} />
+                    <Badge count={state.agents?.length || 0} className={libraryPresentation.badge} />
                   </Flex>
                 </UiButton>
               </Flex>
@@ -703,7 +708,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
             <PinnedChatSection collapsed={!state.leftDrawerOpen} onSelectChat={handleSelectChat} getChatLoading={getWorkerChatLoading} />
             {filteredWorkerRows.length === 0 ? (
-              <div className="status-line">{t("leftSidebar.noWorkers")}</div>
+              <div className={presentationClasses("status-line")}>{t("leftSidebar.noWorkers")}</div>
             ) : state.leftDrawerOpen ? (
               <Collapse
                 accordion
@@ -794,7 +799,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                           <Badge
                             dot={unreadCount > 0}
                             offset={[5, 9]}
-                            className={WORKER_COLLAPSED_NAME_BADGE_CLASS}
+                            className={[libraryPresentation.badge, WORKER_COLLAPSED_NAME_BADGE_CLASS].filter(Boolean).join(" ")}
                           >
                             <span className={WORKER_COLLAPSED_NAME_CLASS}>
                               {item.displayName}
@@ -821,7 +826,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
             content={renderSettingsMenu(() => setSettingsMenuOpen(false))}
           >
             <UiButton
-              className="icon-btn ui-icon-hover-24"
+              className={presentationClasses("icon-btn ui-icon-hover-24")}
               id="settings-btn"
               variant="ghost"
               aria-label={t("leftSidebar.openSettingsMenu")}

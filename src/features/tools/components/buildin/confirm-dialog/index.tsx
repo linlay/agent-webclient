@@ -45,7 +45,7 @@ import {
   isSelectQuestionType,
   isEditableKeyboardTarget,
 } from "@/features/tools/components/buildin/confirm-dialog/state";
-import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
+import { useAwaitingTimeoutCountdown } from "@/features/tools/hooks/useAwaitingTimeoutCountdown";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import debounce from "lodash/debounce";
 import { useI18n } from "@/shared/i18n";

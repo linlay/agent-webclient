@@ -1,9 +1,15 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
-import { buildTimelineDisplayItemsFromTerminals, type RunTerminalInfo, type TimelineDisplayItem } from "@/features/timeline/lib/timelineDisplay";
+import {
+  buildTimelineDisplayItemsFromTerminals,
+  type RunTerminalInfo,
+  type TimelineDisplayItem,
+} from "@/features/timeline/lib/timelineDisplay";
 import { ConversationStage, toConversationListItems } from "@/features/timeline/components/ConversationStage";
 import { formatTimelineTime } from "@/features/timeline/components/TimelineRow";
 import { TimelineInteractionProvider, type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
@@ -14,6 +20,8 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import styles from "./ConversationPreview.module.css";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 export interface ConversationPreviewProps {
   data: {
@@ -107,7 +115,7 @@ export const ConversationPreview: React.FC<ConversationPreviewProps> = ({
       <UiButton variant="ghost" size="sm" iconOnly title={t("timeline.toolPill.copy.action")}
         aria-label={t("timeline.toolPill.copy.action")}
         onClick={() => void copy(item.node.text || "")}><MaterialIcon name="content_copy" /></UiButton>
-      {time.short && <div className="timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted" title={time.full}>{time.short}</div>}
+      {time.short && <div className={presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted")} title={time.full}>{time.short}</div>}
     </div>;
   };
   const runMeta = (item: Extract<TimelineDisplayItem, { kind: "run" }>, duration: string) => {

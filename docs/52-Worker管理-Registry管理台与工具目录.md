@@ -26,7 +26,7 @@ Registry 管理台由 `/registries` 路由进入，管理 providers、models 和
 - `../src/features/registries/components/RegistryDetailPane.tsx`
 - `../src/features/registries/hooks/useRegistryConsoleRuntime.ts`
 - `../src/features/registries/lib/registryConsole.ts`
-- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/http.ts`
 - `../src/shared/data/api/endpoints.ts`
 - `../src/shared/ui/SearchFilterBar.tsx`
 - `../src/shared/ui/UiTag.tsx`

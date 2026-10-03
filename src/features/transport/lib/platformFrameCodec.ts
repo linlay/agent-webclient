@@ -1,5 +1,6 @@
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
-import { ApiError, type ApiResponse } from "@/shared/data/api/client";
+import { ApiError } from "@/shared/data/api/http";
+import { type ApiResponse } from "@/shared/data/api/dto/common";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import {
   readEpochMillis,

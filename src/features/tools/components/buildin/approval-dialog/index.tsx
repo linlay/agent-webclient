@@ -1,3 +1,4 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { Alert, Radio, Typography } from "antd";
 import { Button, CheckboxRef, Flex, Input } from "antd/es";
 import React, {
@@ -26,7 +27,7 @@ import {
   findApprovalDecisionError,
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
-import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
+import { useAwaitingTimeoutCountdown } from "@/features/tools/hooks/useAwaitingTimeoutCountdown";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
@@ -547,7 +548,7 @@ const ApprovalQuestion = forwardRef<
           {pagnation}
         </Flex>
         <Typography.Paragraph
-          className={hitlDialogClassNames.approvalDetails}
+          className={[libraryPresentation.typography, hitlDialogClassNames.approvalDetails].filter(Boolean).join(" ")}
           ellipsis={{ rows: 5 }}
           title={approval?.command}
         >
@@ -599,14 +600,14 @@ const ApprovalQuestion = forwardRef<
                   {index + 1}
                 </span>
                 <Typography.Text
-                  className={hitlDialogClassNames.optionInfo}
+                  className={[libraryPresentation.typography, hitlDialogClassNames.optionInfo].filter(Boolean).join(" ")}
                   ellipsis={{ tooltip: option.label }}
                 >
                   {option.label}
                 </Typography.Text>
                 {option.description && (
                   <Typography.Text
-                    className={hitlDialogClassNames.approvalMeta}
+                    className={[libraryPresentation.typography, hitlDialogClassNames.approvalMeta].filter(Boolean).join(" ")}
                     ellipsis={{ tooltip: option.description }}
                   >
                     {option.description}

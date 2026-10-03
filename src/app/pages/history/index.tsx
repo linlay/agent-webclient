@@ -6,7 +6,7 @@ import { readInitialHistoryOwnerKey } from "@/features/chats/lib/historyRoute";
 import {
   buildSurfaceRoute,
   readSurfacePresentationContext,
-} from "@/features/surfaces/surfaceRoutes";
+} from "@/features/surfaces/lib/surfaceRoutes";
 
 export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();

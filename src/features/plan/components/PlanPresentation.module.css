@@ -1,0 +1,8 @@
+/* Local presentation classes; global descendants belong to shared UI or third-party markup. */
+
+
+html[data-theme="dark"] .plan-header,
+html[data-theme="dark"] .floating-plan:global(.is-expanded) :global(.plan-list) {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
+}

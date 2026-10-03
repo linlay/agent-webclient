@@ -1,3 +1,4 @@
+import terminalTheme from "./TerminalTheme.module.css";
 import React, { useEffect, useRef } from "react";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
@@ -178,7 +179,7 @@ export const ToolOutputTerminal: React.FC<ToolOutputTerminalProps> = ({
   }, [output]);
 
   return (
-    <div className="tool-output-terminal-shell">
+    <div className={`tool-output-terminal-shell ${terminalTheme["terminal-theme"]}`}>
       <div
         ref={containerRef}
         className="tool-output-terminal"

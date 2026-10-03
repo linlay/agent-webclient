@@ -15,8 +15,36 @@ function reduceAppState(state: AppState, action: AppAction): AppState {
 			return buildConversationResetState(state, {
 				preserveWorkerContext: true,
 			});
-		case "BATCH_UPDATE":
-			return { ...state, ...action.updates };
+		case "CLEAR_GATEWAY_IDENTITY_STATE":
+			return { ...state, agents: [], teams: [], chats: [], chatPinnedOrder: null, chatPinningPending: false, automations: [] };
+		case "APPLY_CONVERSATION_REPLAY":
+			return {
+				...state,
+				chatId: action.snapshot.chatId,
+				currentChatActiveRun: action.snapshot.currentChatActiveRun,
+				runId: action.snapshot.runId,
+				timelineNodes: action.snapshot.timelineNodes,
+				timelineOrder: action.snapshot.timelineOrder,
+				contentNodeById: action.snapshot.contentNodeById,
+				reasoningNodeById: action.snapshot.reasoningNodeById,
+				toolNodeById: action.snapshot.toolNodeById,
+				toolStates: action.snapshot.toolStates,
+				timelineCounter: action.snapshot.timelineCounter,
+				activeReasoningKey: action.snapshot.activeReasoningKey,
+				activeAwaiting: action.snapshot.activeAwaiting,
+				pendingAwaitings: action.snapshot.pendingAwaitings,
+				events: action.snapshot.events,
+				debugEvents: action.snapshot.debugEvents,
+				artifacts: action.snapshot.artifacts,
+				fileChanges: action.snapshot.fileChanges,
+				plan: action.snapshot.plan,
+				planRuntimeByTaskId: action.snapshot.planRuntimeByTaskId,
+				taskItemsById: action.snapshot.taskItemsById,
+				activeTaskIds: action.snapshot.activeTaskIds,
+				planCurrentRunningTaskId: action.snapshot.planCurrentRunningTaskId,
+				planLastTouchedTaskId: action.snapshot.planLastTouchedTaskId,
+				downvotedRunKeys: action.snapshot.downvotedRunKeys,
+			};
 		default:
 			for (const reduceDomain of domainReducers) {
 				const nextState = reduceDomain(state, action);

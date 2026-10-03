@@ -343,7 +343,7 @@ describe('replayEvent tool migration', () => {
         { type: 'SET_CHAT_ID', insideFlushSync: false },
         { type: 'UPSERT_CHAT', insideFlushSync: true },
         { type: 'RESET_CONVERSATION', insideFlushSync: false },
-        { type: 'BATCH_UPDATE', insideFlushSync: true },
+        { type: 'APPLY_CONVERSATION_REPLAY', insideFlushSync: true },
       ]),
     );
 		expect(dispatch).toHaveBeenCalledWith({
@@ -467,8 +467,8 @@ describe('replayEvent tool migration', () => {
     await loadingB;
 
     const appliedChatIds = dispatch.mock.calls
-      .filter(([action]) => action.type === 'BATCH_UPDATE')
-      .map(([action]) => action.updates.chatId);
+      .filter(([action]) => action.type === 'APPLY_CONVERSATION_REPLAY')
+      .map(([action]) => action.snapshot.chatId);
     expect(appliedChatIds).toEqual(['chat_c']);
   });
 
@@ -532,8 +532,8 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: 'chat-retry' });
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'BATCH_UPDATE',
-        updates: expect.objectContaining({ chatId: 'chat-retry' }),
+        type: 'APPLY_CONVERSATION_REPLAY',
+        snapshot: expect.objectContaining({ chatId: 'chat-retry' }),
       }),
     );
   });
@@ -676,7 +676,7 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
     expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
     expect(dispatch).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'BATCH_UPDATE' }),
+      expect.objectContaining({ type: 'APPLY_CONVERSATION_REPLAY' }),
     );
   });
 
@@ -1662,8 +1662,8 @@ describe('replayEvent tool migration', () => {
       }),
     );
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'BATCH_UPDATE',
-      updates: expect.objectContaining({
+      type: 'APPLY_CONVERSATION_REPLAY',
+      snapshot: expect.objectContaining({
         currentChatActiveRun: expect.objectContaining({
           runId: 'run_1',
           state: 'WAITING_SUBMIT',
@@ -1697,8 +1697,8 @@ describe('replayEvent tool migration', () => {
     await actions?.loadChat('chat-active');
 
     expect(dispatch).toHaveBeenCalledWith({
-      type: 'BATCH_UPDATE',
-      updates: expect.objectContaining({
+      type: 'APPLY_CONVERSATION_REPLAY',
+      snapshot: expect.objectContaining({
         chatId: 'chat-active',
         runId: 'run_active',
         currentChatActiveRun: {
@@ -1796,7 +1796,7 @@ describe('replayEvent tool migration', () => {
       });
 
       await actions!.loadChat('chat-active');
-      Object.assign(state, dispatch.mock.calls.find(([action]) => action.type === 'BATCH_UPDATE')![0].updates);
+      Object.assign(state, dispatch.mock.calls.find(([action]) => action.type === 'APPLY_CONVERSATION_REPLAY')![0].snapshot);
 
       expect(globalWithBrowserApis.window!.dispatchEvent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1984,8 +1984,8 @@ describe('replayEvent tool migration', () => {
       persist: false,
     });
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'BATCH_UPDATE',
-      updates: expect.objectContaining({
+      type: 'APPLY_CONVERSATION_REPLAY',
+      snapshot: expect.objectContaining({
         activeAwaiting: expect.objectContaining({
           awaitingId: 'await_plan_1',
           mode: 'plan',
@@ -2065,8 +2065,8 @@ describe('replayEvent tool migration', () => {
     await actions?.loadChat('chat_stale_awaiting');
 
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'BATCH_UPDATE',
-      updates: expect.objectContaining({
+      type: 'APPLY_CONVERSATION_REPLAY',
+      snapshot: expect.objectContaining({
         activeAwaiting: null,
         pendingAwaitings: [],
         events: expect.arrayContaining([
@@ -2106,8 +2106,8 @@ describe('replayEvent tool migration', () => {
     await actions?.loadChat('chat_mismatched_awaiting');
 
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'BATCH_UPDATE',
-      updates: expect.objectContaining({
+      type: 'APPLY_CONVERSATION_REPLAY',
+      snapshot: expect.objectContaining({
         activeAwaiting: null,
         pendingAwaitings: [],
       }),
@@ -2259,7 +2259,7 @@ describe('replayEvent tool migration', () => {
 
     expect(getChat).toHaveBeenCalledWith('chat_cached', false);
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'BATCH_UPDATE',
+      type: 'APPLY_CONVERSATION_REPLAY',
     }));
   });
 

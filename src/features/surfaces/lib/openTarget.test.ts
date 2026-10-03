@@ -8,8 +8,8 @@ import {
   normalizeWorkspaceFileRequestPath,
   openDesktopWorkPanelTarget,
   resolveWorkPanelFileTitle,
-} from "@/features/surfaces/openTarget";
-import { buildSurfaceRoute, SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
+} from "@/features/surfaces/lib/openTarget";
+import { buildSurfaceRoute, SURFACE_ROUTE_PATHS } from "@/features/surfaces/lib/surfaceRoutes";
 
 describe("canonical independent Surface targets", () => {
   it.each(["申请表.docx", "references/申请表.docx"])("preserves the uploaded Reference identity for %s", (path) => {

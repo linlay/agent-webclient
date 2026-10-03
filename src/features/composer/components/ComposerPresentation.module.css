@@ -1,0 +1,375 @@
+/* Local presentation classes; global descendants belong to shared UI or third-party markup. */
+
+
+.composer-add-menu-overlay :global(.ant-popover-inner) {
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+    border-radius: 15px;
+    box-shadow: var(--shadow-soft);
+}
+
+.composer-add-menu-overlay :global(.ant-popover-inner-content) {
+    padding: 0;
+}
+.composer-plus-btn :global(.material-icon) {
+    transition: transform 0.2s ease;
+}
+
+.composer-plus-btn:global(.is-open) :global(.material-icon) {
+    transform: rotate(45deg);
+}
+
+.composer-plus-btn:global(.is-open) {
+    background: var(--bg-hover);
+}
+
+.composer-add-menu-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    min-width: 200px;
+}
+
+.composer-add-menu-nav-item:global(.ui-btn),
+.composer-add-menu-detail-item:global(.ui-btn) {
+    justify-content: flex-start;
+    flex-shrink: 0;
+    min-height: 36px;
+    text-align: left;
+    padding: 6px;
+    color: var(--text-main);
+}
+
+.composer-add-menu-nav-item:global(.ui-btn) :global(.ui-btn-label),
+.composer-add-menu-detail-item:global(.ui-btn) :global(.ui-btn-label) {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 9px;
+    min-width: 0;
+}
+
+.composer-add-menu-nav-item {
+    :global(.material-icon):first-child {
+        color: var(--text-muted);
+    }
+    :global(.material-icon):last-child {
+        margin-left: auto;
+        color: var(--ink-muted);
+        opacity: .6;
+    }
+}
+
+.composer-add-menu-nav-item:global(.is-active) {
+    background: var(--bg-hover);
+}
+
+.composer-add-menu-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+}
+
+.composer-add-menu-divider {
+    margin: 4px 6px;
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+}
+
+.composer-add-menu-scroll {
+    max-height: 300px;
+    overflow: auto;
+
+    :global(.material-icon) {
+        color: var(--accent);
+    }
+}
+
+.composer-add-menu-detail-item {
+    width: 100%;
+}
+
+.composer-add-menu-item-copy {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.composer-add-menu-item-copy b,
+.composer-add-menu-item-copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.composer-add-menu-item-copy small {
+    color: var(--ink-muted);
+    font-size: 11px;
+}
+.composer-add-menu-skill-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    padding: 6px;
+    border-radius: 8px;
+    color: var(--text-main);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.composer-add-menu-skill-row:hover,
+.composer-add-menu-skill-row:focus-within {
+    background: var(--bg-hover);
+}
+
+.composer-add-menu-skill-row:focus-visible {
+    outline: 2px solid var(--accent-electric);
+    outline-offset: -2px;
+}
+
+.composer-add-menu-skill-row:global(.is-disabled) {
+    cursor: default;
+}
+
+.composer-add-menu-item-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.composer-add-menu-item-title>b {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.composer-add-menu-skill-actions {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    margin-left: auto;
+}
+
+.composer-add-menu-skill-pin {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 0;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: width 0.16s ease, margin-left 0.16s ease, opacity 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.composer-add-menu-skill-row:hover .composer-add-menu-skill-pin,
+.composer-add-menu-skill-row:focus-within .composer-add-menu-skill-pin,
+.composer-add-menu-skill-pin[aria-pressed="true"] {
+    width: 18px;
+    margin-left: 6px;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.composer-add-menu-skill-pin[aria-pressed="true"] {
+    color: var(--ink-1);
+}
+
+.composer-add-menu-skill-pin:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+}
+
+.composer-add-menu-skill-pin:disabled {
+    cursor: default;
+}
+
+.composer-add-menu-skill-pin:focus-visible {
+    outline: 2px solid var(--accent-electric);
+    outline-offset: 2px;
+}
+
+.composer-add-menu-skill-row .composer-add-menu-skill-pin :global(.material-icon) {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    color: inherit;
+}
+
+.composer-add-menu-skill-row :global(.composer-add-menu-skill-tag) {
+    flex: none;
+    padding: 1px 6px;
+    font-size: 10px;
+}
+
+.composer-add-menu-mode-switch {
+    position: relative;
+    flex: 0 0 28px;
+    height: 16px;
+    margin-left: auto;
+    border-radius: 100px;
+    background: color-mix(in srgb, var(--text-main) 25%, transparent);
+}
+
+.composer-add-menu-mode-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.composer-add-menu-nav-item[aria-checked="true"] .composer-add-menu-mode-switch {
+    background: var(--accent);
+}
+
+.composer-add-menu-nav-item[aria-checked="true"] .composer-add-menu-mode-switch::after {
+    transform: translateX(12px);
+}
+
+.composer-add-menu-status {
+    padding: 12px 8px;
+    color: var(--ink-muted);
+    font-size: 12px;
+}
+
+@keyframes query-model-menu-refresh-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.composer-popover-overlay :global(.ant-popover-inner) {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.composer-popover-overlay :global(.ant-popover-inner-content) {
+    padding: 0;
+}
+
+.slash-command-item,
+.add-menu-item {
+    white-space: nowrap;
+    text-align: left;
+
+    &:global(.ui-btn) {
+        justify-content: flex-start;
+
+        :global(.ui-btn-label) {
+            gap: 10px;
+            overflow: hidden;
+            width: 100%;
+        }
+    }
+}
+
+.composer-skill-group-label {
+    padding: 8px 6px 4px;
+    color: var(--ink-muted);
+    font-size: 10px;
+    line-height: 16px;
+    font-weight: 500;
+}
+
+.composer-skill-chip {
+    max-width: 100%;
+    min-height: 24px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+}
+.composer-skill-chip :global(.ui-btn) {
+    min-height: 24px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 12px;
+}
+.composer-skill-chip-main { min-width: 0; }
+.composer-skill-chip-main :global(.ui-btn-label) {
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.composer-skill-chip-main :global(.ui-btn-label) > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.composer-skill-chip :global(.material-icon) {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--accent-electric);
+}
+.composer-skill-chip .composer-skill-chip-remove {
+    flex-shrink: 0;
+    width: 22px;
+    padding: 0;
+    opacity: 0;
+}
+.composer-skill-chip:hover .composer-skill-chip-remove,
+.composer-skill-chip:focus-within .composer-skill-chip-remove { opacity: 1; }
+.composer-skill-chip:hover,
+.composer-skill-chip:focus-within {
+    background: color-mix(in srgb, var(--accent-soft) 82%, var(--accent-electric));
+}
+.composer-skill-chip :global(.ui-btn):global(.ui-btn-ghost):is(:hover, :active, :focus-visible, :disabled) {
+    background: transparent;
+    box-shadow: none;
+}
+.composer-skill-chip-remove :global(.material-icon) { color: var(--ink-muted); }
+@media (hover: none) {
+    .composer-skill-chip .composer-skill-chip-remove { opacity: 1; }
+}
+.composer-add-menu-detail[data-section="skills"] {
+    height: min(420px, calc(100dvh - 48px));
+    box-sizing: border-box;
+}
+.composer-add-menu-detail[data-section="skills"] > :global(.ant-input-affix-wrapper) {
+    flex-shrink: 0;
+}
+.composer-add-menu-detail[data-section="skills"] > .composer-add-menu-scroll {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    scrollbar-gutter: stable;
+}
+
+html[data-theme="dark"] .composer-pill,
+html[data-theme="dark"] .mention-suggest {
+    border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-input));
+}
+
+html[data-theme="dark"] .composer-pill {
+    background: color-mix(in srgb, var(--bg-elev-2) 98%, var(--bg-elev-1));
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .composer-control-input {
+    background: color-mix(in srgb,
+            var(--bg-elev-1) 96%,
+            var(--bg-elev-2)) !important;
+    border-color: color-mix(in srgb,
+            var(--line-soft) 100%,
+            transparent) !important;
+}

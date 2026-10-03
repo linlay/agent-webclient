@@ -10,7 +10,7 @@ import { createLiveProcessorState, createLocalCache } from "@/features/conversat
 import { applyLiveEventCommand } from "@/features/conversation/lib/liveEventDispatch";
 import { createReplayState, replayEvent } from "@/features/conversation/lib/conversationReplay";
 
-jest.mock("@/features/surfaces/openTarget", () => ({ useOpenTarget: () => jest.fn() }));
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({ useOpenTarget: () => jest.fn() }));
 jest.mock("@/features/timeline/components/planning", () => ({ PlanningTimeline: () => null }));
 jest.mock("@/features/terminal/lib/terminalDockPersistence", () => ({ restoreTerminalDockOpen: () => false }));
 

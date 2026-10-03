@@ -1,3 +1,6 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import React, { useEffect } from "react";
 import { Tag, Typography } from "antd";
 import type {
@@ -11,6 +14,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
+const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
+
 
 const SLASH_COMMAND_POPOVER_CLASS =
   "slash-command-popover tw:max-h-[min(360px,calc(100vh-120px))] tw:overflow-auto tw:rounded-panel tw:border tw:border-line-soft tw:bg-bg-base";
@@ -18,7 +23,7 @@ const SLASH_COMMAND_LIST_CLASS =
   "slash-command-list tw:flex tw:flex-col tw:gap-1 tw:p-1";
 const SLASH_GROUP_LABEL_CLASS =
   "tw:px-2 tw:pb-0.5 tw:pt-1.5 tw:text-xs tw:font-bold tw:tracking-[0.08em] tw:text-text-muted tw:sticky tw:top-0 tw:bg-bg-base tw:z-10";
-const SLASH_COMMAND_ITEM_CLASS = "slash-command-item";
+const SLASH_COMMAND_ITEM_CLASS = presentationClasses("slash-command-item");
 const SLASH_COMMAND_ITEM_STATE_CLASS = {
   idle: "",
   active: "active tw:!bg-bg-hover",
@@ -108,7 +113,7 @@ export const SlashPaletteContent: React.FC<{
               />
               <span className={SLASH_COMMAND_LABEL_CLASS}>{command.label}</span>
               <Typography.Text
-                className={SLASH_COMMAND_DESCRIPTION_CLASS}
+                className={[libraryPresentation.typography, SLASH_COMMAND_DESCRIPTION_CLASS].filter(Boolean).join(" ")}
                 ellipsis={{
                   tooltip: {
                     title: command.description,
@@ -146,7 +151,7 @@ export const SlashPaletteContent: React.FC<{
               <SkillIcon icon={skill.icon} size={24} fallback={skill.kind === "package" ? "folder" : "build"} />
               <span className={SLASH_COMMAND_LABEL_CLASS}>{skill.label}</span>
               <Typography.Text
-                className={SLASH_COMMAND_DESCRIPTION_CLASS}
+                className={[libraryPresentation.typography, SLASH_COMMAND_DESCRIPTION_CLASS].filter(Boolean).join(" ")}
                 ellipsis={{
                   tooltip: {
                     title: skill.description,

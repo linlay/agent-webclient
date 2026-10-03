@@ -1,3 +1,6 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useMemo } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -37,6 +40,8 @@ import {
   getViewerTargetKey,
   type ViewerTarget,
 } from "@/features/viewers/lib/viewerTarget";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 type RightSidebarTabsKey = string;
 
@@ -432,7 +437,7 @@ export const RightSidebar: React.FC = () => {
         label: (
           <Flex align="center" gap={4}>
             <MaterialIcon name="assignment" />
-            <Typography.Text ellipsis className="tw:!max-w-[100px]">
+            <Typography.Text ellipsis className={[libraryPresentation.typography, "tw:!max-w-[100px]"].filter(Boolean).join(" ")}>
               {p.label}
             </Typography.Text>
           </Flex>
@@ -455,7 +460,7 @@ export const RightSidebar: React.FC = () => {
           >
             <Flex align="center" gap={4}>
               <MaterialIcon name="visibility" />
-              <Typography.Text ellipsis className="tw:!max-w-[100px]">
+              <Typography.Text ellipsis className={[libraryPresentation.typography, "tw:!max-w-[100px]"].filter(Boolean).join(" ")}>
                 {target.name}
               </Typography.Text>
             </Flex>
@@ -483,7 +488,7 @@ export const RightSidebar: React.FC = () => {
           <Tooltip title={label} placement="rightTop">
             <Flex align="center" gap={4}>
               <MaterialIcon name="preview" />
-              <Typography.Text ellipsis className="tw:!max-w-[160px]">{label}</Typography.Text>
+              <Typography.Text ellipsis className={[libraryPresentation.typography, "tw:!max-w-[160px]"].filter(Boolean).join(" ")}>{label}</Typography.Text>
             </Flex>
           </Tooltip>
         ),
@@ -505,7 +510,7 @@ export const RightSidebar: React.FC = () => {
                   placement: "right",
                 },
               }}
-              className="tw:!max-w-[100px]"
+              className={[libraryPresentation.typography, "tw:!max-w-[100px]"].filter(Boolean).join(" ")}
             >
               {preview.title}
             </Typography.Text>
@@ -753,7 +758,7 @@ export const RightSidebar: React.FC = () => {
           )}
           tabBarExtraContent={
             <UiButton
-              className="icon-btn"
+              className={presentationClasses("icon-btn")}
               size="sm"
               variant="ghost"
               iconOnly

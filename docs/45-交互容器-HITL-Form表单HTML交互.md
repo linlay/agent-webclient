@@ -21,6 +21,6 @@ Form awaiting 使用后端 viewport HTML 渲染交互表单。前端要求 `view
 - `../src/features/tools/components/AwaitingHtmlContainer.tsx`
 - `../src/features/tools/lib/awaitingRuntime.ts`
 - `../src/features/events/lib/viewportParser.ts`
-- `../src/features/tools/components/protocol.ts`
+- `../src/features/tools/lib/protocol.ts`
 - `../src/shared/data/api/routedClient.ts`
 - `../src/features/tools/lib/toolsState.ts`

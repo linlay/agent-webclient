@@ -6,7 +6,7 @@ import { useSlashCommandExecution } from "@/features/composer/hooks/useSlashComm
 const mockOpenTarget = jest.fn();
 const mockOpenCommandOverlay = jest.fn();
 
-jest.mock("@/features/surfaces/openTarget", () => ({
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({
   useOpenTarget: () => mockOpenTarget,
 }));
 

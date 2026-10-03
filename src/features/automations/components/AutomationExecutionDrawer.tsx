@@ -21,7 +21,7 @@ import {
 } from "@/features/automations/lib/executionView";
 import { ConversationPreview } from "@/features/conversation/components/ConversationPreview";
 import { conversationPreviewDataFromReplay } from "@/features/conversation/lib/conversationPreviewData";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { AgentIcon } from "@/shared/icons/agent";

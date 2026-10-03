@@ -11,7 +11,7 @@ jest.mock("@/shared/data", () => ({ getView: jest.fn(), getViewport: jest.fn() }
 jest.mock("@/app/state/provider", () => ({ useOptionalAppContext: () => ({ state: { chatId: "chat" } }) }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/utils/useKeyboard", () => ({ useKeyboard: () => {} }));
-jest.mock("./awaitingTimeout", () => ({ useAwaitingTimeoutCountdown: (args: any) => { mockExpire = args.onExpire; return { enabled: false, label: "" }; } }));
+jest.mock("@/features/tools/hooks/useAwaitingTimeoutCountdown", () => ({ useAwaitingTimeoutCountdown: (args: any) => { mockExpire = args.onExpire; return { enabled: false, label: "" }; } }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("antd", () => {
   const R = require("react");

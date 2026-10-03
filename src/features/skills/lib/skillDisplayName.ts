@@ -1,5 +1,5 @@
 import { skillDisplayName } from "@/shared/utils/skillDisplayName";
-import type { AgentSkill } from "@/shared/data/api/client";
+import type { AgentSkill } from "@/shared/data/api/dto/agents";
 
 export function resolveSkillDisplayName(
   skills: readonly AgentSkill[],

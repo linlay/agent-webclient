@@ -1,6 +1,19 @@
+import {
+  downloadAdminSkill,
+  downloadAdminSkillFile,
+  downloadChatExport,
+  downloadResource,
+  fetchAdminSkillFileBlob,
+  fetchAdminSkillIcon,
+  getChatLLMTraceRaw,
+  getChatRawJsonl,
+  getResourceBlob,
+  getResourceDocumentText,
+  getResourceText,
+} from "@/shared/data/api/resources";
+import { setAccessToken } from "@/shared/data/api/http";
 import { configureI18nRuntime, getI18nRuntimeConfig } from "@/shared/i18n/runtime";
 
-import * as client from "@/shared/data/api/client";
 
 const originalI18n = getI18nRuntimeConfig();
 beforeEach(() => { configureI18nRuntime({ locale: "en-US" }); });
@@ -8,17 +21,17 @@ afterEach(() => { configureI18nRuntime(originalI18n); });
 
 const resourceOptions = { chatId: "chat-1" };
 const resourceRequests: Array<[string, () => Promise<unknown>]> = [
-  ["text", () => client.getResourceText("private.txt", resourceOptions)],
-  ["document text", () => client.getResourceDocumentText("private.txt", resourceOptions)],
-  ["blob", () => client.getResourceBlob("private.txt", resourceOptions)],
-  ["raw JSONL", () => client.getChatRawJsonl("chat-1")],
-  ["LLM trace", () => client.getChatLLMTraceRaw("trace.json")],
-  ["download", () => client.downloadResource("private.txt", resourceOptions)],
-  ["chat export", () => client.downloadChatExport("chat-1")],
-  ["skill archive", () => client.downloadAdminSkill("skill-1")],
-  ["skill file", () => client.downloadAdminSkillFile("skill-1", "SKILL.md")],
-  ["skill icon", () => client.fetchAdminSkillIcon("/api/admin/skills/file/download?id=skill-1&path=icon.png")],
-  ["skill blob", () => client.fetchAdminSkillFileBlob("skill-1", "SKILL.md")],
+  ["text", () => getResourceText("private.txt", resourceOptions)],
+  ["document text", () => getResourceDocumentText("private.txt", resourceOptions)],
+  ["blob", () => getResourceBlob("private.txt", resourceOptions)],
+  ["raw JSONL", () => getChatRawJsonl("chat-1")],
+  ["LLM trace", () => getChatLLMTraceRaw("trace.json")],
+  ["download", () => downloadResource("private.txt", resourceOptions)],
+  ["chat export", () => downloadChatExport("chat-1")],
+  ["skill archive", () => downloadAdminSkill("skill-1")],
+  ["skill file", () => downloadAdminSkillFile("skill-1", "SKILL.md")],
+  ["skill icon", () => fetchAdminSkillIcon("/api/admin/skills/file/download?id=skill-1&path=icon.png")],
+  ["skill blob", () => fetchAdminSkillFileBlob("skill-1", "SKILL.md")],
 ];
 
 describe("resource response compatibility", () => {
@@ -28,12 +41,12 @@ describe("resource response compatibility", () => {
   beforeEach(() => {
     globalThis.fetch = fetchMock;
     fetchMock.mockReset();
-    client.setAccessToken("resource-token");
+    setAccessToken("resource-token");
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
-    client.setAccessToken("");
+    setAccessToken("");
   });
 
   it.each(resourceRequests)("preserves status, code, data and diagnostics for %s errors", async (_name, request) => {
@@ -70,7 +83,7 @@ describe("resource response compatibility", () => {
       }),
     });
 
-    await expect(client.getResourceDocumentText("private.txt", {
+    await expect(getResourceDocumentText("private.txt", {
       ...resourceOptions,
       signal: controller.signal,
     })).resolves.toEqual({

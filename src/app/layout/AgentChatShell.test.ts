@@ -18,7 +18,7 @@ import {
   resetRouteAgentDetailFetched,
   resolveNewChatResendRouteAction,
 } from "@/app/layout/AgentChatShell";
-import { ApiError } from "@/shared/data/api/client";
+import { ApiError } from "@/shared/data/api/http";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
 

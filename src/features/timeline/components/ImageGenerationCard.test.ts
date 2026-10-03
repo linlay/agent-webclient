@@ -9,7 +9,7 @@ jest.mock('@/app/state/provider', () => ({ useOptionalAppContext: () => null }))
 jest.mock('./ToolPill', () => ({ ToolPill: () => null }));
 const mockOpen = jest.fn();
 const mockResource = jest.fn((url: string, chatId: string, options: unknown) => ({ url, loading: false, error: null }));
-jest.mock('@/features/surfaces/openTarget', () => ({ ...jest.requireActual('@/features/surfaces/openTarget'), useOpenTarget: () => mockOpen }));
+jest.mock('@/features/surfaces/hooks/useOpenTarget', () => ({ ...jest.requireActual('@/features/surfaces/hooks/useOpenTarget'), useOpenTarget: () => mockOpen }));
 jest.mock('@/shared/ui/useAuthenticatedResourceUrl', () => ({ useAuthenticatedResourceUrl: (url: string, chatId: string, options: unknown) => mockResource(url, chatId, options) }));
 jest.mock('@/shared/ui/useAppMessage', () => ({ useAppMessage: () => ({ error: jest.fn() }) }));
 jest.mock('@/shared/data/desktop/desktopContextMenu', () => ({ useDesktopContextMenuTarget: () => null }));
@@ -104,7 +104,7 @@ it.each([
   act(() => (img.parentElement as HTMLButtonElement).click());
   const intent = mockOpen.mock.calls[0][0];
   expect(intent).toMatchObject({ kind, chatId: 'owner', resourceTarget: { url, contentKind: 'image' } });
-  const { openDesktopWorkPanelTarget } = jest.requireActual('@/features/surfaces/openTarget');
+  const { openDesktopWorkPanelTarget } = jest.requireActual('@/features/surfaces/lib/openTarget');
   const openNativeDocument = jest.fn().mockResolvedValue({ ok: true });
   const openDescriptor = jest.fn();
   expect(openDesktopWorkPanelTarget({

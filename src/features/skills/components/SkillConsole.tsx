@@ -1,3 +1,4 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { SkillIcon } from "./SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { SkillPackageOverview } from "./SkillPackageOverview";
@@ -2506,7 +2507,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 className="tw:w-full"
               >
                 <Typography.Text
-                  className="tw:flex-1 tw:group-hover:pe-[22px] tw:group-has-[:focus-visible]:pe-[22px]"
+                  className={[libraryPresentation.typography, "tw:flex-1 tw:group-hover:pe-[22px] tw:group-has-[:focus-visible]:pe-[22px]"].filter(Boolean).join(" ")}
                   ellipsis
                   title={skillDisplayName(item)}
                 >
@@ -2536,7 +2537,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 gap={10}
               >
                 <Typography.Text
-                  className={SKILL_LIST_ITEM_META_CLASS_NAME}
+                  className={[libraryPresentation.typography, SKILL_LIST_ITEM_META_CLASS_NAME].filter(Boolean).join(" ")}
                   ellipsis
                   title={item.id}
                 >

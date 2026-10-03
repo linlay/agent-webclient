@@ -102,7 +102,10 @@ export function createInitialVoiceState(): VoiceState {
   return { wsStatus: "disconnected", wsErrorMessage: "", audioMuted: false, ttsDebugStatus: "idle", inputMode: "text", voiceChat: createInitialVoiceChatState() };
 }
 
-export function reduceVoiceState(state: VoiceState, action: VoiceAction): VoiceState {
+export function reduceVoiceState<S extends VoiceState>(state: S, action: VoiceAction): S;
+export function reduceVoiceState<S extends VoiceState>(state: S, action: { type: string }): S | null;
+export function reduceVoiceState<S extends VoiceState>(state: S, input: { type: string }): S | null {
+  const action = input as VoiceAction;
   switch (action.type) {
     case "SET_WS_STATUS": return {
       ...state,
@@ -117,5 +120,6 @@ export function reduceVoiceState(state: VoiceState, action: VoiceAction): VoiceS
     case "SET_TTS_DEBUG_STATUS": return { ...state, ttsDebugStatus: action.status };
     case "SET_INPUT_MODE": return { ...state, inputMode: action.mode };
     case "PATCH_VOICE_CHAT": return { ...state, voiceChat: { ...state.voiceChat, ...action.patch } };
+    default: return null;
   }
 }

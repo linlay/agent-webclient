@@ -168,7 +168,7 @@ jest.mock("@/features/timeline/lib/timelineDisplay", () => ({
   buildTimelineDisplayItems: () => [],
 }));
 
-jest.mock("@/features/composer/components/useSpeechInput", () => ({
+jest.mock("@/features/composer/hooks/useSpeechInput", () => ({
   useSpeechInput: () => ({
     speechSupported: true,
     speechListening: false,

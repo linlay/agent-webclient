@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { SURFACE_ROUTE_PATHS } from "./features/surfaces/surfaceRoutes";
+import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/lib/surfaceRoutes";
 
 describe("isolated Program release inputs", () => {
   it("carries the build boundary checker in both native packaging scripts", () => {

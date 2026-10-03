@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { ChatPreviewSurface } from "@/features/conversation/components/ChatPreviewSurface";
-import { readChatPreviewLive } from "@/features/surfaces/surfaceRoutes";
+import { readChatPreviewLive } from "@/features/surfaces/lib/surfaceRoutes";
 
 export function ChatPreviewPage() {
   const { chatId = "" } = useParams<{ chatId: string }>();

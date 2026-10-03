@@ -53,7 +53,7 @@ jest.mock("@/shared/data", () => ({
 jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({
   useAuthenticatedResourceUrl: () => ({ url: "", loading: false, error: "" }),
 }));
-jest.mock("@/features/surfaces/openTarget", () => ({ useOpenTarget: () => jest.fn() }));
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({ useOpenTarget: () => jest.fn() }));
 jest.mock("@/shared/icons/agent", () => ({ AgentIcon: () => React.createElement("span") }));
 jest.mock("@/features/timeline/components/TimelineRow", () => ({
   TimelineRow: ({ node }: any) => React.createElement("div", null, node?.text),
@@ -113,13 +113,21 @@ describe("whole conversation surface navigation", () => {
           React.createElement(Routes, null, React.createElement(Route, { path: "/agent/:agentKey", element: React.createElement(AgentChatShell) })))))));
     });
     await act(async () => {
-      context.dispatch({ type: "BATCH_UPDATE", updates: {
-        chatId: "A", agents: [{ key: "demo", name: "Demo", mode: "CODER", modelOptions: [] }], workerSelectionKey: "agent:demo",
-        chatLoadSeq: 1, chatTransition: { seq: 1, sourceChatId: "", targetChatId: "A", phase: "ready", kind: "initial-load", displayMode: "blocking", focusComposerOnReady: false, error: "" },
-        timelineOrder: ["old"], timelineNodes: new Map([["old", { id: "old", kind: "message", role: "user", text: "old timeline A", ts: 1 }]]),
+      context.dispatch({ type: "APPLY_CONVERSATION_REPLAY", snapshot: {
+        ...context.state,
+        chatId: "A",
+        timelineOrder: ["old"],
+        timelineNodes: new Map([["old", { id: "old", kind: "message", role: "user", text: "old timeline A", ts: 1 }]]),
         artifacts: [{ artifactId: "old-file", artifact: { name: "old-artifact-A.txt", sizeBytes: 100, url: "", type: "file" } }],
-        plan: { planId: "old-plan", tasks: [{ taskId: "task-A", description: "old-task-A", status: "completed" }] }, planExpanded: true,
+        plan: { planId: "old-plan", tasks: [{ taskId: "task-A", description: "old-task-A", status: "completed" }] },
       } });
+      context.dispatch({ type: "SET_AGENTS", agents: [{ key: "demo", name: "Demo", mode: "CODER", modelOptions: [] }] });
+      context.dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: "agent:demo" });
+      context.dispatch({ type: "BEGIN_CHAT_TRANSITION", transition: {
+        seq: 1, sourceChatId: "", targetChatId: "A", phase: "ready", kind: "initial-load",
+        displayMode: "blocking", focusComposerOnReady: false, error: "",
+      } });
+      context.dispatch({ type: "SET_PLAN_EXPANDED", expanded: true });
       navigate("/agent/demo?chatId=A");
     });
   });
@@ -137,14 +145,12 @@ describe("whole conversation surface navigation", () => {
   }
 
   async function completedRunDeriveButton() {
-    await act(async () => context.dispatch({ type: "BATCH_UPDATE", updates: {
-      events: [{ type: "request.query", timestamp: 1_776_474_697_581 }, { type: "run.complete", runId: "run_1", timestamp: 3 }],
-      timelineOrder: ["query", "answer"],
-      timelineNodes: new Map([
+    await act(async () => context.dispatch({ type: "APPLY_CONVERSATION_REPLAY", snapshot: {
+      ...context.state,
+      events: [{ type: "request.query", timestamp: 1_776_474_697_581 }, { type: "run.complete", runId: "run_1", timestamp: 3 }], timelineOrder: ["query", "answer"], timelineNodes: new Map([
         ["query", { id: "query", kind: "message", role: "user", text: "question", ts: 1 }],
         ["answer", { id: "answer", kind: "content", role: "assistant", text: "answer", ts: 2 }],
-      ]),
-    } }));
+      ]) } }));
     await finishTransition();
     const button = container.querySelector('[data-material-icon="branches"]')?.closest("button");
     expect(button).not.toBeNull();
@@ -317,7 +323,9 @@ describe("whole conversation surface navigation", () => {
     await act(async () => {
       context.querySessionsRef.current.set("live", { requestId: "live", chatId: "B", runId: "run-B", streaming: true, observationSource: "query", agentKey: "demo" });
       context.activeQuerySessionRequestIdRef.current = "live";
-      context.dispatch({ type: "BATCH_UPDATE", updates: { chatId: "B", requestId: "live", streaming: true } });
+      context.dispatch({ type: "APPLY_CONVERSATION_REPLAY", snapshot: { ...context.state, chatId: "B" } });
+      context.dispatch({ type: "SET_REQUEST_ID", requestId: "live" });
+      context.dispatch({ type: "SET_STREAMING", streaming: true });
       window.dispatchEvent(new CustomEvent("agent:new-chat-created", { detail: { chatId: "B", agentKey: "demo" } }));
     });
     expect(getChat).not.toHaveBeenCalled();

@@ -1,4 +1,3 @@
-// Compatibility entry point. Request implementations and DTOs are owned by the modules below.
 import type {
   VoiceCapabilities,
 } from "@/shared/data/api/dto/voice";
@@ -157,46 +156,3 @@ export async function getVoiceVoicesFlexible(path = dataEndpoints.voiceVoices.pa
   const response = await requestWithAuth(path);
   return readVoiceVoicesResponse(response);
 }
-
-export {
-  ApiError,
-  setAccessToken,
-  getCurrentAccessToken,
-  ensureAccessToken,
-  createRequestId,
-} from "@/shared/data/api/http";
-export type * from "@/shared/data/api/dto/common";
-export type * from "@/shared/data/api/dto/commands";
-export type * from "@/shared/data/api/dto/resources";
-export type * from "@/shared/data/api/dto/agents";
-export type * from "@/shared/data/api/dto/chats";
-export type * from "@/shared/data/api/dto/automations";
-export type * from "@/shared/data/api/dto/admin";
-export type * from "@/shared/data/api/dto/skills";
-export type * from "@/shared/data/api/dto/models";
-export type * from "@/shared/data/api/dto/archives";
-export * from "@/shared/data/api/requests/chats";
-export * from "@/shared/data/api/requests/views";
-export {
-  buildResourceUrl,
-  isLegacyResourceUrl,
-  isChatScopeResourceRef,
-  classifyResourceUrl,
-} from "@/shared/data/api/resources/urls";
-export * from "@/shared/data/api/requests/projects";
-export * from "@/shared/data/api/resources";
-
-export * from "@/shared/data/api/requests/uploads";
-export * from "@/shared/data/api/requests/agents";
-export * from "@/shared/data/api/requests/admin";
-
-export * from "@/shared/data/api/requests/skills";
-
-export * from "@/shared/data/api/requests/archives";
-export * from "@/shared/data/api/requests/automations";
-export type {
-  GetMemoryRecordsParams,
-} from "@/shared/data/memory/memoryTypes";
-export * from "@/shared/data/api/requests/memory";
-
-export * from "@/shared/data/api/reasoningEffort";

@@ -1,5 +1,9 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import React from "react";
 import { Popover } from "antd";
+const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
+
 
 export interface ComposerPanel {
   open: boolean;
@@ -28,7 +32,7 @@ export const ComposerPopover: React.FC<ComposerPopoverProps> = ({
       placement="topLeft"
       arrow={false}
       autoAdjustOverflow
-      classNames={{ root: "composer-popover-overlay" }}
+      classNames={{ root: presentationClasses("composer-popover-overlay") }}
       destroyOnHidden
       styles={{
         root: {

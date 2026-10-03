@@ -1,5 +1,8 @@
-import { awaitingViewFrame, acceptsViewSubmit, wrapViewFrameSubmit } from "./viewFrame";
-import { useAwaitingFrameDocument } from "./useAwaitingFrameDocument";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import toolsPresentation from "@/features/tools/components/AwaitingPresentation.module.css";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
+import { awaitingViewFrame, acceptsViewSubmit, wrapViewFrameSubmit } from "@/features/tools/lib/viewFrame";
+import { useAwaitingFrameDocument } from "@/features/tools/hooks/useAwaitingFrameDocument";
 import { useOptionalAppContext } from "@/app/state/provider";
 import React, {
   useCallback,
@@ -20,13 +23,14 @@ import {
   buildAwaitingViewportSignature,
   isAwaitingFrameCloseMessage,
   readAwaitingSubmitPayload,
-} from "@/features/tools/components/protocol";
-import { useAwaitingTimeoutCountdown } from "@/features/tools/components/awaitingTimeout";
+} from "@/features/tools/lib/protocol";
+import { useAwaitingTimeoutCountdown } from "@/features/tools/hooks/useAwaitingTimeoutCountdown";
 import { useI18n } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
 import { RadioRef } from "antd/es/radio";
-import "./hitlCompat.module.css";
+const presentationClasses = bindCssModuleClasses({ ...toolsPresentation, ...sharedPresentation });
+
 
 interface AwaitingHtmlContainerProps {
   data: FormActiveAwaiting;
@@ -73,16 +77,16 @@ const AWAITING_PANEL_FOOTER_CLASS_NAME =
   "awaiting-panel-footer tw:mt-0.5 tw:flex tw:flex-col tw:items-stretch tw:gap-2.5";
 
 const AWAITING_PANEL_RADIOGROUP_CLASS_NAME =
-  "awaiting-panel-radiogroup tw:flex tw:flex-col tw:gap-0.5 tw:text-xs";
+  presentationClasses("awaiting-panel-radiogroup tw:flex tw:flex-col tw:gap-0.5 tw:text-xs");
 
 const AWAITING_PANEL_OPTION_CLASS_NAME =
-  "awaiting-panel-option tw:mr-0 tw:min-w-0 tw:flex-1 tw:rounded-2xl tw:border tw:border-transparent tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover";
+  presentationClasses("awaiting-panel-option tw:mr-0 tw:min-w-0 tw:flex-1 tw:rounded-2xl tw:border tw:border-transparent tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover");
 
 const AWAITING_PANEL_FREE_TEXT_OPTION_CLASS_NAME =
-  "awaiting-panel-option free-text tw:mr-0 tw:min-w-0 tw:flex-1 tw:rounded-2xl tw:border tw:border-transparent tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover tw:focus-within:border-accent";
+  presentationClasses("awaiting-panel-option free-text tw:mr-0 tw:min-w-0 tw:flex-1 tw:rounded-2xl tw:border tw:border-transparent tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover tw:focus-within:border-accent");
 
 const AWAITING_PANEL_OPTION_INDEX_CLASS_NAME =
-  "awaiting-panel-option-index tw:flex tw:h-5 tw:w-5 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-line tw:bg-bg-hover";
+  presentationClasses("awaiting-panel-option-index tw:flex tw:h-5 tw:w-5 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-line tw:bg-bg-hover");
 
 const AWAITING_PANEL_OPTION_LABEL_CLASS_NAME =
   "awaiting-panel-option-label tw:whitespace-nowrap tw:font-semibold tw:text-text-main";
@@ -964,7 +968,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       </div>
 
       {frameLoading && (
-        <div className="status-line tw:mt-0.5">
+        <div className={presentationClasses("status-line tw:mt-0.5")}>
           {t("awaiting.load.loading")}
         </div>
       )}
@@ -1070,7 +1074,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         </Radio.Group>
       </div>
       {submitError && (
-        <div className="system-alert tw:mt-0.5">{submitError}</div>
+        <div className={presentationClasses("system-alert tw:mt-0.5")}>{submitError}</div>
       )}
     </div>
   );

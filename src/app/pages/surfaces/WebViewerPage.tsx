@@ -1,7 +1,7 @@
 import React from "react";
 import { useSearchParams } from "react-router-dom";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
-import { isAllowedWebSurfaceUrl } from "@/features/surfaces/surfaceRoutes";
+import { isAllowedWebSurfaceUrl } from "@/features/surfaces/lib/surfaceRoutes";
 import { useI18n } from "@/shared/i18n";
 import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 import type { TimelineAttachment, TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
-import type { OpenTargetIntent } from "@/features/surfaces/openTarget";
+import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
 import type { ContentSegment } from "@/shared/contracts/contentSegments";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/desktopContextMenu";

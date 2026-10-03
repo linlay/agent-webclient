@@ -1,4 +1,4 @@
-import { buildSurfaceRoute } from "@/features/surfaces/surfaceRoutes";
+import { buildSurfaceRoute } from "@/features/surfaces/lib/surfaceRoutes";
 
 export type ProjectView = "content" | "diff";
 

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";

@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
 import { TimelineTextSearchProvider } from "@/features/timeline/components/TimelineTextSearchProvider";
 import React, { useMemo } from "react";
@@ -18,9 +20,11 @@ import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedba
 import { TerminalDock, resolveTerminalDockWorkspaceKey } from "./TerminalDock";
 import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
 import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
+const presentationClasses = bindCssModuleClasses({ ...appPresentation });
+
 
 const APP_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:grid-rows-[minmax(0,1fr)] tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:col-start-1 tw:[&_.left-sidebar]:row-start-1 tw:[&_.left-sidebar]:min-w-0 tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-start-1 tw:[&_.right-sidebar]:translate-x-0 tw:[&_.app-shell-center]:col-start-2 tw:[&_.app-shell-center]:row-start-1";
+  presentationClasses("app-shell layout-desktop-fixed tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:grid-rows-[minmax(0,1fr)] tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:col-start-1 tw:[&_.left-sidebar]:row-start-1 tw:[&_.left-sidebar]:min-w-0 tw:[&_.right-sidebar]:relative tw:[&_.right-sidebar]:col-start-3 tw:[&_.right-sidebar]:row-start-1 tw:[&_.right-sidebar]:translate-x-0 tw:[&_.app-shell-center]:col-start-2 tw:[&_.app-shell-center]:row-start-1");
 const APP_SHELL_CENTER_CLASS =
   "app-shell-center tw:relative tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col";
 const APP_SHELL_COLUMN_CLASS_BY_STATE = {

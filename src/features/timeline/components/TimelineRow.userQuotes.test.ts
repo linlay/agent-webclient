@@ -16,7 +16,7 @@ jest.mock("antd", () => {
   };
 });
 
-jest.mock("@/features/surfaces/openTarget", () => ({ useOpenTarget: () => jest.fn() }));
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({ useOpenTarget: () => jest.fn() }));
 jest.mock("@/features/timeline/components/planning", () => ({ PlanningTimeline: () => null }));
 
 const reactActEnvironment = globalThis as typeof globalThis & {

@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
 import { TimelineTextSearchProvider } from "@/features/timeline/components/TimelineTextSearchProvider";
 import React, {
@@ -26,15 +28,17 @@ import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
 import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { getAgent } from "@/shared/data";
-import { ApiError } from "@/shared/data/api/client";
+import { ApiError } from "@/shared/data/api/http";
 import { useI18n } from "@/shared/i18n";
 import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
-import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/surfaceRoutes";
+import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
 import {
   canPrepareDesktopNewChat,
   prepareDesktopNewChat,
 } from "@/shared/data/desktop/desktopNewChat";
 import { initializeDesktopWorkspaceArrowKeys } from "@/shared/data/desktop/desktopWorkspaceArrowKeys";
+const presentationClasses = bindCssModuleClasses({ ...appPresentation });
+
 
 export function parseNewChatTimestamp(rawValue: unknown): string {
   const timestamp = String(rawValue || "").trim();
@@ -243,7 +247,7 @@ const AGENT_ROUTE_LOADING_SPINNER_CLASS =
 const AGENT_ROUTE_LOADING_COPY_CLASS =
   "agent-route-loading-copy tw:flex tw:min-w-0 tw:flex-col tw:gap-1 tw:[&_span]:overflow-hidden tw:[&_span]:text-ellipsis tw:[&_span]:whitespace-nowrap tw:[&_span]:text-xs tw:[&_span]:text-ink-muted tw:[&_strong]:text-sm tw:[&_strong]:font-bold";
 const AGENT_ROUTE_SHELL_BASE_CLASS =
-  "app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden";
+  presentationClasses("app-shell layout-desktop-fixed layout-agent-route tw:relative tw:grid tw:h-screen tw:overflow-hidden tw:bg-[var(--shell-page-bg)] tw:grid-cols-[0_minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:[&_.bottom-dock]:col-start-2 tw:[&_.bottom-dock]:row-start-3 tw:[&_.conversation-stage]:col-start-2 tw:[&_.conversation-stage]:row-start-2 tw:[&_.drawer-close]:hidden tw:[&_.left-sidebar]:hidden");
 const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   default: "tw:grid-rows-[auto_minmax(0,1fr)_auto]",
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",

@@ -51,7 +51,7 @@ Drawer 不改变页面 URL、Desktop 外层路由、主 Chat 或已读状态，�
 - `../src/features/conversation/components/ConversationPreview.tsx`
 - `../src/features/timeline/components/TimelineRenderEntryView.tsx`
 - `../src/features/automations/lib/executionView.ts`
-- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/http.ts`
 - `../src/shared/data/api/routedClient.ts`
 - `../src/shared/data/api/endpoints.ts`
 - `../src/shared/data/api/client.test.ts`

@@ -62,7 +62,7 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 - `../src/features/agents/lib/agentOrdering.ts`
 - `../src/features/model-config/components/ModelMenuPresenter.tsx`
 - `../src/features/model-config/lib/modelOptions.ts`
-- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/http.ts`
 - `../src/shared/data/api/routedClient.ts`
 
 ## 对话辅助入口

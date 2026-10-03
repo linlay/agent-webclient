@@ -1,9 +1,13 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ComposerContextBar } from "@/features/composer/components/ComposerContextBar";
 import { MaterialIcon } from "@/shared/icons/material";
 import { I18nProvider } from "@/shared/i18n";
 import "@/shared/styles/globals.css";
+const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
+
 
 const agents = [
   { key: "assistant", name: "通用助手", mode: "GENERAL" },
@@ -22,7 +26,7 @@ function Preview() {
       <p style={{ color: "var(--text-muted)", marginBottom: 32 }}>可切换智能体，检查 CODER 分支显示与长名称。</p>
       <button onClick={() => setDark(!dark)} style={{ marginBottom: 32 }}>切换{dark ? "浅色" : "深色"}</button>
       <ComposerContextBar agents={agents} currentAgentKey={key} currentWorkerName={agent.name} isCoder={agent.mode === "CODER"} isKbase={agent.mode === "KBASE"} onSelectAgent={setKey} />
-      <div className="composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:relative tw:flex tw:flex-col tw:border tw:border-border tw:p-1.5">
+      <div className={presentationClasses("composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:relative tw:flex tw:flex-col tw:border tw:border-border tw:p-1.5")}>
         <textarea aria-label="消息" placeholder="输入消息，开始对话…" style={{ background: "transparent", color: "inherit", border: 0, outline: 0, resize: "none", padding: 6, height: 100, fontSize: 13 }} />
         <div style={{ display: "flex", justifyContent: "space-between", padding: 6, color: "var(--text-muted)", fontSize: 12 }}>
           <span style={{ display: "flex", gap: 12, alignItems: "center" }}><MaterialIcon name="add" /><MaterialIcon name="verified_user" />默认权限</span>

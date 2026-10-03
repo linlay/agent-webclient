@@ -203,17 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 			destroyStandaloneWsClient();
 			window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
 			window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
-			dispatch({
-				type: "BATCH_UPDATE",
-				updates: {
-					agents: [],
-					teams: [],
-					chats: [],
-					chatPinnedOrder: null,
-					chatPinningPending: false,
-					automations: [],
-				},
-			});
+			dispatch({ type: "CLEAR_GATEWAY_IDENTITY_STATE" });
 		};
 		window.addEventListener("agent:auth-required", persistCurrentDraft);
 		window.addEventListener(

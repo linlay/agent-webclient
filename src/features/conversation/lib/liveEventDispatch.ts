@@ -90,14 +90,7 @@ export function applyLiveEventCommand(input: {
 			return;
 		case "SET_PLAN":
 			if (command.resetRuntime) {
-				dispatch({
-					type: "BATCH_UPDATE",
-					updates: {
-						planRuntimeByTaskId: new Map(),
-						planCurrentRunningTaskId: "",
-						planLastTouchedTaskId: "",
-					},
-				});
+				dispatch({ type: "RESET_PLAN_RUNTIME" });
 			}
 			dispatch({ type: "SET_PLAN", plan: command.plan });
 			return;

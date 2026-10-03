@@ -1,9 +1,6 @@
-import {
-	ApiError,
-	downloadResource,
-	setAccessToken,
-	uploadFile,
-} from "@/shared/data/api/client";
+import { ApiError, setAccessToken } from "@/shared/data/api/http";
+import { downloadResource } from "@/shared/data/api/resources";
+import { uploadFile } from "@/shared/data/api/requests/uploads";
 import {
 	resetAuthCoordinatorForTests,
 	setAuthCoordinatorNavigationForTests,

@@ -8,7 +8,7 @@ import {
   isAwaitingFrameCloseMessage,
   normalizeAwaitingSubmitParams,
   readAwaitingSubmitPayload,
-} from '@/features/tools/components/protocol';
+} from '@/features/tools/lib/protocol';
 
 function createQuestionAwaiting(
   patch: Partial<Extract<ActiveAwaiting, { mode: 'question' }>> = {},

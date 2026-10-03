@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import planPresentation from "@/features/plan/components/PlanPresentation.module.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { buildPlanSummaryView, hasRunningPlanTask } from "@/features/plan/lib/planSummary";
@@ -7,6 +9,8 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { Flex } from "antd";
 import "./PlanPanel.module.css";
+const presentationClasses = bindCssModuleClasses({ ...planPresentation });
+
 
 export const PlanPanel: React.FC = () => {
   const state = useAppState();
@@ -51,11 +55,11 @@ export const PlanPanel: React.FC = () => {
 
   return (
     <div
-      className={`floating-plan ${state.planExpanded ? "is-expanded" : ""}`}
-      id="floating-plan"
+      className={presentationClasses(`floating-plan ${state.planExpanded ? "is-expanded" : ""}`)}
+      id={presentationClasses("floating-plan")}
     >
       <UiButton
-        className="plan-header"
+        className={presentationClasses("plan-header")}
         variant="ghost"
         size="sm"
         aria-expanded={state.planExpanded}

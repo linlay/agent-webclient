@@ -1,8 +1,12 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { getViewport } from "@/shared/data";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { useI18n } from "@/shared/i18n";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 interface ViewportEmbedProps {
   viewportKey: string;
@@ -148,8 +152,8 @@ export const ViewportEmbed: React.FC<ViewportEmbedProps> = ({
   return (
     <div className={TIMELINE_CONTENT_VIEWPORT_CLASS_NAME}>
       <div className={TIMELINE_CONTENT_VIEWPORT_BODY_CLASS_NAME}>
-        {loading && <div className="status-line">{t("viewport.loading")}</div>}
-        {error && <div className="system-alert">{error}</div>}
+        {loading && <div className={presentationClasses("status-line")}>{t("viewport.loading")}</div>}
+        {error && <div className={presentationClasses("system-alert")}>{error}</div>}
         {html && (
           <iframe
             ref={iframeRef}

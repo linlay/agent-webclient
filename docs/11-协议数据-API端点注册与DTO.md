@@ -1,7 +1,7 @@
 # API端点注册与DTO
 
 ## 当前状态
-接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 和 HTTP client helper 主要在 `src/shared/data/api/client.ts`。端点声明包含 key、path、method、transport、wsBackends、cache 和 payload 构造函数；所有 `auto` 端点必须显式声明支持 WS 的 backend。
+接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 位于 `src/shared/data/api/dto/`，HTTP helper 位于 `src/shared/data/api/http.ts`，具体请求位于 `api/requests/`；`shared/data/index.ts` 提供公共入口，`routedClient.ts` 负责 HTTP/WS 路由。端点声明包含 key、path、method、transport、wsBackends、cache 和 payload 构造函数；所有 `auto` 端点必须显式声明支持 WS 的 backend。
 
 ## 核心职责
 - 统一维护 `/api/*`、`/ws`、`/api/voice/*`、`/api/resource` 等前端消费入口。
@@ -68,7 +68,7 @@ Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契�
 ## 相关文件
 - `../src/shared/data/api/endpointRegistry.ts`
 - `../src/shared/data/api/endpoints.ts`
-- `../src/shared/data/api/client.ts`
+- `../src/shared/data/api/http.ts`
 - `../src/shared/data/index.ts`
 - `../src/shared/data/api/client.test.ts`
 - `../src/shared/data/api/endpoints.test.ts`

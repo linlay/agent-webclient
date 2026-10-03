@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
@@ -14,6 +16,8 @@ import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { toolOutputText } from "@/features/events/lib/toolOutputState";
 import "@/features/tools/components/ToolTimeline.module.css";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 type ToolGroupRenderEntry = Extract<
   TimelineRenderEntry,
@@ -22,7 +26,7 @@ type ToolGroupRenderEntry = Extract<
 
 type CopyState = "copied" | "error";
 const TOOL_CALL_RESULT_CLASS_NAME = [
-  "tool-call-result",
+  presentationClasses("tool-call-result"),
   SCROLLBAR_THIN_CLASS_NAME,
 ].join(" ");
 const TERMINAL_TOOL_STATUSES = new Set([

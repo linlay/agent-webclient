@@ -29,14 +29,13 @@ import { AppearanceProvider, useAppearance } from "@/features/appearance/compone
 import { APP_UI_BASE } from "@/shared/utils/routing";
 import { useDesktopRouteChange } from "@/shared/hooks/useDesktopRouteChange";
 import { BtwProvider } from "@/features/btw/components/BtwProvider";
-import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/surfaceRoutes";
+import { SURFACE_ROUTE_PATHS } from "@/features/surfaces/lib/surfaceRoutes";
 import { GatewayAuthBoundary } from "@/features/auth/components/GatewayAuthBoundary";
 import { LoginPage } from "./pages/login";
 import { useStandaloneDesktopActionRuntime } from "@/features/conversation/hooks/useStandaloneWorkPanelActionRuntime";
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
 import { WebClientRouteErrorPage, WebClientRenderErrorBoundary } from "@/app/WebClientRenderError";
-import "@/app/layout/AppLayoutCompat.module.css";
 import "@/app/layout/CopilotLayout.module.css";
 import "@/app/layout/ManagementPages.module.css";
 import "@/app/layout/SidebarLayout.module.css";

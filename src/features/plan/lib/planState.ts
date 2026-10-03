@@ -29,6 +29,7 @@ export interface PlanState {
 }
 
 export type PlanAction =
+  | { type: "RESET_PLAN_RUNTIME" }
   | { type: "SET_PLAN"; plan: Plan | null }
   | { type: "SET_PLAN_EXPANDED"; expanded: boolean }
   | { type: "SET_PLAN_MANUAL_OVERRIDE"; override: boolean | null }
@@ -41,8 +42,17 @@ export function createInitialPlanState(): PlanState {
   return { plan: null, planRuntimeByTaskId: new Map(), planCurrentRunningTaskId: "", planLastTouchedTaskId: "", planExpanded: false, planManualOverride: null, planAutoCollapseTimer: null };
 }
 
-export function reducePlanState(state: PlanState, action: PlanAction): PlanState {
+export function reducePlanState<S extends PlanState>(state: S, action: PlanAction): S;
+export function reducePlanState<S extends PlanState>(state: S, action: { type: string }): S | null;
+export function reducePlanState<S extends PlanState>(state: S, input: { type: string }): S | null {
+  const action = input as PlanAction;
   switch (action.type) {
+    case "RESET_PLAN_RUNTIME": return {
+      ...state,
+      planRuntimeByTaskId: new Map(),
+      planCurrentRunningTaskId: "",
+      planLastTouchedTaskId: "",
+    };
     case "SET_PLAN": return { ...state, plan: action.plan };
     case "SET_PLAN_EXPANDED": return { ...state, planExpanded: action.expanded };
     case "SET_PLAN_MANUAL_OVERRIDE": return { ...state, planManualOverride: action.override };
@@ -50,5 +60,6 @@ export function reducePlanState(state: PlanState, action: PlanAction): PlanState
     case "SET_PLAN_CURRENT_RUNNING_TASK_ID": return { ...state, planCurrentRunningTaskId: action.taskId };
     case "SET_PLAN_LAST_TOUCHED_TASK_ID": return { ...state, planLastTouchedTaskId: action.taskId };
     case "SET_PLAN_AUTO_COLLAPSE_TIMER": return { ...state, planAutoCollapseTimer: action.timer };
+    default: return null;
   }
 }

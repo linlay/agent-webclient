@@ -8,6 +8,7 @@ import type {
   MemoryRecordDetail,
   MemoryRecordListItem,
   MemoryScopeDetailMeta,
+  MemoryScopeDetail,
   MemoryScopeDraftRecord,
   MemoryScopeSaveSummary,
   MemoryScopeSummary,
@@ -54,7 +55,25 @@ export interface MemoryState {
   memoryPreviewPromptLayer: MemoryContextPromptLayer;
 }
 
+export type MemoryPreferenceDraftUpdates = Partial<Pick<MemoryState,
+  "memoryPreferenceMarkdownDraft" | "memoryPreferenceRecordsDraft"
+>>;
+
 export type MemoryAction =
+  | { type: "START_MEMORY_PREVIEW" }
+  | { type: "COMPLETE_MEMORY_PREVIEW"; result: MemoryContextPreviewResponse }
+  | { type: "FAIL_MEMORY_PREVIEW"; error: string }
+  | { type: "RESET_MEMORY_PREFERENCES" }
+  | { type: "START_MEMORY_PREFERENCE_LOAD"; clearSaving?: boolean; preserveSaveSummary?: boolean; preserveValidation?: boolean }
+  | { type: "LOAD_MEMORY_PREFERENCE_DETAIL"; detail: MemoryScopeDetail; drafts: MemoryScopeDraftRecord[] }
+  | { type: "FAIL_MEMORY_PREFERENCE_REQUEST"; error: string }
+  | { type: "EDIT_MEMORY_PREFERENCE_MARKDOWN"; markdown: string }
+  | { type: "EDIT_MEMORY_PREFERENCE_RECORDS"; records: MemoryScopeDraftRecord[]; selectedRecordId?: string; mode?: MemoryPreferenceMode }
+  | { type: "START_MEMORY_PREFERENCE_VALIDATION" }
+  | { type: "COMPLETE_MEMORY_PREFERENCE_VALIDATION"; validation: MemoryScopeValidationResult }
+  | { type: "START_MEMORY_PREFERENCE_SAVE"; drafts: MemoryPreferenceDraftUpdates }
+  | { type: "STOP_MEMORY_PREFERENCE_SAVE"; error: string }
+  | { type: "COMPLETE_MEMORY_PREFERENCE_SAVE"; summary: MemoryScopeSaveSummary }
   | { type: "SET_MEMORY_CONSOLE_TAB"; tab: MemoryConsoleTab }
   | { type: "RESET_MEMORY_INFO_SESSION" }
   | { type: "SET_MEMORY_INFO_LOADING"; loading: boolean }
@@ -99,8 +118,91 @@ export function createInitialMemoryState(): MemoryState {
   };
 }
 
-export function reduceMemoryState(state: MemoryState, action: MemoryAction): MemoryState {
+export function reduceMemoryState<S extends MemoryState>(state: S, action: MemoryAction): S;
+export function reduceMemoryState<S extends MemoryState>(state: S, action: { type: string }): S | null;
+export function reduceMemoryState<S extends MemoryState>(state: S, input: { type: string }): S | null {
+  const action = input as MemoryAction;
   switch (action.type) {
+    case "START_MEMORY_PREVIEW": return {
+      ...state, memoryPreviewLoading: true, memoryPreviewError: "", memoryPreviewResult: null,
+    };
+    case "COMPLETE_MEMORY_PREVIEW": return {
+      ...state, memoryPreviewLoading: false, memoryPreviewError: "", memoryPreviewResult: action.result,
+    };
+    case "FAIL_MEMORY_PREVIEW": return {
+      ...state, memoryPreviewLoading: false, memoryPreviewError: action.error, memoryPreviewResult: null,
+    };
+    case "RESET_MEMORY_PREFERENCES": return {
+      ...state,
+      memoryPreferenceScopes: [],
+      memoryPreferenceActiveScopeType: "agent",
+      memoryPreferenceActiveScopeKey: "",
+      memoryPreferenceLabel: "AGENT",
+      memoryPreferenceFileName: "AGENT.md",
+      memoryPreferenceMeta: null,
+      memoryPreferenceLoading: false,
+      memoryPreferenceError: "",
+      memoryPreferenceMarkdownDraft: "",
+      memoryPreferenceRecordsDraft: [],
+      memoryPreferenceSelectedRecordId: "",
+      memoryPreferenceDirty: false,
+      memoryPreferenceSaving: false,
+      memoryPreferenceSaveSummary: null,
+      memoryPreferenceValidation: null,
+    };
+    case "START_MEMORY_PREFERENCE_LOAD": return {
+      ...state,
+      memoryPreferenceLoading: true,
+      memoryPreferenceError: "",
+      ...(action.clearSaving ? { memoryPreferenceSaving: false } : {}),
+      ...(action.preserveSaveSummary ? {} : { memoryPreferenceSaveSummary: null }),
+      ...(action.preserveValidation ? {} : { memoryPreferenceValidation: null }),
+    };
+    case "LOAD_MEMORY_PREFERENCE_DETAIL": return {
+      ...state,
+      memoryPreferenceActiveScopeType: action.detail.scopeType,
+      memoryPreferenceActiveScopeKey: action.detail.scopeKey,
+      memoryPreferenceLabel: action.detail.label,
+      memoryPreferenceFileName: action.detail.fileName,
+      memoryPreferenceMeta: action.detail.meta,
+      memoryPreferenceMarkdownDraft: action.detail.markdown,
+      memoryPreferenceRecordsDraft: action.drafts,
+      memoryPreferenceSelectedRecordId: action.drafts[0]?.clientId || "",
+      memoryPreferenceDirty: false,
+      memoryPreferenceLoading: false,
+      memoryPreferenceError: "",
+    };
+    case "FAIL_MEMORY_PREFERENCE_REQUEST": return {
+      ...state, memoryPreferenceLoading: false, memoryPreferenceError: action.error,
+    };
+    case "EDIT_MEMORY_PREFERENCE_MARKDOWN": return {
+      ...state, memoryPreferenceMarkdownDraft: action.markdown, memoryPreferenceDirty: true,
+      memoryPreferenceError: "", memoryPreferenceSaveSummary: null, memoryPreferenceValidation: null,
+    };
+    case "EDIT_MEMORY_PREFERENCE_RECORDS": return {
+      ...state,
+      memoryPreferenceRecordsDraft: action.records,
+      ...(action.selectedRecordId === undefined ? {} : { memoryPreferenceSelectedRecordId: action.selectedRecordId }),
+      ...(action.mode === undefined ? {} : { memoryPreferenceMode: action.mode }),
+      memoryPreferenceDirty: true,
+      memoryPreferenceError: "",
+      memoryPreferenceSaveSummary: null,
+    };
+    case "START_MEMORY_PREFERENCE_VALIDATION": return {
+      ...state, memoryPreferenceLoading: true, memoryPreferenceError: "",
+    };
+    case "COMPLETE_MEMORY_PREFERENCE_VALIDATION": return {
+      ...state, memoryPreferenceValidation: action.validation, memoryPreferenceLoading: false, memoryPreferenceError: "",
+    };
+    case "START_MEMORY_PREFERENCE_SAVE": return {
+      ...state, ...action.drafts, memoryPreferenceSaving: true, memoryPreferenceError: "", memoryPreferenceSaveSummary: null,
+    };
+    case "STOP_MEMORY_PREFERENCE_SAVE": return {
+      ...state, memoryPreferenceSaving: false, memoryPreferenceError: action.error,
+    };
+    case "COMPLETE_MEMORY_PREFERENCE_SAVE": return {
+      ...state, memoryPreferenceSaving: false, memoryPreferenceSaveSummary: action.summary, memoryPreferenceValidation: null,
+    };
     case "SET_MEMORY_CONSOLE_TAB": return { ...state, memoryConsoleTab: action.tab };
     case "RESET_MEMORY_INFO_SESSION": return {
       ...state,
@@ -143,5 +245,6 @@ export function reduceMemoryState(state: MemoryState, action: MemoryAction): Mem
     case "SET_MEMORY_PREVIEW_ERROR": return { ...state, memoryPreviewError: action.error };
     case "SET_MEMORY_PREVIEW_RESULT": return { ...state, memoryPreviewResult: action.result };
     case "SET_MEMORY_PREVIEW_PROMPT_LAYER": return { ...state, memoryPreviewPromptLayer: action.layer };
+    default: return null;
   }
 }

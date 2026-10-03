@@ -4,6 +4,10 @@ import type { AppAction } from './actions';
 import type { ActiveAwaiting } from '@/features/tools/lib/toolsState';
 import type { PublishedArtifact } from '@/features/artifacts/lib/artifactsState';
 import type { FileChangeSummary } from '@/features/overview/lib/overviewState';
+import { reduceMemoryState } from '@/features/memory/lib/memoryState';
+import { reducePlanState } from '@/features/plan/lib/planState';
+import { reduceVoiceState } from '@/features/voice/lib/voiceState';
+import { reduceComposerInteractionState } from '@/features/composer/lib/composerState';
 
 const awaiting = (key: string): ActiveAwaiting => ({
   key, awaitingId: key, runId: 'run', agentKey: 'agent', timeout: null,
@@ -54,6 +58,43 @@ describe('domain migration behavior contracts', () => {
       { type: 'HIDE_COMMAND_STATUS_OVERLAY' },
     ] as AppAction[]) expect(appReducer(state, action)).toBe(state);
     expect(appReducer(state, { type: 'UNKNOWN' } as unknown as AppAction)).toBe(state);
+  });
+
+  it('dispatches slices directly while preserving unrelated state and rejecting unowned actions', () => {
+    const state = createInitialState();
+    const cases = [
+      { reduce: reduceMemoryState, action: { type: 'SET_MEMORY_PREVIEW_LOADING', loading: true }, field: 'memoryPreviewLoading', value: true },
+      { reduce: reducePlanState, action: { type: 'SET_PLAN_EXPANDED', expanded: true }, field: 'planExpanded', value: true },
+      { reduce: reduceVoiceState, action: { type: 'SET_AUDIO_MUTED', muted: true }, field: 'audioMuted', value: true },
+      { reduce: reduceComposerInteractionState, action: { type: 'SET_EDITING_MODE', enabled: true }, field: 'editingMode', value: true },
+      { reduce: reduceComposerInteractionState, action: { type: 'SET_MENTION_OPEN', open: true }, field: 'mentionOpen', value: true },
+      { reduce: reduceComposerInteractionState, action: { type: 'SET_MENTION_ACTIVE_INDEX', index: 2 }, field: 'mentionActiveIndex', value: 2 },
+    ] as const;
+    for (const { reduce, action, field, value } of cases) {
+      expect(reduce(state, { type: 'UNKNOWN' })).toBeNull();
+      expect(reduce(state, { type: 'SET_ACCESS_TOKEN' })).toBeNull();
+      const next = appReducer(state, action);
+      expect(next).toEqual(reduce(state, action));
+      expect(next[field]).toBe(value);
+      expect(Object.keys(next)).toEqual(Object.keys(state));
+      for (const key of Object.keys(state) as Array<keyof typeof state>) {
+        if (key !== field) expect(next[key]).toBe(state[key]);
+      }
+    }
+  });
+
+  it('keeps mention suggestions intact when toggling editing and resetting the active conversation', () => {
+    const state = createInitialState();
+    const agents = [{ agentKey: 'agent', name: 'Agent' }] as typeof state.mentionSuggestions;
+    const suggested = appReducer(state, { type: 'SET_MENTION_SUGGESTIONS', agents });
+    expect(suggested.mentionSuggestions).toBe(agents);
+    const editing = appReducer(suggested, { type: 'SET_EDITING_MODE', enabled: true });
+    expect(editing.mentionSuggestions).toBe(agents);
+    expect(editing.composerEditVersion).toBe(state.composerEditVersion);
+    const stopped = appReducer(editing, { type: 'SET_EDITING_MODE', enabled: false });
+    expect(stopped.editingMode).toBe(false);
+    expect(stopped.mentionSuggestions).toBe(agents);
+    expect(appReducer(editing, { type: 'RESET_ACTIVE_CONVERSATION' }).editingMode).toBe(false);
   });
 
   it('retains Set and missing timer Map references while replacing the root', () => {

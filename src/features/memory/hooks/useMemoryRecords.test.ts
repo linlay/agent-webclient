@@ -58,10 +58,8 @@ let root: Root;
 let container: HTMLDivElement;
 let records: ReturnType<typeof useMemoryRecords>;
 let secondRecords: ReturnType<typeof useMemoryRecords>;
-const dispatch = jest.fn((action: MemoryAction | { type: "BATCH_UPDATE"; updates: Partial<AppState> }) => {
-  stateRef.current = action.type === "BATCH_UPDATE"
-    ? { ...stateRef.current, ...action.updates }
-    : { ...stateRef.current, ...reduceMemoryState(stateRef.current, action) };
+const dispatch = jest.fn((action: MemoryAction) => {
+  stateRef.current = reduceMemoryState(stateRef.current, action);
 });
 
 function deferred() {

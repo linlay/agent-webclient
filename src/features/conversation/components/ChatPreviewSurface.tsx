@@ -2,7 +2,7 @@ import React from "react";
 import { useChatPreview } from "@/features/conversation/hooks/useChatPreview";
 import { ConversationPreview } from "./ConversationPreview";
 import { conversationPreviewDataFromReplay } from "../lib/conversationPreviewData";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";

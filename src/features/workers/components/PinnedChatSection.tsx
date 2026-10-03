@@ -1,3 +1,6 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useMemo, useState } from "react";
 import { Badge, Popover } from "antd";
 import {
@@ -31,6 +34,8 @@ import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import "./PinnedChatSection.module.css";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 function PinnedChatItem({
   chat,
@@ -205,7 +210,7 @@ export function PinnedChatSection({
         </SortableContext>
       </DndContext>
       {rows.length === 0 && (
-        <div className="status-line">{t("leftSidebar.pinned.noMatches")}</div>
+        <div className={presentationClasses("status-line")}>{t("leftSidebar.pinned.noMatches")}</div>
       )}
     </div>
   );
@@ -235,7 +240,7 @@ export function PinnedChatSection({
             aria-label={t("leftSidebar.pinned")}
             aria-expanded={popoverOpen}
           >
-            <Badge dot={needsAttention}>
+            <Badge dot={needsAttention} className={libraryPresentation.badge}>
               <MaterialIcon name="push_pin" />
             </Badge>
           </button>
@@ -254,7 +259,7 @@ export function PinnedChatSection({
         onClick={() => setExpanded(!expanded)}
       >
         <MaterialIcon name="push_pin" />
-        <Badge dot={needsAttention}>
+        <Badge dot={needsAttention} className={libraryPresentation.badge}>
           <span>{t("leftSidebar.pinned")}</span>
         </Badge>
         <span className="pinned-chat-count">({pinned.length})</span>

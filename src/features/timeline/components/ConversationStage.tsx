@@ -3,7 +3,7 @@ import { Collapse, Flex } from "antd";
 import { Virtuoso, type ListRange, type StateSnapshot, type VirtuosoHandle } from "react-virtuoso";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
-import type { AgentSkill } from "@/shared/data/api/client";
+import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { useI18n } from "@/shared/i18n";
 import { formatResponseDuration } from "@/shared/utils/formatResponseDuration";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
@@ -13,7 +13,6 @@ import { RunTerminalNotice } from "./RunTerminalNotice";
 import { buildRunRenderEntries, type TimelineDisplayItem, type TimelineRenderEntry } from "../lib/timelineDisplay";
 import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
 import "./Timeline.module.css";
-import "./TimelineCompat.module.css";
 
 export type ConversationListItem =
   | { kind: "query"; key: string; anchorId: string; item: Extract<TimelineDisplayItem, { kind: "query" }> }

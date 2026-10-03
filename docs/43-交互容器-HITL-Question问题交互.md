@@ -20,7 +20,7 @@ Question awaiting 用于后端向用户提出一个或多个问题，支持文�
 ## 相关文件
 - `../src/features/tools/lib/awaitingRuntime.ts`
 - `../src/features/tools/lib/awaitingQuestionMeta.ts`
-- `../src/features/tools/components/protocol.ts`
+- `../src/features/tools/lib/protocol.ts`
 - `../src/features/tools/components/buildin/confirm-dialog/state.ts`
 - `../src/features/composer/components/AwaitingShell.tsx`
 - `../src/features/composer/hooks/useComposerAwaiting.ts`

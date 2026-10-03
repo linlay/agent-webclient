@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import transportPresentation from "@/features/transport/components/TransportStatus.module.css";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import type { RealtimeTransport } from "@/features/transport/contracts/realtimeTransport";
@@ -12,6 +14,8 @@ import {
 } from "@/features/transport/lib/desktopWorkPanelTransport";
 import { StandaloneRealtimeTransport } from "@/features/transport/lib/standaloneRealtimeTransport";
 import { useI18n } from "@/shared/i18n";
+const presentationClasses = bindCssModuleClasses({ ...transportPresentation });
+
 
 type RealtimeTransportFactory = () => RealtimeTransport;
 
@@ -32,7 +36,7 @@ function desktopBlockCode(error: RealtimeTransportError): string {
 const DesktopRealtimeBlocked: React.FC<{ error: RealtimeTransportError }> = ({ error }) => {
   const { t } = useI18n();
   return (
-    <main className="realtime-transport-blocked" role="alert">
+    <main className={presentationClasses("realtime-transport-blocked")} role="alert">
       <section>
         <h1>{t("platformError.code.unavailable")}</h1>
         <p>{error.message || t("platformError.code.service_unavailable")}</p>

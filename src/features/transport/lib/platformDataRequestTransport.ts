@@ -1,4 +1,4 @@
-import type { ApiResponse } from "@/shared/data/api/client";
+import type { ApiResponse } from "@/shared/data/api/dto/common";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { ensureStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
 import type { PlatformFrameClient } from "@/features/transport/lib/platformFrameClient";

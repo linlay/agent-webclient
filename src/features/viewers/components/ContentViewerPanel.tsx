@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import {
   commitDocument,
@@ -54,6 +56,8 @@ import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
 } from "@/shared/data/desktop/desktopHostBridge";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 const PdfDocumentViewer = process.env.NODE_ENV === "test"
   ? ({ url, title }: { url: string; title: string }) => <iframe src={url} title={title} />
@@ -68,7 +72,7 @@ const CONTENT_VIEWER_PANEL_CLASS_NAME =
 const CONTENT_VIEWER_BODY_CLASS_NAME =
   "content-viewer-body tw:flex tw:min-h-0 tw:flex-1 tw:flex-col tw:gap-2.5 tw:overflow-auto";
 
-const CONTENT_VIEWER_STATUS_CLASS_NAME = "status-line tw:m-2.5";
+const CONTENT_VIEWER_STATUS_CLASS_NAME = presentationClasses("status-line tw:m-2.5");
 
 const CONTENT_VIEWER_VIDEO_CLASS_NAME =
   "content-viewer-video tw:block tw:h-auto tw:max-h-full tw:w-full tw:rounded-[14px] tw:bg-[color-mix(in_srgb,var(--bg-input)_82%,white)] tw:object-contain";

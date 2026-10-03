@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { FailedSubmissions } from "./FailedSubmissions";
 import { composerAccessKey, readComposerAccessLevel, resolveComposerAccessScope } from "../lib/composerAccessLevel";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
@@ -47,7 +49,7 @@ import {
   type SlashPaletteItem,
   type ResolvedSlashPackageDefinition,
 } from "@/features/composer/lib/slashCommands";
-import { useSpeechInput } from "@/features/composer/components/useSpeechInput";
+import { useSpeechInput } from "@/features/composer/hooks/useSpeechInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
 import { useComposerAwaiting } from "@/features/composer/hooks/useComposerAwaiting";
@@ -60,7 +62,7 @@ import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
 import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type {
   AgentSkill,
@@ -86,6 +88,8 @@ import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName"
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
 import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
+const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
+
 
 interface ComposerAreaProps {
   enableNewChatContext?: boolean;
@@ -101,7 +105,7 @@ const COMPOSER_LAYOUT_CLASS =
 const COMPOSER_STACK_CLASS =
   "composer-stack tw:flex tw:min-w-0 tw:flex-1 tw:flex-col";
 const COMPOSER_PILL_CLASS =
-  "composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:gap-[2px] tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[10px]";
+  presentationClasses("composer-pill tw:bg-[var(--control-input-bg)] tw:rounded-[var(--control-radius-lg)] tw:[--composer-main-min-height:84px] tw:relative tw:flex tw:gap-[2px] tw:min-w-0 tw:flex-1 tw:flex-col tw:items-start tw:border tw:border-border tw:p-1.5 tw:backdrop-blur-[10px] tw:duration-[220ms] tw:ease-in-out tw:[&_textarea]:flex-1 tw:[&_textarea]:resize-none tw:[&_textarea]:rounded-none tw:[&_textarea]:border-0 tw:[&_textarea]:bg-transparent tw:[&_textarea]:p-1.5 tw:[&_textarea]:leading-[1.45] tw:[&_textarea]:outline-none tw:mb-[10px]");
 const COMPOSER_PILL_FRONTEND_CLASS = "tw:hidden";
 const COMPOSER_PILL_VOICE_CLASS =
   "tw:!border-[color-mix(in_srgb,var(--accent-electric)_16%,var(--line-soft))] tw:!bg-[radial-gradient(circle_at_0%_0%,rgba(94,165,255,0.1),transparent_32%),radial-gradient(circle_at_100%_100%,rgba(13,191,143,0.08),transparent_36%),color-mix(in_srgb,var(--bg-elev-2)_97%,transparent)] tw:!py-1.5 tw:!pr-1.5 tw:!pl-3";
@@ -1062,15 +1066,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     </UiButton>
                   ))}
                   {groupedSkills.groups.map(({ pkg, members }) => (
-                    <Flex key={`package:${pkg.id}`} align="center" className="composer-skill-chip">
+                    <Flex key={`package:${pkg.id}`} align="center" className={presentationClasses("composer-skill-chip")}>
                       <Tooltip placement="top" trigger={["hover", "focus"]} title={
                         <div>{members.map(skill => <div key={skill.id}>{skill.label}</div>)}</div>
                       }>
-                        <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" aria-label={t("packageComposer.members", { name: skillPackageDisplayName(pkg) })}>
+                        <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-main")} aria-label={t("packageComposer.members", { name: skillPackageDisplayName(pkg) })}>
                           <SkillIcon icon={pkg.icon} fallback="folder" /><span>{skillPackageDisplayName(pkg)}</span>
                         </UiButton>
                       </Tooltip>
-                      <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}
+                      <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-remove")} disabled={isMainChatRunning}
                         aria-label={t("packageComposer.remove", { name: skillPackageDisplayName(pkg) })}
                         onClick={() => { const ids = new Set(members.map(skill => skillIdentity(skill.id))); setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.id)))); }}>
                         <MaterialIcon name="close" />
@@ -1078,12 +1082,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     </Flex>
                   ))}
                   {groupedSkills.standalone.map((skill) => (
-                    <Flex key={skill.id.toLowerCase()} align="center" className="composer-skill-chip">
-                      <UiButton variant="ghost" size="sm" className="composer-skill-chip-main" onClick={() => openSkillViewer(skill)}>
+                    <Flex key={skill.id.toLowerCase()} align="center" className={presentationClasses("composer-skill-chip")}>
+                      <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-main")} onClick={() => openSkillViewer(skill)}>
                         <MaterialIcon name="skills" />
                         <span>{skill.label}</span>
                       </UiButton>
-                      <UiButton variant="ghost" size="sm" className="composer-skill-chip-remove" disabled={isMainChatRunning}
+                      <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-remove")} disabled={isMainChatRunning}
                         aria-label={t("composer.requiredSkill.remove", { skill: skill.label })}
                         onClick={() => removeSelectedSkill(skill.id)}>
                         <MaterialIcon name="close" />

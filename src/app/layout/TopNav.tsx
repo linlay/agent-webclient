@@ -1,3 +1,6 @@
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import React from "react";
 import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { ConversationRegionSkeleton } from "@/features/conversation/components/ConversationRegionSkeleton";
@@ -31,8 +34,10 @@ import { UsageContextControl } from "@/features/usage/components/UsageContextCon
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+const presentationClasses = bindCssModuleClasses({ ...appPresentation, ...sharedPresentation });
+
 
 export interface TopNavStatusDisplay {
   statusClass: "is-idle" | "is-running" | "is-error";
@@ -75,7 +80,7 @@ export function resolveStatusPillClassName(
   ].join(" ");
 }
 
-const TOP_NAV_CLASS = "top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-11 tw:pt-1";
+const TOP_NAV_CLASS = presentationClasses("top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-11 tw:pt-1");
 const TOP_NAV_INNER_CLASS =
   "top-nav-inner tw:flex tw:h-full tw:min-h-0 tw:w-full tw:items-center";
 const NAV_GROUP_CLASS = "nav-group tw:relative tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
@@ -83,7 +88,7 @@ const NAV_LEFT_CLASS = "nav-group nav-left tw:relative tw:h-8 tw:min-w-0 tw:flex
 const NAV_CENTER_CLASS =
   "nav-group nav-center tw:flex-[1_1_auto] tw:flex tw:min-w-0 tw:items-center tw:justify-center tw:pr-[22px]";
 const CURRENT_WORKER_CARD_CLASS =
-  "current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-0";
+  presentationClasses("current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-0");
 const CURRENT_WORKER_NAME_CLASS =
   "current-worker-name tw:min-w-0 tw:truncate tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
 const KBASE_EDITING_BADGE_CLASS =
@@ -91,15 +96,15 @@ const KBASE_EDITING_BADGE_CLASS =
 const TOP_NAV_ICON_BUTTON_CLASS =
   "top-nav-icon-btn ui-icon-hover-24 tw:h-6 tw:min-h-6 tw:w-6 tw:min-w-6 tw:rounded-lg tw:p-0";
 const CURRENT_WORKER_TOOL_BASE_CLASS =
-  `${TOP_NAV_ICON_BUTTON_CLASS} current-worker-tool`;
+  presentationClasses(`${TOP_NAV_ICON_BUTTON_CLASS} current-worker-tool`);
 const VOICE_TOOL_CLASS_BY_MODE = {
   call: [
     CURRENT_WORKER_TOOL_BASE_CLASS,
-    "current-worker-tool-voice is-call tw:text-[#2f7c49]",
+    presentationClasses("current-worker-tool-voice is-call tw:text-[#2f7c49]"),
   ].join(" "),
   hangup: [
     CURRENT_WORKER_TOOL_BASE_CLASS,
-    "current-worker-tool-voice is-hangup tw:border tw:[border-color:color-mix(in_srgb,#f06b67_44%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#fff0ef_86%,var(--bg-elev-2))] tw:text-[#d53f3f] tw:hover:[border-color:color-mix(in_srgb,#e4564f_52%,var(--line-soft))] tw:hover:shadow-[0_8px_18px_rgba(229,86,79,0.18)]",
+    presentationClasses("current-worker-tool-voice is-hangup tw:border tw:[border-color:color-mix(in_srgb,#f06b67_44%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#fff0ef_86%,var(--bg-elev-2))] tw:text-[#d53f3f] tw:hover:[border-color:color-mix(in_srgb,#e4564f_52%,var(--line-soft))] tw:hover:shadow-[0_8px_18px_rgba(229,86,79,0.18)]"),
   ].join(" "),
 } as const;
 const MUTED_TOOL_ACTIVE_CLASS =
@@ -514,7 +519,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
                 {isCurrentWorkerTerminalActive ? (
                   <span
                     className={[
-                      "current-worker-terminal-dot tw:absolute tw:right-[5px] tw:top-[5px] tw:h-[7px] tw:w-[7px] tw:rounded-full tw:border tw:border-bg-elev-1 tw:bg-accent-electric-strong",
+                      presentationClasses("current-worker-terminal-dot tw:absolute tw:right-[5px] tw:top-[5px] tw:h-[7px] tw:w-[7px] tw:rounded-full tw:border tw:border-bg-elev-1 tw:bg-accent-electric-strong"),
                       isCurrentWorkerTerminalBusy
                         ? "is-busy tw:animate-[status-pulse_1s_ease-in-out_infinite] tw:bg-accent-lime tw:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-lime)_16%,transparent)]"
                         : "",

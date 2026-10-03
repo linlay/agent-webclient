@@ -2,7 +2,7 @@ const path = require('node:path');
 process.env.BASE_URL ||= 'http://127.0.0.1:9';
 module.exports = (_env, argv) => {
   const config = require('../webpack.config.js')({}, argv);
-  config.entry = './qa/appearance-preview.tsx';
+  config.entry = _env?.presentation ? './qa/presentation-preview.tsx' : './qa/appearance-preview.tsx';
   config.output.path = path.resolve(__dirname, '../build/appearance');
   config.output.clean = true;
   config.module.rules[0].use = { loader: 'ts-loader', options: { transpileOnly: true, compilerOptions: { rootDir: '..' } } };

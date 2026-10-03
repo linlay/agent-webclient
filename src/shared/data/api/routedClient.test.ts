@@ -15,8 +15,8 @@ const mockCompactChat = jest.fn();
 const mockRequestPlatformData = jest.fn();
 const mockGetBackendMode = jest.fn(() => "platform");
 
-jest.mock("@/shared/data/api/client", () => ({
-	ApiError: class MockApiError extends Error {
+jest.mock("@/shared/data/api/http", () => ({
+ApiError: class MockApiError extends Error {
 		status: number | null;
 		code: number | string | null;
 		data: unknown;
@@ -36,29 +36,43 @@ jest.mock("@/shared/data/api/client", () => ({
 			this.data = options.data ?? null;
 		}
 	},
-	buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`),
-	downloadChatExport: jest.fn(),
-	downloadResource: jest.fn(),
-	ensureAccessToken: jest.fn(),
-	getCurrentAccessToken: jest.fn(() => ""),
-	getResourceText: jest.fn(),
-	setAccessToken: jest.fn(),
-	uploadFile: jest.fn(),
-	getAgents: (...args: unknown[]) => mockGetAgents(...args),
-	getAgent: (...args: unknown[]) => mockGetAgent(...args),
-	getModelOptions: (...args: unknown[]) => mockGetModelOptions(...args),
-	getAgentFile: (...args: unknown[]) => mockGetAgentFile(...args),
-	getAgentOrder: (...args: unknown[]) => mockGetAgentOrder(...args),
-	getChatOrder: (...args: unknown[]) => mockGetChatOrder(...args),
-	putChatOrder: (...args: unknown[]) => mockPutChatOrder(...args),
-	getChat: (...args: unknown[]) => mockGetChat(...args),
-	getChats: (...args: unknown[]) => mockGetChats(...args),
-	getChatRawJsonl: (...args: unknown[]) => mockGetChatRawJsonl(...args),
-	getChatLLMTraceRaw: (...args: unknown[]) => mockGetChatLLMTraceRaw(...args),
-	updateAgentName: (...args: unknown[]) => mockUpdateAgentName(...args),
-	getAutomations: (...args: unknown[]) => mockGetAutomations(...args),
-	compactChat: (...args: unknown[]) => mockCompactChat(...args),
-	normalizeChatSummariesPayload: jest.fn((data: unknown) => data),
+ensureAccessToken: jest.fn(),
+getCurrentAccessToken: jest.fn(() => ""),
+setAccessToken: jest.fn()
+}));
+jest.mock("@/shared/data/api/resources/urls", () => ({
+buildResourceUrl: jest.fn((file: string) => `/api/resource?file=${file}`)
+}));
+jest.mock("@/shared/data/api/resources", () => ({
+downloadChatExport: jest.fn(),
+downloadResource: jest.fn(),
+getResourceText: jest.fn(),
+getChatRawJsonl: (...args: unknown[]) => mockGetChatRawJsonl(...args),
+getChatLLMTraceRaw: (...args: unknown[]) => mockGetChatLLMTraceRaw(...args)
+}));
+jest.mock("@/shared/data/api/requests/uploads", () => ({
+uploadFile: jest.fn()
+}));
+jest.mock("@/shared/data/api/requests/agents", () => ({
+getAgents: (...args: unknown[]) => mockGetAgents(...args),
+getAgent: (...args: unknown[]) => mockGetAgent(...args),
+getModelOptions: (...args: unknown[]) => mockGetModelOptions(...args),
+getAgentOrder: (...args: unknown[]) => mockGetAgentOrder(...args),
+updateAgentName: (...args: unknown[]) => mockUpdateAgentName(...args)
+}));
+jest.mock("@/shared/data/api/requests/projects", () => ({
+getAgentFile: (...args: unknown[]) => mockGetAgentFile(...args)
+}));
+jest.mock("@/shared/data/api/requests/chats", () => ({
+getChatOrder: (...args: unknown[]) => mockGetChatOrder(...args),
+putChatOrder: (...args: unknown[]) => mockPutChatOrder(...args),
+getChat: (...args: unknown[]) => mockGetChat(...args),
+getChats: (...args: unknown[]) => mockGetChats(...args),
+compactChat: (...args: unknown[]) => mockCompactChat(...args),
+normalizeChatSummariesPayload: jest.fn((data: unknown) => data)
+}));
+jest.mock("@/shared/data/api/requests/automations", () => ({
+getAutomations: (...args: unknown[]) => mockGetAutomations(...args)
 }));
 
 jest.mock("@/shared/data/api/dataRequestExecutor", () => ({

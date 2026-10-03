@@ -2,10 +2,8 @@ import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
 } from "@/shared/data/desktop/desktopHostBridge";
-import {
-  openAgentDirectory,
-  type AgentDirectoryType,
-} from "@/shared/data/api/client";
+import { openAgentDirectory } from "@/shared/data/api/requests/agents";
+import { type AgentDirectoryType } from "@/shared/data/api/dto/agents";
 import { t } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 

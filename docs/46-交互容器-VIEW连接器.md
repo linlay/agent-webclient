@@ -25,7 +25,7 @@ Team 外层仍使用汇总 HITL，成员 VIEW 位于 `forms[i].form.view`。宿�
 
 ## 实现与限制
 
-主要实现：`shared/contracts/view.ts`、`shared/data/api/requests/views.ts`、`shared/utils/viewDocument.ts`、`timeline/components/ViewEmbed.tsx`、`tools/components/viewFrame.ts` 与 `useAwaitingFrameDocument.ts`。
+主要实现：`shared/contracts/view.ts`、`shared/data/api/requests/views.ts`、`shared/utils/viewDocument.ts`、`timeline/components/ViewEmbed.tsx`、`tools/lib/viewFrame.ts` 与 `tools/hooks/useAwaitingFrameDocument.ts`。
 
 QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。资源应预打包，暂不支持 CSS @import、JS 模块依赖解析或远端 CDN。在线回放支持 VIEW，独立会话 HTML 导出不内联模板。旧 `/api/viewport`、旧 viewport fence、builtin 对话框继续兼容。Desktop bridge 镜像未改变。
 

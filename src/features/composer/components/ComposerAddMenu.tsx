@@ -1,3 +1,6 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useRef, useState } from "react";
@@ -22,6 +25,8 @@ import { PackageSkillTree } from "./PackageSkillTree";
 import { packageMembers, skillIdentity } from "../lib/skillPackages";
 import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
 import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/lib/skillCatalogView";
+const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
+
 
 type Section = "files" | "skills" | "connectors" | "chat" | "site";
 export interface AddMenuTriggerProps {
@@ -199,7 +204,7 @@ const AddMenuSectionDetail: React.FC<
     <UiButton
       variant="ghost"
       size="sm"
-      className="composer-add-menu-detail-item"
+      className={presentationClasses("composer-add-menu-detail-item")}
       loading={options.loading}
       disabled={options.disabled}
       title={options.title}
@@ -223,7 +228,7 @@ const AddMenuSectionDetail: React.FC<
       // 点击整行选择，置顶按钮独立操作。
       <div
         key={skill.id}
-        className={`composer-add-menu-skill-row composer-add-menu-skill-select${selectDisabled ? " is-disabled" : ""}`}
+        className={presentationClasses(`composer-add-menu-skill-row composer-add-menu-skill-select${selectDisabled ? " is-disabled" : ""}`)}
         data-pinned={pinned || undefined}
         role="button"
         tabIndex={selectDisabled ? -1 : 0}
@@ -241,10 +246,10 @@ const AddMenuSectionDetail: React.FC<
         }}
       >
         <SkillIcon icon={skill.icon} />
-        <span className="composer-add-menu-item-copy">
-          <span className="composer-add-menu-item-title">
+        <span className={presentationClasses("composer-add-menu-item-copy")}>
+          <span className={presentationClasses("composer-add-menu-item-title")}>
             <b>{skillName}</b>
-            <span className="composer-add-menu-skill-actions">
+            <span className={presentationClasses("composer-add-menu-skill-actions")}>
               {skill.configured && (
                 <UiTag
                   tone="muted"
@@ -255,7 +260,7 @@ const AddMenuSectionDetail: React.FC<
               )}
               <button
                 type="button"
-                className="composer-add-menu-skill-pin"
+                className={presentationClasses("composer-add-menu-skill-pin")}
                 aria-label={pinLabel}
                 aria-pressed={pinned}
                 title={pinLabel}
@@ -284,7 +289,7 @@ const AddMenuSectionDetail: React.FC<
   const detailWidth = sectionMeta[section].detailWidth || DEFAULT_DETAIL_WIDTH;
   return (
     <div
-      className="composer-add-menu-detail"
+      className={presentationClasses("composer-add-menu-detail")}
       data-section={section}
       onPointerDownCapture={section === "skills" ? props.onInteract : undefined}
       onFocusCapture={section === "skills" ? props.onInteract : undefined}
@@ -331,10 +336,10 @@ const AddMenuSectionDetail: React.FC<
         </>
       )}
       {section === "skills" && (
-        <div className="composer-add-menu-scroll">
+        <div className={presentationClasses("composer-add-menu-scroll")}>
           {pinError && skillQuery.status !== "error" && (
             <div
-              className="composer-add-menu-status"
+              className={presentationClasses("composer-add-menu-status")}
               role="alert"
               title={pinError.message}
             >
@@ -359,13 +364,13 @@ const AddMenuSectionDetail: React.FC<
               onSelect={(members, selected, packageId) => execute(() => props.onSelectSkills?.(members, selected, packageId))} />
             : renderSkill(item.skill))}
           {skillQuery.status === "loading" && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("slashPalette.skills.loading")}
             </div>
           )}
           {skillQuery.status === "error" && (
             <div
-              className="composer-add-menu-status"
+              className={presentationClasses("composer-add-menu-status")}
               title={skillQuery.error?.message}
               role="alert"
             >
@@ -382,33 +387,33 @@ const AddMenuSectionDetail: React.FC<
             </div>
           )}
           {skillQuery.status === "success" && !skills.length && !packages.length && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("slashPalette.skills.empty")}
             </div>
           )}
           {skillQuery.status === "success" &&
             (skills.length > 0 || packages.length > 0) &&
             !catalogItems.length && (
-              <div className="composer-add-menu-status">
+              <div className={presentationClasses("composer-add-menu-status")}>
                 {t("composer.addMenu.empty")}
               </div>
             )}
         </div>
       )}
       {section === "chat" && (
-        <div className="composer-add-menu-scroll">
+        <div className={presentationClasses("composer-add-menu-scroll")}>
           {loadingContext && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("composer.addMenu.loading")}
             </div>
           )}
           {!loadingContext && !chats.length && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("composer.addMenu.chat.empty")}
             </div>
           )}
           {!loadingContext && !!chats.length && !filteredChats.length && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("composer.addMenu.empty")}
             </div>
           )}
@@ -416,7 +421,7 @@ const AddMenuSectionDetail: React.FC<
             item(
               <>
                 <MaterialIcon name="question_answer" />
-                <Typography.Text ellipsis>
+                <Typography.Text ellipsis className={libraryPresentation.typography}>
                   {text(chat.chatName) || chat.chatId}
                 </Typography.Text>
               </>,
@@ -431,19 +436,19 @@ const AddMenuSectionDetail: React.FC<
         </div>
       )}
       {section === "site" && (
-        <div className="composer-add-menu-scroll">
+        <div className={presentationClasses("composer-add-menu-scroll")}>
           {loadingContext && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("composer.addMenu.loading")}
             </div>
           )}
           {!loadingContext && !sites.length && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("composer.addMenu.site.empty")}
             </div>
           )}
           {!loadingContext && !!sites.length && !filteredSites.length && (
-            <div className="composer-add-menu-status">
+            <div className={presentationClasses("composer-add-menu-status")}>
               {t("composer.addMenu.empty")}
             </div>
           )}
@@ -535,7 +540,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
         <UiButton
           variant="ghost"
           size="sm"
-          className="composer-add-menu-detail-item"
+          className={presentationClasses("composer-add-menu-detail-item")}
           onClick={() => setSection(null)}
         >
           <MaterialIcon name="chevron_left" />
@@ -552,12 +557,12 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
     );
   }
   return (
-    <div className="composer-add-menu-nav" role="menu">
+    <div className={presentationClasses("composer-add-menu-nav")} role="menu">
       {visibleEntries.map((entry, index) =>
         entry === "divider" ? (
           <div
             key={`divider-${index}`}
-            className="composer-add-menu-divider"
+            className={presentationClasses("composer-add-menu-divider")}
             aria-hidden="true"
           />
         ) : entry === "screenshot" ? (
@@ -566,7 +571,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             variant="ghost"
             size="sm"
             role="menuitem"
-            className="composer-add-menu-nav-item"
+            className={presentationClasses("composer-add-menu-nav-item")}
             disabled={props.disabled || props.isMainChatRunning || props.isCapturingDesktopScreenshot}
             loading={props.isCapturingDesktopScreenshot}
             title={props.screenshotDisabledReason}
@@ -589,7 +594,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             aria-checked={
               props.canUsePlanningMode ? props.planningMode : props.editingMode
             }
-            className="composer-add-menu-nav-item"
+            className={presentationClasses("composer-add-menu-nav-item")}
             onMouseEnter={() => setSection(null)}
             onFocus={() => setSection(null)}
             onClick={() => {
@@ -607,7 +612,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
               )}
             </span>
             <span
-              className="composer-add-menu-mode-switch"
+              className={presentationClasses("composer-add-menu-mode-switch")}
               aria-hidden="true"
             />
           </UiButton>
@@ -630,7 +635,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             destroyOnHidden
             mouseEnterDelay={0.05}
             mouseLeaveDelay={0.15}
-            classNames={{ root: "composer-add-menu-overlay" }}
+            classNames={{ root: presentationClasses("composer-add-menu-overlay") }}
             content={
               <AddMenuSectionDetail
                 {...props}
@@ -646,7 +651,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
               variant="ghost"
               size="sm"
               role="menuitem"
-              className={`composer-add-menu-nav-item ${section === entry ? "is-active" : ""}`}
+              className={presentationClasses(`composer-add-menu-nav-item ${section === entry ? "is-active" : ""}`)}
               onClick={() => setSection(entry)}
               onFocus={() => setSection(entry)}
             >
@@ -678,11 +683,11 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
       placement="topLeft"
       arrow={false}
       destroyOnHidden
-      classNames={{ root: "composer-add-menu-overlay" }}
+      classNames={{ root: presentationClasses("composer-add-menu-overlay") }}
       content={<AddMenuPanel {...props} onClose={() => setOpen(false)} />}
     >
       <UiButton
-        className={`composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover ${open ? "is-open" : ""}`}
+        className={presentationClasses(`composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover ${open ? "is-open" : ""}`)}
         variant="ghost"
         size="sm"
         iconOnly

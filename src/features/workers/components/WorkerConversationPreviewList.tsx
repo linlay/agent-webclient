@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { Button, Flex, Tooltip } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -7,6 +9,8 @@ import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import { WorkerActionsMenu, type WorkerActionHandlers } from "./WorkerActionsMenu";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 type AgentIconConfig =
   | string
@@ -139,7 +143,7 @@ export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
       )}
       <div className={WORKER_CHAT_DIVIDER_CLASS}></div>
       {recentChats.length === 0 ? (
-        <div className="status-line">
+        <div className={presentationClasses("status-line")}>
           {t("leftSidebar.noRelatedConversations")}
         </div>
       ) : (

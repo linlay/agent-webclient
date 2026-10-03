@@ -1,5 +1,6 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppState } from "@/app/state/AppContext";
 import { formatAttachmentSize, getAttachmentKind } from "@/features/artifacts/lib/attachmentUtils";
 import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
@@ -773,7 +774,7 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
                     />
                     <Typography.Text
                       ellipsis={{ tooltip: task.description || task.taskId }}
-                      className={TASK_ITEM_TEXT_CLASS_NAME}
+                      className={[libraryPresentation.typography, TASK_ITEM_TEXT_CLASS_NAME].filter(Boolean).join(" ")}
                     >
                       {task.description || task.taskId}
                     </Typography.Text>

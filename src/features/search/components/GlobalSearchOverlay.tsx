@@ -16,7 +16,7 @@ import {
 } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
 import { readEpochMillis } from "@/shared/utils/platformTime";
-import { useOpenTarget } from "@/features/surfaces/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 
 export const GlobalSearchOverlay: React.FC = () => {
   const state = useAppState();

@@ -1,10 +1,14 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import React from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { UiButton } from "@/shared/ui/UiButton";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
+const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
+
 
 const MENTION_SUGGEST_CLASS =
-	"mention-suggest tw:absolute tw:bottom-full tw:left-0 tw:right-0 tw:z-10 tw:mb-1.5 tw:max-h-[260px] tw:overflow-y-auto tw:rounded-control tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_96%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_98%,transparent)] tw:shadow-floating";
+	presentationClasses("mention-suggest tw:absolute tw:bottom-full tw:left-0 tw:right-0 tw:z-10 tw:mb-1.5 tw:max-h-[260px] tw:overflow-y-auto tw:rounded-control tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_96%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_98%,transparent)] tw:shadow-floating");
 const MENTION_SUGGEST_LIST_CLASS = [
 	"mention-suggest-list tw:p-1",
 	SCROLLBAR_THIN_CLASS_NAME,
@@ -26,7 +30,7 @@ export const MentionSuggest: React.FC = () => {
 	}
 
 	return (
-		<div className={MENTION_SUGGEST_CLASS} id="mention-suggest">
+		<div className={MENTION_SUGGEST_CLASS} id={presentationClasses("mention-suggest")}>
 			<div className={MENTION_SUGGEST_LIST_CLASS}>
 				{state.mentionSuggestions.map((agent, index) => (
 					<UiButton

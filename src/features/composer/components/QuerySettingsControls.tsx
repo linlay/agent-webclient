@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import modelPresentation from "@/features/model-config/components/ModelMenu.module.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
@@ -36,6 +38,8 @@ import {
   normalizeOptionalModelServiceTier,
   serviceTierSupportedByModel,
 } from "@/features/model-config/lib/modelOptions";
+const presentationClasses = bindCssModuleClasses({ ...modelPresentation });
+
 
 interface QuerySettingsControlsProps {
   accessLevel: QueryAccessLevel;
@@ -947,7 +951,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     <div className={QUERY_SETTINGS_CONTROLS_CLASS}>
       {(interactionConfig?.accessLevel ?? true) && <Dropdown
         menu={{
-          className: "query-settings-menu",
+          className: presentationClasses("query-settings-menu"),
           items: accessItems,
           onClick: ({ key }) => onAccessLevelChange(key as QueryAccessLevel),
           selectedKeys: [accessLevel],
@@ -974,7 +978,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       {shouldShowModelControls ? (
         <Dropdown
           menu={{
-            className: "query-settings-menu",
+            className: presentationClasses("query-settings-menu"),
             items: modelItems,
             onClick: onModelMenuClick,
           }}

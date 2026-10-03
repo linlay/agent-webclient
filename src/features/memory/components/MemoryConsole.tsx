@@ -1,3 +1,4 @@
+import type { MemoryPreferenceDraftUpdates } from "@/features/memory/lib/memoryState";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Modal } from "antd";
 import {
@@ -157,26 +158,6 @@ export const MemoryInfoModalView: React.FC<MemoryInfoModalViewProps> = ({
   );
 };
 
-function createEmptyPreferenceStateUpdates() {
-  return {
-    memoryPreferenceScopes: [],
-    memoryPreferenceActiveScopeType: "agent",
-    memoryPreferenceActiveScopeKey: "",
-    memoryPreferenceLabel: "AGENT",
-    memoryPreferenceFileName: "AGENT.md",
-    memoryPreferenceMeta: null,
-    memoryPreferenceLoading: false,
-    memoryPreferenceError: "",
-    memoryPreferenceMarkdownDraft: "",
-    memoryPreferenceRecordsDraft: [],
-    memoryPreferenceSelectedRecordId: "",
-    memoryPreferenceDirty: false,
-    memoryPreferenceSaving: false,
-    memoryPreferenceSaveSummary: null,
-    memoryPreferenceValidation: null,
-  };
-}
-
 export interface MemoryInfoConsoleProps {
   open?: boolean;
   onClose?: () => void;
@@ -303,39 +284,16 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         return;
       }
       const seq = ++previewRequestSeqRef.current;
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreviewLoading: true,
-          memoryPreviewError: "",
-          memoryPreviewResult: null,
-        },
-      });
+      dispatch({ type: "START_MEMORY_PREVIEW" });
       try {
         const response = await previewMemoryContext({ chatId, message });
         if (seq !== previewRequestSeqRef.current) return;
-        dispatch({
-          type: "BATCH_UPDATE",
-          updates: {
-            memoryPreviewLoading: false,
-            memoryPreviewError: "",
-            memoryPreviewResult: response.data,
-          },
-        });
+        dispatch({ type: "COMPLETE_MEMORY_PREVIEW", result: response.data });
       } catch (error) {
         if (seq !== previewRequestSeqRef.current) return;
         const messageText =
           error instanceof Error ? error.message : String(error);
-        dispatch({
-          type: "BATCH_UPDATE",
-          updates: {
-            memoryPreviewLoading: false,
-            memoryPreviewError: t("memoryPreview.errors.load", {
-              detail: messageText,
-            }),
-            memoryPreviewResult: null,
-          },
-        });
+        dispatch({ type: "FAIL_MEMORY_PREVIEW", error: t("memoryPreview.errors.load", { detail: messageText }) });
       }
     },
     [dispatch, previewChatId, state.memoryPreviewDraft, t],
@@ -352,27 +310,11 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
     ) => {
       const seq = ++preferenceScopeSeqRef.current;
       if (!agentContext.agentKey) {
-        dispatch({
-          type: "BATCH_UPDATE",
-          updates: createEmptyPreferenceStateUpdates(),
-        });
+        dispatch({ type: "RESET_MEMORY_PREFERENCES" });
         return;
       }
 
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceLoading: true,
-          memoryPreferenceSaving: false,
-          memoryPreferenceError: "",
-          ...(options.preserveSaveSummary
-            ? {}
-            : { memoryPreferenceSaveSummary: null }),
-          ...(options.preserveValidation
-            ? {}
-            : { memoryPreferenceValidation: null }),
-        },
-      });
+      dispatch({ type: "START_MEMORY_PREFERENCE_LOAD", clearSaving: true, ...options });
 
       try {
         const response = await getMemoryScope(
@@ -383,35 +325,11 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         if (seq !== preferenceScopeSeqRef.current) return;
         const detail = response.data;
         const drafts = hydratePreferenceDrafts(detail.records || []);
-        dispatch({
-          type: "BATCH_UPDATE",
-          updates: {
-            memoryPreferenceActiveScopeType:
-              normalizePreferenceScopeType(detail.scopeType),
-            memoryPreferenceActiveScopeKey: detail.scopeKey,
-            memoryPreferenceLabel: detail.label,
-            memoryPreferenceFileName: detail.fileName,
-            memoryPreferenceMeta: detail.meta,
-            memoryPreferenceMarkdownDraft: detail.markdown,
-            memoryPreferenceRecordsDraft: drafts,
-            memoryPreferenceSelectedRecordId: drafts[0]?.clientId || "",
-            memoryPreferenceDirty: false,
-            memoryPreferenceLoading: false,
-            memoryPreferenceError: "",
-          },
-        });
+        dispatch({ type: "LOAD_MEMORY_PREFERENCE_DETAIL", detail: { ...detail, scopeType: normalizePreferenceScopeType(detail.scopeType) }, drafts });
       } catch (error) {
         if (seq !== preferenceScopeSeqRef.current) return;
         const message = error instanceof Error ? error.message : String(error);
-        dispatch({
-          type: "BATCH_UPDATE",
-          updates: {
-            memoryPreferenceLoading: false,
-            memoryPreferenceError: t("memoryPreferences.errors.loadScope", {
-              detail: message,
-            }),
-          },
-        });
+        dispatch({ type: "FAIL_MEMORY_PREFERENCE_REQUEST", error: t("memoryPreferences.errors.loadScope", { detail: message }) });
       }
     },
     [agentContext.agentKey, dispatch, t],
@@ -422,22 +340,11 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
       const seq = ++preferenceScopesSeqRef.current;
       const scopeSeq = preferenceScopeSeqRef.current;
       if (!agentContext.agentKey) {
-        dispatch({
-          type: "BATCH_UPDATE",
-          updates: createEmptyPreferenceStateUpdates(),
-        });
+        dispatch({ type: "RESET_MEMORY_PREFERENCES" });
         return;
       }
 
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceLoading: true,
-          memoryPreferenceError: "",
-          memoryPreferenceSaveSummary: null,
-          memoryPreferenceValidation: null,
-        },
-      });
+      dispatch({ type: "START_MEMORY_PREFERENCE_LOAD" });
 
       try {
         const response = await getMemoryScopes(agentContext.agentKey);
@@ -462,15 +369,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
           scopeSeq !== preferenceScopeSeqRef.current
         ) return;
         const message = error instanceof Error ? error.message : String(error);
-        dispatch({
-          type: "BATCH_UPDATE",
-          updates: {
-            memoryPreferenceLoading: false,
-            memoryPreferenceError: t("memoryPreferences.errors.loadScopes", {
-              detail: message,
-            }),
-          },
-        });
+        dispatch({ type: "FAIL_MEMORY_PREFERENCE_REQUEST", error: t("memoryPreferences.errors.loadScopes", { detail: message }) });
       }
     },
     [agentContext.agentKey, dispatch, loadPreferenceScope, t],
@@ -511,16 +410,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
 
   const handlePreferenceMarkdownChange = useCallback(
     (markdown: string) => {
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceMarkdownDraft: markdown,
-          memoryPreferenceDirty: true,
-          memoryPreferenceError: "",
-          memoryPreferenceSaveSummary: null,
-          memoryPreferenceValidation: null,
-        },
-      });
+      dispatch({ type: "EDIT_MEMORY_PREFERENCE_MARKDOWN", markdown });
     },
     [dispatch],
   );
@@ -559,15 +449,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
             };
         }
       });
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceRecordsDraft: nextRecords,
-          memoryPreferenceDirty: true,
-          memoryPreferenceError: "",
-          memoryPreferenceSaveSummary: null,
-        },
-      });
+      dispatch({ type: "EDIT_MEMORY_PREFERENCE_RECORDS", records: nextRecords });
     },
     [dispatch, state.memoryPreferenceRecordsDraft, state.memoryPreferenceSelectedRecordId],
   );
@@ -583,17 +465,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
       scopeKey: state.memoryPreferenceActiveScopeKey,
     } as Partial<MemoryScopeDraftRecord>);
     const nextRecords = [draft, ...state.memoryPreferenceRecordsDraft];
-    dispatch({
-      type: "BATCH_UPDATE",
-      updates: {
-        memoryPreferenceMode: "records",
-        memoryPreferenceRecordsDraft: nextRecords,
-        memoryPreferenceSelectedRecordId: draft.clientId,
-        memoryPreferenceDirty: true,
-        memoryPreferenceError: "",
-        memoryPreferenceSaveSummary: null,
-      },
-    });
+    dispatch({ type: "EDIT_MEMORY_PREFERENCE_RECORDS", records: nextRecords, selectedRecordId: draft.clientId, mode: "records" });
   }, [
     dispatch,
     state.memoryPreferenceActiveScopeKey,
@@ -610,16 +482,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         state.memoryPreferenceSelectedRecordId === id
           ? nextRecords[0]?.clientId || ""
           : state.memoryPreferenceSelectedRecordId;
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceRecordsDraft: nextRecords,
-          memoryPreferenceSelectedRecordId: nextSelectedId,
-          memoryPreferenceDirty: true,
-          memoryPreferenceError: "",
-          memoryPreferenceSaveSummary: null,
-        },
-      });
+      dispatch({ type: "EDIT_MEMORY_PREFERENCE_RECORDS", records: nextRecords, selectedRecordId: nextSelectedId });
     },
     [
       dispatch,
@@ -641,13 +504,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         markdown: syncedMarkdownDraft,
       });
     }
-    dispatch({
-      type: "BATCH_UPDATE",
-      updates: {
-        memoryPreferenceLoading: true,
-        memoryPreferenceError: "",
-      },
-    });
+    dispatch({ type: "START_MEMORY_PREFERENCE_VALIDATION" });
     try {
       const response = await validateMemoryScope(
         agentContext.agentKey,
@@ -655,26 +512,11 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
         syncedMarkdownDraft,
       );
       if (seq !== preferenceScopeSeqRef.current) return;
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceValidation: response.data,
-          memoryPreferenceLoading: false,
-          memoryPreferenceError: "",
-        },
-      });
+      dispatch({ type: "COMPLETE_MEMORY_PREFERENCE_VALIDATION", validation: response.data });
     } catch (error) {
       if (seq !== preferenceScopeSeqRef.current) return;
       const message = error instanceof Error ? error.message : String(error);
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceLoading: false,
-          memoryPreferenceError: t("memoryPreferences.errors.validate", {
-            detail: message,
-          }),
-        },
-      });
+      dispatch({ type: "FAIL_MEMORY_PREFERENCE_REQUEST", error: t("memoryPreferences.errors.validate", { detail: message }) });
     }
   }, [
     agentContext.agentKey,
@@ -706,7 +548,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
     const syncedMarkdownDraft =
       preferenceMarkdownTextareaRef.current?.value ??
       state.memoryPreferenceMarkdownDraft;
-    const syncUpdates: Record<string, unknown> = {};
+    const syncUpdates: MemoryPreferenceDraftUpdates = {};
     if (
       state.memoryPreferenceMode === "records" &&
       syncedRecordsDraft !== state.memoryPreferenceRecordsDraft
@@ -719,15 +561,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
     ) {
       syncUpdates.memoryPreferenceMarkdownDraft = syncedMarkdownDraft;
     }
-    dispatch({
-      type: "BATCH_UPDATE",
-      updates: {
-        ...syncUpdates,
-        memoryPreferenceSaving: true,
-        memoryPreferenceError: "",
-        memoryPreferenceSaveSummary: null,
-      },
-    });
+    dispatch({ type: "START_MEMORY_PREFERENCE_SAVE", drafts: syncUpdates });
 
     try {
       if (state.memoryPreferenceMode === "markdown") {
@@ -742,13 +576,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
           validation: validationResponse.data,
         });
         if (!validationResponse.data.valid) {
-          dispatch({
-            type: "BATCH_UPDATE",
-            updates: {
-              memoryPreferenceSaving: false,
-              memoryPreferenceError: "",
-            },
-          });
+          dispatch({ type: "STOP_MEMORY_PREFERENCE_SAVE", error: "" });
           return;
         }
       }
@@ -767,14 +595,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
       });
 
       if (seq !== preferenceScopeSeqRef.current) return;
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceSaving: false,
-          memoryPreferenceSaveSummary: response.data.summary,
-          memoryPreferenceValidation: null,
-        },
-      });
+      dispatch({ type: "COMPLETE_MEMORY_PREFERENCE_SAVE", summary: response.data.summary });
       await loadPreferenceScope(
         normalizePreferenceScopeType(response.data.scopeType),
         response.data.scopeKey,
@@ -783,15 +604,7 @@ export const MemoryInfoConsole: React.FC<MemoryInfoConsoleProps> = ({
     } catch (error) {
       if (seq !== preferenceScopeSeqRef.current) return;
       const message = error instanceof Error ? error.message : String(error);
-      dispatch({
-        type: "BATCH_UPDATE",
-        updates: {
-          memoryPreferenceSaving: false,
-          memoryPreferenceError: t("memoryPreferences.errors.save", {
-            detail: message,
-          }),
-        },
-      });
+      dispatch({ type: "STOP_MEMORY_PREFERENCE_SAVE", error: t("memoryPreferences.errors.save", { detail: message }) });
     }
   }, [
     agentContext.agentKey,

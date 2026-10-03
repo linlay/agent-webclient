@@ -13,9 +13,9 @@ import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
 import {
   decodeNativeResourceRelativePath,
-  useOpenTarget,
   type OpenTargetIntent,
-} from "@/features/surfaces/openTarget";
+} from "@/features/surfaces/lib/openTarget";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { classifyResourceUrl } from "@/shared/data";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useI18n } from "@/shared/i18n";

@@ -1,3 +1,4 @@
+import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { Badge, Flex, Tooltip, Typography } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -120,7 +121,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
       />
       <Flex vertical style={{ overflow: "hidden", flex: 1 }}>
         <Flex align="center" className={WORKER_PANEL_HEADER_BODY_CLASS}>
-          <Typography.Text ellipsis style={{ flex: 1 }}>
+          <Typography.Text ellipsis style={{ flex: 1 }} className={libraryPresentation.typography}>
             {row.displayName}
             {subtitle && (
               <span
@@ -147,7 +148,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
               </span>
             </Tooltip>
           ) : null}
-          <Badge count={unreadCount} size="small" color="blue" />
+          <Badge count={unreadCount} size="small" color="blue" className={libraryPresentation.badge} />
           <Flex>
             {row.type === "agent" && unreadCount > 0 && onMarkAllRead && (
               <Tooltip title={t("leftSidebar.markAllRead")}>
@@ -190,7 +191,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
           </Flex>
         </Flex>
         <Flex align="center" className="worker-panel-preview" gap={4}>
-          <Typography.Text ellipsis style={{ flex: 1 }}>
+          <Typography.Text ellipsis style={{ flex: 1 }} className={libraryPresentation.typography}>
             {preview}
           </Typography.Text>
           {previewStatus === "awaiting" && (

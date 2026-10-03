@@ -22,7 +22,7 @@ jest.mock("@/app/state/AppContext", () => ({
     state: { themeMode: "dark", chats: [] },
   }),
 }));
-jest.mock("@/features/surfaces/openTarget", () => ({
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({
   useOpenTarget: () => mockOpenTarget,
 }));
 jest.mock("@/features/artifacts/components/AttachmentCard", () => ({

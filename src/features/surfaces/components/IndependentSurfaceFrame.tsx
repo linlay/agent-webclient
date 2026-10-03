@@ -1,6 +1,10 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
 import { useI18n } from "@/shared/i18n";
 import styles from "./IndependentSurfaceFrame.module.css";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 function withModuleClasses(...classNames: string[]): string {
   return [
@@ -31,9 +35,9 @@ export const IndependentSurfaceFrame: React.FC<{
   const { t } = useI18n();
   return (
     <main className={withModuleClasses("readonly-run-surface", `readonly-run-surface-${kind}`, embedded ? "is-embedded" : "")}>
-      {loading ? <div className="status-line">{t("surface.loading")}</div> : null}
+      {loading ? <div className={presentationClasses("status-line")}>{t("surface.loading")}</div> : null}
       {error ? (
-        <div className={`system-alert ${withModuleClasses("readonly-run-surface-error")}`} role="alert">
+        <div className={presentationClasses(`system-alert ${withModuleClasses("readonly-run-surface-error")}`)} role="alert">
           <span>{error}</span>
           {onRetry ? (
             <button type="button" onClick={onRetry}>{t("surface.retry")}</button>
@@ -41,7 +45,7 @@ export const IndependentSurfaceFrame: React.FC<{
         </div>
       ) : null}
       {!error && notFound ? (
-        <div className="status-line" role="status">{notFound}</div>
+        <div className={presentationClasses("status-line")} role="status">{notFound}</div>
       ) : null}
       <section className={withModuleClasses(
         "readonly-run-surface-content",

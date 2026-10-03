@@ -1,4 +1,7 @@
-import "../hitlCompat.module.css";
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import toolsPresentation from "@/features/tools/components/AwaitingPresentation.module.css";
+const presentationClasses = bindCssModuleClasses({ ...toolsPresentation });
+
 
 const dialogSurface =
   "hitl-dialog-surface tw:overflow-hidden tw:rounded-[20px] tw:border tw:border-border tw:bg-bg-card tw:p-2.5 tw:shadow-elevated";
@@ -34,26 +37,26 @@ export const hitlDialogClassNames = {
   paginationDotSkip: "tw:bg-accent-danger",
   approvalDetails: "tw:px-3 tw:text-text-muted",
   approvalMeta: "tw:text-xs tw:leading-normal tw:text-text-muted",
-  radioGroup: "hitl-radio-group tw:flex tw:flex-col tw:gap-1",
-  checkboxGroup: "hitl-checkbox-group tw:flex tw:flex-col tw:gap-1",
-  planCheckboxGroup: "hitl-checkbox-group tw:flex tw:flex-col tw:gap-0.5",
+  radioGroup: presentationClasses("hitl-radio-group tw:flex tw:flex-col tw:gap-1"),
+  checkboxGroup: presentationClasses("hitl-checkbox-group tw:flex tw:flex-col tw:gap-1"),
+  planCheckboxGroup: presentationClasses("hitl-checkbox-group tw:flex tw:flex-col tw:gap-0.5"),
   radioOption:
-    "hitl-radio-option tw:flex-1 tw:rounded-2xl tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover",
+    presentationClasses("hitl-radio-option tw:flex-1 tw:rounded-2xl tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover"),
   checkboxOption:
-    "hitl-checkbox-option tw:rounded-2xl tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover",
+    presentationClasses("hitl-checkbox-option tw:rounded-2xl tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-muted tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover"),
   planOption:
-    "hitl-checkbox-option hitl-plan-option tw:flex-1 tw:rounded-2xl tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-main tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover",
+    presentationClasses("hitl-checkbox-option hitl-plan-option tw:flex-1 tw:rounded-2xl tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-main tw:hover:bg-bg-hover tw:focus-within:bg-bg-hover"),
   freeTextOption:
-    "hitl-free-text tw:rounded-2xl tw:border tw:border-transparent tw:px-2.5 tw:py-1.5 tw:my-1 tw:text-xs tw:text-text-main tw:focus-within:border-accent",
+    presentationClasses("hitl-free-text tw:rounded-2xl tw:border tw:border-transparent tw:px-2.5 tw:py-1.5 tw:my-1 tw:text-xs tw:text-text-main tw:focus-within:border-accent"),
   approvalFreeTextOption:
-    "hitl-radio-option hitl-free-text tw:rounded-2xl tw:border tw:border-transparent tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-main tw:focus-within:border-accent",
+    presentationClasses("hitl-radio-option hitl-free-text tw:rounded-2xl tw:border tw:border-transparent tw:px-[3px] tw:py-1.5 tw:text-xs tw:text-text-main tw:focus-within:border-accent"),
   optionIndex:
-    "hitl-option-index tw:flex tw:h-5 tw:w-5 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-line tw:bg-bg-hover tw:text-text-muted",
+    presentationClasses("hitl-option-index tw:flex tw:h-5 tw:w-5 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:border tw:border-line tw:bg-bg-hover tw:text-text-muted"),
   optionIndexIcon: "tw:text-xs",
   optionInfo: "tw:font-bold tw:text-text-main",
   optionInfoPlain: "tw:text-text-main",
   selectedBadge:
-    "hitl-selected-badge tw:hidden tw:rounded-[10px] tw:bg-bg-hover tw:px-1.5 tw:text-xs tw:text-[var(--colorTextSecondary)] tw:whitespace-nowrap",
+    presentationClasses("hitl-selected-badge tw:hidden tw:rounded-[10px] tw:bg-bg-hover tw:px-1.5 tw:text-xs tw:text-[var(--colorTextSecondary)] tw:whitespace-nowrap"),
   optionPreview:
     "tw:h-[200px] tw:w-[min(340px,80vw)] tw:overflow-hidden tw:rounded-lg tw:border tw:border-border tw:bg-bg-card",
   optionPreviewFrame: "tw:block tw:h-full tw:w-full tw:border-0 tw:bg-white",

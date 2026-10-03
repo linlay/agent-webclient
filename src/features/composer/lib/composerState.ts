@@ -51,6 +51,7 @@ export interface ComposerState extends ComposerAccessState {
   submissionDrafts: Record<string, SubmissionDraft>;
   failedSubmissions: SubmissionDraft[];
   skillRejection: { agentKey: string; skillId?: string; message: string } | null;
+  editingMode: boolean;
   mentionOpen: boolean;
   mentionSuggestions: Agent[];
   mentionActiveIndex: number;
@@ -67,6 +68,12 @@ export type ComposerDraftState = Pick<
   "composerDraft" | "composerDraftByChatId" | "selectedSkills" | "selectedSkillsByChatId"
 >;
 
+export type ComposerInteractionAction =
+  | { type: "SET_EDITING_MODE"; enabled: boolean }
+  | { type: "SET_MENTION_OPEN"; open: boolean }
+  | { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
+  | { type: "SET_MENTION_ACTIVE_INDEX"; index: number };
+
 export type ComposerAction =
   | { type: "TOUCH_COMPOSER" }
   | { type: "BEGIN_COMPOSER_SUBMISSION"; draft: Omit<SubmissionDraft, "version"> }
@@ -78,9 +85,7 @@ export type ComposerAction =
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
   | { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
   | ComposerSteerAction
-  | { type: "SET_MENTION_OPEN"; open: boolean }
-  | { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
-  | { type: "SET_MENTION_ACTIVE_INDEX"; index: number };
+  | ComposerInteractionAction;
 
 export function createInitialComposerState(): ComposerState {
   return {
@@ -89,6 +94,7 @@ export function createInitialComposerState(): ComposerState {
     submissionDrafts: {},
     failedSubmissions: [],
     skillRejection: null,
+    editingMode: false,
     mentionOpen: false,
     mentionSuggestions: [],
     mentionActiveIndex: 0,
@@ -99,6 +105,19 @@ export function createInitialComposerState(): ComposerState {
     pendingSteers: {},
     restoredSteerReferencesByChatId: {},
   };
+}
+
+export function reduceComposerInteractionState<S extends ComposerState>(state: S, action: ComposerInteractionAction): S;
+export function reduceComposerInteractionState<S extends ComposerState>(state: S, action: { type: string }): S | null;
+export function reduceComposerInteractionState<S extends ComposerState>(state: S, input: { type: string }): S | null {
+  const action = input as ComposerInteractionAction;
+  switch (action.type) {
+    case "SET_EDITING_MODE": return { ...state, editingMode: action.enabled };
+    case "SET_MENTION_OPEN": return { ...state, mentionOpen: action.open };
+    case "SET_MENTION_SUGGESTIONS": return { ...state, mentionSuggestions: action.agents };
+    case "SET_MENTION_ACTIVE_INDEX": return { ...state, mentionActiveIndex: action.index };
+    default: return null;
+  }
 }
 
 export function updateComposerDraft(

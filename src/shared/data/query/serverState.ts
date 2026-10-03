@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
-import type { ApiResponse } from "@/shared/data/api/client";
+import type { ApiResponse } from "@/shared/data/api/dto/common";
 import {
   createDataCacheKey,
   type EndpointDefinition,

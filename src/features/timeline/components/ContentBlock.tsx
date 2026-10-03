@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import React from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import {
@@ -18,6 +20,8 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction, useTimelineContextMenuTarget } from "./TimelineInteractionContext";
 import { copyText } from "@/shared/utils/copy";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 interface ContentBlockProps {
 	node: TimelineNode;
@@ -27,7 +31,7 @@ const TIMELINE_CONTENT_STACK_CLASS_NAME =
 	"timeline-content-stack tw:flex tw:flex-col tw:gap-1.5";
 const TIMELINE_TEXT_CLASS_NAME =
 	"timeline-text tw:break-words tw:text-[13px] tw:leading-[1.58] tw:text-ink-1";
-const TIMELINE_MARKDOWN_CLASS_NAME = "timeline-markdown tw:whitespace-normal";
+const TIMELINE_MARKDOWN_CLASS_NAME = presentationClasses("timeline-markdown tw:whitespace-normal");
 const TIMELINE_CONTENT_MARKDOWN_CLASS_NAME =
 	"tw:text-[15px] tw:leading-[1.72]";
 const TTS_VOICE_SECTION_CLASS_NAME = "tw:my-2";

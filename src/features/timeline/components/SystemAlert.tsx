@@ -1,9 +1,13 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useCallback, useRef, useState } from "react";
 import { Flex, Tooltip } from "antd";
 import type { TimelineErrorDetail, TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
+const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
 
 function hasTechnicalDetail(errorDetail?: TimelineErrorDetail): boolean {
   return Boolean(
@@ -128,18 +132,18 @@ export const SystemAlert: React.FC<{
         : t("timeline.systemAlert.copy.tooltip");
 
   return (
-    <div className="system-alert" data-level={level}>
+    <div className={presentationClasses("system-alert")} data-level={level}>
       <Flex justify="space-between" align="center" gap={6}>
         {tooltip ? (
           <Tooltip title={tooltip}>
-            <div className="system-alert-message">{text}</div>
+            <div className={presentationClasses("system-alert-message")}>{text}</div>
           </Tooltip>
         ) : (
-          <div className="system-alert-message">{text}</div>
+          <div className={presentationClasses("system-alert-message")}>{text}</div>
         )}
         <Tooltip title={copyTooltip}>
           <UiButton
-            className="system-alert-copy-btn"
+            className={presentationClasses("system-alert-copy-btn")}
             variant="ghost"
             size="mini"
             onClick={handleCopy}
@@ -150,7 +154,7 @@ export const SystemAlert: React.FC<{
         </Tooltip>
       </Flex>
       {showDetails && (
-        <details className="system-alert-details">
+        <details className={presentationClasses("system-alert-details")}>
           <summary>{t("platformError.technicalDetails")}</summary>
           <dl>
             {rows.map(([key, value]) => {

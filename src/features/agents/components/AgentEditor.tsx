@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import modelPresentation from "@/features/model-config/components/ModelMenu.module.css";
 import React from "react";
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import {
@@ -32,6 +34,8 @@ import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import type { I18nContextValue } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+const presentationClasses = bindCssModuleClasses({ ...modelPresentation });
+
 
 const AGENT_FORM_GRID_CLASS_NAME =
   "agent-form-grid tw:grid tw:grid-cols-3 tw:max-[860px]:grid-cols-1 tw:[&_.field-group]:mb-0";
@@ -438,7 +442,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
           <div className="agent-model-dropdown">
             <Dropdown
               menu={{
-                className: "query-settings-menu",
+                className: presentationClasses("query-settings-menu"),
                 items: modelItems,
                 onClick: onModelMenuClick,
               }}

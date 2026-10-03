@@ -67,7 +67,7 @@ jest.mock("@/features/settings/components/SettingsOverlayProvider", () => ({
   useSettingsOverlayActions: () => ({ openOverlay: jest.fn() }),
 }));
 
-jest.mock("@/features/surfaces/openTarget", () => ({
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({
   useOpenTarget: () => mockOpenTarget,
 }));
 

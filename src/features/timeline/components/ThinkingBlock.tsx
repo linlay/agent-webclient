@@ -1,3 +1,5 @@
+import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
+import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import React, { useEffect, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useI18n } from "@/shared/i18n";
@@ -6,6 +8,8 @@ import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { formatToolDuration } from "@/features/timeline/lib/timelineDuration";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
+const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
+
 
 interface ThinkingBlockProps {
   node: TimelineNode;
@@ -68,7 +72,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
       destroyOnHidden
       onExpand={() => interaction?.setExpanded?.(node.id, !expanded)}
     >
-      <div className={["thinking-detail", SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
+      <div className={[presentationClasses("thinking-detail"), SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
         {node.errorDetail && <div role="status">{node.errorDetail.message}</div>}
         {text}
       </div>
