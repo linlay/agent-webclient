@@ -14,7 +14,7 @@
     "release:conversation-export": "npm run build:conversation-export && npm run sync:conversation-export && npm run check:conversation-export",
     "sync:conversation-export": "node ./scripts/sync-conversation-export-artifacts.js",
     "check:conversation-export-sync": "node ./scripts/sync-conversation-export-artifacts.js --check",
-    "test": "npm run check:boundaries && npm run test:unit --",
+    "test": "npm run check:i18n && npm run check:boundaries && npm run test:unit --",
     "test:unit": "node ./node_modules/jest/bin/jest.js --passWithNoTests --watchman=false",
     "check:boundaries": "node ./scripts/check-feature-boundaries.js",
     "check:desktop-contract": "node ./scripts/check-agent-webclient-contract.js",

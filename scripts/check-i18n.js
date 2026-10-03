@@ -105,6 +105,19 @@ function readAllowlist() {
       continue;
     }
     const textValues = new Set();
+    const filePath = path.join(root, file);
+    const literals = new Set();
+    if (!fs.existsSync(filePath)) {
+      issues.push(`allowlist file does not exist: ${file}`);
+    } else {
+      const parsed = sourceFile(filePath);
+      function collect(node) {
+        const text = literalText(node, parsed);
+        if (text) literals.add(text);
+        ts.forEachChild(node, collect);
+      }
+      collect(parsed);
+    }
     for (const value of values) {
       const text = String(value?.text || "").trim();
       const reason = String(value?.reason || "").trim();
@@ -113,6 +126,9 @@ function readAllowlist() {
         continue;
       }
       textValues.add(text);
+      if (fs.existsSync(filePath) && !literals.has(text)) {
+        issues.push(`stale allowlist text in ${file}: ${JSON.stringify(text)}`);
+      }
     }
     entries.set(file, textValues);
   }

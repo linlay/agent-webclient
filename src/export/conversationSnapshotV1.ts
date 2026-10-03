@@ -1,4 +1,4 @@
-import { conversationExportMessages } from "@/shared/i18n/conversationExport";
+import { conversationExportToolLabels } from "@/shared/i18n/conversationExport";
 import type {
   TimelineNode,
   TimelineSource,
@@ -72,47 +72,6 @@ export interface ConversationSnapshotV1 {
 }
 
 const MAX_BYTES = 20 * 1024 * 1024;
-// Keep built-in labels aligned with agent-platform/internal/resources/tools/*.yml.
-const ZH_TOOL_LABELS: Readonly<Record<string, string>> = {
-  ...conversationExportMessages["zh-CN"].toolLabels,
-  agent_delegate: "委派团队成员",
-  agent_invoke: "调度智能体",
-  artifact_publish: "发布产物",
-  ask_user_question: "向用户提问",
-  bash: "执行命令",
-  bash_sandbox: "执行沙箱命令",
-  datetime: "日期时间",
-  desktop_action: "桌面端动作",
-  desktop_cdp: "桌面端CDP",
-  file_edit: "编辑文件",
-  file_glob: "查找文件",
-  file_grep: "搜索文件",
-  file_read: "读取文件",
-  file_write: "写入文件",
-  finalize_planning: "确认规划",
-  image_generate: "图像生成",
-  kbase_files: "浏览知识库文件",
-  kbase_read: "读取知识库片段",
-  kbase_refresh: "刷新知识库",
-  kbase_search: "搜索知识库",
-  kbase_status: "知识库状态",
-  memory_forget: "归档记忆",
-  memory_promote: "提升记忆",
-  memory_read: "读取记忆",
-  memory_search: "搜索记忆",
-  memory_timeline: "记忆时间线",
-  memory_update: "更新记忆",
-  memory_write: "写入记忆",
-  plan_add_tasks: "创建任务",
-  plan_get_tasks: "读取任务",
-  plan_update_task: "更新任务",
-  platform_control: "平台控制",
-  regex: "正则匹配",
-  run_interrupt: "中断独立运行",
-  run_query: "发起独立运行",
-  run_status: "查询独立运行状态",
-  web_fetch: "网页抓取",
-};
 
 function previewToolLabel(
   node: SnapshotNodeV1,
@@ -122,7 +81,7 @@ function previewToolLabel(
   if (label) return node.toolLabel;
   if (locale !== "zh-CN" || node.kind !== "tool") return undefined;
   const name = typeof node.toolName === "string" ? node.toolName : "";
-  return Object.hasOwn(ZH_TOOL_LABELS, name) ? ZH_TOOL_LABELS[name] : undefined;
+  return Object.hasOwn(conversationExportToolLabels, name) ? conversationExportToolLabels[name] : undefined;
 }
 
 const NODE_KINDS = new Set<TimelineNode["kind"]>([

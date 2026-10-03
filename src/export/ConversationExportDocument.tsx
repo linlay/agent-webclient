@@ -37,9 +37,7 @@ function findPublishedAttachment(href: string | undefined, attachments: Map<stri
 
 export const ConversationExportDocument: React.FC<ConversationExportDocumentProps> = ({ snapshot, publicBrand }) => {
   const copy = conversationExportMessages[snapshot.locale];
-  const labels = snapshot.locale === "en-US"
-    ? { attachments: "Attachments", download: "Download", close: "Close", unavailable: "Available only from the shared page" }
-    : { attachments: "附件", download: "下载", close: "关闭", unavailable: "仅在线分享页面可预览" };
+  const labels = copy.attachments;
   const [selected, setSelected] = useState<SnapshotAttachmentV1 | null>(null);
   const data = useMemo(() => snapshotV1PreviewData(snapshot), [snapshot]);
   const assistantByRunId = useMemo(() => new Map(snapshot.turns.map((turn) =>

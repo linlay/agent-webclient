@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { publicShareBrandIcon, type PublicShareBrand } from "./publicShareBrand";
+import { conversationExportMessages } from "@/shared/i18n/conversationExport";
 import styles from "./PublicShareAppEntry.module.css";
 
 export type PublicShareAppEntryProps = {
@@ -17,7 +18,7 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
-  const isEnglish = locale === "en-US";
+  const copy = conversationExportMessages[locale].appEntry;
 
   const closeDialog = useCallback((restoreFocus = true) => {
     setDialogOpen(false);
@@ -85,10 +86,8 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
 
   if (!showEntry) return null;
 
-  const title = isEnglish ? `Opening ${brand.productName}` : `正在打开 ${brand.productName}`;
-  const description = isEnglish
-    ? "If the app is not installed, select “Go to download”."
-    : "若未安装，可点击「前往下载」。";
+  const title = copy.opening.replace("{productName}", () => brand.productName);
+  const description = copy.description;
 
   return <>
     <div className={styles.entryWrap}>
@@ -102,11 +101,11 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
               const fallback = publicShareBrandIcon("");
               if (event.currentTarget.getAttribute("src") !== fallback) event.currentTarget.src = fallback;
             }} />
-          <span>{isEnglish ? `Continue in ${brand.productName}` : `在 ${brand.productName} 继续聊`}</span>
+          <span>{copy.continue.replace("{productName}", () => brand.productName)}</span>
           <MaterialIcon name="chevron_right" aria-hidden="true" />
         </a>
         <button className={styles.entryClose} type="button"
-          aria-label={isEnglish ? "Dismiss app link" : "关闭应用入口"}
+          aria-label={copy.dismiss}
           onClick={() => setShowEntry(false)}>
           <MaterialIcon name="close" aria-hidden="true" />
         </button>
@@ -119,7 +118,7 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
       <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true"
         aria-labelledby={titleId} aria-describedby={descriptionId}>
         <button ref={closeRef} className={styles.dialogClose} type="button"
-          aria-label={isEnglish ? "Close download prompt" : "关闭下载提示"}
+          aria-label={copy.closeDownload}
           onClick={() => closeDialog()}>
           <MaterialIcon name="close" aria-hidden="true" />
         </button>
@@ -134,7 +133,7 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
         </div>
         <a className={styles.downloadLink} href={brand.downloadPageUrl} target="_blank"
           rel="noopener noreferrer" onClick={() => closeDialog()}>
-          {isEnglish ? "Go to download" : "前往下载"}
+          {copy.download}
         </a>
       </div>
     </div>}

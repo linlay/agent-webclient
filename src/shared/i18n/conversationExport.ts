@@ -2,6 +2,15 @@ export type ConversationExportLocale = "zh-CN" | "en-US";
 
 export const conversationExportMessages = {
   "zh-CN": {
+    attachments: { attachments: "附件", download: "下载", close: "关闭", unavailable: "仅在线分享页面可预览" },
+    appEntry: {
+      opening: "正在打开 {productName}",
+      description: "若未安装，可点击「前往下载」。",
+      continue: "在 {productName} 继续聊",
+      dismiss: "关闭应用入口",
+      closeDownload: "关闭下载提示",
+      download: "前往下载",
+    },
     toolLabels: {
       "desktop_shell": "桌面导航",
       "desktop_settings": "桌面设置",
@@ -41,6 +50,15 @@ export const conversationExportMessages = {
     user: "用户",
   },
   "en-US": {
+    attachments: { attachments: "Attachments", download: "Download", close: "Close", unavailable: "Available only from the shared page" },
+    appEntry: {
+      opening: "Opening {productName}",
+      description: "If the app is not installed, select “Go to download”.",
+      continue: "Continue in {productName}",
+      dismiss: "Dismiss app link",
+      closeDownload: "Close download prompt",
+      download: "Go to download",
+    },
     toolLabels: {
       "desktop_shell": "Desktop navigation",
       "desktop_settings": "Desktop settings",
@@ -88,3 +106,46 @@ export function resolveConversationExportLocale(): ConversationExportLocale {
     ? "zh-CN"
     : "en-US";
 }
+
+// Legacy Chinese snapshot fallback; preserve labels supplied by Platform.
+// Keep built-in labels aligned with agent-platform/internal/resources/tools/*.yml.
+export const conversationExportToolLabels: Readonly<Record<string, string>> = {
+  ...conversationExportMessages["zh-CN"].toolLabels,
+  agent_delegate: "委派团队成员",
+  agent_invoke: "调度智能体",
+  artifact_publish: "发布产物",
+  ask_user_question: "向用户提问",
+  bash: "执行命令",
+  bash_sandbox: "执行沙箱命令",
+  datetime: "日期时间",
+  desktop_action: "桌面端动作",
+  desktop_cdp: "桌面端CDP",
+  file_edit: "编辑文件",
+  file_glob: "查找文件",
+  file_grep: "搜索文件",
+  file_read: "读取文件",
+  file_write: "写入文件",
+  finalize_planning: "确认规划",
+  image_generate: "图像生成",
+  kbase_files: "浏览知识库文件",
+  kbase_read: "读取知识库片段",
+  kbase_refresh: "刷新知识库",
+  kbase_search: "搜索知识库",
+  kbase_status: "知识库状态",
+  memory_forget: "归档记忆",
+  memory_promote: "提升记忆",
+  memory_read: "读取记忆",
+  memory_search: "搜索记忆",
+  memory_timeline: "记忆时间线",
+  memory_update: "更新记忆",
+  memory_write: "写入记忆",
+  plan_add_tasks: "创建任务",
+  plan_get_tasks: "读取任务",
+  plan_update_task: "更新任务",
+  platform_control: "平台控制",
+  regex: "正则匹配",
+  run_interrupt: "中断独立运行",
+  run_query: "发起独立运行",
+  run_status: "查询独立运行状态",
+  web_fetch: "网页抓取",
+};
