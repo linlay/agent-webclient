@@ -27,6 +27,7 @@ import { useAwaitingTimeoutCountdown } from "@/features/tools/hooks/useAwaitingT
 import { useI18n } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useKeyboard } from "@/shared/utils/useKeyboard";
+import { isEditableKeyboardTarget } from "./buildin/confirm-dialog/state";
 import { RadioRef } from "antd/es/radio";
 const presentationClasses = bindCssModuleClasses({ ...toolsPresentation, ...sharedPresentation });
 
@@ -816,17 +817,21 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       }
       radioItemsRef.current?.[index]?.input?.click();
     },
-    // onKeyDown: (e) => {
-    //   if (isEditableKeyboardTarget(e.target)) {
-    //     return;
-    //   }
-    //   if (!/^[1-9]$/.test(e.key)) {
-    //     return;
-    //   }
-    //   e.preventDefault();
-    //   e.stopPropagation();
-    //   planQuestionRef.current?.check(Number(e.key) - 1);
-    // },
+    onKeyDown: (e) => {
+      if (
+        e.defaultPrevented || e.repeat || e.isComposing ||
+        e.metaKey || e.ctrlKey || e.altKey || e.shiftKey ||
+        isEditableKeyboardTarget(e.target) ||
+        footerReadOnly ||
+        (e.key !== "1" && e.key !== "2") ||
+        (e.key === "1" && !renderedHtml)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      handleFooterDecisionSubmit(e.key === "1" ? "submit" : "reject");
+    },
   });
   return (
     <div className={AWAITING_PANEL_CLASS_NAME} id="awaiting-html-panel">

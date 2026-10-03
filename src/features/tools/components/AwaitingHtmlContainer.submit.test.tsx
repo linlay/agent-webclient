@@ -8,7 +8,6 @@ import type { FormActiveAwaiting } from "../lib/toolsState";
 let mockExpire: (() => void) | undefined;
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ locale: "zh-CN", t: (key: string) => key }) }));
 jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ warning: jest.fn() }) }));
-jest.mock("@/shared/utils/useKeyboard", () => ({ useKeyboard: () => {} }));
 jest.mock("@/app/state/provider", () => ({ useOptionalAppContext: () => null }));
 jest.mock("@/features/tools/hooks/useAwaitingFrameDocument", () => ({ useAwaitingFrameDocument: () => ({ html: "<p>Review</p>", loading: false, error: "" }) }));
 jest.mock("@/features/tools/hooks/useAwaitingTimeoutCountdown", () => ({ useAwaitingTimeoutCountdown: ({ onExpire }: any) => { mockExpire = onExpire; return {label:""}; } }));
@@ -62,5 +61,43 @@ test("expiry neither collects nor submits and disables approval",async()=>{
   await view.reply();
   expect(post).not.toHaveBeenCalled();expect(view.submit).not.toHaveBeenCalled();
   expect((view.host.querySelector('[data-decision="submit"]') as HTMLButtonElement).disabled).toBe(true);
+ }finally{view.cleanup();}
+});
+
+async function pressDigit(key: string, options: KeyboardEventInit = {}, target: EventTarget = window) {
+ const event = new KeyboardEvent("keydown", {key, bubbles:true, cancelable:true, ...options});
+ await act(async()=>{target.dispatchEvent(event);});
+ return event;
+}
+
+test("digit 1 collects the form once and digit 2 uses the rejection flow", async()=>{
+ const view=await mount();
+ try {
+  const post=jest.spyOn(view.frame.contentWindow!,"postMessage");post.mockClear();
+  expect((await pressDigit("1")).defaultPrevented).toBe(true);
+  expect(post).toHaveBeenCalledWith(expect.objectContaining({type:"awaiting_collect"}),"*");
+  await pressDigit("1");await pressDigit("2");
+  expect(post).toHaveBeenCalledTimes(1);expect(view.submit).not.toHaveBeenCalled();
+  await view.reply();expect(view.submit).toHaveBeenCalledTimes(1);
+  expect((await pressDigit("2")).defaultPrevented).toBe(true);
+  expect(view.submit.mock.calls[1][0].params[0].decision).toBe("reject");
+ }finally{view.cleanup();}
+});
+
+test("digits ignore editing, modifiers, composition, repeats and expired forms",async()=>{
+ const view=await mount();
+ try {
+  const post=jest.spyOn(view.frame.contentWindow!,"postMessage");post.mockClear();
+  const input=view.host.querySelector("input")!;
+  for (const key of ["1","2"]) {
+   await pressDigit(key,{},input);
+   for (const option of ["metaKey","ctrlKey","altKey","shiftKey","repeat","isComposing"]) {
+    await pressDigit(key,{[option]:true});
+   }
+  }
+  await pressDigit("3");
+  await act(async()=>mockExpire?.());
+  await pressDigit("1");await pressDigit("2");
+  expect(post).not.toHaveBeenCalled();expect(view.submit).not.toHaveBeenCalled();
  }finally{view.cleanup();}
 });
