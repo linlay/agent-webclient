@@ -38,3 +38,17 @@
     border-radius: 0;
   }
 }
+
+/* Bound the entire form, not only the iframe. Header/actions retain their space;
+   the HTML document scrolls inside the remaining viewport. */
+.awaiting-panel {
+  max-height: min(680px, calc(100dvh - 144px));
+  min-height: 0;
+  overflow: auto;
+}
+.frontend-tool-frame {
+  height: 420px;
+  min-height: 0;
+  flex: 1 1 420px;
+  color-scheme: light dark;
+}

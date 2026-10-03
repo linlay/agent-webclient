@@ -207,3 +207,5 @@ VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`�
 智能体详情 `toolBindings` 描述预置、自身、连接器和运行时工具的来源、removable、excluded 与 active。管理界面锁定不可删除项并展示排除状态；表单仅从 definition.toolConfig.tools 初始化自身工具，保留 excludeTools，避免把有效工具列表写回源码。预置和排除由 Platform / agent.yml 源码配置管理。
 
 Agent 连接器接口支持 presetConnectorIds / declaredConnectorIds：connectorIds 是配置期合并结果。Composer 选择器把平台预置标为“平台预置”并锁定开关，其他连接器仍可独立切换；单 Agent 取消预置会被 Platform 拒绝。
+
+平台控制审阅使用 Platform 内置 HTML 的 `mode: form` viewport，业务数据仅在 `forms[].form`；通用 Approval 不含 review 扩展。HTML Form 宿主限制整体高度、仅响应主动 collect、超时不自动提交。见 [Form 表单](docs/45-交互容器-HITL-Form表单HTML交互.md)。

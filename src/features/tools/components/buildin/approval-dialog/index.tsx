@@ -554,20 +554,6 @@ const ApprovalQuestion = forwardRef<
         >
           {approval?.command}
         </Typography.Paragraph>
-        {approval.review && (
-          <section aria-label={t("approvalDialog.review.title")} style={{ minWidth: 0, marginBottom: 16 }}>
-            <strong>{t("approvalDialog.review.title")}</strong>
-            <p>{[approval.review.resourceType, approval.review.resourceKey, approval.review.path, approval.review.chatId].filter(Boolean).join(" / ")}</p>
-            {approval.review.baseRevision && <details><summary>{t("approvalDialog.review.revision")}</summary><code style={{ overflowWrap: "anywhere" }}>{approval.review.baseRevision}</code></details>}
-            {approval.review.reviewFields?.length ? <p>{t("approvalDialog.review.permissions")} {approval.review.reviewFields.join(", ")}</p> : null}
-            {(["before", "after"] as const).map((side) => typeof approval.review?.[side] === "string" ? (
-              <details key={side} open>
-                <summary>{t(`approvalDialog.review.${side}`)}</summary>
-                <pre style={{ maxHeight: 300, overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere", padding: 12, background: "var(--color-bg-elevated, rgba(127,127,127,0.08))" }}>{approval.review[side] || t("approvalDialog.review.empty")}</pre>
-              </details>
-            ) : null)}
-          </section>
-        )}
         <Radio.Group
           className={hitlDialogClassNames.radioGroup}
           value={decision}

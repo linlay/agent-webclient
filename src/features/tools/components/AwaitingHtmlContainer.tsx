@@ -21,7 +21,6 @@ import {
   buildAwaitingInitMessage,
   buildAwaitingUpdateMessage,
   buildAwaitingViewportSignature,
-  isAwaitingFrameCloseMessage,
   readAwaitingSubmitPayload,
 } from "@/features/tools/lib/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/hooks/useAwaitingTimeoutCountdown";
@@ -41,10 +40,10 @@ interface AwaitingHtmlContainerProps {
 }
 
 const AWAITING_PANEL_CLASS_NAME =
-  "awaiting-panel tw:flex tw:min-h-[var(--composer-main-min-height)] tw:w-full tw:flex-1 tw:flex-col tw:gap-2.5 tw:rounded-2xl tw:border tw:border-line-soft tw:bg-bg-card tw:px-3 tw:py-2.5 tw:shadow-elevated";
+  presentationClasses("awaiting-panel tw:flex tw:w-full tw:flex-1 tw:flex-col tw:gap-2.5 tw:rounded-2xl tw:border tw:border-line-soft tw:bg-bg-card tw:px-3 tw:py-2.5 tw:shadow-elevated");
 
 const AWAITING_PANEL_HEADER_CLASS_NAME =
-  "awaiting-panel-header tw:flex tw:flex-wrap tw:items-baseline tw:justify-between tw:gap-x-3 tw:gap-y-2";
+  "awaiting-panel-header tw:shrink-0 tw:flex tw:flex-wrap tw:items-baseline tw:justify-between tw:gap-x-3 tw:gap-y-2";
 
 const AWAITING_PANEL_HEADER_MAIN_CLASS_NAME =
   "awaiting-panel-header-main tw:flex tw:flex-wrap tw:items-baseline tw:gap-x-3 tw:gap-y-2";
@@ -65,7 +64,7 @@ const AWAITING_PANEL_FORM_SWITCHER_LABEL_CLASS_NAME =
   "awaiting-panel-form-switcher-label tw:max-w-[min(320px,55vw)] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:font-bold tw:text-ink-muted";
 
 const FRONTEND_TOOL_FRAME_CLASS_NAME =
-  "frontend-tool-frame tw:w-full tw:max-h-[70vh] tw:border-0 tw:[.layout-copilot_&]:h-[min(320px,44vh)]";
+  presentationClasses("frontend-tool-frame tw:w-full tw:border-0");
 
 const AWAITING_PANEL_ERROR_CLASS_NAME =
   "awaiting-panel-error tw:rounded-xl tw:border tw:border-[rgba(246,222,227,0.95)] tw:bg-[linear-gradient(180deg,rgba(255,248,249,0.96),rgba(255,239,243,0.96))] tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-semibold tw:text-accent-danger";
@@ -74,7 +73,7 @@ const AWAITING_PANEL_EMPTY_CLASS_NAME =
   "awaiting-panel-empty tw:rounded-xl tw:bg-[rgba(248,250,254,0.92)] tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-semibold tw:text-ink-muted";
 
 const AWAITING_PANEL_FOOTER_CLASS_NAME =
-  "awaiting-panel-footer tw:mt-0.5 tw:flex tw:flex-col tw:items-stretch tw:gap-2.5";
+  "awaiting-panel-footer tw:shrink-0 tw:mt-0.5 tw:flex tw:flex-col tw:items-stretch tw:gap-2.5";
 
 const AWAITING_PANEL_RADIOGROUP_CLASS_NAME =
   presentationClasses("awaiting-panel-radiogroup tw:flex tw:flex-col tw:gap-0.5 tw:text-xs");
@@ -225,30 +224,6 @@ function buildRejectParam(
     ...(trimmedReason ? { reason: trimmedReason } : {}),
     ...(form !== undefined ? { form: cloneAwaitingFormData(form) } : {}),
   };
-}
-
-function resizeAwaitingIframe(iframe: HTMLIFrameElement): void {
-  try {
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (doc?.body) {
-      const height = Math.max(doc.body.scrollHeight, 100);
-      iframe.style.height = `${height}px`;
-
-      setTimeout(() => {
-        try {
-          const nextHeight = Math.max(doc.body.scrollHeight, 100);
-          iframe.style.height = `${nextHeight}px`;
-        } catch {
-          /* ignore */
-        }
-      }, 500);
-      return;
-    }
-  } catch {
-    /* ignore */
-  }
-
-  iframe.style.height = "300px";
 }
 
 export function mergeSubmittedParamsIntoAwaitingForms(
@@ -412,9 +387,10 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   onClose,
   onResolved,
 }) => {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const message = useAppMessage();
   const appContext = useOptionalAppContext();
+  const colorScheme = appContext?.state.themeMode;
   const viewChatId = data.chatId || appContext?.state.chatId || "";
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const activeKeyRef = useRef(data.key);
@@ -466,16 +442,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
-      frame.contentWindow.postMessage(
-        kind === "init"
-          ? buildAwaitingInitMessage(frameData.awaiting, frameData.index)
-          : buildAwaitingUpdateMessage(frameData.awaiting, frameData.index),
-        "*",
-      );
+      const messageValue = kind === "init"
+        ? buildAwaitingInitMessage(frameData.awaiting, frameData.index)
+        : buildAwaitingUpdateMessage(frameData.awaiting, frameData.index);
+      frame.contentWindow.postMessage({
+        ...messageValue,
+        data: { ...messageValue.data, locale, colorScheme },
+      }, "*");
       lastPostedSignatureRef.current = viewportSignature;
-      resizeAwaitingIframe(frame);
     },
-    [frameData, viewportSignature],
+    [frameData, viewportSignature, locale, colorScheme],
   );
 
   const requestCollectFromFrame = useCallback(
@@ -543,43 +519,20 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     [data, onSubmit, t, timeoutExpired],
   );
 
-  const handleAutoSubmit = useCallback(() => {
-    if (
-      resolved ||
-      submitStatus === "submitting" ||
-      submitStatus === "autoSubmitting" ||
-      Boolean(collectingDecision)
-    ) {
-      return;
-    }
-
+  // Expiry belongs to the server. Never collect or approve a form on a timer.
+  const handleTimeout = useCallback(() => {
     setTimeoutExpired(true);
-    if (data.view || data.forms.some(form => form.form?.view)) return;
-
-    if (iframeRef.current?.contentWindow && renderedHtml) {
-      requestCollectFromFrame("submit", { type: "submit" });
-      return;
-    }
-
-    if (frameView) return;
-    void submitAggregatedPayload(data.forms, [], true);
-  }, [
-    collectingDecision,
-    frameView,
-    data.view,
-    data.forms,
-    renderedHtml,
-    requestCollectFromFrame,
-    resolved,
-    submitAggregatedPayload,
-    submitStatus,
-  ]);
+    clearCollectTimeout();
+    collectFlowRef.current = null;
+    setCollectingDecision(null);
+    setSubmitStatus("");
+  }, [clearCollectTimeout]);
 
   const timeoutCountdown = useAwaitingTimeoutCountdown({
     awaitingKey: data.key,
     timeout: data.timeout,
     createdAt: data.createdAt,
-    onExpire: handleAutoSubmit,
+    onExpire: handleTimeout,
   });
 
   useEffect(() => {
@@ -685,36 +638,10 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
-      if (frameView && (resolved || !acceptsViewSubmit(Boolean(collectFlowRef.current), currentFrameKeyRef.current, frameKey))) return;
-      if (frameView && isAwaitingFrameCloseMessage(event.data)) return;
-      if (isAwaitingFrameCloseMessage(event.data)) {
-        clearCollectTimeout();
-        collectFlowRef.current = null;
-        setCollectingDecision(null);
-        if (!onSubmit) {
-          setSubmitStatus("");
-          setSubmitError(t("awaiting.submit.missingHandler"));
-          return;
-        }
-        setSubmitStatus("submitting");
-        setSubmitError("");
-        const result = await onSubmit(buildCancelAwaitingSubmitPayload(data));
-        const errorText = getSubmitErrorText(result);
-        if (errorText) {
-          setSubmitStatus("");
-          setSubmitError(
-            t("awaiting.submit.failedWithDetail", { detail: errorText }),
-          );
-          return;
-        }
-        setSubmitStatus("");
-        setSubmitError("");
-        onClose?.();
-        return;
-      }
+      if (resolved || timeoutExpired || !acceptsViewSubmit(Boolean(collectFlowRef.current), currentFrameKeyRef.current, frameKey)) return;
 
       const framePayload = readAwaitingSubmitPayload(event.data, frameData.awaiting);
-      const payload = framePayload && frameView ? wrapViewFrameSubmit(data, frameData, framePayload) : framePayload;
+      const payload = framePayload ? wrapViewFrameSubmit(data, frameData, framePayload) : null;
       if (!payload) {
         reportInvalidAwaitingSubmitPayload(
           data.awaitingId,
@@ -779,6 +706,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     frameView,
     frameKey,
     resolved,
+    timeoutExpired,
     onClose,
     onPatch,
     onSubmit,
@@ -831,13 +759,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       return;
     }
 
-    if (!frameView && iframeRef.current?.contentWindow && renderedHtml) {
-      requestCollectFromFrame("submit", {
-        type: "reject",
-        reason: trimmedReason,
-      });
-      return;
-    }
     setSubmitStatus("submitting");
     setSubmitError("");
     const result = await onSubmit(
@@ -853,16 +774,18 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     }
     setSubmitStatus("");
     setSubmitError("");
-  }, [data, renderedHtml, frameView, onSubmit, rejectReason, requestCollectFromFrame, t]);
+  }, [data, onSubmit, rejectReason, t]);
 
   const reasonInputDisabled =
     !onSubmit ||
+    resolved || timeoutExpired ||
     Boolean(collectingDecision) ||
     submitStatus === "submitting" ||
     submitStatus === "autoSubmitting";
 
   const footerReadOnly =
     !onSubmit ||
+    resolved || timeoutExpired ||
     Boolean(collectingDecision) ||
     submitStatus === "submitting" ||
     submitStatus === "autoSubmitting";
@@ -987,7 +910,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           id="awaiting-html-frame"
           srcDoc={renderedHtml}
           key={frameKey}
-          sandbox={frameView ? "allow-scripts" : "allow-scripts allow-popups allow-same-origin"}
+          sandbox="allow-scripts"
+          style={{ colorScheme }}
           title={`awaiting-${data.viewportKey}`}
         />
       )}

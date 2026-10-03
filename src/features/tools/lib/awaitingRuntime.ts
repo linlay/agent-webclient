@@ -267,12 +267,6 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
       return {
         id: toText(approval.id) || toText(approval.command),
         command: toText(approval.command),
-        ...(approval.review && typeof approval.review === 'object' && !Array.isArray(approval.review)
-          ? { review: Object.fromEntries(Object.entries(approval.review as Record<string, unknown>).filter(([key, value]) =>
-              ['resourceType', 'resourceKey', 'path', 'chatId', 'baseRevision', 'before', 'after'].includes(key) && typeof value === 'string'
-              || key === 'reviewFields' && Array.isArray(value) && value.every(item => typeof item === 'string'))) }
-          : {}),
-        ...(typeof approval.fingerprint === 'string' ? { fingerprint: approval.fingerprint } : {}),
         ruleKey: toText(approval.ruleKey) || undefined,
         description: toText(approval.description) || undefined,
         options,

@@ -168,8 +168,8 @@ describe('AwaitingHtmlContainer', () => {
     expect(html).toContain('awaiting-panel-radiogroup');
     expect(html).toMatch(/awaiting-panel-option-label[^"]*">同意<\/span>/);
     expect(html).toMatch(/awaiting-panel-option-label[^"]*">拒绝<\/span>/);
-    expect(html).toContain('可以修改表单内容并提交');
-    expect(html).toContain('placeholder="请输入拒绝理由，可以修改表单内容"');
+    expect(html).toContain('核对表单内容后提交');
+    expect(html).toContain('placeholder="请输入拒绝理由"');
   });
 
   it('submits reject when the reject option is selected', async () => {
@@ -218,9 +218,9 @@ describe('AwaitingHtmlContainer', () => {
 
     expect(html).toMatch(/awaiting-panel-option-label[^"]*">Approve<\/span>/);
     expect(html).toMatch(/awaiting-panel-option-label[^"]*">Reject<\/span>/);
-    expect(html).toContain('Edit the form contents and submit.');
+    expect(html).toContain('Review the form contents and submit.');
     expect(html).toContain(
-      'placeholder="Enter a reject reason. You can still edit the form contents."',
+      'placeholder="Enter a reject reason."',
     );
   });
 

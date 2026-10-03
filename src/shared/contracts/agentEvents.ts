@@ -275,22 +275,9 @@ export interface AIAwaitQuestion {
   freeTextPlaceholder?: string;
 }
 
-export interface AIAwaitApprovalReview {
-  resourceType?: string;
-  resourceKey?: string;
-  path?: string;
-  chatId?: string;
-  baseRevision?: string;
-  before?: string;
-  after?: string;
-  reviewFields?: string[];
-}
-
 export interface AIAwaitApproval {
   id: string;
   command: string;
-  review?: AIAwaitApprovalReview;
-  fingerprint?: string;
   ruleKey?: string;
   description?: string;
   options?: AIAwaitApprovalOption[];
