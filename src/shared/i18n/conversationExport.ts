@@ -2,6 +2,20 @@ export type ConversationExportLocale = "zh-CN" | "en-US";
 
 export const conversationExportMessages = {
   "zh-CN": {
+    toolLabels: {
+      "desktop_shell": "桌面导航",
+      "desktop_settings": "桌面设置",
+      "desktop_site": "网站管理",
+      "desktop_webapp": "应用管理",
+      "desktop_service": "服务管理",
+      "desktop_market": "功能市场",
+      "desktop_kanban": "看板管理",
+      "catalog_query": "查询目录",
+      "catalog_manage": "管理目录",
+      "chat_query": "查询会话",
+      "chat_manage": "管理会话",
+      "platform_inspect": "平台诊断"
+},
     aiNotice: "内容由 AI 生成，请核实重要信息",
     assistant: "助手",
     copyAction: "复制对话",
@@ -27,6 +41,20 @@ export const conversationExportMessages = {
     user: "用户",
   },
   "en-US": {
+    toolLabels: {
+      "desktop_shell": "Desktop navigation",
+      "desktop_settings": "Desktop settings",
+      "desktop_site": "Websites",
+      "desktop_webapp": "WebApps",
+      "desktop_service": "Services",
+      "desktop_market": "Marketplace",
+      "desktop_kanban": "Kanban",
+      "catalog_query": "Query catalog",
+      "catalog_manage": "Manage catalog",
+      "chat_query": "Query conversations",
+      "chat_manage": "Manage conversations",
+      "platform_inspect": "Platform diagnostics"
+},
     aiNotice: "AI-generated content may contain mistakes. Verify important information.",
     assistant: "Assistant",
     copyAction: "Copy conversation",

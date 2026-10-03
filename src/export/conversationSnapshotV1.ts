@@ -1,3 +1,4 @@
+import { conversationExportMessages } from "@/shared/i18n/conversationExport";
 import type {
   TimelineNode,
   TimelineSource,
@@ -73,6 +74,7 @@ export interface ConversationSnapshotV1 {
 const MAX_BYTES = 20 * 1024 * 1024;
 // Keep built-in labels aligned with agent-platform/internal/resources/tools/*.yml.
 const ZH_TOOL_LABELS: Readonly<Record<string, string>> = {
+  ...conversationExportMessages["zh-CN"].toolLabels,
   agent_delegate: "委派团队成员",
   agent_invoke: "调度智能体",
   artifact_publish: "发布产物",

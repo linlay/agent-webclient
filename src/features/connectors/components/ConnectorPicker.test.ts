@@ -28,9 +28,9 @@ const connector = (id: string, name: string, mode: ConnectorSummary["auth_mode"]
 let root: Root;
 let container: HTMLDivElement;
 const onSelectionChange = jest.fn();
-function Harness({ search = "", selectionDisabled = false, initialIds = ["docs"], selectionError }: { search?: string; selectionDisabled?: boolean; initialIds?: string[]; selectionError?: Error }) {
+function Harness({ search = "", selectionDisabled = false, initialIds = ["docs"], presetIds = [], selectionError }: { search?: string; selectionDisabled?: boolean; initialIds?: string[]; presetIds?: string[]; selectionError?: Error }) {
   const [selectedIds, setSelectedIds] = useState(initialIds);
-  return React.createElement(ConnectorPicker, { search, onSearchChange: jest.fn(), selectedIds, selectionDisabled, selectionError,
+  return React.createElement(ConnectorPicker, { search, onSearchChange: jest.fn(), selectedIds, presetIds, selectionDisabled, selectionError,
     onSelectionChange: (item, selected) => { onSelectionChange(item.id, selected); setSelectedIds(ids => selected ? [...ids, item.id] : ids.filter(id => id !== item.id)); } });
 }
 const mount = async (props = {}) => { await act(async () => root.render(React.createElement(Harness, props))); };
@@ -233,4 +233,16 @@ it("shows server conflicts when the local catalog is stale and reports other sav
   await mount({ selectionError: offline });
   expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(mockMessageError).toHaveBeenLastCalledWith(expect.stringContaining("Connection lost"));
+});
+
+
+it("shows platform presets as selected and prevents removing them", async () => {
+  await mount({ initialIds: [], presetIds: ["docs"] });
+  const toggle = container.querySelector<HTMLButtonElement>('[role="switch"]')!;
+  expect(toggle.getAttribute("aria-checked")).toBe("true");
+  expect(toggle.disabled).toBe(true);
+  expect(container.textContent).toContain("composer.addMenu.connectors.preset");
+  await act(async () => toggle.click());
+  expect(onSelectionChange).not.toHaveBeenCalled();
+  expect(container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].disabled).toBe(false);
 });

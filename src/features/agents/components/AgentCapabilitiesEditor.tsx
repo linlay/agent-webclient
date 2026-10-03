@@ -105,7 +105,7 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
                   </div>
                 </div>
                 <div className="agent-selectable-list agent-capability-scroll" role="group" aria-label={props.t("agentConsole.field.tools")}>
-                  {props.filteredTools.filter(tool => !["desktop_action", "desktop_cdp"].includes(tool.key)).map((tool) => (
+                  {props.filteredTools.filter(tool => !(["platform_control", "catalog_query", "catalog_manage", "chat_query", "chat_manage", "platform_inspect"].includes(tool.key) || /^(desktop_|workpanel_|surface_|awcp_)/.test(tool.key) || tool.binding?.source === "connector")).map((tool) => (
                     <label key={tool.key} className="agent-selectable-row">
                       <input type="checkbox" disabled={tool.binding?.removable === false} checked={tool.binding?.removable === false ? tool.binding.active : props.tools.includes(tool.key)} onChange={(event) => props.onToolsChange(event.target.checked ? [...props.tools, tool.key] : props.tools.filter((key) => key !== tool.key))} />
                       <MaterialIcon name={toolIcon(props.getToolCategory(tool))} />

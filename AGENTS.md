@@ -205,3 +205,5 @@ VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`�
 连接器认证支持六种 auth_mode：no_auth、null、token、oneid-token、oauth、mcp。no_auth 在 Composer 与管理页直接显示无需配置，不请求认证接口；Desktop 复用通用展示，没有独立连接配置流程。详见 [连接器](docs/53-Worker管理-连接器.md)。
 
 智能体详情 `toolBindings` 描述预置、自身、连接器和运行时工具的来源、removable、excluded 与 active。管理界面锁定不可删除项并展示排除状态；表单仅从 definition.toolConfig.tools 初始化自身工具，保留 excludeTools，避免把有效工具列表写回源码。预置和排除由 Platform / agent.yml 源码配置管理。
+
+Agent 连接器接口支持 presetConnectorIds / declaredConnectorIds：connectorIds 是配置期合并结果。Composer 选择器把平台预置标为“平台预置”并锁定开关，其他连接器仍可独立切换；单 Agent 取消预置会被 Platform 拒绝。

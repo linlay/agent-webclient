@@ -141,6 +141,8 @@ export interface ConnectorAuthActionResult {
 export interface AgentConnectorsResponse {
   agentKey: string;
   connectorIds: string[];
+  presetConnectorIds?: string[];
+  declaredConnectorIds?: string[];
   activeConnectorIds: string[];
   reloadPending: boolean;
 }

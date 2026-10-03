@@ -895,3 +895,17 @@ describe('reduceActiveAwaiting', () => {
     expect(runtime.pendingAwaitings).toHaveLength(0);
   });
 });
+
+
+it('preserves exact source review and excludes malformed review values', () => {
+  const result = reduceActiveAwaiting(null, {
+    type: 'awaiting.ask', runId: 'run-review', awaitingId: 'await-review', mode: 'approval',
+    approvals: [{ id: 'tool-review', command: 'catalog_manage / apply', fingerprint: 'bound-candidate',
+      options: [{decision: 'approve'}], allowFreeText: true,
+      review: {resourceType:'agent',resourceKey:'demo',baseRevision:'version',before:'old',after:'<script>text</script>',reviewFields:['toolConfig'],ignored:{secret:'untrusted'}} }],
+  });
+  expect(result?.mode).toBe('approval');
+  expect(result?.approvals?.[0]).toMatchObject({fingerprint:'bound-candidate',review:{before:'old',after:'<script>text</script>',resourceKey:'demo'}});
+  expect(result?.approvals?.[0].options).toEqual([{decision:'approve'}]);
+  expect(result?.approvals?.[0].review).not.toHaveProperty('ignored');
+});
