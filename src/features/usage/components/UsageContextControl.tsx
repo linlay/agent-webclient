@@ -411,14 +411,6 @@ export const UsageContextControl: React.FC<{
         usageSnapshot: state.usageSnapshot,
       },
       text: {
-        remember: {
-          pending: t("composer.background.remember.pending"),
-          error: t("composer.background.remember.error"),
-        },
-        learn: {
-          pending: t("composer.background.learn.pending"),
-          error: t("composer.background.learn.error"),
-        },
         compact: {
           pending: t("composer.background.compact.pending"),
           error: t("composer.background.compact.error"),

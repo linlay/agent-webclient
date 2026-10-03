@@ -25,7 +25,6 @@ import type {
   ProjectDiffRequest,
   ProjectTreeRequest,
 } from "@/shared/data/api/dto/resources";
-import type { GetMemoryRecordsParams } from "@/shared/data/memory/memoryTypes";
 import type { AdminSourceTarget } from "@/shared/data/api/dto/admin";
 import type { ConnectorDefinitionTarget } from "@/shared/data/api/dto/connectors";
 import type { QueryModelOverride, QueryServiceTier } from "@/shared/data/api/dto/models";
@@ -967,80 +966,11 @@ export const dataEndpoints = createEndpointRegistry({
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: buildRunControlPayload,
   }),
-  learn: defineEndpoint({
-    key: "chat.learn",
-    path: "/api/learn",
-    method: "POST",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-  }),
-  memoryContextPreview: defineEndpoint({
-    key: "memory.contextPreview",
-    path: "/api/memory/context-preview",
-    method: "POST",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-  }),
-  memoryMeta: defineEndpoint({
-    key: "memory.meta",
-    path: "/api/memory/meta",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-    cache: { ttlMs: 30_000, dedupe: true },
-  }),
-  memoryRecordDetail: defineEndpoint<
-    { agentKey?: string; recordId: string },
-    Record<string, unknown>
-  >({
-    key: "memory.record.detail",
-    path: "/api/memory/record/detail",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-    payload: (params) => compactPayload(params),
-  }),
-  memoryRecords: defineEndpoint<GetMemoryRecordsParams, Record<string, unknown>>({
-    key: "memory.records",
-    path: "/api/memory/record/list",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-    payload: (params) => compactPayload(params as Record<string, unknown>),
-  }),
-  memoryScope: defineEndpoint<
-    { agentKey: string; scopeType: string; scopeKey?: string },
-    Record<string, unknown>
-  >({
-    key: "memory.scope.detail",
-    path: "/api/memory/scope/detail",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-    payload: (params) => compactPayload(params),
-  }),
-  memoryScopeSave: defineEndpoint({
-    key: "memory.scope.save",
-    path: "/api/memory/scope/save",
-    method: "POST",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-  }),
-  memoryScopeValidate: defineEndpoint({
-    key: "memory.scope.validate",
-    path: "/api/memory/scope/validate",
-    method: "POST",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-  }),
-  memoryScopes: defineEndpoint<string, { agentKey: string }>({
-    key: "memory.scopes",
-    path: "/api/memory/scope/list",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-    payload: (agentKey) => ({ agentKey }),
-  }),
+  memoryFile: defineEndpoint({ key: "memory.file", path: "/api/memory/file", method: "GET", transport: "http" }),
+  memoryFileSave: defineEndpoint({ key: "memory.file.save", path: "/api/memory/file", method: "PUT", transport: "http" }),
+  memoryFileDelete: defineEndpoint({ key: "memory.file.delete", path: "/api/memory/file", method: "DELETE", transport: "http" }),
+  memoryDaily: defineEndpoint({ key: "memory.daily", path: "/api/memory/daily", method: "GET", transport: "http" }),
+  memorySearch: defineEndpoint({ key: "memory.search", path: "/api/memory/search", method: "GET", transport: "http" }),
   modelOptions: defineEndpoint({
     key: "model.options",
     path: "/api/model-options",
@@ -1071,12 +1001,6 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
-  }),
-  remember: defineEndpoint({
-    key: "chat.remember",
-    path: "/api/remember",
-    method: "POST",
-    transport: "http",
   }),
   resource: defineEndpoint<{ file: string }, { file: string }>({
     key: "resource.read",

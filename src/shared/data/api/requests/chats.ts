@@ -169,29 +169,7 @@ export function searchGlobal(
   }) as Promise<ApiResponse<GlobalSearchResponse>>;
 }
 
-export function rememberChat(
-  params: BackgroundCommandParams,
-): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.remember.path, {
-    method: "POST",
-    body: JSON.stringify({
-      requestId: params.requestId,
-      chatId: params.chatId,
-    }),
-  });
-}
 
-export function learnChat(
-  params: BackgroundCommandParams,
-): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.learn.path, {
-    method: "POST",
-    body: JSON.stringify({
-      requestId: params.requestId,
-      chatId: params.chatId,
-    }),
-  });
-}
 
 export function compactChat(
   params: CompactChatParams,

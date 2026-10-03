@@ -86,3 +86,5 @@ export * from "@/shared/data/runOwner";
 
 export * from "@/shared/data/api/routedClient";
 export { putAgentSkillPin, getConnectorOrder, putConnectorOrder } from "@/shared/data/api/routedClient";
+
+export * from "@/shared/data/api/requests/memory";

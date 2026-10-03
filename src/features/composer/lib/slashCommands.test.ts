@@ -40,13 +40,13 @@ describe('slashCommands', () => {
   });
 
   it('filters the command list by slash query', () => {
-    expect(getFilteredSlashCommands('').length).toBeGreaterThanOrEqual(8);
+    expect(getFilteredSlashCommands('').length).toBeGreaterThanOrEqual(7);
     expect(getFilteredSlashCommands('vo').map((item) => item.id)).toEqual(['voice']);
     expect(getFilteredSlashCommands('his').map((item) => item.id)).toEqual(['history']);
     expect(getFilteredSlashCommands('agents')).toEqual([]);
-    expect(getFilteredSlashCommands('rem').map((item) => item.id)).toEqual(['remember']);
+    expect(getFilteredSlashCommands('rem').map((item) => item.id)).toEqual([]);
     expect(getFilteredSlashCommands('remote')).toEqual([]);
-    expect(getFilteredSlashCommands('learn').map((item) => item.id)).toEqual(['learn']);
+    expect(getFilteredSlashCommands('learn').map((item) => item.id)).toEqual([]);
     expect(getFilteredSlashCommands('compact').map((item) => item.id)).toEqual(['compact']);
     expect(getFilteredSlashCommands('usage').map((item) => item.id)).toEqual(['usage']);
     expect(getFilteredSlashCommands('us').map((item) => item.id)).toEqual(['usage']);
@@ -178,7 +178,7 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('voice')).toEqual([]);
   });
 
-  it('filters the remember and learn commands by the memory runtime flag', () => {
+  it('never exposes retired remember and learn commands', () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: 'true',
     };
@@ -189,8 +189,8 @@ describe('slashCommands', () => {
       VOICE_ENABLED: 'true',
       MEMORY_ENABLED: 'true',
     };
-    expect(getFilteredSlashCommands('rem').map((item) => item.id)).toEqual(['remember']);
-    expect(getFilteredSlashCommands('learn').map((item) => item.id)).toEqual(['learn']);
+    expect(getFilteredSlashCommands('rem').map((item) => item.id)).toEqual([]);
+    expect(getFilteredSlashCommands('learn').map((item) => item.id)).toEqual([]);
   });
 
   it('uses 对话 wording for the new command', () => {
@@ -221,8 +221,6 @@ describe('slashCommands', () => {
       canShowUsage: false,
     };
 
-    expect(isSlashCommandDisabled('remember', availability)).toBe(true);
-    expect(isSlashCommandDisabled('learn', availability)).toBe(true);
     expect(isSlashCommandDisabled('compact', availability)).toBe(true);
     expect(isSlashCommandDisabled('voice', availability)).toBe(true);
     expect(isSlashCommandDisabled('plan', availability)).toBe(true);

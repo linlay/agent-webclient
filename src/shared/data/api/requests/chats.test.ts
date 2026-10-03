@@ -1,4 +1,4 @@
-import { rememberChat, learnChat, compactChat, deriveChat, deleteChat, getChatSystemPrompt, getChats, markChatRead, normalizeChatSummariesPayload, renameChat, searchGlobal, submitFeedback } from "@/shared/data/api/requests/chats";
+import { compactChat, deriveChat, deleteChat, getChatSystemPrompt, getChats, markChatRead, normalizeChatSummariesPayload, renameChat, searchGlobal, submitFeedback } from "@/shared/data/api/requests/chats";
 import { setAccessToken } from "@/shared/data/api/http";
 import { setupRequestHarness } from "@/shared/data/__testUtils__/requestHarness";
 
@@ -118,70 +118,10 @@ describe("requests/chats request contracts", () => {
     });
   });
 
-  it("posts remember, learn, and compact commands to their dedicated endpoints", async () => {
-    await rememberChat({
-      requestId: "req_remember",
-      chatId: "chat_1",
-    });
-    await learnChat({
-      requestId: "req_learn",
-      chatId: "chat_1",
-    });
-    await compactChat({
-      requestId: "req_compact",
-      chatId: "chat_1",
-    });
-
-    expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
-      "/api/remember",
-    );
-    expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      "/api/learn",
-    );
-    expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
-      "/api/compact",
-    );
-
-    const rememberPayload = JSON.parse(
-      String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
-    );
-    const learnPayload = JSON.parse(
-      String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body),
-    );
-    const compactPayload = JSON.parse(
-      String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body),
-    );
-
-    expect(rememberPayload).toEqual({
-      requestId: "req_remember",
-      chatId: "chat_1",
-    });
-    expect(learnPayload).toEqual({
-      requestId: "req_learn",
-      chatId: "chat_1",
-    });
-    expect(compactPayload).toEqual({
-      requestId: "req_compact",
-      chatId: "chat_1",
-      trigger: "manual",
-      level: "summary",
-    });
-
-    expect(rememberPayload).not.toHaveProperty("message");
-    expect(rememberPayload).not.toHaveProperty("planningMode");
-    expect(rememberPayload).not.toHaveProperty("runId");
-    expect(rememberPayload).not.toHaveProperty("agentKey");
-    expect(rememberPayload).not.toHaveProperty("teamId");
-    expect(learnPayload).not.toHaveProperty("message");
-    expect(learnPayload).not.toHaveProperty("planningMode");
-    expect(learnPayload).not.toHaveProperty("runId");
-    expect(learnPayload).not.toHaveProperty("agentKey");
-    expect(learnPayload).not.toHaveProperty("teamId");
-    expect(compactPayload).not.toHaveProperty("message");
-    expect(compactPayload).not.toHaveProperty("planningMode");
-    expect(compactPayload).not.toHaveProperty("runId");
-    expect(compactPayload).not.toHaveProperty("agentKey");
-    expect(compactPayload).not.toHaveProperty("teamId");
+  it("posts compact to its dedicated endpoint", async () => {
+    await compactChat({ requestId: "req_compact", chatId: "chat_1" });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/compact");
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ requestId: "req_compact", chatId: "chat_1", level: "summary", trigger: "manual" });
   });
 
   it("supports filtering getChats by agentKey", async () => {

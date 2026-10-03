@@ -45,9 +45,7 @@ import {
   normalizeChatSummariesPayload,
   getViewport as getViewportHttp,
   compactChat as compactChatHttp,
-  learnChat as learnChatHttp,
   markChatRead as markChatReadHttp,
-  rememberChat as rememberChatHttp,
   renameChat as renameChatHttp,
   submitFeedback as submitFeedbackHttp,
 } from "@/shared/data/api/requests/chats";
@@ -60,16 +58,6 @@ import {
 } from "@/shared/data/api/resources";
 import { ensureAccessToken, getCurrentAccessToken, setAccessToken } from "@/shared/data/api/http";
 import { getAgentFile as getAgentFileHttp } from "@/shared/data/api/requests/projects";
-import {
-  getMemoryMeta as getMemoryMetaHttp,
-  getMemoryRecord as getMemoryRecordHttp,
-  getMemoryRecords as getMemoryRecordsHttp,
-  getMemoryScope as getMemoryScopeHttp,
-  getMemoryScopes as getMemoryScopesHttp,
-  previewMemoryContext as previewMemoryContextHttp,
-  saveMemoryScope as saveMemoryScopeHttp,
-  validateMemoryScope as validateMemoryScopeHttp,
-} from "@/shared/data/api/requests/memory";
 import { getView as getViewHttp } from "@/shared/data/api/requests/views";
 import { uploadFile } from "@/shared/data/api/requests/uploads";
 import type {
@@ -127,18 +115,6 @@ import type {
 	RenameChatRequest,
 	RenameChatResponse,
 } from "@/shared/data/api/dto/chats";
-import type {
-	GetMemoryRecordsParams,
-	MemoryContextPreviewResponse,
-	MemoryMeta,
-	MemoryRecordDetail,
-	MemoryRecordsPayload,
-	MemoryScopeDetail,
-	MemoryScopeSavePayload,
-	MemoryScopeSaveResult,
-	MemoryScopesResponse,
-	MemoryScopeValidationResult,
-} from "@/shared/data/memory/memoryTypes";
 import type {
 	CoderModelOptionsResponse,
 } from "@/shared/data/api/dto/models";
@@ -580,96 +556,6 @@ export {
   updateAutomation,
 } from "@/shared/data/api/requests/automations";
 
-export function getMemoryRecords(
-	params: GetMemoryRecordsParams,
-): Promise<ApiResponse<MemoryRecordsPayload>> {
-	return routeEndpoint<MemoryRecordsPayload, GetMemoryRecordsParams>(
-		dataEndpoints.memoryRecords,
-		params,
-		() => getMemoryRecordsHttp(params),
-	);
-}
-
-export function getMemoryRecord(
-	agentKey: string | undefined,
-	id: string,
-): Promise<ApiResponse<MemoryRecordDetail>> {
-	return routeEndpoint<MemoryRecordDetail, { agentKey?: string; recordId: string }>(
-		dataEndpoints.memoryRecordDetail,
-		{ agentKey, recordId: id },
-		() => getMemoryRecordHttp(agentKey, id),
-	);
-}
-
-export function getMemoryScopes(
-	agentKey: string,
-): Promise<ApiResponse<MemoryScopesResponse>> {
-	return routeEndpoint<MemoryScopesResponse, string>(
-		dataEndpoints.memoryScopes,
-		agentKey,
-		() => getMemoryScopesHttp(agentKey),
-	);
-}
-
-export function getMemoryMeta(): Promise<ApiResponse<MemoryMeta>> {
-	return routeEndpoint<MemoryMeta, undefined>(
-		dataEndpoints.memoryMeta,
-		undefined,
-		() => getMemoryMetaHttp(),
-	);
-}
-
-export function getMemoryScope(
-	agentKey: string,
-	scopeType: string,
-	scopeKey?: string,
-): Promise<ApiResponse<MemoryScopeDetail>> {
-	return routeEndpoint<
-		MemoryScopeDetail,
-		{ agentKey: string; scopeType: string; scopeKey?: string }
-	>(
-		dataEndpoints.memoryScope,
-		{ agentKey, scopeType, scopeKey },
-		() => getMemoryScopeHttp(agentKey, scopeType, scopeKey),
-	);
-}
-
-export function validateMemoryScope(
-	agentKey: string,
-	scopeType: string,
-	markdown: string,
-): Promise<ApiResponse<MemoryScopeValidationResult>> {
-	return routeEndpoint<MemoryScopeValidationResult, Record<string, unknown>>(
-		dataEndpoints.memoryScopeValidate,
-		{ agentKey, scopeType, markdown },
-		() => validateMemoryScopeHttp(agentKey, scopeType, markdown),
-	);
-}
-
-export function previewMemoryContext(params: {
-	chatId: string;
-	message: string;
-}): Promise<ApiResponse<MemoryContextPreviewResponse>> {
-	return routeEndpoint<MemoryContextPreviewResponse, { chatId: string; message: string }>(
-		dataEndpoints.memoryContextPreview,
-		params,
-		() => previewMemoryContextHttp(params),
-	);
-}
-
-export function saveMemoryScope(
-	payload: MemoryScopeSavePayload,
-): Promise<ApiResponse<MemoryScopeSaveResult>> {
-	return routeEndpoint<MemoryScopeSaveResult, MemoryScopeSavePayload>(
-		dataEndpoints.memoryScopeSave,
-		payload,
-		() => saveMemoryScopeHttp(payload),
-	).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.memoryMeta);
-		return response;
-	});
-}
-
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {
 	return routeEndpoint(dataEndpoints.read, params, () => markChatReadHttp(params)).then((response) => {
 		invalidateRouteEndpoints(dataEndpoints.chats);
@@ -711,25 +597,7 @@ export function searchGlobal(
 	);
 }
 
-export function rememberChat(params: {
-	requestId: string;
-	chatId: string;
-}): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.remember, params, () => rememberChatHttp(params)).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.chats);
-		return response;
-	});
-}
 
-export function learnChat(params: {
-	requestId: string;
-	chatId: string;
-}): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.learn, params, () => learnChatHttp(params)).then((response) => {
-		invalidateRouteEndpoints(dataEndpoints.chats);
-		return response;
-	});
-}
 
 export function compactChat(params: {
 	requestId: string;

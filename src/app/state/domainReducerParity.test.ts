@@ -4,7 +4,6 @@ import type { AppAction } from './actions';
 import type { ActiveAwaiting } from '@/features/tools/lib/toolsState';
 import type { PublishedArtifact } from '@/features/artifacts/lib/artifactsState';
 import type { FileChangeSummary } from '@/features/overview/lib/overviewState';
-import { reduceMemoryState } from '@/features/memory/lib/memoryState';
 import { reducePlanState } from '@/features/plan/lib/planState';
 import { reduceVoiceState } from '@/features/voice/lib/voiceState';
 import { reduceComposerInteractionState } from '@/features/composer/lib/composerState';
@@ -63,7 +62,6 @@ describe('domain migration behavior contracts', () => {
   it('dispatches slices directly while preserving unrelated state and rejecting unowned actions', () => {
     const state = createInitialState();
     const cases = [
-      { reduce: reduceMemoryState, action: { type: 'SET_MEMORY_PREVIEW_LOADING', loading: true }, field: 'memoryPreviewLoading', value: true },
       { reduce: reducePlanState, action: { type: 'SET_PLAN_EXPANDED', expanded: true }, field: 'planExpanded', value: true },
       { reduce: reduceVoiceState, action: { type: 'SET_AUDIO_MUTED', muted: true }, field: 'audioMuted', value: true },
       { reduce: reduceComposerInteractionState, action: { type: 'SET_EDITING_MODE', enabled: true }, field: 'editingMode', value: true },

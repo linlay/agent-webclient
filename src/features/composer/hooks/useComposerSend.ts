@@ -183,8 +183,6 @@ export function useComposerSend(input: UseComposerSendInput) {
   const referenceSignature = JSON.stringify(sendReferences);
   const interruptSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
-    submitRememberCommand,
-    submitLearnCommand,
     submitCompactCommand,
   } = useBackgroundCommandActions({
     canCompact: !mainChatRunning || supportsActiveRunContextCompact(resolveCurrentWorkerSummary(stateRef.current)),
@@ -195,14 +193,6 @@ export function useComposerSend(input: UseComposerSendInput) {
       usageSnapshot: state.usageSnapshot,
     },
     text: {
-      remember: {
-        pending: backgroundCommandText.rememberPending,
-        error: backgroundCommandText.rememberError,
-      },
-      learn: {
-        pending: backgroundCommandText.learnPending,
-        error: backgroundCommandText.learnError,
-      },
       compact: {
         pending: backgroundCommandText.compactPending,
         error: backgroundCommandText.compactError,
@@ -406,8 +396,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     resetForNewConversation,
     dispatch,
     toggleVoiceMode: executeSlashCommandInput.toggleVoiceMode,
-    submitRememberCommand,
-    submitLearnCommand,
     submitCompactCommand: openCompactChooser,
     setInputValue,
     setSlashDismissed,

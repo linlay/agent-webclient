@@ -124,8 +124,8 @@ describe("featureFlags", () => {
     expect(isQuickActionsEnabled()).toBe(true);
   });
 
-  it("reads the memory flag from runtime config", () => {
-    expect(isMemoryEnabled()).toBe(false);
+  it("keeps Markdown management available independently of the retired database flag", () => {
+    expect(isMemoryEnabled()).toBe(true);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       MEMORY_ENABLED: "true",
@@ -135,7 +135,7 @@ describe("featureFlags", () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       MEMORY_ENABLED: "false",
     };
-    expect(isMemoryEnabled()).toBe(false);
+    expect(isMemoryEnabled()).toBe(true);
   });
 
   it("reads the voice flag from runtime config", () => {

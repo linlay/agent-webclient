@@ -14,7 +14,6 @@ import { createInitialChatsState } from "@/features/chats/lib/chatState";
 import { createInitialComposerState } from "@/features/composer/lib/composerState";
 import { createInitialConversationState } from "@/features/conversation/lib/conversationState";
 import { createInitialDebugState } from "@/features/debug/lib/debugState";
-import { createInitialMemoryState } from "@/features/memory/lib/memoryState";
 import { createInitialOverviewState } from "@/features/overview/lib/overviewState";
 import { createInitialPlanState } from "@/features/plan/lib/planState";
 import { createInitialTasksState } from "@/features/tasks/lib/tasksState";
@@ -48,7 +47,6 @@ export function createInitialState(): AppState {
     ...createInitialOverviewState(),
     ...createInitialViewersState(),
     ...createInitialComposerState(),
-    ...createInitialMemoryState(),
     ...createInitialVoiceState(),
     ...createInitialUsageState(),
     ...createInitialAutomationsState(),

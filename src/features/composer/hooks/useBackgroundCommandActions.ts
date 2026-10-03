@@ -7,8 +7,6 @@ import { AIContextEventTypeEnum, AIUsageEventTypeEnum } from "@/shared/contracts
 import {
   compactChat,
   createRequestId,
-  learnChat,
-  rememberChat,
   type CompactChatResponse,
   type CompactLevel,
 } from "@/shared/data";
@@ -16,7 +14,7 @@ import { resolveCompactPhase } from "@/features/runs/lib/contextCompact";
 import { useI18n } from "@/shared/i18n";
 import { formatCompactStats } from "@/shared/utils/contextCompactStats";
 
-export type BackgroundCommandType = "remember" | "learn" | "compact";
+export type BackgroundCommandType = "compact";
 
 export interface BackgroundCommandTexts {
   pending: string;
@@ -28,8 +26,6 @@ export interface BackgroundCommandTexts {
 }
 
 export interface BackgroundCommandTextMap {
-  remember: BackgroundCommandTexts;
-  learn: BackgroundCommandTexts;
   compact: BackgroundCommandTexts;
 }
 
@@ -273,11 +269,7 @@ export async function runBackgroundCommand(
   });
 
   try {
-    const response = commandType === "compact"
-      ? await compactChat({ requestId, chatId, level: compactLevel })
-      : commandType === "remember"
-        ? await rememberChat({ requestId, chatId })
-        : await learnChat({ requestId, chatId });
+    const response = await compactChat({ requestId, chatId, level: compactLevel });
     if (input.isCurrentChat && !input.isCurrentChat()) return;
     let successText = texts.pending;
     let completedCompact: CompactChatResponse | undefined;
@@ -466,8 +458,6 @@ export function useBackgroundCommandActions(input: {
 
   return {
     submitBackgroundCommand,
-    submitRememberCommand: () => submitBackgroundCommand("remember"),
-    submitLearnCommand: () => submitBackgroundCommand("learn"),
     submitCompactCommand: (level: CompactLevel = "summary") => submitBackgroundCommand("compact", level),
     submittingCommand,
   };

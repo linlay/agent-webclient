@@ -493,77 +493,7 @@ describe('appReducer conversation reset behavior', () => {
     expect(removed.pendingSteers).toEqual({});
   });
 
-  it('resets memory info session state while preserving filters', () => {
-    const baseState = createInitialState();
 
-    const withFilters = appReducer(baseState, {
-      type: 'SET_MEMORY_INFO_FILTERS',
-      filters: {
-        keyword: 'bugfix',
-        limit: 30,
-      },
-    });
-    const previewTab = appReducer(withFilters, {
-      type: 'SET_MEMORY_CONSOLE_TAB',
-      tab: 'preview',
-    });
-    const busyState = {
-      ...previewTab,
-      memoryInfoLoading: true,
-      memoryInfoError: 'boom',
-      memoryInfoDetailLoading: true,
-      memoryInfoDetailError: 'detail boom',
-      memoryMeta: {
-        categories: ['general'],
-        types: ['fact'],
-        scopeTypes: ['agent'],
-        statuses: ['active'],
-        sourceTypes: ['tool-write'],
-      },
-      memoryPreviewDraft: '发布 builtin',
-      memoryPreviewLoading: true,
-      memoryPreviewError: 'preview boom',
-      memoryPreviewResult: {
-        message: '发布 builtin',
-        agentKey: 'agent-a',
-        chatId: 'chat_1',
-        enabled: true,
-        summary: {
-          stableCount: 1,
-          sessionCount: 0,
-          observationCount: 0,
-          stableChars: 30,
-          sessionChars: 0,
-          observationChars: 0,
-        },
-        prompts: {
-          stable: 'Runtime Context: Stable Memory',
-          session: '',
-          observation: '',
-        },
-        layers: [],
-      },
-      memoryPreviewPromptLayer: 'session' as const,
-    };
-    const closed = appReducer(busyState, {
-      type: 'RESET_MEMORY_INFO_SESSION',
-    });
-
-    expect(closed.memoryInfoFilters.keyword).toBe('bugfix');
-    expect(closed.memoryInfoFilters.limit).toBe(30);
-    expect(closed.memoryInfoLoading).toBe(false);
-    expect(closed.memoryInfoError).toBe('');
-    expect(closed.memoryInfoDetailLoading).toBe(false);
-    expect(closed.memoryInfoDetailError).toBe('');
-    expect(closed.memoryMeta).toEqual(busyState.memoryMeta);
-    expect(closed.memoryPreviewDraft).toBe('');
-    expect(closed.memoryPreviewLoading).toBe(false);
-    expect(closed.memoryPreviewError).toBe('');
-    expect(closed.memoryPreviewResult).toBeNull();
-    expect(closed.memoryPreviewPromptLayer).toBe('stable');
-    expect(previewTab.memoryConsoleTab).toBe('preview');
-    expect(baseState.memoryPreferenceActiveScopeType).toBe('agent');
-  });
 
   it('stores composer draft text through the reducer', () => {
     const baseState = createInitialState();

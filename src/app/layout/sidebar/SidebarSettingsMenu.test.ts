@@ -50,11 +50,11 @@ describe("buildSidebarSettingsMenuSections", () => {
     ]);
   });
 
-  it("hides memory info item when MEMORY_ENABLED is not set", () => {
+  it("shows Markdown management without the retired memory flag", () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {};
     const sections = buildSidebarSettingsMenuSections();
     const labels = sections[0]?.items.map((item) => item.label) || [];
-    expect(labels).not.toContain("记忆信息");
+    expect(labels).toContain("记忆信息");
   });
 });
 

@@ -7,7 +7,6 @@ import type { ChatsAction } from "@/features/chats/lib/chatState";
 import type { ComposerAction } from "@/features/composer/lib/composerState";
 import type { ConversationAction } from "@/features/conversation/lib/conversationState";
 import type { DebugAction } from "@/features/debug/lib/debugState";
-import type { MemoryAction } from "@/features/memory/lib/memoryState";
 import type { OverviewAction } from "@/features/overview/lib/overviewState";
 import type { PlanAction } from "@/features/plan/lib/planState";
 import type { TasksAction } from "@/features/tasks/lib/tasksState";
@@ -66,7 +65,6 @@ export type AppAction =
   | OverviewAction
   | ViewersAction
   | ComposerAction
-  | MemoryAction
   | VoiceAction
   | UsageAction
   | AutomationsAction

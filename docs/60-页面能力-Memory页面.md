@@ -1,36 +1,9 @@
-# Memory页面
+# 记忆与资料
 
-## 当前状态
-Memory 页面由 `/memory` 路由进入，页面入口是 `src/app/pages/memory/index.tsx`，主体复用 `MemoryInfoConsole`。Memory 是独立 feature，不属于 Settings；页面和全局 Modal 使用同一控制台能力，但拥有独立的打开、初始化、关闭重置生命周期。
+`/memory` 和全局 Memory Modal 共用文件编辑器。Platform 是唯一读写事实源：OWNER.md 保存用户明确的资料与偏好，memory.md 保存长期事实，daily/YYYY-MM-DD.md 保存当日记录。页面不依赖当前 Agent，也不依赖已退役的 MEMORY_ENABLED 开关。
 
-## 核心职责
-- 展示 memory records，并支持按 keyword、kind、scope、status、category 筛选。
-- 展示 memory scopes、scope detail、memory meta 和当前偏好来源。
-- 维护 preference markdown / records draft、脏状态、校验结果和保存结果。
-- 提供 context preview，用于观察指定 chat/message 下的记忆注入效果。
+编辑状态局限在挂载页面；切换文件、关闭弹窗或路由离开时提示未保存修改。HTTP GET/PUT/DELETE `/api/memory/file` 使用固定 kind/date 和 revision；409 保留草稿，重新加载后由用户合并。日期与当天值由 Platform 时区计算；日期列表和文字检索按游标加载。知识索引由 KBX 承担。
 
-## 核心流程
-进入 `/memory` 后，`useMemoryRecordsInitialization` 根据当前 agent 上下文初始化 records。`MemoryConsole` 只编排 tab、runtime 与 surface，Records、Preferences、Preview 的真实 JSX 分别位于独立 Panel 文件。用户切换 scope 或选择记录时，控制台通过 data client 拉取 detail；编辑 preference 时先维护本地 draft，保存前可调用 validate，保存成功后失效 memory meta 缓存并刷新相关状态。
+旧 records、scope、context preview、数据库 DTO、全局记忆 reducer、/remember 和 /learn 命令已退役。Desktop 只提供侧栏入口和页面承载，不直接读写文件。
 
-侧栏通过独立 `onOpenMemory` 动作打开 `MemoryOverlayProvider`；`ShellOverlays` 组合 `MemoryOverlayHost`，再由 `MemoryModal` 渲染 `MemoryInfoConsole` 的 modal surface。关闭 Modal 时由 `MemoryOverlayProvider` 执行 `RESET_MEMORY_INFO_SESSION`，Settings Provider 不再持有 Memory key 或生命周期。
-
-## 边界与非目标
-- Memory 存储、embedding、召回、合并和权限由后端负责。
-- Memory 页面不处理对话归档和自动化调度，它们分别属于 Archive 与 Automation 专题。
-- Memory 功能入口受 `MEMORY_ENABLED` 控制。
-- Settings Provider 只管理 Settings，不得代理 Memory open/reset。
-
-## 相关文件
-- `../src/app/pages/memory/index.tsx`
-- `../src/features/memory/components/MemoryModal.tsx`
-- `../src/features/memory/components/MemoryConsole.tsx`
-- `../src/features/memory/components/MemoryRecordsPanel.tsx`
-- `../src/features/memory/components/MemoryPreferencesPanel.tsx`
-- `../src/features/memory/components/MemoryPreviewPanel.tsx`
-- `../src/features/memory/components/MemoryOverlayProvider.tsx`
-- `../src/features/memory/components/MemoryOverlayHost.tsx`
-- `../src/features/memory/hooks/useMemoryRecordsInitialization.ts`
-- `../src/features/memory/lib/memoryInfo.ts`
-- `../src/features/memory/lib/memoryState.ts`
-- `../src/shared/data/memory/memoryTypes.ts`
-- `../src/shared/data/api/http.ts`
+用户可以编辑、预览、保存和删除三类 Markdown；删除记忆不自动删除原始 Chat 历史。保存后后续 Run 读取新版内容，活动 Run 的上下文快照保持稳定。

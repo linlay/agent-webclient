@@ -5,7 +5,6 @@ import type { ChatsState } from "@/features/chats/lib/chatState";
 import type { ComposerState } from "@/features/composer/lib/composerState";
 import type { ConversationState } from "@/features/conversation/lib/conversationState";
 import type { DebugState } from "@/features/debug/lib/debugState";
-import type { MemoryState } from "@/features/memory/lib/memoryState";
 import type { OverviewState } from "@/features/overview/lib/overviewState";
 import type { PlanState } from "@/features/plan/lib/planState";
 import type { TasksState } from "@/features/tasks/lib/tasksState";
@@ -35,7 +34,6 @@ export type AppState =
   & OverviewState
   & ViewersState
   & ComposerState
-  & MemoryState
   & VoiceState
   & UsageState
   & AutomationsState

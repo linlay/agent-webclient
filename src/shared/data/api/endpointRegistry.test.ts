@@ -20,7 +20,8 @@ describe("endpoint WebSocket capabilities", () => {
 
   it("keeps backend-specific and management routes explicit", () => {
     expect(dataEndpoints.agentSkills.wsBackends).toEqual(["platform"]);
-    expect(dataEndpoints.memoryRecords.wsBackends).toEqual(["platform"]);
+    expect(dataEndpoints.memoryFile.transport).toBe("http");
+    expect(dataEndpoints.memoryFileSave.method).toBe("PUT");
     expect(dataEndpoints.agentOrder.transport).toBe("http");
     expect(dataEndpoints.adminRegistries.transport).toBe("http");
     expect(dataEndpoints.automations.transport).toBe("http");

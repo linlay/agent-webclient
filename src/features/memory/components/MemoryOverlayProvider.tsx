@@ -2,11 +2,9 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
-import { useAppDispatch } from "@/app/state/AppContext";
 
 interface MemoryOverlayActions {
   openMemory: () => void;
@@ -28,16 +26,10 @@ const MemoryOverlayStateContext = createContext<MemoryOverlayState>({
 export const MemoryOverlayProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const dispatch = useAppDispatch();
   const [isMemoryOpen, setMemoryOpen] = useState(false);
   const openMemory = useCallback(() => setMemoryOpen(true), []);
   const closeMemory = useCallback(() => setMemoryOpen(false), []);
 
-  useEffect(() => {
-    if (!isMemoryOpen) return undefined;
-    dispatch({ type: "SET_MEMORY_CONSOLE_TAB", tab: "records" });
-    return () => dispatch({ type: "RESET_MEMORY_INFO_SESSION" });
-  }, [dispatch, isMemoryOpen]);
 
   const actions = useMemo(() => ({ openMemory, closeMemory }), [closeMemory, openMemory]);
   const state = useMemo(() => ({ isMemoryOpen }), [isMemoryOpen]);

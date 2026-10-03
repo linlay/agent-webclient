@@ -25,7 +25,7 @@ describe("data API public and routed entry points", () => {
     }
     expect(publicData.getAgents).not.toBe(agentRequests.getAgents);
     expect(publicData.getChats).not.toBe(chatRequests.getChats);
-    expect(publicData.saveMemoryScope).not.toBe(memoryRequests.saveMemoryScope);
+    expect(publicData.saveMemoryFile).toBe(memoryRequests.saveMemoryFile);
   });
 
   it("exposes the flexible voice requests without changing their implementation", () => {

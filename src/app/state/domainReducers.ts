@@ -5,7 +5,6 @@ import { reduceNavigationState } from "@/app/state/reducerNavigation";
 import { reduceTasksState } from "@/features/tasks/lib/tasksState";
 import { reduceTimelineState } from "@/app/state/reducerTimeline";
 import { reduceUiState } from "@/app/state/reducerUi";
-import { reduceMemoryState } from "@/features/memory/lib/memoryState";
 import { reducePlanState } from "@/features/plan/lib/planState";
 import { reduceVoiceState } from "@/features/voice/lib/voiceState";
 import { reduceComposerInteractionState } from "@/features/composer/lib/composerState";
@@ -18,7 +17,6 @@ export type DomainReducer = (
 export const domainReducers: DomainReducer[] = [
 	reduceNavigationState,
 	reduceConversationState,
-	reduceMemoryState,
 	reducePlanState,
 	reduceTasksState,
 	reduceTimelineState,

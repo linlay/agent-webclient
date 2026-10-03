@@ -32,5 +32,5 @@ export function isVoiceEnabled(): boolean {
 }
 
 export function isMemoryEnabled(): boolean {
-  return parseFeatureFlag(readRuntimeConfigValue("MEMORY_ENABLED"));
+  return true;
 }

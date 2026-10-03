@@ -19,8 +19,6 @@ export function useSlashCommandExecution(input: {
 	resetForNewConversation: () => void;
 	dispatch: (action: AppAction) => void;
 	toggleVoiceMode: () => void;
-	submitRememberCommand: () => Promise<void>;
-	submitLearnCommand: () => Promise<void>;
 	submitCompactCommand: (level?: CompactLevel) => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
@@ -39,8 +37,6 @@ export function useSlashCommandExecution(input: {
 		resetForNewConversation,
 		dispatch,
 		toggleVoiceMode,
-		submitRememberCommand,
-		submitLearnCommand,
 		submitCompactCommand,
 		setInputValue,
 		setSlashDismissed,
@@ -67,12 +63,6 @@ export function useSlashCommandExecution(input: {
 			switch (commandId) {
 				case "btw":
 					openBTW();
-					return;
-				case "remember":
-					await submitRememberCommand();
-					return;
-				case "learn":
-					await submitLearnCommand();
 					return;
 				case "compact":
 					await submitCompactCommand();
@@ -133,9 +123,7 @@ export function useSlashCommandExecution(input: {
 			setSlashDismissed,
 			slashAvailability,
 			state,
-			submitLearnCommand,
 			submitCompactCommand,
-			submitRememberCommand,
 			toggleVoiceMode,
 			openCommandOverlay,
 			openOverlay,

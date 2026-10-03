@@ -5,7 +5,6 @@ import { useMainChatRunActivation } from "@/features/runs/hooks/useMainChatRunAc
 import { useDesktopLiveSurfaceRecovery } from "@/features/runs/hooks/useDesktopLiveSurfaceRecovery";
 import { useConversationEventHandler } from "@/features/conversation/hooks/useConversationEventHandler";
 import { useMessageActions } from "@/features/composer/hooks/useMessageActions";
-import { useMemoryRecordsInitialization } from "@/features/memory/hooks/useMemoryRecordsInitialization";
 import { useConversationWsRuntime } from "@/features/conversation/hooks/useConversationWsRuntime";
 import { useVoiceChatRuntime } from "@/features/voice/hooks/useVoiceChatRuntime";
 import { useVoiceRuntime } from "@/features/voice/hooks/useVoiceRuntime";
@@ -37,7 +36,6 @@ export function useAppRuntimes(
   useMessageActions({ onAgentEvent: handleEvent });
   useVoiceRuntime();
   useVoiceChatRuntime({ onAgentEvent: handleEvent });
-  useMemoryRecordsInitialization();
   return {
     ...workerData,
     loadChat: conversationActions.loadChat,

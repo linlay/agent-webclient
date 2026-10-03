@@ -614,7 +614,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     />
                     <Flex gap={2} align="center">
                       <span>{t("leftSidebar.quickActions.memory")}</span>
-                      <Badge count={state.memoryInfoRecords?.length || 0} className={libraryPresentation.badge} />
                     </Flex>
                   </UiButton>
                 )}

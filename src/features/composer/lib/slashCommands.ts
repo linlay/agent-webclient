@@ -8,8 +8,6 @@ import type { MaterialIconName } from '@/shared/ui/MaterialIcon';
 
 export type SlashCommandId =
   | 'btw'
-  | 'remember'
-  | 'learn'
   | 'compact'
   | 'new'
   | 'debug'
@@ -112,22 +110,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.history.label',
     descriptionKey: 'slash.command.history.description',
     keywords: ['history', 'chat', 'conversation', 'recent'],
-  },
-  {
-    id: 'remember',
-    icon: 'psychology',
-    command: '/remember',
-    labelKey: 'slash.command.remember.label',
-    descriptionKey: 'slash.command.remember.description',
-    keywords: ['remember', 'memory', 'preference', 'fact'],
-  },
-  {
-    id: 'learn',  
-    icon: 'book_2',
-    command: '/learn',
-    labelKey: 'slash.command.learn.label',
-    descriptionKey: 'slash.command.learn.description',
-    keywords: ['learn', 'lesson', 'rule', 'practice'],
   },
   {
     id: 'compact',
@@ -277,9 +259,6 @@ export function isSlashCommandFeatureEnabled(commandId: SlashCommandId): boolean
   if (commandId === 'voice') {
     return isVoiceEnabled();
   }
-  if (commandId === 'remember' || commandId === 'learn') {
-    return isMemoryEnabled();
-  }
   return true;
 }
 
@@ -324,9 +303,6 @@ export function isSlashCommandDisabled(
       availability.compactPending === true ||
       (availability.streaming && availability.canCompactActiveRun === false)
     );
-  }
-  if (commandId === 'remember' || commandId === 'learn') {
-    return availability.streaming || !availability.hasActiveChat || availability.commandOverlayOpen;
   }
   if (commandId === 'voice') {
     return availability.streaming || !availability.canUseVoiceMode || availability.isFrontendActive;
