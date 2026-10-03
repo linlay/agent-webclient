@@ -15,14 +15,6 @@ export function writeStoredThemeMode(themeMode: ThemeMode): void {
 export function applyThemeModeToDocument(themeMode: ThemeMode): void {
   if (typeof document !== "undefined") document.documentElement.setAttribute("data-theme", themeMode);
 }
-// Legacy utility for explicit local preferences; application runtime uses the
-// appearance controller, so URL/host projections never persist through state.
-export function syncThemeMode(themeMode: ThemeMode): ThemeMode {
-  const normalized = normalizeThemeMode(themeMode);
-  applyThemeModeToDocument(normalized);
-  if (!readThemeModeFromUrl()) writeStoredThemeMode(normalized);
-  return normalized;
-}
 export function resolveInitialThemeMode(search?: string): ThemeMode {
   return readBootAppearance(search).resolvedTheme;
 }

@@ -2,7 +2,6 @@ import {
 	normalizeThemeMode,
 	readThemeModeFromUrl,
 	resolveInitialThemeMode,
-	syncThemeMode,
 	THEME_STORAGE_KEY,
 } from "@/shared/styles/theme";
 
@@ -103,40 +102,6 @@ describe("theme helpers", () => {
 	it("reads the route theme query before host theme from URL params", () => {
 		expect(readThemeModeFromUrl("?theme=dark&hostTheme=light")).toBe("dark");
 		expect(readThemeModeFromUrl("?theme=system&hostTheme=dark")).toBe("dark");
-	});
-
-	it("syncs an explicitly selected local theme to storage and the document", () => {
-		const stored = new Map<string, string>([[THEME_STORAGE_KEY, "light"]]);
-		const documentElement = {
-			theme: "light",
-			getAttribute(key: string) {
-				return key === "data-theme" ? this.theme : null;
-			},
-			setAttribute(key: string, value: string) {
-				if (key === "data-theme") {
-					this.theme = value;
-				}
-			},
-		};
-		Object.defineProperty(globalThis, "localStorage", {
-			configurable: true,
-			value: {
-				getItem: (key: string) => stored.get(key) || null,
-				setItem: (key: string, value: string) => {
-					stored.set(key, value);
-				},
-			},
-		});
-		Object.defineProperty(globalThis, "document", {
-			configurable: true,
-			value: { documentElement },
-		});
-
-		const themeMode = syncThemeMode("dark");
-
-		expect(themeMode).toBe("dark");
-		expect(stored.get(THEME_STORAGE_KEY)).toBe("dark");
-		expect(documentElement.theme).toBe("dark");
 	});
 
 	it("falls back to the stored theme when no host theme is provided", () => {

@@ -1,7 +1,0 @@
-node_modules
-dist
-release
-.git
-.gitignore
-.DS_Store
-npm-debug.log*

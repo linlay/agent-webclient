@@ -46,8 +46,11 @@ Thumbs.db
 # .doc/tmp/
 <!-- xgraph:end -->
 
-# Isolated appearance preview build and verification output
+# Isolated QA preview build and verification output
 /build/appearance/
+/build/composer-context/
+/build/image-generation/
+/build/management/
 
 # Private production source maps, grouped by diagnostic build ID
 /diagnostics/
