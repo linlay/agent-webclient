@@ -1,4 +1,5 @@
 import { t } from "@/shared/i18n";
+import { getI18nRuntimeConfig } from "@/shared/i18n/runtime";
 import { createCompactId } from "@/shared/utils/compactId";
 import { getClientDeviceId } from "@/shared/data/clientDeviceId";
 import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
@@ -392,6 +393,7 @@ function buildWsUrl(accessToken = ""): string {
 		url.searchParams.set("deviceId", deviceId);
 	}
 	url.searchParams.set("source", "WebClient");
+	url.searchParams.set("locale", getI18nRuntimeConfig().locale);
 	const surfaceId = getClientSurfaceId();
 	if (surfaceId) {
 		url.searchParams.set("surfaceId", surfaceId);

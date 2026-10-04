@@ -32,8 +32,8 @@ it("routes user-level pin reads and writes through the Platform WebSocket", asyn
   jest.mocked(requestDataThroughExecutor).mockResolvedValue(response);
   await expect(getAgentSkills()).resolves.toEqual(response);
   await expect(putAgentSkillPin({ id: "pdf", pinned: true })).resolves.toEqual(response);
-  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(1, "/api/skills", { agentKey: "", locale: "en-US" });
-  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/skills", { id: "pdf", pinned: true, locale: "en-US" });
+  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(1, "/api/skills", { agentKey: "" });
+  expect(requestDataThroughExecutor).toHaveBeenNthCalledWith(2, "/api/skills", { id: "pdf", pinned: true });
   expect(requestJson).not.toHaveBeenCalled();
 });
 

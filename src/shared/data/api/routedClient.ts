@@ -178,14 +178,7 @@ function routeEndpoint<T, TInput>(
 			&& endpoint.wsBackends?.includes(backend) === true
 		);
 	const request = useWebSocket
-		? (() => {
-			// Desktop surfaces share a physical connection. Scope presentation to
-			// this request instead of mutating /api/locale on that connection.
-			const requestPayload = endpoint.path === dataEndpoints.agentSkills.path
-				? { ...(payload as Record<string, unknown>), locale: getI18nRuntimeConfig().locale }
-				: payload;
-			return () => requestDataThroughExecutor<T>(endpoint.path, requestPayload);
-		})()
+		? () => requestDataThroughExecutor<T>(endpoint.path, payload)
 		: fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
 	if (!cache) {
