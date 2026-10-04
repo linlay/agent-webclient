@@ -97,8 +97,11 @@ export function ConversationStage({
       if (listItem.kind === "run") {
         const { item } = listItem;
         const duration = formatResponseDuration(item.responseDurationMs, t);
-        const final = item.nodes[item.nodes.length - 1]?.kind === "content"
-          ? item.nodes[item.nodes.length - 1] : null;
+        const lastNode = item.nodes[item.nodes.length - 1];
+        const final = lastNode?.kind === "content"
+          || (lastNode?.kind === "message" && lastNode.role === "system"
+            && lastNode.systemMessageLevel === "error" && !lastNode.taskId)
+          ? lastNode : null;
         const collapse = Boolean(item.completedAt)
           && item.nodes.length > 1
           && !item.nodes.some(isImageGenerationTool);
