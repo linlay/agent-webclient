@@ -36,7 +36,7 @@ describe("buildSidebarSettingsMenuSections", () => {
     delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   });
 
-  it("includes skills, registry config, Connectors, archive, settings, and memory info in order", () => {
+  it("orders centers, registry config, memory, archive, then settings", () => {
     const sections = buildSidebarSettingsMenuSections();
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
@@ -44,9 +44,10 @@ describe("buildSidebarSettingsMenuSections", () => {
       "技能中心",
       "连接器中心",
       "注册配置",
+      "记忆管理",
+      "知识库中心",
       "已归档对话",
-      "打开设置...",
-      "记忆信息",
+      "设置",
     ]);
   });
 
@@ -54,7 +55,7 @@ describe("buildSidebarSettingsMenuSections", () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {};
     const sections = buildSidebarSettingsMenuSections();
     const labels = sections[0]?.items.map((item) => item.label) || [];
-    expect(labels).toContain("记忆信息");
+    expect(labels).toContain("记忆管理");
   });
 });
 
@@ -78,10 +79,10 @@ describe("SidebarSettingsMenu", () => {
 
     expect(html).toContain("设置菜单");
     expect(html).toContain("技能中心");
-    expect(html).toContain("打开设置...");
+    expect(html).toContain("设置");
     expect(html).toContain("注册配置");
     expect(html).toContain("连接器中心");
-    expect(html).toContain("记忆信息");
+    expect(html).toContain("记忆管理");
     expect(html).toContain("已归档对话");
     expect(html).toContain("sidebar-settings-item ui-icon-hover-24");
     expect(html).toContain("sidebar-settings-item-icon ui-icon-hover-24-target");

@@ -9,7 +9,6 @@ import { useCommandOverlayActions } from "@/features/command-center/components/C
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
 import { WorkerNavigator } from "@/features/workers/components/WorkerNavigator";
-import { useMemoryOverlayActions } from "@/features/memory/components/MemoryOverlayProvider";
 
 export {
   buildCoderAgentCreateRequest,
@@ -21,7 +20,6 @@ export const LeftSidebar: React.FC = () => {
   const { state } = useAppContext();
   const { openCommandOverlay } = useCommandOverlayActions();
   const { openOverlay } = useSettingsOverlayActions();
-  const { openMemory } = useMemoryOverlayActions();
   const settingsSummaryBadges = React.useMemo(
     () => resolveSettingsSummaryBadges({ themeMode: state.themeMode }),
     [state.themeMode],
@@ -33,6 +31,7 @@ export const LeftSidebar: React.FC = () => {
       if (action.type === "open-registries") standaloneRoute = "/registries";
       if (action.type === "open-connectors") standaloneRoute = "/connectors";
       if (action.type === "open-archive") standaloneRoute = "/archives";
+      if (action.type === "open-memory-info") standaloneRoute = "/memory";
       if (standaloneRoute) {
         window.open(
           `${standaloneRoute}${window.location.search || ""}`,
@@ -42,14 +41,13 @@ export const LeftSidebar: React.FC = () => {
         return;
       }
       if (action.type === "open-settings") openOverlay("settings");
-      if (action.type === "open-memory-info") openMemory();
     },
-    [openMemory, openOverlay],
+    [openOverlay],
   );
   return (
     <WorkerNavigator
       onOpenCommand={(type) => openCommandOverlay({ type })}
-      onOpenMemory={openMemory}
+      onOpenMemory={() => handleSettingsMenuAction({ type: "open-memory-info" })}
       renderSettingsMenu={(close) => (
         <SidebarSettingsMenu
           onAction={(action) => {

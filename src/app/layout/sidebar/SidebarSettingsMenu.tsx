@@ -30,6 +30,7 @@ export interface SidebarSettingsMenuItem {
   icon?: MaterialIconName;
   active?: boolean;
   disabled?: boolean;
+  badge?: string;
   action: SidebarSettingsMenuAction;
 }
 
@@ -82,6 +83,24 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
           icon: "tune",
           action: { type: "open-registries" },
         },
+        ...(isMemoryEnabled()
+          ? [
+              {
+                key: "open-memory-info",
+                label: t("settingsMenu.memoryInfo"),
+                icon: "psychology" as const,
+                action: { type: "open-memory-info" as const },
+              },
+            ]
+          : []),
+        {
+          key: "knowledge-base",
+          label: t("settingsMenu.knowledgeBase"),
+          icon: "database",
+          disabled: true,
+          badge: t("settingsMenu.status.planned"),
+          action: { type: "noop" },
+        },
         {
           key: "open-archive",
           label: t("settingsMenu.archive"),
@@ -94,16 +113,6 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
           icon: "settings",
           action: { type: "open-settings" },
         },
-        ...(isMemoryEnabled()
-          ? [
-              {
-                key: "open-memory-info",
-                label: t("settingsMenu.memoryInfo"),
-                icon: "database" as const,
-                action: { type: "open-memory-info" as const },
-              },
-            ]
-          : []),
       ],
     }
   ];
@@ -145,8 +154,8 @@ export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
                     <span className="sidebar-settings-item-label">
                       {item.label}
                     </span>
-                    {item.active ? (
-                      <span className="sidebar-settings-item-badge">{t("settingsMenu.status.current")}</span>
+                    {item.active || item.badge ? (
+                      <span className="sidebar-settings-item-badge">{item.badge || t("settingsMenu.status.current")}</span>
                     ) : null}
                   </span>
                 </span>

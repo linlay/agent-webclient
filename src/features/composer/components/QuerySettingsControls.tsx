@@ -28,6 +28,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { buildModelMenuItems } from "@/features/model-config/components/ModelMenuPresenter";
 import {
   filterModelOptions,
@@ -511,6 +512,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
 }) => {
   const { state, dispatch } = useAppContext();
   const { t } = useI18n();
+  const messageApi = useAppMessage();
   const currentWorker = resolveCurrentWorkerSummary(state);
   const isCoderAgent =
     currentWorker?.type === "agent" &&
@@ -540,7 +542,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     useState<ModelOptionsStatus>("idle");
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [modelConfigSaving, setModelConfigSaving] = useState(false);
-  const [modelConfigError, setModelConfigError] = useState("");
   const [modelRefreshFailed, setModelRefreshFailed] = useState(false);
   const appliedDefaultRef = useRef<AppliedDefaultModelOverride | null>(null);
   const forceRefreshRef = useRef(false);
@@ -757,7 +758,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     (modelOptionsStatus === "loaded" || modelOptionsStatus === "empty") &&
     !models.some(model => model.key === modelKey);
   const modelErrorText =
-    modelConfigError ||
     (modelRefreshFailed ? t("composer.query.model.refreshFailed") : "") ||
     (modelUnavailable ? t("composer.query.model.unavailable") : "");
 
@@ -780,7 +780,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         : {}),
     };
     setModelConfigSaving(true);
-    setModelConfigError("");
     try {
       const response = await updateAgentModelConfig({
         agentKey: toAgentConfigKey(agentKey),
@@ -801,7 +800,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       );
       dispatch({ type: "SET_AGENTS", agents: nextAgents });
     } catch (error) {
-      setModelConfigError((error as Error).message);
+      void messageApi.error((error as Error).message);
     } finally {
       setModelConfigSaving(false);
     }
