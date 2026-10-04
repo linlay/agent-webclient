@@ -17,10 +17,11 @@ export interface AgentSkillOption {
 }
 
 // Projection only: display Platform tools without adding them to the form value.
-export function withAgentToolBindings(options: AgentToolOption[], bindings: AgentToolBinding[] = []): AgentToolOption[] {
-  const byName = new Map(bindings.map(binding => [binding.name, binding]));
+export function withAgentToolBindings(options: AgentToolOption[], bindings?: AgentToolBinding[] | null): AgentToolOption[] {
+  const normalizedBindings = bindings ?? [];
+  const byName = new Map(normalizedBindings.map(binding => [binding.name, binding]));
   const result = options.map(option => ({ ...option, binding: byName.get(option.key) }));
-  for (const binding of bindings) {
+  for (const binding of normalizedBindings) {
     if (!result.some(option => option.key === binding.name)) result.push({ key: binding.name, label: binding.name, kind: "", sourceCategory: "", binding });
   }
   return result;
