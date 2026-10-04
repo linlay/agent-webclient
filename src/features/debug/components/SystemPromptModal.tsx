@@ -9,6 +9,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { copyText } from "@/shared/utils/copy";
 import type { SystemPromptLoadState } from "@/features/debug/lib/systemPromptTrace";
+import styles from "./SystemPromptModal.module.css";
 
 interface SystemPromptModalProps {
 	loadState: SystemPromptLoadState;
@@ -22,7 +23,7 @@ const SYSTEM_PROMPT_CARD_CLASS_NAME =
 	"event-popover-system-card tw:flex tw:max-h-[calc(100vh-48px)] tw:w-full tw:flex-col tw:overflow-hidden tw:p-0";
 
 const SYSTEM_PROMPT_BODY_CLASS_NAME =
-	"event-popover-system-body tw:flex tw:flex-col tw:gap-3 tw:overflow-auto tw:px-4 tw:pb-4 tw:pt-3";
+	"event-popover-system-body tw:flex tw:flex-col tw:gap-3 tw:overflow-auto tw:p-3";
 
 const SYSTEM_PROMPT_STATUS_CLASS_NAME =
 	"event-popover-system-status tw:flex tw:min-h-[140px] tw:items-center tw:justify-center tw:gap-2 tw:rounded-[var(--radius-md)] tw:border tw:border-dashed tw:border-line-soft tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_88%,var(--bg-input))] tw:p-[18px] tw:text-center tw:text-xs tw:text-ink-muted";
@@ -119,7 +120,7 @@ export const SystemPromptModal: React.FC<SystemPromptModalProps> = ({
 			destroyOnHidden
 			getContainer={false}
 			width="min(78vw, 980px)"
-			className={SYSTEM_PROMPT_MODAL_CLASS_NAME}
+			className={`${SYSTEM_PROMPT_MODAL_CLASS_NAME} ${styles.modal}`}
 			title={
 				<div className={SYSTEM_PROMPT_TITLE_CLASS_NAME}>
 					<span>{t("eventPopover.systemPromptModal.title")}</span>

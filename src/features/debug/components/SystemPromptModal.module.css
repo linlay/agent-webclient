@@ -1,0 +1,23 @@
+.modal :global(.ant-modal-content) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal :global(.ant-modal-header) {
+  margin: 0;
+  padding: 8px 44px 8px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  background: transparent;
+}
+
+.modal :global(.ant-modal-title) {
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.modal :global(.ant-modal-close) {
+  top: 7px;
+  inset-inline-end: 10px;
+  width: 24px;
+  height: 24px;
+}

@@ -184,6 +184,11 @@ export const EventPopover: React.FC = () => {
 	const [position, setPosition] = useState({ top: 80, right: 320 });
 	const isOpen = state.eventPopoverIndex >= 0 && !!state.eventPopoverEventRef;
 	const event = state.eventPopoverEventRef;
+	// Inspect the event set captured on selection, not the growing live stream.
+	const [inspection, setInspection] = useState(() => ({ event, events: state.debugEvents }));
+	if (inspection.event !== event) {
+		setInspection({ event, events: state.debugEvents });
+	}
 	const groupMeta = useMemo(() => resolveEventGroupMeta(event), [event]);
 	const relatedEvents = useMemo<RelatedEventEntry[]>(() => {
 		if (!event) return [];
@@ -191,7 +196,7 @@ export const EventPopover: React.FC = () => {
 			return [{ event, index: state.eventPopoverIndex }];
 		}
 
-		const matches = state.debugEvents.flatMap((candidate, index) => {
+		const matches = inspection.events.flatMap((candidate, index) => {
 			const candidateGroupMeta = resolveEventGroupMeta(candidate);
 			if (
 				!candidateGroupMeta ||
@@ -208,7 +213,7 @@ export const EventPopover: React.FC = () => {
 		return matches.length > 0
 			? matches
 			: [{ event, index: state.eventPopoverIndex }];
-	}, [event, groupMeta, state.eventPopoverIndex, state.debugEvents]);
+	}, [event, groupMeta, state.eventPopoverIndex, inspection.events]);
 	const switcherSignature = useMemo(
 		() => relatedEvents.map((entry) => entry.index).join(","),
 		[relatedEvents],
@@ -250,9 +255,12 @@ export const EventPopover: React.FC = () => {
 		[copyMenuItems],
 	);
 	const systemPromptCall = useMemo(
-		() => resolveSystemPromptCalls(event, state.debugEvents)[0] || null,
-		[event, state.debugEvents],
+		() => resolveSystemPromptCalls(event, inspection.events)[0] || null,
+		[event, inspection.events],
 	);
+	const promptChatId = systemPromptCall?.chatId;
+	const promptRunId = systemPromptCall?.runId;
+	const promptAgentKey = systemPromptCall?.agentKey;
 
 	useEffect(() => {
 		setPopoverState(resolveInitialPopoverState(event));
@@ -268,7 +276,7 @@ export const EventPopover: React.FC = () => {
 	useEffect(() => {
 		if (
 			!systemPromptOpen ||
-			!systemPromptCall
+			!promptChatId || !promptRunId || !promptAgentKey
 		) {
 			return;
 		}
@@ -285,9 +293,9 @@ export const EventPopover: React.FC = () => {
 		}, SYSTEM_PROMPT_LOAD_TIMEOUT_MS);
 		setSystemPromptLoadState({ status: "loading" });
 		void getChatSystemPrompt({
-			chatId: systemPromptCall.chatId,
-			runId: systemPromptCall.runId,
-			agentKey: systemPromptCall.agentKey,
+			chatId: promptChatId,
+			runId: promptRunId,
+			agentKey: promptAgentKey,
 		})
 			.then((response) => resolveSystemPromptText(response.data.systemMessage))
 			.then((text) => {
@@ -312,7 +320,9 @@ export const EventPopover: React.FC = () => {
 		};
 	}, [
 		systemPromptOpen,
-		systemPromptCall,
+		promptChatId,
+		promptRunId,
+		promptAgentKey,
 		t,
 	]);
 
