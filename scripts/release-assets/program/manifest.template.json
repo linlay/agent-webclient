@@ -134,8 +134,7 @@
           "phase": "verifyRunning",
           "service": "agent-platform",
           "action": "waitHttp",
-          "target": "/api/runtime-info",
-          "authCapability": "auth.accessToken"
+          "target": "/healthz"
         }
       ]
     }
