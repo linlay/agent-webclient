@@ -16,7 +16,7 @@ export function MemoryInfoConsole({ surface = "page", open = true, onClose }: {
   const [preview, setPreview] = useState(true);
   const close = () => { if (m.canLeave()) onClose?.(); };
   const fileName = m.document?.kind === "daily" ? `${m.document.date}.md`
-    : m.document?.kind === "owner" ? "OWNER.md" : "memory.md";
+    : m.document?.kind === "owner" ? "OWNER.md" : "summary.md";
   const body = (
     <section className={styles.console} aria-label={t("memoryFiles.title")}>
       <div className={styles.workbench}>
@@ -39,7 +39,7 @@ export function MemoryInfoConsole({ surface = "page", open = true, onClose }: {
               <p>{t("memoryFiles.searchLimit")}</p>
               {m.matches.length === 0 && <p>{t("memoryFiles.noMatches")}</p>}
               {m.matches.map((hit, i) => <button className={styles.result} key={`${hit.kind}:${hit.date}:${hit.line}:${i}`} disabled={m.busy} onClick={() => m.select(hit.kind, hit.date)}>
-                <strong>{hit.date || `${hit.kind === "owner" ? "OWNER" : "memory"}.md`} · {hit.line}</strong><span>{hit.text}</span>
+                <strong>{hit.date || `${hit.kind === "owner" ? "OWNER" : "summary"}.md`} · {hit.line}</strong><span>{hit.text}</span>
               </button>)}
               {m.searchBefore && <button disabled={m.busy} onClick={() => void m.search(m.searchBefore)}>{t("memoryFiles.older")}</button>}
             </> : <>

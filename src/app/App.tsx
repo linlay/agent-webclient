@@ -49,6 +49,7 @@ function lazyPage<T extends React.ComponentType<object>, M>(
 }
 
 const AutomationsPage = lazyPage(() => import("./pages/automations"), (m) => m.AutomationsPage);
+const KBasesPage = lazyPage(() => import("./pages/kbases"), (m) => m.KBasesPage);
 const MemoryPage = lazyPage(() => import("./pages/memory"), (m) => m.MemoryPage);
 const AgentsPage = lazyPage(() => import("./pages/agents"), (m) => m.AgentsPage);
 const ArchivesPage = lazyPage(() => import("./pages/archives"), (m) => m.ArchivesPage);
@@ -225,6 +226,10 @@ const router = createBrowserRouter(
               <RegistriesPage />
             </DocumentTitleRoute>
           ),
+        },
+        {
+          path: "/kbases",
+          element: <DocumentTitleRoute titleKey="settingsMenu.knowledgeBase"><KBasesPage /></DocumentTitleRoute>,
         },
         {
           path: "/connectors",

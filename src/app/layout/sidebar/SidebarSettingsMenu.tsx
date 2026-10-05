@@ -18,6 +18,7 @@ export type SidebarSettingsMenuAction =
   | { type: "open-settings" }
   | { type: "open-registries" }
   | { type: "open-connectors" }
+  | { type: "open-kbases" }
   | { type: "open-archive" }
   | { type: "open-memory-info" }
   | { type: "noop" };
@@ -97,9 +98,7 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
           key: "knowledge-base",
           label: t("settingsMenu.knowledgeBase"),
           icon: "database",
-          disabled: true,
-          badge: t("settingsMenu.status.planned"),
-          action: { type: "noop" },
+          action: { type: "open-kbases" },
         },
         {
           key: "open-archive",

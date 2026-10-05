@@ -211,3 +211,5 @@ Agent 连接器接口支持 presetConnectorIds / declaredConnectorIds：connecto
 平台控制审阅使用 Platform 内置 HTML 的 `mode: form` viewport，业务数据仅在 `forms[].form`；通用 Approval 不含 review 扩展。HTML Form 宿主限制整体高度、仅响应主动 collect、超时不自动提交。见 [Form 表单](docs/45-交互容器-HITL-Form表单HTML交互.md)。
 
 工具展示使用 Platform 解析的 label/toolLabel，源码名称仅由 i18n.label 定义。Desktop 在连接建立时同步全局语言，设置切换时通过 /api/locale 更新已连接通道；普通请求与 query/attach 不携带 locale，不维护请求或 Run 级语言。见 [界面国际化](docs/80-界面基础-样式主题基础UI与国际化.md)。
+
+知识库中心 `/kbases` 由 `features/kbases` 管理，支持独立库 CRUD、后台索引状态、文档浏览和全文召回，见 [知识库中心](docs/62-页面能力-知识库中心.md)。

@@ -77,6 +77,7 @@ describe("App routing", () => {
         "/automations",
         "/registries",
         "/connectors",
+        "/kbases",
         "/connectors/:connectorId",
         "/mcp-servers",
         "/mcp-servers/:serverKey",
