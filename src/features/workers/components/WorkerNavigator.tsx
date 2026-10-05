@@ -29,7 +29,6 @@ import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import {
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
-  isMemoryEnabled,
 } from "@/shared/config/featureFlags";
 import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
@@ -106,14 +105,12 @@ const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 interface WorkerNavigatorProps {
   onOpenCommand: (type: "automation" | "agents") => void;
-  onOpenMemory: () => void;
   renderSettingsMenu: (close: () => void) => React.ReactNode;
   settingsSummary?: React.ReactNode;
 }
 
 export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   onOpenCommand,
-  onOpenMemory,
   renderSettingsMenu,
   settingsSummary,
 }) => {
@@ -124,7 +121,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const terminalAgentStatuses = useTerminalAgentStatuses();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
-  const memoryEnabled = isMemoryEnabled();
   const navigation = selectNavigationState(state);
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
   const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
@@ -602,21 +598,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     <Badge count={state.automations?.length} className={libraryPresentation.badge} />
                   </Flex>
                 </UiButton>
-                {memoryEnabled && (
-                  <UiButton
-                    size="sm"
-                    variant="ghost"
-                    onClick={onOpenMemory}
-                  >
-                    <MaterialIcon
-                      name="psychology"
-                      className="tw:text-[16px]"
-                    />
-                    <Flex gap={2} align="center">
-                      <span>{t("leftSidebar.quickActions.memory")}</span>
-                    </Flex>
-                  </UiButton>
-                )}
                 <UiButton
                   size="sm"
                   variant="ghost"

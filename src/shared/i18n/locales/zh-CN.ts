@@ -2332,7 +2332,6 @@ export const zhCNMessages = {
   "renderError.reload": "重新加载 WebClient",
   "leftSidebar.quickActions.agents": "智能体",
   "leftSidebar.quickActions.automation": "自动化",
-  "leftSidebar.quickActions.memory": "记忆",
   "voice.debug.defaultTtsText":
     "这是一条 TTS 调试语音。如果你能听到这句话，说明当前语音播放链路正常。",
   "ws.connectionFailedWithMessage": "WebSocket 连接失败：{message}",

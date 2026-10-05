@@ -2167,7 +2167,6 @@ export const enUSMessages = {
   "renderError.reload": "Reload WebClient",
   "leftSidebar.quickActions.agents": "Agents",
   "leftSidebar.quickActions.automation": "Automation",
-  "leftSidebar.quickActions.memory": "Memory",
   "voice.debug.defaultTtsText": "This is a TTS debug voice sample. If you can hear it, the current voice playback path is working.",
   "ws.connectionFailedWithMessage": "WebSocket connection failed: {message}",
   "ws.disconnected": "WebSocket disconnected. Please try again later.",

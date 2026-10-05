@@ -47,7 +47,6 @@ export const LeftSidebar: React.FC = () => {
   return (
     <WorkerNavigator
       onOpenCommand={(type) => openCommandOverlay({ type })}
-      onOpenMemory={() => handleSettingsMenuAction({ type: "open-memory-info" })}
       renderSettingsMenu={(close) => (
         <SidebarSettingsMenu
           onAction={(action) => {
