@@ -4,6 +4,7 @@ import {
   getErrorMessageFromText,
   requestWithAuth,
 } from "@/shared/data/api/http";
+import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
@@ -146,15 +147,19 @@ export class StandaloneBtwStreamClient implements Pick<PlatformFrameClient, "str
     void (async () => {
       try {
         if (options.type !== dataEndpoints.btw.path) {
-          throw new RealtimeTransportError("unsupported_request_type", "The BTW SSE client only supports /api/btw");
+          throw new RealtimeTransportError("unsupported_request_type", "The BTW SSE client only accepts BTW stream requests");
         }
         if (!options.payload || typeof options.payload !== "object" || Array.isArray(options.payload)) {
           throw new RealtimeTransportError("invalid_request", "BTW request payload must be an object");
         }
-        const response = await requestWithAuth(dataEndpoints.btw.path, {
+        // Gateway forwards query over a main-lane channel, which cannot start a side query.
+        if (isGatewayBackendMode()) {
+          throw new RealtimeTransportError("unsupported_request_type", "Gateway 暂不支持旁聊，请直连 Platform 或使用 Desktop。");
+        }
+        const response = await requestWithAuth(dataEndpoints.query.path, {
           method: "POST",
           headers: { Accept: "text/event-stream" },
-          body: JSON.stringify({ ...options.payload, stream: true }),
+          body: JSON.stringify({ ...options.payload, lane: "btw", stream: true }),
           signal: controller.signal,
           retryUnauthorized: false,
           authFailureSource: "sse",

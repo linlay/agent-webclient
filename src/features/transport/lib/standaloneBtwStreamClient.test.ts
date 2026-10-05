@@ -3,7 +3,7 @@ import type { StartBtwInput } from "@/features/transport/contracts/realtimeTrans
 import { StandaloneRealtimeTransport } from "./standaloneRealtimeTransport";
 import { StandaloneBtwStreamClient, STANDALONE_BTW_SSE_BUFFER_LIMIT } from "./standaloneBtwStreamClient";
 import { setAccessToken } from "@/shared/data/api/http";
-import { initializeGatewaySession, resetGatewaySessionForTests } from "@/shared/data/auth/gatewaySession";
+import { resetGatewaySessionForTests } from "@/shared/data/auth/gatewaySession";
 import { resetAuthCoordinatorForTests } from "@/shared/data/auth/authCoordinator";
 
 const mockEnsureWs = jest.fn();
@@ -118,10 +118,10 @@ describe("Standalone BTW HTTP/SSE transport", () => {
     expect(onEvent.mock.calls[1][0].delta).toBe("春天🌷");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/btw");
+    expect(url).toBe("/api/query");
     expect(options).toMatchObject({ method: "POST", credentials: "same-origin" });
     expect(options.headers).toMatchObject({ Accept: "text/event-stream", "Content-Type": "application/json", Authorization: "Bearer test-only-platform-token" });
-    expect(JSON.parse(String(options.body))).toMatchObject({ requestId: "request-1", chatId: "chat-1", stream: true, references: [{ type: "selection", text: "source text" }] });
+    expect(JSON.parse(String(options.body))).toMatchObject({ requestId: "request-1", chatId: "chat-1", lane: "btw", stream: true, references: [{ type: "selection", text: "source text" }] });
     expect(mockEnsureWs).not.toHaveBeenCalled();
   });
 
@@ -190,15 +190,14 @@ describe("Standalone BTW HTTP/SSE transport", () => {
     expect(mockEnsureWs).not.toHaveBeenCalled();
   });
 
-  it("uses Gateway cookies and CSRF while excluding the Platform bearer", async () => {
+  it("rejects Gateway BTW before it can be forwarded into the main conversation", async () => {
     runtime.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { BACKEND_MODE: "gateway" };
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ code: 0, data: { authenticated: true, csrfToken: "test-only-csrf", tenant: { displayName: "Test" }, auth: { mode: "local", loginUrl: "/login" } } }), { headers: { "Content-Type": "application/json" } }));
-    await initializeGatewaySession();
-    fetchMock.mockClear().mockResolvedValue(textResponse(frame(startEvent()) + "data: [DONE]\n\n").response);
-    await start(transport()).completion;
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: "same-origin", headers: { "X-CSRF-Token": "test-only-csrf", Accept: "text/event-stream" } });
-    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty("Authorization");
+    const execution = start(transport());
+    await expect(execution.completion).resolves.toMatchObject({
+      reason: "error", error: expect.objectContaining({ code: "unsupported_request_type" }),
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockEnsureWs).not.toHaveBeenCalled();
   });
 
   it("emits run.error and rejects completion even when the server has not ended the stream", async () => {
