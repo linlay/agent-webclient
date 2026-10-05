@@ -303,6 +303,24 @@ export function AutomationFormFields({
             }}
           />
         </div>
+        <div className={FULL_WIDTH_CLASS_NAME}>
+          <label htmlFor="automation-access-level-input">
+            <span>{t("automationConsole.field.accessLevel")}</span>
+            <Tooltip title={t("automationConsole.field.accessLevelTooltip")} arrow={false}>
+              <MaterialIcon name="help" />
+            </Tooltip>
+          </label>
+          <Select
+            id="automation-access-level-input"
+            value={form.accessLevel}
+            onChange={(value: AutomationFormState["accessLevel"]) => onChange({ accessLevel: value })}
+            options={[
+              { value: "default", label: t("automationConsole.accessLevel.default") },
+              { value: "auto_approve", label: t("automationConsole.accessLevel.auto_approve") },
+              { value: "full_access", label: t("automationConsole.accessLevel.full_access") },
+            ]}
+          />
+        </div>
         <div className="field-group automation-cron-field">
           <div className="automation-cron-title-row">
             <span>{t("automationConsole.field.cron")}</span>

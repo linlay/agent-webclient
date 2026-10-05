@@ -1,3 +1,5 @@
+import type { QueryAccessLevel } from "./commands";
+
 export interface AutomationListRequest {
   tag?: string;
 }
@@ -53,6 +55,7 @@ export type AutomationExecutionStatus =
   | "canceled";
 
 export interface AutomationQueryResponse {
+  accessLevel?: QueryAccessLevel;
   message: string;
   chatId?: string;
   role?: string;
@@ -108,6 +111,7 @@ export interface AutomationExecutionDetailResponse
 }
 
 export interface AutomationQueryRequest {
+  accessLevel?: QueryAccessLevel;
   message: string;
   chatId?: string;
   role?: string;

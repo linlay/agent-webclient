@@ -147,7 +147,7 @@ describe("useAutomationEditorRuntime", () => {
         name: "New report",
         cron: "0 10 * * *",
         agentKey: "agent-a",
-        query: { message: "Build a new report" },
+        query: { message: "Build a new report", accessLevel: "default" },
       }),
     );
     expect(onSaved).toHaveBeenCalledWith("new-report");

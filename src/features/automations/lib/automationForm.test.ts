@@ -1,5 +1,7 @@
 import {
   AUTOMATION_CRON_PRESETS,
+  automationFormFromDetail,
+  createInitialAutomationForm,
   automationSourcePath,
   buildCreateAutomationPayloadForSubmit,
   buildDuplicateAutomationPayload,
@@ -21,6 +23,7 @@ const form: AutomationFormState = {
   remainingRuns: "3",
   enabled: true,
   message: "Summarize status",
+  accessLevel: "auto_approve",
   chatMode: "new",
   chatId: "chat-stale",
   role: "assistant",
@@ -29,13 +32,27 @@ const form: AutomationFormState = {
 };
 
 describe("automationForm", () => {
+  it("defaults legacy tasks and preserves saved permission levels through editing", () => {
+    expect(createInitialAutomationForm(null).accessLevel).toBe("default");
+    const detail = {
+      id: "daily", name: "Daily", cron: "0 9 * * *", agentKey: "agent-a", enabled: true,
+      executionHistory: { available: true, state: "ready" as const },
+      query: { message: "Run task" },
+    };
+    expect(automationFormFromDetail(detail).accessLevel).toBe("default");
+    for (const level of ["default", "auto_approve", "full_access"] as const) {
+      const draft = automationFormFromDetail({ ...detail, query: { ...detail.query, accessLevel: level } });
+      expect(draft.accessLevel).toBe(level);
+      expect(buildUpdateAutomationPayloadForSubmit(draft).query?.accessLevel).toBe(level);
+    }
+  });
   it("builds create and update DTOs without the legacy TeamID", () => {
     expect(buildCreateAutomationPayloadForSubmit(form)).toMatchObject({
       name: "Daily demo",
       agentKey: "agent-a",
       zoneId: "Asia/Shanghai",
       remainingRuns: 3,
-      query: { message: "Summarize status", role: "assistant" },
+      query: { message: "Summarize status", role: "assistant", accessLevel: "auto_approve" },
     });
     expect(buildCreateAutomationPayloadForSubmit(form)).not.toHaveProperty(
       "teamId",
@@ -43,6 +60,7 @@ describe("automationForm", () => {
     expect(buildUpdateAutomationPayloadForSubmit(form)).toMatchObject({
       id: "daily-demo",
       description: "Run daily",
+      query: { accessLevel: "auto_approve" },
     });
   });
 
@@ -79,7 +97,7 @@ describe("automationForm", () => {
           cron: "0 18 * * 1-5",
           teamId: "team-a",
           enabled: true,
-          query: { message: "生成今天的日报", hidden: true },
+          query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" },
         },
         "团队日报 副本",
       ),
@@ -87,7 +105,7 @@ describe("automationForm", () => {
       name: "团队日报 副本",
       teamId: "team-a",
       enabled: false,
-      query: { message: "生成今天的日报", hidden: true },
+      query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" },
     });
   });
 

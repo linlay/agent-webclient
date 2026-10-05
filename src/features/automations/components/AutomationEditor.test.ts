@@ -155,6 +155,10 @@ describe("AutomationEditor", () => {
     expect(html).toContain("automation-name-input");
     expect(html).toContain("automation-message-input");
     expect(html).toContain("automation-agent-input");
+    expect(html).toContain("automation-access-level-input");
+    expect(html).toContain("运行权限");
+    expect(html).toContain("自动批准");
+    expect(html).toContain("完全访问");
     expect(html).toContain("automation-cron-control");
     expect(html).toContain("小宅");
     expect(html).toContain('data-agent-icon-type="agent"');
@@ -169,6 +173,9 @@ describe("AutomationEditor", () => {
     expect(html).toContain("Properties");
     expect(html).toContain("Agent");
     expect(html).toContain("Common presets");
+    expect(html).toContain("Run permissions");
+    expect(html).toContain("Auto approval");
+    expect(html).toContain("Full access");
     expect(html).toContain('aria-label="Create automation"');
   });
 

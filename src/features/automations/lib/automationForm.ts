@@ -5,6 +5,7 @@ import type {
   AutomationSummaryResponse,
   CreateAutomationRequest,
   UpdateAutomationRequest,
+  QueryAccessLevel,
 } from "@/shared/data";
 import { toRunOwner } from "@/shared/data/runOwner";
 
@@ -29,6 +30,7 @@ export interface AutomationFormState {
   remainingRuns: string;
   enabled: boolean;
   message: string;
+  accessLevel: QueryAccessLevel;
   chatMode: AutomationChatMode;
   chatId: string;
   role: string;
@@ -53,6 +55,7 @@ export const EMPTY_AUTOMATION_FORM: AutomationFormState = {
   remainingRuns: "",
   enabled: true,
   message: "",
+  accessLevel: "default",
   chatMode: "new",
   chatId: "",
   role: "",
@@ -137,6 +140,7 @@ export function automationFormFromDetail(
         : String(automation.remainingRuns),
     enabled: Boolean(automation.enabled),
     message: automation.query?.message || "",
+    accessLevel: automation.query?.accessLevel || "default",
     chatMode: automation.query?.chatId ? "existing" : "new",
     chatId: automation.query?.chatId || "",
     role: automation.query?.role || "",
@@ -176,6 +180,7 @@ export function buildDuplicateAutomationPayload(
     remainingRuns: automation.remainingRuns,
     query: {
       message: String(automation.query?.message || "").trim(),
+      accessLevel: automation.query?.accessLevel || "default",
       ...(automation.query?.chatId ? { chatId: automation.query.chatId } : {}),
       ...(automation.query?.role ? { role: automation.query.role } : {}),
       ...(automation.query?.params ? { params: { ...automation.query.params } } : {}),
@@ -205,7 +210,10 @@ export function isCurrentAutomationSourceRequest(
 }
 
 function buildQuery(form: AutomationFormState): AutomationQueryRequest {
-  const query: AutomationQueryRequest = { message: form.message.trim() };
+  const query: AutomationQueryRequest = {
+    message: form.message.trim(),
+    accessLevel: form.accessLevel,
+  };
   const role = form.role.trim();
   if (role) query.role = role;
   const chatId = form.chatMode === "existing" ? form.chatId.trim() : "";
