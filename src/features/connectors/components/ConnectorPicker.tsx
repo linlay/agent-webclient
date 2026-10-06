@@ -4,28 +4,27 @@ import type { InputRef } from "antd";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { ApiError, type ConnectorSummary } from "@/shared/data";
+import { ApiError, type ConnectorOption } from "@/shared/data";
 import { useConnectorPickerCatalog } from "../hooks/useConnectorPickerCatalog";
-import { filterConnectors } from "../lib/connectorCatalog";
-import { findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames } from "../lib/connectorSelection";
+import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames } from "../lib/connectorSelection";
 import { ConnectorIcon } from "./ConnectorIcon";
 import styles from "./ConnectorPicker.module.css";
 
 export interface ConnectorPickerProps {
+  agentKey: string;
   search: string;
   onSearchChange: (value: string) => void;
   selectedIds: string[];
-  presetIds?: string[];
   savingId?: string;
-  onSelectionChange: (item: ConnectorSummary, selected: boolean) => void;
+  onSelectionChange: (item: ConnectorOption, selected: boolean) => void;
   disabled?: boolean;
   selectionDisabled?: boolean;
   selectionError?: Error | null;
 }
 
-export function ConnectorPicker({ search, onSearchChange, selectedIds, presetIds = [], savingId, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
+export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds, savingId, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
   const { t } = useI18n();
-  const catalog = useConnectorPickerCatalog();
+  const catalog = useConnectorPickerCatalog(agentKey);
   const searchRef = useRef<InputRef>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
   const conflict = connectorSelectionConflictFromError(selectionError);
@@ -40,7 +39,6 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, presetIds
     reportedError.current = selectionError || null;
   }, [selectionError, selectionErrorText, messageApi]);
   const changeSelection: ConnectorPickerProps["onSelectionChange"] = (item, selected) => {
-    if (presetIds.includes(item.id)) return;
     const nextConflict = selected ? findConnectorSelectionConflict(item, selectedIds, catalog.items) : null;
     if (nextConflict) {
       void messageApi.error(t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(nextConflict, catalog.items)));
@@ -52,7 +50,7 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, presetIds
     const timer = window.setTimeout(() => searchRef.current?.focus(), 50);
     return () => window.clearTimeout(timer);
   }, []);
-  const items = filterConnectors(catalog.items, search, "all");
+  const items = filterConnectorOptions(catalog.items, search);
   const catalogErrorLabel = catalog.error instanceof ApiError && [401, 403, 404, 405].includes(catalog.error.status || 0)
     ? t(`connectors.auth.error.${catalog.error.status}`) : t("composer.addMenu.connectors.loadFailed");
 
@@ -69,14 +67,13 @@ export function ConnectorPicker({ search, onSearchChange, selectedIds, presetIds
       </div>}
       {!catalog.loading && !catalog.error && !items.length && <div className={styles.status} role="status">{t(catalog.items.length ? "composer.addMenu.empty" : "composer.addMenu.connectors.empty")}</div>}
       {items.map(item => <ConnectorPickerRow key={item.id} item={item}
-        preset={presetIds.includes(item.id)} selected={selectedIds.includes(item.id) || presetIds.includes(item.id)} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={changeSelection} />)}
+        selected={selectedIds.includes(item.id)} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={changeSelection} />)}
     </div>
   </section>;
 }
 
-function ConnectorPickerRow({ item, preset, selected, saving, disabled, selectionDisabled, onSelectionChange }: {
-  item: ConnectorSummary;
-  preset: boolean;
+function ConnectorPickerRow({ item, selected, saving, disabled, selectionDisabled, onSelectionChange }: {
+  item: ConnectorOption;
   selected: boolean;
   saving: boolean;
   disabled: boolean;
@@ -87,8 +84,7 @@ function ConnectorPickerRow({ item, preset, selected, saving, disabled, selectio
   return <div className={styles.row}>
     <ConnectorIcon item={item} size={18} className={styles.icon} />
     <span className={styles.name} title={item.description || item.name}>{item.name || item.id}</span>
-    {preset && <span className={styles.preset}>{t("composer.addMenu.connectors.preset")}</span>}
-    <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled || preset}
+    <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled}
       aria-label={t("composer.addMenu.connectors.select", { name: item.name || item.id })}
       onChange={checked => onSelectionChange(item, checked)} />
   </div>;

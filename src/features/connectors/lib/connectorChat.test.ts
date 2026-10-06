@@ -1,8 +1,8 @@
-import type { AgentConnectorsResponse, ConnectorConnection, ConnectorSummary } from "@/shared/data";
+import type { AdminAgentConnectorsResponse, ConnectorConnection, ConnectorSummary } from "@/shared/data";
 import { connectorChatUrl, prepareConnectorChat, type ConnectorChatDependencies } from "./connectorChat";
 const item: ConnectorSummary = { id: "installed-id", name: "Installed", version: "1", type: "cli", auth_mode: null, hasCli: true, hasMcp: false, hasBin: false, skills: [] };
 const connection = (changes: Partial<ConnectorConnection> = {}): ConnectorConnection => ({ connectorId: item.id, configured: true, configurationRequired: true, readiness: "ready", authentication: { connectorId: item.id, sessionId: "", status: "authorized", expiresAt: "" }, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: null, authBrowser: "system", hasCli: true, hasMcp: false }, preparation: { connectorId: item.id, status: "ready" }, ...changes });
-const state = (changes: Partial<AgentConnectorsResponse> = {}): AgentConnectorsResponse => ({ agentKey: "default", connectorIds: [], activeConnectorIds: [], reloadPending: false, ...changes });
+const state = (changes: Partial<AdminAgentConnectorsResponse> = {}): AdminAgentConnectorsResponse => ({ agentKey: "default", connectorIds: [], activeConnectorIds: [], presetConnectorIds: [], declaredConnectorIds: [], reloadPending: false, ...changes });
 let now: number;
 let deps: ConnectorChatDependencies;
 beforeEach(() => {

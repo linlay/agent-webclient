@@ -1,13 +1,13 @@
 /** @jest-environment jsdom */
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { fetchConnectorIcon, getAdminConnectors, getConnectorAuthStatus, startConnectorAuth, logoutConnectorAuth } from "@/shared/data";
+import { fetchConnectorIcon, getConnectors, getConnectorAuthStatus, startConnectorAuth, logoutConnectorAuth } from "@/shared/data";
 import type { ConnectorSummary } from "@/shared/data";
 import { ConnectorPicker } from "./ConnectorPicker";
 
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
-  getAdminConnectors: jest.fn(), getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
+  getConnectors: jest.fn(), getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
   fetchConnectorIcon: jest.fn(),
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
@@ -28,9 +28,9 @@ const connector = (id: string, name: string, mode: ConnectorSummary["auth_mode"]
 let root: Root;
 let container: HTMLDivElement;
 const onSelectionChange = jest.fn();
-function Harness({ search = "", selectionDisabled = false, initialIds = ["docs"], presetIds = [], selectionError }: { search?: string; selectionDisabled?: boolean; initialIds?: string[]; presetIds?: string[]; selectionError?: Error }) {
+function Harness({ agentKey = "zenmi", search = "", selectionDisabled = false, initialIds = ["docs"], selectionError }: { agentKey?: string; search?: string; selectionDisabled?: boolean; initialIds?: string[]; selectionError?: Error }) {
   const [selectedIds, setSelectedIds] = useState(initialIds);
-  return React.createElement(ConnectorPicker, { search, onSearchChange: jest.fn(), selectedIds, presetIds, selectionDisabled, selectionError,
+  return React.createElement(ConnectorPicker, { agentKey, search, onSearchChange: jest.fn(), selectedIds, selectionDisabled, selectionError,
     onSelectionChange: (item, selected) => { onSelectionChange(item.id, selected); setSelectedIds(ids => selected ? [...ids, item.id] : ids.filter(id => id !== item.id)); } });
 }
 const mount = async (props = {}) => { await act(async () => root.render(React.createElement(Harness, props))); };
@@ -39,7 +39,7 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.useFakeTimers();
   jest.clearAllMocks();
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("docs", "文档"), connector("login", "会议", "oauth")] } });
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("docs", "文档"), connector("login", "会议", "oauth")] } });
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -53,7 +53,7 @@ it("displays a package brand icon through the authenticated Blob loader", async 
   URL.revokeObjectURL = jest.fn();
   try {
     const iconUrl = "/api/connectors/icon?id=wecom&v=hash";
-    jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...connector("wecom", "企业微信"), iconUrl }] } });
+    jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...connector("wecom", "企业微信"), iconUrl }] } });
     jest.mocked(fetchConnectorIcon).mockResolvedValue(new Blob(["icon"], { type: "image/png" }));
     await mount();
     expect(fetchConnectorIcon).toHaveBeenCalledWith(iconUrl, { signal: expect.any(AbortSignal) });
@@ -100,10 +100,10 @@ it("only exposes mounting switches while filtering or enabling authenticated pac
 });
 
 it("reports load failure, supports retry, and distinguishes an empty catalog", async () => {
-  jest.mocked(getAdminConnectors).mockRejectedValueOnce(new Error("offline"));
+  jest.mocked(getConnectors).mockRejectedValueOnce(new Error("offline"));
   await mount();
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("composer.addMenu.connectors.loadFailed");
-  jest.mocked(getAdminConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { connectors: [] } });
+  jest.mocked(getConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { connectors: [] } });
   await act(async () => container.querySelector<HTMLButtonElement>('[role="alert"] button')!.click());
   expect(container.textContent).toContain("composer.addMenu.connectors.empty");
 });
@@ -128,7 +128,7 @@ it("keeps an already mounted connector switched on even when authorization is mi
 });
 
 it("allows mounting builtin and delegated or identity-token packages without waiting for interactive login", async () => {
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
     { ...connector("builtin.dbx", "DBX", null), builtin: true, readOnly: true },
     connector("identity", "Identity", "oneid-token"),
   ] } });
@@ -146,7 +146,7 @@ it("allows mounting builtin and delegated or identity-token packages without wai
 
 
 it("does not probe unselected catalog entries even after timers and visibility changes", async () => {
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors:
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors:
     Array.from({ length: 100 }, (_, i) => connector(`item-${i}`, `Item ${i}`, "oauth")),
   } });
   await mount({ initialIds: [] });
@@ -168,7 +168,7 @@ it("does not change account authorization when mounting is disabled", async () =
 });
 
 it("Desktop no_auth mounts and unmounts without checking or connecting",async()=>{
- jest.mocked(getAdminConnectors).mockResolvedValue({code:0,msg:"",data:{connectors:[{...connector("desktop","Desktop","no_auth"),type:"native",hasNative:true,builtin:true,readOnly:true,hasCli:false}]}});
+ jest.mocked(getConnectors).mockResolvedValue({code:0,msg:"",data:{connectors:[{...connector("desktop","Desktop","no_auth"),type:"native",hasNative:true,builtin:true,readOnly:true,hasCli:false}]}});
  await mount({initialIds:["desktop"]});
  expect(container.textContent).not.toContain("connectors.auth.checking");
  expect(container.querySelector('[role="status"]')).toBeNull();
@@ -188,7 +188,7 @@ it("Desktop no_auth mounts and unmounts without checking or connecting",async()=
 it("keeps every authentication mode compact with icons, names and switches", async () => {
   const modes: ConnectorSummary["auth_mode"][] = [null, "token", "oneid-token", "oauth", "mcp", "no_auth"];
   const items = modes.map((mode, index) => connector(`item-${index}`, `Item ${index}`, mode));
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: items } });
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: items } });
   await mount({ initialIds: items.map(item => item.id) });
   expect(container.textContent).toBe(items.map(item => item.name).join(""));
   expect(container.querySelectorAll('button[role="switch"]')).toHaveLength(items.length);
@@ -202,7 +202,7 @@ it("keeps every authentication mode compact with icons, names and switches", asy
 it.each([false, true])("reports one-sided conflicts without changing selection even when the selected item is filtered out (reverse=%s)", async reverse => {
   const first = { ...connector("custom-first", "文档连接器"), mutuallyExclusiveWith: reverse ? ["custom-second"] : [] };
   const second = { ...connector("custom-second", "网页连接器"), mutuallyExclusiveWith: reverse ? [] : ["custom-first"] };
-  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [first, second] } });
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [first, second] } });
   await mount({ initialIds: [first.id], search: "网页" });
   const toggle = container.querySelector<HTMLButtonElement>('[role="switch"]')!;
   expect(toggle.disabled).toBe(false);
@@ -236,13 +236,14 @@ it("shows server conflicts when the local catalog is stale and reports other sav
 });
 
 
-it("shows platform presets as selected and prevents removing them", async () => {
-  await mount({ initialIds: [], presetIds: ["docs"] });
-  const toggle = container.querySelector<HTMLButtonElement>('[role="switch"]')!;
-  expect(toggle.getAttribute("aria-checked")).toBe("true");
-  expect(toggle.disabled).toBe(true);
-  expect(container.textContent).toContain("composer.addMenu.connectors.preset");
-  await act(async () => toggle.click());
-  expect(onSelectionChange).not.toHaveBeenCalled();
-  expect(container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].disabled).toBe(false);
+it("loads the scoped usage catalog without exposing platform preset controls", async () => {
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ id: "docs", name: "文档", description: "查找文档" }] } });
+  await mount();
+  expect(getConnectors).toHaveBeenCalledWith("zenmi");
+  expect(container.textContent).not.toContain("composer.addMenu.connectors.preset");
+  expect(container.querySelectorAll('[role="switch"]')).toHaveLength(1);
+  await mount({ search: "查找文档" });
+  expect(container.textContent).toContain("文档");
+  await mount({ search: "Web Control" });
+  expect(container.querySelector('[role="switch"]')).toBeNull();
 });

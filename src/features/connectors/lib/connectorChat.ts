@@ -1,4 +1,4 @@
-import type { AgentConnectorsResponse, ConnectorConnection, ConnectorPreparation, ConnectorSummary } from "@/shared/data";
+import type { AdminAgentConnectorsResponse, ConnectorConnection, ConnectorPreparation, ConnectorSummary } from "@/shared/data";
 
 export class ConnectorChatError extends Error {
   constructor(public readonly reason: "configurationRequired" | "authorizationRequired" | "preparationFailed" | "preparationTimeout" | "reloadTimeout" | "invalidResponse") {
@@ -18,7 +18,7 @@ export function readConnectorConnection(value: ConnectorConnection, id: string):
   return value;
 }
 
-function readAgentConnectors(value: AgentConnectorsResponse, agentKey: string): AgentConnectorsResponse {
+function readAgentConnectors(value: AdminAgentConnectorsResponse, agentKey: string): AdminAgentConnectorsResponse {
   if (!value || value.agentKey !== agentKey || !Array.isArray(value.connectorIds) || !Array.isArray(value.activeConnectorIds) || typeof value.reloadPending !== "boolean") throw new ConnectorChatError("invalidResponse");
   return value;
 }
@@ -26,8 +26,8 @@ function readAgentConnectors(value: AgentConnectorsResponse, agentKey: string): 
 export interface ConnectorChatDependencies {
   readConnection: () => Promise<ConnectorConnection>;
   prepare: () => Promise<ConnectorPreparation>;
-  readAgent: () => Promise<AgentConnectorsResponse>;
-  mount: () => Promise<AgentConnectorsResponse>;
+  readAgent: () => Promise<AdminAgentConnectorsResponse>;
+  mount: () => Promise<AdminAgentConnectorsResponse>;
   wait: () => Promise<void>;
   assertCurrent: () => void;
   now: () => number;

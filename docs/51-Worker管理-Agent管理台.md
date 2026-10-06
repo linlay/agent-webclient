@@ -14,6 +14,10 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 
 `AgentConsole` 只编排页面状态、请求生命周期、脏状态保护和各编辑 surface；`AgentListPane` 负责筛选、选择与拖拽排序，`AgentEditor` 负责结构化表单，`AgentCapabilitiesEditor` 负责 Context/Tool/Skill，`AgentSourceEditor` 负责源码，`AgentCreateModal` 与 `useAgentImport` 负责直接创建和 ZIP 导入。表单与后端 definition 的归一化、校验和双向映射集中在 React-free 的 `lib/agentDefinition.ts`。
 
+## 平台预置连接器
+
+已有 Agent 的管理详情通过 `/api/admin/agents/connectors` 读取 presetConnectorIds，并从 `/api/admin/connectors` 解析名称、说明和图标。只读预置区显示名称、只读标签及锁标识，无开关、删除或编辑入口；切换 Agent、目录更新和页面重新可见时刷新，并忽略旧请求响应。未配置预置时隐藏该区，加载失败可重试。包详情仍在 `/connectors` 查看；两套挂载 PUT 均由后端拒绝修改预置。
+
 ## 新建与 ZIP 导入
 
 工具栏加号和空列表“创建智能体”统一打开专用新建弹窗。弹窗提供“ZIP 包导入”和“直接新增”两个页签，默认进入 ZIP 导入；直接新增确认后关闭弹窗并进入原有结构化创建表单，不改变 `/api/admin/agents/create` 契约。真正进入直接新增或提交 ZIP 前才执行现有未保存修改确认，取消后保留当前编辑状态。

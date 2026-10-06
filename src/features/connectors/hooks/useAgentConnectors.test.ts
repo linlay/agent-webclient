@@ -7,7 +7,7 @@ import { useAgentConnectors } from "./useAgentConnectors";
 jest.mock("@/shared/data", () => ({ getAgentConnectors: jest.fn(), setAgentConnector: jest.fn() }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
-const response = (key: string, ids: string[], reloadPending = false) => ({ code: 0, msg: "", data: { agentKey: key, connectorIds: ids, activeConnectorIds: reloadPending ? [] : ids, reloadPending } });
+const response = (key: string, ids: string[], reloadPending = false) => ({ code: 0, msg: "", data: { agentKey: key, connectorIds: ids, reloadPending } });
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 let runtime: ReturnType<typeof useAgentConnectors>;
 let root: Root;

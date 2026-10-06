@@ -21,8 +21,8 @@ export function AgentConnectorPicker({ agentKey, search, onSearchChange, disable
       <span>{t("composer.addMenu.connectors.configLoadFailed")}{error.message ? `：${error.message}` : ""}</span>
       {selection.loadError && <UiButton size="sm" variant="ghost" disabled={selection.loading} onClick={() => void selection.refresh()}>{t("connectors.action.retry")}</UiButton>}
     </div>}
-    {selection.data && <ConnectorPicker search={search} onSearchChange={onSearchChange}
-      selectedIds={selection.data.connectorIds} presetIds={selection.data.presetConnectorIds} savingId={selection.savingId}
+    {selection.data && <ConnectorPicker agentKey={agentKey} search={search} onSearchChange={onSearchChange}
+      selectedIds={selection.data.connectorIds} savingId={selection.savingId}
       onSelectionChange={(item, selected) => void selection.setSelected(item.id, selected)}
       selectionError={selection.saveError}
       disabled={disabled} selectionDisabled={!!selection.loadError || !!selection.savingId} />}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAgents, getAgentConnectors, getConnectorConnection, prepareConnector, setAgentConnector, type ConnectorSummary } from "@/shared/data";
+import { getAgents, getAdminAgentConnectors, getConnectorConnection, prepareConnector, setAdminAgentConnector, type ConnectorSummary } from "@/shared/data";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { firstChatAgent } from "@/features/resource-assistant/lib/resourceAssistant";
 import { connectorChatUrl, ConnectorChatError, prepareConnectorChat, waitForConnectorPoll } from "../lib/connectorChat";
@@ -58,8 +58,8 @@ export function useConnectorChat({ item, draft, dirty, confirmLeave, confirmNavi
       await prepareConnectorChat(initial.item, agentKey, {
         readConnection: async () => (await observeRequest(getConnectorConnection(current.id, signal), signal)).data,
         prepare: async () => (await observeRequest(prepareConnector(current.id, signal), signal)).data,
-        readAgent: async () => (await observeRequest(getAgentConnectors(agentKey, signal), signal)).data,
-        mount: async () => (await observeRequest(setAgentConnector({ agentKey, connectorId: current.id, enabled: true }, signal), signal)).data,
+        readAgent: async () => (await observeRequest(getAdminAgentConnectors(agentKey, signal), signal)).data,
+        mount: async () => (await observeRequest(setAdminAgentConnector({ agentKey, connectorId: current.id, enabled: true }, signal), signal)).data,
         wait: () => waitForConnectorPoll(signal), assertCurrent, now: Date.now, onPhase: setPhase,
       });
       assertCurrent();

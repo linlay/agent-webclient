@@ -39,13 +39,13 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
-“+ → 连接器”使用 `GET /api/admin/agents/connectors?agentKey=<key>` 读取源配置中的 `connectorIds`，已挂载的连接器（例如 zenmi 的已有配置）首次打开即显示开启。`activeConnectorIds` 表示当前运行定义，`reloadPending` 表示它与已保存配置仍不一致。授权状态与挂载状态独立：已挂载但未授权时保留开启的开关；关闭开关不注销部署共享账号。builtin 包只读不限制 Agent 挂载开关。
+“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，只返回 id/name 与非空 description/iconUrl/mutuallyExclusiveWith；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
-切换通过 `PUT /api/admin/agents/connectors` 提交 `{agentKey, connectorId, enabled}`，由平台修改 `agent.yml` 的 `connectorConfig.connectors` 并重载。保存期间显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
+`GET /api/agents/connectors?agentKey=<key>` 返回 `{agentKey,connectorIds,reloadPending}`；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`。开关反映已保存的源配置，reloadPending 表示完整配置与运行时仍不一致。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收版本、认证、组件、技能或 activeConnectorIds。
 
-收到 `catalog.updated(reason=agents|connectors|config)` 或页面恢复可见时刷新配置；`reloadPending` 时显示已保存、等待重载提示，并每 2 秒确认一次，生效或读取失败后停止。活跃 Run、子调用、Team 成员或 Terminal 租约导致的延后生效由 Platform 现有发布规则处理。该配置作用于 Agent 的后续运行，不进入聊天 Query 参数。
+保存期间显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
 
-输入框连接器列表每行只显示图标、名称和挂载开关，不显示配置按钮、登录操作、授权链接或认证说明，也不创建授权观察器。搜索、目录加载与重试、开关保存失败和互斥冲突提示、等待重载提示继续保留。需要账号授权、CLI 准备或 Token 凭据时进入独立连接器中心；管理台保持完整配置能力和全目录授权观察策略。挂载开关仅表示 Agent 源配置，不能推定连接器已授权或就绪。
+`/agents/:agentKey` 的只读预置区通过 `/api/admin/agents/connectors` 和 `/api/admin/connectors` 展示默认挂载，无修改入口。管理“发起对话”仍使用管理挂载接口的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
 
 ## 账号授权
 现有详情页概览中的“账号授权”区域按目录返回的 `auth_mode` 决定交互：`no_auth` 直接显示“无需配置”，不请求认证接口；`null/oauth/mcp` 查询统一状态 API；`null` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid-token` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 使用独立私有凭据弹窗，字段仅来自清单 `token_schema`；实际值不进入 connector.json、cli.json、mcp.json 或对话草稿。兼容旧服务返回的 `cli` 登录模式与 `none` 无需授权模式；当前 Platform 会将旧包中的 `cli/none` 规范化为目录中的 `null`，因此不能只检查旧字符串，也不能把 `null` 当成无需认证。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
@@ -144,11 +144,11 @@ Connection DTO 接收 configurationRequired、authentication、capabilities 和�
 
 ## Agent 连接器互斥选择
 
-目录 DTO 接收包清单的可选 `mutuallyExclusiveWith`。Composer 选择器依据完整目录和当前 Agent 已选 ID 双向判断：任意一方声明即冲突，未声明不推导，搜索过滤不影响判断，源码不保留 Desktop ID 特例。
+目录 DTO 接收包清单的可选 `mutuallyExclusiveWith`。Composer 选择器依据未经过搜索筛选的使用目录和当前 Agent 已选 ID 双向判断：任意一方声明即冲突，未声明不推导，搜索过滤不影响判断，源码不保留 Desktop ID 特例。
 
 冲突项保留可点击开关；点击时不发送保存请求，弹出中英文错误并在列表顶部显示“无法选择‘名称’：已选择与其互斥的‘冲突名称’。请先取消原选择。”原选择不变，不自动替换；取消原选择后可正常选择另一项。名称来自目录本地化值，找不到时回退 ID。
 
-服务端最终校验。`PUT /api/admin/agents/connectors` 失败中的 `data.error.code=connector_selection_conflict`、`connectorId` 和 `conflictingConnectorIds` 映射为相同提示；其他保存失败显示实际错误。HTTP 非 2xx 与 HTTP 200 业务失败都保留错误详情；失败重新读取来源，不乐观切换开关。加载错误位于列表之前。相关组件、hook 和 API 测试覆盖单向声明的两种选择顺序、搜索、取消后切换、过期目录和保存失败。
+服务端最终校验。`PUT /api/agents/connectors` 失败中的 `data.error.code=connector_selection_conflict`、`connectorId` 和 `conflictingConnectorIds` 映射为相同提示；其他保存失败显示实际错误。HTTP 非 2xx 与 HTTP 200 业务失败都保留错误详情；失败重新读取来源，不乐观切换开关。加载错误位于列表之前。相关组件、hook 和 API 测试覆盖单向声明的两种选择顺序、搜索、取消后切换、过期目录和保存失败。
 
 
 ## 私有凭据与业务对话

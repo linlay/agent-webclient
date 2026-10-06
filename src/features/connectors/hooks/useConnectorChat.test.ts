@@ -1,17 +1,17 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { getAgents, getAgentConnectors, getConnectorConnection, prepareConnector, setAgentConnector } from "@/shared/data";
+import { getAgents, getAdminAgentConnectors, getConnectorConnection, prepareConnector, setAdminAgentConnector } from "@/shared/data";
 import type { ConnectorConnection, ConnectorSummary } from "@/shared/data";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useConnectorChat } from "./useConnectorChat";
-jest.mock("@/shared/data", () => ({ getAgents: jest.fn(), getAgentConnectors: jest.fn(), getConnectorConnection: jest.fn(), prepareConnector: jest.fn(), setAgentConnector: jest.fn() }));
+jest.mock("@/shared/data", () => ({ getAgents: jest.fn(), getAdminAgentConnectors: jest.fn(), getConnectorConnection: jest.fn(), prepareConnector: jest.fn(), setAdminAgentConnector: jest.fn() }));
 jest.mock("@/shared/utils/routing", () => ({ isDesktopAppMode: jest.fn() }));
 const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({ useNavigate: () => mockNavigate }));
 const item: ConnectorSummary = { id: "installed-one", name: "Installed", version: "1", type: "mcp", auth_mode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [], builtin: true, readOnly: true };
 const connection: ConnectorConnection = { connectorId: item.id, configured: true, configurationRequired: true, readiness: "ready", authentication: { connectorId: item.id, sessionId: "", status: "authorized", expiresAt: "" }, capabilities: { canConnect: false, canDisconnect: true, canCheck: true, authMode: "token", authBrowser: "system", hasCli: false, hasMcp: true } };
-const state = { agentKey: "default", connectorIds: [item.id], activeConnectorIds: [item.id], reloadPending: false };
+const state = { agentKey: "default", connectorIds: [item.id], activeConnectorIds: [item.id], presetConnectorIds: [], declaredConnectorIds: [item.id], reloadPending: false };
 let root: Root;
 let actions: ReturnType<typeof useConnectorChat>;
 const assign = jest.fn(); const confirmLeave = jest.fn(); const configure = jest.fn();
@@ -26,8 +26,8 @@ beforeEach(() => {
   Object.defineProperty(window, "location", { configurable: true, value: { href: "https://example.test/connectors/installed-one?chatDefaultAgentKey=default", assign } });
   jest.mocked(isDesktopAppMode).mockReturnValue(true);
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: connection });
-  jest.mocked(getAgentConnectors).mockResolvedValue({ code: 0, msg: "", data: state });
-  jest.mocked(setAgentConnector).mockResolvedValue({ code: 0, msg: "", data: state });
+  jest.mocked(getAdminAgentConnectors).mockResolvedValue({ code: 0, msg: "", data: state });
+  jest.mocked(setAdminAgentConnector).mockResolvedValue({ code: 0, msg: "", data: state });
   root = createRoot(document.createElement("div")); confirmLeave.mockReturnValue(false);
 });
 afterEach(async () => { await act(async () => root.unmount()); jest.useRealTimers(); Object.defineProperty(window, "location", { configurable: true, value: originalLocation }); });
@@ -37,13 +37,13 @@ it("uses the host default for ready builtin/readOnly connectors and hands off a 
   const target = new URL(assign.mock.calls[0][0], "https://example.test");
   expect(target.pathname).toBe("/agent/default"); expect(target.searchParams.get("composerDraft")).toBe("");
   expect(target.searchParams.has("composerDraft")).toBe(true); expect(target.searchParams.has("composerSkill")).toBe(false);
-  expect(setAgentConnector).not.toHaveBeenCalled();
+  expect(setAdminAgentConnector).not.toHaveBeenCalled();
 });
 it("requires confirmed configuration before any Agent mount", async () => {
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: { ...connection, configured: false, readiness: "configuration_required" } });
   await mount(); await act(async () => actions.open("Synthetic example"));
   expect(actions.error).toBe("connectors.chat.configurationRequired"); expect(configure).toHaveBeenCalledTimes(1);
-  expect(setAgentConnector).not.toHaveBeenCalled(); expect(assign).not.toHaveBeenCalled();
+  expect(setAdminAgentConnector).not.toHaveBeenCalled(); expect(assign).not.toHaveBeenCalled();
 });
 it("protects a dirty definition without starting preparation or navigation", async () => {
   await mount({ dirty: true, draft: "unsaved" }); await act(async () => actions.open());
@@ -56,10 +56,10 @@ it("ignores late read results after switching installed connector IDs", async ()
   const signal = jest.mocked(getConnectorConnection).mock.calls[0][1]!;
   await mount({ connector: { ...item, id: "installed-two" } }); expect(signal.aborted).toBe(true);
   await act(async () => { read.resolve({ data: connection }); await result; });
-  expect(getAgentConnectors).not.toHaveBeenCalled(); expect(assign).not.toHaveBeenCalled();
+  expect(getAdminAgentConnectors).not.toHaveBeenCalled(); expect(assign).not.toHaveBeenCalled();
 });
 it("keeps changes made during runtime publication instead of navigating away", async () => {
-  const read = deferred<any>(); jest.mocked(getAgentConnectors).mockReturnValueOnce(read.promise);
+  const read = deferred<any>(); jest.mocked(getAdminAgentConnectors).mockReturnValueOnce(read.promise);
   await mount(); let result!: Promise<void>;
   await act(async () => { result = actions.open(); });
   await mount({ dirty: true, draft: "new unsaved change" });
@@ -69,13 +69,13 @@ it("keeps changes made during runtime publication instead of navigating away", a
 it("uses Standalone's first ordinary Agent and waits for an active mount", async () => {
   jest.mocked(isDesktopAppMode).mockReturnValue(false);
   jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "team", kind: "team" }, { key: "default", mode: "AGENT" }] } as any);
-  jest.mocked(getAgentConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, connectorIds: [], activeConnectorIds: [] } });
-  jest.mocked(setAgentConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, activeConnectorIds: [], reloadPending: true } });
+  jest.mocked(getAdminAgentConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, connectorIds: [], activeConnectorIds: [] } });
+  jest.mocked(setAdminAgentConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, activeConnectorIds: [], presetConnectorIds: [], declaredConnectorIds: [], reloadPending: true } });
   await mount(); let result!: Promise<void>;
   await act(async () => { result = actions.open("Synthetic example"); });
   expect(assign).not.toHaveBeenCalled();
   await act(async () => { jest.advanceTimersByTime(2_000); await result; });
-  expect(setAgentConnector).toHaveBeenCalledWith({ agentKey: "default", connectorId: item.id, enabled: true }, expect.any(AbortSignal));
+  expect(setAdminAgentConnector).toHaveBeenCalledWith({ agentKey: "default", connectorId: item.id, enabled: true }, expect.any(AbortSignal));
   expect(assign).not.toHaveBeenCalled(); expect(mockNavigate).toHaveBeenCalledTimes(1);
   expect(new URL(mockNavigate.mock.calls[0][0], "https://example.test").searchParams.get("composerDraft")).toBe("Synthetic example");
 });
@@ -94,7 +94,7 @@ it("joins a shared preparation job and stops only its observer when canceled", a
   expect(actions.phase).toBe("preparing"); expect(prepareConnector).not.toHaveBeenCalled();
   await act(async () => { actions.cancel(); await result; });
   expect(shared.preparation.status).toBe("preparing");
-  expect(getAgentConnectors).not.toHaveBeenCalled(); expect(assign).not.toHaveBeenCalled(); expect(actions.error).toBe("");
+  expect(getAdminAgentConnectors).not.toHaveBeenCalled(); expect(assign).not.toHaveBeenCalled(); expect(actions.error).toBe("");
 });
 
 it("does not let a canceled same-ID operation's late error contaminate a new attempt", async () => {
@@ -113,5 +113,5 @@ it("bounds even an unresponsive state read and distinguishes timeout from user c
   await act(async () => { result = actions.open(); });
   await act(async () => { jest.advanceTimersByTime(150_000); await result; });
   expect(actions.error).toBe("connectors.chat.openTimeout"); expect(actions.opening).toBe(false);
-  expect(assign).not.toHaveBeenCalled(); expect(getAgentConnectors).not.toHaveBeenCalled();
+  expect(assign).not.toHaveBeenCalled(); expect(getAdminAgentConnectors).not.toHaveBeenCalled();
 });

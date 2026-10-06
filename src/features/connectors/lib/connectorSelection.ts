@@ -1,4 +1,4 @@
-import type { ConnectorSummary } from "@/shared/data";
+import type { ConnectorOption } from "@/shared/data";
 
 export interface ConnectorSelectionConflict {
   connectorId: string;
@@ -6,7 +6,7 @@ export interface ConnectorSelectionConflict {
 }
 
 // Either package may declare the relationship; search filters never narrow it.
-export function findConnectorSelectionConflict(item: ConnectorSummary, selectedIds: string[], catalog: ConnectorSummary[]): ConnectorSelectionConflict | null {
+export function findConnectorSelectionConflict(item: ConnectorOption, selectedIds: string[], catalog: ConnectorOption[]): ConnectorSelectionConflict | null {
   const conflictingConnectorIds = selectedIds.filter(id => id !== item.id && (
     item.mutuallyExclusiveWith?.includes(id)
     || catalog.find(other => other.id === id)?.mutuallyExclusiveWith?.includes(item.id)
@@ -26,7 +26,12 @@ export function connectorSelectionConflictFromError(cause: unknown): ConnectorSe
   return { connectorId: details.connectorId, conflictingConnectorIds: details.conflictingConnectorIds };
 }
 
-export function connectorSelectionConflictNames(conflict: ConnectorSelectionConflict, catalog: ConnectorSummary[]) {
+export function connectorSelectionConflictNames(conflict: ConnectorSelectionConflict, catalog: ConnectorOption[]) {
   const name = (id: string) => catalog.find(item => item.id === id)?.name || id;
   return { name: name(conflict.connectorId), conflicts: conflict.conflictingConnectorIds.map(name).join(", ") };
+}
+
+export function filterConnectorOptions(items: ConnectorOption[], search: string): ConnectorOption[] {
+  const needle = search.trim().toLowerCase();
+  return items.filter(item => [item.id, item.name, item.description].filter(Boolean).join(" ").toLowerCase().includes(needle));
 }

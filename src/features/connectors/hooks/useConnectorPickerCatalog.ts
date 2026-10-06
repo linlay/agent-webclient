@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAdminConnectors, type ConnectorSummary } from "@/shared/data";
+import { getConnectors, type ConnectorOption } from "@/shared/data";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { isConnectorCatalogUpdate } from "../lib/connectorCatalog";
 
 // The composer only needs the package catalog, not the management console's tool inventory.
-export function useConnectorPickerCatalog() {
+export function useConnectorPickerCatalog(agentKey: string) {
   const push = usePushTransport();
-  const [items, setItems] = useState<ConnectorSummary[]>([]);
+  const [items, setItems] = useState<ConnectorOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const generation = useRef(0);
@@ -14,7 +14,7 @@ export function useConnectorPickerCatalog() {
     const request = ++generation.current;
     setLoading(true);
     try {
-      const response = await getAdminConnectors();
+      const response = await getConnectors(agentKey);
       if (request !== generation.current) return;
       setItems(response.data.connectors || []);
       setError(null);
@@ -23,12 +23,15 @@ export function useConnectorPickerCatalog() {
     } finally {
       if (request === generation.current) setLoading(false);
     }
-  }, []);
+  }, [agentKey]);
 
   useEffect(() => {
+    setItems([]);
+    setError(null);
     void refresh();
     const unsubscribe = push.subscribe({ types: ["catalog.updated"] }, frame => {
-      if (isConnectorCatalogUpdate(frame)) void refresh();
+      const value = frame as { data?: { reason?: string } };
+      if (isConnectorCatalogUpdate(frame) || value.data?.reason === "agents") void refresh();
     });
     const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
     document.addEventListener("visibilitychange", onVisible);

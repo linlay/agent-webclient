@@ -7,7 +7,7 @@ import type {
   ConnectorSkillListResponse, ConnectorSkillDetail,
   ConnectorAuthSession, ConnectorAuthActionResult, ConnectorConnection,
   ConnectorPreparation,
-  AgentConnectorsResponse, SetAgentConnectorRequest,
+  AgentConnectorsResponse, AdminAgentConnectorsResponse, SetAgentConnectorRequest, ConnectorOptionsResponse,
 } from "@/shared/data/api/dto/connectors";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
 import { requestJson } from "@/shared/data/api/http";
@@ -18,11 +18,26 @@ export function getAdminConnectors(): Promise<ApiResponse<ConnectorListResponse>
 }
 
 export function getAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
-  const endpoint = dataEndpoints.adminAgentConnectors;
+  const endpoint = dataEndpoints.agentConnectors;
   return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
 }
 
 export function setAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
+  const endpoint = dataEndpoints.agentConnectorUpdate;
+  return requestJson(endpoint.path, { method: endpoint.method, body: JSON.stringify(params), cache: "no-store", ...(signal ? { signal } : {}) });
+}
+
+export function getConnectors(agentKey = "", signal?: AbortSignal): Promise<ApiResponse<ConnectorOptionsResponse>> {
+  const endpoint = dataEndpoints.connectors;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
+}
+
+export function getAdminAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {
+  const endpoint = dataEndpoints.adminAgentConnectors;
+  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
+}
+
+export function setAdminAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {
   const endpoint = dataEndpoints.adminAgentConnectorUpdate;
   return requestJson(endpoint.path, { method: endpoint.method, body: JSON.stringify(params), cache: "no-store", ...(signal ? { signal } : {}) });
 }

@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { TextDecoder, TextEncoder } from "util";
-import { getAdminConnectors, getAdminTools, getAgents, getAgentConnectors, getConnectorConnection, getConnectorDefinition, prepareConnector, setAgentConnector } from "@/shared/data";
+import { getAdminConnectors, getAdminTools, getAgents, getAdminAgentConnectors, getConnectorConnection, getConnectorDefinition, prepareConnector, setAdminAgentConnector } from "@/shared/data";
 import type { ConnectorConnection, ConnectorSummary } from "@/shared/data";
 Object.assign(globalThis, { TextDecoder, TextEncoder });
 if (typeof globalThis.Request === "undefined") {
@@ -20,14 +20,14 @@ if (typeof globalThis.Request === "undefined") {
 const { createMemoryRouter, RouterProvider, useNavigate, useParams } = require("react-router-dom") as typeof import("react-router-dom");
 const { useConnectorsRuntime } = require("./useConnectorsRuntime") as typeof import("./useConnectorsRuntime");
 const { useConnectorChat } = require("./useConnectorChat") as typeof import("./useConnectorChat");
-jest.mock("@/shared/data", () => ({ getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getAgents: jest.fn(), getAgentConnectors: jest.fn(), getConnectorConnection: jest.fn(), getConnectorDefinition: jest.fn(), prepareConnector: jest.fn(), setAgentConnector: jest.fn() }));
+jest.mock("@/shared/data", () => ({ getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getAgents: jest.fn(), getAdminAgentConnectors: jest.fn(), getConnectorConnection: jest.fn(), getConnectorDefinition: jest.fn(), prepareConnector: jest.fn(), setAdminAgentConnector: jest.fn() }));
 jest.mock("@/shared/utils/routing", () => ({ isDesktopAppMode: () => false }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
 const item: ConnectorSummary = { id: "demo", name: "Installed", version: "1", type: "mcp", auth_mode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [] };
 const connection: ConnectorConnection = { connectorId: item.id, configured: true, configurationRequired: true, readiness: "ready", authentication: { connectorId: item.id, sessionId: "", status: "authorized", expiresAt: "" }, capabilities: { canConnect: false, canDisconnect: true, canCheck: true, authMode: "token", authBrowser: "system", hasCli: false, hasMcp: true } };
-const sourceState = { agentKey: "default", connectorIds: [], activeConnectorIds: [], reloadPending: false };
+const sourceState = { agentKey: "default", connectorIds: [], activeConnectorIds: [], presetConnectorIds: [], declaredConnectorIds: [], reloadPending: false };
 const activeState = { ...sourceState, connectorIds: [item.id], activeConnectorIds: [item.id] };
 let runtime: ReturnType<typeof useConnectorsRuntime>;
 let chat: ReturnType<typeof useConnectorChat>;
@@ -52,8 +52,8 @@ beforeEach(async () => {
   jest.mocked(getConnectorDefinition).mockImplementation(async target => ({ code: 0, msg: "", data: { ...target, content: '{"name":"Installed"}', sha256: "loaded-hash" } }));
   jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "default", mode: "AGENT" }] } as any);
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: connection });
-  jest.mocked(getAgentConnectors).mockResolvedValue({ code: 0, msg: "", data: sourceState });
-  jest.mocked(setAgentConnector).mockResolvedValue({ code: 0, msg: "", data: activeState });
+  jest.mocked(getAdminAgentConnectors).mockResolvedValue({ code: 0, msg: "", data: sourceState });
+  jest.mocked(setAdminAgentConnector).mockResolvedValue({ code: 0, msg: "", data: activeState });
   jest.spyOn(window, "confirm").mockReturnValue(true);
   router = createMemoryRouter([{ path: "/connectors/:id", element: React.createElement(Harness) }, { path: "/agent/:key", element: React.createElement("div", null, "business chat") }], { initialEntries: ["/connectors/demo"] });
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
@@ -67,17 +67,17 @@ it("asks once before preparation and passes the actual Standalone blocker withou
   expect(router.state.location.pathname).toBe("/agent/default");
   expect(new URLSearchParams(router.state.location.search).get("composerDraft")).toBe("Synthetic connector example");
   expect(runtime.draft).toBe(edited); expect(runtime.dirty).toBe(true);
-  expect(setAgentConnector).toHaveBeenCalledTimes(1);
+  expect(setAdminAgentConnector).toHaveBeenCalledTimes(1);
 });
 it("does not prepare or mount when the initial discard confirmation is declined", async () => {
   jest.mocked(window.confirm).mockReturnValue(false);
   await act(async () => chat.open());
   expect(window.confirm).toHaveBeenCalledTimes(1); expect(getConnectorConnection).not.toHaveBeenCalled();
-  expect(prepareConnector).not.toHaveBeenCalled(); expect(setAgentConnector).not.toHaveBeenCalled();
+  expect(prepareConnector).not.toHaveBeenCalled(); expect(setAdminAgentConnector).not.toHaveBeenCalled();
   expect(router.state.location.pathname).toBe("/connectors/demo"); expect(runtime.dirty).toBe(true); expect(runtime.draft).toBe(edited);
 });
 it("invalidates old approval after edits even when the draft is restored to the same text", async () => {
-  const pending = deferred<any>(); jest.mocked(getAgentConnectors).mockReturnValueOnce(pending.promise);
+  const pending = deferred<any>(); jest.mocked(getAdminAgentConnectors).mockReturnValueOnce(pending.promise);
   let result!: Promise<void>;
   await act(async () => { result = chat.open(); });
   await act(async () => runtime.updateDraft('{"name":"Changed after confirmation"}'));
@@ -92,7 +92,7 @@ it("invalidates old approval after edits even when the draft is restored to the 
 it("retains the normal dirty blocker after a failed operation", async () => {
   jest.mocked(getConnectorConnection).mockRejectedValueOnce(new Error("offline"));
   await act(async () => chat.open());
-  expect(window.confirm).toHaveBeenCalledTimes(1); expect(setAgentConnector).not.toHaveBeenCalled();
+  expect(window.confirm).toHaveBeenCalledTimes(1); expect(setAdminAgentConnector).not.toHaveBeenCalled();
   expect(runtime.dirty).toBe(true); expect(runtime.draft).toBe(edited);
   jest.mocked(window.confirm).mockReturnValue(false);
   await act(async () => router.navigate("/agent/default?newChat=1790000000000&composerDraft="));
@@ -106,7 +106,7 @@ it("preserves a dirty component definition on configuration-required failure wit
   jest.mocked(window.confirm).mockClear();
   jest.mocked(getConnectorConnection).mockResolvedValueOnce({ code: 0, msg: "", data: { ...connection, configured: false, readiness: "configuration_required" } });
   await act(async () => chat.open());
-  expect(window.confirm).toHaveBeenCalledTimes(1); expect(setAgentConnector).not.toHaveBeenCalled();
+  expect(window.confirm).toHaveBeenCalledTimes(1); expect(setAdminAgentConnector).not.toHaveBeenCalled();
   expect(runtime.file).toBe("mcp.json"); expect(runtime.dirty).toBe(true); expect(runtime.draft).toBe(edited);
   expect(router.state.location.pathname).toBe("/connectors/demo");
 });

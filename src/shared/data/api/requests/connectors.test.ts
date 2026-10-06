@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
-import { getAgentConnectors, setAgentConnector } from "./connectors";
+import { getConnectors, getAgentConnectors, setAgentConnector, getAdminAgentConnectors, setAdminAgentConnector } from "./connectors";
 import { prepareConnector, saveConnectorCredentials } from "./connectors";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
@@ -21,8 +21,8 @@ it("reads configured Agent connectors without caching and sends only the single 
   await getAgentConnectors("zenmi & other");
   const input = { agentKey: "zenmi", connectorId: "docs", enabled: false };
   await setAgentConnector(input);
-  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store" });
-  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/agents/connectors", { method: "PUT", cache: "no-store", body: JSON.stringify(input) });
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store" });
+  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/agents/connectors", { method: "PUT", cache: "no-store", body: JSON.stringify(input) });
 });
 
 it("uses installed connector APIs with file identity and a required base hash", async () => {
@@ -33,6 +33,23 @@ it("uses installed connector APIs with file identity and a required base hash", 
   expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/connectors");
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/detail?id=builtin.dbx&file=cli.json");
   expect(requestJson).toHaveBeenNthCalledWith(3, "/api/admin/connectors/detail", { method: "PUT", body: JSON.stringify(input) });
+});
+
+it("loads the minimal usage catalog with an encoded Agent scope and forwards cancellation", async () => {
+  const controller = new AbortController();
+  await getConnectors("zenmi & other", controller.signal);
+  await getConnectors();
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/connectors?agentKey=zenmi+%26+other", { cache: "no-store", signal: controller.signal });
+  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/connectors", { cache: "no-store" });
+});
+
+it("keeps complete Agent mount reads and writes on independent management endpoints", async () => {
+  const controller = new AbortController();
+  const input = { agentKey: "zenmi", connectorId: "docs", enabled: true };
+  await getAdminAgentConnectors("zenmi & other", controller.signal);
+  await setAdminAgentConnector(input, controller.signal);
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store", signal: controller.signal });
+  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/agents/connectors", { method: "PUT", body: JSON.stringify(input), cache: "no-store", signal: controller.signal });
 });
 
 it("uploads exactly one ZIP without forcing a JSON content type and only adds overwrite when requested", async () => {

@@ -43,6 +43,19 @@ export interface ConnectorListResponse {
   connectors: ConnectorSummary[];
 }
 
+/** Composer catalog: only fields needed for display, search and selection. */
+export interface ConnectorOption {
+  id: string;
+  name: string;
+  description?: string;
+  iconUrl?: string;
+  mutuallyExclusiveWith?: string[];
+}
+
+export interface ConnectorOptionsResponse {
+  connectors: ConnectorOption[];
+}
+
 /** Public manifest metadata; credential values are never returned by Platform. */
 export interface ConnectorTokenField {
   key: string;
@@ -141,10 +154,13 @@ export interface ConnectorAuthActionResult {
 export interface AgentConnectorsResponse {
   agentKey: string;
   connectorIds: string[];
-  presetConnectorIds?: string[];
-  declaredConnectorIds?: string[];
-  activeConnectorIds: string[];
   reloadPending: boolean;
+}
+
+export interface AdminAgentConnectorsResponse extends AgentConnectorsResponse {
+  presetConnectorIds: string[];
+  declaredConnectorIds: string[];
+  activeConnectorIds: string[];
 }
 
 export interface SetAgentConnectorRequest {

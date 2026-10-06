@@ -57,6 +57,7 @@ import {
 import { AgentListPane } from "@/features/agents/components/AgentListPane";
 import { AgentSourceEditor } from "@/features/agents/components/AgentSourceEditor";
 import { useAgentConsoleRuntime } from "@/features/agents/hooks/useAgentConsoleRuntime";
+import { AgentPresetConnectors } from "@/features/connectors/components/AgentPresetConnectors";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import {
   agentImportSuccessMessageKey,
@@ -1493,6 +1494,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
             )}
 
+            {formMode === "edit" && form.key && <AgentPresetConnectors key={form.key} agentKey={form.key} />}
             {editorMode === "source" ? (
               sourceLoadedKey === form.key ? (
                 <AgentSourceEditor
