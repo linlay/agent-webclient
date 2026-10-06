@@ -122,17 +122,15 @@ describe("projectCreation", () => {
         runtimeConfig: { workspaceRoot: "/project" },
         modelConfig: { modelKey: "other-model" },
       },
-      capabilityGroups: [],
     });
     expect(resolveProjectCreationModel(options, { ...selection, modelKey: "ghost" })).toBe("");
   });
 
-  it("sends groups for native types and only the bridge for the external engine", () => {
+  it("sends concrete definitions for native types and only the bridge for the external engine", () => {
     const options = creationOptions();
     const general = initialProjectCreationSelection(options);
     expect(buildProjectCreateRequest(options, general, "/project")).toEqual({
       definition: { mode: "GENERAL", runtimeConfig: { workspaceRoot: "/project" } },
-      capabilityGroups: ["office", "web-data"],
     });
     expect(projectCreationProblem(options, general, "  ")).toBe("directoryRequired");
 
@@ -144,7 +142,6 @@ describe("projectCreation", () => {
         engine: "acp",
         runtimeConfig: { workspaceRoot: "/project", acpBridgeId: "codex" },
       },
-      capabilityGroups: [],
     });
     expect(projectCreationProblem(options, { ...acp, acpBridgeId: "" }, "/project")).toBe(
       "acpBridgeRequired",

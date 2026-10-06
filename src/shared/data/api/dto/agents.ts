@@ -155,17 +155,11 @@ export interface CreateAgentRequest {
   definition: Record<string, unknown>;
   soulPrompt?: string;
   agentsPrompt?: string;
-  /**
-   * Capability group keys. Present (even when empty) asks Agent Platform to
-   * create a project agent from its creation template; absent keeps the
-   * definition exactly as sent.
-   */
-  capabilityGroups?: string[];
 }
 
 export type AgentCreationTypeKey = "general" | "coder" | "kbase" | "acp";
 
-/** GET /api/admin/agents/creation-options */
+/** Client creation type, enriched with profile defaults. */
 export interface AgentCreationTypeOption {
   key: AgentCreationTypeKey;
   label: string;
@@ -199,6 +193,11 @@ export interface AgentCreationGroupOption {
   connectors: AgentCreationMember[];
   available: boolean;
   unavailableReason?: string;
+}
+
+export interface AgentCreationDefaultsResponse {
+  types: Array<Omit<AgentCreationTypeOption, "supportsGroups" | "groupsUnsupportedReason" | "defaultGroups">>;
+  models: Array<{ key: string; name?: string }>;
 }
 
 export interface AgentCreationOptionsResponse {

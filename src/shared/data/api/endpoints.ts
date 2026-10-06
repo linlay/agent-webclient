@@ -280,9 +280,9 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     cache: { ttlMs: 60_000, dedupe: true },
   }),
-  adminAgentCreationOptions: defineEndpoint({
-    key: "admin.agents.creationOptions",
-    path: "/api/admin/agents/creation-options",
+  adminAgentCreationDefaults: defineEndpoint({
+    key: "admin.agents.creationDefaults",
+    path: "/api/admin/agents/creation-defaults",
     method: "GET",
     transport: "http",
   }),

@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { getAdminAgentCreationOptions, listHostDirectories } from "@/shared/data";
+import { loadAgentCreationOptions, listHostDirectories } from "@/shared/data";
 import {
   useAgentProjectCreate,
   type AgentProjectCreateRuntime,
@@ -10,7 +10,7 @@ import {
 jest.mock("@/shared/data", () => ({
   ...jest.requireActual("@/shared/data"),
   createAgent: jest.fn(),
-  getAdminAgentCreationOptions: jest.fn(),
+  loadAgentCreationOptions: jest.fn(),
   listHostDirectories: jest.fn(),
 }));
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -29,8 +29,8 @@ describe("useAgentProjectCreate host directory browser", () => {
 
   beforeEach(async () => {
     requests = [];
-    jest.mocked(getAdminAgentCreationOptions).mockResolvedValue({
-      data: { types: [], groups: [], models: [] },
+    jest.mocked(loadAgentCreationOptions).mockResolvedValue({
+      types: [], groups: [], models: [],
     } as any);
     jest.mocked(listHostDirectories).mockImplementation((path = "") =>
       new Promise((resolve, reject) => {

@@ -16,7 +16,7 @@ import type {
   DeleteAgentResponse,
   OpenAgentDirectoryRequest,
   OpenAgentDirectoryResponse,
-  AgentCreationOptionsResponse,
+  AgentCreationDefaultsResponse,
   AgentEditorOptionsResponse,
   HostDirectoryListResponse,
 } from "@/shared/data/api/dto/agents";
@@ -163,11 +163,10 @@ export function getAdminAgentEditorOptions(): Promise<ApiResponse<AgentEditorOpt
   return requestJson<AgentEditorOptionsResponse>(dataEndpoints.adminAgentEditorOptions.path);
 }
 
-// Skills and connectors can change at any time, so creation options are never
-// served from a cache.
-export function getAdminAgentCreationOptions(): Promise<ApiResponse<AgentCreationOptionsResponse>> {
-  return requestJson<AgentCreationOptionsResponse>(
-    dataEndpoints.adminAgentCreationOptions.path,
+// Runtime model and engine defaults are read fresh for each creation dialog.
+export function getAdminAgentCreationDefaults(): Promise<ApiResponse<AgentCreationDefaultsResponse>> {
+  return requestJson<AgentCreationDefaultsResponse>(
+    dataEndpoints.adminAgentCreationDefaults.path,
     { cache: "no-store" },
   );
 }

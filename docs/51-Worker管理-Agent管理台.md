@@ -68,3 +68,5 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 ## 对话辅助入口
 
 手工创建、编辑、保存与对话方式并存。独立的「通过对话创建／修改」入口使用默认 Chat 智能体，预选 `platform-admin` 并填写草稿，不自动发送。保留原有表单、源码编辑、ZIP 导入及只读边界；连接器手工新增沿用 ZIP 导入。详见[资源对话创建与修改](01-应用基础-应用入口路由与布局壳层.md#资源对话创建与修改)。
+
+项目创建由客户端把选中功能展开为具体 definition JSON，Platform 仅提供 creation-defaults 与普通资源目录并负责创建校验。Standalone 从 public/agent-creation.json 分发品牌配置；Desktop 内嵌入口通过宿主桥复用环境配置，不回退到 standalone 分组。

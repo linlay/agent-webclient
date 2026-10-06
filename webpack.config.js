@@ -226,6 +226,7 @@ module.exports = (env, argv) => {
           'python', 'shell', 'html', 'css', 'xml', 'sql', 'ini',
         ],
       }),
+      new PublicAssetPlugin({ from: "public/agent-creation.json", to: "agent-creation.json" }),
       new PublicAssetPlugin({
         from: 'public/default-skill.png',
         to: 'default-skill.png',

@@ -11,7 +11,7 @@ import {
 } from "@/features/agents/lib/projectCreation";
 import {
   createAgent,
-  getAdminAgentCreationOptions,
+  loadAgentCreationOptions,
   listHostDirectories,
   type AgentCreationOptionsResponse,
   type AgentCreationTypeKey,
@@ -62,10 +62,10 @@ export function useAgentProjectCreate(options: {
     setOptionsLoading(true);
     setOptionsError("");
     try {
-      const response = await getAdminAgentCreationOptions();
+      const response = await loadAgentCreationOptions();
       if (seq !== loadSeq.current) return;
-      setCreationOptions(response.data);
-      setSelection(initialProjectCreationSelection(response.data));
+      setCreationOptions(response);
+      setSelection(initialProjectCreationSelection(response));
     } catch (loadError) {
       if (seq !== loadSeq.current) return;
       setCreationOptions(null);

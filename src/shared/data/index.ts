@@ -52,7 +52,7 @@ export * from "@/shared/data/api/requests/documentPreview";
 export {
   deleteAdminAgentPrivateSkill,
   getAdminAgentDetail,
-  getAdminAgentCreationOptions,
+  getAdminAgentCreationDefaults,
   getAdminAgentEditorOptions,
   getAdminAgents,
   importAdminAgent,
@@ -88,3 +88,5 @@ export * from "@/shared/data/api/routedClient";
 export { putAgentSkillPin, getConnectorOrder, putConnectorOrder } from "@/shared/data/api/routedClient";
 
 export * from "@/shared/data/api/requests/memory";
+
+export { loadAgentCreationOptions } from "./api/requests/creation";

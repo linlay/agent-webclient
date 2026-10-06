@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "types": {
+    "general": {
+      "defaultGroups": [
+        "local-office",
+        "online-office"
+      ]
+    },
+    "coder": {
+      "defaultGroups": [
+        "programming"
+      ]
+    },
+    "kbase": {
+      "defaultGroups": []
+    }
+  },
+  "groups": [
+    {
+      "key": "local-office",
+      "name": {
+        "zh-CN": "本地办公",
+        "en-US": "Local Office"
+      },
+      "skills": [
+        "local-docx",
+        "local-pptx",
+        "local-xlsx",
+        "local-pdf",
+        "format-conversion"
+      ]
+    },
+    {
+      "key": "online-office",
+      "name": {
+        "zh-CN": "在线办公",
+        "en-US": "Online Office"
+      },
+      "skills": [
+        "online-docx",
+        "online-pptx",
+        "online-xlsx"
+      ],
+      "connectors": [
+        "builtin.httpx"
+      ]
+    },
+    {
+      "key": "programming",
+      "name": {
+        "zh-CN": "编程",
+        "en-US": "Programming"
+      },
+      "connectors": [
+        "builtin.httpx",
+        "builtin.dbx"
+      ]
+    },
+    {
+      "key": "app-skills",
+      "name": {
+        "zh-CN": "应用与技能",
+        "en-US": "Apps and Skills"
+      },
+      "skills": [
+        "webapp-creator",
+        "skill-creator"
+      ],
+      "connectors": [
+        "builtin.platform-control"
+      ]
+    },
+    {
+      "key": "platform-control",
+      "name": {
+        "zh-CN": "平台控制",
+        "en-US": "Platform Control"
+      },
+      "connectors": [
+        "builtin.platform-control"
+      ],
+      "skills": [
+        "platform-admin"
+      ]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { selectedCreationDefinition } from "@/shared/creation/creation-profile";
 import type {
   AgentCreationGroupOption,
   AgentCreationOptionsResponse,
@@ -160,8 +161,9 @@ export function buildProjectCreateRequest(
     definition.engine = "acp";
     runtimeConfig.acpBridgeId = selection.acpBridgeId;
     definition.runtimeConfig = runtimeConfig;
-    return { definition, capabilityGroups: [] };
+    return { definition };
   }
+  Object.assign(definition, selectedCreationDefinition(options, selection.typeKey, selection.groups));
   definition.mode = type?.mode ?? selection.typeKey.toUpperCase();
   definition.runtimeConfig = runtimeConfig;
   // Only a model that differs from the type default is sent; otherwise Agent
@@ -172,6 +174,6 @@ export function buildProjectCreateRequest(
   }
   return {
     definition,
-    capabilityGroups: type?.supportsGroups ? [...selection.groups] : [],
+
   };
 }
