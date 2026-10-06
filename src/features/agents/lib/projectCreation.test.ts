@@ -116,6 +116,7 @@ describe("projectCreation", () => {
     selection = { ...selection, modelKey: "other-model" };
     expect(projectCreationProblem(options, selection, "/project")).toBeNull();
     expect(buildProjectCreateRequest(options, selection, " /project ", " Docs ")).toEqual({
+      isProject: true,
       definition: {
         name: "Docs",
         mode: "KBASE",
@@ -130,6 +131,7 @@ describe("projectCreation", () => {
     const options = creationOptions();
     const general = initialProjectCreationSelection(options);
     expect(buildProjectCreateRequest(options, general, "/project")).toEqual({
+      isProject: true,
       definition: { mode: "GENERAL", runtimeConfig: { workspaceRoot: "/project" } },
     });
     expect(projectCreationProblem(options, general, "  ")).toBe("directoryRequired");
@@ -137,6 +139,7 @@ describe("projectCreation", () => {
     const acp = changeProjectCreationType(options, { ...general, modelKey: "other-model" }, "acp");
     expect(acp.acpBridgeId).toBe("claude");
     expect(buildProjectCreateRequest(options, { ...acp, acpBridgeId: "codex" }, "/project")).toEqual({
+      isProject: true,
       definition: {
         mode: "CODER",
         engine: "acp",

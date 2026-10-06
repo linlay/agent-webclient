@@ -32,7 +32,9 @@ Skills 管理接口使用 `/api/admin/skills/*` 的 manifest 与文件操作契�
 
 后端只在发现 `skills-center/<skill-id>/assets/<skill-id>.png` 时返回可直接访问的可选 `icon` URL；未发现则省略该字段。Skills 列表直接使用该 URL，字段为空或图片加载失败时回退到前端静态资源 `/default-skill.png`。
 
-## Agent 管理导入契约
+## Agent 创建与管理导入契约
+
+Agent 创建复用 `POST /api/admin/agents/create`。`CreateAgentRequest` 的可选 boolean `isProject` 仅表达请求意图；项目创建 builder 固定传 true，并把用户目录写入 `definition.runtimeConfig.workspaceRoot`。Platform 在写盘前拒绝空值、`@root`、无效目录及 canonical 系统根，普通 Agent 创建省略或传 false 沿用原有规则；该字段不进入 Agent definition 或持久化配置。
 
 完整 Agent ZIP 使用 HTTP-only 端点 `POST /api/admin/agents/import`。`importAdminAgent` 接收 `ImportAgentArchiveRequest { file, overwrite? }` 并发送 multipart：`file` 必填，只有用户确认整目录覆盖后才附加字符串 `overwrite=true`；不得发送 `key` 或 `agentKey`。成功复用 `AdminAgentDetailResponse`，前端读取 `key`、`status` 和 `diagnostics` 完成列表刷新、选中与 ready/invalid 提示。
 

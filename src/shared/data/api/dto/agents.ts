@@ -152,6 +152,7 @@ export interface AdminAgentPrivateSkill {
 
 export interface CreateAgentRequest {
   key?: string;
+  isProject?: boolean;
   definition: Record<string, unknown>;
   soulPrompt?: string;
   agentsPrompt?: string;

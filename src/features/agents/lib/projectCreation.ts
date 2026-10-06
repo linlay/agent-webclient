@@ -161,7 +161,7 @@ export function buildProjectCreateRequest(
     definition.engine = "acp";
     runtimeConfig.acpBridgeId = selection.acpBridgeId;
     definition.runtimeConfig = runtimeConfig;
-    return { definition };
+    return { isProject: true, definition };
   }
   Object.assign(definition, selectedCreationDefinition(options, selection.typeKey, selection.groups));
   definition.mode = type?.mode ?? selection.typeKey.toUpperCase();
@@ -173,6 +173,7 @@ export function buildProjectCreateRequest(
     definition.modelConfig = { modelKey };
   }
   return {
+    isProject: true,
     definition,
 
   };

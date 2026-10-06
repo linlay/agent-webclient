@@ -13,6 +13,7 @@ export function buildCoderAgentCreateRequest(
   const runtimeConfig: Record<string, unknown> = { workspaceRoot: workspaceDir };
   if (options.acpBridgeId) runtimeConfig.acpBridgeId = options.acpBridgeId;
   return {
+    isProject: true,
     definition: {
       ...(name ? { name } : {}),
       mode: "CODER",
@@ -29,6 +30,7 @@ export function buildKbaseAgentCreateRequest(
 ) {
   const name = String(options.name || "").trim();
   return {
+    isProject: true,
     definition: {
       ...(name ? { name } : {}),
       mode: "KBASE",

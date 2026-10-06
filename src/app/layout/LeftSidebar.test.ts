@@ -1000,6 +1000,7 @@ describe("LeftSidebar", () => {
         name: "agent-coder",
       }),
     ).toEqual({
+      isProject: true,
       definition: {
         name: "agent-coder",
         mode: "CODER",
@@ -1016,6 +1017,7 @@ describe("LeftSidebar", () => {
       },
     );
     expect(acpRequest).toEqual({
+      isProject: true,
       definition: {
         name: "ACP Coder",
         mode: "CODER",
@@ -1035,6 +1037,7 @@ describe("LeftSidebar", () => {
       { name: "My KB" },
     );
     expect(result).toEqual({
+      isProject: true,
       definition: {
         name: "My KB",
         mode: "KBASE",
