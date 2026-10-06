@@ -143,7 +143,7 @@ export function useMemoryFiles() {
         }
     };
     return { document, draft, setDraft, dates, today, nextBefore, matches, query, setQuery, searchBefore, error, message, busy, dirty, conflict,
-        select, save, remove, search, canLeave, reload: () => document && select(document.kind, document.date),
+        select, save, remove, search, canLeave, reload: () => { if (document && canLeave()) { void load(document.kind, document.date); void refreshDates().catch(report); } },
         moreDates: () => { if (!pending.current)
             void refreshDates(nextBefore).catch(report); },
         clearSearch: () => { setMatches(null); setQuery(""); setSearchBefore(""); } };

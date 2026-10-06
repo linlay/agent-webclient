@@ -1,6 +1,6 @@
 import { requestJson } from "@/shared/data/api/http";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
-import type { MemoryDocument, MemoryKind, MemoryDates, MemoryMatches } from "@/shared/data/memory/memoryTypes";
+import type { MemoryDocument, MemoryKind, MemoryDates, MemoryMatches, MemoryRangeRequest, MemoryMaintenanceStatus } from "@/shared/data/memory/memoryTypes";
 export function getMemoryFile(kind: MemoryKind, date = "") {
     return requestJson<MemoryDocument>(`${dataEndpoints.memoryFile.path}?${new URLSearchParams({ kind, date })}`);
 }
@@ -17,4 +17,14 @@ export function getMemoryDates(before = "") {
 }
 export function searchMemoryFiles(query: string, before = "") {
     return requestJson<MemoryMatches>(`${dataEndpoints.memorySearch.path}?${new URLSearchParams({ query, before })}`);
+}
+
+export function getMemoryMaintenanceStatus() {
+    return requestJson<MemoryMaintenanceStatus>(dataEndpoints.memoryStatus.path);
+}
+export function triggerMemoryMaintenance(range: MemoryRangeRequest) {
+    return requestJson<{ accepted: boolean; status: MemoryMaintenanceStatus }>(dataEndpoints.memoryUpdate.path, { method: "POST", body: JSON.stringify(range) });
+}
+export function cancelMemoryMaintenance(id: string) {
+    return requestJson<MemoryMaintenanceStatus>(dataEndpoints.memoryCancel.path, { method: "POST", body: JSON.stringify({ id }) });
 }

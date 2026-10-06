@@ -64,3 +64,13 @@
   .preview, .editor textarea { padding: 10px 12px; }
   .modal :global(.ant-modal-body) { height: calc(100dvh - 110px); }
 }
+
+.maintenance { flex-shrink: 0; max-height: 40%; overflow: auto; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); }
+.maintenance summary { cursor: pointer; font-weight: 600; }
+.maintenanceConfig, .rangeForm { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 8px; }
+.maintenanceConfig { color: var(--text-muted); font-size: 12px; }
+.rangeForm label { display: inline-flex; gap: 8px; align-items: center; }
+.rangeForm .archiveOption input { min-height: auto; }
+.jobStatus { margin-top: 8px; }
+.jobStatus button { margin-right: 8px; }
+.maintenance [role=alert] { color: var(--accent-danger, #c33); }

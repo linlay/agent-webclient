@@ -4,6 +4,7 @@ import { ConversationMarkdown } from "@/shared/ui/ConversationMarkdown";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { useMemoryFiles } from "@/features/memory/hooks/useMemoryFiles";
+import { MemoryMaintenance } from "./MemoryMaintenance";
 import styles from "./MemoryConsole.module.css";
 
 export function MemoryInfoConsole({ surface = "page", open = true, onClose }: {
@@ -19,6 +20,7 @@ export function MemoryInfoConsole({ surface = "page", open = true, onClose }: {
     : m.document?.kind === "owner" ? "OWNER.md" : "summary.md";
   const body = (
     <section className={styles.console} aria-label={t("memoryFiles.title")}>
+      <MemoryMaintenance today={m.today} onReload={m.reload} />
       <div className={styles.workbench}>
         <aside className={styles.sidebar}>
           <form className={styles.search} onSubmit={e => { e.preventDefault(); void m.search(); }}>
