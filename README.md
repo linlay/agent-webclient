@@ -323,4 +323,4 @@ make dev
 
 运行中附件 steer 复用 `/api/upload` 与 `references`，支持纯图片、HTML/MD 等普通文件及混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 首次 query 要求非空正文，后续 query 可只带有效文件或选区引用。Run 结束后，已有主 query 历史的纯引用排队项可转为后续 query；缺少历史确认时恢复输入区等待正文。空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
 
-知识库中心 `/kbases` 由 `features/kbases` 管理，支持独立库 CRUD、后台索引状态、文档浏览和全文召回，见 [知识库中心](docs/62-页面能力-知识库中心.md)。
+知识库中心 `/kbases` 由 `features/kbases` 管理，支持多 collection 建库、后台索引状态、集合与路径浏览，以及综合/全文/向量/图召回方式选择；可用性以 KBX 索引状态为准，图谱构建尚未接通，见 [知识库中心](docs/62-页面能力-知识库中心.md)。

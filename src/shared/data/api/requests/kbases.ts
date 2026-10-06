@@ -1,6 +1,6 @@
 import { dataEndpoints } from "../endpoints";
 import { requestJson } from "../http";
-import type { KnowledgeBase, KnowledgeBaseInput, KnowledgeDocument, KnowledgeSearch, KnowledgeRead } from "../dto/kbases";
+import type { KnowledgeBase, KnowledgeBaseInput, KnowledgeDocument, KnowledgeSearch, KnowledgeRead, KnowledgeBaseStatus, RetrievalMethod } from "../dto/kbases";
 const root = dataEndpoints.adminKBases.path;
 const path = (id: string) => `${root}/${encodeURIComponent(id)}`;
 export const listKBases = () => requestJson<KnowledgeBase[]>(root, { cache: "no-store" });
@@ -8,5 +8,6 @@ export const saveKBase = (input: KnowledgeBaseInput, id?: string) => requestJson
 export const deleteKBase = (id: string) => requestJson(`${path(id)}`, { method: "DELETE" });
 export const refreshKBase = (id: string) => requestJson<KnowledgeBase>(`${path(id)}/refresh`, { method: "POST" });
 export const filesKBase = (id: string, signal?: AbortSignal) => requestJson<{ documents: KnowledgeDocument[]; complete: boolean }>(`${path(id)}/files`, { signal });
-export const searchKBase = (id: string, query: string, limit: number, signal?: AbortSignal) => requestJson<KnowledgeSearch>(`${path(id)}/search`, { method: "POST", body: JSON.stringify({ query, limit }), signal });
+export const statusKBase = (id: string, signal?: AbortSignal) => requestJson<KnowledgeBaseStatus>(`${path(id)}/status`, { signal });
+export const searchKBase = (id: string, query: string, limit: number, signal?: AbortSignal, collections?: string[], method: RetrievalMethod = "query") => requestJson<KnowledgeSearch>(`${path(id)}/search`, { method: "POST", body: JSON.stringify({ query, limit, collections, method }), signal });
 export const readKBase = (id: string, ref: string, signal?: AbortSignal) => requestJson<KnowledgeRead>(`${path(id)}/read?ref=${encodeURIComponent(ref)}`, { signal });
