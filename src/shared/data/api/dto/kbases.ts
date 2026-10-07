@@ -8,7 +8,7 @@ export interface KnowledgeBase {
 export interface KnowledgeBaseInput { name: string; description: string; collections?: KnowledgeCollection[]; sourcePath?: string }
 export interface KnowledgeDocument { file: string; collection: string; relativePath: string; title: string; bytes: number }
 export interface KnowledgeHit {
- resultId: string; file: string; collection: string; relativePath: string; title: string; score: number;
+ resultId: string; file: string; collection: string; relativePath: string; title: string; score: number | null; scoreType: "vector_similarity" | "unavailable"; rankingScore?: number;
  chunk?: { id: string; seq: number; range: { lineStart: number; lineEnd: number } };
  evidence: { id: string; text: string; range: { lineStart: number; lineEnd: number } };
 }
