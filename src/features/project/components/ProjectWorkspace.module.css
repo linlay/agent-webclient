@@ -320,7 +320,7 @@
 :global(.project-agent-cards) button {
   display: grid;
   width: 180px;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
   gap: 2px 8px;
@@ -334,7 +334,12 @@
 }
 :global(.project-agent-cards) button:hover { border-color: var(--accent-electric); background: var(--bg-hover); }
 :global(.project-agent-cards) :global(.material-icon) { grid-row: 1 / 3; color: var(--accent-electric); }
-:global(.project-agent-cards) small { color: var(--ink-muted); }
+:global(.project-agent-cards) small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-muted);
+}
 
 @media (max-width: 760px) {
   :global(.project-toolbar) { flex-wrap: wrap; }

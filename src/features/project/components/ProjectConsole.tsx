@@ -37,7 +37,7 @@ export const ProjectConsole: React.FC<ProjectConsoleProps> = ({ route, onStateCh
       placeholder={t("project.page.selectAgent")}
       options={agents.map((agent) => ({
         value: agent.key,
-        label: `${agent.name} · ${String(agent.mode || "").toUpperCase()}`,
+        label: agent.name,
       }))}
       onChange={selectAgent}
     />
@@ -85,9 +85,9 @@ export const ProjectConsole: React.FC<ProjectConsoleProps> = ({ route, onStateCh
                   <div className="project-agent-cards">
                     {agents.map((agent) => (
                       <button type="button" key={agent.key} onClick={() => selectAgent(agent.key)}>
-                        <MaterialIcon name={String(agent.mode).toUpperCase() === "KBASE" ? "book_2" : "code"} />
+                        <MaterialIcon name="folder_open" />
                         <span>{agent.name}</span>
-                        <small>{String(agent.mode || "").toUpperCase()}</small>
+                        <small title={agent.workspaceDir}>{agent.workspaceDir}</small>
                       </button>
                     ))}
                   </div>

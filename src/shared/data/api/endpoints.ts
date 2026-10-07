@@ -626,6 +626,7 @@ export const dataEndpoints = createEndpointRegistry({
         includeChats: options.includeChats,
         chatsPinned: options.chatsPinned,
         includeTeam: options.includeTeam,
+        hasWorkspace: options.hasWorkspace,
         scope: options.scope,
         mode: options.mode,
       }),

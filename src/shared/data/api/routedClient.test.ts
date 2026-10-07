@@ -147,6 +147,18 @@ describe("routedClient capability routing", () => {
 		expect(mockGetAgents).not.toHaveBeenCalled();
 	});
 
+	it.each(["platform", "gateway"])("forwards project workspace filters over %s WebSocket", async (backend) => {
+		mockGetBackendMode.mockReturnValue(backend);
+		mockRequestPlatformData.mockResolvedValue(ok([]));
+		const routed = await import("./routedClient");
+		for (const hasWorkspace of [true, false]) {
+			const options = { hasWorkspace, includeChats: 20, scope: "nav" as const };
+			await routed.getAgents(options);
+			expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/agents", options);
+		}
+		expect(mockGetAgents).not.toHaveBeenCalled();
+	});
+
 	it("invalidates only the selected agent skills and keeps concurrent reads deduplicated", async () => {
 		mockRequestPlatformData.mockImplementation(async (_path, payload) => ok({ agentKey: payload.agentKey, pinned: [], skills: [{ id: "a" }, { id: "b" }] }));
 		const routed = await import("./routedClient");

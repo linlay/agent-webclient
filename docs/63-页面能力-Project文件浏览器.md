@@ -2,14 +2,14 @@
 
 ## 定位与入口
 
-Project 是 CODER 与专用 `mode: KBASE` 的只读 Workspace 浏览器。页面使用 `/project/:agentKey`；普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。
+Project 是项目 Agent 的只读 Workspace 浏览器，不按 CODER/KBASE 等 mode 区分项目资格。项目创建使用请求级 `isProject:true`；该标志不持久化，列表通过 `/api/agents?hasWorkspace=true` 加载具有具体 `workspaceDir` 的 Agent，未配置 Workspace 或使用 `@root` 的 Agent 不进入项目列表。页面使用 `/project/:agentKey`；普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。
 
 ## 组件边界
 
 - `src/features/project/components/ProjectWorkspace.tsx`：页面使用的目录、上下文选择、内容与 Diff 主组件。
 - `src/app/pages/project/index.tsx`：只负责 `ProjectRouteState` 与 URL 双向适配。
 - `src/features/project/components/ProjectConsole.tsx`：Agent 选择器、空状态和 Workspace 装配。
-- `src/features/project/hooks/useProjectAgents.ts`：加载 CODER/KBASE Agent 与最近会话。
+- `src/features/project/hooks/useProjectAgents.ts`：按 `hasWorkspace:true` 加载项目 Agent 与最近会话，不发送 mode 筛选。
 - `src/features/project/lib/projectRoute.ts`：Project 查询参数的读写纯函数。
 - `src/features/project/lib/projectTabs.ts`：多文件标签的去重打开与相邻关闭选择规则。
 - `src/features/viewers/components/ContentViewerPanel.tsx`：消费 `FileViewerTarget`，复用 Workspace 文本、图片、PDF、HTML、音视频展示。

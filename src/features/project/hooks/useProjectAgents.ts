@@ -4,8 +4,8 @@ import type { WorkerListItem } from "@/features/workers/lib/workerState";
 import { getAgents } from "@/shared/data";
 
 function isProjectAgent(item: WorkerListItem): item is Agent {
-  const mode = String(item.mode || "").trim().toUpperCase();
-  return "key" in item && (mode === "CODER" || mode === "KBASE");
+  const workspaceDir = String(item.workspaceDir || "").trim();
+  return "key" in item && Boolean(workspaceDir) && !workspaceDir.startsWith("@");
 }
 
 export function useProjectAgents() {
@@ -17,7 +17,7 @@ export function useProjectAgents() {
     let disposed = false;
     setLoading(true);
     setError("");
-    void getAgents({ mode: ["CODER", "KBASE"], includeChats: 20, scope: "nav" })
+    void getAgents({ hasWorkspace: true, includeChats: 20, scope: "nav" })
       .then((response) => {
         if (disposed) return;
         const byKey = new Map<string, Agent>();

@@ -13,6 +13,7 @@ export interface GetAgentsOptions {
   includeChats?: number;
   chatsPinned?: boolean;
   includeTeam?: boolean;
+  hasWorkspace?: boolean;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
   mode?: string | string[];
 }

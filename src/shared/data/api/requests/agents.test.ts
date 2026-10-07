@@ -227,6 +227,14 @@ describe("requests/agents request contracts", () => {
     );
   });
 
+  it.each([true, false])("forwards hasWorkspace=%s without adding a mode filter", async (hasWorkspace) => {
+    await getAgents({ hasWorkspace, includeChats: 20, scope: "nav" });
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      `/api/agents?includeChats=20&hasWorkspace=${hasWorkspace}&scope=nav`,
+    );
+  });
+
   it("supports reading and writing agent order", async () => {
     await getAgentOrder();
     await putAgentOrder({ order: ["agent-b", "agent-a"] });
