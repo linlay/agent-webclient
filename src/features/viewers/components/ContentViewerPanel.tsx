@@ -763,6 +763,18 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     };
   }, [localActionsCandidate, localActionsSourceKey]);
 
+  // File names alone cannot determine the type of extensionless workspace files.
+  // Wait for the current file response before rendering a preview or metadata card.
+  if (fileRequest && !workspaceFileResponse) {
+    return <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
+      <div className={CONTENT_VIEWER_BODY_CLASS_NAME}>
+        <div className={CONTENT_VIEWER_STATUS_CLASS_NAME} role={textError ? "alert" : "status"}>
+          {textError || t("contentViewer.text.loading")}
+        </div>
+      </div>
+    </div>;
+  }
+
   if (onlinePreview.result) {
     return <div ref={setPanelElement} className={CONTENT_VIEWER_PANEL_CLASS_NAME}>
       <OnlineDocumentPreview preview={onlinePreview} name={viewerName} onDownload={handleDownload} />

@@ -8,7 +8,7 @@ import { isAppMode, isDesktopAppMode } from "@/shared/utils/routing";
 import { getDesktopDocumentOpenOptions, openDesktopDocumentInLocalApp } from "../lib/desktopDocumentOpen";
 import { getAgentFile } from "@/shared/data";
 import { downloadViewerTarget, openStandaloneViewerTarget, readViewerResourceMetadata, readViewerResourceDocument } from "@/features/viewers/lib/viewerRuntime";
-import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
+import { buildFileViewerTarget, type ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { canUseStandaloneFileActions, getStandaloneFileCapabilities } from "@/shared/data/standalone/standaloneFileActions";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { I18nProvider } from "@/shared/i18n";
@@ -78,6 +78,46 @@ describe("standalone document panel", () => {
       React.createElement(ContentViewerPanel, { target: nextTarget, refreshRequest }),
     )));
   }
+
+  it.each([".gitignore", "Makefile", ".env.example"])("shows loading from the first frame until %s has an authoritative file response", async (path) => {
+    const file = buildFileViewerTarget({ agentKey: "coder", path })!;
+    let finish!: (response: Awaited<ReturnType<typeof getAgentFile>>) => void;
+    jest.mocked(getAgentFile).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const frames: string[] = [];
+    await act(async () => root.render(React.createElement(
+      I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(React.Profiler, { id: "file-preview", onRender: () => { frames.push(container.textContent || ""); } },
+        React.createElement(ContentViewerPanel, { target: file, showLineNumbers: true }),
+      ),
+    )));
+
+    expect(getAgentFile).toHaveBeenCalledWith({ agentKey: "coder", path });
+    expect(frames[0]).toContain("正在加载文件内容...");
+    expect(frames.every((frame) => !frame.includes("XLSX") && !frame.includes("下载"))).toBe(true);
+    expect(container.querySelector("section")).toBeNull();
+    expect(container.querySelector("button")).toBeNull();
+    expect(DocumentTextEditor).not.toHaveBeenCalled();
+
+    await act(async () => finish({ code: 0, msg: "success", data: {
+      agentKey: "coder", workspaceRoot: "/projects/coder", requestedPath: path,
+      path, absolutePath: `/projects/coder/${path}`, name: path, kind: "file",
+      contentKind: "text", documentKind: "document-text", mimeType: "text/plain",
+      content: "node_modules/\ndist/", sizeBytes: 19, truncated: false,
+    } }));
+
+    expect(jest.mocked(DocumentTextEditor).mock.calls.at(-1)?.[0].value).toBe("node_modules/\ndist/");
+    expect(container.textContent).not.toContain("XLSX");
+    expect(container.querySelector("section")).toBeNull();
+  });
+
+  it("shows a workspace file request error without a binary download fallback", async () => {
+    jest.mocked(getAgentFile).mockRejectedValueOnce(new Error("Workspace file access denied"));
+    await render(0, buildFileViewerTarget({ agentKey: "coder", path: ".gitignore" })!);
+
+    expect(container.textContent).toBe("Workspace file access denied");
+    expect(container.querySelector("button")).toBeNull();
+    expect(container.textContent).not.toContain("XLSX");
+  });
 
   it.each(["MacIntel", "Win32"])("keeps Desktop actions in the card and uses the host bridge on %s", async (platform) => {
     jest.spyOn(window.navigator, "platform", "get").mockReturnValue(platform);
