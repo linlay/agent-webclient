@@ -245,9 +245,9 @@ describe('reduceActiveAwaiting', () => {
           ruleKey: 'dangerous-commands::redis::flushall::1::builtin::confirm_dialog',
           description: '清理线上 Redis 缓存',
           options: [
-            { decision: 'approve' },
-            { decision: 'approve_rule_run' },
-            { label: '旧后端拒绝', decision: 'reject' },
+            { decision: 'approve', description: '旧后端单次说明' },
+            { decision: 'approve_rule_run', description: '旧后端本轮说明' },
+            { label: '旧后端拒绝', decision: 'reject', description: '旧后端拒绝说明' },
             { label: '无效选项', decision: 'unknown' },
           ],
           allowFreeText: true,

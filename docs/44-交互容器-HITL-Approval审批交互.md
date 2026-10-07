@@ -1,7 +1,23 @@
 # HITL-Approval审批交互
 
 ## 当前状态
-Approval awaiting 用于命令、规则或高风险动作审批。前端支持 approve、reject、approve_rule_run 等 decision，并可展示 command、ruleKey、description 和选项说明。
+Approval awaiting 用于命令、规则或高风险动作审批。前端支持 approve、reject、approve_rule_run 等 decision，并展示 command、ruleKey、审批项级 description 和本地化选项说明。
+
+`AIAwaitApprovalOption` 是 wire DTO，不含 `description`；`normalizeApprovals` 不再读取或保留旧后端选项中的该字段。`resolveApprovalOptions` 返回独立的 `ApprovalDialogOption` 展示类型，按 decision 和当前语言生成 label 与 description：approve 显示“只本次放行”，approve_rule_run 显示本次 Run 同规则放行说明，reject 不显示说明。审批项级 `approval.description` 继续用于审批标题；Question 选项的 description 继续用于 Tooltip。
+
+原生 Approval 选项示例：
+
+```json
+{
+  "id": "tool_1",
+  "command": "echo ok",
+  "description": "执行命令用途说明",
+  "options": [
+    { "decision": "approve" },
+    { "decision": "approve_rule_run" }
+  ]
+}
+```
 
 ## 核心职责
 - 归一化 approvals，保留合法 decision 和审批命令信息。
@@ -24,4 +40,3 @@ Approval awaiting 用于命令、规则或高风险动作审批。前端支持 a
 - `../src/features/tools/components/buildin/approval-dialog/state.ts`
 - `../src/features/tools/lib/protocol.ts`
 - `../src/features/events/lib/processors/eventProcessorAwaiting.ts`
-

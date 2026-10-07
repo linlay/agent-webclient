@@ -30,6 +30,7 @@ describe("approval dialog state helpers", () => {
       options: [
         { decision: "approve" },
         { decision: "approve_rule_run" },
+        { decision: "reject" },
       ],
     }, t)).toEqual([
       {
@@ -42,6 +43,11 @@ describe("approval dialog state helpers", () => {
         label: "Approve matching requests",
         description: "Allow matching requests in this run",
       },
+      {
+        decision: "reject",
+        label: "Reject",
+        description: undefined,
+      },
     ]);
   });
 
@@ -51,7 +57,6 @@ describe("approval dialog state helpers", () => {
         {
           decision: "approve",
           label: "同意",
-          description: "旧后端描述",
         },
       ],
     }, t)).toEqual([

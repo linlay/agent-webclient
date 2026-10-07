@@ -247,7 +247,6 @@ export interface AIAwaitQuestionOption {
 
 export interface AIAwaitApprovalOption {
   label?: string;
-  description?: string;
   decision: AIAwaitApprovalDecision;
 }
 

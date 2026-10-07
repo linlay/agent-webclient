@@ -5,6 +5,12 @@ export type ApprovalDialogDecision =
   | AIAwaitApprovalDecision
   | "reject_with_reason";
 
+export interface ApprovalDialogOption {
+  decision: AIAwaitApprovalDecision;
+  label: string;
+  description?: string;
+}
+
 type ApprovalDialogTranslate = (
   key: string,
   params?: TranslateParams,
@@ -15,7 +21,7 @@ const DEFAULT_APPROVAL_DECISIONS: AIAwaitApprovalDecision[] = ["approve"];
 export function resolveApprovalOptions(
   approval: Pick<AIAwaitApproval, "options">,
   t: ApprovalDialogTranslate,
-): AIAwaitApprovalOption[] {
+): ApprovalDialogOption[] {
   const normalized = Array.isArray(approval.options)
     ? approval.options.filter(
         (option): option is AIAwaitApprovalOption =>

@@ -250,11 +250,9 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
             )
             .map((option) => {
               const label = toText(option.label);
-              const description = toText(option.description);
               return {
                 decision: toText(option.decision) as AIAwaitApprovalDecision,
                 ...(label ? { label } : {}),
-                ...(description ? { description } : {}),
               };
             })
             .filter(
