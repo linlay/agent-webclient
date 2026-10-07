@@ -28,7 +28,7 @@ async function mount() {
  await act(async()=>root.render(<AwaitingHtmlContainer data={data} onSubmit={submit}/>));
  const frame=host.querySelector("iframe")!;
  const reply=async(id="call")=>act(async()=>{window.dispatchEvent(new MessageEvent("message",{source:frame.contentWindow,data:{type:"frontend_awaiting_submit",params:[{id,decision:"approve",form:{content:"original"}}]}}));});
- return {host,frame,submit,reply,click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
+ return {host,frame,submit,reply,render: async (next: FormActiveAwaiting) => act(async () => root.render(<AwaitingHtmlContainer data={next} onSubmit={submit}/>)),click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
 }
 
 test("HTML form accepts one requested response, ignores unsolicited and duplicate submits",async()=>{
@@ -100,4 +100,47 @@ test("digits ignore editing, modifiers, composition, repeats and expired forms",
   await pressDigit("1");await pressDigit("2");
   expect(post).not.toHaveBeenCalled();expect(view.submit).not.toHaveBeenCalled();
  }finally{view.cleanup();}
+});
+
+
+test("frame resize validates source and identity, grows and shrinks without submitting", async () => {
+ const view = await mount();
+ const resize = async (height: unknown, overrides = {}, source = view.frame.contentWindow) => act(async () => {
+  window.dispatchEvent(new MessageEvent("message", {source, data: {type:"awaiting_resize", runId:"run", awaitingId:"wait", formId:"call", height, ...overrides}}));
+ });
+ try {
+  expect(view.frame.style.height).toBe("420px");
+  await resize(220); expect(view.frame.style.height).toBe("220px");
+  await resize(520); expect(view.frame.style.height).toBe("520px");
+  await resize(180); expect(view.frame.style.height).toBe("180px");
+  for (const height of [NaN, Infinity, -1, 0, "300"]) await resize(height);
+  await resize(300, {runId:"other"});
+  await resize(300, {awaitingId:"other"});
+  await resize(300, {formId:"other"});
+  await resize(300, {}, window);
+  expect(view.frame.style.height).toBe("180px");
+  expect(view.submit).not.toHaveBeenCalled();
+  await view.click("submit"); await resize(250); await view.reply();
+  expect(view.submit).toHaveBeenCalledTimes(1);
+ } finally { view.cleanup(); }
+});
+
+
+test("switching form identity resets sizing and ignores the previous form height", async () => {
+ const view = await mount();
+ const resize = async (formId: string, height: number) => act(async () => {
+  const frame = view.host.querySelector("iframe")!;
+  window.dispatchEvent(new MessageEvent("message", {source:frame.contentWindow, data:{type:"awaiting_resize",runId:"run",awaitingId:"wait",formId,height}}));
+ });
+ try {
+  await resize("call", 240);
+  expect(view.frame.style.height).toBe("240px");
+  await view.render({...data, forms:[{id:"next",form:{}}]});
+  expect(view.host.querySelector("iframe")!.style.height).toBe("420px");
+  await resize("call", 600);
+  expect(view.host.querySelector("iframe")!.style.height).toBe("420px");
+  await resize("next", 160);
+  expect(view.host.querySelector("iframe")!.style.height).toBe("160px");
+  expect(view.submit).not.toHaveBeenCalled();
+ } finally { view.cleanup(); }
 });

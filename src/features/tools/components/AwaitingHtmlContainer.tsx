@@ -41,7 +41,7 @@ interface AwaitingHtmlContainerProps {
 }
 
 const AWAITING_PANEL_CLASS_NAME =
-  presentationClasses("awaiting-panel tw:flex tw:w-full tw:flex-1 tw:flex-col tw:gap-2.5 tw:rounded-2xl tw:border tw:border-line-soft tw:bg-bg-card tw:px-3 tw:py-2.5 tw:shadow-elevated");
+  presentationClasses("awaiting-panel tw:flex tw:w-full tw:flex-col tw:gap-2.5 tw:rounded-2xl tw:border tw:border-line-soft tw:bg-bg-card tw:px-3 tw:py-2.5 tw:shadow-elevated");
 
 const AWAITING_PANEL_HEADER_CLASS_NAME =
   "awaiting-panel-header tw:shrink-0 tw:flex tw:flex-wrap tw:items-baseline tw:justify-between tw:gap-x-3 tw:gap-y-2";
@@ -414,6 +414,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const frameKey = frameData.awaiting.key;
   const frameView = frameData.awaiting.view;
   const { html: renderedHtml, loading: frameLoading, error: frameError } = useAwaitingFrameDocument(frameData.awaiting, viewChatId);
+  const [frameSize, setFrameSize] = useState({ key: "", height: 420 });
+  const sizeKey = JSON.stringify([frameKey, frameData.index, frameData.awaiting.forms[frameData.index]?.id]);
+  const frameHeight = frameSize.key === sizeKey ? frameSize.height : 420;
   const resolved = Boolean(data.resolutionReason);
   const panelCaption = String(
     currentForm?.title ||
@@ -639,6 +642,17 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
+      if (event.data?.type === "awaiting_resize") {
+        const resize = event.data;
+        if (resize.runId === frameData.awaiting.runId &&
+            resize.awaitingId === frameData.awaiting.awaitingId &&
+            resize.formId === frameData.awaiting.forms[frameData.index]?.id &&
+            typeof resize.height === "number" && Number.isFinite(resize.height) && resize.height > 0) {
+          setFrameSize({ key: sizeKey, height: Math.min(10000, Math.ceil(resize.height)) });
+        }
+        return;
+      }
+
       if (resolved || timeoutExpired || !acceptsViewSubmit(Boolean(collectFlowRef.current), currentFrameKeyRef.current, frameKey)) return;
 
       const framePayload = readAwaitingSubmitPayload(event.data, frameData.awaiting);
@@ -706,6 +720,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     frameData,
     frameView,
     frameKey,
+    sizeKey,
     resolved,
     timeoutExpired,
     onClose,
@@ -916,7 +931,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           srcDoc={renderedHtml}
           key={frameKey}
           sandbox="allow-scripts"
-          style={{ colorScheme }}
+          style={{ colorScheme, height: frameHeight, flexBasis: frameHeight }}
           title={`awaiting-${data.viewportKey}`}
         />
       )}

@@ -49,6 +49,6 @@
 .frontend-tool-frame {
   height: 420px;
   min-height: 0;
-  flex: 1 1 420px;
+  flex: 0 1 420px;
   color-scheme: light dark;
 }
