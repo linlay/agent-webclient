@@ -101,6 +101,12 @@ describe("AddMenuTrigger", () => {
     act(() => section.click());
   };
   const openMenu = () => click('[aria-label="composer.addMenu.open"]');
+  const openSkills = () => {
+    openMenu();
+    const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => section.click());
+  };
   const screenshotItem = () => [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
     .find((button) => button.textContent?.includes("composer.addMenu.screenshot"));
   const fileItems = () => [...container.querySelectorAll<HTMLButtonElement>(".composer-add-menu-detail-item")];
@@ -239,6 +245,63 @@ describe("AddMenuTrigger", () => {
     expect(rows()[0]).toContain("Latest");
     expect(rows()[1]).toContain("First");
     expect(rows()[2]).toContain("Office");
+  });
+
+  it("puts selected skills and partially selected packages before pins without treating Agent configuration as selection", () => {
+    mockSkillData = {
+      skills: [
+        { id: "zulu", displayName: "Zulu", configured: false },
+        { id: "alpha", displayName: "Alpha", configured: true },
+        { id: "latest", displayName: "Latest", configured: false },
+        { id: "office/member", displayName: "Word", configured: false },
+        { id: "office/other", displayName: "Slides", configured: false },
+        { id: "archive/member", displayName: "Excel", configured: true },
+      ],
+      packages: [
+        { id: "office", displayName: "Office", skills: [{ id: "office/member" }, { id: "office/other" }], status: "ready" },
+        { id: "archive", displayName: "Archive", skills: [{ id: "archive/member" }], status: "ready" },
+      ],
+    };
+    mockPinnedSkillIds = ["latest", "archive", "zulu"];
+    props.selectedSkillIds = [" ZULU ", " OFFICE/MEMBER "];
+    props.lockedSkillIds = ["office/member"];
+    render(); openSkills();
+    const rows = [...container.querySelectorAll('.composer-add-menu-skill-row, summary')];
+    expect(rows).toHaveLength(5);
+    ["Zulu", "Office", "Latest", "Archive", "Alpha"].forEach((name, index) => expect(rows[index].textContent).toContain(name));
+    expect(rows[0].getAttribute("aria-pressed")).toBe("true");
+    expect(rows[0].querySelector('[data-material-icon="check"]')).not.toBeNull();
+    expect(rows[1].getAttribute("data-selection")).toBe("partial");
+    expect(container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')?.disabled).toBe(true);
+    expect(rows[4].getAttribute("aria-pressed")).toBe("false");
+    expect(rows[4].textContent).toContain("slashPalette.skill.source.agent");
+    expect(rows[4].querySelector('[data-material-icon="check"]')).toBeNull();
+    expect(container.querySelectorAll('.composer-add-menu-skill-row')).toHaveLength(3);
+    expect(props.onSelectSkill).not.toHaveBeenCalled();
+    expect(mockPinnedSkillIds).toEqual(["latest", "archive", "zulu"]);
+  });
+
+  it("keeps selection ranking stable until reopening while updating marks and preserving selection actions", () => {
+    mockSkillData = { skills: [
+      { id: "alpha", displayName: "Alpha", configured: false },
+      { id: "zulu", displayName: "Zulu", configured: false },
+    ] };
+    props.selectedSkillIds = ["zulu"];
+    render(); openSkills();
+    const rows = () => [...container.querySelectorAll<HTMLElement>('.composer-add-menu-skill-row')];
+    expect(rows().map(row => row.querySelector('b')?.textContent)).toEqual(["Zulu", "Alpha"]);
+    props.selectedSkillIds = ["alpha"];
+    render();
+    expect(rows().map(row => row.querySelector('b')?.textContent)).toEqual(["Zulu", "Alpha"]);
+    expect(rows().map(row => row.getAttribute('aria-pressed'))).toEqual(["false", "true"]);
+    openMenu(); openSkills();
+    expect(rows().map(row => row.querySelector('b')?.textContent)).toEqual(["Alpha", "Zulu"]);
+    act(() => rows()[0].click());
+    expect(props.onSelectSkill).toHaveBeenCalledWith(mockSkillData.skills[0]);
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+    props.selectedSkillIds = [];
+    render(); openSkills();
+    expect(rows().map(row => row.getAttribute('aria-pressed'))).toEqual(["false", "false"]);
   });
 
   it("filters one mixed list by type and restores all when the active filter is cleared", () => {

@@ -80,6 +80,37 @@ it("filters by name/id and keeps the selected switch state when the filter is cl
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
 });
 
+it("ranks mounted connectors first on opening and keeps row positions and focus while switching and filtering", async () => {
+  const catalog = [connector("a", "Alpha"), connector("b", "Bravo", "oauth"), connector("c", "Charlie"), connector("d", "Delta")];
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: catalog } });
+  await mount({ initialIds: ["d", "b"] });
+  const names = () => [...container.querySelectorAll('[role="switch"]')].map(toggle => toggle.parentElement?.textContent);
+  expect(names()).toEqual(["Bravo", "Delta", "Alpha", "Charlie"]);
+  const bravo = container.querySelector<HTMLButtonElement>('[role="switch"]')!;
+  const alpha = container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[2];
+  alpha.focus();
+  await act(async () => alpha.click());
+  expect(onSelectionChange).toHaveBeenLastCalledWith("a", true);
+  expect(alpha.getAttribute("aria-checked")).toBe("true");
+  expect(names()).toEqual(["Bravo", "Delta", "Alpha", "Charlie"]);
+  expect(document.activeElement).toBe(alpha);
+  await act(async () => bravo.click());
+  expect(onSelectionChange).toHaveBeenLastCalledWith("b", false);
+  expect(bravo.getAttribute("aria-checked")).toBe("false");
+  expect(names()).toEqual(["Bravo", "Delta", "Alpha", "Charlie"]);
+  await mount({ search: "Charlie" });
+  expect(names()).toEqual(["Charlie"]);
+  await mount();
+  expect(names()).toEqual(["Bravo", "Delta", "Alpha", "Charlie"]);
+  expect(catalog.map(item => item.id)).toEqual(["a", "b", "c", "d"]);
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+  await act(async () => root.render(null));
+  await mount({ initialIds: ["d", "a"] });
+  expect(names()).toEqual(["Alpha", "Delta", "Bravo", "Charlie"]);
+});
+
 it("only exposes mounting switches while filtering or enabling authenticated packages", async () => {
   await mount();
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
@@ -160,7 +191,8 @@ it("does not probe unselected catalog entries even after timers and visibility c
 
 it("does not change account authorization when mounting is disabled", async () => {
   await mount({ initialIds: ["login"] });
-  await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[1].click());
+  await act(async () => container.querySelector<HTMLButtonElement>('[role="switch"]')!.click());
+  expect(onSelectionChange).toHaveBeenCalledWith("login", false);
   await act(async () => jest.advanceTimersByTime(60_000));
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(logoutConnectorAuth).not.toHaveBeenCalled();

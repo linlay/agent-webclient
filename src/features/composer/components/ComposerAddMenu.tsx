@@ -123,6 +123,9 @@ const AddMenuSectionDetail: React.FC<
   const { t, locale } = useI18n();
   const { section, search, onSearchChange } = props;
   const [kindFilter, setKindFilter] = useState<SkillKindFilter>(null);
+  // Selection affects candidate order when opening, not while browsing this menu.
+  const [selectedSkillIdsAtOpen] = useState(() => new Set(props.selectedSkillIds.map(skillIdentity)));
+  const selectedSkillIds = new Set(props.selectedSkillIds.map(skillIdentity));
   const searchRef = useRef<InputRef>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [sites, setSites] = useState<DesktopWebEntry[]>([]);
@@ -151,9 +154,13 @@ const AddMenuSectionDetail: React.FC<
       matchKeyword(skillDisplayName(skill), skill.id, skill.description || ""),
   );
   const catalogItems = orderSkillCatalogItems([
-    ...filteredPackages.map(pkg => ({ kind: "package" as const, id: pkg.id, label: skillPackageDisplayName(pkg), pkg })),
-    ...filteredSkills.map(skill => ({ kind: "standalone" as const, id: skill.id, label: skillDisplayName(skill), skill })),
-  ], pinnedSkillIds, locale).filter(item => !kindFilter || item.kind === kindFilter);
+    ...filteredPackages.map(pkg => ({ kind: "package" as const, id: pkg.id, label: skillPackageDisplayName(pkg), pkg,
+      selectedAtOpen: packageMembers(pkg, skills).some(skill => selectedSkillIdsAtOpen.has(skillIdentity(skill.id))) })),
+    ...filteredSkills.map(skill => ({ kind: "standalone" as const, id: skill.id, label: skillDisplayName(skill), skill,
+      selectedAtOpen: selectedSkillIdsAtOpen.has(skillIdentity(skill.id)) })),
+  ], pinnedSkillIds, locale)
+    .sort((a, b) => Number(b.selectedAtOpen) - Number(a.selectedAtOpen))
+    .filter(item => !kindFilter || item.kind === kindFilter);
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
   );
@@ -216,6 +223,7 @@ const AddMenuSectionDetail: React.FC<
   const renderSkill = (skill: AgentSkill) => {
     const identity = text(skill.id).toLowerCase();
     const pinned = pinnedSkillIds.includes(identity);
+    const selected = selectedSkillIds.has(identity);
     const skillName = skillDisplayName(skill);
     const pinLabel = t(
       pinned
@@ -233,6 +241,7 @@ const AddMenuSectionDetail: React.FC<
         role="button"
         tabIndex={selectDisabled ? -1 : 0}
         aria-disabled={selectDisabled}
+        aria-pressed={selected}
         aria-label={t("composer.addMenu.skill.select", { name: skillName })}
         onClick={() => {
           if (!selectDisabled) execute(() => props.onSelectSkill(skill));
@@ -250,6 +259,7 @@ const AddMenuSectionDetail: React.FC<
           <span className={presentationClasses("composer-add-menu-item-title")}>
             <b>{skillName}</b>
             <span className={presentationClasses("composer-add-menu-skill-actions")}>
+              {selected && <MaterialIcon name="check" className={presentationClasses("composer-add-menu-skill-selected")} />}
               {skill.configured && (
                 <UiTag
                   tone="muted"

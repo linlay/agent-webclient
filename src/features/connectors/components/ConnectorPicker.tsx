@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, Spin, Switch, message } from "antd";
 import type { InputRef } from "antd";
 import { useI18n } from "@/shared/i18n";
@@ -25,6 +25,8 @@ export interface ConnectorPickerProps {
 export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds, savingId, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
   const { t } = useI18n();
   const catalog = useConnectorPickerCatalog(agentKey);
+  // Only ranking is captured. Switches and conflict checks use live mounting state.
+  const [mountedIdsAtOpen] = useState(() => new Set(selectedIds));
   const searchRef = useRef<InputRef>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
   const conflict = connectorSelectionConflictFromError(selectionError);
@@ -50,7 +52,8 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
     const timer = window.setTimeout(() => searchRef.current?.focus(), 50);
     return () => window.clearTimeout(timer);
   }, []);
-  const items = filterConnectorOptions(catalog.items, search);
+  const items = filterConnectorOptions(catalog.items, search)
+    .sort((a, b) => Number(mountedIdsAtOpen.has(b.id)) - Number(mountedIdsAtOpen.has(a.id)));
   const catalogErrorLabel = catalog.error instanceof ApiError && [401, 403, 404, 405].includes(catalog.error.status || 0)
     ? t(`connectors.auth.error.${catalog.error.status}`) : t("composer.addMenu.connectors.loadFailed");
 

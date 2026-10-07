@@ -131,6 +131,22 @@
     outline-offset: -2px;
 }
 
+.composer-add-menu-skill-row[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--accent-electric) 15%, transparent);
+}
+
+.composer-add-menu-skill-row[aria-pressed="true"]:hover,
+.composer-add-menu-skill-row[aria-pressed="true"]:focus-within {
+    background: color-mix(in srgb, var(--accent-electric) 20%, transparent);
+}
+
+.composer-add-menu-skill-actions .composer-add-menu-skill-selected {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    color: var(--accent-electric);
+}
+
 .composer-add-menu-skill-row:global(.is-disabled) {
     cursor: default;
 }
