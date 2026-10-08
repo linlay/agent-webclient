@@ -13,6 +13,7 @@ export const materialIconSymbolIds = {
   branches: "material-symbol-branches",
   bug_report: "material-symbol-bug-report",
   build: "material-symbol-build",
+  calendar_month: "material-symbol-calendar-month",
   call: "material-symbol-call",
   call_end: "material-symbol-call-end",
   check: "material-symbol-check",

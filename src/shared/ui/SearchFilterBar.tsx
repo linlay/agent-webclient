@@ -20,6 +20,7 @@ export interface SearchFilterBarProps {
   searchText: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
+  searchAriaLabel?: string;
   filters: SearchFilter[];
   className?: string;
 }
@@ -28,6 +29,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   searchText,
   onSearchChange,
   searchPlaceholder,
+  searchAriaLabel,
   filters,
   className = "",
 }) => {
@@ -58,6 +60,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
         </Dropdown>
       ))}
       variant="filled"
+      aria-label={searchAriaLabel}
       placeholder={searchPlaceholder}
       value={searchText}
       onChange={(event) => onSearchChange(event.target.value)}

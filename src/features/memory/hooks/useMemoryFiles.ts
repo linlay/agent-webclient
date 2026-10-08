@@ -19,6 +19,9 @@ export function useMemoryFiles() {
     const [conflict, setConflict] = useState(false);
     const generation = useRef(0);
     const pending = useRef(false);
+    const queryRef = useRef(query);
+    queryRef.current = query;
+    const searchedQuery = useRef("");
     const dirty = document !== null && draft !== document.content;
     const report = useCallback((err: unknown) => {
         if (err instanceof ApiError && err.status === 409) {
@@ -123,27 +126,50 @@ export function useMemoryFiles() {
             setBusy(false);
         }
     };
-    const search = async (before = "") => {
+    const search = useCallback(async (before = "") => {
         if (pending.current || !query.trim())
             return;
+        searchedQuery.current = query;
         pending.current = true;
         setBusy(true);
         setError("");
         try {
             const result = await searchMemoryFiles(query, before);
-            setMatches(old => before ? [...(old || []), ...result.data.matches] : result.data.matches);
-            setSearchBefore(result.data.nextBefore);
+            if (queryRef.current === query) {
+                setMatches(old => before ? [...(old || []), ...result.data.matches] : result.data.matches);
+                setSearchBefore(result.data.nextBefore);
+            }
         }
         catch (err) {
-            report(err);
+            if (queryRef.current === query) report(err);
         }
         finally {
             pending.current = false;
             setBusy(false);
         }
-    };
+    }, [query, report]);
+    useEffect(() => {
+        setMatches(null);
+        setSearchBefore("");
+    }, [query]);
+    useEffect(() => {
+        if (!query.trim()) {
+            searchedQuery.current = "";
+            setMatches(null);
+            setSearchBefore("");
+            return;
+        }
+        if (busy || searchedQuery.current === query) return;
+        const timer = setTimeout(() => void search(), 300);
+        return () => clearTimeout(timer);
+    }, [query, busy, search]);
     return { document, draft, setDraft, dates, today, nextBefore, matches, query, setQuery, searchBefore, error, message, busy, dirty, conflict,
-        select, save, remove, search, canLeave, reload: () => { if (document && canLeave()) { void load(document.kind, document.date); void refreshDates().catch(report); } },
+        select, save, remove, search, canLeave, reload: () => {
+            if (!canLeave()) return false;
+            void load(document?.kind || "memory", document?.date);
+            void refreshDates().catch(report);
+            return true;
+        },
         moreDates: () => { if (!pending.current)
             void refreshDates(nextBefore).catch(report); },
         clearSearch: () => { setMatches(null); setQuery(""); setSearchBefore(""); } };

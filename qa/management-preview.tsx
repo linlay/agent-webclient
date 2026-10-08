@@ -12,6 +12,7 @@ import { SkillsPage } from "@/app/pages/skills";
 import { ConnectorsPage } from "@/app/pages/connectors";
 import { RegistriesPage } from "@/app/pages/registries";
 import { ArchivesPage } from "@/app/pages/archives";
+import { MemoryPage } from "@/app/pages/memory";
 import "@/shared/styles/globals.css";
 import "@/app/layout/ManagementPages.module.css";
 import "@/features/command-center/components/CommandSurface.module.css";
@@ -29,7 +30,7 @@ function appearance(mode = "light", skinId = "mist", background = "host") {
   listeners.forEach(listener => listener(current));
 }
 Object.defineProperty(window, "__AGENT_WEBCLIENT_APPEARANCE__", { value: { version: 1, getSnapshot: async () => current, subscribe: (fn: any) => { listeners.add(fn); return () => listeners.delete(fn); } } });
-appearance();
+appearance(new URLSearchParams(location.search).get("theme") === "dark" ? "dark" : "light");
 window.addEventListener("message", event => {
   if (event.source !== parent || event.origin !== location.origin || event.data?.type !== "qa-appearance") return;
   appearance(event.data.mode, event.data.skin, event.data.background);
@@ -41,5 +42,7 @@ const router = createMemoryRouter([
   { path: "/connectors/:connectorId?", element: <ConnectorsPage /> },
   { path: "/registries", element: <RegistriesPage /> },
   { path: "/archives/:chatId?", element: <ArchivesPage /> },
+  { path: "/memory", element: <MemoryPage /> },
 ], { initialEntries: [page === "agents" ? "/agents/demo" : page === "skills" ? "/skills/demo" : page === "connectors" ? "/connectors/demo" : page === "archives" ? "/archives/demo" : `/${page}`] });
-createRoot(document.getElementById("root")!).render(<I18nProvider locale="zh-CN"><AppearanceProvider><AppProvider><RouterProvider router={router} /></AppProvider></AppearanceProvider></I18nProvider>);
+const locale = new URLSearchParams(location.search).get("lang") === "en" ? "en-US" : "zh-CN";
+createRoot(document.getElementById("root")!).render(<I18nProvider locale={locale}><AppearanceProvider><AppProvider><RouterProvider router={router} /></AppProvider></AppearanceProvider></I18nProvider>);

@@ -14,6 +14,7 @@ module.exports = (_env, argv) => {
  config.devServer.host = '127.0.0.1'; config.devServer.proxy = []; config.devServer.hot = false; config.devServer.client = false; config.devtool = false;
  config.devServer.setupMiddlewares = (middlewares, server) => {
    server.app.get('/runtime-config.js', (_req,res) => res.type('js').send('globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {};'));
+   server.app.use('/api/memory', require('express').json(), require('./memory-fixture.cjs')());
    server.app.use('/api', (req,res) => res.json({ code: 0, msg: '', data: require('./management-fixtures.cjs')('/api' + req.path, req.query) }));
    server.app.get('/qa-wallpaper', (_req,res) => process.env.QA_WALLPAPER ? res.sendFile(path.resolve(process.env.QA_WALLPAPER)) : res.sendStatus(404));
    server.app.get('/preview', (_req,res) => res.type('html').send(fs.readFileSync(path.join(__dirname,'management-host.html'),'utf8')));
