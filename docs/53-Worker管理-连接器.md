@@ -41,7 +41,11 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 “+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，只返回 id/name 与非空 description/iconUrl/mutuallyExclusiveWith；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
-`GET /api/agents/connectors?agentKey=<key>` 返回 `{agentKey,connectorIds,reloadPending}`；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`。开关反映已保存的源配置，reloadPending 表示完整配置与运行时仍不一致。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收版本、认证、组件、技能或 activeConnectorIds。
+`GET /api/agents/connectors?agentKey=<key>` 返回 `{agentKey,connectorIds,reloadPending}`；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`。已保存的源配置决定挂载选择与互斥判断，reloadPending 表示完整配置与运行时仍不一致。开关亮起还要求 `GET /api/connectors/connection` 的实例连接快照已完成配置或明确无需配置；解绑账号后即使源配置仍保留该连接器，开关也显示关闭。无需授权连接器使用后端明确的 configurationRequired:false；旧内置 CLI 的 delegated/not_required 状态继续保留原挂载行为，不以其 configured:false 判断为账号解绑。已配置连接器的准备、验证与 runtime reload 不改变挂载开关。账号授权与挂载独立，关闭已开启的开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收 activeConnectorIds；连接快照仅用于当前菜单的配置完成投影，不保存凭据或授权会话。
+
+旧内置 CLI 的兼容范围使用 Platform 保留的 `builtin.*` 命名空间，按其原挂载选择显示；外部包即使返回 delegated，也必须以实例的配置完成标记判断解绑结果。此范围只影响挂载开关的配置状态投影，认证流程仍依据后端声明，不根据具体连接器名称或 ID 选择认证实现。
+
+每次打开菜单并行读取挂载与连接快照；菜单保持打开时定期重读本地快照，重新获得焦点或变为可见时立即刷新。状态读取不发起登录、安装或第三方验证。重新开启前再次核对目标连接器；未连接时提示先在连接器中心完成账号连接，不将保存挂载误报为授权成功。连接状态变化保留菜单行序、键盘焦点与搜索条件。解绑后保留的源选择若阻止另一个互斥连接器开启，沿原有冲突提示提供显式取消该选择的操作，不隐式删除其他挂载。
 
 保存期间显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
 

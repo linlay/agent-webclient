@@ -435,6 +435,8 @@ export const enUSMessages = {
   "connectors.chat.phase.preparing": "Checking and preparing connector dependencies…",
   "connectors.chat.phase.mounting": "Mounting the connector on the default Agent and waiting for the runtime configuration…",
   "connectors.chat.configurationRequired": "Complete credential configuration or confirm the connection in Overview before opening chat.",
+  "composer.addMenu.connectors.connectionRequired": "Connect the account or check its connection status in Connectors before enabling this connector.",
+  "composer.addMenu.connectors.removeSelection": "Deselect {name}",
   "connectors.chat.authorizationRequired": "This connector is not ready. Complete authorization or check its connection status in Overview before opening chat.",
   "connectors.chat.preparationFailed": "Connector dependencies are not ready. Check its configuration before retrying.",
   "connectors.chat.preparationTimeout": "Dependencies are still being prepared. Waiting has stopped. Check again later; leaving this page does not cancel server preparation.",

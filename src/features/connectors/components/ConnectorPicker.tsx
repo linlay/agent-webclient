@@ -8,6 +8,7 @@ import { ApiError, type ConnectorOption } from "@/shared/data";
 import { useConnectorPickerCatalog } from "../hooks/useConnectorPickerCatalog";
 import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames } from "../lib/connectorSelection";
 import { ConnectorIcon } from "./ConnectorIcon";
+import { ConnectorChatError } from "../lib/connectorChat";
 import styles from "./ConnectorPicker.module.css";
 
 export interface ConnectorPickerProps {
@@ -15,6 +16,7 @@ export interface ConnectorPickerProps {
   search: string;
   onSearchChange: (value: string) => void;
   selectedIds: string[];
+  availableIds?: string[];
   savingId?: string;
   onSelectionChange: (item: ConnectorOption, selected: boolean) => void;
   disabled?: boolean;
@@ -22,16 +24,20 @@ export interface ConnectorPickerProps {
   selectionError?: Error | null;
 }
 
-export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds, savingId, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
+export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds, availableIds, savingId, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
   const { t } = useI18n();
   const catalog = useConnectorPickerCatalog(agentKey);
-  // Only ranking is captured. Switches and conflict checks use live mounting state.
+  // Only ranking is captured. Availability changes keep row positions stable;
+  // conflict checks still use the Agent's saved mounting state.
   const [mountedIdsAtOpen] = useState(() => new Set(selectedIds));
   const searchRef = useRef<InputRef>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
   const conflict = connectorSelectionConflictFromError(selectionError);
   const selectionErrorText = conflict
     ? t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(conflict, catalog.items))
+    : selectionError instanceof ConnectorChatError && ["configurationRequired", "authorizationRequired"].includes(selectionError.reason)
+      ? t("composer.addMenu.connectors.connectionRequired")
+    : selectionError instanceof ConnectorChatError ? t(selectionError.message)
     : selectionError ? `${t("composer.addMenu.connectors.saveFailed")}: ${selectionError.message}` : "";
   const reportedError = useRef<Error | null>(null);
   useEffect(() => {
@@ -43,7 +49,14 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
   const changeSelection: ConnectorPickerProps["onSelectionChange"] = (item, selected) => {
     const nextConflict = selected ? findConnectorSelectionConflict(item, selectedIds, catalog.items) : null;
     if (nextConflict) {
-      void messageApi.error(t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(nextConflict, catalog.items)));
+      const text = t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(nextConflict, catalog.items));
+      const disconnected = availableIds ? catalog.items.filter(candidate => nextConflict.conflictingConnectorIds.includes(candidate.id) && !availableIds.includes(candidate.id)) : [];
+      // An unlinked account can still be selected in the source. Keep the
+      // existing conflict rule, with an explicit way to remove that saved choice.
+      void messageApi.error(disconnected.length ? { content: <span>{text}{disconnected.map(candidate =>
+        <UiButton key={candidate.id} size="sm" variant="ghost" onClick={() => onSelectionChange(candidate, false)}>
+          {t("composer.addMenu.connectors.removeSelection", { name: candidate.name || candidate.id })}
+        </UiButton>)}</span>, duration: 8 } : text);
       return;
     }
     onSelectionChange(item, selected);
@@ -70,7 +83,7 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
       </div>}
       {!catalog.loading && !catalog.error && !items.length && <div className={styles.status} role="status">{t(catalog.items.length ? "composer.addMenu.empty" : "composer.addMenu.connectors.empty")}</div>}
       {items.map(item => <ConnectorPickerRow key={item.id} item={item}
-        selected={selectedIds.includes(item.id)} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={changeSelection} />)}
+        selected={selectedIds.includes(item.id) && (!availableIds || availableIds.includes(item.id))} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={changeSelection} />)}
     </div>
   </section>;
 }
