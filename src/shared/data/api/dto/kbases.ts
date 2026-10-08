@@ -3,7 +3,7 @@ export type RetrievalMethod = "query" | "search" | "vsearch" | "gsearch";
 export interface KnowledgeBase {
  id: string; name: string; description: string; collections: KnowledgeCollection[]; sourcePath?: string;
  createdAt: number; updatedAt: number; indexedAt: number;
- state: "unindexed" | "indexing" | "ready" | "error"; error?: string;
+ state: "unindexed" | "indexing" | "ready" | "error"; error?: string; refreshError?: string; sourceWarnings?: string[]; invalidId?: boolean; orphaned?: boolean;
 }
 export interface KnowledgeBaseInput { name: string; description: string; collections?: KnowledgeCollection[]; sourcePath?: string }
 export interface KnowledgeDocument { file: string; collection: string; relativePath: string; title: string; bytes: number }

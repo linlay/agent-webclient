@@ -99,3 +99,20 @@ test("switching libraries cancels an in-flight retrieval and never displays its 
   await act(async () => finish({ code: 0, msg: "", data: { results: [] } }));
   expect(container.textContent).not.toContain("kbases.hitCount");
 });
+
+
+test("invalid directory diagnostics disable mutations", async () => {
+ jest.mocked(listKBases).mockResolvedValue({code:0,msg:"",data:[{...library,id:"Project-Docs",invalidId:true,state:"error",indexedAt:0,error:"invalid directory ID"}]});
+ await mountConsole();
+ for (const label of ["kbases.edit", "kbases.update", "kbases.delete"]) expect(button(label).disabled).toBe(true);
+ expect(filesKBase).not.toHaveBeenCalled();
+});
+
+test("readable libraries display source and refresh warnings without an error alert", async () => {
+ jest.mocked(listKBases).mockResolvedValue({code:0,msg:"",data:[{...library,sourceWarnings:["Source offline"],refreshError:"Refresh did not start"}]});
+ await mountConsole();
+ expect(container.querySelectorAll(".ant-alert-warning")).toHaveLength(2);
+ expect(container.querySelector(".ant-alert-error")).toBeNull();
+ expect(filesKBase).toHaveBeenCalled();
+ expect(button("kbases.update").disabled).toBe(false);
+});

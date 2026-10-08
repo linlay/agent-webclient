@@ -93,14 +93,16 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
     {library.description && <p className={styles.description}>{library.description}</p>}
     <div className={styles.indexMeta}><span>{t("kbases.collectionTotal", { count: sources.length })}</span><span>{t("kbases.indexedAt")}: {library.indexedAt ? new Date(library.indexedAt).toLocaleString() : "—"}</span></div>
     {actionError && <Alert type="error" showIcon message={actionError} />}
+    {library.refreshError && <Alert type="warning" showIcon message={library.refreshError} />}
+    {library.sourceWarnings?.map(warning => <Alert key={warning} type="warning" showIcon message={warning} />)}
     {library.error && <Alert type="error" showIcon message={library.error} />}
     {library.state === "indexing" && <Alert type="info" showIcon message={t("kbases.indexingHint")} />}
   </div>;
   const actions = <div className={styles.actions}>
-    <UiButton size="sm" variant="ghost" iconOnly aria-label={t("kbases.edit")} title={t("kbases.edit")} disabled={busy || library.state === "indexing"} onClick={onEdit}><MaterialIcon name="edit" /></UiButton>
-    <UiButton size="sm" loading={library.state === "indexing" || busy} disabled={busy} onClick={() => void perform(() => refreshKBase(library.id))}><MaterialIcon name="refresh" />{t("kbases.update")}</UiButton>
-    <Popconfirm title={t("kbases.deleteConfirm")} description={t("kbases.deleteHint")} onConfirm={() => perform(async () => { await deleteKBase(library.id); onDeleted(); })}>
-      <UiButton size="sm" variant="ghost" iconOnly className={styles.deleteButton} aria-label={t("kbases.delete")} title={t("kbases.delete")} disabled={busy || library.state === "indexing"}><MaterialIcon name="delete" /></UiButton>
+    <UiButton size="sm" variant="ghost" iconOnly aria-label={t("kbases.edit")} title={t("kbases.edit")} disabled={library.invalidId || busy || library.state === "indexing"} onClick={onEdit}><MaterialIcon name="edit" /></UiButton>
+    <UiButton size="sm" loading={library.state === "indexing" || busy} disabled={library.invalidId || busy} onClick={() => void perform(() => refreshKBase(library.id))}><MaterialIcon name="refresh" />{t("kbases.update")}</UiButton>
+    <Popconfirm disabled={library.invalidId || busy || library.state === "indexing"} title={t("kbases.deleteConfirm")} description={t("kbases.deleteHint")} onConfirm={() => perform(async () => { await deleteKBase(library.id); onDeleted(); })}>
+      <UiButton size="sm" variant="ghost" iconOnly className={styles.deleteButton} aria-label={t("kbases.delete")} title={t("kbases.delete")} disabled={library.invalidId || busy || library.state === "indexing"}><MaterialIcon name="delete" /></UiButton>
     </Popconfirm>
   </div>;
 
