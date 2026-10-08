@@ -1,1 +1,2 @@
-export const usePushTransport = () => ({ subscribe: () => () => undefined });
+const push = { subscribe: () => () => undefined };
+export const usePushTransport = () => push;

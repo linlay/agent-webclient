@@ -47,7 +47,7 @@ jest.mock("./AgentEditor", () => ({
 }));
 jest.mock("./AgentCreateModal", () => ({ AgentCreateModal: () => null }));
 jest.mock("./AgentSourceEditor", () => ({ AgentSourceEditor: () => null }));
-jest.mock("@/features/connectors/components/AgentPresetConnectors", () => ({ AgentPresetConnectors: () => null }));
+jest.mock("@/features/connectors/hooks/useAgentConnectorCapabilities", () => ({ useAgentConnectorCapabilities: () => ({ items: [], ownedToolNames: [], loading: false, error: null, reloadPending: false, refresh: jest.fn() }) }));
 
 const agent = {
   key: "agent-a",

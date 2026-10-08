@@ -11,6 +11,8 @@ import type {
 export type AgentToolFilter = "all" | "file" | "desktop" | "system";
 
 export interface AgentCapabilitiesEditorProps {
+  connectors?: React.ReactNode;
+  toolsManagementDisabled?: boolean;
   contextOptions: Array<{
     value: string;
     label: string;
@@ -90,6 +92,8 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
       </div>
     </section>
 
+    {props.connectors}
+
     <section className="agent-context-block" aria-labelledby="agent-tools-heading">
       <div className="agent-context-block-heading">
         <h4 id="agent-tools-heading">{props.t("agentConsole.field.tools")}</h4>
@@ -105,7 +109,7 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
                   </div>
                 </div>
                 <div className="agent-selectable-list agent-capability-scroll" role="group" aria-label={props.t("agentConsole.field.tools")}>
-                  {props.filteredTools.filter(tool => !(["platform_control", "catalog_query", "catalog_manage", "chat_query", "chat_manage", "platform_inspect"].includes(tool.key) || /^(desktop_|workpanel_|surface_|awcp_)/.test(tool.key) || tool.binding?.source === "connector")).map((tool) => (
+                  {props.filteredTools.filter(tool => tool.binding?.removable !== false).map((tool) => (
                     <label key={tool.key} className="agent-selectable-row">
                       <input type="checkbox" disabled={tool.binding?.removable === false} checked={tool.binding?.removable === false ? tool.binding.active : props.tools.includes(tool.key)} onChange={(event) => props.onToolsChange(event.target.checked ? [...props.tools, tool.key] : props.tools.filter((key) => key !== tool.key))} />
                       <MaterialIcon name={toolIcon(props.getToolCategory(tool))} />
@@ -116,17 +120,17 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
                 </div>
               </div>
             )}
-            open={props.toolsExpanded}
+            open={props.toolsExpanded && !props.toolsManagementDisabled}
             onOpenChange={props.onToolsExpandedChange}
             placement="bottomRight"
             trigger={["click"]}
           >
-            <UiButton size="sm" variant="ghost" aria-expanded={props.toolsExpanded} aria-controls="agent-tools-manager"><MaterialIcon name="tune" />{props.t("agentConsole.context.manageTools")}</UiButton>
+            <UiButton size="sm" variant="ghost" disabled={props.toolsManagementDisabled} aria-expanded={props.toolsExpanded && !props.toolsManagementDisabled} aria-controls="agent-tools-manager"><MaterialIcon name="tune" />{props.t("agentConsole.context.manageTools")}</UiButton>
           </Popover>
       </div>
       <div className="agent-tool-tag-list" aria-live="polite">
-        <strong>{props.t("agentConsole.context.selectedCount", { count: props.selectedTools.length })}</strong>
-        {props.selectedTools.map((tool) => (
+        <strong>{props.t("agentConsole.context.selectedCount", { count: props.selectedTools.filter(tool => tool.binding?.removable !== false).length })}</strong>
+        {props.selectedTools.filter(tool => tool.binding?.removable !== false).map((tool) => (
           <span key={tool.key} className="agent-tool-tag" title={tool.binding?.removable === false ? props.t(tool.binding.source === "preset" ? "agentConsole.tools.presetManaged" : "agentConsole.tools.autoManaged") : undefined}>
             <MaterialIcon name={toolIcon(props.getToolCategory(tool))} />
             <span>{tool.label}</span>
@@ -136,6 +140,18 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
           </span>
         ))}
       </div>
+      {(["preset", "automatic"] as const).map(group => {
+        const tools = props.selectedTools.filter(tool => tool.binding?.removable === false && (group === "preset" ? tool.binding.source === "preset" : tool.binding.source !== "preset"));
+        return tools.length ? <details key={group} className="tw:mt-3 tw:rounded-control tw:border tw:border-line-soft tw:p-3">
+          <summary className="tw:cursor-pointer tw:text-xs tw:text-ink-muted">{props.t(group === "preset" ? "agents.tools.presets" : "agents.tools.automatic", { count: tools.length })}</summary>
+          <p className="tw:my-2 tw:text-xs tw:text-ink-muted">{props.t("agents.tools.managedHint")}</p>
+          <div className="agent-tool-tag-list">{tools.map(tool => <span key={tool.key} className="agent-tool-tag">
+            <span>{tool.label}</span>
+            {tool.binding?.excluded && <span>{props.t(tool.binding.active ? "agentConsole.tools.excludedButActive" : "agentConsole.tools.excluded")}</span>}
+            <MaterialIcon name="lock" />
+          </span>)}</div>
+        </details> : null;
+      })}
     </section>
 
     <section className="agent-context-block" aria-labelledby="agent-skills-heading">

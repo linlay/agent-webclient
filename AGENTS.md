@@ -206,7 +206,7 @@ VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`�
 
 智能体详情 `toolBindings` 描述预置、自身、连接器和运行时工具的来源、removable、excluded 与 active。管理界面锁定不可删除项并展示排除状态；表单仅从 definition.toolConfig.tools 初始化自身工具，保留 excludeTools，避免把有效工具列表写回源码。预置和排除由 Platform / agent.yml 源码配置管理。
 
-连接器使用与管理接口分别定义 DTO。Composer 目录使用 `/api/connectors?agentKey=...`，只消费 id/name 和非空 description/iconUrl/mutuallyExclusiveWith；挂载使用 `/api/agents/connectors`，只消费 agentKey、非预置 connectorIds 和 reloadPending，不调用管理接口。`/agents` 通过管理接口显示只读预置区；连接器管理“发起对话”仍用 `/api/admin/agents/connectors` 的完整生效状态。两套挂载 PUT 都由 Platform 拒绝预置修改（403 preset_connector_readonly）。
+连接器使用与管理接口分别定义 DTO。Composer 目录使用 `/api/connectors?agentKey=...`，只消费 id/name 和非空 description/iconUrl/mutuallyExclusiveWith；挂载使用 `/api/agents/connectors`，只消费 agentKey、非预置 connectorIds 和 reloadPending，不调用管理接口。`/agents` 的能力区按连接器、工具、技能排列，管理接口展示预置、声明和实际生效连接器，点击展开所属工具；原生归属取 nativeTools、MCP 按当前 Agent 过滤，连接器工具不重复列入自身工具，预置挂载只读；连接器管理“发起对话”仍用 `/api/admin/agents/connectors` 的完整生效状态。两套挂载 PUT 都由 Platform 拒绝预置修改（403 preset_connector_readonly）。
 
 Composer 的连接器目录、挂载读取与开关写入统一经 routedClient：Platform 复用主 WS（Desktop 走 Frame Port/Broker），Gateway 当前保持 HTTP。使用侧读取不缓存，WS 失败不回退 HTTP、不自动重放写入；管理和认证接口仍保持 HTTP。
 

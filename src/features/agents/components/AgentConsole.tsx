@@ -57,14 +57,15 @@ import {
 import { AgentListPane } from "@/features/agents/components/AgentListPane";
 import { AgentSourceEditor } from "@/features/agents/components/AgentSourceEditor";
 import { useAgentConsoleRuntime } from "@/features/agents/hooks/useAgentConsoleRuntime";
-import { AgentPresetConnectors } from "@/features/connectors/components/AgentPresetConnectors";
+import { AgentConnectorCapabilities } from "@/features/connectors/components/AgentConnectorCapabilities";
+import { useAgentConnectorCapabilities } from "@/features/connectors/hooks/useAgentConnectorCapabilities";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import {
   agentImportSuccessMessageKey,
   confirmAgentDraftDiscard,
   formatAgentArchiveSize,
 } from "@/features/agents/lib/agentImport";
-import { withAgentToolBindings } from "@/features/agents/lib/agentOptions";
+import { projectAgentTools } from "@/features/agents/lib/agentOptions";
 import type {
   AgentSkillOption,
   AgentToolOption,
@@ -393,9 +394,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     () => mergeAgentSkillOptions(skillOptions, privateSkills, form.skills, t),
     [form.skills, privateSkills, skillOptions, t],
   );
-  const displayToolOptions = useMemo(
-    () => withAgentToolBindings(toolOptions, formMode === "edit" ? detail?.toolBindings : []),
-    [toolOptions, formMode, detail?.toolBindings],
+  const connectorCapabilities = useAgentConnectorCapabilities(formMode === "edit" ? form.key : "");
+  const { available: displayToolOptions, selected: selectedTools } = useMemo(
+    () => projectAgentTools(toolOptions, formMode === "edit" ? detail?.toolBindings : [], form.tools, connectorCapabilities.ownedToolNames),
+    [toolOptions, formMode, detail?.toolBindings, form.tools, connectorCapabilities.ownedToolNames],
   );
   const filteredToolOptions = useMemo(() => {
     const query = toolSearchText.trim().toLowerCase();
@@ -409,18 +411,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         .includes(query);
     });
   }, [toolFilter, displayToolOptions, toolSearchText]);
-  const selectedTools = useMemo(
-    () =>
-      Array.from(new Set([...displayToolOptions.filter(tool => tool.binding && (!tool.binding.removable || tool.binding.excluded)).map(tool => tool.key), ...form.tools])).map((key) =>
-        displayToolOptions.find((tool) => tool.key === key) || {
-          key,
-          label: key,
-          sourceCategory: "",
-          kind: "",
-        },
-      ),
-    [form.tools, displayToolOptions],
-  );
   const selectedSkills = useMemo(
     () =>
       form.skills.map(
@@ -1494,7 +1484,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
             )}
 
-            {formMode === "edit" && form.key && <AgentPresetConnectors key={form.key} agentKey={form.key} />}
             {editorMode === "source" ? (
               sourceLoadedKey === form.key ? (
                 <AgentSourceEditor
@@ -1533,6 +1522,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 selectedModelLabel={selectedModelLabel}
                 selectedReasoningLabel={selectedReasoningLabel}
                 contextTagOptions={contextTagOptions}
+                connectors={<AgentConnectorCapabilities key={form.key} {...connectorCapabilities} />}
+                toolsManagementDisabled={!connectorCapabilities.ready}
                 filteredToolOptions={filteredToolOptions}
                 selectedTools={selectedTools}
                 filteredSkillOptions={filteredSkillOptions}
