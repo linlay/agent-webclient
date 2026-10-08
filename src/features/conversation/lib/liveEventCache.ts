@@ -6,6 +6,7 @@ import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventProcessorState } from "@/features/events/lib/eventProcessorTypes";
 import { cloneActiveAwaitingQueue } from "@/features/tools/lib/awaitingRuntime";
 import { toText } from "@/shared/utils/eventUtils";
+import { resolveRunAccessLevel, type RunAccessLevelSnapshot } from "@/features/runs/lib/accessLevel";
 
 /**
  * Local mutable cache to track node IDs and text between React renders.
@@ -33,6 +34,7 @@ export interface LocalCache {
 	agentKey: string;
 	teamId: string;
 	editingMode?: boolean;
+	accessLevel?: RunAccessLevelSnapshot;
 }
 
 export function createLocalCache(): LocalCache {
@@ -87,6 +89,12 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
 			state.currentChatActiveRun?.chatId === chatId
 				? state.currentChatActiveRun.editingMode
 				: undefined,
+		accessLevel: resolveRunAccessLevel({
+			chatId,
+			runId: toText(state.currentChatActiveRun?.runId) || toText(state.runId),
+			activeRun: state.currentChatActiveRun,
+			events: state.events,
+		}),
 	};
 }
 

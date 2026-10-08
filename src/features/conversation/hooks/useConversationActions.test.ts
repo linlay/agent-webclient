@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { appReducer } from '@/app/state/reducer';
 import { createInitialState } from '@/app/state/state';
+import { readComposerAccessLevel, resolveComposerAccessScope, updateComposerAccessLevel } from '@/features/composer/lib/composerAccessLevel';
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { Chat } from "@/features/chats/lib/chatState";
@@ -1611,6 +1612,36 @@ describe('replayEvent tool migration', () => {
     expect(getChat).toHaveBeenCalledWith('row_latest_chat', false);
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
+  });
+
+  it.each([false, true])('restores chat_start permission on load (active=%s)', async (active) => {
+    const state = createInitialState();
+    const scope = resolveComposerAccessScope(state.accessToken);
+    const target = { scope, chatId: 'started-chat', agentKey: '' };
+    Object.assign(state, updateComposerAccessLevel(state, { scope, chatId: '', agentKey: 'cutej' }, 'full_access'));
+    if (active) Object.assign(state, updateComposerAccessLevel(state, target, 'default'));
+    const { actions, stateRef } = createConversationIntentHarness(state);
+    getChat.mockResolvedValue({ data: {
+      firstAgentKey: 'cutej',
+      events: [{ type: 'request.query', chatId: 'started-chat', runId: 'started-run', accessLevel: 'auto_approve', timestamp: EPOCH_MS }],
+      ...(active ? { activeRun: { runId: 'started-run', agentKey: 'cutej', lastSeq: 1 } } : {}),
+    } });
+    await actions.loadChat('started-chat');
+    expect(readComposerAccessLevel(stateRef.current, target)).toBe('auto_approve');
+    expect(readComposerAccessLevel(stateRef.current, { scope, chatId: '', agentKey: 'cutej' })).toBe('full_access');
+  });
+
+  it('preserves an explicit next-Run preference when loading completed Chat history', async () => {
+    const state = createInitialState();
+    const target = { scope: resolveComposerAccessScope(state.accessToken), chatId: 'completed-chat', agentKey: '' };
+    Object.assign(state, updateComposerAccessLevel(state, target, 'default'));
+    const { actions, stateRef } = createConversationIntentHarness(state);
+    getChat.mockResolvedValue({ data: {
+      firstAgentKey: 'cutej',
+      events: [{ type: 'request.query', chatId: target.chatId, runId: 'run', accessLevel: 'full_access', timestamp: EPOCH_MS }],
+    } });
+    await actions.loadChat(target.chatId);
+    expect(readComposerAccessLevel(stateRef.current, target)).toBe('default');
   });
 
   it('attaches from activeRun.lastSeq instead of replayed chat event seq', async () => {

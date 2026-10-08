@@ -44,6 +44,7 @@ import {
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
+import { mergeRunAccessLevel, readRunAccessLevelEvent } from "@/features/runs/lib/accessLevel";
 import {
   readExplicitEditingMode,
   resolveRunEditingMode,
@@ -358,6 +359,29 @@ export function useConversationEventHandler(): {
       });
       const isTeamEventOwner = eventOwner?.kind === "orchestrated-team";
 
+      const incomingAccessLevel = readRunAccessLevelEvent(event);
+      const permissionRunId = toText(mainRuntime.session?.runId) ||
+        toText(state.currentChatActiveRun?.runId) || cache.runId || toText(state.runId);
+      if (incomingAccessLevel && eventChatId &&
+        (type !== "run.access_level.changed" || !permissionRunId || permissionRunId === incomingAccessLevel.runId)) {
+        const nextAccessLevel = mergeRunAccessLevel(cache.accessLevel, incomingAccessLevel);
+        if (nextAccessLevel !== cache.accessLevel) {
+          cache.accessLevel = nextAccessLevel;
+          dispatch({
+            type: "SYNC_COMPOSER_ACCESS_LEVEL",
+            chatId: eventChatId,
+            value: nextAccessLevel.accessLevel,
+          });
+          const activeRun = state.currentChatActiveRun;
+          if (toText(activeRun?.runId) === nextAccessLevel.runId && activeRun?.chatId === eventChatId) {
+            dispatch({
+              type: "SET_CURRENT_CHAT_ACTIVE_RUN",
+              activeRun: { ...activeRun, accessLevel: nextAccessLevel.accessLevel, accessLevelVersion: nextAccessLevel.version },
+            });
+          }
+        }
+      }
+
       const runAgentBinding = readRunAgentKeyFromEvent(event);
       if (runAgentBinding && !isTeamEventOwner) {
         const previousAgentKey = state.runAgentById.get(runAgentBinding.runId);
@@ -580,6 +604,10 @@ export function useConversationEventHandler(): {
               ...(typeof runEditingMode === "boolean"
                 ? { editingMode: runEditingMode }
                 : {}),
+              ...(cache.accessLevel?.runId === cache.runId ? {
+                accessLevel: cache.accessLevel.accessLevel,
+                accessLevelVersion: cache.accessLevel.version,
+              } : {}),
             },
           });
         }

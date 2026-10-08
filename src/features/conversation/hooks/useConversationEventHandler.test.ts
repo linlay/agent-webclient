@@ -1,6 +1,8 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/AppContext';
+import { appReducer } from '@/app/state/reducer';
+import { readComposerAccessLevel, resolveComposerAccessScope } from '@/features/composer/lib/composerAccessLevel';
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventCommand } from '@/features/events/lib/eventProcessorTypes';
@@ -644,6 +646,33 @@ describe('shouldSyncLiveCache', () => {
 describe('useConversationEventHandler live chat binding', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('syncs inherited and changed permissions while ignoring stale and unrelated events', () => {
+    const restoreWindow = installSessionStorage();
+    try {
+      const stateRef = { current: createInitialState() };
+      stateRef.current.chatId = 'chat_1';
+      stateRef.current.streaming = true;
+      const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
+      useAppContext.mockReturnValue({ dispatch, stateRef });
+      let handler: ReturnType<typeof useConversationEventHandler> | null = null;
+      const Harness = () => { handler = useConversationEventHandler(); return null; };
+      renderToStaticMarkup(React.createElement(Harness));
+      const target = { scope: resolveComposerAccessScope(stateRef.current.accessToken), chatId: 'chat_1', agentKey: '' };
+      handler!.handleEvent({ type: 'request.query', chatId: 'chat_1', runId: 'run_1', agentKey: 'cutej', accessLevel: 'auto_approve', timestamp: 100 });
+      handler!.handleEvent({ type: 'run.start', chatId: 'chat_1', runId: 'run_1', agentKey: 'cutej', timestamp: 101 });
+      expect(readComposerAccessLevel(stateRef.current, target)).toBe('auto_approve');
+      handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'run_1', accessLevel: 'full_access', version: 3, timestamp: 102 });
+      expect(readComposerAccessLevel(stateRef.current, target)).toBe('full_access');
+      handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'run_1', accessLevel: 'default', version: 2, timestamp: 103 });
+      handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'other-run', accessLevel: 'default', version: 4, timestamp: 104 });
+      handler!.handleEvent({ type: 'request.query', chatId: 'chat_1', runId: 'child', taskId: 'task', accessLevel: 'default', timestamp: 105 });
+      expect(readComposerAccessLevel(stateRef.current, target)).toBe('full_access');
+      expect(stateRef.current.currentChatActiveRun).toMatchObject({ accessLevel: 'full_access', accessLevelVersion: 3 });
+    } finally {
+      restoreWindow();
+    }
   });
 
   it.each(['run.complete', 'run.error', 'run.cancel'])('preserves successful tool results after %s', (type) => {
