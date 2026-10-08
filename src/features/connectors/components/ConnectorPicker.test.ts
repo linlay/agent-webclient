@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { fetchConnectorIcon, getConnectors, getConnectorAuthStatus, startConnectorAuth, logoutConnectorAuth } from "@/shared/data";
 import type { ConnectorSummary } from "@/shared/data";
 import { ConnectorPicker } from "./ConnectorPicker";
+import { decodePlatformApiError } from "@/features/transport/lib/platformFrameCodec";
 
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
@@ -12,7 +13,7 @@ jest.mock("@/shared/data", () => ({
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
-jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
+jest.mock("@/shared/i18n", () => ({ t: (key: string) => key, useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("@/shared/ui/UiButton", () => ({ UiButton: ({ children, variant: _variant, size: _size, ...props }: any) => React.createElement("button", props, children) }));
 const mockMessageError = jest.fn();
@@ -252,9 +253,14 @@ it.each([false, true])("reports one-sided conflicts without changing selection e
   expect(onSelectionChange).toHaveBeenCalledWith(second.id, true);
 });
 
-it("shows server conflicts when the local catalog is stale and reports other save failures", async () => {
+it.each(["http", "ws"])("shows %s server conflicts when the local catalog is stale and reports other save failures", async transport => {
   const { ApiError } = jest.requireActual("@/shared/data/api/http");
-  const selectionError = new ApiError("conflict", { status: 400, data: { error: { code: "connector_selection_conflict", connectorId: "login", conflictingConnectorIds: ["docs"] } } });
+  const selectionError = transport === "http"
+    ? new ApiError("conflict", { status: 400, data: { error: { code: "connector_selection_conflict", connectorId: "login", conflictingConnectorIds: ["docs"] } } })
+    : decodePlatformApiError({ type: "connector_selection_conflict", code: 400, msg: "conflict", data: {
+      connectorId: "login", conflictingConnectorIds: ["docs"],
+      error: { code: "connector_selection_conflict", message: "conflict", status: 400 },
+    } });
   await mount({ selectionError });
   expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(mockMessageError).toHaveBeenCalledWith(expect.stringContaining("login: docs"));

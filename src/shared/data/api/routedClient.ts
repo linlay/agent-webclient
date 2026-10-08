@@ -4,8 +4,11 @@ import {
   changeProjectGitBranch as changeProjectGitBranchHttp,
 } from "@/shared/data/api/requests/projects";
 import type { ProjectGitBranchRequest } from "@/shared/data/api/dto/resources";
-import type { ConnectorOrderResponse, UpdateConnectorOrderRequest } from "@/shared/data/api/dto/connectors";
+import type { AgentConnectorsResponse, ConnectorOptionsResponse, SetAgentConnectorRequest, ConnectorOrderResponse, UpdateConnectorOrderRequest } from "@/shared/data/api/dto/connectors";
 import {
+  getConnectors as getConnectorsHttp,
+  getAgentConnectors as getAgentConnectorsHttp,
+  setAgentConnector as setAgentConnectorHttp,
   getConnectorOrder as getConnectorOrderHttp,
   putConnectorOrder as putConnectorOrderHttp,
 } from "@/shared/data/api/requests/connectors";
@@ -169,6 +172,7 @@ function routeEndpoint<T, TInput>(
 	endpoint: EndpointDefinition<TInput>,
 	input: TInput,
 	fallback: () => Promise<ApiResponse<T>>,
+	signal?: AbortSignal,
 ): Promise<ApiResponse<T>> {
 	const payload = emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input));
 	const backend = getBackendMode();
@@ -178,7 +182,9 @@ function routeEndpoint<T, TInput>(
 			&& endpoint.wsBackends?.includes(backend) === true
 		);
 	const request = useWebSocket
-		? () => requestDataThroughExecutor<T>(endpoint.path, payload)
+		? () => signal
+			? requestDataThroughExecutor<T>(endpoint.path, payload, { signal })
+			: requestDataThroughExecutor<T>(endpoint.path, payload)
 		: fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
 	if (!cache) {
@@ -616,6 +622,18 @@ export {
 
 export function getConnectorOrder(): Promise<ApiResponse<ConnectorOrderResponse>> {
 	return routeEndpoint(dataEndpoints.connectorOrder, undefined, getConnectorOrderHttp);
+}
+
+export function getConnectors(agentKey = "", signal?: AbortSignal): Promise<ApiResponse<ConnectorOptionsResponse>> {
+  return routeEndpoint(dataEndpoints.connectors, agentKey, () => getConnectorsHttp(agentKey, signal), signal);
+}
+
+export function getAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
+  return routeEndpoint(dataEndpoints.agentConnectors, agentKey, () => getAgentConnectorsHttp(agentKey, signal), signal);
+}
+
+export function setAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
+  return routeEndpoint(dataEndpoints.agentConnectorUpdate, params, () => setAgentConnectorHttp(params, signal), signal);
 }
 
 export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<ApiResponse<ConnectorOrderResponse>> {

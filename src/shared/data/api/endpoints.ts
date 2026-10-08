@@ -242,11 +242,13 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (agentKey: string) => ({ agentKey }),
   }),
   agentConnectors: defineEndpoint({
-    key: "agents.connectors", path: "/api/agents/connectors", method: "GET", transport: "http",
+    key: "agents.connectors", path: "/api/agents/connectors", method: "GET", transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: (agentKey: string) => ({ agentKey }),
   }),
   agentConnectorUpdate: defineEndpoint({
-    key: "agents.connectors.update", path: "/api/agents/connectors", method: "PUT", transport: "http",
+    key: "agents.connectors.update", path: "/api/agents/connectors", method: "PUT", transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   adminAgentConnectorUpdate: defineEndpoint({
     key: "admin.agents.connectors.update",
@@ -337,7 +339,8 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
   }),
   connectors: defineEndpoint({
-    key: "connectors.list", path: "/api/connectors", method: "GET", transport: "http",
+    key: "connectors.list", path: "/api/connectors", method: "GET", transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
     payload: (agentKey: string) => ({ ...(agentKey ? { agentKey } : {}) }),
   }),
   connectorIcon: defineEndpoint({

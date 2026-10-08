@@ -75,6 +75,8 @@ Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<rel
 
 Composer 连接器候选和挂载开关使用独立的精简接口 `/api/connectors`、`/api/agents/connectors`，隐藏平台预置。智能体管理 `/agents` 显示只读预置连接器，包配置仍在 `/connectors` 查看；默认挂载不可通过开关修改。
 
+Composer 连接器目录、挂载状态和开关写入统一经请求路由：Platform 复用主 WS，Desktop 复用 Frame Port/Broker，Gateway 当前保持 HTTP。使用侧读取不缓存，WS 失败不回退 HTTP 或自动重放写入。
+
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 
 ## 能带来什么好处

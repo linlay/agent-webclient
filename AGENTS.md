@@ -208,6 +208,8 @@ VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`�
 
 连接器使用与管理接口分别定义 DTO。Composer 目录使用 `/api/connectors?agentKey=...`，只消费 id/name 和非空 description/iconUrl/mutuallyExclusiveWith；挂载使用 `/api/agents/connectors`，只消费 agentKey、非预置 connectorIds 和 reloadPending，不调用管理接口。`/agents` 通过管理接口显示只读预置区；连接器管理“发起对话”仍用 `/api/admin/agents/connectors` 的完整生效状态。两套挂载 PUT 都由 Platform 拒绝预置修改（403 preset_connector_readonly）。
 
+Composer 的连接器目录、挂载读取与开关写入统一经 routedClient：Platform 复用主 WS（Desktop 走 Frame Port/Broker），Gateway 当前保持 HTTP。使用侧读取不缓存，WS 失败不回退 HTTP、不自动重放写入；管理和认证接口仍保持 HTTP。
+
 平台控制审阅使用 Platform 内置 HTML 的 `mode: form` viewport，业务数据仅在 `forms[].form`；通用 Approval 不含 review 扩展。HTML Form 宿主限制整体高度、仅响应主动 collect、超时不自动提交。见 [Form 表单](docs/45-交互容器-HITL-Form表单HTML交互.md)。
 
 工具展示使用 Platform 解析的 label/toolLabel，源码名称仅由 i18n.label 定义。Desktop 在连接建立时同步全局语言，设置切换时通过 /api/locale 更新已连接通道；普通请求与 query/attach 不携带 locale，不维护请求或 Run 级语言。见 [界面国际化](docs/80-界面基础-样式主题基础UI与国际化.md)。

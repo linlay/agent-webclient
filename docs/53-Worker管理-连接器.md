@@ -39,6 +39,10 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
+目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。使用目录和挂载状态不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取。管理目录、认证和图标沿用各自 HTTP 路径。
+
+WS `/api/connectors` 使用可选 `{agentKey}` 读取目录；WS `/api/agents/connectors` 使用 `{agentKey}` 读取挂载，使用 `{agentKey,connectorId,enabled}` 更新单项。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
+
 “+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，只返回 id/name 与非空 description/iconUrl/mutuallyExclusiveWith；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
 `GET /api/agents/connectors?agentKey=<key>` 返回 `{agentKey,connectorIds,reloadPending}`；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`。开关反映已保存的源配置，reloadPending 表示完整配置与运行时仍不一致。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收版本、认证、组件、技能或 activeConnectorIds。

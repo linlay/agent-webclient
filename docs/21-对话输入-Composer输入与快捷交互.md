@@ -44,6 +44,8 @@ BTW Composer 在 idle 时于发送位显示 Send；running 时始终在同一位
 置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 mustUseSkills。技能中心改用 HTTP `GET /api/admin/skills` 读取管理目录和置顶，HTTP `PUT /api/admin/skills/pin` 写入；与使用侧共用存储，但不调用 `/api/skills`。前端只保留内存查询缓存，打开菜单、显示 slash 候选及窗口重新聚焦时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
 
 ## 连接器
+目录、挂载读取与开关保存均通过统一请求路由：Platform 复用主 WS，Desktop 复用 Frame Port/Broker；Gateway 当前保留 HTTP。WS 失败直接上报，不回退 HTTP 或自动重放写入。两类读取保持无缓存，管理目录与认证仍走独立 HTTP 接口。
+
 使用接口为 `GET /api/connectors?agentKey=...` 和 `GET/PUT /api/agents/connectors`，不调用管理目录。目录仅保留 id/name、可选 description/iconUrl/mutuallyExclusiveWith；挂载响应仅保留 agentKey、非预置 connectorIds 和 reloadPending。平台预置不出现在菜单，普通 builtin 仍可切换。
 
 Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装目录和挂载配置，支持搜索；每行仅显示图标、名称和开关。账号授权、CLI 准备和 Token 凭据由独立连接器中心提供。开关初始值来自 Agent 源配置，切换后立即保存并触发平台重载；不随聊天草稿保存，也不进入 Query 请求。窄窗口在原弹层内展示列表和返回入口。具体接口和授权边界见 [连接器](53-Worker管理-连接器.md)。
