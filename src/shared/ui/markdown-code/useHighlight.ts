@@ -59,33 +59,53 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+// 未注册语言的语义别名：echarts 配置本质是 JSON，按 JSON 高亮
+const LANGUAGE_ALIASES: Record<string, string> = {
+  echart: "json",
+  echarts: "json",
+};
+
+function resolveLanguage(language: string): string | undefined {
+  const lang = (language || "").trim().split(/\s+/)[0]?.toLowerCase();
+  if (!lang) {
+    return undefined;
+  }
+  const aliased = LANGUAGE_ALIASES[lang] ?? lang;
+  return hljs.getLanguage(aliased) ? aliased : undefined;
+}
+
 /**
- * Returns highlighted HTML (for `dangerouslySetInnerHTML`) for a code block.
+ * Pure highlight projection: returns highlighted HTML for a code block.
  *
- * - Memoized on `code` and `language` so streaming re-renders stay cheap when
- *   the source is unchanged.
+ * - `echart` / `echarts` blocks are aliased to `json` since their source is
+ *   a JSON option object.
  * - Falls back to HTML-escaped plain text when the language is unknown to
- *   highlight.js (e.g. `mermaid`, `echart`), keeping the raw source safe to
- *   inject while still rendering as plain text.
+ *   highlight.js (e.g. `mermaid`), keeping the raw source safe to inject while
+ *   still rendering as plain text.
+ */
+export function buildHighlightedHtml(code: string, language: string): string {
+  const lang = resolveLanguage(language);
+  if (!lang) {
+    return escapeHtml(code);
+  }
+  try {
+    return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+  } catch {
+    return escapeHtml(code);
+  }
+}
+
+/**
+ * Memoized wrapper over `buildHighlightedHtml` for
+ * `dangerouslySetInnerHTML`, keeping streaming re-renders cheap when the
+ * source is unchanged.
  */
 export function useHighlightCode(
   code: string,
   language: string,
 ): { __html: string } {
-  return useMemo(() => {
-    const lang = (language || "").trim().split(/\s+/)[0]?.toLowerCase();
-    if (!lang || !hljs.getLanguage(lang)) {
-      return { __html: escapeHtml(code) };
-    }
-    try {
-      return {
-        __html: hljs.highlight(code, {
-          language: lang,
-          ignoreIllegals: true,
-        }).value,
-      };
-    } catch {
-      return { __html: escapeHtml(code) };
-    }
-  }, [code, language]);
+  return useMemo(
+    () => ({ __html: buildHighlightedHtml(code, language) }),
+    [code, language],
+  );
 }
