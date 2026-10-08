@@ -5,7 +5,7 @@ import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
 import { getDataSessionRevision } from "@/shared/data/auth/dataSession";
 import { getBackendMode } from "@/shared/config/backendMode";
 import { usePushSignal, useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
-import { agentRefresh, affectsAgentCatalog } from "@/features/agents/lib/agentRefresh";
+import { agentRefresh, affectsAgentCatalog, rejectAgentCheck } from "@/features/agents/lib/agentRefresh";
 import type { Agent, AgentAvailability } from "@/features/agents/lib/agentState";
 const useBrowserLayoutEffect = typeof document === "undefined" ? useEffect : useLayoutEffect;
 export function classifyAgentAvailabilityError(error: unknown): AgentAvailability {
@@ -70,9 +70,17 @@ export function useAgentAvailability(agentKey: string, _chatId: string) {
     const requested = (event: Event) => {
       if ((event as CustomEvent).detail?.agentKey === agentKey) refresh();
     };
+    const invalidated = (event: Event) => {
+      if ((event as CustomEvent).detail?.agentKey === agentKey) rejectAgentCheck(stateRef, agentKey);
+    };
     window.addEventListener("focus", focus);
     window.addEventListener("agent:availability-refresh", requested);
-    return () => { window.removeEventListener("focus", focus); window.removeEventListener("agent:availability-refresh", requested); };
+    window.addEventListener("agent:availability-invalidate", invalidated);
+    return () => {
+      window.removeEventListener("focus", focus);
+      window.removeEventListener("agent:availability-refresh", requested);
+      window.removeEventListener("agent:availability-invalidate", invalidated);
+    };
   }, [agentKey, refresh, stateRef]);
   return { status: !agentKey ? "available" as const : stateRef.current.agentAvailability[agentKey] || "checking" as const, retry: () => refresh() };
 }

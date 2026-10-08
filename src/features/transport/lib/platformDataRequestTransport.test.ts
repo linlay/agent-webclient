@@ -2,6 +2,7 @@ import { requestPlatformData } from "@/features/transport/lib/platformDataReques
 import { ensureStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
 import { getDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+import { configureDataRequestExecutor, requestDataThroughExecutor } from "@/shared/data/api/dataRequestExecutor";
 
 jest.mock("@/features/transport/lib/standaloneWsClient", () => ({
   ensureStandaloneWsClient: jest.fn(),
@@ -87,6 +88,18 @@ describe("platformDataRequestTransport", () => {
     });
 
     expect(ensureStandaloneWsClientMock).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])("passes cancellation from the data executor to the active frame client (Desktop=%s)", async desktop => {
+    isDesktopAppModeMock.mockReturnValue(desktop);
+    const client = { connect: jest.fn().mockResolvedValue(undefined), request: jest.fn().mockResolvedValue({ code: 0, data: {} }) };
+    ensureStandaloneWsClientMock.mockResolvedValue(client as never);
+    getDesktopPlatformFrameClientMock.mockReturnValue(client as never);
+    configureDataRequestExecutor(requestPlatformData);
+    const { signal } = new AbortController();
+    await requestDataThroughExecutor("/api/connectors", { agentKey: "demo" }, { signal });
+    expect(client.connect).toHaveBeenCalledWith(signal);
+    expect(client.request).toHaveBeenCalledWith({ type: "/api/connectors", payload: { agentKey: "demo" }, signal });
   });
 
   it("propagates connection failures without an alternate transport", async () => {

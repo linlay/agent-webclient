@@ -39,17 +39,23 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
-“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，只返回 id/name 与非空 description/iconUrl/mutuallyExclusiveWith；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
+目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取；挂载状态复用共享 Agent 和详情缓存，不新增挂载 GET。管理目录、认证和图标沿用各自 HTTP 路径。
 
-`GET /api/agents/connectors?agentKey=<key>` 返回 `{agentKey,connectorIds,reloadPending}`；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`。已保存的源配置决定挂载选择与互斥判断，reloadPending 表示完整配置与运行时仍不一致。开关亮起还要求 `GET /api/connectors/connection` 的实例连接快照已完成配置或明确无需配置；解绑账号后即使源配置仍保留该连接器，开关也显示关闭。无需授权连接器使用后端明确的 configurationRequired:false；旧内置 CLI 的 delegated/not_required 状态继续保留原挂载行为，不以其 configured:false 判断为账号解绑。已配置连接器的准备、验证与 runtime reload 不改变挂载开关。账号授权与挂载独立，关闭已开启的开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收 activeConnectorIds；连接快照仅用于当前菜单的配置完成投影，不保存凭据或授权会话。
+WS `/api/agent` 返回 tools/skills/connectors ID 数组；WS `/api/connectors` 使用可选 `{agentKey}` 读取目录和状态；WS `/api/agents/connectors` 使用 `{agentKey,connectorId,enabled}` 更新单项。Platform 保留旧挂载 GET/WS 读取兼容，WebClient 不再调用。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
 
-旧内置 CLI 的兼容范围使用 Platform 保留的 `builtin.*` 命名空间，按其原挂载选择显示；外部包即使返回 delegated，也必须以实例的配置完成标记判断解绑结果。此范围只影响挂载开关的配置状态投影，认证流程仍依据后端声明，不根据具体连接器名称或 ID 选择认证实现。
+“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，返回 id/name、非空 description/iconUrl/mutuallyExclusiveWith、本地 readiness 与可选 mcp[]（agentKey/serverKey/status/toolCount）；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
-每次打开菜单并行读取挂载与连接快照；菜单保持打开时定期重读本地快照，重新获得焦点或变为可见时立即刷新。状态读取不发起登录、安装或第三方验证。重新开启前再次核对目标连接器；未连接时提示先在连接器中心完成账号连接，不将保存挂载误报为授权成功。连接状态变化保留菜单行序、键盘焦点与搜索条件。解绑后保留的源选择若阻止另一个互斥连接器开启，沿原有冲突提示提供显式取消该选择的操作，不隐式删除其他挂载。
+开关读取 `/api/agent.connectors` 的已保存非预置 ID；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`，响应仍为 `{agentKey,connectorIds,reloadPending}`。目录在指定 Agent 时返回 agentKey 和 reloadPending，表示完整配置与运行时仍不一致；全局目录省略这两个字段。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口；候选目录不接收版本、认证详情、组件清单、技能或 activeConnectorIds。
 
-保存期间显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
+Composer 另用现有 HTTP `GET /api/connectors/connection` 读取连接配置快照，仅保存满足配置条件的 ID 投影；开关开启须同时属于已保存关联和该投影。配置条件取 `configurationRequired/configured`，不以 readiness 推断解绑；已配置但准备中、授权失效或暂不可用仍保留原选择。`no_auth` 无需配置；Platform 保留命名空间 `builtin.*` 中旧版 delegated/not_required CLI 可沿用其自身认证，外部 delegated 包仍须 `configured:true`，因此企业微信解绑后关闭开关。该观察不修改 Agent 源码、认证会话或凭据。
 
-`/agents/:agentKey` 的只读预置区通过 `/api/admin/agents/connectors` 和 `/api/admin/connectors` 展示默认挂载，无修改入口。管理“发起对话”仍使用管理挂载接口的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
+打开菜单、收到 agents/connectors/config 目录更新、窗口重新聚焦及恢复可见时刷新配置快照；菜单持续打开且页面可见时每 30 秒补查配置，不重复读取 Agent，也不探测 CLI。配置投影变化时刷新候选目录以校准可用状态和 MCP 提示；背景配置读取保留已有开关交互。开启前按 ID 再读最新配置，未配置时提示先到连接器中心连接。排序与互斥检查仍使用完整已保存关联；若解绑后保留的选择造成互斥，现有冲突提示提供明确的取消选择动作。
+
+目录状态只读取既有认证/准备及 MCP 同步快照，不执行 CLI 或主动探测上游。菜单打开期间，仅 reloadPending、preparing/pending_verification 或 MCP pending/syncing 每次响应后间隔 2 秒补查目录；状态稳定、读取失败或关闭菜单后停止。未挂载与不可用分别显示，不用可用性推断开关。
+
+保存期间使 Agent 详情缓存与在途可用性检查失效，显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
+
+`/agents/:agentKey` 的能力区通过 `/api/admin/agents/connectors`、`/api/admin/connectors` 与 `/api/admin/tools` 展示预置、声明及当前生效挂载。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。预置带锁，无挂载修改入口。管理“发起对话”仍使用管理挂载接口的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
 
 ## 账号授权
 现有详情页概览中的“账号授权”区域按目录返回的 `auth_mode` 决定交互：`no_auth` 直接显示“无需配置”，不请求认证接口；`null/oauth/mcp` 查询统一状态 API；`null` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid-token` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 使用独立私有凭据弹窗，字段仅来自清单 `token_schema`；实际值不进入 connector.json、cli.json、mcp.json 或对话草稿。兼容旧服务返回的 `cli` 登录模式与 `none` 无需授权模式；当前 Platform 会将旧包中的 `cli/none` 规范化为目录中的 `null`，因此不能只检查旧字符串，也不能把 `null` 当成无需认证。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
@@ -166,3 +172,7 @@ Connection DTO 接收 configurationRequired、authentication、capabilities 和�
 业务导航使用 newChat + 显式 composerDraft（无例文时为空字符串），不携带 composerSkill，不自动发送。输入草稿、上次技能的替换和一次性参数消费归 Chat Composer；管理宿主按相同规则交接。安装包 ID 来自目录和 Platform 响应，不根据 Market 资源 ID 猜测。
 
 Standalone 业务“去对话”在准备/挂载前确认未保存修改，确认与管理台 Router blocker 共用一次性许可。许可绑定当时的连接器、文件、原哈希、草稿编辑版本，并只在操作成功后为精确 pathname/search/hash 授予；任意路由尝试即消费，后续编辑（含撤销恢复同样文字）、保存、取消或失败都不能复用。该许可不清 dirty、不删除草稿、不放行其他目标。包定义的“通过对话创建／修改”在 Standalone 只由最终 Router blocker 确认；Desktop 保留原有前置确认及宿主导航。
+
+### 管理工具归属
+
+`GET /api/admin/connectors` 每项新增 `tools: ToolSummary[]`，包含原生连接器固定所属工具和该连接器各已挂载 MCP 实例的工具快照；MCP 工具保留 `serverKey/mcpToolName`，使用 `mcp[].agentKey` 隔离当前 Agent。`label/description` 从注册定义读取并按现有查看者语言规则解析，隐藏翻译表不回传。`catalogVisible:false` 不阻止所属连接器内展示，但不开放无归属的内部工具。前端连接器列表与详情不再请求 `/api/admin/tools`；该接口只用于独立工具配置，排除原生连接器工具与 MCP 工具。工具详情缺失不在前端硬编码补全。`bash/file_read` 等通用依赖不因被连接器使用而变成连接器所属工具。

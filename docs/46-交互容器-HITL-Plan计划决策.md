@@ -10,7 +10,9 @@ Plan awaiting 是用户对计划进行 approve/reject 决策的交互模式，�
 - 构造 plan submit param 并等待 awaiting answer。
 
 ## 核心流程
-收到 mode 为 plan 的 awaiting ask 后，active awaiting 保存 plan 对象。计划对话框展示 title 与 options，用户选择决策后由 `buildPlanSubmitParam` 生成提交参数。answer 事件确认后清理 active awaiting，并在 timeline 中显示提交结果。
+收到 wire mode 为 planning 的 awaiting ask 后，active awaiting 保存 plan 对象并投影为 plan 模式。计划对话框展示 title，固定渲染本地化的 approve/reject 选项，用户选择决策后由 `buildPlanSubmitParam` 生成提交参数。answer 事件确认后清理 active awaiting，并在 timeline 中显示提交结果。
+
+Plan 选项协议不含 `options[].description`，归一化不读取或保留代理、旧历史携带的该字段。按钮文案由前端按固定 `decision` code 本地化；提交只携带 id、decision、可选 planningId 和拒绝原因 reason。
 
 ## 边界与非目标
 - Awaiting plan 只处理用户决策，不维护任务运行进度。

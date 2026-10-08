@@ -312,3 +312,7 @@
     color: var(--ink-muted);
     margin-bottom: 6px;
 }
+
+:global(.command-modal):global(.is-large-console) :global(.ant-modal-body) {
+    height: min(84dvh, 860px);
+}

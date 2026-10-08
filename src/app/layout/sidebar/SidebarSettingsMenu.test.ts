@@ -45,7 +45,6 @@ describe("buildSidebarSettingsMenuSections", () => {
       "连接器中心",
       "注册配置",
       "记忆管理",
-      "知识库中心",
       "已归档对话",
       "设置",
     ]);

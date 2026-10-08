@@ -36,6 +36,8 @@ export interface Agent {
     [key: string]: unknown;
   };
   role?: string;
+  skills?: string[];
+  connectors?: string[];
   wonders?: string[];
   controls?: AgentControl[];
   modelKey?: string;

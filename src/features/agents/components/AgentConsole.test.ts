@@ -2,6 +2,10 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { I18nProvider } from "@/shared/i18n";
 
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
+  usePushTransport: () => ({ subscribe: () => () => undefined }),
+}));
+
 jest.mock("antd", () => {
   const React = require("react");
   const Input = ({ prefix, ...props }: any) =>

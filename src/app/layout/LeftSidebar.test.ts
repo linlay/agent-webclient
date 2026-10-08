@@ -750,12 +750,12 @@ describe("LeftSidebar", () => {
     const html = renderSidebar();
 
     expect(html).toContain("自动化");
-    expect(html).toContain("记忆");
+    expect(html).toContain("知识库");
     expect(html).toContain("智能体");
     expect(html).not.toContain('data-badge-count="6"');
     expect(html).toContain('data-material-icon="agent_type"');
     expect(html).not.toContain('data-material-icon="robot_2"');
-    for (const name of ["schedule", "psychology", "agent_type"]) {
+    for (const name of ["schedule", "database", "agent_type"]) {
       const icon = html.match(new RegExp(`<span[^>]*data-material-icon="${name}"[^>]*>`))?.[0];
       expect(icon).toBeDefined();
       expect(icon).not.toContain("ui-icon-hover-24-target");

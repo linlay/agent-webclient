@@ -6,7 +6,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { ApiError, type ConnectorOption } from "@/shared/data";
 import { useConnectorPickerCatalog } from "../hooks/useConnectorPickerCatalog";
-import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames } from "../lib/connectorSelection";
+import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames, connectorOptionStatus } from "../lib/connectorSelection";
 import { ConnectorIcon } from "./ConnectorIcon";
 import { ConnectorChatError } from "../lib/connectorChat";
 import styles from "./ConnectorPicker.module.css";
@@ -18,17 +18,17 @@ export interface ConnectorPickerProps {
   selectedIds: string[];
   availableIds?: string[];
   savingId?: string;
+  catalogRevision?: number;
   onSelectionChange: (item: ConnectorOption, selected: boolean) => void;
   disabled?: boolean;
   selectionDisabled?: boolean;
   selectionError?: Error | null;
 }
 
-export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds, availableIds, savingId, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
+export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds, availableIds, savingId, catalogRevision, onSelectionChange, disabled = false, selectionDisabled = false, selectionError }: ConnectorPickerProps) {
   const { t } = useI18n();
-  const catalog = useConnectorPickerCatalog(agentKey);
-  // Only ranking is captured. Availability changes keep row positions stable;
-  // conflict checks still use the Agent's saved mounting state.
+  const catalog = useConnectorPickerCatalog(agentKey, catalogRevision);
+  // Configuration updates preserve ranking; conflicts use saved associations.
   const [mountedIdsAtOpen] = useState(() => new Set(selectedIds));
   const searchRef = useRef<InputRef>(null);
   const [messageApi, messageContextHolder] = message.useMessage();
@@ -51,8 +51,6 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
     if (nextConflict) {
       const text = t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(nextConflict, catalog.items));
       const disconnected = availableIds ? catalog.items.filter(candidate => nextConflict.conflictingConnectorIds.includes(candidate.id) && !availableIds.includes(candidate.id)) : [];
-      // An unlinked account can still be selected in the source. Keep the
-      // existing conflict rule, with an explicit way to remove that saved choice.
       void messageApi.error(disconnected.length ? { content: <span>{text}{disconnected.map(candidate =>
         <UiButton key={candidate.id} size="sm" variant="ghost" onClick={() => onSelectionChange(candidate, false)}>
           {t("composer.addMenu.connectors.removeSelection", { name: candidate.name || candidate.id })}
@@ -85,6 +83,7 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
       {items.map(item => <ConnectorPickerRow key={item.id} item={item}
         selected={selectedIds.includes(item.id) && (!availableIds || availableIds.includes(item.id))} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={changeSelection} />)}
     </div>
+    {catalog.reloadPending && <div className={styles.notice} role="status">{t("composer.addMenu.connectors.reloadPending")}</div>}
   </section>;
 }
 
@@ -97,9 +96,13 @@ function ConnectorPickerRow({ item, selected, saving, disabled, selectionDisable
   onSelectionChange: ConnectorPickerProps["onSelectionChange"];
 }) {
   const { t } = useI18n();
+  const status = connectorOptionStatus(item);
   return <div className={styles.row}>
     <ConnectorIcon item={item} size={18} className={styles.icon} />
-    <span className={styles.name} title={item.description || item.name}>{item.name || item.id}</span>
+    <div className={styles.details}>
+      <span className={styles.name} title={item.name || item.id}>{item.name || item.id}</span>
+      {status && <span className={styles.availability} title={t(`composer.addMenu.connectors.status.${status}`)}>{t(`composer.addMenu.connectors.status.${status}`)}</span>}
+    </div>
     <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled}
       aria-label={t("composer.addMenu.connectors.select", { name: item.name || item.id })}
       onChange={checked => onSelectionChange(item, checked)} />

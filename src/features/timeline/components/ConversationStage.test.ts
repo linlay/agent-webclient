@@ -282,10 +282,10 @@ describe("ConversationStage", () => {
     );
 
     expect(html).toContain("aria-label=\"派生新对话\"");
-    expect(html).toContain("material-symbol-branches");
+    expect(html).toContain("material-symbol-fork-chat");
     expect(html).toContain("耗时 1分1秒");
     expect(html.indexOf('data-material-icon="thumb_down"')).toBeLessThan(
-      html.indexOf('data-material-icon="branches"'),
+      html.indexOf('data-material-icon="fork_chat"'),
     );
     const deriveButton = html.match(/<button\b[^>]*aria-label="派生新对话"[^>]*>/)?.[0];
     expect(deriveButton).toBeDefined();

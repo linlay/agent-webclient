@@ -73,7 +73,9 @@ Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<rel
 
 左侧侧边栏聚合 Agent、Team、对话、pending awaiting、active run 和未读状态。管理页提供 Agent 定义查看、创建、编辑、排序和诊断；Registry 页面管理 provider、model 与非 MCP tools，MCP/CLI/VIEW 连接器安装包、附带技能和组件工具由独立 `/connectors` 页面管理，支持 ZIP 导入和外部包删除；删除前确认并检查 Agent 占用，内置包保持只读。
 
-Composer 连接器候选和挂载开关使用独立的精简接口 `/api/connectors`、`/api/agents/connectors`，隐藏平台预置。智能体管理 `/agents` 显示只读预置连接器，包配置仍在 `/connectors` 查看；默认挂载不可通过开关修改。
+Composer 从 `/api/agent.connectors` 复用关联 ID，`/api/connectors` 提供候选及状态，`/api/agents/connectors` 仅用于单项切换，隐藏平台预置。tools、skills、connectors 都是 ID 数组，toolBindings 留在管理详情，技能展示元数据从技能目录读取。智能体管理 `/agents` 显示只读预置连接器，包配置仍在 `/connectors` 查看；默认挂载不可通过开关修改。
+
+Composer 连接器目录、挂载状态和开关写入统一经请求路由：Platform 复用主 WS，Desktop 复用 Frame Port/Broker，Gateway 当前保持 HTTP。Agent 沿用详情缓存与请求合并，目录不缓存；WS 失败不回退 HTTP 或自动重放写入。
 
 ![侧边栏与管理入口](docs/images/screenshots/sidebar-management.png)
 

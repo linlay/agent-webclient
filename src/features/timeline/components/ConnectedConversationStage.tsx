@@ -1607,7 +1607,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
           loading={derivingRunId === runId} title={t("timeline.run.deriveChat")}
           aria-label={t("timeline.run.deriveChat")} disabled={deriveChatAction.isDisabled(runId)}
-          onClick={() => handleDeriveChat(runId)}><MaterialIcon name="branches" /></UiButton>
+          onClick={() => handleDeriveChat(runId)}><MaterialIcon name="fork_chat" /></UiButton>
       </div>
     </div>;
   };

@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/shared/data/api/dto/common";
+import type { DataRequestOptions } from "@/shared/data/api/dataRequestExecutor";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { ensureStandaloneWsClient } from "@/features/transport/lib/standaloneWsClient";
 import type { PlatformFrameClient } from "@/features/transport/lib/platformFrameClient";
@@ -26,8 +27,9 @@ async function resolveDataRequestClient(): Promise<PlatformFrameClient> {
 export async function requestPlatformData<T>(
   type: string,
   payload: unknown,
+  options?: DataRequestOptions,
 ): Promise<ApiResponse<T>> {
   const client = await resolveDataRequestClient();
-  await client.connect();
-  return client.request<T>({ type, payload });
+  await client.connect(options?.signal);
+  return client.request<T>({ type, payload, ...(options?.signal ? { signal: options.signal } : {}) });
 }

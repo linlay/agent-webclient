@@ -91,6 +91,8 @@ const AgentFormSection: React.FC<AgentFormSectionProps> = ({
 };
 
 export interface AgentEditorProps {
+  connectors?: React.ReactNode;
+  toolsManagementDisabled?: boolean;
   t: I18nContextValue["t"];
   form: AgentFormState;
   formError: string;
@@ -335,12 +337,9 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
         <div className="agent-basic-runtime">
           <div className="agent-subsection-heading">
             <MaterialIcon name="play_circle" />
-            <h3>{t("agentConsole.basic.runtimeTitle")}</h3>
+            <h3 id="agent-mode-label">{t("agentConsole.basic.runtimeTitle")}</h3>
           </div>
           <div className="field-group">
-            <span id="agent-mode-label" className="field-label">
-              {t("agentConsole.field.mode")}
-            </span>
             <div
               id="agent-mode-options"
               className="agent-choice-grid agent-mode-choice-grid"
@@ -354,27 +353,25 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                   t,
                 );
                 return (
-                  <label
-                    key={option.value}
-                    className={`agent-choice-card ${form.mode === option.value ? "is-selected" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="agent-mode"
-                      value={option.value}
-                      checked={form.mode === option.value}
-                      onChange={() => setMode(option.value)}
-                    />
-                    <MaterialIcon name={presentation.icon} />
-                    <span className="agent-choice-card-copy">
-                      <span className="agent-choice-card-title">
-                        {presentation.label}
+                  <Tooltip key={option.value} title={presentation.description} trigger={["hover", "focus"]}>
+                    <label
+                      className={`agent-choice-card ${form.mode === option.value ? "is-selected" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="agent-mode"
+                        value={option.value}
+                        checked={form.mode === option.value}
+                        onChange={() => setMode(option.value)}
+                      />
+                      <MaterialIcon name={presentation.icon} />
+                      <span className="agent-choice-card-copy">
+                        <span className="agent-choice-card-title">
+                          {presentation.label}
+                        </span>
                       </span>
-                      <span className="agent-choice-card-description">
-                        {presentation.description}
-                      </span>
-                    </span>
-                  </label>
+                    </label>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -398,34 +395,32 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                   t,
                 );
                 return (
-                  <label
-                    key={option.value}
-                    className={`agent-choice-card ${checked ? "is-selected" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      value={option.value}
-                      checked={checked}
-                      onChange={() =>
-                        updateForm({
-                          visibilityScopes: checked
-                            ? form.visibilityScopes.filter(
-                                (scope) => scope !== option.value,
-                              )
-                            : [...form.visibilityScopes, option.value],
-                        })
-                      }
-                    />
-                    <MaterialIcon name={presentation.icon} />
-                    <span className="agent-choice-card-copy">
-                      <span className="agent-choice-card-title">
-                        {presentation.label}
+                  <Tooltip key={option.value} title={presentation.description} trigger={["hover", "focus"]}>
+                    <label
+                      className={`agent-choice-card ${checked ? "is-selected" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        value={option.value}
+                        checked={checked}
+                        onChange={() =>
+                          updateForm({
+                            visibilityScopes: checked
+                              ? form.visibilityScopes.filter(
+                                  (scope) => scope !== option.value,
+                                )
+                              : [...form.visibilityScopes, option.value],
+                          })
+                        }
+                      />
+                      <MaterialIcon name={presentation.icon} />
+                      <span className="agent-choice-card-copy">
+                        <span className="agent-choice-card-title">
+                          {presentation.label}
+                        </span>
                       </span>
-                      <span className="agent-choice-card-description">
-                        {presentation.description}
-                      </span>
-                    </span>
-                  </label>
+                    </label>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -539,6 +534,8 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
         title={t("agentConsole.section.capabilities")}
       >
         <AgentCapabilitiesEditor
+          connectors={props.connectors}
+          toolsManagementDisabled={props.toolsManagementDisabled}
           contextOptions={contextTagOptions.map((option) => {
             const presentation = contextOptionPresentation(option.value);
             return {

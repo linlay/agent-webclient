@@ -19,9 +19,9 @@ describe("connector catalog and definitions", () => {
   });
   it("assigns all MCP components by exact server key without prefix guessing", () => {
     const tools = [tool("main", "search"), tool("extra", "search.extra"), tool("neighbor", "search.other"), tool("missing"), tool("local", "search", "platform")];
-    expect(toolsForConnector(tools, mixed).map(item => item.key)).toEqual(["main", "extra"]);
+    expect(toolsForConnector({...mixed, tools}).map(item => item.key)).toEqual(["main", "extra"]);
     expect(unassignedConnectorTools(tools, [mixed, cli]).map(item => item.key)).toEqual(["neighbor", "missing"]);
-    expect(toolsForConnector(tools, cli)).toEqual([]);
+    expect(toolsForConnector({...cli, tools})).toEqual([]);
   });
   it("displays the exact original MCP name and only strips known generated prefixes from older responses", () => {
     const prefixed = tool("mcp_0006cb5d2c648af7_sheet_unset_freeze", "docs");
@@ -65,5 +65,5 @@ it("lists native tools and native.json without granting CLI or MCP", () => {
  expect(filterConnectors([desktop, mixed], "", "native")).toEqual([desktop]);
  expect(filterConnectors([desktop], "", "cli")).toEqual([]);
  expect(connectorFiles(desktop)).toEqual(["connector.json", "native.json"]);
- expect(toolsForConnector([tool("desktop_shell", undefined, "platform"), tool("bash", undefined, "platform")], desktop).map(value => value.key)).toEqual(["desktop_shell"]);
+ expect(toolsForConnector({...desktop, tools: [tool("desktop_shell", undefined, "platform"), tool("bash", undefined, "platform")]}).map(value => value.key)).toEqual(["desktop_shell"]);
 });

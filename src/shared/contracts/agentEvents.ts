@@ -258,7 +258,6 @@ export interface AIAwaitPlanInput {
 
 export interface AIAwaitPlanOption {
   label?: string;
-  description?: string;
   decision: AIAwaitPlanDecision;
   input?: AIAwaitPlanInput;
 }

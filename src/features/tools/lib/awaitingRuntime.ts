@@ -369,11 +369,9 @@ function normalizePlan(value: unknown): AIAwaitPlan | null {
                   }
                 : undefined;
             const label = toText(item.label);
-            const description = toText(item.description);
             return {
               decision: toText(item.decision) as AIAwaitPlanDecision,
               ...(label ? { label } : {}),
-              ...(description ? { description } : {}),
               ...(normalizedInput?.type === 'text'
                 ? { input: normalizedInput }
                 : {}),

@@ -22,6 +22,7 @@ import {
 } from "@/features/runs/lib/runRuntimeState";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunEditingMode } from "@/features/runs/lib/editingMode";
+import { resolveRunAccessLevel } from "@/features/runs/lib/accessLevel";
 import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import { buildLoadedChatUsageSnapshot } from "@/features/conversation/lib/conversationPayload";
 import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
@@ -801,6 +802,9 @@ export function useConversationActions() {
             loadedOwner,
           );
           const activeRunId = String(currentChatActiveRun?.runId || "").trim();
+          const runAccessLevel = resolveRunAccessLevel({
+            chatId, activeRun: currentChatActiveRun, events,
+          });
           const downvotedRunKeys = new Set<string>();
           const runs = Array.isArray(chatData.runs) ? chatData.runs : [];
           for (const rawRun of runs) {
@@ -881,6 +885,14 @@ export function useConversationActions() {
                 downvotedRunKeys,
               },
             });
+            if (runAccessLevel) {
+              dispatch({
+                type: "SYNC_COMPOSER_ACCESS_LEVEL",
+                chatId,
+                value: runAccessLevel.accessLevel,
+                initializeOnly: !currentChatActiveRun,
+              });
+            }
             dispatch({
               type: "SET_CHAT_TRANSITION_DISPLAY_MODE",
               seq,

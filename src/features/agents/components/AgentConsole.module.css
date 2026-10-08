@@ -1404,6 +1404,10 @@
     outline-offset: 1px;
 }
 
+:global(.agent-basic-runtime) label:global(.agent-choice-card) {
+    min-height: 44px;
+}
+
 :global(.agent-choice-card) input {
     order: 3;
     width: var(--ui-icon-size-sm);

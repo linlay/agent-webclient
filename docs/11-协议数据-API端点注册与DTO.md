@@ -16,6 +16,8 @@
 
 `GET /api/agent?agentKey=...` 的 `AgentDetailResponse` 保留 `greetings?: string[]` 并新增 `introductions?: string[]`：分别供新会话主标题和输入框 placeholder 随机展示。两个字段不进入 `/api/agents` 列表摘要，管理台通过现有详情和保存接口读写同名配置数组。
 
+`AgentDetailResponse` 的 tools、skills、connectors 都是 string[]，不携带 toolBindings 或技能展示对象。tools/skills 反映已发布的运行时，connectors 反映已保存的非预置挂载；活动 Run 延后生效时不回滚开关。AdminAgentDetailResponse 和 AdminAgentSaveResponse 独立保留 toolBindings，管理表单继续使用 definition。Composer 的 skills 展示名与 description 读取 `/api/skills`；连接器目录返回本地 readiness、MCP 同步快照和 Agent 范围的 reloadPending，不复制认证详情。
+
 Agent 顺序有两条 HTTP-only 数据边界：普通客户端通过 `GET/PUT /api/agents/order` 读取和提交全部有效 runtime Agent 的 catalog 顺序；Agent 管理台从 `/api/admin/agents` 的列表顺序初始化，并通过 `PUT /api/admin/agents/order` 提交包含 invalid Agent 的完整 admin 顺序。两者复用 `AgentOrderResponse { version, order, updatedAt? }`，其中未生成顺序文件时 `updatedAt` 可以省略；前端不把 public endpoint 注册为 WebSocket route，也不把管理台切到 public mutation。
 
 静态 HTML 导出并行请求 `GET /api/chat/export?chatId=...&format=snapshot` 与 `CONVERSATION_EXPORT_ASSET_ORIGIN/assets/conversation-export/conversation.template.html`。Snapshot 保持 Blob，service 层只解析小体积模板并用 Blob parts 组装完整文档；Platform 不提供 HTML 格式。公开分享由 Desktop 直接向 Tunnel 上传 Snapshot，Tunnel 使用同一当前模板生成页面。`src/shared/data/conversationSharePath.ts` 只负责将合法 `shareId` 构造成 `/share/{id}` 路径。

@@ -82,6 +82,7 @@ export type ComposerAction =
   | { type: "RESTORE_FAILED_SUBMISSION"; requestId: string }
   | { type: "SET_SKILL_REJECTION"; rejection: ComposerState["skillRejection"] }
   | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel; initializeOnly?: boolean }
+  | { type: "SYNC_COMPOSER_ACCESS_LEVEL"; chatId: string; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
   | { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
   | ComposerSteerAction

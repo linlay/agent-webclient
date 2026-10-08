@@ -152,7 +152,7 @@ export function ConnectorsConsole({
       if (!runtime.dirty && runtime.selectFile("connector.json")) setSkillsConnectorId(null);
     },
   });
-  const tools = selected ? toolsForConnector(runtime.tools, selected) : [];
+  const tools = selected ? toolsForConnector(selected) : [];
   const unassigned = unassignedConnectorTools(runtime.tools, runtime.items);
 
   const renderItem = (item: (typeof items)[number]) => {

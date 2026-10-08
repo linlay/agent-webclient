@@ -339,7 +339,7 @@ describe('reduceActiveAwaiting', () => {
     ]);
   });
 
-  it('opens plan awaitings from a single plan object', () => {
+  it('opens plan awaitings and discards obsolete option descriptions', () => {
     const asked = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_plan_1',
@@ -352,8 +352,8 @@ describe('reduceActiveAwaiting', () => {
         id: 'confirm',
         planningId: 'run_plan_1_planning_1',
         options: [
-          { decision: 'approve' },
-          { decision: 'reject' },
+          { decision: 'approve', description: '旧后端同意说明' },
+          { decision: 'reject', description: '旧后端拒绝说明' },
           { label: '无效选项', decision: 'unknown' },
         ],
       },
@@ -374,6 +374,13 @@ describe('reduceActiveAwaiting', () => {
         ],
       },
     });
+    if (asked?.mode !== 'plan') {
+      throw new Error('expected plan awaiting');
+    }
+    expect(asked.plan.options).toEqual([
+      { decision: 'approve' },
+      { decision: 'reject' },
+    ]);
   });
 
   it('keeps html forms without action when form data is present', () => {

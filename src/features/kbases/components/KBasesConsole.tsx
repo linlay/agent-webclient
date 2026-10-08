@@ -3,6 +3,7 @@ import { Alert, Empty, Spin } from "antd";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
+import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import type { KnowledgeBase } from "@/shared/data/api/dto/kbases";
@@ -13,7 +14,13 @@ import { KBaseEditor } from "./KBaseEditor";
 import { KBaseStateTag } from "./KBaseStateTag";
 import styles from "./KBasesConsole.module.css";
 
-export function KBasesConsole() {
+interface KBasesConsoleProps {
+  embedded?: boolean;
+  onClose?: () => void;
+  titleBarVariant?: "default" | "drawer";
+}
+
+export function KBasesConsole({ embedded = false, onClose, titleBarVariant = "default" }: KBasesConsoleProps = {}) {
   const { items, loading, error, reload } = useKBases();
   const [selected, select] = useState("");
   const [filter, setFilter] = useState("");
@@ -29,7 +36,8 @@ export function KBasesConsole() {
   const search = filter.trim().toLowerCase();
   const visible = items.filter(item => `${item.name} ${item.description} ${libraryCollections(item).map(c => c.name).join(" ")}`.toLowerCase().includes(search));
 
-  return <div className={styles.root}>
+  return <div className={`${styles.root} ${embedded ? styles.embedded : ""}`}>
+    {embedded && <ModalTitleBar title={t("settingsMenu.knowledgeBase")} variant={titleBarVariant} onClose={() => onClose?.()} />}
     <div className={styles.layout} style={{ "--kbase-list-width": `${listWidth}px` } as React.CSSProperties}>
       <aside className={styles.sidebar}>
         <div className={styles.listToolbar}>

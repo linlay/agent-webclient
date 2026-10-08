@@ -1,3 +1,4 @@
+import type { AdminAgentDetailResponse } from "../dto/agents";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
 import type {
   ConnectorDefinition, ConnectorDefinitionTarget, ConnectorListResponse,
@@ -17,11 +18,6 @@ export function getAdminConnectors(): Promise<ApiResponse<ConnectorListResponse>
   return requestJson<ConnectorListResponse>(dataEndpoints.adminConnectors.path);
 }
 
-export function getAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
-  const endpoint = dataEndpoints.agentConnectors;
-  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
-}
-
 export function setAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
   const endpoint = dataEndpoints.agentConnectorUpdate;
   return requestJson(endpoint.path, { method: endpoint.method, body: JSON.stringify(params), cache: "no-store", ...(signal ? { signal } : {}) });
@@ -32,9 +28,20 @@ export function getConnectors(agentKey = "", signal?: AbortSignal): Promise<ApiR
   return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
 }
 
-export function getAdminAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {
+export async function getAdminAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {
   const endpoint = dataEndpoints.adminAgentConnectors;
-  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
+  const response = await requestJson<AdminAgentDetailResponse>(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
+  if (!response.data.connectorBindings) throw new Error("Agent connector bindings unavailable");
+  const bindings = response.data.connectorBindings;
+  // The mounting workflow still consumes the write endpoint's selection DTO.
+  return { ...response, data: {
+    agentKey: response.data.key,
+    connectorIds: bindings.filter(item => !item.pendingRemoval).map(item => item.id),
+    presetConnectorIds: bindings.filter(item => item.source === "preset" && !item.pendingRemoval).map(item => item.id),
+    declaredConnectorIds: bindings.filter(item => item.source === "agent" && !item.pendingRemoval).map(item => item.id),
+    activeConnectorIds: bindings.filter(item => item.active).map(item => item.id),
+    reloadPending: response.data.reloadPending || false,
+  } };
 }
 
 export function setAdminAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {

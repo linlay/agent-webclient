@@ -26,3 +26,23 @@ export function withAgentToolBindings(options: AgentToolOption[], bindings?: Age
   }
   return result;
 }
+
+/** Keep connector-owned tools out of the editor without changing YAML declarations. */
+export function projectAgentTools(
+  options: AgentToolOption[],
+  bindings: AgentToolBinding[] | null | undefined,
+  declared: string[],
+  connectorToolNames: string[],
+): { available: AgentToolOption[]; selected: AgentToolOption[] } {
+  const connectorTools = new Set([
+    ...connectorToolNames,
+    ...options.filter(tool => tool.sourceCategory === "mcp").map(tool => tool.key),
+  ]);
+  const available = withAgentToolBindings(options, bindings).filter(tool => !connectorTools.has(tool.key));
+  const byKey = new Map(available.map(tool => [tool.key, tool]));
+  const selected = [...new Set([
+    ...available.filter(tool => tool.binding && (!tool.binding.removable || tool.binding.excluded)).map(tool => tool.key),
+    ...declared.filter(key => !connectorTools.has(key)),
+  ])].map(key => byKey.get(key) || { key, label: key, sourceCategory: "", kind: "" });
+  return { available, selected };
+}

@@ -1,13 +1,28 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { getAgentConnectors, getConnectorConnection, getConnectorConnections, setAgentConnector, type ConnectorConnection } from "@/shared/data";
+import { getAgent, getConnectorConnection, getConnectorConnections, setAgentConnector, type ConnectorConnection } from "@/shared/data";
+import { createInitialState } from "@/app/state/state";
+import { appReducer } from "@/app/state/reducer";
 import { useAgentConnectors } from "./useAgentConnectors";
+import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
+import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
+import { requestDataThroughExecutor } from "@/shared/data/api/dataRequestExecutor";
 
-jest.mock("@/shared/data", () => ({ getAgentConnectors: jest.fn(), getConnectorConnection: jest.fn(), getConnectorConnections: jest.fn(), setAgentConnector: jest.fn() }));
+jest.mock("@/shared/data", () => ({ getAgent: jest.fn(), getConnectorConnection: jest.fn(), getConnectorConnections: jest.fn(), setAgentConnector: jest.fn() }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
-jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
-const response = (key: string, ids: string[], reloadPending = false) => ({ code: 0, msg: "", data: { agentKey: key, connectorIds: ids, reloadPending } });
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push, useOptionalRealtimeTransport: () => null }));
+jest.mock("@/shared/data/api/routedClient", () => ({ ...jest.requireActual("@/shared/data/api/routedClient"), invalidateAgentDetail: jest.fn() }));
+jest.mock("@/shared/data/api/dataRequestExecutor", () => ({ requestDataThroughExecutor: jest.fn() }));
+const mockStateRef = { current: createInitialState() };
+const mockListeners = new Set<() => void>();
+const mockDispatch = jest.fn();
+jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => ({
+  state: React.useSyncExternalStore(listener => { mockListeners.add(listener); return () => mockListeners.delete(listener); }, () => mockStateRef.current),
+  stateRef: mockStateRef, dispatch: mockDispatch,
+}) }));
+const response = (key: string, ids: string[]) => ({ code: 0, msg: "", data: { key, name: key, mode: "GENERAL", tools: [], skills: [], connectors: ids, controls: [], meta: {} } });
+const saved = (key: string, ids: string[]) => ({ code: 0, msg: "", data: { agentKey: key, connectorIds: ids, reloadPending: true } });
 const connection = (id: string, changes: Partial<ConnectorConnection> = {}): ConnectorConnection => ({
   connectorId: id, configured: true, configurationRequired: true, readiness: "ready",
   authentication: { connectorId: id, sessionId: "", status: "authorized", expiresAt: "" },
@@ -22,130 +37,181 @@ function Harness({ agentKey }: { agentKey: string }) { runtime = useAgentConnect
 const mount = async (agentKey = "zenmi") => { await act(async () => root.render(React.createElement(Harness, { agentKey }))); };
 
 beforeEach(() => {
-  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   jest.useFakeTimers();
   jest.resetAllMocks();
   push.subscribe.mockReturnValue(jest.fn());
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("zenmi", ["docs", "meeting"]));
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(connection("docs"), connection("meeting"), connection("mail")));
   jest.mocked(getConnectorConnection).mockImplementation(async id => ({ code: 0, msg: "", data: connection(id) }));
+  mockStateRef.current = { ...createInitialState(), agents: [response("zenmi", ["docs", "meeting"]).data, response("other", ["mail"]).data], agentAvailability: { zenmi: "available", other: "available" } };
+  mockDispatch.mockImplementation(action => { mockStateRef.current = appReducer(mockStateRef.current, action); mockListeners.forEach(listener => listener()); });
+  jest.mocked(getAgent).mockResolvedValue(response("zenmi", ["meeting"]));
   root = createRoot(document.createElement("div"));
 });
 afterEach(async () => { await act(async () => root.unmount()); jest.useRealTimers(); });
 
-it("initializes from zenmi's configured connectors and persists a single switch before changing it", async () => {
+it("reuses Agent associations on opening and publishes one saved switch to shared Agent state", async () => {
   await mount();
-  expect(getAgentConnectors).toHaveBeenCalledWith("zenmi");
+  expect(getAgent).not.toHaveBeenCalled();
   expect(runtime.data?.connectorIds).toEqual(["docs", "meeting"]);
-  const saved = deferred<ReturnType<typeof response>>();
-  jest.mocked(setAgentConnector).mockReturnValueOnce(saved.promise);
+  const pending = deferred<ReturnType<typeof saved>>();
+  jest.mocked(setAgentConnector).mockReturnValueOnce(pending.promise);
   await act(async () => { void runtime.setSelected("docs", false); void runtime.setSelected("docs", false); });
   expect(setAgentConnector).toHaveBeenCalledTimes(1);
   expect(setAgentConnector).toHaveBeenCalledWith({ agentKey: "zenmi", connectorId: "docs", enabled: false });
-  expect(runtime.savingId).toBe("docs");
   expect(runtime.data?.connectorIds).toContain("docs");
-  await act(async () => saved.resolve(response("zenmi", ["meeting"], true)));
+  await act(async () => pending.resolve(saved("zenmi", ["meeting"])));
   expect(runtime.data?.connectorIds).toEqual(["meeting"]);
-  expect(runtime.data?.reloadPending).toBe(true);
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("zenmi", ["meeting"]));
-  await act(async () => jest.advanceTimersByTime(2_000));
-  expect(runtime.data?.reloadPending).toBe(false);
+  expect(mockStateRef.current.agents[0].connectors).toEqual(["meeting"]);
+  expect(runtime.catalogRevision).toBe(1);
+  expect(getAgent).not.toHaveBeenCalled();
 });
 
-it("ignores a late save from the previous agent", async () => {
+it("waits for Composer Agent hydration without creating a second reader", async () => {
+  mockStateRef.current.agents = [{ key: "zenmi", name: "zenmi" }];
+  mockStateRef.current.agentAvailability.zenmi = "checking";
   await mount();
-  const saved = deferred<ReturnType<typeof response>>();
-  jest.mocked(setAgentConnector).mockReturnValueOnce(saved.promise);
-  await act(async () => { void runtime.setSelected("docs", false); });
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("other", ["mail"]));
-  await mount("other");
-  await act(async () => saved.resolve(response("zenmi", ["meeting"])));
-  expect(runtime.data).toMatchObject({ agentKey: "other", connectorIds: ["mail"] });
-  expect(runtime.savingId).toBe("");
+  expect(runtime.data).toBeNull();
+  expect(runtime.loading).toBe(true);
+  expect(getAgent).not.toHaveBeenCalled();
+  await act(async () => {
+    mockDispatch({ type: "SET_AGENTS", agents: [response("zenmi", ["docs"]).data] });
+    mockDispatch({ type: "SET_AGENT_AVAILABILITY", agentKey: "zenmi", status: "available" });
+  });
+  expect(runtime.data?.connectorIds).toEqual(["docs"]);
+  expect(getAgent).not.toHaveBeenCalled();
 });
 
-it("ignores stale reads from the previous agent and does not query an empty agent key", async () => {
-  const old = deferred<ReturnType<typeof response>>();
-  jest.mocked(getAgentConnectors).mockReturnValueOnce(old.promise);
+it("loads a missing detail through /api/agent and never queries an empty key", async () => {
+  mockStateRef.current.agents = [];
   await mount();
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("other", []));
-  await mount("other");
-  await act(async () => old.resolve(response("zenmi", ["docs"])));
-  expect(runtime.data?.agentKey).toBe("other");
+  expect(getAgent).toHaveBeenCalledWith("zenmi");
+  expect(runtime.data?.connectorIds).toEqual(["meeting"]);
   await mount("");
   expect(runtime.data).toBeNull();
-  expect(getAgentConnectors).toHaveBeenCalledTimes(2);
+  expect(getAgent).toHaveBeenCalledTimes(1);
 });
 
-it("re-reads source after a failed save and retains a visible error", async () => {
+it("ignores a late save and read after changing Agent", async () => {
   await mount();
-  jest.mocked(setAgentConnector).mockRejectedValueOnce(new Error("reload failed"));
-  await act(async () => runtime.setSelected("docs", false));
+  const pending = deferred<ReturnType<typeof saved>>();
+  jest.mocked(setAgentConnector).mockReturnValueOnce(pending.promise);
+  await act(async () => { void runtime.setSelected("docs", false); });
+  await mount("other");
+  await act(async () => pending.resolve(saved("zenmi", ["meeting"])));
+  expect(runtime.data).toMatchObject({ agentKey: "other", connectorIds: ["mail"] });
+  const read = deferred<ReturnType<typeof response>>();
+  jest.mocked(getAgent).mockReturnValueOnce(read.promise);
+  await act(async () => { void runtime.refresh(); });
+  await mount("zenmi");
+  await act(async () => read.resolve(response("other", [])));
   expect(runtime.data?.connectorIds).toEqual(["docs", "meeting"]);
-  expect(runtime.saveError?.message).toBe("reload failed");
-  expect(runtime.savingId).toBe("");
-  expect(getAgentConnectors).toHaveBeenCalledTimes(2);
 });
 
-it("refreshes external edits and prevents saving after a failed configuration read", async () => {
+it("confirms source through Agent after a lost save response and keeps the diagnostic", async () => {
   await mount();
-  const listener = (push.subscribe.mock.calls as unknown as Array<[unknown, (frame: unknown) => void]>)[0][1];
-  jest.mocked(getAgentConnectors).mockResolvedValueOnce(response("zenmi", ["mail"]));
-  await act(async () => listener({ type: "catalog.updated", data: { reason: "agents" } }));
-  expect(runtime.data?.connectorIds).toEqual(["mail"]);
-  jest.mocked(getAgentConnectors).mockRejectedValueOnce(new Error("offline"));
+  jest.mocked(setAgentConnector).mockRejectedValueOnce(new Error("response lost"));
+  await act(async () => runtime.setSelected("docs", false));
+  expect(getAgent).toHaveBeenCalledWith("zenmi");
+  expect(runtime.data?.connectorIds).toEqual(["meeting"]);
+  expect(runtime.saveError?.message).toBe("response lost");
+  jest.mocked(getAgent).mockRejectedValueOnce(new Error("offline"));
   await act(async () => runtime.refresh());
-  await act(async () => runtime.setSelected("mail", false));
+  await act(async () => runtime.setSelected("meeting", false));
   expect(runtime.loadError?.message).toBe("offline");
+  expect(setAgentConnector).toHaveBeenCalledTimes(1);
+});
+
+it("deduplicates lost-response confirmation with Composer availability through the real Agent cache", async () => {
+  const routed = jest.requireActual("@/shared/data/api/routedClient");
+  jest.requireActual("@/shared/data/query/serverState").dataQueryCache.clear();
+  jest.mocked(invalidateAgentDetail).mockImplementation(routed.invalidateAgentDetail);
+  jest.mocked(getAgent).mockImplementation(routed.getAgent);
+  jest.mocked(requestDataThroughExecutor).mockResolvedValue(response("zenmi", ["docs", "meeting"]));
+  function CombinedHarness() {
+    useAgentAvailability("zenmi", "");
+    return React.createElement(Harness, { agentKey: "zenmi" });
+  }
+  await act(async () => root.render(React.createElement(CombinedHarness)));
+  jest.mocked(requestDataThroughExecutor).mockClear().mockResolvedValue(response("zenmi", ["meeting"]));
+  jest.mocked(setAgentConnector).mockRejectedValueOnce(new Error("response lost"));
+  await act(async () => runtime.setSelected("docs", false));
+  expect(requestDataThroughExecutor).toHaveBeenCalledTimes(1);
+  expect(requestDataThroughExecutor).toHaveBeenCalledWith("/api/agent", { agentKey: "zenmi" });
+  expect(runtime.data?.connectorIds).toEqual(["meeting"]);
+  expect(runtime.saveError?.message).toBe("response lost");
+  expect(mockStateRef.current.agentAvailability.zenmi).toBe("available");
+});
+
+it("rejects a missing associations field rather than treating every connector as off", async () => {
+  mockStateRef.current.agents = [];
+  jest.mocked(getAgent).mockResolvedValue({ ...response("zenmi", []), data: { ...response("zenmi", []).data, connectors: undefined } } as never);
+  await mount();
+  expect(runtime.data).toBeNull();
+  expect(runtime.loadError?.message).toContain("unavailable");
+  await act(async () => runtime.setSelected("docs", true));
   expect(setAgentConnector).not.toHaveBeenCalled();
 });
 
-it("observes WeCom disconnect independently of saved mounts and keeps no_auth connectors available", async () => {
+it("observes account unlink independently of saved associations and keeps no_auth connectors available", async () => {
   const dbx = connection("builtin.dbx", {
     configured: false, configurationRequired: false, readiness: "no_auth",
     authentication: { connectorId: "builtin.dbx", sessionId: "", status: "no_auth", expiresAt: "" },
     capabilities: { ...connection("builtin.dbx").capabilities, authMode: "no_auth", authBrowser: "" },
   });
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("zenmi", ["wecom", "builtin.dbx"]));
+  mockStateRef.current.agents[0].connectors = ["wecom", "builtin.dbx"];
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(connection("wecom"), dbx));
   await mount();
   expect(runtime.availableIds).toEqual(["wecom", "builtin.dbx"]);
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(connection("wecom", { configured: false, readiness: "configuration_required" }), dbx));
   await act(async () => window.dispatchEvent(new Event("focus")));
   expect(runtime.data?.connectorIds).toEqual(["wecom", "builtin.dbx"]);
+  expect(mockStateRef.current.agents[0].connectors).toEqual(["wecom", "builtin.dbx"]);
   expect(runtime.availableIds).toEqual(["builtin.dbx"]);
+  expect(runtime.catalogRevision).toBe(1);
   expect(setAgentConnector).not.toHaveBeenCalled();
+  expect(getAgent).not.toHaveBeenCalled();
   await act(async () => root.render(null));
   await mount();
   expect(runtime.availableIds).toEqual(["builtin.dbx"]);
 });
 
-it("refreshes shared connection state while the menu stays open without changing mounts", async () => {
+it("refreshes only configuration on push and periodic checks without fading switches or duplicating Agent reads", async () => {
   await mount();
-  jest.mocked(getConnectorConnections).mockResolvedValue(connections(connection("docs", { configured: false, readiness: "configuration_required" }), connection("meeting")));
+  const listener = (push.subscribe.mock.calls as unknown as Array<[unknown, (frame: unknown) => void]>)[0][1];
+  await act(async () => listener({ type: "catalog.updated", data: { reason: "connectors" } }));
+  expect(runtime.catalogRevision).toBe(0);
+  const pending = deferred<ReturnType<typeof connections>>();
+  jest.mocked(getConnectorConnections).mockReturnValueOnce(pending.promise);
   await act(async () => jest.advanceTimersByTime(30_000));
+  expect(runtime.loading).toBe(false);
   expect(runtime.data?.connectorIds).toEqual(["docs", "meeting"]);
+  await act(async () => pending.resolve(connections(connection("docs", { configured: false, readiness: "configuration_required" }), connection("meeting"))));
   expect(runtime.availableIds).toEqual(["meeting"]);
+  expect(runtime.catalogRevision).toBe(1);
+  expect(getAgent).not.toHaveBeenCalled();
   expect(setAgentConnector).not.toHaveBeenCalled();
 });
 
-it("rechecks a connector before enabling and rejects a disconnected account without mounting it", async () => {
+it("rechecks before enabling and rejects an unlinked account without changing saved associations", async () => {
+  jest.mocked(getAgent).mockResolvedValue(response("zenmi", ["docs", "meeting"]));
   await mount();
   jest.mocked(getConnectorConnection).mockResolvedValueOnce({ code: 0, msg: "", data: connection("docs", { configured: false, readiness: "configuration_required" }) });
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(connection("docs", { configured: false, readiness: "configuration_required" }), connection("meeting")));
   await act(async () => runtime.setSelected("docs", true));
   expect(setAgentConnector).not.toHaveBeenCalled();
   expect(runtime.saveError?.message).toBe("connectors.chat.configurationRequired");
+  expect(runtime.data?.connectorIds).toEqual(["docs", "meeting"]);
   expect(runtime.availableIds).toEqual(["meeting"]);
   expect(runtime.savingId).toBe("");
-  jest.mocked(setAgentConnector).mockResolvedValue(response("zenmi", ["docs", "meeting"]));
+  jest.mocked(setAgentConnector).mockResolvedValue(saved("zenmi", ["docs", "meeting"]));
   await act(async () => runtime.setSelected("docs", true));
   expect(setAgentConnector).toHaveBeenCalledTimes(1);
   expect(runtime.availableIds).toContain("docs");
   expect(runtime.saveError).toBeNull();
 });
 
-it("keeps unreadable connection state as a retryable load error and prevents edits", async () => {
+it("keeps unreadable connection configuration retryable and prevents edits", async () => {
   jest.mocked(getConnectorConnections).mockRejectedValueOnce(new Error("connection state offline"));
   await mount();
   expect(runtime.data).toBeNull();
@@ -158,10 +224,10 @@ it("keeps unreadable connection state as a retryable load error and prevents edi
   expect(runtime.availableIds).toContain("docs");
 });
 
-it.each(["preparing", "pending_verification", "authorization_required", "unavailable"])("preserves configured mounting through %s instead of treating it as account unlink", async readiness => {
+it.each(["preparing", "pending_verification", "authorization_required", "unavailable"])("preserves configured mounting through %s rather than treating readiness as unlink", async readiness => {
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(connection("docs", { readiness })));
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: connection("docs", { readiness }) });
-  jest.mocked(setAgentConnector).mockResolvedValue(response("zenmi", ["docs"]));
+  jest.mocked(setAgentConnector).mockResolvedValue(saved("zenmi", ["docs"]));
   await mount();
   expect(runtime.availableIds).toEqual(["docs"]);
   await act(async () => runtime.setSelected("docs", true));
@@ -169,14 +235,14 @@ it.each(["preparing", "pending_verification", "authorization_required", "unavail
   expect(runtime.saveError).toBeNull();
 });
 
-it.each(["delegated", "not_required"] as const)("preserves older builtin CLI switches with %s configuration and no Platform account", async status => {
+it.each(["delegated", "not_required"] as const)("preserves older builtin CLI switches with %s and no Platform account", async status => {
   const dbx = connection("builtin.dbx", { configured: false, readiness: "configuration_required",
     authentication: { connectorId: "builtin.dbx", sessionId: "", status, expiresAt: "" },
   });
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("zenmi", ["builtin.dbx", "wecom"]));
+  mockStateRef.current.agents[0].connectors = ["builtin.dbx", "wecom"];
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(dbx, connection("wecom", { configured: false, readiness: "configuration_required" })));
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: dbx });
-  jest.mocked(setAgentConnector).mockResolvedValue(response("zenmi", ["builtin.dbx", "wecom"]));
+  jest.mocked(setAgentConnector).mockResolvedValue(saved("zenmi", ["builtin.dbx", "wecom"]));
   await mount();
   expect(runtime.availableIds).toEqual(["builtin.dbx"]);
   await act(async () => runtime.setSelected("builtin.dbx", true));
@@ -184,12 +250,13 @@ it.each(["delegated", "not_required"] as const)("preserves older builtin CLI swi
   expect(runtime.saveError).toBeNull();
 });
 
-it("keeps external delegated WeCom off after unlink instead of confusing it with a builtin CLI", async () => {
+it("keeps external delegated WeCom off after unlink without treating it as a builtin CLI", async () => {
   const id = "wecom-cli-connector";
   const unlinked = connection(id, { configured: false, readiness: "configuration_required",
     authentication: { connectorId: id, sessionId: "", status: "delegated", expiresAt: "" },
   });
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("zenmi", [id]));
+  mockStateRef.current.agents[0].connectors = [id];
+  jest.mocked(getAgent).mockResolvedValue(response("zenmi", [id]));
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(unlinked));
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: unlinked });
   await mount();
@@ -203,11 +270,10 @@ it("keeps external delegated WeCom off after unlink instead of confusing it with
   expect(runtime.availableIds).toEqual([id]);
 });
 
-it("ignores connection snapshots and enable checks from a previous Agent scope", async () => {
+it("ignores configuration snapshots and enable checks from the previous Agent", async () => {
   const old = deferred<ReturnType<typeof connections>>();
   jest.mocked(getConnectorConnections).mockReturnValueOnce(old.promise);
   await mount();
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("other", ["mail"]));
   await mount("other");
   await act(async () => old.resolve(connections(connection("docs", { configured: false, readiness: "configuration_required" }))));
   expect(runtime.data?.agentKey).toBe("other");
@@ -215,10 +281,29 @@ it("ignores connection snapshots and enable checks from a previous Agent scope",
   const check = deferred<{ code: number; msg: string; data: ConnectorConnection }>();
   jest.mocked(getConnectorConnection).mockReturnValueOnce(check.promise);
   await act(async () => { void runtime.setSelected("mail", true); });
-  jest.mocked(getAgentConnectors).mockResolvedValue(response("zenmi", ["docs"]));
   await mount();
   await act(async () => check.resolve({ code: 0, msg: "", data: connection("mail") }));
   expect(setAgentConnector).not.toHaveBeenCalled();
   expect(runtime.data?.agentKey).toBe("zenmi");
   expect(runtime.savingId).toBe("");
+});
+
+it("ignores snapshots started before saving and processes a refresh requested during saving", async () => {
+  await mount();
+  const old = deferred<ReturnType<typeof connections>>();
+  jest.mocked(getConnectorConnections).mockReturnValueOnce(old.promise);
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  const pending = deferred<ReturnType<typeof saved>>();
+  jest.mocked(setAgentConnector).mockReturnValueOnce(pending.promise);
+  await act(async () => { void runtime.setSelected("docs", false); });
+  await act(async () => {
+    window.dispatchEvent(new Event("focus"));
+    old.resolve(connections());
+  });
+  expect(runtime.availableIds).toContain("meeting");
+  expect(getConnectorConnections).toHaveBeenCalledTimes(2);
+  await act(async () => pending.resolve(saved("zenmi", ["meeting"])));
+  expect(getConnectorConnections).toHaveBeenCalledTimes(3);
+  expect(runtime.data?.connectorIds).toEqual(["meeting"]);
+  expect(runtime.availableIds).toContain("meeting");
 });

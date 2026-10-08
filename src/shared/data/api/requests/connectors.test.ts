@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
-import { getConnectors, getAgentConnectors, setAgentConnector, getAdminAgentConnectors, setAdminAgentConnector } from "./connectors";
+import { getConnectors, setAgentConnector, getAdminAgentConnectors, setAdminAgentConnector } from "./connectors";
 import { getConnectorConnections, prepareConnector, saveConnectorCredentials } from "./connectors";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
@@ -9,7 +9,7 @@ jest.mock("@/shared/data/api/http", () => ({
 }));
 beforeEach(() => jest.clearAllMocks());
 
-it("reads deployment connection snapshots through the uncached public endpoint", async () => {
+it("reads deployment configuration snapshots through the uncached HTTP endpoint", async () => {
   const controller = new AbortController();
   await getConnectorConnections(controller.signal);
   expect(requestJson).toHaveBeenCalledWith("/api/connectors/connection", { method: "GET", cache: "no-store", signal: controller.signal });
@@ -23,12 +23,11 @@ it("sends private credentials and explicit preparation through uncached HTTP wit
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/prepare?id=installed-id", { method: "POST", cache: "no-store", signal: controller.signal, retryUnauthorized: false });
 });
 
-it("reads configured Agent connectors without caching and sends only the single switch edit", async () => {
-  await getAgentConnectors("zenmi & other");
+it("sends only the single Agent connector switch edit without a separate association read", async () => {
   const input = { agentKey: "zenmi", connectorId: "docs", enabled: false };
   await setAgentConnector(input);
-  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store" });
-  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/agents/connectors", { method: "PUT", cache: "no-store", body: JSON.stringify(input) });
+  expect(requestJson).toHaveBeenCalledTimes(1);
+  expect(requestJson).toHaveBeenCalledWith("/api/agents/connectors", { method: "PUT", cache: "no-store", body: JSON.stringify(input) });
 });
 
 it("uses installed connector APIs with file identity and a required base hash", async () => {
@@ -52,9 +51,10 @@ it("loads the minimal usage catalog with an encoded Agent scope and forwards can
 it("keeps complete Agent mount reads and writes on independent management endpoints", async () => {
   const controller = new AbortController();
   const input = { agentKey: "zenmi", connectorId: "docs", enabled: true };
+  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: { key: "demo", connectorBindings: [], reloadPending: false } });
   await getAdminAgentConnectors("zenmi & other", controller.signal);
   await setAdminAgentConnector(input, controller.signal);
-  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store", signal: controller.signal });
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agent?agentKey=zenmi+%26+other", { cache: "no-store", signal: controller.signal });
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/agents/connectors", { method: "PUT", body: JSON.stringify(input), cache: "no-store", signal: controller.signal });
 });
 
@@ -161,4 +161,18 @@ it.each([400, 200])("preserves connector selection errors for status %s", async 
     const { setAgentConnector } = jest.requireActual("./connectors");
     await expect(setAgentConnector({ agentKey: "agent", connectorId: "custom-second", enabled: true })).rejects.toMatchObject({ message: reason, data: { error: details } });
   } finally { globalThis.fetch = originalFetch; }
+});
+
+it("projects compact detail bindings for the existing mount write workflow", async () => {
+  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: {
+    key: "demo", reloadPending: true, connectorBindings: [
+      { id: "preset", source: "preset", active: true },
+      { id: "new", source: "agent", active: false },
+      { id: "old", source: "agent", active: true, pendingRemoval: true },
+    ],
+  } });
+  expect((await getAdminAgentConnectors("demo")).data).toEqual({
+    agentKey: "demo", connectorIds: ["preset", "new"], presetConnectorIds: ["preset"],
+    declaredConnectorIds: ["new"], activeConnectorIds: ["preset", "old"], reloadPending: true,
+  });
 });

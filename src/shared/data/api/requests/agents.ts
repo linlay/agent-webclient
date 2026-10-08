@@ -6,6 +6,7 @@ import type {
   AgentDetailResponse,
   AgentSkillsResponse,
   AdminAgentDetailResponse,
+  AdminAgentSaveResponse,
   CreateAgentRequest,
   ImportAgentArchiveRequest,
   UpdateAgentRequest,
@@ -91,8 +92,8 @@ export function getAdminAgentDetail(agentKey: string): Promise<ApiResponse<Admin
 
 export function createAgent(
   params: CreateAgentRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>(dataEndpoints.adminAgentCreate.path, params);
+): Promise<ApiResponse<AdminAgentSaveResponse>> {
+  return postJson<AdminAgentSaveResponse>(dataEndpoints.adminAgentCreate.path, params);
 }
 
 export function importAdminAgent(
@@ -110,14 +111,14 @@ export function importAdminAgent(
 
 export function updateAgent(
   params: UpdateAgentRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>(dataEndpoints.adminAgentUpdate.path, params);
+): Promise<ApiResponse<AdminAgentSaveResponse>> {
+  return postJson<AdminAgentSaveResponse>(dataEndpoints.adminAgentUpdate.path, params);
 }
 
 export function updateAgentName(
   params: UpdateAgentNameRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
-  return postJson<AgentDetailResponse>(dataEndpoints.adminAgentUpdateName.path, params);
+): Promise<ApiResponse<AdminAgentSaveResponse>> {
+  return postJson<AdminAgentSaveResponse>(dataEndpoints.adminAgentUpdateName.path, params);
 }
 
 export function updateAgentModelConfig(

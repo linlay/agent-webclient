@@ -29,7 +29,6 @@ export const LeftSidebar: React.FC = () => {
       let standaloneRoute = "";
       if (action.type === "open-skills") standaloneRoute = "/skills";
       if (action.type === "open-registries") standaloneRoute = "/registries";
-      if (action.type === "open-kbases") standaloneRoute = "/kbases";
       if (action.type === "open-connectors") standaloneRoute = "/connectors";
       if (action.type === "open-archive") standaloneRoute = "/archives";
       if (action.type === "open-memory-info") standaloneRoute = "/memory";

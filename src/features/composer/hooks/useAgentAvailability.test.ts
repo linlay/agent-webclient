@@ -124,6 +124,21 @@ describe("current Agent availability independent of history", () => {
     expect(container.textContent).toBe("unavailable");
     expect(mockStateRef.current.agents).toEqual([]);
   });
+  it("rejects an old detail after connector saving invalidates associations and then hydrates the saved definition", async () => {
+    let resolveOld!: (value: any) => void;
+    jest.mocked(getAgent).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
+    await render();
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("agent:availability-invalidate", { detail: { agentKey: "old" } }));
+      mockDispatch({ type: "SET_AGENTS", agents: [{ key: "old", name: "Saved", connectors: ["saved"] }] });
+      resolveOld({ data: { key: "old", name: "Stale", connectors: ["removed"] } });
+    });
+    expect(mockStateRef.current.agents[0]).toMatchObject({ name: "Saved", connectors: ["saved"] });
+    jest.mocked(getAgent).mockResolvedValue({ data: { key: "old", name: "Saved", connectors: ["saved"], tools: ["saved-tool"], skills: ["saved-skill"] } } as any);
+    await act(async () => window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey: "old" } })));
+    expect(container.textContent).toBe("available");
+    expect(mockStateRef.current.agents[0]).toMatchObject({ connectors: ["saved"], tools: ["saved-tool"], skills: ["saved-skill"] });
+  });
   it("bounds a hanging check and ignores a late response after switching Agent", async () => {
     let resolveOld!: (value: any) => void;
     jest.mocked(getAgent).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
