@@ -45,7 +45,7 @@ it("loads the minimal usage catalog with an encoded Agent scope and forwards can
 it("keeps complete Agent mount reads and writes on independent management endpoints", async () => {
   const controller = new AbortController();
   const input = { agentKey: "zenmi", connectorId: "docs", enabled: true };
-  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: { connectorBindings: { agentKey: "demo", connectorIds: [] } } });
+  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: { key: "demo", connectorBindings: [], reloadPending: false } });
   await getAdminAgentConnectors("zenmi & other", controller.signal);
   await setAdminAgentConnector(input, controller.signal);
   expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agent?agentKey=zenmi+%26+other", { cache: "no-store", signal: controller.signal });
@@ -155,4 +155,18 @@ it.each([400, 200])("preserves connector selection errors for status %s", async 
     const { setAgentConnector } = jest.requireActual("./connectors");
     await expect(setAgentConnector({ agentKey: "agent", connectorId: "custom-second", enabled: true })).rejects.toMatchObject({ message: reason, data: { error: details } });
   } finally { globalThis.fetch = originalFetch; }
+});
+
+it("projects compact detail bindings for the existing mount write workflow", async () => {
+  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: {
+    key: "demo", reloadPending: true, connectorBindings: [
+      { id: "preset", source: "preset", active: true },
+      { id: "new", source: "agent", active: false },
+      { id: "old", source: "agent", active: true, pendingRemoval: true },
+    ],
+  } });
+  expect((await getAdminAgentConnectors("demo")).data).toEqual({
+    agentKey: "demo", connectorIds: ["preset", "new"], presetConnectorIds: ["preset"],
+    declaredConnectorIds: ["new"], activeConnectorIds: ["preset", "old"], reloadPending: true,
+  });
 });

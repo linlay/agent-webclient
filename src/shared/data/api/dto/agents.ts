@@ -1,4 +1,3 @@
-import type { AdminAgentConnectorsResponse } from "./connectors";
 import type {
   CoderModelOptionsResponse,
   QueryReasoningEffort,
@@ -65,7 +64,7 @@ export interface AgentDetailResponse {
   source?: AgentSource;
 }
 
-export interface AdminAgentSaveResponse extends AgentDetailResponse {
+export interface AdminAgentSaveResponse extends Omit<AgentDetailResponse, "tools"> {
   toolBindings?: AgentToolBinding[];
 }
 
@@ -131,11 +130,11 @@ export interface AdminAgentSummary {
 }
 
 export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "model" | "mode" | "tools" | "skills" | "connectors" | "controls" | "meta"> {
-  connectorBindings?: AdminAgentConnectorsResponse;
+  connectorBindings?: AdminAgentConnectorBinding[];
+  reloadPending?: boolean;
   toolBindings?: AgentToolBinding[];
   model?: string;
   mode?: string;
-  tools?: string[];
   skills?: string[];
   controls?: Array<Record<string, unknown>>;
   meta?: Record<string, unknown>;
@@ -303,4 +302,11 @@ export interface AgentEditorOptionsResponse {
   visibilityScopes?: AgentEditorOption[];
   modes: AgentEditorOption[];
   proxyConfigSchema: AgentEditorProxyConfigSchema;
+}
+
+export interface AdminAgentConnectorBinding {
+  id: string;
+  source: "preset" | "agent";
+  active: boolean;
+  pendingRemoval?: boolean;
 }

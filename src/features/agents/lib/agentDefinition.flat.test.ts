@@ -13,3 +13,11 @@ it("maps runtime skill IDs to editor skill IDs and NONE to disabled reasoning", 
  const detail: AgentDetailResponse = {key:"demo",name:"demo",mode:"GENERAL",tools:["datetime"],skills:[],connectors:[],controls:[],meta:{},definition:{key:"demo",mode:"GENERAL",toolConfig:{excludeTools:["sleep"]}}};
  expect(formFromDetail(detail).tools).toEqual([]);
  });
+
+it("edits management detail without a redundant tools array", () => {
+ const detail = { key: "demo", name: "Demo", mode: "GENERAL", status: "ready", toolBindings: [
+  { name: "datetime", source: "preset", removable: false, active: true, excluded: false },
+  { name: "file_read", source: "agent", removable: true, active: true, excluded: false },
+ ], definition: { key: "demo", toolConfig: { tools: ["file_read"], excludeTools: ["bash"] } } };
+ expect(formFromDetail(detail).tools).toEqual(["file_read"]);
+});

@@ -77,6 +77,8 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 
 项目创建由客户端把选中功能展开为具体 definition JSON，复用 `/api/admin/agents/create` 并传请求级 `isProject:true`；用户目录写入 `definition.runtimeConfig.workspaceRoot`，由 Platform 在写盘前校验为具体、现存且非系统根的目录。标志不持久化，普通 Agent 创建表单保留原有契约。Platform 提供 creation-defaults 与普通资源目录。Standalone 从 public/agent-creation.json 分发品牌配置；Desktop 内嵌入口通过宿主桥复用环境配置，不回退到 standalone 分组。
 
-管理工具目录 `/api/admin/tools` 仅提供独立工具；Agent 管理详情的 `tools/toolBindings` 同样不包含连接器所属工具，`definition` 保留原始可编辑源码，不为展示分组改写。连接器及 MCP 工具名称、说明直接取连接器管理响应 `tools`，不再与独立工具目录拼接；工具缺少 description 时显示“暂无说明”。新旧服务需配套更新。
+管理工具目录 `/api/admin/tools` 仅提供独立工具；Agent 管理详情的 `toolBindings` 同样不包含连接器所属工具，`definition` 保留原始可编辑源码，不为展示分组改写。连接器及 MCP 工具名称、说明直接取连接器管理响应 `tools`，不再与独立工具目录拼接；工具缺少 description 时显示“暂无说明”。新旧服务需配套更新。
 
-管理详情统一读取 `GET /api/admin/agent?agentKey=...`，`connectorBindings` 内含 presetConnectorIds、declaredConnectorIds、connectorIds、activeConnectorIds 和 reloadPending；能力区复用此快照，仅额外读取连接器展示目录。旧详情和挂载 GET 路径由 Platform 保留兼容，前端不再调用；挂载 PUT 路径不变。无效源码无法解析挂载时可缺省 connectorBindings，仍保留诊断与源码编辑。
+管理详情统一读取 `GET /api/admin/agent?agentKey=...`，`connectorBindings` 为逐项数组，每项包含 id、source（preset/agent）、active，以及仅待卸载时出现的 pendingRemoval；reloadPending 位于详情顶层；能力区复用此快照，仅额外读取连接器展示目录。旧详情和挂载 GET 路径由 Platform 保留兼容，前端不再调用；挂载 PUT 路径不变。无效源码无法解析挂载时connectorBindings 可为 null，仍保留诊断与源码编辑。
+
+管理详情与管理端创建、修改、改名响应不再返回顶层 tools，工具展示使用 toolBindings，编辑与保存使用 definition.toolConfig；使用端 /api/agent.tools 保留运行时工具 ID 数组。

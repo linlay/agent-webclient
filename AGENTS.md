@@ -216,4 +216,6 @@ Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedC
 
 知识库中心 `/kbases` 由 `features/kbases` 管理，创建使用 `collections:[{name,sourcePath}]`，召回使用 `method`（缺省 `query`）与可选集合范围，每条 chunk 展示 collection、相对文件路径与行号。单通道可用性以 KBX status 为准；图谱构建尚未接通，见 [知识库中心](docs/62-页面能力-知识库中心.md)。
 
-管理工具归属：`/api/admin/tools` 与 Agent 管理详情的 `tools/toolBindings` 仅展示独立工具；原生连接器工具及 MCP 工具由 `/api/admin/connectors` 每项的 `tools` 提供名称、说明与路由标识。`catalogVisible:false` 仍限制独立目录，不阻止在所属连接器中查看详情；不改变原始 definition、运行时工具集合及挂载权限。通用 bash/file_read 依赖不视作连接器所属工具。
+管理工具归属：`/api/admin/tools` 与 Agent 管理详情的 `toolBindings` 仅展示独立工具；原生连接器工具及 MCP 工具由 `/api/admin/connectors` 每项的 `tools` 提供名称、说明与路由标识。`catalogVisible:false` 仍限制独立目录，不阻止在所属连接器中查看详情；不改变原始 definition、运行时工具集合及挂载权限。通用 bash/file_read 依赖不视作连接器所属工具。
+
+管理详情与管理端创建、修改、改名响应不再返回顶层 tools，工具展示使用 toolBindings，编辑与保存使用 definition.toolConfig；使用端 /api/agent.tools 保留运行时工具 ID 数组。

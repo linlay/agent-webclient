@@ -243,6 +243,7 @@ export const zhCNMessages = {
   "agents.connectors.loadFailed": "连接器加载失败",
   "agents.connectors.pending": "挂载变更将在活动运行结束后生效，下方同时显示当前与待生效的连接器。",
   "agents.connectors.empty": "尚未挂载连接器。",
+  "agents.connectors.pendingRemoval": "待移除",
   "agents.connectors.active": "已生效",
   "agents.connectors.inactive": "未生效",
   "agents.connectors.missing": "连接器目录中缺少此连接器。",

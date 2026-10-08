@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAdminAgentConnectors, getAdminConnectors, type AdminAgentConnectorsResponse } from "@/shared/data";
+import { getAdminAgentConnectors, getAdminConnectors, type AdminAgentConnectorBinding } from "@/shared/data";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
-import { agentConnectorCapabilities, type AgentConnectorCapability } from "../lib/agentConnectorCapabilities";
+import { agentConnectorCapabilities, agentConnectorCapabilitiesFromBindings, type AgentConnectorCapability } from "../lib/agentConnectorCapabilities";
 
 const emptyItems: AgentConnectorCapability[] = [];
 const emptyNames: string[] = [];
-export function useAgentConnectorCapabilities(agentKey: string, bindings?: AdminAgentConnectorsResponse | null) {
+export function useAgentConnectorCapabilities(agentKey: string, bindings?: AdminAgentConnectorBinding[] | null, reloadPending = false) {
   const push = usePushTransport();
   const [snapshot, setSnapshot] = useState<{ agentKey: string; items: AgentConnectorCapability[]; ownedToolNames: string[]; reloadPending: boolean }>();
   const [loading, setLoading] = useState(false);
@@ -15,18 +15,18 @@ export function useAgentConnectorCapabilities(agentKey: string, bindings?: Admin
     const current = ++request.current;
     setLoading(true);
     try {
-      const [selection, catalog] = await Promise.all([(bindings !== undefined ? Promise.resolve(bindings ? { data: bindings } : null) : agentKey ? getAdminAgentConnectors(agentKey) : Promise.resolve(null)), getAdminConnectors()]);
+      const [selection, catalog] = await Promise.all([(bindings !== undefined ? Promise.resolve(null) : agentKey ? getAdminAgentConnectors(agentKey) : Promise.resolve(null)), getAdminConnectors()]);
       if (current !== request.current) return;
       if (selection && selection.data.agentKey !== agentKey) throw new Error("Invalid Agent connector response");
-      setSnapshot({ agentKey, items: selection ? agentConnectorCapabilities(selection.data, catalog.data.connectors) : [],
-        ownedToolNames: catalog.data.connectors.flatMap(item => item.nativeTools || []), reloadPending: selection?.data.reloadPending || false });
+      setSnapshot({ agentKey, items: bindings ? agentConnectorCapabilitiesFromBindings(agentKey, bindings, catalog.data.connectors) : selection ? agentConnectorCapabilities(selection.data, catalog.data.connectors) : [],
+        ownedToolNames: catalog.data.connectors.flatMap(item => item.nativeTools || []), reloadPending: bindings ? reloadPending : selection?.data.reloadPending || false });
       setError(null);
     } catch (cause) {
       if (current === request.current) setError(cause instanceof Error ? cause : new Error(String(cause)));
     } finally {
       if (current === request.current) setLoading(false);
     }
-  }, [agentKey, bindings]);
+  }, [agentKey, bindings, reloadPending]);
 
   useEffect(() => {
     setSnapshot(undefined);

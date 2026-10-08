@@ -80,7 +80,7 @@ it("offers retry when the management read fails without invoking a mutation", as
 });
 
 it("reuses bindings from the loaded Agent detail without a second Agent request", async () => {
-  const bindings = selection("zenmi").data;
+  const bindings = [{ id: "builtin.web-control", source: "preset" as const, active: true }];
   function DetailHarness() {
     return React.createElement(AgentConnectorCapabilities, useAgentConnectorCapabilities("zenmi", bindings));
   }

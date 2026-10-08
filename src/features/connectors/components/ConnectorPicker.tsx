@@ -89,8 +89,10 @@ function ConnectorPickerRow({ item, selected, saving, disabled, selectionDisable
   const status = connectorOptionStatus(item);
   return <div className={styles.row}>
     <ConnectorIcon item={item} size={18} className={styles.icon} />
-    <span className={styles.name} title={item.description || item.name}>{item.name || item.id}</span>
-    {status && <span className={styles.availability} title={t(`composer.addMenu.connectors.status.${status}`)}>{t(`composer.addMenu.connectors.status.${status}`)}</span>}
+    <div className={styles.details}>
+      <span className={styles.name} title={item.name || item.id}>{item.name || item.id}</span>
+      {status && <span className={styles.availability} title={t(`composer.addMenu.connectors.status.${status}`)}>{t(`composer.addMenu.connectors.status.${status}`)}</span>}
+    </div>
     <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled}
       aria-label={t("composer.addMenu.connectors.select", { name: item.name || item.id })}
       onChange={checked => onSelectionChange(item, checked)} />

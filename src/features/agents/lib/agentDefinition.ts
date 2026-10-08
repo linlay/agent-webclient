@@ -2,7 +2,7 @@ import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AgentSkillOption, AgentToolOption } from "@/features/agents/lib/agentOptions";
 import { ACTIVE_QUERY_REASONING_EFFORTS, normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
-import type { AdminAgentDetailResponse, AdminAgentDiagnostic, AdminAgentPrivateSkill, AdminToolSummary, AgentDetailResponse, AgentEditorModelOption } from "@/shared/data";
+import type { AdminAgentSaveResponse, AdminAgentDetailResponse, AdminAgentDiagnostic, AdminAgentPrivateSkill, AdminToolSummary, AgentDetailResponse, AgentEditorModelOption } from "@/shared/data";
 import type { MutableValueRef } from "@/shared/contracts/stateInterop";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import type { I18nContextValue } from "@/shared/i18n";
@@ -38,7 +38,7 @@ export function getActiveAgentSectionId<T extends string>(
       : nearest,
   ).id;
 }
-export type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse;
+export type EditableAgentDetail = AgentDetailResponse | AdminAgentDetailResponse | AdminAgentSaveResponse;
 
 export type ChoicePresentation = {
   icon: MaterialIconName;
@@ -637,8 +637,14 @@ export function fallbackDefinition(
       ...(asRecord(detail).serviceTier ? {serviceTier: asRecord(detail).serviceTier} : {}),
     };
   }
-  if (Array.isArray(detail.tools))
+  if ("toolBindings" in detail && detail.toolBindings) {
+    definition.toolConfig = {
+      tools: detail.toolBindings.filter(tool => tool.source === "agent").map(tool => tool.name),
+      excludeTools: detail.toolBindings.filter(tool => tool.excluded).map(tool => tool.name),
+    };
+  } else if ("tools" in detail && Array.isArray(detail.tools)) {
     definition.toolConfig = { tools: detail.tools };
+  }
   if (Array.isArray(detail.skills))
     definition.skillConfig = { skills: detail.skills };
   if (Array.isArray(detail.greetings)) definition.greetings = detail.greetings;
@@ -686,7 +692,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
       reasoning.enabled !== false &&
       (reasoning.enabled === true || Boolean(reasoningEffort)),
     reasoningEffort,
-    tools: textListFromUnknown(detail.definition ? toolConfig.tools : ("toolBindings" in detail && detail.toolBindings ? detail.toolBindings.filter(tool => tool.source === "agent").map(tool => tool.name) : detail.tools)),
+    tools: textListFromUnknown(detail.definition ? toolConfig.tools : ("toolBindings" in detail && detail.toolBindings ? detail.toolBindings.filter(tool => tool.source === "agent").map(tool => tool.name) : ("tools" in detail ? detail.tools : []))),
     skills: textListFromUnknown(skillConfig.skills || detail.skills),
     greetingsText: stringifyJson(
       definition.greetings ?? detail.greetings ?? [],

@@ -64,6 +64,7 @@ import { getView as getViewHttp } from "@/shared/data/api/requests/views";
 import { uploadFile } from "@/shared/data/api/requests/uploads";
 import type {
 	AgentDetailResponse,
+	AdminAgentSaveResponse,
 	AgentSkillsResponse,
 	AgentModelConfigResponse,
 	AgentOrderResponse,
@@ -267,7 +268,7 @@ export function getAgentFile(
 
 export function createAgent(
 	params: CreateAgentRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
+): Promise<ApiResponse<AdminAgentSaveResponse>> {
 	return createAgentHttp(params).then((response) => {
 		invalidateRouteEndpoints(
 			dataEndpoints.agent,
@@ -280,7 +281,7 @@ export function createAgent(
 
 export function updateAgent(
 	params: UpdateAgentRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
+): Promise<ApiResponse<AdminAgentSaveResponse>> {
 	return updateAgentHttp(params).then((response) => {
 		invalidateRouteEndpoints(
 			dataEndpoints.agent,
@@ -293,7 +294,7 @@ export function updateAgent(
 
 export function updateAgentName(
 	params: UpdateAgentNameRequest,
-): Promise<ApiResponse<AgentDetailResponse>> {
+): Promise<ApiResponse<AdminAgentSaveResponse>> {
 	return updateAgentNameHttp(params).then((response) => {
 		invalidateRouteEndpoints(
 			dataEndpoints.agent,

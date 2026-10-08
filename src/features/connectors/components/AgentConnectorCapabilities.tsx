@@ -26,7 +26,7 @@ export function AgentConnectorCapabilities({ items, loading, error, refresh, rel
         <span className={styles.copy}><strong>{item.name}</strong><span>{item.description || item.id}</span></span>
         <span className={styles.meta}>
           {item.preset && <span><MaterialIcon name="lock" />{t("agentConsole.tools.preset")}</span>}
-          <span>{t(item.active ? "agents.connectors.active" : "agents.connectors.inactive")}</span>
+          <span>{t(item.pendingRemoval ? "agents.connectors.pendingRemoval" : item.active ? "agents.connectors.active" : "agents.connectors.inactive")}</span>
           <span>{item.tools.length ? t("connectors.tools.count", { count: item.tools.length }) : item.connector?.hasCli ? "CLI" : item.connector?.hasView ? "VIEW" : item.connector?.hasMcp ? "MCP" : t("connectors.tools.count", { count: 0 })}</span>
         </span>
         <MaterialIcon name="expand_more" className={styles.chevron} />

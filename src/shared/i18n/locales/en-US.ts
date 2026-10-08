@@ -243,6 +243,7 @@ export const enUSMessages = {
   "agents.connectors.loadFailed": "Failed to load connectors",
   "agents.connectors.pending": "Mount changes are waiting for active runs to finish. Current and pending connectors are shown below.",
   "agents.connectors.empty": "No connectors mounted.",
+  "agents.connectors.pendingRemoval": "Pending removal",
   "agents.connectors.active": "Active",
   "agents.connectors.inactive": "Not active",
   "agents.connectors.missing": "This connector is missing from the catalog.",

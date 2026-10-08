@@ -81,7 +81,7 @@ it.each([
 
 it("keeps management directory and mounting calls on HTTP", async () => {
   await getAdminConnectors();
-  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: { connectorBindings: { agentKey: "demo", connectorIds: [] } } });
+  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: { key: "demo", connectorBindings: [], reloadPending: false } });
   await getAdminAgentConnectors("demo");
   await setAdminAgentConnector({ agentKey: "demo", connectorId: "docs", enabled: true });
   expect(jest.mocked(requestJson).mock.calls.map(call => call[0])).toEqual([
