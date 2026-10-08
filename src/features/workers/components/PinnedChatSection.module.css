@@ -102,20 +102,6 @@
   padding: 4px 0 10px;
 }
 
-:global(.pinned-chat-rail-button) {
-  display: inline-flex;
-  padding: 5px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-:global(.pinned-chat-rail-button:hover) {
-  background: var(--bg-hover);
-}
-
 :global(.pinned-chat-list) {
   max-height: 50vh;
   overflow-y: auto;

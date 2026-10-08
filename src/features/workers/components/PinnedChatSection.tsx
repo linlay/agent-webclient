@@ -34,8 +34,8 @@ import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import "./PinnedChatSection.module.css";
+import { UiButton } from "@/shared/ui/UiButton";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
-
 
 function PinnedChatItem({
   chat,
@@ -210,7 +210,9 @@ export function PinnedChatSection({
         </SortableContext>
       </DndContext>
       {rows.length === 0 && (
-        <div className={presentationClasses("status-line")}>{t("leftSidebar.pinned.noMatches")}</div>
+        <div className={presentationClasses("status-line")}>
+          {t("leftSidebar.pinned.noMatches")}
+        </div>
       )}
     </div>
   );
@@ -227,23 +229,34 @@ export function PinnedChatSection({
         <Popover
           open={popoverOpen}
           onOpenChange={setPopoverOpen}
-          trigger="click"
           placement="rightTop"
           arrow={false}
-          title={t("leftSidebar.pinned")}
+          title={
+            <div className="tw:px-2 tw:pt-2">{t("leftSidebar.pinned")}</div>
+          }
           content={content}
-          styles={{ body: { width: "var(--left-sidebar-width)" } }}
+          styles={{ body: { width: "var(--left-sidebar-width)", padding: 0 } }}
         >
-          <button
-            type="button"
-            className="pinned-chat-rail-button"
+          <UiButton
+            size="sm"
+            variant="ghost"
+            className="ui-icon-hover-24"
+            iconOnly
             aria-label={t("leftSidebar.pinned")}
             aria-expanded={popoverOpen}
           >
-            <Badge dot={needsAttention} className={libraryPresentation.badge}>
+            <Badge
+              dot={needsAttention}
+              className={libraryPresentation.badge}
+              styles={{
+                root: {
+                  color: "inherit",
+                },
+              }}
+            >
               <MaterialIcon name="push_pin" />
             </Badge>
-          </button>
+          </UiButton>
         </Popover>
       </div>
     );

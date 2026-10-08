@@ -11,7 +11,7 @@ import { AgentIcon } from "@/shared/icons/agent";
 import type { Agent } from "@/features/agents/lib/agentState";
 
 const WORKER_CHAT_ITEM_CLASS =
-  "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:pl-3 tw:pr-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
+  "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:pl-5 tw:pr-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
 
 const WORKER_CHAT_ITEM_HEAD_CLASS =
   "worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5";
