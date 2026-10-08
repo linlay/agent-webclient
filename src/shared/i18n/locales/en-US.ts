@@ -2298,6 +2298,7 @@ export const enUSMessages = {
   "renderError.details": "Technical details",
   "renderError.retry": "Retry view",
   "renderError.reload": "Reload WebClient",
+  "leftSidebar.quickActions.kbases": "KBases",
   "leftSidebar.quickActions.agents": "Agents",
   "leftSidebar.quickActions.automation": "Automation",
   "voice.debug.defaultTtsText": "This is a TTS debug voice sample. If you can hear it, the current voice playback path is working.",

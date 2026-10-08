@@ -104,7 +104,7 @@ const WORKER_COLLAPSED_NAME_BADGE_CLASS =
 const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 interface WorkerNavigatorProps {
-  onOpenCommand: (type: "automation" | "agents") => void;
+  onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
   renderSettingsMenu: (close: () => void) => React.ReactNode;
   settingsSummary?: React.ReactNode;
 }
@@ -611,6 +611,14 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     <span>{t("leftSidebar.quickActions.agents")}</span>
                     <Badge count={state.agents?.length || 0} className={libraryPresentation.badge} />
                   </Flex>
+                </UiButton>
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onOpenCommand("kbases")}
+                >
+                  <MaterialIcon name="database" className="tw:text-[16px]" />
+                  <span>{t("leftSidebar.quickActions.kbases")}</span>
                 </UiButton>
               </Flex>
             )}

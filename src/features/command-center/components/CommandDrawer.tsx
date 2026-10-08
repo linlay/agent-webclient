@@ -14,6 +14,7 @@ import {
   SWITCH_SCOPES,
   SwitchModal,
 } from "@/features/workers/components/SwitchModal";
+import { KBasesConsole } from "@/features/kbases/components/KBasesConsole";
 import { AgentConsole } from "@/features/agents/components/AgentConsole";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/icons/material";
@@ -133,7 +134,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     return null;
   }
 
-  const isConsoleModal = modal.type === "automation" || modal.type === "agents";
+  const isConsoleModal = modal.type === "automation" || modal.type === "agents" || modal.type === "kbases";
 
   return (
     <Drawer
@@ -258,6 +259,14 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             currentWorker={currentWorker}
             agents={state.agents}
             teams={state.teams}
+            embedded
+            onClose={() => closeDrawer()}
+            titleBarVariant="drawer"
+          />
+        )}
+
+        {modal.type === "kbases" && (
+          <KBasesConsole
             embedded
             onClose={() => closeDrawer()}
             titleBarVariant="drawer"

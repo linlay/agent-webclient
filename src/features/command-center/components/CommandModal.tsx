@@ -5,6 +5,7 @@ import type { CommandOverlayState } from "@/features/command-center/lib/commandO
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { HistoryModal } from "@/features/chats/components/HistoryModal";
 import { AutomationHistoryConsole } from "@/features/automations/components/AutomationHistoryConsole";
+import { KBasesConsole } from "@/features/kbases/components/KBasesConsole";
 import { AgentConsole } from "@/features/agents/components/AgentConsole";
 import { useI18n } from "@/shared/i18n";
 import "./CommandSurface.module.css";
@@ -66,7 +67,8 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     return null;
   }
 
-  const isConsoleModal = modal.type === "automation" || modal.type === "agents";
+  const isLargeConsoleModal = modal.type === "agents" || modal.type === "kbases";
+  const isConsoleModal = modal.type === "automation" || modal.type === "agents" || modal.type === "kbases";
 
   return (
     <Modal
@@ -78,11 +80,13 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       destroyOnHidden
       getContainer={false}
       width={
-        isConsoleModal
+        isLargeConsoleModal
+          ? "min(1320px, calc(100vw - 32px))"
+          : isConsoleModal
           ? "min(1120px, calc(100vw - 32px))"
           : "min(780px, calc(100vw - 32px))"
       }
-      className={`command-modal ${isConsoleModal ? "is-automation-console" : ""} ${variant === "copilot" ? "copilot-modal" : ""}`.trim()}
+      className={`command-modal ${isLargeConsoleModal ? "is-large-console" : ""} ${isConsoleModal ? "is-automation-console" : ""} ${variant === "copilot" ? "copilot-modal" : ""}`.trim()}
     >
       <div
         ref={cardRef}
@@ -100,6 +104,13 @@ export const CommandModal: React.FC<CommandModalProps> = ({
             currentWorker={currentWorker}
             agents={state.agents}
             teams={state.teams}
+            embedded
+            onClose={() => closeModal()}
+          />
+        )}
+
+        {modal.type === "kbases" && (
+          <KBasesConsole
             embedded
             onClose={() => closeModal()}
           />

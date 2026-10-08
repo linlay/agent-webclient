@@ -2,7 +2,8 @@ export type CommandOverlayType =
   | "history"
   | "switch"
   | "automation"
-  | "agents";
+  | "agents"
+  | "kbases";
 
 export type CommandOverlayScope = "all" | "agent" | "team";
 export type CommandOverlayFocusArea = "search" | "list";

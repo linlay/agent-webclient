@@ -2463,6 +2463,7 @@ export const zhCNMessages = {
   "renderError.details": "技术详情",
   "renderError.retry": "重试视图",
   "renderError.reload": "重新加载 WebClient",
+  "leftSidebar.quickActions.kbases": "知识库",
   "leftSidebar.quickActions.agents": "智能体",
   "leftSidebar.quickActions.automation": "自动化",
   "voice.debug.defaultTtsText":

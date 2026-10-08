@@ -18,7 +18,6 @@ export type SidebarSettingsMenuAction =
   | { type: "open-settings" }
   | { type: "open-registries" }
   | { type: "open-connectors" }
-  | { type: "open-kbases" }
   | { type: "open-archive" }
   | { type: "open-memory-info" }
   | { type: "noop" };
@@ -94,12 +93,6 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
               },
             ]
           : []),
-        {
-          key: "knowledge-base",
-          label: t("settingsMenu.knowledgeBase"),
-          icon: "database",
-          action: { type: "open-kbases" },
-        },
         {
           key: "open-archive",
           label: t("settingsMenu.archive"),
