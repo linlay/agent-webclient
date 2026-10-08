@@ -198,6 +198,33 @@
     min-height: 0;
 }
 
+:global(.worker-chat-item) {
+    --worker-chat-backdrop: var(--shell-sidebar-bg);
+}
+
+:global(.ant-popover) :global(.worker-chat-item) {
+    --worker-chat-backdrop: var(--control-popover-bg);
+}
+
+:global(.pinned-chat-row[data-dragging]) :global(.worker-chat-item) {
+    --worker-chat-backdrop: var(--bg-card);
+}
+
+/* 长名称不做省略号截断：文字向右溢出，由尾部（胶囊/时间区）背景遮盖。 */
+:global(.worker-chat-tail) {
+    align-self: stretch;
+    background: linear-gradient(to right, transparent, var(--worker-chat-backdrop) 10px);
+    padding-left: 6px;
+}
+
+:global(.worker-chat-item):hover :global(.worker-chat-tail),
+:global(.worker-chat-item):global(.is-active) :global(.worker-chat-tail),
+:global(.worker-chat-item):global(.is-selected) :global(.worker-chat-tail) {
+    background:
+        linear-gradient(to right, transparent, var(--bg-hover) 16px),
+        linear-gradient(to right, transparent, var(--worker-chat-backdrop) 16px);
+}
+
 :global(.worker-chat-item):hover,
 :global(.worker-chat-item):global(.is-active),
 :global(.worker-chat-item):global(.is-selected) {
