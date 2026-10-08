@@ -14,10 +14,13 @@ const WORKER_CHAT_ITEM_CLASS =
   "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:pl-5 tw:pr-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
 
 const WORKER_CHAT_ITEM_HEAD_CLASS =
-  "worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5";
+  "worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5 tw:overflow-hidden";
 
 const WORKER_CHAT_NAME_CLASS =
-  "worker-chat-name tw:min-w-0 tw:flex-auto tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px]";
+  "worker-chat-name tw:min-w-0 tw:flex-auto tw:whitespace-nowrap tw:text-[13px]";
+
+const WORKER_CHAT_TAIL_CLASS =
+  "worker-chat-tail tw:flex tw:flex-none tw:items-center tw:gap-1.5";
 
 const WORKER_CHAT_SOURCE_ICON_CLASS =
   "worker-chat-source-icon tw:inline-flex tw:h-[9px] tw:w-[9px] tw:shrink-0 tw:text-text-sub";
@@ -170,39 +173,41 @@ export const WorkerChatPreviewItem: React.FC<{
             </span>
           )}
         </span>
-        {chat.hasPendingAwaiting && (
-          <span className={CHAT_AWAITING_STATUS_CLASS}>
-            {t(getAwaitingStatusKey(chat.awaitingMode))}
-          </span>
-        )}
-        <span className={WORKER_CHAT_ACTION_CLASS} data-action={action}>
-          {action === "unread" && (
-            <span className="worker-chat-unread tw:absolute tw:inset-y-0 tw:right-0 tw:flex tw:w-6 tw:items-center tw:justify-center">
-              <UnreadDot chat={chat} />
+        <div className={WORKER_CHAT_TAIL_CLASS}>
+          {chat.hasPendingAwaiting && (
+            <span className={CHAT_AWAITING_STATUS_CLASS}>
+              {t(getAwaitingStatusKey(chat.awaitingMode))}
             </span>
           )}
-          <MaterialIcon
-            name="progress_activity"
-            className={loadingClassName}
-          />
-          <span className={timeLabelClassName}>
-            <span className={timeContentClassName}>
-              {showAutomationSource && (
-                <AutomationSourceIcon label={t("leftSidebar.automationSource")} />
-              )}
-              <span className={timeTextClassName}>
-                {formatChatTimeLabel(chat.updatedAt)}
+          <span className={WORKER_CHAT_ACTION_CLASS} data-action={action}>
+            {action === "unread" && (
+              <span className="worker-chat-unread tw:absolute tw:inset-y-0 tw:right-0 tw:flex tw:w-6 tw:items-center tw:justify-center">
+                <UnreadDot chat={chat} />
+              </span>
+            )}
+            <MaterialIcon
+              name="progress_activity"
+              className={loadingClassName}
+            />
+            <span className={timeLabelClassName}>
+              <span className={timeContentClassName}>
+                {showAutomationSource && (
+                  <AutomationSourceIcon label={t("leftSidebar.automationSource")} />
+                )}
+                <span className={timeTextClassName}>
+                  {formatChatTimeLabel(chat.updatedAt)}
+                </span>
               </span>
             </span>
+            <ChatActionsMenu
+              chatId={chat.chatId}
+              chatName={chat.chatName}
+              agentKey={chat.agentKey}
+              triggerClassName={CHAT_ACTIONS_TRIGGER_CLASS}
+              iconHover24
+            />
           </span>
-          <ChatActionsMenu
-            chatId={chat.chatId}
-            chatName={chat.chatName}
-            agentKey={chat.agentKey}
-            triggerClassName={CHAT_ACTIONS_TRIGGER_CLASS}
-            iconHover24
-          />
-        </span>
+        </div>
       </div>
     </UiListItem>
   );
