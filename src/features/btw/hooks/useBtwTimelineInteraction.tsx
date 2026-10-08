@@ -5,7 +5,6 @@ import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
-import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
 import type {
   TimelineNode,
   TimelineSource,
@@ -104,14 +103,6 @@ export function useBtwTimelineInteraction({
             payloadRaw={segment.payloadRaw || "{}"}
           />
         ) : null,
-      renderContentViewport: (segment) => (
-        <ViewportEmbed
-          viewportKey={segment.key || ""}
-          signature={segment.signature || ""}
-          payload={segment.payload}
-          payloadRaw={segment.payloadRaw}
-        />
-      ),
       renderMarkdown: (props) => <MarkdownContent {...props} />,
       renderAttachment: (attachment, options) => (
         <AttachmentCard

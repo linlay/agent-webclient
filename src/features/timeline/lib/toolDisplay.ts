@@ -2,14 +2,14 @@ export interface ToolDisplaySource {
   toolLabel?: string | null;
   toolName?: string | null;
   toolId?: string | null;
-  viewportKey?: string | null;
+  viewKey?: string | null;
 }
 
 export function resolveToolLabel(source: ToolDisplaySource, fallback = 'tool'): string {
   const candidates = [
     source.toolLabel,
     source.toolName,
-    source.viewportKey,
+    source.viewKey,
     source.toolId,
   ];
 

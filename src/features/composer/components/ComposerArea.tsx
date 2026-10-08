@@ -1,3 +1,4 @@
+import { TeamAwaitingContainer } from "@/features/tools/components/TeamAwaitingContainer";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { FailedSubmissions } from "./FailedSubmissions";
@@ -888,6 +889,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
 
   if (!chatTransitionBlocking && isAwaitingActive && state.activeAwaiting) {
+    if (state.activeAwaiting.mode === "form" && state.activeAwaiting.view?.key === "team-hitl" && state.activeAwaiting.view.source === "builtin") {
+      return withSelectionSurfaces(<AwaitingShell><TeamAwaitingContainer key={state.activeAwaiting.key} data={state.activeAwaiting} onSubmit={handleAwaitingSubmit} onResolved={clearActiveAwaiting}/></AwaitingShell>);
+    }
     if (state.activeAwaiting.mode === "form") {
       return withSelectionSurfaces(
         <AwaitingShell>

@@ -2527,14 +2527,14 @@ describe('replayEvent tool migration', () => {
     });
   });
 
-  it('stores viewportKey from new MCP payload and keeps toolName for display', () => {
+  it('stores viewKey from new MCP payload and keeps toolName for display', () => {
     const state = createReplayState();
 
     replayEvent(state, {
       type: 'tool.start',
       toolId: 'call_f1494c0a4c4646cc81a41585',
       toolName: 'email.search',
-      viewportKey: 'viewport_email_search',
+      view: {source:'builtin',key:'viewport_email_search',renderer:'html'},
       runId: 'run_1',
       timestamp: EPOCH_MS + 100,
     });
@@ -2543,10 +2543,10 @@ describe('replayEvent tool migration', () => {
     const nodeId = state.toolNodeById.get('call_f1494c0a4c4646cc81a41585');
     const node = nodeId ? state.timelineNodes.get(nodeId) : null;
 
-    expect(toolState?.viewportKey).toBe('viewport_email_search');
+    expect(toolState?.viewKey).toBe('viewport_email_search');
     expect(toolState).not.toHaveProperty('toolApi');
     expect(node?.toolName).toBe('email.search');
-    expect(node?.viewportKey).toBe('viewport_email_search');
+    expect(node?.viewKey).toBe('viewport_email_search');
   });
 
   it('replays tool.args into parsed toolParams and pretty argsText', () => {

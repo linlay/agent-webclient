@@ -4,10 +4,10 @@
 
 ## 数据接入
 
-- `GET /api/view` 和同名 WS route 接受 `chatId/connectorId/key/hash?/usage?`，usage 为 `display | form`。沿用统一响应包裹与鉴权。
-- data 为 `{view,entry?,html?,qlc?,assets?}`；view 含 `connectorId/key/version/hash/renderer`，asset 含 `path/mediaType/data(base64)`。客户端不提供 Agent、路径或远端 URL。
+- `GET /api/view` 和同名 WS route 接受 `source/ chatId/connectorId/key/hash?/usage?`，usage 为 `display | form`。沿用统一响应包裹与鉴权。
+- data 为 `{view,entry?,html?,qlc?,assets?}`；view 含 `source/connectorId/key/version/hash/renderer`，asset 含 `path/mediaType/data(base64)`。客户端不提供 Agent、路径或远端 URL。
 - `tool.result.view` 展示原始 result；`awaiting.ask(mode=form).view` 决定模板。`viewError` 表示服务端冻结失败，不重试成另一个版本；保留原结果和表单拒绝入口。
-- hash 是服务端在发事件前保存的 Chat 快照。回放和归档继续使用同一 hash，不能把它换成当前模板；Team 必须有 hash。
+- hash 是服务端在发事件前保存的 Chat 快照。回放和归档继续使用同一 hash，不能把它换成当前模板；Team 的连接器引用必须有 hash。
 
 ## 展示协议
 
@@ -27,6 +27,8 @@ Team 外层仍使用汇总 HITL，成员 VIEW 位于 `forms[i].form.view`。宿�
 
 主要实现：`shared/contracts/view.ts`、`shared/data/api/requests/views.ts`、`shared/utils/viewDocument.ts`、`timeline/components/ViewEmbed.tsx`、`tools/lib/viewFrame.ts` 与 `tools/hooks/useAwaitingFrameDocument.ts`。
 
-QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。资源应预打包，暂不支持 CSS @import、JS 模块依赖解析或远端 CDN。在线回放支持 VIEW，独立会话 HTML 导出不内联模板。旧 `/api/viewport`、旧 viewport fence、builtin 对话框继续兼容。Desktop bridge 镜像未改变。
+QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。资源应预打包，暂不支持 CSS @import、JS 模块依赖解析或远端 CDN。在线回放支持 VIEW，独立会话 HTML 导出不内联模板。旧 `/api/viewport` 与旧 viewport fence 已移除。builtin 来源使用 native 或 HTML；Desktop 与 ACP bridge 同步携带统一 view 引用。
 
 包结构、远端模板协议、凭据、错误码和迁移步骤以相邻 Platform 的 `docs/VIEW连接器.md` 为完整契约。
+
+内置请求使用 `source=builtin&key=...`，无需连接器；连接器使用 `source=connector` 并沿用 Chat/hash 授权。HTTP/WS 同形，source 必填。

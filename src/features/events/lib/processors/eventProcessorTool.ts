@@ -10,7 +10,7 @@ import { parseFrontendToolParams } from "@/features/events/lib/frontendToolParam
 import { toText } from "@/shared/utils/eventUtils";
 import {
   pickToolName,
-  resolveViewportKey,
+  resolveViewKey,
 } from "@/features/events/lib/toolEvent";
 import {
   applyTaskBindingToNode,
@@ -183,10 +183,10 @@ export function processToolEvent(
       existing?.description,
       existingToolState?.description,
     );
-    const viewportKey =
-      resolveViewportKey(event) ||
-      existing?.viewportKey ||
-      existingToolState?.viewportKey ||
+    const viewKey =
+      resolveViewKey(event) ||
+      existing?.viewKey ||
+      existingToolState?.viewKey ||
       "";
     const argsBuffer =
       rawArgsText || prettyArgsText || existingToolState?.argsBuffer || "";
@@ -223,7 +223,7 @@ export function processToolEvent(
         toolLabel: event.toolLabel || existingToolState?.toolLabel || "",
         toolName: pickToolName(existingToolState?.toolName, event.toolName),
         toolType: event.toolType || existingToolState?.toolType || "",
-        viewportKey,
+        viewKey,
         toolTimeout:
           event.toolTimeout ?? existingToolState?.toolTimeout ?? null,
         toolParams: resolvedParams || existingToolState?.toolParams || null,
@@ -244,8 +244,8 @@ export function processToolEvent(
       nextArgsBuffer,
       existingToolState?.toolParams || null,
     );
-    const viewportKey =
-      resolveViewportKey(event) || existingToolState?.viewportKey || "";
+    const viewKey =
+      resolveViewKey(event) || existingToolState?.viewKey || "";
     const description = pickEventText(
       readToolDescription(event),
       existingToolState?.description,
@@ -261,7 +261,7 @@ export function processToolEvent(
       toolLabel: event.toolLabel || existingToolState?.toolLabel || "",
       toolName: pickToolName(existingToolState?.toolName, event.toolName),
       toolType: event.toolType || existingToolState?.toolType || "",
-      viewportKey,
+      viewKey,
       toolTimeout: event.toolTimeout ?? existingToolState?.toolTimeout ?? null,
       toolParams: parsedToolParams,
       description,
@@ -288,7 +288,7 @@ export function processToolEvent(
         toolId,
         toolLabel: nextToolState.toolLabel || existingNode?.toolLabel || "",
         toolName: pickToolName(existingNode?.toolName, nextToolState.toolName),
-        viewportKey: viewportKey || existingNode?.viewportKey || "",
+        viewKey: viewKey || existingNode?.viewKey || "",
         description:
           nextToolState.description || existingNode?.description || "",
         argsText: parsedToolParams && !isEmptyRecord(parsedToolParams)
@@ -380,8 +380,8 @@ export function processToolEvent(
           existingToolState?.toolName,
           event.toolName,
         ),
-        viewportKey:
-          existing?.viewportKey || existingToolState?.viewportKey || "",
+        viewKey:
+          existing?.viewKey || existingToolState?.viewKey || "",
         description:
           existing?.description || existingToolState?.description || "",
         argsText: existing?.argsText || existingToolState?.argsBuffer || "",

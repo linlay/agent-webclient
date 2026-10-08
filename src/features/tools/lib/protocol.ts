@@ -4,11 +4,10 @@ import type { AIAwaitApprovalSubmitParamData, AIAwaitFormSubmitParamData, AIAwai
 export type AwaitingRenderMode = 'none' | 'builtin' | 'html';
 export type AwaitingCollectDecision = 'submit' | 'reject';
 
-export interface AwaitingViewportData {
+export interface AwaitingViewData {
   runId: string;
   awaitingId: string;
   view?: import("@/shared/contracts/view").ViewReference;
-  viewportKey: string;
   mode: 'form';
   timeout: number | null;
   activeFormIndex: number;
@@ -17,9 +16,9 @@ export interface AwaitingViewportData {
   form: Record<string, unknown> | null;
 }
 
-export interface AwaitingViewportMessage {
+export interface AwaitingViewMessage {
   type: 'awaiting_init' | 'awaiting_update';
-  data: AwaitingViewportData;
+  data: AwaitingViewData;
 }
 
 export interface AwaitingCollectMessage {
@@ -62,7 +61,7 @@ export function getAwaitingRenderMode(
     return 'none';
   }
 
-  if (awaiting.mode === 'form' && awaiting.viewportKey.trim()) {
+  if (awaiting.mode === 'form' && awaiting.viewKey.trim()) {
     return 'html';
   }
 
@@ -70,7 +69,7 @@ export function getAwaitingRenderMode(
     return 'builtin';
   }
 
-  if ('viewportType' in awaiting && awaiting.viewportType && awaiting.viewportKey.trim()) {
+  if ('viewRenderer' in awaiting && awaiting.viewRenderer && awaiting.viewKey.trim()) {
     return 'html';
   }
 
@@ -81,10 +80,10 @@ export function getAwaitingRenderMode(
   return 'none';
 }
 
-export function buildAwaitingViewportData(
+export function buildAwaitingViewData(
   awaiting: FormActiveAwaiting,
   activeFormIndex = 0,
-): AwaitingViewportData {
+): AwaitingViewData {
   const forms = awaiting.forms ?? [];
   const resolvedActiveFormIndex = clampActiveFormIndex(activeFormIndex, forms);
   const activeForm = forms[resolvedActiveFormIndex];
@@ -92,7 +91,6 @@ export function buildAwaitingViewportData(
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
     ...(awaiting.view ? { view: awaiting.view } : {}),
-    viewportKey: awaiting.viewportKey,
     mode: 'form',
     timeout: awaiting.timeout,
     activeFormIndex: resolvedActiveFormIndex,
@@ -107,30 +105,30 @@ export function buildAwaitingViewportData(
   };
 }
 
-export function buildAwaitingViewportSignature(
+export function buildAwaitingViewSignature(
   awaiting: FormActiveAwaiting,
   activeFormIndex = 0,
 ): string {
-  return JSON.stringify(buildAwaitingViewportData(awaiting, activeFormIndex));
+  return JSON.stringify(buildAwaitingViewData(awaiting, activeFormIndex));
 }
 
 export function buildAwaitingInitMessage(
   awaiting: FormActiveAwaiting,
   activeFormIndex = 0,
-): AwaitingViewportMessage {
+): AwaitingViewMessage {
   return {
     type: 'awaiting_init',
-    data: buildAwaitingViewportData(awaiting, activeFormIndex),
+    data: buildAwaitingViewData(awaiting, activeFormIndex),
   };
 }
 
 export function buildAwaitingUpdateMessage(
   awaiting: FormActiveAwaiting,
   activeFormIndex = 0,
-): AwaitingViewportMessage {
+): AwaitingViewMessage {
   return {
     type: 'awaiting_update',
-    data: buildAwaitingViewportData(awaiting, activeFormIndex),
+    data: buildAwaitingViewData(awaiting, activeFormIndex),
   };
 }
 

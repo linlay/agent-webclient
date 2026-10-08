@@ -7,7 +7,7 @@ describe('contentSegments', () => {
   it('hides an unfinished special fence header at the tail while streaming', () => {
     expect(stripPendingSpecialFenceTail('前文\n```tts')).toBe('前文');
     expect(stripPendingSpecialFenceTail('前文\n```tts-voice')).toBe('前文');
-    expect(stripPendingSpecialFenceTail('前文\n```viewport')).toBe('前文');
+    expect(stripPendingSpecialFenceTail('前文\n```viewport')).toBe('前文\n```viewport');
   });
 
   it('keeps ordinary code fences untouched', () => {
@@ -46,8 +46,15 @@ describe('contentSegments', () => {
 });
 
 test("parses scoped VIEW blocks and preserves invalid refs as text", () => {
-  const text = '```view\n' + JSON.stringify({ view: { connectorId: 'crm', key: 'card', hash: 'a'.repeat(64) }, payload: { count: 3 } }) + '\n```';
+  const text = '```view\n' + JSON.stringify({ view: { source: "connector", connectorId: 'crm', key: 'card', hash: 'a'.repeat(64) }, payload: { count: 3 } }) + '\n```';
   const segments = parseContentSegments('message', text);
-  expect(segments[0]).toMatchObject({ kind: 'view', view: { connectorId: 'crm', key: 'card' }, payloadRaw: '{"count":3}' });
+  expect(segments[0]).toMatchObject({ kind: 'view', view: { source: "connector", connectorId: 'crm', key: 'card' }, payloadRaw: '{"count":3}' });
   expect(parseContentSegments('message', text.replace('crm', '../crm'))[0].kind).toBe('text');
 });
+
+ test("retired viewport fence never loads a view", () => {
+ const raw = '```viewport\n{"key":"platform_control_review"}\n```';
+ expect(parseContentSegments("old",raw)).toEqual([{kind:"text",text:raw}]);
+ const current = '```view\n{"view":{"key":"platform_control_review"},"payload":{}}\n```';
+ expect(parseContentSegments("new",current)[0]).toMatchObject({kind:"view",view:{source:"builtin",key:"platform_control_review"}});
+ });

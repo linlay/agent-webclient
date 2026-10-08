@@ -131,8 +131,8 @@ export enum AIPlanStatusEnum {
   Canceled = "canceled",
 }
 
-export enum ViewportTypeEnum {
-  Builtin = "builtin",
+export enum ViewRendererEnum {
+  Builtin = "native",
   Qlc = "qlc",
   Html = "html",
 }
@@ -398,7 +398,6 @@ export interface AIEventCommonFields {
   toolKey?: string;
   view?: import("./view").ViewReference;
   viewError?: string;
-  viewportKey?: string;
   toolTimeout?: number | null;
   toolParams?: Record<string, unknown>;
   toolDescription?: string;
@@ -413,7 +412,6 @@ export interface AIEventCommonFields {
   mainToolId?: string;
   awaitingId?: string;
   timeout?: number;
-  viewportType?: ViewportTypeEnum;
   mode?: AIAwaitWireMode;
   payload?: Record<string, unknown> | null;
   questions?: AIAwaitQuestion[];

@@ -1,4 +1,4 @@
-import { ViewportTypeEnum } from "@/shared/contracts/agentEvents";
+import { ViewRendererEnum } from "@/shared/contracts/agentEvents";
 import {
   reduceActiveAwaiting,
   reduceAwaitingRuntime,
@@ -285,8 +285,7 @@ describe('reduceActiveAwaiting', () => {
       type: 'awaiting.ask',
       runId: 'run_5',
       awaitingId: 'await_5',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'expense_form',
+      view: {source: "builtin", renderer: "html", key: 'expense_form'},
       mode: 'form',
       forms: [
         {
@@ -304,27 +303,25 @@ describe('reduceActiveAwaiting', () => {
       ...current!,
       loading: false,
       loadError: '',
-      viewportHtml: '<html><body>ok</body></html>',
+      viewHtml: '<html><body>ok</body></html>',
     };
 
     const next = reduceActiveAwaiting(hydrated, {
       type: 'awaiting.ask',
       runId: 'run_5',
       awaitingId: 'await_5',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'expense_form',
+      view: {source: "builtin", renderer: "html", key: 'expense_form'},
       mode: 'form',
     });
 
     expect(next).toMatchObject({
       mode: 'form',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'expense_form',
+      view: {source: "builtin", renderer: "html", key: 'expense_form'},
     });
     if (next?.mode !== 'form') {
       throw new Error('expected form awaiting');
     }
-    expect(next.viewportHtml).toBe('<html><body>ok</body></html>');
+    expect(next.viewHtml).toBe('<html><body>ok</body></html>');
     expect(next.loading).toBe(false);
     expect(next.loadError).toBe('');
     expect(next.forms).toEqual([
@@ -345,8 +342,8 @@ describe('reduceActiveAwaiting', () => {
       runId: 'run_plan_1',
       awaitingId: 'run_plan_1_coder_plan_confirm_1',
       mode: 'planning',
-      viewportType: ViewportTypeEnum.Builtin,
-      viewportKey: 'plan',
+      viewRenderer: ViewRendererEnum.Builtin,
+      viewKey: 'plan',
       timeout: 0,
       planning: {
         id: 'confirm',
@@ -388,8 +385,7 @@ describe('reduceActiveAwaiting', () => {
       type: 'awaiting.ask',
       runId: 'run_leave_1',
       awaitingId: 'await_leave_1',
-      viewportType: ViewportTypeEnum.Html,
-      viewportKey: 'leave_form',
+      view: {source: "builtin", renderer: "html", key: 'leave_form'},
       mode: 'form',
       forms: [
         {
@@ -410,7 +406,7 @@ describe('reduceActiveAwaiting', () => {
 
     expect(current).toMatchObject({
       mode: 'form',
-      viewportKey: 'leave_form',
+      viewKey: 'leave_form',
     });
     expect(current?.mode).toBe('form');
     if (current?.mode !== 'form') {

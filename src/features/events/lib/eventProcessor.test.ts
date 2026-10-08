@@ -946,7 +946,7 @@ describe('processStreamEvent', () => {
       toolId: 'tool_1',
       toolName: 'demo.run',
       toolType: 'fireworks',
-      viewportKey: 'viewport_demo',
+      viewKey: 'viewport_demo',
     }, 'replay', false);
     processAndApply(state, { type: 'tool.args', toolId: 'tool_1', delta: '{\"foo\"' }, 'replay', false);
     processAndApply(state, { type: 'tool.args', toolId: 'tool_1', delta: ':\"bar\"}' }, 'replay', false);
@@ -1471,7 +1471,7 @@ describe('processStreamEvent', () => {
       toolLabel: '日期时间',
       toolName: 'datetime',
       toolType: '',
-      viewportKey: '',
+      viewKey: '',
       toolTimeout: null,
       toolParams: { offset: '+2D' },
       description: '获取当前时间',

@@ -1085,8 +1085,8 @@ describe('appReducer conversation reset behavior', () => {
         runId: 'run_1',
         timeout: 30,
         mode: 'form' as const,
-        viewportKey: 'leave_form',
-        viewportType: 'html' as const,
+        viewKey: 'leave_form',
+        viewRenderer: 'html' as const,
         forms: [
           {
             id: 'leave_form',
@@ -1096,7 +1096,7 @@ describe('appReducer conversation reset behavior', () => {
         ],
         loading: true,
         loadError: '',
-        viewportHtml: '',
+        viewHtml: '',
       },
     };
 
@@ -1104,15 +1104,15 @@ describe('appReducer conversation reset behavior', () => {
       type: 'PATCH_ACTIVE_AWAITING',
       patch: {
         loading: false,
-        viewportHtml: '<html><body>ready</body></html>',
+        viewHtml: '<html><body>ready</body></html>',
       },
     });
 
     expect(next.activeAwaiting).toMatchObject({
       key: 'run_1#await_1',
-      viewportKey: 'leave_form',
+      viewKey: 'leave_form',
       loading: false,
-      viewportHtml: '<html><body>ready</body></html>',
+      viewHtml: '<html><body>ready</body></html>',
     });
   });
 

@@ -19,8 +19,8 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError }: { chatId: str
     ready.current = false;
     setHTML(""); setError("");
     if (viewError && !view.hash) { setError(viewError); return; }
-    if (!chatId) return;
-    getView({ chatId, connectorId: view.connectorId, key: view.key, hash: view.hash, usage: "display" })
+    if (!chatId && view.source === "connector") return;
+    getView({ source:view.source, chatId, connectorId: view.connectorId, key: view.key, hash: view.hash, usage: "display" })
       .then(response => { if (active) { setResolvedView(response.data.view); setHTML(viewDocumentHTML(response.data, "display")); } })
       .catch(error => { if (active) setError(String(error.message)); });
     return () => { active = false; ready.current = false; };
@@ -30,8 +30,8 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError }: { chatId: str
   }, "*");
   useEffect(() => { if (ready.current) post("view_update"); }, [payloadRaw]);
   return <div className="tw:my-2">
-    {error && <div role="alert">{t("viewport.loadFailed", { detail: error })}</div>}
-    {!error && !html && <div role="status">{t("viewport.loading")}</div>}
+    {error && <div role="alert">{t("view.loadFailed", { detail: error })}</div>}
+    {!error && !html && <div role="status">{t("view.loading")}</div>}
     {html && <iframe ref={frame} title={`view-${view.connectorId}-${view.key}`} srcDoc={html}
       sandbox="allow-scripts" className="tw:h-[320px] tw:w-full tw:border-0"
       onLoad={() => { ready.current = true; post("view_init"); }} />}

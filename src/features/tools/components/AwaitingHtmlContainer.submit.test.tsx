@@ -19,7 +19,7 @@ jest.mock("antd", () => {
   Radio.Group = Box;
   return {Radio,Flex:Box,Button:Box,Input:({value,onChange,disabled}:any)=>R.createElement("input",{value,onChange,disabled})};
 });
-const data = {key:"run:wait", mode:"form", runId:"run", awaitingId:"wait", viewportKey:"embedded-review", timeout:60,
+const data = {key:"run:wait", mode:"form", runId:"run", awaitingId:"wait", viewKey:"embedded-review", timeout:60,
  forms:[{id:"call",title:"Review operation",form:{content:"original"}}]} as FormActiveAwaiting;
 
 async function mount() {

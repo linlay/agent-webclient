@@ -1,5 +1,5 @@
 export interface ContentSegment {
-  kind: "text" | "viewport" | "view" | "ttsVoice";
+  kind: "text" | "view" | "ttsVoice";
   text?: string;
   signature?: string;
   key?: string;

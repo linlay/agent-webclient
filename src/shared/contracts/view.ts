@@ -1,13 +1,16 @@
 export interface ViewReference {
-  connectorId: string;
+  source: "builtin" | "connector";
+  connectorId?: string;
   key: string;
   version?: string;
   hash?: string;
-  renderer?: "html" | "qlc";
+  renderer?: "native" | "html" | "qlc";
 }
 export interface ViewRequest {
-  chatId: string;
-  connectorId: string;
+  chatId?: string;
+  runId?: string;
+  source: "builtin" | "connector";
+  connectorId?: string;
   key: string;
   hash?: string;
   usage?: "display" | "form";
@@ -22,13 +25,15 @@ export interface ViewDocument {
 export function readViewReference(value: unknown): ViewReference | undefined {
   if (!value || typeof value !== "object") return undefined;
   const ref = value as Record<string, unknown>;
-  if (typeof ref.connectorId !== "string" || typeof ref.key !== "string") return undefined;
+  if (typeof ref.key !== "string" || (ref.source !== "builtin" && ref.source !== "connector")) return undefined;
   const valid = /^[a-z0-9][a-z0-9._-]*$/;
-  if (!valid.test(ref.connectorId) || !valid.test(ref.key)) return undefined;
+  if (!valid.test(ref.key)) return undefined;
+  if (ref.source === "connector" && (typeof ref.connectorId !== "string" || !valid.test(ref.connectorId))) return undefined;
+  if (ref.source === "builtin" && (ref.connectorId !== undefined || ref.hash !== undefined || ref.version !== undefined)) return undefined;
   if (ref.hash !== undefined && (typeof ref.hash !== "string" || !/^[a-f0-9]{64}$/.test(ref.hash))) return undefined;
-  return { connectorId: ref.connectorId, key: ref.key,
+  return { source: ref.source, ...(ref.source === "connector" ? { source: "connector", connectorId: ref.connectorId as string} : {}), key: ref.key,
     ...(typeof ref.hash === "string" ? { hash: ref.hash } : {}),
     ...(typeof ref.version === "string" ? { version: ref.version } : {}),
-    ...(ref.renderer === "html" || ref.renderer === "qlc" ? { renderer: ref.renderer } : {}),
+    ...(ref.renderer === "native" || ref.renderer === "html" || ref.renderer === "qlc" ? { renderer: ref.renderer } : {}),
   };
 }

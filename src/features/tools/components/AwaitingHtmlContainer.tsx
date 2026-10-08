@@ -20,7 +20,7 @@ import {
   buildAwaitingCollectMessage,
   buildAwaitingInitMessage,
   buildAwaitingUpdateMessage,
-  buildAwaitingViewportSignature,
+  buildAwaitingViewSignature,
   readAwaitingSubmitPayload,
 } from "@/features/tools/lib/protocol";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/hooks/useAwaitingTimeoutCountdown";
@@ -422,12 +422,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     currentForm?.title ||
       currentForm?.action ||
       currentForm?.id ||
-      data.viewportKey ||
+      data.viewKey ||
       "",
   ).trim();
 
-  const viewportSignature = useMemo(
-    () => buildAwaitingViewportSignature(frameData.awaiting, frameData.index),
+  const viewSignature = useMemo(
+    () => buildAwaitingViewSignature(frameData.awaiting, frameData.index),
     [frameData],
   );
 
@@ -453,9 +453,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         ...messageValue,
         data: { ...messageValue.data, locale, colorScheme },
       }, "*");
-      lastPostedSignatureRef.current = viewportSignature;
+      lastPostedSignatureRef.current = viewSignature;
     },
-    [frameData, viewportSignature, locale, colorScheme],
+    [frameData, viewSignature, locale, colorScheme],
   );
 
   const requestCollectFromFrame = useCallback(
@@ -629,12 +629,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     if (!lastPostedSignatureRef.current) {
       return;
     }
-    if (lastPostedSignatureRef.current === viewportSignature) {
+    if (lastPostedSignatureRef.current === viewSignature) {
       return;
     }
 
     postToFrame("update");
-  }, [frameKey, renderedHtml, postToFrame, viewportSignature]);
+  }, [frameKey, renderedHtml, postToFrame, viewSignature]);
 
   useEffect(() => {
     const onWindowMessage = async (event: MessageEvent) => {
@@ -932,7 +932,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           key={frameKey}
           sandbox="allow-scripts"
           style={{ colorScheme, height: frameHeight, flexBasis: frameHeight }}
-          title={`awaiting-${data.viewportKey}`}
+          title={`awaiting-${data.viewKey}`}
         />
       )}
 

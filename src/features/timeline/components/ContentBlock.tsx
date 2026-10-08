@@ -167,13 +167,6 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 				}
 
 					if (segment.kind === "view" && segment.view) return <React.Fragment key={segment.signature}>{interaction?.renderContentView?.(segment, chatId)}</React.Fragment>;
-				if (segment.kind === "viewport") {
-					return (
-						<React.Fragment key={segment.signature || idx}>
-							{interaction?.renderContentViewport?.(segment)}
-						</React.Fragment>
-					);
-				}
 
 				if (segment.kind === "ttsVoice") {
 					if (interaction?.readOnly) {

@@ -2,7 +2,7 @@ import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
-import { getViewport } from "@/shared/data";
+import { getBuiltinView } from "@/shared/data";
 import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
@@ -43,7 +43,7 @@ export const FrontendToolContainer: React.FC = () => {
 	);
 
 	useEffect(() => {
-		if (!tool || tool.loading || tool.viewportHtml || !tool.viewportKey)
+		if (!tool || tool.loading || tool.viewHtml || !tool.viewKey)
 			return;
 
 		const expectedKey = tool.key;
@@ -52,7 +52,7 @@ export const FrontendToolContainer: React.FC = () => {
 			tool: { ...tool, loading: true, loadError: "" },
 		});
 
-		getViewport(tool.viewportKey)
+		getBuiltinView(tool.viewKey, tool.runId)
 			.then((response) => {
 				if (state.activeFrontendTool?.key !== expectedKey) return;
 				const payload = response.data as Record<string, unknown> | null;
@@ -65,7 +65,7 @@ export const FrontendToolContainer: React.FC = () => {
 					type: "SET_ACTIVE_FRONTEND_TOOL",
 					tool: {
 						...state.activeFrontendTool,
-						viewportHtml: html,
+						viewHtml: html,
 						loading: false,
 						loadError: "",
 					},
@@ -91,7 +91,7 @@ export const FrontendToolContainer: React.FC = () => {
 	}, [tool?.key]);
 
 	useEffect(() => {
-		if (!tool?.viewportHtml || !iframeRef.current) return;
+		if (!tool?.viewHtml || !iframeRef.current) return;
 		const iframe = iframeRef.current;
 		const expectedKey = tool.key;
 		const postInit = () => {
@@ -102,7 +102,7 @@ export const FrontendToolContainer: React.FC = () => {
 					data: {
 						runId: tool.runId,
 						toolId: tool.toolId,
-						viewportKey: tool.viewportKey,
+						viewKey: tool.viewKey,
 						toolType: tool.toolType,
 						toolTimeout: tool.toolTimeout,
 						params: tool.toolParams || {},
@@ -214,12 +214,12 @@ export const FrontendToolContainer: React.FC = () => {
 				</div>
 			)}
 
-			{tool.viewportHtml && (
+			{tool.viewHtml && (
 				<iframe
 					ref={iframeRef}
 					className={FRONTEND_TOOL_FRAME_CLASS_NAME}
 					id="frontend-tool-frame"
-					srcDoc={tool.viewportHtml}
+					srcDoc={tool.viewHtml}
 					sandbox="allow-scripts allow-popups allow-same-origin"
 					title={t("frontendTool.frameTitle")}
 				/>

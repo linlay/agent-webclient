@@ -641,8 +641,8 @@ describe("createConversationPushHandler", () => {
 				mode: "question",
 				runId: "mq254p8r",
 				timeout: 600000,
-				viewportKey: "question",
-				viewportType: "builtin",
+				viewKey: "question",
+				viewRenderer: "builtin",
 			},
 		}) as WsPushFrame);
 

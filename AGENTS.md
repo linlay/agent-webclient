@@ -90,8 +90,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `GET /api/admin/tools`
 - `GET /api/chats`
 - `GET /api/chat`
-- `GET /api/view`：VIEW 连接器视图；HTTP/WS 共享契约，旧 viewport 继续兼容
-- `GET /api/viewport`
+- `GET /api/view`：builtin/connector 统一视图；HTTP/WS 共享契约，source 必填
 - `GET /api/data`
 - `GET /api/file`
 - `GET /api/project/git`：按实际 Workspace 独立读取 Git 快照，不按 mode 筛选，不进入 Agent 列表/详情；只在主界面 New Chat 上框按有效 workspaceDir 异步消费，Platform 走 WS、Gateway 保留 HTTP；实际 HEAD 缓存 30 秒、非仓库 5 分钟、临时失败退避 10 秒
@@ -198,7 +197,7 @@ Git 提交与推送规范：
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
 
-VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 继续兼容；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
+VIEW 使用 `/api/view` 与 `view: {source,key,connectorId?,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 接口与字段已移除；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
 
 运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用；空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许；Run 结束后，已有主 query 历史的纯引用排队项也可转为后续 query；缺少历史确认时恢复输入区等待正文。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
 
@@ -210,7 +209,7 @@ VIEW 使用 `/api/view` 与 `view: {connectorId,key,version?,hash?,renderer?}`�
 
 Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedClient：Platform 复用主 WS（Desktop 走 Frame Port/Broker），Gateway 当前保持 HTTP。Agent 沿用详情缓存与请求合并，目录不缓存，保存使 Agent 缓存与在途检查失效；WS 失败不回退 HTTP、不自动重放写入；管理和认证接口仍保持 HTTP。
 
-平台控制审阅使用 Platform 内置 HTML 的 `mode: form` viewport，业务数据仅在 `forms[].form`；通用 Approval 不含 review 扩展。HTML Form 宿主限制整体高度、仅响应主动 collect、超时不自动提交。见 [Form 表单](docs/45-交互容器-HITL-Form表单HTML交互.md)。
+平台控制审阅使用 Platform 内置 HTML 的 `mode: form` view，业务数据仅在 `forms[].form`；通用 Approval 不含 review 扩展。HTML Form 宿主限制整体高度、仅响应主动 collect、超时不自动提交。见 [Form 表单](docs/45-交互容器-HITL-Form表单HTML交互.md)。
 
 工具展示使用 Platform 解析的 label/toolLabel，源码名称仅由 i18n.label 定义。Desktop 在连接建立时同步全局语言，设置切换时通过 /api/locale 更新已连接通道；普通请求与 query/attach 不携带 locale，不维护请求或 Run 级语言。见 [界面国际化](docs/80-界面基础-样式主题基础UI与国际化.md)。
 

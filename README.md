@@ -204,8 +204,7 @@ AGW Web Client 需要一个可访问的上游智能体服务。常用入口包�
 - `POST /api/submit`
 - `POST /api/interrupt`
 - `POST /api/steer`
-- `GET /api/view`：VIEW 连接器视图；HTTP/WS 共享契约，旧 viewport 继续兼容
-- `GET /api/viewport`
+- `GET /api/view`：builtin/connector 统一视图；HTTP/WS 共享契约，source 必填
 - `GET /api/resource`
 - `GET /ws`
 

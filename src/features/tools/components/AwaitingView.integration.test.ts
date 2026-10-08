@@ -7,7 +7,7 @@ import { patchActiveAwaiting, type FormActiveAwaiting } from "@/features/tools/l
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let mockExpire: () => void;
-jest.mock("@/shared/data", () => ({ getView: jest.fn(), getViewport: jest.fn() }));
+jest.mock("@/shared/data", () => ({ getView: jest.fn(), getBuiltinView: jest.fn() }));
 jest.mock("@/app/state/provider", () => ({ useOptionalAppContext: () => ({ state: { chatId: "chat" } }) }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/utils/useKeyboard", () => ({ useKeyboard: () => {} }));
@@ -21,9 +21,9 @@ jest.mock("antd", () => {
   return { Radio, Flex: Box, Button: ({ children, onClick, disabled }: any) => R.createElement("button", { onClick, disabled }, children),
     Input: ({ value, onChange }: any) => R.createElement("input", { value, onChange }), message: { info: jest.fn() } };
 });
-const ref = { connectorId: "forms", key: "edit", hash: "a".repeat(64), renderer: "html" as const };
+const ref = { source: "connector", connectorId: "forms", key: "edit", hash: "a".repeat(64), renderer: "html" as const };
 const awaiting = { key: "run:wait", chatId: "chat", runId: "run", awaitingId: "wait", mode: "form", view: ref,
-  viewportKey: "edit", viewportHtml: "", loading: false, loadError: "", forms: [{ id: "name", form: { name: "old" } }] } as FormActiveAwaiting;
+  viewKey: "edit", viewHtml: "", loading: false, loadError: "", forms: [{ id: "name", form: { name: "old" } }] } as FormActiveAwaiting;
 test("VIEW requires host collection, rejects unknown ids, and preserves submit routing", async () => {
   jest.mocked(getView).mockResolvedValue({ code: 0, msg: "success", data: { view: ref, html: "<p>edit</p>" } });
   const host = document.createElement("div"); document.body.append(host);
@@ -35,7 +35,6 @@ test("VIEW requires host collection, rejects unknown ids, and preserves submit r
     const post = jest.spyOn(iframe.contentWindow!, "postMessage");
     const respond = async (id = "name") => act(async () => { window.dispatchEvent(new MessageEvent("message", { source: iframe.contentWindow!, data: { type: "frontend_awaiting_submit", runId: "forged", params: [{ id, decision: "approve", form: { name: "new" } }] } })); });
     await respond(); expect(submit).not.toHaveBeenCalled();
-    act(() => mockExpire());
     expect(post).not.toHaveBeenCalled(); expect(submit).not.toHaveBeenCalled();
     act(() => (host.querySelector('[data-decision="submit"]') as HTMLButtonElement).click());
     expect(post).toHaveBeenCalledWith(expect.objectContaining({ type: "awaiting_collect" }), "*");

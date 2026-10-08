@@ -1,7 +1,7 @@
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 
-export function resolveViewportKey(event: Pick<AgentEvent, 'viewportKey'>): string {
-  return String(event.viewportKey || '').trim();
+export function resolveViewKey(event: Pick<AgentEvent, 'view'>): string {
+  return String(event.view?.key || '').trim();
 }
 
 export function pickToolName(...candidates: Array<unknown>): string {

@@ -1,7 +1,7 @@
 import { readViewReference } from "@/shared/contracts/view";
 import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import type { AgentEvent, AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitForm, AIAwaitMode, AIAwaitPlan, AIAwaitPlanDecision, AIAwaitQuestion } from "@/shared/contracts/agentEvents";
-import { AIAwaitQuestionType, ViewportTypeEnum, isAwaitingAnswerStreamEvent, isAwaitingAskStreamEvent } from "@/shared/contracts/agentEvents";
+import { AIAwaitQuestionType, ViewRendererEnum, isAwaitingAnswerStreamEvent, isAwaitingAskStreamEvent } from "@/shared/contracts/agentEvents";
 import { toText } from '@/shared/utils/eventUtils';
 import { readEpochMillis } from '@/shared/utils/platformTime';
 import {
@@ -124,19 +124,19 @@ function clearActiveAwaitingRuntime(current: ActiveAwaiting): null {
 function createFormRuntimeState(
   current: ActiveAwaiting | null,
   key: string,
-): Pick<FormActiveAwaiting, 'loading' | 'loadError' | 'viewportHtml'> {
+): Pick<FormActiveAwaiting, 'loading' | 'loadError' | 'viewHtml'> {
   if (current?.key === key && current.mode === 'form') {
     return {
       loading: current.loading,
       loadError: current.loadError,
-      viewportHtml: current.viewportHtml,
+      viewHtml: current.viewHtml,
     };
   }
 
   return {
     loading: false,
     loadError: '',
-    viewportHtml: '',
+    viewHtml: '',
   };
 }
 
@@ -508,9 +508,9 @@ function reduceSingleActiveAwaiting(
 
     if (nextMode === 'form') {
       const view = readViewReference(event.view);
-      const viewportKey = view?.key || toText(event.viewportKey);
-      const viewportType = toText(event.viewportType);
-      if (!viewportKey || (!view && viewportType !== ViewportTypeEnum.Html)) {
+      const viewKey = view?.key || "";
+      const viewRenderer = view?.renderer;
+      if (!viewKey || !view) {
         return current;
       }
       const nextForms = normalizeForms(event.forms);
@@ -534,8 +534,8 @@ function reduceSingleActiveAwaiting(
             ? cloneForms(current.forms)
             : [],
         ...(view ? { view, chatId: toText(event.chatId), viewError: toText(event.viewError) } : {}),
-        viewportKey,
-        viewportType: ViewportTypeEnum.Html,
+        viewKey,
+        viewRenderer: view?.renderer || ViewRendererEnum.Html,
         ...runtime,
         resolutionReason:
           current?.key === key ? current.resolutionReason : undefined,

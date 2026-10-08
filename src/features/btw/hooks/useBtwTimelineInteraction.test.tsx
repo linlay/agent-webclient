@@ -44,9 +44,6 @@ jest.mock("@/features/terminal/components/ToolOutputTerminal", () => ({
 jest.mock("@/features/timeline/components/ViewEmbed", () => ({
   ViewEmbed: () => <div data-testid="view-embed" />,
 }));
-jest.mock("@/features/timeline/components/ViewportEmbed", () => ({
-  ViewportEmbed: () => <div data-testid="viewport-embed" />,
-}));
 jest.mock("@/features/viewers/components/MarkdownContent", () => ({
   MarkdownContent: ({ content }: { content: string }) => (
     <div data-testid="markdown">{content}</div>
@@ -155,7 +152,7 @@ function createSession(): BTWSessionState {
 
 const InteractionProbe: React.FC = () => {
   const interaction = useTimelineInteraction();
-  const view = { connectorId: "connector", key: "result" };
+  const view = { source: "connector", connectorId: "connector", key: "result" };
   return (
     <div data-chat-id={interaction?.surfaceContext?.chatId}>
       <div data-testid="thinking-collapse">
@@ -203,13 +200,6 @@ const InteractionProbe: React.FC = () => {
         { kind: "view", view, payloadRaw: "{}" },
         "chat-1",
       )}
-      {interaction?.renderContentViewport?.({
-        kind: "viewport",
-        key: "viewport-1",
-        signature: "signature-1",
-        payload: {},
-        payloadRaw: "{}",
-      })}
       {interaction?.renderMarkdown?.({ content: "Answer", chatId: "chat-1" })}
     </div>
   );
@@ -301,9 +291,6 @@ describe("useBtwTimelineInteraction", () => {
     ).toHaveLength(2);
     expect(
       container.querySelector('[data-testid="tool-output"]'),
-    ).not.toBeNull();
-    expect(
-      container.querySelector('[data-testid="viewport-embed"]'),
     ).not.toBeNull();
     expect(
       container.querySelector('[data-testid="markdown"]')?.textContent,

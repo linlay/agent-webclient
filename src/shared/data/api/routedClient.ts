@@ -45,7 +45,6 @@ import {
   getChatOrder as getChatOrderHttp,
   putChatOrder as putChatOrderHttp,
   normalizeChatSummariesPayload,
-  getViewport as getViewportHttp,
   compactChat as compactChatHttp,
   markChatRead as markChatReadHttp,
   renameChat as renameChatHttp,
@@ -534,12 +533,8 @@ export function getView(params: import("@/shared/contracts/view").ViewRequest): 
   return routeEndpoint(dataEndpoints.view, params, () => getViewHttp(params));
 }
 
-export function getViewport(viewportKey: string): Promise<ApiResponse> {
-	return routeEndpoint(
-		dataEndpoints.viewport,
-		viewportKey,
-		() => getViewportHttp(viewportKey),
-	);
+export function getBuiltinView(viewKey: string, runId?: string): Promise<ApiResponse> {
+ return getView({source:"builtin", key:viewKey, runId});
 }
 
 // HTTP-only Automation methods share the raw client's function identities.

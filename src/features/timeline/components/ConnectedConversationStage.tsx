@@ -61,7 +61,6 @@ import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
-import { ViewportEmbed } from "@/features/timeline/components/ViewportEmbed";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { useI18n } from "@/shared/i18n";
@@ -1668,9 +1667,6 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     renderContentView: (segment, chatId) => segment.view
       ? <ViewEmbed chatId={chatId} view={segment.view} payloadRaw={segment.payloadRaw || "{}"} />
       : null,
-    renderContentViewport: (segment) => <ViewportEmbed
-      viewportKey={segment.key || ""} signature={segment.signature || ""}
-      payload={segment.payload} payloadRaw={segment.payloadRaw} />,
     renderMarkdown: (props) => <MarkdownContent {...props} />,
     renderAttachment: (attachment, options) => <AttachmentCard
       attachment={attachment} variant="timeline" thumbnailMode="inline"

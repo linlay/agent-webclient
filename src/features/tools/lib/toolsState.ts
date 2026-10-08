@@ -4,7 +4,7 @@ import type {
   AIAwaitPlan,
   AIAwaitQuestion,
 } from "@/shared/contracts/agentEvents";
-import { ViewportTypeEnum } from "@/shared/contracts/agentEvents";
+import { ViewRendererEnum } from "@/shared/contracts/agentEvents";
 import type { RunOwner } from "@/shared/data/runOwner";
 
 export interface ToolState {
@@ -14,7 +14,7 @@ export interface ToolState {
   toolLabel?: string;
   toolName: string;
   toolType: string;
-  viewportKey: string;
+  viewKey: string;
   toolTimeout: number | null;
   toolParams: Record<string, unknown> | null;
   description: string;
@@ -33,7 +33,7 @@ export interface PendingTool {
   toolId: string;
   toolLabel?: string;
   toolName: string;
-  viewportKey: string;
+  viewKey: string;
   toolType: string;
   description: string;
   payloadText: string;
@@ -47,7 +47,7 @@ export interface ActiveFrontendTool {
   agentKey: string;
   owner?: RunOwner;
   toolId: string;
-  viewportKey: string;
+  viewKey: string;
   toolType: string;
   toolLabel?: string;
   toolName: string;
@@ -56,7 +56,7 @@ export interface ActiveFrontendTool {
   toolParams: Record<string, unknown>;
   loading: boolean;
   loadError: string;
-  viewportHtml: string;
+  viewHtml: string;
 }
 
 export type ActiveAwaitingResolutionReason = "timeout" | "remote_answered";
@@ -89,11 +89,11 @@ export interface FormActiveAwaiting extends ActiveAwaitingBase {
   viewError?: string;
   mode: "form";
   forms: AIAwaitForm[];
-  viewportKey: string;
-  viewportType: ViewportTypeEnum.Html;
+  viewKey: string;
+  viewRenderer: "html" | "qlc" | "native";
   loading: boolean;
   loadError: string;
-  viewportHtml: string;
+  viewHtml: string;
 }
 
 export interface PlanActiveAwaiting extends ActiveAwaitingBase {
@@ -121,7 +121,7 @@ export type ToolsAction =
   | { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
   | { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
   | { type: "SET_AWAITING_RUNTIME"; activeAwaiting: ActiveAwaiting | null; pendingAwaitings: ActiveAwaiting[] }
-  | { type: "PATCH_ACTIVE_AWAITING"; patch: { forms?: AIAwaitForm[]; resolutionReason?: ActiveAwaiting["resolutionReason"]; pendingSubmitId?: string; loading?: boolean; loadError?: string; viewportHtml?: string } }
+  | { type: "PATCH_ACTIVE_AWAITING"; patch: { forms?: AIAwaitForm[]; resolutionReason?: ActiveAwaiting["resolutionReason"]; pendingSubmitId?: string; loading?: boolean; loadError?: string; viewHtml?: string } }
   | { type: "CLEAR_ACTIVE_AWAITING" }
   | { type: "SET_TOOL_STATE"; key: string; state: ToolState }
   | { type: "SET_PENDING_TOOL"; key: string; tool: PendingTool }
@@ -197,8 +197,8 @@ export function patchActiveAwaiting(
       ...(typeof patch.loadError === "string"
         ? { loadError: patch.loadError }
         : {}),
-      ...(typeof patch.viewportHtml === "string"
-        ? { viewportHtml: patch.viewportHtml }
+      ...(typeof patch.viewHtml === "string"
+        ? { viewHtml: patch.viewHtml }
         : {}),
     };
   }

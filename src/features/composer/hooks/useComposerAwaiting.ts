@@ -27,7 +27,7 @@ import { areConversationInteractionsBlocked } from "@/features/conversation/lib/
 
 type FormActiveAwaitingPatch = Pick<
   FormActiveAwaiting,
-  "loading" | "loadError" | "viewportHtml"
+  "loading" | "loadError" | "viewHtml"
 >;
 
 export type FormActiveAwaitingPatchPayload =

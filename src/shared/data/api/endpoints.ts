@@ -1110,14 +1110,6 @@ export const dataEndpoints = createEndpointRegistry({
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: (params) => ({ ...params }),
   }),
-  viewport: defineEndpoint<string, { viewportKey: string }>({
-    key: "viewport.detail",
-    path: "/api/viewport",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
-    payload: (viewportKey) => ({ viewportKey }),
-  }),
   voiceCapabilities: defineEndpoint({
     key: "voice.capabilities",
     path: "/api/voice/capabilities",

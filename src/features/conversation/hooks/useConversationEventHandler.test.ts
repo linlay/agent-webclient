@@ -428,8 +428,8 @@ describe('shouldSyncLiveCache', () => {
         runId: 'run_1',
         timeout: 60,
         mode: 'form' as const,
-        viewportKey: 'leave_form',
-        viewportType: 'html' as const,
+        viewKey: 'leave_form',
+        viewRenderer: 'html' as const,
         forms: [
           {
             id: 'leave_form',
@@ -439,7 +439,7 @@ describe('shouldSyncLiveCache', () => {
         ],
         loading: false,
         loadError: '',
-        viewportHtml: '<html><body>form</body></html>',
+        viewHtml: '<html><body>form</body></html>',
       },
     };
 
@@ -447,7 +447,7 @@ describe('shouldSyncLiveCache', () => {
       ...state,
       activeAwaiting: {
         ...state.activeAwaiting,
-        viewportHtml: '',
+        viewHtml: '',
       },
     });
 
@@ -608,8 +608,8 @@ describe('shouldSyncLiveCache', () => {
         runId: 'run_1',
         timeout: 60,
         mode: 'form' as const,
-        viewportKey: 'leave_form',
-        viewportType: 'html' as const,
+        viewKey: 'leave_form',
+        viewRenderer: 'html' as const,
         forms: [
           {
             id: 'leave_form',
@@ -621,7 +621,7 @@ describe('shouldSyncLiveCache', () => {
         ],
         loading: false,
         loadError: '',
-        viewportHtml: '<html><body>form</body></html>',
+        viewHtml: '<html><body>form</body></html>',
       },
     };
 

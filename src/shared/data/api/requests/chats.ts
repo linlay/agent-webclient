@@ -1,3 +1,4 @@
+import { getView } from "./views";
 import {
   isObjectRecord,
   requestJson,
@@ -109,9 +110,8 @@ export function deriveChat(
   });
 }
 
-export function getViewport(viewportKey: string): Promise<ApiResponse> {
-  const query = endpointQuery(dataEndpoints.viewport, viewportKey);
-  return requestJson(withQuery(dataEndpoints.viewport.path, query));
+export function getBuiltinView(viewKey: string, runId?: string): Promise<ApiResponse> {
+  return getView({source:"builtin", key:viewKey, runId});
 }
 
 export function markChatRead(params: MarkChatReadParams): Promise<ApiResponse> {

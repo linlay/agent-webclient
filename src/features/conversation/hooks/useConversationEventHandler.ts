@@ -847,7 +847,7 @@ export function useConversationEventHandler(): {
             .trim()
             .toLowerCase();
           if (
-            nextToolState.viewportKey &&
+            nextToolState.viewKey &&
             FRONTEND_VIEWPORT_TYPES.has(toolType)
           ) {
             dispatch({
@@ -859,7 +859,7 @@ export function useConversationEventHandler(): {
                   nextToolState.agentKey || toText(event.agentKey) || "",
                 ...(eventOwner ? { owner: eventOwner } : {}),
                 toolId,
-                viewportKey: nextToolState.viewportKey,
+                viewKey: nextToolState.viewKey,
                 toolType,
                 toolLabel: nextToolState.toolLabel || "",
                 toolName: nextToolState.toolName || "",
@@ -868,7 +868,7 @@ export function useConversationEventHandler(): {
                 toolParams: nextToolState.toolParams || {},
                 loading: false,
                 loadError: "",
-                viewportHtml: "",
+                viewHtml: "",
               },
             });
           }

@@ -1,4 +1,4 @@
-import { ViewportTypeEnum } from "@/shared/contracts/agentEvents";
+import { ViewRendererEnum } from "@/shared/contracts/agentEvents";
 import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import {
   buildAwaitingCollectMessage,
@@ -45,11 +45,11 @@ function createFormAwaiting(
         },
       },
     ],
-    viewportKey: 'leave_form',
-    viewportType: ViewportTypeEnum.Html,
+    viewKey: 'leave_form',
+    viewRenderer: ViewRendererEnum.Html,
     loading: false,
     loadError: '',
-    viewportHtml: '<html><body>ok</body></html>',
+    viewHtml: '<html><body>ok</body></html>',
     ...patch,
   };
 }
@@ -89,7 +89,6 @@ describe('awaiting protocol helpers', () => {
       data: {
         runId: 'run_1',
         awaitingId: 'await_1',
-        viewportKey: 'leave_form',
         mode: 'form',
         timeout: 60,
         activeFormIndex: 0,
@@ -136,7 +135,6 @@ describe('awaiting protocol helpers', () => {
       data: {
         runId: 'run_1',
         awaitingId: 'await_1',
-        viewportKey: 'leave_form',
         mode: 'form',
         timeout: 60,
         activeFormIndex: 0,
@@ -197,7 +195,6 @@ describe('awaiting protocol helpers', () => {
       data: {
         runId: 'run_1',
         awaitingId: 'await_1',
-        viewportKey: 'leave_form',
         mode: 'form',
         timeout: 60,
         activeFormIndex: 1,

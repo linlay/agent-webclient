@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { viewDocumentHTML } from "./viewDocument";
-const view = { connectorId: "forms", key: "edit", renderer: "html" as const };
+const view = { source: "connector", connectorId: "forms", key: "edit", renderer: "html" as const };
 test("VIEW embeds only declared resources and pins an isolated CSP", () => {
   const html = viewDocumentHTML({ view, entry: "views/index.html", html: '<base href="https://bad.example"><meta http-equiv="refresh" content="0;url=https://bad.example"><script src="app.js"></script><img src="private.png"><link rel="stylesheet" href="style.css"><a href="https://bad.example">open</a>', assets: [
     { path: "views/app.js", mediaType: "text/javascript", data: btoa("document.body.dataset.ready='yes'") },

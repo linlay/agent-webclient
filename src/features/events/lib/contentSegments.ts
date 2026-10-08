@@ -1,11 +1,10 @@
 import { readViewReference } from "@/shared/contracts/view";
 import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
-import { parseViewportBlocks } from '@/features/events/lib/viewportParser';
 import type { ContentSegment } from '@/shared/contracts/contentSegments';
 
 export type { ContentSegment } from '@/shared/contracts/contentSegments';
 
-const SPECIAL_FENCE_HEADERS = ['```viewport', '```view', '```tts-voice'] as const;
+const SPECIAL_FENCE_HEADERS = ['```view', '```tts-voice'] as const;
 
 function pushTextSegment(segments: ContentSegment[], text: string): void {
   const normalized = String(text ?? '').trim();
@@ -63,7 +62,7 @@ export function stripPendingSpecialFenceTail(text: string): string {
   return raw.slice(0, pendingStart).replace(/[ \t]*\n?$/, '');
 }
 
-function findNextSpecialFence(raw: string, fromIndex: number): { kind: 'viewport' | 'view' | 'ttsVoice'; start: number; contentStart: number } | null {
+function findNextSpecialFence(raw: string, fromIndex: number): { kind: 'view' | 'ttsVoice'; start: number; contentStart: number } | null {
   let cursor = Math.max(0, fromIndex || 0);
   while (cursor < raw.length) {
     const start = raw.indexOf('```', cursor);
@@ -74,9 +73,6 @@ function findNextSpecialFence(raw: string, fromIndex: number): { kind: 'viewport
     const headerLine = raw.slice(start, lineEnd === -1 ? raw.length : lineEnd);
 
     if (matchesFenceHeader(headerLine, 'view')) return { kind: 'view', start, contentStart: headerEnd };
-    if (matchesFenceHeader(headerLine, 'viewport')) {
-      return { kind: 'viewport', start, contentStart: headerEnd };
-    }
     if (matchesFenceHeader(headerLine, 'tts-voice')) {
       return { kind: 'ttsVoice', start, contentStart: headerEnd };
     }
@@ -109,7 +105,7 @@ export function stripSpecialBlocksFromText(text: string): string {
   return merged.replace(/\n{3,}/g, '\n\n').trim();
 }
 
-export function viewportSignature(contentId: string, block: { key?: string; payloadRaw?: string }): string {
+export function viewSignature(contentId: string, block: { key?: string; payloadRaw?: string }): string {
   return `${contentId || 'content'}::${block?.key || ''}::${block?.payloadRaw || ''}`;
 }
 
@@ -138,33 +134,10 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
     if (fence.kind === 'view') {
       if (!closingFence) { pushTextSegment(segments, raw.slice(fence.start)); break; }
       const block = safeJsonParse(raw.slice(fence.contentStart, closingFence.start), null, isObjectJson);
-      const ref = readViewReference(block?.view);
+      const rawView = isObjectJson(block?.view) ? block.view : undefined;
+      const ref = readViewReference(rawView && { ...rawView, source: rawView.source || (rawView.connectorId ? "connector" : "builtin") });
       if (ref) segments.push({ kind: 'view', view: ref, signature: `${contentId}::view::${fence.start}`, payloadRaw: JSON.stringify(block?.payload ?? {}) });
       else pushTextSegment(segments, raw.slice(fence.start, closingFence.end));
-      cursor = closingFence.end;
-      continue;
-    }
-
-    if (fence.kind === 'viewport') {
-      if (!closingFence) {
-        pushTextSegment(segments, raw.slice(fence.start));
-        break;
-      }
-
-      const rawBlock = raw.slice(fence.start, closingFence.end);
-      const parsed = parseViewportBlocks(rawBlock).find((block) => block.type === 'html');
-      if (parsed) {
-        segments.push({
-          kind: 'viewport',
-          signature: viewportSignature(contentId, parsed),
-          key: parsed.key,
-          payloadRaw: parsed.payloadRaw || '{}',
-          payload: parsed.payload ?? safeJsonParse(parsed.payloadRaw, {}, isObjectJson),
-        });
-      } else {
-        pushTextSegment(segments, rawBlock);
-      }
-
       cursor = closingFence.end;
       continue;
     }

@@ -14,7 +14,7 @@ import {
 import { isTerminalStatus, safeText, toText } from "@/shared/utils/eventUtils";
 import {
   pickToolName,
-  resolveViewportKey,
+  resolveViewKey,
 } from "@/features/events/lib/toolEvent";
 
 interface ResolvedTaskBinding {
@@ -312,10 +312,10 @@ export function buildToolTimelineNode(input: {
       event.toolName,
     ),
     ...(readViewReference(event.view) ? { view: readViewReference(event.view), viewError: toText(event.viewError), viewChatId: toText(event.chatId) } : existing?.view ? { view: existing.view, viewError: existing.viewError, viewChatId: existing.viewChatId } : {}),
-    viewportKey:
-      resolveViewportKey(event) ||
-      existing?.viewportKey ||
-      existingToolState?.viewportKey ||
+    viewKey:
+      resolveViewKey(event) ||
+      existing?.viewKey ||
+      existingToolState?.viewKey ||
       "",
     description: pickEventText(
       readToolDescription(event),

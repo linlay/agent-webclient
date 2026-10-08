@@ -25,7 +25,6 @@ export interface TimelineInteractionValue {
   renderToolView?: (view: NonNullable<TimelineNode["view"]>, chatId: string, error: string | undefined, payloadRaw: string) => React.ReactNode;
   renderToolOutput?: (output: NonNullable<TimelineNode["toolOutput"]>) => React.ReactNode;
   renderContentView?: (segment: ContentSegment, chatId: string) => React.ReactNode;
-  renderContentViewport?: (segment: ContentSegment) => React.ReactNode;
   renderMarkdown?: (props: MarkdownContentProps) => React.ReactNode;
   renderAttachment?: (attachment: TimelineAttachment, options: {
     density?: "default" | "compact";

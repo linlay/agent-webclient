@@ -358,7 +358,7 @@ function buildToolSnapshotFromRawEvents(
     'toolName',
     'toolLabel',
     'toolType',
-    'viewportKey',
+    'viewKey',
     'toolTimeout',
     'runId',
     'chatId',

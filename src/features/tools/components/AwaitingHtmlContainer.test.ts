@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ViewportTypeEnum } from "@/shared/contracts/agentEvents";
+import { ViewRendererEnum } from "@/shared/contracts/agentEvents";
 import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { I18nProvider } from '@/shared/i18n';
 import {
@@ -79,7 +79,7 @@ jest.mock('antd', () => {
 });
 
 jest.mock('@/shared/data', () => ({
-  getViewport: jest.fn(),
+  getBuiltinView: jest.fn(),
 }));
 
 function createActiveAwaiting(
@@ -91,8 +91,8 @@ function createActiveAwaiting(
     runId: 'run_1',
     agentKey: 'demo-agent',
     timeout: 60,
-    viewportKey: 'leave_form',
-    viewportType: ViewportTypeEnum.Html,
+    viewKey: 'leave_form',
+    viewRenderer: ViewRendererEnum.Html,
     mode: 'form',
     forms: [
       {
@@ -106,7 +106,7 @@ function createActiveAwaiting(
     ],
     loading: false,
     loadError: '',
-    viewportHtml: '<html><body>ok</body></html>',
+    viewHtml: '<html><body>ok</body></html>',
     ...patch,
   };
 }
@@ -177,7 +177,7 @@ describe('AwaitingHtmlContainer', () => {
 
     renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
-        data: createActiveAwaiting({ viewportHtml: '' }),
+        data: createActiveAwaiting({ viewHtml: '' }),
         onSubmit,
       }),
     );
@@ -186,7 +186,7 @@ describe('AwaitingHtmlContainer', () => {
     await Promise.resolve();
 
     expect(onSubmit).toHaveBeenCalledWith(
-      buildRejectAwaitingSubmitPayload(createActiveAwaiting({ viewportHtml: '' })),
+      buildRejectAwaitingSubmitPayload(createActiveAwaiting({ viewHtml: '' })),
     );
   });
 
@@ -195,7 +195,7 @@ describe('AwaitingHtmlContainer', () => {
 
     renderAwaiting(
       React.createElement(AwaitingHtmlContainer, {
-        data: createActiveAwaiting({ viewportHtml: '' }),
+        data: createActiveAwaiting({ viewHtml: '' }),
         onSubmit,
       }),
     );

@@ -1,26 +1,20 @@
-# Viewport视图容器
+# VIEW 视图容器
 
 ## 当前状态
-Viewport 是后端提供 HTML 视图的前端渲染容器，入口包括 content 中的 ```viewport fenced block、FrontendTool、HITL form。前端通过 `/api/viewport?viewportKey=...` 获取 HTML，并用 iframe `srcDoc` 渲染。
-
-## 核心职责
-- 解析 content 文本中的 viewport block，提取 key 和 payload。
-- 拉取 viewport HTML 并注入 iframe。
-- 通过 `postMessage` 向 iframe 发送 init/update 数据。
-- 为 timeline 内嵌视图、前端工具视图和 awaiting form 视图提供共通模式。
+统一使用 `view` 引用：source 为 builtin/connector，renderer 为 native/html/qlc。内置 native 组件由宿主渲染；HTML 与 QLC 从 `/api/view` 获取，通过隔离 iframe 展示。旧 viewport 字段、接口和 Markdown viewport 块已硬切移除。
 
 ## 核心流程
-content segment parser 识别 ```viewport block 后生成 viewport segment，`ContentBlock` 渲染 `ViewportEmbed`。`ViewportEmbed` 拉取 HTML，iframe load 后发送 payload。FrontendTool 和 AwaitingHtmlContainer 复用相同的 getViewport + iframe + message 模式，但提交协议各自独立。
+Markdown 的 `view` fence 生成 view segment，由 `ViewEmbed` 加载模板并发送 `view_init/view_update`。内置引用可写 `{"view":{"key":"platform_control_review"},"payload":{}}`；连接器引用使用 connectorId/key，历史版本通过 hash 固定。旧 viewport fence 保留为普通 Markdown，不请求模板。
 
-## 边界与非目标
-- Viewport 不是 Artifact；Artifact 是文件资源，Viewport 是 HTML 交互视图。
-- 前端不信任 iframe 内容，必须使用 sandbox。
-- `/api/viewport` 的 HTML 来源和权限由后端负责。
+HITL 表单继续使用 `forms[]` 和 `params[]`。`AwaitingHtmlContainer` 通过统一 view loader 获取 HTML，再使用 awaiting_init/update/collect 协议；展示 VIEW 没有提交能力。Team 的 builtin/team-hitl 使用宿主成员组件，汇总后一次提交。
+
+## 边界
+VIEW 是展示模板，Artifact 是文件资源。所有 HTML 使用 sandbox=allow-scripts 与宿主 CSP，不授予同源或工具执行权限。模板来源、Chat 授权和快照由 Platform 管理；Gateway 另需 Run 或 Chat 路由上下文。
 
 ## 相关文件
-- `../src/features/events/lib/contentSegments.ts`
-- `../src/features/tools/lib/viewportParser.ts`
-- `../src/features/timeline/components/ViewportEmbed.tsx`
-- `../src/features/timeline/components/ContentBlock.tsx`
-- `../src/features/tools/components/AwaitingHtmlContainer.tsx`
-- `../src/features/tools/components/FrontendToolContainer.tsx`
+- `src/shared/contracts/view.ts`
+- `src/features/events/lib/contentSegments.ts`
+- `src/features/timeline/components/ViewEmbed.tsx`
+- `src/features/tools/hooks/useAwaitingFrameDocument.ts`
+- `src/features/tools/components/AwaitingHtmlContainer.tsx`
+- `src/features/tools/components/TeamAwaitingContainer.tsx`
