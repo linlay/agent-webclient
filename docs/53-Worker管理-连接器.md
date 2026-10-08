@@ -168,3 +168,7 @@ Connection DTO 接收 configurationRequired、authentication、capabilities 和�
 业务导航使用 newChat + 显式 composerDraft（无例文时为空字符串），不携带 composerSkill，不自动发送。输入草稿、上次技能的替换和一次性参数消费归 Chat Composer；管理宿主按相同规则交接。安装包 ID 来自目录和 Platform 响应，不根据 Market 资源 ID 猜测。
 
 Standalone 业务“去对话”在准备/挂载前确认未保存修改，确认与管理台 Router blocker 共用一次性许可。许可绑定当时的连接器、文件、原哈希、草稿编辑版本，并只在操作成功后为精确 pathname/search/hash 授予；任意路由尝试即消费，后续编辑（含撤销恢复同样文字）、保存、取消或失败都不能复用。该许可不清 dirty、不删除草稿、不放行其他目标。包定义的“通过对话创建／修改”在 Standalone 只由最终 Router blocker 确认；Desktop 保留原有前置确认及宿主导航。
+
+### 管理工具归属
+
+`GET /api/admin/connectors` 每项新增 `tools: ToolSummary[]`，包含原生连接器固定所属工具和该连接器各已挂载 MCP 实例的工具快照；MCP 工具保留 `serverKey/mcpToolName`，使用 `mcp[].agentKey` 隔离当前 Agent。`label/description` 从注册定义读取并按现有查看者语言规则解析，隐藏翻译表不回传。`catalogVisible:false` 不阻止所属连接器内展示，但不开放无归属的内部工具。前端连接器列表与详情不再请求 `/api/admin/tools`；该接口只用于独立工具配置，排除原生连接器工具与 MCP 工具。工具详情缺失不在前端硬编码补全。`bash/file_read` 等通用依赖不因被连接器使用而变成连接器所属工具。

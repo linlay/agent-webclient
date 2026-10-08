@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAdminAgentConnectors, getAdminConnectors, getAdminTools } from "@/shared/data";
+import { getAdminAgentConnectors, getAdminConnectors, type AdminAgentConnectorsResponse } from "@/shared/data";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { agentConnectorCapabilities, type AgentConnectorCapability } from "../lib/agentConnectorCapabilities";
 
 const emptyItems: AgentConnectorCapability[] = [];
 const emptyNames: string[] = [];
-export function useAgentConnectorCapabilities(agentKey: string) {
+export function useAgentConnectorCapabilities(agentKey: string, bindings?: AdminAgentConnectorsResponse | null) {
   const push = usePushTransport();
   const [snapshot, setSnapshot] = useState<{ agentKey: string; items: AgentConnectorCapability[]; ownedToolNames: string[]; reloadPending: boolean }>();
   const [loading, setLoading] = useState(false);
@@ -15,10 +15,10 @@ export function useAgentConnectorCapabilities(agentKey: string) {
     const current = ++request.current;
     setLoading(true);
     try {
-      const [selection, catalog, tools] = await Promise.all([(agentKey ? getAdminAgentConnectors(agentKey) : Promise.resolve(null)), getAdminConnectors(), getAdminTools()]);
+      const [selection, catalog] = await Promise.all([(bindings !== undefined ? Promise.resolve(bindings ? { data: bindings } : null) : agentKey ? getAdminAgentConnectors(agentKey) : Promise.resolve(null)), getAdminConnectors()]);
       if (current !== request.current) return;
       if (selection && selection.data.agentKey !== agentKey) throw new Error("Invalid Agent connector response");
-      setSnapshot({ agentKey, items: selection ? agentConnectorCapabilities(selection.data, catalog.data.connectors, tools.data) : [],
+      setSnapshot({ agentKey, items: selection ? agentConnectorCapabilities(selection.data, catalog.data.connectors) : [],
         ownedToolNames: catalog.data.connectors.flatMap(item => item.nativeTools || []), reloadPending: selection?.data.reloadPending || false });
       setError(null);
     } catch (cause) {
@@ -26,7 +26,7 @@ export function useAgentConnectorCapabilities(agentKey: string) {
     } finally {
       if (current === request.current) setLoading(false);
     }
-  }, [agentKey]);
+  }, [agentKey, bindings]);
 
   useEffect(() => {
     setSnapshot(undefined);

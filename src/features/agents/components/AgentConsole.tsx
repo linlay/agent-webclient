@@ -394,7 +394,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     () => mergeAgentSkillOptions(skillOptions, privateSkills, form.skills, t),
     [form.skills, privateSkills, skillOptions, t],
   );
-  const connectorCapabilities = useAgentConnectorCapabilities(formMode === "edit" ? form.key : "");
+  const connectorCapabilities = useAgentConnectorCapabilities(formMode === "edit" ? form.key : "",
+    formMode === "edit" && detail?.key === form.key && "connectorBindings" in detail ? detail.connectorBindings ?? null : null);
   const detailToolBindings = detail && "toolBindings" in detail ? detail.toolBindings : undefined;
   const { available: displayToolOptions, selected: selectedTools } = useMemo(
     () => projectAgentTools(toolOptions, formMode === "edit" ? detailToolBindings : [], form.tools, connectorCapabilities.ownedToolNames),

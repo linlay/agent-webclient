@@ -1,3 +1,4 @@
+import type { AdminToolSummary } from "./admin";
 export type ConnectorType = "cli" | "mcp" | "view" | "native";
 export type ConnectorDefinitionFile = "connector.json" | "mcp.json" | "cli.json" | "view.json" | "native.json";
 
@@ -12,6 +13,7 @@ export interface ConnectorMcpStatus {
 }
 
 export interface ConnectorSummary {
+  tools?: AdminToolSummary[];
   id: string;
   name: string;
   version: string;

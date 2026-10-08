@@ -45,9 +45,10 @@ it("loads the minimal usage catalog with an encoded Agent scope and forwards can
 it("keeps complete Agent mount reads and writes on independent management endpoints", async () => {
   const controller = new AbortController();
   const input = { agentKey: "zenmi", connectorId: "docs", enabled: true };
+  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: { connectorBindings: { agentKey: "demo", connectorIds: [] } } });
   await getAdminAgentConnectors("zenmi & other", controller.signal);
   await setAdminAgentConnector(input, controller.signal);
-  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store", signal: controller.signal });
+  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/admin/agent?agentKey=zenmi+%26+other", { cache: "no-store", signal: controller.signal });
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/agents/connectors", { method: "PUT", body: JSON.stringify(input), cache: "no-store", signal: controller.signal });
 });
 

@@ -17,7 +17,7 @@ export function ConnectorTools({ tools }: { tools: AdminToolSummary[] }) {
       onChange={event => setSearch(event.target.value)} />}
     {filtered.map(tool => <div className={styles.tool} key={tool.key}>
       <strong>{connectorToolDisplayName(tool)}</strong>
-      {tool.description && <p>{tool.description}</p>}
+      <p>{tool.description || t("connectors.tools.noDescription")}</p>
     </div>)}
     {!filtered.length && <p className={styles.hint}>{t("connectors.tools.noResults")}</p>}
   </div>;
@@ -30,7 +30,7 @@ export function ConnectorComponents({ item, tools }: { item: ConnectorSummary; t
     {item.hasNative && <section className={styles.group}>
       <h3>{t("connectors.type.native")}</h3>
       <p>{t("connectors.native.hint")}</p>
-      {(item.nativeTools || []).map(name => <div className={styles.tool} key={name}><strong>{name}</strong></div>)}
+      <ConnectorTools tools={tools.filter(tool => item.nativeTools?.includes(tool.key))} />
     </section>}
     {item.hasView && <section className={styles.group}>
       <h3>VIEW</h3>

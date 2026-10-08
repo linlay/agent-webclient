@@ -1,3 +1,4 @@
+import type { AdminAgentDetailResponse } from "../dto/agents";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
 import type {
   ConnectorDefinition, ConnectorDefinitionTarget, ConnectorListResponse,
@@ -27,9 +28,11 @@ export function getConnectors(agentKey = "", signal?: AbortSignal): Promise<ApiR
   return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
 }
 
-export function getAdminAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {
+export async function getAdminAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {
   const endpoint = dataEndpoints.adminAgentConnectors;
-  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
+  const response = await requestJson<AdminAgentDetailResponse>(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
+  if (!response.data.connectorBindings) throw new Error("Agent connector bindings unavailable");
+  return { ...response, data: response.data.connectorBindings };
 }
 
 export function setAdminAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AdminAgentConnectorsResponse>> {

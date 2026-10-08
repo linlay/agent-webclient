@@ -536,6 +536,7 @@ export const enUSMessages = {
   "connectors.section.skills": "Bundled skills · {count}",
   "connectors.config.dirty": "Unsaved",
   "connectors.tools.count": "{count} tools",
+  "connectors.tools.noDescription": "No description available.",
   "connectors.tools.search": "Search tool names or descriptions…",
   "connectors.tools.noResults": "No matching tools",
   "connectors.tools.snapshot": "Showing the last successful tool snapshot; synchronization will retry in the background.",

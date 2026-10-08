@@ -1,3 +1,4 @@
+import type { AdminAgentConnectorsResponse } from "./connectors";
 import type {
   CoderModelOptionsResponse,
   QueryReasoningEffort,
@@ -130,6 +131,7 @@ export interface AdminAgentSummary {
 }
 
 export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "model" | "mode" | "tools" | "skills" | "connectors" | "controls" | "meta"> {
+  connectorBindings?: AdminAgentConnectorsResponse;
   toolBindings?: AgentToolBinding[];
   model?: string;
   mode?: string;

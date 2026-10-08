@@ -30,7 +30,7 @@ beforeEach(() => {
   jest.mocked(getAdminTools).mockResolvedValue({ code: 0, msg: "", data: [] });
   jest.mocked(getAdminAgentConnectors).mockResolvedValue(selection("zenmi"));
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "success", data: { connectors: [
-    { id: "builtin.web-control", name: "网页控制", description: "控制网页", version: "1", type: "native", auth_mode: "no_auth", builtin: true, readOnly: true, canDelete: false, hasNative: true, nativeTools: ["awcp_manual"], hasMcp: false, hasCli: false, hasBin: false, skills: [] },
+    { id: "builtin.web-control", name: "网页控制", description: "控制网页", version: "1", type: "native", auth_mode: "no_auth", builtin: true, readOnly: true, canDelete: false, hasNative: true, nativeTools: ["awcp_manual"], tools: [{key:"awcp_manual",name:"awcp_manual",label:"Website manual",description:"Read website instructions",kind:"native",sourceType:"native",sourceCategory:"platform"}], hasMcp: false, hasCli: false, hasBin: false, skills: [] },
   ] } });
   container = document.createElement("div");
   root = createRoot(container);
@@ -42,7 +42,9 @@ it("shows the platform preset in Agent management as a read-only item with no mo
   expect(getAdminAgentConnectors).toHaveBeenCalledWith("zenmi");
   expect(container.textContent).toContain("网页控制");
   expect(container.textContent).toContain("agentConsole.tools.preset");
-  expect(container.textContent).toContain("awcp_manual");
+  expect(container.textContent).toContain("Website manual");
+  expect(container.textContent).toContain("Read website instructions");
+  expect(getAdminTools).not.toHaveBeenCalled();
   expect(container.querySelectorAll("details")).toHaveLength(2);
   expect(container.querySelector("details")?.open).toBe(false);
   expect(container.textContent).toContain("lock");
@@ -75,4 +77,14 @@ it("offers retry when the management read fails without invoking a mutation", as
   await act(async () => container.querySelector<HTMLButtonElement>("button")!.click());
   expect(container.textContent).toContain("网页控制");
   expect(setAdminAgentConnector).not.toHaveBeenCalled();
+});
+
+it("reuses bindings from the loaded Agent detail without a second Agent request", async () => {
+  const bindings = selection("zenmi").data;
+  function DetailHarness() {
+    return React.createElement(AgentConnectorCapabilities, useAgentConnectorCapabilities("zenmi", bindings));
+  }
+  await act(async () => root.render(React.createElement(DetailHarness)));
+  expect(getAdminAgentConnectors).not.toHaveBeenCalled();
+  expect(container.textContent).toContain("网页控制");
 });

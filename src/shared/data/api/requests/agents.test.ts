@@ -265,7 +265,7 @@ describe("requests/agents request contracts", () => {
       "/api/admin/agents",
     );
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
-      "/api/admin/agents/detail?agentKey=bad-agent",
+      "/api/admin/agent?agentKey=bad-agent",
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
       "/api/admin/agents/order",

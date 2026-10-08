@@ -580,6 +580,7 @@ export const zhCNMessages = {
   "connectors.section.skills": "附带技能 · {count}",
   "connectors.config.dirty": "未保存",
   "connectors.tools.count": "{count} 个工具",
+  "connectors.tools.noDescription": "暂无说明。",
   "connectors.tools.search": "搜索工具名称或描述…",
   "connectors.tools.noResults": "没有匹配的工具",
   "connectors.tools.snapshot":

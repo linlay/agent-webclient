@@ -1,4 +1,4 @@
-import { getAdminConnectors, getAdminTools } from "@/shared/data";
+import { getAdminConnectors } from "@/shared/data";
 import type { AdminToolSummary, ConnectorDefinitionFile, ConnectorSummary, ConnectorType } from "@/shared/data";
 
 export function connectorFiles(item: ConnectorSummary): ConnectorDefinitionFile[] {
@@ -14,9 +14,9 @@ export function filterConnectors(items: ConnectorSummary[], search: string, type
   );
 }
 
-export function toolsForConnector(tools: AdminToolSummary[], item: ConnectorSummary): AdminToolSummary[] {
+export function toolsForConnector(item: ConnectorSummary): AdminToolSummary[] {
   const keys = new Set((item.mcp || []).map(server => server.serverKey));
-  return tools.filter(tool => item.nativeTools?.includes(tool.key) || (tool.sourceCategory === "mcp" && keys.has(tool.serverKey || "")));
+  return (item.tools || []).filter(tool => item.nativeTools?.includes(tool.key) || (tool.sourceCategory === "mcp" && keys.has(tool.serverKey || "")));
 }
 
 export function connectorToolDisplayName(tool: AdminToolSummary): string {
@@ -37,8 +37,9 @@ export function unassignedConnectorTools(tools: AdminToolSummary[], items: Conne
 }
 
 export async function fetchConnectorCatalog() {
-  const [catalog, tools] = await Promise.all([getAdminConnectors(), getAdminTools()]);
-  return { items: catalog.data.connectors || [], tools: tools.data || [] };
+  const catalog = await getAdminConnectors();
+  const items = catalog.data.connectors || [];
+  return { items, tools: items.flatMap(item => item.tools || []) };
 }
 
 export function connectorsRoutePath(id: string, search = ""): string {

@@ -16,7 +16,7 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 
 ## 连接器与工具分层
 
-已有 Agent 在“上下文与能力”中通过 `/api/admin/agents/connectors` 读取预置、声明和实际生效挂载的并集，使用 `/api/admin/connectors` 与 `/api/admin/tools` 展示连接器名称、说明、归属工具和能力。连接器默认收起，点击或键盘展开后显示工具名称、说明及搜索（超过 8 项），CLI、VIEW、技能和 MCP 同步状态分别解释。预置带锁且只读；未生效、等待重载、目录缺失和空列表有独立状态。切换 Agent、目录更新和页面重新可见时刷新，并忽略旧请求响应。MCP 服务按 agentKey 过滤，避免显示其他 Agent 的工具。
+已有 Agent 在“上下文与能力”中通过 `/api/admin/agent` 的 `connectorBindings` 读取预置、声明和实际生效挂载的并集，使用 `/api/admin/connectors` 的 `tools` 展示连接器名称、说明、归属工具和能力。连接器默认收起，点击或键盘展开后显示工具名称、说明及搜索（超过 8 项），CLI、VIEW、技能和 MCP 同步状态分别解释。预置带锁且只读；未生效、等待重载、目录缺失和空列表有独立状态。切换 Agent、目录更新和页面重新可见时刷新，并忽略旧请求响应。MCP 服务按 agentKey 过滤，避免显示其他 Agent 的工具。
 
 自身工具区不重复展示连接器原生工具或 MCP 工具；原生归属来自目录 `nativeTools`，不按工具名前缀推断。平台预置和运行时依赖默认折叠，保留 excluded/active 与只读标识。显示分组不修改 `definition.toolConfig.tools`，保存仍仅使用自身声明，不把自动挂载写回源码。连接器包详情仍在 `/connectors` 查看；两套挂载 PUT 均由后端拒绝修改预置。
 
@@ -76,3 +76,7 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 手工创建、编辑、保存与对话方式并存。独立的「通过对话创建／修改」入口使用默认 Chat 智能体，预选 `platform-admin` 并填写草稿，不自动发送。保留原有表单、源码编辑、ZIP 导入及只读边界；连接器手工新增沿用 ZIP 导入。详见[资源对话创建与修改](01-应用基础-应用入口路由与布局壳层.md#资源对话创建与修改)。
 
 项目创建由客户端把选中功能展开为具体 definition JSON，复用 `/api/admin/agents/create` 并传请求级 `isProject:true`；用户目录写入 `definition.runtimeConfig.workspaceRoot`，由 Platform 在写盘前校验为具体、现存且非系统根的目录。标志不持久化，普通 Agent 创建表单保留原有契约。Platform 提供 creation-defaults 与普通资源目录。Standalone 从 public/agent-creation.json 分发品牌配置；Desktop 内嵌入口通过宿主桥复用环境配置，不回退到 standalone 分组。
+
+管理工具目录 `/api/admin/tools` 仅提供独立工具；Agent 管理详情的 `tools/toolBindings` 同样不包含连接器所属工具，`definition` 保留原始可编辑源码，不为展示分组改写。连接器及 MCP 工具名称、说明直接取连接器管理响应 `tools`，不再与独立工具目录拼接；工具缺少 description 时显示“暂无说明”。新旧服务需配套更新。
+
+管理详情统一读取 `GET /api/admin/agent?agentKey=...`，`connectorBindings` 内含 presetConnectorIds、declaredConnectorIds、connectorIds、activeConnectorIds 和 reloadPending；能力区复用此快照，仅额外读取连接器展示目录。旧详情和挂载 GET 路径由 Platform 保留兼容，前端不再调用；挂载 PUT 路径不变。无效源码无法解析挂载时可缺省 connectorBindings，仍保留诊断与源码编辑。

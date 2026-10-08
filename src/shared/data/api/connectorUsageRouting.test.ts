@@ -81,10 +81,11 @@ it.each([
 
 it("keeps management directory and mounting calls on HTTP", async () => {
   await getAdminConnectors();
+  jest.mocked(requestJson).mockResolvedValueOnce({ code: 0, msg: "", data: { connectorBindings: { agentKey: "demo", connectorIds: [] } } });
   await getAdminAgentConnectors("demo");
   await setAdminAgentConnector({ agentKey: "demo", connectorId: "docs", enabled: true });
   expect(jest.mocked(requestJson).mock.calls.map(call => call[0])).toEqual([
-    "/api/admin/connectors", "/api/admin/agents/connectors?agentKey=demo", "/api/admin/agents/connectors",
+    "/api/admin/connectors", "/api/admin/agent?agentKey=demo", "/api/admin/agents/connectors",
   ]);
   expect(requestDataThroughExecutor).not.toHaveBeenCalled();
 });

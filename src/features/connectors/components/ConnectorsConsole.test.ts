@@ -139,7 +139,7 @@ it("refreshes list authorization and MCP data without overwriting the manifest d
   await click("重新检查状态");
   expect(container.querySelector("aside")?.textContent).toContain("已授权");
   expect(getAdminConnectors).toHaveBeenCalledTimes(2);
-  expect(getAdminTools).toHaveBeenCalledTimes(2);
+  expect(getAdminTools).not.toHaveBeenCalled();
   expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
   expect(detail().querySelector<HTMLInputElement>("input:not([readonly])")?.value).toBe(before);
 });

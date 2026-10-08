@@ -229,14 +229,14 @@ export const dataEndpoints = createEndpointRegistry({
   }),
   adminAgentDetail: defineEndpoint({
     key: "admin.agents.detail",
-    path: "/api/admin/agents/detail",
+    path: "/api/admin/agent",
     method: "GET",
     transport: "http",
     payload: (agentKey: string) => ({ agentKey }),
   }),
   adminAgentConnectors: defineEndpoint({
     key: "admin.agents.connectors",
-    path: "/api/admin/agents/connectors",
+    path: "/api/admin/agent",
     method: "GET",
     transport: "http",
     payload: (agentKey: string) => ({ agentKey }),
