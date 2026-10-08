@@ -50,7 +50,8 @@ export function useTimelineContextMenuTarget<T extends Element>(
 ): React.RefCallback<T> {
   const register = useTimelineInteraction()?.registerContextMenuTarget;
   const cleanup = React.useRef<(() => void) | null>(null);
-  React.useEffect(() => () => cleanup.current?.(), []);
+  // The callback ref owns registration and cleanup, including unmount (null).
+  // Effect cleanup also runs during StrictMode replay without reattaching refs.
   return React.useCallback((element: T | null) => {
     cleanup.current?.();
     cleanup.current = element && register ? register(element, descriptor) : null;
