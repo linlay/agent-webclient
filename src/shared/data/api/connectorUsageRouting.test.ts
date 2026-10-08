@@ -1,5 +1,5 @@
 import {
-  getConnectors, getAgent, setAgentConnector,
+  getConnectors, getAgent, setAgentConnector, getConnectorConnection, getConnectorConnections,
   getAdminConnectors, getAdminAgentConnectors, setAdminAgentConnector,
 } from "@/shared/data";
 import { requestJson } from "@/shared/data/api/http";
@@ -88,6 +88,38 @@ it("keeps management directory and mounting calls on HTTP", async () => {
     "/api/admin/connectors", "/api/admin/agent?agentKey=demo", "/api/admin/agents/connectors",
   ]);
   expect(requestDataThroughExecutor).not.toHaveBeenCalled();
+});
+
+it("uses HTTP configuration snapshots alongside the Platform WebSocket catalog and switches", async () => {
+  const { signal } = new AbortController();
+  const state = { connectorId: "wecom", configured: false, configurationRequired: true };
+  jest.mocked(requestJson)
+    .mockResolvedValueOnce({ code: 0, data: { connections: [state] } })
+    .mockResolvedValueOnce({ code: 0, data: state });
+  await getConnectors("demo", signal);
+  await expect(getConnectorConnections(signal)).resolves.toMatchObject({ data: { connections: [state] } });
+  await expect(getConnectorConnection("wecom", signal)).resolves.toMatchObject({ data: state });
+  await setAgentConnector({ agentKey: "demo", connectorId: "wecom", enabled: false }, signal);
+  expect(jest.mocked(requestDataThroughExecutor).mock.calls).toEqual([
+    ["/api/connectors", { agentKey: "demo" }, { signal }],
+    ["/api/agents/connectors", { agentKey: "demo", connectorId: "wecom", enabled: false }, { signal }],
+  ]);
+  expect(jest.mocked(requestJson).mock.calls).toEqual([
+    ["/api/connectors/connection", { method: "GET", cache: "no-store", signal }],
+    ["/api/connectors/connection?id=wecom", { method: "GET", cache: "no-store", signal }],
+  ]);
+});
+
+it("keeps HTTP state observation independent of a failed Platform WebSocket mutation", async () => {
+  const error = Object.assign(new Error("connection lost"), { code: "WS_DISCONNECTED" });
+  jest.mocked(requestDataThroughExecutor).mockRejectedValueOnce(error);
+  await expect(setAgentConnector({ agentKey: "demo", connectorId: "wecom", enabled: false })).rejects.toBe(error);
+  expect(requestJson).not.toHaveBeenCalled();
+  await getConnectorConnections();
+  expect(requestDataThroughExecutor).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(requestJson).mock.calls).toEqual([
+    ["/api/connectors/connection", { method: "GET", cache: "no-store", signal: undefined }],
+  ]);
 });
 
 it.each([false, true])("invalidates cached Agent associations after a connector save (failure=%s)", async fail => {

@@ -39,7 +39,7 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
-目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取；挂载状态复用共享 Agent 和详情缓存，不新增挂载 GET。管理目录、认证和图标沿用各自 HTTP 路径。
+目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取；挂载状态复用共享 Agent 和详情缓存，不新增挂载 GET。管理目录、连接配置快照、认证和图标沿用各自 HTTP 路径。`/api/connectors/connection` 的全量与单项快照没有 WS 对应路由；配置观察与开启前校验使用该 HTTP 契约，不能将它当作 WS 失败后的回退。
 
 WS `/api/agent` 返回 tools/skills/connectors ID 数组；WS `/api/connectors` 使用可选 `{agentKey}` 读取目录和状态；WS `/api/agents/connectors` 使用 `{agentKey,connectorId,enabled}` 更新单项。Platform 保留旧挂载 GET/WS 读取兼容，WebClient 不再调用。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
 

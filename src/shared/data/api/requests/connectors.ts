@@ -133,6 +133,8 @@ export function getConnectorConnection(id: string, signal?: AbortSignal): Promis
  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {method: endpoint.method, cache: "no-store", signal});
 }
 
+// Platform exposes configuration/authentication snapshots only over HTTP.
+// The selectable catalog and Agent switch mutations use routedClient instead.
 export function getConnectorConnections(signal?: AbortSignal): Promise<ApiResponse<ConnectorConnectionsResponse>> {
   const endpoint = dataEndpoints.connectorConnection;
   return requestJson(endpoint.path, { method: endpoint.method, cache: "no-store", signal });
