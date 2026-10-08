@@ -7,7 +7,6 @@ import type { ProjectGitBranchRequest } from "@/shared/data/api/dto/resources";
 import type { AgentConnectorsResponse, ConnectorOptionsResponse, SetAgentConnectorRequest, ConnectorOrderResponse, UpdateConnectorOrderRequest } from "@/shared/data/api/dto/connectors";
 import {
   getConnectors as getConnectorsHttp,
-  getAgentConnectors as getAgentConnectorsHttp,
   setAgentConnector as setAgentConnectorHttp,
   getConnectorOrder as getConnectorOrderHttp,
   putConnectorOrder as putConnectorOrderHttp,
@@ -628,12 +627,9 @@ export function getConnectors(agentKey = "", signal?: AbortSignal): Promise<ApiR
   return routeEndpoint(dataEndpoints.connectors, agentKey, () => getConnectorsHttp(agentKey, signal), signal);
 }
 
-export function getAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
-  return routeEndpoint(dataEndpoints.agentConnectors, agentKey, () => getAgentConnectorsHttp(agentKey, signal), signal);
-}
-
 export function setAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
-  return routeEndpoint(dataEndpoints.agentConnectorUpdate, params, () => setAgentConnectorHttp(params, signal), signal);
+  return routeEndpoint(dataEndpoints.agentConnectorUpdate, params, () => setAgentConnectorHttp(params, signal), signal)
+    .finally(() => invalidateAgentDetail(params.agentKey));
 }
 
 export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<ApiResponse<ConnectorOrderResponse>> {

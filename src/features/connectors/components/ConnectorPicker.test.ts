@@ -285,3 +285,52 @@ it("loads the scoped usage catalog without exposing platform preset controls", a
   await mount({ search: "Web Control" });
   expect(container.querySelector('[role="switch"]')).toBeNull();
 });
+
+it("shows availability from the directory while keeping saved associations independently switchable", async () => {
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
+    { id: "docs", name: "文档", readiness: "authorization_required" },
+    { id: "mcp", name: "MCP", readiness: "ready", mcp: [{ serverKey: "mcp", status: "unavailable", toolCount: 0 }] },
+  ] } });
+  await mount();
+  const switches = container.querySelectorAll<HTMLButtonElement>('[role="switch"]');
+  expect(switches[0].getAttribute("aria-checked")).toBe("true");
+  expect(switches[0].parentElement?.textContent).toContain("status.authorization_required");
+  expect(switches[1].parentElement?.textContent).toContain("status.unavailable");
+  await act(async () => switches[0].click());
+  expect(onSelectionChange).toHaveBeenCalledWith("docs", false);
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+});
+
+it("refreshes only the directory while publication is pending and stops once it completes", async () => {
+  const connectors = [{ id: "docs", name: "文档", readiness: "ready" as const }];
+  jest.mocked(getConnectors)
+    .mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "zenmi", reloadPending: true, connectors } })
+    .mockResolvedValue({ code: 0, msg: "", data: { agentKey: "zenmi", reloadPending: false, connectors } });
+  await mount();
+  expect(container.textContent).toContain("composer.addMenu.connectors.reloadPending");
+  await act(async () => jest.advanceTimersByTime(2_000));
+  expect(getConnectors).toHaveBeenCalledTimes(2);
+  expect(container.textContent).not.toContain("composer.addMenu.connectors.reloadPending");
+  await act(async () => jest.advanceTimersByTime(60_000));
+  expect(getConnectors).toHaveBeenCalledTimes(2);
+});
+
+it("stops MCP synchronization checks on readiness or when the picker closes", async () => {
+  const option = (status: "syncing" | "ready") => ({ id: "docs", name: "文档", readiness: "ready" as const,
+    mcp: [{ serverKey: "docs", status, toolCount: status === "ready" ? 1 : 0 }] });
+  jest.mocked(getConnectors)
+    .mockResolvedValueOnce({ code: 0, msg: "", data: { connectors: [option("syncing")] } })
+    .mockResolvedValue({ code: 0, msg: "", data: { connectors: [option("ready")] } });
+  await mount();
+  expect(container.textContent).toContain("status.syncing");
+  await act(async () => jest.advanceTimersByTime(2_000));
+  expect(container.textContent).toContain("status.ready");
+  await act(async () => jest.advanceTimersByTime(60_000));
+  expect(getConnectors).toHaveBeenCalledTimes(2);
+  await act(async () => root.render(null));
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [option("syncing")] } });
+  await mount();
+  await act(async () => root.render(null));
+  await act(async () => jest.advanceTimersByTime(60_000));
+  expect(getConnectors).toHaveBeenCalledTimes(3);
+});

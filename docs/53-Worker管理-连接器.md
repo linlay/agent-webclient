@@ -39,15 +39,17 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
-目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。使用目录和挂载状态不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取。管理目录、认证和图标沿用各自 HTTP 路径。
+目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取；挂载状态复用共享 Agent 和详情缓存，不新增挂载 GET。管理目录、认证和图标沿用各自 HTTP 路径。
 
-WS `/api/connectors` 使用可选 `{agentKey}` 读取目录；WS `/api/agents/connectors` 使用 `{agentKey}` 读取挂载，使用 `{agentKey,connectorId,enabled}` 更新单项。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
+WS `/api/agent` 返回 tools/skills/connectors ID 数组；WS `/api/connectors` 使用可选 `{agentKey}` 读取目录和状态；WS `/api/agents/connectors` 使用 `{agentKey,connectorId,enabled}` 更新单项。Platform 保留旧挂载 GET/WS 读取兼容，WebClient 不再调用。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
 
-“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，只返回 id/name 与非空 description/iconUrl/mutuallyExclusiveWith；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
+“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，返回 id/name、非空 description/iconUrl/mutuallyExclusiveWith、本地 readiness 与可选 mcp[]（agentKey/serverKey/status/toolCount）；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
-`GET /api/agents/connectors?agentKey=<key>` 返回 `{agentKey,connectorIds,reloadPending}`；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`。开关反映已保存的源配置，reloadPending 表示完整配置与运行时仍不一致。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收版本、认证、组件、技能或 activeConnectorIds。
+开关读取 `/api/agent.connectors` 的已保存非预置 ID；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`，响应仍为 `{agentKey,connectorIds,reloadPending}`。目录在指定 Agent 时返回 agentKey 和 reloadPending，表示完整配置与运行时仍不一致；全局目录省略这两个字段。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收版本、认证详情、组件清单、技能或 activeConnectorIds。
 
-保存期间显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
+目录状态只读取既有认证/准备及 MCP 同步快照，不执行 CLI 或主动探测上游。菜单打开期间，仅 reloadPending、preparing/pending_verification 或 MCP pending/syncing 每次响应后间隔 2 秒补查目录；状态稳定、读取失败或关闭菜单后停止。未挂载与不可用分别显示，不用可用性推断开关。
+
+保存期间使 Agent 详情缓存与在途可用性检查失效，显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
 
 `/agents/:agentKey` 的能力区通过 `/api/admin/agents/connectors`、`/api/admin/connectors` 与 `/api/admin/tools` 展示预置、声明及当前生效挂载。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。预置带锁，无挂载修改入口。管理“发起对话”仍使用管理挂载接口的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
 

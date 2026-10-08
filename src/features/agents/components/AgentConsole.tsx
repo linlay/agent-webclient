@@ -395,9 +395,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     [form.skills, privateSkills, skillOptions, t],
   );
   const connectorCapabilities = useAgentConnectorCapabilities(formMode === "edit" ? form.key : "");
+  const detailToolBindings = detail && "toolBindings" in detail ? detail.toolBindings : undefined;
   const { available: displayToolOptions, selected: selectedTools } = useMemo(
-    () => projectAgentTools(toolOptions, formMode === "edit" ? detail?.toolBindings : [], form.tools, connectorCapabilities.ownedToolNames),
-    [toolOptions, formMode, detail?.toolBindings, form.tools, connectorCapabilities.ownedToolNames],
+    () => projectAgentTools(toolOptions, formMode === "edit" ? detailToolBindings : [], form.tools, connectorCapabilities.ownedToolNames),
+    [toolOptions, formMode, detailToolBindings, form.tools, connectorCapabilities.ownedToolNames],
   );
   const filteredToolOptions = useMemo(() => {
     const query = toolSearchText.trim().toLowerCase();

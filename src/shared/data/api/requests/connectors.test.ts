@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
-import { getConnectors, getAgentConnectors, setAgentConnector, getAdminAgentConnectors, setAdminAgentConnector } from "./connectors";
+import { getConnectors, setAgentConnector, getAdminAgentConnectors, setAdminAgentConnector } from "./connectors";
 import { prepareConnector, saveConnectorCredentials } from "./connectors";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
@@ -17,12 +17,11 @@ it("sends private credentials and explicit preparation through uncached HTTP wit
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/prepare?id=installed-id", { method: "POST", cache: "no-store", signal: controller.signal, retryUnauthorized: false });
 });
 
-it("reads configured Agent connectors without caching and sends only the single switch edit", async () => {
-  await getAgentConnectors("zenmi & other");
+it("sends only the single Agent connector switch edit without a separate association read", async () => {
   const input = { agentKey: "zenmi", connectorId: "docs", enabled: false };
   await setAgentConnector(input);
-  expect(requestJson).toHaveBeenNthCalledWith(1, "/api/agents/connectors?agentKey=zenmi+%26+other", { cache: "no-store" });
-  expect(requestJson).toHaveBeenNthCalledWith(2, "/api/agents/connectors", { method: "PUT", cache: "no-store", body: JSON.stringify(input) });
+  expect(requestJson).toHaveBeenCalledTimes(1);
+  expect(requestJson).toHaveBeenCalledWith("/api/agents/connectors", { method: "PUT", cache: "no-store", body: JSON.stringify(input) });
 });
 
 it("uses installed connector APIs with file identity and a required base hash", async () => {

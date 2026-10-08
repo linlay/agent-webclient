@@ -5,6 +5,14 @@ export interface ConnectorSelectionConflict {
   conflictingConnectorIds: string[];
 }
 
+export function connectorOptionStatus(item: ConnectorOption): string | undefined {
+  if (item.readiness && !["ready", "no_auth"].includes(item.readiness)) return item.readiness;
+  if (item.mcp?.some(server => ["unavailable", "disabled"].includes(server.status))) return "unavailable";
+  if (item.mcp?.some(server => ["pending", "syncing"].includes(server.status))) return "syncing";
+  if (item.mcp?.length && item.mcp.every(server => server.status === "unmounted")) return "unmounted";
+  return item.readiness;
+}
+
 // Either package may declare the relationship; search filters never narrow it.
 export function findConnectorSelectionConflict(item: ConnectorOption, selectedIds: string[], catalog: ConnectorOption[]): ConnectorSelectionConflict | null {
   const conflictingConnectorIds = selectedIds.filter(id => id !== item.id && (

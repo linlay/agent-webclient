@@ -17,11 +17,6 @@ export function getAdminConnectors(): Promise<ApiResponse<ConnectorListResponse>
   return requestJson<ConnectorListResponse>(dataEndpoints.adminConnectors.path);
 }
 
-export function getAgentConnectors(agentKey: string, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
-  const endpoint = dataEndpoints.agentConnectors;
-  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, agentKey)), { cache: "no-store", ...(signal ? { signal } : {}) });
-}
-
 export function setAgentConnector(params: SetAgentConnectorRequest, signal?: AbortSignal): Promise<ApiResponse<AgentConnectorsResponse>> {
   const endpoint = dataEndpoints.agentConnectorUpdate;
   return requestJson(endpoint.path, { method: endpoint.method, body: JSON.stringify(params), cache: "no-store", ...(signal ? { signal } : {}) });

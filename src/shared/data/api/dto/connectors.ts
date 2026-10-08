@@ -50,10 +50,14 @@ export interface ConnectorOption {
   description?: string;
   iconUrl?: string;
   mutuallyExclusiveWith?: string[];
+  readiness?: "unknown" | "no_auth" | "configuration_required" | "authorization_required" | "pending_verification" | "preparing" | "ready" | "unavailable";
+  mcp?: Array<{ agentKey?: string; serverKey: string; status: ConnectorMcpStatus["status"]; toolCount: number }>;
 }
 
 export interface ConnectorOptionsResponse {
   connectors: ConnectorOption[];
+  agentKey?: string;
+  reloadPending?: boolean;
 }
 
 /** Public manifest metadata; credential values are never returned by Platform. */

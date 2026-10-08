@@ -640,7 +640,7 @@ export function fallbackDefinition(
   if (Array.isArray(detail.tools))
     definition.toolConfig = { tools: detail.tools };
   if (Array.isArray(detail.skills))
-    definition.skillConfig = { skills: detail.skills.map(skill => typeof skill === "string" ? skill : skill.id) };
+    definition.skillConfig = { skills: detail.skills };
   if (Array.isArray(detail.greetings)) definition.greetings = detail.greetings;
   if (Array.isArray(detail.introductions)) definition.introductions = detail.introductions;
   if (Array.isArray(detail.wonders)) definition.wonders = detail.wonders;
@@ -686,8 +686,8 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
       reasoning.enabled !== false &&
       (reasoning.enabled === true || Boolean(reasoningEffort)),
     reasoningEffort,
-    tools: textListFromUnknown(detail.definition ? toolConfig.tools : (detail.toolBindings ? detail.toolBindings.filter(tool => tool.source === "agent").map(tool => tool.name) : detail.tools)),
-    skills: textListFromUnknown(skillConfig.skills || detail.skills?.map(skill => typeof skill === "string" ? skill : skill.id)),
+    tools: textListFromUnknown(detail.definition ? toolConfig.tools : ("toolBindings" in detail && detail.toolBindings ? detail.toolBindings.filter(tool => tool.source === "agent").map(tool => tool.name) : detail.tools)),
+    skills: textListFromUnknown(skillConfig.skills || detail.skills),
     greetingsText: stringifyJson(
       definition.greetings ?? detail.greetings ?? [],
       "[]",

@@ -241,11 +241,6 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "http",
     payload: (agentKey: string) => ({ agentKey }),
   }),
-  agentConnectors: defineEndpoint({
-    key: "agents.connectors", path: "/api/agents/connectors", method: "GET", transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-    payload: (agentKey: string) => ({ agentKey }),
-  }),
   agentConnectorUpdate: defineEndpoint({
     key: "agents.connectors.update", path: "/api/agents/connectors", method: "PUT", transport: "auto",
     wsBackends: PLATFORM_WS_BACKENDS,

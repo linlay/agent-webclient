@@ -23,9 +23,9 @@ export function AgentConnectorPicker({ agentKey, search, onSearchChange, disable
     </div>}
     {selection.data && <ConnectorPicker agentKey={agentKey} search={search} onSearchChange={onSearchChange}
       selectedIds={selection.data.connectorIds} savingId={selection.savingId}
+      catalogRevision={selection.catalogRevision}
       onSelectionChange={(item, selected) => void selection.setSelected(item.id, selected)}
       selectionError={selection.saveError}
-      disabled={disabled} selectionDisabled={!!selection.loadError || !!selection.savingId} />}
-    {selection.data?.reloadPending && <div className={styles.notice} role="status">{t("composer.addMenu.connectors.reloadPending")}</div>}
+      disabled={disabled} selectionDisabled={selection.loading || !!selection.loadError || !!selection.savingId} />}
   </div>;
 }

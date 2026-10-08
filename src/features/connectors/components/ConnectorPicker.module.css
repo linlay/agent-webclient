@@ -34,6 +34,7 @@
 .picker .icon { flex: 0 0 auto; color: var(--accent); font-size: 16px; }
 .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main); font-size: 14px; }
 .toggle { flex: 0 0 auto; }
+.availability { flex: 0 0 auto; color: var(--ink-muted); font-size: 11px; }
 .toggle:global(.ant-switch-checked) { background: #00bd9d; }
 .toggle:global(.ant-switch-checked):hover:not(:disabled) { background: #00a98d; }
 .status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 20px 8px; color: var(--ink-muted); font-size: 12px; }

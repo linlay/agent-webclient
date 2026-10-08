@@ -37,7 +37,6 @@ export interface AgentToolBinding {
 }
 
 export interface AgentDetailResponse {
-  toolBindings?: AgentToolBinding[];
   modelKey?: string;
   reasoningEffort?: QueryReasoningEffort;
   serviceTier?: QueryServiceTier;
@@ -55,13 +54,18 @@ export interface AgentDetailResponse {
   wonders?: string[];
   mode: string;
   tools: string[];
-  skills: Array<{id: string; displayName?: string; name?: string; description?: string; version?: string; revision?: string}>;
+  skills: string[];
+  connectors: string[];
   controls: Array<Record<string, unknown>>;
   meta: Record<string, unknown>;
   definition?: Record<string, unknown>;
   soulPrompt?: string;
   agentsPrompt?: string;
   source?: AgentSource;
+}
+
+export interface AdminAgentSaveResponse extends AgentDetailResponse {
+  toolBindings?: AgentToolBinding[];
 }
 
 export interface AgentSkill {
@@ -125,7 +129,8 @@ export interface AdminAgentSummary {
   [key: string]: unknown;
 }
 
-export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "model" | "mode" | "tools" | "skills" | "controls" | "meta"> {
+export interface AdminAgentDetailResponse extends Omit<AgentDetailResponse, "model" | "mode" | "tools" | "skills" | "connectors" | "controls" | "meta"> {
+  toolBindings?: AgentToolBinding[];
   model?: string;
   mode?: string;
   tools?: string[];
