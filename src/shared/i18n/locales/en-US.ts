@@ -1947,6 +1947,7 @@ export const enUSMessages = {
   "skillConsole.import.uploading": "Uploading and validating the ZIP…",
   "btw.composer.placeholder": "Ask a side question",
   "btw.empty": "Ask a small question without changing the main conversation",
+  "btw.gatewayUnsupported": "Gateway does not support side questions yet. Connect directly to Platform or use Desktop.",
   "btw.interrupt.rejected": "Interrupt request was not accepted",
   "btw.new.action": "New side question",
   "btw.new.cancel": "Cancel",

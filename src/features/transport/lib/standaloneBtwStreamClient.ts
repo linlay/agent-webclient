@@ -7,6 +7,7 @@ import {
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
+import { t } from "@/shared/i18n/runtime";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
 import { decodePlatformAgentEvent } from "@/features/transport/lib/platformFrameCodec";
 import type {
@@ -154,7 +155,7 @@ export class StandaloneBtwStreamClient implements Pick<PlatformFrameClient, "str
         }
         // Gateway forwards query over a main-lane channel, which cannot start a side query.
         if (isGatewayBackendMode()) {
-          throw new RealtimeTransportError("unsupported_request_type", "Gateway 暂不支持旁聊，请直连 Platform 或使用 Desktop。");
+          throw new RealtimeTransportError("unsupported_request_type", t("btw.gatewayUnsupported"));
         }
         const response = await requestWithAuth(dataEndpoints.query.path, {
           method: "POST",

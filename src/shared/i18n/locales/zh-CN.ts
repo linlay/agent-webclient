@@ -2084,6 +2084,7 @@ export const zhCNMessages = {
   "skillConsole.import.uploading": "正在上传并校验 ZIP 包…",
   "btw.composer.placeholder": "顺便问点什么",
   "btw.empty": "问一个不影响主对话的小问题",
+  "btw.gatewayUnsupported": "Gateway 暂不支持旁聊，请直连 Platform 或使用 Desktop。",
   "btw.interrupt.rejected": "中断请求未被接受",
   "btw.new.action": "新建顺便问",
   "btw.new.cancel": "取消",
