@@ -55,6 +55,7 @@ export const materialIconSymbolIds = {
   folder_zip: "material-symbol-folder-zip",
   format_text_overflow: "material-symbol-format-text-overflow",
   format_text_wrap: "material-symbol-format-text-wrap",
+  fork_chat: "material-symbol-fork-chat",
   front_hand: "material-symbol-front-hand",
   git_fork: "material-symbol-git-fork",
   gpp_maybe: "material-symbol-gpp-maybe",

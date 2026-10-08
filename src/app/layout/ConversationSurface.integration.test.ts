@@ -152,7 +152,7 @@ describe("whole conversation surface navigation", () => {
         ["answer", { id: "answer", kind: "content", role: "assistant", text: "answer", ts: 2 }],
       ]) } }));
     await finishTransition();
-    const button = container.querySelector('[data-material-icon="branches"]')?.closest("button");
+    const button = container.querySelector('[data-material-icon="fork_chat"]')?.closest("button");
     expect(button).not.toBeNull();
     return button!;
   }
