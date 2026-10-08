@@ -67,7 +67,7 @@ const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
 
 
 const LEFT_SIDEBAR_BASE_CLASS =
-  "sidebar left-sidebar is-open tw:!relative tw:gap-1.5 tw:px-0 tw:py-1.5";
+  "sidebar left-sidebar is-open tw:!relative tw:gap-1.5 tw:px-0 tw:py-[10px]";
 
 const LEFT_SIDEBAR_WIDTH_CLASS = {
   open: "tw:w-[var(--left-sidebar-width)]",
@@ -686,20 +686,29 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 
         <div className={CHAT_LIST_CLASS} id="chat-list">
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
-            <PinnedChatSection collapsed={!state.leftDrawerOpen} onSelectChat={handleSelectChat} getChatLoading={getWorkerChatLoading} />
-            {filteredWorkerRows.length === 0 ? (
-              <div className={presentationClasses("status-line")}>{t("leftSidebar.noWorkers")}</div>
-            ) : state.leftDrawerOpen ? (
-              <Collapse
-                accordion
-                ghost
-                className={WORKER_COLLAPSE_CLASS}
-                activeKey={expandedWorkerKey || undefined}
-                items={workerCollapseItems}
-                onChange={handleWorkerCollapseChange}
-              />
+            {state.leftDrawerOpen ? (
+              <>
+                <PinnedChatSection
+                  collapsed={false}
+                  onSelectChat={handleSelectChat}
+                  getChatLoading={getWorkerChatLoading}
+                />
+                {filteredWorkerRows.length === 0 ? (
+                  <div className={presentationClasses("status-line")}>{t("leftSidebar.noWorkers")}</div>
+                ) : (
+                  <Collapse
+                    accordion
+                    ghost
+                    className={WORKER_COLLAPSE_CLASS}
+                    activeKey={expandedWorkerKey || undefined}
+                    items={workerCollapseItems}
+                    onChange={handleWorkerCollapseChange}
+                  />
+                )}
+              </>
             ) : (
-              <Flex vertical gap={10} align="center">
+              <>
+                <Flex vertical gap={10} align="center">
                   <UiButton
                     size="sm"
                     iconOnly
@@ -714,6 +723,11 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   >
                     <MaterialIcon name="dock_to_right" />
                   </UiButton>
+                  <PinnedChatSection
+                    collapsed
+                    onSelectChat={handleSelectChat}
+                    getChatLoading={getWorkerChatLoading}
+                  />
                   {filteredWorkerRows?.map((item) => {
                     const unreadCount =
                       workerUnreadCountByKey.get(item.key) || 0;
@@ -790,6 +804,10 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     );
                   })}
                 </Flex>
+                {filteredWorkerRows.length === 0 && (
+                  <div className={presentationClasses("status-line")}>{t("leftSidebar.noWorkers")}</div>
+                )}
+              </>
             )}
           </Spin>
         </div>
