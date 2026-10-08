@@ -12,6 +12,7 @@ import { SkillsPage } from "@/app/pages/skills";
 import { ConnectorsPage } from "@/app/pages/connectors";
 import { RegistriesPage } from "@/app/pages/registries";
 import { ArchivesPage } from "@/app/pages/archives";
+import { KBasesPage } from "@/app/pages/kbases";
 import { MemoryPage } from "@/app/pages/memory";
 import "@/shared/styles/globals.css";
 import "@/app/layout/ManagementPages.module.css";
@@ -42,6 +43,7 @@ const router = createMemoryRouter([
   { path: "/connectors/:connectorId?", element: <ConnectorsPage /> },
   { path: "/registries", element: <RegistriesPage /> },
   { path: "/archives/:chatId?", element: <ArchivesPage /> },
+  { path: "/kbases", element: <KBasesPage /> },
   { path: "/memory", element: <MemoryPage /> },
 ], { initialEntries: [page === "agents" ? "/agents/demo" : page === "skills" ? "/skills/demo" : page === "connectors" ? "/connectors/demo" : page === "archives" ? "/archives/demo" : `/${page}`] });
 const locale = new URLSearchParams(location.search).get("lang") === "en" ? "en-US" : "zh-CN";
