@@ -167,9 +167,31 @@ export function SelectionAnnotations({
       if (!openId || !input || focused) return;
       input.focus({ preventScroll: true });
       // 挂载时弹层可能仍隐藏，只有实际拿到焦点才算完成。
-      focused = document.activeElement === input.resizableTextArea?.textArea;
+      const textarea = input.resizableTextArea?.textArea;
+      const ownerDocument = textarea?.ownerDocument;
+      // Desktop 的工具栏位于宿主 renderer；DOM activeElement 正确不代表
+      // guest WebContents 已取得键盘焦点，必须等文档本身也获得焦点。
+      focused = Boolean(ownerDocument?.hasFocus() && ownerDocument.activeElement === textarea);
     };
   }, [openId]);
+  useEffect(() => {
+    if (!openId) return;
+    let frame: number | null = null;
+    const retryFocus = () => {
+      // 等宿主完成这轮焦点切换，再尝试尚未完成的聚焦。
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        focusAnnotationInput(annotationInput.current);
+      });
+    };
+    window.addEventListener("focus", retryFocus);
+    retryFocus();
+    return () => {
+      window.removeEventListener("focus", retryFocus);
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+  }, [openId, focusAnnotationInput]);
   // Popover 只监听锚点祖先链上的滚动容器和 window；marker 挂在 body 下，
   // 消息列表却在 .messages-scroll 内部滚动，两者不相交，所以重对齐得自己驱动。
   useLayoutEffect(() => {

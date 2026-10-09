@@ -14,6 +14,13 @@ let mockPopoverContentReady=true;
 let mockInputFocusable=true;
 let mockAfterOpenChange: ((open: boolean) => void) | undefined;
 
+beforeEach(() => {
+  jest.spyOn(document, "hasFocus").mockReturnValue(true);
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 jest.mock("antd",()=>({
   // 透传额外属性：Popover 把 data-popover-open 塞在 Tooltip 元素上，桩必须继续往下传。
   // 同时保持 antd 的可见性语义：title 为空、或 tooltip 被显式关闭时不渲染提示。
@@ -58,6 +65,44 @@ const hoverHint=()=>document.querySelector<HTMLElement>("[data-selection-marker-
 const openPopovers=()=>document.querySelectorAll('[data-popover-open="true"]').length;
 const anchorLeft=(right:number)=>`${Math.min(window.innerWidth-30,Math.max(4,right-11))}px`;
 const anchorLeftNow=()=>document.querySelector<HTMLElement>("[data-selection-marker-anchor]")!.style.left;
+
+it("retries after Desktop returns keyboard focus to the guest, but only until focus succeeds", async () => {
+  Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true});
+  const hasFocus=jest.mocked(document.hasFocus);
+  hasFocus.mockReturnValue(false);
+  const text=document.createElement("p"); text.textContent="desktop selection"; document.body.append(text);
+  const other=document.createElement("button"); document.body.append(other);
+  const root=createRoot(document.createElement("div"));
+  const previous=Object.getOwnPropertyDescriptor(Range.prototype,"getClientRects");
+  Object.defineProperty(Range.prototype,"getClientRects",{configurable:true,value:()=>[
+    {left:100,top:200,right:260,bottom:224,width:160,height:24},
+  ]});
+  const range=document.createRange(); range.selectNodeContents(text);
+  const fragment=createSelectedTextFragment({text:text.textContent,targetId:"desktop-focus",sourceKind:"message"})!;
+  rememberSelectedTextAnchor(fragment.reference.id,range,fragment.reference.text);
+  const settleFrame=()=>act(async()=>{await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));});
+  try {
+    act(()=>root.render(React.createElement(SelectionAnnotations,{fragments:[fragment],onAnnotationChange:jest.fn(),onRemove:jest.fn()})));
+    await settleFrame();
+    const input=document.querySelector("textarea")!;
+    // guest 尚未取得键盘焦点时，DOM activeElement 也可能已经是 textarea。
+    expect(document.activeElement).toBe(input);
+    other.focus();
+    hasFocus.mockReturnValue(true);
+    act(()=>window.dispatchEvent(new Event("focus")));
+    await settleFrame();
+    expect(document.activeElement).toBe(input);
+    other.focus();
+    act(()=>window.dispatchEvent(new Event("focus")));
+    await settleFrame();
+    expect(document.activeElement).toBe(other);
+  } finally {
+    act(()=>root.unmount()); text.remove(); other.remove();
+    if(previous) Object.defineProperty(Range.prototype,"getClientRects",previous);
+    else delete (Range.prototype as any).getClientRects;
+    delete (globalThis as any).IS_REACT_ACT_ENVIRONMENT;
+  }
+});
 
 it.each([[false,false],[true,false],[false,true]])("focuses the editor (delayed mount=%s, initially hidden=%s), commits on Enter, and discards on Escape", (delayedMount, initiallyHidden) => {
   Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true});
