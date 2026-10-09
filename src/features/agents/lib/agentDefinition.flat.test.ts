@@ -1,4 +1,4 @@
-import {fallbackDefinition, formFromDetail} from "./agentDefinition";
+import {fallbackDefinition, formFromDetail, buildDefinition} from "./agentDefinition";
 import type {AgentDetailResponse} from "@/shared/data/api/dto/agents";
 
 it("maps runtime skill IDs to editor skill IDs and NONE to disabled reasoning", () => {
@@ -21,3 +21,13 @@ it("edits management detail without a redundant tools array", () => {
  ], definition: { key: "demo", toolConfig: { tools: ["file_read"], excludeTools: ["bash"] } } };
  expect(formFromDetail(detail).tools).toEqual(["file_read"]);
 });
+
+ it("round-trips one library binding independently of Workspace and supports unbinding", () => {
+ const definition = { key: "docs", mode: "GENERAL", kbaseConfig: { libraryId: "research", retrieval: { topK: 9 } }, runtimeConfig: { workspaceRoot: "/work" } };
+ const detail: AgentDetailResponse = {key:"docs",name:"Docs",mode:"GENERAL",tools:[],skills:[],connectors:[],controls:[],meta:{},definition};
+ const form = formFromDetail(detail);
+ const translate = ((key: string) => key) as Parameters<typeof buildDefinition>[2];
+ expect(buildDefinition(form, definition, translate).kbaseConfig).toEqual(definition.kbaseConfig);
+ form.kbaseConfigText = "";
+ expect(buildDefinition(form, definition, translate)).not.toHaveProperty("kbaseConfig");
+ });

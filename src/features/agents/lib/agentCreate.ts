@@ -31,6 +31,7 @@ export function buildKbaseAgentCreateRequest(
   const name = String(options.name || "").trim();
   return {
     isProject: true,
+    createLibrary: { name: name || workspaceNameFromPath(workspaceDir), sourcePath: workspaceDir },
     definition: {
       ...(name ? { name } : {}),
       mode: "KBASE",

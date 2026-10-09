@@ -1686,7 +1686,9 @@ describe('processStreamEvent', () => {
       chunkCount: 2,
       sources: [
         {
-          id: 'kbase:/docs/refund.md',
+          id: 'kbase:research/docs/refund.md',
+          libraryId: 'research',
+          agentKey: 'docs-agent',
           name: 'refund.md',
           title: '/docs/refund.md',
           chunkIndexes: [1, 2],
@@ -1728,7 +1730,9 @@ describe('processStreamEvent', () => {
       text: expect.stringContaining('退款需要先提交申请。'),
       sources: [
         expect.objectContaining({
-          id: 'kbase:/docs/refund.md',
+          id: 'kbase:research/docs/refund.md',
+          libraryId: 'research',
+          agentKey: 'docs-agent',
           name: 'refund.md',
           title: '/docs/refund.md',
           minIndex: 1,

@@ -558,6 +558,8 @@ export interface SourcePublishChunk {
 }
 
 export interface SourcePublishSource {
+ libraryId?: string;
+ agentKey?: string;
   id?: string;
   name?: string;
   title?: string;

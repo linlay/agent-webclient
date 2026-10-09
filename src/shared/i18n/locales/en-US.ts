@@ -2,6 +2,20 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "knowledge.source.read": "Read document",
+  "knowledge.source.more": "Read more",
+  "knowledge.source.download": "Download current source",
+  "knowledge.source.close": "Collapse document",
+  "knowledge.binding.label": "Knowledge library",
+  "knowledge.binding.none": "No library",
+  "knowledge.binding.new": "Create library from project directory",
+  "knowledge.binding.hint": "Bind one shared library. Workspace is independent of its sources. New libraries are indexed automatically.",
+  "knowledge.binding.config": "Knowledge binding (JSON)",
+  "knowledge.collection.options": "Index scope",
+  "knowledge.collection.include": "Include patterns (one per line; blank uses defaults)",
+  "knowledge.collection.exclude": "Exclude patterns (one per line; blank uses defaults)",
+  "knowledge.collection.chunkHint": "Existing chunk settings are preserved. Edit chunk in library.yml to customize; changes trigger reindexing.",
+
   "memoryMaintenance.close": "Close",
   "memoryMaintenance.details": "Task details",
   "memoryMaintenance.runningAction": "Reloading memory…",

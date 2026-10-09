@@ -2,6 +2,20 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "knowledge.source.read": "读取正文",
+  "knowledge.source.more": "继续读取",
+  "knowledge.source.download": "下载当前源文件",
+  "knowledge.source.close": "收起正文",
+  "knowledge.binding.label": "知识库",
+  "knowledge.binding.none": "不绑定",
+  "knowledge.binding.new": "从项目目录新建库",
+  "knowledge.binding.hint": "可绑定一个共享库；Workspace 与来源目录相互独立。新库会自动建立索引。",
+  "knowledge.binding.config": "知识库绑定配置（JSON）",
+  "knowledge.collection.options": "索引范围",
+  "knowledge.collection.include": "包含规则（每行一个；留空使用默认）",
+  "knowledge.collection.exclude": "排除规则（每行一个；留空使用默认）",
+  "knowledge.collection.chunkHint": "已有切块设置会保留。自定义切块请编辑 library.yml 的 chunk，修改后自动重建。",
+
   "memoryMaintenance.close": "关闭",
   "memoryMaintenance.details": "任务详情",
   "memoryMaintenance.runningAction": "正在加载记忆…",

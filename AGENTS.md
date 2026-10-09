@@ -218,3 +218,5 @@ Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedC
 管理工具归属：`/api/admin/tools` 与 Agent 管理详情的 `toolBindings` 仅展示独立工具；原生连接器工具及 MCP 工具由 `/api/admin/connectors` 每项的 `tools` 提供名称、说明与路由标识。`catalogVisible:false` 仍限制独立目录，不阻止在所属连接器中查看详情；不改变原始 definition、运行时工具集合及挂载权限。通用 bash/file_read 依赖不视作连接器所属工具。
 
 管理详情与管理端创建、修改、改名响应不再返回顶层 tools，工具展示使用 toolBindings，编辑与保存使用 definition.toolConfig；使用端 /api/agent.tools 保留运行时工具 ID 数组。
+
+共享知识库通过单个 kbaseConfig.libraryId 绑定所有 Native Agent，Workspace 独立用于项目与编辑。项目创建可选已有库或从目录同时建库与 Agent；中心 collection 保存 include/exclude/chunk。source.publish 的 libraryId/agentKey 必须在 live/replay 投影保留；来源详情通过专用 Chat 已发布来源 read/file API 回读，不转换成 Workspace /api/resource 链接。旧 Agent refresh 与等待回执已删除，库中心自动维护。

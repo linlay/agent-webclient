@@ -166,6 +166,12 @@ export const AgentProjectCreateDialog: React.FC<{
               </div>
             ) : null}
 
+            {type?.key !== "acp" && <div>
+              <label style={labelStyle}>{t("knowledge.binding.label")}</label>
+              <Select style={{width: "100%"}} value={runtime.libraryChoice} disabled={runtime.submitting} onChange={runtime.setLibraryChoice}
+                options={[...(type?.key === "kbase" ? [] : [{value: "", label: t("knowledge.binding.none")}]), {value: "__new__", label: t("knowledge.binding.new")}, ...runtime.libraries.filter(lib => !lib.orphaned && !lib.invalidId).map(lib => ({value: lib.id, label: lib.name || lib.id}))]} />
+              <div style={hintStyle}>{t("knowledge.binding.hint")}</div>
+            </div>}
             {type?.modelRequired ? (
               <div>
                 <label style={labelStyle}>{t("leftSidebar.createProject.model")}</label>

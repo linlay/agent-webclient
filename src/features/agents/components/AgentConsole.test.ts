@@ -746,7 +746,7 @@ describe("AgentConsole i18n rendering", () => {
     expect(advanced).toContain(
       'class="field-group agent-form-full-width',
     );
-    expect(advanced.match(/agent-form-full-width/g)).toHaveLength(3);
+    expect(advanced.match(/agent-form-full-width/g)).toHaveLength(4);
     expect(advanced).toContain("agent-controls-input");
     expect(advanced).toContain("agent-runtime-input");
     expect(advanced).toContain("agent-budget-input");

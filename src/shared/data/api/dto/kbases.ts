@@ -1,7 +1,8 @@
-export interface KnowledgeCollection { name: string; sourcePath: string }
+export interface KnowledgeCollection { name: string; sourcePath: string; include?: string[]; exclude?: string[]; chunk?: {unit: string; maxChars?: number; overlapChars?: number; maxTokens?: number; overlapTokens?: number} }
 export type RetrievalMethod = "query" | "search" | "vsearch" | "gsearch";
 export interface KnowledgeBase {
  id: string; name: string; description: string; collections: KnowledgeCollection[]; sourcePath?: string;
+ stale?: boolean; indexing?: boolean; degraded?: boolean;
  createdAt: number; updatedAt: number; indexedAt: number;
  state: "unindexed" | "indexing" | "ready" | "error"; error?: string; refreshError?: string; sourceWarnings?: string[]; invalidId?: boolean; orphaned?: boolean;
 }

@@ -131,6 +131,8 @@ function normalizeSource(value: unknown, fallbackIndex: number): TimelineSource 
     ...(toText(record.url) ? { url: toText(record.url) } : {}),
     ...(toText(record.link) ? { link: toText(record.link) } : {}),
     ...(toText(record.collectionId) ? { collectionId: toText(record.collectionId) } : {}),
+    ...(toText(record.libraryId) ? { libraryId: toText(record.libraryId) } : {}),
+    ...(toText(record.agentKey) ? { agentKey: toText(record.agentKey) } : {}),
     ...(toText(record.collectionName) ? { collectionName: toText(record.collectionName) } : {}),
     chunkIndexes,
     minIndex: Number.isFinite(minIndex) ? minIndex : 0,

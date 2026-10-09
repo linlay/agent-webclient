@@ -69,6 +69,7 @@ export interface AgentFormState {
   visibilityScopes: string[];
   budgetText: string;
   controlsText: string;
+  kbaseConfigText?: string;
   runtimeConfigText: string;
   memoryConfigText: string;
   proxyConfigText: string;
@@ -721,6 +722,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
       "[]",
     ),
     interactionConfig: definition.interactionConfig as import("@/shared/contracts/interaction").InteractionOverrides | undefined,
+    kbaseConfigText: stringifyJson(definition.kbaseConfig),
     runtimeConfigText: stringifyJson(definition.runtimeConfig),
     memoryConfigText: stringifyJson(definition.memoryConfig),
     proxyConfigText: stringifyJson(definition.proxyConfig),
@@ -856,6 +858,10 @@ export function buildDefinition(
     const parsed = parseJsonField(label, value, t);
     if (parsed === undefined) delete definition[key];
     else definition[key] = parsed;
+  }
+  if (form.kbaseConfigText !== undefined) {
+    const binding = parseJsonField("Knowledge Config", form.kbaseConfigText, t);
+    if (binding === undefined) delete definition.kbaseConfig; else definition.kbaseConfig = binding;
   }
   if (definition.mode === "PROXY") {
     definition.proxyConfig = parseJsonField(

@@ -918,6 +918,11 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
             />
           </div>
           <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
+            <label htmlFor="agent-knowledge-input">{t("knowledge.binding.config")}</label>
+            <Input.TextArea id="agent-knowledge-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={3}
+              value={form.kbaseConfigText || ""} onChange={event => updateForm({kbaseConfigText: event.target.value})} />
+          </div>
+          <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
             <label htmlFor="agent-runtime-input">
               {t("agentConsole.field.runtimeConfig")}
             </label>

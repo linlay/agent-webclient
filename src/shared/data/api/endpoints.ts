@@ -442,6 +442,8 @@ export const dataEndpoints = createEndpointRegistry({
   adminSkillPinUpdate: defineEndpoint({
     key: "admin.skills.pin", path: "/api/admin/skills/pin", method: "PUT", transport: "http",
   }),
+  knowledgeSourceRead: defineEndpoint({ key: "chat.sources.read", path: "/api/chat/sources/read", method: "POST", transport: "http" }),
+  knowledgeSourceFile: defineEndpoint({ key: "chat.sources.file", path: "/api/chat/sources/file", method: "POST", transport: "http" }),
   adminKBases: defineEndpoint({ key: "admin.kbases", path: "/api/admin/kbases", method: "GET", transport: "http" }),
   adminSkills: defineEndpoint<void, Record<string, unknown>>({
     key: "admin.skills.list",

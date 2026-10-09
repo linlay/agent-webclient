@@ -1038,6 +1038,7 @@ describe("LeftSidebar", () => {
     );
     expect(result).toEqual({
       isProject: true,
+      createLibrary: { name: "My KB", sourcePath: "/Users/demo/Knowledge/my-project" },
       definition: {
         name: "My KB",
         mode: "KBASE",

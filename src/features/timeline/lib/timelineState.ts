@@ -103,6 +103,8 @@ export interface TimelineSourceChunk {
 }
 
 export interface TimelineSource {
+ libraryId?: string;
+ agentKey?: string;
 	id: string;
 	name: string;
 	title?: string;

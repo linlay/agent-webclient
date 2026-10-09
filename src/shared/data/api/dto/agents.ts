@@ -158,6 +158,7 @@ export interface AdminAgentPrivateSkill {
 }
 
 export interface CreateAgentRequest {
+ createLibrary?: {name: string; sourcePath: string};
   key?: string;
   isProject?: boolean;
   definition: Record<string, unknown>;

@@ -1,4 +1,5 @@
 import React from "react";
+import { KnowledgeSourceRead } from "./KnowledgeSourceRead";
 import { useAppState } from "@/app/state/AppContext";
 import type { TimelineSource, TimelineSourceChunk } from "@/features/timeline/lib/timelineState";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
@@ -152,6 +153,7 @@ export const SourceDetailContent: React.FC<{
         </div>
       </div>
 
+      {source.libraryId && source.agentKey && <KnowledgeSourceRead key={`${chatId}/${source.id}`} chatId={chatId} sourceId={source.id} name={source.name || source.id.split("/").pop() || "source"} />}
       <div className={SOURCE_DETAIL_BODY_CLASS_NAME}>
         <ul className={SOURCE_DETAIL_CHUNK_LIST_CLASS_NAME}>
           {chunks.map((chunk) => (

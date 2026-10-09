@@ -1,3 +1,5 @@
+import { listKBases } from "@/shared/data/api/requests/kbases";
+import type { KnowledgeBase } from "@/shared/data/api/dto/kbases";
 import { useRef, useState } from "react";
 import { workspaceNameFromPath } from "@/features/agents/lib/agentCreate";
 import {
@@ -48,6 +50,9 @@ export function useAgentProjectCreate(options: {
   const [selection, setSelection] = useState<ProjectCreationSelection | null>(null);
   // Guards against a slow response from an earlier open overwriting this one.
   const loadSeq = useRef(0);
+  const librarySeq = useRef(0);
+  const [libraries, setLibraries] = useState<KnowledgeBase[]>([]);
+  const [libraryChoice, setLibraryChoice] = useState("");
 
   const [browserOpen, setBrowserOpen] = useState(false);
   const [browserLoading, setBrowserLoading] = useState(false);
@@ -84,6 +89,10 @@ export function useAgentProjectCreate(options: {
     setError("");
     closeBrowser();
     setBrowserListing(null);
+    setLibraryChoice("");
+    const seq = ++librarySeq.current;
+    setLibraries([]);
+    void listKBases().then(result => { if (seq === librarySeq.current) setLibraries(result.data || []); }).catch(e => { if (seq === librarySeq.current) setError(errorMessage(e)); });
     setOpen(true);
     void loadOptions();
   };
@@ -151,9 +160,13 @@ export function useAgentProjectCreate(options: {
     setSubmitting(true);
     setError("");
     try {
-      const response = await createAgent(
-        buildProjectCreateRequest(creationOptions, selection, workspaceDir, projectName),
-      );
+      const request = buildProjectCreateRequest(creationOptions, selection, workspaceDir, projectName);
+      const choice = libraryChoice || (selection.typeKey === "kbase" ? "__new__" : "");
+      if (selection.typeKey !== "acp") {
+        if (choice === "__new__") request.createLibrary = {name: projectName.trim() || workspaceNameFromPath(workspaceDir), sourcePath: workspaceDir.trim()};
+        else if (choice) request.definition.kbaseConfig = {libraryId: choice};
+      }
+      const response = await createAgent(request);
       const createdKey = String(response.data?.key || "").trim();
       setOpen(false);
       await options.onCreated?.(createdKey);
@@ -167,6 +180,9 @@ export function useAgentProjectCreate(options: {
   };
 
   return {
+    libraries,
+    libraryChoice: libraryChoice || (selection?.typeKey === "kbase" ? "__new__" : ""),
+    setLibraryChoice: (value: string) => { setLibraryChoice(value); if (!workspaceDir.trim()) { const source = libraries.find(library => library.id === value)?.collections[0]?.sourcePath; if (source) setWorkspaceDir(source); } },
     open,
     projectName,
     workspaceDir,
@@ -184,7 +200,7 @@ export function useAgentProjectCreate(options: {
     browserListing,
     browserCanChoose,
     begin,
-    close: () => setOpen(false),
+    close: () => { ++librarySeq.current; ++loadSeq.current; closeBrowser(); setOpen(false); },
     submit,
     reloadOptions: () => void loadOptions(),
     setProjectName,
