@@ -39,13 +39,17 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
-目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取；挂载状态复用共享 Agent 和详情缓存，不新增挂载 GET。管理目录、认证和图标沿用各自 HTTP 路径。
+目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取；挂载状态复用共享 Agent 和详情缓存，不新增挂载 GET。管理目录、连接配置快照、认证和图标沿用各自 HTTP 路径。`/api/connectors/connection` 的全量与单项快照没有 WS 对应路由；配置观察与开启前校验使用该 HTTP 契约，不能将它当作 WS 失败后的回退。
 
 WS `/api/agent` 返回 tools/skills/connectors ID 数组；WS `/api/connectors` 使用可选 `{agentKey}` 读取目录和状态；WS `/api/agents/connectors` 使用 `{agentKey,connectorId,enabled}` 更新单项。Platform 保留旧挂载 GET/WS 读取兼容，WebClient 不再调用。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
 
 “+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，返回 id/name、非空 description/iconUrl/mutuallyExclusiveWith、本地 readiness 与可选 mcp[]（agentKey/serverKey/status/toolCount）；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
-开关读取 `/api/agent.connectors` 的已保存非预置 ID；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`，响应仍为 `{agentKey,connectorIds,reloadPending}`。目录在指定 Agent 时返回 agentKey 和 reloadPending，表示完整配置与运行时仍不一致；全局目录省略这两个字段。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口，也不接收版本、认证详情、组件清单、技能或 activeConnectorIds。
+开关读取 `/api/agent.connectors` 的已保存非预置 ID；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`，响应仍为 `{agentKey,connectorIds,reloadPending}`。目录在指定 Agent 时返回 agentKey 和 reloadPending，表示完整配置与运行时仍不一致；全局目录省略这两个字段。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口；候选目录不接收版本、认证详情、组件清单、技能或 activeConnectorIds。
+
+Composer 另用现有 HTTP `GET /api/connectors/connection` 读取连接配置快照，仅保存满足配置条件的 ID 投影；开关开启须同时属于已保存关联和该投影。配置条件取 `configurationRequired/configured`，不以 readiness 推断解绑；已配置但准备中、授权失效或暂不可用仍保留原选择。`no_auth` 无需配置；Platform 保留命名空间 `builtin.*` 中旧版 delegated/not_required CLI 可沿用其自身认证，外部 delegated 包仍须 `configured:true`，因此企业微信解绑后关闭开关。该观察不修改 Agent 源码、认证会话或凭据。
+
+打开菜单、收到 agents/connectors/config 目录更新、窗口重新聚焦及恢复可见时刷新配置快照；菜单持续打开且页面可见时每 30 秒补查配置，不重复读取 Agent，也不探测 CLI。配置投影变化时刷新候选目录以校准可用状态和 MCP 提示；背景配置读取保留已有开关交互。开启前按 ID 再读最新配置，未配置时提示先到连接器中心连接。排序与互斥检查仍使用完整已保存关联；若解绑后保留的选择造成互斥，现有冲突提示提供明确的取消选择动作。
 
 目录状态只读取既有认证/准备及 MCP 同步快照，不执行 CLI 或主动探测上游。菜单打开期间，仅 reloadPending、preparing/pending_verification 或 MCP pending/syncing 每次响应后间隔 2 秒补查目录；状态稳定、读取失败或关闭菜单后停止。未挂载与不可用分别显示，不用可用性推断开关。
 

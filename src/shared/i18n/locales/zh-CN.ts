@@ -496,6 +496,8 @@ export const zhCNMessages = {
   "connectors.chat.phase.preparing": "正在确认并准备连接器运行依赖…",
   "connectors.chat.phase.mounting": "正在将连接器挂载到默认智能体，并等待运行配置生效…",
   "connectors.chat.configurationRequired": "请先在概览中完成连接凭据配置或确认连接，再去对话。",
+  "composer.addMenu.connectors.connectionRequired": "请先在连接器中心完成账号连接或检查连接状态，再开启此连接器。",
+  "composer.addMenu.connectors.removeSelection": "取消「{name}」的选择",
   "connectors.chat.authorizationRequired": "此连接器尚未就绪，请在概览中完成账号授权或重新检查连接状态，再去对话。",
   "connectors.chat.preparationFailed": "连接器运行依赖尚未准备完成，请检查连接器配置后重试。",
   "connectors.chat.preparationTimeout": "运行依赖准备尚未完成，已停止等待。可稍后重新检查；离开页面不会自动取消服务端准备。",

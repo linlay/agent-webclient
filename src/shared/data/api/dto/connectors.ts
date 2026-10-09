@@ -205,6 +205,10 @@ export interface ConnectorConnection {
   preparation?: ConnectorPreparation;
 }
 
+export interface ConnectorConnectionsResponse {
+  connections: ConnectorConnection[];
+}
+
 export interface ConnectorPreparation {
   connectorId: string;
   status: "pending" | "preparing" | "ready" | "failed" | "canceled";

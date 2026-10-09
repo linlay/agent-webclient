@@ -2,12 +2,18 @@
 import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
 import { getConnectors, setAgentConnector, getAdminAgentConnectors, setAdminAgentConnector } from "./connectors";
-import { prepareConnector, saveConnectorCredentials } from "./connectors";
+import { getConnectorConnections, prepareConnector, saveConnectorCredentials } from "./connectors";
 jest.mock("@/shared/data/api/http", () => ({
   ...jest.requireActual("@/shared/data/api/http"),
   requestJson: jest.fn(),
 }));
 beforeEach(() => jest.clearAllMocks());
+
+it("reads deployment configuration snapshots through the uncached HTTP endpoint", async () => {
+  const controller = new AbortController();
+  await getConnectorConnections(controller.signal);
+  expect(requestJson).toHaveBeenCalledWith("/api/connectors/connection", { method: "GET", cache: "no-store", signal: controller.signal });
+});
 
 it("sends private credentials and explicit preparation through uncached HTTP without mutation replay", async () => {
   const controller = new AbortController();

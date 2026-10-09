@@ -6,7 +6,7 @@ import type {
   UpdateConnectorDefinitionRequest, DeleteConnectorResponse,
   ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
   ConnectorSkillListResponse, ConnectorSkillDetail,
-  ConnectorAuthSession, ConnectorAuthActionResult, ConnectorConnection,
+  ConnectorAuthSession, ConnectorAuthActionResult, ConnectorConnection, ConnectorConnectionsResponse,
   ConnectorPreparation,
   AgentConnectorsResponse, AdminAgentConnectorsResponse, SetAgentConnectorRequest, ConnectorOptionsResponse,
 } from "@/shared/data/api/dto/connectors";
@@ -131,6 +131,13 @@ export function putConnectorOrder(params: UpdateConnectorOrderRequest): Promise<
 export function getConnectorConnection(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorConnection>> {
  const endpoint = dataEndpoints.connectorConnection;
  return requestJson(withQuery(endpoint.path, endpointQuery(endpoint, id)), {method: endpoint.method, cache: "no-store", signal});
+}
+
+// Platform exposes configuration/authentication snapshots only over HTTP.
+// The selectable catalog and Agent switch mutations use routedClient instead.
+export function getConnectorConnections(signal?: AbortSignal): Promise<ApiResponse<ConnectorConnectionsResponse>> {
+  const endpoint = dataEndpoints.connectorConnection;
+  return requestJson(endpoint.path, { method: endpoint.method, cache: "no-store", signal });
 }
 
 export function prepareConnector(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorPreparation>> {

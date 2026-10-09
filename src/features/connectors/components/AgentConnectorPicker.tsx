@@ -22,7 +22,7 @@ export function AgentConnectorPicker({ agentKey, search, onSearchChange, disable
       {selection.loadError && <UiButton size="sm" variant="ghost" disabled={selection.loading} onClick={() => void selection.refresh()}>{t("connectors.action.retry")}</UiButton>}
     </div>}
     {selection.data && <ConnectorPicker agentKey={agentKey} search={search} onSearchChange={onSearchChange}
-      selectedIds={selection.data.connectorIds} savingId={selection.savingId}
+      selectedIds={selection.data.connectorIds} availableIds={selection.availableIds} savingId={selection.savingId}
       catalogRevision={selection.catalogRevision}
       onSelectionChange={(item, selected) => void selection.setSelected(item.id, selected)}
       selectionError={selection.saveError}
