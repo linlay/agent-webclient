@@ -19,8 +19,8 @@ function structuredHTML(document: ViewDocument, usage: "display" | "form"): stri
 let state=null;
 addEventListener('message',e=>{
  if(e.source!==parent)return;const m=e.data;
- if(m?.type==='awaiting_init'||m?.type==='awaiting_update'){state=m.data;document.getElementById('form').value=JSON.stringify(state.form||{},null,2);document.getElementById('error').textContent='';}
- if(m?.type==='awaiting_collect'&&state){try{const form=JSON.parse(document.getElementById('form').value);if(!form||typeof form!=='object'||Array.isArray(form))throw new Error('JSON object required');parent.postMessage({type:'frontend_awaiting_submit',params:[{id:state.activeFormId,decision:'approve',form}]},'*');}catch(error){document.getElementById('error').textContent=String(error.message);}}
+ if(m?.type==='awaiting_init'||m?.type==='awaiting_update'){state=m.data;document.getElementById('form').value=JSON.stringify((state.form&&state.form.data)||{},null,2);document.getElementById('error').textContent='';}
+ if(m?.type==='awaiting_collect'&&state){try{const form=JSON.parse(document.getElementById('form').value);if(!form||typeof form!=='object'||Array.isArray(form))throw new Error('JSON object required');parent.postMessage({type:'frontend_awaiting_submit',param:{decision:m.data&&m.data.decision==='reject'?'reject':'approve',data:form}},'*');}catch(error){document.getElementById('error').textContent=String(error.message);}}
 });</script>`;
 }
 

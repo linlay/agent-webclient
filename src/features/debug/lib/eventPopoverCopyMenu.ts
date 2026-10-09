@@ -352,7 +352,7 @@ function readAwaitingItemsForCopy(event: AgentEvent | null): string {
 	return (
 		stringifyCopyValue(record.questions) ||
 		stringifyCopyValue(record.approvals) ||
-		stringifyCopyValue(record.forms) ||
+		stringifyCopyValue(record.form) ||
 		stringifyCopyValue(record.plan) ||
 		stringifyCopyValue(record.answers)
 	);

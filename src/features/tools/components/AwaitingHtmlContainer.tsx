@@ -458,6 +458,25 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     [frameData, viewSignature, locale, colorScheme],
   );
 
+  // Rejecting must stay possible when the view failed to load or never replies.
+  const rejectWithoutCollecting = useCallback(async (reason: string) => {
+    if (!onSubmit) {
+      setSubmitStatus("");
+      setSubmitError(t("awaiting.submit.missingHandler"));
+      return;
+    }
+    setSubmitStatus("submitting");
+    setSubmitError("");
+    const result = await onSubmit(
+      buildRejectAwaitingSubmitPayload(data, reason),
+    );
+    const errorText = getSubmitErrorText(result);
+    setSubmitStatus("");
+    setSubmitError(
+      errorText ? t("awaiting.submit.failedWithDetail", { detail: errorText }) : "",
+    );
+  }, [data, onSubmit, t]);
+
   const requestCollectFromFrame = useCallback(
     (decision: AwaitingCollectDecision, flow: AwaitingCollectFlow) => {
       const frame = iframeRef.current;
@@ -475,7 +494,15 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         },
         scheduleTimeout: (callback, delay) =>
           setTimeout(() => {
+            const pending = collectFlowRef.current;
             collectFlowRef.current = null;
+            if (pending?.type === "reject") {
+              clearAwaitingCollectRequest(clearTimeout, null, {
+                onCollectingChange: setCollectingDecision,
+              });
+              void rejectWithoutCollecting(pending.reason);
+              return;
+            }
             callback();
           }, delay),
         onCollectingChange: setCollectingDecision,
@@ -483,7 +510,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         onErrorChange: setSubmitError,
       });
     },
-    [clearCollectTimeout, frameData],
+    [clearCollectTimeout, frameData, rejectWithoutCollecting],
   );
 
   const submitAggregatedPayload = useCallback(
@@ -766,31 +793,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     ],
   );
 
+  // A rejection carries the data the user edited, so it is collected from the
+  // view first, exactly like an approval.
   const handleReject = useCallback(async () => {
     const trimmedReason = rejectReason.trim();
-
-    if (!onSubmit) {
-      setSubmitStatus("");
-      setSubmitError(t("awaiting.submit.missingHandler"));
+    if (renderedHtml && iframeRef.current?.contentWindow) {
+      requestCollectFromFrame("reject", { type: "reject", reason: trimmedReason });
       return;
     }
-
-    setSubmitStatus("submitting");
-    setSubmitError("");
-    const result = await onSubmit(
-      buildRejectAwaitingSubmitPayload(data, trimmedReason),
-    );
-    const errorText = getSubmitErrorText(result);
-    if (errorText) {
-      setSubmitStatus("");
-      setSubmitError(
-        t("awaiting.submit.failedWithDetail", { detail: errorText }),
-      );
-      return;
-    }
-    setSubmitStatus("");
-    setSubmitError("");
-  }, [data, onSubmit, rejectReason, t]);
+    await rejectWithoutCollecting(trimmedReason);
+  }, [rejectReason, renderedHtml, requestCollectFromFrame, rejectWithoutCollecting]);
 
   const reasonInputDisabled =
     !onSubmit ||

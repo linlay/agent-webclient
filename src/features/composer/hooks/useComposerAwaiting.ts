@@ -4,6 +4,7 @@ import type { Dispatch } from "react";
 import { App as AntdApp } from "antd";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import { toWireAwaitingSubmit } from "@/features/tools/lib/protocol";
 import type { AppState } from "@/app/state/AppContext";
 import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { ApiError } from "@/shared/data";
@@ -205,7 +206,7 @@ export async function submitComposerAwaiting(
       owner,
       awaitingId: payload.awaitingId,
       submitId,
-      params: payload.params,
+      ...toWireAwaitingSubmit(activeAwaiting.mode, payload.params),
     });
     if (input.isCurrent?.() === false) return;
     const responseData = response.data as Record<string, unknown> | null;

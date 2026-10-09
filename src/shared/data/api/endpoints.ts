@@ -38,7 +38,9 @@ type RunSubmitParams = {
   toolId?: string;
   awaitingId?: string;
   submitId?: string;
-  params: unknown;
+  /** planning/form answer; exclusive with params. */
+  param?: unknown;
+  params?: unknown;
 };
 
 export function buildRunControlPayload(options: QueryLikeParams & { references?: unknown[] }): Record<string, unknown> {
@@ -71,7 +73,8 @@ export function buildRunSubmitPayload(options: RunSubmitParams): Record<string, 
     toolId: options.toolId,
     awaitingId: options.awaitingId,
     submitId: options.submitId,
-    params: options.params,
+    param: options.param,
+    params: options.param === undefined ? options.params : undefined,
   });
 }
 

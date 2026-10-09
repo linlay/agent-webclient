@@ -80,7 +80,9 @@ export interface AwaitingSubmitInput {
   owner: RunOwner;
   awaitingId: string;
   submitId?: string;
-  params: AIAwaitSubmitParamData[];
+  /** planning/form awaitings submit one answer object instead of params. */
+  param?: import("@/shared/contracts/agentEvents").AIAwaitSubmitParam;
+  params?: AIAwaitSubmitParamData[];
 }
 
 export interface ToolSubmitInput {

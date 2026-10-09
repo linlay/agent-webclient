@@ -1,21 +1,9 @@
 import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
-import type { AIAwaitFormSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
-import { readViewReference } from "@/shared/contracts/view";
+import type { AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
 
-// Team forms contain a member's original definition. A member VIEW receives
-// only that definition; the host retains the routing identity and other members.
+// Every form awaiting, including a Team member's, carries its own view.
 export function awaitingViewFrame(data: FormActiveAwaiting, index: number) {
-  const outer = data.forms[index];
-  const child = outer?.form;
-  const ref = (data.view?.key === "team-hitl") && child?.mode === "form" ? readViewReference(child.view) : undefined;
-  if (!ref || !Array.isArray(child?.forms)) return { awaiting: data, index, outerId: undefined as string | undefined };
-  const saved = new Map((Array.isArray(child.params) ? child.params : []).map((p: AIAwaitFormSubmitParamData) => [p.id, p.form]));
-  const forms = child.forms.map((form: FormActiveAwaiting["forms"][number]) => ({ ...form, ...(saved.has(form.id) ? { form: saved.get(form.id) } : {}) }));
-  const awaiting: FormActiveAwaiting = { ...data, key: `${data.key}:${outer.id}`, view: ref,
-    viewError: typeof child.viewError === "string" ? child.viewError : undefined,
-    awaitingId: String(child.awaitingId || data.awaitingId), viewKey: ref.key, forms,
-    viewHtml: "", loading: false, loadError: "" };
-  return { awaiting, index: 0, outerId: outer.id };
+  return { awaiting: data, index };
 }
 
 export function acceptsViewSubmit(collecting: boolean, currentKey: string, expectedKey: string): boolean {
@@ -30,10 +18,5 @@ export function wrapViewFrameSubmit(data: FormActiveAwaiting, frame: ReturnType<
     seen.add(param.id);
   }
   if (!payload.params.length) return null;
-  if (!frame.outerId) return { ...payload, runId: data.runId, awaitingId: data.awaitingId };
-  const outer = data.forms.find(form => form.id === frame.outerId)!;
-  const submitted = new Map((payload.params as AIAwaitFormSubmitParamData[]).map(param => [param.id, param]));
-  const params = frame.awaiting.forms.map(form => submitted.get(form.id) || { id: form.id, decision: "approve" as const, form: form.form || {} });
-  return { runId: data.runId, awaitingId: data.awaitingId,
-    params: [{ id: outer.id, decision: "approve", form: { ...outer.form, params } }] };
+  return { ...payload, runId: data.runId, awaitingId: data.awaitingId };
 }

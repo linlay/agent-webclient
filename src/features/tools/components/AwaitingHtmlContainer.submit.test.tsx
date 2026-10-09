@@ -27,7 +27,7 @@ async function mount() {
  const root=createRoot(host), submit=jest.fn().mockResolvedValue(undefined);
  await act(async()=>root.render(<AwaitingHtmlContainer data={data} onSubmit={submit}/>));
  const frame=host.querySelector("iframe")!;
- const reply=async(id="call")=>act(async()=>{window.dispatchEvent(new MessageEvent("message",{source:frame.contentWindow,data:{type:"frontend_awaiting_submit",params:[{id,decision:"approve",form:{content:"original"}}]}}));});
+ const reply=async(decision="approve",data:unknown={content:"edited"})=>act(async()=>{window.dispatchEvent(new MessageEvent("message",{source:frame.contentWindow,data:{type:"frontend_awaiting_submit",param:{decision,data}}}));});
  return {host,frame,submit,reply,render: async (next: FormActiveAwaiting) => act(async () => root.render(<AwaitingHtmlContainer data={next} onSubmit={submit}/>)),click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
 }
 
@@ -42,14 +42,18 @@ test("HTML form accepts one requested response, ignores unsolicited and duplicat
  }finally{view.cleanup();}
 });
 
-test("unknown form IDs cannot submit and rejection does not require a frame response",async()=>{
+test("malformed replies cannot submit and rejection collects the edited data",async()=>{
  const view=await mount(),warn=jest.spyOn(console,"warn").mockImplementation(()=>{});
  try {
-  await view.click("submit");await view.reply("another-call");expect(view.submit).not.toHaveBeenCalled();
+  await view.click("submit");await view.reply("approve","not-an-object");expect(view.submit).not.toHaveBeenCalled();
   // The valid reply is still accepted for this pending collect.
   await view.reply();expect(view.submit).toHaveBeenCalledTimes(1);
-  await view.click("reject");expect(view.submit).toHaveBeenCalledTimes(2);
-  expect(view.submit.mock.calls[1][0].params[0].decision).toBe("reject");
+  const post=jest.spyOn(view.frame.contentWindow!,"postMessage");post.mockClear();
+  await view.click("reject");
+  expect(post).toHaveBeenCalledWith(expect.objectContaining({type:"awaiting_collect",data:expect.objectContaining({decision:"reject"})}),"*");
+  expect(view.submit).toHaveBeenCalledTimes(1);
+  await view.reply("reject");expect(view.submit).toHaveBeenCalledTimes(2);
+  expect(view.submit.mock.calls[1][0].params[0]).toMatchObject({decision:"reject",form:{content:"edited"}});
  }finally{warn.mockRestore();view.cleanup();}
 });
 
@@ -80,6 +84,7 @@ test("digit 1 collects the form once and digit 2 uses the rejection flow", async
   expect(post).toHaveBeenCalledTimes(1);expect(view.submit).not.toHaveBeenCalled();
   await view.reply();expect(view.submit).toHaveBeenCalledTimes(1);
   expect((await pressDigit("2")).defaultPrevented).toBe(true);
+  await view.reply("reject");
   expect(view.submit.mock.calls[1][0].params[0].decision).toBe("reject");
  }finally{view.cleanup();}
 });

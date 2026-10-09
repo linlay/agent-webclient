@@ -335,10 +335,8 @@ function normalizePlan(value: unknown): AIAwaitPlan | null {
     return null;
   }
   const plan = value as Record<string, unknown>;
-  const id = toText(plan.id);
-  if (!id) {
-    return null;
-  }
+  // The planning confirmation is identified by its awaiting; the wire has no id.
+  const id = toText(plan.id) || 'confirm';
 
   const normalized: AIAwaitPlan = {
     id,
@@ -513,7 +511,16 @@ function reduceSingleActiveAwaiting(
       if (!viewKey || !view) {
         return current;
       }
-      const nextForms = normalizeForms(event.forms);
+      // The wire carries one form; the container keeps it as a one-item list
+      // identified by the awaiting itself.
+      const wireForm = (event as { form?: unknown }).form;
+      const nextForms = wireForm && typeof wireForm === 'object' && !Array.isArray(wireForm)
+        ? normalizeForms([{
+            id: awaitingId,
+            title: (wireForm as Record<string, unknown>).title,
+            form: (wireForm as Record<string, unknown>).data,
+          }])
+        : [];
       if (nextForms.length > 0) {
         registerAwaitingFormMeta(runId, awaitingId, nextForms);
       }

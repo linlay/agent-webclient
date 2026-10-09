@@ -8,6 +8,7 @@ import {
   isAwaitingFrameCloseMessage,
   normalizeAwaitingSubmitParams,
   readAwaitingSubmitPayload,
+  toWireAwaitingSubmit,
 } from '@/features/tools/lib/protocol';
 
 function createQuestionAwaiting(
@@ -81,7 +82,7 @@ describe('awaiting protocol helpers', () => {
     expect(getAwaitingRenderMode(createFormAwaiting())).toBe('html');
   });
 
-  it('builds awaiting init and update messages from form awaiting state', () => {
+  it('builds awaiting init and update messages with one form of title and data', () => {
     const awaiting = createFormAwaiting();
 
     expect(buildAwaitingInitMessage(awaiting)).toEqual({
@@ -91,137 +92,16 @@ describe('awaiting protocol helpers', () => {
         awaitingId: 'await_1',
         mode: 'form',
         timeout: 60,
-        activeFormIndex: 0,
-        activeFormId: 'leave_form',
-        forms: [
-          {
-            id: 'leave_form',
-            action: '提交请假申请',
-            title: 'mock 请假申请',
-            form: {
-              applicant_id: 'E1001',
-            },
-          },
-        ],
         form: {
-          applicant_id: 'E1001',
+          title: 'mock 请假申请',
+          data: { applicant_id: 'E1001' },
         },
       },
     });
     expect(buildAwaitingUpdateMessage(awaiting).type).toBe('awaiting_update');
-  });
-
-  it('builds awaiting init data for forms without action', () => {
-    const awaiting = createFormAwaiting({
-      forms: [
-        {
-          id: 'form-1',
-          title: 'mock 请假申请',
-          form: {
-            applicant_id: 'E1001',
-            department_id: 'engineering',
-            leave_type: 'annual',
-            start_date: '2026-04-20',
-            end_date: '2026-04-22',
-            days: 2.5,
-            reason: 'family_trip',
-          },
-        },
-      ],
-    });
-
-    expect(buildAwaitingInitMessage(awaiting)).toEqual({
-      type: 'awaiting_init',
-      data: {
-        runId: 'run_1',
-        awaitingId: 'await_1',
-        mode: 'form',
-        timeout: 60,
-        activeFormIndex: 0,
-        activeFormId: 'form-1',
-        forms: [
-          {
-            id: 'form-1',
-            action: undefined,
-            title: 'mock 请假申请',
-            form: {
-              applicant_id: 'E1001',
-              department_id: 'engineering',
-              leave_type: 'annual',
-              start_date: '2026-04-20',
-              end_date: '2026-04-22',
-              days: 2.5,
-              reason: 'family_trip',
-            },
-          },
-        ],
-        form: {
-          applicant_id: 'E1001',
-          department_id: 'engineering',
-          leave_type: 'annual',
-          start_date: '2026-04-20',
-          end_date: '2026-04-22',
-          days: 2.5,
-          reason: 'family_trip',
-        },
-      },
-    });
-  });
-
-  it('builds iframe data for the active form when multiple forms share one html', () => {
-    const awaiting = createFormAwaiting({
-      forms: [
-        {
-          id: 'leave_form',
-          action: '提交请假申请',
-          title: 'mock 请假申请',
-          form: {
-            employee_id: 'E1001',
-          },
-        },
-        {
-          id: 'travel_form',
-          action: '提交出差申请',
-          title: 'mock 出差申请',
-          form: {
-            employee_id: 'E2002',
-          },
-        },
-      ],
-    });
-
-    expect(buildAwaitingInitMessage(awaiting, 1)).toEqual({
-      type: 'awaiting_init',
-      data: {
-        runId: 'run_1',
-        awaitingId: 'await_1',
-        mode: 'form',
-        timeout: 60,
-        activeFormIndex: 1,
-        activeFormId: 'travel_form',
-        forms: [
-          {
-            id: 'leave_form',
-            action: '提交请假申请',
-            title: 'mock 请假申请',
-            form: {
-              employee_id: 'E1001',
-            },
-          },
-          {
-            id: 'travel_form',
-            action: '提交出差申请',
-            title: 'mock 出差申请',
-            form: {
-              employee_id: 'E2002',
-            },
-          },
-        ],
-        form: {
-          employee_id: 'E2002',
-        },
-      },
-    });
+    const data = buildAwaitingInitMessage(awaiting).data as unknown as Record<string, unknown>;
+    expect(data.forms).toBeUndefined();
+    expect(data.activeFormId).toBeUndefined();
   });
 
   it('builds collect messages with run id, awaiting id and decision', () => {
@@ -359,48 +239,53 @@ describe('awaiting protocol helpers', () => {
     ], 'plan')).toEqual([]);
   });
 
-  it('reads frontend awaiting submit payloads for form awaitings using active identifiers', () => {
+  it('reads a single frontend awaiting param for form awaitings', () => {
     const awaiting = createFormAwaiting();
 
     expect(readAwaitingSubmitPayload({
       type: 'frontend_awaiting_submit',
-      params: [
-	        {
-	          id: 'leave_form',
-	          decision: 'approve',
-	          form: {
-	            approved: true,
-          },
-        },
-      ],
+      param: { decision: 'approve', data: { approved: true } },
     }, awaiting)).toEqual({
       runId: 'run_1',
       awaitingId: 'await_1',
-      params: [
-        {
-          id: 'leave_form',
-          decision: 'approve',
-          form: {
-            approved: true,
-          },
-        },
-      ],
+      params: [{ id: 'leave_form', decision: 'approve', form: { approved: true } }],
+    });
+    expect(readAwaitingSubmitPayload({
+      type: 'frontend_awaiting_submit',
+      param: { decision: 'reject', reason: 'no', data: { approved: false } },
+    }, awaiting)).toEqual({
+      runId: 'run_1',
+      awaitingId: 'await_1',
+      params: [{ id: 'leave_form', decision: 'reject', reason: 'no', form: { approved: false } }],
     });
   });
 
   it('rejects malformed frontend awaiting submit payloads for forms', () => {
     const awaiting = createFormAwaiting();
+    for (const message of [
+      { type: 'frontend_awaiting_submit', param: { decision: 'approve', data: 'bad' } },
+      { type: 'frontend_awaiting_submit', param: { decision: 'approve' } },
+      { type: 'frontend_awaiting_submit', param: { decision: 'dismiss' } },
+      { type: 'frontend_awaiting_submit', params: [{ id: 'leave_form', decision: 'approve', form: {} }] },
+    ]) {
+      expect(readAwaitingSubmitPayload(message, awaiting)).toBeNull();
+    }
+  });
 
-    expect(readAwaitingSubmitPayload({
-      type: 'frontend_awaiting_submit',
-      params: [
-	        {
-	          id: 'leave_form',
-	          decision: 'approve',
-	          form: 'bad',
-        },
-      ],
-    }, awaiting)).toBeNull();
+  it('converts planning and form answers to one wire param and keeps lists for the rest', () => {
+    expect(toWireAwaitingSubmit('form', [{ id: 'leave_form', decision: 'approve', form: { days: 2 } }]))
+      .toEqual({ param: { decision: 'approve', data: { days: 2 } } });
+    expect(toWireAwaitingSubmit('form', [{ id: 'leave_form', decision: 'reject', reason: ' no ', form: { days: 1 } }]))
+      .toEqual({ param: { decision: 'reject', reason: 'no', data: { days: 1 } } });
+    expect(toWireAwaitingSubmit('form', [{ id: 'leave_form', decision: 'reject' }]))
+      .toEqual({ param: { decision: 'reject' } });
+    expect(toWireAwaitingSubmit('form', [])).toEqual({ param: { decision: 'dismiss' } });
+    expect(toWireAwaitingSubmit('plan', [{ id: 'confirm', planningId: 'p1', decision: 'reject', reason: 'more tests' }]))
+      .toEqual({ param: { decision: 'reject', reason: 'more tests' } });
+    expect(toWireAwaitingSubmit('plan', [])).toEqual({ param: { decision: 'dismiss' } });
+    const answers = [{ id: 'q1', answer: 'ok' }];
+    expect(toWireAwaitingSubmit('question', answers)).toEqual({ params: answers });
+    expect(toWireAwaitingSubmit('approval', [])).toEqual({ params: [] });
   });
 
   it('treats close and done as iframe close signals', () => {

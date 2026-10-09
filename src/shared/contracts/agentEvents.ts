@@ -336,6 +336,27 @@ export type AIAwaitSubmitParamData =
   | AIAwaitFormSubmitParamData
   | AIAwaitPlanSubmitParamData;
 
+/** Wire shape of the single answer that planning and form awaitings submit. */
+export interface AIAwaitSubmitParam {
+  decision: "approve" | "reject" | "dismiss";
+  reason?: string;
+  data?: Record<string, unknown>;
+}
+
+/** Wire shape of the single form carried by awaiting.ask(mode=form). */
+export interface AIAwaitFormDefinition {
+  title?: string;
+  data?: Record<string, unknown> | null;
+}
+
+/** Wire shape of the single form answer carried by awaiting.answer(mode=form). */
+export interface AIAwaitFormAnswer {
+  decision: AIAwaitFormSubmitAction;
+  reason?: string;
+  data?: Record<string, unknown> | null;
+  command?: string;
+}
+
 export interface AIAwaitSubmitPayloadData {
   params: AIAwaitSubmitParamData[];
   runId: string;
@@ -563,7 +584,7 @@ export interface AISourcePublishEvent extends AIBaseEvent {
 export interface AIAwaitAskEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Ask;
   approvals?: AIAwaitApproval[];
-  forms?: AIAwaitForm[];
+  form?: AIAwaitFormDefinition;
   plan?: AIAwaitPlan;
 }
 
@@ -572,7 +593,7 @@ export interface AIAwaitAnswerEvent extends AIBaseEvent {
   status: "answered" | "error";
   answers?: AIAwaitQuestionSubmitParamData[];
   approvals?: AIAwaitApprovalSubmitParamData[];
-  forms?: AIAwaitFormSubmitParamData[];
+  form?: AIAwaitFormAnswer;
   plan?: AIAwaitPlanSubmitParamData;
   error?: AIAwaitAnswerError;
 }

@@ -24,7 +24,7 @@ jest.mock("antd", () => {
 const ref = { source: "connector", connectorId: "forms", key: "edit", hash: "a".repeat(64), renderer: "html" as const };
 const awaiting = { key: "run:wait", chatId: "chat", runId: "run", awaitingId: "wait", mode: "form", view: ref,
   viewKey: "edit", viewHtml: "", loading: false, loadError: "", forms: [{ id: "name", form: { name: "old" } }] } as FormActiveAwaiting;
-test("VIEW requires host collection, rejects unknown ids, and preserves submit routing", async () => {
+test("VIEW requires host collection, rejects malformed replies, and preserves submit routing", async () => {
   jest.mocked(getView).mockResolvedValue({ code: 0, msg: "success", data: { view: ref, html: "<p>edit</p>" } });
   const host = document.createElement("div"); document.body.append(host);
   const root = createRoot(host); const submit = jest.fn().mockResolvedValue(undefined);
@@ -33,13 +33,13 @@ test("VIEW requires host collection, rejects unknown ids, and preserves submit r
     const iframe = host.querySelector("iframe")!;
     expect(iframe.getAttribute("sandbox")).toBe("allow-scripts");
     const post = jest.spyOn(iframe.contentWindow!, "postMessage");
-    const respond = async (id = "name") => act(async () => { window.dispatchEvent(new MessageEvent("message", { source: iframe.contentWindow!, data: { type: "frontend_awaiting_submit", runId: "forged", params: [{ id, decision: "approve", form: { name: "new" } }] } })); });
+    const respond = async (data: unknown = { name: "new" }) => act(async () => { window.dispatchEvent(new MessageEvent("message", { source: iframe.contentWindow!, data: { type: "frontend_awaiting_submit", runId: "forged", awaitingId: "forged", param: { decision: "approve", data } } })); });
     await respond(); expect(submit).not.toHaveBeenCalled();
     expect(post).not.toHaveBeenCalled(); expect(submit).not.toHaveBeenCalled();
     act(() => (host.querySelector('[data-decision="submit"]') as HTMLButtonElement).click());
     expect(post).toHaveBeenCalledWith(expect.objectContaining({ type: "awaiting_collect" }), "*");
     const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
-    await respond("other-member"); expect(submit).not.toHaveBeenCalled(); warn.mockRestore();
+    await respond("not-an-object"); expect(submit).not.toHaveBeenCalled(); warn.mockRestore();
     await respond();
     expect(submit).toHaveBeenCalledWith({ runId: "run", awaitingId: "wait", params: [{ id: "name", decision: "approve", form: { name: "new" } }] });
     await respond(); expect(submit).toHaveBeenCalledTimes(1);

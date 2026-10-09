@@ -287,16 +287,7 @@ describe('reduceActiveAwaiting', () => {
       awaitingId: 'await_5',
       view: {source: "builtin", renderer: "html", key: 'expense_form'},
       mode: 'form',
-      forms: [
-        {
-          id: 'expense_form',
-          action: '提交报销单',
-          title: '报销申请',
-          form: {
-            amount: 800,
-          },
-        },
-      ],
+      form: { title: '报销申请', data: { amount: 800 } },
     });
 
     const hydrated = {
@@ -326,8 +317,8 @@ describe('reduceActiveAwaiting', () => {
     expect(next.loadError).toBe('');
     expect(next.forms).toEqual([
       {
-        id: 'expense_form',
-        action: '提交报销单',
+        id: 'await_5',
+        action: undefined,
         title: '报销申请',
         form: {
           amount: 800,
@@ -380,28 +371,25 @@ describe('reduceActiveAwaiting', () => {
     ]);
   });
 
-  it('keeps html forms without action when form data is present', () => {
+  it('reads the single wire form into a one-item list keyed by the awaiting', () => {
     const current = reduceActiveAwaiting(null, {
       type: 'awaiting.ask',
       runId: 'run_leave_1',
       awaitingId: 'await_leave_1',
       view: {source: "builtin", renderer: "html", key: 'leave_form'},
       mode: 'form',
-      forms: [
-        {
-          id: 'form-1',
-          title: 'mock 请假申请',
-          form: {
-            applicant_id: 'E1001',
-            department_id: 'engineering',
-            leave_type: 'annual',
-            start_date: '2026-04-20',
-            end_date: '2026-04-22',
-            days: 2.5,
-            reason: 'family_trip',
-          },
+      form: {
+        title: 'mock 请假申请',
+        data: {
+          applicant_id: 'E1001',
+          department_id: 'engineering',
+          leave_type: 'annual',
+          start_date: '2026-04-20',
+          end_date: '2026-04-22',
+          days: 2.5,
+          reason: 'family_trip',
         },
-      ],
+      },
     } as any);
 
     expect(current).toMatchObject({
@@ -414,7 +402,8 @@ describe('reduceActiveAwaiting', () => {
     }
     expect(current.forms).toEqual([
       {
-        id: 'form-1',
+        id: 'await_leave_1',
+        action: undefined,
         title: 'mock 请假申请',
         form: {
           applicant_id: 'E1001',
@@ -435,12 +424,7 @@ describe('reduceActiveAwaiting', () => {
       runId: 'run_6',
       awaitingId: 'await_6',
       mode: 'form',
-      forms: [
-        {
-          id: 'leave_form',
-          action: '提交请假申请',
-        },
-      ],
+      form: { title: '提交请假申请' },
     });
 
     expect(current).toBeNull();

@@ -1,5 +1,5 @@
 import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
-import type { AIAwaitApprovalSubmitParamData, AIAwaitFormSubmitParamData, AIAwaitMode, AIAwaitPlanSubmitParamData, AIAwaitQuestionSubmitParamData, AIAwaitSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { AIAwaitApprovalSubmitParamData, AIAwaitFormSubmitParamData, AIAwaitMode, AIAwaitPlanSubmitParamData, AIAwaitQuestionSubmitParamData, AIAwaitSubmitParam, AIAwaitSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
 
 export type AwaitingRenderMode = 'none' | 'builtin' | 'html';
 export type AwaitingCollectDecision = 'submit' | 'reject';
@@ -10,10 +10,7 @@ export interface AwaitingViewData {
   view?: import("@/shared/contracts/view").ViewReference;
   mode: 'form';
   timeout: number | null;
-  activeFormIndex: number;
-  activeFormId: string;
-  forms: FormActiveAwaiting['forms'];
-  form: Record<string, unknown> | null;
+  form: { title?: string; data: Record<string, unknown> | null };
 }
 
 export interface AwaitingViewMessage {
@@ -93,15 +90,10 @@ export function buildAwaitingViewData(
     ...(awaiting.view ? { view: awaiting.view } : {}),
     mode: 'form',
     timeout: awaiting.timeout,
-    activeFormIndex: resolvedActiveFormIndex,
-    activeFormId: activeForm?.id ?? '',
-    forms: forms.map((form) => ({
-      id: form.id,
-      action: form.action,
-      title: form.title,
-      form: cloneFormData(form),
-    })),
-    form: cloneFormData(activeForm),
+    form: {
+      ...(activeForm?.title ? { title: activeForm.title } : {}),
+      data: cloneFormData(activeForm),
+    },
   };
 }
 
@@ -312,6 +304,8 @@ export function normalizeAwaitingSubmitParams(
     .filter((item): item is AIAwaitSubmitParamData => Boolean(item));
 }
 
+/** Reads a template reply ({type, param: {decision, data}}) into the
+ * container's item list. The form is identified by the awaiting. */
 export function readAwaitingSubmitPayload(
   value: unknown,
   awaiting: ActiveAwaiting,
@@ -319,21 +313,53 @@ export function readAwaitingSubmitPayload(
   if (!isObjectRecord(value) || value.type !== 'frontend_awaiting_submit') {
     return null;
   }
-  if (awaiting.mode !== 'form') {
+  if (awaiting.mode !== 'form' || !isObjectRecord(value.param)) {
     return null;
   }
-
-  if (!Array.isArray(value.params)) {
+  const { decision, data, reason } = value.param;
+  if ((decision !== 'approve' && decision !== 'reject') || (data !== undefined && !isObjectRecord(data))) {
     return null;
   }
-  const params = normalizeAwaitingSubmitParams(value.params, 'form');
-  if (params.length !== value.params.length) {
+  if (decision === 'approve' && data === undefined) {
+    return null;
+  }
+  const params = normalizeAwaitingSubmitParams([{
+    id: awaiting.forms[0]?.id || awaiting.awaitingId,
+    decision,
+    ...(data !== undefined ? { form: data } : {}),
+    ...(typeof reason === 'string' ? { reason } : {}),
+  }], 'form');
+  if (params.length !== 1) {
     return null;
   }
   return {
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
     params,
+  };
+}
+
+/** Converts the container's item list to the wire answer: planning and form
+ * awaitings submit one param object, question and approval submit params. */
+export function toWireAwaitingSubmit(
+  mode: AIAwaitMode | undefined,
+  params: AIAwaitSubmitParamData[],
+): { param: AIAwaitSubmitParam } | { params: AIAwaitSubmitParamData[] } {
+  if (mode !== 'form' && mode !== 'plan') {
+    return { params };
+  }
+  const item = params[0] as (AIAwaitFormSubmitParamData & AIAwaitPlanSubmitParamData) | undefined;
+  if (!item) {
+    return { param: { decision: 'dismiss' } };
+  }
+  const reason = String(item.reason || '').trim();
+  const data = mode === 'form' && isObjectRecord(item.form) ? { ...item.form } : undefined;
+  return {
+    param: {
+      decision: item.decision,
+      ...(reason ? { reason } : {}),
+      ...(mode === 'form' && (data || item.decision === 'approve') ? { data: data ?? {} } : {}),
+    },
   };
 }
 
