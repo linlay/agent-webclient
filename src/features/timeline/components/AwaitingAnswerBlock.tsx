@@ -74,10 +74,12 @@ function formatAwaitingAnswerItem(
   if (typeof item.decision === "string" && item.decision.trim()) {
     const reason = String(item.reason || "").trim();
     const decisionLabel = formatDecisionLabel(item.decision, t);
+    const decisionText = reason ? `${decisionLabel} · ${reason}` : decisionLabel;
+    const dataText = item.data == null ? "" : formatUnknownJson(item.data);
     return {
       key: `${id}:${item.decision}`,
       title,
-      value: reason ? `${decisionLabel} · ${reason}` : decisionLabel,
+      value: dataText ? `${decisionText}\n${dataText}` : decisionText,
     };
   }
 

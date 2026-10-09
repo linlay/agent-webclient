@@ -10,6 +10,7 @@ import { processStreamEvent } from '@/features/events/lib/eventProcessor';
 import {
   clearAllAwaitingQuestionMeta,
   registerAwaitingApprovalMeta,
+  registerAwaitingFormMeta,
   registerAwaitingQuestionMeta,
 } from '@/features/events/lib/awaitingQuestionMeta';
 
@@ -800,6 +801,29 @@ describe('processStreamEvent', () => {
       expanded: false,
       ts: 220,
     });
+  });
+
+  it('projects a single form answer into the timeline item list with its title and data', () => {
+    const state = createState();
+    registerAwaitingFormMeta('run_form', 'await_form', [
+      { id: 'await_form', title: '请假申请' },
+    ]);
+
+    processAndApply(state, {
+      type: 'awaiting.answer',
+      runId: 'run_form',
+      awaitingId: 'await_form',
+      mode: 'form',
+      status: 'answered',
+      form: { decision: 'approve', data: { days: 2 } },
+      timestamp: 220,
+    }, 'replay', false);
+
+    expect(JSON.parse(state.timelineNodes.get('awaiting_answer_run_form_await_form')?.text || '{}'))
+      .toEqual({
+        status: 'answered',
+        items: [{ id: 'await_form', title: '请假申请', decision: 'approve', data: { days: 2 } }],
+      });
   });
 
   it('masks password answers in awaiting answer timeline nodes', () => {

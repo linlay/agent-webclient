@@ -2,12 +2,49 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AwaitingAnswerBlock } from '@/features/timeline/components/AwaitingAnswerBlock';
 import { I18nProvider } from '@/shared/i18n';
+import { readAwaitingAnswerText } from '@/features/events/lib/processors/eventProcessorAwaiting';
 
 jest.mock('@/app/state/AppContext', () => ({
   useAppDispatch: () => jest.fn(),
 }));
 
 describe('AwaitingAnswerBlock', () => {
+  it.each([
+    { decision: 'approve' as const, data: { days: 2 }, expected: '同意' },
+    { decision: 'reject' as const, reason: '需要修改', data: { days: 2 }, expected: '拒绝 · 需要修改' },
+    { decision: 'reject' as const, expected: '拒绝' },
+  ])('renders a single wire form answer: $expected', ({ expected, ...form }) => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: 'zh-CN', persistLocale: false },
+        React.createElement(AwaitingAnswerBlock, {
+          node: {
+            id: 'form_answer',
+            kind: 'awaiting-answer',
+            text: readAwaitingAnswerText({
+              type: 'awaiting.answer',
+              runId: 'run_form',
+              awaitingId: 'await_form',
+              mode: 'form',
+              status: 'answered',
+              form,
+            }),
+            expanded: true,
+            ts: 0,
+          },
+        }),
+      ),
+    );
+
+    expect(html).toContain('已提交 1 项回答');
+    expect(html).not.toContain('已提交 0 项回答');
+    expect(html).toContain(expected);
+    if ('data' in form) {
+      expect(html).toContain('&quot;days&quot;: 2');
+    }
+  });
+
   it('renders question and answer without showing the header', () => {
     const html = renderToStaticMarkup(
       React.createElement(AwaitingAnswerBlock, {

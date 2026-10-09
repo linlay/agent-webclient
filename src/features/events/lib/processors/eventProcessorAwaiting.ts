@@ -59,9 +59,12 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 
 	if (form && typeof form === "object" && !Array.isArray(form)) {
 		const meta = runId && awaitingId ? getAwaitingItemMeta(runId, awaitingId, awaitingId) : null;
-		return meta?.kind === "form"
-			? { ...form, action: meta.action, title: meta.title }
-			: { ...form };
+		// The wire carries one form, while the timeline envelope uses an item list.
+		return [{
+			...form,
+			id: awaitingId,
+			...(meta?.kind === "form" ? { action: meta.action, title: meta.title } : {}),
+		}];
 	}
 
 	if (planning && typeof planning === "object" && !Array.isArray(planning)) {
