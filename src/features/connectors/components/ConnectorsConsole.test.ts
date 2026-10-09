@@ -60,7 +60,8 @@ beforeEach(() => {
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item] } });
   jest.mocked(getAdminTools).mockResolvedValue({ code: 0, msg: "", data: [] });
   jest.mocked(getConnectorDefinition).mockImplementation(async target => ({ code: 0, msg: "", data: { ...target, sha256: "original", content: JSON.stringify(target.file === "connector.json" ? item : target.file === "mcp.json" ? { mcpServers: { main: { type: "http", url: "https://mcp.example" } } } : { auth: "configured-cli login" }) } }));
-  jest.mocked(getConnectorAuthStatus).mockImplementation(async id => ({ code: 0, msg: "", data: { connectorId: id, sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" } }));
+  jest.mocked(getConnectorAuthStatus).mockImplementation(async id => ({ code: 0, msg: "", data: {
+    connectorId: id, sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" } }));
   jest.mocked(getConnectorSkills).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", skills: [] } });
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -271,7 +272,8 @@ it("checks unselected connectors independently while the list and configuration 
   const other = { ...item, id: "other", name: "Other connector" };
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item, other] } });
   let resolveSlow!: (value: any) => void;
-  jest.mocked(getConnectorAuthStatus).mockImplementation(id => id === "demo" ? new Promise(resolve => { resolveSlow = resolve; }) : Promise.resolve({ code: 0, msg: "", data: { connectorId: id, sessionId: "", status: "authorized", expiresAt: "" } }));
+  jest.mocked(getConnectorAuthStatus).mockImplementation(id => id === "demo" ? new Promise(resolve => { resolveSlow = resolve; }) : Promise.resolve({ code: 0, msg: "", data: {
+    connectorId: id, sessionId: "", status: "authorized", expiresAt: "" } }));
   await mount();
   const rows = () => Array.from(container.querySelectorAll("aside button")).filter(node => node.querySelector("strong"));
   expect(rows()[0].textContent).toContain("检查中");
