@@ -118,9 +118,11 @@ export const BrowserSelectionToolbar: React.FC<BrowserSelectionToolbarProps> = (
     const handlePointerCancel = () => { pointerDown = false; dismiss(); };
     const handleKeyUp = (event: KeyboardEvent) => {
       if (isToolbarTarget(event.target)) return;
-      const selectsText = event.key.startsWith("Arrow") ||
-        ["Home", "End", "PageUp", "PageDown", "Shift"].includes(event.key) ||
-        ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a");
+      const key = event.key;
+      if (typeof key !== "string") return;
+      const selectsText = key.startsWith("Arrow") ||
+        ["Home", "End", "PageUp", "PageDown", "Shift"].includes(key) ||
+        ((event.metaKey || event.ctrlKey) && key.toLowerCase() === "a");
       if (selectsText) scheduleRead(true);
     };
     const handleKeyDown = (event: KeyboardEvent) => {

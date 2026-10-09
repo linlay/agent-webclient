@@ -191,6 +191,30 @@ describe("BrowserSelectionToolbar DOM interaction", () => {
     expect(toolbar()).not.toBeNull();
   });
 
+  it("ignores synthetic keyup events without a key and still responds to keyboard selection", async () => {
+    const errors: ErrorEvent[] = [];
+    const handleError = (event: ErrorEvent) => {
+      errors.push(event);
+      event.preventDefault();
+    };
+    window.addEventListener("error", handleError);
+    try {
+      render(); select(); await flushFrames();
+      act(() => window.dispatchEvent(new Event("scroll")));
+      expect(toolbar()).toBeNull();
+      act(() => message.dispatchEvent(new Event("keyup", { bubbles: true })));
+      await flushFrames();
+      expect(errors).toHaveLength(0);
+      expect(toolbar()).toBeNull();
+      act(() => message.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "A", ctrlKey: true })));
+      await flushFrames();
+      expect(toolbar()).not.toBeNull();
+      expect(onAction).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener("error", handleError);
+    }
+  });
+
   it("supports Tab entry, directional navigation and Escape without clearing selected text", async () => {
     render(); select(); await flushFrames();
     const tab = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Tab" });
