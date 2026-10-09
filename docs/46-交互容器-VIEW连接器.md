@@ -17,7 +17,7 @@ Markdown 支持完整 `view` fence，JSON 内容为 `{"view":{"connectorId":"crm
 
 ## HITL
 
-表单独立于 renderer：`mode: form` 可使用 HTML 或 QLC。宿主发送 `awaiting_init/awaiting_update`（含原 `runId/awaitingId/forms/form/activeFormId` 和 view）。用户点击同意后发送 `awaiting_collect`，模板响应 `frontend_awaiting_submit`，params 使用原 `{id,decision:"approve",form:{...}}`。
+表单独立于 renderer：`mode: form` 可使用 HTML 或 QLC。宿主发送 `awaiting_init/awaiting_update`（含 `runId/awaitingId`、单个 `form: {title?,data}` 和 view；不发送 `form.id`、`activeFormId` 或 forms 数组）。用户点击同意后发送 `awaiting_collect`，模板响应 `frontend_awaiting_submit`，params 使用原 `{id,decision:"approve",form:{...}}`。
 
 只接受当前 iframe、宿主正在收集且 id 属于当前表单的响应。宿主固定路由，通过原 `/api/submit` 提交；拒绝直接由宿主完成，模板不能自行批准。加载失败不转成默认批准。
 

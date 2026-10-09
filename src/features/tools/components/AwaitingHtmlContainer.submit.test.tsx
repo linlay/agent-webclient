@@ -1,8 +1,12 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { runInNewContext } from "node:vm";
 import { createRoot } from "react-dom/client";
 import { AwaitingHtmlContainer } from "./AwaitingHtmlContainer";
 import type { FormActiveAwaiting } from "../lib/toolsState";
+import { reduceActiveAwaiting } from "../lib/awaitingRuntime";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let mockExpire: (() => void) | undefined;
@@ -185,4 +189,44 @@ test("ask_user_form keeps template data on a failed submit and retries current v
   await view.click("submit"); await view.reply("approve",{name:"second"});
   expect(view.submit.mock.calls[1][0].params[0].form).toEqual({name:"second"});
  } finally { view.cleanup(); }
+});
+
+
+// Exercise the real Platform bridge against the host's actual init payload.
+// CI can supply the adjacent checkout via PLATFORM_SOURCE.
+const sizingBridgePath = path.resolve(process.env.PLATFORM_SOURCE || "../agent-platform", "internal/resources/views/shared/resize.js");
+(existsSync(sizingBridgePath) ? test : test.skip)("builtin sizing bridge uses the single-form awaiting identity without activeFormId", async () => {
+ const view = await mount();
+ try {
+  const awaiting = reduceActiveAwaiting(null, {
+   type: "awaiting.ask", runId: "run", awaitingId: "wait", mode: "form",
+   view: {source: "builtin", key: "desktop_webapp_review", renderer: "html"},
+   form: {title: "Start app", data: {action: "webapp.start", args: {id: "demo"}}},
+  }) as FormActiveAwaiting;
+  expect(awaiting.forms[0].id).toBe(awaiting.awaitingId);
+  await view.render(awaiting);
+  const frame = view.host.querySelector("iframe")!;
+  const post = jest.spyOn(frame.contentWindow!, "postMessage");
+  await act(async () => frame.dispatchEvent(new Event("load")));
+  const init = post.mock.calls.find(([message]) => message.type === "awaiting_init")![0];
+  expect(init.data.activeFormId).toBeUndefined();
+  expect(init.data.form.id).toBeUndefined();
+  const listeners: Record<string, (event: any) => void> = {};
+  let height = 92, measure: () => void = () => {}, observe: () => void = () => {};
+  const parent = {postMessage: (message: unknown) => window.dispatchEvent(new MessageEvent("message", {source: frame.contentWindow, data: message}))};
+  runInNewContext(readFileSync(sizingBridgePath, "utf8"), {
+   parent, document: {body: {getBoundingClientRect: () => ({bottom: height})}}, scrollY: 0,
+   getComputedStyle: () => ({marginBottom: "0"}),
+   addEventListener: (type: string, listener: (event: any) => void) => {listeners[type] = listener;},
+   requestAnimationFrame: (callback: () => void) => {measure = callback; return 1;}, cancelAnimationFrame: () => {},
+   ResizeObserver: class {constructor(callback: () => void) {observe = callback;} observe() {} disconnect() {}},
+  });
+  await act(async () => {listeners.message({source: parent, data: init}); measure();});
+  expect(frame.style.height).toBe("92px");
+  for (height of [330, 92]) {
+   await act(async () => {observe(); measure();});
+   expect(frame.style.height).toBe(`${height}px`);
+  }
+  expect(view.submit).not.toHaveBeenCalled();
+ } finally {view.cleanup();}
 });
