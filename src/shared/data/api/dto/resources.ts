@@ -1,4 +1,4 @@
-export type ResourceUrlKind = "chat" | "absolute" | "external" | "inline" | "invalid";
+export type ResourceUrlKind = "chat" | "absolute" | "workspace" | "external" | "inline" | "invalid";
 
 export type DocumentPreviewSource =
   | { kind: "workspace-file"; agentKey: string; path: string }

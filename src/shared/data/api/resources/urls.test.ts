@@ -1,4 +1,4 @@
-import { buildResourceUrl, classifyResourceUrl, isLegacyResourceUrl, isChatScopeResourceRef } from "@/shared/data/api/resources/urls";
+import { buildResourceUrl, classifyResourceUrl, isLegacyResourceUrl, isChatScopeResourceRef, markdownChatAliasToLiteral } from "@/shared/data/api/resources/urls";
 import { getResourceBlob } from "@/shared/data/api/resources";
 import { setupRequestHarness } from "@/shared/data/__testUtils__/requestHarness";
 
@@ -9,6 +9,39 @@ describe("resources/urls request contracts", () => {
     expect(buildResourceUrl("reports/demo image.png")).toBe(
       "/api/resource?file=reports%2Fdemo+image.png",
     );
+  });
+
+  it("treats @chat/ as the bare chat reference and @workspace/ as a project file", () => {
+    const bare = classifyResourceUrl("artifacts/run_01/%E5%A4%8F%E6%97%A5%20%231%25.png", "chat_01");
+    // The published url is literal; the Markdown layer decodes what a renderer encoded.
+    for (const alias of [
+      "@chat/artifacts/run_01/夏日 #1%.png",
+      markdownChatAliasToLiteral("@chat/artifacts/run_01/%E5%A4%8F%E6%97%A5%20%231%25.png")!,
+      "@CHAT/artifacts/run_01/夏日 #1%.png",
+    ]) {
+      expect(classifyResourceUrl(alias, "chat_01")).toMatchObject({
+        kind: "chat",
+        resourceKey: bare.resourceKey,
+        fetchUrl: bare.fetchUrl,
+        requiresPlatformAuth: true,
+      });
+    }
+    // A stored url is never decoded: this file is really named "a%20b.txt".
+    expect(classifyResourceUrl("@chat/artifacts/run_01/a%20b.txt", "chat_01").fetchUrl).toBe(
+      classifyResourceUrl("artifacts/run_01/a%2520b.txt", "chat_01").fetchUrl,
+    );
+    expect(markdownChatAliasToLiteral("artifacts/a%20b.txt")).toBe("artifacts/a%20b.txt");
+    expect(markdownChatAliasToLiteral("@chat/50%off.png")).toBe("@chat/50%off.png");
+    for (const invalid of ["@chat/", "@chat/../chat_02/a.png", "@chat/a//b.png", "@chat/%2E%2E/a.png", "@chat/chat_01/a.png"]) {
+      expect(classifyResourceUrl(invalid, "chat_01").kind).toBe("invalid");
+    }
+    expect(classifyResourceUrl("@workspace/docs/a.md:42", "chat_01")).toEqual({
+      kind: "workspace",
+      source: "@workspace/docs/a.md:42",
+      fetchUrl: "",
+      requiresPlatformAuth: false,
+    });
+    expect(classifyResourceUrl("@runtime/chats/chat_01/a.md", "chat_01").kind).toBe("chat");
   });
 
   it("classifies Markdown resources and hides the transport endpoint", () => {

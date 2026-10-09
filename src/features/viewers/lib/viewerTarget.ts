@@ -305,7 +305,9 @@ export function buildResourceViewerTarget(
 }
 
 export function getResourceViewerName(source: string): string {
-  const normalized = String(source || "").trim().split(/[?#]/u, 1)[0];
+  const trimmed = String(source || "").trim();
+  // An @chat/ path is literal: "?" and "#" belong to the file name.
+  const normalized = /^@chat\//iu.test(trimmed) ? trimmed : trimmed.split(/[?#]/u, 1)[0];
   const segment = normalized.split("/").filter(Boolean).pop() || normalized;
   try {
     return decodeURIComponent(segment) || t("attachments.unnamedResource");

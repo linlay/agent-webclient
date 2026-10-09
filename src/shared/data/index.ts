@@ -36,6 +36,7 @@ export {
 } from "@/shared/data/api/resources";
 export {
   classifyResourceUrl,
+  markdownChatAliasToLiteral,
   isChatScopeResourceRef,
   isLegacyResourceUrl,
 } from "@/shared/data/api/resources/urls";

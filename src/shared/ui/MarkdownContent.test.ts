@@ -108,6 +108,21 @@ describe("parseWorkspaceFileHref", () => {
     });
   });
 
+  it("parses @workspace/ paths as project-relative files", () => {
+    expect(parseWorkspaceFileHref("@workspace/docs/%E8%AF%B4%E6%98%8E.md:42")).toEqual({
+      href: "@workspace/docs/%E8%AF%B4%E6%98%8E.md:42",
+      filePath: "docs/说明.md",
+      line: 42,
+    });
+    expect(parseWorkspaceFileHref("@Workspace/Makefile")).toEqual({
+      href: "@Workspace/Makefile",
+      filePath: "Makefile",
+    });
+    for (const invalid of ["@workspace/", "@workspace/../secret.txt", "@workspace/a//b.txt", "@chat/a.md"]) {
+      expect(parseWorkspaceFileHref(invalid)).toBeNull();
+    }
+  });
+
   it("parses repository-relative source paths with line numbers", () => {
     expect(
       parseWorkspaceFileHref("src/features/composer/lib/slashCommands.ts:53"),

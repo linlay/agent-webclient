@@ -62,6 +62,60 @@ export function isChatScopeResourceRef(value: string, chatId: string): boolean {
 	return decodedSegments[0] !== expectedChatId;
 }
 
+const CHAT_ALIAS = "@chat/";
+const WORKSPACE_ALIAS = "@workspace/";
+
+function hasAlias(value: string, alias: string): boolean {
+	return value.slice(0, alias.length).toLowerCase() === alias;
+}
+
+export function isWorkspaceAliasRef(value: string): boolean {
+	return hasAlias(String(value || "").trim(), WORKSPACE_ALIAS);
+}
+
+/**
+ * "@chat/<path>" names the same file as the bare chat-relative reference.
+ * Its path is literal: tool results and stored urls are never percent-encoded,
+ * so nothing is decoded here. Markdown link targets are URLs and are decoded
+ * once at the Markdown boundary by markdownChatAliasToLiteral.
+ */
+function chatAliasToScopeRef(source: string): string | null {
+	const segments = source.slice(CHAT_ALIAS.length).replace(/\\/g, "/").split("/");
+	const encoded: string[] = [];
+	for (const segment of segments) {
+		if (!segment || segment === "." || segment === ".." || /[\u0000-\u001f\u007f]/u.test(segment)) {
+			return null;
+		}
+		// Platform rejects a name that decodes to traversal; fail the same way here.
+		try {
+			const decoded = decodeURIComponent(segment);
+			if (decoded === "." || decoded === ".." || /[/\\]/u.test(decoded)) return null;
+		} catch {
+			// A literal percent sign is an ordinary character.
+		}
+		encoded.push(encodeURIComponent(segment));
+	}
+	return encoded.join("/");
+}
+
+/**
+ * Converts a Markdown link target written with @chat/ into the literal
+ * reference. A Markdown renderer percent-encodes the target, and an author may
+ * encode it too, so each segment is decoded once; other targets are unchanged.
+ */
+export function markdownChatAliasToLiteral(target: string | undefined): string | undefined {
+	const value = String(target || "").trim();
+	if (!hasAlias(value, CHAT_ALIAS)) return target;
+	const segments = value.slice(CHAT_ALIAS.length).split("/").map((segment) => {
+		try {
+			return decodeURIComponent(segment);
+		} catch {
+			return segment;
+		}
+	});
+	return CHAT_ALIAS + segments.join("/");
+}
+
 function decodedAbsoluteResourcePath(source: string): string | null {
 	try {
 		const decoded = decodeURIComponent(source);
@@ -93,7 +147,26 @@ export function classifyResourceUrl(
 	chatId = "",
 	_options: ResourceUrlClassificationOptions = {},
 ): ResourceUrlClassification {
-	const source = String(value || "").trim();
+	const original = String(value || "").trim();
+	if (isWorkspaceAliasRef(original)) {
+		// A project file is read by agent and path, not through the Chat data plane.
+		return {
+			kind: "workspace",
+			source: original,
+			fetchUrl: "",
+			requiresPlatformAuth: false,
+		};
+	}
+	const aliased = hasAlias(original, CHAT_ALIAS) ? chatAliasToScopeRef(original) : original;
+	if (aliased === null) {
+		return {
+			kind: "invalid",
+			source: original,
+			fetchUrl: "",
+			requiresPlatformAuth: false,
+		};
+	}
+	const source = aliased;
 	if (isLegacyResourceUrl(source)) {
 		return {
 			kind: "invalid",

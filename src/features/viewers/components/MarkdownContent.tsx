@@ -5,6 +5,7 @@ import React, {
 } from "react";
 import {
   classifyResourceUrl,
+  markdownChatAliasToLiteral,
   downloadResource,
   type ResourceUrlClassification,
 } from "@/shared/data";
@@ -59,6 +60,8 @@ export interface ResourceFileLink {
  * Extracts the filename from a supported ChatScope or absolute resource path.
  */
 function extractFilenameFromResourceUrl(href: string): string {
+  // An @chat/ reference is a literal path: nothing in it is URL syntax.
+  if (/^@chat\//iu.test(href)) return href.split("/").pop() || "download";
   try {
     const segments = href.split("/");
     return decodeURIComponent(segments[segments.length - 1] || "download");
@@ -68,6 +71,7 @@ function extractFilenameFromResourceUrl(href: string): string {
 }
 
 function getSafeResourceDisplayName(href: string): string {
+  if (/^@chat\//iu.test(href)) return extractFilenameFromResourceUrl(href).slice(0, 256);
   try {
     const parsed = new URL(
       href,
@@ -124,7 +128,7 @@ function getAnchorText(children: React.ReactNode): string {
 const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   const { t } = useI18n();
   const {
-    href,
+    href: markdownHref,
     children,
     chatId,
     teamChat,
@@ -134,6 +138,8 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     download: _download,
     ...rest
   } = props;
+  // A Markdown target is a URL; an @chat/ reference is a literal path.
+  const href = markdownChatAliasToLiteral(markdownHref);
   const [downloading, setDownloading] = useState(false);
   const contextTargetId = React.useId();
   const classified = useMemo(
@@ -142,7 +148,8 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   );
   const fetchedResource = isFetchedResourceKind(classified.kind);
   const workspaceFileLink = useMemo(
-    () => classified.kind === "absolute" && !String(href || "").startsWith("/tmp/")
+    () => classified.kind === "workspace" ||
+      (classified.kind === "absolute" && !String(href || "").startsWith("/tmp/"))
       ? parseWorkspaceFileHref(href)
       : null,
     [classified.kind, href],
@@ -243,6 +250,11 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
         onWorkspaceFileLinkClick(workspaceFileLink);
         return;
       }
+      if (classified.kind === "workspace") {
+        // An alias is not a browser address; never navigate to it.
+        e.preventDefault();
+        return;
+      }
       if (
         webLink &&
         onWebLinkClick &&
@@ -289,7 +301,8 @@ type AuthImageProps = MarkdownImageProps & {
 };
 
 const AuthImage: React.FC<AuthImageProps> = (props) => {
-  const { src, chatId, teamChat, alt, ...rendererProps } = props;
+  const { src: markdownSrc, chatId, teamChat, alt, ...rendererProps } = props;
+  const src = markdownChatAliasToLiteral(markdownSrc);
   const { t } = useI18n();
   const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat });
   const contextTargetId = React.useId();
@@ -342,7 +355,8 @@ type AuthVideoProps = MarkdownImageProps & {
 };
 
 const AuthVideo: React.FC<AuthVideoProps> = (props) => {
-  const { src, chatId, teamChat, alt, title } = props;
+  const { src: markdownSrc, chatId, teamChat, alt, title } = props;
+  const src = markdownChatAliasToLiteral(markdownSrc);
   const { t } = useI18n();
   const resolved = useAuthenticatedResourceUrl(src, chatId, {
     teamChat,

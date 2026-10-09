@@ -16,6 +16,8 @@ const ignoredHrefPrefixes = [
   "javascript:",
 ];
 
+const workspaceAliasPrefix = "@workspace/";
+
 const knownWorkspaceFileExtensions = new Set([
   "aac",
   "avif",
@@ -155,6 +157,25 @@ export function parseWorkspaceFileHref(
   if (!rawHref) return null;
 
   const lowerHref = rawHref.toLowerCase();
+  if (lowerHref.startsWith(workspaceAliasPrefix)) {
+    // "@workspace/<path>" is relative to the agent project; the file API
+    // resolves it there, so no host path is needed.
+    const aliased = stripLineSuffix(safeDecodeHref(rawHref.slice(workspaceAliasPrefix.length)));
+    const relativePath = aliased.filePath.replace(/\\/g, "/").trim();
+    const segments = relativePath.split("/");
+    if (!relativePath || segments.some((segment) => !segment || segment === "." || segment === "..")) {
+      return null;
+    }
+    return {
+      href: rawHref,
+      filePath: relativePath,
+      ...(aliased.line ? { line: aliased.line } : {}),
+    };
+  }
+  if (lowerHref.startsWith("@chat/")) {
+    // A Chat file is a resource, never a project file.
+    return null;
+  }
   if (ignoredHrefPrefixes.some((prefix) => lowerHref.startsWith(prefix))) {
     return null;
   }
