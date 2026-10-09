@@ -12,6 +12,7 @@ import "./AgentConsole.module.css";
 import {
   Modal,
   Spin,
+  Tooltip,
   type MenuProps,
 } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
@@ -1433,6 +1434,22 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       editorMode === "structured"
                     }
                   />
+                )}
+                {effectiveSelectedKey && formMode === "edit" && (
+                  <Tooltip title={t("agentConsole.action.delete")}>
+                    <UiButton
+                      className="ui-icon-hover-24 tw:!text-danger"
+                      size="sm"
+                      variant="ghost"
+                      iconOnly
+                      aria-label={t("agentConsole.action.delete")}
+                      disabled={savingForm || loadingDetail || loadingSource || privateSkillImporting}
+                      loading={deleting}
+                      onClick={() => handleDeleteAgent({ key: effectiveSelectedKey, name: form.name })}
+                    >
+                      <MaterialIcon name="delete" />
+                    </UiButton>
+                  </Tooltip>
                 )}
                 <UiButton
                   className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
