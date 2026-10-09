@@ -25,7 +25,7 @@ jest.mock("@/features/conversation/components/ConversationPreview", () => {
   }) =>
     ReactRuntime.createElement("section", null,
       renderRunHeader({ runId: "run-one" }), renderRunHeader({ runId: "run-two" }),
-      renderMarkdown({ chatId: "", content: "[HTML](artifacts/run-1/page.html) [PDF](artifacts/run-1/report.pdf) [OLD](/api/resource?file=chat/artifacts/run-1/page.html)" })) };
+      renderMarkdown({ chatId: "", content: "[HTML](artifacts/run-1/page.html) [PDF](artifacts/run-1/report.pdf) [OLD](/api/resource?file=chat/artifacts/run-1/page.html) [NEW](<@chat/artifacts/run-1/报告 (1).pdf>) [MISSING](@chat/artifacts/run-1/absent.pdf)" })) };
 });
 jest.mock("@/shared/ui/markdown-code/ConversationMarkdownCode", () => ({ ConversationMarkdownCode: () => null }));
 
@@ -78,6 +78,24 @@ it("previews HTML resources and offers other formal resources for download", () 
   expect(html).toContain('>HTML</a>');
   expect(html).toContain('>PDF</a>');
   expect(html).toContain('>OLD</a>');
+});
+
+// The body names a published file as "@chat/<literal path>", while the snapshot
+// keeps Platform's encoded bare sourceRef; both must resolve to the attachment.
+it("links an @chat/ body reference to its published attachment", () => {
+  window.history.replaceState({}, "", "/share/share-1");
+  const html = renderToStaticMarkup(React.createElement(ConversationExportDocument, {
+    snapshot: {
+      ...snapshot,
+      attachments: [
+        { id: "fedcba9876543210fedcba98", name: "报告 (1).pdf", mimeType: "application/pdf",
+          size: 1, sha256: "c".repeat(64), sourceRef: "artifacts/run-1/%E6%8A%A5%E5%91%8A%20%281%29.pdf" },
+      ],
+    },
+  }));
+  expect(html).toContain('href="/share/share-1/attachments/fedcba9876543210fedcba98/download">NEW</a>');
+  // An unpublished reference stays plain text rather than a dead link.
+  expect(html).toContain("<span>MISSING</span>");
 });
 
 it("opens a legacy Markdown HTML link directly without a HEAD request", () => {

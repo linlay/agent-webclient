@@ -20,16 +20,27 @@ function attachmentRoute(id: string, action: "preview" | "download"): string {
   return match ? `/share/${match[1]}/attachments/${id}/${action}` : "";
 }
 
+// A body link and a snapshot sourceRef name the same published file in
+// different spellings: "@chat/<path>" or a bare reference, percent-encoded by
+// Platform, by the Markdown renderer, or not at all. Compare decoded paths.
+function chatFilePath(reference: string): string {
+  const bare = /^@chat\//iu.test(reference) ? reference.slice("@chat/".length) : reference;
+  return bare.split("/").map((segment) => {
+    try { return decodeURIComponent(segment); } catch { return segment; }
+  }).join("/");
+}
+
 function findPublishedAttachment(href: string | undefined, attachments: Map<string, SnapshotAttachmentV1>): SnapshotAttachmentV1 | undefined {
   if (!href) return undefined;
-  const direct = attachments.get(href);
+  const direct = attachments.get(chatFilePath(href));
   if (direct) return direct;
   try {
     const parsed = new URL(href, window.location.origin);
     if (parsed.pathname !== "/api/resource") return undefined;
     const key = parsed.searchParams.get("file") || "";
-    for (const [sourceRef, attachment] of attachments) {
-      if (key.endsWith(`/${sourceRef}`)) return attachment;
+    const path = chatFilePath(key);
+    for (const [sourcePath, attachment] of attachments) {
+      if (path.endsWith(`/${sourcePath}`)) return attachment;
     }
   } catch { return undefined; }
   return undefined;
@@ -46,7 +57,7 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     task.subAgentKey ? [{ key: task.subAgentKey, name: task.subAgentName || task.subAgentKey,
       ...(task.subAgentIconName ? { icon: { name: task.subAgentIconName } } : {}) }] : [])), [snapshot]);
   const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
-    [attachment.sourceRef, attachment])), [snapshot.attachments]);
+    [chatFilePath(attachment.sourceRef), attachment])), [snapshot.attachments]);
   const open = (attachment: SnapshotAttachmentV1) => {
     if (!attachmentRoute(attachment.id, "preview")) return;
     setSelected(attachment);
