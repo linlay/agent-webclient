@@ -882,3 +882,10 @@ describe('reduceActiveAwaiting', () => {
     expect(runtime.pendingAwaitings).toHaveLength(0);
   });
 });
+
+
+test('ask_user_form retains declarative HTML and prefill inside form data', () => {
+ const form = {title:'Profile', data:{html:'<input name="name">', values:{name:'Alice'}}};
+ const asked = reduceActiveAwaiting(null, {type:'awaiting.ask',runId:'run',awaitingId:'form',mode:'form',view:{source:'builtin',key:'ask_user_form',renderer:ViewRendererEnum.HTML},form});
+ expect(asked).toMatchObject({mode:'form',viewKey:'ask_user_form',forms:[{id:'form',title:'Profile',form:form.data}]});
+});

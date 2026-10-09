@@ -115,6 +115,7 @@ export const conversationExportToolLabels: Readonly<Record<string, string>> = {
   agent_invoke: "调度智能体",
   artifact_publish: "发布产物",
   ask_user_question: "向用户提问",
+  ask_user_form: "向用户发起表单",
   bash: "执行命令",
   bash_sandbox: "执行沙箱命令",
   datetime: "日期时间",

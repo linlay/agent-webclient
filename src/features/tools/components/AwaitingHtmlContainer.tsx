@@ -376,7 +376,7 @@ export function buildRejectAwaitingSubmitPayload(
     runId: awaiting.runId,
     awaitingId: awaiting.awaitingId,
     params: sourceForms.map((form) =>
-      buildRejectParam(form.id, reason, form.form),
+      buildRejectParam(form.id, reason, !forms && awaiting.view?.source === "builtin" && awaiting.view.key === "ask_user_form" ? undefined : form.form),
     ),
   };
 }
@@ -413,6 +413,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const frameData = useMemo(() => awaitingViewFrame(data, activeFormIndex), [data, activeFormIndex]);
   const frameKey = frameData.awaiting.key;
   const frameView = frameData.awaiting.view;
+  const isUserForm = frameView?.source === "builtin" && frameView.key === "ask_user_form";
   const { html: renderedHtml, loading: frameLoading, error: frameError } = useAwaitingFrameDocument(frameData.awaiting, viewChatId);
   const [frameSize, setFrameSize] = useState({ key: "", height: 420 });
   const sizeKey = JSON.stringify([frameKey, frameData.index, frameData.awaiting.forms[frameData.index]?.id]);
@@ -682,6 +683,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
       if (resolved || timeoutExpired || !acceptsViewSubmit(Boolean(collectFlowRef.current), currentFrameKeyRef.current, frameKey)) return;
 
+      if (event.data?.type === "frontend_awaiting_invalid") {
+        if (event.data.runId !== frameData.awaiting.runId || event.data.awaitingId !== frameData.awaiting.awaitingId) return;
+        clearCollectTimeout();
+        collectFlowRef.current = null;
+        setCollectingDecision(null);
+        setSubmitStatus("");
+        setSubmitError(t("awaiting.form.invalid"));
+        return;
+      }
+
       const framePayload = readAwaitingSubmitPayload(event.data, frameData.awaiting);
       const payload = framePayload ? wrapViewFrameSubmit(data, frameData, framePayload) : null;
       if (!payload) {
@@ -704,7 +715,9 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         collectedParams,
       );
 
-      if (nextForms !== data.forms) {
+      // This view's input is {html, values}, while its output is only values.
+      // Keep the template and live controls intact if a network submit fails.
+      if (nextForms !== data.forms && !isUserForm) {
         onPatch?.({ forms: nextForms });
       }
 
@@ -746,6 +759,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     data,
     frameData,
     frameView,
+    isUserForm,
     frameKey,
     sizeKey,
     resolved,
@@ -978,7 +992,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               <span className={AWAITING_PANEL_OPTION_LABEL_CLASS_NAME}>
                 {submitStatusText
                   ? submitStatusText
-                  : t("awaiting.action.approve")}
+                  : t(isUserForm ? "awaiting.form.submit" : "awaiting.action.approve")}
               </span>
               <span className={AWAITING_PANEL_SUBMIT_TAIL_CLASS_NAME}>
                 {t("awaiting.hint.submitEditable")}
@@ -1001,7 +1015,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
             <Flex gap={10} align="center">
               <span className={AWAITING_PANEL_OPTION_INDEX_CLASS_NAME}>2</span>
               <span className={AWAITING_PANEL_OPTION_LABEL_CLASS_NAME}>
-                {t("awaiting.action.reject")}
+                {t(isUserForm ? "awaiting.form.decline" : "awaiting.action.reject")}
               </span>
               <Input
                 aria-label={t("awaiting.rejectReason.placeholder")}

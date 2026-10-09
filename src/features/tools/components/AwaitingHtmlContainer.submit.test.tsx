@@ -24,11 +24,11 @@ const data = {key:"run:wait", mode:"form", runId:"run", awaitingId:"wait", viewK
 
 async function mount() {
  const host=document.createElement("div");document.body.append(host);
- const root=createRoot(host), submit=jest.fn().mockResolvedValue(undefined);
- await act(async()=>root.render(<AwaitingHtmlContainer data={data} onSubmit={submit}/>));
+ const root=createRoot(host), submit=jest.fn().mockResolvedValue(undefined), patch=jest.fn();
+ await act(async()=>root.render(<AwaitingHtmlContainer data={data} onSubmit={submit} onPatch={patch}/>));
  const frame=host.querySelector("iframe")!;
  const reply=async(decision="approve",data:unknown={content:"edited"})=>act(async()=>{window.dispatchEvent(new MessageEvent("message",{source:frame.contentWindow,data:{type:"frontend_awaiting_submit",param:{decision,data}}}));});
- return {host,frame,submit,reply,render: async (next: FormActiveAwaiting) => act(async () => root.render(<AwaitingHtmlContainer data={next} onSubmit={submit}/>)),click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
+ return {host,frame,submit,patch,reply,render: async (next: FormActiveAwaiting) => act(async () => root.render(<AwaitingHtmlContainer data={next} onSubmit={submit} onPatch={patch}/>)),click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
 }
 
 test("HTML form accepts one requested response, ignores unsolicited and duplicate submits",async()=>{
@@ -147,5 +147,42 @@ test("switching form identity resets sizing and ignores the previous form height
   await resize("next", 160);
   expect(view.host.querySelector("iframe")!.style.height).toBe("160px");
   expect(view.submit).not.toHaveBeenCalled();
+ } finally { view.cleanup(); }
+});
+
+
+test("ask_user_form labels and validation feedback allow an immediate retry", async () => {
+ const view = await mount();
+ const invalid = async (runId = "run", source = view.frame.contentWindow) => act(async () => {
+  window.dispatchEvent(new MessageEvent("message", {source, data:{type:"frontend_awaiting_invalid",runId,awaitingId:"wait"}}));
+ });
+ try {
+  await view.render({...data, view:{source:"builtin",key:"ask_user_form",renderer:"html"}, viewKey:"ask_user_form"});
+  expect(view.host.textContent).toContain("awaiting.form.submit");
+  expect(view.host.textContent).toContain("awaiting.form.decline");
+  await invalid(); expect(view.host.textContent).not.toContain("awaiting.form.invalid");
+  await view.click("submit");
+  await invalid("other"); await invalid("run", window);
+  expect((view.host.querySelector('[data-decision="submit"]') as HTMLButtonElement).disabled).toBe(true);
+  await invalid();
+  expect(view.host.textContent).toContain("awaiting.form.invalid");
+  expect((view.host.querySelector('[data-decision="submit"]') as HTMLButtonElement).disabled).toBe(false);
+  await view.reply(); expect(view.submit).not.toHaveBeenCalled();
+  await view.click("submit"); await view.reply("approve", {name:"Alice"});
+  expect(view.submit).toHaveBeenCalledTimes(1);
+ } finally { view.cleanup(); }
+});
+
+
+test("ask_user_form keeps template data on a failed submit and retries current values", async () => {
+ const view = await mount();
+ try {
+  await view.render({...data,view:{source:"builtin",key:"ask_user_form",renderer:"html"},viewKey:"ask_user_form",forms:[{id:"call",form:{html:'<input name="name">',values:{name:"old"}}}]});
+  view.submit.mockResolvedValueOnce("offline");
+  await view.click("submit"); await view.reply("approve",{name:"first"});
+  expect(view.patch).not.toHaveBeenCalled();
+  expect(view.host.textContent).toContain("awaiting.submit.failedWithDetail");
+  await view.click("submit"); await view.reply("approve",{name:"second"});
+  expect(view.submit.mock.calls[1][0].params[0].form).toEqual({name:"second"});
  } finally { view.cleanup(); }
 });

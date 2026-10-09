@@ -32,6 +32,7 @@ const TOOL_ICONS: Readonly<Record<string, TimelineToolIconKind>> = {
   plan_update_task: "plan",
   finalize_planning: "plan",
   ask_user_question: "question",
+  ask_user_form: "question",
   agent_invoke: "agent",
   agent_delegate: "agent",
   run_query: "run",
