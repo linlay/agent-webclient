@@ -32,7 +32,8 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
   const [status, setStatus] = useState<KnowledgeBaseStatus | null>(null);
   const [statusError, setStatusError] = useState("");
   const [query, setQuery] = useState("");
-  const [limit, setLimit] = useState(10);
+  const [limitOverride, setLimit] = useState<number | null>(null);
+  const limit = limitOverride ?? library.retrieval?.topK ?? 8;
   const [method, setMethod] = useState<RetrievalMethod>("query");
   const [retrievalCollections, setRetrievalCollections] = useState<string[]>([]);
   const [results, setResults] = useState<KnowledgeSearch | null>(null);
@@ -137,8 +138,8 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
               { value: "vsearch", label: t("kbases.methodVector"), disabled: !status?.capabilities.vector?.complete || !status.capabilities.vector.queryModelConfigured },
               { value: "gsearch", label: t("kbases.methodGraph"), disabled: !status?.capabilities.graph?.complete },
             ]} /></label>
-            <label className={styles.collectionFilter}><span>{t("kbases.collections")}</span><Select mode="multiple" maxTagCount="responsive" allowClear aria-label={t("kbases.collections")} placeholder={t("kbases.allCollections")} value={retrievalCollections} disabled={searching} onChange={value => { setRetrievalCollections(value); setResults(null); }} options={sources.map(source => ({ value: source.name, label: source.name }))} /></label>
-            <label className={styles.limit}><span>{t("kbases.limit")}</span><InputNumber aria-label={t("kbases.limit")} min={1} max={50} value={limit} disabled={searching} onChange={value => { setLimit(value || 10); setResults(null); }} /></label>
+            <label className={styles.collectionFilter}><span>{t("kbases.collections")}</span><Select mode="multiple" maxTagCount="responsive" allowClear aria-label={t("kbases.collections")} placeholder={t("kbases.defaultCollections")} value={retrievalCollections} disabled={searching} onChange={value => { setRetrievalCollections(value); setResults(null); }} options={sources.map(source => ({ value: source.name, label: source.name }))} /></label>
+            <label className={styles.limit}><span>{t("kbases.limit")}</span><InputNumber aria-label={t("kbases.limit")} min={1} max={50} value={limit} disabled={searching} onChange={value => { setLimit(value); setResults(null); }} /></label>
           </div>
           {statusError && <Alert type="warning" showIcon message={statusError} />}
           {status && <div className={styles.capabilityHints}>{(!status.capabilities.vector?.complete || !status.capabilities.vector.queryModelConfigured) && <p>{t("kbases.vectorUnavailable")}</p>}{!status.capabilities.graph?.complete && <p>{t("kbases.graphUnavailable")}</p>}</div>}

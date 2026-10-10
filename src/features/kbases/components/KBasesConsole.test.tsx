@@ -119,10 +119,21 @@ test("readable libraries display source and refresh warnings without an error al
 
 
 test("collection description and editable switch round-trip with source settings", async () => {
-  await mountEditor([{ name: "docs", sourcePath: "/demo/docs", description: "Existing", editable: true, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } }]);
+  await mountEditor([{ name: "docs", sourcePath: "/demo/docs", description: "Existing", editable: true, defaultQuery: false, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } }]);
   expect(button("knowledge.collection.editable 1").getAttribute("aria-checked")).toBe("true");
   await act(async () => Simulate.change(document.querySelector<HTMLTextAreaElement>('textarea[aria-label="knowledge.collection.description 1"]')!, { target: { value: "Updated description" } } as any));
   await click("knowledge.collection.editable 1");
   await click("kbases.save");
-  expect(saveKBase).toHaveBeenCalledWith(expect.objectContaining({ collections: [expect.objectContaining({ name: "docs", description: "Updated description", editable: false, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } })] }), library.id);
+  expect(saveKBase).toHaveBeenCalledWith(expect.objectContaining({ collections: [expect.objectContaining({ name: "docs", description: "Updated description", editable: false, defaultQuery: false, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } })] }), library.id);
+});
+
+
+test("retrieval starts with library defaults and omits an explicit collection scope", async () => {
+  jest.mocked(listKBases).mockResolvedValue({code:0,msg:"",data:[{...library,retrieval:{topK:12}}]});
+  await mountConsole();
+  await act(async () => [...container.querySelectorAll<HTMLElement>('[role="tab"]')].find(tab => tab.textContent === "kbases.recall")!.click());
+  expect(container.textContent).toContain("kbases.defaultCollections");
+  await change("kbases.query", "query");
+  await click("kbases.search");
+  expect(searchKBase).toHaveBeenCalledWith(library.id, "query", 12, expect.any(AbortSignal), undefined, "query");
 });

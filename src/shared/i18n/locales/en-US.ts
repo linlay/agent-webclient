@@ -84,6 +84,7 @@ export const enUSMessages = {
   "kbases.duplicateCollection": "Collection names must be unique.",
   "kbases.addCollection": "Add collection",
   "kbases.removeCollection": "Remove collection",
+  "kbases.defaultCollections": "Default query collections",
   "kbases.allCollections": "All collections",
   "kbases.chunk": "Chunk",
   "kbases.lines": "Lines {start}–{end}",

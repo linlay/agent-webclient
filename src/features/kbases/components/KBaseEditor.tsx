@@ -49,6 +49,7 @@ export function KBaseEditor({ library, onClose, onSaved }: {
           <details><summary>{t("knowledge.collection.options")}</summary>
             <Form.Item name={[field.name, "include"]} label={t("knowledge.collection.include")} getValueProps={value => ({value: value?.join("\n") || ""})} getValueFromEvent={event => event.target.value ? event.target.value.split("\n").map((v: string) => v.trim()).filter(Boolean) : undefined}><Input.TextArea rows={2} /></Form.Item>
             <Form.Item name={[field.name, "exclude"]} label={t("knowledge.collection.exclude")} getValueProps={value => ({value: value?.join("\n") || ""})} getValueFromEvent={event => event.target.value ? event.target.value.split("\n").map((v: string) => v.trim()).filter(Boolean) : undefined}><Input.TextArea rows={2} /></Form.Item>
+            <Form.Item name={[field.name, "defaultQuery"]} hidden valuePropName="checked"><Switch /></Form.Item>
             <Form.Item name={[field.name, "chunk"]} hidden><Input /></Form.Item>
             <Typography.Paragraph type="secondary">{t("knowledge.collection.chunkHint")}</Typography.Paragraph>
           </details></React.Fragment>)}

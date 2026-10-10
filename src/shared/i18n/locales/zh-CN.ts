@@ -84,6 +84,7 @@ export const zhCNMessages = {
   "kbases.duplicateCollection": "Collection 名称不能重复。",
   "kbases.addCollection": "添加 collection",
   "kbases.removeCollection": "移除 collection",
+  "kbases.defaultCollections": "默认检索集合",
   "kbases.allCollections": "全部 collections",
   "kbases.chunk": "片段",
   "kbases.lines": "第 {start}–{end} 行",
