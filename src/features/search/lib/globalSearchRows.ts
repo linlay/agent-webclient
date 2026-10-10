@@ -209,9 +209,16 @@ function chatToCandidate(chat: Chat): ConversationCandidate | null {
   };
 }
 
-function historyRowToCandidate(row: WorkerConversationRow): ConversationCandidate | null {
+function historyRowToCandidate(row: WorkerConversationRow, chat?: Chat): ConversationCandidate | null {
   const chatId = toText(row?.chatId);
   if (!chatId) return null;
+  const read = normalizeChatReadState(chat?.read);
+  const hasChatAwaitingState = chat && (
+    typeof chat.hasPendingAwaiting === "boolean" || chat.awaiting !== undefined
+  );
+  const hasChatRunState = chat && (
+    typeof chat.hasActiveRun === "boolean" || chat.activeRun !== undefined
+  );
   return {
     chatId,
     chatName: toText(row?.chatName),
@@ -221,10 +228,14 @@ function historyRowToCandidate(row: WorkerConversationRow): ConversationCandidat
     lastRunId: toText(row?.lastRunId),
     lastRunContent: toText(row?.lastRunContent),
     searchSnippet: toText(row?.searchSnippet) || undefined,
-    isRead: row?.isRead ?? row?.read?.isRead ?? true,
-    hasPendingAwaiting: Boolean(row?.hasPendingAwaiting),
-    awaitingMode: toText(row?.awaitingMode) || undefined,
-    hasActiveRun: Boolean(row?.hasActiveRun),
+    isRead: read?.isRead ?? row?.isRead ?? row?.read?.isRead ?? true,
+    hasPendingAwaiting: hasChatAwaitingState
+      ? isAwaitingChat(chat)
+      : Boolean(row?.hasPendingAwaiting),
+    awaitingMode: hasChatAwaitingState
+      ? readAwaitingMode(chat)
+      : toText(row?.awaitingMode) || undefined,
+    hasActiveRun: hasChatRunState ? isChatActiveRun(chat) : Boolean(row?.hasActiveRun),
   };
 }
 
@@ -380,9 +391,10 @@ function buildSearchHistoryRows(
   const teamLabelByKey = buildTeamLabelByKey(input.workerRows);
   const historyRows = input.historyRows;
   const hasRemoteHistoryRows = Array.isArray(historyRows);
+  const chatsById = new Map((input.chats || []).map((chat) => [toText(chat.chatId), chat]));
   const candidates = hasRemoteHistoryRows
     ? historyRows
-        .map(historyRowToCandidate)
+        .map((row) => historyRowToCandidate(row, chatsById.get(toText(row.chatId))))
         .filter((row): row is ConversationCandidate => Boolean(row))
     : (input.chats || [])
         .map(chatToCandidate)

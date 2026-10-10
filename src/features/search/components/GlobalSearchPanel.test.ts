@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ * @jest-environment-options {"customExportConditions": ["node", "node-addons"]}
+ */
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { GlobalRow } from "@/features/search/lib/globalSearchRows";
@@ -13,6 +17,7 @@ jest.mock("@/shared/i18n", () => ({
         "globalSearch.group.workers": "智能体",
         "globalSearch.group.history": "对话",
         "globalSearch.row.unread": "未读",
+        "history.running": "运行中",
       })[key] || key,
   }),
 }));
@@ -117,5 +122,37 @@ describe("GlobalSearchPanel", () => {
     expect(html).toContain("Coder");
     expect(html).toContain("Builder");
     expect(html).toContain("agent-icon-mock");
+  });
+
+  it("shows the highest priority chat status with an accessible description", () => {
+    const base: Extract<GlobalRow, { kind: "history" }> = {
+      kind: "history",
+      section: "history",
+      key: "idle",
+      chatId: "chat",
+      label: "Search match",
+      updatedAt: 0,
+      isUnread: false,
+      hasPendingAwaiting: false,
+      hasActiveRun: false,
+    };
+    const host = document.createElement("div");
+    host.innerHTML = renderPanel([
+      base,
+      { ...base, key: "unread", isUnread: true },
+      { ...base, key: "running", hasActiveRun: true, isUnread: true },
+      { ...base, key: "awaiting", hasPendingAwaiting: true, hasActiveRun: true, isUnread: true, statusLabel: "等待回答" },
+    ]);
+
+    const statuses = Array.from(host.querySelectorAll(".global-search-status"));
+    expect(statuses.map((status) => status.getAttribute("aria-label"))).toEqual([
+      null, "未读", "运行中", "等待回答",
+    ]);
+    expect(statuses[0].getAttribute("aria-hidden")).toBe("true");
+    expect(statuses[1].querySelector(".global-search-unread-dot")).not.toBeNull();
+    expect(statuses[2].querySelector('[data-icon-name="progress_activity"]')).not.toBeNull();
+    expect(statuses[2].querySelector(".global-search-unread-dot")).toBeNull();
+    expect(statuses[3].querySelector('[data-icon-name="pause_circle"]')).not.toBeNull();
+    expect(statuses[3].querySelector('[data-icon-name="progress_activity"]')).toBeNull();
   });
 });

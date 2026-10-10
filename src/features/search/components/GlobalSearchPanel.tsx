@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef } from "react";
 import type { GlobalRow } from "@/features/search/lib/globalSearchRows";
 import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { useI18n } from "@/shared/i18n";
 import { ShortcutHint } from "@/shared/ui/ShortcutHint";
 import { findGlobalSearchShortcut, GLOBAL_SEARCH_ACTION_SHORTCUTS, isMacShortcutPlatform } from "../lib/globalSearchShortcuts";
@@ -63,24 +62,27 @@ const GLOBAL_SEARCH_GROUP_LABEL_CLASS =
   withModuleClass("global-search-group-label", "tw:px-2 tw:py-1 tw:text-ink-muted");
 const GLOBAL_SEARCH_ROW_CLASS =
   withModuleClass("global-search-row", "tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-1 tw:rounded-2xl tw:border-0 tw:bg-transparent tw:p-1 tw:text-left tw:text-[13px] tw:leading-[1.35] tw:text-ink-1 tw:outline-none tw:hover:bg-bg-hover tw:focus:bg-[color-mix(in_srgb,var(--accent-soft)_30%,var(--bg-hover))]");
+const GLOBAL_SEARCH_HISTORY_ROW_CLASS =
+  `${withModuleClass("global-search-row")} ${withModuleClass("global-search-history")}`;
+const GLOBAL_SEARCH_STATUS_CLASS = withModuleClass("global-search-status");
+const GLOBAL_SEARCH_HISTORY_CONTENT_CLASS = withModuleClass("global-search-history-content");
+const GLOBAL_SEARCH_HISTORY_HEADER_CLASS = withModuleClass("global-search-history-header");
 const GLOBAL_SEARCH_ICON_CLASS =
   withModuleClass("global-search-icon", "tw:flex tw:size-6 tw:flex-none tw:items-center tw:justify-center tw:text-ink-muted");
 const GLOBAL_SEARCH_LABEL_CLASS =
-  withModuleClass("global-search-label", "tw:flex-1 tw:min-w-[100px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap");
+  withModuleClass("global-search-label", "tw:flex-1 tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap");
 const GLOBAL_SEARCH_ROLE_CLASS =
   withModuleClass("global-search-role", "tw:max-w-[36%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden");
 const GLOBAL_SEARCH_SNIPPET_CLASS =
-  withModuleClass("global-search-snippet", "tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted tw:max-[640px]:hidden");
+  withModuleClass("global-search-snippet", "tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-text-muted");
 const GLOBAL_SEARCH_SOURCE_CLASS =
-  "global-search-source tw:max-w-[30%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted tw:max-[640px]:hidden";
+  withModuleClass("global-search-source", "tw:max-w-[30%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted");
 const GLOBAL_SEARCH_UNREAD_DOT_CLASS =
-  "global-search-unread-dot tw:mx-1 tw:size-1.5 tw:flex-none tw:rounded-full tw:bg-accent";
+  withModuleClass("global-search-unread-dot");
 const GLOBAL_SEARCH_AWAITING_CLASS =
-  withModuleClass("global-search-awaiting", "tw:flex-none tw:whitespace-nowrap tw:rounded tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-px tw:text-[10px] tw:leading-[1.4] tw:text-accent-warn tw:max-[640px]:hidden");
+  withModuleClass("global-search-awaiting");
 const GLOBAL_SEARCH_LOADING_CLASS =
-  withModuleClass("global-search-loading", "tw:flex-none tw:animate-ui-spin tw:text-xs tw:text-text-sub");
-const GLOBAL_SEARCH_TIME_CLASS =
-  withModuleClass("global-search-time", "tw:ml-auto tw:flex-none tw:pl-1 tw:font-code tw:text-[10px] tw:text-ink-muted tw:max-[640px]:hidden");
+  withModuleClass("global-search-loading");
 
 export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
   active = true,
@@ -235,48 +237,63 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                   );
                 }
                 if (row.kind === "history") {
+                  const status = row.hasPendingAwaiting || row.statusLabel
+                    ? "awaiting"
+                    : row.hasActiveRun
+                      ? "running"
+                      : row.section === "unread" || row.isUnread
+                        ? "unread"
+                        : "idle";
+                  const statusLabel = status === "awaiting"
+                    ? row.statusLabel || t("globalSearch.group.awaiting")
+                    : status === "running"
+                      ? t("history.running")
+                      : status === "unread"
+                        ? t("globalSearch.row.unread")
+                        : undefined;
                   return (
                     <button
                       key={row.key}
                       type="button"
-                      className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-history global-search-${row.section}`}
+                      className={`${GLOBAL_SEARCH_HISTORY_ROW_CLASS} global-search-${row.section}`}
                       onClick={() => onSelectRow(row)}
                     >
-                      {(row.section === "unread" || row.isUnread) && (
-                        <span
-                          className={GLOBAL_SEARCH_UNREAD_DOT_CLASS}
-                          aria-label={t("globalSearch.row.unread")}
-                        />
-                      )}
-                      {row.statusLabel && (
-                        <span className={GLOBAL_SEARCH_AWAITING_CLASS}>
-                          {row.statusLabel}
-                        </span>
-                      )}
-                      {row.hasActiveRun && (
-                        <MaterialIcon
-                          name="progress_activity"
-                          className={GLOBAL_SEARCH_LOADING_CLASS}
-                        />
-                      )}
-                      <span className={GLOBAL_SEARCH_LABEL_CLASS}>
-                        {row.label}
+                      <span
+                        className={GLOBAL_SEARCH_STATUS_CLASS}
+                        data-status={status}
+                        role={statusLabel ? "img" : undefined}
+                        aria-label={statusLabel}
+                        aria-hidden={statusLabel ? undefined : true}
+                        title={statusLabel}
+                      >
+                        {status === "unread" && (
+                          <span className={GLOBAL_SEARCH_UNREAD_DOT_CLASS} />
+                        )}
+                        {status === "awaiting" && (
+                          <MaterialIcon name="pause_circle" className={GLOBAL_SEARCH_AWAITING_CLASS} />
+                        )}
+                        {status === "running" && (
+                          <MaterialIcon
+                            name="progress_activity"
+                            className={GLOBAL_SEARCH_LOADING_CLASS}
+                          />
+                        )}
                       </span>
-                      {row.snippet ? (
+                      <span className={GLOBAL_SEARCH_HISTORY_CONTENT_CLASS}>
+                        <span className={GLOBAL_SEARCH_HISTORY_HEADER_CLASS}>
+                          <span className={GLOBAL_SEARCH_LABEL_CLASS}>
+                            {row.label}
+                          </span>
+                          {row.sourceLabel ? (
+                            <span className={GLOBAL_SEARCH_SOURCE_CLASS}>
+                              {row.sourceLabel}
+                            </span>
+                          ) : null}
+                        </span>
                         <span className={GLOBAL_SEARCH_SNIPPET_CLASS}>
                           {row.snippet}
                         </span>
-                      ) : null}
-                      {row.sourceLabel ? (
-                        <span className={GLOBAL_SEARCH_SOURCE_CLASS}>
-                          {row.sourceLabel}
-                        </span>
-                      ) : null}
-                      {!row.hasActiveRun && (
-                        <span className={GLOBAL_SEARCH_TIME_CLASS}>
-                          {formatChatTimeLabel(row.updatedAt)}
-                        </span>
-                      )}
+                      </span>
                     </button>
                   );
                 }

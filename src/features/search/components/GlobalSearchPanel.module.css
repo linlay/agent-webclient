@@ -67,6 +67,36 @@
     background: color-mix(in srgb, var(--accent-soft) 30%, var(--bg-hover));
 }
 
+.global-search-history {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    padding: 8px;
+}
+
+.global-search-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 18px;
+}
+
+.global-search-history-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.global-search-history-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+}
+
 .global-search-icon {
     flex: 0 0 auto;
     display: flex;
@@ -96,6 +126,9 @@
 }
 
 .global-search-snippet {
+    width: 100%;
+    min-width: 0;
+    min-height: 1.35em;
     font-size: 11px;
     color: var(--text-muted);
     overflow: hidden;
@@ -103,29 +136,31 @@
     white-space: nowrap;
 }
 
-.global-search-time {
+.global-search-source {
     flex: 0 0 auto;
-    font-size: 10px;
-    font-family: var(--font-mono);
+    max-width: 30%;
+    font-size: 11px;
     color: var(--ink-muted);
-    margin-left: auto;
-    padding-left: 4px;
-}
-
-.global-search-awaiting {
-    flex: 0 0 auto;
-    font-size: 10px;
-    color: var(--accent-warn);
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
-    background: color-mix(in srgb, var(--accent-warn) 10%, transparent);
-    padding: 1px 6px;
-    border-radius: 4px;
-    line-height: 1.4;
+    text-align: right;
 }
 
-.global-search-loading {
-    flex: 0 0 auto;
-    font-size: 12px;
+.global-search-status .global-search-awaiting {
+    font-size: 18px;
+    color: var(--accent-warn);
+}
+
+.global-search-unread-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.global-search-status .global-search-loading {
+    font-size: 18px;
     color: var(--text-sub);
     animation: ui-spin 1s linear infinite;
 }
@@ -138,10 +173,7 @@
 }
 
 @media (max-width: 640px) {
-    .global-search-role,
-    .global-search-snippet,
-    .global-search-time,
-    .global-search-awaiting {
+    .global-search-role {
         display: none;
     }
 }

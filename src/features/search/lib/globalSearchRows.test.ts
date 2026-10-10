@@ -361,6 +361,72 @@ describe("buildGlobalRows", () => {
     expect(searchRows[0].chatId).toBe("history-0");
   });
 
+  it("uses current chat attention state for remote matches and clears ended states", () => {
+    const remote = createHistoryRow("attention", {
+      chatName: "needle title",
+      searchSnippet: "needle matched content",
+      isRead: true,
+    });
+    const input = createInput({
+      searchText: "needle",
+      historyRows: [remote],
+      chats: [createChat("attention", {
+        read: { isRead: false },
+        activeRun: { runId: "current-run" },
+        awaiting: { mode: "question" },
+      })],
+    });
+
+    expect(historyRows(buildGlobalRows(input))[0]).toMatchObject({
+      label: "needle title",
+      snippet: "needle matched content",
+      isUnread: true,
+      hasActiveRun: true,
+      hasPendingAwaiting: true,
+      statusLabel: "leftSidebar.awaitingStatus.question",
+    });
+
+    expect(historyRows(buildGlobalRows({
+      ...input,
+      historyRows: [{ ...remote, isRead: false, hasActiveRun: true, hasPendingAwaiting: true, awaitingMode: "question" }],
+      chats: [createChat("attention", {
+        read: { isRead: true },
+        activeRun: null,
+        awaiting: null,
+        hasPendingAwaiting: false,
+      })],
+    }))[0]).toMatchObject({
+      isUnread: false,
+      hasActiveRun: false,
+      hasPendingAwaiting: false,
+      statusLabel: undefined,
+    });
+  });
+
+  it("preserves remote attention state when loaded chats have no status snapshot", () => {
+    const rows = buildGlobalRows(createInput({
+      searchText: "needle",
+      chats: [createChat("partial")],
+      historyRows: ["partial", "remote-only"].map((chatId) => createHistoryRow(chatId, {
+        chatName: "needle title",
+        isRead: false,
+        hasActiveRun: true,
+        hasPendingAwaiting: true,
+        awaitingMode: "approval",
+      })),
+    }));
+
+    expect(historyRows(rows)).toHaveLength(2);
+    for (const row of historyRows(rows)) {
+      expect(row).toMatchObject({
+        isUnread: true,
+        hasActiveRun: true,
+        hasPendingAwaiting: true,
+        statusLabel: "leftSidebar.awaitingStatus.approval",
+      });
+    }
+  });
+
   it("uses readable content or untitled fallback for missing chat names", () => {
     const rows = buildGlobalRows(
       createInput({
