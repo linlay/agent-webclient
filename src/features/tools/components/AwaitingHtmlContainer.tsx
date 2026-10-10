@@ -74,7 +74,7 @@ const AWAITING_PANEL_EMPTY_CLASS_NAME =
   "awaiting-panel-empty tw:rounded-xl tw:bg-[rgba(248,250,254,0.92)] tw:px-2.5 tw:py-2 tw:text-[11px] tw:font-semibold tw:text-ink-muted";
 
 const AWAITING_PANEL_FOOTER_CLASS_NAME =
-  "awaiting-panel-footer tw:shrink-0 tw:mt-0.5 tw:flex tw:flex-col tw:items-stretch tw:gap-2.5";
+  "awaiting-panel-footer tw:shrink-0 tw:mt-0.5 tw:flex tw:flex-col tw:items-stretch tw:gap-2.5 tw:outline-none";
 
 const AWAITING_PANEL_RADIOGROUP_CLASS_NAME =
   presentationClasses("awaiting-panel-radiogroup tw:flex tw:flex-col tw:gap-0.5 tw:text-xs");
@@ -681,6 +681,16 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
+      if (event.data?.type === "awaiting_focus_release") {
+        // The frame only hands focus back; shortcuts still need a real key press here.
+        if (event.data.runId === frameData.awaiting.runId &&
+            event.data.awaitingId === frameData.awaiting.awaitingId &&
+            document.activeElement === iframeRef.current) {
+          hostRef.current?.focus({ preventScroll: true });
+        }
+        return;
+      }
+
       if (resolved || timeoutExpired || !acceptsViewSubmit(Boolean(collectFlowRef.current), currentFrameKeyRef.current, frameKey)) return;
 
       if (event.data?.type === "frontend_awaiting_invalid") {
@@ -962,7 +972,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         />
       )}
 
-      <div ref={hostRef} className={AWAITING_PANEL_FOOTER_CLASS_NAME}>
+      <div ref={hostRef} className={AWAITING_PANEL_FOOTER_CLASS_NAME} tabIndex={-1}>
         <Radio.Group
           className={AWAITING_PANEL_RADIOGROUP_CLASS_NAME}
           value={footerDecision}

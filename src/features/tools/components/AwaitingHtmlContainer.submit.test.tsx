@@ -112,6 +112,27 @@ test("digits ignore editing, modifiers, composition, repeats and expired forms",
 });
 
 
+test("focus release returns keyboard focus to the host only for the focused current frame", async () => {
+ const view = await mount();
+ const release = async (overrides = {}, source = view.frame.contentWindow) => act(async () => {
+  window.dispatchEvent(new MessageEvent("message", {source, data: {type:"awaiting_focus_release", runId:"run", awaitingId:"wait", ...overrides}}));
+ });
+ try {
+  const footer = view.host.querySelector(".awaiting-panel-footer") as HTMLElement;
+  // Focus elsewhere in the host is never stolen.
+  await release(); expect(document.activeElement).not.toBe(footer);
+  view.frame.tabIndex = 0; view.frame.focus();
+  await release({runId:"other"}); await release({awaitingId:"other"}); await release({}, window);
+  expect(document.activeElement).toBe(view.frame);
+  await release(); expect(document.activeElement).toBe(footer);
+  expect(view.submit).not.toHaveBeenCalled();
+  const post=jest.spyOn(view.frame.contentWindow!,"postMessage");post.mockClear();
+  expect((await pressDigit("1", {}, footer)).defaultPrevented).toBe(true);
+  expect(post).toHaveBeenCalledWith(expect.objectContaining({type:"awaiting_collect"}),"*");
+ } finally { view.cleanup(); }
+});
+
+
 test("frame resize validates source and identity, grows and shrinks without submitting", async () => {
  const view = await mount();
  const resize = async (height: unknown, overrides = {}, source = view.frame.contentWindow) => act(async () => {

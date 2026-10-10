@@ -33,6 +33,8 @@ Platform 控制操作通过 `awaiting.ask(mode: form, view: {source: builtin, ke
 
 容器按 HTML 上报的正文高度收缩或增高，整体仍限制最大高度，超出时 iframe 内部滚动，标题和底部操作保留空间。单表单由 `awaitingId` 标识，init/update 不发送 `form.id` 或 `activeFormId`；尺寸桥接的 `formId` 使用 `awaitingId`，与前端内部单元素列表的 ID 一致。HTML 可发送 `awaiting_resize`，携带 `runId`、`awaitingId`、`formId` 与正数 `height`（CSS 像素）；宿主仅接受当前 iframe、当前表单的有限数值，不触发提交。未实现高度上报的模板保留 420px 默认高度。Platform 的内置 view 加载入口为所有 HTML 统一注入尺寸桥接，包括独立安装页；新增内置模板也自动获得该能力。桥接监听内容尺寸变化，展开、收起、语言及宽度变化后重新上报；测量自然正文高度，避免使用受 iframe 当前高度影响的 document scrollHeight。外部 VIEW 或内联 HTML 可使用同一上报协议，未实现时仍保留默认高度。Platform 模板只读，默认展示差异，完整文本折叠。
 
+iframe 获得焦点后键盘事件不会到达宿主，底部的 `1`（提交）/`2`（拒绝）快捷键会失效。HTML 可发送 `awaiting_focus_release`，携带 `runId` 与 `awaitingId`；宿主仅在消息来自当前 iframe、身份匹配且焦点确实停在该 iframe 时，把焦点移到底部操作区，不触发 collect 或提交，快捷键仍需用户在宿主中真实按键。Platform 为只读内置模板统一注入该桥接：点击非交互区域且未选中文本时发送，选中文本时保留焦点以便复制；`ask_user_form` 含输入控件，不注入。外部 VIEW 或内联 HTML 可使用同一消息，未实现时需点击宿主区域后再使用快捷键。
+
 
 ## 独立输入表单 ask_user_form
 
