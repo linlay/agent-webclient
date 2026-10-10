@@ -22,7 +22,7 @@ export interface AutomationSummaryResponse {
   cron: string;
   agentKey: string;
   enabled: boolean;
-  teamId?: string;
+
   zoneId?: string;
   sourceFile?: string;
   remainingRuns?: number;
@@ -87,7 +87,7 @@ export interface AutomationExecutionResponse {
   automationName: string;
   sourceFile: string;
   agentKey?: string;
-  teamId?: string;
+
   status: AutomationExecutionStatus;
   error: string;
   zoneId: string;
@@ -125,7 +125,7 @@ export interface CreateAutomationRequest {
   cron: string;
   agentKey: string;
   enabled?: boolean;
-  teamId?: string;
+
   zoneId?: string;
   remainingRuns?: number;
   query: AutomationQueryRequest;
@@ -137,7 +137,7 @@ export interface UpdateAutomationRequest {
   description?: string;
   cron?: string;
   agentKey?: string;
-  teamId?: string;
+
   zoneId?: string;
   enabled?: boolean;
   remainingRuns?: number;

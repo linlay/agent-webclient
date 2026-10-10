@@ -1,8 +1,7 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team, WorkerRow } from "@/features/workers/lib/workerState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { toText } from '@/shared/utils/eventUtils';
-import { readTeamAgentKeys } from '@/features/workers/lib/teamUtils';
 import { readEpochMillis } from '@/shared/utils/platformTime';
 
 function toDisplayName(name: unknown, fallback: unknown): string {
@@ -50,15 +49,11 @@ function createAgentNameMap(agents: Agent[]): Map<string, string> {
   return nameByKey;
 }
 
-function toTeamAgentLabels(team: Team, agentNameByKey: Map<string, string>): string[] {
-  const keys = readTeamAgentKeys(team);
-  if (keys.length === 0) return ['--'];
-  return keys.slice(0, 2).map((key) => toText(agentNameByKey.get(key)) || key);
-}
+
 
 export function createWorkerKeyFromChat(chat: Chat): string {
-  const teamId = toText(chat?.teamId);
-  if (teamId) return `team:${teamId}`;
+
+
 
   const agentKey = toText(chat?.agentKey || chat?.firstAgentKey);
   if (agentKey) return `agent:${agentKey}`;
@@ -76,22 +71,10 @@ function toLatestChatMap(chats: Chat[]): Map<string, Chat> {
   return latestByWorker;
 }
 
-function createBaseWorkerMap(agents: Agent[], teams: Team[]): Map<string, Omit<WorkerRow, 'latestChatId' | 'latestRunId' | 'latestUpdatedAt' | 'latestChatName' | 'latestRunContent' | 'hasHistory' | 'latestRunSortValue' | 'searchText'>> {
+function createBaseWorkerMap(agents: Agent[]): Map<string, Omit<WorkerRow, 'latestChatId' | 'latestRunId' | 'latestUpdatedAt' | 'latestChatName' | 'latestRunContent' | 'hasHistory' | 'latestRunSortValue' | 'searchText'>> {
   const workersByKey = new Map<string, Omit<WorkerRow, 'latestChatId' | 'latestRunId' | 'latestUpdatedAt' | 'latestChatName' | 'latestRunContent' | 'hasHistory' | 'latestRunSortValue' | 'searchText'>>();
   const agentNameByKey = createAgentNameMap(agents);
 
-  for (const team of Array.isArray(teams) ? teams : []) {
-    const teamId = toText(team?.teamId);
-    if (!teamId) continue;
-    workersByKey.set(`team:${teamId}`, {
-      key: `team:${teamId}`,
-      type: 'team',
-      sourceId: teamId,
-      displayName: toDisplayName(team?.name, teamId),
-      role: toText(team?.role) || '--',
-      teamAgentLabels: toTeamAgentLabels(team, agentNameByKey),
-    });
-  }
 
   for (const agent of Array.isArray(agents) ? agents : []) {
     const agentKey = toText(agent?.key);
@@ -107,7 +90,7 @@ function createBaseWorkerMap(agents: Agent[], teams: Team[]): Map<string, Omit<W
       workspaceName: toText(agent?.workspaceName) || undefined,
       workspaceSourceKind: normalizeSourceKind(agent?.source) || undefined,
       agentConfigDir: normalizeAgentConfigDir(agent?.agentConfigDir),
-      teamAgentLabels: [],
+      teamAgentLabels: (agent.teamConfig?.members || []).map(key => agentNameByKey.get(key) || key),
     });
   }
 
@@ -173,13 +156,13 @@ function compareWorkerRows(
 
 export function buildWorkerRows(input: {
   agents: Agent[];
-  teams: Team[];
+
   chats: Chat[];
   workerOrderKeys?: string[];
   workerPriorityKey?: string;
 }): WorkerRow[] {
   const latestByWorker = toLatestChatMap(input.chats);
-  const workersByKey = createBaseWorkerMap(input.agents, input.teams);
+  const workersByKey = createBaseWorkerMap(input.agents);
   const workerOrderByKey = new Map(
     (Array.isArray(input.workerOrderKeys) ? input.workerOrderKeys : [])
       .map((key, index) => [toText(key), index] as const)

@@ -2,7 +2,7 @@ import React from "react";
 import type { Dayjs } from "dayjs";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team, WorkerListItem } from "@/features/workers/lib/workerState";
+import type {  WorkerListItem } from "@/features/workers/lib/workerState";
 import { getAgents, getChats } from "@/shared/data";
 import {
   ALL_HISTORY_OWNERS,
@@ -20,7 +20,6 @@ export function useGlobalHistoryRuntime(initialOwnerKey: HistoryOwnerKey) {
   const [dateRange, setDateRange] = React.useState<HistoryDateRange>(null);
   const [chats, setChats] = React.useState<Chat[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
-  const [teams, setTeams] = React.useState<Team[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [ownersLoaded, setOwnersLoaded] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -40,21 +39,17 @@ export function useGlobalHistoryRuntime(initialOwnerKey: HistoryOwnerKey) {
       .finally(() => {
         if (!disposed) setLoading(false);
       });
-    void getAgents({ includeTeam: true, scope: "nav" })
+    void getAgents({  scope: "nav" })
       .then((response) => {
         if (disposed) return;
         const items = Array.isArray(response.data) ? response.data as WorkerListItem[] : [];
         setAgents(items.filter((item): item is Agent =>
           Boolean(item && typeof item === "object" && "key" in item && String(item.key || "").trim()),
         ));
-        setTeams(items.filter((item): item is Team =>
-          Boolean(item && typeof item === "object" && "teamId" in item && String(item.teamId || "").trim()),
-        ));
       })
       .catch(() => {
         if (!disposed) {
           setAgents([]);
-          setTeams([]);
         }
       })
       .finally(() => {
@@ -66,8 +61,8 @@ export function useGlobalHistoryRuntime(initialOwnerKey: HistoryOwnerKey) {
   }, []);
 
   const ownerOptions = React.useMemo(
-    () => buildGlobalHistoryOwnerOptions({ agents, chats, teams }),
-    [agents, chats, teams],
+    () => buildGlobalHistoryOwnerOptions({ agents, chats,  }),
+    [agents, chats, ],
   );
   React.useEffect(() => {
     const resolved = resolveLoadedHistoryOwnerKey({

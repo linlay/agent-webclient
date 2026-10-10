@@ -39,7 +39,7 @@ export function useBtwTimelineInteraction({
     appContext?.state.chats.some(
       (chat) =>
         chat.chatId === parentChatId &&
-        (chat.owner?.kind === "orchestrated-team" || Boolean(chat.teamId)),
+        (Boolean(undefined)),
     ),
   );
 

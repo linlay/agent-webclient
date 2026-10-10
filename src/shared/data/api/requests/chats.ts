@@ -163,7 +163,7 @@ export function searchGlobal(
     body: JSON.stringify({
       query: params.query,
       agentKey: params.agentKey,
-      teamId: params.teamId,
+
       limit: params.limit,
     }),
   }) as Promise<ApiResponse<GlobalSearchResponse>>;

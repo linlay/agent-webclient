@@ -2,7 +2,6 @@ import { App as AntdApp } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { Drawer } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
-import type { Team } from "@/features/workers/lib/workerState";
 import { AutomationEditor } from "@/features/automations/components/AutomationEditor";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { useI18n } from "@/shared/i18n";
@@ -14,7 +13,7 @@ export interface AutomationEditorDrawerProps {
   automationId: string;
   currentWorker: CurrentWorkerSummary | null;
   agents: Agent[];
-  teams: Team[];
+
   onClose: () => void;
   onSaved: (automationId: string) => void;
   onDeleted: (automationId: string) => void;
@@ -25,7 +24,7 @@ export function AutomationEditorDrawer({
   automationId,
   currentWorker,
   agents,
-  teams,
+
   onClose,
   onSaved,
   onDeleted,
@@ -77,7 +76,7 @@ export function AutomationEditorDrawer({
         automationId={automationId}
         currentWorker={currentWorker}
         agents={agents}
-        teams={teams}
+
         onDirtyChange={setDirty}
         onSaved={(id) => {
           setDirty(false);

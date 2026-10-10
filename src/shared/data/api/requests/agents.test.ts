@@ -203,7 +203,7 @@ describe("requests/agents request contracts", () => {
     await getAgents({ includeChats: 5 });
     await getAgents({
       includeChats: 5,
-      includeTeam: true,
+
       scope: "copilot",
       mode: "CODER",
     });
@@ -220,7 +220,7 @@ describe("requests/agents request contracts", () => {
       "/api/agents?includeChats=5",
     );
     expect((fetchMock.mock.calls[2] as [string, RequestInit])[0]).toBe(
-      "/api/agents?includeChats=5&includeTeam=true&scope=copilot&mode=CODER",
+      "/api/agents?includeChats=5&scope=copilot&mode=CODER",
     );
     expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
       "/api/agents?includeChats=20&scope=nav&mode=CODER&mode=KBASE",

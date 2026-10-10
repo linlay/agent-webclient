@@ -34,7 +34,7 @@ export function ChatPreviewSurface({ chatId, live }: { chatId: string; live: boo
         key={`${chatId}:${live}`}
         data={conversationPreviewDataFromReplay(snapshot.chat, snapshot.projection)}
         agents={agentKey ? [{ key: agentKey, name: snapshot.chat.firstAgentName || agentKey }] : []}
-        agentKey={agentKey} teamChat={owner?.kind === "orchestrated-team"} startAtBottom
+        agentKey={agentKey} teamChat={false} startAtBottom
         ariaLabel={t("chatPreview.title")} emptyLabel={t("chatPreview.empty")}
         openTarget={openTarget}
         onCopyResult={(success) => success
@@ -43,7 +43,7 @@ export function ChatPreviewSurface({ chatId, live }: { chatId: string; live: boo
         renderMarkdown={renderAppMarkdown}
         renderAttachment={(attachment, options) => <AttachmentCard
           attachment={attachment} variant="timeline" thumbnailMode="inline"
-          surfaceContext={{ chatId: snapshot.chat.chatId, agentKey, teamChat: owner?.kind === "orchestrated-team" }}
+          surfaceContext={{ chatId: snapshot.chat.chatId, agentKey, teamChat: false }}
           {...options} />}
       />}
     </section>

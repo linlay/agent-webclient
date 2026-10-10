@@ -16,7 +16,7 @@ export function selectUiState(state: AppState) {
 export function selectNavigationState(state: AppState) {
   return {
     agents: state.agents,
-    teams: state.teams,
+
     chats: state.chats,
     chatFilter: state.chatFilter,
     workerRows: state.workerRows,

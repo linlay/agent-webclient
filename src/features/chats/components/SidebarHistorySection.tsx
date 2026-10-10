@@ -4,9 +4,10 @@ import { HistoryModal } from "@/features/chats/components/HistoryModal";
 
 export const SidebarHistorySection: React.FC<{
   open: boolean;
+  initialAgentKey?: string;
   onClose: () => void;
   onSelectChat: (chatId: string) => void;
-}> = ({ open, onClose, onSelectChat }) => {
+}> = ({ open, initialAgentKey, onClose, onSelectChat }) => {
   return (
     <Modal
       open={open}
@@ -18,6 +19,8 @@ export const SidebarHistorySection: React.FC<{
       className="worker-history-modal"
     >
       <HistoryModal
+        key={initialAgentKey ?? "current"}
+        initialAgentKey={initialAgentKey}
         onClose={onClose}
         onSelectChat={(chatId) => {
           onClose();

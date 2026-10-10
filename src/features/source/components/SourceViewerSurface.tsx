@@ -29,7 +29,7 @@ export const SourceViewerSurface: React.FC<{
       <SourceDetailContent
         source={source}
         chatId={chatId}
-        teamChat={runtime.snapshot?.owner?.kind === "orchestrated-team"}
+        teamChat={false}
         initialChunkId={chunkId}
       />
     </IndependentSurfaceFrame>

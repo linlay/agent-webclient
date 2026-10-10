@@ -324,8 +324,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const chatId = String(surfaceContext?.chatId ?? (target.type === "resource" ? target.source?.chatId : undefined) ?? appState.chatId ?? "").trim();
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
   const teamChat = surfaceContext?.teamChat ?? Boolean(
-    currentChat?.owner?.kind === "orchestrated-team"
-    || String(currentChat?.teamId || "").trim(),
+    String("").trim(),
   );
   const [workspaceFile, setWorkspaceFile] =
     React.useState<AgentFileResponse | null>(null);

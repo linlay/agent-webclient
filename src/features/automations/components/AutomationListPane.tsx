@@ -2,7 +2,6 @@ import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useMemo } from "react";
 import { Input, Spin, Tooltip } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
-import type { Team } from "@/features/workers/lib/workerState";
 import { describeCronExpression } from "@/features/automations/lib/cronDescription";
 import type {
   AutomationExecutionStatus,
@@ -24,10 +23,10 @@ const STATUS_ICON: Record<AutomationExecutionStatus, MaterialIconName> = {
 function workerLabel(
   item: AutomationSummaryResponse,
   agentByKey: Map<string, Agent>,
-  teamById: Map<string, Team>,
+
 ): string {
-  const teamId = String(item.teamId || "").trim();
-  if (teamId) return String(teamById.get(teamId)?.name || "--");
+
+
   const agentKey = String(item.agentKey || "").trim();
   return String(agentByKey.get(agentKey)?.name || "--");
 }
@@ -39,7 +38,7 @@ export interface AutomationListPaneProps {
   loading: boolean;
   search: string;
   selectedId: string;
-  teams: Team[];
+
   onCreate: () => void;
   onCreateConversation?: () => void;
   onRetry: () => void;
@@ -54,7 +53,7 @@ export function AutomationListPane({
   loading,
   search,
   selectedId,
-  teams,
+
   onCreate,
   onCreateConversation,
   onRetry,
@@ -66,10 +65,7 @@ export function AutomationListPane({
     () => new Map(agents.map((item) => [item.key, item])),
     [agents],
   );
-  const teamById = useMemo(
-    () => new Map(teams.map((item) => [item.teamId, item])),
-    [teams],
-  );
+
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase(locale);
     if (!query) return automations;
@@ -78,16 +74,16 @@ export function AutomationListPane({
         item.name,
         item.description,
         item.agentKey,
-        item.teamId,
+        undefined,
         item.cron,
-        workerLabel(item, agentByKey, teamById),
+        workerLabel(item, agentByKey, ),
       ]
         .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase(locale)
         .includes(query),
     );
-  }, [agentByKey, automations, locale, search, teamById]);
+  }, [agentByKey, automations, locale, search, ]);
   const enabled = filtered.filter((item) => item.enabled);
   const disabled = filtered.filter((item) => !item.enabled);
 
@@ -116,9 +112,7 @@ export function AutomationListPane({
           <span className={styles.itemSchedule}>
             <span>{describeCronExpression(item.cron, t)}</span>
             <span className={styles.itemWorker}>
-              {item.teamId ? (
-                <MaterialIcon name="hub" />
-              ) : (
+              {((
                 <AgentIcon
                   icon={agent?.icon}
                   type="agent"
@@ -127,8 +121,8 @@ export function AutomationListPane({
                     avatar: { size: 14, icon: <MaterialIcon name="smart_toy" /> },
                   }}
                 />
-              )}
-              {workerLabel(item, agentByKey, teamById)}
+              ))}
+              {workerLabel(item, agentByKey, )}
             </span>
           </span>
           <span className={styles.itemLast}>

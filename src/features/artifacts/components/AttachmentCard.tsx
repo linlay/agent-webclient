@@ -74,8 +74,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   const chatId = String(surfaceContext?.chatId ?? appState.chatId ?? "").trim();
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
   const teamChat = surfaceContext?.teamChat ?? Boolean(
-    currentChat?.owner?.kind === "orchestrated-team"
-    || String(currentChat?.teamId || "").trim(),
+    String("").trim(),
   );
   const attachmentKind = getAttachmentKind(attachment);
   // Keep a local thumbnail, but open the durable uploaded resource once ready.

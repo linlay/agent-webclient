@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:012477e9ff8d2f5e9e9ade4aa983a88d1d7cccfed1a6e9ca6506deb3b49542f2
+// sha256:432735299c12975fda622018a9b622e6af7f423b33e7a8d4a7731b78b192f89e
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -278,8 +278,7 @@ export type AgentWebclientBridgeError = {
 };
 
 export type AgentWebclientRunOwner =
-  | { kind: "agent"; agentKey: string }
-  | { kind: "team"; teamId: string };
+  { kind: "agent"; agentKey: string };
 
 export type AgentWebclientBridgeFailure = {
   ok: false;

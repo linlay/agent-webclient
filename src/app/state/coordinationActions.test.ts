@@ -6,15 +6,13 @@ import type { ConversationReplaySnapshot } from './actions';
 
 it('clears only the gateway identity catalogs in one state transition', () => {
   const state = { ...createInitialState(),
-    agents: [{ key: 'agent', name: 'Agent' }],
-    teams: [{ teamId: 'team' }], chats: [{ chatId: 'chat' }],
+    chats: [{ chatId: 'chat' }],
     automations: [{ automationId: 'automation' }],
     chatPinnedOrder: ['chat'], chatPinningPending: true,
-    chatId: 'chat', composerDraft: 'unsent', accessToken: 'token',
-  } as AppState;
+    chatId: 'chat', composerDraft: 'unsent', accessToken: 'token', agents: [{ key: 'agent', name: 'Agent' }, { key: 'team', mode: "TEAM" }] } as AppState;
   const next = appReducer(state, { type: 'CLEAR_GATEWAY_IDENTITY_STATE' });
-  const expected = { agents: [], teams: [], chats: [], automations: [],
-    chatPinnedOrder: null, chatPinningPending: false };
+  const expected = { chats: [], automations: [],
+    chatPinnedOrder: null, chatPinningPending: false, agents: [] };
   expect(next).toMatchObject(expected);
   for (const key of Object.keys(state) as Array<keyof AppState>) {
     if (!(key in expected)) expect(next[key]).toBe(state[key]);
@@ -28,8 +26,7 @@ it('applies a complete replay atomically without overwriting unrelated fields fr
   const replay = { ...createInitialState(), chatId: 'new', runId: 'run',
     timelineOrder: ['node'], timelineNodes: new Map([['node', { id: 'node', kind: 'content' as const, text: 'replayed', ts: 1 }]]),
     plan: { planId: 'plan', plan: [] }, activeTaskIds: new Set(['task']),
-    composerDraft: 'ignore draft', accessToken: 'ignore token', streaming: true,
-  };
+    composerDraft: 'ignore draft', accessToken: 'ignore token', streaming: true };
   const snapshot: ConversationReplaySnapshot = replay;
   const next = appReducer(state, { type: 'APPLY_CONVERSATION_REPLAY', snapshot });
   expect(next.chatId).toBe('new');

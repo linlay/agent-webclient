@@ -94,8 +94,7 @@ function sessionMatchesRunOwner(session: RunSession, owner: RunOwner): boolean {
 		const sessionAgentKey = toText(session.agentKey);
 		return !sessionAgentKey || sessionAgentKey === owner.agentKey;
 	}
-	const sessionTeamId = toText(session.teamId);
-	return !sessionTeamId || sessionTeamId === owner.teamId;
+	return false;
 }
 
 /**

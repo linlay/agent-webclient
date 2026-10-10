@@ -244,7 +244,7 @@ describe("useMessageActions temporary pin", () => {
       undefined,
       "",
       "",
-      "",
+
       false,
       [" pdf ", "PDF", "mock-skill"],
       "agent-coder",
@@ -608,7 +608,7 @@ describe("useMessageActions temporary pin", () => {
       undefined,
       "",
       "",
-      "",
+
       true,
     );
 
@@ -765,7 +765,7 @@ it("maps a query admission rejection to Agent state and restores the captured su
   let actions!: ReturnType<typeof useMessageActions>;
   function Probe() { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; }
   renderToStaticMarkup(React.createElement(Probe));
-  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "agent-coder", "", false, [], "", "rejected-request");
+  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "agent-coder",  false, [], "", "rejected-request");
   expect(stateRef.current.agentAvailability["agent-coder"]).toBe("unavailable");
   expect(stateRef.current.composerDraft).toBe("hello");
   expect(stateRef.current.selectedSkills).toEqual([{ id: "pdf", label: "PDF" }]);

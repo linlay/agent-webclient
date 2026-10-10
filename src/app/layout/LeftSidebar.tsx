@@ -10,6 +10,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
 import { useMemoryOverlayActions } from "@/features/memory/components/MemoryOverlayProvider";
 import { WorkerNavigator } from "@/features/workers/components/WorkerNavigator";
+import { useGlobalSearchActions } from "@/features/search/components/GlobalSearchOverlayProvider";
 
 export {
   buildCoderAgentCreateRequest,
@@ -22,6 +23,7 @@ export const LeftSidebar: React.FC = () => {
   const { openCommandOverlay } = useCommandOverlayActions();
   const { openMemory } = useMemoryOverlayActions();
   const { openOverlay } = useSettingsOverlayActions();
+  const { openGlobalSearch } = useGlobalSearchActions();
   const settingsSummaryBadges = React.useMemo(
     () => resolveSettingsSummaryBadges({ themeMode: state.themeMode }),
     [state.themeMode],
@@ -29,6 +31,7 @@ export const LeftSidebar: React.FC = () => {
   const handleSettingsMenuAction = React.useCallback(
     (action: SidebarSettingsMenuAction) => {
       let standaloneRoute = "";
+      if (action.type === "open-agents") standaloneRoute = "/agents";
       if (action.type === "open-skills") standaloneRoute = "/skills";
       if (action.type === "open-registries") standaloneRoute = "/registries";
       if (action.type === "open-connectors") standaloneRoute = "/connectors";
@@ -47,6 +50,7 @@ export const LeftSidebar: React.FC = () => {
   );
   return (
     <WorkerNavigator
+      onOpenSearch={openGlobalSearch}
       onOpenCommand={(type) => openCommandOverlay({ type })}
       onOpenMemory={openMemory}
       renderSettingsMenu={(close) => (

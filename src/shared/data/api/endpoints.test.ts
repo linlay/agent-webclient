@@ -15,11 +15,11 @@ describe("endpoint payload builders", () => {
       owner: { kind: "agent" as const, agentKey: "demo-agent" },
       interactionConfig: {
         model: true, accessLevel: true, mustUseSkills: true, connectors: true,
-        attachment: { localFiles: true, chatRecords: true },
+        attachment: { localFiles: true, chatRecords: true }
       },
       model: { key: "selected-model" },
       accessLevel: "default",
-      mustUseSkills: ["selected-skill"],
+    mustUseSkills: ["selected-skill"]
     };
     expect(buildQueryPayload(options)).toEqual({
       requestId: "req_interaction",
@@ -27,7 +27,7 @@ describe("endpoint payload builders", () => {
       agentKey: "demo-agent",
       model: { key: "selected-model" },
       accessLevel: "default",
-      mustUseSkills: ["selected-skill"],
+    mustUseSkills: ["selected-skill"]
     });
   });
 
@@ -35,11 +35,11 @@ describe("endpoint payload builders", () => {
     expect(buildQueryPayload({
       requestId: "req_1",
       message: "显示广州的天气",
-      owner: { kind: "agent", agentKey: "demo-agent" },
+    owner: { kind: "agent", agentKey: "demo-agent" }
     })).toEqual({
       requestId: "req_1",
       message: "显示广州的天气",
-      agentKey: "demo-agent",
+    agentKey: "demo-agent"
     });
   });
 
@@ -53,7 +53,7 @@ describe("endpoint payload builders", () => {
         { type: "chat", id: "chat_2", name: "Previous design" },
         { type: "site", id: "website:docs", url: "https://example.com" },
       ],
-      params: { editingMode: true, topic: "guide" },
+    params: { editingMode: true, topic: "guide" }
     })).toEqual({
       requestId: "req_context",
       message: "Use the selected context",
@@ -63,7 +63,7 @@ describe("endpoint payload builders", () => {
         { type: "chat", id: "chat_2", name: "Previous design" },
         { type: "site", id: "website:docs", url: "https://example.com" },
       ],
-      params: { topic: "guide" },
+    params: { topic: "guide" }
     });
   });
 
@@ -73,12 +73,12 @@ describe("endpoint payload builders", () => {
       message: "plan",
       owner: { kind: "agent", agentKey: "coder" },
       agentMode: "CODER",
-      planningMode: false,
+    planningMode: false
     })).toEqual({
       requestId: "req_coder",
       message: "plan",
       agentKey: "coder",
-      planningMode: false,
+    planningMode: false
     });
     expect(buildQueryPayload({
       requestId: "req_kbase",
@@ -86,12 +86,12 @@ describe("endpoint payload builders", () => {
       owner: { kind: "agent", agentKey: "knowledge" },
       agentMode: "KBASE",
       planningMode: true,
-      editingMode: true,
+    editingMode: true
     })).toEqual({
       requestId: "req_kbase",
       message: "edit",
       agentKey: "knowledge",
-      editingMode: true,
+    editingMode: true
     });
     expect(buildQueryPayload({
       requestId: "req_react",
@@ -99,11 +99,11 @@ describe("endpoint payload builders", () => {
       owner: { kind: "agent", agentKey: "react" },
       agentMode: "REACT",
       planningMode: true,
-      editingMode: true,
+    editingMode: true
     })).toEqual({
       requestId: "req_react",
       message: "run",
-      agentKey: "react",
+    agentKey: "react"
     });
   });
 
@@ -116,22 +116,22 @@ describe("endpoint payload builders", () => {
       model: {
         key: "gpt-5.5",
         reasoningEffort: "EXTRA_HIGH" as never,
-        serviceTier: "STANDARD",
-      },
+        serviceTier: "STANDARD"
+    }
     })).toEqual({
       requestId: "req_model",
       message: "continue",
       agentKey: "demo-agent",
       accessLevel: "auto_approve",
-      model: { key: "gpt-5.5", reasoningEffort: "XHIGH" },
+    model: { key: "gpt-5.5", reasoningEffort: "XHIGH" }
     });
     expect(buildBTWPayload({
       requestId: "req_btw",
       chatId: "chat_1",
       message: "side question",
-      model: { reasoningEffort: "MAX" },
+    model: { reasoningEffort: "MAX" }
     })).toMatchObject({
-      model: { reasoningEffort: "MAX" },
+    model: { reasoningEffort: "MAX" }
     });
   });
 
@@ -144,7 +144,7 @@ describe("endpoint payload builders", () => {
       message: "side question",
       references: [{ name: "spec.md" }],
       accessLevel: "default",
-      stream: true,
+    stream: true
     });
     expect(payload).toEqual({
       requestId: "req_btw_1",
@@ -154,7 +154,7 @@ describe("endpoint payload builders", () => {
       message: "side question",
       references: [{ name: "spec.md" }],
       accessLevel: "default",
-      stream: true,
+    stream: true
     });
     expect(payload).not.toHaveProperty("agentKey");
     expect(payload).not.toHaveProperty("teamId");
@@ -166,21 +166,21 @@ describe("endpoint payload builders", () => {
       requestId: "req_team",
       chatId: "chat_team",
       message: "delegate",
-      owner: { kind: "orchestrated-team", teamId: "team_1" },
+    owner: {kind: "agent", agentKey: "team_1"}
     });
     expect(teamQuery).toEqual({
       requestId: "req_team",
       chatId: "chat_team",
       message: "delegate",
-      teamId: "team_1",
+    agentKey: "team_1"
     });
-    expect(teamQuery).not.toHaveProperty("agentKey");
+    expect(teamQuery.agentKey).toBe("team_1");
 
     expect(buildAttachPayload({
       runId: " run_team ",
-      owner: { kind: "orchestrated-team", teamId: "team_1" },
-      lastSeq: -2,
-    })).toEqual({ runId: "run_team", teamId: "team_1", lastSeq: 0 });
+    owner: {kind: "agent", agentKey: "team_1"},
+    lastSeq: -2
+})).toEqual({ runId: "run_team", agentKey: "team_1", lastSeq: 0 });
 
     const controlPayload = buildRunControlPayload({
       requestId: "req_steer",
@@ -188,7 +188,7 @@ describe("endpoint payload builders", () => {
       runId: "run_1",
       steerId: "steer_1",
       owner: { kind: "agent", agentKey: "agent_1" },
-      message: "continue",
+    message: "continue"
     });
     expect(controlPayload).toEqual({
       requestId: "req_steer",
@@ -196,7 +196,7 @@ describe("endpoint payload builders", () => {
       runId: "run_1",
       steerId: "steer_1",
       agentKey: "agent_1",
-      message: "continue",
+    message: "continue"
     });
     expect(controlPayload).not.toHaveProperty("teamId");
   });
@@ -205,30 +205,30 @@ describe("endpoint payload builders", () => {
     expect(buildRunSubmitPayload({
       chatId: "chat_team",
       runId: "run_team",
-      owner: { kind: "orchestrated-team", teamId: "team_1" },
+    owner: {kind: "agent", agentKey: "team_1"},
       awaitingId: "await_1",
       submitId: "submit_1",
-      params: [],
+    params: []
     })).toEqual({
       chatId: "chat_team",
       runId: "run_team",
-      teamId: "team_1",
+    agentKey: "team_1",
       awaitingId: "await_1",
       submitId: "submit_1",
-      params: [],
+    params: []
     });
     expect(buildAccessLevelPayload({
       requestId: "req_access",
       runId: "run_1",
       owner: { kind: "agent", agentKey: "agent_1" },
       accessLevel: "full_access",
-      reason: "approved",
+    reason: "approved"
     })).toEqual({
       requestId: "req_access",
       runId: "run_1",
       agentKey: "agent_1",
       accessLevel: "full_access",
-      reason: "approved",
+    reason: "approved"
     });
   });
 });

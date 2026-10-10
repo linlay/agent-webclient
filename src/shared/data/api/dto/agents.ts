@@ -12,7 +12,7 @@ import type { AgentSource } from "@/shared/data/api/dto/admin";
 export interface GetAgentsOptions {
   includeChats?: number;
   chatsPinned?: boolean;
-  includeTeam?: boolean;
+
   hasWorkspace?: boolean;
   scope?: "nav" | "copilot" | "invoke" | "internal" | "all";
   mode?: string | string[];
@@ -37,6 +37,7 @@ export interface AgentToolBinding {
 }
 
 export interface AgentDetailResponse {
+  teamConfig?: { members: string[]; maxParallel?: number };
   modelKey?: string;
   reasoningEffort?: QueryReasoningEffort;
   serviceTier?: QueryServiceTier;

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppState } from "@/app/state/AppContext";
 import { Drawer } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
-import type { Team } from "@/features/workers/lib/workerState";
 import type { CommandOverlayState } from "@/features/command-center/lib/commandOverlay";
 import {
   buildWorkerSwitchRows,
@@ -59,15 +58,13 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     if (modal.type !== "switch") {
       return undefined;
     }
-    const icons = new Map<string, Agent["icon"] | Team["icon"]>();
+    const icons = new Map<string, Agent["icon"]>();
     for (const agent of state.agents) {
       icons.set(`agent:${agent.key}`, agent.icon);
     }
-    for (const team of state.teams) {
-      icons.set(`team:${team.teamId}`, team.icon);
-    }
+
     return icons;
-  }, [modal.type, state.agents, state.teams]);
+  }, [modal.type, state.agents, ]);
 
   const switchIndex = clampIndex(modal.activeIndex, switchRows.length);
 
@@ -258,7 +255,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
           <AutomationHistoryConsole
             currentWorker={currentWorker}
             agents={state.agents}
-            teams={state.teams}
+
             embedded
             onClose={() => closeDrawer()}
             titleBarVariant="drawer"

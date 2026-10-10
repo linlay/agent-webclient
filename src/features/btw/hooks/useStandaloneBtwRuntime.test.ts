@@ -9,15 +9,15 @@ describe("standalone BTW session", () => {
       value: {
         getItem: jest.fn(() => null),
         setItem: jest.fn(),
-        removeItem: jest.fn(),
-      },
+        removeItem: jest.fn()
+    }
     });
   });
 
   afterAll(() => {
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
-      value: originalLocalStorage,
+    value: originalLocalStorage
     });
   });
 
@@ -32,20 +32,20 @@ describe("standalone BTW session", () => {
       parentChatId: "chat_1",
       btwId: "btw_existing",
       agentKey: "agent_1",
-      status: "idle",
+    status: "idle"
     });
     expect(session.projection.timelineOrder).toEqual([]);
     expect(session.projection.timelineNodes.size).toBe(0);
   });
 
-  it("creates a Team-owned branch without inventing an agent identity", () => {
+  it("creates a branch owned by the TEAM Agent", () => {
     const session = createStandaloneBtwSession(
       "chat_team",
       "",
-      { kind: "orchestrated-team", teamId: "team_1" },
+      {kind: "agent", agentKey: "team_1"},
     );
 
-    expect(session.owner).toEqual({ kind: "orchestrated-team", teamId: "team_1" });
-    expect(session.agentKey).toBe("");
+    expect(session.owner).toEqual({kind: "agent", agentKey: "team_1"});
+    expect(session.agentKey).toBe("team_1");
   });
 });

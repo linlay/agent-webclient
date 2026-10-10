@@ -921,8 +921,7 @@ export const OverviewContent: React.FC = () => {
     [state, currentChat],
   );
   const teamChat = Boolean(
-    currentChat?.owner?.kind === "orchestrated-team" ||
-    String(currentChat?.teamId || "").trim(),
+    String("").trim(),
   );
   return (
     <OverviewContentView

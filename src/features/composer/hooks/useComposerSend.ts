@@ -655,7 +655,7 @@ export function useComposerSend(input: UseComposerSendInput) {
           submissionRequestId,
           chatId: pendingChatId || undefined,
           ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
-          ...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+
           references: sendReferences,
           attachments: sendAttachmentMeta,
           accessLevel,

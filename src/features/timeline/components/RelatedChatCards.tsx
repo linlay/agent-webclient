@@ -18,7 +18,7 @@ export function RelatedChatCards({ nodes, agents }: { nodes: TimelineNode[]; age
   if (!chats.size) return null;
   return <div className={styles.cards}>
     {[...chats.values()].map(chat => {
-      const owner = chat.teamId || agents.find(agent => agent.key === chat.agentKey)?.name || chat.agentKey;
+      const owner = agents.find(agent => agent.key === chat.agentKey)?.name || chat.agentKey;
       return <a key={chat.chatId} className={styles.card}
         title={[chat.title || t("timeline.relatedChat.untitled"), owner].filter(Boolean).join(" · ")}
         href={`/?${new URLSearchParams({ chatId: chat.chatId })}`}

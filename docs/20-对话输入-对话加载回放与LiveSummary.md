@@ -6,7 +6,7 @@
 
 ## 历史读取与当前 Agent 状态
 
-已有 `chatId` 的 Agent/Copilot 路由立即启动 `/api/chat`，不等待 `/api/agent`。历史身份由详情的 `agentKey/teamId` 与 mode 决定，路由或当前选择不覆盖持久化 owner。失效、已删除或暂不可用的 Agent 不影响合法历史回放；401/403、Chat 404 与历史损坏仍是独立的历史加载错误。
+已有 `chatId` 的 Agent/Copilot 路由立即启动 `/api/chat`，不等待 `/api/agent`。历史身份由详情的 `agentKey` 与 mode 决定，路由或当前选择不覆盖持久化 owner。失效、已删除或暂不可用的 Agent 不影响合法历史回放；401/403、Chat 404 与历史损坏仍是独立的历史加载错误。
 
 全局历史和 HistoryModal 使用 `/api/chats`；全局历史 owner 选项包含 Chat 记录中的缺失 Agent，以历史名称或 key 展示。不把 `/api/agents?includeChats=...` 的当前有效 Agent 预览当成完整历史。新 Chat 仍沿用当前 Agent 初始化流程。
 

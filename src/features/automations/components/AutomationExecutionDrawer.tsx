@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Drawer, Popover, Spin, Tabs, Tooltip } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
-import type { Team } from "@/features/workers/lib/workerState";
 import type {
   AutomationExecutionDetailResponse,
   AutomationExecutionResponse,
@@ -67,7 +66,7 @@ function errorMessage(error: unknown): string {
 export interface AutomationExecutionDrawerProps {
   execution: AutomationExecutionResponse | null;
   agents: Agent[];
-  teams: Team[];
+
   refreshRevision?: number;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
   onClose: () => void;
@@ -78,7 +77,7 @@ export const AutomationExecutionDrawer: React.FC<
 > = ({
   execution,
   agents,
-  teams,
+
   refreshRevision = 0,
   returnFocusRef,
   onClose,
@@ -251,9 +250,7 @@ export const AutomationExecutionDrawer: React.FC<
   const chatId = String(
     detailState.data?.chatId || execution?.chatId || "",
   ).trim();
-  const teamId = String(
-    detailState.data?.teamId || execution?.teamId || chatState.data?.chat.teamId || "",
-  ).trim();
+
   const agentKey = String(
     detailState.data?.agentKey ||
       execution?.agentKey ||
@@ -261,13 +258,10 @@ export const AutomationExecutionDrawer: React.FC<
       chatState.data?.chat.firstAgentKey ||
       "",
   ).trim();
-  const team = teams.find((item) => item.teamId === teamId);
   const agent = agents.find((item) => item.key === agentKey);
-  const workerName = teamId
-    ? String(team?.name || teamId)
-    : String(agent?.name || chatState.data?.chat.firstAgentName || agentKey || "--");
-  const workerIcon = teamId ? team?.icon : agent?.icon;
-  const workerType = teamId ? "team" : "agent";
+  const workerName = (String(agent?.name || chatState.data?.chat.firstAgentName || agentKey || "--"));
+  const workerIcon = (agent?.icon);
+  const workerType = ("agent");
 
   const copy = useCallback(
     async (value: string) => {
@@ -324,7 +318,7 @@ export const AutomationExecutionDrawer: React.FC<
                 <MarkdownContent
                   content={detailState.data.resultContent}
                   chatId={chatId}
-                  teamChat={Boolean(teamId)}
+                  teamChat={Boolean("")}
                 />
               ) : (
                 <div className={styles.emptyResult}>
@@ -373,7 +367,7 @@ export const AutomationExecutionDrawer: React.FC<
                 data={conversationPreviewDataFromReplay(chatState.data.chat, chatState.data.projection)}
                 agents={agents}
                 agentKey={agentKey}
-                teamChat={Boolean(teamId)}
+                teamChat={Boolean("")}
                 openTarget={openTarget}
                 onCopyResult={(success) => success
                   ? message.success(t("timeline.toolPill.copy.copied"))
@@ -381,7 +375,7 @@ export const AutomationExecutionDrawer: React.FC<
                 renderMarkdown={renderAppMarkdown}
                 renderAttachment={(attachment, options) => <AttachmentCard
                   attachment={attachment} variant="timeline" thumbnailMode="inline"
-                  surfaceContext={{ chatId: chatState.data!.chat.chatId, agentKey, teamChat: Boolean(teamId) }}
+                  surfaceContext={{ chatId: chatState.data!.chat.chatId, agentKey, teamChat: Boolean("") }}
                   {...options} />}
               />
             ) : null}

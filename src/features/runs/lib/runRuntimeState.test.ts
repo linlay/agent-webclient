@@ -16,14 +16,13 @@ function createRunSession(input: {
 		chatId: input.chatId || "",
 		runId: "",
 		agentKey: input.agentKey || "",
-		teamId: "",
 		streaming: false,
 		abortController: null,
 		snapshot: null,
 		bufferedEvents: [],
 		bufferedDebugLines: [],
 		appliedEventCount: 0,
-		appliedDebugLineCount: 0,
+    appliedDebugLineCount: 0
 	};
 }
 
@@ -35,7 +34,7 @@ function buildState(patch: Partial<AppState> = {}): AppState {
 		currentChatActiveRun: null,
 		currentRunAgentKey: "",
 		runAgentById: new Map(),
-		...patch,
+    ...patch
 	} as AppState;
 }
 
@@ -44,7 +43,7 @@ describe("chatRuntimeState", () => {
 		const session = createRunSession({
 			requestId: "req_bg",
 			chatId: "chat_background",
-			agentKey: "agent_a",
+    agentKey: "agent_a"
 		});
 		session.runId = "run_bg";
 		session.streaming = true;
@@ -56,7 +55,7 @@ describe("chatRuntimeState", () => {
 				{
 					chatId: "chat_background",
 					agentKey: "agent_a",
-					hasActiveRun: false,
+    hasActiveRun: false
 				},
 			],
 			querySessionsRef,
@@ -71,14 +70,14 @@ describe("chatRuntimeState", () => {
 		const activeSession = createRunSession({
 			requestId: "req_active",
 			chatId: "chat_current",
-			agentKey: "agent_a",
+    agentKey: "agent_a"
 		});
 		activeSession.runId = "run_current";
 		activeSession.streaming = true;
 		const backgroundSession = createRunSession({
 			requestId: "req_bg",
 			chatId: "chat_background",
-			agentKey: "agent_b",
+    agentKey: "agent_b"
 		});
 		backgroundSession.runId = "run_bg";
 		backgroundSession.streaming = true;
@@ -86,13 +85,13 @@ describe("chatRuntimeState", () => {
 			current: new Map([
 				["req_active", activeSession],
 				["req_bg", backgroundSession],
-			]),
+    ])
 		};
 
 		const runtime = resolveMainChatRuntime(
 			buildState({
 				chatId: "chat_current",
-				streaming: false,
+    streaming: false
 			}),
 			{ current: "req_active" },
 			querySessionsRef,
@@ -108,7 +107,7 @@ describe("chatRuntimeState", () => {
 			buildState({
 				chatId: "chat_current",
 				runId: "run_old",
-				streaming: true,
+    streaming: true
 			}),
 			{ current: "" },
 			{ current: new Map() },
@@ -122,7 +121,7 @@ describe("chatRuntimeState", () => {
 		const session = createRunSession({
 			requestId: "req_live",
 			chatId: "chat_live",
-			agentKey: "agent_a",
+    agentKey: "agent_a"
 		});
 		session.runId = "run_live";
 		session.streaming = true;
@@ -134,13 +133,13 @@ describe("chatRuntimeState", () => {
 			chatId: "chat_live",
 			runId: "run_live",
 			owner: { kind: "agent", agentKey: "agent_a" },
-			querySessions,
+    querySessions
 		})).toBe(true);
 		expect(isRunObservedByLiveQuerySession({
 			chatId: "chat_live",
 			runId: "run_other",
 			owner: { kind: "agent", agentKey: "agent_a" },
-			querySessions,
+    querySessions
 		})).toBe(false);
 
 		session.observationSource = "attach";
@@ -148,7 +147,7 @@ describe("chatRuntimeState", () => {
 			chatId: "chat_live",
 			runId: "run_live",
 			owner: { kind: "agent", agentKey: "agent_a" },
-			querySessions,
+    querySessions
 		})).toBe(false);
 	});
 });

@@ -6,13 +6,12 @@ import { TopNav } from "@/app/layout/TopNav";
 const mockUseTerminalAgentStatuses = jest.fn(() => new Map());
 
 jest.mock("@/features/terminal/hooks/useActiveTerminalAgents", () => ({
-	useTerminalAgentStatuses: (enabled?: boolean) =>
-		mockUseTerminalAgentStatuses(enabled),
+    useTerminalAgentStatuses: (enabled?: boolean) => mockUseTerminalAgentStatuses(enabled)
 }));
 
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
 	useTerminalTransport: () => ({ subscribeStatus: jest.fn(() => jest.fn()) }),
-	useOptionalTerminalTransport: () => ({ subscribeStatus: jest.fn(() => jest.fn()) }),
+    useOptionalTerminalTransport: () => ({ subscribeStatus: jest.fn(() => jest.fn()) })
 }));
 
 jest.mock("@/app/state/AppContext", () => {
@@ -21,7 +20,7 @@ jest.mock("@/app/state/AppContext", () => {
 		...actual,
 		useAppState: jest.fn(),
 		useAppDispatch: jest.fn(),
-		useOptionalAppContext: jest.fn(),
+    useOptionalAppContext: jest.fn()
 	};
 });
 
@@ -37,23 +36,14 @@ jest.mock("antd", () => {
 	const actual = jest.requireActual("antd");
 	return {
 		...actual,
-		Popover: ({
-			open,
-			children,
-			content,
-			classNames,
-		}: {
+    Popover: ({ open, children, content, classNames, }: {
 			open?: boolean;
 			children: React.ReactNode;
 			content?: React.ReactNode;
-			classNames?: { root?: string };
-		}) =>
-			React.createElement(
-				"div",
-				{ className: classNames?.root },
-				children,
-				open ? content : null,
-			),
+        classNames?: {
+            root?: string;
+        };
+    }) => React.createElement("div", { className: classNames?.root }, children, open ? content : null)
 	};
 });
 
@@ -73,7 +63,7 @@ describe("TopNav", () => {
 		globalWithStorage.localStorage = {
 			getItem: jest.fn(() => null),
 			setItem: jest.fn(),
-			removeItem: jest.fn(),
+    removeItem: jest.fn()
 		};
 		useAppDispatch.mockReturnValue(jest.fn());
 		useAppState.mockReturnValue(createInitialState());
@@ -95,8 +85,7 @@ describe("TopNav", () => {
 		useAppState.mockReturnValue({
 			...state,
 			wsStatus: "error",
-			wsErrorMessage:
-				"WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。",
+    wsErrorMessage: "WebSocket 握手失败，请检查 Access Token 是否有效，并确认后端已启用 /ws。"
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -120,10 +109,10 @@ describe("TopNav", () => {
 					scope: "model",
 					status: 429,
 					retryable: false,
-					message: "model request failed with status 429: api key quota exhausted",
+                message: "model request failed with status 429: api key quota exhausted"
 				},
-				timestamp: 123,
-			}],
+            timestamp: 123
+        }]
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -141,11 +130,11 @@ describe("TopNav", () => {
 		const runningState = {
 			...state,
 			chatId: "chat_1",
-			runId: "run_1",
+    runId: "run_1"
 		};
 		useAppState.mockReturnValue({
 			...runningState,
-			streaming: true,
+    streaming: true
 		});
 		useOptionalAppContext.mockReturnValue({
 			state: runningState,
@@ -160,20 +149,19 @@ describe("TopNav", () => {
 							chatId: "chat_1",
 							runId: "run_1",
 							agentKey: "",
-							teamId: "",
 							streaming: true,
 							abortController: null,
 							snapshot: null,
 							bufferedEvents: [],
 							bufferedDebugLines: [],
 							appliedEventCount: 0,
-							appliedDebugLineCount: 0,
+                    appliedDebugLineCount: 0
 						},
 					],
-				]),
+        ])
 			},
 			chatQuerySessionIndexRef: { current: new Map() },
-			activeQuerySessionRequestIdRef: { current: "request_1" },
+    activeQuerySessionRequestIdRef: { current: "request_1" }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -189,7 +177,7 @@ describe("TopNav", () => {
 			chatId: "chat_1",
 			runId: "run_1",
 			agentKey: "knowledge",
-			editingMode: true,
+    editingMode: true
 		};
 		state.editingMode = false;
 		useAppState.mockReturnValue(state);
@@ -199,7 +187,7 @@ describe("TopNav", () => {
 			stateRef: { current: state },
 			querySessionsRef: { current: new Map() },
 			chatQuerySessionIndexRef: { current: new Map() },
-			activeQuerySessionRequestIdRef: { current: "" },
+    activeQuerySessionRequestIdRef: { current: "" }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -265,18 +253,18 @@ describe("TopNav", () => {
 				contextWindow: {
 					maxSize: 128000,
 					currentSize: 64000,
-					modelKey: "deepseek-chat",
+            modelKey: "deepseek-chat"
 				},
 				usage: {
 					chat: {
 						totalTokens: 3700,
-						promptTokensDetails: { cacheHitTokens: 35, cacheMissTokens: 65 },
+                promptTokensDetails: { cacheHitTokens: 35, cacheMissTokens: 65 }
 					},
 					run: {
-						totalTokens: 1234,
-					},
-				},
-			},
+                totalTokens: 1234
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -301,12 +289,12 @@ describe("TopNav", () => {
 				contextWindow: {
 					maxSize: 200000,
 					currentSize: 598735,
-					modelKey: "MiniMax-M2.7",
+            modelKey: "MiniMax-M2.7"
 				},
 				usage: {
-					chat: { totalTokens: 600932 },
-				},
-			},
+            chat: { totalTokens: 600932 }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -327,12 +315,12 @@ describe("TopNav", () => {
 				runId: "run_1",
 				contextWindow: {
 					maxSize: 200000,
-					modelKey: "MiniMax-M2.7",
+            modelKey: "MiniMax-M2.7"
 				},
 				usage: {
-					chat: { totalTokens: 600932 },
-				},
-			},
+            chat: { totalTokens: 600932 }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -353,18 +341,18 @@ describe("TopNav", () => {
 				runId: "run_1",
 				contextWindow: {
 					maxSize: 128000,
-					currentSize: 64000,
+            currentSize: 64000
 				},
 				usage: {
 					chat: {
 						totalTokens: 3700,
-						promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 20 },
+                promptTokensDetails: { cacheHitTokens: 80, cacheMissTokens: 20 }
 					},
 					run: {
-						totalTokens: 6700,
-					},
-				},
-			},
+                totalTokens: 6700
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -379,13 +367,13 @@ describe("TopNav", () => {
 		const runningState = {
 			...state,
 			chatId: "chat_1",
-			runId: "run_1",
+    runId: "run_1"
 		};
 		useAppState.mockReturnValue({
 			...runningState,
 			streaming: true,
 			usagePopoverOpen: true,
-			usageSnapshot: null,
+    usageSnapshot: null
 		});
 		useOptionalAppContext.mockReturnValue({
 			state: runningState,
@@ -400,20 +388,19 @@ describe("TopNav", () => {
 							chatId: "chat_1",
 							runId: "run_1",
 							agentKey: "",
-							teamId: "",
 							streaming: true,
 							abortController: null,
 							snapshot: null,
 							bufferedEvents: [],
 							bufferedDebugLines: [],
 							appliedEventCount: 0,
-							appliedDebugLineCount: 0,
+                    appliedDebugLineCount: 0
 						},
 					],
-				]),
+        ])
 			},
 			chatQuerySessionIndexRef: { current: new Map() },
-			activeQuerySessionRequestIdRef: { current: "request_1" },
+    activeQuerySessionRequestIdRef: { current: "request_1" }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -441,12 +428,12 @@ describe("TopNav", () => {
 				runId: "run_1",
 				contextWindow: {
 					maxSize: 128000,
-					currentSize: 64000,
+            currentSize: 64000
 				},
 				usage: {
-					chat: { totalTokens: 64000 },
-				},
-			},
+            chat: { totalTokens: 64000 }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -466,15 +453,15 @@ describe("TopNav", () => {
 			runId: "run_1",
 			contextWindow: {
 				maxSize: 128000,
-				currentSize: 64000,
-			},
+        currentSize: 64000
+    }
 		};
 
 		useAppState.mockReturnValue({
 			...state,
 			chatId: "",
 			usagePopoverOpen: true,
-			usageSnapshot,
+    usageSnapshot
 		});
 		const missingChatHtml = renderToStaticMarkup(React.createElement(TopNav));
 
@@ -483,21 +470,21 @@ describe("TopNav", () => {
 			chatId: "chat_1",
 			streaming: true,
 			usagePopoverOpen: true,
-			usageSnapshot,
+    usageSnapshot
 		});
 		useOptionalAppContext.mockReturnValue({
 			state: {
 				...state,
 				chatId: "chat_1",
-				runId: "run_1",
+        runId: "run_1"
 			},
 			dispatch: jest.fn(),
 			stateRef: {
 				current: {
 					...state,
 					chatId: "chat_1",
-					runId: "run_1",
-				},
+            runId: "run_1"
+        }
 			},
 			querySessionsRef: {
 				current: new Map([
@@ -508,20 +495,19 @@ describe("TopNav", () => {
 							chatId: "chat_1",
 							runId: "run_1",
 							agentKey: "",
-							teamId: "",
 							streaming: true,
 							abortController: null,
 							snapshot: null,
 							bufferedEvents: [],
 							bufferedDebugLines: [],
 							appliedEventCount: 0,
-							appliedDebugLineCount: 0,
+                    appliedDebugLineCount: 0
 						},
 					],
-				]),
+        ])
 			},
 			chatQuerySessionIndexRef: { current: new Map() },
-			activeQuerySessionRequestIdRef: { current: "request_1" },
+    activeQuerySessionRequestIdRef: { current: "request_1" }
 		});
 		const streamingHtml = renderToStaticMarkup(React.createElement(TopNav));
 
@@ -541,15 +527,15 @@ describe("TopNav", () => {
 				runId: "run_1",
 				contextWindow: {
 					maxSize: 128000,
-					currentSize: 64000,
+            currentSize: 64000
 				},
 				usage: {
 					chat: {
 						totalTokens: 1,
-						promptTokensDetails: { cacheHitTokens: 0, cacheMissTokens: 0 },
-					},
-				},
-			},
+                promptTokensDetails: { cacheHitTokens: 0, cacheMissTokens: 0 }
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -568,12 +554,12 @@ describe("TopNav", () => {
 				runId: "run_1",
 				contextWindow: {
 					maxSize: 128000,
-					currentSize: 64000,
+            currentSize: 64000
 				},
 				usage: {
-					chat: { totalTokens: 1 },
-				},
-			},
+            chat: { totalTokens: 1 }
+        }
+    }
 		});
 
 		const missingHtml = renderToStaticMarkup(React.createElement(TopNav));
@@ -594,17 +580,17 @@ describe("TopNav", () => {
 				runId: "run_1",
 				usage: {
 					current: {
-						promptTokensDetails: { cacheHitTokens: 99, cacheMissTokens: 1 },
+                promptTokensDetails: { cacheHitTokens: 99, cacheMissTokens: 1 }
 					},
 					run: {
-						promptTokensDetails: { cacheHitTokens: 90, cacheMissTokens: 10 },
+                promptTokensDetails: { cacheHitTokens: 90, cacheMissTokens: 10 }
 					},
 					chat: {
 						totalTokens: 1,
-						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
-					},
-				},
-			},
+                promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 }
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -632,11 +618,11 @@ describe("TopNav", () => {
 							inputCacheHit: 0.00007168,
 							inputCacheMiss: 0.000086,
 							output: 0.000122,
-							total: 0.00027968,
-						},
-					},
-				},
-			},
+                    total: 0.00027968
+                }
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -659,10 +645,10 @@ describe("TopNav", () => {
 					chat: {
 						totalTokens: 1200,
 						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
-						estimatedCost: { currency: "CNY", total: 0.1234 },
-					},
-				},
-			},
+                estimatedCost: { currency: "CNY", total: 0.1234 }
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -683,10 +669,10 @@ describe("TopNav", () => {
 					chat: {
 						totalTokens: 1200,
 						promptTokensDetails: { cacheHitTokens: 25, cacheMissTokens: 75 },
-						estimatedCost: { currency: "USD", total: 0.0123 },
-					},
-				},
-			},
+                estimatedCost: { currency: "USD", total: 0.0123 }
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -712,10 +698,10 @@ describe("TopNav", () => {
 						promptTokensDetails: { cacheHitTokens: 400, cacheMissTokens: 499 },
 						completionTokensDetails: { reasoningTokens: 33 },
 						llmChatCompletionCount: 6,
-						toolCallCount: 9,
-					},
-				},
-			},
+                toolCallCount: 9
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -750,13 +736,13 @@ describe("TopNav", () => {
 						totalTokens: 550,
 						timing: {
 							firstTokenLatencyMs: 700,
-							generationDurationMs: 2000,
+                    generationDurationMs: 2000
 						},
 						llmChatCompletionCount: 2,
-						toolCallCount: 4,
+                toolCallCount: 4
+            }
 					},
-				},
-			] as any,
+    ] as any
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -785,8 +771,8 @@ describe("TopNav", () => {
 						totalTokens: 142,
 						timing: {
 							firstTokenLatencyMs: 3100,
-							generationDurationMs: 2000,
-						},
+                    generationDurationMs: 2000
+                }
 					},
 					run: {
 						promptTokens: 300,
@@ -795,9 +781,9 @@ describe("TopNav", () => {
 						timing: {
 							firstTokenLatencyTotalMs: 4000,
 							firstTokenLatencyCount: 2,
-							generationDurationMs: 5000,
+                    generationDurationMs: 5000
 						},
-						llmChatCompletionCount: 1,
+                llmChatCompletionCount: 1
 					},
 					chat: {
 						promptTokens: 800,
@@ -806,12 +792,12 @@ describe("TopNav", () => {
 						timing: {
 							firstTokenLatencyTotalMs: 4500,
 							firstTokenLatencyCount: 3,
-							generationDurationMs: 10000,
+                    generationDurationMs: 10000
 						},
-						llmChatCompletionCount: 2,
-					},
-				},
-			},
+                llmChatCompletionCount: 2
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -849,7 +835,7 @@ describe("TopNav", () => {
 					currentSize: 64000,
 					estimatedNextCallSize: 8000,
 					modelKey: "deepseek-chat",
-					reasoningEffort: "HIGH",
+            reasoningEffort: "HIGH"
 				},
 				usage: {
 					current: {
@@ -860,10 +846,10 @@ describe("TopNav", () => {
 						completionTokensDetails: { reasoningTokens: 7 },
 						timing: {
 							firstTokenLatencyMs: 820,
-							generationDurationMs: 952,
+                    generationDurationMs: 952
 						},
 						llmChatCompletionCount: 1,
-						toolCallCount: 2,
+                toolCallCount: 2
 					},
 					run: {
 						promptTokens: 300,
@@ -874,10 +860,10 @@ describe("TopNav", () => {
 						timing: {
 							firstTokenLatencyTotalMs: 1560,
 							firstTokenLatencyCount: 2,
-							generationDurationMs: 3889,
+                    generationDurationMs: 3889
 						},
 						llmChatCompletionCount: 3,
-						toolCallCount: 4,
+                toolCallCount: 4
 					},
 					chat: {
 						promptTokens: 800,
@@ -888,13 +874,13 @@ describe("TopNav", () => {
 						timing: {
 							firstTokenLatencyTotalMs: 2700,
 							firstTokenLatencyCount: 3,
-							generationDurationMs: 20202,
+                    generationDurationMs: 20202
 						},
 						llmChatCompletionCount: 8,
-						toolCallCount: 11,
-					},
-				},
-			},
+                toolCallCount: 11
+            }
+        }
+    }
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -943,7 +929,7 @@ describe("TopNav", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
 			...state,
-			events: [{ type: "run.error" }] as any,
+    events: [{ type: "run.error" }] as any
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -955,7 +941,7 @@ describe("TopNav", () => {
 	it("renders idle status with websocket-ready styling by default", () => {
 		const state = createInitialState();
 		useAppState.mockReturnValue({
-			...state,
+    ...state
 		});
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -973,7 +959,7 @@ describe("TopNav", () => {
 
 	it("renders the debug panel button when enabled by env", () => {
 		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-			DEBUG_PANEL_ENABLED: "true",
+    DEBUG_PANEL_ENABLED: "true"
 		};
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
@@ -986,7 +972,7 @@ describe("TopNav", () => {
 		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
 			DESKTOP_APP: desktopMode,
 			DEBUG_PANEL_ENABLED: "true",
-			VOICE_ENABLED: "true",
+    VOICE_ENABLED: "true"
 		};
 
 		const html = renderToStaticMarkup(React.createElement(TopNav, { surface: "agent" }));
@@ -1001,7 +987,7 @@ describe("TopNav", () => {
 	it.each([undefined, false, "false", ""])("hides the Desktop Agent Debug button when disabled (%s)", (debugFlag) => {
 		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
 			DESKTOP_APP: "true",
-			DEBUG_PANEL_ENABLED: debugFlag,
+    DEBUG_PANEL_ENABLED: debugFlag
 		};
 
 		const html = renderToStaticMarkup(React.createElement(TopNav, { surface: "agent" }));

@@ -18,7 +18,6 @@ const form: AutomationFormState = {
   description: "Run daily",
   cron: "0 9 * * *",
   agentKey: "agent-a",
-  teamId: "team-a",
   zoneId: "Asia/Shanghai",
   remainingRuns: "3",
   enabled: true,
@@ -28,7 +27,7 @@ const form: AutomationFormState = {
   chatId: "chat-stale",
   role: "assistant",
   hidden: "",
-  paramsText: "",
+    paramsText: ""
 };
 
 describe("automationForm", () => {
@@ -37,7 +36,7 @@ describe("automationForm", () => {
     const detail = {
       id: "daily", name: "Daily", cron: "0 9 * * *", agentKey: "agent-a", enabled: true,
       executionHistory: { available: true, state: "ready" as const },
-      query: { message: "Run task" },
+    query: { message: "Run task" }
     };
     expect(automationFormFromDetail(detail).accessLevel).toBe("default");
     for (const level of ["default", "auto_approve", "full_access"] as const) {
@@ -52,7 +51,7 @@ describe("automationForm", () => {
       agentKey: "agent-a",
       zoneId: "Asia/Shanghai",
       remainingRuns: 3,
-      query: { message: "Summarize status", role: "assistant", accessLevel: "auto_approve" },
+    query: { message: "Summarize status", role: "assistant", accessLevel: "auto_approve" }
     });
     expect(buildCreateAutomationPayloadForSubmit(form)).not.toHaveProperty(
       "teamId",
@@ -60,7 +59,7 @@ describe("automationForm", () => {
     expect(buildUpdateAutomationPayloadForSubmit(form)).toMatchObject({
       id: "daily-demo",
       description: "Run daily",
-      query: { accessLevel: "auto_approve" },
+    query: { accessLevel: "auto_approve" }
     });
   });
 
@@ -71,7 +70,7 @@ describe("automationForm", () => {
     expect(
       buildCreateAutomationPayloadForSubmit({
         ...form,
-        chatMode: "existing",
+    chatMode: "existing"
       }).query,
     ).toMatchObject({ chatId: "chat-stale" });
   });
@@ -95,17 +94,17 @@ describe("automationForm", () => {
           name: "团队日报",
           description: "生成日报",
           cron: "0 18 * * 1-5",
-          teamId: "team-a",
+    agentKey: "team-a",
           enabled: true,
-          query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" },
+    query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" }
         },
         "团队日报 副本",
       ),
     ).toMatchObject({
       name: "团队日报 副本",
-      teamId: "team-a",
+    agentKey: "team-a",
       enabled: false,
-      query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" },
+    query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" }
     });
   });
 
@@ -115,7 +114,7 @@ describe("automationForm", () => {
       name: "Sync",
       cron: "0 9 * * *",
       enabled: true,
-      sourceFile: "/repo/automations/sync-workspace.yml",
+    sourceFile: "/repo/automations/sync-workspace.yml"
     };
     expect(automationSourcePath(automation)).toBe("sync-workspace.yml");
     expect(isCurrentAutomationSourceRequest(3, 3, "daily", "daily")).toBe(

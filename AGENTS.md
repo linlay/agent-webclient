@@ -72,7 +72,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 领域类型由所属模块维护，`src/app/state/types.ts` 只组合扁平 `AppState`：
 - `src/shared/contracts/agentEvents.ts`：wire event、awaiting 和 usage 协议类型
 - `src/features/agents/lib/agentState.ts`：`Agent` 与 Agent 管理状态
-- `src/features/workers/lib/workerState.ts`、`src/features/chats/lib/chatState.ts`：`Team`、`WorkerRow`、`Chat` 与导航摘要
+- `src/features/workers/lib/workerState.ts`、`src/features/chats/lib/chatState.ts`：`WorkerRow`、`Chat` 与导航摘要
 - `src/features/conversation/lib/conversationState.ts`、`src/features/timeline/lib/timelineState.ts`：会话、run/session 与时间线节点
 - `src/features/tools/lib/toolsState.ts`、`src/features/plan/lib/planState.ts`、`src/features/tasks/lib/tasksState.ts`：工具、awaiting、plan 与 task runtime
 - 其余拥有全局字段的 feature 在各自 `lib/<domain>State.ts` 维护状态、action、初始值和 reducer
@@ -82,7 +82,6 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 ## 6. API 定义
 接口消费封装位于 [`src/shared/data/`](./src/shared/data/)，其中 [`src/shared/data/api/endpoints.ts`](./src/shared/data/api/endpoints.ts) 统一注册接口，[`src/shared/data/api/http.ts`](./src/shared/data/api/http.ts) 与 [`src/shared/data/api/routedClient.ts`](./src/shared/data/api/routedClient.ts) 负责请求执行和传输路由，当前使用的主要接口包括：
 - `GET /api/agents`
-- `GET /api/teams`
 - `GET /api/agent`
 - `GET/PUT /api/skills`：GET 返回全局有效技能目录与用户级 `pinned`，可选 `agentKey` 仅计算 `configured`；PUT 单条 `{id,pinned}` 更新置顶。Composer 一次查询获得列表与置顶。
 - `GET /api/admin/skills`：HTTP 返回 `{skills,packages,pinned}` 聚合管理目录；管理页不请求 `/api/skills` 或业务 WS。
@@ -98,7 +97,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `GET /api/project/tree`
 - `GET /api/project/changes`
 - `GET /api/project/diff`
-- `POST /api/query`：对话流入口；`agentKey` / `teamId` 是可选路由提示，缺省时由后端按现有上下文推导
+- `POST /api/query`：对话流入口；`agentKey` 是唯一 Agent 路由字段（包含 TEAM），缺省时由后端按现有上下文推导
 - `GET /api/attach`：Run 事件续接；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `POST /api/submit`：Run 前端工具 / awaiting 提交；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `POST /api/interrupt`：Run 中断；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
@@ -224,3 +223,5 @@ Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedC
 集合支持 description 与 editable（缺省 false），管理表单保留 include/exclude/chunk。仅专用 KBASE 的 Host Run 在启动时冻结可编辑目录，需 editingMode 才能写；容器不自动挂载，普通 Agent 不获得额外写权限。说明与开关不触发索引重建，下次 Run 生效。
 
 Composer 模型、思考强度与 service tier 按 Chat 隔离，旧 Chat 从最近主 Run 恢复，不随 New Chat 的 Agent 默认值修改；已有 Chat 的菜单调整仅作为下一次 query 覆盖，不写 Agent 配置。偏好按后端与身份隔离保存于 sessionStorage，详情见运行参数专题。
+
+TEAM 与普通 Agent 共用 agentKey 身份、目录、管理和运行控制。成员配置来自 teamConfig；不维护独立 Team 列表。

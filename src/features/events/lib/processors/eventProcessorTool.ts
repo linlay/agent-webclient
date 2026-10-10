@@ -476,7 +476,7 @@ export function processToolEvent(
           return {
             chatId,
             agentKey: typeof run?.agentKey === "string" ? run.agentKey.trim() || undefined : undefined,
-            teamId: typeof run?.teamId === "string" ? run.teamId.trim() || undefined : undefined,
+
             title: typeof args?.chatName === "string" ? args.chatName.trim() || undefined : undefined,
           };
         })(),

@@ -1,6 +1,6 @@
 import React from "react";
 import type { Agent } from "@/features/agents/lib/agentState";
-import type { Team, WorkerRow } from "@/features/workers/lib/workerState";
+import type {  WorkerRow } from "@/features/workers/lib/workerState";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { useAppState } from "@/app/state/AppContext";
@@ -16,12 +16,11 @@ import type { MenuProps } from "antd";
 export const SWITCH_SCOPES = [
   { key: "all", labelKey: "switch.scope.all" },
   { key: "agent", labelKey: "switch.workerType.agent" },
-  { key: "team", labelKey: "switch.workerType.team" },
 ] as const;
 
-export type WorkerSwitchScope = "all" | "agent" | "team";
+export type WorkerSwitchScope = "all" | "agent";
 
-type WorkerIcon = Agent["icon"] | Team["icon"];
+type WorkerIcon = Agent["icon"];
 
 export const SwitchModal: React.FC<{
   scope: WorkerSwitchScope;
@@ -88,9 +87,7 @@ export const SwitchModal: React.FC<{
         <span>{t("commandModal.switch.title")}</span>
         {currentWorker ? (
           <span className="command-modal-subtitle">
-            {currentWorker.type === "team"
-              ? t("worker.kindLabel.team")
-              : t("worker.kindLabel.agent")}{" "}
+            {(t("worker.kindLabel.agent"))}{" "}
             · {currentWorker.displayName}
           </span>
         ) : null}
@@ -165,20 +162,16 @@ export const SwitchModal: React.FC<{
                   <span className="command-switch-compact-role">
                     {row.role || "--"}
                   </span>
-                  <UiTag tone={row.type === "team" ? "default" : "accent"}>
-                    {row.type === "team"
-                      ? t("switch.workerType.team")
-                      : t("switch.workerType.agent")}
+                  <UiTag tone={("accent")}>
+                    {(t("switch.workerType.agent"))}
                   </UiTag>
                 </div>
               ) : (
                 <>
                   <div className="command-list-head">
                     <strong>{row.displayName}</strong>
-                    <UiTag tone={row.type === "team" ? "default" : "accent"}>
-                      {row.type === "team"
-                        ? t("switch.workerType.team")
-                        : t("switch.workerType.agent")}
+                    <UiTag tone={("accent")}>
+                      {(t("switch.workerType.agent"))}
                     </UiTag>
                   </div>
                   <div className="command-list-meta">

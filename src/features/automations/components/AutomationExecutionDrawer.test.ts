@@ -18,25 +18,23 @@ const mockBuildChatReplayProjection = jest.fn(
       timelineOrder: [],
       timelineNodes: new Map(),
       events: [],
-      taskItemsById: new Map(),
+        taskItemsById: new Map()
     },
     events: [],
     rawEventCount: 0,
-    awaitingReconciliation: { matched: false, diagnostic: "" },
+    awaitingReconciliation: { matched: false, diagnostic: "" }
   }),
 );
 
 jest.mock("@/shared/data", () => ({
-  getAutomationExecution: (...args: unknown[]) =>
-    mockGetAutomationExecution(...args),
-  getChat: (...args: unknown[]) => mockGetChat(...args),
+    getAutomationExecution: (...args: unknown[]) => mockGetAutomationExecution(...args),
+    getChat: (...args: unknown[]) => mockGetChat(...args)
 }));
 
 jest.mock(
   "@/features/conversation/lib/chatReplayProjection",
   () => ({
-    buildChatReplayProjection: (...args: unknown[]) =>
-      mockBuildChatReplayProjection(...args),
+    buildChatReplayProjection: (...args: unknown[]) => mockBuildChatReplayProjection(...args)
   }),
 );
 
@@ -44,72 +42,59 @@ jest.mock(
   "@/features/conversation/components/ConversationPreview",
   () => ({
     ConversationPreview: (props: {
-      data: { chatId: string };
-    }) =>
-      React.createElement(
-        "div",
-        {
+        data: {
+            chatId: string;
+        };
+    }) => React.createElement("div", {
           "data-testid": "read-only-timeline",
-          "data-chat-id": props.data.chatId,
-        },
-        `timeline:${props.data.chatId}`,
-      ),
+        "data-chat-id": props.data.chatId
+    }, `timeline:${props.data.chatId}`)
   }),
 );
 
 jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({
-  useOpenTarget: () => jest.fn(),
+    useOpenTarget: () => jest.fn()
 }));
 
 jest.mock("@/shared/icons/agent", () => ({
-  AgentIcon: () => React.createElement("span", { "data-testid": "agent-icon" }),
+    AgentIcon: () => React.createElement("span", { "data-testid": "agent-icon" })
 }));
 
 jest.mock("@/features/viewers/components/MarkdownContent", () => ({
-  MarkdownContent: ({ content }: { content: string }) =>
-    React.createElement("div", { "data-testid": "markdown" }, content),
+    MarkdownContent: ({ content }: {
+        content: string;
+    }) => React.createElement("div", { "data-testid": "markdown" }, content)
 }));
 
 jest.mock("@/shared/ui/MaterialIcon", () => ({
-  MaterialIcon: ({ name }: { name: string }) =>
-    React.createElement("span", { "data-icon": name }),
+    MaterialIcon: ({ name }: {
+        name: string;
+    }) => React.createElement("span", { "data-icon": name })
 }));
 
 jest.mock("@/shared/ui/UiButton", () => ({
-  UiButton: ({
-    children,
-    size: _size,
-    variant: _variant,
-    iconOnly: _iconOnly,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    UiButton: ({ children, size: _size, variant: _variant, iconOnly: _iconOnly, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
     size?: string;
     variant?: string;
     iconOnly?: boolean;
-  }) => React.createElement("button", props, children),
+    }) => React.createElement("button", props, children)
 }));
 
 jest.mock("@/shared/utils/copy", () => ({
-  copyText: jest.fn(() => Promise.resolve()),
+    copyText: jest.fn(() => Promise.resolve())
 }));
 
 jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({
     locale: "zh-CN",
-    t: (key: string) => key,
-  }),
+        t: (key: string) => key
+    })
 }));
 
 jest.mock("antd", () => {
   const ReactRuntime = require("react") as typeof React;
   return {
-    Drawer: ({
-      open,
-      title,
-      children,
-      onClose,
-      afterOpenChange,
-    }: {
+    Drawer: ({ open, title, children, onClose, afterOpenChange, }: {
       open: boolean;
       title?: React.ReactNode;
       children?: React.ReactNode;
@@ -118,62 +103,42 @@ jest.mock("antd", () => {
     }) => {
       const previousOpen = ReactRuntime.useRef(false);
       ReactRuntime.useEffect(() => {
-        if (previousOpen.current !== open) afterOpenChange?.(open);
+            if (previousOpen.current !== open)
+                afterOpenChange?.(open);
         previousOpen.current = open;
       }, [open]);
-      if (!open) return null;
-      return ReactRuntime.createElement(
-        "div",
-        { role: "dialog" },
-        ReactRuntime.createElement("header", null, title),
-        ReactRuntime.createElement(
-          "button",
-          { type: "button", "aria-label": "close-drawer", onClick: onClose },
-          "close",
-        ),
-        children,
-      );
+        if (!open)
+            return null;
+        return ReactRuntime.createElement("div", { role: "dialog" }, ReactRuntime.createElement("header", null, title), ReactRuntime.createElement("button", { type: "button", "aria-label": "close-drawer", onClick: onClose }, "close"), children);
     },
     Spin: () => ReactRuntime.createElement("span", { "data-testid": "spin" }),
-    Tooltip: ({ children }: { children: React.ReactNode }) => children,
-    Popover: ({ children, content }: { children: React.ReactElement; content: React.ReactNode }) => {
+    Tooltip: ({ children }: {
+        children: React.ReactNode;
+    }) => children,
+    Popover: ({ children, content }: {
+        children: React.ReactElement;
+        content: React.ReactNode;
+    }) => {
       const [open, setOpen] = ReactRuntime.useState(false);
-      return ReactRuntime.createElement(ReactRuntime.Fragment, null,
-        ReactRuntime.cloneElement(children, { onClick: () => setOpen(!open) }),
-        open ? ReactRuntime.createElement("aside", null, content) : null,
-      );
+        return ReactRuntime.createElement(ReactRuntime.Fragment, null, ReactRuntime.cloneElement(children, { onClick: () => setOpen(!open) }), open ? ReactRuntime.createElement("aside", null, content) : null);
     },
-    Tabs: ({
-      activeKey,
-      onChange,
-      items,
-      tabBarExtraContent,
-    }: {
+    Tabs: ({ activeKey, onChange, items, tabBarExtraContent, }: {
       tabBarExtraContent?: React.ReactNode;
       activeKey: string;
       onChange: (key: string) => void;
-      items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }>;
-    }) =>
-      ReactRuntime.createElement(
-        "div",
-        { role: "tablist" },
-        ...items.map((item) =>
-          ReactRuntime.createElement(
-            "button",
-            {
+        items: Array<{
+            key: string;
+            label: React.ReactNode;
+            children: React.ReactNode;
+        }>;
+    }) => ReactRuntime.createElement("div", { role: "tablist" }, ...items.map((item) => ReactRuntime.createElement("button", {
               key: item.key,
               type: "button",
               role: "tab",
               "aria-selected": item.key === activeKey,
-              onClick: () => onChange(item.key),
-            },
-            item.label,
-          ),
-        ),
-        tabBarExtraContent,
-        items.find((item) => item.key === activeKey)?.children,
-      ),
-    message: { success: jest.fn() },
+        onClick: () => onChange(item.key)
+    }, item.label)), tabBarExtraContent, items.find((item) => item.key === activeKey)?.children),
+    message: { success: jest.fn() }
   };
 });
 
@@ -209,9 +174,9 @@ function execution(
     runId: "run-a",
     finishReason: "stop",
     hasResult: true,
-    startedAt: 1_710_000_000_000,
-    durationMs: 1_250,
-    ...overrides,
+    startedAt: 1710000000000,
+    durationMs: 1250,
+    ...overrides
   };
 }
 
@@ -223,7 +188,7 @@ function detail(
     ...item,
     queryContent: "Create the report",
     resultContent: "# Report A",
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -235,7 +200,7 @@ function chat(
     chatId,
     agentKey: "agent-a",
     events: [],
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -255,11 +220,10 @@ describe("AutomationExecutionDrawer", () => {
       root.render(
         React.createElement(AutomationExecutionDrawer, {
           execution: item,
-          agents: [{ key: "agent-a", name: "Agent A" }],
-          teams: [],
           refreshRevision: options.refreshRevision,
           returnFocusRef: options.returnFocusRef,
           onClose: options.onClose || jest.fn(),
+    agents: [{ key: "agent-a", name: "Agent A" }]
         }),
       );
     });
@@ -285,15 +249,15 @@ describe("AutomationExecutionDrawer", () => {
         matches: false,
         media: "(max-width: 859px)",
         addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-      })),
+        removeEventListener: jest.fn()
+    }))
     });
     Object.defineProperty(window, "requestAnimationFrame", {
       configurable: true,
       value: jest.fn((callback: FrameRequestCallback) => {
         callback(0);
         return 1;
-      }),
+    })
     });
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -316,7 +280,7 @@ describe("AutomationExecutionDrawer", () => {
 
     expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     expect(mockGetAutomationExecution).toHaveBeenCalledWith({
-      executionId: item.id,
+    executionId: item.id
     });
     expect(mockGetChat).toHaveBeenCalledWith("chat-a", false);
     expect(container.querySelectorAll('[data-testid="spin"]')).toHaveLength(1);
@@ -409,7 +373,7 @@ describe("AutomationExecutionDrawer", () => {
   it("shows independent empty states when result and chat are missing", async () => {
     const item = execution({ chatId: undefined, runId: undefined, hasResult: true });
     mockGetAutomationExecution.mockResolvedValueOnce({
-      data: detail(item, { resultContent: "", chatId: undefined }),
+    data: detail(item, { resultContent: "", chatId: undefined })
     });
 
     renderDrawer(item);
@@ -426,10 +390,10 @@ describe("AutomationExecutionDrawer", () => {
   it("renders a running chat snapshot without attaching to the run", async () => {
     const item = execution({ status: "running", hasResult: false });
     mockGetAutomationExecution.mockResolvedValueOnce({
-      data: detail(item, { resultContent: "" }),
+    data: detail(item, { resultContent: "" })
     });
     mockGetChat.mockResolvedValueOnce({
-      data: chat("chat-a", { activeRun: { runId: "run-a" } }),
+    data: chat("chat-a", { activeRun: { runId: "run-a" } })
     });
 
     renderDrawer(item);
@@ -449,7 +413,7 @@ describe("AutomationExecutionDrawer", () => {
       id: "execution-b",
       automationName: "Weekly report",
       chatId: "chat-b",
-      runId: "run-b",
+    runId: "run-b"
     });
     const detailA = deferred<{ data: AutomationExecutionDetailResponse }>();
     const detailB = deferred<{ data: AutomationExecutionDetailResponse }>();

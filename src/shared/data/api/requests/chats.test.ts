@@ -8,7 +8,7 @@ describe("requests/chats request contracts", () => {
   it("posts chatId and runId for markChatRead", async () => {
     await markChatRead({
       chatId: "chat_read",
-      runId: "run_read",
+    runId: "run_read"
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
@@ -19,7 +19,7 @@ describe("requests/chats request contracts", () => {
     );
     expect(payload).toEqual({
       chatId: "chat_read",
-      runId: "run_read",
+    runId: "run_read"
     });
   });
 
@@ -33,7 +33,7 @@ describe("requests/chats request contracts", () => {
       String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body),
     );
     expect(payload).toEqual({
-      agentKey: "agent_a",
+    agentKey: "agent_a"
     });
   });
 
@@ -42,15 +42,14 @@ describe("requests/chats request contracts", () => {
       chatId: "chat_1",
       runId: "run_1",
       type: "thumbs_down",
-      comment: "bad",
+    comment: "bad"
     });
     await deleteChat({ chatId: "chat_1" });
     await renameChat({ chatId: "chat_1", chatName: " Renamed chat " });
     await searchGlobal({
       query: "needle",
-      agentKey: "agent_a",
-      teamId: "team_a",
-      limit: 7,
+    agentKey: "team_a",
+    limit: 7
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
@@ -64,7 +63,7 @@ describe("requests/chats request contracts", () => {
       chatId: "chat_1",
       runId: "run_1",
       type: "thumbs_down",
-      comment: "bad",
+    comment: "bad"
     });
     expect((fetchMock.mock.calls[1] as [string, RequestInit])[0]).toBe(
       "/api/chat/delete?chatId=chat_1",
@@ -82,7 +81,7 @@ describe("requests/chats request contracts", () => {
         String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body),
       ),
     ).toEqual({
-      chatName: " Renamed chat ",
+    chatName: " Renamed chat "
     });
     expect((fetchMock.mock.calls[3] as [string, RequestInit])[0]).toBe(
       "/api/chats/search",
@@ -93,16 +92,15 @@ describe("requests/chats request contracts", () => {
       ),
     ).toEqual({
       query: "needle",
-      agentKey: "agent_a",
-      teamId: "team_a",
-      limit: 7,
+    agentKey: "team_a",
+    limit: 7
     });
   });
 
   it("posts derive chat payload", async () => {
     await deriveChat({
       sourceChatId: "chat_1",
-      sourceRunId: "run_1",
+    sourceRunId: "run_1"
     });
 
     expect((fetchMock.mock.calls[0] as [string, RequestInit])[0]).toBe(
@@ -114,7 +112,7 @@ describe("requests/chats request contracts", () => {
       ),
     ).toEqual({
       sourceChatId: "chat_1",
-      sourceRunId: "run_1",
+    sourceRunId: "run_1"
     });
   });
 
@@ -132,20 +130,25 @@ describe("requests/chats request contracts", () => {
     );
   });
 
+  it("preserves false workspace and pin filters for bounded sidebar previews", async () => {
+    await getChats({ hasWorkspace: false, pinned: false, limit: 9 });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/chats?hasWorkspace=false&pinned=false&limit=9");
+  });
+
   it("normalizes chat runtime summaries while respecting explicit status flags", () => {
     expect(
       normalizeChatSummariesPayload([
         {
           chatId: "active-awaiting",
           activeRun: { runId: "run_1" },
-          awaiting: { awaitingId: "await_1", mode: "question" },
+    awaiting: { awaitingId: "await_1", mode: "question" }
         },
         {
           chatId: "completed",
           activeRun: { runId: "stale_run" },
           awaiting: { awaitingId: "stale_await" },
           hasActiveRun: false,
-          hasPendingAwaiting: false,
+    hasPendingAwaiting: false
         },
         { chatId: "legacy" },
       ]),
@@ -153,12 +156,12 @@ describe("requests/chats request contracts", () => {
       expect.objectContaining({
         chatId: "active-awaiting",
         hasActiveRun: true,
-        hasPendingAwaiting: true,
+    hasPendingAwaiting: true
       }),
       expect.objectContaining({
         chatId: "completed",
         hasActiveRun: false,
-        hasPendingAwaiting: false,
+    hasPendingAwaiting: false
       }),
       { chatId: "legacy", hasPendingAwaiting: false },
     ]);
@@ -169,8 +172,7 @@ describe("requests/chats request contracts", () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      text: async () =>
-        JSON.stringify({
+    text: async () => JSON.stringify({
           code: 0,
           msg: "success",
           data: {
@@ -180,21 +182,21 @@ describe("requests/chats request contracts", () => {
             systemRef: {
               agentKey: "demo",
               cacheKey: "react:main",
-              fingerprint: "sha256:test",
+                fingerprint: "sha256:test"
             },
-            systemMessage: { role: "system", content: "stored prompt" },
-          },
-        }),
+            systemMessage: { role: "system", content: "stored prompt" }
+        }
+    })
     });
 
     await expect(
       getChatSystemPrompt({
         chatId: "chat_1",
         runId: "run_1",
-        agentKey: "demo",
+    agentKey: "demo"
       }),
     ).resolves.toMatchObject({
-      data: { systemMessage: { content: "stored prompt" } },
+    data: { systemMessage: { content: "stored prompt" } }
     });
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -205,7 +207,7 @@ describe("requests/chats request contracts", () => {
     expect(options.headers).toEqual({
       "X-Locale": "zh-CN",
       Authorization: "Bearer demo-token",
-      "Content-Type": "application/json",
+    "Content-Type": "application/json"
     });
   });
 
@@ -213,23 +215,22 @@ describe("requests/chats request contracts", () => {
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 404,
-      text: async () =>
-        JSON.stringify({
+    text: async () => JSON.stringify({
           code: 404,
           msg: "system prompt not found",
-          data: {},
-        }),
+        data: {}
+    })
     });
 
     await expect(
       getChatSystemPrompt({
         chatId: "chat_1",
         runId: "run_legacy",
-        agentKey: "demo",
+    agentKey: "demo"
       }),
     ).rejects.toMatchObject({
       status: 404,
-      code: 404,
+    code: 404
     });
   });
 
@@ -237,8 +238,7 @@ describe("requests/chats request contracts", () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      text: async () =>
-        JSON.stringify({
+    text: async () => JSON.stringify({
           code: 0,
           msg: "ok",
           data: [
@@ -249,22 +249,22 @@ describe("requests/chats request contracts", () => {
               read: {
                 isRead: false,
                 readAt: 456,
-                readRunId: "run_1",
+                    readRunId: "run_1"
               },
               awaiting: {
                 awaitingId: "await_1",
                 runId: "run_1",
                 mode: "approval",
-                createdAt: 123,
-              },
+                    createdAt: 123
+                }
             },
             {
               chatId: "chat_2",
               chatName: "No waiting",
-              teamId: "team_1",
+                agentKey: "team_1"
             },
-          ],
-        }),
+        ]
+    })
     });
 
     const response = await getChats({ mode: "CODER" });
@@ -281,21 +281,21 @@ describe("requests/chats request contracts", () => {
         read: {
           isRead: false,
           readAt: 456,
-          readRunId: "run_1",
+        readRunId: "run_1"
         },
         awaiting: {
           awaitingId: "await_1",
           runId: "run_1",
           mode: "approval",
-          createdAt: 123,
+        createdAt: 123
         },
-        hasPendingAwaiting: true,
+    hasPendingAwaiting: true
       },
       {
         chatId: "chat_2",
         chatName: "No waiting",
-        teamId: "team_1",
-        hasPendingAwaiting: false,
+    agentKey: "team_1",
+    hasPendingAwaiting: false
       },
     ]);
   });

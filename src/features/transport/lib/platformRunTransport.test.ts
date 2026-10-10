@@ -4,7 +4,7 @@ import { dataEndpoints } from "@/shared/data/api/endpoints";
 const mockEnsureStandaloneWsClient = jest.fn();
 
 jest.mock("@/features/transport/lib/standaloneWsClient", () => ({
-  ensureStandaloneWsClient: () => mockEnsureStandaloneWsClient(),
+    ensureStandaloneWsClient: () => mockEnsureStandaloneWsClient()
 }));
 
 const event = (value: Partial<AgentEvent>): AgentEvent => value as AgentEvent;
@@ -22,7 +22,7 @@ describe("PlatformRunTransport", () => {
         streamOptions = options;
         return { requestId: "stream-1", abort };
       }),
-      request: jest.fn().mockResolvedValue({ data: {} }),
+    request: jest.fn().mockResolvedValue({ data: {} })
     };
     mockEnsureStandaloneWsClient.mockResolvedValue(client);
     const { PlatformRunTransport } = await import("./platformRunTransport");
@@ -33,7 +33,7 @@ describe("PlatformRunTransport", () => {
       requestId: "request-1",
       chatId: "chat-1",
       owner: { kind: "agent", agentKey: "agent-1" },
-      onEvent,
+    onEvent
     } as any);
     await Promise.resolve();
     await Promise.resolve();
@@ -52,7 +52,7 @@ describe("PlatformRunTransport", () => {
       chatId: "chat-1",
       runId: "run-1",
       agentKey: "agent-1",
-      seq: 2,
+    seq: 2
     }));
 
     await expect(execution.identity).resolves.toMatchObject({
@@ -60,7 +60,7 @@ describe("PlatformRunTransport", () => {
       chatId: "chat-1",
       runId: "run-1",
       owner: { kind: "agent", agentKey: "agent-1" },
-      lastSeq: 2,
+    lastSeq: 2
     });
     expect(onEvent.mock.calls.map(([item]) => item.seq)).toEqual([1, 2]);
   });
@@ -72,7 +72,7 @@ describe("PlatformRunTransport", () => {
         streamOptions = options;
         return { requestId: "btw-stream-1", abort: jest.fn() };
       }),
-      request: jest.fn().mockResolvedValue({ data: {} }),
+    request: jest.fn().mockResolvedValue({ data: {} })
     };
     const { PlatformRunTransport } = await import("./platformRunTransport");
     const transport = new PlatformRunTransport(async () => client as any);
@@ -81,8 +81,8 @@ describe("PlatformRunTransport", () => {
       runId: "run-btw-1",
       chatId: "chat-1",
       message: "side question",
-      owner: { kind: "orchestrated-team", teamId: "team-1" },
-      onEvent: jest.fn(),
+    owner: {kind: "agent", agentKey: "team-1"},
+    onEvent: jest.fn()
     });
     await Promise.resolve();
     await Promise.resolve();
@@ -93,8 +93,8 @@ describe("PlatformRunTransport", () => {
         requestId: "request-btw-1",
         runId: "run-btw-1",
         chatId: "chat-1",
-        message: "side question",
-      },
+        message: "side question"
+    }
     });
     expect(streamOptions.payload).not.toHaveProperty("agentKey");
     expect(streamOptions.payload).not.toHaveProperty("teamId");
@@ -103,8 +103,8 @@ describe("PlatformRunTransport", () => {
       type: "run.start",
       chatId: "chat-1",
       runId: "run-btw-1",
-      teamId: "team-1",
-      seq: 1,
+    agentKey: "team-1",
+    seq: 1
     }));
     await execution.identity;
     await execution.detach();
@@ -119,20 +119,20 @@ describe("PlatformRunTransport", () => {
         accepted: true,
         status: "accepted",
         runId: "run-team-1",
-        detail: "interrupt accepted",
-      },
+        detail: "interrupt accepted"
+    }
     };
     const request = jest.fn().mockResolvedValue(acknowledgement);
     const { PlatformRunTransport } = await import("./platformRunTransport");
     const transport = new PlatformRunTransport(async () => ({ request }) as any);
-    const owner = { kind: "orchestrated-team" as const, teamId: "team-1" };
+    const owner = {kind: "agent" as const, agentKey: "team-1"};
 
     await expect(transport.interrupt({
       requestId: "req-interrupt",
       chatId: "chat-1",
       runId: "run-team-1",
       owner,
-      message: "",
+    message: ""
     })).resolves.toBe(acknowledgement);
     await transport.steer({
       requestId: "req-steer",
@@ -140,13 +140,13 @@ describe("PlatformRunTransport", () => {
       runId: "run-team-1",
       steerId: "steer-1",
       owner,
-      message: "continue",
+    message: "continue"
     });
     await transport.submitTool({
       runId: "run-team-1",
       owner,
       toolId: "tool-1",
-      params: { city: "beijing" },
+    params: { city: "beijing" }
     });
     await transport.submitAwaiting({
       chatId: "chat-1",
@@ -154,13 +154,13 @@ describe("PlatformRunTransport", () => {
       owner,
       awaitingId: "await-1",
       submitId: "submit-1",
-      params: [],
+    params: []
     });
     await transport.updateAccessLevel({
       requestId: "req-access",
       runId: "run-team-1",
       owner,
-      accessLevel: "auto_approve",
+    accessLevel: "auto_approve"
     });
 
     expect(request.mock.calls).toEqual([
@@ -170,8 +170,8 @@ describe("PlatformRunTransport", () => {
           requestId: "req-interrupt",
           chatId: "chat-1",
           runId: "run-team-1",
-          teamId: "team-1",
-        },
+        agentKey: "team-1"
+    }
       }],
       [{
         type: dataEndpoints.steer.path,
@@ -180,38 +180,38 @@ describe("PlatformRunTransport", () => {
           chatId: "chat-1",
           runId: "run-team-1",
           steerId: "steer-1",
-          teamId: "team-1",
-          message: "continue",
-        },
+        agentKey: "team-1",
+        message: "continue"
+    }
       }],
       [{
         type: dataEndpoints.submit.path,
         payload: {
           runId: "run-team-1",
-          teamId: "team-1",
+        agentKey: "team-1",
           toolId: "tool-1",
-          params: { city: "beijing" },
-        },
+        params: { city: "beijing" }
+    }
       }],
       [{
         type: dataEndpoints.submit.path,
         payload: {
           chatId: "chat-1",
           runId: "run-team-1",
-          teamId: "team-1",
+        agentKey: "team-1",
           awaitingId: "await-1",
           submitId: "submit-1",
-          params: [],
-        },
+        params: []
+    }
       }],
       [{
         type: dataEndpoints.accessLevelUpdate.path,
         payload: {
           requestId: "req-access",
           runId: "run-team-1",
-          teamId: "team-1",
-          accessLevel: "auto_approve",
-        },
+        agentKey: "team-1",
+        accessLevel: "auto_approve"
+    }
       }],
     ]);
   });
@@ -225,7 +225,7 @@ describe("PlatformRunTransport", () => {
         streamOptions = options;
         return { requestId: "stream-2", abort };
       }),
-      request,
+    request
     });
     const { PlatformRunTransport } = await import("./platformRunTransport");
     const transport = new PlatformRunTransport();
@@ -233,7 +233,7 @@ describe("PlatformRunTransport", () => {
       chatId: "chat-1",
       runId: "run-1",
       owner: { kind: "agent", agentKey: "agent-1" },
-      onEvent: jest.fn(),
+    onEvent: jest.fn()
     });
     await Promise.resolve();
     await Promise.resolve();
@@ -249,8 +249,8 @@ describe("PlatformRunTransport", () => {
       payload: {
         runId: "run-1",
         agentKey: "agent-1",
-        reason: "consumer_detach",
-      },
+        reason: "consumer_detach"
+    }
     });
     await expect(execution.completion).resolves.toMatchObject({ reason: "detached" });
   });
@@ -264,7 +264,7 @@ describe("PlatformRunTransport", () => {
         streamOptions = options;
         return { requestId: "stream-complete", abort };
       }),
-      request,
+    request
     });
     const { PlatformRunTransport } = await import("./platformRunTransport");
     const transport = new PlatformRunTransport();
@@ -272,7 +272,7 @@ describe("PlatformRunTransport", () => {
       chatId: "chat-1",
       runId: "run-1",
       owner: { kind: "agent", agentKey: "agent-1" },
-      onEvent: jest.fn(),
+    onEvent: jest.fn()
     });
     await Promise.resolve();
     await Promise.resolve();
@@ -281,7 +281,7 @@ describe("PlatformRunTransport", () => {
     streamOptions.onDone("done", 8);
     await expect(execution.completion).resolves.toMatchObject({
       reason: "done",
-      lastSeq: 8,
+    lastSeq: 8
     });
     await execution.detach();
 
@@ -300,7 +300,7 @@ describe("PlatformRunTransport", () => {
         aborts.push(abort);
         return { requestId: `stream-${streamOptions.length}`, abort };
       }),
-      request,
+    request
     };
     const { PlatformRunTransport } = await import("./platformRunTransport");
     const transport = new PlatformRunTransport(async () => client as any);
@@ -309,7 +309,7 @@ describe("PlatformRunTransport", () => {
       runId: "run-1",
       owner: { kind: "agent", agentKey: "agent-1" },
       lastSeq: 7,
-      onEvent: jest.fn(),
+    onEvent: jest.fn()
     });
     await Promise.resolve();
     await Promise.resolve();
@@ -325,12 +325,12 @@ describe("PlatformRunTransport", () => {
       payload: {
         runId: "run-1",
         agentKey: "agent-1",
-        reason: "surface_inactive",
-      },
+        reason: "surface_inactive"
+    }
     });
     await expect(execution.completion).resolves.toMatchObject({
       reason: "detached",
-      lastSeq: 7,
+    lastSeq: 7
     });
 
     transport.setSurfaceActive(true);
@@ -344,7 +344,7 @@ describe("PlatformRunTransport", () => {
       runId: "run-1",
       owner: { kind: "agent", agentKey: "agent-1" },
       lastSeq: 9,
-      onEvent: jest.fn(),
+    onEvent: jest.fn()
     });
     await Promise.resolve();
     await Promise.resolve();
@@ -352,7 +352,7 @@ describe("PlatformRunTransport", () => {
     expect(client.stream).toHaveBeenCalledTimes(2);
     expect(streamOptions[1]).toMatchObject({
       type: dataEndpoints.attach.path,
-      payload: { runId: "run-1", agentKey: "agent-1", lastSeq: 9 },
+    payload: { runId: "run-1", agentKey: "agent-1", lastSeq: 9 }
     });
     await recoveredExecution.detach();
   });
@@ -366,7 +366,7 @@ describe("PlatformRunTransport", () => {
         streamOptions = options;
         return { requestId: "stream-pending-identity", abort };
       }),
-      request,
+    request
     };
     const { PlatformRunTransport } = await import("./platformRunTransport");
     const transport = new PlatformRunTransport(async () => client as any);
@@ -375,7 +375,7 @@ describe("PlatformRunTransport", () => {
       requestId: "request-pending-identity",
       message: "hello",
       owner: { kind: "agent", agentKey: "agent-1" },
-      onEvent,
+    onEvent
     });
     await Promise.resolve();
     await Promise.resolve();
@@ -384,7 +384,7 @@ describe("PlatformRunTransport", () => {
     streamOptions.onEvent(event({
       seq: 1,
       type: "chat.start",
-      chatId: "chat-pending",
+    chatId: "chat-pending"
     }));
     expect(onEvent).not.toHaveBeenCalled();
     expect(request).not.toHaveBeenCalled();
@@ -394,17 +394,17 @@ describe("PlatformRunTransport", () => {
       type: "request.query",
       chatId: "chat-pending",
       runId: "run-pending",
-      agentKey: "agent-1",
+    agentKey: "agent-1"
     }));
 
     await expect(execution.identity).resolves.toMatchObject({
       chatId: "chat-pending",
       runId: "run-pending",
-      lastSeq: 2,
+    lastSeq: 2
     });
     await expect(execution.completion).resolves.toMatchObject({
       reason: "detached",
-      lastSeq: 2,
+    lastSeq: 2
     });
     expect(abort).toHaveBeenCalledTimes(1);
     expect(request).toHaveBeenCalledWith({
@@ -412,8 +412,8 @@ describe("PlatformRunTransport", () => {
       payload: {
         runId: "run-pending",
         agentKey: "agent-1",
-        reason: "surface_inactive",
-      },
+        reason: "surface_inactive"
+    }
     });
     expect(onEvent).not.toHaveBeenCalled();
   });

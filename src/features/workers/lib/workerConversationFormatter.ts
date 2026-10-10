@@ -22,9 +22,7 @@ function compareChatFreshness(a: Chat, b: Chat): number {
 function matchChatByWorker(chat: Chat, worker: WorkerRow | null): boolean {
   if (!worker) return false;
 
-  if (worker.type === 'team') {
-    return toText(chat?.teamId) === toText(worker.sourceId);
-  }
+
 
   if (worker.type === 'agent') {
     return toText(chat?.agentKey || chat?.firstAgentKey) === toText(worker.sourceId);
@@ -66,7 +64,7 @@ export function toWorkerConversationRow(chat: Chat): WorkerConversationRow {
     chatId: toText(chat?.chatId),
     chatName: toText(chat?.chatName),
     agentKey: toText(chat?.agentKey || chat?.firstAgentKey) || undefined,
-    teamId: toText(chat?.teamId) || undefined,
+
     source: toText(chat?.source) || undefined,
     updatedAt: normalizeUpdatedAt(chat?.updatedAt),
     lastRunId: toText(chat?.lastRunId),

@@ -55,7 +55,7 @@ function dispatchAttachRunEvent(
 			runId,
 			lastSeq,
 			...(owner.kind === "agent" ? { agentKey: owner.agentKey } : {}),
-			...(owner.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+
 			owner,
 		},
 		}),
@@ -163,7 +163,7 @@ function activateMainChatRun(
 			chatId: decision.chatId,
 			runId: decision.runId,
 			...(decision.owner.kind === "agent" ? { agentKey: decision.owner.agentKey } : {}),
-			...(decision.owner.kind === "orchestrated-team" ? { teamId: decision.owner.teamId } : {}),
+
 			owner: decision.owner,
 			lastSeq: decision.lastSeq,
 			...(typeof decision.editingMode === "boolean"

@@ -28,7 +28,6 @@ import {
   getAgentOrder as getAgentOrderHttp,
   getAgents as getAgentsHttp,
   getModelOptions as getModelOptionsHttp,
-  getTeams as getTeamsHttp,
   openAgentDirectory as openAgentDirectoryHttp,
   updateAgent as updateAgentHttp,
   updateAgentName as updateAgentNameHttp,
@@ -358,9 +357,7 @@ export function getModelOptions(
 	);
 }
 
-export function getTeams(): Promise<ApiResponse> {
-	return routeEndpoint(dataEndpoints.teams, undefined, () => getTeamsHttp());
-}
+
 
 export async function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
 	const response = await routeEndpoint(

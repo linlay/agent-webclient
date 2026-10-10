@@ -29,7 +29,7 @@ export const PlanningViewerSurface: React.FC<{ chatId: string; planningId: strin
       <PlanningPreviewContent
         node={node}
         chatId={chatId}
-        teamChat={runtime.snapshot?.owner?.kind === "orchestrated-team"}
+        teamChat={false}
       />
     </IndependentSurfaceFrame>
   );

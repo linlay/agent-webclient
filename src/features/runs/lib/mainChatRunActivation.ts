@@ -133,7 +133,7 @@ export function normalizeRunStartedPushDetail(
 	const owner = resolveRunOwner({
 		chatId,
 		chats: state.chats,
-		eventIdentity: { teamId: record.teamId, agentKey: record.agentKey },
+		eventIdentity: {  agentKey: record.agentKey },
 	});
 	const agentKey = owner?.kind === "agent"
 		? owner.agentKey
@@ -212,7 +212,7 @@ export function dispatchRunStartedPushEvent(
 				chatId: toText(detail.chatId),
 				runId: toText(detail.runId),
 				...(detail.owner.kind === "agent" ? { agentKey: detail.owner.agentKey } : {}),
-				...(detail.owner.kind === "orchestrated-team" ? { teamId: detail.owner.teamId } : {}),
+
 				owner: detail.owner,
 				lastSeq: detail.lastSeq,
 				...(typeof detail.editingMode === "boolean"

@@ -1,70 +1,19 @@
 import React from "react";
 import { UiListItem } from "@/shared/ui/UiListItem";
+import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
-import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
-import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
+import type { WorkerConversationRow } from "../lib/workerState";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { UnreadDot } from "@/features/chats/components/UnreadDot";
 import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import type { Agent } from "@/features/agents/lib/agentState";
-
-const WORKER_CHAT_ITEM_CLASS =
-  "worker-chat-item tw:relative tw:rounded-none tw:border-0 tw:bg-transparent tw:pl-5 tw:pr-2 tw:py-1.5 tw:text-text-muted tw:!shadow-none tw:cursor-pointer";
-
-const WORKER_CHAT_ITEM_HEAD_CLASS =
-  "worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5 tw:overflow-hidden";
-
-const WORKER_CHAT_NAME_CLASS =
-  "worker-chat-name tw:min-w-0 tw:flex-auto tw:whitespace-nowrap tw:text-[13px]";
-
-const WORKER_CHAT_TAIL_CLASS =
-  "worker-chat-tail tw:flex tw:flex-none tw:items-center tw:gap-1.5";
-
-const WORKER_CHAT_SOURCE_ICON_CLASS =
-  "worker-chat-source-icon tw:inline-flex tw:h-[9px] tw:w-[9px] tw:shrink-0 tw:text-text-sub";
-
-const PINNED_CHAT_OWNER_CLASS = "pinned-chat-owner";
-
-const PINNED_CHAT_OWNER_ICON_CLASS = "pinned-chat-owner-icon";
-
-const PINNED_CHAT_OWNER_LABEL_CLASS = "pinned-chat-owner-label";
-
-const PINNED_CHAT_OWNER_ICON_SIZE = 12;
-
-const WORKER_CHAT_SOURCE_ICON_SVG_CLASS =
-  "tw:h-full tw:w-full";
-
-const WORKER_CHAT_ACTION_CLASS =
-  "worker-chat-action tw:relative tw:inline-flex tw:min-h-6 tw:flex-[0_0_44px] tw:items-center tw:justify-end";
-
-const WORKER_CHAT_LOADING_CLASS =
-  "worker-chat-loading tw:absolute tw:inset-y-0 tw:right-1 tw:my-auto tw:text-base tw:text-text-sub tw:animate-ui-spin";
-
-const WORKER_PANEL_TIME_LABEL_CLASS =
-  "worker-panel-time-label tw:min-w-0 tw:max-w-full tw:whitespace-nowrap tw:text-right tw:text-[11px] tw:text-text-muted";
-
-const WORKER_PANEL_TIME_CONTENT_CLASS =
-  "worker-panel-time-content tw:inline-flex tw:min-w-0 tw:max-w-full tw:items-center tw:justify-end";
-
-const WORKER_PANEL_TIME_CONTENT_AUTOMATION_CLASS =
-  `${WORKER_PANEL_TIME_CONTENT_CLASS} is-automation tw:gap-px`;
-
-const WORKER_PANEL_TIME_TEXT_CLASS =
-  "worker-panel-time-text tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
-
-const WORKER_PANEL_TIME_TEXT_AUTOMATION_CLASS =
-  `${WORKER_PANEL_TIME_TEXT_CLASS} tw:text-[10px]`;
-
-const CHAT_AWAITING_STATUS_CLASS =
-  "chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn";
-
-const CHAT_ACTIONS_TRIGGER_CLASS =
-  "tw:absolute tw:right-0 tw:top-1/2 tw:-translate-y-1/2 tw:hidden tw:p-0 tw:text-text-muted tw:transition-none";
+import styles from "./WorkerChatPreviewItem.module.css";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
+    case 'plan':
     case 'planning': return 'leftSidebar.awaitingStatus.plan';
     case 'question': return 'leftSidebar.awaitingStatus.question';
     case 'approval': return 'leftSidebar.awaitingStatus.approval';
@@ -73,142 +22,55 @@ function getAwaitingStatusKey(mode?: string): string {
   }
 }
 
-function isAutomationSource(source?: string): boolean {
-  return String(source || '').trim().startsWith('automation:');
-}
-
-const AutomationSourceIcon: React.FC<{ label: string }> = ({ label }) => (
-  <span
-    className={WORKER_CHAT_SOURCE_ICON_CLASS}
-    title={label}
-    aria-label={label}
-    role="img"
-  >
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={WORKER_CHAT_SOURCE_ICON_SVG_CLASS}
-      aria-hidden="true"
-      focusable="false"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
-    </svg>
-  </span>
-);
-
 export const WorkerChatPreviewItem: React.FC<{
   chat: WorkerConversationRow;
   isActive: boolean;
   loading: boolean;
   onClick: () => void;
   ownerLabel?: string;
-  ownerType?: "agent" | "team";
+  ownerType?: "agent";
   ownerIcon?: Agent["icon"];
 }> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon }) => {
   const { t } = useI18n();
-  const action = chat.hasPendingAwaiting ? "awaiting" : loading ? "loading" : isChatUnread(chat) ? "unread" : "time";
-  const isBusyAction = action === "awaiting" || action === "loading";
-  const itemClassName = isActive
-    ? `${WORKER_CHAT_ITEM_CLASS} is-active`
-    : WORKER_CHAT_ITEM_CLASS;
-  const loadingClassName = isBusyAction
-    ? `${WORKER_CHAT_LOADING_CLASS} tw:inline-flex`
-    : `${WORKER_CHAT_LOADING_CLASS} tw:hidden`;
-  const timeLabelClassName = action === "time"
-    ? `${WORKER_PANEL_TIME_LABEL_CLASS} tw:opacity-100`
-    : `${WORKER_PANEL_TIME_LABEL_CLASS} tw:opacity-0`;
   const previewText = chat.chatName || chat.lastRunContent || t("leftSidebar.noPreview");
-  const showAutomationSource = isAutomationSource(chat.source);
-  const timeContentClassName = showAutomationSource
-    ? WORKER_PANEL_TIME_CONTENT_AUTOMATION_CLASS
-    : WORKER_PANEL_TIME_CONTENT_CLASS;
-  const timeTextClassName = showAutomationSource
-    ? WORKER_PANEL_TIME_TEXT_AUTOMATION_CLASS
-    : WORKER_PANEL_TIME_TEXT_CLASS;
-
+  const showAutomationSource = String(chat.source || "").trim().startsWith("automation:");
   return (
-    <UiListItem
-      className={itemClassName}
-      selected={isActive}
-      onClick={onClick}
-      tabIndex={0}
-      role="button"
-      aria-current={isActive ? "page" : undefined}
-      onKeyDown={(event) => {
-        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
-          event.preventDefault();
-          onClick();
-        }
-      }}
-    >
-      <div className={WORKER_CHAT_ITEM_HEAD_CLASS}>
-        <span className={WORKER_CHAT_NAME_CLASS} title={ownerLabel ? previewText : undefined}>
-          {previewText}
-          {ownerLabel && (
-            <span className={PINNED_CHAT_OWNER_CLASS} title={ownerLabel}>
-              {ownerType && (
-                <AgentIcon
-                  icon={ownerIcon}
-                  type={ownerType}
-                  props={{
-                    icon: {
-                      className: PINNED_CHAT_OWNER_ICON_CLASS,
-                      width: PINNED_CHAT_OWNER_ICON_SIZE,
-                      height: PINNED_CHAT_OWNER_ICON_SIZE,
-                      style: { borderRadius: 3 },
-                    },
-                    avatar: {
-                      className: PINNED_CHAT_OWNER_ICON_CLASS,
-                      size: PINNED_CHAT_OWNER_ICON_SIZE,
-                    },
-                  }}
-                />
-              )}
-              <span className={PINNED_CHAT_OWNER_LABEL_CLASS}>{ownerLabel}</span>
-            </span>
-          )}
-        </span>
-        <div className={WORKER_CHAT_TAIL_CLASS}>
-          {chat.hasPendingAwaiting && (
-            <span className={CHAT_AWAITING_STATUS_CLASS}>
-              {t(getAwaitingStatusKey(chat.awaitingMode))}
-            </span>
-          )}
-          <span className={WORKER_CHAT_ACTION_CLASS} data-action={action}>
-            {action === "unread" && (
-              <span className="worker-chat-unread tw:absolute tw:inset-y-0 tw:right-0 tw:flex tw:w-6 tw:items-center tw:justify-center">
-                <UnreadDot chat={chat} />
-              </span>
-            )}
-            <MaterialIcon
-              name="progress_activity"
-              className={loadingClassName}
-            />
-            <span className={timeLabelClassName}>
-              <span className={timeContentClassName}>
-                {showAutomationSource && (
-                  <AutomationSourceIcon label={t("leftSidebar.automationSource")} />
-                )}
-                <span className={timeTextClassName}>
-                  {formatChatTimeLabel(chat.updatedAt)}
-                </span>
-              </span>
-            </span>
-            <ChatActionsMenu
-              chatId={chat.chatId}
-              chatName={chat.chatName}
-              agentKey={chat.agentKey}
-              triggerClassName={CHAT_ACTIONS_TRIGGER_CLASS}
-              iconHover24
-            />
-          </span>
-        </div>
-      </div>
-    </UiListItem>
+    <ChatActionsMenu
+      chatId={chat.chatId}
+      chatName={chat.chatName}
+      agentKey={chat.agentKey}
+      renderTrigger={(openMenu) => (
+        <UiListItem
+          className={`${styles.row} worker-chat-item ${isActive ? "is-active" : ""}`}
+          selected={isActive}
+          role="button"
+          tabIndex={0}
+          aria-current={isActive ? "page" : undefined}
+          onClick={onClick}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onClick(); }
+            if (event.key === "F10" && event.shiftKey) { event.preventDefault(); openMenu(); }
+          }}
+        >
+          <MaterialIcon name={showAutomationSource ? "schedule" : "question_answer"} className={styles.chatIcon}
+            title={showAutomationSource ? t("leftSidebar.automationSource") : undefined} />
+          <span className={styles.title} title={previewText}>{previewText}</span>
+          {ownerLabel && <span className={`${styles.owner} pinned-chat-owner`} title={ownerLabel}>
+            {ownerType && <AgentIcon icon={ownerIcon} type={ownerType} props={{ icon: { className: "pinned-chat-owner-icon", width: 12, height: 12, style: { borderRadius: 3 } }, avatar: { className: "pinned-chat-owner-icon", size: 12 } }} />}
+            <span className="pinned-chat-owner-label">{ownerLabel}</span>
+          </span>}
+          {chat.hasPendingAwaiting && <span className={`${styles.awaiting} chat-awaiting-status`}>{t(getAwaitingStatusKey(chat.awaitingMode))}</span>}
+          {loading ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) && <UnreadDot chat={chat} />}
+          <UiButton
+            className={`${styles.more} chat-actions-trigger`}
+            size="mini" variant="ghost" iconOnly
+            aria-label={t("leftSidebar.moreActions")}
+            aria-haspopup="menu"
+            onClick={(event) => { event.stopPropagation(); openMenu(); }}
+          ><MaterialIcon name="more_horiz" /></UiButton>
+        </UiListItem>
+      )}
+    />
   );
 };

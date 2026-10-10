@@ -6,7 +6,7 @@ export function isAgentExecutionBlocked(state: Partial<Pick<AppState,
   "agentAvailability" | "chatId" | "chats" | "chatAgentById" | "workerSelectionKey"
 >>, explicitAgentKey?: string): boolean {
   const chat = state.chats?.find(item => item.chatId === state.chatId);
-  if (!explicitAgentKey && chat?.teamId) return false;
+  if (!explicitAgentKey && undefined) return false;
   const selected = state.workerSelectionKey?.startsWith("agent:")
     ? state.workerSelectionKey.slice(6) : "";
   const key = explicitAgentKey || state.chatAgentById?.get(state.chatId || "") ||

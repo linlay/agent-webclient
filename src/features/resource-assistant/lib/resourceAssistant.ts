@@ -31,7 +31,7 @@ export function resourceAssistantUrl(agentKey: string, prefill: ReturnType<typeo
 /** Standalone has no Desktop default preference: use the first navigable ordinary Agent. */
 export function firstChatAgent(data: unknown): string {
   if (!Array.isArray(data)) return "";
-  const candidates = data.filter(item => item && typeof item.key === "string" && item.key.trim() && item.kind !== "team" && item.type !== "team");
+  const candidates = data.filter(item => item && typeof item.key === "string" && item.key.trim());
   const ordinary = candidates.find(item => !item.mode || ["AGENT", "GENERAL", "REACT"].includes(String(item.mode).toUpperCase()));
   return String((ordinary || candidates[0])?.key || "").trim();
 }

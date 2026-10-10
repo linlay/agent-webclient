@@ -1,5 +1,5 @@
 import React from "react";
-import { Dropdown, Tooltip, type MenuProps } from "antd";
+import { Dropdown, Tooltip, type MenuProps, type DropdownProps } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
@@ -17,7 +17,8 @@ export interface WorkerActionHandlers {
 export const WorkerActionsMenu: React.FC<WorkerActionHandlers & {
   row: WorkerRow;
   children: React.ReactElement;
-}> = ({ row, children, ...handlers }) => {
+  trigger?: DropdownProps["trigger"];
+}> = ({ row, children, trigger = ["click"], ...handlers }) => {
   const { t } = useI18n();
   const isAgent = row.type === "agent";
   const canOpenWorkspace = canOpenWorkerWorkspace(row);
@@ -77,15 +78,15 @@ export const WorkerActionsMenu: React.FC<WorkerActionHandlers & {
   };
 
   return (
-    <Dropdown trigger={["click"]} menu={{ items, onClick }}>
-      <Tooltip title={t(canOpenWorkspace
+    <Dropdown trigger={trigger} menu={{ items, onClick }}>
+      {trigger?.includes("contextMenu") ? children : <Tooltip title={t(canOpenWorkspace
         ? "leftSidebar.moreActions"
         : row.workspaceSourceKind === "browser-folder"
           ? "leftSidebar.browserWorkspaceOpenUnavailable"
           : "leftSidebar.workspaceUnavailable")}
       >
         {children}
-      </Tooltip>
+      </Tooltip>}
     </Dropdown>
   );
 };

@@ -12,7 +12,7 @@
 ## 核心流程
 普通数据业务从 `src/shared/data` 导入语义化函数，不直接拼接 URL。Run 生命周期由 `RunTransport` 使用 `endpoints.ts` 的 payload builder 和端点定义统一发送；管理源文件通过 Admin Source 读写，语音能力与 voice 列表通过 flexible voice helper 读取。
 
-`ChatDetailResponse` 继承完整 `ChatSummaryResponse`：`/api/chat` 除 replay 数据外必须提供 `agentKey`/`teamId`、`lastRunId`、`lastRunContent` 与 `read { isRead, readAt?, readRunId? }`。`markChatRead` 是 WebClient Main Chat 的单 Chat read 请求函数；Desktop 模式仍通过通用 Frame Port `/api/read` 转发，Desktop 宿主不暴露或调用单 Chat read 业务 IPC。Agent 级批量已读属于宿主的显式用户命令，不由 WebClient 的自动 read hook 代发。
+`ChatDetailResponse` 继承完整 `ChatSummaryResponse`：`/api/chat` 除 replay 数据外必须提供 `agentKey`、`lastRunId`、`lastRunContent` 与 `read { isRead, readAt?, readRunId? }`。`markChatRead` 是 WebClient Main Chat 的单 Chat read 请求函数；Desktop 模式仍通过通用 Frame Port `/api/read` 转发，Desktop 宿主不暴露或调用单 Chat read 业务 IPC。Agent 级批量已读属于宿主的显式用户命令，不由 WebClient 的自动 read hook 代发。
 
 `GET /api/agent?agentKey=...` 的 `AgentDetailResponse` 保留 `greetings?: string[]` 并新增 `introductions?: string[]`：分别供新会话主标题和输入框 placeholder 随机展示。两个字段不进入 `/api/agents` 列表摘要，管理台通过现有详情和保存接口读写同名配置数组。
 
@@ -44,25 +44,13 @@ Agent 创建复用 `POST /api/admin/agents/create`。`CreateAgentRequest` 的可
 
 ## 对话运行身份
 
-前端内部以 `RunOwner` 表示对话和 run 的公开请求身份，只有两种互斥情况：
+所有 Agent（包括 mode: TEAM）的内部 `RunOwner` 都是 `{ kind: "agent", agentKey }`。query、attach、submit、steer、interrupt、access-level 与 Automation 只发送 `agentKey`，`owner` 不作为 API 字段发送。已保存 Chat 的 owner 优先于临时选择和成员事件；带 taskId 的成员事件仅更新该任务，不改变根 Run 身份。
 
-- Agent：`{ kind: "agent", agentKey }`
-- 编排 Team：`{ kind: "orchestrated-team", teamId }`
+## Agent 列表协议
 
-`buildQueryPayload`、attach、submit、steer、interrupt、access-level 和 WebSocket 的同类请求都通过同一个 owner 序列化器生成 payload。Agent 只发送 `agentKey`；Team 只发送 `teamId`，payload 绝不包含 `agentKey`。`owner` 仅是前端内部状态，不能作为 API 字段发送。
+导航通过 `/api/agents` 获取统一 Agent 列表。TEAM 使用普通 key、mode、stats、chats 字段，详情通过 `teamConfig.members/maxParallel` 描述委派配置。HTTP 和 WS 使用相同 DTO；不再请求独立 Team 列表或额外包含开关。前端保留后端顺序，并用父 Agent key 补齐嵌套 Chat 的 agentKey。scope、mode 和 Chat 筛选均遵循普通 Agent 规则。
 
-已保存 chat 的 owner 优先于 run/session 临时身份和流式成员事件。旧 chat 即使同时保存 `teamId` 与 `agentKey`，也会归一化为 Team owner 并丢弃该 `agentKey` 的路由语义。所有 Team 均按编排 Team 处理，不保留 legacy Team 请求分支。
-
-## Agent / Team 混合列表协议
-
-左侧导航通过 `GET /api/agents?includeTeam=true` 获取唯一的 worker 列表；当前 transport 为 WebSocket 时，向 `/api/agents` 发送字段完全相同的 payload。响应 `data` 是按后端顺序排列的扁平数组，每一项必须带 `kind`：
-
-- `kind: "agent"`：保留既有 Agent 字段，可带最近 `chats`。
-- `kind: "team"`：使用 `teamId` 作为身份，带 name、role、成员与 icon 等展示字段；可带 `stats.totalCount`、`stats.unreadCount` 和最近 `chats`。
-
-后端按每个项首条最近 chat 的 `lastRunId` 将 Agent 与 Team 混排；`chats[0]` 即该 worker 的最近对话。前端不解析不透明的 run ID，而是保留响应顺序，并在嵌套 chat 未给出身份时按父项补齐 `agentKey` 或 `teamId`。`runtimeMode: "orchestrated"` 或 `meta.orchestrated: true` 可用于 Team UI 语义；Team 成员用于展示与内部委派，不能成为外层对话的执行 Agent。
-
-`scope` 和 `mode` 只过滤 Agent，Team 不受这两个条件影响。`GET /api/chats?mode=...` 与对应 WS `/api/chats` payload 也必须始终保留 Team-owned chat；前端不会因 `teamId` 丢弃它们。
+TEAM 总控可以直接回答、使用普通工具或委派成员；成员不是外层 Chat owner。编辑器允许配置成员 key 和 1–5 的并发数，运行参数、Skills 与模型覆盖只作用于总控。
 
 ## 边界与非目标
 - `endpoints.ts` 是前端消费清单，不等于后端 OpenAPI 定义。

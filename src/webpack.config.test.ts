@@ -287,8 +287,8 @@ describe('html template asset paths', () => {
     const configFactory = require('../webpack.config.js');
     const config = configFactory({}, { mode: 'production' });
     const publicAssetPlugin = config.plugins?.find(
-      (plugin: { constructor?: { name?: string } }) =>
-        plugin.constructor?.name === 'PublicAssetPlugin',
+      (plugin: { constructor?: { name?: string }; from?: string }) =>
+        plugin.constructor?.name === 'PublicAssetPlugin' && plugin.from === 'public/default-skill.png',
     ) as { from?: string; to?: string } | undefined;
 
     expect(publicAssetPlugin).toMatchObject({

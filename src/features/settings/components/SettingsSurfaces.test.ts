@@ -18,7 +18,7 @@ import { SettingsAsrDebug } from "./SettingsAsrDebug";
 
 jest.mock("@/features/appearance/components/AppearanceProvider", () => ({
   useAppearance: jest.fn(() => ({ preference: "system", selectedSkinId: "default", installedSkins: [],
-    controller: { setThemePreference: jest.fn(), setSkinId: jest.fn() } })),
+        controller: { setThemePreference: jest.fn(), setSkinId: jest.fn() } }))
 }));
 
 jest.mock("antd", () => {
@@ -31,21 +31,21 @@ jest.mock("antd", () => {
     ) : null;
   return { Modal: jest.fn(surface), Drawer: jest.fn(surface),
     Button: ({ children, ...props }: any) => React.createElement("button", props, children),
-    Select: ({ id, value, options, onChange }: any) => React.createElement("select", { id, value, onChange: (event: any) => onChange(event.target.value) }, options.map((option: any) => React.createElement("option", { key: option.value, value: option.value }, option.label))),
+    Select: ({ id, value, options, onChange }: any) => React.createElement("select", { id, value, onChange: (event: any) => onChange(event.target.value) }, options.map((option: any) => React.createElement("option", { key: option.value, value: option.value }, option.label)))
   };
 });
 jest.mock("@/app/state/AppContext", () => ({
   ...jest.requireActual("@/app/state/AppContext"),
   useAppState: jest.fn(),
-  useAppDispatch: jest.fn(),
+    useAppDispatch: jest.fn()
 }));
 jest.mock("@/shared/data", () => ({
   getCurrentAccessToken: jest.fn(),
-  setAccessToken: jest.fn(),
+    setAccessToken: jest.fn()
 }));
 jest.mock("@/shared/utils/routing", () => ({
   isAppMode: jest.fn(),
-  isDesktopAppMode: jest.fn(),
+    isDesktopAppMode: jest.fn()
 }));
 jest.mock("@/shared/config/featureFlags", () => ({ isVoiceEnabled: jest.fn() }));
 jest.mock("@/features/voice/lib/voiceRuntime", () => ({ getVoiceRuntime: jest.fn() }));
@@ -99,7 +99,7 @@ describe.each([
   function render(open = true) {
     act(() => root.render(React.createElement(I18nProvider, {
       locale: "en-US",
-      children: React.createElement(Settings, { open, onClose }),
+    children: React.createElement(Settings, { open, onClose })
     })));
   }
 
@@ -123,7 +123,7 @@ describe.each([
     expect(latestProps(Surface)).toMatchObject({
       open: true, destroyOnHidden: true, getContainer: false,
       width: variant === "modal" ? "min(920px, calc(100vw - 32px))" : "100%",
-      className: variant === "modal" ? "settings-modal" : "settings-drawer copilot-drawer",
+    className: variant === "modal" ? "settings-modal" : "settings-drawer copilot-drawer"
     });
     if (variant === "modal") {
       expect(latestProps(Modal)).toMatchObject({ footer: null, onCancel: onClose });
@@ -133,7 +133,7 @@ describe.each([
       expect(latestProps(Drawer)).toMatchObject({
         onClose, mask: true, maskClosable: true, placement: "right",
         styles: { header: { borderBottom: 0, flex: "unset", padding: 10 } },
-        closable: { closeIcon: expect.objectContaining({ props: { name: "keyboard_arrow_right" } }) },
+    closable: { closeIcon: expect.objectContaining({ props: { name: "keyboard_arrow_right" } }) }
       });
       expect(container.querySelector(".settings-card")!.className).toBe("settings-card");
       expect(container.querySelector(".settings-preferences-grid")!.className).toBe("settings-preferences-grid");
@@ -207,10 +207,8 @@ describe.each([
     expect(appearance.controller.setThemePreference).toHaveBeenCalledWith("dark");
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "SET_THEME_MODE" }));
     click("Refresh agents");
-    click("Refresh teams");
     click("Clear logs");
     expect(events).toHaveBeenCalledWith(expect.objectContaining({ type: "agent:refresh-agents" }));
-    expect(events).toHaveBeenCalledWith(expect.objectContaining({ type: "agent:refresh-teams" }));
     expect(dispatch).toHaveBeenCalledWith({ type: "CLEAR_DEBUG" });
     expect(dispatch).toHaveBeenCalledWith({ type: "CLEAR_EVENTS" });
     click("Chinese");
@@ -222,7 +220,7 @@ describe.each([
     act(() => Simulate.focus(input("client-gate-threshold")));
     change("client-gate-threshold", "0.03");
     state = { ...state, voiceChat: { ...state.voiceChat,
-      clientGate: { ...state.voiceChat.clientGate, rmsThreshold: 0.02, openHoldMs: 222 },
+        clientGate: { ...state.voiceChat.clientGate, rmsThreshold: 0.02, openHoldMs: 222 }
     } };
     render();
     expect(input("client-gate-threshold").value).toBe("0.03");
@@ -230,7 +228,7 @@ describe.each([
     act(() => Simulate.blur(input("client-gate-threshold")));
     expect(dispatch).toHaveBeenCalledWith({ type: "PATCH_VOICE_CHAT", patch: {
       clientGate: { ...state.voiceChat.clientGate, rmsThreshold: 0.03 },
-      clientGateCustomized: true,
+        clientGateCustomized: true
     } });
     change("client-gate-open-hold", "invalid");
     dispatch.mockClear();
@@ -258,13 +256,13 @@ describe.each([
     expect(dispatch).toHaveBeenCalledWith({ type: "SET_TTS_DEBUG_STATUS", status: "Error: empty text" });
     act(() => latestProps(SettingsTtsDebug).onStop());
     expect(events).toHaveBeenCalledWith(expect.objectContaining({
-      type: "agent:voice-stop-all", detail: { reason: "debug_stop", mode: "stop" },
+    type: "agent:voice-stop-all", detail: { reason: "debug_stop", mode: "stop" }
     }));
     expect(latestProps(SettingsAsrDebug)).toMatchObject({
       appMode: false, accessToken: state.accessToken, chatId: state.chatId,
       speechRate: state.voiceChat.speechRate, capabilities: state.voiceChat.capabilities,
       clientGate: state.voiceChat.clientGate, clientGateCustomized: state.voiceChat.clientGateCustomized,
-      onDispatch: dispatch,
+    onDispatch: dispatch
     });
     act(() => latestProps(SettingsAsrDebug).onAccessTokenResolved("resolved"));
     expect(dispatch).toHaveBeenCalledWith({ type: "SET_ACCESS_TOKEN", token: "resolved" });

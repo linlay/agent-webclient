@@ -1,6 +1,6 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team, WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
+import type {  WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import {
   isChatUnread,
@@ -32,8 +32,8 @@ export type GlobalRow =
       key: string;
       label: string;
       role: string;
-      type: "agent" | "team";
-      icon?: Agent["icon"] | Team["icon"];
+      type: "agent";
+      icon?: Agent["icon"];
     }
   | {
       kind: "history";
@@ -57,7 +57,7 @@ export interface BuildGlobalRowsInput {
   historyRows?: WorkerConversationRow[] | null;
   searchText: string;
   hasCurrentWorker: boolean;
-  workerIcons?: ReadonlyMap<string, Agent["icon"] | Team["icon"]>;
+  workerIcons?: ReadonlyMap<string, Agent["icon"]>;
   t: (key: string, params?: Record<string, unknown>) => string;
 }
 
@@ -65,7 +65,7 @@ type ConversationCandidate = {
   chatId: string;
   chatName: string;
   agentKey?: string;
-  teamId?: string;
+
   updatedAt: number;
   lastRunId: string;
   lastRunContent: string;
@@ -170,7 +170,7 @@ function buildAgentLabelByKey(
 function buildTeamLabelByKey(workerRows: WorkerRow[]): Map<string, string> {
   const labelByKey = new Map<string, string>();
   for (const worker of Array.isArray(workerRows) ? workerRows : []) {
-    if (worker.type !== "team") continue;
+    continue;
     const key = toText(worker.sourceId);
     if (!key) continue;
     labelByKey.set(key, toText(worker.displayName) || key);
@@ -179,14 +179,14 @@ function buildTeamLabelByKey(workerRows: WorkerRow[]): Map<string, string> {
 }
 
 function resolveSourceLabel(
-  row: Pick<ConversationCandidate, "agentKey" | "teamId">,
+  row: Pick<ConversationCandidate, "agentKey">,
   agentLabelByKey: ReadonlyMap<string, string>,
-  teamLabelByKey: ReadonlyMap<string, string>,
+
 ): string | undefined {
   const agentKey = toText(row.agentKey);
   if (agentKey) return agentLabelByKey.get(agentKey) || agentKey;
-  const teamId = toText(row.teamId);
-  if (teamId) return teamLabelByKey.get(teamId) || teamId;
+
+
   return undefined;
 }
 
@@ -198,7 +198,7 @@ function chatToCandidate(chat: Chat): ConversationCandidate | null {
     chatId,
     chatName: toText(chat?.chatName),
     agentKey: readAgentKey(chat) || undefined,
-    teamId: toText(chat?.teamId) || undefined,
+
     updatedAt: readSortTimestamp(chat?.updatedAt),
     lastRunId: toText(chat?.lastRunId),
     lastRunContent: toText(chat?.lastRunContent),
@@ -223,7 +223,7 @@ function historyRowToCandidate(row: WorkerConversationRow, chat?: Chat): Convers
     chatId,
     chatName: toText(row?.chatName),
     agentKey: toText(row?.agentKey) || undefined,
-    teamId: toText(row?.teamId) || undefined,
+
     updatedAt: readSortTimestamp(row?.updatedAt),
     lastRunId: toText(row?.lastRunId),
     lastRunContent: toText(row?.lastRunContent),
@@ -277,7 +277,7 @@ function buildAttentionRows(input: {
 }): GlobalRow[] {
   const agentOrderByKey = createAgentOrderByKey(input.agents);
   const agentLabelByKey = buildAgentLabelByKey(input.agents, input.workerRows);
-  const teamLabelByKey = buildTeamLabelByKey(input.workerRows);
+
   const grouped = new Map<string, ConversationCandidate[]>();
   const seenChatIds = new Set<string>();
 
@@ -311,7 +311,7 @@ function buildAttentionRows(input: {
         toHistoryRow({
           candidate,
           section: input.section,
-          sourceLabel: resolveSourceLabel(candidate, agentLabelByKey, teamLabelByKey),
+          sourceLabel: resolveSourceLabel(candidate, agentLabelByKey, ),
           t: input.t,
         }),
       );
@@ -376,7 +376,7 @@ function buildWorkers(input: BuildGlobalRowsInput, normalizedSearch: string): Gl
       key: worker.key,
       label: worker.displayName,
       role: worker.role,
-      type: worker.type as "agent" | "team",
+      type: worker.type as "agent",
       icon: input.workerIcons?.get(worker.key),
     }));
 }
@@ -388,7 +388,7 @@ function buildSearchHistoryRows(
   if (!normalizedSearch) return [];
 
   const agentLabelByKey = buildAgentLabelByKey(input.agents || [], input.workerRows);
-  const teamLabelByKey = buildTeamLabelByKey(input.workerRows);
+
   const historyRows = input.historyRows;
   const hasRemoteHistoryRows = Array.isArray(historyRows);
   const chatsById = new Map((input.chats || []).map((chat) => [toText(chat.chatId), chat]));
@@ -422,7 +422,7 @@ function buildSearchHistoryRows(
       toHistoryRow({
         candidate,
         section: "history",
-        sourceLabel: resolveSourceLabel(candidate, agentLabelByKey, teamLabelByKey),
+        sourceLabel: resolveSourceLabel(candidate, agentLabelByKey, ),
         t: input.t,
       }),
     );

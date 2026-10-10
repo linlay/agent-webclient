@@ -136,8 +136,7 @@ export const RightSidebar: React.FC = () => {
   const debugPanelEnabled = isDebugPanelEnabled();
   const currentChat = state.chats?.find((chat) => chat.chatId === state.chatId);
   const teamChat = Boolean(
-    currentChat?.owner?.kind === "orchestrated-team" ||
-    String(currentChat?.teamId || "").trim(),
+    String("").trim(),
   );
   const desktopSidebarVisible = state.rightSidebarOpen;
   const selectedPanel =

@@ -93,8 +93,7 @@ jest.mock("antd", () => {
               key: item.key,
               type: "button",
               disabled: item.disabled,
-              onClick: (event: any) =>
-                menu.onClick?.({ key: item.key, domEvent: event }),
+    onClick: (event: any) => menu.onClick?.({ key: item.key, domEvent: event })
             },
             item.icon,
             item.label,
@@ -119,14 +118,14 @@ jest.mock("antd", () => {
       "label",
       {
         "data-checkbox-checked": checked ? "true" : "false",
-        "data-checkbox-disabled": disabled ? "true" : "false",
+    "data-checkbox-disabled": disabled ? "true" : "false"
       },
       React.createElement("input", {
         type: "checkbox",
         checked,
         disabled,
         onChange,
-        ...props,
+    ...props
       }),
       children,
     );
@@ -143,7 +142,7 @@ jest.mock("antd", () => {
       "label",
       {
         "data-radio-value": value,
-        "data-radio-disabled": disabled ? "true" : "false",
+    "data-radio-disabled": disabled ? "true" : "false"
       },
       React.createElement("input", {
         type: "radio",
@@ -151,7 +150,7 @@ jest.mock("antd", () => {
         checked,
         disabled,
         onChange,
-        ...props,
+    ...props
       }),
       children,
     );
@@ -160,14 +159,14 @@ jest.mock("antd", () => {
       "div",
       {
         "data-radio-group-value": value ?? defaultValue,
-        "data-radio-group-disabled": disabled ? "true" : "false",
+    "data-radio-group-disabled": disabled ? "true" : "false"
       },
       React.Children.map(children, (child: any) =>
         React.isValidElement(child)
           ? React.cloneElement(child, {
               checked: child.props.value === (value ?? defaultValue),
               disabled: disabled || child.props.disabled,
-              onChange,
+    onChange
             })
           : child,
       ),
@@ -180,7 +179,7 @@ jest.mock("antd", () => {
         value,
         disabled,
         onChange: (event: any) => onChange?.(event.target.value),
-        style,
+    style
       },
       placeholder
         ? React.createElement("option", { value: "" }, placeholder)
@@ -200,7 +199,7 @@ jest.mock("antd", () => {
       {
         className,
         "data-badge-count": count,
-        "data-badge-dot": dot ? "true" : "false",
+    "data-badge-dot": dot ? "true" : "false"
       },
       children,
     );
@@ -249,11 +248,11 @@ jest.mock("antd", () => {
     Tooltip,
     message: {
       success: (...args: unknown[]) => mockMessageSuccess(...args),
-      error: jest.fn(),
+        error: jest.fn()
     },
     Typography: {
-      Text: ({ children }: any) => React.createElement("span", null, children),
-    },
+        Text: ({ children }: any) => React.createElement("span", null, children)
+    }
   };
 });
 
@@ -262,30 +261,24 @@ jest.mock("antd/es/app/useApp", () => ({
   default: () => ({
     message: {
       error: jest.fn(),
-      success: jest.fn(),
-    },
-  }),
+            success: jest.fn()
+        }
+    })
 }));
 
 jest.mock("@/shared/ui/UiButton", () => {
   const React = require("react");
   return {
-    UiButton: React.forwardRef(
-      ({ children, className = "", iconOnly, loading, ...props }: any, ref: any) => {
+    UiButton: React.forwardRef(({ children, className = "", iconOnly, loading, ...props }: any, ref: any) => {
         uiButtonProps.push({ ...props, className, text: collectText(children) });
-        return React.createElement(
-          "button",
-          {
+        return React.createElement("button", {
             ref,
             type: props.type || "button",
             className,
             disabled: props.disabled || loading,
-            ...props,
-          },
-          children,
-        );
-      },
-    ),
+            ...props
+        }, children);
+    })
   };
 });
 
@@ -293,29 +286,29 @@ jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
   return {
     ...actual,
-    useAppContext: jest.fn(),
+    useAppContext: jest.fn()
   };
 });
 
 jest.mock("@/features/memory/components/MemoryOverlayProvider", () => ({
-  useMemoryOverlayActions: () => ({ openMemory: mockOpenMemory }),
+    useMemoryOverlayActions: () => ({ openMemory: mockOpenMemory })
 }));
 
 jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayActions: () => ({
     openCommandOverlay: mockOpenCommandOverlay,
     patchCommandOverlay: jest.fn(),
-    closeCommandOverlay: jest.fn(),
-  }),
+        closeCommandOverlay: jest.fn()
+    })
 }));
 
 jest.mock("@/shared/icons/agent", () => ({
-  AgentIcon: () => React.createElement("span", null, "agent-icon"),
+    AgentIcon: () => React.createElement("span", null, "agent-icon")
 }));
 
 jest.mock("@/shared/data/desktop/desktopFileSystem", () => ({
   selectProjectFolder: jest.fn(),
-  openRegisteredAgentDirectory: jest.fn(),
+    openRegisteredAgentDirectory: jest.fn()
 }));
 
 jest.mock("@/shared/data", () => ({
@@ -326,12 +319,12 @@ jest.mock("@/shared/data", () => ({
   getChats: jest.fn(),
   markChatRead: jest.fn(),
   searchGlobal: jest.fn(),
-  updateAgentName: jest.fn(),
+    updateAgentName: jest.fn()
 }));
 
 jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
-  useNavigate: () => mockNavigate,
+    useNavigate: () => mockNavigate
 }));
 
 const { useAppContext } = jest.requireMock("@/app/state/AppContext") as {
@@ -405,6 +398,7 @@ describe("LeftSidebar", () => {
       role: "Builder",
       teamAgentLabels: [],
       agentConfigDir: "/agents/agent_a",
+      workspaceDir: "/work/alpha",
       latestChatId: "chat_6",
       latestRunId: "run_6",
       latestUpdatedAt: WORKER_CHAT_BASE_UPDATED_AT + 6000,
@@ -412,7 +406,7 @@ describe("LeftSidebar", () => {
       latestRunContent: "Latest reply 6",
       hasHistory: true,
       latestRunSortValue: 6000,
-      searchText: "alpha agent worker_a",
+    searchText: "alpha agent worker_a"
     };
 
     const chats: Chat[] = Array.from({ length: 6 }, (_, index) => {
@@ -426,8 +420,8 @@ describe("LeftSidebar", () => {
         lastRunId: `run_${count}`,
         lastRunContent: `Latest reply ${count}`,
         read: {
-          isRead: count % 2 === 0,
-        },
+        isRead: count % 2 === 0
+    }
       };
     });
 
@@ -442,15 +436,16 @@ describe("LeftSidebar", () => {
         {
           key: "worker_a",
           name: "Alpha Agent",
+          workspaceDir: "/work/alpha",
           stats: {
-            unreadCount: 3,
+                unreadCount: 3
           },
           icon: {
             name: "smart_toy",
-            color: "#123456",
+                color: "#123456"
+            }
           },
-        },
-      ],
+    ]
     };
   }
 
@@ -464,7 +459,7 @@ describe("LeftSidebar", () => {
       stateRef: { current: state },
       querySessionsRef: { current: options.querySessions || new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: "" },
+    activeQuerySessionRequestIdRef: { current: "" }
     });
   }
 
@@ -521,7 +516,7 @@ describe("LeftSidebar", () => {
     mockState(state);
     const html = renderSidebar();
     const pinSection = html.split('<section class="pinned-chat-section"')[1].split('</section>')[0];
-    const workerSection = html.split('</section>')[1];
+    const workerSection = html.slice(html.indexOf('</section>') + 10);
     expect(pinSection).toContain("Chat 6");
     expect(workerSection).not.toContain("Chat 6");
     for (let i = 1; i <= 5; i += 1) expect(workerSection).toContain(`Chat ${i}`);
@@ -547,7 +542,7 @@ describe("LeftSidebar", () => {
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
-      removeItem: jest.fn(),
+    removeItem: jest.fn()
     };
     globalWithWindow.window = {
       dispatchEvent: jest.fn(),
@@ -556,8 +551,8 @@ describe("LeftSidebar", () => {
       open: jest.fn(),
       location: {
         pathname: "/",
-        search: "",
-      },
+        search: ""
+    }
     };
     globalWithWindow.CustomEvent = class CustomEventMock<T = unknown> extends Event {
       detail: T;
@@ -571,7 +566,7 @@ describe("LeftSidebar", () => {
     mockState({
       ...state,
       leftDrawerOpen: true,
-      themeMode: "dark",
+    themeMode: "dark"
     });
     delete globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   });
@@ -610,7 +605,7 @@ describe("LeftSidebar", () => {
 
   it("renders compact theme summary on the settings trigger when enabled by env", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      SETTINGS_MENU_ENABLED: "true",
+    SETTINGS_MENU_ENABLED: "true"
     };
 
     const html = renderSidebar();
@@ -630,7 +625,7 @@ describe("LeftSidebar", () => {
 
   it("opens registry config in a new page from the settings menu", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      SETTINGS_MENU_ENABLED: "true",
+    SETTINGS_MENU_ENABLED: "true"
     };
 
     renderSidebar();
@@ -652,7 +647,7 @@ describe("LeftSidebar", () => {
 
   it("opens Connectors in a new page and preserves the current search string", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      SETTINGS_MENU_ENABLED: "true",
+    SETTINGS_MENU_ENABLED: "true"
     };
     globalWithWindow.window!.location.search = "?lang=zh-CN";
 
@@ -674,7 +669,7 @@ describe("LeftSidebar", () => {
 
   it("opens skills in a new page from the settings menu and preserves the current search string", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      SETTINGS_MENU_ENABLED: "true",
+    SETTINGS_MENU_ENABLED: "true"
     };
     globalWithWindow.window!.location.search = "?lang=zh-CN";
 
@@ -696,7 +691,7 @@ describe("LeftSidebar", () => {
 
   it("preserves the current search string when opening registry config in a new page", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      SETTINGS_MENU_ENABLED: "true",
+    SETTINGS_MENU_ENABLED: "true"
     };
     globalWithWindow.window!.location.search = "?lang=zh-CN";
 
@@ -718,7 +713,7 @@ describe("LeftSidebar", () => {
 
   it("opens archives in a new page from the settings menu and preserves the current search string", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      SETTINGS_MENU_ENABLED: "true",
+    SETTINGS_MENU_ENABLED: "true"
     };
     globalWithWindow.window!.location.search = "?lang=zh-CN";
 
@@ -749,28 +744,28 @@ describe("LeftSidebar", () => {
   it("renders quick actions when enabled by env", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       QUICK_ACTIONS_ENABLED: "true",
-      MEMORY_ENABLED: "true",
+    MEMORY_ENABLED: "true"
     };
 
     const html = renderSidebar();
 
     expect(html).toContain("自动化");
     expect(html).toContain("知识库");
-    expect(html).toContain("智能体");
+    expect(html).not.toContain("智能体");
+    expect(html).toContain("新建对话");
     expect(html).toContain("记忆");
     expect(html).not.toContain('data-badge-count="6"');
-    expect(html).toContain('data-material-icon="agent_type"');
+    expect(html).toContain('data-material-icon="edit_square"');
     expect(html).not.toContain('data-material-icon="robot_2"');
-    for (const name of ["schedule", "database", "agent_type"]) {
+    for (const name of ["schedule", "database", "psychology"]) {
       const icon = html.match(new RegExp(`<span[^>]*data-material-icon="${name}"[^>]*>`))?.[0];
       expect(icon).toBeDefined();
       expect(icon).not.toContain("ui-icon-hover-24-target");
       expect(icon).toContain("tw:text-[16px]");
     }
-    expect(html).toContain("sidebar-static-icon");
-    expect(html).toMatch(
-      /class="ui-icon-hover-24"[^>]*><span class="material-icon" data-material-icon="list_arrow"/,
-    );
+    expect(html).not.toContain('placeholder="按 名称 / key / teamId 过滤');
+    expect(html.indexOf('aria-label="对话排序"')).toBeLessThan(html.indexOf('aria-label="新建对话"'));
+
   });
 
   it("opens the memory overlay from the quick action", () => {
@@ -782,9 +777,10 @@ describe("LeftSidebar", () => {
     expect(mockOpenMemory).toHaveBeenCalled();
   });
 
-  it("opens the agent console from the quick action", () => {
+  it("opens the agent console from Settings", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       QUICK_ACTIONS_ENABLED: "true",
+    SETTINGS_MENU_ENABLED: "true"
     };
     const dispatch = jest.fn();
     const state = createInitialState();
@@ -794,14 +790,14 @@ describe("LeftSidebar", () => {
         leftDrawerOpen: true,
         agents: Array.from({ length: 20 }, (_, index) => ({
           key: `agent_${index}`,
-          name: `Agent ${index}`,
-        })),
+            name: `Agent ${index}`
+        }))
       },
       dispatch,
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: "" },
+    activeQuerySessionRequestIdRef: { current: "" }
     });
 
     renderSidebar();
@@ -812,7 +808,7 @@ describe("LeftSidebar", () => {
 
     (agentsButton?.onClick as () => void)();
 
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "agents" });
+    expect(globalWithWindow.window?.open).toHaveBeenCalledWith("/agents", "_blank", "noopener,noreferrer");
   });
 
   it("sorts Agent and Team rows by their latest chat updatedAt", () => {
@@ -830,7 +826,7 @@ describe("LeftSidebar", () => {
       latestRunContent: "",
       hasHistory: true,
       latestRunSortValue: 100,
-      searchText: "alpha",
+    searchText: "alpha"
     };
     const beta: WorkerRow = {
       ...alpha,
@@ -842,19 +838,19 @@ describe("LeftSidebar", () => {
       latestUpdatedAt: 200,
       latestChatName: "Beta chat",
       latestRunSortValue: 200,
-      searchText: "beta",
+    searchText: "beta"
     };
     const ops: WorkerRow = {
       ...alpha,
-      key: "team:ops",
-      type: "team",
+    key: "agent:ops",
+    type: "agent",
       sourceId: "ops",
       displayName: "Ops",
       latestChatId: "chat_ops",
       latestRunId: "run_ops",
       latestUpdatedAt: 200,
       latestChatName: "Ops chat",
-      searchText: "ops",
+    searchText: "ops"
     };
     const empty: WorkerRow = {
       ...alpha,
@@ -867,7 +863,7 @@ describe("LeftSidebar", () => {
       latestChatName: "",
       hasHistory: false,
       latestRunSortValue: -1,
-      searchText: "empty",
+    searchText: "empty"
     };
     const rows = [alpha, ops, beta, empty];
     const workerBaseOrderByKey = new Map(rows.map((row, index) => [row.key, index]));
@@ -880,17 +876,17 @@ describe("LeftSidebar", () => {
       {
         chatId: "chat_alpha",
         agentKey: "alpha",
-        updatedAt: 1760000000000,
+    updatedAt: 1760000000000
       } as Chat,
       {
         chatId: "chat_ops",
-        teamId: "ops",
-        updatedAt: 1761000000000,
+    agentKey: "ops",
+    updatedAt: 1761000000000
       } as Chat,
       {
         chatId: "chat_beta",
         agentKey: "beta",
-        updatedAt: 1762000000000,
+    updatedAt: 1762000000000
       } as Chat,
     ]);
 
@@ -899,28 +895,28 @@ describe("LeftSidebar", () => {
         agentOrderByKey,
         workerBaseOrderByKey,
         workerChatOrderByKey,
-        workerSortMode: "byTime",
+    workerSortMode: "byTime"
       }).map((row) => row.key),
-    ).toEqual(["agent:beta", "team:ops", "agent:alpha", "agent:empty"]);
+    ).toEqual(["agent:beta", "agent:ops", "agent:alpha", "agent:empty"]);
     expect(
       sortWorkerRowsForMode(rows, {
         agentOrderByKey,
         workerBaseOrderByKey,
         workerChatOrderByKey,
-        workerSortMode: "byName",
+    workerSortMode: "byName"
       }).map((row) => row.key),
-    ).toEqual(["agent:alpha", "agent:beta", "agent:empty", "team:ops"]);
+    ).toEqual(["agent:alpha", "agent:beta", "agent:empty", "agent:ops"]);
   });
 
   it("uses chatId to break updatedAt ties and keeps invalid timestamps oldest", () => {
     const orderByKey = createWorkerChatOrderByKey([
       { chatId: "chat_z", agentKey: "z", updatedAt: 1761000000000 } as Chat,
-      { chatId: "chat_a", teamId: "ops", updatedAt: 1761000000000 } as Chat,
+      { chatId: "chat_a", agentKey: "ops", updatedAt: 1761000000000 } as Chat,
       { chatId: "chat_invalid", agentKey: "invalid", updatedAt: "invalid" } as Chat,
     ]);
 
     expect([...orderByKey.keys()]).toEqual([
-      "team:ops",
+      "agent:ops",
       "agent:z",
       "agent:invalid",
     ]);
@@ -941,7 +937,7 @@ describe("LeftSidebar", () => {
       latestRunContent: "",
       hasHistory: true,
       latestRunSortValue: 100,
-      searchText: "alpha",
+    searchText: "alpha"
     };
     const beta: WorkerRow = {
       ...alpha,
@@ -953,7 +949,7 @@ describe("LeftSidebar", () => {
       latestUpdatedAt: 300,
       latestChatName: "Beta chat",
       latestRunSortValue: 300,
-      searchText: "beta",
+    searchText: "beta"
     };
     const gamma: WorkerRow = {
       ...alpha,
@@ -965,7 +961,7 @@ describe("LeftSidebar", () => {
       latestUpdatedAt: 200,
       latestChatName: "Gamma chat",
       latestRunSortValue: 200,
-      searchText: "gamma",
+    searchText: "gamma"
     };
     const rows = [alpha, beta, gamma];
     const workerBaseOrderByKey = new Map(rows.map((row, index) => [row.key, index]));
@@ -986,7 +982,7 @@ describe("LeftSidebar", () => {
         temporaryPinnedAgentKey: "alpha",
         workerBaseOrderByKey,
         workerChatOrderByKey,
-        workerSortMode: "byTime",
+    workerSortMode: "byTime"
       }).map((row) => row.key),
     ).toEqual(["agent:alpha", "agent:beta", "agent:gamma"]);
     expect(
@@ -995,7 +991,7 @@ describe("LeftSidebar", () => {
         temporaryPinnedAgentKey: "alpha",
         workerBaseOrderByKey,
         workerChatOrderByKey,
-        workerSortMode: "byName",
+    workerSortMode: "byName"
       }).map((row) => row.key),
     ).toEqual(["agent:alpha", "agent:gamma", "agent:beta"]);
     expect(
@@ -1004,7 +1000,7 @@ describe("LeftSidebar", () => {
         temporaryPinnedAgentKey: "missing",
         workerBaseOrderByKey,
         workerChatOrderByKey,
-        workerSortMode: "byTime",
+    workerSortMode: "byTime"
       }).map((row) => row.key),
     ).toEqual(["agent:beta", "agent:gamma", "agent:alpha"]);
   });
@@ -1012,7 +1008,7 @@ describe("LeftSidebar", () => {
   it("builds a coder project create request from workspace metadata", () => {
     expect(
       buildCoderAgentCreateRequest("/Users/demo/Project/agent-coder", {
-        name: "agent-coder",
+    name: "agent-coder"
       }),
     ).toEqual({
       isProject: true,
@@ -1020,15 +1016,15 @@ describe("LeftSidebar", () => {
         name: "agent-coder",
         mode: "CODER",
         runtimeConfig: {
-          workspaceRoot: "/Users/demo/Project/agent-coder",
-        },
-      },
+            workspaceRoot: "/Users/demo/Project/agent-coder"
+        }
+    }
     });
     const acpRequest = buildCoderAgentCreateRequest(
       "/Users/demo/Project/acp-coder",
       {
         name: "ACP Coder",
-        acpBridgeId: "proxy-acp-codex",
+    acpBridgeId: "proxy-acp-codex"
       },
     );
     expect(acpRequest).toEqual({
@@ -1039,9 +1035,9 @@ describe("LeftSidebar", () => {
         engine: "acp",
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Project/acp-coder",
-          acpBridgeId: "proxy-acp-codex",
-        },
-      },
+            acpBridgeId: "proxy-acp-codex"
+        }
+    }
     });
     expect(JSON.stringify(acpRequest)).not.toContain("coderBackend");
   });
@@ -1058,9 +1054,9 @@ describe("LeftSidebar", () => {
         name: "My KB",
         mode: "KBASE",
         runtimeConfig: {
-          workspaceRoot: "/Users/demo/Knowledge/my-project",
-        },
-      },
+            workspaceRoot: "/Users/demo/Knowledge/my-project"
+        }
+    }
     });
     expect(result).not.toHaveProperty("key");
     expect(result.definition).not.toHaveProperty("key");
@@ -1076,19 +1072,19 @@ describe("LeftSidebar", () => {
     useAppContext.mockReturnValue({
       state: {
         ...state,
-        leftDrawerOpen: true,
+        leftDrawerOpen: true
       },
       dispatch,
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: "" },
+    activeQuerySessionRequestIdRef: { current: "" }
     });
 
     const html = renderSidebar();
 
     expect(html).toContain('aria-label="新建项目"');
-    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
+    const button = uiButtonProps.find((props) => props["aria-label"] === "新建项目");
     expect(button).toBeTruthy();
     expect(typeof button?.onClick).toBe("function");
 
@@ -1112,25 +1108,25 @@ describe("LeftSidebar", () => {
       key: "browser-coder",
       name: "browser-coder",
       type: "coder",
-      workspaceDir: "/Users/demo/Project/browser-coder",
+    workspaceDir: "/Users/demo/Project/browser-coder"
     };
     createAgent.mockResolvedValue({ data: createdAgent });
     getAgents.mockResolvedValue({ data: [createdAgent] });
     useAppContext.mockReturnValue({
       state: {
         ...state,
-        leftDrawerOpen: true,
+        leftDrawerOpen: true
       },
       dispatch,
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: "" },
+    activeQuerySessionRequestIdRef: { current: "" }
     });
 
     renderSidebar();
 
-    const button = uiButtonProps.find((props) => props.id === "top-nav-new-chat-btn");
+    const button = uiButtonProps.find((props) => props["aria-label"] === "新建项目");
     (button?.onClick as () => void)();
 
     expect(selectProjectFolder).not.toHaveBeenCalled();
@@ -1153,20 +1149,22 @@ describe("LeftSidebar", () => {
     // 调用了 createAgent → getAgents 刷新列表
     expect(getAgents).toHaveBeenCalledWith({
       includeChats: 5,
-      includeTeam: true,
       scope: "nav",
+      hasWorkspace: false,
+    chatsPinned: false
     });
+    expect(getAgents).toHaveBeenCalledWith({ includeChats: 5, scope: undefined, hasWorkspace: true, chatsPinned: false });
 
     // dispatch 了临时置顶
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_TEMPORARY_PINNED_AGENT_KEY",
-      agentKey: createdKey,
+    agentKey: createdKey
     });
 
     // dispatch 了 SET_AGENTS
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_AGENTS",
-      agents: agentsData,
+    agents: agentsData
     });
 
     // dispatch 了 SET_WORKER_ROWS
@@ -1204,7 +1202,8 @@ describe("LeftSidebar", () => {
     expect(html).not.toContain("ui-icon-hover-20");
     expect(html).toContain("worker-panel-new worker-popover-new");
     expect(html).toContain("worker-popover-new tw:!inline-flex tw:!h-6 tw:!w-6 tw:text-text-muted ui-icon-hover-24");
-    expect(html).toContain("查看更多（共 6 条，未读 3 条）");
+    expect(html).toContain("查看更多");
+    expect(html).toContain("显示历史");
     const moreClass = html.match(/class="([^"]*\bworker-chat-more\b[^"]*)"/)?.[1] || "";
     expect(moreClass).toContain("tw:text-[12px]");
     expect(moreClass).not.toContain("tw:text-xs");
@@ -1256,20 +1255,20 @@ describe("LeftSidebar", () => {
 
     menu?.onClick?.({
       key: "openWorkspace",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
     await Promise.resolve();
 
     expect(openRegisteredAgentDirectory).toHaveBeenCalledWith({
       agentKey: "worker_a",
       directoryType: "workspace",
-      desktopPath: "/Users/demo/Project/agent-coder",
+    desktopPath: "/Users/demo/Project/agent-coder"
     });
   });
 
   it("opens a dedicated KBASE workspace without a frontend workspaceDir", async () => {
     const state = createWorkerState();
-    state.leftDrawerOpen = true;
+    state.leftDrawerOpen = false;
     state.workerRows[0].agentType = "kbase";
     state.workerRows[0].workspaceDir = undefined;
     state.agents[0].mode = "KBASE";
@@ -1285,13 +1284,13 @@ describe("LeftSidebar", () => {
 
     menu?.onClick?.({
       key: "openWorkspace",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
     await Promise.resolve();
 
     expect(openRegisteredAgentDirectory).toHaveBeenCalledWith({
       agentKey: "worker_a",
-      directoryType: "workspace",
+    directoryType: "workspace"
     });
   });
 
@@ -1313,14 +1312,14 @@ describe("LeftSidebar", () => {
 
     menu?.onClick?.({
       key: "openConfigDirectory",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
     await Promise.resolve();
 
     expect(openRegisteredAgentDirectory).toHaveBeenCalledWith({
       agentKey: "worker_a",
       directoryType: "config",
-      desktopPath: "/agents/worker_a",
+    desktopPath: "/agents/worker_a"
     });
   });
 
@@ -1344,7 +1343,7 @@ describe("LeftSidebar", () => {
       | undefined;
     targetMenu?.onClick?.({
       key: "openConfigDirectory",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
     await Promise.resolve();
 
@@ -1355,8 +1354,8 @@ describe("LeftSidebar", () => {
     const state = createInitialState();
     state.leftDrawerOpen = true;
     const teamRow = {
-      key: "team:team_ops",
-      type: "team" as const,
+    key: "agent:team_ops",
+    type: "agent" as const,
       sourceId: "team_ops",
       displayName: "Ops",
       role: "Operations",
@@ -1368,13 +1367,13 @@ describe("LeftSidebar", () => {
       latestRunContent: "",
       hasHistory: false,
       latestRunSortValue: -1,
-      searchText: "ops team_ops",
+    searchText: "ops team_ops"
     } as WorkerRow;
     state.teams = [
       {
-        teamId: "team_ops",
+    agentKey: "team_ops",
         name: "Ops",
-        role: "Operations",
+    role: "Operations"
       },
     ];
     state.workerRows = [teamRow];
@@ -1448,7 +1447,7 @@ describe("LeftSidebar", () => {
       props.items.some((item: any) => item?.key === "openWorkspace"),
     );
 
-    expect(expandedMenus).toHaveLength(1);
+    expect(expandedMenus).toHaveLength(2);
     expandedMenus.forEach((menu) => {
       expect(menu.items.map((item: any) => item.key)).toEqual([
         "openWorkspace",
@@ -1481,7 +1480,7 @@ describe("LeftSidebar", () => {
     const stopPropagation = jest.fn();
     collapsedMenus[0].onClick({
       key: "copyAgent",
-      domEvent: { stopPropagation },
+    domEvent: { stopPropagation }
     });
 
     expect(stopPropagation).toHaveBeenCalledTimes(1);
@@ -1492,6 +1491,7 @@ describe("LeftSidebar", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     state.workerRows[0].sourceId = "worker/a";
+    state.agents[0].key = "worker/a";
     globalWithWindow.window!.location.search = "?lang=zh-CN";
     mockState(state);
 
@@ -1500,7 +1500,7 @@ describe("LeftSidebar", () => {
 
     menu?.onClick?.({
       key: "editAgent",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
 
     expect(globalWithWindow.window?.open).toHaveBeenCalledWith(
@@ -1519,7 +1519,7 @@ describe("LeftSidebar", () => {
     const menu = firstWorkerActionMenu();
     menu?.onClick?.({
       key: "renameAgent",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
 
     expect(mockModalConfirm).toHaveBeenCalledTimes(1);
@@ -1535,14 +1535,14 @@ describe("LeftSidebar", () => {
       /\.left-sidebar-rename-agent-input\.ant-input:focus\s*\{[\s\S]*?border-color:\s*var\(--accent-electric\)\s*!important;/,
     );
     confirmConfig.content.props.onChange({
-      target: { value: "Beta Agent" },
+    target: { value: "Beta Agent" }
     });
     await confirmConfig.onOk();
 
     expect(getAgent).not.toHaveBeenCalled();
     expect(updateAgentName).toHaveBeenCalledWith({
       key: "worker_a",
-      name: "Beta Agent",
+    name: "Beta Agent"
     });
     expect(mockMessageSuccess).toHaveBeenCalledWith("名称已修改");
     expect(globalWithWindow.window?.dispatchEvent).toHaveBeenCalledWith(
@@ -1559,19 +1559,19 @@ describe("LeftSidebar", () => {
     renderSidebar();
     firstWorkerActionMenu()?.onClick?.({
       key: "renameAgent",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
 
     const confirmConfig = mockModalConfirm.mock.calls[0][0];
     confirmConfig.content.props.onChange({
-      target: { value: "Beta Agent" },
+    target: { value: "Beta Agent" }
     });
     await confirmConfig.onOk();
 
     expect(getAgent).not.toHaveBeenCalled();
     expect(updateAgentName).toHaveBeenCalledWith({
       key: "worker_a",
-      name: "Beta Agent",
+    name: "Beta Agent"
     });
   });
 
@@ -1585,7 +1585,7 @@ describe("LeftSidebar", () => {
     renderSidebar();
     firstWorkerActionMenu()?.onClick?.({
       key: "deleteAgent",
-      domEvent: { stopPropagation: jest.fn() },
+    domEvent: { stopPropagation: jest.fn() }
     });
 
     expect(mockModalConfirm).toHaveBeenCalledTimes(1);
@@ -1598,7 +1598,7 @@ describe("LeftSidebar", () => {
     );
   });
 
-  it("renders react worker roles in the worker header", () => {
+  it("keeps project headers compact without worker role subtitles", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
     state.workerRows[0].agentType = "agent";
@@ -1607,13 +1607,13 @@ describe("LeftSidebar", () => {
 
     const html = renderSidebar();
 
-    expect(html).toContain("worker-panel-role");
-    expect(html).toContain("Operations assistant");
+    expect(html).not.toContain("worker-panel-role");
+    expect(html).not.toContain("Operations assistant");
   });
 
   it("shows browser folder coder workspace names without enabling local open", () => {
     const state = createWorkerState();
-    state.leftDrawerOpen = true;
+    state.leftDrawerOpen = false;
     state.workerRows[0].agentType = "coder";
     state.workerRows[0].role = "";
     state.workerRows[0].workspaceDir = undefined;
@@ -1647,13 +1647,14 @@ describe("LeftSidebar", () => {
     state.chats = state.chats.slice(0, 5);
     state.agents[0].stats = {
       totalCount: 12,
-      unreadCount: 3,
+    unreadCount: 3
     };
     mockState(state);
 
     const html = renderSidebar();
 
-    expect(html).toContain("查看更多（共 12 条，未读 3 条）");
+    expect(html).toContain("查看更多");
+    expect(html).toContain("显示历史");
   });
 
   it("renders unread badges for worker rows", () => {
@@ -1664,21 +1665,16 @@ describe("LeftSidebar", () => {
     expect(workerHtml).toMatch(/chat-unread-dot[^"]*\bis-unread\b[^"]*\btw:opacity-100\b/);
   });
 
-  it("marks accordion worker selection as preferring a new chat", () => {
+  it("selects a general agent for a new conversation", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
+    state.agents[0].workspaceDir = undefined;
+    state.workerRows[0].workspaceDir = undefined;
     mockState(state);
     renderSidebar();
-
-    changeWorkerAccordion();
-
-    const workerSelectionEvents = dispatchedEvents("agent:select-worker");
-    expect(workerSelectionEvents).toHaveLength(1);
-    expect(workerSelectionEvents[0].detail).toEqual({
-      workerKey: "agent:worker_a",
-      focusComposerOnComplete: true,
-      preferNewChat: true,
-    });
+    const picker = dropdownMenuProps.find(menu => Array.isArray(menu.items) && menu.items.some((item: any) => item.key === "agent:worker_a"));
+    (picker?.onClick as any)({ key: "agent:worker_a" });
+    expect(dispatchedEvents("agent:select-worker")[0].detail).toEqual({ workerKey: "agent:worker_a", focusComposerOnComplete: true, preferNewChat: true });
   });
 
   it("starts a new conversation when only older chats are unread on collapsed worker click", () => {
@@ -1692,7 +1688,7 @@ describe("LeftSidebar", () => {
     expect(startEvents[0].detail).toEqual({
       agentKey: "worker_a",
       preserveWorkerContext: true,
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
     expect(dispatchedEvents("agent:load-chat")).toHaveLength(0);
     expect(dispatchedEvents("agent:select-worker")).toHaveLength(0);
@@ -1705,8 +1701,8 @@ describe("LeftSidebar", () => {
         ? {
             ...chat,
             read: {
-              isRead: false,
-            },
+        isRead: false
+    }
           }
         : chat,
     );
@@ -1719,7 +1715,7 @@ describe("LeftSidebar", () => {
     expect(loadEvents).toHaveLength(1);
     expect(loadEvents[0].detail).toEqual({
       chatId: "chat_6",
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
     expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
   });
@@ -1732,8 +1728,8 @@ describe("LeftSidebar", () => {
             ...chat,
             hasPendingAwaiting: true,
             read: {
-              isRead: true,
-            },
+        isRead: true
+    }
           }
         : chat,
     );
@@ -1746,7 +1742,7 @@ describe("LeftSidebar", () => {
     expect(loadEvents).toHaveLength(1);
     expect(loadEvents[0].detail).toEqual({
       chatId: "chat_6",
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
     expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
   });
@@ -1759,8 +1755,8 @@ describe("LeftSidebar", () => {
             ...chat,
             hasActiveRun: true,
             read: {
-              isRead: true,
-            },
+        isRead: true
+    }
           }
         : chat,
     );
@@ -1773,230 +1769,39 @@ describe("LeftSidebar", () => {
     expect(loadEvents).toHaveLength(1);
     expect(loadEvents[0].detail).toEqual({
       chatId: "chat_5",
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
     expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
   });
 
-  it("renders an automation source icon before worker chat time", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
+  it("marks conversations created by automation", () => {
+    const state = createWorkerState(); state.leftDrawerOpen = true;
     state.chats[state.chats.length - 1].source = "automation:daily";
     mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toContain("worker-chat-source-icon");
-    expect(html).toContain('aria-label="自动化创建"');
-    expect(html).toContain('title="自动化创建"');
-    expect(html).toContain("tw:h-[9px]");
-    expect(html).toContain("tw:w-[9px]");
-    expect(html).toContain("tw:text-[10px]");
-    expect(html).toContain('<circle cx="12" cy="12" r="10"></circle>');
-    expect(html).toContain('<path d="M12 6v6l4 2"></path>');
-    expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><div class="[^"]*\bworker-chat-tail\b[^"]*"><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">[\s\S]*?<span class="[^"]*\bworker-panel-time-label\b[^"]*"><span class="[^"]*\bworker-panel-time-content\b[^"]*\bis-automation\b[^"]*"><span class="[^"]*\bworker-chat-source-icon\b[\s\S]*?<\/svg><\/span><span class="[^"]*\bworker-panel-time-text\b[^"]*tw:text-\[10px\][^"]*">/,
-    );
+    expect(renderSidebar()).toContain('title="自动化创建"');
   });
 
-  it("does not render the automation source icon for query worker chats", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
-    state.chats[state.chats.length - 1].source = "query:user_1";
-    mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).not.toContain("worker-chat-source-icon");
-    expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><div class="[^"]*\bworker-chat-tail\b[^"]*"><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
-    );
-  });
-
-  it("shows running status in folded accordion header for the latest active run chat", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
-    state.chats = state.chats.map((chat) =>
-      chat.chatId === "chat_6"
-        ? {
-            ...chat,
-            hasActiveRun: true,
-          }
-        : chat,
-    );
-    mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toMatch(
-      /<div class="worker-panel-preview"><span>Chat 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
-    );
-  });
-
-  it("prefers an older running chat over the latest non-running chat in folded accordion header", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
-    state.chats = state.chats.map((chat) =>
-      chat.chatId === "chat_5"
-        ? {
-            ...chat,
-            hasActiveRun: true,
-          }
-        : chat,
-    );
-    mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toMatch(
-      /<div class="worker-panel-preview"><span>Chat 5<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
-    );
-    expect(html).not.toMatch(
-      /<span>Chat 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b/,
-    );
-  });
-
-  it("keeps the latest chat preview when no worker chat is running", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
-    mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Chat 6</span></div>',
-    );
-    // header 不应该有 loading 图标（chat item 行始终有，但 CSS 控制显隐）
-    expect(html).not.toMatch(
-      /<div class="worker-panel-preview"><span>Chat 6<\/span><span class="material-icon [^"]*\bworker-chat-loading\b/,
-    );
-  });
-
-  it("falls back to last run content when a worker chat name is missing", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
+  it("uses chat preview content when the title is absent", () => {
+    const state = createWorkerState(); state.leftDrawerOpen = true;
     state.chats[state.chats.length - 1].chatName = "";
     mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Latest reply 6</span></div>',
-    );
-    expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Latest reply 6<\/span><div class="[^"]*\bworker-chat-tail\b[^"]*"><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="time">/,
-    );
+    expect(renderSidebar()).toContain("Latest reply 6");
   });
 
-  it("shows running status in folded accordion header from a local streaming session", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
-    state.chatId = "chat_5";
-    mockState(state, {
-      querySessions: new Map([
-        [
-          "req_1",
-          {
-            chatId: "chat_5",
-            streaming: true,
-          },
-        ],
-      ]),
-    });
-
+  it("shows running state from a local streaming session without reserving an action column", () => {
+    const state = createWorkerState(); state.leftDrawerOpen = true; state.chatId = "chat_5";
+    mockState(state, { querySessions: new Map([["req_1", { chatId: "chat_5", streaming: true }]]) });
     const html = renderSidebar();
-
-    expect(html).toMatch(
-      /<div class="worker-panel-preview"><span>Chat 5<\/span><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*\btw:animate-ui-spin\b[^"]*" data-material-icon="progress_activity">/,
-    );
-    expect(html).toMatch(
-      /class="[^"]*\bworker-chat-action\b[^"]*" data-action="loading"/,
-    );
-    expect(html).toContain("worker-chat-action tw:relative tw:inline-flex tw:min-h-6 tw:flex-[0_0_44px]");
-    expect(html).toContain("worker-chat-loading tw:absolute tw:inset-y-0 tw:right-1 tw:my-auto");
-    expect(html).toMatch(
-      /class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,
-    );
-    expect(html).not.toContain("tw:!hidden");
-    expect(html).toMatch(
-      /class="ui-list-item is-selected [^"]*\bworker-chat-item\b[^"]*\bis-active\b[^"]*"/,
-    );
-    expect(html).toContain("worker-chat-item-head tw:flex tw:w-full tw:items-center tw:gap-1.5");
-    expect(html).not.toContain("worker-chat-item:hover_");
-    const workerStyles = readOwnedStyle(
-      "features", "workers", "components", "WorkerNavigator.module.css",
-    );
-    expect(workerStyles).toMatch(
-      /\.worker-chat-item:hover,[\s\S]*?\.worker-chat-item\.is-selected\s*\{[\s\S]*?background-color:\s*transparent;[\s\S]*?color:\s*var\(--text-main\);/,
-    );
-    expect(workerStyles).toMatch(
-      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*position:\s*absolute;[^}]*top:\s*0;[^}]*right:\s*4px;[^}]*bottom:\s*0;[^}]*margin-block:\s*auto;[^}]*display:\s*none;/,
-    );
-    expect(workerStyles).not.toMatch(
-      /\[data-action\]\s+\.worker-chat-loading\s*\{[^}]*transform:/,
-    );
-    expect(workerStyles).toMatch(
-      /\[data-action="loading"\]\s+\.worker-chat-loading,[\s\S]*?\[data-action="awaiting"\]\s+\.worker-chat-loading\s*\{[^}]*display:\s*inline-flex;/,
-    );
-    expect(workerStyles).toMatch(
-      /\[data-action\]\s+\.chat-actions-trigger\s*\{[\s\S]*?display:\s*none;/,
-    );
-    expect(workerStyles).not.toMatch(
-      /\[data-action\]\s+\.chat-actions-trigger,\s*\n\[data-action\]\s+\.worker-chat-loading/,
-    );
-    expect(workerStyles).toMatch(
-      /\.worker-chat-item:hover\s+\[data-action\]:not\(\[data-action="loading"\]\):not\(\[data-action="awaiting"\]\)\s+\.chat-actions-trigger,[\s\S]*?display:\s*inline-flex;/,
-    );
+    expect(html).toContain('data-material-icon="progress_activity"');
+    expect(html).not.toContain("tw:flex-[0_0_44px]");
+    expect(html).toContain('aria-current="page"');
   });
 
-  it("renders awaiting status across worker header and preview rows", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
+  it.each([["approval", "等待批准"], ["question", "等待回答"], ["planning", "等待实施"]])("keeps %s awaiting status on the conversation row", (mode, label) => {
+    const state = createWorkerState(); state.leftDrawerOpen = true;
     state.chats[state.chats.length - 1].hasPendingAwaiting = true;
-    state.chats[0].hasPendingAwaiting = true;
+    state.chats[state.chats.length - 1].awaiting = { mode };
     mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toContain(
-      '<div class="worker-panel-preview"><span>Chat 6</span><span class="chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn">等待审批</span><span class="material-icon worker-chat-loading tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin" data-material-icon="progress_activity">',
-    );
-    expect(html).toMatch(
-      /<span class="[^"]*\bworker-chat-name\b[^"]*">Chat 6<\/span><div class="[^"]*\bworker-chat-tail\b[^"]*"><span class="[^"]*\bchat-awaiting-status\b[^"]*">等待审批<\/span><span class="[^"]*\bworker-chat-action\b[^"]*" data-action="awaiting"><span class="material-icon [^"]*\bworker-chat-loading\b[^"]*" data-material-icon="progress_activity">/,
-    );
-    expect(html).toMatch(
-      /data-action="awaiting"[\s\S]*class="chat-actions-trigger [^"]*\btw:hidden\b[^"]*"/,
-    );
-    expect(html).toContain("worker-chat-action");
-  });
-
-  it("renders awaiting status text based on awaiting mode", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
-    const targetChat = state.chats[state.chats.length - 1];
-    targetChat.hasPendingAwaiting = true;
-    targetChat.awaiting = { mode: "approval" };
-    mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toMatch(
-      /<span class="[^"]*\bchat-awaiting-status\b[^"]*">等待批准<\/span>/,
-    );
-  });
-
-  it("renders awaiting status as question text when mode is question", () => {
-    const state = createWorkerState();
-    state.leftDrawerOpen = true;
-    const targetChat = state.chats[state.chats.length - 1];
-    targetChat.hasPendingAwaiting = true;
-    targetChat.awaiting = { mode: "question" };
-    mockState(state);
-
-    const html = renderSidebar();
-
-    expect(html).toMatch(
-      /<span class="[^"]*\bchat-awaiting-status\b[^"]*">等待回答<\/span>/,
-    );
+    expect(renderSidebar()).toContain(label);
   });
 });

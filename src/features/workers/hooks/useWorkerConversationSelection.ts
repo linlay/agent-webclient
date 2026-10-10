@@ -65,7 +65,7 @@ export function useWorkerConversationSelection(
 				dispatch({
 					type: "APPEND_DEBUG",
 					line: t("worker.history.none", {
-						kind: row.type === "team" ? t("worker.kindLabel.team") : t("worker.kindLabel.agent"),
+						kind: (t("worker.kindLabel.agent")),
 						name: row.displayName,
 					}),
 				});

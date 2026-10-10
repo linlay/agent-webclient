@@ -177,7 +177,7 @@ export function buildBTWPayload(options: BTWStreamParams): Record<string, unknow
 export function buildAttachPayload(options: AttachStreamParams): {
   runId: string;
   agentKey?: string;
-  teamId?: string;
+
   lastSeq: number;
 } {
   const lastSeq = Number(options.lastSeq ?? 0);
@@ -628,7 +628,7 @@ export const dataEndpoints = createEndpointRegistry({
       compactPayload({
         includeChats: options.includeChats,
         chatsPinned: options.chatsPinned,
-        includeTeam: options.includeTeam,
+
         hasWorkspace: options.hasWorkspace,
         scope: options.scope,
         mode: options.mode,
@@ -855,6 +855,7 @@ export const dataEndpoints = createEndpointRegistry({
       compactPayload({
         agentKey: options.agentKey,
         mode: options.mode,
+        hasWorkspace: options.hasWorkspace,
         pinned: options.pinned,
         limit: options.limit,
       }),
@@ -1050,14 +1051,6 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: buildRunSubmitPayload,
-  }),
-  teams: defineEndpoint({
-    key: "teams.list",
-    path: "/api/teams",
-    method: "GET",
-    transport: "auto",
-    wsBackends: PLATFORM_WS_BACKENDS,
-    cache: { ttlMs: 30_000, dedupe: true },
   }),
   terminalClose: defineEndpoint({
     key: "terminal.close",

@@ -1,11 +1,10 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/AppContext";
 import type { ActionDispatch, MutableValueRef } from "@/shared/contracts/stateInterop";
-import type { WorkerListItem } from "@/features/workers/lib/workerState";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { buildWorkerRows } from "@/features/workers/lib/workerListFormatter";
 import { splitWorkerListItems } from "@/features/workers/lib/workerDataCoordinator";
-import { getAgents } from "@/shared/data";
+import { readSidebarAgents } from "./sidebarAgentData";
 
 export async function handleCreateAgentSuccess(
   createdKey: string,
@@ -13,26 +12,23 @@ export async function handleCreateAgentSuccess(
   stateRef: MutableValueRef<AppState>,
 ) {
   if (!createdKey) return;
-  const agentsResponse = await getAgents({
+  const items = await readSidebarAgents({
     includeChats: 5,
-    includeTeam: true,
+    chatsPinned: false,
+
     scope: "nav",
   });
-  const workers = splitWorkerListItems(
-    Array.isArray(agentsResponse.data)
-      ? (agentsResponse.data as WorkerListItem[])
-      : [],
-  );
+  const workers = splitWorkerListItems(items);
   const chats = mergeFetchedChats(stateRef.current.chats, workers.chats);
   dispatch({ type: "SET_AGENTS", agents: workers.agents });
-  dispatch({ type: "SET_TEAMS", teams: workers.teams });
+
   dispatch({ type: "SET_WORKER_ORDER_KEYS", workerOrderKeys: workers.workerOrderKeys });
   dispatch({ type: "SET_CHATS", chats });
   dispatch({
     type: "SET_WORKER_ROWS",
     rows: buildWorkerRows({
       agents: workers.agents,
-      teams: workers.teams,
+
       chats,
       workerOrderKeys: workers.workerOrderKeys,
       workerPriorityKey: `agent:${createdKey}`,

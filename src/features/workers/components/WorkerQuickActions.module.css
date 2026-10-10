@@ -1,19 +1,22 @@
 .actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 2px;
-  padding: 0 6px;
+  padding: 8px 8px 12px;
 }
 
 .actions > :global(.ui-btn.ui-btn-sm) {
   min-width: 0;
-  padding-inline: 2px;
-  font-size: 12px;
+  justify-content: flex-start;
+  height: 32px;
+  padding-inline: 8px;
+  border-radius: 7px;
+  font-size: 13px;
 }
 
 .actions :global(.ui-btn-label) {
   min-width: 0;
-  gap: 4px;
+  gap: 9px;
   white-space: nowrap;
 }
 

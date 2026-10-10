@@ -9,27 +9,27 @@ const mockOpenTarget = jest.fn();
 let capturedSelectRow: ((row: GlobalRow) => void) | undefined;
 
 jest.mock("antd", () => ({
-  Modal: ({ children }: { children: React.ReactNode }) =>
-    React.createElement(React.Fragment, null, children),
+    Modal: ({ children }: {
+        children: React.ReactNode;
+    }) => React.createElement(React.Fragment, null, children)
 }));
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: () => jest.fn(),
   useAppState: () => ({
-    agents: [],
     chats: [],
-    teams: [],
     workerRows: [],
     chatId: "chat-1",
-  }),
+        agents: []
+    })
 }));
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
   resolveCurrentWorkerSummary: () => ({
     type: "agent",
     sourceId: "agent-1",
-    displayName: "Agent One",
-  }),
+        displayName: "Agent One"
+    })
 }));
 
 jest.mock("@/features/search/lib/globalSearchRows", () => ({
@@ -40,43 +40,45 @@ jest.mock("@/features/search/lib/globalSearchRows", () => ({
       key: "history",
       label: "History",
       icon: "history",
-      action: "history",
+            action: "history"
     },
-  ],
+    ]
 }));
 
 jest.mock("@/features/search/components/GlobalSearchPanel", () => ({
-  GlobalSearchPanel: (props: { onSelectRow: (row: GlobalRow) => void }) => {
+    GlobalSearchPanel: (props: {
+        onSelectRow: (row: GlobalRow) => void;
+    }) => {
     capturedSelectRow = props.onSelectRow;
     return React.createElement("div", null, "search");
-  },
+    }
 }));
 
 jest.mock("@/features/search/components/GlobalSearchOverlayProvider", () => ({
   useGlobalSearchActions: () => ({ closeGlobalSearch: mockCloseGlobalSearch }),
-  useGlobalSearchOpen: () => true,
+    useGlobalSearchOpen: () => true
 }));
 
 jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayActions: () => ({
-    openCommandOverlay: mockOpenCommandOverlay,
-  }),
+        openCommandOverlay: mockOpenCommandOverlay
+    })
 }));
 
 jest.mock("@/features/settings/components/SettingsOverlayProvider", () => ({
-  useSettingsOverlayActions: () => ({ openOverlay: jest.fn() }),
+    useSettingsOverlayActions: () => ({ openOverlay: jest.fn() })
 }));
 
 jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({
-  useOpenTarget: () => mockOpenTarget,
+    useOpenTarget: () => mockOpenTarget
 }));
 
 jest.mock("@/shared/data", () => ({
-  searchGlobal: jest.fn(),
+    searchGlobal: jest.fn()
 }));
 
 jest.mock("@/shared/i18n", () => ({
-  useI18n: () => ({ t: (key: string) => key }),
+    useI18n: () => ({ t: (key: string) => key })
 }));
 
 describe("GlobalSearchOverlay", () => {
@@ -96,7 +98,7 @@ describe("GlobalSearchOverlay", () => {
       key: "history",
       label: "History",
       icon: "history",
-      action: "history",
+    action: "history"
     });
 
     expect(mockCloseGlobalSearch).toHaveBeenCalled();

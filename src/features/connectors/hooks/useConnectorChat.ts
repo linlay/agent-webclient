@@ -52,7 +52,7 @@ export function useConnectorChat({ item, draft, dirty, confirmLeave, confirmNavi
     try {
       const desktop = isDesktopAppMode();
       const agentKey = desktop ? new URL(source).searchParams.get("chatDefaultAgentKey")?.trim() || ""
-        : firstChatAgent((await observeRequest(getAgents({ scope: "nav", includeTeam: false }), signal)).data);
+        : firstChatAgent((await observeRequest(getAgents({ scope: "nav",  }), signal)).data);
       assertCurrent();
       if (!agentKey) { setError("resourceAssistant.agentUnavailable"); return; }
       await prepareConnectorChat(initial.item, agentKey, {

@@ -7,7 +7,7 @@ describe("DataQueryCache", () => {
     expect(cache.getSnapshot("missing")).toBe(cache.getSnapshot("missing"));
 
     await cache.fetch("agents", () => Promise.resolve(["agent-a"]), {
-      ttlMs: 1_000,
+    ttlMs: 1000
     });
 
     const firstSnapshot = cache.getSnapshot<string[]>("agents", 1_000);
@@ -16,7 +16,7 @@ describe("DataQueryCache", () => {
     expect(firstSnapshot).toMatchObject({
       status: "success",
       data: ["agent-a"],
-      isStale: false,
+    isStale: false
     });
   });
 
@@ -24,8 +24,8 @@ describe("DataQueryCache", () => {
     const cache = new DataQueryCache();
     const fetcher = jest.fn(() => Promise.resolve(["agent-a"]));
 
-    const first = cache.fetch("agents", fetcher, { ttlMs: 1_000 });
-    const second = cache.fetch("agents", fetcher, { ttlMs: 1_000 });
+    const first = cache.fetch("agents", fetcher, { ttlMs: 1000 });
+    const second = cache.fetch("agents", fetcher, { ttlMs: 1000 });
 
     await expect(Promise.all([first, second])).resolves.toEqual([
       ["agent-a"],
@@ -33,7 +33,7 @@ describe("DataQueryCache", () => {
     ]);
     await expect(
       cache.fetch("agents", jest.fn(() => Promise.resolve(["agent-b"])), {
-        ttlMs: 1_000,
+    ttlMs: 1000
       }),
     ).resolves.toEqual(["agent-a"]);
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -43,14 +43,14 @@ describe("DataQueryCache", () => {
     const cache = new DataQueryCache({ maxEntries: 2 });
 
     await cache.fetch("agents", () => Promise.resolve(["agent-a"]), {
-      ttlMs: 1_000,
+    ttlMs: 1000
     });
     await cache.fetch("teams", () => Promise.resolve(["team-a"]), {
-      ttlMs: 1_000,
+    ttlMs: 1000
     });
     cache.getSnapshot("agents", 1_000);
     await cache.fetch("chats", () => Promise.resolve(["chat-a"]), {
-      ttlMs: 1_000,
+    ttlMs: 1000
     });
 
     expect(cache.size).toBe(2);
@@ -63,10 +63,10 @@ describe("DataQueryCache", () => {
     const cache = new DataQueryCache();
 
     await cache.fetch("request:agents.list", () => Promise.resolve(["agent-a"]), {
-      ttlMs: 1_000,
+    ttlMs: 1000
     });
     await cache.fetch("request:teams.list", () => Promise.resolve(["team-a"]), {
-      ttlMs: 1_000,
+    ttlMs: 1000
     });
 
     cache.invalidatePrefix("request:agents");
@@ -85,13 +85,13 @@ describe("DataQueryCache", () => {
         new Promise<string[]>((resolve) => {
           resolveStale = resolve;
         }),
-      { ttlMs: 1_000 },
+      { ttlMs: 1000 },
     );
 
     cache.invalidatePrefix("request:agents");
 
     await cache.fetch("request:agents.list", () => Promise.resolve(["fresh"]), {
-      ttlMs: 1_000,
+    ttlMs: 1000
     });
     resolveStale(["stale"]);
     await expect(staleRequest).resolves.toEqual(["stale"]);

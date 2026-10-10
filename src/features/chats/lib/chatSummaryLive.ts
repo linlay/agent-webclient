@@ -6,7 +6,6 @@ import { resolveChatSummaryActiveRun } from '@/features/chats/lib/chatRunState';
 import {
   readEventChatName,
   readEventFirstAgentName,
-  readEventTeamId,
 } from '@/features/events/lib/eventFields';
 import { toText } from '@/shared/utils/eventUtils';
 import { isEpochMillis } from '@/shared/utils/platformTime';
@@ -17,13 +16,13 @@ export interface LiveChatSummaryCache {
   chatId: string;
   runId: string;
   agentKey: string;
-  teamId: string;
+
   editingMode?: boolean;
 }
 
 export interface LiveChatSummaryContext {
   agentKey: string;
-  teamId: string;
+
 }
 
 export function resolveChatSummaryUpdatedAt(
@@ -98,19 +97,16 @@ export function upsertLiveChatSummary(input: {
   const runId = toText(event.runId) || cache.runId || toText(state.runId);
   const existingChat = state.chats.find((chat) => toText(chat?.chatId) === chatId);
   const rememberedAgentKey = toText(state.chatAgentById.get(chatId));
-  // A persisted Team route is the authoritative chat owner.  In particular,
-  // member events may carry agentKey but must never change it into an Agent chat.
+  // The persisted root Agent remains the Chat owner across member events.
   const owner =
     toRunOwner(existingChat) ||
-    toRunOwner({ teamId: cache.teamId, agentKey: cache.agentKey }) ||
-    toRunOwner({ teamId: readEventTeamId(event), agentKey: event.agentKey }) ||
+    toRunOwner({  agentKey: cache.agentKey }) ||
+    toRunOwner({  agentKey: event.agentKey }) ||
     toRunOwner(selectedContext);
   const agentKey = owner?.kind === 'agent'
     ? owner.agentKey
     : '';
-  const teamId = owner?.kind === 'orchestrated-team'
-    ? owner.teamId
-    : '';
+
   const source = toText(event.source) || toText(existingChat?.source);
   const updatedAt = resolveChatSummaryUpdatedAt(event);
   const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
@@ -130,7 +126,7 @@ export function upsertLiveChatSummary(input: {
       ...(agentKey
         ? { firstAgentKey: agentKey, agentKey }
         : { firstAgentKey: undefined, agentKey: undefined }),
-      teamId: teamId || undefined,
+
       owner: owner || undefined,
       source: source || undefined,
       lastRunId: runId || undefined,
@@ -143,7 +139,7 @@ export function upsertLiveChatSummary(input: {
         ? {
             runId,
             ...(agentKey ? { agentKey } : {}),
-            ...(teamId ? { teamId } : {}),
+
             ...(owner ? { owner } : {}),
             ...(typeof editingMode === 'boolean' ? { editingMode } : {}),
           }
@@ -155,7 +151,7 @@ export function upsertLiveChatSummary(input: {
       chatId,
       runId,
       agentKey,
-      teamId,
+
       ...(typeof editingMode === 'boolean' ? { editingMode } : {}),
     },
   };

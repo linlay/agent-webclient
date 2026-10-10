@@ -70,6 +70,8 @@ export interface AgentFormState {
   budgetText: string;
   controlsText: string;
   kbaseConfigText?: string;
+  teamMembersText?: string;
+  teamMaxParallel?: number;
   runtimeConfigText: string;
   memoryConfigText: string;
   proxyConfigText: string;
@@ -456,6 +458,8 @@ export function modePresentation(
       return { icon: "refresh", label: t("agentConsole.mode.react.label"), description: t("agentConsole.mode.react.description") };
     case "CODER":
       return { icon: "code", label: t("agentConsole.mode.coder.label"), description: t("agentConsole.mode.coder.description") };
+    case "TEAM":
+      return { icon: "person", label: t("agentConsole.mode.team.label"), description: t("agentConsole.mode.team.description") };
     case "KBASE":
       return { icon: "book_2", label: t("agentConsole.mode.kbase.label"), description: t("agentConsole.mode.kbase.description") };
     default:
@@ -723,6 +727,8 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
     ),
     interactionConfig: definition.interactionConfig as import("@/shared/contracts/interaction").InteractionOverrides | undefined,
     kbaseConfigText: stringifyJson(definition.kbaseConfig),
+    teamMembersText: textListFromUnknown(asRecord(definition.teamConfig).members).join(", "),
+    teamMaxParallel: Number(asRecord(definition.teamConfig).maxParallel ?? 5),
     runtimeConfigText: stringifyJson(definition.runtimeConfig),
     memoryConfigText: stringifyJson(definition.memoryConfig),
     proxyConfigText: stringifyJson(definition.proxyConfig),
@@ -746,6 +752,12 @@ export function buildDefinition(
   definition.role = form.role.trim();
   definition.description = form.description.trim();
   definition.mode = normalizeModeForForm(form.mode);
+  if (definition.mode === "TEAM") {
+    const members = (form.teamMembersText || "").split(/[,\n]/).map(key => key.trim()).filter(Boolean);
+    definition.teamConfig = { members, maxParallel: form.teamMaxParallel ?? 5 };
+  } else {
+    delete definition.teamConfig;
+  }
   if (form.interactionConfig) definition.interactionConfig = form.interactionConfig;
   else delete definition.interactionConfig;
 

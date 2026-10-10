@@ -20,12 +20,13 @@ import {
   mergeFetchedChats,
 } from '@/features/chats/lib/chatSummary';
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
+import { readSidebarAgents } from '@/features/workers/lib/sidebarAgentData';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 type AgentListRequestOptions = {
   includeChats?: number;
   chatsPinned?: boolean;
-  includeTeam: true;
+
   scope: 'nav' | 'copilot';
 };
 
@@ -44,7 +45,7 @@ export function buildAgentListRequestOptions(
   const scope = resolveAgentListScope(pathname);
   return {
     includeChats: scope === 'copilot' ? undefined : includeChats,
-    includeTeam: true,
+
     scope,
   };
 }
@@ -119,20 +120,6 @@ export function useWorkerData(input: {
     return workerKey.startsWith('agent:') ? workerKey : '';
   }, []);
 
-  const findDefaultTeamWorkerKey = useCallback((rows: WorkerRow[]): string => {
-    const matched = rows.find((row) => {
-      if (row.type !== 'team') return false;
-      const name = String(row.displayName || '').trim().toLowerCase();
-      const sourceId = String(row.sourceId || '').trim().toLowerCase();
-      return name === 'default team'
-        || name === 'default_team'
-        || name === '默认小组'
-        || sourceId === 'default_team'
-        || sourceId === 'default';
-    });
-    return matched?.key || '';
-  }, []);
-
   const ensureWorkerSelection = useCallback((rows: WorkerRow[], preferredWorkerKey = ''): string => {
     const preferred = String(preferredWorkerKey || '').trim();
     if (preferred && rows.some((row) => row.key === preferred)) {
@@ -146,19 +133,16 @@ export function useWorkerData(input: {
       const firstAgentKey = rows.find((row) => row.type === 'agent')?.key || '';
       if (firstAgentKey) return firstAgentKey;
     }
-    const defaultTeamKey = findDefaultTeamWorkerKey(rows);
-    if (defaultTeamKey) return defaultTeamKey;
     return rows[0]?.key || '';
-  }, [findDefaultTeamWorkerKey, stateRef]);
+  }, [stateRef]);
 
   const rebuildWorkerRowsFromState = useCallback((overrides: WorkerRefreshOverrides = {}) => {
     const current = stateRef.current;
     const agents = overrides.agents ?? current.agents;
-    const teams = overrides.teams ?? current.teams;
     const chats = overrides.chats ?? current.chats;
     const rows = buildWorkerRows({
       agents,
-      teams,
+
       chats,
       workerOrderKeys: overrides.workerOrderKeys ?? current.workerOrderKeys,
       workerPriorityKey: overrides.workerPriorityKey ?? current.workerPriorityKey,
@@ -180,7 +164,7 @@ export function useWorkerData(input: {
 
   const getWorkerDataSnapshot = useCallback((): WorkerDataSnapshot => ({
     agents: stateRef.current.agents,
-    teams: stateRef.current.teams,
+
     chats: stateRef.current.chats,
     workerOrderKeys: stateRef.current.workerOrderKeys,
     workerSelectionKey: stateRef.current.workerSelectionKey,
@@ -197,6 +181,7 @@ export function useWorkerData(input: {
   }, [dispatch]);
 
   const fetchAgentsWithScopeFallback = useCallback(async (options: AgentListRequestOptions): Promise<WorkerListItem[]> => {
+    if (options.scope === 'nav') return readSidebarAgents(options);
     const response = await getAgents(options);
     const items = Array.isArray(response.data) ? (response.data as WorkerListItem[]) : [];
     const fallbackOptions = shouldFallbackMixedWorkerList(items, options)
@@ -205,28 +190,11 @@ export function useWorkerData(input: {
     if (!fallbackOptions) {
       return items;
     }
-    const fallbackResponse = await getAgents(fallbackOptions);
-    return Array.isArray(fallbackResponse.data) ? (fallbackResponse.data as WorkerListItem[]) : [];
+    return readSidebarAgents(fallbackOptions);
   }, []);
 
   const loadAgents = useCallback(async () => {
-    await runWithSidebarLoading(async () => {
-      try {
-        const workers = splitWorkerListItems(
-          await fetchAgentsWithScopeFallback(buildAgentListRequestOptions(currentPathname())),
-        );
-        dispatch({ type: 'SET_AGENTS', agents: workers.agents });
-        dispatch({ type: 'SET_TEAMS', teams: workers.teams });
-        dispatch({ type: 'SET_WORKER_ORDER_KEYS', workerOrderKeys: workers.workerOrderKeys });
-        rebuildWorkerRowsFromState({
-          agents: workers.agents,
-          teams: workers.teams,
-          workerOrderKeys: workers.workerOrderKeys,
-        });
-      } catch (error) {
-        dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
-      }
-    });
+
   }, [dispatch, fetchAgentsWithScopeFallback, rebuildWorkerRowsFromState, runWithSidebarLoading]);
 
   const loadChats = useCallback(async () => {
@@ -243,47 +211,7 @@ export function useWorkerData(input: {
   }, [dispatch, rebuildWorkerRowsFromState, runWithSidebarLoading, stateRef]);
 
   const performWorkerRefresh = useCallback(async () => {
-    await runWithSidebarLoading(async () => {
-      const baseChats = stateRef.current.chats;
-      let pins: ChatPinningSnapshot | undefined;
-      try {
-        pins = await readChatPinningSnapshot();
-      } catch (error) {
-        dispatch({ type: 'APPEND_DEBUG', line: `[load chat pins error] ${String(error)}` });
-      }
-      await refreshWorkerDataFromAgentsWithChats({
-        fetchAgents: async () => {
-          return fetchAgentsWithScopeFallback(
-            {
-              ...buildAgentListRequestOptions(currentPathname(), INITIAL_AGENT_CHAT_LIMIT),
-              chatsPinned: false,
-            },
-          );
-        },
-        getSnapshot: getWorkerDataSnapshot,
-        applyAgents: (agents) => {
-          dispatch({ type: 'SET_AGENTS', agents });
-        },
-        applyTeams: (teams) => {
-          dispatch({ type: 'SET_TEAMS', teams });
-        },
-        applyWorkerOrderKeys: (workerOrderKeys) => {
-          dispatch({ type: 'SET_WORKER_ORDER_KEYS', workerOrderKeys });
-        },
-        applyChats: (chats) => {
-          dispatch({ type: 'SET_CHATS', chats });
-        },
-        rebuildWorkerRows: (overrides) => {
-          rebuildWorkerRowsFromState(overrides);
-        },
-        appendDebug: (line) => {
-          dispatch({ type: 'APPEND_DEBUG', line });
-        },
-      });
-      if (pins && !refreshAgainRef.current && !stateRef.current.chatPinningPending) {
-        dispatch({ type: 'SET_CHAT_PINNING', ...pins, baseChats });
-      }
-    });
+
   }, [dispatch, fetchAgentsWithScopeFallback, getWorkerDataSnapshot, rebuildWorkerRowsFromState, runWithSidebarLoading, stateRef]);
 
   const refreshWorkerData = useCallback((): Promise<void> => {
@@ -386,13 +314,7 @@ export function useWorkerData(input: {
     return () => window.removeEventListener('agent:refresh-agents', handler);
   }, [loadAgents]);
 
-  useEffect(() => {
-    const handler = () => {
-      loadAgents().catch(() => undefined);
-    };
-    window.addEventListener('agent:refresh-teams', handler);
-    return () => window.removeEventListener('agent:refresh-teams', handler);
-  }, [loadAgents]);
+
 
   useEffect(() => {
     const handler = () => {
@@ -456,7 +378,6 @@ export function useWorkerData(input: {
 
   return {
     loadAgents,
-    loadTeams: loadAgents,
     loadChats,
     refreshWorkerData,
   };

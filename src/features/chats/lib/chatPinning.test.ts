@@ -8,10 +8,10 @@ import { createInitialState } from '@/app/state/state';
 
 describe('unified chat pinning', () => {
   const chats = [
-    { chatId: 'ordinary', agentKey: 'normal', updatedAt: 1_710_000_000_003 },
-    { chatId: 'coder', agentKey: 'coder', updatedAt: 1_710_000_000_002 },
-    { chatId: 'kbase', agentKey: 'kb', updatedAt: 1_710_000_000_001 },
-    { chatId: 'team', teamId: 'ops', updatedAt: 1_710_000_000_000 },
+    { chatId: 'ordinary', agentKey: 'normal', updatedAt: 1710000000003 },
+    { chatId: 'coder', agentKey: 'coder', updatedAt: 1710000000002 },
+    { chatId: 'kbase', agentKey: 'kb', updatedAt: 1710000000001 },
+    { chatId: 'team', agentKey: 'ops', updatedAt: 1710000000000 },
   ];
   it('uses a global order across owners independent of content times', () => {
     const order = ['team', 'kbase', 'ordinary', 'coder'];
@@ -28,8 +28,8 @@ describe('unified chat pinning', () => {
   });
   it('protects pushes and deletes arriving during a pinned list fetch', () => {
     const baseChats = [{ chatId: 'a', chatName: 'old', hasActiveRun: false }, { chatId: 'deleted' }];
-    const state = { ...createInitialChatsState(), chats: [{ ...baseChats[0], chatName: 'renamed', hasActiveRun: true, read: { isRead: true, readAt: 1_710_000_000_100 } }] };
-    const action: ChatsAction = { type: 'SET_CHAT_PINNING', order: ['a', 'deleted', 'new'], baseChats, chats: [...baseChats, { chatId: 'new', teamId: 'ops' }] };
+    const state = { ...createInitialChatsState(), chats: [{ ...baseChats[0], chatName: 'renamed', hasActiveRun: true, read: { isRead: true, readAt: 1710000000100 } }] };
+    const action: ChatsAction = { type: 'SET_CHAT_PINNING', order: ['a', 'deleted', 'new'], baseChats, chats: [...baseChats, { chatId: 'new', agentKey: 'ops' }] };
     const result = reduceChatPinningState(state, action)!;
     expect(result.chatPinnedOrder).toEqual(['a', 'new']);
     expect(result.chats.find(c => c.chatId === 'a')).toMatchObject({ chatName: 'renamed', hasActiveRun: true, pinned: true, read: { isRead: true } });

@@ -65,7 +65,7 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 支持 VIEW 连接器的 HTML/QLC 结果展示与 HITL 表单，管理页并列展示 MCP / CLI / VIEW。新 VIEW 使用隔离 iframe 和 Chat 快照；旧 Viewport HTML 和 Frontend Tool 容器保持兼容。接入契约见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。后端可以把业务页面、工具界面或表单视图交给前端展示，前端负责加载、初始化、通信、提交和关闭。Artifact 面板支持图片、PDF、HTML、文本、音频、视频、Office 等文件预览。
 
-Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<relativePath>` URL。前端统一分类：ChatScope 在内部加当前 chatId 后转为 `GET /api/resource?file=...`，普通 Agent 的 Workspace POSIX 绝对路径与 `/tmp/...` 转为带 `chatId` 的鉴权请求，Team 拒绝全部绝对路径；HTTP(S)、`data:`、`blob:` 原样使用。真实 `/api/resource`、`file://`、`<currentChatId>/<relativePath>` 和 traversal 都不是 Markdown 地址，不发起请求；历史 endpoint Markdown 不迁移且不再预览。
+Chat 图片与 Artifact 使用后端返回的不含 `chatId` 的 ChatScope `<relativePath>` URL。前端统一分类：ChatScope 在内部加当前 chatId 后转为 `GET /api/resource?file=...`，普通 Agent 的 Workspace POSIX 绝对路径与 `/tmp/...` 转为带 `chatId` 的鉴权请求，TEAM 使用自己的 Workspace 和临时根判权；HTTP(S)、`data:`、`blob:` 原样使用。真实 `/api/resource`、`file://`、`<currentChatId>/<relativePath>` 和 traversal 都不是 Markdown 地址，不发起请求；历史 endpoint Markdown 不迁移且不再预览。
 
 ![业务视图容器](docs/images/screenshots/business-viewport.png)
 
@@ -196,7 +196,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 
 AGW Web Client 需要一个可访问的上游智能体服务。常用入口包括：
 
-- `GET /api/agents?includeTeam=true`：返回按最近 `lastRunId` 混排的 Agent / Team 扁平列表；Team 带 `kind: "team"`、对话统计与最近 chats。HTTP 与 WebSocket `/api/agents` 使用相同字段。
+- `GET /api/agents`：返回普通 Agent 列表，包含 mode: TEAM、对话统计与最近 chats。HTTP 与 WebSocket `/api/agents` 使用相同字段。
 - `GET /api/chats`：可带 `agentKey`、`mode`；`mode` 只影响 Agent-owned chat，必须保留 Team-owned chat。
 - `GET /api/chat`
 - `POST /api/query`
@@ -327,3 +327,5 @@ make dev
 运行中附件 steer 复用 `/api/upload` 与 `references`，支持纯图片、HTML/MD 等普通文件及混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 首次 query 要求非空正文，后续 query 可只带有效文件或选区引用。Run 结束后，已有主 query 历史的纯引用排队项可转为后续 query；缺少历史确认时恢复输入区等待正文。空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
 
 知识库中心 `/kbases` 由 `features/kbases` 管理，支持多 collection 建库、后台索引状态、集合与路径浏览，以及综合/全文/向量/图召回方式选择；可用性以 KBX 索引状态为准，图谱构建尚未接通，见 [知识库中心](docs/62-页面能力-知识库中心.md)。
+
+TEAM 与普通 Agent 共用 agentKey 身份、目录、管理和运行控制。成员配置来自 teamConfig；不维护独立 Team 列表。

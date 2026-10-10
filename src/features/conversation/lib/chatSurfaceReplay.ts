@@ -114,7 +114,7 @@ export function resolveChatSurfaceOwner(
   activeRun: Record<string, unknown> | null,
 ): RunOwner | null {
   const activeOrLegacyOwner = toRunOwner({
-    teamId: activeRun?.teamId || chat.teamId,
+
     agentKey:
       activeRun?.agentKey ||
       chat.firstAgentKey ||

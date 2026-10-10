@@ -5,7 +5,7 @@ import { toText } from "@/shared/utils/eventUtils";
 type Translate = (key: string, params?: TranslateParams) => string;
 
 export interface TerminalWorkerSummary {
-  type: "agent" | "team";
+  type: "agent";
   sourceId: string;
   raw: Record<string, unknown> | null;
   row: { workspaceDir?: string };

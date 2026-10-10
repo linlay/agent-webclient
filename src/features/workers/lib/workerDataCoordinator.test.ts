@@ -1,6 +1,5 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team } from "@/features/workers/lib/workerState";
 import {
   extractChatsFromAgents,
   refreshWorkerDataFromAgentsWithChats,
@@ -8,12 +7,12 @@ import {
 } from '@/features/workers/lib/workerDataCoordinator';
 
 describe('refreshWorkerDataFromAgentsWithChats', () => {
-  const currentTeams: Team[] = [{ teamId: 'team-old', name: 'Old Team' } as Team];
+  const currentTeams: Agent[] = [{ key: 'team-old', name: 'Old Team', mode: "TEAM" } as Agent];
   const currentChats: Chat[] = [{ chatId: 'chat-old', chatName: 'Old Chat' } as Chat];
 
   it('keeps the current worker data untouched and logs a failed unified refresh', async () => {
     const applyAgents = jest.fn();
-    const applyTeams = jest.fn();
+
     const applyWorkerOrderKeys = jest.fn();
     const applyChats = jest.fn();
     const rebuildWorkerRows = jest.fn();
@@ -22,20 +21,20 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
       fetchAgents: jest.fn().mockRejectedValue(new Error('agents unavailable')),
       getSnapshot: () => ({
         agents: [],
-        teams: currentTeams,
+
         chats: currentChats,
         workerOrderKeys: [],
         workerSelectionKey: '',
-        workerPriorityKey: '',
+        workerPriorityKey: ''
       }),
       applyAgents,
-      applyTeams,
+
       applyWorkerOrderKeys,
       applyChats,
       rebuildWorkerRows,
-      appendDebug,
+    appendDebug
     });
-    for (const apply of [applyAgents, applyTeams, applyWorkerOrderKeys, applyChats, rebuildWorkerRows]) {
+    for (const apply of [applyAgents, applyWorkerOrderKeys, applyChats, rebuildWorkerRows]) {
       expect(apply).not.toHaveBeenCalled();
     }
     expect(appendDebug).toHaveBeenCalledWith('[loadAgents error] agents unavailable');
@@ -50,7 +49,7 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
           chats: [
             { chatId: 'chat-a', chatName: 'Chat A' },
             { chatId: '', chatName: 'Missing id' },
-          ],
+    ]
         } as Agent,
       ]),
     ).toEqual([
@@ -64,7 +63,7 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
       runId: 'run_1',
       mode: 'question',
       status: 'awaiting',
-      createdAt: 123,
+    createdAt: 123
     };
 
     expect(
@@ -76,9 +75,9 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
             {
               chatId: 'chat-awaiting',
               chatName: 'Need answer',
-              awaiting,
+            awaiting
             },
-          ],
+    ]
         } as Agent,
       ]),
     ).toEqual([
@@ -87,7 +86,7 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
         chatName: 'Need answer',
         agentKey: 'agent-a',
         awaiting,
-        hasPendingAwaiting: true,
+    hasPendingAwaiting: true
       },
     ]);
   });
@@ -107,11 +106,11 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
                 runId: 'run_1',
                 mode: 'question',
                 status: 'awaiting',
-                createdAt: 123,
+                createdAt: 123
               },
-              hasPendingAwaiting: false,
+            hasPendingAwaiting: false
             },
-          ],
+    ]
         } as Agent,
       ]),
     ).toEqual([
@@ -124,9 +123,9 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
           runId: 'run_1',
           mode: 'question',
           status: 'awaiting',
-          createdAt: 123,
+        createdAt: 123
         },
-        hasPendingAwaiting: false,
+    hasPendingAwaiting: false
       },
     ]);
   });
@@ -134,48 +133,49 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
   it('splits mixed items, fills Team chat ownership, and preserves source order', () => {
     expect(splitWorkerListItems([
       {
-        kind: 'team',
-        teamId: 'team-ops',
+    mode: "TEAM",
+    key: 'team-ops',
         name: 'Ops',
         stats: { totalCount: 3, unreadCount: 1 },
         chats: [{ chatId: 'team-chat', chatName: 'Team Chat', lastRunId: 'run_team' }],
-      } as Team,
+    mode: "TEAM"
+} as Agent,
       {
         kind: 'agent',
         key: 'agent-a',
         name: 'Agent A',
-        chats: [{ chatId: 'agent-chat', chatName: 'Agent Chat', lastRunId: 'run_agent' }],
+    chats: [{ chatId: 'agent-chat', chatName: 'Agent Chat', lastRunId: 'run_agent' }]
       } as Agent,
     ])).toEqual({
-      agents: [expect.objectContaining({ key: 'agent-a' })],
-      teams: [expect.objectContaining({ teamId: 'team-ops', stats: { totalCount: 3, unreadCount: 1 } })],
       chats: [
-        expect.objectContaining({ chatId: 'team-chat', teamId: 'team-ops' }),
+        expect.objectContaining({ chatId: 'team-chat', agentKey: 'team-ops' }),
         expect.objectContaining({ chatId: 'agent-chat', agentKey: 'agent-a' }),
       ],
-      workerOrderKeys: ['team:team-ops', 'agent:agent-a'],
+    workerOrderKeys: ['agent:team-ops', 'agent:agent-a'],
+    agents: [expect.objectContaining({ key: 'team-ops', stats: { totalCount: 3, unreadCount: 1 }, mode: "TEAM" }), expect.objectContaining({ key: 'agent-a' })]
     });
   });
 
   it('refreshes from one mixed list, updates Teams, and rebuilds once', async () => {
     const applyAgents = jest.fn();
-    const applyTeams = jest.fn();
+
     const applyWorkerOrderKeys = jest.fn();
     const applyChats = jest.fn();
     const rebuildWorkerRows = jest.fn();
 
     const items = [
       {
-        kind: 'team',
-        teamId: 'team-new',
+    mode: "TEAM",
+    key: 'team-new',
         name: 'New Team',
         chats: [{ chatId: 'team-chat', chatName: 'Team Chat' }],
-      } as Team,
+    mode: "TEAM"
+} as Agent,
       {
         kind: 'agent',
         key: 'agent-new',
         name: 'New Agent',
-        chats: [{ chatId: 'chat-new', chatName: 'New Chat' }],
+    chats: [{ chatId: 'chat-new', chatName: 'New Chat' }]
       } as Agent,
     ];
 
@@ -183,37 +183,36 @@ describe('refreshWorkerDataFromAgentsWithChats', () => {
       fetchAgents: jest.fn().mockResolvedValue(items),
       getSnapshot: () => ({
         agents: [],
-        teams: currentTeams,
+
         chats: currentChats,
-        workerOrderKeys: ['team:team-old'],
+        workerOrderKeys: ['agent:team-old'],
         workerSelectionKey: 'agent:agent-new',
-        workerPriorityKey: 'agent:agent-old',
+        workerPriorityKey: 'agent:agent-old'
       }),
       applyAgents,
-      applyTeams,
+
       applyWorkerOrderKeys,
       applyChats,
       rebuildWorkerRows,
-      appendDebug: jest.fn(),
+    appendDebug: jest.fn()
     });
 
     const expectedChats = [
-      { chatId: 'team-chat', chatName: 'Team Chat', teamId: 'team-new' },
+      { chatId: 'team-chat', chatName: 'Team Chat', agentKey: 'team-new' },
       { chatId: 'chat-new', chatName: 'New Chat', agentKey: 'agent-new' },
       { chatId: 'chat-old', chatName: 'Old Chat' },
     ];
-    expect(applyAgents).toHaveBeenCalledWith([items[1]]);
-    expect(applyTeams).toHaveBeenCalledWith([items[0]]);
-    expect(applyWorkerOrderKeys).toHaveBeenCalledWith(['team:team-new', 'agent:agent-new']);
+    expect(applyAgents).toHaveBeenCalledWith(items);
+
+    expect(applyWorkerOrderKeys).toHaveBeenCalledWith(['agent:team-new', 'agent:agent-new']);
     expect(applyChats).toHaveBeenCalledWith(expectedChats);
     expect(rebuildWorkerRows).toHaveBeenCalledTimes(1);
     expect(rebuildWorkerRows).toHaveBeenCalledWith({
-      agents: [items[1]],
-      teams: [items[0]],
       chats: expectedChats,
-      workerOrderKeys: ['team:team-new', 'agent:agent-new'],
+    workerOrderKeys: ['agent:team-new', 'agent:agent-new'],
       workerSelectionKey: 'agent:agent-new',
       workerPriorityKey: 'agent:agent-old',
+    agents: items
     });
   });
 });

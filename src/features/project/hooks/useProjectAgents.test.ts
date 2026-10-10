@@ -35,7 +35,7 @@ describe("project Agent catalog", () => {
       { key: "kbase-without-workspace", name: "Knowledge", mode: "KBASE", workspaceDir: "" },
       { key: "root-agent", name: "Root", mode: "GENERAL", workspaceDir: " @root " },
       { key: "blank-workspace", name: "Blank", workspaceDir: "  " },
-      { teamId: "team", name: "Team" },
+        { agentKey: "team", name: "Team" },
     ] });
 
     await act(async () => root.render(React.createElement(Probe)));

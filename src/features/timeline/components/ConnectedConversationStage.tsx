@@ -876,9 +876,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       if (currentWorker?.type === "agent" && currentWorker.sourceId) {
         workerDetail.agentKey = currentWorker.sourceId;
         sendDetail.agentKey = currentWorker.sourceId;
-      } else if (currentWorker?.type === "team" && currentWorker.sourceId) {
-        sendDetail.teamId = currentWorker.sourceId;
-      }
+      } else
 
       window.dispatchEvent(
         new CustomEvent("agent:start-new-conversation", {
@@ -1640,7 +1638,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       chatId: state.chatId,
       agentKey: resolvePreferredAgentKey(state),
       teamChat: state.chats.some((chat) => chat.chatId === state.chatId &&
-        (chat.owner?.kind === "orchestrated-team" || Boolean(chat.teamId))),
+        (Boolean(undefined))),
     },
     setVoiceBlockExpanded: (nodeId, signature, expanded, text, closed) => {
       const node = state.timelineNodes.get(nodeId);
@@ -1672,7 +1670,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       attachment={attachment} variant="timeline" thumbnailMode="inline"
       surfaceContext={{ chatId: state.chatId, agentKey: resolvePreferredAgentKey(state),
         teamChat: state.chats.some((chat) => chat.chatId === state.chatId &&
-          (chat.owner?.kind === "orchestrated-team" || Boolean(chat.teamId))) }}
+          (Boolean(undefined))) }}
       {...options} />,
     setExpanded: (nodeId, expanded) => {
       const node = state.timelineNodes.get(nodeId);

@@ -19,7 +19,7 @@ function syncChatAgentBinding(
 	chat: Partial<Chat> | null | undefined,
 ): Map<string, string> {
 	const chatId = String(chat?.chatId || "").trim();
-	if (chat?.owner?.kind === "orchestrated-team" || String(chat?.teamId || "").trim()) {
+	if (String("").trim()) {
 		if (!chatId || !source.has(chatId)) {
 			return source;
 		}

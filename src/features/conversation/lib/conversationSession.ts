@@ -160,7 +160,7 @@ export function createLiveQuerySession(input: {
   observationSource?: "query" | "attach";
   chatId?: string;
   agentKey?: string;
-  teamId?: string;
+
   owner?: RunOwner;
   editingMode?: boolean;
 }): LiveQuerySession {
@@ -170,7 +170,7 @@ export function createLiveQuerySession(input: {
     chatId: String(input.chatId || '').trim(),
     runId: '',
     agentKey: String(input.agentKey || '').trim(),
-    teamId: String(input.teamId || '').trim(),
+
     owner: input.owner,
     ...(typeof input.editingMode === 'boolean'
       ? { editingMode: input.editingMode }

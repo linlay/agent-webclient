@@ -244,10 +244,10 @@ export const ControlsForm: React.FC<ControlsFormProps> = ({
     const state = useAppState();
     const currentWorker = resolveCurrentWorkerSummary(state);
     const agent = useMemo(() => {
-      if(currentWorker?.type === 'team') return null;
+
       return currentWorker?.raw as Agent;
     }, [currentWorker]);
-  
+
   const controls = useMemo<AgentControl[]>(
     () =>
       Array.isArray(agent?.controls)

@@ -43,7 +43,7 @@ export const OverviewRunInfoSection: React.FC<{
   const startTime = formatOverviewTime(info.startedAt, locale, now);
   const endTime = formatOverviewTime(info.finishedAt, locale, now);
   const model = [info.model || "—", info.reasoning].filter(Boolean).join(" · ");
-  const executor = [info.agent, info.team].filter(Boolean).join(" · ") || "—";
+  const executor = info.agent || "—";
   const copy = async (value: string) => {
     try {
       await copyText(value);

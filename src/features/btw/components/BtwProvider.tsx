@@ -30,7 +30,6 @@ import {
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { t } from "@/shared/i18n";
 import { toText } from "@/shared/utils/eventUtils";
-import { readEventTeamId } from "@/features/events/lib/eventFields";
 import {
   BTW_SESSION_STORAGE_KEY,
   findPersistedBTWSession,
@@ -288,11 +287,7 @@ export const BtwProvider: React.FC<{
       if (eventBTWID) runtime.session.btwId = eventBTWID;
       if (event.runId) runtime.session.runId = toText(event.runId);
       if (event.requestId) runtime.session.requestId = toText(event.requestId);
-      const eventTeamId = readEventTeamId(event);
-      if (eventTeamId && !runtime.session.owner) {
-        runtime.session.owner = { kind: "orchestrated-team", teamId: eventTeamId };
-        runtime.session.agentKey = "";
-      } else if (event.agentKey && runtime.session.owner?.kind !== "orchestrated-team") {
+      if (event.agentKey && !event.taskId && !event.subAgentKey) {
         runtime.session.agentKey = toText(event.agentKey);
         runtime.session.owner = runtime.session.owner || toRunOwner({ agentKey: event.agentKey }) || undefined;
       }

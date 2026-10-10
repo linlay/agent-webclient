@@ -5,8 +5,7 @@ import type { WorkerRow } from "@/features/workers/lib/workerState";
 
 jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({
-    t: (key: string) =>
-      ({
+        t: (key: string) => ({
         "switch.searchPlaceholder": "Search workers",
         "switch.scopeLabel": "Worker scope",
         "switch.scope.all": "All",
@@ -14,9 +13,9 @@ jest.mock("@/shared/i18n", () => ({
         "switch.workerType.team": "组",
         "switch.ariaLabel": "Workers",
         "switch.preview.noHistory": "No history",
-        "switch.empty": "No workers",
-      })[key] || key,
-  }),
+            "switch.empty": "No workers"
+        })[key] || key
+    })
 }));
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -27,19 +26,19 @@ jest.mock("@/app/state/AppContext", () => ({
     workerSelectionKey: "",
     workerRows: [],
     workerIndexByKey: new Map(),
-    agents: [],
-    teams: [],
-  }),
+        agents: []
+    })
 }));
 
 jest.mock("@/shared/icons/agent", () => {
   const React = require("react");
   return {
-    AgentIcon: ({ type }: { type: string }) =>
-      React.createElement("span", {
+    AgentIcon: ({ type }: {
+        type: string;
+    }) => React.createElement("span", {
         className: "command-switch-worker-icon",
-        "data-worker-type": type,
-      }),
+        "data-worker-type": type
+    })
   };
 });
 
@@ -59,7 +58,7 @@ function createWorkerRow(overrides: Partial<WorkerRow> = {}): WorkerRow {
     hasHistory: true,
     latestRunSortValue: 100,
     searchText: "alpha",
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -77,7 +76,7 @@ function renderSwitchModal(props: Partial<React.ComponentProps<typeof SwitchModa
       onScopeChange: jest.fn(),
       onActivateIndex: jest.fn(),
       onSelect: jest.fn(),
-      ...props,
+    ...props
     }),
   );
 }
@@ -96,7 +95,7 @@ describe("SwitchModal", () => {
       variant: "copilot",
       workerIconsByKey: new Map([
         ["agent:agent-alpha", { color: "#2563eb", name: "pulse" }],
-      ]),
+    ])
     });
 
     expect(html).toContain("command-switch-compact-row");

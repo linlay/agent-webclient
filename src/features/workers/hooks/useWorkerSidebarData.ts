@@ -104,7 +104,7 @@ export function useWorkerSidebarData({
   agents,
   chatFilter,
   chats,
-  teams,
+
   temporaryPinnedAgentKey,
   workerRows,
   workerSortMode = "byTime",
@@ -113,7 +113,6 @@ export function useWorkerSidebarData({
   | "agents"
   | "chatFilter"
   | "chats"
-  | "teams"
   | "temporaryPinnedAgentKey"
   | "workerRows"
 > & {
@@ -168,12 +167,9 @@ export function useWorkerSidebarData({
       if (!agent?.key || !agent.icon) continue;
       icons.set(`agent:${agent.key}`, agent.icon);
     }
-    for (const team of teams) {
-      if (!team?.teamId || !team.icon) continue;
-      icons.set(`team:${team.teamId}`, team.icon);
-    }
+
     return icons;
-  }, [agents, teams]);
+  }, [agents, ]);
 
   const workerChatsByKey = useMemo(() => {
     const chatsByKey = new Map<string, WorkerConversationRow[]>();
@@ -192,10 +188,10 @@ export function useWorkerSidebarData({
   const workerUnreadCountByKey = useMemo(() => {
     const unreadCounts = new Map<string, number>();
     for (const row of workerRows) {
-      unreadCounts.set(row.key, resolveWorkerUnreadCount(row, agents, teams, chats));
+      unreadCounts.set(row.key, resolveWorkerUnreadCount(row, agents,  chats));
     }
     return unreadCounts;
-  }, [agents, chats, teams, workerRows]);
+  }, [agents, chats,  workerRows]);
 
   const workerTotalCountByKey = useMemo(() => {
     const totalCounts = new Map<string, number>();
@@ -207,20 +203,13 @@ export function useWorkerSidebarData({
         totalCounts.set(`agent:${agentKey}`, totalCount);
       }
     }
-    for (const team of teams) {
-      const teamId = String(team?.teamId || "").trim();
-      if (!teamId) continue;
-      const totalCount = Number(team?.stats?.totalCount);
-      if (Number.isFinite(totalCount)) {
-        totalCounts.set(`team:${teamId}`, totalCount);
-      }
-    }
+
     for (const row of workerRows) {
       if (totalCounts.has(row.key)) continue;
       totalCounts.set(row.key, workerChatsByKey.get(row.key)?.length || 0);
     }
     return totalCounts;
-  }, [agents, teams, workerChatsByKey, workerRows]);
+  }, [agents,  workerChatsByKey, workerRows]);
 
   return {
     filteredWorkerRows,

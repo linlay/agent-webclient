@@ -5,7 +5,7 @@ export type CommandOverlayType =
   | "agents"
   | "kbases";
 
-export type CommandOverlayScope = "all" | "agent" | "team";
+export type CommandOverlayScope = "all" | "agent";
 export type CommandOverlayFocusArea = "search" | "list";
 
 export interface CommandOverlayState {

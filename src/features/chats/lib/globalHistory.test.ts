@@ -1,6 +1,5 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team } from "@/features/workers/lib/workerState";
 import {
   ALL_HISTORY_OWNERS,
   buildGlobalHistoryOwnerOptions,
@@ -17,7 +16,7 @@ function chat(overrides: Partial<Chat>): Chat {
     chatId: "chat-default",
     chatName: "Default chat",
     updatedAt: BASE,
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -28,28 +27,27 @@ describe("global history", () => {
       chatName: "Alpha deployment",
       agentKey: "alpha",
       updatedAt: BASE + 2 * DAY,
-      lastRunContent: "production rollout",
+    lastRunContent: "production rollout"
     }),
     chat({
       chatId: "chat-alpha-old",
       chatName: "Alpha review",
       firstAgentKey: "alpha",
       updatedAt: BASE,
-      lastRunContent: "design notes",
+    lastRunContent: "design notes"
     }),
     chat({
       chatId: "chat-team",
       chatName: "Ops incident",
-      agentKey: "stale-member",
-      teamId: "ops",
+    agentKey: "ops",
       updatedAt: BASE + DAY,
-      lastRunContent: "service restored",
+    lastRunContent: "service restored"
     }),
     chat({
       chatId: "chat-no-time",
       chatName: "No timestamp",
       agentKey: "beta",
-      updatedAt: undefined,
+    updatedAt: undefined
     }),
   ];
 
@@ -57,10 +55,10 @@ describe("global history", () => {
     const sameTime = chat({
       chatId: "chat-alpha-a",
       agentKey: "alpha",
-      updatedAt: BASE + 2 * DAY,
+    updatedAt: BASE + 2 * DAY
     });
     const rows = filterGlobalHistoryChats([...chats, sameTime], {
-      ownerKey: ALL_HISTORY_OWNERS,
+    ownerKey: ALL_HISTORY_OWNERS
     });
 
     expect(rows.map((row) => row.chatId)).toEqual([
@@ -77,16 +75,16 @@ describe("global history", () => {
       query: "production",
       ownerKey: "agent:alpha",
       startAt: BASE + 2 * DAY,
-      endAt: BASE + 2 * DAY,
+    endAt: BASE + 2 * DAY
     });
 
     expect(rows.map((row) => row.chatId)).toEqual(["chat-alpha-new"]);
   });
 
   it("filters Agent and Team owners while Team ownership wins over stale agent identity", () => {
-    expect(resolveChatHistoryOwnerKey(chats[2])).toBe("team:ops");
+    expect(resolveChatHistoryOwnerKey(chats[2])).toBe("agent:ops");
     expect(
-      filterGlobalHistoryChats(chats, { ownerKey: "team:ops" }).map(
+      filterGlobalHistoryChats(chats, { ownerKey: "agent:ops" }).map(
         (row) => row.chatId,
       ),
     ).toEqual(["chat-team"]);
@@ -110,13 +108,13 @@ describe("global history", () => {
 
   it("builds friendly catalog options and falls back to identities found in chats", () => {
     const agents: Agent[] = [{ key: "alpha", name: "Alpha Agent" }];
-    const teams: Team[] = [{ teamId: "ops", name: "Operations" }];
-    const options = buildGlobalHistoryOwnerOptions({ agents, chats, teams });
+    agents.push({ key: "ops", mode: "TEAM", name: "Operations" });
+    const options = buildGlobalHistoryOwnerOptions({ agents, chats });
 
     expect(options).toEqual([
       { key: "agent:alpha", label: "Alpha Agent", sourceId: "alpha", type: "agent" },
       { key: "agent:beta", label: "beta", sourceId: "beta", type: "agent" },
-      { key: "team:ops", label: "Operations", sourceId: "ops", type: "team" },
+      { key: "agent:ops", label: "Operations", sourceId: "ops", type: "agent" },
     ]);
   });
 

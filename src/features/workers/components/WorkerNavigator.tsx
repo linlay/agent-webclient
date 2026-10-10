@@ -13,9 +13,6 @@ import { flushSync } from "react-dom";
 import {
   Badge,
   Button,
-  Collapse,
-  CollapseProps,
-  Dropdown,
   Flex,
   Input,
   Popover,
@@ -34,9 +31,7 @@ import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useWorkerSidebarData } from "@/features/workers/hooks/useWorkerSidebarData";
-import type { WorkerSortMode } from "@/features/workers/hooks/useWorkerSidebarData";
 import type { WorkerActionHandlers } from "./WorkerActionsMenu";
-import { WorkerPanelHeader } from "@/features/workers/components/WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "@/features/workers/components/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/features/chats/components/SidebarHistorySection";
 import { markChatRead } from "@/shared/data";
@@ -63,6 +58,8 @@ import {
 } from "@/features/agents/lib/agentOperations";
 import { WorkerQuickActions } from "./WorkerQuickActions";
 import { PinnedChatSection } from "./PinnedChatSection";
+import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
+import { splitSidebarWorkers } from "../lib/sidebarNavigation";
 import "./WorkerNavigator.module.css";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
 
@@ -78,15 +75,8 @@ const LEFT_SIDEBAR_WIDTH_CLASS = {
 const LEFT_SIDEBAR_TOP_ROW_CLASS =
   "tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:pb-0 tw:pt-1";
 
-const LEFT_SIDEBAR_FILTER_ROW_CLASS = "tw:px-1.5";
-
-const SIDEBAR_STATIC_ICON_CLASS = "sidebar-static-icon";
-
 const CHAT_LIST_CLASS =
   "chat-list tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
-
-const WORKER_COLLAPSE_CLASS =
-  "worker-collapse tw:flex tw:flex-col tw:[&_.ant-collapse-item-active_.worker-panel-icon]:scale-[0.8] tw:[&_.ant-collapse-item-active_.worker-panel-preview]:h-0 tw:[&_.ant-collapse-item-active>.ant-collapse-header_.ant-badge]:hidden tw:[&_.status-line]:border-0 tw:[&_.status-line]:bg-transparent tw:[&_.worker-collapse-history]:text-text-muted";
 
 const WORKER_COLLAPSED_ICON_BASE_CLASS =
   "worker-collapsed-icon tw:flex tw:h-auto tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-0.5 tw:border-0 tw:bg-transparent tw:!p-0.5 tw:text-ink-2 tw:shadow-none tw:hover:!bg-accent-soft";
@@ -104,6 +94,7 @@ const WORKER_COLLAPSED_NAME_CLASS =
 interface WorkerNavigatorProps {
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
   onOpenMemory: () => void;
+  onOpenSearch: () => void;
   renderSettingsMenu: (close: () => void) => React.ReactNode;
   settingsSummary?: React.ReactNode;
 }
@@ -111,6 +102,7 @@ interface WorkerNavigatorProps {
 export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   onOpenCommand,
   onOpenMemory,
+  onOpenSearch,
   renderSettingsMenu,
   settingsSummary,
 }) => {
@@ -123,7 +115,8 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const quickActionsEnabled = isQuickActionsEnabled();
   const navigation = selectNavigationState(state);
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
-  const [expandedWorkerKey, setExpandedWorkerKey] = useState("");
+  const [generalAgentKey, setGeneralAgentKey] = useState("");
+  const [historyAgentKey, setHistoryAgentKey] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [agentCopyTarget, setAgentCopyTarget] = useState<AgentCopySummary | null>(null);
@@ -134,8 +127,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   useEffect(() => () => {
     agentCopyRequestRef.current += 1;
   }, []);
-  const [workerSortMode, setWorkerSortMode] =
-    useState<WorkerSortMode>("byTime");
   const {
     filteredWorkerRows,
     workerIconsByKey,
@@ -144,17 +135,22 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     workerTotalCountByKey,
   } = useWorkerSidebarData({
     agents: state.agents,
-    chatFilter: state.chatFilter,
+    chatFilter: "",
     chats: state.chats,
-    teams: state.teams,
+
     temporaryPinnedAgentKey: state.temporaryPinnedAgentKey,
     workerRows: state.workerRows,
-    workerSortMode,
+    workerSortMode: "byTime",
   });
 
+  const generalWorkers = splitSidebarWorkers(state.workerRows, state.agents).general;
+  const currentGeneralKey = generalWorkers.some(row => row.key === generalAgentKey)
+    ? generalAgentKey : generalWorkers[0]?.key || "";
   useEffect(() => {
-    setExpandedWorkerKey(state.workerSelectionKey);
-  }, [state.workerSelectionKey]);
+    if (generalWorkers.some(row => row.key === state.workerSelectionKey)) {
+      setGeneralAgentKey(state.workerSelectionKey);
+    }
+  }, [state.workerSelectionKey, state.workerRows, state.agents]);
 
   useEffect(() => {
     if (!settingsMenuOpen) return;
@@ -248,24 +244,10 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     startNewConversationForWorker(workerKey, { focusComposerOnComplete: true });
   };
 
-  const handleWorkerCollapseChange = (key: string | string[]) => {
-    const nextKey = Array.isArray(key)
-      ? String(key[0] || "")
-      : String(key || "");
-    setExpandedWorkerKey(nextKey);
-    if (nextKey) {
-      handleSelectWorker(nextKey);
-    }
-  };
-
-  const openHistory = useCallback(() => {
+  const openHistory = useCallback((agentKey = "") => {
+    setHistoryAgentKey(agentKey);
     setHistoryOpen(true);
   }, []);
-
-  const handleOpenHistory = (event: React.MouseEvent<Element>) => {
-    event.stopPropagation();
-    openHistory();
-  };
 
   useEffect(() => {
     const handler = () => {
@@ -470,58 +452,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
       querySessionsRef,
     ).running || isChatActiveRun(chat);
 
-  const workerCollapseItems: CollapseProps["items"] = filteredWorkerRows.map(
-    (row) => {
-      const rawChats = workerChatsByKey.get(row.key) || [];
-      const icon = workerIconsByKey.get(row.key);
-      const unreadCount = workerUnreadCountByKey.get(row.key) || 0;
-      const unpinnedChats = rawChats.filter((chat) => !chat.pinned);
-      const awaitingChat = unpinnedChats.find((chat) => chat.hasPendingAwaiting);
-      const activeRunChat = unpinnedChats.find(isWorkerChatRunning);
-
-      return {
-        key: row.key,
-        className: `worker-collapse-item ${row.key === state.workerSelectionKey ? "is-selected" : ""}`,
-        showArrow: false,
-        label: (
-          <WorkerPanelHeader
-            row={row}
-            isActive={row.key === state.workerSelectionKey}
-            icon={icon}
-            lastChat={unpinnedChats[0]}
-            emptyPreview={rawChats.length > 0 ? t("leftSidebar.noUnpinnedConversations") : undefined}
-            awaitingChat={awaitingChat}
-            activeRunChat={activeRunChat}
-            unreadCount={unreadCount}
-            terminalStatus={
-              row.type === "agent"
-                ? terminalAgentStatuses.get(row.sourceId)
-                : undefined
-            }
-            onStartNewConversation={handleStartNewConversationForWorker}
-            onMarkAllRead={handleMarkWorkerAllRead}
-            {...workerActions}
-          />
-        ),
-        children: (
-          <WorkerConversationPreviewList
-            row={row}
-            chats={rawChats}
-            activeChatId={state.chatId}
-            icon={icon}
-            totalChatCount={workerTotalCountByKey.get(row.key)}
-            getWorkerChatLoading={getWorkerChatLoading}
-            onSelectChat={handleSelectChat}
-            onOpenHistory={handleOpenHistory}
-            onStartNewConversation={handleStartNewConversationForWorker}
-            onMarkAllRead={handleMarkWorkerAllRead}
-            {...workerActions}
-          />
-        ),
-      };
-    },
-  );
-
   const agentProjectCreate = useAgentProjectCreate({
     onCreated: (agentKey) => handleCreateAgentSuccess(agentKey, dispatch, stateRef),
     onError: (error) => dispatch({
@@ -553,19 +483,9 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 <span>Webclient</span>
               </div>
               <Flex gap={4}>
-                <UiButton
-                  id="top-nav-new-chat-btn"
-                  className={presentationClasses("icon-btn top-nav-new-chat-btn ui-icon-hover-24")}
-                  size="sm"
-                  aria-label={t("topNav.newProject")}
-                  title={t("topNav.newProject")}
-                  variant="ghost"
-                  iconOnly
-                  disabled={agentProjectCreate.open}
-                  onClick={agentProjectCreate.begin}
-                >
-                  <MaterialIcon name="create_new_folder" />
-                </UiButton>
+                <UiButton size="sm" variant="ghost" iconOnly className="ui-icon-hover-24"
+                  aria-label={t("leftSidebar.navigation.search")} title={t("leftSidebar.navigation.search")}
+                  onClick={onOpenSearch}><MaterialIcon name="search" /></UiButton>
                 <UiButton
                   size="sm"
                   variant="ghost"
@@ -583,75 +503,10 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
               </Flex>
             </Flex>
             {quickActionsEnabled && (
-              <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory} />
+              <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
+                newChatDisabled={!currentGeneralKey}
+                onNewChat={() => startNewConversationForWorker(currentGeneralKey, { focusComposerOnComplete: true })} />
             )}
-            <Flex gap={2} className={LEFT_SIDEBAR_FILTER_ROW_CLASS}>
-              <Input
-                variant="filled"
-                placeholder={t("leftSidebar.filterWorkers")}
-                value={navigation.chatFilter}
-                prefix={
-                  <MaterialIcon
-                    name="search"
-                    className={SIDEBAR_STATIC_ICON_CLASS}
-                    style={{ marginRight: 6 }}
-                  />
-                }
-                onChange={(e) =>
-                  dispatch({
-                    type: "SET_CHAT_FILTER",
-                    filter: e.target.value,
-                  })
-                }
-              />
-              <UiButton
-                size="sm"
-                variant="ghost"
-                loading={isSidebarLoading}
-                className="ui-icon-hover-24"
-                iconOnly
-                onClick={() => {
-                  window.dispatchEvent(
-                    new CustomEvent("agent:refresh-worker-data"),
-                  );
-                }}
-              >
-                <MaterialIcon name="refresh" />
-              </UiButton>
-              <Dropdown
-                menu={{
-                  onClick: (info) => {
-                    const nextSortMode = String(info.key || "");
-                    if (
-                      nextSortMode === "byName" ||
-                      nextSortMode === "byTime"
-                    ) {
-                      setWorkerSortMode(nextSortMode);
-                    }
-                  },
-                  selectedKeys: [workerSortMode],
-                  items: [
-                    {
-                      key: "byName",
-                      label: t("leftSidebar.sort.byName"),
-                    },
-                    {
-                      key: "byTime",
-                      label: t("leftSidebar.sort.byTime"),
-                    },
-                  ],
-                }}
-              >
-                <UiButton
-                  size="sm"
-                  variant="ghost"
-                  iconOnly
-                  className="ui-icon-hover-24"
-                >
-                  <MaterialIcon name="list_arrow" />
-                </UiButton>
-              </Dropdown>
-            </Flex>
           </>
         )}
 
@@ -664,18 +519,19 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   onSelectChat={handleSelectChat}
                   getChatLoading={getWorkerChatLoading}
                 />
-                {filteredWorkerRows.length === 0 ? (
-                  <div className={presentationClasses("status-line")}>{t("leftSidebar.noWorkers")}</div>
-                ) : (
-                  <Collapse
-                    accordion
-                    ghost
-                    className={WORKER_COLLAPSE_CLASS}
-                    activeKey={expandedWorkerKey || undefined}
-                    items={workerCollapseItems}
-                    onChange={handleWorkerCollapseChange}
-                  />
-                )}
+                <SidebarAgentNavigation
+                  generalAgentKey={currentGeneralKey}
+                  onSelectGeneralAgent={(key) => { setGeneralAgentKey(key); handleSelectWorker(key); }}
+                  onNewConversation={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
+                  onNewProject={agentProjectCreate.begin}
+                  creatingProject={agentProjectCreate.open}
+                  onSelectChat={handleSelectChat}
+                  onOpenHistory={openHistory}
+                  getChatLoading={getWorkerChatLoading}
+                  chatsByWorker={workerChatsByKey}
+                  workerActions={workerActions}
+                  terminalStatuses={terminalAgentStatuses}
+                />
               </>
             ) : (
               <>
@@ -699,7 +555,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     onSelectChat={handleSelectChat}
                     getChatLoading={getWorkerChatLoading}
                   />
-                  {filteredWorkerRows?.map((item) => {
+                  {filteredWorkerRows.filter(row => row.type === "agent").map((item) => {
                     const unreadCount =
                       workerUnreadCountByKey.get(item.key) || 0;
                     return (
@@ -727,7 +583,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                             totalChatCount={workerTotalCountByKey.get(item.key)}
                             getWorkerChatLoading={getWorkerChatLoading}
                             onSelectChat={handleSelectChat}
-                            onOpenHistory={handleOpenHistory}
+                            onOpenHistory={(event) => { event.stopPropagation(); openHistory(item.type === "agent" ? item.sourceId : ""); }}
                             onStartNewConversation={
                               handleStartNewConversationForWorker
                             }
@@ -819,6 +675,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 
       <SidebarHistorySection
         open={historyOpen}
+        initialAgentKey={historyAgentKey}
         onClose={handleCloseHistory}
         onSelectChat={handleSelectChat}
       />

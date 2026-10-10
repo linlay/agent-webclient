@@ -133,7 +133,7 @@ export interface TimelineErrorDetail {
 export interface RelatedChat {
 	chatId: string;
 	agentKey?: string;
-	teamId?: string;
+
 	title?: string;
 }
 

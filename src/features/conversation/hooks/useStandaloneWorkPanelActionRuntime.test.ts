@@ -17,20 +17,20 @@ function createActionRuntime(pathname: string, chatId = "", runId = "") {
 	const storage = {
 		getItem: () => null,
 		setItem: () => undefined,
-		removeItem: () => undefined,
+    removeItem: () => undefined
 	};
 	(globalThis as Record<string, unknown>).localStorage = storage;
 	(globalThis as Record<string, unknown>).window = {
 		...((globalThis as Record<string, unknown>).window as object | undefined),
 		localStorage: storage,
-		location: { pathname },
+    location: { pathname }
 	};
 	const handlers = new Map<string, WsInboundRequestHandler>();
 	const client = {
 		registerInboundRequestHandler: (type: string, handler: WsInboundRequestHandler) => {
 			handlers.set(type, handler);
 			return () => handlers.delete(type);
-		},
+    }
 	} as unknown as WsClient;
 	let state: AppState = createInitialState();
 	const dispatch = (action: AppAction) => {
@@ -41,7 +41,7 @@ function createActionRuntime(pathname: string, chatId = "", runId = "") {
 	const unregister = registerStandaloneDesktopActionHandlers(client, {
 		dispatch,
 		getState: () => state,
-		getPathname: () => pathname,
+    getPathname: () => pathname
 	});
 	const invoke = (
 		type: string,
@@ -50,7 +50,7 @@ function createActionRuntime(pathname: string, chatId = "", runId = "") {
 	) => Promise.resolve().then(() => handlers.get(type)?.(payload, {
 		id: `request-${type}`,
 		type,
-		source,
+    source
 	}));
 	return { handlers, getState: () => state, invoke, unregister };
 }
@@ -73,15 +73,15 @@ describe("Standalone Desktop actions", () => {
 		const runtime = createActionRuntime("/", "chat-1", "run-1");
 		const opened = await runtime.invoke("desktop.workpanel.openWeb", {
 			url: "https://例子.测试/path",
-			title: "示例",
+    title: "示例"
 		});
 		expect(opened).toMatchObject({
 			ok: true,
 			action: "desktop.workpanel.openWeb",
 			result: {
 				workspaceId: "standalone:chat-1",
-				state: { ownerChatId: "chat-1", activeItemId: expect.stringMatching(/^web:[A-Za-z0-9_-]+$/u) },
-			},
+        state: { ownerChatId: "chat-1", activeItemId: expect.stringMatching(/^web:[A-Za-z0-9_-]+$/u) }
+    }
 		});
 
 		const state = await runtime.invoke("desktop.workpanel.getState", {}) as any;
@@ -97,17 +97,16 @@ describe("Standalone Desktop actions", () => {
 		const runtime = createActionRuntime("/", "chat-current", "run-current");
 		await expect(runtime.invoke("desktop.workpanel.getState", {}, {
 			chatId: "chat-other",
-			runId: "run-current",
+    runId: "run-current"
 		})).rejects.toMatchObject<Partial<WsInboundRequestError>>({ type: "source_chat_mismatch", code: 403 });
 		await expect(runtime.invoke("desktop.workpanel.getState", {}, {
 			chatId: "chat-current",
-			runId: "run-other",
+    runId: "run-other"
 		})).rejects.toMatchObject<Partial<WsInboundRequestError>>({ type: "source_run_mismatch", code: 403 });
 		await expect(runtime.invoke("desktop.workpanel.getState", {}, {
 			chatId: "chat-current",
 			runId: "run-current",
-			agentKey: "agent-1",
-			teamId: "team-1",
+    agentKey: 42
 		})).rejects.toMatchObject<Partial<WsInboundRequestError>>({ type: "invalid_request", code: 400 });
 
 		const otherView = createActionRuntime("/history", "chat-current", "run-current");
@@ -122,8 +121,8 @@ describe("Standalone Desktop actions", () => {
 				kind: "webclient",
 				module: "debug",
 				route: "/debug/chat-1",
-				context: { chatId: "chat-1", agentKey: "agent-1" },
-			},
+        context: { chatId: "chat-1", agentKey: "agent-1" }
+    }
 		})).resolves.toMatchObject({ result: { state: { activeItemId: "sidebar:debug" } } });
 
 		await runtime.invoke("desktop.workpanel.openWeb", { url: "https://first.example/" });
@@ -146,19 +145,19 @@ describe("Standalone Desktop actions", () => {
 			expect(response).toMatchObject({
 				ok: true,
 				action: "desktop.display",
-				result: { status: "accepted", kind: "effect", effect, durationMs: 8_000 },
+    result: { status: "accepted", kind: "effect", effect, durationMs: 8000 }
 			});
 			expect(getActiveDisplay()?.effect).toBe(effect);
 		}
 		await expect(runtime.invoke("desktop.display", {
 			kind: "effect",
 			effect: "fireworks",
-			durationMs: 999,
+    durationMs: 999
 		})).rejects.toMatchObject<Partial<WsInboundRequestError>>({ type: "invalid_args", code: 400 });
 		await expect(runtime.invoke("desktop.display", {
 			kind: "effect",
 			effect: "fireworks",
-			extra: true,
+    extra: true
 		})).rejects.toMatchObject<Partial<WsInboundRequestError>>({ type: "invalid_args", code: 400 });
 	});
 });

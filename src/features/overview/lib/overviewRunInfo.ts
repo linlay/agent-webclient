@@ -2,7 +2,6 @@ import type { AgentEvent, AIUsageSnapshotEvent } from "@/shared/contracts/agentE
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat, CurrentChatActiveRun } from "@/features/chats/lib/chatState";
 import type { ActiveAwaiting } from "@/features/tools/lib/toolsState";
-import type { Team } from "@/features/workers/lib/workerState";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export interface OverviewRunInfoInput {
@@ -14,9 +13,9 @@ export interface OverviewRunInfoInput {
   usageSnapshot?: AIUsageSnapshotEvent | null;
   runAgentById: Map<string, string>;
   activeAwaiting: ActiveAwaiting | null;
-  chat?: Partial<Pick<Chat, "chatId" | "agentKey" | "firstAgentKey" | "firstAgentName" | "lastRunId" | "teamId" | "owner">>;
+  chat?: Partial<Pick<Chat, "chatId" | "agentKey" | "firstAgentKey" | "firstAgentName" | "lastRunId" | "owner">>;
   agents?: Pick<Agent, "key" | "name">[];
-  teams?: Pick<Team, "teamId" | "name">[];
+
 }
 
 export type OverviewRunStatus = "idle" | "starting" | "running" | "completed" | "cancelled" | "error" | "unknown" | "question" | "approval" | "form" | "plan";
@@ -25,7 +24,6 @@ export interface OverviewRunInfo {
   chatId: string;
   runId: string;
   agent: string;
-  team: string;
   model: string;
   reasoning: string;
   status: OverviewRunStatus;
@@ -96,16 +94,15 @@ export function buildOverviewRunInfo(input: OverviewRunInfoInput): OverviewRunIn
   if (compact && usage) current = number(compact.postCompactEstimatedTokens);
 
   const owner = activeRun?.owner || chat?.owner;
-  const teamId = owner?.kind === "orchestrated-team" ? owner.teamId : text(activeRun?.teamId) || text(chat?.teamId);
-  const agentKey = text(activeRun?.agentKey) || text(input.runAgentById.get(runId))
+
+  const agentKey = text(owner?.agentKey) || text(activeRun?.agentKey) || text(input.runAgentById.get(runId))
     || text(runEvents.findLast((event) => event.agentKey && !event.subAgentKey && !event.taskId)?.agentKey)
-    || (!runId && !teamId ? text(chat?.agentKey) || text(chat?.firstAgentKey) : "");
+    || (!runId ? text(chat?.agentKey) || text(chat?.firstAgentKey) : "");
 
   return {
     chatId, runId, status, active, startedAt, finishedAt,
     agent: input.agents?.find((agent) => agent.key === agentKey)?.name
       || (agentKey && agentKey === chat?.firstAgentKey ? text(chat.firstAgentName) : "") || agentKey,
-    team: input.teams?.find((team) => team.teamId === teamId)?.name || teamId,
     model: text(usage?.model?.key) || text(contextWindow?.modelKey) || text(usage?.usage?.current?.modelKey) || text(usage?.usage?.run?.modelKey),
     reasoning: text(contextWindow?.reasoningEffort),
     context: current !== null && max !== null && max > 0

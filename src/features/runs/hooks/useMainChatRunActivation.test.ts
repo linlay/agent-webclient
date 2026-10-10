@@ -24,21 +24,20 @@ function createRunSession(input: {
 		requestId: input.requestId,
 		chatId: input.chatId || "",
 		runId: "",
-		agentKey: input.agentKey || "",
-		teamId: "",
+    agentKey: "",
 		streaming: false,
 		abortController: null,
 		snapshot: null,
 		bufferedEvents: [],
 		bufferedDebugLines: [],
 		appliedEventCount: 0,
-		appliedDebugLineCount: 0,
+    appliedDebugLineCount: 0
 	};
 }
 
 beforeEach(() => {
 	globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-		DEBUG_RUN_OBSERVATION_ENABLED: "true",
+    DEBUG_RUN_OBSERVATION_ENABLED: "true"
 	};
 });
 
@@ -56,7 +55,7 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		runAgentById: new Map(),
 		chatAgentById: new Map(),
 		chats: [],
-		...overrides,
+    ...overrides
 	} as AppState;
 }
 
@@ -73,7 +72,10 @@ function setupMockWindow(pathname = "/agent/demo"): {
 	const listeners = new Map<string, Set<(event: Event) => void>>();
 	const mockWindow = {
 		location: { pathname },
-		dispatched: [] as Array<{ type: string; detail?: unknown }>,
+    dispatched: [] as Array<{
+        type: string;
+        detail?: unknown;
+    }>,
 		addEventListener: jest.fn((type: string, listener: (event: Event) => void) => {
 			const current = listeners.get(type) || new Set();
 			current.add(listener);
@@ -85,13 +87,13 @@ function setupMockWindow(pathname = "/agent/demo"): {
 		dispatchEvent: jest.fn((event: Event): boolean => {
 			mockWindow.dispatched.push({
 				type: event.type,
-				detail: (event as CustomEvent).detail,
+            detail: (event as CustomEvent).detail
 			});
 			for (const listener of listeners.get(event.type) || []) {
 				listener(event);
 			}
 			return true;
-		}),
+    })
 	};
 	class MockCustomEvent {
 		type: string;
@@ -104,12 +106,12 @@ function setupMockWindow(pathname = "/agent/demo"): {
 	Object.defineProperty(globalThis, "window", {
 		value: mockWindow,
 		configurable: true,
-		writable: true,
+    writable: true
 	});
 	Object.defineProperty(globalThis, "CustomEvent", {
 		value: MockCustomEvent,
 		configurable: true,
-		writable: true,
+    writable: true
 	});
 	return { mockWindow, MockCustomEvent };
 }
@@ -122,7 +124,7 @@ function restoreWindow() {
 function dispatchRunStarted(MockCustomEvent: new (...args: any[]) => any, detail: unknown) {
 	window.dispatchEvent(
 		new MockCustomEvent(AGENT_RUN_STARTED_PUSH_EVENT, {
-			detail,
+    detail
 		}) as Event,
 	);
 }
@@ -177,7 +179,7 @@ describe("main chat run activation helpers", () => {
 			resolveMainChatTargetAgentKey(
 				createState({
 					chatId: "chat_1",
-					chats: [{ chatId: "chat_1", agentKey: "chat_demo" } as Chat],
+    chats: [{ chatId: "chat_1", agentKey: "chat_demo" } as Chat]
 				}),
 				"/",
 			),
@@ -188,21 +190,21 @@ describe("main chat run activation helpers", () => {
 		const decision = resolveMainChatRunActivation({
 			state: createState({
 				chatId: "chat_active",
-				workerSelectionKey: "agent:demo",
+        workerSelectionKey: "agent:demo"
 			}),
 			pathname: "/",
 			detail: {
 				chatId: "chat_other",
 				runId: "run_1",
-				agentKey: "demo",
-			},
+        agentKey: "demo"
+    }
 		});
 
 		expect(decision).toEqual(
 			expect.objectContaining({
 				shouldActivate: false,
 				reason: "chat_mismatch",
-				targetAgentKey: "demo",
+    targetAgentKey: "demo"
 			}),
 		);
 	});
@@ -213,14 +215,14 @@ describe("main chat run activation helpers", () => {
 				chatId: "chat_active",
 				runId: "run_old",
 				streaming: true,
-				workerSelectionKey: "agent:demo",
+        workerSelectionKey: "agent:demo"
 			}),
 			pathname: "/",
 			detail: {
 				chatId: "chat_active",
 				runId: "run_new",
-				agentKey: "demo",
-			},
+        agentKey: "demo"
+    }
 		});
 
 		expect(decision).toEqual(
@@ -228,7 +230,7 @@ describe("main chat run activation helpers", () => {
 				shouldActivate: true,
 				chatId: "chat_active",
 				runId: "run_new",
-				agentKey: "demo",
+    agentKey: "demo"
 			}),
 		);
 	});
@@ -256,14 +258,14 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: { current: createState() },
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_1",
 			agentKey: "demo",
-			lastSeq: 0,
+    lastSeq: 0
 		});
 
 		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
@@ -273,7 +275,7 @@ describe("registerMainChatRunActivationListener", () => {
 				agentKey: "demo",
 				reason: "chat_mismatch",
 				stateStreaming: false,
-				pathname: "/agent/demo",
+    pathname: "/agent/demo"
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
@@ -286,18 +288,18 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: {
 				current: createState({
 					chatId: "chat_old",
-					workerSelectionKey: "agent:demo",
-				}),
+            workerSelectionKey: "agent:demo"
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_new",
 			runId: "run_new",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
@@ -308,7 +310,7 @@ describe("registerMainChatRunActivationListener", () => {
 				reason: "chat_mismatch",
 				stateChatId: "chat_old",
 				stateStreaming: false,
-				pathname: "/",
+    pathname: "/"
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
@@ -322,22 +324,22 @@ describe("registerMainChatRunActivationListener", () => {
 				current: createState({
 					chatId: "chat_1",
 					runId: "run_old",
-					chats: [{ chatId: "chat_1", agentKey: "demo" } as Chat],
-				}),
+            chats: [{ chatId: "chat_1", agentKey: "demo" } as Chat]
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(dispatch).not.toHaveBeenCalledWith({
-			type: "RESET_ACTIVE_CONVERSATION",
+    type: "RESET_ACTIVE_CONVERSATION"
 		});
 		expect(dispatch).not.toHaveBeenCalledWith({ type: "SET_CHAT_ID", chatId: "chat_1" });
 		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
@@ -347,7 +349,7 @@ describe("registerMainChatRunActivationListener", () => {
 				agentKey: "demo",
 				stateChatId: "chat_1",
 				stateRunId: "run_old",
-				stateStreaming: false,
+    stateStreaming: false
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
@@ -361,18 +363,18 @@ describe("registerMainChatRunActivationListener", () => {
 				current: createState({
 					chatId: "chat_1",
 					runId: "run_old",
-					streaming: true,
-				}),
+            streaming: true
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
@@ -383,7 +385,7 @@ describe("registerMainChatRunActivationListener", () => {
 				reason: "stale_state_streaming_ignored",
 				stateChatId: "chat_1",
 				stateRunId: "run_old",
-				stateStreaming: true,
+    stateStreaming: true
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
@@ -396,13 +398,13 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: { current: createState() },
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "other",
+    agentKey: "other"
 		});
 
 		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
@@ -410,7 +412,7 @@ describe("registerMainChatRunActivationListener", () => {
 				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "other",
-				reason: "chat_mismatch",
+    reason: "chat_mismatch"
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
@@ -421,7 +423,7 @@ describe("registerMainChatRunActivationListener", () => {
 		const session = createRunSession({
 			requestId: "req_1",
 			chatId: "chat_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 		session.runId = "run_old";
 		session.streaming = true;
@@ -432,18 +434,18 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: {
 				current: createState({
 					chatId: "chat_1",
-					runId: "run_old",
-				}),
+            runId: "run_old"
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
@@ -454,7 +456,7 @@ describe("registerMainChatRunActivationListener", () => {
 				reason: "active_session_streaming",
 				activeRequestId: "req_1",
 				activeSessionRunId: "run_old",
-				activeSessionStreaming: true,
+    activeSessionStreaming: true
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
@@ -465,7 +467,7 @@ describe("registerMainChatRunActivationListener", () => {
 		const session = createRunSession({
 			requestId: "req_1",
 			chatId: "chat_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 		session.runId = "run_old";
 		session.streaming = false;
@@ -476,18 +478,18 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: {
 				current: createState({
 					chatId: "chat_1",
-					runId: "run_old",
-				}),
+            runId: "run_old"
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_new",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -497,8 +499,8 @@ describe("registerMainChatRunActivationListener", () => {
 				runId: "run_new",
 				agentKey: "demo",
 				owner: { kind: "agent", agentKey: "demo" },
-				lastSeq: 0,
-			},
+        lastSeq: 0
+    }
 		});
 		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
 			expect.objectContaining({
@@ -507,7 +509,7 @@ describe("registerMainChatRunActivationListener", () => {
 				agentKey: "demo",
 				activeRequestId: "req_1",
 				activeSessionRunId: "run_old",
-				activeSessionStreaming: false,
+    activeSessionStreaming: false
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
@@ -522,21 +524,19 @@ describe("registerMainChatRunActivationListener", () => {
 					chatId: "chat_team",
 					chats: [{
 						chatId: "chat_team",
-						teamId: "team_1",
-						agentKey: "stale_member",
-					} as Chat],
-				}),
+                    agentKey: "team_1"
+                } as Chat]
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_team",
 			runId: "run_team",
-			teamId: "team_1",
-			agentKey: "member_a",
+    agentKey: "team_1"
 		});
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -544,17 +544,17 @@ describe("registerMainChatRunActivationListener", () => {
 			activeRun: {
 				chatId: "chat_team",
 				runId: "run_team",
-				teamId: "team_1",
-				owner: { kind: "orchestrated-team", teamId: "team_1" },
-				lastSeq: 0,
-			},
+        agentKey: "team_1",
+        owner: {kind: "agent", agentKey: "team_1"},
+        lastSeq: 0
+    }
 		});
-		expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
-			type: "SET_RUN_AGENT_BY_ID",
+		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+    agentKey: "team_1", type: "SET_RUN_AGENT_BY_ID"
 		}));
 		const [attach] = eventDetails(mockWindow, "agent:attach-run") as Array<Record<string, unknown>>;
-		expect(attach).toMatchObject({ chatId: "chat_team", runId: "run_team", teamId: "team_1" });
-		expect(attach).not.toHaveProperty("agentKey");
+		expect(attach).toMatchObject({ chatId: "chat_team", runId: "run_team", agentKey: "team_1" });
+		expect(attach.agentKey).toBe("team_1");
 	});
 
 	it("attaches when the active query session ref is stale and missing", () => {
@@ -565,18 +565,18 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: {
 				current: createState({
 					chatId: "chat_1",
-					runId: "run_old",
-				}),
+            runId: "run_old"
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_new",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(debugEvents(dispatch, "runActivationAttached")).toEqual([
@@ -585,7 +585,7 @@ describe("registerMainChatRunActivationListener", () => {
 				runId: "run_new",
 				agentKey: "demo",
 				activeRequestId: "req_missing",
-				activeSessionStreaming: false,
+    activeSessionStreaming: false
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);
@@ -596,7 +596,7 @@ describe("registerMainChatRunActivationListener", () => {
 		const session = createRunSession({
 			requestId: "req_1",
 			chatId: "chat_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 		session.runId = "run_1";
 		session.streaming = true;
@@ -606,18 +606,18 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: {
 				current: createState({
 					chatId: "chat_1",
-					runId: "run_old",
-				}),
+            runId: "run_old"
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
@@ -626,7 +626,7 @@ describe("registerMainChatRunActivationListener", () => {
 				runId: "run_1",
 				agentKey: "demo",
 				reason: "already_observing_new_run",
-				activeSessionStreaming: false,
+    activeSessionStreaming: false
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
@@ -639,18 +639,18 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: {
 				current: createState({
 					chatId: "chat_1",
-					runId: "run_1",
-				}),
+            runId: "run_1"
+        })
 			},
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		});
 
 		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
@@ -658,7 +658,7 @@ describe("registerMainChatRunActivationListener", () => {
 				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "demo",
-				reason: "same_run",
+    reason: "same_run"
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
@@ -671,12 +671,12 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: { current: createState({ chatId: "chat_1" }) },
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		dispatchRunStarted(MockCustomEvent, {
 			chatId: "chat_1",
-			runId: "run_1",
+    runId: "run_1"
 		});
 
 		expect(debugEvents(dispatch, "runActivationSkipped")).toEqual([
@@ -685,7 +685,7 @@ describe("registerMainChatRunActivationListener", () => {
 				runId: "run_1",
 				reason: "missing_identity",
 				stateChatId: "chat_1",
-				pathname: "/agent/demo",
+    pathname: "/agent/demo"
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(0);
@@ -698,13 +698,13 @@ describe("registerMainChatRunActivationListener", () => {
 			stateRef: { current: createState({ chatId: "chat_1", runId: "run_old" }) },
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		const detail = {
 			chatId: "chat_1",
 			runId: "run_1",
-			agentKey: "demo",
+    agentKey: "demo"
 		};
 		dispatchRunStarted(MockCustomEvent, detail);
 		dispatchRunStarted(MockCustomEvent, detail);
@@ -714,7 +714,7 @@ describe("registerMainChatRunActivationListener", () => {
 				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "demo",
-				reason: "duplicate_push",
+    reason: "duplicate_push"
 			}),
 		]);
 		expect(eventDetails(mockWindow, "agent:attach-run")).toHaveLength(1);

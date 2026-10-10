@@ -9,6 +9,7 @@ let mockMenu: MenuProps;
 const mockTooltipTitles: string[] = [];
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/icons/agent", () => ({ AgentIcon: () => null }));
+jest.mock("../hooks/useSidebarChatPreviews", () => ({ useSidebarChatPreviews: () => ({ limits: {}, pending: {}, errors: {}, moreAvailable: {}, showMore: jest.fn(), retry: jest.fn() }) }));
 jest.mock("antd", () => {
   const React = require("react");
   const Container = ({ children }: any) => React.createElement("div", null, children);
@@ -24,7 +25,7 @@ jest.mock("antd", () => {
     Tooltip: ({ title, children }: any) => {
       mockTooltipTitles.push(title);
       return React.createElement("div", null, children);
-    },
+    }
   };
 });
 
@@ -33,12 +34,12 @@ const row: WorkerRow = {
   agentType: "coder", workspaceDir: "/work/alpha", agentConfigDir: "/config/alpha",
   role: "", teamAgentLabels: [], latestChatId: "", latestRunId: "",
   latestUpdatedAt: 0, latestChatName: "", latestRunContent: "",
-  hasHistory: false, latestRunSortValue: 0, searchText: "",
+    hasHistory: false, latestRunSortValue: 0, searchText: ""
 };
 const handlers = {
   onOpenWorkspace: jest.fn(), onOpenConfigDirectory: jest.fn(),
   onRenameAgent: jest.fn(), onEditAgent: jest.fn(),
-  onCopyAgent: jest.fn(), onDeleteAgent: jest.fn(),
+    onCopyAgent: jest.fn(), onDeleteAgent: jest.fn()
 };
 
 describe.each(["panel", "popover"] as const)("Worker actions in %s", (entry) => {
@@ -48,7 +49,7 @@ describe.each(["panel", "popover"] as const)("Worker actions in %s", (entry) => 
       ? React.createElement(WorkerPanelHeader, { ...props, isActive: false })
       : React.createElement(WorkerConversationPreviewList, {
           ...props, chats: [], activeChatId: "", showHeader: true,
-          getWorkerChatLoading: () => false, onSelectChat: jest.fn(), onOpenHistory: jest.fn(),
+    getWorkerChatLoading: () => false, onSelectChat: jest.fn(), onOpenHistory: jest.fn()
         }));
   };
   const items = () => mockMenu.items as Array<{ key: string; disabled?: boolean; danger?: boolean; className?: string }>;
@@ -79,11 +80,11 @@ describe.each(["panel", "popover"] as const)("Worker actions in %s", (entry) => 
     expect(handlers.onDeleteAgent).toHaveBeenCalledWith("agent:alpha", "alpha");
   });
 
-  it("keeps teams scoped to workspace and ordinary agents without delete", () => {
-    renderMenu({ type: "team", key: "team:one", sourceId: "one" });
-    expect(items().map((item) => item.key)).toEqual(["openWorkspace"]);
+  it("uses ordinary Agent management actions for TEAM rows", () => {
+    renderMenu({ type: "agent", key: "agent:one", sourceId: "one" });
+    expect(items().map((item) => item.key)).toEqual(["openWorkspace", "openConfigDirectory", "renameAgent", "editAgent", "copyAgent", "deleteAgent"]);
     click("openWorkspace");
-    expect(handlers.onOpenWorkspace).toHaveBeenCalledWith("team:one");
+    expect(handlers.onOpenWorkspace).toHaveBeenCalledWith("agent:one");
     renderMenu({ agentType: "agent" });
     expect(items().map((item) => item.key)).not.toContain("deleteAgent");
   });

@@ -163,7 +163,7 @@ export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
     chatId,
     agentKey: runtime?.agentKey,
     teamChat: Boolean(
-      chat?.teamId || chat?.owner?.kind === "orchestrated-team",
+      false,
     ),
   };
   const calls = nodes.map((node) => {

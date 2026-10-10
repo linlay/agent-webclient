@@ -51,7 +51,7 @@ function eventOwner(event: AgentEvent, fallback: RunOwner): RunOwner {
   const record = event as Record<string, unknown>;
   return (
     toRunOwner({
-      teamId: record.teamId,
+
       agentKey: event.agentKey,
     }) || fallback
   );

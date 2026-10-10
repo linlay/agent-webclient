@@ -282,15 +282,7 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
         >
           {t("settings.actions.refreshAgents")}
         </UiButton>
-        <UiButton
-          variant="secondary"
-          size="sm"
-          onClick={() =>
-            window.dispatchEvent(new CustomEvent("agent:refresh-teams"))
-          }
-        >
-          {t("settings.actions.refreshTeams")}
-        </UiButton>
+
         <UiButton
           variant="danger"
           size="sm"

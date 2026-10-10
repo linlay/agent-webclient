@@ -23,7 +23,7 @@ export function useResourceAssistant({ navigate }: { navigate?: (target: string)
       if (isDesktopAppMode()) {
         agentKey = new URL(source).searchParams.get("chatDefaultAgentKey")?.trim() || "";
       } else {
-        agentKey = firstChatAgent((await getAgents({ scope: "nav", includeTeam: false })).data);
+        agentKey = firstChatAgent((await getAgents({ scope: "nav",  })).data);
       }
       if (!mounted.current || window.location.href !== source) return;
       if (!agentKey) throw new Error(t("resourceAssistant.agentUnavailable"));

@@ -54,7 +54,7 @@ export const OverviewViewerSurface: React.FC<{ chatId: string }> = ({ chatId }) 
             timelineNodes: projection.timelineNodes,
           }}
           agentKey={agentKey}
-          teamChat={snapshot?.owner?.kind === "orchestrated-team"}
+          teamChat={false}
         />
       ) : null}
     </IndependentSurfaceFrame>

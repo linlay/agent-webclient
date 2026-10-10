@@ -8,7 +8,7 @@ export interface RunSession<TSnapshot = unknown> {
 	chatId: string;
 	runId: string;
 	agentKey: string;
-	teamId: string;
+
 	owner?: RunOwner;
 	/** One-shot KBASE editing intent. Undefined for attach/recovery observers. */
 	editingMode?: boolean;

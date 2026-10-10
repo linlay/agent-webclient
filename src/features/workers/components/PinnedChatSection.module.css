@@ -1,6 +1,5 @@
 :global(.pinned-chat-section) {
-  border-top: 4px solid var(--bg-base);
-  border-bottom: 4px solid var(--bg-base);
+  padding: 0 8px 12px;
 }
 
 :global(.pinned-chat-heading) {
@@ -8,9 +7,10 @@
   width: 100%;
   align-items: center;
   gap: 5px;
-  padding: 6px;
+  padding: 6px 8px;
   border: 0;
-  border-radius: 0;
+  border-radius: 7px;
+  font-size: 12px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -68,6 +68,8 @@
 :global(.pinned-chat-handle) {
   position: absolute;
   z-index: 10;
+  left: 4px;
+  background: var(--bg-hover);
   display: inline-flex;
   flex: 0 0 16px;
   width: 16px;
@@ -103,8 +105,7 @@
 }
 
 :global(.pinned-chat-list) {
-  max-height: 50vh;
-  overflow-y: auto;
+  min-width: 0;
 }
 
 @media (hover: none) {

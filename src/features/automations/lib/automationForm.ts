@@ -25,7 +25,7 @@ export interface AutomationFormState {
   description: string;
   cron: string;
   agentKey: string;
-  teamId: string;
+
   zoneId: string;
   remainingRuns: string;
   enabled: boolean;
@@ -50,7 +50,7 @@ export const EMPTY_AUTOMATION_FORM: AutomationFormState = {
   description: "",
   cron: "0 9 * * *",
   agentKey: "",
-  teamId: "",
+
   zoneId: "",
   remainingRuns: "",
   enabled: true,
@@ -132,7 +132,7 @@ export function automationFormFromDetail(
     description: automation.description || "",
     cron: automation.cron || "",
     agentKey: automation.agentKey || "",
-    teamId: automation.teamId || "",
+
     zoneId: automation.zoneId || "",
     remainingRuns:
       automation.remainingRuns === undefined || automation.remainingRuns === null
@@ -174,7 +174,7 @@ export function buildDuplicateAutomationPayload(
     description: String(automation.description || "").trim(),
     cron: String(automation.cron || "").trim(),
     agentKey: owner?.kind === "agent" ? owner.agentKey : undefined,
-    teamId: owner?.kind === "orchestrated-team" ? owner.teamId : undefined,
+
     zoneId: String(automation.zoneId || "").trim(),
     enabled: false,
     remainingRuns: automation.remainingRuns,

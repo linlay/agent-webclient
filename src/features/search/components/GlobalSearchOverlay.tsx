@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { Modal } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
-import type { Team, WorkerConversationRow } from "@/features/workers/lib/workerState";
+import type {  WorkerConversationRow } from "@/features/workers/lib/workerState";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { buildGlobalRows } from "@/features/search/lib/globalSearchRows";
 import type { GlobalRow } from "@/features/search/lib/globalSearchRows";
@@ -36,15 +36,13 @@ export const GlobalSearchOverlay: React.FC = () => {
   );
 
   const workerIconsByKey = useMemo(() => {
-    const icons = new Map<string, Agent["icon"] | Team["icon"]>();
+    const icons = new Map<string, Agent["icon"]>();
     for (const agent of state.agents) {
       icons.set(`agent:${agent.key}`, agent.icon);
     }
-    for (const team of state.teams) {
-      icons.set(`team:${team.teamId}`, team.icon);
-    }
+
     return icons;
-  }, [state.agents, state.teams]);
+  }, [state.agents, ]);
 
   const [globalRemoteState, setGlobalRemoteState] = useState<
     WorkerConversationRow[] | null
@@ -178,7 +176,7 @@ export const GlobalSearchOverlay: React.FC = () => {
                 chatId: String(result.chatId || ""),
                 chatName: String(result.chatName || ""),
                 agentKey: result.agentKey,
-                teamId: result.teamId,
+
                 updatedAt: readEpochMillis(result.timestamp) ?? 0,
                 lastRunId: String(result.runId || ""),
                 lastRunContent: String(result.snippet || ""),

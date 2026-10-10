@@ -24,6 +24,7 @@ export const ChatActionsMenu: React.FC<{
   iconHover24?: boolean;
   onArchived?: (chatId: string) => void;
   onDeleted?: (chatId: string) => void;
+  renderTrigger?: (openMenu: () => void) => React.ReactElement;
 }> = ({
   chatId,
   chatName,
@@ -32,6 +33,7 @@ export const ChatActionsMenu: React.FC<{
   iconHover24 = false,
   onArchived,
   onDeleted,
+  renderTrigger,
 }) => {
   const { modal } = AntdApp.useApp();
   const message = useAppMessage();
@@ -43,6 +45,7 @@ export const ChatActionsMenu: React.FC<{
   const isPinned = state.chatPinnedOrder?.includes(chatId) ?? false;
   const pinningSupported = Array.isArray(state.chatPinnedOrder);
   const [copyInfoOpen, setCopyInfoOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copyInfoDetail, setCopyInfoDetail] =
     useState<ChatDetailResponse | null>(null);
   const [copyInfoLoading, setCopyInfoLoading] = useState(false);
@@ -177,6 +180,7 @@ export const ChatActionsMenu: React.FC<{
 
   const handleMenuClick: MenuProps["onClick"] = (info) => {
     info.domEvent.stopPropagation();
+    if (menuOpen) setMenuOpen(false);
     switch (info.key) {
       case "pin":
         if (!normalizedChatId || pinActions.pending || !pinningSupported) return;
@@ -258,26 +262,29 @@ export const ChatActionsMenu: React.FC<{
   ];
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div style={renderTrigger ? { display: "contents" } : undefined} onClick={renderTrigger ? undefined : (e) => e.stopPropagation()}>
       <Dropdown
         menu={{ items, onClick: handleMenuClick }}
-        trigger={["click"]}
+        trigger={renderTrigger ? ["contextMenu"] : ["click"]}
+        open={menuOpen}
         onOpenChange={(open) => {
+          setMenuOpen(open);
           if (open && !pinningSupported) {
             window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
           }
         }}
         placement="bottomRight"
       >
-        <UiButton
+        {renderTrigger ? renderTrigger(() => setMenuOpen(true)) : <UiButton
           size="mini"
           variant="ghost"
           className={triggerClass}
           iconOnly
           loading={pending}
+          aria-label={t("leftSidebar.moreActions")}
         >
           <MaterialIcon name="more_horiz" className={menuIconClassName} />
-        </UiButton>
+        </UiButton>}
       </Dropdown>
       <CopyInfoModal
         open={copyInfoOpen}

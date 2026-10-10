@@ -55,7 +55,6 @@ import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import {
-	readEventTeamId,
 	readMustUseSkills,
 	readRequestQueryText,
 } from "@/features/events/lib/eventFields";
@@ -164,9 +163,9 @@ function toChatPatchFromPushEvent(
 		chatPatch.firstAgentName = firstAgentName;
 	}
 
-	const teamId = String(raw.teamId || "").trim();
+
 	const owner = toRunOwner({
-		teamId,
+
 		agentKey: event.agentKey || raw.firstAgentKey,
 	});
 	const agentKey = owner?.kind === "agent" ? owner.agentKey : "";
@@ -174,9 +173,7 @@ function toChatPatchFromPushEvent(
 		chatPatch.agentKey = agentKey;
 		chatPatch.firstAgentKey = agentKey;
 	}
-	if (teamId) {
-		chatPatch.teamId = teamId;
-	}
+
 	if (owner) {
 		chatPatch.owner = owner;
 	}
@@ -198,7 +195,7 @@ function toChatPatchFromPushEvent(
 		? {
 					runId,
 					...(agentKey ? { agentKey } : {}),
-					...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+
 					...(owner ? { owner } : {}),
 					...(typeof editingMode === "boolean" ? { editingMode } : {}),
 				}
@@ -383,7 +380,7 @@ type DetachRunDetail = {
 	chatId?: unknown;
 	runId?: unknown;
 	agentKey?: unknown;
-	teamId?: unknown;
+
 	owner?: RunOwner;
 	reason?: unknown;
 };
@@ -417,7 +414,7 @@ function resolveAttachOwner(
 		chatId,
 		chats: state.chats,
 		currentRunOwner: runOwner,
-		eventIdentity: { teamId: detail?.teamId, agentKey: detail?.agentKey },
+		eventIdentity: {  agentKey: detail?.agentKey },
 	});
 }
 
@@ -455,7 +452,7 @@ function resolveDetachRunTarget(
 			}),
 		}),
 		sessionOwner: session?.owner,
-		eventIdentity: { teamId: detail.teamId, agentKey: detail.agentKey || session?.agentKey },
+		eventIdentity: {  agentKey: detail.agentKey || session?.agentKey },
 	});
 	if (!owner) {
 		return null;
@@ -542,13 +539,11 @@ function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent)
 		session.runId = nextRunId;
 	}
 	const nextAgentKey = toText(event.agentKey);
-	if (nextAgentKey && session.owner?.kind !== "orchestrated-team") {
+	if (nextAgentKey) {
 		session.agentKey = nextAgentKey;
 	}
-	const nextTeamId = readEventTeamId(event);
-	if (nextTeamId) {
-		session.teamId = nextTeamId;
-	}
+
+
 	if (toText(event.type) === "request.query") {
 		const editingMode = readExplicitEditingMode(event);
 		if (editingMode !== undefined) {
@@ -736,7 +731,7 @@ export function registerAttachRunListener(
 		});
 		session.runId = runId;
 		session.agentKey = agentKey;
-		session.teamId = owner.kind === "orchestrated-team" ? owner.teamId : "";
+
 		session.streaming = true;
 		session.abortController = controller;
 
@@ -952,7 +947,7 @@ export function createConversationPushHandler(
 				chatId: eventChatId,
 				chats: options.stateRef.current.chats,
 				eventIdentity: {
-					teamId: readEventTeamId(liveEvent),
+
 					agentKey: liveEvent.agentKey,
 				},
 			});

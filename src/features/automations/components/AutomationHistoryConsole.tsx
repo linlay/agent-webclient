@@ -2,7 +2,6 @@ import { useResourceAssistant } from "@/features/resource-assistant/hooks/useRes
 import { App as AntdApp } from "antd";
 import { useState } from "react";
 import type { Agent } from "@/features/agents/lib/agentState";
-import type { Team } from "@/features/workers/lib/workerState";
 import { useAppState } from "@/app/state/AppContext";
 import { AutomationEditorDrawer } from "@/features/automations/components/AutomationEditorDrawer";
 import { AutomationExecutionDrawer } from "@/features/automations/components/AutomationExecutionDrawer";
@@ -17,7 +16,7 @@ import styles from "./AutomationHistoryConsole.module.css";
 export interface AutomationHistoryConsoleProps {
   currentWorker: CurrentWorkerSummary | null;
   agents: Agent[];
-  teams: Team[];
+
   embedded?: boolean;
   onClose?: () => void;
   titleBarVariant?: "default" | "drawer";
@@ -26,7 +25,7 @@ export interface AutomationHistoryConsoleProps {
 export function AutomationHistoryConsole({
   currentWorker,
   agents,
-  teams,
+
   embedded = false,
   onClose,
   titleBarVariant = "default",
@@ -36,7 +35,7 @@ export function AutomationHistoryConsole({
   const state = useAppState();
   const assistant = useResourceAssistant();
   const effectiveAgents = agents.length ? agents : state.agents;
-  const effectiveTeams = teams.length ? teams : state.teams;
+
   const runtime = useAutomationHistoryRuntime(effectiveAgents.length > 0);
   const [search, setSearch] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
@@ -76,7 +75,7 @@ export function AutomationHistoryConsole({
           loading={runtime.listLoading}
           search={search}
           selectedId={runtime.selectedId}
-          teams={effectiveTeams}
+
           onCreate={openCreate}
           onCreateConversation={() => { if (!runtime.actionBusy && !assistant.opening) void assistant.open({ kind: "automation" }, onClose); }}
           onRetry={() => void runtime.loadAutomationList(runtime.selectedId)}
@@ -132,7 +131,7 @@ export function AutomationHistoryConsole({
           automationId={editorAutomationId}
           currentWorker={currentWorker}
           agents={effectiveAgents}
-          teams={effectiveTeams}
+
           onClose={() => setEditorOpen(false)}
           onSaved={(id) => {
             setEditorOpen(false);
@@ -146,7 +145,7 @@ export function AutomationHistoryConsole({
         <AutomationExecutionDrawer
           execution={runtime.viewerExecution}
           agents={effectiveAgents}
-          teams={effectiveTeams}
+
           refreshRevision={runtime.viewerRefreshRevision}
           returnFocusRef={runtime.viewerTriggerRef}
           onClose={runtime.closeViewer}

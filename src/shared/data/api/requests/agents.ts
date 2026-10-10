@@ -189,7 +189,3 @@ export function getModelOptions(agentKey?: string): Promise<ApiResponse<CoderMod
     withQuery(dataEndpoints.modelOptions.path, query),
   );
 }
-
-export function getTeams(): Promise<ApiResponse> {
-  return requestJson(dataEndpoints.teams.path);
-}

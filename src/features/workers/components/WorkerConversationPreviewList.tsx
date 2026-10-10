@@ -9,6 +9,9 @@ import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import { WorkerActionsMenu, type WorkerActionHandlers } from "./WorkerActionsMenu";
+import { UiButton } from "@/shared/ui/UiButton";
+import { useSidebarChatPreviews } from "../hooks/useSidebarChatPreviews";
+import { PROJECT_CHAT_LIMIT, PROJECT_CHAT_MAX } from "../lib/sidebarNavigation";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
 
 
@@ -73,7 +76,9 @@ export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
   ...workerActions
 }) => {
   const { t } = useI18n();
-  const recentChats = chats.filter((chat) => !chat.pinned).slice(0, 5);
+  const preview = useSidebarChatPreviews(true, row.key, false);
+  const limit = preview.limits[row.key] || PROJECT_CHAT_LIMIT;
+  const recentChats = chats.filter((chat) => !chat.pinned).slice(0, limit);
   const showMoreCount = Math.max(
     Number.isFinite(Number(totalChatCount)) ? Number(totalChatCount) : 0,
     chats.length,
@@ -82,10 +87,6 @@ export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
     (count, chat) => count + (isChatUnread(chat) ? 1 : 0),
     0,
   );
-  const unreadSuffix =
-    unreadCount > 0
-      ? t("leftSidebar.showMoreUnreadSuffix", { count: unreadCount })
-      : "";
 
   return (
     <div className={WORKER_CHAT_PREVIEW_LIST_CLASS}>
@@ -149,7 +150,7 @@ export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
       ) : (
         recentChats.map((chat) => (
           <WorkerChatPreviewItem
-            key={chat.chatId}
+                key={chat.chatId}
             chat={chat}
             isActive={chat.chatId === activeChatId}
             loading={getWorkerChatLoading(chat.chatId)}
@@ -157,17 +158,13 @@ export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
           />
         ))
       )}
-      {showMoreCount > 5 && (
-        <div
-          className={WORKER_CHAT_MORE_CLASS}
-          onClick={(e) => onOpenHistory(e)}
-        >
-          {t("leftSidebar.showMore", {
-            count: showMoreCount,
-            unreadSuffix,
-          })}
-        </div>
-      )}
+      <div className={WORKER_CHAT_MORE_CLASS}>
+        {limit < PROJECT_CHAT_MAX && (preview.moreAvailable[row.key] ?? showMoreCount > limit) &&
+          <UiButton size="mini" variant="ghost" loading={preview.pending[row.key]}
+            onClick={() => preview.showMore(row.key)}>{t("leftSidebar.navigation.showMore")}</UiButton>}
+        <UiButton size="mini" variant="ghost" onClick={onOpenHistory}>{t("leftSidebar.navigation.showHistory")}</UiButton>
+        {preview.errors[row.key] && <UiButton size="mini" variant="ghost" onClick={() => preview.retry(row.key)}>{t("leftSidebar.navigation.retry")}</UiButton>}
+      </div>
     </div>
   );
 };

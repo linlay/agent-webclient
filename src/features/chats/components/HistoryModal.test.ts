@@ -147,6 +147,18 @@ function renderHistoryModal(
 }
 
 describe("HistoryModal", () => {
+  it("opens all history explicitly even when a project is selected", () => {
+    const html = renderHistoryModal([createHistoryChat(), createHistoryChat({ chatId: "beta-chat", agentKey: "beta", chatName: "Beta history" })], { initialAgentKey: "" });
+    expect(html).toContain("Beta history");
+    expect(mockFilterProps.agentKey).toBe("");
+  });
+
+  it("opens the requested project's history instead of the current worker", () => {
+    const html = renderHistoryModal([createHistoryChat({ chatName: "Alpha history" }), createHistoryChat({ chatId: "beta-chat", agentKey: "beta", chatName: "Beta history" })], { initialAgentKey: "beta" });
+    expect(html).toContain("Beta history");
+    expect(html).not.toContain("Alpha history");
+    expect(mockFilterProps.agentKey).toBe("beta");
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockArchiveChats.mockReset();

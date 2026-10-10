@@ -130,7 +130,7 @@ describe("routedClient capability routing", () => {
 		const routed = await import("./routedClient");
 		const options = {
 			includeChats: 5,
-			includeTeam: true,
+
 			scope: "nav" as const,
 		};
 
@@ -157,6 +157,14 @@ describe("routedClient capability routing", () => {
 			expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/agents", options);
 		}
 		expect(mockGetAgents).not.toHaveBeenCalled();
+	});
+
+	it.each(["platform", "gateway"])("forwards general chat filters over %s WebSocket", async (backend) => {
+		mockGetBackendMode.mockReturnValue(backend);
+		mockRequestPlatformData.mockResolvedValue(ok([]));
+		const routed = await import("./routedClient");
+		await routed.getChats({ hasWorkspace: false, pinned: false, limit: 9 });
+		expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/chats", { hasWorkspace: false, pinned: false, limit: 9 });
 	});
 
 	it("invalidates only the selected agent skills and keeps concurrent reads deduplicated", async () => {
@@ -430,7 +438,7 @@ describe("chat pinning routes", () => {
   it("preserves false filters over WS and invalidates both navigation caches on pin", async () => {
     mockRequestPlatformData.mockResolvedValue(ok([]));
     const routed = await import("./routedClient");
-    const agents = { includeTeam: true, includeChats: 5, chatsPinned: false };
+    const agents = {  includeChats: 5, chatsPinned: false };
     await routed.getAgents(agents);
     await routed.getChats({ pinned: false, limit: 5 });
     expect(mockRequestPlatformData).toHaveBeenCalledWith("/api/agents", agents);

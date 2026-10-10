@@ -167,7 +167,7 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
   useEffect(() => {
     if (!options.active) return;
     let disposed = false;
-    void getAgents({ includeTeam: false, scope: "nav" })
+    void getAgents({  scope: "nav" })
       .then((response) => {
         if (disposed) return;
         const items = Array.isArray(response.data) ? (response.data as Agent[]) : [];

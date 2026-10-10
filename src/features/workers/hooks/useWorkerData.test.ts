@@ -23,53 +23,48 @@ describe('buildAgentListRequestOptions', () => {
   it('builds Copilot scoped requests without includeChats for initial refresh', () => {
     expect(buildAgentListRequestOptions('/copilot', 5)).toEqual({
       includeChats: undefined,
-      includeTeam: true,
-      scope: 'copilot',
+    scope: 'copilot'
     });
     expect(buildAgentListRequestOptions('/copilot/demo', 5)).toEqual({
       includeChats: undefined,
-      includeTeam: true,
-      scope: 'copilot',
+    scope: 'copilot'
     });
   });
 
   it('keeps includeChats on normal initial refreshes', () => {
     expect(buildAgentListRequestOptions('/', 5)).toEqual({
       includeChats: 5,
-      includeTeam: true,
-      scope: 'nav',
+    scope: 'nav'
     });
   });
 
   it('builds nav scoped requests for normal navigation refreshes', () => {
     expect(buildAgentListRequestOptions('/')).toEqual({
       includeChats: undefined,
-      includeTeam: true,
-      scope: 'nav',
+    scope: 'nav'
     });
   });
 });
 
 describe('buildAgentListFallbackRequestOptions', () => {
   it('falls back from empty Copilot scoped lists to nav-scoped agents', () => {
-    expect(buildAgentListFallbackRequestOptions({ includeTeam: true, scope: 'copilot' })).toEqual({
+    expect(buildAgentListFallbackRequestOptions({ scope: 'copilot' })).toEqual({
       includeChats: undefined,
-      includeTeam: true,
-      scope: 'nav',
+    scope: 'nav'
     });
   });
 
   it('does not fallback normal nav requests', () => {
-    expect(buildAgentListFallbackRequestOptions({ includeChats: 5, includeTeam: true, scope: 'nav' })).toBeNull();
+    expect(buildAgentListFallbackRequestOptions({ includeChats: 5, scope: 'nav' })).toBeNull();
   });
 
-  it('falls back for a Team-only Copilot response but not when an Agent is present', () => {
-    const options = { includeTeam: true, scope: 'copilot' } as const;
+  it('accepts TEAM Agents as a nonempty catalog response', () => {
+    const options = { scope: 'copilot' } as const;
     expect(shouldFallbackMixedWorkerList([
-      { kind: 'team', teamId: 'team-ops', name: 'Ops' },
-    ], options)).toBe(true);
+      { mode: "TEAM", key: 'team-ops', name: 'Ops' },
+    ], options)).toBe(false);
     expect(shouldFallbackMixedWorkerList([
-      { kind: 'team', teamId: 'team-ops', name: 'Ops' },
+      { mode: "TEAM", key: 'team-ops', name: 'Ops' },
       { kind: 'agent', key: 'copilot', name: 'Copilot' },
     ], options)).toBe(false);
   });
@@ -81,7 +76,7 @@ describe('shouldStartInitialWorkerRefresh', () => {
       enabled: false,
       hasStarted: false,
       appMode: false,
-      hasAccessToken: true,
+    hasAccessToken: true
     })).toBe(false);
   });
 
@@ -89,12 +84,12 @@ describe('shouldStartInitialWorkerRefresh', () => {
     expect(shouldStartInitialWorkerRefresh({
       hasStarted: false,
       appMode: false,
-      hasAccessToken: false,
+    hasAccessToken: false
     })).toBe(true);
     expect(shouldStartInitialWorkerRefresh({
       hasStarted: false,
       appMode: false,
-      hasAccessToken: true,
+    hasAccessToken: true
     })).toBe(true);
   });
 
@@ -102,7 +97,7 @@ describe('shouldStartInitialWorkerRefresh', () => {
     expect(shouldStartInitialWorkerRefresh({
       hasStarted: true,
       appMode: false,
-      hasAccessToken: true,
+    hasAccessToken: true
     })).toBe(false);
   });
 
@@ -110,13 +105,13 @@ describe('shouldStartInitialWorkerRefresh', () => {
     expect(shouldStartInitialWorkerRefresh({
       hasStarted: false,
       appMode: true,
-      hasAccessToken: false,
+    hasAccessToken: false
     })).toBe(false);
 
     expect(shouldStartInitialWorkerRefresh({
       hasStarted: false,
       appMode: true,
-      hasAccessToken: true,
+    hasAccessToken: true
     })).toBe(true);
   });
 
@@ -124,7 +119,7 @@ describe('shouldStartInitialWorkerRefresh', () => {
     expect(shouldStartInitialWorkerRefresh({
       hasStarted: false,
       appMode: false,
-      hasAccessToken: true,
+    hasAccessToken: true
     })).toBe(true);
   });
 });

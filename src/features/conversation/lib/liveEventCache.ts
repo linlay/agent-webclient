@@ -32,7 +32,7 @@ export interface LocalCache {
 	chatId: string;
 	runId: string;
 	agentKey: string;
-	teamId: string;
+
 	editingMode?: boolean;
 	accessLevel?: RunAccessLevelSnapshot;
 }
@@ -54,7 +54,7 @@ export function createLocalCache(): LocalCache {
 		chatId: "",
 		runId: "",
 		agentKey: "",
-		teamId: "",
+
 		editingMode: undefined,
 	};
 }
@@ -84,7 +84,7 @@ export function createLocalCacheFromState(state: AppState): LocalCache {
 			toText(state.runAgentById.get(toText(state.runId)))
 			|| toText(state.currentRunAgentKey)
 			|| (chatId ? toText(state.chatAgentById.get(chatId)) : ""),
-		teamId: "",
+
 		editingMode:
 			state.currentChatActiveRun?.chatId === chatId
 				? state.currentChatActiveRun.editingMode

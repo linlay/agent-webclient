@@ -1,46 +1,9 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AppState } from "@/app/state/AppContext";
-import type { Team } from "@/features/workers/lib/workerState";
-import { toText } from '@/shared/utils/eventUtils';
-import { readTeamAgentKeys } from '@/features/workers/lib/teamUtils';
-
-function normalizeAgents(agents: Agent[]): Array<{ key: string; name: string; role: string }> {
-  if (!Array.isArray(agents)) return [];
-  return agents
-    .map((item) => ({
-      key: toText(item?.key),
-      name: toText(item?.name),
-      role: toText(item?.role),
-    }))
-    .filter((item) => item.key);
-}
-
-function resolveTeamById(teams: Team[], teamId: string): Team | null {
-  const normalizedTeamId = toText(teamId);
-  if (!normalizedTeamId) return null;
-  for (const item of Array.isArray(teams) ? teams : []) {
-    if (toText(item?.teamId) === normalizedTeamId) return item;
-  }
-  return null;
-}
-
 export function resolveMentionCandidatesFromState(state: AppState): Agent[] {
-  const allAgents = normalizeAgents(state?.agents);
-
-  if (!(state?.workerIndexByKey instanceof Map)) return allAgents as Agent[];
-
-  const selectedWorker = state.workerIndexByKey.get(toText(state?.workerSelectionKey));
-  if (!selectedWorker) return allAgents as Agent[];
-
-  if (toText(selectedWorker.type) === 'agent') return [];
-  if (toText(selectedWorker.type) !== 'team') return allAgents as Agent[];
-
-  const team = resolveTeamById(state?.teams, selectedWorker.sourceId);
-  if (!team) return [];
-
-  const teamAgentKeys = readTeamAgentKeys(team);
-  if (teamAgentKeys.length === 0) return [];
-
-  const agentsByKey = new Map(allAgents.map((item) => [item.key, item]));
-  return teamAgentKeys.map((key) => agentsByKey.get(key) || { key, name: key, role: '--' }) as Agent[];
+ const worker = state.workerIndexByKey.get(state.workerSelectionKey);
+ const agent = state.agents.find(item => item.key === worker?.sourceId);
+ if (agent?.mode !== "TEAM") return [];
+ const byKey = new Map(state.agents.map(item => [item.key, item]));
+ return (agent.teamConfig?.members || []).map(key => byKey.get(key) || { key, name: key });
 }

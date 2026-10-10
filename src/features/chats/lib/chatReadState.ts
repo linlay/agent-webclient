@@ -1,6 +1,6 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat, ChatReadState } from "@/features/chats/lib/chatState";
-import type { Team, WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
+import type {  WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { toText } from "@/shared/utils/eventUtils";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 
@@ -135,9 +135,7 @@ export function countUnreadChatsForWorker(
 			return count;
 		}
 
-		if (worker.type === "team" && toText(chat?.teamId) === toText(worker.sourceId)) {
-			return count + 1;
-		}
+
 
 		if (
 			worker.type === "agent"
@@ -153,23 +151,13 @@ export function countUnreadChatsForWorker(
 export function resolveWorkerUnreadCount(
 	worker: Pick<WorkerRow, "type" | "sourceId"> | null,
 	agents: Agent[],
-	teams: Team[],
+
 	chats: Chat[],
 ): number {
 	if (!worker) {
 		return 0;
 	}
-	if (worker.type === "team") {
-		const teamId = toText(worker.sourceId);
-		const matched = (Array.isArray(teams) ? teams : []).find(
-			(team) => toText(team?.teamId) === teamId,
-		);
-		const statsUnread = Number(matched?.stats?.unreadCount);
-		if (Number.isFinite(statsUnread) && statsUnread >= 0) {
-			return statsUnread;
-		}
-		return countUnreadChatsForWorker(worker, chats);
-	}
+
 
 	const agentKey = toText(worker.sourceId);
 	const matched = (Array.isArray(agents) ? agents : []).find(

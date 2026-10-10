@@ -6,7 +6,7 @@ import { readComposerAccessLevel, resolveComposerAccessScope, updateComposerAcce
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team, WorkerRow } from "@/features/workers/lib/workerState";
+import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDisplay';
 import {
   createReplayState,
@@ -37,19 +37,20 @@ jest.mock('react-dom', () => ({
     mockInsideFlushSync = true;
     try {
       callback();
-    } finally {
+        }
+        finally {
       mockInsideFlushSync = false;
     }
-  }),
+    })
 }));
 
 jest.mock('@/app/state/AppContext', () => ({
-  useAppContext: jest.fn(),
+    useAppContext: jest.fn()
 }));
 
 jest.mock('@/shared/data', () => ({
   getChat: jest.fn(),
-  markChatRead: jest.fn(),
+    markChatRead: jest.fn()
 }));
 
 const { useAppContext } = jest.requireMock('@/app/state/AppContext') as {
@@ -66,7 +67,7 @@ function useTestConversationActions() {
   const conversationActions = useConversationActions();
   return {
     ...conversationActions,
-    ...useWorkerConversationSelection(conversationActions),
+    ...useWorkerConversationSelection(conversationActions)
   };
 }
 
@@ -81,7 +82,7 @@ function createConversationIntentHarness(state = createInitialState()) {
     stateRef,
     querySessionsRef: { current: new Map() },
     chatQuerySessionIndexRef: { current: new Map() },
-    activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
   });
   const actionsRef: { current: ReturnType<typeof useTestConversationActions> | null } = { current: null };
   const Harness = () => {
@@ -98,8 +99,7 @@ function createLiveSession(overrides: Record<string, unknown> = {}) {
     requestId: 'req_old',
     chatId: 'chat_old',
     runId: 'run_old',
-    agentKey: 'agent_old',
-    teamId: '',
+    agentKey: '',
     streaming: true,
     abortController: new AbortController(),
     snapshot: null,
@@ -107,7 +107,7 @@ function createLiveSession(overrides: Record<string, unknown> = {}) {
     bufferedDebugLines: [],
     appliedEventCount: 0,
     appliedDebugLineCount: 0,
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -146,13 +146,13 @@ describe('replayEvent tool migration', () => {
       clearTimeout: jest.fn(),
       location: {
         pathname: '/',
-        search: '',
-      },
+        search: ''
+    }
     };
     globalWithBrowserApis.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
-      removeItem: jest.fn(),
+    removeItem: jest.fn()
     };
     globalWithBrowserApis.CustomEvent = class TestCustomEvent<T = unknown> extends Event {
       detail: T;
@@ -192,7 +192,7 @@ describe('replayEvent tool migration', () => {
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
       activeQuerySessionRequestIdRef: { current: '' },
-      conversationViewportRef: { current: { captureCurrent } },
+    conversationViewportRef: { current: { captureCurrent } }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -228,7 +228,7 @@ describe('replayEvent tool migration', () => {
       latestRunContent: hasHistory ? 'Latest reply' : '',
       hasHistory,
       latestRunSortValue: hasHistory ? 2000 : 0,
-      searchText: 'alpha agent worker_a',
+    searchText: 'alpha agent worker_a'
     };
     const olderChat: Chat = {
       chatId: 'chat_older',
@@ -239,7 +239,7 @@ describe('replayEvent tool migration', () => {
       lastRunId: 'run_older',
       lastRunContent: 'Older reply',
       read: { isRead: true },
-      ...options.olderChat,
+    ...options.olderChat
     };
     const latestChat: Chat = {
       chatId: latestChatId || 'chat_latest',
@@ -250,7 +250,7 @@ describe('replayEvent tool migration', () => {
       lastRunId: 'run_latest',
       lastRunContent: 'Latest reply',
       read: { isRead: true },
-      ...options.latestChat,
+    ...options.latestChat
     };
 
     state.workerSelectionKey = worker.key;
@@ -265,20 +265,20 @@ describe('replayEvent tool migration', () => {
     const steer = { steerId: 'confirmed', runId: 'run-1', requestId: 'req-steer', message: 'steering', status: 'sending' as const, createdAt: 1 };
     state.pendingSteers = {
       'chat-1': [steer, { ...steer, steerId: 'unconfirmed' }, { ...steer, steerId: 'malformed' }],
-      'chat-2': [{ ...steer }],
+    'chat-2': [{ ...steer }]
     };
     state.composerDraftByChatId = { 'chat-1': 'saved draft' };
     const stateRef = { current: state };
     const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
     useAppContext.mockReturnValue({
       state, stateRef, dispatch, querySessionsRef: { current: new Map() },
-      chatQuerySessionIndexRef: { current: new Map() }, activeQuerySessionRequestIdRef: { current: '' },
+    chatQuerySessionIndexRef: { current: new Map() }, activeQuerySessionRequestIdRef: { current: '' }
     });
     const event = { type: 'request.steer', runId: 'run-1', steerId: 'confirmed', message: 'steering', timestamp: EPOCH_MS };
     getChat.mockResolvedValue({ data: {
       chatId: 'chat-1', agentKey: 'agent-alpha', createdAt: EPOCH_MS, updatedAt: EPOCH_MS + 1,
       events: [event, { ...event }, { ...event, steerId: 'unconfirmed', runId: 'another-run' },
-        { ...event, steerId: 'malformed', message: '' }], runs: [],
+            { ...event, steerId: 'malformed', message: '' }], runs: []
     } });
     let actions: ReturnType<typeof useTestConversationActions>;
     const Harness = () => { actions = useTestConversationActions(); return null; };
@@ -296,7 +296,7 @@ describe('replayEvent tool migration', () => {
     const dispatch = jest.fn((action: { type: string }) => {
       dispatchRecords.push({
         type: action.type,
-        insideFlushSync: mockInsideFlushSync,
+    insideFlushSync: mockInsideFlushSync
       });
     });
     useAppContext.mockReturnValue({
@@ -305,7 +305,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
     getChat.mockResolvedValue({
       data: {
@@ -323,11 +323,11 @@ describe('replayEvent tool migration', () => {
             requestId: 'req_1',
             chatId: 'chat-1',
             message: 'hello',
-            timestamp: 100,
+                timestamp: 100
           },
         ],
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -354,8 +354,8 @@ describe('replayEvent tool migration', () => {
 				agentKey: 'agent-alpha',
 				lastRunId: 'run-1',
 				lastRunContent: 'authoritative answer',
-				read: { isRead: false },
-			}),
+        read: { isRead: false }
+    })
 		});
   });
 
@@ -371,11 +371,11 @@ describe('replayEvent tool migration', () => {
             requestId: 'req_1',
             chatId: 'chat_new',
             message: 'hello',
-            timestamp: 100,
+                timestamp: 100
           },
         ],
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat_new');
@@ -387,8 +387,8 @@ describe('replayEvent tool migration', () => {
         targetChatId: 'chat_new',
         phase: 'loading',
         kind: 'history-switch',
-        displayMode: 'blocking',
-      }),
+        displayMode: 'blocking'
+    })
     }));
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_EVENTS' });
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'CLEAR_CONVERSATION_OVERVIEW' });
@@ -399,15 +399,15 @@ describe('replayEvent tool migration', () => {
     state.chatId = 'chat_old';
     state.currentChatActiveRun = {
       chatId: 'chat_new',
-      runId: 'stale-local-run',
+    runId: 'stale-local-run'
     };
     const { actions, dispatch } = renderChatActions(state);
     getChat.mockResolvedValue({
       data: {
         events: [],
         activeRun: { runId: '   ' },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat_new');
@@ -418,14 +418,14 @@ describe('replayEvent tool migration', () => {
         sourceChatId: 'chat_old',
         targetChatId: 'chat_new',
         kind: 'history-switch',
-        displayMode: 'blocking',
-      }),
+        displayMode: 'blocking'
+    })
     }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_CHAT_TRANSITION_DISPLAY_MODE',
       seq: 1,
       targetChatId: 'chat_new',
-      displayMode: 'blocking',
+    displayMode: 'blocking'
     });
   });
 
@@ -441,7 +441,7 @@ describe('replayEvent tool migration', () => {
       ([action]) => action.type === 'BEGIN_CHAT_TRANSITION',
     );
     expect(beginCall?.[0]).toEqual(expect.objectContaining({
-      transition: expect.objectContaining({ kind: 'same-chat-reload' }),
+    transition: expect.objectContaining({ kind: 'same-chat-reload' })
     }));
     expect(captureCurrent).toHaveBeenCalledTimes(1);
     expect(captureCurrent.mock.invocationCallOrder[0]).toBeLessThan(
@@ -486,7 +486,7 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'FAIL_CHAT_TRANSITION',
       targetChatId: 'chat_new',
-      error: 'network down',
+    error: 'network down'
     }));
   });
 
@@ -502,7 +502,7 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_CONVERSATION' });
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'FAIL_CHAT_TRANSITION',
-      targetChatId: 'chat_same',
+    targetChatId: 'chat_same'
     }));
   });
 
@@ -518,11 +518,11 @@ describe('replayEvent tool migration', () => {
               requestId: 'req_retry',
               chatId: 'chat-retry',
               message: 'retry me',
-              timestamp: 100,
+                timestamp: 100
             },
           ],
-          runs: [],
-        },
+        runs: []
+    }
       });
 
     await actions?.loadChat('chat-retry');
@@ -534,7 +534,7 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'APPLY_CONVERSATION_REPLAY',
-        snapshot: expect.objectContaining({ chatId: 'chat-retry' }),
+    snapshot: expect.objectContaining({ chatId: 'chat-retry' })
       }),
     );
   });
@@ -552,7 +552,7 @@ describe('replayEvent tool migration', () => {
           kind: 'message',
           role: 'user',
           text: '现在几点了',
-          ts: 100,
+    ts: 100
         },
       ],
     ]);
@@ -565,18 +565,18 @@ describe('replayEvent tool migration', () => {
             requestId: 'req_live',
             chatId: 'chat-live',
             message: '现在几点了',
-            timestamp: 100,
+                timestamp: 100
           },
           {
             type: 'content.delta',
             contentId: 'content_live',
             chatId: 'chat-live',
             delta: '现在是 22:27。',
-            timestamp: 120,
+                timestamp: 120
           },
         ],
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat-live');
@@ -596,7 +596,7 @@ describe('replayEvent tool migration', () => {
       runId: 'run_live',
       observationSource: 'query',
       owner: { kind: 'agent', agentKey: 'agent_live' },
-      streaming: true,
+    streaming: true
     });
     useAppContext.mockReturnValue({
       state,
@@ -604,7 +604,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef: { current: new Map([['req_live', liveSession]]) },
       chatQuerySessionIndexRef: { current: new Map([['chat_live', 'req_live']]) },
-      activeQuerySessionRequestIdRef: { current: 'req_live' },
+    activeQuerySessionRequestIdRef: { current: 'req_live' }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -634,7 +634,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
 
     let resolveChat!: (value: { data: Record<string, unknown> }) => void;
@@ -656,7 +656,7 @@ describe('replayEvent tool migration', () => {
 
     actions?.activateBlankConversation({
       preserveWorkerContext: true,
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
     resolveChat({
       data: {
@@ -666,11 +666,11 @@ describe('replayEvent tool migration', () => {
             requestId: 'req_stale',
             chatId: 'chat-stale',
             message: 'stale',
-            timestamp: 100,
+                timestamp: 100
           },
         ],
-        runs: [],
-      },
+        runs: []
+    }
     });
     await loadPromise;
 
@@ -699,11 +699,11 @@ describe('replayEvent tool migration', () => {
             timing: {
               firstTokenLatencyTotalMs: 820,
               firstTokenLatencyCount: 1,
-              generationDurationMs: 2380,
+                    generationDurationMs: 2380
             },
             llmChatCompletionCount: 2,
-            toolCallCount: 3,
-          },
+                toolCallCount: 3
+            }
         },
         runs: [],
         usage: {
@@ -717,24 +717,24 @@ describe('replayEvent tool migration', () => {
             inputCacheHit: 0.00007168,
             inputCacheMiss: 0.000086,
             output: 0.000122,
-            total: 0.00027968,
+                total: 0.00027968
           },
           promptCacheHitTokens: 999,
           promptCacheMissTokens: 999,
           timing: {
             firstTokenLatencyTotalMs: 900,
             firstTokenLatencyCount: 1,
-            generationDurationMs: 4000,
+                generationDurationMs: 4000
           },
           llmChatCompletionCount: 5,
-          toolCallCount: 8,
+            toolCallCount: 8
         },
         contextWindow: {
           maxSize: 128000,
           currentSize: 64000,
-          estimatedNextCallSize: 8000,
-        },
-      },
+            estimatedNextCallSize: 8000
+        }
+    }
     });
 
     await actions?.loadChat('chat-usage');
@@ -753,7 +753,7 @@ describe('replayEvent tool migration', () => {
           maxSize: 128000,
           currentSize: 64000,
           estimatedNextCallSize: 8000,
-          modelKey: 'deepseek-chat',
+            modelKey: 'deepseek-chat'
         },
         usage: {
           current: {},
@@ -765,10 +765,10 @@ describe('replayEvent tool migration', () => {
             timing: {
               firstTokenLatencyTotalMs: 820,
               firstTokenLatencyCount: 1,
-              generationDurationMs: 2380,
+                    generationDurationMs: 2380
             },
             llmChatCompletionCount: 2,
-            toolCallCount: 3,
+                toolCallCount: 3
           },
           chat: {
             promptTokens: 100,
@@ -781,18 +781,18 @@ describe('replayEvent tool migration', () => {
               inputCacheHit: 0.00007168,
               inputCacheMiss: 0.000086,
               output: 0.000122,
-              total: 0.00027968,
+                    total: 0.00027968
             },
             timing: {
               firstTokenLatencyTotalMs: 900,
               firstTokenLatencyCount: 1,
-              generationDurationMs: 4000,
+                    generationDurationMs: 4000
             },
             llmChatCompletionCount: 5,
-            toolCallCount: 8,
-          },
-        },
-      },
+                toolCallCount: 8
+            }
+        }
+    }
     });
     const usageAction = dispatch.mock.calls.find(([action]) => action.type === 'SET_USAGE_SNAPSHOT')?.[0];
     expect(usageAction.snapshot.usage.current).toEqual({});
@@ -812,30 +812,30 @@ describe('replayEvent tool migration', () => {
             contextWindow: {
               maxSize: 128000,
               currentSize: 13157,
-              estimatedNextCallSize: 13367,
+                    estimatedNextCallSize: 13367
             },
             usage: {
               current: {
                 promptTokens: 13157,
                 completionTokens: 210,
                 totalTokens: 13367,
-                toolCallCount: 2,
+                        toolCallCount: 2
               },
               run: {
                 promptTokens: 13157,
                 completionTokens: 210,
                 totalTokens: 13367,
                 llmChatCompletionCount: 1,
-                toolCallCount: 2,
+                        toolCallCount: 2
               },
               chat: {
                 promptTokens: 117392,
                 completionTokens: 11205,
                 totalTokens: 128597,
                 llmChatCompletionCount: 12,
-                toolCallCount: 15,
-              },
-            },
+                        toolCallCount: 15
+                    }
+                }
           },
         ],
         runs: [
@@ -847,8 +847,8 @@ describe('replayEvent tool migration', () => {
               completionTokens: 200,
               totalTokens: 6600,
               llmChatCompletionCount: 1,
-              toolCallCount: 4,
-            },
+                    toolCallCount: 4
+                }
           },
         ],
         usage: {
@@ -856,9 +856,9 @@ describe('replayEvent tool migration', () => {
           completionTokens: 11205,
           totalTokens: 128597,
           llmChatCompletionCount: 12,
-          toolCallCount: 15,
-        },
-      },
+            toolCallCount: 15
+        }
+    }
     });
 
     await actions?.loadChat('chat-event-usage');
@@ -873,9 +873,9 @@ describe('replayEvent tool migration', () => {
             maxSize: 128000,
             currentSize: 13157,
             estimatedNextCallSize: 13367,
-            modelKey: 'minimax',
-          },
-        }),
+            modelKey: 'minimax'
+        }
+    })
       }),
     );
   });
@@ -896,7 +896,7 @@ describe('replayEvent tool migration', () => {
             contextWindow: {
               currentSize: 6252,
               estimatedNextCallSize: 6374,
-              maxSize: 128000,
+                    maxSize: 128000
             },
             usage: {
               current: {
@@ -904,14 +904,14 @@ describe('replayEvent tool migration', () => {
                 completionTokens: 122,
                 totalTokens: 6374,
                 completionTokensDetails: {
-                  reasoningTokens: 85,
+                            reasoningTokens: 85
                 },
                 timing: {
                   firstTokenLatencyMs: 740,
-                  generationDurationMs: 2100,
-                },
-              },
-            },
+                            generationDurationMs: 2100
+                        }
+                    }
+                }
           },
         ],
         runs: [
@@ -920,8 +920,8 @@ describe('replayEvent tool migration', () => {
             usage: {
               promptTokens: 1,
               completionTokens: 1,
-              totalTokens: 2,
-            },
+                    totalTokens: 2
+                }
           },
         ],
         usage: {
@@ -930,33 +930,33 @@ describe('replayEvent tool migration', () => {
             completionTokens: 122,
             totalTokens: 6374,
             completionTokensDetails: {
-              reasoningTokens: 85,
+                    reasoningTokens: 85
             },
             timing: {
               firstTokenLatencyTotalMs: 760,
               firstTokenLatencyCount: 1,
-              generationDurationMs: 2200,
+                    generationDurationMs: 2200
             },
             llmChatCompletionCount: 1,
-            toolCallCount: 2,
+                toolCallCount: 2
           },
           chat: {
             promptTokens: 6252,
             completionTokens: 122,
             totalTokens: 6374,
             completionTokensDetails: {
-              reasoningTokens: 85,
+                    reasoningTokens: 85
             },
             timing: {
               firstTokenLatencyTotalMs: 800,
               firstTokenLatencyCount: 1,
-              generationDurationMs: 2400,
+                    generationDurationMs: 2400
             },
             llmChatCompletionCount: 1,
-            toolCallCount: 3,
-          },
-        },
-      },
+                toolCallCount: 3
+            }
+        }
+    }
     });
 
     await actions?.loadChat('chat-nested-usage');
@@ -973,7 +973,7 @@ describe('replayEvent tool migration', () => {
             maxSize: 128000,
             currentSize: 6252,
             estimatedNextCallSize: 6374,
-            modelKey: 'deepseek-chat',
+            modelKey: 'deepseek-chat'
           },
           usage: {
             current: {
@@ -981,45 +981,45 @@ describe('replayEvent tool migration', () => {
               completionTokens: 122,
               totalTokens: 6374,
               completionTokensDetails: {
-                reasoningTokens: 85,
+                    reasoningTokens: 85
               },
               timing: {
                 firstTokenLatencyMs: 740,
-                generationDurationMs: 2100,
-              },
+                    generationDurationMs: 2100
+                }
             },
             run: {
               promptTokens: 6252,
               completionTokens: 122,
               totalTokens: 6374,
               completionTokensDetails: {
-                reasoningTokens: 85,
+                    reasoningTokens: 85
               },
               timing: {
                 firstTokenLatencyTotalMs: 760,
                 firstTokenLatencyCount: 1,
-                generationDurationMs: 2200,
+                    generationDurationMs: 2200
               },
               llmChatCompletionCount: 1,
-              toolCallCount: 2,
+                toolCallCount: 2
             },
             chat: {
               promptTokens: 6252,
               completionTokens: 122,
               totalTokens: 6374,
               completionTokensDetails: {
-                reasoningTokens: 85,
+                    reasoningTokens: 85
               },
               timing: {
                 firstTokenLatencyTotalMs: 800,
                 firstTokenLatencyCount: 1,
-                generationDurationMs: 2400,
+                    generationDurationMs: 2400
               },
               llmChatCompletionCount: 1,
-              toolCallCount: 3,
-            },
-          },
-        }),
+                toolCallCount: 3
+            }
+        }
+    })
       }),
     );
   });
@@ -1034,7 +1034,7 @@ describe('replayEvent tool migration', () => {
             chatId: 'chat-compacted',
             compactId: 'compact-1',
             timestamp: EPOCH_MS + 200,
-            postCompactEstimatedTokens: 5396,
+                postCompactEstimatedTokens: 5396
           },
           {
             type: 'usage.snapshot',
@@ -1045,16 +1045,16 @@ describe('replayEvent tool migration', () => {
             contextWindow: {
               maxSize: 128000,
               currentSize: 13157,
-              estimatedNextCallSize: 13367,
+                    estimatedNextCallSize: 13367
             },
             usage: {
               run: {
                 promptTokens: 13157,
                 completionTokens: 210,
                 totalTokens: 13367,
-                llmChatCompletionCount: 1,
-              },
-            },
+                        llmChatCompletionCount: 1
+                    }
+                }
           },
         ],
         runs: [],
@@ -1062,9 +1062,9 @@ describe('replayEvent tool migration', () => {
           promptTokens: 117392,
           completionTokens: 11205,
           totalTokens: 128597,
-          llmChatCompletionCount: 12,
-        },
-      },
+            llmChatCompletionCount: 12
+        }
+    }
     });
 
     await actions?.loadChat('chat-compacted');
@@ -1077,9 +1077,9 @@ describe('replayEvent tool migration', () => {
             maxSize: 128000,
             currentSize: 5396,
             estimatedNextCallSize: 5396,
-            modelKey: 'minimax',
-          },
-        }),
+            modelKey: 'minimax'
+        }
+    })
       }),
     );
   });
@@ -1097,9 +1097,9 @@ describe('replayEvent tool migration', () => {
         contextWindow: {
           maxSize: 196608,
           currentSize: 2825,
-          estimatedNextCallSize: 2982,
-        },
-      },
+            estimatedNextCallSize: 2982
+        }
+    }
     });
 
     await actions?.loadChat('chat-cw-only');
@@ -1113,10 +1113,10 @@ describe('replayEvent tool migration', () => {
           contextWindow: {
             maxSize: 196608,
             currentSize: 2825,
-            estimatedNextCallSize: 2982,
+            estimatedNextCallSize: 2982
           },
-          usage: {},
-        }),
+        usage: {}
+    })
       }),
     );
   });
@@ -1130,9 +1130,9 @@ describe('replayEvent tool migration', () => {
         usage: {
           totalTokens: 0,
           llmChatCompletionCount: 0,
-          toolCallCount: 0,
-        },
-      },
+            toolCallCount: 0
+        }
+    }
     });
 
     await actions?.loadChat('chat-empty-usage');
@@ -1150,13 +1150,13 @@ describe('replayEvent tool migration', () => {
         activeRun: {
           runId: 'run_active',
           modelKey: 'active-model',
-          usage: { totalTokens: 0, llmChatCompletionCount: 0 },
+            usage: { totalTokens: 0, llmChatCompletionCount: 0 }
         },
         runs: [
           {
             runId: 'run_old',
             modelKey: 'old-model',
-            usage: { totalTokens: 10, llmChatCompletionCount: 1 },
+                usage: { totalTokens: 10, llmChatCompletionCount: 1 }
           },
           {
             runId: 'run_latest',
@@ -1168,11 +1168,11 @@ describe('replayEvent tool migration', () => {
               timing: {
                 firstTokenLatencyTotalMs: 640,
                 firstTokenLatencyCount: 1,
-                generationDurationMs: 1600,
+                        generationDurationMs: 1600
               },
               llmChatCompletionCount: 3,
-              toolCallCount: 6,
-            },
+                    toolCallCount: 6
+                }
           },
         ],
         usage: {
@@ -1180,9 +1180,9 @@ describe('replayEvent tool migration', () => {
           completionTokens: 80,
           totalTokens: 280,
           llmChatCompletionCount: 4,
-          toolCallCount: 9,
-        },
-      },
+            toolCallCount: 9
+        }
+    }
     });
 
     await actions?.loadChat('chat-run-usage');
@@ -1201,13 +1201,13 @@ describe('replayEvent tool migration', () => {
               timing: {
                 firstTokenLatencyTotalMs: 640,
                 firstTokenLatencyCount: 1,
-                generationDurationMs: 1600,
+                    generationDurationMs: 1600
               },
               llmChatCompletionCount: 3,
-              toolCallCount: 6,
-            },
-          }),
-        }),
+                toolCallCount: 6
+            }
+        })
+    })
       }),
     );
   });
@@ -1221,9 +1221,9 @@ describe('replayEvent tool migration', () => {
         usage: {
           totalTokens: 0,
           llmChatCompletionCount: 0,
-          toolCallCount: 2,
-        },
-      },
+            toolCallCount: 2
+        }
+    }
     });
 
     await actions?.loadChat('chat-tool-usage');
@@ -1237,10 +1237,10 @@ describe('replayEvent tool migration', () => {
             chat: {
               totalTokens: 0,
               llmChatCompletionCount: 0,
-              toolCallCount: 2,
-            },
-          },
-        }),
+                toolCallCount: 2
+            }
+        }
+    })
       }),
     );
   });
@@ -1255,10 +1255,10 @@ describe('replayEvent tool migration', () => {
           timing: {
             firstTokenLatencyTotalMs: 900,
             firstTokenLatencyCount: 1,
-            generationDurationMs: 2100,
-          },
-        },
-      },
+                generationDurationMs: 2100
+            }
+        }
+    }
     });
 
     await actions?.loadChat('chat-timing-only-usage');
@@ -1273,11 +1273,11 @@ describe('replayEvent tool migration', () => {
               timing: {
                 firstTokenLatencyTotalMs: 900,
                 firstTokenLatencyCount: 1,
-                generationDurationMs: 2100,
-              },
-            },
-          },
-        }),
+                    generationDurationMs: 2100
+                }
+            }
+        }
+    })
       }),
     );
   });
@@ -1287,12 +1287,12 @@ describe('replayEvent tool migration', () => {
       normalizeStartNewConversationDetail({
         agentKey: 'demo-agent',
         preserveWorkerContext: true,
-        focusComposerOnComplete: true,
+    focusComposerOnComplete: true
       }),
     ).toEqual({
       agentKey: 'demo-agent',
       preserveWorkerContext: true,
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
   });
 
@@ -1318,14 +1318,14 @@ describe('replayEvent tool migration', () => {
           { id: 'skill-creator', label: 'Skill Creator' },
           { id: 'SKILL-CREATOR', label: 'Duplicate' },
           { id: '', label: 'Invalid' },
-        ],
+    ]
       }),
     ).toEqual({
       agentKey: 'demo-agent',
       preserveWorkerContext: true,
       focusComposerOnComplete: true,
       composerDraft: 'Create a useful Skill.',
-      selectedSkills: [{ id: 'skill-creator', label: 'Skill Creator' }],
+    selectedSkills: [{ id: 'skill-creator', label: 'Skill Creator' }]
     });
   });
 
@@ -1335,12 +1335,12 @@ describe('replayEvent tool migration', () => {
     expect(
       normalizeStartNewConversationDetail({
         preserveWorkerContext: false,
-        focusComposerOnComplete: false,
+    focusComposerOnComplete: false
       }),
     ).toEqual({
       agentKey: '',
       preserveWorkerContext: false,
-      focusComposerOnComplete: false,
+    focusComposerOnComplete: false
     });
   });
 
@@ -1348,20 +1348,20 @@ describe('replayEvent tool migration', () => {
     expect(
       shouldAutoMarkChatRead({
         chatId: 'chat_unread',
-        read: { isRead: false },
+    read: { isRead: false }
       }),
     ).toBe(true);
 
     expect(
       shouldAutoMarkChatRead({
         chatId: 'chat_read',
-        read: { isRead: true },
+    read: { isRead: true }
       }),
     ).toBe(false);
 
     expect(
       shouldAutoMarkChatRead({
-        chatId: 'chat_missing_read',
+    chatId: 'chat_missing_read'
       }),
     ).toBe(false);
   });
@@ -1375,8 +1375,8 @@ describe('replayEvent tool migration', () => {
         read: {
           isRead: false,
           readAt: 111,
-          readRunId: 'run_0',
-        },
+        readRunId: 'run_0'
+    }
       }),
     ).toBe('chat_unread|run_1|run_0');
 
@@ -1388,8 +1388,8 @@ describe('replayEvent tool migration', () => {
         read: {
           isRead: true,
           readAt: 123,
-          readRunId: 'run_1',
-        },
+        readRunId: 'run_1'
+    }
       }),
     ).toBe('');
   });
@@ -1397,19 +1397,19 @@ describe('replayEvent tool migration', () => {
 	it('waits for the requested chat content commit before auto-read', () => {
 		expect(isChatContentCommitted({
 			chatId: 'chat_1', blocked: true,
-			transition: { targetChatId: 'chat_1', phase: 'ready' },
+    transition: { targetChatId: 'chat_1', phase: 'ready' }
 		})).toBe(false);
 		expect(isChatContentCommitted({
 			chatId: 'chat_1',
-			transition: { targetChatId: 'chat_1', phase: 'applying' },
+    transition: { targetChatId: 'chat_1', phase: 'applying' }
 		})).toBe(false);
 		expect(isChatContentCommitted({
 			chatId: 'chat_1',
-			transition: { targetChatId: 'chat_1', phase: 'ready' },
+    transition: { targetChatId: 'chat_1', phase: 'ready' }
 		})).toBe(true);
 		expect(isChatContentCommitted({
 			chatId: 'chat_1',
-			transition: null,
+    transition: null
 		})).toBe(true);
 	});
 
@@ -1422,13 +1422,13 @@ describe('replayEvent tool migration', () => {
 			updatedAt: EPOCH_MS + 1,
 			lastRunId: 'run-2',
 			lastRunContent: 'Visible answer',
-			read: { isRead: false, readAt: EPOCH_MS - 1, readRunId: 'run-1' },
+    read: { isRead: false, readAt: EPOCH_MS - 1, readRunId: 'run-1' }
 		})).toEqual(expect.objectContaining({
 			chatId: 'route-chat',
 			agentKey: 'agent-alpha',
 			lastRunId: 'run-2',
 			lastRunContent: 'Visible answer',
-			read: { isRead: false, readAt: EPOCH_MS - 1, readRunId: 'run-1' },
+    read: { isRead: false, readAt: EPOCH_MS - 1, readRunId: 'run-1' }
 		}));
 	});
 
@@ -1436,15 +1436,15 @@ describe('replayEvent tool migration', () => {
     const state = createWorkerConversationState({
       latestChat: {
         hasPendingAwaiting: true,
-        read: { isRead: true },
-      },
+        read: { isRead: true }
+    }
     });
     const { actions, dispatch } = renderChatActions(state);
     getChat.mockResolvedValue({ data: { events: [], runs: [] } });
 
     await actions?.selectWorkerConversation('agent:worker_a', {
       focusComposerOnComplete: true,
-      preferNewChat: true,
+    preferNewChat: true
     });
 
     expect(getChat).toHaveBeenCalledWith('chat_latest', false);
@@ -1456,15 +1456,15 @@ describe('replayEvent tool migration', () => {
     const state = createWorkerConversationState({
       latestChat: {
         hasActiveRun: true,
-        read: { isRead: true },
-      },
+        read: { isRead: true }
+    }
     });
     const { actions, dispatch } = renderChatActions(state);
     getChat.mockResolvedValue({ data: { events: [], runs: [] } });
 
     await actions?.selectWorkerConversation('agent:worker_a', {
       focusComposerOnComplete: true,
-      preferNewChat: true,
+    preferNewChat: true
     });
 
     expect(getChat).toHaveBeenCalledWith('chat_latest', false);
@@ -1476,19 +1476,19 @@ describe('replayEvent tool migration', () => {
     const state = createWorkerConversationState({
       olderChat: {
         hasActiveRun: true,
-        read: { isRead: true },
+        read: { isRead: true }
       },
       latestChat: {
         read: { isRead: true },
-        hasPendingAwaiting: false,
-      },
+        hasPendingAwaiting: false
+    }
     });
     const { actions, dispatch } = renderChatActions(state);
     getChat.mockResolvedValue({ data: { events: [], runs: [] } });
 
     await actions?.selectWorkerConversation('agent:worker_a', {
       focusComposerOnComplete: true,
-      preferNewChat: true,
+    preferNewChat: true
     });
 
     expect(getChat).toHaveBeenCalledWith('chat_older', false);
@@ -1499,15 +1499,15 @@ describe('replayEvent tool migration', () => {
   it('loads the latest worker chat when preferNewChat sees unread state', async () => {
     const state = createWorkerConversationState({
       latestChat: {
-        read: { isRead: false },
-      },
+        read: { isRead: false }
+    }
     });
     const { actions, dispatch } = renderChatActions(state);
     getChat.mockResolvedValue({ data: { events: [], runs: [] } });
 
     await actions?.selectWorkerConversation('agent:worker_a', {
       focusComposerOnComplete: true,
-      preferNewChat: true,
+    preferNewChat: true
     });
 
     expect(getChat).toHaveBeenCalledWith('chat_latest', false);
@@ -1518,18 +1518,18 @@ describe('replayEvent tool migration', () => {
   it('starts a blank worker chat when preferNewChat latest chat is read with no awaiting', async () => {
     const state = createWorkerConversationState({
       olderChat: {
-        read: { isRead: false },
+        read: { isRead: false }
       },
       latestChat: {
         read: { isRead: true },
-        hasPendingAwaiting: false,
-      },
+        hasPendingAwaiting: false
+    }
     });
     const { actions, dispatch } = renderChatActions(state);
 
     await actions?.selectWorkerConversation('agent:worker_a', {
       focusComposerOnComplete: true,
-      preferNewChat: true,
+    preferNewChat: true
     });
 
     expect(getChat).not.toHaveBeenCalled();
@@ -1537,11 +1537,11 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_PENDING_NEW_CHAT_AGENT_KEY',
-      agentKey: 'worker_a',
+    agentKey: 'worker_a'
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_WORKER_PRIORITY_KEY',
-      workerKey: 'agent:worker_a',
+    workerKey: 'agent:worker_a'
     });
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: 'APPEND_DEBUG' }),
@@ -1552,20 +1552,20 @@ describe('replayEvent tool migration', () => {
     const state = createWorkerConversationState({
       latestChat: {
         read: { isRead: true },
-        hasPendingAwaiting: false,
-      },
+        hasPendingAwaiting: false
+    }
     });
     state.temporaryPinnedAgentKey = 'worker_a';
     const { actions, dispatch } = renderChatActions(state);
 
     await actions?.selectWorkerConversation('agent:worker_a', {
       focusComposerOnComplete: true,
-      preferNewChat: true,
+    preferNewChat: true
     });
 
     expect(dispatch).not.toHaveBeenCalledWith({
       type: 'SET_TEMPORARY_PINNED_AGENT_KEY',
-      agentKey: '',
+    agentKey: ''
     });
   });
 
@@ -1575,7 +1575,7 @@ describe('replayEvent tool migration', () => {
 
     await actions?.selectWorkerConversation('agent:worker_a', {
       focusComposerOnComplete: true,
-      preferNewChat: true,
+    preferNewChat: true
     });
 
     expect(getChat).not.toHaveBeenCalled();
@@ -1583,16 +1583,16 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_PENDING_NEW_CHAT_AGENT_KEY',
-      agentKey: 'worker_a',
+    agentKey: 'worker_a'
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_WORKER_PRIORITY_KEY',
-      workerKey: 'agent:worker_a',
+    workerKey: 'agent:worker_a'
     });
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'APPEND_DEBUG',
-        line: expect.any(String),
+    line: expect.any(String)
       }),
     );
   });
@@ -1602,14 +1602,14 @@ describe('replayEvent tool migration', () => {
       latestChatId: 'row_latest_chat',
       latestChat: {
         chatId: 'chat_latest',
-        read: { isRead: true },
-      },
+        read: { isRead: true }
+    }
     });
     const { actions, dispatch } = renderChatActions(state);
     getChat.mockResolvedValue({ data: { events: [], runs: [] } });
 
     await actions?.selectWorkerConversation('agent:worker_a', {
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
 
     expect(getChat).toHaveBeenCalledWith('row_latest_chat', false);
@@ -1627,7 +1627,7 @@ describe('replayEvent tool migration', () => {
     getChat.mockResolvedValue({ data: {
       firstAgentKey: 'cutej',
       events: [{ type: 'request.query', chatId: 'started-chat', runId: 'started-run', accessLevel: 'auto_approve', timestamp: EPOCH_MS }],
-      ...(active ? { activeRun: { runId: 'started-run', agentKey: 'cutej', lastSeq: 1 } } : {}),
+        ...(active ? { activeRun: { runId: 'started-run', agentKey: 'cutej', lastSeq: 1 } } : {})
     } });
     await actions.loadChat('started-chat');
     expect(readComposerAccessLevel(stateRef.current, target)).toBe('auto_approve');
@@ -1641,7 +1641,7 @@ describe('replayEvent tool migration', () => {
     const { actions, stateRef } = createConversationIntentHarness(state);
     getChat.mockResolvedValue({ data: {
       firstAgentKey: 'cutej',
-      events: [{ type: 'request.query', chatId: target.chatId, runId: 'run', accessLevel: 'full_access', timestamp: EPOCH_MS }],
+        events: [{ type: 'request.query', chatId: target.chatId, runId: 'run', accessLevel: 'full_access', timestamp: EPOCH_MS }]
     } });
     await actions.loadChat(target.chatId);
     expect(readComposerAccessLevel(stateRef.current, target)).toBe('default');
@@ -1661,24 +1661,24 @@ describe('replayEvent tool migration', () => {
             awaitingId: 'await_1',
             mode: 'question',
             timestamp: EPOCH_MS,
-            questions: [{ id: 'q1', type: 'text', question: '继续吗？' }],
+                questions: [{ id: 'q1', type: 'text', question: '继续吗？' }]
           },
         ],
         activeRun: {
           runId: 'run_1',
           agentKey: 'askUser.demo',
           state: 'WAITING_SUBMIT',
-          lastSeq: 31,
+            lastSeq: 31
         },
         awaiting: {
           awaitingId: 'await_1',
           runId: 'run_1',
           mode: 'question',
           status: 'awaiting',
-          createdAt: EPOCH_MS,
+            createdAt: EPOCH_MS
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat-attach');
@@ -1691,8 +1691,8 @@ describe('replayEvent tool migration', () => {
           runId: 'run_1',
           lastSeq: 31,
           agentKey: 'askUser.demo',
-          owner: { kind: 'agent', agentKey: 'askUser.demo' },
-        },
+        owner: { kind: 'agent', agentKey: 'askUser.demo' }
+    }
       }),
     );
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
@@ -1701,14 +1701,14 @@ describe('replayEvent tool migration', () => {
         currentChatActiveRun: expect.objectContaining({
           runId: 'run_1',
           state: 'WAITING_SUBMIT',
-          lastSeq: 31,
+            lastSeq: 31
         }),
         activeAwaiting: expect.objectContaining({
           runId: 'run_1',
           awaitingId: 'await_1',
-          mode: 'question',
-        }),
-      }),
+            mode: 'question'
+        })
+    })
     }));
   });
 
@@ -1722,10 +1722,10 @@ describe('replayEvent tool migration', () => {
           runId: 'run_active',
           agentKey: 'askUser.demo',
           owner: { kind: 'agent', agentKey: 'askUser.demo' },
-          lastSeq: 7,
+            lastSeq: 7
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat-active');
@@ -1740,15 +1740,15 @@ describe('replayEvent tool migration', () => {
           runId: 'run_active',
           agentKey: 'askUser.demo',
           owner: { kind: 'agent', agentKey: 'askUser.demo' },
-          lastSeq: 7,
-        },
-      }),
+            lastSeq: 7
+        }
+    })
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_CHAT_TRANSITION_DISPLAY_MODE',
       seq: 1,
       targetChatId: 'chat-active',
-      displayMode: 'blocking',
+    displayMode: 'blocking'
     });
   });
 
@@ -1757,7 +1757,7 @@ describe('replayEvent tool migration', () => {
     state.chatId = 'chat-active';
     state.currentChatActiveRun = {
       chatId: 'chat-active',
-      runId: 'run-active',
+    runId: 'run-active'
     };
     const { actions, dispatch } = renderChatActions(state);
     getChat.mockResolvedValue({
@@ -1765,8 +1765,8 @@ describe('replayEvent tool migration', () => {
         chatId: 'chat-active',
         events: [],
         activeRun: null,
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat-active', { forceReload: true });
@@ -1775,14 +1775,14 @@ describe('replayEvent tool migration', () => {
       type: 'BEGIN_CHAT_TRANSITION',
       transition: expect.objectContaining({
         targetChatId: 'chat-active',
-        displayMode: 'background',
-      }),
+        displayMode: 'background'
+    })
     }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_CHAT_TRANSITION_DISPLAY_MODE',
       seq: 1,
       targetChatId: 'chat-active',
-      displayMode: 'background',
+    displayMode: 'background'
     });
   });
 
@@ -1791,12 +1791,12 @@ describe('replayEvent tool migration', () => {
     {
       label: 'streaming reasoning without content',
       runState: 'RUNNING',
-      events: [{ type: 'reasoning.delta', reasoningId: 'reasoning-1', delta: 'Thinking' }],
+    events: [{ type: 'reasoning.delta', reasoningId: 'reasoning-1', delta: 'Thinking' }]
     },
     {
       label: 'running a tool without content',
       runState: 'RUNNING',
-      events: [{ type: 'tool.start', toolId: 'tool-1', toolName: 'bash' }],
+    events: [{ type: 'tool.start', toolId: 'tool-1', toolName: 'bash' }]
     },
     { label: 'waiting for user input', runState: 'WAITING_SUBMIT', events: [] },
   ])('does not poll chat history while $label', async ({ runState, events }) => {
@@ -1811,16 +1811,16 @@ describe('replayEvent tool migration', () => {
             ...event,
             chatId: 'chat-active',
             runId: 'run-active',
-            timestamp: EPOCH_MS + index,
+            timestamp: EPOCH_MS + index
           })),
           activeRun: {
             runId: 'run-active',
             agentKey: 'askUser.demo',
             state: runState,
-            lastSeq: 7,
+            lastSeq: 7
           },
-          runs: [],
-        },
+        runs: []
+    }
       });
       // Mirror the worker listener so a timer-triggered reload makes a real
       // getChat call and can reproduce the recursive refresh fan-out.
@@ -1835,7 +1835,7 @@ describe('replayEvent tool migration', () => {
       expect(globalWithBrowserApis.window!.dispatchEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'agent:attach-run',
-          detail: expect.objectContaining({ chatId: 'chat-active', runId: 'run-active', lastSeq: 7 }),
+    detail: expect.objectContaining({ chatId: 'chat-active', runId: 'run-active', lastSeq: 7 })
         }),
       );
       await jest.advanceTimersByTimeAsync(10_000);
@@ -1866,10 +1866,10 @@ describe('replayEvent tool migration', () => {
           activeRun: {
             runId: 'run-active',
             agentKey: 'askUser.demo',
-            lastSeq: 7,
+            lastSeq: 7
           },
-          runs: [],
-        },
+        runs: []
+    }
       });
 
       await actions?.loadChat('chat-active');
@@ -1897,7 +1897,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
     getChat.mockResolvedValue({
       data: {
@@ -1905,10 +1905,10 @@ describe('replayEvent tool migration', () => {
         events: [],
         activeRun: {
           runId: 'run_1',
-          planningMode: true,
+            planningMode: true
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -1924,7 +1924,7 @@ describe('replayEvent tool migration', () => {
       type: 'SET_PLANNING_MODE',
       chatId: 'chat_plan_active',
       enabled: true,
-      persist: false,
+    persist: false
     });
   });
 
@@ -1938,7 +1938,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
     getChat.mockResolvedValue({
       data: {
@@ -1946,10 +1946,10 @@ describe('replayEvent tool migration', () => {
         events: [],
         activeRun: {
           runId: 'run_1',
-          planningMode: true,
+            planningMode: true
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -1965,7 +1965,7 @@ describe('replayEvent tool migration', () => {
       type: 'SET_PLANNING_MODE',
       chatId: 'chat_plan_explicit',
       enabled: true,
-      persist: false,
+    persist: false
     });
   });
 
@@ -1983,24 +1983,24 @@ describe('replayEvent tool migration', () => {
             awaitingId: 'await_plan_1',
             mode: 'planning',
             planning: {
-              id: 'confirm',
+                    id: 'confirm'
             },
-            timestamp: EPOCH_MS,
+                timestamp: EPOCH_MS
           },
         ],
         activeRun: {
           runId: 'run_1',
-          planningMode: true,
+            planningMode: true
         },
         awaiting: {
           awaitingId: 'await_plan_1',
           runId: 'run_1',
           mode: 'planning',
           status: 'awaiting',
-          createdAt: EPOCH_MS,
+            createdAt: EPOCH_MS
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat_plan_pending');
@@ -2009,13 +2009,13 @@ describe('replayEvent tool migration', () => {
       type: 'SET_PLANNING_MODE',
       chatId: 'chat_plan_pending',
       enabled: false,
-      persist: true,
+    persist: true
     });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_PLANNING_MODE',
       chatId: 'chat_plan_pending',
       enabled: true,
-      persist: false,
+    persist: false
     });
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'APPLY_CONVERSATION_REPLAY',
@@ -2023,9 +2023,9 @@ describe('replayEvent tool migration', () => {
         activeAwaiting: expect.objectContaining({
           awaitingId: 'await_plan_1',
           mode: 'plan',
-          plan: { id: 'confirm' },
-        }),
-      }),
+            plan: { id: 'confirm' }
+        })
+    })
     }));
   });
 
@@ -2046,24 +2046,24 @@ describe('replayEvent tool migration', () => {
               {
                 id: 'q1',
                 type: 'text',
-                question: '继续吗？',
+                        question: '继续吗？'
               },
-            ],
+                ]
           },
         ],
         activeRun: {
           runId: 'run_1',
-          planningMode: true,
+            planningMode: true
         },
         awaiting: {
           awaitingId: 'await_question_1',
           runId: 'run_1',
           mode: 'question',
           status: 'awaiting',
-          createdAt: EPOCH_MS,
+            createdAt: EPOCH_MS
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat_question_pending');
@@ -2072,7 +2072,7 @@ describe('replayEvent tool migration', () => {
       type: 'SET_PLANNING_MODE',
       chatId: 'chat_question_pending',
       enabled: false,
-      persist: true,
+    persist: true
     });
   });
 
@@ -2089,11 +2089,11 @@ describe('replayEvent tool migration', () => {
             awaitingId: 'await_stale',
             timestamp: EPOCH_MS,
             mode: 'question',
-            questions: [{ id: 'q1', type: 'text', question: '已经失效的问题' }],
+                questions: [{ id: 'q1', type: 'text', question: '已经失效的问题' }]
           },
         ],
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat_stale_awaiting');
@@ -2105,8 +2105,8 @@ describe('replayEvent tool migration', () => {
         pendingAwaitings: [],
         events: expect.arrayContaining([
           expect.objectContaining({ awaitingId: 'await_stale' }),
-        ]),
-      }),
+        ])
+    })
     }));
   });
 
@@ -2123,7 +2123,7 @@ describe('replayEvent tool migration', () => {
             awaitingId: 'await_1',
             timestamp: EPOCH_MS,
             mode: 'question',
-            questions: [{ id: 'q1', type: 'text', question: '继续吗？' }],
+                questions: [{ id: 'q1', type: 'text', question: '继续吗？' }]
           },
         ],
         awaiting: {
@@ -2131,10 +2131,10 @@ describe('replayEvent tool migration', () => {
           runId: 'run_1',
           mode: 'question',
           status: 'awaiting',
-          createdAt: EPOCH_MS,
+            createdAt: EPOCH_MS
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     await actions?.loadChat('chat_mismatched_awaiting');
@@ -2143,12 +2143,12 @@ describe('replayEvent tool migration', () => {
       type: 'APPLY_CONVERSATION_REPLAY',
       snapshot: expect.objectContaining({
         activeAwaiting: null,
-        pendingAwaitings: [],
-      }),
+        pendingAwaitings: []
+    })
     }));
     expect(dispatch).toHaveBeenCalledWith({
       type: 'APPEND_DEBUG',
-      line: expect.stringContaining('[awaiting_contract_violation]'),
+    line: expect.stringContaining('[awaiting_contract_violation]')
     });
   });
 
@@ -2160,7 +2160,7 @@ describe('replayEvent tool migration', () => {
       awaitingId: 'await_plan',
       timestamp: EPOCH_MS,
       mode: 'planning',
-      planning: { id: 'confirm' },
+    planning: { id: 'confirm' }
     });
 
     expect(reconcileReplayAwaiting(rs, {
@@ -2168,12 +2168,12 @@ describe('replayEvent tool migration', () => {
       runId: 'run_plan',
       mode: 'planning',
       status: 'awaiting',
-      createdAt: EPOCH_MS,
+    createdAt: EPOCH_MS
     })).toEqual({ matched: true, diagnostic: '' });
     expect(rs.activeAwaiting).toMatchObject({
       awaitingId: 'await_plan',
       runId: 'run_plan',
-      mode: 'plan',
+    mode: 'plan'
     });
     expect(rs.pendingAwaitings).toEqual([]);
   });
@@ -2186,7 +2186,7 @@ describe('replayEvent tool migration', () => {
     state.runAgentById.set('run_old', 'agent_old');
     const dispatch = jest.fn();
     const querySessionsRef = {
-      current: new Map([['req_old', createLiveSession()]]),
+    current: new Map([['req_old', createLiveSession()]])
     };
     const activeQuerySessionRequestIdRef = { current: 'req_old' };
     useAppContext.mockReturnValue({
@@ -2195,7 +2195,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef,
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef,
+    activeQuerySessionRequestIdRef
     });
     getChat.mockResolvedValue({
       data: {
@@ -2204,10 +2204,10 @@ describe('replayEvent tool migration', () => {
         activeRun: {
           runId: 'run_new',
           agentKey: 'agent_new',
-          lastSeq: 7,
+            lastSeq: 7
         },
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -2233,8 +2233,8 @@ describe('replayEvent tool migration', () => {
         chatId: 'chat_old',
         runId: 'run_old',
         agentKey: 'agent_old',
-        reason: 'chat_switch',
-      },
+        reason: 'chat_switch'
+    }
     });
     expect(dispatchEvent.mock.invocationCallOrder[detachIndex]).toBeLessThan(
       getChat.mock.invocationCallOrder[0],
@@ -2246,8 +2246,8 @@ describe('replayEvent tool migration', () => {
         chatId: 'chat_new',
         runId: 'run_new',
         agentKey: 'agent_new',
-        lastSeq: 7,
-      },
+        lastSeq: 7
+    }
     });
   });
 
@@ -2266,20 +2266,20 @@ describe('replayEvent tool migration', () => {
             chatId: 'chat_cached',
             runId: 'run_cached',
             streaming: false,
-            snapshot: { chatId: 'chat_cached' },
+                    snapshot: { chatId: 'chat_cached' }
           })],
-        ]),
+        ])
       },
       chatQuerySessionIndexRef: { current: new Map([['chat_cached', 'req_cached']]) },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
     getChat.mockResolvedValue({
       data: {
         firstAgentKey: 'agent_cached',
         events: [],
         activeRun: null,
-        runs: [],
-      },
+        runs: []
+    }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -2293,7 +2293,7 @@ describe('replayEvent tool migration', () => {
 
     expect(getChat).toHaveBeenCalledWith('chat_cached', false);
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'APPLY_CONVERSATION_REPLAY',
+    type: 'APPLY_CONVERSATION_REPLAY'
     }));
   });
 
@@ -2307,7 +2307,7 @@ describe('replayEvent tool migration', () => {
       state: stateRef.current, stateRef, dispatch,
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
     let actions!: ReturnType<typeof useConversationActions>;
     const Harness = () => { actions = useConversationActions(); return null; };
@@ -2334,7 +2334,7 @@ describe('replayEvent tool migration', () => {
       state: stateRef.current, stateRef, dispatch,
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
     let actions!: ReturnType<typeof useConversationActions>;
     const Harness = () => { actions = useConversationActions(); return null; };
@@ -2356,10 +2356,10 @@ describe('replayEvent tool migration', () => {
       dispatch,
       stateRef: { current: state },
       querySessionsRef: {
-        current: new Map([['req_old', createLiveSession()]]),
+        current: new Map([['req_old', createLiveSession()]])
       },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: 'req_old' },
+    activeQuerySessionRequestIdRef: { current: 'req_old' }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -2379,8 +2379,8 @@ describe('replayEvent tool migration', () => {
           runId: 'run_old',
           agentKey: 'agent_old',
           owner: { kind: 'agent', agentKey: 'agent_old' },
-          reason: 'new_conversation',
-        },
+        reason: 'new_conversation'
+    }
       }),
     );
   });
@@ -2397,7 +2397,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -2503,7 +2503,7 @@ describe('replayEvent tool migration', () => {
       stateRef: { current: state },
       querySessionsRef: { current: new Map() },
       chatQuerySessionIndexRef: { current: new Map() },
-      activeQuerySessionRequestIdRef: { current: '' },
+    activeQuerySessionRequestIdRef: { current: '' }
     });
 
     let actions: ReturnType<typeof useTestConversationActions> | null = null;
@@ -2516,17 +2516,17 @@ describe('replayEvent tool migration', () => {
     actions?.startNewConversation({
       agentKey: 'agent_b',
       preserveWorkerContext: true,
-      focusComposerOnComplete: true,
+    focusComposerOnComplete: true
     });
 
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_WORKER_SELECTION_KEY',
-      workerKey: 'agent:agent_b',
+    workerKey: 'agent:agent_b'
     });
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CHAT_ID', chatId: '' });
     expect(dispatch).not.toHaveBeenCalledWith({
       type: 'SET_COMPOSER_DRAFT',
-      draft: '',
+    draft: ''
     });
   });
 
@@ -2537,9 +2537,9 @@ describe('replayEvent tool migration', () => {
       type: 'tool.start',
       toolId: 'call_f1494c0a4c4646cc81a41585',
       toolName: 'email.search',
-      view: {source:'builtin',key:'viewport_email_search',renderer:'html'},
+    view: { source: 'builtin', key: 'viewport_email_search', renderer: 'html' },
       runId: 'run_1',
-      timestamp: EPOCH_MS + 100,
+    timestamp: EPOCH_MS + 100
     });
 
     const toolState = state.toolStates.get('call_f1494c0a4c4646cc81a41585');
@@ -2559,19 +2559,19 @@ describe('replayEvent tool migration', () => {
       type: 'tool.start',
       toolId: 'tool_args',
       toolName: 'demo.run',
-      timestamp: 100,
+    timestamp: 100
     });
     replayEvent(state, {
       type: 'tool.args',
       toolId: 'tool_args',
       delta: '{"foo":"bar"}',
-      timestamp: 110,
+    timestamp: 110
     });
 
     expect(state.toolStates.get('tool_args')?.toolParams).toEqual({ foo: 'bar' });
     expect(state.timelineNodes.get('tool_0')).toMatchObject({
       argsText: '{\n  "foo": "bar"\n}',
-      status: 'running',
+    status: 'running'
     });
   });
 
@@ -2583,24 +2583,24 @@ describe('replayEvent tool migration', () => {
       toolId: 'tool_debug',
       toolName: 'demo.run',
       runId: 'run_1',
-      timestamp: 100,
+    timestamp: 100
     });
     replayEvent(state, {
       type: 'tool.args',
       toolId: 'tool_debug',
       delta: '{"foo":"bar"}',
-      timestamp: 110,
+    timestamp: 110
     });
     replayEvent(state, {
       type: 'tool.end',
       toolId: 'tool_debug',
-      timestamp: 120,
+    timestamp: 120
     });
     replayEvent(state, {
       type: 'tool.result',
       toolId: 'tool_debug',
       result: 'ok',
-      timestamp: 130,
+    timestamp: 130
     });
 
     expect(state.events.map((event) => event.type)).toEqual([
@@ -2619,7 +2619,7 @@ describe('replayEvent tool migration', () => {
       toolName: 'demo.run',
       runId: 'run_1',
       arguments: '{"foo":"bar"}',
-      timestamp: 120,
+    timestamp: 120
     });
   });
 
@@ -2657,13 +2657,13 @@ describe('replayEvent tool migration', () => {
       type: 'tool.start',
       toolId: 'tool_args_case',
       toolName: 'email.list_accounts',
-      timestamp: 100,
+    timestamp: 100
     });
     replayEvent(state, {
       type: 'tool.result',
       toolId: 'tool_args_case',
       result: 'ok',
-      timestamp: 110,
+    timestamp: 110
     });
 
     const nodeId = state.toolNodeById.get('tool_args_case');
@@ -2681,15 +2681,15 @@ describe('replayEvent tool migration', () => {
       plan: [
         { taskId: 'task_1', description: 'step 1' },
         { taskId: 'task_2', description: 'step 2' },
-      ],
+    ]
     });
     replayEvent(state, {
       type: 'task.start',
-      taskId: 'task_1',
+    taskId: 'task_1'
     });
     replayEvent(state, {
       type: 'task.complete',
-      taskId: 'task_1',
+    taskId: 'task_1'
     });
 
     expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('completed');
@@ -2707,14 +2707,14 @@ describe('replayEvent tool migration', () => {
         role: 'user',
         message: 'parent task',
         agentKey: 'orchestrator',
-        timestamp: 100,
+    timestamp: 100
       },
       {
         type: 'run.start',
         runId: 'run_1',
         chatId: 'chat_1',
         agentKey: 'orchestrator',
-        timestamp: 100,
+    timestamp: 100
       },
       {
         type: 'task.start',
@@ -2722,7 +2722,7 @@ describe('replayEvent tool migration', () => {
         runId: 'run_1',
         taskName: 'Child A',
         subAgentKey: 'agent_a',
-        timestamp: 110,
+    timestamp: 110
       },
       {
         type: 'request.query',
@@ -2733,7 +2733,7 @@ describe('replayEvent tool migration', () => {
         message: 'child A query',
         agentKey: 'agent_a',
         taskId: 'task_1',
-        timestamp: 111,
+    timestamp: 111
       },
       {
         type: 'task.start',
@@ -2741,7 +2741,7 @@ describe('replayEvent tool migration', () => {
         runId: 'run_1',
         taskName: 'Child B',
         subAgentKey: 'agent_b',
-        timestamp: 120,
+    timestamp: 120
       },
       {
         type: 'request.query',
@@ -2752,7 +2752,7 @@ describe('replayEvent tool migration', () => {
         message: 'child B query',
         agentKey: 'agent_b',
         taskId: 'task_2',
-        timestamp: 121,
+    timestamp: 121
       },
       {
         type: 'task.start',
@@ -2760,7 +2760,7 @@ describe('replayEvent tool migration', () => {
         runId: 'run_1',
         taskName: 'Child C',
         subAgentKey: 'agent_c',
-        timestamp: 130,
+    timestamp: 130
       },
       {
         type: 'request.query',
@@ -2771,7 +2771,7 @@ describe('replayEvent tool migration', () => {
         message: 'child C query',
         agentKey: 'agent_c',
         taskId: 'task_3',
-        timestamp: 131,
+    timestamp: 131
       },
       {
         type: 'content.snapshot',
@@ -2779,12 +2779,12 @@ describe('replayEvent tool migration', () => {
         runId: 'run_1',
         taskId: 'task_3',
         text: 'child C answer',
-        timestamp: 180,
+    timestamp: 180
       },
       {
         type: 'task.complete',
         taskId: 'task_3',
-        timestamp: 180,
+    timestamp: 180
       },
       {
         type: 'content.snapshot',
@@ -2792,12 +2792,12 @@ describe('replayEvent tool migration', () => {
         runId: 'run_1',
         taskId: 'task_2',
         text: 'child B answer',
-        timestamp: 190,
+    timestamp: 190
       },
       {
         type: 'task.complete',
         taskId: 'task_2',
-        timestamp: 190,
+    timestamp: 190
       },
       {
         type: 'content.snapshot',
@@ -2805,24 +2805,24 @@ describe('replayEvent tool migration', () => {
         runId: 'run_1',
         taskId: 'task_1',
         text: 'child A answer',
-        timestamp: 200,
+    timestamp: 200
       },
       {
         type: 'task.complete',
         taskId: 'task_1',
-        timestamp: 200,
+    timestamp: 200
       },
       {
         type: 'content.snapshot',
         contentId: 'run_final',
         runId: 'run_1',
         text: 'final answer',
-        timestamp: 220,
+    timestamp: 220
       },
       {
         type: 'run.complete',
         runId: 'run_1',
-        timestamp: 220,
+    timestamp: 220
       },
     ];
 
@@ -2876,7 +2876,7 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-log',
           sizeBytes: 512,
-          url: '/api/resource?file=chat_01%2Frun.log',
+            url: '/api/resource?file=chat_01%2Frun.log'
         },
         {
           artifactId: 'artifact_2',
@@ -2885,9 +2885,9 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-notes',
           sizeBytes: 128,
-          url: 'chat_01/artifacts/run_01/notes.txt',
+            url: 'chat_01/artifacts/run_01/notes.txt'
         },
-      ],
+    ]
     });
 
     expect(state.artifacts).toEqual([
@@ -2900,8 +2900,8 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-log',
           sizeBytes: 512,
-          url: '/api/resource?file=chat_01%2Frun.log',
-        },
+        url: '/api/resource?file=chat_01%2Frun.log'
+    }
       },
       {
         artifactId: 'artifact_2',
@@ -2912,8 +2912,8 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-notes',
           sizeBytes: 128,
-          url: 'chat_01/artifacts/run_01/notes.txt',
-        },
+        url: 'chat_01/artifacts/run_01/notes.txt'
+    }
       },
     ]);
   });
@@ -2927,7 +2927,7 @@ describe('replayEvent tool migration', () => {
       toolName: 'file_edit',
       runId: 'run_1',
       arguments: '{"file_path":"/workspace/src/App.tsx"}',
-      timestamp: 100,
+    timestamp: 100
     });
     replayEvent(state, {
       type: 'tool.result',
@@ -2938,10 +2938,10 @@ describe('replayEvent tool migration', () => {
         lineStats: {
           addedLines: 8,
           deletedLines: 2,
-          editedLines: 2,
-        },
+            editedLines: 2
+        }
       }),
-      timestamp: EPOCH_MS + 140,
+    timestamp: EPOCH_MS + 140
     });
 
     expect(state.fileChanges).toEqual([
@@ -2952,7 +2952,7 @@ describe('replayEvent tool migration', () => {
         deletedLines: 2,
         editedLines: 2,
         operationCount: 1,
-        lastUpdatedAt: EPOCH_MS + 140,
+    lastUpdatedAt: EPOCH_MS + 140
       },
     ]);
   });
@@ -2972,9 +2972,9 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-old',
           sizeBytes: 128,
-          url: 'https://example.com/old.log',
+            url: 'https://example.com/old.log'
         },
-      ],
+    ]
     });
 
     setReplayArtifacts(state, [
@@ -2987,8 +2987,8 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-new',
           sizeBytes: 256,
-          url: 'https://example.com/new.log',
-        },
+        url: 'https://example.com/new.log'
+    }
       },
     ]);
 
@@ -3002,8 +3002,8 @@ describe('replayEvent tool migration', () => {
           mimeType: 'text/plain',
           sha256: 'sha-new',
           sizeBytes: 256,
-          url: 'https://example.com/new.log',
-        },
+        url: 'https://example.com/new.log'
+    }
       },
     ]);
   });
@@ -3020,9 +3020,9 @@ describe('replayEvent tool migration', () => {
             sha256: 'sha-report',
             sizeBytes: 1024,
             url: 'https://example.com/report.pdf',
-            timestamp: EPOCH_MS,
+            timestamp: EPOCH_MS
           },
-        ],
+    ]
       }),
     ).toEqual([
       {
@@ -3035,8 +3035,8 @@ describe('replayEvent tool migration', () => {
           mimeType: 'application/pdf',
           sha256: 'sha-report',
           sizeBytes: 1024,
-          url: 'https://example.com/report.pdf',
-        },
+        url: 'https://example.com/report.pdf'
+    }
       },
     ]);
   });
@@ -3047,25 +3047,25 @@ describe('replayEvent tool migration', () => {
     replayEvent(state, {
       type: 'plan.update',
       planId: 'plan_1',
-      plan: [{ taskId: 'task_1', description: 'old step' }],
+    plan: [{ taskId: 'task_1', description: 'old step' }]
     });
     replayEvent(state, {
       type: 'task.start',
-      taskId: 'task_1',
+    taskId: 'task_1'
     });
 
     setReplayPlan(
       state,
       {
         planId: 'plan_1',
-        plan: [{ taskId: 'task_1', description: 'new step' }],
+    plan: [{ taskId: 'task_1', description: 'new step' }]
       },
       { resetRuntime: false },
     );
 
     expect(state.plan).toEqual({
       planId: 'plan_1',
-      plan: [{ taskId: 'task_1', description: 'new step' }],
+    plan: [{ taskId: 'task_1', description: 'new step' }]
     });
     expect(state.planRuntimeByTaskId.get('task_1')?.status).toBe('running');
     expect(state.planCurrentRunningTaskId).toBe('task_1');
@@ -3077,25 +3077,25 @@ describe('replayEvent tool migration', () => {
     replayEvent(state, {
       type: 'plan.update',
       planId: 'plan_1',
-      plan: [{ taskId: 'task_1', description: 'step 1' }],
+    plan: [{ taskId: 'task_1', description: 'step 1' }]
     });
     replayEvent(state, {
       type: 'task.start',
-      taskId: 'task_1',
+    taskId: 'task_1'
     });
 
     setReplayPlan(
       state,
       {
         planId: 'plan_2',
-        plan: [{ taskId: 'task_2', description: 'step 2' }],
+    plan: [{ taskId: 'task_2', description: 'step 2' }]
       },
       { resetRuntime: true },
     );
 
     expect(state.plan).toEqual({
       planId: 'plan_2',
-      plan: [{ taskId: 'task_2', description: 'step 2' }],
+    plan: [{ taskId: 'task_2', description: 'step 2' }]
     });
     expect(state.planRuntimeByTaskId.size).toBe(0);
     expect(state.planCurrentRunningTaskId).toBe('');
@@ -3109,12 +3109,12 @@ describe('replayEvent tool migration', () => {
       type: 'request.steer',
       steerId: 'steer_1',
       message: '请收敛一点',
-      timestamp: 100,
+    timestamp: 100
     });
     replayEvent(state, {
       type: 'run.cancel',
       runId: 'run_1',
-      timestamp: 120,
+    timestamp: 120
     });
 
     const node = state.timelineNodes.get('steer_steer_1');
@@ -3134,10 +3134,10 @@ describe('replayEvent tool migration', () => {
           id: 'i1',
           type: 'image',
           name: 'drmjl-nfjxc-001.ico',
-          sizeBytes: 67646,
+            sizeBytes: 67646
         },
       ],
-      timestamp: 100,
+    timestamp: 100
     });
 
     expect(state.timelineNodes.get('user_req_history_1')).toMatchObject({
@@ -3146,9 +3146,9 @@ describe('replayEvent tool migration', () => {
       attachments: [
         {
           name: 'drmjl-nfjxc-001.ico',
-          size: 67646,
+            size: 67646
         },
-      ],
+    ]
     });
   });
 });

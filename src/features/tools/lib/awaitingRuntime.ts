@@ -437,7 +437,7 @@ function reduceSingleActiveAwaiting(
       fallback.owner
       || (current?.key === key ? current.owner : undefined)
       || toRunOwner({
-        teamId: (event as Record<string, unknown>).teamId,
+
         agentKey: eventAgentKey,
       });
     const agentKey = owner?.kind === 'agent'

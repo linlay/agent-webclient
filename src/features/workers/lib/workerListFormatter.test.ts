@@ -1,6 +1,5 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team } from "@/features/workers/lib/workerState";
 import { buildWorkerRows } from '@/features/workers/lib/workerListFormatter';
 
 describe('buildWorkerRows', () => {
@@ -15,26 +14,25 @@ describe('buildWorkerRows', () => {
         chatName: 'Alpha chat',
         agentKey: 'agent-alpha',
         lastRunId: 'z9',
-        updatedAt: 100,
+    updatedAt: 100
       } as Chat,
       {
         chatId: 'chat_2',
         chatName: 'Beta chat',
         agentKey: 'agent-beta',
         lastRunId: 'a1',
-        updatedAt: 200,
+    updatedAt: 200
       } as Chat,
     ];
 
     const rows = buildWorkerRows({
-      agents,
-      teams: [{ teamId: 'team-ops', name: 'Ops' } as Team],
       chats,
-      workerOrderKeys: ['team:team-ops', 'agent:agent-beta', 'agent:agent-alpha'],
+    workerOrderKeys: ['agent:team-ops', 'agent:agent-beta', 'agent:agent-alpha'],
+    agents: [...agents, { key: 'team-ops', name: 'Ops', mode: "TEAM" } as Agent]
     });
 
     expect(rows.map((row) => row.key)).toEqual([
-      'team:team-ops',
+      'agent:team-ops',
       'agent:agent-beta',
       'agent:agent-alpha',
     ]);
@@ -42,39 +40,37 @@ describe('buildWorkerRows', () => {
 
   it('uses the first server-provided recent chat instead of parsing lastRunId', () => {
     const rows = buildWorkerRows({
-      agents: [{ key: 'agent-alpha', name: 'Alpha' } as Agent],
-      teams: [],
       chats: [
         {
           chatId: 'chat_first',
           chatName: 'First chat',
           agentKey: 'agent-alpha',
           lastRunId: 'a1',
-          updatedAt: 100,
+            updatedAt: 100
         } as Chat,
         {
           chatId: 'chat_later_updated',
           chatName: 'Later updated chat',
           agentKey: 'agent-alpha',
           lastRunId: 'z9',
-          updatedAt: 200,
+            updatedAt: 200
         } as Chat,
       ],
+    agents: [{ key: 'agent-alpha', name: 'Alpha' } as Agent]
     });
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       key: 'agent:agent-alpha',
-      latestChatId: 'chat_first',
+    latestChatId: 'chat_first'
     });
   });
 
   it('does not create an extra row for a priority worker without history', () => {
     const rows = buildWorkerRows({
-      agents: [],
-      teams: [],
       chats: [],
       workerPriorityKey: 'agent:agent-new',
+    agents: []
     });
 
     expect(rows).toEqual([]);
@@ -82,17 +78,16 @@ describe('buildWorkerRows', () => {
 
   it('omits chat-derived rows when the worker is not in the current agent list', () => {
     const rows = buildWorkerRows({
-      agents: [],
-      teams: [],
       chats: [
         {
           chatId: 'chat_hidden',
           chatName: 'Hidden chat',
           agentKey: 'agent-hidden',
           lastRunId: 'a1',
-          updatedAt: 100,
+            updatedAt: 100
         } as Chat,
       ],
+    agents: []
     });
 
     expect(rows).toEqual([]);
@@ -100,24 +95,23 @@ describe('buildWorkerRows', () => {
 
   it('keeps only current agents when chats include hidden agents', () => {
     const rows = buildWorkerRows({
-      agents: [{ key: 'agent-visible', name: 'Visible' } as Agent],
-      teams: [],
       chats: [
         {
           chatId: 'chat_visible',
           chatName: 'Visible chat',
           agentKey: 'agent-visible',
           lastRunId: 'a1',
-          updatedAt: 200,
+            updatedAt: 200
         } as Chat,
         {
           chatId: 'chat_hidden',
           chatName: 'Hidden chat',
           agentKey: 'agent-hidden',
           lastRunId: 'a1',
-          updatedAt: 300,
+            updatedAt: 300
         } as Chat,
       ],
+    agents: [{ key: 'agent-visible', name: 'Visible' } as Agent]
     });
 
     expect(rows.map((row) => row.key)).toEqual(['agent:agent-visible']);
@@ -126,53 +120,46 @@ describe('buildWorkerRows', () => {
 
   it('carries react agent roles into worker rows and search text', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'agent-react',
           name: 'React Agent',
           mode: 'REACT',
-          role: 'Operations assistant',
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            role: 'Operations assistant'
+        } as Agent]
     });
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       key: 'agent:agent-react',
       agentType: 'agent',
-      role: 'Operations assistant',
+    role: 'Operations assistant'
     });
     expect(rows[0].searchText).toContain('operations assistant');
   });
 
   it('preserves explicitly empty agent names in worker rows', () => {
     const rows = buildWorkerRows({
-      agents: [{ key: 'agent-a', name: '' } as Agent],
-      teams: [],
       chats: [],
+    agents: [{ key: 'agent-a', name: '' } as Agent]
     });
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       key: 'agent:agent-a',
-      displayName: '',
+    displayName: ''
     });
   });
 
   it('carries coder workspace metadata into worker rows and search text', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'agent-coder',
           name: 'agent-coder',
           mode: 'CODER',
-          workspaceDir: '/Users/demo/Project/agent-coder',
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            workspaceDir: '/Users/demo/Project/agent-coder'
+        } as Agent]
     });
 
     expect(rows).toHaveLength(1);
@@ -180,24 +167,21 @@ describe('buildWorkerRows', () => {
       key: 'agent:agent-coder',
       agentType: 'coder',
       role: '',
-      workspaceDir: '/Users/demo/Project/agent-coder',
+    workspaceDir: '/Users/demo/Project/agent-coder'
     });
     expect(rows[0].searchText).toContain('/users/demo/project/agent-coder');
   });
 
   it('keeps coder roles searchable while preserving coder workspace metadata', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'agent-coder',
           name: 'agent-coder',
           mode: 'CODER',
           role: 'Code reviewer',
-          workspaceDir: '/Users/demo/Project/agent-coder',
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            workspaceDir: '/Users/demo/Project/agent-coder'
+        } as Agent]
     });
 
     expect(rows).toHaveLength(1);
@@ -205,7 +189,7 @@ describe('buildWorkerRows', () => {
       key: 'agent:agent-coder',
       agentType: 'coder',
       role: 'Code reviewer',
-      workspaceDir: '/Users/demo/Project/agent-coder',
+    workspaceDir: '/Users/demo/Project/agent-coder'
     });
     expect(rows[0].searchText).toContain('code reviewer');
     expect(rows[0].searchText).toContain('/users/demo/project/agent-coder');
@@ -213,23 +197,20 @@ describe('buildWorkerRows', () => {
 
   it('treats dynamic workspace roots as unavailable for local open', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'dynamic-coder',
           name: 'Dynamic Coder',
           mode: 'CODER',
           workspaceDir: ' @chat ',
-          workspaceName: 'chat workspace',
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            workspaceName: 'chat workspace'
+        } as Agent]
     });
 
     expect(rows[0]).toMatchObject({
       key: 'agent:dynamic-coder',
       agentType: 'coder',
-      workspaceName: 'chat workspace',
+    workspaceName: 'chat workspace'
     });
     expect(rows[0].workspaceDir).toBeUndefined();
     expect(rows[0].searchText).toContain('chat workspace');
@@ -238,24 +219,21 @@ describe('buildWorkerRows', () => {
 
   it('carries browser folder metadata without requiring a workspaceDir', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'browser-coder',
           name: 'Browser Coder',
           type: 'coder',
           workspaceName: 'browser-coder',
-          source: { kind: 'browser-folder' },
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            source: { kind: 'browser-folder' }
+        } as Agent]
     });
 
     expect(rows[0]).toMatchObject({
       key: 'agent:browser-coder',
       agentType: 'coder',
       workspaceName: 'browser-coder',
-      workspaceSourceKind: 'browser-folder',
+    workspaceSourceKind: 'browser-folder'
     });
     expect(rows[0].workspaceDir).toBeUndefined();
     expect(rows[0].searchText).toContain('browser-coder');
@@ -263,35 +241,29 @@ describe('buildWorkerRows', () => {
 
   it('projects top-level agentConfigDir onto worker rows and exposes it in search text', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'agent-cfg',
           name: 'Configurable Agent',
-          agentConfigDir: '/agents/agent-cfg',
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            agentConfigDir: '/agents/agent-cfg'
+        } as Agent]
     });
 
     expect(rows[0]).toMatchObject({
       key: 'agent:agent-cfg',
-      agentConfigDir: '/agents/agent-cfg',
+    agentConfigDir: '/agents/agent-cfg'
     });
     expect(rows[0].searchText).toContain('/agents/agent-cfg');
   });
 
   it('does not treat source.agentDir as agentConfigDir', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'agent-cfg-src',
           name: 'Legacy Source Agent',
-          source: { agentDir: '/agents/agent-cfg-src' },
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            source: { agentDir: '/agents/agent-cfg-src' }
+        } as Agent]
     });
 
     expect(rows[0].agentConfigDir).toBeUndefined();
@@ -300,45 +272,38 @@ describe('buildWorkerRows', () => {
 
   it('ignores @ prefixed agentConfigDir placeholders', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'agent-cfg-placeholder',
           name: 'Placeholder Agent',
-          agentConfigDir: ' @runtime ',
-        } as Agent,
-      ],
-      teams: [],
-      chats: [],
+            agentConfigDir: ' @runtime '
+        } as Agent]
     });
 
     expect(rows[0]).toMatchObject({
-      key: 'agent:agent-cfg-placeholder',
+    key: 'agent:agent-cfg-placeholder'
     });
     expect(rows[0].agentConfigDir).toBeUndefined();
     expect(rows[0].searchText).not.toContain('@runtime');
   });
 
-  it('does not project agentConfigDir onto team rows', () => {
+  it('preserves agentConfigDir for TEAM Agents', () => {
     const rows = buildWorkerRows({
-      agents: [
-        {
+    chats: [],
+    agents: [{
           key: 'agent-cfg-team-mate',
           name: 'Team Member',
-          agentConfigDir: '/agents/team-mate',
-        } as Agent,
-      ],
-      teams: [
-        {
-          teamId: 'team-cfg',
+            agentConfigDir: '/agents/team-mate'
+        } as Agent, {
+            key: 'team-cfg',
           name: 'Team With Config',
           agentConfigDir: '/agents/team-cfg',
-        } as unknown as Team,
-      ],
-      chats: [],
+            mode: "TEAM"
+        } as unknown as Agent]
     });
 
-    const teamRow = rows.find((row) => row.key === 'team:team-cfg');
+    const teamRow = rows.find((row) => row.key === 'agent:team-cfg');
     expect(teamRow).toBeDefined();
-    expect(teamRow?.agentConfigDir).toBeUndefined();
+    expect(teamRow?.agentConfigDir).toBe("/agents/team-cfg");
   });
 });

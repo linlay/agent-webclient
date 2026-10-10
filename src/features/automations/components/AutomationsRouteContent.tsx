@@ -10,7 +10,7 @@ export const AutomationsRouteContent: React.FC = () => {
     <AutomationHistoryConsole
       currentWorker={currentWorker}
       agents={state.agents}
-      teams={state.teams}
+
     />
   );
 };

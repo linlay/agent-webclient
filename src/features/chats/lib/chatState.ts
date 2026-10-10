@@ -12,7 +12,7 @@ export interface ChatAwaitingSummary {
 export interface ChatActiveRunSummary {
   runId?: string;
   agentKey?: string;
-  teamId?: string;
+
   owner?: RunOwner;
   lastSeq?: number | string;
   planningMode?: boolean;
@@ -35,7 +35,7 @@ export interface Chat {
   firstAgentName?: string;
   firstAgentKey?: string;
   agentKey?: string;
-  teamId?: string;
+
   owner?: RunOwner;
   source?: string;
   updatedAt?: number;

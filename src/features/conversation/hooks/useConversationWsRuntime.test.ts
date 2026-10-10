@@ -29,7 +29,7 @@ const PUSH_REQUIRED_TIME_FIELDS: Record<string, string> = {
 	"catalog.updated": "updatedAt",
 	"awaiting.asking": "createdAt",
 	"awaiting.answered": "answeredAt",
-	"resource.pushed": "pushedAt",
+    "resource.pushed": "pushedAt"
 };
 
 function withPushContractTime(frame: Record<string, unknown>): Record<string, unknown> {
@@ -54,9 +54,9 @@ function withPushContractTime(frame: Record<string, unknown>): Record<string, un
 					createdAt: (container.summary as Record<string, unknown>).createdAt ?? EPOCH_MS,
 					updatedAt: (container.summary as Record<string, unknown>).updatedAt ?? EPOCH_MS,
 					lastRunAt: (container.summary as Record<string, unknown>).lastRunAt ?? EPOCH_MS,
-					archivedAt: (container.summary as Record<string, unknown>).archivedAt ?? EPOCH_MS,
-				},
-			},
+            archivedAt: (container.summary as Record<string, unknown>).archivedAt ?? EPOCH_MS
+        }
+    }
 		};
 	}
 
@@ -68,14 +68,14 @@ function withPushContractTime(frame: Record<string, unknown>): Record<string, un
 		const payload = frame.payload as Record<string, unknown>;
 		return {
 			...frame,
-			payload: { ...payload, [timeField]: payload[timeField] ?? EPOCH_MS },
+    payload: { ...payload, [timeField]: payload[timeField] ?? EPOCH_MS }
 		};
 	}
 	if (frame.data && typeof frame.data === "object" && !Array.isArray(frame.data)) {
 		const data = frame.data as Record<string, unknown>;
 		return {
 			...frame,
-			data: { ...data, [timeField]: data[timeField] ?? EPOCH_MS },
+    data: { ...data, [timeField]: data[timeField] ?? EPOCH_MS }
 		};
 	}
 	return { ...frame, [timeField]: EPOCH_MS };
@@ -83,7 +83,7 @@ function withPushContractTime(frame: Record<string, unknown>): Record<string, un
 
 beforeEach(() => {
 	globalWithRuntimeConfig.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-		DEBUG_RUN_OBSERVATION_ENABLED: "true",
+    DEBUG_RUN_OBSERVATION_ENABLED: "true"
 	};
 });
 
@@ -92,10 +92,7 @@ afterEach(() => {
 });
 
 function createState(overrides: Partial<AppState> = {}): AppState {
-	return {
-		agents: [],
-		teams: [],
-		chats: [],
+	return {chats: [],
 		automations: [],
 		sidebarPendingRequestCount: 0,
 		chatAgentById: new Map(),
@@ -137,7 +134,7 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 			dirtyNodeIds: new Set(),
 			scheduled: false,
 			stickToBottomRequested: false,
-			fullSyncNeeded: false,
+        fullSyncNeeded: false
 		},
 		activeReasoningKey: "",
 		chatFilter: "",
@@ -195,11 +192,11 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 				rmsThreshold: 0.015,
 				openHoldMs: 120,
 				closeHoldMs: 480,
-				preRollMs: 240,
+            preRollMs: 240
 			},
 			clientGateCustomized: false,
 			currentAgentKey: "",
-			currentAgentName: "",
+        currentAgentName: ""
 		},
 		pendingSteers: {},
 		downvotedRunKeys: new Set(),
@@ -211,10 +208,10 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 			commandType: null,
 			phase: "success",
 			text: "",
-			timer: null,
+        timer: null
 		},
-		...overrides,
-	};
+agents: [],
+...overrides};
 }
 
 function debugEvents(dispatchMock: jest.Mock<void, [AppAction]>, stage?: string) {
@@ -257,7 +254,7 @@ describe("createConversationPushHandler", () => {
 			Object.defineProperty(globalThis, "window", {
 				value: originalWindow,
 				configurable: true,
-				writable: true,
+    writable: true
 			});
 		}
 		if (originalCustomEvent === undefined) {
@@ -267,7 +264,7 @@ describe("createConversationPushHandler", () => {
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: originalCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 	});
 
@@ -276,7 +273,9 @@ describe("createConversationPushHandler", () => {
     const invalidate = jest.spyOn(dataQueryCache, "invalidatePrefix");
     const dispatchEvent = jest.fn();
     Object.defineProperty(globalThis, "window", { value: { dispatchEvent }, configurable: true, writable: true });
-    Object.defineProperty(globalThis, "CustomEvent", { value: class { constructor(public type: string) {} }, configurable: true, writable: true });
+    Object.defineProperty(globalThis, "CustomEvent", { value: class {
+        constructor(public type: string) { }
+    }, configurable: true, writable: true });
     const onPush = createConversationPushHandler({ dispatch, stateRef: { current: createState() }, handleEvent });
     onPush({ frame: "push", type: "chats.order.changed", data: { updatedAt: EPOCH_MS } });
     expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "agent:refresh-worker-data" }));
@@ -289,14 +288,14 @@ describe("createConversationPushHandler", () => {
 		const stateRef = { current: createState({ chatId: "chat_1" }) };
 		const onPush = createConversationPushHandler({ dispatch, stateRef, handleEvent });
 		const event: WsPushFrame = {
-			frame: "push", type: "content.delta", chatId: "chat_1", contentId: "content_1", delta: "text",
+    frame: "push", type: "content.delta", chatId: "chat_1", contentId: "content_1", delta: "text"
 		};
 		onPush({ frame: "push", type: "heartbeat", timestamp: EPOCH_MS });
 		expect(dispatch).not.toHaveBeenCalled();
 		onPush({ frame: "push", type: "chat.updated", chatId: "chat_1", updatedAt: "invalid" });
 		expect(dispatch).toHaveBeenCalledTimes(1);
 		expect(dispatch).toHaveBeenCalledWith({
-			type: "APPEND_DEBUG", line: expect.stringContaining("time_contract_violation"),
+    type: "APPEND_DEBUG", line: expect.stringContaining("time_contract_violation")
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 		onPush(event);
@@ -313,7 +312,7 @@ describe("createConversationPushHandler", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -323,8 +322,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_new",
 				chatName: "New Chat",
 				agentKey: "agent_alpha",
-				source: "automation:daily",
-			},
+        source: "automation:daily"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -334,8 +333,8 @@ describe("createConversationPushHandler", () => {
 				chatName: "New Chat",
 				agentKey: "agent_alpha",
 				firstAgentKey: "agent_alpha",
-				source: "automation:daily",
-			}),
+        source: "automation:daily"
+    })
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -344,14 +343,14 @@ describe("createConversationPushHandler", () => {
 		const state = createState({
 			accessToken: "token_local",
 			chatId: "chat_active",
-			streaming: true,
+    streaming: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -360,14 +359,14 @@ describe("createConversationPushHandler", () => {
 			payload: {
 				chatId: "chat_active",
 				chatName: "Analyze this image",
-				agentKey: "agent_alpha",
-			},
+        agentKey: "agent_alpha"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "CHAT_RENAMED",
 			chatId: "chat_active",
-			chatName: "Analyze this image",
+    chatName: "Analyze this image"
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -379,7 +378,7 @@ describe("createConversationPushHandler", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		for (const updatedAt of [
@@ -393,8 +392,8 @@ describe("createConversationPushHandler", () => {
 				type: "chat.updated",
 				payload: {
 					chatId: "chat_bad_time",
-					...(updatedAt === undefined ? {} : { updatedAt }),
-				},
+        ...(updatedAt === undefined ? {} : { updatedAt })
+    }
 			});
 		}
 
@@ -404,7 +403,7 @@ describe("createConversationPushHandler", () => {
 		expect(dispatch).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "APPEND_DEBUG",
-				line: expect.stringContaining("time_contract_violation"),
+    line: expect.stringContaining("time_contract_violation")
 			}),
 		);
 	});
@@ -416,7 +415,7 @@ describe("createConversationPushHandler", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -425,8 +424,8 @@ describe("createConversationPushHandler", () => {
 			data: {
 				chatId: "chat_from_data",
 				chatName: "Chat From Data",
-				agentKey: "agent_data",
-			},
+        agentKey: "agent_data"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -435,8 +434,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_from_data",
 				chatName: "Chat From Data",
 				agentKey: "agent_data",
-				firstAgentKey: "agent_data",
-			}),
+        firstAgentKey: "agent_data"
+    })
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -456,32 +455,32 @@ describe("createConversationPushHandler", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
 			frame: "push",
 			type: "chat.archived",
 			payload: {
-				chatId: "chat_active",
-			},
+        chatId: "chat_active"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "CHAT_ARCHIVED",
-			chatId: "chat_active",
+    chatId: "chat_active"
 		});
 		expect(dispatch).toHaveBeenCalledWith({ type: "SET_CHAT_ID", chatId: "" });
 		expect(dispatch).toHaveBeenCalledWith({ type: "SET_RUN_ID", runId: "" });
@@ -510,19 +509,19 @@ describe("createConversationPushHandler", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -534,9 +533,9 @@ describe("createConversationPushHandler", () => {
 				summary: {
 					chatId: "chat_restored",
 					chatName: "Restored",
-					agentKey: "agent_a",
-				},
-			},
+            agentKey: "agent_a"
+        }
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -544,8 +543,8 @@ describe("createConversationPushHandler", () => {
 			chat: expect.objectContaining({
 				chatId: "chat_restored",
 				chatName: "Restored",
-				agentKey: "agent_a",
-			}),
+        agentKey: "agent_a"
+    })
 		});
 		expect(dispatchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ type: "agent:refresh-worker-data" }),
@@ -560,7 +559,7 @@ describe("createConversationPushHandler", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -570,8 +569,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_remote",
 				runId: "run_remote",
 				agentKey: "agent_remote",
-				startedAt: EPOCH_MS + 10,
-			},
+        startedAt: EPOCH_MS + 10
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -581,8 +580,8 @@ describe("createConversationPushHandler", () => {
 				lastRunId: "run_remote",
 				agentKey: "agent_remote",
 				firstAgentKey: "agent_remote",
-				updatedAt: EPOCH_MS + 10,
-			}),
+        updatedAt: EPOCH_MS + 10
+    })
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -594,7 +593,7 @@ describe("createConversationPushHandler", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -604,8 +603,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_remote",
 				runId: "run_remote",
 				awaitingId: "await_1",
-				createdAt: 1776830869957,
-			},
+        createdAt: 1776830869957
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -614,8 +613,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_remote",
 				lastRunId: "run_remote",
 				hasPendingAwaiting: true,
-				updatedAt: 1776830869957,
-			}),
+        updatedAt: 1776830869957
+    })
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -627,7 +626,7 @@ describe("createConversationPushHandler", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -642,8 +641,8 @@ describe("createConversationPushHandler", () => {
 				runId: "mq254p8r",
 				timeout: 600000,
 				viewKey: "question",
-				viewRenderer: "builtin",
-			},
+        viewRenderer: "builtin"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -653,8 +652,8 @@ describe("createConversationPushHandler", () => {
 				lastRunId: "mq254p8r",
 				hasPendingAwaiting: true,
 				awaiting: { mode: "question" },
-				updatedAt: 1780737509785,
-			}),
+        updatedAt: 1780737509785
+    })
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -674,19 +673,19 @@ describe("createConversationPushHandler", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -698,8 +697,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_active",
 				createdAt: 1780737509785,
 				mode: "question",
-				runId: "run_active",
-			},
+        runId: "run_active"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -709,8 +708,8 @@ describe("createConversationPushHandler", () => {
 				lastRunId: "run_active",
 				hasPendingAwaiting: true,
 				awaiting: { mode: "question" },
-				updatedAt: 1780737509785,
-			}),
+        updatedAt: 1780737509785
+    })
 		});
 		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
@@ -731,19 +730,19 @@ describe("createConversationPushHandler", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -754,8 +753,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_active",
 				createdAt: 1780737509785,
 				mode: "question",
-				runId: "run_active",
-			},
+        runId: "run_active"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -763,8 +762,8 @@ describe("createConversationPushHandler", () => {
 			chat: expect.objectContaining({
 				chatId: "chat_active",
 				lastRunId: "run_active",
-				hasPendingAwaiting: true,
-			}),
+        hasPendingAwaiting: true
+    })
 		});
 		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
@@ -777,7 +776,7 @@ describe("createConversationPushHandler", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -787,8 +786,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_remote",
 				runId: "run_remote",
 				awaitingId: "await_1",
-				answeredAt: EPOCH_MS + 20,
-			},
+        answeredAt: EPOCH_MS + 20
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -797,8 +796,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_remote",
 				lastRunId: "run_remote",
 				hasPendingAwaiting: false,
-				updatedAt: EPOCH_MS + 20,
-			}),
+        updatedAt: EPOCH_MS + 20
+    })
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -818,19 +817,19 @@ describe("createConversationPushHandler", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -840,8 +839,8 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_active",
 				runId: "run_active_v2",
 				agentKey: "agent_active",
-				agentUnreadCount: 0,
-			},
+        agentUnreadCount: 0
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -849,8 +848,8 @@ describe("createConversationPushHandler", () => {
 			chat: expect.objectContaining({
 				chatId: "chat_active",
 				lastRunId: "run_active_v2",
-				hasPendingAwaiting: false,
-			}),
+        hasPendingAwaiting: false
+    })
 		});
 		expect(dispatchEvent).not.toHaveBeenCalled();
 	});
@@ -885,7 +884,7 @@ function setupMockWindow(): {
 				listener(event);
 			}
 			return true;
-		},
+    }
 	};
 	class MockCustomEvent {
 		type: string;
@@ -898,12 +897,12 @@ function setupMockWindow(): {
 	Object.defineProperty(globalThis, "window", {
 		value: mockWindow,
 		configurable: true,
-		writable: true,
+    writable: true
 	});
 	Object.defineProperty(globalThis, "CustomEvent", {
 		value: MockCustomEvent,
 		configurable: true,
-		writable: true,
+    writable: true
 	});
 	return { mockWindow, MockCustomEvent };
 }
@@ -933,12 +932,12 @@ describe("registerDetachRunListener", () => {
 		"aborts only the matching local execution for %s",
 		(reason) => {
 			const session = createLiveQuerySession({
-				requestId: "req_1", chatId: "chat_1", owner: { kind: "agent", agentKey: "agent_alpha" },
+    requestId: "req_1", chatId: "chat_1", owner: { kind: "agent", agentKey: "agent_alpha" }
 			});
 			session.runId = "run_1";
 			session.abortController = new AbortController();
 			const other = createLiveQuerySession({
-				requestId: "req_2", chatId: "chat_2", owner: { kind: "agent", agentKey: "agent_alpha" },
+    requestId: "req_2", chatId: "chat_2", owner: { kind: "agent", agentKey: "agent_alpha" }
 			});
 			other.runId = "run_2";
 			other.abortController = new AbortController();
@@ -947,7 +946,7 @@ describe("registerDetachRunListener", () => {
 				stateRef: { current: createState() },
 				querySessionsRef: { current: new Map([[session.requestId, session], [other.requestId, other]]) },
 				activeQuerySessionRequestIdRef: { current: session.requestId },
-				logMissing: true,
+    logMissing: true
 			});
 			const controller = session.abortController;
 			mockWindow.dispatchEvent(new MockCustomEvent("agent:detach-run", { detail: { reason } }));
@@ -966,14 +965,14 @@ describe("registerDetachRunListener", () => {
 			dispatch,
 			stateRef: { current: createState({
 				chatId: "chat_team", runId: "run_team",
-				chats: [{ chatId: "chat_team", teamId: "team_1", agentKey: "stale_member" } as Chat],
+            chats: [{ chatId: "chat_team", agentKey: "team_1" } as Chat]
 			}) },
 			querySessionsRef: { current: new Map() },
 			activeQuerySessionRequestIdRef: { current: "" },
 			activeAttachRef: { current: {
 				requestId: "req_team", chatId: "chat_team", runId: "run_team", agentKey: "",
-				owner: { kind: "orchestrated-team", teamId: "team_1" }, controller: new AbortController(), abort,
-			} },
+            owner: {kind: "agent", agentKey: "team_1"}, controller: new AbortController(), abort
+        } }
 		});
 		const event = new MockCustomEvent("agent:detach-run", { detail: { reason: "chat_switch" } });
 		mockWindow.dispatchEvent(event);
@@ -992,10 +991,10 @@ describe("registerDetachRunListener", () => {
 			stateRef: { current: createState({ chatId: "chat_1" }) },
 			querySessionsRef: { current: new Map() },
 			activeQuerySessionRequestIdRef: { current: "" },
-			logMissing: true,
+    logMissing: true
 		});
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:detach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", ...identity },
+    detail: { chatId: "chat_1", runId: "run_1", ...identity }
 		}));
 		expect(dispatch).toHaveBeenCalledWith({ type: "APPEND_DEBUG", line });
 		cleanup();
@@ -1029,7 +1028,7 @@ describe("registerAttachRunListener", () => {
 		const streamMock = jest.fn((options: Record<string, any>) => {
 			const entry = {
 				options,
-				abort: jest.fn(),
+    abort: jest.fn()
 			};
 			streams.push(entry);
 			return { abort: entry.abort };
@@ -1038,7 +1037,7 @@ describe("registerAttachRunListener", () => {
 			stream: streamMock,
 			request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } }),
 			connect: jest.fn(),
-			updateOptions: jest.fn(),
+    updateOptions: jest.fn()
 		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
@@ -1052,7 +1051,7 @@ describe("registerAttachRunListener", () => {
 			querySessionsRef,
 			chatQuerySessionIndexRef,
 			activeQuerySessionRequestIdRef,
-			runs: new PlatformRunTransport(ensureClient ?? (async () => wsClient as unknown as PlatformFrameClient)),
+    runs: new PlatformRunTransport(ensureClient ?? (async () => wsClient as unknown as PlatformFrameClient))
 		});
 		return {
 			streams,
@@ -1062,7 +1061,7 @@ describe("registerAttachRunListener", () => {
 			querySessionsRef,
 			chatQuerySessionIndexRef,
 			activeQuerySessionRequestIdRef,
-			cleanup,
+    cleanup
 		};
 	}
 
@@ -1070,11 +1069,11 @@ describe("registerAttachRunListener", () => {
 		const { streams, streamMock, activeAttachRef, querySessionsRef, chatQuerySessionIndexRef, activeQuerySessionRequestIdRef, cleanup } = setupAttachTest();
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 }
 		}));
 		await Promise.resolve();
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 }
 		}));
 		await Promise.resolve();
 
@@ -1083,7 +1082,7 @@ describe("registerAttachRunListener", () => {
 			expect.objectContaining({
 				chatId: "chat_1",
 				runId: "run_1",
-				agentKey: "agent_alpha",
+    agentKey: "agent_alpha"
 			}),
 		]);
 		expect(debugEvents(dispatch, "attachRunIgnored")).toEqual([
@@ -1091,13 +1090,13 @@ describe("registerAttachRunListener", () => {
 				chatId: "chat_1",
 				runId: "run_1",
 				agentKey: "agent_alpha",
-				reason: "duplicate_observe_local",
+    reason: "duplicate_observe_local"
 			}),
 		]);
 		const callArgs = streamMock.mock.calls[0][0];
 		expect(callArgs).toMatchObject({
 			type: "/api/attach",
-			payload: { runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+    payload: { runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 }
 		});
 		const requestId = activeQuerySessionRequestIdRef.current;
 		expect(requestId).toBeTruthy();
@@ -1106,14 +1105,14 @@ describe("registerAttachRunListener", () => {
 		expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: true });
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_ABORT_CONTROLLER",
-			controller: expect.any(AbortController),
+    controller: expect.any(AbortController)
 		});
 		expect(querySessionsRef.current.get(requestId)).toEqual(expect.objectContaining({
 			requestId,
 			chatId: "chat_1",
 			runId: "run_1",
 			streaming: true,
-			abortController: expect.any(AbortController),
+    abortController: expect.any(AbortController)
 		}));
 		await Promise.resolve();
 		expect(chatQuerySessionIndexRef.current.get("chat_1")).toBe(requestId);
@@ -1126,11 +1125,11 @@ describe("registerAttachRunListener", () => {
 		expect(dispatch).toHaveBeenCalledWith({ type: "SET_STREAMING", streaming: false });
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_ABORT_CONTROLLER",
-			controller: null,
+    controller: null
 		});
 		expect(querySessionsRef.current.get(requestId)).toEqual(expect.objectContaining({
 			streaming: false,
-			abortController: null,
+    abortController: null
 		}));
 		await Promise.resolve();
 		expect(activeQuerySessionRequestIdRef.current).toBe("");
@@ -1142,7 +1141,7 @@ describe("registerAttachRunListener", () => {
 		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
 		const wsClient = {
 			stream: streamMock,
-			request: jest.fn(),
+    request: jest.fn()
 		};
 		const querySessionsRef = {
 			current: new Map<string, any>([["req_live", {
@@ -1152,7 +1151,7 @@ describe("registerAttachRunListener", () => {
 				runId: "run_1",
 				agentKey: "agent_alpha",
 				owner: { kind: "agent", agentKey: "agent_alpha" },
-				streaming: true,
+                streaming: true
 			}]])
 		};
 		const cleanup = registerAttachRunListener({
@@ -1163,11 +1162,11 @@ describe("registerAttachRunListener", () => {
 			querySessionsRef,
 			chatQuerySessionIndexRef: { current: new Map() },
 			activeQuerySessionRequestIdRef: { current: "req_live" },
-			runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient),
+    runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient)
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" }
 		}));
 		await Promise.resolve();
 
@@ -1188,41 +1187,41 @@ describe("registerAttachRunListener", () => {
 				current: createState({
 					chatAgentById: new Map([["chat_1", "agent_chat"]]),
 					runAgentById: new Map([["run_1", "agent_run"]]),
-					currentRunAgentKey: "agent_current",
-				}),
+            currentRunAgentKey: "agent_current"
+        })
 			},
 			handleEvent,
 			activeAttachRef: { current: null },
 			querySessionsRef: { current: new Map() },
 			chatQuerySessionIndexRef: { current: new Map() },
 			activeQuerySessionRequestIdRef: { current: "" },
-			runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient),
+    runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient)
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_detail", lastSeq: 0 },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_detail", lastSeq: 0 }
 		}));
 		await Promise.resolve();
 
 		expect(streamMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "/api/attach",
-				payload: { runId: "run_1", agentKey: "agent_run", lastSeq: 0 },
+    payload: { runId: "run_1", agentKey: "agent_run", lastSeq: 0 }
 			}),
 		);
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_RUN_AGENT_BY_ID",
 			runId: "run_1",
-			agentKey: "agent_run",
+    agentKey: "agent_run"
 		});
 		cleanup();
 	});
 
-	it("attaches a saved Team chat with only teamId despite a member event", async () => {
+	it("attaches a saved Team chat with the root agentKey despite a member event", async () => {
 		const streamMock = jest.fn(() => ({ abort: jest.fn() }));
 		const wsClient = {
 			stream: streamMock,
-			request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } }),
+    request: jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } })
 		};
 		const cleanup = registerAttachRunListener({
 			dispatch,
@@ -1230,28 +1229,27 @@ describe("registerAttachRunListener", () => {
 				current: createState({
 					chats: [{
 						chatId: "chat_team",
-						teamId: "team_1",
-						agentKey: "stale_member",
+                    agentKey: "team_1"
 					} as Chat],
-					runAgentById: new Map([["run_team", "member_from_event"]]),
-				}),
+            runAgentById: new Map([["run_team", "member_from_event"]])
+        })
 			},
 			handleEvent,
 			activeAttachRef: { current: null },
 			querySessionsRef: { current: new Map() },
 			chatQuerySessionIndexRef: { current: new Map() },
 			activeQuerySessionRequestIdRef: { current: "" },
-			runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient),
+    runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient)
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_team", runId: "run_team", agentKey: "member_from_event" },
+    detail: { chatId: "chat_team", runId: "run_team", agentKey: "member_from_event" }
 		}));
 		await Promise.resolve();
 
 		const payload = streamMock.mock.calls[0][0].payload;
-		expect(payload).toEqual({ runId: "run_team", teamId: "team_1", lastSeq: 0 });
-		expect(payload).not.toHaveProperty("agentKey");
+		expect(payload).toEqual({ runId: "run_team", agentKey: "team_1", lastSeq: 0 });
+		expect(payload.agentKey).toBe("team_1");
 		cleanup();
 	});
 
@@ -1264,7 +1262,7 @@ describe("registerAttachRunListener", () => {
 		const requestMock = jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } });
 		const wsClient = {
 			stream: streamMock,
-			request: requestMock,
+    request: requestMock
 		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
@@ -1278,11 +1276,11 @@ describe("registerAttachRunListener", () => {
 			querySessionsRef,
 			chatQuerySessionIndexRef,
 			activeQuerySessionRequestIdRef,
-			runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient),
+    runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient)
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 }
 		}));
 		await Promise.resolve();
 		attachedOnEvent?.({
@@ -1290,7 +1288,7 @@ describe("registerAttachRunListener", () => {
 			requestId: "req_1",
 			query: "attached query",
 			references: [{ name: "demo.txt", sizeBytes: 12 }],
-			timestamp: EPOCH_MS,
+    timestamp: EPOCH_MS
 		} as any);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -1301,16 +1299,16 @@ describe("registerAttachRunListener", () => {
 				kind: "message",
 				role: "user",
 				text: "attached query",
-				attachments: [{ name: "demo.txt", size: 12 }],
-			}),
+        attachments: [{ name: "demo.txt", size: 12 }]
+    })
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "APPEND_TIMELINE_ORDER",
-			id: "user_req_1",
+    id: "user_req_1"
 		});
 		expect(handleEvent).toHaveBeenCalledWith(expect.objectContaining({
 			type: "request.query",
-			query: "attached query",
+    query: "attached query"
 		}));
 		await Promise.resolve();
 
@@ -1327,7 +1325,7 @@ describe("registerAttachRunListener", () => {
 		const requestMock = jest.fn().mockResolvedValue({ data: { accepted: true, status: "detached" } });
 		const wsClient = {
 			stream: streamMock,
-			request: requestMock,
+    request: requestMock
 		};
 		const activeAttachRef = { current: null as any };
 		const querySessionsRef = { current: new Map() };
@@ -1341,15 +1339,15 @@ describe("registerAttachRunListener", () => {
 			querySessionsRef,
 			chatQuerySessionIndexRef,
 			activeQuerySessionRequestIdRef,
-			runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient),
+    runs: new PlatformRunTransport(async () => wsClient as unknown as PlatformFrameClient)
 		});
 
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 }
 		}));
 		await Promise.resolve();
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_2", agentKey: "agent_alpha", lastSeq: 0 },
+    detail: { chatId: "chat_1", runId: "run_2", agentKey: "agent_alpha", lastSeq: 0 }
 		}));
 		await Promise.resolve();
 
@@ -1360,8 +1358,8 @@ describe("registerAttachRunListener", () => {
 			payload: {
 				runId: "run_1",
 				agentKey: "agent_alpha",
-				reason: "consumer_detach",
-			},
+        reason: "consumer_detach"
+    }
 		});
 
 		cleanup();
@@ -1371,7 +1369,7 @@ describe("registerAttachRunListener", () => {
 		const pending = createDeferred<PlatformFrameClient>();
 		const { activeAttachRef, activeQuerySessionRequestIdRef, cleanup } = setupAttachTest(() => pending.promise);
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" }
 		}));
 		pending.reject(new Error("WebSocket connection failed"));
 		await Promise.resolve();
@@ -1387,7 +1385,7 @@ describe("registerAttachRunListener", () => {
 		const pending = createDeferred<PlatformFrameClient>();
 		const { wsClient, streamMock, activeAttachRef, cleanup } = setupAttachTest(() => pending.promise);
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" }
 		}));
 		cleanup();
 		pending.resolve(wsClient as unknown as PlatformFrameClient);
@@ -1400,7 +1398,7 @@ describe("registerAttachRunListener", () => {
 	it("clears a failed observed stream without replaying delivered events", async () => {
 		const { streams, streamMock, activeAttachRef, cleanup } = setupAttachTest();
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" },
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" }
 		}));
 		await Promise.resolve();
 		const event = { type: "content.delta", chatId: "chat_1", runId: "run_1", text: "delivered" };
@@ -1418,7 +1416,7 @@ describe("registerAttachRunListener", () => {
 		const { streams, activeAttachRef, activeQuerySessionRequestIdRef, cleanup } = setupAttachTest();
 		for (const runId of ["run_1", "run_2"]) {
 			mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
-				detail: { chatId: "chat_1", runId, agentKey: "agent_alpha" },
+    detail: { chatId: "chat_1", runId, agentKey: "agent_alpha" }
 			}));
 			await Promise.resolve();
 		}
@@ -1452,7 +1450,7 @@ describe("createConversationPushHandler continued", () => {
 			Object.defineProperty(globalThis, "window", {
 				value: originalWindow,
 				configurable: true,
-				writable: true,
+    writable: true
 			});
 		}
 		if (originalCustomEvent === undefined) {
@@ -1462,7 +1460,7 @@ describe("createConversationPushHandler continued", () => {
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: originalCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 	});
 
@@ -1481,19 +1479,19 @@ describe("createConversationPushHandler continued", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -1503,8 +1501,8 @@ describe("createConversationPushHandler continued", () => {
 				chatId: "chat_active",
 				runId: "run_started",
 				agentKey: "agent_started",
-				startedAt: EPOCH_MS + 30,
-			},
+        startedAt: EPOCH_MS + 30
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -1517,17 +1515,17 @@ describe("createConversationPushHandler continued", () => {
 				hasActiveRun: true,
 				activeRun: expect.objectContaining({
 					runId: "run_started",
-					agentKey: "agent_started",
+            agentKey: "agent_started"
 				}),
-				updatedAt: EPOCH_MS + 30,
-			}),
+        updatedAt: EPOCH_MS + 30
+    })
 		});
 		expect(debugEvents(dispatch, "runStartedCandidate")).toEqual([
 			expect.objectContaining({
 				chatId: "chat_active",
 				runId: "run_started",
 				agentKey: "agent_started",
-				stateChatId: "chat_active",
+    stateChatId: "chat_active"
 			}),
 		]);
 		expect(dispatchEvent).toHaveBeenCalledWith(
@@ -1538,13 +1536,13 @@ describe("createConversationPushHandler continued", () => {
 					runId: "run_started",
 					agentKey: "agent_started",
 					owner: { kind: "agent", agentKey: "agent_started" },
-					lastSeq: 0,
-				},
+        lastSeq: 0
+    }
 			}),
 		);
 		expect(dispatchEvent).not.toHaveBeenCalledWith(
 			expect.objectContaining({
-				type: "agent:attach-run",
+    type: "agent:attach-run"
 			}),
 		);
 	});
@@ -1560,9 +1558,9 @@ describe("createConversationPushHandler continued", () => {
 			currentChatActiveRun: {
 				chatId: "chat_active",
 				runId: "run_old",
-				agentKey: "agent_active",
+        agentKey: "agent_active"
 			},
-			chatAgentById: new Map([["chat_active", "agent_active"]]),
+    chatAgentById: new Map([["chat_active", "agent_active"]])
 		});
 		const stateRef = { current: initialState };
 		const localDispatch = jest.fn<void, [AppAction]>((action) => {
@@ -1571,7 +1569,7 @@ describe("createConversationPushHandler continued", () => {
 		const session = createLiveQuerySession({
 			requestId: "req_old",
 			chatId: "chat_active",
-			agentKey: "agent_active",
+    agentKey: "agent_active"
 		});
 		session.runId = "run_old";
 		session.streaming = true;
@@ -1586,8 +1584,8 @@ describe("createConversationPushHandler continued", () => {
 				chatId: "chat_active",
 				agentKey: "agent_active",
 				controller: abortController,
-				abort: abortActiveAttach,
-			},
+        abort: abortActiveAttach
+    }
 		};
 		const listeners = new Map<string, Set<(event: Event) => void>>();
 		const dispatched: Array<{ type: string; detail: unknown }> = [];
@@ -1614,28 +1612,28 @@ describe("createConversationPushHandler continued", () => {
 				dispatchEvent: jest.fn((event: Event): boolean => {
 					dispatched.push({
 						type: event.type,
-						detail: (event as CustomEvent).detail,
+                detail: (event as CustomEvent).detail
 					});
 					for (const listener of listeners.get(event.type) || []) {
 						listener(event);
 					}
 					return true;
-				}),
+        })
 			},
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		const cleanupActivation = registerMainChatRunActivationListener({
 			dispatch: localDispatch,
 			stateRef,
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		const onPush = createConversationPushHandler({
@@ -1645,7 +1643,7 @@ describe("createConversationPushHandler continued", () => {
 			activeQuerySessionRequestIdRef,
 			activeAttachRef,
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -1653,8 +1651,8 @@ describe("createConversationPushHandler continued", () => {
 			type: "run.finished",
 			payload: {
 				chatId: "chat_active",
-				runId: "run_old",
-			},
+        runId: "run_old"
+    }
 		}) as WsPushFrame);
 		expect(stateRef.current.streaming).toBe(false);
 		expect(session.streaming).toBe(false);
@@ -1666,7 +1664,7 @@ describe("createConversationPushHandler continued", () => {
 				runId: "run_old",
 				reason: "terminal_push",
 				stateChatId: "chat_active",
-				stateRunId: "run_old",
+    stateRunId: "run_old"
 			}),
 		]);
 
@@ -1676,8 +1674,8 @@ describe("createConversationPushHandler continued", () => {
 			payload: {
 				chatId: "chat_active",
 				runId: "run_new",
-				agentKey: "agent_active",
-			},
+        agentKey: "agent_active"
+    }
 		}) as WsPushFrame);
 
 		expect(localDispatch).toHaveBeenCalledWith({
@@ -1687,8 +1685,8 @@ describe("createConversationPushHandler continued", () => {
 				runId: "run_new",
 				agentKey: "agent_active",
 				owner: { kind: "agent", agentKey: "agent_active" },
-				lastSeq: 0,
-			},
+        lastSeq: 0
+    }
 		});
 		expect(debugEvents(localDispatch, "runStartedCandidate")).toEqual([
 			expect.objectContaining({
@@ -1696,7 +1694,7 @@ describe("createConversationPushHandler continued", () => {
 				runId: "run_new",
 				agentKey: "agent_active",
 				stateChatId: "chat_active",
-				stateStreaming: false,
+    stateStreaming: false
 			}),
 		]);
 		expect(debugEvents(localDispatch, "runActivationAttached")).toEqual([
@@ -1706,7 +1704,7 @@ describe("createConversationPushHandler continued", () => {
 				agentKey: "agent_active",
 				stateChatId: "chat_active",
 				stateRunId: "run_old",
-				stateStreaming: false,
+    stateStreaming: false
 			}),
 		]);
 		expect(
@@ -1719,8 +1717,8 @@ describe("createConversationPushHandler continued", () => {
 					runId: "run_new",
 					agentKey: "agent_active",
 					owner: { kind: "agent", agentKey: "agent_active" },
-					lastSeq: 0,
-				},
+        lastSeq: 0
+    }
 			},
 		]);
 
@@ -1733,7 +1731,7 @@ describe("createConversationPushHandler continued", () => {
 			chatId: "chat_active",
 			runId: "run_old",
 			streaming: true,
-			chatAgentById: new Map([["chat_active", "agent_active"]]),
+    chatAgentById: new Map([["chat_active", "agent_active"]])
 		});
 		const stateRef = { current: initialState };
 		const localDispatch = jest.fn<void, [AppAction]>((action) => {
@@ -1742,7 +1740,7 @@ describe("createConversationPushHandler continued", () => {
 		const session = createLiveQuerySession({
 			requestId: "req_old",
 			chatId: "chat_active",
-			agentKey: "agent_active",
+    agentKey: "agent_active"
 		});
 		session.runId = "run_old";
 		session.streaming = false;
@@ -1774,28 +1772,28 @@ describe("createConversationPushHandler continued", () => {
 				dispatchEvent: jest.fn((event: Event): boolean => {
 					dispatched.push({
 						type: event.type,
-						detail: (event as CustomEvent).detail,
+                detail: (event as CustomEvent).detail
 					});
 					for (const listener of listeners.get(event.type) || []) {
 						listener(event);
 					}
 					return true;
-				}),
+        })
 			},
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		const cleanupActivation = registerMainChatRunActivationListener({
 			dispatch: localDispatch,
 			stateRef,
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
-			handledRunKeysRef: { current: new Set() },
+    handledRunKeysRef: { current: new Set() }
 		});
 
 		const onPush = createConversationPushHandler({
@@ -1804,7 +1802,7 @@ describe("createConversationPushHandler continued", () => {
 			querySessionsRef,
 			activeQuerySessionRequestIdRef,
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -1813,8 +1811,8 @@ describe("createConversationPushHandler continued", () => {
 			payload: {
 				chatId: "chat_active",
 				runId: "run_new",
-				agentKey: "agent_active",
-			},
+        agentKey: "agent_active"
+    }
 		}) as WsPushFrame);
 
 		expect(debugEvents(localDispatch, "runStartedCandidate")).toEqual([
@@ -1827,7 +1825,7 @@ describe("createConversationPushHandler continued", () => {
 				stateStreaming: true,
 				activeRequestId: "req_old",
 				activeSessionRunId: "run_old",
-				activeSessionStreaming: false,
+    activeSessionStreaming: false
 			}),
 		]);
 		expect(debugEvents(localDispatch, "runActivationAttached")).toEqual([
@@ -1841,7 +1839,7 @@ describe("createConversationPushHandler continued", () => {
 				stateStreaming: true,
 				activeRequestId: "req_old",
 				activeSessionRunId: "run_old",
-				activeSessionStreaming: false,
+    activeSessionStreaming: false
 			}),
 		]);
 		expect(
@@ -1854,8 +1852,8 @@ describe("createConversationPushHandler continued", () => {
 					runId: "run_new",
 					agentKey: "agent_active",
 					owner: { kind: "agent", agentKey: "agent_active" },
-					lastSeq: 0,
-				},
+        lastSeq: 0
+    }
 			},
 		]);
 
@@ -1877,19 +1875,19 @@ describe("createConversationPushHandler continued", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -1897,16 +1895,16 @@ describe("createConversationPushHandler continued", () => {
 			type: "chat.updated",
 			payload: {
 				chatId: "chat_active",
-				lastRunContent: "updated elsewhere",
-			},
+        lastRunContent: "updated elsewhere"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "UPSERT_CHAT",
 			chat: expect.objectContaining({
 				chatId: "chat_active",
-				lastRunContent: "updated elsewhere",
-			}),
+        lastRunContent: "updated elsewhere"
+    })
 		});
 		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
@@ -1919,16 +1917,16 @@ describe("createConversationPushHandler continued", () => {
 				{
 					key: "agent_alpha",
 					name: "Alpha",
-					stats: { unreadCount: 2 },
+            stats: { unreadCount: 2 }
 				},
-			],
+    ]
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -1940,8 +1938,8 @@ describe("createConversationPushHandler continued", () => {
 				lastRunId: "run_1",
 				readAt: EPOCH_MS + 111,
 				readRunId: "run_1",
-				agentUnreadCount: 1,
-			},
+        agentUnreadCount: 1
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -1952,9 +1950,9 @@ describe("createConversationPushHandler continued", () => {
 				read: {
 					isRead: true,
 					readAt: EPOCH_MS + 111,
-					readRunId: "run_1",
-				},
-			}),
+            readRunId: "run_1"
+        }
+    })
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_AGENTS",
@@ -1962,10 +1960,10 @@ describe("createConversationPushHandler continued", () => {
 				expect.objectContaining({
 					key: "agent_alpha",
 					stats: expect.objectContaining({
-						unreadCount: 1,
+                unreadCount: 1
+            })
 					}),
-				}),
-			],
+    ]
 		});
 
 		dispatch.mockClear();
@@ -1979,8 +1977,8 @@ describe("createConversationPushHandler continued", () => {
 				lastRunId: "run_2",
 				createdAt: EPOCH_MS + 222,
 				readRunId: "",
-				agentUnreadCount: 2,
-			},
+        agentUnreadCount: 2
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -1989,10 +1987,10 @@ describe("createConversationPushHandler continued", () => {
 				chatId: "chat_1",
 				lastRunId: "run_2",
 				read: {
-					isRead: false,
+            isRead: false
 				},
-				updatedAt: EPOCH_MS + 222,
-			}),
+        updatedAt: EPOCH_MS + 222
+    })
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_AGENTS",
@@ -2000,10 +1998,10 @@ describe("createConversationPushHandler continued", () => {
 				expect.objectContaining({
 					key: "agent_alpha",
 					stats: expect.objectContaining({
-						unreadCount: 2,
+                unreadCount: 2
+            })
 					}),
-				}),
-			],
+    ]
 		});
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -2019,13 +2017,13 @@ describe("createConversationPushHandler continued", () => {
 			currentChatActiveRun: {
 				chatId: "chat_active",
 				runId: "run_done",
-				agentKey: "agent_active",
-			},
+        agentKey: "agent_active"
+    }
 		});
 		const session = createLiveQuerySession({
 			requestId: "req_done",
 			chatId: "chat_active",
-			agentKey: "agent_active",
+    agentKey: "agent_active"
 		});
 		session.runId = "run_done";
 		session.streaming = true;
@@ -2040,8 +2038,8 @@ describe("createConversationPushHandler continued", () => {
 				chatId: "chat_active",
 				agentKey: "agent_active",
 				controller: abortController,
-				abort: abortActiveAttach,
-			},
+        abort: abortActiveAttach
+    }
 		};
 		const dispatchEvent = jest.fn();
 		class MockCustomEvent {
@@ -2056,12 +2054,12 @@ describe("createConversationPushHandler continued", () => {
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 		Object.defineProperty(globalThis, "CustomEvent", {
 			value: MockCustomEvent,
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
@@ -2071,7 +2069,7 @@ describe("createConversationPushHandler continued", () => {
 			activeQuerySessionRequestIdRef,
 			activeAttachRef,
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -2080,8 +2078,8 @@ describe("createConversationPushHandler continued", () => {
 			payload: {
 				chatId: "chat_active",
 				runId: "run_done",
-				finishedAt: EPOCH_MS + 40,
-			},
+        finishedAt: EPOCH_MS + 40
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -2089,20 +2087,20 @@ describe("createConversationPushHandler continued", () => {
 			chat: expect.objectContaining({
 				chatId: "chat_active",
 				lastRunId: "run_done",
-				updatedAt: EPOCH_MS + 40,
-			}),
+        updatedAt: EPOCH_MS + 40
+    })
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
-			activeRun: null,
+    activeRun: null
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_STREAMING",
-			streaming: false,
+    streaming: false
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_ABORT_CONTROLLER",
-			controller: null,
+    controller: null
 		});
 		expect(session.streaming).toBe(false);
 		expect(session.abortController).toBeNull();
@@ -2115,7 +2113,7 @@ describe("createConversationPushHandler continued", () => {
 				reason: "terminal_push",
 				stateChatId: "chat_active",
 				stateRunId: "run_done",
-				stateStreaming: true,
+    stateStreaming: true
 			}),
 		]);
 		expect(dispatchEvent).not.toHaveBeenCalled();
@@ -2133,13 +2131,13 @@ describe("createConversationPushHandler continued", () => {
 			currentChatActiveRun: {
 				chatId: "chat_active",
 				runId: "run_current",
-				agentKey: "agent_active",
-			},
+        agentKey: "agent_active"
+    }
 		});
 		const session = createLiveQuerySession({
 			requestId: "req_current",
 			chatId: "chat_active",
-			agentKey: "agent_active",
+    agentKey: "agent_active"
 		});
 		session.runId = "run_current";
 		session.streaming = true;
@@ -2154,8 +2152,8 @@ describe("createConversationPushHandler continued", () => {
 				chatId: "chat_active",
 				agentKey: "agent_active",
 				controller: abortController,
-				abort: abortActiveAttach,
-			},
+        abort: abortActiveAttach
+    }
 		};
 
 		const onPush = createConversationPushHandler({
@@ -2165,7 +2163,7 @@ describe("createConversationPushHandler continued", () => {
 			activeQuerySessionRequestIdRef,
 			activeAttachRef,
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -2173,17 +2171,17 @@ describe("createConversationPushHandler continued", () => {
 			type: "run.finished",
 			payload: {
 				chatId: "chat_active",
-				runId: "run_other",
-			},
+        runId: "run_other"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).not.toHaveBeenCalledWith({
 			type: "SET_STREAMING",
-			streaming: false,
+    streaming: false
 		});
 		expect(dispatch).not.toHaveBeenCalledWith({
 			type: "SET_ABORT_CONTROLLER",
-			controller: null,
+    controller: null
 		});
 		expect(session.streaming).toBe(true);
 		expect(session.abortController).toBe(abortController);
@@ -2204,23 +2202,23 @@ describe("createConversationPushHandler continued", () => {
 					error: {
 						category: "runtime",
 						code: "stream_failed",
-						message: "api key quota exhausted",
+                message: "api key quota exhausted"
+            }
 					},
-				},
-			] as AgentEvent[],
+    ] as AgentEvent[]
 		});
 		const dispatchEvent = jest.fn();
 		Object.defineProperty(globalThis, "window", {
 			value: { dispatchEvent },
 			configurable: true,
-			writable: true,
+    writable: true
 		});
 
 		const onPush = createConversationPushHandler({
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -2228,8 +2226,8 @@ describe("createConversationPushHandler continued", () => {
 			type: "run.finished",
 			payload: {
 				chatId: "chat_active",
-				runId: "run_failed",
-			},
+        runId: "run_failed"
+    }
 		}) as WsPushFrame);
 		onPush(withPushContractTime({
 			frame: "push",
@@ -2238,16 +2236,16 @@ describe("createConversationPushHandler continued", () => {
 				chatId: "chat_active",
 				lastRunId: "run_failed",
 				lastRunContent: "",
-				updatedAt: 1781588217376,
-			},
+        updatedAt: 1781588217376
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "UPSERT_CHAT",
 			chat: expect.objectContaining({
 				chatId: "chat_active",
-				lastRunId: "run_failed",
-			}),
+        lastRunId: "run_failed"
+    })
 		});
 		expect(dispatchEvent).not.toHaveBeenCalled();
 		expect(handleEvent).not.toHaveBeenCalled();
@@ -2260,7 +2258,7 @@ describe("createConversationPushHandler continued", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -2270,16 +2268,16 @@ describe("createConversationPushHandler continued", () => {
 			runId: "run_top",
 			payload: {
 				chatId: "chat_payload",
-				runId: "run_payload",
-			},
+        runId: "run_payload"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "UPSERT_CHAT",
 			chat: expect.objectContaining({
 				chatId: "chat_top",
-				lastRunId: "run_top",
-			}),
+        lastRunId: "run_top"
+    })
 		});
 	});
 
@@ -2290,7 +2288,7 @@ describe("createConversationPushHandler continued", () => {
 			dispatch,
 			stateRef: { current: state },
 			handleEvent,
-			ensureAccessTokenImpl: jest.fn(),
+    ensureAccessTokenImpl: jest.fn()
 		});
 
 		onPush(withPushContractTime({
@@ -2301,8 +2299,8 @@ describe("createConversationPushHandler continued", () => {
 			data: {
 				chatId: "chat_nested_data",
 				chatName: "Nested Name",
-				agentKey: "agent_nested",
-			},
+        agentKey: "agent_nested"
+    }
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -2311,8 +2309,8 @@ describe("createConversationPushHandler continued", () => {
 				chatId: "chat_top_data",
 				chatName: "Top Level Name",
 				agentKey: "agent_nested",
-				firstAgentKey: "agent_nested",
-			}),
+        firstAgentKey: "agent_nested"
+    })
 		});
 	});
 });

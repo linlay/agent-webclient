@@ -10,85 +10,74 @@ const mockDispatch = jest.fn();
 const mockCurrentWorker = {
   type: "agent",
   sourceId: "agent-a",
-  displayName: "Agent A",
+    displayName: "Agent A"
 };
 const mockAgents = [{ key: "agent-a", name: "Agent A" }];
-const mockTeams = [{ teamId: "team-a", name: "Team A" }];
+const mockTeams = [{ agentKey: "team-a", name: "Team A" }];
 const mockState = {
   agents: mockAgents,
   teams: mockTeams,
   workerRows: [],
-  chatId: "",
+    chatId: ""
 };
 
 jest.mock("antd", () => {
   const React = require("react");
   return {
-    Drawer: ({ open, children, title }: any) =>
-      open
-        ? React.createElement(
-            "section",
-            { "data-overlay": "drawer" },
-            title,
-            children,
-          )
+    Drawer: ({ open, children, title }: any) => open
+        ? React.createElement("section", { "data-overlay": "drawer" }, title, children)
         : null,
-    Modal: ({ open, children, title }: any) =>
-      open
-        ? React.createElement(
-            "section",
-            { "data-overlay": "modal" },
-            title,
-            children,
-          )
-        : null,
+    Modal: ({ open, children, title }: any) => open
+        ? React.createElement("section", { "data-overlay": "modal" }, title, children)
+        : null
   };
 });
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: () => mockDispatch,
   useAppState: () => mockState,
-  useOptionalAppContext: () => null,
+    useOptionalAppContext: () => null
 }));
 
 jest.mock("@/features/automations/components/AutomationHistoryConsole", () => ({
   AutomationHistoryConsole: (props: Record<string, any>) => {
     mockAutomationConsoleProps.push(props);
     return React.createElement("div", {
-      "data-testid": "automation-history-console",
+            "data-testid": "automation-history-console"
     });
-  },
+    }
 }));
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
   buildWorkerSwitchRows: () => [],
-  resolveCurrentWorkerSummary: () => mockCurrentWorker,
+    resolveCurrentWorkerSummary: () => mockCurrentWorker
 }));
 
 jest.mock("@/features/chats/components/HistoryModal", () => ({
-  HistoryModal: () => null,
+    HistoryModal: () => null
 }));
 
 jest.mock("@/features/workers/components/SwitchModal", () => ({
   SWITCH_SCOPES: [{ key: "all" }, { key: "agent" }, { key: "team" }],
-  SwitchModal: () => null,
+    SwitchModal: () => null
 }));
 
 jest.mock("@/features/agents/components/AgentConsole", () => ({
-  AgentConsole: () => null,
+    AgentConsole: () => null
 }));
 
 jest.mock("@/shared/data", () => ({
-  markChatRead: jest.fn(),
+    markChatRead: jest.fn()
 }));
 
 jest.mock("@/shared/i18n", () => ({
-  useI18n: () => ({ t: (key: string) => key }),
+    useI18n: () => ({ t: (key: string) => key })
 }));
 
 jest.mock("@/shared/icons/material", () => ({
-  MaterialIcon: ({ name }: { name: string }) =>
-    React.createElement("span", { "data-icon": name }),
+    MaterialIcon: ({ name }: {
+        name: string;
+    }) => React.createElement("span", { "data-icon": name })
 }));
 
 function renderAutomationOverlay(
@@ -99,7 +88,7 @@ function renderAutomationOverlay(
     React.createElement(Component, {
       modal: createCommandOverlayState({ type: "automation" }),
       onPatch: jest.fn(),
-      onClose,
+    onClose
     }),
   );
   const props = mockAutomationConsoleProps[mockAutomationConsoleProps.length - 1];
@@ -119,7 +108,7 @@ describe("automation command overlays", () => {
     expect(html).toContain('data-testid="automation-history-console"');
     expect(props.currentWorker).toBe(mockCurrentWorker);
     expect(props.agents).toBe(mockAgents);
-    expect(props.teams).toBe(mockTeams);
+
     expect(props.onNavigateAway).toBeUndefined();
   });
 
@@ -133,7 +122,7 @@ describe("automation command overlays", () => {
     expect(html).toContain('data-testid="automation-history-console"');
     expect(props.currentWorker).toBe(mockCurrentWorker);
     expect(props.agents).toBe(mockAgents);
-    expect(props.teams).toBe(mockTeams);
+
     expect(props.embedded).toBe(true);
     expect(props.onClose).toEqual(expect.any(Function));
 

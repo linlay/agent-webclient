@@ -917,6 +917,18 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
               }
             />
           </div>
+          {form.mode === "TEAM" && <>
+            <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
+              <label htmlFor="agent-team-members">{t("agentConsole.field.teamMembers")}</label>
+              <Input id="agent-team-members" value={form.teamMembersText || ""}
+                onChange={event => updateForm({teamMembersText: event.target.value})} />
+            </div>
+            <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
+              <label htmlFor="agent-team-parallel">{t("agentConsole.field.teamParallel")}</label>
+              <Input id="agent-team-parallel" type="number" min={1} max={5} value={form.teamMaxParallel ?? 5}
+                onChange={event => updateForm({teamMaxParallel: Number(event.target.value)})} />
+            </div>
+          </>}
           <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
             <label htmlFor="agent-knowledge-input">{t("knowledge.binding.config")}</label>
             <Input.TextArea id="agent-knowledge-input" className={AGENT_MONO_TEXTAREA_CLASS_NAME} rows={3}

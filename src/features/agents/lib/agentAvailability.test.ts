@@ -6,5 +6,5 @@ it("uses persisted Chat ownership rather than a healthy selected Agent", () => {
     agentAvailability: { deleted: "unavailable" as const, healthy: "available" as const } };
   expect(isAgentExecutionBlocked(state)).toBe(true);
   expect(isAgentExecutionBlocked(state, "healthy")).toBe(false);
-  expect(isAgentExecutionBlocked({ ...state, chats: [{ chatId: "history", teamId: "team" }] })).toBe(false);
+  expect(isAgentExecutionBlocked({ ...state, chats: [{ chatId: "history", agentKey: "team" }] })).toBe(true);
 });

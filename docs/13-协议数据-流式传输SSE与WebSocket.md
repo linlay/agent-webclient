@@ -31,7 +31,7 @@ Run push 的聊天摘要、未读、awaiting 与 active-run 更新仍由 convers
 
 ## 时间与 owner 约束
 
-事件必须带安全整数 epoch-ms `timestamp`。缺失、字符串、秒级、浮点或 `0` 时间按 `time_contract_violation` 拒绝，不使用本机时间伪造时间线状态。Agent owner 使用 `agentKey`，编排 Team owner 只使用 `teamId`；成员事件不得覆盖 Team Run owner。
+事件必须带安全整数 epoch-ms `timestamp`。缺失、字符串、秒级、浮点或 `0` 时间按 `time_contract_violation` 拒绝，不使用本机时间伪造时间线状态。所有 Agent owner 均使用根 `agentKey`；成员事件不得覆盖 Team Run owner。
 
 ## Standalone WorkPanel 反向 Request
 

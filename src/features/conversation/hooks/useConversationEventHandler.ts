@@ -10,7 +10,6 @@ import { upsertLiveChatSummary as buildLiveChatSummary } from "@/features/chats/
 import { processStreamEvent } from "@/features/events/lib/eventProcessor";
 import { isPlanViewEventType } from "@/features/events/lib/planViewEvents";
 import {
-  readEventTeamId,
   readRequestQueryText,
   readSteerConfirmation,
 } from "@/features/events/lib/eventFields";
@@ -110,22 +109,22 @@ export function buildAwaitingPlanningModeAction(input: {
 
 function resolveSelectedWorkerContext(state: AppState): {
   agentKey: string;
-  teamId: string;
+
 } {
   const selectedWorker =
     state.workerIndexByKey.get(toText(state.workerSelectionKey)) || null;
   if (!selectedWorker) {
-    return { agentKey: "", teamId: "" };
+    return { agentKey: "",  };
   }
   if (selectedWorker.type === "agent") {
     return {
       agentKey: toText(selectedWorker.sourceId),
-      teamId: "",
+
     };
   }
   return {
     agentKey: "",
-    teamId: toText(selectedWorker.sourceId),
+
   };
 }
 
@@ -284,7 +283,7 @@ export function useConversationEventHandler(): {
           chatId: input.cache.chatId,
           runId: input.cache.runId,
           agentKey: input.cache.agentKey,
-          teamId: input.cache.teamId,
+
           editingMode: input.cache.editingMode,
         },
         state: input.state,
@@ -298,7 +297,7 @@ export function useConversationEventHandler(): {
       input.cache.chatId = next.resolved.chatId;
       input.cache.runId = next.resolved.runId;
       input.cache.agentKey = next.resolved.agentKey;
-      input.cache.teamId = next.resolved.teamId;
+
       input.cache.editingMode = next.resolved.editingMode;
 
       dispatch({ type: "UPSERT_CHAT", chat: next.chat });
@@ -339,7 +338,7 @@ export function useConversationEventHandler(): {
         cache.chatId = "";
         cache.runId = "";
         cache.agentKey = "";
-        cache.teamId = "";
+
       }
 
       dispatch({ type: "PUSH_EVENT", event });
@@ -354,10 +353,10 @@ export function useConversationEventHandler(): {
         chats: state.chats,
         currentRunOwner: state.currentChatActiveRun?.owner || toRunOwner(state.currentChatActiveRun),
         sessionOwner: mainRuntime.session?.owner,
-        eventIdentity: { teamId: readEventTeamId(event), agentKey: event.agentKey },
+        eventIdentity: {  agentKey: event.agentKey },
         fallbackOwner: toRunOwner(resolveSelectedWorkerContext(state)),
       });
-      const isTeamEventOwner = eventOwner?.kind === "orchestrated-team";
+      const isTeamEventOwner = false;
 
       const incomingAccessLevel = readRunAccessLevelEvent(event);
       const permissionRunId = toText(mainRuntime.session?.runId) ||
@@ -528,7 +527,7 @@ export function useConversationEventHandler(): {
         cache.chatId = toText(event.chatId) || toText(state.chatId);
         cache.runId = "";
         cache.agentKey = eventOwner?.kind === "agent" ? eventOwner.agentKey : "";
-        cache.teamId = eventOwner?.kind === "orchestrated-team" ? eventOwner.teamId : "";
+
         upsertLiveChatSummary({
           event,
           cache,
@@ -583,7 +582,7 @@ export function useConversationEventHandler(): {
           runStartChatId || cache.chatId || toText(state.chatId);
         cache.runId = toText(event.runId) || cache.runId;
         cache.agentKey = eventOwner?.kind === "agent" ? eventOwner.agentKey : "";
-        cache.teamId = eventOwner?.kind === "orchestrated-team" ? eventOwner.teamId : "";
+
         const runEditingMode =
           resolveRunEditingMode({
             runId: cache.runId,
@@ -599,7 +598,7 @@ export function useConversationEventHandler(): {
               chatId: cache.chatId,
               runId: cache.runId,
               ...(cache.agentKey ? { agentKey: cache.agentKey } : {}),
-              ...(cache.teamId ? { teamId: cache.teamId } : {}),
+
               ...(eventOwner ? { owner: eventOwner } : {}),
               ...(typeof runEditingMode === "boolean"
                 ? { editingMode: runEditingMode }

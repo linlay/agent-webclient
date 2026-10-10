@@ -13,7 +13,7 @@ interface AgentIconProps {
         color?: string;
         name?: string;
       };
-  type: "agent" | "team";
+  type: "agent";
   props?: {
     icon?: React.SVGProps<SVGSVGElement>;
     avatar?: AvatarProps;
@@ -57,18 +57,6 @@ export const AgentIcon: React.FC<AgentIconProps> = ({ icon, type, props }) => {
       return renderIconImage(icon.trim(), props?.icon, "external");
     }
 
-    if (type === "team") {
-      return (
-        <Avatar
-          icon={<MaterialIcon name="person" />}
-          {...props?.avatar}
-          style={{
-            background: typeof icon === "object" ? icon?.color : undefined,
-            ...props?.avatar?.style,
-          }}
-        />
-      );
-    }
 
     const name = typeof icon === "object" ? icon?.name : "";
     const source = AGENT_ICON_NAMES.includes(name as (typeof AGENT_ICON_NAMES)[number])

@@ -17,8 +17,7 @@ function execution(
     automationId: "daily",
     automationName: "Daily",
     sourceFile: "daily.yml",
-    agentKey: "demo",
-    teamId: "",
+    agentKey: "",
     status: "success",
     error: "",
     zoneId: "Asia/Shanghai",
@@ -26,7 +25,7 @@ function execution(
     resultPreview: `result-${id}`,
     startedAt: Date.parse(`${startedTime.replace(" ", "T")}+08:00`),
     startedTime,
-    ...patch,
+    ...patch
   };
 }
 
@@ -45,12 +44,12 @@ describe("automation execution view helpers", () => {
       hasResult: false,
       resultPreview: "",
       error: "model failed",
-      status: "failed",
+    status: "failed"
     }), fallback)).toBe("model failed");
     expect(automationExecutionPreview(execution("three", "2026-08-25 09:10:15", {
       hasResult: false,
       resultPreview: "",
-      status: "running",
+    status: "running"
     }), fallback)).toBe("running");
   });
 
@@ -63,7 +62,7 @@ describe("automation execution view helpers", () => {
       locale: "zh-CN",
       todayLabel: "今天",
       yesterdayLabel: "昨天",
-      now: new Date("2026-08-25T12:00:00+08:00"),
+    now: new Date("2026-08-25T12:00:00+08:00")
     }).map((group) => group.label)).toEqual(["今天", "昨天"]);
   });
 });

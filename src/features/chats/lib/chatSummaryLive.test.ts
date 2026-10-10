@@ -13,12 +13,12 @@ describe('chatSummaryLive helpers', () => {
   it('marks stream and push awaiting ask events as pending approval', () => {
     expect(
       resolveChatSummaryPendingAwaiting({
-        type: 'awaiting.ask',
+    type: 'awaiting.ask'
       } as AgentEvent),
     ).toBe(true);
     expect(
       resolveChatSummaryPendingAwaiting({
-        type: 'awaiting.asking',
+    type: 'awaiting.asking'
       } as AgentEvent),
     ).toBe(true);
   });
@@ -28,7 +28,7 @@ describe('chatSummaryLive helpers', () => {
       type: 'awaiting.asking',
       chatId: 'chat_1',
       runId: 'run_1',
-      createdAt: EPOCH_MS,
+    createdAt: EPOCH_MS
     } as AgentEvent;
 
     expect(resolveChatSummaryUpdatedAt(event)).toBe(EPOCH_MS);
@@ -38,7 +38,7 @@ describe('chatSummaryLive helpers', () => {
     const event = {
       type: 'chat.updated',
       updatedAt: '2026-07-02T09:00:00+08:00',
-      createdAt: '2026-07-02T08:00:00+08:00',
+    createdAt: '2026-07-02T08:00:00+08:00'
     } as unknown as AgentEvent;
 
     expect(resolveChatSummaryUpdatedAt(event)).toBeUndefined();
@@ -71,7 +71,7 @@ describe('chatSummaryLive helpers', () => {
         firstAgentKey: 'agent-alice',
         agentKey: 'agent-alice',
         source: 'automation:daily',
-        hasPendingAwaiting: true,
+    hasPendingAwaiting: true
       },
     ];
 
@@ -80,24 +80,22 @@ describe('chatSummaryLive helpers', () => {
         type: 'awaiting.answered',
         chatId: 'chat_1',
         runId: 'run_1',
-        answeredAt: EPOCH_MS + 1,
+        answeredAt: EPOCH_MS + 1
       } as AgentEvent,
       cache: {
         chatId: 'chat_1',
         runId: 'run_1',
-        agentKey: 'agent-alice',
-        teamId: '',
+        agentKey: ''
       },
       state: {
         chatId: 'chat_1',
         runId: 'run_1',
         chats,
-        chatAgentById: new Map([['chat_1', 'agent-alice']]),
+        chatAgentById: new Map([['chat_1', 'agent-alice']])
       },
       selectedContext: {
-        agentKey: '',
-        teamId: '',
-      },
+        agentKey: ''
+    }
     });
 
     expect(next).toMatchObject({
@@ -109,8 +107,8 @@ describe('chatSummaryLive helpers', () => {
         agentKey: 'agent-alice',
         source: 'automation:daily',
         hasPendingAwaiting: false,
-        updatedAt: EPOCH_MS + 1,
-      },
+        updatedAt: EPOCH_MS + 1
+    }
     });
   });
 
@@ -122,24 +120,22 @@ describe('chatSummaryLive helpers', () => {
         runId: 'run_1',
         agentKey: 'agent-alpha',
         source: 'automation:daily',
-        createdAt: EPOCH_MS,
+        createdAt: EPOCH_MS
       } as AgentEvent,
       cache: {
         chatId: '',
         runId: '',
-        agentKey: '',
-        teamId: '',
+        agentKey: ''
       },
       state: {
         chatId: '',
         runId: '',
         chats: [],
-        chatAgentById: new Map(),
+        chatAgentById: new Map()
       },
       selectedContext: {
-        agentKey: '',
-        teamId: '',
-      },
+        agentKey: ''
+    }
     });
 
     expect(created?.chat.source).toBe('automation:daily');
@@ -150,13 +146,12 @@ describe('chatSummaryLive helpers', () => {
         chatId: 'chat_auto',
         runId: 'run_1',
         agentKey: 'agent-alpha',
-        startedAt: EPOCH_MS + 1,
+        startedAt: EPOCH_MS + 1
       } as AgentEvent,
       cache: created?.resolved || {
         chatId: '',
         runId: '',
-        agentKey: '',
-        teamId: '',
+        agentKey: ''
       },
       state: {
         chatId: 'chat_auto',
@@ -165,15 +160,14 @@ describe('chatSummaryLive helpers', () => {
           {
             chatId: 'chat_auto',
             agentKey: 'agent-alpha',
-            source: 'automation:daily',
+                source: 'automation:daily'
           } as Chat,
         ],
-        chatAgentById: new Map([['chat_auto', 'agent-alpha']]),
+        chatAgentById: new Map([['chat_auto', 'agent-alpha']])
       },
       selectedContext: {
-        agentKey: '',
-        teamId: '',
-      },
+        agentKey: ''
+    }
     });
 
     expect(later?.chat.source).toBe('automation:daily');
@@ -186,33 +180,31 @@ describe('chatSummaryLive helpers', () => {
         chatId: 'chat_team',
         runId: 'run_team',
         agentKey: 'member_from_event',
-        startedAt: EPOCH_MS,
+        startedAt: EPOCH_MS
       } as AgentEvent,
       cache: {
         chatId: 'chat_team',
         runId: 'run_team',
-        agentKey: 'member_from_event',
-        teamId: '',
+        agentKey: ''
       },
       state: {
         chatId: 'chat_team',
         runId: 'run_team',
         chats: [{
           chatId: 'chat_team',
-          teamId: 'team_1',
-          agentKey: 'persisted_stale_member',
+                agentKey: 'team_1'
         }],
-        chatAgentById: new Map([['chat_team', 'persisted_stale_member']]),
+        chatAgentById: new Map([['chat_team', 'persisted_stale_member']])
       },
-      selectedContext: { agentKey: '', teamId: '' },
+    selectedContext: { agentKey: '' }
     });
 
-    expect(next?.chat.owner).toEqual({ kind: 'orchestrated-team', teamId: 'team_1' });
-    expect(next?.chat.teamId).toBe('team_1');
-    expect(next?.chat.agentKey).toBeUndefined();
+    expect(next?.chat.owner).toEqual({kind: "agent", agentKey: 'team_1'});
+    expect(next?.chat.agentKey).toBe('team_1');
+
     expect(next?.chat.activeRun).toMatchObject({
-      teamId: 'team_1',
-      owner: { kind: 'orchestrated-team', teamId: 'team_1' },
+    agentKey: 'team_1',
+    owner: {kind: "agent", agentKey: 'team_1'}
     });
   });
 });
@@ -224,11 +216,11 @@ it.each([
  ['run.start', undefined, false], ['request.query', undefined, false],
  ['awaiting.ask', undefined, false],
 ])('projects continuation from %s/%s', (type, finishReason, expected) => {
- expect(resolveChatCanContinue({type, runId:'r', finishReason} as AgentEvent)).toBe(expected);
+ expect(resolveChatCanContinue({ type, runId: 'r', finishReason } as AgentEvent)).toBe(expected);
 });
 it('does not grant continuation from child, hidden, side-lane or unidentified errors', () => {
- for (const flags of [{taskId:'child'}, {hidden:true}, {lane:'btw'}, {lane:'explain'}]) {
-  expect(resolveChatCanContinue({type:'run.error',runId:'r',...flags} as AgentEvent)).toBeUndefined();
+ for (const flags of [{ taskId: 'child' }, { hidden: true }, { lane: 'btw' }, { lane: 'explain' }]) {
+  expect(resolveChatCanContinue({ type: 'run.error', runId: 'r', ...flags } as AgentEvent)).toBeUndefined();
  }
- expect(resolveChatCanContinue({type:'run.error'} as AgentEvent)).toBe(false);
+ expect(resolveChatCanContinue({ type: 'run.error' } as AgentEvent)).toBe(false);
 });

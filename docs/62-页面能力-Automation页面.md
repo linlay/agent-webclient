@@ -8,7 +8,7 @@ Automation 页面由 `/automations` 路由进入。`src/app/pages/automations/in
 - 按日期时间轴展示最近 Execution，覆盖 `running/success/failed/canceled` 四种状态、耗时和单行结果摘要。
 - 每条 Execution 行右侧固定显示“详情 / Detail”，包括无结果或无关联 Chat 的执行；点击后立即打开右侧 Drawer，并行按需加载完整执行结果和关联 Chat 快照。
 - 完整 `resultContent` 继续复用 `MarkdownContent`；历史 Chat 使用 `buildChatReplayProjection` 和现有 Timeline 展示模型渲染，不通过列表接口读取完整助手输出。
-- 支持创建和编辑 cron、zoneId、remainingRuns、agentKey/teamId 与 query payload；description、zoneId、query.role、query.hidden 均可省略。
+- 支持创建和编辑 cron、zoneId、remainingRuns、agentKey 与 query payload；description、zoneId、query.role、query.hidden 均可省略。
 - 支持启停、复制、删除自动化，并在选中项详情区的“更多设置”菜单提供“立即触发”；不提供伪造的 `/api/query` 单次运行或失败重试入口。
 - 为 message、role、hidden 和 params JSON 提供前端表单编辑与基本校验。
 

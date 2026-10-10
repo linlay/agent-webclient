@@ -21,7 +21,7 @@ function createWorkerRow(overrides: Partial<WorkerRow> = {}): WorkerRow {
     hasHistory: false,
     latestRunSortValue: 0,
     searchText: "",
-    ...overrides,
+    ...overrides
   };
 }
 
@@ -30,8 +30,8 @@ describe("queryRouting", () => {
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
       value: {
-        getItem: () => "",
-      },
+        getItem: () => ""
+    }
     });
   });
 
@@ -59,7 +59,7 @@ describe("queryRouting", () => {
       {
         chatId: "chat_1",
         chatName: "Agent Env chat",
-        agentKey: "agent-env",
+    agentKey: "agent-env"
       },
     ];
     state.chatAgentById.set("chat_1", "stale-agent");
@@ -75,7 +75,7 @@ describe("queryRouting", () => {
     expect(
       resolvePreferredAgentKey(state, {
         chatId: "chat_1",
-        explicitAgentKey: "explicit-agent",
+    explicitAgentKey: "explicit-agent"
       }),
     ).toBe("explicit-agent");
   });
@@ -85,7 +85,7 @@ describe("queryRouting", () => {
 
     expect(
       resolvePreferredAgentKey(state, {
-        chatId: "chat_from_upload",
+    chatId: "chat_from_upload"
       }),
     ).toBe("");
   });
@@ -93,20 +93,17 @@ describe("queryRouting", () => {
   it("routes new chats to the selected team and existing chats to their saved owner", () => {
     const state = createInitialState();
     const selectedTeam = createWorkerRow({
-      key: "team:demo-team",
-      type: "team",
-      sourceId: "demo-team",
+    key: "agent:demo-team",
+    type: "agent",
+    sourceId: "demo-team"
     });
     state.workerSelectionKey = selectedTeam.key;
     state.workerIndexByKey.set(selectedTeam.key, selectedTeam);
-    expect(resolvePreferredRunOwner(state)).toEqual({
-      kind: "orchestrated-team",
-      teamId: "demo-team",
-    });
+    expect(resolvePreferredRunOwner(state)).toEqual({kind: "agent", agentKey: "demo-team"});
     state.chats = [{ chatId: "chat_1", agentKey: "saved-agent" }];
     expect(resolvePreferredRunOwner(state, { chatId: "chat_1" })).toEqual({
       kind: "agent",
-      agentKey: "saved-agent",
+    agentKey: "saved-agent"
     });
   });
 });

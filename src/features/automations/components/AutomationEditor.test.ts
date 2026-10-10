@@ -8,7 +8,7 @@ import { I18nProvider, type Locale } from "@/shared/i18n";
 
 jest.mock("@/app/state/AppContext", () => ({
   useAppDispatch: () => jest.fn(),
-  useAppState: () => ({ automations: [], agents: [] }),
+    useAppState: () => ({ automations: [], agents: [] })
 }));
 
 jest.mock("antd", () => {
@@ -22,72 +22,23 @@ jest.mock("antd", () => {
     );
   Input.TextArea = (props: any) => React.createElement("textarea", props);
   return {
-    Checkbox: ({ children, ...props }: any) =>
-      React.createElement(
-        "label",
-        null,
-        React.createElement("input", { type: "checkbox", ...props }),
-        children,
-      ),
-    Dropdown: ({ children, menu }: any) =>
-      React.createElement(
-        "div",
-        { className: "mock-dropdown" },
-        children,
-        menu?.items?.map((item: any, index: number) =>
-          React.createElement(
-            "div",
-            { key: item.key ?? index, "data-menu-key": item.key ?? "" },
-            item.label,
-          ),
-        ),
-      ),
+    Checkbox: ({ children, ...props }: any) => React.createElement("label", null, React.createElement("input", { type: "checkbox", ...props }), children),
+    Dropdown: ({ children, menu }: any) => React.createElement("div", { className: "mock-dropdown" }, children, menu?.items?.map((item: any, index: number) => React.createElement("div", { key: item.key ?? index, "data-menu-key": item.key ?? "" }, item.label))),
     Input,
-    Popconfirm: ({ children }: any) =>
-      React.createElement(React.Fragment, null, children),
-    Select: ({
-      options = [],
-      optionRender,
-      showSearch: _showSearch,
-      optionFilterProp: _optionFilterProp,
-      labelRender: _labelRender,
-      ...props
-    }: any) =>
-      React.createElement(
-        React.Fragment,
-        null,
-        React.createElement(
-          "select",
-          props,
-          options.map((option: any) =>
-            React.createElement(
-              "option",
-              { key: option.value, value: option.value },
-              option.label,
-            ),
-          ),
-        ),
-        optionRender
-          ? options.map((option: any) =>
-              React.createElement(
-                React.Fragment,
-                { key: option.value },
-                optionRender({ data: option }),
-              ),
-            )
-          : null,
-      ),
-    Spin: ({ children }: any) =>
-      React.createElement(React.Fragment, null, children),
-    Tooltip: ({ children }: any) =>
-      React.createElement(React.Fragment, null, children),
-    message: { error: jest.fn(), success: jest.fn() },
+    Popconfirm: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    Select: ({ options = [], optionRender, showSearch: _showSearch, optionFilterProp: _optionFilterProp, labelRender: _labelRender, ...props }: any) => React.createElement(React.Fragment, null, React.createElement("select", props, options.map((option: any) => React.createElement("option", { key: option.value, value: option.value }, option.label))), optionRender
+        ? options.map((option: any) => React.createElement(React.Fragment, { key: option.value }, optionRender({ data: option })))
+        : null),
+    Spin: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    Tooltip: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    message: { error: jest.fn(), success: jest.fn() }
   };
 });
 
 jest.mock("@/shared/icons/agent", () => ({
-  AgentIcon: ({ type }: { type: string }) =>
-    React.createElement("svg", { "data-agent-icon-type": type }),
+    AgentIcon: ({ type }: {
+        type: string;
+    }) => React.createElement("svg", { "data-agent-icon-type": type })
 }));
 
 jest.mock("@/shared/data", () => ({
@@ -97,7 +48,7 @@ jest.mock("@/shared/data", () => ({
   getAutomation: jest.fn(),
   toggleAutomation: jest.fn(),
   updateAdminSource: jest.fn(),
-  updateAutomation: jest.fn(),
+    updateAutomation: jest.fn()
 }));
 
 function currentWorker(): CurrentWorkerSummary {
@@ -122,9 +73,9 @@ function currentWorker(): CurrentWorkerSummary {
       latestRunContent: "",
       hasHistory: false,
       latestRunSortValue: -1,
-      searchText: "",
+        searchText: ""
     },
-    relatedChats: [],
+    relatedChats: []
   };
 }
 
@@ -136,11 +87,8 @@ function renderEditor(locale: Locale) {
       React.createElement(AutomationEditor, {
         automationId: "",
         currentWorker: currentWorker(),
-        agents: [
-          { key: "agent-a", name: "小宅", role: "执行官" },
-          { key: "agent-b", name: "小智", role: "分析师" },
-        ],
-        teams: [],
+    agents: [{ key: "agent-a", name: "小宅", role: "执行官" },
+        { key: "agent-b", name: "小智", role: "分析师" }]
       }),
     ),
   );

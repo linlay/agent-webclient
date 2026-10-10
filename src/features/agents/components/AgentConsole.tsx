@@ -281,7 +281,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         item.label || item.key,
       ]),
     );
-    return ["GENERAL", "CODER", "KBASE"].map((value) => ({
+    return ["GENERAL", "CODER", "KBASE", "TEAM"].map((value) => ({
       value,
       label: availableModes.get(value) || value,
     }));

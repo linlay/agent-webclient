@@ -27,7 +27,7 @@ export interface ArchivedSummaryResponse {
   chatId: string;
   chatName: string;
   agentKey?: string;
-  teamId?: string;
+
   createdAt: number;
   updatedAt: number;
   lastRunAt: number;
@@ -54,7 +54,7 @@ export interface ArchiveSearchResult {
   chatId: string;
   chatName: string;
   agentKey?: string;
-  teamId?: string;
+
   createdAt: number;
   updatedAt?: number;
   lastRunAt: number;

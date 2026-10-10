@@ -117,7 +117,8 @@ export const HistoryModal: React.FC<{
   onSelectChat: (chatId: string) => void;
   onClose?: () => void;
   titleBarVariant?: "default" | "drawer";
-}> = ({ onSelectChat, onClose, titleBarVariant = "default" }) => {
+  initialAgentKey?: string;
+}> = ({ onSelectChat, onClose, titleBarVariant = "default", initialAgentKey }) => {
   const { modal, message } = useApp();
   const inputRef = useRef<InputRef>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
@@ -134,7 +135,7 @@ export const HistoryModal: React.FC<{
   const [historyIndex, setHistoryIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedAgentKey, setSelectedAgentKey] = useState(
-    () => resolveCurrentAgentKey(state),
+    () => initialAgentKey ?? resolveCurrentAgentKey(state),
   );
   const [dateRange, setDateRange] = useState<HistoryDateRange>(null);
   const defaultSelectionAppliedRef = useRef(false);
@@ -201,7 +202,7 @@ export const HistoryModal: React.FC<{
               chatId: String(result.chatId || ""),
               chatName: String(result.chatName || ""),
               agentKey: result.agentKey,
-              teamId: result.teamId,
+
               updatedAt: readEpochMillis(result.timestamp) ?? 0,
               lastRunId: String(result.runId || ""),
               lastRunContent: String(result.snippet || ""),

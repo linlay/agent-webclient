@@ -6,7 +6,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team } from "@/features/workers/lib/workerState";
 import { PinnedChatSection } from "./PinnedChatSection";
 
 const mockState: {
@@ -15,28 +14,27 @@ const mockState: {
   chatFilter: string;
   chatId: string;
   agents: Agent[];
-  teams: Team[];
+  teams: Agent[];
 } = {
   chats: [],
   chatPinnedOrder: [],
   chatFilter: "",
   chatId: "",
-  agents: [],
-  teams: [],
+    agents: []
 };
 
 jest.mock("@/app/state/AppContext", () => ({
-  useAppContext: () => ({ state: mockState }),
+    useAppContext: () => ({ state: mockState })
 }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/ui/useAppMessage", () => ({
-  useAppMessage: () => ({ error: jest.fn() }),
+    useAppMessage: () => ({ error: jest.fn() })
 }));
 jest.mock("@/features/chats/hooks/useChatPinActions", () => ({
-  useChatPinActions: () => ({ update: jest.fn(), pending: false }),
+    useChatPinActions: () => ({ update: jest.fn(), pending: false })
 }));
 jest.mock("@/features/chats/components/ChatActionsMenu", () => ({
-  ChatActionsMenu: () => null,
+    ChatActionsMenu: ({ renderTrigger }: any) => renderTrigger?.(() => undefined) || null
 }));
 jest.mock("antd", () => {
   const React = require("react");
@@ -47,41 +45,46 @@ jest.mock("antd", () => {
 jest.mock("antd/es", () => {
   const React = require("react");
   return {
-    Avatar: ({ icon, ...props }: { icon?: unknown }) =>
-      React.createElement("span", props, icon),
+    Avatar: ({ icon, ...props }: {
+        icon?: unknown;
+    }) => React.createElement("span", props, icon)
   };
 });
 jest.mock("@dnd-kit/core", () => ({
-  DndContext: ({ children }: { children?: unknown }) => children,
+    DndContext: ({ children }: {
+        children?: unknown;
+    }) => children,
   closestCenter: () => [],
-  KeyboardSensor: function KeyboardSensor() {},
-  PointerSensor: function PointerSensor() {},
+    KeyboardSensor: function KeyboardSensor() { },
+    PointerSensor: function PointerSensor() { },
   useSensor: () => ({}),
-  useSensors: (...sensors: unknown[]) => sensors,
+    useSensors: (...sensors: unknown[]) => sensors
 }));
 jest.mock("@dnd-kit/sortable", () => ({
-  SortableContext: ({ children }: { children?: unknown }) => children,
+    SortableContext: ({ children }: {
+        children?: unknown;
+    }) => children,
   sortableKeyboardCoordinates: () => null,
   useSortable: () => ({
     attributes: {},
     listeners: {},
-    setActivatorNodeRef: () => {},
-    setNodeRef: () => {},
+        setActivatorNodeRef: () => { },
+        setNodeRef: () => { },
     transform: null,
-    transition: undefined,
+        transition: undefined
   }),
-  verticalListSortingStrategy: () => null,
+    verticalListSortingStrategy: () => null
 }));
 jest.mock("@dnd-kit/utilities", () => ({
-  CSS: { Transform: { toString: () => undefined } },
+    CSS: { Transform: { toString: () => undefined } }
 }));
 
 function renderSection(): string {
   return renderToStaticMarkup(
     React.createElement(PinnedChatSection, {
       collapsed: false,
-      onSelectChat: () => {},
-      getChatLoading: () => false,
+    onSelectChat: () => { },
+    getChatLoading: () => false
     }),
   );
 }
@@ -131,22 +134,21 @@ describe("Pinned chat owner identity", () => {
     expect(html).toContain(">Alpha<");
   });
 
-  it("keeps team-owned pinned chats text-only even when an agent matches", () => {
+  it("renders TEAM ownership from the Agent catalog", () => {
     mockState.agents = [{ key: "agent-alpha", name: "Alpha", icon: { name: "coder" } }];
-    mockState.teams = [{ teamId: "team-one", name: "团队一" }];
+    mockState.agents.push({ key: "team-one", mode: "TEAM", name: "团队一" });
     seedPinned([
       {
         chatId: "chat-team",
         chatName: "团队会话",
-        teamId: "team-one",
-        agentKey: "agent-alpha",
+    agentKey: "team-one"
       },
     ]);
 
     const html = renderSection();
 
     expect(html).toContain(">团队一<");
-    expect(html).not.toContain("pinned-chat-owner-icon");
+    expect(html).toContain("pinned-chat-owner-icon");
   });
 
   it("omits the avatar when the agent is not present in the agent list", () => {
@@ -155,7 +157,7 @@ describe("Pinned chat owner identity", () => {
         chatId: "chat-unknown",
         chatName: "未知智能体会话",
         agentKey: "agent-missing",
-        firstAgentName: "历史智能体",
+    firstAgentName: "历史智能体"
       },
     ]);
 
@@ -165,8 +167,8 @@ describe("Pinned chat owner identity", () => {
     expect(html).not.toContain("pinned-chat-owner-icon");
   });
 
-  it("falls back to the raw teamId when the team is unknown", () => {
-    seedPinned([{ chatId: "chat-team", chatName: "团队会话", teamId: "team-missing" }]);
+  it("falls back to the raw agentKey when the TEAM Agent is unknown", () => {
+    seedPinned([{ chatId: "chat-team", chatName: "团队会话", agentKey: "team-missing" }]);
 
     const html = renderSection();
 

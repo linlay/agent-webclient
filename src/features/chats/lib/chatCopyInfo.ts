@@ -41,7 +41,6 @@ export function buildChatCopyInfoGroups(input: {
         createCopyInfoRow("agentKey", t("chatCopy.field.agentKey"), detail?.agentKey || summary.agentKey),
         createCopyInfoRow("firstAgentKey", t("chatCopy.field.firstAgentKey"), detail?.firstAgentKey),
         createCopyInfoRow("firstAgentName", t("chatCopy.field.firstAgentName"), detail?.firstAgentName),
-        createCopyInfoRow("teamId", t("chatCopy.field.teamId"), detail?.teamId),
         createCopyInfoRow("source", t("chatCopy.field.source"), detail?.source),
         createCopyInfoRow("createdAt", t("chatCopy.field.createdAt"), createdAt, {
           displayValue: formatTimestamp(createdAt),

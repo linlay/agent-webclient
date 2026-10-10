@@ -190,8 +190,7 @@ export const SourceDetailTabContent: React.FC = () => {
   const state = useAppState();
   const currentChat = state.chats.find((chat) => chat.chatId === state.chatId);
   const teamChat = Boolean(
-    currentChat?.owner?.kind === "orchestrated-team"
-    || String(currentChat?.teamId || "").trim(),
+    String("").trim(),
   );
   return (
     <SourceDetailContent

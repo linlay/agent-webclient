@@ -13,6 +13,7 @@ export interface SettingsSummaryBadge {
 }
 
 export type SidebarSettingsMenuAction =
+  | { type: "open-agents" }
   | { type: "open-skills" }
   | { type: "open-settings" }
   | { type: "open-registries" }
@@ -63,6 +64,12 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
       key: "entry",
       title: t("settingsMenu.section.entry"),
       items: [
+        {
+          key: "open-agents",
+          label: t("leftSidebar.quickActions.agents"),
+          icon: "agent_type",
+          action: { type: "open-agents" },
+        },
         {
           key: "open-skills",
           label: t("settingsMenu.skills"),

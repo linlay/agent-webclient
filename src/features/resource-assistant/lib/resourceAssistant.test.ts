@@ -28,7 +28,7 @@ describe("resource assistant URL", () => {
     expect(() => resourceComposerPrefill({ kind: "skill", target: { id: "x".repeat(2049) } }, t)).toThrow();
   });
   it("selects a navigable ordinary Agent rather than a Team or Coder", () => {
-    expect(firstChatAgent([{ key: "team", kind: "team" }, { key: "coder", mode: "CODER" }, { key: "chat", mode: "REACT" }])).toBe("chat");
+    expect(firstChatAgent([{ key: "team", mode: "TEAM" }, { key: "coder", mode: "CODER" }, { key: "chat", mode: "REACT" }])).toBe("chat");
     expect(firstChatAgent([])).toBe("");
   });
 });

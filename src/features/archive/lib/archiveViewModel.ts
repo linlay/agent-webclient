@@ -38,7 +38,7 @@ export function asArchiveSummary(
     chatId: String(item.chatId || ""),
     chatName: String(item.chatName || item.chatId || ""),
     agentKey: typeof item.agentKey === "string" ? item.agentKey : undefined,
-    teamId: typeof item.teamId === "string" ? item.teamId : undefined,
+
     createdAt: toArchiveTimestamp((item as Partial<ArchivedSummaryResponse>).createdAt),
     updatedAt: toArchiveTimestamp((item as Partial<ArchivedSummaryResponse>).updatedAt),
     lastRunAt: archiveLastRunAt(item),
@@ -101,7 +101,7 @@ export function normalizeRestoredChat(
     chatId: String(summary?.chatId || fallback?.chatId || ""),
     chatName: String(summary?.chatName || fallback?.chatName || fallback?.chatId || ""),
     agentKey: summary?.agentKey || fallback?.agentKey,
-    teamId: summary?.teamId || fallback?.teamId,
+
     updatedAt: toArchiveTimestamp(summary?.updatedAt ?? fallback?.lastRunAt ?? fallback?.updatedAt),
     createdAt: toArchiveTimestamp(summary?.createdAt ?? fallback?.createdAt),
     lastRunId: String(summary?.lastRunId || fallback?.lastRunId || ""),

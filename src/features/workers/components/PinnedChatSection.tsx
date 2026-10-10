@@ -49,7 +49,7 @@ function PinnedChatItem({
 }: {
   chat: WorkerConversationRow;
   ownerLabel: string;
-  ownerType?: "agent" | "team";
+  ownerType?: "agent";
   ownerIcon?: Agent["icon"];
   active: boolean;
   loading: boolean;
@@ -137,39 +137,23 @@ export function PinnedChatSection({
     () => selectPinnedChats(state.chats, state.chatPinnedOrder),
     [state.chats, state.chatPinnedOrder],
   );
-  const filter = state.chatFilter.trim().toLocaleLowerCase();
   const rows = pinned
     .map((chat) => {
-      const teamId =
-        chat.teamId ||
-        (chat.owner?.kind === "orchestrated-team"
-          ? chat.owner.teamId
-          : undefined);
+
       const agentKey = chat.agentKey || chat.firstAgentKey;
-      const agent = teamId
-        ? undefined
-        : state.agents.find((item) => item.key === agentKey);
-      const ownerLabel = teamId
-        ? state.teams.find((team) => team.teamId === teamId)?.name || teamId
-        : agent?.name || chat.firstAgentName || agentKey || "";
+      const agent = (state.agents.find((item) => item.key === agentKey));
+      const ownerLabel = (agent?.name || chat.firstAgentName || agentKey || "");
       return {
         chat: toWorkerConversationRow(chat),
         ownerLabel,
         ownerType: agent ? ("agent" as const) : undefined,
         ownerIcon: agent?.icon,
       };
-    })
-    .filter(
-      ({ chat, ownerLabel }) =>
-        !filter ||
-        `${chat.chatName} ${chat.lastRunContent} ${ownerLabel}`
-          .toLocaleLowerCase()
-          .includes(filter),
-    );
+    });
   if (pinned.length === 0) return null;
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (pending || filter || !over) return;
+    if (pending || !over) return;
     const request = buildPinnedChatMove(
       state.chatPinnedOrder ?? [],
       String(active.id),
@@ -200,7 +184,7 @@ export function PinnedChatSection({
               ownerIcon={ownerIcon}
               active={state.chatId === chat.chatId}
               loading={getChatLoading(chat.chatId)}
-              disabled={pending || Boolean(filter)}
+              disabled={pending}
               onSelect={() => {
                 setPopoverOpen(false);
                 onSelectChat(chat.chatId);

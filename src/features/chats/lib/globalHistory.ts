@@ -1,6 +1,5 @@
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
-import type { Team } from "@/features/workers/lib/workerState";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 
 export const ALL_HISTORY_OWNERS = "all";
@@ -8,13 +7,13 @@ export const ALL_HISTORY_OWNERS = "all";
 export type HistoryOwnerKey =
   | typeof ALL_HISTORY_OWNERS
   | `agent:${string}`
-  | `team:${string}`;
+;
 
 export interface HistoryOwnerOption {
   key: Exclude<HistoryOwnerKey, typeof ALL_HISTORY_OWNERS>;
   label: string;
   sourceId: string;
-  type: "agent" | "team";
+  type: "agent";
 }
 
 export interface GlobalHistoryFilters {
@@ -44,10 +43,10 @@ export function resolveGlobalHistoryRowText(
 }
 
 export function resolveChatHistoryOwnerKey(
-  chat: Pick<Chat, "agentKey" | "firstAgentKey" | "teamId">,
+  chat: Pick<Chat, "agentKey" | "firstAgentKey">,
 ): Exclude<HistoryOwnerKey, typeof ALL_HISTORY_OWNERS> | "" {
-  const teamId = text(chat?.teamId);
-  if (teamId) return `team:${teamId}`;
+
+
 
   const agentKey = text(chat?.agentKey || chat?.firstAgentKey);
   return agentKey ? `agent:${agentKey}` : "";
@@ -56,7 +55,7 @@ export function resolveChatHistoryOwnerKey(
 export function buildGlobalHistoryOwnerOptions(input: {
   agents?: Agent[];
   chats?: Chat[];
-  teams?: Team[];
+
 }): HistoryOwnerOption[] {
   const options = new Map<HistoryOwnerOption["key"], HistoryOwnerOption>();
 
@@ -71,21 +70,12 @@ export function buildGlobalHistoryOwnerOptions(input: {
     });
   }
 
-  for (const team of Array.isArray(input.teams) ? input.teams : []) {
-    const sourceId = text(team?.teamId);
-    if (!sourceId) continue;
-    options.set(`team:${sourceId}`, {
-      key: `team:${sourceId}`,
-      label: text(team?.name) || sourceId,
-      sourceId,
-      type: "team",
-    });
-  }
+
 
   for (const chat of Array.isArray(input.chats) ? input.chats : []) {
     const ownerKey = resolveChatHistoryOwnerKey(chat);
     if (!ownerKey || options.has(ownerKey)) continue;
-    const type = ownerKey.startsWith("team:") ? "team" : "agent";
+    const type = ("agent");
     const sourceId = ownerKey.slice(type.length + 1);
     options.set(ownerKey, {
       key: ownerKey,

@@ -100,7 +100,7 @@ export const CommandModal: React.FC<CommandModalProps> = ({
           <AutomationHistoryConsole
             currentWorker={currentWorker}
             agents={state.agents}
-            teams={state.teams}
+
             embedded
             onClose={() => closeModal()}
           />

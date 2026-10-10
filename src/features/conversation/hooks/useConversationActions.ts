@@ -135,9 +135,7 @@ function dispatchAttachRunEvent(
         runId,
         lastSeq,
         ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
-        ...(owner?.kind === "orchestrated-team"
-          ? { teamId: owner.teamId }
-          : {}),
+
         ...(owner ? { owner } : {}),
       },
     }),
@@ -185,7 +183,7 @@ function normalizeCurrentChatActiveRun(
     chatId: normalizedChatId,
     runId,
     ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
-    ...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+
     ...(owner ? { owner } : {}),
   };
 }
@@ -196,9 +194,9 @@ export function buildLoadedChatSummary(
 ): Partial<Chat> & Pick<Chat, "chatId"> {
   const data = isObjectRecord(value) ? value : {};
   const normalizedChatId = String(data.chatId || chatId || "").trim();
-  const teamId = String(data.teamId || "").trim();
+
   const agentKey = String(data.agentKey || data.firstAgentKey || "").trim();
-  const owner = toRunOwner({ teamId, agentKey });
+  const owner = toRunOwner({  agentKey });
   const createdAt = readEpochMillis(data.createdAt);
   const updatedAt = readEpochMillis(data.updatedAt);
   const read = normalizeChatReadState(data.read);
@@ -208,7 +206,7 @@ export function buildLoadedChatSummary(
     ...(owner?.kind === "agent"
       ? { agentKey: owner.agentKey, firstAgentKey: owner.agentKey }
       : {}),
-    ...(owner?.kind === "orchestrated-team" ? { teamId: owner.teamId } : {}),
+
     ...(owner ? { owner } : {}),
     source: String(data.source || "").trim() || undefined,
     ...(createdAt !== undefined ? { createdAt } : {}),
@@ -788,7 +786,7 @@ export function useConversationActions() {
               chatId,
               chats: stateRef.current.chats,
               eventIdentity: {
-                teamId: activeRun?.teamId || chatData.teamId,
+
                 agentKey:
                   activeRun?.agentKey ||
                   chatData.firstAgentKey ||
@@ -934,7 +932,7 @@ export function useConversationActions() {
             dispatch({ type: "SET_CHAT_AGENT_BY_ID", chatId, agentKey });
           }
           // Also set any agents discovered during replay
-          if (loadedOwner?.kind !== "orchestrated-team") {
+          {
             rs.chatAgentById.forEach((agentKey, cid) => {
               dispatch({ type: "SET_CHAT_AGENT_BY_ID", chatId: cid, agentKey });
             });

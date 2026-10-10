@@ -44,7 +44,6 @@ import { toRunOwner } from "@/shared/data/runOwner";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { AppState } from "@/app/state/AppContext";
 import {
-  readEventTeamId,
   readRequestQueryText,
   readSteerConfirmation,
 } from "@/features/events/lib/eventFields";
@@ -59,7 +58,7 @@ interface SendMessageEventDetail {
   attachments?: unknown;
   chatId?: unknown;
   agentKey?: unknown;
-  teamId?: unknown;
+
   params?: unknown;
   accessLevel?: unknown;
   model?: unknown;
@@ -284,7 +283,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       model?: QueryModelOverride,
       preferredChatId = "",
       preferredAgentKey = "",
-      preferredTeamId = "",
       editingMode = false,
       mustUseSkills: string[] = [],
       mustUseSkillsAgentKey = "",
@@ -400,18 +398,15 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       let selectedOwner = resolvePreferredRunOwner(stateRef.current, {
         chatId,
         explicitAgentKey: preferredAgentKey,
-        explicitTeamId: preferredTeamId,
       });
 
-      if (mention.mentionAgentKey && selectedOwner?.kind !== "orchestrated-team") {
+      if (mention.mentionAgentKey) {
         selectedOwner = { kind: "agent", agentKey: mention.mentionAgentKey };
       }
 
       const selectedAgentKey = selectedOwner?.kind === "agent" ? selectedOwner.agentKey : "";
-      const selectedTeamId = selectedOwner?.kind === "orchestrated-team" ? selectedOwner.teamId : "";
-      const cleanMessage = selectedOwner?.kind === "orchestrated-team" && mention.mentionAgentKey
-        ? rawMessage
-        : mention.cleanMessage || rawMessage;
+
+      const cleanMessage = (mention.cleanMessage || rawMessage);
 
       const selectedAgent = stateRef.current.agents.find(
         (agent) => toText(agent?.key) === selectedAgentKey,
@@ -513,7 +508,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         observationSource: "query",
         chatId,
         agentKey: selectedAgentKey,
-        teamId: selectedTeamId,
+
         owner: selectedOwner || undefined,
         editingMode: editingMode === true,
       });
@@ -591,11 +586,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           }
         }
         const nextAgentKey = toText(event.agentKey);
-        if (nextAgentKey && session.owner?.kind !== "orchestrated-team") {
+        if (nextAgentKey) {
           session.agentKey = nextAgentKey;
         }
         const binding = readRunAgentKeyFromEvent(event);
-        if (binding && session.owner?.kind !== "orchestrated-team") {
+        if (binding) {
           dispatch({
             type: "SET_RUN_AGENT_BY_ID",
             runId: binding.runId,
@@ -611,13 +606,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             });
           }
         }
-        const nextTeamId = readEventTeamId(event);
-        if (nextTeamId) {
-          session.teamId = nextTeamId;
-          if (!session.owner) {
-            session.owner = { kind: "orchestrated-team", teamId: nextTeamId };
-          }
-        }
+
+
         if (toText(event.type) === "request.query") {
           const eventEditingMode = readExplicitEditingMode(event);
           if (
@@ -638,13 +628,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             chatId: session.chatId,
             runId: session.runId,
             agentKey: session.agentKey,
-            teamId: session.teamId,
+
             editingMode: session.editingMode,
           },
           state: stateRef.current,
           selectedContext: {
             agentKey: "",
-            teamId: "",
+
           },
           lastRunContent,
         });
@@ -654,8 +644,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
         session.chatId = next.resolved.chatId;
         session.runId = next.resolved.runId;
-        session.agentKey = session.owner?.kind === "orchestrated-team" ? "" : next.resolved.agentKey;
-        session.teamId = next.resolved.teamId;
+        session.agentKey = (next.resolved.agentKey);
+
         session.editingMode = next.resolved.editingMode;
         chatQuerySessionIndexRef.current.set(
           next.resolved.chatId,
@@ -665,7 +655,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           session.snapshot.chatId = next.resolved.chatId;
         }
         dispatch({ type: "UPSERT_CHAT", chat: next.chat });
-        if (next.resolved.chatId && next.resolved.agentKey && session.owner?.kind !== "orchestrated-team") {
+        if (next.resolved.chatId && next.resolved.agentKey) {
           dispatch({
             type: "SET_CHAT_AGENT_BY_ID",
             chatId: next.resolved.chatId,
@@ -917,7 +907,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const model = normalizeQueryModelOverride(detail.model);
       const chatId = String(detail.chatId || "").trim();
       const agentKey = String(detail.agentKey || "").trim();
-      const teamId = String(detail.teamId || "").trim();
+
       const editingMode = detail.editingMode === true;
       const mustUseSkillsAgentKey = String(
         detail.mustUseSkillsAgentKey || "",
@@ -937,7 +927,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           model,
           chatId,
           agentKey,
-          teamId,
           editingMode,
           mustUseSkills,
           mustUseSkillsAgentKey,

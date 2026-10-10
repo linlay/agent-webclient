@@ -2,9 +2,7 @@ import { hasTimelineAttachmentContent, normalizeTimelineAttachments } from "./ti
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { safeText, toText } from "@/shared/utils/eventUtils";
 
-export function readEventTeamId(event: AgentEvent): string {
-  return toText((event as Record<string, unknown>)?.teamId);
-}
+
 
 export function readEventChatName(event: AgentEvent): string {
   return toText((event as Record<string, unknown>)?.chatName);

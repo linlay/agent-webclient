@@ -72,7 +72,7 @@ function normalizePersistedSession(value: unknown): PersistedBTWSession | null {
   if (updatedAt === undefined) return null;
   const owner =
     toRunOwner(record.owner as Record<string, unknown> | undefined)
-    || toRunOwner({ teamId: record.teamId, agentKey: record.agentKey });
+    || toRunOwner({  agentKey: record.agentKey });
   return {
     parentChatId,
     btwId: String(record.btwId || "").trim(),

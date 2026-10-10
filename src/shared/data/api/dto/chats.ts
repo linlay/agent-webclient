@@ -1,6 +1,7 @@
 export interface GetChatsOptions {
   agentKey?: string;
   mode?: string;
+  hasWorkspace?: boolean;
   pinned?: boolean;
   limit?: number;
 }
@@ -16,7 +17,7 @@ export interface DeriveChatResponse {
   chatId: string;
   chatName: string;
   agentKey: string;
-  teamId: string;
+
   sourceChatId: string;
   sourceRunId: string;
   lastRunId: string;
@@ -78,7 +79,7 @@ export interface ChatUsageData {
 export interface ActiveRunInfo {
   runId?: string;
   agentKey?: string;
-  teamId?: string;
+
   lastSeq?: number | string;
   planningMode?: boolean;
   editingMode?: boolean;
@@ -90,7 +91,7 @@ export interface ChatSummaryResponse {
   chatId: string;
   chatName?: string;
   agentKey?: string;
-  teamId?: string;
+
   source?: string;
   createdAt?: number;
   updatedAt?: number;
@@ -157,7 +158,7 @@ export interface FeedbackParams {
 export interface GlobalSearchParams {
   query: string;
   agentKey?: string;
-  teamId?: string;
+
   limit?: number;
 }
 
@@ -165,7 +166,7 @@ export interface GlobalSearchResult {
   chatId: string;
   chatName: string;
   agentKey?: string;
-  teamId?: string;
+
   runId?: string;
   kind: string;
   role?: string;

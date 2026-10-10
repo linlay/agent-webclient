@@ -31,6 +31,6 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
     }).catch(() => { if (!canceled) setLoaded(null); });
     return () => { canceled = true; };
   }, [key, embedded, dispatch, stateRef]);
-  if (worker?.type === "team") return interactionDefaults("TEAM");
+
   return embedded || (loaded?.key === key ? loaded.config : pendingInteraction);
 }

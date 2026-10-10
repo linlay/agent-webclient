@@ -189,7 +189,10 @@ function requireCurrentSource(
 	runtime: WorkPanelActionRuntime,
 ): { chatId: string; runId: string } {
 	const source = requireRecord(sourceValue);
-	requireExactKeys(source, ["runId", "chatId", "agentKey", "teamId"]);
+	requireExactKeys(source, ["runId", "chatId", "agentKey"]);
+	if (source.agentKey !== undefined && (typeof source.agentKey !== "string" || !source.agentKey.trim())) {
+		return invalidRequest("source.agentKey must be a non-empty string");
+	}
 	const sourceChatId = typeof source.chatId === "string"
 		? source.chatId.trim()
 		: "";
@@ -199,12 +202,7 @@ function requireCurrentSource(
 	const sourceAgentKey = typeof source.agentKey === "string"
 		? source.agentKey.trim()
 		: "";
-	const sourceTeamId = typeof source.teamId === "string"
-		? source.teamId.trim()
-		: "";
-	if (sourceAgentKey && sourceTeamId) {
-		return invalidRequest("source must not contain both agentKey and teamId");
-	}
+
 	const state = runtime.getState();
 	const currentChatId = state.chatId.trim();
 	const currentRunId = String(
@@ -228,21 +226,12 @@ function requireCurrentSource(
 	const expectedAgentKey = activeRun?.owner?.kind === "agent"
 		? activeRun.owner.agentKey
 		: String(activeRun?.agentKey || state.currentRunAgentKey || "").trim();
-	const expectedTeamId = activeRun?.owner?.kind === "orchestrated-team"
-		? activeRun.owner.teamId
-		: String(activeRun?.teamId || "").trim();
-	if (activeRun?.owner?.kind === "agent" && sourceTeamId) {
-		return sourceRunMismatch("source.teamId conflicts with the current Agent-owned run");
-	}
-	if (activeRun?.owner?.kind === "orchestrated-team" && sourceAgentKey) {
-		return sourceRunMismatch("source.agentKey conflicts with the current Team-owned run");
-	}
+
+
 	if (sourceAgentKey && expectedAgentKey && sourceAgentKey !== expectedAgentKey) {
 		return sourceRunMismatch("source.agentKey does not match the current page run owner");
 	}
-	if (sourceTeamId && expectedTeamId && sourceTeamId !== expectedTeamId) {
-		return sourceRunMismatch("source.teamId does not match the current page run owner");
-	}
+
 	return { chatId: currentChatId, runId: currentRunId };
 }
 

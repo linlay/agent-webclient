@@ -1,10 +1,4 @@
 {
-  "src/features/workers/hooks/useWorkerData.ts": [
-    {
-      "text": "默认小组",
-      "reason": "用于识别后端返回的历史默认团队名称，不会作为前端展示文案。"
-    }
-  ],
   "src/features/workers/components/WorkerNavigator.tsx": [
     { "text": "AGENT", "reason": "产品品牌字样。" },
     { "text": "Webclient", "reason": "产品品牌字样。" }

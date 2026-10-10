@@ -68,7 +68,7 @@ it("keeps changes made during runtime publication instead of navigating away", a
 });
 it("uses Standalone's first ordinary Agent and waits for an active mount", async () => {
   jest.mocked(isDesktopAppMode).mockReturnValue(false);
-  jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "team", kind: "team" }, { key: "default", mode: "AGENT" }] } as any);
+  jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "team", mode: "TEAM" }, { key: "default", mode: "AGENT" }] } as any);
   jest.mocked(getAdminAgentConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, connectorIds: [], activeConnectorIds: [] } });
   jest.mocked(setAdminAgentConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, activeConnectorIds: [], presetConnectorIds: [], declaredConnectorIds: [], reloadPending: true } });
   await mount(); let result!: Promise<void>;

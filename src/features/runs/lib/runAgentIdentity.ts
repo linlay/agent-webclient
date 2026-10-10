@@ -23,6 +23,7 @@ export function bindRunAgentKey(
 export function readRunAgentKeyFromEvent(
 	event: AgentEvent,
 ): { runId: string; agentKey: string } | null {
+	if (event.taskId || event.subAgentKey) return null;
 	const runId = toText(event.runId);
 	const agentKey = toText(event.agentKey);
 	return runId && agentKey ? { runId, agentKey } : null;

@@ -21,6 +21,7 @@ export interface AgentControl {
 }
 
 export interface Agent {
+  teamConfig?: { members: string[]; maxParallel?: number };
   key: string;
   name: string;
   kind?: "agent";

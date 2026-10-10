@@ -8,8 +8,8 @@ beforeEach(() => jest.resetAllMocks());
 it('loads the full ordered cross-owner snapshot in one request', async () => {
   const chats = Array.from({ length: 30 }, (_, i) => ({
     chatId: `chat-${i}`, pinned: true,
-    ...(i % 2 ? { agentKey: 'coder' } : { teamId: 'team' }),
-    read: { isRead: false }, activeRun: { runId: `run-${i}` },
+    ...(i % 2 ? { agentKey: 'coder' } : { agentKey: 'team' }),
+    read: { isRead: false }, activeRun: { runId: `run-${i}` }
   }));
   order.mockResolvedValue(ok({ sortMode: 'recent', pinnedOrder: ['ignored-legacy-projection'], pinnedChats: chats }));
   expect(await readChatPinningSnapshot()).toEqual({ order: chats.map(c => c.chatId), chats });

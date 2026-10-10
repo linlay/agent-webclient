@@ -177,7 +177,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
   const accessScope = resolveComposerAccessScope(state.accessToken);
-  const accessAgentKey = currentAgentKey || (currentWorker?.type === "team" ? `team:${currentWorker.sourceId}` : "");
+  const accessAgentKey = currentAgentKey || ((""));
   const accessTarget = useMemo(() => ({
     scope: accessScope, chatId: state.chatId, agentKey: accessAgentKey,
   }), [accessScope, state.chatId, accessAgentKey]);

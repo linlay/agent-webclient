@@ -1,28 +1,12 @@
-import type { Agent, AgentStats } from "@/features/agents/lib/agentState";
+import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat, ChatReadState } from "@/features/chats/lib/chatState";
 
-export interface Team {
-  teamId: string;
-  kind?: "team";
-  name?: string;
-  role?: string;
-  agentKey?: string;
-  agentKeys?: string[];
-  agents?: Array<string | { key?: string; agentKey?: string }>;
-  members?: Array<string | { key?: string; agentKey?: string }>;
-  runtimeMode?: string;
-  meta?: Record<string, unknown>;
-  icon?: { color?: string; name?: string };
-  stats?: AgentStats;
-  chats?: Chat[];
-  [key: string]: unknown;
-}
 
-export type WorkerListItem = Agent | Team;
+export type WorkerListItem = Agent;
 
 export interface WorkerRow {
   key: string;
-  type: "agent" | "team";
+  type: "agent";
   agentType?: "agent" | "coder" | "kbase";
   sourceId: string;
   displayName: string;
@@ -47,7 +31,7 @@ export interface WorkerConversationRow {
   chatId: string;
   chatName: string;
   agentKey?: string;
-  teamId?: string;
+
   source?: string;
   updatedAt: number;
   lastRunId: string;
@@ -61,7 +45,7 @@ export interface WorkerConversationRow {
 }
 
 export interface WorkersState {
-  teams: Team[];
+
   sidebarPendingRequestCount: number;
   pendingNewChatAgentKey: string;
   workerPriorityKey: string;
@@ -76,7 +60,6 @@ export interface WorkersState {
 }
 
 export type WorkersAction =
-  | { type: "SET_TEAMS"; teams: Team[] }
   | { type: "START_SIDEBAR_REQUEST" }
   | { type: "FINISH_SIDEBAR_REQUEST" }
   | { type: "SET_CHAT_FILTER"; filter: string }
@@ -91,7 +74,7 @@ export type WorkersAction =
 
 export function createInitialWorkersState(): WorkersState {
   return {
-    teams: [],
+
     sidebarPendingRequestCount: 0,
     pendingNewChatAgentKey: "",
     workerPriorityKey: "",
@@ -111,8 +94,6 @@ export function reduceWorkersState<S extends WorkersState>(state: S, action: { t
 export function reduceWorkersState<S extends WorkersState>(state: S, input: { type: string }): S | null {
   const action = input as WorkersAction;
   switch (action.type) {
-    case "SET_TEAMS":
-      return { ...state, teams: action.teams };
     case "START_SIDEBAR_REQUEST":
       return { ...state, sidebarPendingRequestCount: state.sidebarPendingRequestCount + 1 };
     case "FINISH_SIDEBAR_REQUEST":
