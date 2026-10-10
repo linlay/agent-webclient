@@ -197,7 +197,10 @@ export function getModelIdentityMismatchWarning(
     return "";
   }
 
-  return `[QuerySettingsControls] Model option identity mismatch: display name "${toConfigText(model.name)}" is ${displayFamily}, but key/modelId/provider "${[
+  const technicalFields = toConfigText(model.modelId)
+    ? "key/modelId/provider"
+    : "key/provider";
+  return `[QuerySettingsControls] Model option identity mismatch: display name "${toConfigText(model.name)}" is ${displayFamily}, but ${technicalFields} "${[
     model.key,
     model.modelId,
     model.provider,

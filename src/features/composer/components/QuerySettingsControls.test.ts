@@ -555,6 +555,32 @@ describe("QuerySettingsControls", () => {
     ]);
   });
 
+  it("renders compact native model options and preserves Chinese reasoning labels", () => {
+    const model = {
+      key: "native-qwen",
+      name: "Qwen",
+      icon: "qwen",
+      provider: "bailian",
+    };
+    const options = normalizeCoderModelOptionsResponse({ data: {
+      models: [model],
+      reasoningEfforts: [{ key: "HIGH", label: "高" }],
+    }});
+    expect(options.models).toEqual([model]);
+    expect(options.reasoningEfforts).toEqual([{ key: "HIGH", label: "高" }]);
+    const items = buildModelMenuItems({
+      ...options,
+      modelOverride: { key: model.key, reasoningEffort: "HIGH" },
+      t: (key) => key,
+    }) as TestMenuItem[];
+    const reasoningGroup = items.find((item) => item.key === "reasoning");
+    expect(reasoningGroup?.children?.[0]?.label).toMatchObject({
+      props: { children: "高" },
+    });
+    expect(getModelIdentityMismatchWarning({ ...model, name: "DeepSeek" }))
+      .toContain('but key/provider "native-qwen / bailian"');
+  });
+
   it("warns when model display identity conflicts with technical identifiers", () => {
     const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
     const mismatchModel = {

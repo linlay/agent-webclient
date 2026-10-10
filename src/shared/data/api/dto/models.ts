@@ -1,18 +1,29 @@
-export interface AgentEditorModelOption {
+interface ModelMenuOption {
   key: string;
   name?: string;
   icon?: string;
   provider?: string;
+  serviceTiers?: string[];
+}
+
+export interface AgentEditorModelOption extends ModelMenuOption {
   modelId?: string;
   protocol?: string;
   isVision: boolean;
   contextWindow?: number;
   reasoningEfforts?: string[];
-  serviceTiers?: string[];
 }
 
-export interface CoderModelOption extends AgentEditorModelOption {
-  isReasoner: boolean;
+// Native menu entries only carry presentation fields and optional service tiers.
+// ACP entries retain their discovery metadata.
+export interface CoderModelOption extends ModelMenuOption {
+  modelId?: string;
+  protocol?: string;
+  isReasoner?: boolean;
+  isVision?: boolean;
+  contextWindow?: number;
+  timeout?: number;
+  reasoningEfforts?: string[];
 }
 
 export interface ReasoningEffortOption {
