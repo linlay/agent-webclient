@@ -16,7 +16,6 @@ import {
   resolveEmbeddedCoderModelOptions,
   resolveModelOptionsSource,
   shouldApplyCoderDefaultModelOverride,
-  shouldClearModelOverride,
   shouldRetryModelOptionsOnOpen,
   toAgentConfigKey,
 } from "@/features/composer/components/QuerySettingsControls";
@@ -966,18 +965,7 @@ describe("QuerySettingsControls", () => {
     expect(failedHtml).toContain("模型加载失败，重新打开可重试");
   });
 
-  it("clears model overrides outside CODER agents", () => {
-    expect(
-      shouldClearModelOverride(false, {
-        key: "coder-model",
-        reasoningEffort: "HIGH",
-      }),
-    ).toBe(true);
-    expect(shouldClearModelOverride(true, { key: "coder-model" })).toBe(false);
-    expect(shouldClearModelOverride(false, {})).toBe(false);
-  });
-
-  it("reapplies the default model after a non-CODER switch clears the override", () => {
+  it("applies the default model when the target has no saved selection", () => {
     expect(
       shouldApplyCoderDefaultModelOverride({
         shouldShowModelControls: true,

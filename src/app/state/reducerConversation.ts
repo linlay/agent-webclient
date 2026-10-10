@@ -1,3 +1,4 @@
+import { initializeChatModel, updateComposerModel } from "@/features/composer/lib/composerModelSelection";
 import { resolveComposerAccessScope, updateComposerAccessLevel } from "@/features/composer/lib/composerAccessLevel";
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
@@ -232,7 +233,9 @@ export function reduceConversationState(
 					runId: state.runId,
 				},
 			);
-			return { ...state, events, debugEvents };
+			return { ...(["request.query", "run.start", "usage.snapshot"].includes(action.event.type)
+				? initializeChatModel(state, resolveComposerAccessScope(state.accessToken), String(action.event.chatId || state.chatId || ""), events)
+				: state), events, debugEvents };
 		}
 		case "CLEAR_EVENTS":
 			return {
@@ -287,6 +290,12 @@ export function reduceConversationState(
 			};
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
+		case "SYNC_COMPOSER_MODEL":
+			return updateComposerModel(state, {
+				scope: resolveComposerAccessScope(state.accessToken), chatId: action.chatId, agentKey: "",
+			}, action.value, action.initializeOnly);
+		case "SET_COMPOSER_MODEL":
+			return updateComposerModel(state, action.target, action.value, action.initializeOnly);
 		case "SET_COMPOSER_ACCESS_LEVEL":
 			return { ...state, ...updateComposerAccessLevel(state, action.target, action.value, action.initializeOnly) };
 		case "SYNC_COMPOSER_ACCESS_LEVEL":

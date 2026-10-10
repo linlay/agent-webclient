@@ -738,6 +738,9 @@ describe('replayEvent tool migration', () => {
     });
 
     await actions?.loadChat('chat-usage');
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SYNC_COMPOSER_MODEL', chatId: 'chat-usage',
+      value: { key: 'deepseek-chat', serviceTier: 'STANDARD' }, initializeOnly: true });
+
 
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_USAGE_SNAPSHOT',

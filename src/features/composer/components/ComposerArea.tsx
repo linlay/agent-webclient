@@ -1,6 +1,7 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { FailedSubmissions } from "./FailedSubmissions";
+import { readComposerModel } from "../lib/composerModelSelection";
 import { composerAccessKey, readComposerAccessLevel, resolveComposerAccessScope } from "../lib/composerAccessLevel";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
@@ -139,7 +140,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
   );
-  const [modelOverride, setModelOverride] = useState<QueryModelOverride>({});
   const isRestoringDraftRef = useRef(false);
   const isRestoringSkillsRef = useRef(false);
 
@@ -181,6 +181,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const accessTarget = useMemo(() => ({
     scope: accessScope, chatId: state.chatId, agentKey: accessAgentKey,
   }), [accessScope, state.chatId, accessAgentKey]);
+  const modelOverride = interactionConfig.model ? readComposerModel(state, accessTarget) : {};
+  const setModelOverride = useCallback((value: QueryModelOverride) => {
+    dispatch({ type: "SET_COMPOSER_MODEL", target: accessTarget, value });
+  }, [dispatch, accessTarget]);
   const accessLevel = readComposerAccessLevel(state, accessTarget);
   const setAccessLevel = useCallback((value: QueryAccessLevel) => {
     dispatch({ type: "SET_COMPOSER_ACCESS_LEVEL", target: accessTarget, value });

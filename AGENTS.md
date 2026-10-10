@@ -222,3 +222,5 @@ Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedC
 共享知识库通过单个 kbaseConfig.libraryId 绑定所有 Native Agent，Workspace 独立用于项目与编辑。项目创建可选已有库或从目录同时建库与 Agent；中心 collection 保存 include/exclude/chunk。source.publish 的 libraryId/agentKey 必须在 live/replay 投影保留；来源详情通过专用 Chat 已发布来源 read/file API 回读，不转换成 Workspace /api/resource 链接。旧 Agent refresh 与等待回执已删除，库中心自动维护。
 
 集合支持 description 与 editable（缺省 false），管理表单保留 include/exclude/chunk。仅专用 KBASE 的 Host Run 在启动时冻结可编辑目录，需 editingMode 才能写；容器不自动挂载，普通 Agent 不获得额外写权限。说明与开关不触发索引重建，下次 Run 生效。
+
+Composer 模型、思考强度与 service tier 按 Chat 隔离，旧 Chat 从最近主 Run 恢复，不随 New Chat 的 Agent 默认值修改；已有 Chat 的菜单调整仅作为下一次 query 覆盖，不写 Agent 配置。偏好按后端与身份隔离保存于 sessionStorage，详情见运行参数专题。

@@ -1,3 +1,5 @@
+import { initializeChatModel } from "@/features/composer/lib/composerModelSelection";
+import { resolveComposerAccessScope } from "@/features/composer/lib/composerAccessLevel";
 import { reduceSubmissionDraft } from "@/features/composer/lib/submissionDraft";
 import type { ComposerAction } from "@/features/composer/lib/composerState";
 import type { AppState } from "@/app/state/types";
@@ -19,7 +21,7 @@ function reduceAppState(state: AppState, action: AppAction): AppState {
 			return { ...state, agents: [], teams: [], chats: [], chatPinnedOrder: null, chatPinningPending: false, automations: [] };
 		case "APPLY_CONVERSATION_REPLAY":
 			return {
-				...state,
+				...initializeChatModel(state, resolveComposerAccessScope(state.accessToken), action.snapshot.chatId, action.snapshot.events),
 				chatId: action.snapshot.chatId,
 				currentChatActiveRun: action.snapshot.currentChatActiveRun,
 				runId: action.snapshot.runId,

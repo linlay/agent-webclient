@@ -208,20 +208,6 @@ export function getModelIdentityMismatchWarning(
 }
 
 
-export function shouldClearModelOverride(
-  isCoderAgent: boolean,
-  modelOverride: QueryModelOverride,
-): boolean {
-  return (
-    !isCoderAgent &&
-    Boolean(
-      modelOverride.key ||
-        modelOverride.reasoningEffort ||
-        modelOverride.serviceTier,
-    )
-  );
-}
-
 export function shouldApplyCoderDefaultModelOverride({
   shouldShowModelControls,
   agentKey,
@@ -547,16 +533,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const forceRefreshRef = useRef(false);
   const manualRefreshAgentKeyRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!showModelSelector) {
-      return;
-    }
-    if (!shouldClearModelOverride(modelAllowed, modelOverride)) {
-      return;
-    }
-    appliedDefaultRef.current = null;
-    onModelOverrideChange({});
-  }, [modelAllowed, modelOverride, onModelOverrideChange, showModelSelector]);
 
   useEffect(() => {
     if (!shouldShowModelControls || !agentKey) {
@@ -687,6 +663,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   );
 
   useEffect(() => {
+    if (state.chatId) return;
     if (
       shouldShowModelControls &&
       agentKey &&
@@ -721,6 +698,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     };
     onModelOverrideChange(resolvedDefaultOverride);
   }, [
+    state.chatId,
     agentKey,
     modelOverride.key,
     modelOverride.reasoningEffort,
@@ -734,12 +712,12 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     modelOverride.key ||
     resolvedDefaultOverride.key ||
     "";
-  const reasoningEffort =
-    modelOverride.reasoningEffort || resolvedDefaultOverride.reasoningEffort;
+  const reasoningEffort = modelOverride.key
+    ? modelOverride.reasoningEffort
+    : resolvedDefaultOverride.reasoningEffort;
   const serviceTier =
     normalizeModelServiceTier(
-      modelOverride.serviceTier ||
-        resolvedDefaultOverride.serviceTier,
+      modelOverride.key ? modelOverride.serviceTier : resolvedDefaultOverride.serviceTier,
     ) || "STANDARD";
   const loadingModelOptions = modelsLoading || modelOptionsStatus === "idle";
   const selectedModelLabel = modelKey
@@ -775,10 +753,13 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     const persistedOverride: QueryModelOverride = {
       key: nextModelKey,
       reasoningEffort: nextReasoningEffort,
-      ...(nextOverride.serviceTier
-        ? { serviceTier: nextOverride.serviceTier }
-        : {}),
+      ...(state.chatId ? { serviceTier: nextOverride.serviceTier || "STANDARD" }
+        : nextOverride.serviceTier ? { serviceTier: nextOverride.serviceTier } : {}),
     };
+    if (state.chatId) {
+      onModelOverrideChange(persistedOverride);
+      return;
+    }
     setModelConfigSaving(true);
     try {
       const response = await updateAgentModelConfig({

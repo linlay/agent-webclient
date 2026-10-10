@@ -572,6 +572,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         const nextChatId = toText(event.chatId);
         if (nextChatId) {
           initializeChatAccess(nextChatId);
+          if (model?.key) {
+            dispatch({ type: "SET_COMPOSER_MODEL",
+              target: { scope: accessScope, chatId: nextChatId, agentKey: "" },
+              value: model, initializeOnly: true });
+          }
           session.chatId = nextChatId;
           chatQuerySessionIndexRef.current.set(nextChatId, session.requestId);
           if (session.snapshot && !session.snapshot.chatId) {

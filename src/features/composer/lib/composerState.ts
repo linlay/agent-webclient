@@ -1,4 +1,5 @@
-import type { QueryAccessLevel } from "@/shared/data";
+import { restoreComposerModels, type ComposerModelState } from "./composerModelSelection";
+import type { QueryModelOverride, QueryAccessLevel } from "@/shared/data";
 import { restoreComposerAccessLevels, type ComposerAccessState, type ComposerAccessTarget } from "./composerAccessLevel";
 import type { Agent } from "@/features/agents/lib/agentState";
 
@@ -46,7 +47,7 @@ export interface SubmissionDraft {
   version: number;
 }
 
-export interface ComposerState extends ComposerAccessState {
+export interface ComposerState extends ComposerAccessState, ComposerModelState {
   composerEditVersion: number;
   submissionDrafts: Record<string, SubmissionDraft>;
   failedSubmissions: SubmissionDraft[];
@@ -81,6 +82,8 @@ export type ComposerAction =
   | { type: "DISCARD_FAILED_SUBMISSION"; requestId: string }
   | { type: "RESTORE_FAILED_SUBMISSION"; requestId: string }
   | { type: "SET_SKILL_REJECTION"; rejection: ComposerState["skillRejection"] }
+  | { type: "SYNC_COMPOSER_MODEL"; chatId: string; value: QueryModelOverride; initializeOnly?: boolean }
+  | { type: "SET_COMPOSER_MODEL"; target: ComposerAccessTarget; value: QueryModelOverride; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SYNC_COMPOSER_ACCESS_LEVEL"; chatId: string; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
@@ -91,6 +94,7 @@ export type ComposerAction =
 export function createInitialComposerState(): ComposerState {
   return {
     ...restoreComposerAccessLevels(),
+    ...restoreComposerModels(),
     composerEditVersion: 0,
     submissionDrafts: {},
     failedSubmissions: [],

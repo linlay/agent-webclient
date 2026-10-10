@@ -1,3 +1,4 @@
+import { resolveChatModel } from "@/features/runs/lib/modelSelection";
 import { useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { readSteerConfirmation } from "@/features/events/lib/eventFields";
@@ -853,6 +854,14 @@ export function useConversationActions() {
                   ...confirmation,
                 });
               }
+            }
+
+            const restoredModel = resolveChatModel(
+              usageSnapshot ? [...rs.events, usageSnapshot] : rs.events, chatId,
+            );
+            if (restoredModel) {
+              dispatch({ type: "SYNC_COMPOSER_MODEL", chatId,
+                value: restoredModel, initializeOnly: true });
             }
 
             /* Dispatch the complete replay result as a single replay transaction */

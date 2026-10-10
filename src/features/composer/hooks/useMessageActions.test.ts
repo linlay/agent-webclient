@@ -397,7 +397,7 @@ describe("useMessageActions temporary pin", () => {
         [],
         {},
         "auto_approve",
-        undefined,
+        { key: "sent-model", reasoningEffort: "HIGH" },
         "",
         "agent-coder",
       );
@@ -426,6 +426,10 @@ describe("useMessageActions temporary pin", () => {
       } else {
         expect(accessWrites).toHaveLength(0);
       }
+      const modelWrites = dispatch.mock.calls.filter(([action]) => action.type === "SET_COMPOSER_MODEL");
+      expect(modelWrites.length).toBeGreaterThan(0);
+      expect(modelWrites.every(([action]) => action.target.chatId === "chat-canonical" &&
+        action.value.key === "sent-model" && action.value.reasoningEffort === "HIGH" && action.initializeOnly === true)).toBe(true);
       expect(dispatchedWindowEvents).toHaveLength(expected);
       if (expected) {
         expect((dispatchedWindowEvents[0] as TestCustomEvent).detail).toEqual({
