@@ -5,10 +5,10 @@ interface AwaitingShellProps {
 }
 
 const COMPOSER_AWAITING_SHELL_CLASS =
-  "composer-awaiting-shell tw:flex tw:w-full tw:flex-col tw:gap-2 tw:pb-[16px]";
+  "composer-awaiting-shell tw:flex tw:w-full tw:flex-col tw:gap-2 tw:pb-[16px] tw:outline-none";
 
 export const AwaitingShell: React.FC<AwaitingShellProps> = ({ children }) => (
-  <div className={COMPOSER_AWAITING_SHELL_CLASS}>
+  <div className={COMPOSER_AWAITING_SHELL_CLASS} tabIndex={-1}>
     {children}
   </div>
 );

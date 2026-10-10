@@ -294,6 +294,18 @@ describe("confirm dialog state helpers", () => {
     ).toBe(false);
   });
 
+  it.each(["checkbox", "radio", "button", "submit", "reset", "image", "hidden"])(
+    "does not treat input type=%s as text entry", (type) => {
+      expect(isEditableKeyboardTarget({ tagName: "INPUT", type, isContentEditable: false } as HTMLInputElement)).toBe(false);
+    },
+  );
+
+  it.each(["text", "password", "number", "search", "email", "date", "datetime-local"])(
+    "preserves keyboard input for type=%s", (type) => {
+      expect(isEditableKeyboardTarget({ tagName: "INPUT", type, isContentEditable: false } as HTMLInputElement)).toBe(true);
+    },
+  );
+
   it("builds partial question submit params for timeout auto-submit", () => {
     const questions: AIAwaitQuestion[] = [
       {

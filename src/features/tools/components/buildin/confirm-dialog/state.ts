@@ -45,8 +45,11 @@ export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
     return false;
   }
   const tagName = element.tagName;
+  const nonTextInput = tagName === "INPUT" && [
+    "checkbox", "radio", "button", "submit", "reset", "image", "hidden",
+  ].includes((element as HTMLInputElement).type);
   return (
-    tagName === "INPUT" || tagName === "TEXTAREA" || element.isContentEditable
+    (tagName === "INPUT" && !nonTextInput) || tagName === "TEXTAREA" || element.isContentEditable
   );
 }
 
