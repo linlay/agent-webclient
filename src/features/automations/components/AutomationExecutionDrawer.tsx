@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Drawer, Spin, Tabs } from "antd";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Drawer, Popover, Spin, Tabs, Tooltip } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Team } from "@/features/workers/lib/workerState";
 import type {
@@ -33,7 +33,6 @@ import { useI18n } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import styles from "./AutomationExecutionDrawer.module.css";
 
-const COMPACT_DRAWER_QUERY = "(max-width: 859px)";
 const renderAppMarkdown = (props: MarkdownContentProps) => <MarkdownContent {...props} />;
 
 const STATUS_ICON: Record<
@@ -65,27 +64,6 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function useCompactDrawerLayout(): boolean {
-  const read = () =>
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia(COMPACT_DRAWER_QUERY).matches;
-  const [compact, setCompact] = useState(read);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return;
-    }
-    const query = window.matchMedia(COMPACT_DRAWER_QUERY);
-    const update = () => setCompact(query.matches);
-    update();
-    query.addEventListener?.("change", update);
-    return () => query.removeEventListener?.("change", update);
-  }, []);
-
-  return compact;
-}
-
 export interface AutomationExecutionDrawerProps {
   execution: AutomationExecutionResponse | null;
   agents: Agent[];
@@ -108,7 +86,6 @@ export const AutomationExecutionDrawer: React.FC<
   const { locale, t } = useI18n();
   const message = useAppMessage();
   const openTarget = useOpenTarget();
-  const compact = useCompactDrawerLayout();
   const [activeTab, setActiveTab] = useState("execution");
   const [detailState, setDetailState] = useState<
     PanelState<AutomationExecutionDetailResponse>
@@ -318,7 +295,6 @@ export const AutomationExecutionDrawer: React.FC<
 
   const executionPanel = (
     <section className={styles.panel} aria-label={t("automationHistory.panel.execution")}>
-      {!compact ? <h3>{t("automationHistory.panel.execution")}</h3> : null}
       <div className={styles.panelScroll} aria-busy={detailState.loading}>
         {detailState.error
           ? renderPanelError(detailState.error, () => {
@@ -337,6 +313,12 @@ export const AutomationExecutionDrawer: React.FC<
           </div>
         ) : detailState.data && visible ? (
           <div className={styles.resultContent}>
+            {visible.error ? (
+              <div className={styles.panelError} role="alert">
+                <MaterialIcon name="error" />
+                <span>{visible.error}</span>
+              </div>
+            ) : null}
             <div className={styles.resultMarkdown}>
               {detailState.data.resultContent ? (
                 <MarkdownContent
@@ -350,64 +332,6 @@ export const AutomationExecutionDrawer: React.FC<
                 </div>
               )}
             </div>
-            {detailState.data.resultContent ? (
-              <UiButton
-                size="sm"
-                variant="ghost"
-                className={styles.copyResult}
-                aria-label={t("automationHistory.action.copyResult")}
-                onClick={() => void copy(detailState.data?.resultContent || "")}
-              >
-                <MaterialIcon name="content_copy" />
-                {t("automationHistory.action.copyResult")}
-              </UiButton>
-            ) : null}
-            <dl className={styles.resultMeta}>
-              {visible.error ? (
-                <div className={styles.errorMeta}>
-                  <dt>{t("automationHistory.result.error")}</dt>
-                  <dd>{visible.error}</dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>{t("automationHistory.field.finishReason")}</dt>
-                <dd>{visible.finishReason || "--"}</dd>
-              </div>
-              <div>
-                <dt>{t("automationHistory.field.executionId")}</dt>
-                <dd>
-                  <button
-                    type="button"
-                    aria-label={t("automationHistory.action.copyExecutionId")}
-                    onClick={() => void copy(visible.id)}
-                  >
-                    <span>{visible.id}</span>
-                    <MaterialIcon name="content_copy" />
-                  </button>
-                </dd>
-              </div>
-              {visible.runId ? (
-                <div>
-                  <dt>{t("automationHistory.field.runId")}</dt>
-                  <dd>
-                    <button
-                      type="button"
-                      aria-label={t("automationHistory.action.copyRunId")}
-                      onClick={() => void copy(visible.runId || "")}
-                    >
-                      <span>{visible.runId}</span>
-                      <MaterialIcon name="content_copy" />
-                    </button>
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
-            {detailState.data.queryContent ? (
-              <details className={styles.queryDetails}>
-                <summary>{t("automationHistory.result.queryContent")}</summary>
-                <pre>{detailState.data.queryContent}</pre>
-              </details>
-            ) : null}
           </div>
         ) : null}
         {detailState.loading && detailState.data ? (
@@ -421,20 +345,6 @@ export const AutomationExecutionDrawer: React.FC<
 
   const chatPanel = (
     <section className={styles.panel} aria-label={t("automationHistory.panel.chat")}>
-      <div className={styles.chatHeading}>
-        {!compact ? <h3>{t("automationHistory.panel.chat")}</h3> : null}
-        <span className={styles.workerIdentity}>
-          <AgentIcon
-            icon={workerIcon}
-            type={workerType}
-            props={{
-              icon: { width: 18, height: 18 },
-              avatar: { size: 18 },
-            }}
-          />
-          <span>{workerName}</span>
-        </span>
-      </div>
       <div className={styles.chatBody} aria-busy={chatState.loading}>
         {!chatId ? (
           <div className={styles.chatEmpty} role="status">
@@ -486,12 +396,70 @@ export const AutomationExecutionDrawer: React.FC<
     </section>
   );
 
+  const executionDetails = visible ? (
+    <div className={styles.detailsContent}>
+      <span className={styles.workerIdentity}>
+        <AgentIcon
+          icon={workerIcon}
+          type={workerType}
+          props={{
+            icon: { width: 18, height: 18 },
+            avatar: { size: 18 },
+          }}
+        />
+        <span>{workerName}</span>
+      </span>
+      <div className={styles.detailsTime}>
+        {automationExecutionDateTimeLabel(visible, locale)}
+        <span aria-hidden="true"> · </span>
+        {automationExecutionDurationLabel(visible.durationMs)}
+      </div>
+      <dl className={styles.resultMeta}>
+        <div>
+          <dt>{t("automationHistory.field.finishReason")}</dt>
+          <dd>{visible.finishReason || "--"}</dd>
+        </div>
+        <div>
+          <dt>{t("automationHistory.field.executionId")}</dt>
+          <dd>
+            <button
+              type="button"
+              aria-label={t("automationHistory.action.copyExecutionId")}
+              onClick={() => void copy(visible.id)}
+            >
+              <span>{visible.id}</span>
+              <MaterialIcon name="content_copy" />
+            </button>
+          </dd>
+        </div>
+        {visible.runId ? (
+          <div>
+            <dt>{t("automationHistory.field.runId")}</dt>
+            <dd>
+              <button
+                type="button"
+                aria-label={t("automationHistory.action.copyRunId")}
+                onClick={() => void copy(visible.runId || "")}
+              >
+                <span>{visible.runId}</span>
+                <MaterialIcon name="content_copy" />
+              </button>
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+      {detailState.data?.queryContent ? (
+        <div className={styles.queryContent}>
+          <h4>{t("automationHistory.result.queryContent")}</h4>
+          <pre>{detailState.data.queryContent}</pre>
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+
   const title = visible ? (
     <div className={styles.drawerTitle}>
-      <div className={styles.drawerTitleLine}>
-        <strong>{visible.automationName || visible.automationId}</strong>
-        <span>{t("automationHistory.drawer.title")}</span>
-      </div>
+      <strong className={styles.drawerName}>{visible.automationName || visible.automationId}</strong>
       <div className={styles.drawerMeta}>
         <span className={`${styles.status} ${styles[visible.status]}`}>
           <MaterialIcon name={STATUS_ICON[visible.status]} />
@@ -513,7 +481,7 @@ export const AutomationExecutionDrawer: React.FC<
       rootClassName={styles.drawer}
       keyboard
       destroyOnHidden
-      closable={{ closeIcon: <MaterialIcon name="close" /> }}
+      closable={{ placement: "end", closeIcon: <MaterialIcon name="close" /> }}
       onClose={onClose}
       afterOpenChange={(open) => {
         if (!open) {
@@ -521,30 +489,59 @@ export const AutomationExecutionDrawer: React.FC<
         }
       }}
     >
-      {compact ? (
-        <Tabs
-          className={styles.tabs}
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={[
-            {
-              key: "execution",
-              label: t("automationHistory.tab.execution"),
-              children: executionPanel,
-            },
-            {
-              key: "chat",
-              label: t("automationHistory.tab.chat"),
-              children: chatPanel,
-            },
-          ]}
-        />
-      ) : (
-        <div className={styles.columns}>
-          {executionPanel}
-          {chatPanel}
-        </div>
-      )}
+      <Tabs
+        className={styles.tabs}
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        tabBarExtraContent={
+          <div className={styles.tabActions}>
+            {activeTab === "execution" && detailState.data?.resultContent ? (
+              <Tooltip title={t("automationHistory.action.copyResult")}>
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  iconOnly
+                  className="ui-icon-hover-24"
+                  aria-label={t("automationHistory.action.copyResult")}
+                  onClick={() => void copy(detailState.data?.resultContent || "")}
+                >
+                  <MaterialIcon name="content_copy" />
+                </UiButton>
+              </Tooltip>
+            ) : null}
+            <Popover
+              key={execution?.id || "closed"}
+              trigger="click"
+              placement="bottomRight"
+              content={executionDetails}
+              title={t("automationHistory.result.details")}
+            >
+              <UiButton
+                size="sm"
+                variant="ghost"
+                iconOnly
+                className="ui-icon-hover-24"
+                aria-label={t("automationHistory.result.details")}
+                title={t("automationHistory.result.details")}
+              >
+                <MaterialIcon name="info" />
+              </UiButton>
+            </Popover>
+          </div>
+        }
+        items={[
+          {
+            key: "execution",
+            label: t("automationHistory.tab.execution"),
+            children: executionPanel,
+          },
+          {
+            key: "chat",
+            label: t("automationHistory.tab.chat"),
+            children: chatPanel,
+          },
+        ]}
+      />
     </Drawer>
   );
 };

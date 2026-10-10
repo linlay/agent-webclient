@@ -67,7 +67,6 @@ export const CommandModal: React.FC<CommandModalProps> = ({
     return null;
   }
 
-  const isLargeConsoleModal = modal.type === "agents" || modal.type === "kbases";
   const isConsoleModal = modal.type === "automation" || modal.type === "agents" || modal.type === "kbases";
 
   return (
@@ -80,13 +79,11 @@ export const CommandModal: React.FC<CommandModalProps> = ({
       destroyOnHidden
       getContainer={false}
       width={
-        isLargeConsoleModal
+        isConsoleModal
           ? "min(1320px, calc(100vw - 32px))"
-          : isConsoleModal
-          ? "min(1120px, calc(100vw - 32px))"
           : "min(780px, calc(100vw - 32px))"
       }
-      className={`command-modal ${isLargeConsoleModal ? "is-large-console" : ""} ${isConsoleModal ? "is-automation-console" : ""} ${variant === "copilot" ? "copilot-modal" : ""}`.trim()}
+      className={`command-modal ${isConsoleModal ? "is-large-console is-automation-console" : ""} ${variant === "copilot" ? "copilot-modal" : ""}`.trim()}
     >
       <div
         ref={cardRef}

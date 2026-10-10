@@ -51,9 +51,6 @@ describe("AutomationHistoryConsole architecture", () => {
     expect(historySource).toContain('key: "trigger"');
     expect(historySource).toContain("automationConsole.action.triggerNow");
     expect(historySource).toContain("selectedTriggering");
-    expect(historySource).toContain(
-      'item.hasResult || Boolean(String(item.chatId || "").trim())',
-    );
     expect(historySource).toContain("automationHistory.action.view");
     expect(historySource).not.toContain("useNavigate");
   });
@@ -63,19 +60,9 @@ describe("Automation execution viewer contracts", () => {
   const drawerSource = readSource(
     "src/features/automations/components/AutomationExecutionDrawer.tsx",
   );
-  const drawerStyles = readSource(
-    "src/features/automations/components/AutomationExecutionDrawer.module.css",
-  );
-
-  it("opens a local right drawer and keeps the detail/chat split", () => {
+  it("opens a local right drawer without navigating away", () => {
     expect(drawerSource).toContain("<Drawer");
     expect(drawerSource).toContain('placement="right"');
     expect(drawerSource).not.toContain("useNavigate");
-    expect(drawerStyles).toContain(
-      "grid-template-columns: 280px minmax(0, 1fr)",
-    );
-    expect(drawerSource.indexOf("{executionPanel}")).toBeLessThan(
-      drawerSource.indexOf("{chatPanel}"),
-    );
   });
 });

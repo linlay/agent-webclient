@@ -61,6 +61,7 @@ import {
   loadAgentCopyDetail as requestAgentCopyDetail,
   renameManagedAgent,
 } from "@/features/agents/lib/agentOperations";
+import { WorkerQuickActions } from "./WorkerQuickActions";
 import { PinnedChatSection } from "./PinnedChatSection";
 import "./WorkerNavigator.module.css";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
@@ -76,9 +77,6 @@ const LEFT_SIDEBAR_WIDTH_CLASS = {
 
 const LEFT_SIDEBAR_TOP_ROW_CLASS =
   "tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:pb-0 tw:pt-1";
-
-const LEFT_SIDEBAR_BUTTONS_CLASS =
-  "left-sidebar-buttons tw:px-1.5 tw:[&_.ant-badge_.ant-badge-count]:bg-accent-soft tw:[&_.ant-badge_.ant-badge-count]:text-[10px] tw:[&_.ant-badge_.ant-badge-count]:text-accent tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn.ui-btn-sm]:min-w-0 tw:[&_.ui-btn.ui-btn-sm]:flex-1 tw:[&_.ui-btn.ui-btn-sm]:px-0.5";
 
 const LEFT_SIDEBAR_FILTER_ROW_CLASS = "tw:px-1.5";
 
@@ -105,12 +103,14 @@ const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 interface WorkerNavigatorProps {
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
+  onOpenMemory: () => void;
   renderSettingsMenu: (close: () => void) => React.ReactNode;
   settingsSummary?: React.ReactNode;
 }
 
 export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   onOpenCommand,
+  onOpenMemory,
   renderSettingsMenu,
   settingsSummary,
 }) => {
@@ -583,44 +583,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
               </Flex>
             </Flex>
             {quickActionsEnabled && (
-              <Flex className={LEFT_SIDEBAR_BUTTONS_CLASS}>
-                <UiButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onOpenCommand("automation")}
-                >
-                  <MaterialIcon
-                    name="schedule"
-                    className="tw:text-[16px]"
-                  />
-                  <Flex gap={2} align="center">
-                    <span>{t("leftSidebar.quickActions.automation")}</span>
-                    <Badge count={state.automations?.length} className={libraryPresentation.badge} />
-                  </Flex>
-                </UiButton>
-                <UiButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onOpenCommand("agents")}
-                >
-                  <MaterialIcon
-                    name="agent_type"
-                    className="tw:text-[16px]"
-                  />
-                  <Flex gap={2} align="center">
-                    <span>{t("leftSidebar.quickActions.agents")}</span>
-                    <Badge count={state.agents?.length || 0} className={libraryPresentation.badge} />
-                  </Flex>
-                </UiButton>
-                <UiButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onOpenCommand("kbases")}
-                >
-                  <MaterialIcon name="database" className="tw:text-[16px]" />
-                  <span>{t("leftSidebar.quickActions.kbases")}</span>
-                </UiButton>
-              </Flex>
+              <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory} />
             )}
             <Flex gap={2} className={LEFT_SIDEBAR_FILTER_ROW_CLASS}>
               <Input

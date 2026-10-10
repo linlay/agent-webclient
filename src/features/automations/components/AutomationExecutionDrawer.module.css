@@ -7,8 +7,9 @@
 
 .drawer :global(.ant-drawer-header) {
   flex: 0 0 auto;
-  padding: 13px 48px 11px 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 76%, transparent);
+  min-height: 48px;
+  padding: 10px 20px;
+  border-bottom: 0;
   background: var(--bg-elev-1);
 }
 
@@ -23,43 +24,43 @@
   padding: 0;
 }
 
-.drawerTitle {
+.drawer :global(.ant-drawer-header-title),
+.drawer :global(.ant-drawer-title) {
   min-width: 0;
 }
 
-.drawerTitleLine,
+.drawerTitle {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 20px;
+}
+
+.drawerName {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--ink-1);
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .drawerMeta,
 .workerIdentity,
-.copyResult,
 .refreshing {
   display: flex;
   align-items: center;
 }
 
-.drawerTitleLine {
-  min-width: 0;
-  gap: 7px;
-  color: var(--ink-muted);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.drawerTitleLine strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ink-1);
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .drawerMeta {
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 4px;
+  flex: 0 0 auto;
+  gap: 8px;
   color: var(--ink-muted);
   font-size: 12px;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .status {
@@ -99,47 +100,12 @@
   to { transform: rotate(360deg); }
 }
 
-.columns {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  grid-template-columns: 280px minmax(0, 1fr);
-}
-
 .panel {
   display: flex;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-}
-
-.panel + .panel {
-  border-left: 1px solid color-mix(in srgb, var(--line-soft) 78%, transparent);
-}
-
-.panel > h3,
-.chatHeading {
-  min-height: 42px;
-  flex: 0 0 auto;
-  padding: 11px 14px 9px;
-  border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 65%, transparent);
-}
-
-.panel h3 {
-  margin: 0;
-  color: var(--ink-1);
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.chatHeading {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 .workerIdentity {
@@ -165,7 +131,7 @@
 
 .panelScroll {
   overflow-y: auto;
-  padding: 14px 16px 22px;
+  padding: 28px 32px 40px;
 }
 
 .chatBody {
@@ -216,10 +182,15 @@
 }
 
 .resultContent {
+  width: 100%;
+  max-width: 960px;
   min-height: 120px;
+  margin-inline: auto;
 }
 
 .resultMarkdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--ink-2);
   font-size: 14px;
   line-height: 1.58;
@@ -229,21 +200,46 @@
   font-size: inherit;
 }
 
+.resultMarkdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.resultMarkdown th,
+.resultMarkdown td {
+  min-width: 7rem;
+}
+
 .emptyResult {
   padding: 18px 0;
   color: var(--ink-muted);
   font-size: 12px;
 }
 
-.copyResult {
+.tabActions {
+  display: flex;
+  align-items: center;
   gap: 4px;
-  margin: 10px 0 12px;
+  padding-left: 16px;
+  color: var(--ink-muted);
+}
+
+.detailsContent {
+  width: min(360px, calc(100vw - 64px));
+  max-height: min(520px, 65vh);
+  overflow-y: auto;
+}
+
+.detailsTime {
+  margin-top: 8px;
+  color: var(--ink-muted);
+  font-size: 12px;
 }
 
 .resultMeta {
   margin: 0;
   padding: 8px 0;
-  border-top: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
 }
 
 .resultMeta > div {
@@ -290,26 +286,16 @@
   flex: 0 0 auto;
 }
 
-.errorMeta dd {
-  color: var(--accent-danger);
-}
-
-.queryDetails {
-  margin-top: 7px;
-  color: var(--ink-muted);
+.queryContent h4 {
+  margin: 8px 0;
   font-size: 12px;
 }
 
-.queryDetails summary {
-  cursor: pointer;
-  font-weight: 650;
-}
-
-.queryDetails pre {
+.queryContent pre {
   max-height: 240px;
-  margin: 8px 0 0;
+  margin: 0;
   overflow: auto;
-  padding: 8px;
+  padding: 12px;
   border-radius: var(--radius-sm);
   color: var(--ink-2);
   background: var(--bg-input);
@@ -317,6 +303,7 @@
   font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .refreshing {
@@ -341,7 +328,16 @@
 .tabs :global(.ant-tabs-nav) {
   flex: 0 0 auto;
   margin: 0;
-  padding-inline: 12px;
+  padding-inline: 20px;
+}
+
+.tabs :global(.ant-tabs-tab) {
+  padding-block: 8px;
+  font-size: 13px;
+}
+
+.tabs :global(.ant-tabs-tab + .ant-tabs-tab) {
+  margin-left: 24px;
 }
 
 .tabs :global(.ant-tabs-content-holder),
@@ -365,13 +361,25 @@
     width: 100% !important;
   }
 
-  .panel + .panel {
-    border-left: 0;
+  .panelScroll {
+    padding: 16px 16px 28px;
   }
 
-  .chatHeading {
-    min-height: 36px;
-    justify-content: flex-end;
-    padding-block: 7px;
+  .tabs :global(.ant-tabs-nav) {
+    padding-inline: 16px;
+  }
+}
+
+@media (max-width: 599px) {
+  .drawer :global(.ant-drawer-header) {
+    padding-inline: 16px;
+  }
+
+  .drawerTitle {
+    gap: 8px;
+  }
+
+  .drawerMeta > span:not(:first-child) {
+    display: none;
   }
 }

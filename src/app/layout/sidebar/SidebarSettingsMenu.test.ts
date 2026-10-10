@@ -36,7 +36,7 @@ describe("buildSidebarSettingsMenuSections", () => {
     delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   });
 
-  it("orders centers, registry config, memory, archive, then settings", () => {
+  it("orders centers, registry config, archive, then settings", () => {
     const sections = buildSidebarSettingsMenuSections();
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
@@ -44,17 +44,16 @@ describe("buildSidebarSettingsMenuSections", () => {
       "技能中心",
       "连接器中心",
       "注册配置",
-      "记忆管理",
       "已归档对话",
       "设置",
     ]);
   });
 
-  it("shows Markdown management without the retired memory flag", () => {
+  it("keeps memory out of Settings now that Quick Actions owns the entry", () => {
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {};
     const sections = buildSidebarSettingsMenuSections();
     const labels = sections[0]?.items.map((item) => item.label) || [];
-    expect(labels).toContain("记忆管理");
+    expect(labels).not.toContain("记忆管理");
   });
 });
 
@@ -81,7 +80,7 @@ describe("SidebarSettingsMenu", () => {
     expect(html).toContain("设置");
     expect(html).toContain("注册配置");
     expect(html).toContain("连接器中心");
-    expect(html).toContain("记忆管理");
+    expect(html).not.toContain("记忆管理");
     expect(html).toContain("已归档对话");
     expect(html).toContain("sidebar-settings-item ui-icon-hover-24");
     expect(html).toContain("sidebar-settings-item-icon ui-icon-hover-24-target");

@@ -63,9 +63,11 @@
 .console .delete { color: var(--ink-muted); }
 .console .delete:hover { color: var(--accent-danger); }
 .error { margin: 10px 18px 0; font-size: 12px; flex-shrink: 0; }
-.modal :global(.ant-modal-content) { padding: 0; overflow: hidden; }
-.modal :global(.ant-modal-header) { margin: 0; padding: 14px 48px 12px 18px; border-bottom: 1px solid var(--line-soft); background: transparent; }
-.modal :global(.ant-modal-body) { height: min(720px, calc(100dvh - 140px)); }
+.modal :global(.ant-modal-content) { padding: 8px 10px; overflow: hidden; }
+.modal :global(.ant-modal-body) { display: flex; flex-direction: column; height: min(84dvh, 860px); overflow: hidden; }
+.modal .console { flex: 1 1 auto; height: auto; }
+.modal .modalTitle { display: flex; align-items: center; flex: 0 0 28px; height: 28px; gap: 6px; min-width: 0; padding: 0 10px; line-height: 1.25; }
+.modal .modalTitle :global(.modal-title-bar-title) { flex: 1; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .maintenanceModal:global(.ant-modal) :global(.ant-modal-body) { display: block; max-height: calc(100dvh - 220px); overflow: auto; }
 .dialogHint { margin: 0 0 18px; color: var(--ink-muted); font-size: 12px; line-height: 1.6; }
 .rangeForm { margin-bottom: 18px; }
@@ -96,7 +98,6 @@
   .resizeHandle { display: none; }
   .toolbar { padding: 0 10px; gap: 8px; }
   .footer { flex-wrap: wrap; }
-  .modal :global(.ant-modal-body) { height: calc(100dvh - 110px); }
 }
 @media (max-width: 480px) {
   .toolbar { flex-wrap: wrap; gap: 0; }

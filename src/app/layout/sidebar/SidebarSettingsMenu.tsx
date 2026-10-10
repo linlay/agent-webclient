@@ -5,7 +5,6 @@ import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { isMemoryEnabled } from "@/shared/config/featureFlags";
 
 export interface SettingsSummaryBadge {
   key: "theme";
@@ -19,7 +18,6 @@ export type SidebarSettingsMenuAction =
   | { type: "open-registries" }
   | { type: "open-connectors" }
   | { type: "open-archive" }
-  | { type: "open-memory-info" }
   | { type: "noop" };
 
 export interface SidebarSettingsMenuItem {
@@ -83,16 +81,6 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
           icon: "tune",
           action: { type: "open-registries" },
         },
-        ...(isMemoryEnabled()
-          ? [
-              {
-                key: "open-memory-info",
-                label: t("settingsMenu.memoryInfo"),
-                icon: "psychology" as const,
-                action: { type: "open-memory-info" as const },
-              },
-            ]
-          : []),
         {
           key: "open-archive",
           label: t("settingsMenu.archive"),

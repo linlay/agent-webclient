@@ -26,6 +26,7 @@ const mockModalConfirm = jest.fn();
 const mockMessageSuccess = jest.fn();
 const mockNavigate = jest.fn();
 const mockOpenCommandOverlay = jest.fn();
+const mockOpenMemory = jest.fn();
 const WORKER_CHAT_BASE_UPDATED_AT = 1_710_000_000_000;
 
 function collectText(value: React.ReactNode): string {
@@ -295,6 +296,10 @@ jest.mock("@/app/state/AppContext", () => {
     useAppContext: jest.fn(),
   };
 });
+
+jest.mock("@/features/memory/components/MemoryOverlayProvider", () => ({
+  useMemoryOverlayActions: () => ({ openMemory: mockOpenMemory }),
+}));
 
 jest.mock("@/features/command-center/components/CommandOverlayProvider", () => ({
   useCommandOverlayActions: () => ({
@@ -752,6 +757,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("自动化");
     expect(html).toContain("知识库");
     expect(html).toContain("智能体");
+    expect(html).toContain("记忆");
     expect(html).not.toContain('data-badge-count="6"');
     expect(html).toContain('data-material-icon="agent_type"');
     expect(html).not.toContain('data-material-icon="robot_2"');
@@ -765,6 +771,15 @@ describe("LeftSidebar", () => {
     expect(html).toMatch(
       /class="ui-icon-hover-24"[^>]*><span class="material-icon" data-material-icon="list_arrow"/,
     );
+  });
+
+  it("opens the memory overlay from the quick action", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { QUICK_ACTIONS_ENABLED: "true" };
+    renderSidebar();
+    const button = uiButtonProps.find((props) => props.text === "记忆");
+    expect(button).toBeTruthy();
+    (button?.onClick as () => void)();
+    expect(mockOpenMemory).toHaveBeenCalled();
   });
 
   it("opens the agent console from the quick action", () => {

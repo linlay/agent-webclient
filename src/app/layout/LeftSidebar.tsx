@@ -8,6 +8,7 @@ import {
 import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
+import { useMemoryOverlayActions } from "@/features/memory/components/MemoryOverlayProvider";
 import { WorkerNavigator } from "@/features/workers/components/WorkerNavigator";
 
 export {
@@ -19,6 +20,7 @@ export { handleCreateAgentSuccess } from "@/features/workers/lib/agentProjectCre
 export const LeftSidebar: React.FC = () => {
   const { state } = useAppContext();
   const { openCommandOverlay } = useCommandOverlayActions();
+  const { openMemory } = useMemoryOverlayActions();
   const { openOverlay } = useSettingsOverlayActions();
   const settingsSummaryBadges = React.useMemo(
     () => resolveSettingsSummaryBadges({ themeMode: state.themeMode }),
@@ -31,7 +33,6 @@ export const LeftSidebar: React.FC = () => {
       if (action.type === "open-registries") standaloneRoute = "/registries";
       if (action.type === "open-connectors") standaloneRoute = "/connectors";
       if (action.type === "open-archive") standaloneRoute = "/archives";
-      if (action.type === "open-memory-info") standaloneRoute = "/memory";
       if (standaloneRoute) {
         window.open(
           `${standaloneRoute}${window.location.search || ""}`,
@@ -47,6 +48,7 @@ export const LeftSidebar: React.FC = () => {
   return (
     <WorkerNavigator
       onOpenCommand={(type) => openCommandOverlay({ type })}
+      onOpenMemory={openMemory}
       renderSettingsMenu={(close) => (
         <SidebarSettingsMenu
           onAction={(action) => {

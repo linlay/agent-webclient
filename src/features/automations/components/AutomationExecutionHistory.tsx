@@ -1,8 +1,7 @@
 import { EditMenuButton } from "@/shared/ui/EditMenuButton";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Dropdown, Spin, Tooltip } from "antd";
 import {
-  automationExecutionDateTimeLabel,
   automationExecutionDurationLabel,
   automationExecutionPreview,
   automationExecutionTimeLabel,
@@ -17,7 +16,6 @@ import type {
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { copyText } from "@/shared/utils/copy";
 import styles from "./AutomationExecutionHistory.module.css";
 
 const STATUS_ICON: Record<AutomationExecutionStatus, MaterialIconName> = {
@@ -73,7 +71,6 @@ export function AutomationExecutionHistory({
   onView,
 }: AutomationExecutionHistoryProps) {
   const { locale, t } = useI18n();
-  const [expandedId, setExpandedId] = useState("");
   const groupedExecutions = useMemo(
     () =>
       groupAutomationExecutions(executions, {
@@ -83,14 +80,6 @@ export function AutomationExecutionHistory({
       }),
     [executions, locale, t],
   );
-
-  useEffect(() => {
-    setExpandedId((current) =>
-      current && executions.some((item) => item.id === current)
-        ? current
-        : executions[0]?.id || "",
-    );
-  }, [executions]);
 
   if (!selected) {
     return (
@@ -282,7 +271,6 @@ export function AutomationExecutionHistory({
                   <h4>{group.label}</h4>
                   <div className={styles.dayRows}>
                     {group.items.map((item) => {
-                      const expanded = item.id === expandedId;
                       const preview = automationExecutionPreview(item, {
                         running: t("automationHistory.preview.running"),
                         empty: t("automationHistory.preview.empty"),
@@ -292,56 +280,26 @@ export function AutomationExecutionHistory({
                           <span className={`${styles.timelineMarker} ${styles[item.status]}`}>
                             <MaterialIcon name={STATUS_ICON[item.status]} />
                           </span>
-                          <button
-                            type="button"
-                            className={styles.executionSummary}
-                            onClick={() => setExpandedId(expanded ? "" : item.id)}
-                            aria-expanded={expanded}
-                          >
-                            <time>{automationExecutionTimeLabel(item, locale)}</time>
-                            <span className={`${styles.status} ${styles[item.status]}`}>
-                              {t(`automationHistory.status.${item.status}`)}
-                            </span>
-                            <span className={styles.duration}>
-                              {automationExecutionDurationLabel(item.durationMs)}
-                            </span>
-                            <span className={styles.preview}>{preview}</span>
-                            <MaterialIcon
-                              name={expanded ? "keyboard_arrow_down" : "keyboard_arrow_right"}
-                              className={styles.chevron}
-                            />
-                          </button>
-                          {expanded ? (
-                            <div className={styles.executionDetail}>
-                              <div className={styles.executionMeta}>
-                                <span>{automationExecutionDateTimeLabel(item, locale)}</span>
-                                {item.runId ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => void copyText(item.runId || "")}
-                                  >
-                                    {item.runId}
-                                    <MaterialIcon name="content_copy" />
-                                  </button>
-                                ) : null}
-                                <span>{item.finishReason || "--"}</span>
-                              </div>
-                              {item.error ? (
-                                <p className={styles.executionInlineError}>{item.error}</p>
-                              ) : null}
-                              {item.hasResult || Boolean(String(item.chatId || "").trim()) ? (
-                                <div className={styles.executionActions}>
-                                  <button
-                                    type="button"
-                                    aria-label={t("automationHistory.action.view")}
-                                    onClick={(event) => onView(item, event.currentTarget)}
-                                  >
-                                    {t("automationHistory.action.view")}
-                                  </button>
-                                </div>
-                              ) : null}
+                          <div className={styles.executionHeading}>
+                            <div className={styles.executionSummary}>
+                              <time>{automationExecutionTimeLabel(item, locale)}</time>
+                              <span className={`${styles.status} ${styles[item.status]}`}>
+                                {t(`automationHistory.status.${item.status}`)}
+                              </span>
+                              <span className={styles.duration}>
+                                {automationExecutionDurationLabel(item.durationMs)}
+                              </span>
+                              <span className={styles.preview}>{preview}</span>
                             </div>
-                          ) : null}
+                            <button
+                              type="button"
+                              className={styles.viewAction}
+                              aria-label={t("automationHistory.action.view")}
+                              onClick={(event) => onView(item, event.currentTarget)}
+                            >
+                              {t("automationHistory.action.view")}
+                            </button>
+                          </div>
                         </article>
                       );
                     })}

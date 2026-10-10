@@ -80,10 +80,12 @@ jest.mock("@/shared/ui/UiButton", () => ({
     children,
     size: _size,
     variant: _variant,
+    iconOnly: _iconOnly,
     ...props
   }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
     size?: string;
     variant?: string;
+    iconOnly?: boolean;
   }) => React.createElement("button", props, children),
 }));
 
@@ -133,11 +135,21 @@ jest.mock("antd", () => {
       );
     },
     Spin: () => ReactRuntime.createElement("span", { "data-testid": "spin" }),
+    Tooltip: ({ children }: { children: React.ReactNode }) => children,
+    Popover: ({ children, content }: { children: React.ReactElement; content: React.ReactNode }) => {
+      const [open, setOpen] = ReactRuntime.useState(false);
+      return ReactRuntime.createElement(ReactRuntime.Fragment, null,
+        ReactRuntime.cloneElement(children, { onClick: () => setOpen(!open) }),
+        open ? ReactRuntime.createElement("aside", null, content) : null,
+      );
+    },
     Tabs: ({
       activeKey,
       onChange,
       items,
+      tabBarExtraContent,
     }: {
+      tabBarExtraContent?: React.ReactNode;
       activeKey: string;
       onChange: (key: string) => void;
       items: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }>;
@@ -158,6 +170,7 @@ jest.mock("antd", () => {
             item.label,
           ),
         ),
+        tabBarExtraContent,
         items.find((item) => item.key === activeKey)?.children,
       ),
     message: { success: jest.fn() },
@@ -229,7 +242,6 @@ function chat(
 describe("AutomationExecutionDrawer", () => {
   let container: HTMLDivElement;
   let root: Root;
-  let compactLayout = false;
 
   const renderDrawer = (
     item: AutomationExecutionResponse | null,
@@ -253,6 +265,13 @@ describe("AutomationExecutionDrawer", () => {
     });
   };
 
+  const selectTab = (key: "execution" | "chat") => {
+    const tab = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+      .find((button) => button.textContent === `automationHistory.tab.${key}`);
+    expect(tab).toBeDefined();
+    act(() => tab?.click());
+  };
+
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;
@@ -260,11 +279,10 @@ describe("AutomationExecutionDrawer", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    compactLayout = false;
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       value: jest.fn(() => ({
-        matches: compactLayout,
+        matches: false,
         media: "(max-width: 859px)",
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
@@ -301,12 +319,13 @@ describe("AutomationExecutionDrawer", () => {
       executionId: item.id,
     });
     expect(mockGetChat).toHaveBeenCalledWith("chat-a", false);
-    expect(container.querySelectorAll('[data-testid="spin"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[data-testid="spin"]')).toHaveLength(1);
     expect(
       container.querySelector(
         '[aria-label="automationHistory.panel.execution"] [aria-busy="true"]',
       ),
     ).not.toBeNull();
+    selectTab("chat");
     expect(
       container.querySelector(
         '[aria-label="automationHistory.panel.chat"] [aria-busy="true"]',
@@ -319,13 +338,14 @@ describe("AutomationExecutionDrawer", () => {
       await Promise.all([detailRequest.promise, chatRequest.promise]);
     });
 
-    expect(container.textContent).toContain("# Report A");
     expect(container.textContent).toContain("timeline:chat-a");
+    selectTab("execution");
+    expect(container.textContent).toContain("# Report A");
     expect(container.textContent).not.toContain("preview-only");
     expect(container.querySelectorAll('[data-testid="spin"]')).toHaveLength(0);
   });
 
-  it("keeps the chat visible when execution detail fails and retries only the left panel", async () => {
+  it("allows reading the chat when result loading fails and retries only the result", async () => {
     const item = execution();
     mockGetAutomationExecution.mockRejectedValueOnce(new Error("detail failed"));
     mockGetChat.mockResolvedValueOnce({ data: chat("chat-a") });
@@ -334,7 +354,9 @@ describe("AutomationExecutionDrawer", () => {
     await act(async () => Promise.resolve());
 
     expect(container.textContent).toContain("detail failed");
+    selectTab("chat");
     expect(container.textContent).toContain("timeline:chat-a");
+    selectTab("execution");
     const executionPanel = container.querySelector(
       '[aria-label="automationHistory.panel.execution"]',
     );
@@ -354,7 +376,7 @@ describe("AutomationExecutionDrawer", () => {
     expect(container.textContent).toContain("# Report A");
   });
 
-  it("keeps the result visible when chat loading fails and retries only the right panel", async () => {
+  it("keeps the result readable when chat loading fails and retries only the chat", async () => {
     const item = execution();
     mockGetAutomationExecution.mockResolvedValueOnce({ data: detail(item) });
     mockGetChat.mockRejectedValueOnce(new Error("chat failed"));
@@ -363,6 +385,7 @@ describe("AutomationExecutionDrawer", () => {
     await act(async () => Promise.resolve());
 
     expect(container.textContent).toContain("# Report A");
+    selectTab("chat");
     expect(container.textContent).toContain("chat failed");
     const chatPanel = container.querySelector(
       '[aria-label="automationHistory.panel.chat"]',
@@ -393,6 +416,7 @@ describe("AutomationExecutionDrawer", () => {
     await act(async () => Promise.resolve());
 
     expect(container.textContent).toContain("automationHistory.result.empty");
+    selectTab("chat");
     expect(container.textContent).toContain(
       "automationHistory.chat.noAssociation",
     );
@@ -411,6 +435,7 @@ describe("AutomationExecutionDrawer", () => {
     renderDrawer(item);
     await act(async () => Promise.resolve());
 
+    selectTab("chat");
     const timeline = container.querySelector('[data-testid="read-only-timeline"]');
     expect(timeline?.getAttribute("data-chat-id")).toBe("chat-a");
     expect(timeline?.hasAttribute("data-target-run-id")).toBe(false);
@@ -439,6 +464,7 @@ describe("AutomationExecutionDrawer", () => {
     );
 
     renderDrawer(itemA);
+    selectTab("chat");
     renderDrawer(itemB);
     await act(async () => {
       detailB.resolve({ data: detail(itemB, { resultContent: "Result B" }) });
@@ -446,7 +472,9 @@ describe("AutomationExecutionDrawer", () => {
       await Promise.all([detailB.promise, chatB.promise]);
     });
     expect(container.textContent).toContain("Result B");
+    selectTab("chat");
     expect(container.textContent).toContain("timeline:chat-b");
+    selectTab("execution");
 
     await act(async () => {
       detailA.resolve({ data: detail(itemA, { resultContent: "Late result A" }) });
@@ -455,7 +483,9 @@ describe("AutomationExecutionDrawer", () => {
     });
 
     expect(container.textContent).toContain("Result B");
+    selectTab("chat");
     expect(container.textContent).toContain("timeline:chat-b");
+    selectTab("execution");
     expect(container.textContent).not.toContain("Late result A");
     expect(container.textContent).not.toContain("timeline:chat-a");
   });
@@ -479,8 +509,7 @@ describe("AutomationExecutionDrawer", () => {
     expect(mockBuildChatReplayProjection).not.toHaveBeenCalled();
   });
 
-  it("does not reload successful data when switching compact tabs", async () => {
-    compactLayout = true;
+  it("defaults to the result on desktop and switches tabs without reloading data", async () => {
     const item = execution();
     mockGetAutomationExecution.mockResolvedValueOnce({ data: detail(item) });
     mockGetChat.mockResolvedValueOnce({ data: chat("chat-a") });
@@ -498,6 +527,12 @@ describe("AutomationExecutionDrawer", () => {
     act(() => chatTab?.click());
 
     expect(container.querySelector('[data-testid="read-only-timeline"]')).not.toBeNull();
+    selectTab("execution");
+    expect(container.textContent).toContain("# Report A");
+    expect(container.textContent).not.toContain("Create the report");
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="automationHistory.result.details"]')?.click());
+    expect(container.querySelector("aside")?.textContent).toContain("Create the report");
+    expect(container.querySelector('[aria-label="automationHistory.action.copyResult"]')?.closest("aside")).toBeNull();
     expect(mockGetAutomationExecution).toHaveBeenCalledTimes(1);
     expect(mockGetChat).toHaveBeenCalledTimes(1);
   });

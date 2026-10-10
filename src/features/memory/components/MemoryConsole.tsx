@@ -3,6 +3,7 @@ import { Alert, Modal, Popover, Tabs } from "antd";
 import { ConversationMarkdown } from "@/shared/ui/ConversationMarkdown";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
+import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { useI18n } from "@/shared/i18n";
@@ -104,5 +105,10 @@ export function MemoryInfoConsole({ surface = "page", open = true, onClose }: {
       <Modal open={help} onCancel={() => setHelp(false)} footer={null} title={t("memoryFiles.principles")} width={480}><div><p>{t(`memoryFiles.hint.${m.document?.kind || "memory"}`)}</p><p>{t("memoryFiles.rules")}</p></div></Modal>
     </section>
   );
-  return surface === "modal" ? <Modal className={styles.modal} centered open={open} onCancel={close} footer={null} width="min(1120px, 94vw)" title={t("memoryFiles.title")}>{body}</Modal> : body;
+  return surface === "modal" ? (
+    <Modal className={styles.modal} centered open={open} onCancel={close} footer={null} closable={false} width="min(1320px, calc(100vw - 32px))">
+      <ModalTitleBar className={styles.modalTitle} title={t("memoryFiles.title")} onClose={close} />
+      {body}
+    </Modal>
+  ) : body;
 }
