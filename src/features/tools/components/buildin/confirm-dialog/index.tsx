@@ -205,7 +205,7 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
     if (!ready || resolved) return;
     // Pager transitions take 280ms; focus only after the active panel settles.
     const timer = window.setTimeout(() => {
-      if (document.visibilityState === "hidden") return;
+      if (document.visibilityState === "hidden" || !document.hasFocus()) return;
       const elements = questionsRef.current[curIndex]?.getElements();
       if (Array.from(elements || []).some((element) => element === document.activeElement)) return;
       elements?.[0]?.focus({ preventScroll: true });

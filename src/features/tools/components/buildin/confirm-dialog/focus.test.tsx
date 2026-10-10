@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock("react-router-dom", () => ({ useLocation: () => ({ pathname: "/agent/agent", search: "?chatId=chat-a" }) }));
+import { dispatchDesktopAwaitingDigit, DESKTOP_AWAITING_DIGIT_MESSAGE_TYPE } from "@/features/composer/hooks/useDesktopAwaitingDigit";
 import React, { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { QuestionDialog } from "./index";
@@ -34,6 +36,7 @@ const digit = async (key: string) => {
 
 beforeEach(() => {
   jest.useFakeTimers();
+  jest.spyOn(document, "hasFocus").mockReturnValue(true);
   Object.defineProperty(window, "matchMedia", { configurable: true, value: () => ({ matches: false, addListener() {}, removeListener() {} }) });
   global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
@@ -133,4 +136,33 @@ test("unmount cancels pending autofocus", async () => {
   await render(); await act(async () => root.render(null));
   const focus = jest.spyOn(HTMLElement.prototype, "focus");
   await settle(); expect(focus).not.toHaveBeenCalled();
+});
+
+test("sidebar digits select choices while delayed autofocus leaves the guest unfocused", async () => {
+  jest.spyOn(document, "hasFocus").mockReturnValue(false);
+  const focus = jest.spyOn(HTMLElement.prototype, "focus");
+  await render(); await settle();
+  expect(focus).not.toHaveBeenCalled();
+  await act(async () => {
+    expect(dispatchDesktopAwaitingDigit({ type: DESKTOP_AWAITING_DIGIT_MESSAGE_TYPE, chatId: "chat", agentKey: "agent", digit: "2" }, {
+      state: { chatId: "chat", activeAwaiting: data, chatTransition: null, chatSurfaceBlocked: false },
+      renderedAwaiting: data, pathname: "/agent/agent", search: "?chatId=chat", blocked: false,
+    })).toBe(true);
+  });
+  expect(checkboxes()[1].checked).toBe(true);
+  expect(focus).not.toHaveBeenCalled();
+  expect(submit).not.toHaveBeenCalled();
+});
+test("sidebar single-choice digit submits through the same question handler", async () => {
+  jest.spyOn(document, "hasFocus").mockReturnValue(false);
+  const single = { ...data, questions: [{ ...data.questions[0], type: AIAwaitQuestionType.Select }] };
+  await render(single); await settle();
+  await act(async () => {
+    dispatchDesktopAwaitingDigit({ type: DESKTOP_AWAITING_DIGIT_MESSAGE_TYPE, chatId: "chat", agentKey: "agent", digit: "1" }, {
+      state: { chatId: "chat", activeAwaiting: single, chatTransition: null, chatSurfaceBlocked: false },
+      renderedAwaiting: single, pathname: "/agent/agent", search: "?chatId=chat", blocked: false,
+    });
+  });
+  await settle(); expect(submit).toHaveBeenCalledTimes(1);
+  expect(submit.mock.calls[0][0]).toMatchObject({ runId: "run", awaitingId: "ask" });
 });

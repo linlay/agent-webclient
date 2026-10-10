@@ -305,6 +305,7 @@ export const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      if (document.visibilityState === "hidden" || !document.hasFocus()) return;
       approvalsRef.current[curIndex]?.getElements()?.[0]?.focus();
     }, 300);
     return () => {

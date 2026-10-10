@@ -685,7 +685,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         // The frame only hands focus back; shortcuts still need a real key press here.
         if (event.data.runId === frameData.awaiting.runId &&
             event.data.awaitingId === frameData.awaiting.awaitingId &&
-            document.activeElement === iframeRef.current) {
+            document.hasFocus() && document.activeElement === iframeRef.current) {
           hostRef.current?.focus({ preventScroll: true });
         }
         return;

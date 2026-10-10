@@ -103,6 +103,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      if (document.visibilityState === "hidden" || !document.hasFocus()) return;
       planQuestionRef.current?.getElements()?.[0]?.focus();
     }, 300);
     return () => {

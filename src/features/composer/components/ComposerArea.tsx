@@ -53,6 +53,7 @@ import {
 import { useSpeechInput } from "@/features/composer/hooks/useSpeechInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
+import { useDesktopAwaitingDigit } from "@/features/composer/hooks/useDesktopAwaitingDigit";
 import { useComposerAwaiting } from "@/features/composer/hooks/useComposerAwaiting";
 import { useComposerKeyboard } from "@/features/composer/hooks/useComposerKeyboard";
 import { useComposerLifecycle } from "@/features/composer/hooks/useComposerLifecycle";
@@ -296,6 +297,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const presentation = useConversationSurface();
   const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
   const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
+  useDesktopAwaitingDigit({ state, stateRef, blocked: chatTransitionBlocking || isAnyOverlayOpen });
   const planningModeAvailable =
     currentWorker?.type === "agent" &&
     String(currentWorker.raw?.mode || "")

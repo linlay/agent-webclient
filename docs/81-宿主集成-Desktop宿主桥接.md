@@ -124,3 +124,7 @@ Chat Preview 仅提供会话内容与必要的加载、错误重试、等待确�
 Composer 的配置入口按运行环境分流：Standalone 保留 `/agents/:agentKey` 链接；Desktop 使用受限 Service WebView 请求，请宿主打开当前 Main Chat 的 Agent 管理页，不先改变 guest Router 或物理 URL。宿主仅接受 active Main Chat 且与宿主路由 Agent 一致的请求，目标路径由宿主构造，不由 guest 提供 URL。该交接不依赖 Agent 当前是否可执行，也不修改历史 Chat 的读取与 owner。
 
 WebClient 等待匹配 requestId 的宿主响应；桥接缺失、拒绝、发送失败或超时均在入口显示可重试错误，不回退到 guest 跳转。此能力在 macOS 与 Windows 上使用同一 Service WebView 通道，WebClient 和 Desktop 必须配套更新；旧宿主会显示超时错误。
+
+## 侧栏 awaiting 数字快捷键
+
+Desktop 侧栏保留 Chat 行焦点和上下方向键导航，只向当前已提交身份的 Main Chat 定向投递普通数字键。WebClient 同时核对 Router、已加载 Chat 与当前渲染的 active awaiting；切换中、提交中、已解决、模态层或 guest 已取得焦点时拒绝转发，不排队或重试。有效数字复用 awaiting 原有键盘处理与提交规则，Desktop 不解析选项、不直接提交答案。延迟选项自动聚焦只在 guest 仍拥有焦点时执行，不能从侧栏抢回焦点；macOS 与 Windows 共用此语义，双方与 Program Bundle 配套发布。
