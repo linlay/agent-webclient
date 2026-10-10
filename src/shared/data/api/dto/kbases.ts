@@ -1,4 +1,4 @@
-export interface KnowledgeCollection { name: string; sourcePath: string; include?: string[]; exclude?: string[]; chunk?: {unit: string; maxChars?: number; overlapChars?: number; maxTokens?: number; overlapTokens?: number} }
+export interface KnowledgeCollection { name: string; sourcePath: string; description?: string; editable?: boolean; include?: string[]; exclude?: string[]; chunk?: {unit: string; maxChars?: number; overlapChars?: number; maxTokens?: number; overlapTokens?: number} }
 export type RetrievalMethod = "query" | "search" | "vsearch" | "gsearch";
 export interface KnowledgeBase {
  id: string; name: string; description: string; collections: KnowledgeCollection[]; sourcePath?: string;

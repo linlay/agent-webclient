@@ -14,6 +14,9 @@ export const zhCNMessages = {
   "knowledge.collection.options": "索引范围",
   "knowledge.collection.include": "包含规则（每行一个；留空使用默认）",
   "knowledge.collection.exclude": "排除规则（每行一个；留空使用默认）",
+  "knowledge.collection.description": "集合说明",
+  "knowledge.collection.editable": "允许 KBASE 编辑此目录",
+  "knowledge.collection.editableHint": "仅适用于主机执行的专用 KBASE，需开启编辑模式。默认关闭；容器不会自动挂载。",
   "knowledge.collection.chunkHint": "已有切块设置会保留。自定义切块请编辑 library.yml 的 chunk，修改后自动重建。",
 
   "memoryMaintenance.close": "关闭",
@@ -52,7 +55,7 @@ export const zhCNMessages = {
   "kbases.collectionTotal": "{count} 个 collection",
   "kbases.resizeList": "调整知识库列表宽度",
   "kbases.sourceRequired": "请填写源文档目录。",
-  "kbases.collectionEditHint": "更改 collections 后，请保存并更新索引。移除 collection 会保留源目录和原始文件。",
+  "kbases.collectionEditHint": "来源范围或切块变更后自动更新索引；说明和编辑开关在下次 Run 生效，不重建索引。移除集合保留源文件。",
   "kbases.filterDocuments": "搜索文档...",
   "kbases.showCollection": "查看此 collection 的文档",
   "kbases.noDocuments": "没有匹配的文档。",

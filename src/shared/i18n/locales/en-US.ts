@@ -14,6 +14,9 @@ export const enUSMessages = {
   "knowledge.collection.options": "Index scope",
   "knowledge.collection.include": "Include patterns (one per line; blank uses defaults)",
   "knowledge.collection.exclude": "Exclude patterns (one per line; blank uses defaults)",
+  "knowledge.collection.description": "Collection description",
+  "knowledge.collection.editable": "Allow KBASE to edit this directory",
+  "knowledge.collection.editableHint": "For dedicated KBASE agents running on the host, with editing mode enabled. Off by default; containers are not mounted automatically.",
   "knowledge.collection.chunkHint": "Existing chunk settings are preserved. Edit chunk in library.yml to customize; changes trigger reindexing.",
 
   "memoryMaintenance.close": "Close",
@@ -52,7 +55,7 @@ export const enUSMessages = {
   "kbases.collectionTotal": "{count} collections",
   "kbases.resizeList": "Resize knowledge base list",
   "kbases.sourceRequired": "Enter a source directory.",
-  "kbases.collectionEditHint": "After changing collections, save and update the index. Removing a collection preserves its source files.",
+  "kbases.collectionEditHint": "Source scope or chunk changes update the index automatically. Descriptions and editing switches apply to the next Run without rebuilding. Removing a collection preserves source files.",
   "kbases.filterDocuments": "Search documents...",
   "kbases.showCollection": "Show documents in this collection",
   "kbases.noDocuments": "No matching documents.",
