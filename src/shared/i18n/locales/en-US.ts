@@ -1589,6 +1589,8 @@ export const enUSMessages = {
   "leftSidebar.newConversation": "New conversation",
   "leftSidebar.navigation.chats": "Chats",
   "leftSidebar.navigation.projects": "Projects",
+  "leftSidebar.navigation.expandProjects": "Expand all projects",
+  "leftSidebar.navigation.collapseProjects": "Collapse all projects",
   "leftSidebar.navigation.showMore": "View more",
   "leftSidebar.navigation.showHistory": "Show history",
   "leftSidebar.navigation.chooseAgent": "Choose chat agent",

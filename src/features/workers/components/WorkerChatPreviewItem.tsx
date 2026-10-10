@@ -9,6 +9,8 @@ import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import type { Agent } from "@/features/agents/lib/agentState";
+import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
+import { SidebarOverflowText } from "./SidebarOverflowText";
 import styles from "./WorkerChatPreviewItem.module.css";
 
 function getAwaitingStatusKey(mode?: string): string {
@@ -30,10 +32,17 @@ export const WorkerChatPreviewItem: React.FC<{
   ownerLabel?: string;
   ownerType?: "agent";
   ownerIcon?: Agent["icon"];
-}> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon }) => {
+  ownerPosition?: "before" | "after";
+}> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon, ownerPosition = "after" }) => {
   const { t } = useI18n();
   const previewText = chat.chatName || chat.lastRunContent || t("leftSidebar.noPreview");
   const showAutomationSource = String(chat.source || "").trim().startsWith("automation:");
+  const isBusy = chat.hasPendingAwaiting || loading || isChatActiveRun(chat);
+  const hasStatus = showAutomationSource || isBusy || isChatUnread(chat);
+  const owner = ownerLabel && <span className={`${styles.owner} pinned-chat-owner`} title={ownerLabel}>
+    {ownerType && <AgentIcon icon={ownerIcon} type={ownerType} props={{ icon: { className: "pinned-chat-owner-icon", width: 12, height: 12, style: { borderRadius: 3 } }, avatar: { className: "pinned-chat-owner-icon", size: 12 } }} />}
+    <SidebarOverflowText text={ownerLabel} className={`${styles.ownerLabel} pinned-chat-owner-label`} />
+  </span>;
   return (
     <ChatActionsMenu
       chatId={chat.chatId}
@@ -42,6 +51,7 @@ export const WorkerChatPreviewItem: React.FC<{
       renderTrigger={(openMenu) => (
         <UiListItem
           className={`${styles.row} worker-chat-item ${isActive ? "is-active" : ""}`}
+          data-hover-space={!hasStatus && (!ownerLabel || ownerPosition === "before") ? "true" : undefined}
           selected={isActive}
           role="button"
           tabIndex={0}
@@ -53,17 +63,23 @@ export const WorkerChatPreviewItem: React.FC<{
             if (event.key === "F10" && event.shiftKey) { event.preventDefault(); openMenu(); }
           }}
         >
-          <MaterialIcon name={showAutomationSource ? "schedule" : "question_answer"} className={styles.chatIcon}
-            title={showAutomationSource ? t("leftSidebar.automationSource") : undefined} />
-          <span className={styles.title} title={previewText}>{previewText}</span>
-          {ownerLabel && <span className={`${styles.owner} pinned-chat-owner`} title={ownerLabel}>
-            {ownerType && <AgentIcon icon={ownerIcon} type={ownerType} props={{ icon: { className: "pinned-chat-owner-icon", width: 12, height: 12, style: { borderRadius: 3 } }, avatar: { className: "pinned-chat-owner-icon", size: 12 } }} />}
-            <span className="pinned-chat-owner-label">{ownerLabel}</span>
+          {ownerPosition === "before" && owner}
+          <SidebarOverflowText text={previewText} />
+          {ownerPosition === "after" && owner}
+          {hasStatus && <span className={styles.status}>
+            {showAutomationSource && <span className={styles.automationSource}
+              title={t("leftSidebar.automationSource")} aria-label={t("leftSidebar.automationSource")} role="img">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+              </svg>
+            </span>}
+            {chat.hasPendingAwaiting && <span className={`${styles.awaiting} chat-awaiting-status`}>{t(getAwaitingStatusKey(chat.awaitingMode))}</span>}
+            {isBusy ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) &&
+              <span className={`${styles.unread} worker-chat-unread`}><UnreadDot chat={chat} /></span>}
           </span>}
-          {chat.hasPendingAwaiting && <span className={`${styles.awaiting} chat-awaiting-status`}>{t(getAwaitingStatusKey(chat.awaitingMode))}</span>}
-          {loading ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) && <UnreadDot chat={chat} />}
           <UiButton
-            className={`${styles.more} chat-actions-trigger`}
+            className={`${styles.more} chat-actions-trigger ui-icon-hover-24`}
             size="mini" variant="ghost" iconOnly
             aria-label={t("leftSidebar.moreActions")}
             aria-haspopup="menu"

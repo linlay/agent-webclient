@@ -1,116 +1,16 @@
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
-import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
-import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useMemo, useState } from "react";
 import { Badge, Popover } from "antd";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { useAppContext } from "@/app/state/AppContext";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { useAppMessage } from "@/shared/ui/useAppMessage";
-import {
-  selectPinnedChats,
-  buildPinnedChatMove,
-} from "@/features/chats/lib/chatPinning";
+import { selectPinnedChats } from "@/features/chats/lib/chatPinning";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
-import { useChatPinActions } from "@/features/chats/hooks/useChatPinActions";
 import { toWorkerConversationRow } from "@/features/workers/lib/workerConversationFormatter";
-import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
-import type { Agent } from "@/features/agents/lib/agentState";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import "./PinnedChatSection.module.css";
 import { UiButton } from "@/shared/ui/UiButton";
-const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
-
-function PinnedChatItem({
-  chat,
-  ownerLabel,
-  ownerType,
-  ownerIcon,
-  active,
-  loading,
-  disabled,
-  onSelect,
-}: {
-  chat: WorkerConversationRow;
-  ownerLabel: string;
-  ownerType?: "agent";
-  ownerIcon?: Agent["icon"];
-  active: boolean;
-  loading: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-}) {
-  const { t } = useI18n();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: chat.chatId, disabled });
-  return (
-    <div
-      ref={setNodeRef}
-      className="pinned-chat-row"
-      data-dragging={isDragging || undefined}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-    >
-      <button
-        ref={setActivatorNodeRef}
-        className="pinned-chat-handle"
-        type="button"
-        {...attributes}
-        {...listeners}
-        disabled={disabled}
-        aria-label={t("leftSidebar.pinned.reorder", {
-          name: chat.chatName || chat.chatId,
-        })}
-      >
-        <svg
-          width="12"
-          height="18"
-          viewBox="0 0 12 18"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <circle cx="3" cy="4" r="1.3" />
-          <circle cx="9" cy="4" r="1.3" />
-          <circle cx="3" cy="9" r="1.3" />
-          <circle cx="9" cy="9" r="1.3" />
-          <circle cx="3" cy="14" r="1.3" />
-          <circle cx="9" cy="14" r="1.3" />
-        </svg>
-      </button>
-      <WorkerChatPreviewItem
-        chat={chat}
-        ownerLabel={ownerLabel}
-        ownerType={ownerType}
-        ownerIcon={ownerIcon}
-        isActive={active}
-        loading={loading}
-        onClick={onSelect}
-      />
-    </div>
-  );
-}
+import navigationStyles from "./SidebarAgentNavigation.module.css";
 
 export function PinnedChatSection({
   collapsed,
@@ -123,81 +23,42 @@ export function PinnedChatSection({
 }) {
   const { state } = useAppContext();
   const { t } = useI18n();
-  const message = useAppMessage();
-  const { update, pending } = useChatPinActions();
   const [expanded, setExpanded] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
   const pinned = useMemo(
     () => selectPinnedChats(state.chats, state.chatPinnedOrder),
     [state.chats, state.chatPinnedOrder],
   );
-  const rows = pinned
-    .map((chat) => {
-
-      const agentKey = chat.agentKey || chat.firstAgentKey;
-      const agent = (state.agents.find((item) => item.key === agentKey));
-      const ownerLabel = (agent?.name || chat.firstAgentName || agentKey || "");
-      return {
-        chat: toWorkerConversationRow(chat),
-        ownerLabel,
-        ownerType: agent ? ("agent" as const) : undefined,
-        ownerIcon: agent?.icon,
-      };
-    });
+  const rows = pinned.map((chat) => {
+    const agentKey = chat.agentKey || chat.firstAgentKey;
+    const agent = state.agents.find((item) => item.key === agentKey);
+    return {
+      chat: toWorkerConversationRow(chat),
+      ownerLabel: agent?.name || chat.firstAgentName || agentKey || "",
+      ownerType: agent ? ("agent" as const) : undefined,
+      ownerIcon: agent?.icon,
+    };
+  });
   if (pinned.length === 0) return null;
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (pending || !over) return;
-    const request = buildPinnedChatMove(
-      state.chatPinnedOrder ?? [],
-      String(active.id),
-      String(over.id),
-    );
-    if (request)
-      void update(request).catch(() =>
-        message.error(t("chatActions.pin.failed")),
-      );
-  };
   const content = (
     <div className="pinned-chat-list">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={rows.map(({ chat }) => chat.chatId)}
-          strategy={verticalListSortingStrategy}
-        >
-          {rows.map(({ chat, ownerLabel, ownerType, ownerIcon }) => (
-            <PinnedChatItem
-              key={chat.chatId}
-              chat={chat}
-              ownerLabel={ownerLabel}
-              ownerType={ownerType}
-              ownerIcon={ownerIcon}
-              active={state.chatId === chat.chatId}
-              loading={getChatLoading(chat.chatId)}
-              disabled={pending}
-              onSelect={() => {
-                setPopoverOpen(false);
-                onSelectChat(chat.chatId);
-              }}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
-      {rows.length === 0 && (
-        <div className={presentationClasses("status-line")}>
-          {t("leftSidebar.pinned.noMatches")}
-        </div>
-      )}
+      {rows.map(({ chat, ownerLabel, ownerType, ownerIcon }) => (
+        <WorkerChatPreviewItem
+          key={chat.chatId}
+          chat={chat}
+          ownerLabel={ownerLabel}
+          ownerType={ownerType}
+          ownerIcon={ownerIcon}
+          ownerPosition="before"
+          isActive={state.chatId === chat.chatId}
+          loading={getChatLoading(chat.chatId)}
+          onClick={() => {
+            setPopoverOpen(false);
+            onSelectChat(chat.chatId);
+          }}
+        />
+      ))}
     </div>
   );
   const needsAttention = pinned.some(
@@ -249,19 +110,24 @@ export function PinnedChatSection({
       className="pinned-chat-section"
       aria-label={t("leftSidebar.pinned")}
     >
-      <button
-        type="button"
-        className="pinned-chat-heading"
-        aria-expanded={expanded}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <MaterialIcon name="push_pin" />
-        <Badge dot={needsAttention} className={libraryPresentation.badge}>
-          <span>{t("leftSidebar.pinned")}</span>
-        </Badge>
-        <span className="pinned-chat-count">({pinned.length})</span>
-        <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
-      </button>
+      <div className={navigationStyles.heading}>
+        <button
+          type="button"
+          className={`${navigationStyles.sectionTitle} pinned-chat-heading`}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <Badge
+            dot={needsAttention}
+            className={libraryPresentation.badge}
+            styles={{ root: { color: "inherit", fontSize: "inherit" } }}
+          >
+            <span>{t("leftSidebar.pinned")}</span>
+          </Badge>
+          <span className="pinned-chat-count">({pinned.length})</span>
+          <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+        </button>
+      </div>
       {expanded && content}
     </section>
   );

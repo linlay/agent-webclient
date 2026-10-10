@@ -1797,11 +1797,33 @@ describe("LeftSidebar", () => {
     expect(html).toContain('aria-current="page"');
   });
 
+  it("keeps the spinner for a running chat received from the server", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    state.chats[state.chats.length - 1].hasActiveRun = true;
+    mockState(state);
+    expect(renderSidebar()).toContain('data-material-icon="progress_activity"');
+  });
+
+  it("keeps unread and more actions while omitting leading chat icons", () => {
+    const state = createWorkerState();
+    state.leftDrawerOpen = true;
+    mockState(state);
+    const html = renderSidebar();
+    expect(html).toContain('aria-label="未读"');
+    expect(html).toContain('aria-label="更多操作"');
+    expect(html).toContain('data-material-icon="more_horiz"');
+    expect(html).not.toContain('data-material-icon="question_answer"');
+    expect(html).not.toContain("tw:flex-[0_0_44px]");
+  });
+
   it.each([["approval", "等待批准"], ["question", "等待回答"], ["planning", "等待实施"]])("keeps %s awaiting status on the conversation row", (mode, label) => {
     const state = createWorkerState(); state.leftDrawerOpen = true;
     state.chats[state.chats.length - 1].hasPendingAwaiting = true;
     state.chats[state.chats.length - 1].awaiting = { mode };
     mockState(state);
-    expect(renderSidebar()).toContain(label);
+    const html = renderSidebar();
+    expect(html).toContain(label);
+    expect(html).toContain('data-material-icon="progress_activity"');
   });
 });

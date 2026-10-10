@@ -1,11 +1,11 @@
 .actions {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   padding: 8px 8px 12px;
 }
 
-.actions > :global(.ui-btn.ui-btn-sm) {
+.actions :global(.ui-btn.ui-btn-sm) {
   min-width: 0;
   justify-content: flex-start;
   height: 32px;
@@ -13,6 +13,20 @@
   border-radius: 7px;
   font-size: 13px;
 }
+
+.utilityRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.utilityRow :global(.ui-btn.ui-btn-sm) {
+  justify-content: center;
+  padding-inline: 4px;
+}
+
+.actions .utilityRow :global(.ui-btn-label) { gap: 6px; }
+.newChat { width: 100%; }
 
 .actions :global(.ui-btn-label) {
   min-width: 0;

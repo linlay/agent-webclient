@@ -1692,6 +1692,8 @@ export const zhCNMessages = {
   "leftSidebar.newConversation": "新建对话",
   "leftSidebar.navigation.chats": "对话",
   "leftSidebar.navigation.projects": "项目",
+  "leftSidebar.navigation.expandProjects": "全部展开项目",
+  "leftSidebar.navigation.collapseProjects": "全部收起项目",
   "leftSidebar.navigation.showMore": "查看更多",
   "leftSidebar.navigation.showHistory": "显示历史",
   "leftSidebar.navigation.chooseAgent": "选择对话智能体",

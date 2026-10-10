@@ -39,6 +39,14 @@ export function SidebarAgentNavigation(props: {
   const generalLimit = preview.limits.general || GENERAL_CHAT_LIMIT;
   const selectedGeneral = groups.general.find(row => row.key === props.generalAgentKey);
   const icons = new Map(state.agents.map(agent => [agent.key, agent.icon]));
+  const allProjectsExpanded = groups.projects.length > 0 && groups.projects.every(row => expanded.has(row.key));
+  const toggleAllProjects = () => setExpanded(value => {
+    const next = new Set(value);
+    for (const row of groups.projects) {
+      if (allProjectsExpanded) next.delete(row.key); else next.add(row.key);
+    }
+    return next;
+  });
 
   useEffect(() => {
     if (state.workerSelectionKey) setExpanded(value => new Set(value).add(state.workerSelectionKey));
@@ -50,7 +58,8 @@ export function SidebarAgentNavigation(props: {
       isActive={state.chatId === chat.chatId} loading={props.getChatLoading(chat.chatId)}
       onClick={() => props.onSelectChat(chat.chatId)}
       ownerLabel={showOwner ? agent?.name || chat.agentKey : undefined}
-      ownerType={showOwner && agent ? "agent" : undefined} ownerIcon={agent?.icon} />;
+      ownerType={showOwner && agent ? "agent" : undefined} ownerIcon={agent?.icon}
+      ownerPosition="before" />;
   };
   const footer = (key: string, canShowMore: boolean, agentKey?: string) => <div className={styles.footer}>
     {canShowMore && <UiButton size="mini" variant="ghost" disabled={preview.pending[key]}
@@ -77,14 +86,14 @@ export function SidebarAgentNavigation(props: {
             onClick: ({ key }) => props.onSelectGeneralAgent(key),
             items: groups.general.map(row => ({ key: row.key, label: row.displayName,
               icon: <AgentIcon type="agent" icon={icons.get(row.sourceId)} props={{ icon: { width: 16, height: 16 }, avatar: { size: 16 } }} /> })) }}>
-            <UiButton className={styles.agentSelector} size="mini" variant="ghost" title={t("leftSidebar.navigation.chooseAgent")}>
+            <UiButton className={`${styles.agentSelector} ${styles.headingHoverAction}`} size="mini" variant="ghost" title={t("leftSidebar.navigation.chooseAgent")}>
               <AgentIcon type="agent" icon={icons.get(selectedGeneral.sourceId)} props={{ icon: { width: 14, height: 14 }, avatar: { size: 14 } }} />
               <span>{selectedGeneral.displayName}</span><MaterialIcon name="expand_more" />
             </UiButton>
           </Dropdown>}
           <Dropdown trigger={["click"]} menu={{ selectedKeys: [sort], onClick: ({ key }) => setSort(key as SidebarChatSort),
             items: [{ key: "byTime", label: t("leftSidebar.sort.byTime") }, { key: "byName", label: t("leftSidebar.sort.byName") }] }}>
-            <UiButton className={styles.iconButton} size="mini" variant="ghost" iconOnly aria-label={t("leftSidebar.navigation.sort")} title={t("leftSidebar.navigation.sort")}><MaterialIcon name="list_arrow" /></UiButton>
+            <UiButton className={`${styles.iconButton} ${styles.headingHoverAction}`} size="mini" variant="ghost" iconOnly aria-label={t("leftSidebar.navigation.sort")} title={t("leftSidebar.navigation.sort")}><MaterialIcon name="list_arrow" /></UiButton>
           </Dropdown>
           <UiButton className={styles.iconButton} size="mini" variant="ghost" iconOnly
             aria-label={t("leftSidebar.newConversation")} title={t("leftSidebar.newConversation")} disabled={!selectedGeneral}
@@ -102,8 +111,21 @@ export function SidebarAgentNavigation(props: {
         <button className={styles.sectionTitle} type="button" aria-expanded={projectsOpen} onClick={() => setProjectsOpen(!projectsOpen)}>
           <span>{t("leftSidebar.navigation.projects")}</span><MaterialIcon name={projectsOpen ? "expand_more" : "chevron_right"} />
         </button>
-        <UiButton className={styles.iconButton} size="mini" variant="ghost" iconOnly disabled={props.creatingProject}
-          onClick={props.onNewProject} title={t("topNav.newProject")} aria-label={t("topNav.newProject")}><MaterialIcon name="create_new_folder" /></UiButton>
+        <div className={styles.headingActions}>
+          {projectsOpen && <UiButton className={`${styles.iconButton} ui-icon-hover-24`} size="mini" variant="ghost" iconOnly
+            disabled={groups.projects.length === 0} onClick={toggleAllProjects}
+            title={t(allProjectsExpanded ? "leftSidebar.navigation.collapseProjects" : "leftSidebar.navigation.expandProjects")}
+            aria-label={t(allProjectsExpanded ? "leftSidebar.navigation.collapseProjects" : "leftSidebar.navigation.expandProjects")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+              <path d={allProjectsExpanded ? "m6 3 6 6 6-6" : "m6 9 6-6 6 6"} />
+              <path d={allProjectsExpanded ? "m6 21 6-6 6 6" : "m6 15 6 6 6-6"} />
+              <path d="M3 12h18" />
+            </svg>
+          </UiButton>}
+          <UiButton className={styles.iconButton} size="mini" variant="ghost" iconOnly disabled={props.creatingProject}
+            onClick={props.onNewProject} title={t("topNav.newProject")} aria-label={t("topNav.newProject")}><MaterialIcon name="create_new_folder" /></UiButton>
+        </div>
       </div>
       {projectsOpen && groups.projects.map(row => {
         const open = expanded.has(row.key);
@@ -122,13 +144,12 @@ export function SidebarAgentNavigation(props: {
                 <span className={styles.projectName} title={row.workspaceDir || row.displayName}>{row.displayName}</span>
                 {status && <MaterialIcon name="terminal" className={status === "busy" ? styles.loading : styles.terminal} />}
                 {attention && <span className={styles.attention} />}
-                <MaterialIcon name={open ? "expand_more" : "chevron_right"} className={styles.chevron} />
               </div>
             </WorkerActionsMenu>
             <div className={styles.projectActions}>
-              <WorkerActionsMenu row={row} {...props.workerActions}><UiButton size="mini" variant="ghost" iconOnly className={styles.iconButton}
+              <WorkerActionsMenu row={row} {...props.workerActions}><UiButton size="mini" variant="ghost" iconOnly className={`${styles.iconButton} ${styles.projectMore} ui-icon-hover-24`}
                 aria-label={t("leftSidebar.moreActions")}><MaterialIcon name="more_horiz" /></UiButton></WorkerActionsMenu>
-              <UiButton size="mini" variant="ghost" iconOnly className={styles.iconButton} aria-label={t("leftSidebar.newConversation")}
+              <UiButton size="mini" variant="ghost" iconOnly className={`${styles.iconButton} ui-icon-hover-24`} aria-label={t("leftSidebar.newConversation")}
                 onClick={() => props.onNewConversation(row.key)}><MaterialIcon name="edit_square" /></UiButton>
             </div>
           </div>

@@ -76,7 +76,7 @@ const LEFT_SIDEBAR_TOP_ROW_CLASS =
   "tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:pb-0 tw:pt-1";
 
 const CHAT_LIST_CLASS =
-  "chat-list tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
+  "chat-list tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
 
 const WORKER_COLLAPSED_ICON_BASE_CLASS =
   "worker-collapsed-icon tw:flex tw:h-auto tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-0.5 tw:border-0 tw:bg-transparent tw:!p-0.5 tw:text-ink-2 tw:shadow-none tw:hover:!bg-accent-soft";
@@ -502,15 +502,15 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 </UiButton>
               </Flex>
             </Flex>
-            {quickActionsEnabled && (
-              <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
-                newChatDisabled={!currentGeneralKey}
-                onNewChat={() => startNewConversationForWorker(currentGeneralKey, { focusComposerOnComplete: true })} />
-            )}
           </>
         )}
 
         <div className={CHAT_LIST_CLASS} id="chat-list">
+          {state.leftDrawerOpen && quickActionsEnabled && (
+            <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
+              newChatDisabled={!currentGeneralKey}
+              onNewChat={() => startNewConversationForWorker(currentGeneralKey, { focusComposerOnComplete: true })} />
+          )}
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
             {state.leftDrawerOpen ? (
               <>

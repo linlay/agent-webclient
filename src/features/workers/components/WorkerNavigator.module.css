@@ -206,10 +206,6 @@
     --worker-chat-backdrop: var(--control-popover-bg);
 }
 
-:global(.pinned-chat-row[data-dragging]) :global(.worker-chat-item) {
-    --worker-chat-backdrop: var(--bg-card);
-}
-
 /* 长名称不做省略号截断：文字向右溢出，由尾部（胶囊/时间区）背景遮盖。 */
 :global(.worker-chat-tail) {
     align-self: stretch;
