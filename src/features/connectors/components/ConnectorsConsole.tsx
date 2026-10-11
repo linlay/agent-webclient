@@ -526,6 +526,16 @@ export function ConnectorsConsole({
                   </span>
                 </button>
                 <div className={styles.tabActions}>
+                  <Tooltip title={t("connectors.action.reload")}>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy || runtime.detailLoading}
+                      onClick={runtime.reload}
+                    >
+                      <MaterialIcon name="refresh" />
+                    </UiButton>
+                  </Tooltip>
                   <UiButton size="sm" variant="primary" loading={connectorChat.opening} disabled={busy || runtime.detailLoading || connectorChat.opening}
                     onClick={() => void connectorChat.open()}>
                     <MaterialIcon name="question_answer" />{t("connectors.chat.open")}
@@ -555,16 +565,6 @@ export function ConnectorsConsole({
                       </Flex>
                     </UiButton>
                   )}
-                  <Tooltip title={t("connectors.action.reload")}>
-                    <UiButton
-                      variant="ghost"
-                      size="sm"
-                      disabled={busy || runtime.detailLoading}
-                      onClick={runtime.reload}
-                    >
-                      <MaterialIcon name="refresh" />
-                    </UiButton>
-                  </Tooltip>
                 </div>
               </nav>
               {connectorChat.phase && <p className={styles.notice} role="status">{t(`connectors.chat.phase.${connectorChat.phase}`)}</p>}
