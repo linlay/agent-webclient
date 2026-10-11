@@ -152,7 +152,7 @@ export function reduceNavigationState(
 				editingMode:
 					action.workerKey === state.workerSelectionKey
 						? state.editingMode
-						: false,
+						: undefined,
 			};
 		case "SET_CHAT_PINNING": {
 			const next = reduceChatPinningState(state, action)!;

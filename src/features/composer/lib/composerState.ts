@@ -54,7 +54,7 @@ export interface ComposerState extends ComposerAccessState, ComposerModelState {
   submissionDrafts: Record<string, SubmissionDraft>;
   failedSubmissions: SubmissionDraft[];
   skillRejection: { agentKey: string; skillId?: string; message: string } | null;
-  editingMode: boolean;
+  editingMode: boolean | undefined;
   mentionOpen: boolean;
   mentionSuggestions: Agent[];
   mentionActiveIndex: number;
@@ -72,7 +72,7 @@ export type ComposerDraftState = Pick<
 >;
 
 export type ComposerInteractionAction =
-  | { type: "SET_EDITING_MODE"; enabled: boolean }
+  | { type: "SET_EDITING_MODE"; enabled: boolean | undefined }
   | { type: "SET_MENTION_OPEN"; open: boolean }
   | { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
   | { type: "SET_MENTION_ACTIVE_INDEX"; index: number };
@@ -101,7 +101,7 @@ export function createInitialComposerState(): ComposerState {
     submissionDrafts: {},
     failedSubmissions: [],
     skillRejection: null,
-    editingMode: false,
+    editingMode: undefined,
     mentionOpen: false,
     mentionSuggestions: [],
     mentionActiveIndex: 0,

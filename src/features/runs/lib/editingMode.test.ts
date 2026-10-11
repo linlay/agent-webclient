@@ -86,6 +86,12 @@ describe("editingMode run restoration", () => {
     ).toBeUndefined();
   });
 
+  it("restores planning as read-only while the query retains execution intent", () => {
+    expect(resolveRunEditingMode({runId: "plan", events: [
+      {type: "request.query", runId: "plan", planningMode: true, editingMode: true},
+    ]})).toBe(false);
+  });
+
   it("accepts only explicit booleans", () => {
     expect(readExplicitEditingMode({ editingMode: true })).toBe(true);
     expect(readExplicitEditingMode({ editingMode: "true" })).toBeUndefined();

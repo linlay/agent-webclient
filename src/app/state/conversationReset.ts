@@ -13,7 +13,7 @@ export function buildConversationResetState(
 	return {
 		...state,
 		currentChatActiveRun: null,
-		editingMode: false,
+		editingMode: undefined,
     selectedKbasesByScope: Object.fromEntries(Object.entries(state.selectedKbasesByScope).filter(([scope]) => !scope.startsWith("new:"))),
 		runId: "",
 		currentRunAgentKey: "",

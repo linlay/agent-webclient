@@ -37,8 +37,6 @@ export const zhCNMessages = {
   "knowledge.collection.include": "包含规则（每行一个；留空使用默认）",
   "knowledge.collection.exclude": "排除规则（每行一个；留空使用默认）",
   "knowledge.collection.description": "集合说明",
-  "knowledge.collection.editable": "允许 KBASE 编辑此目录",
-  "knowledge.collection.editableHint": "仅适用于主机执行的专用 KBASE，需开启编辑模式。默认关闭；容器不会自动挂载。",
   "knowledge.collection.chunkHint": "已有切块设置会保留。自定义切块请编辑 library.yml 的 chunk，修改后自动重建。",
 
   "memoryMaintenance.close": "关闭",
@@ -1055,9 +1053,9 @@ export const zhCNMessages = {
   "api.loadResourceTextFailedWithStatus": "加载资源文本失败 ({status})",
   "composer.actions.interrupt": "中断运行",
   "composer.actions.plan": "计划",
-  "composer.editingMode.label": "编辑知识库",
+  "composer.editingMode.label": "编辑工作区",
   "composer.editingMode.tooltip":
-    "仅允许编辑知识目录内的 Markdown 文件，修改后会同步更新索引。",
+    "允许本次运行编辑工作区文件。",
   "composer.actions.screenshot": "截屏",
   "composer.actions.screenshotCapturing": "正在截屏...",
   "composer.actions.screenshotDisabled.frontendActive":
@@ -1101,7 +1099,7 @@ export const zhCNMessages = {
   "composer.addMenu.file": "本地文件",
   "composer.addMenu.screenshot": "截屏",
   "composer.addMenu.mode.planning": "计划模式",
-  "composer.addMenu.mode.editing": "编辑模式",
+  "composer.addMenu.mode.editing": "允许编辑工作区",
   "composer.requiredSkill.locked": "{skill} 由宿主强制启用",
   "composer.addMenu.skill.btwUnsupported":
     "BTW 分支暂不支持指定必须使用的 Skill。",
@@ -2189,8 +2187,8 @@ export const zhCNMessages = {
   "slash.command.btw.label": "顺便问",
   "slash.command.debug.description": "切换右侧调试面板或抽屉",
   "slash.command.debug.label": "调试面板",
-  "slash.command.editing.description": "切换知识库编辑模式",
-  "slash.command.editing.label": "知识库编辑模式",
+  "slash.command.editing.description": "切换工作区编辑权限",
+  "slash.command.editing.label": "工作区编辑权限",
   "slash.command.history.description": "查看所有历史对话",
   "slash.command.history.label": "历史对话",
   "slash.command.learn.description":

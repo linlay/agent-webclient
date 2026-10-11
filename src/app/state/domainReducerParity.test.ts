@@ -92,7 +92,7 @@ describe('domain migration behavior contracts', () => {
     const stopped = appReducer(editing, { type: 'SET_EDITING_MODE', enabled: false });
     expect(stopped.editingMode).toBe(false);
     expect(stopped.mentionSuggestions).toBe(agents);
-    expect(appReducer(editing, { type: 'RESET_ACTIVE_CONVERSATION' }).editingMode).toBe(false);
+    expect(appReducer(editing, { type: 'RESET_ACTIVE_CONVERSATION' }).editingMode).toBeUndefined();
   });
 
   it('retains Set and missing timer Map references while replacing the root', () => {

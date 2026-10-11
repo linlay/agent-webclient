@@ -667,7 +667,7 @@ export function useComposerSend(input: UseComposerSendInput) {
           accessLevel,
           model: modelOverride,
           params: controlParams,
-          editingMode: currentState.editingMode === true,
+          editingMode: currentState.editingMode,
           mustUseKbases: [...mustUseKbases], kbaseScope,
           mustUseSkillsAgentKey,
           mustUseSkills,

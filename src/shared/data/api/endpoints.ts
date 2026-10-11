@@ -110,11 +110,8 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   if (String(options.agentMode || "").trim().toUpperCase() === "CODER") {
     body.planningMode = options.planningMode === true;
   }
-  if (
-    String(options.agentMode || "").trim().toUpperCase() === "KBASE" &&
-    options.editingMode === true
-  ) {
-    body.editingMode = true;
+  if (typeof options.editingMode === "boolean") {
+    body.editingMode = options.editingMode;
   }
   if (Array.isArray(options.mustUseSkills)) {
     const seenSkillIds = new Set<string>();

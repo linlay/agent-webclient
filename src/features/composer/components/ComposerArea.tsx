@@ -46,7 +46,6 @@ import { ComposerActions } from "@/features/composer/components/ComposerActions"
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
 import { ComposerContextBar } from "@/features/composer/components/ComposerContextBar";
 import {
-  isDedicatedKbaseWorker,
   resolveCurrentWorkerSummary,
   supportsActiveRunContextCompact,
 } from "@/features/workers/lib/currentWorker";
@@ -320,7 +319,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     String(currentWorker.raw?.mode || "")
       .trim()
       .toUpperCase() === "CODER";
-  const editingModeAvailable = isDedicatedKbaseWorker(currentWorker);
+  const definition = currentWorker?.raw?.definition as Record<string, unknown> | undefined;
+  const editingModeAvailable = currentWorker?.type === "agent" &&
+    String(currentWorker.raw?.engine || definition?.engine || "native").toLowerCase() === "native";
+  const editingMode = state.editingMode ??
+    (String(currentWorker?.raw?.mode || "").trim().toUpperCase() !== "KBASE");
 
   useEffect(() => {
     if (state.planningMode && !planningModeAvailable) {
@@ -333,8 +336,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
   }, [dispatch, planningModeAvailable, state.planningMode, state.chatId]);
   useEffect(() => {
-    if (state.editingMode && !editingModeAvailable) {
-      dispatch({ type: "SET_EDITING_MODE", enabled: false });
+    if (state.editingMode !== undefined && !editingModeAvailable) {
+      dispatch({ type: "SET_EDITING_MODE", enabled: undefined });
     }
   }, [dispatch, editingModeAvailable, state.editingMode]);
   const timelineEntries = useMemo(() => {
@@ -602,7 +605,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     (enabled: boolean) => {
       dispatch({
         type: "SET_EDITING_MODE",
-        enabled: editingModeAvailable && enabled === true,
+        enabled: editingModeAvailable ? enabled : undefined,
       });
     },
     [dispatch, editingModeAvailable],
@@ -706,7 +709,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       state: {
         rightSidebarOpen: state.rightSidebarOpen,
         planningMode: state.planningMode,
-        editingMode: state.editingMode,
+        editingMode,
         chatId: state.chatId,
         runId: state.runId,
         usagePopoverOpen: state.usagePopoverOpen,
@@ -1190,7 +1193,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   modelOverride={modelOverride}
                   planningMode={state.planningMode}
                   canUsePlanningMode={planningModeAvailable}
-                  editingMode={state.editingMode}
+                  editingMode={editingMode}
                   canUseEditingMode={editingModeAvailable}
                   currentChatId={state.chatId}
                   voiceEnabled={voiceEnabled}

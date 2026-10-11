@@ -173,7 +173,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     command: '/editing',
     labelKey: 'slash.command.editing.label',
     descriptionKey: 'slash.command.editing.description',
-    keywords: ['editing', 'edit', 'kbase', 'knowledge base'],
+    keywords: ['editing', 'edit', 'workspace', 'read only'],
   },
 ];
 

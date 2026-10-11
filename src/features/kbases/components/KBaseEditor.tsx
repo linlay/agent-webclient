@@ -45,7 +45,6 @@ export function KBaseEditor({ library, onClose, onSaved }: {
             <Button type="text" danger aria-label={`${t("kbases.removeCollection")} ${field.name + 1}`} title={t("kbases.removeCollection")} disabled={saving || fields.length <= 1} icon={<MaterialIcon name="close" />} onClick={() => remove(field.name)} />
           </div>
           <Form.Item name={[field.name, "description"]} label={t("knowledge.collection.description")}><Input.TextArea aria-label={`${t("knowledge.collection.description")} ${field.name + 1}`} rows={2} maxLength={1000} /></Form.Item>
-          <Form.Item name={[field.name, "editable"]} label={t("knowledge.collection.editable")} valuePropName="checked" extra={t("knowledge.collection.editableHint")}><Switch aria-label={`${t("knowledge.collection.editable")} ${field.name + 1}`} /></Form.Item>
           <details><summary>{t("knowledge.collection.options")}</summary>
             <Form.Item name={[field.name, "include"]} label={t("knowledge.collection.include")} getValueProps={value => ({value: value?.join("\n") || ""})} getValueFromEvent={event => event.target.value ? event.target.value.split("\n").map((v: string) => v.trim()).filter(Boolean) : undefined}><Input.TextArea rows={2} /></Form.Item>
             <Form.Item name={[field.name, "exclude"]} label={t("knowledge.collection.exclude")} getValueProps={value => ({value: value?.join("\n") || ""})} getValueFromEvent={event => event.target.value ? event.target.value.split("\n").map((v: string) => v.trim()).filter(Boolean) : undefined}><Input.TextArea rows={2} /></Form.Item>

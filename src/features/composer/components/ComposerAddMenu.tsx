@@ -92,12 +92,13 @@ const sectionMeta: Record<
   },
 };
 // 一级面板导航条目："divider" 为分割线，可自由插入任意位置
-type NavEntry = Section | "screenshot" | "mode" | "divider";
+type NavEntry = Section | "screenshot" | "planning" | "editing" | "divider";
 const sectionNav: NavEntry[] = [
   "files",
   "screenshot",
   "divider",
-  "mode",
+  "planning",
+  "editing",
   "skills",
   "connectors",
   "kbases",
@@ -542,8 +543,8 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
         props.interactionConfig?.attachment.localFiles !== false;
     if (entry === "divider") return true;
     if (entry === "site") return canUseDesktopWebsBridge();
-    if (entry === "mode")
-      return props.canUsePlanningMode || props.canUseEditingMode;
+    if (entry === "planning") return props.canUsePlanningMode;
+    if (entry === "editing") return props.canUseEditingMode;
     return true;
   });
   const visibleEntries = navEntries.filter(
@@ -606,20 +607,20 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             <MaterialIcon name="crop_free" />
             <span>{t("composer.addMenu.screenshot")}</span>
           </UiButton>
-        ) : entry === "mode" ? (
+        ) : entry === "planning" || entry === "editing" ? (
           <UiButton
             key={entry}
             variant="ghost"
             size="sm"
             role="menuitemcheckbox"
             aria-checked={
-              props.canUsePlanningMode ? props.planningMode : props.editingMode
+              entry === "planning" ? props.planningMode : props.editingMode
             }
             className={presentationClasses("composer-add-menu-nav-item")}
             onMouseEnter={() => setSection(null)}
             onFocus={() => setSection(null)}
             onClick={() => {
-              if (props.canUsePlanningMode) props.onTogglePlanningMode();
+              if (entry === "planning") props.onTogglePlanningMode();
               else props.onEditingModeChange(!props.editingMode);
               props.onClose();
             }}
@@ -627,7 +628,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             <MaterialIcon name="checklist" />
             <span>
               {t(
-                props.canUsePlanningMode
+                entry === "planning"
                   ? "composer.addMenu.mode.planning"
                   : "composer.addMenu.mode.editing",
               )}

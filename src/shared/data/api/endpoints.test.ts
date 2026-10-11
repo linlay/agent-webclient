@@ -67,7 +67,7 @@ describe("endpoint payload builders", () => {
     });
   });
 
-  it("emits planning and editing flags only for their matching Agent modes", () => {
+  it("retains the existing planning flag contract", () => {
     expect(buildQueryPayload({
       requestId: "req_coder",
       message: "plan",
@@ -103,8 +103,16 @@ describe("endpoint payload builders", () => {
     })).toEqual({
       requestId: "req_react",
       message: "run",
-    agentKey: "react"
+    agentKey: "react",
+    editingMode: true
     });
+  });
+
+  it.each(["GENERAL", "CODER", "KBASE", "TEAM"])("preserves both Workspace editing choices for %s", (agentMode) => {
+    for (const editingMode of [true, false]) {
+      expect(buildQueryPayload({ requestId: "req", message: "run", owner: {kind: "agent", agentKey: "demo"}, agentMode, editingMode })).toMatchObject({ editingMode });
+    }
+    expect(buildQueryPayload({ requestId: "req", message: "run", owner: {kind: "agent", agentKey: "demo"}, agentMode })).not.toHaveProperty("editingMode");
   });
 
   it("normalizes query model overrides and preserves BTW MAX effort", () => {

@@ -288,7 +288,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       model?: QueryModelOverride,
       preferredChatId = "",
       preferredAgentKey = "",
-      editingMode = false,
+      editingMode: boolean | undefined = undefined,
       mustUseSkills: string[] = [],
       mustUseSkillsAgentKey = "",
       submissionRequestId = "",
@@ -548,7 +548,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         agentKey: selectedAgentKey,
 
         owner: selectedOwner || undefined,
-        editingMode: editingMode === true,
+        editingMode: planningMode ? false : editingMode,
       });
       querySessionsRef.current.set(requestId, session);
       if (chatId) {
@@ -647,7 +647,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
 
         if (toText(event.type) === "request.query") {
-          const eventEditingMode = readExplicitEditingMode(event);
+          const eventEditingMode = event.planningMode === true ? false : readExplicitEditingMode(event);
           if (
             session.observationSource === "attach" &&
             eventEditingMode !== undefined
@@ -791,7 +791,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           model,
           params: Object.keys(params).length > 0 ? params : undefined,
           planningMode,
-          editingMode: session.editingMode === true,
+          editingMode,
           mustUseKbases: normalizedKbases.length ? [...normalizedKbases] : undefined,
           mustUseSkills:
             normalizedMustUseSkills.length > 0
@@ -948,7 +948,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const chatId = String(detail.chatId || "").trim();
       const agentKey = String(detail.agentKey || "").trim();
 
-      const editingMode = detail.editingMode === true;
+      const editingMode = typeof detail.editingMode === "boolean" ? detail.editingMode : undefined;
       const mustUseSkillsAgentKey = String(
         detail.mustUseSkillsAgentKey || "",
       ).trim();

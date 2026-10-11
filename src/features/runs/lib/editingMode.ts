@@ -40,6 +40,7 @@ export function resolveRunEditingMode(input: {
     ) {
       continue;
     }
+    if (event.planningMode === true) return false;
     const eventMode = readExplicitEditingMode(event);
     if (eventMode !== undefined) {
       return eventMode;

@@ -677,7 +677,7 @@ describe('useComposerSend active run gate', () => {
           state: {
             rightSidebarOpen: false,
             planningMode: false,
-            editingMode: false,
+            editingMode: undefined,
             chatId: '',
             runId: '',
             usagePopoverOpen: false,

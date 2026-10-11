@@ -566,13 +566,13 @@ describe("ComposerArea", () => {
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
   });
 
-  it("enables the editing switch and slash command for a dedicated KBASE Agent", () => {
+  it.each(["GENERAL", "CODER", "KBASE", "TEAM"])("enables Workspace editing with the %s template default", (mode) => {
     mockResolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
       sourceId: "knowledge",
       displayName: "Knowledge",
       relatedChats: [],
-      raw: { mode: "KBASE", interactionConfig: interactionDefaults("KBASE") },
+      raw: { mode, interactionConfig: interactionDefaults(mode) },
     });
     mockIsDedicatedKbaseWorker.mockReturnValue(true);
 
@@ -581,13 +581,12 @@ describe("ComposerArea", () => {
     expect(mockComposerActionsProps[0]).toEqual(
       expect.objectContaining({
         canUseEditingMode: true,
-        editingMode: false,
+        editingMode: mode !== "KBASE",
       }),
     );
     expect(mockUseComposerSlash).toHaveBeenCalledWith(
       expect.objectContaining({
         canUseEditingMode: true,
-        currentAgentKey: "knowledge",
       }),
     );
   });

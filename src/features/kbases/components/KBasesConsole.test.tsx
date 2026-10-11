@@ -119,13 +119,13 @@ test("readable libraries display source and refresh warnings without an error al
 });
 
 
-test("collection description and editable switch round-trip with source settings", async () => {
-  await mountEditor([{ name: "docs", sourcePath: "/demo/docs", description: "Existing", editable: true, defaultQuery: false, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } }]);
-  expect(button("knowledge.collection.editable 1").getAttribute("aria-checked")).toBe("true");
+test("collection description preserves source settings without an editing permission switch", async () => {
+  await mountEditor([{ name: "docs", sourcePath: "/demo/docs", description: "Existing", defaultQuery: false, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } }]);
+  expect(container.querySelector('[aria-label="knowledge.collection.editable 1"]')).toBeNull();
   await act(async () => Simulate.change(document.querySelector<HTMLTextAreaElement>('textarea[aria-label="knowledge.collection.description 1"]')!, { target: { value: "Updated description" } } as any));
-  await click("knowledge.collection.editable 1");
   await click("kbases.save");
-  expect(saveKBase).toHaveBeenCalledWith(expect.objectContaining({ collections: [expect.objectContaining({ name: "docs", description: "Updated description", editable: false, defaultQuery: false, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } })] }), library.id);
+  expect(saveKBase).toHaveBeenCalledWith(expect.objectContaining({ collections: [expect.objectContaining({ name: "docs", description: "Updated description", defaultQuery: false, exclude: [], chunk: { unit: "chars", maxChars: 3600, overlapChars: 540 } })] }), library.id);
+  expect(jest.mocked(saveKBase).mock.calls[0][0].collections![0]).not.toHaveProperty("editable");
 });
 
 

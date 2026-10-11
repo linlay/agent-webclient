@@ -152,7 +152,7 @@ export function reduceConversationState(
 					: state.pendingNewChatAgentKey,
 				planningMode: nextPlanningMode,
 				planningModeByChatId: nextByChatId,
-				editingMode: isNewChatId ? false : state.editingMode,
+				editingMode: isNewChatId ? undefined : state.editingMode,
 			};
 		}
 		case "SET_CURRENT_CHAT_ACTIVE_RUN": {

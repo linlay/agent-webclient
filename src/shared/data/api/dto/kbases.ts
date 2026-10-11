@@ -1,7 +1,7 @@
 export interface KnowledgeChunk { unit?: "chars"; strategy?: "window" | "regex" | "structural"; maxChars?: number; overlapChars?: number }
 export interface KnowledgeRetrieval { topK?: number; candidateFloor?: number; candidateMultiplier?: number; candidateMax?: number; minScore?: number; recencyWeight?: number; recencyHalfLifeDays?: number; rerank?: boolean; queryExpansion?: boolean }
 export interface KnowledgeModels { reranker?: {modelKey: string}; queryExpansion?: {modelKey: string}; embedding?: { modelKey: string; prompt?: "raw" | "qwen3" | "embeddinggemma" } }
-export interface KnowledgeCollection { name: string; sourcePath: string; description?: string; editable?: boolean; defaultQuery?: boolean; include?: string[]; exclude?: string[]; chunk?: KnowledgeChunk }
+export interface KnowledgeCollection { name: string; sourcePath: string; description?: string; defaultQuery?: boolean; include?: string[]; exclude?: string[]; chunk?: KnowledgeChunk }
 export type RetrievalMethod = "query" | "search" | "vsearch" | "gsearch";
 export interface KnowledgeBase {
  id: string; baseRevision?: string; name: string; description: string; collections: KnowledgeCollection[]; sourcePath?: string;
