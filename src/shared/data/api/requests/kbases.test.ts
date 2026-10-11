@@ -9,12 +9,12 @@ it("keeps document references in encoded query parameters", () => {
 it("uses explicit HTTP mutations and search JSON", () => {
  saveKBase({ name: "Docs", description: "notes", collections: [{ name: "docs", sourcePath: "/docs" }, { name: "reports", sourcePath: "/reports" }] });
  expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases", expect.objectContaining({ method: "POST" }));
- saveKBase({ name: "Renamed", description: "" }, "library");
- expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases/library", expect.objectContaining({ method: "PUT" }));
+ saveKBase({ name: "Renamed", description: "", baseRevision: "read-revision" }, "library");
+ expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases/library", expect.objectContaining({ method: "PUT", body: '{"name":"Renamed","description":"","baseRevision":"read-revision"}' }));
  searchKBase("library", "hello", 5);
  expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases/library/search", expect.objectContaining({ body: '{"query":"hello","limit":5,"method":"query"}' }));
  searchKBase("library", "hello", 5, undefined, ["docs", "reports"], "vsearch");
  expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases/library/search", expect.objectContaining({ body: '{"query":"hello","limit":5,"collections":["docs","reports"],"method":"vsearch"}' }));
- deleteKBase("library");
- expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases/library", { method: "DELETE" });
+ deleteKBase("library", "revision & value");
+ expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases/library?baseRevision=revision%20%26%20value", { method: "DELETE" });
 });

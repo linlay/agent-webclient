@@ -5,7 +5,7 @@ const root = dataEndpoints.adminKBases.path;
 const path = (id: string) => `${root}/${encodeURIComponent(id)}`;
 export const listKBases = () => requestJson<KnowledgeBase[]>(root, { cache: "no-store" });
 export const saveKBase = (input: KnowledgeBaseInput, id?: string) => requestJson<KnowledgeBase>(id ? path(id) : root, { method: id ? "PUT" : "POST", body: JSON.stringify(input) });
-export const deleteKBase = (id: string) => requestJson(`${path(id)}`, { method: "DELETE" });
+export const deleteKBase = (id: string, baseRevision: string) => requestJson(`${path(id)}?baseRevision=${encodeURIComponent(baseRevision)}`, { method: "DELETE" });
 export const refreshKBase = (id: string) => requestJson<KnowledgeBase>(`${path(id)}/refresh`, { method: "POST" });
 export const filesKBase = (id: string, signal?: AbortSignal) => requestJson<{ documents: KnowledgeDocument[]; complete: boolean }>(`${path(id)}/files`, { signal });
 export const statusKBase = (id: string, signal?: AbortSignal) => requestJson<KnowledgeBaseStatus>(`${path(id)}/status`, { signal });

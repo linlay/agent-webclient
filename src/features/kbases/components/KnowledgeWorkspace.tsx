@@ -21,6 +21,7 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
   const indexed = Boolean(library.indexedAt);
   const sources = libraryCollections(library);
   const [busy, setBusy] = useState(false);
+  const [deleteRevision, setDeleteRevision] = useState("");
   const [actionError, setActionError] = useState("");
   const [files, setFiles] = useState<KnowledgeDocument[]>([]);
   const [fileLoading, setFileLoading] = useState(indexed);
@@ -31,6 +32,7 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
   const [documentPage, setDocumentPage] = useState(1);
   const [status, setStatus] = useState<KnowledgeBaseStatus | null>(null);
   const [statusError, setStatusError] = useState("");
+  const capabilities = status?.statistics?.capabilities;
   const [query, setQuery] = useState("");
   const [limitOverride, setLimit] = useState<number | null>(null);
   const limit = limitOverride ?? library.retrieval?.topK ?? 8;
@@ -52,7 +54,7 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
       filesKBase(library.id, controller.signal).then(response => {
         if (!controller.signal.aborted) { setFiles(response.data?.documents || []); setFileIncomplete(Boolean(response.data && !response.data.complete)); }
       }).catch(error => { if (!controller.signal.aborted) setFileError(errorMessage(error)); }).finally(() => { if (!controller.signal.aborted) setFileLoading(false); });
-      statusKBase(library.id, controller.signal).then(response => { if (!controller.signal.aborted) setStatus(response.data || null); }).catch(error => { if (!controller.signal.aborted) setStatusError(errorMessage(error)); });
+      statusKBase(library.id, controller.signal).then(response => { if (!controller.signal.aborted) { setStatus(response.data || null); setStatusError(response.data?.statsError || ""); } }).catch(error => { if (!controller.signal.aborted) setStatusError(errorMessage(error)); });
     }
     return () => { controller.abort(); searchAbort.current?.abort(); readAbort.current?.abort(); };
   }, [library.id, indexed]);
@@ -102,7 +104,7 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
   const actions = <div className={styles.actions}>
     <UiButton size="sm" variant="ghost" iconOnly aria-label={t("kbases.edit")} title={t("kbases.edit")} disabled={library.invalidId || busy || library.state === "indexing"} onClick={onEdit}><MaterialIcon name="edit" /></UiButton>
     <UiButton size="sm" loading={library.state === "indexing" || busy} disabled={library.invalidId || busy} onClick={() => void perform(() => refreshKBase(library.id))}><MaterialIcon name="refresh" />{t("kbases.update")}</UiButton>
-    <Popconfirm disabled={library.invalidId || busy || library.state === "indexing"} title={t("kbases.deleteConfirm")} description={t("kbases.deleteHint")} onConfirm={() => perform(async () => { await deleteKBase(library.id); onDeleted(); })}>
+    <Popconfirm disabled={library.invalidId || busy || library.state === "indexing"} title={t("kbases.deleteConfirm")} description={t("kbases.deleteHint")} onOpenChange={open => { if (open) setDeleteRevision(library.baseRevision || ""); }} onConfirm={() => perform(async () => { await deleteKBase(library.id, deleteRevision); onDeleted(); })}>
       <UiButton size="sm" variant="ghost" iconOnly className={styles.deleteButton} aria-label={t("kbases.delete")} title={t("kbases.delete")} disabled={library.invalidId || busy || library.state === "indexing"}><MaterialIcon name="delete" /></UiButton>
     </Popconfirm>
   </div>;
@@ -135,14 +137,14 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
           <div className={styles.retrievalOptions}>
             <label><span>{t("kbases.method")}</span><Select aria-label={t("kbases.method")} value={method} disabled={searching} onChange={value => { setMethod(value); setResults(null); }} options={[
               { value: "query", label: t("kbases.methodQuery") }, { value: "search", label: t("kbases.methodSearch") },
-              { value: "vsearch", label: t("kbases.methodVector"), disabled: !status?.capabilities.vector?.complete || !status.capabilities.vector.queryModelConfigured },
-              { value: "gsearch", label: t("kbases.methodGraph"), disabled: !status?.capabilities.graph?.complete },
+              { value: "vsearch", label: t("kbases.methodVector"), disabled: !capabilities?.vector?.complete || !capabilities?.vector?.queryModelConfigured },
+              { value: "gsearch", label: t("kbases.methodGraph"), disabled: !capabilities?.graph?.complete },
             ]} /></label>
             <label className={styles.collectionFilter}><span>{t("kbases.collections")}</span><Select mode="multiple" maxTagCount="responsive" allowClear aria-label={t("kbases.collections")} placeholder={t("kbases.defaultCollections")} value={retrievalCollections} disabled={searching} onChange={value => { setRetrievalCollections(value); setResults(null); }} options={sources.map(source => ({ value: source.name, label: source.name }))} /></label>
             <label className={styles.limit}><span>{t("kbases.limit")}</span><InputNumber aria-label={t("kbases.limit")} min={1} max={50} value={limit} disabled={searching} onChange={value => { setLimit(value); setResults(null); }} /></label>
           </div>
           {statusError && <Alert type="warning" showIcon message={statusError} />}
-          {status && <div className={styles.capabilityHints}>{(!status.capabilities.vector?.complete || !status.capabilities.vector.queryModelConfigured) && <p>{t("kbases.vectorUnavailable")}</p>}{!status.capabilities.graph?.complete && <p>{t("kbases.graphUnavailable")}</p>}</div>}
+          {status && <div className={styles.capabilityHints}>{(!capabilities?.vector?.complete || !capabilities?.vector?.queryModelConfigured) && <p>{t("kbases.vectorUnavailable")}</p>}{!capabilities?.graph?.complete && <p>{t("kbases.graphUnavailable")}</p>}</div>}
           {searchError && <Alert type="error" showIcon message={searchError} />}
           {results && <div className={styles.results}>
             <Typography.Paragraph>{t("kbases.hitCount", { count: results.results.length })}{results.trace?.coverage?.retrievalUsed?.length ? ` · ${t("kbases.channels")}: ${results.trace.coverage.retrievalUsed.map(channel => channels[channel] || channel).join(", ")}` : ""}</Typography.Paragraph>

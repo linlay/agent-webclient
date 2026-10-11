@@ -20,7 +20,7 @@ export function KBaseEditor({ library, onClose, onSaved }: {
     try { values = await form.validateFields(); } catch { return; }
     setSaving(true); setError("");
     try {
-      const response = await saveKBase(values, library === "new" ? undefined : library.id);
+      const response = await saveKBase(library === "new" ? values : { ...values, baseRevision: library.baseRevision }, library === "new" ? undefined : library.id);
       if (response.data) await onSaved(response.data);
       onClose();
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }

@@ -3,13 +3,14 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import type { KnowledgeBase } from "@/shared/data/api/dto/kbases";
-import { filesKBase, listKBases, saveKBase, searchKBase, statusKBase } from "@/shared/data/api/requests/kbases";
+import { deleteKBase, filesKBase, listKBases, saveKBase, searchKBase, statusKBase } from "@/shared/data/api/requests/kbases";
 import { KBasesConsole } from "./KBasesConsole";
 import { KBaseEditor } from "./KBaseEditor";
+import { KnowledgeWorkspace } from "./KnowledgeWorkspace";
 
 jest.mock("@/shared/data/api/requests/kbases", () => ({ listKBases: jest.fn(), filesKBase: jest.fn(), statusKBase: jest.fn(), saveKBase: jest.fn(), searchKBase: jest.fn(), readKBase: jest.fn(), refreshKBase: jest.fn(), deleteKBase: jest.fn() }));
 jest.mock("@/shared/i18n", () => ({ t: (key: string) => key }));
-const library: KnowledgeBase = { id: "docs", name: "Product documentation", description: "Guides and API references", collections: Array.from({ length: 10 }, (_, index) => ({ name: `group${index}`, sourcePath: `/demo/group${index}` })), state: "ready", createdAt: 1, updatedAt: 1, indexedAt: 1 };
+const library: KnowledgeBase = { id: "docs", baseRevision: "read-revision", name: "Product documentation", description: "Guides and API references", collections: Array.from({ length: 10 }, (_, index) => ({ name: `group${index}`, sourcePath: `/demo/group${index}` })), state: "ready", createdAt: 1, updatedAt: 1, indexedAt: 1 };
 const documents = library.collections.flatMap(collection => ["guide.md", "configuration.md"].map(relativePath => ({ file: `kbx://${collection.name}/${relativePath}`, collection: collection.name, relativePath, title: relativePath, bytes: 100 })));
 let container: HTMLDivElement;
 let root: Root;
@@ -26,7 +27,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.mocked(listKBases).mockResolvedValue({ code: 0, msg: "", data: [library, { ...library, id: "other", name: "Other library" }] });
   jest.mocked(filesKBase).mockResolvedValue({ code: 0, msg: "", data: { documents, complete: true } });
-  jest.mocked(statusKBase).mockResolvedValue({ code: 0, msg: "", data: { capabilities: { fullText: { available: true }, vector: { complete: true, queryModelConfigured: true }, graph: { complete: false } } } });
+  jest.mocked(statusKBase).mockResolvedValue({ code: 0, msg: "", data: { libraryId: library.id, baseRevision: library.baseRevision!, state: "ready", indexedAt: 1, indexing: false, stale: false, degraded: false, vectorsPending: false, orphaned: false, error: "", refreshError: "", statsAvailable: true, statistics: { capabilities: { fullText: { available: true }, vector: { complete: true, queryModelConfigured: true }, graph: { complete: false } } } } });
   jest.mocked(saveKBase).mockImplementation(async values => ({ code: 0, msg: "", data: { ...library, ...values, collections: values.collections || [], state: "unindexed", indexedAt: 0 } }));
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
@@ -59,7 +60,7 @@ test("editing an existing library saves additions and removals in one PUT payloa
   await change("kbases.source 3", "/demo/notes");
   await click("kbases.removeCollection 1");
   await click("kbases.save");
-  expect(saveKBase).toHaveBeenCalledWith({ name: library.name, description: library.description, collections: [{ name: "group1", sourcePath: "/demo/group1" }, { name: "notes", sourcePath: "/demo/notes" }] }, library.id);
+  expect(saveKBase).toHaveBeenCalledWith({ baseRevision: library.baseRevision, name: library.name, description: library.description, collections: [{ name: "group1", sourcePath: "/demo/group1" }, { name: "notes", sourcePath: "/demo/notes" }] }, library.id);
   expect(onSaved).toHaveBeenCalledTimes(1);
   expect(onClose).toHaveBeenCalledTimes(1);
 });
@@ -136,4 +137,23 @@ test("retrieval starts with library defaults and omits an explicit collection sc
   await change("kbases.query", "query");
   await click("kbases.search");
   expect(searchKBase).toHaveBeenCalledWith(library.id, "query", 12, expect.any(AbortSignal), undefined, "query");
+});
+
+
+test("delete confirmation keeps its baseline when the displayed library is refreshed", async () => {
+  jest.mocked(deleteKBase).mockResolvedValue({ code: 0, msg: "" });
+  const callbacks = { onEdit: jest.fn(), onChanged: jest.fn().mockResolvedValue(undefined), onDeleted: jest.fn() };
+  await act(async () => root.render(<KnowledgeWorkspace library={library} {...callbacks} />));
+  await click("kbases.delete");
+  await act(async () => root.render(<KnowledgeWorkspace library={{ ...library, baseRevision: "concurrent-revision" }} {...callbacks} />));
+  await act(async () => [...document.querySelectorAll<HTMLButtonElement>(".ant-popconfirm button")].find(node => node.classList.contains("ant-btn-primary"))!.click());
+  expect(deleteKBase).toHaveBeenCalledWith(library.id, library.baseRevision);
+});
+
+test("missing index statistics leave retrieval channels unavailable without crashing", async () => {
+  jest.mocked(statusKBase).mockResolvedValue({ code: 0, msg: "", data: { libraryId: library.id, baseRevision: library.baseRevision!, state: "ready", indexedAt: 1, indexing: false, stale: false, degraded: false, vectorsPending: false, orphaned: false, error: "", refreshError: "", statsAvailable: false, statsError: "Statistics unavailable" } });
+  await mountConsole();
+  await act(async () => [...container.querySelectorAll<HTMLElement>('[role="tab"]')].find(tab => tab.textContent === "kbases.recall")!.click());
+  expect(container.textContent).toContain("Statistics unavailable");
+  expect(container.textContent).toContain("kbases.vectorUnavailable");
 });
