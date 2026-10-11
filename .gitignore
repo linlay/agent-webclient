@@ -50,6 +50,7 @@ Thumbs.db
 /build/appearance/
 /build/composer-context/
 /build/image-generation/
+/build/markdown-html/
 /build/management/
 
 # Private production source maps, grouped by diagnostic build ID

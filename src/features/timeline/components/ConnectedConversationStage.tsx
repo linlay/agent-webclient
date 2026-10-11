@@ -1666,7 +1666,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     renderContentView: (segment, chatId) => segment.view
       ? <ViewEmbed chatId={chatId} view={segment.view} payloadRaw={segment.payloadRaw || "{}"} />
       : null,
-    renderMarkdown: (props) => <MarkdownContent {...props} />,
+    renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
     renderAttachment: (attachment, options) => <AttachmentCard
       attachment={attachment} variant="timeline" thumbnailMode="inline"
       surfaceContext={{ chatId: state.chatId, agentKey: resolvePreferredAgentKey(state),

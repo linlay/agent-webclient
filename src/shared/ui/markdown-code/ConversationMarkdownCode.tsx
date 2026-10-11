@@ -7,9 +7,12 @@ import { Collapse, Flex, Tooltip } from "antd";
 import type { ComponentProps } from "@ant-design/x-markdown";
 import { MarkdownECharts } from "./MarkdownECharts";
 import { MarkdownMermaid } from "./MarkdownMermaid";
+import { MarkdownHtmlPreview, MarkdownHtmlReceiving } from "./MarkdownHtmlPreview";
+import { isCompleteHtmlDocument } from "./htmlPreviewDocument";
 import { MaterialIcon } from "../MaterialIcon";
 import { UiButton } from "../UiButton";
 import { useI18n } from "@/shared/i18n";
+import { useMarkdownStreaming } from "../MarkdownStreamingContext";
 import { copyWebText } from "@/shared/utils/webClipboard";
 import styles from "./index.module.css";
 import { useHighlightCode } from "./useHighlight";
@@ -18,6 +21,7 @@ import "./highlight-theme.css";
 export type ConversationMarkdownCodeProps = ComponentProps<{
   copyCode?: (text: string) => void | Promise<void>;
   extraActions?: React.ReactNode;
+  htmlPreview?: boolean;
 }>;
 
 const CODE_COLLAPSE_CLASS_NAME = [
@@ -66,16 +70,19 @@ export const ConversationMarkdownCode: React.FC<ConversationMarkdownCodeProps> =
   domNode: _domNode,
   copyCode,
   extraActions,
+  htmlPreview = false,
   ...rest
 }) => {
   const { t } = useI18n();
+  const isStreaming = useMarkdownStreaming();
   const language = useMemo(() => getMarkdownCodeLanguage(lang), [lang]);
   const text = useMemo(() => textFromReactNode(children), [children]);
   // highlight.js escapes source text and emits only span wrappers.
   const highlightedHtml = useHighlightCode(text, language);
-  const [activeKey, setActiveKey] = useState<string | string[]>(() =>
-    getDefaultActiveKey(language),
-  );
+  const canPreviewHtml = htmlPreview && language === "html" && streamStatus === "done";
+  const autoPreviewHtml = canPreviewHtml && isCompleteHtmlDocument(text);
+  const receivingHtml = htmlPreview && language === "html" && streamStatus === "loading" && isStreaming;
+  const [activeKey, setActiveKey] = useState<string | string[] | null>(null);
   const handleCopy = useCallback(
     (event: React.MouseEvent): void => {
       event.stopPropagation();
@@ -96,9 +103,11 @@ export const ConversationMarkdownCode: React.FC<ConversationMarkdownCodeProps> =
       {isMermaidLanguage(language) ? (
         <MarkdownMermaid code={text} streamStatus={streamStatus} />
       ) : null}
+      {canPreviewHtml ? <MarkdownHtmlPreview code={text} autoStart={autoPreviewHtml} /> : null}
+      {receivingHtml ? <MarkdownHtmlReceiving /> : null}
       <Collapse
         className={CODE_COLLAPSE_CLASS_NAME}
-        activeKey={activeKey}
+        activeKey={activeKey ?? (autoPreviewHtml || receivingHtml ? "" : getDefaultActiveKey(language))}
         onChange={setActiveKey}
         ghost
         expandIcon={({ isActive }) => (

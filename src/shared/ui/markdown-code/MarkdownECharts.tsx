@@ -7,6 +7,18 @@ import styles from "./MarkdownECharts.module.css";
 
 const DEFAULT_ECHARTS_HEIGHT = 320;
 
+export function getEChartsHeight(option: EChartsOption): number {
+  const layout = option as { height?: unknown; grid?: unknown };
+  const finiteHeight = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+  const explicit = finiteHeight(layout.height);
+  if (explicit) return Math.max(180, explicit);
+  const grids = Array.isArray(layout.grid) ? layout.grid : [layout.grid];
+  return grids.reduce((height, grid) => {
+    if (!isRecord(grid) || !finiteHeight(grid.height)) return height;
+    return Math.max(height, finiteHeight(grid.top) + finiteHeight(grid.height) + (finiteHeight(grid.bottom) || 60));
+  }, DEFAULT_ECHARTS_HEIGHT);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -37,6 +49,7 @@ export const MarkdownECharts: React.FC<{
       };
     }
   }, [code]);
+  const height = payload.value ? getEChartsHeight(payload.value) : DEFAULT_ECHARTS_HEIGHT;
 
   useEffect(() => {
     if (!payload.value || !containerRef.current) return;
@@ -53,6 +66,7 @@ export const MarkdownECharts: React.FC<{
         echartsModule.init(
           container,
           document.documentElement.dataset.theme === "dark" ? "dark" : null,
+          { renderer: "svg" },
         );
       chartRef.current = chart;
       chart.setOption(payload.value, true);
@@ -107,7 +121,7 @@ export const MarkdownECharts: React.FC<{
     <div
       ref={containerRef}
       className="markdown-echarts"
-      style={{ height: DEFAULT_ECHARTS_HEIGHT }}
+      style={{ height }}
     ></div>
   );
 };

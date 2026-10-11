@@ -125,8 +125,11 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 		},
 		[chatId, openTarget, workspaceFileAgentKey],
 	);
-	const renderMarkdown = (props: MarkdownContentProps) => interaction?.renderMarkdown?.(props)
-		?? <ConversationMarkdown content={props.content} codeComponent={ConversationMarkdownCode} />;
+	const renderMarkdown = (props: MarkdownContentProps) => {
+		const isStreaming = Boolean(interaction?.conversationActive && node.status !== "completed" && node.status !== "failed");
+		return interaction?.renderMarkdown?.({ ...props, isStreaming })
+			?? <ConversationMarkdown content={props.content} isStreaming={isStreaming} codeComponent={ConversationMarkdownCode} />;
+	};
 
 	/* Simple case: no special segments, just markdown */
 	if (!hasSpecialSegment) {

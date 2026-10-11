@@ -6,6 +6,7 @@ import {
 } from "@ant-design/x-markdown";
 import { removeEmptyMarkdownTables } from "./markdownPreprocess";
 import styles from "./ConversationMarkdown.module.css";
+import { MarkdownStreamingContext } from "./MarkdownStreamingContext";
 
 type MarkdownComponents = NonNullable<XMarkdownProps["components"]>;
 
@@ -40,6 +41,7 @@ export type ConversationMarkdownProps = {
   className?: string;
   components?: ConversationMarkdownComponents;
   codeComponent: MarkdownComponents["code"];
+  isStreaming?: boolean;
 };
 
 type MarkdownPreProps = ComponentProps;
@@ -78,6 +80,7 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
   className,
   components,
   codeComponent,
+  isStreaming = false,
 }) => {
   const processedContent = useMemo(
     () => removeEmptyMarkdownTables(content || ""),
@@ -124,14 +127,16 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
   if (!processedContent) return null;
 
   return (
-    <Markdown
-      className={[styles.root, className].filter(Boolean).join(" ")}
-      config={markdownConfig}
-      components={markdownComponents}
-      escapeRawHtml
-      dompurifyConfig={{ FORBID_TAGS: FORBIDDEN_HTML_TAGS }}
-    >
-      {processedContent}
-    </Markdown>
+    <MarkdownStreamingContext.Provider value={isStreaming}>
+      <Markdown
+        className={[styles.root, className].filter(Boolean).join(" ")}
+        config={markdownConfig}
+        components={markdownComponents}
+        escapeRawHtml
+        dompurifyConfig={{ FORBID_TAGS: FORBIDDEN_HTML_TAGS }}
+      >
+        {processedContent}
+      </Markdown>
+    </MarkdownStreamingContext.Provider>
   );
 };

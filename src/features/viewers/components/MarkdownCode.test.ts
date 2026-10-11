@@ -71,6 +71,15 @@ jest.mock("antd", () => ({
 
 
 describe("MarkdownCode", () => {
+  it("keeps HTML as source unless its caller explicitly enables inline rendering", () => {
+    const source = '<!doctype html><html><body>example</body></html>';
+    const render = (htmlPreview?: boolean) => renderToStaticMarkup(React.createElement(
+      MarkdownCode, { lang: "html", block: true, streamStatus: "done", htmlPreview }, source,
+    ));
+    expect(render()).not.toContain("data-html-preview");
+    expect(render(false)).not.toContain("data-html-preview");
+    expect(render(true)).toContain("data-html-preview");
+  });
   it("renders Mermaid blocks before the original code block", () => {
     const html = renderToStaticMarkup(
       React.createElement(

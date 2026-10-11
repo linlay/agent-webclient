@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
 import { ConversationMarkdown, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
-import { ConversationMarkdownCode } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
+import { ConversationMarkdownCode, type ConversationMarkdownCodeProps } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
 import { getAgentIconSource } from "@/shared/icons/agentIconAssets";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import { conversationExportMessages } from "@/shared/i18n/conversationExport";
@@ -14,6 +14,9 @@ import styles from "./ConversationExportDocument.module.css";
 export type ConversationExportDocumentProps = { snapshot: ConversationSnapshotV1; publicBrand?: PublicShareBrand | null };
 
 type LinkProps = ConversationMarkdownElementProps<{ href?: string; title?: string }>;
+
+const ExportMarkdownCode: React.FC<ConversationMarkdownCodeProps> = props =>
+  <ConversationMarkdownCode {...props} htmlPreview={false} />;
 
 function attachmentRoute(id: string, action: "preview" | "download"): string {
   const match = /^\/share\/([A-Za-z0-9_-]+)(?:\/|$)/u.exec(window.location.pathname);
@@ -71,7 +74,7 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   };
   const renderMarkdown = (props: MarkdownContentProps) => <ConversationMarkdown
     content={props.content}
-    codeComponent={ConversationMarkdownCode}
+    codeComponent={ExportMarkdownCode}
     components={{
       a: ({ href, children, domNode: _domNode, streamStatus: _streamStatus, ...rest }: LinkProps) => {
         const attachment = findPublishedAttachment(href, attachments);

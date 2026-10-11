@@ -8,12 +8,13 @@ import type { MarkdownContentProps } from "@/features/viewers/components/Markdow
 const openTarget = jest.fn();
 const markdownProps: MarkdownContentProps[] = [];
 
-function renderNode(node: TimelineNode, surface = { chatId: "chat_01", agentKey: "coder-agent", teamChat: false }) {
+function renderNode(node: TimelineNode, surface = { chatId: "chat_01", agentKey: "coder-agent", teamChat: false }, conversationActive = false) {
   markdownProps.length = 0;
   openTarget.mockClear();
   return renderToStaticMarkup(React.createElement(TimelineInteractionProvider, {
     value: {
       readOnly: true,
+      conversationActive,
       surfaceContext: surface,
       openTarget,
       renderMarkdown: (props) => {
@@ -29,6 +30,14 @@ function content(text: string): TimelineNode {
 }
 
 describe("ContentBlock presentation boundary", () => {
+  it("marks only live unfinished content as receiving", () => {
+    renderNode(content("partial HTML"), undefined, true);
+    expect(markdownProps[0].isStreaming).toBe(true);
+    renderNode({ ...content("partial HTML"), status: "completed" }, undefined, true);
+    expect(markdownProps[0].isStreaming).toBe(false);
+    renderNode(content("partial HTML"));
+    expect(markdownProps[0].isStreaming).toBe(false);
+  });
   it("passes the selected chat and content to the host Markdown renderer", () => {
     const html = renderNode(content("> 第一段\n>\n> 第二段"), {
       chatId: "history", agentKey: "agent-1", teamChat: true,

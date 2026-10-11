@@ -25,6 +25,7 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
   lang,
   block,
   children,
+  htmlPreview = false,
   ...rest
 }) => {
   const { message } = App.useApp();
@@ -95,7 +96,7 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
             }
           }}
         >
-          <MaterialIcon name="preview" />
+          <MaterialIcon name="expand_content" />
         </UiButton>
       </Tooltip>
     );
@@ -117,6 +118,7 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
       block={block}
       copyCode={copyCode}
       extraActions={previewAction}
+      htmlPreview={htmlPreview}
     >
       {children}
     </ConversationMarkdownCode>

@@ -9,7 +9,7 @@ import {
   downloadResource,
   type ResourceUrlClassification,
 } from "@/shared/data";
-import { MarkdownCode } from "@/features/viewers/components/MarkdownCode";
+import { MarkdownCode, type ConversationMarkdownCodeProps } from "@/features/viewers/components/MarkdownCode";
 import {
   ConversationMarkdown,
   type ConversationMarkdownComponents,
@@ -43,6 +43,8 @@ export type { MarkdownWebLink } from "@/shared/ui/markdownWebLinks";
 
 export interface MarkdownContentProps {
   content: string;
+  isStreaming?: boolean;
+  htmlPreview?: boolean;
   chatId: string;
   teamChat?: boolean;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
@@ -55,6 +57,9 @@ export interface ResourceFileLink {
   name: string;
   classification: ResourceUrlClassification;
 }
+
+// Keep the renderer identity stable as later Markdown deltas arrive.
+const InlineHtmlMarkdownCode = (props: ConversationMarkdownCodeProps) => <MarkdownCode {...props} htmlPreview />;
 
 /**
  * Extracts the filename from a supported ChatScope or absolute resource path.
@@ -418,6 +423,8 @@ const AuthVideo: React.FC<AuthVideoProps> = (props) => {
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   content,
+  isStreaming,
+  htmlPreview = false,
   chatId,
   teamChat = false,
   onWorkspaceFileLinkClick,
@@ -449,8 +456,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   return (
     <ConversationMarkdown
       content={content}
+      isStreaming={isStreaming}
       components={markdownComponents}
-      codeComponent={MarkdownCode}
+      codeComponent={htmlPreview ? InlineHtmlMarkdownCode : MarkdownCode}
     />
   );
 };

@@ -55,15 +55,14 @@
   display: block;
   width: 100%;
   min-height: var(--markdown-mermaid-viewport-min-height);
-  max-height: min(72vh, 980px);
-  overflow: auto;
+  overflow-x: auto;
   padding: 14px;
   border: 0;
   background: transparent;
   color: inherit;
   cursor: grab;
   user-select: none;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .root :global(.markdown-mermaid-viewport:focus-visible) {
