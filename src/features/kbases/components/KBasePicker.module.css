@@ -1,13 +1,22 @@
-.picker { width: 320px; max-width: calc(100vw - 50px); color: var(--text-main); }
-.header, .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; }
-.header span, .footer, .copy > span, .copy small { color: var(--text-muted); font-size: 12px; }
-.list { max-height: min(300px, calc(100dvh - 240px)); overflow-y: auto; padding-top: 6px; }
-.row { display: flex; width: 100%; margin-inline-start: 0; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 7px; cursor: pointer; }
-.row > span:last-child { min-width: 0; flex: 1; }
-.row:hover { background: var(--bg-hover); }
-.row:has(input:disabled) { cursor: not-allowed; opacity: .65; }
-.copy { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; overflow-wrap: anywhere; }
-.footer { border-top: 1px solid var(--line-soft); }
+.picker { width: 100%; min-width: 0; color: var(--text-main); }
+.search:global(.ant-input-affix-wrapper) { min-height: 32px; padding: 4px 8px; margin-bottom: 8px; border-radius: 10px; background: var(--bg-hover); }
+.search :global(.ant-input-prefix) { margin-right: 8px; color: var(--ink-muted); }
+.list { max-height: min(300px, 55vh); overflow-y: auto; overscroll-behavior: contain; }
+.row:global(.ant-checkbox-wrapper) { display: flex; width: 100%; margin-inline-start: 0; align-items: center; gap: 12px; min-height: 44px; padding: 6px 8px; border-radius: 8px; color: var(--text-main); cursor: pointer; }
+.row > :global(.ant-checkbox) { order: 1; flex-shrink: 0; }
+.row > span:last-child { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; padding: 0; }
+.row:not(:has(input:disabled)):hover { background: var(--bg-hover); }
+.row:has(input:checked) { background: color-mix(in srgb, var(--accent-electric) 10%, transparent); }
+.row:has(input:checked):hover { background: color-mix(in srgb, var(--accent-electric) 15%, transparent); }
+.row:focus-within { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
+.row:has(input:disabled) { cursor: not-allowed; opacity: .5; }
+.picker .icon { flex-shrink: 0; width: 18px; height: 18px; color: var(--accent); }
+.copy { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
+.copy > strong, .copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy > strong { font-size: 14px; line-height: 20px; font-weight: 600; }
+.copy > span { color: var(--ink-muted); font-size: 11px; line-height: 16px; }
+.status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 20px 8px; color: var(--ink-muted); font-size: 12px; }
+.visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 6px; font-size: 12px; }
 .tag, .bound { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 7px; border-radius: 5px; background: var(--accent-soft); color: var(--accent); }
 .tag > span, .bound > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

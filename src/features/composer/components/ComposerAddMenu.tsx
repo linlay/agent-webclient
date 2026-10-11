@@ -68,7 +68,7 @@ const sectionMeta: Record<
   Section,
   { icon: MaterialIconName; key: string; detailWidth?: number }
 > = {
-  kbases: { icon: "book_2", key: "kbase.title", detailWidth: 344 },
+  kbases: { icon: "book_2", key: "kbase.title", detailWidth: 320 },
   files: { icon: "attach_file", key: "composer.addMenu.section.files" },
   skills: {
     icon: "skills",

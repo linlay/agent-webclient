@@ -4,7 +4,6 @@ import type {
 export const enUSMessages = {
   "kbase.idsPlaceholder": "[\"library-id\"]",
   "kbase.title": "Knowledge libraries",
-  "kbase.selected": "{count} selected",
   "kbase.selectionLimit": "Select at most {count} libraries per query",
   "kbase.search": "Search libraries",
   "kbase.retry": "Check again",
@@ -13,7 +12,6 @@ export const enUSMessages = {
   "kbase.unreadable": "Not readable",
   "kbase.indexing": "Indexing; existing index is readable",
   "kbase.degraded": "Some retrieval capabilities degraded",
-  "kbase.nextQuery": "Selection applies to the next query",
   "kbase.clear": "Clear",
   "kbase.bound": "Bound library",
   "kbase.selectionUnavailable": "Selected libraries are unavailable. Check again or remove them before sending",

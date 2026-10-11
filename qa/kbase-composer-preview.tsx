@@ -29,7 +29,7 @@ function Preview() {
  const [payload, setPayload] = useState<Record<string, unknown>>();
  const refresh = useCallback(() => {setStatus("loading"); window.setTimeout(() => setStatus(scenario === "error" ? "error" : scenario === "loading" ? "loading" : "success"), 450);}, [scenario]);
  useEffect(() => {document.documentElement.dataset.theme = dark ? "dark" : "light";}, [dark]);
- const catalog = useMemo<KBaseCatalog>(() => ({status, refresh, error: "kbase.protocolUnavailable", data: status === "success" ? {agentKey: "general", boundLibraryId: "fixed", capability: {available: scenario !== "unavailable", reason: "请先为智能体挂载知识库检索连接器"}, libraries: scenario === "empty" ? [] : libraries} : undefined}), [status, refresh, scenario]);
+ const catalog = useMemo<KBaseCatalog>(() => ({status, refresh, error: "kbase.protocolUnavailable", data: status === "success" ? {agentKey: "general", boundLibraryId: "fixed", capability: {available: scenario !== "unavailable", reason: "请先为智能体挂载知识库检索连接器"}, libraries: scenario === "empty" ? [] : scenario === "single" ? [{id: "research", name: "研发知识", description: "ai · 研发", collections: [], readable: true, indexing: false, degraded: false}] : libraries} : undefined}), [status, refresh, scenario]);
  return <ConfigProvider theme={{algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm}}><App>
   <main style={{minHeight: "100vh", background: "var(--bg-base)", color: "var(--text-main)", padding: "36px 20px"}}>
    <div style={{maxWidth: 760, margin: "auto"}}>
@@ -37,7 +37,7 @@ function Preview() {
     <p style={{color: "var(--text-muted)"}}>隔离 fixture，复用实际 ＋菜单、知识库选择器和标签组件。这里的发送仅展示请求快照。</p>
     <div style={{display: "flex", gap: 12, margin: "24px 0", flexWrap: "wrap"}}>
      <button onClick={() => setDark(value => !value)}>切换主题</button>
-     <select aria-label="场景" value={scenario} onChange={event => {setScenario(event.target.value); setStatus("idle");}}>{["normal","loading","empty","error","unavailable"].map(item => <option key={item}>{item}</option>)}</select>
+     <select aria-label="场景" value={scenario} onChange={event => {setScenario(event.target.value); setStatus("idle");}}>{["normal","single","loading","empty","error","unavailable"].map(item => <option key={item}>{item}</option>)}</select>
      <select aria-label="Chat" value={chat} onChange={event => setChat(event.target.value)}><option>chat-a</option><option>chat-b</option><option>new-chat</option></select>
     </div>
     {payload && <div style={{padding: 16, marginBottom: 20, background: "var(--bg-elev-2)", borderRadius: 12}}><strong>本次请求快照</strong><pre style={{whiteSpace: "pre-wrap", fontSize: 12}}>{JSON.stringify(payload,null,2)}</pre></div>}

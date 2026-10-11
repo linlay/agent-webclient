@@ -4,7 +4,6 @@ import type {
 export const zhCNMessages = {
   "kbase.idsPlaceholder": "[\"知识库ID\"]",
   "kbase.title": "知识库",
-  "kbase.selected": "已选择 {count} 个",
   "kbase.selectionLimit": "每轮最多选择 {count} 个知识库",
   "kbase.search": "搜索知识库",
   "kbase.retry": "重新检查",
@@ -13,7 +12,6 @@ export const zhCNMessages = {
   "kbase.unreadable": "暂不可读",
   "kbase.indexing": "索引中，旧索引可读",
   "kbase.degraded": "部分检索能力降级",
-  "kbase.nextQuery": "选择用于下一轮消息",
   "kbase.clear": "清空",
   "kbase.bound": "固定绑定",
   "kbase.selectionUnavailable": "所选知识库不可用，请重新检查或移除后发送",

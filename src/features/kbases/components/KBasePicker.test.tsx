@@ -5,9 +5,9 @@ import {KBasePicker} from "./KBasePicker";
 import {KBaseSelectionTags} from "./KBaseSelectionTags";
 import type {SelectedKBase} from "../lib/kbasesState";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-jest.mock("antd", () => ({Checkbox: ({checked, disabled, onChange, children}: any) => <label><input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} />{children}</label>, Input: ({allowClear, ...props}: any) => <input {...props} />}));
+jest.mock("antd", () => ({Checkbox: ({checked, disabled, onChange, children}: any) => <label><input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} />{children}</label>, Input: jest.requireActual("react").forwardRef(({allowClear, variant, prefix, ...props}: any, ref: any) => <input {...props} ref={ref} />), Spin: () => null}));
 jest.mock("@/shared/ui/UiButton", () => ({UiButton: ({children, variant, size, ...props}: any) => <button {...props}>{children}</button>}));
-it("searches, multi-selects readable old indexes and clears the selection", () => {
+it("searches and multi-selects readable old indexes", () => {
  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
  const refresh = jest.fn();
  let selected: SelectedKBase[] = [];
@@ -26,8 +26,6 @@ it("searches, multi-selects readable old indexes and clears the selection", () =
  const search = host.querySelector<HTMLInputElement>('input:not([type="checkbox"])')!;
  act(() => {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(search, "Architecture"); search.dispatchEvent(new Event("input", {bubbles: true}));});
  expect(host.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
- act(() => host.querySelector<HTMLButtonElement>("button")!.click());
- expect(selected).toEqual([]);
  act(() => root.unmount()); host.remove();
 });
 it("separates fixed binding, folds four choices and removes one without clearing others", () => {
