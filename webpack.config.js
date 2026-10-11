@@ -85,9 +85,10 @@ function createRuntimeConfigScript() {
 }
 
 class PublicAssetPlugin {
-  constructor({ from, to }) {
+  constructor({ from, to, minimized = false }) {
     this.from = from;
     this.to = to;
+    this.minimized = minimized;
   }
 
   apply(compiler) {
@@ -98,8 +99,12 @@ class PublicAssetPlugin {
           stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
         },
         () => {
-          const content = fs.readFileSync(path.resolve(compiler.context, this.from));
-          compilation.emitAsset(this.to, new compiler.webpack.sources.RawSource(content));
+          const sourcePath = path.resolve(compiler.context, this.from);
+          compilation.fileDependencies.add(sourcePath);
+          const content = fs.readFileSync(sourcePath);
+          compilation.emitAsset(this.to, new compiler.webpack.sources.RawSource(content), {
+            minimized: this.minimized,
+          });
         },
       );
     });
@@ -231,6 +236,19 @@ module.exports = (env, argv) => {
         from: 'public/default-skill.png',
         to: 'default-skill.png',
       }),
+      ...[
+        { from: 'node_modules/echarts/dist/echarts.min.js', name: 'echarts.min.js', minimized: true },
+        { from: 'node_modules/mermaid/dist/mermaid.min.js', name: 'mermaid.min.js', minimized: true },
+        { from: 'node_modules/echarts/LICENSE', name: 'echarts.LICENSE.txt' },
+        { from: 'node_modules/echarts/NOTICE', name: 'echarts.NOTICE.txt' },
+        { from: 'node_modules/mermaid/LICENSE', name: 'mermaid.LICENSE.txt' },
+        { from: 'public/visualization/preview.css', name: 'preview.css' },
+        { from: 'public/visualization/example.html', name: 'example.html' },
+      ].map(({ from, name, minimized }) => new PublicAssetPlugin({
+        from,
+        to: `assets/visualization/${name}`,
+        minimized,
+      })),
       new HtmlWebpackPlugin({
         template: './public/index.html',
         title: 'AGENT Webclient',

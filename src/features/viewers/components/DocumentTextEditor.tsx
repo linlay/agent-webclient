@@ -3,6 +3,7 @@ import { Button, Dropdown, Input, Modal, Space } from "antd";
 import type * as MonacoTypes from "monaco-editor";
 import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { resolveHtmlVisualizationAssets } from "@/shared/utils/htmlVisualizationAssets";
 import { t } from "@/shared/i18n";
 import type { DocumentContentKind } from "@/shared/types/document";
 import {
@@ -329,7 +330,7 @@ export const DocumentTextEditor: React.FC<{
     <iframe
       key={value}
       className="tw:h-full tw:min-h-[420px] tw:w-full tw:border-0"
-      srcDoc={value}
+      srcDoc={resolveHtmlVisualizationAssets(value)}
       title={name}
       sandbox="allow-forms allow-modals allow-scripts"
     />

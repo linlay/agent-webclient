@@ -5,6 +5,7 @@ import {
   type AgentWebclientWorkPanelPreviewReviewAction,
 } from "@/shared/contracts/generated/agentWebclientBridge";
 import { useDesktopCurrentPreviewReview } from "@/shared/data/desktop/desktopContextMenu";
+import { resolveHtmlVisualizationAssets } from "@/shared/utils/htmlVisualizationAssets";
 
 const FRAME_ACTION = "__zenmindDesktopHtmlReviewAction";
 const FRAME_EVENT = "__zenmindDesktopHtmlReviewEvent";
@@ -246,14 +247,13 @@ export function useDesktopHtmlPreviewReview(input: {
     () => stableHash(`${input.sourceKey}\u0000${input.html || ""}`),
     [input.html, input.sourceKey],
   );
-  const srcDoc = useMemo(
-    () => input.html === null
-      ? null
-      : input.enabled
-        ? buildDesktopHtmlPreviewDocument(input.html, input.baseUrl, token)
-        : input.html,
-    [input.baseUrl, input.enabled, input.html, token],
-  );
+  const srcDoc = useMemo(() => {
+    if (input.html === null) return null;
+    const html = resolveHtmlVisualizationAssets(input.html);
+    return input.enabled
+      ? buildDesktopHtmlPreviewDocument(html, input.baseUrl, token)
+      : html;
+  }, [input.baseUrl, input.enabled, input.html, token]);
 
   const emitCapability = useCallback((requestId: string) => {
     const current = inputRef.current;

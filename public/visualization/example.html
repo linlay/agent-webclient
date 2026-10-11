@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebClient 本地图表运行时</title>
+  <link rel="stylesheet" href="/assets/visualization/preview.css">
+  <script src="/assets/visualization/echarts.min.js"></script>
+  <script src="/assets/visualization/mermaid.min.js"></script>
+</head>
+<body>
+  <main class="viz-shell">
+    <section class="viz-panel">
+      <h1>WebClient 本地图表运行时</h1>
+      <p class="viz-muted">此页仅加载 WebClient 自带资源，可在 HTML 预览中运行。</p>
+      <p id="status" role="status">正在绘制图表…</p>
+      <details>
+        <summary>可复制到 Agent 提示词的约定</summary>
+        <pre>生成供 WebClient 预览的 HTML 时，使用以下内置资源，不使用外部 CDN：
+ECharts：&lt;script src="/assets/visualization/echarts.min.js"&gt;&lt;/script&gt;
+Mermaid：&lt;script src="/assets/visualization/mermaid.min.js"&gt;&lt;/script&gt;
+可选页面样式：&lt;link rel="stylesheet" href="/assets/visualization/preview.css"&gt;
+只加载页面实际使用的库，使用普通 script 标签，分别通过 echarts 和 mermaid 全局对象调用。
+ECharts 容器必须有明确高度；Mermaid 使用 securityLevel: "strict"。
+先创建容器，再执行初始化；布局变化时调用 ECharts resize。
+这些资源地址用于 WebClient 预览，下载后直接双击 HTML 不保证可用。</pre>
+      </details>
+    </section>
+    <section class="viz-panel">
+      <h2>ECharts 柱状图</h2>
+      <div id="chart" class="viz-chart" role="img" aria-label="四阶段事件数柱状图"></div>
+    </section>
+    <section class="viz-panel">
+      <h2>Mermaid 时序图</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    participant FE as Frontend
+    participant AP as Agent Platform
+    FE-&gt;&gt;AP: POST /api/steer
+    AP--&gt;&gt;FE: accepted
+    AP--&gt;&gt;FE: request.steer
+    AP--&gt;&gt;FE: content.delta
+    AP--&gt;&gt;FE: run.complete</pre>
+    </section>
+  </main>
+  <script>
+    (async () => {
+      const status = document.getElementById("status");
+      try {
+        const chart = echarts.init(document.getElementById("chart"), null, { renderer: "svg" });
+        chart.setOption({
+          aria: { enabled: true },
+          color: ["#164e63"],
+          tooltip: { trigger: "axis" },
+          grid: { left: 48, right: 24, top: 24, bottom: 40 },
+          xAxis: { type: "category", data: ["请求", "确认", "内容", "完成"] },
+          yAxis: { type: "value", minInterval: 1 },
+          series: [{ type: "bar", data: [1, 1, 4, 1], barMaxWidth: 64 }]
+        });
+        new ResizeObserver(() => chart.resize()).observe(document.getElementById("chart"));
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: "strict",
+          theme: "base",
+          themeVariables: { primaryColor: "#fffaf3", primaryBorderColor: "#164e63", lineColor: "#9a3412" }
+        });
+        await mermaid.run({ querySelector: ".mermaid" });
+        status.textContent = "ECharts 与 Mermaid 已就绪，全部资源来自本地。";
+        status.dataset.state = "ready";
+      } catch (error) {
+        status.textContent = "绘制失败：" + error.message;
+        status.dataset.state = "error";
+      }
+    })();
+  </script>
+</body>
+</html>
