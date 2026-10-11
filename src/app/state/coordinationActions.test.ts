@@ -9,15 +9,17 @@ it('clears only the gateway identity catalogs in one state transition', () => {
     chats: [{ chatId: 'chat' }],
     automations: [{ automationId: 'automation' }],
     chatPinnedOrder: ['chat'], chatPinningPending: true,
+    selectedKbasesByScope: { 'chat:chat': [{ id: 'library', name: 'Library' }] },
     chatId: 'chat', composerDraft: 'unsent', accessToken: 'token', agents: [{ key: 'agent', name: 'Agent' }, { key: 'team', mode: "TEAM" }] } as AppState;
   const next = appReducer(state, { type: 'CLEAR_GATEWAY_IDENTITY_STATE' });
   const expected = { chats: [], automations: [],
-    chatPinnedOrder: null, chatPinningPending: false, agents: [] };
+    chatPinnedOrder: null, chatPinningPending: false, agents: [], selectedKbasesByScope: {}, composerEditVersion: state.composerEditVersion + 1 };
   expect(next).toMatchObject(expected);
   for (const key of Object.keys(state) as Array<keyof AppState>) {
     if (!(key in expected)) expect(next[key]).toBe(state[key]);
   }
   expect(state.chatPinnedOrder).toEqual(['chat']);
+  expect(state.selectedKbasesByScope['chat:chat']).toEqual([{ id: 'library', name: 'Library' }]);
 });
 
 it('applies a complete replay atomically without overwriting unrelated fields from a wider object', () => {

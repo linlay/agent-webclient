@@ -21,3 +21,17 @@ export interface KnowledgeSearch { results: KnowledgeHit[]; trace?: { degraded: 
 export interface KnowledgeBaseStatistics { capabilities: { fullText?: { available: boolean }; vector?: { complete: boolean; queryModelConfigured: boolean }; graph?: { complete: boolean } } }
 export interface KnowledgeBaseStatus { libraryId: string; baseRevision: string; state: KnowledgeBase["state"]; indexedAt: number; indexing: boolean; stale: boolean; degraded: boolean; vectorsPending: boolean; orphaned: boolean; error: string; refreshError: string; statsAvailable: boolean; statistics?: KnowledgeBaseStatistics; statsError?: string }
 export interface KnowledgeRead { file: string; body?: string; evidence?: { text: string }; readRange?: { hasMore: boolean } }
+
+/** Composer usage catalog. Deliberately excludes source paths and admin configuration. */
+export interface KBaseOption {
+ id: string; name: string; description?: string;
+ collections: { name: string; description?: string }[];
+ readable: boolean; indexing: boolean; degraded: boolean;
+ unavailableReason?: string;
+}
+export interface KBaseOptionsResponse {
+ agentKey: string;
+ capability: { available: boolean; reason?: string };
+ boundLibraryId?: string;
+ libraries: KBaseOption[];
+}

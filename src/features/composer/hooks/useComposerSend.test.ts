@@ -595,6 +595,7 @@ describe('useComposerSend active run gate', () => {
     state.pendingNewChatAgentKey = 'agent-a';
     state.composerDraft = 'hello';
     state.composerDraftByChatId = { '': 'hello' };
+    state.selectedKbasesByScope['new:agent-a'] = [{ id: 'library-a', name: 'Library A' }];
     const operationOrder: string[] = [];
     const clearMustUseSkills = jest.fn(() => operationOrder.push('clear-skills'));
     const sendMessage = jest.fn();
@@ -691,6 +692,8 @@ describe('useComposerSend active run gate', () => {
         modelOverride: {},
         mustUseSkillsAgentKey: 'agent-a',
         mustUseSkills: ['code-review'],
+        mustUseKbases: ['library-a'],
+        kbaseScope: 'new:agent-a',
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
@@ -735,13 +738,17 @@ describe('useComposerSend active run gate', () => {
       agentKey: 'agent-a',
       mustUseSkillsAgentKey: 'agent-a',
       mustUseSkills: ['code-review'],
+      mustUseKbases: ['library-a'],
     }));
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: expect.objectContaining({ kbases: [{ id: 'library-a', name: 'Library A' }] }) }));
+    expect(state.selectedKbasesByScope['new:agent-a']).toEqual([{ id: 'library-a', name: 'Library A' }]);
     expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
   });
 
   it.each(['hello', ''])('queues selection references with or without text during an active run (%s)', (inputValue) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
+    state.selectedKbasesByScope['chat:chat-1'] = [{ id: 'library-a', name: 'Library A' }];
     state.currentChatActiveRun = {
       chatId: 'chat-1',
       runId: 'run-active',
@@ -805,6 +812,8 @@ describe('useComposerSend active run gate', () => {
         modelOverride: {},
         mustUseSkillsAgentKey: '',
         mustUseSkills: [],
+        mustUseKbases: ['library-a'],
+        kbaseScope: 'chat:chat-1',
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
@@ -844,9 +853,11 @@ describe('useComposerSend active run gate', () => {
     });
     expect(setInputValue).toHaveBeenCalledWith('');
     expect(closeMention).toHaveBeenCalled();
+    expect(state.selectedKbasesByScope['chat:chat-1']).toEqual([{ id: 'library-a', name: 'Library A' }]);
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_SELECTED_KBASES' }));
   });
 
-  it('routes an inline /btw question before the active-run steer path', () => {
+  it.each([false, true])('handles an inline /btw question with required libraries selected: %s', (selected) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
     state.currentChatActiveRun = {
@@ -910,6 +921,7 @@ describe('useComposerSend active run gate', () => {
         modelOverride: { key: 'model-a' },
         mustUseSkillsAgentKey: '',
         mustUseSkills: [],
+        mustUseKbases: selected ? ['library-a'] : [],
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [{ name: 'spec.md', size: 12 }],
@@ -932,6 +944,13 @@ describe('useComposerSend active run gate', () => {
     renderToStaticMarkup(React.createElement(Harness));
     actions?.handleSend();
 
+    if (selected) {
+      expect(openBTWMock).not.toHaveBeenCalled();
+      expect(mockMessageApi.warning).toHaveBeenCalled();
+      expect(setInputValue).not.toHaveBeenCalled();
+      expect(clearComposerAttachments).not.toHaveBeenCalled();
+      return;
+    }
     expect(openBTWMock).toHaveBeenCalledWith(
       expect.objectContaining({
         parentChatId: 'chat-1',

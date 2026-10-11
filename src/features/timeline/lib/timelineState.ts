@@ -187,6 +187,8 @@ export interface TimelineNode {
 	sources?: TimelineSource[];
 	errorDetail?: TimelineErrorDetail;
 	mustUseSkills?: string[];
+    mustUseKbases?: string[];
+    kbaseLabels?: Record<string, string>;
 	embeddedViewports?: Record<string, EmbeddedViewport>;
 	ttsVoiceBlocks?: Record<string, TtsVoiceBlock>;
 }

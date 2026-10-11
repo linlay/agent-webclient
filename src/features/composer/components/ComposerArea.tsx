@@ -36,6 +36,12 @@ import {
 } from "@/features/composer/components/ComposerContext";
 import { ComposerAttachments } from "@/features/composer/components/ComposerAttachments";
 import { ComposerInput } from "@/features/composer/components/ComposerInput";
+import { useKBaseOptions } from "@/features/kbases/hooks/useKBaseOptions";
+import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
+import { unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
+import { KBaseSelectionTags } from "@/features/kbases/components/KBaseSelectionTags";
+import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
+import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
 import { ComposerWonders } from "@/features/composer/components/ComposerWonders";
 import { ComposerContextBar } from "@/features/composer/components/ComposerContextBar";
@@ -177,6 +183,17 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
+  const kbaseScope = kbaseSelectionScope(state.chatId, currentAgentKey);
+  const selectedKbases = state.selectedKbasesByScope[kbaseScope] || [];
+  const kbaseTargetAgentKey = parseLeadingAgentMention(inputValue, resolveMentionCandidatesFromState(state)).mentionAgentKey || currentAgentKey;
+  const kbaseCatalog = useKBaseOptions(kbaseTargetAgentKey, selectedKbases.length > 0 || kbaseTargetAgentKey !== currentAgentKey);
+  const setSelectedKbases = (libraries: import("@/features/kbases/lib/kbasesState").SelectedKBase[]) => dispatch({type: "SET_SELECTED_KBASES", scope: kbaseScope, libraries});
+  const invalidKbaseIds = unavailableKbaseIds(kbaseCatalog.data, selectedKbases.map(item => item.id));
+  const targetKbaseDefinition = (state.agents.find(agent => agent.key === kbaseTargetAgentKey)?.definition as Record<string, unknown> | undefined) ||
+    (kbaseTargetAgentKey === currentAgentKey ? currentWorker?.raw?.definition as Record<string, unknown> | undefined : undefined);
+  const boundLibraryId = kbaseCatalog.data?.boundLibraryId || (targetKbaseDefinition?.kbaseConfig as {libraryId?: string} | undefined)?.libraryId;
+  const boundLibrary = boundLibraryId ? {id: boundLibraryId, name: kbaseCatalog.data?.libraries.find(item => item.id === boundLibraryId)?.name || boundLibraryId} : undefined;
+  const kbaseMenuAvailable = kbaseTargetAgentKey === currentAgentKey ? interactionConfig.mustUseKbases === true : kbaseCatalog.status === "success";
   const accessScope = resolveComposerAccessScope(state.accessToken);
   const accessAgentKey = currentAgentKey || ((""));
   const accessTarget = useMemo(() => ({
@@ -705,6 +722,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     modelOverride: interactionConfig.model ? modelOverride : {},
     mustUseSkillsAgentKey: effectiveSkills.length > 0 ? currentAgentKey : "",
     mustUseSkills: effectiveSkills.map((skill) => skill.id),
+    mustUseKbases: selectedKbases.map(item => item.id), kbaseScope,
     selectSlashItem,
     onSelectSlashSkill: handleSelectSlashSkill,
     sendAttachmentMeta: combinedSendAttachmentMeta,
@@ -1101,6 +1119,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     </Flex>
                   ))}
                 </Flex>
+                <KBaseSelectionTags selected={selectedKbases.map(item => ({...item, name: kbaseCatalog.data?.libraries.find(library => library.id === item.id)?.name || item.name}))} boundLibrary={boundLibrary} invalidIds={invalidKbaseIds} onChange={setSelectedKbases} />
                 <ComposerInput
                   isVoiceMode={isVoiceMode}
                   isFrontendActive={isFrontendActive}
@@ -1188,6 +1207,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onAddReference={addContextReference}
                   currentAgentKey={currentAgentKey}
                   isMainChatRunning={isMainChatRunning}
+                  kbaseCatalog={kbaseMenuAvailable ? kbaseCatalog : undefined} selectedKbases={selectedKbases} onSelectKbases={setSelectedKbases}
                   selectedSkillIds={effectiveSkills.map((skill) => skill.id)}
                   selectedPackageId={effectiveManualSkills.find(skill => skill.selectedViaPackageId)?.selectedViaPackageId}
                   onSelectSkill={handleSelectSlashSkill}

@@ -64,6 +64,7 @@ export type EventCommand =
 			taskGroupId?: string;
 			subAgentKey?: string;
 			mustUseSkills?: string[];
+    mustUseKbases?: string[];
 	  }
 	| {
 			cmd: "SYSTEM_ERROR";

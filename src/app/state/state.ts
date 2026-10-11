@@ -1,3 +1,4 @@
+import { createInitialKBasesState } from "@/features/kbases/lib/kbasesState";
 import type { AppState } from "@/app/state/types";
 import { getAppAccessToken } from "@/shared/data/auth/appAuth";
 import { readStoredAccessToken } from "@/shared/data/auth/accessTokenStorage";
@@ -46,7 +47,8 @@ export function createInitialState(): AppState {
     ...createInitialArtifactsState(),
     ...createInitialOverviewState(),
     ...createInitialViewersState(),
-    ...createInitialComposerState(),
+    ...createInitialKBasesState(),
+		...createInitialComposerState(),
     ...createInitialVoiceState(),
     ...createInitialUsageState(),
     ...createInitialAutomationsState(),

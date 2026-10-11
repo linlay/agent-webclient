@@ -153,7 +153,7 @@ export const SourceDetailContent: React.FC<{
         </div>
       </div>
 
-      {source.libraryId && source.agentKey && <KnowledgeSourceRead key={`${chatId}/${source.id}`} chatId={chatId} sourceId={source.id} name={source.name || source.id.split("/").pop() || "source"} />}
+      {source.libraryId && <KnowledgeSourceRead key={`${chatId}/${source.libraryId}/${source.id}`} chatId={chatId} sourceId={source.id} name={source.name || source.id.split("/").pop() || "source"} />}
       <div className={SOURCE_DETAIL_BODY_CLASS_NAME}>
         <ul className={SOURCE_DETAIL_CHUNK_LIST_CLASS_NAME}>
           {chunks.map((chunk) => (

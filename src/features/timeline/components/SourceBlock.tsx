@@ -60,7 +60,7 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
         {sources.map((source) => (
           <UiButton
             className={SOURCE_ITEM_CLASS_NAME}
-            key={source.id}
+            key={`${source.libraryId || ""}:${source.id}`}
             size="sm"
             disabled={!interaction?.openSource}
             onClick={() => openSource(source)}

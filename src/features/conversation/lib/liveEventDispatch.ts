@@ -130,6 +130,7 @@ export function applyLiveEventCommand(input: {
 				taskGroupId: command.taskGroupId,
 				subAgentKey: command.subAgentKey,
 				mustUseSkills: command.mustUseSkills,
+          mustUseKbases: command.mustUseKbases,
 			});
 			cache.nodeText.set(command.nodeId, command.text);
 			dispatch({
@@ -149,6 +150,7 @@ export function applyLiveEventCommand(input: {
 					taskGroupId: command.taskGroupId,
 					subAgentKey: command.subAgentKey,
 					mustUseSkills: command.mustUseSkills,
+          mustUseKbases: command.mustUseKbases,
 				},
 			});
 			dispatch({ type: "APPEND_TIMELINE_ORDER", id: command.nodeId });

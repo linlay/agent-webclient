@@ -1,3 +1,4 @@
+import type { KBasesAction } from "@/features/kbases/lib/kbasesState";
 import type { AppState } from "@/app/state/types";
 import type { AppChromeAction } from "@/app/state/appChromeState";
 import type { AgentsAction } from "@/features/agents/lib/agentState";
@@ -64,6 +65,7 @@ export type AppAction =
   | ArtifactsAction
   | OverviewAction
   | ViewersAction
+  | KBasesAction
   | ComposerAction
   | VoiceAction
   | UsageAction

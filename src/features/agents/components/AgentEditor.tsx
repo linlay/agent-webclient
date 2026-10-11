@@ -179,6 +179,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
     "model",
     "accessLevel",
     "mustUseSkills",
+    "mustUseKbases",
     "connectors",
     "localFiles",
     "chatRecords",

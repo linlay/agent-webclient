@@ -1,3 +1,5 @@
+import { loadKBaseOptions, normalizeKbaseIds, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
+import { t } from "@/shared/i18n";
 import { rejectAgentCheck } from "@/features/agents/lib/agentRefresh";
 import { requestSkillsRefresh } from "@/features/skills/lib/skillRefresh";
 import { getDataSessionRevision } from "@/shared/data/auth/dataSession";
@@ -65,6 +67,8 @@ interface SendMessageEventDetail {
   editingMode?: unknown;
   mustUseSkillsAgentKey?: unknown;
   mustUseSkills?: unknown;
+  mustUseKbases?: unknown;
+  kbaseScope?: unknown;
 }
 
 // Upload can allocate a Chat before its first query. Capture the route's nonce
@@ -287,6 +291,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       mustUseSkills: string[] = [],
       mustUseSkillsAgentKey = "",
       submissionRequestId = "",
+      mustUseKbases: string[] = [],
+      kbaseScope = "",
     ) => {
       const submissionSession = getDataSessionRevision();
       const rawMessage = String(inputMessage ?? "").trim();
@@ -406,6 +412,34 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
       const selectedAgentKey = selectedOwner?.kind === "agent" ? selectedOwner.agentKey : "";
 
+      const normalizedKbases = normalizeKbaseIds(mustUseKbases);
+      const validationChatId = stateRef.current.chatId;
+      const validationTransitionSeq = stateRef.current.chatTransition?.seq;
+      const planningMode = Boolean(stateRef.current.planningMode);
+      let kbaseLabels: Record<string, string> | undefined;
+      if (normalizedKbases.length > 0) {
+        try {
+          const catalog = await loadKBaseOptions(selectedAgentKey);
+          if (unavailableKbaseIds(catalog, normalizedKbases).length) throw new Error("kbase.selectionUnavailable");
+          kbaseLabels = Object.fromEntries(catalog.libraries.filter(item => normalizedKbases.includes(item.id)).map(item => [item.id, item.name]));
+          if (getDataSessionRevision() !== submissionSession) return;
+        } catch (error) {
+          if (getDataSessionRevision() !== submissionSession || stateRef.current.chatId !== validationChatId) return;
+          const reason = String((error as Error).message || error);
+          const nodeId = `kbase_error_${Date.now()}`;
+          dispatch({type: "SET_TIMELINE_NODE", id: nodeId, node: {id: nodeId, kind: "message", role: "system", systemMessageLevel: "error", ts: Date.now(), text: reason.startsWith("kbase.") ? t(reason) : reason}});
+          dispatch({type: "APPEND_TIMELINE_ORDER", id: nodeId});
+          return;
+        }
+        if (stateRef.current.chatId !== validationChatId || stateRef.current.chatTransition?.seq !== validationTransitionSeq) return;
+        const activeRequestId = activeQuerySessionRequestIdRef.current;
+        if (!canSendToTargetChat({
+          currentActiveSession: activeRequestId ? querySessionsRef.current.get(activeRequestId) ?? null : null,
+          currentChatActiveRun: stateRef.current.currentChatActiveRun,
+          currentStateChatId: stateRef.current.chatId,
+          targetChatId,
+        })) return;
+      }
       const cleanMessage = (mention.cleanMessage || rawMessage);
 
       const selectedAgent = stateRef.current.agents.find(
@@ -477,6 +511,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             text: cleanMessage,
             attachments: attachments.length > 0 ? attachments : undefined,
             ts: Date.now(),
+            mustUseKbases: normalizedKbases.length ? [...normalizedKbases] : undefined,
+            kbaseLabels,
             mustUseSkills:
               normalizedMustUseSkills.length > 0
                 ? normalizedMustUseSkills
@@ -752,8 +788,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           accessLevel,
           model,
           params: Object.keys(params).length > 0 ? params : undefined,
-          planningMode: Boolean(stateRef.current.planningMode),
+          planningMode,
           editingMode: session.editingMode === true,
+          mustUseKbases: normalizedKbases.length ? [...normalizedKbases] : undefined,
           mustUseSkills:
             normalizedMustUseSkills.length > 0
               ? normalizedMustUseSkills
@@ -765,6 +802,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         const identity = await execution.identity;
         initializeChatAccess(identity.chatId);
         queryAccepted = true;
+        if (kbaseScope.startsWith("new:")) dispatch({type: "PROMOTE_KBASE_SELECTION", scope: kbaseScope, chatId: identity.chatId});
         dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: true });
         notifySelectedTextReferencesAccepted(normalizedReferences);
         session.chatId = identity.chatId;
@@ -931,6 +969,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           mustUseSkills,
           mustUseSkillsAgentKey,
           detail.submissionRequestId,
+          normalizeKbaseIds(detail.mustUseKbases),
+          String(detail.kbaseScope || ""),
         ).finally(() => {
           if (detail.submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId: detail.submissionRequestId, accepted: false });
         });

@@ -1,0 +1,18 @@
+.picker { width: 320px; max-width: calc(100vw - 50px); color: var(--text-main); }
+.header, .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; }
+.header span, .footer, .copy > span, .copy small { color: var(--text-muted); font-size: 12px; }
+.list { max-height: min(300px, calc(100dvh - 240px)); overflow-y: auto; padding-top: 6px; }
+.row { display: flex; width: 100%; margin-inline-start: 0; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 7px; cursor: pointer; }
+.row > span:last-child { min-width: 0; flex: 1; }
+.row:hover { background: var(--bg-hover); }
+.row:has(input:disabled) { cursor: not-allowed; opacity: .65; }
+.copy { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; overflow-wrap: anywhere; }
+.footer { border-top: 1px solid var(--line-soft); }
+.tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 6px; font-size: 12px; }
+.tag, .bound { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 7px; border-radius: 5px; background: var(--accent-soft); color: var(--accent); }
+.tag > span, .bound > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag[data-invalid] { color: var(--accent-danger); }
+.bound { color: var(--text-muted); background: var(--bg-hover); }
+.tags button { border: 0; color: inherit; background: transparent; padding: 1px 4px; cursor: pointer; }
+.tags > button { color: var(--text-muted); }
+@media (pointer: coarse) { .row { min-height: 44px; } .tags button { min-width: 32px; min-height: 32px; } }

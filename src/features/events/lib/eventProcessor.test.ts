@@ -183,6 +183,7 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           messageVariant: command.variant,
           steerId: command.steerId,
           text: command.text,
+          mustUseKbases: command.mustUseKbases,
           attachments: command.attachments,
           taskId: command.taskId,
           taskName: command.taskName,
@@ -291,6 +292,12 @@ describe('processStreamEvent', () => {
     expect(state.timelineNodes.get('compact_failed_incident-summary')?.text).toBe(
       '上下文压缩失败：待摘要的上下文超过单次摘要输入上限（summary_input_too_large）',
     );
+  });
+
+  it("keeps required library snapshots in replay/attach user messages", () => {
+    const state = createState();
+    processAndApply(state, {type: "request.query", requestId: "multi", message: "query", query: {mustUseKbases: ["lib-a", "lib-b"]}, timestamp: 100}, "replay");
+    expect(state.timelineNodes.get("user_multi")?.mustUseKbases).toEqual(["lib-a", "lib-b"]);
   });
 
   it('creates request.query user nodes only during replay', () => {

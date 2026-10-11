@@ -181,6 +181,7 @@ type NewChatCreatedEventDetail = {
 };
 
 export type PendingNewChatResend = {
+  mustUseKbases?: string[];
   agentKey: string;
   sourceChatId: string;
   newChat: string;
@@ -524,7 +525,7 @@ const AgentChatShellContent: React.FC = () => {
     };
   }, [agentKey, chatId, navigate, searchParams]);
 
-  const handleResendInNewChat = useCallback((text: string) => {
+  const handleResendInNewChat = useCallback((text: string, snapshot?: import("@/features/timeline/lib/queryResend").QueryResendSnapshot) => {
     const resendMessage = String(text || "").trim();
     const sourceChatId = String(chatId || "").trim();
     if (
@@ -551,6 +552,7 @@ const AgentChatShellContent: React.FC = () => {
       sourceChatId,
       newChat,
       message: resendMessage,
+      mustUseKbases: [...(snapshot?.mustUseKbases || [])],
       routePrepared: false,
       sent: false,
       failed: false,
@@ -794,6 +796,7 @@ const AgentChatShellContent: React.FC = () => {
           new CustomEvent("agent:send-message", {
             detail: {
               message: pendingResend.message,
+              mustUseKbases: [...(pendingResend.mustUseKbases || [])],
               agentKey: pendingResend.agentKey,
             },
           }),

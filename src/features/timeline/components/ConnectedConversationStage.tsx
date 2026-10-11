@@ -9,6 +9,7 @@ export { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/worker
 export { buildTimelineAgentOptions, filterTimelineAgentOptions, dispatchTimelineAgentSwitch } from "@/features/workers/lib/agentSelection";
 export type { TimelineAgentOption } from "@/features/workers/lib/agentSelection";
 import { useConversationSurface, useConversationPresentationClock } from "@/shared/ui/ConversationSurfaceContext";
+import { queryResendSnapshot } from "../lib/queryResend";
 import React, {
   useRef,
   useEffect,
@@ -468,7 +469,7 @@ interface ConversationStageProps {
   ) => Promise<void>;
   expectedChatId?: string;
   showEmptyState?: boolean;
-  onResendInNewChat?: (message: string) => void;
+  onResendInNewChat?: (message: string, snapshot?: import("../lib/queryResend").QueryResendSnapshot) => void;
 }
 
 export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
@@ -850,21 +851,21 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const agentExecutionBlocked = isAgentExecutionBlocked(state);
 
   const handleResend = useCallback(
-    (text: string) => {
+    (text: string, snapshot: import("../lib/queryResend").QueryResendSnapshot) => {
       if (agentExecutionBlocked || isMainChatRunning || !text.trim()) return;
       window.dispatchEvent(
-        new CustomEvent("agent:send-message", { detail: { message: text } }),
+        new CustomEvent("agent:send-message", { detail: { message: text, ...snapshot } }),
       );
     },
     [agentExecutionBlocked, isMainChatRunning],
   );
 
   const handleResendInNewChat = useCallback(
-    (text: string) => {
+    (text: string, snapshot: import("../lib/queryResend").QueryResendSnapshot) => {
       const messageText = text.trim();
       if (agentExecutionBlocked || isMainChatRunning || !messageText) return;
       if (onResendInNewChat) {
-        onResendInNewChat(messageText);
+        onResendInNewChat(messageText, snapshot);
         return;
       }
 
@@ -872,7 +873,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         preserveWorkerContext: true,
         focusComposerOnComplete: false,
       };
-      const sendDetail: Record<string, string> = { message: messageText };
+      const sendDetail: Record<string, unknown> = { message: messageText, ...snapshot };
       if (currentWorker?.type === "agent" && currentWorker.sourceId) {
         workerDetail.agentKey = currentWorker.sourceId;
         sendDetail.agentKey = currentWorker.sourceId;
@@ -1557,8 +1558,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         </UiButton>
         <Dropdown placement="bottomRight" menu={{
           onClick: ({ key }) => key === "resend"
-            ? handleResend(item.node.text || "")
-            : handleResendInNewChat(item.node.text || ""),
+            ? handleResend(item.node.text || "", queryResendSnapshot(item.node))
+            : handleResendInNewChat(item.node.text || "", queryResendSnapshot(item.node)),
           items: [
             { key: "resend", icon: <MaterialIcon name="refresh" className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm" />, label: t("timeline.query.resend") },
             { key: "resendInNewChat", icon: <MaterialIcon name="open_in_new" className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm" />, label: t("timeline.query.resendInNewChat") },

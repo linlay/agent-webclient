@@ -39,6 +39,7 @@ export type OpenTargetIntent =
       chatId: string;
       publishId: string;
       sourceId: string;
+      libraryId?: string;
       chunkId?: string;
       btwId?: string;
       source?: TimelineSource;
@@ -174,6 +175,7 @@ export function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteInte
       kind: "source",
       chatId: intent.chatId,
       sourceId: intent.sourceId,
+      libraryId: intent.libraryId || intent.source?.libraryId,
       chunkId: intent.chunkId,
     };
   }
@@ -373,6 +375,7 @@ export function buildDesktopWorkPanelDescriptor(
         chatId,
         publishId,
         sourceId,
+        ...(intent.libraryId || intent.source?.libraryId ? {libraryId: intent.libraryId || intent.source?.libraryId} : {}),
         ...(clean(intent.btwId) ? { btwId: clean(intent.btwId) } : {}),
       },
       ...(intent.title ? { title: intent.title } : {}),

@@ -1,3 +1,4 @@
+import { getKBaseOptionsHttp } from "./requests/kbases";
 import {
   getProjectGit as getProjectGitHttp,
   getProjectGitBranches as getProjectGitBranchesHttp,
@@ -658,4 +659,8 @@ export function getProjectGitBranches(agentKey: string, options: { signal?: Abor
 export function changeProjectGitBranch(request: ProjectGitBranchRequest) {
   // Never retry a dispatched mutation or fall back after a WS transport failure.
   return routeEndpoint(dataEndpoints.projectGitBranchChange, request, () => changeProjectGitBranchHttp(request));
+}
+
+export function getKBaseOptions(agentKey: string, signal?: AbortSignal) {
+ return routeEndpoint(dataEndpoints.kbases, { agentKey }, () => getKBaseOptionsHttp(agentKey, signal), signal);
 }

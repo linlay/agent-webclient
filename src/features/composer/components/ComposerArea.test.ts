@@ -1,3 +1,4 @@
+jest.mock("@/features/composer/hooks/useDesktopAwaitingDigit", () => ({useDesktopAwaitingDigit: jest.fn()}));
 const mockAgentAvailability = { status: "available", retry: jest.fn() };
 jest.mock("@/features/composer/hooks/useAgentAvailability", () => ({
   useAgentAvailability: () => mockAgentAvailability,

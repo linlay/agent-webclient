@@ -28,7 +28,11 @@ import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
 
-type Section = "files" | "skills" | "connectors" | "chat" | "site";
+import { KBasePicker } from "@/features/kbases/components/KBasePicker";
+import type { KBaseCatalog } from "@/features/kbases/hooks/useKBaseOptions";
+import type { SelectedKBase } from "@/features/kbases/lib/kbasesState";
+
+type Section = "kbases" | "files" | "skills" | "connectors" | "chat" | "site";
 export interface AddMenuTriggerProps {
   interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
   disabled: boolean;
@@ -43,6 +47,9 @@ export interface AddMenuTriggerProps {
   canCaptureDesktopScreenshot: boolean;
   isCapturingDesktopScreenshot: boolean;
   selectedSkillIds: string[];
+  kbaseCatalog?: KBaseCatalog;
+  selectedKbases?: SelectedKBase[];
+  onSelectKbases?: (items: SelectedKBase[]) => void;
   selectedPackageId?: string;
   lockedSkillIds?: string[];
   onSelectSkills?: (skills: AgentSkill[], selected: boolean, packageId?: string) => void;
@@ -61,6 +68,7 @@ const sectionMeta: Record<
   Section,
   { icon: MaterialIconName; key: string; detailWidth?: number }
 > = {
+  kbases: { icon: "book_2", key: "kbase.title", detailWidth: 344 },
   files: { icon: "attach_file", key: "composer.addMenu.section.files" },
   skills: {
     icon: "skills",
@@ -92,6 +100,7 @@ const sectionNav: NavEntry[] = [
   "mode",
   "skills",
   "connectors",
+  "kbases",
   "chat",
   "site",
 ];
@@ -410,6 +419,7 @@ const AddMenuSectionDetail: React.FC<
             )}
         </div>
       )}
+      {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => { props.onInteract?.(); props.onSelectKbases?.(items); }} />}
       {section === "chat" && (
         <div className={presentationClasses("composer-add-menu-scroll")}>
           {loadingContext && (
@@ -526,6 +536,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
       (!props.currentAgentKey || props.interactionConfig?.connectors === false)
     )
       return false;
+    if (entry === "kbases") return !!props.kbaseCatalog && !!props.onSelectKbases;
     if (entry === "screenshot")
       return props.canCaptureDesktopScreenshot &&
         props.interactionConfig?.attachment.localFiles !== false;
@@ -544,9 +555,9 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   }, [section, navEntries.join(",")]);
   // A side-by-side submenu cannot fit narrow chat windows. Reuse the parent
   // popover for this picker so the search and switches stay within the viewport.
-  if (compact && section === "connectors") {
+  if (compact && (section === "connectors" || section === "kbases")) {
     return (
-      <div>
+      <div onKeyDown={event => { if (event.key === "Escape") props.onClose(); }}>
         <UiButton
           variant="ghost"
           size="sm"
@@ -558,7 +569,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
         </UiButton>
         <AddMenuSectionDetail
           {...props}
-          section="connectors"
+          section={section}
           onClose={props.onClose}
           search={search}
           onSearchChange={setSearch}
@@ -567,7 +578,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
     );
   }
   return (
-    <div className={presentationClasses("composer-add-menu-nav")} role="menu">
+    <div className={presentationClasses("composer-add-menu-nav")} role="menu" onKeyDown={event => {if (event.key === "Escape") props.onClose();}}>
       {visibleEntries.map((entry, index) =>
         entry === "divider" ? (
           <div
@@ -634,7 +645,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
               // Keep an interactive picker open until selection, Escape, another
               // section or the outer click-away closes it. Filtering must not
               // turn popup realignment into a mouse-leave dismissal.
-              if (!next && (search.trim() || (entry === "skills" && skillPickerInteracting.current))) return;
+              if (!next && (search.trim() || ((entry === "skills" || entry === "kbases") && skillPickerInteracting.current))) return;
               setSection((prev) =>
                 next ? entry : prev === entry ? null : prev,
               );
@@ -691,6 +702,7 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
       onOpenChange={setOpen}
       trigger="click"
       placement="topLeft"
+      align={{ overflow: { adjustX: true, adjustY: true, shiftY: true } }}
       arrow={false}
       destroyOnHidden
       classNames={{ root: presentationClasses("composer-add-menu-overlay") }}

@@ -89,6 +89,7 @@ export interface QueryStreamParams {
   planningMode?: boolean;
   editingMode?: boolean;
   mustUseSkills?: string[];
+  mustUseKbases?: string[];
   agentMode?: string;
   accessLevel?: QueryAccessLevel;
   model?: QueryModelOverride;

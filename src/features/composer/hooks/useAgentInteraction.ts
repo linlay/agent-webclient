@@ -14,7 +14,7 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
     let canceled = false;
     void getAgent(key).then(({data}) => {
       if (!canceled) {
-        const config = data.interactionConfig || interactionDefaults(data.mode);
+        const config = data.interactionConfig || {...interactionDefaults(data.mode), mustUseKbases: false};
         setLoaded({key, config});
         dispatch({type: "SET_AGENTS", agents: stateRef.current.agents.map(agent =>
           agent.key === key ? {

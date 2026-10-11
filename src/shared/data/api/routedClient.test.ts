@@ -1,3 +1,5 @@
+const mockGetKBaseOptionsHttp = jest.fn();
+jest.mock("@/shared/data/api/requests/kbases", () => ({getKBaseOptionsHttp: (...args: unknown[]) => mockGetKBaseOptionsHttp(...args)}));
 const mockGetAgents = jest.fn();
 const mockGetAgent = jest.fn();
 const mockGetModelOptions = jest.fn();
@@ -464,4 +466,17 @@ describe("chat pinning routes", () => {
     expect(mockPutChatOrder).toHaveBeenCalledWith({ operation: "set_pinned", chatId: "a", pinned: false });
     expect(mockRequestPlatformData).not.toHaveBeenCalled();
   });
+});
+
+it("routes the usage knowledge catalog over Platform WS and Gateway HTTP without fallback", async () => {
+ const {getKBaseOptions} = await import("./routedClient");
+ mockGetBackendMode.mockReturnValue("platform"); mockRequestPlatformData.mockResolvedValue(ok({libraries: []}));
+ await getKBaseOptions("target");
+ expect(mockRequestPlatformData).toHaveBeenLastCalledWith("/api/kbases", {agentKey: "target"});
+ mockRequestPlatformData.mockRejectedValue(new Error("WS unavailable"));
+ await expect(getKBaseOptions("target")).rejects.toThrow("WS unavailable");
+ expect(mockGetKBaseOptionsHttp).not.toHaveBeenCalled();
+ mockGetBackendMode.mockReturnValue("gateway"); mockGetKBaseOptionsHttp.mockResolvedValue(ok({libraries: []}));
+ await getKBaseOptions("target");
+ expect(mockGetKBaseOptionsHttp).toHaveBeenLastCalledWith("target", undefined);
 });

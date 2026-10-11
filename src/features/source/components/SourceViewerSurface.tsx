@@ -9,14 +9,15 @@ export const SourceViewerSurface: React.FC<{
   chatId: string;
   chunkId: string;
   sourceId: string;
-}> = ({ chatId, chunkId, sourceId }) => {
+  libraryId?: string;
+}> = ({ chatId, chunkId, sourceId, libraryId }) => {
   const { t } = useI18n();
   const runtime = useChatSurfaceReplay({ chatId });
   const source = React.useMemo(
     () => runtime.snapshot
-      ? findSourceById(runtime.snapshot.projection.timelineNodes.values(), sourceId)
+      ? findSourceById(runtime.snapshot.projection.timelineNodes.values(), sourceId, libraryId)
       : null,
-    [runtime.snapshot, sourceId],
+    [runtime.snapshot, sourceId, libraryId],
   );
   const invalid = !sourceId || !chatId;
   return (

@@ -8,6 +8,7 @@ export const SourceViewerPage: React.FC = () => {
   return (
     <SourceViewerSurface
       sourceId={sourceId.trim()}
+      libraryId={searchParams.get("libraryId") || undefined}
       chatId={String(searchParams.get("chatId") || "").trim()}
       chunkId={String(searchParams.get("chunkId") || "").trim()}
     />

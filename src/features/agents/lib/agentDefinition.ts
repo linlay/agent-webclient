@@ -497,6 +497,8 @@ export function interactionPresentation(
       return { icon: "verified_user", label: t("agents.interaction.accessLevel"), description: t("agents.interaction.accessLevel.description") };
     case "mustUseSkills":
       return { icon: "skills", label: t("agents.interaction.mustUseSkills"), description: t("agents.interaction.mustUseSkills.description") };
+    case "mustUseKbases":
+      return { icon: "book_2", label: t("kbase.title"), description: t("kbase.interactionDescription") };
     case "connectors":
       return { icon: "hub", label: t("agents.interaction.connectors"), description: t("agents.interaction.connectors.description") };
     case "localFiles":

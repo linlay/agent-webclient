@@ -14,6 +14,10 @@ import {
 } from "@/features/composer/hooks/useMessageActions";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
 
+const mockLoadKBaseOptions = jest.fn();
+jest.mock("@/features/kbases/lib/kbaseOptions", () => ({
+ ...jest.requireActual("@/features/kbases/lib/kbaseOptions"), loadKBaseOptions: (...args: unknown[]) => mockLoadKBaseOptions(...args),
+}));
 const startQuery = jest.fn();
 
 function createDetachTestState(overrides: Record<string, unknown> = {}) {
@@ -770,4 +774,63 @@ it("maps a query admission rejection to Agent state and restores the captured su
   expect(stateRef.current.composerDraft).toBe("hello");
   expect(stateRef.current.selectedSkills).toEqual([{ id: "pdf", label: "PDF" }]);
   expect(stateRef.current.restoredSteerReferencesByChatId[""]).toHaveLength(1);
+});
+
+describe("required libraries through message actions", () => {
+ function harness() {
+  const stateRef = {current: createInitialState()};
+  stateRef.current.agents = [{key: "general", name: "General", mode: "GENERAL"}, {key: "mentioned", name: "Mentioned", mode: "GENERAL"}];
+  stateRef.current.pendingNewChatAgentKey = "general";
+  stateRef.current.agentAvailability = {general: "available", mentioned: "available"};
+  const dispatch = jest.fn(action => {stateRef.current = appReducer(stateRef.current, action);});
+  useAppContext.mockReturnValue({state: stateRef.current, stateRef, dispatch, querySessionsRef: {current: new Map()}, chatQuerySessionIndexRef: {current: new Map()}, activeQuerySessionRequestIdRef: {current: ""}});
+  startQuery.mockReset(); mockLoadKBaseOptions.mockReset();
+  mockLoadKBaseOptions.mockResolvedValue({agentKey: "general", capability: {available: true}, libraries: ["a", "b"].map(id => ({id, name: id, readable: true, indexing: true, degraded: true, collections: []}))});
+  startQuery.mockReturnValue({identity: Promise.resolve({chatId: "accepted-chat", runId: "run", owner: {kind: "agent", agentKey: "general"}}), completion: Promise.resolve({reason: "done", lastSeq: 1})});
+  let actions!: ReturnType<typeof useMessageActions>;
+  function Probe() {actions = useMessageActions({onAgentEvent: jest.fn()}); return null;}
+  renderToStaticMarkup(React.createElement(Probe));
+  return {stateRef, dispatch, actions};
+ }
+ it("validates the actual leading mention target and freezes multi-library/plan query input", async () => {
+  const {stateRef, actions} = harness();
+  stateRef.current.planningMode = true;
+  stateRef.current.agents.push({key: "team", name: "Team", mode: "TEAM", teamConfig: {members: ["mentioned"]}});
+  stateRef.current.workerSelectionKey = "agent:team";
+  stateRef.current.workerIndexByKey.set("agent:team", {key: "agent:team", sourceId: "team", type: "agent"} as any);
+  const ids = ["a", "b"];
+  await actions.sendMessage("@mentioned compare", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ids);
+  ids.push("later");
+  expect(mockLoadKBaseOptions).toHaveBeenCalledWith("mentioned");
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({owner: {kind: "agent", agentKey: "mentioned"}, message: "compare", mustUseKbases: ["a", "b"], planningMode: true}));
+  const user = [...stateRef.current.timelineNodes.values()].find(node => node.role === "user");
+  expect(user?.mustUseKbases).toEqual(["a", "b"]);
+ });
+ it("rejects unavailable libraries before creating a Run and does not borrow current selection on empty resend", async () => {
+  const {stateRef, actions} = harness();
+  mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: [{id: "a", readable: false}]});
+  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a"]);
+  expect(startQuery).not.toHaveBeenCalled();
+  stateRef.current.selectedKbasesByScope["new:general"] = [{id: "a", name: "A"}];
+  await actions.sendMessage("original had no libraries", [], [], {}, undefined, undefined, "", "general", false, [], "", "", []);
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({mustUseKbases: undefined}));
+ });
+ it("promotes the original Agent draft only after query acceptance", async () => {
+  const {stateRef, actions} = harness();
+  stateRef.current.selectedKbasesByScope["new:general"] = [{id: "a", name: "A"}];
+  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a"], "new:general");
+  expect(stateRef.current.selectedKbasesByScope["chat:accepted-chat"]).toEqual([{id: "a", name: "A"}]);
+  expect(stateRef.current.selectedKbasesByScope["new:general"]).toBeUndefined();
+ });
+ it("does not start a query in another chat after a delayed catalog response", async () => {
+  const {stateRef, actions} = harness();
+  let resolveCatalog!: (value: unknown) => void;
+  mockLoadKBaseOptions.mockReturnValue(new Promise(resolve => { resolveCatalog = resolve; }));
+  const pending = actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a"]);
+  stateRef.current.chatId = "other-chat";
+  resolveCatalog({capability: {available: true}, libraries: [{id: "a", name: "A", readable: true}]});
+  await pending;
+  expect(startQuery).not.toHaveBeenCalled();
+  expect(stateRef.current.timelineNodes.size).toBe(0);
+ });
 });

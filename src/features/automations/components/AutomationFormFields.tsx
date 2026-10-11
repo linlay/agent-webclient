@@ -53,6 +53,7 @@ const AUTOMATION_OPTIONAL_FIELDS: AutomationOptionalField[] = [
   "role",
   "hidden",
   "paramsText",
+  "mustUseKbasesText",
 ];
 
 function AutomationAgentOption({
@@ -182,6 +183,7 @@ export function AutomationFormFields({
       role: t("automationConsole.field.role"),
       hidden: t("automationConsole.field.hidden"),
       paramsText: t("automationConsole.field.params"),
+      mustUseKbasesText: t("kbase.required"),
     }),
     [t],
   );
@@ -441,6 +443,10 @@ export function AutomationFormFields({
             />
           </div>
         ) : null}
+        {visibleOptionalFields.has("mustUseKbasesText") && <div className="field-group">
+          <label htmlFor="automation-kbases-input">{t("kbase.required")}</label>
+          <Input.TextArea id="automation-kbases-input" rows={2} value={form.mustUseKbasesText} placeholder={t("kbase.idsPlaceholder")} onChange={event => onChange({mustUseKbasesText: event.target.value})} />
+        </div>}
         {visibleOptionalFields.has("paramsText") ? (
           <div className={FULL_WIDTH_CLASS_NAME}>
             <label htmlFor="automation-params-input">

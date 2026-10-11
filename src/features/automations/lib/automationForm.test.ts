@@ -146,3 +146,14 @@ describe("automationForm", () => {
     ).toBe("1");
   });
 });
+
+it("preserves explicit required library arrays through edit/create/update/duplicate", () => {
+ const {automationFormFromDetail, buildCreateAutomationPayloadForSubmit, buildUpdateAutomationPayloadForSubmit, buildDuplicateAutomationPayload} = require("./automationForm");
+ for (const mustUseKbases of [[], ["lib-a"], ["lib-a", "lib-b"]]) {
+  const detail = {id: "id", name: "name", cron: "0 9 * * *", agentKey: "general", enabled: true, query: {message: "hello", mustUseKbases}};
+  const form = automationFormFromDetail(detail);
+  expect(buildCreateAutomationPayloadForSubmit(form).query.mustUseKbases).toEqual(mustUseKbases);
+  expect(buildUpdateAutomationPayloadForSubmit(form).query.mustUseKbases).toEqual(mustUseKbases);
+  expect(buildDuplicateAutomationPayload(detail, "copy").query.mustUseKbases).toEqual(mustUseKbases);
+ }
+});

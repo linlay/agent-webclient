@@ -354,6 +354,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
               )}
             </div>
           )}
+          {!!node.mustUseKbases?.length && <Flex wrap gap={4} justify="flex-end" aria-label={t("kbase.required")}>
+            {node.mustUseKbases.map(id => <span key={id} className="tw:rounded tw:bg-accent-soft tw:px-2 tw:py-1 tw:text-xs tw:text-text-sub"><MaterialIcon name="book_2" /> {node.kbaseLabels?.[id] || id}</span>)}
+          </Flex>}
           {node.mustUseSkills && node.mustUseSkills.length > 0 && (
             <Flex wrap gap={4} justify="flex-end">
               {node.mustUseSkills.map((key) => {

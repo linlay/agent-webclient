@@ -19,3 +19,6 @@ export async function downloadPublishedKnowledge(chatId: string, sourceId: strin
  if (!response.ok) throw new Error(await response.text());
  return response.blob();
 }
+
+export const getKBaseOptionsHttp = (agentKey: string, signal?: AbortSignal) =>
+ requestJson<import("../dto/kbases").KBaseOptionsResponse>(`${dataEndpoints.kbases.path}?agentKey=${encodeURIComponent(agentKey)}`, { signal, cache: "no-store" });

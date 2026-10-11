@@ -132,6 +132,10 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
     }
   }
 
+  if (Array.isArray(options.mustUseKbases)) {
+    body.mustUseKbases = [...new Set(options.mustUseKbases.filter(id => typeof id === "string").map(id => id.trim()).filter(Boolean))];
+  }
+
   Object.assign(body, runOwnerPayload(options.owner));
   if (options.chatId) body.chatId = options.chatId;
   if (options.accessLevel) body.accessLevel = options.accessLevel;
@@ -444,6 +448,7 @@ export const dataEndpoints = createEndpointRegistry({
   }),
   knowledgeSourceRead: defineEndpoint({ key: "chat.sources.read", path: "/api/chat/sources/read", method: "POST", transport: "http" }),
   knowledgeSourceFile: defineEndpoint({ key: "chat.sources.file", path: "/api/chat/sources/file", method: "POST", transport: "http" }),
+  kbases: defineEndpoint<{ agentKey: string }, { agentKey: string }>({ key: "kbases.list", path: "/api/kbases", method: "GET", transport: "auto", wsBackends: ["platform"], payload: input => ({ agentKey: input.agentKey }) }),
   adminKBases: defineEndpoint({ key: "admin.kbases", path: "/api/admin/kbases", method: "GET", transport: "http" }),
   adminSkills: defineEndpoint<void, Record<string, unknown>>({
     key: "admin.skills.list",

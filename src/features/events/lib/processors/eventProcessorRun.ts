@@ -1,6 +1,6 @@
 import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
-import { readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
+import { readMustUseKbases, readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
 import type {
   EventCommand,
   EventProcessorConfig,
@@ -67,6 +67,7 @@ export function processRunEvent(
       ts: timestamp,
       variant: "default",
       attachments: attachments.length > 0 ? attachments : undefined,
+      ...(readMustUseKbases(event).length ? {mustUseKbases: readMustUseKbases(event)} : {}),
       mustUseSkills: mustUseSkills.length > 0 ? mustUseSkills : undefined,
       ...(taskBinding.taskId ? taskBinding : {}),
     });

@@ -109,6 +109,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   currentAgentKey,
   isMainChatRunning,
   selectedSkillIds,
+  kbaseCatalog, selectedKbases, onSelectKbases,
   lockedSkillIds,
   onSelectSkills,
   onSelectSkill,
@@ -194,6 +195,7 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
             isMainChatRunning={isMainChatRunning}
             canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
             isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
+            kbaseCatalog={kbaseCatalog} selectedKbases={selectedKbases} onSelectKbases={onSelectKbases}
             selectedSkillIds={selectedSkillIds}
             lockedSkillIds={lockedSkillIds}
             onSelectSkills={onSelectSkills}

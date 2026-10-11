@@ -44,6 +44,8 @@ export interface SubmissionDraft {
   message: string;
   references: unknown[];
   skills: ComposerRequiredSkill[];
+  kbases?: import("@/features/kbases/lib/kbasesState").SelectedKBase[];
+  kbaseScope?: string;
   version: number;
 }
 

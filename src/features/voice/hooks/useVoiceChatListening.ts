@@ -1,3 +1,6 @@
+import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
+import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
+import { t } from "@/shared/i18n";
 import { useCallback } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
@@ -127,7 +130,9 @@ export function useVoiceChatListening({
 			}
 
 			const requestId = createRequestId("req");
-			controller.createTurnNodes(text);
+			const kbaseScope = kbaseSelectionScope(chatId, agentKey);
+      const mustUseKbases = (controller.stateRef.current.selectedKbasesByScope[kbaseScope] || []).map(item => item.id);
+			controller.createTurnNodes(text, mustUseKbases);
 			controller.cancelListeningTransition();
 			controller.ttsTaskActiveRef.current = true;
 			controller.patchVoiceChat({
@@ -143,6 +148,10 @@ export function useVoiceChatListening({
 			});
 
 			try {
+        if (mustUseKbases.length) {
+          const catalog = await loadKBaseOptions(agentKey);
+          if (unavailableKbaseIds(catalog, mustUseKbases).length) throw new Error(t("kbase.selectionUnavailable"));
+        }
 				const abortController = new AbortController();
 				dispatch({ type: "SET_REQUEST_ID", requestId });
 				dispatch({ type: "SET_STREAMING", streaming: true });
@@ -150,6 +159,7 @@ export function useVoiceChatListening({
 				const execution = runs.startQuery({
 					requestId,
 					message: text,
+          mustUseKbases: mustUseKbases.length ? [...mustUseKbases] : undefined,
 					owner: { kind: "agent", agentKey },
 					chatId: chatId || undefined,
 					planningMode: Boolean(controller.stateRef.current.planningMode),
@@ -160,7 +170,8 @@ export function useVoiceChatListening({
 					signal: abortController.signal,
 					onEvent: handleEvent,
 				});
-				await execution.identity;
+				const identity = await execution.identity;
+        if (!chatId) dispatch({type: "PROMOTE_KBASE_SELECTION", scope: kbaseScope, chatId: identity.chatId});
 				const completion = await execution.completion;
 				if (completion.error) throw completion.error;
 

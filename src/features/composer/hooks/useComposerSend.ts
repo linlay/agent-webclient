@@ -1,3 +1,4 @@
+import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback, useEffect, useRef } from "react";
@@ -97,6 +98,8 @@ interface UseComposerSendInput {
   modelOverride: QueryModelOverride;
   mustUseSkillsAgentKey: string;
   mustUseSkills: string[];
+  mustUseKbases?: string[];
+  kbaseScope?: string;
   selectSlashItem: () => SlashPaletteItem | null;
   onSelectSlashSkill: (skill: SlashSkillItem) => void;
   showSlashPalette: boolean;
@@ -157,6 +160,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     modelOverride,
     mustUseSkillsAgentKey,
     mustUseSkills,
+    mustUseKbases = [], kbaseScope = "",
     selectSlashItem,
     onSelectSlashSkill,
     showSlashPalette,
@@ -273,7 +277,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch({ type: "REMOVE_PENDING_STEER", chatId: currentState.chatId, runId: firstQueued.runId, steerId: firstQueued.steerId });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
-        detail: { message: firstQueued.message, chatId: currentState.chatId, ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
+        detail: { message: firstQueued.message, chatId: currentState.chatId, mustUseKbases: (currentState.selectedKbasesByScope[kbaseSelectionScope(currentState.chatId, "")] || []).map(item => item.id), ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
       }),
     );
   }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, state.chatTransition, state.chatSurfaceBlocked, state.agentAvailability, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, messageApi, t]);
@@ -522,6 +526,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     const btwMessage = parseBTWSlashInput(message);
     if (btwMessage !== null) {
+      if (mustUseKbases.length > 0) { void messageApi.warning(t("kbase.btwUnsupported")); return; }
       if (mustUseSkills.length > 0) {
         void messageApi.warning(t("composer.addMenu.skill.btwUnsupported"));
         return;
@@ -647,6 +652,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       requestId: submissionRequestId, chatId: stateRef.current.chatId,
       agentKey: owner?.kind === "agent" ? owner.agentKey : "", message,
       references: [...sendReferences], skills: submissionSkills,
+      kbaseScope, kbases: (stateRef.current.selectedKbasesByScope[kbaseScope] || []).map(item => ({...item})),
     } });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
@@ -662,6 +668,7 @@ export function useComposerSend(input: UseComposerSendInput) {
           model: modelOverride,
           params: controlParams,
           editingMode: currentState.editingMode === true,
+          mustUseKbases: [...mustUseKbases], kbaseScope,
           mustUseSkillsAgentKey,
           mustUseSkills,
         },
@@ -683,7 +690,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     isVoiceMode,
     modelOverride,
     mustUseSkillsAgentKey,
-    mustUseSkills,
+    mustUseSkills, mustUseKbases, kbaseScope,
     messageApi,
     openCompactChooser,
     openBTW,

@@ -140,7 +140,7 @@ export function useVoiceChatRuntimeController({
 	);
 
 	const createTurnNodes = useCallback(
-		(userText: string) => {
+		(userText: string, mustUseKbases: string[] = []) => {
 			const suffix = `${Date.now()}_${turnCounterRef.current++}`;
 			const userNodeId = `voice_user_${suffix}`;
 			const now = Date.now();
@@ -153,6 +153,7 @@ export function useVoiceChatRuntimeController({
 					kind: "message",
 					role: "user",
 					text: userText,
+          mustUseKbases: [...mustUseKbases],
 					ts: now,
 				},
 			});

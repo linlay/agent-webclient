@@ -18,3 +18,11 @@ it("uses explicit HTTP mutations and search JSON", () => {
  deleteKBase("library", "revision & value");
  expect(requestJson).toHaveBeenLastCalledWith("/api/admin/kbases/library?baseRevision=revision%20%26%20value", { method: "DELETE" });
 });
+
+it("keeps the usage catalog distinct from admin and preserves published library/source identity", async () => {
+ const {getKBaseOptionsHttp, readPublishedKnowledge} = await import("./kbases");
+ await getKBaseOptionsHttp("target agent");
+ expect(requestJson).toHaveBeenLastCalledWith("/api/kbases?agentKey=target%20agent", {signal: undefined, cache: "no-store"});
+ readPublishedKnowledge("chat", "kbase:lib-b/docs/same.md", 0);
+ expect(requestJson).toHaveBeenLastCalledWith("/api/chat/sources/read", expect.objectContaining({body: JSON.stringify({chatId: "chat", sourceId: "kbase:lib-b/docs/same.md", offset: 0, limit: 200})}));
+});

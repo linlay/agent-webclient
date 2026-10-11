@@ -238,3 +238,12 @@ it('includes uploaded references in the steer control payload', () => {
   expect(buildRunControlPayload({ requestId: 'req-image', runId: 'run-image', steerId: 'steer-image',
     owner: { kind: 'agent', agentKey: 'agent-a' }, message: 'look', references })).toEqual(expect.objectContaining({ references }));
 });
+
+it("keeps required library IDs at the query root and snapshots arrays", () => {
+ const libraries = [" lib-a ", "lib-b", "lib-a"];
+ const payload = buildQueryPayload({requestId: "request", message: "hello", owner: {kind: "agent", agentKey: "general"}, mustUseKbases: libraries});
+ libraries.push("later");
+ expect(payload.mustUseKbases).toEqual(["lib-a", "lib-b"]);
+ expect(payload).not.toHaveProperty("params"); expect(payload).not.toHaveProperty("references");
+ expect(buildQueryPayload({requestId: "request", message: "hello", owner: {kind: "agent", agentKey: "general"}, mustUseKbases: []}).mustUseKbases).toEqual([]);
+});

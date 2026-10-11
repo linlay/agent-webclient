@@ -45,3 +45,10 @@ export function readExplicitEditingMode(value: unknown): boolean | undefined {
     ? record.editingMode
     : undefined;
 }
+
+export function readMustUseKbases(event: AgentEvent): string[] {
+ const record = event as Record<string, unknown>;
+ const query = record.query && typeof record.query === "object" ? record.query as Record<string, unknown> : {};
+ const raw = record.mustUseKbases ?? query.mustUseKbases;
+ return Array.isArray(raw) ? [...new Set(raw.filter((id): id is string => typeof id === "string").map(id => id.trim()).filter(Boolean))] : [];
+}

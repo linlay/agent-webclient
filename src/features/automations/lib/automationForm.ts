@@ -17,7 +17,8 @@ export type AutomationOptionalField =
   | "zoneId"
   | "role"
   | "hidden"
-  | "paramsText";
+  | "paramsText"
+  | "mustUseKbasesText";
 
 export interface AutomationFormState {
   id: string;
@@ -36,6 +37,7 @@ export interface AutomationFormState {
   role: string;
   hidden: "" | "true" | "false";
   paramsText: string;
+  mustUseKbasesText: string;
 }
 
 export interface AutomationCronPreset {
@@ -61,6 +63,7 @@ export const EMPTY_AUTOMATION_FORM: AutomationFormState = {
   role: "",
   hidden: "",
   paramsText: "",
+  mustUseKbasesText: "",
 };
 
 export const AUTOMATION_CRON_PRESETS: AutomationCronPreset[] = [
@@ -150,6 +153,7 @@ export function automationFormFromDetail(
         : automation.query?.hidden === false
           ? "false"
           : "",
+    mustUseKbasesText: automation.query?.mustUseKbases === undefined ? "" : JSON.stringify(automation.query.mustUseKbases),
     paramsText:
       params && Object.keys(params).length > 0
         ? JSON.stringify(params, null, 2)
@@ -182,6 +186,7 @@ export function buildDuplicateAutomationPayload(
       message: String(automation.query?.message || "").trim(),
       accessLevel: automation.query?.accessLevel || "default",
       ...(automation.query?.chatId ? { chatId: automation.query.chatId } : {}),
+      ...(automation.query?.mustUseKbases !== undefined ? {mustUseKbases: [...automation.query.mustUseKbases]} : {}),
       ...(automation.query?.role ? { role: automation.query.role } : {}),
       ...(automation.query?.params ? { params: { ...automation.query.params } } : {}),
       ...(automation.query?.hidden !== undefined
@@ -214,6 +219,7 @@ function buildQuery(form: AutomationFormState): AutomationQueryRequest {
     message: form.message.trim(),
     accessLevel: form.accessLevel,
   };
+  if ((form.mustUseKbasesText || "").trim()) query.mustUseKbases = [...JSON.parse(form.mustUseKbasesText)];
   const role = form.role.trim();
   if (role) query.role = role;
   const chatId = form.chatMode === "existing" ? form.chatId.trim() : "";
@@ -280,6 +286,12 @@ export function validateAutomationForm(
     if (!Number.isInteger(runs) || runs <= 0) {
       return t("automationConsole.error.remainingRunsPositive");
     }
+  }
+  if ((form.mustUseKbasesText || "").trim()) {
+    try {
+      const parsed = JSON.parse(form.mustUseKbasesText);
+      if (!Array.isArray(parsed) || parsed.some(id => typeof id !== "string" || !id.trim())) return t("kbase.idsInvalid");
+    } catch { return t("kbase.idsInvalid"); }
   }
   if (form.paramsText.trim()) {
     try {
