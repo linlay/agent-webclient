@@ -46,6 +46,7 @@ export interface ProjectWorkspaceProps {
   agentKey: string;
   agentName?: string;
   chats?: Chat[];
+  chatListError?: string;
   chatId?: string;
   runId?: string;
   path?: string;
@@ -54,12 +55,12 @@ export interface ProjectWorkspaceProps {
   polling?: boolean;
   invalidationKey?: string | number;
   invalidationPaths?: string[];
-  agentSelector?: React.ReactNode;
   onStateChange?: (state: ProjectRouteState) => void;
   onOpenFullPage?: (state: ProjectRouteState) => void;
 }
 
 const PAGE_LIMIT = 200;
+const MAX_TREE_PAGE_BATCH = 5;
 const CHANGE_LIMIT = 1000;
 const MAX_CHANGE_PAGES = 20;
 
@@ -102,6 +103,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
   agentKey,
   agentName,
   chats = [],
+  chatListError,
   chatId,
   runId,
   path,
@@ -110,7 +112,6 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
   polling = false,
   invalidationKey,
   invalidationPaths = [],
-  agentSelector,
   onStateChange,
   onOpenFullPage,
 }) => {
@@ -119,6 +120,9 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
   const [directories, setDirectories] = React.useState<Record<string, DirectoryState>>({});
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set([""]));
   const [filter, setFilter] = React.useState("");
+  const [showHidden, setShowHidden] = React.useState(false);
+  const showHiddenRef = React.useRef(showHidden);
+  showHiddenRef.current = showHidden;
   const [selectedPath, setSelectedPath] = React.useState(path || "");
   const [openPaths, setOpenPaths] = React.useState<string[]>(() =>
     openProjectTab(Array.from(new Set(openFiles || [])), path || ""),
@@ -165,7 +169,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
 
   const loadDirectory = React.useCallback(async (
     directoryPath: string,
-    options: { append?: boolean; cursor?: string; quiet?: boolean } = {},
+    options: { append?: boolean; cursor?: string; quiet?: boolean; retried?: boolean } = {},
   ): Promise<void> => {
     const generation = requestGeneration.current;
     treeControllers.current.get(directoryPath)?.abort();
@@ -183,27 +187,36 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
         },
       }));
     }
+    let pageCount = 0;
     try {
-      const response = await getProjectTree({
-        agentKey,
-        path: directoryPath || undefined,
-        cursor: options.cursor || undefined,
-        limit: PAGE_LIMIT,
-      }, { signal: controller.signal });
-      if (generation !== requestGeneration.current) return;
-      const data: ProjectTreeResponse = response.data;
-      const entries = Array.isArray(data.entries) ? data.entries : [];
-      setWorkspaceName(data.workspaceName || agentName || agentKey);
       const previous = directoriesRef.current[directoryPath];
-      if (!options.append && previous?.revision === data.revision) {
-        if (previous.loading || previous.error) {
+      const entries: ProjectTreeEntry[] = [];
+      let data: ProjectTreeResponse;
+      let cursor = options.cursor;
+      let hasVisibleEntries: boolean;
+      do {
+        const response = await getProjectTree({
+          agentKey,
+          path: directoryPath || undefined,
+          cursor: cursor || undefined,
+          limit: PAGE_LIMIT,
+        }, { signal: controller.signal });
+        if (controller.signal.aborted || generation !== requestGeneration.current) return;
+        data = response.data;
+        if (!options.append && previous?.revision === data.revision) {
           setDirectories((current) => ({
             ...current,
             [directoryPath]: { ...current[directoryPath], loading: false, error: "" },
           }));
+          return;
         }
-        return;
-      }
+        const pageEntries = Array.isArray(data.entries) ? data.entries : [];
+        entries.push(...pageEntries);
+        cursor = data.nextCursor;
+        hasVisibleEntries = pageEntries.some((entry) => showHiddenRef.current || !entry.name.startsWith("."));
+        pageCount += 1;
+      } while (cursor && !hasVisibleEntries && pageCount < MAX_TREE_PAGE_BATCH);
+      setWorkspaceName(data.workspaceName || agentName || agentKey);
       const currentSelectedPath = selectedPathRef.current;
       if (currentSelectedPath && parentDirectoryPath(currentSelectedPath) === directoryPath) {
         const before = previous?.entries.find((entry) => entry.path === currentSelectedPath);
@@ -225,10 +238,10 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
         },
       }));
     } catch (error) {
-      if (isAbortError(error)) return;
+      if (controller.signal.aborted || isAbortError(error)) return;
       if (generation !== requestGeneration.current) return;
-      if (options.append && error instanceof ApiError && error.status === 409) {
-        void loadDirectory(directoryPath);
+      if ((options.append || pageCount > 0) && !options.retried && error instanceof ApiError && error.status === 409) {
+        void loadDirectory(directoryPath, { retried: true });
         return;
       }
       setDirectories((current) => ({
@@ -490,7 +503,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
     if (!directory) return null;
     const needle = filter.trim().toLowerCase();
     const visibleEntries = directory.entries.filter((entry) =>
-      !needle || entry.name.toLowerCase().includes(needle) || entry.kind === "directory",
+      (showHidden || !entry.name.startsWith(".")) &&
+      (!needle || entry.name.toLowerCase().includes(needle) || entry.kind === "directory"),
     );
     return (
       <>
@@ -529,6 +543,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
             className="project-tree-load-more"
             variant="ghost"
             size="sm"
+            disabled={directory.loading}
             onClick={() => void loadDirectory(directoryPath, { append: true, cursor: directory.nextCursor })}
           >
             {t("project.action.loadMore")}
@@ -628,7 +643,6 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
         <div className="project-title" title={workspaceName || agentName || agentKey}>
           <strong>{t("project.dialog.title", { name: workspaceName || agentName || agentKey })}</strong>
         </div>
-        {agentSelector ? <div className="project-agent-control">{agentSelector}</div> : null}
         <Select
           className="project-context-select"
           size="small"
@@ -695,7 +709,16 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
               onChange={(event) => setFilter(event.target.value)}
             />
           </div>
+          <label className="project-hidden-toggle">
+            <input
+              type="checkbox"
+              checked={showHidden}
+              onChange={(event) => setShowHidden(event.target.checked)}
+            />
+            {t("project.tree.showHidden")}
+          </label>
           <div className="project-tree-scroll">{renderDirectory("", 0)}</div>
+          {chatListError ? <div className="project-tree-error">{chatListError}</div> : null}
           {changesError ? <div className="project-tree-error">{changesError}</div> : null}
         </aside>
         <div className="project-resizer" role="separator" aria-orientation="vertical" onPointerDown={startResize} />
