@@ -38,3 +38,21 @@ it("separates fixed binding, folds four choices and removes one without clearing
  expect(change.mock.calls[0][0].map((item: SelectedKBase) => item.id)).toEqual(["1", "3", "4"]);
  act(() => root.unmount());
 });
+it("blocks a ninth library and permits replacing a choice after removing one", () => {
+ const host = document.createElement("div"); const root = createRoot(host);
+ const libraries = Array.from({length: 10}, (_, i) => ({id: `lib-${i}`, name: `Library ${i}`, collections: [], readable: true, indexing: false, degraded: false}));
+ let selected = libraries.slice(0, 8).map(({id, name}) => ({id, name}));
+ const catalog = {status: "success" as const, refresh: jest.fn(), data: {agentKey: "general", capability: {available: true}, libraries}};
+ function render() {root.render(<KBasePicker catalog={catalog} selected={selected} onChange={items => {selected = items; render();}} />);}
+ act(render);
+ const check = (index: number) => host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[index];
+ expect(check(0).disabled).toBe(false);
+ expect(check(8).disabled).toBe(true);
+ expect(host.querySelector('[role="status"]')?.textContent).toContain("8");
+ act(() => check(0).click());
+ expect(check(8).disabled).toBe(false);
+ act(() => check(8).click());
+ expect(selected.map(item => item.id)).toEqual(libraries.slice(1, 9).map(item => item.id));
+ expect(check(9).disabled).toBe(true);
+ act(() => root.unmount());
+});

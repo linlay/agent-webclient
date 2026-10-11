@@ -8,6 +8,7 @@ import type {
   QueryAccessLevel,
 } from "@/shared/data";
 import { toRunOwner } from "@/shared/data/runOwner";
+import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
 
 export type AutomationFormMode = "create" | "edit";
 export type AutomationEditorMode = "structured" | "source";
@@ -219,7 +220,7 @@ function buildQuery(form: AutomationFormState): AutomationQueryRequest {
     message: form.message.trim(),
     accessLevel: form.accessLevel,
   };
-  if ((form.mustUseKbasesText || "").trim()) query.mustUseKbases = [...JSON.parse(form.mustUseKbasesText)];
+  if ((form.mustUseKbasesText || "").trim()) query.mustUseKbases = normalizeKbaseIds(JSON.parse(form.mustUseKbasesText));
   const role = form.role.trim();
   if (role) query.role = role;
   const chatId = form.chatMode === "existing" ? form.chatId.trim() : "";
@@ -290,7 +291,8 @@ export function validateAutomationForm(
   if ((form.mustUseKbasesText || "").trim()) {
     try {
       const parsed = JSON.parse(form.mustUseKbasesText);
-      if (!Array.isArray(parsed) || parsed.some(id => typeof id !== "string" || !id.trim())) return t("kbase.idsInvalid");
+      if (!Array.isArray(parsed) || parsed.some(id => typeof id !== "string")) return t("kbase.idsInvalid");
+      if (normalizeKbaseIds(parsed).length > MAX_MUST_USE_KBASES) return t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES});
     } catch { return t("kbase.idsInvalid"); }
   }
   if (form.paramsText.trim()) {

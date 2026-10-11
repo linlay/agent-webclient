@@ -5,6 +5,7 @@ export const zhCNMessages = {
   "kbase.idsPlaceholder": "[\"知识库ID\"]",
   "kbase.title": "知识库",
   "kbase.selected": "已选择 {count} 个",
+  "kbase.selectionLimit": "每轮最多选择 {count} 个知识库",
   "kbase.search": "搜索知识库",
   "kbase.retry": "重新检查",
   "kbase.noCapability": "当前智能体没有知识库检索能力",
@@ -23,7 +24,7 @@ export const zhCNMessages = {
   "kbase.protocolUnavailable": "后端尚未支持知识库选择",
   "kbase.btwUnsupported": "BTW 暂不支持知识库选择，请清空选择或发送主对话消息",
   "kbase.interactionDescription": "允许用户为本轮消息选择必用知识库，需要智能体具备检索工具能力",
-  "kbase.idsInvalid": "知识库必须为非空 ID 字符串组成的 JSON 数组",
+  "kbase.idsInvalid": "知识库必须为 ID 字符串组成的 JSON 数组",
 
   "knowledge.source.read": "读取正文",
   "knowledge.source.more": "继续读取",

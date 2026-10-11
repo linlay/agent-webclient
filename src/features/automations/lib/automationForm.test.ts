@@ -27,6 +27,7 @@ const form: AutomationFormState = {
   chatId: "chat-stale",
   role: "assistant",
   hidden: "",
+  mustUseKbasesText: "",
     paramsText: ""
 };
 
@@ -156,4 +157,14 @@ it("preserves explicit required library arrays through edit/create/update/duplic
   expect(buildUpdateAutomationPayloadForSubmit(form).query.mustUseKbases).toEqual(mustUseKbases);
   expect(buildDuplicateAutomationPayload(detail, "copy").query.mustUseKbases).toEqual(mustUseKbases);
  }
+});
+it("validates the eight-library limit after trimming and exact deduplication", () => {
+ const ids = ["lib-a", "LIB-A", "b", "c", "d", "e", "f", "g"];
+ const draft = {...form, mustUseKbasesText: JSON.stringify([...ids, " lib-a ", "", " "])};
+ const t = (key: string) => key;
+ expect(validateAutomationForm(draft, t)).toBe("");
+ expect(buildCreateAutomationPayloadForSubmit(draft).query.mustUseKbases).toEqual(ids);
+ expect(validateAutomationForm({...form, mustUseKbasesText: JSON.stringify([...ids, "h"])}, t)).toBe("kbase.selectionLimit");
+ expect(validateAutomationForm({...form, mustUseKbasesText: '[1]'}, t)).toBe("kbase.idsInvalid");
+ expect(buildCreateAutomationPayloadForSubmit({...form, mustUseKbasesText: '["", " "]'}).query.mustUseKbases).toEqual([]);
 });

@@ -5,6 +5,7 @@ export const enUSMessages = {
   "kbase.idsPlaceholder": "[\"library-id\"]",
   "kbase.title": "Knowledge libraries",
   "kbase.selected": "{count} selected",
+  "kbase.selectionLimit": "Select at most {count} libraries per query",
   "kbase.search": "Search libraries",
   "kbase.retry": "Check again",
   "kbase.noCapability": "This agent cannot retrieve knowledge",
@@ -23,7 +24,7 @@ export const enUSMessages = {
   "kbase.protocolUnavailable": "The backend does not support library selection",
   "kbase.btwUnsupported": "BTW does not support library selection yet. Clear the selection or send a main query",
   "kbase.interactionDescription": "Allow required libraries for each query; the agent must have retrieval tools",
-  "kbase.idsInvalid": "Libraries must be a JSON array of nonempty ID strings",
+  "kbase.idsInvalid": "Libraries must be a JSON array of ID strings",
 
   "knowledge.source.read": "Read document",
   "knowledge.source.more": "Read more",

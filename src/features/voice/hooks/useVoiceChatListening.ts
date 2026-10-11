@@ -1,5 +1,6 @@
 import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
+import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
 import { t } from "@/shared/i18n";
 import { useCallback } from "react";
 import type { Dispatch } from "react";
@@ -131,7 +132,7 @@ export function useVoiceChatListening({
 
 			const requestId = createRequestId("req");
 			const kbaseScope = kbaseSelectionScope(chatId, agentKey);
-      const mustUseKbases = (controller.stateRef.current.selectedKbasesByScope[kbaseScope] || []).map(item => item.id);
+      const mustUseKbases = normalizeKbaseIds((controller.stateRef.current.selectedKbasesByScope[kbaseScope] || []).map(item => item.id));
 			controller.createTurnNodes(text, mustUseKbases);
 			controller.cancelListeningTransition();
 			controller.ttsTaskActiveRef.current = true;
@@ -149,6 +150,7 @@ export function useVoiceChatListening({
 
 			try {
         if (mustUseKbases.length) {
+          if (mustUseKbases.length > MAX_MUST_USE_KBASES) throw new Error(t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES}));
           const catalog = await loadKBaseOptions(agentKey);
           if (unavailableKbaseIds(catalog, mustUseKbases).length) throw new Error(t("kbase.selectionUnavailable"));
         }

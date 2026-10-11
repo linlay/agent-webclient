@@ -1,12 +1,6 @@
 import { getAgent, getKBaseOptions } from "@/shared/data";
 import type { KBaseOption, KBaseOptionsResponse } from "@/shared/data/api/dto/kbases";
 
-export function normalizeKbaseIds(value: unknown): string[] {
-  return Array.isArray(value)
-    ? [...new Set(value.filter((id): id is string => typeof id === "string").map(id => id.trim()).filter(Boolean))]
-    : [];
-}
-
 function validLibrary(item: KBaseOption): boolean {
   return Boolean(item && typeof item.id === "string" && item.id && typeof item.name === "string" &&
     typeof item.readable === "boolean" && typeof item.indexing === "boolean" && typeof item.degraded === "boolean" &&

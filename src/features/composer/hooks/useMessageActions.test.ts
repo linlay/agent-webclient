@@ -833,4 +833,25 @@ describe("required libraries through message actions", () => {
   expect(startQuery).not.toHaveBeenCalled();
   expect(stateRef.current.timelineNodes.size).toBe(0);
  });
+ it("limits normalized exact IDs to eight and ignores empty or duplicate IDs", async () => {
+  const {stateRef, actions} = harness();
+  const ids = Array.from({length: 9}, (_, i) => `lib-${i}`);
+  await actions.sendMessage("too many", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ids);
+  expect(startQuery).not.toHaveBeenCalled();
+  expect(mockLoadKBaseOptions).not.toHaveBeenCalled();
+  expect([...stateRef.current.timelineNodes.values()].some(node => node.systemMessageLevel === "error")).toBe(true);
+  mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: ids.map(id => ({id, name: id, readable: true}))});
+  await actions.sendMessage("eight distinct", [], [], {}, undefined, undefined, "", "general", false, [], "", "", [...ids.slice(0, 8), " lib-0 ", "", " "]);
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({mustUseKbases: ids.slice(0, 8)}));
+ });
+ it("rejects a mixed readable/unreadable selection as a whole and allows empty selection when disabled", async () => {
+  const {actions} = harness();
+  mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: [{id: "a", readable: true}, {id: "b", readable: false}]});
+  await actions.sendMessage("both", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a", "b"]);
+  expect(startQuery).not.toHaveBeenCalled();
+  mockLoadKBaseOptions.mockReset().mockRejectedValue(new Error("kbase.disabled"));
+  await actions.sendMessage("without libraries", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["", " "]);
+  expect(mockLoadKBaseOptions).not.toHaveBeenCalled();
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({mustUseKbases: undefined}));
+ });
 });

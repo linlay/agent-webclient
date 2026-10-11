@@ -16,6 +16,7 @@ const libraries: KBaseOption[] = [
  {id: "wiki", name: "团队知识", description: "团队流程与常见问题", collections: [], readable: true, indexing: false, degraded: true},
  {id: "support", name: "售后资料", description: "首次索引尚未完成", collections: [], readable: false, indexing: true, degraded: false, unavailableReason: "首次索引尚未完成"},
  {id: "archive", name: "归档参考", description: "历史资料与标准", collections: [], readable: true, indexing: false, degraded: false},
+ ...Array.from({length: 5}, (_, i) => ({id: `reference-${i + 1}`, name: `参考资料 ${i + 1}`, description: "用于验证多选数量限制", collections: [], readable: true, indexing: false, degraded: false})),
 ];
 function Preview() {
  const [dark, setDark] = useState(false);

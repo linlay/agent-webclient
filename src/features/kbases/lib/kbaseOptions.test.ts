@@ -24,3 +24,16 @@ it("loads a usage catalog for the actual target Agent and rejects a mismatched/o
  expect(() => parseKBaseOptions(catalog, "other")).toThrow("kbase.protocolUnavailable");
  expect(() => parseKBaseOptions([], "general")).toThrow("kbase.protocolUnavailable");
 });
+it("accepts empty arrays and false statuses but rejects missing status booleans", () => {
+ const empty = {agentKey: "general", capability: {available: false}, libraries: []};
+ expect(parseKBaseOptions(empty, "general")).toEqual(empty);
+ const library = {...catalog.libraries[0], readable: false, indexing: false, degraded: false, collections: []};
+ expect(parseKBaseOptions({...catalog, libraries: [library]}, "general").libraries).toEqual([library]);
+ for (const field of ["readable", "indexing", "degraded"] as const) {
+  const incomplete: Partial<typeof library> = {...library};
+  delete incomplete[field];
+  expect(() => parseKBaseOptions({...catalog, libraries: [incomplete]}, "general")).toThrow("kbase.protocolUnavailable");
+ }
+ expect(() => parseKBaseOptions({...empty, capability: {}}, "general")).toThrow("kbase.protocolUnavailable");
+ expect(() => parseKBaseOptions({...empty, libraries: null}, "general")).toThrow("kbase.protocolUnavailable");
+});

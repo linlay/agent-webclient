@@ -1,4 +1,5 @@
-import { loadKBaseOptions, normalizeKbaseIds, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
+import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
+import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
 import { t } from "@/shared/i18n";
 import { rejectAgentCheck } from "@/features/agents/lib/agentRefresh";
 import { requestSkillsRefresh } from "@/features/skills/lib/skillRefresh";
@@ -419,6 +420,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       let kbaseLabels: Record<string, string> | undefined;
       if (normalizedKbases.length > 0) {
         try {
+          if (normalizedKbases.length > MAX_MUST_USE_KBASES) throw new Error(t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES}));
           const catalog = await loadKBaseOptions(selectedAgentKey);
           if (unavailableKbaseIds(catalog, normalizedKbases).length) throw new Error("kbase.selectionUnavailable");
           kbaseLabels = Object.fromEntries(catalog.libraries.filter(item => normalizedKbases.includes(item.id)).map(item => [item.id, item.name]));
