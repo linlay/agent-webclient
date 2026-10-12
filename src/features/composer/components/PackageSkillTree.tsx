@@ -3,6 +3,7 @@ import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillD
 import React from "react";
 import type { AgentSkill, AgentSkillPackage } from "@/shared/data/api/dto/agents";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import pickerTypography from "@/shared/ui/PickerTypography.module.css";
 import { useI18n } from "@/shared/i18n";
 import { packageMembers, skillIdentity } from "../lib/skillPackages";
 import styles from "./PackageSkillTree.module.css";
@@ -41,8 +42,8 @@ export function PackageSkillTree({ pkg, skills, selectedKeys, selectedPackageId,
       <span className={styles.title}>
         <SkillIcon icon={pkg.icon} fallback="folder" />
         <span className={styles.copy}>
-          <span className={styles.name}>{skillPackageDisplayName(pkg)}</span>
-          <small className={selectedCount ? styles.hasSelection : styles.meta}>
+          <span className={`${styles.name} ${pickerTypography.name}`}>{skillPackageDisplayName(pkg)}</span>
+          <small className={`${selectedCount ? styles.hasSelection : styles.meta} ${pickerTypography.description}`}>
             {t(selectedCount ? "packageComposer.selectionCount" : "skillConsole.packageContains", { selected: selectedCount, count: members.length + unavailable.length })}
           </small>
         </span>
@@ -70,7 +71,7 @@ export function PackageSkillTree({ pkg, skills, selectedKeys, selectedPackageId,
         aria-label={skillDisplayName(skill)} aria-pressed={selected.has(skillIdentity(skill.id))}
         disabled={disabled || locked.has(skillIdentity(skill.id))}
         onClick={() => onSelect([skill], !(!selectedPackageId && manualSelected.size === 1 && manualSelected.has(skillIdentity(skill.id))))}>
-        <span className={styles.memberCopy} title={skill.description}><span>{skillDisplayName(skill)}</span>{skill.description && <small>{skill.description}</small>}</span>
+        <span className={styles.memberCopy} title={skill.description}><span className={pickerTypography.name}>{skillDisplayName(skill)}</span>{skill.description && <small className={pickerTypography.description}>{skill.description}</small>}</span>
       </button>)}
       {unavailable.map(id => <button type="button" className={styles.member} key={id} disabled>{id} · {t("packageComposer.unavailable")}</button>)}
     </div>

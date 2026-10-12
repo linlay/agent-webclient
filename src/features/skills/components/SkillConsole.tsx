@@ -52,7 +52,6 @@ import { useI18n } from "@/shared/i18n";
 import { FileIcon } from "@/shared/components/file-icon";
 import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useAdminSkillCatalog } from "@/features/skills/hooks/useAdminSkillCatalog";
 import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
@@ -62,7 +61,6 @@ import { useOptionalAppContext } from "@/app/state/AppContext";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import "./SkillConsole.module.css";
 
-type StatusFilter = "all" | AdminSkillStatus;
 type SkillCatalogRow =
   | {
       kind: "package";
@@ -95,8 +93,6 @@ function translateWithFallback(
   const translated = t(key);
   return translated === key ? fallback : translated;
 }
-
-const STATUS_FILTERS: StatusFilter[] = ["all", "ready", "invalid", "disabled"];
 
 const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => (
   <SkillIcon icon={icon} fallback="build" size={28} />
@@ -1624,9 +1620,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     return !window.matchMedia("(max-width: 860px)").matches;
   });
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [kindFilter, setKindFilter] = useState<SkillKindFilter>(null);
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
   // 左侧 skill 列表列宽；拖拽手柄在列表右缘，向右拖变宽
   const [listWidth, setListWidth] = useState(260);
@@ -1679,8 +1673,8 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
   const isFileDirty = dirtyFiles.has(selectedFilePath);
 
   const groupedSkills = useMemo(() => groupAdminSkills(
-    skills, packages, searchText, statusFilter,
-  ), [skills, packages, searchText, statusFilter]);
+    skills, packages, searchText, "all",
+  ), [skills, packages, searchText]);
   const catalogRows = useMemo(() => orderSkillCatalogItems<SkillCatalogRow>([
     ...groupedSkills.packages.map((group): SkillCatalogRow => ({
       kind: "package", id: group.pack.id, label: skillPackageDisplayName(group.pack), group,
@@ -1690,7 +1684,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     })),
   ], pinnedSkillIds, locale).filter((row) => kindFilter === null || row.kind === kindFilter),
   [groupedSkills, pinnedSkillIds, locale, kindFilter]);
-  const hasListFilter = Boolean(searchText.trim()) || statusFilter !== "all" || kindFilter !== null;
+  const hasListFilter = Boolean(searchText.trim()) || kindFilter !== null;
   const selectedPackage = packages.find((pack) => pack.id === selectedPackageId);
   const selectedSkillPackage = packages.find((pack) => pack.skills.some((member) => member.id === selectedSkillId));
 
@@ -2444,7 +2438,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       setCreateModalOpen(false);
       setDirtyFiles(new Set());
       setSearchText("");
-      setStatusFilter("all");
       setKindFilter(null);
       notification.success({
         message: t("skillConsole.import.packageSuccess", {
@@ -2469,22 +2462,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       updateSkillDirtyFiles(prev, selectedFilePath, value, originalFileContent),
     );
   };
-
-  const statusMenu: MenuProps = useMemo(
-    () => ({
-      onClick: (info) => setStatusFilter(info.key as StatusFilter),
-      selectedKeys: [statusFilter],
-      items: STATUS_FILTERS.map((status) => ({
-        key: status,
-        label: translateWithFallback(
-          t,
-          `skillConsole.statusFilter.${status}`,
-          status,
-        ),
-      })),
-    }),
-    [t, statusFilter],
-  );
 
   const renderSkillItem = (item: AdminSkillSummary) => {
     const itemPinned = pinnedSkillIds.includes(item.id.toLowerCase());
@@ -2593,21 +2570,15 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
       >
         <div className={SKILL_LIST_CLASS_NAME}>
           <div className={SKILL_TOOLBAR_CLASS_NAME}>
-            <SearchFilterBar
-              searchText={searchText}
-              onSearchChange={setSearchText}
-              searchPlaceholder={t("skillConsole.searchPlaceholder")}
-              filters={[
-                {
-                  key: "status",
-                  label: t("skillConsole.statusFilter.all"),
-                  icon: "filter_list",
-                  active: statusFilter !== "all",
-                  open: statusDropdownOpen,
-                  onOpenChange: setStatusDropdownOpen,
-                  menu: statusMenu,
-                },
-              ]}
+            <Input
+              value={searchText}
+              onChange={event => setSearchText(event.target.value)}
+              placeholder={t("skillConsole.searchPlaceholder")}
+              prefix={<MaterialIcon name="search" style={{ color: "var(--text-muted)" }} />}
+              variant="filled"
+              suffix={<SkillKindFilters value={kindFilter} onChange={setKindFilter}
+                packageCount={groupedSkills.packages.length}
+                standaloneCount={groupedSkills.standalone.length} />}
             />
             <UiButton
               size="sm"
@@ -2626,13 +2597,6 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               onManual={() => setCreateModalOpen(true)}
               onConversation={async () => { if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill" }); }} />
           </div>
-
-          <SkillKindFilters
-            value={kindFilter}
-            onChange={setKindFilter}
-            packageCount={groupedSkills.packages.length}
-            standaloneCount={groupedSkills.standalone.length}
-          />
 
           {pinError && (
             <div role="alert" className="tw:text-xs tw:text-danger">

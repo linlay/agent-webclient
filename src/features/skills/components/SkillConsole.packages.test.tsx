@@ -51,8 +51,15 @@ async function mount(selectedSkillId = 'meeting') {
   ));
 }
 
-function kindButton(kind: 'package' | 'standalone') {
-  return container.querySelector<HTMLButtonElement>(`button[data-skill-kind="${kind}"]`)!;
+function kindButton(kind: 'all' | 'package' | 'standalone') {
+  const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="技能类型筛选"]')!;
+  if (trigger.getAttribute('aria-expanded') !== 'true') act(() => trigger.click());
+  return document.querySelector<HTMLElement>(`.ant-dropdown:not(.ant-dropdown-hidden) [data-skill-kind="${kind}"]`)!;
+}
+
+async function chooseKind(kind: 'all' | 'package' | 'standalone') {
+  const option = kindButton(kind);
+  await act(async () => option.click());
 }
 
 function topLevelNames() {
@@ -66,13 +73,6 @@ async function search(value: string) {
   await act(async () => Simulate.change(input, {target: {value}} as any));
 }
 
-async function filterStatus(label: string) {
-  await act(async () => container.querySelector<HTMLButtonElement>('.skill-console-toolbar button.filter-trigger')!.click());
-  const option = [...document.querySelectorAll<HTMLElement>('.ant-dropdown:not(.ant-dropdown-hidden) [role="menuitem"]')]
-    .find(node => node.textContent === label)!;
-  expect(option).toBeDefined();
-  await act(async () => option.click());
-}
 test('package click expands members and overview, clicking member reopens existing editor', async () => {
   await mount();
   const folder = container.querySelector<HTMLButtonElement>('.skill-package-folder')!;
@@ -134,8 +134,8 @@ test.each([true, false])('mixes packages and standalone names with pins first an
   expect(topLevelNames()).toEqual(pinned
     ? ['Omega skill', 'Zeta package', 'Beta skill', 'Alpha package']
     : ['Alpha package', 'Beta skill', 'Omega skill', 'Zeta package']);
-  expect(kindButton('package').getAttribute('aria-pressed')).toBe('false');
-  expect(kindButton('standalone').getAttribute('aria-pressed')).toBe('false');
+  expect(String(kindButton('package').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
+  expect(String(kindButton('standalone').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
   expect(kindButton('package').textContent).toBe('技能包2');
   expect(kindButton('standalone').textContent).toBe('技能2');
   expect(container.querySelector('.skill-console-list-header')).toBeNull();
@@ -147,33 +147,33 @@ test.each([true, false])('mixes packages and standalone names with pins first an
   expect(container.querySelectorAll('.skill-package-members .skill-console-list-item')).toHaveLength(1);
 });
 
-test('kind toggles are mutually exclusive and clicking the active kind restores all rows', async () => {
+test('kind menu switches types and All restores all rows', async () => {
   await mount();
   expect(topLevelNames()).toEqual(['独立', '企业微信']);
-  await act(async () => kindButton('package').click());
+  await chooseKind('package');
   expect(topLevelNames()).toEqual(['企业微信']);
-  expect(kindButton('package').getAttribute('aria-pressed')).toBe('true');
-  expect(kindButton('standalone').getAttribute('aria-pressed')).toBe('false');
+  expect(String(kindButton('package').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('true');
+  expect(String(kindButton('standalone').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
   expect(kindButton('standalone').textContent).toBe('技能1');
 
-  await act(async () => kindButton('standalone').click());
+  await chooseKind('standalone');
   expect(topLevelNames()).toEqual(['独立']);
-  expect(kindButton('package').getAttribute('aria-pressed')).toBe('false');
-  expect(kindButton('standalone').getAttribute('aria-pressed')).toBe('true');
-  await act(async () => kindButton('standalone').click());
+  expect(String(kindButton('package').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
+  expect(String(kindButton('standalone').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('true');
+  await chooseKind('all');
   expect(topLevelNames()).toEqual(['独立', '企业微信']);
-  expect(kindButton('standalone').getAttribute('aria-pressed')).toBe('false');
+  expect(String(kindButton('standalone').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
 
-  await act(async () => kindButton('package').click());
-  await act(async () => kindButton('package').click());
+  await chooseKind('package');
+  await chooseKind('all');
   expect(topLevelNames()).toEqual(['独立', '企业微信']);
-  expect(kindButton('package').getAttribute('aria-pressed')).toBe('false');
+  expect(String(kindButton('package').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
   expect(onSelect).not.toHaveBeenCalled();
   expect(onClear).not.toHaveBeenCalled();
   expect(getAdminSkillDetail).toHaveBeenCalledTimes(1);
 });
 
-test('kind filtering intersects search and status while counts cover both matching kinds', async () => {
+test('kind filtering intersects search and retains invalid skills with matching counts', async () => {
   catalog.skills = [
     ...skills, {id: 'report', displayName: '会议报告', status: 'invalid'},
   ];
@@ -185,22 +185,17 @@ test('kind filtering intersects search and status while counts cover both matchi
   expect(container.querySelector('.skill-package-folder')?.getAttribute('aria-expanded')).toBe('true');
   expect(container.querySelector('.skill-package-members')?.textContent).toContain('会议');
 
-  await act(async () => kindButton('package').click());
+  await chooseKind('package');
   expect(topLevelNames()).toEqual(['企业微信']);
   expect(kindButton('standalone').textContent).toBe('技能1');
-  await filterStatus('就绪');
-  expect(kindButton('package').textContent).toBe('技能包1');
-  expect(kindButton('standalone').textContent).toBe('技能0');
-  await act(async () => kindButton('standalone').click());
-  expect(topLevelNames()).toEqual([]);
-  expect(container.querySelector('.skill-console-list-scroll')?.textContent).toContain('无匹配技能');
+  await chooseKind('standalone');
+  expect(topLevelNames()).toEqual(['会议报告']);
+  expect(container.querySelector('.skill-console-list-scroll')?.textContent).toContain('无效');
   expect(container.querySelector<HTMLInputElement>('input[placeholder="搜索技能..."]')?.value).toBe('会议');
   expect(kindButton('package').textContent).toBe('技能包1');
-
-  await filterStatus('全部');
-  expect(topLevelNames()).toEqual(['会议报告']);
-  expect(kindButton('standalone').getAttribute('aria-pressed')).toBe('true');
-  await act(async () => kindButton('standalone').click());
+  expect(kindButton('all').textContent).toBe('全部2');
+  expect(document.querySelector('.ant-dropdown:not(.ant-dropdown-hidden)')?.textContent).not.toContain('就绪');
+  await chooseKind('all');
   expect(topLevelNames()).toEqual(['会议报告', '企业微信']);
 });
 
@@ -210,7 +205,7 @@ test('empty packages remain visible in package filtering and respect search', as
   ];
   catalog.skills = [skills[1]];
   await mount('solo');
-  await act(async () => kindButton('package').click());
+  await chooseKind('package');
   expect(topLevelNames()).toEqual(['空技能包']);
   expect(kindButton('package').textContent).toBe('技能包1');
   expect(kindButton('standalone').textContent).toBe('技能1');
@@ -244,14 +239,14 @@ test('filtering and package pinning preserve the selected skill and its unsaved 
   expect(editor.value).toBe('unsaved draft');
   expect(container.querySelector('.skill-console-dirty')).not.toBeNull();
 
-  await act(async () => kindButton('package').click());
+  await chooseKind('package');
   expect(topLevelNames()).toEqual(['企业微信']);
   expect(editor.value).toBe('unsaved draft');
   expect(container.querySelector('.skill-console-dirty')).not.toBeNull();
   expect(document.querySelector('.ant-modal-confirm')).toBeNull();
-  await act(async () => kindButton('standalone').click());
+  await chooseKind('standalone');
   expect(container.querySelector('.skill-console-list-item.is-active strong')?.textContent).toBe('独立');
-  await act(async () => kindButton('standalone').click());
+  await chooseKind('standalone');
   expect(editor.value).toBe('unsaved draft');
   expect(container.querySelector('.skill-console-dirty')).not.toBeNull();
   expect(onSelect).not.toHaveBeenCalled();

@@ -1,0 +1,54 @@
+.typeGroup:global(.ant-radio-group) {
+    display: flex;
+    width: 100%;
+}
+
+.typeButton:global(.ant-radio-button-wrapper) {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    padding: 8px 4px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.typeLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+.typeIcon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    transition: transform 160ms ease;
+}
+
+.typeButton:hover:not(:global(.ant-radio-button-wrapper-disabled)) .typeIcon {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+    .typeButton:global(.ant-radio-button-wrapper) {
+        padding: 6px 2px;
+    }
+
+    .typeLabel {
+        gap: 2px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .typeIcon {
+        transition: none;
+    }
+
+    .typeButton:hover:not(:global(.ant-radio-button-wrapper-disabled)) .typeIcon {
+        transform: none;
+    }
+}

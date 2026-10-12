@@ -1,4 +1,4 @@
-import libraryPresentation from "@/shared/ui/Presentation.module.css";
+import pickerTypography from "@/shared/ui/PickerTypography.module.css";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
@@ -268,7 +268,7 @@ const AddMenuSectionDetail: React.FC<
         <SkillIcon icon={skill.icon} />
         <span className={presentationClasses("composer-add-menu-item-copy")}>
           <span className={presentationClasses("composer-add-menu-item-title")}>
-            <b>{skillName}</b>
+            <b className={pickerTypography.name}>{skillName}</b>
             <span className={presentationClasses("composer-add-menu-skill-actions")}>
               {selected && <MaterialIcon name="check" className={presentationClasses("composer-add-menu-skill-selected")} />}
               {skill.configured && (
@@ -300,7 +300,7 @@ const AddMenuSectionDetail: React.FC<
               </button>
             </span>
           </span>
-          <small>
+          <small className={pickerTypography.description}>
             {skill.description || t("slashPalette.skill.noDescription")}
           </small>
         </span>
@@ -325,16 +325,17 @@ const AddMenuSectionDetail: React.FC<
       {searchable && (
         <Input
           ref={searchRef}
+          className={pickerTypography.search}
           prefix={<MaterialIcon name="search" />}
           variant="filled"
           value={search}
           placeholder={t(searchPlaceholderKey[section] || "")}
           onChange={(event) => onSearchChange(event.target.value)}
-          style={{ marginBottom: section === "skills" ? 0 : 10 }}
+          suffix={section === "skills" ? <SkillKindFilters value={kindFilter} onChange={setKindFilter}
+            packageCount={filteredPackages.length} standaloneCount={filteredSkills.length} /> : undefined}
+          style={{ marginBottom: 10 }}
         />
       )}
-      {section === "skills" && <SkillKindFilters compact value={kindFilter} onChange={setKindFilter}
-        packageCount={filteredPackages.length} standaloneCount={filteredSkills.length} />}
       {section === "connectors" && (
         <AgentConnectorPicker
           key={props.currentAgentKey}
@@ -443,7 +444,7 @@ const AddMenuSectionDetail: React.FC<
             item(
               <>
                 <MaterialIcon name="question_answer" />
-                <Typography.Text ellipsis className={libraryPresentation.typography}>
+                <Typography.Text ellipsis className={pickerTypography.name}>
                   {text(chat.chatName) || chat.chatId}
                 </Typography.Text>
               </>,

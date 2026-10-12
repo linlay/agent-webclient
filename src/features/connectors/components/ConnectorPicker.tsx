@@ -4,6 +4,7 @@ import type { InputRef } from "antd";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import pickerTypography from "@/shared/ui/PickerTypography.module.css";
 import { ApiError, type ConnectorOption } from "@/shared/data";
 import { useConnectorPickerCatalog } from "../hooks/useConnectorPickerCatalog";
 import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames, connectorOptionStatus } from "../lib/connectorSelection";
@@ -70,7 +71,7 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
 
   return <section className={styles.picker} aria-label={t("composer.addMenu.section.connectors")}>
     {messageContextHolder}
-    <Input ref={searchRef} className={styles.search} variant="filled" prefix={<MaterialIcon name="search" />} value={search}
+    <Input ref={searchRef} className={`${styles.search} ${pickerTypography.search}`} variant="filled" prefix={<MaterialIcon name="search" />} value={search}
       aria-label={t("composer.addMenu.connectors.search")} placeholder={t("composer.addMenu.connectors.search")}
       onChange={event => onSearchChange(event.target.value)} />
     <div className={styles.list} aria-busy={catalog.loading}>
@@ -100,8 +101,8 @@ function ConnectorPickerRow({ item, selected, saving, disabled, selectionDisable
   return <div className={styles.row}>
     <ConnectorIcon item={item} size={18} className={styles.icon} />
     <div className={styles.details}>
-      <span className={styles.name} title={item.name || item.id}>{item.name || item.id}</span>
-      {status && <span className={styles.availability} title={t(`composer.addMenu.connectors.status.${status}`)}>{t(`composer.addMenu.connectors.status.${status}`)}</span>}
+      <span className={`${styles.name} ${pickerTypography.name}`} title={item.name || item.id}>{item.name || item.id}</span>
+      {status && <span className={`${styles.availability} ${pickerTypography.description}`} title={t(`composer.addMenu.connectors.status.${status}`)}>{t(`composer.addMenu.connectors.status.${status}`)}</span>}
     </div>
     <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled}
       aria-label={t("composer.addMenu.connectors.select", { name: item.name || item.id })}

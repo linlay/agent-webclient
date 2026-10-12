@@ -167,7 +167,7 @@ export interface CreateAgentRequest {
   agentsPrompt?: string;
 }
 
-export type AgentCreationTypeKey = "general" | "coder" | "kbase" | "acp";
+export type AgentCreationTypeKey = "general" | "coder" | "kbase" | "team" | "acp";
 
 /** Client creation type, enriched with profile defaults. */
 export interface AgentCreationTypeOption {

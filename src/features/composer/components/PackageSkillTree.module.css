@@ -10,14 +10,14 @@
 .tree[open] > .header .folderOpen { display: inline-flex; }
 .title { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; border-radius: 4px; }
 .copy { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
-.name { font-size: 12px; font-weight: 600; line-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meta, .hasSelection { font-size: 11px; font-weight: 400; line-height: 16px; color: var(--ink-muted); }
+.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta, .hasSelection { color: var(--ink-muted); }
 .hasSelection { color: var(--accent-electric); }
 .members { display: flex; flex-direction: column; gap: 0; margin: 0 6px 8px 14px; padding: 2px 0 2px 12px; border-left: 1px solid color-mix(in srgb, var(--ink-muted) 24%, transparent); }
 .member { display: flex; align-items: flex-start; width: 100%; min-width: 0; margin: 0; padding: 7px 6px; box-sizing: border-box; border-radius: 6px; line-height: 20px; }
 .member:hover { background: color-mix(in srgb, var(--bg-hover) 45%, transparent); }
-.memberCopy { display: grid; min-width: 0; font-size: 12px; line-height: 20px; }
-.memberCopy small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; font-size: 11px; color: var(--ink-muted); line-height: 16px; overflow-wrap: anywhere; }
+.memberCopy { display: grid; min-width: 0; }
+.memberCopy small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; color: var(--ink-muted); overflow-wrap: anywhere; }
 .notice { padding: 4px 8px 6px 30px; color: var(--ink-muted); font-size: 11px; line-height: 18px; }
 
 .header[data-selection="partial"] { background: color-mix(in srgb, var(--accent-electric) 6%, transparent); }

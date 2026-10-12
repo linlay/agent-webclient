@@ -372,24 +372,29 @@ describe("AddMenuTrigger", () => {
     const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
       .find(button=>button.textContent?.includes("composer.addMenu.section.skills"))!;
     act(()=>section.click());
-    const filter = (kind: string) => container.querySelector<HTMLButtonElement>(`[data-skill-kind="${kind}"]`)!;
+    const filter = (kind: string) => {
+      const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="skillCatalog.kindFilter"]')!;
+      if (trigger.getAttribute('aria-expanded') !== 'true') act(() => trigger.click());
+      return document.querySelector<HTMLElement>(`.ant-dropdown:not(.ant-dropdown-hidden) [data-skill-kind="${kind}"]`)!;
+    };
+    const chooseKind = (kind: string) => { const option = filter(kind); act(() => option.click()); };
     const entries = () => [...container.querySelectorAll('.composer-add-menu-skill-row, summary')];
     expect(entries()).toHaveLength(2);
     expect(entries()[0].textContent).toContain('Alpha');
     expect(container.querySelector('.composer-skill-group-label')).toBeNull();
-    expect(filter('package').getAttribute('aria-pressed')).toBe('false');
-    expect(filter('standalone').getAttribute('aria-pressed')).toBe('false');
-    act(()=>filter('package').click());
+    expect(String(filter('package').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
+    expect(String(filter('standalone').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
+    chooseKind('package');
     expect(entries()).toHaveLength(1); expect(entries()[0].tagName).toBe('SUMMARY');
-    act(()=>filter('standalone').click());
-    expect(filter('package').getAttribute('aria-pressed')).toBe('false');
+    chooseKind('standalone');
+    expect(String(filter('package').closest('.ant-dropdown-menu-item')!.classList.contains('ant-dropdown-menu-item-selected'))).toBe('false');
     expect(entries()).toHaveLength(1); expect(entries()[0].textContent).toContain('Alpha');
-    act(()=>filter('standalone').click());
+    chooseKind('all');
     expect(entries()).toHaveLength(2);
     const input=container.querySelector<HTMLInputElement>('input[placeholder="composer.addMenu.search.skills"]')!;
     act(()=>Simulate.change(input,{target:{value:'Member'}} as any));
     expect(entries()).toHaveLength(1); expect(entries()[0].tagName).toBe('SUMMARY');
-    act(()=>filter('standalone').click());
+    chooseKind('standalone');
     expect(entries()).toHaveLength(0);
     expect(container.textContent).toContain('composer.addMenu.empty');
     expect(props.onSelectSkills).not.toHaveBeenCalled();
@@ -406,11 +411,12 @@ describe("AddMenuTrigger", () => {
     const nav = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
       .find(button=>button.textContent?.includes("composer.addMenu.section.skills"))!;
     act(()=>nav.click());
-    const filter=container.querySelector<HTMLButtonElement>('[data-skill-kind="package"]')!;
+    const filter=container.querySelector<HTMLButtonElement>('button[aria-label="skillCatalog.kindFilter"]')!;
     act(()=>{ Simulate.pointerDown(filter); filter.click(); });
+    act(()=>document.querySelector<HTMLElement>('.ant-dropdown:not(.ant-dropdown-hidden) [data-skill-kind="package"]')!.click());
     const submenu=nav.closest('[data-popover-trigger="hover,click"]')!;
     act(()=>Simulate.mouseLeave(submenu));
-    expect(container.querySelector('[data-skill-kind="package"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(filter.getAttribute("data-active")).toBe("true");
     const summary=container.querySelector('summary')!;
     act(()=>summary.click());
     act(()=>container.querySelector<HTMLButtonElement>(`button[aria-label="${choice}"]`)!.click());

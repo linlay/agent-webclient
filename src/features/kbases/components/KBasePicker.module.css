@@ -11,8 +11,7 @@
 .picker .icon { flex-shrink: 0; width: 18px; height: 18px; color: var(--accent); }
 .copy { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
 .copy > strong, .copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.copy > strong { font-size: 14px; line-height: 20px; font-weight: 600; }
-.copy > span { color: var(--ink-muted); font-size: 11px; line-height: 16px; }
+.copy > span { color: var(--ink-muted); }
 .status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 20px 8px; color: var(--ink-muted); font-size: 12px; }
 .visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 6px; font-size: 12px; }

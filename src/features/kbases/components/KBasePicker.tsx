@@ -4,6 +4,7 @@ import type { InputRef } from "antd";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import pickerTypography from "@/shared/ui/PickerTypography.module.css";
 import type { KBaseCatalog } from "../hooks/useKBaseOptions";
 import type { SelectedKBase } from "../lib/kbasesState";
 import { MAX_KBASE_REFERENCES, normalizeKbaseIds } from "../lib/kbaseSelection";
@@ -33,7 +34,7 @@ export function KBasePicker({ catalog, selected, onChange, disabled: selectionDi
   const error = catalog.error?.startsWith("kbase.") ? t(catalog.error) : catalog.error;
 
   return <section className={styles.picker} aria-label={t("kbase.title")}>
-    <Input ref={searchRef} className={styles.search} variant="filled" prefix={<MaterialIcon name="search" />}
+    <Input ref={searchRef} className={`${styles.search} ${pickerTypography.search}`} variant="filled" prefix={<MaterialIcon name="search" />}
       aria-label={t("kbase.search")} placeholder={t("kbase.search")} value={search}
       onChange={event => setSearch(event.target.value)} allowClear />
     <div className={styles.list} aria-busy={catalog.status === "loading"}>
@@ -55,7 +56,7 @@ export function KBasePicker({ catalog, selected, onChange, disabled: selectionDi
             aria-pressed={isSelected} disabled={disabled}
             onClick={() => onChange(isSelected ? selected.filter(library => library.id !== item.id) : [...selected, { id: item.id, name: item.name }])}>
             <MaterialIcon name="book_2" className={styles.icon} />
-            <span className={styles.copy}><strong>{item.name}</strong>{description && <span>{description}</span>}</span>
+            <span className={styles.copy}><strong className={pickerTypography.name}>{item.name}</strong>{description && <span className={pickerTypography.description}>{description}</span>}</span>
           </button>;
         })}
       </>}

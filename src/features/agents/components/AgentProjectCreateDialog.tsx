@@ -7,6 +7,16 @@ import {
 } from "@/features/agents/lib/projectCreation";
 import type { AgentCreationGroupOption, AgentCreationTypeKey } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
+import styles from "./AgentProjectCreateDialog.module.css";
+
+const projectTypes: Record<AgentCreationTypeKey, { order: number; icon: MaterialIconName }> = {
+  general: { order: 0, icon: "robot_2" },
+  coder: { order: 1, icon: "code" },
+  kbase: { order: 2, icon: "book_2" },
+  team: { order: 3, icon: "hub" },
+  acp: { order: 4, icon: "terminal" },
+};
 
 const labelStyle: React.CSSProperties = {
   display: "block",
@@ -95,20 +105,25 @@ export const AgentProjectCreateDialog: React.FC<{
                 {t("leftSidebar.createProject.projectType")}
               </label>
               <Radio.Group
+                className={styles.typeGroup}
                 value={selection.typeKey}
                 disabled={runtime.submitting}
                 optionType="button"
                 buttonStyle="solid"
                 onChange={(event) => runtime.setType(event.target.value as AgentCreationTypeKey)}
               >
-                {options.types.map((item) => (
+                {[...options.types].sort((a, b) => projectTypes[a.key].order - projectTypes[b.key].order).map((item) => (
                   <Radio.Button
+                    className={styles.typeButton}
                     key={item.key}
                     value={item.key}
                     disabled={!item.available}
                     title={item.available ? undefined : item.unavailableReason}
                   >
-                    {item.label}
+                    <span className={styles.typeLabel}>
+                      <MaterialIcon name={projectTypes[item.key].icon} className={styles.typeIcon} />
+                      {t(`leftSidebar.createProject.type.${item.key}`)}
+                    </span>
                   </Radio.Button>
                 ))}
               </Radio.Group>
@@ -199,18 +214,20 @@ export const AgentProjectCreateDialog: React.FC<{
               <Flex gap={8}>
                 <Input
                   value={runtime.workspaceDir}
-                  placeholder={t("leftSidebar.createProject.directoryPlaceholder")}
+                  placeholder={t(runtime.nativeDirectoryPickerAvailable ? "leftSidebar.createProject.directoryLocalPlaceholder" : "leftSidebar.createProject.directoryPlaceholder")}
                   disabled={runtime.submitting}
                   onChange={(event) => runtime.setWorkspaceDir(event.target.value)}
                 />
                 <Button
                   disabled={runtime.submitting || runtime.browserLoading}
+                  loading={runtime.nativeDirectoryPickerAvailable && runtime.browserLoading}
+                  icon={<MaterialIcon name="folder_open" />}
                   onClick={runtime.openBrowser}
                 >
                   {t("leftSidebar.createProject.browse")}
                 </Button>
               </Flex>
-              <div style={hintStyle}>{t("leftSidebar.createProject.directoryHostHint")}</div>
+              <div style={hintStyle}>{t(runtime.nativeDirectoryPickerAvailable ? "leftSidebar.createProject.directoryLocalHint" : "leftSidebar.createProject.directoryHostHint")}</div>
               {runtime.browserOpen ? <HostDirectoryBrowser runtime={runtime} /> : null}
             </div>
 
