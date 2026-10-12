@@ -112,7 +112,7 @@ export function SidebarAgentNavigation(props: {
           <span>{t("leftSidebar.navigation.projects")}</span><MaterialIcon name={projectsOpen ? "expand_more" : "chevron_right"} />
         </button>
         <div className={styles.headingActions}>
-          {projectsOpen && <UiButton className={`${styles.iconButton} ui-icon-hover-24`} size="mini" variant="ghost" iconOnly
+          {projectsOpen && <UiButton className={`${styles.iconButton} ${styles.headingHoverAction} ui-icon-hover-24`} size="mini" variant="ghost" iconOnly
             disabled={groups.projects.length === 0} onClick={toggleAllProjects}
             title={t(allProjectsExpanded ? "leftSidebar.navigation.collapseProjects" : "leftSidebar.navigation.expandProjects")}
             aria-label={t(allProjectsExpanded ? "leftSidebar.navigation.collapseProjects" : "leftSidebar.navigation.expandProjects")}>
