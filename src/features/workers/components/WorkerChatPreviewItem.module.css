@@ -22,7 +22,8 @@
 .overflowText { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: clip; }
 .title { flex: 1; --sidebar-text-fade-width: 24px; }
 .titleText { display: block; width: max-content; }
-.overflowText[data-overflow="true"] {
+/* Fade chat titles as they reach the right edge, even if they just fit. */
+.title, .ownerLabel[data-overflow="true"] {
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--sidebar-text-fade-width)), transparent 100%);
   mask-image: linear-gradient(to right, #000 calc(100% - var(--sidebar-text-fade-width)), transparent 100%);
 }
