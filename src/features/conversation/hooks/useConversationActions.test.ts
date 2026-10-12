@@ -681,6 +681,23 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it.each([
+    ['keeps', ''],
+    ['clears', 'chat-existing'],
+  ])('%s composer attachments when activating a blank conversation from chatId=%p', (_label, chatId) => {
+    const state = createInitialState();
+    state.chatId = chatId;
+    const { actions } = createConversationIntentHarness(state);
+    globalWithBrowserApis.window!.dispatchEvent.mockClear();
+
+    actions.activateBlankConversation({ preserveWorkerContext: true });
+
+    const clearCalls = globalWithBrowserApis.window!.dispatchEvent.mock.calls.filter(
+      ([event]) => (event as Event).type === 'agent:clear-composer-attachments',
+    );
+    expect(clearCalls).toHaveLength(chatId ? 1 : 0);
+  });
+
   it('hydrates usage snapshot from /api/chat top-level usage without current call usage', async () => {
     const { actions, dispatch } = renderChatActions();
     getChat.mockResolvedValue({

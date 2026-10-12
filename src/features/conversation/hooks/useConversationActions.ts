@@ -432,7 +432,11 @@ export function useConversationActions() {
       clearArtifactAutoCollapseTimer();
       clearPlanAutoCollapseTimer();
       window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-      window.dispatchEvent(new CustomEvent("agent:clear-composer-attachments"));
+      // Blank-to-blank switches (e.g. changing Agent before the first query)
+      // keep pending uploads and their upload chatId, like the shared draft.
+      if (String(stateRef.current.chatId || "").trim()) {
+        window.dispatchEvent(new CustomEvent("agent:clear-composer-attachments"));
+      }
       window.dispatchEvent(new CustomEvent("agent:voice-reset"));
       dispatch({ type: "SET_CHAT_ID", chatId: "" });
       dispatch({ type: "SET_RUN_ID", runId: "" });
