@@ -1053,7 +1053,7 @@ export const zhCNMessages = {
   "api.loadResourceTextFailedWithStatus": "加载资源文本失败 ({status})",
   "composer.actions.interrupt": "中断运行",
   "composer.actions.plan": "计划",
-  "composer.editingMode.label": "编辑工作区",
+  "composer.editingMode.label": "编辑模式",
   "composer.editingMode.tooltip":
     "允许本次运行编辑工作区文件。",
   "composer.actions.screenshot": "截屏",
@@ -1099,7 +1099,7 @@ export const zhCNMessages = {
   "composer.addMenu.file": "本地文件",
   "composer.addMenu.screenshot": "截屏",
   "composer.addMenu.mode.planning": "计划模式",
-  "composer.addMenu.mode.editing": "允许编辑工作区",
+  "composer.addMenu.mode.editing": "编辑模式",
   "composer.requiredSkill.locked": "{skill} 由宿主强制启用",
   "composer.addMenu.skill.btwUnsupported":
     "BTW 分支暂不支持指定必须使用的 Skill。",
@@ -2188,7 +2188,7 @@ export const zhCNMessages = {
   "slash.command.debug.description": "切换右侧调试面板或抽屉",
   "slash.command.debug.label": "调试面板",
   "slash.command.editing.description": "切换工作区编辑权限",
-  "slash.command.editing.label": "工作区编辑权限",
+  "slash.command.editing.label": "编辑模式",
   "slash.command.history.description": "查看所有历史对话",
   "slash.command.history.label": "历史对话",
   "slash.command.learn.description":
@@ -2435,7 +2435,6 @@ export const zhCNMessages = {
   "topNav.noSelection": "未选择{agentLabel}",
   "topNav.openDrawer": "打开对话列表",
   "topNav.status.error": "运行异常",
-  "topNav.status.editingKnowledgeBase": "正在编辑知识库",
   "topNav.status.idle": "待命",
   "topNav.status.running": "运行中",
   "topNav.terminal.close": "关闭终端",

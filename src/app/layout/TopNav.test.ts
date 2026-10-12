@@ -170,7 +170,7 @@ describe("TopNav", () => {
 		expect(html).toContain("is-running");
 	});
 
-	it("renders the KBASE editing badge from activeRun only", () => {
+	it("keeps active Run editing mode out of the header", () => {
 		const state = createInitialState();
 		state.chatId = "chat_1";
 		state.currentChatActiveRun = {
@@ -192,8 +192,9 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("kbase-editing-badge");
-		expect(html).toContain("editing knowledge base");
+		expect(html).not.toContain("kbase-editing-badge");
+		expect(html).not.toContain("editing knowledge base");
+		expect(html).toContain("is-running");
 	});
 
 	it("does not render usage stats when there is no usage snapshot and not streaming", () => {
