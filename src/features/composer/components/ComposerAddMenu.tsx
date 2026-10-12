@@ -311,10 +311,10 @@ const AddMenuSectionDetail: React.FC<
     <div
       className={presentationClasses("composer-add-menu-detail")}
       data-section={section}
-      onPointerDownCapture={section === "skills" ? props.onInteract : undefined}
-      onFocusCapture={section === "skills" ? props.onInteract : undefined}
+      onPointerDownCapture={section === "skills" || section === "kbases" ? props.onInteract : undefined}
+      onFocusCapture={section === "skills" || section === "kbases" ? props.onInteract : undefined}
       onKeyDown={event => {
-        if (section === "skills" && event.key === "Escape") {
+        if ((section === "skills" || section === "kbases") && event.key === "Escape") {
           event.stopPropagation();
           props.onClose();
         }
@@ -329,10 +329,10 @@ const AddMenuSectionDetail: React.FC<
           value={search}
           placeholder={t(searchPlaceholderKey[section] || "")}
           onChange={(event) => onSearchChange(event.target.value)}
-          style={{ marginBottom: 10 }}
+          style={{ marginBottom: section === "skills" ? 0 : 10 }}
         />
       )}
-      {section === "skills" && <SkillKindFilters value={kindFilter} onChange={setKindFilter}
+      {section === "skills" && <SkillKindFilters compact value={kindFilter} onChange={setKindFilter}
         packageCount={filteredPackages.length} standaloneCount={filteredSkills.length} />}
       {section === "connectors" && (
         <AgentConnectorPicker
@@ -420,7 +420,7 @@ const AddMenuSectionDetail: React.FC<
             )}
         </div>
       )}
-      {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => { props.onInteract?.(); props.onSelectKbases?.(items); }} />}
+      {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => execute(() => { props.onInteract?.(); props.onSelectKbases?.(items); })} />}
       {section === "chat" && (
         <div className={presentationClasses("composer-add-menu-scroll")}>
           {loadingContext && (

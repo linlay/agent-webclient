@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Checkbox, Input, Spin } from "antd";
+import { Input, Spin } from "antd";
 import type { InputRef } from "antd";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -44,18 +44,18 @@ export function KBasePicker({ catalog, selected, onChange }: {
       {catalog.status === "success" && catalog.data?.capability.available && <>
         {!libraries.length && <div className={styles.status} role="status">{t(keyword ? "composer.addMenu.empty" : "kbase.empty")}</div>}
         {libraries.map(item => {
-          const checked = selectedIds.has(item.id);
+          const isSelected = selectedIds.has(item.id);
           const description = item.description || item.collections.map(c => c.description || c.name).join(" · ");
           const availability = !item.readable ? item.unavailableReason || t("kbase.unreadable")
             : [item.indexing ? t("kbase.indexing") : "", item.degraded ? t("kbase.degraded") : ""].filter(Boolean).join(" · ");
-          const disabled = !item.readable || (atLimit && !checked);
-          const title = [item.name, description, availability, atLimit && !checked ? limitText : ""].filter(Boolean).join("\n");
-          return <Checkbox className={styles.row} key={item.id} title={title} aria-label={item.name}
-            checked={checked} disabled={disabled}
-            onChange={event => onChange(event.target.checked ? [...selected, { id: item.id, name: item.name }] : selected.filter(library => library.id !== item.id))}>
+          const disabled = !item.readable || (atLimit && !isSelected);
+          const title = [item.name, description, availability, atLimit && !isSelected ? limitText : ""].filter(Boolean).join("\n");
+          return <button type="button" className={styles.row} key={item.id} title={title} aria-label={item.name}
+            aria-pressed={isSelected} disabled={disabled}
+            onClick={() => onChange(isSelected ? selected.filter(library => library.id !== item.id) : [...selected, { id: item.id, name: item.name }])}>
             <MaterialIcon name="book_2" className={styles.icon} />
             <span className={styles.copy}><strong>{item.name}</strong>{description && <span>{description}</span>}</span>
-          </Checkbox>;
+          </button>;
         })}
       </>}
     </div>

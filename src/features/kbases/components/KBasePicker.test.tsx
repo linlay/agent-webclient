@@ -5,7 +5,7 @@ import {KBasePicker} from "./KBasePicker";
 import {KBaseSelectionTags} from "./KBaseSelectionTags";
 import type {SelectedKBase} from "../lib/kbasesState";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-jest.mock("antd", () => ({Checkbox: ({checked, disabled, onChange, children}: any) => <label><input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} />{children}</label>, Input: jest.requireActual("react").forwardRef(({allowClear, variant, prefix, ...props}: any, ref: any) => <input {...props} ref={ref} />), Spin: () => null}));
+jest.mock("antd", () => ({Input: jest.requireActual("react").forwardRef(({allowClear, variant, prefix, ...props}: any, ref: any) => <input {...props} ref={ref} />), Spin: () => null}));
 jest.mock("@/shared/ui/UiButton", () => ({UiButton: ({children, variant, size, ...props}: any) => <button {...props}>{children}</button>}));
 it("searches and multi-selects readable old indexes", () => {
  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
@@ -19,13 +19,16 @@ it("searches and multi-selects readable old indexes", () => {
  function render() {root.render(<KBasePicker catalog={catalog} selected={selected} onChange={items => {selected = items; render();}} />);}
  act(render);
  expect(refresh).toHaveBeenCalledTimes(1);
- const checks = host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
- expect(checks[2].disabled).toBe(true);
- act(() => checks[0].click()); act(() => checks[1].click());
+ const choices = host.querySelectorAll<HTMLButtonElement>('button[aria-pressed]');
+ expect(host.querySelector('input[type="checkbox"]')).toBeNull();
+ expect(choices[2].disabled).toBe(true);
+ act(() => choices[0].click()); act(() => choices[1].click());
  expect(selected.map(item => item.id)).toEqual(["a", "b"]);
- const search = host.querySelector<HTMLInputElement>('input:not([type="checkbox"])')!;
+ expect(choices[0].getAttribute("aria-pressed")).toBe("true");
+ expect(choices[1].getAttribute("aria-pressed")).toBe("true");
+ const search = host.querySelector<HTMLInputElement>('input')!;
  act(() => {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(search, "Architecture"); search.dispatchEvent(new Event("input", {bubbles: true}));});
- expect(host.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
+ expect(host.querySelectorAll('button[aria-pressed]')).toHaveLength(1);
  act(() => root.unmount()); host.remove();
 });
 it("separates fixed binding, folds four choices and removes one without clearing others", () => {
@@ -43,14 +46,14 @@ it("blocks a ninth library and permits replacing a choice after removing one", (
  const catalog = {status: "success" as const, refresh: jest.fn(), data: {agentKey: "general", capability: {available: true}, libraries}};
  function render() {root.render(<KBasePicker catalog={catalog} selected={selected} onChange={items => {selected = items; render();}} />);}
  act(render);
- const check = (index: number) => host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[index];
- expect(check(0).disabled).toBe(false);
- expect(check(8).disabled).toBe(true);
+ const choice = (index: number) => host.querySelectorAll<HTMLButtonElement>('button[aria-pressed]')[index];
+ expect(choice(0).disabled).toBe(false);
+ expect(choice(8).disabled).toBe(true);
  expect(host.querySelector('[role="status"]')?.textContent).toContain("8");
- act(() => check(0).click());
- expect(check(8).disabled).toBe(false);
- act(() => check(8).click());
+ act(() => choice(0).click());
+ expect(choice(8).disabled).toBe(false);
+ act(() => choice(8).click());
  expect(selected.map(item => item.id)).toEqual(libraries.slice(1, 9).map(item => item.id));
- expect(check(9).disabled).toBe(true);
+ expect(choice(9).disabled).toBe(true);
  act(() => root.unmount());
 });

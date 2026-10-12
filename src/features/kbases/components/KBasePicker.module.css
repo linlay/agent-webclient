@@ -2,14 +2,12 @@
 .search:global(.ant-input-affix-wrapper) { min-height: 32px; padding: 4px 8px; margin-bottom: 8px; border-radius: 10px; background: var(--bg-hover); }
 .search :global(.ant-input-prefix) { margin-right: 8px; color: var(--ink-muted); }
 .list { max-height: min(300px, 55vh); overflow-y: auto; overscroll-behavior: contain; }
-.row:global(.ant-checkbox-wrapper) { display: flex; width: 100%; margin-inline-start: 0; align-items: center; gap: 12px; min-height: 44px; padding: 6px 8px; border-radius: 8px; color: var(--text-main); cursor: pointer; }
-.row > :global(.ant-checkbox) { order: 1; flex-shrink: 0; }
-.row > span:last-child { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; padding: 0; }
-.row:not(:has(input:disabled)):hover { background: var(--bg-hover); }
-.row:has(input:checked) { background: color-mix(in srgb, var(--accent-electric) 10%, transparent); }
-.row:has(input:checked):hover { background: color-mix(in srgb, var(--accent-electric) 15%, transparent); }
-.row:focus-within { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
-.row:has(input:disabled) { cursor: not-allowed; opacity: .5; }
+.row { display: flex; width: 100%; box-sizing: border-box; align-items: center; gap: 9px; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--text-main); font: inherit; text-align: left; cursor: pointer; }
+.row:not(:disabled):hover { background: var(--bg-hover); }
+.row[aria-pressed="true"] { background: color-mix(in srgb, var(--accent-electric) 10%, transparent); }
+.row[aria-pressed="true"]:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-electric) 15%, transparent); }
+.row:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
+.row:disabled { cursor: not-allowed; opacity: .5; }
 .picker .icon { flex-shrink: 0; width: 18px; height: 18px; color: var(--accent); }
 .copy { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
 .copy > strong, .copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

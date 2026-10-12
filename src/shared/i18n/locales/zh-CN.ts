@@ -1053,7 +1053,7 @@ export const zhCNMessages = {
   "api.loadResourceTextFailedWithStatus": "加载资源文本失败 ({status})",
   "composer.actions.interrupt": "中断运行",
   "composer.actions.plan": "计划",
-  "composer.editingMode.label": "编辑模式",
+  "composer.editingMode.label": "编辑",
   "composer.editingMode.tooltip":
     "允许本次运行编辑工作区文件。",
   "composer.actions.screenshot": "截屏",

@@ -985,7 +985,7 @@ export const enUSMessages = {
   "api.loadResourceTextFailedWithStatus": "Failed to load resource text ({status})",
   "composer.actions.interrupt": "Interrupt run",
   "composer.actions.plan": "Planning",
-  "composer.editingMode.label": "Editing mode",
+  "composer.editingMode.label": "Edit",
   "composer.editingMode.tooltip": "Allow this run to edit workspace files.",
   "composer.actions.screenshot": "Screenshot",
   "composer.actions.screenshotCapturing": "Capturing screenshot...",

@@ -201,6 +201,60 @@ describe("AddMenuTrigger", () => {
     render();
     expect(container.querySelector('[role="menu"]')).toBeNull();
   });
+
+  it("selects a library without checkboxes and closes the whole menu while preserving other choices", () => {
+    props.selectedKbases = [{ id: "existing", name: "Existing library" }];
+    props.kbaseCatalog = {
+      status: "success",
+      refresh: jest.fn(),
+      data: {
+        agentKey: "agent-a",
+        capability: { available: true },
+        libraries: [
+          { id: "existing", name: "Existing library", collections: [], readable: true, indexing: false, degraded: false },
+          { id: "new", name: "New library", collections: [], readable: true, indexing: false, degraded: false },
+          { id: "unavailable", name: "Unavailable library", collections: [], readable: false, indexing: true, degraded: false },
+        ],
+      },
+    };
+    props.onSelectKbases = jest.fn(items => {
+      props.selectedKbases = items;
+      render();
+    });
+    const openKbases = () => {
+      openMenu();
+      const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+        .find(button => button.textContent?.includes("kbase.title"))!;
+      act(() => section.click());
+      return section;
+    };
+    render();
+    const nav = openKbases();
+    act(() => Simulate.focus(container.querySelector<HTMLInputElement>('input[aria-label="kbase.search"]')!));
+    act(() => Simulate.mouseLeave(nav.closest('[data-popover-trigger="hover,click"]')!));
+    expect(container.querySelector('[data-section="kbases"]')).not.toBeNull();
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(container.querySelector('button[aria-label="Existing library"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector<HTMLButtonElement>('button[aria-label="Unavailable library"]')?.disabled).toBe(true);
+    click('button[aria-label="Unavailable library"]');
+    expect(props.onSelectKbases).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+
+    click('button[aria-label="New library"]');
+    expect(props.onSelectKbases).toHaveBeenLastCalledWith([
+      { id: "existing", name: "Existing library" },
+      { id: "new", name: "New library" },
+    ]);
+    expect(container.querySelector('[data-section="kbases"]')).toBeNull();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+
+    openKbases();
+    expect(container.querySelector('button[aria-label="New library"]')?.getAttribute("aria-pressed")).toBe("true");
+    click('button[aria-label="Existing library"]');
+    expect(props.onSelectKbases).toHaveBeenLastCalledWith([{ id: "new", name: "New library" }]);
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+
   it("groups package members under a tree without duplicate standalone rows", () => {
     mockSkillData = {
       skills: [{ id: "word", name: "Word", configured: false }, { id: "other", name: "Other", configured: false }],

@@ -357,6 +357,7 @@
     .composer-skill-chip .composer-skill-chip-remove { opacity: 1; }
 }
 .composer-add-menu-detail[data-section="skills"] {
+    gap: 2px;
     height: min(420px, calc(100dvh - 48px));
     box-sizing: border-box;
 }
