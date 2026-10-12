@@ -27,7 +27,7 @@ const form: AutomationFormState = {
   chatId: "chat-stale",
   role: "assistant",
   hidden: "",
-  mustUseKbasesText: "",
+  referencesText: "",
     paramsText: ""
 };
 
@@ -148,23 +148,22 @@ describe("automationForm", () => {
   });
 });
 
-it("preserves explicit required library arrays through edit/create/update/duplicate", () => {
- const {automationFormFromDetail, buildCreateAutomationPayloadForSubmit, buildUpdateAutomationPayloadForSubmit, buildDuplicateAutomationPayload} = require("./automationForm");
- for (const mustUseKbases of [[], ["lib-a"], ["lib-a", "lib-b"]]) {
-  const detail = {id: "id", name: "name", cron: "0 9 * * *", agentKey: "general", enabled: true, query: {message: "hello", mustUseKbases}};
-  const form = automationFormFromDetail(detail);
-  expect(buildCreateAutomationPayloadForSubmit(form).query.mustUseKbases).toEqual(mustUseKbases);
-  expect(buildUpdateAutomationPayloadForSubmit(form).query.mustUseKbases).toEqual(mustUseKbases);
-  expect(buildDuplicateAutomationPayload(detail, "copy").query.mustUseKbases).toEqual(mustUseKbases);
+const libraryRefs = (ids: string[]) => ids.map(id => ({type:"kbase",id}));
+it("preserves references through edit/create/update/duplicate", () => {
+ for(const references of [[], libraryRefs(["lib-a"]), libraryRefs(["lib-a","lib-b"])]) {
+  const detail = {id:"id",name:"name",cron:"0 9 * * *",agentKey:"general",enabled:true,query:{message:"hello",references}};
+  const draft = automationFormFromDetail(detail);
+  expect(buildCreateAutomationPayloadForSubmit(draft).query.references).toEqual(references);
+  expect(buildUpdateAutomationPayloadForSubmit(draft).query.references).toEqual(references);
+  expect(buildDuplicateAutomationPayload(detail,"copy").query.references).toEqual(references);
  }
 });
-it("validates the eight-library limit after trimming and exact deduplication", () => {
- const ids = ["lib-a", "LIB-A", "b", "c", "d", "e", "f", "g"];
- const draft = {...form, mustUseKbasesText: JSON.stringify([...ids, " lib-a ", "", " "])};
- const t = (key: string) => key;
- expect(validateAutomationForm(draft, t)).toBe("");
- expect(buildCreateAutomationPayloadForSubmit(draft).query.mustUseKbases).toEqual(ids);
- expect(validateAutomationForm({...form, mustUseKbasesText: JSON.stringify([...ids, "h"])}, t)).toBe("kbase.selectionLimit");
- expect(validateAutomationForm({...form, mustUseKbasesText: '[1]'}, t)).toBe("kbase.idsInvalid");
- expect(buildCreateAutomationPayloadForSubmit({...form, mustUseKbasesText: '["", " "]'}).query.mustUseKbases).toEqual([]);
+it("validates the eight-library limit after normalizing pointers", () => {
+ const ids = ["lib-a","LIB-A","b","c","d","e","f","g"];
+ const draft = {...form,referencesText:JSON.stringify(libraryRefs([...ids," lib-a ","", " "]))};
+ const t = (key:string) => key;
+ expect(validateAutomationForm(draft,t)).toBe("");
+ expect(buildCreateAutomationPayloadForSubmit(draft).query.references).toEqual(libraryRefs(ids));
+ expect(validateAutomationForm({...form,referencesText:JSON.stringify(libraryRefs([...ids,"h"]))},t)).toBe("kbase.selectionLimit");
+ expect(validateAutomationForm({...form,referencesText:'[1]'},t)).toBe("kbase.idsInvalid");
 });

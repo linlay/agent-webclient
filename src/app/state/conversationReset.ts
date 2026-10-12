@@ -14,7 +14,6 @@ export function buildConversationResetState(
 		...state,
 		currentChatActiveRun: null,
 		editingMode: undefined,
-    selectedKbasesByScope: Object.fromEntries(Object.entries(state.selectedKbasesByScope).filter(([scope]) => !scope.startsWith("new:"))),
 		runId: "",
 		currentRunAgentKey: "",
 		pendingNewChatAgentKey: "",

@@ -4,6 +4,7 @@ export function hasSendableContent(message: unknown, references: unknown, allowR
   if (String(message ?? "").trim()) return true;
   return allowReferenceOnly && Array.isArray(references) && references.some(reference => {
     if (!reference || typeof reference !== "object" || Array.isArray(reference)) return false;
+    if (reference.type === "chat" && typeof reference.id === "string" && reference.id.trim()) return true;
     if (reference.type === "selection") {
       return Boolean(readSelectedText(reference).trim());
     }

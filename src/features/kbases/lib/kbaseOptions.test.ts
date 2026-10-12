@@ -12,12 +12,12 @@ it("defers availability to the backend even while indexing or degraded", () => {
  expect(unavailableKbaseIds({...parsed, capability: {available: false}}, ["old-index"])).toEqual(["old-index"]);
 });
 it.each([undefined, false])("does not advertise an absent or disabled interaction flag (%s)", async flag => {
- (getAgent as jest.Mock).mockResolvedValue({data: {interactionConfig: {mustUseKbases: flag}}});
+ (getAgent as jest.Mock).mockResolvedValue({data: {interactionConfig: {attachment:{kbases: flag}}}});
  await expect(loadKBaseOptions("general")).rejects.toThrow("kbase.disabled");
  expect(getKBaseOptions).not.toHaveBeenCalled();
 });
 it("loads a usage catalog for the actual target Agent and rejects a mismatched/old response", async () => {
- (getAgent as jest.Mock).mockResolvedValue({data: {interactionConfig: {mustUseKbases: true}}});
+ (getAgent as jest.Mock).mockResolvedValue({data: {interactionConfig: {attachment:{kbases: true}}}});
  (getKBaseOptions as jest.Mock).mockResolvedValue({data: catalog});
  await expect(loadKBaseOptions("general")).resolves.toEqual(catalog);
  expect(getKBaseOptions).toHaveBeenCalledWith("general", undefined);

@@ -1,3 +1,4 @@
+import { referenceIds, queryReferences } from "@/shared/contracts/references";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
 import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
 import { t } from "@/shared/i18n";
@@ -66,9 +67,6 @@ interface SendMessageEventDetail {
   model?: unknown;
   editingMode?: unknown;
   mustUseSkillsAgentKey?: unknown;
-  mustUseSkills?: unknown;
-  mustUseKbases?: unknown;
-  kbaseScope?: unknown;
 }
 
 // Upload can allocate a Chat before its first query. Capture the route's nonce
@@ -288,27 +286,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       preferredChatId = "",
       preferredAgentKey = "",
       editingMode: boolean | undefined = undefined,
-      mustUseSkills: string[] = [],
       mustUseSkillsAgentKey = "",
       submissionRequestId = "",
-      mustUseKbases: string[] = [],
-      kbaseScope = "",
     ) => {
       const submissionSession = getDataSessionRevision();
       const rawMessage = String(inputMessage ?? "").trim();
-      const normalizedReferences = Array.isArray(references)
-        ? references.filter((reference) => reference != null)
-        : [];
-      const seenSkillIds = new Set<string>();
-      const normalizedMustUseSkills = mustUseSkills.flatMap((key) => {
-        const normalizedKey = String(key || "").trim();
-        const identity = normalizedKey.toLowerCase();
-        if (!normalizedKey || seenSkillIds.has(identity)) {
-          return [];
-        }
-        seenSkillIds.add(identity);
-        return [normalizedKey];
-      });
+      const normalizedReferences = queryReferences(references);
+      const normalizedMustUseSkills = referenceIds(normalizedReferences,"skill");
       if (!hasSendableQuery(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId), canContinueChat(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
       if (
         areConversationInteractionsBlocked(stateRef.current) || isAgentExecutionBlocked(stateRef.current, preferredAgentKey || undefined)
@@ -412,7 +396,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
       const selectedAgentKey = selectedOwner?.kind === "agent" ? selectedOwner.agentKey : "";
 
-      const normalizedKbases = normalizeKbaseIds(mustUseKbases);
+      const normalizedKbases = referenceIds(normalizedReferences,"kbase");
       const validationChatId = stateRef.current.chatId;
       const validationTransitionSeq = stateRef.current.chatTransition?.seq;
       const planningMode = Boolean(stateRef.current.planningMode);
@@ -509,7 +493,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             kind: "message",
             role: "user",
             text: cleanMessage,
-            attachments: attachments.length > 0 ? attachments : undefined,
+            attachments: normalizeTimelineAttachments(normalizedReferences).length ? normalizeTimelineAttachments(normalizedReferences) : attachments.length ? attachments : undefined,
+            references: JSON.parse(JSON.stringify(normalizedReferences)),
             ts: Date.now(),
             mustUseKbases: normalizedKbases.length ? [...normalizedKbases] : undefined,
             kbaseLabels,
@@ -778,18 +763,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           params: Object.keys(params).length > 0 ? params : undefined,
           planningMode,
           editingMode,
-          mustUseKbases: normalizedKbases.length ? [...normalizedKbases] : undefined,
-          mustUseSkills:
-            normalizedMustUseSkills.length > 0
-              ? normalizedMustUseSkills
-              : undefined,
+
           signal: abortController.signal,
           onEvent: sessionHandleEvent,
         });
         const identity = await execution.identity;
         initializeChatAccess(identity.chatId);
         queryAccepted = true;
-        if (kbaseScope.startsWith("new:")) dispatch({type: "PROMOTE_KBASE_SELECTION", scope: kbaseScope, chatId: identity.chatId});
         dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: true });
         notifySelectedTextReferencesAccepted(normalizedReferences);
         session.chatId = identity.chatId;
@@ -931,11 +911,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const mustUseSkillsAgentKey = String(
         detail.mustUseSkillsAgentKey || "",
       ).trim();
-      const mustUseSkills = Array.isArray(detail.mustUseSkills)
-        ? detail.mustUseSkills
-            .map((key) => String(key || "").trim())
-            .filter(Boolean)
-        : [];
       if (hasSendableComposerMessage(message, references, hasQueryHistory(stateRef.current, chatId || stateRef.current.chatId), canContinueChat(stateRef.current, chatId || stateRef.current.chatId))) {
         void sendMessage(
           message,
@@ -947,11 +922,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           chatId,
           agentKey,
           editingMode,
-          mustUseSkills,
           mustUseSkillsAgentKey,
           detail.submissionRequestId,
-          normalizeKbaseIds(detail.mustUseKbases),
-          String(detail.kbaseScope || ""),
         ).finally(() => {
           if (detail.submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId: detail.submissionRequestId, accepted: false });
         });

@@ -1,3 +1,4 @@
+import { readReferences } from "@/features/events/lib/eventFields";
 import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
 import { readMustUseKbases, readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
@@ -53,7 +54,7 @@ export function processRunEvent(
     if (hidden) return commands;
     const text = readRequestQueryText(event);
     const attachments = normalizeTimelineAttachments(
-      (event as Record<string, unknown>).references,
+      readReferences(event),
     );
     const mustUseSkills = readMustUseSkills(event);
     if (!text && attachments.length === 0) return commands;
@@ -62,6 +63,7 @@ export function processRunEvent(
     const taskBinding = applyTaskBindingToNode(event, state, undefined);
     commands.push({
       cmd: "USER_MESSAGE",
+      references: readReferences(event),
       nodeId: `user_${suffix}`,
       text,
       ts: timestamp,
@@ -88,6 +90,7 @@ export function processRunEvent(
     if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
     commands.push({
       cmd: "USER_MESSAGE",
+      references: readReferences(event),
       nodeId: `${prefix}_${suffix}`,
       text,
       ts: timestamp,

@@ -44,6 +44,7 @@ export interface AddMenuTriggerProps {
   canUsePlanningMode: boolean;
   canUseEditingMode: boolean;
   isMainChatRunning: boolean;
+  referenceSelectionDisabled?: boolean;
   canCaptureDesktopScreenshot: boolean;
   isCapturingDesktopScreenshot: boolean;
   selectedSkillIds: string[];
@@ -223,7 +224,7 @@ const AddMenuSectionDetail: React.FC<
       size="sm"
       className={presentationClasses("composer-add-menu-detail-item")}
       loading={options.loading}
-      disabled={options.disabled}
+      disabled={options.disabled || (["chat", "kbases"].includes(section) && props.referenceSelectionDisabled)}
       title={options.title}
       onClick={() => execute(action)}
     >
@@ -241,7 +242,7 @@ const AddMenuSectionDetail: React.FC<
         : "composer.addMenu.skill.pin",
       { name: skillName },
     );
-    const selectDisabled = props.isMainChatRunning;
+    const selectDisabled = !!props.referenceSelectionDisabled;
     return (
       // 点击整行选择，置顶按钮独立操作。
       <div
@@ -380,7 +381,7 @@ const AddMenuSectionDetail: React.FC<
               pinned={pinnedSkillIds.includes(skillIdentity(item.pkg.id))} pinsDisabled={pinsDisabled}
               onTogglePin={packageId => { void toggleSkillPin(packageId); }}
               selectedKeys={props.selectedSkillIds} selectedPackageId={props.selectedPackageId} lockedKeys={props.lockedSkillIds} search={search}
-              disabled={props.disabled || props.isMainChatRunning || !props.onSelectSkills}
+              disabled={props.disabled || props.referenceSelectionDisabled || !props.onSelectSkills}
               onSelect={(members, selected, packageId) => execute(() => props.onSelectSkills?.(members, selected, packageId))} />
             : renderSkill(item.skill))}
           {skillQuery.status === "loading" && (
@@ -420,7 +421,7 @@ const AddMenuSectionDetail: React.FC<
             )}
         </div>
       )}
-      {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => execute(() => { props.onInteract?.(); props.onSelectKbases?.(items); })} />}
+      {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker disabled={props.referenceSelectionDisabled} catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => { if (!props.referenceSelectionDisabled) execute(() => { props.onInteract?.(); props.onSelectKbases?.(items); }); }} />}
       {section === "chat" && (
         <div className={presentationClasses("composer-add-menu-scroll")}>
           {loadingContext && (
@@ -529,7 +530,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
     if (
       entry === "skills" &&
       (!props.currentAgentKey ||
-        props.interactionConfig?.mustUseSkills === false)
+        props.interactionConfig?.attachment.skills === false)
     )
       return false;
     if (

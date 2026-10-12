@@ -335,7 +335,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
               ].join(" ")}
             >
               {visibleAttachmentItems.map((attachment, index) =>
-                attachment.type === "chat" || attachment.type === "site" ? (
+                ["chat","site","skill","kbase"].includes(attachment.type || "") ? (
                   <ReferenceCard
                     key={`${attachment.type}_${attachment.id || attachment.name}_${index}`}
                     reference={attachment}
@@ -354,40 +354,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
               )}
             </div>
           )}
-          {!!node.mustUseKbases?.length && <Flex wrap gap={4} justify="flex-end" aria-label={t("kbase.required")}>
-            {node.mustUseKbases.map(id => <span key={id} className="tw:rounded tw:bg-accent-soft tw:px-2 tw:py-1 tw:text-xs tw:text-text-sub"><MaterialIcon name="book_2" /> {node.kbaseLabels?.[id] || id}</span>)}
-          </Flex>}
-          {node.mustUseSkills && node.mustUseSkills.length > 0 && (
-            <Flex wrap gap={4} justify="flex-end">
-              {node.mustUseSkills.map((key) => {
-                const label = resolveSkillDisplayName(activeAgentSkills, key);
-                return (
-                  <UiButton
-                    key={key.toLowerCase()}
-                    variant="ghost"
-                    className="tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
-                    size="sm"
-                    onClick={() =>
-                      interaction?.openTarget?.({
-                        version: 1,
-                        kind: "skill",
-                        id: key,
-                        label,
-                      })
-                    }
-                  >
-                    <Flex gap={4} align="center">
-                      <MaterialIcon
-                        name="skills"
-                        className="tw:text-accent tw:text-[14px]"
-                      />
-                      <span className="tw:text-text-sub">{label}</span>
-                    </Flex>
-                  </UiButton>
-                );
-              })}
-            </Flex>
-          )}
+
           {hasText && <UserBubble text={node.text || ""} targetId={node.id} />}
           {timeNode}
         </div>

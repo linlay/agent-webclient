@@ -178,8 +178,8 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
   const interactionFields = [
     "model",
     "accessLevel",
-    "mustUseSkills",
-    "mustUseKbases",
+    "skills",
+    "kbases",
     "connectors",
     "localFiles",
     "chatRecords",
@@ -481,7 +481,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
           aria-labelledby={`${AGENT_FORM_SECTION_IDS[5]}-title`}
         >
           {interactionFields.map((key) => {
-            const attachment = key === "localFiles" || key === "chatRecords";
+            const attachment = key === "localFiles" || key === "chatRecords" || key === "skills" || key === "kbases";
             const checked = attachment
               ? (form.interactionConfig?.attachment?.[key] ??
                 interaction.attachment[key])

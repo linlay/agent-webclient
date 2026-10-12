@@ -33,7 +33,7 @@ export interface ComposerAttachment {
 }
 
 export interface ComposerContextReferenceInput {
-	type: "chat" | "site";
+	type: "chat" | "site" | "skill" | "kbase";
 	id: string;
 	name: string;
 	url?: string;
@@ -48,7 +48,7 @@ export function createComposerContextAttachment(
 	const normalizedReference = {
 		type: reference.type,
 		id: String(reference.id || "").trim(),
-		name: String(reference.name || "").trim(),
+		name: String(reference.name || reference.id || "").trim(),
 		...(String(reference.url || "").trim()
 			? { url: String(reference.url || "").trim() }
 			: {}),

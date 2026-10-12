@@ -149,16 +149,16 @@ describe("Composer skill pins", () => {
     expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(2);
   });
 
-  it("allows pinning during a run while skill selection stays disabled", async () => {
+  it("allows pinning and skill selection during a native run", async () => {
     props.isMainChatRunning = true;
     props.selectedSkillIds = ["pdf"];
     render();
     await openSkills();
     await pin("PDF");
     expect(names()[0]).toBe("PDF");
-    expect(skillRows()[0].getAttribute("aria-disabled")).toBe("true");
+    expect(skillRows()[0].getAttribute("aria-disabled")).toBe("false");
     clickSkillRow();
-    expect(props.onSelectSkill).not.toHaveBeenCalled();
+    expect(props.onSelectSkill).toHaveBeenCalled();
   });
 
   it("groups configured status and pin at the right end of the title line", async () => {

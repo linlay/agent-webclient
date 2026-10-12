@@ -5,7 +5,6 @@ import type { AppState } from "@/app/state/types";
 import {
 	switchComposerChat,
 	updateComposerDraft,
-	updateComposerSelectedSkills,
 } from "@/features/composer/lib/composerState";
 import { reduceComposerSteerState } from "@/features/composer/lib/pendingSteers";
 import { MAX_DEBUG_LINES, MAX_EVENTS } from "@/app/state/constants";
@@ -306,12 +305,6 @@ export function reduceConversationState(
 			return {
 				...state,
 				...updateComposerDraft(state, state.chatId, action.draft),
-			};
-		}
-		case "SET_SELECTED_SKILLS": {
-			return {
-				...state,
-				...updateComposerSelectedSkills(state, state.chatId, action.skills),
 			};
 		}
 		case "ENQUEUE_PENDING_STEER":

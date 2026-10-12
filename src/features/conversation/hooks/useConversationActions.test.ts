@@ -1316,12 +1316,12 @@ describe('replayEvent tool migration', () => {
   it('distinguishes omitted Composer intent from explicit empty draft and Skills', () => {
     const base = { agentKey: 'demo-agent', preserveWorkerContext: true, focusComposerOnComplete: true };
     expect(normalizeStartNewConversationDetail(base)).toEqual(base);
-    expect(normalizeStartNewConversationDetail({ ...base, composerDraft: '', selectedSkills: [] }))
-      .toEqual({ ...base, composerDraft: '', selectedSkills: [] });
+    expect(normalizeStartNewConversationDetail({ ...base, composerDraft: '', references: [] }))
+      .toEqual({ ...base, composerDraft: '', references: [] });
     expect(normalizeStartNewConversationDetail({ ...base, composerDraft: '' }))
       .toEqual({ ...base, composerDraft: '' });
-    expect(normalizeStartNewConversationDetail({ ...base, selectedSkills: [] }))
-      .toEqual({ ...base, selectedSkills: [] });
+    expect(normalizeStartNewConversationDetail({ ...base, references: [] }))
+      .toEqual({ ...base, references: [] });
   });
 
   it('normalizes one-shot Composer draft and required Skills', () => {
@@ -1331,10 +1331,10 @@ describe('replayEvent tool migration', () => {
         preserveWorkerContext: true,
         focusComposerOnComplete: true,
         composerDraft: '  Create a useful Skill.  ',
-        selectedSkills: [
-          { id: 'skill-creator', label: 'Skill Creator' },
-          { id: 'SKILL-CREATOR', label: 'Duplicate' },
-          { id: '', label: 'Invalid' },
+        references: [
+          {id:'skill-creator', type:"skill"},
+          {id:'SKILL-CREATOR', type:"skill"},
+          {id:'', type:"skill"},
     ]
       }),
     ).toEqual({
@@ -1342,7 +1342,7 @@ describe('replayEvent tool migration', () => {
       preserveWorkerContext: true,
       focusComposerOnComplete: true,
       composerDraft: 'Create a useful Skill.',
-    selectedSkills: [{ id: 'skill-creator', label: 'Skill Creator' }]
+    references: [{id:'skill-creator', type:"skill"}]
     });
   });
 
@@ -2438,74 +2438,74 @@ describe('replayEvent tool migration', () => {
 
   it.each(['请使用企业微信查询信息。', ''])('replaces the blank-chat draft %j and removes the previous Skill Creator selection', (draft) => {
     const state = createInitialState();
-    const previousSkills = [{ id: 'skill-creator', label: '技能制作' }];
-    const historySkills = [{ id: 'history-skill', label: 'History Skill' }];
+    const previousSkills = [{id:'skill-creator', type:"skill"}];
+    const historySkills = [{id:'history-skill', type:"skill"}];
     state.composerDraft = 'Create a Skill';
     state.composerDraftByChatId = { '': state.composerDraft, chat_history: 'History draft' };
-    state.selectedSkills = previousSkills;
-    state.selectedSkillsByChatId = { '': previousSkills, chat_history: historySkills };
+    state.composerReferences = previousSkills;
+    state.restoredSteerReferencesByChatId = { '': previousSkills, chat_history: historySkills };
     const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
 
-    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: draft, selectedSkills: [] });
+    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: draft, references: [] });
 
     expect(stateRef.current.composerDraft).toBe(draft);
     expect(stateRef.current.composerDraftByChatId['']).toBe(draft);
-    expect(stateRef.current.selectedSkills).toEqual([]);
-    expect(stateRef.current.selectedSkillsByChatId['']).toEqual([]);
+    expect(stateRef.current.composerReferences).toEqual([]);
+    expect(stateRef.current.restoredSteerReferencesByChatId['']).toEqual([]);
     expect(stateRef.current.composerDraftByChatId.chat_history).toBe('History draft');
-    expect(stateRef.current.selectedSkillsByChatId.chat_history).toBe(historySkills);
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_SELECTED_SKILLS', skills: [] });
+    expect(stateRef.current.restoredSteerReferencesByChatId.chat_history).toBe(historySkills);
+    expect(dispatch).toHaveBeenCalledWith({ type: "SET_RESTORED_STEER_REFERENCES",chatId:"", references: [] });
   });
 
   it.each(['请介绍连接器权限。', ''])('preserves historical draft and Skills when applying connector draft %j to a new chat', (draft) => {
     const state = createInitialState();
-    const historySkills = [{ id: 'history-skill', label: 'History Skill' }];
+    const historySkills = [{id:'history-skill', type:"skill"}];
     state.chatId = 'chat_history';
     state.composerDraft = 'History draft';
     state.composerDraftByChatId = { '': 'Old blank draft' };
-    state.selectedSkills = historySkills;
-    state.selectedSkillsByChatId = { '': [{ id: 'skill-creator', label: 'Skill Creator' }] };
+    state.composerReferences = historySkills;
+    state.restoredSteerReferencesByChatId = { '': [{id:'skill-creator', type:"skill"}] };
     const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
 
-    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: draft, selectedSkills: [] });
+    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: draft, references: [] });
     expect(stateRef.current.chatId).toBe('');
     expect(stateRef.current.composerDraft).toBe(draft);
-    expect(stateRef.current.selectedSkills).toEqual([]);
+    expect(stateRef.current.composerReferences).toEqual([]);
 
     dispatch({ type: 'SET_CHAT_ID', chatId: 'chat_history' });
     expect(stateRef.current.composerDraft).toBe('History draft');
-    expect(stateRef.current.selectedSkills).toBe(historySkills);
+    expect(stateRef.current.composerReferences).toBe(historySkills);
     expect(stateRef.current.composerDraftByChatId['']).toBe(draft);
-    expect(stateRef.current.selectedSkillsByChatId['']).toEqual([]);
+    expect(stateRef.current.restoredSteerReferencesByChatId['']).toEqual([]);
   });
 
   it.each(['', 'chat_history'])('retains shared blank-chat draft and Skills for an ordinary new-chat intent from %j', (chatId) => {
     const state = createInitialState();
-    const blankSkills = [{ id: 'selected-by-user', label: 'Selected by user' }];
+    const blankSkills = [{id:'selected-by-user', type:"skill"}];
     state.chatId = chatId;
     state.composerDraft = chatId ? 'History draft' : 'Shared blank draft';
     state.composerDraftByChatId = { '': 'Shared blank draft' };
-    state.selectedSkills = chatId ? [{ id: 'history-skill', label: 'History Skill' }] : blankSkills;
-    state.selectedSkillsByChatId = { '': blankSkills };
+    state.composerReferences = chatId ? [{id:'history-skill', type:"skill"}] : blankSkills;
+    state.restoredSteerReferencesByChatId = { '': blankSkills };
     const { actions, stateRef, dispatch } = createConversationIntentHarness(state);
 
     actions.startNewConversation({ agentKey: 'another-agent', preserveWorkerContext: true, focusComposerOnComplete: true });
     expect(stateRef.current.composerDraft).toBe('Shared blank draft');
-    expect(stateRef.current.selectedSkills).toBe(blankSkills);
-    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_COMPOSER_DRAFT' || action.type === 'SET_SELECTED_SKILLS')).toBe(false);
+    expect(stateRef.current.composerReferences).toBe(blankSkills);
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_COMPOSER_DRAFT' || action.type === 'SET_COMPOSER_REFERENCES')).toBe(false);
   });
 
   it('replaces previous manual Skills with platform-admin for an explicit configuration prefill', () => {
     const state = createInitialState();
-    state.selectedSkills = [{ id: 'skill-creator', label: 'Skill Creator' }];
-    state.selectedSkillsByChatId = { '': state.selectedSkills };
+    state.composerReferences = [{id:'skill-creator', type:"skill"}];
+    state.restoredSteerReferencesByChatId = { '': state.composerReferences };
     const { actions, stateRef } = createConversationIntentHarness(state);
-    const adminSkills = [{ id: 'platform-admin', label: 'platform-admin' }];
+    const adminSkills = [{id:'platform-admin', type:"skill"}];
 
-    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: 'Edit connector configuration', selectedSkills: adminSkills });
+    actions.startNewConversation({ agentKey: 'default-agent', preserveWorkerContext: true, focusComposerOnComplete: true, composerDraft: 'Edit connector configuration', references: adminSkills });
     expect(stateRef.current.composerDraft).toBe('Edit connector configuration');
-    expect(stateRef.current.selectedSkills).toEqual(adminSkills);
-    expect(stateRef.current.selectedSkillsByChatId['']).toEqual(adminSkills);
+    expect(stateRef.current.composerReferences).toEqual(adminSkills);
+    expect(stateRef.current.restoredSteerReferencesByChatId['']).toEqual(adminSkills);
   });
 
   it('keeps the shared blank-chat draft when switching the selected agent', () => {

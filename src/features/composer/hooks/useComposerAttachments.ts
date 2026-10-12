@@ -72,6 +72,8 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const latestAttachmentIdByNameRef = useRef(new Map<string, string>());
   const stagedFilesByAttachmentIdRef = useRef(new Map<string, File>());
   const [localAttachments, setAttachments] = useState<ComposerAttachment[]>([]);
+  const attachmentScopeRef = useRef(state.chatId);
+  const sameAttachmentScope = attachmentScopeRef.current === state.chatId;
   const restoredReferences = state.restoredSteerReferencesByChatId?.[state.chatId];
   const restoredAttachments = useMemo<ComposerAttachment[]>(
     () => (restoredReferences || []).flatMap((reference, index) => {
@@ -91,8 +93,8 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [restoredReferences],
   );
   const attachments = useMemo(
-    () => [...localAttachments, ...restoredAttachments],
-    [localAttachments, restoredAttachments],
+    () => [...(sameAttachmentScope ? localAttachments : []), ...restoredAttachments],
+    [localAttachments, restoredAttachments, sameAttachmentScope],
   );
   const hasFailedAttachments = attachments.some(attachment => attachment.status === "error");
   const [attachmentChatId, setAttachmentChatId] = useState("");
@@ -120,6 +122,14 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     () => readyAttachments.flatMap((attachment) => attachment.references),
     [readyAttachments],
   );
+  useEffect(() => {
+    if (attachmentScopeRef.current === state.chatId) return;
+    localAttachments.forEach(item => revokeAttachmentPreviewUrl(item.previewUrl));
+    attachmentScopeRef.current = state.chatId;
+    latestAttachmentIdByNameRef.current.clear();
+    stagedFilesByAttachmentIdRef.current.clear();
+    setAttachments([]);
+  }, [state.chatId, localAttachments]);
   const sendAttachmentMeta = useMemo(
     () =>
       readyAttachments.map((attachment) => {
@@ -225,7 +235,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   const addContextReference = useCallback(
     (reference: ComposerContextReferenceInput) => {
-      if ((reference.type === "chat" && !chatRecordsAllowed) || mainChatRunning || isFrontendActive || isVoiceMode) {
+      if ((reference.type === "chat" && !chatRecordsAllowed) || isFrontendActive || isVoiceMode) {
         return false;
       }
       const nextAttachment = createComposerContextAttachment(reference);
@@ -245,6 +255,16 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     },
     [localFilesAllowed, chatRecordsAllowed, isFrontendActive, isVoiceMode, mainChatRunning],
   );
+
+  const setContextReferences = useCallback((type: "skill" | "kbase", references: ComposerContextReferenceInput[] | ((current: ComposerContextReferenceInput[]) => ComposerContextReferenceInput[])) => {
+    dispatch({type: "TOUCH_COMPOSER"});
+    dispatch({type:"SET_RESTORED_STEER_REFERENCES",chatId:state.chatId,references:(restoredReferences || []).filter(ref => (ref as {type?:string}).type !== type)});
+    setAttachments(current => {
+      const selected = [...current.filter(item => item.type === type).map(item => item.references[0] as ComposerContextReferenceInput), ...(restoredReferences || []).filter(ref => (ref as {type?:string}).type === type) as ComposerContextReferenceInput[]];
+      const next = typeof references === "function" ? references(selected) : references;
+      return [...current.filter(item => item.type !== type), ...next.map(createComposerContextAttachment)];
+    });
+  }, [dispatch, state.chatId, restoredReferences]);
 
   const handleRemoveAttachment = useCallback(
     (attachmentId: string) => {
@@ -606,6 +626,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   return {
     addContextReference,
+    setContextReferences,
     attachmentChatId,
     attachmentScrollState,
     attachmentViewportRef,

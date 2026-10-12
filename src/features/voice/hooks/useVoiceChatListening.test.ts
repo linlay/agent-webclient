@@ -34,7 +34,7 @@ function harness(ids: string[]) {
   state.chatId = "chat";
   state.inputMode = "voice";
   state.chatAgentById.set("chat", "general");
-  state.selectedKbasesByScope["chat:chat"] = ids.map(id => ({ id, name: id }));
+  state.composerReferences = ids.map(id => ({ type:"kbase",id }));
   const fatal = jest.fn();
   const controller = {
     stateRef: { current: state }, createTurnNodes: jest.fn(), cancelListeningTransition: jest.fn(),
@@ -63,12 +63,12 @@ it("freezes trimmed exact library IDs before asynchronous voice admission", asyn
   let resolve!: (value: unknown) => void;
   mockLoadKBaseOptions.mockReturnValue(new Promise(done => { resolve = done; }));
   const pending = h.submit();
-  h.state.selectedKbasesByScope["chat:chat"] = [{ id: "next", name: "Next" }];
+  h.state.composerReferences = [{ type:"kbase",id: "next" }];
   resolve({ capability: { available: true }, libraries: [library("lib-a"), library("LIB-A")] });
   await pending;
   expect(mockLoadKBaseOptions).toHaveBeenCalledWith("general");
-  expect(mockStartQuery).toHaveBeenCalledWith(expect.objectContaining({ chatId: "chat", mustUseKbases: ["lib-a", "LIB-A"] }));
-  expect(h.state.selectedKbasesByScope["chat:chat"]).toEqual([{ id: "next", name: "Next" }]);
+  expect(mockStartQuery).toHaveBeenCalledWith(expect.objectContaining({chatId: "chat", references: [...(["lib-a", "LIB-A"] || []).map(id => ({type:"kbase",id}))]}));
+  expect(h.state.composerReferences).toEqual([{ type:"kbase",id: "next" }]);
 });
 
 it("rejects nine distinct libraries before fetching a directory or starting voice query", async () => {
@@ -92,6 +92,6 @@ it("allows empty voice selection without checking a disabled capability", async 
   mockLoadKBaseOptions.mockRejectedValue(new Error("kbase.disabled"));
   await h.submit();
   expect(mockLoadKBaseOptions).not.toHaveBeenCalled();
-  expect(mockStartQuery).toHaveBeenCalledWith(expect.objectContaining({ mustUseKbases: undefined }));
+  expect(mockStartQuery).toHaveBeenCalledWith(expect.objectContaining({references: [...(undefined || []).map(id => ({type:"kbase",id}))]}));
   expect(h.fatal).not.toHaveBeenCalled();
 });

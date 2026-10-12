@@ -1,5 +1,5 @@
+import { referenceIds, queryReferences } from "@/shared/contracts/references";
 import type { InteractionConfig } from "@/shared/contracts/interaction";
-import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
 import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
 import { t } from "@/shared/i18n";
@@ -132,8 +132,8 @@ export function useVoiceChatListening({
 			}
 
 			const requestId = createRequestId("req");
-			const kbaseScope = kbaseSelectionScope(chatId, agentKey);
-      const mustUseKbases = normalizeKbaseIds((controller.stateRef.current.selectedKbasesByScope[kbaseScope] || []).map(item => item.id));
+      const references = queryReferences(controller.stateRef.current.composerReferences);
+      const mustUseKbases = referenceIds(references,"kbase");
 			controller.createTurnNodes(text, mustUseKbases);
 			controller.cancelListeningTransition();
 			controller.ttsTaskActiveRef.current = true;
@@ -163,7 +163,7 @@ export function useVoiceChatListening({
 				const execution = runs.startQuery({
 					requestId,
 					message: text,
-          mustUseKbases: mustUseKbases.length ? [...mustUseKbases] : undefined,
+          references,
 					owner: { kind: "agent", agentKey },
 					chatId: chatId || undefined,
 					planningMode: Boolean(controller.stateRef.current.planningMode),
@@ -173,7 +173,6 @@ export function useVoiceChatListening({
 					onEvent: handleEvent,
 				});
 				const identity = await execution.identity;
-        if (!chatId) dispatch({type: "PROMOTE_KBASE_SELECTION", scope: kbaseScope, chatId: identity.chatId});
 				const completion = await execution.completion;
 				if (completion.error) throw completion.error;
 

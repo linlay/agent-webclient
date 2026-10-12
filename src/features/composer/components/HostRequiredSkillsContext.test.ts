@@ -3,9 +3,9 @@ import { readHostRequiredSkills } from "@/features/composer/components/HostRequi
 describe("readHostRequiredSkills", () => {
   it("reads and case-insensitively deduplicates repeated host skill params", () => {
     const params = new URLSearchParams();
-    params.append("mustUseSkill", "poster-studio");
-    params.append("mustUseSkill", "poster-studio");
-    params.append("mustUseSkill", "../unsafe");
+    params.append("reference", JSON.stringify({type:"skill",id:"poster-studio"}));
+    params.append("reference", JSON.stringify({type:"skill",id:"poster-studio"}));
+    params.append("reference", JSON.stringify({type:"skill",id:"../unsafe"}));
     expect(readHostRequiredSkills("webOperator", params)).toEqual({
       agentKey: "webOperator",
       skills: ["poster-studio"],

@@ -186,6 +186,7 @@ export interface TimelineNode {
 	chunkCount?: number;
 	sources?: TimelineSource[];
 	errorDetail?: TimelineErrorDetail;
+  references?: unknown[];
 	mustUseSkills?: string[];
     mustUseKbases?: string[];
     kbaseLabels?: Record<string, string>;

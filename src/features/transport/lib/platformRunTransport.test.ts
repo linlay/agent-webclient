@@ -31,7 +31,7 @@ describe("PlatformRunTransport", () => {
 
     const execution = transport.startQuery({
       requestId: "request-1",
-      mustUseKbases: ["lib-a", "lib-b"],
+      references: [{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}],
       chatId: "chat-1",
       owner: { kind: "agent", agentKey: "agent-1" },
     onEvent
@@ -39,7 +39,7 @@ describe("PlatformRunTransport", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(streamOptions.payload.mustUseKbases).toEqual(["lib-a", "lib-b"]);
+    expect(streamOptions.payload.references).toEqual([{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]);
     let accepted = false;
     void execution.identity.then(() => {
       accepted = true;

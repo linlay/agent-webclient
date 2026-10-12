@@ -1,4 +1,3 @@
-import { reduceKBasesState } from "@/features/kbases/lib/kbasesState";
 import type { AppState } from "@/app/state/types";
 import type { AppAction } from "@/app/state/actions";
 import { reduceConversationState } from "@/app/state/reducerConversation";
@@ -16,7 +15,6 @@ export type DomainReducer = (
 ) => AppState | null;
 
 export const domainReducers: DomainReducer[] = [
-	reduceKBasesState,
 	reduceNavigationState,
 	reduceConversationState,
 	reducePlanState,

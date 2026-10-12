@@ -1,3 +1,4 @@
+import { queryReferences, referenceIds } from "@/shared/contracts/references";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import type {
   AutomationDetailResponse,
@@ -19,7 +20,7 @@ export type AutomationOptionalField =
   | "role"
   | "hidden"
   | "paramsText"
-  | "mustUseKbasesText";
+  | "referencesText";
 
 export interface AutomationFormState {
   id: string;
@@ -38,7 +39,7 @@ export interface AutomationFormState {
   role: string;
   hidden: "" | "true" | "false";
   paramsText: string;
-  mustUseKbasesText: string;
+  referencesText: string;
 }
 
 export interface AutomationCronPreset {
@@ -64,7 +65,7 @@ export const EMPTY_AUTOMATION_FORM: AutomationFormState = {
   role: "",
   hidden: "",
   paramsText: "",
-  mustUseKbasesText: "",
+  referencesText: "",
 };
 
 export const AUTOMATION_CRON_PRESETS: AutomationCronPreset[] = [
@@ -154,7 +155,7 @@ export function automationFormFromDetail(
         : automation.query?.hidden === false
           ? "false"
           : "",
-    mustUseKbasesText: automation.query?.mustUseKbases === undefined ? "" : JSON.stringify(automation.query.mustUseKbases),
+    referencesText: automation.query?.references === undefined ? "" : JSON.stringify(automation.query.references),
     paramsText:
       params && Object.keys(params).length > 0
         ? JSON.stringify(params, null, 2)
@@ -187,7 +188,7 @@ export function buildDuplicateAutomationPayload(
       message: String(automation.query?.message || "").trim(),
       accessLevel: automation.query?.accessLevel || "default",
       ...(automation.query?.chatId ? { chatId: automation.query.chatId } : {}),
-      ...(automation.query?.mustUseKbases !== undefined ? {mustUseKbases: [...automation.query.mustUseKbases]} : {}),
+      ...(automation.query?.references !== undefined ? {references: [...automation.query.references]} : {}),
       ...(automation.query?.role ? { role: automation.query.role } : {}),
       ...(automation.query?.params ? { params: { ...automation.query.params } } : {}),
       ...(automation.query?.hidden !== undefined
@@ -220,7 +221,7 @@ function buildQuery(form: AutomationFormState): AutomationQueryRequest {
     message: form.message.trim(),
     accessLevel: form.accessLevel,
   };
-  if ((form.mustUseKbasesText || "").trim()) query.mustUseKbases = normalizeKbaseIds(JSON.parse(form.mustUseKbasesText));
+  if ((form.referencesText || "").trim()) query.references = queryReferences(JSON.parse(form.referencesText));
   const role = form.role.trim();
   if (role) query.role = role;
   const chatId = form.chatMode === "existing" ? form.chatId.trim() : "";
@@ -288,11 +289,11 @@ export function validateAutomationForm(
       return t("automationConsole.error.remainingRunsPositive");
     }
   }
-  if ((form.mustUseKbasesText || "").trim()) {
+  if ((form.referencesText || "").trim()) {
     try {
-      const parsed = JSON.parse(form.mustUseKbasesText);
-      if (!Array.isArray(parsed) || parsed.some(id => typeof id !== "string")) return t("kbase.idsInvalid");
-      if (normalizeKbaseIds(parsed).length > MAX_MUST_USE_KBASES) return t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES});
+      const parsed = JSON.parse(form.referencesText);
+      if (!Array.isArray(parsed) || parsed.some(ref => !ref || typeof ref !== "object" || typeof ref.type !== "string")) return t("kbase.idsInvalid");
+      if (referenceIds(parsed,"kbase").length > MAX_MUST_USE_KBASES) return t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES});
     } catch { return t("kbase.idsInvalid"); }
   }
   if (form.paramsText.trim()) {

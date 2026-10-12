@@ -1,4 +1,3 @@
-import { initializeChatKbases } from "@/features/kbases/lib/kbasesState";
 import { initializeChatModel } from "@/features/composer/lib/composerModelSelection";
 import { resolveComposerAccessScope } from "@/features/composer/lib/composerAccessLevel";
 import { reduceSubmissionDraft } from "@/features/composer/lib/submissionDraft";
@@ -19,11 +18,10 @@ function reduceAppState(state: AppState, action: AppAction): AppState {
 				preserveWorkerContext: true,
 			});
 		case "CLEAR_GATEWAY_IDENTITY_STATE":
-			return { ...state, selectedKbasesByScope: {}, agents: [],  chats: [], chatPinnedOrder: null, chatPinningPending: false, automations: [] };
+			return { ...state, composerReferences: [], agents: [],  chats: [], chatPinnedOrder: null, chatPinningPending: false, automations: [] };
 		case "APPLY_CONVERSATION_REPLAY":
 			return {
 				...initializeChatModel(state, resolveComposerAccessScope(state.accessToken), action.snapshot.chatId, action.snapshot.events),
-				selectedKbasesByScope: initializeChatKbases(state, action.snapshot.chatId, action.snapshot.events).selectedKbasesByScope,
 				chatId: action.snapshot.chatId,
 				currentChatActiveRun: action.snapshot.currentChatActiveRun,
 				runId: action.snapshot.runId,
@@ -63,8 +61,7 @@ function reduceAppState(state: AppState, action: AppAction): AppState {
 export function appReducer(state: AppState, action: AppAction): AppState {
   const next = reduceSubmissionDraft(state, action as ComposerAction) ?? reduceAppState(state, action);
   const edited = next.composerDraft !== state.composerDraft ||
-    JSON.stringify(next.selectedKbasesByScope) !== JSON.stringify(state.selectedKbasesByScope) ||
-    JSON.stringify(next.selectedSkills) !== JSON.stringify(state.selectedSkills) ||
+    JSON.stringify(next.composerReferences) !== JSON.stringify(state.composerReferences) ||
     next.chatId !== state.chatId || next.workerSelectionKey !== state.workerSelectionKey ||
     next.pendingNewChatAgentKey !== state.pendingNewChatAgentKey ||
     action.type === "RESET_CONVERSATION" || action.type === "RESET_ACTIVE_CONVERSATION";

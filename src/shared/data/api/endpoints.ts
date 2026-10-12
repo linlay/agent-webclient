@@ -1,3 +1,4 @@
+import { queryReferences } from "@/shared/contracts/references";
 import {
   compactPayload,
   createEndpointRegistry,
@@ -114,26 +115,6 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   if (typeof options.editingMode === "boolean") {
     body.editingMode = options.editingMode;
   }
-  if (Array.isArray(options.mustUseSkills)) {
-    const seenSkillIds = new Set<string>();
-    const mustUseSkills = options.mustUseSkills.flatMap((key) => {
-      const normalizedKey = String(key || "").trim();
-      const identity = normalizedKey.toLowerCase();
-      if (!normalizedKey || seenSkillIds.has(identity)) {
-        return [];
-      }
-      seenSkillIds.add(identity);
-      return [normalizedKey];
-    });
-    if (mustUseSkills.length > 0) {
-      body.mustUseSkills = mustUseSkills;
-    }
-  }
-
-  if (Array.isArray(options.mustUseKbases)) {
-    body.mustUseKbases = [...new Set(options.mustUseKbases.filter(id => typeof id === "string").map(id => id.trim()).filter(Boolean))];
-  }
-
   Object.assign(body, runOwnerPayload(options.owner));
   if (options.chatId) body.chatId = options.chatId;
   if (options.accessLevel) body.accessLevel = options.accessLevel;
@@ -141,7 +122,7 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
   if (model) body.model = model;
   if (options.role) body.role = options.role;
   if (typeof options.hidden === "boolean") body.hidden = options.hidden;
-  if (options.references !== undefined) body.references = options.references;
+  if (options.references !== undefined) body.references = queryReferences(options.references);
   if (options.params !== undefined) {
     const { editingMode: _editingMode, ...params } = options.params;
     if (Object.keys(params).length > 0) {
@@ -166,7 +147,7 @@ export function buildBTWPayload(options: BTWStreamParams): Record<string, unknow
   if (options.accessLevel) body.accessLevel = options.accessLevel;
   const model = compactQueryModelOverride(options.model);
   if (model) body.model = model;
-  if (options.references !== undefined) body.references = options.references;
+  if (options.references !== undefined) body.references = queryReferences(options.references);
   if (options.params !== undefined) body.params = options.params;
   if (options.scene !== undefined) body.scene = options.scene;
   if (options.stream !== undefined) body.stream = options.stream;

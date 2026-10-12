@@ -59,7 +59,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
       >
         <div className={COMPOSER_ATTACHMENTS_CLASS}>
           {attachments.map((attachment) => (
-            attachment.type === "chat" || attachment.type === "site" ? (
+            ["chat","site","skill","kbase"].includes(attachment.type || "") ? (
               <ReferenceCard
                 key={attachment.id}
                 reference={{
@@ -70,7 +70,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
                 }}
                 variant="composer"
                 density={useUnifiedComposerAttachmentRow ? "compact" : "default"}
-                onRemove={() => onRemoveAttachment(attachment.id)}
+                onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
               />
             ) : (
               <AttachmentCard
@@ -96,7 +96,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
                   useUnifiedComposerAttachmentRow,
                   t,
                 )}
-                onRemove={() => onRemoveAttachment(attachment.id)}
+                onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
                 removeLabel={t("composer.attachments.removeFile", {
                   name: attachment.name,
                 })}

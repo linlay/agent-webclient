@@ -58,6 +58,7 @@ export type EventCommand =
 			ts: number;
 			variant: "default" | "steer" | "remember" | "learn" | "compact";
 			attachments?: TimelineNode["attachments"];
+      references?: unknown[];
 			steerId?: string;
 			taskId?: string;
 			taskName?: string;

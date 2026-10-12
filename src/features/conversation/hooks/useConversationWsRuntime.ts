@@ -1,3 +1,4 @@
+import { readReferences } from "@/features/events/lib/eventFields";
 import { invalidateChatNavigationCache } from "@/shared/data";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch } from "react";
@@ -553,7 +554,7 @@ function renderAttachedRequestQuery(
 
 	const text = readRequestQueryText(event);
 	const attachments = normalizeTimelineAttachments(
-		(event as Record<string, unknown>).references,
+		readReferences(event),
 	);
 	const mustUseSkills = readMustUseSkills(event);
 	if (!text && attachments.length === 0) {
@@ -580,6 +581,7 @@ function renderAttachedRequestQuery(
 			messageVariant: "default",
 			text,
 			attachments: attachments.length > 0 ? attachments : undefined,
+      references: readReferences(event),
 			ts: timestamp,
 			mustUseSkills: mustUseSkills.length > 0 ? mustUseSkills : undefined,
 		},

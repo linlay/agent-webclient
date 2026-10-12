@@ -43,14 +43,13 @@ export interface SubmissionDraft {
   agentKey: string;
   message: string;
   references: unknown[];
-  skills: ComposerRequiredSkill[];
-  kbases?: import("@/features/kbases/lib/kbasesState").SelectedKBase[];
-  kbaseScope?: string;
+  schemaVersion: 2;
   version: number;
 }
 
 export interface ComposerState extends ComposerAccessState, ComposerModelState {
   composerEditVersion: number;
+  composerReferences: unknown[];
   submissionDrafts: Record<string, SubmissionDraft>;
   failedSubmissions: SubmissionDraft[];
   skillRejection: { agentKey: string; skillId?: string; message: string } | null;
@@ -60,18 +59,17 @@ export interface ComposerState extends ComposerAccessState, ComposerModelState {
   mentionActiveIndex: number;
   composerDraft: string;
   composerDraftByChatId: Record<string, string>;
-  selectedSkills: ComposerRequiredSkill[];
-  selectedSkillsByChatId: Record<string, ComposerRequiredSkill[]>;
   pendingSteers: Record<string, PendingSteer[]>;
   restoredSteerReferencesByChatId: Record<string, unknown[]>;
 }
 
 export type ComposerDraftState = Pick<
   ComposerState,
-  "composerDraft" | "composerDraftByChatId" | "selectedSkills" | "selectedSkillsByChatId"
+  "composerDraft" | "composerDraftByChatId" | "composerReferences" | "restoredSteerReferencesByChatId"
 >;
 
 export type ComposerInteractionAction =
+  | { type:"SET_COMPOSER_REFERENCES"; references:unknown[] }
   | { type: "SET_EDITING_MODE"; enabled: boolean | undefined }
   | { type: "SET_MENTION_OPEN"; open: boolean }
   | { type: "SET_MENTION_SUGGESTIONS"; agents: Agent[] }
@@ -89,7 +87,6 @@ export type ComposerAction =
   | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SYNC_COMPOSER_ACCESS_LEVEL"; chatId: string; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
-  | { type: "SET_SELECTED_SKILLS"; skills: ComposerRequiredSkill[] }
   | ComposerSteerAction
   | ComposerInteractionAction;
 
@@ -98,6 +95,7 @@ export function createInitialComposerState(): ComposerState {
     ...restoreComposerAccessLevels(),
     ...restoreComposerModels(),
     composerEditVersion: 0,
+    composerReferences: [],
     submissionDrafts: {},
     failedSubmissions: [],
     skillRejection: null,
@@ -107,8 +105,6 @@ export function createInitialComposerState(): ComposerState {
     mentionActiveIndex: 0,
     composerDraft: "",
     composerDraftByChatId: {},
-    selectedSkills: [],
-    selectedSkillsByChatId: {},
     pendingSteers: {},
     restoredSteerReferencesByChatId: {},
   };
@@ -119,6 +115,7 @@ export function reduceComposerInteractionState<S extends ComposerState>(state: S
 export function reduceComposerInteractionState<S extends ComposerState>(state: S, input: { type: string }): S | null {
   const action = input as ComposerInteractionAction;
   switch (action.type) {
+    case "SET_COMPOSER_REFERENCES": return { ...state, composerReferences: action.references };
     case "SET_EDITING_MODE": return { ...state, editingMode: action.enabled };
     case "SET_MENTION_OPEN": return { ...state, mentionOpen: action.open };
     case "SET_MENTION_SUGGESTIONS": return { ...state, mentionSuggestions: action.agents };
@@ -138,17 +135,6 @@ export function updateComposerDraft(
   };
 }
 
-export function updateComposerSelectedSkills(
-  state: ComposerDraftState,
-  chatId: string,
-  skills: ComposerRequiredSkill[],
-): Pick<ComposerDraftState, "selectedSkills" | "selectedSkillsByChatId"> {
-  return {
-    selectedSkills: skills,
-    selectedSkillsByChatId: { ...state.selectedSkillsByChatId, [chatId]: skills },
-  };
-}
-
 export function switchComposerChat(
   state: ComposerDraftState,
   sourceChatId: string,
@@ -159,14 +145,11 @@ export function switchComposerChat(
   const composerDraftByChatId = chatChanged
     ? { ...state.composerDraftByChatId, [sourceChatId]: state.composerDraft }
     : state.composerDraftByChatId;
-  const selectedSkillsByChatId = chatChanged
-    ? { ...state.selectedSkillsByChatId, [sourceChatId]: state.selectedSkills }
-    : state.selectedSkillsByChatId;
 
   return {
     composerDraft: composerDraftByChatId[targetChatId] ?? "",
     composerDraftByChatId,
-    selectedSkills: selectedSkillsByChatId[targetChatId] ?? [],
-    selectedSkillsByChatId,
+    composerReferences: chatChanged ? state.restoredSteerReferencesByChatId[targetChatId] ?? [] : state.composerReferences,
+    restoredSteerReferencesByChatId: chatChanged ? {...state.restoredSteerReferencesByChatId, [sourceChatId]: state.composerReferences} : state.restoredSteerReferencesByChatId,
   };
 }

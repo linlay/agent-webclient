@@ -9,7 +9,8 @@ import type { SelectedKBase } from "../lib/kbasesState";
 import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "../lib/kbaseSelection";
 import styles from "./KBasePicker.module.css";
 
-export function KBasePicker({ catalog, selected, onChange }: {
+export function KBasePicker({ catalog, selected, onChange, disabled: selectionDisabled = false }: {
+  disabled?: boolean;
   catalog: KBaseCatalog;
   selected: SelectedKBase[];
   onChange: (items: SelectedKBase[]) => void;
@@ -48,7 +49,7 @@ export function KBasePicker({ catalog, selected, onChange }: {
           const description = item.description || item.collections.map(c => c.description || c.name).join(" · ");
           const availability = !item.readable ? item.unavailableReason || t("kbase.unreadable")
             : [item.indexing ? t("kbase.indexing") : "", item.degraded ? t("kbase.degraded") : ""].filter(Boolean).join(" · ");
-          const disabled = !item.readable || (atLimit && !isSelected);
+          const disabled = selectionDisabled || !item.readable || (atLimit && !isSelected);
           const title = [item.name, description, availability, atLimit && !isSelected ? limitText : ""].filter(Boolean).join("\n");
           return <button type="button" className={styles.row} key={item.id} title={title} aria-label={item.name}
             aria-pressed={isSelected} disabled={disabled}

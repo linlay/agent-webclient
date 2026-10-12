@@ -1,3 +1,4 @@
+import { referencesForNewChat } from "@/features/timeline/lib/queryResend";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
@@ -181,7 +182,7 @@ type NewChatCreatedEventDetail = {
 };
 
 export type PendingNewChatResend = {
-  mustUseKbases?: string[];
+  references?: unknown[];
   agentKey: string;
   sourceChatId: string;
   newChat: string;
@@ -551,7 +552,7 @@ const AgentChatShellContent: React.FC = () => {
       sourceChatId,
       newChat,
       message: resendMessage,
-      mustUseKbases: [...(snapshot?.mustUseKbases || [])],
+      references: referencesForNewChat(snapshot?.references || [], sourceChatId),
       routePrepared: false,
       sent: false,
       failed: false,
@@ -795,7 +796,7 @@ const AgentChatShellContent: React.FC = () => {
           new CustomEvent("agent:send-message", {
             detail: {
               message: pendingResend.message,
-              mustUseKbases: [...(pendingResend.mustUseKbases || [])],
+              references: [...(pendingResend.references || [])],
               agentKey: pendingResend.agentKey,
             },
           }),
@@ -816,10 +817,10 @@ const AgentChatShellContent: React.FC = () => {
       ...(composerPrefillPayload
         ? {
             composerDraft: composerPrefillPayload.draft,
-            selectedSkills: composerPrefillPayload.skillId
+            references: composerPrefillPayload.skillId
               ? [{
                   id: composerPrefillPayload.skillId,
-                  label: composerPrefillPayload.skillId,
+                  type: "skill",
                 }]
               : [],
           }

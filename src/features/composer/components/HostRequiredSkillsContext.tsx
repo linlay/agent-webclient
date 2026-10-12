@@ -22,7 +22,10 @@ export function readHostRequiredSkills(
   if (!normalizedAgentKey) return EMPTY_HOST_REQUIRED_SKILLS;
   const identities = new Set<string>();
   const skills: string[] = [];
-  for (const value of searchParams.getAll("mustUseSkill")) {
+  for (const encoded of searchParams.getAll("reference")) {
+    let ref: {type?: string; id?: string};try { ref = JSON.parse(encoded); } catch { continue; }
+    if (ref.type !== "skill" || typeof ref.id !== "string") continue;
+    const value = ref.id;
     const skillId = value.trim();
     const identity = skillId.toLowerCase();
     if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u.test(skillId) || identities.has(identity)) {

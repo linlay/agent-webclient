@@ -267,13 +267,11 @@ it('sends one queued message to its original chat on actual run completion', () 
   const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.setState({
     currentChatActiveRun: null, streaming: false,
-    selectedKbasesByScope: { 'chat:chat-a': [{ id: 'library-a', name: 'Library A' }], 'chat:chat-b': [{ id: 'library-b', name: 'Library B' }] },
     chatTransition: { seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '' },
   });
   h.render(false);
   expect(sendEvent).toHaveBeenCalledTimes(1);
-  expect((sendEvent.mock.calls[0][0] as CustomEvent).detail).toEqual({ chatId: 'chat-a', message: 'message from A', mustUseKbases: ['library-a'] });
-  expect(h.stateRef.current.selectedKbasesByScope['chat:chat-a']).toEqual([{ id: 'library-a', name: 'Library A' }]);
+  expect((sendEvent.mock.calls[0][0] as CustomEvent).detail).toEqual({ chatId: 'chat-a', message: 'message from A', references: undefined });
   expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
 });
 

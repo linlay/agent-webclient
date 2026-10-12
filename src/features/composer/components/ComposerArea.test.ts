@@ -102,8 +102,8 @@ jest.mock("@/features/composer/components/ComposerContext", () => ({
 }));
 
 jest.mock("@/features/composer/components/ComposerAttachments", () => ({
-  ComposerAttachments: () =>
-    React.createElement("div", { className: "composer-attachments" }),
+  ComposerAttachments: ({attachments}: {attachments: Array<{name:string}>}) =>
+    React.createElement("div", { className: "composer-attachments" }, ...attachments.map(item=>React.createElement("span",{key:item.name},item.name))),
 }));
 
 const mockComposerInputProps: Array<Record<string, any>> = [];

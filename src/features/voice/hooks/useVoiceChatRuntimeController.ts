@@ -1,3 +1,4 @@
+import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import { useCallback, useMemo } from "react";
 import type { Dispatch, MutableRefObject } from "react";
 import type { AppAction } from "@/app/state/AppContext";
@@ -153,7 +154,8 @@ export function useVoiceChatRuntimeController({
 					kind: "message",
 					role: "user",
 					text: userText,
-          mustUseKbases: [...mustUseKbases],
+          attachments: normalizeTimelineAttachments(stateRef.current.composerReferences),
+          references: JSON.parse(JSON.stringify(stateRef.current.composerReferences)),
 					ts: now,
 				},
 			});

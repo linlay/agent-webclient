@@ -10,9 +10,9 @@ Composer 由 `ComposerArea` 组合输入框、操作按钮、slash 命令、ment
 - 展示附件、语音、模型、访问级别和 planning mode 控件入口。
 
 ## 核心流程
-用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。历史 Chat 的文本草稿和手动技能选择按 `chatId` 保存和恢复；未获得稳定 `chatId` 的 New Chat 统一使用空 key，因此不同 Agent 的 New Chat 共享同一份运行期草稿与手动技能选择。普通 Chat、New Chat 或 Agent 切换只切换当前槽位，不清空已保存内容。用户发送时清空当前草稿和手动技能；宿主提供显式一次性预填时替换空 Chat 槽位的草稿与手动技能，纯文本预填清除旧手动技能，明确空草稿则同时清空两者；显式技能预填替换为指定技能。未提供预填字段的普通新聊天保留共享草稿与选择，历史 Chat 缓存和合法宿主强制技能不受影响。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的“必须使用”标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
+用户输入文本时，Composer hooks 同步 draft、mention 和 slash palette 状态。历史 Chat 的文本草稿和手动技能选择按 `chatId` 保存和恢复；未获得稳定 `chatId` 的 New Chat 统一使用空 key，因此不同 Agent 的 New Chat 共享同一份运行期草稿与手动技能选择。普通 Chat、New Chat 或 Agent 切换只切换当前槽位，不清空已保存内容。用户发送时清空当前草稿和手动技能；宿主提供显式一次性预填时替换空 Chat 槽位的草稿与手动技能，纯文本预填清除旧手动技能，明确空草稿则同时清空两者；显式技能预填替换为指定技能。未提供预填字段的普通新聊天保留共享草稿与选择，历史 Chat 缓存和合法宿主强制技能不受影响。独立 `/查询词` 同时过滤内置命令与当前 Agent 的 Skills；选择 Skill 后形成可移除的统一引用标签，支持重复打开 slash palette 多选。点击发送或按快捷键后，`useComposerSend` 决定执行 slash command、steer、普通 query 或阻止发送。Team 不展示 Skills，运行中的 steer 不允许新增或携带 Skills；附件、语音和 awaiting 会影响发送按钮可用性。
 
-跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条批注`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，运行中发送时可独立或随文字一起进入 steer 队列；入队后由队列持有引用，取消或拒绝时恢复，Run 结束后，已有主 query 历史的纯选区排队项也可转 query 并继续携带引用；缺少历史确认时恢复输入区等待正文。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用，仅最后一次主 Run 明确异常结束或取消、且服务端 canContinue 为 true 时允许正文和引用都为空，表示继续。空 query 保留空 message，仅模型输入补充 `Continue based on the current conversation context.`，时间线不生成空白用户气泡；空 steer 仍禁止；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
+跨端划词“添加到对话”把 WebClient 在执行时重新校验的文本保存为当前 Chat 的内存态 `selection` reference，Composer 聚合显示 `N 条批注`，可预览和逐条移除；它与原草稿、文件和 Skills 合并但不自动发送，运行中发送时可独立或随文字一起进入 steer 队列；入队后由队列持有引用，取消或拒绝时恢复，Run 结束后，已有主 query 历史的纯选区排队项也可转 query 并继续携带引用；缺少历史确认时恢复输入区等待正文。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件、对话或选区引用，仅最后一次主 Run 明确异常结束或取消、且服务端 canContinue 为 true 时允许正文和引用都为空，表示继续。空 query 保留空 message，仅模型输入补充 `Continue based on the current conversation context.`，时间线不生成空白用户气泡；空 steer 仍禁止；只有 Run identity 被接受后才清理对应片段，受理前失败继续保留。未发送片段不写 localStorage。
 
 Side question Tab 默认不显示。`/btw` 会先为当前 chat 创建一个空 session，再显示并激活该 Tab；`/btw 问题` 会在主 query/steer 路由前被识别，并把问题作为全新隐藏只读分支的首次请求发送，不能携带此前已关闭分支的 `btwId`。BTW 可以和主 run 并行；没有有效 `chatId` 时命令不可用。
 
@@ -34,14 +34,14 @@ BTW Composer 在 idle 时于发送位显示 Send；running 时始终在同一位
 
 加号技能菜单消费 `/api/skills` 可选 `packages` 字段，将技能包和独立技能放在同一列表，技能包仍可展开成员。搜索框下提供“技能包”和“独立技能”两个类型筛选按钮，默认均未选中时显示全部；选择一个后只显示该类型，再次点击取消，恢复全部。筛选与搜索共同生效，不改变已选技能。技能选择面板保留固定的可用高度，结果在内部滚动；开始操作筛选、搜索或成员后，移出悬停区域不自动关闭，可用 Escape、点击外部或切换分类退出。包名行展开成员，右侧“全选／清空”操作整包；点击成员行切换选择，以背景深浅和已选计数表示全部或部分选中，不显示复选框。Hover 或键盘聚焦包名预览成员；输入框包标签使用普通 Tooltip，悬停或键盘聚焦时只列出已选技能名称，不展示完整技能树、包标题、长描述或操作按钮。缺失成员显示不可用，包不完整时禁止整包选择，但允许选择已就绪成员。旧 Platform 未返回包信息时保留原平铺列表。
 
-选中状态仍保存具体技能，不持久化可自动扩大的包引用，发送继续使用去重后的 `mustUseSkills`。包更新不能悄悄增加本轮选择；输入区把已选成员聚合成一个可移除包标签，成员选择在加号技能菜单中调整，宿主强制技能保持锁定。目录刷新后发现已选技能失效时提示移除并阻止发送，不默默漏掉用户选中的能力。
+选中状态仍保存具体技能，不持久化可自动扩大的包引用，发送继续使用去重后的 references 中的 skill 引用。包更新不能悄悄增加本轮选择；输入区把已选成员聚合成一个可移除包标签，成员选择在加号技能菜单中调整，宿主强制技能保持锁定。目录刷新后发现已选技能失效时提示移除并阻止发送，不默默漏掉用户选中的能力。
 
 ## 技能置顶
 加号菜单的技能行右侧提供置顶/取消置顶按钮，悬停、键盘聚焦或触屏时可见，已置顶按钮持续高亮。选择菜单和技能中心共用基础混排规则：技能包和独立技能均可整体置顶，按同一置顶顺序靠前，其余项目按展示名称一起排序；不再为置顶或类型单独分区。包置顶保存包 ID，不展开成员，也不由成员置顶状态推导。取消置顶后按名称重新排序，不重复展示。置顶只调整候选顺序，不会选中技能或关闭菜单，运行中仍可调整；最近置顶的技能在前，取消后恢复名称顺序。搜索继续过滤所有候选，`/` 技能候选也共享置顶顺序。
 
-加号技能菜单每次打开时，在基础排序上优先展示当前草稿已选技能（包含宿主强制技能）及含有已选成员的技能包；已选组与未选组内分别保留置顶和名称顺序。包保留成员层级与全部／部分已选计数，不复制成员到独立列表。独立技能以勾选图标、背景和 `aria-pressed` 标记当前选择，`configured` 仍只表示智能体已配置，不参与选择排序。打开期间保留本次选择排序依据，选中标记继续反映最新状态，下次打开再更新排序。搜索和类型筛选仅在匹配候选中应用上述顺序，不添加技能、不修改置顶偏好，也不依据运行中实际使用记录排序；技能选择仍按原规则形成发送时的 `mustUseSkills`。
+加号技能菜单每次打开时，在基础排序上优先展示当前草稿已选技能（包含宿主强制技能）及含有已选成员的技能包；已选组与未选组内分别保留置顶和名称顺序。包保留成员层级与全部／部分已选计数，不复制成员到独立列表。独立技能以勾选图标、背景和 `aria-pressed` 标记当前选择，`configured` 仍只表示智能体已配置，不参与选择排序。打开期间保留本次选择排序依据，选中标记继续反映最新状态，下次打开再更新排序。搜索和类型筛选仅在匹配候选中应用上述顺序，不添加技能、不修改置顶偏好，也不依据运行中实际使用记录排序；技能选择仍按原规则形成发送时的 references 中的 skill 引用。
 
-置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 mustUseSkills。技能中心改用 HTTP `GET /api/admin/skills` 读取管理目录和置顶，HTTP `PUT /api/admin/skills/pin` 写入；与使用侧共用存储，但不调用 `/api/skills`。前端只保留内存查询缓存，打开菜单、显示 slash 候选及窗口重新聚焦时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
+置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 skill 引用。技能中心改用 HTTP `GET /api/admin/skills` 读取管理目录和置顶，HTTP `PUT /api/admin/skills/pin` 写入；与使用侧共用存储，但不调用 `/api/skills`。前端只保留内存查询缓存，打开菜单、显示 slash 候选及窗口重新聚焦时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
 
 ## 连接器
 目录、挂载读取与开关保存均通过统一请求路由：Platform 复用主 WS，Desktop 复用 Frame Port/Broker；Gateway 当前保留 HTTP。WS 失败直接上报，不回退 HTTP 或自动重放写入。目录保持无缓存，关联读取复用共享 Agent 详情缓存和请求合并，管理目录与认证仍走独立 HTTP 接口。
@@ -121,3 +121,5 @@ Composer 技能候选及已选技能订阅 skills/agents/config/connectors 目�
 规划、编辑和终端入口只读取 Platform 解析后的三个 show 字段。Agent 详情尚未返回时入口隐藏，但保留已有选择；只有配置已经确定且入口隐藏时才清除相应选择。编辑开关初始关闭，入口显示时普通和语音 query 均显式发送其布尔值（包括 false），入口隐藏时省略 editingMode。
 
 刷新后只从当前 Chat 的 activeRun.editingMode 采纳运行中 Run 的状态。详情和 Run 哪个先到都能恢复；同一会话中的每个 Run 只采纳一次，之后用户为下一次 query 修改开关不会被覆盖，离开并重新进入 Chat 会重新采纳。request.query 仍保留为历史和调试事件，但不再解析编辑状态，Run Session、事件缓存及通知不再复制编辑标志，run.start 不重置开关。
+
+技能、知识库、对话、站点、文件和选区使用同一引用栏及统一列表。宿主指定技能是预置不可移除标签；对话悬停提示正文通过工具读取。旧提交草稿和已选知识库形状丢弃，失败恢复仅接受 references 形状的 schemaVersion 2 草稿。入口读取后端 attachment.*；远端运行中的定位引用选择置灰。

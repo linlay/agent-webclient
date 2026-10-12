@@ -466,7 +466,6 @@ export interface AIChatEvent extends AIBaseEvent {
 }
 
 export interface AIRequestEvent extends AIBaseEvent {
-  mustUseKbases?: string[];
   type: AIRequestEventTypeEnum;
 }
 

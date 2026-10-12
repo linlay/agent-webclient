@@ -475,7 +475,7 @@ const CopilotShellContent: React.FC = () => {
           : ""
       );
       const switchSearchParams = new URLSearchParams(searchParams);
-      switchSearchParams.delete("mustUseSkill");
+      switchSearchParams.delete("reference");
       const nextPath = nextAgentKey
         ? createCopilotChatRoute(nextAgentKey, switchSearchParams)
         : "/copilot";

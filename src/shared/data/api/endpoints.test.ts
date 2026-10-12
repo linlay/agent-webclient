@@ -9,26 +9,11 @@ import {
 
 describe("endpoint payload builders", () => {
   it("keeps Agent interaction capabilities out of query payloads", () => {
-    const options = {
-      requestId: "req_interaction",
-      message: "hello",
-      owner: { kind: "agent" as const, agentKey: "demo-agent" },
-      interactionConfig: {
+    const options = {requestId: "req_interaction", message: "hello", owner: { kind: "agent" as const, agentKey: "demo-agent" }, interactionConfig: {
         model: true, accessLevel: true, mustUseSkills: true, connectors: true,
         attachment: { localFiles: true, chatRecords: true }
-      },
-      model: { key: "selected-model" },
-      accessLevel: "default",
-    mustUseSkills: ["selected-skill"]
-    };
-    expect(buildQueryPayload(options)).toEqual({
-      requestId: "req_interaction",
-      message: "hello",
-      agentKey: "demo-agent",
-      model: { key: "selected-model" },
-      accessLevel: "default",
-    mustUseSkills: ["selected-skill"]
-    });
+      }, model: { key: "selected-model" }, accessLevel: "default", references: [...(["selected-skill"] || []).map(id => ({type:"skill",id}))]};
+    expect(buildQueryPayload(options)).toEqual({requestId: "req_interaction", message: "hello", agentKey: "demo-agent", model: { key: "selected-model" }, accessLevel: "default", references: [...(["selected-skill"] || []).map(id => ({type:"skill",id}))]});
   });
 
   it("builds the minimal Agent query payload", () => {
@@ -44,27 +29,13 @@ describe("endpoint payload builders", () => {
   });
 
   it("normalizes required skills while preserving references and business params", () => {
-    expect(buildQueryPayload({
-      requestId: "req_context",
-      message: "Use the selected context",
-      owner: { kind: "agent", agentKey: "demo-agent" },
-      mustUseSkills: [" product-design ", "PRODUCT-DESIGN"],
-      references: [
+    expect(buildQueryPayload({requestId: "req_context", message: "Use the selected context", owner: { kind: "agent", agentKey: "demo-agent" }, params: { editingMode: true, topic: "guide" }, references: [...([
         { type: "chat", id: "chat_2", name: "Previous design" },
         { type: "site", id: "website:docs", url: "https://example.com" },
-      ],
-    params: { editingMode: true, topic: "guide" }
-    })).toEqual({
-      requestId: "req_context",
-      message: "Use the selected context",
-      agentKey: "demo-agent",
-      mustUseSkills: ["product-design"],
-      references: [
-        { type: "chat", id: "chat_2", name: "Previous design" },
+      ]), ...([" product-design ", "PRODUCT-DESIGN"] || []).map(id => ({type:"skill",id}))]})).toEqual({requestId: "req_context", message: "Use the selected context", agentKey: "demo-agent", params: { topic: "guide" }, references: [...([
+        { type: "chat", id: "chat_2" },
         { type: "site", id: "website:docs", url: "https://example.com" },
-      ],
-    params: { topic: "guide" }
-    });
+      ]), ...(["product-design"] || []).map(id => ({type:"skill",id}))]});
   });
 
   it("sends planningMode only when it is on, for every agent", () => {
@@ -214,11 +185,11 @@ it('includes uploaded references in the steer control payload', () => {
     owner: { kind: 'agent', agentKey: 'agent-a' }, message: 'look', references })).toEqual(expect.objectContaining({ references }));
 });
 
-it("keeps required library IDs at the query root and snapshots arrays", () => {
+it("normalizes library pointers at the query root and snapshots them", () => {
  const libraries = [" lib-a ", "lib-b", "lib-a"];
- const payload = buildQueryPayload({requestId: "request", message: "hello", owner: {kind: "agent", agentKey: "general"}, mustUseKbases: libraries});
+ const payload = buildQueryPayload({requestId:"request",message:"hello",owner:{kind:"agent",agentKey:"general"},references:libraries.map(id=>({type:"kbase",id}))});
  libraries.push("later");
- expect(payload.mustUseKbases).toEqual(["lib-a", "lib-b"]);
- expect(payload).not.toHaveProperty("params"); expect(payload).not.toHaveProperty("references");
- expect(buildQueryPayload({requestId: "request", message: "hello", owner: {kind: "agent", agentKey: "general"}, mustUseKbases: []}).mustUseKbases).toEqual([]);
+ expect(payload.references).toEqual([{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]);
+ expect(payload).not.toHaveProperty("mustUseKbases"); expect(payload).not.toHaveProperty("params");
+ expect(buildQueryPayload({requestId:"request",message:"hello",owner:{kind:"agent",agentKey:"general"},references:[]})).toHaveProperty("references", []);
 });

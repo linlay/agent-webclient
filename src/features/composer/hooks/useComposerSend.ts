@@ -1,4 +1,3 @@
-import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback, useEffect, useRef } from "react";
@@ -279,7 +278,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch({ type: "REMOVE_PENDING_STEER", chatId: currentState.chatId, runId: firstQueued.runId, steerId: firstQueued.steerId });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
-        detail: { message: firstQueued.message, chatId: currentState.chatId, mustUseKbases: (currentState.selectedKbasesByScope[kbaseSelectionScope(currentState.chatId, "")] || []).map(item => item.id), ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
+        detail: { message: firstQueued.message, chatId: currentState.chatId, ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
       }),
     );
   }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, state.chatTransition, state.chatSurfaceBlocked, state.agentAvailability, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, messageApi, t]);
@@ -571,13 +570,6 @@ export function useComposerSend(input: UseComposerSendInput) {
         dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
       } else {
         if (!hasSendableContent(message, sendReferences, true)) return;
-        if (mustUseSkills.length > 0) {
-          dispatch({
-            type: "APPEND_DEBUG",
-            line: "[send] required skills are not supported while steering an active run",
-          });
-          return;
-        }
         const directSignature = JSON.stringify([activeChatId, activeRunId, message, referenceSignature]);
         if (directSteer && directSteerDraftRef.current === directSignature) return;
         if (directSteer) directSteerDraftRef.current = directSignature;
@@ -642,10 +634,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     const submissionRequestId = createRequestId("req");
-    const submissionSkills = [...stateRef.current.selectedSkills];
     setInputValue("");
     dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
-    dispatch({ type: "SET_SELECTED_SKILLS", skills: [] });
     clearComposerAttachments();
     clearMustUseSkills();
     setSlashDismissed(false);
@@ -653,8 +643,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch({ type: "BEGIN_COMPOSER_SUBMISSION", draft: {
       requestId: submissionRequestId, chatId: stateRef.current.chatId,
       agentKey: owner?.kind === "agent" ? owner.agentKey : "", message,
-      references: [...sendReferences], skills: submissionSkills,
-      kbaseScope, kbases: (stateRef.current.selectedKbasesByScope[kbaseScope] || []).map(item => ({...item})),
+      schemaVersion: 2, references: [...sendReferences],
     } });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
@@ -670,9 +659,8 @@ export function useComposerSend(input: UseComposerSendInput) {
           model: modelOverride,
           params: controlParams,
           editingMode: editingModeAvailable ? currentState.editingMode ?? false : undefined,
-          mustUseKbases: [...mustUseKbases], kbaseScope,
+          kbaseScope,
           mustUseSkillsAgentKey,
-          mustUseSkills,
         },
       }),
     );

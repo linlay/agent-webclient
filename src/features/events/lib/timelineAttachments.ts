@@ -17,7 +17,7 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
 
     if (item.type === "selection" && !readSelectedText(item).trim()) return acc;
 
-    const name = String(item.name || (item.type === 'selection' ? 'Selected text' : '')).trim();
+    const name = String(item.name || (item.type === 'selection' ? 'Selected text' : ['skill','kbase','chat'].includes(String(item.type)) ? item.id : '')).trim();
     if (!name) {
       return acc;
     }
@@ -69,5 +69,5 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
 
 export function hasTimelineAttachmentContent(attachments: readonly TimelineAttachment[]): boolean {
   return attachments.some(item => Boolean(item.url?.trim()) ||
-    (item.type === 'selection' && Boolean(readSelectedText(item).trim())));
+    (item.type === 'selection' && Boolean(readSelectedText(item).trim())) || (item.type === 'chat' && Boolean(item.id?.trim())));
 }

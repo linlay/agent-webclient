@@ -55,7 +55,7 @@ export type AutomationExecutionStatus =
   | "canceled";
 
 export interface AutomationQueryResponse {
-  mustUseKbases?: string[];
+  references?: unknown[];
   accessLevel?: QueryAccessLevel;
   message: string;
   chatId?: string;
@@ -112,7 +112,7 @@ export interface AutomationExecutionDetailResponse
 }
 
 export interface AutomationQueryRequest {
-  mustUseKbases?: string[];
+  references?: unknown[];
   accessLevel?: QueryAccessLevel;
   message: string;
   chatId?: string;

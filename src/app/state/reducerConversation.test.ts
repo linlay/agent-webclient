@@ -278,121 +278,120 @@ describe("reduceConversationState – composerDraftByChatId", () => {
 	});
 });
 
-describe("reduceConversationState – selectedSkillsByChatId", () => {
-	it("switching chat saves current selectedSkills and restores saved skills", () => {
-		const skillsA = [{ id: "a", label: "A" }];
-		const skillsB = [{ id: "b", label: "B" }];
+describe("reduceConversationState – restoredSteerReferencesByChatId", () => {
+	it("switching chat saves current composerReferences and restores saved skills", () => {
+		const skillsA = [{id:"a", type:"skill"}];
+		const skillsB = [{id:"b", type:"skill"}];
 		const state = buildState({
 			chatId: "chat_a",
-			selectedSkills: skillsA,
-			selectedSkillsByChatId: { chat_b: skillsB },
+			composerReferences: skillsA,
+			restoredSteerReferencesByChatId: { chat_b: skillsB },
 		});
 		const next = appReducer(state, {
 			type: "SET_CHAT_ID",
 			chatId: "chat_b",
 		});
-		expect(next.selectedSkills).toBe(skillsB);
-		expect(next.selectedSkillsByChatId.chat_a).toBe(skillsA);
+		expect(next.composerReferences).toBe(skillsB);
+		expect(next.restoredSteerReferencesByChatId.chat_a).toBe(skillsA);
 	});
 
 	it("new chat with no saved skills gets empty array", () => {
 		const state = buildState({
 			chatId: "chat_a",
-			selectedSkills: [{ id: "a", label: "A" }],
-			selectedSkillsByChatId: {},
+			references: [{id:"a", type:"skill"}],
+			restoredSteerReferencesByChatId: {},
 		});
 		const next = appReducer(state, {
 			type: "SET_CHAT_ID",
 			chatId: "chat_new",
 		});
-		expect(next.selectedSkills).toEqual([]);
+		expect(next.composerReferences).toEqual([]);
 	});
 
-	it("SET_SELECTED_SKILLS also writes to selectedSkillsByChatId", () => {
-		const skills = [{ id: "a", label: "A" }];
+	it("SET_COMPOSER_REFERENCES updates the unified current list", () => {
+		const skills = [{id:"a", type:"skill"}];
 		const state = buildState({
 			chatId: "chat_x",
-			selectedSkills: [],
-			selectedSkillsByChatId: {},
+			references: [],
+			restoredSteerReferencesByChatId: {},
 		});
 		const next = appReducer(state, {
-			type: "SET_SELECTED_SKILLS",
-			skills,
+			type: "SET_COMPOSER_REFERENCES", references: skills,
 		});
-		expect(next.selectedSkills).toBe(skills);
-		expect(next.selectedSkillsByChatId.chat_x).toBe(skills);
+		expect(next.composerReferences).toBe(skills);
+		expect(next.restoredSteerReferencesByChatId.chat_x).toBeUndefined();
 	});
 });
 
 describe("Composer drafts across conversation changes", () => {
 	it("shares the blank-chat text and Skills across Agents while preserving history drafts", () => {
-		const sharedSkills = [{ id: "shared", label: "Shared" }];
-		const historySkills = [{ id: "history", label: "History" }];
+		const sharedSkills = [{id:"shared", type:"skill"}];
+		const historySkills = [{id:"history", type:"skill"}];
 		let state = buildState({ workerSelectionKey: "agent:a" });
 		state = appReducer(state, { type: "SET_COMPOSER_DRAFT", draft: "shared draft" });
-		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: sharedSkills });
+		state = appReducer(state, { type: "SET_COMPOSER_REFERENCES", references: sharedSkills });
 		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_a" });
 		expect(state.composerDraft).toBe("");
-		expect(state.selectedSkills).toEqual([]);
+		expect(state.composerReferences).toEqual([]);
 		state = appReducer(state, { type: "SET_COMPOSER_DRAFT", draft: "history draft" });
-		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: historySkills });
+		state = appReducer(state, { type: "SET_COMPOSER_REFERENCES", references: historySkills });
 		state = appReducer(state, { type: "SET_WORKER_SELECTION_KEY", workerKey: "agent:b" });
 		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "" });
 		state = appReducer(state, { type: "RESET_ACTIVE_CONVERSATION" });
 		expect(state.workerSelectionKey).toBe("agent:b");
 		expect(state.composerDraft).toBe("shared draft");
-		expect(state.selectedSkills).toEqual(sharedSkills);
+		expect(state.composerReferences).toEqual(sharedSkills);
 		expect(state.composerDraftByChatId).toEqual({ "": "shared draft", chat_a: "history draft" });
-		expect(state.selectedSkillsByChatId).toEqual({ "": sharedSkills, chat_a: historySkills });
+		expect(state.restoredSteerReferencesByChatId).toEqual({ "": sharedSkills, chat_a: historySkills });
 
 		state = appReducer(state, { type: "SET_WORKER_SELECTION_KEY", workerKey: "agent:c" });
 		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "" });
 		state = appReducer(state, { type: "RESET_ACTIVE_CONVERSATION" });
 		expect(state.composerDraft).toBe("shared draft");
-		expect(state.selectedSkills).toEqual(sharedSkills);
+		expect(state.composerReferences).toEqual(sharedSkills);
 
 		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_a" });
 		expect(state.composerDraft).toBe("history draft");
-		expect(state.selectedSkills).toEqual(historySkills);
+		expect(state.composerReferences).toEqual(historySkills);
 	});
 
 	it.each(["chat_a", ""])("does not resurrect cleared text or removed Skills for chat %p", (chatId) => {
-		const otherSkills = [{ id: "other", label: "Other" }];
+		const otherSkills = [{id:"other", type:"skill"}];
 		const original = buildState({
 			chatId,
 			composerDraft: "old draft",
 			composerDraftByChatId: { [chatId]: "old draft", chat_b: "other draft" },
-			selectedSkills: [{ id: "old", label: "Old" }],
-			selectedSkillsByChatId: { [chatId]: [{ id: "old", label: "Old" }], chat_b: otherSkills },
+			references: [{id:"old", type:"skill"}],
+			restoredSteerReferencesByChatId: { [chatId]: [{id:"old", type:"skill"}], chat_b: otherSkills },
 		});
 		let state = appReducer(original, { type: "SET_COMPOSER_DRAFT", draft: "" });
-		state = appReducer(state, { type: "SET_SELECTED_SKILLS", skills: [] });
+		state = appReducer(state, { type: "SET_COMPOSER_REFERENCES", references: [] });
 		state = appReducer(state, { type: "SET_CHAT_ID", chatId: "chat_b" });
 		expect(state.composerDraft).toBe("other draft");
-		expect(state.selectedSkills).toEqual(otherSkills);
+		expect(state.composerReferences).toEqual(otherSkills);
 		state = appReducer(state, { type: "SET_CHAT_ID", chatId });
 		expect(state.composerDraft).toBe("");
-		expect(state.selectedSkills).toEqual([]);
+		expect(state.composerReferences).toEqual([]);
 		expect(state.composerDraftByChatId).toEqual({ [chatId]: "", chat_b: "other draft" });
-		expect(state.selectedSkillsByChatId).toEqual({ [chatId]: [], chat_b: otherSkills });
+		expect(state.restoredSteerReferencesByChatId).toEqual({ [chatId]: [], chat_b: otherSkills });
 		expect(original.composerDraftByChatId[chatId]).toBe("old draft");
-		expect(original.selectedSkillsByChatId[chatId]).toEqual([{ id: "old", label: "Old" }]);
+		expect(original.restoredSteerReferencesByChatId[chatId]).toEqual([{id:"old", type:"skill"}]);
 	});
 
 	it.each(["chat_a", ""])("preserves draft records when selecting the same chat %p", (chatId) => {
-		const skills = [{ id: "review", label: "Review" }];
+		const skills = [{id:"review", type:"skill"}];
 		const state = buildState({
 			chatId,
 			composerDraft: "draft",
 			composerDraftByChatId: { [chatId]: "draft" },
-			selectedSkills: skills,
-			selectedSkillsByChatId: { [chatId]: skills },
+			composerReferences: skills,
+			restoredSteerReferencesByChatId: { [chatId]: skills },
 		});
 		const next = appReducer(state, { type: "SET_CHAT_ID", chatId });
 		expect(next.composerDraft).toBe("draft");
-		expect(next.selectedSkills).toBe(skills);
+		expect(next.composerReferences).toBe(skills);
 		expect(next.composerDraftByChatId).toBe(state.composerDraftByChatId);
-		expect(next.selectedSkillsByChatId).toBe(state.selectedSkillsByChatId);
+		expect(next.restoredSteerReferencesByChatId).toBe(state.restoredSteerReferencesByChatId);
 	});
 });
 

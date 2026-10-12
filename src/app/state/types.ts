@@ -1,4 +1,3 @@
-import type { KBasesState } from "@/features/kbases/lib/kbasesState";
 import type { AgentsState } from "@/features/agents/lib/agentState";
 import type { ArtifactsState } from "@/features/artifacts/lib/artifactsState";
 import type { AutomationsState } from "@/features/automations/lib/automationsState";
@@ -34,7 +33,6 @@ export type AppState =
   & ArtifactsState
   & OverviewState
   & ViewersState
-  & KBasesState
   & ComposerState
   & VoiceState
   & UsageState

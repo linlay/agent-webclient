@@ -1,10 +1,8 @@
 export interface InteractionConfig {
   model: boolean;
   accessLevel: boolean;
-  mustUseSkills: boolean;
-  mustUseKbases?: boolean;
   connectors: boolean;
-  attachment: { localFiles: boolean; chatRecords: boolean };
+  attachment: { localFiles: boolean; chatRecords: boolean; skills: boolean; kbases: boolean };
   // Entry visibility is decided by the Platform; absent means hidden.
   showEditingMode?: boolean;
   showPlanningMode?: boolean;
@@ -22,10 +20,8 @@ export function interactionDefaults(mode: string): InteractionConfig {
   return {
     model: !kbase && !["PROXY", "CHANNEL"].includes(normalized),
     accessLevel: !kbase,
-    mustUseSkills: true,
-    mustUseKbases: !["KBASE", "TEAM", "PROXY", "CHANNEL"].includes(normalized),
     connectors: !kbase,
-    attachment: { localFiles: true, chatRecords: !kbase && normalized !== "CODER" },
+    attachment: { localFiles: true, chatRecords: !kbase && normalized !== "CODER", skills: true, kbases: !["KBASE", "PROXY", "CHANNEL"].includes(normalized) },
     showPlanningMode: ["", "GENERAL", "REACT", "CODER", "KBASE", "TEAM"].includes(normalized),
     showEditingMode: kbase,
     showTerminal: normalized === "CODER",
@@ -37,7 +33,7 @@ export function isInteractionPending(config: InteractionConfig): boolean {
   return config === pendingInteraction;
 }
 export const pendingInteraction: InteractionConfig = {
-  model: false, accessLevel: false, mustUseSkills: false, mustUseKbases: false, connectors: false,
-  attachment: { localFiles: false, chatRecords: false },
+  model: false, accessLevel: false, connectors: false,
+  attachment: { localFiles: false, chatRecords: false, skills: false, kbases: false },
   showEditingMode: false, showPlanningMode: false, showTerminal: false,
 };

@@ -1,3 +1,4 @@
+import { queryReferences } from "@/shared/contracts/references";
 import { resolveChatModel } from "@/features/runs/lib/modelSelection";
 import { useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
@@ -64,21 +65,7 @@ export interface StartNewConversationDetail {
   preserveWorkerContext: unknown;
   focusComposerOnComplete: unknown;
   composerDraft?: unknown;
-  selectedSkills?: unknown;
-}
-
-function normalizeRequiredSkills(value: unknown): ComposerRequiredSkill[] {
-  if (!Array.isArray(value)) return [];
-  const seen = new Set<string>();
-  return value.flatMap((candidate) => {
-    if (!isObjectRecord(candidate)) return [];
-    const id = String(candidate.id || "").trim();
-    const label = String(candidate.label || id).trim();
-    const identity = id.toLowerCase();
-    if (!id || !label || seen.has(identity)) return [];
-    seen.add(identity);
-    return [{ id, label }];
-  });
+  references?: unknown;
 }
 
 export function normalizeStartNewConversationDetail(
@@ -88,7 +75,7 @@ export function normalizeStartNewConversationDetail(
   preserveWorkerContext: boolean;
   focusComposerOnComplete: boolean;
   composerDraft?: string;
-  selectedSkills?: ComposerRequiredSkill[];
+  references?: unknown[];
 } | null {
   if (!isObjectRecord(detail)) return null;
   if (!Object.prototype.hasOwnProperty.call(detail, "preserveWorkerContext")) {
@@ -108,8 +95,8 @@ export function normalizeStartNewConversationDetail(
     ...(Object.prototype.hasOwnProperty.call(detail, "composerDraft")
       ? { composerDraft: String(detail.composerDraft || "").trim() }
       : {}),
-    ...(Object.prototype.hasOwnProperty.call(detail, "selectedSkills")
-      ? { selectedSkills: normalizeRequiredSkills(detail.selectedSkills) }
+    ...(Object.prototype.hasOwnProperty.call(detail, "references")
+      ? { references: queryReferences(detail.references) }
       : {}),
   };
 }
@@ -486,10 +473,11 @@ export function useConversationActions() {
       if (detail.composerDraft !== undefined) {
         dispatch({ type: "SET_COMPOSER_DRAFT", draft: detail.composerDraft });
       }
-      if (detail.selectedSkills !== undefined) {
+      if (detail.references !== undefined) {
+        window.dispatchEvent(new CustomEvent("agent:clear-composer-attachments"));
         dispatch({
-          type: "SET_SELECTED_SKILLS",
-          skills: detail.selectedSkills,
+          type: "SET_RESTORED_STEER_REFERENCES",
+          chatId: "", references: detail.references,
         });
       }
       if (detail.agentKey) {

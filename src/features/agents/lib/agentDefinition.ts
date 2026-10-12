@@ -495,9 +495,9 @@ export function interactionPresentation(
       return { icon: "psychology", label: t("agents.interaction.model"), description: t("agents.interaction.model.description") };
     case "accessLevel":
       return { icon: "verified_user", label: t("agents.interaction.accessLevel"), description: t("agents.interaction.accessLevel.description") };
-    case "mustUseSkills":
+    case "skills":
       return { icon: "skills", label: t("agents.interaction.mustUseSkills"), description: t("agents.interaction.mustUseSkills.description") };
-    case "mustUseKbases":
+    case "kbases":
       return { icon: "book_2", label: t("kbase.title"), description: t("kbase.interactionDescription") };
     case "connectors":
       return { icon: "hub", label: t("agents.interaction.connectors"), description: t("agents.interaction.connectors.description") };

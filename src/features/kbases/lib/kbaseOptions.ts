@@ -18,7 +18,7 @@ export function parseKBaseOptions(value: unknown, agentKey: string): KBaseOption
 
 export async function loadKBaseOptions(agentKey: string, signal?: AbortSignal): Promise<KBaseOptionsResponse> {
   const agent = (await getAgent(agentKey)).data;
-  if (agent.interactionConfig?.mustUseKbases !== true) throw new Error("kbase.disabled");
+  if (agent.interactionConfig?.attachment?.kbases !== true) throw new Error("kbase.disabled");
   return parseKBaseOptions((await getKBaseOptions(agentKey, signal)).data, agentKey);
 }
 

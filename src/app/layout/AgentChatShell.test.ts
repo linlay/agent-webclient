@@ -760,8 +760,8 @@ describe("AgentChatShell", () => {
     expect(startNewConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         composerDraft: "Create a useful Skill",
-        selectedSkills: [
-          { id: skillId, label: skillId },
+        references: [
+          {id:skillId, type:"skill"},
         ],
       }),
     );
@@ -806,7 +806,7 @@ describe("AgentChatShell", () => {
       preserveWorkerContext: true,
       focusComposerOnComplete: true,
       composerDraft: draft,
-      selectedSkills: [],
+      references: [],
     });
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: "agent:send-message" }),
@@ -827,10 +827,10 @@ describe("AgentChatShell", () => {
       effects.push(effect);
     });
     let visibleDraft = "Previous draft";
-    let visibleSkills = [{ id: "skill-creator", label: "Skill Creator" }];
+    let visibleSkills = [{id:"skill-creator", type:"skill"}];
     startNewConversation.mockImplementation((detail) => {
       visibleDraft = detail.composerDraft;
-      visibleSkills = detail.selectedSkills;
+      visibleSkills = detail.references;
     });
     useSearchParams.mockReturnValue([new URLSearchParams({ newChat: "1783680000000", composerDraft: "Use the connector" })]);
     useAppState.mockReturnValue({

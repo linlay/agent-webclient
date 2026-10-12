@@ -37,7 +37,6 @@ import {
 import { ComposerAttachments } from "@/features/composer/components/ComposerAttachments";
 import { ComposerInput } from "@/features/composer/components/ComposerInput";
 import { useKBaseOptions } from "@/features/kbases/hooks/useKBaseOptions";
-import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
 import { unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
 import { KBaseSelectionTags } from "@/features/kbases/components/KBaseSelectionTags";
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
@@ -184,17 +183,72 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }
     return String(currentWorker.sourceId || "").trim();
   }, [currentWorker]);
-  const kbaseScope = kbaseSelectionScope(state.chatId, currentAgentKey);
-  const selectedKbases = state.selectedKbasesByScope[kbaseScope] || [];
+  const agentAvailability = useAgentAvailability(currentAgentKey, state.chatId);
+  const agentExecutionBlocked = agentAvailability.status !== "available";
+  const { activeRunId, activeRunOwner } = useActiveRunIdentity(state);
+  const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
+  const mainChatRuntime = resolveMainChatRuntime(
+    stateRef,
+    activeQuerySessionRequestIdRef,
+    querySessionsRef,
+  );
+  const isMainChatRunning = mainChatRuntime.running;
+  const referenceSelectionDisabled = isMainChatRunning && (
+    String(currentWorker?.raw?.engine || (currentWorker?.raw?.definition as {engine?:string} | undefined)?.engine || "").toLowerCase() === "acp" ||
+    ["PROXY", "CHANNEL"].includes(String(currentWorker?.raw?.mode || "").toUpperCase())
+  );
+  const presentation = useConversationSurface();
+  const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
+  const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
+  useDesktopAwaitingDigit({ state, stateRef, blocked: chatTransitionBlocking || isAnyOverlayOpen });
+  const {
+    addContextReference,
+    setContextReferences,
+    attachmentChatId,
+    attachmentScrollState,
+    attachmentViewportRef,
+    attachments,
+    canCaptureDesktopScreenshot,
+    captureDesktopScreenshot,
+    clearComposerAttachments,
+    fileInputRef,
+    handleFileDragOver,
+    handleFileDrop,
+    handleFileSelection,
+    handleFilePaste,
+    handleRemoveAttachment,
+    hasComposerAttachmentOverflow,
+    hasStagedAttachments,
+    hasUploadingAttachments,
+    hasFailedAttachments,
+    isCapturingDesktopScreenshot,
+    openFilePicker,
+    scrollComposerAttachments,
+    stageReviewAttachment,
+    sendAttachmentMeta,
+    sendReferences,
+    uploadStagedAttachments,
+  } = useComposerAttachments({
+    interactionConfig,
+    dispatch,
+    isFrontendActive,
+    isVoiceMode,
+    mainChatRunning: isMainChatRunning,
+    onError: (text) => {
+      void message.error(text || t("composer.actions.screenshotFailed"));
+    },
+    state,
+  });
+  const selectedKbases = useMemo(() => attachments.filter(item => item.type === "kbase").map(item => ({id: String((item.references[0] as {id?: string})?.id || ""), name: item.name})), [attachments]);
   const kbaseTargetAgentKey = parseLeadingAgentMention(inputValue, resolveMentionCandidatesFromState(state)).mentionAgentKey || currentAgentKey;
   const kbaseCatalog = useKBaseOptions(kbaseTargetAgentKey, selectedKbases.length > 0 || kbaseTargetAgentKey !== currentAgentKey);
-  const setSelectedKbases = (libraries: import("@/features/kbases/lib/kbasesState").SelectedKBase[]) => dispatch({type: "SET_SELECTED_KBASES", scope: kbaseScope, libraries});
+  const setSelectedKbases = (libraries: import("@/features/kbases/lib/kbasesState").SelectedKBase[]) => setContextReferences("kbase", libraries.map(item => ({type:"kbase", id:item.id, name:item.name})));
   const invalidKbaseIds = unavailableKbaseIds(kbaseCatalog.data, selectedKbases.map(item => item.id));
   const targetKbaseDefinition = (state.agents.find(agent => agent.key === kbaseTargetAgentKey)?.definition as Record<string, unknown> | undefined) ||
     (kbaseTargetAgentKey === currentAgentKey ? currentWorker?.raw?.definition as Record<string, unknown> | undefined : undefined);
   const boundLibraryId = kbaseCatalog.data?.boundLibraryId || (targetKbaseDefinition?.kbaseConfig as {libraryId?: string} | undefined)?.libraryId;
   const boundLibrary = boundLibraryId ? {id: boundLibraryId, name: kbaseCatalog.data?.libraries.find(item => item.id === boundLibraryId)?.name || boundLibraryId} : undefined;
-  const kbaseMenuAvailable = kbaseTargetAgentKey === currentAgentKey ? interactionConfig.mustUseKbases === true : kbaseCatalog.status === "success";
+  const kbaseMenuAvailable = kbaseTargetAgentKey === currentAgentKey ? interactionConfig.attachment.kbases === true : kbaseCatalog.status === "success";
   const accessScope = resolveComposerAccessScope(state.accessToken);
   const accessAgentKey = currentAgentKey || ((""));
   const accessTarget = useMemo(() => ({
@@ -208,18 +262,19 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const setAccessLevel = useCallback((value: QueryAccessLevel) => {
     dispatch({ type: "SET_COMPOSER_ACCESS_LEVEL", target: accessTarget, value });
   }, [dispatch, accessTarget]);
-  const agentAvailability = useAgentAvailability(currentAgentKey, state.chatId);
-  const agentExecutionBlocked = agentAvailability.status !== "available";
   const hostRequiredSkills = useHostRequiredSkills();
-  const [selectedSkills, setSelectedSkills] = useState<ComposerRequiredSkill[]>(
-    [],
-  );
+  const selectedSkills = useMemo<ComposerRequiredSkill[]>(() => attachments.filter(item => item.type === "skill").map(item => ({id: String((item.references[0] as {id?: string})?.id || ""),label:item.name,selectedViaPackageId:(item.references[0] as {meta?:{selectedViaPackageId?:string}})?.meta?.selectedViaPackageId})), [attachments]);
+  const setSelectedSkills = useCallback((update: ComposerRequiredSkill[] | ((current: ComposerRequiredSkill[]) => ComposerRequiredSkill[])) => setContextReferences("skill",current => {
+    const existing = current.map(ref => ({id:ref.id,label:ref.name,selectedViaPackageId:ref.meta?.selectedViaPackageId as string | undefined}));
+    const next = typeof update === "function" ? update(existing) : update;
+    return next.map(skill => ({type:"skill" as const,id:skill.id,name:skill.label,meta:skill.selectedViaPackageId ? {selectedViaPackageId:skill.selectedViaPackageId}:undefined}));
+  }), [setContextReferences]);
   const forcedSkills = useMemo<ComposerRequiredSkill[]>(() => {
-    if (!interactionConfig.mustUseSkills || hostRequiredSkills.agentKey !== currentAgentKey) return [];
+    if (!interactionConfig.attachment.skills || hostRequiredSkills.agentKey !== currentAgentKey) return [];
     return hostRequiredSkills.skills.map((id) => ({ id, label: id }));
-  }, [currentAgentKey, hostRequiredSkills, interactionConfig.mustUseSkills]);
+  }, [currentAgentKey, hostRequiredSkills, interactionConfig.attachment.skills]);
   const effectiveSkills = useMemo(() => {
-    if (!interactionConfig.mustUseSkills) return [];
+    if (!interactionConfig.attachment.skills) return [];
     const identities = new Set(forcedSkills.map((skill) => skill.id.toLowerCase()));
     return [
       ...forcedSkills,
@@ -230,12 +285,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         return true;
       }),
     ];
-  }, [forcedSkills, selectedSkills, interactionConfig.mustUseSkills]);
+  }, [forcedSkills, selectedSkills, interactionConfig.attachment.skills]);
   const effectiveManualSkills = useMemo(() => {
-    if (!interactionConfig.mustUseSkills) return [];
+    if (!interactionConfig.attachment.skills) return [];
     const forcedIdentities = new Set(forcedSkills.map((skill) => skill.id.toLowerCase()));
     return selectedSkills.filter((skill) => !forcedIdentities.has(skill.id.trim().toLowerCase()));
-  }, [forcedSkills, selectedSkills, interactionConfig.mustUseSkills]);
+  }, [forcedSkills, selectedSkills, interactionConfig.attachment.skills]);
   const skillCatalogQuery = useComposerSkillMenuQuery(currentAgentKey, {
     enabled: Boolean(currentAgentKey && effectiveSkills.length > 0),
   });
@@ -286,36 +341,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   useEffect(() => { dispatch({ type: "TOUCH_COMPOSER" }); }, [dispatch]);
   const groupedSkills = groupSelectedPackages(skillCatalogQuery.data?.packages || [], displayedManualSkills);
 
-  // Restore: 当 state.selectedSkills 被 reducer 更改（SET_CHAT_ID 恢复）时，同步到局部
-  useEffect(() => {
-    if (state.selectedSkills !== selectedSkills) {
-      isRestoringSkillsRef.current = true;
-      setSelectedSkills(state.selectedSkills);
-    }
-  }, [state.selectedSkills]);
-
-  useEffect(() => {
-    if (state.selectedSkills === selectedSkills) {
-      return;
-    }
-    if (isRestoringSkillsRef.current) {
-      isRestoringSkillsRef.current = false;
-      return; // 这是 restore 触发的，不写回 reducer
-    }
-    dispatch({ type: "SET_SELECTED_SKILLS", skills: selectedSkills });
-  }, [dispatch, selectedSkills, state.selectedSkills]);
-  const { activeRunId, activeRunOwner } = useActiveRunIdentity(state);
-  const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
-  const mainChatRuntime = resolveMainChatRuntime(
-    stateRef,
-    activeQuerySessionRequestIdRef,
-    querySessionsRef,
-  );
-  const isMainChatRunning = mainChatRuntime.running;
-  const presentation = useConversationSurface();
-  const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
-  const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
-  useDesktopAwaitingDigit({ state, stateRef, blocked: chatTransitionBlocking || isAnyOverlayOpen });
   // Both entries come from the Platform. The editing toggle always starts off;
   // while it is shown its value is sent explicitly, and while it is hidden the
   // parameter is omitted so the Platform applies the Agent's own default.
@@ -391,43 +416,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     stateRef,
   });
 
-  const {
-    addContextReference,
-    attachmentChatId,
-    attachmentScrollState,
-    attachmentViewportRef,
-    attachments,
-    canCaptureDesktopScreenshot,
-    captureDesktopScreenshot,
-    clearComposerAttachments,
-    fileInputRef,
-    handleFileDragOver,
-    handleFileDrop,
-    handleFileSelection,
-    handleFilePaste,
-    handleRemoveAttachment,
-    hasComposerAttachmentOverflow,
-    hasStagedAttachments,
-    hasUploadingAttachments,
-    hasFailedAttachments,
-    isCapturingDesktopScreenshot,
-    openFilePicker,
-    scrollComposerAttachments,
-    stageReviewAttachment,
-    sendAttachmentMeta,
-    sendReferences,
-    uploadStagedAttachments,
-  } = useComposerAttachments({
-    interactionConfig,
-    dispatch,
-    isFrontendActive,
-    isVoiceMode,
-    mainChatRunning: isMainChatRunning,
-    onError: (text) => {
-      void message.error(text || t("composer.actions.screenshotFailed"));
-    },
-    state,
-  });
   const completedRun = [...state.events].reverse().find(event =>
     ["run.complete", "run.cancel", "run.error"].includes(event.type) && !event.taskId &&
     (!event.chatId || event.chatId === state.chatId),
@@ -448,7 +436,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }),
     ...selectedText.fragments,
   ], [sendAttachmentMeta, selectedText.fragments]);
-  const visibleAttachments = attachments.filter((attachment) => attachment.type !== "selection");
+  const visibleAttachments = attachments.filter(attachment => {
+    if (attachment.type === "selection") return false;
+    if (attachment.type !== "skill") return true;
+    const id = String((attachment.references[0] as {id?:string})?.id || "").trim().toLowerCase();
+    return !forcedSkills.some(skill => skill.id.toLowerCase() === id);
+  });
   const removeSelectedFragment = (referenceId: string) => {
     dispatch({ type: "TOUCH_COMPOSER" });
     selectedText.removeFragment(referenceId);
@@ -474,6 +467,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     () => [...sendReferences, ...selectedText.references],
     [selectedText.references, sendReferences],
   );
+  useEffect(() => { dispatch({type:"SET_COMPOSER_REFERENCES",references:[...forcedSkills.map(skill => ({type:"skill",id:skill.id})),...combinedSendReferences]}); }, [dispatch,forcedSkills,combinedSendReferences]);
   const combinedSendAttachmentMeta = useMemo(
     () => [
       ...sendAttachmentMeta,
@@ -520,7 +514,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isVoiceMode,
     canUsePlanningMode: planningModeAvailable,
     canUseEditingMode: editingModeAvailable,
-    currentAgentKey: interactionConfig.mustUseSkills ? currentAgentKey : "",
+    currentAgentKey: interactionConfig.attachment.skills ? currentAgentKey : "",
     addMenuOpen: false,
   });
 
@@ -535,7 +529,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const handleSelectSlashSkill = useCallback(
     (skill: AgentSkill | ResolvedSlashPackageDefinition) => {
-      if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) {
+      if (!interactionConfig.attachment.skills || chatTransitionBlocking) {
         return;
       }
       const packageChoice = "kind" in skill && skill.kind === "package" ? skill as ResolvedSlashPackageDefinition : null;
@@ -558,13 +552,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         textareaRef.current?.resizableTextArea?.textArea?.focus();
       });
     },
-    [closeMention, forcedSkills, isMainChatRunning, chatTransitionBlocking, interactionConfig.mustUseSkills, setSlashDismissed, filterStartIndex],
+    [closeMention, forcedSkills, isMainChatRunning, chatTransitionBlocking, interactionConfig.attachment.skills, setSlashDismissed, filterStartIndex],
   );
 
   const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean, packageId?: string) => {
-    if (!interactionConfig.mustUseSkills || isMainChatRunning || chatTransitionBlocking) return;
+    if (!interactionConfig.attachment.skills || chatTransitionBlocking) return;
     setSelectedSkills(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.id), packageId));
-  }, [interactionConfig.mustUseSkills, isMainChatRunning, chatTransitionBlocking, forcedSkills]);
+  }, [interactionConfig.attachment.skills, isMainChatRunning, chatTransitionBlocking, forcedSkills]);
 
   const removeSelectedSkill = useCallback((skillId: string) => {
     const identity = String(skillId || "")
@@ -747,11 +741,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     modelOverride: interactionConfig.model ? modelOverride : {},
     mustUseSkillsAgentKey: effectiveSkills.length > 0 ? currentAgentKey : "",
     mustUseSkills: effectiveSkills.map((skill) => skill.id),
-    mustUseKbases: selectedKbases.map(item => item.id), kbaseScope,
+    mustUseKbases: selectedKbases.map(item => item.id),
     selectSlashItem,
     onSelectSlashSkill: handleSelectSlashSkill,
     sendAttachmentMeta: combinedSendAttachmentMeta,
-    sendReferences: combinedSendReferences,
+    sendReferences: [...displayedForcedSkills.map(skill => ({type:"skill",id:skill.id,name:skill.label})),...combinedSendReferences],
     setInputValue,
     setSlashDismissed,
     showSlashPalette,
@@ -1030,7 +1024,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     slashSkillError={slashSkillError}
                     activeSlashIndex={activeSlashIndex}
                     slashAvailability={slashAvailability}
-                    skillsDisabled={isMainChatRunning}
+                    skillsDisabled={referenceSelectionDisabled}
                     onSelectCommand={(commandId) =>
                       void executeSlashCommand(commandId)
                     }
@@ -1072,7 +1066,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   restore={requestId => dispatch({ type: "RESTORE_FAILED_SUBMISSION", requestId })}
                   discard={requestId => dispatch({ type: "DISCARD_FAILED_SUBMISSION", requestId })} />
                 <ComposerAttachments
-                  attachments={visibleAttachments}
+                  attachments={[...displayedForcedSkills.map(skill => ({id:`forced:${skill.id}`,name:skill.label,type:"skill",size:0,status:"ready" as const,error:"",references:[{type:"skill",id:skill.id}]})),...visibleAttachments]}
                   attachmentChatId={state.chatId || attachmentChatId}
                   attachmentViewportRef={attachmentViewportRef}
                   useUnifiedComposerAttachmentRow={
@@ -1080,7 +1074,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   }
                   hasComposerAttachmentOverflow={hasComposerAttachmentOverflow}
                   attachmentScrollState={attachmentScrollState}
-                  onRemoveAttachment={handleRemoveAttachment}
+                  onRemoveAttachment={id => { if (!id.startsWith("forced:")) handleRemoveAttachment(id); }}
                   onScroll={scrollComposerAttachments}
                 />
                 <SelectedTextFragmentsPill
@@ -1097,54 +1091,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.id))));
                   }}>{t("packageComposer.removeUnavailable")}</UiButton>
                 </div>}
-                <Flex wrap gap={4}>
-                  {displayedForcedSkills.map((skill) => (
-                    <UiButton
-                      key={`forced:${skill.id.toLowerCase()}`}
-                      variant="ghost"
-                      className="tw:!cursor-default tw:!bg-accent-soft tw:!px-[6px] tw:!py-0 tw:!min-h-[24px] tw:!rounded-[4px]"
-                      size="sm"
-                      onClick={() => openSkillViewer(skill)}
-                      aria-label={t("composer.requiredSkill.locked", { skill: skill.label })}
-                      title={t("composer.requiredSkill.locked", { skill: skill.label })}
-                    >
-                      <Flex gap={4} align="center">
-                        <MaterialIcon name="lock" className="tw:text-accent tw:text-[14px]" />
-                        <span className="tw:text-text-sub">{skill.label}</span>
-                      </Flex>
-                    </UiButton>
-                  ))}
-                  {groupedSkills.groups.map(({ pkg, members }) => (
-                    <Flex key={`package:${pkg.id}`} align="center" className={presentationClasses("composer-skill-chip")}>
-                      <Tooltip placement="top" trigger={["hover", "focus"]} title={
-                        <div>{members.map(skill => <div key={skill.id}>{skill.label}</div>)}</div>
-                      }>
-                        <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-main")} aria-label={t("packageComposer.members", { name: skillPackageDisplayName(pkg) })}>
-                          <SkillIcon icon={pkg.icon} fallback="folder" /><span>{skillPackageDisplayName(pkg)}</span>
-                        </UiButton>
-                      </Tooltip>
-                      <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-remove")} disabled={isMainChatRunning}
-                        aria-label={t("packageComposer.remove", { name: skillPackageDisplayName(pkg) })}
-                        onClick={() => { const ids = new Set(members.map(skill => skillIdentity(skill.id))); setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.id)))); }}>
-                        <MaterialIcon name="close" />
-                      </UiButton>
-                    </Flex>
-                  ))}
-                  {groupedSkills.standalone.map((skill) => (
-                    <Flex key={skill.id.toLowerCase()} align="center" className={presentationClasses("composer-skill-chip")}>
-                      <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-main")} onClick={() => openSkillViewer(skill)}>
-                        <MaterialIcon name="skills" />
-                        <span>{skill.label}</span>
-                      </UiButton>
-                      <UiButton variant="ghost" size="sm" className={presentationClasses("composer-skill-chip-remove")} disabled={isMainChatRunning}
-                        aria-label={t("composer.requiredSkill.remove", { skill: skill.label })}
-                        onClick={() => removeSelectedSkill(skill.id)}>
-                        <MaterialIcon name="close" />
-                      </UiButton>
-                    </Flex>
-                  ))}
-                </Flex>
-                <KBaseSelectionTags selected={selectedKbases.map(item => ({...item, name: kbaseCatalog.data?.libraries.find(library => library.id === item.id)?.name || item.name}))} boundLibrary={boundLibrary} invalidIds={invalidKbaseIds} onChange={setSelectedKbases} />
+
                 <ComposerInput
                   isVoiceMode={isVoiceMode}
                   isFrontendActive={isFrontendActive}
@@ -1232,6 +1179,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onAddReference={addContextReference}
                   currentAgentKey={currentAgentKey}
                   isMainChatRunning={isMainChatRunning}
+                  referenceSelectionDisabled={referenceSelectionDisabled}
                   kbaseCatalog={kbaseMenuAvailable ? kbaseCatalog : undefined} selectedKbases={selectedKbases} onSelectKbases={setSelectedKbases}
                   selectedSkillIds={effectiveSkills.map((skill) => skill.id)}
                   selectedPackageId={effectiveManualSkills.find(skill => skill.selectedViaPackageId)?.selectedViaPackageId}

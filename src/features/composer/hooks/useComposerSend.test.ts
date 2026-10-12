@@ -595,7 +595,6 @@ describe('useComposerSend active run gate', () => {
     state.pendingNewChatAgentKey = 'agent-a';
     state.composerDraft = 'hello';
     state.composerDraftByChatId = { '': 'hello' };
-    state.selectedKbasesByScope['new:agent-a'] = [{ id: 'library-a', name: 'Library A' }];
     const operationOrder: string[] = [];
     const clearMustUseSkills = jest.fn(() => operationOrder.push('clear-skills'));
     const sendMessage = jest.fn();
@@ -697,7 +696,7 @@ describe('useComposerSend active run gate', () => {
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
-        sendReferences: [],
+        sendReferences: [...([]), ...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))],
         setInputValue,
         setSlashDismissed,
         showSlashPalette: false,
@@ -733,22 +732,14 @@ describe('useComposerSend active run gate', () => {
       draft: '',
     });
     expect(clearMustUseSkills).toHaveBeenCalledTimes(1);
-    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'hello',
-      agentKey: 'agent-a',
-      mustUseSkillsAgentKey: 'agent-a',
-      mustUseSkills: ['code-review'],
-      mustUseKbases: ['library-a'],
-    }));
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: expect.objectContaining({ kbases: [{ id: 'library-a', name: 'Library A' }] }) }));
-    expect(state.selectedKbasesByScope['new:agent-a']).toEqual([{ id: 'library-a', name: 'Library A' }]);
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'hello', agentKey: 'agent-a', mustUseSkillsAgentKey: 'agent-a', references: [...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))]}));
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: expect.objectContaining({ schemaVersion: 2, references: [{type:'skill',id:'code-review'},{type:'kbase',id:'library-a'}] }) }));
     expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
   });
 
   it.each(['hello', ''])('queues selection references with or without text during an active run (%s)', (inputValue) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
-    state.selectedKbasesByScope['chat:chat-1'] = [{ id: 'library-a', name: 'Library A' }];
     state.currentChatActiveRun = {
       chatId: 'chat-1',
       runId: 'run-active',
@@ -817,10 +808,10 @@ describe('useComposerSend active run gate', () => {
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
-        sendReferences: [
+        sendReferences: [...([
           { id: 'image-1', type: 'image' },
           { id: 'selection-1', type: 'selection', text: 'selected text' },
-        ],
+        ]), ...([] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))],
         setInputValue,
         setSlashDismissed,
         showSlashPalette: false,
@@ -848,12 +839,12 @@ describe('useComposerSend active run gate', () => {
         references: [
           { id: 'image-1', type: 'image' },
           { id: 'selection-1', type: 'selection', text: 'selected text' },
+          {type:'kbase',id:'library-a'},
         ],
       }),
     });
     expect(setInputValue).toHaveBeenCalledWith('');
     expect(closeMention).toHaveBeenCalled();
-    expect(state.selectedKbasesByScope['chat:chat-1']).toEqual([{ id: 'library-a', name: 'Library A' }]);
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_SELECTED_KBASES' }));
   });
 
@@ -925,7 +916,7 @@ describe('useComposerSend active run gate', () => {
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [{ name: 'spec.md', size: 12 }],
-        sendReferences: [{ name: 'spec.md', path: '/tmp/spec.md' }],
+        sendReferences: [...([{ name: 'spec.md', path: '/tmp/spec.md' }]), ...([] || []).map(id => ({type:"skill",id})), ...(selected ? ['library-a'] : [] || []).map(id => ({type:"kbase",id}))],
         setInputValue,
         setSlashDismissed: jest.fn(),
         showSlashPalette: false,

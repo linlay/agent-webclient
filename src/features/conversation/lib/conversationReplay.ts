@@ -375,6 +375,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         steerId: command.steerId,
         text: command.text,
         attachments: command.attachments,
+        references: command.references,
         taskId: command.taskId,
         taskName: command.taskName,
         taskGroupId: command.taskGroupId,

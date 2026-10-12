@@ -9,7 +9,7 @@ export { AgentSwitcherPopover as TimelineAgentSwitcher } from "@/features/worker
 export { buildTimelineAgentOptions, filterTimelineAgentOptions, dispatchTimelineAgentSwitch } from "@/features/workers/lib/agentSelection";
 export type { TimelineAgentOption } from "@/features/workers/lib/agentSelection";
 import { useConversationSurface, useConversationPresentationClock } from "@/shared/ui/ConversationSurfaceContext";
-import { queryResendSnapshot } from "../lib/queryResend";
+import { queryResendSnapshot, referencesForNewChat } from "../lib/queryResend";
 import React, {
   useRef,
   useEffect,
@@ -873,7 +873,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         preserveWorkerContext: true,
         focusComposerOnComplete: false,
       };
-      const sendDetail: Record<string, unknown> = { message: messageText, ...snapshot };
+      const sendDetail: Record<string, unknown> = { message: messageText, references: referencesForNewChat(snapshot.references,state.chatId) };
       if (currentWorker?.type === "agent" && currentWorker.sourceId) {
         workerDetail.agentKey = currentWorker.sourceId;
         sendDetail.agentKey = currentWorker.sourceId;

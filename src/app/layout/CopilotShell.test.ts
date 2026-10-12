@@ -552,12 +552,12 @@ describe("CopilotShell", () => {
       createCopilotChatRoute(
         "zenmi",
         new URLSearchParams(
-          "agentKey=legacy&lang=zh&theme=light&hostTheme=dark&wsSource=desktop-copilot&mustUseSkill=poster-studio&newChat=123&history=1",
+          "agentKey=legacy&lang=zh&theme=light&hostTheme=dark&wsSource=desktop-copilot&reference=%7B%22type%22%3A%22skill%22%2C%22id%22%3A%22poster-studio%22%7D&newChat=123&history=1",
         ),
         "d8c73338-7e4b-49ad-a134-bc15b16ef3ed",
       ),
     ).toBe(
-      "/copilot/zenmi?lang=zh&theme=light&hostTheme=dark&wsSource=desktop-copilot&mustUseSkill=poster-studio&chatId=d8c73338-7e4b-49ad-a134-bc15b16ef3ed",
+      "/copilot/zenmi?lang=zh&theme=light&hostTheme=dark&wsSource=desktop-copilot&reference=%7B%22type%22%3A%22skill%22%2C%22id%22%3A%22poster-studio%22%7D&chatId=d8c73338-7e4b-49ad-a134-bc15b16ef3ed",
     );
   });
 
@@ -617,7 +617,7 @@ describe("CopilotShell", () => {
     useParams.mockReturnValue({ agentKey: "zenmi" });
     useSearchParams.mockReturnValue([
       new URLSearchParams(
-        "lang=zh&theme=light&mustUseSkill=poster-studio&chatId=old-chat",
+        "lang=zh&theme=light&reference=%7B%22type%22%3A%22skill%22%2C%22id%22%3A%22poster-studio%22%7D&chatId=old-chat",
       ),
     ]);
     useAppState.mockReturnValue({
@@ -640,7 +640,7 @@ describe("CopilotShell", () => {
     );
 
     expect(navigate).toHaveBeenCalledWith(
-      "/copilot/zenmi?lang=zh&theme=light&mustUseSkill=poster-studio&chatId=history-chat",
+      "/copilot/zenmi?lang=zh&theme=light&reference=%7B%22type%22%3A%22skill%22%2C%22id%22%3A%22poster-studio%22%7D&chatId=history-chat",
     );
     expect(
       dispatchEvent.mock.calls.filter(
@@ -758,7 +758,7 @@ describe("CopilotShell", () => {
     useParams.mockReturnValue({ agentKey: "first-agent" });
     useSearchParams.mockReturnValue([
       new URLSearchParams(
-        "lang=zh&theme=light&mustUseSkill=poster-studio&chatId=old-chat",
+        "lang=zh&theme=light&reference=%7B%22type%22%3A%22skill%22%2C%22id%22%3A%22poster-studio%22%7D&chatId=old-chat",
       ),
     ]);
     useAppState.mockReturnValue({

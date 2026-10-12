@@ -13,7 +13,7 @@ interface ReferenceCardProps {
 }
 
 function referenceIcon(type: string): MaterialIconName {
-  return type === "chat" ? "question_answer" : "open_in_new";
+  return type === "chat" ? "question_answer" : type === "skill" ? "skills" : type === "kbase" ? "book_2" : "open_in_new";
 }
 
 function withModuleClasses(...classNames: string[]): string {
@@ -30,11 +30,11 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   onRemove,
 }) => {
   const { t } = useI18n();
-  const type = reference.type === "chat" ? "chat" : "site";
+  const type = reference.type || "site";
   const subtitle =
     type === "chat"
       ? t("composer.reference.kind.chat")
-      : t("composer.reference.kind.site");
+      : type === "skill" ? t("agents.interaction.mustUseSkills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.site");
   const semanticClasses = [
     "context-reference-card",
     `context-reference-card-${variant}`,
@@ -44,7 +44,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   const classes = withModuleClasses(...semanticClasses);
 
   return (
-    <div className={classes} data-reference-type={type}>
+    <div className={classes} data-reference-type={type} title={type === "chat" ? t("composer.reference.chatPointer") : undefined}>
       <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
         <MaterialIcon name={referenceIcon(type)} />
       </span>

@@ -239,19 +239,7 @@ describe("useMessageActions temporary pin", () => {
     };
     renderToStaticMarkup(React.createElement(Harness));
 
-    await actions?.sendMessage(
-      "hello",
-      [],
-      [],
-      {},
-      undefined,
-      undefined,
-      "",
-      "",
-
-      false,
-      [" pdf ", "PDF", "mock-skill"],
-      "agent-coder",
+    await actions?.sendMessage("hello", [...([]), ...([" pdf ", "PDF", "mock-skill"]).map(id => ({type:"skill",id}))], [], {}, undefined, undefined, "", "", false, "agent-coder"
     );
 
     expect(dispatch).toHaveBeenCalledWith({
@@ -264,11 +252,7 @@ describe("useMessageActions temporary pin", () => {
       reason: "local-send",
     });
     expect(startQuery).toHaveBeenCalledWith(
-      expect.objectContaining({
-        owner: { kind: "agent", agentKey: "agent-coder" },
-        message: "hello",
-        mustUseSkills: ["pdf", "mock-skill"],
-      }),
+      expect.objectContaining({owner: { kind: "agent", agentKey: "agent-coder" }, message: "hello", references: [...(["pdf", "mock-skill"] || []).map(id => ({type:"skill",id}))]}),
     );
   });
 
@@ -758,7 +742,7 @@ it("maps a query admission rejection to Agent state and restores the captured su
   stateRef.current.agentAvailability = { "agent-coder": "available" };
   stateRef.current = appReducer(stateRef.current, { type: "BEGIN_COMPOSER_SUBMISSION", draft: {
     requestId: "rejected-request", chatId: "", agentKey: "agent-coder", message: "hello",
-    references: [{ type: "file", url: "resource://test" }], skills: [{ id: "pdf", label: "PDF" }],
+    schemaVersion: 2, references: [{ type: "file", url: "resource://test" },{type:"skill",id:"pdf"}],
   } });
   const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
   useAppContext.mockReturnValue({ state: stateRef.current, stateRef, dispatch,
@@ -767,11 +751,11 @@ it("maps a query admission rejection to Agent state and restores the captured su
   let actions!: ReturnType<typeof useMessageActions>;
   function Probe() { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; }
   renderToStaticMarkup(React.createElement(Probe));
-  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "agent-coder",  false, [], "", "rejected-request");
+  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "agent-coder", false, "", "rejected-request");
   expect(stateRef.current.agentAvailability["agent-coder"]).toBe("unavailable");
   expect(stateRef.current.composerDraft).toBe("hello");
-  expect(stateRef.current.selectedSkills).toEqual([{ id: "pdf", label: "PDF" }]);
-  expect(stateRef.current.restoredSteerReferencesByChatId[""]).toHaveLength(1);
+  expect(stateRef.current.composerReferences).toEqual([{type:"file",url:"resource://test"},{type:"skill",id:"pdf"}]);
+  expect(stateRef.current.restoredSteerReferencesByChatId[""]).toHaveLength(2);
 });
 
 describe("required libraries through message actions", () => {
@@ -797,34 +781,34 @@ describe("required libraries through message actions", () => {
   stateRef.current.workerSelectionKey = "agent:team";
   stateRef.current.workerIndexByKey.set("agent:team", {key: "agent:team", sourceId: "team", type: "agent"} as any);
   const ids = ["a", "b"];
-  await actions.sendMessage("@mentioned compare", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ids);
+  await actions.sendMessage("@mentioned compare", [...([]), ...(ids).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   ids.push("later");
   expect(mockLoadKBaseOptions).toHaveBeenCalledWith("mentioned");
-  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({owner: {kind: "agent", agentKey: "mentioned"}, message: "compare", mustUseKbases: ["a", "b"], planningMode: true}));
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({owner: {kind: "agent", agentKey: "mentioned"}, message: "compare", planningMode: true, references: [...(["a", "b"] || []).map(id => ({type:"kbase",id}))]}));
   const user = [...stateRef.current.timelineNodes.values()].find(node => node.role === "user");
   expect(user?.mustUseKbases).toEqual(["a", "b"]);
  });
  it("rejects unavailable libraries before creating a Run and does not borrow current selection on empty resend", async () => {
   const {stateRef, actions} = harness();
   mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: [{id: "a", readable: false}]});
-  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a"]);
+  await actions.sendMessage("hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).not.toHaveBeenCalled();
-  stateRef.current.selectedKbasesByScope["new:general"] = [{id: "a", name: "A"}];
-  await actions.sendMessage("original had no libraries", [], [], {}, undefined, undefined, "", "general", false, [], "", "", []);
-  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({mustUseKbases: undefined}));
+  stateRef.current.composerReferences = [{type:"kbase",id:"a"}];
+  await actions.sendMessage("original had no libraries", [], [], {}, undefined, undefined, "", "general", false, "", "");
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: undefined}));
  });
  it("promotes the original Agent draft only after query acceptance", async () => {
   const {stateRef, actions} = harness();
-  stateRef.current.selectedKbasesByScope["new:general"] = [{id: "a", name: "A"}];
-  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a"], "new:general");
-  expect(stateRef.current.selectedKbasesByScope["chat:accepted-chat"]).toEqual([{id: "a", name: "A"}]);
-  expect(stateRef.current.selectedKbasesByScope["new:general"]).toBeUndefined();
+  stateRef.current.composerReferences = [{type:"kbase",id:"a"}];
+  await actions.sendMessage("hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references:[{type:"kbase",id:"a"}]}));
+  expect(stateRef.current).not.toHaveProperty("selectedKbasesByScope");
  });
  it("does not start a query in another chat after a delayed catalog response", async () => {
   const {stateRef, actions} = harness();
   let resolveCatalog!: (value: unknown) => void;
   mockLoadKBaseOptions.mockReturnValue(new Promise(resolve => { resolveCatalog = resolve; }));
-  const pending = actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a"]);
+  const pending = actions.sendMessage("hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   stateRef.current.chatId = "other-chat";
   resolveCatalog({capability: {available: true}, libraries: [{id: "a", name: "A", readable: true}]});
   await pending;
@@ -834,22 +818,22 @@ describe("required libraries through message actions", () => {
  it("limits normalized exact IDs to eight and ignores empty or duplicate IDs", async () => {
   const {stateRef, actions} = harness();
   const ids = Array.from({length: 9}, (_, i) => `lib-${i}`);
-  await actions.sendMessage("too many", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ids);
+  await actions.sendMessage("too many", [...([]), ...(ids).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).not.toHaveBeenCalled();
   expect(mockLoadKBaseOptions).not.toHaveBeenCalled();
   expect([...stateRef.current.timelineNodes.values()].some(node => node.systemMessageLevel === "error")).toBe(true);
   mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: ids.map(id => ({id, name: id, readable: true}))});
-  await actions.sendMessage("eight distinct", [], [], {}, undefined, undefined, "", "general", false, [], "", "", [...ids.slice(0, 8), " lib-0 ", "", " "]);
-  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({mustUseKbases: ids.slice(0, 8)}));
+  await actions.sendMessage("eight distinct", [...([]), ...([...ids.slice(0, 8), " lib-0 ", "", " "]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: [...(ids.slice(0, 8) || []).map(id => ({type:"kbase",id}))]}));
  });
  it("rejects a mixed readable/unreadable selection as a whole and allows empty selection when disabled", async () => {
   const {actions} = harness();
   mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: [{id: "a", readable: true}, {id: "b", readable: false}]});
-  await actions.sendMessage("both", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["a", "b"]);
+  await actions.sendMessage("both", [...([]), ...(["a", "b"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).not.toHaveBeenCalled();
   mockLoadKBaseOptions.mockReset().mockRejectedValue(new Error("kbase.disabled"));
-  await actions.sendMessage("without libraries", [], [], {}, undefined, undefined, "", "general", false, [], "", "", ["", " "]);
+  await actions.sendMessage("without libraries", [...([]), ...(["", " "]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(mockLoadKBaseOptions).not.toHaveBeenCalled();
-  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({mustUseKbases: undefined}));
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: undefined}));
  });
 });

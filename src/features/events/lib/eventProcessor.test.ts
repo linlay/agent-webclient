@@ -185,6 +185,7 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           text: command.text,
           mustUseKbases: command.mustUseKbases,
           attachments: command.attachments,
+          references: command.references,
           taskId: command.taskId,
           taskName: command.taskName,
           taskGroupId: command.taskGroupId,
@@ -296,7 +297,7 @@ describe('processStreamEvent', () => {
 
   it("keeps required library snapshots in replay/attach user messages", () => {
     const state = createState();
-    processAndApply(state, {type: "request.query", requestId: "multi", message: "query", query: {mustUseKbases: ["lib-a", "lib-b"]}, timestamp: 100}, "replay");
+    processAndApply(state, {type: "request.query", requestId: "multi", message: "query", query: {references: [{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]}, timestamp: 100}, "replay");
     expect(state.timelineNodes.get("user_multi")?.mustUseKbases).toEqual(["lib-a", "lib-b"]);
   });
 
@@ -328,6 +329,7 @@ describe('processStreamEvent', () => {
       {
         cmd: 'USER_MESSAGE',
         nodeId: 'user_req_1',
+        references:[{id:'i1',name:'demo.png',sizeBytes:2048}],
         text: 'hello',
         ts: expect.any(Number),
         variant: 'default',
@@ -431,6 +433,7 @@ describe('processStreamEvent', () => {
       {
         cmd: 'USER_MESSAGE',
         nodeId: 'user_req_attachments_only',
+        references:[{id:'f1',name:'report.pdf',sizeBytes:4096}],
         text: '',
         ts: expect.any(Number),
         variant: 'default',
