@@ -1,4 +1,5 @@
 import React from "react";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppContext } from "@/app/state/AppContext";
 import {
   resolveSettingsSummaryBadges,
@@ -19,6 +20,7 @@ export {
 export { handleCreateAgentSuccess } from "@/features/workers/lib/agentProjectCreated";
 
 export const LeftSidebar: React.FC = () => {
+  const openTarget = useOpenTarget();
   const { state } = useAppContext();
   const { openCommandOverlay } = useCommandOverlayActions();
   const { openMemory } = useMemoryOverlayActions();
@@ -50,6 +52,7 @@ export const LeftSidebar: React.FC = () => {
   );
   return (
     <WorkerNavigator
+      onOpenProject={(agentKey) => openTarget({ version: 1, kind: "project", agentKey })}
       onOpenSearch={openGlobalSearch}
       onOpenCommand={(type) => openCommandOverlay({ type })}
       onOpenMemory={openMemory}

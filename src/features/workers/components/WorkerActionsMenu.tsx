@@ -3,9 +3,11 @@ import { Dropdown, Tooltip, type MenuProps, type DropdownProps } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
+import { isProjectAgent } from "../lib/sidebarNavigation";
 import { canOpenWorkerWorkspace } from "@/features/workers/lib/workerWorkspace";
 
 export interface WorkerActionHandlers {
+  onOpenProject?: (agentKey: string) => void;
   onOpenWorkspace?: (workerKey: string) => void;
   onOpenConfigDirectory?: (workerKey: string) => void;
   onRenameAgent?: (workerKey: string, agentKey: string, currentName: string) => void;
@@ -21,6 +23,7 @@ export const WorkerActionsMenu: React.FC<WorkerActionHandlers & {
 }> = ({ row, children, trigger = ["click"], ...handlers }) => {
   const { t } = useI18n();
   const isAgent = row.type === "agent";
+  const canOpenProject = isAgent && isProjectAgent(row) && Boolean(handlers.onOpenProject);
   const canOpenWorkspace = canOpenWorkerWorkspace(row);
   const item = (
     key: string,
@@ -38,6 +41,9 @@ export const WorkerActionsMenu: React.FC<WorkerActionHandlers & {
       disabled: !canOpenWorkspace,
     },
   ];
+  if (canOpenProject) {
+    items.unshift(item("openProject", "code", "leftSidebar.openProjectEditor"));
+  }
   if (isAgent) {
     items.push({
       ...item("openConfigDirectory", "data_object", "leftSidebar.openConfigDirectory"),
@@ -62,7 +68,9 @@ export const WorkerActionsMenu: React.FC<WorkerActionHandlers & {
 
   const onClick: MenuProps["onClick"] = ({ domEvent, key }) => {
     domEvent.stopPropagation();
-    if (key === "openWorkspace" && canOpenWorkspace) {
+    if (key === "openProject" && canOpenProject) {
+      handlers.onOpenProject?.(row.sourceId);
+    } else if (key === "openWorkspace" && canOpenWorkspace) {
       handlers.onOpenWorkspace?.(row.key);
     } else if (key === "openConfigDirectory" && row.agentConfigDir) {
       handlers.onOpenConfigDirectory?.(row.key);

@@ -79,16 +79,23 @@
   font-size: 12px;
 }
 
-:global(.project-hidden-toggle) {
-  display: flex;
+:global(.project-filter-trigger) {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin: 0 12px 8px;
-  color: var(--ink-2);
-  font-size: 12px;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-muted);
   cursor: pointer;
 }
-:global(.project-hidden-toggle) input { margin: 0; accent-color: var(--accent-electric); }
+:global(.project-filter-trigger):hover { background: var(--bg-hover); color: var(--text-main); }
+:global(.project-filter-trigger)[data-active="true"] { background: var(--accent-soft); color: var(--accent-electric); }
+:global(.project-filter-trigger):focus-visible { outline: 2px solid var(--accent-electric); outline-offset: 2px; }
 
 :global(.project-tree-scroll) {
   min-height: 0;

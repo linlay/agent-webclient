@@ -92,6 +92,7 @@ const WORKER_COLLAPSED_NAME_BADGE_CLASS =
 const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 interface WorkerNavigatorProps {
+  onOpenProject: (agentKey: string) => void;
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
   onOpenMemory: () => void;
   onOpenSearch: () => void;
@@ -100,6 +101,7 @@ interface WorkerNavigatorProps {
 }
 
 export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
+  onOpenProject,
   onOpenCommand,
   onOpenMemory,
   onOpenSearch,
@@ -423,6 +425,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   };
 
   const workerActions: WorkerActionHandlers = {
+    onOpenProject,
     onOpenWorkspace: handleOpenWorkspace,
     onOpenConfigDirectory: handleOpenConfigDirectory,
     onRenameAgent: handleRenameAgent,

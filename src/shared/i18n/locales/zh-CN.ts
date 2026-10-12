@@ -1736,6 +1736,7 @@ export const zhCNMessages = {
   "leftSidebar.noPreview": "(无预览)",
   "leftSidebar.noRelatedConversations": "暂无相关对话",
   "leftSidebar.noWorkers": "暂无{agentPluralLabel}/{teamPluralLabel}",
+  "leftSidebar.openProjectEditor": "打开项目编辑器",
   "leftSidebar.openWorkspace": "打开工作目录",
   "leftSidebar.openConfigDirectory": "打开配置目录",
   "leftSidebar.configDirectoryUnavailable": "当前环境无法访问智能体配置目录",
@@ -2733,6 +2734,7 @@ export const zhCNMessages = {
   "project.diff.loading": "正在加载 Diff…",
   "project.diff.unavailable": "当前文件在所选 Run 中没有可用 Diff",
   "project.empty.selectFile": "从左侧选择一个文件",
+  "project.filter.options": "文件筛选选项",
   "project.filter.placeholder": "筛选文件",
   "project.page.loadError": "项目 Agent 加载失败：{detail}",
   "project.page.loading": "正在加载项目 Agent…",
@@ -2745,6 +2747,7 @@ export const zhCNMessages = {
   "project.tabs.close": "关闭 {name}",
   "project.tabs.openFiles": "已打开文件",
   "project.tree.toggle": "展开或收起目录树",
+  "project.tree.hideHidden": "不显示隐藏文件",
   "project.tree.showHidden": "显示隐藏文件",
   "voice.microphoneInitFailed": "麦克风初始化失败：{detail}",
   "worker.history.none":

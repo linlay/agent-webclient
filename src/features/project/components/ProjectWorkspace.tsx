@@ -1,5 +1,5 @@
 import React from "react";
-import { Select, Spin } from "antd";
+import { Dropdown, Select, Spin } from "antd";
 import type { Chat } from "@/features/chats/lib/chatState";
 import "./ProjectWorkspace.module.css";
 import { FileDiffView } from "@/features/project/components/FileDiffView";
@@ -121,6 +121,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set([""]));
   const [filter, setFilter] = React.useState("");
   const [showHidden, setShowHidden] = React.useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = React.useState(false);
   const showHiddenRef = React.useRef(showHidden);
   showHiddenRef.current = showHidden;
   const [selectedPath, setSelectedPath] = React.useState(path || "");
@@ -702,21 +703,32 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({
       <div className="project-main">
         <aside className="project-tree-pane" style={{ width: treeWidth }}>
           <div className="project-filter">
-            <MaterialIcon name="filter_list" />
+            <MaterialIcon name="search" />
             <input
               value={filter}
               placeholder={t("project.filter.placeholder")}
               onChange={(event) => setFilter(event.target.value)}
             />
+            <Dropdown trigger={["click"]} open={filterMenuOpen} onOpenChange={setFilterMenuOpen}
+              menu={{
+                selectable: true,
+                selectedKeys: [showHidden ? "showHidden" : "hideHidden"],
+                items: [
+                  { key: "hideHidden", label: t("project.tree.hideHidden") },
+                  { key: "showHidden", label: t("project.tree.showHidden") },
+                ],
+                onClick: ({ key }) => {
+                  setShowHidden(key === "showHidden");
+                  setFilterMenuOpen(false);
+                },
+              }}>
+              <button type="button" className="project-filter-trigger" data-active={showHidden}
+                aria-label={t("project.filter.options")} title={t("project.filter.options")}
+                aria-haspopup="menu" aria-expanded={filterMenuOpen}>
+                <MaterialIcon name="filter_list" />
+              </button>
+            </Dropdown>
           </div>
-          <label className="project-hidden-toggle">
-            <input
-              type="checkbox"
-              checked={showHidden}
-              onChange={(event) => setShowHidden(event.target.checked)}
-            />
-            {t("project.tree.showHidden")}
-          </label>
           <div className="project-tree-scroll">{renderDirectory("", 0)}</div>
           {chatListError ? <div className="project-tree-error">{chatListError}</div> : null}
           {changesError ? <div className="project-tree-error">{changesError}</div> : null}

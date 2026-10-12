@@ -8,8 +8,8 @@ jest.mock("@/shared/data", () => ({ getAgent: jest.fn(), getChats: jest.fn() }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const agent: AgentDetailResponse = {
-  key: "project", name: "Project", mode: "GENERAL", workspaceDir: "/work/project",
-  tools: [], skills: [], connectors: [], controls: [], meta: {},
+  key: "project", name: "Project", mode: "GENERAL",
+  tools: [], skills: [], connectors: [], controls: [], meta: { workspace: { root: "/work/project" } },
 };
 const response = <T,>(data: T) => ({ status: 200, code: 0, msg: "success", data });
 
@@ -51,7 +51,25 @@ describe("single project loading", () => {
   });
 
   it.each(["", " @root "])("rejects an unavailable Workspace %j", async (workspaceDir) => {
-    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, workspaceDir }));
+    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: { workspace: { root: workspaceDir } } }));
+    await act(async () => root.render(<Probe agentKey="project" />));
+    expect(read().agent).toBeUndefined();
+  });
+
+  it("supports older detail responses with a top-level workspaceDir", async () => {
+    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: {}, workspaceDir: "/work/legacy" }));
+    await act(async () => root.render(<Probe agentKey="project" />));
+    expect(read().agent).toBe("project");
+  });
+
+  it("keeps resolved metadata authoritative over a legacy workspaceDir", async () => {
+    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: { workspace: { root: "@root" } }, workspaceDir: "/work/legacy" }));
+    await act(async () => root.render(<Probe agentKey="project" />));
+    expect(read().agent).toBeUndefined();
+  });
+
+  it("rejects a detail response without Workspace metadata", async () => {
+    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: {} }));
     await act(async () => root.render(<Probe agentKey="project" />));
     expect(read().agent).toBeUndefined();
   });

@@ -62,7 +62,7 @@ const row: WorkerRow = {
     hasHistory: false, latestRunSortValue: 0, searchText: ""
 };
 const handlers = {
-  onOpenWorkspace: jest.fn(), onOpenConfigDirectory: jest.fn(),
+  onOpenProject: jest.fn(), onOpenWorkspace: jest.fn(), onOpenConfigDirectory: jest.fn(),
   onRenameAgent: jest.fn(), onEditAgent: jest.fn(),
     onCopyAgent: jest.fn(), onDeleteAgent: jest.fn()
 };
@@ -92,11 +92,12 @@ describe.each(["panel", "popover"] as const)("Worker actions in %s", (entry) => 
   it("keeps menu order, danger styling, and every worker/agent action argument", () => {
     renderMenu();
     expect(items().map((item) => item.key)).toEqual([
-      "openWorkspace", "openConfigDirectory", "renameAgent", "editAgent", "copyAgent", "deleteAgent",
+      "openProject", "openWorkspace", "openConfigDirectory", "renameAgent", "editAgent", "copyAgent", "deleteAgent",
     ]);
     expect(items().every((item) => item.className === "ui-icon-hover-24")).toBe(true);
     expect(items().filter((item) => item.danger).map((item) => item.key)).toEqual(["deleteAgent"]);
     items().forEach(({ key }) => click(key));
+    expect(handlers.onOpenProject).toHaveBeenCalledWith("alpha");
     expect(handlers.onOpenWorkspace).toHaveBeenCalledWith("agent:alpha");
     expect(handlers.onOpenConfigDirectory).toHaveBeenCalledWith("agent:alpha");
     expect(handlers.onRenameAgent).toHaveBeenCalledWith("agent:alpha", "alpha", "Alpha");
@@ -107,11 +108,25 @@ describe.each(["panel", "popover"] as const)("Worker actions in %s", (entry) => 
 
   it("uses ordinary Agent management actions for TEAM rows", () => {
     renderMenu({ type: "agent", key: "agent:one", sourceId: "one" });
-    expect(items().map((item) => item.key)).toEqual(["openWorkspace", "openConfigDirectory", "renameAgent", "editAgent", "copyAgent", "deleteAgent"]);
+    expect(items().map((item) => item.key)).toEqual(["openProject", "openWorkspace", "openConfigDirectory", "renameAgent", "editAgent", "copyAgent", "deleteAgent"]);
     click("openWorkspace");
     expect(handlers.onOpenWorkspace).toHaveBeenCalledWith("agent:one");
     renderMenu({ agentType: "agent" });
     expect(items().map((item) => item.key)).not.toContain("deleteAgent");
+  });
+
+  it.each([undefined, "", "   "])("hides project editor without a workspace (%s)", workspaceDir => {
+    renderMenu({ workspaceDir });
+    expect(items().map(item => item.key)).not.toContain("openProject");
+    click("openProject");
+    expect(handlers.onOpenProject).not.toHaveBeenCalled();
+  });
+
+  it("opens a project for ordinary Agents with a workspace", () => {
+    renderMenu({ agentType: "agent", sourceId: "other-project" });
+    expect(items().map(item => item.key)).toContain("openProject");
+    click("openProject");
+    expect(handlers.onOpenProject).toHaveBeenCalledWith("other-project");
   });
 
   it("keeps unavailable browser directories visible but disabled", () => {
