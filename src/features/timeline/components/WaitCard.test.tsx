@@ -37,7 +37,11 @@ it("offers continue only for an interactive, active, root-Run wait", () => {
   expect(render(liveNode)).toContain("<button");
   expect(render(liveNode, false)).not.toContain("<button");
   expect(render(liveNode, true, true)).not.toContain("<button");
-  expect(render({ ...liveNode, taskId: "task_1" })).not.toContain("<button");
+  expect(render({ ...liveNode, taskId: "task_1", toolId: "task_1:w" })).not.toContain("<button");
+});
+
+it("keeps continue for a root-Run wait that is only filed under the active task", () => {
+  expect(render({ ...liveNode, taskId: "task_1" })).toContain("<button");
 });
 
 it("shows only this invocation's description, never the tool definition text", () => {

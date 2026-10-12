@@ -42,7 +42,10 @@ export function WaitCard({ node, now, active }: { node: TimelineNode; now?: numb
     ? `${conditions.filter(c => c.satisfied).length}/${conditions.length} · ${t(wait?.match === "all" ? "timeline.wait.all" : "timeline.wait.any")}`
     : "";
   // Steer only wakes a root-Run wait; a sub-task wait cannot be ended this way.
-  const canContinue = ticking && !node.taskId && !interaction?.readOnly && Boolean(interaction?.continueWait && node.runId);
+  // taskId alone is display attribution: a root-Run wait is filed under the
+  // active task. Only a child Run's tool id is namespaced as `${taskId}:${id}`.
+  const childWait = Boolean(node.taskId && node.toolId?.startsWith(`${node.taskId}:`));
+  const canContinue = ticking && !childWait && !interaction?.readOnly && Boolean(interaction?.continueWait && node.runId);
   const continueNow = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     if (pending || !canContinue) return;
