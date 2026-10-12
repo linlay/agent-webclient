@@ -82,3 +82,8 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 管理详情统一读取 `GET /api/admin/agent?agentKey=...`，`connectorBindings` 为逐项数组，每项包含 id、source（preset/agent）、active，以及仅待卸载时出现的 pendingRemoval；reloadPending 位于详情顶层；能力区复用此快照，仅额外读取连接器展示目录。旧详情和挂载 GET 路径由 Platform 保留兼容，前端不再调用；挂载 PUT 路径不变。无效源码无法解析挂载时connectorBindings 可为 null，仍保留诊断与源码编辑。
 
 管理详情与管理端创建、修改、改名响应不再返回顶层 tools，工具展示使用 toolBindings，编辑与保存使用 definition.toolConfig；使用端 /api/agent.tools 保留运行时工具 ID 数组。
+
+
+## 对话入口配置
+
+结构化表单的“对话输入”支持规划入口、Workspace 编辑入口和终端入口，对应 interactionConfig.showPlanningMode/showEditingMode/showTerminal。它们只控制入口显示，不增加运行权限。默认预览与 Platform 模板一致：四种 Native Agent 都显示规划，只有 KBASE 显示编辑，只有 CODER 显示终端。保存只写用户显式覆盖的字段，false 必须保留；“恢复类型默认值”删除 interactionConfig 覆盖，不把预览默认值固化进 agent.yml。

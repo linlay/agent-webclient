@@ -45,10 +45,6 @@ import { toRunOwner } from "@/shared/data/runOwner";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { mergeRunAccessLevel, readRunAccessLevelEvent } from "@/features/runs/lib/accessLevel";
 import {
-  readExplicitEditingMode,
-  resolveRunEditingMode,
-} from "@/features/runs/lib/editingMode";
-import {
   createLiveProcessorState,
   createLocalCache,
   createLocalCacheFromState,
@@ -284,7 +280,6 @@ export function useConversationEventHandler(): {
           runId: input.cache.runId,
           agentKey: input.cache.agentKey,
 
-          editingMode: input.cache.editingMode,
         },
         state: input.state,
         selectedContext: resolveSelectedWorkerContext(input.state),
@@ -298,7 +293,6 @@ export function useConversationEventHandler(): {
       input.cache.runId = next.resolved.runId;
       input.cache.agentKey = next.resolved.agentKey;
 
-      input.cache.editingMode = next.resolved.editingMode;
 
       dispatch({ type: "UPSERT_CHAT", chat: next.chat });
     },
@@ -483,32 +477,6 @@ export function useConversationEventHandler(): {
 
       if (type === "request.query") {
         const text = readRequestQueryText(event);
-        const requestEditingMode = readExplicitEditingMode(event);
-        const sessionEditingMode =
-          mainRuntime.session?.observationSource !== "attach" &&
-          typeof mainRuntime.session?.editingMode === "boolean"
-            ? mainRuntime.session.editingMode
-            : undefined;
-        if (sessionEditingMode !== undefined) {
-          cache.editingMode = sessionEditingMode;
-        } else if (requestEditingMode !== undefined) {
-          cache.editingMode = requestEditingMode;
-        }
-        const currentActiveRun = state.currentChatActiveRun;
-        if (
-          requestEditingMode !== undefined &&
-          currentActiveRun?.runId &&
-          toText(currentActiveRun.runId) === toText(event.runId) &&
-          readExplicitEditingMode(currentActiveRun) === undefined
-        ) {
-          dispatch({
-            type: "SET_CURRENT_CHAT_ACTIVE_RUN",
-            activeRun: {
-              ...currentActiveRun,
-              editingMode: requestEditingMode,
-            },
-          });
-        }
         if (event.chatId)
           dispatch({ type: "SET_CHAT_ID", chatId: event.chatId });
         if (!isTeamEventOwner && event.agentKey && event.chatId) {
@@ -583,26 +551,20 @@ export function useConversationEventHandler(): {
         cache.runId = toText(event.runId) || cache.runId;
         cache.agentKey = eventOwner?.kind === "agent" ? eventOwner.agentKey : "";
 
-        const runEditingMode =
-          resolveRunEditingMode({
-            runId: cache.runId,
-            session: mainRuntime.session,
-            activeRun: state.currentChatActiveRun,
-            events: [...state.events, event],
-          }) ?? cache.editingMode;
-        cache.editingMode = runEditingMode;
+        // Preserve the server's snapshot for this Run; events do not resolve
+        // editing or planning choices.
+        const existingActiveRun = state.currentChatActiveRun;
         if (cache.chatId && cache.runId) {
           dispatch({
             type: "SET_CURRENT_CHAT_ACTIVE_RUN",
             activeRun: {
+              ...(existingActiveRun?.chatId === cache.chatId && existingActiveRun.runId === cache.runId
+                ? existingActiveRun : {}),
               chatId: cache.chatId,
               runId: cache.runId,
               ...(cache.agentKey ? { agentKey: cache.agentKey } : {}),
 
               ...(eventOwner ? { owner: eventOwner } : {}),
-              ...(typeof runEditingMode === "boolean"
-                ? { editingMode: runEditingMode }
-                : {}),
               ...(cache.accessLevel?.runId === cache.runId ? {
                 accessLevel: cache.accessLevel.accessLevel,
                 accessLevelVersion: cache.accessLevel.version,
@@ -610,7 +572,6 @@ export function useConversationEventHandler(): {
             },
           });
         }
-        dispatch({ type: "SET_EDITING_MODE", enabled: false });
         if (!isTeamEventOwner && event.agentKey) {
           dispatch({
             type: "SET_WORKER_PRIORITY_KEY",
@@ -679,7 +640,6 @@ export function useConversationEventHandler(): {
           (!eventChatId || currentActiveRun.chatId === eventChatId)
         ) {
           dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: null });
-          cache.editingMode = undefined;
         }
         dispatch({ type: "SET_STREAMING", streaming: false });
         const voiceEnabled = isVoiceEnabled();

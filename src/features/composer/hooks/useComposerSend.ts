@@ -95,6 +95,7 @@ interface UseComposerSendInput {
   isAwaitingActive: boolean;
   isVoiceMode: boolean;
   mainChatRunning: boolean;
+  editingModeAvailable?: boolean;
   modelOverride: QueryModelOverride;
   mustUseSkillsAgentKey: string;
   mustUseSkills: string[];
@@ -157,6 +158,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     isAwaitingActive,
     isVoiceMode,
     mainChatRunning,
+    editingModeAvailable = false,
     modelOverride,
     mustUseSkillsAgentKey,
     mustUseSkills,
@@ -667,7 +669,7 @@ export function useComposerSend(input: UseComposerSendInput) {
           accessLevel,
           model: modelOverride,
           params: controlParams,
-          editingMode: currentState.editingMode,
+          editingMode: editingModeAvailable ? currentState.editingMode ?? false : undefined,
           mustUseKbases: [...mustUseKbases], kbaseScope,
           mustUseSkillsAgentKey,
           mustUseSkills,
@@ -711,6 +713,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.chats,
     state.currentChatActiveRun,
     state.editingMode,
+    editingModeAvailable,
     handleSteer,
     state.pendingNewChatAgentKey,
     state.workerIndexByKey,

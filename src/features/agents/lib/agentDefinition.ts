@@ -505,6 +505,12 @@ export function interactionPresentation(
       return { icon: "folder", label: t("agents.interaction.localFiles"), description: t("agents.interaction.localFiles.description") };
     case "chatRecords":
       return { icon: "history", label: t("agents.interaction.chatRecords"), description: t("agents.interaction.chatRecords.description") };
+    case "showPlanningMode":
+      return { icon: "checklist", label: t("agents.interaction.showPlanningMode"), description: t("agents.interaction.showPlanningMode.description") };
+    case "showEditingMode":
+      return { icon: "edit", label: t("agents.interaction.showEditingMode"), description: t("agents.interaction.showEditingMode.description") };
+    case "showTerminal":
+      return { icon: "terminal", label: t("agents.interaction.showTerminal"), description: t("agents.interaction.showTerminal.description") };
     default:
       return { icon: "tune", label: key, description: "" };
   }

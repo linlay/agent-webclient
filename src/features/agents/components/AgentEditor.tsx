@@ -183,6 +183,9 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
     "connectors",
     "localFiles",
     "chatRecords",
+    "showPlanningMode",
+    "showEditingMode",
+    "showTerminal",
   ] as const;
   return (
     <div className="agent-editor-fieldset">

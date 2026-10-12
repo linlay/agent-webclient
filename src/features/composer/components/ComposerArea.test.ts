@@ -640,4 +640,53 @@ describe("ComposerArea", () => {
     }
     delete globalWithStorage.document;
   });
+  it("executes the component effects without losing choices while details are pending", () => {
+    const state = {...createInitialState(), chatId: "chat", planningMode: true, editingMode: true};
+    const dispatch = jest.fn();
+    useAppState.mockReturnValue(state);
+    useAppDispatch.mockReturnValue(dispatch);
+    useAppContext.mockReturnValue({stateRef: {current: state}, dispatch});
+    mockResolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent", sourceId: "agent", relatedChats: [], raw: {mode: "KBASE"},
+    });
+    const effects: React.EffectCallback[] = [];
+    const spy = jest.spyOn(React, "useEffect").mockImplementation(effect => {effects.push(effect);});
+    try {
+      renderToStaticMarkup(React.createElement(ComposerArea));
+      for (const name of ["shouldClearPlanningMode", "resolveEditingModeSync"]) {
+        const effect = effects.find(callback => String(callback).includes(name));
+        expect(effect).toBeDefined();
+        effect!();
+      }
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({type: "SET_PLANNING_MODE"}));
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({type: "SET_EDITING_MODE"}));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it.each([undefined, false])("executes the component effect to restore an active Run over %p", (current) => {
+    const state = {...createInitialState(), chatId: "chat", editingMode: current,
+      currentChatActiveRun: {chatId: "chat", runId: "running", editingMode: true}};
+    const dispatch = jest.fn();
+    useAppState.mockReturnValue(state);
+    useAppDispatch.mockReturnValue(dispatch);
+    useAppContext.mockReturnValue({stateRef: {current: state}, dispatch});
+    mockResolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent", sourceId: "agent", relatedChats: [],
+      raw: {mode: "KBASE", interactionConfig: interactionDefaults("KBASE")},
+    });
+    const effects: React.EffectCallback[] = [];
+    const spy = jest.spyOn(React, "useEffect").mockImplementation(effect => {effects.push(effect);});
+    try {
+      renderToStaticMarkup(React.createElement(ComposerArea));
+      const effect = effects.find(callback => String(callback).includes("resolveEditingModeSync"));
+      expect(effect).toBeDefined();
+      effect!();
+      expect(dispatch).toHaveBeenCalledWith({type: "SET_EDITING_MODE", enabled: true});
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
 });

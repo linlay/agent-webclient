@@ -31,3 +31,18 @@ it("edits management detail without a redundant tools array", () => {
  form.kbaseConfigText = "";
  expect(buildDefinition(form, definition, translate)).not.toHaveProperty("kbaseConfig");
  });
+
+
+it("preserves explicit entry overrides and leaves unset defaults out of the YAML", () => {
+  const definition = {key: "demo", mode: "KBASE", interactionConfig: {
+    showPlanningMode: false, showEditingMode: false, showTerminal: true,
+  }};
+  const detail: AgentDetailResponse = {key: "demo", name: "Demo", mode: "KBASE", tools: [], skills: [], connectors: [], controls: [], meta: {}, definition};
+  const form = formFromDetail(detail);
+  const translate = ((key: string) => key) as Parameters<typeof buildDefinition>[2];
+  expect(buildDefinition(form, definition, translate).interactionConfig).toEqual(definition.interactionConfig);
+  form.interactionConfig = {showEditingMode: true};
+  expect(buildDefinition(form, definition, translate).interactionConfig).toEqual({showEditingMode: true});
+  form.interactionConfig = undefined;
+  expect(buildDefinition(form, definition, translate)).not.toHaveProperty("interactionConfig");
+});

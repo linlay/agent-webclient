@@ -622,10 +622,9 @@ describe("useMessageActions temporary pin", () => {
         editingMode: true,
       }),
     );
-    expect(dispatch).toHaveBeenCalledWith({
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: "SET_EDITING_MODE",
-      enabled: false,
-    });
+    }));
     expect(dispatch).toHaveBeenCalledWith({
       type: "SET_COMPOSER_DRAFT",
       draft: "edit",

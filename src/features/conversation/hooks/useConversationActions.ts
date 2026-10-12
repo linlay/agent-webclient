@@ -22,7 +22,6 @@ import {
   resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
-import { resolveRunEditingMode } from "@/features/runs/lib/editingMode";
 import { resolveRunAccessLevel } from "@/features/runs/lib/accessLevel";
 import { toRunOwner, type RunOwner } from "@/shared/data/runOwner";
 import { buildLoadedChatUsageSnapshot } from "@/features/conversation/lib/conversationPayload";
@@ -799,7 +798,7 @@ export function useConversationActions() {
             }) || toRunOwner(chatData);
           const activeRunAgentKey =
             loadedOwner?.kind === "agent" ? loadedOwner.agentKey : "";
-          let currentChatActiveRun = normalizeCurrentChatActiveRun(
+          const currentChatActiveRun = normalizeCurrentChatActiveRun(
             chatId,
             activeRun,
             loadedOwner,
@@ -817,19 +816,6 @@ export function useConversationActions() {
             const runId = String(rawRun.runId || "").trim();
             if (runId) {
               downvotedRunKeys.add(runId);
-            }
-          }
-          if (currentChatActiveRun) {
-            const restoredEditingMode = resolveRunEditingMode({
-              runId: String(currentChatActiveRun.runId || "").trim(),
-              activeRun: currentChatActiveRun,
-              events,
-            });
-            if (restoredEditingMode !== undefined) {
-              currentChatActiveRun = {
-                ...currentChatActiveRun,
-                editingMode: restoredEditingMode,
-              };
             }
           }
           if (events.length !== replayProjection.rawEventCount) {

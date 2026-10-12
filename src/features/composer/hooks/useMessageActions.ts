@@ -38,7 +38,6 @@ import {
   type LiveQuerySession,
 } from "@/features/conversation/lib/conversationSession";
 import { readRunAgentKeyFromEvent } from "@/features/runs/lib/runAgentIdentity";
-import { readExplicitEditingMode } from "@/features/runs/lib/editingMode";
 import {
   resolvePreferredRunOwner,
   resolveRunOwner,
@@ -547,7 +546,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         agentKey: selectedAgentKey,
 
         owner: selectedOwner || undefined,
-        editingMode: planningMode ? false : editingMode,
       });
       querySessionsRef.current.set(requestId, session);
       if (chatId) {
@@ -645,15 +643,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         }
 
 
-        if (toText(event.type) === "request.query") {
-          const eventEditingMode = event.planningMode === true ? false : readExplicitEditingMode(event);
-          if (
-            session.observationSource === "attach" &&
-            eventEditingMode !== undefined
-          ) {
-            session.editingMode = eventEditingMode;
-          }
-        }
       };
       const upsertBackgroundChatSummary = (
         event: AgentEvent,
@@ -666,7 +655,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             runId: session.runId,
             agentKey: session.agentKey,
 
-            editingMode: session.editingMode,
           },
           state: stateRef.current,
           selectedContext: {
@@ -683,7 +671,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         session.runId = next.resolved.runId;
         session.agentKey = (next.resolved.agentKey);
 
-        session.editingMode = next.resolved.editingMode;
         chatQuerySessionIndexRef.current.set(
           next.resolved.chatId,
           session.requestId,
@@ -860,12 +847,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             }
           }
           if (!queryAccepted && submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: false });
-          if (display.code === "editing_mode_unsupported") {
-            session.editingMode = false;
-            if (isSessionActive()) {
-              dispatch({ type: "SET_EDITING_MODE", enabled: false });
-            }
-          }
           if (isSessionActive()) {
             if (!queryAccepted && !submissionRequestId) {
               dispatch({ type: "SET_COMPOSER_DRAFT", draft: cleanMessage });

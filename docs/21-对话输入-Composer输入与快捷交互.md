@@ -114,3 +114,10 @@ Enter 将当前文字或有效引用加入本地等待区；输入框为空时 C
 Platform 正常聚焦不再刷新 `/api/agent` 和 `/api/skills`。Agent 根据 catalog.updated（除 viewports）、重连和显式重试刷新；仅 unavailable/forbidden/error 且无在途检查时允许 focus 强制恢复。checking 与 authentication_required 不响应 focus，认证凭证更新另行触发检查。界面和发送拦截统一读取全局 agentAvailability；同 Agent 的 Chat 切换沿用确认状态，后台刷新不替换输入区。
 
 Composer 技能候选及已选技能订阅 skills/agents/config/connectors 目录通知和重连。菜单打开与重新检查仍强制刷新，多个消费者共享请求；技能置顶由同一目录响应提供，跨窗口改置顶在下次打开菜单时同步。目录明确缺少的手动技能仍提示移除；服务端拒绝技能时保留错误提示、配置入口和重新检查，有 skillId 才展示精确 ID。
+
+
+## 规划与编辑入口状态
+
+规划、编辑和终端入口只读取 Platform 解析后的三个 show 字段。Agent 详情尚未返回时入口隐藏，但保留已有选择；只有配置已经确定且入口隐藏时才清除相应选择。编辑开关初始关闭，入口显示时普通和语音 query 均显式发送其布尔值（包括 false），入口隐藏时省略 editingMode。
+
+刷新后只从当前 Chat 的 activeRun.editingMode 采纳运行中 Run 的状态。详情和 Run 哪个先到都能恢复；同一会话中的每个 Run 只采纳一次，之后用户为下一次 query 修改开关不会被覆盖，离开并重新进入 Chat 会重新采纳。request.query 仍保留为历史和调试事件，但不再解析编辑状态，Run Session、事件缓存及通知不再复制编辑标志，run.start 不重置开关。

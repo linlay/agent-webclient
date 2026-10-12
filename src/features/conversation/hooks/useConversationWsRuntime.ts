@@ -49,7 +49,6 @@ import {
 	resolveMainChatRuntime,
 } from "@/features/runs/lib/runRuntimeState";
 import { dispatchRunStartedPushEvent } from "@/features/runs/lib/mainChatRunActivation";
-import { readExplicitEditingMode } from "@/features/runs/lib/editingMode";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
@@ -188,7 +187,6 @@ function toChatPatchFromPushEvent(
 		chatPatch.lastRunId = runId;
 	}
 	const hasActiveRun = resolveChatSummaryActiveRun(event);
-	const editingMode = readExplicitEditingMode(event);
 	if (hasActiveRun !== undefined) {
 		chatPatch.hasActiveRun = hasActiveRun;
 		chatPatch.activeRun = hasActiveRun
@@ -197,7 +195,6 @@ function toChatPatchFromPushEvent(
 					...(agentKey ? { agentKey } : {}),
 
 					...(owner ? { owner } : {}),
-					...(typeof editingMode === "boolean" ? { editingMode } : {}),
 				}
 			: null;
 	}
@@ -544,12 +541,6 @@ function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent)
 	}
 
 
-	if (toText(event.type) === "request.query") {
-		const editingMode = readExplicitEditingMode(event);
-		if (editingMode !== undefined) {
-			session.editingMode = editingMode;
-		}
-	}
 }
 
 function renderAttachedRequestQuery(
@@ -971,9 +962,6 @@ export function createConversationPushHandler(
 					agentKey,
 					owner,
 					lastSeq: 0,
-					...(typeof readExplicitEditingMode(liveEvent) === "boolean"
-						? { editingMode: readExplicitEditingMode(liveEvent) }
-						: {}),
 				});
 			}
 			return;

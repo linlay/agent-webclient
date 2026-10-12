@@ -224,3 +224,27 @@ it('does not grant continuation from child, hidden, side-lane or unidentified er
  }
  expect(resolveChatCanContinue({ type: 'run.error' } as AgentEvent)).toBe(false);
 });
+
+
+it.each(["request.query", "run.start"])("does not infer editing from %s or replace the backend snapshot", (type) => {
+  const activeRun = {runId: "run", editingMode: false, planningMode: true};
+  const result = upsertLiveChatSummary({
+    event: {type, chatId: "chat", runId: "run", editingMode: true},
+    cache: {chatId: "chat", runId: "run", agentKey: "agent"},
+    state: {chatId: "chat", runId: "run", chats: [{chatId: "chat", activeRun}], chatAgentById: new Map()},
+    selectedContext: {agentKey: "agent"},
+  });
+  if (type === "run.start") expect(result?.chat.activeRun).toMatchObject(activeRun);
+  else expect(result?.chat.activeRun).toBeUndefined();
+  expect(result?.resolved).not.toHaveProperty("editingMode");
+});
+
+it("does not carry a previous Run's choices into a new Run", () => {
+  const result = upsertLiveChatSummary({
+    event: {type: "run.start", chatId: "chat", runId: "new", editingMode: true},
+    cache: {chatId: "chat", runId: "old", agentKey: "agent"},
+    state: {chatId: "chat", runId: "old", chats: [{chatId: "chat", activeRun: {runId: "old", editingMode: true}}], chatAgentById: new Map()},
+    selectedContext: {agentKey: "agent"},
+  });
+  expect(result?.chat.activeRun).not.toHaveProperty("editingMode");
+});

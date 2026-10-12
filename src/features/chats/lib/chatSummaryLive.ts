@@ -10,14 +10,12 @@ import {
 import { toText } from '@/shared/utils/eventUtils';
 import { isEpochMillis } from '@/shared/utils/platformTime';
 import { toRunOwner } from '@/shared/data/runOwner';
-import { readExplicitEditingMode } from '@/features/events/lib/eventFields';
 
 export interface LiveChatSummaryCache {
   chatId: string;
   runId: string;
   agentKey: string;
 
-  editingMode?: boolean;
 }
 
 export interface LiveChatSummaryContext {
@@ -111,9 +109,7 @@ export function upsertLiveChatSummary(input: {
   const updatedAt = resolveChatSummaryUpdatedAt(event);
   const hasPendingAwaiting = resolveChatSummaryPendingAwaiting(event);
   const hasActiveRun = resolveChatSummaryActiveRun(event);
-  const eventEditingMode = readExplicitEditingMode(event);
-  const editingMode =
-    eventEditingMode !== undefined ? eventEditingMode : cache.editingMode;
+  const existingActiveRun = existingChat?.activeRun;
 
   return {
     chat: {
@@ -137,11 +133,11 @@ export function upsertLiveChatSummary(input: {
       hasActiveRun,
       activeRun: hasActiveRun === true
         ? {
+            ...(existingActiveRun?.runId === runId ? existingActiveRun : {}),
             runId,
             ...(agentKey ? { agentKey } : {}),
 
             ...(owner ? { owner } : {}),
-            ...(typeof editingMode === 'boolean' ? { editingMode } : {}),
           }
         : hasActiveRun === false
           ? null
@@ -152,7 +148,6 @@ export function upsertLiveChatSummary(input: {
       runId,
       agentKey,
 
-      ...(typeof editingMode === 'boolean' ? { editingMode } : {}),
     },
   };
 }

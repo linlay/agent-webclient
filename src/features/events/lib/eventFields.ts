@@ -35,17 +35,6 @@ export function readMustUseSkills(event: AgentEvent): string[] {
   return raw.map((key) => String(key ?? "").trim()).filter(Boolean);
 }
 
-export function readExplicitEditingMode(value: unknown): boolean | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  const record = value as Record<string, unknown>;
-  return Object.prototype.hasOwnProperty.call(record, "editingMode") &&
-    typeof record.editingMode === "boolean"
-    ? record.editingMode
-    : undefined;
-}
-
 export function readMustUseKbases(event: AgentEvent): string[] {
  const record = event as Record<string, unknown>;
  const query = record.query && typeof record.query === "object" ? record.query as Record<string, unknown> : {};

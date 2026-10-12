@@ -1,3 +1,4 @@
+import type { InteractionConfig } from "@/shared/contracts/interaction";
 import { kbaseSelectionScope } from "@/features/kbases/lib/kbasesState";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
 import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
@@ -158,6 +159,7 @@ export function useVoiceChatListening({
 				dispatch({ type: "SET_REQUEST_ID", requestId });
 				dispatch({ type: "SET_STREAMING", streaming: true });
 				dispatch({ type: "SET_ABORT_CONTROLLER", controller: abortController });
+        const interaction = currentWorker?.raw?.interactionConfig as InteractionConfig | undefined;
 				const execution = runs.startQuery({
 					requestId,
 					message: text,
@@ -165,6 +167,8 @@ export function useVoiceChatListening({
 					owner: { kind: "agent", agentKey },
 					chatId: chatId || undefined,
 					planningMode: Boolean(controller.stateRef.current.planningMode),
+          editingMode: interaction?.showEditingMode === true
+            ? controller.stateRef.current.editingMode ?? false : undefined,
 					signal: abortController.signal,
 					onEvent: handleEvent,
 				});

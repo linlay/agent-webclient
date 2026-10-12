@@ -92,6 +92,7 @@ import { useSelectedTextFragments } from "@/features/selection/hooks/useSelected
 import { useComposerSkillMenuQuery } from "../hooks/useComposerSkillMenuQuery";
 import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteraction";
 import { isInteractionPending } from "@/shared/contracts/interaction";
+import { resolveEditingModeSync, shouldClearPlanningMode } from "@/features/composer/lib/editingModeSync";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
@@ -328,8 +329,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const currentWorkerMode = String(currentWorker?.raw?.mode || "").trim().toUpperCase();
 
   useEffect(() => {
-    if (interactionPending) return;
-    if (state.planningMode && !planningModeAvailable) {
+    if (shouldClearPlanningMode({ pending: interactionPending, available: planningModeAvailable, planningMode: state.planningMode })) {
       dispatch({
         type: "SET_PLANNING_MODE",
         chatId: state.chatId,
@@ -338,33 +338,29 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       });
     }
   }, [dispatch, interactionPending, planningModeAvailable, state.planningMode, state.chatId]);
-  // A Run that is already running in this Chat (after a reload or reconnect)
-  // carries the choice it was started with; adopt it once per Run so later
-  // toggles for the next Run are not overwritten.
   const activeRunForChat =
     state.currentChatActiveRun?.chatId === state.chatId ? state.currentChatActiveRun : null;
   const activeRunEditingMode =
     typeof activeRunForChat?.editingMode === "boolean" ? activeRunForChat.editingMode : undefined;
   const activeRunEditingKey = activeRunForChat?.runId || "";
   const adoptedEditingRunRef = useRef("");
+  const adoptedEditingChatRef = useRef(state.chatId);
   useEffect(() => {
-    if (interactionPending) return;
-    if (!editingModeAvailable) {
-      if (state.editingMode !== undefined) dispatch({ type: "SET_EDITING_MODE", enabled: undefined });
-      return;
+    if (adoptedEditingChatRef.current !== state.chatId) {
+      adoptedEditingChatRef.current = state.chatId;
+      adoptedEditingRunRef.current = "";
     }
-    if (activeRunEditingKey && activeRunEditingMode !== undefined &&
-      adoptedEditingRunRef.current !== activeRunEditingKey) {
-      adoptedEditingRunRef.current = activeRunEditingKey;
-      if (state.editingMode !== activeRunEditingMode) {
-        dispatch({ type: "SET_EDITING_MODE", enabled: activeRunEditingMode });
-      }
-      return;
-    }
-    if (state.editingMode === undefined) {
-      dispatch({ type: "SET_EDITING_MODE", enabled: false });
-    }
-  }, [dispatch, interactionPending, editingModeAvailable, state.editingMode, activeRunEditingKey, activeRunEditingMode]);
+    const result = resolveEditingModeSync({
+      pending: interactionPending,
+      available: editingModeAvailable,
+      current: state.editingMode,
+      activeRunId: activeRunEditingKey,
+      activeRunEditingMode,
+      adoptedRunId: adoptedEditingRunRef.current,
+    });
+    adoptedEditingRunRef.current = result.adoptedRunId;
+    if (result.set) dispatch({ type: "SET_EDITING_MODE", enabled: result.set.enabled });
+  }, [dispatch, interactionPending, editingModeAvailable, state.editingMode, state.chatId, activeRunEditingKey, activeRunEditingMode]);
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -747,6 +743,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive,
     isVoiceMode,
     mainChatRunning: isMainChatRunning,
+    editingModeAvailable,
     modelOverride: interactionConfig.model ? modelOverride : {},
     mustUseSkillsAgentKey: effectiveSkills.length > 0 ? currentAgentKey : "",
     mustUseSkills: effectiveSkills.map((skill) => skill.id),

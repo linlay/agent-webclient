@@ -17,14 +17,18 @@ export type InteractionOverrides = Partial<Omit<InteractionConfig, "attachment">
 // Only the Agent editor form uses these to preview unset overrides. Runtime
 // surfaces must read the resolved interactionConfig the Platform returns.
 export function interactionDefaults(mode: string): InteractionConfig {
-  const kbase = mode.toUpperCase() === "KBASE";
+  const normalized = mode.trim().toUpperCase();
+  const kbase = normalized === "KBASE";
   return {
-    model: !kbase && !["TEAM", "PROXY", "CHANNEL"].includes(mode.toUpperCase()),
+    model: !kbase && !["PROXY", "CHANNEL"].includes(normalized),
     accessLevel: !kbase,
-    mustUseSkills: mode.toUpperCase() !== "TEAM",
-    mustUseKbases: !kbase && !["TEAM", "PROXY", "CHANNEL"].includes(mode.toUpperCase()),
-    connectors: !kbase && mode.toUpperCase() !== "TEAM",
-    attachment: { localFiles: true, chatRecords: !kbase && mode.toUpperCase() !== "CODER" },
+    mustUseSkills: true,
+    mustUseKbases: !["KBASE", "TEAM", "PROXY", "CHANNEL"].includes(normalized),
+    connectors: !kbase,
+    attachment: { localFiles: true, chatRecords: !kbase && normalized !== "CODER" },
+    showPlanningMode: ["", "GENERAL", "REACT", "CODER", "KBASE", "TEAM"].includes(normalized),
+    showEditingMode: kbase,
+    showTerminal: normalized === "CODER",
   };
 }
 // pendingInteraction means "the Platform has not answered yet". It hides every

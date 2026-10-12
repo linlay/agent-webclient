@@ -162,7 +162,6 @@ export function createLiveQuerySession(input: {
   agentKey?: string;
 
   owner?: RunOwner;
-  editingMode?: boolean;
 }): LiveQuerySession {
   return {
     requestId: String(input.requestId || '').trim(),
@@ -172,9 +171,6 @@ export function createLiveQuerySession(input: {
     agentKey: String(input.agentKey || '').trim(),
 
     owner: input.owner,
-    ...(typeof input.editingMode === 'boolean'
-      ? { editingMode: input.editingMode }
-      : {}),
     streaming: false,
     abortController: null,
     snapshot: null,

@@ -12,7 +12,6 @@ export interface RunStartedPushDetail {
 	agentKey: string;
 	owner: RunOwner | null;
 	lastSeq: number;
-	editingMode?: boolean;
 }
 
 export type MainChatRunActivationState = Pick<
@@ -36,7 +35,6 @@ export type MainChatRunActivationDecision =
 			agentKey: string;
 			owner: RunOwner;
 			lastSeq: number;
-			editingMode?: boolean;
 	  }
 	| {
 			shouldActivate: false;
@@ -140,15 +138,12 @@ export function normalizeRunStartedPushDetail(
 		: "";
 	const lastSeqRaw = Number(record.lastSeq ?? 0);
 	const lastSeq = Number.isFinite(lastSeqRaw) && lastSeqRaw >= 0 ? lastSeqRaw : 0;
-	const editingMode =
-		typeof record.editingMode === "boolean" ? record.editingMode : undefined;
 	return {
 		chatId,
 		runId,
 		agentKey,
 		owner,
 		lastSeq,
-		...(editingMode !== undefined ? { editingMode } : {}),
 	};
 }
 
@@ -215,9 +210,6 @@ export function dispatchRunStartedPushEvent(
 
 				owner: detail.owner,
 				lastSeq: detail.lastSeq,
-				...(typeof detail.editingMode === "boolean"
-					? { editingMode: detail.editingMode }
-					: {}),
 			},
 		}),
 	);
