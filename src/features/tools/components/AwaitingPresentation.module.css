@@ -42,7 +42,7 @@
 /* Bound the entire form, not only the iframe. Header/actions retain their space;
    the HTML document scrolls inside the remaining viewport. */
 .awaiting-panel {
-  max-height: min(680px, calc(100dvh - 144px));
+  max-height: min(440px, calc(100dvh - 144px));
   min-height: 0;
   overflow: auto;
 }
