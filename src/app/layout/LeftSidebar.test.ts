@@ -1817,13 +1817,15 @@ describe("LeftSidebar", () => {
     expect(html).not.toContain("tw:flex-[0_0_44px]");
   });
 
-  it.each([["approval", "等待批准"], ["question", "等待回答"], ["planning", "等待实施"]])("keeps %s awaiting status on the conversation row", (mode, label) => {
+  it.each([["approval", "等待批准"], ["question", "等待回答"], ["planning", "等待实施"], ["form", "等待提交"]])("shows %s awaiting status without a spinner on a running conversation row", (mode, label) => {
     const state = createWorkerState(); state.leftDrawerOpen = true;
+    state.chatId = "chat_6";
+    state.chats[state.chats.length - 1].hasActiveRun = true;
     state.chats[state.chats.length - 1].hasPendingAwaiting = true;
     state.chats[state.chats.length - 1].awaiting = { mode };
-    mockState(state);
+    mockState(state, { querySessions: new Map([["req_1", { chatId: "chat_6", streaming: true }]]) });
     const html = renderSidebar();
     expect(html).toContain(label);
-    expect(html).toContain('data-material-icon="progress_activity"');
+    expect(html).not.toContain('data-material-icon="progress_activity"');
   });
 });

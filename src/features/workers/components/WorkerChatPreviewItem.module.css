@@ -43,7 +43,7 @@
 .status { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; }
 .automationSource { display: inline-flex; flex-shrink: 0; width: 9px; height: 9px; color: var(--text-sub); }
 .automationSource svg { width: 100%; height: 100%; }
-.awaiting { flex-shrink: 0; padding: 2px 6px; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--accent-warn) 10%, transparent); color: var(--accent-warn); font-size: 11px; }
+.awaiting { flex-shrink: 0; padding: 2px 6px; border-radius: var(--radius-pill, 999px); background: color-mix(in srgb, var(--accent-warn) 10%, transparent); color: var(--accent-warn); font-size: 11px; }
 .row .loading { flex-shrink: 0; width: 16px; height: 16px; font-size: 16px; color: var(--text-sub); animation: spin 1s linear infinite; }
 .unread { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 16px; }
 .row .more {

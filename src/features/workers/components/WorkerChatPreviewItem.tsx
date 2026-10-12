@@ -74,8 +74,8 @@ export const WorkerChatPreviewItem: React.FC<{
                 <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
               </svg>
             </span>}
-            {chat.hasPendingAwaiting && <span className={`${styles.awaiting} chat-awaiting-status`}>{t(getAwaitingStatusKey(chat.awaitingMode))}</span>}
-            {isBusy ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) &&
+            {chat.hasPendingAwaiting ? <span className={`${styles.awaiting} chat-awaiting-status`}>{t(getAwaitingStatusKey(chat.awaitingMode))}</span>
+              : isBusy ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) &&
               <span className={`${styles.unread} worker-chat-unread`}><UnreadDot chat={chat} /></span>}
           </span>}
           <UiButton

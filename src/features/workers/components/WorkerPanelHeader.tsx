@@ -195,15 +195,9 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
             {preview}
           </Typography.Text>
           {previewStatus === "awaiting" && (
-            <>
-              <span className={CHAT_AWAITING_STATUS_CLASS}>
-                {t(getAwaitingStatusKey(previewChat?.awaitingMode))}
-              </span>
-              <MaterialIcon
-                name="progress_activity"
-                className={WORKER_CHAT_LOADING_CLASS}
-              />
-            </>
+            <span className={CHAT_AWAITING_STATUS_CLASS}>
+              {t(getAwaitingStatusKey(previewChat?.awaitingMode))}
+            </span>
           )}
           {previewStatus === "running" && (
             <MaterialIcon

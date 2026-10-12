@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { MenuProps } from "antd";
-import type { WorkerRow } from "@/features/workers/lib/workerState";
+import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { WorkerPanelHeader } from "./WorkerPanelHeader";
 import { WorkerConversationPreviewList } from "./WorkerConversationPreviewList";
 
@@ -27,6 +27,31 @@ jest.mock("antd", () => {
       return React.createElement("div", null, children);
     }
   };
+});
+
+describe("Worker panel preview status", () => {
+  const chat: WorkerConversationRow = {
+    chatId: "chat_1", chatName: "Current chat", agentKey: "alpha",
+    updatedAt: 1, lastRunId: "run_1", lastRunContent: "", hasActiveRun: true,
+  };
+  const renderStatus = (awaitingMode?: string) => renderToStaticMarkup(React.createElement(WorkerPanelHeader, {
+    row: { ...row, hasHistory: true }, isActive: false,
+    activeRunChat: chat,
+    awaitingChat: awaitingMode ? { ...chat, hasPendingAwaiting: true, awaitingMode } : undefined,
+    onStartNewConversation: jest.fn(),
+  }));
+
+  it.each(["question", "approval", "planning", "form"])("shows only the %s awaiting label while the Run stays active", mode => {
+    const html = renderStatus(mode);
+    expect(html).toContain("chat-awaiting-status");
+    expect(html).not.toContain('data-material-icon="progress_activity"');
+  });
+
+  it("keeps the spinner for an active Run without awaiting", () => {
+    const html = renderStatus();
+    expect(html).toContain('data-material-icon="progress_activity"');
+    expect(html).not.toContain('class="chat-awaiting-status ');
+  });
 });
 
 const row: WorkerRow = {
