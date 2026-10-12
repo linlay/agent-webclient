@@ -1,7 +1,6 @@
-import { readReferences } from "@/features/events/lib/eventFields";
+import { readReferences, readRequestQueryText } from "@/features/events/lib/eventFields";
 import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
-import { readMustUseKbases, readMustUseSkills, readRequestQueryText } from "@/features/events/lib/eventFields";
 import type {
   EventCommand,
   EventProcessorConfig,
@@ -56,7 +55,6 @@ export function processRunEvent(
     const attachments = normalizeTimelineAttachments(
       readReferences(event),
     );
-    const mustUseSkills = readMustUseSkills(event);
     if (!text && attachments.length === 0) return commands;
     const counter = state.nextCounter();
     const suffix = toText(event.requestId) || String(counter);
@@ -69,8 +67,6 @@ export function processRunEvent(
       ts: timestamp,
       variant: "default",
       attachments: attachments.length > 0 ? attachments : undefined,
-      ...(readMustUseKbases(event).length ? {mustUseKbases: readMustUseKbases(event)} : {}),
-      mustUseSkills: mustUseSkills.length > 0 ? mustUseSkills : undefined,
       ...(taskBinding.taskId ? taskBinding : {}),
     });
     return commands;

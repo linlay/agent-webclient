@@ -1,3 +1,4 @@
+import { referenceIds } from "@/shared/contracts/references";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
@@ -557,12 +558,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       ? String(currentWorker.sourceId || "").trim()
       : "";
   const { greeting } = useAgentWelcome(currentAgentKey, !state.chatId && showEmptyState);
-  const hasRequiredSkills = useMemo(
-    () => timelineEntries.some((node) => Boolean(node.mustUseSkills?.length)),
+  const hasSkillReferences = useMemo(
+    () => timelineEntries.some((node) => referenceIds(node.references, "skill").length > 0),
     [timelineEntries],
   );
   const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
-    enabled: Boolean(currentAgentKey && hasRequiredSkills),
+    enabled: Boolean(currentAgentKey && hasSkillReferences),
   });
   const activeAgentSkills =
     skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;

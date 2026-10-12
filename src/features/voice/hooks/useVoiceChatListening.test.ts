@@ -67,6 +67,10 @@ it("freezes trimmed exact library IDs before asynchronous voice admission", asyn
   resolve({ capability: { available: true }, libraries: [library("lib-a"), library("LIB-A")] });
   await pending;
   expect(mockLoadKBaseOptions).toHaveBeenCalledWith("general");
+  expect(h.controller.createTurnNodes).toHaveBeenCalledWith("hello", [
+    { type: "kbase", id: "lib-a" },
+    { type: "kbase", id: "LIB-A" },
+  ]);
   expect(mockStartQuery).toHaveBeenCalledWith(expect.objectContaining({chatId: "chat", references: [...(["lib-a", "LIB-A"] || []).map(id => ({type:"kbase",id}))]}));
   expect(h.state.composerReferences).toEqual([{ type:"kbase",id: "next" }]);
 });

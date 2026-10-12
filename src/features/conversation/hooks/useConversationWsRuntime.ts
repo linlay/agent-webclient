@@ -55,7 +55,6 @@ import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
 import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
 import {
-	readMustUseSkills,
 	readRequestQueryText,
 } from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
@@ -556,7 +555,6 @@ function renderAttachedRequestQuery(
 	const attachments = normalizeTimelineAttachments(
 		readReferences(event),
 	);
-	const mustUseSkills = readMustUseSkills(event);
 	if (!text && attachments.length === 0) {
 		return;
 	}
@@ -583,7 +581,6 @@ function renderAttachedRequestQuery(
 			attachments: attachments.length > 0 ? attachments : undefined,
       references: readReferences(event),
 			ts: timestamp,
-			mustUseSkills: mustUseSkills.length > 0 ? mustUseSkills : undefined,
 		},
 	});
 	options.dispatch({ type: "APPEND_TIMELINE_ORDER", id: nodeId });

@@ -141,7 +141,7 @@ export function useVoiceChatRuntimeController({
 	);
 
 	const createTurnNodes = useCallback(
-		(userText: string, mustUseKbases: string[] = []) => {
+		(userText: string, references: unknown[] = []) => {
 			const suffix = `${Date.now()}_${turnCounterRef.current++}`;
 			const userNodeId = `voice_user_${suffix}`;
 			const now = Date.now();
@@ -154,8 +154,8 @@ export function useVoiceChatRuntimeController({
 					kind: "message",
 					role: "user",
 					text: userText,
-          attachments: normalizeTimelineAttachments(stateRef.current.composerReferences),
-          references: JSON.parse(JSON.stringify(stateRef.current.composerReferences)),
+          attachments: normalizeTimelineAttachments(references),
+          references: structuredClone(references),
 					ts: now,
 				},
 			});

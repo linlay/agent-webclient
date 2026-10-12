@@ -6,7 +6,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import type { KBaseCatalog } from "../hooks/useKBaseOptions";
 import type { SelectedKBase } from "../lib/kbasesState";
-import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "../lib/kbaseSelection";
+import { MAX_KBASE_REFERENCES, normalizeKbaseIds } from "../lib/kbaseSelection";
 import styles from "./KBasePicker.module.css";
 
 export function KBasePicker({ catalog, selected, onChange, disabled: selectionDisabled = false }: {
@@ -25,8 +25,8 @@ export function KBasePicker({ catalog, selected, onChange, disabled: selectionDi
   }, []);
   const keyword = search.trim().toLowerCase();
   const selectedIds = new Set(normalizeKbaseIds(selected.map(item => item.id)));
-  const atLimit = selectedIds.size >= MAX_MUST_USE_KBASES;
-  const limitText = t("kbase.selectionLimit", { count: MAX_MUST_USE_KBASES });
+  const atLimit = selectedIds.size >= MAX_KBASE_REFERENCES;
+  const limitText = t("kbase.selectionLimit", { count: MAX_KBASE_REFERENCES });
   const libraries = (catalog.data?.libraries || []).filter(item =>
     [item.name, item.id, item.description, ...item.collections.flatMap(c => [c.name, c.description])]
       .filter(Boolean).join(" ").toLowerCase().includes(keyword));

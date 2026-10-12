@@ -9,7 +9,7 @@ import type {
   QueryAccessLevel,
 } from "@/shared/data";
 import { toRunOwner } from "@/shared/data/runOwner";
-import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
+import { MAX_KBASE_REFERENCES } from "@/features/kbases/lib/kbaseSelection";
 
 export type AutomationFormMode = "create" | "edit";
 export type AutomationEditorMode = "structured" | "source";
@@ -293,7 +293,7 @@ export function validateAutomationForm(
     try {
       const parsed = JSON.parse(form.referencesText);
       if (!Array.isArray(parsed) || parsed.some(ref => !ref || typeof ref !== "object" || typeof ref.type !== "string")) return t("kbase.idsInvalid");
-      if (referenceIds(parsed,"kbase").length > MAX_MUST_USE_KBASES) return t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES});
+      if (referenceIds(parsed,"kbase").length > MAX_KBASE_REFERENCES) return t("kbase.selectionLimit", {count: MAX_KBASE_REFERENCES});
     } catch { return t("kbase.idsInvalid"); }
   }
   if (form.paramsText.trim()) {

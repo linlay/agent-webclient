@@ -786,7 +786,7 @@ describe("required libraries through message actions", () => {
   expect(mockLoadKBaseOptions).toHaveBeenCalledWith("mentioned");
   expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({owner: {kind: "agent", agentKey: "mentioned"}, message: "compare", planningMode: true, references: [...(["a", "b"] || []).map(id => ({type:"kbase",id}))]}));
   const user = [...stateRef.current.timelineNodes.values()].find(node => node.role === "user");
-  expect(user?.mustUseKbases).toEqual(["a", "b"]);
+  expect(user?.references).toEqual([{type:"kbase",id:"a"},{type:"kbase",id:"b"}]);
  });
  it("rejects unavailable libraries before creating a Run and does not borrow current selection on empty resend", async () => {
   const {stateRef, actions} = harness();

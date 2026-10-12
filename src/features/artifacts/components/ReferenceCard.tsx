@@ -34,7 +34,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   const subtitle =
     type === "chat"
       ? t("composer.reference.kind.chat")
-      : type === "skill" ? t("agents.interaction.mustUseSkills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.site");
+      : type === "skill" ? t("agents.interaction.skills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.site");
   const semanticClasses = [
     "context-reference-card",
     `context-reference-card-${variant}`,

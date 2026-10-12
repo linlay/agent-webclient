@@ -590,13 +590,13 @@ describe('useComposerSend active run gate', () => {
     createRequestIdMock.mockImplementation((prefix: string) => `${prefix}_request`);
   });
 
-  it('clears the composer text and Skill selection while sending the selected Skills with a new-chat message', () => {
+  it('clears the composer text and all references while sending the selected Skills with a new-chat message', () => {
     const state = createInitialState();
     state.pendingNewChatAgentKey = 'agent-a';
     state.composerDraft = 'hello';
     state.composerDraftByChatId = { '': 'hello' };
     const operationOrder: string[] = [];
-    const clearMustUseSkills = jest.fn(() => operationOrder.push('clear-skills'));
+    const clearComposerAttachments = jest.fn(() => operationOrder.push('clear-references'));
     const sendMessage = jest.fn();
     const dispatch = jest.fn((action) => {
       if (action.type === 'SET_COMPOSER_DRAFT' && action.draft === '') {
@@ -651,8 +651,7 @@ describe('useComposerSend active run gate', () => {
           compactPending: '',
           compactError: '',
         },
-        clearComposerAttachments: jest.fn(),
-        clearMustUseSkills,
+        clearComposerAttachments,
         closeMention,
         controlParams: {},
         dispatch,
@@ -689,10 +688,7 @@ describe('useComposerSend active run gate', () => {
         isVoiceMode: false,
         mainChatRunning: false,
         modelOverride: {},
-        mustUseSkillsAgentKey: 'agent-a',
-        mustUseSkills: ['code-review'],
-        mustUseKbases: ['library-a'],
-        kbaseScope: 'new:agent-a',
+        skillReferenceAgentKey: 'agent-a',
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
@@ -731,10 +727,10 @@ describe('useComposerSend active run gate', () => {
       type: 'SET_COMPOSER_DRAFT',
       draft: '',
     });
-    expect(clearMustUseSkills).toHaveBeenCalledTimes(1);
-    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'hello', agentKey: 'agent-a', mustUseSkillsAgentKey: 'agent-a', references: [...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))]}));
+    expect(clearComposerAttachments).toHaveBeenCalledTimes(1);
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'hello', agentKey: 'agent-a', skillReferenceAgentKey: 'agent-a', references: [...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))]}));
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: expect.objectContaining({ schemaVersion: 2, references: [{type:'skill',id:'code-review'},{type:'kbase',id:'library-a'}] }) }));
-    expect(operationOrder).toEqual(['clear-draft', 'clear-skills', 'send-message']);
+    expect(operationOrder).toEqual(['clear-draft', 'clear-references', 'send-message']);
   });
 
   it.each(['hello', ''])('queues selection references with or without text during an active run (%s)', (inputValue) => {
@@ -767,7 +763,6 @@ describe('useComposerSend active run gate', () => {
           compactError: '',
         },
         clearComposerAttachments: jest.fn(),
-        clearMustUseSkills: jest.fn(),
         closeMention,
         controlParams: {},
         dispatch,
@@ -801,10 +796,7 @@ describe('useComposerSend active run gate', () => {
         isAwaitingActive: false,
         isVoiceMode: false,
         modelOverride: {},
-        mustUseSkillsAgentKey: '',
-        mustUseSkills: [],
-        mustUseKbases: ['library-a'],
-        kbaseScope: 'chat:chat-1',
+        skillReferenceAgentKey: '',
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [],
@@ -875,7 +867,6 @@ describe('useComposerSend active run gate', () => {
           compactError: '',
         },
         clearComposerAttachments,
-        clearMustUseSkills: jest.fn(),
         closeMention: jest.fn(),
         controlParams: { temperature: 0.2 },
         dispatch,
@@ -910,9 +901,7 @@ describe('useComposerSend active run gate', () => {
         isVoiceMode: false,
         mainChatRunning: true,
         modelOverride: { key: 'model-a' },
-        mustUseSkillsAgentKey: '',
-        mustUseSkills: [],
-        mustUseKbases: selected ? ['library-a'] : [],
+        skillReferenceAgentKey: '',
         selectSlashItem: () => null,
         onSelectSlashSkill: jest.fn(),
         sendAttachmentMeta: [{ name: 'spec.md', size: 12 }],

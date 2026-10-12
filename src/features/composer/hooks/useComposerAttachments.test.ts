@@ -51,7 +51,7 @@ it('allows pasting during a run, retains failed uploads, and isolates restored i
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   upload.mockClear();
   let actions!: ReturnType<typeof useComposerAttachments>;
-  const config = {model:true, accessLevel:true, mustUseSkills:true, connectors:true, attachment:{localFiles:false, chatRecords:false}};
+  const config = {model:true, accessLevel:true, connectors:true, attachment:{localFiles:false, chatRecords:false, skills:true, kbases:true}};
   const state: any = {chatId:'chat-a',chatAgentById:new Map(),workerIndexByKey:{},workerSelectionKey:''};
   const Harness = () => { actions = useComposerAttachments({dispatch:jest.fn(),state,mainChatRunning:false,isFrontendActive:false,isVoiceMode:false,interactionConfig:config}); return null; };
   const root = createRoot(document.createElement('div'));

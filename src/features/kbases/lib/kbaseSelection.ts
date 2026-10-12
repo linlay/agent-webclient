@@ -1,4 +1,4 @@
-export const MAX_MUST_USE_KBASES = 8;
+export const MAX_KBASE_REFERENCES = 8;
 
 export function normalizeKbaseIds(value: unknown): string[] {
   return Array.isArray(value)

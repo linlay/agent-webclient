@@ -1,7 +1,7 @@
 import { referenceIds, queryReferences } from "@/shared/contracts/references";
 import type { InteractionConfig } from "@/shared/contracts/interaction";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
-import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
+import { MAX_KBASE_REFERENCES } from "@/features/kbases/lib/kbaseSelection";
 import { t } from "@/shared/i18n";
 import { useCallback } from "react";
 import type { Dispatch } from "react";
@@ -133,8 +133,8 @@ export function useVoiceChatListening({
 
 			const requestId = createRequestId("req");
       const references = queryReferences(controller.stateRef.current.composerReferences);
-      const mustUseKbases = referenceIds(references,"kbase");
-			controller.createTurnNodes(text, mustUseKbases);
+      const kbaseReferenceIds = referenceIds(references,"kbase");
+			controller.createTurnNodes(text, references);
 			controller.cancelListeningTransition();
 			controller.ttsTaskActiveRef.current = true;
 			controller.patchVoiceChat({
@@ -150,10 +150,10 @@ export function useVoiceChatListening({
 			});
 
 			try {
-        if (mustUseKbases.length) {
-          if (mustUseKbases.length > MAX_MUST_USE_KBASES) throw new Error(t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES}));
+        if (kbaseReferenceIds.length) {
+          if (kbaseReferenceIds.length > MAX_KBASE_REFERENCES) throw new Error(t("kbase.selectionLimit", {count: MAX_KBASE_REFERENCES}));
           const catalog = await loadKBaseOptions(agentKey);
-          if (unavailableKbaseIds(catalog, mustUseKbases).length) throw new Error(t("kbase.selectionUnavailable"));
+          if (unavailableKbaseIds(catalog, kbaseReferenceIds).length) throw new Error(t("kbase.selectionUnavailable"));
         }
 				const abortController = new AbortController();
 				dispatch({ type: "SET_REQUEST_ID", requestId });

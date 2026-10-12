@@ -52,7 +52,7 @@ test("switching between standalone, package and member always replaces the manua
 });
 
 
-test("explicit package selection groups the chip but preserves concrete member IDs for mustUse", () => {
+test("explicit package selection groups the chip but preserves concrete member IDs for skill references", () => {
   const selected = setPackageSelection([], [word, excel], true, [], pkg.id);
   expect(groupSelectedPackages([pkg], selected)).toEqual({ groups: [{ pkg, members: selected }], standalone: [] });
   expect(selected.map(skill => skill.id)).toEqual(["word", "excel"]);

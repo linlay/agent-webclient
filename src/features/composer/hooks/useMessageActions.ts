@@ -1,6 +1,6 @@
 import { referenceIds, queryReferences } from "@/shared/contracts/references";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
-import { MAX_MUST_USE_KBASES, normalizeKbaseIds } from "@/features/kbases/lib/kbaseSelection";
+import { MAX_KBASE_REFERENCES } from "@/features/kbases/lib/kbaseSelection";
 import { t } from "@/shared/i18n";
 import { rejectAgentCheck } from "@/features/agents/lib/agentRefresh";
 import { requestSkillsRefresh } from "@/features/skills/lib/skillRefresh";
@@ -66,7 +66,7 @@ interface SendMessageEventDetail {
   accessLevel?: unknown;
   model?: unknown;
   editingMode?: unknown;
-  mustUseSkillsAgentKey?: unknown;
+  skillReferenceAgentKey?: unknown;
 }
 
 // Upload can allocate a Chat before its first query. Capture the route's nonce
@@ -286,13 +286,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       preferredChatId = "",
       preferredAgentKey = "",
       editingMode: boolean | undefined = undefined,
-      mustUseSkillsAgentKey = "",
+      skillReferenceAgentKey = "",
       submissionRequestId = "",
     ) => {
       const submissionSession = getDataSessionRevision();
       const rawMessage = String(inputMessage ?? "").trim();
       const normalizedReferences = queryReferences(references);
-      const normalizedMustUseSkills = referenceIds(normalizedReferences,"skill");
+      const skillReferenceIds = referenceIds(normalizedReferences,"skill");
       if (!hasSendableQuery(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId), canContinueChat(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
       if (
         areConversationInteractionsBlocked(stateRef.current) || isAgentExecutionBlocked(stateRef.current, preferredAgentKey || undefined)
@@ -396,17 +396,15 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
       const selectedAgentKey = selectedOwner?.kind === "agent" ? selectedOwner.agentKey : "";
 
-      const normalizedKbases = referenceIds(normalizedReferences,"kbase");
+      const kbaseReferenceIds = referenceIds(normalizedReferences,"kbase");
       const validationChatId = stateRef.current.chatId;
       const validationTransitionSeq = stateRef.current.chatTransition?.seq;
       const planningMode = Boolean(stateRef.current.planningMode);
-      let kbaseLabels: Record<string, string> | undefined;
-      if (normalizedKbases.length > 0) {
+      if (kbaseReferenceIds.length > 0) {
         try {
-          if (normalizedKbases.length > MAX_MUST_USE_KBASES) throw new Error(t("kbase.selectionLimit", {count: MAX_MUST_USE_KBASES}));
+          if (kbaseReferenceIds.length > MAX_KBASE_REFERENCES) throw new Error(t("kbase.selectionLimit", {count: MAX_KBASE_REFERENCES}));
           const catalog = await loadKBaseOptions(selectedAgentKey);
-          if (unavailableKbaseIds(catalog, normalizedKbases).length) throw new Error("kbase.selectionUnavailable");
-          kbaseLabels = Object.fromEntries(catalog.libraries.filter(item => normalizedKbases.includes(item.id)).map(item => [item.id, item.name]));
+          if (unavailableKbaseIds(catalog, kbaseReferenceIds).length) throw new Error("kbase.selectionUnavailable");
           if (getDataSessionRevision() !== submissionSession) return;
         } catch (error) {
           if (getDataSessionRevision() !== submissionSession || stateRef.current.chatId !== validationChatId) return;
@@ -443,13 +441,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         return;
       }
       if (
-        normalizedMustUseSkills.length > 0 &&
-        mustUseSkillsAgentKey &&
-        selectedAgentKey !== mustUseSkillsAgentKey
+        skillReferenceIds.length > 0 &&
+        skillReferenceAgentKey &&
+        selectedAgentKey !== skillReferenceAgentKey
       ) {
         dispatch({
           type: "APPEND_DEBUG",
-          line: `[send] skipped: must-use skill agent mismatch (expected=${mustUseSkillsAgentKey || "-"}, resolved=${selectedAgentKey || "-"})`,
+          line: `[send] skipped: skill reference agent mismatch (expected=${skillReferenceAgentKey || "-"}, resolved=${selectedAgentKey || "-"})`,
         });
         return;
       }
@@ -496,12 +494,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             attachments: normalizeTimelineAttachments(normalizedReferences).length ? normalizeTimelineAttachments(normalizedReferences) : attachments.length ? attachments : undefined,
             references: JSON.parse(JSON.stringify(normalizedReferences)),
             ts: Date.now(),
-            mustUseKbases: normalizedKbases.length ? [...normalizedKbases] : undefined,
-            kbaseLabels,
-            mustUseSkills:
-              normalizedMustUseSkills.length > 0
-                ? normalizedMustUseSkills
-                : undefined,
           },
         });
         dispatch({ type: "APPEND_TIMELINE_ORDER", id: userNodeId });
@@ -908,8 +900,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const agentKey = String(detail.agentKey || "").trim();
 
       const editingMode = typeof detail.editingMode === "boolean" ? detail.editingMode : undefined;
-      const mustUseSkillsAgentKey = String(
-        detail.mustUseSkillsAgentKey || "",
+      const skillReferenceAgentKey = String(
+        detail.skillReferenceAgentKey || "",
       ).trim();
       if (hasSendableComposerMessage(message, references, hasQueryHistory(stateRef.current, chatId || stateRef.current.chatId), canContinueChat(stateRef.current, chatId || stateRef.current.chatId))) {
         void sendMessage(
@@ -922,7 +914,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           chatId,
           agentKey,
           editingMode,
-          mustUseSkillsAgentKey,
+          skillReferenceAgentKey,
           detail.submissionRequestId,
         ).finally(() => {
           if (detail.submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId: detail.submissionRequestId, accepted: false });

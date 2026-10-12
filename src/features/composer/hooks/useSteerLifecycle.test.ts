@@ -72,9 +72,9 @@ function mount(sendOverrides: Record<string, unknown> = {}, connectQuery = false
     send = useComposerSend({
       ...mockContext, state: stateRef.current, mainChatRunning,
       backgroundCommandText: {}, inputValue: '', attachmentChatId: '', accessLevel: 'default',
-      clearComposerAttachments: jest.fn(), clearMustUseSkills: jest.fn(), closeMention: jest.fn(),
+      clearComposerAttachments: jest.fn(), closeMention: jest.fn(),
       controlParams: {}, hasUploadingAttachments: false, isAwaitingActive: false, isVoiceMode: false,
-      modelOverride: {}, mustUseSkills: [], mustUseSkillsAgentKey: '',
+      modelOverride: {}, skillReferenceAgentKey: '',
       selectSlashItem: () => null, onSelectSlashSkill: jest.fn(), showSlashPalette: false,
       sendAttachmentMeta: [], sendReferences: [], setInputValue, setSlashDismissed: jest.fn(),
       speechListening: false, stopSpeechInput: jest.fn(), textareaRef: { current: null },

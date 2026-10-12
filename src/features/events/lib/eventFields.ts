@@ -1,4 +1,3 @@
-import { referenceIds } from "@/shared/contracts/references";
 import { hasTimelineAttachmentContent, normalizeTimelineAttachments } from "./timelineAttachments";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { safeText, toText } from "@/shared/utils/eventUtils";
@@ -30,8 +29,6 @@ export function readSteerConfirmation(event: AgentEvent): {
   return { steerId, ...(chatId ? { chatId } : {}), ...(runId ? { runId } : {}) };
 }
 
-export function readMustUseSkills(event: AgentEvent): string[] { return referenceIds(event.references ?? (event.query as Record<string,unknown> | undefined)?.references,"skill"); }
-export function readMustUseKbases(event: AgentEvent): string[] { return referenceIds(event.references ?? (event.query as Record<string,unknown> | undefined)?.references,"kbase"); }
 
 export function readReferences(event: AgentEvent): unknown[] {
  const refs = event.references ?? (event.query as Record<string,unknown> | undefined)?.references;

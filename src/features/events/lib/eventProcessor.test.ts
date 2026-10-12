@@ -183,7 +183,6 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           messageVariant: command.variant,
           steerId: command.steerId,
           text: command.text,
-          mustUseKbases: command.mustUseKbases,
           attachments: command.attachments,
           references: command.references,
           taskId: command.taskId,
@@ -295,10 +294,10 @@ describe('processStreamEvent', () => {
     );
   });
 
-  it("keeps required library snapshots in replay/attach user messages", () => {
+  it("keeps library references in replay/attach user messages", () => {
     const state = createState();
     processAndApply(state, {type: "request.query", requestId: "multi", message: "query", query: {references: [{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]}, timestamp: 100}, "replay");
-    expect(state.timelineNodes.get("user_multi")?.mustUseKbases).toEqual(["lib-a", "lib-b"]);
+    expect(state.timelineNodes.get("user_multi")?.references).toEqual([{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]);
   });
 
   it('creates request.query user nodes only during replay', () => {
@@ -340,7 +339,6 @@ describe('processStreamEvent', () => {
             size: 2048,
           },
         ],
-        mustUseSkills: undefined,
       },
     ]);
     expect(liveCommands).toEqual([]);
@@ -444,7 +442,6 @@ describe('processStreamEvent', () => {
             size: 4096,
           },
         ],
-        mustUseSkills: undefined,
       },
     ]);
   });

@@ -239,11 +239,18 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     },
     state,
   });
-  const selectedKbases = useMemo(() => attachments.filter(item => item.type === "kbase").map(item => ({id: String((item.references[0] as {id?: string})?.id || ""), name: item.name})), [attachments]);
+  // These menu selections are projections of the shared reference collection.
+  const kbaseSelection = useMemo(
+    () => attachments.filter(item => item.type === "kbase").map(item => ({
+      id: String((item.references[0] as {id?: string})?.id || ""),
+      name: item.name,
+    })),
+    [attachments],
+  );
   const kbaseTargetAgentKey = parseLeadingAgentMention(inputValue, resolveMentionCandidatesFromState(state)).mentionAgentKey || currentAgentKey;
-  const kbaseCatalog = useKBaseOptions(kbaseTargetAgentKey, selectedKbases.length > 0 || kbaseTargetAgentKey !== currentAgentKey);
-  const setSelectedKbases = (libraries: import("@/features/kbases/lib/kbasesState").SelectedKBase[]) => setContextReferences("kbase", libraries.map(item => ({type:"kbase", id:item.id, name:item.name})));
-  const invalidKbaseIds = unavailableKbaseIds(kbaseCatalog.data, selectedKbases.map(item => item.id));
+  const kbaseCatalog = useKBaseOptions(kbaseTargetAgentKey, kbaseSelection.length > 0 || kbaseTargetAgentKey !== currentAgentKey);
+  const updateKbaseReferences = (libraries: import("@/features/kbases/lib/kbasesState").SelectedKBase[]) => setContextReferences("kbase", libraries.map(item => ({type:"kbase", id:item.id, name:item.name})));
+  const invalidKbaseIds = unavailableKbaseIds(kbaseCatalog.data, kbaseSelection.map(item => item.id));
   const targetKbaseDefinition = (state.agents.find(agent => agent.key === kbaseTargetAgentKey)?.definition as Record<string, unknown> | undefined) ||
     (kbaseTargetAgentKey === currentAgentKey ? currentWorker?.raw?.definition as Record<string, unknown> | undefined : undefined);
   const boundLibraryId = kbaseCatalog.data?.boundLibraryId || (targetKbaseDefinition?.kbaseConfig as {libraryId?: string} | undefined)?.libraryId;
@@ -263,8 +270,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     dispatch({ type: "SET_COMPOSER_ACCESS_LEVEL", target: accessTarget, value });
   }, [dispatch, accessTarget]);
   const hostRequiredSkills = useHostRequiredSkills();
-  const selectedSkills = useMemo<ComposerRequiredSkill[]>(() => attachments.filter(item => item.type === "skill").map(item => ({id: String((item.references[0] as {id?: string})?.id || ""),label:item.name,selectedViaPackageId:(item.references[0] as {meta?:{selectedViaPackageId?:string}})?.meta?.selectedViaPackageId})), [attachments]);
-  const setSelectedSkills = useCallback((update: ComposerRequiredSkill[] | ((current: ComposerRequiredSkill[]) => ComposerRequiredSkill[])) => setContextReferences("skill",current => {
+  const skillSelection = useMemo<ComposerRequiredSkill[]>(
+    () => attachments.filter(item => item.type === "skill").map(item => ({
+      id: String((item.references[0] as {id?: string})?.id || ""),
+      label: item.name,
+      selectedViaPackageId: (item.references[0] as {meta?:{selectedViaPackageId?:string}})?.meta?.selectedViaPackageId,
+    })),
+    [attachments],
+  );
+  const updateSkillReferences = useCallback((update: ComposerRequiredSkill[] | ((current: ComposerRequiredSkill[]) => ComposerRequiredSkill[])) => setContextReferences("skill",current => {
     const existing = current.map(ref => ({id:ref.id,label:ref.name,selectedViaPackageId:ref.meta?.selectedViaPackageId as string | undefined}));
     const next = typeof update === "function" ? update(existing) : update;
     return next.map(skill => ({type:"skill" as const,id:skill.id,name:skill.label,meta:skill.selectedViaPackageId ? {selectedViaPackageId:skill.selectedViaPackageId}:undefined}));
@@ -278,19 +292,19 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     const identities = new Set(forcedSkills.map((skill) => skill.id.toLowerCase()));
     return [
       ...forcedSkills,
-      ...selectedSkills.filter((skill) => {
+      ...skillSelection.filter((skill) => {
         const identity = skill.id.trim().toLowerCase();
         if (!identity || identities.has(identity)) return false;
         identities.add(identity);
         return true;
       }),
     ];
-  }, [forcedSkills, selectedSkills, interactionConfig.attachment.skills]);
+  }, [forcedSkills, skillSelection, interactionConfig.attachment.skills]);
   const effectiveManualSkills = useMemo(() => {
     if (!interactionConfig.attachment.skills) return [];
     const forcedIdentities = new Set(forcedSkills.map((skill) => skill.id.toLowerCase()));
-    return selectedSkills.filter((skill) => !forcedIdentities.has(skill.id.trim().toLowerCase()));
-  }, [forcedSkills, selectedSkills, interactionConfig.attachment.skills]);
+    return skillSelection.filter((skill) => !forcedIdentities.has(skill.id.trim().toLowerCase()));
+  }, [forcedSkills, skillSelection, interactionConfig.attachment.skills]);
   const skillCatalogQuery = useComposerSkillMenuQuery(currentAgentKey, {
     enabled: Boolean(currentAgentKey && effectiveSkills.length > 0),
   });
@@ -538,7 +552,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       if (!packageChoice && forcedSkills.some((item) => skillIdentity(item.id) === identity)) {
         return;
       }
-      setSelectedSkills((current) => {
+      updateSkillReferences((current) => {
         const lockedKeys = forcedSkills.map(item => item.id);
         if (packageChoice) return setPackageSelection(current, packageChoice.members, true, lockedKeys, packageChoice.pkg.id);
         const manual = current.filter(item => !lockedKeys.some(key => skillIdentity(key) === skillIdentity(item.id)));
@@ -557,14 +571,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean, packageId?: string) => {
     if (!interactionConfig.attachment.skills || chatTransitionBlocking) return;
-    setSelectedSkills(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.id), packageId));
+    updateSkillReferences(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.id), packageId));
   }, [interactionConfig.attachment.skills, isMainChatRunning, chatTransitionBlocking, forcedSkills]);
 
   const removeSelectedSkill = useCallback((skillId: string) => {
     const identity = String(skillId || "")
       .trim()
       .toLowerCase();
-    setSelectedSkills((current) =>
+    updateSkillReferences((current) =>
       current.filter((item) => item.id.trim().toLowerCase() !== identity),
     );
   }, []);
@@ -711,7 +725,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       compactSummaryCompacting: t("composer.background.compact.summaryCompacting"),
     },
     clearComposerAttachments,
-    clearMustUseSkills: () => setSelectedSkills([]),
     closeMention,
     controlParams,
     dispatch,
@@ -739,9 +752,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     mainChatRunning: isMainChatRunning,
     editingModeAvailable,
     modelOverride: interactionConfig.model ? modelOverride : {},
-    mustUseSkillsAgentKey: effectiveSkills.length > 0 ? currentAgentKey : "",
-    mustUseSkills: effectiveSkills.map((skill) => skill.id),
-    mustUseKbases: selectedKbases.map(item => item.id),
+    skillReferenceAgentKey: effectiveSkills.length > 0 ? currentAgentKey : "",
     selectSlashItem,
     onSelectSlashSkill: handleSelectSlashSkill,
     sendAttachmentMeta: combinedSendAttachmentMeta,
@@ -1088,7 +1099,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   <UiButton variant="ghost" size="sm" onClick={() => void skillCatalogQuery.refreshPins().then(response => { if (response) dispatch({ type: "SET_SKILL_REJECTION", rejection: null }); })}>{t("composer.skills.recheck")}</UiButton>
                   <UiButton variant="ghost" size="sm" onClick={() => {
                     const ids = new Set(invalidSelectedSkills.map(skill => skillIdentity(skill.id)));
-                    setSelectedSkills(current => current.filter(skill => !ids.has(skillIdentity(skill.id))));
+                    updateSkillReferences(current => current.filter(skill => !ids.has(skillIdentity(skill.id))));
                   }}>{t("packageComposer.removeUnavailable")}</UiButton>
                 </div>}
 
@@ -1180,7 +1191,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   currentAgentKey={currentAgentKey}
                   isMainChatRunning={isMainChatRunning}
                   referenceSelectionDisabled={referenceSelectionDisabled}
-                  kbaseCatalog={kbaseMenuAvailable ? kbaseCatalog : undefined} selectedKbases={selectedKbases} onSelectKbases={setSelectedKbases}
+                  kbaseCatalog={kbaseMenuAvailable ? kbaseCatalog : undefined} selectedKbases={kbaseSelection} onSelectKbases={updateKbaseReferences}
                   selectedSkillIds={effectiveSkills.map((skill) => skill.id)}
                   selectedPackageId={effectiveManualSkills.find(skill => skill.selectedViaPackageId)?.selectedViaPackageId}
                   onSelectSkill={handleSelectSlashSkill}

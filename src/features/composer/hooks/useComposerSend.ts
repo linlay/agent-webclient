@@ -1,6 +1,7 @@
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback, useEffect, useRef } from "react";
+import { referenceIds } from "@/shared/contracts/references";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { App as AntdApp } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
@@ -63,7 +64,6 @@ interface UseComposerSendInput {
   attachmentChatId: string;
   accessLevel: QueryAccessLevel;
   clearComposerAttachments: () => void;
-  clearMustUseSkills: () => void;
   closeMention: () => void;
   controlParams: Record<string, unknown>;
   dispatch: Dispatch<AppAction>;
@@ -96,10 +96,7 @@ interface UseComposerSendInput {
   mainChatRunning: boolean;
   editingModeAvailable?: boolean;
   modelOverride: QueryModelOverride;
-  mustUseSkillsAgentKey: string;
-  mustUseSkills: string[];
-  mustUseKbases?: string[];
-  kbaseScope?: string;
+  skillReferenceAgentKey: string;
   selectSlashItem: () => SlashPaletteItem | null;
   onSelectSlashSkill: (skill: SlashSkillItem) => void;
   showSlashPalette: boolean;
@@ -145,7 +142,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     attachmentChatId,
     accessLevel,
     clearComposerAttachments,
-    clearMustUseSkills,
     closeMention,
     controlParams,
     dispatch,
@@ -159,9 +155,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     mainChatRunning,
     editingModeAvailable = false,
     modelOverride,
-    mustUseSkillsAgentKey,
-    mustUseSkills,
-    mustUseKbases = [], kbaseScope = "",
+    skillReferenceAgentKey,
     selectSlashItem,
     onSelectSlashSkill,
     showSlashPalette,
@@ -527,8 +521,8 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     const btwMessage = parseBTWSlashInput(message);
     if (btwMessage !== null) {
-      if (mustUseKbases.length > 0) { void messageApi.warning(t("kbase.btwUnsupported")); return; }
-      if (mustUseSkills.length > 0) {
+      if (referenceIds(sendReferences, "kbase").length > 0) { void messageApi.warning(t("kbase.btwUnsupported")); return; }
+      if (referenceIds(sendReferences, "skill").length > 0) {
         void messageApi.warning(t("composer.addMenu.skill.btwUnsupported"));
         return;
       }
@@ -611,7 +605,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       });
       return;
     }
-    if (mustUseSkills.length > 0) {
+    if (referenceIds(sendReferences, "skill").length > 0) {
       const mention = parseLeadingAgentMention(
         message,
         resolveMentionCandidatesFromState(currentState),
@@ -621,8 +615,8 @@ export function useComposerSend(input: UseComposerSendInput) {
           ? mention.mentionAgentKey || owner.agentKey
           : "";
       if (
-        !mustUseSkillsAgentKey ||
-        finalAgentKey !== mustUseSkillsAgentKey
+        !skillReferenceAgentKey ||
+        finalAgentKey !== skillReferenceAgentKey
       ) {
         pendingSendRef.current = false;
         pendingSentMessageRef.current = "";
@@ -637,7 +631,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     setInputValue("");
     dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
     clearComposerAttachments();
-    clearMustUseSkills();
     setSlashDismissed(false);
     closeMention();
     dispatch({ type: "BEGIN_COMPOSER_SUBMISSION", draft: {
@@ -659,8 +652,7 @@ export function useComposerSend(input: UseComposerSendInput) {
           model: modelOverride,
           params: controlParams,
           editingMode: editingModeAvailable ? currentState.editingMode ?? false : undefined,
-          kbaseScope,
-          mustUseSkillsAgentKey,
+          skillReferenceAgentKey,
         },
       }),
     );
@@ -668,7 +660,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     attachmentChatId,
     accessLevel,
     clearComposerAttachments,
-    clearMustUseSkills,
     closeMention,
     controlParams,
     dispatch,
@@ -679,8 +670,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     isAwaitingActive,
     isVoiceMode,
     modelOverride,
-    mustUseSkillsAgentKey,
-    mustUseSkills, mustUseKbases, kbaseScope,
+    skillReferenceAgentKey,
     messageApi,
     openCompactChooser,
     openBTW,
