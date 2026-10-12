@@ -774,6 +774,36 @@ describe("required libraries through message actions", () => {
   renderToStaticMarkup(React.createElement(Probe));
   return {stateRef, dispatch, actions};
  }
+ it("keeps knowledge library names in the live timeline while sending ID-only references", async () => {
+  const {stateRef, actions} = harness();
+  let finish!: (result: {reason: string; lastSeq: number}) => void;
+  startQuery.mockReturnValue({
+    identity: Promise.resolve({chatId: "accepted-chat", runId: "run", owner: {kind: "agent", agentKey: "general"}}),
+    completion: new Promise(resolve => { finish = resolve; }),
+  });
+  const references = [
+    {type: "kbase", id: "a", name: "研发知识"},
+    {type: "kbase", id: "b", name: "团队资料"},
+    {type: "file", name: "说明.pdf", url: "resource://document"},
+  ];
+  const sending = actions.sendMessage("最新的工作是什么", references);
+  // Admission and identity resolve, but the Run remains active.
+  for (let i = 0; i < 10 && !startQuery.mock.calls.length; i++) await Promise.resolve();
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: [
+    {type: "kbase", id: "a"}, {type: "kbase", id: "b"}, references[2],
+  ]}));
+  const user = [...stateRef.current.timelineNodes.values()].find(node => node.role === "user");
+  expect(user?.attachments).toEqual([
+    {type: "kbase", id: "a", name: "研发知识"},
+    {type: "kbase", id: "b", name: "团队资料"},
+    {type: "file", name: "说明.pdf", url: "resource://document"},
+  ]);
+  references[0].name = "后续输入区选择";
+  expect(user?.attachments?.[0].name).toBe("研发知识");
+  finish({reason: "done", lastSeq: 1});
+  await sending;
+  expect([...stateRef.current.timelineNodes.values()].find(node => node.role === "user")?.attachments?.[0].name).toBe("研发知识");
+ });
  it("validates the actual leading mention target and freezes multi-library/plan query input", async () => {
   const {stateRef, actions} = harness();
   stateRef.current.planningMode = true;

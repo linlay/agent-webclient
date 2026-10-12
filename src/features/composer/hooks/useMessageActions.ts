@@ -292,6 +292,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const submissionSession = getDataSessionRevision();
       const rawMessage = String(inputMessage ?? "").trim();
       const normalizedReferences = queryReferences(references);
+      // Keep display metadata before queryReferences strips resource names for the wire payload.
+      const referenceAttachments = normalizeTimelineAttachments(references);
+      const timelineAttachments = referenceAttachments.length ? referenceAttachments : attachments;
       const skillReferenceIds = referenceIds(normalizedReferences,"skill");
       if (!hasSendableQuery(rawMessage, normalizedReferences, hasQueryHistory(stateRef.current, preferredChatId || stateRef.current.chatId), canContinueChat(stateRef.current, preferredChatId || stateRef.current.chatId))) return;
       if (
@@ -482,7 +485,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
       /* Add user message to timeline (mention prefix is routing metadata, not message body) */
       const userNodeId = `user_${Date.now()}`;
-      if (cleanMessage || attachments.length > 0) {
+      if (cleanMessage || timelineAttachments.length > 0) {
         dispatch({
           type: "SET_TIMELINE_NODE",
           id: userNodeId,
@@ -491,7 +494,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             kind: "message",
             role: "user",
             text: cleanMessage,
-            attachments: normalizeTimelineAttachments(normalizedReferences).length ? normalizeTimelineAttachments(normalizedReferences) : attachments.length ? attachments : undefined,
+            attachments: timelineAttachments.length ? timelineAttachments : undefined,
             references: JSON.parse(JSON.stringify(normalizedReferences)),
             ts: Date.now(),
           },
